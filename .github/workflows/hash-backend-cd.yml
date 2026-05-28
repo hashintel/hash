@@ -77,17 +77,91 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      # ECR is arm64-only (staging ECS runs on Graviton) AND main-only — the
-      # OIDC trust policy rejects role assumption from other refs anyway, so
-      # don't even attempt the auth on feature branches.
+      # All push-policy lives here.
+      # ECR is gated on
+      #   - matrix.push
+      #   - includes ecr
+      #   - arm64-only
+      #   - main-only
+      # GHCR is gated on
+      #   - matrix.push
+      #   - includes ghcr
+      #
+      # On `push` / `workflow_dispatch` with no reachable target the build is skipped.
+      - name: Compute targets
+        id: targets
+        shell: bash
+        env:
+          PUSH_LIST: ${{ join(matrix.push, ' ') }}
+          ARCH: ${{ matrix.arch }}
+          REF: ${{ github.ref }}
+          EVENT: ${{ github.event_name }}
+          SERVICE: ${{ matrix.service }}
+          SHA: ${{ github.sha }}
+          RUN_ID: ${{ github.run_id }}
+          GHCR_OWNER: ${{ github.repository_owner }}
+          ECR_ACCOUNT: ${{ env.AWS_ECR_ACCOUNT_ID }}
+          ECR_REGION: ${{ env.AWS_REGION }}
+          ECR_REPO: ${{ github.repository }}
+        run: |
+          is_push_event=false
+          case "$EVENT" in push|workflow_dispatch) is_push_event=true ;; esac
+          is_main=false
+          [[ "$REF" == refs/heads/main ]] && is_main=true
+
+          push_ecr=false
+          if [[ " $PUSH_LIST " == *" ecr "* && "$ARCH" == arm64 && "$is_main" == true && "$is_push_event" == true ]]; then
+            push_ecr=true
+          fi
+          push_ghcr=false
+          if [[ " $PUSH_LIST " == *" ghcr "* && "$is_push_event" == true ]]; then
+            push_ghcr=true
+          fi
+
+          push=false
+          if $push_ecr || $push_ghcr; then
+            push=true
+          fi
+
+          # On push/dispatch we only build when we can actually publish.
+          should_build=true
+          if $is_push_event && ! $push_ecr && ! $push_ghcr; then
+            should_build=false
+          fi
+
+          ecr_host="$ECR_ACCOUNT.dkr.ecr.$ECR_REGION.amazonaws.com"
+
+          {
+            echo "should_build=$should_build"
+            echo "push_ecr=$push_ecr"
+            echo "push_ghcr=$push_ghcr"
+            echo "push=$push"
+
+            echo "ecr_tags<<EOF"
+            if $push_ecr; then
+              echo "$ecr_host/$ECR_REPO/$SERVICE:staging"
+              echo "$ecr_host/$ECR_REPO/$SERVICE:sha-$SHA"
+              echo "$ecr_host/$ECR_REPO/$SERVICE:run-$RUN_ID"
+            fi
+            echo EOF
+
+            echo "ghcr_tags<<EOF"
+            if $push_ghcr; then
+              echo "ghcr.io/$GHCR_OWNER/hash/$SERVICE:latest-$ARCH"
+              echo "ghcr.io/$GHCR_OWNER/hash/$SERVICE:sha-$SHA-$ARCH"
+            fi
+            echo EOF
+          } >> "$GITHUB_OUTPUT"
+
       - name: Configure AWS credentials (ECR push)
-        if: contains(matrix.push, 'ecr') && matrix.arch == 'arm64' && github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+        if: steps.targets.outputs.push_ecr == 'true' && steps.targets.outputs.should_build == 'true'
         uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4.3.1
         with:
           role-to-assume: arn:aws:iam::${{ env.AWS_ECR_ACCOUNT_ID }}:role/${{ env.OIDC_HASH_CD_PUSH_ROLE }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Build${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && ' and push' || '' }} ${{ matrix.service }} (${{ matrix.arch }})
+      - name: Build${{ steps.targets.outputs.push == 'true' && ' and push' || '' }} ${{ matrix.service }} (${{ matrix.arch }})
+        if: steps.targets.outputs.should_build == 'true'
         uses: ./.github/actions/docker-build-push
         with:
           CONTEXT_PATH: ${{ github.workspace }}/${{ matrix.context }}
@@ -95,19 +169,10 @@ jobs:
           PLATFORM: linux/${{ matrix.arch }}
           CACHE_KEY: ${{ matrix.service }}-${{ matrix.arch }}
           GITHUB_TOKEN: ${{ github.token }}
-          # Push only when there is at least one target this build can reach.
-          PUSH: ${{ ((contains(matrix.push, 'ecr') && matrix.arch == 'arm64' && github.ref == 'refs/heads/main') || contains(matrix.push, 'ghcr')) && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') }}
+          PUSH: ${{ steps.targets.outputs.push }}
           BUILD_ARGS: ${{ matrix.build_args }}
-          # ECR stays single-arch (arm64) and main-only.
-          ECR_TAGS: |
-            ${{ (contains(matrix.push, 'ecr') && matrix.arch == 'arm64' && github.ref == 'refs/heads/main') && format('{0}.dkr.ecr.{1}.amazonaws.com/{2}/{3}:staging', env.AWS_ECR_ACCOUNT_ID, env.AWS_REGION, github.repository, matrix.service) || '' }}
-            ${{ (contains(matrix.push, 'ecr') && matrix.arch == 'arm64' && github.ref == 'refs/heads/main') && format('{0}.dkr.ecr.{1}.amazonaws.com/{2}/{3}:sha-{4}', env.AWS_ECR_ACCOUNT_ID, env.AWS_REGION, github.repository, matrix.service, github.sha) || '' }}
-            ${{ (contains(matrix.push, 'ecr') && matrix.arch == 'arm64' && github.ref == 'refs/heads/main') && format('{0}.dkr.ecr.{1}.amazonaws.com/{2}/{3}:run-{4}', env.AWS_ECR_ACCOUNT_ID, env.AWS_REGION, github.repository, matrix.service, github.run_id) || '' }}
-          # GHCR gets per-arch tags; the follow-up `manifest` job joins them
-          # into multi-arch `latest` / `sha-<sha>` tags.
-          GHCR_TAGS: |
-            ${{ contains(matrix.push, 'ghcr') && format('ghcr.io/{0}/hash/{1}:latest-{2}', github.repository_owner, matrix.service, matrix.arch) || '' }}
-            ${{ contains(matrix.push, 'ghcr') && format('ghcr.io/{0}/hash/{1}:sha-{2}-{3}', github.repository_owner, matrix.service, github.sha, matrix.arch) || '' }}
+          ECR_TAGS: ${{ steps.targets.outputs.ecr_tags }}
+          GHCR_TAGS: ${{ steps.targets.outputs.ghcr_tags }}
 
   manifest:
     name: Publish multi-arch manifest (${{ matrix.service }})
