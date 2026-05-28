@@ -16,24 +16,38 @@ env:
 name: HASH backend deployment
 jobs:
   build:
-    name: Build${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && ' and push' || '' }} ${{ matrix.service }}
-    runs-on: ubuntu-24.04-arm
+    name: Build${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && ' and push' || '' }} ${{ matrix.service }} (${{ matrix.arch }})
+    runs-on: ${{ matrix.arch == 'arm64' && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
     strategy:
       fail-fast: false
       matrix:
+        service:
+          - graph
+          - api
+          - frontend
+          - kratos
+          - hydra
+          - ai-worker-ts
+          - integration-worker
+        arch: [arm64, amd64]
+        # Services that only publish to ECR don't need an amd64 build — ECR is
+        # arm64-only (staging ECS runs on Graviton).
+        exclude:
+          - { service: kratos, arch: amd64 }
+          - { service: hydra, arch: amd64 }
+        # Per-service config: paths plus the registries to publish to. Joined
+        # with every remaining (service, arch) combination via `include` merge.
         include:
           - service: graph
-            ghcr: true
-            ecr: true
+            push: [ecr, ghcr]
             dockerfile: apps/hash-graph/docker/Dockerfile
             context: .
           - service: api
-            ghcr: true
-            ecr: true
+            push: [ecr, ghcr]
             dockerfile: apps/hash-api/docker/Dockerfile
             context: .
           - service: frontend
-            ghcr: true
+            push: [ghcr]
             dockerfile: apps/hash-frontend/docker/Dockerfile
             context: .
             # TODO(FE-752): Remove once frontend is runtime-configurable
@@ -41,21 +55,19 @@ jobs:
               API_ORIGIN=http://localhost:5001
               FRONTEND_URL=http://localhost:3000
           - service: kratos
-            ecr: true
+            push: [ecr]
             dockerfile: infra/compose/kratos/Dockerfile
             context: infra/compose/kratos
           - service: hydra
-            ecr: true
+            push: [ecr]
             dockerfile: infra/compose/hydra/Dockerfile
             context: infra/compose/hydra
           - service: ai-worker-ts
-            ghcr: true
-            ecr: true
+            push: [ecr, ghcr]
             dockerfile: apps/hash-ai-worker-ts/docker/Dockerfile
             context: .
           - service: integration-worker
-            ghcr: true
-            ecr: true
+            push: [ecr, ghcr]
             dockerfile: apps/hash-integration-worker/docker/Dockerfile
             context: .
     permissions:
@@ -65,25 +77,78 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
+      # ECR is arm64-only (staging ECS runs on Graviton), so we only auth and
+      # push when this build's arch matches.
       - name: Configure AWS credentials (ECR push)
-        if: matrix.ecr && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+        if: contains(matrix.push, 'ecr') && matrix.arch == 'arm64' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
         uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4.3.1
         with:
           role-to-assume: arn:aws:iam::${{ env.AWS_ECR_ACCOUNT_ID }}:role/${{ env.OIDC_HASH_CD_PUSH_ROLE }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Build${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && ' and push' || '' }} ${{ matrix.service }}
+      - name: Build${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && ' and push' || '' }} ${{ matrix.service }} (${{ matrix.arch }})
         uses: ./.github/actions/docker-build-push
         with:
           CONTEXT_PATH: ${{ github.workspace }}/${{ matrix.context }}
           DOCKERFILE_LOCATION: ${{ github.workspace }}/${{ matrix.dockerfile }}
-          AWS_ECR_URL: ${{ matrix.ecr && format('{0}.dkr.ecr.{1}.amazonaws.com', env.AWS_ECR_ACCOUNT_ID, env.AWS_REGION) || '' }}
-          ECR_IMAGE_NAME: ${{ matrix.ecr && format('{0}/{1}', github.repository, matrix.service) || '' }}
-          GHCR_IMAGE_NAME: ${{ matrix.ghcr && format('hash/{0}', matrix.service) || '' }}
-          IMAGE_TAG: staging
+          PLATFORM: linux/${{ matrix.arch }}
+          CACHE_KEY: ${{ matrix.service }}-${{ matrix.arch }}
           GITHUB_TOKEN: ${{ github.token }}
           PUSH: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
           BUILD_ARGS: ${{ matrix.build_args }}
+          # ECR stays single-arch (arm64). amd64 builds skip ECR even when the
+          # service publishes there.
+          ECR_TAGS: |
+            ${{ (contains(matrix.push, 'ecr') && matrix.arch == 'arm64') && format('{0}.dkr.ecr.{1}.amazonaws.com/{2}/{3}:staging', env.AWS_ECR_ACCOUNT_ID, env.AWS_REGION, github.repository, matrix.service) || '' }}
+            ${{ (contains(matrix.push, 'ecr') && matrix.arch == 'arm64') && format('{0}.dkr.ecr.{1}.amazonaws.com/{2}/{3}:sha-{4}', env.AWS_ECR_ACCOUNT_ID, env.AWS_REGION, github.repository, matrix.service, github.sha) || '' }}
+            ${{ (contains(matrix.push, 'ecr') && matrix.arch == 'arm64') && format('{0}.dkr.ecr.{1}.amazonaws.com/{2}/{3}:run-{4}', env.AWS_ECR_ACCOUNT_ID, env.AWS_REGION, github.repository, matrix.service, github.run_id) || '' }}
+          # GHCR gets per-arch tags; the follow-up `manifest` job joins them
+          # into multi-arch `latest` / `sha-<sha>` tags.
+          GHCR_TAGS: |
+            ${{ contains(matrix.push, 'ghcr') && format('ghcr.io/{0}/hash/{1}:latest-{2}', github.repository_owner, matrix.service, matrix.arch) || '' }}
+            ${{ contains(matrix.push, 'ghcr') && format('ghcr.io/{0}/hash/{1}:sha-{2}-{3}', github.repository_owner, matrix.service, github.sha, matrix.arch) || '' }}
+
+  manifest:
+    name: Publish multi-arch manifest (${{ matrix.service }})
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - graph
+          - api
+          - frontend
+          - ai-worker-ts
+          - integration-worker
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Login to GHCR
+        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
+
+      - name: Join arch variants into multi-arch tags
+        env:
+          IMAGE: ghcr.io/${{ github.repository_owner }}/hash/${{ matrix.service }}
+          SHA: ${{ github.sha }}
+        run: |
+          docker buildx imagetools create \
+            --tag "$IMAGE:latest" \
+            "$IMAGE:latest-arm64" \
+            "$IMAGE:latest-amd64"
+          docker buildx imagetools create \
+            --tag "$IMAGE:sha-$SHA" \
+            "$IMAGE:sha-$SHA-arm64" \
+            "$IMAGE:sha-$SHA-amd64"
 
   deploy:
     name: Deploy ${{ matrix.service }}
@@ -127,7 +192,7 @@ jobs:
       - name: Configure AWS credentials (ECS deploy)
         uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4.3.1
         with:
-          role-to-assume: ${{ env.OIDC_HASH_CD_DEPLOY_ROLE }}
+          role-to-assume: arn:aws:iam::${{ env.AWS_DEPLOY_ACCOUNT_ID }}:role/${{ env.OIDC_HASH_CD_DEPLOY_ROLE }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Redeploy ${{ matrix.service }} staging service

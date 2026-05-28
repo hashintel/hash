@@ -1,35 +1,34 @@
 name: Build Docker image
-description: Build a Docker image and optionally push it to ECR and/or GHCR.
+description: Build a single-platform Docker image and optionally push it to ECR and/or GHCR.
 
 inputs:
   GITHUB_TOKEN:
     description: GitHub token (used for `--mount=type=secret,id=GITHUB_TOKEN` in the Dockerfiles and for GHCR auth).
     required: true
   DOCKERFILE_LOCATION:
-    description: Location of the Dockerfile
+    description: Location of the Dockerfile.
     required: true
   CONTEXT_PATH:
-    description: Context to build the image within
+    description: Build context.
     required: false
     default: ${{ github.workspace }}
-  IMAGE_TAG:
-    description: Primary tag of the image within the registries (alongside the `sha-*` and `run-*` tags).
+  PLATFORM:
+    description: Target platform for this build (e.g. `linux/arm64`, `linux/amd64`). The runner must be native to the platform — no cross-arch emulation. Multi-arch manifests are assembled by a separate job via `docker buildx imagetools create`.
     required: false
-    default: latest
-  AWS_ECR_URL:
-    description: AWS ECR URL. Required only if ECR_IMAGE_NAME is set. AWS credentials must be configured in the calling job.
+    default: linux/arm64
+  CACHE_KEY:
+    description: Buildx layer-cache key, typically `<service>-<arch>`.
+    required: true
+  ECR_TAGS:
+    description: Newline-separated list of fully qualified ECR tags. Empty to skip ECR. The calling job must have AWS credentials configured.
     required: false
     default: ""
-  ECR_IMAGE_NAME:
-    description: When set, the image is tagged and pushed to `<AWS_ECR_URL>/<ECR_IMAGE_NAME>`. Leave empty to skip ECR.
-    required: false
-    default: ""
-  GHCR_IMAGE_NAME:
-    description: When set, the image is tagged and pushed to `ghcr.io/<repo_owner>/<GHCR_IMAGE_NAME>`. Leave empty to skip GHCR.
+  GHCR_TAGS:
+    description: Newline-separated list of fully qualified GHCR tags. Empty to skip GHCR.
     required: false
     default: ""
   PUSH:
-    description: Whether to push to the registries. Set to "false" for build-only validation (e.g. on pull requests / merge queue) — no ECR/GHCR auth is required in that case.
+    description: Whether to push to the registries. Set to "false" for build-only validation (pull_request / merge_group). No registry auth is required when false.
     required: false
     default: "true"
   BUILD_ARGS:
@@ -40,24 +39,12 @@ inputs:
 runs:
   using: composite
   steps:
-    # Derive a filesystem-safe image identifier for cache keys and step names.
-    # Prefers GHCR_IMAGE_NAME (already friendly); falls back to ECR_IMAGE_NAME
-    # with `/` replaced by `-`.
-    - name: Resolve image id
-      shell: bash
-      env:
-        GHCR_IMAGE_NAME: ${{ inputs.GHCR_IMAGE_NAME }}
-        ECR_IMAGE_NAME: ${{ inputs.ECR_IMAGE_NAME }}
-      run: |
-        NAME="${GHCR_IMAGE_NAME:-$ECR_IMAGE_NAME}"
-        echo "IMAGE_ID=$(printf '%s' "$NAME" | tr / -)" >> "$GITHUB_ENV"
-
     - name: Login to ECR
-      if: inputs.PUSH == 'true' && inputs.ECR_IMAGE_NAME != ''
+      if: inputs.PUSH == 'true' && inputs.ECR_TAGS != ''
       uses: ./.github/actions/docker-ecr-login
 
     - name: Login to GHCR
-      if: inputs.PUSH == 'true' && inputs.GHCR_IMAGE_NAME != ''
+      if: inputs.PUSH == 'true' && inputs.GHCR_TAGS != ''
       uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3.6.0
       with:
         registry: ghcr.io
@@ -73,38 +60,33 @@ runs:
       uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
       with:
         path: /tmp/.buildx-cache
-        key: docker-${{ env.IMAGE_ID }}-${{ hashFiles('yarn.lock') }}
+        key: docker-${{ inputs.CACHE_KEY }}-${{ hashFiles('yarn.lock') }}
         restore-keys: |
-          docker-${{ env.IMAGE_ID }}-${{ hashFiles('yarn.lock') }}
-          docker-${{ env.IMAGE_ID }}-
+          docker-${{ inputs.CACHE_KEY }}-${{ hashFiles('yarn.lock') }}
+          docker-${{ inputs.CACHE_KEY }}-
           docker-
 
-    - name: Build${{ inputs.PUSH == 'true' && ' and push' || '' }} ${{ env.IMAGE_ID }}
+    - name: Build${{ inputs.PUSH == 'true' && ' and push' || '' }} ${{ inputs.CACHE_KEY }}
       uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
-      env:
-        GH_RUN_ID: ${{ github.run_id }}
       with:
         # The Dockerfile is in a leaf-folder without access to what it needs.
         # Thus the context is within the root, while the dockerfile is deeply nested.
         context: ${{ inputs.CONTEXT_PATH }}
         push: ${{ inputs.PUSH }}
         file: ${{ inputs.DOCKERFILE_LOCATION }}
+        platforms: ${{ inputs.PLATFORM }}
         build-args: ${{ inputs.BUILD_ARGS }}
         secrets: |
           GITHUB_TOKEN=${{ inputs.GITHUB_TOKEN }}
         tags: |
-          ${{ inputs.ECR_IMAGE_NAME != '' && format('{0}/{1}:{2}', inputs.AWS_ECR_URL, inputs.ECR_IMAGE_NAME, inputs.IMAGE_TAG) || '' }}
-          ${{ inputs.ECR_IMAGE_NAME != '' && format('{0}/{1}:sha-{2}', inputs.AWS_ECR_URL, inputs.ECR_IMAGE_NAME, github.sha) || '' }}
-          ${{ inputs.ECR_IMAGE_NAME != '' && format('{0}/{1}:run-{2}', inputs.AWS_ECR_URL, inputs.ECR_IMAGE_NAME, env.GH_RUN_ID) || '' }}
-          ${{ inputs.GHCR_IMAGE_NAME != '' && format('ghcr.io/{0}/{1}:{2}', github.repository_owner, inputs.GHCR_IMAGE_NAME, inputs.IMAGE_TAG) || '' }}
-          ${{ inputs.GHCR_IMAGE_NAME != '' && format('ghcr.io/{0}/{1}:sha-{2}', github.repository_owner, inputs.GHCR_IMAGE_NAME, github.sha) || '' }}
+          ${{ inputs.ECR_TAGS }}
+          ${{ inputs.GHCR_TAGS }}
         labels: |
-          ${{ inputs.GHCR_IMAGE_NAME != '' && format('org.opencontainers.image.source=https://github.com/{0}', github.repository) || '' }}
+          ${{ inputs.GHCR_TAGS != '' && format('org.opencontainers.image.source=https://github.com/{0}', github.repository) || '' }}
         provenance: false
         cache-from: type=local,src=/tmp/.buildx-cache
         cache-to: type=local,mode=max,dest=/tmp/.buildx-cache-new
 
-    # Make sure that cache doesn't get too bloated.
     - name: Move cache
       shell: bash
       run: |
