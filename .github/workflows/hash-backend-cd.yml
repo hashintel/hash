@@ -285,3 +285,22 @@ jobs:
           SLACK_TITLE: Backend deployment failed
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
           SLACK_USERNAME: GitHub
+
+  # Single gate suitable as a Required status check in branch protection. The
+  # underlying matrix jobs change as services are added/removed; this job's
+  # name is stable.
+  passed:
+    name: Backend CD passed
+    needs: [build, manifest, deploy]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check build
+        run: |
+          [[ ${{ needs.build.result }} = success ]]
+      - name: Check manifest
+        run: |
+          [[ ${{ needs.manifest.result }} =~ success|skipped ]]
+      - name: Check deploy
+        run: |
+          [[ ${{ needs.deploy.result }} =~ success|skipped ]]
