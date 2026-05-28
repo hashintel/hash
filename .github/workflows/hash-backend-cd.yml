@@ -77,10 +77,11 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      # ECR is arm64-only (staging ECS runs on Graviton), so we only auth and
-      # push when this build's arch matches.
+      # ECR is arm64-only (staging ECS runs on Graviton) AND main-only — the
+      # OIDC trust policy rejects role assumption from other refs anyway, so
+      # don't even attempt the auth on feature branches.
       - name: Configure AWS credentials (ECR push)
-        if: contains(matrix.push, 'ecr') && matrix.arch == 'arm64' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+        if: contains(matrix.push, 'ecr') && matrix.arch == 'arm64' && github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
         uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4.3.1
         with:
           role-to-assume: arn:aws:iam::${{ env.AWS_ECR_ACCOUNT_ID }}:role/${{ env.OIDC_HASH_CD_PUSH_ROLE }}
@@ -94,14 +95,14 @@ jobs:
           PLATFORM: linux/${{ matrix.arch }}
           CACHE_KEY: ${{ matrix.service }}-${{ matrix.arch }}
           GITHUB_TOKEN: ${{ github.token }}
-          PUSH: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
+          # Push only when there is at least one target this build can reach.
+          PUSH: ${{ ((contains(matrix.push, 'ecr') && matrix.arch == 'arm64' && github.ref == 'refs/heads/main') || contains(matrix.push, 'ghcr')) && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') }}
           BUILD_ARGS: ${{ matrix.build_args }}
-          # ECR stays single-arch (arm64). amd64 builds skip ECR even when the
-          # service publishes there.
+          # ECR stays single-arch (arm64) and main-only.
           ECR_TAGS: |
-            ${{ (contains(matrix.push, 'ecr') && matrix.arch == 'arm64') && format('{0}.dkr.ecr.{1}.amazonaws.com/{2}/{3}:staging', env.AWS_ECR_ACCOUNT_ID, env.AWS_REGION, github.repository, matrix.service) || '' }}
-            ${{ (contains(matrix.push, 'ecr') && matrix.arch == 'arm64') && format('{0}.dkr.ecr.{1}.amazonaws.com/{2}/{3}:sha-{4}', env.AWS_ECR_ACCOUNT_ID, env.AWS_REGION, github.repository, matrix.service, github.sha) || '' }}
-            ${{ (contains(matrix.push, 'ecr') && matrix.arch == 'arm64') && format('{0}.dkr.ecr.{1}.amazonaws.com/{2}/{3}:run-{4}', env.AWS_ECR_ACCOUNT_ID, env.AWS_REGION, github.repository, matrix.service, github.run_id) || '' }}
+            ${{ (contains(matrix.push, 'ecr') && matrix.arch == 'arm64' && github.ref == 'refs/heads/main') && format('{0}.dkr.ecr.{1}.amazonaws.com/{2}/{3}:staging', env.AWS_ECR_ACCOUNT_ID, env.AWS_REGION, github.repository, matrix.service) || '' }}
+            ${{ (contains(matrix.push, 'ecr') && matrix.arch == 'arm64' && github.ref == 'refs/heads/main') && format('{0}.dkr.ecr.{1}.amazonaws.com/{2}/{3}:sha-{4}', env.AWS_ECR_ACCOUNT_ID, env.AWS_REGION, github.repository, matrix.service, github.sha) || '' }}
+            ${{ (contains(matrix.push, 'ecr') && matrix.arch == 'arm64' && github.ref == 'refs/heads/main') && format('{0}.dkr.ecr.{1}.amazonaws.com/{2}/{3}:run-{4}', env.AWS_ECR_ACCOUNT_ID, env.AWS_REGION, github.repository, matrix.service, github.run_id) || '' }}
           # GHCR gets per-arch tags; the follow-up `manifest` job joins them
           # into multi-arch `latest` / `sha-<sha>` tags.
           GHCR_TAGS: |
