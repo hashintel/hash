@@ -32,6 +32,10 @@ inputs:
     description: Whether to push to the registries. Set to "false" for build-only validation (e.g. on pull requests / merge queue) — no ECR/GHCR auth is required in that case.
     required: false
     default: "true"
+  BUILD_ARGS:
+    description: Additional Docker build arguments (one `KEY=VALUE` per line). Intended only for non-secret values that need to be baked into the image at build-time, such as `NEXT_PUBLIC_*` URLs. Never pass secrets here — build-args end up in image history and are visible to anyone who can pull the image.
+    required: false
+    default: ""
 
 runs:
   using: composite
@@ -45,11 +49,8 @@ runs:
         GHCR_IMAGE_NAME: ${{ inputs.GHCR_IMAGE_NAME }}
         ECR_IMAGE_NAME: ${{ inputs.ECR_IMAGE_NAME }}
       run: |
-        if [ -n "$GHCR_IMAGE_NAME" ]; then
-          echo "IMAGE_ID=$GHCR_IMAGE_NAME" >> "$GITHUB_ENV"
-        else
-          echo "IMAGE_ID=$(printf '%s' "$ECR_IMAGE_NAME" | tr / -)" >> "$GITHUB_ENV"
-        fi
+        NAME="${GHCR_IMAGE_NAME:-$ECR_IMAGE_NAME}"
+        echo "IMAGE_ID=$(printf '%s' "$NAME" | tr / -)" >> "$GITHUB_ENV"
 
     - name: Login to ECR
       if: inputs.PUSH == 'true' && inputs.ECR_IMAGE_NAME != ''
@@ -88,6 +89,7 @@ runs:
         context: ${{ inputs.CONTEXT_PATH }}
         push: ${{ inputs.PUSH }}
         file: ${{ inputs.DOCKERFILE_LOCATION }}
+        build-args: ${{ inputs.BUILD_ARGS }}
         secrets: |
           GITHUB_TOKEN=${{ inputs.GITHUB_TOKEN }}
         tags: |

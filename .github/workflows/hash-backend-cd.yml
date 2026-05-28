@@ -8,57 +8,54 @@ on:
 
 env:
   AWS_REGION: eu-central-1
-
-  ARTIFACTS_ECR_URL: 469596578827.dkr.ecr.eu-central-1.amazonaws.com
-  OIDC_HASH_CD_PUSH_ROLE: arn:aws:iam::469596578827:role/github-oidc-hash-cd-push
-  OIDC_HASH_CD_DEPLOY_ROLE: arn:aws:iam::054238437032:role/github-oidc-hash-cd-deploy
-
-  APP_CLUSTER_NAME: h-stage-euc1-app
-  APP_GRAPH_SERVICE_NAME: h-stage-euc1-app-graph
-  APP_GRAPH_ADMIN_SERVICE_NAME: h-stage-euc1-app-graph-admin
-  APP_TYPE_FETCHER_SERVICE_NAME: h-stage-euc1-app-type-fetcher
-  APP_API_SERVICE_NAME: h-stage-euc1-app-api
-  WORKER_CLUSTER_NAME: h-stage-euc1-worker
-  WORKER_AI_TS_SERVICE_NAME: h-stage-euc1-worker-ai-ts
-  WORKER_INTEGRATION_SERVICE_NAME: h-stage-euc1-worker-integration
-  AUTH_CLUSTER_NAME: h-stage-euc1-auth
-  AUTH_KRATOS_SERVICE_NAME: h-stage-euc1-auth-kratos
-  AUTH_HYDRA_SERVICE_NAME: h-stage-euc1-auth-hydra
+  AWS_ECR_ACCOUNT_ID: 469596578827
+  AWS_DEPLOY_ACCOUNT_ID: 054238437032
+  OIDC_HASH_CD_PUSH_ROLE: github-oidc-hash-cd-push
+  OIDC_HASH_CD_DEPLOY_ROLE: github-oidc-hash-cd-deploy
 
 name: HASH backend deployment
 jobs:
   build:
-    name: Build${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && ' and push' || '' }} ${{ matrix.ghcr }}
+    name: Build${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && ' and push' || '' }} ${{ matrix.service }}
     runs-on: ubuntu-24.04-arm
     strategy:
       fail-fast: false
       matrix:
         include:
-          - ghcr: hash-graph
-            ecr: graph
+          - service: graph
+            ghcr: true
+            ecr: true
             dockerfile: apps/hash-graph/docker/Dockerfile
             context: .
-          - ghcr: hash-api
-            ecr: api
+          - service: api
+            ghcr: true
+            ecr: true
             dockerfile: apps/hash-api/docker/Dockerfile
             context: .
-          - ghcr: hash-frontend
+          - service: frontend
+            ghcr: true
             dockerfile: apps/hash-frontend/docker/Dockerfile
             context: .
-          - ghcr: hash-kratos
-            ecr: kratos
+            # TODO(FE-752): Remove once frontend is runtime-configurable
+            build_args: |
+              API_ORIGIN=http://localhost:5001
+              FRONTEND_URL=http://localhost:3000
+          - service: kratos
+            ecr: true
             dockerfile: infra/compose/kratos/Dockerfile
             context: infra/compose/kratos
-          - ghcr: hash-hydra
-            ecr: hydra
+          - service: hydra
+            ecr: true
             dockerfile: infra/compose/hydra/Dockerfile
             context: infra/compose/hydra
-          - ghcr: hash-ai-worker-ts
-            ecr: ai-worker-ts
+          - service: ai-worker-ts
+            ghcr: true
+            ecr: true
             dockerfile: apps/hash-ai-worker-ts/docker/Dockerfile
             context: .
-          - ghcr: hash-integration-worker
-            ecr: integration-worker
+          - service: integration-worker
+            ghcr: true
+            ecr: true
             dockerfile: apps/hash-integration-worker/docker/Dockerfile
             context: .
     permissions:
@@ -72,20 +69,21 @@ jobs:
         if: matrix.ecr && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
         uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4.3.1
         with:
-          role-to-assume: ${{ env.OIDC_HASH_CD_PUSH_ROLE }}
+          role-to-assume: arn:aws:iam::${{ env.AWS_ECR_ACCOUNT_ID }}:role/${{ env.OIDC_HASH_CD_PUSH_ROLE }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Build${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && ' and push' || '' }} ${{ matrix.ghcr }}
+      - name: Build${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && ' and push' || '' }} ${{ matrix.service }}
         uses: ./.github/actions/docker-build-push
         with:
           CONTEXT_PATH: ${{ github.workspace }}/${{ matrix.context }}
           DOCKERFILE_LOCATION: ${{ github.workspace }}/${{ matrix.dockerfile }}
-          AWS_ECR_URL: ${{ matrix.ecr && env.ARTIFACTS_ECR_URL || '' }}
-          ECR_IMAGE_NAME: ${{ matrix.ecr && format('{0}/{1}', github.repository, matrix.ecr) || '' }}
-          GHCR_IMAGE_NAME: ${{ matrix.ghcr }}
+          AWS_ECR_URL: ${{ matrix.ecr && format('{0}.dkr.ecr.{1}.amazonaws.com', env.AWS_ECR_ACCOUNT_ID, env.AWS_REGION) || '' }}
+          ECR_IMAGE_NAME: ${{ matrix.ecr && format('{0}/{1}', github.repository, matrix.service) || '' }}
+          GHCR_IMAGE_NAME: ${{ matrix.ghcr && format('hash/{0}', matrix.service) || '' }}
           IMAGE_TAG: staging
           GITHUB_TOKEN: ${{ github.token }}
           PUSH: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
+          BUILD_ARGS: ${{ matrix.build_args }}
 
   deploy:
     name: Deploy ${{ matrix.service }}
@@ -96,45 +94,30 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - service: graph,
-            cluster: APP_CLUSTER_NAME,
-            service_name: APP_GRAPH_SERVICE_NAME,
-
-          - {
-              service: graph-admin,
-              cluster: APP_CLUSTER_NAME,
-              service_name: APP_GRAPH_ADMIN_SERVICE_NAME,
-            }
-          - {
-              service: type-fetcher,
-              cluster: APP_CLUSTER_NAME,
-              service_name: APP_TYPE_FETCHER_SERVICE_NAME,
-            }
-          - {
-              service: api,
-              cluster: APP_CLUSTER_NAME,
-              service_name: APP_API_SERVICE_NAME,
-            }
-          - {
-              service: kratos,
-              cluster: AUTH_CLUSTER_NAME,
-              service_name: AUTH_KRATOS_SERVICE_NAME,
-            }
-          - {
-              service: hydra,
-              cluster: AUTH_CLUSTER_NAME,
-              service_name: AUTH_HYDRA_SERVICE_NAME,
-            }
-          - {
-              service: ai-ts-worker,
-              cluster: WORKER_CLUSTER_NAME,
-              service_name: WORKER_AI_TS_SERVICE_NAME,
-            }
-          - {
-              service: integration-worker,
-              cluster: WORKER_CLUSTER_NAME,
-              service_name: WORKER_INTEGRATION_SERVICE_NAME,
-            }
+          - service: graph
+            cluster: h-stage-euc1-app
+            service_name: h-stage-euc1-app-graph
+          - service: graph-admin
+            cluster: h-stage-euc1-app
+            service_name: h-stage-euc1-app-graph-admin
+          - service: type-fetcher
+            cluster: h-stage-euc1-app
+            service_name: h-stage-euc1-app-type-fetcher
+          - service: api
+            cluster: h-stage-euc1-app
+            service_name: h-stage-euc1-app-api
+          - service: kratos
+            cluster: h-stage-euc1-auth
+            service_name: h-stage-euc1-auth-kratos
+          - service: hydra
+            cluster: h-stage-euc1-auth
+            service_name: h-stage-euc1-auth-hydra
+          - service: ai-ts-worker
+            cluster: h-stage-euc1-worker
+            service_name: h-stage-euc1-worker-ai-ts
+          - service: integration-worker
+            cluster: h-stage-euc1-worker
+            service_name: h-stage-euc1-worker-integration
     permissions:
       id-token: write
       contents: read
@@ -150,8 +133,8 @@ jobs:
       - name: Redeploy ${{ matrix.service }} staging service
         uses: ./.github/actions/redeploy-ecs-service
         with:
-          ECS_CLUSTER_NAME: ${{ env[matrix.cluster] }}
-          ECS_SERVICE_NAME: ${{ env[matrix.service_name] }}
+          ECS_CLUSTER_NAME: ${{ matrix.cluster }}
+          ECS_SERVICE_NAME: ${{ matrix.service_name }}
 
   notify-slack:
     name: Notify Slack on failure
@@ -163,7 +146,7 @@ jobs:
         uses: rtCamp/action-slack-notify@c58b60ee33df2229ed2d2eed86eeaf7e6c527c5a
         env:
           SLACK_LINK_NAMES: true
-          SLACK_MESSAGE: "Error deploying the HASH backend <!subteam^S09KH99698T>" # Notifies @devops
+          SLACK_MESSAGE: "Error deploying the HASH backend <!subteam^S09KH99698T>" # Notifies @infra
           SLACK_TITLE: Backend deployment failed
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
           SLACK_USERNAME: GitHub
