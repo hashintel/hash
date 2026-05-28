@@ -28,14 +28,6 @@ jobs:
   build:
     name: Build${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && ' and push' || '' }} ${{ matrix.service }} (${{ matrix.arch }})
     runs-on: ${{ matrix.arch == 'arm64' && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
-    # On push/dispatch, skip the job entirely when no registry target is
-    # reachable for this (service, arch). PR/merge_group always builds
-    # for validation.
-    if: >-
-      github.event_name == 'pull_request' ||
-      github.event_name == 'merge_group' ||
-      (contains(matrix.push, 'ecr') && matrix.arch == 'arm64' && github.ref == 'refs/heads/main') ||
-      contains(matrix.push, 'ghcr')
     strategy:
       fail-fast: false
       matrix:
@@ -95,10 +87,10 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      # All push policy lives here. ECR is gated on arm64 + main; GHCR is
-      # gated only on the matrix.push list. The job-level `if:` already
-      # short-circuits unreachable (service, arch) combinations on
-      # push/dispatch, so this step always runs to at least one real target.
+      # All push policy lives here. `should_build` short-circuits the rest
+      # of the job when no registry target is reachable on push/dispatch
+      # (e.g. kratos/hydra on a feature-branch dispatch). PR/merge_group
+      # always set should_build=true for build-only validation.
       - name: Compute targets
         id: targets
         shell: bash
@@ -134,9 +126,17 @@ jobs:
             push=true
           fi
 
+          # On push/dispatch only build when we can actually publish. PR /
+          # merge_group always validate.
+          should_build=true
+          if $is_push_event && ! $push_ecr && ! $push_ghcr; then
+            should_build=false
+          fi
+
           ecr_host="$ECR_ACCOUNT.dkr.ecr.$ECR_REGION.amazonaws.com"
 
           {
+            echo "should_build=$should_build"
             echo "push_ecr=$push_ecr"
             echo "push_ghcr=$push_ghcr"
             echo "push=$push"
@@ -165,6 +165,7 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Build${{ steps.targets.outputs.push == 'true' && ' and push' || '' }} ${{ matrix.service }} (${{ matrix.arch }})
+        if: steps.targets.outputs.should_build == 'true'
         uses: ./.github/actions/docker-build-push
         with:
           CONTEXT_PATH: ${{ github.workspace }}/${{ matrix.context }}
