@@ -165,6 +165,7 @@ export default withSentryConfig(
         "@hashintel/block-design-system",
         "@hashintel/design-system",
         "@hashintel/petrinaut",
+        "@hashintel/petrinaut-core",
         "@hashintel/ds-components",
         "@hashintel/ds-helpers",
         "@hashintel/type-editor",

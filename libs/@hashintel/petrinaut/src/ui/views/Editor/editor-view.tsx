@@ -96,10 +96,14 @@ export const EditorView = ({
   viewportActions,
 }: {
   aiAssistant?: PetrinautAiAssistant;
-  hideNetManagementControls: boolean;
+  /**
+   * See {@link TopBar} for the full semantics.
+   */
+  hideNetManagementControls?: "all" | "except-title";
   slots?: PetrinautSlots;
   viewportActions?: ViewportAction[];
 }) => {
+  const showNetManagementMenuItems = hideNetManagementControls === undefined;
   // Get data from sdcpn-store
   const {
     createNewNet,
@@ -225,7 +229,7 @@ export const EditorView = ({
   }
 
   const menuItems = [
-    ...(!hideNetManagementControls
+    ...(showNetManagementMenuItems
       ? [
           {
             id: "new",
@@ -234,7 +238,7 @@ export const EditorView = ({
           },
         ]
       : []),
-    ...(!hideNetManagementControls && Object.keys(existingNets).length > 0
+    ...(showNetManagementMenuItems && existingNets.length > 0
       ? [
           {
             id: "open",
@@ -272,7 +276,7 @@ export const EditorView = ({
         },
       ],
     },
-    ...(!hideNetManagementControls
+    ...(showNetManagementMenuItems
       ? [
           {
             id: "import",
@@ -286,7 +290,7 @@ export const EditorView = ({
       label: "Layout",
       onClick: applyAutoLayout,
     },
-    ...(!hideNetManagementControls
+    ...(showNetManagementMenuItems
       ? [
           {
             id: "load-example",

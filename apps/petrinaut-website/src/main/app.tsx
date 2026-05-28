@@ -284,7 +284,6 @@ export const DevApp = () => {
         handle={activeHandle.handle}
         existingNets={existingNets}
         createNewNet={createNewNet}
-        hideNetManagementControls={false}
         loadPetriNet={loadPetriNet}
         readonly={false}
         setTitle={setTitle}

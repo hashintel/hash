@@ -48,7 +48,7 @@ export const HiddenNetManagement: Story = {
       <PetrinautStoryProvider
         initialTitle={sirModel.title}
         initialDefinition={sirModel.petriNetDefinition}
-        hideNetManagementControls
+        hideNetManagementControls="all"
       />
     </div>
   ),
@@ -101,7 +101,7 @@ const HandleSpikeRender = ({
         handle={handle}
         title={title}
         setTitle={setTitle}
-        hideNetManagementControls
+        hideNetManagementControls="all"
       />
       <pre
         style={{
