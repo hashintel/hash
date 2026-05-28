@@ -1,17 +1,12 @@
-import { Box, Checkbox, ListItemText, Menu, Typography } from "@mui/material";
-import {
-  bindMenu,
-  bindTrigger,
-  usePopupState,
-} from "material-ui-popup-state/hooks";
+import { Box, ListItemText, Menu, Typography } from "@mui/material";
+import { bindMenu, usePopupState } from "material-ui-popup-state/hooks";
 import { useCallback, useMemo, useState } from "react";
 
-import { CaretDownSolidIcon, Chip, TextField } from "@hashintel/design-system";
+import { MenuCheckboxItem, TextField } from "@hashintel/design-system";
 import { formatNumber } from "@local/hash-isomorphic-utils/format-number";
 
 import { AsteriskLightIcon } from "../../../../shared/icons/asterisk-light-icon";
-import { MenuItem } from "../../../../shared/ui";
-import { activePillSx, defaultPillSx } from "./pill-styles";
+import { FilterPill } from "./filter-pill";
 
 import type { EntitiesFilterState } from "../data/types";
 import type { AvailableType } from "../data/use-available-types";
@@ -91,7 +86,8 @@ const TypeFilterMenuItem: FunctionComponent<TypeFilterMenuItemProps> = ({
   onToggle,
   onSelectOnly,
 }) => (
-  <MenuItem
+  <MenuCheckboxItem
+    selected={checked}
     onClick={() => onToggle(entityTypeId)}
     sx={{
       minWidth: 260,
@@ -103,10 +99,6 @@ const TypeFilterMenuItem: FunctionComponent<TypeFilterMenuItemProps> = ({
       },
     }}
   >
-    <Checkbox
-      checked={checked}
-      sx={{ p: 0, mr: 1, svg: { width: 14, height: 14 } }}
-    />
     <ListItemText
       primary={title}
       primaryTypographyProps={{
@@ -150,7 +142,7 @@ const TypeFilterMenuItem: FunctionComponent<TypeFilterMenuItemProps> = ({
         Only
       </Box>
     </Box>
-  </MenuItem>
+  </MenuCheckboxItem>
 );
 
 export const TypeFilterPill: FunctionComponent<TypeFilterPillProps> = ({
@@ -252,54 +244,12 @@ export const TypeFilterPill: FunctionComponent<TypeFilterPillProps> = ({
 
   return (
     <Box>
-      <Chip
-        icon={
-          <AsteriskLightIcon
-            sx={{
-              fill: ({ palette }) =>
-                isActive ? palette.blue[70] : palette.primary.main,
-            }}
-          />
-        }
-        label={
-          <Box
-            component="span"
-            display="inline-flex"
-            alignItems="center"
-            gap={0.6}
-          >
-            <Typography
-              component="span"
-              sx={{
-                fontSize: 13,
-                fontWeight: 400,
-                color: ({ palette }) =>
-                  isActive ? palette.blue[70] : palette.gray[60],
-              }}
-            >
-              Type is
-            </Typography>
-            <Typography
-              component="span"
-              sx={{
-                fontSize: 13,
-                fontWeight: 600,
-                color: ({ palette }) =>
-                  isActive ? palette.blue[90] : palette.gray[80],
-              }}
-            >
-              {label}
-            </Typography>
-            <CaretDownSolidIcon
-              sx={{
-                fontSize: 12,
-                transform: `rotate(${popupState.isOpen ? 180 : 0}deg)`,
-              }}
-            />
-          </Box>
-        }
-        sx={isActive ? activePillSx : defaultPillSx}
-        {...bindTrigger(popupState)}
+      <FilterPill
+        icon={AsteriskLightIcon}
+        prefix="Type is"
+        value={label}
+        active={isActive}
+        popupState={popupState}
       />
       <Menu
         {...bindMenu(popupState)}
@@ -401,15 +351,12 @@ export const TypeFilterPill: FunctionComponent<TypeFilterPillProps> = ({
         ) : null}
         {!searchQuery
           ? unknownSelectedIds.map((id) => (
-              <MenuItem
+              <MenuCheckboxItem
                 key={id}
+                selected
                 onClick={() => toggle(id)}
                 sx={{ minWidth: 260 }}
               >
-                <Checkbox
-                  checked
-                  sx={{ p: 0, mr: 1, svg: { width: 14, height: 14 } }}
-                />
                 <ListItemText
                   primary="Unknown type"
                   primaryTypographyProps={{
@@ -419,7 +366,7 @@ export const TypeFilterPill: FunctionComponent<TypeFilterPillProps> = ({
                     },
                   }}
                 />
-              </MenuItem>
+              </MenuCheckboxItem>
             ))
           : null}
         {filteredTypes.map(({ entityTypeId, title, count }) => (

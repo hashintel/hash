@@ -1,24 +1,12 @@
-import {
-  Box,
-  Checkbox,
-  Divider,
-  ListItemText,
-  Menu,
-  Typography,
-} from "@mui/material";
-import {
-  bindMenu,
-  bindTrigger,
-  usePopupState,
-} from "material-ui-popup-state/hooks";
+import { Box, Divider, ListItemText, Menu } from "@mui/material";
+import { bindMenu, usePopupState } from "material-ui-popup-state/hooks";
 import { useCallback, useMemo } from "react";
 
-import { CaretDownSolidIcon, Chip } from "@hashintel/design-system";
+import { MenuCheckboxItem } from "@hashintel/design-system";
 
 import { useGetOwnerForEntity } from "../../../../components/hooks/use-get-owner-for-entity";
 import { HouseRegularIcon } from "../../../../shared/icons/house-regular-icon";
-import { MenuItem } from "../../../../shared/ui";
-import { activePillSx, defaultPillSx } from "./pill-styles";
+import { FilterPill } from "./filter-pill";
 
 import type { EntitiesFilterState } from "../data/types";
 import type { WebId } from "@blockprotocol/type-system";
@@ -126,84 +114,35 @@ export const WebFilterPill: FunctionComponent<WebFilterPillProps> = ({
 
   return (
     <Box>
-      <Chip
-        icon={
-          <HouseRegularIcon
-            sx={{
-              fill: ({ palette }) =>
-                isActive ? palette.blue[70] : palette.primary.main,
-            }}
-          />
-        }
-        label={
-          <Box
-            component="span"
-            display="inline-flex"
-            alignItems="center"
-            gap={0.6}
-          >
-            <Typography
-              component="span"
-              sx={{
-                fontSize: 13,
-                fontWeight: 400,
-                color: ({ palette }) =>
-                  isActive ? palette.blue[70] : palette.gray[60],
-              }}
-            >
-              Web is
-            </Typography>
-            <Typography
-              component="span"
-              sx={{
-                fontSize: 13,
-                fontWeight: 600,
-                color: ({ palette }) =>
-                  isActive ? palette.blue[90] : palette.gray[80],
-              }}
-            >
-              {label}
-            </Typography>
-            <CaretDownSolidIcon
-              sx={{
-                fontSize: 12,
-                transform: `rotate(${popupState.isOpen ? 180 : 0}deg)`,
-              }}
-            />
-          </Box>
-        }
-        sx={isActive ? activePillSx : defaultPillSx}
-        {...bindTrigger(popupState)}
+      <FilterPill
+        icon={HouseRegularIcon}
+        prefix="Web is"
+        value={label}
+        active={isActive}
+        popupState={popupState}
       />
       <Menu
         {...bindMenu(popupState)}
         anchorOrigin={{ vertical: 30, horizontal: "left" }}
         transformOrigin={{ vertical: "top", horizontal: "left" }}
       >
-        {webItems.map(({ webId, label: itemLabel }) => {
-          const checked = webState.selectedInternalWebIds.has(webId);
-          return (
-            <MenuItem
-              key={webId}
-              onClick={() => toggleInternalWeb(webId)}
-              sx={{ minWidth: 220 }}
-            >
-              <Checkbox
-                checked={checked}
-                sx={{ p: 0, mr: 1, svg: { width: 14, height: 14 } }}
-              />
-              <ListItemText primary={itemLabel} />
-            </MenuItem>
-          );
-        })}
+        {webItems.map(({ webId, label: itemLabel }) => (
+          <MenuCheckboxItem
+            key={webId}
+            selected={webState.selectedInternalWebIds.has(webId)}
+            onClick={() => toggleInternalWeb(webId)}
+            sx={{ minWidth: 220 }}
+          >
+            <ListItemText primary={itemLabel} />
+          </MenuCheckboxItem>
+        ))}
         <Divider />
-        <MenuItem onClick={toggleOtherWebs}>
-          <Checkbox
-            checked={webState.includeOtherWebs}
-            sx={{ p: 0, mr: 1, svg: { width: 14, height: 14 } }}
-          />
+        <MenuCheckboxItem
+          selected={webState.includeOtherWebs}
+          onClick={toggleOtherWebs}
+        >
           <ListItemText primary="Other webs" />
-        </MenuItem>
+        </MenuCheckboxItem>
       </Menu>
     </Box>
   );
