@@ -18,7 +18,7 @@ import type { PetriNet } from "@local/hash-isomorphic-utils/system-types/petrine
 
 /**
  * One past revision of a persisted Petri net entity. Index 0 in the
- * returned array is the oldest; the last entry is the most recent.
+ * returned array is the most recent; the last entry is the oldest.
  */
 export type EntityRevision = {
   /**
@@ -102,7 +102,7 @@ export const useEntityRevisions = (
           definition,
         };
       })
-      .sort((a, b) => (a.decisionTime < b.decisionTime ? -1 : 1));
+      .sort((a, b) => (a.decisionTime < b.decisionTime ? 1 : -1));
   }, [data]);
 
   return { revisions, refetch };

@@ -78,9 +78,9 @@ const DraftBadge = () => (
 
 export type VersionPickerProps = {
   /**
-   * All saved revisions of the active entity, oldest first. The version
-   * label is derived from the index of `loadedRevisionTime` within this
-   * list (so "v1" is the oldest revision, "vN" is the latest).
+   * All saved revisions of the active entity, newest first. The version
+   * label is derived as `revisions.length - index` (so the entry at
+   * index 0 is "vN", the latest, and the last entry is "v1").
    */
   revisions: EntityRevision[];
   /**
@@ -121,9 +121,8 @@ export const VersionPicker = ({
       )
     : -1;
 
-  // When dirty and we know the originating revision, fall back to its
-  // index — the editor still "is" that version, plus pending edits.
-  const versionNumber = loadedIndex >= 0 ? loadedIndex + 1 : null;
+  const versionNumber =
+    loadedIndex >= 0 ? revisions.length - loadedIndex : null;
 
   if (versionNumber === null && !isDirty && revisions.length === 0) {
     return null;
@@ -193,80 +192,77 @@ export const VersionPicker = ({
           },
         }}
       >
-        {[...revisions]
-          // Most recent first in the dropdown.
-          .reverse()
-          .map((revision, reversedIndex) => {
-            const realIndex = revisions.length - 1 - reversedIndex;
-            const isLoaded = realIndex === loadedIndex;
-            const { date, time } = formatRevisionParts(revision.decisionTime);
+        {revisions.map((revision, index) => {
+          const isLoaded = index === loadedIndex;
+          const versionN = revisions.length - index;
+          const { date, time } = formatRevisionParts(revision.decisionTime);
 
-            return (
-              <MenuItem
-                key={revision.decisionTime}
-                onClick={() => {
-                  popupState.close();
-                  onLoadRevision(revision);
-                }}
-                selected={isLoaded}
-                sx={({ palette }) => ({
-                  display: "flex",
-                  justifyContent: "space-between",
-                  gap: 2,
-                  paddingY: 1,
+          return (
+            <MenuItem
+              key={revision.decisionTime}
+              onClick={() => {
+                popupState.close();
+                onLoadRevision(revision);
+              }}
+              selected={isLoaded}
+              sx={({ palette }) => ({
+                display: "flex",
+                justifyContent: "space-between",
+                gap: 2,
+                paddingY: 1,
+                color: palette.gray[90],
+                [`&.${menuItemClasses.selected}`]: {
+                  backgroundColor: palette.gray[20],
                   color: palette.gray[90],
-                  [`&.${menuItemClasses.selected}`]: {
-                    backgroundColor: palette.gray[20],
+                },
+                [`&.${menuItemClasses.focusVisible}, &:hover`]: {
+                  backgroundColor: palette.gray[15],
+                },
+                [`&.${menuItemClasses.selected}.${menuItemClasses.focusVisible}, &.${menuItemClasses.selected}:hover`]:
+                  {
+                    backgroundColor: palette.gray[30],
+                  },
+              })}
+            >
+              <Stack direction="row" spacing={1.5} alignItems="baseline">
+                <Typography
+                  component="span"
+                  sx={({ palette }) => ({
+                    fontSize: 13,
+                    fontWeight: 500,
                     color: palette.gray[90],
-                  },
-                  [`&.${menuItemClasses.focusVisible}, &:hover`]: {
-                    backgroundColor: palette.gray[15],
-                  },
-                  [`&.${menuItemClasses.selected}.${menuItemClasses.focusVisible}, &.${menuItemClasses.selected}:hover`]:
-                    {
-                      backgroundColor: palette.gray[30],
-                    },
-                })}
-              >
-                <Stack direction="row" spacing={1.5} alignItems="baseline">
-                  <Typography
-                    component="span"
-                    sx={({ palette }) => ({
-                      fontSize: 13,
-                      fontWeight: 500,
-                      color: palette.gray[90],
-                      minWidth: VERSION_COLUMN_WIDTH,
-                      fontVariantNumeric: "tabular-nums",
-                    })}
-                  >
-                    v{realIndex + 1}
-                  </Typography>
-                  <Typography
-                    component="span"
-                    sx={({ palette }) => ({
-                      fontSize: 13,
-                      color: palette.gray[70],
-                      minWidth: DATE_COLUMN_WIDTH,
-                      fontVariantNumeric: "tabular-nums",
-                    })}
-                  >
-                    {date}
-                  </Typography>
-                  <Typography
-                    component="span"
-                    sx={({ palette }) => ({
-                      fontSize: 13,
-                      color: palette.gray[70],
-                      minWidth: TIME_COLUMN_WIDTH,
-                      fontVariantNumeric: "tabular-nums",
-                    })}
-                  >
-                    {time}
-                  </Typography>
-                </Stack>
-              </MenuItem>
-            );
-          })}
+                    minWidth: VERSION_COLUMN_WIDTH,
+                    fontVariantNumeric: "tabular-nums",
+                  })}
+                >
+                  v{versionN}
+                </Typography>
+                <Typography
+                  component="span"
+                  sx={({ palette }) => ({
+                    fontSize: 13,
+                    color: palette.gray[70],
+                    minWidth: DATE_COLUMN_WIDTH,
+                    fontVariantNumeric: "tabular-nums",
+                  })}
+                >
+                  {date}
+                </Typography>
+                <Typography
+                  component="span"
+                  sx={({ palette }) => ({
+                    fontSize: 13,
+                    color: palette.gray[70],
+                    minWidth: TIME_COLUMN_WIDTH,
+                    fontVariantNumeric: "tabular-nums",
+                  })}
+                >
+                  {time}
+                </Typography>
+              </Stack>
+            </MenuItem>
+          );
+        })}
       </Menu>
     </>
   );
