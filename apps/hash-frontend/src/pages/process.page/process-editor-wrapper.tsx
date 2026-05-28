@@ -32,6 +32,37 @@ const emptySDCPN: SDCPN = {
   parameters: [],
 };
 
+/**
+ * Helper to ensure that we copy all fields of the SDCPN when loading a revision.
+ */
+const SDCPN_FIELDS = {
+  places: true,
+  transitions: true,
+  types: true,
+  differentialEquations: true,
+  parameters: true,
+  scenarios: true,
+  metrics: true,
+} as const satisfies Record<keyof SDCPN, true>;
+
+/**
+ * Mirror a single SDCPN field from `source` onto `target`.
+ */
+const copySdcpnField = <K extends keyof SDCPN>(
+  target: SDCPN,
+  source: SDCPN,
+  key: K,
+): void => {
+  /* eslint-disable no-param-reassign -- mutating the Immer draft is
+     the whole point of this helper. */
+  if (source[key] === undefined) {
+    delete (target as Partial<SDCPN>)[key];
+  } else {
+    target[key] = source[key];
+  }
+  /* eslint-enable no-param-reassign */
+};
+
 export const ProcessEditorWrapper = () => {
   const [selectedNetId, setSelectedNetId] = useState<EntityId | null>(null);
   const [title, setTitle] = useState<string>("Process");
@@ -119,14 +150,22 @@ export const ProcessEditorWrapper = () => {
    * Doesn't change `selectedNetId` — it's still the same entity, just
    * pinned to an older decision time. Subsequent edits + save create a
    * new top revision on the existing baseId (linear-edit model).
+   *
+   * Mutates the existing handle in place via `change()` rather than
+   * recreating it through `setPetriNet`. A fresh handle would force a
+   * full editor remount (Petrinaut keys worker providers on `handle.id`).
    */
   const loadRevision = useCallback(
     (revision: EntityRevision) => {
-      setPetriNet(revision.definition);
+      handle.change((draft) => {
+        for (const key of Object.keys(SDCPN_FIELDS) as (keyof SDCPN)[]) {
+          copySdcpnField(draft, revision.definition, key);
+        }
+      });
       setTitle(revision.title);
       setLoadedRevisionTime(revision.decisionTime);
     },
-    [setPetriNet, setTitle],
+    [handle, setTitle],
   );
 
   const loadNetFromId = useCallback(
