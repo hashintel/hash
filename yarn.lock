@@ -618,7 +618,7 @@ __metadata:
     "@react-sigma/core": "npm:4.0.3"
     "@sentry/nextjs": "npm:10.54.0"
     "@sentry/react": "npm:10.54.0"
-    "@sentry/webpack-plugin": "npm:4.6.0"
+    "@sentry/webpack-plugin": "npm:5.3.0"
     "@sigma/edge-curve": "patch:@sigma/edge-curve@npm%3A3.0.0-beta.16#~/.yarn/patches/@sigma-edge-curve-npm-3.0.0-beta.16-3d8b985284.patch"
     "@sigma/node-border": "npm:3.0.0"
     "@sigma/node-image": "npm:3.0.0"
@@ -875,7 +875,7 @@ __metadata:
     "@mui/material": "npm:5.18.0"
     "@pmmmwh/react-refresh-webpack-plugin": "npm:0.6.1"
     "@sentry/browser": "npm:10.54.0"
-    "@sentry/webpack-plugin": "npm:4.6.0"
+    "@sentry/webpack-plugin": "npm:5.3.0"
     "@types/lodash.debounce": "npm:4.0.9"
     "@types/react": "npm:19.2.14"
     "@types/react-dom": "npm:19.2.3"
@@ -8544,7 +8544,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@jridgewell/sourcemap-codec@npm:^1.4.14, @jridgewell/sourcemap-codec@npm:^1.4.15, @jridgewell/sourcemap-codec@npm:^1.5.0, @jridgewell/sourcemap-codec@npm:^1.5.5":
+"@jridgewell/sourcemap-codec@npm:^1.4.14, @jridgewell/sourcemap-codec@npm:^1.5.0, @jridgewell/sourcemap-codec@npm:^1.5.5":
   version: 1.5.5
   resolution: "@jridgewell/sourcemap-codec@npm:1.5.5"
   checksum: 10c0/f9e538f302b63c0ebc06eecb1dd9918dd4289ed36147a0ddce35d6ea4d7ebbda243cda7b2213b6a5e1d8087a298d5cf630fb2bd39329cdecb82017023f6081a0
@@ -15272,13 +15272,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@sentry/babel-plugin-component-annotate@npm:4.6.0":
-  version: 4.6.0
-  resolution: "@sentry/babel-plugin-component-annotate@npm:4.6.0"
-  checksum: 10c0/64a5d08ca571653399b35060db5007c86811dd06c79d6f09a8503d13e55f0cc4de54c02787ac4363b7cef0f4f873a3807d7846b0a13791f50068a34dadbe40f9
-  languageName: node
-  linkType: hard
-
 "@sentry/babel-plugin-component-annotate@npm:5.3.0":
   version: 5.3.0
   resolution: "@sentry/babel-plugin-component-annotate@npm:5.3.0"
@@ -15296,22 +15289,6 @@ __metadata:
     "@sentry-internal/replay-canvas": "npm:10.54.0"
     "@sentry/core": "npm:10.54.0"
   checksum: 10c0/d8f18ed676e30d249a4da28f073ad42e1662ea338ca93d417b2989e50f5dfbc590fcc93d83f217bf26d0bcb86c60a7a2867aa0a2ad1649b1fac704ba5b48e26e
-  languageName: node
-  linkType: hard
-
-"@sentry/bundler-plugin-core@npm:4.6.0":
-  version: 4.6.0
-  resolution: "@sentry/bundler-plugin-core@npm:4.6.0"
-  dependencies:
-    "@babel/core": "npm:^7.18.5"
-    "@sentry/babel-plugin-component-annotate": "npm:4.6.0"
-    "@sentry/cli": "npm:^2.57.0"
-    dotenv: "npm:^16.3.1"
-    find-up: "npm:^5.0.0"
-    glob: "npm:^9.3.2"
-    magic-string: "npm:0.30.8"
-    unplugin: "npm:1.0.1"
-  checksum: 10c0/0d07c249e55987891eb681e40f59e632b44a7bf5cd7bb4bd0f53ea26b3ba25caef468392d64392607ba09bd5fe7fefddd7f2b5c347613f877ba85de6e0d605bc
   languageName: node
   linkType: hard
 
@@ -15386,7 +15363,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@sentry/cli@npm:^2.57.0, @sentry/cli@npm:^2.58.5":
+"@sentry/cli@npm:^2.58.5":
   version: 2.58.6
   resolution: "@sentry/cli@npm:2.58.6"
   dependencies:
@@ -15541,20 +15518,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@sentry/webpack-plugin@npm:4.6.0":
-  version: 4.6.0
-  resolution: "@sentry/webpack-plugin@npm:4.6.0"
-  dependencies:
-    "@sentry/bundler-plugin-core": "npm:4.6.0"
-    unplugin: "npm:1.0.1"
-    uuid: "npm:^9.0.0"
-  peerDependencies:
-    webpack: ">=4.40.0"
-  checksum: 10c0/3cd72fa2d4c21cb0c65a85142749ff8493ae28b01c3fa5650e8974f8fd167952e18545a0b82a9943afe41a01381518a0ae1336747e790f3cdb3876e8cc1a7c43
-  languageName: node
-  linkType: hard
-
-"@sentry/webpack-plugin@npm:^5.3.0":
+"@sentry/webpack-plugin@npm:5.3.0, @sentry/webpack-plugin@npm:^5.3.0":
   version: 5.3.0
   resolution: "@sentry/webpack-plugin@npm:5.3.0"
   dependencies:
@@ -21558,7 +21522,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"acorn@npm:^8.0.0, acorn@npm:^8.0.4, acorn@npm:^8.11.0, acorn@npm:^8.15.0, acorn@npm:^8.8.1, acorn@npm:^8.8.2":
+"acorn@npm:^8.0.0, acorn@npm:^8.0.4, acorn@npm:^8.11.0, acorn@npm:^8.15.0, acorn@npm:^8.8.2":
   version: 8.15.0
   resolution: "acorn@npm:8.15.0"
   bin:
@@ -23702,7 +23666,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"chokidar@npm:^3.5.2, chokidar@npm:^3.5.3, chokidar@npm:^3.6.0":
+"chokidar@npm:^3.5.2, chokidar@npm:^3.6.0":
   version: 3.6.0
   resolution: "chokidar@npm:3.6.0"
   dependencies:
@@ -29352,18 +29316,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"glob@npm:^9.3.2":
-  version: 9.3.5
-  resolution: "glob@npm:9.3.5"
-  dependencies:
-    fs.realpath: "npm:^1.0.0"
-    minimatch: "npm:^8.0.2"
-    minipass: "npm:^4.2.4"
-    path-scurry: "npm:^1.6.1"
-  checksum: 10c0/2f6c2b9ee019ee21dc258ae97a88719614591e4c979cb4580b1b9df6f0f778a3cb38b4bdaf18dfa584637ea10f89a3c5f2533a5e449cf8741514ad18b0951f2e
-  languageName: node
-  linkType: hard
-
 "glob@npm:~7.1.3":
   version: 7.1.7
   resolution: "glob@npm:7.1.7"
@@ -34013,15 +33965,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"magic-string@npm:0.30.8":
-  version: 0.30.8
-  resolution: "magic-string@npm:0.30.8"
-  dependencies:
-    "@jridgewell/sourcemap-codec": "npm:^1.4.15"
-  checksum: 10c0/51a1f06f678c082aceddfb5943de9b6bdb88f2ea1385a1c2adf116deb73dfcfa50df6c222901d691b529455222d4d68d0b28be5689ac6f69b3baa3462861f922
-  languageName: node
-  linkType: hard
-
 "magicast@npm:^0.3.5":
   version: 0.3.5
   resolution: "magicast@npm:0.3.5"
@@ -35177,15 +35120,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"minimatch@npm:^8.0.2":
-  version: 8.0.7
-  resolution: "minimatch@npm:8.0.7"
-  dependencies:
-    brace-expansion: "npm:^2.0.1"
-  checksum: 10c0/46d9dee24174f8a9eadec97ba36cba2e63f1fff8b36324e1825229bd9307ffee7ffd2f5a2749b29ba796eda877cd9c1687f9d1b399a10b290346561f2a8145f8
-  languageName: node
-  linkType: hard
-
 "minimatch@npm:^9.0.3, minimatch@npm:^9.0.4, minimatch@npm:^9.0.5":
   version: 9.0.9
   resolution: "minimatch@npm:9.0.9"
@@ -35259,13 +35193,6 @@ __metadata:
   dependencies:
     yallist: "npm:^4.0.0"
   checksum: 10c0/a114746943afa1dbbca8249e706d1d38b85ed1298b530f5808ce51f8e9e941962e2a5ad2e00eae7dd21d8a4aae6586a66d4216d1a259385e9d0358f0c1eba16c
-  languageName: node
-  linkType: hard
-
-"minipass@npm:^4.2.4":
-  version: 4.2.8
-  resolution: "minipass@npm:4.2.8"
-  checksum: 10c0/4ea76b030d97079f4429d6e8a8affd90baf1b6a1898977c8ccce4701c5a2ba2792e033abc6709373f25c2c4d4d95440d9d5e9464b46b7b76ca44d2ce26d939ce
   languageName: node
   linkType: hard
 
@@ -37482,7 +37409,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"path-scurry@npm:^1.11.1, path-scurry@npm:^1.6.1":
+"path-scurry@npm:^1.11.1":
   version: 1.11.1
   resolution: "path-scurry@npm:1.11.1"
   dependencies:
@@ -44417,18 +44344,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"unplugin@npm:1.0.1":
-  version: 1.0.1
-  resolution: "unplugin@npm:1.0.1"
-  dependencies:
-    acorn: "npm:^8.8.1"
-    chokidar: "npm:^3.5.3"
-    webpack-sources: "npm:^3.2.3"
-    webpack-virtual-modules: "npm:^0.5.0"
-  checksum: 10c0/7d59b5a28abc1cdbd6356a10f273d1266f59c3be083ab0e659a37d02d047d5df1b435e0f40f5ec97517e8fc910d314592f0d197ccceb75ef47c71c1898ec7a05
-  languageName: node
-  linkType: hard
-
 "unplugin@npm:^2.3.5":
   version: 2.3.11
   resolution: "unplugin@npm:2.3.11"
@@ -45500,17 +45415,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"webpack-sources@npm:^3.2.3, webpack-sources@npm:^3.3.3":
+"webpack-sources@npm:^3.3.3":
   version: 3.3.3
   resolution: "webpack-sources@npm:3.3.3"
   checksum: 10c0/ab732f6933b513ba4d505130418995ddef6df988421fccf3289e53583c6a39e205c4a0739cee98950964552d3006604912679c736031337fb4a9d78d8576ed40
-  languageName: node
-  linkType: hard
-
-"webpack-virtual-modules@npm:^0.5.0":
-  version: 0.5.0
-  resolution: "webpack-virtual-modules@npm:0.5.0"
-  checksum: 10c0/0742e069cd49d91ccd0b59431b3666903d321582c1b1062fa6bdae005c3538af55ff8787ea5eafbf72662f3496d3a879e2c705d55ca0af8283548a925be18484
   languageName: node
   linkType: hard
 
