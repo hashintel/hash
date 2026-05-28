@@ -1,13 +1,17 @@
+import { useId } from "react";
+
 import { Description } from "./description";
 import { Errors } from "./errors";
+import { FieldIdProvider } from "./field-id-context";
 import { styles } from "./form-field.recipe";
 import { Label } from "./label";
 
-import type {
-  FormInputSize,
-  SharedInputAndFieldProps,
-} from "../../util/form-shared";
+import type { SharedInputAndFieldProps } from "../../util/form-shared";
 
+/**
+ * A form field should only ever wrap a single input, and will automatically connect the label to that input.
+ * If implementing your own input you will need to consume useFieldId for the label to automatically be connected
+ */
 export const FormField = ({
   className,
   children,
@@ -23,7 +27,7 @@ export const FormField = ({
   errors,
   required,
   disabled,
-  ...labelProps
+  as = "label",
 }: {
   className?: string;
   children: React.ReactNode;
@@ -31,7 +35,6 @@ export const FormField = ({
   hideLabel?: boolean;
   as?: "label" | "legend";
 
-  size?: FormInputSize;
   layout?: "block" | "inline" | "inlineNoWrap";
   labelDirection?: "left" | "right";
 
@@ -41,22 +44,15 @@ export const FormField = ({
   labelActions?: React.ReactNode[];
 
   errors?: Array<string | React.ReactNode>;
-} & (
-  | {
-      as?: "label";
-      htmlFor: string;
-    }
-  | {
-      as: "legend";
-      htmlFor: never;
-    }
-) &
-  SharedInputAndFieldProps) => {
+} & SharedInputAndFieldProps) => {
   const classes = styles({ size });
+  const id = useId();
+  const labelType = as === "label" ? { as, htmlFor: id } : { as };
 
   return (
     <fieldset className={className}>
       <Label
+        {...labelType}
         size={size}
         direction={labelDirection}
         required={required}
@@ -65,7 +61,6 @@ export const FormField = ({
         disabled={disabled}
         hide={hideLabel}
         className={classes.label}
-        {...labelProps}
       >
         {label}
       </Label>
@@ -80,7 +75,11 @@ export const FormField = ({
           {description}
         </Description>
       )}
-      {children}
+      {as === "label" ? (
+        <FieldIdProvider id={id}>{children}</FieldIdProvider>
+      ) : (
+        children
+      )}
       {descriptionBottom && (
         <Description
           size={size}

@@ -105,13 +105,7 @@ type FormFieldArgs = React.ComponentProps<typeof FormField>;
 
 export const Default: Story<FormFieldArgs> = (args) => (
   <div className={sectionStyle}>
-    <FormField
-      {...args}
-      as="label"
-      htmlFor="form-field-disabled"
-      label="Disabled"
-      disabled
-    >
+    <FormField {...args} as="label" label="Disabled" disabled>
       <ControlledTextInput
         name="form-field-disabled"
         initialValue="Disabled value"
@@ -120,20 +114,13 @@ export const Default: Story<FormFieldArgs> = (args) => (
       />
     </FormField>
 
-    <FormField
-      {...args}
-      as="label"
-      htmlFor="form-field-required"
-      label="Required"
-      required
-    >
+    <FormField {...args} as="label" label="Required" required>
       <ControlledTextInput name="form-field-required" size={args.size} />
     </FormField>
 
     <FormField
       {...args}
       as="label"
-      htmlFor="form-field-description"
       label="Description"
       description="A short description above the input"
     >
@@ -143,7 +130,6 @@ export const Default: Story<FormFieldArgs> = (args) => (
     <FormField
       {...args}
       as="label"
-      htmlFor="form-field-description-bottom"
       label="Description on bottom"
       descriptionBottom="A short description below the input"
     >
@@ -156,7 +142,6 @@ export const Default: Story<FormFieldArgs> = (args) => (
     <FormField
       {...args}
       as="label"
-      htmlFor="form-field-one-error"
       label="One error"
       errors={["Something went wrong"]}
     >
@@ -170,7 +155,6 @@ export const Default: Story<FormFieldArgs> = (args) => (
     <FormField
       {...args}
       as="label"
-      htmlFor="form-field-multiple-errors"
       label="Multiple errors"
       errors={["First error", "Second error", "Third error"]}
     >
@@ -181,13 +165,7 @@ export const Default: Story<FormFieldArgs> = (args) => (
       />
     </FormField>
 
-    <FormField
-      {...args}
-      as="label"
-      htmlFor="form-field-hidden-label"
-      label="Label hidden (visually)"
-      hideLabel
-    >
+    <FormField {...args} as="label" label="Label hidden (visually)" hideLabel>
       <ControlledTextInput
         name="form-field-hidden-label"
         placeholder="Label hidden (visually)"
@@ -198,7 +176,6 @@ export const Default: Story<FormFieldArgs> = (args) => (
     <FormField
       {...args}
       as="label"
-      htmlFor="form-field-tooltip"
       label="Tooltip"
       labelTooltip="Extra information about this field"
     >
@@ -208,20 +185,13 @@ export const Default: Story<FormFieldArgs> = (args) => (
     <FormField
       {...args}
       as="label"
-      htmlFor="form-field-actions"
       label="Actions"
       labelActions={[<ActionButton key="action" />]}
     >
       <ControlledTextInput name="form-field-actions" size={args.size} />
     </FormField>
 
-    <FormField
-      {...args}
-      as="label"
-      htmlFor="form-field-kitchen-sink"
-      label="Kitchen sink"
-      {...kitchenSinkProps}
-    >
+    <FormField {...args} as="label" label="Kitchen sink" {...kitchenSinkProps}>
       <ControlledTextInput
         name="form-field-kitchen-sink"
         initialValue="Kitchen sink value"
@@ -234,7 +204,6 @@ export const Default: Story<FormFieldArgs> = (args) => (
     <FormField
       {...args}
       as="label"
-      htmlFor="form-field-kitchen-sink"
       label="Kitchen sink disabled"
       {...kitchenSinkProps}
       disabled
@@ -257,7 +226,6 @@ export const FormSize: Story<FormFieldArgs> = (args) => (
         {...args}
         as="label"
         key={size}
-        htmlFor={`form-field-size-${size}`}
         label={`Size: ${size}`}
         size={size}
         {...kitchenSinkProps}
@@ -284,7 +252,6 @@ export const LabelDirection: Story<FormFieldArgs> = (args) => (
         {...args}
         as="label"
         key={direction}
-        htmlFor={`form-field-direction-${direction}`}
         label={`Direction: ${direction}`}
         labelDirection={direction}
         {...kitchenSinkProps}
@@ -303,7 +270,6 @@ export const LabelDirection: Story<FormFieldArgs> = (args) => (
         {...args}
         as="label"
         key={`${direction}-no-actions`}
-        htmlFor={`form-field-direction-${direction}-no-actions`}
         label={`Direction: ${direction} (no actions)`}
         labelDirection={direction}
         {...kitchenSinkPropsNoActions}
@@ -357,7 +323,6 @@ const TextField = ({
   return (
     <FormField
       as="label"
-      htmlFor={field.name}
       label={label}
       description={description}
       size={size}
@@ -395,7 +360,6 @@ const IntegerField = ({
   return (
     <FormField
       as="label"
-      htmlFor={field.name}
       label={label}
       description={description}
       size={size}

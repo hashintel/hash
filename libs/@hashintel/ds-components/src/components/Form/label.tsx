@@ -38,7 +38,7 @@ export const Label = ({
     }
   | {
       as: "legend";
-      htmlFor: never;
+      htmlFor?: never;
     }
 )) => {
   const classes = styles({ size, direction, disabled, hide });

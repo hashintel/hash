@@ -14,6 +14,8 @@ export type SharedInputAndFieldProps = {
   disabled?: boolean;
   /** Set to show the input as required */
   required?: boolean;
+  /** The size (height) of the element */
+  size?: FormInputSize;
 };
 
 // All input components should extend from these props
@@ -33,8 +35,6 @@ export type SharedInputProps<
   onFocus?: React.FocusEventHandler<Element>;
   /** The onBlur handler */
   onBlur?: React.FocusEventHandler<Element>;
-  /** The size (height) of the element */
-  size?: FormInputSize;
   /** Set to show the input as invalid */
   invalid?: boolean;
   /** An optional testId */
