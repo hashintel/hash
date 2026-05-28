@@ -19,15 +19,6 @@ export type AvailableType = {
   count: number;
 };
 
-/**
- * Drives the option list for the type-filter pill. Runs a minimal subgraph
- * request that applies the current web + archived filters but deliberately
- * ignores the user's type filter -- otherwise unchecking a type would remove
- * it from the dropdown and the user could never re-check it.
- *
- * Skipped entirely when the visualizer's type is pinned by route prop, since
- * the pill is not rendered in that case.
- */
 export const useAvailableTypes = ({
   filterState,
   internalWebIds,

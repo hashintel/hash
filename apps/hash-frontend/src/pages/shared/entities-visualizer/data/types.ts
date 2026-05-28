@@ -6,10 +6,6 @@ export type EntitiesFilterState = {
     includeOtherWebs: boolean;
   };
   type: {
-    /**
-     * `null` means "all types selected" (the default). An explicit `Set` is
-     * recorded only after the user unchecks something.
-     */
     selectedTypeIds: Set<VersionedUrl> | null;
   };
   includeArchived: boolean;

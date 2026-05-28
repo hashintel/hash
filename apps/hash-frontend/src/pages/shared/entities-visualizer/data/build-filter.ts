@@ -5,12 +5,6 @@ import type { EntitiesFilterState } from "./types";
 import type { BaseUrl, VersionedUrl, WebId } from "@blockprotocol/type-system";
 import type { Filter } from "@local/hash-graph-client";
 
-/**
- * A `WebId` value that can never match a real web. Used to emit a clause that
- * the Graph will accept but match nothing against, for the "include only my
- * selected internal webs" branch when the user has unchecked every one of
- * their webs.
- */
 const MATCH_NOTHING_WEB_ID = "00000000-0000-0000-0000-000000000000" as WebId;
 
 const buildArchivedClauses = (includeArchived: boolean): Filter[] => {
