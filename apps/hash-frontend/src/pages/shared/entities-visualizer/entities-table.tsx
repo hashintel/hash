@@ -7,8 +7,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   extractBaseUrl,
   extractEntityUuidFromEntityId,
-  extractVersion,
-  extractWebIdFromEntityId,
   isBaseUrl,
 } from "@blockprotocol/type-system";
 import { ArrowDownRegularIcon, LoadingSpinner } from "@hashintel/design-system";
@@ -41,7 +39,6 @@ import type {
 } from "../../../components/grid/grid";
 import type { BlankCell } from "../../../components/grid/utils";
 import type { CustomIcon } from "../../../components/grid/utils/custom-grid-icons";
-import type { ColumnFilter } from "../../../components/grid/utils/filtering";
 import type {
   FindDataTypeConversionTargetsQuery,
   FindDataTypeConversionTargetsQueryVariables,
@@ -50,13 +47,9 @@ import type { ChipCellProps } from "../chip-cell";
 import type { UrlCellProps } from "../url-cell";
 import type { TextIconCell } from "./entities-table/text-icon-cell";
 import type {
-  ActorTableFilterData,
-  EntitiesTableColumnKey,
   EntitiesTableData,
   EntitiesTableRow,
-  EntityTypeTableFilterData,
   SortableEntitiesTableColumnKey,
-  WebTableFilterData,
 } from "./types";
 import type { EntitiesVisualizerData } from "./use-entities-visualizer-data";
 import type {
@@ -97,16 +90,7 @@ const emptyTableData: EntitiesTableData = {
 };
 
 export const EntitiesTable: FunctionComponent<
-  Pick<
-    EntitiesVisualizerData,
-    | "createdByIds"
-    | "definitions"
-    | "editionCreatedByIds"
-    | "subgraph"
-    | "typeIds"
-    | "typeTitles"
-    | "webIds"
-  > & {
+  Pick<EntitiesVisualizerData, "definitions" | "subgraph" | "webIds"> & {
     activeConversions: {
       [columnBaseUrl: BaseUrl]: {
         dataTypeId: VersionedUrl;
@@ -121,7 +105,6 @@ export const EntitiesTable: FunctionComponent<
     isViewingOnlyPages: boolean;
     maxHeight: string | number;
     loadMoreRows?: () => void;
-    readonly?: boolean;
     selectedRows: EntitiesTableRow[];
     setActiveConversions: Dispatch<
       SetStateAction<{
@@ -143,18 +126,15 @@ export const EntitiesTable: FunctionComponent<
   }
 > = ({
   activeConversions,
-  createdByIds,
   currentlyDisplayedColumnsRef,
   currentlyDisplayedRowsRef,
   definitions,
   disableTypeClick,
-  editionCreatedByIds,
   handleEntityClick,
   loading: entityDataLoading,
   isViewingOnlyPages,
   maxHeight,
   loadMoreRows,
-  readonly,
   selectedRows,
   setActiveConversions,
   setSelectedRows,
@@ -165,22 +145,27 @@ export const EntitiesTable: FunctionComponent<
   sort,
   tableData,
   totalResultCount,
-  typeIds,
-  typeTitles,
   webIds,
 }) => {
   const router = useRouter();
 
   const getOwnerForEntity = useGetOwnerForEntity();
 
-  const editorActorIds = useMemo(() => {
-    const editorIds = new Set<ActorEntityUuid>([
-      ...typedKeys(editionCreatedByIds ?? {}),
-      ...typedKeys(createdByIds ?? {}),
-    ]);
+  const {
+    columns,
+    entityTypesWithMultipleVersionsPresent,
+    rows,
+    visibleDataTypeIdsByPropertyBaseUrl,
+  } = tableData ?? emptyTableData;
 
+  const editorActorIds = useMemo(() => {
+    const editorIds = new Set<ActorEntityUuid>();
+    for (const row of rows) {
+      editorIds.add(row.lastEditedById);
+      editorIds.add(row.createdById);
+    }
     return [...editorIds];
-  }, [createdByIds, editionCreatedByIds]);
+  }, [rows]);
 
   const { actors } = useActors({
     accountIds: editorActorIds,
@@ -215,13 +200,6 @@ export const EntitiesTable: FunctionComponent<
 
     return webNameByOwner;
   }, [getOwnerForEntity, webIds]);
-
-  const {
-    columns,
-    entityTypesWithMultipleVersionsPresent,
-    rows,
-    visibleDataTypeIdsByPropertyBaseUrl,
-  } = tableData ?? emptyTableData;
 
   const visibleDataTypeIds = useMemoCompare(
     () => {
@@ -667,196 +645,6 @@ export const EntitiesTable: FunctionComponent<
     ],
   );
 
-  const { createdByActors, entityTypeFilters, lastEditedByActors, webs } =
-    useMemo<{
-      createdByActors: ActorTableFilterData[];
-      lastEditedByActors: ActorTableFilterData[];
-      entityTypeFilters: EntityTypeTableFilterData[];
-      webs: WebTableFilterData[];
-    }>(() => {
-      const createdBy: ActorTableFilterData[] = [];
-      for (const [actorId, count] of typedEntries(createdByIds ?? {})) {
-        const actor = actorsByAccountId[actorId];
-        createdBy.push({
-          actorId,
-          count,
-          displayName: actor?.displayName ?? actorId,
-        });
-      }
-
-      const editedBy: ActorTableFilterData[] = [];
-      for (const [actorId, count] of typedEntries(editionCreatedByIds ?? {})) {
-        const actor = actorsByAccountId[actorId];
-        editedBy.push({
-          actorId,
-          count,
-          displayName: actor?.displayName ?? actorId,
-        });
-      }
-
-      const types: EntityTypeTableFilterData[] = [];
-      for (const [entityTypeId, count] of typedEntries(typeIds ?? {})) {
-        const title = typeTitles?.[entityTypeId];
-
-        if (!title) {
-          throw new Error(
-            `Could not find title for entity type ${entityTypeId}`,
-          );
-        }
-
-        types.push({
-          count,
-          entityTypeId,
-          title,
-        });
-      }
-
-      const webCounts: WebTableFilterData[] = [];
-      for (const [webId, count] of typedEntries(webIds ?? {})) {
-        const webname = webNameByWebId[webId] ?? webId;
-        webCounts.push({
-          count,
-          shortname: `@${webname}`,
-          webId,
-        });
-      }
-
-      return {
-        createdByActors: createdBy,
-        entityTypeFilters: types,
-        lastEditedByActors: editedBy,
-        webs: webCounts,
-      };
-    }, [
-      actorsByAccountId,
-      createdByIds,
-      editionCreatedByIds,
-      typeIds,
-      typeTitles,
-      webIds,
-      webNameByWebId,
-    ]);
-
-  const [selectedEntityTypeIds, setSelectedEntityTypeIds] = useState<
-    Set<string>
-  >(new Set(entityTypeFilters.map(({ entityTypeId }) => entityTypeId)));
-
-  useEffect(() => {
-    setSelectedEntityTypeIds(
-      new Set(entityTypeFilters.map(({ entityTypeId }) => entityTypeId)),
-    );
-  }, [entityTypeFilters]);
-
-  const [selectedLastEditedByAccountIds, setSelectedLastEditedByAccountIds] =
-    useState<Set<string>>(
-      new Set(lastEditedByActors.map(({ actorId }) => actorId)),
-    );
-
-  const [selectedCreatedByAccountIds, setSelectedCreatedByAccountIds] =
-    useState<Set<string>>(
-      new Set(createdByActors.map(({ actorId }) => actorId)),
-    );
-
-  useEffect(() => {
-    setSelectedLastEditedByAccountIds(
-      new Set(lastEditedByActors.map(({ actorId }) => actorId)),
-    );
-  }, [lastEditedByActors]);
-
-  useEffect(() => {
-    setSelectedCreatedByAccountIds(
-      new Set(createdByActors.map(({ actorId }) => actorId)),
-    );
-  }, [createdByActors]);
-
-  const [selectedWebs, setSelectedWebs] = useState<Set<string>>(
-    new Set(webs.map(({ webId }) => webId)),
-  );
-
-  useEffect(() => {
-    setSelectedWebs(new Set(webs.map(({ webId }) => webId)));
-  }, [webs]);
-
-  const columnFilters = useMemo<
-    ColumnFilter<EntitiesTableColumnKey, EntitiesTableRow>[]
-  >(
-    () => [
-      {
-        columnKey: "webId",
-        filterItems: webs.map(({ shortname, webId, count: _count }) => ({
-          id: webId,
-          label: shortname,
-          // @todo H-3841 –- rethink filtering
-          // count,
-        })),
-        selectedFilterItemIds: selectedWebs,
-        setSelectedFilterItemIds: setSelectedWebs,
-        isRowFiltered: (row) =>
-          !selectedWebs.has(extractWebIdFromEntityId(row.entityId)),
-      },
-      {
-        columnKey: "entityTypes",
-        filterItems: entityTypeFilters.map(
-          ({ entityTypeId, count: _count, title }) => ({
-            id: entityTypeId,
-            label: title,
-            // @todo H-3841 –- rethink filtering
-            // count,
-            labelSuffix: entityTypesWithMultipleVersionsPresent.has(
-              entityTypeId,
-            )
-              ? `v${extractVersion(entityTypeId).toString()}`
-              : undefined,
-          }),
-        ),
-        selectedFilterItemIds: selectedEntityTypeIds,
-        setSelectedFilterItemIds: setSelectedEntityTypeIds,
-        isRowFiltered: (row) => {
-          return !row.entityTypes.some(({ entityTypeId }) =>
-            selectedEntityTypeIds.has(entityTypeId),
-          );
-        },
-      },
-      {
-        columnKey: "lastEditedById",
-        filterItems: lastEditedByActors.map((actor) => ({
-          id: actor.actorId,
-          label: actor.displayName ?? "Unknown Actor",
-        })),
-        selectedFilterItemIds: selectedLastEditedByAccountIds,
-        setSelectedFilterItemIds: setSelectedLastEditedByAccountIds,
-        isRowFiltered: (row) =>
-          row.lastEditedById && row.lastEditedById !== "loading"
-            ? !selectedLastEditedByAccountIds.has(row.lastEditedById)
-            : false,
-      },
-      {
-        columnKey: "createdById",
-        filterItems: createdByActors.map((actor) => ({
-          id: actor.actorId,
-          label: actor.displayName ?? "Unknown Actor",
-        })),
-        selectedFilterItemIds: selectedCreatedByAccountIds,
-        setSelectedFilterItemIds: setSelectedCreatedByAccountIds,
-        isRowFiltered: (row) =>
-          row.createdById && row.createdById !== "loading"
-            ? !selectedCreatedByAccountIds.has(row.createdById)
-            : false,
-      },
-    ],
-    [
-      createdByActors,
-      entityTypeFilters,
-      entityTypesWithMultipleVersionsPresent,
-      lastEditedByActors,
-      selectedEntityTypeIds,
-      selectedCreatedByAccountIds,
-      selectedLastEditedByAccountIds,
-      selectedWebs,
-      webs,
-    ],
-  );
-
   const sortableColumns: SortableEntitiesTableColumnKey[] = useMemo(() => {
     return [
       "archived",
@@ -968,14 +756,13 @@ export const EntitiesTable: FunctionComponent<
     <Stack gap={1} sx={{ position: "relative" }}>
       <Grid
         activeConversions={activeConversions}
-        columnFilters={columnFilters}
         columns={columns}
         conversionTargetsByColumnKey={conversionTargetsByColumnKey}
         createGetCellContent={createGetCellContent}
         currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
         customRenderers={customRenderers}
         dataLoading={false}
-        enableCheckboxSelection={!readonly}
+        enableCheckboxSelection
         experimental={{
           paddingBottom: hasMoreRowsAvailable ? loadMoreRowHeight : 0,
         }}

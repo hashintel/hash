@@ -83,16 +83,6 @@ export type SortableEntitiesTableColumnKey =
     >
   | BaseUrl;
 
-export const filterableEntitiesTableColumnKeys: EntitiesTableColumnKey[] = [
-  "entityTypes",
-  "webId",
-  "createdById",
-  "lastEditedById",
-] as const;
-
-export type FilterableEntitiesColumnKey =
-  (typeof filterableEntitiesTableColumnKeys)[number];
-
 export interface EntitiesTableColumn extends SizedGridColumn {
   id: EntitiesTableColumnKey;
 }
@@ -112,12 +102,6 @@ export type SourceOrTargetFilterData = {
     count: number;
     label: string;
   };
-};
-
-export type ActorTableFilterData = {
-  actorId: ActorEntityUuid;
-  displayName?: string;
-  count: number;
 };
 
 export type EntityTypeTableFilterData = {
