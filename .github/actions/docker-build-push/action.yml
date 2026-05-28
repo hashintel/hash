@@ -41,11 +41,14 @@ runs:
     # with `/` replaced by `-`.
     - name: Resolve image id
       shell: bash
+      env:
+        GHCR_IMAGE_NAME: ${{ inputs.GHCR_IMAGE_NAME }}
+        ECR_IMAGE_NAME: ${{ inputs.ECR_IMAGE_NAME }}
       run: |
-        if [ -n "${{ inputs.GHCR_IMAGE_NAME }}" ]; then
-          echo "IMAGE_ID=${{ inputs.GHCR_IMAGE_NAME }}" >> "$GITHUB_ENV"
+        if [ -n "$GHCR_IMAGE_NAME" ]; then
+          echo "IMAGE_ID=$GHCR_IMAGE_NAME" >> "$GITHUB_ENV"
         else
-          echo "IMAGE_ID=$(printf '%s' '${{ inputs.ECR_IMAGE_NAME }}' | tr / -)" >> "$GITHUB_ENV"
+          echo "IMAGE_ID=$(printf '%s' "$ECR_IMAGE_NAME" | tr / -)" >> "$GITHUB_ENV"
         fi
 
     - name: Login to ECR
@@ -75,7 +78,7 @@ runs:
           docker-${{ env.IMAGE_ID }}-
           docker-
 
-    - name: Build ${{ inputs.PUSH == 'true' && 'and push' || '(no push)' }} ${{ env.IMAGE_ID }}
+    - name: Build${{ inputs.PUSH == 'true' && ' and push' || '' }} ${{ env.IMAGE_ID }}
       uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
       env:
         GH_RUN_ID: ${{ github.run_id }}

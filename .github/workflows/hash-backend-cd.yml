@@ -28,7 +28,7 @@ env:
 name: HASH backend deployment
 jobs:
   build:
-    name: Build${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && '' || ' and push' }} ${{ matrix.ghcr }}
+    name: Build${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && ' and push' || '' }} ${{ matrix.ghcr }}
     runs-on: ubuntu-24.04-arm
     strategy:
       fail-fast: false
@@ -75,7 +75,7 @@ jobs:
           role-to-assume: ${{ env.OIDC_HASH_CD_PUSH_ROLE }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Build${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && '' || ' and push' }} ${{ matrix.ghcr }}
+      - name: Build${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && ' and push' || '' }} ${{ matrix.ghcr }}
         uses: ./.github/actions/docker-build-push
         with:
           CONTEXT_PATH: ${{ github.workspace }}/${{ matrix.context }}
@@ -87,11 +87,54 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
           PUSH: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
 
-  deploy-graph:
-    name: Deploy HASH graph images
+  deploy:
+    name: Deploy ${{ matrix.service }}
     runs-on: ubuntu-latest
     needs: build
     if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - service: graph,
+            cluster: APP_CLUSTER_NAME,
+            service_name: APP_GRAPH_SERVICE_NAME,
+
+          - {
+              service: graph-admin,
+              cluster: APP_CLUSTER_NAME,
+              service_name: APP_GRAPH_ADMIN_SERVICE_NAME,
+            }
+          - {
+              service: type-fetcher,
+              cluster: APP_CLUSTER_NAME,
+              service_name: APP_TYPE_FETCHER_SERVICE_NAME,
+            }
+          - {
+              service: api,
+              cluster: APP_CLUSTER_NAME,
+              service_name: APP_API_SERVICE_NAME,
+            }
+          - {
+              service: kratos,
+              cluster: AUTH_CLUSTER_NAME,
+              service_name: AUTH_KRATOS_SERVICE_NAME,
+            }
+          - {
+              service: hydra,
+              cluster: AUTH_CLUSTER_NAME,
+              service_name: AUTH_HYDRA_SERVICE_NAME,
+            }
+          - {
+              service: ai-ts-worker,
+              cluster: WORKER_CLUSTER_NAME,
+              service_name: WORKER_AI_TS_SERVICE_NAME,
+            }
+          - {
+              service: integration-worker,
+              cluster: WORKER_CLUSTER_NAME,
+              service_name: WORKER_INTEGRATION_SERVICE_NAME,
+            }
     permissions:
       id-token: write
       contents: read
@@ -104,100 +147,15 @@ jobs:
           role-to-assume: ${{ env.OIDC_HASH_CD_DEPLOY_ROLE }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Redeploy graph staging service
+      - name: Redeploy ${{ matrix.service }} staging service
         uses: ./.github/actions/redeploy-ecs-service
         with:
-          ECS_CLUSTER_NAME: ${{ env.APP_CLUSTER_NAME }}
-          ECS_SERVICE_NAME: ${{ env.APP_GRAPH_SERVICE_NAME }}
-
-      - name: Redeploy graph-admin staging service
-        uses: ./.github/actions/redeploy-ecs-service
-        with:
-          ECS_CLUSTER_NAME: ${{ env.APP_CLUSTER_NAME }}
-          ECS_SERVICE_NAME: ${{ env.APP_GRAPH_ADMIN_SERVICE_NAME }}
-
-      - name: Redeploy type-fetcher staging service
-        uses: ./.github/actions/redeploy-ecs-service
-        with:
-          ECS_CLUSTER_NAME: ${{ env.APP_CLUSTER_NAME }}
-          ECS_SERVICE_NAME: ${{ env.APP_TYPE_FETCHER_SERVICE_NAME }}
-
-  deploy-app:
-    name: Deploy HASH app images
-    runs-on: ubuntu-latest
-    needs:
-      - build
-      # Technically not needed but it's good if the graph has been finished already
-      - deploy-graph
-    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
-    permissions:
-      id-token: write
-      contents: read
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-
-      - name: Configure AWS credentials (ECS deploy)
-        uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4.3.1
-        with:
-          role-to-assume: ${{ env.OIDC_HASH_CD_DEPLOY_ROLE }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Redeploy API staging service
-        uses: ./.github/actions/redeploy-ecs-service
-        with:
-          ECS_CLUSTER_NAME: ${{ env.APP_CLUSTER_NAME }}
-          ECS_SERVICE_NAME: ${{ env.APP_API_SERVICE_NAME }}
-
-      - name: Redeploy kratos staging service
-        uses: ./.github/actions/redeploy-ecs-service
-        with:
-          ECS_CLUSTER_NAME: ${{ env.AUTH_CLUSTER_NAME }}
-          ECS_SERVICE_NAME: ${{ env.AUTH_KRATOS_SERVICE_NAME }}
-
-      - name: Redeploy hydra staging service
-        uses: ./.github/actions/redeploy-ecs-service
-        with:
-          ECS_CLUSTER_NAME: ${{ env.AUTH_CLUSTER_NAME }}
-          ECS_SERVICE_NAME: ${{ env.AUTH_HYDRA_SERVICE_NAME }}
-
-  deploy-workers:
-    name: Deploy HASH worker images
-    runs-on: ubuntu-latest
-    needs:
-      - build
-      # Technically not needed but it's good if the graph has been finished already
-      - deploy-graph
-    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
-    permissions:
-      id-token: write
-      contents: read
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-
-      - name: Configure AWS credentials (ECS deploy)
-        uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4.3.1
-        with:
-          role-to-assume: ${{ env.OIDC_HASH_CD_DEPLOY_ROLE }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Redeploy AI-TS staging service
-        uses: ./.github/actions/redeploy-ecs-service
-        with:
-          ECS_CLUSTER_NAME: ${{ env.WORKER_CLUSTER_NAME }}
-          ECS_SERVICE_NAME: ${{ env.WORKER_AI_TS_SERVICE_NAME }}
-
-      - name: Redeploy Integration staging service
-        uses: ./.github/actions/redeploy-ecs-service
-        with:
-          ECS_CLUSTER_NAME: ${{ env.WORKER_CLUSTER_NAME }}
-          ECS_SERVICE_NAME: ${{ env.WORKER_INTEGRATION_SERVICE_NAME }}
+          ECS_CLUSTER_NAME: ${{ env[matrix.cluster] }}
+          ECS_SERVICE_NAME: ${{ env[matrix.service_name] }}
 
   notify-slack:
     name: Notify Slack on failure
-    needs:
-      - deploy-app
-      - deploy-graph
-      - deploy-workers
+    needs: deploy
     runs-on: ubuntu-latest
     if: ${{ failure() && github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') }}
     steps:
