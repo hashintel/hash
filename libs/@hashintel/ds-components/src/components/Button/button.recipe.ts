@@ -114,7 +114,11 @@ export const styles = sva({
     },
     variant: {
       solid: {},
-      subtle: {},
+      subtle: {
+        button: {
+          backdropFilter: "[blur(10px)]",
+        },
+      },
       ghost: {
         button: {
           background: "[transparent]",
