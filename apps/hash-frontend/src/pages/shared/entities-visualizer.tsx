@@ -20,7 +20,10 @@ import { createDefaultFilterState } from "./entities-visualizer/data/types";
 import { useAvailableTypes } from "./entities-visualizer/data/use-available-types";
 import { EntitiesTable } from "./entities-visualizer/entities-table";
 import { GridView } from "./entities-visualizer/entities-table/grid-view";
-import { TableToolbar } from "./entities-visualizer/entities-table/table-toolbar";
+import {
+  TableToolbar,
+  toolbarHeight,
+} from "./entities-visualizer/entities-table/table-toolbar";
 import { FilterRibbon } from "./entities-visualizer/header/filter-ribbon";
 import { QueryCount } from "./entities-visualizer/header/query-count";
 import {
@@ -574,7 +577,7 @@ export const EntitiesVisualizer: FunctionComponent<{
             handleEntityClick={handleEntityClick}
             loading={dataLoading}
             isViewingOnlyPages={isViewingOnlyPages}
-            maxHeight={tableHeight}
+            maxHeight={`calc(${tableHeight} - ${toolbarHeight}px)`}
             loadMoreRows={nextCursor ? nextPage : undefined}
             setActiveConversions={setActiveConversions}
             setSelectedEntityType={handleEntityTypeClick}

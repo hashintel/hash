@@ -18,7 +18,7 @@ import type { BaseUrl } from "@blockprotocol/type-system";
 import type { SizedGridColumn } from "@glideapps/glide-data-grid";
 import type { FunctionComponent, MutableRefObject, RefObject } from "react";
 
-const toolbarHeight = 44;
+export const toolbarHeight = 44;
 
 type TableToolbarProps = {
   csvFileTitle: string;
