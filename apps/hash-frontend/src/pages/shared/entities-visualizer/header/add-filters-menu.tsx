@@ -15,10 +15,13 @@ import type { FunctionComponent } from "react";
 
 type AddFiltersMenuProps = {
   onAddIncludeArchived: () => void;
+  /** When set, adds a "Semantic search" filter option to the menu. */
+  onAddSemanticSearch?: () => void;
 };
 
 export const AddFiltersMenu: FunctionComponent<AddFiltersMenuProps> = ({
   onAddIncludeArchived,
+  onAddSemanticSearch,
 }) => {
   const popupState = usePopupState({
     variant: "popover",
@@ -27,6 +30,11 @@ export const AddFiltersMenu: FunctionComponent<AddFiltersMenuProps> = ({
 
   const handleSelectIncludeArchived = () => {
     onAddIncludeArchived();
+    popupState.close();
+  };
+
+  const handleSelectSemanticSearch = () => {
+    onAddSemanticSearch?.();
     popupState.close();
   };
 
@@ -50,6 +58,11 @@ export const AddFiltersMenu: FunctionComponent<AddFiltersMenuProps> = ({
         <MenuItem onClick={handleSelectIncludeArchived} sx={{ minWidth: 200 }}>
           <ListItemText primary="Include archived" />
         </MenuItem>
+        {onAddSemanticSearch && (
+          <MenuItem onClick={handleSelectSemanticSearch} sx={{ minWidth: 200 }}>
+            <ListItemText primary="Semantic search" />
+          </MenuItem>
+        )}
       </Menu>
     </Box>
   );

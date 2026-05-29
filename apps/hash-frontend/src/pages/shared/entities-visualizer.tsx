@@ -170,6 +170,11 @@ export const EntitiesVisualizer: FunctionComponent<{
   );
 
   const [cursor, setCursor] = useState<EntityQueryCursor>();
+
+  /* Semantic search — local text only, not yet wired to a query. */
+  const [semanticSearchText, setSemanticSearchText] = useState("");
+  const [semanticSearchAdded, setSemanticSearchAdded] = useState(false);
+
   const [activeConversionsWithoutTitle, _setActiveConversions] = useState<{
     [columnBaseUrl: BaseUrl]: VersionedUrl;
   } | null>(null);
@@ -502,6 +507,16 @@ export const EntitiesVisualizer: FunctionComponent<{
               internalWebIds={internalWebIds}
               isTypePinned={isTypePinned}
               setFilterState={(updater) => setFilterState(updater)}
+              semanticSearch={{
+                added: semanticSearchAdded,
+                value: semanticSearchText,
+                onChange: setSemanticSearchText,
+                onAdd: () => setSemanticSearchAdded(true),
+                onRemove: () => {
+                  setSemanticSearchAdded(false);
+                  setSemanticSearchText("");
+                },
+              }}
             />
           )
         }

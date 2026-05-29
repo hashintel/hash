@@ -4,6 +4,7 @@ import { createDefaultFilterState } from "../data/types";
 import { AddFiltersMenu } from "./add-filters-menu";
 import { ClearFiltersButton } from "./clear-filters-button";
 import { IncludeArchivedPill } from "./include-archived-pill";
+import { SemanticSearchPill } from "./semantic-search-pill";
 import { TypeFilterPill } from "./type-filter-pill";
 import { WebFilterPill } from "./web-filter-pill";
 
@@ -21,6 +22,14 @@ type FilterRibbonProps = {
   setFilterState: (
     updater: (prev: EntitiesFilterState) => EntitiesFilterState,
   ) => void;
+  /** Semantic search, added as a dismissable filter from the "Add filter" menu. */
+  semanticSearch: {
+    added: boolean;
+    value: string;
+    onChange: (value: string) => void;
+    onAdd: () => void;
+    onRemove: () => void;
+  };
 };
 
 const isWebFilterDefault = (
@@ -54,6 +63,7 @@ export const FilterRibbon: FunctionComponent<FilterRibbonProps> = ({
   internalWebIds,
   isTypePinned,
   setFilterState,
+  semanticSearch,
 }) => {
   const setIncludeArchived = (includeArchived: boolean) =>
     setFilterState((prev) => ({ ...prev, includeArchived }));
@@ -69,7 +79,8 @@ export const FilterRibbon: FunctionComponent<FilterRibbonProps> = ({
     setFilterState(() => createDefaultFilterState(internalWebIds));
   };
 
-  const allExtraFiltersEnabled = filterState.includeArchived;
+  const allExtraFiltersEnabled =
+    filterState.includeArchived || semanticSearch.added;
 
   return (
     <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
@@ -93,8 +104,20 @@ export const FilterRibbon: FunctionComponent<FilterRibbonProps> = ({
       {filterState.includeArchived && (
         <IncludeArchivedPill onRemove={() => setIncludeArchived(false)} />
       )}
+      {semanticSearch.added && (
+        <SemanticSearchPill
+          value={semanticSearch.value}
+          onChange={semanticSearch.onChange}
+          onRemove={semanticSearch.onRemove}
+        />
+      )}
       {!allExtraFiltersEnabled && (
-        <AddFiltersMenu onAddIncludeArchived={() => setIncludeArchived(true)} />
+        <AddFiltersMenu
+          onAddIncludeArchived={() => setIncludeArchived(true)}
+          onAddSemanticSearch={
+            semanticSearch.added ? undefined : semanticSearch.onAdd
+          }
+        />
       )}
       {!filtersAreDefault && <ClearFiltersButton onClear={handleClear} />}
     </Box>
