@@ -1,3 +1,4 @@
+import type { PropertyFilter } from "./property-filters/types";
 import type { VersionedUrl, WebId } from "@blockprotocol/type-system";
 
 export type EntitiesFilterState = {
@@ -9,10 +10,16 @@ export type EntitiesFilterState = {
     selectedTypeIds: Set<VersionedUrl> | null;
   };
   includeArchived: boolean;
+  /**
+   * Per-property value filters (e.g. `Age > 13`). Each is translated into a
+   * graph filter clause and ANDed with the web / type / archived filters – see
+   * {@link buildPropertyFilterClause} and {@link buildEntitiesFilter}.
+   */
+  propertyFilters: PropertyFilter[];
 };
 
 export const createDefaultFilterState = (
-  internalWebIds: WebId[],
+  internalWebIds: WebId[]
 ): EntitiesFilterState => ({
   web: {
     selectedInternalWebIds: new Set<WebId>(internalWebIds),
@@ -20,4 +27,5 @@ export const createDefaultFilterState = (
   },
   type: { selectedTypeIds: null },
   includeArchived: false,
+  propertyFilters: [],
 });

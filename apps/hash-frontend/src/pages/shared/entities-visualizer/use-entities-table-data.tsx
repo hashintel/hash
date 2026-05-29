@@ -141,6 +141,15 @@ export const useEntitiesTableData = ({
 
           return {
             rows: [...currentTableData.rows, ...resultFromRows.rows],
+            /**
+             * Each page's response only carries the data types referenced by
+             * that page's entities, so we union the pools to keep every
+             * accumulated row resolvable.
+             */
+            dataTypeDefinitions: {
+              ...currentTableData.dataTypeDefinitions,
+              ...resultFromRows.dataTypeDefinitions,
+            },
             columns: combinedColumns.sort((a, b) => {
               /**
                * The first page might not have source and target columns added (if there are no links), but a later one will.

@@ -1,5 +1,7 @@
 import { ignoreNoisySystemTypesFilter } from "@local/hash-isomorphic-utils/graph-queries";
 
+import { buildPropertyFilterClause } from "./property-filters/build-property-filter-clause";
+
 import type { EntitiesFilterState } from "./types";
 import type { BaseUrl, VersionedUrl, WebId } from "@blockprotocol/type-system";
 import type { Filter } from "@local/hash-graph-client";
@@ -20,11 +22,11 @@ const buildArchivedClauses = (includeArchived: boolean): Filter[] => {
 
 const buildWebClause = (
   webState: EntitiesFilterState["web"],
-  internalWebIds: WebId[],
+  internalWebIds: WebId[]
 ): Filter | null => {
   if (!webState.includeOtherWebs) {
     const selected = internalWebIds.filter((id) =>
-      webState.selectedInternalWebIds.has(id),
+      webState.selectedInternalWebIds.has(id)
     );
 
     const webIdsToMatch = selected.length ? selected : [MATCH_NOTHING_WEB_ID];
@@ -37,7 +39,7 @@ const buildWebClause = (
   }
 
   const uncheckedInternalWebIds = internalWebIds.filter(
-    (id) => !webState.selectedInternalWebIds.has(id),
+    (id) => !webState.selectedInternalWebIds.has(id)
   );
 
   if (uncheckedInternalWebIds.length === 0) {
@@ -149,6 +151,15 @@ export const buildEntitiesFilter = ({
 
   if (!isTypePinned && !userPickedSpecificTypes) {
     clauses.push(ignoreNoisySystemTypesFilter);
+  }
+
+  for (const propertyFilter of filterState.propertyFilters) {
+    const propertyClause = buildPropertyFilterClause(propertyFilter);
+
+    // An incomplete or invalid filter contributes no clause (it is inert).
+    if (propertyClause) {
+      clauses.push(propertyClause);
+    }
   }
 
   return { all: clauses };

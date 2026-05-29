@@ -27,6 +27,7 @@ import {
 } from "../../../shared/use-actors";
 import { useMemoCompare } from "../../../shared/use-memo-compare";
 import { createRenderChipCell } from "../chip-cell";
+import { getReferencedDataTypeIds } from "../format-value";
 import { createRenderUrlCell } from "../url-cell";
 import {
   createRenderEntitiesTableValueCell,
@@ -81,6 +82,7 @@ const firstColumnLeftPadding = 16;
 
 const emptyTableData: EntitiesTableData = {
   columns: [],
+  dataTypeDefinitions: {},
   rows: [],
   entityTypesWithMultipleVersionsPresent: new Set(),
   visibleRowsFilterData: {
@@ -93,7 +95,7 @@ const emptyTableData: EntitiesTableData = {
 };
 
 export const EntitiesTable: FunctionComponent<
-  Pick<EntitiesVisualizerData, "definitions" | "subgraph" | "webIds"> & {
+  Pick<EntitiesVisualizerData, "subgraph" | "webIds"> & {
     activeConversions: {
       [columnBaseUrl: BaseUrl]: {
         dataTypeId: VersionedUrl;
@@ -133,7 +135,6 @@ export const EntitiesTable: FunctionComponent<
   csvFileTitle,
   currentlyDisplayedColumnsRef,
   currentlyDisplayedRowsRef,
-  definitions,
   disableTypeClick,
   handleEntityClick,
   loading: entityDataLoading,
@@ -158,6 +159,7 @@ export const EntitiesTable: FunctionComponent<
 
   const {
     columns,
+    dataTypeDefinitions,
     entityTypesWithMultipleVersionsPresent,
     rows,
     visibleDataTypeIdsByPropertyBaseUrl,
@@ -341,22 +343,24 @@ export const EntitiesTable: FunctionComponent<
         | CustomCell => {
         const columnId = columns[colIndex]?.id;
 
+        const notFoundCell: TextCell = {
+          kind: GridCellKind.Text,
+          allowOverlay: false,
+          readonly: true,
+          displayData: String("Not Found"),
+          data: "Not Found",
+        };
+
         if (columnId) {
           const row = entityRows[rowIndex];
 
-          if (!row || !definitions?.dataTypes) {
+          if (!row) {
             /**
              * This can occur when `createGetCellContent` is called
              * for a row that has just been filtered out, so we handle
              * this by briefly not displaying anything in the cell.
              */
-            return {
-              kind: GridCellKind.Text,
-              allowOverlay: false,
-              readonly: true,
-              displayData: String("Not Found"),
-              data: "Not Found",
-            };
+            return notFoundCell;
           }
 
           if (isBaseUrl(columnId)) {
@@ -388,6 +392,21 @@ export const EntitiesTable: FunctionComponent<
                 };
               }
 
+              /**
+               * Belt-and-braces against `formatValue` throwing: if any data
+               * type the value depends on is missing from the pool, render the
+               * fallback rather than crashing the whole grid. With the pool now
+               * bundled into `tableData` this should not happen in normal flow,
+               * but it still guards against a genuinely inconsistent response.
+               */
+              const someDataTypeUnresolved = getReferencedDataTypeIds(
+                propertyMetadata,
+              ).some((dataTypeId) => !dataTypeDefinitions[dataTypeId]);
+
+              if (someDataTypeUnresolved) {
+                return notFoundCell;
+              }
+
               return {
                 kind: GridCellKind.Custom,
                 allowOverlay: true,
@@ -398,7 +417,7 @@ export const EntitiesTable: FunctionComponent<
                   isArray,
                   value,
                   propertyMetadata,
-                  dataTypeDefinitions: definitions.dataTypes,
+                  dataTypeDefinitions,
                 } satisfies EntitiesTableValueCellProps,
               };
             }
@@ -637,7 +656,7 @@ export const EntitiesTable: FunctionComponent<
     [
       actorsByAccountId,
       columns,
-      definitions?.dataTypes,
+      dataTypeDefinitions,
       disableTypeClick,
       entityTypesWithMultipleVersionsPresent,
       handleEntityClick,

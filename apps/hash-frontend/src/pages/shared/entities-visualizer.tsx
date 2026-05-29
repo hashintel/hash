@@ -16,6 +16,7 @@ import { tableContentSx } from "../../shared/table-content";
 import { BulkActionsDropdown } from "../../shared/table-header/bulk-actions-dropdown";
 import { useMemoCompare } from "../../shared/use-memo-compare";
 import { useAuthenticatedUser } from "./auth-info-context";
+import { deriveFilterableProperties } from "./entities-visualizer/data/property-filters/derive-filterable-properties";
 import { createDefaultFilterState } from "./entities-visualizer/data/types";
 import { useAvailableTypes } from "./entities-visualizer/data/use-available-types";
 import { EntitiesTable } from "./entities-visualizer/entities-table";
@@ -291,6 +292,18 @@ export const EntitiesVisualizer: FunctionComponent<{
     return relevantTypes;
   }, [entities, definitions, closedMultiEntityTypesRootMap]);
 
+  /**
+   * The properties offered in the property-filter picker, derived from the same
+   * closed-entity-type / definitions data that builds the visible columns.
+   */
+  const filterableProperties = useMemo(() => {
+    if (!definitions) {
+      return [];
+    }
+
+    return deriveFilterableProperties({ closedMultiEntityTypes, definitions });
+  }, [closedMultiEntityTypes, definitions]);
+
   const activeConversions = useMemo(() => {
     return activeConversionsWithoutTitle
       ? Object.fromEntries(
@@ -495,6 +508,10 @@ export const EntitiesVisualizer: FunctionComponent<{
             <FilterRibbon
               availableTypes={availableTypes}
               availableTypesLoading={availableTypesLoading}
+              filterableProperties={filterableProperties}
+              propertiesLoading={
+                dataLoading && filterableProperties.length === 0
+              }
               filterState={filterState}
               internalWebIds={internalWebIds}
               isTypePinned={isTypePinned}
@@ -560,7 +577,6 @@ export const EntitiesVisualizer: FunctionComponent<{
           csvFileTitle="Entities"
           currentlyDisplayedColumnsRef={currentlyDisplayedColumnsRef}
           currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
-          definitions={definitions}
           handleEntityClick={handleEntityClick}
           loading={dataLoading}
           isViewingOnlyPages={isViewingOnlyPages}

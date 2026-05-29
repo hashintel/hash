@@ -449,6 +449,7 @@ export const generateTableDataFromRows = (
 
   return {
     columns,
+    dataTypeDefinitions: definitions.dataTypes,
     rows,
     entityTypesWithMultipleVersionsPresent: entityTypesWithMultipleVersions,
     visibleDataTypeIdsByPropertyBaseUrl: dataTypesByProperty,

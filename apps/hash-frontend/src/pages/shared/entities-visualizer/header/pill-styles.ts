@@ -22,6 +22,20 @@ export const dashedPillSx: SxProps<Theme> = {
   border: ({ palette }: Theme) => `1px dashed ${palette.gray[30]}`,
 };
 
+/**
+ * Used for property-filter pills that don't yet contribute a clause (no value
+ * or an invalid value) – a muted, placeholder-looking variant.
+ */
+export const incompletePillSx: SxProps<Theme> = {
+  ...basePillSx,
+  background: "transparent",
+  border: ({ palette }: Theme) => `1px dashed ${palette.gray[40]}`,
+  [`.${chipClasses.label}`]: {
+    fontSize: 13,
+    color: ({ palette }: Theme) => palette.gray[60],
+  },
+};
+
 export const activePillSx: SxProps<Theme> = {
   height: 26,
   borderRadius: "4px",
