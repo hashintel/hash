@@ -16,7 +16,7 @@ uv             = "0.9.26"
 
 # Tools to compile the project
 'cargo:wasm-opt'  = "0.116.1"
-"cargo:wasm-pack" = "0.13.1"
+"cargo:wasm-pack" = "0.15.0"
 java              = "25"
 protoc            = "32.1"
 
