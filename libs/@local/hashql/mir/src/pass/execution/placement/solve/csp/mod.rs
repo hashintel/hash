@@ -114,6 +114,21 @@ impl CyclicPlacementRegion<'_> {
     }
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub(crate) enum ConstraintSatisfactionMode {
+    Initial,
+    Adjustment,
+}
+
+impl ConstraintSatisfactionMode {
+    const fn config(self) -> CostEstimationConfig {
+        match self {
+            Self::Initial => CostEstimationConfig::LOOP,
+            Self::Adjustment => CostEstimationConfig::TRIVIAL,
+        }
+    }
+}
+
 /// CSP solver for assigning targets within a cyclic placement region.
 ///
 /// Borrows the parent [`PlacementSolver`] for cost estimation and target resolution.
@@ -124,6 +139,7 @@ pub(crate) struct ConstraintSatisfaction<'ctx, 'parent, 'alloc, A: Allocator, S:
     pub region: CyclicPlacementRegion<'alloc>,
 
     pub depth: usize,
+    pub mode: ConstraintSatisfactionMode,
 
     // Branch-and-bound state (only used when members.len() <= BNB_CUTOFF)
     cost_deltas: [ApproxCost; BNB_CUTOFF],
@@ -136,6 +152,7 @@ impl<'ctx, 'parent, 'alloc, A: Allocator, S: BumpAllocator>
     /// Creates a new CSP solver for the given cyclic `region`.
     pub(crate) const fn new(
         solver: &'ctx mut PlacementSolver<'parent, 'alloc, A, S>,
+        mode: ConstraintSatisfactionMode,
         id: PlacementRegionId,
         region: CyclicPlacementRegion<'alloc>,
     ) -> Self {
@@ -144,6 +161,7 @@ impl<'ctx, 'parent, 'alloc, A: Allocator, S: BumpAllocator>
             id,
             region,
             depth: 0,
+            mode,
             cost_deltas: [ApproxCost::ZERO; BNB_CUTOFF],
             cost_so_far: ApproxCost::ZERO,
         }
@@ -332,7 +350,7 @@ impl<'ctx, 'parent, 'alloc, A: Allocator, S: BumpAllocator>
 
             self.region.blocks.swap(self.depth, self.depth + offset);
             let mut heap = CostEstimation {
-                config: CostEstimationConfig::LOOP,
+                config: self.mode.config(),
                 solver: self.solver,
                 determine_target: |block| {
                     if let Some(member) = self.region.find_block(block) {
@@ -373,7 +391,7 @@ impl<'ctx, 'parent, 'alloc, A: Allocator, S: BumpAllocator>
         target: TargetId,
     ) -> ApproxCost {
         let estimator = CostEstimation {
-            config: CostEstimationConfig::LOOP,
+            config: self.mode.config(),
             solver: self.solver,
             determine_target: |block| {
                 self.region.find_block(block).map_or_else(
@@ -520,7 +538,7 @@ impl<'ctx, 'parent, 'alloc, A: Allocator, S: BumpAllocator>
         self.region.blocks.swap(self.depth, self.depth + offset);
 
         let heap = CostEstimation {
-            config: CostEstimationConfig::LOOP,
+            config: self.mode.config(),
             solver: self.solver,
             determine_target: |block| {
                 if let Some(member) = self.region.find_block(block) {

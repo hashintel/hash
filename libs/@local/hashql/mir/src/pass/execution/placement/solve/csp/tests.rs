@@ -15,7 +15,7 @@ use crate::{
         placement::solve::{
             PlacementRegionId, PlacementSolverContext,
             condensation::PlacementRegionKind,
-            csp::ConstraintSatisfaction,
+            csp::{self, ConstraintSatisfaction},
             tests::{
                 all_targets, bb, fix_block, make_block_costs, stmt_costs, target_set, terminators,
             },
@@ -87,7 +87,12 @@ fn narrow_restricts_successor_domain() {
     };
     let mut solver = data.build_in(&body, &heap);
     let (region_id, region) = take_cyclic(&mut solver);
-    let mut csp = ConstraintSatisfaction::new(&mut solver, region_id, region);
+    let mut csp = ConstraintSatisfaction::new(
+        &mut solver,
+        csp::ConstraintSatisfactionMode::Initial,
+        region_id,
+        region,
+    );
     csp.seed();
 
     fix_block(&mut csp, bb(0), I);
@@ -137,7 +142,12 @@ fn narrow_restricts_predecessor_domain() {
     };
     let mut solver = data.build_in(&body, &heap);
     let (region_id, region) = take_cyclic(&mut solver);
-    let mut csp = ConstraintSatisfaction::new(&mut solver, region_id, region);
+    let mut csp = ConstraintSatisfaction::new(
+        &mut solver,
+        csp::ConstraintSatisfactionMode::Initial,
+        region_id,
+        region,
+    );
     csp.seed();
 
     fix_block(&mut csp, bb(0), I);
@@ -187,7 +197,12 @@ fn narrow_to_empty_domain() {
     };
     let mut solver = data.build_in(&body, &heap);
     let (region_id, region) = take_cyclic(&mut solver);
-    let mut csp = ConstraintSatisfaction::new(&mut solver, region_id, region);
+    let mut csp = ConstraintSatisfaction::new(
+        &mut solver,
+        csp::ConstraintSatisfactionMode::Initial,
+        region_id,
+        region,
+    );
     csp.seed();
 
     fix_block(&mut csp, bb(0), I);
@@ -240,7 +255,12 @@ fn narrow_multiple_edges_intersect() {
     };
     let mut solver = data.build_in(&body, &heap);
     let (region_id, region) = take_cyclic(&mut solver);
-    let mut csp = ConstraintSatisfaction::new(&mut solver, region_id, region);
+    let mut csp = ConstraintSatisfaction::new(
+        &mut solver,
+        csp::ConstraintSatisfactionMode::Initial,
+        region_id,
+        region,
+    );
     csp.seed();
 
     // Assign bb0 = I and narrow
@@ -299,7 +319,12 @@ fn replay_narrowing_resets_then_repropagates() {
     };
     let mut solver = data.build_in(&body, &heap);
     let (region_id, region) = take_cyclic(&mut solver);
-    let mut csp = ConstraintSatisfaction::new(&mut solver, region_id, region);
+    let mut csp = ConstraintSatisfaction::new(
+        &mut solver,
+        csp::ConstraintSatisfactionMode::Initial,
+        region_id,
+        region,
+    );
     csp.seed();
 
     // Step 1: assign bb0 = I, narrow
@@ -377,7 +402,12 @@ fn lower_bound_min_block_cost_per_block() {
     };
     let mut solver = data.build_in(&body, &heap);
     let (region_id, region) = take_cyclic(&mut solver);
-    let mut csp = ConstraintSatisfaction::new(&mut solver, region_id, region);
+    let mut csp = ConstraintSatisfaction::new(
+        &mut solver,
+        csp::ConstraintSatisfactionMode::Initial,
+        region_id,
+        region,
+    );
     csp.seed();
 
     // Fix bb0 at depth 0
@@ -432,7 +462,12 @@ fn lower_bound_min_transition_cost_per_edge() {
     };
     let mut solver = data.build_in(&body, &heap);
     let (region_id, region) = take_cyclic(&mut solver);
-    let mut csp = ConstraintSatisfaction::new(&mut solver, region_id, region);
+    let mut csp = ConstraintSatisfaction::new(
+        &mut solver,
+        csp::ConstraintSatisfactionMode::Initial,
+        region_id,
+        region,
+    );
     csp.seed();
 
     fix_block(&mut csp, bb(0), I);
@@ -486,7 +521,12 @@ fn lower_bound_skips_self_loop_edges() {
     };
     let mut solver = data.build_in(&body, &heap);
     let (region_id, region) = take_cyclic(&mut solver);
-    let mut csp = ConstraintSatisfaction::new(&mut solver, region_id, region);
+    let mut csp = ConstraintSatisfaction::new(
+        &mut solver,
+        csp::ConstraintSatisfactionMode::Initial,
+        region_id,
+        region,
+    );
     csp.seed();
     csp.depth = 0;
 
@@ -539,7 +579,12 @@ fn lower_bound_fixed_successor_uses_concrete_target() {
     };
     let mut solver = data.build_in(&body, &heap);
     let (region_id, region) = take_cyclic(&mut solver);
-    let mut csp = ConstraintSatisfaction::new(&mut solver, region_id, region);
+    let mut csp = ConstraintSatisfaction::new(
+        &mut solver,
+        csp::ConstraintSatisfactionMode::Initial,
+        region_id,
+        region,
+    );
     csp.seed();
 
     // Fix bb0 and bb2 (target=P), leaving bb1 unfixed
@@ -595,7 +640,12 @@ fn lower_bound_all_fixed_returns_zero() {
     };
     let mut solver = data.build_in(&body, &heap);
     let (region_id, region) = take_cyclic(&mut solver);
-    let mut csp = ConstraintSatisfaction::new(&mut solver, region_id, region);
+    let mut csp = ConstraintSatisfaction::new(
+        &mut solver,
+        csp::ConstraintSatisfactionMode::Initial,
+        region_id,
+        region,
+    );
     csp.seed();
 
     // Fix both blocks
@@ -650,7 +700,12 @@ fn mrv_selects_smallest_domain() {
     };
     let mut solver = data.build_in(&body, &heap);
     let (region_id, region) = take_cyclic(&mut solver);
-    let mut csp = ConstraintSatisfaction::new(&mut solver, region_id, region);
+    let mut csp = ConstraintSatisfaction::new(
+        &mut solver,
+        csp::ConstraintSatisfactionMode::Initial,
+        region_id,
+        region,
+    );
     csp.seed();
     csp.depth = 0;
 
@@ -700,7 +755,12 @@ fn mrv_tiebreak_by_constraint_degree() {
     };
     let mut solver = data.build_in(&body, &heap);
     let (region_id, region) = take_cyclic(&mut solver);
-    let mut csp = ConstraintSatisfaction::new(&mut solver, region_id, region);
+    let mut csp = ConstraintSatisfaction::new(
+        &mut solver,
+        csp::ConstraintSatisfactionMode::Initial,
+        region_id,
+        region,
+    );
     csp.seed();
     csp.depth = 0;
 
@@ -753,7 +813,12 @@ fn mrv_skips_fixed_blocks() {
     };
     let mut solver = data.build_in(&body, &heap);
     let (region_id, region) = take_cyclic(&mut solver);
-    let mut csp = ConstraintSatisfaction::new(&mut solver, region_id, region);
+    let mut csp = ConstraintSatisfaction::new(
+        &mut solver,
+        csp::ConstraintSatisfactionMode::Initial,
+        region_id,
+        region,
+    );
     csp.seed();
 
     // Fix bb0 at position 0
@@ -810,7 +875,12 @@ fn greedy_solves_two_block_loop() {
     };
     let mut solver = data.build_in(&body, &heap);
     let (region_id, region) = take_cyclic(&mut solver);
-    let mut csp = ConstraintSatisfaction::new(&mut solver, region_id, region);
+    let mut csp = ConstraintSatisfaction::new(
+        &mut solver,
+        csp::ConstraintSatisfactionMode::Initial,
+        region_id,
+        region,
+    );
 
     csp.seed();
     assert!(csp.run_greedy(&body));
@@ -864,7 +934,12 @@ fn greedy_rollback_finds_alternative() {
     };
     let mut solver = data.build_in(&body, &heap);
     let (region_id, region) = take_cyclic(&mut solver);
-    let mut csp = ConstraintSatisfaction::new(&mut solver, region_id, region);
+    let mut csp = ConstraintSatisfaction::new(
+        &mut solver,
+        csp::ConstraintSatisfactionMode::Initial,
+        region_id,
+        region,
+    );
 
     csp.seed();
     assert!(csp.run_greedy(&body));
@@ -921,7 +996,12 @@ fn greedy_fails_when_infeasible() {
     };
     let mut solver = data.build_in(&body, &heap);
     let (region_id, region) = take_cyclic(&mut solver);
-    let mut csp = ConstraintSatisfaction::new(&mut solver, region_id, region);
+    let mut csp = ConstraintSatisfaction::new(
+        &mut solver,
+        csp::ConstraintSatisfactionMode::Initial,
+        region_id,
+        region,
+    );
 
     csp.seed();
     assert!(!csp.run_greedy(&body));
@@ -978,7 +1058,12 @@ fn bnb_finds_optimal() {
     };
     let mut solver = data.build_in(&body, &heap);
     let (region_id, region) = take_cyclic(&mut solver);
-    let mut csp = ConstraintSatisfaction::new(&mut solver, region_id, region);
+    let mut csp = ConstraintSatisfaction::new(
+        &mut solver,
+        csp::ConstraintSatisfactionMode::Initial,
+        region_id,
+        region,
+    );
 
     assert!(csp.solve(&body));
     // all-I = stmt(10+1+1) + trans(0) = 12
@@ -1033,7 +1118,12 @@ fn bnb_retains_ranked_solutions() {
     };
     let mut solver = data.build_in(&body, &heap);
     let (region_id, region) = take_cyclic(&mut solver);
-    let mut csp = ConstraintSatisfaction::new(&mut solver, region_id, region);
+    let mut csp = ConstraintSatisfaction::new(
+        &mut solver,
+        csp::ConstraintSatisfactionMode::Initial,
+        region_id,
+        region,
+    );
 
     assert!(csp.solve(&body));
 
@@ -1109,7 +1199,12 @@ fn bnb_pruning_preserves_optimal() {
     };
     let mut solver = data.build_in(&body, &heap);
     let (region_id, region) = take_cyclic(&mut solver);
-    let mut csp = ConstraintSatisfaction::new(&mut solver, region_id, region);
+    let mut csp = ConstraintSatisfaction::new(
+        &mut solver,
+        csp::ConstraintSatisfactionMode::Initial,
+        region_id,
+        region,
+    );
 
     assert!(csp.solve(&body));
     // All blocks should get the same target (cost = 4)
@@ -1165,7 +1260,12 @@ fn retry_returns_ranked_solutions_in_order() {
     };
     let mut solver = data.build_in(&body, &heap);
     let (region_id, region) = take_cyclic(&mut solver);
-    let mut csp = ConstraintSatisfaction::new(&mut solver, region_id, region);
+    let mut csp = ConstraintSatisfaction::new(
+        &mut solver,
+        csp::ConstraintSatisfactionMode::Initial,
+        region_id,
+        region,
+    );
 
     assert!(csp.solve(&body));
 
@@ -1235,7 +1335,12 @@ fn retry_exhausts_then_perturbs() {
     };
     let mut solver = data.build_in(&body, &heap);
     let (region_id, region) = take_cyclic(&mut solver);
-    let mut csp = ConstraintSatisfaction::new(&mut solver, region_id, region);
+    let mut csp = ConstraintSatisfaction::new(
+        &mut solver,
+        csp::ConstraintSatisfactionMode::Initial,
+        region_id,
+        region,
+    );
 
     assert!(csp.solve(&body));
     // Only same-target transitions allowed, so valid assignments are (I,I) and (P,P).
@@ -1302,7 +1407,12 @@ fn greedy_rollback_on_empty_heap() {
     };
     let mut solver = data.build_in(&body, &heap);
     let (region_id, region) = take_cyclic(&mut solver);
-    let mut csp = ConstraintSatisfaction::new(&mut solver, region_id, region);
+    let mut csp = ConstraintSatisfaction::new(
+        &mut solver,
+        csp::ConstraintSatisfactionMode::Initial,
+        region_id,
+        region,
+    );
 
     csp.seed();
     assert!(csp.run_greedy(&body));
@@ -1372,7 +1482,12 @@ fn retry_perturbation_after_ranked_exhaustion() {
     };
     let mut solver = data.build_in(&body, &heap);
     let (region_id, region) = take_cyclic(&mut solver);
-    let mut csp = ConstraintSatisfaction::new(&mut solver, region_id, region);
+    let mut csp = ConstraintSatisfaction::new(
+        &mut solver,
+        csp::ConstraintSatisfactionMode::Initial,
+        region_id,
+        region,
+    );
 
     // solve() uses BnB (2 blocks ≤ BNB_CUTOFF=12), applies best solution
     assert!(csp.solve(&body));
