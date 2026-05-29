@@ -80,7 +80,7 @@ export const FilterRibbon: FunctionComponent<FilterRibbonProps> = ({
           setFilterState((prev) => ({ ...prev, web: updater(prev.web) }))
         }
       />
-      {isTypePinned ? null : (
+      {!isTypePinned && (
         <TypeFilterPill
           availableTypes={availableTypes}
           loading={availableTypesLoading}
@@ -90,13 +90,13 @@ export const FilterRibbon: FunctionComponent<FilterRibbonProps> = ({
           }
         />
       )}
-      {filterState.includeArchived ? (
+      {filterState.includeArchived && (
         <IncludeArchivedPill onRemove={() => setIncludeArchived(false)} />
-      ) : null}
+      )}
       {!allExtraFiltersEnabled && (
         <AddFiltersMenu onAddIncludeArchived={() => setIncludeArchived(true)} />
       )}
-      {filtersAreDefault ? null : <ClearFiltersButton onClear={handleClear} />}
+      {!filtersAreDefault && <ClearFiltersButton onClear={handleClear} />}
     </Box>
   );
 };

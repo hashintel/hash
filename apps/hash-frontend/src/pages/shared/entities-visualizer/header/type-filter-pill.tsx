@@ -332,17 +332,17 @@ export const TypeFilterPill: FunctionComponent<TypeFilterPillProps> = ({
           </Box>
         </Box>
         {filteredTypes.length === 0 &&
-        unknownSelectedIds.length === 0 &&
-        !loading ? (
-          <Box sx={{ px: 1.5, py: 1, minWidth: 220 }}>
-            <Typography
-              sx={{ color: ({ palette }) => palette.gray[60], fontSize: 13 }}
-            >
-              {availableTypes.length === 0 ? "No types" : "No matches"}
-            </Typography>
-          </Box>
-        ) : null}
-        {loading && availableTypes.length === 0 ? (
+          unknownSelectedIds.length === 0 &&
+          !loading && (
+            <Box sx={{ px: 1.5, py: 1, minWidth: 220 }}>
+              <Typography
+                sx={{ color: ({ palette }) => palette.gray[60], fontSize: 13 }}
+              >
+                {availableTypes.length === 0 ? "No types" : "No matches"}
+              </Typography>
+            </Box>
+          )}
+        {loading && availableTypes.length === 0 && (
           <Box sx={{ px: 1.5, py: 1, minWidth: 220 }}>
             <Typography
               sx={{ color: ({ palette }) => palette.gray[60], fontSize: 13 }}
@@ -350,27 +350,26 @@ export const TypeFilterPill: FunctionComponent<TypeFilterPillProps> = ({
               Loading…
             </Typography>
           </Box>
-        ) : null}
-        {!searchQuery
-          ? unknownSelectedIds.map((id) => (
-              <MenuCheckboxItem
-                key={id}
-                selected
-                onClick={() => toggle(id)}
-                sx={{ minWidth: 260 }}
-              >
-                <ListItemText
-                  primary="Unknown type"
-                  primaryTypographyProps={{
-                    sx: {
-                      fontStyle: "italic",
-                      color: ({ palette }) => palette.gray[60],
-                    },
-                  }}
-                />
-              </MenuCheckboxItem>
-            ))
-          : null}
+        )}
+        {!searchQuery &&
+          unknownSelectedIds.map((id) => (
+            <MenuCheckboxItem
+              key={id}
+              selected
+              onClick={() => toggle(id)}
+              sx={{ minWidth: 260 }}
+            >
+              <ListItemText
+                primary="Unknown type"
+                primaryTypographyProps={{
+                  sx: {
+                    fontStyle: "italic",
+                    color: ({ palette }) => palette.gray[60],
+                  },
+                }}
+              />
+            </MenuCheckboxItem>
+          ))}
         {filteredTypes.map(({ entityTypeId, title, count }) => (
           <TypeFilterMenuItem
             key={entityTypeId}
