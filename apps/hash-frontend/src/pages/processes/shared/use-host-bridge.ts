@@ -30,6 +30,10 @@ type HostBridgeHandlers = {
   onAiChatAbort?: (
     payload: Extract<IframeToHostMessage, { kind: "aiChatAbort" }>,
   ) => void;
+  onAiMessagesChanged?: (
+    payload: Extract<IframeToHostMessage, { kind: "aiMessagesChanged" }>,
+  ) => void;
+  onAiMessagesCleared?: () => void;
 };
 
 type HostBridge = {
@@ -109,6 +113,12 @@ export const useHostBridge = ({
           break;
         case "aiChatAbort":
           current.onAiChatAbort?.(data);
+          break;
+        case "aiMessagesChanged":
+          current.onAiMessagesChanged?.(data);
+          break;
+        case "aiMessagesCleared":
+          current.onAiMessagesCleared?.();
           break;
       }
     };

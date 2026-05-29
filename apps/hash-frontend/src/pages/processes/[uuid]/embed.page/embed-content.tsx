@@ -16,6 +16,7 @@ import { setIframeErrorReporterMode } from "../../shared/iframe-error-reporter";
 import {
   type HostNetMode,
   nextRequestId,
+  type PetrinautAiMessage,
   type RevisionSummary,
   type SavedSnapshot,
 } from "../../shared/messages";
@@ -44,6 +45,13 @@ type EditorState = {
   readonly: boolean;
   mode: HostNetMode;
   savedSnapshot: SavedSnapshot;
+  /**
+   * Conversation the host restored for this net (empty for drafts / nets
+   * with no saved conversation). Seeds the assistant panel's initial
+   * messages; the panel is keyed by the doc handle id (replaced on every
+   * `init`/`load`), so it remounts and re-reads these on each net change.
+   */
+  aiMessages: PetrinautAiMessage[];
 };
 
 const computeIsDirty = (
@@ -104,6 +112,7 @@ export const EmbedContent = () => {
         readonly: payload.readonly,
         mode: payload.mode,
         savedSnapshot: payload.savedSnapshot,
+        aiMessages: payload.aiMessages,
       });
       setRevisions(payload.revisions);
       setIsDirty(
@@ -130,6 +139,7 @@ export const EmbedContent = () => {
           payload.mode.kind === "saved" ? !payload.mode.userEditable : false,
         mode: payload.mode,
         savedSnapshot: payload.savedSnapshot,
+        aiMessages: payload.aiMessages,
       });
       setRevisions(payload.revisions);
       setIsDirty(
@@ -232,6 +242,22 @@ export const EmbedContent = () => {
     setState((prev) => (prev ? { ...prev, title } : prev));
   }, []);
 
+  /**
+   * Relay conversation changes up to the host, which owns persistence — the
+   * sandboxed iframe's opaque origin has no usable `localStorage`. Fired by
+   * the assistant whenever a turn finishes or the conversation is cleared.
+   */
+  const handleAiMessages = useCallback(
+    (messages: PetrinautAiMessage[]) => {
+      bridge.send({ kind: "aiMessagesChanged", messages });
+    },
+    [bridge],
+  );
+
+  const handleClearAiMessages = useCallback(() => {
+    bridge.send({ kind: "aiMessagesCleared" });
+  }, [bridge]);
+
   const handleSaveClick = useCallback(() => {
     if (!state || pendingSaveRequestId) {
       return;
@@ -331,7 +357,12 @@ export const EmbedContent = () => {
   return (
     <Box sx={{ height: "100vh", overflow: "hidden" }}>
       <Petrinaut
-        aiAssistant={{ transport: aiChatTransport }}
+        aiAssistant={{
+          transport: aiChatTransport,
+          messages: state.aiMessages,
+          onMessages: handleAiMessages,
+          onClearMessages: handleClearAiMessages,
+        }}
         handle={state.handle}
         createNewNet={noNetSwitchingError}
         existingNets={[]}

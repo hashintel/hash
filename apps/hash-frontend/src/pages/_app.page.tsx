@@ -204,9 +204,7 @@ const App: FunctionComponent<AppProps> = ({
 const PETRINAUT_EMBED_PATHNAME = "/processes/[uuid]/embed";
 
 /**
- * Minimal `_app` shell for the Petrinaut embed route. Provides only what
- * the iframe genuinely uses (Emotion + MUI theme + global keyframe styles
- * and error boundary) and skips:
+ * Minimal `_app` shell for the Petrinaut embed route.
  */
 const PetrinautEmbedAppShell: FunctionComponent<AppProps> = ({
   Component,
@@ -216,7 +214,6 @@ const PetrinautEmbedAppShell: FunctionComponent<AppProps> = ({
   <Suspense>
     <CacheProvider value={emotionCache}>
       <ThemeProvider theme={theme}>
-        <CssBaseline />
         <ErrorBoundary
           beforeCapture={(scope) => {
             scope.setTag("error-boundary", "_app-embed");

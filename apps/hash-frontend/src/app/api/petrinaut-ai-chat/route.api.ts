@@ -11,9 +11,17 @@ import { z } from "zod";
 
 import { petrinautAiPrompt, petrinautAiTools } from "@hashintel/petrinaut-core";
 
-import { oryKratosClient } from "../shared/ory-kratos";
+import { oryKratosClient } from "../../../pages/shared/ory-kratos";
 
-import type { NextApiRequest, NextApiResponse } from "next";
+/**
+ * This endpoint is an App Router Route Handler — *not* a Pages Router API
+ * route — specifically so it can stream. Pages Router API routes buffer the
+ * entire response before flushing it (a documented Next.js limitation), which
+ * defeated the token-by-token streaming the AI assistant relies on.
+ *
+ * `force-dynamic` keeps Next from trying to cache/optimise the handler.
+ */
+export const dynamic = "force-dynamic";
 
 const DEFAULT_MODEL = "gpt-5.5-2026-04-23";
 
@@ -46,11 +54,17 @@ const petrinautAiValidationTools = Object.fromEntries(
 /**
  * In-memory token buckets keyed by the authenticated user's Ory identity id.
  *
- * The HASH frontend runs as a long-lived Node server (`next start`), so this
- * map persists across requests for the lifetime of the process. It is best-
- * effort only: a multi-instance deployment would rate-limit per instance.
+ * The HASH frontend runs as a long-lived Node server, so this map persists
+ * across requests for the lifetime of the process. It is best-effort only: a
+ * multi-instance deployment would rate-limit per instance.
  */
 const rateLimitBuckets = new Map<string, { count: number; resetAt: number }>();
+
+const jsonResponse = (body: unknown, init: ResponseInit = {}): Response => {
+  const headers = new Headers(init.headers);
+  headers.set("content-type", "application/json");
+  return new Response(JSON.stringify(body), { ...init, headers });
+};
 
 const logChatFailure = (
   reason: string,
@@ -103,7 +117,7 @@ const checkRateLimit = (userId: string): boolean => {
  * Resolve the signed-in user's Ory identity id from the request's session
  * cookie. Returns `null` when there's no valid session.
  */
-const resolveUserId = async (cookie?: string): Promise<string | null> => {
+const resolveUserId = async (cookie: string | null): Promise<string | null> => {
   if (!cookie) {
     return null;
   }
@@ -116,7 +130,8 @@ const resolveUserId = async (cookie?: string): Promise<string | null> => {
 };
 
 /**
- * API route that proxies the Petrinaut AI assistant's chat requests to OpenAI.
+ * Route Handler that proxies the Petrinaut AI assistant's chat requests to
+ * OpenAI.
  *
  * The assistant runs inside a sandboxed null-origin iframe (see
  * `processes/[uuid]/embed`) which cannot reach this route directly — its
@@ -126,40 +141,38 @@ const resolveUserId = async (cookie?: string): Promise<string | null> => {
  * Requests must carry a valid HASH (Ory) session and are rate-limited per
  * user so a single account can't exhaust the shared OpenAI key.
  */
-const handler = async (
-  req: NextApiRequest,
-  res: NextApiResponse,
-): Promise<void> => {
-  if (req.method !== "POST") {
-    logChatFailure("Rejected unsupported method", { method: req.method });
-    res.status(405).json({ error: "Method not allowed" });
-    return;
-  }
-
-  const userId = await resolveUserId(req.headers.cookie);
+export const POST = async (request: Request): Promise<Response> => {
+  const userId = await resolveUserId(request.headers.get("cookie"));
   if (!userId) {
-    res.status(401).json({ error: "Not authenticated" });
-    return;
+    return jsonResponse({ error: "Not authenticated" }, { status: 401 });
   }
 
   if (!checkRateLimit(userId)) {
     logChatFailure("Rejected rate-limited request", { userId });
-    res.status(429).json({ error: "Rate limit exceeded" });
-    return;
+    return jsonResponse({ error: "Rate limit exceeded" }, { status: 429 });
   }
 
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     logChatFailure("Missing OpenAI API key");
-    res.status(500).json({ error: "OPENAI_API_KEY is not configured" });
-    return;
+    return jsonResponse(
+      { error: "OPENAI_API_KEY is not configured" },
+      { status: 500 },
+    );
   }
 
-  const parsed = requestSchema.safeParse(req.body);
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch (error) {
+    logChatFailure("Rejected invalid JSON", { error });
+    return jsonResponse({ error: "Invalid JSON" }, { status: 400 });
+  }
+
+  const parsed = requestSchema.safeParse(body);
   if (!parsed.success) {
     logChatFailure("Rejected invalid chat request", { error: parsed.error });
-    res.status(400).json({ error: "Invalid chat request" });
-    return;
+    return jsonResponse({ error: "Invalid chat request" }, { status: 400 });
   }
 
   const validatedMessages = await safeValidateUIMessages<UIMessage>({
@@ -171,8 +184,9 @@ const handler = async (
     logChatFailure("Rejected invalid chat messages", {
       error: validatedMessages.error,
     });
-    res.status(400).json(validationErrorBody(validatedMessages.error));
-    return;
+    return jsonResponse(validationErrorBody(validatedMessages.error), {
+      status: 400,
+    });
   }
 
   const openai = createOpenAI({ apiKey });
@@ -199,10 +213,10 @@ const handler = async (
   });
 
   // `streamText`'s own `onError` only logs server-side — the
-  // `pipeUIMessageStreamToResponse` `onError` is what propagates a visible
-  // error chunk to the client so `useChat` can surface a failure instead of
-  // just quietly transitioning the status back to `"ready"`.
-  result.pipeUIMessageStreamToResponse(res, {
+  // `toUIMessageStreamResponse` `onError` is what propagates a visible error
+  // chunk to the client so `useChat` can surface a failure instead of just
+  // quietly transitioning the status back to `"ready"`.
+  return result.toUIMessageStreamResponse({
     sendReasoning: true,
     onError: (error) => {
       logChatFailure("AI response error", { error });
@@ -210,5 +224,3 @@ const handler = async (
     },
   });
 };
-
-export default handler;

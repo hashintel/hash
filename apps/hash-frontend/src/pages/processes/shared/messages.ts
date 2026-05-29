@@ -1,5 +1,9 @@
 import type { EntityId } from "@blockprotocol/type-system";
-import type { SDCPN } from "@hashintel/petrinaut";
+import type { PetrinautProps, SDCPN } from "@hashintel/petrinaut";
+
+export type PetrinautAiMessage = NonNullable<
+  NonNullable<PetrinautProps["aiAssistant"]>["messages"]
+>[number];
 
 /**
  * Metadata about the active net surfaced by the host. Mirrors the shape the
@@ -51,6 +55,13 @@ export type HostToIframeMessage =
        * for drafts and brand-new saved nets.
        */
       revisions: RevisionSummary[];
+      /**
+       * Persisted AI-assistant conversation for the net being loaded. Empty
+       * for nets with no saved conversation (and for drafts, which the host
+       * deliberately never restores). The iframe seeds the assistant panel
+       * with these as its initial messages.
+       */
+      aiMessages: PetrinautAiMessage[];
     }
   | {
       /**
@@ -69,6 +80,10 @@ export type HostToIframeMessage =
        * showing the previous net's history.
        */
       revisions: RevisionSummary[];
+      /**
+       * Persisted AI-assistant conversation for the net being switched to.
+       */
+      aiMessages: PetrinautAiMessage[];
     }
   | {
       /**
@@ -235,6 +250,23 @@ export type IframeToHostMessage =
        */
       kind: "aiChatAbort";
       requestId: string;
+    }
+  | {
+      /**
+       * The AI-assistant conversation changed (a turn finished, or the
+       * conversation was cleared). The host persists `messages` to
+       * `localStorage` keyed by the currently-loaded net, so reopening the
+       * net restores the conversation.
+       */
+      kind: "aiMessagesChanged";
+      messages: PetrinautAiMessage[];
+    }
+  | {
+      /**
+       * The user explicitly cleared the conversation. The host deletes the
+       * persisted entry for the currently-loaded net.
+       */
+      kind: "aiMessagesCleared";
     };
 
 export const isHostToIframeMessage = (
