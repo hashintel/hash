@@ -6,7 +6,6 @@ import { Button, usePortalContainerRef } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { WalkthroughContext } from "./walkthrough-context";
-import { walkthroughSteps } from "./walkthrough-steps";
 
 const docsUrl =
   "https://github.com/hashintel/hash/tree/main/libs/%40hashintel/petrinaut/docs";
@@ -233,9 +232,11 @@ const actionsStyle = css({
 });
 
 export const WalkthroughDialog: React.FC = () => {
-  const { isOpen, close } = use(WalkthroughContext);
+  const walkthrough = use(WalkthroughContext);
   const [currentStep, setCurrentStep] = useState(0);
   const portalContainerRef = usePortalContainerRef();
+
+  const isOpen = walkthrough?.isOpen ?? false;
 
   // Reset to the first step every time the dialog opens. Using the
   // prev-prop comparison pattern recommended by React's "you might not need
@@ -249,8 +250,13 @@ export const WalkthroughDialog: React.FC = () => {
     }
   }
 
-  const lastIndex = walkthroughSteps.length - 1;
-  const step = walkthroughSteps[currentStep] ?? walkthroughSteps[0];
+  if (!walkthrough) {
+    return null;
+  }
+
+  const { close, steps } = walkthrough;
+  const lastIndex = steps.length - 1;
+  const step = steps[currentStep] ?? steps[0];
 
   if (!step) {
     return null;
@@ -315,7 +321,7 @@ export const WalkthroughDialog: React.FC = () => {
               <div key={step.id} className={stepBlockStyle}>
                 <div className={mediaStyle}>
                   <video
-                    src={step.video}
+                    src={step.videoHref}
                     aria-label={step.videoAlt}
                     className={mediaVideoStyle}
                     autoPlay
@@ -333,10 +339,10 @@ export const WalkthroughDialog: React.FC = () => {
               <div className={footerStyle}>
                 <div className={progressGroupStyle}>
                   <span className={srOnlyStyle}>
-                    Step {currentStep + 1} of {walkthroughSteps.length}
+                    Step {currentStep + 1} of {steps.length}
                   </span>
                   <nav className={dotsStyle} aria-label="Walkthrough steps">
-                    {walkthroughSteps.map((s, index) => (
+                    {steps.map((s, index) => (
                       <button
                         key={s.id}
                         type="button"

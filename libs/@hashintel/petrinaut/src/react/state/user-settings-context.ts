@@ -44,7 +44,6 @@ export type UserSettings = {
   partialSelection: boolean;
   useEntitiesTreeView: boolean;
   subViewPanels: SubViewPanelsSettings;
-  hasSeenWalkthrough: boolean;
 };
 
 export type UserSettingsActions = {
@@ -64,7 +63,6 @@ export type UserSettingsActions = {
   setSnapToGrid: (value: boolean) => void;
   setPartialSelection: (value: boolean) => void;
   setUseEntitiesTreeView: (value: boolean) => void;
-  setHasSeenWalkthrough: (value: boolean) => void;
   updateSubViewSection: (
     containerName: string,
     sectionId: string,
@@ -92,7 +90,6 @@ export const defaultUserSettings: UserSettings = {
   partialSelection: true,
   useEntitiesTreeView: false,
   subViewPanels: {},
-  hasSeenWalkthrough: false,
 };
 
 const DEFAULT_CONTEXT_VALUE: UserSettingsContextValue = {
@@ -113,7 +110,6 @@ const DEFAULT_CONTEXT_VALUE: UserSettingsContextValue = {
   setSnapToGrid: () => {},
   setPartialSelection: () => {},
   setUseEntitiesTreeView: () => {},
-  setHasSeenWalkthrough: () => {},
   updateSubViewSection: () => {},
 };
 

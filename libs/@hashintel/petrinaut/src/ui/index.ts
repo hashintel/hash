@@ -31,7 +31,6 @@ export {
   WalkthroughContext,
   WalkthroughProvider,
   WalkthroughDialog,
-  walkthroughSteps,
 } from "./components/walkthrough";
 export type {
   WalkthroughContextValue,
