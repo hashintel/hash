@@ -1,3 +1,6 @@
+import { css } from "@hashintel/ds-helpers/css";
+
+import logo from "./logo-mark.png";
 // Videos must fill their 16:9 frame edge-to-edge. Avoid card-inside-the-card
 // framing (i.e. don't include a nested chrome window around the actual UI) —
 // the dialog already provides its own container.
@@ -10,7 +13,23 @@ import type { WalkthroughStep } from "@hashintel/petrinaut/ui";
 export const walkthroughSteps: WalkthroughStep[] = [
   {
     id: "welcome",
-    title: "Welcome to Petrinaut",
+    title: (
+      <div
+        className={css({ display: "flex", alignItems: "center", gap: "1.5" })}
+      >
+        <img
+          className={css({
+            width: "[25px]",
+            height: "auto",
+            position: "relative",
+            top: "[-1.5px]",
+          })}
+          src={logo}
+          alt=""
+        />
+        Welcome to Petrinaut
+      </div>
+    ),
     body: (
       <>
         <p>

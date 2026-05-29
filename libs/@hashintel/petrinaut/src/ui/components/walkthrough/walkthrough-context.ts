@@ -2,7 +2,7 @@ import { createContext } from "react";
 
 export type WalkthroughStep = {
   id: string;
-  title: string;
+  title: React.ReactNode;
   body: React.ReactNode;
   videoHref: string;
   videoAlt: string;
