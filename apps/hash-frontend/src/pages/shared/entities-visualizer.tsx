@@ -529,10 +529,10 @@ export const EntitiesVisualizer: FunctionComponent<{
       <Box ref={contentTopRef} />
       {showLoading ? (
         <Stack
-          alignItems="center"
-          justifyContent="center"
           sx={[
             {
+              alignItems: "center",
+              justifyContent: "center",
               height: tableHeight,
               width: "100%",
             },

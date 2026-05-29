@@ -294,11 +294,13 @@ export const TypeFilterPill: FunctionComponent<TypeFilterPillProps> = ({
             }}
           />
           <Box
-            display="flex"
-            justifyContent="space-between"
-            alignItems="center"
-            mt={0.5}
-            sx={{ px: 0.25 }}
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              mt: 0.5,
+              px: 0.25,
+            }}
           >
             <Typography
               sx={{ color: ({ palette }) => palette.gray[60], fontSize: 11 }}

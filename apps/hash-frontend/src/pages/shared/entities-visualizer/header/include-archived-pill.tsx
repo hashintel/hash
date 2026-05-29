@@ -23,9 +23,7 @@ export const IncludeArchivedPill: FunctionComponent<
         label={
           <Box
             component="span"
-            display="inline-flex"
-            alignItems="center"
-            gap={0.6}
+            sx={{ display: "inline-flex", alignItems: "center", gap: 0.6 }}
           >
             Include archived
             <IconButton

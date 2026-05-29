@@ -752,7 +752,7 @@ export const EntitiesTable: FunctionComponent<
   const loadMoreRowHeight = 60;
 
   return (
-    <Stack gap={1} sx={{ position: "relative" }}>
+    <Stack sx={{ gap: 1, position: "relative" }}>
       <Grid
         activeConversions={activeConversions}
         columns={columns}
@@ -783,10 +783,10 @@ export const EntitiesTable: FunctionComponent<
 
       {hasMoreRowsAvailable && (
         <Stack
-          alignItems="center"
-          justifyContent="center"
-          mt={1}
           sx={({ palette }) => ({
+            alignItems: "center",
+            justifyContent: "center",
+            mt: 1,
             background: palette.common.white,
             borderTop: `1px solid ${palette.gray[20]}`,
             height: loadMoreRowHeight,

@@ -132,10 +132,12 @@ export const SortControl: FunctionComponent<SortControlProps> = ({
               {isActive && (
                 <Box
                   component="span"
-                  display="inline-flex"
-                  alignItems="center"
-                  ml={1}
-                  sx={{ color: ({ palette }) => palette.common.white }}
+                  sx={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    ml: 1,
+                    color: ({ palette }) => palette.common.white,
+                  }}
                 >
                   <DirectionIcon sx={{ fontSize: 14 }} />
                 </Box>

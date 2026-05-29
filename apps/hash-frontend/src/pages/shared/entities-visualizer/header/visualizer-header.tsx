@@ -15,10 +15,10 @@ export const VisualizerHeader: FunctionComponent<VisualizerHeaderProps> = ({
 }) => {
   return (
     <Box
-      display="flex"
-      alignItems="center"
-      justifyContent="space-between"
       sx={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
         background: ({ palette }) => palette.gray[20],
         borderWidth: 1,
         borderStyle: "solid",
@@ -31,10 +31,18 @@ export const VisualizerHeader: FunctionComponent<VisualizerHeaderProps> = ({
         minHeight: visualizerHeaderHeight,
       }}
     >
-      <Box display="flex" gap={1.5} alignItems="center" flex={1} minWidth={0}>
+      <Box
+        sx={{
+          display: "flex",
+          gap: 1.5,
+          alignItems: "center",
+          flex: 1,
+          minWidth: 0,
+        }}
+      >
         {left}
       </Box>
-      <Box display="flex" alignItems="center" columnGap={1}>
+      <Box sx={{ display: "flex", alignItems: "center", columnGap: 1 }}>
         {right}
       </Box>
     </Box>

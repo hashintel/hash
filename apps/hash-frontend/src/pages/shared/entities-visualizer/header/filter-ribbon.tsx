@@ -79,7 +79,7 @@ export const FilterRibbon: FunctionComponent<FilterRibbonProps> = ({
   const allExtraFiltersEnabled = filterState.includeArchived;
 
   return (
-    <Box display="flex" alignItems="center" gap={1}>
+    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
       <WebFilterPill
         internalWebIds={internalWebIds}
         webState={filterState.web}

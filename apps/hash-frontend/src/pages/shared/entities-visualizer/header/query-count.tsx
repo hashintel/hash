@@ -18,10 +18,10 @@ export const QueryCount: FunctionComponent<QueryCountProps> = ({
 
   return (
     <Box
-      display="flex"
-      alignItems="center"
-      gap={0.75}
       sx={{
+        display: "flex",
+        alignItems: "center",
+        gap: 0.75,
         color: ({ palette }) => palette.gray[70],
         fontSize: 13,
         fontWeight: 500,

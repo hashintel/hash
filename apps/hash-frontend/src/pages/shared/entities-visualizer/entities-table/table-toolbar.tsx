@@ -75,10 +75,10 @@ export const TableToolbar: FunctionComponent<TableToolbarProps> = ({
 
   return (
     <Box
-      display="flex"
-      alignItems="center"
-      justifyContent="space-between"
       sx={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
         background: ({ palette }) => palette.common.white,
         borderLeftWidth: 1,
         borderRightWidth: 1,
@@ -91,7 +91,7 @@ export const TableToolbar: FunctionComponent<TableToolbarProps> = ({
         minHeight: toolbarHeight,
       }}
     >
-      <Box display="flex" alignItems="center" columnGap={1}>
+      <Box sx={{ display: "flex", alignItems: "center", columnGap: 1 }}>
         <Tooltip title="Search for text in visible rows" placement="top">
           <IconButton onClick={() => setShowSearch(!showSearch)}>
             <MagnifyingGlassRegularIcon />
@@ -106,7 +106,7 @@ export const TableToolbar: FunctionComponent<TableToolbarProps> = ({
           </TableHeaderButton>
         </Tooltip>
       </Box>
-      <Box display="flex" alignItems="center" columnGap={1}>
+      <Box sx={{ display: "flex", alignItems: "center", columnGap: 1 }}>
         <SortControl columns={displayedColumns} sort={sort} setSort={setSort} />
       </Box>
     </Box>

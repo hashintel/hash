@@ -34,7 +34,10 @@ export const FilterPill: FunctionComponent<FilterPillProps> = ({
       />
     }
     label={
-      <Box component="span" display="inline-flex" alignItems="center" gap={0.6}>
+      <Box
+        component="span"
+        sx={{ display: "inline-flex", alignItems: "center", gap: 0.6 }}
+      >
         <Typography
           component="span"
           sx={{
