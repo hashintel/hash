@@ -13,7 +13,10 @@ import { Drawer } from "../../../../../components/drawer";
 import { Input } from "../../../../../components/input";
 import { NumberInput } from "../../../../../components/number-input";
 import { Section, SectionList } from "../../../../../components/section";
-import { Select } from "../../../../../components/select";
+import {
+  Select,
+  type SelectOptionGroup,
+} from "../../../../../components/select";
 import { CodeEditor } from "../../../../../monaco/code-editor";
 import { getMetricDocumentUri } from "../../../../../monaco/editor-paths";
 import { useMetricLspSession } from "../metrics/metric-form";
@@ -269,7 +272,11 @@ type ExperimentMetricDraft = {
   transitionId: string;
   transitionMode: TransitionFiringMode;
   code: string;
+  // Set when this metric was picked from a custom metric defined on the model.
+  sourceMetricId: string | null;
 };
+
+const MODEL_METRIC_VALUE_PREFIX = "model:";
 
 const transitionModeOptions: { value: TransitionFiringMode; label: string }[] =
   [
@@ -288,7 +295,20 @@ function getMetricKindLabel(kind: ExperimentMetricKind): string {
   }
 }
 
-function getMetricSummaryLabel(metric: ExperimentMetricDraft): string {
+function getMetricSummaryLabel(
+  metric: ExperimentMetricDraft,
+  sdcpn: SDCPN,
+): string {
+  if (metric.sourceMetricId) {
+    const modelMetric = sdcpn.metrics?.find(
+      (candidate) => candidate.id === metric.sourceMetricId,
+    );
+
+    if (modelMetric) {
+      return modelMetric.name;
+    }
+  }
+
   return getMetricKindLabel(metric.kind);
 }
 
@@ -321,21 +341,43 @@ function canReplaceMetricLabel(label: string, sdcpn: SDCPN): boolean {
     getDefaultMetricLabel("placeTokenCountMean", sdcpn),
     getDefaultMetricLabel("transitionFiringCount", sdcpn),
     getDefaultMetricLabel("expression", sdcpn),
+    ...(sdcpn.metrics ?? []).map((metric) => metric.name),
   ]).has(trimmed);
 }
 
-function createMetricKindOptions(): {
-  value: ExperimentMetricKind;
-  label: string;
-}[] {
-  return [
-    { value: "placeTokenCountMean" as const, label: "Place tokens" },
+function createMetricKindGroups(sdcpn: SDCPN): SelectOptionGroup[] {
+  const groups: SelectOptionGroup[] = [
     {
-      value: "transitionFiringCount" as const,
-      label: "Transition firing",
+      label: "Built-in",
+      options: [
+        { value: "placeTokenCountMean", label: "Place tokens", icon: "circle" },
+        {
+          value: "transitionFiringCount",
+          label: "Transition firing",
+          icon: "lightning",
+        },
+      ],
     },
-    { value: "expression", label: "Custom code" },
   ];
+
+  const modelMetrics = sdcpn.metrics ?? [];
+  if (modelMetrics.length > 0) {
+    groups.push({
+      label: "Model metrics",
+      options: modelMetrics.map((metric) => ({
+        value: `${MODEL_METRIC_VALUE_PREFIX}${metric.id}`,
+        label: metric.name,
+        icon: "function",
+      })),
+    });
+  }
+
+  groups.push({
+    label: "Custom",
+    options: [{ value: "expression", label: "Custom code", icon: "code" }],
+  });
+
+  return groups;
 }
 
 function createDefaultMetricDraft(sdcpn: SDCPN): ExperimentMetricDraft {
@@ -356,6 +398,7 @@ function createDefaultMetricDraft(sdcpn: SDCPN): ExperimentMetricDraft {
     transitionId: transition?.id ?? "",
     transitionMode: "firedInThisFrame",
     code: DEFAULT_METRIC_CODE,
+    sourceMetricId: null,
   };
 }
 
@@ -460,9 +503,11 @@ const ScenarioParameterRow = ({
 
 const ExperimentExpressionMetricEditor = ({
   code,
+  readOnly = false,
   onChange,
 }: {
   code: string;
+  readOnly?: boolean;
   onChange: (code: string) => void;
 }) => {
   const metricSessionId = useMetricLspSession(code);
@@ -478,8 +523,9 @@ const ExperimentExpressionMetricEditor = ({
         value={code}
         onChange={(value) => onChange(value ?? "")}
         height="128px"
+        options={readOnly ? { readOnly: true } : undefined}
       />
-      {lspErrors.count > 0 ? (
+      {!readOnly && lspErrors.count > 0 ? (
         <span className={codeDiagnosticStyle}>
           {lspErrors.firstMessage ?? `${lspErrors.count} diagnostics`}
         </span>
@@ -491,14 +537,14 @@ const ExperimentExpressionMetricEditor = ({
 const ExperimentMetricRow = ({
   metric,
   sdcpn,
-  kindOptions,
+  kindGroups,
   autoFocusLabel,
   onChange,
   onRemove,
 }: {
   metric: ExperimentMetricDraft;
   sdcpn: SDCPN;
-  kindOptions: { value: ExperimentMetricKind; label: string }[];
+  kindGroups: SelectOptionGroup[];
   autoFocusLabel: boolean;
   onChange: (metric: ExperimentMetricDraft) => void;
   onRemove: () => void;
@@ -518,6 +564,30 @@ const ExperimentMetricRow = ({
     onChange({ ...metric, ...patch });
   };
   const handleKindChange = (value: string) => {
+    // A custom metric defined on the model becomes an expression metric
+    // pre-filled with that metric's code and name.
+    if (value.startsWith(MODEL_METRIC_VALUE_PREFIX)) {
+      const modelMetricId = value.slice(MODEL_METRIC_VALUE_PREFIX.length);
+      const modelMetric = sdcpn.metrics?.find(
+        (candidate) => candidate.id === modelMetricId,
+      );
+
+      if (!modelMetric) {
+        return;
+      }
+
+      updateMetric({
+        kind: "expression",
+        code: modelMetric.code,
+        sourceMetricId: modelMetric.id,
+        label: canReplaceMetricLabel(metric.label, sdcpn)
+          ? modelMetric.name
+          : metric.label,
+      });
+
+      return;
+    }
+
     const nextKind = value as ExperimentMetricKind;
     const nextLabel = canReplaceMetricLabel(metric.label, sdcpn)
       ? getDefaultMetricLabel(nextKind, sdcpn)
@@ -525,6 +595,7 @@ const ExperimentMetricRow = ({
     const nextPatch: Partial<ExperimentMetricDraft> = {
       kind: nextKind,
       label: nextLabel,
+      sourceMetricId: null,
     };
 
     if (
@@ -588,9 +659,13 @@ const ExperimentMetricRow = ({
             />
           </div>
           <Select
-            value={metric.kind}
+            value={
+              metric.sourceMetricId
+                ? `${MODEL_METRIC_VALUE_PREFIX}${metric.sourceMetricId}`
+                : metric.kind
+            }
             onValueChange={handleKindChange}
-            options={kindOptions}
+            groups={kindGroups}
             size="xs"
             className={metricKindSelectStyle}
             triggerClassName={metricKindTriggerStyle}
@@ -598,7 +673,7 @@ const ExperimentMetricRow = ({
             renderTrigger={() => (
               <>
                 <span className={metricKindTriggerLabelStyle}>
-                  {getMetricSummaryLabel(metric)}
+                  {getMetricSummaryLabel(metric, sdcpn)}
                 </span>
                 <Icon
                   name="chevronDown"
@@ -677,6 +752,7 @@ const ExperimentMetricRow = ({
           {metric.kind === "expression" ? (
             <ExperimentExpressionMetricEditor
               code={metric.code}
+              readOnly={metric.sourceMetricId !== null}
               onChange={(code) => updateMetric({ code })}
             />
           ) : null}
@@ -727,7 +803,7 @@ export const CreateExperimentDrawer = ({
     { value: DEFAULT_SCENARIO_VALUE, label: "(Default)" },
     ...scenarios.map((s) => ({ value: s.id, label: s.name })),
   ];
-  const metricKindOptions = createMetricKindOptions();
+  const metricKindGroups = createMetricKindGroups(petriNetDefinition);
 
   const resetForm = () => {
     setName(DEFAULT_EXPERIMENT_NAME);
@@ -932,7 +1008,7 @@ export const CreateExperimentDrawer = ({
                     key={metric.id}
                     metric={metric}
                     sdcpn={petriNetDefinition}
-                    kindOptions={metricKindOptions}
+                    kindGroups={metricKindGroups}
                     autoFocusLabel={metric.id === metricLabelFocusId}
                     onChange={handleMetricChange}
                     onRemove={() => handleMetricRemove(metric.id)}
