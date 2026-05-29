@@ -120,7 +120,7 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
   title = "Untitled",
   setTitle = noop,
   readonly = false,
-  hideNetManagementControls = undefined,
+  hideNetManagementControls,
   existingNets = [],
   createNewNet = noop,
   loadPetriNet = noop,
