@@ -39,7 +39,7 @@ const positionerStyle = css({
 
 const contentStyle = css({
   width: "[92vw]",
-  maxWidth: "[760px]",
+  maxWidth: "[680px]",
   maxHeight: "[min(88vh, 680px)]",
   backgroundColor: "neutral.s10",
   borderRadius: "2xl",
@@ -111,7 +111,7 @@ const mediaStyle = css({
   flexShrink: "[0]",
 });
 
-const mediaImageStyle = css({
+const mediaVideoStyle = css({
   position: "absolute",
   inset: "[0]",
   width: "full",
@@ -143,11 +143,21 @@ const textBlockStyle = css({
 
 const bodyTextStyle = css({
   fontSize: "sm",
-  fontWeight: "medium",
+  fontWeight: "normal",
   lineHeight: "[1.6]",
-  color: "neutral.s90",
-  margin: "[0]",
+  color: "neutral.s115",
+  marginTop: "2",
+  marginBottom: "[0]",
+  marginX: "auto",
   maxWidth: "[64ch]",
+
+  "& p + p": {
+    marginTop: "3",
+  },
+
+  "& strong": {
+    fontWeight: "semibold",
+  },
 });
 
 const footerStyle = css({
@@ -164,7 +174,7 @@ const footerStyle = css({
 });
 
 const skipButtonStyle = css({
-  color: "neutral.s70",
+  color: "neutral.s80 !important",
 });
 
 const progressGroupStyle = css({
@@ -272,7 +282,7 @@ export const WalkthroughDialog: React.FC = () => {
 
   return (
     <ArkDialog.Root
-      open={isOpen}
+      open={true}
       onOpenChange={(details) => {
         if (!details.open) {
           close();
@@ -301,10 +311,14 @@ export const WalkthroughDialog: React.FC = () => {
               </div>
               <div key={step.id} className={stepBlockStyle}>
                 <div className={mediaStyle}>
-                  <img
-                    src={step.image}
-                    alt={step.imageAlt}
-                    className={mediaImageStyle}
+                  <video
+                    src={step.video}
+                    aria-label={step.videoAlt}
+                    className={mediaVideoStyle}
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
                   />
                 </div>
                 <div className={textBlockStyle}>
@@ -356,7 +370,12 @@ export const WalkthroughDialog: React.FC = () => {
                   >
                     Back
                   </Button>
-                  <Button variant="solid" size="sm" onClick={goNext}>
+                  <Button
+                    variant="solid"
+                    tone={atLast ? "brand" : "neutral"}
+                    size="sm"
+                    onClick={goNext}
+                  >
                     {atLast ? "Get started" : "Next"}
                   </Button>
                 </div>
