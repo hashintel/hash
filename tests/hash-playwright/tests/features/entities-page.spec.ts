@@ -29,5 +29,5 @@ test("user can visit a page listing entities of a type", async ({ page }) => {
     );
   });
 
-  await expect(page.getByText(/^([1-9]\d*) in your webs$/)).toBeVisible();
+  await expect(page.getByText(/^([1-9]\d*) (entities)$/)).toBeVisible();
 });
