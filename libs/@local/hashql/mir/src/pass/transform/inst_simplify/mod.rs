@@ -309,6 +309,8 @@ impl<'heap, A: Allocator> InstSimplifyVisitor<'_, 'heap, A> {
             (BinOp::BitAnd, 0) if is_bool => {
                 Some(RValue::Load(Operand::Constant(Constant::Int(false.into()))))
             }
+            // 0 & rhs => 0 (annihilator)
+            (BinOp::BitAnd, 0) => Some(RValue::Load(Operand::Constant(Constant::Int(0.into())))),
             (BinOp::BitAnd, _) => None,
             // 0 | rhs => rhs (identity)
             (BinOp::BitOr, 0) => Some(RValue::Load(Operand::Place(rhs))),
@@ -369,6 +371,8 @@ impl<'heap, A: Allocator> InstSimplifyVisitor<'_, 'heap, A> {
             (BinOp::BitAnd, 0) if is_bool => {
                 Some(RValue::Load(Operand::Constant(Constant::Int(false.into()))))
             }
+            // 0 & lhs => 0 (annihilator)
+            (BinOp::BitAnd, 0) => Some(RValue::Load(Operand::Constant(Constant::Int(0.into())))),
             (BinOp::BitAnd, _) => None,
             // lhs | 0 => lhs (identity)
             (BinOp::BitOr, 0) => Some(RValue::Load(Operand::Place(lhs))),

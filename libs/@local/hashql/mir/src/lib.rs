@@ -23,12 +23,13 @@
     iter_collect_into,
     likely_unlikely,
     maybe_uninit_fill,
+    maybe_uninit_uninit_array_transpose,
     option_into_flat_iter,
     step_trait,
     temporary_niche_types,
     try_trait_v2,
     variant_count,
-    maybe_uninit_uninit_array_transpose
+    iterator_try_reduce
 )]
 #![cfg_attr(test, feature(
     // Library Features
