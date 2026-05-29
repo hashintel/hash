@@ -40,7 +40,7 @@ export const IncludeArchivedPill: FunctionComponent<
                 },
               }}
             >
-              <XMarkRegularIcon sx={{ fontSize: 12 }} />
+              <XMarkRegularIcon />
             </IconButton>
           </Box>
         }

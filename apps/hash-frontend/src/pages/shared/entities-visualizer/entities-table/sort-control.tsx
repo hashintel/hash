@@ -136,7 +136,6 @@ export const SortControl: FunctionComponent<SortControlProps> = ({
                     display: "inline-flex",
                     alignItems: "center",
                     ml: 1,
-                    color: ({ palette }) => palette.common.white,
                   }}
                 >
                   <DirectionIcon sx={{ fontSize: 14 }} />

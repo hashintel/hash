@@ -786,7 +786,6 @@ export const EntitiesTable: FunctionComponent<
           sx={({ palette }) => ({
             alignItems: "center",
             justifyContent: "center",
-            mt: 1,
             background: palette.common.white,
             borderTop: `1px solid ${palette.gray[20]}`,
             height: loadMoreRowHeight,

@@ -35,7 +35,6 @@ export const FilterPill: FunctionComponent<FilterPillProps> = ({
           component="span"
           sx={{
             fontSize: 13,
-            fontWeight: 400,
             color: ({ palette }) =>
               active ? palette.blue[70] : palette.gray[60],
           }}

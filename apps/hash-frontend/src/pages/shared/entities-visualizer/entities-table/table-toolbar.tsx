@@ -1,4 +1,4 @@
-import { Box, Tooltip } from "@mui/material";
+import { Box, Tooltip, type SxProps } from "@mui/material";
 import { unparse } from "papaparse";
 import { useCallback } from "react";
 
@@ -19,6 +19,12 @@ import type { SizedGridColumn } from "@glideapps/glide-data-grid";
 import type { FunctionComponent, MutableRefObject, RefObject } from "react";
 
 export const toolbarHeight = 44;
+
+const groupSx: SxProps = {
+  display: "flex",
+  alignItems: "center",
+  columnGap: 1,
+};
 
 type TableToolbarProps = {
   csvFileTitle: string;
@@ -91,7 +97,7 @@ export const TableToolbar: FunctionComponent<TableToolbarProps> = ({
         minHeight: toolbarHeight,
       }}
     >
-      <Box sx={{ display: "flex", alignItems: "center", columnGap: 1 }}>
+      <Box sx={groupSx}>
         <Tooltip title="Search for text in visible rows" placement="top">
           <IconButton onClick={() => setShowSearch(!showSearch)}>
             <MagnifyingGlassRegularIcon />
@@ -106,7 +112,7 @@ export const TableToolbar: FunctionComponent<TableToolbarProps> = ({
           </TableHeaderButton>
         </Tooltip>
       </Box>
-      <Box sx={{ display: "flex", alignItems: "center", columnGap: 1 }}>
+      <Box sx={groupSx}>
         <SortControl columns={displayedColumns} sort={sort} setSort={setSort} />
       </Box>
     </Box>
