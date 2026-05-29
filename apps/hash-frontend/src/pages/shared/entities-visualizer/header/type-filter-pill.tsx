@@ -145,6 +145,14 @@ const TypeFilterMenuItem: FunctionComponent<TypeFilterMenuItemProps> = ({
   </MenuCheckboxItem>
 );
 
+const TypeFilterMessage: FunctionComponent<{ text: string }> = ({ text }) => (
+  <Box sx={{ px: 1.5, py: 1, minWidth: 220 }}>
+    <Typography sx={{ color: ({ palette }) => palette.gray[60], fontSize: 13 }}>
+      {text}
+    </Typography>
+  </Box>
+);
+
 export const TypeFilterPill: FunctionComponent<TypeFilterPillProps> = ({
   availableTypes,
   loading,
@@ -242,6 +250,62 @@ export const TypeFilterPill: FunctionComponent<TypeFilterPillProps> = ({
 
   const isActive = !allSelected;
 
+  const renderListContent = () => {
+    const showEmpty =
+      filteredTypes.length === 0 && unknownSelectedIds.length === 0 && !loading;
+
+    if (showEmpty) {
+      return (
+        <TypeFilterMessage
+          text={availableTypes.length === 0 ? "No types" : "No matches"}
+        />
+      );
+    }
+
+    const showLoading = loading && availableTypes.length === 0;
+
+    if (showLoading) {
+      return <TypeFilterMessage text="Loading…" />;
+    }
+
+    const showUnknownTypes = !searchQuery;
+
+    return (
+      <>
+        {showUnknownTypes &&
+          unknownSelectedIds.map((id) => (
+            <MenuCheckboxItem
+              key={id}
+              selected
+              onClick={() => toggle(id)}
+              sx={{ minWidth: 260 }}
+            >
+              <ListItemText
+                primary="Unknown type"
+                primaryTypographyProps={{
+                  sx: {
+                    fontStyle: "italic",
+                    color: ({ palette }) => palette.gray[60],
+                  },
+                }}
+              />
+            </MenuCheckboxItem>
+          ))}
+        {filteredTypes.map(({ entityTypeId, title, count }) => (
+          <TypeFilterMenuItem
+            key={entityTypeId}
+            entityTypeId={entityTypeId}
+            title={title}
+            count={count}
+            checked={isChecked(entityTypeId)}
+            onToggle={toggle}
+            onSelectOnly={selectOnly}
+          />
+        ))}
+      </>
+    );
+  };
+
   return (
     <Box>
       <FilterPill
@@ -331,56 +395,8 @@ export const TypeFilterPill: FunctionComponent<TypeFilterPillProps> = ({
             </Box>
           </Box>
         </Box>
-        {filteredTypes.length === 0 &&
-          unknownSelectedIds.length === 0 &&
-          !loading && (
-            <Box sx={{ px: 1.5, py: 1, minWidth: 220 }}>
-              <Typography
-                sx={{ color: ({ palette }) => palette.gray[60], fontSize: 13 }}
-              >
-                {availableTypes.length === 0 ? "No types" : "No matches"}
-              </Typography>
-            </Box>
-          )}
-        {loading && availableTypes.length === 0 && (
-          <Box sx={{ px: 1.5, py: 1, minWidth: 220 }}>
-            <Typography
-              sx={{ color: ({ palette }) => palette.gray[60], fontSize: 13 }}
-            >
-              Loading…
-            </Typography>
-          </Box>
-        )}
-        {!searchQuery &&
-          unknownSelectedIds.map((id) => (
-            <MenuCheckboxItem
-              key={id}
-              selected
-              onClick={() => toggle(id)}
-              sx={{ minWidth: 260 }}
-            >
-              <ListItemText
-                primary="Unknown type"
-                primaryTypographyProps={{
-                  sx: {
-                    fontStyle: "italic",
-                    color: ({ palette }) => palette.gray[60],
-                  },
-                }}
-              />
-            </MenuCheckboxItem>
-          ))}
-        {filteredTypes.map(({ entityTypeId, title, count }) => (
-          <TypeFilterMenuItem
-            key={entityTypeId}
-            entityTypeId={entityTypeId}
-            title={title}
-            count={count}
-            checked={isChecked(entityTypeId)}
-            onToggle={toggle}
-            onSelectOnly={selectOnly}
-          />
-        ))}
+
+        {renderListContent()}
       </Menu>
     </Box>
   );
