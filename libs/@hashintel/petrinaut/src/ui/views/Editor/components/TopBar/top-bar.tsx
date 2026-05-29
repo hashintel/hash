@@ -9,7 +9,6 @@ import {
 } from "../../../../../react/state/editor-context";
 import { UndoRedoContext } from "../../../../../react/state/undo-redo-context";
 import { Menu, type MenuItem } from "../../../../components/menu";
-import { WalkthroughContext } from "../../../../components/walkthrough/walkthrough-context";
 import { FloatingTitle } from "./floating-title";
 import { ModeSelector } from "./mode-selector";
 import { RunningExperimentsPopover } from "./running-experiments-popover";
@@ -59,7 +58,6 @@ interface TopBarProps {
   onModeChange: (mode: EditorState["globalMode"]) => void;
   onRunningExperimentClick?: (experiment: ExperimentRecord) => void;
   slots?: PetrinautSlots;
-  showWalkthroughButton?: boolean;
 }
 
 export const TopBar: React.FC<TopBarProps> = ({
@@ -71,12 +69,10 @@ export const TopBar: React.FC<TopBarProps> = ({
   onModeChange,
   onRunningExperimentClick,
   slots,
-  showWalkthroughButton = false,
 }) => {
   const { isLeftSidebarOpen, setLeftSidebarOpen, setSearchOpen } =
     use(EditorContext);
   const undoRedo = use(UndoRedoContext);
-  const walkthrough = use(WalkthroughContext);
 
   return (
     <div className={topBarStyle}>
@@ -122,16 +118,6 @@ export const TopBar: React.FC<TopBarProps> = ({
       <ModeSelector mode={mode} onChange={onModeChange} />
 
       <div className={rightSectionStyle}>
-        {showWalkthroughButton && (
-          <Button
-            size="sm"
-            variant="ghost"
-            aria-label="Take the tour"
-            tooltip="Take the tour"
-            iconName="info"
-            onClick={walkthrough.open}
-          />
-        )}
         <RunningExperimentsPopover
           onExperimentClick={onRunningExperimentClick}
         />
