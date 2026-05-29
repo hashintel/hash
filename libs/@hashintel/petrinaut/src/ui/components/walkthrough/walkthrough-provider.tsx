@@ -1,8 +1,9 @@
 import { useEffect, useState, type PropsWithChildren } from "react";
 
-import { WalkthroughContext } from "./walkthrough-context";
-
-import type { WalkthroughStep } from "./walkthrough-steps";
+import {
+  WalkthroughContext,
+  type WalkthroughStep,
+} from "./walkthrough-context";
 
 const STORAGE_KEY = "petrinaut:hasSeenWalkthrough";
 

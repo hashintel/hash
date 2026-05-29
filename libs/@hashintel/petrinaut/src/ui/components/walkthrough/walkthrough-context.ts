@@ -1,6 +1,12 @@
 import { createContext } from "react";
 
-import type { WalkthroughStep } from "./walkthrough-steps";
+export type WalkthroughStep = {
+  id: string;
+  title: string;
+  body: React.ReactNode;
+  videoHref: string;
+  videoAlt: string;
+};
 
 export type WalkthroughContextValue = {
   isOpen: boolean;

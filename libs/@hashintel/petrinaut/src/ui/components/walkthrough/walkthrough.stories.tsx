@@ -2,10 +2,12 @@ import { useState } from "react";
 
 import { Button } from "@hashintel/ds-components";
 
-import { WalkthroughContext } from "./walkthrough-context";
+import {
+  WalkthroughContext,
+  type WalkthroughStep,
+} from "./walkthrough-context";
 import { WalkthroughDialog } from "./walkthrough-dialog";
 
-import type { WalkthroughStep } from "./walkthrough-steps";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
 const meta = {
