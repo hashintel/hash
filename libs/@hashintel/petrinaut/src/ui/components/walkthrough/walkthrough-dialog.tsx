@@ -8,6 +8,9 @@ import { css } from "@hashintel/ds-helpers/css";
 import { WalkthroughContext } from "./walkthrough-context";
 import { walkthroughSteps } from "./walkthrough-steps";
 
+const docsUrl =
+  "https://github.com/hashintel/hash/tree/main/libs/%40hashintel/petrinaut/docs";
+
 const backdropStyle = css({
   position: "fixed",
   top: "[0]",
@@ -173,7 +176,7 @@ const footerStyle = css({
   userSelect: "none",
 });
 
-const skipButtonStyle = css({
+const tertiaryFooterLinkStyle = css({
   color: "neutral.s80 !important",
 });
 
@@ -347,18 +350,27 @@ export const WalkthroughDialog: React.FC = () => {
                       />
                     ))}
                   </nav>
-                  {!atLast && (
-                    <>
-                      <span className={dividerStyle} aria-hidden="true" />
-                      <Button
-                        className={skipButtonStyle}
-                        variant="ghost"
-                        size="sm"
-                        onClick={close}
-                      >
-                        Skip tour
-                      </Button>
-                    </>
+                  <span className={dividerStyle} aria-hidden="true" />
+                  {atLast ? (
+                    <Button
+                      className={tertiaryFooterLinkStyle}
+                      href={docsUrl}
+                      target="_blank"
+                      variant="ghost"
+                      size="sm"
+                      iconPosition="right"
+                    >
+                      Continue learning
+                    </Button>
+                  ) : (
+                    <Button
+                      className={tertiaryFooterLinkStyle}
+                      variant="ghost"
+                      size="sm"
+                      onClick={close}
+                    >
+                      Skip tour
+                    </Button>
                   )}
                 </div>
                 <div className={actionsStyle}>
