@@ -1,7 +1,7 @@
-import { use, useMemo } from "react";
+import { use, useMemo, useState } from "react";
 
 import { Button, Icon } from "@hashintel/ds-components";
-import { css } from "@hashintel/ds-helpers/css";
+import { css, cx } from "@hashintel/ds-helpers/css";
 
 import {
   ExperimentsContext,
@@ -9,7 +9,10 @@ import {
 } from "../../../../../../react/experiments/context";
 import { Drawer } from "../../../../../components/drawer";
 import { Section, SectionList } from "../../../../../components/section";
-import { ExperimentMetricTimeline } from "./experiment-metric-timeline";
+import {
+  ExperimentMetricTimeline,
+  type MetricSize,
+} from "./experiment-metric-timeline";
 
 const bodyStyle = css({
   overflowY: "auto",
@@ -67,8 +70,9 @@ const errorStyle = css({
 });
 
 const metricGridStyle = css({
-  display: "flex",
-  flexDirection: "column",
+  display: "grid",
+  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+  alignItems: "start",
   gap: "3",
 });
 
@@ -76,12 +80,17 @@ const metricItemStyle = css({
   display: "flex",
   flexDirection: "column",
   gap: "1",
+  minWidth: "[0]",
   padding: "3",
   borderWidth: "[1px]",
   borderStyle: "solid",
   borderColor: "neutral.bd.subtle",
   borderRadius: "md",
   backgroundColor: "neutral.s00",
+});
+
+const metricItemLargeStyle = css({
+  gridColumn: "[1 / -1]",
 });
 
 const footerSpacerStyle = css({
@@ -175,6 +184,8 @@ const ExperimentMetrics = ({
 }: {
   experiment: ExperimentRecord;
 }) => {
+  const [sizes, setSizes] = useState<Record<string, MetricSize>>({});
+
   const metricFrameGroups = useMemo(() => {
     const groups = new Map<string, MetricFrame[]>();
 
@@ -195,10 +206,26 @@ const ExperimentMetrics = ({
     <div className={metricGridStyle}>
       {metricFrameGroups.map((frames) => {
         const latestFrame = frames.at(-1)!;
+        const size = sizes[latestFrame.metricId] ?? "large";
 
         return (
-          <div key={latestFrame.metricId} className={metricItemStyle}>
-            <ExperimentMetricTimeline frames={frames} />
+          <div
+            key={latestFrame.metricId}
+            className={cx(
+              metricItemStyle,
+              size === "large" && metricItemLargeStyle,
+            )}
+          >
+            <ExperimentMetricTimeline
+              frames={frames}
+              displaySize={size}
+              onDisplaySizeChange={(nextSize) =>
+                setSizes((previous) => ({
+                  ...previous,
+                  [latestFrame.metricId]: nextSize,
+                }))
+              }
+            />
           </div>
         );
       })}

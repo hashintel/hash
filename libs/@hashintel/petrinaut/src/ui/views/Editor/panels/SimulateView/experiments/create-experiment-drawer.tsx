@@ -14,8 +14,6 @@ import { Input } from "../../../../../components/input";
 import { NumberInput } from "../../../../../components/number-input";
 import { Section, SectionList } from "../../../../../components/section";
 import { Select } from "../../../../../components/select";
-import { Switch } from "../../../../../components/switch";
-import { InfoIconTooltip } from "../../../../../components/tooltip";
 import { CodeEditor } from "../../../../../monaco/code-editor";
 import { getMetricDocumentUri } from "../../../../../monaco/editor-paths";
 import { useMetricLspSession } from "../metrics/metric-form";
@@ -23,9 +21,6 @@ import { summarizeMetricLspErrors } from "../metrics/metric-lsp";
 
 import type {
   MonteCarloMetricSpec,
-  MonteCarloUserDefinedMetricAggregation,
-  MonteCarloUserDefinedMetricSampleRuns,
-  MonteCarloUserDefinedMetricTimeAggregation,
   Scenario,
   ScenarioParameter,
   SDCPN,
@@ -225,79 +220,6 @@ const metricSpecificFieldsStyle = css({
   gap: "2",
 });
 
-const metricOutputSectionStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  gap: "2",
-  paddingTop: "2",
-  borderTopWidth: "[1px]",
-  borderTopStyle: "solid",
-  borderTopColor: "neutral.bd.subtle",
-});
-
-const metricOutputTitleStyle = css({
-  fontSize: "sm",
-  fontWeight: "semibold",
-  color: "neutral.s120",
-});
-
-const metricOutputRowStyle = css({
-  display: "grid",
-  gridTemplateColumns: "[120px minmax(0, 1fr)]",
-  alignItems: "center",
-  gap: "2",
-});
-
-const metricOutputLabelStyle = css({
-  display: "flex",
-  alignItems: "center",
-  gap: "1",
-  color: "neutral.s120",
-  fontSize: "sm",
-  fontWeight: "medium",
-});
-
-const metricRunValuesControlsStyle = css({
-  display: "flex",
-  alignItems: "center",
-  flexWrap: "wrap",
-  gap: "2",
-  minWidth: "[0]",
-});
-
-const metricScalarToggleStyle = css({
-  display: "inline-flex",
-  alignItems: "center",
-  gap: "2",
-  height: "[28px]",
-  paddingX: "2",
-  borderWidth: "[1px]",
-  borderStyle: "solid",
-  borderColor: "neutral.bd.subtle",
-  borderRadius: "lg",
-  backgroundColor: "neutral.s00",
-});
-
-const metricScalarToggleLabelStyle = css({
-  color: "neutral.s120",
-  fontSize: "sm",
-  fontWeight: "medium",
-  whiteSpace: "nowrap",
-  minWidth: "[0]",
-});
-
-const metricOutputSelectStyle = css({
-  width: "[160px]",
-});
-
-const metricDistributionHintStyle = css({
-  fontSize: "xs",
-  color: "neutral.s80",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
-});
-
 const codeDiagnosticStyle = css({
   fontSize: "xs",
   color: "red.s100",
@@ -334,7 +256,6 @@ type ExperimentMetricKind =
   | "placeTokenCountMean"
   | "transitionFiringCount"
   | "expression";
-type ExperimentMetricRunOutputType = "distribution" | "scalar";
 type TransitionFiringMode = NonNullable<
   Extract<MonteCarloMetricSpec, { kind: "transitionFiringCount" }>["mode"]
 >;
@@ -348,43 +269,7 @@ type ExperimentMetricDraft = {
   transitionId: string;
   transitionMode: TransitionFiringMode;
   code: string;
-  runOutputType: ExperimentMetricRunOutputType;
-  sampleRuns: MonteCarloUserDefinedMetricSampleRuns;
-  aggregateRuns: MonteCarloUserDefinedMetricAggregation;
-  aggregateTime: MonteCarloUserDefinedMetricTimeAggregation;
 };
-
-const sampleRunOptions: {
-  value: MonteCarloUserDefinedMetricSampleRuns;
-  label: string;
-}[] = [
-  { value: "active", label: "Active runs" },
-  { value: "completed", label: "Completed runs" },
-  { value: "all", label: "All runs" },
-];
-
-const aggregateRunOptions: {
-  value: MonteCarloUserDefinedMetricAggregation;
-  label: string;
-}[] = [
-  { value: "mean", label: "Average" },
-  { value: "sum", label: "Sum" },
-  { value: "min", label: "Minimum" },
-  { value: "max", label: "Maximum" },
-  { value: "last", label: "Last" },
-];
-
-const aggregateTimeOptions: {
-  value: MonteCarloUserDefinedMetricTimeAggregation;
-  label: string;
-}[] = [
-  { value: "none", label: "Per frame" },
-  { value: "mean", label: "Average over time" },
-  { value: "sum", label: "Sum over time" },
-  { value: "min", label: "Minimum over time" },
-  { value: "max", label: "Maximum over time" },
-  { value: "last", label: "Last over time" },
-];
 
 const transitionModeOptions: { value: TransitionFiringMode; label: string }[] =
   [
@@ -404,11 +289,7 @@ function getMetricKindLabel(kind: ExperimentMetricKind): string {
 }
 
 function getMetricSummaryLabel(metric: ExperimentMetricDraft): string {
-  const kindLabel = getMetricKindLabel(metric.kind);
-
-  return `${kindLabel} - ${
-    metric.runOutputType === "distribution" ? "Distribution" : "Scalar"
-  }`;
+  return getMetricKindLabel(metric.kind);
 }
 
 function getDefaultMetricLabel(
@@ -475,10 +356,6 @@ function createDefaultMetricDraft(sdcpn: SDCPN): ExperimentMetricDraft {
     transitionId: transition?.id ?? "",
     transitionMode: "firedInThisFrame",
     code: DEFAULT_METRIC_CODE,
-    runOutputType: "scalar",
-    sampleRuns: "all",
-    aggregateRuns: "mean",
-    aggregateTime: "none",
   };
 }
 
@@ -497,19 +374,11 @@ function buildMetricSpecs(
       throw new Error(`Metric ${index + 1} needs a label`);
     }
 
-    const runOutput =
-      draft.runOutputType === "distribution"
-        ? { type: "distribution" as const }
-        : {
-            type: "scalar" as const,
-            aggregateRuns: draft.aggregateRuns,
-          };
     const sampledMetricBase = {
       id: draft.id,
       label,
-      sampleRuns: draft.sampleRuns,
-      runOutput,
-      aggregateTime: draft.aggregateTime,
+      sampleRuns: "all" as const,
+      runOutput: { type: "distribution" as const },
     };
 
     switch (draft.kind) {
@@ -746,7 +615,6 @@ const ExperimentMetricRow = ({
           size="xs"
           tone="error"
           tooltip="Remove metric"
-          tooltipDisplay="inline"
           variant="ghost"
           onClick={onRemove}
         />
@@ -812,87 +680,6 @@ const ExperimentMetricRow = ({
               onChange={(code) => updateMetric({ code })}
             />
           ) : null}
-
-          <div className={metricOutputSectionStyle}>
-            <span className={metricOutputTitleStyle}>Output</span>
-            <div className={metricOutputRowStyle}>
-              <span className={metricOutputLabelStyle}>
-                Sample runs
-                <InfoIconTooltip tooltip="Which simulation runs contribute values at each frame." />
-              </span>
-              <Select
-                value={metric.sampleRuns}
-                onValueChange={(value) =>
-                  updateMetric({
-                    sampleRuns: value as MonteCarloUserDefinedMetricSampleRuns,
-                  })
-                }
-                options={sampleRunOptions}
-                size="sm"
-                className={metricOutputSelectStyle}
-                portal={false}
-              />
-            </div>
-            <div className={metricOutputRowStyle}>
-              <span className={metricOutputLabelStyle}>
-                Run values
-                <InfoIconTooltip tooltip="Choose whether sampled run values stay as a distribution or are reduced to one scalar." />
-              </span>
-              <div className={metricRunValuesControlsStyle}>
-                <div className={metricScalarToggleStyle}>
-                  <span className={metricScalarToggleLabelStyle}>
-                    Scalar aggregate
-                  </span>
-                  <Switch
-                    checked={metric.runOutputType === "scalar"}
-                    onCheckedChange={(checked) =>
-                      updateMetric({
-                        runOutputType: checked ? "scalar" : "distribution",
-                      })
-                    }
-                  />
-                </div>
-                {metric.runOutputType === "scalar" ? (
-                  <Select
-                    value={metric.aggregateRuns}
-                    onValueChange={(value) =>
-                      updateMetric({
-                        aggregateRuns:
-                          value as MonteCarloUserDefinedMetricAggregation,
-                      })
-                    }
-                    options={aggregateRunOptions}
-                    size="sm"
-                    className={metricOutputSelectStyle}
-                    portal={false}
-                  />
-                ) : (
-                  <span className={metricDistributionHintStyle}>
-                    Distribution across runs
-                  </span>
-                )}
-              </div>
-            </div>
-            <div className={metricOutputRowStyle}>
-              <span className={metricOutputLabelStyle}>
-                Time values
-                <InfoIconTooltip tooltip="Choose whether values are reported for each frame or aggregated over time." />
-              </span>
-              <Select
-                value={metric.aggregateTime}
-                onValueChange={(value) =>
-                  updateMetric({
-                    aggregateTime:
-                      value as MonteCarloUserDefinedMetricTimeAggregation,
-                  })
-                }
-                options={aggregateTimeOptions}
-                size="sm"
-                className={metricOutputSelectStyle}
-                portal={false}
-              />
-            </div>
-          </div>
         </div>
       </Collapsible.Content>
     </Collapsible.Root>
