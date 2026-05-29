@@ -8,6 +8,7 @@ import {
   getClosedMultiEntityTypeFromMap,
   type HashEntity,
 } from "@local/hash-graph-sdk/entity";
+import { formatNumber } from "@local/hash-isomorphic-utils/format-number";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import { useEntityTypesContextRequired } from "../../shared/entity-types-context/hooks/use-entity-types-context-required";
@@ -16,7 +17,10 @@ import { tableContentSx } from "../../shared/table-content";
 import { BulkActionsDropdown } from "../../shared/table-header/bulk-actions-dropdown";
 import { useMemoCompare } from "../../shared/use-memo-compare";
 import { useAuthenticatedUser } from "./auth-info-context";
-import { createDefaultFilterState } from "./entities-visualizer/data/types";
+import {
+  createDefaultFilterState,
+  hasActiveSemanticQuery,
+} from "./entities-visualizer/data/types";
 import { useAvailableTypes } from "./entities-visualizer/data/use-available-types";
 import { EntitiesTable } from "./entities-visualizer/entities-table";
 import { GridView } from "./entities-visualizer/entities-table/grid-view";
@@ -62,6 +66,14 @@ import type {
   Ordering,
 } from "@local/hash-graph-client";
 import type { Dispatch, FunctionComponent, SetStateAction } from "react";
+
+/**
+ * Rows fetched per request in the Table/Grid views. When a semantic search is
+ * active this is also the hard cap on results — there is no "load more" because
+ * the graph layer disallows cursors alongside a distance filter — so the best
+ * matches by relevance are always the ones shown.
+ */
+const ENTITIES_TABLE_RESULT_LIMIT = 500;
 
 /**
  * @todo: avoid having to maintain this list, potentially by
@@ -171,10 +183,6 @@ export const EntitiesVisualizer: FunctionComponent<{
 
   const [cursor, setCursor] = useState<EntityQueryCursor>();
 
-  /* Semantic search — local text only, not yet wired to a query. */
-  const [semanticSearchText, setSemanticSearchText] = useState("");
-  const [semanticSearchAdded, setSemanticSearchAdded] = useState(false);
-
   const [activeConversionsWithoutTitle, _setActiveConversions] = useState<{
     [columnBaseUrl: BaseUrl]: VersionedUrl;
   } | null>(null);
@@ -208,6 +216,28 @@ export const EntitiesVisualizer: FunctionComponent<{
     },
     [setCursor],
   );
+
+  /**
+   * Writes the debounced semantic query into `filterState` (which resets the
+   * cursor and refetches via the shared data hook). Guarded so a debounced
+   * keystroke that lands after the pill was removed can't resurrect a stale
+   * query, and so an unchanged value doesn't trigger a needless refetch.
+   */
+  const setSemanticQuery = useCallback(
+    (query: string) => {
+      setFilterState((prev) =>
+        !prev.semanticSearch.added || prev.semanticSearch.query === query
+          ? prev
+          : {
+              ...prev,
+              semanticSearch: { ...prev.semanticSearch, query },
+            },
+      );
+    },
+    [setFilterState],
+  );
+
+  const semanticQueryActive = hasActiveSemanticQuery(filterState);
 
   const [view, _setView] = useState<VisualizerView>("Table");
 
@@ -258,7 +288,7 @@ export const EntitiesVisualizer: FunctionComponent<{
     filterState,
     hideColumns,
     internalWebIds,
-    limit: view === "Graph" ? undefined : 500,
+    limit: view === "Graph" ? undefined : ENTITIES_TABLE_RESULT_LIMIT,
     sort: graphSort,
     view,
   });
@@ -508,20 +538,44 @@ export const EntitiesVisualizer: FunctionComponent<{
               isTypePinned={isTypePinned}
               setFilterState={(updater) => setFilterState(updater)}
               semanticSearch={{
-                added: semanticSearchAdded,
-                value: semanticSearchText,
-                onChange: setSemanticSearchText,
-                onAdd: () => setSemanticSearchAdded(true),
-                onRemove: () => {
-                  setSemanticSearchAdded(false);
-                  setSemanticSearchText("");
-                },
+                added: filterState.semanticSearch.added,
+                initialQuery: filterState.semanticSearch.query,
+                onAdd: () =>
+                  setFilterState((prev) => ({
+                    ...prev,
+                    semanticSearch: { ...prev.semanticSearch, added: true },
+                  })),
+                onQueryChange: setSemanticQuery,
+                onRemove: () =>
+                  setFilterState((prev) => ({
+                    ...prev,
+                    semanticSearch: { added: false, query: "" },
+                  })),
               }}
             />
           )
         }
         right={
           <>
+            {semanticQueryActive && !dataLoading && totalResultCount ? (
+              <Box
+                sx={{
+                  fontSize: 12,
+                  fontWeight: 500,
+                  whiteSpace: "nowrap",
+                  color: ({ palette }) => palette.gray[50],
+                }}
+              >
+                {/* The 500 cap only applies to the Table/Grid views (Graph
+                fetches the full match set), so only claim a cap there. */}
+                {view !== "Graph" &&
+                totalResultCount > ENTITIES_TABLE_RESULT_LIMIT
+                  ? `Top ${formatNumber(
+                      ENTITIES_TABLE_RESULT_LIMIT,
+                    )} by relevance`
+                  : "Ranked by relevance"}
+              </Box>
+            ) : null}
             <QueryCount count={totalResultCount} loading={dataLoading} />
             <TableHeaderToggle
               value={view}
@@ -593,7 +647,9 @@ export const EntitiesVisualizer: FunctionComponent<{
             loading={dataLoading}
             isViewingOnlyPages={isViewingOnlyPages}
             maxHeight={`calc(${tableHeight} - ${toolbarHeight}px)`}
-            loadMoreRows={nextCursor ? nextPage : undefined}
+            loadMoreRows={
+              nextCursor && !semanticQueryActive ? nextPage : undefined
+            }
             setActiveConversions={setActiveConversions}
             setSelectedEntityType={handleEntityTypeClick}
             setSelectedRows={setSelectedTableRows}

@@ -25,9 +25,9 @@ type FilterRibbonProps = {
   /** Semantic search, added as a dismissable filter from the "Add filter" menu. */
   semanticSearch: {
     added: boolean;
-    value: string;
-    onChange: (value: string) => void;
+    initialQuery: string;
     onAdd: () => void;
+    onQueryChange: (query: string) => void;
     onRemove: () => void;
   };
 };
@@ -72,15 +72,22 @@ export const FilterRibbon: FunctionComponent<FilterRibbonProps> = ({
   const typeIsDefault =
     isTypePinned || isTypeFilterDefault(filterState.type, availableTypes);
   const archivedIsDefault = !filterState.includeArchived;
+  const semanticIsDefault = !semanticSearch.added;
 
-  const filtersAreDefault = webIsDefault && typeIsDefault && archivedIsDefault;
+  const filtersAreDefault =
+    webIsDefault && typeIsDefault && archivedIsDefault && semanticIsDefault;
 
   const handleClear = () => {
     setFilterState(() => createDefaultFilterState(internalWebIds));
   };
 
-  const allExtraFiltersEnabled =
-    filterState.includeArchived || semanticSearch.added;
+  /**
+   * The "Add filter" menu offers two filters (archived, semantic search). Hide
+   * it only once *both* are added; otherwise keep it visible and let each menu
+   * item gate itself, so adding one filter never blocks adding the other.
+   */
+  const allExtraFiltersAdded =
+    filterState.includeArchived && semanticSearch.added;
 
   return (
     <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
@@ -106,14 +113,18 @@ export const FilterRibbon: FunctionComponent<FilterRibbonProps> = ({
       )}
       {semanticSearch.added && (
         <SemanticSearchPill
-          value={semanticSearch.value}
-          onChange={semanticSearch.onChange}
+          initialQuery={semanticSearch.initialQuery}
+          onQueryChange={semanticSearch.onQueryChange}
           onRemove={semanticSearch.onRemove}
         />
       )}
-      {!allExtraFiltersEnabled && (
+      {!allExtraFiltersAdded && (
         <AddFiltersMenu
-          onAddIncludeArchived={() => setIncludeArchived(true)}
+          onAddIncludeArchived={
+            filterState.includeArchived
+              ? undefined
+              : () => setIncludeArchived(true)
+          }
           onAddSemanticSearch={
             semanticSearch.added ? undefined : semanticSearch.onAdd
           }

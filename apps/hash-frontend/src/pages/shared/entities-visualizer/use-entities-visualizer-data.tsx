@@ -13,6 +13,7 @@ import { queryEntitySubgraphQuery } from "../../../graphql/queries/knowledge/ent
 import { apolloClient } from "../../../lib/apollo-client";
 import { buildEntitiesFilter } from "./data/build-filter";
 import { traversalPathsForView } from "./data/traversal-paths";
+import { hasActiveSemanticQuery } from "./data/types";
 import { useEntitiesTableData } from "./use-entities-table-data";
 
 import type {
@@ -85,11 +86,22 @@ export const useEntitiesVisualizerData = (params: {
     hideArchivedColumn: !filterState.includeArchived,
   });
 
+  /**
+   * The graph layer disallows cursors alongside a `cosineDistance` filter
+   * ("Cannot use distance function with cursor"). The caller already avoids
+   * setting a cursor while searching (load-more is disabled and changing the
+   * query resets the cursor), but force it off here too so the request can
+   * never 500.
+   */
+  const cursorForRequest = hasActiveSemanticQuery(filterState)
+    ? undefined
+    : cursor;
+
   const variables = useMemo<QueryEntitySubgraphQueryVariables>(
     () => ({
       request: {
         conversions,
-        cursor,
+        cursor: cursorForRequest,
         limit,
         includeCount: true,
         includeTypeIds: true,
@@ -115,7 +127,7 @@ export const useEntitiesVisualizerData = (params: {
     }),
     [
       conversions,
-      cursor,
+      cursorForRequest,
       entityTypeBaseUrl,
       entityTypeIds,
       filterState,
@@ -143,7 +155,7 @@ export const useEntitiesVisualizerData = (params: {
       const newEntities = getRoots(newSubgraph);
 
       updateTableData({
-        appliedPaginationCursor: cursor ?? null,
+        appliedPaginationCursor: cursorForRequest ?? null,
         closedMultiEntityTypesRootMap:
           completedData.queryEntitySubgraph.closedMultiEntityTypes ?? {},
         definitions: completedData.queryEntitySubgraph.definitions,

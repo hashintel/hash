@@ -1,6 +1,8 @@
 import { ignoreNoisySystemTypesFilter } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
+import { hasActiveSemanticQuery } from "./types";
+
 import type { EntitiesFilterState } from "./types";
 import type { BaseUrl, VersionedUrl, WebId } from "@blockprotocol/type-system";
 import type { Filter } from "@local/hash-graph-client";
@@ -138,6 +140,30 @@ const buildTypeClause = ({
   };
 };
 
+/**
+ * The maximum cosine distance between the query embedding and an entity's
+ * embedding for the entity to count as a match. Mirrors the global search bar
+ * (`search-bar.tsx`), which is tuned for the same OpenAI embedding model.
+ */
+const MAXIMUM_SEMANTIC_DISTANCE = 0.7;
+
+const buildSemanticSearchClause = (
+  filterState: EntitiesFilterState,
+): Filter | null => {
+  if (!hasActiveSemanticQuery(filterState)) {
+    return null;
+  }
+
+  return {
+    cosineDistance: [
+      { path: ["embedding"] },
+      // The string is embedded server-side before the distance is computed.
+      { parameter: filterState.semanticSearch.query.trim() },
+      { parameter: MAXIMUM_SEMANTIC_DISTANCE },
+    ],
+  };
+};
+
 export const buildEntitiesFilter = ({
   filterState,
   internalWebIds,
@@ -173,6 +199,11 @@ export const buildEntitiesFilter = ({
 
   if (!isTypePinned && !userPickedSpecificTypes) {
     clauses.push(ignoreNoisySystemTypesFilter);
+  }
+
+  const semanticSearchClause = buildSemanticSearchClause(filterState);
+  if (semanticSearchClause) {
+    clauses.push(semanticSearchClause);
   }
 
   return { all: clauses };
