@@ -152,6 +152,7 @@ const bodyTextStyle = css({
   marginBottom: "[0]",
   marginX: "auto",
   maxWidth: "[64ch]",
+  textWrap: "[pretty]",
 
   "& p + p": {
     marginTop: "3",
@@ -332,7 +333,11 @@ export const WalkthroughDialog: React.FC = () => {
                 </div>
                 <div className={textBlockStyle}>
                   <ArkDialog.Description asChild>
-                    <p className={bodyTextStyle}>{step.body}</p>
+                    {typeof step.body === "string" ? (
+                      <p className={bodyTextStyle}>{step.body}</p>
+                    ) : (
+                      <div className={bodyTextStyle}>{step.body}</div>
+                    )}
                   </ArkDialog.Description>
                 </div>
               </div>
