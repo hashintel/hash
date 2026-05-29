@@ -34,7 +34,7 @@ const SectionHeading = ({ children }: { children: React.ReactNode }) => (
  * and examples imported from `@hashintel/petrinaut-core/examples`.
  */
 const ProcessesPage: NextPageWithLayout = () => {
-  const { persistedNets } = usePersistedNets();
+  const { persistedNets, loading } = usePersistedNets();
 
   const sortedNets = useMemo(
     () =>
@@ -44,7 +44,7 @@ const ProcessesPage: NextPageWithLayout = () => {
     [persistedNets],
   );
 
-  const maxWidth = { lg: `max(${contentMaxWidth}px, "70%")` } as const;
+  const maxWidth = { lg: `max(${contentMaxWidth}px, 70%)` } as const;
 
   return (
     <>
@@ -89,16 +89,18 @@ const ProcessesPage: NextPageWithLayout = () => {
       <Container sx={{ paddingTop: 5, paddingBottom: 8, maxWidth }}>
         <Box mb={5}>
           {sortedNets.length === 0 ? (
-            <Typography
-              sx={({ palette }) => ({
-                color: palette.gray[70],
-                fontSize: 14,
-              })}
-            >
-              You haven&apos;t created any processes yet —{" "}
-              <Link href="/processes/draft">start from scratch</Link> or open an
-              example below.
-            </Typography>
+            !loading && (
+              <Typography
+                sx={({ palette }) => ({
+                  color: palette.gray[70],
+                  fontSize: 14,
+                })}
+              >
+                You haven&apos;t created any processes yet —{" "}
+                <Link href="/processes/draft">start from scratch</Link> or open
+                an example below.
+              </Typography>
+            )
           ) : (
             <Box
               sx={{
