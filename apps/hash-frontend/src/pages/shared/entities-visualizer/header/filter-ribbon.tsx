@@ -30,9 +30,7 @@ const isWebFilterDefault = (
   if (web.includeOtherWebs) {
     return false;
   }
-  if (web.selectedInternalWebIds.size !== internalWebIds.length) {
-    return false;
-  }
+
   return internalWebIds.every((id) => web.selectedInternalWebIds.has(id));
 };
 
@@ -43,12 +41,7 @@ const isTypeFilterDefault = (
   if (type.selectedTypeIds === null) {
     return true;
   }
-  if (availableTypes.length === 0) {
-    return type.selectedTypeIds.size === 0;
-  }
-  if (type.selectedTypeIds.size !== availableTypes.length) {
-    return false;
-  }
+
   return availableTypes.every(({ entityTypeId }) =>
     type.selectedTypeIds!.has(entityTypeId),
   );

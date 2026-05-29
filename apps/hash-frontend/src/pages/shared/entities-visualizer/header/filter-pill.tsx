@@ -25,14 +25,7 @@ export const FilterPill: FunctionComponent<FilterPillProps> = ({
   popupState,
 }) => (
   <Chip
-    icon={
-      <Icon
-        sx={{
-          fill: ({ palette }) =>
-            active ? palette.blue[70] : palette.primary.main,
-        }}
-      />
-    }
+    icon={<Icon sx={{ fill: ({ palette }) => palette.primary.main }} />}
     label={
       <Box
         component="span"
