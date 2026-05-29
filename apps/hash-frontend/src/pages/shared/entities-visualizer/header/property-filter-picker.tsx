@@ -56,7 +56,7 @@ export const PropertyFilterPicker: FunctionComponent<
       return properties;
     }
     return properties.filter((property) =>
-      property.title.toLowerCase().includes(query)
+      property.title.toLowerCase().includes(query),
     );
   }, [properties, searchQuery]);
 

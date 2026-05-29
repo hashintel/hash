@@ -22,11 +22,11 @@ const buildArchivedClauses = (includeArchived: boolean): Filter[] => {
 
 const buildWebClause = (
   webState: EntitiesFilterState["web"],
-  internalWebIds: WebId[]
+  internalWebIds: WebId[],
 ): Filter | null => {
   if (!webState.includeOtherWebs) {
     const selected = internalWebIds.filter((id) =>
-      webState.selectedInternalWebIds.has(id)
+      webState.selectedInternalWebIds.has(id),
     );
 
     const webIdsToMatch = selected.length ? selected : [MATCH_NOTHING_WEB_ID];
@@ -39,7 +39,7 @@ const buildWebClause = (
   }
 
   const uncheckedInternalWebIds = internalWebIds.filter(
-    (id) => !webState.selectedInternalWebIds.has(id)
+    (id) => !webState.selectedInternalWebIds.has(id),
   );
 
   if (uncheckedInternalWebIds.length === 0) {

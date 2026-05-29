@@ -19,7 +19,7 @@ export type EntitiesFilterState = {
 };
 
 export const createDefaultFilterState = (
-  internalWebIds: WebId[]
+  internalWebIds: WebId[],
 ): EntitiesFilterState => ({
   web: {
     selectedInternalWebIds: new Set<WebId>(internalWebIds),

@@ -14,7 +14,7 @@ const propertyPath = (baseUrl: BaseUrl) => ["properties", baseUrl];
  * (case-sensitive) match honours any intentional surrounding whitespace.
  */
 const coerceValueParameter = (
-  filter: PropertyFilter
+  filter: PropertyFilter,
 ): string | number | null => {
   const rawValue = filter.value;
 
@@ -58,7 +58,7 @@ const coerceValueParameter = (
  * as a pure function so the behaviour can be unit-tested in isolation.
  */
 export const buildPropertyFilterClause = (
-  filter: PropertyFilter
+  filter: PropertyFilter,
 ): Filter | null => {
   const path = propertyPath(filter.baseUrl);
 

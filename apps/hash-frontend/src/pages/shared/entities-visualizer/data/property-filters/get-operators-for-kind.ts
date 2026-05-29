@@ -138,17 +138,17 @@ const operatorsByKind: Record<FilterValueKind, OperatorDescriptor[]> = {
  * `is true` for booleans).
  */
 export const getOperatorsForKind = (
-  kind: FilterValueKind
+  kind: FilterValueKind,
 ): OperatorDescriptor[] => operatorsByKind[kind];
 
 /** The default operator for a kind (the first in its catalog). */
 export const getDefaultOperatorForKind = (
-  kind: FilterValueKind
+  kind: FilterValueKind,
 ): PropertyFilterOperator => operatorsByKind[kind][0]!.operator;
 
 /** Look up a single operator descriptor for a kind, if it exists. */
 export const getOperatorDescriptor = (
   kind: FilterValueKind,
-  operator: PropertyFilterOperator
+  operator: PropertyFilterOperator,
 ): OperatorDescriptor | undefined =>
   operatorsByKind[kind].find((descriptor) => descriptor.operator === operator);

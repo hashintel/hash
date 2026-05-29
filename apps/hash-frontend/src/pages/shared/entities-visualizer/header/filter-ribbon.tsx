@@ -1,8 +1,8 @@
 import { Box } from "@mui/material";
 import { useState } from "react";
 
-import { createDefaultFilterState } from "../data/types";
 import { getDefaultOperatorForKind } from "../data/property-filters/get-operators-for-kind";
+import { createDefaultFilterState } from "../data/types";
 import { AddFiltersMenu } from "./add-filters-menu";
 import { ClearFiltersButton } from "./clear-filters-button";
 import { IncludeArchivedPill } from "./include-archived-pill";
@@ -10,12 +10,12 @@ import { PropertyFilterPill } from "./property-filter-pill";
 import { TypeFilterPill } from "./type-filter-pill";
 import { WebFilterPill } from "./web-filter-pill";
 
-import type { EntitiesFilterState } from "../data/types";
 import type {
   FilterableProperty,
   FilterValueKind,
   PropertyFilter,
 } from "../data/property-filters/types";
+import type { EntitiesFilterState } from "../data/types";
 import type { AvailableType } from "../data/use-available-types";
 import type { BaseUrl, WebId } from "@blockprotocol/type-system";
 import type { FunctionComponent } from "react";
@@ -29,13 +29,13 @@ type FilterRibbonProps = {
   internalWebIds: WebId[];
   isTypePinned: boolean;
   setFilterState: (
-    updater: (prev: EntitiesFilterState) => EntitiesFilterState
+    updater: (prev: EntitiesFilterState) => EntitiesFilterState,
   ) => void;
 };
 
 const isWebFilterDefault = (
   web: EntitiesFilterState["web"],
-  internalWebIds: WebId[]
+  internalWebIds: WebId[],
 ) => {
   if (web.includeOtherWebs) {
     return false;
@@ -46,14 +46,14 @@ const isWebFilterDefault = (
 
 const isTypeFilterDefault = (
   type: EntitiesFilterState["type"],
-  availableTypes: AvailableType[]
+  availableTypes: AvailableType[],
 ) => {
   if (type.selectedTypeIds === null) {
     return true;
   }
 
   return availableTypes.every(({ entityTypeId }) =>
-    type.selectedTypeIds!.has(entityTypeId)
+    type.selectedTypeIds!.has(entityTypeId),
   );
 };
 
@@ -85,7 +85,7 @@ export const FilterRibbon: FunctionComponent<FilterRibbonProps> = ({
     setFilterState((prev) => ({ ...prev, includeArchived }));
 
   const setPropertyFilters = (
-    updater: (prev: PropertyFilter[]) => PropertyFilter[]
+    updater: (prev: PropertyFilter[]) => PropertyFilter[],
   ) =>
     setFilterState((prev) => ({
       ...prev,
@@ -115,17 +115,17 @@ export const FilterRibbon: FunctionComponent<FilterRibbonProps> = ({
 
   const handleChangePropertyFilter = (
     id: string,
-    updater: (prev: PropertyFilter) => PropertyFilter
+    updater: (prev: PropertyFilter) => PropertyFilter,
   ) =>
     setPropertyFilters((prev) =>
       prev.map((propertyFilter) =>
-        propertyFilter.id === id ? updater(propertyFilter) : propertyFilter
-      )
+        propertyFilter.id === id ? updater(propertyFilter) : propertyFilter,
+      ),
     );
 
   const handleRemovePropertyFilter = (id: string) =>
     setPropertyFilters((prev) =>
-      prev.filter((propertyFilter) => propertyFilter.id !== id)
+      prev.filter((propertyFilter) => propertyFilter.id !== id),
     );
 
   const webIsDefault = isWebFilterDefault(filterState.web, internalWebIds);

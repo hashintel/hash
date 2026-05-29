@@ -1,5 +1,5 @@
-import { getMergedDataTypeSchema } from "@local/hash-isomorphic-utils/data-types";
 import { typedEntries } from "@local/advanced-types/typed-entries";
+import { getMergedDataTypeSchema } from "@local/hash-isomorphic-utils/data-types";
 
 import type { FilterableProperty, FilterValueKind } from "./types";
 import type {
@@ -57,7 +57,7 @@ const classifyProperty = ({
     disabledReason: Extract<
       FilterableProperty,
       { filterable: false }
-    >["disabledReason"]
+    >["disabledReason"],
   ): FilterableProperty => ({
     baseUrl,
     title,
@@ -154,7 +154,7 @@ export const deriveFilterableProperties = ({
 
   for (const closedMultiEntityType of closedMultiEntityTypes) {
     for (const [baseUrl, propertySchema] of typedEntries(
-      closedMultiEntityType.properties
+      closedMultiEntityType.properties,
     )) {
       const existing = byBaseUrl.get(baseUrl);
 
