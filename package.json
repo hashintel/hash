@@ -14,9 +14,7 @@
       ".claude/hooks",
       "apps/**",
       "libs/**",
-      "tests/**",
-      "infra/compose/hydra",
-      "infra/compose/kratos"
+      "tests/**"
     ]
   },
   "scripts": {

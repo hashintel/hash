@@ -52,13 +52,14 @@ jobs:
           vault_address: ${{ secrets.VAULT_ADDR }}
           rust: false
 
-      # Service catalog is the single source of truth for build/manifest/deploy.
-      # `package` keys turbo's affected-package detection — each service has a
-      # `build:docker` script (including the two stub packages at
-      # `infra/compose/{hydra,kratos}/` whose only purpose is to let turbo
-      # notice Dockerfile/context changes). `ecs` lists the ECS task
-      # definitions to redeploy when this image publishes; one app may drive
-      # several services (e.g. `graph` → graph + graph-admin + type-fetcher).
+      # Service catalog: the single source of truth for build/manifest/deploy.
+      # App images are detected via turbo's affected-package query (`package`,
+      # dependency-aware — a shared-lib change rebuilds its dependents). Kratos
+      # and Hydra aren't JS packages so turbo can't see them; their image
+      # context is their own directory, so a git diff of `paths` is a complete
+      # change signal. `ecs` lists the ECS task definitions to redeploy when the
+      # image publishes; one app may drive several (e.g. `graph` → graph +
+      # graph-admin + type-fetcher).
       - name: Determine changed packages
         id: packages
         env:
@@ -125,43 +126,55 @@ jobs:
               ecs: [{ service: "integration-worker", cluster: "h-stage-euc1-worker", service_name: "h-stage-euc1-worker-integration" }]
             },
             {
-              package:    "@infra/compose-kratos",
               service:    "kratos",
               push:       ["ecr"],
               dockerfile: "infra/compose/kratos/Dockerfile",
               context:    "infra/compose/kratos",
+              paths:      ["infra/compose/kratos"],
               ecs: [{ service: "kratos", cluster: "h-stage-euc1-auth", service_name: "h-stage-euc1-auth-kratos" }]
             },
             {
-              package:    "@infra/compose-hydra",
               service:    "hydra",
               push:       ["ecr"],
               dockerfile: "infra/compose/hydra/Dockerfile",
               context:    "infra/compose/hydra",
+              paths:      ["infra/compose/hydra"],
               ecs: [{ service: "hydra", cluster: "h-stage-euc1-auth", service_name: "h-stage-euc1-auth-hydra" }]
             }
           ]')
 
-          # workflow_dispatch always rebuilds everything (manual re-trigger);
-          # PR/push/merge_group filter by turbo's affected-package detection.
+          # workflow_dispatch rebuilds everything (manual re-trigger). Otherwise
+          # filter to the affected set: app packages via turbo (dependency
+          # aware), infra services via a git diff of their context dir.
           if [[ "$IS_DISPATCH" == "true" ]]; then
-            AFFECTED=$(jq -c '[.[].package]' <<<"$CATALOG")
+            AFFECTED_CATALOG=$(jq -c '.' <<<"$CATALOG")
           else
+            # App images — turbo affected, excluding the workspace root "//".
             IMAGES_QUERY='query { affectedPackages(base: "HEAD^", filter: {has: {field: TASK_NAME, value: "build:docker"}}) { items { name } } }'
-            AFFECTED=$(turbo query "$IMAGES_QUERY" | jq -c '[.data.affectedPackages.items[].name]')
-          fi
+            AFFECTED_PKGS=$(turbo query "$IMAGES_QUERY" | jq -c '[.data.affectedPackages.items[].name | select(. != "//")]')
 
-          # Fail loudly when turbo flags a `build:docker` package the catalog
-          # doesn't know about — without this the matrix would silently drop
-          # it and the image would never publish.
-          MISSING=$(jq -nc --argjson affected "$AFFECTED" --argjson catalog "$CATALOG" \
-            '[$affected[] | select(. as $p | $catalog | map(.package) | index($p) | not)]')
-          if [[ "$(jq length <<<"$MISSING")" -gt 0 ]]; then
-            echo "::error ::affected build:docker packages missing from deploy catalog: $MISSING"
-            exit 1
-          fi
+            # Fail loudly if turbo flags a `build:docker` package the catalog
+            # doesn't know about — otherwise its image would silently never
+            # publish. (Infra services aren't turbo packages, so they never
+            # appear here.)
+            MISSING=$(jq -nc --argjson pkgs "$AFFECTED_PKGS" --argjson catalog "$CATALOG" \
+              '[$pkgs[] | select(. as $p | ($catalog | map(.package) | index($p)) | not)]')
+            if [[ "$(jq length <<<"$MISSING")" -gt 0 ]]; then
+              echo "::error ::affected build:docker packages missing from deploy catalog: $MISSING"
+              exit 1
+            fi
 
-          AFFECTED_CATALOG=$(jq -c --argjson affected "$AFFECTED" '[.[] | select(.package as $p | $affected | index($p))]' <<<"$CATALOG")
+            # Infra images — turbo is blind to them; a changed file under their
+            # context dir is a complete signal (the dir IS the build context).
+            CHANGED=$(git diff --name-only HEAD^ HEAD | jq -Rsc 'split("\n") | map(select(length > 0))')
+
+            AFFECTED_CATALOG=$(jq -c --argjson pkgs "$AFFECTED_PKGS" --argjson changed "$CHANGED" '
+              [.[] | select(
+                (.package != null and (.package as $p | $pkgs | index($p) != null))
+                or
+                ((.paths // []) as $paths | any($paths[]; . as $d | ($changed | any(.[]; startswith($d + "/")))))
+              )]' <<<"$CATALOG")
+          fi
 
           # Build matrix: expand each affected entry to its arches. Skip amd64
           # for services that don't publish to GHCR (ECR is arm64-only) and
@@ -173,7 +186,7 @@ jobs:
               | $e + .
               | select(($e.push | index("ghcr")) or .arch == "arm64")
               | select($skip_amd64 != true or .arch != "amd64")
-              | del(.package, .ecs)
+              | del(.package, .ecs, .paths)
             ] | { include: . }' <<<"$AFFECTED_CATALOG")
 
           # Manifest matrix: services that publish multi-arch to GHCR.
