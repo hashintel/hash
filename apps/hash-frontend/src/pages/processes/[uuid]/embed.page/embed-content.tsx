@@ -74,10 +74,6 @@ const computeIsDirty = (
  * Owns the doc handle, title, panels, simulation/Monte-Carlo workers,
  * Monaco, and dirty tracking. The host (`process-editor.tsx`) only handles
  * persistence and routing, communicating via the postMessage bridge.
- *
- * This component is dynamic-imported (`ssr: false`) by `embed.page.tsx`
- * because Petrinaut needs Web Workers, Canvas, Monaco, and the TypeScript
- * compiler — all browser-only.
  */
 export const EmbedContent = () => {
   const [state, setState] = useState<EditorState | null>(null);

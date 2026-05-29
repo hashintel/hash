@@ -8,13 +8,6 @@ import {
 
 import type { PetrinautProps } from "@hashintel/petrinaut";
 
-/**
- * The chat-transport type `<Petrinaut>` expects. Derived from `PetrinautProps`
- * because the named alias (`PetrinautAiChatTransport`) only ships from the
- * package's `/ui` subpath export, which the frontend's module resolution can't
- * reach — `@hashintel/petrinaut` (the root entry) is the only resolvable
- * specifier here.
- */
 type PetrinautAiChatTransport = NonNullable<
   PetrinautProps["aiAssistant"]
 >["transport"];

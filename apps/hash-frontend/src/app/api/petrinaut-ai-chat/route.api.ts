@@ -26,10 +26,7 @@ export const dynamic = "force-dynamic";
 const DEFAULT_MODEL = "gpt-5.5-2026-04-23";
 
 /**
- * Per-user rate limit. The Petrinaut AI assistant is proxied through this
- * route so we can bill OpenAI usage to HASH's key without exposing it to the
- * sandboxed iframe; the limit keeps a single signed-in user from running away
- * with that key.
+ * Per-authenticated user rate limit.
  */
 const RATE_LIMIT_WINDOW_MS = 30_000;
 const RATE_LIMIT_MAX_REQUESTS = 10;
@@ -54,9 +51,9 @@ const petrinautAiValidationTools = Object.fromEntries(
 /**
  * In-memory token buckets keyed by the authenticated user's Ory identity id.
  *
- * The HASH frontend runs as a long-lived Node server, so this map persists
- * across requests for the lifetime of the process. It is best-effort only: a
- * multi-instance deployment would rate-limit per instance.
+ * This is not a reliable global limit when this endpoint is deployed as a serverless function.
+ *
+ * @todo move this into the Node API or elsewhere for proper rate limiting
  */
 const rateLimitBuckets = new Map<string, { count: number; resetAt: number }>();
 
@@ -113,10 +110,6 @@ const checkRateLimit = (userId: string): boolean => {
   return true;
 };
 
-/**
- * Resolve the signed-in user's Ory identity id from the request's session
- * cookie. Returns `null` when there's no valid session.
- */
 const resolveUserId = async (cookie: string | null): Promise<string | null> => {
   if (!cookie) {
     return null;
@@ -137,9 +130,6 @@ const resolveUserId = async (cookie: string | null): Promise<string | null> => {
  * `processes/[uuid]/embed`) which cannot reach this route directly — its
  * requests are relayed by the host page (`process-editor.tsx`) over the
  * postMessage bridge and fetched here with the user's session cookie.
- *
- * Requests must carry a valid HASH (Ory) session and are rate-limited per
- * user so a single account can't exhaust the shared OpenAI key.
  */
 export const POST = async (request: Request): Promise<Response> => {
   const userId = await resolveUserId(request.headers.get("cookie"));

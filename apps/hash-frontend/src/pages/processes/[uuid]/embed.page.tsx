@@ -22,11 +22,6 @@ const EmbedContent = dynamic(
  * The route's URL parameter (`uuid`) is unused — the host drives all net
  * loads via the postMessage bridge defined in `../shared/`.
  *
- * `_app.page.tsx` short-circuits this pathname to a minimal provider shell
- * (Emotion + MUI theme + Snackbar + ErrorBoundary), so we use a no-op
- * `getLayout` here — `getPlainLayout` would call `useAuthInfo()`, which
- * would throw because `AuthInfoProvider` isn't mounted on this route.
- *
  * @see {@link buildEmbedCspHeader}
  */
 const PetrinautEmbedPage: NextPageWithLayout = () => <EmbedContent />;

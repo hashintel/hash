@@ -98,11 +98,6 @@ type VersionPickerProps = {
  * Top-bar control for browsing the server-side revision history of a
  * persisted Petri net.
  *
- * The picker itself lives inside the Petrinaut iframe (the host pushes the
- * `revisions` summary list over the bridge); selecting a revision sends a
- * `requestRevision` message back to the host, which fetches the full SDCPN
- * and replies with `load`.
- *
  * In-memory undo/redo is handled separately by Petrinaut's
  * `VersionHistoryButton` — these two histories intentionally don't share a
  * surface (keystroke-level deltas vs persisted snapshots).
