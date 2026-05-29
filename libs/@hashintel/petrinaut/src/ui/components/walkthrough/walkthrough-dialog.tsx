@@ -251,7 +251,7 @@ export const WalkthroughDialog: React.FC = () => {
     }
   }
 
-  if (!walkthrough) {
+  if (!walkthrough || walkthrough.steps.length === 0) {
     return null;
   }
 
@@ -270,13 +270,13 @@ export const WalkthroughDialog: React.FC = () => {
     if (atLast) {
       close();
     } else {
-      setCurrentStep(currentStep + 1);
+      setCurrentStep((prevStep) => prevStep + 1);
     }
   };
 
   const goBack = () => {
     if (!atFirst) {
-      setCurrentStep(currentStep - 1);
+      setCurrentStep((prevStep) => prevStep - 1);
     }
   };
 
@@ -354,7 +354,7 @@ export const WalkthroughDialog: React.FC = () => {
                         type="button"
                         className={dotStyle}
                         data-active={index === currentStep}
-                        aria-label={`Go to step ${index + 1}: ${s.title}`}
+                        aria-label={`Go to step ${index + 1}`}
                         aria-current={
                           index === currentStep ? "step" : undefined
                         }
