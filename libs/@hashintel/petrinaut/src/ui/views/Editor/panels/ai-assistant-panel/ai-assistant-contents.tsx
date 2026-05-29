@@ -193,6 +193,7 @@ const messageStyle = cva({
     fontWeight: "medium",
     lineHeight: "[1.5]",
     color: "neutral.s100",
+    userSelect: "text",
     boxShadow:
       "[0px 0px 0px 1px rgba(0,0,0,0.07), 0px 1px 1px -0.5px rgba(0,0,0,0.04), 0px 8px 8px -6px rgba(0,0,0,0.04)]",
   },
@@ -219,6 +220,7 @@ const errorStyle = css({
   color: "red.s100",
   fontSize: "sm",
   fontWeight: "medium",
+  userSelect: "text",
 });
 
 const composerWrapStyle = css({
