@@ -24,6 +24,12 @@ type HostBridgeHandlers = {
   onReportError?: (
     payload: Extract<IframeToHostMessage, { kind: "reportError" }>,
   ) => void;
+  onAiChatRequest?: (
+    payload: Extract<IframeToHostMessage, { kind: "aiChatRequest" }>,
+  ) => void;
+  onAiChatAbort?: (
+    payload: Extract<IframeToHostMessage, { kind: "aiChatAbort" }>,
+  ) => void;
 };
 
 type HostBridge = {
@@ -97,6 +103,12 @@ export const useHostBridge = ({
           break;
         case "reportError":
           current.onReportError?.(data);
+          break;
+        case "aiChatRequest":
+          current.onAiChatRequest?.(data);
+          break;
+        case "aiChatAbort":
+          current.onAiChatAbort?.(data);
           break;
       }
     };

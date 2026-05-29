@@ -99,6 +99,44 @@ export type HostToIframeMessage =
             revisions: RevisionSummary[];
           }
         | { ok: false; error: string };
+    }
+  | {
+      /**
+       * First reply to an `aiChatRequest`, carrying the proxied HTTP
+       * response's status. Sent before any `aiChatChunk`. The iframe's chat
+       * transport uses this to construct the `Response` it hands back to the
+       * AI SDK (so a non-`ok` status surfaces as a chat error).
+       */
+      kind: "aiChatResponseStart";
+      requestId: string;
+      ok: boolean;
+      status: number;
+      statusText: string;
+    }
+  | {
+      /**
+       * A chunk of the proxied AI response body, forwarded verbatim. The host
+       * is deliberately agnostic to the stream's contents — it just relays
+       * bytes so the iframe can parse them with the AI SDK's own decoder.
+       */
+      kind: "aiChatChunk";
+      requestId: string;
+      bytes: Uint8Array;
+    }
+  | {
+      /** The proxied AI response body completed normally. */
+      kind: "aiChatEnd";
+      requestId: string;
+    }
+  | {
+      /**
+       * The proxied fetch failed before/while streaming a response (network
+       * error, abort). Distinct from a non-`ok` `aiChatResponseStart`, which
+       * carries an HTTP error body the iframe still reads as a stream.
+       */
+      kind: "aiChatError";
+      requestId: string;
+      message: string;
     };
 
 /**
@@ -177,6 +215,26 @@ export type IframeToHostMessage =
        * tag the Sentry event with which net the user was editing.
        */
       mode: HostNetMode | null;
+    }
+  | {
+      /**
+       * Relay an AI assistant chat request to the host so it can be fetched
+       * against HASH's authenticated API (the sandboxed iframe can't reach it
+       * directly). `body` is the JSON request body the AI SDK produced; the
+       * host streams the response back via `aiChatResponseStart` /
+       * `aiChatChunk` / `aiChatEnd` / `aiChatError`, all keyed by `requestId`.
+       */
+      kind: "aiChatRequest";
+      requestId: string;
+      body: string;
+    }
+  | {
+      /**
+       * Abort an in-flight `aiChatRequest` (the user stopped the assistant or
+       * the chat component unmounted). The host aborts the underlying fetch.
+       */
+      kind: "aiChatAbort";
+      requestId: string;
     };
 
 export const isHostToIframeMessage = (

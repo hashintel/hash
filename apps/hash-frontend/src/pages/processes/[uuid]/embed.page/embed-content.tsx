@@ -20,7 +20,16 @@ import {
   type SavedSnapshot,
 } from "../../shared/messages";
 import { useIframeBridge } from "../../shared/use-iframe-bridge";
+import { createBridgeAiChatTransport } from "./create-bridge-ai-transport";
 import { VersionPicker } from "./version-picker";
+
+/**
+ * Chat transport for the AI assistant. Created once at module scope: it's
+ * stateless beyond the per-request bookkeeping it owns internally, so a single
+ * instance is shared across renders (and is safe even though the editor never
+ * remounts when switching nets).
+ */
+const aiChatTransport = createBridgeAiChatTransport();
 
 const noNetSwitchingError = () => {
   throw new Error(
@@ -322,6 +331,7 @@ export const EmbedContent = () => {
   return (
     <Box sx={{ height: "100vh", overflow: "hidden" }}>
       <Petrinaut
+        aiAssistant={{ transport: aiChatTransport }}
         handle={state.handle}
         createNewNet={noNetSwitchingError}
         existingNets={[]}

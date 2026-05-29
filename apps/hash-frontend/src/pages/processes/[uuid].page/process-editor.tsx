@@ -40,6 +40,14 @@ const emptySDCPN: SDCPN = {
 const PETRINAUT_EMBED_SRC = "/processes/draft/embed";
 
 /**
+ * Server route that proxies the Petrinaut AI assistant to the LLM provider.
+ * Hardcoded here rather than taken from the iframe's request: the iframe runs
+ * untrusted user code, so the host must never fetch an arbitrary URL on its
+ * behalf — it only forwards the (still server-validated) request body.
+ */
+const PETRINAUT_AI_CHAT_API = "/api/petrinaut-ai-chat";
+
+/**
  * URL-derived view that the editor renders. The host page resolves this from
  * `router.query` and passes it in; the editor reconciles its internal state
  * whenever the view changes.
@@ -190,6 +198,12 @@ export const ProcessEditor = ({
 
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
+  /**
+   * In-flight AI chat proxy requests, keyed by the `requestId` the iframe
+   * generated. Lets `aiChatAbort` cancel the matching fetch.
+   */
+  const aiChatAbortControllersRef = useRef(new Map<string, AbortController>());
+
   const [selectedNetId, setSelectedNetId] = useState<EntityId | null>(null);
 
   /**
@@ -336,6 +350,69 @@ export const ProcessEditor = ({
             petrinaut: { mode },
           },
         });
+      },
+      onAiChatRequest: ({ requestId, body }) => {
+        const controller = new AbortController();
+        aiChatAbortControllersRef.current.set(requestId, controller);
+
+        /**
+         * Proxy the iframe's chat request through HASH's authenticated API
+         * (the iframe's opaque origin can't send our session cookie) and
+         * relay the streamed response back over the bridge byte-for-byte.
+         */
+        void (async () => {
+          try {
+            const response = await fetch(PETRINAUT_AI_CHAT_API, {
+              method: "POST",
+              headers: { "content-type": "application/json" },
+              body,
+              signal: controller.signal,
+            });
+
+            bridge.send({
+              kind: "aiChatResponseStart",
+              requestId,
+              ok: response.ok,
+              status: response.status,
+              statusText: response.statusText,
+            });
+
+            if (response.body) {
+              const reader = response.body.getReader();
+              let done = false;
+              while (!done) {
+                const result = await reader.read();
+                done = result.done;
+                if (result.value) {
+                  bridge.send({
+                    kind: "aiChatChunk",
+                    requestId,
+                    bytes: result.value,
+                  });
+                }
+              }
+            }
+
+            bridge.send({ kind: "aiChatEnd", requestId });
+          } catch (error) {
+            // An abort is a normal control-flow signal, not a failure — the
+            // iframe already tore down its stream when it asked us to abort.
+            if (!controller.signal.aborted) {
+              bridge.send({
+                kind: "aiChatError",
+                requestId,
+                message: error instanceof Error ? error.message : String(error),
+              });
+            }
+          } finally {
+            aiChatAbortControllersRef.current.delete(requestId);
+          }
+        })();
+      },
+      onAiChatAbort: ({ requestId }) => {
+        const controller = aiChatAbortControllersRef.current.get(requestId);
+        controller?.abort();
+        aiChatAbortControllersRef.current.delete(requestId);
       },
       onRequestSave: ({ requestId, definition, title }) => {
         const wasCreate = selectedNetId === null;
