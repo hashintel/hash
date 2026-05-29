@@ -285,7 +285,7 @@ export const WalkthroughDialog: React.FC = () => {
 
   return (
     <ArkDialog.Root
-      open={true}
+      open={isOpen}
       onOpenChange={(details) => {
         if (!details.open) {
           close();
