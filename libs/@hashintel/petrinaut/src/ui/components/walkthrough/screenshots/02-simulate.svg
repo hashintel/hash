@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" role="img" aria-label="Placeholder screenshot for the Simulate step">
+  <defs>
+    <linearGradient id="bg2" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f3f4f6" />
+      <stop offset="1" stop-color="#e5e7eb" />
+    </linearGradient>
+  </defs>
+  <rect width="1280" height="720" fill="url(#bg2)" />
+  <rect x="0" y="0" width="1280" height="56" fill="#ffffff" />
+  <rect x="16" y="16" width="24" height="24" rx="4" fill="#d1d5db" />
+  <rect x="48" y="16" width="24" height="24" rx="4" fill="#d1d5db" />
+  <rect x="540" y="14" width="200" height="28" rx="14" fill="#e5e7eb" />
+  <rect x="1232" y="16" width="24" height="24" rx="4" fill="#d1d5db" />
+  <rect x="40" y="88" width="1200" height="600" rx="14" fill="#ffffff" />
+  <rect x="64" y="112" width="240" height="14" rx="3" fill="#1f2937" />
+  <rect x="64" y="138" width="320" height="10" rx="3" fill="#9ca3af" />
+  <g transform="translate(64, 180)">
+    <line x1="0" y1="460" x2="1152" y2="460" stroke="#d1d5db" stroke-width="1" />
+    <line x1="0" y1="0" x2="0" y2="460" stroke="#d1d5db" stroke-width="1" />
+    <line x1="0" y1="100" x2="1152" y2="100" stroke="#f3f4f6" stroke-width="1" />
+    <line x1="0" y1="200" x2="1152" y2="200" stroke="#f3f4f6" stroke-width="1" />
+    <line x1="0" y1="300" x2="1152" y2="300" stroke="#f3f4f6" stroke-width="1" />
+    <line x1="0" y1="400" x2="1152" y2="400" stroke="#f3f4f6" stroke-width="1" />
+    <polyline points="0,420 80,400 160,340 240,360 320,260 400,240 480,200 560,160 640,180 720,130 800,110 880,140 960,80 1040,100 1152,60" fill="none" stroke="#2563eb" stroke-width="3" />
+    <polyline points="0,430 80,400 160,380 240,360 320,330 400,300 480,290 560,260 640,240 720,220 800,205 880,180 960,170 1040,155 1152,140" fill="none" stroke="#10b981" stroke-width="3" stroke-dasharray="6 4" />
+    <polyline points="0,440 80,420 160,405 240,390 320,375 400,355 480,340 560,325 640,310 720,295 800,280 880,265 960,250 1040,235 1152,220" fill="none" stroke="#f59e0b" stroke-width="3" stroke-dasharray="2 4" />
+  </g>
+  <g transform="translate(64, 660)">
+    <rect x="0" y="0" width="12" height="12" rx="2" fill="#2563eb" />
+    <rect x="20" y="2" width="80" height="8" rx="2" fill="#9ca3af" />
+    <rect x="120" y="0" width="12" height="12" rx="2" fill="#10b981" />
+    <rect x="140" y="2" width="80" height="8" rx="2" fill="#9ca3af" />
+    <rect x="240" y="0" width="12" height="12" rx="2" fill="#f59e0b" />
+    <rect x="260" y="2" width="80" height="8" rx="2" fill="#9ca3af" />
+  </g>
+</svg>

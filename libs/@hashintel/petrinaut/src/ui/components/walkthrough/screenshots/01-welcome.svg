@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" role="img" aria-label="Placeholder screenshot for the Welcome step">
+  <defs>
+    <linearGradient id="bg1" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f3f4f6" />
+      <stop offset="1" stop-color="#e5e7eb" />
+    </linearGradient>
+  </defs>
+  <rect width="1280" height="720" fill="url(#bg1)" />
+  <rect x="0" y="0" width="1280" height="56" fill="#ffffff" />
+  <rect x="16" y="16" width="24" height="24" rx="4" fill="#d1d5db" />
+  <rect x="48" y="16" width="24" height="24" rx="4" fill="#d1d5db" />
+  <rect x="540" y="14" width="200" height="28" rx="14" fill="#e5e7eb" />
+  <rect x="1200" y="16" width="24" height="24" rx="12" fill="#d1d5db" />
+  <rect x="1232" y="16" width="24" height="24" rx="4" fill="#d1d5db" />
+  <rect x="0" y="56" width="240" height="664" fill="#ffffff" opacity="0.9" />
+  <rect x="20" y="84" width="200" height="14" rx="3" fill="#d1d5db" />
+  <rect x="20" y="112" width="160" height="10" rx="3" fill="#e5e7eb" />
+  <rect x="20" y="132" width="180" height="10" rx="3" fill="#e5e7eb" />
+  <rect x="20" y="152" width="140" height="10" rx="3" fill="#e5e7eb" />
+  <circle cx="520" cy="320" r="50" fill="#ffffff" stroke="#1f2937" stroke-width="3" />
+  <rect x="720" y="290" width="60" height="60" fill="#1f2937" />
+  <circle cx="940" cy="320" r="50" fill="#ffffff" stroke="#1f2937" stroke-width="3" />
+  <line x1="570" y1="320" x2="720" y2="320" stroke="#1f2937" stroke-width="3" marker-end="url(#a1)" />
+  <line x1="780" y1="320" x2="890" y2="320" stroke="#1f2937" stroke-width="3" marker-end="url(#a1)" />
+  <defs>
+    <marker id="a1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#1f2937" />
+    </marker>
+  </defs>
+  <circle cx="500" cy="320" r="6" fill="#1f2937" />
+  <text x="640" y="640" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="20" fill="#6b7280">Placeholder screenshot · Step 1: Welcome</text>
+</svg>

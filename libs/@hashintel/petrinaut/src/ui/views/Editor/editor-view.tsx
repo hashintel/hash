@@ -19,6 +19,8 @@ import { useSelectionCleanup } from "../../../react/state/use-selection-cleanup"
 import { UserSettingsContext } from "../../../react/state/user-settings-context";
 import { Box } from "../../components/box";
 import { Stack } from "../../components/stack";
+import { WalkthroughDialog } from "../../components/walkthrough/walkthrough-dialog";
+import { WalkthroughProvider } from "../../components/walkthrough/walkthrough-provider";
 import { exportSDCPN } from "../../file-io/export-sdcpn";
 import { exportTikZ } from "../../file-io/export-tikz";
 import { importSDCPN } from "../../file-io/import-sdcpn";
@@ -94,11 +96,13 @@ export const EditorView = ({
   hideNetManagementControls,
   slots,
   viewportActions,
+  showWalkthrough = true,
 }: {
   aiAssistant?: PetrinautAiAssistant;
   hideNetManagementControls: boolean;
   slots?: PetrinautSlots;
   viewportActions?: ViewportAction[];
+  showWalkthrough?: boolean;
 }) => {
   // Get data from sdcpn-store
   const {
@@ -363,7 +367,7 @@ export const EditorView = ({
     !isAiCtaDismissed &&
     isEmptySDCPN(petriNetDefinition);
 
-  return (
+  const body = (
     <>
       <ImportErrorDialog
         open={importError !== null}
@@ -375,6 +379,8 @@ export const EditorView = ({
         errorMessage={importError ?? ""}
         onCreateEmpty={handleCreateEmpty}
       />
+
+      {showWalkthrough && <WalkthroughDialog />}
 
       {/* Top Bar - always visible */}
       <TopBar
@@ -388,6 +394,7 @@ export const EditorView = ({
           handleRunningExperimentClick(experiment.id)
         }
         slots={slots}
+        showWalkthroughButton={showWalkthrough}
       />
 
       <Stack direction="row" className={rowContainerStyle}>
@@ -442,5 +449,11 @@ export const EditorView = ({
         )}
       </Stack>
     </>
+  );
+
+  return showWalkthrough ? (
+    <WalkthroughProvider>{body}</WalkthroughProvider>
+  ) : (
+    body
   );
 };

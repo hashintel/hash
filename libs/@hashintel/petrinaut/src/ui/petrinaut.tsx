@@ -93,6 +93,13 @@ export type PetrinautProps = {
    * `?worker` against the host's own copy of the worker source.
    */
   lspWorkerFactory?: LspWorkerFactory;
+  /**
+   * When true (default), the first-visit product walkthrough auto-opens for
+   * new users and the help (?) button is shown in the top bar. Set to false
+   * to suppress both — useful when embedding Petrinaut inside a host that
+   * provides its own onboarding.
+   */
+  showWalkthrough?: boolean;
 };
 
 const noop = () => {};
@@ -120,6 +127,7 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
   simulationWorkerFactory,
   monteCarloWorkerFactory,
   lspWorkerFactory,
+  showWalkthrough = true,
 }) => {
   const portalContainerRef = useRef<HTMLDivElement>(null);
   const instance = useMemo<Instance>(
@@ -154,6 +162,7 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
               hideNetManagementControls={hideNetManagementControls}
               slots={slots}
               viewportActions={viewportActions}
+              showWalkthrough={showWalkthrough}
             />
           </Stack>
         </MonacoProvider>
