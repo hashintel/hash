@@ -19,11 +19,7 @@ const ProcessEditor = dynamic(
 );
 
 /**
- * Single Next.js page file backing both `/processes/draft` and
- * `/processes/<uuid>`. Using one file means navigating from a freshly
- * saved draft (`router.replace("/processes/<newUuid>")`) doesn't remount
- * the editor — undo/redo history and the active document handle survive
- * the URL transition.
+ * Single page backing both `/processes/draft` and `/processes/<uuid>`.
  */
 const ProcessRoutePage: NextPageWithLayout = () => {
   const router = useRouter();

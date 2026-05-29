@@ -19,11 +19,9 @@ const contentMaxWidth = 1000;
 
 const SectionHeading = ({ children }: { children: React.ReactNode }) => (
   <Typography
-    component="h2"
+    variant="h3"
     sx={({ palette }) => ({
       color: palette.gray[80],
-      fontSize: 16,
-      fontWeight: 600,
       mb: 2,
     })}
   >
@@ -32,12 +30,8 @@ const SectionHeading = ({ children }: { children: React.ReactNode }) => (
 );
 
 /**
- * Lists Petri net "processes" — both the user's persisted entities and a
- * curated set of examples imported from `@hashintel/petrinaut-core/examples`.
- *
- * Clicking a saved net opens it in the editor at `/processes/<uuid>`.
- * Clicking an example opens a draft seeded with that example's definition
- * at `/processes/draft?example=<slug>`.
+ * Lists Petri net "processes" — both those in the db visible to the user,
+ * and examples imported from `@hashintel/petrinaut-core/examples`.
  */
 const ProcessesPage: NextPageWithLayout = () => {
   const { persistedNets } = usePersistedNets();
@@ -94,7 +88,6 @@ const ProcessesPage: NextPageWithLayout = () => {
       </Box>
       <Container sx={{ paddingTop: 5, paddingBottom: 8, maxWidth }}>
         <Box mb={5}>
-          <SectionHeading>Your processes</SectionHeading>
           {sortedNets.length === 0 ? (
             <Typography
               sx={({ palette }) => ({

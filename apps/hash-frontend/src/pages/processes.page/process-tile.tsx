@@ -34,8 +34,9 @@ export const ProcessTile = ({
       textDecoration: "none",
       transition: transitions.create(["border-color", "box-shadow"]),
       "&:hover": {
-        borderColor: palette.gray[30],
-        boxShadow: "0px 1px 3px rgba(0, 0, 0, 0.04)",
+        borderColor: palette.gray[40],
+        boxShadow:
+          "0px 4px 12px rgba(0, 0, 0, 0.08), 0px 2px 4px rgba(0, 0, 0, 0.04)",
       },
     })}
   >
