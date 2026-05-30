@@ -19,6 +19,10 @@ import { useSelectionCleanup } from "../../../react/state/use-selection-cleanup"
 import { UserSettingsContext } from "../../../react/state/user-settings-context";
 import { Box } from "../../components/box";
 import { Stack } from "../../components/stack";
+import {
+  WalkthroughContext,
+  willShowWalkthroughDialog,
+} from "../../components/walkthrough/walkthrough-context";
 import { WalkthroughDialog } from "../../components/walkthrough/walkthrough-dialog";
 import { exportSDCPN } from "../../file-io/export-sdcpn";
 import { exportTikZ } from "../../file-io/export-tikz";
@@ -136,6 +140,7 @@ export const EditorView = ({
   const [isAiCtaDismissed, setIsAiCtaDismissed] = useState(false);
 
   const { compactNodes, isWalkthroughOpen } = use(UserSettingsContext);
+  const walkthrough = use(WalkthroughContext);
   const dims = compactNodes ? compactNodeDimensions : classicNodeDimensions;
 
   const [importError, setImportError] = useState<string | null>(null);
@@ -362,7 +367,7 @@ export const EditorView = ({
     aiAssistant !== undefined &&
     !isAiAssistantOpen &&
     !isAiCtaDismissed &&
-    !isWalkthroughOpen &&
+    !willShowWalkthroughDialog(walkthrough, isWalkthroughOpen) &&
     isEmptySDCPN(petriNetDefinition);
 
   return (

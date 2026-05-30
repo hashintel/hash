@@ -15,3 +15,9 @@ export type WalkthroughContextValue = {
 export const WalkthroughContext = createContext<WalkthroughContextValue | null>(
   null,
 );
+
+export const willShowWalkthroughDialog = (
+  walkthrough: WalkthroughContextValue | null,
+  isWalkthroughOpen: boolean,
+): walkthrough is WalkthroughContextValue =>
+  isWalkthroughOpen && walkthrough !== null && walkthrough.steps.length > 0;

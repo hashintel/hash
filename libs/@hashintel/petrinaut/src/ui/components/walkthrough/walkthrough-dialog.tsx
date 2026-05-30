@@ -6,7 +6,10 @@ import { Button, usePortalContainerRef } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { UserSettingsContext } from "../../../react/state/user-settings-context";
-import { WalkthroughContext } from "./walkthrough-context";
+import {
+  WalkthroughContext,
+  willShowWalkthroughDialog,
+} from "./walkthrough-context";
 
 const docsUrl =
   "https://github.com/hashintel/hash/tree/main/libs/%40hashintel/petrinaut/docs";
@@ -251,7 +254,7 @@ export const WalkthroughDialog: React.FC = () => {
     }
   }
 
-  if (!walkthrough || walkthrough.steps.length === 0) {
+  if (!willShowWalkthroughDialog(walkthrough, isWalkthroughOpen)) {
     return null;
   }
 
