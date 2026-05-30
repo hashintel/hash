@@ -107,44 +107,53 @@ export const Dialog = ({
             className={cx(classes.content, className)}
             aria-busy={loading ?? undefined}
           >
-            {hasHeader ? (
+            {disableDefaultClose ? null : (
+              <ArkDialog.CloseTrigger
+                className={classes.closeButton}
+                aria-label="Close dialog"
+              >
+                <Icon name="close" size="sm" />
+              </ArkDialog.CloseTrigger>
+            )}
+
+            {hasHeader && (
               <div className={classes.header}>
                 {header ?? (
                   <>
                     <div className={classes.titleRow}>
-                      {titleIconName ? (
+                      {titleIconName && (
                         <Icon
                           name={titleIconName}
                           size="md"
                           className={classes.titleIcon}
                         />
-                      ) : null}
+                      )}
                       <div>
-                        {title !== undefined ? (
+                        {title && (
                           <ArkDialog.Title className={classes.title}>
                             {title}
                           </ArkDialog.Title>
-                        ) : null}
-                        {description !== undefined ? (
+                        )}
+                        {description && (
                           <ArkDialog.Description
                             className={classes.description}
                           >
                             {description}
                           </ArkDialog.Description>
-                        ) : null}
+                        )}
                       </div>
                     </div>
-                    {actions ? (
+                    {actions && (
                       <div className={classes.headerActions}>{actions}</div>
-                    ) : null}
+                    )}
                   </>
                 )}
               </div>
-            ) : null}
+            )}
 
             <div className={classes.body}>{children}</div>
 
-            {hasFooter ? (
+            {hasFooter && (
               <div className={classes.footer}>
                 {footer ?? (
                   <>
@@ -155,15 +164,6 @@ export const Dialog = ({
                   </>
                 )}
               </div>
-            ) : null}
-
-            {disableDefaultClose ? null : (
-              <ArkDialog.CloseTrigger
-                className={classes.closeButton}
-                aria-label="Close dialog"
-              >
-                <Icon name="close" size="sm" />
-              </ArkDialog.CloseTrigger>
             )}
 
             {loading ? (
