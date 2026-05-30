@@ -4,7 +4,7 @@ import { css } from "@hashintel/ds-helpers/css";
 
 import { Button } from "../Button/button";
 import { Icon } from "../Icon/icon";
-import { Dialog, type DialogProps, type DialogSize } from "./dialog";
+import { Dialog, type DialogSize } from "./dialog";
 
 import type { Story, StoryDefault } from "@ladle/react";
 
@@ -35,7 +35,7 @@ const longBody = (
 
 type ExampleProps = {
   buttonLabel: string;
-  dialogProps: (close: () => void) => DialogProps;
+  dialogProps: (close: () => void) => React.ComponentProps<typeof Dialog>;
 };
 
 const DialogExample = ({ buttonLabel, dialogProps }: ExampleProps) => {
@@ -247,7 +247,7 @@ const buildKitchenSink = (
   size: DialogSize,
   close: () => void,
   options?: { loading?: boolean },
-): DialogProps => ({
+): React.ComponentProps<typeof Dialog> => ({
   size,
   loading: options?.loading,
   title: `Kitchen sink (${size})`,
