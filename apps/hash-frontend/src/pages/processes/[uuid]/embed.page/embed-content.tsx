@@ -183,11 +183,6 @@ export const EmbedContent = () => {
             : prev,
         );
         setIframeErrorReporterMode(mode);
-        const currentDoc = state?.handle.doc();
-        const currentTitle = state?.title ?? savedSnapshot.title;
-        if (currentDoc) {
-          setIsDirty(computeIsDirty(currentDoc, currentTitle, savedSnapshot));
-        }
       }
     },
   });
@@ -211,24 +206,35 @@ export const EmbedContent = () => {
     });
   }, [state?.handle]);
 
-  /**
-   * Title changes always recompute dirty (it's part of the comparison) and
-   * always emit `titleChanged` so the host can mirror the document title.
-   */
   const handle = state?.handle;
   const title = state?.title ?? "";
+  const savedSnapshot = state?.savedSnapshot ?? null;
 
+  /**
+   * Title changes always emit `titleChanged` so the host can mirror the
+   * document title.
+   */
   useEffect(() => {
     if (!handle) {
       return;
     }
     bridge.send({ kind: "titleChanged", title });
+  }, [bridge, handle, title]);
+
+  /**
+   * Dirty tracking is derived after editor state commits so batched updates
+   * (for example, title edits racing a save result) are compared together.
+   */
+  useEffect(() => {
+    if (!handle) {
+      return;
+    }
     const currentDoc = handle.doc();
     if (currentDoc) {
-      const dirty = computeIsDirty(currentDoc, title, savedSnapshotRef.current);
+      const dirty = computeIsDirty(currentDoc, title, savedSnapshot);
       setIsDirty((prev) => (prev === dirty ? prev : dirty));
     }
-  }, [bridge, handle, title]);
+  }, [handle, savedSnapshot, title]);
 
   /**
    * Mirror dirty state to the host. The host caches it for the discard-
