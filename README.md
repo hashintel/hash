@@ -143,8 +143,6 @@ yarn compose --profile hgres up -d   # infrastructure + graph in Docker
 yarn dev                             # api + frontend only
 ```
 
-Add `--build` when pulling changes that touch the graph. For the full application stack in Docker, see [the setup guide](https://hash.dev/docs/get-started/setup#local-hash).
-
 #### Running the browser plugin
 
 If you need to run the browser plugin locally, see [the `README.md`](https://github.com/hashintel/hash/tree/main/apps/plugin-browser#readme) in the `apps/plugin-browser` directory.
