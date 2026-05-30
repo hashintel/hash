@@ -207,7 +207,7 @@ export const EmbedContent = () => {
   }, [state?.handle]);
 
   const handle = state?.handle;
-  const title = state?.title ?? "";
+  const currentTitle = state?.title ?? "";
   const savedSnapshot = state?.savedSnapshot ?? null;
 
   /**
@@ -218,8 +218,8 @@ export const EmbedContent = () => {
     if (!handle) {
       return;
     }
-    bridge.send({ kind: "titleChanged", title });
-  }, [bridge, handle, title]);
+    bridge.send({ kind: "titleChanged", title: currentTitle });
+  }, [bridge, currentTitle, handle]);
 
   /**
    * Dirty tracking is derived after editor state commits so batched updates
@@ -231,10 +231,10 @@ export const EmbedContent = () => {
     }
     const currentDoc = handle.doc();
     if (currentDoc) {
-      const dirty = computeIsDirty(currentDoc, title, savedSnapshot);
+      const dirty = computeIsDirty(currentDoc, currentTitle, savedSnapshot);
       setIsDirty((prev) => (prev === dirty ? prev : dirty));
     }
-  }, [handle, savedSnapshot, title]);
+  }, [currentTitle, handle, savedSnapshot]);
 
   /**
    * Mirror dirty state to the host. The host caches it for the discard-
