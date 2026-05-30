@@ -229,7 +229,7 @@ export const EmbedContent = () => {
       );
       setIsDirty((prev) => (prev === dirty ? prev : dirty));
     }
-  }, [bridge, state]);
+  }, [bridge, state?.handle, state?.title]);
 
   /**
    * Mirror dirty state to the host. The host caches it for the discard-
