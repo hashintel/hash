@@ -19,7 +19,6 @@ import { useSelectionCleanup } from "../../../react/state/use-selection-cleanup"
 import { UserSettingsContext } from "../../../react/state/user-settings-context";
 import { Box } from "../../components/box";
 import { Stack } from "../../components/stack";
-import { WalkthroughContext } from "../../components/walkthrough/walkthrough-context";
 import { WalkthroughDialog } from "../../components/walkthrough/walkthrough-dialog";
 import { exportSDCPN } from "../../file-io/export-sdcpn";
 import { exportTikZ } from "../../file-io/export-tikz";
@@ -130,15 +129,13 @@ export const EditorView = ({
     bottomPanelHeight,
   } = use(EditorContext);
   const { setSelectedExperimentId } = use(ExperimentsContext);
-  const walkthrough = use(WalkthroughContext);
-  const isWalkthroughOpen = walkthrough?.isOpen ?? false;
 
   const [pendingAiAssistantMessage, setPendingAiAssistantMessage] = useState<
     string | null
   >(null);
   const [isAiCtaDismissed, setIsAiCtaDismissed] = useState(false);
 
-  const { compactNodes } = use(UserSettingsContext);
+  const { compactNodes, isWalkthroughOpen } = use(UserSettingsContext);
   const dims = compactNodes ? compactNodeDimensions : classicNodeDimensions;
 
   const [importError, setImportError] = useState<string | null>(null);

@@ -5,6 +5,7 @@ import { use, useState } from "react";
 import { Button, usePortalContainerRef } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
+import { UserSettingsContext } from "../../../react/state/user-settings-context";
 import { WalkthroughContext } from "./walkthrough-context";
 
 const docsUrl =
@@ -234,19 +235,18 @@ const actionsStyle = css({
 
 export const WalkthroughDialog: React.FC = () => {
   const walkthrough = use(WalkthroughContext);
+  const { isWalkthroughOpen, setIsWalkthroughOpen } = use(UserSettingsContext);
   const [currentStep, setCurrentStep] = useState(0);
   const portalContainerRef = usePortalContainerRef();
-
-  const isOpen = walkthrough?.isOpen ?? false;
 
   // Reset to the first step every time the dialog opens. Using the
   // prev-prop comparison pattern recommended by React's "you might not need
   // an effect" guide, since calling setState inside useEffect would cause a
   // cascading render and is flagged by react-hooks-js.
-  const [wasOpen, setWasOpen] = useState(isOpen);
-  if (isOpen !== wasOpen) {
-    setWasOpen(isOpen);
-    if (isOpen) {
+  const [wasOpen, setWasOpen] = useState(isWalkthroughOpen);
+  if (isWalkthroughOpen !== wasOpen) {
+    setWasOpen(isWalkthroughOpen);
+    if (isWalkthroughOpen) {
       setCurrentStep(0);
     }
   }
@@ -255,7 +255,8 @@ export const WalkthroughDialog: React.FC = () => {
     return null;
   }
 
-  const { close, steps } = walkthrough;
+  const { steps } = walkthrough;
+  const close = () => setIsWalkthroughOpen(false);
   const lastIndex = steps.length - 1;
   const step = steps[currentStep] ?? steps[0];
 
@@ -292,7 +293,7 @@ export const WalkthroughDialog: React.FC = () => {
 
   return (
     <ArkDialog.Root
-      open={isOpen}
+      open={isWalkthroughOpen}
       closeOnInteractOutside={false}
       onOpenChange={(details) => {
         if (!details.open) {

@@ -3,6 +3,11 @@ import { useState } from "react";
 import { Button } from "@hashintel/ds-components";
 
 import {
+  defaultUserSettings,
+  UserSettingsContext,
+  type UserSettingsContextValue,
+} from "../../../react/state/user-settings-context";
+import {
   WalkthroughContext,
   type WalkthroughStep,
 } from "./walkthrough-context";
@@ -50,7 +55,30 @@ const HarnessedWalkthrough = ({
 }: {
   initiallyOpen: boolean;
 }) => {
-  const [isOpen, setIsOpen] = useState(initiallyOpen);
+  const [isWalkthroughOpen, setIsWalkthroughOpen] = useState(initiallyOpen);
+
+  const userSettingsValue: UserSettingsContextValue = {
+    ...defaultUserSettings,
+    isWalkthroughOpen,
+    setShowAnimations: () => {},
+    setKeepPanelsMounted: () => {},
+    setCompactNodes: () => {},
+    setArcRendering: () => {},
+    setCursorMode: () => {},
+    setIsLeftSidebarOpen: () => {},
+    setLeftSidebarWidth: () => {},
+    setPropertiesPanelWidth: () => {},
+    setIsBottomPanelOpen: () => {},
+    setBottomPanelHeight: () => {},
+    setActiveBottomPanelTab: () => {},
+    setTimelineChartType: () => {},
+    setShowMinimap: () => {},
+    setSnapToGrid: () => {},
+    setPartialSelection: () => {},
+    setUseEntitiesTreeView: () => {},
+    setIsWalkthroughOpen,
+    updateSubViewSection: () => {},
+  };
 
   return (
     <div
@@ -62,21 +90,16 @@ const HarnessedWalkthrough = ({
         background: "var(--colors-neutral-s10, #f3f4f6)",
       }}
     >
-      {!isOpen && (
-        <Button variant="subtle" onClick={() => setIsOpen(true)}>
+      {!isWalkthroughOpen && (
+        <Button variant="subtle" onClick={() => setIsWalkthroughOpen(true)}>
           Re-open walkthrough
         </Button>
       )}
-      <WalkthroughContext
-        value={{
-          isOpen,
-          open: () => setIsOpen(true),
-          close: () => setIsOpen(false),
-          steps: storySteps,
-        }}
-      >
-        <WalkthroughDialog />
-      </WalkthroughContext>
+      <UserSettingsContext value={userSettingsValue}>
+        <WalkthroughContext value={{ steps: storySteps }}>
+          <WalkthroughDialog />
+        </WalkthroughContext>
+      </UserSettingsContext>
     </div>
   );
 };

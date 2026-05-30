@@ -9,9 +9,6 @@ export type WalkthroughStep = {
 };
 
 export type WalkthroughContextValue = {
-  isOpen: boolean;
-  open: () => void;
-  close: () => void;
   steps: WalkthroughStep[];
 };
 
