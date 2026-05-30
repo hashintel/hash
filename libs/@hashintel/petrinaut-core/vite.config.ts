@@ -12,6 +12,9 @@ export default defineConfig(({ command }) => ({
     lib: {
       entry: {
         index: resolve(packageRoot, "src/index.ts"),
+        // Dedicated edge-safe entry exposing only the AI prompt + tool schemas.
+        // Needed to avoid pulling in heavy and edge-incompatible deps (e.g. @babel/standalone)
+        ai: resolve(packageRoot, "src/ai.ts"),
         "examples/index": resolve(packageRoot, "src/examples/index.ts"),
         "workers/lsp": resolve(packageRoot, "src/workers/lsp.ts"),
         "workers/monte-carlo": resolve(

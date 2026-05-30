@@ -103,9 +103,12 @@ export const buildCspHeader = (nonce: string): string => {
  *
  * Key differences vs the default CSP:
  * - `script-src` includes `'unsafe-eval'` so Babel + `new Function()` work.
- * - `connect-src` is `'none'` — the iframe should not talk to anyone over
- *   the network. All persistence + AI requests round-trip through the host
- *   via postMessage.
+ * - `connect-src` is `'self'`, but the sandbox's opaque origin makes that
+ *   effectively no network reach.
+ *   All persistence + AI requests deliberately round-trip through the
+ *   host via postMessage instead. `'self'` (rather than `'none'`) is kept only
+ *   so Next.js's dev-mode HMR probe doesn't spew CSP-violation noise inside the
+ *   iframe; the real isolation is the opaque origin, not this directive.
  * - `frame-ancestors 'self'` — only HASH itself may embed this route.
  * - `worker-src` allows `blob:` because Monaco / petrinaut spawn workers
  *   from blob URLs.
@@ -134,6 +137,8 @@ export const buildEmbedCspHeader = (nonce: string): string => {
 
     "font-src": ["'self'", "data:"],
 
+    // Effectively no real reach from the opaque-origin sandbox — see the
+    // `connect-src` note in this function's doc comment.
     "connect-src": ["'self'"],
 
     "worker-src": ["'self'", "blob:"],

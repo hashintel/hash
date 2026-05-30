@@ -9,24 +9,45 @@ import {
 } from "ai";
 import { z } from "zod";
 
-import { petrinautAiPrompt, petrinautAiTools } from "@hashintel/petrinaut-core";
-
-import { oryKratosClient } from "../../../pages/shared/ory-kratos";
+import {
+  petrinautAiPrompt,
+  petrinautAiTools,
+} from "@hashintel/petrinaut-core/ai";
+import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 
 /**
- * This endpoint is an App Router Route Handler — *not* a Pages Router API
- * route — specifically so it can stream. Pages Router API routes buffer the
- * entire response before flushing it (a documented Next.js limitation), which
- * defeated the token-by-token streaming the AI assistant relies on.
+ * Proxies the Petrinaut AI assistant's chat requests to OpenAI, streaming the
+ * response token-by-token.
  *
- * `force-dynamic` keeps Next from trying to cache/optimise the handler.
+ * RUNTIME: this is a Pages Router API route pinned to the **Edge runtime**, and
+ * that combination is load-bearing:
+ * - It can't be an App Router Route Handler: this repo sets a custom
+ *   `pageExtensions` (`.page.tsx` / `.api.ts`), which is fundamentally
+ *   incompatible with App Router route handlers — the build dies with an
+ *   `ENOENT` on `route_client-reference-manifest.js` (Next.js #76955 / #71992).
+ * - It can't be a Node Pages Router route: those stream under `next dev` and
+ *   self-hosted `next start`, but Vercel's Node serverless functions buffer the
+ *   whole response and only flush at the end (Vercel-confirmed in
+ *   vercel/next.js#67026), which kills incremental streaming.
+ * - The Edge runtime returns a Web `Response` backed by a `ReadableStream`, so
+ *   it streams everywhere — including Vercel.
+ *
+ * The assistant runs inside a sandboxed null-origin iframe (see
+ * `processes/[uuid]/embed`) which cannot reach this route directly — its
+ * requests are relayed by the host page (`process-editor.tsx`) over the
+ * postMessage bridge and fetched here with the user's session cookie.
+ *
+ * Requests must carry a valid HASH (Ory) session and are rate-limited per user
+ * so a single account can't exhaust the shared OpenAI key.
  */
-export const dynamic = "force-dynamic";
+export const config = {
+  runtime: "edge",
+};
 
 const DEFAULT_MODEL = "gpt-5.5-2026-04-23";
 
 /**
- * Per-authenticated user rate limit.
+ * Per-authenticated user rate limit (best effort only, see `checkRateLimit` for details).
  */
 const RATE_LIMIT_WINDOW_MS = 30_000;
 const RATE_LIMIT_MAX_REQUESTS = 10;
@@ -51,17 +72,16 @@ const petrinautAiValidationTools = Object.fromEntries(
 /**
  * In-memory token buckets keyed by the authenticated user's Ory identity id.
  *
- * This is not a reliable global limit when this endpoint is deployed as a serverless function.
+ * This is best-effort and NOT a reliable global limit, because the
+ * map only lives within a single isolate/process. On serverless functions,
+ * this means it'
  *
- * @todo move this into the Node API or elsewhere for proper rate limiting
+ * It's kept as a cheap per-instance backstop against trivial loops. A real
+ * cross-instance limit (so one account can't exhaust the shared OpenAI key)
+ * needs a shared store — e.g. Upstash Redis via `@upstash/ratelimit`, keyed by
+ * the Ory id. @todo move to a durable store before relying on this.
  */
 const rateLimitBuckets = new Map<string, { count: number; resetAt: number }>();
-
-const jsonResponse = (body: unknown, init: ResponseInit = {}): Response => {
-  const headers = new Headers(init.headers);
-  headers.set("content-type", "application/json");
-  return new Response(JSON.stringify(body), { ...init, headers });
-};
 
 const logChatFailure = (
   reason: string,
@@ -110,59 +130,69 @@ const checkRateLimit = (userId: string): boolean => {
   return true;
 };
 
+/**
+ * Resolve the signed-in user's Ory identity id from the request's session
+ * cookie. Returns `null` when there's no valid session.
+ */
 const resolveUserId = async (cookie: string | null): Promise<string | null> => {
   if (!cookie) {
     return null;
   }
   try {
-    const { data } = await oryKratosClient.toSession({ cookie });
-    return data.identity?.id ?? null;
+    // We cannot use the Ory SDK here because it is not edge-safe.
+    const response = await fetch(`${apiOrigin}/auth/sessions/whoami`, {
+      headers: { cookie },
+    });
+    if (!response.ok) {
+      return null;
+    }
+    const session = (await response.json()) as {
+      identity?: { id?: string };
+    };
+    return session.identity?.id ?? null;
   } catch {
     return null;
   }
 };
 
-/**
- * Route Handler that proxies the Petrinaut AI assistant's chat requests to
- * OpenAI.
- *
- * The assistant runs inside a sandboxed null-origin iframe (see
- * `processes/[uuid]/embed`) which cannot reach this route directly — its
- * requests are relayed by the host page (`process-editor.tsx`) over the
- * postMessage bridge and fetched here with the user's session cookie.
- */
-export const POST = async (request: Request): Promise<Response> => {
+const jsonResponse = (body: unknown, status: number): Response =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { "content-type": "application/json" },
+  });
+
+export default async function handler(request: Request): Promise<Response> {
+  if (request.method !== "POST") {
+    return jsonResponse({ error: "Method not allowed" }, 405);
+  }
+
   const userId = await resolveUserId(request.headers.get("cookie"));
   if (!userId) {
-    return jsonResponse({ error: "Not authenticated" }, { status: 401 });
+    return jsonResponse({ error: "Not authenticated" }, 401);
   }
 
   if (!checkRateLimit(userId)) {
     logChatFailure("Rejected rate-limited request", { userId });
-    return jsonResponse({ error: "Rate limit exceeded" }, { status: 429 });
+    return jsonResponse({ error: "Rate limit exceeded" }, 429);
   }
 
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     logChatFailure("Missing OpenAI API key");
-    return jsonResponse(
-      { error: "OPENAI_API_KEY is not configured" },
-      { status: 500 },
-    );
+    return jsonResponse({ error: "OPENAI_API_KEY is not configured" }, 500);
   }
 
   let body: unknown;
   try {
     body = await request.json();
-  } catch (error) {
-    logChatFailure("Rejected invalid JSON", { error });
-    return jsonResponse({ error: "Invalid JSON" }, { status: 400 });
+  } catch {
+    return jsonResponse({ error: "Invalid chat request" }, 400);
   }
 
   const parsed = requestSchema.safeParse(body);
   if (!parsed.success) {
     logChatFailure("Rejected invalid chat request", { error: parsed.error });
-    return jsonResponse({ error: "Invalid chat request" }, { status: 400 });
+    return jsonResponse({ error: "Invalid chat request" }, 400);
   }
 
   const validatedMessages = await safeValidateUIMessages<UIMessage>({
@@ -174,9 +204,7 @@ export const POST = async (request: Request): Promise<Response> => {
     logChatFailure("Rejected invalid chat messages", {
       error: validatedMessages.error,
     });
-    return jsonResponse(validationErrorBody(validatedMessages.error), {
-      status: 400,
-    });
+    return jsonResponse(validationErrorBody(validatedMessages.error), 400);
   }
 
   const openai = createOpenAI({ apiKey });
@@ -204,8 +232,8 @@ export const POST = async (request: Request): Promise<Response> => {
 
   // `streamText`'s own `onError` only logs server-side — the
   // `toUIMessageStreamResponse` `onError` is what propagates a visible error
-  // chunk to the client so `useChat` can surface a failure instead of just
-  // quietly transitioning the status back to `"ready"`.
+  // chunk to the client so `useChat` can surface a failure instead of quietly
+  // transitioning the status back to `"ready"`.
   return result.toUIMessageStreamResponse({
     sendReasoning: true,
     onError: (error) => {
@@ -213,4 +241,4 @@ export const POST = async (request: Request): Promise<Response> => {
       return error instanceof Error ? error.message : "AI request failed";
     },
   });
-};
+}

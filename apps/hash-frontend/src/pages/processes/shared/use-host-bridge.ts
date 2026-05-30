@@ -128,10 +128,16 @@ export const useHostBridge = ({
   }, [iframeRef]);
 
   /**
-   * Reset readiness whenever the iframe element is swapped out (e.g. host
-   * navigates between draft and saved view by re-mounting the iframe). The
-   * `iframeRef.current` identity isn't reactive on its own, so consumers
-   * remount the `<iframe>` via `key` and we observe the load event.
+   * Reset readiness on every (re)load of the iframe document, so `isReady`
+   * drops back to `false` until the freshly-loaded document re-posts `ready`.
+   * Fires on the initial load and on any full reload of the *same* element.
+   *
+   * This attaches to whichever element `iframeRef` points at when the hook
+   * mounts. The sole consumer (`process-editor`) mounts the iframe once with a
+   * stable `src` and drives net changes over the bridge rather than remounting
+   * it, so a static listener is sufficient. If a consumer ever swapped the
+   * `<iframe>` element (e.g. via `key`), this would need to become a callback
+   * ref to re-attach to the new element.
    */
   useEffect(() => {
     const iframe = iframeRef.current;

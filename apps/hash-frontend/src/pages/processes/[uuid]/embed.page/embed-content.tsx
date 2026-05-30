@@ -155,9 +155,17 @@ export const EmbedContent = () => {
       setRevisions(incoming);
     },
     onSaveResult: (payload) => {
-      setPendingSaveRequestId((prev) =>
-        prev === payload.requestId ? null : prev,
-      );
+      /**
+       * Ignore results that don't match the save we're currently waiting on.
+       * A `load`/`init` (net switch) resets `pendingSaveRequestId` to `null`,
+       * so a late `saveResult` from a previous net would otherwise apply that
+       * net's `mode`/`savedSnapshot` on top of the now-active net and corrupt
+       * its dirty-tracking + version picker.
+       */
+      if (payload.requestId !== pendingSaveRequestId) {
+        return;
+      }
+      setPendingSaveRequestId(null);
       if (payload.result.ok) {
         const {
           savedSnapshot,
