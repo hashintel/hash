@@ -40,7 +40,7 @@ Petrinaut has two global modes, switched via the centre control in the top bar.
 | Mode         | Workspace                                                                                                                                                                                 |
 | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Edit**     | Canvas + left sidebar + properties panel + bottom panel + bottom toolbar (with AI assistant). This is where you draw the net, configure entities, write code, and run single simulations. |
-| **Simulate** | Replaces the workspace with the [Scenarios](scenarios.md), [Metrics](metrics.md), and [Experiments](experiments.md) management views.                                                     |
+| **Simulate** | Replaces the workspace with the [Scenarios](scenarios.md) and [Experiments](experiments.md) management views.                                                                             |
 | **Actual**   | Reserved for a future live-data mode.                                                                                                                                                     |
 
 In Simulate mode the net structure becomes read-only -- you can still create, edit, and delete scenarios and metrics, but you cannot change places, transitions, arcs, types, or parameters. Switch back to Edit mode to modify the net.

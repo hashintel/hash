@@ -1,6 +1,6 @@
 # Simulation
 
-This page covers running a **single** simulation from Edit mode. For repeatable, named simulation configurations see [Scenarios](scenarios.md); for many-run Monte Carlo batches see [Experiments](experiments.md); for custom timeline plots see [Metrics](metrics.md).
+This page covers running a **single** simulation from Edit mode. For repeatable, named simulation configurations see [Scenarios](scenarios.md); for many-run Monte Carlo batches see [Experiments](experiments.md).
 
 ## Initial state
 

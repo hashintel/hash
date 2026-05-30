@@ -16,7 +16,7 @@ The classic Susceptible-Infected-Recovered compartmental model from epidemiology
 
 **Bundled extras:** two scenarios -- **Seasonal Flu** (R₀ ≈ 1.5) and **High Virulence Outbreak** (R₀ ≈ 6) -- driven by `population` and `infected_ratio` scenario parameters. One metric, **Infected Fraction**, plots the share of the population currently infected.
 
-**Key concepts:** [stochastic firing](petri-net-extensions.md#stochastic-rate), [parameters](petri-net-extensions.md#global-parameters), [arc weight](useful-patterns.md#arc-weight-for-multi-token-operations), [scenarios](scenarios.md), [metrics](metrics.md).
+**Key concepts:** [stochastic firing](petri-net-extensions.md#stochastic-rate), [parameters](petri-net-extensions.md#global-parameters), [arc weight](useful-patterns.md#arc-weight-for-multi-token-operations), [scenarios](scenarios.md).
 
 <img width="1104" height="412" alt="SIR" src="https://github.com/user-attachments/assets/b8ad69cb-687c-452a-8394-d5100db3e198" />
 
