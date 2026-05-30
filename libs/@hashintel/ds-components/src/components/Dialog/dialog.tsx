@@ -4,6 +4,7 @@ import { Portal } from "@ark-ui/react/portal";
 import { cx } from "@hashintel/ds-helpers/css";
 
 import { usePortalContainerRef } from "../../util/portal-container-context";
+import { Button } from "../Button/button";
 import { Icon, type IconName } from "../Icon/icon";
 import { LoadingSpinner } from "../Loading/loading-spinner";
 import { styles } from "./dialog.recipe";
@@ -84,6 +85,52 @@ export const Dialog = ({
     footerless: !hasFooter,
   });
 
+  const headerEl =
+    hasHeader &&
+    (header ?? (
+      <>
+        <div className={classes.titleRow}>
+          {titleIconName && (
+            <Icon
+              name={titleIconName}
+              size="md"
+              className={classes.titleIcon}
+            />
+          )}
+          <div>
+            {title && (
+              <ArkDialog.Title className={classes.title}>
+                {title}
+              </ArkDialog.Title>
+            )}
+            {description && (
+              <ArkDialog.Description className={classes.description}>
+                {description}
+              </ArkDialog.Description>
+            )}
+          </div>
+        </div>
+        {actions && <div className={classes.headerActions}>{actions}</div>}
+      </>
+    ));
+
+  const footerEl = hasFooter && (
+    <div className={classes.footer}>
+      {footer ?? (
+        <>
+          {footerSecondaryActions && (
+            <div className={classes.footerSecondaryActions}>
+              {footerSecondaryActions}
+            </div>
+          )}
+          {footerActions && (
+            <div className={classes.footerActions}>{footerActions}</div>
+          )}
+        </>
+      )}
+    </div>
+  );
+
   return (
     <ArkDialog.Root
       defaultOpen
@@ -107,64 +154,25 @@ export const Dialog = ({
             className={cx(classes.content, className)}
             aria-busy={loading ?? undefined}
           >
-            {disableDefaultClose ? null : (
-              <ArkDialog.CloseTrigger
-                className={classes.closeButton}
-                aria-label="Close dialog"
-              >
-                <Icon name="close" size="sm" />
-              </ArkDialog.CloseTrigger>
-            )}
-
-            {hasHeader && (
-              <div className={classes.header}>
-                {header ?? (
-                  <>
-                    <div className={classes.titleRow}>
-                      {titleIconName && (
-                        <Icon
-                          name={titleIconName}
-                          size="md"
-                          className={classes.titleIcon}
-                        />
-                      )}
-                      <div>
-                        {title && (
-                          <ArkDialog.Title className={classes.title}>
-                            {title}
-                          </ArkDialog.Title>
-                        )}
-                        {description && (
-                          <ArkDialog.Description
-                            className={classes.description}
-                          >
-                            {description}
-                          </ArkDialog.Description>
-                        )}
-                      </div>
-                    </div>
-                    {actions && (
-                      <div className={classes.headerActions}>{actions}</div>
-                    )}
-                  </>
-                )}
-              </div>
-            )}
+            <div className={classes.header}>
+              {headerEl}
+              {!disableDefaultClose && (
+                <Button
+                  variant="ghost"
+                  className={classes.closeButton}
+                  aria-label="Close dialog"
+                  onClick={() => {
+                    onClose?.();
+                  }}
+                  iconName="close"
+                  size="sm"
+                />
+              )}
+            </div>
 
             <div className={classes.body}>{children}</div>
 
-            {hasFooter && (
-              <div className={classes.footer}>
-                {footer ?? (
-                  <>
-                    <div className={classes.footerSecondaryActions}>
-                      {footerSecondaryActions}
-                    </div>
-                    <div className={classes.footerActions}>{footerActions}</div>
-                  </>
-                )}
-              </div>
-            )}
+            {footerEl}
 
             {loading ? (
               <div className={classes.loadingOverlay} aria-live="polite">
