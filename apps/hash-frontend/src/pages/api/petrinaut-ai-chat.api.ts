@@ -74,7 +74,7 @@ const petrinautAiValidationTools = Object.fromEntries(
  *
  * This is best-effort and NOT a reliable global limit, because the
  * map only lives within a single isolate/process. On serverless functions,
- * this means it'
+ * this means users can appear in buckets across different instances.
  *
  * It's kept as a cheap per-instance backstop against trivial loops. A real
  * cross-instance limit (so one account can't exhaust the shared OpenAI key)

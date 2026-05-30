@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 
 import {
   type HostToIframeMessage,
@@ -94,5 +94,5 @@ export const useIframeBridge = (
     window.parent.postMessage(message, "*");
   }, []);
 
-  return { send };
+  return useMemo<IframeBridge>(() => ({ send }), [send]);
 };

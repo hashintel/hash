@@ -2,6 +2,7 @@ import {
   type RefObject,
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -166,5 +167,5 @@ export const useHostBridge = ({
     [iframeRef],
   );
 
-  return { isReady, send };
+  return useMemo<HostBridge>(() => ({ isReady, send }), [isReady, send]);
 };
