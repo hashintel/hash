@@ -35,6 +35,7 @@ import {
 } from "./ai-assistant-panel/ai-assistant-contents/prompt-chips";
 import { createDiagnosticsAwareAiTransport } from "./ai-assistant-panel/create-diagnostics-aware-ai-transport";
 import { createReasoningTimingAwareAiTransport } from "./ai-assistant-panel/create-reasoning-timing-aware-ai-transport";
+import { finalizeStreamingMessageParts } from "./ai-assistant-panel/finalize-streaming-message-parts";
 import { formatDiagnosticsForAi } from "./ai-assistant-panel/format-diagnostics-for-ai";
 import { getInteractiveTool } from "./ai-assistant-panel/interactive-tools/registry";
 import {
@@ -288,6 +289,11 @@ export const AiAssistantPanel = ({
   // the surface can render the failure under the conversation.
   const [streamError, setStreamError] = useState<Error | null>(null);
 
+  // Surfaces a subtle "Response stopped" note after the user aborts a
+  // response. Cleared whenever a new turn begins so it never lingers across
+  // sends or a fresh conversation.
+  const [stopped, setStopped] = useState(false);
+
   const {
     error,
     messages,
@@ -501,6 +507,7 @@ export const AiAssistantPanel = ({
     onInitialMessageConsumed?.();
     setInput("");
     setStreamError(null);
+    setStopped(false);
 
     void sendMessage({ text: trimmedInitialMessage });
   }, [
@@ -540,6 +547,7 @@ export const AiAssistantPanel = ({
         }
         setInput("");
         setStreamError(null);
+        setStopped(false);
         setMessages([]);
         aiAssistant.onMessages?.([]);
         aiAssistant.onClearMessages?.();
@@ -607,9 +615,23 @@ export const AiAssistantPanel = ({
         }
         setInput("");
         setStreamError(null);
+        setStopped(false);
         void sendMessage({ text: trimmed });
       }}
-      onStop={() => void stop()}
+      onStop={() => {
+        // The SDK's `stop()` only aborts the request — it leaves the active
+        // reasoning/text parts in their `"streaming"` state. Settle them so
+        // the elapsed-time counter and shimmer freeze, persist the partial
+        // transcript, and surface the "Response stopped" note.
+        void stop().then(() => {
+          setMessages((current) => {
+            const finalized = finalizeStreamingMessageParts(current);
+            aiAssistant.onMessages?.(finalized);
+            return finalized;
+          });
+          setStopped(true);
+        });
+      }}
       onSubmit={() => {
         const trimmed = input.trim();
         if (!trimmed) {
@@ -617,11 +639,13 @@ export const AiAssistantPanel = ({
         }
         setInput("");
         setStreamError(null);
+        setStopped(false);
         void sendMessage({ text: trimmed });
       }}
       promptChips={promptChips}
       rightOffset={hasSelection ? propertiesPanelWidth + PANEL_MARGIN : 0}
       status={status}
+      stopped={stopped}
     />
   );
 };

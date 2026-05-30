@@ -45,6 +45,7 @@ export type AiAssistantContentsProps = {
   promptChips?: PromptChip[];
   rightOffset?: number;
   status: AiAssistantStatus;
+  stopped?: boolean;
 };
 
 const defaultAssistantWidth = 480;
@@ -221,6 +222,14 @@ const errorStyle = css({
   fontWeight: "medium",
 });
 
+const stoppedNoteStyle = css({
+  alignSelf: "center",
+  paddingY: "1",
+  color: "neutral.s80",
+  fontSize: "xs",
+  fontWeight: "medium",
+});
+
 const composerWrapStyle = css({
   display: "flex",
   flexDirection: "column",
@@ -377,6 +386,7 @@ export const AiAssistantContents = ({
   promptChips,
   rightOffset = 0,
   status,
+  stopped = false,
 }: AiAssistantContentsProps) => {
   const isBusy = status === "submitted" || status === "streaming";
   const canSubmit = input.trim().length > 0 && !isBusy;
@@ -513,6 +523,9 @@ export const AiAssistantContents = ({
             />
           ))}
           {error && <div className={errorStyle}>{error.message}</div>}
+          {stopped && !error && (
+            <div className={stoppedNoteStyle}>Response stopped</div>
+          )}
           <div ref={messagesEndRef} />
         </div>
 
@@ -539,11 +552,14 @@ export const AiAssistantContents = ({
                 className={inputStyle}
                 size="sm"
                 value={input}
+                disabled={isBusy}
                 onChange={(event) => onInputChange(event.currentTarget.value)}
                 placeholder={
-                  messages.length === 0
-                    ? "Get creating..."
-                    : "Continue iterating..."
+                  isBusy
+                    ? "Waiting for response..."
+                    : messages.length === 0
+                      ? "Get creating..."
+                      : "Continue iterating..."
                 }
                 aria-label="Message Petrinaut AI"
               />
