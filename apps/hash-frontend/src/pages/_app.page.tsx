@@ -348,6 +348,21 @@ AppWithTypeSystemContextProvider.getInitialProps = async (appContext) => {
     ? getRoots(initialAuthenticatedUserSubgraph)[0]
     : undefined;
 
+  if (pathname === PETRINAUT_EMBED_PATHNAME) {
+    if (userEntity) {
+      /**
+       * Don't inject user data into the Petrinaut embed route.
+       */
+      return {};
+    }
+    return {
+      redirectTo: redirectInGetInitialProps({
+        appContext,
+        location: `/signin?return_to=${req?.url ?? asPath}`,
+      }),
+    };
+  }
+
   /** @todo: make additional pages publicly accessible */
   if (!userEntity) {
     let redirectTo: string | undefined;

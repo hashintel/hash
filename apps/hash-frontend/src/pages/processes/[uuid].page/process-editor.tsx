@@ -779,8 +779,14 @@ export const ProcessEditor = ({
            * additionally restricts what the iframe can do with the
            * `'unsafe-eval'` we grant it (no `connect-src` to anywhere
            * outside `'self'`, which is itself unreachable cross-origin).
+           *
+           * `allow-forms` is required for the AI assistant's `<form>`: its
+           * submit handler is JS-driven (`preventDefault` + `sendMessage`),
+           * but the browser blocks the `submit` event entirely without this
+           * flag. It doesn't widen exfiltration risk — the embed CSP's
+           * `form-action 'none'` still prevents any actual form navigation.
            */
-          sandbox="allow-scripts"
+          sandbox="allow-scripts allow-forms"
           referrerPolicy="no-referrer"
           title="Petrinaut editor"
           sx={{
