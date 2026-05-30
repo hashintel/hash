@@ -65,7 +65,11 @@ export {
   petrinautAiMutationTools,
   petrinautAiPrompt,
   petrinautAiTools,
+  petrinautDocNames,
+  petrinautDocSummaries,
   placeSchema,
+  readPetrinautDocToolInputSchema,
+  readPetrinautDocToolName,
   scenarioSchema,
   setNetTitleToolInputSchema,
   setNetTitleToolName,
@@ -81,6 +85,7 @@ export type {
   PetrinautAiMutationToolName,
   PetrinautAiToolName,
   PetrinautAiTools,
+  PetrinautDocName,
 } from "./ai";
 
 // --- Simulation ---

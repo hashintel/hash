@@ -7,6 +7,7 @@ import type {
   PetrinautAiMutationToolInput,
   PetrinautAiMutationToolName,
   PetrinautAiToolInput,
+  readPetrinautDocToolName,
   SDCPN,
   setNetTitleToolName,
 } from "@hashintel/petrinaut-core";
@@ -34,6 +35,10 @@ type PetrinautAiUiTools = {
   [setNetTitleToolName]: {
     input: PetrinautAiToolInput<typeof setNetTitleToolName>;
     output: AiToolOutput;
+  };
+  [readPetrinautDocToolName]: {
+    input: PetrinautAiToolInput<typeof readPetrinautDocToolName>;
+    output: string;
   };
 };
 

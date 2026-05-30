@@ -14,7 +14,9 @@ The classic Susceptible-Infected-Recovered compartmental model from epidemiology
 
 **Suggested initial state:** set Susceptible to **100** tokens, Infected to **1**, Recovered to **0**. All places are untyped, so you just set token counts. Press Play and watch the epidemic curve in the timeline.
 
-**Key concepts:** [stochastic firing](petri-net-extensions.md#stochastic-rate), [parameters](petri-net-extensions.md#global-parameters), [arc weight](useful-patterns.md#arc-weight-for-multi-token-operations).
+**Bundled extras:** two scenarios -- **Seasonal Flu** (R₀ ≈ 1.5) and **High Virulence Outbreak** (R₀ ≈ 6) -- driven by `population` and `infected_ratio` scenario parameters. One metric, **Infected Fraction**, plots the share of the population currently infected.
+
+**Key concepts:** [stochastic firing](petri-net-extensions.md#stochastic-rate), [parameters](petri-net-extensions.md#global-parameters), [arc weight](useful-patterns.md#arc-weight-for-multi-token-operations), [scenarios](scenarios.md), [metrics](metrics.md).
 
 <img width="1104" height="412" alt="SIR" src="https://github.com/user-attachments/assets/b8ad69cb-687c-452a-8394-d5100db3e198" />
 
@@ -71,7 +73,9 @@ A manufacturing system where machines produce goods, accumulate damage, break do
 
 All other places start empty. "Start Production" will immediately consume a raw material and an available machine to begin.
 
-**Key concepts:** [dynamics](petri-net-extensions.md#differential-equations-dynamics), [resource pools](useful-patterns.md#resource-pools), predicate vs stochastic on competing transitions.
+**Bundled extras:** one scenario, **Default Production**, with scenario parameters `raw_material`, `machines_count`, and `initial_machine_damage`. Use it to compare runs without retyping the initial marking.
+
+**Key concepts:** [dynamics](petri-net-extensions.md#differential-equations-dynamics), [resource pools](useful-patterns.md#resource-pools), predicate vs stochastic on competing transitions, [scenarios](scenarios.md).
 
 <img width="1223" height="611" alt="production-machines" src="https://github.com/user-attachments/assets/f9b058a2-6eef-4b0f-880b-09ae45921729" />
 
@@ -113,6 +117,8 @@ Extends the Satellites example with ongoing satellite launches at a stochastic r
 
 **Suggested initial state:** no initial tokens needed -- start with all places empty. The "LaunchSatellite" source transition fires at a rate of 1 per second, creating satellites with randomized orbital positions and velocities. Just press Play and watch the Space visualizer fill up.
 
-**Key concepts:** [source transitions](useful-patterns.md#source-transitions-exogenous-arrivals), [distributions and `.map()`](petri-net-extensions.md#distributions).
+**Bundled extras:** four scenarios -- **Moon Orbit**, **Earth Orbit**, **Mars Orbit**, and **Solar Orbit** -- that tune the physical constants for very different orbital regimes. Switch between them in Simulation Settings to compare.
+
+**Key concepts:** [source transitions](useful-patterns.md#source-transitions-exogenous-arrivals), [distributions and `.map()`](petri-net-extensions.md#distributions), [scenarios](scenarios.md).
 
 <img width="1106" height="320" alt="probabilistic-satellites" src="https://github.com/user-attachments/assets/e696a4f7-f61a-4b8b-9b34-1598a7190376" />

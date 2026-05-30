@@ -80,6 +80,42 @@ function createToolBundle<const InputSchemas extends Record<string, z.ZodType>>(
 export const getLatestNetDefinitionToolName = "getLatestNetDefinition";
 export const getNetCompilationErrorsToolName = "getNetCompilationErrors";
 export const setNetTitleToolName = "setNetTitle";
+export const readPetrinautDocToolName = "readPetrinautDoc";
+
+export const petrinautDocNames = [
+  "drawing-a-net",
+  "petri-net-extensions",
+  "useful-patterns",
+  "simulation",
+  "scenarios",
+  "experiments",
+  "ai-assistant",
+  "visual-settings",
+  "examples",
+] as const;
+
+export type PetrinautDocName = (typeof petrinautDocNames)[number];
+
+export const petrinautDocSummaries: Record<PetrinautDocName, string> = {
+  "drawing-a-net":
+    "Top bar (mode selector, menu, version history, active experiments), canvas, sidebars, adding nodes, arcs, selection, keyboard shortcuts, import/export, auto-layout.",
+  "petri-net-extensions":
+    "Token types, parameters, differential equations, visualizers, transition kernels, distributions, firing rate vs predicate, inhibitor arcs, diagnostics.",
+  "useful-patterns":
+    "Duration modelling (exponential / non-exponential), resource pools, mutual exclusion, source / sink transitions, competing/routing transitions, multi-token arcs.",
+  simulation:
+    "Single-run simulation: initial state, simulation settings (scenario picker, dt, ODE solver, parameters), running, frame computation, deadlock, playback controls, timeline, locked editing.",
+  scenarios:
+    "Named simulation configurations: scenario parameters, parameter bindings, per-place vs code-mode initial state, running and switching scenarios.",
+  experiments:
+    "Monte Carlo batches: configuration (runs, seed, dt, max time, scenario), lifecycle/statuses, cancel/remove, results (median/mean/p10/p90), active-experiments popover.",
+  "ai-assistant":
+    "In-app AI assistant: opening the panel, conversation surface, prompt chips, tool cards, read-only/simulate-mode rules, host configuration.",
+  "visual-settings":
+    "Animations, keep-panels-mounted, minimap, snap-to-grid, compact vs classic nodes, partial selection, tree view, arc rendering style.",
+  examples:
+    "Walkthroughs of the built-in examples and the scenarios/metrics each ships with: SIR, Supply Chain, Deployment Pipeline, Production Machines, Satellites in Orbit, Probabilistic Satellites Launcher.",
+};
 
 const getLatestNetDefinitionToolInputSchema = z
   .strictObject({})
@@ -104,12 +140,24 @@ export const setNetTitleToolInputSchema = z
     "Set the human-readable title shown for the current Petrinaut net.",
   );
 
+export const readPetrinautDocToolInputSchema = z
+  .strictObject({
+    doc: z.enum(petrinautDocNames).meta({
+      description:
+        "Which Petrinaut user-guide page to read. Pick the one whose summary best matches the user's question or what you need to verify before acting.",
+    }),
+  })
+  .describe(
+    "Read one page of the Petrinaut user guide. Use this when the user asks how a UI workflow works (panels, simulation controls, settings, examples), or when you need to confirm a UI detail before instructing them.",
+  );
+
 export const petrinautAiToolInputSchemas = {
   ...mutationActionInputSchemas,
   ...aiCommandActionInputSchemas,
   [getLatestNetDefinitionToolName]: getLatestNetDefinitionToolInputSchema,
   [getNetCompilationErrorsToolName]: getNetCompilationErrorsToolInputSchema,
   [setNetTitleToolName]: setNetTitleToolInputSchema,
+  [readPetrinautDocToolName]: readPetrinautDocToolInputSchema,
 };
 
 export const petrinautAiMutationTools = createToolBundle(
@@ -134,6 +182,10 @@ export const petrinautAiTools = {
   [setNetTitleToolName]: {
     description: getSchemaDescription(setNetTitleToolInputSchema),
     inputSchema: setNetTitleToolInputSchema,
+  },
+  [readPetrinautDocToolName]: {
+    description: getSchemaDescription(readPetrinautDocToolInputSchema),
+    inputSchema: readPetrinautDocToolInputSchema,
   },
 } satisfies PetrinautAiTools;
 
@@ -167,12 +219,19 @@ export function createPetrinautAiWritableCallbacks(
   return writable;
 }
 
+const petrinautDocIndex = petrinautDocNames
+  .map((name) => `- \`${name}\` — ${petrinautDocSummaries[name]}`)
+  .join("\n");
+
 export const petrinautAiPrompt = `You are an expert assistant for building Stochastic Dynamic Coloured Petri Nets (SDCPNs) in Petrinaut.
 
 Use the provided tools to directly modify the current net. The tools use Petrinaut's raw mutation interfaces, so include stable IDs, full entity objects where required, and canvas positions for places and transitions.
 You can check the current net state at any point using the ${getLatestNetDefinitionToolName} tool, which returns \`{ title, definition }\` — the user-visible net title plus the complete SDCPN. Use it before making changes that depend on existing places, transitions, arcs, scenarios, metrics, parameters, or types, and consult the \`title\` when deciding whether the net could use a more descriptive name.
 You can check current TypeScript compilation diagnostics at any point using the ${getNetCompilationErrorsToolName} tool.
 You can rename the net at any point using the ${setNetTitleToolName} tool.
+You can read pages of the Petrinaut user guide at any point using the ${readPetrinautDocToolName} tool. Reach for it when the user asks how a UI workflow works (panels, simulation controls, visual settings, the built-in examples), or when you need to confirm a UI detail before instructing them. The available pages and what they cover:
+
+${petrinautDocIndex}
 
 Interview first, build second. Before creating a new net (or adding a substantial new subsystem to an existing one), do NOT jump straight to tool calls. Run a brief, focused interview to establish:
 
