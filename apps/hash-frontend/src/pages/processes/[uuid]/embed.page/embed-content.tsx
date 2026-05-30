@@ -215,21 +215,20 @@ export const EmbedContent = () => {
    * Title changes always recompute dirty (it's part of the comparison) and
    * always emit `titleChanged` so the host can mirror the document title.
    */
+  const handle = state?.handle;
+  const title = state?.title ?? "";
+
   useEffect(() => {
-    if (!state) {
+    if (!handle) {
       return;
     }
-    bridge.send({ kind: "titleChanged", title: state.title });
-    const currentDoc = state.handle.doc();
+    bridge.send({ kind: "titleChanged", title });
+    const currentDoc = handle.doc();
     if (currentDoc) {
-      const dirty = computeIsDirty(
-        currentDoc,
-        state.title,
-        state.savedSnapshot,
-      );
+      const dirty = computeIsDirty(currentDoc, title, savedSnapshotRef.current);
       setIsDirty((prev) => (prev === dirty ? prev : dirty));
     }
-  }, [bridge, state?.handle, state?.title]);
+  }, [bridge, handle, title]);
 
   /**
    * Mirror dirty state to the host. The host caches it for the discard-
