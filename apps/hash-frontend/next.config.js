@@ -38,8 +38,11 @@ const sentryWebpackPluginOptions = {
 process.env.NEXT_PUBLIC_SHOW_WORKER_COST =
   process.env.SHOW_WORKER_COST ?? "false";
 
-// This allows the frontend to generate the graph type IDs in the browser
-process.env.NEXT_PUBLIC_FRONTEND_URL = process.env.FRONTEND_URL;
+if (process.env.FRONTEND_URL) {
+  // Feeds frontendUrl in isomorphic-utils/environment.ts
+  // Fallbacks to Vercel-provided URL, and ultimately localhost:3000.
+  process.env.NEXT_PUBLIC_FRONTEND_URL = process.env.FRONTEND_URL;
+}
 
 // The API origin
 process.env.NEXT_PUBLIC_API_ORIGIN =
