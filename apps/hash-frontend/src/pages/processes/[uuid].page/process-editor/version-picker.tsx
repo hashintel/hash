@@ -15,14 +15,14 @@ import {
 
 import { FontAwesomeIcon } from "@hashintel/design-system";
 
-import { MenuItem } from "../../../shared/ui/menu-item";
+import { MenuItem } from "../../../../shared/ui/menu-item";
 
 import type { PetriNetRevision } from "./use-process-save-and-load/use-petri-net-revisions";
 
 /**
  * Locale is left `undefined` so `Intl.DateTimeFormat` picks up the browser's preference
  *
- * The host renders client-side only (`process.page.tsx` uses `dynamic` with `ssr: false`),
+ * The host renders client-side only (`[uuid].page.tsx` uses `dynamic` with `ssr: false`),
  * so there's no SSR/hydration mismatch risk from the runtime locale.
  */
 const dateFormatter = new Intl.DateTimeFormat(undefined, {

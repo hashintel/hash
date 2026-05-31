@@ -21,6 +21,7 @@ import { useActiveWorkspace } from "../../../pages/shared/workspace-context";
 import { useDraftEntitiesCount } from "../../draft-entities-count-context";
 import { ArrowRightToLineIcon } from "../../icons";
 import { BoltLightIcon } from "../../icons/bolt-light-icon";
+import { ChartNetworkRegularIcon } from "../../icons/chart-network-regular-icon";
 import { InboxIcon } from "../../icons/inbox-icon";
 import { NoteIcon } from "../../icons/note-icon";
 import { useInvites } from "../../invites-context";
@@ -149,6 +150,12 @@ export const PageSidebar: FunctionComponent = () => {
       },
       ...workersSection,
       ...toggleableLinks,
+      {
+        title: "Processes",
+        path: "/processes",
+        icon: <ChartNetworkRegularIcon sx={{ fontSize: 16 }} />,
+        activeIfPathMatches: /^\/processes(\/|$)/,
+      },
       {
         title: "Inbox",
         path: shouldInboxLinkToActions

@@ -18,19 +18,20 @@ import {
 import {
   createEntityMutation,
   updateEntityMutation,
-} from "../../../graphql/queries/knowledge/entity.queries";
-import { useActiveWorkspace } from "../../shared/workspace-context";
+} from "../../../../graphql/queries/knowledge/entity.queries";
 import {
   getPersistedNetsFromSubgraph,
+  type PersistedNet,
   usePersistedNets,
-} from "./use-process-save-and-load/use-persisted-nets";
+} from "../../../processes.page/use-persisted-nets";
+import { useActiveWorkspace } from "../../../shared/workspace-context";
 
 import type {
   CreateEntityMutation,
   CreateEntityMutationVariables,
   UpdateEntityMutation,
   UpdateEntityMutationVariables,
-} from "../../../graphql/api-types.gen";
+} from "../../../../graphql/api-types.gen";
 import type {
   EntityId,
   PropertyObjectWithMetadata,
@@ -38,13 +39,7 @@ import type {
 import type { SDCPN } from "@hashintel/petrinaut";
 import type { PetriNetPropertiesWithMetadata } from "@local/hash-isomorphic-utils/system-types/petrinet";
 
-export type PersistedNet = {
-  entityId: EntityId;
-  title: string;
-  definition: SDCPN;
-  userEditable: boolean;
-  lastUpdated: string;
-};
+export type { PersistedNet } from "../../../processes.page/use-persisted-nets";
 
 type UseProcessSaveAndLoadParams = {
   petriNet: SDCPN;
@@ -75,12 +70,22 @@ export const useProcessSaveAndLoad = ({
   isDirty: boolean;
   loadPersistedNet: (net: PersistedNet) => void;
   persistedNets: PersistedNet[];
+  persistedNetsLoading: boolean;
   persistPending: boolean;
-  persistToGraph: () => void;
+  /**
+   * Persist the active net. On success, resolves with the entity id of the
+   * persisted (created or updated) entity; the caller is responsible for any
+   * URL navigation needed after a create.
+   */
+  persistToGraph: () => Promise<EntityId | null>;
   setUserEditable: Dispatch<SetStateAction<boolean>>;
   userEditable: boolean;
 } => {
-  const { persistedNets, refetch } = usePersistedNets();
+  const {
+    persistedNets,
+    loading: persistedNetsLoading,
+    refetch,
+  } = usePersistedNets();
 
   const { activeWorkspaceWebId } = useActiveWorkspace();
 
@@ -140,6 +145,18 @@ export const useProcessSaveAndLoad = ({
         refetchRevisions(),
       ]);
 
+      // Apollo can resolve `refetch()` without `data` (e.g. when the
+      // network errored), and `getPersistedNetsFromSubgraph` would throw
+      // on the missing `queryEntitySubgraph`. The mutation has already
+      // succeeded by this point, so swallow the local-cache update and
+      // let `useQuery`'s normal polling/revalidation catch up. Apollo's
+      // own types pretend `data` is always present, so the runtime guard
+      // is needed even though TS thinks it's redundant.
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      if (!updatedNetsData.data) {
+        return;
+      }
+
       const transformedNets = getPersistedNetsFromSubgraph(
         updatedNetsData.data,
       );
@@ -165,9 +182,9 @@ export const useProcessSaveAndLoad = ({
     ],
   );
 
-  const persistToGraph = useCallback(async () => {
+  const persistToGraph = useCallback(async (): Promise<EntityId | null> => {
     if (!activeWorkspaceWebId) {
-      return;
+      return null;
     }
 
     setPersistPending(true);
@@ -249,6 +266,8 @@ export const useProcessSaveAndLoad = ({
       await refetchPersistedNets({ updatedEntityId: persistedEntityId });
       setSelectedNetId(persistedEntityId);
       setUserEditable(true);
+
+      return persistedEntityId;
     } finally {
       setPersistPending(false);
     }
@@ -268,6 +287,7 @@ export const useProcessSaveAndLoad = ({
       isDirty,
       loadPersistedNet,
       persistedNets,
+      persistedNetsLoading,
       persistPending,
       persistToGraph,
       setUserEditable,
@@ -278,6 +298,7 @@ export const useProcessSaveAndLoad = ({
       loadPersistedNet,
       persistPending,
       persistedNets,
+      persistedNetsLoading,
       persistToGraph,
       setUserEditable,
       userEditable,

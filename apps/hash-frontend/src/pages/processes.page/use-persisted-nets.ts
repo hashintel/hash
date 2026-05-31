@@ -6,15 +6,27 @@ import { deserializeQueryEntitySubgraphResponse } from "@local/hash-graph-sdk/en
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
-import { queryEntitySubgraphQuery } from "../../../../graphql/queries/knowledge/entity.queries";
+import { queryEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
 
 import type {
   QueryEntitySubgraphQuery,
   QueryEntitySubgraphQueryVariables,
-} from "../../../../graphql/api-types.gen";
-import type { PersistedNet } from "../use-process-save-and-load";
+} from "../../graphql/api-types.gen";
+import type { EntityId } from "@blockprotocol/type-system";
 import type { SDCPN } from "@hashintel/petrinaut";
 import type { PetriNet } from "@local/hash-isomorphic-utils/system-types/petrinet";
+
+/**
+ * One persisted Petri net entity, flattened for use by the list page and the
+ * editor's save/load logic.
+ */
+export type PersistedNet = {
+  entityId: EntityId;
+  title: string;
+  definition: SDCPN;
+  userEditable: boolean;
+  lastUpdated: string;
+};
 
 export const getPersistedNetsFromSubgraph = (
   data: QueryEntitySubgraphQuery,
@@ -52,8 +64,14 @@ export const getPersistedNetsFromSubgraph = (
   });
 };
 
+/**
+ * Fetch the persisted Petri net entities visible to the current user.
+ *
+ * Used both by the `/processes` list page (to render tiles) and by the editor
+ * (to resolve a URL uuid back to the full entity record).
+ */
 export const usePersistedNets = () => {
-  const { data, refetch } = useQuery<
+  const { data, loading, refetch } = useQuery<
     QueryEntitySubgraphQuery,
     QueryEntitySubgraphQueryVariables
   >(queryEntitySubgraphQuery, {
@@ -87,6 +105,7 @@ export const usePersistedNets = () => {
 
   return {
     persistedNets,
+    loading,
     refetch,
   };
 };

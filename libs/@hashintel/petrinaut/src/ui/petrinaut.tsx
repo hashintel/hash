@@ -62,7 +62,17 @@ export type PetrinautProps = {
   title?: string;
   setTitle?: (title: string) => void;
   readonly?: boolean;
-  hideNetManagementControls?: boolean;
+  /**
+   * Controls visibility of net-management UI in the editor's top bar and
+   * burger menu.
+   *
+   * - [omitted] (default): show the title, includethe "New", "Open", "Import",
+   *   and "Load example" menu items in the burger menu.
+   * - `"except-title"`: hide the management menu items but keep the title
+   *   viewable and editable in the top bar.
+   * - `"all"`: hide the title and all net-management menu items.
+   */
+  hideNetManagementControls?: "all" | "except-title";
   existingNets?: MinimalNetMetadata[];
   createNewNet?: (params: { petriNetDefinition: SDCPN; title: string }) => void;
   loadPetriNet?: (petriNetId: string) => void;
@@ -110,7 +120,7 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
   title = "Untitled",
   setTitle = noop,
   readonly = false,
-  hideNetManagementControls = true,
+  hideNetManagementControls,
   existingNets = [],
   createNewNet = noop,
   loadPetriNet = noop,

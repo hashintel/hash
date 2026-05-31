@@ -53,7 +53,7 @@ interface TopBarProps {
   menuItems: MenuItem[];
   title: string;
   onTitleChange: (value: string) => void;
-  hideNetManagementControls: boolean;
+  hideNetManagementControls?: "all" | "except-title";
   mode: EditorState["globalMode"];
   onModeChange: (mode: EditorState["globalMode"]) => void;
   onRunningExperimentClick?: (experiment: ExperimentRecord) => void;
@@ -77,6 +77,8 @@ export const TopBar: React.FC<TopBarProps> = ({
   return (
     <div className={topBarStyle}>
       <div className={leftSectionStyle}>
+        {slots?.topBarStart}
+
         <Button
           size="sm"
           variant="ghost"
@@ -105,7 +107,7 @@ export const TopBar: React.FC<TopBarProps> = ({
           animated
         />
 
-        {!hideNetManagementControls && (
+        {hideNetManagementControls !== "all" && (
           <FloatingTitle
             value={title}
             onChange={onTitleChange}

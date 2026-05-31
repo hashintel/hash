@@ -6,12 +6,12 @@ import { splitEntityId } from "@blockprotocol/type-system";
 import { deserializeQueryEntitySubgraphResponse } from "@local/hash-graph-sdk/entity";
 import { fullDecisionTimeAxis } from "@local/hash-isomorphic-utils/graph-queries";
 
-import { queryEntitySubgraphQuery } from "../../../../graphql/queries/knowledge/entity.queries";
+import { queryEntitySubgraphQuery } from "../../../../../graphql/queries/knowledge/entity.queries";
 
 import type {
   QueryEntitySubgraphQuery,
   QueryEntitySubgraphQueryVariables,
-} from "../../../../graphql/api-types.gen";
+} from "../../../../../graphql/api-types.gen";
 import type { EntityId } from "@blockprotocol/type-system";
 import type { SDCPN } from "@hashintel/petrinaut";
 import type { PetriNet } from "@local/hash-isomorphic-utils/system-types/petrinet";

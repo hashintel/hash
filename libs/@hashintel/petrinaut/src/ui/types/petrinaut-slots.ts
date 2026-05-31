@@ -12,6 +12,11 @@
  */
 export type PetrinautSlots = {
   /**
+   * Rendered at the leading edge of the top bar, before the built-in
+   * sidebar-toggle and burger-menu buttons.
+   */
+  topBarStart?: React.ReactNode;
+  /**
    * Rendered at the trailing edge of the top bar, after the built-in
    * running-experiments popover and version-history button.
    */

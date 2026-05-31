@@ -591,6 +591,7 @@ __metadata:
     "@hashintel/ds-components": "workspace:*"
     "@hashintel/ds-helpers": "workspace:*"
     "@hashintel/petrinaut": "workspace:*"
+    "@hashintel/petrinaut-core": "workspace:*"
     "@hashintel/query-editor": "workspace:*"
     "@hashintel/type-editor": "workspace:*"
     "@lit-labs/react": "npm:1.2.1"
