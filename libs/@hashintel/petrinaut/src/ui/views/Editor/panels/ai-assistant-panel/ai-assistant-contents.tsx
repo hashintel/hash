@@ -12,7 +12,6 @@ import { Button } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 
 import { AiAssistantIcon } from "../../../../components/ai-assistant-icon";
-import { Input } from "../../../../components/input";
 import { getMessageRenderItems } from "./ai-assistant-contents/get-message-render-items";
 import {
   PromptChips,
@@ -45,9 +44,10 @@ export type AiAssistantContentsProps = {
   promptChips?: PromptChip[];
   rightOffset?: number;
   status: AiAssistantStatus;
+  stopped?: boolean;
 };
 
-const defaultAssistantWidth = 480;
+const defaultAssistantWidth = 500;
 
 const shellStyle = css({
   position: "absolute",
@@ -212,12 +212,28 @@ const messageStyle = cva({
   },
 });
 
+// User input isn't Markdown — rendering it as such would mangle stray
+// `*`, `_`, `#`, etc. and collapse the single newlines they typed. Render it
+// verbatim with preserved whitespace instead.
+const userTextStyle = css({
+  whiteSpace: "pre-wrap",
+  wordBreak: "break-word",
+});
+
 const errorStyle = css({
   borderRadius: "lg",
   padding: "2",
   backgroundColor: "red.bg.subtle",
   color: "red.s100",
   fontSize: "sm",
+  fontWeight: "medium",
+});
+
+const stoppedNoteStyle = css({
+  alignSelf: "center",
+  paddingY: "1",
+  color: "neutral.s80",
+  fontSize: "xs",
   fontWeight: "medium",
 });
 
@@ -232,7 +248,7 @@ const composerWrapStyle = css({
 
 const composerStyle = css({
   display: "flex",
-  alignItems: "center",
+  alignItems: "flex-end",
   gap: "1",
   borderRadius: "lg",
   backgroundColor: "neutral.s10",
@@ -241,26 +257,39 @@ const composerStyle = css({
   padding: "1",
 });
 
-const inputStyle = css({
+// Caps how tall the composer can auto-grow before it starts scrolling
+// internally. Kept in sync with `maxHeight` below — the auto-grow effect
+// reads this constant directly so the two can't drift.
+const composerMaxHeight = 160;
+
+const composerTextareaStyle = css({
   flex: "[1]",
   minWidth: "[0]",
-  width: "auto",
-  borderColor: "[transparent]",
+  // Matches the previous single-line `size="sm"` input height so the
+  // collapsed composer looks unchanged.
+  minHeight: "[28px]",
+  maxHeight: `[${composerMaxHeight}px]`,
+  paddingX: "2",
+  paddingY: "[5px]",
+  border: "none",
+  outline: "none",
+  resize: "none",
+  overflowY: "auto",
   backgroundColor: "[transparent]",
-  boxShadow: "[none]",
-  _hover: {
-    borderColor: "[transparent]",
-  },
-  _focus: {
-    borderColor: "[transparent]",
-    boxShadow: "[none]",
-  },
-  _active: {
-    borderColor: "[transparent]",
-    boxShadow: "[none]",
-  },
+  color: "neutral.fg.body",
+  fontFamily: "[inherit]",
+  fontSize: "sm",
+  fontWeight: "medium",
+  lineHeight: "[1.4]",
+  // Animates the height changes driven by the auto-grow effect, so adding a
+  // line (Shift+Enter) or wrapping expands the box smoothly.
+  transition: "[height 120ms ease]",
   _placeholder: {
     color: "neutral.s70",
+  },
+  _disabled: {
+    cursor: "not-allowed",
+    color: "neutral.s90",
   },
 });
 
@@ -322,7 +351,11 @@ const AiAssistantMessage = memo(
         {renderItems.map((item) => {
           switch (item.type) {
             case "text":
-              return (
+              return role === "user" ? (
+                <div className={userTextStyle} key={item.key}>
+                  {item.part.text}
+                </div>
+              ) : (
                 <div className={markdownStyle} key={item.key}>
                   <ReactMarkdown>{item.part.text}</ReactMarkdown>
                 </div>
@@ -377,6 +410,7 @@ export const AiAssistantContents = ({
   promptChips,
   rightOffset = 0,
   status,
+  stopped = false,
 }: AiAssistantContentsProps) => {
   const isBusy = status === "submitted" || status === "streaming";
   const canSubmit = input.trim().length > 0 && !isBusy;
@@ -385,7 +419,7 @@ export const AiAssistantContents = ({
 
   const [chipsDismissed, setChipsDismissed] = useState(false);
 
-  const inputRef = useRef<HTMLInputElement | null>(null);
+  const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const messagesScrollKey = getMessagesScrollKey(messages);
 
@@ -436,6 +470,20 @@ export const AiAssistantContents = ({
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
+
+  // Auto-grow the composer to fit its content (up to `composerMaxHeight`,
+  // after which it scrolls internally). Resetting to `auto` before measuring
+  // `scrollHeight` lets the box shrink again when text is removed; both writes
+  // happen synchronously so the browser only paints the final height and the
+  // CSS `height` transition animates the change.
+  useEffect(() => {
+    const textarea = inputRef.current;
+    if (!textarea) {
+      return;
+    }
+    textarea.style.height = "auto";
+    textarea.style.height = `${Math.min(textarea.scrollHeight, composerMaxHeight)}px`;
+  }, [input]);
 
   const hasScrolledOnceRef = useRef(false);
 
@@ -513,6 +561,9 @@ export const AiAssistantContents = ({
             />
           ))}
           {error && <div className={errorStyle}>{error.message}</div>}
+          {stopped && !error && (
+            <div className={stoppedNoteStyle}>Response stopped</div>
+          )}
           <div ref={messagesEndRef} />
         </div>
 
@@ -534,16 +585,35 @@ export const AiAssistantContents = ({
             }}
           >
             <div className={composerStyle}>
-              <Input
+              <textarea
                 ref={inputRef}
-                className={inputStyle}
-                size="sm"
+                className={composerTextareaStyle}
+                rows={1}
                 value={input}
+                disabled={isBusy}
                 onChange={(event) => onInputChange(event.currentTarget.value)}
+                onKeyDown={(event) => {
+                  // Enter sends; Shift+Enter inserts a newline (the textarea's
+                  // native behaviour, so we just let it through). The
+                  // `isComposing` guard stops an IME confirmation keystroke
+                  // from sending a half-finished message.
+                  if (
+                    event.key === "Enter" &&
+                    !event.shiftKey &&
+                    !event.nativeEvent.isComposing
+                  ) {
+                    event.preventDefault();
+                    if (canSubmit) {
+                      onSubmit();
+                    }
+                  }
+                }}
                 placeholder={
-                  messages.length === 0
-                    ? "Get creating..."
-                    : "Continue iterating..."
+                  isBusy
+                    ? "Waiting for response..."
+                    : messages.length === 0
+                      ? "Get creating..."
+                      : "Continue iterating..."
                 }
                 aria-label="Message Petrinaut AI"
               />

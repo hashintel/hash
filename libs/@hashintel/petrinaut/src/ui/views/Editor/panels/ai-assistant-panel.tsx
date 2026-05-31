@@ -37,6 +37,7 @@ import {
 } from "./ai-assistant-panel/ai-assistant-contents/prompt-chips";
 import { createDiagnosticsAwareAiTransport } from "./ai-assistant-panel/create-diagnostics-aware-ai-transport";
 import { createReasoningTimingAwareAiTransport } from "./ai-assistant-panel/create-reasoning-timing-aware-ai-transport";
+import { finalizeStreamingMessageParts } from "./ai-assistant-panel/finalize-streaming-message-parts";
 import { formatDiagnosticsForAi } from "./ai-assistant-panel/format-diagnostics-for-ai";
 import { getInteractiveTool } from "./ai-assistant-panel/interactive-tools/registry";
 import { petrinautDocsContent } from "./ai-assistant-panel/petrinaut-docs-content";
@@ -291,6 +292,13 @@ export const AiAssistantPanel = ({
   // the surface can render the failure under the conversation.
   const [streamError, setStreamError] = useState<Error | null>(null);
 
+  // Surfaces a subtle "Response stopped" note after the user aborts a
+  // response. Cleared whenever a new turn begins so it never lingers across
+  // sends or a fresh conversation.
+  const [stopped, setStopped] = useState(false);
+
+  const stopRequestedRef = useRef(false);
+
   const {
     error,
     messages,
@@ -314,8 +322,36 @@ export const AiAssistantPanel = ({
         chatError instanceof Error ? chatError : new Error(String(chatError)),
       );
     },
-    onFinish: ({ messages: finishedMessages }) => {
+    onFinish: ({ messages: finishedMessages, isAbort }) => {
+      if (isAbort) {
+        // The SDK fires `onFinish` for every abort. Only act on a deliberate
+        // Stop — clearing the chat or unmounting also aborts, and those paths
+        // own their own state updates. Running here (rather than in `onStop`)
+        // guarantees the stream has fully unwound, so no late chunk can revert
+        // the parts we settle back to `"streaming"`.
+        if (!stopRequestedRef.current) {
+          return;
+        }
+        stopRequestedRef.current = false;
+
+        // `stop()` only aborts the request — it leaves the active
+        // reasoning/text parts in their `"streaming"` state, so the
+        // elapsed-time counter and shimmer keep running. Settle them, then
+        // mirror the finalized transcript into the chat and persistence.
+        const finalized = finalizeStreamingMessageParts(finishedMessages);
+        setMessages(finalized);
+        setStreamError(null);
+        aiAssistant.onMessages?.(finalized);
+        setStopped(true);
+        return;
+      }
+
+      // A response that runs to completion clears any pending Stop intent so a
+      // later incidental abort can't replay the deliberate-stop path, and
+      // drops a stale "Response stopped" note left over from an earlier turn.
+      stopRequestedRef.current = false;
       setStreamError(null);
+      setStopped(false);
       aiAssistant.onMessages?.(finishedMessages);
     },
     onToolCall: async ({ toolCall }) => {
@@ -514,6 +550,8 @@ export const AiAssistantPanel = ({
     onInitialMessageConsumed?.();
     setInput("");
     setStreamError(null);
+    setStopped(false);
+    stopRequestedRef.current = false;
 
     void sendMessage({ text: trimmedInitialMessage });
   }, [
@@ -548,11 +586,17 @@ export const AiAssistantPanel = ({
       input={input}
       messages={messages}
       onClearMessages={() => {
+        // Clearing aborts any in-flight response too, which fires `onFinish`
+        // with `isAbort`. Drop the stop flag first so that handler treats this
+        // as an incidental abort and doesn't repopulate or persist the
+        // transcript we're about to wipe.
+        stopRequestedRef.current = false;
         if (status === "submitted" || status === "streaming") {
           void stop();
         }
         setInput("");
         setStreamError(null);
+        setStopped(false);
         setMessages([]);
         aiAssistant.onMessages?.([]);
         aiAssistant.onClearMessages?.();
@@ -620,9 +664,18 @@ export const AiAssistantPanel = ({
         }
         setInput("");
         setStreamError(null);
+        setStopped(false);
+        stopRequestedRef.current = false;
         void sendMessage({ text: trimmed });
       }}
-      onStop={() => void stop()}
+      onStop={() => {
+        // Flag the deliberate stop, then abort. The actual settling of the
+        // partial transcript and the "Response stopped" note happen in
+        // `onFinish`, once the SDK has fully unwound the stream — finalizing
+        // here would race the chunks the SDK is still flushing.
+        stopRequestedRef.current = true;
+        void stop();
+      }}
       onSubmit={() => {
         const trimmed = input.trim();
         if (!trimmed) {
@@ -630,11 +683,14 @@ export const AiAssistantPanel = ({
         }
         setInput("");
         setStreamError(null);
+        setStopped(false);
+        stopRequestedRef.current = false;
         void sendMessage({ text: trimmed });
       }}
       promptChips={promptChips}
       rightOffset={hasSelection ? propertiesPanelWidth + PANEL_MARGIN : 0}
       status={status}
+      stopped={stopped}
     />
   );
 };
