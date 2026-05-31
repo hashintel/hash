@@ -145,6 +145,18 @@ export const useProcessSaveAndLoad = ({
         refetchRevisions(),
       ]);
 
+      // Apollo can resolve `refetch()` without `data` (e.g. when the
+      // network errored), and `getPersistedNetsFromSubgraph` would throw
+      // on the missing `queryEntitySubgraph`. The mutation has already
+      // succeeded by this point, so swallow the local-cache update and
+      // let `useQuery`'s normal polling/revalidation catch up. Apollo's
+      // own types pretend `data` is always present, so the runtime guard
+      // is needed even though TS thinks it's redundant.
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      if (!updatedNetsData.data) {
+        return;
+      }
+
       const transformedNets = getPersistedNetsFromSubgraph(
         updatedNetsData.data,
       );

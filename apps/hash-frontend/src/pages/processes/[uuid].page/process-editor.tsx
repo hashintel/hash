@@ -1,5 +1,5 @@
 import "@hashintel/petrinaut/dist/main.css";
-import { Box, Stack } from "@mui/material";
+import { Box, Stack, Typography } from "@mui/material";
 import { useRouter } from "next/router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
@@ -108,6 +108,33 @@ const viewMatchesLoaded = (
   }
   return false;
 };
+
+/**
+ * Whether two URL-derived views refer to the same routing target. Used to
+ * detect when the router has moved on from a snapshot we captured earlier
+ * (e.g. the pre-save draft view).
+ */
+const viewsEqual = (
+  first: ProcessEditorView,
+  second: ProcessEditorView,
+): boolean => {
+  if (first.kind === "draft" && second.kind === "draft") {
+    return first.seedKey === second.seedKey;
+  }
+  if (first.kind === "saved" && second.kind === "saved") {
+    return first.entityUuid === second.entityUuid;
+  }
+  return false;
+};
+
+/**
+ * A pending UI action that requires the user to first acknowledge that
+ * their unsaved changes will be discarded. Both URL-driven reconciliation
+ * and the in-editor back arrow funnel through the same confirmation modal.
+ */
+type PendingDiscardAction =
+  | { kind: "applyView"; view: ProcessEditorView }
+  | { kind: "navigateAway"; path: string };
 
 const noNetSwitchingError = () => {
   // Net switching is handled entirely by URL navigation from the
@@ -231,52 +258,61 @@ export const ProcessEditor = ({ view }: { view: ProcessEditorView }) => {
   );
 
   /**
-   * Pending view-change waiting on user confirmation, set when the URL
-   * changed away from a dirty editor state. Confirming applies it;
-   * cancelling reverts the URL back to the loaded view.
+   * Pending action waiting on the user's "discard unsaved changes"
+   * confirmation. Set both when the URL changed under a dirty editor and
+   * when the user clicks the in-editor back arrow with unsaved changes.
    */
-  const [pendingView, setPendingView] = useState<ProcessEditorView | null>(
-    null,
-  );
+  const [pendingDiscardAction, setPendingDiscardAction] =
+    useState<PendingDiscardAction | null>(null);
 
   /**
-   * UUID of the entity we just saved a draft into and are now navigating to
-   * via `router.replace`. While set, the reconciliation effect ignores the
-   * stale draft `view` until Next.js's router catches up to the new URL.
+   * Snapshot of the `view` prop at the moment a draft was saved, captured
+   * just before we kick off `router.replace`. While this ref is set, the
+   * reconciliation effect treats any view that's still equal to the
+   * snapshot as a stale pre-`router.replace` value and skips reconciling.
    *
-   * Without this guard, the brief window where `loadedView` is `"saved"` but
-   * `view` is still `"draft"` would otherwise look like a "user discarded the
-   * draft to navigate elsewhere" change and trigger the discard-changes modal.
+   * Crucially, the ref is cleared as soon as `view` changes to *anything*
+   * else — whether that's the expected `/processes/<newUuid>` or some
+   * other route the user picked while the save was in flight. This avoids
+   * the snapshot getting permanently stuck if the router resolves
+   * somewhere unexpected.
    */
-  const expectedSavedUuidRef = useRef<string | null>(null);
+  const viewAtSaveTimeRef = useRef<ProcessEditorView | null>(null);
+
+  /**
+   * `true` exactly when the URL points at a saved entity that, after the
+   * `usePersistedNets` query has resolved, doesn't appear in the user's
+   * visible nets. Triggers the not-found UI further down.
+   */
+  const viewIsNotFound =
+    view.kind === "saved" &&
+    !persistedNetsLoading &&
+    !persistedNets.some(
+      (net) => extractEntityUuidFromEntityId(net.entityId) === view.entityUuid,
+    );
 
   /**
    * Reconciles the incoming `view` prop with the editor's `loadedView`.
    *
-   * Three outcomes:
+   * Outcomes:
    *  - Already loaded: no-op.
+   *  - Saved target still loading or not in the user's nets: no-op (the
+   *    not-found banner handles the latter once loading settles).
    *  - Mismatch and not dirty: apply immediately.
-   *  - Mismatch and dirty: stash as `pendingView` and surface the discard
-   *    modal. If the user cancels, the URL is reverted to the loaded view.
-   *
-   * For "saved" targets that haven't appeared in `persistedNets` yet we wait
-   * for the next render once the query resolves.
+   *  - Mismatch and dirty: stash as a pending `applyView` action and
+   *    surface the discard modal. If the user cancels, the URL is
+   *    reverted to the loaded view.
    */
   useEffect(() => {
-    if (expectedSavedUuidRef.current !== null) {
-      if (
-        view.kind === "saved" &&
-        view.entityUuid === expectedSavedUuidRef.current
-      ) {
-        // URL has caught up — proceed normally (and `viewMatchesLoaded`
-        // below will short-circuit since `loadedView` was already set in
-        // sync with the save).
-        expectedSavedUuidRef.current = null;
-      } else {
-        // Still waiting for `router.replace` to settle; don't react to the
-        // transient mismatch.
+    if (viewAtSaveTimeRef.current !== null) {
+      if (viewsEqual(view, viewAtSaveTimeRef.current)) {
+        // `router.replace` hasn't taken effect yet — the prop still reflects
+        // the pre-save URL. Wait for it to settle.
         return;
       }
+      // Router moved on (whether to the expected new uuid or anywhere
+      // else). Clear the guard and fall through to normal reconciliation.
+      viewAtSaveTimeRef.current = null;
     }
     if (loadedView && viewMatchesLoaded(view, loadedView)) {
       return;
@@ -284,17 +320,12 @@ export const ProcessEditor = ({ view }: { view: ProcessEditorView }) => {
     if (view.kind === "saved" && persistedNetsLoading) {
       return;
     }
-    if (
-      view.kind === "saved" &&
-      !persistedNets.some(
-        (net) =>
-          extractEntityUuidFromEntityId(net.entityId) === view.entityUuid,
-      )
-    ) {
+    if (view.kind === "saved" && viewIsNotFound) {
+      // Render path handles this case; nothing to apply.
       return;
     }
     if (loadedView !== null && isDirty) {
-      setPendingView(view);
+      setPendingDiscardAction({ kind: "applyView", view });
       return;
     }
     applyView(view);
@@ -303,6 +334,7 @@ export const ProcessEditor = ({ view }: { view: ProcessEditorView }) => {
     loadedView,
     persistedNets,
     persistedNetsLoading,
+    viewIsNotFound,
     isDirty,
     applyView,
   ]);
@@ -361,6 +393,7 @@ export const ProcessEditor = ({ view }: { view: ProcessEditorView }) => {
 
   const handleSaveClick = useCallback(async () => {
     const wasCreate = selectedNetId === null;
+    const viewAtSaveTime = view;
     const persistedEntityId = await persistToGraphRef.current();
     if (wasCreate && persistedEntityId) {
       // The `useProcessSaveAndLoad` hook has already set `selectedNetId`,
@@ -368,14 +401,14 @@ export const ProcessEditor = ({ view }: { view: ProcessEditorView }) => {
       // URL catches up, `viewMatchesLoaded` short-circuits the reconciliation
       // effect.
       const entityUuid = extractEntityUuidFromEntityId(persistedEntityId);
-      // Suppress reconciliation until the router catches up. Without this,
-      // the brief window where `view` is still `"draft"` but `loadedView`
-      // is `"saved"` would surface the discard-changes modal.
-      expectedSavedUuidRef.current = entityUuid;
+      // Suppress reconciliation while `view` is still the pre-save draft.
+      // The guard auto-clears once the router moves on, even if it lands
+      // somewhere other than the expected URL.
+      viewAtSaveTimeRef.current = viewAtSaveTime;
       setLoadedView({ kind: "saved", entityId: persistedEntityId });
       void router.replace(`/processes/${entityUuid}`);
     }
-  }, [router, selectedNetId]);
+  }, [router, selectedNetId, view]);
 
   /**
    * Top-bar content injected into Petrinaut via the `slots` API:
@@ -391,6 +424,22 @@ export const ProcessEditor = ({ view }: { view: ProcessEditorView }) => {
    * user-editable; we don't surface a "save as copy" affordance from here
    * today.
    */
+  /**
+   * Navigate `path`, but if the editor is dirty first show the discard
+   * confirmation. Used for the in-editor back arrow so it honours the
+   * same guard as URL-driven view changes and `beforeunload`.
+   */
+  const navigateAwayWithDirtyGuard = useCallback(
+    (path: string) => {
+      if (isDirty) {
+        setPendingDiscardAction({ kind: "navigateAway", path });
+        return;
+      }
+      void router.push(path);
+    },
+    [isDirty, router],
+  );
+
   const slots = useMemo<PetrinautSlots>(() => {
     const backButton = (
       <Button
@@ -400,7 +449,7 @@ export const ProcessEditor = ({ view }: { view: ProcessEditorView }) => {
         aria-label="Back to processes"
         tooltip="Back to processes"
         onClick={() => {
-          void router.push("/processes");
+          navigateAwayWithDirtyGuard("/processes");
         }}
       />
     );
@@ -438,21 +487,54 @@ export const ProcessEditor = ({ view }: { view: ProcessEditorView }) => {
     isDirty,
     loadRevision,
     loadedRevisionTime,
+    navigateAwayWithDirtyGuard,
     persistPending,
     revisions,
-    router,
     selectedNetId,
     userEditable,
   ]);
 
+  if (viewIsNotFound) {
+    return (
+      <Stack
+        sx={{
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 2,
+          height: "100%",
+          textAlign: "center",
+          px: 4,
+        }}
+      >
+        <Typography variant="h5">Process not found</Typography>
+        <Typography color="text.secondary">
+          We couldn't find a process matching this URL. It may have been deleted
+          or you may not have access to it.
+        </Typography>
+        <Button
+          size="sm"
+          onClick={() => {
+            void router.push("/processes");
+          }}
+        >
+          Back to processes
+        </Button>
+      </Stack>
+    );
+  }
+
   return (
     <Stack sx={{ height: "100%" }}>
-      {pendingView && loadedView && (
+      {pendingDiscardAction && (
         <AlertModal
           callback={() => {
-            const target = pendingView;
-            setPendingView(null);
-            applyView(target);
+            const action = pendingDiscardAction;
+            setPendingDiscardAction(null);
+            if (action.kind === "applyView") {
+              applyView(action.view);
+            } else {
+              void router.push(action.path);
+            }
           }}
           calloutMessage="You have unsaved changes which will be discarded. Are you sure you want to switch?"
           confirmButtonText="Discard"
@@ -462,11 +544,15 @@ export const ProcessEditor = ({ view }: { view: ProcessEditorView }) => {
           header="Discard unsaved changes?"
           open
           close={() => {
-            const revertPath = pathForLoadedView(loadedView);
-            setPendingView(null);
-            // Restore the URL to the editor's loaded view so URL and
-            // editor stay in sync.
-            void router.replace(revertPath);
+            const action = pendingDiscardAction;
+            setPendingDiscardAction(null);
+            // For URL-driven view changes the URL has already moved on, so
+            // revert it to the still-loaded view to keep URL and editor in
+            // sync. For back-arrow navigation the URL hasn't changed yet,
+            // so simply dismissing the modal is enough.
+            if (action.kind === "applyView" && loadedView) {
+              void router.replace(pathForLoadedView(loadedView));
+            }
           }}
           type="warning"
         />
