@@ -8,9 +8,10 @@ The HASH repository is organized into several key directories:
   - `/hash-api` - Backend API service
   - `/hash-frontend` - Web frontend application
   - `/hash-graph` - Graph database service
-  - `/hash-external-services` - External service integrations
   - `/hash-ai-worker-ts` - AI worker services
   - `/hash-integration-worker` - Integration worker services
+
+- `/infra/compose` - Docker Compose stack for external services (Postgres, Kratos, Hydra, Temporal, observability)
 
 - `/blocks` - Block Protocol components (each subfolder contains a self-contained block)
 

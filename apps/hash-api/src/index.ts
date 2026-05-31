@@ -239,10 +239,12 @@ const gptRateLimiter = rateLimit({
   },
 });
 
-const hydraProxy = createProxyMiddleware<Request, Response>({
-  target: hydraPublicUrl ?? "",
-  pathRewrite: (_, req) => req.originalUrl,
-});
+const hydraProxy = hydraPublicUrl
+  ? createProxyMiddleware<Request, Response>({
+      target: hydraPublicUrl,
+      pathRewrite: (_, req) => req.originalUrl,
+    })
+  : undefined;
 
 const redactAuthQueryParams = (value: string): string =>
   value
@@ -588,9 +590,11 @@ const main = async () => {
   /**
    * Proxy to Ory Hydra's OAuth2 authorization and token endpoints, for OAuth2 clients (e.g. HashGPT)
    */
-  app.use("/oauth2/auth", authRouteRateLimiter, hydraProxy);
-  app.use("/oauth2/token", authRouteRateLimiter, hydraProxy);
-  app.use("/oauth2/fallbacks", authRouteRateLimiter, hydraProxy);
+  if (hydraProxy) {
+    app.use("/oauth2/auth", authRouteRateLimiter, hydraProxy);
+    app.use("/oauth2/token", authRouteRateLimiter, hydraProxy);
+    app.use("/oauth2/fallbacks", authRouteRateLimiter, hydraProxy);
+  }
 
   /** END PROXIES */
 

@@ -50,7 +50,7 @@ selfservice:
 
     oidc:
       # Disabled by default. Enable by setting SELFSERVICE_METHODS_OIDC_ENABLED=true
-      # along with provider credentials in .env.local (see docker-compose.yml).
+      # along with provider credentials in .env.local (see compose.yml).
       enabled: false
       config:
         # Override the callback base URL to route through the API proxy (/auth → Kratos).
