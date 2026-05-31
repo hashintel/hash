@@ -76,7 +76,7 @@ export function useSdcpnToReactFlow(): PetrinautReactFlowDefinitionObject {
         type: "place",
         dynamicsEnabled: place.dynamicsEnabled,
         hasColorType,
-        hasVisualizer: place.visualizerCode !== undefined,
+        hasVisualizer: !!place.visualizerCode,
         typeColor: placeType?.displayColor, // Pass the type color for border styling
       },
     });

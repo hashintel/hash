@@ -343,7 +343,12 @@ export const AiAssistantPanel = ({
         return;
       }
 
+      // A response that runs to completion clears any pending Stop intent so a
+      // later incidental abort can't replay the deliberate-stop path, and
+      // drops a stale "Response stopped" note left over from an earlier turn.
+      stopRequestedRef.current = false;
       setStreamError(null);
+      setStopped(false);
       aiAssistant.onMessages?.(finishedMessages);
     },
     onToolCall: async ({ toolCall }) => {
@@ -533,6 +538,7 @@ export const AiAssistantPanel = ({
     setInput("");
     setStreamError(null);
     setStopped(false);
+    stopRequestedRef.current = false;
 
     void sendMessage({ text: trimmedInitialMessage });
   }, [
@@ -646,6 +652,7 @@ export const AiAssistantPanel = ({
         setInput("");
         setStreamError(null);
         setStopped(false);
+        stopRequestedRef.current = false;
         void sendMessage({ text: trimmed });
       }}
       onStop={() => {
@@ -664,6 +671,7 @@ export const AiAssistantPanel = ({
         setInput("");
         setStreamError(null);
         setStopped(false);
+        stopRequestedRef.current = false;
         void sendMessage({ text: trimmed });
       }}
       promptChips={promptChips}
