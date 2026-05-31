@@ -1,0 +1,10 @@
+apiVersion: 1
+
+datasources:
+  - name: Mimir
+    type: prometheus
+    access: proxy
+    url: http://mimir:8080/prometheus
+    uid: mimir
+    isDefault: true
+    editable: true

@@ -7,6 +7,7 @@ import {
   Petrinaut,
   type PetrinautAiChatTransport,
   type PetrinautAiMessage,
+  WalkthroughProvider,
 } from "@hashintel/petrinaut/ui";
 
 import { useSentryFeedbackAction } from "./app/sentry-feedback-button";
@@ -15,6 +16,7 @@ import {
   type SDCPNInLocalStorage,
   useLocalStorageSDCPNs,
 } from "./app/use-local-storage-sdcpns";
+import { walkthroughSteps } from "./app/walkthrough/walkthrough-steps";
 
 import type {
   MinimalNetMetadata,
@@ -279,18 +281,20 @@ export const DevApp = () => {
 
   return (
     <div style={{ height: "100vh", width: "100vw" }}>
-      <Petrinaut
-        aiAssistant={aiAssistant}
-        handle={activeHandle.handle}
-        existingNets={existingNets}
-        createNewNet={createNewNet}
-        hideNetManagementControls={false}
-        loadPetriNet={loadPetriNet}
-        readonly={false}
-        setTitle={setTitle}
-        title={currentNet.title}
-        viewportActions={[sentryFeedbackAction]}
-      />
+      <WalkthroughProvider steps={walkthroughSteps}>
+        <Petrinaut
+          aiAssistant={aiAssistant}
+          handle={activeHandle.handle}
+          existingNets={existingNets}
+          createNewNet={createNewNet}
+          hideNetManagementControls={false}
+          loadPetriNet={loadPetriNet}
+          readonly={false}
+          setTitle={setTitle}
+          title={currentNet.title}
+          viewportActions={[sentryFeedbackAction]}
+        />
+      </WalkthroughProvider>
     </div>
   );
 };

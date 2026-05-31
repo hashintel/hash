@@ -1,0 +1,43 @@
+# Mimir Configuration - Local Development
+target: all
+multitenancy_enabled: false
+
+server:
+  http_listen_port: 8080
+  grpc_listen_port: 9095
+  log_level: info
+
+# Use local filesystem for development
+common:
+  storage:
+    backend: filesystem
+    filesystem:
+      dir: /data
+
+blocks_storage:
+  filesystem:
+    dir: /data/blocks
+
+ruler_storage:
+  filesystem:
+    dir: /data/ruler
+
+alertmanager_storage:
+  filesystem:
+    dir: /data/alertmanager
+
+# Ring configuration for single binary
+distributor:
+  ring:
+    kvstore:
+      store: memberlist
+
+ingester:
+  ring:
+    kvstore:
+      store: memberlist
+    replication_factor: 1
+
+# Basic limits for development
+limits:
+  ingestion_rate: 100000

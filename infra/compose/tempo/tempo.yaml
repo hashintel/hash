@@ -1,0 +1,57 @@
+server:
+  http_listen_port: 3200
+
+distributor:
+  receivers:
+    otlp:
+      protocols:
+        grpc:
+          endpoint: 0.0.0.0:4317
+        http:
+          endpoint: 0.0.0.0:4318
+
+ingester:
+  lifecycler:
+    ring:
+      kvstore:
+        store: inmemory
+      replication_factor: 1
+
+storage:
+  trace:
+    backend: local
+    local:
+      path: /var/tempo/traces
+    wal:
+      path: /var/tempo/wal
+
+metrics_generator:
+  ring:
+    kvstore:
+      store: inmemory
+  storage:
+    path: /var/tempo/generator/wal
+    remote_write:
+      - url: http://mimir:8080/api/v1/push
+        send_exemplars: true
+  traces_storage:
+    path: /var/tempo/generator/traces
+  processor:
+    service_graphs: {}
+    span_metrics: {}
+    local_blocks: {}
+
+overrides:
+  defaults:
+    # Increase rate limits for benchmarking
+    ingestion:
+      rate_limit_bytes: 1000000000 # 100 MB/sec (up from 15 MB/sec)
+      burst_size_bytes: 2000000000 # 200 MB (up from 20 MB)
+      max_traces_per_user: 0 # disabled
+    metrics_generator:
+      processors:
+        - service-graphs
+        - span-metrics
+        - local-blocks
+    global:
+      max_bytes_per_trace: 50000000 # 50MB per trace (up from 5MB)
