@@ -60,7 +60,7 @@ The function receives the current token values and global parameters. It must re
 
 <img width="1707" height="1055" alt="diff-equations" src="https://github.com/user-attachments/assets/bb18dc15-e43c-4233-974a-70ff9a0c1978" />
 
-**Example:** in [Satellites in Orbit](examples.md#satellites-in-orbit), the orbital dynamics equation computes gravitational acceleration to update satellite position and velocity each step.
+**Example:** in [Probabilistic Satellites Launcher](examples.md#probabilistic-satellites-launcher), the orbital dynamics equation computes gravitational acceleration to update satellite position and velocity each step.
 
 ## Visualizer
 
@@ -88,7 +88,7 @@ Use the menu in the code editor header to **Load default template** for a starti
 
 You can also toggle between the code, a preview, and both at once.
 
-**Example:** the [Satellites in Orbit](examples.md#satellites-in-orbit) example includes a visualizer that renders Earth and orbiting satellites with velocity vectors.
+**Example:** the [Probabilistic Satellites Launcher](examples.md#probabilistic-satellites-launcher) example includes a visualizer that renders the planet and orbiting satellites with velocity vectors. The [Supply Chain with Disruption](examples.md#supply-chain-with-disruption) and [Deployment Pipeline](examples.md#deployment-pipeline) examples add visualizers on several places at once.
 
 ## Transition kernel
 

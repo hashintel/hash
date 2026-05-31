@@ -2,6 +2,23 @@ import { GRID_SIZE } from "../grid-size";
 
 import type { SDCPN } from "../types/sdcpn";
 
+/**
+ * Orbital mechanics simulation: satellites are continuously launched into orbit
+ * around a central body and may collide with each other or crash into the
+ * planet, becoming debris.
+ *
+ * A gravitational ODE integrates each satellite's position and velocity every
+ * step. "LaunchSatellite" is a stochastic source transition that samples a
+ * launch angle once with `Distribution.Uniform` and uses `.map()` to derive a
+ * coherent `(x, y)` position on the orbit, with a Gaussian initial velocity.
+ * "Collision" (input arc weight 2) consumes two satellites and checks pairwise
+ * distance; "Crash" checks distance from the planet surface. A custom SVG
+ * visualizer renders the planet, satellites, and velocity vectors. The Moon
+ * Orbit and Earth Orbit scenarios preset gravity, planet radius, and launch
+ * parameters.
+ *
+ * See `docs/examples.md` (Probabilistic Satellites Launcher).
+ */
 export const probabilisticSatellitesSDCPN: {
   title: string;
   petriNetDefinition: SDCPN;
@@ -365,6 +382,39 @@ export default Dynamics((tokens, parameters) => {
         variableName: "initial_velocity",
         type: "real",
         defaultValue: "67.0",
+      },
+    ],
+    metrics: [
+      {
+        id: "metric__satellites_in_orbit",
+        name: "Satellites in orbit",
+        description:
+          "Number of satellites currently in orbit (the Space place).",
+        code: `return state.places.Space.count;`,
+      },
+      {
+        id: "metric__debris",
+        name: "Debris objects",
+        description:
+          "Number of defunct objects produced by collisions and crashes.",
+        code: `return state.places.Debris.count;`,
+      },
+      {
+        id: "metric__average_orbital_radius",
+        name: "Average orbital radius",
+        description:
+          "Mean distance of orbiting satellites from the planet centre (the origin).",
+        code: `const sats = state.places.Space.tokens;
+if (sats.length === 0) return 0;
+return sats.reduce((sum, s) => sum + Math.hypot(s.x, s.y), 0) / sats.length;`,
+      },
+      {
+        id: "metric__average_orbital_speed",
+        name: "Average orbital speed",
+        description: "Mean speed of the satellites currently in orbit.",
+        code: `const sats = state.places.Space.tokens;
+if (sats.length === 0) return 0;
+return sats.reduce((sum, s) => sum + s.velocity, 0) / sats.length;`,
       },
     ],
     scenarios: [

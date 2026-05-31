@@ -6,9 +6,8 @@ import {
   deploymentPipelineSDCPN,
   probabilisticSatellitesSDCPN,
   productionMachines,
-  satellitesSDCPN,
   sirModel,
-  supplyChainStochasticSDCPN,
+  supplyChainWithDisruption,
 } from "@hashintel/petrinaut-core/examples";
 
 import { usePetrinautCommands } from "../../../react";
@@ -304,17 +303,9 @@ export const EditorView = ({
             submenu: [
               {
                 id: "load-example-supply-chain-stochastic",
-                label: "Probabilistic Supply Chain",
+                label: "Supply Chain with Disruption",
                 onClick: () => {
-                  createNewNet(supplyChainStochasticSDCPN);
-                  clearSelection();
-                },
-              },
-              {
-                id: "load-example-satellites",
-                label: "Satellites",
-                onClick: () => {
-                  createNewNet(satellitesSDCPN);
+                  createNewNet(supplyChainWithDisruption);
                   clearSelection();
                 },
               },
@@ -328,7 +319,7 @@ export const EditorView = ({
               },
               {
                 id: "load-example-production-machines",
-                label: "Production Machines",
+                label: "Production with Machine Failure",
                 onClick: () => {
                   createNewNet(productionMachines);
                   clearSelection();
