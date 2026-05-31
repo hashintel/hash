@@ -11,6 +11,8 @@ import {
   mutationActionInputSchemas as petrinautAiMutationToolInputSchemas,
   type Petrinaut,
   type PetrinautAiMutationToolName,
+  readPetrinautDocToolInputSchema,
+  readPetrinautDocToolName,
   setNetTitleToolInputSchema,
   setNetTitleToolName,
 } from "@hashintel/petrinaut-core";
@@ -37,6 +39,7 @@ import { createDiagnosticsAwareAiTransport } from "./ai-assistant-panel/create-d
 import { createReasoningTimingAwareAiTransport } from "./ai-assistant-panel/create-reasoning-timing-aware-ai-transport";
 import { formatDiagnosticsForAi } from "./ai-assistant-panel/format-diagnostics-for-ai";
 import { getInteractiveTool } from "./ai-assistant-panel/interactive-tools/registry";
+import { petrinautDocsContent } from "./ai-assistant-panel/petrinaut-docs-content";
 import {
   type AiToolOutput,
   type AiToolCall,
@@ -349,6 +352,16 @@ export const AiAssistantPanel = ({
           tool: toolCall.toolName,
           toolCallId: toolCall.toolCallId,
           output: diagnosticsContextRef.current,
+        });
+        return;
+      }
+
+      if (toolCall.toolName === readPetrinautDocToolName) {
+        const { doc } = readPetrinautDocToolInputSchema.parse(toolCall.input);
+        safelyAddToolOutput(addToolOutput, {
+          tool: toolCall.toolName,
+          toolCallId: toolCall.toolCallId,
+          output: petrinautDocsContent[doc],
         });
         return;
       }
