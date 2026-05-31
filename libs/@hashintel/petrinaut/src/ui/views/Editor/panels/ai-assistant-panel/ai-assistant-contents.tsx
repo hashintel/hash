@@ -47,7 +47,7 @@ export type AiAssistantContentsProps = {
   stopped?: boolean;
 };
 
-const defaultAssistantWidth = 480;
+const defaultAssistantWidth = 500;
 
 const shellStyle = css({
   position: "absolute",

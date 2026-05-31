@@ -14,6 +14,7 @@ import {
   nodeCardStyle,
   type SelectionVariant,
 } from "./node-card";
+import { PlaceStateTooltip } from "./place-state-tooltip";
 
 import type { PlaceNodeType } from "../reactflow-types";
 import type { NodeProps } from "@xyflow/react";
@@ -60,10 +61,15 @@ export const PlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
     isNotSelectedConnection,
     hoveredItem,
     isNotHoveredConnection,
+    isHovered,
   } = use(EditorContext);
   const isSimulateMode = globalMode === "simulate";
   const { initialMarking } = use(SimulationContext);
-  const { currentViewedFrame } = use(PlaybackContext);
+  const { currentViewedFrame, totalFrames } = use(PlaybackContext);
+
+  // Show the visualizer on hover for places with a visualizer during simulation.
+  const showStateTooltip =
+    data.hasColorType && data.hasVisualizer && totalFrames > 0 && isHovered(id);
 
   // Get token count from the currently viewed frame or initial marking
   let tokenCount: number | null = null;
@@ -97,33 +103,36 @@ export const PlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
     : "#FFFFFF";
 
   return (
-    <NodeCard
-      cardClassName={`${nodeCardStyle({ selection: selectionVariant })} ${placeCardStyle}`}
-      cardStyle={{
-        borderColor: typeColorBorder,
-        backgroundColor: placeBackgroundColor,
-      }}
-      iconContainer={
-        <div
-          className={`${iconContainerBaseStyle} ${placeIconContainerStyle}`}
-          style={{ color: typeColorBorder }}
-        >
-          <Icon name="circleFilled" />
-          {data.dynamicsEnabled && (
-            <div className={`${iconBadgeStyle} ${dynamicsBadgeStyle}`}>
-              <Icon name="function" size="xs" />
-            </div>
-          )}
-        </div>
-      }
-      title={data.label}
-      subtitle={subtitle}
-      badge={
-        tokenCount !== null ? (
-          <div className={tokenCountBadgeStyle}>{tokenCount}</div>
-        ) : undefined
-      }
-      isConnectable={isConnectable}
-    />
+    <>
+      {showStateTooltip && <PlaceStateTooltip nodeId={id} />}
+      <NodeCard
+        cardClassName={`${nodeCardStyle({ selection: selectionVariant })} ${placeCardStyle}`}
+        cardStyle={{
+          borderColor: typeColorBorder,
+          backgroundColor: placeBackgroundColor,
+        }}
+        iconContainer={
+          <div
+            className={`${iconContainerBaseStyle} ${placeIconContainerStyle}`}
+            style={{ color: typeColorBorder }}
+          >
+            <Icon name="circleFilled" />
+            {data.dynamicsEnabled && (
+              <div className={`${iconBadgeStyle} ${dynamicsBadgeStyle}`}>
+                <Icon name="function" size="xs" />
+              </div>
+            )}
+          </div>
+        }
+        title={data.label}
+        subtitle={subtitle}
+        badge={
+          tokenCount !== null ? (
+            <div className={tokenCountBadgeStyle}>{tokenCount}</div>
+          ) : undefined
+        }
+        isConnectable={isConnectable}
+      />
+    </>
   );
 };
