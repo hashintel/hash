@@ -36,6 +36,10 @@ type ExperimentHandleRegistration = {
   off: () => void;
 };
 
+type PendingExperimentRegistration = {
+  abortController: AbortController;
+};
+
 function mapExperimentStatus(
   status: MonteCarloExperimentState,
 ): ExperimentStatus {
@@ -52,6 +56,10 @@ function mapExperimentStatus(
     case "Cancelled":
       return "cancelled";
   }
+}
+
+function isAbortError(error: unknown): boolean {
+  return error instanceof Error && error.name === "AbortError";
 }
 
 function parseScenarioParameterValue(
@@ -160,6 +168,9 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
   const registrationsRef = useRef(
     new Map<string, ExperimentHandleRegistration>(),
   );
+  const pendingRegistrationsRef = useRef(
+    new Map<string, PendingExperimentRegistration>(),
+  );
   const [experiments, setExperiments] = useState<ExperimentRecord[]>([]);
   const [selectedExperimentId, setSelectedExperimentId] = useState<
     string | null
@@ -168,7 +179,12 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
 
   useEffect(() => {
     const registrations = registrationsRef.current;
+    const pendingRegistrations = pendingRegistrationsRef.current;
     return () => {
+      for (const registration of pendingRegistrations.values()) {
+        registration.abortController.abort();
+      }
+      pendingRegistrations.clear();
       for (const registration of registrations.values()) {
         registration.off();
         registration.handle.dispose();
@@ -191,6 +207,13 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
   };
 
   const disposeExperimentHandle = (experimentId: string) => {
+    const pendingRegistration =
+      pendingRegistrationsRef.current.get(experimentId);
+    if (pendingRegistration) {
+      pendingRegistration.abortController.abort();
+      pendingRegistrationsRef.current.delete(experimentId);
+    }
+
     const registration = registrationsRef.current.get(experimentId);
     if (!registration) {
       return;
@@ -325,7 +348,10 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
     setExperiments((prev) => [experiment, ...prev]);
     setSelectedExperimentId(experimentId);
 
-    try {
+    const abortController = new AbortController();
+    pendingRegistrationsRef.current.set(experimentId, { abortController });
+
+    const initializeExperiment = async () => {
       const experimentConfigBase = {
         sdcpn,
         initialMarking,
@@ -335,20 +361,43 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
         maxTime: input.maxTime,
         runCount: input.runCount,
       };
-      const handle = await createMonteCarloExperiment({
-        ...experimentConfigBase,
-        createWorker: workerFactoryRef.current,
-        metricSpecs: input.metricSpecs,
-      });
-      registerExperimentHandle(experiment, handle);
-      handle.start();
-    } catch (error) {
-      patchExperiment(experimentId, {
-        error: error instanceof Error ? error.message : String(error),
-        status: "error",
-      });
-      throw error;
-    }
+
+      try {
+        const handle = await createMonteCarloExperiment({
+          ...experimentConfigBase,
+          createWorker: workerFactoryRef.current,
+          metricSpecs: input.metricSpecs,
+          signal: abortController.signal,
+        });
+
+        if (!pendingRegistrationsRef.current.has(experimentId)) {
+          handle.dispose();
+          return;
+        }
+
+        pendingRegistrationsRef.current.delete(experimentId);
+        registerExperimentHandle(experiment, handle);
+        handle.start();
+      } catch (error) {
+        const wasPending = pendingRegistrationsRef.current.delete(experimentId);
+
+        if (!wasPending && isAbortError(error)) {
+          return;
+        }
+
+        const message = error instanceof Error ? error.message : String(error);
+        patchExperiment(experimentId, {
+          error: message,
+          status: "error",
+        });
+        addNotification({
+          message: `${experiment.name} failed: ${message}`,
+          tone: "error",
+        });
+      }
+    };
+
+    void initializeExperiment();
 
     return experimentId;
   };
