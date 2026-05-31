@@ -44,6 +44,19 @@ const descriptionStyle = css({
   gridRow: "2",
 });
 
+const sectionTitleStyle = css({
+  fontSize: "xs",
+  fontWeight: "semibold",
+  letterSpacing: "wide",
+  textTransform: "uppercase",
+  color: "neutral.fg.subtle",
+  marginTop: "4",
+  marginBottom: "1",
+  _first: {
+    marginTop: "0",
+  },
+});
+
 const selectStyle = css({
   width: "[160px]",
   flexShrink: "[0]",
@@ -116,24 +129,7 @@ export const ViewportSettingsDialog: React.FC<ViewportSettingsDialogProps> = ({
         <Dialog.Card>
           <Dialog.Header>Settings</Dialog.Header>
           <Dialog.Body>
-            <SettingRow
-              label="Animations"
-              description="Animate panel transitions and UI interactions"
-            >
-              <Switch
-                checked={showAnimations}
-                onCheckedChange={setShowAnimations}
-              />
-            </SettingRow>
-            <SettingRow
-              label="Keep panels mounted"
-              description="Keep hidden panels loaded in the background for faster switching"
-            >
-              <Switch
-                checked={keepPanelsMounted}
-                onCheckedChange={setKeepPanelsMounted}
-              />
-            </SettingRow>
+            <h3 className={sectionTitleStyle}>Viewport</h3>
             <SettingRow
               label="Minimap"
               description="Show an overview minimap in the top-right corner"
@@ -161,20 +157,6 @@ export const ViewportSettingsDialog: React.FC<ViewportSettingsDialogProps> = ({
                 onCheckedChange={setPartialSelection}
               />
             </SettingRow>
-            <SettingRow
-              label={
-                <>
-                  Entities tree view{" "}
-                  <span className={badgeStyle}>Experimental</span>
-                </>
-              }
-              description="Show a unified tree of all entities in the left sidebar"
-            >
-              <Switch
-                checked={useEntitiesTreeView}
-                onCheckedChange={setUseEntitiesTreeView}
-              />
-            </SettingRow>
             <SettingRow label="Arcs rendering">
               <Select
                 className={selectStyle}
@@ -188,6 +170,40 @@ export const ViewportSettingsDialog: React.FC<ViewportSettingsDialogProps> = ({
                   { value: "custom", label: "Adaptive Bezier" },
                 ]}
                 portal={false}
+              />
+            </SettingRow>
+
+            <h3 className={sectionTitleStyle}>General</h3>
+            <SettingRow
+              label="Animations"
+              description="Animate panel transitions and UI interactions"
+            >
+              <Switch
+                checked={showAnimations}
+                onCheckedChange={setShowAnimations}
+              />
+            </SettingRow>
+            <SettingRow
+              label="Keep panels mounted"
+              description="Keep hidden panels loaded in the background for faster switching"
+            >
+              <Switch
+                checked={keepPanelsMounted}
+                onCheckedChange={setKeepPanelsMounted}
+              />
+            </SettingRow>
+            <SettingRow
+              label={
+                <>
+                  Entities tree view{" "}
+                  <span className={badgeStyle}>Experimental</span>
+                </>
+              }
+              description="Show a unified tree of all entities in the left sidebar"
+            >
+              <Switch
+                checked={useEntitiesTreeView}
+                onCheckedChange={setUseEntitiesTreeView}
               />
             </SettingRow>
             {hasWalkthrough && (
