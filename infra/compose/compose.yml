@@ -73,7 +73,7 @@ services:
     security_opt:
       - no-new-privileges:true
     environment:
-      - DSN=postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:${POSTGRES_PORT:-5432}/${HASH_KRATOS_PG_DATABASE:-kratos}
+      DSN: "postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:${POSTGRES_PORT:-5432}/${HASH_KRATOS_PG_DATABASE:-kratos}"
     command: migrate sql -e --yes
 
   kratos:
