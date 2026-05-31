@@ -28,7 +28,7 @@ export const oryKratosClient = new FrontendApi(
 );
 
 /**
- * A helper type representing the traits defined by the kratos identity schema at `apps/hash-external-services/kratos/identity.schema.json`
+ * A helper type representing the traits defined by the kratos identity schema at `infra/compose/kratos/identity.schema.json`
  */
 export type IdentityTraits = {
   emails: string[];

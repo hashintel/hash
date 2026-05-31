@@ -63,6 +63,16 @@ pub enum Direction {
     Backward,
 }
 
+impl Direction {
+    #[must_use]
+    pub const fn reverse(self) -> Self {
+        match self {
+            Self::Forward => Self::Backward,
+            Self::Backward => Self::Forward,
+        }
+    }
+}
+
 /// The results of a dataflow analysis after reaching a fixed point.
 ///
 /// Contains the computed abstract state at both entry and exit of each basic block.

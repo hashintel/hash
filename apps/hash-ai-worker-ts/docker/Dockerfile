@@ -93,23 +93,13 @@ FROM mise AS runner
 COPY --from=builder /usr/local/src /usr/local/src
 WORKDIR /usr/local/src/apps/hash-ai-worker-ts
 
-ARG GOOGLE_CLOUD_WORKLOAD_IDENTITY_FEDERATION_CONFIG_JSON
-ENV GOOGLE_CLOUD_WORKLOAD_IDENTITY_FEDERATION_CONFIG_JSON=${GOOGLE_CLOUD_WORKLOAD_IDENTITY_FEDERATION_CONFIG_JSON}
-
 # Set a writable Corepack cache directory
 ENV COREPACK_HOME=/usr/local/src/var/corepack-cache
 RUN GITHUB_TOKEN="" mise install node && \
     groupadd --system --gid 60000 hash && \
     useradd --system tsworker -G hash && \
     install -d -m 0775 -o tsworker -g hash /log /home/tsworker officeParserTemp/tempfiles $COREPACK_HOME && \
-    corepack prepare --activate && \
-    if [ -n "$GOOGLE_CLOUD_WORKLOAD_IDENTITY_FEDERATION_CONFIG_JSON" ]; then \
-    echo $GOOGLE_CLOUD_WORKLOAD_IDENTITY_FEDERATION_CONFIG_JSON > /tmp/google_workload_identity_federation_config.json && \
-    export GOOGLE_APPLICATION_CREDENTIALS=/tmp/google_workload_identity_federation_config.json && \
-    echo "GOOGLE_APPLICATION_CREDENTIALS set from JSON"; \
-    else \
-    echo "GOOGLE_APPLICATION_CREDENTIALS not set, no GOOGLE_CLOUD_WORKLOAD_IDENTITY_FEDERATION_CONFIG_JSON in environment"; \
-    fi
+    corepack prepare --activate
 
 USER tsworker:hash
 ENV NODE_ENV=production
