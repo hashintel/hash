@@ -24,7 +24,7 @@ The classic Susceptible-Infected-Recovered compartmental model from epidemiology
 
 ## Supply Chain with Disruption
 
-An end-to-end manufacturing and distribution network (loaded from the **Probabilistic Supply Chain** menu item). Raw materials are sourced from two suppliers with different cost/reliability trade-offs, converted into finished goods by a factory machine that wears down over time, then sold to customers whose orders age, back-order, get fulfilled, or are cancelled.
+An end-to-end manufacturing and distribution network (loaded from the **Supply Chai with Disruption** menu item). Raw materials are sourced from two suppliers with different cost/reliability trade-offs, converted into finished goods by a factory machine that wears down over time, then sold to customers whose orders age, back-order, get fulfilled, or are cancelled.
 
 **Demonstrates:**
 
@@ -94,7 +94,7 @@ All other places start empty. "Start Production" will immediately consume a raw 
 
 <img width="1223" height="611" alt="production-machines" src="https://github.com/user-attachments/assets/f9b058a2-6eef-4b0f-880b-09ae45921729" />
 
-## Probabilistic Satellites Launcher
+## Probabilistic Satellite Launcher
 
 An orbital mechanics simulation: satellites are continuously launched into orbit around a central body and can collide with each other or crash into the planet, becoming debris.
 

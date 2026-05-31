@@ -95,7 +95,7 @@ Use the transition kernel to define the properties of newly created tokens (if t
 **Examples:**
 
 - [Deployment Pipeline](examples.md#deployment-pipeline) -- "Create Deployment" and "Incident Raised" generate events at configurable rates.
-- [Probabilistic Satellites Launcher](examples.md#probabilistic-satellites-launcher) -- "LaunchSatellite" creates satellites with randomized initial positions and velocities using `Distribution.Uniform` and `Distribution.Gaussian`.
+- [Probabilistic Satellite Launcher](examples.md#probabilistic-satellite-launcher) -- "LaunchSatellite" creates satellites with randomized initial positions and velocities using `Distribution.Uniform` and `Distribution.Gaussian`.
 
 ## Sink transitions (removal / absorption)
 
@@ -137,6 +137,6 @@ export default Lambda((tokensByPlace, parameters) => {
 
 An input arc with **weight > 1** requires multiple tokens from the same place for the transition to be enabled. This is useful for interactions between entities.
 
-**Example:** the [Probabilistic Satellites Launcher](examples.md#probabilistic-satellites-launcher) example has a "Collision" transition with input weight 2 from the "Space" place -- it requires two satellites to be present and checks their distance in the lambda to detect collisions.
+**Example:** the [Probabilistic Satellite Launcher](examples.md#probabilistic-satellite-launcher) example has a "Collision" transition with input weight 2 from the "Space" place -- it requires two satellites to be present and checks their distance in the lambda to detect collisions.
 
 The transition kernel receives the consumed tokens and can compute outputs based on all of them.

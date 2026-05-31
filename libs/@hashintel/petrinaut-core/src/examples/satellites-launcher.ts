@@ -17,13 +17,13 @@ import type { SDCPN } from "../types/sdcpn";
  * Orbit and Earth Orbit scenarios preset gravity, planet radius, and launch
  * parameters.
  *
- * See `docs/examples.md` (Probabilistic Satellites Launcher).
+ * See `docs/examples.md` (Probabilistic Satellite Launcher).
  */
 export const probabilisticSatellitesSDCPN: {
   title: string;
   petriNetDefinition: SDCPN;
 } = {
-  title: "Probabilistic Satellites Launcher",
+  title: "Probabilistic Satellite Launcher",
   petriNetDefinition: {
     places: [
       {

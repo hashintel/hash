@@ -311,7 +311,7 @@ export const EditorView = ({
               },
               {
                 id: "load-example-probabilistic-satellites",
-                label: "Probabilistic Satellites Launcher",
+                label: "Probabilistic Satellite Launcher",
                 onClick: () => {
                   createNewNet(probabilisticSatellitesSDCPN);
                   clearSelection();

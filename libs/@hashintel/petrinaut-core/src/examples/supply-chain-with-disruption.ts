@@ -1225,7 +1225,9 @@ export default Dynamics((tokens, parameters) => {
 export default Dynamics((tokens, parameters) => {
   return tokens.map(({ processing_left, quality, source_mix, cost }) => ({
     processing_left: processing_left > 0 ? -parameters.production_progress_rate : 0,
-    quality: -parameters.quality_decay_rate,
+    // Decay stops at 0 so quality stays within its implied [0, 1] range
+    // (a batch is scrapped once it falls below the minimum quality anyway).
+    quality: quality > 0 ? -parameters.quality_decay_rate : 0,
     source_mix: 0,
     cost: 0,
   }));
@@ -1241,7 +1243,8 @@ export default Dynamics((tokens, parameters) => {
 export default Dynamics((tokens, parameters) => {
   return tokens.map(({ health, wear }) => ({
     health: health > 0 ? -parameters.machine_health_decay : 0,
-    wear: parameters.machine_wear_rate,
+    // Wear accrues only up to 1 so it stays within its implied [0, 1] range.
+    wear: wear < 1 ? parameters.machine_wear_rate : 0,
   }));
 });`,
       },
@@ -1274,20 +1277,6 @@ export default Dynamics((tokens, parameters) => {
         variableName: "supplier_b_order_rate",
         type: "real",
         defaultValue: "0.28",
-      },
-      {
-        id: "param_supplier_a_service_rate",
-        name: "Supplier A Service Rate",
-        variableName: "supplier_a_service_rate",
-        type: "real",
-        defaultValue: "0.75",
-      },
-      {
-        id: "param_supplier_b_service_rate",
-        name: "Supplier B Service Rate",
-        variableName: "supplier_b_service_rate",
-        type: "real",
-        defaultValue: "0.55",
       },
       {
         id: "param_supplier_a_lead_time",
