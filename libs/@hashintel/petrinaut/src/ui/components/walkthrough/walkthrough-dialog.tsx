@@ -98,7 +98,6 @@ const titleStyle = css({
   letterSpacing: "[-0.005em]",
   minWidth: "[0]",
   flex: "[1 1 auto]",
-  overflow: "hidden",
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
 });

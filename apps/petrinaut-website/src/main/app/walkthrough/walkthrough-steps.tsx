@@ -14,18 +14,16 @@ export const walkthroughSteps: WalkthroughStep[] = [
   {
     id: "welcome",
     title: (
-      <div
-        className={css({ display: "flex", alignItems: "center", gap: "1.5" })}
-      >
+      <div className={css({ display: "flex", alignItems: "center", gap: "2" })}>
         <img
           className={css({
-            width: "[25px]",
+            width: "[24px]",
             height: "auto",
             position: "relative",
             top: "[-1.5px]",
           })}
           src={logo}
-          alt=""
+          alt="Petrinaut helmet logo"
         />
         Welcome to Petrinaut
       </div>
