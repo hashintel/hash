@@ -137,9 +137,65 @@ const stateColumns = [
 
 export default {
   title: "Components/TextInput",
-} satisfies StoryDefault;
+  argTypes: {
+    placeholder: {
+      control: { type: "text" },
+      description: "Placeholder text shown when the input is empty",
+    },
+    disabled: {
+      control: { type: "boolean" },
+      description: "Disable the input",
+    },
+    invalid: {
+      control: { type: "boolean" },
+      description: "Mark the input as invalid",
+    },
+    readonly: {
+      control: { type: "boolean" },
+      description: "Render the input as read-only text",
+    },
+    loading: {
+      control: { type: "boolean" },
+      description: "Show a loading indicator",
+    },
+    variant: {
+      control: { type: "radio" },
+      options: variants,
+      description: "Visual variant of the input",
+    },
+    align: {
+      control: { type: "radio" },
+      options: alignments,
+      description: "Text alignment within the input",
+    },
+    size: {
+      control: { type: "select" },
+      options: formInputSizes,
+      description: "Input height",
+    },
+    width: {
+      control: { type: "select" },
+      options: widths,
+      description: "Preset input width",
+    },
+    showEditIcon: {
+      control: { type: "boolean" },
+      description: "Show an edit icon inside the input",
+    },
+  },
+  args: {
+    disabled: false,
+    invalid: false,
+    readonly: false,
+    loading: false,
+    variant: "default",
+    align: "left",
+    size: "md",
+    showEditIcon: false,
+  },
+} satisfies StoryDefault<TextInputProps>;
 
-export const Default: Story = () => (
+export const Default: Story<TextInputProps> = (args) => (
   <div className={sectionStyle}>
     {variants.map((variant) => (
       <div key={variant} className={groupStyle}>
@@ -166,6 +222,7 @@ export const Default: Story = () => (
               return row.clearable ? (
                 <ClearableInput
                   key={cellKey}
+                  {...args}
                   value={value}
                   variant={variant}
                   readonly={col.readonly}
@@ -174,6 +231,7 @@ export const Default: Story = () => (
               ) : (
                 <Controlled
                   key={cellKey}
+                  {...args}
                   value={value}
                   onChange={noop}
                   variant={variant}
@@ -189,7 +247,7 @@ export const Default: Story = () => (
   </div>
 );
 
-export const Alignment: Story = () => (
+export const Alignment: Story<TextInputProps> = (args) => (
   <div
     style={{
       display: "grid",
@@ -204,8 +262,14 @@ export const Alignment: Story = () => (
     <span style={subheadingStyle}>Read-only</span>
     {alignments.map((align) => (
       <Fragment key={align}>
-        <Controlled value={`Align: ${align}`} onChange={noop} align={align} />
         <Controlled
+          {...args}
+          value={`Align: ${align}`}
+          onChange={noop}
+          align={align}
+        />
+        <Controlled
+          {...args}
           value={`Align: ${align}`}
           onChange={noop}
           align={align}
@@ -216,7 +280,10 @@ export const Alignment: Story = () => (
   </div>
 );
 
-export const StyledValue: Story = () => (
+export const StyledValue: Story<TextInputProps> = ({
+  clearable: _clearable,
+  ...args
+}) => (
   <div
     style={{
       display: "grid",
@@ -231,13 +298,14 @@ export const StyledValue: Story = () => (
     <span style={subheadingStyle}>Read-only</span>
     {variants.map((variant) => (
       <Fragment key={variant}>
-        <StyledNumberInput variant={variant} />
-        <StyledNumberInput variant={variant} readonly />
+        <StyledNumberInput {...args} variant={variant} />
+        <StyledNumberInput {...args} variant={variant} readonly />
       </Fragment>
     ))}
     {variants.map((variant) => (
       <Fragment key={`sink-${variant}`}>
         <StyledNumberInput
+          {...args}
           variant={variant}
           prefix={{ iconName: "search" }}
           suffix={{ text: "kg" }}
@@ -245,6 +313,7 @@ export const StyledValue: Story = () => (
           clearable
         />
         <StyledNumberInput
+          {...args}
           variant={variant}
           prefix={{ iconName: "search" }}
           suffix={{ text: "kg" }}
@@ -257,7 +326,7 @@ export const StyledValue: Story = () => (
   </div>
 );
 
-export const Size: Story = () => (
+export const Size: Story<TextInputProps> = (args) => (
   <div
     style={{
       display: "grid",
@@ -282,6 +351,7 @@ export const Size: Story = () => (
       ...formInputSizes.map((size) => (
         <Controlled
           key={`${rv.label}-${size}`}
+          {...args}
           value={rv.label}
           onChange={noop}
           size={size}
@@ -297,6 +367,7 @@ export const Size: Story = () => (
     {...formInputSizes.map((size) => (
       <ClearableInput
         key={`sink-${size}`}
+        {...args}
         value="Kitchen Sink"
         prefix={{ iconName: "search" }}
         suffix={{ text: "kg" }}
@@ -307,7 +378,7 @@ export const Size: Story = () => (
   </div>
 );
 
-export const Widths: Story = () => (
+export const Widths: Story<TextInputProps> = (args) => (
   <div className={sectionStyle}>
     {rowVariants.map((rv) => (
       <div key={rv.label} className={groupStyle}>
@@ -315,6 +386,7 @@ export const Widths: Story = () => (
         {widths.map((width) => (
           <Controlled
             key={width}
+            {...args}
             value={`Width: ${width}`}
             onChange={noop}
             variant={rv.variant}
@@ -324,6 +396,7 @@ export const Widths: Story = () => (
         ))}
         {!rv.readonly && (
           <ClearableInput
+            {...args}
             value="Width: fitContent with all the trimmings"
             variant={rv.variant}
             width="fitContent"
@@ -484,7 +557,7 @@ const prefixSuffixRows: PrefixSuffixRow[] = [
   },
 ];
 
-export const PrefixAndSuffix: Story = () => (
+export const PrefixAndSuffix: Story<TextInputProps> = (args) => (
   <div
     style={{
       display: "grid",
@@ -502,12 +575,14 @@ export const PrefixAndSuffix: Story = () => (
         row.clearable ? (
           <ClearableInput
             key={`${row.key}-${variant}`}
+            {...args}
             {...row.props}
             variant={variant}
           />
         ) : (
           <Controlled
             key={`${row.key}-${variant}`}
+            {...args}
             {...row.props}
             onChange={noop}
             variant={variant}

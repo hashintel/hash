@@ -38,8 +38,11 @@ const sentryWebpackPluginOptions = {
 process.env.NEXT_PUBLIC_SHOW_WORKER_COST =
   process.env.SHOW_WORKER_COST ?? "false";
 
-// This allows the frontend to generate the graph type IDs in the browser
-process.env.NEXT_PUBLIC_FRONTEND_URL = process.env.FRONTEND_URL;
+if (process.env.FRONTEND_URL) {
+  // Feeds frontendUrl in isomorphic-utils/environment.ts
+  // Fallbacks to Vercel-provided URL, and ultimately localhost:3000.
+  process.env.NEXT_PUBLIC_FRONTEND_URL = process.env.FRONTEND_URL;
+}
 
 // The API origin
 process.env.NEXT_PUBLIC_API_ORIGIN =
@@ -193,7 +196,15 @@ export default withSentryConfig(
         ],
       },
 
-      webpack: (webpackConfig, { isServer }) => {
+      webpack: (webpackConfig, { isServer, dev }) => {
+        if (!dev) {
+          // Production builds disable webpack's filesystem cache to avoid a
+          // "No serializer registered for ConstDependency" failure caused by
+          // Yarn PnP loading multiple virtual instances of webpack in the
+          // pruned Docker install.
+          webpackConfig.cache = false;
+        }
+
         webpackConfig.module.rules.push({
           test: /\.svg$/,
           use: ["@svgr/webpack"],

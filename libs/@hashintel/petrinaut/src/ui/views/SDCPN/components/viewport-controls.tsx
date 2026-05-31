@@ -2,7 +2,7 @@ import { useReactFlow } from "@xyflow/react";
 import { use, useState } from "react";
 
 import { Button } from "@hashintel/ds-components";
-import { css, cva } from "@hashintel/ds-helpers/css";
+import { cx, css, cva } from "@hashintel/ds-helpers/css";
 
 import { EditorContext } from "../../../../react/state/editor-context";
 import { PANEL_MARGIN } from "../../../constants/ui";
@@ -30,6 +30,8 @@ const animatingStyle = cva({
     },
   },
 });
+
+const blurredBackground = css({ backdropFilter: "[blur(10px)]" });
 
 export const ViewportControls: React.FC<{
   viewportActions?: ViewportAction[];
@@ -66,6 +68,7 @@ export const ViewportControls: React.FC<{
         tooltip="Zoom in"
         tooltipOptions={{ position: "left" }}
         iconName="plus"
+        className={blurredBackground}
         // eslint-disable-next-line @typescript-eslint/no-misused-promises
         onClick={() => zoomIn()}
       />
@@ -76,6 +79,7 @@ export const ViewportControls: React.FC<{
         tooltip="Zoom out"
         tooltipOptions={{ position: "left" }}
         iconName="dash"
+        className={blurredBackground}
         // eslint-disable-next-line @typescript-eslint/no-misused-promises
         onClick={() => zoomOut()}
       />
@@ -86,6 +90,7 @@ export const ViewportControls: React.FC<{
         tooltip="Fullscreen"
         tooltipOptions={{ position: "left" }}
         iconName="expand"
+        className={blurredBackground}
         onClick={collapseAllPanels}
       />
       <Button
@@ -95,6 +100,7 @@ export const ViewportControls: React.FC<{
         tooltip="Lock view"
         tooltipOptions={{ position: "left" }}
         iconName="lockOpen"
+        className={blurredBackground}
         onClick={() => {
           // Placeholder for future lock view functionality
         }}
@@ -106,6 +112,7 @@ export const ViewportControls: React.FC<{
         tooltip="Settings"
         tooltipOptions={{ position: "left" }}
         iconName="gear"
+        className={blurredBackground}
         onClick={() => setIsSettingsOpen(true)}
       />
       <ViewportSettingsDialog
@@ -122,7 +129,7 @@ export const ViewportControls: React.FC<{
           tooltip={action.tooltip}
           tooltipOptions={{ position: "left" }}
           onClick={action.onClick}
-          className={action.className}
+          className={cx(action.className, blurredBackground)}
           prefix={action.icon}
         />
       ))}

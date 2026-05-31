@@ -203,6 +203,59 @@ where
     pub fn of(&self, id: S) -> &[N] {
         self.as_slice().of(id)
     }
+
+    #[inline]
+    pub fn iter(&self) -> impl ExactSizeIterator<Item = (S, &[N])> + DoubleEndedIterator {
+        self.sccs().map(|scc| (scc, self.of(scc)))
+    }
+
+    // TODO: miri tests
+    #[expect(unsafe_code)]
+    pub fn iter_mut(
+        &mut self,
+    ) -> impl ExactSizeIterator<Item = (S, &mut [N])> + DoubleEndedIterator + '_ {
+        let ptr = self.nodes.as_mut_ptr();
+        let offsets = &self.offsets;
+
+        offsets.ids().take(self.offsets.len() - 1).map(move |scc| {
+            let start = offsets[scc];
+            let end = offsets[scc.plus(1)];
+
+            // SAFETY: The start and end indices are valid for the nodes slice, and members is
+            // non-overlapping by construction
+            (scc, unsafe {
+                core::slice::from_raw_parts_mut(ptr.add(start), end - start)
+            })
+        })
+    }
+}
+
+impl<'this, N, S, A: Allocator> IntoIterator for &'this Members<N, S, A>
+where
+    S: Id,
+{
+    type Item = (S, &'this [N]);
+
+    type IntoIter = impl ExactSizeIterator<Item = (S, &'this [N])> + DoubleEndedIterator;
+
+    #[inline]
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
+
+impl<'this, N, S, A: Allocator> IntoIterator for &'this mut Members<N, S, A>
+where
+    S: Id,
+{
+    type Item = (S, &'this mut [N]);
+
+    type IntoIter = impl ExactSizeIterator<Item = (S, &'this mut [N])> + DoubleEndedIterator;
+
+    #[inline]
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter_mut()
+    }
 }
 
 /// Storage for the computed SCCs and their relationships.

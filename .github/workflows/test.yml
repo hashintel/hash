@@ -39,7 +39,6 @@ jobs:
       unit-tests: ${{ steps.packages.outputs.unit-tests }}
       integration-tests: ${{ steps.packages.outputs.integration-tests }}
       system-tests: ${{ steps.packages.outputs.system-tests }}
-      dockers: ${{ steps.packages.outputs.dockers }}
       publish: ${{ steps.packages.outputs.publish }}
     steps:
       - name: Checkout source code
@@ -59,13 +58,10 @@ jobs:
         run: |
           UNIT_TEST_QUERY='query { affectedPackages(base: "HEAD^", filter: {has: {field: TASK_NAME, value: "test:unit"}}) { items { name path } } }'
           INTEGRATION_TEST_QUERY='query { affectedPackages(base: "HEAD^", filter: {has: {field: TASK_NAME, value: "test:integration"}}) { items { name path } } }'
-          DOCKER_TEST_QUERY='query { affectedPackages(base: "HEAD^", filter: {has: {field: TASK_NAME, value: "build:docker"}}) { items { name path } } }'
 
           UNIT_TEST_PACKAGES=$(turbo query "$UNIT_TEST_QUERY" \
             | jq --compact-output '.data.affectedPackages.items | [(.[] | select(.name != "//"))] | { name: [.[].name], include: . }')
           INTEGRATION_TEST_PACKAGES=$(turbo query "$INTEGRATION_TEST_QUERY" \
-            | jq --compact-output '.data.affectedPackages.items | [(.[] | select(.name != "//"))] | { name: [.[].name], include: . }')
-          DOCKER_PACKAGES=$(turbo query "$DOCKER_TEST_QUERY" \
             | jq --compact-output '.data.affectedPackages.items | [(.[] | select(.name != "//"))] | { name: [.[].name], include: . }')
 
           PUBLISH_PACKAGES=[]
@@ -106,7 +102,6 @@ jobs:
 
           echo "unit-tests=$UNIT_TEST_PACKAGES" | tee -a $GITHUB_OUTPUT
           echo "integration-tests=$INTEGRATION_TEST_PACKAGES" | tee -a $GITHUB_OUTPUT
-          echo "dockers=$DOCKER_PACKAGES" | tee -a $GITHUB_OUTPUT
           echo "publish=$PUBLISH_PACKAGES" | tee -a $GITHUB_OUTPUT
 
   unit-tests:
@@ -208,35 +203,6 @@ jobs:
             echo "args:   $args"
           done
 
-  build:
-    name: Build
-    permissions:
-      contents: read
-      packages: write
-    runs-on: ubuntu-24.04
-    needs: [setup, optimize-ci]
-    strategy:
-      matrix: ${{ fromJSON(needs.setup.outputs.dockers) }}
-      fail-fast: false
-    if: needs.setup.outputs.dockers != '{"name":[],"include":[]}' && needs.optimize-ci.outputs.skip == 'false'
-    steps:
-      - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-
-      - name: Clean up disk
-        uses: ./.github/actions/clean-up-disk
-
-      - name: Build image
-        uses: ./.github/actions/build-docker-images
-        with:
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-          GOOGLE_CLOUD_WORKLOAD_IDENTITY_FEDERATION_CONFIG_JSON: ${{ secrets.GOOGLE_CLOUD_WORKLOAD_IDENTITY_FEDERATION_CONFIG_JSON }}
-          hash-graph: ${{ matrix.name == '@apps/hash-graph' }}
-          hash-ai-worker-ts: ${{ matrix.name == '@apps/hash-ai-worker-ts' }}
-          hash-integration-worker: ${{ matrix.name == '@apps/hash-integration-worker' }}
-          hash-api: ${{ matrix.name == '@apps/hash-api' }}
-          hash-frontend: ${{ matrix.name == '@apps/hash-frontend' }}
-
   integration-tests:
     name: Integration
     needs: [setup, optimize-ci]
@@ -265,7 +231,6 @@ jobs:
         with:
           scope: |
             ${{ matrix.name }}
-            @apps/hash-external-services
 
       - name: Warm up repository
         uses: ./.github/actions/warm-up-repo
@@ -274,7 +239,7 @@ jobs:
         id: tests
         run: |
           TEST_TASKS=$(turbo run test:integration --env-mode=loose --dry-run=json --filter "${{ matrix.name }}" | jq -c '.tasks[]')
-          HAS_BACKGROUND_TASKS=$(turbo run start:test --dry-run json | jq -c '[.tasks[] | select(.command != "<NONEXISTENT>" and .name != "@apps/hash-external-services") | .name] != []' || echo 'false')
+          HAS_BACKGROUND_TASKS=$(turbo run start:test --dry-run json | jq -c '[.tasks[] | select(.command != "<NONEXISTENT>") | .name] != []' || echo 'false')
           echo "has-background-tasks=$HAS_BACKGROUND_TASKS" | tee -a $GITHUB_OUTPUT
 
           HAS_RUST=$([[ -f "${{ matrix.path }}/Cargo.toml" || ${{ matrix.path }} = "apps/hash-graph" ]] && echo 'true' || echo 'false')
@@ -296,15 +261,8 @@ jobs:
         run: df -h
 
       - name: Launch external services
-        run: |
-          touch .env.local
-
-          echo 'OPENAI_API_KEY=dummy' >> .env.local
-          echo 'ANTHROPIC_API_KEY=dummy' >> .env.local
-          echo 'HASH_TEMPORAL_WORKER_AI_AWS_ACCESS_KEY_ID=dummy' >> .env.local
-          echo 'HASH_TEMPORAL_WORKER_AI_AWS_SECRET_ACCESS_KEY=dummy' >> .env.local
-          cp .env.local .env.test.local
-          yarn external-services:test up --wait
+        working-directory: infra/compose
+        run: docker compose --profile dev up -d
 
       - name: Start background tasks
         id: background-tasks
@@ -351,7 +309,8 @@ jobs:
 
       - name: Show container logs
         if: ${{ success() || failure() }}
-        run: yarn workspace @apps/hash-external-services deploy logs --timestamps
+        working-directory: infra/compose
+        run: docker compose --profile dev logs --timestamps
 
       - name: Show background tasks logs
         if: always() && steps.tests.outputs.has-background-tasks == 'true'
@@ -413,7 +372,7 @@ jobs:
 
   passed:
     name: Tests passed
-    needs: [setup, unit-tests, build, integration-tests, publish, optimize-ci]
+    needs: [setup, unit-tests, integration-tests, publish, optimize-ci]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -423,10 +382,6 @@ jobs:
       - name: Check unit tests
         run: |
           [[ ${{ needs.unit-tests.result }} =~ success|skipped ]]
-      - name: Check builds
-        if: needs.optimize-ci.outputs.skip == 'false'
-        run: |
-          [[ ${{ needs.build.result }} =~ success|skipped ]]
       - name: Check integration tests
         if: needs.optimize-ci.outputs.skip == 'false'
         run: |
