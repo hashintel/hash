@@ -255,12 +255,42 @@ const errorStyle = css({
 // -- Constants ----------------------------------------------------------------
 
 const DEFAULT_EXPERIMENT_NAME = "Experiment";
-const DEFAULT_SCENARIO_VALUE = "__default__";
+const NO_SCENARIO_VALUE = "__none__";
 const DEFAULT_RUN_COUNT = "1000";
 const DEFAULT_SEED = "1";
 const DEFAULT_DT = "1";
 const DEFAULT_MAX_TIME = "180";
 const DEFAULT_METRIC_CODE = "return 0;";
+const EMPTY_SCENARIOS: readonly Scenario[] = [];
+
+function getDefaultScenarioSelection(scenarios: readonly Scenario[]): string {
+  return scenarios[0]?.id ?? NO_SCENARIO_VALUE;
+}
+
+function getEffectiveScenarioSelection(
+  scenarios: readonly Scenario[],
+  selectedScenarioId: string | null,
+): string {
+  if (
+    selectedScenarioId &&
+    (selectedScenarioId === NO_SCENARIO_VALUE ||
+      scenarios.some((scenario) => scenario.id === selectedScenarioId))
+  ) {
+    return selectedScenarioId;
+  }
+
+  return getDefaultScenarioSelection(scenarios);
+}
+
+function createScenarioOptions(scenarios: readonly Scenario[]) {
+  return [
+    ...scenarios.map((scenario) => ({
+      value: scenario.id,
+      label: scenario.name,
+    })),
+    { value: NO_SCENARIO_VALUE, label: "No scenario" },
+  ];
+}
 
 type ExperimentMetricKind =
   | "placeTokenCountMean"
@@ -827,10 +857,10 @@ export const CreateExperimentDrawer = ({
 }: CreateExperimentDrawerProps) => {
   const { petriNetDefinition } = use(SDCPNContext);
   const { createExperiment } = use(ExperimentsContext);
-  const scenarios = petriNetDefinition.scenarios ?? [];
+  const scenarios = petriNetDefinition.scenarios ?? EMPTY_SCENARIOS;
   const [name, setName] = useState(DEFAULT_EXPERIMENT_NAME);
-  const [selectedScenarioId, setSelectedScenarioId] = useState(
-    DEFAULT_SCENARIO_VALUE,
+  const [selectedScenarioId, setSelectedScenarioId] = useState<string | null>(
+    null,
   );
   const [paramValues, setParamValues] = useState<Record<string, string>>({});
   const [runCount, setRunCount] = useState(DEFAULT_RUN_COUNT);
@@ -844,15 +874,17 @@ export const CreateExperimentDrawer = ({
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const selectedScenario: Scenario | undefined =
-    selectedScenarioId === DEFAULT_SCENARIO_VALUE
-      ? undefined
-      : scenarios.find((s) => s.id === selectedScenarioId);
+  const effectiveSelectedScenarioId = getEffectiveScenarioSelection(
+    scenarios,
+    selectedScenarioId,
+  );
 
-  const scenarioOptions = [
-    { value: DEFAULT_SCENARIO_VALUE, label: "(Default)" },
-    ...scenarios.map((s) => ({ value: s.id, label: s.name })),
-  ];
+  const selectedScenario: Scenario | undefined =
+    effectiveSelectedScenarioId === NO_SCENARIO_VALUE
+      ? undefined
+      : scenarios.find((s) => s.id === effectiveSelectedScenarioId);
+
+  const scenarioOptions = createScenarioOptions(scenarios);
   const metricKindGroups = createMetricKindGroups(petriNetDefinition);
   const metricDiagnosticError =
     getExperimentMetricDiagnosticError(metricDrafts);
@@ -861,7 +893,7 @@ export const CreateExperimentDrawer = ({
 
   const resetForm = () => {
     setName(DEFAULT_EXPERIMENT_NAME);
-    setSelectedScenarioId(DEFAULT_SCENARIO_VALUE);
+    setSelectedScenarioId(null);
     setParamValues({});
     setRunCount(DEFAULT_RUN_COUNT);
     setSeed(DEFAULT_SEED);
@@ -957,9 +989,9 @@ export const CreateExperimentDrawer = ({
       const experimentId = await createExperiment({
         name,
         scenarioId:
-          selectedScenarioId === DEFAULT_SCENARIO_VALUE
+          effectiveSelectedScenarioId === NO_SCENARIO_VALUE
             ? null
-            : selectedScenarioId,
+            : effectiveSelectedScenarioId,
         scenarioParameterValues: paramValues,
         runCount: Number(runCount),
         seed: Number(seed),
@@ -1043,11 +1075,25 @@ export const CreateExperimentDrawer = ({
               <div className={fieldStyle}>
                 <span className={labelStyle}>Scenario</span>
                 <Select
-                  value={selectedScenarioId}
+                  value={effectiveSelectedScenarioId}
                   onValueChange={handleScenarioChange}
                   options={scenarioOptions}
                   size="md"
                   portal={false}
+                  renderItem={(option) => (
+                    <span
+                      style={{ display: "flex", alignItems: "center", gap: 6 }}
+                    >
+                      {option.value === NO_SCENARIO_VALUE && (
+                        <Icon
+                          name="dash"
+                          size="xs"
+                          className={css({ opacity: "[0.4]" })}
+                        />
+                      )}
+                      {option.label}
+                    </span>
+                  )}
                 />
               </div>
 
