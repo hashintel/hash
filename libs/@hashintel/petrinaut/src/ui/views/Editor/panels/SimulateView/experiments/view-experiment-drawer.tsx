@@ -1,4 +1,4 @@
-import { use, useMemo, useState } from "react";
+import { use, useState } from "react";
 
 import { Button, Icon } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
@@ -118,6 +118,20 @@ function formatStatus(experiment: ExperimentRecord): string {
   }
 }
 
+function groupMetricFramesByMetric(
+  metricFrames: readonly MetricFrame[],
+): MetricFrame[][] {
+  const groups = new Map<string, MetricFrame[]>();
+
+  for (const frame of metricFrames) {
+    const frames = groups.get(frame.metricId) ?? [];
+    frames.push(frame);
+    groups.set(frame.metricId, frames);
+  }
+
+  return [...groups.values()];
+}
+
 const ExperimentSummary = ({
   experiment,
 }: {
@@ -185,18 +199,7 @@ const ExperimentMetrics = ({
   experiment: ExperimentRecord;
 }) => {
   const [sizes, setSizes] = useState<Record<string, MetricSize>>({});
-
-  const metricFrameGroups = useMemo(() => {
-    const groups = new Map<string, MetricFrame[]>();
-
-    for (const frame of experiment.metricFrames) {
-      const frames = groups.get(frame.metricId) ?? [];
-      frames.push(frame);
-      groups.set(frame.metricId, frames);
-    }
-
-    return [...groups.values()];
-  }, [experiment.metricFrames]);
+  const metricFrameGroups = groupMetricFramesByMetric(experiment.metricFrames);
 
   if (metricFrameGroups.length === 0) {
     return null;
