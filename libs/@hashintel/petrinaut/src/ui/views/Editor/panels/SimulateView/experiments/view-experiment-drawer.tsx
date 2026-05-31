@@ -209,7 +209,7 @@ const ExperimentMetrics = ({
     <div className={metricGridStyle}>
       {metricFrameGroups.map((frames) => {
         const latestFrame = frames.at(-1)!;
-        const size = sizes[latestFrame.metricId] ?? "large";
+        const size = sizes[latestFrame.metricId] ?? "small";
 
         return (
           <div
