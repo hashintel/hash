@@ -1,11 +1,12 @@
 import { Collapsible } from "@ark-ui/react/collapsible";
-import { use, useLayoutEffect, useRef, useState } from "react";
+import { use, useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import { Button, Icon, LoadingSpinner } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 import { compileMetric } from "@hashintel/petrinaut-core";
 
 import { ExperimentsContext } from "../../../../../../react/experiments/context";
+import { useStableCallback } from "../../../../../../react/hooks/use-stable-callback";
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { UserSettingsContext } from "../../../../../../react/state/user-settings-context";
@@ -21,6 +22,12 @@ import { CodeEditor } from "../../../../../monaco/code-editor";
 import { getMetricDocumentUri } from "../../../../../monaco/editor-paths";
 import { useMetricLspSession } from "../metrics/metric-form";
 import { summarizeMetricLspErrors } from "../metrics/metric-lsp";
+import {
+  areMetricLspDiagnosticSummariesEqual,
+  EMPTY_METRIC_LSP_DIAGNOSTICS,
+  getExperimentMetricDiagnosticError,
+  type MetricLspDiagnosticSummary,
+} from "./experiment-metric-lsp-validation";
 
 import type {
   MonteCarloMetricSpec,
@@ -274,6 +281,8 @@ type ExperimentMetricDraft = {
   code: string;
   // Set when this metric was picked from a custom metric defined on the model.
   sourceMetricId: string | null;
+  metricSessionId: string;
+  lspDiagnostics: MetricLspDiagnosticSummary;
 };
 
 const MODEL_METRIC_VALUE_PREFIX = "model:";
@@ -399,6 +408,8 @@ function createDefaultMetricDraft(sdcpn: SDCPN): ExperimentMetricDraft {
     transitionMode: "firedInThisFrame",
     code: DEFAULT_METRIC_CODE,
     sourceMetricId: null,
+    metricSessionId: crypto.randomUUID(),
+    lspDiagnostics: EMPTY_METRIC_LSP_DIAGNOSTICS,
   };
 }
 
@@ -501,33 +512,59 @@ const ScenarioParameterRow = ({
   </div>
 );
 
+const ExperimentMetricLspSession = ({
+  code,
+  metricSessionId,
+  onChange,
+}: {
+  code: string;
+  metricSessionId: string;
+  onChange: (diagnostics: MetricLspDiagnosticSummary) => void;
+}) => {
+  useMetricLspSession(code, metricSessionId);
+  const { diagnosticsByUri } = use(LanguageClientContext);
+  const { count, firstMessage } = summarizeMetricLspErrors(
+    diagnosticsByUri,
+    metricSessionId,
+  );
+  const stableOnChange = useStableCallback(onChange);
+
+  useEffect(() => {
+    stableOnChange({ count, firstMessage });
+  }, [count, firstMessage, stableOnChange]);
+
+  return null;
+};
+
 const ExperimentExpressionMetricEditor = ({
   code,
+  metricSessionId,
+  lspDiagnostics,
   readOnly = false,
   onChange,
 }: {
   code: string;
+  metricSessionId: string;
+  lspDiagnostics: MetricLspDiagnosticSummary;
   readOnly?: boolean;
   onChange: (code: string) => void;
 }) => {
-  const metricSessionId = useMetricLspSession(code);
-  const { diagnosticsByUri } = use(LanguageClientContext);
-  const lspErrors = summarizeMetricLspErrors(diagnosticsByUri, metricSessionId);
+  const codeUri = getMetricDocumentUri(metricSessionId);
 
   return (
     <div className={fieldStyle}>
       <span className={labelStyle}>Code</span>
       <CodeEditor
         language="typescript"
-        path={getMetricDocumentUri(metricSessionId)}
+        path={codeUri}
         value={code}
         onChange={(value) => onChange(value ?? "")}
         height="128px"
         options={readOnly ? { readOnly: true } : undefined}
       />
-      {!readOnly && lspErrors.count > 0 ? (
+      {lspDiagnostics.count > 0 ? (
         <span className={codeDiagnosticStyle}>
-          {lspErrors.firstMessage ?? `${lspErrors.count} diagnostics`}
+          {lspDiagnostics.firstMessage ?? `${lspDiagnostics.count} diagnostics`}
         </span>
       ) : null}
     </div>
@@ -540,6 +577,7 @@ const ExperimentMetricRow = ({
   kindGroups,
   autoFocusLabel,
   onChange,
+  onLspDiagnosticsChange,
   onRemove,
 }: {
   metric: ExperimentMetricDraft;
@@ -547,6 +585,7 @@ const ExperimentMetricRow = ({
   kindGroups: SelectOptionGroup[];
   autoFocusLabel: boolean;
   onChange: (metric: ExperimentMetricDraft) => void;
+  onLspDiagnosticsChange: (diagnostics: MetricLspDiagnosticSummary) => void;
   onRemove: () => void;
 }) => {
   const { showAnimations } = use(UserSettingsContext);
@@ -580,6 +619,7 @@ const ExperimentMetricRow = ({
         kind: "expression",
         code: modelMetric.code,
         sourceMetricId: modelMetric.id,
+        lspDiagnostics: EMPTY_METRIC_LSP_DIAGNOSTICS,
         label: canReplaceMetricLabel(metric.label, sdcpn)
           ? modelMetric.name
           : metric.label,
@@ -596,6 +636,7 @@ const ExperimentMetricRow = ({
       kind: nextKind,
       label: nextLabel,
       sourceMetricId: null,
+      lspDiagnostics: EMPTY_METRIC_LSP_DIAGNOSTICS,
     };
 
     if (
@@ -633,6 +674,13 @@ const ExperimentMetricRow = ({
       onOpenChange={(details) => updateMetric({ expanded: details.open })}
       className={metricRowStyle}
     >
+      {metric.kind === "expression" ? (
+        <ExperimentMetricLspSession
+          code={metric.code}
+          metricSessionId={metric.metricSessionId}
+          onChange={onLspDiagnosticsChange}
+        />
+      ) : null}
       <div className={metricRowHeaderStyle}>
         <div className={metricHeaderMainStyle}>
           <Collapsible.Trigger className={metricCollapseButtonStyle} asChild>
@@ -752,6 +800,8 @@ const ExperimentMetricRow = ({
           {metric.kind === "expression" ? (
             <ExperimentExpressionMetricEditor
               code={metric.code}
+              metricSessionId={metric.metricSessionId}
+              lspDiagnostics={metric.lspDiagnostics}
               readOnly={metric.sourceMetricId !== null}
               onChange={(code) => updateMetric({ code })}
             />
@@ -804,6 +854,10 @@ export const CreateExperimentDrawer = ({
     ...scenarios.map((s) => ({ value: s.id, label: s.name })),
   ];
   const metricKindGroups = createMetricKindGroups(petriNetDefinition);
+  const metricDiagnosticError =
+    getExperimentMetricDiagnosticError(metricDrafts);
+  const footerError = error ?? metricDiagnosticError;
+  const canRun = !isSubmitting && metricDiagnosticError === null;
 
   const resetForm = () => {
     setName(DEFAULT_EXPERIMENT_NAME);
@@ -837,6 +891,7 @@ export const CreateExperimentDrawer = ({
   const handleAddMetric = () => {
     const nextMetric = createDefaultMetricDraft(petriNetDefinition);
 
+    setError(null);
     setMetricLabelFocusId(nextMetric.id);
     setMetricDrafts((prev) => [
       ...prev.map((metric) => ({ ...metric, expanded: false })),
@@ -845,12 +900,42 @@ export const CreateExperimentDrawer = ({
   };
 
   const handleMetricChange = (nextMetric: ExperimentMetricDraft) => {
+    setError(null);
     setMetricDrafts((prev) =>
       prev.map((metric) => (metric.id === nextMetric.id ? nextMetric : metric)),
     );
   };
 
+  const handleMetricLspDiagnosticsChange = (
+    metricId: string,
+    diagnostics: MetricLspDiagnosticSummary,
+  ) => {
+    setMetricDrafts((prev) => {
+      const currentMetric = prev.find((metric) => metric.id === metricId);
+
+      if (
+        !currentMetric ||
+        areMetricLspDiagnosticSummariesEqual(
+          currentMetric.lspDiagnostics,
+          diagnostics,
+        )
+      ) {
+        return prev;
+      }
+
+      return prev.map((metric) =>
+        metric.id === metricId
+          ? {
+              ...metric,
+              lspDiagnostics: diagnostics,
+            }
+          : metric,
+      );
+    });
+  };
+
   const handleMetricRemove = (metricId: string) => {
+    setError(null);
     setMetricDrafts((prev) => prev.filter((metric) => metric.id !== metricId));
   };
 
@@ -860,6 +945,11 @@ export const CreateExperimentDrawer = ({
     }
 
     setError(null);
+
+    if (metricDiagnosticError) {
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -1011,6 +1101,9 @@ export const CreateExperimentDrawer = ({
                     kindGroups={metricKindGroups}
                     autoFocusLabel={metric.id === metricLabelFocusId}
                     onChange={handleMetricChange}
+                    onLspDiagnosticsChange={(diagnostics) =>
+                      handleMetricLspDiagnosticsChange(metric.id, diagnostics)
+                    }
                     onRemove={() => handleMetricRemove(metric.id)}
                   />
                 ))}
@@ -1020,7 +1113,7 @@ export const CreateExperimentDrawer = ({
         </Drawer.Body>
       </Drawer.Card>
       <Drawer.Footer>
-        {error ? <span className={errorStyle}>{error}</span> : null}
+        {footerError ? <span className={errorStyle}>{footerError}</span> : null}
         <Button
           variant="subtle"
           tone="neutral"
@@ -1034,7 +1127,8 @@ export const CreateExperimentDrawer = ({
           variant="solid"
           tone="neutral"
           size="sm"
-          disabled={isSubmitting}
+          disabled={!canRun}
+          tooltip={metricDiagnosticError ?? undefined}
           prefix={
             isSubmitting ? (
               <LoadingSpinner size="sm" variant="bars" />
