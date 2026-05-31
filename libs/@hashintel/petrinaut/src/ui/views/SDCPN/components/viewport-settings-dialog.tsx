@@ -7,6 +7,7 @@ import { UserSettingsContext } from "../../../../react/state/user-settings-conte
 import { Dialog } from "../../../components/dialog";
 import { Select } from "../../../components/select";
 import { Switch } from "../../../components/switch";
+import { WalkthroughContext } from "../../../components/walkthrough/walkthrough-context";
 
 import type { ArcRendering } from "../../../../react/state/user-settings-context";
 
@@ -102,7 +103,12 @@ export const ViewportSettingsDialog: React.FC<ViewportSettingsDialogProps> = ({
     setPartialSelection,
     useEntitiesTreeView,
     setUseEntitiesTreeView,
+    showWalkthroughOnInit,
+    setShowWalkthroughOnInit,
   } = use(UserSettingsContext);
+
+  const walkthrough = use(WalkthroughContext);
+  const hasWalkthrough = walkthrough !== null && walkthrough.steps.length > 0;
 
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
@@ -184,6 +190,17 @@ export const ViewportSettingsDialog: React.FC<ViewportSettingsDialogProps> = ({
                 portal={false}
               />
             </SettingRow>
+            {hasWalkthrough && (
+              <SettingRow
+                label="Show onboarding on init"
+                description="Open the product walkthrough the next time you open the app"
+              >
+                <Switch
+                  checked={showWalkthroughOnInit}
+                  onCheckedChange={setShowWalkthroughOnInit}
+                />
+              </SettingRow>
+            )}
           </Dialog.Body>
         </Dialog.Card>
         <Dialog.Footer>

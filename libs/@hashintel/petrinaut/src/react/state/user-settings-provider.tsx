@@ -78,8 +78,8 @@ export const UserSettingsProvider: React.FC<React.PropsWithChildren> = ({
       setState((prev) => ({ ...prev, partialSelection: value })),
     setUseEntitiesTreeView: (value: boolean) =>
       setState((prev) => ({ ...prev, useEntitiesTreeView: value })),
-    setIsWalkthroughOpen: (value: boolean) =>
-      setState((prev) => ({ ...prev, isWalkthroughOpen: value })),
+    setShowWalkthroughOnInit: (value: boolean) =>
+      setState((prev) => ({ ...prev, showWalkthroughOnInit: value })),
     updateSubViewSection: (
       containerName: string,
       sectionId: string,
