@@ -377,7 +377,7 @@ jobs:
           DIGEST: ${{ steps.build.outputs.ghcr-digest }}
         run: |
           mkdir -p "$RUNNER_TEMP/digests"
-          touch "$RUNNER_TEMP/digests/${DIGEST#sha256:}"
+          echo "$DIGEST" > "$RUNNER_TEMP/digests/${{ matrix.service }}-${{ matrix.arch }}"
 
       - name: Upload GHCR digest
         if: steps.targets.outputs.push_ghcr == 'true'
@@ -486,7 +486,9 @@ jobs:
           retry_wait_seconds: 10
           command: |
             cd "$RUNNER_TEMP/digests"
-            docker buildx imagetools create --tag "$IMAGE:sha-$SHA" $(printf "$IMAGE@sha256:%s " *)
+            refs="$(cat ./* 2>/dev/null | sed "s|^|$IMAGE@|")"
+            [ -n "$refs" ] || { echo "::error ::no digests collected for $IMAGE"; exit 1; }
+            docker buildx imagetools create --tag "$IMAGE:sha-$SHA" $refs
 
       # :latest is mutable -> advance onto :sha-<sha> only if this commit is newer
       # than the one :latest currently points at. Relies on this job's `queue: max`
