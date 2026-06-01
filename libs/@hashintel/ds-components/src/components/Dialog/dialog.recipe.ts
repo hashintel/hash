@@ -168,6 +168,9 @@ export const styles = sva({
       '[aria-busy="true"] &': {
         overflow: "hidden",
       },
+      _focusVisible: {
+        outlineColor: "neutral.a50",
+      },
     },
     footer: {
       flex: "[0 0 auto]",
