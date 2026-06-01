@@ -14,8 +14,8 @@ export type SharedInputAndFieldProps = {
   disabled?: boolean;
   /** Set to show the input as required */
   required?: boolean;
-  /** Set to show the input as invalid */
-  invalid?: boolean;
+  /** The size (height) of the element */
+  size?: FormInputSize;
 };
 
 // All input components should extend from these props
@@ -35,10 +35,12 @@ export type SharedInputProps<
   onFocus?: React.FocusEventHandler<Element>;
   /** The onBlur handler */
   onBlur?: React.FocusEventHandler<Element>;
-  /** The size (height) of the element */
-  size?: FormInputSize;
+  /** Set to show the input as invalid */
+  invalid?: boolean;
   /** An optional testId */
   testId?: string;
+  /** An id to manually link a label to this input. Since <FormField> automatically sets this id, this is usually not required. */
+  htmlForId?: string;
   /** The ref of the containing element. Use this for measurements/placement */
   ref?: React.Ref<HTMLElement>;
   /** The input ref - this could be different to the ref, which may be a containing element. Use this to access the internal input state and/or to set focus */

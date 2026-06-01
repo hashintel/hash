@@ -228,6 +228,17 @@ impl<A: Allocator> CallGraph<'_, A> {
 
         Some(DefId::new(edge.source().as_u32()))
     }
+
+    #[inline]
+    pub fn callers(&self, def: DefId) -> impl Iterator<Item = CallSite> {
+        let node = NodeId::from_usize(def.as_usize());
+
+        self.inner.incoming_edges(node).map(move |edge| CallSite {
+            caller: DefId::new(edge.source().as_u32()),
+            kind: edge.data,
+            target: def,
+        })
+    }
 }
 
 impl<A: Allocator> fmt::Display for CallGraph<'_, A> {

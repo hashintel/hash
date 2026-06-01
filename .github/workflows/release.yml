@@ -51,6 +51,7 @@ jobs:
         with:
           publish: yarn changeset:publish
           version: yarn changeset:version
+          commitMode: github-api
         env:
           GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

@@ -102,7 +102,12 @@ export default TransitionKernel((tokensByPlace, parameters) => {
 });
 ```
 
-`tokensByPlace` is keyed by **place name**. Each value is an array of token objects from that input place. The return value is keyed by **output place name**, each containing an array of token objects to produce.
+`tokensByPlace` is keyed by **place name**. Each value is a tuple of token objects -- one entry per token consumed from that arc, sized to the arc weight. The return value is keyed by **output place name**, each containing an array of token objects to produce sized to the output arc weight.
+
+Two important asymmetries:
+
+- **Uncoloured input places and inhibitor arcs are not included in `tokensByPlace`**. Only typed input places appear, and only for normal (non-inhibitor) arcs.
+- **Uncoloured output places do not need to appear in the return value** -- the engine generates the correct number of plain tokens automatically based on the output arc weight. Coloured output places must appear with one token object per token produced.
 
 Use the menu in the code editor header to **Load default template** for a starting point.
 
@@ -163,6 +168,8 @@ export default Lambda((tokensByPlace, parameters) => {
   return parameters.rate;
 });
 ```
+
+The same `tokensByPlace` rules from the [Transition kernel](#transition-kernel) section apply: only typed input places appear, and only for normal arcs. A transition with **no input arcs** therefore sees an empty `tokensByPlace` and is always structurally enabled -- this is how you model exogenous arrivals (see [Source transitions](useful-patterns.md#source-transitions-exogenous-arrivals)).
 
 ## Inhibitor arcs
 

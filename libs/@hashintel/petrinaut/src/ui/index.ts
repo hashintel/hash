@@ -23,3 +23,16 @@ export type { ViewportAction } from "./types/viewport-action";
 
 // Slots — named locations into which the host can inject arbitrary React components.
 export type { PetrinautSlots } from "./types/petrinaut-slots";
+
+// Walkthrough — first-visit product tour. Exposed so embedders can drive it
+// programmatically (e.g. trigger from their own help menu) without relying on
+// the built-in TopBar button.
+export {
+  WalkthroughContext,
+  WalkthroughProvider,
+  WalkthroughDialog,
+} from "./components/walkthrough";
+export type {
+  WalkthroughContextValue,
+  WalkthroughStep,
+} from "./components/walkthrough";

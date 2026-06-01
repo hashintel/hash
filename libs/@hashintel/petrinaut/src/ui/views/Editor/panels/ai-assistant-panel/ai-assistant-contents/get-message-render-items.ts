@@ -1,6 +1,7 @@
 import {
   getLatestNetDefinitionToolName,
   getNetCompilationErrorsToolName,
+  readPetrinautDocToolName,
 } from "@hashintel/petrinaut-core";
 
 import { isToolPart, toToolRenderItem, type ToolRenderItem } from "./tool-list";
@@ -69,7 +70,8 @@ export const getMessageRenderItems = (
 
       if (
         tool.toolName === getLatestNetDefinitionToolName ||
-        tool.toolName === getNetCompilationErrorsToolName
+        tool.toolName === getNetCompilationErrorsToolName ||
+        tool.toolName === readPetrinautDocToolName
       ) {
         flushTools();
         pendingTools.push(tool);

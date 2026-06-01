@@ -4,13 +4,48 @@
 
 The editor is organized around a central canvas where you build your net:
 
+- **Top bar** -- net management menu, optional title field, **Edit / Simulate** mode switcher, active-experiments indicator, recent-changes history. See [Top bar](#top-bar).
 - **Canvas** (center) -- the main workspace where places and transitions are displayed and connected.
 - **Left sidebar** -- lists of entities organized into tabs: Nodes, Types, Differential Equations, Parameters.
 - **Properties panel** (right) -- opens when you select an entity, showing its configurable properties.
 - **Bottom panel** -- tabs for Diagnostics (code errors), Simulation Settings, and Timeline (during simulation).
-- **Bottom toolbar** -- editing mode buttons and simulation controls (+ show/hide toggle for bottom panel).
+- **Bottom toolbar** -- editing mode buttons, simulation controls, the AI assistant toggle, and a show/hide button for the bottom panel.
 
 <img width="1793" height="1175" alt="full-editor" src="https://github.com/user-attachments/assets/ea41efe8-9056-479b-a936-e0d5e4196b11" />
+
+## Top bar
+
+Spans the full editor width and has three sections.
+
+**Left**
+
+- **Sidebar toggle** -- collapses or expands the left sidebar.
+- **Menu** (hamburger icon) -- file operations: **Export** (JSON / JSON without visual info / TikZ), **Layout** (apply auto-layout), and **Docs**. A standalone embed of Petrinaut may additionally show **New**, **Open**, **Import**, and **Load example**.
+- **Net title** -- editable inline title for the current net. Whether the title field is shown depends on the host application; the demo site shows it, but a Petrinaut embedded in another product may hide it.
+
+**Center**
+
+- **Edit / Simulate / Actual** mode switcher. See [Edit vs Simulate mode](#edit-vs-simulate-mode) below.
+
+**Right**
+
+- **Active experiments** -- a flask icon with a count (e.g. "2 active") that appears only when [Monte Carlo experiments](experiments.md) are initializing or running. Clicking it opens a popover; clicking a row jumps to that experiment in Simulate mode.
+- **Recent changes** (clock icon) -- a dropdown listing your recent undo/redo checkpoints with timestamps. Click any entry to jump to that state. This is the same history you walk via Cmd/Ctrl+Z and Cmd/Ctrl+Shift+Z.
+- The host application may add additional buttons here (login, share, ...).
+
+## Edit vs Simulate mode
+
+Petrinaut has two global modes, switched via the centre control in the top bar.
+
+| Mode         | Workspace                                                                                                                                                                                 |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Edit**     | Canvas + left sidebar + properties panel + bottom panel + bottom toolbar (with AI assistant). This is where you draw the net, configure entities, write code, and run single simulations. |
+| **Simulate** | Replaces the workspace with the [Scenarios](scenarios.md) and [Experiments](experiments.md) management views.                                                                             |
+| **Actual**   | Reserved for a future live-data mode.                                                                                                                                                     |
+
+In Simulate mode the net structure becomes read-only -- you can still create, edit, and delete scenarios and metrics, but you cannot change places, transitions, arcs, types, or parameters. Switch back to Edit mode to modify the net.
+
+Switching modes does not stop background experiments. The active-experiments indicator remains visible in the top bar from either mode.
 
 ## Adding places and transitions
 
@@ -110,12 +145,13 @@ When enabled, node positions snap to a grid when placing or dragging. Toggle thi
 
 ## Import and export
 
-From the hamburger menu (top-left):
+From the top-bar menu (hamburger icon), under **Export**:
 
-- **Export as JSON** -- saves the full net definition including positions and visual styling.
-- **Export as JSON without visual info** -- strips node positions and type display colours. Useful for sharing the logical structure only.
-- **Export as TikZ** -- generates a `.tex` file with a structural diagram. This is a simplified view: no colours, inhibitor arcs, dynamics, or token types are encoded. Intended for papers and presentations.
-- **Import from JSON** -- loads a net from a `.json` file. If node positions are missing, an automatic layout is applied.
+- **JSON** -- the full SDCPN: places, transitions, arcs, types, dynamics, parameters, scenarios, metrics, **and** canvas positions / display colours. The format other Petrinaut instances can re-import faithfully.
+- **JSON without visual info** -- the same payload minus node positions and type display colours. Useful when only the logical structure matters (sharing for review, embedding in another tool, comparing two nets without layout noise). On import, the receiving editor applies auto-layout to fill in positions.
+- **TikZ** -- a `.tex` file with a structural diagram. This is a simplified view: only the place / transition / arc structure is included. Token types, dynamics, inhibitor arcs, scenarios, and metrics are **not** encoded. Intended for papers and presentations.
+
+**Import**: loads a net from a `.json` file. If node positions are missing, an automatic layout is applied on load.
 
 ## Auto-layout
 

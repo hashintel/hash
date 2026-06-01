@@ -70,10 +70,31 @@ const clamp = (value: number, min: number, max: number) =>
  * viewbox, so a small/sparse net doesn't end up as a handful of dots in a
  * sea of whitespace.
  */
+/**
+ * Stable empty-array references used as defensive fallbacks below, so the
+ * memo dep arrays don't churn when a field is missing on every render.
+ */
+const EMPTY_PLACES: SDCPN["places"] = [];
+const EMPTY_TRANSITIONS: SDCPN["transitions"] = [];
+const EMPTY_TYPES: SDCPN["types"] = [];
+
+/**
+ * The persisted `definition-object` property is cast to {@link SDCPN}
+ * without any runtime validation, so the value we receive here might be
+ * partial or malformed (e.g. nets created before a schema change). Fall
+ * back to empty arrays rather than letting a missing field crash the
+ * whole list page.
+ */
 export const PetriNetPreview = ({ sdcpn }: { sdcpn: SDCPN }) => {
+  const places = Array.isArray(sdcpn.places) ? sdcpn.places : EMPTY_PLACES;
+  const transitions = Array.isArray(sdcpn.transitions)
+    ? sdcpn.transitions
+    : EMPTY_TRANSITIONS;
+  const types = Array.isArray(sdcpn.types) ? sdcpn.types : EMPTY_TYPES;
+
   const nodes: Node[] = useMemo(
     () => [
-      ...sdcpn.places.map(
+      ...places.map(
         (place): Node => ({
           kind: "place",
           x: place.x,
@@ -81,7 +102,7 @@ export const PetriNetPreview = ({ sdcpn }: { sdcpn: SDCPN }) => {
           colorId: place.colorId,
         }),
       ),
-      ...sdcpn.transitions.map(
+      ...transitions.map(
         (transition): Node => ({
           kind: "transition",
           x: transition.x,
@@ -89,16 +110,16 @@ export const PetriNetPreview = ({ sdcpn }: { sdcpn: SDCPN }) => {
         }),
       ),
     ],
-    [sdcpn.places, sdcpn.transitions],
+    [places, transitions],
   );
 
   const colorById = useMemo(() => {
     const map = new Map<string, string>();
-    for (const type of sdcpn.types) {
+    for (const type of types) {
       map.set(type.id, type.displayColor);
     }
     return map;
-  }, [sdcpn.types]);
+  }, [types]);
 
   if (nodes.length === 0) {
     return (

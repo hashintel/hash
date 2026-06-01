@@ -8,9 +8,10 @@ The HASH repository is organized into several key directories:
   - `/hash-api` - Backend API service
   - `/hash-frontend` - Web frontend application
   - `/hash-graph` - Graph database service
-  - `/hash-external-services` - External service integrations
   - `/hash-ai-worker-ts` - AI worker services
   - `/hash-integration-worker` - Integration worker services
+
+- `/infra/compose` - Docker Compose stack for external services (Postgres, Kratos, Hydra, Temporal, observability)
 
 - `/blocks` - Block Protocol components (each subfolder contains a self-contained block)
 
@@ -79,6 +80,22 @@ cargo clippy --all-features --package <package-name>
 ```
 
 For Rust packages, you can add features as needed with `--all-features`, specific features like `--features=foo,bar`, or use `cargo-hack` with `--feature-powerset` for comprehensive feature testing.
+
+## Documentation Maintenance
+
+### Petrinaut user-facing docs
+
+The Petrinaut user guide lives at `libs/@hashintel/petrinaut/docs/*.md` and is the source of truth for end-user behaviour. The in-app AI assistant reads these pages at runtime via the `readPetrinautDoc` tool, so stale docs lead directly to wrong advice in the product.
+
+When you change UI or behaviour in the petrinaut packages (`libs/@hashintel/petrinaut`, `libs/@hashintel/petrinaut-core`), you MUST:
+
+1. Review the user-facing docs that mention the affected feature and update them in the same change.
+2. If you add a brand-new user-facing surface (panel, view, mode, tool, settings dialog, ...), add a corresponding page and link it from `libs/@hashintel/petrinaut/docs/README.md`.
+3. When you add a new doc page, also register it in `petrinautDocNames` and `petrinautDocSummaries` in `libs/@hashintel/petrinaut-core/src/ai.ts`, and add a `?raw` import in `libs/@hashintel/petrinaut/src/ui/views/Editor/panels/ai-assistant-panel/petrinaut-docs-content.ts`. The tests in `libs/@hashintel/petrinaut-core/src/ai.test.ts` and `petrinaut-docs-content.test.ts` enforce that every enum value has a summary and a content entry.
+4. Keep the docs end-user-focused: describe what the user sees, what they click, what happens. Do not document Storybook, internal modules, or test setup in the user guide.
+5. If UI are changes that may make screenshots in the docs outdated, you MUST prompt your user to replace the screenshots.
+
+If a change ships without doc updates, call that out in your summary so the user can decide whether to follow up.
 
 ## Contextual Rules
 

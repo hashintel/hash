@@ -6,6 +6,7 @@ import {
   getLatestNetDefinitionToolName,
   getNetCompilationErrorsToolName,
   petrinautAiMutationTools,
+  readPetrinautDocToolName,
   type SelectionItem,
   setNetTitleToolName,
 } from "@hashintel/petrinaut-core";
@@ -23,6 +24,11 @@ import type { InteractiveToolDefinition } from "../interactive-tools/types";
 import type { PetrinautAiMessage } from "../types";
 
 export type ToolTone = "danger" | "info" | "neutral" | "success";
+
+// User-guide pages are published in the repo, so a doc tool row links to the
+// matching markdown page on GitHub (matching the editor "Docs" menu entry).
+const petrinautDocsBaseUrl =
+  "https://github.com/hashintel/hash/blob/main/libs/%40hashintel/petrinaut/docs";
 
 export type ToolRenderItem = {
   id: string;
@@ -205,6 +211,12 @@ const toolItemStyle = cva({
         borderColor: "green.a40",
       },
     },
+    link: {
+      true: {
+        cursor: "pointer",
+        textDecoration: "none",
+      },
+    },
   },
 });
 
@@ -345,6 +357,18 @@ export const getToolSummaryFromPart = (
   if (toolName === getNetCompilationErrorsToolName) {
     return { title: "Checked net compilation errors" };
   }
+  if (toolName === readPetrinautDocToolName) {
+    const docName =
+      typeof part.input === "object" &&
+      part.input !== null &&
+      typeof (part.input as { doc?: unknown }).doc === "string"
+        ? (part.input as { doc: string }).doc
+        : undefined;
+    return {
+      title: docName ? `Read user guide: ${docName}` : "Read user guide",
+      href: docName ? `${petrinautDocsBaseUrl}/${docName}.md` : undefined,
+    };
+  }
   if (toolName === setNetTitleToolName) {
     const proposedTitle =
       typeof part.input === "object" &&
@@ -410,7 +434,8 @@ const getToolTone = ({
 
   if (
     toolName === getLatestNetDefinitionToolName ||
-    toolName === getNetCompilationErrorsToolName
+    toolName === getNetCompilationErrorsToolName ||
+    toolName === readPetrinautDocToolName
   ) {
     return "neutral";
   }
@@ -501,9 +526,39 @@ const ToolItem = ({
   const complete = tool.state === "output-available";
   const errored = tool.state === "output-error";
   const target = tool.summary.target;
+  const href = tool.summary.href;
   const children = tool.summary.items ?? [];
   const expandable = children.length > 0;
   const title = errored ? `${tool.toolName} errored` : tool.summary.title;
+
+  if (href && !errored) {
+    return (
+      <a
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={toolItemStyle({ tone: tool.tone, link: true })}
+        data-tone={tool.tone}
+      >
+        <span
+          className={toolStatusStyle({
+            state: complete ? "complete" : "active",
+            tone: tool.tone,
+          })}
+        >
+          {complete ? <Icon name="check" size="xs" /> : null}
+        </span>
+        <span className={toolTextStyle}>
+          <span>{title}</span>
+          {tool.summary.detail && (
+            <span className={toolDetailStyle} data-testid="tool-detail">
+              {tool.summary.detail}
+            </span>
+          )}
+        </span>
+      </a>
+    );
+  }
 
   const button = (
     <button
