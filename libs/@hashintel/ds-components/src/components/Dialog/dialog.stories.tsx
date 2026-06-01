@@ -100,7 +100,7 @@ export const Examples: Story = () => (
         title: "Edit workspace",
         titleIconName: "gear",
         description: "Update the details for your workspace.",
-        actions: (
+        titleActions: (
           <Button
             variant="ghost"
             tone="neutral"
@@ -245,7 +245,7 @@ const buildKitchenSink = (
   title: `Kitchen sink (${size})`,
   titleIconName: "gear",
   description: "All the bells and whistles, sized for this width.",
-  actions: (
+  titleActions: (
     <Button
       variant="ghost"
       tone="neutral"

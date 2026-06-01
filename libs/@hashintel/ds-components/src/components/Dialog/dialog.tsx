@@ -28,7 +28,7 @@ export const Dialog = ({
   title,
   description,
   titleIconName,
-  actions,
+  titleActions,
   footer,
   footerActions,
   footerSecondaryActions,
@@ -51,7 +51,7 @@ export const Dialog = ({
       title?: React.ReactNode;
       description?: React.ReactNode;
       titleIconName?: IconName;
-      actions?: React.ReactNode;
+      titleActions?: React.ReactNode;
     }
   | {
       header?: React.ReactNode;
@@ -71,7 +71,7 @@ export const Dialog = ({
     title !== undefined ||
     description !== undefined ||
     titleIconName !== undefined ||
-    actions !== undefined;
+    titleActions !== undefined;
   const hasHeader = header !== undefined || hasStructuredHeader;
 
   const hasStructuredFooter =
@@ -107,9 +107,9 @@ export const Dialog = ({
         {title && (
           <ArkDialog.Title className={classes.title}>{title}</ArkDialog.Title>
         )}
-        {actions ? (
+        {titleActions ? (
           <div className={classes.headerRight}>
-            <div className={classes.headerActions}>{actions}</div>
+            <div className={classes.headerActions}>{titleActions}</div>
             {closeButton}
           </div>
         ) : (
