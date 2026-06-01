@@ -52,7 +52,7 @@ const labelStyle = css({
 
 const gridStyle = css({
   display: "grid",
-  gridTemplateColumns: "[repeat(2, minmax(0, 1fr))]",
+  gridTemplateColumns: "[repeat(3, minmax(0, 1fr))]",
   gap: "3",
 });
 
@@ -1040,15 +1040,6 @@ export const CreateExperimentDrawer = ({
                   />
                 </div>
                 <div className={fieldStyle}>
-                  <span className={labelStyle}>Seed</span>
-                  <NumberInput
-                    size="md"
-                    step={1}
-                    value={seed}
-                    onChange={(event) => setSeed(event.currentTarget.value)}
-                  />
-                </div>
-                <div className={fieldStyle}>
                   <span className={labelStyle}>Time step</span>
                   <NumberInput
                     size="md"
@@ -1073,7 +1064,6 @@ export const CreateExperimentDrawer = ({
 
             <Section title="Scenario" collapsible defaultOpen>
               <div className={fieldStyle}>
-                <span className={labelStyle}>Scenario</span>
                 <Select
                   value={effectiveSelectedScenarioId}
                   onValueChange={handleScenarioChange}
