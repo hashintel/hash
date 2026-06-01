@@ -491,9 +491,11 @@ jobs:
             docker buildx imagetools create --tag "$IMAGE:sha-$SHA" $refs
 
       # :latest is mutable -> advance onto :sha-<sha> only if this commit is newer
-      # than the one :latest currently points at. Relies on this job's `queue: max`
-      # group for a race-free check-then-set.
+      # than the one :latest currently points at. main-only: a feature-branch
+      # dispatch would otherwise move :latest onto a commit no later main push
+      # descends from, permanently blocking the guard from ever advancing it again.
       - name: Advance :latest if newer
+        if: github.ref == 'refs/heads/main'
         uses: ./.github/actions/tag-if-newer
         with:
           image: ghcr.io/${{ github.repository_owner }}/hash/${{ matrix.service }}
