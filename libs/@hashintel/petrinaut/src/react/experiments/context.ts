@@ -1,8 +1,9 @@
 import { createContext } from "react";
 
 import type {
+  MonteCarloMetricSpec,
+  MonteCarloUserDefinedMetricFrame,
   MonteCarloWorkerProgress,
-  PlaceTokenCountDistributionFrame,
 } from "@hashintel/petrinaut-core";
 
 export type ExperimentStatus =
@@ -20,6 +21,7 @@ export type CreateExperimentInput = {
   seed: number;
   dt: number;
   maxTime: number;
+  metricSpecs: readonly MonteCarloMetricSpec[];
 };
 
 export type ExperimentRecord = {
@@ -34,8 +36,12 @@ export type ExperimentRecord = {
   maxTime: number;
   status: ExperimentStatus;
   error: string | null;
+  metricSpecs: readonly MonteCarloMetricSpec[];
   progress: MonteCarloWorkerProgress | null;
-  distributionFrames: readonly PlaceTokenCountDistributionFrame[];
+  metricFrames: readonly MonteCarloUserDefinedMetricFrame[];
+  latestMetricFramesById: Readonly<
+    Record<string, MonteCarloUserDefinedMetricFrame>
+  >;
 };
 
 export function isExperimentActive(experiment: ExperimentRecord): boolean {

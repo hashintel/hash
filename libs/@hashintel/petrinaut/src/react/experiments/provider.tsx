@@ -36,6 +36,10 @@ type ExperimentHandleRegistration = {
   off: () => void;
 };
 
+type PendingExperimentRegistration = {
+  abortController: AbortController;
+};
+
 function mapExperimentStatus(
   status: MonteCarloExperimentState,
 ): ExperimentStatus {
@@ -52,6 +56,10 @@ function mapExperimentStatus(
     case "Cancelled":
       return "cancelled";
   }
+}
+
+function isAbortError(error: unknown): boolean {
+  return error instanceof Error && error.name === "AbortError";
 }
 
 function parseScenarioParameterValue(
@@ -127,6 +135,27 @@ function assertExperimentInput(input: CreateExperimentInput): void {
   if (!Number.isFinite(input.maxTime) || input.maxTime <= 0) {
     throw new Error("Max time must be a positive number");
   }
+  if (input.metricSpecs.length === 0) {
+    throw new Error("Define at least one metric");
+  }
+
+  const metricIds = new Set<string>();
+  for (const metricSpec of input.metricSpecs) {
+    const metricId = metricSpec.id.trim();
+    if (metricId === "") {
+      throw new Error("Metric id is required");
+    }
+    if (metricIds.has(metricId)) {
+      throw new Error(`Metric id "${metricId}" is duplicated`);
+    }
+    metricIds.add(metricId);
+    if (metricSpec.label.trim() === "") {
+      throw new Error("Metric label is required");
+    }
+    if (metricSpec.kind === "expression" && metricSpec.code.trim() === "") {
+      throw new Error(`Metric "${metricSpec.label}" code is required`);
+    }
+  }
 }
 
 export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
@@ -140,6 +169,9 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
   const registrationsRef = useRef(
     new Map<string, ExperimentHandleRegistration>(),
   );
+  const pendingRegistrationsRef = useRef(
+    new Map<string, PendingExperimentRegistration>(),
+  );
   const [experiments, setExperiments] = useState<ExperimentRecord[]>([]);
   const [selectedExperimentId, setSelectedExperimentId] = useState<
     string | null
@@ -148,7 +180,12 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
 
   useEffect(() => {
     const registrations = registrationsRef.current;
+    const pendingRegistrations = pendingRegistrationsRef.current;
     return () => {
+      for (const registration of pendingRegistrations.values()) {
+        registration.abortController.abort();
+      }
+      pendingRegistrations.clear();
       for (const registration of registrations.values()) {
         registration.off();
         registration.handle.dispose();
@@ -171,6 +208,13 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
   };
 
   const disposeExperimentHandle = (experimentId: string) => {
+    const pendingRegistration =
+      pendingRegistrationsRef.current.get(experimentId);
+    if (pendingRegistration) {
+      pendingRegistration.abortController.abort();
+      pendingRegistrationsRef.current.delete(experimentId);
+    }
+
     const registration = registrationsRef.current.get(experimentId);
     if (!registration) {
       return;
@@ -189,7 +233,8 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
 
     const sync = () => {
       patchExperiment(experimentId, {
-        distributionFrames: handle.distributions.get().frames,
+        latestMetricFramesById: handle.metrics.get().latestByMetricId,
+        metricFrames: handle.metrics.get().frames,
         progress: handle.progress.get(),
         status: mapExperimentStatus(handle.status.get()),
       });
@@ -197,7 +242,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
 
     const unsubscribeStatus = handle.status.subscribe(sync);
     const unsubscribeProgress = handle.progress.subscribe(sync);
-    const unsubscribeDistributions = handle.distributions.subscribe(sync);
+    const unsubscribeMetrics = handle.metrics.subscribe(sync);
     const unsubscribeEvents = handle.events.subscribe((event) => {
       if (event.type === "error") {
         patchExperiment(experimentId, {
@@ -229,7 +274,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
       off: () => {
         unsubscribeStatus();
         unsubscribeProgress();
-        unsubscribeDistributions();
+        unsubscribeMetrics();
         unsubscribeEvents();
       },
     });
@@ -295,15 +340,20 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
       maxTime: input.maxTime,
       status: "initializing",
       error: null,
+      metricSpecs: input.metricSpecs,
       progress: null,
-      distributionFrames: [],
+      latestMetricFramesById: {},
+      metricFrames: [],
     };
 
     setExperiments((prev) => [experiment, ...prev]);
     setSelectedExperimentId(experimentId);
 
-    try {
-      const handle = await createMonteCarloExperiment({
+    const abortController = new AbortController();
+    pendingRegistrationsRef.current.set(experimentId, { abortController });
+
+    const initializeExperiment = async () => {
+      const experimentConfigBase = {
         sdcpn,
         initialMarking,
         parameterValues,
@@ -311,17 +361,44 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
         dt: input.dt,
         maxTime: input.maxTime,
         runCount: input.runCount,
-        createWorker: workerFactoryRef.current,
-      });
-      registerExperimentHandle(experiment, handle);
-      handle.start();
-    } catch (error) {
-      patchExperiment(experimentId, {
-        error: error instanceof Error ? error.message : String(error),
-        status: "error",
-      });
-      throw error;
-    }
+      };
+
+      try {
+        const handle = await createMonteCarloExperiment({
+          ...experimentConfigBase,
+          createWorker: workerFactoryRef.current,
+          metricSpecs: input.metricSpecs,
+          signal: abortController.signal,
+        });
+
+        if (!pendingRegistrationsRef.current.has(experimentId)) {
+          handle.dispose();
+          return;
+        }
+
+        pendingRegistrationsRef.current.delete(experimentId);
+        registerExperimentHandle(experiment, handle);
+        handle.start();
+      } catch (error) {
+        const wasPending = pendingRegistrationsRef.current.delete(experimentId);
+
+        if (!wasPending && isAbortError(error)) {
+          return;
+        }
+
+        const message = error instanceof Error ? error.message : String(error);
+        patchExperiment(experimentId, {
+          error: message,
+          status: "error",
+        });
+        addNotification({
+          message: `${experiment.name} failed: ${message}`,
+          tone: "error",
+        });
+      }
+    };
+
+    void initializeExperiment();
 
     return experimentId;
   };
@@ -329,6 +406,15 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
   const cancelExperiment: ExperimentsContextValue["cancelExperiment"] = (
     experimentId,
   ) => {
+    const pendingRegistration =
+      pendingRegistrationsRef.current.get(experimentId);
+    if (pendingRegistration) {
+      pendingRegistrationsRef.current.delete(experimentId);
+      pendingRegistration.abortController.abort();
+      patchExperiment(experimentId, { status: "cancelled" });
+      return;
+    }
+
     registrationsRef.current.get(experimentId)?.handle.cancel();
   };
 

@@ -1,5 +1,11 @@
 export { createMonteCarloSimulator } from "./monte-carlo-simulator";
-export { createPlaceTokenCountDistributionMetric } from "./metrics";
+export {
+  addAllMonteCarloMetricValues,
+  createMonteCarloMetricHistogramAccumulator,
+  createMonteCarloMetricNumericAccumulator,
+  createMonteCarloUserDefinedMetricConfigsFromSpecs,
+  createMonteCarloUserDefinedMetric,
+} from "./metrics";
 export { createMonteCarloExperiment } from "./runtime/experiment";
 export type {
   MonteCarloAdvanceResult,
@@ -13,18 +19,38 @@ export type {
 } from "./types";
 export type {
   MonteCarloActiveRunPlaceCountsVisitor,
+  MonteCarloExpressionMetricSpec,
   MonteCarloFrameMetric,
   MonteCarloFrameMetricContext,
-  PlaceTokenCountDistributionBin,
-  PlaceTokenCountDistributionFrame,
-  PlaceTokenCountDistributionMetric,
-  PlaceTokenCountDistributionPlace,
+  MonteCarloMetricDistributionBinning,
+  MonteCarloMetricHistogramAccumulatorState,
+  MonteCarloMetricMonoid,
+  MonteCarloMetricNumericAccumulatorState,
+  MonteCarloMetricSpec,
+  MonteCarloMetricSpecBase,
+  MonteCarloMetricRunOutput,
+  MonteCarloMetricRunStatus,
+  MonteCarloMetricValueAccumulator,
+  MonteCarloPlaceTokenCountMeanMetricSpec,
+  MonteCarloRunFrameMetricView,
+  MonteCarloRunFrameMetricVisitor,
+  MonteCarloTransitionFiringCountMetricSpec,
+  MonteCarloUserDefinedMetric,
+  MonteCarloUserDefinedMetricAggregation,
+  MonteCarloUserDefinedMetricConfig,
+  MonteCarloUserDefinedDistributionMetricFrame,
+  MonteCarloUserDefinedMetricDistributionBin,
+  MonteCarloUserDefinedMetricFrame,
+  MonteCarloUserDefinedMetricMeasureInput,
+  MonteCarloUserDefinedMetricSampleRuns,
+  MonteCarloUserDefinedScalarMetricFrame,
+  MonteCarloUserDefinedMetricTimeAggregation,
 } from "./metrics";
 export type {
   CreateMonteCarloExperimentConfig,
   MonteCarloExperiment,
-  MonteCarloExperimentDistributions,
   MonteCarloExperimentEvent,
+  MonteCarloExperimentMetrics,
   MonteCarloExperimentState,
 } from "./runtime/experiment";
 export type { MonteCarloWorkerProgress } from "./worker/messages";

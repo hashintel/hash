@@ -165,7 +165,7 @@ export const initialEditorState: EditorState = {
   draggingStateByNodeId: {},
   timelineChartType: "run",
   timelineView: { kind: "per-place" },
-  simulateViewMode: "scenarios",
+  simulateViewMode: "experiments",
   simulateDrawer: { type: "closed" },
   isPanelAnimating: false,
   isSearchOpen: false,

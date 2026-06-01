@@ -41,6 +41,14 @@ const sidebarStyle = css({
 
 const modeOptions: SegmentOption[] = [
   {
+    value: "experiments",
+    label: "Experiments",
+    icon: <Icon name="flask" size="sm" />,
+    hideLabel: true,
+    tooltip: "Experiments",
+    tooltipOptions: { position: "right" },
+  },
+  {
     value: "scenarios",
     label: "Scenarios",
     icon: <Icon name="layer" size="sm" />,
@@ -56,20 +64,16 @@ const modeOptions: SegmentOption[] = [
     tooltip: "Metrics",
     tooltipOptions: { position: "right" },
   },
-  {
-    value: "experiments",
-    label: "Experiments",
-    icon: <Icon name="flask" size="sm" />,
-    hideLabel: true,
-    tooltip: "Experiments",
-    tooltipOptions: { position: "right" },
-  },
 ];
 
+const visibleModeOptions = modeOptions.filter(
+  (option) => option.value !== "metrics",
+);
+
 const views = {
+  experiments: ExperimentsView,
   scenarios: ScenariosView,
   metrics: MetricsView,
-  experiments: ExperimentsView,
 } satisfies Record<SimulateViewMode, ComponentType>;
 
 // -- Component -----------------------------------------------------------------
@@ -77,14 +81,15 @@ const views = {
 export const SimulateView = () => {
   const { simulateViewMode: mode, setSimulateViewMode: setMode } =
     use(EditorContext);
-  const ActiveView = views[mode];
+  const visibleMode = mode === "metrics" ? "experiments" : mode;
+  const ActiveView = views[visibleMode];
 
   return (
     <div className={containerStyle}>
       <div className={sidebarStyle}>
         <SegmentGroup
-          value={mode}
-          options={modeOptions}
+          value={visibleMode}
+          options={visibleModeOptions}
           onChange={(value) => setMode(value as SimulateViewMode)}
           orientation="vertical"
           size="sm"

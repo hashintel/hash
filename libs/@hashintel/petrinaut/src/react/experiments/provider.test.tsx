@@ -6,7 +6,7 @@ import { use } from "react";
 import { describe, expect, it, vi } from "vitest";
 
 import {
-  type PlaceTokenCountDistributionFrame,
+  type MonteCarloUserDefinedMetricFrame,
   type SDCPN,
   type WorkerLike,
 } from "@hashintel/petrinaut-core";
@@ -33,6 +33,18 @@ const EMPTY_SDCPN: SDCPN = {
   differentialEquations: [],
 };
 
+const CONSTANT_METRIC_SPEC = [
+  {
+    id: "constant",
+    label: "Constant",
+    kind: "expression",
+    code: "return 1;",
+    sampleRuns: "all",
+    aggregateRuns: "mean",
+    aggregateTime: "none",
+  },
+] as const;
+
 function makeProgress(
   overrides: Partial<MonteCarloWorkerProgress> = {},
 ): MonteCarloWorkerProgress {
@@ -49,22 +61,18 @@ function makeProgress(
   };
 }
 
-function makeDistributionFrame(): PlaceTokenCountDistributionFrame {
+function makeMetricFrame(): MonteCarloUserDefinedMetricFrame {
   return {
-    frameNumber: 1,
-    time: 1,
-    runCount: 1,
-    activeRunCount: 1,
-    completedRunCount: 0,
-    erroredRunCount: 0,
-    places: [
-      {
-        placeId: "place-a",
-        placeName: "Place A",
-        sampleCount: 1,
-        bins: [[1, 1]],
-      },
-    ],
+    metricId: "constant",
+    label: "Constant",
+    outputType: "scalar",
+    frameNumber: 0,
+    time: 0,
+    value: 1,
+    frameValue: 1,
+    timeValue: null,
+    runSampleCount: 2,
+    timeSampleCount: 1,
   };
 }
 
@@ -202,6 +210,154 @@ function renderExperimentsProvider(
 }
 
 describe("ExperimentsProvider", () => {
+  it("creates an initializing experiment before the worker reports ready", async () => {
+    const worker = new FakeMonteCarloWorker();
+    const { getValue, renderResult } = renderExperimentsProvider(worker);
+
+    try {
+      let experimentId = "";
+      await act(async () => {
+        experimentId = await getValue().createExperiment({
+          name: "Initializing experiment",
+          scenarioId: null,
+          scenarioParameterValues: {},
+          runCount: 1,
+          seed: 42,
+          dt: 1,
+          maxTime: 10,
+          metricSpecs: CONSTANT_METRIC_SPEC,
+        });
+        await flushWorkerSetup();
+      });
+
+      expect(worker.sent.map((message) => message.type)).toEqual(["init"]);
+      expect(getValue().experiments).toHaveLength(1);
+      expect(getValue().selectedExperimentId).toBe(experimentId);
+      expect(getValue().selectedExperiment).toMatchObject({
+        id: experimentId,
+        name: "Initializing experiment",
+        status: "initializing",
+      });
+
+      await act(async () => {
+        worker.emit({ type: "ready" });
+        await flushWorkerSetup();
+      });
+
+      expect(worker.sent.map((message) => message.type)).toEqual([
+        "init",
+        "start",
+      ]);
+      expect(getValue().selectedExperiment?.status).toBe("running");
+    } finally {
+      renderResult.unmount();
+    }
+  });
+
+  it("can remove an initializing experiment before the worker reports ready", async () => {
+    const worker = new FakeMonteCarloWorker();
+    const { getValue, renderResult } = renderExperimentsProvider(worker);
+
+    try {
+      let experimentId = "";
+      await act(async () => {
+        experimentId = await getValue().createExperiment({
+          name: "Remove before ready",
+          scenarioId: null,
+          scenarioParameterValues: {},
+          runCount: 1,
+          seed: 42,
+          dt: 1,
+          maxTime: 10,
+          metricSpecs: CONSTANT_METRIC_SPEC,
+        });
+        await flushWorkerSetup();
+      });
+
+      await act(async () => {
+        getValue().removeExperiment(experimentId);
+        await flushWorkerSetup();
+      });
+
+      expect(worker.sent.map((message) => message.type)).toEqual([
+        "init",
+        "cancel",
+      ]);
+      expect(worker.terminated).toBe(true);
+      expect(getValue().experiments).toEqual([]);
+      expect(getValue().selectedExperimentId).toBeNull();
+    } finally {
+      renderResult.unmount();
+    }
+  });
+
+  it("can cancel an initializing experiment before the worker reports ready", async () => {
+    const worker = new FakeMonteCarloWorker();
+    const { getValue, renderResult } = renderExperimentsProvider(worker);
+
+    try {
+      let experimentId = "";
+      await act(async () => {
+        experimentId = await getValue().createExperiment({
+          name: "Cancel before ready",
+          scenarioId: null,
+          scenarioParameterValues: {},
+          runCount: 1,
+          seed: 42,
+          dt: 1,
+          maxTime: 10,
+          metricSpecs: CONSTANT_METRIC_SPEC,
+        });
+        await flushWorkerSetup();
+      });
+
+      await act(async () => {
+        getValue().cancelExperiment(experimentId);
+        await flushWorkerSetup();
+      });
+
+      expect(worker.sent.map((message) => message.type)).toEqual([
+        "init",
+        "cancel",
+      ]);
+      expect(worker.terminated).toBe(true);
+      expect(getValue().selectedExperiment).toMatchObject({
+        id: experimentId,
+        status: "cancelled",
+      });
+    } finally {
+      renderResult.unmount();
+    }
+  });
+
+  it("validates metric ids after trimming whitespace", async () => {
+    const worker = new FakeMonteCarloWorker();
+    const { getValue, renderResult } = renderExperimentsProvider(worker);
+
+    try {
+      await expect(
+        getValue().createExperiment({
+          name: "Duplicate metric ids",
+          scenarioId: null,
+          scenarioParameterValues: {},
+          runCount: 1,
+          seed: 42,
+          dt: 1,
+          maxTime: 10,
+          metricSpecs: [
+            {
+              ...CONSTANT_METRIC_SPEC[0],
+              id: " constant ",
+            },
+            CONSTANT_METRIC_SPEC[0],
+          ],
+        }),
+      ).rejects.toThrow('Metric id "constant" is duplicated');
+    } finally {
+      renderResult.unmount();
+    }
+  });
+
   it("creates, streams, cancels, and removes a Monte Carlo experiment", async () => {
     const worker = new FakeMonteCarloWorker();
     const { getValue, renderResult } = renderExperimentsProvider(worker);
@@ -216,6 +372,7 @@ describe("ExperimentsProvider", () => {
         seed: 42,
         dt: 1,
         maxTime: 10,
+        metricSpecs: CONSTANT_METRIC_SPEC,
       });
 
       await flushWorkerSetup();
@@ -239,14 +396,17 @@ describe("ExperimentsProvider", () => {
     expect(getValue().selectedExperimentId).toBe(experimentId);
     expect(getValue().selectedExperiment?.status).toBe("running");
 
-    const frame = makeDistributionFrame();
+    const frame = makeMetricFrame();
     const progress = makeProgress();
     await act(async () => {
-      worker.emit({ type: "distributionFrames", frames: [frame] });
+      worker.emit({ type: "metricFrames", frames: [frame] });
       worker.emit({ type: "progress", progress });
     });
 
-    expect(getValue().selectedExperiment?.distributionFrames).toEqual([frame]);
+    expect(getValue().selectedExperiment?.metricFrames).toEqual([frame]);
+    expect(getValue().selectedExperiment?.latestMetricFramesById).toEqual({
+      constant: frame,
+    });
     expect(getValue().selectedExperiment?.progress).toEqual(progress);
 
     await act(async () => {
@@ -296,6 +456,7 @@ describe("ExperimentsProvider", () => {
           seed: 42,
           dt: 1,
           maxTime: 10,
+          metricSpecs: CONSTANT_METRIC_SPEC,
         });
 
         await flushWorkerSetup();
@@ -344,6 +505,62 @@ describe("ExperimentsProvider", () => {
     }
   });
 
+  it("runs experiment metric specs in the worker", async () => {
+    const worker = new FakeMonteCarloWorker();
+    const { getValue, renderResult } = renderExperimentsProvider(worker);
+    const metricSpecs = [
+      {
+        id: "constant",
+        label: "Constant",
+        kind: "expression",
+        code: "return 1;",
+        sampleRuns: "all",
+        aggregateRuns: "mean",
+        aggregateTime: "none",
+      },
+    ] as const;
+
+    try {
+      await act(async () => {
+        const createPromise = getValue().createExperiment({
+          name: "Metric experiment",
+          scenarioId: null,
+          scenarioParameterValues: {},
+          runCount: 2,
+          seed: 42,
+          dt: 1,
+          maxTime: 1,
+          metricSpecs,
+        });
+
+        await flushWorkerSetup();
+        expect(worker.sent[0]).toMatchObject({
+          type: "init",
+          metricSpecs,
+        });
+        worker.emit({ type: "ready" });
+        await createPromise;
+      });
+
+      const frame = makeMetricFrame();
+      await act(async () => {
+        worker.emit({ type: "metricFrames", frames: [frame] });
+      });
+
+      expect(
+        getValue().selectedExperiment?.latestMetricFramesById.constant,
+      ).toEqual(
+        expect.objectContaining({
+          value: 1,
+          frameValue: 1,
+          runSampleCount: 2,
+        }),
+      );
+    } finally {
+      renderResult.unmount();
+    }
+  });
+
   it("notifies when a Monte Carlo experiment errors", async () => {
     const addNotification = vi.fn(() => "notification-id");
     const worker = new FakeMonteCarloWorker();
@@ -361,6 +578,7 @@ describe("ExperimentsProvider", () => {
           seed: 42,
           dt: 1,
           maxTime: 10,
+          metricSpecs: CONSTANT_METRIC_SPEC,
         });
 
         await flushWorkerSetup();

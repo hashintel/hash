@@ -34,8 +34,13 @@ export const SectionList = ({ children }: SectionListProps) => (
 const sectionStyle = css({
   display: "flex",
   flexDirection: "column",
+  position: "relative",
+  zIndex: "[0]",
   // No vertical padding here — the sticky header owns its own padding so it
   // can fully cover scrolling content underneath it.
+  "&:focus-within": {
+    zIndex: "[3]",
+  },
 });
 
 const sectionGapStyle = css({

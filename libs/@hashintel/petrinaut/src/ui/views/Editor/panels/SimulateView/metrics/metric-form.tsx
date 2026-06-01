@@ -144,15 +144,18 @@ export type MetricFormInstance = ReturnType<typeof useMetricForm>;
 
 /**
  * Manages a temporary LSP session for metric body type-checking.
- * Generates a unique session ID, initializes on mount, updates on code changes,
- * and kills on unmount.
+ * Uses the caller-provided session ID, or generates one when omitted.
+ * Initializes on mount, updates on code changes, and kills on unmount.
  */
-export function useMetricLspSession(code: string): string {
+export function useMetricLspSession(
+  code: string,
+  providedSessionId?: string,
+): string {
   const { initializeMetricSession, updateMetricSession, killMetricSession } =
     use(LanguageClientContext);
   // useState (not useRef/useMemo) — needed for a stable per-mount value.
   // React Compiler doesn't replace useState; it only memoizes derived values.
-  const [sessionId] = useState(() => crypto.randomUUID());
+  const [sessionId] = useState(() => providedSessionId ?? crypto.randomUUID());
   const initializedRef = useRef(false);
 
   useEffect(() => {

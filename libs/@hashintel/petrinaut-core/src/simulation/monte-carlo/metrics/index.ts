@@ -1,10 +1,38 @@
-export { createPlaceTokenCountDistributionMetric } from "./place-token-count-distribution";
+export {
+  addAllMonteCarloMetricValues,
+  createMonteCarloMetricHistogramAccumulator,
+  createMonteCarloMetricNumericAccumulator,
+} from "./accumulators";
+export { createMonteCarloUserDefinedMetricConfigsFromSpecs } from "./specs";
+export { createMonteCarloUserDefinedMetric } from "./user-defined";
+export type {
+  MonteCarloMetricHistogramAccumulatorState,
+  MonteCarloMetricMonoid,
+  MonteCarloMetricNumericAccumulatorState,
+  MonteCarloMetricValueAccumulator,
+} from "./accumulators";
 export type {
   MonteCarloActiveRunPlaceCountsVisitor,
+  MonteCarloExpressionMetricSpec,
+  MonteCarloMetricDistributionBinning,
   MonteCarloFrameMetric,
   MonteCarloFrameMetricContext,
-  PlaceTokenCountDistributionBin,
-  PlaceTokenCountDistributionFrame,
-  PlaceTokenCountDistributionMetric,
-  PlaceTokenCountDistributionPlace,
+  MonteCarloMetricSpec,
+  MonteCarloMetricSpecBase,
+  MonteCarloMetricRunOutput,
+  MonteCarloMetricRunStatus,
+  MonteCarloPlaceTokenCountMeanMetricSpec,
+  MonteCarloRunFrameMetricView,
+  MonteCarloRunFrameMetricVisitor,
+  MonteCarloTransitionFiringCountMetricSpec,
+  MonteCarloUserDefinedMetric,
+  MonteCarloUserDefinedMetricAggregation,
+  MonteCarloUserDefinedMetricConfig,
+  MonteCarloUserDefinedDistributionMetricFrame,
+  MonteCarloUserDefinedMetricDistributionBin,
+  MonteCarloUserDefinedMetricFrame,
+  MonteCarloUserDefinedMetricMeasureInput,
+  MonteCarloUserDefinedMetricSampleRuns,
+  MonteCarloUserDefinedScalarMetricFrame,
+  MonteCarloUserDefinedMetricTimeAggregation,
 } from "./types";

@@ -218,8 +218,8 @@ const SimulationSettingsContent: React.FC = () => {
       }));
 
   const scenarioOptions = [
-    { value: NO_SCENARIO, label: "No scenario" },
     ...(scenarios ?? []).map((s) => ({ value: s.id, label: s.name })),
+    { value: NO_SCENARIO, label: "No scenario" },
   ];
 
   return (
