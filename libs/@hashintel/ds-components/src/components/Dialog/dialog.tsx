@@ -82,7 +82,7 @@ export const Dialog = ({
     size,
     withPadding,
     headerless: !hasHeader,
-    footerless: !hasFooter,
+    hasIcon: !!titleIconName,
   });
 
   const closeButton = !disableDefaultClose && (
@@ -102,7 +102,7 @@ export const Dialog = ({
     <div className={classes.header}>
       <div className={classes.titleRow}>
         {titleIconName && (
-          <Icon name={titleIconName} size="sm" className={classes.titleIcon} />
+          <Icon name={titleIconName} size="md" className={classes.titleIcon} />
         )}
         {title && (
           <ArkDialog.Title className={classes.title}>{title}</ArkDialog.Title>

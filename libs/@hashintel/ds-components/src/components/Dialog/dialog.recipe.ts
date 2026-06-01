@@ -79,9 +79,6 @@ export const styles = sva({
       border: "[1px solid {colors.neutral.s50}]",
       borderTopRadius: "lg",
       borderBottom: "[1px solid {colors.neutral.s30}]",
-      paddingBottom: "3.5",
-      paddingTop: "4",
-      paddingX: "[var(--dialog-horizontal-padding)]",
     },
     hasCustomHeader: {
       display: "flex",
@@ -99,8 +96,11 @@ export const styles = sva({
     },
     titleIcon: {
       marginLeft: "-0.5",
-      color: "fg.muted",
+      color: "neutral.s90",
       flex: "[0 0 auto]",
+      backgroundColor: "neutral.s25",
+      borderRadius: "full",
+      padding: "1",
     },
     title: {
       fontWeight: "semibold",
@@ -123,7 +123,6 @@ export const styles = sva({
       alignItems: "center",
       gap: "[1px]",
       flex: "[0 0 auto]",
-      marginTop: "[calc(var(--spacing-4) * -1 + var(--spacing-2))]",
     },
     body: {
       flex: "[1 1 auto]",
@@ -133,17 +132,11 @@ export const styles = sva({
       border: "[1px solid {colors.neutral.s50}]",
       borderTop: "none",
       borderBottomRadius: "lg",
-      paddingTop: "4",
-      paddingBottom: "5",
-      paddingX: "[var(--dialog-horizontal-padding)]",
       color: "fg.body",
       textStyle: "sm",
     },
     footer: {
       flex: "[0 0 auto]",
-      paddingX: "[var(--dialog-horizontal-padding)]",
-      paddingTop: "3.5",
-      paddingBottom: "3",
       display: "flex",
       alignItems: "flex-start",
       justifyContent: "space-between",
@@ -161,12 +154,11 @@ export const styles = sva({
       gap: "2",
     },
     closeButton: {
-      marginRight:
-        "[calc(var(--dialog-horizontal-padding) * -1 + var(--spacing-2))]",
-      marginTop: "[calc(var(--spacing-4) * -1 + var(--spacing-2))]",
       flex: "[0 0 auto]",
       alignSelf: "flex-start",
       marginLeft: "auto",
+      position: "relative",
+      zIndex: "1",
     },
     loadingOverlay: {
       position: "absolute",
@@ -198,9 +190,29 @@ export const styles = sva({
     },
     withPadding: {
       true: {
-        // header: { padding: "5" },
-        // body: { paddingX: "5", paddingY: "4" },
-        // footer: { padding: "4" },
+        header: {
+          paddingBottom: "3.5",
+          paddingTop: "4",
+          paddingX: "[var(--dialog-horizontal-padding)]",
+        },
+        body: {
+          paddingTop: "4",
+          paddingBottom: "5",
+          paddingX: "[var(--dialog-horizontal-padding)]",
+        },
+        footer: {
+          paddingX: "[var(--dialog-horizontal-padding)]",
+          paddingTop: "3.5",
+          paddingBottom: "3",
+        },
+        headerActions: {
+          marginTop: "[calc(var(--spacing-4) * -1 + var(--spacing-2))]",
+        },
+        closeButton: {
+          marginRight:
+            "[calc(var(--dialog-horizontal-padding) * -1 + var(--spacing-2))]",
+          marginTop: "[calc(var(--spacing-4) * -1 + var(--spacing-2))]",
+        },
       },
       false: {
         // header: { padding: "5", paddingBottom: "0" },
@@ -210,12 +222,21 @@ export const styles = sva({
     },
     headerless: {
       true: {
-        // body: { paddingTop: "5" },
+        header: {
+          paddingBottom: "1",
+          borderBottom: "none",
+        },
+        body: {
+          paddingTop: "0",
+          paddingBottom: "6",
+        },
       },
     },
-    footerless: {
+    hasIcon: {
       true: {
-        footer: { display: "none" },
+        description: {
+          marginTop: "0.5",
+        },
       },
     },
   },

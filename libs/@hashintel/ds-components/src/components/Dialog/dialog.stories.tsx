@@ -79,8 +79,12 @@ export const Examples: Story = () => (
     <DialogExample
       buttonLabel="Footer actions"
       dialogProps={(close) => ({
-        title: "Save changes",
-        children: <p>Do you want to save your changes before closing?</p>,
+        children: (
+          <p>
+            Do you want to save your changes before closing? Select close to go
+            back.
+          </p>
+        ),
         footerActions: (
           <>
             <Button variant="subtle" tone="neutral" onClick={close}>
