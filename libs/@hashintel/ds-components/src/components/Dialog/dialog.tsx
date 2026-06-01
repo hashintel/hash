@@ -26,7 +26,6 @@ export const Dialog = ({
   loading,
   onClose,
   withPadding = true,
-  allowBodyScroll,
   initialFocusRef,
   returnFocusRef,
   header,
@@ -47,8 +46,6 @@ export const Dialog = ({
   onClose?: () => void;
   /** Turn padding on/off. Used when the dialog content controls padding itself. defaults to true */
   withPadding?: boolean;
-  /** Allow the root document/html container to scroll while the dialog is open */
-  allowBodyScroll?: boolean;
   initialFocusRef?: React.RefObject<HTMLElement>;
   returnFocusRef?: React.RefObject<HTMLElement>;
 } & ExclusifyUnion<
@@ -158,8 +155,6 @@ export const Dialog = ({
   return (
     <ArkDialog.Root
       defaultOpen
-      modal={!allowBodyScroll}
-      preventScroll={!allowBodyScroll}
       closeOnEscape={closeOnEscape}
       closeOnInteractOutside={closeOnInteractOutside}
       onOpenChange={(event) => {
