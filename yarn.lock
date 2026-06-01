@@ -841,6 +841,7 @@ __metadata:
     react: "npm:19.2.6"
     react-dom: "npm:19.2.6"
     react-icons: "npm:5.5.0"
+    sharp: "npm:0.34.5"
     vite: "npm:8.0.12"
     zod: "npm:4.4.3"
   languageName: unknown
@@ -41141,7 +41142,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"sharp@npm:^0.34.3":
+"sharp@npm:0.34.5, sharp@npm:^0.34.3":
   version: 0.34.5
   resolution: "sharp@npm:0.34.5"
   dependencies:
