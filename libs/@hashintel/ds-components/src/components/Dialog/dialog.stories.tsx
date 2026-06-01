@@ -206,18 +206,10 @@ export const Examples: Story = () => (
         description: "Body content controls its own padding.",
         withPadding: false,
         children: (
-          <div
-            className={css({
-              background: "neutral.a20",
-              padding: "6",
-              width: "[100%]",
-            })}
-          >
-            <p>
-              This body container has zero padding from the dialog, so it spans
-              edge-to-edge. The content within decides its own layout.
-            </p>
-          </div>
+          <p>
+            This body container has zero padding from the dialog, so it spans
+            edge-to-edge. The content within decides its own layout.
+          </p>
         ),
         footerActions: (
           <Button variant="solid" tone="brand" onClick={close}>

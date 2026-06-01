@@ -85,34 +85,49 @@ export const Dialog = ({
     footerless: !hasFooter,
   });
 
-  const headerEl =
-    hasHeader &&
-    (header ?? (
-      <>
-        <div className={classes.titleRow}>
-          {titleIconName && (
-            <Icon
-              name={titleIconName}
-              size="md"
-              className={classes.titleIcon}
-            />
-          )}
-          <div>
-            {title && (
-              <ArkDialog.Title className={classes.title}>
-                {title}
-              </ArkDialog.Title>
-            )}
-            {description && (
-              <ArkDialog.Description className={classes.description}>
-                {description}
-              </ArkDialog.Description>
-            )}
+  const closeButton = !disableDefaultClose && (
+    <Button
+      variant="ghost"
+      className={classes.closeButton}
+      aria-label="Close dialog"
+      onClick={() => {
+        onClose?.();
+      }}
+      iconName="close"
+      size="sm"
+    />
+  );
+
+  const headerEl = hasStructuredHeader ? (
+    <div className={classes.header}>
+      <div className={classes.titleRow}>
+        {titleIconName && (
+          <Icon name={titleIconName} size="sm" className={classes.titleIcon} />
+        )}
+        {title && (
+          <ArkDialog.Title className={classes.title}>{title}</ArkDialog.Title>
+        )}
+        {actions ? (
+          <div className={classes.headerRight}>
+            <div className={classes.headerActions}>{actions}</div>
+            {closeButton}
           </div>
-        </div>
-        {actions && <div className={classes.headerActions}>{actions}</div>}
-      </>
-    ));
+        ) : (
+          closeButton
+        )}
+      </div>
+      {description && (
+        <ArkDialog.Description className={classes.description}>
+          {description}
+        </ArkDialog.Description>
+      )}
+    </div>
+  ) : (
+    <div className={cx(classes.header, classes.hasCustomHeader)}>
+      {header && <div>{header}</div>}
+      {closeButton}
+    </div>
+  );
 
   const footerEl = hasFooter && (
     <div className={classes.footer}>
@@ -154,24 +169,8 @@ export const Dialog = ({
             className={cx(classes.content, className)}
             aria-busy={loading ?? undefined}
           >
-            <div className={classes.header}>
-              {headerEl}
-              {!disableDefaultClose && (
-                <Button
-                  variant="ghost"
-                  className={classes.closeButton}
-                  aria-label="Close dialog"
-                  onClick={() => {
-                    onClose?.();
-                  }}
-                  iconName="close"
-                  size="sm"
-                />
-              )}
-            </div>
-
+            {headerEl}
             <div className={classes.body}>{children}</div>
-
             {footerEl}
 
             {loading ? (
