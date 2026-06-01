@@ -81,8 +81,9 @@ runs:
     # events, or ECR (tags) and/or GHCR (by digest) on push. They share one GHCR
     # registry cache (`CACHE_REF`), so the second is a near-total cache hit.
     # `push-by-digest` is output-global, so ECR and GHCR can't be one invocation.
-    # `cache-to` is only set on push builds — a `cache-from` miss is non-fatal,
-    # but a `cache-to` failure aborts the build, so only trusted builds write.
+    # `cache-to` runs on push/workflow_dispatch only (trusted events): PR and
+    # merge_group read the cache (`cache-from`) but never write it, so fork PRs
+    # can't hit a fatal cache-to write error and PR builds don't churn the tag.
     - name: Build ${{ inputs.PLATFORM }} (validate, no push)
       if: inputs.PUSH != 'true'
       uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
@@ -99,6 +100,7 @@ runs:
         provenance: false
         push: false
         cache-from: type=registry,ref=${{ inputs.CACHE_REF }}
+        cache-to: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && format('type=registry,ref={0},mode=max', inputs.CACHE_REF) || '' }}
 
     - name: Build and push to ECR
       if: inputs.PUSH == 'true' && inputs.ECR_TAGS != ''
@@ -117,7 +119,7 @@ runs:
         push: true
         tags: ${{ inputs.ECR_TAGS }}
         cache-from: type=registry,ref=${{ inputs.CACHE_REF }}
-        cache-to: type=registry,ref=${{ inputs.CACHE_REF }},mode=max
+        cache-to: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && format('type=registry,ref={0},mode=max', inputs.CACHE_REF) || '' }}
 
     - name: Build and push to GHCR (by digest)
       id: ghcr
@@ -136,4 +138,4 @@ runs:
         provenance: false
         outputs: type=image,name=${{ inputs.GHCR_IMAGE }},push-by-digest=true,name-canonical=true,push=true
         cache-from: type=registry,ref=${{ inputs.CACHE_REF }}
-        cache-to: type=registry,ref=${{ inputs.CACHE_REF }},mode=max
+        cache-to: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && format('type=registry,ref={0},mode=max', inputs.CACHE_REF) || '' }}
