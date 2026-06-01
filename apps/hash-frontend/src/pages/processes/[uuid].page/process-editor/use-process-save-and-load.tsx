@@ -128,6 +128,16 @@ export const useProcessSaveAndLoad = ({
         refetchRevisions(),
       ]);
 
+      /**
+       * Apollo's `refetch()` can resolve without `data` (e.g. some network
+       * error paths) even though generated types model it as present.
+       * Treat this as a soft failure so callers can surface a regular
+       * save/refetch error instead of throwing on undefined access.
+       */
+      if (!updatedNetsData.data) {
+        return null;
+      }
+
       const transformedNets = getPersistedNetsFromSubgraph(
         updatedNetsData.data,
       );
