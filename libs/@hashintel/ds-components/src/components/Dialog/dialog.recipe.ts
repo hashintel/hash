@@ -54,6 +54,7 @@ export const styles = sva({
       "--dialog-horizontal-padding": "var(--spacing-5\\.5)",
       "--dialog-top-padding": "var(--spacing-4)",
       "--dialog-close-button-gap": "var(--spacing-2)",
+      position: "relative",
       display: "flex",
       flexDirection: "column",
       width: "[100%]",
@@ -132,6 +133,7 @@ export const styles = sva({
         "[calc(var(--dialog-top-padding) * -1 + var(--dialog-close-button-gap))]",
     },
     body: {
+      position: "relative",
       flex: "[1 1 auto]",
       minHeight: "0",
       overflow: "auto",
@@ -183,15 +185,17 @@ export const styles = sva({
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      background: "[rgba(255, 255, 255, 0.7)]",
+      background: "[rgba(255, 255, 255, 0.9)]",
       zIndex: "1",
+      borderRadius: "[inherit]",
+      color: "black",
     },
   },
   variants: {
     withPadding: {
       false: {
         body: {
-          padding: "0",
+          padding: "[0 !important]",
         },
       },
     },

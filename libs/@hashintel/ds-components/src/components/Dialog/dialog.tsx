@@ -170,14 +170,15 @@ export const Dialog = ({
             aria-busy={loading ?? undefined}
           >
             {headerEl}
-            <div className={classes.body}>{children}</div>
+            <div className={classes.body}>
+              {children}
+              {loading ? (
+                <div className={classes.loadingOverlay} aria-live="polite">
+                  <LoadingSpinner size="lg" />
+                </div>
+              ) : null}
+            </div>
             {footerEl}
-
-            {loading ? (
-              <div className={classes.loadingOverlay} aria-live="polite">
-                <LoadingSpinner size="md" />
-              </div>
-            ) : null}
           </ArkDialog.Content>
         </ArkDialog.Positioner>
       </Portal>
