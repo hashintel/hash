@@ -108,6 +108,9 @@ export const styles = sva({
       backgroundColor: "neutral.s25",
       borderRadius: "full",
       padding: "1",
+      alignSelf: "flex-start",
+      top: "[1.5px]",
+      position: "relative",
     },
     title: {
       fontWeight: "semibold",
@@ -124,6 +127,7 @@ export const styles = sva({
       display: "flex",
       alignItems: "center",
       gap: "[1px]",
+      alignSelf: "flex-start",
     },
     headerActions: {
       display: "flex",

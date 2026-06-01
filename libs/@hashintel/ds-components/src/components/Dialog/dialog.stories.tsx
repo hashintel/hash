@@ -320,6 +320,154 @@ export const Sizes: Story = () => (
   </div>
 );
 
+const overflowingTitle =
+  "A really, really long title that probably wraps onto multiple lines and helps verify how the header handles wrapped text without breaking the layout";
+
+const overflowingDescription =
+  "And the description gets a similarly verbose treatment so we can verify the header subtext also handles wrapping across multiple lines, especially when paired with a long title and a row of title actions.";
+
+const overflowingBody = (
+  <div className={css({ display: "flex", flexDirection: "column", gap: "3" })}>
+    {Array.from({ length: 20 }).map((_, index) => (
+      // eslint-disable-next-line react/no-array-index-key
+      <p key={index}>
+        Paragraph {index + 1}. Lorem ipsum dolor sit amet, consectetur
+        adipiscing elit. Donec efficitur, nisl sed eleifend dictum, ipsum nisi
+        rhoncus odio, et fringilla justo lectus ac neque.
+      </p>
+    ))}
+  </div>
+);
+
+const buildOverflowKitchenSink = (
+  close: () => void,
+  options?: { loading?: boolean },
+): React.ComponentProps<typeof Dialog> => ({
+  loading: options?.loading,
+  title: overflowingTitle,
+  titleIconName: "gear",
+  description: overflowingDescription,
+  titleActions: (
+    <>
+      <Button
+        variant="ghost"
+        tone="neutral"
+        size="sm"
+        iconName="externalLink"
+        tooltip="Open docs"
+      />
+      <Button
+        variant="ghost"
+        tone="neutral"
+        size="sm"
+        iconName="info"
+        tooltip="More info"
+      />
+    </>
+  ),
+  children: overflowingBody,
+  footerActions: (
+    <Button variant="solid" tone="brand" onClick={close}>
+      Save these long-form changes for later review
+    </Button>
+  ),
+  footerSecondaryActions: (
+    <Button variant="subtle" tone="error" onClick={close}>
+      Delete this workspace permanently
+    </Button>
+  ),
+});
+
+const buildOverflowCustom = (
+  close: () => void,
+  options?: { loading?: boolean },
+): React.ComponentProps<typeof Dialog> => ({
+  loading: options?.loading,
+  header: (
+    <div
+      className={css({
+        display: "flex",
+        flexDirection: "column",
+        gap: "2",
+        width: "[100%]",
+      })}
+    >
+      <div className={css({ fontWeight: "semibold", textStyle: "lg" })}>
+        A custom header with significant content that should test how arbitrary
+        header content wraps and lays out
+      </div>
+      <div className={css({ color: "fg.muted", textStyle: "sm" })}>
+        Plus a fairly long subtitle so we can validate multi-line wrapping
+        behaviour within a custom header slot.
+      </div>
+    </div>
+  ),
+  children: overflowingBody,
+  footer: (
+    <div
+      className={css({
+        display: "flex",
+        alignItems: "center",
+        gap: "3",
+        width: "[100%]",
+        flexWrap: "wrap",
+      })}
+    >
+      <span className={css({ color: "fg.muted", textStyle: "sm" })}>
+        A custom footer with a long status message to test wrapping behaviour
+        and layout adjustments under content pressure.
+      </span>
+      <Button
+        className={css({ marginLeft: "auto" })}
+        variant="solid"
+        tone="neutral"
+        onClick={close}
+      >
+        Done
+      </Button>
+    </div>
+  ),
+});
+
+const buildOverflowBodyOnly = (options?: {
+  loading?: boolean;
+}): React.ComponentProps<typeof Dialog> => ({
+  loading: options?.loading,
+  children: overflowingBody,
+});
+
+export const Overflow: Story = () => (
+  <div className={css({ display: "flex", flexDirection: "column", gap: "4" })}>
+    {([false, true] as const).map((loading) => (
+      <div
+        key={String(loading)}
+        className={css({
+          display: "flex",
+          gap: "3",
+          alignItems: "center",
+          flexWrap: "wrap",
+        })}
+      >
+        <div className={css({ minWidth: "[6rem]", fontWeight: "medium" })}>
+          {loading ? "loading" : "default"}
+        </div>
+        <DialogExample
+          buttonLabel={`Kitchen sink${loading ? " — loading" : ""}`}
+          dialogProps={(close) => buildOverflowKitchenSink(close, { loading })}
+        />
+        <DialogExample
+          buttonLabel={`Custom header + footer${loading ? " — loading" : ""}`}
+          dialogProps={(close) => buildOverflowCustom(close, { loading })}
+        />
+        <DialogExample
+          buttonLabel={`No header + footer${loading ? " — loading" : ""}`}
+          dialogProps={() => buildOverflowBodyOnly({ loading })}
+        />
+      </div>
+    ))}
+  </div>
+);
+
 export const DisableDefaultClose: Story = () => (
   <DialogExample
     buttonLabel="Open dialog (no default close)"
