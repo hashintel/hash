@@ -502,6 +502,97 @@ export const Overflow: Story = () => (
   </div>
 );
 
+const StackedDialogs = () => {
+  const [first, setFirst] = useState(false);
+  const [second, setSecond] = useState(false);
+  const [third, setThird] = useState(false);
+  const [fourth, setFourth] = useState(false);
+
+  return (
+    <>
+      <Button onClick={() => setFirst(true)}>Open stacked dialogs</Button>
+      {first ? (
+        <Dialog
+          size="md"
+          title="First dialog"
+          titleIconName="gear"
+          description="Open the next dialog to stack another on top."
+          onClose={() => setFirst(false)}
+          footerActions={
+            <Button
+              variant="solid"
+              tone="brand"
+              onClick={() => setSecond(true)}
+            >
+              Open second dialog
+            </Button>
+          }
+        >
+          {sampleBody}
+        </Dialog>
+      ) : null}
+      {second ? (
+        <Dialog
+          size="md"
+          title="Second dialog"
+          titleIconName="gear"
+          description="Open the next dialog to stack a small dialog on top."
+          onClose={() => setSecond(false)}
+          footerActions={
+            <Button variant="solid" tone="brand" onClick={() => setThird(true)}>
+              Open small dialog
+            </Button>
+          }
+        >
+          {sampleBody}
+        </Dialog>
+      ) : null}
+      {third ? (
+        <Dialog
+          size="sm"
+          title="Small dialog"
+          titleIconName="info"
+          description="Open another small dialog on top of this one."
+          onClose={() => setThird(false)}
+          footerActions={
+            <Button
+              variant="solid"
+              tone="brand"
+              onClick={() => setFourth(true)}
+            >
+              Open another small dialog
+            </Button>
+          }
+        >
+          {sampleBody}
+        </Dialog>
+      ) : null}
+      {fourth ? (
+        <Dialog
+          size="sm"
+          title="Another small dialog"
+          titleIconName="info"
+          description="This is the top of the stack."
+          onClose={() => setFourth(false)}
+          footerActions={
+            <Button
+              variant="solid"
+              tone="brand"
+              onClick={() => setFourth(false)}
+            >
+              Done
+            </Button>
+          }
+        >
+          {sampleBody}
+        </Dialog>
+      ) : null}
+    </>
+  );
+};
+
+export const Stacked: Story = () => <StackedDialogs />;
+
 export const ShouldCloseOn: Story = () => (
   <div className={stackStyles}>
     <DialogExample
