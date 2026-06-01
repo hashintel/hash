@@ -38,30 +38,50 @@ outputs:
 runs:
   using: composite
   steps:
+    # Resolve the commit the mutable tag currently points at, from the OCI
+    # revision label (set at build time). Reading the label rather than listing
+    # `sha-*` tags keeps this registry-agnostic and sidesteps the "one digest,
+    # many SHA tags" ambiguity.
+    #
+    # The command distinguishes three outcomes by exit code so the retry only
+    # fires on transient errors: a genuinely absent tag (first deploy) writes an
+    # empty file and exits 0 (→ advance is correct), a successful inspect writes
+    # the revision and exits 0, and a transient registry error exits 75 — which
+    # `retry_on_exit_code` retries, then fails. Without this, an older run hitting
+    # a 5xx here would read an empty revision and move the tag backwards.
+    - name: Resolve current ${{ inputs.mutable-tag }} revision
+      uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
+      env:
+        REF: ${{ inputs.image }}:${{ inputs.mutable-tag }}
+      with:
+        timeout_minutes: 5
+        max_attempts: 3
+        retry_wait_seconds: 10
+        retry_on_exit_code: 75
+        command: |
+          if raw="$(docker buildx imagetools inspect "$REF" --format '{{json .}}' 2>&1)"; then
+            jq -r '[.. | objects | .["org.opencontainers.image.revision"]? // empty][0] // empty' <<<"$raw" > "$RUNNER_TEMP/current-sha"
+            exit 0
+          fi
+          if grep -qiE 'not found|manifest unknown|no such' <<<"$raw"; then
+            : > "$RUNNER_TEMP/current-sha"
+            exit 0
+          fi
+          echo "transient inspect failure for $REF: $raw" >&2
+          exit 75
+
     - name: Decide whether to advance ${{ inputs.mutable-tag }}
       id: decide
       shell: bash
       env:
-        IMAGE: ${{ inputs.image }}
-        MUTABLE_TAG: ${{ inputs.mutable-tag }}
         CANDIDATE_SHA: ${{ inputs.candidate-sha }}
+        MUTABLE_TAG: ${{ inputs.mutable-tag }}
       run: |
         set -euo pipefail
-
-        # Commit the mutable tag currently points at, read from the OCI revision
-        # label (`org.opencontainers.image.revision`, set at build time). Using
-        # the label rather than listing `sha-*` tags keeps this registry-agnostic
-        # AND sidesteps the "one digest, many SHA tags" ambiguity — the label is
-        # the single commit that built the image. `|| true` so a missing tag
-        # (first deploy) doesn't trip `set -e`.
-        current_sha="$(docker buildx imagetools inspect "$IMAGE:$MUTABLE_TAG" \
-          --format '{{json .}}' 2>/dev/null \
-          | jq -r '[.. | objects | .["org.opencontainers.image.revision"]? // empty][0] // empty' || true)"
+        current_sha="$(cat "$RUNNER_TEMP/current-sha")"
 
         advance=false
         if [[ -z "$current_sha" ]]; then
-          # No existing tag, or an image built before revision labels existed.
-          # Advance — refusing here would block the tag forever.
           echo "::notice ::$MUTABLE_TAG has no resolvable revision; advancing to $CANDIDATE_SHA"
           advance=true
         elif [[ "$current_sha" == "$CANDIDATE_SHA" ]]; then
@@ -76,8 +96,6 @@ runs:
         fi
         echo "advanced=$advance" >> "$GITHUB_OUTPUT"
 
-    # Retry transient registry errors — GHCR intermittently 5xx's its token
-    # endpoint / blob copy, and `imagetools` has no built-in retry.
     - name: Advance ${{ inputs.mutable-tag }} to ${{ inputs.source-tag }}
       if: steps.decide.outputs.advanced == 'true'
       uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
