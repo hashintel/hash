@@ -134,6 +134,7 @@ export const useProcessSaveAndLoad = ({
        * Treat this as a soft failure so callers can surface a regular
        * save/refetch error instead of throwing on undefined access.
        */
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       if (!updatedNetsData.data) {
         return null;
       }
