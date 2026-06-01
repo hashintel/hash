@@ -590,6 +590,7 @@ __metadata:
     "@hashintel/design-system": "workspace:*"
     "@hashintel/ds-components": "workspace:*"
     "@hashintel/ds-helpers": "workspace:*"
+    "@hashintel/integrations-catalog": "npm:^0.0.1"
     "@hashintel/petrinaut": "workspace:*"
     "@hashintel/petrinaut-core": "workspace:*"
     "@hashintel/query-editor": "workspace:*"
@@ -7692,6 +7693,17 @@ __metadata:
   resolution: "@hashintel/ds-helpers@workspace:libs/@hashintel/ds-helpers"
   languageName: unknown
   linkType: soft
+
+"@hashintel/integrations-catalog@npm:^0.0.1":
+  version: 0.0.1
+  resolution: "@hashintel/integrations-catalog@npm:0.0.1"
+  peerDependencies:
+    "@mui/material": ">=5.0.0"
+    "@mui/system": ">=5.0.0"
+    react: ">=18.0.0"
+  checksum: 10c0/33671dcf2e34f94b6990bfb3e21b36e4908d3616e751be5e978bedb168a83a4025b25ff0b5ddc2466411f9e73fced3223a039ffff5ed92d10dc347078d9f08e1
+  languageName: node
+  linkType: hard
 
 "@hashintel/petrinaut-core@workspace:*, @hashintel/petrinaut-core@workspace:^, @hashintel/petrinaut-core@workspace:libs/@hashintel/petrinaut-core":
   version: 0.0.0-use.local

@@ -167,6 +167,7 @@ export default withSentryConfig(
         "@emotion/server",
         "@hashintel/block-design-system",
         "@hashintel/design-system",
+        "@hashintel/integrations-catalog",
         "@hashintel/petrinaut",
         "@hashintel/petrinaut-core",
         "@hashintel/ds-components",

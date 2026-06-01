@@ -46,13 +46,20 @@ export const useHashInstance = (): {
     };
   }, [hashInstanceSettings]);
 
+  const enabledIntegrations: EnabledIntegrations = useMemo(() => {
+    const { __typename, ...rest } =
+      hashInstanceSettings?.enabledIntegrations ?? {
+        googleSheets: false,
+        linear: false,
+      };
+
+    return rest;
+  }, [hashInstanceSettings?.enabledIntegrations]);
+
   return {
     loading,
     hashInstance,
     isUserAdmin: !!hashInstanceSettings?.isUserAdmin,
-    enabledIntegrations: hashInstanceSettings?.enabledIntegrations ?? {
-      googleSheets: false,
-      linear: false,
-    },
+    enabledIntegrations,
   };
 };
