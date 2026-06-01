@@ -151,6 +151,12 @@ export const styles = sva({
       paddingX: "[var(--dialog-horizontal-padding)]",
       paddingTop: "4",
       paddingBottom: "5",
+      // While loading, lock the body's scroll so the absolutely-positioned
+      // overlay stays pinned to the visible area instead of riding the
+      // scrolled content.
+      '[aria-busy="true"] &': {
+        overflow: "hidden",
+      },
     },
     footer: {
       flex: "[0 0 auto]",
