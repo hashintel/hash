@@ -25,10 +25,12 @@ inputs:
     default: linux/arm64
   CACHE_REF:
     description: >
-      Fully-qualified GHCR ref for the build cache, including an arch suffix
-      (e.g. `ghcr.io/hashintel/hash/graph:buildcache-arm64`). Read by every
-      build; written only when pushing (trusted builds), so PR/fork builds reuse
-      the cache without polluting or failing to write it.
+      Fully-qualified GHCR ref for the build cache — a dedicated, private package
+      per service+arch (e.g. `ghcr.io/hashintel/hash/graph/cache:arm64`), kept
+      separate from the (possibly public) image package so the mode=max cache
+      layers aren't exposed. Read by every build; written only when pushing
+      (trusted builds), so PR/fork builds reuse the cache without polluting or
+      failing to write it.
     required: true
   ECR_TAGS:
     description: Newline-separated list of fully qualified ECR tags. Empty to skip ECR. The calling job must have AWS credentials configured.
