@@ -364,7 +364,7 @@ jobs:
           CONTEXT_PATH: ${{ github.workspace }}/${{ matrix.context }}
           DOCKERFILE_LOCATION: ${{ github.workspace }}/${{ matrix.dockerfile }}
           PLATFORM: linux/${{ matrix.arch }}
-          CACHE_KEY: ${{ matrix.service }}-${{ matrix.arch }}
+          CACHE_REF: ghcr.io/${{ github.repository_owner }}/hash/${{ matrix.service }}:buildcache-${{ matrix.arch }}
           GITHUB_TOKEN: ${{ github.token }}
           PUSH: ${{ steps.targets.outputs.push }}
           BUILD_ARGS: ${{ matrix.build_args }}
