@@ -198,13 +198,6 @@ export const styles = sva({
     },
   },
   variants: {
-    withPadding: {
-      false: {
-        body: {
-          padding: "[0 !important]",
-        },
-      },
-    },
     size: {
       xs: {
         content: {
@@ -261,6 +254,18 @@ export const styles = sva({
         },
       },
     },
+    hasIcon: {
+      true: {
+        description: { marginTop: "0.5" },
+      },
+    },
+    withPadding: {
+      false: {
+        body: {
+          padding: "[0 !important]",
+        },
+      },
+    },
     headerless: {
       true: {
         header: {
@@ -270,13 +275,6 @@ export const styles = sva({
         body: {
           paddingTop: "0",
           paddingBottom: "6",
-        },
-      },
-    },
-    hasIcon: {
-      true: {
-        description: {
-          marginTop: "0.5",
         },
       },
     },
