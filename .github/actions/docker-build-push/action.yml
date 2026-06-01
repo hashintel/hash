@@ -65,9 +65,11 @@ runs:
       if: inputs.PUSH == 'true' && inputs.ECR_TAGS != ''
       uses: ./.github/actions/docker-ecr-login
 
-    # Always log in to GHCR: the build cache lives there, so even ECR-only and
-    # validation-only builds need read (and, when pushing, write) access.
+    # Log in to GHCR for the build cache (and the by-digest push). Skipped for
+    # fork PRs: their token can't read the private cache package, and a failed
+    # login / cache pull would abort an otherwise build-only validation run.
     - name: Login to GHCR
+      if: ${{ !github.event.pull_request.head.repo.fork }}
       uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3.6.0
       with:
         registry: ghcr.io
@@ -81,9 +83,10 @@ runs:
     # events, or ECR (tags) and/or GHCR (by digest) on push. They share one GHCR
     # registry cache (`CACHE_REF`), so the second is a near-total cache hit.
     # `push-by-digest` is output-global, so ECR and GHCR can't be one invocation.
-    # `cache-to` runs on push/workflow_dispatch only (trusted events): PR and
-    # merge_group read the cache (`cache-from`) but never write it, so fork PRs
-    # can't hit a fatal cache-to write error and PR builds don't churn the tag.
+    # Cache is gated by event: `cache-to` only on push/workflow_dispatch (trusted
+    # events write; PR/merge_group never churn the tag), and both `cache-from` and
+    # the GHCR login are skipped for fork PRs whose token can't read the private
+    # cache package — a fatal pull would otherwise abort a build-only run.
     - name: Build ${{ inputs.PLATFORM }} (validate, no push)
       if: inputs.PUSH != 'true'
       uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
@@ -99,7 +102,7 @@ runs:
           org.opencontainers.image.source=https://github.com/${{ github.repository }}
         provenance: false
         push: false
-        cache-from: type=registry,ref=${{ inputs.CACHE_REF }}
+        cache-from: ${{ !github.event.pull_request.head.repo.fork && format('type=registry,ref={0}', inputs.CACHE_REF) || '' }}
         cache-to: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && format('type=registry,ref={0},mode=max', inputs.CACHE_REF) || '' }}
 
     - name: Build and push to ECR
@@ -118,7 +121,7 @@ runs:
         provenance: false
         push: true
         tags: ${{ inputs.ECR_TAGS }}
-        cache-from: type=registry,ref=${{ inputs.CACHE_REF }}
+        cache-from: ${{ !github.event.pull_request.head.repo.fork && format('type=registry,ref={0}', inputs.CACHE_REF) || '' }}
         cache-to: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && format('type=registry,ref={0},mode=max', inputs.CACHE_REF) || '' }}
 
     - name: Build and push to GHCR (by digest)
@@ -137,5 +140,5 @@ runs:
           org.opencontainers.image.source=https://github.com/${{ github.repository }}
         provenance: false
         outputs: type=image,name=${{ inputs.GHCR_IMAGE }},push-by-digest=true,name-canonical=true,push=true
-        cache-from: type=registry,ref=${{ inputs.CACHE_REF }}
+        cache-from: ${{ !github.event.pull_request.head.repo.fork && format('type=registry,ref={0}', inputs.CACHE_REF) || '' }}
         cache-to: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && format('type=registry,ref={0},mode=max', inputs.CACHE_REF) || '' }}
