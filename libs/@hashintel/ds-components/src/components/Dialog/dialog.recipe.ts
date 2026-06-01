@@ -88,6 +88,7 @@ export const styles = sva({
       // When another dialog is opened on top, shift this one up-and-left by
       // 30px per layer above it so the stack reads visually.
       "&[data-has-nested]": {
+        transition: "[transform 0.10s ease]",
         transform:
           "translate(calc(var(--nested-layer-count) * -22px), calc(var(--nested-layer-count) * -22px))",
       },
