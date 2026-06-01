@@ -189,12 +189,12 @@ export const styles = sva({
       background: "[rgba(255, 255, 255, 0.88)]",
       zIndex: "1",
       borderRadius: "[inherit]",
-      color: "black",
     },
     loadingSpinner: {
       width: "[auto !important]",
       aspectRatio: "1",
       maxHeight: "[60%]",
+      color: "black",
     },
   },
   variants: {
@@ -234,11 +234,17 @@ export const styles = sva({
       },
       lg: {
         content: { maxWidth: "[860px]" },
-        loadingSpinner: { height: "[45px !important]" },
+        loadingSpinner: {
+          height: "[45px !important]",
+          color: "neutral.s115",
+        },
       },
       xl: {
         content: { maxWidth: "[1060px]" },
-        loadingSpinner: { height: "[50px !important]" },
+        loadingSpinner: {
+          height: "[50px !important]",
+          color: "neutral.s115",
+        },
       },
       fullScreen: {
         positioner: { padding: "0" },
@@ -248,6 +254,10 @@ export const styles = sva({
           height: "[100dvh]",
           maxHeight: "[100dvh]",
           borderRadius: "[0]",
+        },
+        loadingSpinner: {
+          height: "[50px !important]",
+          color: "neutral.s110",
         },
       },
     },
