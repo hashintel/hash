@@ -17,6 +17,13 @@
 name: Concurrency probe (SRE-739)
 
 on:
+  # `workflow_dispatch` only works once the workflow is on the default branch,
+  # so for this branch-local throwaway we trigger on push instead. Push 2–3 times
+  # in quick succession (e.g. `git commit --allow-empty -m probe && git push`)
+  # to get overlapping runs and observe the job-level queue.
+  push:
+    branches:
+      - t/sre-739-fix-backend-deploy-concurrency-dropped-builds-and-out-of
   workflow_dispatch:
     inputs:
       label:
