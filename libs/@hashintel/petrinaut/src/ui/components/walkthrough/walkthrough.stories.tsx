@@ -3,11 +3,6 @@ import { useState } from "react";
 import { Button } from "@hashintel/ds-components";
 
 import {
-  defaultUserSettings,
-  UserSettingsContext,
-  type UserSettingsContextValue,
-} from "../../../react/state/user-settings-context";
-import {
   WalkthroughContext,
   type WalkthroughStep,
 } from "./walkthrough-context";
@@ -57,29 +52,6 @@ const HarnessedWalkthrough = ({
 }) => {
   const [isWalkthroughOpen, setIsWalkthroughOpen] = useState(initiallyOpen);
 
-  const userSettingsValue: UserSettingsContextValue = {
-    ...defaultUserSettings,
-    isWalkthroughOpen,
-    setShowAnimations: () => {},
-    setKeepPanelsMounted: () => {},
-    setCompactNodes: () => {},
-    setArcRendering: () => {},
-    setCursorMode: () => {},
-    setIsLeftSidebarOpen: () => {},
-    setLeftSidebarWidth: () => {},
-    setPropertiesPanelWidth: () => {},
-    setIsBottomPanelOpen: () => {},
-    setBottomPanelHeight: () => {},
-    setActiveBottomPanelTab: () => {},
-    setTimelineChartType: () => {},
-    setShowMinimap: () => {},
-    setSnapToGrid: () => {},
-    setPartialSelection: () => {},
-    setUseEntitiesTreeView: () => {},
-    setIsWalkthroughOpen,
-    updateSubViewSection: () => {},
-  };
-
   return (
     <div
       style={{
@@ -95,11 +67,12 @@ const HarnessedWalkthrough = ({
           Re-open walkthrough
         </Button>
       )}
-      <UserSettingsContext value={userSettingsValue}>
-        <WalkthroughContext value={{ steps: storySteps }}>
-          <WalkthroughDialog />
-        </WalkthroughContext>
-      </UserSettingsContext>
+      <WalkthroughContext value={{ steps: storySteps }}>
+        <WalkthroughDialog
+          open={isWalkthroughOpen}
+          onClose={() => setIsWalkthroughOpen(false)}
+        />
+      </WalkthroughContext>
     </div>
   );
 };

@@ -5,7 +5,6 @@ import { use, useState } from "react";
 import { Button, usePortalContainerRef } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { UserSettingsContext } from "../../../react/state/user-settings-context";
 import {
   WalkthroughContext,
   willShowWalkthroughDialog,
@@ -99,9 +98,6 @@ const titleStyle = css({
   letterSpacing: "[-0.005em]",
   minWidth: "[0]",
   flex: "[1 1 auto]",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
 });
 
 const closeButtonStyle = css({
@@ -236,9 +232,16 @@ const actionsStyle = css({
   gap: "2",
 });
 
-export const WalkthroughDialog: React.FC = () => {
+export type WalkthroughDialogProps = {
+  open: boolean;
+  onClose: () => void;
+};
+
+export const WalkthroughDialog: React.FC<WalkthroughDialogProps> = ({
+  open,
+  onClose,
+}) => {
   const walkthrough = use(WalkthroughContext);
-  const { isWalkthroughOpen, setIsWalkthroughOpen } = use(UserSettingsContext);
   const [currentStep, setCurrentStep] = useState(0);
   const portalContainerRef = usePortalContainerRef();
 
@@ -246,20 +249,20 @@ export const WalkthroughDialog: React.FC = () => {
   // prev-prop comparison pattern recommended by React's "you might not need
   // an effect" guide, since calling setState inside useEffect would cause a
   // cascading render and is flagged by react-hooks-js.
-  const [wasOpen, setWasOpen] = useState(isWalkthroughOpen);
-  if (isWalkthroughOpen !== wasOpen) {
-    setWasOpen(isWalkthroughOpen);
-    if (isWalkthroughOpen) {
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) {
       setCurrentStep(0);
     }
   }
 
-  if (!willShowWalkthroughDialog(walkthrough, isWalkthroughOpen)) {
+  if (!willShowWalkthroughDialog(walkthrough, open)) {
     return null;
   }
 
   const { steps } = walkthrough;
-  const close = () => setIsWalkthroughOpen(false);
+  const close = onClose;
   const lastIndex = steps.length - 1;
   const step = steps[currentStep] ?? steps[0];
 
@@ -296,7 +299,7 @@ export const WalkthroughDialog: React.FC = () => {
 
   return (
     <ArkDialog.Root
-      open={isWalkthroughOpen}
+      open={open}
       closeOnInteractOutside={false}
       onOpenChange={(details) => {
         if (!details.open) {

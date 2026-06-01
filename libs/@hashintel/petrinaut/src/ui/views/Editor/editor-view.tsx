@@ -143,9 +143,25 @@ export const EditorView = ({
   >(null);
   const [isAiCtaDismissed, setIsAiCtaDismissed] = useState(false);
 
-  const { compactNodes, isWalkthroughOpen } = use(UserSettingsContext);
+  const { compactNodes, showWalkthroughOnInit, setShowWalkthroughOnInit } =
+    use(UserSettingsContext);
   const walkthrough = use(WalkthroughContext);
   const dims = compactNodes ? compactNodeDimensions : classicNodeDimensions;
+
+  // Live open state for the walkthrough. Seeded once from the persisted
+  // "show on init" preference, so toggling that preference only takes effect
+  // on the next init rather than reopening the walkthrough mid-session.
+  const [isWalkthroughOpen, setIsWalkthroughOpen] = useState(
+    showWalkthroughOnInit,
+  );
+
+  // Dismissing the walkthrough closes it for this session and clears the
+  // "show on init" preference, so it doesn't reappear next init unless the
+  // user re-enables it from the settings dialog.
+  const closeWalkthrough = () => {
+    setIsWalkthroughOpen(false);
+    setShowWalkthroughOnInit(false);
+  };
 
   const [importError, setImportError] = useState<string | null>(null);
 
@@ -387,7 +403,7 @@ export const EditorView = ({
         onCreateEmpty={handleCreateEmpty}
       />
 
-      <WalkthroughDialog />
+      <WalkthroughDialog open={isWalkthroughOpen} onClose={closeWalkthrough} />
 
       {/* Top Bar - always visible */}
       <TopBar
