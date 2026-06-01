@@ -49,6 +49,17 @@ runs:
       run: |
         set -euo pipefail
 
+        # Retry transient registry errors — GHCR intermittently 5xx's its token
+        # endpoint / blob copy, and `imagetools` has no built-in retry.
+        retry() {
+          local n=1
+          until "$@"; do
+            [ "$n" -ge 3 ] && return 1
+            echo "::warning ::registry op failed (attempt $n) — retrying in $((n * 5))s"
+            sleep "$((n * 5))"; n=$((n + 1))
+          done
+        }
+
         # Commit the mutable tag currently points at, read from the OCI revision
         # label (`org.opencontainers.image.revision`, set at build time). Using
         # the label rather than listing `sha-*` tags keeps this registry-agnostic
@@ -77,7 +88,7 @@ runs:
         fi
 
         if [[ "$advance" == "true" ]]; then
-          docker buildx imagetools create --tag "$IMAGE:$MUTABLE_TAG" "$IMAGE:$SOURCE_TAG"
+          retry docker buildx imagetools create --tag "$IMAGE:$MUTABLE_TAG" "$IMAGE:$SOURCE_TAG"
           echo "::notice ::advanced $MUTABLE_TAG -> $SOURCE_TAG ($CANDIDATE_SHA)"
         fi
         echo "advanced=$advance" >> "$GITHUB_OUTPUT"
