@@ -490,8 +490,8 @@ describe("PlaybackProvider", () => {
 
       expect(initializeFn).toHaveBeenCalledWith(
         expect.objectContaining({
-          maxFramesAhead: 10000,
-          batchSize: 500,
+          maxFramesAhead: 40,
+          batchSize: 10,
         }),
       );
       expect(runFn).toHaveBeenCalled();
@@ -651,8 +651,8 @@ describe("PlaybackProvider", () => {
 
       expect(initializeFn).toHaveBeenCalledWith(
         expect.objectContaining({
-          maxFramesAhead: 10000,
-          batchSize: 500,
+          maxFramesAhead: 40,
+          batchSize: 10,
         }),
       );
       expect(runFn).toHaveBeenCalled();
