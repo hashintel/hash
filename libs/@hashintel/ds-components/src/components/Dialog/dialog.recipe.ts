@@ -7,7 +7,6 @@ export const styles = sva({
   slots: dialogAnatomy
     .extendWith(
       "header",
-      "titleRow",
       "titleIcon",
       "headerActions",
       "headerRight",
@@ -94,15 +93,10 @@ export const styles = sva({
       flex: "[1 1 auto]",
       minWidth: "0",
     },
-    titleRow: {
-      display: "flex",
-      alignItems: "center",
-      gap: "2",
-      flex: "[1 1 auto]",
-      minWidth: "0",
-    },
     titleIcon: {
+      float: "start",
       marginLeft: "-0.5",
+      marginRight: "2",
       color: "neutral.s90",
       flex: "[0 0 auto]",
       backgroundColor: "neutral.s25",
@@ -113,6 +107,7 @@ export const styles = sva({
       position: "relative",
     },
     title: {
+      display: "inline",
       fontWeight: "semibold",
       textStyle: "lg",
       color: "fg.body",
@@ -123,14 +118,14 @@ export const styles = sva({
       marginTop: "-0.5",
     },
     headerRight: {
-      marginLeft: "auto",
+      float: "end",
       display: "flex",
       alignItems: "center",
       gap: "[1px]",
-      alignSelf: "flex-start",
     },
     headerActions: {
       display: "flex",
+      marginLeft: "auto",
       alignItems: "center",
       gap: "[1px]",
       flex: "[0 0 auto]",
@@ -184,8 +179,8 @@ export const styles = sva({
     },
     closeButton: {
       flex: "[0 0 auto]",
-      alignSelf: "flex-start",
       marginLeft: "auto",
+      float: "end",
       position: "relative",
       zIndex: "1",
       marginTop:

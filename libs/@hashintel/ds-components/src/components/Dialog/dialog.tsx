@@ -109,12 +109,9 @@ export const Dialog = ({
 
   const headerEl = hasStructuredHeader ? (
     <div className={classes.header}>
-      <div className={classes.titleRow}>
+      <div>
         {titleIconName && (
           <Icon name={titleIconName} size="md" className={classes.titleIcon} />
-        )}
-        {title && (
-          <ArkDialog.Title className={classes.title}>{title}</ArkDialog.Title>
         )}
         {titleActions ? (
           <div className={classes.headerRight}>
@@ -123,6 +120,9 @@ export const Dialog = ({
           </div>
         ) : (
           closeButton
+        )}
+        {title && (
+          <ArkDialog.Title className={classes.title}>{title}</ArkDialog.Title>
         )}
       </div>
       {description && (
