@@ -54,7 +54,7 @@
     }
 
     bb11(): {
-        goto -> bb12(false)
+        goto -> bb12(0)
     }
 
     bb12(%0): {
