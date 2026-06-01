@@ -26,11 +26,10 @@ env:
 # are NEVER cancelled or evicted at the run level. This is critical: the build
 # matrix is computed per-commit (turbo affected vs HEAD^), so if a publishing
 # run were dropped, the services that *only* that commit changed would never
-# publish. Serialization of the actual publishing happens per-service at the job
-# level (build / manifest / deploy) via `queue: max`, which serializes WITHOUT
-# dropping any run; the mutable `:staging` / `:latest` tags are then only ever
-# moved forward by the tag-if-newer guard (GHCR is pushed by digest — no per-arch
-# tags to race).
+# publish. The builds themselves run unserialized — their pushes are immutable
+# (GHCR by digest, ECR :sha/:run). Only the mutable tags and rollouts serialize
+# per service via `queue: max`: :staging in `stage`, :latest in `manifest`, ECS
+# in `deploy`; the tag-if-newer guard keeps :staging/:latest moving only forward.
 concurrency:
   group: ${{ github.workflow }}-${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.run_id || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
@@ -45,6 +44,7 @@ jobs:
       backend-images: ${{ steps.packages.outputs.backend-images }}
       backend-manifests: ${{ steps.packages.outputs.backend-manifests }}
       backend-deploys: ${{ steps.packages.outputs.backend-deploys }}
+      backend-staging: ${{ steps.packages.outputs.backend-staging }}
     steps:
       - name: Checkout source code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -205,9 +205,16 @@ jobs:
             [.[] | .ecs[]] | { include: . }
           ' <<<"$AFFECTED_CATALOG")
 
+          # Staging matrix: services whose arm64 image is pushed to ECR and
+          # tagged :staging (one guard run per such service).
+          STAGING_MATRIX=$(jq -c '
+            map(select(.push | index("ecr"))) | { service: [.[].service] }
+          ' <<<"$AFFECTED_CATALOG")
+
           echo "backend-images=$BUILD_MATRIX" | tee -a $GITHUB_OUTPUT
           echo "backend-manifests=$MANIFEST_MATRIX" | tee -a $GITHUB_OUTPUT
           echo "backend-deploys=$DEPLOY_MATRIX" | tee -a $GITHUB_OUTPUT
+          echo "backend-staging=$STAGING_MATRIX" | tee -a $GITHUB_OUTPUT
 
   sourcemaps:
     name: Sourcemaps
@@ -263,14 +270,10 @@ jobs:
     runs-on: ${{ matrix.arch == 'arm64' && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
     needs: [setup]
     if: fromJSON(needs.setup.outputs.backend-images).include[0] != null
-    # Serialize per service+arch with `queue: max` (queues instead of cancelling,
-    # so no commit's build is dropped) — this also gives the :staging guard below
-    # a race-free check-then-set. GHCR is pushed by digest and ECR :sha/:run are
-    # immutable, so :staging is the only mutable tag here, set by the guard.
-    # Different services build in parallel; PRs/merge_group isolate per-ref.
-    concurrency:
-      group: ${{ github.workflow }}-build-${{ matrix.service }}-${{ matrix.arch }}-${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && 'publish' || github.ref }}
-      queue: max
+    # No concurrency: builds and their immutable pushes (GHCR by digest, ECR
+    # :sha/:run) are idempotent, so parallel runs don't race — they run free.
+    # Only the mutable tags need serialization: :staging in the `stage` job,
+    # :latest in the `manifest` job.
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.setup.outputs.backend-images) }}
@@ -280,10 +283,6 @@ jobs:
       packages: write
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          # tag-if-newer (the :staging guard) needs full history for
-          # `git merge-base --is-ancestor`.
-          fetch-depth: 0
 
       # Tag-list assembly. The dynamic matrix already filtered the (service,
       # arch) entries to what should build, so this step only decides whether
@@ -330,10 +329,8 @@ jobs:
             echo "push_ghcr=$push_ghcr"
             echo "push=$push"
 
-            # ECR is single-arch (arm64), tag-based. `:staging` is mutable and
-            # set separately via the tag-if-newer guard, so only immutable tags
-            # are built here; `ecr_image` is the repo for the guard + sha source.
-            echo "ecr_image=$ecr_host/$ECR_REPO/$SERVICE"
+            # ECR is single-arch (arm64), tag-based. Only immutable tags here
+            # (:sha / :run); the mutable :staging tag is set by the `stage` job.
             echo "ecr_tags<<EOF"
             if $push_ecr; then
               echo "$ecr_host/$ECR_REPO/$SERVICE:sha-$SHA"
@@ -391,15 +388,47 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
-      # `:staging` is mutable and read by promote/ECS. Advance it onto this
-      # commit only if it is newer than the one currently tagged — guards against
-      # an out-of-order run and protects a manual rollback. Relies on this job's
-      # `queue: max` group for a race-free check-then-set.
+  # Advance the mutable ECR :staging tag, serialized per service so an
+  # out-of-order run can't move it backwards. The build job runs unserialized
+  # (its pushes are immutable); only this small, fast tag step needs ordering.
+  stage:
+    name: Tag :staging (${{ matrix.service }})
+    runs-on: ubuntu-latest
+    needs: [setup, build]
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && fromJSON(needs.setup.outputs.backend-staging).service[0] != null
+    concurrency:
+      group: ${{ github.workflow }}-staging-${{ matrix.service }}
+      queue: max
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.setup.outputs.backend-staging) }}
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          # tag-if-newer needs full history for `git merge-base --is-ancestor`.
+          fetch-depth: 0
+
+      - name: Configure AWS credentials (ECR push)
+        uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4.3.1
+        with:
+          role-to-assume: arn:aws:iam::${{ env.AWS_ECR_ACCOUNT_ID }}:role/${{ env.OIDC_HASH_CD_PUSH_ROLE }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Log in to ECR
+        uses: ./.github/actions/docker-ecr-login
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
+
+      # ECR images are single-arch (arm64). Advance :staging onto this commit's
+      # immutable sha tag only if it is newer than the one currently tagged.
       - name: Advance :staging if newer
-        if: steps.targets.outputs.push_ecr == 'true'
         uses: ./.github/actions/tag-if-newer
         with:
-          image: ${{ steps.targets.outputs.ecr_image }}
+          image: ${{ env.AWS_ECR_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ github.repository }}/${{ matrix.service }}
           mutable-tag: staging
           source-tag: sha-${{ github.sha }}
           candidate-sha: ${{ github.sha }}
@@ -506,7 +535,7 @@ jobs:
   # `needs: deploy` notifier would miss, since a skipped job is not a failure).
   passed:
     name: Deployments passed
-    needs: [setup, sourcemaps, build, manifest, deploy]
+    needs: [setup, sourcemaps, build, stage, manifest, deploy]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -519,6 +548,9 @@ jobs:
       - name: Check build
         run: |
           [[ ${{ needs.build.result }} =~ success|skipped ]]
+      - name: Check stage
+        run: |
+          [[ ${{ needs.stage.result }} =~ success|skipped ]]
       - name: Check manifest
         run: |
           [[ ${{ needs.manifest.result }} =~ success|skipped ]]
