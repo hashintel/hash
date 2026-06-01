@@ -19,14 +19,19 @@ env:
   OIDC_HASH_CD_PUSH_ROLE: github-oidc-hash-cd-push
   OIDC_HASH_CD_DEPLOY_ROLE: github-oidc-hash-cd-deploy
 
-# PR and merge_group runs cancel their previous attempt — the next push or
-# queue reshuffle obsoletes the in-flight build-only validation. Push and
-# workflow_dispatch share a single `publish` group so all publishing runs
-# serialize against each other regardless of ref, avoiding races on the
-# moving `:latest-<arch>` GHCR tags between e.g. a main push and a
-# feature-branch dispatch.
+# PR and merge_group runs cancel their previous attempt (cancel-in-progress):
+# a new commit or queue reshuffle obsoletes the in-flight build-only validation.
+#
+# Push and workflow_dispatch get a UNIQUE per-run group (github.run_id) so they
+# are NEVER cancelled or evicted at the run level. This is critical: the build
+# matrix is computed per-commit (turbo affected vs HEAD^), so if a publishing
+# run were dropped, the services that *only* that commit changed would never
+# publish. Serialization of the actual publishing — and ordering of the moving
+# `:latest-<arch>` / `:staging` tags — happens per-service at the job level
+# (build / manifest / deploy) via `queue: max`, which serializes WITHOUT
+# dropping any run.
 concurrency:
-  group: ${{ github.workflow }}-${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && 'publish' || github.ref }}
+  group: ${{ github.workflow }}-${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.run_id || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
 
 jobs:
@@ -257,6 +262,13 @@ jobs:
     runs-on: ${{ matrix.arch == 'arm64' && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
     needs: [setup]
     if: fromJSON(needs.setup.outputs.backend-images).include[0] != null
+    # Serialize per service+arch so concurrent main pushes don't race the
+    # mutable `:staging` / `:latest-<arch>` tags. `queue: max` queues instead
+    # of cancelling, so no commit's image is dropped; different services build
+    # in parallel (separate groups). PRs/merge_group isolate per-ref.
+    concurrency:
+      group: ${{ github.workflow }}-build-${{ matrix.service }}-${{ matrix.arch }}-${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && 'publish' || github.ref }}
+      queue: max
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.setup.outputs.backend-images) }}
@@ -353,6 +365,11 @@ jobs:
     runs-on: ubuntu-latest
     needs: [setup, build]
     if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && fromJSON(needs.setup.outputs.backend-manifests).service[0] != null
+    # Serialize the `:latest` multi-arch manifest per service so a newer push's
+    # manifest never interleaves with an older one. `queue: max` => no drops.
+    concurrency:
+      group: ${{ github.workflow }}-manifest-${{ matrix.service }}
+      queue: max
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.setup.outputs.backend-manifests) }}
@@ -389,6 +406,11 @@ jobs:
     runs-on: ubuntu-latest
     needs: [setup, build]
     if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && fromJSON(needs.setup.outputs.backend-deploys).include[0] != null
+    # Serialize ECS redeploys per service (one rollout at a time per service);
+    # different services deploy in parallel. `queue: max` => no deploy dropped.
+    concurrency:
+      group: ${{ github.workflow }}-deploy-${{ matrix.service_name }}
+      queue: max
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.setup.outputs.backend-deploys) }}
