@@ -317,6 +317,32 @@ export const Sizes: Story = () => (
         ) : null}
       </div>
     ))}
+    <div
+      className={css({
+        display: "flex",
+        gap: "3",
+        alignItems: "center",
+        flexWrap: "wrap",
+      })}
+    >
+      <div className={css({ minWidth: "[6rem]", fontWeight: "medium" })}>
+        custom
+      </div>
+      <DialogExample
+        buttonLabel="Custom width (480px)"
+        dialogProps={(close) => ({
+          className: css({ maxWidth: "[480px]" }),
+          title: "Custom width (480px)",
+          description: "maxWidth is overridden via className.",
+          children: sampleBody,
+          footerActions: (
+            <Button variant="solid" tone="brand" onClick={close}>
+              Save changes
+            </Button>
+          ),
+        })}
+      />
+    </div>
   </div>
 );
 
