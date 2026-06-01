@@ -52,6 +52,8 @@ export const styles = sva({
     },
     content: {
       "--dialog-horizontal-padding": "var(--spacing-5\\.5)",
+      "--dialog-top-padding": "var(--spacing-4)",
+      "--dialog-close-button-gap": "var(--spacing-2)",
       display: "flex",
       flexDirection: "column",
       width: "[100%]",
@@ -79,6 +81,9 @@ export const styles = sva({
       border: "[1px solid {colors.neutral.s50}]",
       borderTopRadius: "lg",
       borderBottom: "[1px solid {colors.neutral.s30}]",
+      paddingX: "[var(--dialog-horizontal-padding)]",
+      paddingTop: "[var(--dialog-top-padding)]",
+      paddingBottom: "3.5",
     },
     hasCustomHeader: {
       display: "flex",
@@ -123,6 +128,8 @@ export const styles = sva({
       alignItems: "center",
       gap: "[1px]",
       flex: "[0 0 auto]",
+      marginTop:
+        "[calc(var(--dialog-top-padding) * -1 + var(--dialog-close-button-gap))]",
     },
     body: {
       flex: "[1 1 auto]",
@@ -134,6 +141,9 @@ export const styles = sva({
       borderBottomRadius: "lg",
       color: "fg.body",
       textStyle: "sm",
+      paddingX: "[var(--dialog-horizontal-padding)]",
+      paddingTop: "4",
+      paddingBottom: "5",
     },
     footer: {
       flex: "[0 0 auto]",
@@ -141,6 +151,9 @@ export const styles = sva({
       alignItems: "flex-start",
       justifyContent: "space-between",
       gap: "3",
+      paddingX: "[var(--dialog-horizontal-padding)]",
+      paddingTop: "3.5",
+      paddingBottom: "3",
     },
     footerActions: {
       display: "flex",
@@ -159,6 +172,10 @@ export const styles = sva({
       marginLeft: "auto",
       position: "relative",
       zIndex: "1",
+      marginTop:
+        "[calc(var(--dialog-top-padding) * -1 + var(--dialog-close-button-gap))]",
+      marginRight:
+        "[calc(var(--dialog-horizontal-padding) * -1 + var(--dialog-close-button-gap))]",
     },
     loadingOverlay: {
       position: "absolute",
@@ -171,12 +188,36 @@ export const styles = sva({
     },
   },
   variants: {
+    withPadding: {
+      false: {
+        body: {
+          padding: "0",
+        },
+      },
+    },
     size: {
-      xs: { content: { maxWidth: "[20rem]" } },
-      sm: { content: { maxWidth: "[24rem]" } },
-      md: { content: { maxWidth: "[32rem]" } },
-      lg: { content: { maxWidth: "[42rem]" } },
-      xl: { content: { maxWidth: "[56rem]" } },
+      xs: {
+        content: {
+          maxWidth: "[400px]",
+          "--dialog-horizontal-padding": "var(--spacing-4)",
+          "--dialog-top-padding": "var(--spacing-3\\.5)",
+        },
+        header: {
+          paddingBottom: "3",
+        },
+        body: {
+          paddingTop: "4",
+          paddingBottom: "4.5",
+        },
+        footer: {
+          paddingTop: "3",
+          paddingBottom: "2.5",
+        },
+      },
+      sm: { content: { maxWidth: "[520px]" } },
+      md: { content: { maxWidth: "[640px]" } },
+      lg: { content: { maxWidth: "[860px]" } },
+      xl: { content: { maxWidth: "[1060px]" } },
       fullScreen: {
         positioner: { padding: "0" },
         content: {
@@ -186,38 +227,6 @@ export const styles = sva({
           maxHeight: "[100dvh]",
           borderRadius: "[0]",
         },
-      },
-    },
-    withPadding: {
-      true: {
-        header: {
-          paddingBottom: "3.5",
-          paddingTop: "4",
-          paddingX: "[var(--dialog-horizontal-padding)]",
-        },
-        body: {
-          paddingTop: "4",
-          paddingBottom: "5",
-          paddingX: "[var(--dialog-horizontal-padding)]",
-        },
-        footer: {
-          paddingX: "[var(--dialog-horizontal-padding)]",
-          paddingTop: "3.5",
-          paddingBottom: "3",
-        },
-        headerActions: {
-          marginTop: "[calc(var(--spacing-4) * -1 + var(--spacing-2))]",
-        },
-        closeButton: {
-          marginRight:
-            "[calc(var(--dialog-horizontal-padding) * -1 + var(--spacing-2))]",
-          marginTop: "[calc(var(--spacing-4) * -1 + var(--spacing-2))]",
-        },
-      },
-      false: {
-        // header: { padding: "5", paddingBottom: "0" },
-        // body: { padding: "0" },
-        // footer: { padding: "4" },
       },
     },
     headerless: {
