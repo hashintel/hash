@@ -42,7 +42,7 @@ An end-to-end manufacturing and distribution network (loaded from the **Supply C
 
 **Key concepts:** [types](petri-net-extensions.md#typed-vs-untyped-places), [distributions](petri-net-extensions.md#distributions), [competing transitions](useful-patterns.md#competing-transitions--routing), [inhibitor arcs](petri-net-extensions.md#inhibitor-arcs), [visualizers](petri-net-extensions.md#visualizer).
 
-<img width="1264" height="267" alt="probabilitic-supply-chain" src="https://github.com/user-attachments/assets/3823a252-33ec-4d22-b220-c8aa337698bf" />
+<img width="1439" height="747" alt="suppy-chain-with-disruption" src="https://github.com/user-attachments/assets/7ae913db-cfbd-4dd9-bd50-1672c17f2444" />
 
 ## Deployment Pipeline
 
@@ -64,7 +64,7 @@ A software release process with a safety gate and an incident feedback loop. Dep
 
 **Key concepts:** [inhibitor arcs](petri-net-extensions.md#inhibitor-arcs), [source transitions](useful-patterns.md#source-transitions-exogenous-arrivals), [mutual exclusion](useful-patterns.md#mutual-exclusion-with-inhibitor-arcs), [distributions](petri-net-extensions.md#distributions), [visualizers](petri-net-extensions.md#visualizer).
 
-<img width="1272" height="584" alt="deployment-pipeline" src="https://github.com/user-attachments/assets/9777d44c-75cf-4398-858d-f58952af9dd3" />
+<img width="1323" height="676" alt="deployment-pipeline" src="https://github.com/user-attachments/assets/002dfe2f-c35c-4a24-a2ba-dd1a73325e67" />
 
 ## Production with Machine Failure
 
