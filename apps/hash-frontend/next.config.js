@@ -142,6 +142,22 @@ export default withSentryConfig(
               },
             ],
           },
+          {
+            /**
+             * Self-hosted fonts referenced from `globals.scss` (Inter, Open
+             * Sauce Two, Apercu, IBM Plex, …). The Petrinaut embed route is
+             * loaded into a sandboxed null-origin iframe; the browser's
+             * anonymous-CORS rule for font fetches treats the same-host
+             * request as cross-origin and rejects it without these headers.
+             */
+            source: "/fonts/:path*",
+            headers: [
+              {
+                key: "access-control-allow-origin",
+                value: "*",
+              },
+            ],
+          },
         ];
       },
       pageExtensions: ["page.tsx", "page.ts", "page.jsx", "page.jsx", "api.ts"],

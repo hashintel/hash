@@ -1,25 +1,29 @@
-import dynamic from "next/dynamic";
 import { useRouter } from "next/router";
 import { useMemo } from "react";
 
 import { getLayoutWithSidebar } from "../../shared/layout";
 import { exampleTileBySlug } from "../processes.page/example-tiles-data";
+import {
+  ProcessEditor,
+  type ProcessEditorView,
+} from "./[uuid].page/process-editor";
 
 import type { NextPageWithLayout } from "../../shared/layout";
-import type { ProcessEditorView } from "./[uuid].page/process-editor";
-
-// Petrinaut uses Web Workers, Canvas, Monaco Editor, and the TypeScript compiler
-// which all require browser APIs — must not be server-rendered.
-const ProcessEditor = dynamic(
-  () =>
-    import("./[uuid].page/process-editor").then((mod) => ({
-      default: mod.ProcessEditor,
-    })),
-  { ssr: false },
-);
 
 /**
  * Single page backing both `/processes/draft` and `/processes/<uuid>`.
+ *
+ * We deliberately render `<ProcessEditor>` even before `router.isReady`
+ * (passing `view={null}`) so the editor's iframe element commits on the
+ * very first React render. That parallelises the iframe-bundle download
+ * with `router` resolution + Apollo's `persistedNets` query — the iframe
+ * starts loading immediately and is typically ready by the time we have
+ * everything we need to send `init`.
+ *
+ * `ProcessEditor` itself isn't imported via `next/dynamic` any more
+ * because it no longer pulls Petrinaut into its bundle — only an iframe
+ * element and the postMessage bridge — so chunk-splitting it just costs an
+ * extra round-trip for no payoff.
  */
 const ProcessRoutePage: NextPageWithLayout = () => {
   const router = useRouter();
@@ -63,10 +67,6 @@ const ProcessRoutePage: NextPageWithLayout = () => {
 
     return { kind: "saved", entityUuid: uuidParam };
   }, [router.isReady, router.query.uuid, router.query.example]);
-
-  if (!view) {
-    return null;
-  }
 
   return <ProcessEditor view={view} />;
 };

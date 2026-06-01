@@ -7,7 +7,6 @@ import {
   useState,
 } from "react";
 
-import { isSDCPNEqual } from "@hashintel/petrinaut";
 import { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
   blockProtocolDataTypes,
@@ -39,45 +38,48 @@ import type {
 import type { SDCPN } from "@hashintel/petrinaut";
 import type { PetriNetPropertiesWithMetadata } from "@local/hash-isomorphic-utils/system-types/petrinet";
 
-export type { PersistedNet } from "../../../processes.page/use-persisted-nets";
+/**
+ * Result of {@link persistDefinition}. The caller (the bridge layer in
+ * `process-editor.tsx`) needs both the new entity id and the freshly-saved
+ * snapshot to ack the iframe's pending save request, so we return both.
+ */
+export type PersistResult = {
+  entityId: EntityId;
+  /**
+   * Decision-time recorded for the just-saved revision, sourced from the
+   * refetched persisted-nets list.
+   */
+  decisionTime: string;
+  userEditable: boolean;
+};
 
 type UseProcessSaveAndLoadParams = {
-  petriNet: SDCPN;
   selectedNetId: EntityId | null;
-  /**
-   * Replace the entire active net with a new SDCPN. Internally the consumer
-   * recreates the document handle, which resets undo/redo history — so this
-   * is intended for net-switch / load flows, not user mutations.
-   */
-  setPetriNet: (sdcpn: SDCPN) => void;
   setSelectedNetId: Dispatch<SetStateAction<EntityId | null>>;
-  setLoadedRevisionTime: Dispatch<SetStateAction<string | null>>;
-  setTitle: Dispatch<SetStateAction<string>>;
-  title: string;
   refetchRevisions: () => Promise<unknown>;
 };
 
+/**
+ * Encapsulates the GraphQL persistence + persisted-nets-list reads needed by
+ * the process editor host. The iframe owns the live SDCPN and title; the
+ * host calls {@link persistDefinition} when forwarding a `requestSave` from
+ * the bridge.
+ */
 export const useProcessSaveAndLoad = ({
-  petriNet,
   selectedNetId,
   setSelectedNetId,
-  setLoadedRevisionTime,
-  setPetriNet,
-  setTitle,
-  title,
   refetchRevisions,
 }: UseProcessSaveAndLoadParams): {
-  isDirty: boolean;
   loadPersistedNet: (net: PersistedNet) => void;
   persistedNets: PersistedNet[];
   persistedNetsLoading: boolean;
-  persistPending: boolean;
   /**
-   * Persist the active net. On success, resolves with the entity id of the
-   * persisted (created or updated) entity; the caller is responsible for any
-   * URL navigation needed after a create.
+   * Persist the supplied SDCPN + title to the graph. On success resolves
+   * with the persisted entity id, the new decision-time, and whether the
+   * resulting entity is editable by the current user. The caller is
+   * responsible for any URL navigation following a create.
    */
-  persistToGraph: () => Promise<EntityId | null>;
+  persistDefinition: (petriNet: SDCPN, title: string) => Promise<PersistResult>;
   setUserEditable: Dispatch<SetStateAction<boolean>>;
   userEditable: boolean;
 } => {
@@ -88,8 +90,6 @@ export const useProcessSaveAndLoad = ({
   } = usePersistedNets();
 
   const { activeWorkspaceWebId } = useActiveWorkspace();
-
-  const [persistPending, setPersistPending] = useState(false);
 
   const [userEditable, setUserEditable] = useState(true);
 
@@ -103,40 +103,23 @@ export const useProcessSaveAndLoad = ({
     UpdateEntityMutationVariables
   >(updateEntityMutation);
 
-  const persistedNet = useMemo(() => {
-    return persistedNets.find((net) => net.entityId === selectedNetId);
-  }, [persistedNets, selectedNetId]);
-
-  const isDirty = useMemo(() => {
-    if (!persistedNet) {
-      return true;
-    }
-
-    return (
-      title !== persistedNet.title ||
-      !isSDCPNEqual(petriNet, persistedNet.definition)
-    );
-  }, [petriNet, persistedNet, title]);
-
   const loadPersistedNet = useCallback(
     (net: PersistedNet) => {
       setSelectedNetId(net.entityId);
-      setPetriNet(net.definition);
-      setTitle(net.title);
       setUserEditable(net.userEditable);
-      setLoadedRevisionTime(net.lastUpdated);
     },
-    [
-      setLoadedRevisionTime,
-      setPetriNet,
-      setSelectedNetId,
-      setTitle,
-      setUserEditable,
-    ],
+    [setSelectedNetId, setUserEditable],
   );
 
   const refetchPersistedNets = useCallback(
-    async ({ updatedEntityId }: { updatedEntityId: EntityId | null }) => {
+    async ({
+      updatedEntityId,
+    }: {
+      updatedEntityId: EntityId | null;
+    }): Promise<{
+      decisionTime: string;
+      userEditable: boolean;
+    } | null> => {
       const [updatedNetsData] = await Promise.all([
         refetch(),
         // For updates `selectedNetId` is unchanged, so Apollo won't
@@ -145,51 +128,49 @@ export const useProcessSaveAndLoad = ({
         refetchRevisions(),
       ]);
 
-      // Apollo can resolve `refetch()` without `data` (e.g. when the
-      // network errored), and `getPersistedNetsFromSubgraph` would throw
-      // on the missing `queryEntitySubgraph`. The mutation has already
-      // succeeded by this point, so swallow the local-cache update and
-      // let `useQuery`'s normal polling/revalidation catch up. Apollo's
-      // own types pretend `data` is always present, so the runtime guard
-      // is needed even though TS thinks it's redundant.
+      /**
+       * Apollo's `refetch()` can resolve without `data` (e.g. some network
+       * error paths) even though generated types model it as present.
+       * Treat this as a soft failure so callers can surface a regular
+       * save/refetch error instead of throwing on undefined access.
+       */
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       if (!updatedNetsData.data) {
-        return;
+        return null;
       }
 
       const transformedNets = getPersistedNetsFromSubgraph(
         updatedNetsData.data,
       );
 
-      if (updatedEntityId) {
-        const updatedNet = transformedNets.find(
-          (net) => net.entityId === updatedEntityId,
-        );
-
-        if (updatedNet) {
-          setSelectedNetId(updatedNet.entityId);
-          setUserEditable(updatedNet.userEditable);
-          setLoadedRevisionTime(updatedNet.lastUpdated);
-        }
+      if (!updatedEntityId) {
+        return null;
       }
+
+      const updatedNet = transformedNets.find(
+        (net) => net.entityId === updatedEntityId,
+      );
+
+      if (!updatedNet) {
+        return null;
+      }
+
+      setSelectedNetId(updatedNet.entityId);
+      setUserEditable(updatedNet.userEditable);
+      return {
+        decisionTime: updatedNet.lastUpdated,
+        userEditable: updatedNet.userEditable,
+      };
     },
-    [
-      refetch,
-      refetchRevisions,
-      setLoadedRevisionTime,
-      setSelectedNetId,
-      setUserEditable,
-    ],
+    [refetch, refetchRevisions, setSelectedNetId, setUserEditable],
   );
 
-  const persistToGraph = useCallback(async (): Promise<EntityId | null> => {
-    if (!activeWorkspaceWebId) {
-      return null;
-    }
+  const persistDefinition = useCallback(
+    async (petriNet: SDCPN, title: string): Promise<PersistResult> => {
+      if (!activeWorkspaceWebId) {
+        throw new Error("No active workspace; cannot persist Petri net.");
+      }
 
-    setPersistPending(true);
-
-    try {
       let persistedEntityId = selectedNetId;
 
       if (selectedNetId) {
@@ -263,43 +244,45 @@ export const useProcessSaveAndLoad = ({
         throw new Error("Somehow no entityId available after persisting net");
       }
 
-      await refetchPersistedNets({ updatedEntityId: persistedEntityId });
-      setSelectedNetId(persistedEntityId);
-      setUserEditable(true);
+      const refetched = await refetchPersistedNets({
+        updatedEntityId: persistedEntityId,
+      });
 
-      return persistedEntityId;
-    } finally {
-      setPersistPending(false);
-    }
-  }, [
-    activeWorkspaceWebId,
-    createEntity,
-    petriNet,
-    refetchPersistedNets,
-    selectedNetId,
-    setSelectedNetId,
-    title,
-    updateEntity,
-  ]);
+      if (!refetched) {
+        throw new Error(
+          "Persist appeared to succeed but the entity wasn't visible on refetch.",
+        );
+      }
+
+      return {
+        entityId: persistedEntityId,
+        decisionTime: refetched.decisionTime,
+        userEditable: refetched.userEditable,
+      };
+    },
+    [
+      activeWorkspaceWebId,
+      createEntity,
+      refetchPersistedNets,
+      selectedNetId,
+      updateEntity,
+    ],
+  );
 
   return useMemo(
     () => ({
-      isDirty,
       loadPersistedNet,
       persistedNets,
       persistedNetsLoading,
-      persistPending,
-      persistToGraph,
+      persistDefinition,
       setUserEditable,
       userEditable,
     }),
     [
-      isDirty,
       loadPersistedNet,
-      persistPending,
+      persistDefinition,
       persistedNets,
       persistedNetsLoading,
-      persistToGraph,
       setUserEditable,
       userEditable,
     ],

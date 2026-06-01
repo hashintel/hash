@@ -24,6 +24,9 @@
       "@blockprotocol/type-system/slim": [
         "../../@blockprotocol/type-system/typescript/src/main-slim.ts"
       ],
+      "@hashintel/petrinaut-core/ai": [
+        "../../@hashintel/petrinaut-core/src/ai.ts"
+      ],
       "@hashintel/petrinaut-core/examples": [
         "../../@hashintel/petrinaut-core/src/examples/index.ts"
       ],

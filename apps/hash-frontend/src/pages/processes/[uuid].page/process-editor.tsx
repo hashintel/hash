@@ -1,26 +1,26 @@
-import "@hashintel/petrinaut/dist/main.css";
-import { Box, Stack, Typography } from "@mui/material";
+import { Box, Skeleton, Stack } from "@mui/material";
+import * as Sentry from "@sentry/nextjs";
 import { useRouter } from "next/router";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { AlertModal } from "@hashintel/design-system";
-import { Button } from "@hashintel/ds-components";
-import {
-  createJsonDocHandle,
-  isSDCPNEqual,
-  Petrinaut,
-  type PetrinautDocHandle,
-  type PetrinautSlots,
-  type SDCPN,
-} from "@hashintel/petrinaut";
+import { type SDCPN } from "@hashintel/petrinaut";
 
-import { useProcessSaveAndLoad } from "./process-editor/use-process-save-and-load";
 import {
-  type PetriNetRevision,
-  usePetriNetRevisions,
-} from "./process-editor/use-process-save-and-load/use-petri-net-revisions";
-import { VersionPicker } from "./process-editor/version-picker";
+  type HostNetMode,
+  type PetrinautAiMessage,
+  type RevisionSummary,
+  type SavedSnapshot,
+} from "../shared/messages";
+import { useHostBridge } from "../shared/use-host-bridge";
+import {
+  clearAiMessages,
+  readAiMessages,
+  writeAiMessages,
+} from "./process-editor/ai-messages-storage";
+import { useProcessSaveAndLoad } from "./process-editor/use-process-save-and-load";
+import { usePetriNetRevisions } from "./process-editor/use-process-save-and-load/use-petri-net-revisions";
 
 import type { EntityId } from "@blockprotocol/type-system";
 
@@ -33,42 +33,25 @@ const emptySDCPN: SDCPN = {
 };
 
 /**
- * Title shown for a brand-new draft before the user has typed anything. Used
- * as the baseline value the dirty check compares against when there's no
- * persisted entity yet (i.e. before/while a save).
+ * URL the iframe is mounted at. Stable across the editor's lifetime — the
+ * actual net being edited is driven entirely by `init`/`load` messages over
+ * the postMessage bridge, so we don't need to remount the iframe (or recreate
+ * its workers) just because the user navigated to a different net.
+ *
+ * `/processes/draft/embed` matches the `[uuid]/embed.page.tsx` route with
+ * `uuid` set to the literal string "draft"; the embed page doesn't read the
+ * URL parameter so any value would work, but a constant keeps the network
+ * tab tidy.
  */
-const DEFAULT_DRAFT_TITLE = "Process";
+const PETRINAUT_EMBED_SRC = "/processes/draft/embed";
 
 /**
- * Helper to ensure that we copy all fields of the SDCPN when loading a revision.
+ * Server route that proxies the Petrinaut AI assistant to the LLM provider.
+ * Hardcoded here rather than taken from the iframe's request: the iframe runs
+ * untrusted user code, so the host must never fetch an arbitrary URL on its
+ * behalf — it only forwards the (still server-validated) request body.
  */
-const SDCPN_FIELDS = {
-  places: true,
-  transitions: true,
-  types: true,
-  differentialEquations: true,
-  parameters: true,
-  scenarios: true,
-  metrics: true,
-} as const satisfies Record<keyof SDCPN, true>;
-
-/**
- * Mirror a single SDCPN field from `source` onto `target`.
- */
-const copySdcpnField = <K extends keyof SDCPN>(
-  target: SDCPN,
-  source: SDCPN,
-  key: K,
-): void => {
-  /* eslint-disable no-param-reassign -- mutating the Immer draft is
-     the whole point of this helper. */
-  if (source[key] === undefined) {
-    delete (target as Partial<SDCPN>)[key];
-  } else {
-    target[key] = source[key];
-  }
-  /* eslint-enable no-param-reassign */
-};
+const PETRINAUT_AI_CHAT_API = "/api/petrinaut-ai-chat";
 
 /**
  * URL-derived view that the editor renders. The host page resolves this from
@@ -102,6 +85,21 @@ const pathForLoadedView = (loadedView: LoadedView): string => {
   return `/processes/${extractEntityUuidFromEntityId(loadedView.entityId)}`;
 };
 
+/**
+ * Storage key under which a net's AI-assistant conversation is persisted.
+ *
+ * - Saved nets key by their entity UUID, so the conversation follows the net
+ *   across reloads and navigations.
+ * - Drafts key by their seed (or `"blank"`). These are written so a draft
+ *   conversation can be migrated onto the saved net on first save, but they're
+ *   intentionally never *restored* (a fresh draft starts with a blank
+ *   conversation, mirroring that draft net contents aren't persisted either).
+ */
+const aiMessagesKeyForLoadedView = (loadedView: LoadedView): string =>
+  loadedView.kind === "saved"
+    ? extractEntityUuidFromEntityId(loadedView.entityId)
+    : `draft:${loadedView.seedKey ?? "blank"}`;
+
 const viewMatchesLoaded = (
   view: ProcessEditorView,
   loadedView: LoadedView,
@@ -118,156 +116,188 @@ const viewMatchesLoaded = (
 };
 
 /**
- * Whether two URL-derived views refer to the same routing target. Used to
- * detect when the router has moved on from a snapshot we captured earlier
- * (e.g. the pre-save draft view).
+ * Resolved content for the active view: the SDCPN + title to load into the
+ * iframe, the `HostNetMode` describing it, and the `SavedSnapshot` the
+ * iframe should compare against for dirty-tracking.
  */
-const viewsEqual = (
-  first: ProcessEditorView,
-  second: ProcessEditorView,
-): boolean => {
-  if (first.kind === "draft" && second.kind === "draft") {
-    return first.seedKey === second.seedKey;
-  }
-  if (first.kind === "saved" && second.kind === "saved") {
-    return first.entityUuid === second.entityUuid;
-  }
-  return false;
+type ResolvedView = {
+  loadedView: LoadedView;
+  definition: SDCPN;
+  title: string;
+  mode: HostNetMode;
+  savedSnapshot: SavedSnapshot;
+  /**
+   * Persisted AI conversation to seed the iframe's assistant with. Only
+   * populated for saved nets — see {@link aiMessagesKeyForLoadedView}.
+   */
+  aiMessages: PetrinautAiMessage[];
 };
+
+const buildRevisionSummaries = (
+  revisions: ReadonlyArray<{ decisionTime: string; title: string }>,
+): RevisionSummary[] =>
+  revisions.map(({ decisionTime, title }) => ({ decisionTime, title }));
 
 /**
- * A pending UI action that requires the user to first acknowledge that
- * their unsaved changes will be discarded. Both URL-driven reconciliation
- * and the in-editor back arrow funnel through the same confirmation modal.
- *
- * `navigateAway` carries `revertUrlOnCancel` because some callers (e.g. the
- * back arrow) haven't changed the URL yet so cancelling is a no-op, while
- * others (e.g. the not-found redirect) need the URL reverted to keep it in
- * sync with the still-loaded editor state.
+ * Loading-state overlay rendered above the still-warming iframe. Mirrors
+ * Petrinaut's broad layout (top bar with back / title / version-picker /
+ * save, plus a left rail and the canvas) so the transition into the real
+ * editor doesn't cause a visible reflow.
  */
-type PendingDiscardAction =
-  | { kind: "applyView"; view: ProcessEditorView }
-  | { kind: "navigateAway"; path: string; revertUrlOnCancel: boolean };
+const ProcessEditorLoadingSkeleton = () => (
+  <Stack
+    sx={({ palette }) => ({
+      position: "absolute",
+      inset: 0,
+      backgroundColor: palette.common.white,
+      padding: 1.5,
+      gap: 1.5,
+    })}
+    aria-hidden
+  >
+    {/* Top bar: back button + title + version picker + save button */}
+    <Stack
+      direction="row"
+      sx={{ height: 36, gap: 1, flexShrink: 0 }}
+      alignItems="center"
+    >
+      <Skeleton variant="rounded" width={32} height={32} animation="wave" />
+      <Skeleton
+        variant="rounded"
+        width={180}
+        height={24}
+        animation="wave"
+        sx={{ marginLeft: 1 }}
+      />
+      <Box sx={{ flex: 1 }} />
+      <Skeleton variant="rounded" width={64} height={28} animation="wave" />
+      <Skeleton variant="rounded" width={72} height={28} animation="wave" />
+    </Stack>
 
-const noNetSwitchingError = () => {
-  // Net switching is handled entirely by URL navigation from the
-  // `/processes` list page; the in-editor "New"/"Open" menu items are
-  // hidden via `hideNetManagementControls="except-title"` so these
-  // callbacks should never fire.
-  throw new Error(
-    "Net switching from inside Petrinaut is not supported in hash-frontend; " +
-      "navigate to /processes instead.",
-  );
-};
+    {/* Body: left rail + canvas */}
+    <Stack direction="row" sx={{ flex: 1, gap: 1.5, minHeight: 0 }}>
+      <Skeleton
+        variant="rounded"
+        animation="wave"
+        sx={{ width: 240, height: "100%" }}
+      />
+      <Skeleton
+        variant="rounded"
+        animation="wave"
+        sx={{ flex: 1, height: "100%" }}
+      />
+    </Stack>
+  </Stack>
+);
 
-export const ProcessEditor = ({ view }: { view: ProcessEditorView }) => {
+/**
+ * Process editor host. Mounts a sandboxed null-origin iframe at
+ * {@link PETRINAUT_EMBED_SRC} so user-provided code (visualizers,
+ * metrics, scenarios) runs with `'unsafe-eval'` allowed but contained
+ * away from the parent HASH origin's cookies, storage, and APIs.
+ *
+ * The host owns:
+ * - URL routing and the discard-changes modal
+ * - `beforeunload` guard
+ * - Reads/writes to the graph (persisted net list + create/update mutations,
+ *   revision history)
+ *
+ * The iframe owns:
+ * - The doc handle, title, panels, simulation/Monte-Carlo workers, Monaco
+ * - Dirty tracking (live SDCPN/title vs the `savedSnapshot` we last sent)
+ *
+ * Dirty status flows host -> iframe via `savedSnapshot`, iframe -> host via
+ * `dirtyChanged` (cached here for the modal + `beforeunload`).
+ */
+export const ProcessEditor = ({
+  view,
+}: {
+  /**
+   * Resolved URL view. `null` while we're still waiting on `router.isReady`
+   * — in that state the editor still renders its iframe element (so the
+   * iframe bundle starts downloading immediately) but the bridge effects
+   * stay dormant until a non-null view arrives.
+   */
+  view: ProcessEditorView | null;
+}) => {
   const router = useRouter();
 
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  /**
+   * In-flight AI chat proxy requests, keyed by the `requestId` the iframe
+   * generated. Lets `aiChatAbort` cancel the matching fetch.
+   */
+  const aiChatAbortControllersRef = useRef(new Map<string, AbortController>());
+
   const [selectedNetId, setSelectedNetId] = useState<EntityId | null>(null);
-  const [title, setTitle] = useState<string>(DEFAULT_DRAFT_TITLE);
 
   /**
-   * In draft mode (no `selectedNetId`) the hook's `isDirty` is always `true`
-   * because there's no persisted entity to compare against — meaning an
-   * untouched placeholder would otherwise look "dirty" and trigger discard
-   * prompts / enable the Create button incorrectly.
-   *
-   * This baseline captures the title + SDCPN at the moment a draft view was
-   * last applied (or the initial placeholder defaults on first mount). The
-   * derived {@link hasUnsavedEdits} below uses it for the draft case so
-   * "edited" means "differs from what `applyView` last installed".
+   * Cached dirty flag mirrored from the iframe's `dirtyChanged` events. The
+   * host doesn't compute this — only stores it for the discard modal +
+   * `beforeunload` guard.
    */
-  const [draftBaseline, setDraftBaseline] = useState<{
-    title: string;
-    sdcpn: SDCPN;
-  }>(() => ({ title: DEFAULT_DRAFT_TITLE, sdcpn: emptySDCPN }));
+  const [isDirty, setIsDirty] = useState(false);
 
   /**
-   * The handle is the source of truth for the current net's document. A
-   * fresh handle is created when the user loads a different persisted net
-   * or asks for a new empty one — this naturally resets undo/redo history.
-   */
-  const [handle, setHandle] = useState<PetrinautDocHandle>(() =>
-    createJsonDocHandle({ initial: emptySDCPN }),
-  );
-
-  /**
-   * Mirror of the handle's current document, kept in React state so the
-   * save/load logic can read it as a plain SDCPN (for `isDirty` checks and
-   * persisting to the graph). Updated synchronously when the handle changes
-   * via `handle.subscribe`.
-   */
-  const [petriNetDefinition, setPetriNetDefinition] = useState<SDCPN>(
-    () => handle.doc() ?? emptySDCPN,
-  );
-  useEffect(() => {
-    setPetriNetDefinition(handle.doc() ?? emptySDCPN);
-    return handle.subscribe((event) => {
-      setPetriNetDefinition(event.next);
-    });
-  }, [handle]);
-
-  const setPetriNet = useCallback((sdcpn: SDCPN) => {
-    setHandle(createJsonDocHandle({ initial: sdcpn }));
-  }, []);
-
-  /**
-   * Tracks which {@link ProcessEditorView} is currently materialised into
-   * the editor state. Compared against the incoming `view` prop on every
-   * render to decide whether to (re)apply it.
+   * Tracks which {@link ProcessEditorView} is currently materialised inside
+   * the iframe. Compared against the incoming `view` prop on every render
+   * to decide whether to (re)apply it.
    */
   const [loadedView, setLoadedView] = useState<LoadedView | null>(null);
 
   /**
-   * Decision-time of the server revision currently mirrored in the editor.
+   * Pending view-change waiting on user confirmation, set when the URL
+   * changed away from a dirty editor state. Confirming applies it;
+   * cancelling reverts the URL back to the loaded view.
    */
-  const [loadedRevisionTime, setLoadedRevisionTime] = useState<string | null>(
+  const [pendingView, setPendingView] = useState<ProcessEditorView | null>(
     null,
   );
+
+  /**
+   * UUID of the entity we just saved a draft into and are now navigating
+   * to via `router.replace`. While set, the reconciliation effect ignores
+   * the stale draft `view` until Next.js's router catches up to the new URL.
+   */
+  const expectedSavedUuidRef = useRef<string | null>(null);
 
   const { revisions, refetch: refetchRevisions } =
     usePetriNetRevisions(selectedNetId);
 
   const {
-    isDirty,
     loadPersistedNet,
+    persistDefinition,
     persistedNets,
     persistedNetsLoading,
-    persistPending,
-    persistToGraph,
-    userEditable,
     setUserEditable,
+    userEditable,
   } = useProcessSaveAndLoad({
-    petriNet: petriNetDefinition,
     refetchRevisions,
     selectedNetId,
-    setLoadedRevisionTime,
-    setPetriNet,
     setSelectedNetId,
-    setTitle,
-    title,
   });
 
   /**
-   * Apply a {@link ProcessEditorView} to the editor state, replacing the
-   * current handle/title/selectedNetId. Used both for the initial load and
-   * whenever the URL navigates to a different view.
+   * Resolve the incoming `view` prop into the data the iframe needs (SDCPN,
+   * title, mode, savedSnapshot). Returns `null` while we're still waiting
+   * for `persistedNets` to load (saved view) — which the reconciliation
+   * effect treats as a "not yet ready" signal.
    */
-  const applyView = useCallback(
-    (target: ProcessEditorView) => {
+  const resolveView = useCallback(
+    (target: ProcessEditorView): ResolvedView | null => {
       if (target.kind === "draft") {
-        const seedTitle = target.seed?.title ?? DEFAULT_DRAFT_TITLE;
+        const seedTitle = target.seed?.title ?? "Process";
         const seedDefinition = target.seed?.petriNetDefinition ?? emptySDCPN;
-        setHandle(createJsonDocHandle({ initial: seedDefinition }));
-        setTitle(seedTitle);
-        setSelectedNetId(null);
-        setUserEditable(true);
-        setLoadedRevisionTime(null);
-        setLoadedView({ kind: "draft", seedKey: target.seedKey });
-        // Reset the draft baseline so `hasUnsavedEdits` only fires once the
-        // user actually diverges from the seed (or empty placeholder).
-        setDraftBaseline({ title: seedTitle, sdcpn: seedDefinition });
-        return;
+        return {
+          loadedView: { kind: "draft", seedKey: target.seedKey },
+          definition: seedDefinition,
+          title: seedTitle,
+          mode: { kind: "draft", seedKey: target.seedKey },
+          savedSnapshot: null,
+          // Drafts always start with a blank conversation.
+          aiMessages: [],
+        };
       }
 
       const targetNet = persistedNets.find(
@@ -275,168 +305,387 @@ export const ProcessEditor = ({ view }: { view: ProcessEditorView }) => {
           extractEntityUuidFromEntityId(net.entityId) === target.entityUuid,
       );
       if (!targetNet) {
-        return;
+        return null;
       }
-      loadPersistedNet(targetNet);
-      setLoadedView({ kind: "saved", entityId: targetNet.entityId });
+      return {
+        loadedView: { kind: "saved", entityId: targetNet.entityId },
+        definition: targetNet.definition,
+        title: targetNet.title,
+        mode: {
+          kind: "saved",
+          entityId: targetNet.entityId,
+          userEditable: targetNet.userEditable,
+        },
+        savedSnapshot: {
+          definition: targetNet.definition,
+          title: targetNet.title,
+          decisionTime: targetNet.lastUpdated,
+        },
+        aiMessages: readAiMessages(
+          extractEntityUuidFromEntityId(targetNet.entityId),
+        ),
+      };
     },
-    [
-      loadPersistedNet,
-      persistedNets,
-      setSelectedNetId,
-      setTitle,
-      setUserEditable,
-    ],
+    [persistedNets],
+  );
+
+  const bridge = useHostBridge({
+    iframeRef,
+    handlers: {
+      onDirtyChanged: setIsDirty,
+      onRequestNavigateBack: () => {
+        void router.push("/processes");
+      },
+      onRequestRevision: (decisionTime) => {
+        const revision = revisions.find(
+          (rev) => rev.decisionTime === decisionTime,
+        );
+        if (!revision || !loadedView || loadedView.kind !== "saved") {
+          return;
+        }
+        bridge.send({
+          kind: "load",
+          definition: revision.definition,
+          title: revision.title,
+          mode: {
+            kind: "saved",
+            entityId: loadedView.entityId,
+            userEditable,
+          },
+          savedSnapshot: {
+            definition: revision.definition,
+            title: revision.title,
+            decisionTime: revision.decisionTime,
+          },
+          revisions: buildRevisionSummaries(revisions),
+          aiMessages: readAiMessages(
+            extractEntityUuidFromEntityId(loadedView.entityId),
+          ),
+        });
+      },
+      onReportError: ({ source, name, message, stack, mode }) => {
+        /**
+         * Reconstruct an Error from the iframe's serialised payload so
+         * Sentry's stack-trace processing has something to chew on. The
+         * synthetic Error's stack is replaced with the iframe's own,
+         * which Sentry will resolve against the same source maps as the
+         * embed-page bundle (uploaded as part of the host's release).
+         */
+        const reconstructed = Object.assign(new Error(message), {
+          name,
+          stack,
+        });
+        Sentry.captureException(reconstructed, {
+          tags: {
+            "petrinaut.source": source,
+            "petrinaut.mode": mode?.kind ?? "unknown",
+          },
+          contexts: {
+            petrinaut: { mode },
+          },
+        });
+      },
+      onAiChatRequest: ({ requestId, body }) => {
+        const controller = new AbortController();
+        aiChatAbortControllersRef.current.set(requestId, controller);
+
+        /**
+         * Proxy the iframe's chat request through HASH's authenticated API
+         * (the iframe's opaque origin can't send our session cookie) and
+         * relay the streamed response back over the bridge byte-for-byte.
+         */
+        void (async () => {
+          try {
+            const response = await fetch(PETRINAUT_AI_CHAT_API, {
+              method: "POST",
+              headers: { "content-type": "application/json" },
+              body,
+              signal: controller.signal,
+            });
+
+            bridge.send({
+              kind: "aiChatResponseStart",
+              requestId,
+              ok: response.ok,
+              status: response.status,
+              statusText: response.statusText,
+            });
+
+            if (response.body) {
+              const reader = response.body.getReader();
+              let done = false;
+              while (!done) {
+                const result = await reader.read();
+                done = result.done;
+                if (result.value) {
+                  bridge.send({
+                    kind: "aiChatChunk",
+                    requestId,
+                    bytes: result.value,
+                  });
+                }
+              }
+            }
+
+            bridge.send({ kind: "aiChatEnd", requestId });
+          } catch (error) {
+            // An abort is a normal control-flow signal, not a failure — the
+            // iframe already tore down its stream when it asked us to abort.
+            if (!controller.signal.aborted) {
+              bridge.send({
+                kind: "aiChatError",
+                requestId,
+                message: error instanceof Error ? error.message : String(error),
+              });
+            }
+          } finally {
+            aiChatAbortControllersRef.current.delete(requestId);
+          }
+        })();
+      },
+      onAiChatAbort: ({ requestId }) => {
+        const controller = aiChatAbortControllersRef.current.get(requestId);
+        controller?.abort();
+        aiChatAbortControllersRef.current.delete(requestId);
+      },
+      onAiMessagesChanged: ({ messages }) => {
+        if (!loadedView) {
+          return;
+        }
+        writeAiMessages(aiMessagesKeyForLoadedView(loadedView), messages);
+      },
+      onAiMessagesCleared: () => {
+        if (!loadedView) {
+          return;
+        }
+        clearAiMessages(aiMessagesKeyForLoadedView(loadedView));
+      },
+      onRequestSave: ({ requestId, definition, title }) => {
+        const wasCreate = selectedNetId === null;
+        void persistDefinition(definition, title)
+          .then((result) => {
+            if (wasCreate) {
+              const savedUuid = extractEntityUuidFromEntityId(result.entityId);
+
+              /**
+               * Carry any conversation the user had while drafting onto the
+               * newly-saved net's key, so saving doesn't appear to discard it.
+               * (`loadedView` is still the draft here — the closure captures
+               * the value at the time the save was requested.)
+               */
+              if (loadedView?.kind === "draft") {
+                const draftKey = aiMessagesKeyForLoadedView(loadedView);
+                const draftMessages = readAiMessages(draftKey);
+                if (draftMessages.length > 0) {
+                  writeAiMessages(savedUuid, draftMessages);
+                }
+                clearAiMessages(draftKey);
+              }
+
+              expectedSavedUuidRef.current = savedUuid;
+              setLoadedView({ kind: "saved", entityId: result.entityId });
+              void router.replace(`/processes/${savedUuid}`);
+            }
+            bridge.send({
+              kind: "saveResult",
+              requestId,
+              result: {
+                ok: true,
+                mode: {
+                  kind: "saved",
+                  entityId: result.entityId,
+                  userEditable: result.userEditable,
+                },
+                savedSnapshot: {
+                  definition,
+                  title,
+                  decisionTime: result.decisionTime,
+                },
+                revisions: buildRevisionSummaries(revisions),
+              },
+            });
+          })
+          .catch((error: unknown) => {
+            bridge.send({
+              kind: "saveResult",
+              requestId,
+              result: {
+                ok: false,
+                error: error instanceof Error ? error.message : String(error),
+              },
+            });
+          });
+      },
+    },
+  });
+
+  /**
+   * Apply a resolved view: mirror local host state used by the save flow,
+   * record the new `loadedView`. Returns the resolved view so the caller
+   * can issue the matching `init` / `load` message.
+   */
+  const adoptResolvedView = useCallback(
+    (resolved: ResolvedView) => {
+      if (resolved.loadedView.kind === "saved") {
+        const entityId = resolved.loadedView.entityId;
+        const targetNet = persistedNets.find(
+          (net) => net.entityId === entityId,
+        );
+        if (targetNet) {
+          loadPersistedNet(targetNet);
+        }
+      } else {
+        setSelectedNetId(null);
+        setUserEditable(true);
+      }
+      setLoadedView(resolved.loadedView);
+    },
+    [loadPersistedNet, persistedNets, setUserEditable],
   );
 
   /**
-   * Pending action waiting on the user's "discard unsaved changes"
-   * confirmation. Set both when the URL changed under a dirty editor and
-   * when the user clicks the in-editor back arrow with unsaved changes.
-   */
-  const [pendingDiscardAction, setPendingDiscardAction] =
-    useState<PendingDiscardAction | null>(null);
-
-  /**
-   * Snapshot of the `view` prop at the moment a draft was saved, captured
-   * just before we kick off `router.replace`. While this ref is set, the
-   * reconciliation effect treats any view that's still equal to the
-   * snapshot as a stale pre-`router.replace` value and skips reconciling.
-   *
-   * Crucially, the ref is cleared as soon as `view` changes to *anything*
-   * else — whether that's the expected `/processes/<newUuid>` or some
-   * other route the user picked while the save was in flight. This avoids
-   * the snapshot getting permanently stuck if the router resolves
-   * somewhere unexpected.
-   */
-  const viewAtSaveTimeRef = useRef<ProcessEditorView | null>(null);
-
-  /**
-   * `true` exactly when the URL points at a saved entity that, after the
-   * `usePersistedNets` query has resolved, doesn't appear in the user's
-   * visible nets. Triggers the not-found UI further down.
-   */
-  const viewIsNotFound =
-    view.kind === "saved" &&
-    !persistedNetsLoading &&
-    !persistedNets.some(
-      (net) => extractEntityUuidFromEntityId(net.entityId) === view.entityUuid,
-    );
-
-  /**
-   * Whether the editor currently mirrors what the URL is asking for. False
-   * during the brief gap between URL change and the corresponding
-   * `applyView`, while a saved net is still fetching, and while the URL
-   * points at a not-found uuid. Save controls and the Save button are
-   * gated on this so a Save can't fire against a stale or unresolved
-   * editor state.
-   */
-  const editorMatchesUrl =
-    loadedView !== null && viewMatchesLoaded(view, loadedView);
-
-  /**
-   * "Are there local edits that would be lost if we discard the current
-   * editor state?"
-   *
-   * For saved nets this is the hook's `isDirty` (current state differs
-   * from the loaded persisted entity). For drafts — where the hook
-   * considers any state "dirty" because there's no persisted entity to
-   * compare against — we instead compare to {@link draftBaseline}, so an
-   * untouched placeholder is correctly `false`.
-   */
-  const hasUnsavedEdits = useMemo(() => {
-    if (selectedNetId !== null) {
-      return isDirty;
-    }
-    return (
-      title !== draftBaseline.title ||
-      !isSDCPNEqual(petriNetDefinition, draftBaseline.sdcpn)
-    );
-  }, [selectedNetId, isDirty, title, draftBaseline, petriNetDefinition]);
-
-  /**
-   * Reconciles the incoming `view` prop with the editor's `loadedView`.
-   *
-   * Outcomes:
-   *  - Save just landed and URL hasn't caught up: skip.
-   *  - URL re-aligned with `loadedView` (e.g. user clicked back while the
-   *    discard modal was open): clear any stale `applyView` action and
-   *    skip.
-   *  - Saved target still loading: skip.
-   *  - Saved target not in the user's nets: if there are unsaved edits,
-   *    surface the discard modal pointing at `/processes`; otherwise
-   *    fall through to the not-found render.
-   *  - Mismatch and not dirty: apply immediately.
-   *  - Mismatch and dirty: stash as a pending `applyView` action and
-   *    surface the discard modal. If the user cancels, the URL is
-   *    reverted to the loaded view.
+   * Bootstrap: on the first render where the iframe is ready, the view has
+   * resolved from the URL, and we have all the data we need to materialise
+   * it, push `init`. Subsequent view changes (including URL navigation)
+   * flow through the reconciliation effect below as `load`.
    */
   useEffect(() => {
-    if (viewAtSaveTimeRef.current !== null) {
-      if (viewsEqual(view, viewAtSaveTimeRef.current)) {
-        // `router.replace` hasn't taken effect yet — the prop still reflects
-        // the pre-save URL. Wait for it to settle.
+    if (!bridge.isReady || loadedView !== null || view === null) {
+      return;
+    }
+    const resolved = resolveView(view);
+    if (!resolved) {
+      return;
+    }
+    adoptResolvedView(resolved);
+
+    bridge.send({
+      kind: "init",
+      initialDefinition: resolved.definition,
+      initialTitle: resolved.title,
+      readonly:
+        resolved.mode.kind === "saved" ? !resolved.mode.userEditable : false,
+      mode: resolved.mode,
+      savedSnapshot: resolved.savedSnapshot,
+      revisions: buildRevisionSummaries(revisions),
+      aiMessages: resolved.aiMessages,
+    });
+  }, [adoptResolvedView, bridge, loadedView, resolveView, revisions, view]);
+
+  /**
+   * Reconciles the incoming `view` prop with the editor's `loadedView` for
+   * subsequent navigations.
+   *
+   * Three outcomes:
+   *  - Already loaded: no-op.
+   *  - Mismatch and not dirty: send `load` immediately.
+   *  - Mismatch and dirty: stash as `pendingView` and surface the discard
+   *    modal. If the user cancels, the URL is reverted to the loaded view.
+   *
+   * For "saved" targets that haven't appeared in `persistedNets` yet we wait
+   * for the next render once the query resolves.
+   */
+  useEffect(() => {
+    if (!bridge.isReady || loadedView === null || view === null) {
+      return;
+    }
+
+    if (expectedSavedUuidRef.current !== null) {
+      if (
+        view.kind === "saved" &&
+        view.entityUuid === expectedSavedUuidRef.current
+      ) {
+        // URL has caught up — proceed normally (and `viewMatchesLoaded`
+        // below will short-circuit since `loadedView` was already set in
+        // sync with the save).
+        expectedSavedUuidRef.current = null;
+      } else {
+        // Still waiting for `router.replace` to settle; don't react to the
+        // transient mismatch.
         return;
       }
-      // Router moved on (whether to the expected new uuid or anywhere
-      // else). Clear the guard and fall through to normal reconciliation.
-      viewAtSaveTimeRef.current = null;
     }
-    if (editorMatchesUrl) {
-      // URL and editor agree. Clear any stale `applyView` action so the
-      // modal doesn't sit open after e.g. the user hits browser-back to
-      // return to the still-loaded view.
-      setPendingDiscardAction((prev) =>
-        prev?.kind === "applyView" ? null : prev,
-      );
+
+    if (viewMatchesLoaded(view, loadedView)) {
       return;
     }
     if (view.kind === "saved" && persistedNetsLoading) {
       return;
     }
-    if (view.kind === "saved" && viewIsNotFound) {
-      if (hasUnsavedEdits && loadedView !== null) {
-        // Give the user a chance to abort the navigation and recover their
-        // edits, instead of dropping them straight onto the not-found page.
-        setPendingDiscardAction((prev) =>
-          prev?.kind === "navigateAway" && prev.path === "/processes"
-            ? prev
-            : {
-                kind: "navigateAway",
-                path: "/processes",
-                revertUrlOnCancel: true,
-              },
-        );
-      }
+    if (
+      view.kind === "saved" &&
+      !persistedNets.some(
+        (net) =>
+          extractEntityUuidFromEntityId(net.entityId) === view.entityUuid,
+      )
+    ) {
       return;
     }
-    if (hasUnsavedEdits) {
-      setPendingDiscardAction((prev) =>
-        prev?.kind === "applyView" && viewsEqual(prev.view, view)
-          ? prev
-          : { kind: "applyView", view },
-      );
+
+    if (isDirty) {
+      setPendingView(view);
       return;
     }
-    applyView(view);
+
+    const resolved = resolveView(view);
+    if (!resolved) {
+      return;
+    }
+    adoptResolvedView(resolved);
+
+    bridge.send({
+      kind: "load",
+      definition: resolved.definition,
+      title: resolved.title,
+      mode: resolved.mode,
+      savedSnapshot: resolved.savedSnapshot,
+      revisions: buildRevisionSummaries(revisions),
+      aiMessages: resolved.aiMessages,
+    });
   }, [
-    view,
+    adoptResolvedView,
+    bridge,
+    isDirty,
     loadedView,
     persistedNets,
     persistedNetsLoading,
-    viewIsNotFound,
-    editorMatchesUrl,
-    hasUnsavedEdits,
-    applyView,
+    resolveView,
+    revisions,
+    view,
   ]);
+
+  /**
+   * Whenever the host's revision list refreshes (via Apollo's cache) push
+   * it down to the iframe so the version picker stays current.
+   */
+  useEffect(() => {
+    if (!bridge.isReady || loadedView === null) {
+      return;
+    }
+    bridge.send({
+      kind: "revisionsList",
+      revisions: buildRevisionSummaries(revisions),
+    });
+  }, [bridge, loadedView, revisions]);
+
+  /**
+   * Mirror updated `userEditable` permission to the iframe (e.g. the
+   * persisted-net record was refreshed and permissions changed).
+   */
+  useEffect(() => {
+    if (!bridge.isReady || loadedView === null) {
+      return;
+    }
+    bridge.send({ kind: "setReadonly", readonly: !userEditable });
+  }, [bridge, loadedView, userEditable]);
 
   /**
    * Browser-level dirty guard: warns when the user tries to close the tab,
    * reload, or follow an external link with unsaved changes. SPA-internal
-   * navigation is handled separately via the {@link AlertModal} above.
+   * navigation is handled separately via the {@link AlertModal} below.
    */
   useEffect(() => {
-    if (!hasUnsavedEdits) {
+    if (!isDirty) {
       return;
     }
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
@@ -450,202 +699,54 @@ export const ProcessEditor = ({ view }: { view: ProcessEditorView }) => {
     };
     window.addEventListener("beforeunload", handleBeforeUnload);
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, [hasUnsavedEdits]);
+  }, [isDirty]);
 
   /**
-   * Replace the editor state with a past revision of the active entity.
-   * Doesn't change `selectedNetId` — it's still the same entity, just
-   * pinned to an older decision time. Subsequent edits + save create a
-   * new top revision on the existing baseId (linear-edit model).
-   *
-   * Mutates the existing handle in place via `change()` rather than
-   * recreating it through `setPetriNet`. A fresh handle would force a
-   * full editor remount (Petrinaut keys worker providers on `handle.id`).
+   * Apply a stashed pending view (after the user confirmed discard).
    */
-  const loadRevision = useCallback(
-    (revision: PetriNetRevision) => {
-      handle.change((draft) => {
-        for (const key of Object.keys(SDCPN_FIELDS) as (keyof SDCPN)[]) {
-          copySdcpnField(draft, revision.definition, key);
-        }
-      });
-      setTitle(revision.title);
-      setLoadedRevisionTime(revision.decisionTime);
-    },
-    [handle, setTitle],
-  );
-
-  /**
-   * Latest `persistToGraph` callback. Stored in a ref so the Save button
-   * closure stays stable while still seeing the freshest reference.
-   */
-  const persistToGraphRef = useRef(persistToGraph);
-  persistToGraphRef.current = persistToGraph;
-
-  const handleSaveClick = useCallback(async () => {
-    const wasCreate = selectedNetId === null;
-    const viewAtSaveTime = view;
-    const persistedEntityId = await persistToGraphRef.current();
-    if (wasCreate && persistedEntityId) {
-      // The `useProcessSaveAndLoad` hook has already set `selectedNetId`,
-      // so we update `loadedView` synchronously here too — that way once the
-      // URL catches up, `viewMatchesLoaded` short-circuits the reconciliation
-      // effect.
-      const entityUuid = extractEntityUuidFromEntityId(persistedEntityId);
-      // Suppress reconciliation while `view` is still the pre-save draft.
-      // The guard auto-clears once the router moves on, even if it lands
-      // somewhere other than the expected URL.
-      viewAtSaveTimeRef.current = viewAtSaveTime;
-      setLoadedView({ kind: "saved", entityId: persistedEntityId });
-      void router.replace(`/processes/${entityUuid}`);
-    }
-  }, [router, selectedNetId, view]);
-
-  /**
-   * Top-bar content injected into Petrinaut via the `slots` API:
-   *  - `topBarStart`: a back-arrow button returning to `/processes`.
-   *  - `topBarEnd`:
-   *    - `VersionPicker` — shows the active server revision (vN), a `Draft`
-   *      badge when local edits diverge from the latest revision, and a
-   *      dropdown to browse history. Hidden entirely when there are no
-   *      saved revisions yet (i.e. brand-new net).
-   *    - The Save/Create button — disabled until there's something to save.
-   *
-   * Both end-slot controls are hidden when the active net is not
-   * user-editable; we don't surface a "save as copy" affordance from here
-   * today.
-   */
-  /**
-   * Navigate `path`, but if the editor is dirty first show the discard
-   * confirmation. Used for the in-editor back arrow so it honours the
-   * same guard as URL-driven view changes and `beforeunload`.
-   */
-  const navigateAwayWithDirtyGuard = useCallback(
-    (path: string) => {
-      if (hasUnsavedEdits) {
-        setPendingDiscardAction({
-          kind: "navigateAway",
-          path,
-          // The URL hasn't changed yet — the user is clicking an in-app
-          // back arrow — so cancelling just dismisses the modal.
-          revertUrlOnCancel: false,
-        });
+  const applyPendingView = useCallback(
+    (target: ProcessEditorView) => {
+      const resolved = resolveView(target);
+      if (!resolved) {
         return;
       }
-      void router.push(path);
+      adoptResolvedView(resolved);
+
+      // Drop the dirty flag eagerly so the modal doesn't immediately retrigger
+      // before the iframe's `dirtyChanged` flushes after the new load.
+      setIsDirty(false);
+
+      bridge.send({
+        kind: "load",
+        definition: resolved.definition,
+        title: resolved.title,
+        mode: resolved.mode,
+        savedSnapshot: resolved.savedSnapshot,
+        revisions: buildRevisionSummaries(revisions),
+        aiMessages: resolved.aiMessages,
+      });
     },
-    [hasUnsavedEdits, router],
+    [adoptResolvedView, bridge, resolveView, revisions],
   );
 
-  const slots = useMemo<PetrinautSlots>(() => {
-    const backButton = (
-      <Button
-        size="sm"
-        variant="ghost"
-        iconName="arrowLeft"
-        aria-label="Back to processes"
-        tooltip="Back to processes"
-        onClick={() => {
-          navigateAwayWithDirtyGuard("/processes");
-        }}
-      />
-    );
-
-    // Hide save-side controls when:
-    //  - the active net isn't user-editable, OR
-    //  - the URL points at a saved net that we haven't loaded yet (still
-    //    fetching, or not-found). Otherwise the button would surface as an
-    //    enabled "Create" against an empty handle and create a brand-new
-    //    entity instead of the one the URL names.
-    if (!userEditable || (view.kind === "saved" && !editorMatchesUrl)) {
-      return { topBarStart: backButton };
-    }
-
-    return {
-      topBarStart: backButton,
-      topBarEnd: (
-        <>
-          <VersionPicker
-            revisions={revisions}
-            loadedRevisionTime={loadedRevisionTime}
-            isDirty={hasUnsavedEdits && !persistPending}
-            onLoadRevision={loadRevision}
-          />
-          <Button
-            size="sm"
-            onClick={handleSaveClick}
-            disabled={!hasUnsavedEdits || persistPending}
-            loading={persistPending}
-            tooltip={
-              !hasUnsavedEdits && !persistPending
-                ? "No changes to save"
-                : undefined
-            }
-          >
-            {selectedNetId ? (hasUnsavedEdits ? "Save" : "Saved") : "Create"}
-          </Button>
-        </>
-      ),
-    };
-  }, [
-    editorMatchesUrl,
-    handleSaveClick,
-    hasUnsavedEdits,
-    loadRevision,
-    loadedRevisionTime,
-    navigateAwayWithDirtyGuard,
-    persistPending,
-    revisions,
-    selectedNetId,
-    userEditable,
-    view.kind,
-  ]);
-
-  // When the URL points at a missing entity AND there's nothing the user
-  // could lose by leaving, show the not-found page. If they have unsaved
-  // edits we instead let the discard modal (set in the reconciliation
-  // effect above) render over the editor so they get a chance to revert.
-  if (viewIsNotFound && !pendingDiscardAction) {
-    return (
-      <Stack
-        sx={{
-          alignItems: "center",
-          justifyContent: "center",
-          gap: 2,
-          height: "100%",
-          textAlign: "center",
-          px: 4,
-        }}
-      >
-        <Typography variant="h5">Process not found</Typography>
-        <Typography color="text.secondary">
-          We couldn't find a process matching this URL. It may have been deleted
-          or you may not have access to it.
-        </Typography>
-        <Button
-          size="sm"
-          onClick={() => {
-            navigateAwayWithDirtyGuard("/processes");
-          }}
-        >
-          Back to processes
-        </Button>
-      </Stack>
-    );
-  }
+  /**
+   * Show the skeleton until the iframe has signalled `ready` AND we've
+   * pushed the bootstrap `init` message (i.e. the iframe is rendering
+   * Petrinaut against the right SDCPN). There's a small visual gap
+   * between sending `init` and Petrinaut actually painting its panels;
+   * we accept that flash rather than introducing an extra
+   * "editor-painted" handshake message.
+   */
+  const isLoading = !bridge.isReady || loadedView === null;
 
   return (
     <Stack sx={{ height: "100%" }}>
-      {pendingDiscardAction && (
+      {pendingView && loadedView && (
         <AlertModal
           callback={() => {
-            const action = pendingDiscardAction;
-            setPendingDiscardAction(null);
-            if (action.kind === "applyView") {
-              applyView(action.view);
-            } else {
-              void router.push(action.path);
-            }
+            const target = pendingView;
+            setPendingView(null);
+            applyPendingView(target);
           }}
           calloutMessage="You have unsaved changes which will be discarded. Are you sure you want to switch?"
           confirmButtonText="Discard"
@@ -655,35 +756,48 @@ export const ProcessEditor = ({ view }: { view: ProcessEditorView }) => {
           header="Discard unsaved changes?"
           open
           close={() => {
-            const action = pendingDiscardAction;
-            setPendingDiscardAction(null);
-            // Revert the URL to the still-loaded view when the user
-            // cancels a navigation that has already mutated the URL
-            // (URL-driven view change, or transition into a not-found
-            // route). Back-arrow cancellations don't need this — the URL
-            // never moved.
-            const shouldRevertUrl =
-              action.kind === "applyView" || action.revertUrlOnCancel;
-            if (shouldRevertUrl && loadedView) {
-              void router.replace(pathForLoadedView(loadedView));
-            }
+            const revertPath = pathForLoadedView(loadedView);
+            setPendingView(null);
+            // Restore the URL to the editor's loaded view so URL and
+            // editor stay in sync.
+            void router.replace(revertPath);
           }}
           type="warning"
         />
       )}
 
-      <Box sx={{ height: "100%" }}>
-        <Petrinaut
-          handle={handle}
-          createNewNet={noNetSwitchingError}
-          existingNets={[]}
-          hideNetManagementControls="except-title"
-          loadPetriNet={noNetSwitchingError}
-          readonly={!userEditable}
-          setTitle={setTitle}
-          slots={slots}
-          title={title}
+      <Box sx={{ height: "100%", position: "relative" }}>
+        <Box
+          component="iframe"
+          ref={iframeRef}
+          src={PETRINAUT_EMBED_SRC}
+          /**
+           * `allow-scripts` (without `allow-same-origin`) gives the iframe a
+           * unique opaque origin: it can't read HASH cookies / localStorage /
+           * IndexedDB, can't reach HASH's API as the user (CORS + no
+           * cookies), and can't touch the parent DOM. The route's CSP
+           * additionally restricts what the iframe can do with the
+           * `'unsafe-eval'` we grant it (no `connect-src` to anywhere
+           * outside `'self'`, which is itself unreachable cross-origin).
+           *
+           * `allow-forms` is required for the AI assistant's `<form>`: its
+           * submit handler is JS-driven (`preventDefault` + `sendMessage`),
+           * but the browser blocks the `submit` event entirely without this
+           * flag. It doesn't widen exfiltration risk — the embed CSP's
+           * `form-action 'none'` still prevents any actual form navigation.
+           */
+          sandbox="allow-scripts allow-forms"
+          referrerPolicy="no-referrer"
+          title="Petrinaut editor"
+          sx={{
+            width: "100%",
+            height: "100%",
+            border: 0,
+            display: "block",
+          }}
         />
+
+        {isLoading && <ProcessEditorLoadingSkeleton />}
       </Box>
     </Stack>
   );
