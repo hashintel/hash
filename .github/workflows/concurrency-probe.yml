@@ -1,0 +1,63 @@
+# THROWAWAY — SRE-739 probe. Delete once job-level `queue: max` is confirmed.
+#
+# Verifies the deploy.yml concurrency model in isolation (no Docker builds):
+#   - workflow-level group = github.run_id  -> every run is unique, never evicted
+#   - job-level group      = per service+arch, queue: max -> serialize, no drops
+#
+# How to read the result (trigger 3+ runs in quick succession, see below):
+#   1. No "workflow validation" error            => job-level `queue: max` is accepted
+#   2. All runs reach completion (none Cancelled) => run_id group never evicts
+#   3. Within one service+arch group, the START/END windows of the 3 runs do NOT
+#      overlap (run B starts only after run A ends) => queue: max serializes
+#   4. Different service+arch groups DO overlap    => independent groups run parallel
+#
+# Trigger (run_id is unique per run, so they queue instead of cancelling):
+#   for i in 1 2 3; do gh workflow run concurrency-probe.yml --ref <branch> -f label=wave-$i; done
+
+name: Concurrency probe (SRE-739)
+
+on:
+  workflow_dispatch:
+    inputs:
+      label:
+        description: Identifier for this run in the logs (e.g. wave-1).
+        required: false
+        default: run
+
+concurrency:
+  # Mirrors deploy.yml: unique per run -> no run-level eviction.
+  group: ${{ github.workflow }}-${{ github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    name: ${{ matrix.service }}-${{ matrix.arch }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [graph, api]
+        arch: [arm64, amd64]
+    # Mirrors deploy.yml build-job: one queue per service+arch, no drops.
+    concurrency:
+      group: ${{ github.workflow }}-build-${{ matrix.service }}-${{ matrix.arch }}-publish
+      queue: max
+    steps:
+      - name: Print concurrency context
+        env:
+          # Re-evaluated copies of the actual `concurrency.group` expressions —
+          # GitHub exposes no built-in variable for the resolved group, so we
+          # mirror them here to make the keys visible in the run log.
+          WORKFLOW_GROUP: ${{ github.workflow }}-${{ github.run_id }}
+          JOB_GROUP: ${{ github.workflow }}-build-${{ matrix.service }}-${{ matrix.arch }}-publish
+        run: |
+          echo "run_id=${{ github.run_id }}  attempt=${{ github.run_attempt }}  event=${{ github.event_name }}  label=${{ inputs.label }}"
+          echo "workflow concurrency group : $WORKFLOW_GROUP  (cancel-in-progress: false)"
+          echo "job concurrency group      : $JOB_GROUP  (queue: max)"
+
+      - name: Occupy the group
+        run: |
+          tag="${{ inputs.label }} ${{ matrix.service }}-${{ matrix.arch }} run=${{ github.run_id }}"
+          echo "START $tag at $(date -u +%H:%M:%S)"
+          sleep 45
+          echo "END   $tag at $(date -u +%H:%M:%S)"
