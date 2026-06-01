@@ -23,7 +23,7 @@ export const walkthroughSteps: WalkthroughStep[] = [
             top: "[-1.5px]",
           })}
           src={logo}
-          alt="Petrinaut helmet logo"
+          alt=""
         />
         Welcome to Petrinaut
       </div>

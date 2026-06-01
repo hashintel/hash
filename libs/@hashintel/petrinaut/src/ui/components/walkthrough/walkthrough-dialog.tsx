@@ -98,8 +98,6 @@ const titleStyle = css({
   letterSpacing: "[-0.005em]",
   minWidth: "[0]",
   flex: "[1 1 auto]",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
 });
 
 const closeButtonStyle = css({
