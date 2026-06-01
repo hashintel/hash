@@ -6,6 +6,7 @@ export const styles = sva({
   className: "dialog",
   slots: dialogAnatomy
     .extendWith(
+      "stackRoot",
       "header",
       "titleIcon",
       "headerActions",
@@ -21,6 +22,15 @@ export const styles = sva({
     )
     .keys(),
   base: {
+    stackRoot: {
+      display: "contents",
+      // Hide the backdrop of any dialog that has a nested dialog above it so
+      // the overlay doesn't darken cumulatively as the stack grows.
+      '&:has([data-scope="dialog"][data-part="content"][data-has-nested]) [data-scope="dialog"][data-part="backdrop"]':
+        {
+          visibility: "hidden",
+        },
+    },
     backdrop: {
       background: "black.a60",
       position: "fixed",
@@ -74,6 +84,12 @@ export const styles = sva({
       _closed: {
         animationName: "fadeOut",
         animationDuration: "fast",
+      },
+      // When another dialog is opened on top, shift this one up-and-left by
+      // 30px per layer above it so the stack reads visually.
+      "&[data-has-nested]": {
+        transform:
+          "translate(calc(var(--nested-layer-count) * -22px), calc(var(--nested-layer-count) * -22px))",
       },
     },
     header: {

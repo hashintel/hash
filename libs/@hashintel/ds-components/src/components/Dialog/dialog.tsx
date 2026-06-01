@@ -173,28 +173,30 @@ export const Dialog = ({
       finalFocusEl={returnFocusRef ? () => returnFocusRef.current : undefined}
     >
       <Portal container={portalContainerRef}>
-        <ArkDialog.Backdrop className={classes.backdrop} />
-        <ArkDialog.Positioner className={classes.positioner}>
-          <ArkDialog.Content
-            {...ariaAttributes}
-            className={cx(classes.content, className)}
-            aria-busy={loading ?? undefined}
-          >
-            {headerEl}
-            <div className={classes.body}>
-              {children}
-              {loading ? (
-                <div className={classes.loadingOverlay} aria-live="polite">
-                  <LoadingSpinner
-                    size="lg"
-                    className={classes.loadingSpinner}
-                  />
-                </div>
-              ) : null}
-            </div>
-            {footerEl}
-          </ArkDialog.Content>
-        </ArkDialog.Positioner>
+        <div className={classes.stackRoot}>
+          <ArkDialog.Backdrop className={classes.backdrop} />
+          <ArkDialog.Positioner className={classes.positioner}>
+            <ArkDialog.Content
+              {...ariaAttributes}
+              className={cx(classes.content, className)}
+              aria-busy={loading ?? undefined}
+            >
+              {headerEl}
+              <div className={classes.body}>
+                {children}
+                {loading ? (
+                  <div className={classes.loadingOverlay} aria-live="polite">
+                    <LoadingSpinner
+                      size="lg"
+                      className={classes.loadingSpinner}
+                    />
+                  </div>
+                ) : null}
+              </div>
+              {footerEl}
+            </ArkDialog.Content>
+          </ArkDialog.Positioner>
+        </div>
       </Portal>
     </ArkDialog.Root>
   );
