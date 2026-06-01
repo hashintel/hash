@@ -281,10 +281,15 @@ export const styles = sva({
   },
   compoundVariants: [
     {
-      withPadding: false,
       headerless: true,
+      size: "xs",
       css: {
-        // body: { paddingTop: "0" },
+        header: {
+          paddingBottom: "0",
+        },
+        body: {
+          paddingBottom: "5",
+        },
       },
     },
   ],

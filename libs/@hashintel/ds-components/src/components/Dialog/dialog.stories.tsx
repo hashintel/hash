@@ -296,6 +296,25 @@ export const Sizes: Story = () => (
             buildKitchenSink(size, close, { loading: true })
           }
         />
+        {size === "xs" ? (
+          <>
+            <DialogExample
+              buttonLabel={`No header — ${size}`}
+              dialogProps={() => ({
+                size,
+                children: sampleBody,
+              })}
+            />
+            <DialogExample
+              buttonLabel={`No header, no padding — ${size}`}
+              dialogProps={() => ({
+                size,
+                withPadding: false,
+                children: sampleBody,
+              })}
+            />
+          </>
+        ) : null}
       </div>
     ))}
   </div>
