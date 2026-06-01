@@ -98,6 +98,7 @@ export const styles = sva({
       minWidth: "0",
     },
     titleIcon: {
+      marginLeft: "-0.5",
       color: "fg.muted",
       flex: "[0 0 auto]",
     },
@@ -115,13 +116,14 @@ export const styles = sva({
       marginLeft: "auto",
       display: "flex",
       alignItems: "center",
-      gap: "1",
+      gap: "[1px]",
     },
     headerActions: {
       display: "flex",
       alignItems: "center",
-      gap: "2",
+      gap: "[1px]",
       flex: "[0 0 auto]",
+      marginTop: "[calc(var(--spacing-4) * -1 + var(--spacing-2))]",
     },
     body: {
       flex: "[1 1 auto]",
@@ -159,6 +161,9 @@ export const styles = sva({
       gap: "2",
     },
     closeButton: {
+      marginRight:
+        "[calc(var(--dialog-horizontal-padding) * -1 + var(--spacing-2))]",
+      marginTop: "[calc(var(--spacing-4) * -1 + var(--spacing-2))]",
       flex: "[0 0 auto]",
       alignSelf: "flex-start",
       marginLeft: "auto",
