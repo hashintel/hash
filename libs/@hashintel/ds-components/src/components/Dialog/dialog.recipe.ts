@@ -277,8 +277,11 @@ export const styles = sva({
     headerless: {
       true: {
         header: {
-          paddingBottom: "1",
+          paddingBottom: "0",
           borderBottom: "none",
+        },
+        closeButton: {
+          marginBottom: "-1.5",
         },
         body: {
           paddingTop: "0",
