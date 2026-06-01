@@ -164,12 +164,15 @@ export const styles = sva({
     },
     footerActions: {
       display: "flex",
+      flexWrap: "wrap",
+      justifyContent: "flex-end",
       alignItems: "center",
       gap: "2",
       marginLeft: "auto",
     },
     footerSecondaryActions: {
       display: "flex",
+      flexWrap: "wrap",
       alignItems: "center",
       gap: "2",
     },

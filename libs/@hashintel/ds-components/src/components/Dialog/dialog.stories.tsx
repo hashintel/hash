@@ -367,9 +367,17 @@ const buildOverflowKitchenSink = (
   ),
   children: overflowingBody,
   footerActions: (
-    <Button variant="solid" tone="brand" onClick={close}>
-      Save these long-form changes for later review
-    </Button>
+    <>
+      <Button variant="solid" tone="brand" onClick={close}>
+        Save these long-form changes for later review
+      </Button>
+      <Button variant="solid" tone="brand" onClick={close}>
+        Done
+      </Button>
+      <Button variant="solid" tone="brand" onClick={close}>
+        Done
+      </Button>
+    </>
   ),
   footerSecondaryActions: (
     <Button variant="subtle" tone="error" onClick={close}>
