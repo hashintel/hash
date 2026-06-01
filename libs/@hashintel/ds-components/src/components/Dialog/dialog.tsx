@@ -174,7 +174,10 @@ export const Dialog = ({
               {children}
               {loading ? (
                 <div className={classes.loadingOverlay} aria-live="polite">
-                  <LoadingSpinner size="lg" />
+                  <LoadingSpinner
+                    size="lg"
+                    className={classes.loadingSpinner}
+                  />
                 </div>
               ) : null}
             </div>

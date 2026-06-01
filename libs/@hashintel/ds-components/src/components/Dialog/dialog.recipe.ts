@@ -18,6 +18,7 @@ export const styles = sva({
       "footerSecondaryActions",
       "closeButton",
       "loadingOverlay",
+      "loadingSpinner",
     )
     .keys(),
   base: {
@@ -185,10 +186,15 @@ export const styles = sva({
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      background: "[rgba(255, 255, 255, 0.9)]",
+      background: "[rgba(255, 255, 255, 0.88)]",
       zIndex: "1",
       borderRadius: "[inherit]",
       color: "black",
+    },
+    loadingSpinner: {
+      width: "[auto !important]",
+      aspectRatio: "1",
+      maxHeight: "[60%]",
     },
   },
   variants: {
@@ -218,10 +224,22 @@ export const styles = sva({
           paddingBottom: "2.5",
         },
       },
-      sm: { content: { maxWidth: "[520px]" } },
-      md: { content: { maxWidth: "[640px]" } },
-      lg: { content: { maxWidth: "[860px]" } },
-      xl: { content: { maxWidth: "[1060px]" } },
+      sm: {
+        content: { maxWidth: "[520px]" },
+        loadingSpinner: { height: "[38px !important]" },
+      },
+      md: {
+        content: { maxWidth: "[640px]" },
+        loadingSpinner: { height: "[40px !important]" },
+      },
+      lg: {
+        content: { maxWidth: "[860px]" },
+        loadingSpinner: { height: "[45px !important]" },
+      },
+      xl: {
+        content: { maxWidth: "[1060px]" },
+        loadingSpinner: { height: "[50px !important]" },
+      },
       fullScreen: {
         positioner: { padding: "0" },
         content: {
