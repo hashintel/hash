@@ -33,32 +33,20 @@ inputs:
 outputs:
   advanced:
     description: "`true` if the mutable tag was moved, `false` if skipped (candidate not strictly newer)."
-    value: ${{ steps.guard.outputs.advanced }}
+    value: ${{ steps.decide.outputs.advanced }}
 
 runs:
   using: composite
   steps:
-    - name: Advance ${{ inputs.mutable-tag }} to ${{ inputs.candidate-sha }} if newer
-      id: guard
+    - name: Decide whether to advance ${{ inputs.mutable-tag }}
+      id: decide
       shell: bash
       env:
         IMAGE: ${{ inputs.image }}
         MUTABLE_TAG: ${{ inputs.mutable-tag }}
-        SOURCE_TAG: ${{ inputs.source-tag }}
         CANDIDATE_SHA: ${{ inputs.candidate-sha }}
       run: |
         set -euo pipefail
-
-        # Retry transient registry errors — GHCR intermittently 5xx's its token
-        # endpoint / blob copy, and `imagetools` has no built-in retry.
-        retry() {
-          local n=1
-          until "$@"; do
-            [ "$n" -ge 3 ] && return 1
-            echo "::warning ::registry op failed (attempt $n) — retrying in $((n * 5))s"
-            sleep "$((n * 5))"; n=$((n + 1))
-          done
-        }
 
         # Commit the mutable tag currently points at, read from the OCI revision
         # label (`org.opencontainers.image.revision`, set at build time). Using
@@ -86,9 +74,15 @@ runs:
           # unreachable (shallow clone / force-pushed). Leave the tag untouched.
           echo "::notice ::$MUTABLE_TAG at $current_sha is not older than $CANDIDATE_SHA; skipping"
         fi
-
-        if [[ "$advance" == "true" ]]; then
-          retry docker buildx imagetools create --tag "$IMAGE:$MUTABLE_TAG" "$IMAGE:$SOURCE_TAG"
-          echo "::notice ::advanced $MUTABLE_TAG -> $SOURCE_TAG ($CANDIDATE_SHA)"
-        fi
         echo "advanced=$advance" >> "$GITHUB_OUTPUT"
+
+    # Retry transient registry errors — GHCR intermittently 5xx's its token
+    # endpoint / blob copy, and `imagetools` has no built-in retry.
+    - name: Advance ${{ inputs.mutable-tag }} to ${{ inputs.source-tag }}
+      if: steps.decide.outputs.advanced == 'true'
+      uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
+      with:
+        timeout_minutes: 5
+        max_attempts: 3
+        retry_wait_seconds: 10
+        command: docker buildx imagetools create --tag "${{ inputs.image }}:${{ inputs.mutable-tag }}" "${{ inputs.image }}:${{ inputs.source-tag }}"

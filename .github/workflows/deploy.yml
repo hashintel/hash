@@ -476,22 +476,17 @@ jobs:
       # per-arch digests this run pushed — no tag readback, so no Frankenstein
       # manifest even if a parallel run is mid-push.
       - name: Assemble :sha-<sha> manifest
-        working-directory: ${{ runner.temp }}/digests
+        uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
         env:
           IMAGE: ghcr.io/${{ github.repository_owner }}/hash/${{ matrix.service }}
           SHA: ${{ github.sha }}
-        run: |
-          # Retry transient GHCR 5xx — `imagetools` has no built-in retry.
-          retry() {
-            local n=1
-            until "$@"; do
-              [ "$n" -ge 3 ] && return 1
-              echo "::warning ::imagetools create failed (attempt $n) — retrying in $((n * 5))s"
-              sleep "$((n * 5))"; n=$((n + 1))
-            done
-          }
-          retry docker buildx imagetools create --tag "$IMAGE:sha-$SHA" \
-            $(printf "$IMAGE@sha256:%s " *)
+        with:
+          timeout_minutes: 5
+          max_attempts: 3
+          retry_wait_seconds: 10
+          command: |
+            cd "$RUNNER_TEMP/digests"
+            docker buildx imagetools create --tag "$IMAGE:sha-$SHA" $(printf "$IMAGE@sha256:%s " *)
 
       # :latest is mutable -> advance onto :sha-<sha> only if this commit is newer
       # than the one :latest currently points at. Relies on this job's `queue: max`
