@@ -26,10 +26,11 @@ env:
 # are NEVER cancelled or evicted at the run level. This is critical: the build
 # matrix is computed per-commit (turbo affected vs HEAD^), so if a publishing
 # run were dropped, the services that *only* that commit changed would never
-# publish. Serialization of the actual publishing — and ordering of the moving
-# `:latest-<arch>` / `:staging` tags — happens per-service at the job level
-# (build / manifest / deploy) via `queue: max`, which serializes WITHOUT
-# dropping any run.
+# publish. Serialization of the actual publishing happens per-service at the job
+# level (build / manifest / deploy) via `queue: max`, which serializes WITHOUT
+# dropping any run; the mutable `:staging` / `:latest` tags are then only ever
+# moved forward by the tag-if-newer guard (GHCR is pushed by digest — no per-arch
+# tags to race).
 concurrency:
   group: ${{ github.workflow }}-${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.run_id || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
@@ -262,10 +263,11 @@ jobs:
     runs-on: ${{ matrix.arch == 'arm64' && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
     needs: [setup]
     if: fromJSON(needs.setup.outputs.backend-images).include[0] != null
-    # Serialize per service+arch so concurrent main pushes don't race the
-    # mutable `:staging` / `:latest-<arch>` tags. `queue: max` queues instead
-    # of cancelling, so no commit's image is dropped; different services build
-    # in parallel (separate groups). PRs/merge_group isolate per-ref.
+    # Serialize per service+arch with `queue: max` (queues instead of cancelling,
+    # so no commit's build is dropped) — this also gives the :staging guard below
+    # a race-free check-then-set. GHCR is pushed by digest and ECR :sha/:run are
+    # immutable, so :staging is the only mutable tag here, set by the guard.
+    # Different services build in parallel; PRs/merge_group isolate per-ref.
     concurrency:
       group: ${{ github.workflow }}-build-${{ matrix.service }}-${{ matrix.arch }}-${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && 'publish' || github.ref }}
       queue: max
