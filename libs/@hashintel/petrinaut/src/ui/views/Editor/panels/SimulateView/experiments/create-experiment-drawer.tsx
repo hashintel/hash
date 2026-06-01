@@ -260,7 +260,22 @@ const DEFAULT_RUN_COUNT = "1000";
 const DEFAULT_SEED = "1";
 const DEFAULT_DT = "1";
 const DEFAULT_MAX_TIME = "180";
-const DEFAULT_METRIC_CODE = "return 0;";
+const DEFAULT_METRIC_CODE = `/**
+* Custom metric code, that will be run on each frame.
+* It must \`return\` a single finite number.
+*
+* The only thing in scope is \`state\`, a snapshot of the current frame:
+*   state.places["Place Name"].count   -> number of tokens in a place
+*   state.places["Place Name"].tokens  -> array of token objects (for colored places)
+*
+* Reference places by their exact name. Use bracket access for names
+* with spaces, e.g. state.places["Work In Progress"].
+*
+* --- Example: the sum of tokens in two places ---
+* return state.places["Susceptible"].count + state.places["Infected"].count;
+*/
+
+return 0;`;
 const EMPTY_SCENARIOS: readonly Scenario[] = [];
 
 function getDefaultScenarioSelection(scenarios: readonly Scenario[]): string {
@@ -319,7 +334,7 @@ const MODEL_METRIC_VALUE_PREFIX = "model:";
 
 const transitionModeOptions: { value: TransitionFiringMode; label: string }[] =
   [
-    { value: "firedInThisFrame", label: "Frame firing" },
+    { value: "firedInThisFrame", label: "Per frame" },
     { value: "cumulative", label: "Cumulative" },
   ];
 
@@ -589,7 +604,7 @@ const ExperimentExpressionMetricEditor = ({
         path={codeUri}
         value={code}
         onChange={(value) => onChange(value ?? "")}
-        height="128px"
+        height="260px"
         options={readOnly ? { readOnly: true } : undefined}
       />
       {lspDiagnostics.count > 0 ? (
@@ -1054,7 +1069,7 @@ export const CreateExperimentDrawer = ({
                   />
                 </div>
                 <div className={fieldStyle}>
-                  <span className={labelStyle}>Max time</span>
+                  <span className={labelStyle}>Max time (s)</span>
                   <NumberInput
                     size="md"
                     min={0}
