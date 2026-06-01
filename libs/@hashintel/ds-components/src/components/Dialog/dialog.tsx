@@ -13,11 +13,16 @@ import type { ExclusifyUnion } from "type-fest";
 
 export type DialogSize = "xs" | "sm" | "md" | "lg" | "xl" | "fullScreen";
 
+export type DialogShouldCloseOn =
+  | "closeButtonAndOverlay"
+  | "closeButton"
+  | "none";
+
 export const Dialog = ({
   className,
   size = "md",
   children,
-  disableDefaultClose,
+  shouldCloseOn = "closeButtonAndOverlay",
   loading,
   onClose,
   withPadding = true,
@@ -37,7 +42,7 @@ export const Dialog = ({
   className?: string;
   size?: DialogSize;
   children: React.ReactNode;
-  disableDefaultClose?: boolean;
+  shouldCloseOn?: DialogShouldCloseOn;
   loading?: boolean;
   onClose?: () => void;
   /** Turn padding on/off. Used when the dialog content controls padding itself. defaults to true */
@@ -85,7 +90,11 @@ export const Dialog = ({
     hasIcon: !!titleIconName,
   });
 
-  const closeButton = !disableDefaultClose && (
+  const renderCloseButton = shouldCloseOn !== "none";
+  const closeOnEscape = shouldCloseOn !== "none";
+  const closeOnInteractOutside = shouldCloseOn === "closeButtonAndOverlay";
+
+  const closeButton = renderCloseButton && (
     <Button
       variant="ghost"
       className={classes.closeButton}
@@ -151,6 +160,8 @@ export const Dialog = ({
       defaultOpen
       modal={!allowBodyScroll}
       preventScroll={!allowBodyScroll}
+      closeOnEscape={closeOnEscape}
+      closeOnInteractOutside={closeOnInteractOutside}
       onOpenChange={(event) => {
         if (!event.open) {
           onClose?.();

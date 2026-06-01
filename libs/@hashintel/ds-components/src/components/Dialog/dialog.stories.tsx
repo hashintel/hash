@@ -476,21 +476,57 @@ export const Overflow: Story = () => (
   </div>
 );
 
-export const DisableDefaultClose: Story = () => (
-  <DialogExample
-    buttonLabel="Open dialog (no default close)"
-    dialogProps={(close) => ({
-      title: "No default close button",
-      titleIconName: "info",
-      description:
-        "The X button in the corner is hidden — close via the footer or by pressing escape.",
-      disableDefaultClose: true,
-      children: sampleBody,
-      footerActions: (
-        <Button variant="solid" tone="brand" onClick={close}>
-          Done
-        </Button>
-      ),
-    })}
-  />
+export const ShouldCloseOn: Story = () => (
+  <div className={stackStyles}>
+    <DialogExample
+      buttonLabel="closeButtonAndOverlay (default)"
+      dialogProps={(close) => ({
+        title: "Close button and overlay",
+        titleIconName: "info",
+        description:
+          "Escape, the close button, and clicking the overlay all close the dialog.",
+        shouldCloseOn: "closeButtonAndOverlay",
+        children: sampleBody,
+        footerActions: (
+          <Button variant="solid" tone="brand" onClick={close}>
+            Done
+          </Button>
+        ),
+      })}
+    />
+
+    <DialogExample
+      buttonLabel="closeButton"
+      dialogProps={(close) => ({
+        title: "Close button only",
+        titleIconName: "info",
+        description:
+          "Escape and the close button close the dialog. Overlay clicks do not.",
+        shouldCloseOn: "closeButton",
+        children: sampleBody,
+        footerActions: (
+          <Button variant="solid" tone="brand" onClick={close}>
+            Done
+          </Button>
+        ),
+      })}
+    />
+
+    <DialogExample
+      buttonLabel="none"
+      dialogProps={(close) => ({
+        title: "No default close",
+        titleIconName: "info",
+        description:
+          "No close button is rendered, and neither escape nor overlay clicks close the dialog.",
+        shouldCloseOn: "none",
+        children: sampleBody,
+        footerActions: (
+          <Button variant="solid" tone="brand" onClick={close}>
+            Done
+          </Button>
+        ),
+      })}
+    />
+  </div>
 );
