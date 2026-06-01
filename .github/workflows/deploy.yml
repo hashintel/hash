@@ -278,6 +278,10 @@ jobs:
       packages: write
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          # tag-if-newer (the :staging guard) needs full history for
+          # `git merge-base --is-ancestor`.
+          fetch-depth: 0
 
       # Tag-list assembly. The dynamic matrix already filtered the (service,
       # arch) entries to what should build, so this step only decides whether
@@ -324,20 +328,24 @@ jobs:
             echo "push_ghcr=$push_ghcr"
             echo "push=$push"
 
+            # ECR is single-arch (arm64), tag-based. `:staging` is mutable and
+            # set separately via the tag-if-newer guard, so only immutable tags
+            # are built here; `ecr_image` is the repo for the guard + sha source.
+            echo "ecr_image=$ecr_host/$ECR_REPO/$SERVICE"
             echo "ecr_tags<<EOF"
             if $push_ecr; then
-              echo "$ecr_host/$ECR_REPO/$SERVICE:staging"
               echo "$ecr_host/$ECR_REPO/$SERVICE:sha-$SHA"
               echo "$ecr_host/$ECR_REPO/$SERVICE:run-$RUN_ID"
             fi
             echo EOF
 
-            echo "ghcr_tags<<EOF"
+            # GHCR is pushed by digest (no per-arch tags); the manifest job
+            # assembles :sha-<sha> and advances :latest from the collected digests.
             if $push_ghcr; then
-              echo "ghcr.io/$GHCR_OWNER/hash/$SERVICE:latest-$ARCH"
-              echo "ghcr.io/$GHCR_OWNER/hash/$SERVICE:sha-$SHA-$ARCH"
+              echo "ghcr_image=ghcr.io/$GHCR_OWNER/hash/$SERVICE"
+            else
+              echo "ghcr_image="
             fi
-            echo EOF
           } >> "$GITHUB_OUTPUT"
 
       - name: Configure AWS credentials (ECR push)
@@ -348,6 +356,7 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Build${{ steps.targets.outputs.push == 'true' && ' and push' || '' }} ${{ matrix.service }} (${{ matrix.arch }})
+        id: build
         uses: ./.github/actions/docker-build-push
         with:
           CONTEXT_PATH: ${{ github.workspace }}/${{ matrix.context }}
@@ -358,7 +367,40 @@ jobs:
           PUSH: ${{ steps.targets.outputs.push }}
           BUILD_ARGS: ${{ matrix.build_args }}
           ECR_TAGS: ${{ steps.targets.outputs.ecr_tags }}
-          GHCR_TAGS: ${{ steps.targets.outputs.ghcr_tags }}
+          GHCR_IMAGE: ${{ steps.targets.outputs.ghcr_image }}
+
+      # GHCR was pushed by digest; stash the digest so the manifest job can
+      # assemble the multi-arch tags from the exact images this run built.
+      - name: Export GHCR digest
+        if: steps.targets.outputs.push_ghcr == 'true'
+        shell: bash
+        env:
+          DIGEST: ${{ steps.build.outputs.ghcr-digest }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/digests"
+          touch "$RUNNER_TEMP/digests/${DIGEST#sha256:}"
+
+      - name: Upload GHCR digest
+        if: steps.targets.outputs.push_ghcr == 'true'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: digest-${{ matrix.service }}-${{ matrix.arch }}
+          path: ${{ runner.temp }}/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+      # `:staging` is mutable and read by promote/ECS. Advance it onto this
+      # commit only if it is newer than the one currently tagged — guards against
+      # an out-of-order run and protects a manual rollback. Relies on this job's
+      # `queue: max` group for a race-free check-then-set.
+      - name: Advance :staging if newer
+        if: steps.targets.outputs.push_ecr == 'true'
+        uses: ./.github/actions/tag-if-newer
+        with:
+          image: ${{ steps.targets.outputs.ecr_image }}
+          mutable-tag: staging
+          source-tag: sha-${{ github.sha }}
+          candidate-sha: ${{ github.sha }}
 
   manifest:
     name: Publish multi-arch manifest (${{ matrix.service }})
@@ -377,6 +419,11 @@ jobs:
       contents: read
       packages: write
     steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          # tag-if-newer (the :latest guard) needs full history.
+          fetch-depth: 0
+
       - name: Login to GHCR
         uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3.6.0
         with:
@@ -387,19 +434,35 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
 
-      - name: Join arch variants into multi-arch tags
+      - name: Download per-arch digests
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+        with:
+          path: ${{ runner.temp }}/digests
+          pattern: digest-${{ matrix.service }}-*
+          merge-multiple: true
+
+      # Assemble the immutable :sha-<sha> multi-arch manifest from the exact
+      # per-arch digests this run pushed — no tag readback, so no Frankenstein
+      # manifest even if a parallel run is mid-push.
+      - name: Assemble :sha-<sha> manifest
+        working-directory: ${{ runner.temp }}/digests
         env:
           IMAGE: ghcr.io/${{ github.repository_owner }}/hash/${{ matrix.service }}
           SHA: ${{ github.sha }}
         run: |
-          docker buildx imagetools create \
-            --tag "$IMAGE:latest" \
-            "$IMAGE:latest-arm64" \
-            "$IMAGE:latest-amd64"
-          docker buildx imagetools create \
-            --tag "$IMAGE:sha-$SHA" \
-            "$IMAGE:sha-$SHA-arm64" \
-            "$IMAGE:sha-$SHA-amd64"
+          docker buildx imagetools create --tag "$IMAGE:sha-$SHA" \
+            $(printf "$IMAGE@sha256:%s " *)
+
+      # :latest is mutable -> advance onto :sha-<sha> only if this commit is newer
+      # than the one :latest currently points at. Relies on this job's `queue: max`
+      # group for a race-free check-then-set.
+      - name: Advance :latest if newer
+        uses: ./.github/actions/tag-if-newer
+        with:
+          image: ghcr.io/${{ github.repository_owner }}/hash/${{ matrix.service }}
+          mutable-tag: latest
+          source-tag: sha-${{ github.sha }}
+          candidate-sha: ${{ github.sha }}
 
   deploy:
     name: Redeploy ${{ matrix.service }}

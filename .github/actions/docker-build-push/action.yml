@@ -1,5 +1,11 @@
 name: Build Docker image
-description: Build a single-platform Docker image and optionally push it to ECR and/or GHCR.
+description: >
+  Build a single-platform Docker image and optionally push it to ECR (named
+  tags) and/or GHCR (by digest). ECR stays tag-based (single-arch, ECS pulls
+  `:staging`). GHCR is pushed *by digest only* — no per-arch tags — and the
+  multi-arch manifest is assembled from those digests in a separate job. Every
+  image carries `org.opencontainers.image.revision` so the mutable-tag guard
+  can resolve which commit an existing tag points at.
 
 inputs:
   GITHUB_TOKEN:
@@ -13,18 +19,22 @@ inputs:
     required: false
     default: ${{ github.workspace }}
   PLATFORM:
-    description: Target platform for this build (e.g. `linux/arm64`, `linux/amd64`). The runner must be native to the platform — no cross-arch emulation. Multi-arch manifests are assembled by a separate job via `docker buildx imagetools create`.
+    description: Target platform for this build (e.g. `linux/arm64`, `linux/amd64`). The runner must be native to the platform — no cross-arch emulation. Multi-arch manifests are assembled by a separate job from the per-arch digests.
     required: false
     default: linux/arm64
   CACHE_KEY:
-    description: Buildx layer-cache key, typically `<service>-<arch>`.
+    description: Buildx layer-cache key (gha cache scope), typically `<service>-<arch>`.
     required: true
   ECR_TAGS:
     description: Newline-separated list of fully qualified ECR tags. Empty to skip ECR. The calling job must have AWS credentials configured.
     required: false
     default: ""
-  GHCR_TAGS:
-    description: Newline-separated list of fully qualified GHCR tags. Empty to skip GHCR.
+  GHCR_IMAGE:
+    description: >
+      Fully-qualified GHCR repository WITHOUT a tag (e.g.
+      `ghcr.io/hashintel/hash/graph`). When set and pushing, the image is pushed
+      by digest (no tag); the digest is returned via the `ghcr-digest` output for
+      the manifest job to assemble. Empty to skip GHCR.
     required: false
     default: ""
   PUSH:
@@ -36,6 +46,11 @@ inputs:
     required: false
     default: ""
 
+outputs:
+  ghcr-digest:
+    description: The digest of the image pushed to GHCR (empty if GHCR was skipped or PUSH was false).
+    value: ${{ steps.ghcr.outputs.digest }}
+
 runs:
   using: composite
   steps:
@@ -44,51 +59,75 @@ runs:
       uses: ./.github/actions/docker-ecr-login
 
     - name: Login to GHCR
-      if: inputs.PUSH == 'true' && inputs.GHCR_TAGS != ''
+      if: inputs.PUSH == 'true' && inputs.GHCR_IMAGE != ''
       uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3.6.0
       with:
         registry: ghcr.io
         username: ${{ github.actor }}
         password: ${{ inputs.GITHUB_TOKEN }}
 
-    # docker-container driver (the default for setup-buildx-action) supports
-    # local cache export; the runner's plain docker driver does not.
+    # docker-container driver (the default for setup-buildx-action) supports the
+    # gha cache exporter; the runner's plain docker driver does not.
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
 
-    - name: Cache Docker layers
-      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
-      with:
-        path: /tmp/.buildx-cache
-        key: docker-${{ inputs.CACHE_KEY }}-${{ hashFiles('yarn.lock') }}
-        restore-keys: |
-          docker-${{ inputs.CACHE_KEY }}-${{ hashFiles('yarn.lock') }}
-          docker-${{ inputs.CACHE_KEY }}-
-          docker-
-
-    - name: Build${{ inputs.PUSH == 'true' && ' and push' || '' }} ${{ inputs.CACHE_KEY }}
+    # Three mutually-exclusive-ish build invocations sharing one gha cache scope
+    # (the second is a near-total cache hit — same context, only a different
+    # export). `push-by-digest` is an output-global property, so ECR (tags) and
+    # GHCR (by digest) cannot be one invocation; and a multi-step build rules out
+    # the old local-cache + `mv` rotation, hence `type=gha`.
+    - name: Build ${{ inputs.CACHE_KEY }} (validate, no push)
+      if: inputs.PUSH != 'true'
       uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
       with:
-        # The Dockerfile is in a leaf-folder without access to what it needs.
-        # Thus the context is within the root, while the dockerfile is deeply nested.
         context: ${{ inputs.CONTEXT_PATH }}
-        push: ${{ inputs.PUSH }}
         file: ${{ inputs.DOCKERFILE_LOCATION }}
         platforms: ${{ inputs.PLATFORM }}
         build-args: ${{ inputs.BUILD_ARGS }}
         secrets: |
           GITHUB_TOKEN=${{ inputs.GITHUB_TOKEN }}
-        tags: |
-          ${{ inputs.ECR_TAGS }}
-          ${{ inputs.GHCR_TAGS }}
         labels: |
-          ${{ inputs.GHCR_TAGS != '' && format('org.opencontainers.image.source=https://github.com/{0}', github.repository) || '' }}
+          org.opencontainers.image.revision=${{ github.sha }}
+          org.opencontainers.image.source=https://github.com/${{ github.repository }}
         provenance: false
-        cache-from: type=local,src=/tmp/.buildx-cache
-        cache-to: type=local,mode=max,dest=/tmp/.buildx-cache-new
+        push: false
+        cache-from: type=gha,scope=${{ inputs.CACHE_KEY }}
+        cache-to: type=gha,scope=${{ inputs.CACHE_KEY }},mode=max
 
-    - name: Move cache
-      shell: bash
-      run: |
-        rm -rf /tmp/.buildx-cache
-        mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+    - name: Build and push ${{ inputs.CACHE_KEY }} to ECR
+      if: inputs.PUSH == 'true' && inputs.ECR_TAGS != ''
+      uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
+      with:
+        context: ${{ inputs.CONTEXT_PATH }}
+        file: ${{ inputs.DOCKERFILE_LOCATION }}
+        platforms: ${{ inputs.PLATFORM }}
+        build-args: ${{ inputs.BUILD_ARGS }}
+        secrets: |
+          GITHUB_TOKEN=${{ inputs.GITHUB_TOKEN }}
+        labels: |
+          org.opencontainers.image.revision=${{ github.sha }}
+          org.opencontainers.image.source=https://github.com/${{ github.repository }}
+        provenance: false
+        push: true
+        tags: ${{ inputs.ECR_TAGS }}
+        cache-from: type=gha,scope=${{ inputs.CACHE_KEY }}
+        cache-to: type=gha,scope=${{ inputs.CACHE_KEY }},mode=max
+
+    - name: Build and push ${{ inputs.CACHE_KEY }} to GHCR (by digest)
+      id: ghcr
+      if: inputs.PUSH == 'true' && inputs.GHCR_IMAGE != ''
+      uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
+      with:
+        context: ${{ inputs.CONTEXT_PATH }}
+        file: ${{ inputs.DOCKERFILE_LOCATION }}
+        platforms: ${{ inputs.PLATFORM }}
+        build-args: ${{ inputs.BUILD_ARGS }}
+        secrets: |
+          GITHUB_TOKEN=${{ inputs.GITHUB_TOKEN }}
+        labels: |
+          org.opencontainers.image.revision=${{ github.sha }}
+          org.opencontainers.image.source=https://github.com/${{ github.repository }}
+        provenance: false
+        outputs: type=image,name=${{ inputs.GHCR_IMAGE }},push-by-digest=true,name-canonical=true,push=true
+        cache-from: type=gha,scope=${{ inputs.CACHE_KEY }}
+        cache-to: type=gha,scope=${{ inputs.CACHE_KEY }},mode=max
