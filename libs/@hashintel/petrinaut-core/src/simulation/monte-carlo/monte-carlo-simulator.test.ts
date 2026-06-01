@@ -234,4 +234,42 @@ describe("MonteCarloSimulator", () => {
       timeSampleCount: 2,
     });
   });
+
+  it("reports sample counts for distribution metrics without time aggregation", () => {
+    const sourceDistributionMetric = createMonteCarloUserDefinedMetric({
+      id: "source-distribution",
+      label: "Source token distribution",
+      sampleRuns: "all",
+      runOutput: { type: "distribution" },
+      aggregateTime: "none",
+      measure: ({ frame }) => frame.getPlaceTokenCount("source"),
+    });
+    const simulator = createMonteCarloSimulator({
+      sdcpn,
+      runCount: 2,
+      initialMarking: { source: 1 },
+      runs: [
+        { seed: 10, initialMarking: { source: 1 } },
+        { seed: 20, initialMarking: { source: 2 } },
+      ],
+      dt: 1,
+      maxTime: 20,
+      metrics: [sourceDistributionMetric],
+    });
+
+    expect(sourceDistributionMetric.getLatestFrame()).toMatchObject({
+      outputType: "distribution",
+      runSampleCount: 2,
+      timeSampleCount: 2,
+    });
+
+    simulator.advanceAll();
+
+    expect(sourceDistributionMetric.getLatestFrame()).toMatchObject({
+      frameNumber: 1,
+      outputType: "distribution",
+      runSampleCount: 2,
+      timeSampleCount: 2,
+    });
+  });
 });

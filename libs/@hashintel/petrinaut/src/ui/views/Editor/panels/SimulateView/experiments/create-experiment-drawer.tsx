@@ -888,8 +888,12 @@ export const CreateExperimentDrawer = ({
   const metricKindGroups = createMetricKindGroups(petriNetDefinition);
   const metricDiagnosticError =
     getExperimentMetricDiagnosticError(metricDrafts);
-  const footerError = error ?? metricDiagnosticError;
-  const canRun = !isSubmitting && metricDiagnosticError === null;
+  const metricFormError =
+    metricDrafts.length === 0
+      ? "Define at least one metric"
+      : metricDiagnosticError;
+  const footerError = error ?? metricFormError;
+  const canRun = !isSubmitting && metricFormError === null;
 
   const resetForm = () => {
     setName(DEFAULT_EXPERIMENT_NAME);
@@ -1164,7 +1168,7 @@ export const CreateExperimentDrawer = ({
           tone="neutral"
           size="sm"
           disabled={!canRun}
-          tooltip={metricDiagnosticError ?? undefined}
+          tooltip={metricFormError ?? undefined}
           prefix={
             isSubmitting ? (
               <LoadingSpinner size="sm" variant="bars" />

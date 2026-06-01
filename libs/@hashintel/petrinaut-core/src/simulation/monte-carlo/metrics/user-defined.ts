@@ -113,7 +113,7 @@ export function createMonteCarloUserDefinedMetric(
         const distributionAccumulator =
           createMonteCarloMetricHistogramAccumulator(runOutput.binning);
         let distributionValues = runValues;
-        let timeSampleCount = 0;
+        let timeSampleCount = runValues.length;
 
         if (runTimeAccumulator) {
           for (const { runIndex, value } of runSamples) {

@@ -291,6 +291,73 @@ describe("ExperimentsProvider", () => {
     }
   });
 
+  it("can cancel an initializing experiment before the worker reports ready", async () => {
+    const worker = new FakeMonteCarloWorker();
+    const { getValue, renderResult } = renderExperimentsProvider(worker);
+
+    try {
+      let experimentId = "";
+      await act(async () => {
+        experimentId = await getValue().createExperiment({
+          name: "Cancel before ready",
+          scenarioId: null,
+          scenarioParameterValues: {},
+          runCount: 1,
+          seed: 42,
+          dt: 1,
+          maxTime: 10,
+          metricSpecs: CONSTANT_METRIC_SPEC,
+        });
+        await flushWorkerSetup();
+      });
+
+      await act(async () => {
+        getValue().cancelExperiment(experimentId);
+        await flushWorkerSetup();
+      });
+
+      expect(worker.sent.map((message) => message.type)).toEqual([
+        "init",
+        "cancel",
+      ]);
+      expect(worker.terminated).toBe(true);
+      expect(getValue().selectedExperiment).toMatchObject({
+        id: experimentId,
+        status: "cancelled",
+      });
+    } finally {
+      renderResult.unmount();
+    }
+  });
+
+  it("validates metric ids after trimming whitespace", async () => {
+    const worker = new FakeMonteCarloWorker();
+    const { getValue, renderResult } = renderExperimentsProvider(worker);
+
+    try {
+      await expect(
+        getValue().createExperiment({
+          name: "Duplicate metric ids",
+          scenarioId: null,
+          scenarioParameterValues: {},
+          runCount: 1,
+          seed: 42,
+          dt: 1,
+          maxTime: 10,
+          metricSpecs: [
+            {
+              ...CONSTANT_METRIC_SPEC[0],
+              id: " constant ",
+            },
+            CONSTANT_METRIC_SPEC[0],
+          ],
+        }),
+      ).rejects.toThrow('Metric id "constant" is duplicated');
+    } finally {
+      renderResult.unmount();
+    }
+  });
+
   it("creates, streams, cancels, and removes a Monte Carlo experiment", async () => {
     const worker = new FakeMonteCarloWorker();
     const { getValue, renderResult } = renderExperimentsProvider(worker);

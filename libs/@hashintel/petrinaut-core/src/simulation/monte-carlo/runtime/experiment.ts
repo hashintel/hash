@@ -171,24 +171,90 @@ function appendMetricFrames(
   };
 }
 
+function takePendingMetricFrames(
+  metrics: readonly MonteCarloUserDefinedMetric[],
+  lastFrameCounts: Map<string, number>,
+): MonteCarloUserDefinedMetricFrame[] {
+  return metrics.flatMap((metric) => {
+    const lastFrameCount = lastFrameCounts.get(metric.id) ?? 0;
+    lastFrameCounts.set(metric.id, metric.frames.length);
+
+    return metric.frames.slice(lastFrameCount);
+  });
+}
+
+function getLatestMetricFrame(
+  metrics: readonly MonteCarloUserDefinedMetric[],
+): MonteCarloUserDefinedMetricFrame | null {
+  let latest: MonteCarloUserDefinedMetricFrame | null = null;
+
+  for (const metric of metrics) {
+    const frame = metric.getLatestFrame();
+    if (!frame) {
+      continue;
+    }
+
+    if (
+      !latest ||
+      frame.frameNumber > latest.frameNumber ||
+      (frame.frameNumber === latest.frameNumber && frame.time > latest.time)
+    ) {
+      latest = frame;
+    }
+  }
+
+  return latest;
+}
+
+function getProgressPosition(
+  simulator: MonteCarloSimulator,
+  metrics: readonly MonteCarloUserDefinedMetric[],
+): Pick<MonteCarloWorkerProgress, "frameNumber" | "time"> {
+  const latestMetricFrame = getLatestMetricFrame(metrics);
+  if (latestMetricFrame) {
+    return {
+      frameNumber: latestMetricFrame.frameNumber,
+      time: latestMetricFrame.time,
+    };
+  }
+
+  let frameNumber = 0;
+  let time = 0;
+
+  for (const summary of simulator.getSummaries()) {
+    if (summary.frameNumber > frameNumber) {
+      frameNumber = summary.frameNumber;
+      time = summary.currentTime;
+    }
+  }
+
+  return {
+    frameNumber,
+    time,
+  };
+}
+
 function getProgressFromResult(
   result: MonteCarloAdvanceResult,
   simulator: MonteCarloSimulator,
+  metrics: readonly MonteCarloUserDefinedMetric[],
 ): MonteCarloWorkerProgress {
-  const firstRunSummary = simulator.getRunSummary(0);
+  const position = getProgressPosition(simulator, metrics);
 
   return {
     ...result,
-    frameNumber: firstRunSummary.frameNumber,
-    time: firstRunSummary.currentTime,
+    frameNumber: position.frameNumber,
+    time: position.time,
     runCount: simulator.runCount,
   };
 }
 
 function getInitialProgress(
   simulator: MonteCarloSimulator,
+  metrics: readonly MonteCarloUserDefinedMetric[],
 ): MonteCarloWorkerProgress {
   const summaries = simulator.getSummaries();
+  const position = getProgressPosition(simulator, metrics);
   const activeRuns = summaries.filter(
     (summary) => summary.status !== "complete" && summary.status !== "error",
   ).length;
@@ -198,7 +264,6 @@ function getInitialProgress(
   const erroredRuns = summaries.filter(
     (summary) => summary.status === "error",
   ).length;
-  const firstRunSummary = summaries[0];
 
   return {
     activeRuns,
@@ -206,28 +271,9 @@ function getInitialProgress(
     allFinished: false,
     completedRuns,
     erroredRuns,
-    frameNumber: firstRunSummary?.frameNumber ?? 0,
+    frameNumber: position.frameNumber,
     runCount: simulator.runCount,
-    time: firstRunSummary?.currentTime ?? 0,
-  };
-}
-
-function getMetricsState(
-  metrics: readonly MonteCarloUserDefinedMetric[],
-): MonteCarloExperimentMetrics {
-  const frames = metrics.flatMap((metric) => [...metric.frames]);
-  const latestByMetricId: Record<string, MonteCarloUserDefinedMetricFrame> = {};
-
-  for (const metric of metrics) {
-    const latest = metric.getLatestFrame();
-    if (latest) {
-      latestByMetricId[metric.id] = latest;
-    }
-  }
-
-  return {
-    frames,
-    latestByMetricId,
+    time: position.time,
   };
 }
 
@@ -250,6 +296,7 @@ function createLocalMonteCarloExperiment(
     const userMetrics = config.metrics.map((metricConfig) =>
       createMonteCarloUserDefinedMetric(metricConfig),
     );
+    const lastMetricFrameCounts = new Map<string, number>();
     const simulator = createMonteCarloSimulator({
       sdcpn: config.sdcpn,
       initialMarking: config.initialMarking,
@@ -262,7 +309,13 @@ function createLocalMonteCarloExperiment(
     });
 
     const syncStores = (nextProgress: MonteCarloWorkerProgress | null) => {
-      metrics.set(getMetricsState(userMetrics));
+      const nextMetricFrames = takePendingMetricFrames(
+        userMetrics,
+        lastMetricFrameCounts,
+      );
+      if (nextMetricFrames.length > 0) {
+        metrics.set(appendMetricFrames(metrics.get(), nextMetricFrames));
+      }
       if (nextProgress) {
         progress.set(nextProgress);
       }
@@ -304,7 +357,11 @@ function createLocalMonteCarloExperiment(
         }
 
         if (result) {
-          const nextProgress = getProgressFromResult(result, simulator);
+          const nextProgress = getProgressFromResult(
+            result,
+            simulator,
+            userMetrics,
+          );
           syncStores(nextProgress);
 
           if (isStopped()) {
@@ -366,7 +423,7 @@ function createLocalMonteCarloExperiment(
       config.signal.addEventListener("abort", abortListener, { once: true });
     }
 
-    const initialProgress = getInitialProgress(simulator);
+    const initialProgress = getInitialProgress(simulator, userMetrics);
     syncStores(initialProgress);
     status.set("Ready");
 

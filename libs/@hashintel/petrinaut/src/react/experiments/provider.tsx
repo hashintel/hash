@@ -141,13 +141,14 @@ function assertExperimentInput(input: CreateExperimentInput): void {
 
   const metricIds = new Set<string>();
   for (const metricSpec of input.metricSpecs) {
-    if (metricSpec.id.trim() === "") {
+    const metricId = metricSpec.id.trim();
+    if (metricId === "") {
       throw new Error("Metric id is required");
     }
-    if (metricIds.has(metricSpec.id)) {
-      throw new Error(`Metric id "${metricSpec.id}" is duplicated`);
+    if (metricIds.has(metricId)) {
+      throw new Error(`Metric id "${metricId}" is duplicated`);
     }
-    metricIds.add(metricSpec.id);
+    metricIds.add(metricId);
     if (metricSpec.label.trim() === "") {
       throw new Error("Metric label is required");
     }
@@ -405,6 +406,15 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
   const cancelExperiment: ExperimentsContextValue["cancelExperiment"] = (
     experimentId,
   ) => {
+    const pendingRegistration =
+      pendingRegistrationsRef.current.get(experimentId);
+    if (pendingRegistration) {
+      pendingRegistrationsRef.current.delete(experimentId);
+      pendingRegistration.abortController.abort();
+      patchExperiment(experimentId, { status: "cancelled" });
+      return;
+    }
+
     registrationsRef.current.get(experimentId)?.handle.cancel();
   };
 
