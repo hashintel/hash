@@ -1,10 +1,9 @@
 import {
   deploymentPipelineSDCPN,
-  probabilisticSatellitesSDCPN,
-  productionMachines,
-  satellitesSDCPN,
   sirModel,
-  supplyChainStochasticSDCPN,
+  probabilisticSatellitesSDCPN,
+  supplyChainWithDisruption,
+  productionMachines,
 } from "@hashintel/petrinaut-core/examples";
 
 import type { SDCPN } from "@hashintel/petrinaut";
@@ -25,14 +24,13 @@ export const exampleTiles: ExampleTile[] = [
   { slug: "sir-model", ...sirModel },
   { slug: "production-machines", ...productionMachines },
   { slug: "deployment-pipeline", ...deploymentPipelineSDCPN },
-  { slug: "satellites", ...satellitesSDCPN },
   {
     slug: "probabilistic-satellites",
     ...probabilisticSatellitesSDCPN,
   },
   {
-    slug: "supply-chain-stochastic",
-    ...supplyChainStochasticSDCPN,
+    slug: "supply-chain-with-disruption",
+    ...supplyChainWithDisruption,
   },
 ];
 
