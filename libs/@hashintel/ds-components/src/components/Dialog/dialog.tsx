@@ -227,7 +227,7 @@ const DialogRoot = ({
 
   return (
     <ArkDialog.Root
-      defaultOpen
+      open
       closeOnEscape={closeOnEscape}
       closeOnInteractOutside={closeOnInteractOutside}
       onOpenChange={(event) => {
