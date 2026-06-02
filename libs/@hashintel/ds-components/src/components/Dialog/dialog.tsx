@@ -209,12 +209,16 @@ const DialogRoot = ({
   const hasHeader = !!headerChild;
   const titleIconName = headerChild?.props.iconName;
 
-  const classes = styles({
-    size,
-    headerless: !hasHeader,
-    hasIcon: !!titleIconName,
-    variant,
-  });
+  const classes = useMemo(
+    () =>
+      styles({
+        size,
+        headerless: !hasHeader,
+        hasIcon: !!titleIconName,
+        variant,
+      }),
+    [size, hasHeader, titleIconName, variant],
+  );
 
   const renderCloseButton = shouldCloseOn !== "none";
   const closeOnEscape = shouldCloseOn !== "none";
