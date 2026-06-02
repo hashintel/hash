@@ -49,6 +49,7 @@ export const styles = sva({
     },
     positioner: {
       display: "flex",
+      flexDirection: "column",
       alignItems: "center",
       justifyContent: "center",
       position: "fixed",
@@ -59,6 +60,16 @@ export const styles = sva({
       overscrollBehaviorY: "none",
       zIndex: "zIndex.modal",
       padding: "4",
+      // Bias the dialog slightly above center: spacers split free vertical
+      // space 35/65 and shrink to 0 when the content fills the viewport.
+      _before: {
+        content: '""',
+        flex: "[38 1 0]",
+      },
+      _after: {
+        content: '""',
+        flex: "[62 1 0]",
+      },
     },
     content: {
       "--dialog-horizontal-padding": "var(--spacing-5\\.5)",
