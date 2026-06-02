@@ -737,5 +737,21 @@ export const ShouldCloseOn: Story = () => (
         </Dialog>
       )}
     />
+
+    <DialogExample
+      buttonLabel="none + no header"
+      renderDialog={(close) => (
+        <Dialog shouldCloseOn="none" onClose={close}>
+          <Dialog.Body>{sampleBody}</Dialog.Body>
+          <Dialog.Footer
+            actions={
+              <Button variant="solid" tone="brand" onClick={close}>
+                Done
+              </Button>
+            }
+          />
+        </Dialog>
+      )}
+    />
   </div>
 );
