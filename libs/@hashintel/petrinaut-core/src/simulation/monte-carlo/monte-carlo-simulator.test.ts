@@ -1,10 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { createPlaceTokenCountDistributionMetric } from "./metrics";
+import { createMonteCarloUserDefinedMetric } from "./metrics";
 import { createMonteCarloSimulator } from "./monte-carlo-simulator";
 
 import type { SDCPN } from "../../types/sdcpn";
-import type { PlaceTokenCountDistributionFrame } from "./metrics";
 
 const sdcpn: SDCPN = {
   types: [
@@ -92,18 +91,6 @@ const selfLoopSdcpn: SDCPN = {
   parameters: [],
 };
 
-function getPlaceDistributionFrame(
-  frame: PlaceTokenCountDistributionFrame,
-  placeId: string,
-) {
-  const place = frame.places.find((entry) => entry.placeId === placeId);
-  if (!place) {
-    throw new Error(`Expected distribution for place ${placeId}`);
-  }
-
-  return place;
-}
-
 describe("MonteCarloSimulator", () => {
   it("runs multiple independent simulations without retaining frame history", () => {
     const simulator = createMonteCarloSimulator({
@@ -170,70 +157,15 @@ describe("MonteCarloSimulator", () => {
     ]);
   });
 
-  it("streams active-only place token count distributions", () => {
-    const distributionMetric = createPlaceTokenCountDistributionMetric();
-    const simulator = createMonteCarloSimulator({
-      sdcpn,
-      runCount: 2,
-      initialMarking: { source: 1 },
-      runs: [
-        { seed: 10, initialMarking: { source: 1 } },
-        { seed: 20, initialMarking: { source: 2 } },
-      ],
-      dt: 1,
-      maxTime: 20,
-      metrics: [distributionMetric],
-    });
-
-    expect(distributionMetric.frames).toHaveLength(1);
-    expect(distributionMetric.frames[0]).toMatchObject({
-      frameNumber: 0,
-      time: 0,
-      activeRunCount: 2,
-      completedRunCount: 0,
-      erroredRunCount: 0,
-    });
-    expect(
-      getPlaceDistributionFrame(distributionMetric.frames[0]!, "source").bins,
-    ).toEqual([
-      [1, 1],
-      [2, 1],
-    ]);
-    expect(
-      getPlaceDistributionFrame(distributionMetric.frames[0]!, "product").bins,
-    ).toEqual([[0, 2]]);
-
-    simulator.advanceAll();
-    expect(distributionMetric.frames).toHaveLength(2);
-    expect(
-      getPlaceDistributionFrame(distributionMetric.frames[1]!, "source").bins,
-    ).toEqual([
-      [0, 1],
-      [1, 1],
-    ]);
-    expect(
-      getPlaceDistributionFrame(distributionMetric.frames[1]!, "product").bins,
-    ).toEqual([[1, 2]]);
-
-    simulator.advanceAll();
-    expect(distributionMetric.frames).toHaveLength(3);
-    expect(distributionMetric.frames[2]).toMatchObject({
-      frameNumber: 2,
-      time: 2,
-      activeRunCount: 1,
-      completedRunCount: 1,
-      erroredRunCount: 0,
-    });
-    expect(
-      getPlaceDistributionFrame(distributionMetric.frames[2]!, "source").bins,
-    ).toEqual([[0, 1]]);
-    expect(
-      getPlaceDistributionFrame(distributionMetric.frames[2]!, "product").bins,
-    ).toEqual([[2, 1]]);
-  });
-
   it("derives completion and metric time from frame numbers", () => {
-    const distributionMetric = createPlaceTokenCountDistributionMetric();
+    const frameMetric = createMonteCarloUserDefinedMetric({
+      id: "frame-number",
+      label: "Frame number",
+      sampleRuns: "all",
+      aggregateRuns: "mean",
+      aggregateTime: "none",
+      measure: ({ frame }) => frame.number,
+    });
     const simulator = createMonteCarloSimulator({
       sdcpn: selfLoopSdcpn,
       runCount: 1,
@@ -241,7 +173,7 @@ describe("MonteCarloSimulator", () => {
       seed: 100,
       dt: 0.1,
       maxTime: 1,
-      metrics: [distributionMetric],
+      metrics: [frameMetric],
     });
 
     const result = simulator.runUntilComplete();
@@ -252,10 +184,92 @@ describe("MonteCarloSimulator", () => {
     expect(summary.completionReason).toBe("maxTime");
     expect(summary.frameNumber).toBe(10);
     expect(summary.currentTime).toBe(1);
-    expect(distributionMetric.frames).toHaveLength(11);
-    expect(distributionMetric.frames.at(-1)).toMatchObject({
+    expect(frameMetric.frames).toHaveLength(11);
+    expect(frameMetric.frames.at(-1)).toMatchObject({
       frameNumber: 10,
       time: 1,
+      value: 10,
+    });
+  });
+
+  it("supports user-defined scalar metrics with run and time aggregation", () => {
+    const sourceAverageMetric = createMonteCarloUserDefinedMetric({
+      id: "source-average",
+      label: "Average source tokens",
+      sampleRuns: "all",
+      aggregateRuns: "mean",
+      aggregateTime: "mean",
+      measure: ({ frame }) => frame.getPlaceTokenCount("source"),
+    });
+    const simulator = createMonteCarloSimulator({
+      sdcpn,
+      runCount: 2,
+      initialMarking: { source: 1 },
+      runs: [
+        { seed: 10, initialMarking: { source: 1 } },
+        { seed: 20, initialMarking: { source: 2 } },
+      ],
+      dt: 1,
+      maxTime: 20,
+      metrics: [sourceAverageMetric],
+    });
+
+    expect(sourceAverageMetric.getLatestFrame()).toMatchObject({
+      metricId: "source-average",
+      value: 1.5,
+      frameValue: 1.5,
+      timeValue: 1.5,
+      runSampleCount: 2,
+      timeSampleCount: 1,
+    });
+
+    simulator.advanceAll();
+
+    expect(sourceAverageMetric.getLatestFrame()).toMatchObject({
+      frameNumber: 1,
+      value: 1,
+      frameValue: 0.5,
+      timeValue: 1,
+      runSampleCount: 2,
+      timeSampleCount: 2,
+    });
+  });
+
+  it("reports sample counts for distribution metrics without time aggregation", () => {
+    const sourceDistributionMetric = createMonteCarloUserDefinedMetric({
+      id: "source-distribution",
+      label: "Source token distribution",
+      sampleRuns: "all",
+      runOutput: { type: "distribution" },
+      aggregateTime: "none",
+      measure: ({ frame }) => frame.getPlaceTokenCount("source"),
+    });
+    const simulator = createMonteCarloSimulator({
+      sdcpn,
+      runCount: 2,
+      initialMarking: { source: 1 },
+      runs: [
+        { seed: 10, initialMarking: { source: 1 } },
+        { seed: 20, initialMarking: { source: 2 } },
+      ],
+      dt: 1,
+      maxTime: 20,
+      metrics: [sourceDistributionMetric],
+    });
+
+    expect(sourceDistributionMetric.getLatestFrame()).toMatchObject({
+      outputType: "distribution",
+      runSampleCount: 2,
+      timeSampleCount: 2,
+    });
+
+    simulator.advanceAll();
+
+    expect(sourceDistributionMetric.getLatestFrame()).toMatchObject({
+      frameNumber: 1,
+      outputType: "distribution",
+      runSampleCount: 2,
+      timeSampleCount: 2,
     });
   });
 });

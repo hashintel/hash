@@ -4,12 +4,14 @@
 //! single-block regions and cyclic multi-block SCCs. [`CostEstimation`] ranks candidate targets
 //! for trivial regions, while [`ConstraintSatisfaction`] handles cyclic ones.
 //!
-//! The forward pass processes regions in topological order, the backward pass in reverse for
-//! refinement. When assignment fails, [`PlacementSolver::rewind`] walks backward to find a region
-//! that can change its assignment.
+//! The forward pass processes regions in topological order, assigning targets greedily.
+//! Adjustment passes then alternate direction (backward, forward, backward, ...) until no
+//! assignment changes, converging to a local minimum in which no single-region change reduces
+//! cost. When assignment fails during the forward pass, [`PlacementSolver::rewind`] walks
+//! backward to find a region that can change its assignment.
 //!
 //! Entry point: [`PlacementSolverContext::build_in`] constructs a [`PlacementSolver`], then
-//! [`PlacementSolver::run_in`] executes both passes.
+//! [`PlacementSolver::run_in`] executes the forward pass and iterates adjustment passes.
 
 use core::{alloc::Allocator, mem};
 
@@ -27,9 +29,12 @@ use crate::{
         basic_block::{BasicBlockId, BasicBlockSlice, BasicBlockVec},
     },
     context::MirContext,
-    pass::execution::{
-        ApproxCost, cost::BasicBlockCostVec, target::TargetId,
-        terminator_placement::TerminatorTransitionCostVec,
+    pass::{
+        analysis::dataflow::framework::Direction,
+        execution::{
+            ApproxCost, cost::BasicBlockCostVec, target::TargetId,
+            terminator_placement::TerminatorTransitionCostVec,
+        },
     },
 };
 
@@ -125,9 +130,9 @@ impl<'ctx, A: Allocator> PlacementSolverContext<'ctx, A> {
 
 /// Assigns execution targets to basic blocks by solving over the condensation graph.
 ///
-/// Uses a two-pass approach: the forward pass assigns targets in topological order, the backward
-/// pass refines them with full boundary context. Rewind-based backtracking recovers from
-/// assignment failures in the forward pass.
+/// The forward pass assigns targets in topological order. Adjustment passes then alternate
+/// direction until convergence, refining assignments with progressively fuller boundary context.
+/// Rewind-based backtracking recovers from assignment failures in the forward pass.
 // We need two allocators here, because the `BumpAllocator` trait does not carry a lifetime, but we
 // move `Copy` data into the bump allocator.
 pub(crate) struct PlacementSolver<'ctx, 'alloc, S1: Allocator, S2: BumpAllocator> {
@@ -142,8 +147,8 @@ pub(crate) struct PlacementSolver<'ctx, 'alloc, S1: Allocator, S2: BumpAllocator
 }
 
 impl<'alloc, S1: Allocator, S: BumpAllocator> PlacementSolver<'_, 'alloc, S1, S> {
-    /// Runs the forward and backward passes, returning the chosen [`TargetId`] for each basic
-    /// block.
+    /// Runs the forward pass and iterates adjustment passes until convergence, returning the
+    /// chosen [`TargetId`] for each basic block.
     pub(crate) fn run_in<'heap, A: Allocator>(
         &mut self,
         context: &mut MirContext<'_, 'heap>,
@@ -166,9 +171,16 @@ impl<'alloc, S1: Allocator, S: BumpAllocator> PlacementSolver<'_, 'alloc, S1, S>
                 .diagnostics
                 .push(unsatisfiable_placement(body.span, block_span, &failure));
         } else {
-            // Only run the backward refinement pass if the forward pass succeeded —
-            // there is nothing to refine when blocks remain unassigned.
-            self.run_backwards_loop(body, &regions);
+            // Iterate adjustment passes in alternating directions until convergence.
+            // Only entered when the forward pass succeeded — nothing to refine with
+            // unassigned blocks.
+            let mut has_changed = true;
+            let mut direction = Direction::Backward;
+
+            while has_changed {
+                has_changed = self.run_adjustment(direction, body, &regions);
+                direction = direction.reverse();
+            }
         }
 
         // Collect the final assignments into the output vec. Unassigned blocks (from a
@@ -221,7 +233,12 @@ impl<'alloc, S1: Allocator, S: BumpAllocator> PlacementSolver<'_, 'alloc, S1, S>
                     self.condensation[region_id].kind = kind;
                 }
                 PlacementRegionKind::Cyclic(cyclic) => {
-                    let mut csp = ConstraintSatisfaction::new(self, region_id, cyclic);
+                    let mut csp = ConstraintSatisfaction::new(
+                        self,
+                        csp::ConstraintSatisfactionMode::Initial,
+                        region_id,
+                        cyclic,
+                    );
 
                     if csp.retry(body) {
                         // Found a perturbation — flush the new assignments, and resume.
@@ -327,7 +344,12 @@ impl<'alloc, S1: Allocator, S: BumpAllocator> PlacementSolver<'_, 'alloc, S1, S>
                 }
                 PlacementRegionKind::Cyclic(cyclic) => {
                     let members = cyclic.members;
-                    let mut csp = ConstraintSatisfaction::new(self, region_id, cyclic);
+                    let mut csp = ConstraintSatisfaction::new(
+                        self,
+                        csp::ConstraintSatisfactionMode::Initial,
+                        region_id,
+                        cyclic,
+                    );
 
                     if !csp.solve(body) {
                         let region = PlacementRegionKind::Cyclic(csp.region);
@@ -362,27 +384,39 @@ impl<'alloc, S1: Allocator, S: BumpAllocator> PlacementSolver<'_, 'alloc, S1, S>
         Ok(())
     }
 
-    /// Re-evaluates assignments in reverse topological order for refinement.
-    ///
-    /// Delegates to [`adjust_trivial`](Self::adjust_trivial) and
-    /// [`adjust_cyclic`](Self::adjust_cyclic).
-    fn run_backwards_loop(&mut self, body: &Body<'_>, regions: &[PlacementRegionId]) {
+    /// Re-evaluates assignments in the given `direction`, returning whether any assignment
+    /// changed. Called in alternating directions until convergence.
+    fn run_adjustment(
+        &mut self,
+        direction: Direction,
+        body: &Body<'_>,
+        regions: &[PlacementRegionId],
+    ) -> bool {
         debug_assert!(!regions.is_empty(), "at least the start block must exist");
-        let mut ptr = regions.len();
+        let mut iter = regions.iter();
+        let mut changed = false;
 
-        while ptr > 0 {
-            ptr -= 1;
+        loop {
+            let Some(&region_id) = (match direction {
+                Direction::Forward => iter.next(),
+                Direction::Backward => iter.next_back(),
+            }) else {
+                break changed;
+            };
 
-            let region_id = regions[ptr];
             let region = &mut self.condensation[region_id];
             let kind = mem::replace(&mut region.kind, PlacementRegionKind::Unassigned);
 
             let kind = match kind {
                 kind @ PlacementRegionKind::Trivial(TrivialPlacementRegion { block }) => {
-                    self.adjust_trivial(body, region_id, block);
+                    changed |= self.adjust_trivial(body, region_id, block);
                     kind
                 }
-                PlacementRegionKind::Cyclic(cyclic) => self.adjust_cyclic(body, region_id, cyclic),
+                PlacementRegionKind::Cyclic(cyclic) => {
+                    let (cyclic_changed, kind) = self.adjust_cyclic(body, region_id, cyclic);
+                    changed |= cyclic_changed;
+                    kind
+                }
                 PlacementRegionKind::Unassigned => {
                     unreachable!(
                         "previous iteration has not returned region {region_id:?} into the graph"
@@ -402,7 +436,7 @@ impl<'alloc, S1: Allocator, S: BumpAllocator> PlacementSolver<'_, 'alloc, S1, S>
         body: &Body<'_>,
         region_id: PlacementRegionId,
         block: BasicBlockId,
-    ) {
+    ) -> bool {
         let estimator = CostEstimation {
             config: CostEstimationConfig::TRIVIAL,
             solver: self,
@@ -422,11 +456,14 @@ impl<'alloc, S1: Allocator, S: BumpAllocator> PlacementSolver<'_, 'alloc, S1, S>
 
         let Some(elem) = heap.pop() else {
             // Re-estimation (unlikely) found no viable targets — keep the current assignment
-            return;
+            return false;
         };
 
         if prev > elem.cost {
             self.targets[block] = Some(elem);
+            true
+        } else {
+            false
         }
     }
 
@@ -439,19 +476,24 @@ impl<'alloc, S1: Allocator, S: BumpAllocator> PlacementSolver<'_, 'alloc, S1, S>
         body: &Body<'_>,
         region_id: PlacementRegionId,
         cyclic: CyclicPlacementRegion<'alloc>,
-    ) -> PlacementRegionKind<'alloc> {
+    ) -> (bool, PlacementRegionKind<'alloc>) {
         // Re-run with full boundary context — neighbor assignments may have changed since the
         // forward pass.
-        let mut csp = ConstraintSatisfaction::new(self, region_id, cyclic);
+        let mut csp = ConstraintSatisfaction::new(
+            self,
+            csp::ConstraintSatisfactionMode::Adjustment,
+            region_id,
+            cyclic,
+        );
         if !csp.solve(body) {
             // New solve found nothing better — keep the forward-pass assignment
-            return PlacementRegionKind::Cyclic(csp.region);
+            return (false, PlacementRegionKind::Cyclic(csp.region));
         }
 
         let region = csp.region;
 
         let prev_estimator = CostEstimation {
-            config: CostEstimationConfig::LOOP,
+            config: CostEstimationConfig::TRIVIAL,
             solver: self,
             determine_target: |block: BasicBlockId| self.targets[block],
         };
@@ -473,7 +515,7 @@ impl<'alloc, S1: Allocator, S: BumpAllocator> PlacementSolver<'_, 'alloc, S1, S>
             .sum();
 
         let next_estimator = CostEstimation {
-            config: CostEstimationConfig::LOOP,
+            config: CostEstimationConfig::TRIVIAL,
             solver: self,
             determine_target: |block: BasicBlockId| {
                 // Resolve SCC members from the candidate solution, everything else
@@ -502,12 +544,14 @@ impl<'alloc, S1: Allocator, S: BumpAllocator> PlacementSolver<'_, 'alloc, S1, S>
             })
             .sum();
 
+        let mut changed = false;
         if prev_total_cost > next_total_cost {
+            changed = true;
             for block in &*region.blocks {
                 self.targets[block.id] = Some(block.target);
             }
         }
 
-        PlacementRegionKind::Cyclic(region)
+        (changed, PlacementRegionKind::Cyclic(region))
     }
 }

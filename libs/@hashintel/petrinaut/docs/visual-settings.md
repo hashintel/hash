@@ -1,8 +1,6 @@
 # Visual Settings
 
-Access the settings dialog via the **gear icon** in the viewport controls (bottom-right corner of the canvas).
-
-<!-- screenshot: viewport controls with gear icon highlighted -->
+Access the settings dialog via the **gear icon** in the viewport controls (bottom-right corner of the canvas). The viewport controls are a small floating cluster of buttons -- zoom in / out, fit-to-view, and the gear icon -- anchored to the bottom-right of the canvas.
 
 ## Available settings
 
@@ -26,8 +24,10 @@ When enabled, node positions snap to a grid when placing new nodes or dragging e
 
 Switch between two node rendering styles:
 
-- **Compact** (enabled) -- smaller card-style nodes.
-- **Classic** (disabled) -- larger nodes with more detail.
+- **Compact** (enabled, the default) -- small card-style nodes that show just the place / transition name. Fits more of the net on screen at once; best for large or dense models where you mostly select-and-inspect via the Properties panel.
+- **Classic** (disabled) -- larger nodes with inline summary information (e.g. token counts, firing-rate type indicators). Easier to read at a glance for small models or when teaching / demoing.
+
+Toggle freely -- this setting only affects rendering, not the underlying net.
 
 ### Partial selection
 

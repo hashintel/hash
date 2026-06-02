@@ -37,14 +37,14 @@ export const PetrinautStoryProvider = ({
   aiAssistant,
   initialTitle = "New Process",
   initialDefinition = emptySDCPN,
-  hideNetManagementControls = false,
+  hideNetManagementControls,
   readonly = false,
   children,
 }: {
   aiAssistant?: PetrinautAiAssistant;
   initialTitle?: string;
   initialDefinition?: SDCPN;
-  hideNetManagementControls?: boolean;
+  hideNetManagementControls?: "all" | "except-title";
   readonly?: boolean;
   children?: ReactNode;
 }) => {

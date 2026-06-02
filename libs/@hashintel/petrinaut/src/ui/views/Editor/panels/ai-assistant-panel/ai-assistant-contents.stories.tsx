@@ -192,10 +192,12 @@ const Frame = ({
   error,
   messages,
   status = "ready",
+  stopped = false,
 }: {
   error?: Error;
   messages: PetrinautAiMessage[];
   status?: "submitted" | "streaming" | "ready" | "error";
+  stopped?: boolean;
 }) => {
   const [input, setInput] = useState("");
 
@@ -210,6 +212,7 @@ const Frame = ({
         onStop={() => {}}
         onSubmit={() => setInput("")}
         status={status}
+        stopped={stopped}
       />
     </div>
   );
@@ -305,6 +308,30 @@ export const ToolError: Story = {
 
 export const NetworkError: Story = {
   render: () => <Frame error={errorMessage} messages={[userMessage]} />,
+};
+
+export const StoppedResponse: Story = {
+  render: () => (
+    <Frame
+      messages={[
+        userMessage,
+        {
+          ...reasoningMessage,
+          parts: [reasoningMessage.parts[0]!],
+        },
+      ]}
+      stopped
+    />
+  ),
+};
+
+export const WaitingForResponse: Story = {
+  render: () => (
+    <Frame
+      messages={[userMessage, streamingReasoningMessage]}
+      status="submitted"
+    />
+  ),
 };
 
 const applyAutoLayoutPendingMessage: PetrinautAiMessage = {

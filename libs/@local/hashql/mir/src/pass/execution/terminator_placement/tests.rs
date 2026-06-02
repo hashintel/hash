@@ -225,7 +225,7 @@ fn goto_allows_cross_backend_non_postgres() {
 }
 
 #[test]
-fn switchint_blocks_cross_backend() {
+fn switchint_allows_cross_backend() {
     let heap = Heap::new();
     let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
@@ -263,7 +263,10 @@ fn switchint_blocks_cross_backend() {
     );
 
     let matrix = costs.of(BasicBlockId::new(0))[0];
-    assert_eq!(matrix.get(TargetId::Interpreter, TargetId::Embedding), None);
+    assert_eq!(
+        matrix.get(TargetId::Interpreter, TargetId::Embedding),
+        Some(cost!(5))
+    );
     // data transfer (1) + backend switch E->I (4) = 5
     assert_eq!(
         matrix.get(TargetId::Embedding, TargetId::Interpreter),
@@ -336,7 +339,7 @@ fn switchint_edge_targets_are_branch_specific() {
     assert!(
         second
             .get(TargetId::Interpreter, TargetId::Embedding)
-            .is_none()
+            .is_some()
     );
     assert!(
         second

@@ -14,14 +14,15 @@
     "target": "ES2021"
   },
   "include": [
-    "assets.d.ts",
-    "next-env.d.ts",
-    "theme-override.d.ts",
     "**/*.ts",
     "**/*.tsx",
+    "assets.d.ts",
     "codegen.config.ts",
     "instrumentation-client.ts",
-    "next.config.js"
+    "next-env.d.ts",
+    "next.config.js",
+    "theme-override.d.ts",
+    ".next/types/**/*.ts"
   ],
   "exclude": ["node_modules", ".next"]
 }

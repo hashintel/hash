@@ -60,7 +60,7 @@ The function receives the current token values and global parameters. It must re
 
 <img width="1707" height="1055" alt="diff-equations" src="https://github.com/user-attachments/assets/bb18dc15-e43c-4233-974a-70ff9a0c1978" />
 
-**Example:** in [Satellites in Orbit](examples.md#satellites-in-orbit), the orbital dynamics equation computes gravitational acceleration to update satellite position and velocity each step.
+**Example:** in [Probabilistic Satellite Launcher](examples.md#probabilistic-satellite-launcher), the orbital dynamics equation computes gravitational acceleration to update satellite position and velocity each step.
 
 ## Visualizer
 
@@ -88,7 +88,7 @@ Use the menu in the code editor header to **Load default template** for a starti
 
 You can also toggle between the code, a preview, and both at once.
 
-**Example:** the [Satellites in Orbit](examples.md#satellites-in-orbit) example includes a visualizer that renders Earth and orbiting satellites with velocity vectors.
+**Example:** the [Probabilistic Satellite Launcher](examples.md#probabilistic-satellite-launcher) example includes a visualizer that renders the planet and orbiting satellites with velocity vectors. The [Supply Chain with Disruption](examples.md#supply-chain-with-disruption) and [Deployment Pipeline](examples.md#deployment-pipeline) examples add visualizers on several places at once.
 
 ## Transition kernel
 
@@ -102,7 +102,12 @@ export default TransitionKernel((tokensByPlace, parameters) => {
 });
 ```
 
-`tokensByPlace` is keyed by **place name**. Each value is an array of token objects from that input place. The return value is keyed by **output place name**, each containing an array of token objects to produce.
+`tokensByPlace` is keyed by **place name**. Each value is a tuple of token objects -- one entry per token consumed from that arc, sized to the arc weight. The return value is keyed by **output place name**, each containing an array of token objects to produce sized to the output arc weight.
+
+Two important asymmetries:
+
+- **Uncoloured input places and inhibitor arcs are not included in `tokensByPlace`**. Only typed input places appear, and only for normal (non-inhibitor) arcs.
+- **Uncoloured output places do not need to appear in the return value** -- the engine generates the correct number of plain tokens automatically based on the output arc weight. Coloured output places must appear with one token object per token produced.
 
 Use the menu in the code editor header to **Load default template** for a starting point.
 
@@ -163,6 +168,8 @@ export default Lambda((tokensByPlace, parameters) => {
   return parameters.rate;
 });
 ```
+
+The same `tokensByPlace` rules from the [Transition kernel](#transition-kernel) section apply: only typed input places appear, and only for normal arcs. A transition with **no input arcs** therefore sees an empty `tokensByPlace` and is always structurally enabled -- this is how you model exogenous arrivals (see [Source transitions](useful-patterns.md#source-transitions-exogenous-arrivals)).
 
 ## Inhibitor arcs
 

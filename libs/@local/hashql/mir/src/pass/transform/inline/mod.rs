@@ -17,12 +17,15 @@
 //! # Normal Phase
 //!
 //! For non-filter functions, the normal phase:
-//! 1. Processes SCCs in dependency order (callees before callers).
-//! 2. For each callsite, computes a score using [`InlineHeuristics::score`].
-//! 3. Selects candidates with positive scores, limited by per-caller budget.
-//! 4. Updates caller costs after inlining to prevent cascade explosions.
-//!
-//! Recursive calls (same SCC) are never inlined to prevent infinite expansion.
+//! 1. Selects loop breakers for each non-trivial SCC (see [`loop_breaker`]).
+//! 2. Processes SCCs in dependency order (callees before callers). Within non-trivial SCCs,
+//!    non-breaker members are processed in postorder of the breaker-removed DAG, then breaker
+//!    members.
+//! 3. For each callsite, computes a score using [`InlineHeuristics::score`].
+//! 4. Calls to loop breakers within their SCC are skipped. Calls to non-breakers within the same
+//!    SCC are eligible for inlining.
+//! 5. Selects candidates with positive scores, limited by per-caller budget.
+//! 6. Updates caller costs after inlining to prevent cascade explosions.
 //!
 //! # Aggressive Phase
 //!
@@ -30,7 +33,7 @@
 //! aggressive inlining to fully flatten the filter logic. The aggressive phase:
 //! 1. Iterates up to `aggressive_inline_cutoff` times per filter.
 //! 2. On each iteration, inlines all eligible callsites found in the filter.
-//! 3. Tracks which SCCs have been inlined to prevent cycles.
+//! 3. Calls to loop breakers and self-calls are skipped to prevent cycles.
 //! 4. Emits a diagnostic if the cutoff is reached.
 //!
 //! # Budget System
@@ -50,26 +53,24 @@ use alloc::collections::BinaryHeap;
 use core::{alloc::Allocator, cmp, mem};
 
 use hashql_core::{
-    graph::{
-        DirectedGraph as _,
-        algorithms::{
-            Tarjan,
-            tarjan::{SccId, StronglyConnectedComponents},
-        },
+    graph::algorithms::{
+        Tarjan, TriColorDepthFirstSearch,
+        tarjan::{Members, SccId, StronglyConnectedComponents},
     },
     heap::{BumpAllocator, Heap},
-    id::{
-        Id as _, IdSlice,
-        bit_vec::{DenseBitSet, SparseBitMatrix},
-    },
+    id::{Id as _, IdSlice, bit_vec::DenseBitSet},
     span::SpanId,
 };
 
-pub use self::{analysis::InlineCostEstimationConfig, heuristics::InlineHeuristicsConfig};
+pub use self::{
+    analysis::InlineCostEstimationConfig, heuristics::InlineHeuristicsConfig,
+    loop_breaker::InlineLoopBreakerConfig,
+};
 use self::{
     analysis::{BodyAnalysis, BodyProperties, CostEstimationResidual},
     find::FindCallsiteVisitor,
     heuristics::InlineHeuristics,
+    loop_breaker::LoopBreaker,
     rename::RenameVisitor,
 };
 use crate::{
@@ -100,6 +101,7 @@ mod find;
 mod heuristics;
 mod rename;
 
+mod loop_breaker;
 #[cfg(test)]
 mod tests;
 
@@ -141,9 +143,11 @@ pub struct InlineConfig {
     pub cost: InlineCostEstimationConfig,
     /// Thresholds and bonuses for scoring callsites.
     pub heuristics: InlineHeuristicsConfig,
+    /// Configuration for loop-breaker selection in recursive SCCs.
+    pub loop_breaker: InlineLoopBreakerConfig,
     /// Multiplier for computing per-caller budget.
     ///
-    /// Budget = `heuristics.max × budget_multiplier`.
+    /// Budget = `heuristics.max * budget_multiplier`.
     /// Limits how much code can be inlined into a single function.
     ///
     /// Default: `2.0` (budget of 120 with default max of 60).
@@ -163,6 +167,7 @@ impl Default for InlineConfig {
         Self {
             cost: InlineCostEstimationConfig::default(),
             heuristics: InlineHeuristicsConfig::default(),
+            loop_breaker: InlineLoopBreakerConfig::default(),
             budget_multiplier: 2.0,
             aggressive_inline_cutoff: 16,
         }
@@ -198,39 +203,38 @@ struct InlineState<'ctx, 'state, 'env, 'heap, A: Allocator> {
 
     /// Functions that require aggressive inlining (filter closures).
     filters: DenseBitSet<DefId>,
-    /// Tracks which SCCs have been inlined into each function.
+    /// Functions selected as loop breakers within their SCC.
     ///
-    /// Used to prevent cycles during aggressive inlining: once an SCC
-    /// has been inlined into a filter, it won't be inlined again.
-    inlined: SparseBitMatrix<DefId, SccId, A>,
+    /// Calls to a breaker within its SCC are skipped during inlining.
+    /// Calls from a breaker to non-breakers are still inlined.
+    loop_breakers: DenseBitSet<DefId>,
 
     // cost estimation properties
     costs: CostEstimationResidual<'heap, A>,
 
     /// SCC membership for cycle detection.
     components: StronglyConnectedComponents<DefId, SccId, (), A>,
+    component_members: Option<Members<DefId, SccId, A>>,
 
     global: &'ctx mut GlobalTransformState<'state>,
 }
 
 impl<'heap, A: Allocator> InlineState<'_, '_, '_, 'heap, A> {
-    /// Collect all non-recursive callsites for aggressive inlining.
+    /// Collect all callsites for aggressive inlining.
     ///
     /// Used for filter functions which bypass normal heuristics.
-    /// Records inlined SCCs to prevent cycles in subsequent iterations.
-    fn collect_all_callsites(&mut self, body: DefId, mem: &mut InlineStateMemory<A>) {
+    /// Self-calls are excluded to prevent panics in `get_disjoint_mut`.
+    fn collect_all_callsites(&self, body: DefId, mem: &mut InlineStateMemory<A>) {
         let component = self.components.scc(body);
 
         self.graph
             .apply_callsites(body)
-            .filter(|callsite| self.components.scc(callsite.target) != component)
+            .filter(|callsite| {
+                callsite.target != body
+                    && (self.components.scc(callsite.target) != component
+                        || !self.loop_breakers.contains(callsite.target))
+            })
             .collect_into(&mut mem.callsites);
-
-        self.inlined.insert(body, component);
-        for callsite in &mem.callsites {
-            self.inlined
-                .insert(body, self.components.scc(callsite.target));
-        }
     }
 
     /// Collect callsites using heuristic scoring and budget.
@@ -260,7 +264,13 @@ impl<'heap, A: Allocator> InlineState<'_, '_, '_, 'heap, A> {
         let candidates = &mut mem.candidates;
 
         for callsite in self.graph.apply_callsites(body) {
-            if self.components.scc(callsite.target) == component {
+            // Within an SCC, only skip calls to loop breakers (they break the cycle).
+            // Calls to non-breakers within the SCC are eligible because we're now inside of a DAG.
+            let same_scc = self.components.scc(callsite.target) == component;
+            if same_scc && self.loop_breakers.contains(callsite.target) {
+                continue;
+            }
+            if callsite.target == body {
                 continue;
             }
 
@@ -536,15 +546,25 @@ impl<A: BumpAllocator> Inline<A> {
 
         let tarjan = Tarjan::new_in(&graph, &self.alloc);
         let components = tarjan.run();
+        let mut component_members = components.members_in(&self.alloc);
+
+        let mut loop_breaker = LoopBreaker {
+            config: self.config.loop_breaker,
+            graph: &graph,
+            properties: &costs.properties,
+            search: TriColorDepthFirstSearch::new_in(&graph, &self.alloc),
+        };
+        let loop_breakers = loop_breaker.run_in(&mut component_members, &self.alloc);
 
         InlineState {
             config: self.config,
             filters,
-            inlined: SparseBitMatrix::new_in(components.node_count(), &self.alloc),
+            loop_breakers,
             interner,
             graph,
             costs,
             components,
+            component_members: Some(component_members),
             global: state,
         }
     }
@@ -552,18 +572,22 @@ impl<A: BumpAllocator> Inline<A> {
     /// Run the normal inlining phase.
     ///
     /// Processes SCCs in dependency order (callees before callers) so that
-    /// cost updates propagate correctly.
+    /// cost updates propagate correctly. Within non-trivial SCCs, non-breaker
+    /// members are processed in postorder (callees before callers in the
+    /// breaker-removed DAG), followed by breaker members.
     fn normal<'heap, 'alloc>(
-        &self,
         state: &mut InlineState<'_, '_, '_, 'heap, &'alloc A>,
         bodies: &mut IdSlice<DefId, Body<'heap>>,
         mem: &mut InlineStateMemory<&'alloc A>,
     ) -> Changed {
-        let members = state.components.members_in(&self.alloc);
-
         let mut any_changed = Changed::No;
-        for scc in members.sccs() {
-            for &id in members.of(scc) {
+        let component_members = state
+            .component_members
+            .take()
+            .unwrap_or_else(|| panic!("scc component members have been taken twice"));
+
+        for (_, scc_members) in &component_members {
+            for &id in scc_members {
                 let changed = state.run(bodies, id, mem);
                 any_changed |= changed;
                 state.global.mark(id, changed);
@@ -605,9 +629,6 @@ impl<A: BumpAllocator> Inline<A> {
                 mem.callsites
                     .sort_unstable_by(|lhs, rhs| lhs.kind.cmp(&rhs.kind).reverse());
                 for callsite in mem.callsites.drain(..) {
-                    let target_component = state.components.scc(callsite.target);
-                    state.inlined.insert(filter, target_component);
-
                     state.inline(bodies, callsite);
                 }
 
@@ -637,7 +658,7 @@ impl<'env, 'heap, A: BumpAllocator> GlobalTransformPass<'env, 'heap> for Inline<
         let mut mem = InlineStateMemory::new(&self.alloc);
 
         let mut changed = Changed::No;
-        changed |= self.normal(&mut state, bodies, &mut mem);
+        changed |= Self::normal(&mut state, bodies, &mut mem);
         changed |= self.aggressive(context, &mut state, bodies, &mut mem);
         changed
     }

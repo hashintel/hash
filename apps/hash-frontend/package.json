@@ -7,7 +7,7 @@
   "type": "module",
   "scripts": {
     "build": "next build",
-    "build:docker": "docker buildx build --tag hash-frontend --file ../../infra/docker/frontend/prod/Dockerfile ../../ --load --build-arg FRONTEND_URL=\"$FRONTEND_URL\" --build-arg API_ORIGIN=\"$API_ORIGIN\"",
+    "build:docker": "docker buildx build --tag hash-frontend --file docker/Dockerfile ../../ --load --build-arg FRONTEND_URL=\"$FRONTEND_URL\" --build-arg API_ORIGIN=\"$API_ORIGIN\"",
     "codegen": "rimraf './src/**/*.gen.*'; graphql-codegen --config codegen.config.ts",
     "dev": "next dev",
     "fix:eslint": "eslint --fix .",
@@ -19,6 +19,7 @@
     "start:test:healthcheck": "wait-on --timeout 600000 http://localhost:3000"
   },
   "dependencies": {
+    "@ai-sdk/openai": "3.0.63",
     "@apollo/client": "3.10.5",
     "@blockprotocol/core": "0.1.4",
     "@blockprotocol/graph": "workspace:*",
@@ -39,6 +40,7 @@
     "@hashintel/ds-components": "workspace:*",
     "@hashintel/ds-helpers": "workspace:*",
     "@hashintel/petrinaut": "workspace:*",
+    "@hashintel/petrinaut-core": "workspace:*",
     "@hashintel/query-editor": "workspace:*",
     "@hashintel/type-editor": "workspace:*",
     "@lit-labs/react": "1.2.1",
@@ -55,9 +57,9 @@
     "@ory/integrations": "1.3.1",
     "@popperjs/core": "2.11.8",
     "@react-sigma/core": "4.0.3",
-    "@sentry/nextjs": "10.27.0",
-    "@sentry/react": "10.22.0",
-    "@sentry/webpack-plugin": "4.6.0",
+    "@sentry/nextjs": "10.54.0",
+    "@sentry/react": "10.54.0",
+    "@sentry/webpack-plugin": "5.3.0",
     "@sigma/edge-curve": "patch:@sigma/edge-curve@npm%3A3.0.0-beta.16#~/.yarn/patches/@sigma-edge-curve-npm-3.0.0-beta.16-3d8b985284.patch",
     "@sigma/node-border": "3.0.0",
     "@sigma/node-image": "3.0.0",
@@ -68,6 +70,7 @@
     "@tldraw/tlvalidate": "2.0.0-alpha.12",
     "@types/prismjs": "1.26.5",
     "@vercel/edge-config": "0.4.1",
+    "ai": "6.0.182",
     "axios": "1.16.1",
     "buffer": "6.0.3",
     "clsx": "2.1.1",
@@ -128,7 +131,8 @@
     "url-regex-safe": "4.0.0",
     "use-font-face-observer": "1.3.0",
     "uuid": "14.0.0",
-    "web-worker": "1.4.1"
+    "web-worker": "1.4.1",
+    "zod": "4.4.3"
   },
   "devDependencies": {
     "@graphql-codegen/cli": "^6.2.1",

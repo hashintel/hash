@@ -29,6 +29,8 @@ export type PlaceNodeData = {
   type: "place";
   dynamicsEnabled: boolean;
   hasColorType: boolean;
+  /** Whether this place has custom visualizer code defined. */
+  hasVisualizer: boolean;
   typeColor?: string; // Color code from the type, if assigned
 };
 

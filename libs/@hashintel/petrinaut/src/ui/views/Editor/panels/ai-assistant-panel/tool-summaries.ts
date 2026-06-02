@@ -15,6 +15,12 @@ export type AiToolSummary = {
   detail?: string;
   items?: string[];
   target?: AiToolTarget;
+  /**
+   * External URL the tool row links to (opens in a new tab). Set for
+   * read-only tools that surface a user-guide page so the user can open the
+   * page they saw the assistant consult.
+   */
+  href?: string;
 };
 
 export type AiToolBlockedOutput = {

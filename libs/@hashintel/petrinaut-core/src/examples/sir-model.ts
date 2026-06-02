@@ -2,6 +2,20 @@ import { GRID_SIZE } from "../grid-size";
 
 import type { SDCPN } from "../types/sdcpn";
 
+/**
+ * Susceptible-Infected-Recovered (SIR) compartmental epidemic model, expressed
+ * as a stochastic Petri net.
+ *
+ * The Infection transition consumes one Susceptible and one Infected and
+ * produces two Infected tokens (arc weight 2), reproducing the mass-action
+ * `S + I -> 2I` dynamics; Recovery moves Infected to Recovered. Firing rates are
+ * driven by the `infection_rate` and `recovery_rate` global parameters, so the
+ * basic reproduction number can be explored by changing parameters alone.
+ *
+ * This is the simplest built-in example and a good introduction to stochastic
+ * firing and global parameters. See `docs/examples.md` for suggested initial
+ * state and walkthrough.
+ */
 export const sirModel: { title: string; petriNetDefinition: SDCPN } = {
   title: "SIR Epidemic Model",
   petriNetDefinition: {
@@ -59,10 +73,17 @@ export const sirModel: { title: string; petriNetDefinition: SDCPN } = {
           },
         ],
         lambdaType: "stochastic",
-        lambdaCode:
-          "export default Lambda((tokens, parameters) => parameters.infection_rate)",
-        transitionKernelCode:
-          "export default TransitionKernel(() => {\n  return {\n    Infected: [{}, {}],\n  };\n});",
+        lambdaCode: `// Mass-action infection: fires at the configured infection rate whenever a
+// Susceptible and an Infected are both present (the two standard input arcs).
+export default Lambda((tokens, parameters) => parameters.infection_rate)`,
+        transitionKernelCode: `// Consumes 1 Susceptible + 1 Infected and produces 2 Infected (the output
+// arc has weight 2), encoding the S + I -> 2I reaction: the susceptible has
+// become newly infected. Places are untyped, so tokens carry no attributes.
+export default TransitionKernel(() => {
+  return {
+    Infected: [{}, {}],
+  };
+});`,
         x: -10 * GRID_SIZE,
         y: 5 * GRID_SIZE,
       },
@@ -83,10 +104,16 @@ export const sirModel: { title: string; petriNetDefinition: SDCPN } = {
           },
         ],
         lambdaType: "stochastic",
-        lambdaCode:
-          "export default Lambda((tokens, parameters) => parameters.recovery_rate)",
-        transitionKernelCode:
-          "export default TransitionKernel(() => {\n  return {\n    Recovered: [{}],\n  };\n});",
+        lambdaCode: `// Each Infected recovers at the configured recovery rate. The ratio of
+// infection_rate to recovery_rate sets the basic reproduction number R0.
+export default Lambda((tokens, parameters) => parameters.recovery_rate)`,
+        transitionKernelCode: `// Move one Infected to Recovered (1-to-1). Recovered individuals are immune,
+// so they never re-enter the Susceptible or Infected places.
+export default TransitionKernel(() => {
+  return {
+    Recovered: [{}],
+  };
+});`,
         x: 6 * GRID_SIZE,
         y: 16 * GRID_SIZE,
       },
@@ -156,19 +183,63 @@ export const sirModel: { title: string; petriNetDefinition: SDCPN } = {
           },
         },
       },
+      {
+        id: "scenario__contained_outbreak",
+        name: "Contained Outbreak",
+        description:
+          "Sub-threshold spread with R₀ < 1 (recovery outpaces infection), so the outbreak fizzles out instead of taking off.",
+        scenarioParameters: [
+          { type: "integer", identifier: "population", default: 1000 },
+          { type: "ratio", identifier: "infected_ratio", default: 0.05 },
+        ],
+        parameterOverrides: {
+          param__infection_rate: "0.6",
+          param__recovery_rate: "1.2",
+        },
+        initialState: {
+          type: "per_place",
+          content: {
+            place__susceptible:
+              "scenario.population * (1 - scenario.infected_ratio)",
+            place__infected: "scenario.population * scenario.infected_ratio",
+            place__recovered: "0",
+          },
+        },
+      },
+      {
+        id: "scenario__pandemic_wave",
+        name: "Pandemic Wave",
+        description:
+          "A large, mostly-susceptible population seeded with a few cases and R₀ ≈ 5 — useful for watching the classic epidemic curve build and burn out at scale.",
+        scenarioParameters: [
+          { type: "integer", identifier: "population", default: 100000 },
+          { type: "ratio", identifier: "infected_ratio", default: 0.00005 },
+        ],
+        parameterOverrides: {
+          param__infection_rate: "2.5",
+          param__recovery_rate: "0.5",
+        },
+        initialState: {
+          type: "per_place",
+          content: {
+            place__susceptible:
+              "scenario.population * (1 - scenario.infected_ratio)",
+            place__infected: "scenario.population * scenario.infected_ratio",
+            place__recovered: "0",
+          },
+        },
+      },
     ],
     metrics: [
       {
         id: "metric__infected_fraction",
         name: "Infected Fraction",
         description: "Share of the population currently infected.",
-        code: [
-          "const s = state.places.Susceptible.count;",
-          "const i = state.places.Infected.count;",
-          "const r = state.places.Recovered.count;",
-          "const total = s + i + r;",
-          "return total === 0 ? 0 : i / total;",
-        ].join("\n"),
+        code: `const s = state.places.Susceptible.count;
+const i = state.places.Infected.count;
+const r = state.places.Recovered.count;
+const total = s + i + r;
+return total === 0 ? 0 : i / total;`,
       },
     ],
   },

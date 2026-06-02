@@ -22,7 +22,10 @@ pub use self::{
     dle::DeadLocalElimination,
     dse::DeadStoreElimination,
     forward_substitution::ForwardSubstitution,
-    inline::{Inline, InlineConfig, InlineCostEstimationConfig, InlineHeuristicsConfig},
+    inline::{
+        Inline, InlineConfig, InlineCostEstimationConfig, InlineHeuristicsConfig,
+        InlineLoopBreakerConfig,
+    },
     inst_simplify::InstSimplify,
     post_inline::PostInline,
     pre_inline::PreInline,

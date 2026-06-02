@@ -1192,6 +1192,63 @@ fn recursion_limit_exceeded() {
 }
 
 #[test]
+fn integer_add_overflow() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; fn@0/0 -> Int {
+        decl result: Int;
+
+        bb0() {
+            result = bin.+ 170141183460469231731687303715884105727 1;
+            return result;
+        }
+    });
+
+    let result = run_body(body).expect_err("should fail with integer overflow");
+    assert_eq!(result.category, InterpretDiagnosticCategory::RuntimeLimit);
+}
+
+#[test]
+fn integer_sub_overflow() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; fn@0/0 -> Int {
+        decl result: Int;
+
+        bb0() {
+            result = bin.- (-0x8000_0000_0000_0000_0000_0000_0000_0000) 1;
+            return result;
+        }
+    });
+
+    let result = run_body(body).expect_err("should fail with integer overflow");
+    assert_eq!(result.category, InterpretDiagnosticCategory::RuntimeLimit);
+}
+
+#[test]
+fn integer_neg_overflow() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; fn@0/0 -> Int {
+        decl result: Int;
+
+        bb0() {
+            result = un.neg (-0x8000_0000_0000_0000_0000_0000_0000_0000);
+            return result;
+        }
+    });
+
+    let result = run_body(body).expect_err("should fail with integer overflow");
+    assert_eq!(result.category, InterpretDiagnosticCategory::RuntimeLimit);
+}
+
+#[test]
 fn out_of_range_list_index() {
     let heap = Heap::new();
     let interner = Interner::new(&heap);

@@ -2,9 +2,16 @@ import { useRef } from "react";
 
 import { PortalContainerContext } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
+import {
+  probabilisticSatellitesSDCPN,
+  sirModel,
+} from "@hashintel/petrinaut-core/examples";
 
+import { ExperimentsProvider } from "../../../../../react/experiments/provider";
 import { LanguageClientProvider } from "../../../../../react/lsp/provider";
+import { NotificationsProvider } from "../../../../../react/notifications/provider";
 import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
+import { UserSettingsProvider } from "../../../../../react/state/user-settings-provider";
 import { MonacoProvider } from "../../../../monaco/provider";
 import {
   FakeEditorProvider,
@@ -17,6 +24,8 @@ import {
 } from "./experiments/experiments-story-fixtures";
 import { SimulateView } from "./simulate-view";
 
+import type { SDCPNContextValue } from "../../../../../react/state/sdcpn-context";
+import type { SDCPN } from "@hashintel/petrinaut-core";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
 const meta = {
@@ -44,6 +53,51 @@ const portalContainerStyle = css({
   pointerEvents: "none",
 });
 
+type StoryExample = {
+  title: string;
+  petriNetDefinition: SDCPN;
+};
+
+const createSdcpnContextValue = ({
+  petriNetDefinition,
+  title,
+}: StoryExample): SDCPNContextValue => ({
+  createNewNet: () => {},
+  existingNets: [],
+  loadPetriNet: () => {},
+  petriNetId: `${title.toLowerCase().replaceAll(/[^a-z0-9]+/g, "-")}-story-net`,
+  petriNetDefinition,
+  readonly: false,
+  setTitle: () => {},
+  title,
+  getItemType: (id) => {
+    if (petriNetDefinition.places.some((place) => place.id === id)) {
+      return "place";
+    }
+    if (
+      petriNetDefinition.transitions.some((transition) => transition.id === id)
+    ) {
+      return "transition";
+    }
+    if (petriNetDefinition.types.some((type) => type.id === id)) {
+      return "type";
+    }
+    if (
+      petriNetDefinition.differentialEquations.some(
+        (differentialEquation) => differentialEquation.id === id,
+      )
+    ) {
+      return "differentialEquation";
+    }
+    if (
+      petriNetDefinition.parameters.some((parameter) => parameter.id === id)
+    ) {
+      return "parameter";
+    }
+    return null;
+  },
+});
+
 const SimulateViewStory = ({
   experiments,
 }: {
@@ -69,6 +123,37 @@ const SimulateViewStory = ({
                 </div>
               </FakeExperimentsProvider>
             </FakeEditorProvider>
+          </MonacoProvider>
+        </LanguageClientProvider>
+      </SDCPNContext>
+    </PortalContainerContext>
+  );
+};
+
+const RunnableSimulateViewStory = ({ example }: { example: StoryExample }) => {
+  const portalContainerRef = useRef<HTMLDivElement>(null);
+  const sdcpnContextValue = createSdcpnContextValue(example);
+
+  return (
+    <PortalContainerContext value={portalContainerRef}>
+      <SDCPNContext value={sdcpnContextValue}>
+        <LanguageClientProvider>
+          <MonacoProvider>
+            <NotificationsProvider>
+              <UserSettingsProvider>
+                <FakeEditorProvider>
+                  <ExperimentsProvider>
+                    <div className={`${rootStyle} petrinaut-root`}>
+                      <div
+                        ref={portalContainerRef}
+                        className={portalContainerStyle}
+                      />
+                      <SimulateView />
+                    </div>
+                  </ExperimentsProvider>
+                </FakeEditorProvider>
+              </UserSettingsProvider>
+            </NotificationsProvider>
           </MonacoProvider>
         </LanguageClientProvider>
       </SDCPNContext>
@@ -122,5 +207,17 @@ export const Complete: Story = {
     <SimulateViewStory
       experiments={[makeExperiment(1, { status: "complete" })]}
     />
+  ),
+};
+
+export const RunSIRExperiment: Story = {
+  name: "Run SIR experiment",
+  render: () => <RunnableSimulateViewStory example={sirModel} />,
+};
+
+export const RunSatellitesLauncherExperiment: Story = {
+  name: "Run Satellites Launcher experiment",
+  render: () => (
+    <RunnableSimulateViewStory example={probabilisticSatellitesSDCPN} />
   ),
 };

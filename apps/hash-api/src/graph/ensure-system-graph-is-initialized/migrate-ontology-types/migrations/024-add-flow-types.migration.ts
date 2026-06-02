@@ -42,7 +42,7 @@ const migrate: MigrationFunction = async ({
         allOf: [blockProtocolEntityTypes.link.entityTypeId],
         title: "Uses",
         titlePlural: "Uses",
-        icon: "🔗",
+        icon: "/icons/types/link.svg",
         inverse: {
           title: "Used By",
         },
@@ -65,7 +65,7 @@ const migrate: MigrationFunction = async ({
         allOf: [blockProtocolEntityTypes.link.entityTypeId],
         title: "Scheduled By",
         titlePlural: "Scheduled By",
-        icon: "📅",
+        icon: "/icons/types/calendar-clock.svg",
         inverse: {
           title: "Scheduled",
         },
@@ -159,7 +159,7 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         title: "Flow Definition",
         titlePlural: "Flow Definitions",
-        icon: "📋",
+        icon: "/icons/types/diagram-project.svg",
         description: "The definition of a HASH flow.",
         labelProperty: blockProtocolPropertyTypes.name.propertyTypeBaseUrl,
         properties: [
@@ -519,7 +519,7 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         title: "Flow Schedule",
         titlePlural: "Flow Schedules",
-        icon: "🗓️",
+        icon: "/icons/types/calendar-clock.svg",
         description:
           "A schedule that triggers recurring executions of a flow definition.",
         labelProperty: blockProtocolPropertyTypes.name.propertyTypeBaseUrl,
@@ -596,7 +596,7 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         title: "Flow Run",
         titlePlural: "Flow Runs",
-        icon: "▶️",
+        icon: "/icons/types/circle-play.svg",
         description: "An execution run of a flow.",
         labelProperty: blockProtocolPropertyTypes.name.propertyTypeBaseUrl,
         properties: [
@@ -684,7 +684,7 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [blockProtocolEntityTypes.link.entityTypeId],
         title: "Has Subject",
-        /** @todo icon */
+        icon: "/icons/types/bullseye-arrow.svg",
         inverse: {
           title: "Subject Of",
         },
@@ -703,7 +703,7 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [blockProtocolEntityTypes.link.entityTypeId],
         title: "Has Object",
-        /** @todo icon */
+        icon: "/icons/types/cube.svg",
         inverse: {
           title: "Object Of",
         },
@@ -722,7 +722,7 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         title: "Claim",
         titlePlural: "Claims",
-        icon: "💬",
+        icon: "/icons/types/comment-quote.svg",
         description: "A claim made about something.",
         properties: [
           {
@@ -763,7 +763,7 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [blockProtocolEntityTypes.link.entityTypeId],
         title: "Incurred In",
-        icon: "💰",
+        icon: "/icons/types/money-bill-transfer.svg",
         inverse: {
           title: "Incurred",
         },

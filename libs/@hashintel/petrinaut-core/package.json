@@ -26,6 +26,10 @@
       "types": "./dist/index.d.d.ts",
       "import": "./dist/index.js"
     },
+    "./ai": {
+      "types": "./dist/ai.d.d.ts",
+      "import": "./dist/ai.js"
+    },
     "./examples": {
       "types": "./dist/examples/index.d.d.ts",
       "import": "./dist/examples/index.js"

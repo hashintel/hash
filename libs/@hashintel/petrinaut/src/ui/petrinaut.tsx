@@ -54,6 +54,7 @@ export type PetrinautAiAssistant = {
 };
 
 import type { NetManagement } from "../react/net-management-context";
+import type { PetrinautSlots } from "./types/petrinaut-slots";
 import type { ViewportAction } from "./types/viewport-action";
 
 export type PetrinautProps = {
@@ -61,12 +62,26 @@ export type PetrinautProps = {
   title?: string;
   setTitle?: (title: string) => void;
   readonly?: boolean;
-  hideNetManagementControls?: boolean;
+  /**
+   * Controls visibility of net-management UI in the editor's top bar and
+   * burger menu.
+   *
+   * - [omitted] (default): show the title, includethe "New", "Open", "Import",
+   *   and "Load example" menu items in the burger menu.
+   * - `"except-title"`: hide the management menu items but keep the title
+   *   viewable and editable in the top bar.
+   * - `"all"`: hide the title and all net-management menu items.
+   */
+  hideNetManagementControls?: "all" | "except-title";
   existingNets?: MinimalNetMetadata[];
   createNewNet?: (params: { petriNetDefinition: SDCPN; title: string }) => void;
   loadPetriNet?: (petriNetId: string) => void;
   aiAssistant?: PetrinautAiAssistant;
   viewportActions?: ViewportAction[];
+  /**
+   * Host-supplied components to inject at specific locations in the editor.
+   */
+  slots?: PetrinautSlots;
   /**
    * Optional simulation-worker factory. Provide this when the host bundler
    * needs to own worker instantiation (e.g. when consuming the published
@@ -105,12 +120,13 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
   title = "Untitled",
   setTitle = noop,
   readonly = false,
-  hideNetManagementControls = true,
+  hideNetManagementControls,
   existingNets = [],
   createNewNet = noop,
   loadPetriNet = noop,
   aiAssistant,
   viewportActions,
+  slots,
   simulationWorkerFactory,
   monteCarloWorkerFactory,
   lspWorkerFactory,
@@ -146,6 +162,7 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
             <EditorView
               aiAssistant={aiAssistant}
               hideNetManagementControls={hideNetManagementControls}
+              slots={slots}
               viewportActions={viewportActions}
             />
           </Stack>

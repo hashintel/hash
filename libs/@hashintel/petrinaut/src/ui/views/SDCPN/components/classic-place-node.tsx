@@ -10,6 +10,7 @@ import { EditorContext } from "../../../../react/state/editor-context";
 import { hexToHsl } from "../../../lib/hsl-color";
 import { splitPascalCase } from "../../../lib/split-pascal-case";
 import { handleStyling } from "../styles/styling";
+import { PlaceStateTooltip } from "./place-state-tooltip";
 
 import type { PlaceNodeType } from "../reactflow-types";
 
@@ -128,10 +129,15 @@ export const ClassicPlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
     isNotSelectedConnection,
     isNotHoveredConnection,
     hoveredItem,
+    isHovered,
   } = use(EditorContext);
   const isSimulateMode = globalMode === "simulate";
   const { initialMarking } = use(SimulationContext);
-  const { currentViewedFrame } = use(PlaybackContext);
+  const { currentViewedFrame, totalFrames } = use(PlaybackContext);
+
+  // Show the visualizer on hover for places with a visualizer during simulation.
+  const showStateTooltip =
+    data.hasColorType && data.hasVisualizer && totalFrames > 0 && isHovered(id);
 
   // Get token count from the currently viewed frame or initial marking
   let tokenCount: number | null = null;
@@ -159,6 +165,7 @@ export const ClassicPlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
 
   return (
     <div className={containerStyle}>
+      {showStateTooltip && <PlaceStateTooltip nodeId={id} />}
       <Handle
         type="target"
         position={Position.Left}

@@ -1,6 +1,8 @@
 import { css, cva } from "@hashintel/ds-helpers/css";
 
 export const triggerStyles = css({
+  lineHeight: "[0]",
+
   "&:focus-visible": {
     outline: "[2px solid]",
     outlineColor: "neutral.s30",

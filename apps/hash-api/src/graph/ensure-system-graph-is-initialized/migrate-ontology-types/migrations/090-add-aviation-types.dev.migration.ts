@@ -738,7 +738,7 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         title: "Airport",
         titlePlural: "Airports",
-        icon: "🏢",
+        icon: "/icons/types/tower-control.svg",
         description:
           "A facility where aircraft take off and land, with infrastructure for passenger and cargo services.",
         labelProperty: blockProtocolPropertyTypes.name.propertyTypeBaseUrl,
@@ -773,7 +773,7 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         title: "Airline",
         titlePlural: "Airlines",
-        icon: "🏦",
+        icon: "/icons/types/plane-tail.svg",
         description:
           "A company that provides air transport services for passengers and/or cargo.",
         labelProperty: blockProtocolPropertyTypes.name.propertyTypeBaseUrl,
@@ -802,7 +802,7 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         title: "Aircraft",
         titlePlural: "Aircraft",
-        icon: "🛩️",
+        icon: "/icons/types/plane.svg",
         description:
           "A vehicle designed for air travel, such as an airplane or helicopter.",
         labelProperty: registrationNumberPropertyType.metadata.recordId.baseUrl,
@@ -832,7 +832,7 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [blockProtocolEntityTypes.link.entityTypeId],
         title: "Departs From",
-        icon: "🛫",
+        icon: "/icons/types/plane-departure.svg",
         inverse: {
           title: "Departure For",
         },
@@ -863,7 +863,7 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [blockProtocolEntityTypes.link.entityTypeId],
         title: "Arrives At",
-        icon: "🛬",
+        icon: "/icons/types/plane-arrival.svg",
         inverse: {
           title: "Arrival For",
         },
@@ -895,7 +895,7 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [blockProtocolEntityTypes.link.entityTypeId],
         title: "Operated By",
-        icon: "👨‍✈️",
+        icon: "/icons/types/user-tie.svg",
         inverse: {
           title: "Operates",
         },
@@ -914,7 +914,7 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [blockProtocolEntityTypes.link.entityTypeId],
         title: "Uses Aircraft",
-        icon: "🛩️",
+        icon: "/icons/types/plane.svg",
         inverse: {
           title: "Used For Flight",
         },
@@ -937,7 +937,7 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         title: "Flight",
         titlePlural: "Flights",
-        icon: "✈️",
+        icon: "/icons/types/plane-up.svg",
         description: "A scheduled air transport service between two airports.",
         labelProperty: flightNumberPropertyType.metadata.recordId.baseUrl,
         properties: [

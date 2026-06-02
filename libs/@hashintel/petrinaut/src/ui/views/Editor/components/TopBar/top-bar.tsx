@@ -15,6 +15,7 @@ import { RunningExperimentsPopover } from "./running-experiments-popover";
 import { VersionHistoryButton } from "./version-history-button";
 
 import type { ExperimentRecord } from "../../../../../react/experiments/context";
+import type { PetrinautSlots } from "../../../../types/petrinaut-slots";
 
 const topBarStyle = css({
   display: "flex",
@@ -52,10 +53,11 @@ interface TopBarProps {
   menuItems: MenuItem[];
   title: string;
   onTitleChange: (value: string) => void;
-  hideNetManagementControls: boolean;
+  hideNetManagementControls?: "all" | "except-title";
   mode: EditorState["globalMode"];
   onModeChange: (mode: EditorState["globalMode"]) => void;
   onRunningExperimentClick?: (experiment: ExperimentRecord) => void;
+  slots?: PetrinautSlots;
 }
 
 export const TopBar: React.FC<TopBarProps> = ({
@@ -66,6 +68,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   mode,
   onModeChange,
   onRunningExperimentClick,
+  slots,
 }) => {
   const { isLeftSidebarOpen, setLeftSidebarOpen, setSearchOpen } =
     use(EditorContext);
@@ -74,6 +77,8 @@ export const TopBar: React.FC<TopBarProps> = ({
   return (
     <div className={topBarStyle}>
       <div className={leftSectionStyle}>
+        {slots?.topBarStart}
+
         <Button
           size="sm"
           variant="ghost"
@@ -102,7 +107,7 @@ export const TopBar: React.FC<TopBarProps> = ({
           animated
         />
 
-        {!hideNetManagementControls && (
+        {hideNetManagementControls !== "all" && (
           <FloatingTitle
             value={title}
             onChange={onTitleChange}
@@ -119,6 +124,7 @@ export const TopBar: React.FC<TopBarProps> = ({
           onExperimentClick={onRunningExperimentClick}
         />
         {undoRedo && <VersionHistoryButton />}
+        {slots?.topBarEnd}
       </div>
     </div>
   );

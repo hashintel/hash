@@ -1,0 +1,21 @@
+---
+source: libs/@local/hashql/mir/src/pass/analysis/data_dependency/tests.rs
+assertion_line: 32
+expression: "format!(\"{graph}\\n\\n=====\\n\\n{transient}\")"
+---
+%1 -> %0 [Param, projections: .0]
+%2 -> %1 [Index(FieldIndex(0))]
+%3 -> %2 [Param, projections: .0]
+%0 -> 42 [Index(FieldIndex(0))]
+%1 -> 42 [Param]
+%3 -> 42 [Param]
+
+
+=====
+
+%0 -> 42 [Index(FieldIndex(0))]
+%1 -> 42 [Param]
+%1 -> 42 [Param]
+%2 -> 42 [Index(FieldIndex(0))]
+%3 -> 42 [Param]
+%3 -> 42 [Param]

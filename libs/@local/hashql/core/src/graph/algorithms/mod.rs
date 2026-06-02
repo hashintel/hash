@@ -25,6 +25,7 @@
 //! # assert_eq!(visited, [n1, n2]);
 //! ```
 
+pub mod color;
 pub mod dominators;
 pub mod tarjan;
 
@@ -32,6 +33,7 @@ use alloc::collections::VecDeque;
 use core::iter::FusedIterator;
 
 pub use self::{
+    color::{CycleDetector, TriColorDepthFirstSearch, TriColorVisitor},
     dominators::{
         DominanceFrontier, DominatorFrontiers, Dominators, IteratedDominanceFrontier,
         dominance_frontiers, dominators, iterated_dominance_frontier,
