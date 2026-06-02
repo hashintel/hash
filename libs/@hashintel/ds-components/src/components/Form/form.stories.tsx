@@ -26,9 +26,9 @@ type FormRowGap = NonNullable<React.ComponentProps<typeof FormRow>["gap"]>;
 type FormRowAlign = NonNullable<React.ComponentProps<typeof FormRow>["align"]>;
 
 const formRowGaps = [
-  "default",
-  "large",
-  "extraLarge",
+  "md",
+  "lg",
+  "xl",
   "spaceBetween",
   "connected",
 ] as const satisfies readonly FormRowGap[];
@@ -398,7 +398,9 @@ export const FormRowAlign: Story<FormFieldArgs> = (args) => (
         <span className={variantLabelStyle}>Align: {align}</span>
         <FormRow align={align}>
           {Array.from({ length: 4 }, (_, index) =>
-            renderRowField(args, `form-row-align-${align}`, index),
+            renderRowField(args, `form-row-align-${align}`, index, {
+              hideLabel: index > 0,
+            }),
           )}
         </FormRow>
       </div>
