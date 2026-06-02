@@ -7,7 +7,9 @@ import { formInputSizes, type FormInputSize } from "../../util/form-shared";
 import { Button } from "../Button/button";
 import { NumberInput } from "../NumberInput/number-input";
 import { TextInput } from "../TextInput/text-input";
+import { Errors } from "./errors";
 import { Form } from "./form";
+import { FormRow } from "./form-row";
 
 import type { Story, StoryDefault } from "@ladle/react";
 
@@ -19,6 +21,23 @@ const labelDirections = [
   "left",
   "right",
 ] as const satisfies readonly LabelDirection[];
+
+type FormRowGap = NonNullable<React.ComponentProps<typeof FormRow>["gap"]>;
+type FormRowAlign = NonNullable<React.ComponentProps<typeof FormRow>["align"]>;
+
+const formRowGaps = [
+  "default",
+  "large",
+  "extraLarge",
+  "spaceBetween",
+  "connected",
+] as const satisfies readonly FormRowGap[];
+
+const formRowAligns = [
+  "bottom",
+  "center",
+  "top",
+] as const satisfies readonly FormRowAlign[];
 
 const noop = () => {};
 
@@ -282,6 +301,107 @@ export const LabelDirection: Story<FormFieldArgs> = (args) => (
           invalid
         />
       </Form.Field>
+    ))}
+  </div>
+);
+
+const variantLabelStyle = css({
+  fontSize: "[12px]",
+  fontWeight: "[500]",
+  color: "fg.muted",
+});
+
+const variantGroupStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "[8px]",
+});
+
+const renderRowField = (
+  args: FormFieldArgs,
+  prefix: string,
+  index: number,
+  overrides?: Partial<FormFieldArgs> & { invalid?: boolean },
+) => {
+  const { invalid, ...fieldOverrides } = overrides ?? {};
+  return (
+    <Form.Field
+      {...args}
+      {...fieldOverrides}
+      key={`${prefix}-${index}`}
+      as="label"
+      label={`Field ${index + 1}`}
+    >
+      <ControlledTextInput
+        name={`${prefix}-${index + 1}`}
+        size={args.size}
+        invalid={invalid}
+      />
+    </Form.Field>
+  );
+};
+
+export const FormRowDefault: Story<FormFieldArgs> = (args) => (
+  <div className={sectionStyle}>
+    <div className={variantGroupStyle}>
+      <span className={variantLabelStyle}>1 field</span>
+      <FormRow>{renderRowField(args, "form-row-default-single", 0)}</FormRow>
+    </div>
+
+    <div className={variantGroupStyle}>
+      <span className={variantLabelStyle}>2 fields (second has no label)</span>
+      <FormRow>
+        {renderRowField(args, "form-row-default-pair", 0)}
+        {renderRowField(args, "form-row-default-pair", 1, { hideLabel: true })}
+      </FormRow>
+    </div>
+
+    <div className={variantGroupStyle}>
+      <span className={variantLabelStyle}>4 fields with row errors</span>
+      <FormRow
+        errors={
+          <Errors
+            errors={["Something is wrong with the values in this row"]}
+            size={args.size}
+          />
+        }
+      >
+        {Array.from({ length: 4 }, (_, index) =>
+          renderRowField(args, "form-row-default-quad", index, {
+            invalid: true,
+          }),
+        )}
+      </FormRow>
+    </div>
+  </div>
+);
+
+export const FormRowGap: Story<FormFieldArgs> = (args) => (
+  <div className={sectionStyle}>
+    {formRowGaps.map((gap) => (
+      <div key={gap} className={variantGroupStyle}>
+        <span className={variantLabelStyle}>Gap: {gap}</span>
+        <FormRow gap={gap}>
+          {Array.from({ length: 4 }, (_, index) =>
+            renderRowField(args, `form-row-gap-${gap}`, index),
+          )}
+        </FormRow>
+      </div>
+    ))}
+  </div>
+);
+
+export const FormRowAlign: Story<FormFieldArgs> = (args) => (
+  <div className={sectionStyle}>
+    {formRowAligns.map((align) => (
+      <div key={align} className={variantGroupStyle}>
+        <span className={variantLabelStyle}>Align: {align}</span>
+        <FormRow align={align}>
+          {Array.from({ length: 4 }, (_, index) =>
+            renderRowField(args, `form-row-align-${align}`, index),
+          )}
+        </FormRow>
+      </div>
     ))}
   </div>
 );
