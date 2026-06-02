@@ -97,7 +97,7 @@
     "rolldown-plugin-dts": "0.25.0",
     "storybook": "10.3.6",
     "vite": "8.0.12",
-    "vitest": "4.1.5"
+    "vitest": "4.1.7"
   },
   "peerDependencies": {
     "@hashintel/ds-components": "workspace:^",

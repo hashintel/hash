@@ -1,0 +1,52 @@
+diff --git a/dist/cjs/internal/internal.js b/dist/cjs/internal/internal.js
+index dee6eec6cd0646708773eb9e89d4e835858b3f5c..b9ce97e9b481980ff5a9092bf09c8d3179fed495 100644
+--- a/dist/cjs/internal/internal.js
++++ b/dist/cjs/internal/internal.js
+@@ -28,7 +28,7 @@ const defaultApi = /*#__PURE__*/Object.assign(V.it, {
+ });
+ const runPromise = ctx => effect => Effect.gen(function* () {
+   const exitFiber = yield* Effect.fork(Effect.exit(effect));
+-  ctx?.onTestFinished(() => Fiber.interrupt(exitFiber).pipe(Effect.asVoid, Effect.runPromise));
++  V.onTestFinished(() => Fiber.interrupt(exitFiber).pipe(Effect.asVoid, Effect.runPromise));
+   const exit = yield* Fiber.join(exitFiber);
+   if (Exit.isSuccess(exit)) {
+     return () => exit.value;
+diff --git a/dist/esm/internal/internal.js b/dist/esm/internal/internal.js
+index adb6b213294cbbc1559f7a283b4a84df41d8342e..a04cef4d46c499aac08518abf0a99759ce800039 100644
+--- a/dist/esm/internal/internal.js
++++ b/dist/esm/internal/internal.js
+@@ -21,7 +21,7 @@ const defaultApi = /*#__PURE__*/Object.assign(V.it, {
+ });
+ const runPromise = ctx => effect => Effect.gen(function* () {
+   const exitFiber = yield* Effect.fork(Effect.exit(effect));
+-  ctx?.onTestFinished(() => Fiber.interrupt(exitFiber).pipe(Effect.asVoid, Effect.runPromise));
++  V.onTestFinished(() => Fiber.interrupt(exitFiber).pipe(Effect.asVoid, Effect.runPromise));
+   const exit = yield* Fiber.join(exitFiber);
+   if (Exit.isSuccess(exit)) {
+     return () => exit.value;
+diff --git a/package.json b/package.json
+index 1ceac68f8e5cfed5d014c4066414c4f8eec67a69..3c5cac8abdae6087e927fab2669b736c4a0be5c4 100644
+--- a/package.json
++++ b/package.json
+@@ -11,7 +11,7 @@
+   "sideEffects": [],
+   "homepage": "https://effect.website",
+   "peerDependencies": {
+-    "vitest": "^3.2.0",
++    "vitest": "^3.2.0 || ^4.0.0",
+     "effect": "^3.21.0"
+   },
+   "publishConfig": {
+diff --git a/src/internal/internal.ts b/src/internal/internal.ts
+index bd11019b8ad51bd49cc3015f8c69aac04ad18822..1d8a04e1ae3d195d75553fb3944efdd9720f64ca 100644
+--- a/src/internal/internal.ts
++++ b/src/internal/internal.ts
+@@ -29,7 +29,7 @@ const runPromise = (ctx?: Vitest.TestContext) => <E, A>(effect: Effect.Effect<A,
+   Effect.gen(function*() {
+     const exitFiber = yield* Effect.fork(Effect.exit(effect))
+ 
+-    ctx?.onTestFinished(() =>
++    V.onTestFinished(() =>
+       Fiber.interrupt(exitFiber).pipe(
+         Effect.asVoid,
+         Effect.runPromise
