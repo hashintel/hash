@@ -21,13 +21,6 @@ import type { EnabledIntegrations } from "../../graphql/api-types.gen";
 import type { NextPageWithLayout } from "../../shared/layout";
 import type { FunctionComponent, ReactNode } from "react";
 
-/**
- * Renders an integration logo inside a dark, rounded tile, mirroring the
- * `IconTile` treatment used on hash.ai (`apps/hashdotai`). The catalog's
- * `dark` icon variants are designed to sit on a dark ground, and each entry
- * supplies an `iconToContainerRatio` and `horizontalAlignment` so the logo is
- * sized and positioned consistently within the tile.
- */
 const IntegrationIconTile = ({
   iconDetail,
   tileSize = 44,
@@ -112,26 +105,12 @@ const IntegrationCard = ({
   );
 };
 
-/**
- * Maps an integration entry from the public catalog to the optional
- * server-side `enabledIntegrations` flag (if any) which decides whether
- * a real `Connect` action is wired up.
- *
- * Keep keys in sync with `EnabledIntegrations` in
- * `libs/@local/hash-isomorphic-utils/src/graphql/type-defs/knowledge/hash-instance.typedef.ts`.
- */
 const enabledIntegrationKeyByName: Partial<
   Record<Integration["name"], keyof Omit<EnabledIntegrations, "__typename">>
 > = {
   Linear: "linear",
 };
 
-/**
- * Ordering within an availability tier for the integration grid: integrations
- * the current user can actually connect come first, then everything that is
- * only available on request. Entries with the same availability are sorted
- * alphabetically by name.
- */
 const availabilityRank: Record<Integration["availability"], number> = {
   Available: 0,
   "Coming soon": 1,
