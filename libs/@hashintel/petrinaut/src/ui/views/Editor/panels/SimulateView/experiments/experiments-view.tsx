@@ -103,17 +103,6 @@ const ExperimentList = ({
       rows={experiments}
       selectedRowId={selectedId}
       onRowSelect={(experiment) => onSelect(experiment.id)}
-      renderActions={(experiment) => (
-        <Button
-          aria-label="Experiment actions"
-          iconName="ellipsis"
-          size="xs"
-          tone="neutral"
-          tooltip="Experiment actions"
-          variant="subtle"
-          onClick={() => onSelect(experiment.id)}
-        />
-      )}
     />
   );
 };

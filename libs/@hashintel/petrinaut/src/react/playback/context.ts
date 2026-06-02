@@ -3,6 +3,7 @@ import { createContext } from "react";
 import {
   formatPlaybackSpeed,
   PLAYBACK_SPEEDS,
+  type ComputePlayMode,
   type PlaybackSpeed,
   type PlaybackState,
   type PlayMode,
@@ -119,6 +120,8 @@ export type PlaybackContextValue = {
   setPlayMode: (mode: PlayMode) => void;
 };
 
+export const DEFAULT_COMPUTE_MODE: ComputePlayMode = "computeBuffer";
+
 const DEFAULT_CONTEXT_VALUE: PlaybackContextValue = {
   currentFrameReader: null,
   currentViewedFrame: null,
@@ -126,7 +129,7 @@ const DEFAULT_CONTEXT_VALUE: PlaybackContextValue = {
   currentFrameIndex: 0,
   totalFrames: 0,
   playbackSpeed: 1,
-  playMode: "computeBuffer",
+  playMode: DEFAULT_COMPUTE_MODE,
   isViewOnlyAvailable: false,
   isComputeAvailable: true,
   setCurrentViewedFrame: () => {},
