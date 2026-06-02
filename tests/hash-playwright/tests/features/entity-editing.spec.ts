@@ -155,12 +155,7 @@ test("both the link and properties tables renders some content", async ({
 
   await page.getByRole("button", { name: "Add a type" }).click();
 
-  /**
-   * Get the `Document` type ('document format' appears in its description but not that of other types mentioning 'Document')
-   */
-  await page
-    .getByPlaceholder("Search for an entity type")
-    .fill("document format");
+  await page.getByPlaceholder("Search for an entity type").fill("book");
 
   await page.getByTestId("selector-autocomplete-option").first().click();
 

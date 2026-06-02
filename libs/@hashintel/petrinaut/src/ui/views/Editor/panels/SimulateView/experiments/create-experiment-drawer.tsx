@@ -261,7 +261,7 @@ const DEFAULT_SEED = "1";
 const DEFAULT_DT = "1";
 const DEFAULT_MAX_TIME = "180";
 const DEFAULT_METRIC_CODE = `/**
-* Custom metric code, that will be run on each frame.
+* Custom metric code that will be run on each frame.
 * It must \`return\` a single finite number.
 *
 * The only thing in scope is \`state\`, a snapshot of the current frame:
