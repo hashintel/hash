@@ -5895,11 +5895,11 @@ __metadata:
 
 "@effect/vitest@patch:@effect/vitest@npm%3A0.29.0#~/.yarn/patches/@effect-vitest-npm-0.29.0-1c8cf3c306.patch":
   version: 0.29.0
-  resolution: "@effect/vitest@patch:@effect/vitest@npm%3A0.29.0#~/.yarn/patches/@effect-vitest-npm-0.29.0-1c8cf3c306.patch::version=0.29.0&hash=57bd6b"
+  resolution: "@effect/vitest@patch:@effect/vitest@npm%3A0.29.0#~/.yarn/patches/@effect-vitest-npm-0.29.0-1c8cf3c306.patch::version=0.29.0&hash=a9b639"
   peerDependencies:
     effect: ^3.21.0
     vitest: ^3.2.0
-  checksum: 10c0/e8f9ecc286270a2b1f773d16df9c85d196e212541629a5cb73bad90851c2032147567cf03e53d1699ae134a6f28b6cda62fc7719242ba567dcfccab3a68c39a2
+  checksum: 10c0/28127e1aa22928e58c0b09cf0494e38baac3fe0397223273136c78cce6b21650c7f73935e32a05e116d1c10e0b552552011bbe213a67de3975522712690a6e6f
   languageName: node
   linkType: hard
 
