@@ -192,10 +192,27 @@ describe("Petrinaut core actions", () => {
       placeId: "place-1",
       type: "read",
     });
+    instance.mutations.addArc({
+      transitionId: "transition-1",
+      arcDirection: "output",
+      placeId: "place-2",
+      weight: 3,
+    });
 
-    expect(instance.definition.get().transitions[0]!.inputArcs).toEqual([
-      { placeId: "place-1", weight: 2, type: "read" },
-    ]);
+    expect(() =>
+      callActionWithUnknownInput(instance.mutations.addArc, {
+        transitionId: "transition-1",
+        arcDirection: "output",
+        placeId: "place-3",
+        weight: 1,
+        type: "read",
+      }),
+    ).toThrow();
+
+    expect(instance.definition.get().transitions[0]).toMatchObject({
+      inputArcs: [{ placeId: "place-1", weight: 2, type: "read" }],
+      outputArcs: [{ placeId: "place-2", weight: 3 }],
+    });
   });
 
   test("adds, updates, removes, and moves type elements granularly", () => {

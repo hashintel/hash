@@ -163,28 +163,30 @@ export const mutationActionInputSchemas = {
     .strictObject({ transitionId: idSchema })
     .meta({ description: "Remove a transition." }),
   addArc: z
-    .discriminatedUnion("arcDirection", [
-      z.strictObject({
-        transitionId: idSchema,
-        arcDirection: z.literal("input"),
-        placeId: idSchema,
-        weight: z.number().positive().meta({
-          description: "Token multiplicity for the arc.",
-        }),
-        type: inputArcSchema.shape.type.optional().meta({
-          description:
-            "Input arc type. Standard arcs consume tokens; read arcs inspect tokens without consuming them; inhibitor arcs block firing when enough tokens are present.",
-        }),
+    .strictObject({
+      transitionId: idSchema,
+      arcDirection: arcDirectionSchema,
+      placeId: idSchema,
+      weight: z.number().positive().meta({
+        description: "Token multiplicity for the arc.",
       }),
-      z.strictObject({
-        transitionId: idSchema,
-        arcDirection: z.literal("output"),
-        placeId: idSchema,
-        weight: z.number().positive().meta({
-          description: "Token multiplicity for the arc.",
-        }),
+      type: inputArcSchema.shape.type.optional().meta({
+        description:
+          "Input arc type, only valid when arcDirection is input. Standard arcs consume tokens; read arcs inspect tokens without consuming them; inhibitor arcs block firing when enough tokens are present. Omit this for output arcs.",
       }),
-    ])
+    })
+    .check((ctx) => {
+      const input = ctx.value;
+      if (input.arcDirection === "output" && input.type !== undefined) {
+        ctx.issues.push({
+          code: "custom",
+          path: ["type"],
+          message:
+            'Output arcs do not have an input arc type. Omit `type` when `arcDirection` is "output".',
+          input,
+        });
+      }
+    })
     .meta({ description: "Add an input or output arc to a transition." }),
   removeArc: z
     .strictObject({
