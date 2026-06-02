@@ -1,4 +1,4 @@
-import { use, useEffect, useState } from "react";
+import { use, useState } from "react";
 
 import { Button, Dialog } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
@@ -158,47 +158,18 @@ export const WalkthroughDialog: React.FC<WalkthroughDialogProps> = ({
     }
   }
 
-  const isVisible = willShowWalkthroughDialog(walkthrough, open);
+  if (!willShowWalkthroughDialog(walkthrough, open)) return null;
 
-  const steps = walkthrough?.steps ?? [];
+  const { steps } = walkthrough;
   const lastIndex = steps.length - 1;
-  const atFirst = currentStep === 0;
-  const atLast = currentStep === lastIndex;
-
-  useEffect(() => {
-    if (!isVisible) {
-      return undefined;
-    }
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "ArrowRight") {
-        event.preventDefault();
-        if (atLast) {
-          onClose();
-        } else {
-          setCurrentStep((prevStep) => prevStep + 1);
-        }
-      } else if (event.key === "ArrowLeft") {
-        event.preventDefault();
-        if (!atFirst) {
-          setCurrentStep((prevStep) => prevStep - 1);
-        }
-      }
-    };
-
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [isVisible, atFirst, atLast, onClose]);
-
-  if (!isVisible) {
-    return null;
-  }
-
   const step = steps[currentStep] ?? steps[0];
 
   if (!step) {
     return null;
   }
+
+  const atFirst = currentStep === 0;
+  const atLast = currentStep === lastIndex;
 
   const goNext = () => {
     if (atLast) {
@@ -214,6 +185,16 @@ export const WalkthroughDialog: React.FC<WalkthroughDialogProps> = ({
     }
   };
 
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === "ArrowRight") {
+      event.preventDefault();
+      goNext();
+    } else if (event.key === "ArrowLeft") {
+      event.preventDefault();
+      goBack();
+    }
+  };
+
   return (
     <Dialog
       className={contentClass}
@@ -223,7 +204,8 @@ export const WalkthroughDialog: React.FC<WalkthroughDialogProps> = ({
     >
       <Dialog.Header title={step.title} />
       <Dialog.Body withPadding={false}>
-        <div key={step.id} className={stepBlockStyle}>
+        {/* eslint-disable-next-line eslint-plugin-jsx-a11y(no-static-element-interactions) */}
+        <div key={step.id} className={stepBlockStyle} onKeyDown={handleKeyDown}>
           <div className={mediaStyle}>
             <video
               src={step.videoHref}
