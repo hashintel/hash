@@ -305,18 +305,6 @@ export const LabelDirection: Story<FormFieldArgs> = (args) => (
   </div>
 );
 
-const variantLabelStyle = css({
-  fontSize: "[12px]",
-  fontWeight: "[500]",
-  color: "fg.muted",
-});
-
-const variantGroupStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  gap: "[8px]",
-});
-
 const renderRowField = (
   args: FormFieldArgs,
   prefix: string,
@@ -327,10 +315,10 @@ const renderRowField = (
   return (
     <Form.Field
       {...args}
+      label={`Field ${index + 1}`}
       {...fieldOverrides}
       key={`${prefix}-${index}`}
       as="label"
-      label={`Field ${index + 1}`}
     >
       <ControlledTextInput
         name={`${prefix}-${index + 1}`}
@@ -343,50 +331,47 @@ const renderRowField = (
 
 export const FormRowDefault: Story<FormFieldArgs> = (args) => (
   <div className={sectionStyle}>
-    <div className={variantGroupStyle}>
-      <span className={variantLabelStyle}>1 field</span>
-      <FormRow>{renderRowField(args, "form-row-default-single", 0)}</FormRow>
-    </div>
+    <FormRow>
+      {renderRowField(args, "form-row-default-single", 0, {
+        label: "1 field",
+      })}
+    </FormRow>
 
-    <div className={variantGroupStyle}>
-      <span className={variantLabelStyle}>2 fields (second has no label)</span>
-      <FormRow>
-        {renderRowField(args, "form-row-default-pair", 0)}
-        {renderRowField(args, "form-row-default-pair", 1, { hideLabel: true })}
-      </FormRow>
-    </div>
+    <FormRow>
+      {renderRowField(args, "form-row-default-pair", 0, {
+        label: "2 fields (second has no label)",
+      })}
+      {renderRowField(args, "form-row-default-pair", 1, { hideLabel: true })}
+    </FormRow>
 
-    <div className={variantGroupStyle}>
-      <span className={variantLabelStyle}>4 fields with row errors</span>
-      <FormRow
-        errors={
-          <Errors
-            errors={["Something is wrong with the values in this row"]}
-            size={args.size}
-          />
-        }
-      >
-        {Array.from({ length: 4 }, (_, index) =>
-          renderRowField(args, "form-row-default-quad", index, {
-            invalid: true,
-          }),
-        )}
-      </FormRow>
-    </div>
+    <FormRow
+      errors={
+        <Errors
+          errors={["Something is wrong with the values in this row"]}
+          size={args.size}
+        />
+      }
+    >
+      {Array.from({ length: 4 }, (_, index) =>
+        renderRowField(args, "form-row-default-quad", index, {
+          invalid: true,
+          ...(index === 0 ? { label: "4 fields with row errors" } : {}),
+        }),
+      )}
+    </FormRow>
   </div>
 );
 
 export const FormRowGap: Story<FormFieldArgs> = (args) => (
   <div className={sectionStyle}>
     {formRowGaps.map((gap) => (
-      <div key={gap} className={variantGroupStyle}>
-        <span className={variantLabelStyle}>Gap: {gap}</span>
-        <FormRow gap={gap}>
-          {Array.from({ length: 4 }, (_, index) =>
-            renderRowField(args, `form-row-gap-${gap}`, index),
-          )}
-        </FormRow>
-      </div>
+      <FormRow key={gap} gap={gap}>
+        {Array.from({ length: 4 }, (_, index) =>
+          renderRowField(args, `form-row-gap-${gap}`, index, {
+            label: index === 0 ? `Gap: ${gap}` : "...",
+          }),
+        )}
+      </FormRow>
     ))}
   </div>
 );
@@ -394,16 +379,14 @@ export const FormRowGap: Story<FormFieldArgs> = (args) => (
 export const FormRowAlign: Story<FormFieldArgs> = (args) => (
   <div className={sectionStyle}>
     {formRowAligns.map((align) => (
-      <div key={align} className={variantGroupStyle}>
-        <span className={variantLabelStyle}>Align: {align}</span>
-        <FormRow align={align}>
-          {Array.from({ length: 4 }, (_, index) =>
-            renderRowField(args, `form-row-align-${align}`, index, {
-              hideLabel: index > 0,
-            }),
-          )}
-        </FormRow>
-      </div>
+      <FormRow key={align} align={align}>
+        {Array.from({ length: 4 }, (_, index) =>
+          renderRowField(args, `form-row-align-${align}`, index, {
+            hideLabel: index > 0,
+            ...(index === 0 ? { label: `Align: ${align}` } : {}),
+          }),
+        )}
+      </FormRow>
     ))}
   </div>
 );
