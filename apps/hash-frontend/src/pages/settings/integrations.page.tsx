@@ -1,5 +1,4 @@
 import { Box, Paper, Stack, Typography } from "@mui/material";
-import slugify from "@sindresorhus/slugify";
 import { useContext, useMemo } from "react";
 
 import {
@@ -66,20 +65,18 @@ const IntegrationIconTile = ({
 
 type IntegrationCardProps = {
   href?: string;
-  buttonLabel: string;
   name: string;
   description: ReactNode;
   iconDetail: IntegrationIcon;
-  buttonOpensInNewTab?: boolean;
+  isConnectable?: boolean;
 };
 
 const IntegrationCard = ({
   href,
-  buttonLabel,
   name,
   description,
   iconDetail,
-  buttonOpensInNewTab,
+  isConnectable,
 }: IntegrationCardProps) => {
   return (
     <Paper
@@ -99,12 +96,12 @@ const IntegrationCard = ({
       >
         <IntegrationIconTile iconDetail={iconDetail} />
         <Button
-          openInNewTab={buttonOpensInNewTab ?? false}
-          variant="tertiary"
+          openInNewTab={!isConnectable}
+          variant={isConnectable ? "primary" : "tertiary"}
           size="xs"
           href={href}
         >
-          {buttonLabel}
+          {isConnectable ? "Connect" : "Contact us"}
         </Button>
       </Box>
       <Typography>
@@ -129,6 +126,18 @@ const enabledIntegrationKeyByName: Partial<
   Linear: "linear",
 };
 
+/**
+ * Ordering within an availability tier for the integration grid: integrations
+ * the current user can actually connect come first, then everything that is
+ * only available on request. Entries with the same availability are sorted
+ * alphabetically by name.
+ */
+const availabilityRank: Record<Integration["availability"], number> = {
+  Available: 0,
+  "Coming soon": 1,
+  "On Request": 2,
+};
+
 const AddNewIntegrations: FunctionComponent = () => {
   const { activeWorkspace } = useContext(WorkspaceContext);
   const { enabledIntegrations } = useHashInstance();
@@ -138,36 +147,50 @@ const AddNewIntegrations: FunctionComponent = () => {
       return null;
     }
 
-    return allIntegrations.map((integration) => {
+    const isConnectable = (integration: Integration) => {
+      const enabledKey = enabledIntegrationKeyByName[integration.name];
+      return enabledKey ? enabledIntegrations[enabledKey] : false;
+    };
+
+    const sortedIntegrations = [...allIntegrations].sort((a, b) => {
+      // Integrations the user can connect right now always sit at the top.
+      const connectableDifference =
+        Number(isConnectable(b)) - Number(isConnectable(a));
+
+      if (connectableDifference !== 0) {
+        return connectableDifference;
+      }
+
+      const rankDifference =
+        availabilityRank[a.availability] - availabilityRank[b.availability];
+
+      if (rankDifference !== 0) {
+        return rankDifference;
+      }
+
+      return a.name.localeCompare(b.name);
+    });
+
+    return sortedIntegrations.map((integration) => {
       const iconDetail = integrationIcons[integration.name];
 
-      const enabledKey = enabledIntegrationKeyByName[integration.name];
-      const isEnabledForUser = enabledKey
-        ? enabledIntegrations[enabledKey]
-        : false;
+      const isEnabledForUser = isConnectable(integration);
 
       let href: string | undefined;
-      let buttonLabel = "Contact us";
-      let buttonOpensInNewTab: boolean | undefined;
 
       if (isEnabledForUser && integration.name === "Linear") {
         href = `${apiOrigin}/oauth/linear?webId=${extractWebId(
           activeWorkspace,
         )}`;
-        buttonLabel = "Connect";
       } else {
-        href = `https://hash.ai/contact?topic=support&category=integration&integration=${encodeURIComponent(
-          slugify(integration.name),
-        )}`;
-        buttonOpensInNewTab = true;
+        href = "https://hash.ai/contact?topic=support&category=integrations";
       }
 
       return (
         <IntegrationCard
           key={integration.name}
           href={href}
-          buttonLabel={buttonLabel}
-          buttonOpensInNewTab={buttonOpensInNewTab}
+          isConnectable={isEnabledForUser}
           name={integration.name}
           description={
             <span
