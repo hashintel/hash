@@ -8,32 +8,32 @@ idiomatic_version_file_enable_tools = ["rust"]
 [tools]
 # Basic tools
 node        = { version = "22.21.1", postinstall = "corepack enable" }
-"npm:turbo" = "2.6.3"
+"npm:turbo" = "2.9.16"
 
 # Helper to install tools
-cargo-binstall = "1.15.1"
-uv             = "0.9.26"
+cargo-binstall = "1.19.1"
+uv             = "0.11.18"
 
 # Tools to compile the project
 'cargo:wasm-opt'  = "0.116.1"
-"cargo:wasm-pack" = "0.13.1"
+"cargo:wasm-pack" = "0.15.0"
 java              = "25"
 protoc            = "32.1"
 
 # CLI tools
 "cargo:cargo-codspeed" = "4.1.0"
-"cargo:cargo-hack"     = "0.6.37"
-"cargo:cargo-insta"    = "1.43.1"
-"cargo:cargo-llvm-cov" = "0.8.0"
-"cargo:cargo-nextest"  = "0.9.103"
-just                   = "1.43.1"
-markdownlint-cli2      = "0.19.1"
+"cargo:cargo-hack"     = "0.6.45"
+"cargo:cargo-insta"    = "1.47.2"
+"cargo:cargo-llvm-cov" = "0.8.7"
+"cargo:cargo-nextest"  = "0.9.137"
+just                   = "1.51.0"
+markdownlint-cli2      = "0.22.1"
 "npm:@napi-rs/cli"     = "2.18.4"
-"npm:@redocly/cli"     = "2.19.2"
-"npm:renovate"         = "42.39.1"
+"npm:@redocly/cli"     = "2.31.5"
+"npm:renovate"         = "43.207.4"
 oxfmt                  = "0.50.0"
-"pipx:sqlfluff"        = "3.4.2"
+"pipx:sqlfluff"        = "4.2.1"
 sentry-cli             = "2.52.0"
 taplo                  = "0.10.0"
 "ubi:terrastruct/d2"   = "0.7.1"
-yq                     = "4.49.2"
+yq                     = "4.53.2"
