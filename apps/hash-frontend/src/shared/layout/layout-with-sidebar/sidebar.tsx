@@ -110,6 +110,11 @@ export const PageSidebar: FunctionComponent = () => {
                   path: "/workers",
                   activeIfPathMatches: /^\/@([^/]+)\/workers\//,
                 },
+                {
+                  title: "Ingest",
+                  path: "/ingest",
+                  activeIfPathMatches: /^\/ingest/,
+                },
               ],
             },
           ]
