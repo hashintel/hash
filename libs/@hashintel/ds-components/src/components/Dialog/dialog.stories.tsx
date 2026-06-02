@@ -57,176 +57,200 @@ const stackStyles = css({
   alignItems: "flex-start",
 });
 
-export const Examples: Story = () => (
-  <div className={stackStyles}>
-    <DialogExample
-      buttonLabel="Title only"
-      dialogProps={() => ({
-        title: "Account settings",
-        children: sampleBody,
-      })}
-    />
+type DialogVariant = "partitionedFooter" | "plain";
 
-    <DialogExample
-      buttonLabel="Title + icon"
-      dialogProps={() => ({
-        title: "Settings",
-        titleIconName: "gear",
-        children: sampleBody,
-      })}
-    />
-
-    <DialogExample
-      buttonLabel="Footer actions"
-      dialogProps={(close) => ({
-        children: (
-          <p>
-            Do you want to save your changes before closing? Select close to go
-            back.
-          </p>
-        ),
-        footerActions: (
-          <>
-            <Button variant="subtle" tone="neutral" onClick={close}>
-              Close
-            </Button>
-            <Button variant="solid" tone="brand" onClick={close}>
-              Save
-            </Button>
-          </>
-        ),
-      })}
-    />
-
-    <DialogExample
-      buttonLabel="Kitchen sink"
-      dialogProps={(close) => ({
-        title: "Edit workspace",
-        titleIconName: "gear",
-        description: "Update the details for your workspace.",
-        titleActions: (
-          <Button
-            variant="ghost"
-            tone="neutral"
-            size="sm"
-            iconName="externalLink"
-            tooltip="Open docs"
-          />
-        ),
-        children: sampleBody,
-        footerActions: (
-          <Button variant="solid" tone="brand" onClick={close}>
-            Save changes
+const buildExampleEntries = (variant: DialogVariant): ExampleProps[] => [
+  {
+    buttonLabel: "Title only",
+    dialogProps: () => ({
+      variant,
+      title: "Account settings",
+      children: sampleBody,
+    }),
+  },
+  {
+    buttonLabel: "Title + icon",
+    dialogProps: () => ({
+      variant,
+      title: "Settings",
+      titleIconName: "gear",
+      children: sampleBody,
+    }),
+  },
+  {
+    buttonLabel: "Footer actions",
+    dialogProps: (close) => ({
+      variant,
+      children: (
+        <p>
+          Do you want to save your changes before closing? Select close to go
+          back.
+        </p>
+      ),
+      footerActions: (
+        <>
+          <Button variant="subtle" tone="neutral" onClick={close}>
+            Close
           </Button>
-        ),
-        footerSecondaryActions: (
-          <Button variant="subtle" tone="error" onClick={close}>
-            Delete
-          </Button>
-        ),
-      })}
-    />
-
-    <DialogExample
-      buttonLabel="Custom header"
-      dialogProps={() => ({
-        header: (
-          <div
-            className={css({
-              display: "flex",
-              alignItems: "center",
-              gap: "3",
-              width: "[100%]",
-            })}
-          >
-            <div
-              className={css({
-                width: "10",
-                height: "10",
-                borderRadius: "full",
-                background: "blue.s90",
-                color: "fg.onSolid",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              })}
-            >
-              <Icon name="sparkles" size="md" />
-            </div>
-            <div>
-              <div className={css({ fontWeight: "semibold", textStyle: "lg" })}>
-                Custom header layout
-              </div>
-              <div className={css({ color: "fg.muted", textStyle: "sm" })}>
-                Built from arbitrary content.
-              </div>
-            </div>
-          </div>
-        ),
-        children: sampleBody,
-      })}
-    />
-
-    <DialogExample
-      buttonLabel="Custom footer"
-      dialogProps={(close) => ({
-        title: "Custom footer",
-        children: sampleBody,
-        footer: (
-          <div
-            className={css({
-              display: "flex",
-              alignItems: "center",
-              gap: "3",
-              width: "[100%]",
-            })}
-          >
-            <Icon
-              name="info"
-              size="sm"
-              className={css({ color: "fg.muted" })}
-            />
-            <span className={css({ color: "fg.muted", textStyle: "sm" })}>
-              All changes are saved automatically.
-            </span>
-            <Button
-              className={css({ marginLeft: "auto" })}
-              variant="solid"
-              tone="neutral"
-              onClick={close}
-            >
-              Done
-            </Button>
-          </div>
-        ),
-      })}
-    />
-
-    <DialogExample
-      buttonLabel="Kitchen sink (no padding)"
-      dialogProps={(close) => ({
-        title: "Edit workspace",
-        titleIconName: "gear",
-        description: "Body content controls its own padding.",
-        withPadding: false,
-        children: (
-          <p>
-            This body container has zero padding from the dialog, so it spans
-            edge-to-edge. The content within decides its own layout.
-          </p>
-        ),
-        footerActions: (
           <Button variant="solid" tone="brand" onClick={close}>
             Save
           </Button>
-        ),
-        footerSecondaryActions: (
-          <Button variant="subtle" tone="neutral" onClick={close}>
-            Cancel
+        </>
+      ),
+    }),
+  },
+  {
+    buttonLabel: "Kitchen sink",
+    dialogProps: (close) => ({
+      variant,
+      title: "Edit workspace",
+      titleIconName: "gear",
+      description: "Update the details for your workspace.",
+      titleActions: (
+        <Button
+          variant="ghost"
+          tone="neutral"
+          size="sm"
+          iconName="externalLink"
+          tooltip="Open docs"
+        />
+      ),
+      children: sampleBody,
+      footerActions: (
+        <Button variant="solid" tone="brand" onClick={close}>
+          Save changes
+        </Button>
+      ),
+      footerSecondaryActions: (
+        <Button variant="subtle" tone="error" onClick={close}>
+          Delete
+        </Button>
+      ),
+    }),
+  },
+  {
+    buttonLabel: "Custom header",
+    dialogProps: () => ({
+      variant,
+      header: (
+        <div
+          className={css({
+            display: "flex",
+            alignItems: "center",
+            gap: "3",
+            width: "[100%]",
+          })}
+        >
+          <div
+            className={css({
+              width: "10",
+              height: "10",
+              borderRadius: "full",
+              background: "blue.s90",
+              color: "fg.onSolid",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            })}
+          >
+            <Icon name="sparkles" size="md" />
+          </div>
+          <div>
+            <div className={css({ fontWeight: "semibold", textStyle: "lg" })}>
+              Custom header layout
+            </div>
+            <div className={css({ color: "fg.muted", textStyle: "sm" })}>
+              Built from arbitrary content.
+            </div>
+          </div>
+        </div>
+      ),
+      children: sampleBody,
+    }),
+  },
+  {
+    buttonLabel: "Custom footer",
+    dialogProps: (close) => ({
+      variant,
+      title: "Custom footer",
+      children: sampleBody,
+      footer: (
+        <div
+          className={css({
+            display: "flex",
+            alignItems: "center",
+            gap: "3",
+            width: "[100%]",
+          })}
+        >
+          <Icon name="info" size="sm" className={css({ color: "fg.muted" })} />
+          <span className={css({ color: "fg.muted", textStyle: "sm" })}>
+            All changes are saved automatically.
+          </span>
+          <Button
+            className={css({ marginLeft: "auto" })}
+            variant="solid"
+            tone="neutral"
+            onClick={close}
+          >
+            Done
           </Button>
-        ),
-      })}
-    />
+        </div>
+      ),
+    }),
+  },
+  {
+    buttonLabel: "Kitchen sink (no padding)",
+    dialogProps: (close) => ({
+      variant,
+      title: "Edit workspace",
+      titleIconName: "gear",
+      description: "Body content controls its own padding.",
+      withPadding: false,
+      children: (
+        <p>
+          This body container has zero padding from the dialog, so it spans
+          edge-to-edge. The content within decides its own layout.
+        </p>
+      ),
+      footerActions: (
+        <Button variant="solid" tone="brand" onClick={close}>
+          Save
+        </Button>
+      ),
+      footerSecondaryActions: (
+        <Button variant="subtle" tone="neutral" onClick={close}>
+          Cancel
+        </Button>
+      ),
+    }),
+  },
+];
+
+export const Examples: Story = () => (
+  <div className={css({ display: "flex", flexDirection: "column", gap: "4" })}>
+    {(["partitionedFooter", "plain"] as const).map((variant) => (
+      <div
+        key={variant}
+        className={css({
+          display: "flex",
+          gap: "3",
+          alignItems: "center",
+          flexWrap: "wrap",
+        })}
+      >
+        <div className={css({ minWidth: "[8rem]", fontWeight: "medium" })}>
+          {variant}
+        </div>
+        {buildExampleEntries(variant).map((entry) => (
+          <DialogExample
+            key={entry.buttonLabel}
+            buttonLabel={entry.buttonLabel}
+            dialogProps={entry.dialogProps}
+          />
+        ))}
+      </div>
+    ))}
   </div>
 );
 

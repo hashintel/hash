@@ -21,6 +21,7 @@ export type DialogShouldCloseOn =
 export const Dialog = ({
   className,
   size = "md",
+  variant = "partitionedFooter",
   children,
   shouldCloseOn = "closeButtonAndOverlay",
   loading,
@@ -40,6 +41,7 @@ export const Dialog = ({
 }: {
   className?: string;
   size?: DialogSize;
+  variant?: "partitionedFooter" | "plain";
   children: React.ReactNode;
   shouldCloseOn?: DialogShouldCloseOn;
   loading?: boolean;
@@ -85,6 +87,7 @@ export const Dialog = ({
     withPadding,
     headerless: !hasHeader,
     hasIcon: !!titleIconName,
+    variant,
   });
 
   const renderCloseButton = shouldCloseOn !== "none";

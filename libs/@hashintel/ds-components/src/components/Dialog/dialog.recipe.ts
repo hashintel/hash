@@ -157,7 +157,6 @@ export const styles = sva({
       background: "white",
       border: "[1px solid {colors.neutral.s50}]",
       borderTop: "none",
-      borderBottomRadius: "lg",
       color: "fg.body",
       textStyle: "sm",
       paddingX: "[var(--dialog-horizontal-padding)]",
@@ -279,6 +278,27 @@ export const styles = sva({
         loadingSpinner: {
           height: "[50px !important]",
           color: "neutral.s110",
+        },
+      },
+    },
+    variant: {
+      partitionedFooter: {
+        body: {
+          borderBottomRadius: "lg",
+        },
+      },
+      plain: {
+        header: {
+          borderBottomColor: "neutral.s20",
+        },
+        body: {
+          borderBottom: "none",
+        },
+        footer: {
+          backgroundColor: "white",
+          border: "[1px solid {colors.neutral.s50}]",
+          borderBottomRadius: "lg",
+          borderTop: "[1px solid {colors.neutral.s20}]",
         },
       },
     },
