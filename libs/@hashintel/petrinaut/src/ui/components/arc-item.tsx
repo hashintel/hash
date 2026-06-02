@@ -105,7 +105,7 @@ const chevronStyle = css({
 
 const separatorContainerStyle = css({
   position: "relative",
-  zIndex: 2,
+  zIndex: "[2]",
   marginLeft: "[calc(-1 * var(--border-width))]",
   marginRight: "[calc(-1 * var(--border-width))]",
 });
@@ -138,7 +138,7 @@ const separatorBorderStyle = css({
 });
 
 const separatorBackgroundStyle = css({
-  zIndex: 2,
+  zIndex: "[2]",
   width: "[calc(var(--inset-lip-radius)*2)]",
   height: "[calc(var(--inset-lip-radius)*2 + var(--inset-lip-height))]",
   background: "[var(--background-color)]",

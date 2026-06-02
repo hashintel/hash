@@ -56,7 +56,7 @@ const shellStyle = css({
   bottom: "0",
   width: `[${defaultAssistantWidth}px]`,
   maxWidth: "[calc(100vw - 32px)]",
-  zIndex: 1090,
+  zIndex: "sticky",
   padding: "2",
   pointerEvents: "auto",
   transition: "[right 150ms ease-in-out]",
@@ -79,7 +79,7 @@ const resizeHandleStyle = css({
   left: "0",
   width: "[10px]",
   cursor: "ew-resize",
-  zIndex: 1,
+  zIndex: "[1]",
   touchAction: "none",
   _before: {
     content: '""',

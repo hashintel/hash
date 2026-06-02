@@ -1,10 +1,9 @@
 import { use } from "react";
 
-import { Button } from "@hashintel/ds-components";
+import { Button, Dialog } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { UserSettingsContext } from "../../../../react/state/user-settings-context";
-import { Dialog } from "../../../components/dialog";
 import { Select } from "../../../components/select";
 import { Switch } from "../../../components/switch";
 
@@ -117,102 +116,96 @@ export const ViewportSettingsDialog: React.FC<ViewportSettingsDialogProps> = ({
     setUseEntitiesTreeView,
   } = use(UserSettingsContext);
 
-  return (
-    <Dialog.Root open={open} onOpenChange={onOpenChange}>
-      <Dialog.Content>
-        <Dialog.Card>
-          <Dialog.Header>Settings</Dialog.Header>
-          <Dialog.Body>
-            <h3 className={sectionTitleStyle}>Viewport</h3>
-            <SettingRow
-              label="Minimap"
-              description="Show an overview minimap in the top-right corner"
-            >
-              <Switch checked={showMinimap} onCheckedChange={setShowMinimap} />
-            </SettingRow>
-            <SettingRow
-              label="Snap to grid"
-              description="Snap node positions to the grid when placing or dragging"
-            >
-              <Switch checked={snapToGrid} onCheckedChange={setSnapToGrid} />
-            </SettingRow>
-            <SettingRow label="Compact nodes">
-              <Switch
-                checked={compactNodes}
-                onCheckedChange={setCompactNodes}
-              />
-            </SettingRow>
-            <SettingRow
-              label="Partial selection"
-              description="Select nodes that are only partially inside the selection box"
-            >
-              <Switch
-                checked={partialSelection}
-                onCheckedChange={setPartialSelection}
-              />
-            </SettingRow>
-            <SettingRow label="Arcs rendering">
-              <Select
-                className={selectStyle}
-                value={arcRendering}
-                onValueChange={(value) =>
-                  setArcRendering(value as ArcRendering)
-                }
-                options={[
-                  { value: "smoothstep", label: "Square" },
-                  { value: "bezier", label: "Bezier" },
-                  { value: "custom", label: "Adaptive Bezier" },
-                ]}
-                portal={false}
-              />
-            </SettingRow>
+  if (!open) {
+    return null;
+  }
 
-            <h3 className={sectionTitleStyle}>General</h3>
-            <SettingRow
-              label="Animations"
-              description="Animate panel transitions and UI interactions"
-            >
-              <Switch
-                checked={showAnimations}
-                onCheckedChange={setShowAnimations}
-              />
-            </SettingRow>
-            <SettingRow
-              label="Keep panels mounted"
-              description="Keep hidden panels loaded in the background for faster switching"
-            >
-              <Switch
-                checked={keepPanelsMounted}
-                onCheckedChange={setKeepPanelsMounted}
-              />
-            </SettingRow>
-            <SettingRow
-              label={
-                <>
-                  Entities tree view{" "}
-                  <span className={badgeStyle}>Experimental</span>
-                </>
-              }
-              description="Show a unified tree of all entities in the left sidebar"
-            >
-              <Switch
-                checked={useEntitiesTreeView}
-                onCheckedChange={setUseEntitiesTreeView}
-              />
-            </SettingRow>
-          </Dialog.Body>
-        </Dialog.Card>
-        <Dialog.Footer>
-          <Button
-            variant="solid"
-            tone="neutral"
-            size="sm"
-            onClick={() => onOpenChange({ open: false })}
-          >
+  const close = () => onOpenChange({ open: false });
+
+  return (
+    <Dialog onClose={close} size="xs">
+      <Dialog.Header title="Settings" />
+      <Dialog.Body>
+        <h3 className={sectionTitleStyle}>Viewport</h3>
+        <SettingRow
+          label="Minimap"
+          description="Show an overview minimap in the top-right corner"
+        >
+          <Switch checked={showMinimap} onCheckedChange={setShowMinimap} />
+        </SettingRow>
+        <SettingRow
+          label="Snap to grid"
+          description="Snap node positions to the grid when placing or dragging"
+        >
+          <Switch checked={snapToGrid} onCheckedChange={setSnapToGrid} />
+        </SettingRow>
+        <SettingRow label="Compact nodes">
+          <Switch checked={compactNodes} onCheckedChange={setCompactNodes} />
+        </SettingRow>
+        <SettingRow
+          label="Partial selection"
+          description="Select nodes that are only partially inside the selection box"
+        >
+          <Switch
+            checked={partialSelection}
+            onCheckedChange={setPartialSelection}
+          />
+        </SettingRow>
+        <SettingRow label="Arcs rendering">
+          <Select
+            className={selectStyle}
+            value={arcRendering}
+            onValueChange={(value) => setArcRendering(value as ArcRendering)}
+            options={[
+              { value: "smoothstep", label: "Square" },
+              { value: "bezier", label: "Bezier" },
+              { value: "custom", label: "Adaptive Bezier" },
+            ]}
+            portal={false}
+          />
+        </SettingRow>
+
+        <h3 className={sectionTitleStyle}>General</h3>
+        <SettingRow
+          label="Animations"
+          description="Animate panel transitions and UI interactions"
+        >
+          <Switch
+            checked={showAnimations}
+            onCheckedChange={setShowAnimations}
+          />
+        </SettingRow>
+        <SettingRow
+          label="Keep panels mounted"
+          description="Keep hidden panels loaded in the background for faster switching"
+        >
+          <Switch
+            checked={keepPanelsMounted}
+            onCheckedChange={setKeepPanelsMounted}
+          />
+        </SettingRow>
+        <SettingRow
+          label={
+            <>
+              Entities tree view{" "}
+              <span className={badgeStyle}>Experimental</span>
+            </>
+          }
+          description="Show a unified tree of all entities in the left sidebar"
+        >
+          <Switch
+            checked={useEntitiesTreeView}
+            onCheckedChange={setUseEntitiesTreeView}
+          />
+        </SettingRow>
+      </Dialog.Body>
+      <Dialog.Footer
+        actions={
+          <Button variant="solid" tone="neutral" size="sm" onClick={close}>
             Close
           </Button>
-        </Dialog.Footer>
-      </Dialog.Content>
-    </Dialog.Root>
+        }
+      />
+    </Dialog>
   );
 };

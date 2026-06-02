@@ -158,7 +158,7 @@ export const baseInputRecipe = sva({
     },
     editIcon: {
       position: "absolute",
-      zIndex: "1",
+      zIndex: "[1]",
       right: "2",
       paddingX: "0.5",
       display: "flex",
@@ -171,13 +171,13 @@ export const baseInputRecipe = sva({
         paddingY: "[var(--form-padding-y)]",
         insetX: "0",
         background: "white",
-        zIndex: "-2",
+        zIndex: "[-2]",
         borderRightRadius: "var(--base-input-border-radius)",
       },
     },
     clear: {
       position: "absolute",
-      zIndex: "1",
+      zIndex: "[1]",
       right: "2",
       display: "flex",
       alignItems: "center",
@@ -196,7 +196,7 @@ export const baseInputRecipe = sva({
         paddingY: "[var(--form-padding-y)]",
         insetX: "0",
         background: "white",
-        zIndex: "-2",
+        zIndex: "[-2]",
         borderRightRadius: "var(--base-input-border-radius)",
       },
       _after: {
@@ -204,7 +204,7 @@ export const baseInputRecipe = sva({
         position: "absolute",
         borderRadius: "full",
         inset: "0",
-        zIndex: "-1",
+        zIndex: "[-1]",
       },
     },
     clearIcon: {

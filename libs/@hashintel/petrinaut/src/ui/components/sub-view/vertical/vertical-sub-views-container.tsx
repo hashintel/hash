@@ -91,7 +91,7 @@ const scrollShadowStyle = cva({
     right: "[0]",
     height: `[${SHADOW_HEIGHT}px]`,
     pointerEvents: "none",
-    zIndex: 1,
+    zIndex: "[1]",
     opacity: "[0]",
     transition: "[opacity 150ms ease]",
   },

@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import { Button, Icon, Tooltip } from "@hashintel/ds-components";
+import { Button, Dialog, Icon, Tooltip } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import {
   DEFAULT_DIFFERENTIAL_EQUATION_CODE,
@@ -28,56 +28,22 @@ const colorDotStyle = css({
   flexShrink: 0,
 });
 
-const confirmDialogOverlayStyle = css({
-  position: "absolute",
-  top: "[0]",
-  left: "[0]",
-  right: "[0]",
-  bottom: "[0]",
-  backgroundColor: "[rgba(0, 0, 0, 0.5)]",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  zIndex: 10000,
-});
-
-const confirmDialogStyle = css({
-  backgroundColor: "neutral.s00",
-  borderRadius: "lg",
-  padding: "[24px]",
-  maxWidth: "[400px]",
-  boxShadow: "[0 4px 16px rgba(0, 0, 0, 0.2)]",
-});
-
-const confirmDialogTitleStyle = css({
-  fontWeight: "semibold",
-  fontSize: "base",
-  marginBottom: "[12px]",
-});
-
-const confirmDialogTextStyle = css({
+const confirmTextStyle = css({
   fontSize: "sm",
-  color: "[#666]",
-  marginBottom: "[16px]",
+  color: "neutral.s90",
+  marginBottom: "3",
 });
 
-const confirmDialogListStyle = css({
+const confirmListStyle = css({
   fontSize: "[13px]",
-  color: "[#666]",
-  marginBottom: "[16px]",
+  color: "neutral.s90",
+  marginBottom: "3",
   paddingLeft: "[20px]",
 });
 
-const confirmDialogHintStyle = css({
+const confirmHintStyle = css({
   fontSize: "[13px]",
-  color: "[#999]",
-  marginBottom: "[20px]",
-});
-
-const confirmDialogButtonsStyle = css({
-  display: "flex",
-  gap: "[8px]",
-  justifyContent: "flex-end",
+  color: "neutral.s80",
 });
 
 const aiMenuItemStyle = css({
@@ -193,19 +159,11 @@ const DiffEqMainContent: React.FC = () => {
         />
       </Section>
 
-      {/* Confirmation Dialog */}
       {showConfirmDialog && (
-        // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
-        <div className={confirmDialogOverlayStyle} onClick={cancelTypeChange}>
-          {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
-          <div
-            className={confirmDialogStyle}
-            onClick={(ev) => ev.stopPropagation()}
-          >
-            <div className={confirmDialogTitleStyle}>
-              Change Associated Type?
-            </div>
-            <div className={confirmDialogTextStyle}>
+        <Dialog size="xs" onClose={cancelTypeChange}>
+          <Dialog.Header title="Change Associated Type?" />
+          <Dialog.Body>
+            <div className={confirmTextStyle}>
               {placesUsingEquation.length === 1 ? (
                 <>
                   <strong>1 place</strong> is currently using this differential
@@ -218,35 +176,39 @@ const DiffEqMainContent: React.FC = () => {
                 </>
               )}
             </div>
-            <ul className={confirmDialogListStyle}>
+            <ul className={confirmListStyle}>
               {placesUsingEquation.map((place) => (
                 <li key={place.id}>{place.name}</li>
               ))}
             </ul>
-            <div className={confirmDialogHintStyle}>
+            <div className={confirmHintStyle}>
               Changing the type may affect how these places behave. Are you sure
               you want to continue?
             </div>
-            <div className={confirmDialogButtonsStyle}>
-              <Button
-                variant="subtle"
-                tone="neutral"
-                size="sm"
-                onClick={cancelTypeChange}
-              >
-                Cancel
-              </Button>
-              <Button
-                variant="solid"
-                tone="brand"
-                size="sm"
-                onClick={confirmTypeChange}
-              >
-                Change Type
-              </Button>
-            </div>
-          </div>
-        </div>
+          </Dialog.Body>
+          <Dialog.Footer
+            actions={
+              <>
+                <Button
+                  variant="subtle"
+                  tone="neutral"
+                  size="sm"
+                  onClick={cancelTypeChange}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="solid"
+                  tone="brand"
+                  size="sm"
+                  onClick={confirmTypeChange}
+                >
+                  Change Type
+                </Button>
+              </>
+            }
+          />
+        </Dialog>
       )}
 
       <Section title="Code" fillHeight>

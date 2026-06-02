@@ -15,7 +15,7 @@ const inputGroupSlotRecipeDefinition = {
       height: "full",
       justifyContent: "center",
       position: "absolute",
-      zIndex: "2",
+      zIndex: "[2]",
       _icon: {
         color: "fg.subtle",
       },

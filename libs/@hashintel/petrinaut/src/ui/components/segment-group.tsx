@@ -54,14 +54,14 @@ const rootStyle = cva({
 const indicatorStyle = css({
   position: "absolute",
   backgroundColor: "white",
-  zIndex: 0,
+  zIndex: "[0]",
   boxShadow: "[0 1px 2px 0 rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.06)]",
 });
 
 const itemStyle = cva({
   base: {
     position: "relative",
-    zIndex: 1,
+    zIndex: "[1]",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
