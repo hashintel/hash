@@ -192,9 +192,9 @@ mimalloc                           = { version = "0.1.48", default-features = fa
 mime                               = { version = "0.3.17", default-features = false }
 multiaddr                          = { version = "0.18.2", default-features = false }
 multistream-select                 = { version = "0.14.0", default-features = false }
-napi                               = { version = "2.16.17", default-features = false }
-napi-build                         = { version = "2.2.4", default-features = false }
-napi-derive                        = { version = "2.16.13", default-features = false, features = ["type-def"] }
+napi                               = { version = "3.9.0", default-features = false }
+napi-build                         = { version = "2.3.2", default-features = false }
+napi-derive                        = { version = "3.5.6", default-features = false, features = ["type-def"] }
 nextest-filtering                  = { version = "0.21.0", default-features = false }
 nextest-metadata                   = { version = "0.14.0", default-features = false }
 nodejs_package_json                = { version = "0.4.4" }
