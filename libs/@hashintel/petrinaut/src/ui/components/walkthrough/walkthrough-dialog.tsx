@@ -201,11 +201,11 @@ export const WalkthroughDialog: React.FC<WalkthroughDialogProps> = ({
       variant="plain"
       shouldCloseOn="closeButton"
       onClose={onClose}
+      onKeyDown={handleKeyDown}
     >
       <Dialog.Header title={step.title} />
       <Dialog.Body withPadding={false}>
-        {/* eslint-disable-next-line eslint-plugin-jsx-a11y(no-static-element-interactions) */}
-        <div key={step.id} className={stepBlockStyle} onKeyDown={handleKeyDown}>
+        <div key={step.id} className={stepBlockStyle}>
           <div className={mediaStyle}>
             <video
               src={step.videoHref}

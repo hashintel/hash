@@ -178,10 +178,12 @@ const DialogRoot = ({
   onClose,
   initialFocusRef,
   returnFocusRef,
+  onKeyDown,
   ...ariaAttributes
 }: {
   className?: string;
   size?: DialogSize;
+  onKeyDown?: React.KeyboardEventHandler<Element>;
   variant?: "partitionedFooter" | "plain";
   children:
     | readonly [
@@ -252,6 +254,7 @@ const DialogRoot = ({
               {...ariaAttributes}
               className={cx(classes.content, className)}
               aria-busy={loading ?? undefined}
+              onKeyDown={onKeyDown}
             >
               <DialogContext.Provider value={ctx}>
                 {
