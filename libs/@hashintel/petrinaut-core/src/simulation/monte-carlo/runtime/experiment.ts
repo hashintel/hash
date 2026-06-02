@@ -6,8 +6,8 @@ import {
 import { createMonteCarloSimulator } from "../monte-carlo-simulator";
 
 import type { AbortSignalLike } from "../../../environment";
-import type { ReadableStore } from "../../../handle";
 import type { EventStream } from "../../../instance";
+import type { ReadableStore } from "../../../store";
 import type { SDCPN } from "../../../types/sdcpn";
 import type {
   InitialMarking,

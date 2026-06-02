@@ -1,4 +1,4 @@
-import type { ReadableStore } from "../handle";
+import type { ReadableStore } from "../store";
 
 export type PlaybackState = "Stopped" | "Playing" | "Paused";
 

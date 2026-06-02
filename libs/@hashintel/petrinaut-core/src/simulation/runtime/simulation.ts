@@ -1,8 +1,8 @@
 import { createInMemorySimulationFrameStore } from "./frame-store";
 import { createWorkerTransport } from "./transport";
 
-import type { ReadableStore } from "../../handle";
 import type { EventStream } from "../../instance";
+import type { ReadableStore } from "../../store";
 import type {
   CreateSimulationConfig,
   Simulation,

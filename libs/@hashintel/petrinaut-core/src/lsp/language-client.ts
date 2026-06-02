@@ -4,7 +4,7 @@ import {
   type LspWorkerFactory,
 } from "./transport";
 
-import type { ReadableStore } from "../handle";
+import type { ReadableStore } from "../store";
 import type { SDCPN } from "../types/sdcpn";
 import type {
   ClientMessage,

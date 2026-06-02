@@ -1,9 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { createJsonDocHandle, type DocChangeEvent } from "./handle";
-import { createPetrinaut } from "./instance";
+import { createPetrinaut } from "../../instance";
+import { createJsonDocHandle } from "./create-json-doc-handle";
 
-import type { SDCPN } from "./types/sdcpn";
+import type { SDCPN } from "../../types/sdcpn";
+import type { DocChangeEvent } from "../types";
 
 const empty = (): SDCPN => ({
   places: [],

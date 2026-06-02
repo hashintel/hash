@@ -14,8 +14,8 @@ export {
   type PetrinautDocHandle,
   type PetrinautHistory,
   type PetrinautPatch,
-  type ReadableStore,
 } from "./handle";
+export type { ReadableStore } from "./store";
 export {
   DEFAULT_PETRINAUT_EXTENSIONS,
   PETRINAUT_EXTENSION_NAMES,

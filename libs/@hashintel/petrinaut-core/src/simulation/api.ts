@@ -1,6 +1,6 @@
 import type { AbortSignalLike, WorkerFactoryLike } from "../environment";
-import type { ReadableStore } from "../handle";
 import type { EventStream } from "../instance";
+import type { ReadableStore } from "../store";
 import type { Color, Place, SDCPN } from "../types/sdcpn";
 
 export type SimulationState =

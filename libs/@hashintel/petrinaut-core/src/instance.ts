@@ -9,14 +9,11 @@ import {
 import { resolvePetrinautHandleCapabilities } from "./extensions";
 
 import type {
-  PetrinautDocHandle,
-  PetrinautPatch,
-  ReadableStore,
-} from "./handle";
-import type {
   PetrinautExtensionSettings,
   ResolvedPetrinautHandleCapabilities,
 } from "./extensions";
+import type { PetrinautDocHandle, PetrinautPatch } from "./handle";
+import type { ReadableStore } from "./store";
 import type { SDCPN } from "./types/sdcpn";
 
 const EMPTY_SDCPN: SDCPN = {
