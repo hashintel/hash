@@ -18,7 +18,7 @@ export const notificationsToaster = createToaster({
 const toastRootStyle = css({
   translate: "[var(--x, 0) var(--y, 0)]",
   scale: "[var(--scale, 1)]",
-  zIndex: "[var(--z-index, 2147483647)]",
+  zIndex: "toast",
   opacity: "[var(--opacity, 1)]",
   willChange: "[translate, opacity, scale]",
   transition: "[translate 300ms, scale 300ms, opacity 300ms, box-shadow 300ms]",

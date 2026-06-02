@@ -134,6 +134,7 @@ const positionerStyle = css({
   // behind floating panels stays interactive. Re-enable here so dropdown
   // items receive clicks/hover.
   pointerEvents: "auto",
+  zIndex: "popover !important",
 });
 
 const contentStyle = css({
@@ -347,11 +348,7 @@ export const Select: React.FC<SelectBaseProps> = ({
         )}
       </ArkSelect.Trigger>
       <ConditionalPortal enabled={portal} container={portalContainerRef}>
-        <ArkSelect.Positioner
-          className={positionerStyle}
-          // Manual override because z-index is relying on a CSS variable by default here
-          style={{ zIndex: 999 }}
-        >
+        <ArkSelect.Positioner className={positionerStyle}>
           <ArkSelect.Content className={contentStyle}>
             {groups
               ? groups.map((group) => (

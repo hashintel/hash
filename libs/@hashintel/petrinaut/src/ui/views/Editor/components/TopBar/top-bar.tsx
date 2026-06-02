@@ -29,7 +29,7 @@ const topBarStyle = css({
   outlineStyle: "solid",
   outlineColor: "neutral.s40",
   flexShrink: 0,
-  zIndex: 999,
+  zIndex: "sticky",
 });
 
 const leftSectionStyle = css({

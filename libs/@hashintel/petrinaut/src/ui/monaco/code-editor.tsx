@@ -104,7 +104,7 @@ const placeholderStyle = css({
   fontFamily: `[${CODE_FONT_FAMILY}]`,
   color: "neutral.s80",
   pointerEvents: "none",
-  zIndex: 1,
+  zIndex: "[1]",
   lineHeight: `[${SINGLE_LINE_HEIGHT}px]`,
 });
 

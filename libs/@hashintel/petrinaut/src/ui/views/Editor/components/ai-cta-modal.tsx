@@ -9,7 +9,7 @@ import { Input } from "../../../components/input";
 const aiCtaModalLayerStyle = css({
   position: "absolute",
   inset: "0",
-  zIndex: 20,
+  zIndex: "modal",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",

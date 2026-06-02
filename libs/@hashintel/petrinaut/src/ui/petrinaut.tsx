@@ -29,16 +29,6 @@ const editorRootStyle = css({
   backgroundColor: "neutral.s25",
 });
 
-const portalContainerStyle = css({
-  position: "absolute",
-  top: "0",
-  left: "0",
-  width: "full",
-  height: "full",
-  zIndex: "99999",
-  pointerEvents: "none",
-});
-
 import type {
   PetrinautAiMessage,
   PetrinautAiTransport,
@@ -157,8 +147,10 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
         lspWorkerFactory={lspWorkerFactory}
       >
         <MonacoProvider>
-          <Stack className={cx(editorRootStyle, "petrinaut-root")}>
-            <div ref={portalContainerRef} className={portalContainerStyle} />
+          <Stack
+            className={cx(editorRootStyle, "petrinaut-root")}
+            ref={portalContainerRef}
+          >
             <EditorView
               aiAssistant={aiAssistant}
               hideNetManagementControls={hideNetManagementControls}

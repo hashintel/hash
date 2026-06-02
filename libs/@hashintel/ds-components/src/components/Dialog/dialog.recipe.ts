@@ -37,7 +37,7 @@ export const styles = sva({
       inset: "0",
       width: "[100dvw]",
       height: "[100dvh]",
-      zIndex: "zIndex.modal",
+      zIndex: "modal",
       _open: {
         animationName: "fadeIn",
         animationDuration: "normal",
@@ -58,7 +58,7 @@ export const styles = sva({
       height: "[100dvh]",
       overflow: "auto",
       overscrollBehaviorY: "none",
-      zIndex: "zIndex.modal",
+      zIndex: "modal",
       padding: "4",
       // Bias the dialog slightly above center: spacers split free vertical
       // space 35/65 and shrink to 0 when the content fills the viewport.
@@ -213,7 +213,7 @@ export const styles = sva({
       marginLeft: "auto",
       float: "end",
       position: "relative",
-      zIndex: "1",
+      zIndex: "[1]",
       marginTop:
         "[calc(var(--dialog-top-padding) * -1 + var(--dialog-close-button-gap))]",
       marginRight:
@@ -226,7 +226,7 @@ export const styles = sva({
       alignItems: "center",
       justifyContent: "center",
       background: "[rgba(255, 255, 255, 0.88)]",
-      zIndex: "1",
+      zIndex: "[1]",
       borderRadius: "[inherit]",
     },
     loadingSpinner: {
