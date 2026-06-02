@@ -21,6 +21,8 @@ const INHIBITOR_DASH_PATTERN = "10 5 3 3 3 5";
 const READ_DASH_PATTERN = "2 6";
 const INHIBITOR_MARKER_RADIUS = 10;
 const INHIBITOR_MARKER_SIZE = (INHIBITOR_MARKER_RADIUS + BASE_STROKE_WIDTH) * 2;
+const READ_MARKER_RADIUS = 4;
+const READ_MARKER_SIZE = (READ_MARKER_RADIUS + BASE_STROKE_WIDTH) * 2;
 
 type AnimationState = {
   animation: Animation;
@@ -204,6 +206,7 @@ export const Arc: React.FC<EdgeProps<ArcEdgeType>> = ({
   const selected = isSelected(id);
 
   const inhibitorMarkerId = `inhibitor-circle-${id}`;
+  const readMarkerId = `read-dot-${id}`;
 
   // Track firing count delta for simulation visualization
   const firingDelta = useFiringDelta(data?.frame?.firingCount ?? null);
@@ -250,31 +253,56 @@ export const Arc: React.FC<EdgeProps<ArcEdgeType>> = ({
 
   let strokeColor = style?.stroke ?? "#b1b1b7";
   const strokeDasharray = getArcStrokeDasharray(data?.arcType);
+  const markerEndOverride =
+    data?.arcType === "inhibitor"
+      ? `url(#${inhibitorMarkerId})`
+      : data?.arcType === "read"
+        ? `url(#${readMarkerId})`
+        : markerEnd;
 
   return (
     <>
-      {/* Custom SVG marker definition for inhibitor arcs (empty circle) */}
-      {data?.arcType === "inhibitor" && (
+      {(data?.arcType === "inhibitor" || data?.arcType === "read") && (
         <defs>
-          <marker
-            id={inhibitorMarkerId}
-            markerWidth={INHIBITOR_MARKER_SIZE}
-            markerHeight={INHIBITOR_MARKER_SIZE}
-            refX={INHIBITOR_MARKER_RADIUS * 2}
-            refY={INHIBITOR_MARKER_RADIUS + BASE_STROKE_WIDTH}
-            orient="auto"
-            markerUnits="userSpaceOnUse"
-            style={{ zIndex: 1 }}
-          >
-            <circle
-              cx={INHIBITOR_MARKER_RADIUS + BASE_STROKE_WIDTH}
-              cy={INHIBITOR_MARKER_RADIUS + BASE_STROKE_WIDTH}
-              r={INHIBITOR_MARKER_RADIUS}
-              fill="white"
-              stroke={strokeColor}
-              strokeWidth={BASE_STROKE_WIDTH}
-            />
-          </marker>
+          {data.arcType === "inhibitor" ? (
+            <marker
+              id={inhibitorMarkerId}
+              markerWidth={INHIBITOR_MARKER_SIZE}
+              markerHeight={INHIBITOR_MARKER_SIZE}
+              refX={INHIBITOR_MARKER_RADIUS * 2}
+              refY={INHIBITOR_MARKER_RADIUS + BASE_STROKE_WIDTH}
+              orient="auto"
+              markerUnits="userSpaceOnUse"
+              style={{ zIndex: 1 }}
+            >
+              <circle
+                cx={INHIBITOR_MARKER_RADIUS + BASE_STROKE_WIDTH}
+                cy={INHIBITOR_MARKER_RADIUS + BASE_STROKE_WIDTH}
+                r={INHIBITOR_MARKER_RADIUS}
+                fill="white"
+                stroke={strokeColor}
+                strokeWidth={BASE_STROKE_WIDTH}
+              />
+            </marker>
+          ) : data.arcType === "read" ? (
+            <marker
+              id={readMarkerId}
+              markerWidth={READ_MARKER_SIZE}
+              markerHeight={READ_MARKER_SIZE}
+              refX={READ_MARKER_RADIUS * 2}
+              refY={READ_MARKER_RADIUS + BASE_STROKE_WIDTH}
+              orient="auto"
+              markerUnits="userSpaceOnUse"
+              style={{ zIndex: 1 }}
+            >
+              <circle
+                cx={READ_MARKER_RADIUS + BASE_STROKE_WIDTH}
+                cy={READ_MARKER_RADIUS + BASE_STROKE_WIDTH}
+                r={READ_MARKER_RADIUS}
+                fill={strokeColor}
+              />
+            </marker>
+          ) : null}
         </defs>
       )}
 
@@ -303,11 +331,7 @@ export const Arc: React.FC<EdgeProps<ArcEdgeType>> = ({
       <BaseEdge
         id={id}
         path={arcPath}
-        markerEnd={
-          data?.arcType === "inhibitor"
-            ? `url(#${inhibitorMarkerId})`
-            : markerEnd
-        }
+        markerEnd={markerEndOverride}
         style={
           strokeDasharray
             ? {
