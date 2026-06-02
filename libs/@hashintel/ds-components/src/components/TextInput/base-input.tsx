@@ -272,7 +272,6 @@ export const BaseInput = ({
         styledValue && !focused ? classes.hiddenInput : undefined,
       )}
       autoFocus={autoFocus === true ? true : undefined}
-      data-no-autofocus={autoFocus === "never" ? true : undefined}
       {...ariaProps}
     />
   );
