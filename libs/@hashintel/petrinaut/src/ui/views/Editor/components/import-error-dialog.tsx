@@ -1,7 +1,5 @@
-import { Button } from "@hashintel/ds-components";
+import { Button, Dialog } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
-
-import { Dialog, type DialogRootProps } from "../../../components/dialog";
 
 const errorTextStyle = css({
   fontSize: "sm",
@@ -18,32 +16,44 @@ export const ImportErrorDialog = ({
   onCreateEmpty,
 }: {
   open: boolean;
-  onOpenChange: DialogRootProps["onOpenChange"];
+  onOpenChange: (details: { open: boolean }) => void;
   errorMessage: string;
   onCreateEmpty: () => void;
-}) => (
-  <Dialog.Root open={open} onOpenChange={onOpenChange}>
-    <Dialog.Content>
-      <Dialog.Card>
-        <Dialog.Header description="The selected file could not be imported.">
-          Import Error
-        </Dialog.Header>
-        <Dialog.Body>
-          <p className={errorTextStyle}>{errorMessage}</p>
-        </Dialog.Body>
-      </Dialog.Card>
-      <Dialog.Footer>
-        <Dialog.CloseTrigger asChild>
-          <Button variant="subtle" tone="neutral" onClick={() => {}}>
-            Close
-          </Button>
-        </Dialog.CloseTrigger>
-        <Dialog.CloseTrigger asChild>
-          <Button variant="solid" tone="neutral" onClick={onCreateEmpty}>
-            Create empty net
-          </Button>
-        </Dialog.CloseTrigger>
-      </Dialog.Footer>
-    </Dialog.Content>
-  </Dialog.Root>
-);
+}) => {
+  if (!open) {
+    return null;
+  }
+
+  const close = () => onOpenChange({ open: false });
+
+  return (
+    <Dialog onClose={close} size="sm">
+      <Dialog.Header
+        title="Import Error"
+        description="The selected file could not be imported."
+      />
+      <Dialog.Body>
+        <p className={errorTextStyle}>{errorMessage}</p>
+      </Dialog.Body>
+      <Dialog.Footer
+        actions={
+          <>
+            <Button variant="subtle" tone="neutral" onClick={close}>
+              Close
+            </Button>
+            <Button
+              variant="solid"
+              tone="neutral"
+              onClick={() => {
+                onCreateEmpty();
+                close();
+              }}
+            >
+              Create empty net
+            </Button>
+          </>
+        }
+      />
+    </Dialog>
+  );
+};

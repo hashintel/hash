@@ -49,7 +49,7 @@ const rootStyle = css({
 const portalContainerStyle = css({
   position: "absolute",
   inset: "[0]",
-  zIndex: "99999",
+  zIndex: "zIndex.modal",
   pointerEvents: "none",
 });
 

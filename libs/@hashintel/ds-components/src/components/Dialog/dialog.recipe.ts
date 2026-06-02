@@ -165,6 +165,7 @@ export const styles = sva({
       flex: "[1 1 auto]",
       minHeight: "0",
       overflow: "auto",
+      scrollbarWidth: "[thin]",
       background: "white",
       border: "[1px solid {colors.neutral.s50}]",
       borderTop: "none",
