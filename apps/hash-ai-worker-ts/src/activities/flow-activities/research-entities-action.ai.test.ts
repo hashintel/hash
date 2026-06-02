@@ -62,6 +62,9 @@ const persistState = (params: {
 
 test.skip(
   "Test researchEntitiesAction: find subsidiary companies of Google",
+  {
+    timeout: 10 * 60 * 1000,
+  },
   async () => {
     const status = await researchEntitiesAction({
       inputs: [
@@ -92,13 +95,13 @@ test.skip(
 
     expect(status).toBeDefined();
   },
-  {
-    timeout: 10 * 60 * 1000,
-  },
 );
 
 test.skip(
   "Test researchEntitiesAction: find the authors of the 'Video generation models as world simulators' article",
+  {
+    timeout: 10 * 60 * 1000,
+  },
   async () => {
     const status = await researchEntitiesAction({
       inputs: [
@@ -130,13 +133,13 @@ test.skip(
 
     expect(status).toBeDefined();
   },
-  {
-    timeout: 10 * 60 * 1000,
-  },
 );
 
 test.skip(
   'Test researchEntitiesAction: find information about a person called "Ben Werner", a software engineer based in London',
+  {
+    timeout: 10 * 60 * 1000,
+  },
   async () => {
     const status = await researchEntitiesAction({
       inputs: [
@@ -166,13 +169,13 @@ test.skip(
 
     expect(status).toBeDefined();
   },
-  {
-    timeout: 10 * 60 * 1000,
-  },
 );
 
 test.skip(
   'Test researchEntitiesAction: Find information about a person called "Tim Brooks", an employee at OpenAI',
+  {
+    timeout: 10 * 60 * 1000,
+  },
   async () => {
     const status = await researchEntitiesAction({
       inputs: [
@@ -202,13 +205,13 @@ test.skip(
 
     expect(status).toBeDefined();
   },
-  {
-    timeout: 10 * 60 * 1000,
-  },
 );
 
 test.skip(
   "Test researchEntitiesAction: Find all the Large Language Models provided by OpenAI",
+  {
+    timeout: 10 * 60 * 1000,
+  },
   async () => {
     const status = await researchEntitiesAction({
       inputs: [
@@ -239,13 +242,13 @@ test.skip(
 
     expect(status).toBeDefined();
   },
-  {
-    timeout: 10 * 60 * 1000,
-  },
 );
 
 test.skip(
   "Test researchEntitiesAction: Find a comparison of graphics cards which can be used for running AI models",
+  {
+    timeout: 10 * 60 * 1000,
+  },
   async () => {
     const status = await researchEntitiesAction({
       inputs: [
@@ -274,8 +277,5 @@ test.skip(
     });
 
     expect(status).toBeDefined();
-  },
-  {
-    timeout: 10 * 60 * 1000,
   },
 );

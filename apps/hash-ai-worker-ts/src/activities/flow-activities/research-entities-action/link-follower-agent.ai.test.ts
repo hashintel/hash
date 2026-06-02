@@ -10,6 +10,9 @@ import type { Url } from "@blockprotocol/type-system";
 
 test.skip(
   "Test linkFollowerAgent for Church Lab members",
+  {
+    timeout: 5 * 60 * 1000,
+  },
   async () => {
     const { userAuthentication } = await getFlowContext();
 
@@ -48,13 +51,13 @@ test.skip(
 
     expect(status).toBeDefined();
   },
-  {
-    timeout: 5 * 60 * 1000,
-  },
 );
 
 test.skip(
   "Test linkFollowerAgent for Sora article authors",
+  {
+    timeout: 5 * 60 * 1000,
+  },
   async () => {
     const { userAuthentication } = await getFlowContext();
 
@@ -93,13 +96,13 @@ test.skip(
 
     expect(status).toBeDefined();
   },
-  {
-    timeout: 5 * 60 * 1000,
-  },
 );
 
 test.skip(
   "Test linkFollowerAgent: FTSE350 constituents",
+  {
+    timeout: 10 * 60 * 1000,
+  },
   async () => {
     const { userAuthentication } = await getFlowContext();
 
@@ -140,13 +143,13 @@ test.skip(
 
     expect(status).toBeDefined();
   },
-  {
-    timeout: 10 * 60 * 1000,
-  },
 );
 
 test.skip(
   "Test linkFollowerAgent: top 3 graphics cards",
+  {
+    timeout: 10 * 60 * 1000,
+  },
   async () => {
     const { userAuthentication } = await getFlowContext();
 
@@ -186,13 +189,13 @@ test.skip(
 
     expect(status).toBeDefined();
   },
-  {
-    timeout: 10 * 60 * 1000,
-  },
 );
 
 test.skip(
   "Test linkFollowerAgent for getting investors of M & S",
+  {
+    timeout: 5 * 60 * 1000,
+  },
   async () => {
     const { userAuthentication } = await getFlowContext();
 
@@ -233,8 +236,5 @@ test.skip(
     console.log(JSON.stringify({ status }, null, 2));
 
     expect(status).toBeDefined();
-  },
-  {
-    timeout: 5 * 60 * 1000,
   },
 );

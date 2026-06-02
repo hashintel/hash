@@ -10,6 +10,9 @@ import type { Url } from "@blockprotocol/type-system";
 
 test.skip(
   "Test getWebPageActivity with a Wikipedia page",
+  {
+    timeout: 5 * 60 * 1000,
+  },
   async () => {
     const webPage = await getWebPageActivity({
       url: "https://en.wikipedia.org/wiki/Tesla,_Inc." as Url,
@@ -27,13 +30,13 @@ test.skip(
 
     expect(htmlContent).toBeDefined();
   },
-  {
-    timeout: 5 * 60 * 1000,
-  },
 );
 
 test.skip(
   "Test getWebPageActivity with a FTSE 350 page",
+  {
+    timeout: 5 * 60 * 1000,
+  },
   async () => {
     const webPage = await getWebPageActivity({
       url: "https://www.londonstockexchange.com/indices/ftse-350/constituents/table" as Url,
@@ -50,9 +53,6 @@ test.skip(
     console.log(JSON.stringify({ htmlContent }, null, 2));
 
     expect(htmlContent).toBeDefined();
-  },
-  {
-    timeout: 5 * 60 * 1000,
   },
 );
 

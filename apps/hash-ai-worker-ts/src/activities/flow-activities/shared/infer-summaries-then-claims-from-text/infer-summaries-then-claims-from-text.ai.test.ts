@@ -29,6 +29,9 @@ import type { EntityUuid, Url, WebId } from "@blockprotocol/type-system";
 
 test.only(
   "Test inferSummariesThenClaimsFromText with Sora paper.",
+  {
+    timeout: 5 * 60 * 1000,
+  },
   async () => {
     const { userAuthentication } = await getFlowContext();
 
@@ -73,9 +76,6 @@ test.only(
 
     expect(claims).toBeDefined();
   },
-  {
-    timeout: 5 * 60 * 1000,
-  },
 );
 
 const microsoftWikipediaParagraph = `
@@ -94,6 +94,9 @@ Microsoft has been criticized for its monopolistic practices and the company's s
 
 test(
   "Test inferSummariesThenClaimsFromText with Microsoft Wikipedia paragraph.",
+  {
+    timeout: 5 * 60 * 1000,
+  },
   async () => {
     const { userAuthentication } = await getFlowContext();
 
@@ -123,9 +126,6 @@ test(
     console.log(JSON.stringify({ claims, entitySummaries }, null, 2));
 
     expect(claims).toBeDefined();
-  },
-  {
-    timeout: 5 * 60 * 1000,
   },
 );
 
@@ -229,6 +229,9 @@ const _ftse350EntitySummaries: LocalEntitySummary[] = [
 
 test(
   "Test inferSummariesThenClaimsFromText with FTSE350 web page html",
+  {
+    timeout: 5 * 60 * 1000,
+  },
   async () => {
     const url =
       "https://www.londonstockexchange.com/indices/ftse-350/constituents/table" as Url;
@@ -276,9 +279,6 @@ test(
     console.log(JSON.stringify({ claims, entitySummaries }, null, 2));
 
     expect(claims).toBeDefined();
-  },
-  {
-    timeout: 5 * 60 * 1000,
   },
 );
 
@@ -331,6 +331,9 @@ const __dirname = path.dirname(__filename);
  */
 test.skip(
   "Test inferSummariesThenClaimsFromText with Linked In web page",
+  {
+    timeout: 5 * 60 * 1000,
+  },
   async () => {
     const linkedInInnerHtmlPath = path.join(__dirname, "/var/linkedin.html");
 
@@ -372,9 +375,6 @@ test.skip(
     console.log(JSON.stringify({ claims, entitySummaries }, null, 2));
 
     expect(claims).toBeDefined();
-  },
-  {
-    timeout: 5 * 60 * 1000,
   },
 );
 
@@ -545,6 +545,9 @@ const llmProviderExistingEntitySummaries: LocalEntitySummary[] = [
 
 test(
   "Test inferSummariesThenClaimsFromText with LLM providers",
+  {
+    timeout: 5 * 60 * 1000,
+  },
   async () => {
     const url = "https://platform.openai.com/docs/models" as Url;
 
@@ -589,8 +592,5 @@ test(
     console.log(JSON.stringify({ claims, entitySummaries }, null, 2));
 
     expect(claims).toBeDefined();
-  },
-  {
-    timeout: 5 * 60 * 1000,
   },
 );

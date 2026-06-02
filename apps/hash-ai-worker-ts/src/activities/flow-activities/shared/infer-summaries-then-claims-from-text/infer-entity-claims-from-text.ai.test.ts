@@ -26,6 +26,9 @@ const generateEntityId = (entityUuid: string) =>
 
 test(
   "Test inferEntityClaimsFromText with the FTSE350 table",
+  {
+    timeout: 5 * 60 * 1000,
+  },
   async () => {
     const { userAuthentication } = await getFlowContext();
 
@@ -87,13 +90,13 @@ test(
 
     expect(claims).toBeDefined();
   },
-  {
-    timeout: 5 * 60 * 1000,
-  },
 );
 
 test(
   "Test inferEntityClaimsFromText for the GeForce RTX 4090 graphics card",
+  {
+    timeout: 5 * 60 * 1000,
+  },
   async () => {
     const { userAuthentication } = await getFlowContext();
 
@@ -151,8 +154,5 @@ test(
     console.log(JSON.stringify({ claims }, null, 2));
 
     expect(claims).toBeDefined();
-  },
-  {
-    timeout: 5 * 60 * 1000,
   },
 );

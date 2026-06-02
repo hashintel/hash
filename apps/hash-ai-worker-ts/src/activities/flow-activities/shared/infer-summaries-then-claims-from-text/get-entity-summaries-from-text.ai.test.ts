@@ -18,6 +18,9 @@ import type { Url } from "@blockprotocol/type-system";
 
 test(
   "Test getEntitySummariesFromText with a FTSE350 table",
+  {
+    timeout: 5 * 60 * 1000,
+  },
   async () => {
     const { userAuthentication } = await getFlowContext();
 
@@ -56,13 +59,13 @@ test(
     expect(entitySummaries).toBeDefined();
     expect(entitySummaries.length).toBe(20);
   },
-  {
-    timeout: 5 * 60 * 1000,
-  },
 );
 
 test(
   "Test getEntitySummariesFromText with Sora paper authors",
+  {
+    timeout: 5 * 60 * 1000,
+  },
   async () => {
     const { userAuthentication } = await getFlowContext();
 
@@ -101,13 +104,13 @@ test(
     expect(entitySummaries).toBeDefined();
     expect(entitySummaries.length).toBe(13);
   },
-  {
-    timeout: 5 * 60 * 1000,
-  },
 );
 
 test(
   "Test getEntitySummariesFromText with church lab members",
+  {
+    timeout: 5 * 60 * 1000,
+  },
   async () => {
     const { userAuthentication } = await getFlowContext();
 
@@ -140,8 +143,5 @@ test(
     });
 
     expect(entitySummaries).toBeDefined();
-  },
-  {
-    timeout: 5 * 60 * 1000,
   },
 );
