@@ -78,6 +78,15 @@ const buildExampleEntries = (variant: DialogVariant): ExampleProps[] => [
     }),
   },
   {
+    buttonLabel: "Description only",
+    dialogProps: () => ({
+      variant,
+      description:
+        "A description without a title, written long enough that it wraps onto a second line so we can check how the header lays out when only the subtext is present.",
+      children: sampleBody,
+    }),
+  },
+  {
     buttonLabel: "Footer actions",
     dialogProps: (close) => ({
       variant,
