@@ -1,0 +1,106 @@
+name: Advance mutable tag if newer
+description: >
+  Move a mutable tag (e.g. `staging`, `latest`) onto `source-tag`, but only if
+  `candidate-sha` is a strict descendant of the commit the mutable tag currently
+  points at. This stops an out-of-order CI run — `queue: max` serializes the
+  concurrency group but does NOT guarantee FIFO order — from moving a mutable
+  tag *backwards* onto an older commit. The guard relies on the surrounding
+  job's `concurrency: { queue: max }` for the check-then-set to be race-free
+  (serialized); without it the read/compare/write is a TOCTOU race.
+
+  Registry-agnostic: uses `docker buildx imagetools`, so it works for both ECR
+  and GHCR. The caller MUST already be authenticated to the registry and MUST
+  check out with `fetch-depth: 0` (the currently-tagged commit can be arbitrarily
+  far back, and `git merge-base --is-ancestor` needs it in local history).
+
+inputs:
+  image:
+    description: Fully-qualified image repository WITHOUT a tag (e.g. `ghcr.io/hashintel/hash/graph`).
+    required: true
+  mutable-tag:
+    description: The mutable tag to advance (e.g. `staging`, `latest`).
+    required: true
+  source-tag:
+    description: >
+      An immutable tag on the same repository that the mutable tag should point
+      at when advanced (e.g. `sha-<sha>`). Must already exist (built/pushed
+      earlier in this run).
+    required: true
+  candidate-sha:
+    description: The commit SHA of the current run (typically `github.sha`).
+    required: true
+
+outputs:
+  advanced:
+    description: "`true` if the mutable tag was moved, `false` if skipped (candidate not strictly newer)."
+    value: ${{ steps.decide.outputs.advanced }}
+
+runs:
+  using: composite
+  steps:
+    # Resolve the commit the mutable tag currently points at, from the OCI
+    # revision label (set at build time). Reading the label rather than listing
+    # `sha-*` tags keeps this registry-agnostic and sidesteps the "one digest,
+    # many SHA tags" ambiguity.
+    #
+    # The command distinguishes three outcomes by exit code so the retry only
+    # fires on transient errors: a genuinely absent tag (first deploy) writes an
+    # empty file and exits 0 (→ advance is correct), a successful inspect writes
+    # the revision and exits 0, and a transient registry error exits 75 — which
+    # `retry_on_exit_code` retries, then fails. Without this, an older run hitting
+    # a 5xx here would read an empty revision and move the tag backwards.
+    - name: Resolve current ${{ inputs.mutable-tag }} revision
+      uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
+      env:
+        REF: ${{ inputs.image }}:${{ inputs.mutable-tag }}
+      with:
+        timeout_minutes: 5
+        max_attempts: 3
+        retry_wait_seconds: 10
+        retry_on_exit_code: 75
+        command: |
+          if raw="$(docker buildx imagetools inspect "$REF" --format '{{json .}}' 2>&1)"; then
+            jq -r '[.. | objects | .["org.opencontainers.image.revision"]? // empty][0] // empty' <<<"$raw" > "$RUNNER_TEMP/current-sha"
+            exit 0
+          fi
+          if grep -qiE 'not found|manifest unknown|no such' <<<"$raw"; then
+            : > "$RUNNER_TEMP/current-sha"
+            exit 0
+          fi
+          echo "transient inspect failure for $REF: $raw" >&2
+          exit 75
+
+    - name: Decide whether to advance ${{ inputs.mutable-tag }}
+      id: decide
+      shell: bash
+      env:
+        CANDIDATE_SHA: ${{ inputs.candidate-sha }}
+        MUTABLE_TAG: ${{ inputs.mutable-tag }}
+      run: |
+        set -euo pipefail
+        current_sha="$(cat "$RUNNER_TEMP/current-sha")"
+
+        advance=false
+        if [[ -z "$current_sha" ]]; then
+          echo "::notice ::$MUTABLE_TAG has no resolvable revision; advancing to $CANDIDATE_SHA"
+          advance=true
+        elif [[ "$current_sha" == "$CANDIDATE_SHA" ]]; then
+          echo "::notice ::$MUTABLE_TAG already at $CANDIDATE_SHA; nothing to do"
+        elif git merge-base --is-ancestor "$current_sha" "$CANDIDATE_SHA" 2>/dev/null; then
+          # current is an ancestor of candidate → candidate is strictly newer.
+          advance=true
+        else
+          # candidate is an ancestor of current, they diverged, or current is
+          # unreachable (shallow clone / force-pushed). Leave the tag untouched.
+          echo "::notice ::$MUTABLE_TAG at $current_sha is not older than $CANDIDATE_SHA; skipping"
+        fi
+        echo "advanced=$advance" >> "$GITHUB_OUTPUT"
+
+    - name: Advance ${{ inputs.mutable-tag }} to ${{ inputs.source-tag }}
+      if: steps.decide.outputs.advanced == 'true'
+      uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
+      with:
+        timeout_minutes: 5
+        max_attempts: 3
+        retry_wait_seconds: 10
+        command: docker buildx imagetools create --tag "${{ inputs.image }}:${{ inputs.mutable-tag }}" "${{ inputs.image }}:${{ inputs.source-tag }}"
