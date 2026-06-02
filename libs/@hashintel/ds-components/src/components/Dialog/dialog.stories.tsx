@@ -35,17 +35,17 @@ const longBody = (
 
 type ExampleProps = {
   buttonLabel: string;
-  dialogProps: (close: () => void) => React.ComponentProps<typeof Dialog>;
+  renderDialog: (close: () => void) => React.ReactElement;
 };
 
-const DialogExample = ({ buttonLabel, dialogProps }: ExampleProps) => {
+const DialogExample = ({ buttonLabel, renderDialog }: ExampleProps) => {
   const [open, setOpen] = useState(false);
   const close = () => setOpen(false);
 
   return (
     <>
       <Button onClick={() => setOpen(true)}>{buttonLabel}</Button>
-      {open ? <Dialog {...dialogProps(close)} onClose={close} /> : null}
+      {open ? renderDialog(close) : null}
     </>
   );
 };
@@ -62,177 +62,196 @@ type DialogVariant = "partitionedFooter" | "plain";
 const buildExampleEntries = (variant: DialogVariant): ExampleProps[] => [
   {
     buttonLabel: "Title only",
-    dialogProps: () => ({
-      variant,
-      title: "Account settings",
-      children: sampleBody,
-    }),
+    renderDialog: (close) => (
+      <Dialog variant={variant} onClose={close}>
+        <Dialog.Header title="Account settings" />
+        <Dialog.Body>{sampleBody}</Dialog.Body>
+      </Dialog>
+    ),
   },
   {
     buttonLabel: "Title + icon",
-    dialogProps: () => ({
-      variant,
-      title: "Settings",
-      titleIconName: "gear",
-      children: sampleBody,
-    }),
+    renderDialog: (close) => (
+      <Dialog variant={variant} onClose={close}>
+        <Dialog.Header title="Settings" iconName="gear" />
+        <Dialog.Body>{sampleBody}</Dialog.Body>
+      </Dialog>
+    ),
   },
   {
     buttonLabel: "Description only",
-    dialogProps: () => ({
-      variant,
-      description:
-        "A description without a title, written long enough that it wraps onto a second line so we can check how the header lays out when only the subtext is present.",
-      children: sampleBody,
-    }),
+    renderDialog: (close) => (
+      <Dialog variant={variant} onClose={close}>
+        <Dialog.Header description="A description without a title, written long enough that it wraps onto a second line so we can check how the header lays out when only the subtext is present." />
+        <Dialog.Body>{sampleBody}</Dialog.Body>
+      </Dialog>
+    ),
   },
   {
     buttonLabel: "Footer actions",
-    dialogProps: (close) => ({
-      variant,
-      children: (
-        <p>
-          Do you want to save your changes before closing? Select close to go
-          back.
-        </p>
-      ),
-      footerActions: (
-        <>
-          <Button variant="subtle" tone="neutral" onClick={close}>
-            Close
-          </Button>
-          <Button variant="solid" tone="brand" onClick={close}>
-            Save
-          </Button>
-        </>
-      ),
-    }),
+    renderDialog: (close) => (
+      <Dialog variant={variant} onClose={close}>
+        <Dialog.Body>
+          <p>
+            Do you want to save your changes before closing? Select close to go
+            back.
+          </p>
+        </Dialog.Body>
+        <Dialog.Footer
+          actions={
+            <>
+              <Button variant="subtle" tone="neutral" onClick={close}>
+                Close
+              </Button>
+              <Button variant="solid" tone="brand" onClick={close}>
+                Save
+              </Button>
+            </>
+          }
+        />
+      </Dialog>
+    ),
   },
   {
     buttonLabel: "Kitchen sink",
-    dialogProps: (close) => ({
-      variant,
-      title: "Edit workspace",
-      titleIconName: "gear",
-      description: "Update the details for your workspace.",
-      titleActions: (
-        <Button
-          variant="ghost"
-          tone="neutral"
-          size="sm"
-          iconName="externalLink"
-          tooltip="Open docs"
+    renderDialog: (close) => (
+      <Dialog variant={variant} onClose={close}>
+        <Dialog.Header
+          title="Edit workspace"
+          iconName="gear"
+          description="Update the details for your workspace."
+          actions={
+            <Button
+              variant="ghost"
+              tone="neutral"
+              size="sm"
+              iconName="externalLink"
+              tooltip="Open docs"
+            />
+          }
         />
-      ),
-      children: sampleBody,
-      footerActions: (
-        <Button variant="solid" tone="brand" onClick={close}>
-          Save changes
-        </Button>
-      ),
-      footerSecondaryActions: (
-        <Button variant="subtle" tone="error" onClick={close}>
-          Delete
-        </Button>
-      ),
-    }),
+        <Dialog.Body>{sampleBody}</Dialog.Body>
+        <Dialog.Footer
+          actions={
+            <Button variant="solid" tone="brand" onClick={close}>
+              Save changes
+            </Button>
+          }
+          secondaryActions={
+            <Button variant="subtle" tone="error" onClick={close}>
+              Delete
+            </Button>
+          }
+        />
+      </Dialog>
+    ),
   },
   {
     buttonLabel: "Custom header",
-    dialogProps: () => ({
-      variant,
-      header: (
-        <div
-          className={css({
-            display: "flex",
-            alignItems: "center",
-            gap: "3",
-            width: "[100%]",
-          })}
-        >
+    renderDialog: (close) => (
+      <Dialog variant={variant} onClose={close}>
+        <Dialog.Header>
           <div
             className={css({
-              width: "10",
-              height: "10",
-              borderRadius: "full",
-              background: "blue.s90",
-              color: "fg.onSolid",
               display: "flex",
               alignItems: "center",
-              justifyContent: "center",
+              gap: "3",
+              width: "[100%]",
             })}
           >
-            <Icon name="sparkles" size="md" />
-          </div>
-          <div>
-            <div className={css({ fontWeight: "semibold", textStyle: "lg" })}>
-              Custom header layout
+            <div
+              className={css({
+                width: "10",
+                height: "10",
+                borderRadius: "full",
+                background: "blue.s90",
+                color: "fg.onSolid",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              })}
+            >
+              <Icon name="sparkles" size="md" />
             </div>
-            <div className={css({ color: "fg.muted", textStyle: "sm" })}>
-              Built from arbitrary content.
+            <div>
+              <div className={css({ fontWeight: "semibold", textStyle: "lg" })}>
+                Custom header layout
+              </div>
+              <div className={css({ color: "fg.muted", textStyle: "sm" })}>
+                Built from arbitrary content.
+              </div>
             </div>
           </div>
-        </div>
-      ),
-      children: sampleBody,
-    }),
+        </Dialog.Header>
+        <Dialog.Body>{sampleBody}</Dialog.Body>
+      </Dialog>
+    ),
   },
   {
     buttonLabel: "Custom footer",
-    dialogProps: (close) => ({
-      variant,
-      title: "Custom footer",
-      children: sampleBody,
-      footer: (
-        <div
-          className={css({
-            display: "flex",
-            alignItems: "center",
-            gap: "3",
-            width: "[100%]",
-          })}
-        >
-          <Icon name="info" size="sm" className={css({ color: "fg.muted" })} />
-          <span className={css({ color: "fg.muted", textStyle: "sm" })}>
-            All changes are saved automatically.
-          </span>
-          <Button
-            className={css({ marginLeft: "auto" })}
-            variant="solid"
-            tone="neutral"
-            onClick={close}
+    renderDialog: (close) => (
+      <Dialog variant={variant} onClose={close}>
+        <Dialog.Header title="Custom footer" />
+        <Dialog.Body>{sampleBody}</Dialog.Body>
+        <Dialog.Footer>
+          <div
+            className={css({
+              display: "flex",
+              alignItems: "center",
+              gap: "3",
+              width: "[100%]",
+            })}
           >
-            Done
-          </Button>
-        </div>
-      ),
-    }),
+            <Icon
+              name="info"
+              size="sm"
+              className={css({ color: "fg.muted" })}
+            />
+            <span className={css({ color: "fg.muted", textStyle: "sm" })}>
+              All changes are saved automatically.
+            </span>
+            <Button
+              className={css({ marginLeft: "auto" })}
+              variant="solid"
+              tone="neutral"
+              onClick={close}
+            >
+              Done
+            </Button>
+          </div>
+        </Dialog.Footer>
+      </Dialog>
+    ),
   },
   {
     buttonLabel: "Kitchen sink (no padding)",
-    dialogProps: (close) => ({
-      variant,
-      title: "Edit workspace",
-      titleIconName: "gear",
-      description: "Body content controls its own padding.",
-      withPadding: false,
-      children: (
-        <p>
-          This body container has zero padding from the dialog, so it spans
-          edge-to-edge. The content within decides its own layout.
-        </p>
-      ),
-      footerActions: (
-        <Button variant="solid" tone="brand" onClick={close}>
-          Save
-        </Button>
-      ),
-      footerSecondaryActions: (
-        <Button variant="subtle" tone="neutral" onClick={close}>
-          Cancel
-        </Button>
-      ),
-    }),
+    renderDialog: (close) => (
+      <Dialog variant={variant} onClose={close}>
+        <Dialog.Header
+          title="Edit workspace"
+          iconName="gear"
+          description="Body content controls its own padding."
+        />
+        <Dialog.Body withPadding={false}>
+          <p>
+            This body container has zero padding from the dialog, so it spans
+            edge-to-edge. The content within decides its own layout.
+          </p>
+        </Dialog.Body>
+        <Dialog.Footer
+          actions={
+            <Button variant="solid" tone="brand" onClick={close}>
+              Save
+            </Button>
+          }
+          secondaryActions={
+            <Button variant="subtle" tone="neutral" onClick={close}>
+              Cancel
+            </Button>
+          }
+        />
+      </Dialog>
+    ),
   },
 ];
 
@@ -255,7 +274,7 @@ export const Examples: Story = () => (
           <DialogExample
             key={entry.buttonLabel}
             buttonLabel={entry.buttonLabel}
-            dialogProps={entry.dialogProps}
+            renderDialog={entry.renderDialog}
           />
         ))}
       </div>
@@ -272,37 +291,41 @@ const sizes = [
   "fullScreen",
 ] as const satisfies readonly DialogSize[];
 
-const buildKitchenSink = (
+const renderKitchenSink = (
   size: DialogSize,
   close: () => void,
   options?: { loading?: boolean },
-): React.ComponentProps<typeof Dialog> => ({
-  size,
-  loading: options?.loading,
-  title: `Kitchen sink (${size})`,
-  titleIconName: "gear",
-  description: "All the bells and whistles, sized for this width.",
-  titleActions: (
-    <Button
-      variant="ghost"
-      tone="neutral"
-      size="sm"
-      iconName="externalLink"
-      tooltip="Open docs"
+) => (
+  <Dialog size={size} loading={options?.loading} onClose={close}>
+    <Dialog.Header
+      title={`Kitchen sink (${size})`}
+      iconName="gear"
+      description="All the bells and whistles, sized for this width."
+      actions={
+        <Button
+          variant="ghost"
+          tone="neutral"
+          size="sm"
+          iconName="externalLink"
+          tooltip="Open docs"
+        />
+      }
     />
-  ),
-  children: size === "fullScreen" ? longBody : sampleBody,
-  footerActions: (
-    <Button variant="solid" tone="brand" onClick={close}>
-      Save changes
-    </Button>
-  ),
-  footerSecondaryActions: (
-    <Button variant="subtle" tone="error" onClick={close}>
-      Delete
-    </Button>
-  ),
-});
+    <Dialog.Body>{size === "fullScreen" ? longBody : sampleBody}</Dialog.Body>
+    <Dialog.Footer
+      actions={
+        <Button variant="solid" tone="brand" onClick={close}>
+          Save changes
+        </Button>
+      }
+      secondaryActions={
+        <Button variant="subtle" tone="error" onClick={close}>
+          Delete
+        </Button>
+      }
+    />
+  </Dialog>
+);
 
 export const Sizes: Story = () => (
   <div className={css({ display: "flex", flexDirection: "column", gap: "4" })}>
@@ -321,30 +344,31 @@ export const Sizes: Story = () => (
         </div>
         <DialogExample
           buttonLabel={`Kitchen sink — ${size}`}
-          dialogProps={(close) => buildKitchenSink(size, close)}
+          renderDialog={(close) => renderKitchenSink(size, close)}
         />
         <DialogExample
           buttonLabel={`Loading — ${size}`}
-          dialogProps={(close) =>
-            buildKitchenSink(size, close, { loading: true })
+          renderDialog={(close) =>
+            renderKitchenSink(size, close, { loading: true })
           }
         />
         {size === "xs" ? (
           <>
             <DialogExample
               buttonLabel={`No header — ${size}`}
-              dialogProps={() => ({
-                size,
-                children: sampleBody,
-              })}
+              renderDialog={(close) => (
+                <Dialog size={size} onClose={close}>
+                  <Dialog.Body>{sampleBody}</Dialog.Body>
+                </Dialog>
+              )}
             />
             <DialogExample
               buttonLabel={`No header, no padding — ${size}`}
-              dialogProps={() => ({
-                size,
-                withPadding: false,
-                children: sampleBody,
-              })}
+              renderDialog={(close) => (
+                <Dialog size={size} onClose={close}>
+                  <Dialog.Body withPadding={false}>{sampleBody}</Dialog.Body>
+                </Dialog>
+              )}
             />
           </>
         ) : null}
@@ -363,17 +387,22 @@ export const Sizes: Story = () => (
       </div>
       <DialogExample
         buttonLabel="Custom width (480px)"
-        dialogProps={(close) => ({
-          className: css({ maxWidth: "[480px]" }),
-          title: "Custom width (480px)",
-          description: "maxWidth is overridden via className.",
-          children: sampleBody,
-          footerActions: (
-            <Button variant="solid" tone="brand" onClick={close}>
-              Save changes
-            </Button>
-          ),
-        })}
+        renderDialog={(close) => (
+          <Dialog className={css({ maxWidth: "[480px]" })} onClose={close}>
+            <Dialog.Header
+              title="Custom width (480px)"
+              description="maxWidth is overridden via className."
+            />
+            <Dialog.Body>{sampleBody}</Dialog.Body>
+            <Dialog.Footer
+              actions={
+                <Button variant="solid" tone="brand" onClick={close}>
+                  Save changes
+                </Button>
+              }
+            />
+          </Dialog>
+        )}
       />
     </div>
   </div>
@@ -398,110 +427,118 @@ const overflowingBody = (
   </div>
 );
 
-const buildOverflowKitchenSink = (
+const renderOverflowKitchenSink = (
   close: () => void,
   options?: { loading?: boolean },
-): React.ComponentProps<typeof Dialog> => ({
-  loading: options?.loading,
-  title: overflowingTitle,
-  titleIconName: "gear",
-  description: overflowingDescription,
-  titleActions: (
-    <>
-      <Button
-        variant="ghost"
-        tone="neutral"
-        size="sm"
-        iconName="externalLink"
-        tooltip="Open docs"
-      />
-      <Button
-        variant="ghost"
-        tone="neutral"
-        size="sm"
-        iconName="info"
-        tooltip="More info"
-      />
-    </>
-  ),
-  children: overflowingBody,
-  footerActions: (
-    <>
-      <Button variant="solid" tone="brand" onClick={close}>
-        Save these long-form changes for later review
-      </Button>
-      <Button variant="solid" tone="brand" onClick={close}>
-        Done
-      </Button>
-      <Button variant="solid" tone="brand" onClick={close}>
-        Done
-      </Button>
-    </>
-  ),
-  footerSecondaryActions: (
-    <Button variant="subtle" tone="error" onClick={close}>
-      Delete this workspace permanently
-    </Button>
-  ),
-});
+) => (
+  <Dialog loading={options?.loading} onClose={close}>
+    <Dialog.Header
+      title={overflowingTitle}
+      iconName="gear"
+      description={overflowingDescription}
+      actions={
+        <>
+          <Button
+            variant="ghost"
+            tone="neutral"
+            size="sm"
+            iconName="externalLink"
+            tooltip="Open docs"
+          />
+          <Button
+            variant="ghost"
+            tone="neutral"
+            size="sm"
+            iconName="info"
+            tooltip="More info"
+          />
+        </>
+      }
+    />
+    <Dialog.Body>{overflowingBody}</Dialog.Body>
+    <Dialog.Footer
+      actions={
+        <>
+          <Button variant="solid" tone="brand" onClick={close}>
+            Save these long-form changes for later review
+          </Button>
+          <Button variant="solid" tone="brand" onClick={close}>
+            Done
+          </Button>
+          <Button variant="solid" tone="brand" onClick={close}>
+            Done
+          </Button>
+        </>
+      }
+      secondaryActions={
+        <Button variant="subtle" tone="error" onClick={close}>
+          Delete this workspace permanently
+        </Button>
+      }
+    />
+  </Dialog>
+);
 
-const buildOverflowCustom = (
+const renderOverflowCustom = (
   close: () => void,
   options?: { loading?: boolean },
-): React.ComponentProps<typeof Dialog> => ({
-  loading: options?.loading,
-  header: (
-    <div
-      className={css({
-        display: "flex",
-        flexDirection: "column",
-        gap: "2",
-        width: "[100%]",
-      })}
-    >
-      <div className={css({ fontWeight: "semibold", textStyle: "lg" })}>
-        A custom header with significant content that should test how arbitrary
-        header content wraps and lays out
-      </div>
-      <div className={css({ color: "fg.muted", textStyle: "sm" })}>
-        Plus a fairly long subtitle so we can validate multi-line wrapping
-        behaviour within a custom header slot.
-      </div>
-    </div>
-  ),
-  children: overflowingBody,
-  footer: (
-    <div
-      className={css({
-        display: "flex",
-        alignItems: "center",
-        gap: "3",
-        width: "[100%]",
-        flexWrap: "wrap",
-      })}
-    >
-      <span className={css({ color: "fg.muted", textStyle: "sm" })}>
-        A custom footer with a long status message to test wrapping behaviour
-        and layout adjustments under content pressure.
-      </span>
-      <Button
-        className={css({ marginLeft: "auto" })}
-        variant="solid"
-        tone="neutral"
-        onClick={close}
+) => (
+  <Dialog loading={options?.loading} onClose={close}>
+    <Dialog.Header>
+      <div
+        className={css({
+          display: "flex",
+          flexDirection: "column",
+          gap: "2",
+          width: "[100%]",
+        })}
       >
-        Done
-      </Button>
-    </div>
-  ),
-});
+        <div className={css({ fontWeight: "semibold", textStyle: "lg" })}>
+          A custom header with significant content that should test how
+          arbitrary header content wraps and lays out
+        </div>
+        <div className={css({ color: "fg.muted", textStyle: "sm" })}>
+          Plus a fairly long subtitle so we can validate multi-line wrapping
+          behaviour within a custom header slot.
+        </div>
+      </div>
+    </Dialog.Header>
+    <Dialog.Body>{overflowingBody}</Dialog.Body>
+    <Dialog.Footer>
+      <div
+        className={css({
+          display: "flex",
+          alignItems: "center",
+          gap: "3",
+          width: "[100%]",
+          flexWrap: "wrap",
+        })}
+      >
+        <span className={css({ color: "fg.muted", textStyle: "sm" })}>
+          A custom footer with a long status message to test wrapping behaviour
+          and layout adjustments under content pressure.
+        </span>
+        <Button
+          className={css({ marginLeft: "auto" })}
+          variant="solid"
+          tone="neutral"
+          onClick={close}
+        >
+          Done
+        </Button>
+      </div>
+    </Dialog.Footer>
+  </Dialog>
+);
 
-const buildOverflowBodyOnly = (options?: {
-  loading?: boolean;
-}): React.ComponentProps<typeof Dialog> => ({
-  loading: options?.loading,
-  children: overflowingBody,
-});
+const renderOverflowBodyOnly = (
+  close: () => void,
+  options?: { loading?: boolean },
+) => (
+  <Dialog loading={options?.loading} onClose={close}>
+    <Dialog.Body>{overflowingBody}</Dialog.Body>
+  </Dialog>
+);
 
 export const Overflow: Story = () => (
   <div className={css({ display: "flex", flexDirection: "column", gap: "4" })}>
@@ -520,15 +557,17 @@ export const Overflow: Story = () => (
         </div>
         <DialogExample
           buttonLabel={`Kitchen sink${loading ? " — loading" : ""}`}
-          dialogProps={(close) => buildOverflowKitchenSink(close, { loading })}
+          renderDialog={(close) =>
+            renderOverflowKitchenSink(close, { loading })
+          }
         />
         <DialogExample
           buttonLabel={`Custom header + footer${loading ? " — loading" : ""}`}
-          dialogProps={(close) => buildOverflowCustom(close, { loading })}
+          renderDialog={(close) => renderOverflowCustom(close, { loading })}
         />
         <DialogExample
           buttonLabel={`No header + footer${loading ? " — loading" : ""}`}
-          dialogProps={() => buildOverflowBodyOnly({ loading })}
+          renderDialog={(close) => renderOverflowBodyOnly(close, { loading })}
         />
       </div>
     ))}
@@ -545,79 +584,87 @@ const StackedDialogs = () => {
     <>
       <Button onClick={() => setFirst(true)}>Open stacked dialogs</Button>
       {first ? (
-        <Dialog
-          size="md"
-          title="First dialog"
-          titleIconName="gear"
-          description="Open the next dialog to stack another on top."
-          onClose={() => setFirst(false)}
-          footerActions={
-            <Button
-              variant="solid"
-              tone="brand"
-              onClick={() => setSecond(true)}
-            >
-              Open second dialog
-            </Button>
-          }
-        >
-          {sampleBody}
+        <Dialog size="md" onClose={() => setFirst(false)}>
+          <Dialog.Header
+            title="First dialog"
+            iconName="gear"
+            description="Open the next dialog to stack another on top."
+          />
+          <Dialog.Body>{sampleBody}</Dialog.Body>
+          <Dialog.Footer
+            actions={
+              <Button
+                variant="solid"
+                tone="brand"
+                onClick={() => setSecond(true)}
+              >
+                Open second dialog
+              </Button>
+            }
+          />
         </Dialog>
       ) : null}
       {second ? (
-        <Dialog
-          size="md"
-          title="Second dialog"
-          titleIconName="gear"
-          description="Open the next dialog to stack a small dialog on top."
-          onClose={() => setSecond(false)}
-          footerActions={
-            <Button variant="solid" tone="brand" onClick={() => setThird(true)}>
-              Open small dialog
-            </Button>
-          }
-        >
-          {sampleBody}
+        <Dialog size="md" onClose={() => setSecond(false)}>
+          <Dialog.Header
+            title="Second dialog"
+            iconName="gear"
+            description="Open the next dialog to stack a small dialog on top."
+          />
+          <Dialog.Body>{sampleBody}</Dialog.Body>
+          <Dialog.Footer
+            actions={
+              <Button
+                variant="solid"
+                tone="brand"
+                onClick={() => setThird(true)}
+              >
+                Open small dialog
+              </Button>
+            }
+          />
         </Dialog>
       ) : null}
       {third ? (
-        <Dialog
-          size="sm"
-          title="Small dialog"
-          titleIconName="info"
-          description="Open another small dialog on top of this one."
-          onClose={() => setThird(false)}
-          footerActions={
-            <Button
-              variant="solid"
-              tone="brand"
-              onClick={() => setFourth(true)}
-            >
-              Open another small dialog
-            </Button>
-          }
-        >
-          {sampleBody}
+        <Dialog size="sm" onClose={() => setThird(false)}>
+          <Dialog.Header
+            title="Small dialog"
+            iconName="info"
+            description="Open another small dialog on top of this one."
+          />
+          <Dialog.Body>{sampleBody}</Dialog.Body>
+          <Dialog.Footer
+            actions={
+              <Button
+                variant="solid"
+                tone="brand"
+                onClick={() => setFourth(true)}
+              >
+                Open another small dialog
+              </Button>
+            }
+          />
         </Dialog>
       ) : null}
       {fourth ? (
-        <Dialog
-          size="sm"
-          title="Another small dialog"
-          titleIconName="info"
-          description="This is the top of the stack."
-          onClose={() => setFourth(false)}
-          footerActions={
-            <Button
-              variant="solid"
-              tone="brand"
-              onClick={() => setFourth(false)}
-            >
-              Done
-            </Button>
-          }
-        >
-          {sampleBody}
+        <Dialog size="sm" onClose={() => setFourth(false)}>
+          <Dialog.Header
+            title="Another small dialog"
+            iconName="info"
+            description="This is the top of the stack."
+          />
+          <Dialog.Body>{sampleBody}</Dialog.Body>
+          <Dialog.Footer
+            actions={
+              <Button
+                variant="solid"
+                tone="brand"
+                onClick={() => setFourth(false)}
+              >
+                Done
+              </Button>
+            }
+          />
         </Dialog>
       ) : null}
     </>
@@ -630,53 +677,65 @@ export const ShouldCloseOn: Story = () => (
   <div className={stackStyles}>
     <DialogExample
       buttonLabel="closeButtonAndOverlay (default)"
-      dialogProps={(close) => ({
-        title: "Close button and overlay",
-        titleIconName: "info",
-        description:
-          "Escape, the close button, and clicking the overlay all close the dialog.",
-        shouldCloseOn: "closeButtonAndOverlay",
-        children: sampleBody,
-        footerActions: (
-          <Button variant="solid" tone="brand" onClick={close}>
-            Done
-          </Button>
-        ),
-      })}
+      renderDialog={(close) => (
+        <Dialog shouldCloseOn="closeButtonAndOverlay" onClose={close}>
+          <Dialog.Header
+            title="Close button and overlay"
+            iconName="info"
+            description="Escape, the close button, and clicking the overlay all close the dialog."
+          />
+          <Dialog.Body>{sampleBody}</Dialog.Body>
+          <Dialog.Footer
+            actions={
+              <Button variant="solid" tone="brand" onClick={close}>
+                Done
+              </Button>
+            }
+          />
+        </Dialog>
+      )}
     />
 
     <DialogExample
       buttonLabel="closeButton"
-      dialogProps={(close) => ({
-        title: "Close button only",
-        titleIconName: "info",
-        description:
-          "Escape and the close button close the dialog. Overlay clicks do not.",
-        shouldCloseOn: "closeButton",
-        children: sampleBody,
-        footerActions: (
-          <Button variant="solid" tone="brand" onClick={close}>
-            Done
-          </Button>
-        ),
-      })}
+      renderDialog={(close) => (
+        <Dialog shouldCloseOn="closeButton" onClose={close}>
+          <Dialog.Header
+            title="Close button only"
+            iconName="info"
+            description="Escape and the close button close the dialog. Overlay clicks do not."
+          />
+          <Dialog.Body>{sampleBody}</Dialog.Body>
+          <Dialog.Footer
+            actions={
+              <Button variant="solid" tone="brand" onClick={close}>
+                Done
+              </Button>
+            }
+          />
+        </Dialog>
+      )}
     />
 
     <DialogExample
       buttonLabel="none"
-      dialogProps={(close) => ({
-        title: "No default close",
-        titleIconName: "info",
-        description:
-          "No close button is rendered, and neither escape nor overlay clicks close the dialog.",
-        shouldCloseOn: "none",
-        children: sampleBody,
-        footerActions: (
-          <Button variant="solid" tone="brand" onClick={close}>
-            Done
-          </Button>
-        ),
-      })}
+      renderDialog={(close) => (
+        <Dialog shouldCloseOn="none" onClose={close}>
+          <Dialog.Header
+            title="No default close"
+            iconName="info"
+            description="No close button is rendered, and neither escape nor overlay clicks close the dialog."
+          />
+          <Dialog.Body>{sampleBody}</Dialog.Body>
+          <Dialog.Footer
+            actions={
+              <Button variant="solid" tone="brand" onClick={close}>
+                Done
+              </Button>
+            }
+          />
+        </Dialog>
+      )}
     />
   </div>
 );

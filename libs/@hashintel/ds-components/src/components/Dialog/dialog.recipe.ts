@@ -318,13 +318,6 @@ export const styles = sva({
         description: { marginTop: "0.5" },
       },
     },
-    withPadding: {
-      false: {
-        body: {
-          padding: "[0 !important]",
-        },
-      },
-    },
     headerless: {
       true: {
         header: {
@@ -357,6 +350,5 @@ export const styles = sva({
   ],
   defaultVariants: {
     size: "md",
-    withPadding: true,
   },
 });

@@ -1,7 +1,14 @@
 import { Dialog as ArkDialog } from "@ark-ui/react/dialog";
 import { Portal } from "@ark-ui/react/portal";
+import {
+  Children,
+  createContext,
+  isValidElement,
+  useContext,
+  useMemo,
+} from "react";
 
-import { cx } from "@hashintel/ds-helpers/css";
+import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { usePortalContainerRef } from "../../util/portal-container-context";
 import { Button } from "../Button/button";
@@ -9,7 +16,7 @@ import { Icon, type IconName } from "../Icon/icon";
 import { LoadingSpinner } from "../Loading/loading-spinner";
 import { styles } from "./dialog.recipe";
 
-import type { ExclusifyUnion } from "type-fest";
+import type { ExclusifyUnion, RequireAtLeastOne } from "type-fest";
 
 export type DialogSize = "xs" | "sm" | "md" | "lg" | "xl" | "fullScreen";
 
@@ -18,81 +25,48 @@ export type DialogShouldCloseOn =
   | "closeButton"
   | "none";
 
-export const Dialog = ({
-  className,
-  size = "md",
-  variant = "partitionedFooter",
-  children,
-  shouldCloseOn = "closeButtonAndOverlay",
-  loading,
-  onClose,
-  withPadding = true,
-  initialFocusRef,
-  returnFocusRef,
-  header,
-  title,
-  description,
-  titleIconName,
-  titleActions,
-  footer,
-  footerActions,
-  footerSecondaryActions,
-  ...ariaAttributes
-}: {
-  className?: string;
-  size?: DialogSize;
-  variant?: "partitionedFooter" | "plain";
-  children: React.ReactNode;
-  shouldCloseOn?: DialogShouldCloseOn;
-  loading?: boolean;
+const DialogContext = createContext<{
+  classes: ReturnType<typeof styles>;
   onClose?: () => void;
-  /** Turn padding on/off. Used when the dialog content controls padding itself. defaults to true */
-  withPadding?: boolean;
-  initialFocusRef?: React.RefObject<HTMLElement>;
-  returnFocusRef?: React.RefObject<HTMLElement>;
-} & ExclusifyUnion<
+  renderCloseButton: boolean;
+  loading?: boolean;
+} | null>(null);
+
+const useDialogContext = () => {
+  const ctx = useContext(DialogContext);
+  if (!ctx) {
+    throw new Error(
+      "Dialog.Header, Dialog.Body and Dialog.Footer must be rendered inside <Dialog>",
+    );
+  }
+  return ctx;
+};
+
+type HeaderProps = ExclusifyUnion<
   | {
       title?: React.ReactNode;
       description?: React.ReactNode;
-      titleIconName?: IconName;
-      titleActions?: React.ReactNode;
+      iconName?: IconName;
+      actions?: React.ReactNode;
     }
   | {
-      header?: React.ReactNode;
+      children?: React.ReactNode;
     }
-> &
-  ExclusifyUnion<
-    | { footer?: React.ReactNode }
-    | {
-        footerActions?: React.ReactNode;
-        footerSecondaryActions?: React.ReactNode;
-      }
-  > &
-  React.AriaAttributes) => {
-  const portalContainerRef = usePortalContainerRef();
+>;
+const Header = ({
+  title,
+  description,
+  iconName,
+  actions,
+  children,
+}: HeaderProps) => {
+  const { classes, onClose, renderCloseButton } = useDialogContext();
 
   const hasStructuredHeader =
     title !== undefined ||
     description !== undefined ||
-    titleIconName !== undefined ||
-    titleActions !== undefined;
-  const hasHeader = header !== undefined || hasStructuredHeader;
-
-  const hasStructuredFooter =
-    footerActions !== undefined || footerSecondaryActions !== undefined;
-  const hasFooter = footer !== undefined || hasStructuredFooter;
-
-  const classes = styles({
-    size,
-    withPadding,
-    headerless: !hasHeader,
-    hasIcon: !!titleIconName,
-    variant,
-  });
-
-  const renderCloseButton = shouldCloseOn !== "none";
-  const closeOnEscape = shouldCloseOn !== "none";
-  const closeOnInteractOutside = shouldCloseOn === "closeButtonAndOverlay";
+    iconName !== undefined ||
+    actions !== undefined;
 
   const closeButton = renderCloseButton && (
     <Button
@@ -107,15 +81,24 @@ export const Dialog = ({
     />
   );
 
-  const headerEl = hasStructuredHeader ? (
+  if (!hasStructuredHeader) {
+    return (
+      <div className={cx(classes.header, classes.hasCustomHeader)}>
+        {children && <div>{children}</div>}
+        {closeButton}
+      </div>
+    );
+  }
+
+  return (
     <div className={classes.header}>
       <div>
-        {titleIconName && (
-          <Icon name={titleIconName} size="md" className={classes.titleIcon} />
+        {iconName && (
+          <Icon name={iconName} size="md" className={classes.titleIcon} />
         )}
-        {titleActions ? (
+        {actions ? (
           <div className={classes.headerRight}>
-            <div className={classes.headerActions}>{titleActions}</div>
+            <div className={classes.headerActions}>{actions}</div>
             {closeButton}
           </div>
         ) : (
@@ -131,28 +114,115 @@ export const Dialog = ({
         </ArkDialog.Description>
       )}
     </div>
-  ) : (
-    <div className={cx(classes.header, classes.hasCustomHeader)}>
-      {header && <div>{header}</div>}
-      {closeButton}
-    </div>
   );
+};
 
-  const footerEl = hasFooter && (
+type FooterProps = ExclusifyUnion<
+  | { children?: React.ReactNode }
+  | RequireAtLeastOne<{
+      actions?: React.ReactNode;
+      secondaryActions?: React.ReactNode;
+    }>
+>;
+const Footer = ({ children, actions, secondaryActions }: FooterProps) => {
+  const { classes } = useDialogContext();
+
+  return (
     <div className={classes.footer}>
-      {footer ?? (
+      {children ?? (
         <>
-          {footerSecondaryActions && (
+          {secondaryActions && (
             <div className={classes.footerSecondaryActions}>
-              {footerSecondaryActions}
+              {secondaryActions}
             </div>
           )}
-          {footerActions && (
-            <div className={classes.footerActions}>{footerActions}</div>
-          )}
+          {actions && <div className={classes.footerActions}>{actions}</div>}
         </>
       )}
     </div>
+  );
+};
+
+type BodyProps = {
+  children: React.ReactNode;
+  /** Turn padding on/off. Used when the body content controls padding itself. defaults to true */
+  withPadding?: boolean;
+};
+const Body = ({ children, withPadding = true }: BodyProps) => {
+  const { classes, loading } = useDialogContext();
+
+  return (
+    <div
+      className={cx(
+        classes.body,
+        !withPadding && css({ padding: "[0 !important]" }),
+      )}
+    >
+      {children}
+      {loading ? (
+        <div className={classes.loadingOverlay} aria-live="polite">
+          <LoadingSpinner size="lg" className={classes.loadingSpinner} />
+        </div>
+      ) : null}
+    </div>
+  );
+};
+
+const DialogRoot = ({
+  className,
+  size = "md",
+  variant = "partitionedFooter",
+  children,
+  shouldCloseOn = "closeButtonAndOverlay",
+  loading,
+  onClose,
+  initialFocusRef,
+  returnFocusRef,
+  ...ariaAttributes
+}: {
+  className?: string;
+  size?: DialogSize;
+  variant?: "partitionedFooter" | "plain";
+  children:
+    | readonly [
+        React.ReactElement<HeaderProps, typeof Header>,
+        React.ReactElement<BodyProps, typeof Body>,
+        React.ReactElement<FooterProps, typeof Footer>?,
+      ]
+    | readonly [
+        React.ReactElement<BodyProps, typeof Body>,
+        React.ReactElement<FooterProps, typeof Footer>?,
+      ]
+    | React.ReactElement<BodyProps, typeof Body>;
+  shouldCloseOn?: DialogShouldCloseOn;
+  loading?: boolean;
+  onClose?: () => void;
+  initialFocusRef?: React.RefObject<HTMLElement>;
+  returnFocusRef?: React.RefObject<HTMLElement>;
+} & React.AriaAttributes) => {
+  const portalContainerRef = usePortalContainerRef();
+
+  const headerChild = Children.toArray(children).find(
+    (child): child is React.ReactElement<HeaderProps, typeof Header> =>
+      isValidElement(child) && child.type === Header,
+  );
+  const hasHeader = !!headerChild;
+  const titleIconName = headerChild?.props.iconName;
+
+  const classes = styles({
+    size,
+    headerless: !hasHeader,
+    hasIcon: !!titleIconName,
+    variant,
+  });
+
+  const renderCloseButton = shouldCloseOn !== "none";
+  const closeOnEscape = shouldCloseOn !== "none";
+  const closeOnInteractOutside = shouldCloseOn === "closeButtonAndOverlay";
+
+  const ctx = useMemo(
+    () => ({ classes, onClose, renderCloseButton, loading }),
+    [classes, onClose, renderCloseButton, loading],
   );
 
   return (
@@ -179,19 +249,13 @@ export const Dialog = ({
               className={cx(classes.content, className)}
               aria-busy={loading ?? undefined}
             >
-              {headerEl}
-              <div className={classes.body}>
+              <DialogContext.Provider value={ctx}>
+                {
+                  // if there's no header, we still display an empty one to display the close button + for layout
+                  !hasHeader && <Header />
+                }
                 {children}
-                {loading ? (
-                  <div className={classes.loadingOverlay} aria-live="polite">
-                    <LoadingSpinner
-                      size="lg"
-                      className={classes.loadingSpinner}
-                    />
-                  </div>
-                ) : null}
-              </div>
-              {footerEl}
+              </DialogContext.Provider>
             </ArkDialog.Content>
           </ArkDialog.Positioner>
         </div>
@@ -199,3 +263,9 @@ export const Dialog = ({
     </ArkDialog.Root>
   );
 };
+
+export const Dialog = Object.assign(DialogRoot, {
+  Header,
+  Body,
+  Footer,
+});
