@@ -9,7 +9,6 @@ export const FormRow = ({
   errors,
   gap = "default",
   align = "bottom",
-  noWrap,
 }: {
   className?: string;
   children:
@@ -18,9 +17,8 @@ export const FormRow = ({
   errors?: React.ReactElement<typeof Errors>;
   gap?: "default" | "large" | "extraLarge" | "spaceBetween" | "connected";
   align?: "bottom" | "center" | "top";
-  noWrap?: boolean;
 }) => {
-  const classes = styles({ gap, align, noWrap });
+  const classes = styles({ gap, align });
 
   return (
     <div className={className}>

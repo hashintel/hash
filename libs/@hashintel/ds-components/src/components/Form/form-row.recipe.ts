@@ -20,12 +20,5 @@ export const styles = sva({
       center: {},
       top: {},
     },
-    noWrap: {
-      false: {
-        row: {
-          flexWrap: "wrap",
-        },
-      },
-    },
   },
 });
