@@ -1,4 +1,4 @@
-import { use, useCallback, useEffect, useState } from "react";
+import { use, useState } from "react";
 
 import { Button, Dialog } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
@@ -158,53 +158,42 @@ export const WalkthroughDialog: React.FC<WalkthroughDialogProps> = ({
     }
   }
 
-  const shouldShowWalkthrough = willShowWalkthroughDialog(walkthrough, open);
-  const steps = shouldShowWalkthrough ? walkthrough.steps : [];
+  if (!willShowWalkthroughDialog(walkthrough, open)) return null;
+
+  const { steps } = walkthrough;
   const lastIndex = steps.length - 1;
   const step = steps[currentStep] ?? steps[0];
+
+  if (!step) {
+    return null;
+  }
 
   const atFirst = currentStep === 0;
   const atLast = currentStep === lastIndex;
 
-  const goNext = useCallback(() => {
+  const goNext = () => {
     if (atLast) {
       onClose();
     } else {
       setCurrentStep((prevStep) => prevStep + 1);
     }
-  }, [atLast, onClose]);
+  };
 
-  const goBack = useCallback(() => {
+  const goBack = () => {
     if (!atFirst) {
       setCurrentStep((prevStep) => prevStep - 1);
     }
-  }, [atFirst]);
+  };
 
-  useEffect(() => {
-    if (!shouldShowWalkthrough) {
-      return;
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === "ArrowRight") {
+      event.preventDefault();
+      goNext();
+    } else if (event.key === "ArrowLeft") {
+      event.preventDefault();
+      goBack();
     }
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "ArrowRight") {
-        event.preventDefault();
-        goNext();
-      } else if (event.key === "ArrowLeft") {
-        event.preventDefault();
-        goBack();
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [goBack, goNext, shouldShowWalkthrough]);
-
-  if (!shouldShowWalkthrough || !step) {
-    return null;
-  }
+  };
 
   return (
     <Dialog
@@ -212,6 +201,7 @@ export const WalkthroughDialog: React.FC<WalkthroughDialogProps> = ({
       variant="plain"
       shouldCloseOn="closeButton"
       onClose={onClose}
+      onKeyDown={handleKeyDown}
     >
       <Dialog.Header title={step.title} />
       <Dialog.Body withPadding={false}>
