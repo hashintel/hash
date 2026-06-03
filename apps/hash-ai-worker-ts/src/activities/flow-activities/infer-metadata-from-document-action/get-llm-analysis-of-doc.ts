@@ -1,4 +1,4 @@
-import { SchemaType } from "@google-cloud/vertexai";
+import { Type } from "@google/genai";
 import dedent from "dedent";
 import get from "lodash/get.js";
 import set from "lodash/set.js";
@@ -69,7 +69,7 @@ const generateOutputSchema = (
               type: "object",
               title,
               properties: {
-                entityTypeId: { type: SchemaType.STRING, enum: [$id] },
+                entityTypeId: { type: Type.STRING, enum: [$id] },
                 ...properties,
               },
               required: [...(required ?? []), "entityTypeId"],
@@ -493,7 +493,7 @@ export const getLlmAnalysisOfDoc = async ({
 
   const response = await getLlmResponse(
     {
-      model: "gemini-1.5-pro-002",
+      model: "gemini-3.1-pro-preview",
       messages: [message],
       toolChoice: "required",
       tools,
@@ -554,7 +554,7 @@ export const getLlmAnalysisOfDoc = async ({
       messages: [message, response.message],
       tools,
     },
-    judgeModel: "gemini-1.5-pro-002",
+    judgeModel: "gemini-3.1-pro-preview",
   });
 
   for (const {

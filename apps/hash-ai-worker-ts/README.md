@@ -22,7 +22,9 @@ The service uses the following environment variables:
 - `HASH_VAULT_MOUNT_PATH`: The mount path for the KV secrets engine, e.g. `secret`.
 - `GOOGLE_CLOUD_HASH_PROJECT_ID`: The projectId for a Google Cloud Platform project, used in document analysis (Vertex AI and Cloud Storage). Note that this is the Project ID, _not_ the Project Number.
 - `GOOGLE_CLOUD_STORAGE_BUCKET`: The name of the Google Cloud Storage bucket to use for document analysis.
-- `GOOGLE_APPLICATION_CREDENTIALS`: The path to a configuration file for GCP authentication. Automatically set locally by the `gcloud` CLI, and set manually during the build process.
+- `GOOGLE_CLOUD_VERTEX_LOCATION`: The Vertex AI location for model requests (defaults to `global`).
+- `GOOGLE_CLOUD_WORKLOAD_IDENTITY_FEDERATION_CONFIG_JSON`: Workload Identity Federation config (JSON) for authenticating to Google Cloud from AWS at runtime. When set, the worker exchanges its AWS task-role credentials for Google credentials via a custom AWS credential supplier (works on Fargate, which has no EC2 IMDS); this requires `AWS_REGION` to be set. When unset (e.g. local development), authentication falls back to Application Default Credentials (`gcloud auth application-default login`).
+- `AWS_REGION`: The AWS region. Required when `GOOGLE_CLOUD_WORKLOAD_IDENTITY_FEDERATION_CONFIG_JSON` is set, so the worker can resolve its AWS credentials for the federation exchange.
 
 ### Run the worker
 

@@ -12,7 +12,7 @@ import {
 
 import type { PermittedOpenAiModel } from "../openai-client.js";
 import type { LlmAssistantMessage, LlmMessage } from "./llm-message.js";
-import type { GenerateContentResponse } from "@google-cloud/vertexai";
+import type { GenerateContentResponse } from "@google/genai";
 import type { OpenAI } from "openai";
 import type { JSONSchema } from "openai/lib/jsonschema";
 
@@ -131,7 +131,18 @@ export type OpenAiResponse = Omit<
 
 export type GoogleAiResponse = Omit<
   GenerateContentResponse,
-  "usage" | "candidates"
+  // `@google/genai`'s `GenerateContentResponse` is a class whose convenience
+  // getters (`text`/`data`/`functionCalls`/`executableCode`/
+  // `codeExecutionResult`) are required, computed accessors over `candidates`.
+  // We normalize the candidate content ourselves, so we omit both the raw
+  // candidates and those derived getters here.
+  | "usageMetadata"
+  | "candidates"
+  | "text"
+  | "data"
+  | "functionCalls"
+  | "executableCode"
+  | "codeExecutionResult"
 > & {
   invalidResponses: (GenerateContentResponse & { requestTime: number })[];
 };

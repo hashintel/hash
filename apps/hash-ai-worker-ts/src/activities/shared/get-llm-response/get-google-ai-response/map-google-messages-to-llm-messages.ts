@@ -1,7 +1,7 @@
 import { getFileEntityFromGcpStorageUri } from "./google-cloud-storage.js";
 
 import type { LlmMessage } from "../llm-message.js";
-import type { Content } from "@google-cloud/vertexai";
+import type { Content } from "@google/genai";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { File } from "@local/hash-isomorphic-utils/system-types/shared";
 
@@ -15,10 +15,14 @@ export const mapGoogleMessagesToLlmMessages = (params: {
     if (message.role === "user") {
       return {
         role: message.role,
-        content: message.parts.map((part) => {
+        content: (message.parts ?? []).map((part) => {
           if ("functionResponse" in part) {
             if (!part.functionResponse) {
               throw new Error("Function response is undefined");
+            }
+
+            if (!part.functionResponse.name) {
+              throw new Error("Function response name is undefined");
             }
 
             return {
@@ -41,7 +45,7 @@ export const mapGoogleMessagesToLlmMessages = (params: {
           }
 
           if ("fileData" in part) {
-            if (!part.fileData) {
+            if (!part.fileData?.fileUri) {
               throw new Error("File data is undefined");
             }
 
@@ -67,17 +71,21 @@ export const mapGoogleMessagesToLlmMessages = (params: {
     } else if (message.role === "model") {
       return {
         role: "assistant",
-        content: message.parts.map((part) => {
+        content: (message.parts ?? []).map((part) => {
           if ("functionCall" in part) {
             if (!part.functionCall) {
               throw new Error("Function call is undefined");
+            }
+
+            if (!part.functionCall.name) {
+              throw new Error("Function call name is undefined");
             }
 
             return {
               type: "tool_use" as const,
               id: part.functionCall.name,
               name: part.functionCall.name,
-              input: part.functionCall.args,
+              input: part.functionCall.args ?? {},
             };
           }
 
