@@ -88,8 +88,7 @@ export type CreatePetrinautConfig = {
 function createDefinitionStore(
   handle: PetrinautDocHandle,
   extensions: PetrinautExtensionSettings,
-  disposers: Array<() => void>,
-): ReadableStore<SDCPN> {
+): { store: ReadableStore<SDCPN>; dispose: () => void } {
   const listeners = new Set<(value: SDCPN) => void>();
   let latestSource: SDCPN | undefined;
   let latestSanitized: SDCPN | undefined;
@@ -102,7 +101,6 @@ function createDefinitionStore(
       listener(sanitized);
     }
   });
-  disposers.push(unsubscribe);
 
   const read = (): SDCPN => {
     const source = handle.doc() ?? EMPTY_SDCPN;
@@ -114,20 +112,23 @@ function createDefinitionStore(
   };
 
   return {
-    get: read,
-    subscribe(listener) {
-      listeners.add(listener);
-      return () => {
-        listeners.delete(listener);
-      };
+    store: {
+      get: read,
+      subscribe(listener) {
+        listeners.add(listener);
+        return () => {
+          listeners.delete(listener);
+        };
+      },
     },
+    dispose: unsubscribe,
   };
 }
 
-function createPatchStream(
-  handle: PetrinautDocHandle,
-  disposers: Array<() => void>,
-): EventStream<PetrinautPatch[]> {
+function createPatchStream(handle: PetrinautDocHandle): {
+  stream: EventStream<PetrinautPatch[]>;
+  dispose: () => void;
+} {
   const listeners = new Set<(event: PetrinautPatch[]) => void>();
 
   const unsubscribe = handle.subscribe((event) => {
@@ -138,13 +139,15 @@ function createPatchStream(
       listener(event.patches);
     }
   });
-  disposers.push(unsubscribe);
 
   return {
-    subscribe(listener) {
-      listeners.add(listener);
-      return () => listeners.delete(listener);
+    stream: {
+      subscribe(listener) {
+        listeners.add(listener);
+        return () => listeners.delete(listener);
+      },
     },
+    dispose: unsubscribe,
   };
 }
 
@@ -158,14 +161,17 @@ export function createPetrinaut(config: CreatePetrinautConfig): Petrinaut {
     readonly: readonly || handleCapabilities.readonly,
   };
 
-  const disposers: Array<() => void> = [];
-
-  const definition = createDefinitionStore(
+  const definitionResource = createDefinitionStore(
     handle,
     capabilities.extensions,
-    disposers,
   );
-  const patches = createPatchStream(handle, disposers);
+  const patchesResource = createPatchStream(handle);
+  const definition = definitionResource.store;
+  const patches = patchesResource.stream;
+  const disposers: Array<() => void> = [
+    definitionResource.dispose,
+    patchesResource.dispose,
+  ];
 
   const mutate = (fn: (draft: SDCPN) => void) => {
     if (capabilities.readonly) {
