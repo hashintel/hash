@@ -60,6 +60,7 @@ const sectionContentStyle = css({
   display: "flex",
   flexDirection: "column",
   flex: "[1]",
+  paddingBottom: "3",
 });
 
 const scrollContainerStyle = css({
