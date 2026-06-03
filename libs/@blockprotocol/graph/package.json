@@ -66,7 +66,7 @@
     "prepublishOnly": "turbo run build && tsx scripts/prepublish.ts"
   },
   "dependencies": {
-    "@blockprotocol/core": "0.1.4",
+    "@blockprotocol/core": "0.1.5",
     "@blockprotocol/type-system": "workspace:^",
     "ajv": "8.18.0",
     "ajv-formats": "3.0.1",

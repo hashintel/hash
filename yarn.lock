@@ -462,7 +462,7 @@ __metadata:
     "@aws-sdk/credential-provider-node": "npm:3.972.6"
     "@aws-sdk/s3-presigned-post": "npm:3.986.0"
     "@aws-sdk/s3-request-presigner": "npm:3.986.0"
-    "@blockprotocol/core": "npm:0.1.4"
+    "@blockprotocol/core": "npm:0.1.5"
     "@blockprotocol/graph": "workspace:*"
     "@blockprotocol/type-system": "workspace:*"
     "@graphql-codegen/cli": "npm:^6.2.1"
@@ -569,7 +569,7 @@ __metadata:
   dependencies:
     "@ai-sdk/openai": "npm:3.0.63"
     "@apollo/client": "npm:3.10.5"
-    "@blockprotocol/core": "npm:0.1.4"
+    "@blockprotocol/core": "npm:0.1.5"
     "@blockprotocol/graph": "workspace:*"
     "@blockprotocol/hook": "npm:0.1.8"
     "@blockprotocol/service": "npm:0.1.5"
@@ -859,7 +859,7 @@ __metadata:
     "@babel/plugin-transform-private-property-in-object": "npm:7.27.1"
     "@babel/preset-env": "npm:7.28.3"
     "@babel/preset-react": "npm:7.27.1"
-    "@blockprotocol/core": "npm:0.1.4"
+    "@blockprotocol/core": "npm:0.1.5"
     "@blockprotocol/graph": "workspace:*"
     "@blockprotocol/type-system": "workspace:*"
     "@graphql-codegen/cli": "npm:^6.2.1"
@@ -2739,8 +2739,8 @@ __metadata:
   linkType: hard
 
 "@azure/identity@npm:^4.13.0":
-  version: 4.13.0
-  resolution: "@azure/identity@npm:4.13.0"
+  version: 4.13.1
+  resolution: "@azure/identity@npm:4.13.1"
   dependencies:
     "@azure/abort-controller": "npm:^2.0.0"
     "@azure/core-auth": "npm:^1.9.0"
@@ -2749,11 +2749,11 @@ __metadata:
     "@azure/core-tracing": "npm:^1.0.0"
     "@azure/core-util": "npm:^1.11.0"
     "@azure/logger": "npm:^1.0.0"
-    "@azure/msal-browser": "npm:^4.2.0"
-    "@azure/msal-node": "npm:^3.5.0"
+    "@azure/msal-browser": "npm:^5.5.0"
+    "@azure/msal-node": "npm:^5.1.0"
     open: "npm:^10.1.0"
     tslib: "npm:^2.2.0"
-  checksum: 10c0/d49b4d22a0ab4e2fa4688a357970806af57d1ecab302e0f321d986b83e4ef78604c592f8f3fd120e156531adaae4a5f94d032875b63d7e09259dd75547d90d31
+  checksum: 10c0/924b3b545cbffd1b22a5f28593b2024075f0aa3fc52ed6a96aa4e33f358c2f112da0cdd4d90d1a47cbcfc13a5ccfb8854d511dfed2330e1c463b642b6a362d70
   languageName: node
   linkType: hard
 
@@ -2767,30 +2767,29 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@azure/msal-browser@npm:^4.2.0":
-  version: 4.25.1
-  resolution: "@azure/msal-browser@npm:4.25.1"
+"@azure/msal-browser@npm:^5.5.0":
+  version: 5.11.0
+  resolution: "@azure/msal-browser@npm:5.11.0"
   dependencies:
-    "@azure/msal-common": "npm:15.13.0"
-  checksum: 10c0/3702b2bac470bf946086d6199527125818f91b3e25e03c2b1ca6d547d96135d99adb2b3ce2cc1bb0744e3843a5d1aaf06d2ad8594883c9c74b45e825f1f17606
+    "@azure/msal-common": "npm:16.6.2"
+  checksum: 10c0/a45d8d380b6daa6931cae7f5dc42635aad0398dcb33848be97cb085a5918ca80401f37eb9deb24524d6b42638e9caa702c18fb63fef3e2683936c4531ebdb679
   languageName: node
   linkType: hard
 
-"@azure/msal-common@npm:15.13.0":
-  version: 15.13.0
-  resolution: "@azure/msal-common@npm:15.13.0"
-  checksum: 10c0/19cd545779bd2f9d50e6f3c899fcb313b56a541493d85dfe65305c22a0d12f6a672ebfbcff05a539b8908b1466b7e48f1067fb4d4a9c85928a0fd115070cd203
+"@azure/msal-common@npm:16.6.2":
+  version: 16.6.2
+  resolution: "@azure/msal-common@npm:16.6.2"
+  checksum: 10c0/d6a6377873f86e0530fedabad95eede89ed80fa1ede1650e2ff834cd7e1d9c4028028758db81697abdeffb0b92473174b3cdab8a839cf404acaf891f8b79d43f
   languageName: node
   linkType: hard
 
-"@azure/msal-node@npm:^3.5.0":
-  version: 3.8.0
-  resolution: "@azure/msal-node@npm:3.8.0"
+"@azure/msal-node@npm:^5.1.0":
+  version: 5.2.2
+  resolution: "@azure/msal-node@npm:5.2.2"
   dependencies:
-    "@azure/msal-common": "npm:15.13.0"
+    "@azure/msal-common": "npm:16.6.2"
     jsonwebtoken: "npm:^9.0.0"
-    uuid: "npm:^8.3.0"
-  checksum: 10c0/80dd7f535856d1e99b5344ce4d584eeb4631560ccfef3a66b9a8dfb590299f41628fbb8150c84613c69977f428575a2eab1bd76443e4084d406d7ebf9dd3b281
+  checksum: 10c0/afd1cc8115288967667f06ce75c10d2b52881f7b476e35fdd780f282091e9fe0ba9c493c98cc0c50308f4da45bce9e1292d1dc5d26a53e12da60db3768dda8d2
   languageName: node
   linkType: hard
 
@@ -4429,27 +4428,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@blockprotocol/core@npm:0.1.3":
-  version: 0.1.3
-  resolution: "@blockprotocol/core@npm:0.1.3"
+"@blockprotocol/core@npm:0.1.5":
+  version: 0.1.5
+  resolution: "@blockprotocol/core@npm:0.1.5"
   dependencies:
     es-module-lexer: "npm:^0.10.5"
-    uuid: "npm:^8.3.2"
-  peerDependencies:
-    react: ^18.0.0
-  checksum: 10c0/33edac1d9216538f85e1d69ae0cf7e30a3c19efaccd21b80e81192c0255f3bbc77543f1bf3381da3c9529d8de9196decfb293716063ff8b851856f262cc4a0e9
-  languageName: node
-  linkType: hard
-
-"@blockprotocol/core@npm:0.1.4":
-  version: 0.1.4
-  resolution: "@blockprotocol/core@npm:0.1.4"
-  dependencies:
-    es-module-lexer: "npm:^0.10.5"
-    uuid: "npm:^8.3.2"
+    uuid: "npm:^14.0.0"
   peerDependencies:
     react: ^19.0.0
-  checksum: 10c0/a2993f40774f86078489e16dea9d84f4486fdccaabfe5ca3e050e8ad020136fa0a9519ce05d0eca35755a84e1e58df8ddfb318c5c5b771743d464c31a6189049
+  checksum: 10c0/b8494e131aa55a11dad93ae58f5107c1b50b0c856e1178477e61b8b16fdca730e3b275aab6a41253ea4f4f17691715cdf3719d30eb5de6e521b3bb4422fb40fa
   languageName: node
   linkType: hard
 
@@ -4475,7 +4462,7 @@ __metadata:
   resolution: "@blockprotocol/graph@workspace:libs/@blockprotocol/graph"
   dependencies:
     "@apidevtools/json-schema-ref-parser": "npm:15.1.3"
-    "@blockprotocol/core": "npm:0.1.4"
+    "@blockprotocol/core": "npm:0.1.5"
     "@blockprotocol/type-system": "workspace:^"
     "@local/eslint": "workspace:*"
     "@local/tsconfig": "workspace:*"
@@ -8781,7 +8768,7 @@ __metadata:
     "@aws-sdk/client-s3": "npm:3.986.0"
     "@aws-sdk/credential-provider-node": "npm:3.972.6"
     "@aws-sdk/s3-request-presigner": "npm:3.986.0"
-    "@blockprotocol/core": "npm:0.1.4"
+    "@blockprotocol/core": "npm:0.1.5"
     "@blockprotocol/graph": "workspace:*"
     "@blockprotocol/type-system": "workspace:*"
     "@linear/sdk": "npm:61.0.0"
@@ -8887,7 +8874,7 @@ __metadata:
   resolution: "@local/hash-isomorphic-utils@workspace:libs/@local/hash-isomorphic-utils"
   dependencies:
     "@apollo/client": "npm:3.10.5"
-    "@blockprotocol/core": "npm:0.1.4"
+    "@blockprotocol/core": "npm:0.1.5"
     "@blockprotocol/graph": "workspace:*"
     "@blockprotocol/type-system": "workspace:*"
     "@graphql-codegen/cli": "npm:^6.2.1"
@@ -8954,7 +8941,7 @@ __metadata:
   resolution: "@local/repo-chores@workspace:libs/@local/repo-chores/node"
   dependencies:
     "@anthropic-ai/sdk": "npm:0.74.0"
-    "@blockprotocol/core": "npm:0.1.4"
+    "@blockprotocol/core": "npm:0.1.5"
     "@linear/sdk": "npm:61.0.0"
     "@local/eslint": "workspace:*"
     "@local/hash-backend-utils": "workspace:*"
@@ -43401,7 +43388,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"uuid@npm:14.0.0":
+"uuid@npm:14.0.0, uuid@npm:^14.0.0":
   version: 14.0.0
   resolution: "uuid@npm:14.0.0"
   bin:
