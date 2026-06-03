@@ -1456,7 +1456,6 @@ export const ExperimentMetricTimeline = ({
                 options={runAggregationOptions}
                 size="xs"
                 className={aggregationSelectStyle}
-                portal={false}
               />
             ) : (
               <Select
@@ -1467,7 +1466,6 @@ export const ExperimentMetricTimeline = ({
                 options={distributionViewOptions}
                 size="xs"
                 className={aggregationSelectStyle}
-                portal={false}
               />
             )}
           </div>
@@ -1489,7 +1487,6 @@ export const ExperimentMetricTimeline = ({
               options={timeAggregationOptions}
               size="xs"
               className={aggregationSelectStyle}
-              portal={false}
             />
           ) : (
             <Select
@@ -1498,7 +1495,6 @@ export const ExperimentMetricTimeline = ({
               options={timeTraceOptions}
               size="xs"
               className={aggregationSelectStyle}
-              portal={false}
             />
           )}
         </div>
