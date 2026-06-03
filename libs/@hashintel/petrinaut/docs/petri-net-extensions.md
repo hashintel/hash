@@ -150,7 +150,7 @@ A transition can have a **firing rate** or **predicate** that controls when it f
 The **Firing Time** editor is shown when at least one lambda mode is meaningful:
 
 - **Stochastic rate** is available when stochasticity is enabled for the document.
-- **Predicate** is available when stochasticity is enabled for the document, or when colours are enabled and the transition has at least one standard input arc from a coloured place.
+- **Predicate** is available when stochasticity is enabled for the document, or when colours are enabled and the transition has at least one standard or read input arc from a coloured place.
 
 If neither condition applies, the transition has no lambda editor. It fires whenever its structural arc conditions are satisfied.
 

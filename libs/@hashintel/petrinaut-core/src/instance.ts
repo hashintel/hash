@@ -172,6 +172,8 @@ export function createPetrinaut(config: CreatePetrinautConfig): Petrinaut {
     definitionResource.dispose,
     patchesResource.dispose,
   ];
+  const shouldSanitizeAfterMutation =
+    capabilities.disabledExtensions.length > 0;
 
   const mutate = (fn: (draft: SDCPN) => void) => {
     if (capabilities.readonly) {
@@ -179,11 +181,15 @@ export function createPetrinaut(config: CreatePetrinautConfig): Petrinaut {
     }
     handle.change((draft) => {
       fn(draft);
-      stripDisabledExtensionData(draft, capabilities.extensions);
+      if (shouldSanitizeAfterMutation) {
+        stripDisabledExtensionData(draft, capabilities.extensions);
+      }
     });
   };
 
-  const mutations = createPetrinautActions(mutate, capabilities.extensions);
+  const mutations = createPetrinautActions(mutate, capabilities.extensions, {
+    sanitizeAfterMutation: false,
+  });
   const commands = createPetrinautCommands(
     mutate,
     () => definition.get(),

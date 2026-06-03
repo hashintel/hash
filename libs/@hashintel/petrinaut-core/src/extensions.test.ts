@@ -87,6 +87,23 @@ describe("transition logic availability", () => {
     });
   });
 
+  it("allows predicate lambda authoring for coloured read inputs", () => {
+    const sdcpn = createSDCPN({
+      inputArcs: [{ placeId: "place-1", weight: 1, type: "read" as const }],
+    });
+
+    expect(
+      getTransitionLogicAvailability(sdcpn.transitions[0]!, sdcpn, {
+        ...allEnabled,
+        stochasticity: false,
+      }),
+    ).toMatchObject({
+      lambda: true,
+      predicateLambda: true,
+      stochasticLambda: false,
+    });
+  });
+
   it("ignores inhibitor arcs for predicate lambda authoring", () => {
     const sdcpn = createSDCPN({
       inputArcs: [

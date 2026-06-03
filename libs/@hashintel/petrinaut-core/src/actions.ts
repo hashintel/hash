@@ -26,6 +26,15 @@ export type MutationHelperFunctions = {
   ) => void;
 };
 
+export type CreatePetrinautActionsOptions = {
+  /**
+   * Whether action helpers should run the full document-level extension
+   * sanitizer after each mutation. Defaults to true only when at least one
+   * extension is disabled.
+   */
+  sanitizeAfterMutation?: boolean;
+};
+
 /**
  * Validate that a single place's reference to a differential equation is
  * consistent: the equation must exist, the place must have a colour, and the
@@ -66,15 +75,39 @@ function assertPlaceDynamicsReferences(
 export function createPetrinautActions(
   mutate: (fn: (sdcpn: SDCPN) => void) => void,
   extensions: PetrinautExtensionSettings = DEFAULT_PETRINAUT_EXTENSIONS,
+  options: CreatePetrinautActionsOptions = {},
 ): MutationHelperFunctions {
   const canUseColors = extensions.colors;
   const canUseDynamics = extensions.colors && extensions.dynamics;
   const canUseParameters = extensions.parameters;
+  const hasDisabledExtensions = Object.values(extensions).some(
+    (enabled) => !enabled,
+  );
+  const shouldSanitizeAfterMutation =
+    options.sanitizeAfterMutation ?? hasDisabledExtensions;
+
+  const sanitizeTransition = (
+    transition: SDCPN["transitions"][number],
+    sdcpn: SDCPN,
+  ): void => {
+    Object.assign(
+      transition,
+      sanitizeTransitionForExtensions(transition, sdcpn, extensions),
+    );
+  };
+
+  const sanitizeAllTransitions = (sdcpn: SDCPN): void => {
+    for (const transition of sdcpn.transitions) {
+      sanitizeTransition(transition, sdcpn);
+    }
+  };
 
   const mutateWithExtensionGuards = (fn: (sdcpn: SDCPN) => void): void => {
     mutate((sdcpn) => {
       fn(sdcpn);
-      stripDisabledExtensionData(sdcpn, extensions);
+      if (shouldSanitizeAfterMutation) {
+        stripDisabledExtensionData(sdcpn, extensions);
+      }
     });
   };
 
@@ -98,6 +131,7 @@ export function createPetrinautActions(
             Object.assign(place, sanitizePlaceForExtensions(place, extensions));
             placeSchema.parse(place);
             assertPlaceDynamicsReferences(place, sdcpn.differentialEquations);
+            sanitizeAllTransitions(sdcpn);
             break;
           }
         }
@@ -136,6 +170,7 @@ export function createPetrinautActions(
                 }
               }
             }
+            sanitizeAllTransitions(sdcpn);
             break;
           }
         }
@@ -144,7 +179,9 @@ export function createPetrinautActions(
     addTransition(transition) {
       const parsedTransition = transitionSchema.parse(transition);
       mutateWithExtensionGuards((sdcpn) => {
-        sdcpn.transitions.push(parsedTransition);
+        sdcpn.transitions.push(
+          sanitizeTransitionForExtensions(parsedTransition, sdcpn, extensions),
+        );
       });
     },
     updateTransition(input) {
@@ -153,10 +190,7 @@ export function createPetrinautActions(
         for (const transition of sdcpn.transitions) {
           if (transition.id === parsed.transitionId) {
             Object.assign(transition, parsed.update);
-            Object.assign(
-              transition,
-              sanitizeTransitionForExtensions(transition, sdcpn, extensions),
-            );
+            sanitizeTransition(transition, sdcpn);
             transitionSchema.parse(transition);
             break;
           }
@@ -205,6 +239,7 @@ export function createPetrinautActions(
                 weight: parsed.weight,
               });
             }
+            sanitizeTransition(transition, sdcpn);
             break;
           }
         }
@@ -225,6 +260,7 @@ export function createPetrinautActions(
                 break;
               }
             }
+            sanitizeTransition(transition, sdcpn);
             break;
           }
         }
@@ -259,6 +295,7 @@ export function createPetrinautActions(
                 break;
               }
             }
+            sanitizeTransition(transition, sdcpn);
             break;
           }
         }
@@ -277,6 +314,7 @@ export function createPetrinautActions(
                 break;
               }
             }
+            sanitizeTransition(transition, sdcpn);
             break;
           }
         }
@@ -408,6 +446,7 @@ export function createPetrinautActions(
             equation.colorId = null;
           }
         }
+        sanitizeAllTransitions(sdcpn);
       });
     },
     addDifferentialEquation(equation) {
@@ -709,6 +748,10 @@ export function createPetrinautActions(
               sdcpn.parameters.splice(i, 1);
             }
           }
+        }
+
+        if (hasCanvasDeletes || typeIds.size > 0) {
+          sanitizeAllTransitions(sdcpn);
         }
       });
     },

@@ -95,7 +95,7 @@ export type TransitionLogicAvailability = {
   transitionKernel: boolean;
 };
 
-export const hasTypedStandardInputPlace = (
+export const hasTypedNonInhibitorInputPlace = (
   transition: SDCPN["transitions"][number],
   sdcpn: SDCPN,
 ): boolean =>
@@ -122,7 +122,7 @@ export const isTransitionLambdaAvailable = (
   extensions: PetrinautExtensionSettings,
 ): boolean =>
   extensions.stochasticity ||
-  (extensions.colors && hasTypedStandardInputPlace(transition, sdcpn));
+  (extensions.colors && hasTypedNonInhibitorInputPlace(transition, sdcpn));
 
 export const isTransitionKernelAvailable = (
   transition: SDCPN["transitions"][number],
@@ -137,7 +137,7 @@ export const getTransitionLogicAvailability = (
 ): TransitionLogicAvailability => {
   const predicateLambda =
     extensions.stochasticity ||
-    (extensions.colors && hasTypedStandardInputPlace(transition, sdcpn));
+    (extensions.colors && hasTypedNonInhibitorInputPlace(transition, sdcpn));
   const stochasticLambda = extensions.stochasticity;
 
   return {

@@ -449,7 +449,7 @@ describe("Petrinaut core actions", () => {
     });
   });
 
-  test("clears predicate lambda code when stochasticity is disabled and no coloured standard input exists", () => {
+  test("clears predicate lambda code when stochasticity is disabled and no coloured standard/read input exists", () => {
     const instance = createPetrinaut({
       document: createJsonDocHandle({
         initial: cloneSDCPN({

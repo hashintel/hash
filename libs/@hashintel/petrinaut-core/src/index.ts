@@ -21,7 +21,7 @@ export {
   PETRINAUT_EXTENSION_NAMES,
   getEffectiveTransitionLambdaType,
   getTransitionLogicAvailability,
-  hasTypedStandardInputPlace,
+  hasTypedNonInhibitorInputPlace,
   isTransitionKernelAvailable,
   isTransitionLambdaAvailable,
   isSelectionTypeAvailableForExtensions,
@@ -46,7 +46,10 @@ export type {
   PetrinautMutations,
 } from "./instance";
 export { createPetrinautActions } from "./actions";
-export type { MutationHelperFunctions } from "./actions";
+export type {
+  CreatePetrinautActionsOptions,
+  MutationHelperFunctions,
+} from "./actions";
 export { createPetrinautCommands } from "./commands";
 export type {
   ApplyAutoLayoutResult,

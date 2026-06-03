@@ -164,7 +164,7 @@ export const transitionSchema = z
     lambdaCode: z.string().meta({
       description: [
         "Optional module: `export default Lambda((input, parameters) => …)`.",
-        "Lambda code is meaningful only when stochasticity is enabled OR when colours are enabled and the transition has at least one standard input arc from a coloured place.",
+        "Lambda code is meaningful only when stochasticity is enabled OR when colours are enabled and the transition has at least one standard or read input arc from a coloured place.",
         "`input` is keyed by INPUT PLACE NAME (PascalCase) for coloured standard and read arcs, and the value is a tuple sized to that arc's weight (weight 2 means a 2-token array).",
         "Read arc tokens are present in `input` but are not consumed when the transition fires.",
         "Inhibitor arcs and uncoloured input places are NOT present in `input`.",

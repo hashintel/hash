@@ -78,6 +78,7 @@ const FiringTimeHeaderAction: React.FC = () => {
             updateTransition({
               transitionId: transition.id,
               update: {
+                lambdaType,
                 lambdaCode: generateDefaultLambdaCode(lambdaType),
               },
             });
@@ -110,6 +111,8 @@ const TransitionFiringTimeContent: React.FC = () => {
     transition,
     logicAvailability,
   );
+  const lambdaCode =
+    transition.lambdaType === lambdaType ? transition.lambdaCode : "";
   const showLambdaTypeSelector = logicAvailability.stochasticLambda;
 
   return (
@@ -145,12 +148,12 @@ const TransitionFiringTimeContent: React.FC = () => {
       <CodeEditor
         path={getDocumentUri("transition-lambda", transition.id)}
         language="typescript"
-        value={transition.lambdaCode || ""}
+        value={lambdaCode}
         height="100%"
         onChange={(value) => {
           updateTransition({
             transitionId: transition.id,
-            update: { lambdaCode: value ?? "" },
+            update: { lambdaType, lambdaCode: value ?? "" },
           });
         }}
         options={{ readOnly: isReadOnly }}
