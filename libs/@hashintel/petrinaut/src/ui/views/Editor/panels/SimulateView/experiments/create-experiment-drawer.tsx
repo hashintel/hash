@@ -762,7 +762,6 @@ const ExperimentMetricRow = ({
             size="xs"
             className={metricKindSelectStyle}
             triggerClassName={metricKindTriggerStyle}
-            portal={false}
             renderTrigger={() => (
               <>
                 <span className={metricKindTriggerLabelStyle}>
@@ -805,7 +804,6 @@ const ExperimentMetricRow = ({
                     onValueChange={(value) => updateMetric({ placeId: value })}
                     options={placeOptions}
                     size="sm"
-                    portal={false}
                   />
                 </div>
               ) : null}
@@ -820,7 +818,6 @@ const ExperimentMetricRow = ({
                       }
                       options={transitionOptions}
                       size="sm"
-                      portal={false}
                     />
                   </div>
                   <div className={fieldStyle}>
@@ -834,7 +831,6 @@ const ExperimentMetricRow = ({
                       }
                       options={transitionModeOptions}
                       size="sm"
-                      portal={false}
                     />
                   </div>
                 </>
@@ -1088,7 +1084,6 @@ export const CreateExperimentDrawer = ({
                   onValueChange={handleScenarioChange}
                   options={scenarioOptions}
                   size="md"
-                  portal={false}
                   renderItem={(option) => (
                     <span
                       style={{ display: "flex", alignItems: "center", gap: 6 }}

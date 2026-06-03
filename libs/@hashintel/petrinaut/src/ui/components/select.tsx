@@ -15,15 +15,6 @@ import { css, cva, cx } from "@hashintel/ds-helpers/css";
 
 import type { ComponentProps, ReactNode } from "react";
 
-// -- Helpers ------------------------------------------------------------------
-
-const ConditionalPortal: React.FC<{
-  enabled: boolean;
-  container?: React.RefObject<HTMLElement | null>;
-  children: ReactNode;
-}> = ({ enabled, container, children }) =>
-  enabled ? <Portal container={container}>{children}</Portal> : children;
-
 // -- Figma design tokens ------------------------------------------------------
 
 type SelectSize = "xs" | "sm" | "md" | "lg";
@@ -243,8 +234,6 @@ interface SelectBaseProps {
   className?: string;
   /** Ark UI positioning options */
   positioning?: { sameWidth?: boolean };
-  /** Whether to portal the dropdown. Set to false when inside a Dialog. */
-  portal?: boolean;
   tooltip?: string;
   tooltipOptions?: Omit<ComponentProps<typeof Tooltip>, "children" | "content">;
 }
@@ -264,7 +253,6 @@ export const Select: React.FC<SelectBaseProps> = ({
   triggerClassName,
   className,
   positioning,
-  portal = false,
   tooltip,
   tooltipOptions,
 }) => {
@@ -347,7 +335,7 @@ export const Select: React.FC<SelectBaseProps> = ({
           </>
         )}
       </ArkSelect.Trigger>
-      <ConditionalPortal enabled={portal} container={portalContainerRef}>
+      <Portal container={portalContainerRef}>
         <ArkSelect.Positioner className={positionerStyle}>
           <ArkSelect.Content className={contentStyle}>
             {groups
@@ -362,7 +350,7 @@ export const Select: React.FC<SelectBaseProps> = ({
               : collection.items.map(renderOption)}
           </ArkSelect.Content>
         </ArkSelect.Positioner>
-      </ConditionalPortal>
+      </Portal>
     </ArkSelect.Root>
   );
 
