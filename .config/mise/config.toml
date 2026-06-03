@@ -4,6 +4,7 @@ _.file                        = [".env", ".env.local"]
 
 [settings]
 idiomatic_version_file_enable_tools = ["rust"]
+minimum_release_age                 = "5d"
 
 [tools]
 # Basic tools
