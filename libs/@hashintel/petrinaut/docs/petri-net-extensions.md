@@ -117,7 +117,7 @@ Use the menu in the code editor header to **Load default template** for a starti
 
 ### Distributions
 
-Kernel output values can be numbers or `Distribution` objects for stochastic output:
+Kernel output values are plain numbers or booleans. When stochasticity is enabled for the document, numeric output values can also be `Distribution` objects for stochastic output:
 
 - `Distribution.Gaussian(mean, standardDeviation)`
 - `Distribution.Uniform(min, max)`
@@ -139,6 +139,8 @@ return {
 
 The underlying random sample is drawn once and shared across chained `.map()` calls, so `x` and `y` above are derived from the same angle.
 
+If stochasticity is disabled, `Distribution` is not available in transition kernels. Use fixed output values instead.
+
 ## Firing rate / predicate
 
 A transition can have a **firing rate** or **predicate** that controls when it fires, once structurally enabled (sufficient tokens in input places). When both modes are meaningful, choose between them in the transition properties:
@@ -146,7 +148,7 @@ A transition can have a **firing rate** or **predicate** that controls when it f
 The **Firing Time** editor is shown when at least one lambda mode is meaningful:
 
 - **Stochastic rate** is available when stochasticity is enabled for the document.
-- **Predicate** is available when colours are enabled and the transition has at least one standard input arc from a coloured place.
+- **Predicate** is available when stochasticity is enabled for the document, or when colours are enabled and the transition has at least one standard input arc from a coloured place.
 
 If neither condition applies, the transition has no lambda editor. It fires whenever its structural arc conditions are satisfied.
 

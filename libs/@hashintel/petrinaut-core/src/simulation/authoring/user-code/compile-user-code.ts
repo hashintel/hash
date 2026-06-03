@@ -2,6 +2,15 @@ import * as Babel from "@babel/standalone";
 
 import { distributionRuntimeCode } from "./distribution";
 
+type CompileUserCodeOptions = {
+  /**
+   * Whether user code should receive the stochastic `Distribution` helper.
+   * Disable this for document modes where stochastic behaviour is unavailable.
+   * @default true
+   */
+  enableDistribution?: boolean;
+};
+
 /**
  * Strips TypeScript type annotations from code to make it executable JavaScript.
  * Uses Babel standalone (browser-compatible) to properly parse and transform TypeScript code.
@@ -44,6 +53,7 @@ function stripTypeAnnotations(code: string): string {
 export function compileUserCode<T extends unknown[] = unknown[]>(
   code: string,
   constructorFnName: string,
+  options: CompileUserCodeOptions = {},
 ): (...args: T) => unknown {
   // Strip TypeScript type annotations and remove leading/trailing whitespace
   const sanitizedCode = stripTypeAnnotations(code.trim());
@@ -79,7 +89,7 @@ export function compileUserCode<T extends unknown[] = unknown[]>(
 
     // Create an executable module-like environment
     const executableCode = `
-      ${distributionRuntimeCode}
+      ${options.enableDistribution === false ? "" : distributionRuntimeCode}
       ${mockConstructor}
       let __default_export__;
       ${sanitizedCode.replace(/export\s+default\s+/, "__default_export__ = ")}

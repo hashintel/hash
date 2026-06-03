@@ -83,6 +83,192 @@ const barePetriNetCapabilities = {
   disabledExtensions: ["colors", "stochasticity", "dynamics", "parameters"],
 } satisfies PetrinautHandleCapabilities;
 
+const colouredTokensOnlyCapabilities = {
+  disabledExtensions: ["stochasticity", "dynamics", "parameters"],
+} satisfies PetrinautHandleCapabilities;
+
+const colouredDynamicsCapabilities = {
+  disabledExtensions: ["stochasticity", "parameters"],
+} satisfies PetrinautHandleCapabilities;
+
+const stochasticTimingCapabilities = {
+  disabledExtensions: ["colors", "dynamics", "parameters"],
+} satisfies PetrinautHandleCapabilities;
+
+const colouredTokenFlowNet: SDCPN = {
+  places: [
+    {
+      id: "p_queued",
+      name: "Queued",
+      colorId: "type_ticket",
+      dynamicsEnabled: false,
+      differentialEquationId: null,
+      x: 120,
+      y: 180,
+      showAsInitialState: true,
+    },
+    {
+      id: "p_processed",
+      name: "Processed",
+      colorId: "type_ticket",
+      dynamicsEnabled: false,
+      differentialEquationId: null,
+      x: 520,
+      y: 180,
+    },
+  ],
+  transitions: [
+    {
+      id: "t_process",
+      name: "Process",
+      inputArcs: [{ placeId: "p_queued", weight: 1, type: "standard" }],
+      outputArcs: [{ placeId: "p_processed", weight: 1 }],
+      lambdaType: "predicate",
+      lambdaCode: `export default Lambda((tokensByPlace) => {
+  return tokensByPlace.Queued[0].age >= 0;
+});`,
+      transitionKernelCode: `export default TransitionKernel((tokensByPlace) => {
+  return {
+    Processed: [{ age: tokensByPlace.Queued[0].age + 1 }],
+  };
+});`,
+      x: 320,
+      y: 205,
+    },
+  ],
+  types: [
+    {
+      id: "type_ticket",
+      name: "Ticket",
+      iconSlug: "circle",
+      displayColor: "#0f766e",
+      elements: [{ elementId: "ticket_age", name: "age", type: "real" }],
+    },
+  ],
+  parameters: [],
+  differentialEquations: [],
+};
+
+const colouredDynamicsNet: SDCPN = {
+  places: [
+    {
+      id: "p_heating",
+      name: "Heating",
+      colorId: "type_batch",
+      dynamicsEnabled: true,
+      differentialEquationId: "de_heat_up",
+      x: 120,
+      y: 180,
+      showAsInitialState: true,
+    },
+    {
+      id: "p_ready",
+      name: "Ready",
+      colorId: "type_batch",
+      dynamicsEnabled: false,
+      differentialEquationId: null,
+      x: 520,
+      y: 180,
+    },
+  ],
+  transitions: [
+    {
+      id: "t_release",
+      name: "Release",
+      inputArcs: [{ placeId: "p_heating", weight: 1, type: "standard" }],
+      outputArcs: [{ placeId: "p_ready", weight: 1 }],
+      lambdaType: "predicate",
+      lambdaCode: `export default Lambda((tokensByPlace) => {
+  return tokensByPlace.Heating[0].temperature >= 80;
+});`,
+      transitionKernelCode: `export default TransitionKernel((tokensByPlace) => {
+  return {
+    Ready: [{ temperature: tokensByPlace.Heating[0].temperature }],
+  };
+});`,
+      x: 320,
+      y: 205,
+    },
+  ],
+  types: [
+    {
+      id: "type_batch",
+      name: "Batch",
+      iconSlug: "circle",
+      displayColor: "#b45309",
+      elements: [
+        { elementId: "temperature", name: "temperature", type: "real" },
+      ],
+    },
+  ],
+  parameters: [],
+  differentialEquations: [
+    {
+      id: "de_heat_up",
+      name: "Heat up",
+      colorId: "type_batch",
+      code: `export default Dynamics((tokens) => {
+  return tokens.map(() => ({ temperature: 5 }));
+});`,
+    },
+  ],
+};
+
+const stochasticTimingNet: SDCPN = {
+  places: [
+    {
+      id: "p_queue",
+      name: "Queue",
+      colorId: null,
+      dynamicsEnabled: false,
+      differentialEquationId: null,
+      x: 260,
+      y: 180,
+      showAsInitialState: true,
+    },
+    {
+      id: "p_served",
+      name: "Served",
+      colorId: null,
+      dynamicsEnabled: false,
+      differentialEquationId: null,
+      x: 660,
+      y: 180,
+    },
+  ],
+  transitions: [
+    {
+      id: "t_arrive",
+      name: "Arrive",
+      inputArcs: [],
+      outputArcs: [{ placeId: "p_queue", weight: 1 }],
+      lambdaType: "stochastic",
+      lambdaCode: `export default Lambda(() => {
+  return 0.5;
+});`,
+      transitionKernelCode: "",
+      x: 80,
+      y: 205,
+    },
+    {
+      id: "t_serve",
+      name: "Serve",
+      inputArcs: [{ placeId: "p_queue", weight: 1, type: "standard" }],
+      outputArcs: [{ placeId: "p_served", weight: 1 }],
+      lambdaType: "predicate",
+      lambdaCode: `export default Lambda(() => {
+  return true;
+});`,
+      transitionKernelCode: "",
+      x: 460,
+      y: 205,
+    },
+  ],
+  types: [],
+  parameters: [],
+  differentialEquations: [],
+};
+
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
 const meta = {
@@ -213,11 +399,45 @@ export const HandleSpikeWithSir: Story = {
 };
 
 export const ExtensionsDisabled: Story = {
+  name: "Core Petri net (no extensions)",
   render: () => (
     <HandleSpikeRender
       capabilities={barePetriNetCapabilities}
       initial={barePetriNet}
       initialTitle="Bare Petri net"
+    />
+  ),
+};
+
+export const ColouredTokensOnly: Story = {
+  name: "Coloured tokens only",
+  render: () => (
+    <HandleSpikeRender
+      capabilities={colouredTokensOnlyCapabilities}
+      initial={colouredTokenFlowNet}
+      initialTitle="Coloured tokens only"
+    />
+  ),
+};
+
+export const ColouredTokensWithDynamics: Story = {
+  name: "Coloured tokens with dynamics",
+  render: () => (
+    <HandleSpikeRender
+      capabilities={colouredDynamicsCapabilities}
+      initial={colouredDynamicsNet}
+      initialTitle="Coloured dynamics"
+    />
+  ),
+};
+
+export const StochasticTimingOnly: Story = {
+  name: "Stochastic timing only",
+  render: () => (
+    <HandleSpikeRender
+      capabilities={stochasticTimingCapabilities}
+      initial={stochasticTimingNet}
+      initialTitle="Stochastic timing"
     />
   ),
 };

@@ -60,14 +60,14 @@ const createSDCPN = (
 });
 
 describe("transition logic availability", () => {
-  it("allows stochastic lambda authoring without coloured inputs", () => {
+  it("allows predicate and stochastic lambda authoring without coloured inputs when stochasticity is enabled", () => {
     const sdcpn = createSDCPN({}, { colorId: null });
 
     expect(
       getTransitionLogicAvailability(sdcpn.transitions[0]!, sdcpn, allEnabled),
     ).toMatchObject({
       lambda: true,
-      predicateLambda: false,
+      predicateLambda: true,
       stochasticLambda: true,
     });
   });
@@ -129,6 +129,27 @@ describe("transition logic availability", () => {
       lambdaType: "predicate",
       lambdaCode: "",
       transitionKernelCode: "",
+    });
+  });
+
+  it("coerces stochastic lambda type when stochasticity is disabled", () => {
+    const sdcpn = createSDCPN({
+      lambdaType: "stochastic",
+      lambdaCode: "export default Lambda(() => 1);",
+    });
+
+    const transition = sanitizeTransitionForExtensions(
+      sdcpn.transitions[0]!,
+      sdcpn,
+      {
+        ...allEnabled,
+        stochasticity: false,
+      },
+    );
+
+    expect(transition).toMatchObject({
+      lambdaType: "predicate",
+      lambdaCode: "",
     });
   });
 

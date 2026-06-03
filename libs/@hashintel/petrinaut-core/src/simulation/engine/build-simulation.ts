@@ -11,6 +11,7 @@ import {
   mergeParameterValues,
 } from "../../parameter-values";
 import { compileUserCode } from "../authoring/user-code/compile-user-code";
+import { isDistribution } from "../authoring/user-code/distribution";
 import {
   createEngineFrame,
   createEngineFrameLayout,
@@ -236,6 +237,7 @@ function createLambdaFn({
     const userFn = compileUserCode<[TransitionTokenValues, ParameterValues]>(
       transition.lambdaCode,
       "Lambda",
+      { enableDistribution: extensions.stochasticity },
     ) as UserLambdaFn;
 
     return (tokenValues) => userFn(tokenValues, parameterValues);
@@ -251,10 +253,12 @@ function createLambdaFn({
 
 function createTransitionKernelFn({
   transition,
+  extensions,
   placesMap,
   parameterValues,
 }: {
   transition: SimulationInput["sdcpn"]["transitions"][number];
+  extensions: PetrinautExtensionSettings;
   placesMap: ReadonlyMap<string, SimulationInput["sdcpn"]["places"][number]>;
   parameterValues: ParameterValues;
 }): TransitionKernelFn {
@@ -271,9 +275,26 @@ function createTransitionKernelFn({
     const userFn = compileUserCode<[TransitionTokenValues, ParameterValues]>(
       transition.transitionKernelCode,
       "TransitionKernel",
+      { enableDistribution: extensions.stochasticity },
     ) as UserTransitionKernelFn;
 
-    return (tokenValues) => userFn(tokenValues, parameterValues);
+    return (tokenValues) => {
+      const output = userFn(tokenValues, parameterValues);
+      if (!extensions.stochasticity) {
+        for (const [placeName, tokens] of Object.entries(output)) {
+          for (const token of tokens) {
+            for (const [elementName, value] of Object.entries(token)) {
+              if (isDistribution(value)) {
+                throw new Error(
+                  `Transition kernel output for place "${placeName}" returned a Distribution for "${elementName}", but stochasticity is disabled.`,
+                );
+              }
+            }
+          }
+        }
+      }
+      return output;
+    };
   } catch (error) {
     throw new SDCPNItemError(
       `Failed to compile transition kernel for transition \`${
@@ -435,7 +456,9 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
 
       const userFn = compileUserCode<
         [Record<string, number>[], ParameterValues]
-      >(code, "Dynamics") as UserDifferentialEquationFn;
+      >(code, "Dynamics", {
+        enableDistribution: extensions.stochasticity,
+      }) as UserDifferentialEquationFn;
       differentialEquationFns.set(
         place.id,
         createDifferentialEquationFn({
@@ -472,6 +495,7 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
         }),
         transitionKernelFn: createTransitionKernelFn({
           transition,
+          extensions,
           placesMap,
           parameterValues,
         }),

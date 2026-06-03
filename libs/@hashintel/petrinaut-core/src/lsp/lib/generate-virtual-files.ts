@@ -36,15 +36,17 @@ export function generateVirtualFiles(
 
   // Generate global SDCPN library definitions
   files.set(getItemFilePath("sdcpn-lib-defs"), {
-    content: [
-      `type Distribution = { map(fn: (value: number) => number): Distribution };`,
-      `type Probabilistic<T> = { [K in keyof T]: T[K] extends number ? number | Distribution : T[K] };`,
-      `declare namespace Distribution {`,
-      `  function Gaussian(mean: number, deviation: number): Distribution;`,
-      `  function Uniform(min: number, max: number): Distribution;`,
-      `  function Lognormal(mu: number, sigma: number): Distribution;`,
-      `}`,
-    ].join("\n"),
+    content: extensions.stochasticity
+      ? [
+          `type Distribution = { map(fn: (value: number) => number): Distribution };`,
+          `type Probabilistic<T> = { [K in keyof T]: T[K] extends number ? number | Distribution : T[K] };`,
+          `declare namespace Distribution {`,
+          `  function Gaussian(mean: number, deviation: number): Distribution;`,
+          `  function Uniform(min: number, max: number): Distribution;`,
+          `  function Lognormal(mu: number, sigma: number): Distribution;`,
+          `}`,
+        ].join("\n")
+      : "",
   });
 
   // Build lookup maps for places and types
@@ -202,7 +204,11 @@ export function generateVirtualFiles(
         outputTypeImports.push(importStatement);
       }
       const tokenTuple = Array.from({ length: arc.weight })
-        .fill(`Probabilistic<Color_${sanitizedColorId}>`)
+        .fill(
+          extensions.stochasticity
+            ? `Probabilistic<Color_${sanitizedColorId}>`
+            : `Color_${sanitizedColorId}`,
+        )
         .join(", ");
       outputTypeProperties.push(`  "${place.name}": [${tokenTuple}];`);
     }

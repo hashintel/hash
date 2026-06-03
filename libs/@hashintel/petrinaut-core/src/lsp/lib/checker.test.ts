@@ -419,6 +419,69 @@ describe("checkSDCPN", () => {
       expect(result.itemDiagnostics).toHaveLength(0);
     });
 
+    it("allows plain TransitionKernel outputs when stochasticity is disabled", () => {
+      const sdcpn = createSDCPN({
+        types: [{ id: "color1", elements: [{ name: "x", type: "real" }] }],
+        places: [
+          { id: "place1", name: "Source", colorId: "color1" },
+          { id: "place2", name: "Target", colorId: "color1" },
+        ],
+        transitions: [
+          {
+            id: "t1",
+            inputArcs: [{ placeId: "place1", weight: 1, type: "standard" }],
+            outputArcs: [{ placeId: "place2", weight: 1 }],
+            transitionKernelCode: `export default TransitionKernel((input, parameters) => {
+              return { Target: [{ x: input.Source[0].x + 1 }] };
+            });`,
+          },
+        ],
+      });
+
+      const result = check(sdcpn, {
+        colors: true,
+        stochasticity: false,
+        dynamics: true,
+        parameters: true,
+      });
+
+      expect(result.isValid).toBe(true);
+      expect(result.itemDiagnostics).toHaveLength(0);
+    });
+
+    it("returns invalid when TransitionKernel uses Distribution while stochasticity is disabled", () => {
+      const sdcpn = createSDCPN({
+        types: [{ id: "color1", elements: [{ name: "x", type: "real" }] }],
+        places: [
+          { id: "place1", name: "Source", colorId: "color1" },
+          { id: "place2", name: "Target", colorId: "color1" },
+        ],
+        transitions: [
+          {
+            id: "t1",
+            inputArcs: [{ placeId: "place1", weight: 1, type: "standard" }],
+            outputArcs: [{ placeId: "place2", weight: 1 }],
+            transitionKernelCode: `export default TransitionKernel((input, parameters) => {
+              return { Target: [{ x: Distribution.Uniform(0, 1) }] };
+            });`,
+          },
+        ],
+      });
+
+      const result = check(sdcpn, {
+        colors: true,
+        stochasticity: false,
+        dynamics: true,
+        parameters: true,
+      });
+
+      expect(result.isValid).toBe(false);
+      expect(result.itemDiagnostics[0]?.itemType).toBe("transition-kernel");
+      expect(result.itemDiagnostics[0]?.diagnostics[0]?.messageText).toContain(
+        "Distribution",
+      );
+    });
+
     it("returns invalid when TransitionKernel returns wrong output place", () => {
       // GIVEN
       const sdcpn = createSDCPN({

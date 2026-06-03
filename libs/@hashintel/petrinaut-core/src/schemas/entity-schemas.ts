@@ -159,7 +159,7 @@ export const transitionSchema = z
     }),
     lambdaType: z.enum(["predicate", "stochastic"]).meta({
       description:
-        "Use predicate for boolean enabling logic when coloured standard inputs are available; use stochastic for rate-based firing when stochasticity is available.",
+        "Use predicate for boolean enabling logic when transition lambda authoring is available; use stochastic for rate-based firing when stochasticity is available.",
     }),
     lambdaCode: z.string().meta({
       description: [
@@ -182,7 +182,7 @@ export const transitionSchema = z
         "Transition kernel code is meaningful only when colours are enabled and the transition has at least one coloured output place.",
         "`input` and `parameters` have the same shape as the transition's lambda.",
         "MUST return an object keyed by OUTPUT PLACE NAME with a tuple sized to that arc's weight. Coloured output places MUST be present; uncoloured output places MUST be omitted (they are auto-populated with empty tokens).",
-        "Token attribute values can be plain numbers/booleans OR `Distribution.Gaussian(mean, sd)` / `Distribution.Uniform(min, max)` / `Distribution.Lognormal(mu, sigma)`; each distribution is sampled once per token, and chained `.map(fn)` calls on the same distribution share that single sample (useful for deriving multiple attributes from one draw).",
+        "Token attribute values can be plain numbers/booleans. When stochasticity is enabled, values can also be `Distribution.Gaussian(mean, sd)` / `Distribution.Uniform(min, max)` / `Distribution.Lognormal(mu, sigma)`; each distribution is sampled once per token, and chained `.map(fn)` calls on the same distribution share that single sample (useful for deriving multiple attributes from one draw).",
         "Leave empty when no coloured outputs exist.",
       ].join(" "),
     }),

@@ -117,7 +117,8 @@ export const getTransitionLogicAvailability = (
   extensions: PetrinautExtensionSettings,
 ): TransitionLogicAvailability => {
   const predicateLambda =
-    extensions.colors && hasTypedStandardInputPlace(transition, sdcpn);
+    extensions.stochasticity ||
+    (extensions.colors && hasTypedStandardInputPlace(transition, sdcpn));
   const stochasticLambda = extensions.stochasticity;
 
   return {

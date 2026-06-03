@@ -110,8 +110,7 @@ const TransitionFiringTimeContent: React.FC = () => {
     transition,
     logicAvailability,
   );
-  const showLambdaTypeSelector =
-    logicAvailability.predicateLambda && logicAvailability.stochasticLambda;
+  const showLambdaTypeSelector = logicAvailability.stochasticLambda;
 
   return (
     <div className={contentStyle}>
