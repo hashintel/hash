@@ -1,5 +1,15 @@
 # @hashintel/ds-components
 
+## 0.2.2
+
+### Patch Changes
+
+- [#8750](https://github.com/hashintel/hash/pull/8750) [`f9d6417`](https://github.com/hashintel/hash/commit/f9d64178b4a20c04efb0ad85fcf8dbfcff20327a) Thanks [@CiaranMn](https://github.com/CiaranMn)! - add arrow-right-arrow-left icon
+
+- [#8802](https://github.com/hashintel/hash/pull/8802) [`c39ede8`](https://github.com/hashintel/hash/commit/c39ede805c753b91eb9551362f0815f77bba5833) Thanks [@alex-e-leon](https://github.com/alex-e-leon)! - Adds a Dialog component
+
+- [#8777](https://github.com/hashintel/hash/pull/8777) [`919cbc5`](https://github.com/hashintel/hash/commit/919cbc57b9e3f60b9ea3bde7e42aabc14a235370) Thanks [@alex-e-leon](https://github.com/alex-e-leon)! - Adds Form.Field component
+
 ## 0.2.1
 
 ### Patch Changes
