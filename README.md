@@ -80,6 +80,7 @@ git --version            # ≥ 2.17
 docker --version         # ≥ 20.10
 docker compose version   # ≥ 2.17
 docker buildx version    # ≥ 0.10
+mise --version           # ≥ 2026.4.22
 ```
 
 #### Setup
