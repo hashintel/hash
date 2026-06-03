@@ -8,7 +8,6 @@ import type {
   Color,
   DifferentialEquation,
   InputArc,
-  InputArcType,
   Parameter,
   Place,
   Transition,

@@ -185,7 +185,7 @@ export const WalkthroughDialog: React.FC<WalkthroughDialogProps> = ({
     }
   };
 
-  const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+  const handleKeyDown = (event: React.KeyboardEvent<Element>) => {
     if (event.key === "ArrowRight") {
       event.preventDefault();
       goNext();
@@ -201,7 +201,6 @@ export const WalkthroughDialog: React.FC<WalkthroughDialogProps> = ({
       variant="plain"
       shouldCloseOn="closeButton"
       onClose={onClose}
-      onKeyDown={handleKeyDown}
     >
       <Dialog.Header title={step.title} />
       <Dialog.Body withPadding={false}>
@@ -241,6 +240,7 @@ export const WalkthroughDialog: React.FC<WalkthroughDialogProps> = ({
                   data-active={index === currentStep}
                   aria-label={`Go to step ${index + 1}`}
                   aria-current={index === currentStep ? "step" : undefined}
+                  onKeyDown={handleKeyDown}
                   onClick={() => setCurrentStep(index)}
                 />
               ))}
@@ -254,6 +254,7 @@ export const WalkthroughDialog: React.FC<WalkthroughDialogProps> = ({
                 variant="ghost"
                 size="sm"
                 iconPosition="right"
+                onKeyDown={handleKeyDown}
               >
                 Continue learning
               </Button>
@@ -262,6 +263,7 @@ export const WalkthroughDialog: React.FC<WalkthroughDialogProps> = ({
                 className={tertiaryFooterLinkStyle}
                 variant="ghost"
                 size="sm"
+                onKeyDown={handleKeyDown}
                 onClick={onClose}
               >
                 Skip tour
@@ -272,6 +274,7 @@ export const WalkthroughDialog: React.FC<WalkthroughDialogProps> = ({
             <Button
               variant="subtle"
               size="sm"
+              onKeyDown={handleKeyDown}
               onClick={goBack}
               disabled={atFirst}
             >
@@ -281,6 +284,7 @@ export const WalkthroughDialog: React.FC<WalkthroughDialogProps> = ({
               variant="solid"
               tone={atLast ? "brand" : "neutral"}
               size="sm"
+              onKeyDown={handleKeyDown}
               onClick={goNext}
             >
               {atLast ? "Get started" : "Next"}
