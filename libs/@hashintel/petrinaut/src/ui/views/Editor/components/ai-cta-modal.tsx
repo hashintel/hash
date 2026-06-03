@@ -174,7 +174,6 @@ export const AiCtaModal = ({
           onClick={onDismiss}
           aria-label="Dismiss"
           iconName="close"
-          tooltip="Dismiss"
         />
         <div className={aiCtaModalIconStyle}>
           <AiAssistantIcon size={32} />
