@@ -1,4 +1,4 @@
-import { use, useState } from "react";
+import { use, useCallback, useEffect, useState } from "react";
 
 import { Button, Dialog } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
@@ -158,42 +158,53 @@ export const WalkthroughDialog: React.FC<WalkthroughDialogProps> = ({
     }
   }
 
-  if (!willShowWalkthroughDialog(walkthrough, open)) return null;
-
-  const { steps } = walkthrough;
+  const shouldShowWalkthrough = willShowWalkthroughDialog(walkthrough, open);
+  const steps = shouldShowWalkthrough ? walkthrough.steps : [];
   const lastIndex = steps.length - 1;
   const step = steps[currentStep] ?? steps[0];
-
-  if (!step) {
-    return null;
-  }
 
   const atFirst = currentStep === 0;
   const atLast = currentStep === lastIndex;
 
-  const goNext = () => {
+  const goNext = useCallback(() => {
     if (atLast) {
       onClose();
     } else {
       setCurrentStep((prevStep) => prevStep + 1);
     }
-  };
+  }, [atLast, onClose]);
 
-  const goBack = () => {
+  const goBack = useCallback(() => {
     if (!atFirst) {
       setCurrentStep((prevStep) => prevStep - 1);
     }
-  };
+  }, [atFirst]);
 
-  const handleKeyDown = (event: React.KeyboardEvent<Element>) => {
-    if (event.key === "ArrowRight") {
-      event.preventDefault();
-      goNext();
-    } else if (event.key === "ArrowLeft") {
-      event.preventDefault();
-      goBack();
+  useEffect(() => {
+    if (!shouldShowWalkthrough) {
+      return;
     }
-  };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "ArrowRight") {
+        event.preventDefault();
+        goNext();
+      } else if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        goBack();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [goBack, goNext, shouldShowWalkthrough]);
+
+  if (!shouldShowWalkthrough || !step) {
+    return null;
+  }
 
   return (
     <Dialog
@@ -240,7 +251,6 @@ export const WalkthroughDialog: React.FC<WalkthroughDialogProps> = ({
                   data-active={index === currentStep}
                   aria-label={`Go to step ${index + 1}`}
                   aria-current={index === currentStep ? "step" : undefined}
-                  onKeyDown={handleKeyDown}
                   onClick={() => setCurrentStep(index)}
                 />
               ))}
@@ -254,7 +264,6 @@ export const WalkthroughDialog: React.FC<WalkthroughDialogProps> = ({
                 variant="ghost"
                 size="sm"
                 iconPosition="right"
-                onKeyDown={handleKeyDown}
               >
                 Continue learning
               </Button>
@@ -263,7 +272,6 @@ export const WalkthroughDialog: React.FC<WalkthroughDialogProps> = ({
                 className={tertiaryFooterLinkStyle}
                 variant="ghost"
                 size="sm"
-                onKeyDown={handleKeyDown}
                 onClick={onClose}
               >
                 Skip tour
@@ -274,7 +282,6 @@ export const WalkthroughDialog: React.FC<WalkthroughDialogProps> = ({
             <Button
               variant="subtle"
               size="sm"
-              onKeyDown={handleKeyDown}
               onClick={goBack}
               disabled={atFirst}
             >
@@ -284,7 +291,6 @@ export const WalkthroughDialog: React.FC<WalkthroughDialogProps> = ({
               variant="solid"
               tone={atLast ? "brand" : "neutral"}
               size="sm"
-              onKeyDown={handleKeyDown}
               onClick={goNext}
             >
               {atLast ? "Get started" : "Next"}

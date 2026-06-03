@@ -252,19 +252,20 @@ export const Arc: React.FC<EdgeProps<ArcEdgeType>> = ({
   }
 
   let strokeColor = style?.stroke ?? "#b1b1b7";
-  const strokeDasharray = getArcStrokeDasharray(data?.arcType);
+  const arcType = data?.arcType;
+  const strokeDasharray = getArcStrokeDasharray(arcType);
   const markerEndOverride =
-    data?.arcType === "inhibitor"
+    arcType === "inhibitor"
       ? `url(#${inhibitorMarkerId})`
-      : data?.arcType === "read"
+      : arcType === "read"
         ? `url(#${readMarkerId})`
         : markerEnd;
 
   return (
     <>
-      {(data?.arcType === "inhibitor" || data?.arcType === "read") && (
+      {(arcType === "inhibitor" || arcType === "read") && (
         <defs>
-          {data.arcType === "inhibitor" ? (
+          {arcType === "inhibitor" ? (
             <marker
               id={inhibitorMarkerId}
               markerWidth={INHIBITOR_MARKER_SIZE}
@@ -323,7 +324,7 @@ export const Arc: React.FC<EdgeProps<ArcEdgeType>> = ({
         stroke={strokeColor}
         strokeWidth={BASE_STROKE_WIDTH}
         strokeDasharray={strokeDasharray}
-        strokeLinecap={data?.arcType === "read" ? "round" : undefined}
+        strokeLinecap={arcType === "read" ? "round" : undefined}
         style={{ pointerEvents: "none" }}
       />
 
@@ -337,7 +338,7 @@ export const Arc: React.FC<EdgeProps<ArcEdgeType>> = ({
             ? {
                 ...style,
                 strokeDasharray,
-                strokeLinecap: data?.arcType === "read" ? "round" : undefined,
+                strokeLinecap: arcType === "read" ? "round" : undefined,
                 stroke: strokeColor,
               }
             : { ...style, stroke: strokeColor }
