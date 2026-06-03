@@ -1,4 +1,5 @@
 import { Box, Paper, Stack, Typography } from "@mui/material";
+import DOMPurify from "dompurify";
 import { useContext, useMemo } from "react";
 
 import {
@@ -176,7 +177,11 @@ const AddNewIntegrations: FunctionComponent = () => {
               // The catalog stores short marketing descriptions as HTML so
               // a few entries can include light formatting (e.g. <strong>).
               // eslint-disable-next-line react/no-danger
-              dangerouslySetInnerHTML={{ __html: integration.summaryHtml }}
+              dangerouslySetInnerHTML={{
+                __html: DOMPurify.sanitize(integration.summaryHtml, {
+                  ALLOWED_TAGS: ["strong", "em", "br", "p", "div"],
+                }),
+              }}
             />
           }
           iconDetail={iconDetail}
