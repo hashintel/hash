@@ -1,5 +1,6 @@
-import { LanguageClientProvider } from "../../../../../../react/lsp/provider";
 import { DEFAULT_PETRINAUT_EXTENSIONS } from "@hashintel/petrinaut-core";
+
+import { LanguageClientProvider } from "../../../../../../react/lsp/provider";
 import {
   SDCPNContext,
   type SDCPNContextValue,
