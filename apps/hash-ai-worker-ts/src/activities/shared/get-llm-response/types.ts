@@ -131,11 +131,8 @@ export type OpenAiResponse = Omit<
 
 export type GoogleAiResponse = Omit<
   GenerateContentResponse,
-  // `@google/genai`'s `GenerateContentResponse` is a class whose convenience
-  // getters (`text`/`data`/`functionCalls`/`executableCode`/
-  // `codeExecutionResult`) are required, computed accessors over `candidates`.
-  // We normalize the candidate content ourselves, so we omit both the raw
-  // candidates and those derived getters here.
+  // genai's GenerateContentResponse exposes computed getters over `candidates`;
+  // we normalize candidates ourselves, so omit both them and the derived getters.
   | "usageMetadata"
   | "candidates"
   | "text"

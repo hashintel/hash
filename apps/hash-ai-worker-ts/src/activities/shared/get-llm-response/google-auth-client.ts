@@ -44,8 +44,7 @@ const buildWorkloadIdentityOptions = ():
 
   return {
     ...(JSON.parse(workloadIdentityConfig) as Record<string, unknown>),
-    // The config's `credential_source` targets EC2 IMDS (unavailable on
-    // Fargate); the supplier below replaces it.
+    // Replaces the config's EC2-IMDS credential_source (unavailable on Fargate).
     credential_source: undefined,
     aws_security_credentials_supplier: {
       getAwsRegion: () => Promise.resolve(awsRegion),

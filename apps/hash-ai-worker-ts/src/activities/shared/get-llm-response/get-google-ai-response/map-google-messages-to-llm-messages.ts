@@ -46,7 +46,7 @@ export const mapGoogleMessagesToLlmMessages = (params: {
 
           if ("fileData" in part) {
             if (!part.fileData?.fileUri) {
-              throw new Error("File data is undefined");
+              throw new Error("File part has no fileData.fileUri");
             }
 
             const { entityId, properties } = getFileEntityFromGcpStorageUri({
