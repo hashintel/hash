@@ -8,10 +8,18 @@ description: >
   job's `concurrency: { queue: max }` for the check-then-set to be race-free
   (serialized); without it the read/compare/write is a TOCTOU race.
 
-  Registry-agnostic: uses `docker buildx imagetools`, so it works for both ECR
-  and GHCR. The caller MUST already be authenticated to the registry and MUST
-  check out with `fetch-depth: 0` (the currently-tagged commit can be arbitrarily
-  far back, and `git merge-base --is-ancestor` needs it in local history).
+  Registry-aware advance: the current-revision read uses `docker buildx
+  imagetools inspect` for both registries, but the tag move differs. GHCR is
+  multi-arch, so the mutable tag is assembled with `imagetools create` (a
+  manifest list is correct there). ECR is single-arch and is scanned by
+  Inspector / promoted by digest, so its mutable tag must stay a flat image —
+  `imagetools create` always synthesizes an index, which is exactly what broke
+  ECR :staging (SRE-747). For ECR we re-PUT the source manifest bytes under the
+  mutable tag via `aws ecr put-image`: same digest, no index. The caller MUST
+  already be authenticated to the registry (ECR additionally needs AWS
+  credentials and region configured) and MUST check out with `fetch-depth: 0`
+  (the currently-tagged commit can be arbitrarily far back, and
+  `git merge-base --is-ancestor` needs it in local history).
 
 inputs:
   image:
@@ -99,8 +107,43 @@ runs:
     - name: Advance ${{ inputs.mutable-tag }} to ${{ inputs.source-tag }}
       if: steps.decide.outputs.advanced == 'true'
       uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
+      env:
+        IMAGE: ${{ inputs.image }}
+        MUTABLE_TAG: ${{ inputs.mutable-tag }}
+        SOURCE_TAG: ${{ inputs.source-tag }}
       with:
         timeout_minutes: 5
         max_attempts: 3
         retry_wait_seconds: 10
-        command: docker buildx imagetools create --tag "${{ inputs.image }}:${{ inputs.mutable-tag }}" "${{ inputs.image }}:${{ inputs.source-tag }}"
+        command: |
+          set -euo pipefail
+          # TODO(SRE-759): `crane tag` would collapse this whole branch into one
+          #   registry-agnostic line (preserves media type: flat for ECR, index
+          #   for GHCR) — at the cost of a new dependency. See the issue.
+          if [[ "$IMAGE" == *.dkr.ecr.*.amazonaws.com/* ]]; then
+            repo="${IMAGE#*.amazonaws.com/}"
+            manifest="$(aws ecr batch-get-image \
+              --repository-name "$repo" \
+              --image-ids imageTag="$SOURCE_TAG" \
+              --query 'images[0].imageManifest' --output text)"
+            if [[ -z "$manifest" || "$manifest" == "None" ]]; then
+              echo "::error ::no manifest found for $repo:$SOURCE_TAG" >&2
+              exit 1
+            fi
+            # A retry after a partial success re-sends the same bytes+tag, which
+            # ECR rejects with ImageAlreadyExistsException — that's the intended
+            # end state, so treat it as success.
+            if ! out="$(aws ecr put-image \
+              --repository-name "$repo" \
+              --image-tag "$MUTABLE_TAG" \
+              --image-manifest "$manifest" 2>&1)"; then
+              if grep -q 'ImageAlreadyExistsException' <<<"$out"; then
+                echo "::notice ::$repo:$MUTABLE_TAG already points at $SOURCE_TAG"
+              else
+                echo "$out" >&2
+                exit 1
+              fi
+            fi
+          else
+            docker buildx imagetools create --tag "$IMAGE:$MUTABLE_TAG" "$IMAGE:$SOURCE_TAG"
+          fi
