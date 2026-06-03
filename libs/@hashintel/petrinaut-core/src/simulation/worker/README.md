@@ -12,14 +12,14 @@ computation.
 
 **Host → Worker:**
 
-| Type              | Payload                                                                                      | Description                         |
-| ----------------- | -------------------------------------------------------------------------------------------- | ----------------------------------- |
-| `init`            | `{ sdcpn, initialMarking, parameterValues, seed, dt, maxTime, maxFramesAhead?, batchSize? }` | Initialize simulation               |
-| `start`           | —                                                                                            | Begin/resume computing frames       |
-| `pause`           | —                                                                                            | Pause computation (state retained)  |
-| `stop`            | —                                                                                            | Stop and discard simulation         |
-| `setBackpressure` | `{ maxFramesAhead?, batchSize? }`                                                            | Reconfigure backpressure at runtime |
-| `ack`             | `{ frameNumber }`                                                                            | Acknowledge frame receipt           |
+| Type              | Payload                                                                                                   | Description                         |
+| ----------------- | --------------------------------------------------------------------------------------------------------- | ----------------------------------- |
+| `init`            | `{ sdcpn, extensions?, initialMarking, parameterValues, seed, dt, maxTime, maxFramesAhead?, batchSize? }` | Initialize simulation               |
+| `start`           | —                                                                                                         | Begin/resume computing frames       |
+| `pause`           | —                                                                                                         | Pause computation (state retained)  |
+| `stop`            | —                                                                                                         | Stop and discard simulation         |
+| `setBackpressure` | `{ maxFramesAhead?, batchSize? }`                                                                         | Reconfigure backpressure at runtime |
+| `ack`             | `{ frameNumber }`                                                                                         | Acknowledge frame receipt           |
 
 **Worker → Host:**
 
@@ -68,6 +68,7 @@ import { createSimulation } from "@hashintel/petrinaut-core";
 
 const sim = await createSimulation({
   sdcpn,
+  extensions,
   initialMarking: {
     queue: 10,
     customer: [{ waitTime: 0 }],

@@ -159,28 +159,31 @@ export const transitionSchema = z
     }),
     lambdaType: z.enum(["predicate", "stochastic"]).meta({
       description:
-        "Use predicate for boolean enabling logic; use stochastic for rate-based firing.",
+        "Use predicate for boolean enabling logic when coloured standard inputs are available; use stochastic for rate-based firing when stochasticity is available.",
     }),
     lambdaCode: z.string().meta({
       description: [
-        "Module: `export default Lambda((input, parameters) => …)`.",
+        "Optional module: `export default Lambda((input, parameters) => …)`.",
+        "Lambda code is meaningful only when stochasticity is enabled OR when colours are enabled and the transition has at least one standard input arc from a coloured place.",
         "`input` is keyed by INPUT PLACE NAME (PascalCase) for coloured standard and read arcs, and the value is a tuple sized to that arc's weight (weight 2 means a 2-token array).",
         "Read arc tokens are present in `input` but are not consumed when the transition fires.",
         "Inhibitor arcs and uncoloured input places are NOT present in `input`.",
         "Each token is an object keyed by the colour type's element names (e.g. `{ x, y, velocity }`).",
         "`parameters` is keyed by each parameter's `variableName` value (lower_snake_case, e.g. `parameters.infection_rate`).",
         "Predicate lambdas MUST return a boolean (true = enabled given these tokens, false = disabled).",
-        "Stochastic lambdas MUST return a non-negative finite number = expected firings per simulation second (0 disables, Infinity always fires).",
+        "Stochastic lambdas MUST return a non-negative number = expected firings per simulation second (0 disables, Infinity always fires).",
         "Lambda is called per token combination satisfying arc weights, so it MUST be deterministic — put randomness in the transition kernel, not here.",
+        "Leave empty when lambda authoring is unavailable; the runtime supplies the always-enabled default.",
       ].join(" "),
     }),
     transitionKernelCode: z.string().meta({
       description: [
-        "Module: `export default TransitionKernel((input, parameters) => …)`.",
+        "Optional module: `export default TransitionKernel((input, parameters) => …)`.",
+        "Transition kernel code is meaningful only when colours are enabled and the transition has at least one coloured output place.",
         "`input` and `parameters` have the same shape as the transition's lambda.",
         "MUST return an object keyed by OUTPUT PLACE NAME with a tuple sized to that arc's weight. Coloured output places MUST be present; uncoloured output places MUST be omitted (they are auto-populated with empty tokens).",
         "Token attribute values can be plain numbers/booleans OR `Distribution.Gaussian(mean, sd)` / `Distribution.Uniform(min, max)` / `Distribution.Lognormal(mu, sigma)`; each distribution is sampled once per token, and chained `.map(fn)` calls on the same distribution share that single sample (useful for deriving multiple attributes from one draw).",
-        "Always required even when no stochasticity is needed; use `export default TransitionKernel(() => ({}))` when every output place is uncoloured.",
+        "Leave empty when no coloured outputs exist.",
       ].join(" "),
     }),
     x: z.number().meta({

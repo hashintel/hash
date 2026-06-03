@@ -94,6 +94,8 @@ You can also toggle between the code, a preview, and both at once.
 
 The transition kernel defines how input tokens are transformed into output tokens when a transition fires.
 
+The **Transition Results** editor is shown only when the transition has at least one coloured output place. If every output place is uncoloured, leave the kernel empty; the engine creates the right number of plain tokens from the output arc weights.
+
 ```ts
 export default TransitionKernel((tokensByPlace, parameters) => {
   return {
@@ -137,13 +139,16 @@ return {
 
 The underlying random sample is drawn once and shared across chained `.map()` calls, so `x` and `y` above are derived from the same angle.
 
-### Empty kernels
-
-For transitions where all output places are **untyped**, the kernel code can be left empty. The engine produces the correct number of black tokens automatically.
-
 ## Firing rate / predicate
 
-Each transition has a **firing rate** that controls when it fires, once structurally enabled (sufficient tokens in input places). Choose between two modes in the transition properties:
+A transition can have a **firing rate** or **predicate** that controls when it fires, once structurally enabled (sufficient tokens in input places). When both modes are meaningful, choose between them in the transition properties:
+
+The **Firing Time** editor is shown when at least one lambda mode is meaningful:
+
+- **Stochastic rate** is available when stochasticity is enabled for the document.
+- **Predicate** is available when colours are enabled and the transition has at least one standard input arc from a coloured place.
+
+If neither condition applies, the transition has no lambda editor. It fires whenever its structural arc conditions are satisfied.
 
 ### Predicate
 
@@ -200,5 +205,7 @@ Use read arcs when a transition needs to inspect shared state, permission tokens
 ## Diagnostics
 
 The **Diagnostics** tab in the bottom panel shows TypeScript errors in your code (dynamics, firing rate, kernels, visualizers), grouped by entity. Click a diagnostic to select the relevant entity and see the error in context.
+
+Petrinaut only reports diagnostics for code surfaces that are active for the current document and graph shape. For example, a hidden firing-time editor or a transition with no coloured outputs will not produce lambda or kernel diagnostics.
 
 Diagnostics must be resolved before running a simulation -- pressing Play with unresolved errors opens the Diagnostics tab instead of starting the simulation.

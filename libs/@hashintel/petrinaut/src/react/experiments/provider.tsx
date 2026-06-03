@@ -362,6 +362,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
     const initializeExperiment = async () => {
       const experimentConfigBase = {
         sdcpn: experimentSdcpn,
+        extensions: extensionsRef.current,
         initialMarking,
         parameterValues,
         seed: input.seed,

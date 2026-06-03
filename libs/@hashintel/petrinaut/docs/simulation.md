@@ -71,10 +71,10 @@ Each simulation step proceeds in two phases:
 
 2. **Discrete transitions** -- transitions are evaluated in definition order (deterministic, not random). For each transition:
    - Checks structural enablement (enough tokens for standard/read input arcs, inhibitor conditions met).
-   - Evaluates the lambda (predicate or stochastic rate).
+   - Evaluates the lambda when one is active for the transition. If no lambda is active, the transition is treated as enabled once its structural arc conditions are met.
    - If the transition fires, removes standard input tokens **immediately** (subsequent transitions see the updated state). Read and inhibitor arcs do not consume tokens.
 
-   All produced output tokens are added at the end of the step.
+   All produced output tokens are added at the end of the step. If no transition kernel is active, uncoloured output tokens are generated from the output arc weights.
 
 Simulation time advances by `dt` each frame.
 

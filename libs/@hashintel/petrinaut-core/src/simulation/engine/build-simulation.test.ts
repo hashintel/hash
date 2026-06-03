@@ -6,6 +6,151 @@ import { buildSimulation } from "./build-simulation";
 import type { SimulationInput } from "./types";
 
 describe("buildSimulation", () => {
+  it("does not compile Lambda code when transition lambdas are unavailable", () => {
+    const simulation = buildSimulation({
+      sdcpn: {
+        types: [],
+        differentialEquations: [],
+        parameters: [],
+        places: [
+          {
+            id: "p1",
+            name: "Input",
+            colorId: null,
+            dynamicsEnabled: false,
+            differentialEquationId: null,
+            x: 0,
+            y: 0,
+          },
+        ],
+        transitions: [
+          {
+            id: "t1",
+            name: "Move",
+            inputArcs: [{ placeId: "p1", weight: 1, type: "standard" }],
+            outputArcs: [],
+            lambdaType: "predicate",
+            lambdaCode: "export default Lambda((",
+            transitionKernelCode: "",
+            x: 0,
+            y: 0,
+          },
+        ],
+      },
+      extensions: {
+        colors: true,
+        stochasticity: false,
+        dynamics: true,
+        parameters: true,
+      },
+      initialMarking: { p1: 1 },
+      parameterValues: {},
+      seed: 42,
+      dt: 0.1,
+      maxTime: null,
+    });
+
+    expect(simulation.compiledTransitions.get("t1")?.lambdaFn({})).toBe(true);
+  });
+
+  it("uses an always-firing stochastic Lambda when stochasticity is enabled and Lambda code is empty", () => {
+    const simulation = buildSimulation({
+      sdcpn: {
+        types: [],
+        differentialEquations: [],
+        parameters: [],
+        places: [
+          {
+            id: "p1",
+            name: "Input",
+            colorId: null,
+            dynamicsEnabled: false,
+            differentialEquationId: null,
+            x: 0,
+            y: 0,
+          },
+        ],
+        transitions: [
+          {
+            id: "t1",
+            name: "Move",
+            inputArcs: [{ placeId: "p1", weight: 1, type: "standard" }],
+            outputArcs: [],
+            lambdaType: "stochastic",
+            lambdaCode: "",
+            transitionKernelCode: "",
+            x: 0,
+            y: 0,
+          },
+        ],
+      },
+      initialMarking: { p1: 1 },
+      parameterValues: {},
+      seed: 42,
+      dt: 0.1,
+      maxTime: null,
+    });
+
+    expect(simulation.compiledTransitions.get("t1")?.lambdaFn({})).toBe(
+      Infinity,
+    );
+  });
+
+  it("still compiles predicate Lambda code when stochasticity is disabled but coloured inputs exist", () => {
+    expect(() =>
+      buildSimulation({
+        sdcpn: {
+          types: [
+            {
+              id: "type1",
+              name: "Type 1",
+              iconSlug: "circle",
+              displayColor: "#FF0000",
+              elements: [{ elementId: "e1", name: "x", type: "real" }],
+            },
+          ],
+          differentialEquations: [],
+          parameters: [],
+          places: [
+            {
+              id: "p1",
+              name: "Input",
+              colorId: "type1",
+              dynamicsEnabled: false,
+              differentialEquationId: null,
+              x: 0,
+              y: 0,
+            },
+          ],
+          transitions: [
+            {
+              id: "t1",
+              name: "Move",
+              inputArcs: [{ placeId: "p1", weight: 1, type: "standard" }],
+              outputArcs: [],
+              lambdaType: "predicate",
+              lambdaCode: "export default Lambda((",
+              transitionKernelCode: "",
+              x: 0,
+              y: 0,
+            },
+          ],
+        },
+        extensions: {
+          colors: true,
+          stochasticity: false,
+          dynamics: true,
+          parameters: true,
+        },
+        initialMarking: {},
+        parameterValues: {},
+        seed: 42,
+        dt: 0.1,
+        maxTime: null,
+      }),
+    ).toThrow("Failed to compile Lambda function");
+  });
+
   it("builds a simulation with a single place and initial tokens", () => {
     const input: SimulationInput = {
       sdcpn: {

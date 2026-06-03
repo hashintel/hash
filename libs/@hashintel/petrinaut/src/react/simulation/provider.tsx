@@ -350,6 +350,7 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     try {
       sim = await createSimulation({
         sdcpn: simulationSdcpn,
+        extensions: extensionsRef.current,
         // eslint-disable-next-line no-use-before-define -- closure; ref is defined later in render
         initialMarking: effectiveInitialMarkingRef.current,
         // eslint-disable-next-line no-use-before-define -- closure; ref is defined later in render

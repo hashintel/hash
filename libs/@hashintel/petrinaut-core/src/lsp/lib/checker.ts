@@ -1,3 +1,8 @@
+import {
+  DEFAULT_PETRINAUT_EXTENSIONS,
+  getTransitionLogicAvailability,
+  type PetrinautExtensionSettings,
+} from "../../extensions";
 import { getItemFilePath } from "./file-paths";
 
 import type { SDCPN } from "../../types/sdcpn";
@@ -34,11 +39,14 @@ export type SDCPNCheckResult = {
 export function checkSDCPN(
   sdcpn: SDCPN,
   server: SDCPNLanguageServer,
+  extensions: PetrinautExtensionSettings = DEFAULT_PETRINAUT_EXTENSIONS,
 ): SDCPNCheckResult {
   const itemDiagnostics: SDCPNDiagnostic[] = [];
 
   // Check all differential equations
-  for (const de of sdcpn.differentialEquations) {
+  for (const de of extensions.colors && extensions.dynamics
+    ? sdcpn.differentialEquations
+    : []) {
     const filePath = getItemFilePath("differential-equation-code", {
       id: de.id,
     });
@@ -58,36 +66,37 @@ export function checkSDCPN(
 
   // Check all functions in transitions (both lambda and kernel)
   for (const transition of sdcpn.transitions) {
-    // Check Lambda code
-    const lambdaFilePath = getItemFilePath("transition-lambda-code", {
-      transitionId: transition.id,
-    });
-    const lambdaSemanticDiagnostics =
-      server.getSemanticDiagnostics(lambdaFilePath);
-    const lambdaSyntacticDiagnostics =
-      server.getSyntacticDiagnostics(lambdaFilePath);
-    const lambdaDiagnostics = [
-      ...lambdaSyntacticDiagnostics,
-      ...lambdaSemanticDiagnostics,
-    ];
+    const availability = getTransitionLogicAvailability(
+      transition,
+      sdcpn,
+      extensions,
+    );
 
-    if (lambdaDiagnostics.length > 0) {
-      itemDiagnostics.push({
-        itemId: transition.id,
-        itemType: "transition-lambda",
-        filePath: lambdaFilePath,
-        diagnostics: lambdaDiagnostics,
+    if (availability.lambda) {
+      // Check Lambda code
+      const lambdaFilePath = getItemFilePath("transition-lambda-code", {
+        transitionId: transition.id,
       });
+      const lambdaSemanticDiagnostics =
+        server.getSemanticDiagnostics(lambdaFilePath);
+      const lambdaSyntacticDiagnostics =
+        server.getSyntacticDiagnostics(lambdaFilePath);
+      const lambdaDiagnostics = [
+        ...lambdaSyntacticDiagnostics,
+        ...lambdaSemanticDiagnostics,
+      ];
+
+      if (lambdaDiagnostics.length > 0) {
+        itemDiagnostics.push({
+          itemId: transition.id,
+          itemType: "transition-lambda",
+          filePath: lambdaFilePath,
+          diagnostics: lambdaDiagnostics,
+        });
+      }
     }
 
-    // Check TransitionKernel code only if there are coloured output places
-    // (places with a color type that can receive tokens)
-    const hasColouredOutputPlaces = transition.outputArcs.some((arc) => {
-      const place = sdcpn.places.find((pl) => pl.id === arc.placeId);
-      return place?.colorId != null;
-    });
-
-    if (hasColouredOutputPlaces) {
+    if (availability.transitionKernel) {
       const kernelFilePath = getItemFilePath("transition-kernel-code", {
         transitionId: transition.id,
       });

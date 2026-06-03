@@ -5,6 +5,7 @@
  * part of the public simulation API.
  */
 
+import type { PetrinautExtensionSettings } from "../../extensions";
 import type {
   Color,
   InputArcType,
@@ -87,6 +88,8 @@ export type CompiledTransition = {
 export type SimulationInput = {
   /** The SDCPN definition to simulate */
   sdcpn: SDCPN;
+  /** Enabled SDCPN extensions for this simulation run. */
+  extensions?: PetrinautExtensionSettings;
   /** Initial token distribution across places */
   initialMarking: InitialMarking;
   /** Parameter values from the simulation store (overrides SDCPN defaults) */

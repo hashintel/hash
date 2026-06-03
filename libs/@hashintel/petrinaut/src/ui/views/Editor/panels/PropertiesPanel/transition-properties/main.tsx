@@ -1,6 +1,7 @@
 import { use } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
+import { getTransitionLogicAvailability } from "@hashintel/petrinaut-core";
 
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { useIsReadOnly } from "../../../../../../react/state/use-is-read-only";
@@ -41,12 +42,17 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
   removeArc,
 }) => {
   const isReadOnly = useIsReadOnly();
-  const { extensions } = use(SDCPNContext);
+  const { extensions, petriNetDefinition } = use(SDCPNContext);
+  const logicAvailability = getTransitionLogicAvailability(
+    transition,
+    petriNetDefinition,
+    extensions,
+  );
 
   const subViews: SubView[] = [
     transitionMainContentSubView,
-    transitionFiringTimeSubView,
-    ...(extensions.colors ? [transitionResultsSubView] : []),
+    ...(logicAvailability.lambda ? [transitionFiringTimeSubView] : []),
+    ...(logicAvailability.transitionKernel ? [transitionResultsSubView] : []),
   ];
 
   return (
@@ -55,6 +61,7 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
         transition={transition}
         places={places}
         types={types}
+        logicAvailability={logicAvailability}
         isReadOnly={isReadOnly}
         updateTransition={updateTransition}
         onArcWeightUpdate={onArcWeightUpdate}

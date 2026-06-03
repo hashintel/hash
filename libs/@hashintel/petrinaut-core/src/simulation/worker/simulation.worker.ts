@@ -159,6 +159,7 @@ workerRuntime.onMessage((message) => {
         // Build simulation (compiles user code)
         simulation = buildSimulation({
           sdcpn: message.sdcpn,
+          extensions: message.extensions,
           initialMarking: message.initialMarking,
           parameterValues: message.parameterValues,
           seed: message.seed,

@@ -1,7 +1,11 @@
 import { MarkerType } from "@xyflow/react";
 import { use } from "react";
 
-import { generateArcId } from "@hashintel/petrinaut-core";
+import {
+  generateArcId,
+  getEffectiveTransitionLambdaType,
+  getTransitionLogicAvailability,
+} from "@hashintel/petrinaut-core";
 
 import { PlaybackContext } from "../../../../react/playback/context";
 import { EditorContext } from "../../../../react/state/editor-context";
@@ -52,9 +56,10 @@ export function useSdcpnToReactFlow(): PetrinautReactFlowDefinitionObject {
     const draggingState = draggingStateByNodeId[place.id];
 
     // Check if place has a type with at least one dimension (element)
-    const placeType = extensions.colors && place.colorId
-      ? petriNetDefinition.types.find((type) => type.id === place.colorId)
-      : null;
+    const placeType =
+      extensions.colors && place.colorId
+        ? petriNetDefinition.types.find((type) => type.id === place.colorId)
+        : null;
     const hasColorType = !!(placeType && placeType.elements.length > 0);
 
     nodes.push({
@@ -86,6 +91,11 @@ export function useSdcpnToReactFlow(): PetrinautReactFlowDefinitionObject {
   // Create transition nodes
   for (const transition of petriNetDefinition.transitions) {
     const draggingState = draggingStateByNodeId[transition.id];
+    const logicAvailability = getTransitionLogicAvailability(
+      transition,
+      petriNetDefinition,
+      extensions,
+    );
 
     nodes.push({
       id: transition.id,
@@ -104,9 +114,9 @@ export function useSdcpnToReactFlow(): PetrinautReactFlowDefinitionObject {
       data: {
         label: transition.name,
         type: "transition",
-        lambdaType: extensions.stochasticity
-          ? transition.lambdaType
-          : "predicate",
+        lambdaType: logicAvailability.lambda
+          ? getEffectiveTransitionLambdaType(transition, logicAvailability)
+          : "none",
         frame: currentFrameReader?.getTransitionState(transition.id) ?? null,
       },
     });
@@ -127,9 +137,10 @@ export function useSdcpnToReactFlow(): PetrinautReactFlowDefinitionObject {
       const place = petriNetDefinition.places.find(
         (pl) => pl.id === inputArc.placeId,
       );
-      const placeType = extensions.colors && place?.colorId
-        ? petriNetDefinition.types.find((type) => type.id === place.colorId)
-        : null;
+      const placeType =
+        extensions.colors && place?.colorId
+          ? petriNetDefinition.types.find((type) => type.id === place.colorId)
+          : null;
       let arcColor = placeType?.displayColor
         ? hexToHsl(placeType.displayColor).lighten(-15).saturate(-30).css(1)
         : "#777";
@@ -175,9 +186,10 @@ export function useSdcpnToReactFlow(): PetrinautReactFlowDefinitionObject {
       const place = petriNetDefinition.places.find(
         (pl) => pl.id === outputArc.placeId,
       );
-      const placeType = extensions.colors && place?.colorId
-        ? petriNetDefinition.types.find((type) => type.id === place.colorId)
-        : null;
+      const placeType =
+        extensions.colors && place?.colorId
+          ? petriNetDefinition.types.find((type) => type.id === place.colorId)
+          : null;
       let arcColor = placeType?.displayColor
         ? hexToHsl(placeType.displayColor).lighten(-15).saturate(-30).css(1)
         : "#777";

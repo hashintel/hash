@@ -1,3 +1,9 @@
+import {
+  DEFAULT_PETRINAUT_EXTENSIONS,
+  getEffectiveTransitionLambdaType,
+  getTransitionLogicAvailability,
+  type PetrinautExtensionSettings,
+} from "../../extensions";
 import { getItemFilePath } from "./file-paths";
 
 import type { SDCPN, ScenarioParameter } from "../../types/sdcpn";
@@ -22,7 +28,10 @@ function toTsType(type: "real" | "integer" | "boolean" | "ratio"): string {
 /**
  * Generates virtual files for all SDCPN entities
  */
-export function generateVirtualFiles(sdcpn: SDCPN): Map<string, VirtualFile> {
+export function generateVirtualFiles(
+  sdcpn: SDCPN,
+  extensions: PetrinautExtensionSettings = DEFAULT_PETRINAUT_EXTENSIONS,
+): Map<string, VirtualFile> {
   const files = new Map<string, VirtualFile>();
 
   // Generate global SDCPN library definitions
@@ -40,10 +49,12 @@ export function generateVirtualFiles(sdcpn: SDCPN): Map<string, VirtualFile> {
 
   // Build lookup maps for places and types
   const placeById = new Map(sdcpn.places.map((place) => [place.id, place]));
-  const colorById = new Map(sdcpn.types.map((color) => [color.id, color]));
+  const colorById = new Map(
+    (extensions.colors ? sdcpn.types : []).map((color) => [color.id, color]),
+  );
 
   // Generate parameters type definition
-  const parametersProperties = sdcpn.parameters
+  const parametersProperties = (extensions.parameters ? sdcpn.parameters : [])
     .map((param) => `  "${param.variableName}": ${toTsType(param.type)};`)
     .join("\n");
 
@@ -52,7 +63,7 @@ export function generateVirtualFiles(sdcpn: SDCPN): Map<string, VirtualFile> {
   });
 
   // Generate type definitions for each color
-  for (const color of sdcpn.types) {
+  for (const color of extensions.colors ? sdcpn.types : []) {
     const sanitizedColorId = sanitizeColorId(color.id);
     const properties = color.elements
       .map((el) => `  ${el.name}: ${toTsType(el.type)};`)
@@ -64,7 +75,9 @@ export function generateVirtualFiles(sdcpn: SDCPN): Map<string, VirtualFile> {
   }
 
   // Generate files for each differential equation
-  for (const de of sdcpn.differentialEquations) {
+  for (const de of extensions.colors && extensions.dynamics
+    ? sdcpn.differentialEquations
+    : []) {
     const sanitizedColorId = de.colorId ? sanitizeColorId(de.colorId) : null;
     const deDefsPath = getItemFilePath("differential-equation-defs", {
       id: de.id,
@@ -108,6 +121,11 @@ export function generateVirtualFiles(sdcpn: SDCPN): Map<string, VirtualFile> {
 
   // Generate files for each transition
   for (const transition of sdcpn.transitions) {
+    const availability = getTransitionLogicAvailability(
+      transition,
+      sdcpn,
+      extensions,
+    );
     const parametersDefsPath = getItemFilePath("parameters-defs");
     const lambdaDefsPath = getItemFilePath("transition-lambda-defs", {
       transitionId: transition.id,
@@ -134,7 +152,7 @@ export function generateVirtualFiles(sdcpn: SDCPN): Map<string, VirtualFile> {
         continue;
       }
       const place = placeById.get(arc.placeId);
-      if (!place?.colorId) {
+      if (!extensions.colors || !place?.colorId) {
         continue;
       }
       const color = colorById.get(place.colorId);
@@ -163,7 +181,7 @@ export function generateVirtualFiles(sdcpn: SDCPN): Map<string, VirtualFile> {
 
     for (const arc of transition.outputArcs) {
       const place = placeById.get(arc.placeId);
-      if (!place?.colorId) {
+      if (!extensions.colors || !place?.colorId) {
         continue;
       }
       const color = colorById.get(place.colorId);
@@ -198,51 +216,58 @@ export function generateVirtualFiles(sdcpn: SDCPN): Map<string, VirtualFile> {
       outputTypeProperties.length > 0
         ? `{\n${outputTypeProperties.join("\n")}\n}`
         : "Record<string, never>";
-    const lambdaReturnType =
-      transition.lambdaType === "predicate" ? "boolean" : "number";
+    const lambdaType = getEffectiveTransitionLambdaType(
+      transition,
+      availability,
+    );
+    const lambdaReturnType = lambdaType === "predicate" ? "boolean" : "number";
 
-    // Lambda definitions file
-    files.set(lambdaDefsPath, {
-      content: [
-        `import type { Parameters } from "${parametersDefsPath}";`,
-        ...allImports,
-        ``,
-        `export type Input = ${inputType};`,
-        `export type Lambda = (fn: (input: Input, parameters: Parameters) => ${lambdaReturnType}) => void;`,
-      ].join("\n"),
-    });
+    if (availability.lambda) {
+      // Lambda definitions file
+      files.set(lambdaDefsPath, {
+        content: [
+          `import type { Parameters } from "${parametersDefsPath}";`,
+          ...allImports,
+          ``,
+          `export type Input = ${inputType};`,
+          `export type Lambda = (fn: (input: Input, parameters: Parameters) => ${lambdaReturnType}) => void;`,
+        ].join("\n"),
+      });
 
-    // Lambda code file
-    files.set(lambdaCodePath, {
-      prefix: [
-        `import type { Lambda } from "${lambdaDefsPath}";`,
-        `declare const Lambda: Lambda;`,
-        "",
-      ].join("\n"),
-      content: transition.lambdaCode,
-    });
+      // Lambda code file
+      files.set(lambdaCodePath, {
+        prefix: [
+          `import type { Lambda } from "${lambdaDefsPath}";`,
+          `declare const Lambda: Lambda;`,
+          "",
+        ].join("\n"),
+        content: transition.lambdaCode,
+      });
+    }
 
-    // TransitionKernel definitions file
-    files.set(kernelDefsPath, {
-      content: [
-        `import type { Parameters } from "${parametersDefsPath}";`,
-        ...allImports,
-        ``,
-        `export type Input = ${inputType};`,
-        `export type Output = ${outputType};`,
-        `export type TransitionKernel = (fn: (input: Input, parameters: Parameters) => Output) => void;`,
-      ].join("\n"),
-    });
+    if (availability.transitionKernel) {
+      // TransitionKernel definitions file
+      files.set(kernelDefsPath, {
+        content: [
+          `import type { Parameters } from "${parametersDefsPath}";`,
+          ...allImports,
+          ``,
+          `export type Input = ${inputType};`,
+          `export type Output = ${outputType};`,
+          `export type TransitionKernel = (fn: (input: Input, parameters: Parameters) => Output) => void;`,
+        ].join("\n"),
+      });
 
-    // TransitionKernel code file
-    files.set(kernelCodePath, {
-      prefix: [
-        `import type { TransitionKernel } from "${kernelDefsPath}";`,
-        `declare const TransitionKernel: TransitionKernel;`,
-        "",
-      ].join("\n"),
-      content: transition.transitionKernelCode,
-    });
+      // TransitionKernel code file
+      files.set(kernelCodePath, {
+        prefix: [
+          `import type { TransitionKernel } from "${kernelDefsPath}";`,
+          `declare const TransitionKernel: TransitionKernel;`,
+          "",
+        ].join("\n"),
+        content: transition.transitionKernelCode,
+      });
+    }
   }
 
   return files;

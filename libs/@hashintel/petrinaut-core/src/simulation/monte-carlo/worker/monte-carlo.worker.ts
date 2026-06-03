@@ -151,6 +151,7 @@ function initialize(message: MonteCarloInitMessage): void {
     : [];
   simulator = createMonteCarloSimulator({
     sdcpn: message.sdcpn,
+    extensions: message.extensions,
     initialMarking: message.initialMarking,
     parameterValues: message.parameterValues,
     seed: message.seed,

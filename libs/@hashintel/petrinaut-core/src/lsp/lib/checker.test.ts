@@ -4,13 +4,14 @@ import { checkSDCPN } from "./checker";
 import { SDCPNLanguageServer } from "./create-sdcpn-language-service";
 import { createSDCPN } from "./helper/create-sdcpn";
 
+import type { PetrinautExtensionSettings } from "../../extensions";
 import type { SDCPN } from "../../types/sdcpn";
 
 /** Create a server, sync the SDCPN, and run diagnostics. */
-function check(sdcpn: SDCPN) {
+function check(sdcpn: SDCPN, extensions?: PetrinautExtensionSettings) {
   const server = new SDCPNLanguageServer();
-  server.syncFiles(sdcpn);
-  return checkSDCPN(sdcpn, server);
+  server.syncFiles(sdcpn, extensions);
+  return checkSDCPN(sdcpn, server, extensions);
 }
 
 describe("checkSDCPN", () => {
@@ -328,6 +329,64 @@ describe("checkSDCPN", () => {
       // THEN
       expect(result.isValid).toBe(true);
       expect(result.itemDiagnostics).toHaveLength(0);
+    });
+
+    it("does not lint Lambda code when transition lambdas are unavailable", () => {
+      const sdcpn = createSDCPN({
+        places: [{ id: "place1", name: "Source", colorId: null }],
+        transitions: [
+          {
+            id: "t1",
+            lambdaType: "predicate",
+            inputArcs: [{ placeId: "place1", weight: 1, type: "standard" }],
+            outputArcs: [],
+            lambdaCode: `export default Lambda((input, parameters) => {
+              return input.Source[0].missing;
+            });`,
+          },
+        ],
+      });
+
+      const result = check(sdcpn, {
+        colors: true,
+        stochasticity: false,
+        dynamics: true,
+        parameters: true,
+      });
+
+      expect(result.isValid).toBe(true);
+      expect(result.itemDiagnostics).toHaveLength(0);
+    });
+
+    it("still lints predicate Lambda code when stochasticity is disabled but coloured inputs exist", () => {
+      const sdcpn = createSDCPN({
+        types: [{ id: "color1", elements: [{ name: "x", type: "real" }] }],
+        places: [{ id: "place1", name: "Source", colorId: "color1" }],
+        transitions: [
+          {
+            id: "t1",
+            lambdaType: "predicate",
+            inputArcs: [{ placeId: "place1", weight: 1, type: "standard" }],
+            outputArcs: [],
+            lambdaCode: `export default Lambda((input, parameters) => {
+              return input.Source[0].missing;
+            });`,
+          },
+        ],
+      });
+
+      const result = check(sdcpn, {
+        colors: true,
+        stochasticity: false,
+        dynamics: true,
+        parameters: true,
+      });
+
+      expect(result.isValid).toBe(false);
+      expect(result.itemDiagnostics[0]?.itemType).toBe("transition-lambda");
+      expect(result.itemDiagnostics[0]?.diagnostics[0]?.messageText).toContain(
+        "missing",
+      );
     });
   });
 

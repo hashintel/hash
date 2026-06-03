@@ -4,6 +4,7 @@ import {
   type LspWorkerFactory,
 } from "./transport";
 
+import type { PetrinautExtensionSettings } from "../extensions";
 import type { ReadableStore } from "../store";
 import type { SDCPN } from "../types/sdcpn";
 import type {
@@ -37,8 +38,16 @@ export interface LanguageClient {
   readonly diagnostics: ReadableStore<DiagnosticsSnapshot>;
 
   // --- Notifications (fire-and-forget) ---
-  initialize(this: void, sdcpn: SDCPN): void;
-  notifySDCPNChanged(this: void, sdcpn: SDCPN): void;
+  initialize(
+    this: void,
+    sdcpn: SDCPN,
+    extensions?: PetrinautExtensionSettings,
+  ): void;
+  notifySDCPNChanged(
+    this: void,
+    sdcpn: SDCPN,
+    extensions?: PetrinautExtensionSettings,
+  ): void;
   notifyDocumentChanged(this: void, uri: DocumentUri, text: string): void;
 
   initializeScenarioSession(this: void, params: ScenarioSessionParams): void;
@@ -194,18 +203,18 @@ export function createLanguageClient(
   return {
     diagnostics,
 
-    initialize(sdcpn) {
+    initialize(sdcpn, extensions) {
       sendNotification({
         jsonrpc: "2.0",
         method: "initialize",
-        params: { sdcpn },
+        params: { sdcpn, extensions },
       });
     },
-    notifySDCPNChanged(sdcpn) {
+    notifySDCPNChanged(sdcpn, extensions) {
       sendNotification({
         jsonrpc: "2.0",
         method: "sdcpn/didChange",
-        params: { sdcpn },
+        params: { sdcpn, extensions },
       });
     },
     notifyDocumentChanged(uri, text) {

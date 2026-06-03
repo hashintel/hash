@@ -1,5 +1,3 @@
-import { generateDefaultLambdaCode } from "./default-codes";
-
 import type { SDCPN } from "./types/sdcpn";
 
 export const PETRINAUT_EXTENSION_NAMES = [
@@ -71,6 +69,85 @@ export const resolvePetrinautHandleCapabilities = (
 const canUseDynamics = (extensions: PetrinautExtensionSettings): boolean =>
   extensions.colors && extensions.dynamics;
 
+export type TransitionLogicAvailability = {
+  lambda: boolean;
+  predicateLambda: boolean;
+  stochasticLambda: boolean;
+  transitionKernel: boolean;
+};
+
+export const hasTypedStandardInputPlace = (
+  transition: SDCPN["transitions"][number],
+  sdcpn: SDCPN,
+): boolean =>
+  transition.inputArcs.some((arc) => {
+    if (arc.type === "inhibitor") {
+      return false;
+    }
+    const place = sdcpn.places.find((item) => item.id === arc.placeId);
+    return place?.colorId != null;
+  });
+
+const hasTypedOutputPlace = (
+  transition: SDCPN["transitions"][number],
+  sdcpn: SDCPN,
+): boolean =>
+  transition.outputArcs.some((arc) => {
+    const place = sdcpn.places.find((item) => item.id === arc.placeId);
+    return place?.colorId != null;
+  });
+
+export const isTransitionLambdaAvailable = (
+  transition: SDCPN["transitions"][number],
+  sdcpn: SDCPN,
+  extensions: PetrinautExtensionSettings,
+): boolean =>
+  extensions.stochasticity ||
+  (extensions.colors && hasTypedStandardInputPlace(transition, sdcpn));
+
+export const isTransitionKernelAvailable = (
+  transition: SDCPN["transitions"][number],
+  sdcpn: SDCPN,
+  extensions: PetrinautExtensionSettings,
+): boolean => extensions.colors && hasTypedOutputPlace(transition, sdcpn);
+
+export const getTransitionLogicAvailability = (
+  transition: SDCPN["transitions"][number],
+  sdcpn: SDCPN,
+  extensions: PetrinautExtensionSettings,
+): TransitionLogicAvailability => {
+  const predicateLambda =
+    extensions.colors && hasTypedStandardInputPlace(transition, sdcpn);
+  const stochasticLambda = extensions.stochasticity;
+
+  return {
+    lambda: predicateLambda || stochasticLambda,
+    predicateLambda,
+    stochasticLambda,
+    transitionKernel: isTransitionKernelAvailable(
+      transition,
+      sdcpn,
+      extensions,
+    ),
+  };
+};
+
+export const getEffectiveTransitionLambdaType = (
+  transition: SDCPN["transitions"][number],
+  availability: TransitionLogicAvailability,
+): SDCPN["transitions"][number]["lambdaType"] => {
+  if (transition.lambdaType === "stochastic" && availability.stochasticLambda) {
+    return "stochastic";
+  }
+  if (transition.lambdaType === "predicate" && availability.predicateLambda) {
+    return "predicate";
+  }
+  if (availability.stochasticLambda) {
+    return "stochastic";
+  }
+  return "predicate";
+};
+
 export const isSelectionTypeAvailableForExtensions = (
   type: string,
   extensions: PetrinautExtensionSettings,
@@ -87,7 +164,9 @@ export const isSelectionTypeAvailableForExtensions = (
   return true;
 };
 
-export const sanitizePlaceForExtensions = <Place extends SDCPN["places"][number]>(
+export const sanitizePlaceForExtensions = <
+  Place extends SDCPN["places"][number],
+>(
   place: Place,
   extensions: PetrinautExtensionSettings,
 ): Place => {
@@ -98,9 +177,7 @@ export const sanitizePlaceForExtensions = <Place extends SDCPN["places"][number]
   return {
     ...place,
     colorId: extensions.colors ? place.colorId : null,
-    dynamicsEnabled: canUseDynamics(extensions)
-      ? place.dynamicsEnabled
-      : false,
+    dynamicsEnabled: canUseDynamics(extensions) ? place.dynamicsEnabled : false,
     differentialEquationId: canUseDynamics(extensions)
       ? place.differentialEquationId
       : null,
@@ -112,23 +189,32 @@ export const sanitizeTransitionForExtensions = <
   Transition extends SDCPN["transitions"][number],
 >(
   transition: Transition,
+  sdcpn: SDCPN,
   extensions: PetrinautExtensionSettings,
 ): Transition => {
-  if (extensions.stochasticity && extensions.colors) {
+  const availability = getTransitionLogicAvailability(
+    transition,
+    sdcpn,
+    extensions,
+  );
+  const lambdaType = getEffectiveTransitionLambdaType(transition, availability);
+
+  if (
+    availability.lambda &&
+    transition.lambdaType === lambdaType &&
+    availability.transitionKernel
+  ) {
     return transition;
   }
 
   return {
     ...transition,
-    lambdaType:
-      extensions.stochasticity || transition.lambdaType !== "stochastic"
-        ? transition.lambdaType
-        : "predicate",
+    lambdaType,
     lambdaCode:
-      extensions.stochasticity || transition.lambdaType !== "stochastic"
+      availability.lambda && transition.lambdaType === lambdaType
         ? transition.lambdaCode
-        : generateDefaultLambdaCode("predicate"),
-    transitionKernelCode: extensions.colors
+        : "",
+    transitionKernelCode: availability.transitionKernel
       ? transition.transitionKernelCode
       : "",
   };
@@ -163,7 +249,54 @@ export const stripDisabledExtensionData = (
   for (const transition of sdcpn.transitions) {
     Object.assign(
       transition,
-      sanitizeTransitionForExtensions(transition, extensions),
+      sanitizeTransitionForExtensions(transition, sdcpn, extensions),
     );
   }
+};
+
+export const sanitizeSDCPNForExtensions = (
+  sdcpn: SDCPN,
+  extensions: PetrinautExtensionSettings,
+): SDCPN => {
+  const next: SDCPN = {
+    places: sdcpn.places.map((place) => ({ ...place })),
+    transitions: sdcpn.transitions.map((transition) => ({
+      ...transition,
+      inputArcs: transition.inputArcs.map((arc) => ({ ...arc })),
+      outputArcs: transition.outputArcs.map((arc) => ({ ...arc })),
+    })),
+    types: sdcpn.types.map((type) => ({
+      ...type,
+      elements: type.elements.map((element) => ({ ...element })),
+    })),
+    differentialEquations: sdcpn.differentialEquations.map((equation) => ({
+      ...equation,
+    })),
+    parameters: sdcpn.parameters.map((parameter) => ({ ...parameter })),
+    scenarios: sdcpn.scenarios?.map((scenario) => ({
+      ...scenario,
+      scenarioParameters: scenario.scenarioParameters.map((parameter) => ({
+        ...parameter,
+      })),
+      parameterOverrides: { ...scenario.parameterOverrides },
+      initialState:
+        scenario.initialState.type === "code"
+          ? { ...scenario.initialState }
+          : {
+              type: "per_place",
+              content: Object.fromEntries(
+                Object.entries(scenario.initialState.content).map(
+                  ([placeId, value]) => [
+                    placeId,
+                    Array.isArray(value) ? value.map((row) => [...row]) : value,
+                  ],
+                ),
+              ),
+            },
+    })),
+    metrics: sdcpn.metrics?.map((metric) => ({ ...metric })),
+  };
+
+  stripDisabledExtensionData(next, extensions);
+  return next;
 };

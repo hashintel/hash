@@ -26,28 +26,12 @@ const contentStyle = css({
   minHeight: "[0]",
 });
 
-const messageStyle = css({
-  padding: "[12px]",
-  fontSize: "xs",
-  color: "[#666]",
-  lineHeight: "[1.5]",
-});
-
 const ResultsHeaderAction: React.FC = () => {
-  const { transition, places, types, updateTransition } =
+  const { logicAvailability, transition, places, types, updateTransition } =
     useTransitionPropertiesContext();
   const { globalMode } = use(EditorContext);
 
-  if (globalMode !== "edit") {
-    return null;
-  }
-
-  const hasOutputPlaceWithType = transition.outputArcs.some((arc) => {
-    const place = places.find((p) => p.id === arc.placeId);
-    return place && place.colorId;
-  });
-
-  if (!hasOutputPlaceWithType) {
+  if (globalMode !== "edit" || !logicAvailability.transitionKernel) {
     return null;
   }
 
@@ -136,23 +120,8 @@ const ResultsHeaderAction: React.FC = () => {
 };
 
 const TransitionResultsContent: React.FC = () => {
-  const { transition, places, isReadOnly, updateTransition } =
+  const { transition, isReadOnly, updateTransition } =
     useTransitionPropertiesContext();
-
-  const hasOutputPlaceWithType = transition.outputArcs.some((arc) => {
-    const place = places.find((p) => p.id === arc.placeId);
-    return place && place.colorId;
-  });
-
-  if (!hasOutputPlaceWithType) {
-    return (
-      <div className={messageStyle}>
-        The Transition Results section is not available because none of the
-        output places have a type defined. To enable this feature, assign a type
-        to at least one output place.
-      </div>
-    );
-  }
 
   return (
     <div className={contentStyle}>

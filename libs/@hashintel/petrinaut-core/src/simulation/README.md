@@ -49,6 +49,7 @@ type SimulationState =
 | Property          | Description                                        |
 | ----------------- | -------------------------------------------------- |
 | `sdcpn`           | SDCPN snapshot to simulate.                        |
+| `extensions`      | Optional enabled extension settings for the run.   |
 | `initialMarking`  | JSON-serializable initial token placement.         |
 | `parameterValues` | Parameter values overriding SDCPN defaults.        |
 | `seed`            | Seed for deterministic stochastic behavior.        |
@@ -72,6 +73,10 @@ number, while colored places use one record per token:
   infected: [{ age: 42, viralLoad: 0.8 }]
 }
 ```
+
+The runtime sanitizes a copy of `sdcpn` according to `extensions` before
+compilation. Disabled colour, dynamics, stochasticity, and parameter surfaces
+are ignored for that run without mutating the source document.
 
 ## Lifecycle
 

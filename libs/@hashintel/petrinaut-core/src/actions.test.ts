@@ -392,7 +392,101 @@ describe("Petrinaut core actions", () => {
     expect(definition.places[0]).not.toHaveProperty("visualizerCode");
     expect(definition.transitions[0]).toMatchObject({
       lambdaType: "predicate",
+      lambdaCode: "",
       transitionKernelCode: "",
+    });
+  });
+
+  test("keeps predicate lambda code when stochasticity is disabled but coloured inputs exist", () => {
+    const instance = createPetrinaut({
+      document: createJsonDocHandle({
+        initial: cloneSDCPN({
+          ...emptySDCPN,
+          types: [
+            {
+              id: "type-1",
+              name: "Particle",
+              iconSlug: "circle",
+              displayColor: "#34a0fa",
+              elements: [
+                { elementId: "element-1", name: "Mass", type: "real" },
+              ],
+            },
+          ],
+          places: [
+            {
+              id: "place-1",
+              name: "Input",
+              colorId: "type-1",
+              dynamicsEnabled: false,
+              differentialEquationId: null,
+              x: 0,
+              y: 0,
+            },
+          ],
+        }),
+        capabilities: {
+          disabledExtensions: ["stochasticity"],
+        },
+      }),
+    });
+
+    instance.mutations.addTransition({
+      id: "transition-1",
+      name: "Move",
+      inputArcs: [{ placeId: "place-1", weight: 1, type: "standard" }],
+      outputArcs: [],
+      lambdaType: "predicate",
+      lambdaCode: "export default Lambda((input) => input.Input[0].Mass > 0);",
+      transitionKernelCode: "",
+      x: 0,
+      y: 0,
+    });
+
+    expect(instance.definition.get().transitions[0]).toMatchObject({
+      lambdaType: "predicate",
+      lambdaCode: "export default Lambda((input) => input.Input[0].Mass > 0);",
+    });
+  });
+
+  test("clears predicate lambda code when stochasticity is disabled and no coloured standard input exists", () => {
+    const instance = createPetrinaut({
+      document: createJsonDocHandle({
+        initial: cloneSDCPN({
+          ...emptySDCPN,
+          places: [
+            {
+              id: "place-1",
+              name: "Input",
+              colorId: null,
+              dynamicsEnabled: false,
+              differentialEquationId: null,
+              x: 0,
+              y: 0,
+            },
+          ],
+        }),
+        capabilities: {
+          disabledExtensions: ["stochasticity"],
+        },
+      }),
+    });
+
+    instance.mutations.addTransition({
+      id: "transition-1",
+      name: "Move",
+      inputArcs: [{ placeId: "place-1", weight: 1, type: "standard" }],
+      outputArcs: [],
+      lambdaType: "predicate",
+      lambdaCode: "export default Lambda(() => true);",
+      transitionKernelCode: "",
+      x: 0,
+      y: 0,
+    });
+
+    expect(instance.definition.get().transitions[0]).toMatchObject({
+      lambdaType: "predicate",
+      lambdaCode: "",
     });
   });
 

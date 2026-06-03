@@ -19,14 +19,21 @@ export type { ReadableStore } from "./store";
 export {
   DEFAULT_PETRINAUT_EXTENSIONS,
   PETRINAUT_EXTENSION_NAMES,
+  getEffectiveTransitionLambdaType,
+  getTransitionLogicAvailability,
+  hasTypedStandardInputPlace,
+  isTransitionKernelAvailable,
+  isTransitionLambdaAvailable,
   isSelectionTypeAvailableForExtensions,
   resolvePetrinautHandleCapabilities,
+  sanitizeSDCPNForExtensions,
 } from "./extensions";
 export type {
   PetrinautExtension,
   PetrinautExtensionSettings,
   PetrinautHandleCapabilities,
   ResolvedPetrinautHandleCapabilities,
+  TransitionLogicAvailability,
 } from "./extensions";
 
 // --- Instance ---

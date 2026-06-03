@@ -1,5 +1,12 @@
 import { SDCPNItemError } from "../../errors";
 import {
+  DEFAULT_PETRINAUT_EXTENSIONS,
+  getEffectiveTransitionLambdaType,
+  getTransitionLogicAvailability,
+  sanitizeSDCPNForExtensions,
+  type PetrinautExtensionSettings,
+} from "../../extensions";
+import {
   deriveDefaultParameterValues,
   mergeParameterValues,
 } from "../../parameter-values";
@@ -203,10 +210,28 @@ function getPlaceElementNames(
   return type.elements.map((element) => element.name);
 }
 
-function createLambdaFn(
-  transition: SimulationInput["sdcpn"]["transitions"][number],
-  parameterValues: ParameterValues,
-): LambdaFn {
+function createLambdaFn({
+  transition,
+  sdcpn,
+  extensions,
+  parameterValues,
+}: {
+  transition: SimulationInput["sdcpn"]["transitions"][number];
+  sdcpn: SimulationInput["sdcpn"];
+  extensions: PetrinautExtensionSettings;
+  parameterValues: ParameterValues;
+}): LambdaFn {
+  const availability = getTransitionLogicAvailability(
+    transition,
+    sdcpn,
+    extensions,
+  );
+  const lambdaType = getEffectiveTransitionLambdaType(transition, availability);
+
+  if (!availability.lambda || transition.lambdaCode.trim() === "") {
+    return lambdaType === "stochastic" ? () => Infinity : () => true;
+  }
+
   try {
     const userFn = compileUserCode<[TransitionTokenValues, ParameterValues]>(
       transition.lambdaCode,
@@ -333,13 +358,14 @@ function createCompiledTransition({
  */
 export function buildSimulation(input: SimulationInput): SimulationInstance {
   const {
-    sdcpn,
     initialMarking,
     parameterValues: inputParameterValues,
     seed,
     dt,
     maxTime,
   } = input;
+  const extensions = input.extensions ?? DEFAULT_PETRINAUT_EXTENSIONS;
+  const sdcpn = sanitizeSDCPNForExtensions(input.sdcpn, extensions);
 
   // Build maps for quick lookup
   const placesMap = new Map(sdcpn.places.map((place) => [place.id, place]));
@@ -438,7 +464,12 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
         transition,
         placesMap,
         typesMap,
-        lambdaFn: createLambdaFn(transition, parameterValues),
+        lambdaFn: createLambdaFn({
+          transition,
+          sdcpn,
+          extensions,
+          parameterValues,
+        }),
         transitionKernelFn: createTransitionKernelFn({
           transition,
           placesMap,

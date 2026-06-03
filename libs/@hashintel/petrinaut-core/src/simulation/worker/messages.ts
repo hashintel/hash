@@ -4,6 +4,7 @@
  * @see ./README.md for detailed protocol documentation
  */
 
+import type { PetrinautExtensionSettings } from "../../extensions";
 import type { SDCPN } from "../../types/sdcpn";
 import type { InitialMarking } from "../api";
 import type { SimulationFramePayload } from "./frame-payload";
@@ -20,6 +21,8 @@ export type InitMessage = {
   type: "init";
   /** The SDCPN definition to simulate */
   sdcpn: SDCPN;
+  /** Enabled SDCPN extensions for this simulation run. */
+  extensions?: PetrinautExtensionSettings;
   /** Initial token distribution. JSON-serializable. */
   initialMarking: InitialMarking;
   /** Parameter values (overrides SDCPN defaults) */

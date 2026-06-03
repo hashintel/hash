@@ -7,6 +7,10 @@ frame memory. It is separate from the interactive simulator: it does not retain
 frame history, does not expose engine frame storage, and is designed for batch
 statistics work.
 
+Each run uses the same extension-aware SDCPN sanitization as the interactive
+simulator, so disabled lambda, kernel, colour, dynamics, or parameter surfaces
+are not compiled for Monte Carlo runs either.
+
 ## Concepts
 
 | Name                    | Meaning                                                                                                     |

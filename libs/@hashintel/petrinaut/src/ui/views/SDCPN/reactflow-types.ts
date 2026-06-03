@@ -44,7 +44,7 @@ export type TransitionNodeData = {
    * so we add our own discriminating field here to make it easier to narrow between Transition and Place nodes.
    */
   type: "transition";
-  lambdaType: "predicate" | "stochastic";
+  lambdaType: "none" | "predicate" | "stochastic";
   /**
    * State of this transition in the current simulation frame.
    * Null when no simulation is running.

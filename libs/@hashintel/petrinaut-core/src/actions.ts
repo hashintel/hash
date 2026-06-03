@@ -95,10 +95,7 @@ export function createPetrinautActions(
         for (const place of sdcpn.places) {
           if (place.id === parsed.placeId) {
             Object.assign(place, parsed.update);
-            Object.assign(
-              place,
-              sanitizePlaceForExtensions(place, extensions),
-            );
+            Object.assign(place, sanitizePlaceForExtensions(place, extensions));
             placeSchema.parse(place);
             assertPlaceDynamicsReferences(place, sdcpn.differentialEquations);
             break;
@@ -145,10 +142,7 @@ export function createPetrinautActions(
       });
     },
     addTransition(transition) {
-      const parsedTransition = sanitizeTransitionForExtensions(
-        transitionSchema.parse(transition),
-        extensions,
-      );
+      const parsedTransition = transitionSchema.parse(transition);
       mutateWithExtensionGuards((sdcpn) => {
         sdcpn.transitions.push(parsedTransition);
       });
@@ -161,7 +155,7 @@ export function createPetrinautActions(
             Object.assign(transition, parsed.update);
             Object.assign(
               transition,
-              sanitizeTransitionForExtensions(transition, extensions),
+              sanitizeTransitionForExtensions(transition, sdcpn, extensions),
             );
             transitionSchema.parse(transition);
             break;
