@@ -6,7 +6,11 @@ import {
   type CommandHelperFunctions,
   createPetrinautCommands,
 } from "./commands";
-import { resolvePetrinautHandleCapabilities } from "./extensions";
+import {
+  resolvePetrinautHandleCapabilities,
+  sanitizeSDCPNForExtensions,
+  stripDisabledExtensionData,
+} from "./extensions";
 
 import type {
   PetrinautExtensionSettings,
@@ -83,25 +87,38 @@ export type CreatePetrinautConfig = {
 
 function createDefinitionStore(
   handle: PetrinautDocHandle,
+  extensions: PetrinautExtensionSettings,
+  disposers: Array<() => void>,
 ): ReadableStore<SDCPN> {
   const listeners = new Set<(value: SDCPN) => void>();
+  let latestSource: SDCPN | undefined;
+  let latestSanitized: SDCPN | undefined;
 
   const unsubscribe = handle.subscribe((event) => {
+    latestSource = event.next;
+    const sanitized = sanitizeSDCPNForExtensions(event.next, extensions);
+    latestSanitized = sanitized;
     for (const listener of listeners) {
-      listener(event.next);
+      listener(sanitized);
     }
   });
+  disposers.push(unsubscribe);
+
+  const read = (): SDCPN => {
+    const source = handle.doc() ?? EMPTY_SDCPN;
+    if (latestSource !== source || latestSanitized === undefined) {
+      latestSource = source;
+      latestSanitized = sanitizeSDCPNForExtensions(source, extensions);
+    }
+    return latestSanitized;
+  };
 
   return {
-    get: () => handle.doc() ?? EMPTY_SDCPN,
+    get: read,
     subscribe(listener) {
       listeners.add(listener);
       return () => {
         listeners.delete(listener);
-        if (listeners.size === 0) {
-          // Keep the upstream subscription alive — disposed at instance.dispose().
-          void unsubscribe;
-        }
       };
     },
   };
@@ -109,10 +126,11 @@ function createDefinitionStore(
 
 function createPatchStream(
   handle: PetrinautDocHandle,
+  disposers: Array<() => void>,
 ): EventStream<PetrinautPatch[]> {
   const listeners = new Set<(event: PetrinautPatch[]) => void>();
 
-  handle.subscribe((event) => {
+  const unsubscribe = handle.subscribe((event) => {
     if (!event.patches) {
       return;
     }
@@ -120,6 +138,7 @@ function createPatchStream(
       listener(event.patches);
     }
   });
+  disposers.push(unsubscribe);
 
   return {
     subscribe(listener) {
@@ -141,14 +160,21 @@ export function createPetrinaut(config: CreatePetrinautConfig): Petrinaut {
 
   const disposers: Array<() => void> = [];
 
-  const definition = createDefinitionStore(handle);
-  const patches = createPatchStream(handle);
+  const definition = createDefinitionStore(
+    handle,
+    capabilities.extensions,
+    disposers,
+  );
+  const patches = createPatchStream(handle, disposers);
 
   const mutate = (fn: (draft: SDCPN) => void) => {
     if (capabilities.readonly) {
       return;
     }
-    handle.change(fn);
+    handle.change((draft) => {
+      fn(draft);
+      stripDisabledExtensionData(draft, capabilities.extensions);
+    });
   };
 
   const mutations = createPetrinautActions(mutate, capabilities.extensions);

@@ -69,6 +69,25 @@ export const resolvePetrinautHandleCapabilities = (
 const canUseDynamics = (extensions: PetrinautExtensionSettings): boolean =>
   extensions.colors && extensions.dynamics;
 
+const sanitizeScenarioInitialStateForExtensions = (
+  initialState: NonNullable<SDCPN["scenarios"]>[number]["initialState"],
+  extensions: PetrinautExtensionSettings,
+): NonNullable<SDCPN["scenarios"]>[number]["initialState"] => {
+  if (extensions.colors || initialState.type === "code") {
+    return initialState;
+  }
+
+  return {
+    type: "per_place",
+    content: Object.fromEntries(
+      Object.entries(initialState.content).map(([placeId, value]) => [
+        placeId,
+        Array.isArray(value) ? String(value.length) : value,
+      ]),
+    ),
+  };
+};
+
 export type TransitionLogicAvailability = {
   lambda: boolean;
   predicateLambda: boolean;
@@ -237,6 +256,15 @@ export const stripDisabledExtensionData = (
     sdcpn.parameters.splice(0);
     for (const scenario of sdcpn.scenarios ?? []) {
       scenario.parameterOverrides = {};
+    }
+  }
+
+  if (!extensions.colors) {
+    for (const scenario of sdcpn.scenarios ?? []) {
+      scenario.initialState = sanitizeScenarioInitialStateForExtensions(
+        scenario.initialState,
+        extensions,
+      );
     }
   }
 

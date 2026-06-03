@@ -73,6 +73,12 @@ export const TypesSectionHeaderAction: React.FC = () => {
   const isReadOnly = useIsReadOnly();
 
   const isDisabled = isReadOnly || !extensions.colors;
+  let tooltip = "Add token type";
+  if (isReadOnly) {
+    tooltip = UI_MESSAGES.READ_ONLY_MODE;
+  } else if (!extensions.colors) {
+    tooltip = UI_MESSAGES.EXTENSION_UNAVAILABLE;
+  }
 
   return (
     <Button
@@ -80,7 +86,7 @@ export const TypesSectionHeaderAction: React.FC = () => {
       size="xs"
       variant="ghost"
       disabled={isDisabled}
-      tooltip={isDisabled ? UI_MESSAGES.READ_ONLY_MODE : "Add token type"}
+      tooltip={tooltip}
       iconName="plus"
       onClick={() => {
         const existingColors = types.map((type) => type.displayColor);

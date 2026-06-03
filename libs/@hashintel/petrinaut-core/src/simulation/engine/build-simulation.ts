@@ -398,10 +398,9 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
   // Build parameter values: merge input values with SDCPN defaults
   // Input values (from simulation store) take precedence over defaults
   const defaultParameterValues = deriveDefaultParameterValues(sdcpn.parameters);
-  const parameterValues = mergeParameterValues(
-    inputParameterValues,
-    defaultParameterValues,
-  );
+  const parameterValues = extensions.parameters
+    ? mergeParameterValues(inputParameterValues, defaultParameterValues)
+    : {};
 
   // Validate that all places in initialMarking exist in SDCPN
   for (const placeId of Object.keys(initialMarking)) {

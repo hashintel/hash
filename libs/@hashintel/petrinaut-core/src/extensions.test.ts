@@ -178,4 +178,41 @@ describe("transition logic availability", () => {
     expect(sdcpn.places[0]!.colorId).toBe("type-1");
     expect(sdcpn.transitions[0]!.lambdaCode).not.toBe("");
   });
+
+  it("converts coloured scenario initial-state rows to uncoloured counts when colours are disabled", () => {
+    const sdcpn = {
+      ...createSDCPN({}, { colorId: "type-1" }),
+      scenarios: [
+        {
+          id: "scenario-1",
+          name: "Scenario 1",
+          scenarioParameters: [],
+          parameterOverrides: {},
+          initialState: {
+            type: "per_place" as const,
+            content: {
+              "place-1": [[1], [2]],
+            },
+          },
+        },
+      ],
+    };
+
+    const sanitized = sanitizeSDCPNForExtensions(sdcpn, {
+      ...allEnabled,
+      colors: false,
+      dynamics: false,
+    });
+
+    expect(sanitized.scenarios?.[0]?.initialState).toEqual({
+      type: "per_place",
+      content: { "place-1": "2" },
+    });
+    expect(sdcpn.scenarios[0]!.initialState).toEqual({
+      type: "per_place",
+      content: {
+        "place-1": [[1], [2]],
+      },
+    });
+  });
 });

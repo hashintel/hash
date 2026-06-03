@@ -2,6 +2,8 @@
 
 Petrinaut extends basic Petri nets with typed tokens, continuous dynamics, stochastic firing, and more. This page covers each extension.
 
+Some embedded Petrinaut documents can disable one or more extensions. When an extension is unavailable for the current document, its sidebar sections and property editors are hidden or disabled, diagnostics for its code surfaces are skipped, and saved extension data is ignored by simulation.
+
 ## Typed vs untyped places
 
 By default, places hold **untyped tokens** -- they only track a count. Tokens are indistinguishable from each other. This is sufficient for simple flow models.

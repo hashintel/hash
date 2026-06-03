@@ -5,9 +5,14 @@ import {
   produceWithPatches,
 } from "immer";
 
+import {
+  resolvePetrinautHandleCapabilities,
+  sanitizeSDCPNForExtensions,
+  stripDisabledExtensionData,
+  type PetrinautHandleCapabilities,
+} from "../../extensions";
 import { createReadableStore } from "../../store";
 
-import type { PetrinautHandleCapabilities } from "../../extensions";
 import type { SDCPN } from "../../types/sdcpn";
 import type {
   DocChangeEvent,
@@ -72,10 +77,14 @@ export function createJsonDocHandle(
   const id = opts.id ?? generateId();
   const historyLimit = opts.historyLimit ?? DEFAULT_HISTORY_LIMIT;
   const capabilities = opts.capabilities;
+  const resolvedCapabilities = resolvePetrinautHandleCapabilities(capabilities);
   const stateStore = createReadableStore<DocHandleState>("ready");
   const subscribers = new Set<(event: DocChangeEvent) => void>();
 
-  let current: SDCPN = opts.initial;
+  let current: SDCPN = sanitizeSDCPNForExtensions(
+    opts.initial,
+    resolvedCapabilities.extensions,
+  );
 
   const stack: HistoryStackEntry[] = [];
   /**
@@ -110,6 +119,18 @@ export function createJsonDocHandle(
     }
   }
 
+  function applyPatchesAndSanitize(patchesToApply: ImmerPatch[]): ImmerPatch[] {
+    const [next, patches] = produceWithPatches(current, () => {
+      const patched = applyPatches(current, patchesToApply) as SDCPN;
+      return sanitizeSDCPNForExtensions(
+        patched,
+        resolvedCapabilities.extensions,
+      );
+    });
+    current = next as SDCPN;
+    return patches;
+  }
+
   function recordChange(forward: ImmerPatch[], inverse: ImmerPatch[]): void {
     if (historyLimit <= 0) {
       return;
@@ -140,12 +161,12 @@ export function createJsonDocHandle(
         return false;
       }
       const entry = stack[cursor]!;
-      current = applyPatches(current, entry.inverse) as SDCPN;
+      const patches = applyPatchesAndSanitize(entry.inverse);
       cursor -= 1;
       refreshHistoryStores();
       emit({
         next: current,
-        patches: entry.inverse.map(fromImmerPatch),
+        patches: patches.map(fromImmerPatch),
         source: "local",
       });
       return true;
@@ -156,11 +177,11 @@ export function createJsonDocHandle(
       }
       cursor += 1;
       const entry = stack[cursor]!;
-      current = applyPatches(current, entry.forward) as SDCPN;
+      const patches = applyPatchesAndSanitize(entry.forward);
       refreshHistoryStores();
       emit({
         next: current,
-        patches: entry.forward.map(fromImmerPatch),
+        patches: patches.map(fromImmerPatch),
         source: "local",
       });
       return true;
@@ -186,12 +207,12 @@ export function createJsonDocHandle(
           collected.push(...stack[i]!.forward);
         }
       }
-      current = applyPatches(current, collected) as SDCPN;
+      const patches = applyPatchesAndSanitize(collected);
       cursor = targetCursor;
       refreshHistoryStores();
       emit({
         next: current,
-        patches: collected.map(fromImmerPatch),
+        patches: patches.map(fromImmerPatch),
         source: "local",
       });
       return true;
@@ -210,13 +231,17 @@ export function createJsonDocHandle(
     whenReady: () => Promise.resolve(),
     doc: () => current,
     change(fn) {
-      if (capabilities?.readonly) {
+      if (resolvedCapabilities.readonly) {
         return;
       }
       const [next, patches, inversePatches] = produceWithPatches(
         current,
         (draft) => {
           fn(draft as SDCPN);
+          stripDisabledExtensionData(
+            draft as SDCPN,
+            resolvedCapabilities.extensions,
+          );
         },
       );
       if (patches.length === 0) {

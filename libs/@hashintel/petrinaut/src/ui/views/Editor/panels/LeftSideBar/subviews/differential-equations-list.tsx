@@ -30,6 +30,12 @@ export const DifferentialEquationsSectionHeaderAction: React.FC = () => {
 
   const isReadOnly = useIsReadOnly();
   const isDisabled = isReadOnly || !extensions.colors || !extensions.dynamics;
+  let tooltip = "Add differential equation";
+  if (isReadOnly) {
+    tooltip = UI_MESSAGES.READ_ONLY_MODE;
+  } else if (!extensions.colors || !extensions.dynamics) {
+    tooltip = UI_MESSAGES.EXTENSION_UNAVAILABLE;
+  }
 
   return (
     <Button
@@ -37,9 +43,7 @@ export const DifferentialEquationsSectionHeaderAction: React.FC = () => {
       size="xs"
       variant="ghost"
       disabled={isDisabled}
-      tooltip={
-        isDisabled ? UI_MESSAGES.READ_ONLY_MODE : "Add differential equation"
-      }
+      tooltip={tooltip}
       iconName="plus"
       onClick={() => {
         const name = `Equation ${differentialEquations.length + 1}`;

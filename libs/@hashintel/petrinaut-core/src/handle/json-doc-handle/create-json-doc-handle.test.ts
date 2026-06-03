@@ -1,10 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { createPetrinaut } from "../../instance";
+import { createReadableStore } from "../../store";
 import { createJsonDocHandle } from "./create-json-doc-handle";
 
 import type { SDCPN } from "../../types/sdcpn";
-import type { DocChangeEvent } from "../types";
+import type { DocChangeEvent, PetrinautDocHandle } from "../types";
 
 const empty = (): SDCPN => ({
   places: [],
@@ -12,6 +13,52 @@ const empty = (): SDCPN => ({
   types: [],
   parameters: [],
   differentialEquations: [],
+});
+
+const coloured = (): SDCPN => ({
+  places: [
+    {
+      id: "p1",
+      name: "Place 1",
+      colorId: "t1",
+      dynamicsEnabled: true,
+      differentialEquationId: "d1",
+      visualizerCode: "export default Visualization(() => <svg />);",
+      x: 0,
+      y: 0,
+    },
+  ],
+  transitions: [],
+  types: [
+    {
+      id: "t1",
+      name: "Color 1",
+      iconSlug: "circle",
+      displayColor: "#FF0000",
+      elements: [{ elementId: "e1", name: "x", type: "real" }],
+    },
+  ],
+  parameters: [],
+  differentialEquations: [
+    {
+      id: "d1",
+      name: "Dynamics 1",
+      colorId: "t1",
+      code: "export default Dynamics(({ x }) => ({ x }));",
+    },
+  ],
+  scenarios: [
+    {
+      id: "s1",
+      name: "Scenario 1",
+      scenarioParameters: [],
+      parameterOverrides: {},
+      initialState: {
+        type: "per_place",
+        content: { p1: [[1], [2]] },
+      },
+    },
+  ],
 });
 
 describe("createJsonDocHandle", () => {
@@ -93,6 +140,51 @@ describe("createJsonDocHandle", () => {
     ]);
     expect(handle.doc()?.types).toHaveLength(0);
     expect(listener).not.toHaveBeenCalled();
+  });
+
+  it("sanitizes direct changes and history for disabled extensions", () => {
+    const handle = createJsonDocHandle({
+      initial: empty(),
+      capabilities: {
+        disabledExtensions: ["colors"],
+      },
+    });
+
+    handle.change((draft) => {
+      draft.types.push({
+        id: "t1",
+        name: "Color 1",
+        iconSlug: "circle",
+        displayColor: "#FF0000",
+        elements: [{ elementId: "e1", name: "x", type: "real" }],
+      });
+      draft.places.push({
+        id: "p1",
+        name: "Place 1",
+        colorId: "t1",
+        dynamicsEnabled: true,
+        differentialEquationId: null,
+        x: 0,
+        y: 0,
+      });
+    });
+
+    expect(handle.doc()?.types).toEqual([]);
+    expect(handle.doc()?.places[0]).toMatchObject({
+      colorId: null,
+      dynamicsEnabled: false,
+    });
+
+    expect(handle.history?.undo()).toBe(true);
+    expect(handle.doc()?.types).toEqual([]);
+    expect(handle.doc()?.places).toEqual([]);
+
+    expect(handle.history?.redo()).toBe(true);
+    expect(handle.doc()?.types).toEqual([]);
+    expect(handle.doc()?.places[0]).toMatchObject({
+      colorId: null,
+      dynamicsEnabled: false,
+    });
   });
 });
 
@@ -198,6 +290,62 @@ describe("createPetrinaut", () => {
       dynamics: false,
       parameters: true,
     });
+  });
+
+  it("exposes sanitized definitions from capability-restricted handles", async () => {
+    const source = coloured();
+    const subscribers = new Set<(event: DocChangeEvent) => void>();
+    let upstreamSubscriptions = 0;
+    const handle: PetrinautDocHandle = {
+      id: "external-doc",
+      capabilities: { disabledExtensions: ["colors"] },
+      state: createReadableStore("ready"),
+      whenReady: () => Promise.resolve(),
+      doc: () => source,
+      change(fn) {
+        fn(source);
+        for (const subscriber of subscribers) {
+          subscriber({ next: source, source: "local" });
+        }
+      },
+      subscribe(listener) {
+        upstreamSubscriptions += 1;
+        subscribers.add(listener);
+        return () => {
+          upstreamSubscriptions -= 1;
+          subscribers.delete(listener);
+        };
+      },
+    };
+    const instance = createPetrinaut({ document: handle });
+
+    expect(upstreamSubscriptions).toBe(2);
+    expect(instance.definition.get()).toMatchObject({
+      types: [],
+      differentialEquations: [],
+      places: [
+        {
+          colorId: null,
+          dynamicsEnabled: false,
+          differentialEquationId: null,
+        },
+      ],
+    });
+    expect(instance.definition.get().scenarios?.[0]?.initialState).toEqual({
+      type: "per_place",
+      content: { p1: "2" },
+    });
+    expect(source.types).toHaveLength(1);
+
+    await instance.commands.applyAutoLayout();
+    expect(source.types).toEqual([]);
+    expect(source.places[0]).toMatchObject({
+      colorId: null,
+      dynamicsEnabled: false,
+    });
+
+    instance.dispose();
+    expect(upstreamSubscriptions).toBe(0);
   });
 });
 

@@ -38,6 +38,12 @@ export const ParametersHeaderAction: React.FC = () => {
 
   const isReadOnly = useIsReadOnly();
   const isDisabled = isReadOnly || !extensions.parameters;
+  let tooltip = "Add parameter";
+  if (isReadOnly) {
+    tooltip = UI_MESSAGES.READ_ONLY_MODE;
+  } else if (!extensions.parameters) {
+    tooltip = UI_MESSAGES.EXTENSION_UNAVAILABLE;
+  }
 
   const handleAddParameter = () => {
     if (!extensions.parameters) {
@@ -61,7 +67,7 @@ export const ParametersHeaderAction: React.FC = () => {
       size="xs"
       variant="ghost"
       disabled={isDisabled}
-      tooltip={isDisabled ? UI_MESSAGES.READ_ONLY_MODE : "Add parameter"}
+      tooltip={tooltip}
       iconName="plus"
       onClick={handleAddParameter}
     />

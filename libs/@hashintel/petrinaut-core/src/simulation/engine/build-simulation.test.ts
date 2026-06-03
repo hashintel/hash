@@ -257,6 +257,39 @@ describe("buildSimulation", () => {
     ).toThrow("Distribution");
   });
 
+  it("ignores supplied parameter values when parameters are disabled", () => {
+    const simulation = buildSimulation({
+      sdcpn: {
+        types: [],
+        differentialEquations: [],
+        parameters: [
+          {
+            id: "param-1",
+            name: "Rate",
+            variableName: "rate",
+            type: "real",
+            defaultValue: "1",
+          },
+        ],
+        places: [],
+        transitions: [],
+      },
+      extensions: {
+        colors: true,
+        stochasticity: true,
+        dynamics: true,
+        parameters: false,
+      },
+      initialMarking: {},
+      parameterValues: { rate: "5" },
+      seed: 42,
+      dt: 0.1,
+      maxTime: null,
+    });
+
+    expect(simulation.parameterValues).toEqual({});
+  });
+
   it("builds a simulation with a single place and initial tokens", () => {
     const input: SimulationInput = {
       sdcpn: {
