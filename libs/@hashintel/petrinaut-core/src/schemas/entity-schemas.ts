@@ -7,6 +7,7 @@ import { variableNameSchema } from "../validation/variable-name";
 import type {
   Color,
   DifferentialEquation,
+  InputArc,
   InputArcType,
   Parameter,
   Place,
@@ -59,11 +60,7 @@ export const inputArcSchema = z
   })
   .meta({
     description: "Input arc from a place into a transition.",
-  }) satisfies z.ZodType<{
-  placeId: string;
-  weight: number;
-  type: InputArcType;
-}>;
+  }) satisfies z.ZodType<InputArc>;
 
 export const outputArcSchema = z
   .strictObject({
