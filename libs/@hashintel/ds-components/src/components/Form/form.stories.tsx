@@ -30,7 +30,7 @@ const formRowGaps = [
   "lg",
   "xl",
   "spaceBetween",
-  "connected",
+  "none",
 ] as const satisfies readonly FormRowGap[];
 
 const formRowAligns = [

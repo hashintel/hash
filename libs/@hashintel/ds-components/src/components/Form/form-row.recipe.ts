@@ -17,11 +17,11 @@ export const styles = sva({
   variants: {
     gap: {
       md: { row: { columnGap: "3.5" } },
-      lg: { row: { columnGap: "6" } },
-      xl: { row: { gap: "10" } },
+      lg: { row: { columnGap: "7" } },
+      xl: { row: { gap: "12" } },
       spaceBetween: {
         row: {
-          gap: "10",
+          gap: "12",
           justifyContent: "space-between",
 
           "& > *": {
@@ -29,7 +29,7 @@ export const styles = sva({
           },
         },
       },
-      connected: {
+      none: {
         row: { gap: "0" },
       },
     },

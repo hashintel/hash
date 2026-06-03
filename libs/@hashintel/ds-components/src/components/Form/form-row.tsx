@@ -15,7 +15,7 @@ export const FormRow = ({
     | React.ReactElement<typeof FormField>
     | Array<React.ReactElement<typeof FormField>>;
   errors?: React.ReactElement<typeof Errors>;
-  gap?: "md" | "lg" | "xl" | "spaceBetween" | "connected";
+  gap?: "md" | "lg" | "xl" | "spaceBetween" | "none";
   align?: "bottom" | "center" | "top";
 }) => {
   const classes = styles({ gap, align });
