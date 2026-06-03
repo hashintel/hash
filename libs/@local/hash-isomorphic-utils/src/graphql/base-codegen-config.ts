@@ -7,6 +7,6 @@ export const baseGraphQlCodegenConfig: TypeScriptDocumentsPluginConfig = {
   avoidOptionals: {
     defaultValue: true,
   },
-  skipTypename: true,
+  skipTypename: false,
   scalars,
 };
