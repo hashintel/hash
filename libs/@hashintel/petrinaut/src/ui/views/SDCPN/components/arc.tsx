@@ -284,7 +284,7 @@ export const Arc: React.FC<EdgeProps<ArcEdgeType>> = ({
                 strokeWidth={BASE_STROKE_WIDTH}
               />
             </marker>
-          ) : data.arcType === "read" ? (
+          ) : (
             <marker
               id={readMarkerId}
               markerWidth={READ_MARKER_SIZE}
@@ -302,7 +302,7 @@ export const Arc: React.FC<EdgeProps<ArcEdgeType>> = ({
                 fill={strokeColor}
               />
             </marker>
-          ) : null}
+          )}
         </defs>
       )}
 
