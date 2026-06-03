@@ -60,7 +60,6 @@ const sectionContentStyle = css({
   display: "flex",
   flexDirection: "column",
   flex: "[1]",
-  paddingBottom: "3",
 });
 
 const scrollContainerStyle = css({
@@ -69,6 +68,7 @@ const scrollContainerStyle = css({
   minHeight: "[0]",
   display: "flex",
   flexDirection: "column",
+  paddingBottom: "3",
 });
 
 const panelContentStyle = css({
