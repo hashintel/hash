@@ -53,16 +53,18 @@ export const EntityTypeSelector = <Multiple extends boolean = false>({
 
   const enabledFeatureFlags = useEnabledFeatureFlags();
 
-  const filteredEntityTypes = useMemo(
+  const filteredAndSortedEntityTypes = useMemo(
     () =>
-      latestEntityTypes?.filter(
-        ({ schema }) =>
-          !excludeEntityTypeIds?.includes(schema.$id) &&
-          (!excludeLinkTypes ||
-            !isSpecialEntityTypeLookup?.[schema.$id]?.isLink) &&
-          (enabledFeatureFlags.pages ||
-            !pageEntityTypeIds.includes(schema.$id)),
-      ),
+      latestEntityTypes
+        ?.filter(
+          ({ schema }) =>
+            !excludeEntityTypeIds?.includes(schema.$id) &&
+            (!excludeLinkTypes ||
+              !isSpecialEntityTypeLookup?.[schema.$id]?.isLink) &&
+            (enabledFeatureFlags.pages ||
+              !pageEntityTypeIds.includes(schema.$id)),
+        )
+        .sort((a, b) => a.schema.title.localeCompare(b.schema.title)),
     [
       enabledFeatureFlags.pages,
       excludeEntityTypeIds,
@@ -95,7 +97,7 @@ export const EntityTypeSelector = <Multiple extends boolean = false>({
       }}
       autoFocus={autoFocus}
       inputHeight={inputHeight}
-      options={filteredEntityTypes ?? []}
+      options={filteredAndSortedEntityTypes ?? []}
       multiple={multiple}
       filterOptions={(options, { inputValue }) => {
         return options.filter((option) => {
