@@ -161,7 +161,6 @@ export const ViewportSettingsDialog: React.FC<ViewportSettingsDialogProps> = ({
               { value: "bezier", label: "Bezier" },
               { value: "custom", label: "Adaptive Bezier" },
             ]}
-            portal={false}
           />
         </SettingRow>
 
