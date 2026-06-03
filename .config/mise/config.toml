@@ -1,4 +1,4 @@
-min_version = { hard = '2026.4.12' }
+min_version = { hard = "2026.4.12" }
 
 [env]
 TURBO_GLOBAL_WARNING_DISABLED = 1
