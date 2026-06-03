@@ -12,7 +12,7 @@ export const triggerStyles = css({
 });
 
 export const positionerStyles = css({
-  zIndex: "tooltip",
+  zIndex: "tooltip !important",
 });
 
 export const contentStyles = cva({
