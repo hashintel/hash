@@ -183,7 +183,7 @@ export const mutationActionInputSchemas = {
           path: ["type"],
           message:
             'Output arcs do not have an input arc type. Omit `type` when `arcDirection` is "output".',
-          input,
+          input: input.type,
         });
       }
     })
