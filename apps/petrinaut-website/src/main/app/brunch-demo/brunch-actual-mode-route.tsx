@@ -11,6 +11,7 @@ import {
 import { z } from "zod";
 
 import {
+  ACTUAL_MODE_TIMELINE_TICK_MS,
   calculateGraphLayout,
   createJsonDocHandle,
   layoutNodeDimensions,
@@ -396,7 +397,7 @@ export const BrunchActualModeProvider: FC<
             }
           : prev,
       );
-    }, 1_000);
+    }, ACTUAL_MODE_TIMELINE_TICK_MS);
 
     return () => {
       window.clearInterval(interval);

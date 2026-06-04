@@ -12,22 +12,12 @@ The demo website enables Actual mode on the `/brunch` route when the URL include
 /brunch?brunch_endpoint=<Brunch stream URL>
 ```
 
-The route also accepts Brunch launcher URLs that use:
-
-```text
-/brunch?mode=actual&sse=<Brunch stream URL>&runId=<run id>
-```
-
 Petrinaut connects to the stream, waits for the Petri net definition and initial state, lays out the net if the stream did not include node positions, and then shows the net in Actual mode.
-
-While the stream is open, Petrinaut opens the bottom **Actual Timeline** panel. The timeline plots the current marking over time and advances once per second even between transition events. When a new transition event arrives, the timeline adds the event frame and updates the place token counts on the canvas.
-
-Click or drag in the Actual Timeline to scrub through the streamed history. The canvas follows the selected timeline frame so you can inspect the state after each event or at each elapsed-time tick. When you scrub back to the latest frame, the timeline resumes following the live end of the stream.
 
 If the stream cannot be reached or sends invalid data, Petrinaut shows an error page with a link back to the normal demo site.
 
 ## Current limits
 
-Actual mode currently renders the marking timeline, but it does not render a separate event list yet.
+Actual mode currently stores live transition events internally, but it does not render an Actual timeline or event list yet. The canvas is the only visible Actual-mode surface in this first integration.
 
 The Brunch route opens a basic Petri net view with Petrinaut extensions disabled: no colours, stochasticity, dynamics, or parameters.

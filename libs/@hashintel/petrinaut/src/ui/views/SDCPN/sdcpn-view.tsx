@@ -106,7 +106,9 @@ export const SDCPNView: React.FC<{
     hasCanvasSelection,
     setHoveredItem,
     clearHoveredItem,
+    globalMode,
   } = use(EditorContext);
+  const isActualMode = globalMode === "actual";
 
   // Hook for applying node changes
   const applyNodeChanges = useApplyNodeChanges();
@@ -455,7 +457,7 @@ export const SDCPNView: React.FC<{
         <Background gap={SNAP_GRID_SIZE} size={1} />
         {hasCanvasSelection && <div className={fadeBgStyle} />}
         {showMinimap && <MiniMap pannable zoomable />}
-        <ViewportControls viewportActions={viewportActions} />
+        {!isActualMode && <ViewportControls viewportActions={viewportActions} />}
       </ReactFlow>
     </div>
   );

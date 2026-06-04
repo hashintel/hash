@@ -441,7 +441,7 @@ export const EditorView = ({
               />
             )}
 
-            {/* Bottom Panel - Diagnostics, Simulation Settings */}
+            {/* Bottom Panel */}
             <BottomPanel />
 
             <BottomBar

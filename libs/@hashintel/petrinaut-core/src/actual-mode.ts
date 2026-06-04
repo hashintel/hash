@@ -73,6 +73,8 @@ export type ActualModeTimelinePoint = {
   transitionFiringIndex: number | null;
 };
 
+export const ACTUAL_MODE_TIMELINE_TICK_MS = 500;
+
 const noopSetCurrentFrameIndex = () => {};
 
 export const unavailableActualMode: ActualModeContextValue = {
@@ -179,7 +181,11 @@ export const buildActualModeTimelinePoints = (params: {
     const occupiedTimes = new Set(points.map((point) => point.timeMs));
     let latestTransitionFiringIndex = -1;
 
-    for (let timeMs = 1_000; timeMs <= liveTimeMs; timeMs += 1_000) {
+    for (
+      let timeMs = ACTUAL_MODE_TIMELINE_TICK_MS;
+      timeMs <= liveTimeMs;
+      timeMs += ACTUAL_MODE_TIMELINE_TICK_MS
+    ) {
       let nextTransitionFiringIndex = latestTransitionFiringIndex + 1;
 
       while (

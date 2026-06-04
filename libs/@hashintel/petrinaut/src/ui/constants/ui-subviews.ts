@@ -32,8 +32,8 @@ export const BOTTOM_PANEL_SUBVIEWS: SubView[] = [
   simulationSettingsSubView,
 ];
 
+// Bottom panel subviews visible in Actual mode.
+export const ACTUAL_BOTTOM_PANEL_SUBVIEWS: SubView[] = [actualTimelineSubView];
+
 // Subviews only visible when simulation is running/paused
 export const SIMULATION_ONLY_SUBVIEWS: SubView[] = [simulationTimelineSubView];
-
-// Subviews only visible when Actual mode is receiving external execution data
-export const ACTUAL_ONLY_SUBVIEWS: SubView[] = [actualTimelineSubView];

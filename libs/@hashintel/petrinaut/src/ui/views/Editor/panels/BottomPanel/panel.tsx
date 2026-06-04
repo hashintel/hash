@@ -22,7 +22,7 @@ import {
   PANEL_MARGIN,
 } from "../../../../constants/ui";
 import {
-  ACTUAL_ONLY_SUBVIEWS,
+  ACTUAL_BOTTOM_PANEL_SUBVIEWS,
   BOTTOM_PANEL_SUBVIEWS,
   SIMULATION_ONLY_SUBVIEWS,
 } from "../../../../constants/ui-subviews";
@@ -72,6 +72,20 @@ const headerRightStyle = css({
   gap: "[4px]",
 });
 
+const getBottomPanelSubViews = ({
+  isActualMode,
+  isSimulationActive,
+}: {
+  isActualMode: boolean;
+  isSimulationActive: boolean;
+}) =>
+  isActualMode
+    ? ACTUAL_BOTTOM_PANEL_SUBVIEWS
+    : [
+        ...BOTTOM_PANEL_SUBVIEWS,
+        ...(isSimulationActive ? SIMULATION_ONLY_SUBVIEWS : []),
+      ];
+
 /**
  * BottomPanel shows tabs for Diagnostics and Simulation Settings.
  * Positioned at the bottom of the viewport.
@@ -97,12 +111,14 @@ export const BottomPanel: React.FC = () => {
   // Simulation state for conditional subviews
   const { state: simulationState } = use(SimulationContext);
   const actualMode = use(ActualModeContext);
+  const isActualMode = globalMode === "actual";
   const isSimulationActive =
-    simulationState === "Running" ||
-    simulationState === "Paused" ||
-    simulationState === "Complete";
+    !isActualMode &&
+    (simulationState === "Running" ||
+      simulationState === "Paused" ||
+      simulationState === "Complete");
   const isActualTimelineActive =
-    globalMode === "actual" &&
+    isActualMode &&
     actualMode.available &&
     actualMode.initialState !== null &&
     (actualMode.status === "streaming" || actualMode.status === "complete");
@@ -112,11 +128,10 @@ export const BottomPanel: React.FC = () => {
   const prevActualTimelineActiveRef = useRef(false);
 
   // Dynamically compute subviews based on available execution modes.
-  const subViews = [
-    ...BOTTOM_PANEL_SUBVIEWS,
-    ...(isSimulationActive ? SIMULATION_ONLY_SUBVIEWS : []),
-    ...(isActualTimelineActive ? ACTUAL_ONLY_SUBVIEWS : []),
-  ];
+  const subViews = getBottomPanelSubViews({
+    isActualMode,
+    isSimulationActive,
+  });
 
   // Automatically open bottom panel and switch to the relevant timeline when a
   // run starts, and fall back to diagnostics when the active timeline disappears.
@@ -129,7 +144,7 @@ export const BottomPanel: React.FC = () => {
     if (isActualTimelineActive && !wasActualTimelineActive) {
       setBottomPanelOpen(true);
       setActiveTab("actual-timeline");
-    } else if (isSimulationActive && !wasSimulationActive) {
+    } else if (!isActualMode && isSimulationActive && !wasSimulationActive) {
       setBottomPanelOpen(true);
       setActiveTab("simulation-timeline");
     }
@@ -151,11 +166,34 @@ export const BottomPanel: React.FC = () => {
     }
   }, [
     activeTab,
+    isActualMode,
     isActualTimelineActive,
     isSimulationActive,
     setActiveTab,
     setBottomPanelOpen,
   ]);
+
+  useEffect(() => {
+    const availableSubViews = getBottomPanelSubViews({
+      isActualMode,
+      isSimulationActive,
+    });
+
+    if (!availableSubViews.some((subView) => subView.id === activeTab)) {
+      const fallbackTab = availableSubViews[0]?.id as
+        | BottomPanelTab
+        | undefined;
+
+      if (fallbackTab) {
+        setActiveTab(fallbackTab);
+      }
+    }
+  }, [activeTab, isActualMode, isSimulationActive, setActiveTab]);
+
+  const renderedActiveTab =
+    subViews.find((subView) => subView.id === activeTab)?.id ??
+    subViews[0]?.id ??
+    activeTab;
 
   const handleTabChange = (tabId: string) => {
     setActiveTab(tabId as BottomPanelTab);
@@ -199,27 +237,32 @@ export const BottomPanel: React.FC = () => {
       <div className={headerStyle}>
         <HorizontalTabsHeader
           subViews={subViews}
-          activeTabId={activeTab}
+          activeTabId={renderedActiveTab}
           onTabChange={handleTabChange}
         />
         <div className={headerRightStyle}>
           <HorizontalTabsHeaderAction
             subViews={subViews}
-            activeTabId={activeTab}
+            activeTabId={renderedActiveTab}
           />
-          <Button
-            size="xxs"
-            variant="ghost"
-            onClick={toggleBottomPanel}
-            aria-label="Close panel"
-            tooltip="Close panel"
-            iconName="close"
-          />
+          {!isActualMode && (
+            <Button
+              size="xxs"
+              variant="ghost"
+              onClick={toggleBottomPanel}
+              aria-label="Close panel"
+              tooltip="Close panel"
+              iconName="close"
+            />
+          )}
         </div>
       </div>
 
       {/* Scrollable content */}
-      <HorizontalTabsContent subViews={subViews} activeTabId={activeTab} />
+      <HorizontalTabsContent
+        subViews={subViews}
+        activeTabId={renderedActiveTab}
+      />
     </GlassPanel>
   );
 };

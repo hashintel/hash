@@ -102,7 +102,7 @@ const ActualTimelineContent: React.FC = () => {
 
 export const actualTimelineSubView: SubView = {
   id: "actual-timeline",
-  title: "Actual Timeline",
+  title: "Timeline",
   tooltip:
     "View the actual execution timeline with compartment time-series. Click/drag to scrub through frames.",
   component: ActualTimelineContent,

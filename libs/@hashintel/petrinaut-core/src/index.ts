@@ -5,6 +5,7 @@
 
 // --- Document ---
 export {
+  ACTUAL_MODE_TIMELINE_TICK_MS,
   buildActualModeTimelinePoints,
   createActualModeTimelineFrameReader,
   getActualModeTransitionFiringTimesMs,

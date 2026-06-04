@@ -77,6 +77,7 @@ export const BottomBar: React.FC<BottomBarProps> = ({
   cursorMode,
   onCursorModeChange,
 }) => {
+  const isActualMode = mode === "actual";
   const {
     isBottomPanelOpen,
     setBottomPanelOpen,
@@ -138,8 +139,9 @@ export const BottomBar: React.FC<BottomBarProps> = ({
             onEditionModeChange={onEditionModeChange}
             cursorMode={cursorMode}
             onCursorModeChange={onCursorModeChange}
+            showEditTools={!isActualMode}
           />
-          {hasAiAssistant && (
+          {hasAiAssistant && !isActualMode && (
             <>
               <ToolbarDivider />
               <ToolbarButton
@@ -183,12 +185,16 @@ export const BottomBar: React.FC<BottomBarProps> = ({
               <Icon name="chevronUp" size="sm" />
             )}
           </ToolbarButton>
-          <DiagnosticsIndicator
-            onClick={showDiagnostics}
-            isExpanded={isBottomPanelOpen}
-          />
-          <ToolbarDivider />
-          <SimulationControls disabled={hasDiagnostics} />
+          {!isActualMode && (
+            <>
+              <DiagnosticsIndicator
+                onClick={showDiagnostics}
+                isExpanded={isBottomPanelOpen}
+              />
+              <ToolbarDivider />
+              <SimulationControls disabled={hasDiagnostics} />
+            </>
+          )}
         </div>
       </refractive.div>
     </div>
