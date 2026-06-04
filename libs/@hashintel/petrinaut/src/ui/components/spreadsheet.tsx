@@ -83,7 +83,7 @@ const rowStyle = cva({
       true: {
         position: "sticky",
         bottom: "[0]",
-        zIndex: 1,
+        zIndex: "[1]",
         backgroundColor: "neutral.s00",
         boxShadow: "[0 -1px 4px rgba(0, 0, 0, 0.1)]",
       },

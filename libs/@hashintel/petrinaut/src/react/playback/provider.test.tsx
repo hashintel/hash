@@ -10,7 +10,11 @@ import {
   type SimulationContextValue,
   type SimulationFrameReader,
 } from "../simulation/context";
-import { PlaybackContext, type PlaybackContextValue } from "./context";
+import {
+  DEFAULT_COMPUTE_MODE,
+  PlaybackContext,
+  type PlaybackContextValue,
+} from "./context";
 import { PlaybackProvider } from "./provider";
 
 //
@@ -215,7 +219,7 @@ describe("PlaybackProvider", () => {
       expect(playbackValue.currentFrameIndex).toBe(0);
       expect(playbackValue.totalFrames).toBe(0);
       expect(playbackValue.playbackSpeed).toBe(1);
-      expect(playbackValue.playMode).toBe("computeMax");
+      expect(playbackValue.playMode).toBe(DEFAULT_COMPUTE_MODE);
       expect(playbackValue.isViewOnlyAvailable).toBe(false);
       expect(playbackValue.isComputeAvailable).toBe(true);
     });
@@ -276,8 +280,8 @@ describe("PlaybackProvider", () => {
       const { getPlaybackValue, rerender } =
         renderPlaybackProvider(simulationContext);
 
-      // Initially in computeMax mode
-      expect(getPlaybackValue().playMode).toBe("computeMax");
+      // Initially in compute mode
+      expect(getPlaybackValue().playMode).toBe(DEFAULT_COMPUTE_MODE);
 
       // Simulate completion
       rerender(
@@ -290,7 +294,7 @@ describe("PlaybackProvider", () => {
       );
 
       // The exposed mode is derived from simulation state. The stored
-      // requested mode remains computeMax so a later reset can run again.
+      // requested mode remains compute mode so a later reset can run again.
       expect(getPlaybackValue().playMode).toBe("viewOnly");
     });
   });
@@ -319,7 +323,7 @@ describe("PlaybackProvider", () => {
       // Should reset to initial state
       expect(getPlaybackValue().currentFrameIndex).toBe(0);
       expect(getPlaybackValue().playbackState).toBe("Stopped");
-      expect(getPlaybackValue().playMode).toBe("computeMax");
+      expect(getPlaybackValue().playMode).toBe(DEFAULT_COMPUTE_MODE);
     });
   });
 
@@ -407,7 +411,7 @@ describe("PlaybackProvider", () => {
       );
       const { getPlaybackValue } = renderPlaybackProvider(simulationContext);
 
-      expect(getPlaybackValue().playMode).toBe("computeMax");
+      expect(getPlaybackValue().playMode).toBe(DEFAULT_COMPUTE_MODE);
 
       act(() => {
         getPlaybackValue().setPlayMode("viewOnly");
@@ -426,8 +430,8 @@ describe("PlaybackProvider", () => {
         getPlaybackValue().setPlayMode("viewOnly");
       });
 
-      // Should still be computeMax
-      expect(getPlaybackValue().playMode).toBe("computeMax");
+      // Should still be compute mode
+      expect(getPlaybackValue().playMode).toBe(DEFAULT_COMPUTE_MODE);
     });
 
     it("should ignore compute modes when simulation is complete", () => {
@@ -486,8 +490,8 @@ describe("PlaybackProvider", () => {
 
       expect(initializeFn).toHaveBeenCalledWith(
         expect.objectContaining({
-          maxFramesAhead: 10000,
-          batchSize: 500,
+          maxFramesAhead: 40,
+          batchSize: 10,
         }),
       );
       expect(runFn).toHaveBeenCalled();
@@ -563,7 +567,7 @@ describe("PlaybackProvider", () => {
       const { getPlaybackValue } = renderPlaybackProvider(simulationContext);
 
       // Ensure in compute mode
-      expect(getPlaybackValue().playMode).toBe("computeMax");
+      expect(getPlaybackValue().playMode).toBe(DEFAULT_COMPUTE_MODE);
 
       act(() => {
         void getPlaybackValue().play();
@@ -610,7 +614,7 @@ describe("PlaybackProvider", () => {
         ),
       );
 
-      expect(getPlaybackValue().playMode).toBe("computeMax");
+      expect(getPlaybackValue().playMode).toBe(DEFAULT_COMPUTE_MODE);
 
       await act(async () => {
         rerender(
@@ -639,7 +643,7 @@ describe("PlaybackProvider", () => {
         await Promise.resolve();
       });
 
-      expect(getPlaybackValue().playMode).toBe("computeMax");
+      expect(getPlaybackValue().playMode).toBe(DEFAULT_COMPUTE_MODE);
 
       await act(async () => {
         await getPlaybackValue().play();
@@ -647,12 +651,12 @@ describe("PlaybackProvider", () => {
 
       expect(initializeFn).toHaveBeenCalledWith(
         expect.objectContaining({
-          maxFramesAhead: 10000,
-          batchSize: 500,
+          maxFramesAhead: 40,
+          batchSize: 10,
         }),
       );
       expect(runFn).toHaveBeenCalled();
-      expect(getPlaybackValue().playMode).toBe("computeMax");
+      expect(getPlaybackValue().playMode).toBe(DEFAULT_COMPUTE_MODE);
     });
   });
 

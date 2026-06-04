@@ -81,7 +81,7 @@ const Content = ({
 
   return (
     <Portal container={portalContainerRef}>
-      <ArkPopover.Positioner>
+      <ArkPopover.Positioner className={css({ zIndex: "popover !important" })}>
         <ArkPopover.Content className={cx(contentStyle, className)} {...props}>
           {children}
         </ArkPopover.Content>

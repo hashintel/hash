@@ -27,7 +27,7 @@ import {
 
 const glassPanelBaseStyle = css({
   position: "absolute",
-  zIndex: 1001,
+  zIndex: "[calc(var(--z-index-sticky) - 2)]",
   borderTopWidth: "thin",
   boxSizing: "border-box",
 });

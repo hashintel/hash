@@ -26,7 +26,7 @@
   },
   "dependencies": {
     "@apollo/client": "3.10.5",
-    "@blockprotocol/core": "0.1.4",
+    "@blockprotocol/core": "0.1.5",
     "@blockprotocol/graph": "workspace:*",
     "@local/advanced-types": "workspace:*",
     "@local/hash-graph-client": "workspace:*",

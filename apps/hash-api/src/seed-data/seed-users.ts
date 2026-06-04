@@ -31,8 +31,10 @@ const devUsers: readonly SeededUser[] = [
   {
     email: "alice@example.com",
     shortname: "alice",
-    // Alice has all feature flags enabled
-    enabledFeatureFlags: Array.from(featureFlags),
+    // Alice has all non-document editing features enabled
+    enabledFeatureFlags: Array.from(featureFlags).filter(
+      (flag) => !["pages", "canvases", "documents", "notes"].includes(flag),
+    ),
     displayName: "Alice",
   },
   {

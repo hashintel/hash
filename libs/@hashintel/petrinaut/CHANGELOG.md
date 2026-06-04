@@ -1,5 +1,19 @@
 # @hashintel/petrinaut
 
+## 0.0.16
+
+### Patch Changes
+
+- [#8789](https://github.com/hashintel/hash/pull/8789) [`1fff5b0`](https://github.com/hashintel/hash/commit/1fff5b0d79a98a5328f0df6fe4770e2f6f6fcad0) Thanks [@alex-e-leon](https://github.com/alex-e-leon)! - Adds an optional product walkthrough that consumers can set
+
+- [#8751](https://github.com/hashintel/hash/pull/8751) [`3b5ff88`](https://github.com/hashintel/hash/commit/3b5ff88eb9d2983d7c63492f3911d70eaa28d331) Thanks [@kube](https://github.com/kube)! - Add experiment metric creation controls, validation, and scalar/distribution visualizations.
+
+- [#8750](https://github.com/hashintel/hash/pull/8750) [`f9d6417`](https://github.com/hashintel/hash/commit/f9d64178b4a20c04efb0ad85fcf8dbfcff20327a) Thanks [@CiaranMn](https://github.com/CiaranMn)! - add AI assistant
+
+- Updated dependencies [[`3b5ff88`](https://github.com/hashintel/hash/commit/3b5ff88eb9d2983d7c63492f3911d70eaa28d331), [`f9d6417`](https://github.com/hashintel/hash/commit/f9d64178b4a20c04efb0ad85fcf8dbfcff20327a), [`c39ede8`](https://github.com/hashintel/hash/commit/c39ede805c753b91eb9551362f0815f77bba5833), [`919cbc5`](https://github.com/hashintel/hash/commit/919cbc57b9e3f60b9ea3bde7e42aabc14a235370), [`f9d6417`](https://github.com/hashintel/hash/commit/f9d64178b4a20c04efb0ad85fcf8dbfcff20327a)]:
+  - @hashintel/petrinaut-core@0.0.2
+  - @hashintel/ds-components@0.2.2
+
 ## 0.0.15
 
 ### Patch Changes

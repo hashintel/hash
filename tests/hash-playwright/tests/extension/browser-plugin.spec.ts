@@ -206,7 +206,7 @@ test("options page loads with logged-in state", async ({
   await expect(page.locator("text=Welcome, Alice")).toBeVisible();
 });
 
-test("user can type a quick note which persists across logouts", async ({
+test.skip("user can type a quick note which persists across logouts", async ({
   page,
   extensionId,
 }) => {

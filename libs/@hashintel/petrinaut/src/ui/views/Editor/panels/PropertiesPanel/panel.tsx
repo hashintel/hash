@@ -27,7 +27,7 @@ const glassPanelStyle = css({
   boxSizing: "border-box",
   top: "[0]",
   right: "[0]",
-  zIndex: 1000,
+  zIndex: "[calc(var(--z-index-sticky) - 3)]",
   pointerEvents: "auto",
   borderLeftWidth: "thin",
 });

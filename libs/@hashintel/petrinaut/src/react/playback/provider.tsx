@@ -18,7 +18,11 @@ import {
   type SimulationFrameState,
 } from "../simulation/context";
 import { useStore } from "../use-store";
-import { PlaybackContext, type PlaybackContextValue } from "./context";
+import {
+  DEFAULT_COMPUTE_MODE,
+  PlaybackContext,
+  type PlaybackContextValue,
+} from "./context";
 
 /**
  * Converts a {@link SimulationFrameReader} to the simplified {@link SimulationFrameState}
@@ -45,13 +49,16 @@ function getEffectivePlayMode(
     return "viewOnly";
   }
   if (requestedMode === "viewOnly" && totalFrames === 0) {
-    return "computeMax";
+    return DEFAULT_COMPUTE_MODE;
   }
   return requestedMode;
 }
 
 function toComputePlayMode(mode: PlayMode): ComputePlayMode {
-  return mode === "computeBuffer" ? "computeBuffer" : "computeMax";
+  if (mode === "viewOnly") {
+    return DEFAULT_COMPUTE_MODE;
+  }
+  return mode;
 }
 
 type PlaybackProviderProps = React.PropsWithChildren;
@@ -71,9 +78,13 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
     ack,
   } = use(SimulationContext);
 
+  const { playMode } = use(PlaybackContext);
+
   // Pure timing model lives in /core. The provider drives ticks via rAF and
   // coordinates simulation lifecycle (init / run / pause / ack / backpressure).
-  const [playback] = useState<Playback>(() => createPlayback());
+  const [playback] = useState<Playback>(() =>
+    createPlayback({ mode: playMode }),
+  );
   useEffect(() => {
     return playback.dispose;
   }, [playback]);
