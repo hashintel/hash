@@ -418,6 +418,9 @@ const baseDirectoryPath = path.join(
 
 test(
   "Match new entity with existing entity",
+  {
+    timeout: 30 * 60 * 1000,
+  },
   async () => {
     const models: LlmParams["model"][] = [
       "claude-haiku-4-5-20251001",
@@ -432,8 +435,5 @@ test(
       metrics,
       promptIterations: 1,
     });
-  },
-  {
-    timeout: 30 * 60 * 1000,
   },
 );

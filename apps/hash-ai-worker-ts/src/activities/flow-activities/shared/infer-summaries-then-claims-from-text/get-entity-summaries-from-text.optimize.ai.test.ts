@@ -149,6 +149,9 @@ const baseDirectoryPath = path.join(
 
 test(
   "Get entity summaries from text system prompt test",
+  {
+    timeout: 30 * 60 * 1000,
+  },
   async () => {
     const models: LlmParams["model"][] = ["claude-haiku-4-5-20251001"];
 
@@ -160,8 +163,5 @@ test(
       metrics,
       promptIterations: 3,
     });
-  },
-  {
-    timeout: 30 * 60 * 1000,
   },
 );

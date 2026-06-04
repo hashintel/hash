@@ -8,6 +8,9 @@ import { checkDelegatedTasksAgent } from "./check-delegated-tasks-agent.js";
 
 test.skip(
   "Test checkDelegatedTasksAgent",
+  {
+    timeout: 5 * 60 * 1000,
+  },
   async () => {
     const { userAuthentication } = await getFlowContext();
     const allDereferencedEntityTypesById =
@@ -96,8 +99,5 @@ test.skip(
     );
 
     expect(rejectedDelegatedTasks).toBeDefined();
-  },
-  {
-    timeout: 5 * 60 * 1000,
   },
 );

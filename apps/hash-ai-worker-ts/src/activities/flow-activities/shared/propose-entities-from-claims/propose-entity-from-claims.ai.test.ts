@@ -76,6 +76,9 @@ const huntingPlcEntityClaims = [
 
 test(
   "Test proposeEntityFromClaims: HUNTING PLC ORD 25P",
+  {
+    timeout: 5 * 60 * 1000,
+  },
   async () => {
     const { userAuthentication } = await getFlowContext();
 
@@ -122,9 +125,6 @@ test(
     console.log(JSON.stringify({ proposeEntityFromClaimsStatus }, null, 2));
 
     expect(proposeEntityFromClaimsStatus).toBeDefined();
-  },
-  {
-    timeout: 5 * 60 * 1000,
   },
 );
 
@@ -243,6 +243,9 @@ const claimsAboutGraphicsCard: Claim[] = [
 
 test(
   "Test proposeEntityFromClaims with graphics card entity",
+  {
+    timeout: 5 * 60 * 1000,
+  },
   async () => {
     const { userAuthentication } = await getFlowContext();
 
@@ -271,8 +274,5 @@ test(
     console.log(JSON.stringify({ proposeEntityFromClaimsStatus }, null, 2));
 
     expect(proposeEntityFromClaimsStatus).toBeDefined();
-  },
-  {
-    timeout: 5 * 60 * 1000,
   },
 );

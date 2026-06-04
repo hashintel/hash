@@ -14,6 +14,9 @@ import { summarizeExistingEntities } from "./summarize-existing-entities.js";
 
 test.skip(
   "Test summarizeExistingEntities with user entities",
+  {
+    timeout: 5 * 60 * 1000,
+  },
   async () => {
     const { entities: publicUserEntities } = await queryEntities(
       { graphApi: graphApiClient },
@@ -42,8 +45,5 @@ test.skip(
 
     expect(existingEntitySummaries).toBeDefined();
     expect(existingEntitySummaries).toHaveLength(publicUserEntities.length);
-  },
-  {
-    timeout: 5 * 60 * 1000,
   },
 );

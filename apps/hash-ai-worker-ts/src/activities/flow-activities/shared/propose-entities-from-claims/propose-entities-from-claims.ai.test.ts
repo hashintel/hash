@@ -583,6 +583,9 @@ const ftse350Claims = [
 
 test(
   "Test proposeEntitiesFromClaims",
+  {
+    timeout: 5 * 60 * 1000,
+  },
   async () => {
     const { userAuthentication } = await getFlowContext();
 
@@ -634,8 +637,5 @@ test(
     console.log(JSON.stringify({ proposedEntities }, null, 2));
 
     expect(proposedEntities).toBeDefined();
-  },
-  {
-    timeout: 5 * 60 * 1000,
   },
 );

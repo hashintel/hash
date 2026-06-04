@@ -97,7 +97,7 @@
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
     "@vitejs/plugin-react": "5.0.4",
-    "@vitest/browser-playwright": "^4.0.16",
+    "@vitest/browser-playwright": "4.1.7",
     "bumpp": "^10.3.2",
     "case-anything": "3.1.0",
     "colorjs.io": "0.6.1",
@@ -114,7 +114,7 @@
     "vite": "7.3.2",
     "vite-plugin-dts": "4.5.4",
     "vite-plugin-svgr": "5.2.0",
-    "vitest": "^4.0.16",
+    "vitest": "4.1.7",
     "vitest-browser-react": "^2.0.2",
     "zod": "4.4.3"
   },
