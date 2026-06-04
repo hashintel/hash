@@ -40,7 +40,7 @@ const submenuContentStyle = css({
   minWidth: "[180px]",
   maxHeight: "var(--available-height)",
   overflowY: "auto",
-  zIndex: 2,
+  zIndex: "[2]",
   transformOrigin: "var(--transform-origin)",
   '&[data-state="open"]': {
     animation: "popover-in 150ms ease-out",
@@ -300,7 +300,7 @@ export const Menu: React.FC<MenuProps> = ({
     >
       <ArkMenu.Trigger asChild>{trigger}</ArkMenu.Trigger>
       <Portal container={portalContainerRef}>
-        <ArkMenu.Positioner>
+        <ArkMenu.Positioner className={css({ zIndex: "popover !important" })}>
           <ArkMenu.Content
             className={menuContentStyle({ animated })}
             style={maxHeight ? { maxHeight, overflowY: "auto" } : undefined}
@@ -329,7 +329,9 @@ export const Menu: React.FC<MenuProps> = ({
                             <span className={triggerItemArrowStyle}>›</span>
                           </ArkMenu.TriggerItem>
                           <Portal container={portalContainerRef}>
-                            <ArkMenu.Positioner>
+                            <ArkMenu.Positioner
+                              className={css({ zIndex: "popover !important" })}
+                            >
                               <ArkMenu.Content className={submenuContentStyle}>
                                 <div className={groupStyle}>
                                   <div className={groupItemsStyle}>

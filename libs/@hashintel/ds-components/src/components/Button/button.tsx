@@ -42,6 +42,7 @@ type SharedButtonProps<Element extends HTMLButtonElement | HTMLAnchorElement> =
       "children" | "content"
     >;
   } & RequireAtLeastOne<{
+    "aria-label"?: string;
     tooltip?: string;
     children?: React.ReactNode;
   }> &
