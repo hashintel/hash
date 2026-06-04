@@ -69,7 +69,8 @@ export const getGoogleAiResponse = async <ToolName extends string>(
     }
 
     contents.push({
-      role: message.role,
+      // `@google/genai` uses "model" for assistant turns, not "assistant".
+      role: message.role === "assistant" ? "model" : message.role,
       parts,
     });
   }

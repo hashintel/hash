@@ -42,10 +42,13 @@ const buildWorkloadIdentityOptions = ():
 
   const provideAwsCredentials = fromNodeProviderChain();
 
+  const config = JSON.parse(workloadIdentityConfig) as Record<string, unknown>;
+  // The config's EC2-IMDS credential_source is unavailable on Fargate; the
+  // supplier below provides credentials instead.
+  delete config.credential_source;
+
   return {
-    ...(JSON.parse(workloadIdentityConfig) as Record<string, unknown>),
-    // Replaces the config's EC2-IMDS credential_source (unavailable on Fargate).
-    credential_source: undefined,
+    ...config,
     aws_security_credentials_supplier: {
       getAwsRegion: () => Promise.resolve(awsRegion),
       getAwsSecurityCredentials: async () => {
