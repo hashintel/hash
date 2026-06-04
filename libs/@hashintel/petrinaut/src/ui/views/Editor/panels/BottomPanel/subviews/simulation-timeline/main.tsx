@@ -1,4 +1,4 @@
-import { use, useState } from "react";
+import { use, useMemo, useState } from "react";
 
 import { PlaybackContext } from "../../../../../../../react/playback/context";
 import { SimulationContext } from "../../../../../../../react/simulation/context";
@@ -10,12 +10,21 @@ import { chartAreaStyle, containerStyle } from "./styles";
 import { useStreamingData } from "./use-streaming-data";
 
 import type { SubView } from "../../../../../../components/sub-view/types";
+import type { TimelineFrameSource } from "./types";
 
 const SimulationTimelineContent: React.FC = () => {
   const { timelineChartType: chartType } = use(EditorContext);
-  const { totalFrames } = use(SimulationContext);
-  const { currentFrameIndex } = use(PlaybackContext);
-  const { store, metricError } = useStreamingData();
+  const { getFramesInRange, totalFrames } = use(SimulationContext);
+  const { currentFrameIndex, setCurrentViewedFrame } = use(PlaybackContext);
+  const source = useMemo<TimelineFrameSource>(
+    () => ({
+      sourceId: "simulation",
+      totalFrames,
+      getFramesInRange,
+    }),
+    [getFramesInRange, totalFrames],
+  );
+  const { store, metricError } = useStreamingData(source);
 
   const [hiddenSeries, setHiddenSeries] = useState<Set<string>>(new Set());
 
@@ -58,6 +67,7 @@ const SimulationTimelineContent: React.FC = () => {
         hiddenSeries={hiddenSeries}
         totalFrames={totalFrames}
         currentFrameIndex={currentFrameIndex}
+        onScrub={setCurrentViewedFrame}
       />
       {store.series.length > 1 && (
         <TimelineLegend

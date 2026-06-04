@@ -1,4 +1,11 @@
-import { use, useEffect, useRef, useSyncExternalStore } from "react";
+import {
+  use,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 
 import {
   compileMetric,
@@ -6,7 +13,6 @@ import {
   type Metric,
 } from "@hashintel/petrinaut-core";
 
-import { SimulationContext } from "../../../../../../../react/simulation/context";
 import { EditorContext } from "../../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../../react/state/sdcpn-context";
 import { buildTimelineSeriesConfig } from "./series-config";
@@ -14,6 +20,7 @@ import { buildTimelineSeriesConfig } from "./series-config";
 import type {
   StreamingStore,
   TimelineFrame,
+  TimelineFrameSource,
   TimelineSeriesExtractor,
   TimelineSeriesMeta,
 } from "./types";
@@ -138,11 +145,10 @@ function compileTimelineMetric(metric: Metric | null): {
  *    places), values are the sum of token counts across places of that type.
  *  - `metric`: a single series computed by the compiled user metric.
  */
-export function useStreamingData(): {
+export function useStreamingData(source: TimelineFrameSource): {
   store: StreamingStore;
   metricError: string | null;
 } {
-  const { dt, getFramesInRange, totalFrames } = use(SimulationContext);
   const {
     extensions,
     petriNetDefinition: { places, types, transitions, metrics },
@@ -150,29 +156,54 @@ export function useStreamingData(): {
   const colorsEnabled = extensions.colors;
   const { timelineView } = use(EditorContext);
 
-  const selectedMetric =
-    timelineView.kind === "metric"
-      ? (metrics?.find((metric) => metric.id === timelineView.metricId) ?? null)
-      : null;
+  const selectedMetric = useMemo(
+    () =>
+      timelineView.kind === "metric"
+        ? (metrics?.find((metric) => metric.id === timelineView.metricId) ??
+          null)
+        : null,
+    [metrics, timelineView],
+  );
 
-  const compiledMetric = compileTimelineMetric(selectedMetric);
-  const availableTypes = colorsEnabled ? types : [];
-  const availablePlaces = colorsEnabled
-    ? places
-    : places.map((place) => ({ ...place, colorId: null }));
+  const compiledMetric = useMemo(
+    () => compileTimelineMetric(selectedMetric),
+    [selectedMetric],
+  );
+  const availableTypes = useMemo(
+    () => (colorsEnabled ? types : []),
+    [colorsEnabled, types],
+  );
+  const availablePlaces = useMemo(
+    () =>
+      colorsEnabled
+        ? places
+        : places.map((place) => ({ ...place, colorId: null })),
+    [colorsEnabled, places],
+  );
 
   // Computes the active timeline view mode described above into concrete uPlot
   // series metadata and the per-frame value extractor used while streaming.
-  const seriesConfig = buildTimelineSeriesConfig({
-    timelineView,
-    places: availablePlaces,
-    types: availableTypes,
-    transitions,
-    selectedMetric,
-    compiledMetric: compiledMetric.fn,
-  });
+  const seriesConfig = useMemo(
+    () =>
+      buildTimelineSeriesConfig({
+        timelineView,
+        places: availablePlaces,
+        types: availableTypes,
+        transitions,
+        selectedMetric,
+        compiledMetric: compiledMetric.fn,
+      }),
+    [
+      availablePlaces,
+      availableTypes,
+      compiledMetric.fn,
+      selectedMetric,
+      timelineView,
+      transitions,
+    ],
+  );
 
-  const storeController = createStreamingStoreController([]);
+  const [storeController] = useState(() => createStreamingStoreController([]));
   const { store } = useSyncExternalStore(
     storeController.subscribe,
     storeController.getSnapshot,
@@ -183,18 +214,18 @@ export function useStreamingData(): {
   // yet been appended to the uPlot columns. Updating it should not re-render.
   const processedRef = useRef(0);
 
-  // Reset store when the series structure or x-axis timing changes.
+  // Reset store when the source identity or series structure changes.
   useEffect(() => {
     storeController.reset(seriesConfig.series);
     processedRef.current = 0;
-  }, [dt, seriesConfig.series, storeController]);
+  }, [seriesConfig.series, source.sourceId, storeController]);
 
   // Stream new frames into the store
   useEffect(() => {
     let cancelled = false;
 
     const fetchData = async () => {
-      if (totalFrames === 0) {
+      if (source.totalFrames === 0) {
         if (storeController.getLength() > 0) {
           storeController.resetCurrentSeries();
           processedRef.current = 0;
@@ -203,30 +234,30 @@ export function useStreamingData(): {
       }
 
       // Handle simulation restart
-      if (totalFrames < processedRef.current) {
+      if (source.totalFrames < processedRef.current) {
         storeController.resetCurrentSeries();
         processedRef.current = 0;
       }
 
       const startIndex = processedRef.current;
-      if (startIndex >= totalFrames) {
+      if (startIndex >= source.totalFrames) {
         return;
       }
 
-      const newFrames = await getFramesInRange(startIndex);
+      const newFrames = await source.getFramesInRange(startIndex);
       if (cancelled || newFrames.length === 0) {
         return;
       }
 
       storeController.appendFrames(newFrames, seriesConfig.extract);
-      processedRef.current = totalFrames;
+      processedRef.current = startIndex + newFrames.length;
     };
 
     void fetchData();
     return () => {
       cancelled = true;
     };
-  }, [dt, getFramesInRange, totalFrames, seriesConfig, storeController]);
+  }, [seriesConfig, source, storeController]);
 
   return {
     store,

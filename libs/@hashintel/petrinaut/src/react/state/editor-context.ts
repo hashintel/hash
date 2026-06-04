@@ -19,6 +19,7 @@ export type CursorMode = "select" | "pan";
 export type BottomPanelTab =
   | "diagnostics"
   | "simulation-settings"
+  | "actual-timeline"
   | "simulation-timeline";
 
 export type TimelineChartType = "run" | "stacked";

@@ -5,12 +5,17 @@
 
 // --- Document ---
 export {
+  buildActualModeTimelinePoints,
+  createActualModeTimelineFrameReader,
+  getActualModeTransitionFiringTimesMs,
   unavailableActualMode,
 } from "./actual-mode";
 export type {
   ActualModeContextValue,
   ActualModeMarking,
   ActualModeSource,
+  ActualModeTimelinePoint,
+  ActualModeTimelinePointKind,
   ActualModeTokenColour,
   ActualModeTransitionFiring,
 } from "./actual-mode";

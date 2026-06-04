@@ -2,11 +2,11 @@ import { use, useMemo } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 
+import { useCurrentExecutionFrame } from "../../../react/hooks/use-current-execution-frame";
 import {
   mergeParameterValues,
   useDefaultParameterValues,
 } from "../../../react/hooks/use-default-parameter-values";
-import { PlaybackContext } from "../../../react/playback/context";
 import { SimulationContext } from "../../../react/simulation/context";
 import { compileVisualizer } from "../../lib/compile-visualizer";
 import { VisualizerErrorBoundary } from "../Editor/panels/PropertiesPanel/place-properties/subviews/place-visualizer/visualizer-error-boundary";
@@ -40,7 +40,7 @@ export const PlaceStateVisualization: React.FC<
   "use no memo"; // User-authored visualizer code is compiled into a component at runtime.
 
   const { initialMarking, parameterValues } = use(SimulationContext);
-  const { currentFrameReader, totalFrames } = use(PlaybackContext);
+  const { currentFrameReader, totalFrames } = useCurrentExecutionFrame();
 
   const defaultParameterValues = useDefaultParameterValues();
 

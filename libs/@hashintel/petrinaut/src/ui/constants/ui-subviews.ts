@@ -8,6 +8,7 @@
 import { diagnosticsSubView } from "../views/Editor/panels/BottomPanel/subviews/diagnostics";
 import { simulationSettingsSubView } from "../views/Editor/panels/BottomPanel/subviews/simulation-settings";
 import { simulationTimelineSubView } from "../views/Editor/panels/BottomPanel/subviews/simulation-timeline";
+import { actualTimelineSubView } from "../views/Editor/panels/BottomPanel/subviews/simulation-timeline/actual";
 import { differentialEquationsListSubView } from "../views/Editor/panels/LeftSideBar/subviews/differential-equations-list";
 import { entitiesTreeSubView } from "../views/Editor/panels/LeftSideBar/subviews/entities-tree";
 import { nodesListSubView } from "../views/Editor/panels/LeftSideBar/subviews/nodes-list";
@@ -33,3 +34,6 @@ export const BOTTOM_PANEL_SUBVIEWS: SubView[] = [
 
 // Subviews only visible when simulation is running/paused
 export const SIMULATION_ONLY_SUBVIEWS: SubView[] = [simulationTimelineSubView];
+
+// Subviews only visible when Actual mode is receiving external execution data
+export const ACTUAL_ONLY_SUBVIEWS: SubView[] = [actualTimelineSubView];

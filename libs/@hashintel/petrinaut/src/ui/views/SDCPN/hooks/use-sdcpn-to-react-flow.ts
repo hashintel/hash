@@ -7,7 +7,7 @@ import {
   getTransitionLogicAvailability,
 } from "@hashintel/petrinaut-core";
 
-import { PlaybackContext } from "../../../../react/playback/context";
+import { useCurrentExecutionFrame } from "../../../../react/hooks/use-current-execution-frame";
 import { EditorContext } from "../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../react/state/sdcpn-context";
 import { UserSettingsContext } from "../../../../react/state/user-settings-context";
@@ -42,7 +42,7 @@ export function useSdcpnToReactFlow(): PetrinautReactFlowDefinitionObject {
     isNotHoveredConnection,
     hoveredItem,
   } = use(EditorContext);
-  const { currentFrameReader } = use(PlaybackContext);
+  const { currentFrameReader } = useCurrentExecutionFrame();
   const { compactNodes } = use(UserSettingsContext);
 
   const dimensions = compactNodes

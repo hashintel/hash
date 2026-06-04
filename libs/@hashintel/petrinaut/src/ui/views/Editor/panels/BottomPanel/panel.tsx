@@ -3,6 +3,7 @@ import { use, useEffect, useRef } from "react";
 import { Button } from "@hashintel/ds-components";
 import { css, cva, cx } from "@hashintel/ds-helpers/css";
 
+import { ActualModeContext } from "../../../../../react/actual-mode-context";
 import { SimulationContext } from "../../../../../react/simulation/context";
 import {
   type BottomPanelTab,
@@ -21,6 +22,7 @@ import {
   PANEL_MARGIN,
 } from "../../../../constants/ui";
 import {
+  ACTUAL_ONLY_SUBVIEWS,
   BOTTOM_PANEL_SUBVIEWS,
   SIMULATION_ONLY_SUBVIEWS,
 } from "../../../../constants/ui-subviews";
@@ -89,45 +91,71 @@ export const BottomPanel: React.FC = () => {
     setActiveBottomPanelTab: setActiveTab,
     toggleBottomPanel,
     isPanelAnimating,
+    globalMode,
   } = use(EditorContext);
 
   // Simulation state for conditional subviews
   const { state: simulationState } = use(SimulationContext);
+  const actualMode = use(ActualModeContext);
   const isSimulationActive =
     simulationState === "Running" ||
     simulationState === "Paused" ||
     simulationState === "Complete";
+  const isActualTimelineActive =
+    globalMode === "actual" &&
+    actualMode.available &&
+    actualMode.initialState !== null &&
+    (actualMode.status === "streaming" || actualMode.status === "complete");
 
-  // Track previous simulation state to detect when simulation starts
-  const prevSimulationActiveRef = useRef(isSimulationActive);
+  // Track previous run states to detect when a timeline becomes available.
+  const prevSimulationActiveRef = useRef(false);
+  const prevActualTimelineActiveRef = useRef(false);
 
-  // Dynamically compute subviews based on simulation state
-  const subViews = isSimulationActive
-    ? [...BOTTOM_PANEL_SUBVIEWS, ...SIMULATION_ONLY_SUBVIEWS]
-    : BOTTOM_PANEL_SUBVIEWS;
+  // Dynamically compute subviews based on available execution modes.
+  const subViews = [
+    ...BOTTOM_PANEL_SUBVIEWS,
+    ...(isSimulationActive ? SIMULATION_ONLY_SUBVIEWS : []),
+    ...(isActualTimelineActive ? ACTUAL_ONLY_SUBVIEWS : []),
+  ];
 
-  // Automatically open bottom panel and switch to timeline when simulation starts,
-  // and fall back to diagnostics when simulation stops
+  // Automatically open bottom panel and switch to the relevant timeline when a
+  // run starts, and fall back to diagnostics when the active timeline disappears.
   useEffect(() => {
-    const wasActive = prevSimulationActiveRef.current;
+    const wasSimulationActive = prevSimulationActiveRef.current;
+    const wasActualTimelineActive = prevActualTimelineActiveRef.current;
     prevSimulationActiveRef.current = isSimulationActive;
+    prevActualTimelineActiveRef.current = isActualTimelineActive;
 
-    // Simulation just started (transition from inactive to active)
-    if (isSimulationActive && !wasActive) {
+    if (isActualTimelineActive && !wasActualTimelineActive) {
+      setBottomPanelOpen(true);
+      setActiveTab("actual-timeline");
+    } else if (isSimulationActive && !wasSimulationActive) {
       setBottomPanelOpen(true);
       setActiveTab("simulation-timeline");
     }
 
-    // Simulation just stopped (transition from active to inactive)
-    // If the current tab is simulation-only, fall back to diagnostics
     if (
       !isSimulationActive &&
-      wasActive &&
+      wasSimulationActive &&
       activeTab === "simulation-timeline"
     ) {
       setActiveTab("diagnostics");
     }
-  }, [isSimulationActive, setBottomPanelOpen, setActiveTab, activeTab]);
+
+    if (
+      !isActualTimelineActive &&
+      wasActualTimelineActive &&
+      activeTab === "actual-timeline"
+    ) {
+      setActiveTab("diagnostics");
+    }
+  }, [
+    activeTab,
+    isActualTimelineActive,
+    isSimulationActive,
+    setActiveTab,
+    setBottomPanelOpen,
+  ]);
 
   const handleTabChange = (tabId: string) => {
     setActiveTab(tabId as BottomPanelTab);

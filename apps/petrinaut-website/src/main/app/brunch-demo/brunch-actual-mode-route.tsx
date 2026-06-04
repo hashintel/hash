@@ -1,5 +1,6 @@
 import {
   use,
+  useCallback,
   useEffect,
   useMemo,
   useState,
@@ -15,11 +16,8 @@ import {
   layoutNodeDimensions,
   PETRINAUT_EXTENSION_NAMES,
 } from "@hashintel/petrinaut-core";
-import {
-  Petrinaut,
-  type ViewportAction,
-} from "@hashintel/petrinaut/ui";
 import { ActualModeContext } from "@hashintel/petrinaut/react";
+import { Petrinaut, type ViewportAction } from "@hashintel/petrinaut/ui";
 
 import type {
   ActualModeContextValue,
@@ -43,7 +41,10 @@ const markingSchema = z.record(z.string(), markingValueSchema);
 const inputArcSchema = z.object({
   placeId: z.string(),
   weight: z.number(),
-  type: z.enum(["standard", "read", "inhibitor"]).optional().default("standard"),
+  type: z
+    .enum(["standard", "read", "inhibitor"])
+    .optional()
+    .default("standard"),
 });
 
 const outputArcSchema = z.object({
@@ -68,7 +69,10 @@ const transitionSchema = z.object({
   name: z.string(),
   inputArcs: z.array(inputArcSchema),
   outputArcs: z.array(outputArcSchema),
-  lambdaType: z.enum(["predicate", "stochastic"]).optional().default("predicate"),
+  lambdaType: z
+    .enum(["predicate", "stochastic"])
+    .optional()
+    .default("predicate"),
   lambdaCode: z.string().optional().default(""),
   transitionKernelCode: z.string().optional().default(""),
   x: z.number().optional(),
@@ -285,7 +289,9 @@ const shouldAutoLayout = (definition: BrunchNetDefinition): boolean => {
     return true;
   }
 
-  return nodes.length > 1 && nodes.every((node) => node.x === 0 && node.y === 0);
+  return (
+    nodes.length > 1 && nodes.every((node) => node.x === 0 && node.y === 0)
+  );
 };
 
 const toSDCPN = (definition: BrunchNetDefinition): SDCPN => ({
@@ -343,20 +349,28 @@ const normalizeBrunchDefinition = async (
 const createLoadingActualModeValue = (
   endpoint: string,
   runId: string | undefined,
-): AvailableActualModeContextValue => ({
-  available: true,
-  source: {
-    kind: "brunch",
-    endpoint,
-    ...(runId ? { runId } : {}),
-  },
-  status: "loading",
-  title: null,
-  definition: null,
-  initialState: null,
-  transitionFirings: [],
-  error: null,
-});
+): AvailableActualModeContextValue => {
+  const now = Date.now();
+
+  return {
+    available: true,
+    source: {
+      kind: "brunch",
+      endpoint,
+      ...(runId ? { runId } : {}),
+    },
+    status: "loading",
+    title: null,
+    definition: null,
+    initialState: null,
+    transitionFirings: [],
+    currentFrameIndex: 0,
+    timelineStartedAtMs: now,
+    timelineNowMs: now,
+    setCurrentFrameIndex: () => {},
+    error: null,
+  };
+};
 
 export const BrunchActualModeProvider: FC<
   PropsWithChildren<{ endpoint: string; runId?: string }>
@@ -364,6 +378,34 @@ export const BrunchActualModeProvider: FC<
   const [value, setValue] = useState<AvailableActualModeContextValue>(() =>
     createLoadingActualModeValue(endpoint, runId),
   );
+
+  const setCurrentFrameIndex = useCallback((frameIndex: number) => {
+    setValue((prev) => ({
+      ...prev,
+      currentFrameIndex: Math.max(0, Math.floor(frameIndex)),
+    }));
+  }, []);
+
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      setValue((prev) =>
+        prev.status === "streaming"
+          ? {
+              ...prev,
+              timelineNowMs: Date.now(),
+            }
+          : prev,
+      );
+    }, 1_000);
+
+    return () => {
+      window.clearInterval(interval);
+    };
+  }, []);
+
+  useEffect(() => {
+    setValue(createLoadingActualModeValue(endpoint, runId));
+  }, [endpoint, runId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -378,6 +420,7 @@ export const BrunchActualModeProvider: FC<
       setValue((prev) => ({
         ...prev,
         status: "error",
+        timelineNowMs: Date.now(),
         error: message,
       }));
     };
@@ -397,6 +440,7 @@ export const BrunchActualModeProvider: FC<
             status: prev.status === "complete" ? "complete" : "streaming",
             title: definition.title,
             definition: sdcpn,
+            timelineNowMs: Date.now(),
             error: null,
           }));
         } catch (err) {
@@ -412,6 +456,7 @@ export const BrunchActualModeProvider: FC<
           ...prev,
           status: prev.status === "complete" ? "complete" : "streaming",
           initialState,
+          timelineNowMs: Date.now(),
           error: null,
         }));
       } catch (err) {
@@ -426,6 +471,7 @@ export const BrunchActualModeProvider: FC<
           ...prev,
           status: prev.status === "complete" ? "complete" : "streaming",
           transitionFirings: [...prev.transitionFirings, firing],
+          timelineNowMs: Date.now(),
           error: null,
         }));
       } catch (err) {
@@ -438,6 +484,7 @@ export const BrunchActualModeProvider: FC<
       setValue((prev) => ({
         ...prev,
         status: "complete",
+        timelineNowMs: Date.now(),
       }));
     };
 
@@ -462,7 +509,15 @@ export const BrunchActualModeProvider: FC<
     };
   }, [endpoint, runId]);
 
-  return <ActualModeContext value={value}>{children}</ActualModeContext>;
+  const contextValue = useMemo<AvailableActualModeContextValue>(
+    () => ({
+      ...value,
+      setCurrentFrameIndex,
+    }),
+    [setCurrentFrameIndex, value],
+  );
+
+  return <ActualModeContext value={contextValue}>{children}</ActualModeContext>;
 };
 
 const BrunchStatusPage = ({

@@ -1,4 +1,4 @@
-import { use, useRef, useState } from "react";
+import { use, useCallback, useRef, useState } from "react";
 
 import {
   getNodeConnections,
@@ -31,17 +31,26 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
   const userSettings = use(UserSettingsContext);
   const { petriNetDefinition } = use(SDCPNContext);
   const actualMode = use(ActualModeContext);
+  const startsInActualMode = actualMode.available;
+  const startsWithActualTimeline =
+    startsInActualMode &&
+    actualMode.initialState !== null &&
+    (actualMode.status === "streaming" || actualMode.status === "complete");
 
   const [state, setState] = useState<EditorState>(() => ({
     ...initialEditorState,
-    globalMode: actualMode.available ? "actual" : initialEditorState.globalMode,
+    globalMode: startsInActualMode ? "actual" : initialEditorState.globalMode,
     cursorMode: userSettings.cursorMode,
     isLeftSidebarOpen: userSettings.isLeftSidebarOpen,
     leftSidebarWidth: userSettings.leftSidebarWidth,
     propertiesPanelWidth: userSettings.propertiesPanelWidth,
-    isBottomPanelOpen: userSettings.isBottomPanelOpen,
+    isBottomPanelOpen: startsWithActualTimeline
+      ? true
+      : userSettings.isBottomPanelOpen,
     bottomPanelHeight: userSettings.bottomPanelHeight,
-    activeBottomPanelTab: userSettings.activeBottomPanelTab,
+    activeBottomPanelTab: startsWithActualTimeline
+      ? "actual-timeline"
+      : userSettings.activeBottomPanelTab,
     timelineChartType: userSettings.timelineChartType,
   }));
 
@@ -54,18 +63,18 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
    * same setState call as the layout change so CSS transitions are active
    * before the panel's open/close state flips.
    */
-  const animationPatch = (): Partial<EditorState> => {
+  const animationPatch = useCallback((): Partial<EditorState> => {
     if (!userSettings.showAnimations) {
       return {};
     }
     return { isPanelAnimating: true };
-  };
+  }, [userSettings.showAnimations]);
 
   /**
    * Schedule clearing the animation flag after transitions complete.
    * Called outside setState updaters to keep them pure.
    */
-  const scheduleAnimationEnd = () => {
+  const scheduleAnimationEnd = useCallback(() => {
     if (!userSettings.showAnimations) {
       return;
     }
@@ -73,7 +82,7 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     animationTimerRef.current = setTimeout(() => {
       setState((prev) => ({ ...prev, isPanelAnimating: false }));
     }, 500);
-  };
+  }, [userSettings.showAnimations]);
 
   const setSelection = (
     selectionOrUpdater: SelectionMap | ((prev: SelectionMap) => SelectionMap),

@@ -1,4 +1,4 @@
-import { use, useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import uPlot from "uplot";
 
 import { useElementSize } from "../../../../../../../react/hooks/use-element-size";
@@ -6,7 +6,6 @@ import "uplot/dist/uPlot.min.css";
 
 import { useLatest } from "../../../../../../../react/hooks/use-latest";
 import { useStableCallback } from "../../../../../../../react/hooks/use-stable-callback";
-import { PlaybackContext } from "../../../../../../../react/playback/context";
 import {
   tooltipDotStyle,
   tooltipLabelStyle,
@@ -475,6 +474,7 @@ export const UPlotChart: FC<{
   hiddenSeries: Set<string>;
   totalFrames: number;
   currentFrameIndex: number;
+  onScrub: (frameIndex: number) => void;
   className?: string;
 }> = ({
   store,
@@ -482,11 +482,11 @@ export const UPlotChart: FC<{
   hiddenSeries,
   totalFrames,
   currentFrameIndex,
+  onScrub,
   className,
 }) => {
   "use no memo";
 
-  const { setCurrentViewedFrame } = use(PlaybackContext);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<uPlot | null>(null);
   const playheadFrameRef = useRef(currentFrameIndex);
@@ -496,8 +496,8 @@ export const UPlotChart: FC<{
   const hasSize = size != null;
   const dataLength = store.length;
 
-  const onScrub = useStableCallback((idx: number) => {
-    setCurrentViewedFrame(Math.max(0, Math.min(idx, totalFrames - 1)));
+  const onScrubFrame = useStableCallback((idx: number) => {
+    onScrub(Math.max(0, Math.min(idx, totalFrames - 1)));
   });
 
   const data = useMemo(
@@ -532,7 +532,7 @@ export const UPlotChart: FC<{
       chartType,
       hiddenSeries,
       size: initialSize,
-      onScrub,
+      onScrub: onScrubFrame,
       getPlayheadFrame: () => playheadFrameRef.current,
       tooltip,
     });
@@ -545,7 +545,7 @@ export const UPlotChart: FC<{
 
     u.over.appendChild(tooltip.root);
 
-    const cleanupRuler = attachRulerScrubbing(u, onScrub);
+    const cleanupRuler = attachRulerScrubbing(u, onScrubFrame);
 
     return () => {
       cleanupRuler();
@@ -559,7 +559,7 @@ export const UPlotChart: FC<{
     store.series.length,
     storeRef,
     hasSize,
-    onScrub,
+    onScrubFrame,
   ]);
 
   useEffect(() => {
