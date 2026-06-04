@@ -143,6 +143,7 @@ const TransitionMainContent: React.FC = () => {
                   placeName={place?.name ?? arc.placeId}
                   weight={arc.weight}
                   color={getPlaceColor(arc.placeId)}
+                  arcType={arc.type}
                   disabled={isReadOnly}
                   availablePlaces={getAvailableInputPlaces(arc.placeId)}
                   onPlaceChange={(newPlaceId) =>
@@ -182,6 +183,7 @@ const TransitionMainContent: React.FC = () => {
                   placeName={place?.name ?? arc.placeId}
                   weight={arc.weight}
                   color={getPlaceColor(arc.placeId)}
+                  arcType="standard"
                   disabled={isReadOnly}
                   availablePlaces={getAvailableOutputPlaces(arc.placeId)}
                   onPlaceChange={(newPlaceId) =>

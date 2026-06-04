@@ -157,6 +157,64 @@ describe("Petrinaut core actions", () => {
     });
   });
 
+  test("adds and updates read input arcs", () => {
+    const instance = createInstance({
+      ...emptySDCPN,
+      transitions: [
+        {
+          id: "transition-1",
+          name: "Move",
+          inputArcs: [],
+          outputArcs: [],
+          lambdaType: "predicate",
+          lambdaCode: "export default Lambda(() => true);",
+          transitionKernelCode: "",
+          x: 50,
+          y: 0,
+        },
+      ],
+    });
+
+    instance.mutations.addArc({
+      transitionId: "transition-1",
+      arcDirection: "input",
+      placeId: "place-1",
+      weight: 2,
+      type: "read",
+    });
+    instance.mutations.updateArcType({
+      transitionId: "transition-1",
+      placeId: "place-1",
+      type: "standard",
+    });
+    instance.mutations.updateArcType({
+      transitionId: "transition-1",
+      placeId: "place-1",
+      type: "read",
+    });
+    instance.mutations.addArc({
+      transitionId: "transition-1",
+      arcDirection: "output",
+      placeId: "place-2",
+      weight: 3,
+    });
+
+    expect(() =>
+      callActionWithUnknownInput(instance.mutations.addArc, {
+        transitionId: "transition-1",
+        arcDirection: "output",
+        placeId: "place-3",
+        weight: 1,
+        type: "read",
+      }),
+    ).toThrow();
+
+    expect(instance.definition.get().transitions[0]).toMatchObject({
+      inputArcs: [{ placeId: "place-1", weight: 2, type: "read" }],
+      outputArcs: [{ placeId: "place-2", weight: 3 }],
+    });
+  });
+
   test("adds, updates, removes, and moves type elements granularly", () => {
     const instance = createInstance({
       ...emptySDCPN,

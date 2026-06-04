@@ -70,9 +70,9 @@ Each simulation step proceeds in two phases:
 1. **Continuous dynamics** -- for every place with dynamics enabled, the differential equation is integrated one step (Euler method, step size = dt). This updates all token dimension values.
 
 2. **Discrete transitions** -- transitions are evaluated in definition order (deterministic, not random). For each transition:
-   - Checks structural enablement (enough tokens in input places, inhibitor conditions met).
+   - Checks structural enablement (enough tokens for standard/read input arcs, inhibitor conditions met).
    - Evaluates the lambda (predicate or stochastic rate).
-   - If the transition fires, removes input tokens **immediately** (subsequent transitions see the updated state).
+   - If the transition fires, removes standard input tokens **immediately** (subsequent transitions see the updated state). Read and inhibitor arcs do not consume tokens.
 
    All produced output tokens are added at the end of the step.
 

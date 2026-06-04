@@ -168,7 +168,7 @@ export function createPetrinautActions(
           if (transition.id === parsed.transitionId) {
             if (parsed.arcDirection === "input") {
               transition.inputArcs.push({
-                type: "standard",
+                type: parsed.type ?? "standard",
                 placeId: parsed.placeId,
                 weight: parsed.weight,
               });

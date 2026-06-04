@@ -1,4 +1,5 @@
 import type { SimulationFrameReader } from "../../../react/simulation/context";
+import type { InputArc } from "@hashintel/petrinaut-core";
 import type { Edge, Node, ReactFlowInstance } from "@xyflow/react";
 
 type TransitionFrameState = NonNullable<
@@ -12,7 +13,7 @@ type TransitionFrameState = NonNullable<
 
 export type ArcData = {
   weight: number;
-  arcType: "standard" | "inhibitor";
+  arcType: InputArc["type"];
   /**
    * State of the transition connected to this arc in the current simulation frame.
    * Null when no simulation is running.

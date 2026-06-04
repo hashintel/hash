@@ -6,6 +6,7 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 import { NumberInput } from "./number-input";
 import { Select, type SelectOption } from "./select";
 
+import type { InputArc } from "@hashintel/petrinaut-core";
 import type { ReactNode } from "react";
 
 // -- Types -------------------------------------------------------------------
@@ -97,6 +98,17 @@ const nameTextStyle = css({
   overflow: "hidden",
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
+});
+
+const arcTypeBadgeStyle = css({
+  flexShrink: 0,
+  borderRadius: "sm",
+  border: "[1px solid rgba(0, 0, 0, 0.12)]",
+  color: "neutral.s110",
+  fontSize: "[10px]",
+  fontWeight: "medium",
+  lineHeight: "[12px]",
+  px: "1",
 });
 
 const chevronStyle = css({
@@ -235,6 +247,7 @@ interface ArcItemProps {
   placeId: string;
   weight: number;
   color?: string;
+  arcType?: InputArc["type"];
   disabled?: boolean;
   availablePlaces?: PlaceOption[];
   onPlaceChange?: (placeId: string) => void;
@@ -247,6 +260,7 @@ export const ArcItem = ({
   placeId,
   weight,
   color,
+  arcType = "standard",
   disabled = false,
   availablePlaces,
   onPlaceChange,
@@ -270,6 +284,11 @@ export const ArcItem = ({
         style={{ backgroundColor: color ?? "#d4d4d4" }}
       />
       <span className={nameTextStyle}>{placeName}</span>
+      {arcType !== "standard" && (
+        <span className={arcTypeBadgeStyle}>
+          {arcType === "read" ? "Read" : "Inhibitor"}
+        </span>
+      )}
       <Icon name="chevronDown" size="xs" className={chevronStyle} />
     </div>
   );

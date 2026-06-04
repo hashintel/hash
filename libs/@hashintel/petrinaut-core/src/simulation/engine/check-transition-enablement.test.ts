@@ -145,6 +145,44 @@ describe("isTransitionStructurallyEnabled", () => {
     ).toBe(false);
   });
 
+  it("returns true for read arc when place has sufficient tokens", () => {
+    const transition = makeTransition({
+      inputArcs: [{ placeId: "p1", weight: 2, type: "read" }],
+    });
+    const frame = makeFrame({
+      places: { p1: { offset: 0, count: 2, dimensions: 0 } },
+      transitions: [transition],
+    });
+
+    expect(
+      isTransitionStructurallyEnabled(
+        frame,
+        makeTransitionMap([transition]),
+        frame.layout,
+        "t1",
+      ),
+    ).toBe(true);
+  });
+
+  it("returns false for read arc when place has insufficient tokens", () => {
+    const transition = makeTransition({
+      inputArcs: [{ placeId: "p1", weight: 2, type: "read" }],
+    });
+    const frame = makeFrame({
+      places: { p1: { offset: 0, count: 1, dimensions: 0 } },
+      transitions: [transition],
+    });
+
+    expect(
+      isTransitionStructurallyEnabled(
+        frame,
+        makeTransitionMap([transition]),
+        frame.layout,
+        "t1",
+      ),
+    ).toBe(false);
+  });
+
   it("checks all input places for enablement", () => {
     const transition = makeTransition({
       inputArcs: [
