@@ -318,6 +318,66 @@ describe("executeTransitions", () => {
     expect(result.transitionFired).toBe(true);
   });
 
+  it("keeps read arc tokens in the frame when a transition fires", () => {
+    const transition = makeTransition({
+      id: "t1",
+      inputArcs: [
+        { placeId: "p1", weight: 1, type: "standard" },
+        { placeId: "p2", weight: 1, type: "read" },
+      ],
+      outputArcs: [{ placeId: "p3", weight: 1 }],
+      lambdaType: "predicate",
+      lambdaCode: "return true;",
+      transitionKernelCode: "return { Target: input.Guard };",
+    });
+    const simulation = makeSimulation({
+      places: [
+        makePlace("p1", "Source", "type1"),
+        makePlace("p2", "Guard", "type1"),
+        makePlace("p3", "Target", "type1"),
+      ],
+      transitions: [transition],
+      types: [type1],
+      lambdaFns: new Map([["t1", () => true]]),
+      transitionKernelFns: new Map<string, TransitionKernelFn>([
+        [
+          "t1",
+          (input) => {
+            const guardToken = input.Guard?.[0];
+            if (guardToken?.x === undefined) {
+              throw new Error("Expected read arc token");
+            }
+            return { Target: [{ x: guardToken.x }] };
+          },
+        ],
+      ]),
+    });
+    const frame = makeFrame({
+      places: {
+        p1: { offset: 0, count: 1, dimensions: 1 },
+        p2: { offset: 1, count: 1, dimensions: 1 },
+        p3: { offset: 2, count: 0, dimensions: 1 },
+      },
+      transitions: {
+        t1: transitionState(),
+      },
+      buffer: new Float64Array([3.0, 7.0]),
+    });
+
+    const result = executeTransitions(
+      frame,
+      simulation,
+      simulation.dt,
+      simulation.rngState,
+    );
+
+    expect(result.transitionFired).toBe(true);
+    expect(result.frame.places.p1?.count).toBe(0);
+    expect(result.frame.places.p2?.count).toBe(1);
+    expect(result.frame.places.p3?.count).toBe(1);
+    expect(result.frame.buffer).toEqual(new Float64Array([7.0, 7.0]));
+  });
+
   it("executes multiple transitions sequentially with proper token removal between each", () => {
     const transitions = [
       makeTransition({

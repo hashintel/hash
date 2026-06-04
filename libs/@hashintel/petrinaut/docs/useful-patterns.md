@@ -66,6 +66,18 @@ The number of initial tokens in "Available" determines the resource capacity. If
 
 **Example:** the [Production With Machine Failure](examples.md#production-with-machine-failure) example models machines cycling between available, producing, broken, and being repaired states.
 
+## Shared-state checks with read arcs
+
+Use a [read arc](petri-net-extensions.md#read-arcs) when a transition needs a token to be present, and may need to inspect its typed attributes in the lambda or kernel, but should leave that token in place.
+
+**Structure:**
+
+```text
+(SensorState) ---> [ReactToReading]    (read arc, weight 1)
+```
+
+The transition can read `tokensByPlace.SensorState[0]` while the sensor-state token remains available for future transitions.
+
 ## Mutual exclusion with inhibitor arcs
 
 Use an [inhibitor arc](petri-net-extensions.md#inhibitor-arcs) from a "busy" or "blocked" place to prevent a transition from firing while a condition holds.

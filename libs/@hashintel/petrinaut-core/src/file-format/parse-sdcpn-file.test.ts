@@ -61,6 +61,24 @@ describe("parseSDCPNFile", () => {
       expect(result.sdcpn.differentialEquations).toEqual([]);
     });
 
+    it("preserves read arc types during import", () => {
+      const result = parseSDCPNFile({
+        version: 1,
+        meta: { generator: "Petrinaut" },
+        ...minimalSDCPN,
+        transitions: [
+          {
+            ...minimalTransition,
+            inputArcs: [{ placeId: "p1", weight: 1, type: "read" }],
+          },
+        ],
+      });
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.sdcpn.transitions[0]?.inputArcs[0]?.type).toBe("read");
+    });
+
     it("preserves relaxed scenario and metric import defaults", () => {
       const result = parseSDCPNFile({
         version: 1,

@@ -1,9 +1,11 @@
 export type ID = string;
 
+export type InputArcType = "standard" | "inhibitor" | "read";
+
 export type InputArc = {
   placeId: string;
   weight: number;
-  type: "standard" | "inhibitor";
+  type: InputArcType;
 };
 
 export type OutputArc = {

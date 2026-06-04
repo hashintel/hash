@@ -299,7 +299,7 @@ export function updateTransitionTimers(
  *
  * This is used for deadlock detection after a step where no transition fired.
  * It intentionally ignores lambda probability and only checks input-place
- * token availability and inhibitor conditions.
+ * token availability, read-arc availability, and inhibitor conditions.
  */
 export function hasStructurallyEnabledTransition(
   run: MonteCarloRunState,

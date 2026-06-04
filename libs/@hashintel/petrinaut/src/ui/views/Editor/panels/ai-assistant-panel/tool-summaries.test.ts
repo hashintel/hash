@@ -80,4 +80,25 @@ describe("summarizePetrinautAiToolCall", () => {
       title: "Updated place Queue",
     });
   });
+
+  test("summarizes typed input arcs from AI addArc calls", () => {
+    expect(
+      summarizePetrinautAiToolCall(
+        {
+          input: {
+            arcDirection: "input",
+            placeId: "place__buffer",
+            transitionId: "transition__ship",
+            type: "read",
+            weight: 1,
+          },
+          toolName: "addArc",
+        },
+        { definition },
+      ),
+    ).toMatchObject({
+      detail: "Buffer <-> Ship",
+      title: "Added read input arc",
+    });
+  });
 });

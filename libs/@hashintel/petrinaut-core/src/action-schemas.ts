@@ -6,6 +6,7 @@ import {
   colorSchema,
   differentialEquationSchema,
   idSchema,
+  inputArcSchema,
   nodePositionCommitSchema,
   parameterSchema,
   placeSchema,
@@ -169,6 +170,22 @@ export const mutationActionInputSchemas = {
       weight: z.number().positive().meta({
         description: "Token multiplicity for the arc.",
       }),
+      type: inputArcSchema.shape.type.optional().meta({
+        description:
+          "Input arc type, only valid when arcDirection is input. Standard arcs consume tokens; read arcs inspect tokens without consuming them; inhibitor arcs block firing when enough tokens are present. Omit this for output arcs.",
+      }),
+    })
+    .check((ctx) => {
+      const input = ctx.value;
+      if (input.arcDirection === "output" && input.type !== undefined) {
+        ctx.issues.push({
+          code: "custom",
+          path: ["type"],
+          message:
+            'Output arcs do not have an input arc type. Omit `type` when `arcDirection` is "output".',
+          input: input.type,
+        });
+      }
     })
     .meta({ description: "Add an input or output arc to a transition." }),
   removeArc: z
@@ -192,7 +209,7 @@ export const mutationActionInputSchemas = {
     .strictObject({
       transitionId: idSchema,
       placeId: idSchema,
-      type: z.enum(["standard", "inhibitor"]).meta({
+      type: inputArcSchema.shape.type.meta({
         description: "Replacement input arc type.",
       }),
     })

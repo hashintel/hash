@@ -1,4 +1,5 @@
 import { describe, expect, test } from "vitest";
+import { z } from "zod";
 
 import {
   aiCommandActionInputSchemas,
@@ -41,6 +42,21 @@ describe("Petrinaut AI core exports", () => {
       expect(petrinautAiTools).toHaveProperty(name);
     }
     expect(petrinautAiTools).toHaveProperty("applyAutoLayout");
+  });
+
+  test("addArc exposes an AI-friendly object input schema", () => {
+    const schema = z.toJSONSchema(petrinautAiTools.addArc.inputSchema) as {
+      properties?: Record<string, unknown>;
+      type?: unknown;
+    } & Record<string, unknown>;
+
+    expect(schema.type).toBe("object");
+    expect(schema).not.toHaveProperty("oneOf");
+    expect(schema).not.toHaveProperty("anyOf");
+    expect(schema.properties).toMatchObject({
+      arcDirection: { enum: ["input", "output"] },
+      type: { enum: ["standard", "inhibitor", "read"] },
+    });
   });
 
   test("callback map applies tool inputs to a Petrinaut instance", () => {

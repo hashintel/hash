@@ -27,7 +27,7 @@ Petrinaut has two global modes you switch between in the top bar:
 ## Contents
 
 - [Drawing a Net](drawing-a-net.md) -- Top bar, canvas, sidebars, adding nodes and connecting arcs, selection, keyboard shortcuts, import/export, auto-layout.
-- [Petri Net Extensions](petri-net-extensions.md) -- Types, dynamics, transition kernels, firing rules, and inhibitor arcs, as well as parameters and state visualizers.
+- [Petri Net Extensions](petri-net-extensions.md) -- Types, dynamics, transition kernels, firing rules, read/inhibitor arcs, as well as parameters and state visualizers.
 - [Useful Patterns](useful-patterns.md) -- Common modelling techniques, including duration and resource pools.
 - [Simulation](simulation.md) -- Set initial state, run a single simulation, use the timeline, control playback.
 - [Scenarios](scenarios.md) -- Save and switch between named simulation configurations.

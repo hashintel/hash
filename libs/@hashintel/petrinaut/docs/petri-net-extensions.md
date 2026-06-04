@@ -109,6 +109,8 @@ Two important asymmetries:
 - **Uncoloured input places and inhibitor arcs are not included in `tokensByPlace`**. Only typed input places appear, and only for normal (non-inhibitor) arcs.
 - **Uncoloured output places do not need to appear in the return value** -- the engine generates the correct number of plain tokens automatically based on the output arc weight. Coloured output places must appear with one token object per token produced.
 
+Tokens from **read arcs** are included in `tokensByPlace` like standard input arcs, but are not consumed when the transition fires. Tokens from inhibitor arcs are not included.
+
 Use the menu in the code editor header to **Load default template** for a starting point.
 
 ### Distributions
@@ -184,6 +186,16 @@ Inhibitor arcs **do not consume tokens** when the transition fires.
 <img width="479" height="401" alt="inhibitor-arc-deployment" src="https://github.com/user-attachments/assets/86e6995a-b7d3-4727-9d7f-2c0e0a63816c" />
 
 **Example:** in [Deployment Pipeline](examples.md#deployment-pipeline), inhibitor arcs from "IncidentBeingInvestigated" and "DeploymentInProgress" block new deployments while an incident is open or a deployment is already running.
+
+## Read arcs
+
+A read arc is a special input arc that **requires** tokens to be present and exposes those tokens to the transition lambda and kernel, but **does not consume** them when the transition fires.
+
+**To set:** select an input arc (place to transition) and switch its **Type** to **Read** in the properties panel. Only input arcs can be read arcs.
+
+**Semantics:** the transition is enabled (on this arc) when the source place has **at least the arc weight** in tokens. For coloured places, the lambda and transition kernel receive a tuple of tokens under `tokensByPlace.SourcePlaceName`, sized to the arc weight. If the transition fires, those read tokens remain in the source place.
+
+Use read arcs when a transition needs to inspect shared state, permission tokens, sensor readings, or another entity's attributes without moving that token through the transition.
 
 ## Diagnostics
 
