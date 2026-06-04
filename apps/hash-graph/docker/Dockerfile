@@ -15,7 +15,7 @@ COPY .config/mise /etc/mise
 RUN --mount=type=secret,id=GITHUB_TOKEN,env=GITHUB_TOKEN \
     apt-get update && \
     apt-get install -y --no-install-recommends curl ca-certificates && \
-    export MISE_VERSION=2026.3.3 MISE_INSTALL_EXT=tar.gz && curl https://mise.run | sh && \
+    export MISE_VERSION=2026.4.22 MISE_INSTALL_EXT=tar.gz && curl https://mise.run | sh && \
     mise --version && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
