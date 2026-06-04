@@ -1,9 +1,11 @@
-import { VertexAI } from "@google-cloud/vertexai";
+import { GoogleGenAI } from "@google/genai";
+
+import { getVertexAuthClient } from "./google-auth-client.js";
 
 import type { MessageCreateParamsBase } from "@anthropic-ai/sdk/resources/messages.mjs";
 
 const permittedGoogleAiModels = [
-  "gemini-1.5-pro-002",
+  "gemini-3.1-pro-preview",
 ] satisfies MessageCreateParamsBase["model"][];
 
 export type PermittedGoogleAiModel = (typeof permittedGoogleAiModels)[number];
@@ -18,7 +20,7 @@ export const googleAiMessageModelToContextWindow: Record<
   PermittedGoogleAiModel,
   number
 > = {
-  "gemini-1.5-pro-002": 2_097_152,
+  "gemini-3.1-pro-preview": 1_048_576,
 };
 
 /** @see https://cloud.google.com/vertex-ai/generative-ai/docs/learn/models */
@@ -26,11 +28,12 @@ export const googleAiMessageModelToMaxOutput: Record<
   PermittedGoogleAiModel,
   number
 > = {
-  "gemini-1.5-pro-002": 8_192,
+  "gemini-3.1-pro-preview": 65_536,
 };
 const googleCloudProjectId = process.env.GOOGLE_CLOUD_HASH_PROJECT_ID;
+const vertexAiLocation = process.env.GOOGLE_CLOUD_VERTEX_LOCATION ?? "global";
 
-let _vertexAi: VertexAI | undefined;
+let _vertexAi: GoogleGenAI | undefined;
 
 export const getVertexAiClient = () => {
   if (!googleCloudProjectId) {
@@ -43,9 +46,13 @@ export const getVertexAiClient = () => {
     return _vertexAi;
   }
 
-  const vertexAI = new VertexAI({
+  const authClient = getVertexAuthClient();
+
+  const vertexAI = new GoogleGenAI({
+    vertexai: true,
     project: googleCloudProjectId,
-    location: "us-east4",
+    location: vertexAiLocation,
+    googleAuthOptions: authClient ? { authClient } : undefined,
   });
 
   _vertexAi = vertexAI;
