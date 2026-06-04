@@ -28,7 +28,7 @@ export const googleAiMessageModelToMaxOutput: Record<
   PermittedGoogleAiModel,
   number
 > = {
-  "gemini-3.1-pro-preview": 8_192,
+  "gemini-3.1-pro-preview": 65_536,
 };
 const googleCloudProjectId = process.env.GOOGLE_CLOUD_HASH_PROJECT_ID;
 const vertexAiLocation = process.env.GOOGLE_CLOUD_VERTEX_LOCATION ?? "global";
