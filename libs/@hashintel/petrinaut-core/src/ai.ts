@@ -89,6 +89,7 @@ export const petrinautDocNames = [
   "simulation",
   "scenarios",
   "experiments",
+  "actual-mode",
   "ai-assistant",
   "visual-settings",
   "examples",
@@ -109,6 +110,8 @@ export const petrinautDocSummaries: Record<PetrinautDocName, string> = {
     "Named simulation configurations: scenario parameters, parameter bindings, per-place vs code-mode initial state, running and switching scenarios.",
   experiments:
     "Monte Carlo batches: configuration (runs, seed, dt, max time, scenario), lifecycle/statuses, cancel/remove, results (median/mean/p10/p90), active-experiments popover.",
+  "actual-mode":
+    "Actual mode: host-provided live execution view, Brunch stream URL route, read-only extension-free net, current limits.",
   "ai-assistant":
     "In-app AI assistant: opening the panel, conversation surface, prompt chips, tool cards, read-only/simulate-mode rules, host configuration.",
   "visual-settings":

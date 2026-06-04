@@ -2,7 +2,7 @@
 
 A **scenario** is a saved, named configuration for running the current net: a set of initial token values, optional scenario-only parameters, and overrides for net-level parameters. Scenarios make it easy to compare several "what if" setups without editing the net itself.
 
-Scenarios live under the **Simulate** [global mode](drawing-a-net.md#edit-vs-simulate-mode). To open the scenarios list, switch the mode selector in the top bar from **Edit** to **Simulate**, then choose the **Scenarios** tab in the Simulate sidebar.
+Scenarios live under the **Simulate** [global mode](drawing-a-net.md#global-modes). To open the scenarios list, switch the mode selector in the top bar from **Edit** to **Simulate**, then choose the **Scenarios** tab in the Simulate sidebar.
 
 ## What a scenario contains
 

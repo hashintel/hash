@@ -6,6 +6,7 @@ import {
   type SelectionMap,
 } from "@hashintel/petrinaut-core";
 
+import { ActualModeContext } from "../actual-mode-context";
 import {
   type DraggingStateByNodeId,
   type EditorActions,
@@ -29,9 +30,11 @@ const canvasSelections = (selection: SelectionMap) =>
 export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
   const userSettings = use(UserSettingsContext);
   const { petriNetDefinition } = use(SDCPNContext);
+  const actualMode = use(ActualModeContext);
 
   const [state, setState] = useState<EditorState>(() => ({
     ...initialEditorState,
+    globalMode: actualMode.available ? "actual" : initialEditorState.globalMode,
     cursorMode: userSettings.cursorMode,
     isLeftSidebarOpen: userSettings.isLeftSidebarOpen,
     leftSidebarWidth: userSettings.leftSidebarWidth,

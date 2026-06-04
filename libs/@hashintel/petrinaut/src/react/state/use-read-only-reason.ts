@@ -10,11 +10,13 @@ import { SDCPNContext } from "./sdcpn-context";
  *
  * - `host-readonly`: the consumer passed `readonly`, or the handle is read-only.
  * - `simulate-mode`: the user has switched to simulate mode.
+ * - `actual-mode`: the user is viewing a host-provided live execution stream.
  * - `simulation-active`: a simulation is Running, Paused, or Complete.
  */
 export type ReadOnlyReason =
   | { kind: "host-readonly" }
   | { kind: "simulate-mode" }
+  | { kind: "actual-mode" }
   | { kind: "simulation-active"; state: "Running" | "Paused" | "Complete" };
 
 /**
@@ -32,6 +34,9 @@ export const useReadOnlyReason = (): ReadOnlyReason | null => {
   }
   if (globalMode === "simulate") {
     return { kind: "simulate-mode" };
+  }
+  if (globalMode === "actual") {
+    return { kind: "actual-mode" };
   }
   if (
     simulationState === "Running" ||
@@ -53,6 +58,8 @@ export const formatReadOnlyReason = (reason: ReadOnlyReason): string => {
       return "This document is read-only; mutations are disabled.";
     case "simulate-mode":
       return "The editor is in simulate mode. Ask the user to switch reset the simulation before mutating.";
+    case "actual-mode":
+      return "The editor is in actual mode. Ask the user to switch to edit mode before mutating.";
     case "simulation-active":
       return `A simulation is currently ${reason.state.toLowerCase()}. Ask the user to reset the simulation before mutating.`;
   }

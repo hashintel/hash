@@ -13,7 +13,7 @@ export type DraggingStateByNodeId = Record<
   { dragging: boolean; position: { x: number; y: number } }
 >;
 
-type EditorGlobalMode = "edit" | "simulate";
+export type EditorGlobalMode = "edit" | "simulate" | "actual";
 type EditorEditionMode = "cursor" | "add-place" | "add-transition";
 export type CursorMode = "select" | "pan";
 export type BottomPanelTab =

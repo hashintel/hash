@@ -4,7 +4,7 @@
 
 The editor is organized around a central canvas where you build your net:
 
-- **Top bar** -- net management menu, optional title field, **Edit / Simulate** mode switcher, active-experiments indicator, recent-changes history. See [Top bar](#top-bar).
+- **Top bar** -- net management menu, optional title field, **Edit / Simulate / Actual** mode switcher, active-experiments indicator, recent-changes history. See [Top bar](#top-bar).
 - **Canvas** (center) -- the main workspace where places and transitions are displayed and connected.
 - **Left sidebar** -- lists of entities organized into tabs: Nodes, Types, Differential Equations, Parameters.
 - **Properties panel** (right) -- opens when you select an entity, showing its configurable properties.
@@ -25,7 +25,7 @@ Spans the full editor width and has three sections.
 
 **Center**
 
-- **Edit / Simulate / Actual** mode switcher. See [Edit vs Simulate mode](#edit-vs-simulate-mode) below.
+- **Edit / Simulate / Actual** mode switcher. See [Global modes](#global-modes) below.
 
 **Right**
 
@@ -33,19 +33,21 @@ Spans the full editor width and has three sections.
 - **Recent changes** (clock icon) -- a dropdown listing your recent undo/redo checkpoints with timestamps. Click any entry to jump to that state. This is the same history you walk via Cmd/Ctrl+Z and Cmd/Ctrl+Shift+Z.
 - The host application may add additional buttons here (login, share, ...).
 
-## Edit vs Simulate mode
+## Global modes
 
-Petrinaut has two global modes, switched via the centre control in the top bar.
+Petrinaut global modes are switched via the centre control in the top bar.
 
 | Mode         | Workspace                                                                                                                                                                                 |
 | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Edit**     | Canvas + left sidebar + properties panel + bottom panel + bottom toolbar (with AI assistant). This is where you draw the net, configure entities, write code, and run single simulations. |
 | **Simulate** | Replaces the workspace with the [Scenarios](scenarios.md) and [Experiments](experiments.md) management views.                                                                             |
-| **Actual**   | Reserved for a future live-data mode.                                                                                                                                                     |
+| **Actual**   | Shows a host-provided live execution source. It is disabled unless the host provides Actual-mode data. See [Actual Mode](actual-mode.md).                                                  |
 
 In Simulate mode the net structure becomes read-only -- you can still create, edit, and delete scenarios and metrics, but you cannot change places, transitions, arcs, types, or parameters. Switch back to Edit mode to modify the net.
 
-Switching modes does not stop background experiments. The active-experiments indicator remains visible in the top bar from either mode.
+In Actual mode the net is also read-only. It shows the Petri net supplied by the live source; streamed events are collected internally but are not shown in the timeline yet.
+
+Switching modes does not stop background experiments. The active-experiments indicator remains visible in the top bar from any mode.
 
 ## Adding places and transitions
 

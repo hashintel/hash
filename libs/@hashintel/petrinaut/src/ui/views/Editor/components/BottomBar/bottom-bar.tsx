@@ -99,10 +99,10 @@ export const BottomBar: React.FC<BottomBarProps> = ({
     setBottomPanelOpen(!isBottomPanelOpen);
   }, [setBottomPanelOpen, isBottomPanelOpen]);
 
-  // Fallback to 'pan' mode when switching to simulate mode if mutative mode
+  // Fallback to cursor mode when switching away from edit while in a mutative mode.
   useEffect(() => {
     if (
-      mode === "simulate" &&
+      mode !== "edit" &&
       (editionMode === "add-place" || editionMode === "add-transition")
     ) {
       onEditionModeChange("cursor");

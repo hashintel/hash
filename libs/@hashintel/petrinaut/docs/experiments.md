@@ -2,7 +2,7 @@
 
 An **experiment** is a Monte Carlo batch: many independent simulation runs of the current net, all running the same scenario (or no scenario), with results aggregated as distributions of token counts over simulation time. Use experiments when one run isn't enough -- when the model is stochastic and you want to see the spread, not just one trajectory.
 
-Experiments live under the **Simulate** [global mode](drawing-a-net.md#edit-vs-simulate-mode). Open the Simulate sidebar and choose **Experiments**.
+Experiments live under the **Simulate** [global mode](drawing-a-net.md#global-modes). Open the Simulate sidebar and choose **Experiments**.
 
 ## Creating an experiment
 

@@ -5,6 +5,16 @@
 
 // --- Document ---
 export {
+  unavailableActualMode,
+} from "./actual-mode";
+export type {
+  ActualModeContextValue,
+  ActualModeMarking,
+  ActualModeSource,
+  ActualModeTokenColour,
+  ActualModeTransitionFiring,
+} from "./actual-mode";
+export {
   createJsonDocHandle,
   type CreateJsonDocHandleOptions,
   type DocChangeEvent,

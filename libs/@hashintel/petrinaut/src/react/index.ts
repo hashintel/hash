@@ -7,6 +7,8 @@
 export { PetrinautInstanceContext } from "./instance-context";
 export { usePetrinautInstance } from "./use-petrinaut-instance";
 export { useStore, useStoreSelector } from "./use-store";
+export { ActualModeContext } from "./actual-mode-context";
+export type { ActualModeContextValue } from "./actual-mode-context";
 
 // --- Provider unification ---
 export { PetrinautProvider } from "./petrinaut-provider";
