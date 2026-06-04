@@ -20,7 +20,7 @@ export const googleAiMessageModelToContextWindow: Record<
   PermittedGoogleAiModel,
   number
 > = {
-  "gemini-3.1-pro-preview": 2_097_152,
+  "gemini-3.1-pro-preview": 1_048_576,
 };
 
 /** @see https://cloud.google.com/vertex-ai/generative-ai/docs/learn/models */
