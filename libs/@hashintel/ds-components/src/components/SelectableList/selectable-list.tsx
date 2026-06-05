@@ -6,7 +6,7 @@ import type { ExclusifyUnion } from "type-fest";
 export type Item = {
   id: string;
 
-  children?: React.ReactNode;
+  text: React.ReactNode;
   description?: React.ReactNode;
   icon?: IconName;
   loading?: boolean;
@@ -14,13 +14,7 @@ export type Item = {
   indent?: number;
   disabled?: boolean;
   tone?: "neutral" | "brand" | "error";
-  selectedStyle?:
-    | "none"
-    | "tick"
-    | "checkbox"
-    | "radio"
-    | "toggle"
-    | "highlight";
+  selectedStyle?: "none" | "tick" | "checkbox" | "radio" | "highlight";
 
   subActions?: ItemOrGroup;
 } & ExclusifyUnion<
@@ -37,7 +31,7 @@ export type ItemOrGroup =
   | Item
   | {
       id: string;
-      label?: React.ReactNode;
+      label: React.ReactNode;
       items: Item[];
     };
 
@@ -55,9 +49,6 @@ export const SelectableList = ({
   selected?: string[];
   onHighlight?: (id: string) => void;
   emptyState?: React.ReactNode;
-
-  // width?: number;
-  // ref?: React.Ref<HTMLUListElement>;
 }) => {
   return <div className={className} />;
 };
