@@ -6,6 +6,7 @@
  */
 
 import { diagnosticsSubView } from "../views/Editor/panels/BottomPanel/subviews/diagnostics";
+import { actualEventsSubView } from "../views/Editor/panels/BottomPanel/subviews/actual-events";
 import { simulationSettingsSubView } from "../views/Editor/panels/BottomPanel/subviews/simulation-settings";
 import { simulationTimelineSubView } from "../views/Editor/panels/BottomPanel/subviews/simulation-timeline";
 import { actualTimelineSubView } from "../views/Editor/panels/BottomPanel/subviews/simulation-timeline/actual";
@@ -33,7 +34,10 @@ export const BOTTOM_PANEL_SUBVIEWS: SubView[] = [
 ];
 
 // Bottom panel subviews visible in Actual mode.
-export const ACTUAL_BOTTOM_PANEL_SUBVIEWS: SubView[] = [actualTimelineSubView];
+export const ACTUAL_BOTTOM_PANEL_SUBVIEWS: SubView[] = [
+  actualTimelineSubView,
+  actualEventsSubView,
+];
 
 // Subviews only visible when simulation is running/paused
 export const SIMULATION_ONLY_SUBVIEWS: SubView[] = [simulationTimelineSubView];

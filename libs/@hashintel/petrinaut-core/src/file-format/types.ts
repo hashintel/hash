@@ -109,7 +109,7 @@ const metricSchema = z.object({
   code: z.string().default(""),
 });
 
-const sdcpnSchema = z.object({
+export const sdcpnSchema = z.object({
   places: z.array(placeSchema),
   transitions: z.array(transitionSchema),
   types: z.array(colorSchema).default([]),

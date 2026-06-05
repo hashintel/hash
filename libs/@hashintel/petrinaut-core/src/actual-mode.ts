@@ -1,3 +1,7 @@
+import { z } from "zod";
+
+import { sdcpnSchema } from "./file-format/types";
+
 import type {
   SimulationFrameReader,
   SimulationFrameState,
@@ -19,10 +23,12 @@ export type ActualModeMarking = Record<
   number | ActualModeTokenColour[]
 >;
 
+export type ActualModeTransitionEffect = Record<string, number>;
+
 export type ActualModeTransitionFiring = {
   transitionId: string;
-  input: ActualModeMarking;
-  output: ActualModeMarking;
+  input: ActualModeTransitionEffect;
+  output: ActualModeTransitionEffect;
   ts: string;
 };
 
@@ -30,6 +36,16 @@ export type ActualModeSource = {
   kind: "brunch";
   endpoint: string;
   runId?: string;
+};
+
+export type ActualModeRecording = {
+  version: typeof ACTUAL_MODE_RECORDING_VERSION;
+  exportedAt: string;
+  title: string | null;
+  source: ActualModeSource | null;
+  definition: SDCPN;
+  initialState: ActualModeMarking;
+  transitionFirings: ActualModeTransitionFiring[];
 };
 
 export type ActualModeContextValue =
@@ -74,6 +90,152 @@ export type ActualModeTimelinePoint = {
 };
 
 export const ACTUAL_MODE_TIMELINE_TICK_MS = 500;
+export const ACTUAL_MODE_RECORDING_VERSION = 1;
+
+const isTokenColourArray = (
+  markingValue: number | ActualModeTokenColour[] | undefined,
+): markingValue is ActualModeTokenColour[] => Array.isArray(markingValue);
+
+const getPlaceMarkingTokenCount = (
+  markingValue: number | ActualModeTokenColour[] | undefined,
+): number => {
+  if (markingValue === undefined) {
+    return 0;
+  }
+
+  return isTokenColourArray(markingValue) ? markingValue.length : markingValue;
+};
+
+const cloneTokenColour = (token: ActualModeTokenColour): ActualModeTokenColour =>
+  ({ ...token });
+
+const cloneMarkingValue = (
+  markingValue: number | ActualModeTokenColour[],
+): number | ActualModeTokenColour[] =>
+  Array.isArray(markingValue)
+    ? markingValue.map((token) => cloneTokenColour(token))
+    : markingValue;
+
+const cloneMarking = (marking: ActualModeMarking): ActualModeMarking =>
+  Object.fromEntries(
+    Object.entries(marking).map(([placeId, value]) => [
+      placeId,
+      cloneMarkingValue(value),
+    ]),
+  );
+
+const emptyTokens = (count: number): ActualModeTokenColour[] =>
+  Array.from({ length: Math.max(0, Math.floor(count)) }, () => ({}));
+
+const toTokenArray = (
+  markingValue: number | ActualModeTokenColour[] | undefined,
+): ActualModeTokenColour[] => {
+  if (markingValue === undefined) {
+    return [];
+  }
+
+  return Array.isArray(markingValue)
+    ? markingValue.map((token) => cloneTokenColour(token))
+    : emptyTokens(markingValue);
+};
+
+export const applyActualModeTransitionFiring = (
+  marking: ActualModeMarking,
+  firing: ActualModeTransitionFiring,
+): ActualModeMarking => {
+  const next = cloneMarking(marking);
+  const placeIds = new Set([
+    ...Object.keys(next),
+    ...Object.keys(firing.input),
+    ...Object.keys(firing.output),
+  ]);
+
+  for (const placeId of placeIds) {
+    const currentValue = next[placeId];
+    const inputValue = firing.input[placeId];
+    const outputValue = firing.output[placeId];
+
+    if (
+      Array.isArray(currentValue) ||
+      Array.isArray(inputValue) ||
+      Array.isArray(outputValue)
+    ) {
+      const currentTokens = toTokenArray(currentValue);
+      const inputCount = getPlaceMarkingTokenCount(inputValue);
+      const outputTokens = toTokenArray(outputValue);
+      next[placeId] = currentTokens.slice(inputCount).concat(outputTokens);
+      continue;
+    }
+
+    next[placeId] = (currentValue ?? 0) - (inputValue ?? 0) + (outputValue ?? 0);
+  }
+
+  return next;
+};
+
+export const getActualModeMarkingAtTransitionFiringIndex = (params: {
+  initialState: ActualModeMarking;
+  transitionFirings: readonly ActualModeTransitionFiring[];
+  transitionFiringIndex: number | null;
+}): ActualModeMarking => {
+  const { initialState, transitionFiringIndex, transitionFirings } = params;
+
+  if (transitionFiringIndex === null) {
+    return initialState;
+  }
+
+  let marking = initialState;
+
+  for (let index = 0; index <= transitionFiringIndex; index += 1) {
+    const firing = transitionFirings[index];
+
+    if (firing) {
+      marking = applyActualModeTransitionFiring(marking, firing);
+    }
+  }
+
+  return marking;
+};
+
+const actualModeTokenColourSchema = z.record(z.string(), z.number());
+const actualModeMarkingValueSchema = z.union([
+  z.number(),
+  z.array(actualModeTokenColourSchema),
+]);
+export const actualModeMarkingSchema = z.record(
+  z.string(),
+  actualModeMarkingValueSchema,
+) satisfies z.ZodType<ActualModeMarking>;
+export const actualModeTransitionEffectSchema = z.record(
+  z.string(),
+  z.number(),
+) satisfies z.ZodType<ActualModeTransitionEffect>;
+const actualModeTransitionFiringEffectSchema = z.object({
+  transitionId: z.string(),
+  input: actualModeTransitionEffectSchema,
+  output: actualModeTransitionEffectSchema,
+  ts: z.string(),
+}).strict();
+export const actualModeTransitionFiringSchema =
+  actualModeTransitionFiringEffectSchema satisfies z.ZodType<ActualModeTransitionFiring>;
+export const actualModeSourceSchema = z.object({
+  kind: z.literal("brunch"),
+  endpoint: z.string(),
+  runId: z.string().optional(),
+}) satisfies z.ZodType<ActualModeSource>;
+const actualModeRecordingDefinitionSchema = z.custom<SDCPN>(
+  (value) => sdcpnSchema.safeParse(value).success,
+  { message: "Invalid SDCPN definition" },
+);
+export const actualModeRecordingSchema = z.object({
+  version: z.literal(ACTUAL_MODE_RECORDING_VERSION),
+  exportedAt: z.string(),
+  title: z.string().nullable(),
+  source: actualModeSourceSchema.nullable(),
+  definition: actualModeRecordingDefinitionSchema,
+  initialState: actualModeMarkingSchema,
+  transitionFirings: z.array(actualModeTransitionFiringSchema),
+}) satisfies z.ZodType<ActualModeRecording>;
 
 const noopSetCurrentFrameIndex = () => {};
 
@@ -96,6 +258,58 @@ const parseTimestampMs = (timestamp: string): number | null => {
   const parsed = Date.parse(timestamp);
 
   return Number.isFinite(parsed) ? parsed : null;
+};
+
+const parseRequiredTimestampMs = (timestamp: string): number => {
+  const timestampMs = parseTimestampMs(timestamp);
+
+  if (timestampMs === null) {
+    throw new Error(`Invalid Actual mode event timestamp: ${timestamp}`);
+  }
+
+  return timestampMs;
+};
+
+export const createActualModeRecording = (params: {
+  title: string | null;
+  source: ActualModeSource | null;
+  definition: SDCPN;
+  initialState: ActualModeMarking;
+  transitionFirings: readonly ActualModeTransitionFiring[];
+  exportedAt?: string;
+}): ActualModeRecording => ({
+  version: ACTUAL_MODE_RECORDING_VERSION,
+  exportedAt: params.exportedAt ?? new Date().toISOString(),
+  title: params.title,
+  source: params.source,
+  definition: params.definition,
+  initialState: params.initialState,
+  transitionFirings: params.transitionFirings.map((firing) => ({ ...firing })),
+});
+
+export const parseActualModeRecording = (data: unknown): ActualModeRecording =>
+  actualModeRecordingSchema.parse(data);
+
+export const retimeActualModeRecordingForReplay = (
+  recording: ActualModeRecording,
+  launchTimeMs = Date.now(),
+): ActualModeRecording => {
+  const firstFiring = recording.transitionFirings[0];
+
+  if (!firstFiring) {
+    return { ...recording, transitionFirings: [] };
+  }
+
+  const firstTimestampMs = parseRequiredTimestampMs(firstFiring.ts);
+  const deltaMs = launchTimeMs - firstTimestampMs;
+
+  return {
+    ...recording,
+    transitionFirings: recording.transitionFirings.map((firing) => ({
+      ...firing,
+      ts: new Date(parseRequiredTimestampMs(firing.ts) + deltaMs).toISOString(),
+    })),
+  };
 };
 
 const getTimelineBaselineMs = (
@@ -224,20 +438,6 @@ export const buildActualModeTimelinePoints = (params: {
   });
 };
 
-const isTokenColourArray = (
-  markingValue: number | ActualModeTokenColour[] | undefined,
-): markingValue is ActualModeTokenColour[] => Array.isArray(markingValue);
-
-const getPlaceMarkingTokenCount = (
-  markingValue: number | ActualModeTokenColour[] | undefined,
-): number => {
-  if (markingValue === undefined) {
-    return 0;
-  }
-
-  return isTokenColourArray(markingValue) ? markingValue.length : markingValue;
-};
-
 const getTransitionFiringCount = (
   transitionFirings: readonly ActualModeTransitionFiring[],
   transitionId: string,
@@ -274,11 +474,11 @@ export const createActualModeTimelineFrameReader = (params: {
     transitionFirings,
     transitionFiringTimesMs,
   } = params;
-  const marking =
-    point.transitionFiringIndex === null
-      ? initialState
-      : (transitionFirings[point.transitionFiringIndex]?.output ??
-        initialState);
+  const marking = getActualModeMarkingAtTransitionFiringIndex({
+    initialState,
+    transitionFirings,
+    transitionFiringIndex: point.transitionFiringIndex,
+  });
 
   return {
     number,

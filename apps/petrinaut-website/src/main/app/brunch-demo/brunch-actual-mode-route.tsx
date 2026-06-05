@@ -12,6 +12,7 @@ import { z } from "zod";
 
 import {
   ACTUAL_MODE_TIMELINE_TICK_MS,
+  actualModeTransitionFiringSchema,
   calculateGraphLayout,
   createJsonDocHandle,
   layoutNodeDimensions,
@@ -92,13 +93,6 @@ const brunchNetDefinitionSchema = z.object({
   places: z.array(placeSchema),
   transitions: z.array(transitionSchema),
   types: z.array(z.unknown()).optional().default([]),
-});
-
-const transitionFiringSchema = z.object({
-  transitionId: z.string(),
-  input: markingSchema,
-  output: markingSchema,
-  ts: z.string(),
 });
 
 type BrunchNetDefinition = z.infer<typeof brunchNetDefinitionSchema>;
@@ -266,11 +260,7 @@ const parseTransitionFiringFrame = (
   event: MessageEvent,
 ): ActualModeTransitionFiring => {
   const data = parseJsonEventData(event, "transition_firing");
-  const candidate =
-    typeof data === "object" && data !== null && "firing" in data
-      ? (data as { firing: unknown }).firing
-      : data;
-  const result = transitionFiringSchema.safeParse(candidate);
+  const result = actualModeTransitionFiringSchema.safeParse(data);
 
   if (!result.success) {
     throw new Error(

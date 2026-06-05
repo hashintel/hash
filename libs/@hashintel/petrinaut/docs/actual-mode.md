@@ -16,8 +16,31 @@ Petrinaut connects to the stream, waits for the Petri net definition and initial
 
 If the stream cannot be reached or sends invalid data, Petrinaut shows an error page with a link back to the normal demo site.
 
-## Current limits
+## Timeline and events
 
-Actual mode currently stores live transition events internally, but it does not render an Actual timeline or event list yet. The canvas is the only visible Actual-mode surface in this first integration.
+Actual mode opens the bottom panel with an Actual timeline once execution data is available. The timeline can be scrubbed to inspect the net state at earlier points in the received stream.
+
+The bottom panel also includes an **Events** tab. It shows the received transition stream in order, including each event timestamp, transition id, input tokens, and output tokens. Use **Export JSON** in this tab to download an Actual-mode recording containing the net definition, initial state, and all received transition events.
+
+Each exported transition event stores the firing effect rather than a full before/after snapshot. The `input` and `output` fields are numeric count maps keyed by place id:
+
+```json
+{
+  "transitionId": "start_implementation",
+  "input": { "queued": 1 },
+  "output": { "implementing": 1 },
+  "ts": "2026-06-05T17:17:27.866Z"
+}
+```
+
+The exported JSON can be replayed with the Petrinaut CLI:
+
+```sh
+yarn workspace @hashintel/petrinaut-cli replay ./recording.petrinaut-actual.json
+```
+
+The replay server prints a `/brunch?brunch_endpoint=...` URL that can be opened in the demo website. During replay, the first recorded event is shifted to the current launch time and every later event keeps its original relative delay.
+
+## Current limits
 
 The Brunch route opens a basic Petri net view with Petrinaut extensions disabled: no colours, stochasticity, dynamics, or parameters.

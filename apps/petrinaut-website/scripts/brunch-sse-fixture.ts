@@ -183,20 +183,27 @@ const applyTransition = (
   transitionId: string,
 ): TransitionFiring => {
   const transition = getTransition(transitionId);
-  const input = cloneMarking(marking);
+  const input: Marking = {};
+  const output: Marking = {};
 
   for (const arc of transition.inputArcs) {
+    if (arc.type !== "standard") {
+      continue;
+    }
+
+    input[arc.placeId] = (input[arc.placeId] ?? 0) + arc.weight;
     marking[arc.placeId] = (marking[arc.placeId] ?? 0) - arc.weight;
   }
 
   for (const arc of transition.outputArcs) {
+    output[arc.placeId] = (output[arc.placeId] ?? 0) + arc.weight;
     marking[arc.placeId] = (marking[arc.placeId] ?? 0) + arc.weight;
   }
 
   return {
     transitionId,
     input,
-    output: cloneMarking(marking),
+    output,
     ts: new Date().toISOString(),
   };
 };
