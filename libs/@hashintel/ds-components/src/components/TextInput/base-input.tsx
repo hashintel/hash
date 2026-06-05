@@ -7,6 +7,7 @@ import { useFieldId } from "../Form/field-id-context";
 import { Icon } from "../Icon/icon";
 import { LoadingSpinner } from "../Loading/loading-spinner";
 import { baseInputRecipe } from "./base-input.recipe";
+import { InputConnector } from "./input-connector";
 
 import type {
   FormInputSize,
@@ -288,6 +289,14 @@ export const BaseInput = ({
         }
       }}
     >
+      <InputConnector
+        className={cx(classes.connector, classes.connectRight)}
+        data-part="connector"
+      />
+      <InputConnector
+        className={cx(classes.connector, classes.connectLeft)}
+        data-part="connector"
+      />
       {prefix != null && renderAdornment("prefix", prefix, size, classes)}
 
       <div className={classes.inputWrapper}>

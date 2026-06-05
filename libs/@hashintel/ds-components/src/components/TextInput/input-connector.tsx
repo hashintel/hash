@@ -1,42 +1,17 @@
-import { cx } from "@hashintel/ds-helpers/css";
-
-import { type BaseInputProps } from "./base-input";
-import { styles } from "./input-connector.recipe";
-
-type InputStyles = Pick<
-  BaseInputProps,
-  "readonly" | "variant" | "invalid" | "disabled"
-> & { hasPrefix?: boolean; hasSuffix?: boolean };
-
-export const InputConnectOr = ({
+export const InputConnector = ({
   className,
-  left,
-  right,
-  size = "md",
+  "data-part": dataPart,
 }: {
   className?: string;
-  size: BaseInputProps["size"];
-  left: InputStyles;
-  right: InputStyles;
+  "data-part"?: string;
 }) => {
-  if (
-    [left, right].some((input) => !!input.readonly || left.variant === "subtle")
-  ) {
-    return null;
-  }
-
-  const classes = styles({
-    size,
-    invalid: left.invalid,
-    disabled: left.disabled,
-  });
-
   return (
     <svg
       viewBox="0 0 20 62"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
-      className={cx(className, classes.root)}
+      className={className}
+      data-part={dataPart}
     >
       <path
         d="M 0 9 A 10 9 0 0 0 20 9 L 20 53 A 10 9 0 0 0 0 53 Z"

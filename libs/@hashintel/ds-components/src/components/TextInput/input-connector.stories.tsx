@@ -1,12 +1,11 @@
 import { css } from "@hashintel/ds-helpers/css";
 
 import { formInputSizes, type FormInputSize } from "../../util/form-shared";
-import { InputConnectOr } from "./input-connector";
 import { TextInput } from "./text-input";
 
 import type { Story, StoryDefault } from "@ladle/react";
 
-type ConnectorProps = React.ComponentProps<typeof InputConnectOr>;
+type ConnectorProps = React.ComponentProps<typeof InputConnector>;
 type SideProps = ConnectorProps["left"];
 
 const noop = () => {};
@@ -60,7 +59,6 @@ const ConnectedPair = ({
       readonly={left.readonly}
       variant={left.variant}
     />
-    <InputConnectOr size={size} left={left} right={right} />
     <TextInput
       value="Right"
       onChange={noop}
