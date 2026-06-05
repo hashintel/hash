@@ -5,6 +5,7 @@ import { formWidths } from "../../util/form-width.recipe";
 
 export const baseInputRecipe = sva({
   slots: [
+    "wrapper",
     "root",
     "inputWrapper",
     "input",
@@ -29,6 +30,11 @@ export const baseInputRecipe = sva({
     "connectAdornment",
   ],
   base: {
+    wrapper: {
+      display: "inline-flex",
+      position: "relative",
+      "--base-input-connector-width": "10px",
+    },
     root: {
       ...formWidths.base,
       display: "inline-flex",
@@ -39,7 +45,6 @@ export const baseInputRecipe = sva({
       border: "var(--form-border-width) solid transparent",
       borderRadius: "var(--base-input-border-radius)",
       transition: "[background 0.15s ease, border 0.15s ease]",
-      "--base-input-connector-width": "10px",
       "--base-input-background-color": "var(--colors-white)",
       "--base-input-focus-color": "var(--colors-neutral-s40)",
       "--base-input-border-color": "var(--colors-neutral-s40)",
@@ -361,43 +366,43 @@ export const baseInputRecipe = sva({
     },
     size: {
       xxs: {
+        wrapper: { "--base-input-connector-width": "5px" },
         root: {
           ...formSizes.variants.sizes.xxs,
           "--base-input-border-radius": "radii.md",
           "--base-input-padding-x": "spacing.2",
-          "--base-input-connector-width": "5px",
         },
       },
       xs: {
+        wrapper: { "--base-input-connector-width": "6px" },
         root: {
           ...formSizes.variants.sizes.xs,
           "--base-input-border-radius": "radii.md",
           "--base-input-padding-x": "spacing.2",
-          "--base-input-connector-width": "6px",
         },
       },
       sm: {
+        wrapper: { "--base-input-connector-width": "8px" },
         root: {
           ...formSizes.variants.sizes.sm,
           "--base-input-border-radius": "radii.lg",
           "--base-input-padding-x": "spacing.2.5",
-          "--base-input-connector-width": "8px",
         },
       },
       md: {
+        wrapper: { "--base-input-connector-width": "10px" },
         root: {
           ...formSizes.variants.sizes.md,
           "--base-input-border-radius": "radii.lg",
           "--base-input-padding-x": "spacing.3",
-          "--base-input-connector-width": "10px",
         },
       },
       lg: {
+        wrapper: { "--base-input-connector-width": "12px" },
         root: {
           ...formSizes.variants.sizes.lg,
           "--base-input-border-radius": "radii.xl",
           "--base-input-padding-x": "spacing.4",
-          "--base-input-connector-width": "12px",
         },
       },
     },
@@ -432,6 +437,7 @@ export const baseInputRecipe = sva({
         root: { ...formWidths.variants.widths.lg },
       },
       fullWidth: {
+        wrapper: { width: "[100%]" },
         root: {
           ...formWidths.variants.widths.fullWidth,
           width: "[100%]",
@@ -507,15 +513,15 @@ export const baseInputRecipe = sva({
     },
     connectsRight: {
       true: {
-        root: {
-          marginRight: "[calc(var(--base-input-connector-width) / 2 - 1px)]",
+        wrapper: {
+          paddingRight: "[calc(var(--base-input-connector-width) / 2 - 1px)]",
         },
       },
     },
     connectsLeft: {
       true: {
-        root: {
-          marginLeft: "[calc(var(--base-input-connector-width) / 2 - 1px)]",
+        wrapper: {
+          paddingLeft: "[calc(var(--base-input-connector-width) / 2 - 1px)]",
         },
       },
     },

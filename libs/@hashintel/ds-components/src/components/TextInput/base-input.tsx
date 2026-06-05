@@ -288,87 +288,88 @@ export const BaseInput = ({
   );
 
   return (
-    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- click-to-focus container delegates to inner <input>
-    <div
-      ref={ref as React.Ref<HTMLDivElement>}
-      className={cx(classes.root, className)}
-      onClick={(event) => {
-        if (!disabled) {
-          internalRef.current?.focus();
-          onClick?.(event);
-        }
-      }}
-    >
-      {prefix != null && renderAdornment("prefix", prefix, size, classes)}
-      {connectToLeftInput && variant === "default" && (
-        <InputConnector
-          className={cx(
-            classes.connector,
-            classes.connectLeft,
-            prefix && classes.connectAdornment,
-          )}
-          data-part="connector"
-        />
-      )}
-
-      <div className={classes.inputWrapper}>
-        {input}
-        {styledValue && !focused && (
-          <div className={classes.styledValueOverlay}>{styledValue}</div>
-        )}
-        {showClear && (
-          <button
-            type="button"
-            data-part="clear"
-            onMouseDown={(event) => {
-              // prevents focus from changing/being removed from the input which can lead to UI stutter
-              // if selectedDisplay is set
-              event.preventDefault();
-              event.stopPropagation();
-            }}
-            onClick={(event) => {
-              event.preventDefault();
-              event.stopPropagation();
-              clearable.onClear();
-              internalRef.current?.focus();
-            }}
+    <div ref={ref as React.Ref<HTMLDivElement>} className={classes.wrapper}>
+      {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- click-to-focus container delegates to inner <input> */}
+      <div
+        className={cx(classes.root, className)}
+        onClick={(event) => {
+          if (!disabled) {
+            internalRef.current?.focus();
+            onClick?.(event);
+          }
+        }}
+      >
+        {prefix != null && renderAdornment("prefix", prefix, size, classes)}
+        {connectToLeftInput && variant === "default" && (
+          <InputConnector
             className={cx(
-              classes.clear,
-              (!clearable.clearable || !value) && classes.hideClear,
+              classes.connector,
+              classes.connectLeft,
+              prefix && classes.connectAdornment,
             )}
-            aria-label="Clear input"
-          >
-            <Icon
-              name="close"
-              size={iconSizeMap[size]}
-              className={classes.clearIcon}
-            />
-          </button>
+            data-part="connector"
+          />
         )}
-        {!disabled && showEditIcon && (
-          <span className={classes.editIcon} data-part="edit">
-            <Icon name="pencil" size={loadingSizeMap[size]} />
+
+        <div className={classes.inputWrapper}>
+          {input}
+          {styledValue && !focused && (
+            <div className={classes.styledValueOverlay}>{styledValue}</div>
+          )}
+          {showClear && (
+            <button
+              type="button"
+              data-part="clear"
+              onMouseDown={(event) => {
+                // prevents focus from changing/being removed from the input which can lead to UI stutter
+                // if selectedDisplay is set
+                event.preventDefault();
+                event.stopPropagation();
+              }}
+              onClick={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                clearable.onClear();
+                internalRef.current?.focus();
+              }}
+              className={cx(
+                classes.clear,
+                (!clearable.clearable || !value) && classes.hideClear,
+              )}
+              aria-label="Clear input"
+            >
+              <Icon
+                name="close"
+                size={iconSizeMap[size]}
+                className={classes.clearIcon}
+              />
+            </button>
+          )}
+          {!disabled && showEditIcon && (
+            <span className={classes.editIcon} data-part="edit">
+              <Icon name="pencil" size={loadingSizeMap[size]} />
+            </span>
+          )}
+        </div>
+
+        {loading && (
+          <span className={classes.loading} data-part="loading">
+            <LoadingSpinner size={loadingSizeMap[size]} variant="bars" />
           </span>
         )}
+
+        {suffix != null && renderAdornment("suffix", suffix, size, classes)}
+        {connectToRightInput && variant === "default" && (
+          <InputConnector
+            className={cx(
+              classes.connector,
+              classes.connectRight,
+              suffix && classes.connectAdornment,
+            )}
+            data-part="connector"
+          />
+        )}
       </div>
-
-      {loading && (
-        <span className={classes.loading} data-part="loading">
-          <LoadingSpinner size={loadingSizeMap[size]} variant="bars" />
-        </span>
-      )}
-
-      {suffix != null && renderAdornment("suffix", suffix, size, classes)}
-      {connectToRightInput && variant === "default" && (
-        <InputConnector
-          className={cx(
-            classes.connector,
-            classes.connectRight,
-            suffix && classes.connectAdornment,
-          )}
-          data-part="connector"
-        />
-      )}
     </div>
   );
 };
