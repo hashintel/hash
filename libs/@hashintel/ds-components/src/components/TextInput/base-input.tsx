@@ -288,10 +288,13 @@ export const BaseInput = ({
   );
 
   return (
-    <div ref={ref as React.Ref<HTMLDivElement>} className={classes.wrapper}>
+    <div
+      ref={ref as React.Ref<HTMLDivElement>}
+      className={cx(classes.wrapper, className)}
+    >
       {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- click-to-focus container delegates to inner <input> */}
       <div
-        className={cx(classes.root, className)}
+        className={classes.root}
         onClick={(event) => {
           if (!disabled) {
             internalRef.current?.focus();
