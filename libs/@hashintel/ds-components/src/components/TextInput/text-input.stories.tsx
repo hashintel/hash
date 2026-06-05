@@ -688,7 +688,7 @@ export const Connected: Story = () => (
         </span>,
         ...sharedConnectedStates.map((col) => (
           <ConnectedPair
-            key={`${row.key}-${col.key}`}
+            key={`${row.key}__${col.key}`}
             size="md"
             left={row.props}
             right={col.props}
