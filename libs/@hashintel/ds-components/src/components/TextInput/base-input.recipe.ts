@@ -249,6 +249,8 @@ export const baseInputRecipe = sva({
       strokeWidth: "1px",
       fill: "[var(--base-input-background-color)]",
       transition: "[fill 0.15s ease, color 0.15s ease]",
+      // Fixes subpixel rounding error in safari
+      transform: "scaleX(100.01%)",
     },
     connectRight: {
       left: "[100%]",
