@@ -7,6 +7,7 @@ import { useFieldId } from "../Form/field-id-context";
 import { Icon } from "../Icon/icon";
 import { LoadingSpinner } from "../Loading/loading-spinner";
 import { baseInputRecipe } from "./base-input.recipe";
+import { InputConnector } from "./input-connector";
 
 import type {
   FormInputSize,
@@ -36,6 +37,10 @@ export type BaseInputProps = {
   prefix?: PrefixOrSuffix;
   /** Optional element or button to include at the end of an input */
   suffix?: PrefixOrSuffix;
+  /** Show the input as connected to another input. To connect 2 inputs, both connectToLeftInput and connectToRightInput should be enabled on both connected inputs. subtle inputs + readonly inputs will not be connected */
+  connectToLeftInput?: boolean;
+  /** Show the input as connected to another input. To connect 2 inputs, both connectToLeftInput and connectToRightInput should be enabled on both connected inputs. subtle inputs + readonly inputs will not be connected */
+  connectToRightInput?: boolean;
   /** A customized view that is shown when the input is unfocused. Can be used to present the value with extra formatting */
   styledValue?: React.ReactNode;
   /** Set to allow the input to be cleared. As the component is controlled you must clear the value manually with onClear. */
@@ -156,6 +161,8 @@ export const BaseInput = ({
   width = "fullWidth",
   prefix,
   suffix,
+  connectToLeftInput,
+  connectToRightInput,
   styledValue,
   clearable,
   showEditIcon,
@@ -198,6 +205,8 @@ export const BaseInput = ({
   const noAutocomplete = !!clearable || !autocomplete;
   const showClear = !!(clearable && !disabled);
   const hasIcons = !!loading || showClear;
+  const connectsLeft = connectToLeftInput && variant === "default";
+  const connectsRight = connectToRightInput && variant === "default";
 
   const classes = baseInputRecipe({
     variant,
@@ -210,6 +219,8 @@ export const BaseInput = ({
     hasBrowserControls,
     hasIcons,
     editAndClear: showClear && showEditIcon,
+    connectsLeft,
+    connectsRight,
     willClear:
       showClear &&
       clearable.clearable &&
@@ -277,67 +288,91 @@ export const BaseInput = ({
   );
 
   return (
-    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- click-to-focus container delegates to inner <input>
     <div
       ref={ref as React.Ref<HTMLDivElement>}
-      className={cx(classes.root, className)}
-      onClick={(event) => {
-        if (!disabled) {
-          internalRef.current?.focus();
-          onClick?.(event);
-        }
-      }}
+      className={cx(classes.wrapper, className)}
     >
-      {prefix != null && renderAdornment("prefix", prefix, size, classes)}
-
-      <div className={classes.inputWrapper}>
-        {input}
-        {styledValue && !focused && (
-          <div className={classes.styledValueOverlay}>{styledValue}</div>
-        )}
-        {showClear && (
-          <button
-            type="button"
-            data-part="clear"
-            onMouseDown={(event) => {
-              // prevents focus from changing/being removed from the input which can lead to UI stutter
-              // if selectedDisplay is set
-              event.preventDefault();
-              event.stopPropagation();
-            }}
-            onClick={(event) => {
-              event.preventDefault();
-              event.stopPropagation();
-              clearable.onClear();
-              internalRef.current?.focus();
-            }}
+      {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- click-to-focus container delegates to inner <input> */}
+      <div
+        className={classes.root}
+        onClick={(event) => {
+          if (!disabled) {
+            internalRef.current?.focus();
+            onClick?.(event);
+          }
+        }}
+      >
+        {prefix != null && renderAdornment("prefix", prefix, size, classes)}
+        {connectToLeftInput && variant === "default" && (
+          <InputConnector
             className={cx(
-              classes.clear,
-              (!clearable.clearable || !value) && classes.hideClear,
+              classes.connector,
+              classes.connectLeft,
+              prefix && classes.connectAdornment,
             )}
-            aria-label="Clear input"
-          >
-            <Icon
-              name="close"
-              size={iconSizeMap[size]}
-              className={classes.clearIcon}
-            />
-          </button>
+            data-part="connector"
+          />
         )}
-        {!disabled && showEditIcon && (
-          <span className={classes.editIcon} data-part="edit">
-            <Icon name="pencil" size={loadingSizeMap[size]} />
+
+        <div className={classes.inputWrapper}>
+          {input}
+          {styledValue && !focused && (
+            <div className={classes.styledValueOverlay}>{styledValue}</div>
+          )}
+          {showClear && (
+            <button
+              type="button"
+              data-part="clear"
+              onMouseDown={(event) => {
+                // prevents focus from changing/being removed from the input which can lead to UI stutter
+                // if selectedDisplay is set
+                event.preventDefault();
+                event.stopPropagation();
+              }}
+              onClick={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                clearable.onClear();
+                internalRef.current?.focus();
+              }}
+              className={cx(
+                classes.clear,
+                (!clearable.clearable || !value) && classes.hideClear,
+              )}
+              aria-label="Clear input"
+            >
+              <Icon
+                name="close"
+                size={iconSizeMap[size]}
+                className={classes.clearIcon}
+              />
+            </button>
+          )}
+          {!disabled && showEditIcon && (
+            <span className={classes.editIcon} data-part="edit">
+              <Icon name="pencil" size={loadingSizeMap[size]} />
+            </span>
+          )}
+        </div>
+
+        {loading && (
+          <span className={classes.loading} data-part="loading">
+            <LoadingSpinner size={loadingSizeMap[size]} variant="bars" />
           </span>
         )}
+
+        {suffix != null && renderAdornment("suffix", suffix, size, classes)}
+        {connectToRightInput && variant === "default" && (
+          <InputConnector
+            className={cx(
+              classes.connector,
+              classes.connectRight,
+              suffix && classes.connectAdornment,
+            )}
+            data-part="connector"
+          />
+        )}
       </div>
-
-      {loading && (
-        <span className={classes.loading} data-part="loading">
-          <LoadingSpinner size={loadingSizeMap[size]} variant="bars" />
-        </span>
-      )}
-
-      {suffix != null && renderAdornment("suffix", suffix, size, classes)}
     </div>
   );
 };
