@@ -1,7 +1,7 @@
 import { use } from "react";
 
 import { Button } from "@hashintel/ds-components";
-import { css } from "@hashintel/ds-helpers/css";
+import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { ActualModeContext } from "../../../../../../react/actual-mode-context";
 import { exportActualModeRecording } from "../../../../../file-io/export-actual-mode-recording";
@@ -64,12 +64,12 @@ const tableStyle = css({
   tableLayout: "fixed",
 });
 
-const headerCellStyle = css({
+const headerRowStyle = css({
   position: "sticky",
   top: "[0]",
   zIndex: "base",
-  backgroundColor: "neutral.bg.min",
-  backdropFilter: "[blur(10px)]",
+  backgroundColor: "white.a85",
+  backdropFilter: "[blur(13px)]",
   color: "neutral.s95",
   fontSize: "[10px]",
   fontWeight: "semibold",
@@ -167,23 +167,19 @@ const EventRow: React.FC<{
   index: number;
 }> = ({ firing, index }) => (
   <tr>
-    <td className={`${cellStyle} ${eventColumnStyle} ${indexCellStyle}`}>
+    <td className={cx(cellStyle, eventColumnStyle, indexCellStyle)}>
       #{index + 1}
     </td>
-    <td
-      className={`${cellStyle} ${timestampColumnStyle} ${timestampCellStyle}`}
-    >
+    <td className={cx(cellStyle, timestampColumnStyle, timestampCellStyle)}>
       {formatTimestamp(firing.ts)}
     </td>
-    <td
-      className={`${cellStyle} ${transitionColumnStyle} ${transitionCellStyle}`}
-    >
+    <td className={cx(cellStyle, transitionColumnStyle, transitionCellStyle)}>
       {firing.transitionId}
     </td>
-    <td className={`${cellStyle} ${effectColumnStyle} ${markingCellStyle}`}>
+    <td className={cx(cellStyle, effectColumnStyle, markingCellStyle)}>
       {formatMarking(firing.input)}
     </td>
-    <td className={`${cellStyle} ${markingCellStyle}`}>
+    <td className={cx(cellStyle, markingCellStyle)}>
       {formatMarking(firing.output)}
     </td>
   </tr>
@@ -251,28 +247,14 @@ const ActualEventsContent: React.FC = () => {
         <div className={tableWrapperStyle}>
           <table className={tableStyle}>
             <thead>
-              <tr>
-                <th
-                  className={`${cellStyle} ${eventColumnStyle} ${headerCellStyle}`}
-                >
-                  Event
-                </th>
-                <th
-                  className={`${cellStyle} ${timestampColumnStyle} ${headerCellStyle}`}
-                >
-                  Time
-                </th>
-                <th
-                  className={`${cellStyle} ${transitionColumnStyle} ${headerCellStyle}`}
-                >
+              <tr className={headerRowStyle}>
+                <th className={cx(cellStyle, eventColumnStyle)}>Event</th>
+                <th className={cx(cellStyle, timestampColumnStyle)}>Time</th>
+                <th className={cx(cellStyle, transitionColumnStyle)}>
                   Transition
                 </th>
-                <th
-                  className={`${cellStyle} ${effectColumnStyle} ${headerCellStyle}`}
-                >
-                  Input
-                </th>
-                <th className={`${cellStyle} ${headerCellStyle}`}>Output</th>
+                <th className={cx(cellStyle, effectColumnStyle)}>Input</th>
+                <th className={cellStyle}>Output</th>
               </tr>
             </thead>
             <tbody>
