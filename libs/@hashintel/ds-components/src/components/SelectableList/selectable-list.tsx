@@ -1,4 +1,16 @@
-import { type IconName } from "../Icon/icon";
+import { Menu } from "@ark-ui/react/menu";
+import { useMemo } from "react";
+
+import { cx } from "@hashintel/ds-helpers/css";
+
+import { isEmptyString } from "../../util/string";
+import { Icon, type IconName } from "../Icon/icon";
+import { LoadingSpinner } from "../Loading/loading-spinner";
+import {
+  checkIconSizeMap,
+  indentUnitPx,
+  styles,
+} from "./selectable-list.recipe";
 
 import type { FormInputSize } from "../../util/form-shared";
 import type { ExclusifyUnion } from "type-fest";
@@ -35,20 +47,243 @@ export type ItemOrGroup =
       items: Item[];
     };
 
+const isGroup = (
+  entry: ItemOrGroup,
+): entry is Extract<ItemOrGroup, { items: Item[] }> => "items" in entry;
+
+const SelectionIndicator = ({
+  style,
+  selected,
+  classes,
+  size,
+}: {
+  style: NonNullable<Item["selectedStyle"]>;
+  selected: boolean;
+  classes: ReturnType<typeof styles>;
+  size: FormInputSize;
+}) => {
+  if (style === "none" || style === "highlight") {
+    return null;
+  }
+
+  if (style === "tick") {
+    return (
+      <span className={classes.indicatorBox} aria-hidden="true">
+        {selected ? <Icon name="check" size={checkIconSizeMap[size]} /> : null}
+      </span>
+    );
+  }
+
+  if (style === "checkbox") {
+    return (
+      <span className={classes.checkboxControl} aria-hidden="true">
+        {selected ? <Icon name="check" size={checkIconSizeMap[size]} /> : null}
+      </span>
+    );
+  }
+
+  return (
+    <span className={classes.radioControl} aria-hidden="true">
+      {selected ? <span className={classes.radioDot} /> : null}
+    </span>
+  );
+};
+
+const ItemBody = ({
+  item,
+  size,
+  isSelected,
+  classes,
+}: {
+  item: Item;
+  size: FormInputSize;
+  isSelected: boolean;
+  classes: ReturnType<typeof styles>;
+}) => {
+  const selectedStyle = item.selectedStyle ?? "tick";
+  const indent = item.indent ?? 0;
+
+  return (
+    <>
+      {indent > 0 && (
+        <span
+          aria-hidden="true"
+          style={{
+            display: "inline-block",
+            width: `${indent * indentUnitPx[size]}px`,
+            flexShrink: 0,
+          }}
+        />
+      )}
+      <SelectionIndicator
+        style={selectedStyle}
+        selected={isSelected}
+        classes={classes}
+        size={size}
+      />
+      {item.icon && <Icon name={item.icon} size={size} />}
+      <span className={classes.textColumn}>
+        <span className={classes.text}>{item.text}</span>
+        {item.description !== undefined && item.description !== null && (
+          <span className={classes.description}>{item.description}</span>
+        )}
+      </span>
+      {item.loading && <LoadingSpinner size={size} />}
+      {item.subActions && (
+        <Icon name="chevronRight" size={size} aria-hidden="true" />
+      )}
+    </>
+  );
+};
+
+const ItemRow = ({
+  item,
+  size,
+  selectedSet,
+}: {
+  item: Item;
+  size: FormInputSize;
+  selectedSet: Set<string>;
+}) => {
+  const isSelected = selectedSet.has(item.id);
+  const selectedStyle = item.selectedStyle ?? "tick";
+  const highlighted = isSelected && selectedStyle === "highlight";
+
+  const classes = styles({
+    size,
+    tone: item.tone,
+    highlighted,
+    selected: isSelected,
+  });
+
+  const body = (
+    <ItemBody
+      item={item}
+      size={size}
+      isSelected={isSelected}
+      classes={classes}
+    />
+  );
+
+  if ("href" in item && item.href) {
+    return (
+      <Menu.Item value={item.id} disabled={item.disabled} asChild>
+        <a
+          href={item.href}
+          target={item.target}
+          className={classes.item}
+          data-selected={isSelected || undefined}
+        >
+          {body}
+        </a>
+      </Menu.Item>
+    );
+  }
+
+  const handleSelect = () => {
+    if ("onClick" in item && item.onClick) {
+      item.onClick(item.id);
+    }
+  };
+
+  return (
+    <Menu.Item
+      value={item.id}
+      disabled={item.disabled}
+      onSelect={handleSelect}
+      className={classes.item}
+      data-selected={isSelected || undefined}
+    >
+      {body}
+    </Menu.Item>
+  );
+};
+
+const renderEntry = (
+  entry: ItemOrGroup,
+  ctx: {
+    size: FormInputSize;
+    selectedSet: Set<string>;
+    classes: ReturnType<typeof styles>;
+  },
+): React.ReactNode => {
+  if (isGroup(entry)) {
+    return (
+      <Menu.ItemGroup
+        key={entry.id}
+        id={entry.id}
+        className={ctx.classes.group}
+      >
+        {(typeof entry.label === "string"
+          ? !isEmptyString(entry.label)
+          : entry.label !== undefined && entry.label !== null) && (
+          <Menu.ItemGroupLabel className={ctx.classes.groupLabel}>
+            {entry.label}
+          </Menu.ItemGroupLabel>
+        )}
+        {entry.items.map((child) => (
+          <ItemRow
+            key={child.id}
+            item={child}
+            size={ctx.size}
+            selectedSet={ctx.selectedSet}
+          />
+        ))}
+      </Menu.ItemGroup>
+    );
+  }
+
+  return (
+    <ItemRow
+      key={entry.id}
+      item={entry}
+      size={ctx.size}
+      selectedSet={ctx.selectedSet}
+    />
+  );
+};
+
 export const SelectableList = ({
   className,
-  items,
+  items = [],
   selected,
-  size,
+  size = "md",
   onHighlight,
   emptyState,
 }: {
   className?: string;
   items?: Array<ItemOrGroup>;
   size?: FormInputSize;
-  selected?: string[];
+  selected?: string[] | Set<string>;
   onHighlight?: (id: string) => void;
   emptyState?: React.ReactNode;
 }) => {
-  return <div className={className} />;
+  const selectedSet = useMemo(() => new Set(selected ?? []), [selected]);
+  const classes = styles({ size });
+
+  const isEmpty = items.length === 0;
+  if (isEmpty && !emptyState) {
+    return null;
+  }
+
+  return (
+    <Menu.Root
+      open
+      closeOnSelect={false}
+      composite
+      onHighlightChange={(details) => {
+        if (details.highlightedValue) {
+          onHighlight?.(details.highlightedValue);
+        }
+      }}
+    >
+      <Menu.Content className={cx(classes.content, className)}>
+        {isEmpty
+          ? emptyState
+          : items.map((item) =>
+              renderEntry(item, { size, selectedSet, classes }),
+            )}
+      </Menu.Content>
+    </Menu.Root>
+  );
 };

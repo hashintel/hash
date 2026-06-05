@@ -1,0 +1,280 @@
+import { sva } from "@hashintel/ds-helpers/css";
+
+import type { FormInputSize } from "../../util/form-shared";
+
+export const styles = sva({
+  slots: [
+    "content",
+    "group",
+    "groupLabel",
+    "item",
+    "textColumn",
+    "text",
+    "description",
+    "indicatorBox",
+    "checkboxControl",
+    "radioControl",
+    "radioDot",
+  ],
+  base: {
+    content: {
+      display: "flex",
+      flexDirection: "column",
+      backgroundColor: "bg.surface",
+      color: "fg.body",
+      borderRadius: "md",
+      border: "1px solid",
+      borderColor: "bd.subtle",
+      boxShadow: "[0 4px 12px rgba(0,0,0,0.08)]",
+      outline: "0",
+      overflow: "hidden",
+      overflowY: "auto",
+      minWidth: "[200px]",
+    },
+    group: {
+      display: "flex",
+      flexDirection: "column",
+    },
+    groupLabel: {
+      display: "flex",
+      alignItems: "center",
+      fontWeight: "medium",
+      color: "fg.subtle",
+      textTransform: "uppercase",
+      letterSpacing: "[0.04em]",
+      userSelect: "none",
+    },
+    item: {
+      display: "flex",
+      alignItems: "center",
+      width: "full",
+      cursor: "pointer",
+      outline: "0",
+      userSelect: "none",
+      borderRadius: "sm",
+      color: "fg.body",
+      textDecoration: "none",
+      transition: "[background-color 0.1s ease, color 0.1s ease]",
+      boxSizing: "border-box",
+
+      "&[data-highlighted]": {
+        backgroundColor: "bg.surface.hover",
+      },
+      "&[data-disabled]": {
+        cursor: "not-allowed",
+        opacity: "[0.5]",
+      },
+    },
+    textColumn: {
+      display: "flex",
+      flexDirection: "column",
+      flex: "1",
+      minWidth: "0",
+      alignItems: "flex-start",
+      textAlign: "start",
+    },
+    text: {
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap",
+      maxWidth: "[100%]",
+    },
+    description: {
+      color: "fg.subtle",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap",
+      maxWidth: "[100%]",
+    },
+    indicatorBox: {
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      flexShrink: "0",
+    },
+    checkboxControl: {
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      border: "1px solid",
+      borderColor: "bd.solid",
+      borderRadius: "sm",
+      backgroundColor: "bg.subtle",
+      color: "fg.onSolid",
+      flexShrink: "0",
+    },
+    radioControl: {
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      border: "1px solid",
+      borderColor: "bd.solid",
+      borderRadius: "full",
+      backgroundColor: "bg.subtle",
+      flexShrink: "0",
+    },
+    radioDot: {
+      borderRadius: "full",
+      backgroundColor: "bg.solid",
+    },
+  },
+  variants: {
+    size: {
+      xxs: {
+        content: { padding: "0.5", gap: "0", fontSize: "xxs" },
+        groupLabel: {
+          fontSize: "[10px]",
+          paddingX: "1.5",
+          paddingY: "0.5",
+          minHeight: "[20px]",
+        },
+        item: {
+          gap: "1",
+          paddingX: "1.5",
+          paddingY: "1",
+          minHeight: "[24px]",
+          fontSize: "xxs",
+        },
+        description: { fontSize: "[10px]", marginTop: "0" },
+        indicatorBox: { width: "[12px]", height: "[12px]" },
+        checkboxControl: { width: "[12px]", height: "[12px]" },
+        radioControl: { width: "[12px]", height: "[12px]" },
+        radioDot: { width: "[6px]", height: "[6px]" },
+      },
+      xs: {
+        content: { padding: "0.5", gap: "0", fontSize: "xs" },
+        groupLabel: {
+          fontSize: "[10px]",
+          paddingX: "1.5",
+          paddingY: "1",
+          minHeight: "[24px]",
+        },
+        item: {
+          gap: "1.5",
+          paddingX: "1.5",
+          paddingY: "1",
+          minHeight: "[28px]",
+          fontSize: "xs",
+        },
+        description: { fontSize: "[11px]", marginTop: "0" },
+        indicatorBox: { width: "[14px]", height: "[14px]" },
+        checkboxControl: { width: "[14px]", height: "[14px]" },
+        radioControl: { width: "[14px]", height: "[14px]" },
+        radioDot: { width: "[6px]", height: "[6px]" },
+      },
+      sm: {
+        content: { padding: "1", gap: "0.5", fontSize: "sm" },
+        groupLabel: {
+          fontSize: "[11px]",
+          paddingX: "2",
+          paddingY: "1",
+          minHeight: "[28px]",
+        },
+        item: {
+          gap: "2",
+          paddingX: "2",
+          paddingY: "1.5",
+          minHeight: "[32px]",
+          fontSize: "sm",
+        },
+        description: { fontSize: "xxs", marginTop: "0.5" },
+        indicatorBox: { width: "[14px]", height: "[14px]" },
+        checkboxControl: { width: "[14px]", height: "[14px]" },
+        radioControl: { width: "[14px]", height: "[14px]" },
+        radioDot: { width: "[6px]", height: "[6px]" },
+      },
+      md: {
+        content: { padding: "1", gap: "0.5", fontSize: "base" },
+        groupLabel: {
+          fontSize: "xxs",
+          paddingX: "2",
+          paddingY: "1.5",
+          minHeight: "[32px]",
+        },
+        item: {
+          gap: "2",
+          paddingX: "2",
+          paddingY: "2",
+          minHeight: "[36px]",
+          fontSize: "base",
+        },
+        description: { fontSize: "xs", marginTop: "0.5" },
+        indicatorBox: { width: "[16px]", height: "[16px]" },
+        checkboxControl: { width: "[16px]", height: "[16px]" },
+        radioControl: { width: "[16px]", height: "[16px]" },
+        radioDot: { width: "[8px]", height: "[8px]" },
+      },
+      lg: {
+        content: { padding: "1.5", gap: "1", fontSize: "lg" },
+        groupLabel: {
+          fontSize: "xs",
+          paddingX: "2.5",
+          paddingY: "2",
+          minHeight: "[36px]",
+        },
+        item: {
+          gap: "2.5",
+          paddingX: "2.5",
+          paddingY: "2.5",
+          minHeight: "[44px]",
+          fontSize: "lg",
+        },
+        description: { fontSize: "sm", marginTop: "0.5" },
+        indicatorBox: { width: "[18px]", height: "[18px]" },
+        checkboxControl: { width: "[18px]", height: "[18px]" },
+        radioControl: { width: "[18px]", height: "[18px]" },
+        radioDot: { width: "[10px]", height: "[10px]" },
+      },
+    },
+    tone: {
+      neutral: { item: { color: "fg.body" } },
+      brand: { item: { color: "blue.s90" } },
+      error: { item: { color: "red.s90" } },
+    },
+    highlighted: {
+      true: {
+        item: {
+          backgroundColor: "blue.bg.surface",
+          "&[data-highlighted]": {
+            backgroundColor: "blue.bg.surface.hover",
+          },
+        },
+      },
+      false: {},
+    },
+    selected: {
+      true: {
+        checkboxControl: {
+          backgroundColor: "bg.solid",
+          borderColor: "bg.solid",
+        },
+        radioControl: {
+          borderColor: "bg.solid",
+        },
+      },
+      false: {},
+    },
+  },
+  defaultVariants: {
+    size: "md",
+    tone: "neutral",
+    highlighted: false,
+    selected: false,
+  },
+});
+
+export const indentUnitPx: Record<FormInputSize, number> = {
+  xxs: 10,
+  xs: 12,
+  sm: 14,
+  md: 16,
+  lg: 18,
+};
+
+export const checkIconSizeMap: Record<FormInputSize, FormInputSize> = {
+  xxs: "xxs",
+  xs: "xs",
+  sm: "xs",
+  md: "xs",
+  lg: "sm",
+};
