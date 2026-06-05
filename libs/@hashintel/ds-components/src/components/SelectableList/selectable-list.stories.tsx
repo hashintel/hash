@@ -238,7 +238,7 @@ const itemsWithSubActions: ItemOrGroup[] = [
     text: "Item with a single sub-action",
     icon: "sliders",
     onClick: noop,
-    subActions: {
+    nestedItems: {
       id: "sa-single-child",
       text: "Sub-action",
       icon: "pencil",
@@ -250,7 +250,7 @@ const itemsWithSubActions: ItemOrGroup[] = [
     text: "Item with grouped sub-actions",
     icon: "magic",
     onClick: noop,
-    subActions: {
+    nestedItems: {
       id: "sa-grouped-group",
       label: "Sub-action group",
       items: [
@@ -280,12 +280,12 @@ const itemsWithSubActions: ItemOrGroup[] = [
     text: "Item with nested sub-actions",
     icon: "shapes",
     onClick: noop,
-    subActions: {
+    nestedItems: {
       id: "sa-nested-1",
       text: "First level",
       icon: "arrowRight",
       onClick: noop,
-      subActions: {
+      nestedItems: {
         id: "sa-nested-2",
         text: "Second level (nested)",
         onClick: noop,

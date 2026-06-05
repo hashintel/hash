@@ -1,4 +1,7 @@
+/* eslint-disable @typescript-eslint/no-use-before-define */
+
 import { Menu } from "@ark-ui/react/menu";
+import { Portal } from "@ark-ui/react/portal";
 import { useMemo } from "react";
 
 import { cx } from "@hashintel/ds-helpers/css";
@@ -27,8 +30,6 @@ export type Item = {
   disabled?: boolean;
   tone?: "neutral" | "brand" | "error";
   selectedStyle?: "none" | "tick" | "checkbox" | "radio" | "highlight";
-
-  subActions?: ItemOrGroup;
 } & ExclusifyUnion<
   | {
       href: string;
@@ -36,6 +37,9 @@ export type Item = {
     }
   | {
       onClick: (id: string) => void;
+    }
+  | {
+      nestedItems?: ItemOrGroup;
     }
 >;
 
@@ -129,28 +133,26 @@ const ItemBody = ({
         )}
       </span>
       {item.loading && <LoadingSpinner size={size} />}
-      {item.subActions && (
+      {item.nestedItems && (
         <Icon name="chevronRight" size={size} aria-hidden="true" />
       )}
     </>
   );
 };
 
-const ItemRow = ({
-  item,
-  size,
-  selectedSet,
-}: {
-  item: Item;
+type RenderCtx = {
   size: FormInputSize;
   selectedSet: Set<string>;
-}) => {
-  const isSelected = selectedSet.has(item.id);
+  contentClassName: string | undefined;
+};
+
+const ItemRow = ({ item, ctx }: { item: Item; ctx: RenderCtx }) => {
+  const isSelected = ctx.selectedSet.has(item.id);
   const selectedStyle = item.selectedStyle ?? "tick";
   const highlighted = isSelected && selectedStyle === "highlight";
 
   const classes = styles({
-    size,
+    size: ctx.size,
     tone: item.tone,
     highlighted,
     selected: isSelected,
@@ -159,11 +161,31 @@ const ItemRow = ({
   const body = (
     <ItemBody
       item={item}
-      size={size}
+      size={ctx.size}
       isSelected={isSelected}
       classes={classes}
     />
   );
+
+  if (item.nestedItems) {
+    return (
+      <Menu.Root closeOnSelect={false}>
+        <Menu.TriggerItem
+          className={classes.item}
+          data-selected={isSelected || undefined}
+        >
+          {body}
+        </Menu.TriggerItem>
+        <Portal>
+          <Menu.Positioner>
+            <Menu.Content className={ctx.contentClassName}>
+              {renderEntry(item.nestedItems, ctx)}
+            </Menu.Content>
+          </Menu.Positioner>
+        </Portal>
+      </Menu.Root>
+    );
+  }
 
   if ("href" in item && item.href) {
     return (
@@ -199,48 +221,30 @@ const ItemRow = ({
   );
 };
 
-const renderEntry = (
-  entry: ItemOrGroup,
-  ctx: {
-    size: FormInputSize;
-    selectedSet: Set<string>;
-    classes: ReturnType<typeof styles>;
-  },
-): React.ReactNode => {
+const renderEntry = (entry: ItemOrGroup, ctx: RenderCtx): React.ReactNode => {
   if (isGroup(entry)) {
+    const groupClasses = styles({ size: ctx.size });
     return (
       <Menu.ItemGroup
         key={entry.id}
         id={entry.id}
-        className={ctx.classes.group}
+        className={groupClasses.group}
       >
         {(typeof entry.label === "string"
           ? !isEmptyString(entry.label)
           : entry.label !== undefined && entry.label !== null) && (
-          <Menu.ItemGroupLabel className={ctx.classes.groupLabel}>
+          <Menu.ItemGroupLabel className={groupClasses.groupLabel}>
             {entry.label}
           </Menu.ItemGroupLabel>
         )}
         {entry.items.map((child) => (
-          <ItemRow
-            key={child.id}
-            item={child}
-            size={ctx.size}
-            selectedSet={ctx.selectedSet}
-          />
+          <ItemRow key={child.id} item={child} ctx={ctx} />
         ))}
       </Menu.ItemGroup>
     );
   }
 
-  return (
-    <ItemRow
-      key={entry.id}
-      item={entry}
-      size={ctx.size}
-      selectedSet={ctx.selectedSet}
-    />
-  );
+  return <ItemRow key={entry.id} item={entry} ctx={ctx} />;
 };
 
 export const SelectableList = ({
@@ -266,6 +270,12 @@ export const SelectableList = ({
     return null;
   }
 
+  const ctx = {
+    size,
+    selectedSet,
+    contentClassName: classes.content,
+  };
+
   return (
     <Menu.Root
       open
@@ -278,11 +288,7 @@ export const SelectableList = ({
       }}
     >
       <Menu.Content className={cx(classes.content, className)}>
-        {isEmpty
-          ? emptyState
-          : items.map((item) =>
-              renderEntry(item, { size, selectedSet, classes }),
-            )}
+        {isEmpty ? emptyState : items.map((item) => renderEntry(item, ctx))}
       </Menu.Content>
     </Menu.Root>
   );
