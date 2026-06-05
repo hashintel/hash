@@ -376,7 +376,7 @@ export const FormRowDefault: Story<FormFieldArgs> = (args) => (
 export const FormRowGap: Story<FormFieldArgs> = (args) => (
   <div className={sectionStyle}>
     {formRowGaps.map((gap) => (
-      <FormRow key={gap} gap={gap}>
+      <FormRow key={gap} gap={gap} noWrap={gap === "none"}>
         {Array.from({ length: 4 }, (_, index) =>
           renderRowField(args, `form-row-gap-${gap}`, index, {
             label: index === 0 ? `Gap: ${gap}` : "...",

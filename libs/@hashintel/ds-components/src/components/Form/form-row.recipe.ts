@@ -15,6 +15,13 @@ export const styles = sva({
     },
   },
   variants: {
+    noWrap: {
+      false: {
+        row: {
+          flexWrap: "wrap",
+        },
+      },
+    },
     gap: {
       md: { row: { columnGap: "3.5" } },
       lg: { row: { columnGap: "7" } },
