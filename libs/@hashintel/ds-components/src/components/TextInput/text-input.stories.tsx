@@ -157,28 +157,6 @@ const leftConnectedStates: typeof sharedConnectedStates = [
   },
 ];
 
-const rightConnectedStates: typeof sharedConnectedStates = [
-  ...sharedConnectedStates,
-  {
-    key: "prefix-button",
-    label: "Prefix button",
-    props: { prefix: adornmentButton },
-  },
-  {
-    key: "prefix-button-invalid",
-    label: "Prefix button + Invalid",
-    props: { prefix: adornmentButton, invalid: true },
-  },
-  {
-    key: "prefix-button-disabled",
-    label: "Prefix button + Disabled",
-    props: {
-      prefix: { ...adornmentButton, disabled: true },
-      disabled: true,
-    },
-  },
-];
-
 const sectionStyle = css({
   display: "flex",
   flexDirection: "column",
@@ -691,7 +669,7 @@ export const Connected: Story = () => (
     <div
       style={{
         display: "grid",
-        gridTemplateColumns: `auto repeat(${rightConnectedStates.length}, auto)`,
+        gridTemplateColumns: `auto repeat(${sharedConnectedStates.length}, auto)`,
         columnGap: 24,
         rowGap: 12,
         alignItems: "center",
@@ -699,7 +677,7 @@ export const Connected: Story = () => (
       }}
     >
       <span />
-      {rightConnectedStates.map((col) => (
+      {sharedConnectedStates.map((col) => (
         <span key={`col-${col.key}`} style={subheadingStyle}>
           Right: {col.label}
         </span>
@@ -708,7 +686,7 @@ export const Connected: Story = () => (
         <span key={`row-${row.key}`} style={subheadingStyle}>
           Left: {row.label}
         </span>,
-        ...rightConnectedStates.map((col) => (
+        ...sharedConnectedStates.map((col) => (
           <ConnectedPair
             key={`${row.key}-${col.key}`}
             size="md"

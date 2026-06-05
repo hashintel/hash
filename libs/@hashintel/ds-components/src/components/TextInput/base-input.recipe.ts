@@ -362,7 +362,7 @@ export const baseInputRecipe = sva({
           ...formSizes.variants.sizes.xxs,
           "--base-input-border-radius": "radii.md",
           "--base-input-padding-x": "spacing.2",
-          "--base-input-connector-width": "6px",
+          "--base-input-connector-width": "5px",
         },
       },
       xs: {
