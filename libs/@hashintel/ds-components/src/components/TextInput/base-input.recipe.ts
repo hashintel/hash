@@ -508,7 +508,7 @@ export const baseInputRecipe = sva({
       disabled: true,
       css: {
         root: {
-          "--base-input-border-color": "var(--colors-neutral-a50)",
+          "--base-input-border-color": "var(--colors-neutral-s50)",
           "--base-input-background-color": "var(--colors-neutral-s20)",
           color: "neutral.s80",
           "&:after": {

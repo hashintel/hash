@@ -37,6 +37,10 @@ export type BaseInputProps = {
   prefix?: PrefixOrSuffix;
   /** Optional element or button to include at the end of an input */
   suffix?: PrefixOrSuffix;
+  /** Show the input as connected to another input. To connect 2 inputs, both connectLeft and connectRight should be enabled on both connected inputs. subtle inputs + readonly inputs will not be connected */
+  connectLeft?: boolean;
+  /** Show the input as connected to another input. To connect 2 inputs, both connectLeft and connectRight should be enabled on both connected inputs. subtle inputs + readonly inputs will not be connected */
+  connectRight?: boolean;
   /** A customized view that is shown when the input is unfocused. Can be used to present the value with extra formatting */
   styledValue?: React.ReactNode;
   /** Set to allow the input to be cleared. As the component is controlled you must clear the value manually with onClear. */
@@ -157,6 +161,8 @@ export const BaseInput = ({
   width = "fullWidth",
   prefix,
   suffix,
+  connectLeft,
+  connectRight,
   styledValue,
   clearable,
   showEditIcon,
@@ -289,14 +295,18 @@ export const BaseInput = ({
         }
       }}
     >
-      <InputConnector
-        className={cx(classes.connector, classes.connectRight)}
-        data-part="connector"
-      />
-      <InputConnector
-        className={cx(classes.connector, classes.connectLeft)}
-        data-part="connector"
-      />
+      {connectLeft && variant === "default" && (
+        <InputConnector
+          className={cx(classes.connector, classes.connectRight)}
+          data-part="connector"
+        />
+      )}
+      {connectRight && variant === "default" && (
+        <InputConnector
+          className={cx(classes.connector, classes.connectLeft)}
+          data-part="connector"
+        />
+      )}
       {prefix != null && renderAdornment("prefix", prefix, size, classes)}
 
       <div className={classes.inputWrapper}>
