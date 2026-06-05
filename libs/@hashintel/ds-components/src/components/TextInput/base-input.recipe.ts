@@ -38,7 +38,6 @@ export const baseInputRecipe = sva({
       background: "[var(--base-input-background-color)]",
       border: "var(--form-border-width) solid transparent",
       borderRadius: "var(--base-input-border-radius)",
-      marginX: "[calc(var(--base-input-connector-width) / 2 - 1px)]",
       transition: "[background 0.15s ease, border 0.15s ease]",
       "--base-input-connector-width": "10px",
       "--base-input-background-color": "var(--colors-white)",
@@ -503,6 +502,20 @@ export const baseInputRecipe = sva({
         },
         editIcon: {
           paddingX: "0.5",
+        },
+      },
+    },
+    connectsRight: {
+      true: {
+        root: {
+          marginRight: "[calc(var(--base-input-connector-width) / 2 - 1px)]",
+        },
+      },
+    },
+    connectsLeft: {
+      true: {
+        root: {
+          marginLeft: "[calc(var(--base-input-connector-width) / 2 - 1px)]",
         },
       },
     },

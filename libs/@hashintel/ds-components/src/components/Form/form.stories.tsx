@@ -309,9 +309,18 @@ const renderRowField = (
   args: FormFieldArgs,
   prefix: string,
   index: number,
-  overrides?: Partial<FormFieldArgs> & { invalid?: boolean },
+  overrides?: Partial<FormFieldArgs> & {
+    invalid?: boolean;
+    connectToLeftInput?: boolean;
+    connectToRightInput?: boolean;
+  },
 ) => {
-  const { invalid, ...fieldOverrides } = overrides ?? {};
+  const {
+    invalid,
+    connectToLeftInput,
+    connectToRightInput,
+    ...fieldOverrides
+  } = overrides ?? {};
   return (
     <Form.Field
       {...args}
@@ -324,6 +333,8 @@ const renderRowField = (
         name={`${prefix}-${index + 1}`}
         size={args.size}
         invalid={invalid}
+        connectToLeftInput={connectToLeftInput}
+        connectToRightInput={connectToRightInput}
       />
     </Form.Field>
   );
@@ -369,6 +380,10 @@ export const FormRowGap: Story<FormFieldArgs> = (args) => (
         {Array.from({ length: 4 }, (_, index) =>
           renderRowField(args, `form-row-gap-${gap}`, index, {
             label: index === 0 ? `Gap: ${gap}` : "...",
+            ...(gap === "none" && {
+              connectToLeftInput: index > 0,
+              connectToRightInput: index < 3,
+            }),
           }),
         )}
       </FormRow>

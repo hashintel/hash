@@ -205,6 +205,8 @@ export const BaseInput = ({
   const noAutocomplete = !!clearable || !autocomplete;
   const showClear = !!(clearable && !disabled);
   const hasIcons = !!loading || showClear;
+  const connectsLeft = connectToLeftInput && variant === "default";
+  const connectsRight = connectToRightInput && variant === "default";
 
   const classes = baseInputRecipe({
     variant,
@@ -217,6 +219,8 @@ export const BaseInput = ({
     hasBrowserControls,
     hasIcons,
     editAndClear: showClear && showEditIcon,
+    connectsLeft,
+    connectsRight,
     willClear:
       showClear &&
       clearable.clearable &&
