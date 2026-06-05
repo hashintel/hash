@@ -131,15 +131,24 @@ export const baseInputRecipe = sva({
         background: "neutral.s30",
         color: "neutral.s120",
       },
+      "&:not([disabled]):hover + [data-part='connector']": {
+        fill: "[var(--colors-neutral-s30)]",
+      },
       "&:not([disabled]):active": {
         background: "neutral.s40",
         color: "neutral.s125",
+      },
+      "&:not([disabled]):active + [data-part='connector']": {
+        fill: "neutral.s40",
       },
       "&:focus:not(:focus-visible)": { outline: "none" },
       _focusVisible: {
         outline: "[1px solid var(--colors-neutral-s80)]",
         outlineOffset: "0",
         background: "neutral.s25",
+      },
+      "&:focus-visible + [data-part='connector']": {
+        fill: "neutral.s25",
       },
     },
     adornmentInteractive: {

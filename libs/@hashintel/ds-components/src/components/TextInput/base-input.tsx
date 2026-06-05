@@ -295,17 +295,8 @@ export const BaseInput = ({
         }
       }}
     >
+      {prefix != null && renderAdornment("prefix", prefix, size, classes)}
       {connectLeft && variant === "default" && (
-        <InputConnector
-          className={cx(
-            classes.connector,
-            classes.connectRight,
-            suffix && classes.connectAdornment,
-          )}
-          data-part="connector"
-        />
-      )}
-      {connectRight && variant === "default" && (
         <InputConnector
           className={cx(
             classes.connector,
@@ -315,7 +306,6 @@ export const BaseInput = ({
           data-part="connector"
         />
       )}
-      {prefix != null && renderAdornment("prefix", prefix, size, classes)}
 
       <div className={classes.inputWrapper}>
         {input}
@@ -365,6 +355,16 @@ export const BaseInput = ({
       )}
 
       {suffix != null && renderAdornment("suffix", suffix, size, classes)}
+      {connectRight && variant === "default" && (
+        <InputConnector
+          className={cx(
+            classes.connector,
+            classes.connectRight,
+            suffix && classes.connectAdornment,
+          )}
+          data-part="connector"
+        />
+      )}
     </div>
   );
 };

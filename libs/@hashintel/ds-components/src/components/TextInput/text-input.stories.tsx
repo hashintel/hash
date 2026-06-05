@@ -101,12 +101,18 @@ const ConnectedPair = ({
   size: FormInputSize;
 }) => (
   <div style={{ display: "flex", alignItems: "center" }}>
-    <TextInput value="Left" onChange={noop} size={size} connectLeft {...left} />
+    <TextInput
+      value="Left"
+      onChange={noop}
+      size={size}
+      connectRight
+      {...left}
+    />
     <TextInput
       value="Right"
       onChange={noop}
       size={size}
-      connectRight
+      connectLeft
       {...right}
     />
   </div>
