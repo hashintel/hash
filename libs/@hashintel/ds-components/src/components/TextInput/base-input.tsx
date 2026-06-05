@@ -297,13 +297,21 @@ export const BaseInput = ({
     >
       {connectLeft && variant === "default" && (
         <InputConnector
-          className={cx(classes.connector, classes.connectRight)}
+          className={cx(
+            classes.connector,
+            classes.connectRight,
+            suffix && classes.connectAdornment,
+          )}
           data-part="connector"
         />
       )}
       {connectRight && variant === "default" && (
         <InputConnector
-          className={cx(classes.connector, classes.connectLeft)}
+          className={cx(
+            classes.connector,
+            classes.connectLeft,
+            prefix && classes.connectAdornment,
+          )}
           data-part="connector"
         />
       )}

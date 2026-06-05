@@ -26,6 +26,7 @@ export const baseInputRecipe = sva({
     "connector",
     "connectRight",
     "connectLeft",
+    "connectAdornment",
   ],
   base: {
     root: {
@@ -243,6 +244,9 @@ export const baseInputRecipe = sva({
     },
     connectLeft: {
       right: "[100%]",
+    },
+    connectAdornment: {
+      fill: "[var(--colors-neutral-s20)]",
     },
   },
   variants: {

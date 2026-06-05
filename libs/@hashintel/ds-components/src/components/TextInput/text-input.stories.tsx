@@ -88,7 +88,7 @@ const StyledNumberInput = ({
 
 type ConnectedSideProps = Pick<
   TextInputProps,
-  "invalid" | "disabled" | "readonly" | "variant"
+  "invalid" | "disabled" | "readonly" | "variant" | "prefix" | "suffix"
 >;
 
 const ConnectedPair = ({
@@ -101,30 +101,20 @@ const ConnectedPair = ({
   size: FormInputSize;
 }) => (
   <div style={{ display: "flex", alignItems: "center" }}>
-    <TextInput
-      value="Left"
-      onChange={noop}
-      size={size}
-      connectLeft
-      invalid={left.invalid}
-      disabled={left.disabled}
-      readonly={left.readonly}
-      variant={left.variant}
-    />
+    <TextInput value="Left" onChange={noop} size={size} connectLeft {...left} />
     <TextInput
       value="Right"
       onChange={noop}
       size={size}
       connectRight
-      invalid={right.invalid}
-      disabled={right.disabled}
-      readonly={right.readonly}
-      variant={right.variant}
+      {...right}
     />
   </div>
 );
 
-const connectedSideStates: {
+const adornmentButton = { iconName: "search", onClick: noop } as const;
+
+const sharedConnectedStates: {
   key: string;
   label: string;
   props: ConnectedSideProps;
@@ -136,6 +126,50 @@ const connectedSideStates: {
     key: "invalid-disabled",
     label: "Invalid + Disabled",
     props: { invalid: true, disabled: true },
+  },
+];
+
+const leftConnectedStates: typeof sharedConnectedStates = [
+  ...sharedConnectedStates,
+  {
+    key: "suffix-button",
+    label: "Suffix button",
+    props: { suffix: adornmentButton },
+  },
+  {
+    key: "suffix-button-invalid",
+    label: "Suffix button + Invalid",
+    props: { suffix: adornmentButton, invalid: true },
+  },
+  {
+    key: "suffix-button-disabled",
+    label: "Suffix button + Disabled",
+    props: {
+      suffix: { ...adornmentButton, disabled: true },
+      disabled: true,
+    },
+  },
+];
+
+const rightConnectedStates: typeof sharedConnectedStates = [
+  ...sharedConnectedStates,
+  {
+    key: "prefix-button",
+    label: "Prefix button",
+    props: { prefix: adornmentButton },
+  },
+  {
+    key: "prefix-button-invalid",
+    label: "Prefix button + Invalid",
+    props: { prefix: adornmentButton, invalid: true },
+  },
+  {
+    key: "prefix-button-disabled",
+    label: "Prefix button + Disabled",
+    props: {
+      prefix: { ...adornmentButton, disabled: true },
+      disabled: true,
+    },
   },
 ];
 
@@ -651,7 +685,7 @@ export const Connected: Story = () => (
     <div
       style={{
         display: "grid",
-        gridTemplateColumns: `auto repeat(${connectedSideStates.length}, auto)`,
+        gridTemplateColumns: `auto repeat(${rightConnectedStates.length}, auto)`,
         columnGap: 24,
         rowGap: 12,
         alignItems: "center",
@@ -659,16 +693,16 @@ export const Connected: Story = () => (
       }}
     >
       <span />
-      {connectedSideStates.map((col) => (
+      {rightConnectedStates.map((col) => (
         <span key={`col-${col.key}`} style={subheadingStyle}>
           Right: {col.label}
         </span>
       ))}
-      {connectedSideStates.flatMap((row) => [
+      {leftConnectedStates.flatMap((row) => [
         <span key={`row-${row.key}`} style={subheadingStyle}>
           Left: {row.label}
         </span>,
-        ...connectedSideStates.map((col) => (
+        ...rightConnectedStates.map((col) => (
           <ConnectedPair
             key={`${row.key}-${col.key}`}
             size="md"
