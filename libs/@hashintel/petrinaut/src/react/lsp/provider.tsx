@@ -34,7 +34,7 @@ export const LanguageClientProvider: React.FC<{
    */
   workerFactory?: LspWorkerFactory;
 }> = ({ children, workerFactory }) => {
-  const { petriNetDefinition } = use(SDCPNContext);
+  const { extensions, petriNetDefinition } = use(SDCPNContext);
 
   /**
    * Create the language client inside a useEffect rather than `useState`'s
@@ -72,12 +72,12 @@ export const LanguageClientProvider: React.FC<{
       return;
     }
     if (initializedClientRef.current !== client) {
-      client.initialize(petriNetDefinition);
+      client.initialize(petriNetDefinition, extensions);
       initializedClientRef.current = client;
     } else {
-      client.notifySDCPNChanged(petriNetDefinition);
+      client.notifySDCPNChanged(petriNetDefinition, extensions);
     }
-  }, [petriNetDefinition, client]);
+  }, [extensions, petriNetDefinition, client]);
 
   // Subscribe to diagnostics from the client. Use an empty fallback store
   // before the client is created so hook order stays stable.

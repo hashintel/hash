@@ -6,6 +6,7 @@ import { type ReactNode } from "react";
 import { describe, expect, test } from "vitest";
 
 import {
+  DEFAULT_PETRINAUT_EXTENSIONS,
   createJsonDocHandle,
   createPetrinaut,
   type Petrinaut,
@@ -105,6 +106,7 @@ const createWrapper = (options: WrapperOptions = {}) => {
     petriNetId: "test-net",
     petriNetDefinition: instance.definition.get(),
     readonly,
+    extensions: DEFAULT_PETRINAUT_EXTENSIONS,
     setTitle: () => {},
     title: "Test",
     getItemType: () => null,

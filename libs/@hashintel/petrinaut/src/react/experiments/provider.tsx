@@ -162,9 +162,10 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
   children,
   workerFactory,
 }) => {
-  const { petriNetDefinition } = use(SDCPNContext);
+  const { extensions, petriNetDefinition } = use(SDCPNContext);
   const { addNotification } = use(NotificationsContext);
   const petriNetDefinitionRef = useLatest(petriNetDefinition);
+  const extensionsRef = useLatest(extensions);
   const workerFactoryRef = useLatest(workerFactory ?? createMonteCarloWorker);
   const registrationsRef = useRef(
     new Map<string, ExperimentHandleRegistration>(),
@@ -298,6 +299,12 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
 
     let parameterValues: Record<string, string> = {};
     let initialMarking: InitialMarking = {};
+    const globalParameters = extensionsRef.current.parameters
+      ? sdcpn.parameters
+      : [];
+    const experimentSdcpn = extensionsRef.current.parameters
+      ? sdcpn
+      : { ...sdcpn, parameters: [] };
 
     if (selectedScenario) {
       const parsedScenarioValues = parseScenarioParameterValues(
@@ -310,7 +317,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
 
       const compiledScenario = compileScenario(
         selectedScenario,
-        sdcpn.parameters,
+        globalParameters,
         sdcpn.places,
         sdcpn.types,
         { scenarioParameterValues: parsedScenarioValues.values },
@@ -354,7 +361,8 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
 
     const initializeExperiment = async () => {
       const experimentConfigBase = {
-        sdcpn,
+        sdcpn: experimentSdcpn,
+        extensions: extensionsRef.current,
         initialMarking,
         parameterValues,
         seed: input.seed,

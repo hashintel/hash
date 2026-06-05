@@ -4,6 +4,8 @@ import { z } from "zod";
 import {
   aiCommandActionInputSchemas,
   createPetrinautAiWritableCallbacks,
+  getLatestNetDefinitionToolName,
+  petrinautAiPrompt,
   petrinautAiToolInputSchemas,
   petrinautAiTools,
 } from "./ai";
@@ -42,6 +44,13 @@ describe("Petrinaut AI core exports", () => {
       expect(petrinautAiTools).toHaveProperty(name);
     }
     expect(petrinautAiTools).toHaveProperty("applyAutoLayout");
+  });
+
+  test("latest net definition tool documents extension settings", () => {
+    expect(
+      petrinautAiTools[getLatestNetDefinitionToolName].description,
+    ).toMatch(/extensions/u);
+    expect(petrinautAiPrompt).toMatch(/extensions/u);
   });
 
   test("addArc exposes an AI-friendly object input schema", () => {

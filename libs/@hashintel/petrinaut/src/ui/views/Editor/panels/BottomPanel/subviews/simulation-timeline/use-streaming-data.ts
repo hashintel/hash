@@ -144,8 +144,10 @@ export function useStreamingData(): {
 } {
   const { dt, getFramesInRange, totalFrames } = use(SimulationContext);
   const {
+    extensions,
     petriNetDefinition: { places, types, transitions, metrics },
   } = use(SDCPNContext);
+  const colorsEnabled = extensions.colors;
   const { timelineView } = use(EditorContext);
 
   const selectedMetric =
@@ -154,13 +156,17 @@ export function useStreamingData(): {
       : null;
 
   const compiledMetric = compileTimelineMetric(selectedMetric);
+  const availableTypes = colorsEnabled ? types : [];
+  const availablePlaces = colorsEnabled
+    ? places
+    : places.map((place) => ({ ...place, colorId: null }));
 
   // Computes the active timeline view mode described above into concrete uPlot
   // series metadata and the per-frame value extractor used while streaming.
   const seriesConfig = buildTimelineSeriesConfig({
     timelineView,
-    places,
-    types,
+    places: availablePlaces,
+    types: availableTypes,
     transitions,
     selectedMetric,
     compiledMetric: compiledMetric.fn,

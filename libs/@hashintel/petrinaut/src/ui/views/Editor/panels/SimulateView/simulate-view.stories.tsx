@@ -3,6 +3,10 @@ import { useRef } from "react";
 import { PortalContainerContext } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import {
+  DEFAULT_PETRINAUT_EXTENSIONS,
+  type SDCPN,
+} from "@hashintel/petrinaut-core";
+import {
   probabilisticSatellitesSDCPN,
   sirModel,
 } from "@hashintel/petrinaut-core/examples";
@@ -25,7 +29,6 @@ import {
 import { SimulateView } from "./simulate-view";
 
 import type { SDCPNContextValue } from "../../../../../react/state/sdcpn-context";
-import type { SDCPN } from "@hashintel/petrinaut-core";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
 const meta = {
@@ -64,6 +67,7 @@ const createSdcpnContextValue = ({
 }: StoryExample): SDCPNContextValue => ({
   createNewNet: () => {},
   existingNets: [],
+  extensions: DEFAULT_PETRINAUT_EXTENSIONS,
   loadPetriNet: () => {},
   petriNetId: `${title.toLowerCase().replaceAll(/[^a-z0-9]+/g, "-")}-story-net`,
   petriNetDefinition,

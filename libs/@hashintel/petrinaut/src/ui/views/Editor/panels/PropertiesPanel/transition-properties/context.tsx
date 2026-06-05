@@ -1,12 +1,18 @@
 import { createContext, type ReactNode, use } from "react";
 
 import type { PetrinautMutations } from "../../../../../../react";
-import type { Color, Place, Transition } from "@hashintel/petrinaut-core";
+import type {
+  Color,
+  Place,
+  Transition,
+  TransitionLogicAvailability,
+} from "@hashintel/petrinaut-core";
 
 interface TransitionPropertiesContextValue {
   transition: Transition;
   places: Place[];
   types: Color[];
+  logicAvailability: TransitionLogicAvailability;
   isReadOnly: boolean;
   updateTransition: PetrinautMutations["updateTransition"];
   onArcWeightUpdate: PetrinautMutations["updateArcWeight"];
@@ -32,6 +38,7 @@ interface TransitionPropertiesProviderProps {
   transition: Transition;
   places: Place[];
   types: Color[];
+  logicAvailability: TransitionLogicAvailability;
   isReadOnly: boolean;
   updateTransition: PetrinautMutations["updateTransition"];
   onArcWeightUpdate: PetrinautMutations["updateArcWeight"];
@@ -46,6 +53,7 @@ export const TransitionPropertiesProvider: React.FC<
   transition,
   places,
   types,
+  logicAvailability,
   isReadOnly,
   updateTransition,
   onArcWeightUpdate,
@@ -59,6 +67,7 @@ export const TransitionPropertiesProvider: React.FC<
         transition,
         places,
         types,
+        logicAvailability,
         isReadOnly,
         updateTransition,
         onArcWeightUpdate,

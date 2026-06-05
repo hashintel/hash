@@ -370,6 +370,7 @@ export const AiAssistantPanel = ({
           output: {
             title: titleRef.current,
             definition: instance.definition.get(),
+            extensions: instance.extensions,
           },
         });
         return;

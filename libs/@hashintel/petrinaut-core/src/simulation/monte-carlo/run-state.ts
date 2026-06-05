@@ -89,6 +89,7 @@ export function createRunState(
   };
   const simulation = buildSimulation({
     sdcpn: config.sdcpn,
+    extensions: config.extensions,
     initialMarking,
     parameterValues: inputParameterValues,
     seed,

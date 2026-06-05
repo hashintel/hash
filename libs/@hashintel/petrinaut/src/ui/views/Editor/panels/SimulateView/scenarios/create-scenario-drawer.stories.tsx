@@ -1,3 +1,5 @@
+import { DEFAULT_PETRINAUT_EXTENSIONS } from "@hashintel/petrinaut-core";
+
 import { LanguageClientProvider } from "../../../../../../react/lsp/provider";
 import {
   SDCPNContext,
@@ -23,6 +25,7 @@ const EMPTY_NET: SDCPNContextValue = {
     parameters: [],
   },
   readonly: false,
+  extensions: DEFAULT_PETRINAUT_EXTENSIONS,
   setTitle: () => {},
   title: "Empty Net",
   getItemType: () => null,

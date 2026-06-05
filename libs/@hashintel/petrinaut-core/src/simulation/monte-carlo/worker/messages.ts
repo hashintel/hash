@@ -1,3 +1,4 @@
+import type { PetrinautExtensionSettings } from "../../../extensions";
 import type { SDCPN } from "../../../types/sdcpn";
 import type { InitialMarking } from "../../api";
 import type {
@@ -9,6 +10,7 @@ import type { MonteCarloAdvanceResult } from "../types";
 export type MonteCarloInitMessage = {
   type: "init";
   sdcpn: SDCPN;
+  extensions?: PetrinautExtensionSettings;
   initialMarking: InitialMarking;
   parameterValues: Record<string, string>;
   seed: number;

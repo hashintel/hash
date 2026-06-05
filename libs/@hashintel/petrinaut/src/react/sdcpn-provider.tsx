@@ -1,6 +1,9 @@
 import { use, type ReactNode } from "react";
 
-import { ARC_ID_PREFIX } from "@hashintel/petrinaut-core";
+import {
+  ARC_ID_PREFIX,
+  isSelectionTypeAvailableForExtensions,
+} from "@hashintel/petrinaut-core";
 
 import { NetManagementContext } from "./net-management-context";
 import { SDCPNContext, type SDCPNContextValue } from "./state/sdcpn-context";
@@ -24,6 +27,7 @@ export const SDCPNProvider: React.FC<{ children: ReactNode }> = ({
     petriNetId: instance.handle.id,
     petriNetDefinition,
     readonly: instance.readonly,
+    extensions: instance.extensions,
     title: netManagement.title,
     setTitle: netManagement.setTitle,
     existingNets: netManagement.existingNets,
@@ -35,17 +39,28 @@ export const SDCPNProvider: React.FC<{ children: ReactNode }> = ({
         return "arc";
       }
 
-      if (petriNetDefinition.types.some((type) => type.id === id)) {
+      if (
+        isSelectionTypeAvailableForExtensions("type", instance.extensions) &&
+        petriNetDefinition.types.some((type) => type.id === id)
+      ) {
         return "type";
       }
 
       if (
+        isSelectionTypeAvailableForExtensions(
+          "parameter",
+          instance.extensions,
+        ) &&
         petriNetDefinition.parameters.some((parameter) => parameter.id === id)
       ) {
         return "parameter";
       }
 
       if (
+        isSelectionTypeAvailableForExtensions(
+          "differentialEquation",
+          instance.extensions,
+        ) &&
         petriNetDefinition.differentialEquations.some(
           (equation) => equation.id === id,
         )

@@ -12,6 +12,7 @@
  * public Petrinaut APIs, so downstream packages do not need to depend on this
  * upstream package directly.
  */
+import type { PetrinautExtensionSettings } from "../../extensions";
 import type { SDCPN, ScenarioParameter } from "../../types/sdcpn";
 import type {
   Diagnostic,
@@ -69,12 +70,12 @@ type ClientNotification =
   | {
       jsonrpc: "2.0";
       method: "initialize";
-      params: { sdcpn: SDCPN };
+      params: { sdcpn: SDCPN; extensions?: PetrinautExtensionSettings };
     }
   | {
       jsonrpc: "2.0";
       method: "sdcpn/didChange";
-      params: { sdcpn: SDCPN };
+      params: { sdcpn: SDCPN; extensions?: PetrinautExtensionSettings };
     }
   | {
       jsonrpc: "2.0";

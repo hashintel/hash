@@ -14,8 +14,27 @@ export {
   type PetrinautDocHandle,
   type PetrinautHistory,
   type PetrinautPatch,
-  type ReadableStore,
 } from "./handle";
+export type { ReadableStore } from "./store";
+export {
+  DEFAULT_PETRINAUT_EXTENSIONS,
+  PETRINAUT_EXTENSION_NAMES,
+  getEffectiveTransitionLambdaType,
+  getTransitionLogicAvailability,
+  hasTypedNonInhibitorInputPlace,
+  isTransitionKernelAvailable,
+  isTransitionLambdaAvailable,
+  isSelectionTypeAvailableForExtensions,
+  resolvePetrinautHandleCapabilities,
+  sanitizeSDCPNForExtensions,
+} from "./extensions";
+export type {
+  PetrinautExtension,
+  PetrinautExtensionSettings,
+  PetrinautHandleCapabilities,
+  ResolvedPetrinautHandleCapabilities,
+  TransitionLogicAvailability,
+} from "./extensions";
 
 // --- Instance ---
 export { createPetrinaut } from "./instance";
@@ -27,7 +46,10 @@ export type {
   PetrinautMutations,
 } from "./instance";
 export { createPetrinautActions } from "./actions";
-export type { MutationHelperFunctions } from "./actions";
+export type {
+  CreatePetrinautActionsOptions,
+  MutationHelperFunctions,
+} from "./actions";
 export { createPetrinautCommands } from "./commands";
 export type {
   ApplyAutoLayoutResult,

@@ -7,6 +7,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import {
   type MonteCarloUserDefinedMetricFrame,
+  DEFAULT_PETRINAUT_EXTENSIONS,
   type SDCPN,
   type WorkerLike,
 } from "@hashintel/petrinaut-core";
@@ -136,6 +137,7 @@ const sdcpnContextValue: SDCPNContextValue = {
   petriNetId: "test-net",
   petriNetDefinition: EMPTY_SDCPN,
   readonly: false,
+  extensions: DEFAULT_PETRINAUT_EXTENSIONS,
   setTitle: () => {},
   title: "Test",
   getItemType: () => null,

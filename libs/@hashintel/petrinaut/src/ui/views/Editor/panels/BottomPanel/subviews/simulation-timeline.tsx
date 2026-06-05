@@ -214,11 +214,19 @@ const TimelineViewPicker: React.FC = () => {
   const { timelineView, setTimelineView, setGlobalMode, setSimulateViewMode } =
     use(EditorContext);
   const {
+    extensions,
     petriNetDefinition: { metrics = [] },
   } = use(SDCPNContext);
+  const colorsEnabled = extensions.colors;
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isViewOpen, setIsViewOpen] = useState(false);
+
+  useEffect(() => {
+    if (!colorsEnabled && timelineView.kind === "per-type") {
+      setTimelineView({ kind: "per-place" });
+    }
+  }, [colorsEnabled, setTimelineView, timelineView.kind]);
 
   const selectedMetric =
     timelineView.kind === "metric"
@@ -227,10 +235,16 @@ const TimelineViewPicker: React.FC = () => {
 
   const options = [
     { value: PER_PLACE_VALUE, label: "Tokens per place" },
-    { value: PER_TYPE_VALUE, label: "Tokens per type" },
+    ...(colorsEnabled
+      ? [{ value: PER_TYPE_VALUE, label: "Tokens per type" }]
+      : []),
     { value: PER_TRANSITION_VALUE, label: "Transition firings" },
     ...metrics.map((m) => ({ value: m.id, label: m.name })),
   ];
+  const selectedValue =
+    colorsEnabled || timelineView.kind !== "per-type"
+      ? viewToSelectValue(timelineView)
+      : PER_PLACE_VALUE;
 
   return (
     <>
@@ -238,7 +252,7 @@ const TimelineViewPicker: React.FC = () => {
       <div className={metricPickerWrapperStyle}>
         <Select
           size="xs"
-          value={viewToSelectValue(timelineView)}
+          value={selectedValue}
           options={options}
           onValueChange={(value) => setTimelineView(selectValueToView(value))}
         />
@@ -351,8 +365,10 @@ function useStreamingData(): {
 
   const { getFramesInRange, totalFrames } = use(SimulationContext);
   const {
+    extensions,
     petriNetDefinition: { places, types, transitions, metrics = [] },
   } = use(SDCPNContext);
+  const colorsEnabled = extensions.colors;
   const { timelineView } = use(EditorContext);
 
   const selectedMetric = useMemo(
@@ -384,6 +400,8 @@ function useStreamingData(): {
     series: PlaceMeta[];
     extract: SeriesExtractor;
   } = useMemo(() => {
+    const availableTypes = colorsEnabled ? types : [];
+
     if (timelineView.kind === "metric") {
       const metric = selectedMetric;
       const fn = compiledMetric.fn;
@@ -397,7 +415,7 @@ function useStreamingData(): {
         ];
         const extract: SeriesExtractor = (frame) => {
           try {
-            return fn(buildMetricState(frame, places, types));
+            return fn(buildMetricState(frame, places, availableTypes));
           } catch {
             // Runtime error (e.g. NaN) — render as a gap.
             return Number.NaN;
@@ -537,7 +555,7 @@ function useStreamingData(): {
     if (timelineView.kind === "per-type") {
       // Group places by color type; places with no colorId become "Untyped".
       const groups: { series: PlaceMeta; placeIds: string[] }[] = [];
-      for (const type of types) {
+      for (const type of availableTypes) {
         const placeIds = places
           .filter((p) => p.colorId === type.id)
           .map((p) => p.id);
@@ -554,7 +572,7 @@ function useStreamingData(): {
         });
       }
       const untypedIds = places
-        .filter((p) => p.colorId === null)
+        .filter((p) => !colorsEnabled || p.colorId === null)
         .map((p) => p.id);
       if (untypedIds.length > 0) {
         groups.push({
@@ -583,7 +601,9 @@ function useStreamingData(): {
 
     // per-place: one series per place
     const series = places.map((place, index) => {
-      const tokenType = types.find((type) => type.id === place.colorId);
+      const tokenType = colorsEnabled
+        ? types.find((type) => type.id === place.colorId)
+        : undefined;
       return {
         placeId: place.id,
         placeName: place.name,
@@ -602,6 +622,7 @@ function useStreamingData(): {
     timelineView,
     places,
     types,
+    colorsEnabled,
     transitions,
     selectedMetric,
     compiledMetric.fn,

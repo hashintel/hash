@@ -1,8 +1,12 @@
+import {
+  DEFAULT_PETRINAUT_EXTENSIONS,
+  sanitizeSDCPNForExtensions,
+} from "../../extensions";
 import { createInMemorySimulationFrameStore } from "./frame-store";
 import { createWorkerTransport } from "./transport";
 
-import type { ReadableStore } from "../../handle";
 import type { EventStream } from "../../instance";
+import type { ReadableStore } from "../../store";
 import type {
   CreateSimulationConfig,
   Simulation,
@@ -80,10 +84,12 @@ export function createSimulation(
     latest: null,
   });
   const events = createEventStream<SimulationEvent>();
+  const extensions = config.extensions ?? DEFAULT_PETRINAUT_EXTENSIONS;
+  const simulationSdcpn = sanitizeSDCPNForExtensions(config.sdcpn, extensions);
   let disposed = false;
 
   return new Promise<Simulation>((resolve, reject) => {
-    const frameStore = createInMemorySimulationFrameStore(config.sdcpn);
+    const frameStore = createInMemorySimulationFrameStore(simulationSdcpn);
     let settled = false;
     let handle: Simulation;
 
@@ -226,7 +232,8 @@ export function createSimulation(
 
     transport.send({
       type: "init",
-      sdcpn: config.sdcpn,
+      sdcpn: simulationSdcpn,
+      extensions,
       initialMarking: config.initialMarking,
       parameterValues: config.parameterValues,
       seed: config.seed,

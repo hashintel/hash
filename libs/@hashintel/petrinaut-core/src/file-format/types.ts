@@ -46,6 +46,13 @@ const transitionSchema = z.object({
   name: z.string(),
   inputArcs: z.array(inputArcSchema),
   outputArcs: z.array(outputArcSchema),
+  lambdaType: currentTransitionSchema.shape.lambdaType
+    .optional()
+    .default("predicate"),
+  lambdaCode: currentTransitionSchema.shape.lambdaCode.optional().default(""),
+  transitionKernelCode: currentTransitionSchema.shape.transitionKernelCode
+    .optional()
+    .default(""),
   x: z.number().optional(),
   y: z.number().optional(),
 });

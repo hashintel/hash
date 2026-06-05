@@ -25,7 +25,7 @@ While a response is streaming you can:
 
 The assistant has tools for inspecting and modifying the current net. You'll see one card per tool call inline in the conversation:
 
-- **Read tools** (neutral, expandable) –– for checking the current net state at any point, for compilation errors, and for reading the user guide.
+- **Read tools** (neutral, expandable) –– for checking the current net state and active Petrinaut extensions at any point, for compilation errors, and for reading the user guide.
 - **Mutation tools** (green for additions/updates, red for deletions) -- "Added place X", "Updated transition Y", "Removed metric Z", and so on. Multiple successive mutations group under a collapsible "N changes" header.
 - **`setNetTitle`** -- renames the net.
 - **`applyAutoLayout`** -- rearranges places and transitions on the canvas. If the assistant calls this on a net you've already arranged, it asks you first via an inline widget with **Yes, auto-layout** / **No, keep current layout** buttons. Otherwise it'll run it without asking.

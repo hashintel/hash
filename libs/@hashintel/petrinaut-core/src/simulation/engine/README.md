@@ -34,6 +34,14 @@ computeNextFrame(simulation)
        └─► Check deadlock → "deadlock" completion
 ```
 
+`buildSimulation` first works from a sanitized SDCPN snapshot based on the
+active extension settings. Transition lambdas are compiled only when
+stochasticity is enabled or when colours are enabled and the transition has a
+standard or read input arc from a coloured place. Otherwise the engine installs
+the always-enabled default. Transition kernels are compiled only for
+transitions with coloured output places; uncoloured outputs are generated from
+arc weights.
+
 ## Internal EngineFrame
 
 A snapshot of simulation state. The run controller owns frame number and

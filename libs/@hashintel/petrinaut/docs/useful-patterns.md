@@ -18,6 +18,8 @@ This is the simplest way to model duration and works well for many processes (se
 
 For other distributions (e.g. log-normal, deterministic), place dynamics and durations sampled in the preceding transition kernel can be used. The general approach:
 
+This pattern requires stochasticity to be enabled. If stochasticity is disabled, use fixed numeric duration values instead of `Distribution`.
+
 1. **Add a time dimension** to the token type (e.g. `remaining_time`).
 2. **Sample the duration** in a transition kernel using a `Distribution`:
 

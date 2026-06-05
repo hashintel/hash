@@ -10,6 +10,8 @@ import {
 } from "@testing-library/react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
+import { DEFAULT_PETRINAUT_EXTENSIONS } from "@hashintel/petrinaut-core";
+
 import { AiAssistantContents } from "./ai-assistant-contents";
 
 import type { PetrinautAiMessage } from "./types";
@@ -510,6 +512,7 @@ describe("AiAssistantContents", () => {
             input: {},
             output: {
               title: "HyProGen 121 - Stochastic Petri Net",
+              extensions: DEFAULT_PETRINAUT_EXTENSIONS,
               definition: {
                 places: [],
                 transitions: [],

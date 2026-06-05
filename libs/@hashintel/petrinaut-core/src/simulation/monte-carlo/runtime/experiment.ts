@@ -6,8 +6,9 @@ import {
 import { createMonteCarloSimulator } from "../monte-carlo-simulator";
 
 import type { AbortSignalLike } from "../../../environment";
-import type { ReadableStore } from "../../../handle";
+import type { PetrinautExtensionSettings } from "../../../extensions";
 import type { EventStream } from "../../../instance";
+import type { ReadableStore } from "../../../store";
 import type { SDCPN } from "../../../types/sdcpn";
 import type {
   InitialMarking,
@@ -46,6 +47,7 @@ export type MonteCarloExperimentEvent =
 
 type CreateMonteCarloExperimentBaseConfig = {
   sdcpn: SDCPN;
+  extensions?: PetrinautExtensionSettings;
   initialMarking: InitialMarking;
   parameterValues: Record<string, string>;
   seed: number;
@@ -299,6 +301,7 @@ function createLocalMonteCarloExperiment(
     const lastMetricFrameCounts = new Map<string, number>();
     const simulator = createMonteCarloSimulator({
       sdcpn: config.sdcpn,
+      extensions: config.extensions,
       initialMarking: config.initialMarking,
       parameterValues: config.parameterValues,
       seed: config.seed,
@@ -619,6 +622,7 @@ export function createMonteCarloExperiment(
       transport.send({
         type: "init",
         sdcpn: config.sdcpn,
+        extensions: config.extensions,
         initialMarking: config.initialMarking,
         parameterValues: config.parameterValues,
         seed: config.seed,

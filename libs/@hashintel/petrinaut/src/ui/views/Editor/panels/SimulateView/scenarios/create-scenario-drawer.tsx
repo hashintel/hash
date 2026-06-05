@@ -77,18 +77,20 @@ const CreateScenarioFooter = ({
 // -- Standalone form body (used by drawer + stories) --------------------------
 
 const CreateScenarioBody = ({ form }: { form: ScenarioFormInstance }) => {
-  const { petriNetDefinition } = use(SDCPNContext);
+  const { extensions, petriNetDefinition } = use(SDCPNContext);
 
   const typesById = new Map<string, Color>();
-  for (const type of petriNetDefinition.types) {
-    typesById.set(type.id, type);
+  if (extensions.colors) {
+    for (const type of petriNetDefinition.types) {
+      typesById.set(type.id, type);
+    }
   }
 
   return (
     <Drawer.Body>
       <ScenarioFormBody
         form={form}
-        parameters={petriNetDefinition.parameters}
+        parameters={extensions.parameters ? petriNetDefinition.parameters : []}
         places={petriNetDefinition.places}
         typesById={typesById}
         idPrefix="create-"

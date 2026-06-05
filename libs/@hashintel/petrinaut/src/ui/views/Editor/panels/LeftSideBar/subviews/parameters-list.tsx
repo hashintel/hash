@@ -30,14 +30,25 @@ const parameterVarNameStyle = css({
  */
 export const ParametersHeaderAction: React.FC = () => {
   const {
+    extensions,
     petriNetDefinition: { parameters },
   } = use(SDCPNContext);
   const { addParameter } = usePetrinautMutations();
   const { selectItem } = use(EditorContext);
 
   const isReadOnly = useIsReadOnly();
+  const isDisabled = isReadOnly || !extensions.parameters;
+  let tooltip = "Add parameter";
+  if (isReadOnly) {
+    tooltip = UI_MESSAGES.READ_ONLY_MODE;
+  } else if (!extensions.parameters) {
+    tooltip = UI_MESSAGES.EXTENSION_UNAVAILABLE;
+  }
 
   const handleAddParameter = () => {
+    if (!extensions.parameters) {
+      return;
+    }
     const name = `param${parameters.length + 1}`;
     const id = uuidv4();
     addParameter({
@@ -55,8 +66,8 @@ export const ParametersHeaderAction: React.FC = () => {
       aria-label="Add parameter"
       size="xs"
       variant="ghost"
-      disabled={isReadOnly}
-      tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : "Add parameter"}
+      disabled={isDisabled}
+      tooltip={tooltip}
       iconName="plus"
       onClick={handleAddParameter}
     />
@@ -104,8 +115,12 @@ export const parametersListSubView: SubView = createFilterableListSubView({
   },
   useItems: () => {
     const {
+      extensions,
       petriNetDefinition: { parameters },
     } = use(SDCPNContext);
+    if (!extensions.parameters) {
+      return [];
+    }
     return parameters.map((param) => ({
       ...param,
       icon: ParameterIcon,

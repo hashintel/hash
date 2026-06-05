@@ -138,7 +138,11 @@ export const TransitionNode: React.FC<NodeProps<TransitionNodeType>> = ({
         : "none";
 
   const subtitle =
-    data.lambdaType === "stochastic" ? "Stochastic" : "Predicate";
+    data.lambdaType === "none"
+      ? "Transition"
+      : data.lambdaType === "stochastic"
+        ? "Stochastic"
+        : "Predicate";
 
   return (
     <NodeCard

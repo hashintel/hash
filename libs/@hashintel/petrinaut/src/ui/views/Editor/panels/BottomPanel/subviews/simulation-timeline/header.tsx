@@ -1,4 +1,4 @@
-import { use, useState } from "react";
+import { use, useEffect, useState } from "react";
 
 import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
@@ -88,11 +88,19 @@ const TimelineViewPicker: React.FC = () => {
   const { timelineView, setTimelineView, setGlobalMode, setSimulateViewMode } =
     use(EditorContext);
   const {
+    extensions,
     petriNetDefinition: { metrics = [] },
   } = use(SDCPNContext);
+  const colorsEnabled = extensions.colors;
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isViewOpen, setIsViewOpen] = useState(false);
+
+  useEffect(() => {
+    if (!colorsEnabled && timelineView.kind === "per-type") {
+      setTimelineView({ kind: "per-place" });
+    }
+  }, [colorsEnabled, setTimelineView, timelineView.kind]);
 
   const selectedMetric =
     timelineView.kind === "metric"
@@ -101,10 +109,16 @@ const TimelineViewPicker: React.FC = () => {
 
   const options = [
     { value: PER_PLACE_VALUE, label: "Tokens per place" },
-    { value: PER_TYPE_VALUE, label: "Tokens per type" },
+    ...(colorsEnabled
+      ? [{ value: PER_TYPE_VALUE, label: "Tokens per type" }]
+      : []),
     { value: PER_TRANSITION_VALUE, label: "Transition firings" },
     ...metrics.map((m) => ({ value: m.id, label: m.name })),
   ];
+  const selectedValue =
+    colorsEnabled || timelineView.kind !== "per-type"
+      ? viewToSelectValue(timelineView)
+      : PER_PLACE_VALUE;
 
   return (
     <>
@@ -112,7 +126,7 @@ const TimelineViewPicker: React.FC = () => {
       <div className={metricPickerWrapperStyle}>
         <Select
           size="xs"
-          value={viewToSelectValue(timelineView)}
+          value={selectedValue}
           options={options}
           onValueChange={(value) => setTimelineView(selectValueToView(value))}
         />

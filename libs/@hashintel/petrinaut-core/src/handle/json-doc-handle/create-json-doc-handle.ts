@@ -5,94 +5,26 @@ import {
   produceWithPatches,
 } from "immer";
 
-import type { SDCPN } from "./types/sdcpn";
+import {
+  resolvePetrinautHandleCapabilities,
+  sanitizeSDCPNForExtensions,
+  stripDisabledExtensionData,
+  type PetrinautHandleCapabilities,
+} from "../../extensions";
+import { createReadableStore } from "../../store";
+
+import type { SDCPN } from "../../types/sdcpn";
+import type {
+  DocChangeEvent,
+  DocHandleState,
+  DocumentId,
+  HistoryEntry,
+  PetrinautDocHandle,
+  PetrinautHistory,
+  PetrinautPatch,
+} from "../types";
 
 enablePatches();
-
-export type DocumentId = string;
-
-export type DocHandleState = "loading" | "ready" | "deleted" | "unavailable";
-
-export type PetrinautPatch = {
-  op: "add" | "remove" | "replace";
-  path: (string | number)[];
-  value?: unknown;
-};
-
-export type DocChangeEvent = {
-  next: SDCPN;
-  patches?: PetrinautPatch[];
-  source?: "local" | "remote";
-};
-
-export type ReadableStore<T> = {
-  get(): T;
-  subscribe(listener: (value: T) => void): () => void;
-};
-
-export type HistoryEntry = {
-  timestamp: string;
-};
-
-export interface PetrinautHistory {
-  /** Apply the most recent inverse patches. Returns true if anything was undone. */
-  undo(): boolean;
-  /** Re-apply the most recently undone patches. Returns true if anything was redone. */
-  redo(): boolean;
-  /** Jump to an arbitrary point in history. Returns true if the index changed. */
-  goToIndex(index: number): boolean;
-  /** Drop the entire history. */
-  clear(): void;
-
-  readonly canUndo: ReadableStore<boolean>;
-  readonly canRedo: ReadableStore<boolean>;
-
-  /**
-   * Ordered timestamps of the history checkpoints. Index 0 is the initial
-   * state; index N is the state after the Nth mutation.
-   */
-  readonly entries: ReadableStore<readonly HistoryEntry[]>;
-
-  /** Position of the current state within {@link entries}. */
-  readonly currentIndex: ReadableStore<number>;
-}
-
-export interface PetrinautDocHandle {
-  readonly id: DocumentId;
-  readonly state: ReadableStore<DocHandleState>;
-  whenReady(): Promise<void>;
-  doc(): SDCPN | undefined;
-  change(fn: (draft: SDCPN) => void): void;
-  subscribe(listener: (event: DocChangeEvent) => void): () => void;
-  /**
-   * Optional. Present on handles that track local history (Immer-backed,
-   * Automerge-backed, …). Read-only mirror handles omit it.
-   */
-  readonly history?: PetrinautHistory;
-}
-
-function createReadableStore<T>(initial: T): ReadableStore<T> & {
-  set(next: T): void;
-} {
-  let current = initial;
-  const listeners = new Set<(value: T) => void>();
-  return {
-    get: () => current,
-    subscribe(listener) {
-      listeners.add(listener);
-      return () => listeners.delete(listener);
-    },
-    set(next) {
-      if (Object.is(next, current)) {
-        return;
-      }
-      current = next;
-      for (const listener of listeners) {
-        listener(current);
-      }
-    },
-  };
-}
 
 function fromImmerPatch(patch: ImmerPatch): PetrinautPatch {
   return {
@@ -119,6 +51,7 @@ const DEFAULT_HISTORY_LIMIT = 50;
 export type CreateJsonDocHandleOptions = {
   id?: DocumentId;
   initial: SDCPN;
+  capabilities?: PetrinautHandleCapabilities;
   /**
    * Maximum number of history checkpoints retained. Older entries are dropped
    * once the limit is exceeded. Pass `0` to disable history entirely.
@@ -127,15 +60,31 @@ export type CreateJsonDocHandleOptions = {
   historyLimit?: number;
 };
 
+/**
+ * Create an in-memory JSON-backed Petrinaut document handle.
+ *
+ * Petrinaut is built around the `PetrinautDocHandle` contract so hosts can
+ * provide different document backends, such as local JSON state, collaborative
+ * documents, or read-only mirrors. This implementation is the small default
+ * handle used by tests, stories, examples, and simple local editing flows. It
+ * stores the current SDCPN snapshot in memory, publishes local change events
+ * with Immer patches, exposes optional undo/redo history, and honors handle
+ * capabilities such as `readonly`.
+ */
 export function createJsonDocHandle(
   opts: CreateJsonDocHandleOptions,
 ): PetrinautDocHandle {
   const id = opts.id ?? generateId();
   const historyLimit = opts.historyLimit ?? DEFAULT_HISTORY_LIMIT;
+  const capabilities = opts.capabilities;
+  const resolvedCapabilities = resolvePetrinautHandleCapabilities(capabilities);
   const stateStore = createReadableStore<DocHandleState>("ready");
   const subscribers = new Set<(event: DocChangeEvent) => void>();
 
-  let current: SDCPN = opts.initial;
+  let current: SDCPN = sanitizeSDCPNForExtensions(
+    opts.initial,
+    resolvedCapabilities.extensions,
+  );
 
   const stack: HistoryStackEntry[] = [];
   /**
@@ -170,6 +119,18 @@ export function createJsonDocHandle(
     }
   }
 
+  function applyPatchesAndSanitize(patchesToApply: ImmerPatch[]): ImmerPatch[] {
+    const [next, patches] = produceWithPatches(current, () => {
+      const patched = applyPatches(current, patchesToApply) as SDCPN;
+      return sanitizeSDCPNForExtensions(
+        patched,
+        resolvedCapabilities.extensions,
+      );
+    });
+    current = next as SDCPN;
+    return patches;
+  }
+
   function recordChange(forward: ImmerPatch[], inverse: ImmerPatch[]): void {
     if (historyLimit <= 0) {
       return;
@@ -200,12 +161,12 @@ export function createJsonDocHandle(
         return false;
       }
       const entry = stack[cursor]!;
-      current = applyPatches(current, entry.inverse) as SDCPN;
+      const patches = applyPatchesAndSanitize(entry.inverse);
       cursor -= 1;
       refreshHistoryStores();
       emit({
         next: current,
-        patches: entry.inverse.map(fromImmerPatch),
+        patches: patches.map(fromImmerPatch),
         source: "local",
       });
       return true;
@@ -216,11 +177,11 @@ export function createJsonDocHandle(
       }
       cursor += 1;
       const entry = stack[cursor]!;
-      current = applyPatches(current, entry.forward) as SDCPN;
+      const patches = applyPatchesAndSanitize(entry.forward);
       refreshHistoryStores();
       emit({
         next: current,
-        patches: entry.forward.map(fromImmerPatch),
+        patches: patches.map(fromImmerPatch),
         source: "local",
       });
       return true;
@@ -246,12 +207,12 @@ export function createJsonDocHandle(
           collected.push(...stack[i]!.forward);
         }
       }
-      current = applyPatches(current, collected) as SDCPN;
+      const patches = applyPatchesAndSanitize(collected);
       cursor = targetCursor;
       refreshHistoryStores();
       emit({
         next: current,
-        patches: collected.map(fromImmerPatch),
+        patches: patches.map(fromImmerPatch),
         source: "local",
       });
       return true;
@@ -265,14 +226,22 @@ export function createJsonDocHandle(
 
   return {
     id,
+    capabilities,
     state: stateStore,
     whenReady: () => Promise.resolve(),
     doc: () => current,
     change(fn) {
+      if (resolvedCapabilities.readonly) {
+        return;
+      }
       const [next, patches, inversePatches] = produceWithPatches(
         current,
         (draft) => {
           fn(draft as SDCPN);
+          stripDisabledExtensionData(
+            draft as SDCPN,
+            resolvedCapabilities.extensions,
+          );
         },
       );
       if (patches.length === 0) {

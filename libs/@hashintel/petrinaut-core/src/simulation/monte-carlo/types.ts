@@ -1,3 +1,4 @@
+import type { PetrinautExtensionSettings } from "../../extensions";
 import type { SDCPN } from "../../types/sdcpn";
 import type { InitialMarking } from "../api";
 import type { SimulationCompletionReason } from "../engine/compute-next-frame";
@@ -14,6 +15,7 @@ export type MonteCarloRunConfig = {
 
 export type MonteCarloSimulatorConfig = {
   sdcpn: SDCPN;
+  extensions?: PetrinautExtensionSettings;
   runCount: number;
   initialMarking: InitialMarking;
   parameterValues?: Record<string, string>;

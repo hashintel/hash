@@ -43,5 +43,8 @@ export type {
   EventStream,
   Petrinaut,
   PetrinautDocHandle,
+  PetrinautExtension,
+  PetrinautExtensionSettings,
+  PetrinautHandleCapabilities,
   ReadableStore,
 } from "@hashintel/petrinaut-core";

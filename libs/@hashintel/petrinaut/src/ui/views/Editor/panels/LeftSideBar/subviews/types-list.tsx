@@ -65,19 +65,28 @@ function getNextTypeNumber(existingNames: string[]): number {
 export const TypesSectionHeaderAction: React.FC = () => {
   const {
     petriNetDefinition: { types },
+    extensions,
   } = use(SDCPNContext);
   const { addType } = usePetrinautMutations();
   const { selectItem } = use(EditorContext);
 
   const isReadOnly = useIsReadOnly();
 
+  const isDisabled = isReadOnly || !extensions.colors;
+  let tooltip = "Add token type";
+  if (isReadOnly) {
+    tooltip = UI_MESSAGES.READ_ONLY_MODE;
+  } else if (!extensions.colors) {
+    tooltip = UI_MESSAGES.EXTENSION_UNAVAILABLE;
+  }
+
   return (
     <Button
       aria-label="Add token type"
       size="xs"
       variant="ghost"
-      disabled={isReadOnly}
-      tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : "Add token type"}
+      disabled={isDisabled}
+      tooltip={tooltip}
       iconName="plus"
       onClick={() => {
         const existingColors = types.map((type) => type.displayColor);
@@ -108,7 +117,9 @@ export const TypesSectionHeaderAction: React.FC = () => {
 
 const TypeRowMenu: React.FC<{ item: { id: string } }> = ({ item }) => {
   const { removeType } = usePetrinautMutations();
+  const { extensions } = use(SDCPNContext);
   const isReadOnly = useIsReadOnly();
+  const isDisabled = isReadOnly || !extensions.colors;
 
   return (
     <RowMenu
@@ -118,7 +129,7 @@ const TypeRowMenu: React.FC<{ item: { id: string } }> = ({ item }) => {
           label: "Delete",
           icon: <Icon name="trash" size="sm" />,
           destructive: true,
-          disabled: isReadOnly,
+          disabled: isDisabled,
           onClick: () => removeType({ typeId: item.id }),
         },
       ]}
