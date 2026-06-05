@@ -35,6 +35,7 @@ export const baseInputRecipe = sva({
       width: "[fit-content]",
       minWidth: "[min-content]",
       position: "relative",
+      background: "[var(--base-input-background-color)]",
       border: "var(--form-border-width) solid transparent",
       borderRadius: "var(--base-input-border-radius)",
       marginX: "[calc(var(--base-input-connector-width) / 2 - 1px)]",
@@ -266,7 +267,6 @@ export const baseInputRecipe = sva({
         root: {
           borderColor: "var(--base-input-border-color)",
           color: "fg.body",
-          background: "[var(--base-input-background-color)]",
           "&:not(.layer-style_disabled):hover": {
             borderColor: "var(--base-input-border-hover-color)",
             "--base-input-background-color": "var(--colors-neutral-s10)",
@@ -307,6 +307,8 @@ export const baseInputRecipe = sva({
             borderRadius: "var(--base-input-border-radius)",
             border: "1px solid transparent",
             pointerEvents: "none",
+            background: "[var(--base-input-background-color)]",
+            transition: "[background 0.15s ease, border 0.15s ease]",
           },
           "&:not(.layer-style_disabled):hover": {
             _before: {
