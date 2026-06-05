@@ -37,10 +37,10 @@ export type BaseInputProps = {
   prefix?: PrefixOrSuffix;
   /** Optional element or button to include at the end of an input */
   suffix?: PrefixOrSuffix;
-  /** Show the input as connected to another input. To connect 2 inputs, both connectLeft and connectRight should be enabled on both connected inputs. subtle inputs + readonly inputs will not be connected */
-  connectLeft?: boolean;
-  /** Show the input as connected to another input. To connect 2 inputs, both connectLeft and connectRight should be enabled on both connected inputs. subtle inputs + readonly inputs will not be connected */
-  connectRight?: boolean;
+  /** Show the input as connected to another input. To connect 2 inputs, both connectToLeftInput and connectToRightInput should be enabled on both connected inputs. subtle inputs + readonly inputs will not be connected */
+  connectToLeftInput?: boolean;
+  /** Show the input as connected to another input. To connect 2 inputs, both connectToLeftInput and connectToRightInput should be enabled on both connected inputs. subtle inputs + readonly inputs will not be connected */
+  connectToRightInput?: boolean;
   /** A customized view that is shown when the input is unfocused. Can be used to present the value with extra formatting */
   styledValue?: React.ReactNode;
   /** Set to allow the input to be cleared. As the component is controlled you must clear the value manually with onClear. */
@@ -161,8 +161,8 @@ export const BaseInput = ({
   width = "fullWidth",
   prefix,
   suffix,
-  connectLeft,
-  connectRight,
+  connectToLeftInput,
+  connectToRightInput,
   styledValue,
   clearable,
   showEditIcon,
@@ -296,7 +296,7 @@ export const BaseInput = ({
       }}
     >
       {prefix != null && renderAdornment("prefix", prefix, size, classes)}
-      {connectLeft && variant === "default" && (
+      {connectToLeftInput && variant === "default" && (
         <InputConnector
           className={cx(
             classes.connector,
@@ -355,7 +355,7 @@ export const BaseInput = ({
       )}
 
       {suffix != null && renderAdornment("suffix", suffix, size, classes)}
-      {connectRight && variant === "default" && (
+      {connectToRightInput && variant === "default" && (
         <InputConnector
           className={cx(
             classes.connector,

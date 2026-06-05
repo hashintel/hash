@@ -105,14 +105,14 @@ const ConnectedPair = ({
       value="Left"
       onChange={noop}
       size={size}
-      connectRight
+      connectToRightInput
       {...left}
     />
     <TextInput
       value="Right"
       onChange={noop}
       size={size}
-      connectLeft
+      connectToLeftInput
       {...right}
     />
   </div>
