@@ -5,7 +5,7 @@ import { css } from "@hashintel/ds-helpers/css";
 import { formInputSizes } from "../../util/form-shared";
 import { TextInput } from "./text-input";
 
-import type { FormInputWidth } from "../../util/form-shared";
+import type { FormInputSize, FormInputWidth } from "../../util/form-shared";
 import type { Story, StoryDefault } from "@ladle/react";
 
 type TextInputProps = React.ComponentProps<typeof TextInput>;
@@ -85,6 +85,59 @@ const StyledNumberInput = ({
     />
   );
 };
+
+type ConnectedSideProps = Pick<
+  TextInputProps,
+  "invalid" | "disabled" | "readonly" | "variant"
+>;
+
+const ConnectedPair = ({
+  left,
+  right,
+  size,
+}: {
+  left: ConnectedSideProps;
+  right: ConnectedSideProps;
+  size: FormInputSize;
+}) => (
+  <div style={{ display: "flex", alignItems: "center" }}>
+    <TextInput
+      value="Left"
+      onChange={noop}
+      size={size}
+      connectLeft
+      invalid={left.invalid}
+      disabled={left.disabled}
+      readonly={left.readonly}
+      variant={left.variant}
+    />
+    <TextInput
+      value="Right"
+      onChange={noop}
+      size={size}
+      connectRight
+      invalid={right.invalid}
+      disabled={right.disabled}
+      readonly={right.readonly}
+      variant={right.variant}
+    />
+  </div>
+);
+
+const connectedSideStates: {
+  key: string;
+  label: string;
+  props: ConnectedSideProps;
+}[] = [
+  { key: "default", label: "Default", props: {} },
+  { key: "invalid", label: "Invalid", props: { invalid: true } },
+  { key: "disabled", label: "Disabled", props: { disabled: true } },
+  {
+    key: "invalid-disabled",
+    label: "Invalid + Disabled",
+    props: { invalid: true, disabled: true },
+  },
+];
 
 const sectionStyle = css({
   display: "flex",
@@ -590,5 +643,51 @@ export const PrefixAndSuffix: Story<TextInputProps> = (args) => (
         ),
       ),
     )}
+  </div>
+);
+
+export const Connected: Story = () => (
+  <div className={sectionStyle}>
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: `auto repeat(${connectedSideStates.length}, auto)`,
+        columnGap: 24,
+        rowGap: 12,
+        alignItems: "center",
+        justifyContent: "start",
+      }}
+    >
+      <span />
+      {connectedSideStates.map((col) => (
+        <span key={`col-${col.key}`} style={subheadingStyle}>
+          Right: {col.label}
+        </span>
+      ))}
+      {connectedSideStates.flatMap((row) => [
+        <span key={`row-${row.key}`} style={subheadingStyle}>
+          Left: {row.label}
+        </span>,
+        ...connectedSideStates.map((col) => (
+          <ConnectedPair
+            key={`${row.key}-${col.key}`}
+            size="md"
+            left={row.props}
+            right={col.props}
+          />
+        )),
+      ])}
+    </div>
+  </div>
+);
+
+export const ConnectedSize: Story = () => (
+  <div className={sectionStyle}>
+    {formInputSizes.map((size) => (
+      <div key={size} className={groupStyle}>
+        <h3 style={headingStyle}>{size}</h3>
+        <ConnectedPair size={size} left={{}} right={{}} />
+      </div>
+    ))}
   </div>
 );
