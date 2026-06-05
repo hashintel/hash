@@ -238,12 +238,14 @@ export const baseInputRecipe = sva({
       color: "var(--base-input-border-color)",
       strokeWidth: "1px",
       fill: "[var(--base-input-background-color)]",
+      transition: "[fill 0.15s ease, color 0.15s ease]",
     },
     connectRight: {
       left: "[100%]",
     },
     connectLeft: {
       right: "[100%]",
+      maskImage: "[linear-gradient(to right, transparent, black)]",
     },
     connectAdornment: {
       fill: "[var(--colors-neutral-s20)]",
