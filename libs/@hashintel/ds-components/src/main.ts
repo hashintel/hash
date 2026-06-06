@@ -9,6 +9,8 @@ export {
   LoadingSpinner,
   type LoadingSpinnerVariant,
 } from "./components/Loading/loading-spinner";
+export { EllipsisMenu } from "./components/Menu/ellipsis-menu";
+export { Menu } from "./components/Menu/menu";
 export { NumberInput } from "./components/NumberInput/number-input";
 export {
   RadioGroup,
