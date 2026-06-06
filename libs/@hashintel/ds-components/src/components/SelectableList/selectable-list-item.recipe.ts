@@ -53,61 +53,56 @@ export const styles = sva({
         item: {
           textStyle: "xxs",
           gap: "1",
-          paddingX: "1",
-          paddingY: "0",
-          minHeight: "[20px]",
+          paddingX: "1.5",
+          paddingY: "0.5",
           borderRadius: "sm",
         },
-        description: { fontSize: "[9px]", marginTop: "0" },
+        description: { fontSize: "[9px]", marginTop: "[-3px]" },
         indicator: { width: "[10px]", height: "[10px]" },
       },
       xs: {
         item: {
           textStyle: "xs",
           gap: "1.5",
-          paddingX: "1.5",
-          paddingY: "0",
-          minHeight: "[24px]",
+          paddingX: "2",
+          paddingY: "[3px]",
           borderRadius: "md",
         },
-        description: { fontSize: "[10px]", marginTop: "0" },
+        description: { textStyle: "xxs", marginTop: "-0.5" },
         indicator: { width: "[12px]", height: "[12px]" },
       },
       sm: {
         item: {
           textStyle: "sm",
-          gap: "2",
-          paddingX: "1.5",
-          paddingY: "0",
-          minHeight: "[26px]",
+          gap: "1.5",
+          paddingX: "2",
+          paddingY: "[3px]",
           borderRadius: "md",
         },
-        description: { fontSize: "[11px]", marginTop: "0.5" },
+        description: { textStyle: "xs", marginTop: "[-1px]" },
         indicator: { width: "[14px]", height: "[14px]" },
       },
       md: {
         item: {
           textStyle: "base",
           gap: "2",
-          paddingX: "2",
-          paddingY: "0",
-          minHeight: "[28px]",
+          paddingX: "2.5",
+          paddingY: "[5px]",
           borderRadius: "lg",
         },
-        description: { fontSize: "xs", marginTop: "0.5" },
+        description: { textStyle: "sm", marginTop: "-0.5" },
         indicator: { width: "[16px]", height: "[16px]" },
       },
       lg: {
         item: {
           textStyle: "base",
-          gap: "2.5",
+          gap: "2",
           paddingX: "2.5",
-          paddingY: "0",
-          minHeight: "[36px]",
+          paddingY: "[5px]",
           borderRadius: "lg",
         },
-        description: { fontSize: "sm", marginTop: "1" },
-        indicator: { width: "[20px]", height: "[20px]" },
+        description: { textStyle: "sm", marginTop: "-0.5" },
+        indicator: { width: "[16px]", height: "[16px]" },
       },
     },
     tone: {
@@ -191,7 +186,7 @@ export const indentUnitPx: Record<FormInputSize, number> = {
   xs: 10,
   sm: 12,
   md: 14,
-  lg: 16,
+  lg: 14,
 };
 
 export const checkIconSizeMap: Record<FormInputSize, FormInputSize> = {
@@ -200,6 +195,14 @@ export const checkIconSizeMap: Record<FormInputSize, FormInputSize> = {
   sm: "xs",
   md: "xs",
   lg: "xs",
+};
+
+export const iconSizeMap: Record<FormInputSize, FormInputSize> = {
+  xxs: "xs",
+  xs: "xs",
+  sm: "sm",
+  md: "md",
+  lg: "md",
 };
 
 export type ItemClasses = ReturnType<typeof styles>;
