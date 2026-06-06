@@ -4,7 +4,7 @@ import { Menu } from "@ark-ui/react/menu";
 import { Portal } from "@ark-ui/react/portal";
 import { useMemo } from "react";
 
-import { css, cx } from "@hashintel/ds-helpers/css";
+import { cx } from "@hashintel/ds-helpers/css";
 
 import { isEmptyString } from "../../util/string";
 import { LoadingSpinner } from "../Loading/loading-spinner";
@@ -169,17 +169,7 @@ export const SelectableList = ({
   return (
     <Menu.Content className={cx(classes.content, className)}>
       {loading ? (
-        <div
-          className={css({
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            width: "full",
-            paddingY: "3",
-            paddingX: "2",
-            color: "fg.subtle",
-          })}
-        >
+        <div className={classes.loadingContainer}>
           <LoadingSpinner size={size} />
         </div>
       ) : isEmpty ? (

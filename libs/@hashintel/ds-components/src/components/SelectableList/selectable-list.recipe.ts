@@ -1,7 +1,7 @@
 import { sva } from "@hashintel/ds-helpers/css";
 
 export const styles = sva({
-  slots: ["content", "group", "groupLabel"],
+  slots: ["content", "group", "groupLabel", "loadingContainer"],
   base: {
     content: {
       display: "flex",
@@ -36,6 +36,13 @@ export const styles = sva({
       userSelect: "none",
       width: "full",
     },
+    loadingContainer: {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      width: "full",
+      color: "fg.subtle",
+    },
   },
   variants: {
     size: {
@@ -50,6 +57,7 @@ export const styles = sva({
           minHeight: "[18px]",
           gap: "1",
         },
+        loadingContainer: { paddingX: "1", paddingY: "1.5" },
       },
       xs: {
         content: { padding: "0.5" },
@@ -62,6 +70,7 @@ export const styles = sva({
           minHeight: "[22px]",
           gap: "1.5",
         },
+        loadingContainer: { paddingX: "1", paddingY: "2" },
       },
       sm: {
         content: { padding: "1" },
@@ -74,6 +83,7 @@ export const styles = sva({
           minHeight: "[26px]",
           gap: "2",
         },
+        loadingContainer: { paddingX: "1.5", paddingY: "2.5" },
       },
       md: {
         content: { padding: "1" },
@@ -86,6 +96,7 @@ export const styles = sva({
           minHeight: "[28px]",
           gap: "2",
         },
+        loadingContainer: { paddingX: "2", paddingY: "3" },
       },
       lg: {
         content: { padding: "1.5" },
@@ -98,6 +109,7 @@ export const styles = sva({
           minHeight: "[36px]",
           gap: "2.5",
         },
+        loadingContainer: { paddingX: "2.5", paddingY: "4" },
       },
     },
   },
