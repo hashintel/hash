@@ -215,7 +215,7 @@ export const SelectableList = ({
       <LoadingSpinner size={size} />
     </div>
   ) : isEmpty ? (
-    emptyState
+    <div className={classes.emptyContainer}>{emptyState}</div>
   ) : (
     items.map((item) => renderEntry(item, ctx))
   );

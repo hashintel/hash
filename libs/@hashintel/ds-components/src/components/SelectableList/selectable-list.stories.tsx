@@ -155,18 +155,7 @@ export const EmptyAndLoading: Story<SelectableListProps> = (args) => (
         <SelectableList
           {...args}
           items={[]}
-          emptyState={
-            <div
-              className={css({
-                padding: "[24px]",
-                textAlign: "center",
-                color: "neutral.s80",
-                fontSize: "[14px]",
-              })}
-            >
-              Nothing to show yet
-            </div>
-          }
+          emptyState={<div>Nothing to show yet</div>}
         />
       </StaticMenu>
     </div>

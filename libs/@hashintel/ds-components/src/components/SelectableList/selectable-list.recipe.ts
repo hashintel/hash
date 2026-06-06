@@ -1,7 +1,13 @@
 import { sva } from "@hashintel/ds-helpers/css";
 
 export const styles = sva({
-  slots: ["content", "group", "groupLabel", "loadingContainer"],
+  slots: [
+    "content",
+    "group",
+    "groupLabel",
+    "loadingContainer",
+    "emptyContainer",
+  ],
   base: {
     content: {
       display: "flex",
@@ -59,6 +65,12 @@ export const styles = sva({
       justifyContent: "center",
       width: "full",
       color: "fg.subtle",
+    },
+    emptyContainer: {
+      textAlign: "center",
+      padding: "3",
+      color: "neutral.s80",
+      textStyle: "sm",
     },
   },
   variants: {
