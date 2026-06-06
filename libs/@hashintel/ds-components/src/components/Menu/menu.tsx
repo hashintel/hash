@@ -3,25 +3,25 @@ import { Portal } from "@ark-ui/react/portal";
 
 import {
   SelectableList,
-  type ItemOrGroup,
   type Item,
+  type ItemOrGroup,
 } from "../SelectableList/selectable-list";
 import { type Position } from "../Tooltip/tooltip";
 
 export const Menu = ({
   items,
   trigger,
-  align = "BottomLeft",
+  position = "bottom-start",
   loading,
 }: {
   items: Array<ItemOrGroup<Item>>;
   trigger: React.ReactNode;
-  align?: Position;
+  position?: Position;
   loading?: boolean;
 }) => {
   return (
-    <ArkMenu.Root>
-      <ArkMenu.Trigger>{trigger}</ArkMenu.Trigger>
+    <ArkMenu.Root positioning={{ placement: position }}>
+      <ArkMenu.Trigger asChild>{trigger}</ArkMenu.Trigger>
       <Portal>
         <ArkMenu.Positioner>
           <SelectableList items={items} loading={loading} />

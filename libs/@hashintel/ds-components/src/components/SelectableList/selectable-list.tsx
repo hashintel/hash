@@ -127,13 +127,21 @@ const renderEntry = (
   return <ItemRow key={entry.id} item={entry} ctx={ctx} />;
 };
 
+/**
+ * Renders the visual body of a selectable list — a `Menu.Content` with
+ * styled items, groups, empty state, and loading state. Must be used
+ * inside an ark-ui `Menu.Root`; the consumer is responsible for setting
+ * the menu's `open` state, `closeOnSelect`, `composite`, and any
+ * `onOpenChange` / `onHighlightChange` callbacks. For an always-open
+ * embedded list pass `open` and `closeOnSelect={false}` to the parent
+ * `Menu.Root`. For a popover-style menu use a `Menu.Trigger` +
+ * `Menu.Positioner` (see the `Menu` component).
+ */
 export const SelectableList = ({
   className,
   items = [],
   selected,
   size = "md",
-  onHighlight,
-  onOpen,
   emptyState,
   loading = false,
 }: {
@@ -141,8 +149,6 @@ export const SelectableList = ({
   items?: Array<ItemOrGroup<Item>>;
   size?: FormInputSize;
   selected?: string[] | Set<string>;
-  onHighlight?: (id: string) => void;
-  onOpen?: (open: boolean) => void;
   emptyState?: React.ReactNode;
   loading?: boolean;
 }) => {
@@ -161,40 +167,26 @@ export const SelectableList = ({
   };
 
   return (
-    <Menu.Root
-      open
-      closeOnSelect={false}
-      composite
-      onOpenChange={(details) => {
-        onOpen?.(details.open);
-      }}
-      onHighlightChange={(details) => {
-        if (details.highlightedValue) {
-          onHighlight?.(details.highlightedValue);
-        }
-      }}
-    >
-      <Menu.Content className={cx(classes.content, className)}>
-        {loading ? (
-          <div
-            className={css({
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              width: "full",
-              paddingY: "3",
-              paddingX: "2",
-              color: "fg.subtle",
-            })}
-          >
-            <LoadingSpinner size={size} />
-          </div>
-        ) : isEmpty ? (
-          emptyState
-        ) : (
-          items.map((item) => renderEntry(item, ctx))
-        )}
-      </Menu.Content>
-    </Menu.Root>
+    <Menu.Content className={cx(classes.content, className)}>
+      {loading ? (
+        <div
+          className={css({
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            width: "full",
+            paddingY: "3",
+            paddingX: "2",
+            color: "fg.subtle",
+          })}
+        >
+          <LoadingSpinner size={size} />
+        </div>
+      ) : isEmpty ? (
+        emptyState
+      ) : (
+        items.map((item) => renderEntry(item, ctx))
+      )}
+    </Menu.Content>
   );
 };

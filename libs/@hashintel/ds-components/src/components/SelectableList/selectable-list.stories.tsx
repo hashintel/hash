@@ -1,3 +1,5 @@
+import { Menu } from "@ark-ui/react/menu";
+
 import { css } from "@hashintel/ds-helpers/css";
 
 import { formInputSizes } from "../../util/form-shared";
@@ -6,6 +8,12 @@ import { type Item, type ItemOrGroup, SelectableList } from "./selectable-list";
 import type { Story, StoryDefault } from "@ladle/react";
 
 type SelectableListProps = React.ComponentProps<typeof SelectableList>;
+
+const StaticMenu = ({ children }: { children: React.ReactNode }) => (
+  <Menu.Root open closeOnSelect={false} composite>
+    {children}
+  </Menu.Root>
+);
 
 const tones = ["neutral", "brand", "error"] as const;
 const selectedStyles = [
@@ -116,12 +124,12 @@ const kitchenSinkItem: Item = {
   onClick: noop,
 };
 
-const defaultSelected = [
+export const defaultSelected = [
   ...selectedStyles.map((style) => `style-${style}-selected`),
   "kitchen-sink",
 ];
 
-const groupedItems: ItemOrGroup<Item>[] = [
+export const groupedItems: ItemOrGroup<Item>[] = [
   simpleItem,
   itemWithDescription,
   itemWithIcon,
@@ -211,15 +219,19 @@ export default {
 } satisfies StoryDefault<SelectableListProps>;
 
 export const Default: Story<SelectableListProps> = (args) => (
-  <SelectableList {...args} items={groupedItems} selected={defaultSelected} />
+  <StaticMenu>
+    <SelectableList {...args} items={groupedItems} selected={defaultSelected} />
+  </StaticMenu>
 );
 
 export const Disabled: Story<SelectableListProps> = (args) => (
-  <SelectableList
-    {...args}
-    items={disabledGroupedItems}
-    selected={disabledSelected}
-  />
+  <StaticMenu>
+    <SelectableList
+      {...args}
+      items={disabledGroupedItems}
+      selected={disabledSelected}
+    />
+  </StaticMenu>
 );
 
 export const Sizes: Story<SelectableListProps> = (args) => (
@@ -245,12 +257,14 @@ export const Sizes: Story<SelectableListProps> = (args) => (
         <span className={css({ fontSize: "[12px]", color: "neutral.s80" })}>
           {size}
         </span>
-        <SelectableList
-          {...args}
-          size={size}
-          items={groupedItems}
-          selected={defaultSelected}
-        />
+        <StaticMenu>
+          <SelectableList
+            {...args}
+            size={size}
+            items={groupedItems}
+            selected={defaultSelected}
+          />
+        </StaticMenu>
       </div>
     ))}
   </div>
@@ -335,7 +349,7 @@ const itemWithoutSubActions: Item = {
   onClick: noop,
 };
 
-const itemsWithSubActions: ItemOrGroup<Item>[] = [
+export const itemsWithSubActions: ItemOrGroup<Item>[] = [
   itemWithSingleSubAction,
   itemWithGroupedSubActions,
   itemWithNestedSubActions,
@@ -343,7 +357,9 @@ const itemsWithSubActions: ItemOrGroup<Item>[] = [
 ];
 
 export const WithSubActions: Story<SelectableListProps> = (args) => (
-  <SelectableList {...args} items={itemsWithSubActions} />
+  <StaticMenu>
+    <SelectableList {...args} items={itemsWithSubActions} />
+  </StaticMenu>
 );
 
 export const EmptyAndLoading: Story<SelectableListProps> = (args) => (
@@ -366,7 +382,9 @@ export const EmptyAndLoading: Story<SelectableListProps> = (args) => (
       <span className={css({ fontSize: "[12px]", color: "neutral.s80" })}>
         items=[] (no emptyState)
       </span>
-      <SelectableList {...args} items={[]} />
+      <StaticMenu>
+        <SelectableList {...args} items={[]} />
+      </StaticMenu>
     </div>
     <div
       className={css({
@@ -379,22 +397,24 @@ export const EmptyAndLoading: Story<SelectableListProps> = (args) => (
       <span className={css({ fontSize: "[12px]", color: "neutral.s80" })}>
         items=[] with emptyState
       </span>
-      <SelectableList
-        {...args}
-        items={[]}
-        emptyState={
-          <div
-            className={css({
-              padding: "[24px]",
-              textAlign: "center",
-              color: "neutral.s80",
-              fontSize: "[14px]",
-            })}
-          >
-            Nothing to show yet
-          </div>
-        }
-      />
+      <StaticMenu>
+        <SelectableList
+          {...args}
+          items={[]}
+          emptyState={
+            <div
+              className={css({
+                padding: "[24px]",
+                textAlign: "center",
+                color: "neutral.s80",
+                fontSize: "[14px]",
+              })}
+            >
+              Nothing to show yet
+            </div>
+          }
+        />
+      </StaticMenu>
     </div>
     <div
       className={css({
@@ -407,7 +427,9 @@ export const EmptyAndLoading: Story<SelectableListProps> = (args) => (
       <span className={css({ fontSize: "[12px]", color: "neutral.s80" })}>
         loading=true
       </span>
-      <SelectableList {...args} items={[]} loading />
+      <StaticMenu>
+        <SelectableList {...args} items={[]} loading />
+      </StaticMenu>
     </div>
   </div>
 );
