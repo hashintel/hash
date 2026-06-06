@@ -58,3 +58,11 @@ export const Nested: Story<MenuProps> = (args) => (
     items={itemsWithSubActions}
   />
 );
+
+export const PlainButtonTrigger: Story<MenuProps> = (args) => (
+  <Menu
+    {...args}
+    trigger={<button type="button">Open menu</button>}
+    items={groupedItems}
+  />
+);
