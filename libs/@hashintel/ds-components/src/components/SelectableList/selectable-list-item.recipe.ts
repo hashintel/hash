@@ -205,4 +205,12 @@ export const iconSizeMap: Record<FormInputSize, FormInputSize> = {
   lg: "md",
 };
 
+export const arrowIconSizeMap: Record<FormInputSize, FormInputSize> = {
+  xxs: "xxs",
+  xs: "xxs",
+  sm: "xs",
+  md: "sm",
+  lg: "sm",
+};
+
 export type ItemClasses = ReturnType<typeof styles>;

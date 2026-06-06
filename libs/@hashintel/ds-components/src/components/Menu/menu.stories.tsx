@@ -2,7 +2,7 @@ import { Button } from "../Button/button";
 import {
   groupedItems,
   itemsWithSubActions,
-} from "../SelectableList/selectable-list.stories";
+} from "../SelectableList/selectable-list.fixtures";
 import { EllipsisMenu as EllipsisMenuComponent } from "./ellipsis-menu";
 import { Menu } from "./menu";
 

@@ -4,6 +4,7 @@ import { Icon } from "../Icon/icon";
 import { LoadingSpinner } from "../Loading/loading-spinner";
 import {
   checkIconSizeMap,
+  arrowIconSizeMap,
   iconSizeMap,
   indentUnitPx,
 } from "./selectable-list-item.recipe";
@@ -86,7 +87,11 @@ export const ItemBody = ({
       </span>
       {item.loading && <LoadingSpinner size={iconSizeMap[size]} />}
       {item.nestedItems && (
-        <Icon name="chevronRight" size={iconSizeMap[size]} aria-hidden="true" />
+        <Icon
+          name="chevronRight"
+          size={arrowIconSizeMap[size]}
+          aria-hidden="true"
+        />
       )}
     </>
   );
