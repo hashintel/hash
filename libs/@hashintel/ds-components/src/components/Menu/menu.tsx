@@ -7,6 +7,7 @@ import {
   type Item,
   type ItemOrGroup,
 } from "../SelectableList/selectable-list";
+import { useLoopSelection } from "../SelectableList/selectable-list-util";
 import { type Position } from "../Tooltip/tooltip";
 
 export const Menu = ({
@@ -20,23 +21,32 @@ export const Menu = ({
   position?: Position;
   loading?: boolean;
 }) => {
+  const { handleOpenChange, handleKeyDownCapture } = useLoopSelection(items);
+
   return (
-    <ArkMenu.Root positioning={{ placement: position }}>
+    <ArkMenu.Root
+      positioning={{ placement: position }}
+      onOpenChange={handleOpenChange}
+    >
       <ArkMenu.Context>
         {(menu) => (
-          <ArkMenu.Trigger asChild>
-            {cloneElement(
-              trigger as React.ReactElement<{ pressed?: boolean }>,
-              { pressed: menu.open },
-            )}
-          </ArkMenu.Trigger>
+          <>
+            <ArkMenu.Trigger asChild>
+              {cloneElement(
+                trigger as React.ReactElement<{ pressed?: boolean }>,
+                { pressed: menu.open },
+              )}
+            </ArkMenu.Trigger>
+            <Portal>
+              <ArkMenu.Positioner
+                onKeyDownCapture={(event) => handleKeyDownCapture(event, menu)}
+              >
+                <SelectableList items={items} loading={loading} />
+              </ArkMenu.Positioner>
+            </Portal>
+          </>
         )}
       </ArkMenu.Context>
-      <Portal>
-        <ArkMenu.Positioner>
-          <SelectableList items={items} loading={loading} />
-        </ArkMenu.Positioner>
-      </Portal>
     </ArkMenu.Root>
   );
 };

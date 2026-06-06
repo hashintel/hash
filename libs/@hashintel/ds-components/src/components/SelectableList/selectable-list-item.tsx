@@ -4,7 +4,7 @@ import { checkIconSizeMap, indentUnitPx } from "./selectable-list-item.recipe";
 
 import type { FormInputSize } from "../../util/form-shared";
 import type { ItemClasses } from "./selectable-list-item.recipe";
-import type { Item } from "./selectable-list-types";
+import type { Item } from "./selectable-list-util";
 
 const SelectionIndicator = ({
   style,

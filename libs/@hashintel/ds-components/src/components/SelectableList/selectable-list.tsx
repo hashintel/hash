@@ -10,7 +10,7 @@ import { isEmptyString } from "../../util/string";
 import { LoadingSpinner } from "../Loading/loading-spinner";
 import { ItemBody } from "./selectable-list-item";
 import { styles as itemStyles } from "./selectable-list-item.recipe";
-import { type Item, type ItemOrGroup, isGroup } from "./selectable-list-types";
+import { type Item, type ItemOrGroup, isGroup } from "./selectable-list-util";
 import { styles } from "./selectable-list.recipe";
 
 import type { FormInputSize } from "../../util/form-shared";
