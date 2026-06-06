@@ -10,9 +10,6 @@ export const styles = sva({
   ],
   base: {
     content: {
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "flex-start",
       backgroundColor: "white",
       border: "1px solid",
       borderColor: "bd.subtle",
@@ -24,9 +21,6 @@ export const styles = sva({
       minWidth: "[180px]",
     },
     group: {
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "flex-start",
       width: "full",
       paddingY: "1",
       marginY: "1",
@@ -75,7 +69,6 @@ export const styles = sva({
           padding: "0.5",
           "--selectable-list-padding-x": "var(--spacing-1\\.5)",
         },
-        group: { gap: "[1px]" },
         groupLabel: {
           fontSize: "[9px]",
           lineHeight: "[10px]",
@@ -90,7 +83,6 @@ export const styles = sva({
           padding: "0.5",
           "--selectable-list-padding-x": "var(--spacing-2)",
         },
-        group: { gap: "[1px]" },
         groupLabel: {
           fontSize: "[10px]",
           lineHeight: "[10px]",
@@ -105,7 +97,6 @@ export const styles = sva({
           padding: "1",
           "--selectable-list-padding-x": "var(--spacing-2)",
         },
-        group: { gap: "[1px]" },
         groupLabel: {
           fontSize: "[11px]",
           lineHeight: "[11px]",
@@ -120,7 +111,6 @@ export const styles = sva({
           padding: "1",
           "--selectable-list-padding-x": "var(--spacing-2\\.5)",
         },
-        group: { gap: "[1px]" },
         groupLabel: {
           fontSize: "xs",
           lineHeight: "[12px]",
@@ -135,7 +125,6 @@ export const styles = sva({
           padding: "1.5",
           "--selectable-list-padding-x": "var(--spacing-2\\.5)",
         },
-        group: { gap: "[2px]" },
         groupLabel: {
           fontSize: "sm",
           lineHeight: "[14px]",
