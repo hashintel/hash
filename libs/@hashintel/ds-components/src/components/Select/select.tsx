@@ -1,4 +1,7 @@
-import { useRef } from "react";
+import { createListCollection } from "@ark-ui/react/collection";
+import { Portal } from "@ark-ui/react/portal";
+import { Select as ArkSelect } from "@ark-ui/react/select";
+import { useMemo, useRef } from "react";
 import { useMergeRefs } from "use-callback-ref";
 
 import { cx } from "@hashintel/ds-helpers/css";
@@ -13,6 +16,7 @@ import {
 } from "../SelectableList/selectable-list";
 import { baseInputRecipe } from "../TextInput/base-input.recipe";
 import { InputConnector } from "../TextInput/input-connector";
+import { selectRecipe } from "./select.recipe";
 
 import type {
   FormInputSize,
@@ -23,13 +27,13 @@ import type { IconName } from "../Icon/icon";
 
 export type SelectItem = {
   value: string;
-  children: string; // Valid content for `<option>`
+  children: string; // Visible label
   disabled?: boolean;
   selectedStyle?: Item["selectedStyle"];
 };
 
 export type SelectProps = {
-  /** An optional placeholder for the input */
+  /** An optional placeholder shown when no value is selected */
   placeholder?: string;
   /** Disable editing of the input. Unlike disabled this strips the input styles and displays the value as text */
   readonly?: boolean;
@@ -41,6 +45,7 @@ export type SelectProps = {
   align?: "left" | "center" | "right";
   /** A set of standard widths to choose for the input. You can also set the width with css when aligning with other inputs is not required. */
   width?: FormInputWidth;
+  /** Hide the dropdown arrow */
   hideArrow?: boolean;
   /** Optional element or button to include at the beginning of an input */
   prefix?: Prefix;
@@ -53,15 +58,14 @@ export type SelectProps = {
     clearable: boolean;
     onClear: () => void;
   };
-  /** Defaults to false, set to true to allow browsers to autocomplete an input */
   onClick?: React.MouseEventHandler<Element>;
   onKeyDown?: React.KeyboardEventHandler<Element>;
   tabIndex?: number;
   items: Array<ItemOrGroup<SelectItem>>;
 } & SharedInputProps<
-  HTMLSelectElement,
+  HTMLElement,
   string | null | undefined,
-  (value: string, event: React.ChangeEvent<HTMLSelectElement>) => void
+  (value: string) => void
 > &
   React.AriaAttributes;
 
@@ -71,17 +75,10 @@ type Prefix =
   | { text: string }
   | { content: React.ReactNode };
 
-function isIconAdornment(
-  val: unknown,
-): val is { iconName: IconName; onClick?: () => void } {
-  return val != null && typeof val === "object" && "iconName" in val;
-}
+const isIconPrefix = (val: Prefix): val is { iconName: IconName } =>
+  "iconName" in val;
 
-function isTextAdornment(
-  val: unknown,
-): val is { text: string; onClick?: () => void } {
-  return val != null && typeof val === "object" && "text" in val;
-}
+const isTextPrefix = (val: Prefix): val is { text: string } => "text" in val;
 
 const iconSizeMap: Record<FormInputSize, FormInputSize> = {
   xxs: "xs",
@@ -99,25 +96,75 @@ const loadingSizeMap: Record<FormInputSize, FormInputSize> = {
   lg: "md",
 };
 
-function renderAdornment(
+function renderPrefix(
   adornment: Prefix,
   size: FormInputSize,
   classes: BaseInputSlots,
 ): React.ReactNode {
-  const content = isIconAdornment(adornment) ? (
+  const content = isIconPrefix(adornment) ? (
     <Icon name={adornment.iconName} size={iconSizeMap[size]} />
-  ) : isTextAdornment(adornment) ? (
+  ) : isTextPrefix(adornment) ? (
     adornment.text
   ) : (
     adornment.content
   );
   return (
     <span
-      className={cx(classes[type], classes.adornment, classes.adornmentText)}
+      className={cx(classes.prefix, classes.adornment, classes.adornmentText)}
+      data-part="adornment-text"
     >
       {content}
     </span>
   );
+}
+
+function findSelectItem(
+  items: Array<ItemOrGroup<SelectItem>>,
+  value: string | null | undefined,
+): SelectItem | undefined {
+  if (value == null) {
+    return undefined;
+  }
+  for (const entry of items) {
+    if ("items" in entry) {
+      const found = entry.items.find((it) => it.value === value);
+      if (found) {
+        return found;
+      }
+    } else if (entry.value === value) {
+      return entry;
+    }
+  }
+  return undefined;
+}
+
+function mapToMenuItems(
+  items: Array<ItemOrGroup<SelectItem>>,
+): Array<ItemOrGroup<Item>> {
+  const toItem = (it: SelectItem): Item => ({
+    id: it.value,
+    text: it.children,
+    disabled: it.disabled,
+    selectedStyle: it.selectedStyle,
+    nestedItems: undefined,
+  });
+  return items.map((entry) =>
+    "items" in entry
+      ? { id: entry.id, label: entry.label, items: entry.items.map(toItem) }
+      : toItem(entry),
+  );
+}
+
+function flattenItems(items: Array<ItemOrGroup<Item>>): Item[] {
+  const flat: Item[] = [];
+  for (const entry of items) {
+    if ("items" in entry) {
+      flat.push(...entry.items);
+    } else {
+      flat.push(entry);
+    }
+  }
+  return flat;
 }
 
 export const Select = ({
@@ -127,12 +174,15 @@ export const Select = ({
   variant = "default",
   align = "left",
   width = "fullWidth",
+  hideArrow,
   prefix,
   connectToLeftInput,
   connectToRightInput,
   clearable,
   onClick,
   onKeyDown,
+  tabIndex,
+  items,
   className,
   name,
   value,
@@ -150,18 +200,35 @@ export const Select = ({
   autoFocus,
   ...ariaProps
 }: SelectProps) => {
-  const internalRef = useRef<HTMLInputElement>(null);
-  const mergedInputRef = useMergeRefs([
+  const internalRef = useRef<HTMLDivElement>(null);
+  const mergedTriggerRef = useMergeRefs([
     internalRef,
-    ...(inputRef ? [inputRef] : []),
+    ...(inputRef ? [inputRef as unknown as React.Ref<HTMLDivElement>] : []),
   ]);
   const fieldIdFromContext = useFieldId();
   const inputId = htmlForId ?? fieldIdFromContext ?? undefined;
 
   const showClear = !!(clearable && !disabled);
-  const hasIcons = !!loading || showClear;
+  const hasIcons = !!loading || showClear || !hideArrow;
   const connectsLeft = connectToLeftInput && variant === "default";
   const connectsRight = connectToRightInput && variant === "default";
+
+  const selectedItem = findSelectItem(items, value);
+  const displayText = selectedItem?.children ?? "";
+
+  const menuItems = useMemo(() => mapToMenuItems(items), [items]);
+  const collection = useMemo(
+    () =>
+      createListCollection<Item>({
+        items: flattenItems(menuItems),
+        itemToValue: (item) => item.id,
+        itemToString: (item) => item.id,
+        isItemDisabled: (item) => !!item.disabled,
+      }),
+    [menuItems],
+  );
+
+  const selectClasses = selectRecipe({ variant });
 
   const classes = baseInputRecipe({
     variant,
@@ -177,7 +244,7 @@ export const Select = ({
     willClear:
       showClear &&
       clearable.clearable &&
-      (value === null || value === undefined),
+      (value === null || value === undefined || value === ""),
   });
 
   if (readonly) {
@@ -188,83 +255,140 @@ export const Select = ({
         data-testid={testId}
         {...ariaProps}
       >
-        {value ?? ""}
+        {displayText}
       </span>
     );
   }
 
-  const select = <div id={inputId} ref={mergedInputRef} />;
-
   return (
-    <div ref={ref as React.Ref<HTMLDivElement>} className={classes.wrapper}>
-      {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- click-to-focus container delegates to inner <select> */}
-      <div
-        className={cx(classes.root, className)}
-        onClick={(event) => {
-          if (!disabled) {
-            internalRef.current?.focus();
-            onClick?.(event);
+    <div
+      ref={ref as React.Ref<HTMLDivElement>}
+      className={cx(classes.wrapper, className)}
+    >
+      <ArkSelect.Root
+        collection={collection}
+        value={value != null && value !== "" ? [value] : []}
+        onValueChange={({ value: nextValue }) => {
+          const next = nextValue[0];
+          if (next !== undefined) {
+            onChange(next);
           }
         }}
+        disabled={disabled}
+        invalid={invalid}
+        required={required}
+        name={name}
       >
-        {prefix != null && renderAdornment(prefix, size, classes)}
-        {connectToLeftInput && variant === "default" && (
-          <InputConnector
-            className={cx(
-              classes.connector,
-              classes.connectLeft,
-              prefix && classes.connectAdornment,
-            )}
-            data-part="connector"
-          />
-        )}
-
-        <div className={classes.inputWrapper}>
-          {select}
-          {showClear && (
-            <button
-              type="button"
-              data-part="clear"
-              onMouseDown={(event) => {
-                // prevents focus from changing/being removed from the input which can lead to UI stutter
-                // if selectedDisplay is set
-                event.preventDefault();
-                event.stopPropagation();
-              }}
-              onClick={(event) => {
-                event.preventDefault();
-                event.stopPropagation();
-                clearable.onClear();
-                internalRef.current?.focus();
-              }}
-              className={cx(
-                classes.clear,
-                (!clearable.clearable || !value) && classes.hideClear,
-              )}
-              aria-label="Clear input"
-            >
-              <Icon
-                name="close"
-                size={iconSizeMap[size]}
-                className={classes.clearIcon}
+        <ArkSelect.Trigger
+          asChild
+          id={inputId}
+          autoFocus={autoFocus === true ? true : undefined}
+        >
+          {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions -- ark-ui sets button role / keyboard handlers via asChild on Select.Trigger */}
+          <div
+            ref={mergedTriggerRef}
+            className={cx(selectClasses.trigger, classes.root)}
+            data-testid={testId}
+            tabIndex={tabIndex}
+            data-name={name}
+            onClick={onClick}
+            onKeyDown={onKeyDown}
+            onFocus={
+              onFocus as React.FocusEventHandler<HTMLDivElement> | undefined
+            }
+            onBlur={
+              onBlur as React.FocusEventHandler<HTMLDivElement> | undefined
+            }
+            {...ariaProps}
+          >
+            {prefix != null && renderPrefix(prefix, size, classes)}
+            {connectToLeftInput && variant === "default" && (
+              <InputConnector
+                className={cx(
+                  classes.connector,
+                  classes.connectLeft,
+                  prefix && classes.connectAdornment,
+                )}
+                data-part="connector"
               />
-            </button>
-          )}
-        </div>
+            )}
 
-        {loading && (
-          <span className={classes.loading} data-part="loading">
-            <LoadingSpinner size={loadingSizeMap[size]} variant="bars" />
-          </span>
-        )}
+            <div className={classes.inputWrapper}>
+              <span
+                className={cx(
+                  classes.input,
+                  selectedItem
+                    ? selectClasses.value
+                    : selectClasses.placeholder,
+                )}
+                data-part="value"
+              >
+                {displayText !== "" ? displayText : (placeholder ?? " ")}
+              </span>
+              {showClear && (
+                <button
+                  type="button"
+                  data-part="clear"
+                  onMouseDown={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                  }}
+                  onClick={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    clearable.onClear();
+                    internalRef.current?.focus();
+                  }}
+                  className={cx(
+                    classes.clear,
+                    (!clearable.clearable || !value) && classes.hideClear,
+                  )}
+                  aria-label="Clear input"
+                >
+                  <Icon
+                    name="close"
+                    size={iconSizeMap[size]}
+                    className={classes.clearIcon}
+                  />
+                </button>
+              )}
+            </div>
 
-        {connectToRightInput && variant === "default" && (
-          <InputConnector
-            className={cx(classes.connector, classes.connectRight)}
-            data-part="connector"
-          />
-        )}
-      </div>
+            {loading && (
+              <span className={classes.loading} data-part="loading">
+                <LoadingSpinner size={loadingSizeMap[size]} variant="bars" />
+              </span>
+            )}
+
+            {!hideArrow && !loading && (
+              <span
+                className={selectClasses.arrow}
+                data-part="arrow"
+                aria-hidden
+              >
+                <Icon name="chevronDown" size={iconSizeMap[size]} />
+              </span>
+            )}
+
+            {connectToRightInput && variant === "default" && (
+              <InputConnector
+                className={cx(classes.connector, classes.connectRight)}
+                data-part="connector"
+              />
+            )}
+          </div>
+        </ArkSelect.Trigger>
+        <Portal>
+          <ArkSelect.Positioner>
+            <SelectableList
+              as="Select"
+              items={menuItems}
+              selected={value != null && value !== "" ? [value] : []}
+              size={size}
+            />
+          </ArkSelect.Positioner>
+        </Portal>
+      </ArkSelect.Root>
     </div>
   );
 };

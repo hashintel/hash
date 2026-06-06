@@ -2,6 +2,7 @@
 
 import { Menu } from "@ark-ui/react/menu";
 import { Portal } from "@ark-ui/react/portal";
+import { Select } from "@ark-ui/react/select";
 import { useMemo } from "react";
 
 import { cx } from "@hashintel/ds-helpers/css";
@@ -17,7 +18,10 @@ import type { FormInputSize } from "../../util/form-shared";
 
 export { isGroup, type Item, type ItemOrGroup };
 
+export type SelectableListAs = "Menu" | "Select";
+
 type RenderCtx = {
+  as: SelectableListAs;
   size: FormInputSize;
   selectedSet: Set<string>;
   contentClassName: string | undefined;
@@ -43,6 +47,18 @@ const ItemRow = ({ item, ctx }: { item: Item; ctx: RenderCtx }) => {
       classes={classes}
     />
   );
+
+  if (ctx.as === "Select") {
+    return (
+      <Select.Item
+        item={item}
+        className={classes.item}
+        data-selected={isSelected || undefined}
+      >
+        {body}
+      </Select.Item>
+    );
+  }
 
   if (item.nestedItems) {
     return (
@@ -104,15 +120,37 @@ const renderEntry = (
 ): React.ReactNode => {
   if (isGroup(entry)) {
     const groupClasses = styles({ size: ctx.size });
+    const showLabel =
+      typeof entry.label === "string"
+        ? !isEmptyString(entry.label)
+        : entry.label !== undefined && entry.label !== null;
+
+    if (ctx.as === "Select") {
+      return (
+        <Select.ItemGroup
+          key={entry.id}
+          id={entry.id}
+          className={groupClasses.group}
+        >
+          {showLabel && (
+            <Select.ItemGroupLabel className={groupClasses.groupLabel}>
+              {entry.label}
+            </Select.ItemGroupLabel>
+          )}
+          {entry.items.map((child) => (
+            <ItemRow key={child.id} item={child} ctx={ctx} />
+          ))}
+        </Select.ItemGroup>
+      );
+    }
+
     return (
       <Menu.ItemGroup
         key={entry.id}
         id={entry.id}
         className={groupClasses.group}
       >
-        {(typeof entry.label === "string"
-          ? !isEmptyString(entry.label)
-          : entry.label !== undefined && entry.label !== null) && (
+        {showLabel && (
           <Menu.ItemGroupLabel className={groupClasses.groupLabel}>
             {entry.label}
           </Menu.ItemGroupLabel>
@@ -128,16 +166,19 @@ const renderEntry = (
 };
 
 /**
- * Renders the visual body of a selectable list — a `Menu.Content` with
- * styled items, groups, empty state, and loading state. Must be used
- * inside an ark-ui `Menu.Root`; the consumer is responsible for setting
- * the menu's `open` state, `closeOnSelect`, `composite`, and any
- * `onOpenChange` / `onHighlightChange` callbacks. For an always-open
- * embedded list pass `open` and `closeOnSelect={false}` to the parent
- * `Menu.Root`. For a popover-style menu use a `Menu.Trigger` +
- * `Menu.Positioner` (see the `Menu` component).
+ * Renders the visual body of a selectable list — a styled content
+ * container with items, groups, empty state, and loading state.
+ *
+ * Pass `as="Menu"` (default) to render inside an ark-ui `Menu.Root`, or
+ * `as="Select"` to render inside an ark-ui `Select.Root`. The consumer
+ * is responsible for setting the parent's `open` state, `closeOnSelect`,
+ * `composite`, and any value/highlight callbacks. For an always-open
+ * embedded menu pass `open` and `closeOnSelect={false}` to the parent
+ * `Menu.Root`. For a popover-style menu use a `Menu.Trigger` /
+ * `Select.Trigger` + `Positioner` (see the `Menu` / `Select` components).
  */
 export const SelectableList = ({
+  as = "Menu",
   className,
   items = [],
   selected,
@@ -145,6 +186,8 @@ export const SelectableList = ({
   emptyState,
   loading = false,
 }: {
+  /** Which ark-ui primitive set to render inside. Defaults to Menu. */
+  as?: SelectableListAs;
   className?: string;
   items?: Array<ItemOrGroup<Item>>;
   size?: FormInputSize;
@@ -160,23 +203,34 @@ export const SelectableList = ({
     return null;
   }
 
-  const ctx = {
+  const ctx: RenderCtx = {
+    as,
     size,
     selectedSet,
     contentClassName: classes.content,
   };
 
+  const body = loading ? (
+    <div className={classes.loadingContainer}>
+      <LoadingSpinner size={size} />
+    </div>
+  ) : isEmpty ? (
+    emptyState
+  ) : (
+    items.map((item) => renderEntry(item, ctx))
+  );
+
+  if (as === "Select") {
+    return (
+      <Select.Content className={cx(classes.content, className)}>
+        {body}
+      </Select.Content>
+    );
+  }
+
   return (
     <Menu.Content className={cx(classes.content, className)}>
-      {loading ? (
-        <div className={classes.loadingContainer}>
-          <LoadingSpinner size={size} />
-        </div>
-      ) : isEmpty ? (
-        emptyState
-      ) : (
-        items.map((item) => renderEntry(item, ctx))
-      )}
+      {body}
     </Menu.Content>
   );
 };
