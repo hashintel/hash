@@ -34,8 +34,6 @@ export const selectRecipe = sva({
       ...formWidths.base,
       display: "inline-flex",
       alignItems: "stretch",
-      textAlign: "inherit",
-      font: "inherit",
       cursor: "pointer",
       width: "[fit-content]",
       minWidth: "[min-content]",

@@ -29,17 +29,9 @@ const SelectionIndicator = ({
     );
   }
 
-  if (style === "checkbox") {
-    return (
-      <span className={classes.checkboxControl} aria-hidden="true">
-        {selected ? <Icon name="check" size={checkIconSizeMap[size]} /> : null}
-      </span>
-    );
-  }
-
   return (
-    <span className={classes.radioControl} aria-hidden="true">
-      {selected ? <span className={classes.radioDot} /> : null}
+    <span className={classes.checkboxControl} aria-hidden="true">
+      {selected ? <Icon name="check" size={checkIconSizeMap[size]} /> : null}
     </span>
   );
 };
@@ -78,7 +70,7 @@ export const ItemBody = ({
       />
       {item.icon && <Icon name={item.icon} size={size} />}
       <span className={classes.textColumn}>
-        <span className={classes.text}>{item.text}</span>
+        {item.text}
         {item.description !== undefined && item.description !== null && (
           <span className={classes.description}>{item.description}</span>
         )}

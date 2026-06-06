@@ -62,7 +62,7 @@ export type SelectProps = {
   tabIndex?: number;
   items: Array<ItemOrGroup<SelectItem>>;
 } & SharedInputProps<
-  HTMLElement,
+  HTMLDivElement,
   string | null | undefined,
   (value: string) => void
 > &
@@ -290,12 +290,8 @@ export const Select = ({
             data-name={name}
             onClick={onClick}
             onKeyDown={onKeyDown}
-            onFocus={
-              onFocus as React.FocusEventHandler<HTMLDivElement> | undefined
-            }
-            onBlur={
-              onBlur as React.FocusEventHandler<HTMLDivElement> | undefined
-            }
+            onFocus={onFocus}
+            onBlur={onBlur}
             {...ariaProps}
           >
             {prefix != null && renderPrefix(prefix, size, classes)}

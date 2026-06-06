@@ -16,7 +16,7 @@ export type Item = {
   indent?: number;
   disabled?: boolean;
   tone?: "neutral" | "brand" | "error";
-  selectedStyle?: "none" | "tick" | "checkbox" | "radio" | "highlight";
+  selectedStyle?: "none" | "tick" | "checkbox" | "highlight";
 } & ExclusifyUnion<
   | {
       href: string;

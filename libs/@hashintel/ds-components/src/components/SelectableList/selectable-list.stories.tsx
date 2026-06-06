@@ -16,13 +16,7 @@ const StaticMenu = ({ children }: { children: React.ReactNode }) => (
 );
 
 const tones = ["neutral", "brand", "error"] as const;
-const selectedStyles = [
-  "none",
-  "tick",
-  "checkbox",
-  "radio",
-  "highlight",
-] as const;
+const selectedStyles = ["none", "tick", "checkbox", "highlight"] as const;
 
 const noop = () => {};
 
