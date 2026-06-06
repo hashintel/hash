@@ -21,13 +21,10 @@ export const Menu = ({
   position?: Position;
   loading?: boolean;
 }) => {
-  const { handleOpenChange, handleKeyDownCapture } = useLoopSelection(items);
+  const handleLoopKeyDown = useLoopSelection(items);
 
   return (
-    <ArkMenu.Root
-      positioning={{ placement: position }}
-      onOpenChange={handleOpenChange}
-    >
+    <ArkMenu.Root positioning={{ placement: position }}>
       <ArkMenu.Context>
         {(menu) => (
           <>
@@ -39,7 +36,7 @@ export const Menu = ({
             </ArkMenu.Trigger>
             <Portal>
               <ArkMenu.Positioner
-                onKeyDownCapture={(event) => handleKeyDownCapture(event, menu)}
+                onKeyDownCapture={(event) => handleLoopKeyDown(event, menu)}
               >
                 <SelectableList items={items} loading={loading} />
               </ArkMenu.Positioner>

@@ -1,4 +1,4 @@
-import { useMemo, useRef } from "react";
+import { useMemo } from "react";
 
 import { type IconName } from "../Icon/icon";
 
@@ -65,44 +65,29 @@ export const collectNavigableItemIds = (
 };
 
 /**
- * Adds a "press once to pause, press again to wrap" behaviour to keyboard
- * navigation of an ark-ui Menu. Use with `loopFocus={false}`:
+ * Returns a keydown-capture handler that adds "discrete press to wrap,
+ * held-key pauses at the boundary" semantics to an ark-ui Menu. Use with
+ * `loopFocus={false}`:
  *
- * - The first time the user presses ArrowDown while the last item is
- *   highlighted (or ArrowUp at the top), nothing happens (ark-ui's default
- *   no-loop behaviour). The boundary is remembered.
- * - A held-key auto-repeat at the boundary also does nothing — the user
- *   has to release the key first.
- * - The next discrete press of the same arrow key wraps to the opposite
- *   end via `menu.setHighlightedValue`.
+ * - A discrete `ArrowDown` while the last item is highlighted (or
+ *   `ArrowUp` at the top) wraps to the opposite end via
+ *   `menu.setHighlightedValue`.
+ * - A held-key auto-repeat at the boundary is blocked, so the menu stops
+ *   wrapping while the user is still holding the key down.
  *
- * Returns handlers to wire into `Menu.Root`'s `onOpenChange` and the
- * `onKeyDownCapture` of an element above `Menu.Content` in the React tree
- * (e.g. `Menu.Positioner`).
+ * Wire the returned handler to `onKeyDownCapture` on an element above
+ * `Menu.Content` in the React tree (e.g. `Menu.Positioner`), passing the
+ * `menu` API from `Menu.Context`.
  */
 export const useLoopSelection = (items: Array<ItemOrGroup<Item>>) => {
   const navigableIds = useMemo(() => collectNavigableItemIds(items), [items]);
   const firstId = navigableIds[0];
   const lastId = navigableIds[navigableIds.length - 1];
 
-  // Tracks which boundary the previous interaction left us paused at, so
-  // the next discrete press at that boundary can opt into the wrap.
-  const pausedAtRef = useRef<"top" | "bottom" | null>(null);
-
-  const handleOpenChange = (details: { open: boolean }) => {
-    if (!details.open) {
-      pausedAtRef.current = null;
-    }
-  };
-
-  const handleKeyDownCapture = (
-    event: React.KeyboardEvent,
-    menu: UseMenuContext,
-  ) => {
+  return (event: React.KeyboardEvent, menu: UseMenuContext) => {
     const isDown = event.key === "ArrowDown";
     const isUp = event.key === "ArrowUp";
     if (!isDown && !isUp) {
-      pausedAtRef.current = null;
       return;
     }
 
@@ -110,40 +95,18 @@ export const useLoopSelection = (items: Array<ItemOrGroup<Item>>) => {
     const atBottom = lastId !== undefined && current === lastId;
     const atTop = firstId !== undefined && current === firstId;
 
-    if (
-      isDown &&
-      atBottom &&
-      pausedAtRef.current === "bottom" &&
-      !event.repeat &&
-      firstId !== undefined
-    ) {
-      // Second discrete press at the bottom — wrap manually.
+    if (isDown && atBottom) {
       event.preventDefault();
       event.stopPropagation();
-      menu.setHighlightedValue(firstId);
-      pausedAtRef.current = null;
-    } else if (
-      isUp &&
-      atTop &&
-      pausedAtRef.current === "top" &&
-      !event.repeat &&
-      lastId !== undefined
-    ) {
-      event.preventDefault();
-      event.stopPropagation();
-      menu.setHighlightedValue(lastId);
-      pausedAtRef.current = null;
-    } else if (isDown && atBottom) {
-      // First press or held key at bottom — `loopFocus` is off so ark-ui
-      // already stays put; just remember that we're paused so the next
-      // discrete press wraps.
-      pausedAtRef.current = "bottom";
+      if (!event.repeat && firstId !== undefined) {
+        menu.setHighlightedValue(firstId);
+      }
     } else if (isUp && atTop) {
-      pausedAtRef.current = "top";
-    } else {
-      pausedAtRef.current = null;
+      event.preventDefault();
+      event.stopPropagation();
+      if (!event.repeat && lastId !== undefined) {
+        menu.setHighlightedValue(lastId);
+      }
     }
   };
-
-  return { handleOpenChange, handleKeyDownCapture };
 };

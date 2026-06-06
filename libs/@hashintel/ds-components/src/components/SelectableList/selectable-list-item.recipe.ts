@@ -30,7 +30,7 @@ export const styles = sva({
       transition: "[background-color 0.1s ease, color 0.1s ease]",
 
       "&[data-highlighted]": {
-        backgroundColor: "neutral.a20",
+        backgroundColor: "neutral.a35",
       },
       "&[data-disabled]": {
         cursor: "not-allowed",
