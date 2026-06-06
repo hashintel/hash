@@ -346,12 +346,13 @@ export const WithSubActions: Story<SelectableListProps> = (args) => (
   <SelectableList {...args} items={itemsWithSubActions} />
 );
 
-export const Empty: Story<SelectableListProps> = (args) => (
+export const EmptyAndLoading: Story<SelectableListProps> = (args) => (
   <div
     className={css({
       display: "flex",
       gap: "[32px]",
       alignItems: "flex-start",
+      flexWrap: "wrap",
     })}
   >
     <div
@@ -394,6 +395,19 @@ export const Empty: Story<SelectableListProps> = (args) => (
           </div>
         }
       />
+    </div>
+    <div
+      className={css({
+        display: "flex",
+        flexDirection: "column",
+        gap: "[8px]",
+        minWidth: "[240px]",
+      })}
+    >
+      <span className={css({ fontSize: "[12px]", color: "neutral.s80" })}>
+        loading=true
+      </span>
+      <SelectableList {...args} items={[]} loading />
     </div>
   </div>
 );

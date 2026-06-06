@@ -4,9 +4,10 @@ import { Menu } from "@ark-ui/react/menu";
 import { Portal } from "@ark-ui/react/portal";
 import { useMemo } from "react";
 
-import { cx } from "@hashintel/ds-helpers/css";
+import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { isEmptyString } from "../../util/string";
+import { LoadingSpinner } from "../Loading/loading-spinner";
 import { ItemBody } from "./selectable-list-item";
 import { styles as itemStyles } from "./selectable-list-item.recipe";
 import { type Item, type ItemOrGroup, isGroup } from "./selectable-list-types";
@@ -132,20 +133,24 @@ export const SelectableList = ({
   selected,
   size = "md",
   onHighlight,
+  onOpen,
   emptyState,
+  loading = false,
 }: {
   className?: string;
   items?: Array<ItemOrGroup<Item>>;
   size?: FormInputSize;
   selected?: string[] | Set<string>;
   onHighlight?: (id: string) => void;
+  onOpen?: (open: boolean) => void;
   emptyState?: React.ReactNode;
+  loading?: boolean;
 }) => {
   const selectedSet = useMemo(() => new Set(selected ?? []), [selected]);
   const classes = styles({ size });
 
   const isEmpty = items.length === 0;
-  if (isEmpty && !emptyState) {
+  if (isEmpty && !emptyState && !loading) {
     return null;
   }
 
@@ -160,6 +165,9 @@ export const SelectableList = ({
       open
       closeOnSelect={false}
       composite
+      onOpenChange={(details) => {
+        onOpen?.(details.open);
+      }}
       onHighlightChange={(details) => {
         if (details.highlightedValue) {
           onHighlight?.(details.highlightedValue);
@@ -167,7 +175,25 @@ export const SelectableList = ({
       }}
     >
       <Menu.Content className={cx(classes.content, className)}>
-        {isEmpty ? emptyState : items.map((item) => renderEntry(item, ctx))}
+        {loading ? (
+          <div
+            className={css({
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: "full",
+              paddingY: "3",
+              paddingX: "2",
+              color: "fg.subtle",
+            })}
+          >
+            <LoadingSpinner size={size} />
+          </div>
+        ) : isEmpty ? (
+          emptyState
+        ) : (
+          items.map((item) => renderEntry(item, ctx))
+        )}
       </Menu.Content>
     </Menu.Root>
   );
