@@ -16,27 +16,22 @@ const StaticMenu = ({ children }: { children: React.ReactNode }) => (
   </Menu.Root>
 );
 
-const withDisabled = (entry: ItemOrGroup<Item>): ItemOrGroup<Item> => {
+function withDisabled(entry: ItemOrGroup<Item>): ItemOrGroup<Item> {
   if ("items" in entry) {
     return {
       ...entry,
       id: `disabled-${entry.id}`,
-      items: entry.items.map(
-        (item) =>
-          ({
-            ...item,
-            id: `disabled-${item.id}`,
-            disabled: true,
-          }) as unknown as Item,
-      ),
+      items: entry.items.map((item) => withDisabled(item) as Item),
     };
   }
+  const nested = (entry as { nestedItems?: ItemOrGroup<Item> }).nestedItems;
   return {
     ...entry,
     id: `disabled-${entry.id}`,
     disabled: true,
+    ...(nested ? { nestedItems: withDisabled(nested) } : {}),
   } as unknown as Item;
-};
+}
 
 const disabledGroupedItems: ItemOrGroup<Item>[] =
   groupedItems.map(withDisabled);

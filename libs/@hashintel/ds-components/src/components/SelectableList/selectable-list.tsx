@@ -60,7 +60,7 @@ const ItemRow = ({ item, ctx }: { item: Item; ctx: RenderCtx }) => {
     );
   }
 
-  if (item.nestedItems) {
+  if (item.nestedItems && !item.disabled) {
     return (
       <Menu.Root closeOnSelect={false}>
         <Menu.TriggerItem
