@@ -23,10 +23,10 @@ export const Menu = ({
   loading?: boolean;
 }) => {
   const portalContainerRef = usePortalContainerRef();
-  const handleLoopKeyDown = useLoopSelection(items);
+  const handleLoopKeyDown = useLoopSelection(loading ? [] : items);
 
   return (
-    <ArkMenu.Root positioning={{ placement: position }}>
+    <ArkMenu.Root positioning={{ placement: position }} loopFocus={false}>
       <ArkMenu.Context>
         {(menu) => (
           <>
