@@ -16,6 +16,7 @@ export const styles = sva({
       borderRadius: "lg",
       boxShadow: "lg",
       outline: "0",
+      maxHeight: "[var(--available-height)]",
       overflowY: "auto",
       scrollbarWidth: "[thin]",
       color: "fg.heading",
