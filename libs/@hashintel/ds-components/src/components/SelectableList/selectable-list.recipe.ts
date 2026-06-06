@@ -25,6 +25,13 @@ export const styles = sva({
       alignItems: "flex-start",
       width: "full",
       gap: "[1px]",
+      borderTop: "1px solid",
+      borderBottom: "1px solid",
+      borderColor: "neutral.s30",
+      "&:first-child": { borderTopWidth: "0" },
+      "&:last-child": { borderBottomWidth: "0" },
+      // Collapse adjacent group borders so we don't get a double line
+      "& + &": { borderTopWidth: "0" },
     },
     groupLabel: {
       display: "flex",
