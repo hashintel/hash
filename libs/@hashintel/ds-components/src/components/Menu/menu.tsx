@@ -12,17 +12,19 @@ export const Menu = ({
   items,
   trigger,
   align = "BottomLeft",
+  loading,
 }: {
   items: Array<ItemOrGroup<Item>>;
-  align?: Position;
   trigger: React.ReactNode;
+  align?: Position;
+  loading?: boolean;
 }) => {
   return (
     <ArkMenu.Root>
       <ArkMenu.Trigger>{trigger}</ArkMenu.Trigger>
       <Portal>
         <ArkMenu.Positioner>
-          <SelectableList items={items} />
+          <SelectableList items={items} loading={loading} />
         </ArkMenu.Positioner>
       </Portal>
     </ArkMenu.Root>
