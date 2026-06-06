@@ -17,8 +17,10 @@ export const styles = sva({
       boxShadow: "lg",
       outline: "0",
       overflowY: "auto",
+      scrollbarWidth: "[thin]",
       color: "fg.heading",
       minWidth: "[180px]",
+      zIndex: "popover",
     },
     group: {
       width: "full",

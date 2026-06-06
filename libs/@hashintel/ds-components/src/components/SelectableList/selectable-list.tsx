@@ -7,6 +7,7 @@ import { useMemo } from "react";
 
 import { cx } from "@hashintel/ds-helpers/css";
 
+import { usePortalContainerRef } from "../../util/portal-container-context";
 import { isEmptyString } from "../../util/string";
 import { LoadingSpinner } from "../Loading/loading-spinner";
 import { ItemBody } from "./selectable-list-item";
@@ -28,6 +29,7 @@ type RenderCtx = {
 };
 
 const ItemRow = ({ item, ctx }: { item: Item; ctx: RenderCtx }) => {
+  const portalContainerRef = usePortalContainerRef();
   const isSelected = ctx.selectedSet.has(item.id);
   const selectedStyle = item.selectedStyle ?? "tick";
   const highlighted = isSelected && selectedStyle === "highlight";
@@ -69,7 +71,7 @@ const ItemRow = ({ item, ctx }: { item: Item; ctx: RenderCtx }) => {
         >
           {body}
         </Menu.TriggerItem>
-        <Portal>
+        <Portal container={portalContainerRef}>
           <Menu.Positioner>
             <Menu.Content className={ctx.contentClassName}>
               {renderEntry(item.nestedItems, ctx)}

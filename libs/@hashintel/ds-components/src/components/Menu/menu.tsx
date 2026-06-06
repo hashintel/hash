@@ -2,6 +2,7 @@ import { Menu as ArkMenu } from "@ark-ui/react/menu";
 import { Portal } from "@ark-ui/react/portal";
 import { cloneElement } from "react";
 
+import { usePortalContainerRef } from "../../util/portal-container-context";
 import {
   SelectableList,
   type Item,
@@ -21,6 +22,7 @@ export const Menu = ({
   position?: Position;
   loading?: boolean;
 }) => {
+  const portalContainerRef = usePortalContainerRef();
   const handleLoopKeyDown = useLoopSelection(items);
 
   return (
@@ -34,7 +36,7 @@ export const Menu = ({
                 { pressed: menu.open },
               )}
             </ArkMenu.Trigger>
-            <Portal>
+            <Portal container={portalContainerRef}>
               <ArkMenu.Positioner
                 onKeyDownCapture={(event) => handleLoopKeyDown(event, menu)}
               >

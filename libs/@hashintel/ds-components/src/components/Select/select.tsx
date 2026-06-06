@@ -6,6 +6,7 @@ import { useMergeRefs } from "use-callback-ref";
 
 import { cx } from "@hashintel/ds-helpers/css";
 
+import { usePortalContainerRef } from "../../util/portal-container-context";
 import { useFieldId } from "../Form/field-id-context";
 import { Icon } from "../Icon/icon";
 import { LoadingSpinner } from "../Loading/loading-spinner";
@@ -199,6 +200,7 @@ export const Select = ({
   autoFocus,
   ...ariaProps
 }: SelectProps) => {
+  const portalContainerRef = usePortalContainerRef();
   const internalRef = useRef<HTMLDivElement>(null);
   const mergedTriggerRef = useMergeRefs([
     internalRef,
@@ -365,7 +367,7 @@ export const Select = ({
             )}
           </div>
         </ArkSelect.Trigger>
-        <Portal>
+        <Portal container={portalContainerRef}>
           <ArkSelect.Positioner>
             <SelectableList
               as="Select"
