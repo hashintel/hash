@@ -52,7 +52,7 @@ export const ItemBody = ({
   isSelected: boolean;
   classes: ItemClasses;
 }) => {
-  const selectedStyle = item.selectedStyle ?? "tick";
+  const selectedStyle = item.selectedStyle ?? "highlight";
   const indent = item.indent ?? 0;
 
   return (

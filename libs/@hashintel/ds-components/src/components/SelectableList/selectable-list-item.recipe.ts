@@ -111,20 +111,33 @@ export const styles = sva({
       },
     },
     tone: {
-      neutral: { item: { color: "fg.heading" } },
-      brand: { item: { color: "blue.s90" } },
-      error: { item: { color: "red.s90" } },
-    },
-    highlighted: {
-      true: {
+      neutral: {
         item: {
-          backgroundColor: "blue.bg.surface",
+          color: "fg.heading",
           "&[data-highlighted]": {
-            backgroundColor: "blue.bg.surface.hover",
+            backgroundColor: "neutral.a35",
           },
         },
       },
-      false: {},
+      brand: {
+        item: {
+          color: "blue.s90",
+          "&[data-highlighted]": {
+            backgroundColor: "blue.a35",
+          },
+        },
+      },
+      error: {
+        item: {
+          color: "red.s90",
+          "&[data-highlighted]": {
+            backgroundColor: "red.a35",
+          },
+        },
+      },
+    },
+    highlighted: {
+      true: {},
     },
     selected: {
       true: {
@@ -134,9 +147,37 @@ export const styles = sva({
           color: "white",
         },
       },
-      false: {},
     },
   },
+  compoundVariants: [
+    {
+      tone: "neutral",
+      highlighted: true,
+      css: {
+        item: {
+          backgroundColor: "neutral.a50",
+        },
+      },
+    },
+    {
+      tone: "brand",
+      highlighted: true,
+      css: {
+        item: {
+          backgroundColor: "blue.a50",
+        },
+      },
+    },
+    {
+      tone: "error",
+      highlighted: true,
+      css: {
+        item: {
+          backgroundColor: "red.a50",
+        },
+      },
+    },
+  ],
   defaultVariants: {
     size: "md",
     tone: "neutral",
