@@ -16,15 +16,10 @@ export const Menu = ({
   items: Array<ItemOrGroup<Item>>;
   align?: Position;
   trigger: React.ReactNode;
-  // trigger: (
-  // onClick: React.MouseEventHandler,
-  // onKeyDown: React.KeyboardEventHandler,
-  // pressed: boolean,
-  // ) => React.ReactNode;
 }) => {
   return (
     <ArkMenu.Root>
-      <ArkMenu.Trigger className={styles.Trigger}>{trigger}</ArkMenu.Trigger>
+      <ArkMenu.Trigger>{trigger}</ArkMenu.Trigger>
       <Portal>
         <ArkMenu.Positioner>
           <SelectableList items={items} />

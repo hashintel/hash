@@ -7,138 +7,14 @@ import { useMemo } from "react";
 import { cx } from "@hashintel/ds-helpers/css";
 
 import { isEmptyString } from "../../util/string";
-import { Icon, type IconName } from "../Icon/icon";
-import { LoadingSpinner } from "../Loading/loading-spinner";
-import {
-  checkIconSizeMap,
-  indentUnitPx,
-  styles,
-} from "./selectable-list.recipe";
+import { ItemBody } from "./selectable-list-item";
+import { styles as itemStyles } from "./selectable-list-item.recipe";
+import { type Item, type ItemOrGroup, isGroup } from "./selectable-list-types";
+import { styles } from "./selectable-list.recipe";
 
 import type { FormInputSize } from "../../util/form-shared";
-import type { ExclusifyUnion } from "type-fest";
 
-export type Item = {
-  id: string;
-
-  text: React.ReactNode;
-  description?: React.ReactNode;
-  icon?: IconName;
-  loading?: boolean;
-
-  indent?: number;
-  disabled?: boolean;
-  tone?: "neutral" | "brand" | "error";
-  selectedStyle?: "none" | "tick" | "checkbox" | "radio" | "highlight";
-} & ExclusifyUnion<
-  | {
-      href: string;
-      target?: "_blank";
-    }
-  | {
-      onClick: (id: string) => void;
-    }
-  | {
-      nestedItems?: ItemOrGroup<Item>;
-    }
->;
-
-export type ItemOrGroup<ItemType> =
-  | ItemType
-  | {
-      id: string;
-      label: React.ReactNode;
-      items: ItemType[];
-    };
-
-const isGroup = (
-  entry: ItemOrGroup<Item>,
-): entry is Extract<ItemOrGroup<Item>, { items: Item[] }> => "items" in entry;
-
-const SelectionIndicator = ({
-  style,
-  selected,
-  classes,
-  size,
-}: {
-  style: NonNullable<Item["selectedStyle"]>;
-  selected: boolean;
-  classes: ReturnType<typeof styles>;
-  size: FormInputSize;
-}) => {
-  if (style === "none" || style === "highlight") {
-    return null;
-  }
-
-  if (style === "tick") {
-    return (
-      <span className={classes.indicatorBox} aria-hidden="true">
-        {selected ? <Icon name="check" size={checkIconSizeMap[size]} /> : null}
-      </span>
-    );
-  }
-
-  if (style === "checkbox") {
-    return (
-      <span className={classes.checkboxControl} aria-hidden="true">
-        {selected ? <Icon name="check" size={checkIconSizeMap[size]} /> : null}
-      </span>
-    );
-  }
-
-  return (
-    <span className={classes.radioControl} aria-hidden="true">
-      {selected ? <span className={classes.radioDot} /> : null}
-    </span>
-  );
-};
-
-const ItemBody = ({
-  item,
-  size,
-  isSelected,
-  classes,
-}: {
-  item: Item;
-  size: FormInputSize;
-  isSelected: boolean;
-  classes: ReturnType<typeof styles>;
-}) => {
-  const selectedStyle = item.selectedStyle ?? "tick";
-  const indent = item.indent ?? 0;
-
-  return (
-    <>
-      {indent > 0 && (
-        <span
-          aria-hidden="true"
-          style={{
-            display: "inline-block",
-            width: `${indent * indentUnitPx[size]}px`,
-            flexShrink: 0,
-          }}
-        />
-      )}
-      <SelectionIndicator
-        style={selectedStyle}
-        selected={isSelected}
-        classes={classes}
-        size={size}
-      />
-      {item.icon && <Icon name={item.icon} size={size} />}
-      <span className={classes.textColumn}>
-        <span className={classes.text}>{item.text}</span>
-        {item.description !== undefined && item.description !== null && (
-          <span className={classes.description}>{item.description}</span>
-        )}
-      </span>
-      {item.loading && <LoadingSpinner size={size} />}
-      {item.nestedItems && (
-        <Icon name="chevronRight" size={size} aria-hidden="true" />
-      )}
-    </>
-  );
-};
+export { isGroup, type Item, type ItemOrGroup };
 
 type RenderCtx = {
   size: FormInputSize;
@@ -151,7 +27,7 @@ const ItemRow = ({ item, ctx }: { item: Item; ctx: RenderCtx }) => {
   const selectedStyle = item.selectedStyle ?? "tick";
   const highlighted = isSelected && selectedStyle === "highlight";
 
-  const classes = styles({
+  const classes = itemStyles({
     size: ctx.size,
     tone: item.tone,
     highlighted,
