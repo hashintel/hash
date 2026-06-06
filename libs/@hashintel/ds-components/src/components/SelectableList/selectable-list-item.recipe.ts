@@ -26,6 +26,7 @@ export const styles = sva({
       fontWeight: "normal",
       textDecoration: "none",
       transition: "[background-color 0.1s ease, color 0.1s ease]",
+      paddingX: "[var(--selectable-list-padding-x)]",
 
       "&[data-highlighted]": {
         backgroundColor: "neutral.a35",
@@ -70,7 +71,6 @@ export const styles = sva({
         item: {
           textStyle: "xxs",
           gap: "1",
-          paddingX: "1.5",
           paddingY: "0.5",
           borderRadius: "sm",
         },
@@ -87,7 +87,6 @@ export const styles = sva({
         item: {
           textStyle: "xs",
           gap: "1.5",
-          paddingX: "2",
           paddingY: "[3px]",
           borderRadius: "md",
         },
@@ -104,7 +103,6 @@ export const styles = sva({
         item: {
           textStyle: "sm",
           gap: "1.5",
-          paddingX: "2",
           paddingY: "[3px]",
           borderRadius: "md",
         },
@@ -121,7 +119,6 @@ export const styles = sva({
         item: {
           textStyle: "base",
           gap: "2",
-          paddingX: "2.5",
           paddingY: "[5px]",
           borderRadius: "lg",
         },
@@ -138,7 +135,6 @@ export const styles = sva({
         item: {
           textStyle: "base",
           gap: "2",
-          paddingX: "2.5",
           paddingY: "[5px]",
           borderRadius: "lg",
         },

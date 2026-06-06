@@ -50,6 +50,7 @@ export const styles = sva({
       color: "fg.subtle",
       fontWeight: "medium",
       textTransform: "uppercase",
+      paddingX: "[var(--selectable-list-padding-x)]",
       userSelect: "none",
       width: "full",
     },
@@ -70,12 +71,14 @@ export const styles = sva({
   variants: {
     size: {
       xxs: {
-        content: { padding: "0.5" },
+        content: {
+          padding: "0.5",
+          "--selectable-list-padding-x": "var(--spacing-1\\.5)",
+        },
         group: { gap: "[1px]" },
         groupLabel: {
           fontSize: "[9px]",
           lineHeight: "[10px]",
-          paddingX: "1",
           paddingY: "1",
           minHeight: "[18px]",
           gap: "1",
@@ -83,12 +86,14 @@ export const styles = sva({
         loadingContainer: { paddingX: "1", paddingY: "1.5" },
       },
       xs: {
-        content: { padding: "0.5" },
+        content: {
+          padding: "0.5",
+          "--selectable-list-padding-x": "var(--spacing-2)",
+        },
         group: { gap: "[1px]" },
         groupLabel: {
           fontSize: "[10px]",
           lineHeight: "[10px]",
-          paddingX: "1",
           paddingY: "1",
           minHeight: "[22px]",
           gap: "1.5",
@@ -96,12 +101,14 @@ export const styles = sva({
         loadingContainer: { paddingX: "1", paddingY: "2" },
       },
       sm: {
-        content: { padding: "1" },
+        content: {
+          padding: "1",
+          "--selectable-list-padding-x": "var(--spacing-2)",
+        },
         group: { gap: "[1px]" },
         groupLabel: {
           fontSize: "[11px]",
           lineHeight: "[11px]",
-          paddingX: "1.5",
           paddingY: "1.5",
           minHeight: "[26px]",
           gap: "2",
@@ -109,12 +116,14 @@ export const styles = sva({
         loadingContainer: { paddingX: "1.5", paddingY: "2.5" },
       },
       md: {
-        content: { padding: "1" },
+        content: {
+          padding: "1",
+          "--selectable-list-padding-x": "var(--spacing-2\\.5)",
+        },
         group: { gap: "[1px]" },
         groupLabel: {
           fontSize: "xs",
           lineHeight: "[12px]",
-          paddingX: "1.5",
           paddingY: "1.5",
           minHeight: "[28px]",
           gap: "2",
@@ -122,12 +131,14 @@ export const styles = sva({
         loadingContainer: { paddingX: "2", paddingY: "3" },
       },
       lg: {
-        content: { padding: "1.5" },
+        content: {
+          padding: "1.5",
+          "--selectable-list-padding-x": "var(--spacing-2\\.5)",
+        },
         group: { gap: "[2px]" },
         groupLabel: {
           fontSize: "sm",
           lineHeight: "[14px]",
-          paddingX: "2",
           paddingY: "2",
           minHeight: "[36px]",
           gap: "2.5",
