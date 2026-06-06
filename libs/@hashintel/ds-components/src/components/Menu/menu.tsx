@@ -1,5 +1,6 @@
 import { Menu as ArkMenu } from "@ark-ui/react/menu";
 import { Portal } from "@ark-ui/react/portal";
+import { cloneElement } from "react";
 
 import {
   SelectableList,
@@ -15,13 +16,22 @@ export const Menu = ({
   loading,
 }: {
   items: Array<ItemOrGroup<Item>>;
-  trigger: React.ReactNode;
+  trigger: React.ReactElement;
   position?: Position;
   loading?: boolean;
 }) => {
   return (
     <ArkMenu.Root positioning={{ placement: position }}>
-      <ArkMenu.Trigger asChild>{trigger}</ArkMenu.Trigger>
+      <ArkMenu.Context>
+        {(menu) => (
+          <ArkMenu.Trigger asChild>
+            {cloneElement(
+              trigger as React.ReactElement<{ pressed?: boolean }>,
+              { pressed: menu.open },
+            )}
+          </ArkMenu.Trigger>
+        )}
+      </ArkMenu.Context>
       <Portal>
         <ArkMenu.Positioner>
           <SelectableList items={items} loading={loading} />
