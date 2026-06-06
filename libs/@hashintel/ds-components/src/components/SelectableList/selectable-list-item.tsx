@@ -85,7 +85,13 @@ export const ItemBody = ({
         classes={classes}
         size={size}
       />
-      {item.icon && <Icon name={item.icon} size={iconSizeMap[size]} />}
+      {item.icon && (
+        <Icon
+          name={item.icon}
+          size={iconSizeMap[size]}
+          className={classes.icon}
+        />
+      )}
       <span className={classes.textColumn}>
         {item.text}
         {item.description !== undefined && item.description !== null && (
@@ -96,6 +102,7 @@ export const ItemBody = ({
         <Icon
           name="chevronRight"
           size={arrowIconSizeMap[size]}
+          className={classes.arrow}
           aria-hidden="true"
         />
       )}

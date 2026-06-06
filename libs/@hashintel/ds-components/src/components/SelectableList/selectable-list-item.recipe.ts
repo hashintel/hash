@@ -11,11 +11,13 @@ export const styles = sva({
     "tick",
     "checkbox",
     "spinner",
+    "icon",
+    "arrow",
   ],
   base: {
     item: {
       display: "flex",
-      alignItems: "center",
+      alignItems: "flex-start",
       width: "full",
       cursor: "pointer",
       outline: "0",
@@ -49,6 +51,10 @@ export const styles = sva({
     spinner: {
       color: "neutral.s90",
     },
+    icon: {},
+    arrow: {
+      alignSelf: "center",
+    },
     tick: {},
     checkbox: {
       border: "1px solid",
@@ -69,7 +75,13 @@ export const styles = sva({
           borderRadius: "sm",
         },
         description: { fontSize: "[9px]", marginTop: "[-3px]" },
-        indicator: { width: "[10px]", height: "[10px]" },
+        indicator: {
+          width: "[10px]",
+          height: "[10px]",
+          marginTop: "[calc((1lh - 10px) / 2)]",
+        },
+        icon: { marginTop: "[calc((1lh - 12px) / 2)]" },
+        spinner: { marginTop: "[calc((1lh - 12px) / 2)]" },
       },
       xs: {
         item: {
@@ -80,7 +92,13 @@ export const styles = sva({
           borderRadius: "md",
         },
         description: { textStyle: "xxs", marginTop: "-0.5" },
-        indicator: { width: "[12px]", height: "[12px]" },
+        indicator: {
+          width: "[12px]",
+          height: "[12px]",
+          marginTop: "[calc((1lh - 12px) / 2)]",
+        },
+        icon: { marginTop: "[calc((1lh - 12px) / 2)]" },
+        spinner: { marginTop: "[calc((1lh - 12px) / 2)]" },
       },
       sm: {
         item: {
@@ -91,7 +109,13 @@ export const styles = sva({
           borderRadius: "md",
         },
         description: { textStyle: "xs", marginTop: "[-1px]" },
-        indicator: { width: "[14px]", height: "[14px]" },
+        indicator: {
+          width: "[14px]",
+          height: "[14px]",
+          marginTop: "[calc((1lh - 14px) / 2)]",
+        },
+        icon: { marginTop: "[calc((1lh - 16px) / 2)]" },
+        spinner: { marginTop: "[calc((1lh - 16px) / 2)]" },
       },
       md: {
         item: {
@@ -102,7 +126,13 @@ export const styles = sva({
           borderRadius: "lg",
         },
         description: { textStyle: "sm", marginTop: "-0.5" },
-        indicator: { width: "[16px]", height: "[16px]" },
+        indicator: {
+          width: "[16px]",
+          height: "[16px]",
+          marginTop: "[calc((1lh - 16px) / 2)]",
+        },
+        icon: { marginTop: "[calc((1lh - 24px) / 2)]" },
+        spinner: { marginTop: "[calc((1lh - 24px) / 2)]" },
       },
       lg: {
         item: {
@@ -113,7 +143,13 @@ export const styles = sva({
           borderRadius: "lg",
         },
         description: { textStyle: "sm", marginTop: "-0.5" },
-        indicator: { width: "[16px]", height: "[16px]" },
+        indicator: {
+          width: "[16px]",
+          height: "[16px]",
+          marginTop: "[calc((1lh - 16px) / 2)]",
+        },
+        icon: { marginTop: "[calc((1lh - 24px) / 2)]" },
+        spinner: { marginTop: "[calc((1lh - 24px) / 2)]" },
       },
     },
     tone: {
