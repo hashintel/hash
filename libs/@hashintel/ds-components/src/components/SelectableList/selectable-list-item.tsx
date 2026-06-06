@@ -72,6 +72,13 @@ export const ItemBody = ({
           }}
         />
       )}
+      {item.loading && (
+        <LoadingSpinner
+          size={iconSizeMap[size]}
+          variant="bars"
+          className={classes.spinner}
+        />
+      )}
       <SelectionIndicator
         style={selectedStyle}
         selected={isSelected}
@@ -85,7 +92,6 @@ export const ItemBody = ({
           <span className={classes.description}>{item.description}</span>
         )}
       </span>
-      {item.loading && <LoadingSpinner size={iconSizeMap[size]} />}
       {item.nestedItems && (
         <Icon
           name="chevronRight"

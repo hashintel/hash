@@ -25,11 +25,21 @@ export const styles = sva({
       alignItems: "flex-start",
       width: "full",
       gap: "[1px]",
+      paddingY: "1",
+      marginY: "1",
       borderTop: "1px solid",
       borderBottom: "1px solid",
       borderColor: "neutral.s30",
-      "&:first-child": { borderTopWidth: "0" },
-      "&:last-child": { borderBottomWidth: "0" },
+      "&:first-child": {
+        borderTopWidth: "0",
+        marginTop: "0",
+        paddingTop: "0",
+      },
+      "&:last-child": {
+        borderBottomWidth: "0",
+        marginBottom: "0",
+        paddingBottom: "0",
+      },
       // Collapse adjacent group borders so we don't get a double line
       "& + &": { borderTopWidth: "0" },
     },

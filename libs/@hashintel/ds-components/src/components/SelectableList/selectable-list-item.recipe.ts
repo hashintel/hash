@@ -3,7 +3,15 @@ import { sva } from "@hashintel/ds-helpers/css";
 import type { FormInputSize } from "../../util/form-shared";
 
 export const styles = sva({
-  slots: ["item", "textColumn", "description", "indicator", "tick", "checkbox"],
+  slots: [
+    "item",
+    "textColumn",
+    "description",
+    "indicator",
+    "tick",
+    "checkbox",
+    "spinner",
+  ],
   base: {
     item: {
       display: "flex",
@@ -37,6 +45,9 @@ export const styles = sva({
       alignItems: "center",
       justifyContent: "center",
       flexShrink: "0",
+    },
+    spinner: {
+      color: "neutral.s90",
     },
     tick: {},
     checkbox: {
