@@ -31,7 +31,7 @@ type RenderCtx = {
 const ItemRow = ({ item, ctx }: { item: Item; ctx: RenderCtx }) => {
   const portalContainerRef = usePortalContainerRef();
   const isSelected = ctx.selectedSet.has(item.id);
-  const selectedStyle = item.selectedStyle ?? "tick";
+  const selectedStyle = item.selectedStyle ?? "highlight";
   const highlighted = isSelected && selectedStyle === "highlight";
 
   const classes = itemStyles({
