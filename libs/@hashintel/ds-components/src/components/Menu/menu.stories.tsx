@@ -3,6 +3,7 @@ import {
   groupedItems,
   itemsWithSubActions,
 } from "../SelectableList/selectable-list.stories";
+import { EllipsisMenu as EllipsisMenuComponent } from "./ellipsis-menu";
 import { Menu } from "./menu";
 
 import type { Story, StoryDefault } from "@ladle/react";
@@ -65,4 +66,18 @@ export const PlainButtonTrigger: Story<MenuProps> = (args) => (
     trigger={<button type="button">Open menu</button>}
     items={groupedItems}
   />
+);
+
+export const EllipsisMenu: Story<MenuProps> = (args) => (
+  <div style={{ display: "flex", gap: 32, alignItems: "center" }}>
+    <EllipsisMenuComponent {...args} items={groupedItems} />
+    <EllipsisMenuComponent
+      {...args}
+      items={groupedItems}
+      iconName="bell"
+      variant="solid"
+      size="xs"
+    />
+    <EllipsisMenuComponent {...args} items={groupedItems} disabled />
+  </div>
 );
