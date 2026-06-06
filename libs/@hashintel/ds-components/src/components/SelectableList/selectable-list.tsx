@@ -80,9 +80,9 @@ const ItemRow = ({ item, ctx }: { item: Item; ctx: RenderCtx }) => {
     );
   }
 
-  if ("href" in item && item.href) {
+  if ("href" in item && item.href && !item.disabled) {
     return (
-      <Menu.Item value={item.id} disabled={item.disabled} asChild>
+      <Menu.Item value={item.id} asChild>
         <a
           href={item.href}
           target={item.target}
