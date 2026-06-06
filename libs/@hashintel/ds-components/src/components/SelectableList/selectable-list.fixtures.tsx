@@ -105,55 +105,6 @@ const kitchenSinkItem: Item = {
   onClick: noop,
 };
 
-export const defaultSelected = [
-  ...selectedStyles.map((style) => `style-${style}-selected`),
-  "kitchen-sink",
-];
-
-export const groupedItems: ItemOrGroup<Item>[] = [
-  simpleItem,
-  itemWithDescription,
-  itemWithIcon,
-  itemWithLoading,
-  itemWithHref,
-  {
-    id: "group-indented",
-    label: "Indented",
-    items: [itemIndent1, itemIndent2],
-  },
-  {
-    id: "group-tones",
-    label: "Tone",
-    items: toneItems,
-  },
-  {
-    id: "group-selected",
-    label: "Selected",
-    items: selectedStyleVariantItems,
-  },
-  {
-    id: "group-custom-label",
-    label: (
-      <span
-        className={css({
-          textTransform: "uppercase",
-          letterSpacing: "[2px]",
-          fontWeight: "semibold",
-          color: "red.s80",
-        })}
-      >
-        ✦ Custom group label ✦
-      </span>
-    ),
-    items: [itemWithCustomText],
-  },
-  {
-    id: "group-kitchen-sink",
-    label: undefined,
-    items: [kitchenSinkItem],
-  },
-];
-
 const nestedItemSingleChild: Item = {
   id: "sa-single-child",
   text: "Sub-action",
@@ -229,6 +180,64 @@ const itemWithoutSubActions: Item = {
   text: "Item without sub-actions",
   onClick: noop,
 };
+
+export const defaultSelected = [
+  ...selectedStyles.map((style) => `style-${style}-selected`),
+  "kitchen-sink",
+];
+
+export const groupedItems: ItemOrGroup<Item>[] = [
+  simpleItem,
+  itemWithDescription,
+  itemWithIcon,
+  itemWithLoading,
+  itemWithHref,
+  {
+    id: "group-indented",
+    label: "Indented",
+    items: [itemIndent1, itemIndent2],
+  },
+  {
+    id: "group-tones",
+    label: "Tone",
+    items: toneItems,
+  },
+  {
+    id: "group-selected",
+    label: "Selected",
+    items: selectedStyleVariantItems,
+  },
+  {
+    id: "group-nested-items",
+    label: "nested items",
+    items: [
+      itemWithSingleSubAction,
+      itemWithGroupedSubActions,
+      itemWithNestedSubActions,
+    ],
+  },
+  {
+    id: "group-custom-label",
+    label: (
+      <span
+        className={css({
+          textTransform: "uppercase",
+          letterSpacing: "[2px]",
+          fontWeight: "semibold",
+          color: "red.s80",
+        })}
+      >
+        ✦ Custom group label ✦
+      </span>
+    ),
+    items: [itemWithCustomText],
+  },
+  {
+    id: "group-kitchen-sink",
+    label: undefined,
+    items: [kitchenSinkItem],
+  },
+];
 
 export const itemsWithSubActions: ItemOrGroup<Item>[] = [
   itemWithSingleSubAction,

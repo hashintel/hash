@@ -4,11 +4,7 @@ import { css } from "@hashintel/ds-helpers/css";
 
 import { formInputSizes } from "../../util/form-shared";
 import { type Item, type ItemOrGroup, SelectableList } from "./selectable-list";
-import {
-  defaultSelected,
-  groupedItems,
-  itemsWithSubActions,
-} from "./selectable-list.fixtures";
+import { defaultSelected, groupedItems } from "./selectable-list.fixtures";
 
 import type { Story, StoryDefault } from "@ladle/react";
 
@@ -119,12 +115,6 @@ export const Sizes: Story<SelectableListProps> = (args) => (
 Sizes.parameters = {
   controls: { exclude: ["size"] },
 };
-
-export const WithSubActions: Story<SelectableListProps> = (args) => (
-  <StaticMenu>
-    <SelectableList {...args} items={itemsWithSubActions} />
-  </StaticMenu>
-);
 
 export const EmptyAndLoading: Story<SelectableListProps> = (args) => (
   <div
