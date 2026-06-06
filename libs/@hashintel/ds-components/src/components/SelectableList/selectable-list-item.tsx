@@ -1,3 +1,5 @@
+import { cx } from "@hashintel/ds-helpers/css";
+
 import { Icon } from "../Icon/icon";
 import { LoadingSpinner } from "../Loading/loading-spinner";
 import { checkIconSizeMap, indentUnitPx } from "./selectable-list-item.recipe";
@@ -23,14 +25,17 @@ const SelectionIndicator = ({
 
   if (style === "tick") {
     return (
-      <span className={classes.indicatorBox} aria-hidden="true">
+      <span className={cx(classes.indicator, classes.tick)} aria-hidden="true">
         {selected ? <Icon name="check" size={checkIconSizeMap[size]} /> : null}
       </span>
     );
   }
 
   return (
-    <span className={classes.checkboxControl} aria-hidden="true">
+    <span
+      className={cx(classes.indicator, classes.checkbox)}
+      aria-hidden="true"
+    >
       {selected ? <Icon name="check" size={checkIconSizeMap[size]} /> : null}
     </span>
   );

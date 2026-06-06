@@ -3,13 +3,7 @@ import { sva } from "@hashintel/ds-helpers/css";
 import type { FormInputSize } from "../../util/form-shared";
 
 export const styles = sva({
-  slots: [
-    "item",
-    "textColumn",
-    "description",
-    "indicatorBox",
-    "checkboxControl",
-  ],
+  slots: ["item", "textColumn", "description", "indicator", "tick", "checkbox"],
   base: {
     item: {
       display: "flex",
@@ -38,22 +32,19 @@ export const styles = sva({
       display: "block",
       color: "fg.subtle",
     },
-    indicatorBox: {
+    indicator: {
       display: "inline-flex",
       alignItems: "center",
       justifyContent: "center",
       flexShrink: "0",
     },
-    checkboxControl: {
-      display: "inline-flex",
-      alignItems: "center",
-      justifyContent: "center",
+    tick: {},
+    checkbox: {
       border: "1px solid",
       borderColor: "bd.solid",
       borderRadius: "sm",
       backgroundColor: "white",
       color: "fg.onSolid",
-      flexShrink: "0",
     },
   },
   variants: {
@@ -68,8 +59,7 @@ export const styles = sva({
           borderRadius: "sm",
         },
         description: { fontSize: "[9px]", marginTop: "0" },
-        indicatorBox: { width: "[10px]", height: "[10px]" },
-        checkboxControl: { width: "[10px]", height: "[10px]" },
+        indicator: { width: "[10px]", height: "[10px]" },
       },
       xs: {
         item: {
@@ -81,8 +71,7 @@ export const styles = sva({
           borderRadius: "md",
         },
         description: { fontSize: "[10px]", marginTop: "0" },
-        indicatorBox: { width: "[12px]", height: "[12px]" },
-        checkboxControl: { width: "[12px]", height: "[12px]" },
+        indicator: { width: "[12px]", height: "[12px]" },
       },
       sm: {
         item: {
@@ -94,8 +83,7 @@ export const styles = sva({
           borderRadius: "md",
         },
         description: { fontSize: "[11px]", marginTop: "0.5" },
-        indicatorBox: { width: "[14px]", height: "[14px]" },
-        checkboxControl: { width: "[14px]", height: "[14px]" },
+        indicator: { width: "[14px]", height: "[14px]" },
       },
       md: {
         item: {
@@ -107,8 +95,7 @@ export const styles = sva({
           borderRadius: "lg",
         },
         description: { fontSize: "xs", marginTop: "0.5" },
-        indicatorBox: { width: "[16px]", height: "[16px]" },
-        checkboxControl: { width: "[16px]", height: "[16px]" },
+        indicator: { width: "[16px]", height: "[16px]" },
       },
       lg: {
         item: {
@@ -120,8 +107,7 @@ export const styles = sva({
           borderRadius: "lg",
         },
         description: { fontSize: "sm", marginTop: "1" },
-        indicatorBox: { width: "[20px]", height: "[20px]" },
-        checkboxControl: { width: "[20px]", height: "[20px]" },
+        indicator: { width: "[20px]", height: "[20px]" },
       },
     },
     tone: {
@@ -142,7 +128,7 @@ export const styles = sva({
     },
     selected: {
       true: {
-        checkboxControl: {
+        checkbox: {
           backgroundColor: "fg.heading",
           borderColor: "fg.heading",
           color: "white",
