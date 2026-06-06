@@ -59,13 +59,6 @@ const itemIndent2: Item = {
   onClick: noop,
 };
 
-const disabledItem: Item = {
-  id: "disabled",
-  text: "Disabled item",
-  disabled: true,
-  onClick: noop,
-};
-
 const toneItems: Item[] = tones.map((tone) => ({
   id: `tone-${tone}`,
   text: `Tone: ${tone}`,
@@ -73,12 +66,20 @@ const toneItems: Item[] = tones.map((tone) => ({
   onClick: noop,
 }));
 
-const selectedStyleItems: Item[] = selectedStyles.map((style) => ({
-  id: `style-${style}`,
-  text: `Selected style: ${style}`,
-  selectedStyle: style,
-  onClick: noop,
-}));
+const selectedStyleVariantItems: Item[] = selectedStyles.flatMap((style) => [
+  {
+    id: `style-${style}-unselected`,
+    text: `selectedStyle: ${style} (not selected)`,
+    selectedStyle: style,
+    onClick: noop,
+  },
+  {
+    id: `style-${style}-selected`,
+    text: `selectedStyle: ${style} (selected)`,
+    selectedStyle: style,
+    onClick: noop,
+  },
+]);
 
 const itemWithHref: Item = {
   id: "with-href",
@@ -115,40 +116,31 @@ const kitchenSinkItem: Item = {
   onClick: noop,
 };
 
-const allItems: Item[] = [
+const defaultSelected = [
+  ...selectedStyles.map((style) => `style-${style}-selected`),
+  "kitchen-sink",
+];
+
+const groupedItems: ItemOrGroup<Item>[] = [
   simpleItem,
   itemWithDescription,
   itemWithIcon,
   itemWithLoading,
-  itemIndent1,
-  itemIndent2,
-  disabledItem,
-  ...toneItems,
-  ...selectedStyleItems,
   itemWithHref,
-  itemWithCustomText,
-  kitchenSinkItem,
-];
-
-const defaultSelected = [
-  "style-tick",
-  "style-checkbox",
-  "style-radio",
-  "style-highlight",
-  "kitchen-sink",
-];
-
-const noGroupItems = allItems.slice(0, 5);
-const simpleLabelItems = allItems.slice(5, 9);
-const customLabelItems = allItems.slice(9, 14);
-const noLabelItems = allItems.slice(14, 18);
-
-const groupedItems: ItemOrGroup[] = [
-  ...noGroupItems,
   {
-    id: "group-simple-label",
-    label: "Simple group label",
-    items: simpleLabelItems,
+    id: "group-indented",
+    label: "Indented",
+    items: [itemIndent1, itemIndent2],
+  },
+  {
+    id: "group-tones",
+    label: "Tone",
+    items: toneItems,
+  },
+  {
+    id: "group-selected",
+    label: "Selected",
+    items: selectedStyleVariantItems,
   },
   {
     id: "group-custom-label",
@@ -164,14 +156,41 @@ const groupedItems: ItemOrGroup[] = [
         ✦ Custom group label ✦
       </span>
     ),
-    items: customLabelItems,
+    items: [itemWithCustomText],
   },
   {
-    id: "group-no-label",
+    id: "group-kitchen-sink",
     label: undefined,
-    items: noLabelItems,
+    items: [kitchenSinkItem],
   },
 ];
+
+const withDisabled = (entry: ItemOrGroup<Item>): ItemOrGroup<Item> => {
+  if ("items" in entry) {
+    return {
+      ...entry,
+      id: `disabled-${entry.id}`,
+      items: entry.items.map(
+        (item) =>
+          ({
+            ...item,
+            id: `disabled-${item.id}`,
+            disabled: true,
+          }) as unknown as Item,
+      ),
+    };
+  }
+  return {
+    ...entry,
+    id: `disabled-${entry.id}`,
+    disabled: true,
+  } as unknown as Item;
+};
+
+const disabledGroupedItems: ItemOrGroup<Item>[] =
+  groupedItems.map(withDisabled);
+
+const disabledSelected = defaultSelected.map((id) => `disabled-${id}`);
 
 export default {
   title: "Components/SelectableList",
@@ -193,6 +212,14 @@ export default {
 
 export const Default: Story<SelectableListProps> = (args) => (
   <SelectableList {...args} items={groupedItems} selected={defaultSelected} />
+);
+
+export const Disabled: Story<SelectableListProps> = (args) => (
+  <SelectableList
+    {...args}
+    items={disabledGroupedItems}
+    selected={disabledSelected}
+  />
 );
 
 export const Sizes: Story<SelectableListProps> = (args) => (
@@ -232,71 +259,87 @@ Sizes.parameters = {
   controls: { exclude: ["size"] },
 };
 
-const itemsWithSubActions: ItemOrGroup[] = [
+const nestedItemSingleChild: Item = {
+  id: "sa-single-child",
+  text: "Sub-action",
+  icon: "pencil",
+  onClick: noop,
+};
+
+const nestedGroupedChildren: Item[] = [
   {
-    id: "sa-single",
-    text: "Item with a single sub-action",
-    icon: "sliders",
-    onClick: noop,
-    nestedItems: {
-      id: "sa-single-child",
-      text: "Sub-action",
-      icon: "pencil",
-      onClick: noop,
-    },
-  },
-  {
-    id: "sa-grouped",
-    text: "Item with grouped sub-actions",
-    icon: "magic",
-    onClick: noop,
-    nestedItems: {
-      id: "sa-grouped-group",
-      label: "Sub-action group",
-      items: [
-        {
-          id: "sa-grouped-1",
-          text: "First sub-action",
-          icon: "plus",
-          onClick: noop,
-        },
-        {
-          id: "sa-grouped-2",
-          text: "Second sub-action",
-          icon: "pencil",
-          onClick: noop,
-        },
-        {
-          id: "sa-grouped-3",
-          text: "Disabled sub-action",
-          disabled: true,
-          onClick: noop,
-        },
-      ],
-    },
-  },
-  {
-    id: "sa-nested",
-    text: "Item with nested sub-actions",
-    icon: "shapes",
-    onClick: noop,
-    nestedItems: {
-      id: "sa-nested-1",
-      text: "First level",
-      icon: "arrowRight",
-      onClick: noop,
-      nestedItems: {
-        id: "sa-nested-2",
-        text: "Second level (nested)",
-        onClick: noop,
-      },
-    },
-  },
-  {
-    id: "sa-plain",
-    text: "Item without sub-actions",
+    id: "sa-grouped-1",
+    text: "First sub-action",
+    icon: "plus",
     onClick: noop,
   },
+  {
+    id: "sa-grouped-2",
+    text: "Second sub-action",
+    icon: "pencil",
+    onClick: noop,
+  },
+  {
+    id: "sa-grouped-3",
+    text: "Disabled sub-action",
+    disabled: true,
+    onClick: noop,
+  },
+];
+
+const nestedNestedGrandchild: Item = {
+  id: "sa-nested-2",
+  text: "Second level (nested)",
+  onClick: noop,
+};
+
+const nestedNestedChild = {
+  id: "sa-nested-1",
+  text: "First level",
+  icon: "arrowRight",
+  onClick: noop,
+  nestedItems: nestedNestedGrandchild,
+} as unknown as Item;
+
+const itemWithSingleSubAction = {
+  id: "sa-single",
+  text: "Item with a single sub-action",
+  icon: "sliders",
+  onClick: noop,
+  nestedItems: nestedItemSingleChild,
+} as unknown as Item;
+
+const itemWithGroupedSubActions = {
+  id: "sa-grouped",
+  text: "Item with grouped sub-actions",
+  icon: "magic",
+  onClick: noop,
+  nestedItems: {
+    id: "sa-grouped-group",
+    label: "Sub-action group",
+    items: nestedGroupedChildren,
+  },
+} as unknown as Item;
+
+const itemWithNestedSubActions = {
+  id: "sa-nested",
+  text: "Item with nested sub-actions",
+  icon: "shapes",
+  onClick: noop,
+  nestedItems: nestedNestedChild,
+} as unknown as Item;
+
+const itemWithoutSubActions: Item = {
+  id: "sa-plain",
+  text: "Item without sub-actions",
+  onClick: noop,
+};
+
+const itemsWithSubActions: ItemOrGroup<Item>[] = [
+  itemWithSingleSubAction,
+  itemWithGroupedSubActions,
+  itemWithNestedSubActions,
+  itemWithoutSubActions,
 ];
 
 export const WithSubActions: Story<SelectableListProps> = (args) => (

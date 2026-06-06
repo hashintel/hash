@@ -39,21 +39,21 @@ export type Item = {
       onClick: (id: string) => void;
     }
   | {
-      nestedItems?: ItemOrGroup;
+      nestedItems?: ItemOrGroup<Item>;
     }
 >;
 
-export type ItemOrGroup =
-  | Item
+export type ItemOrGroup<ItemType> =
+  | ItemType
   | {
       id: string;
       label: React.ReactNode;
-      items: Item[];
+      items: ItemType[];
     };
 
 const isGroup = (
-  entry: ItemOrGroup,
-): entry is Extract<ItemOrGroup, { items: Item[] }> => "items" in entry;
+  entry: ItemOrGroup<Item>,
+): entry is Extract<ItemOrGroup<Item>, { items: Item[] }> => "items" in entry;
 
 const SelectionIndicator = ({
   style,
@@ -221,7 +221,10 @@ const ItemRow = ({ item, ctx }: { item: Item; ctx: RenderCtx }) => {
   );
 };
 
-const renderEntry = (entry: ItemOrGroup, ctx: RenderCtx): React.ReactNode => {
+const renderEntry = (
+  entry: ItemOrGroup<Item>,
+  ctx: RenderCtx,
+): React.ReactNode => {
   if (isGroup(entry)) {
     const groupClasses = styles({ size: ctx.size });
     return (
@@ -256,7 +259,7 @@ export const SelectableList = ({
   emptyState,
 }: {
   className?: string;
-  items?: Array<ItemOrGroup>;
+  items?: Array<ItemOrGroup<Item>>;
   size?: FormInputSize;
   selected?: string[] | Set<string>;
   onHighlight?: (id: string) => void;
