@@ -14,7 +14,6 @@ import {
   type Item,
   type ItemOrGroup,
 } from "../SelectableList/selectable-list";
-import { baseInputRecipe } from "../TextInput/base-input.recipe";
 import { InputConnector } from "../TextInput/input-connector";
 import { selectRecipe } from "./select.recipe";
 
@@ -69,7 +68,7 @@ export type SelectProps = {
 > &
   React.AriaAttributes;
 
-type BaseInputSlots = ReturnType<typeof baseInputRecipe>;
+type SelectSlots = ReturnType<typeof selectRecipe>;
 type Prefix =
   | { iconName: IconName }
   | { text: string }
@@ -99,7 +98,7 @@ const loadingSizeMap: Record<FormInputSize, FormInputSize> = {
 function renderPrefix(
   adornment: Prefix,
   size: FormInputSize,
-  classes: BaseInputSlots,
+  classes: SelectSlots,
 ): React.ReactNode {
   const content = isIconPrefix(adornment) ? (
     <Icon name={adornment.iconName} size={iconSizeMap[size]} />
@@ -228,9 +227,7 @@ export const Select = ({
     [menuItems],
   );
 
-  const selectClasses = selectRecipe({ variant });
-
-  const classes = baseInputRecipe({
+  const classes = selectRecipe({
     variant,
     size,
     align,
@@ -287,7 +284,7 @@ export const Select = ({
           {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions -- ark-ui sets button role / keyboard handlers via asChild on Select.Trigger */}
           <div
             ref={mergedTriggerRef}
-            className={cx(selectClasses.trigger, classes.root)}
+            className={classes.trigger}
             data-testid={testId}
             tabIndex={tabIndex}
             data-name={name}
@@ -316,10 +313,8 @@ export const Select = ({
             <div className={classes.inputWrapper}>
               <span
                 className={cx(
-                  classes.input,
-                  selectedItem
-                    ? selectClasses.value
-                    : selectClasses.placeholder,
+                  classes.value,
+                  !selectedItem && classes.placeholder,
                 )}
                 data-part="value"
               >
@@ -361,11 +356,7 @@ export const Select = ({
             )}
 
             {!hideArrow && !loading && (
-              <span
-                className={selectClasses.arrow}
-                data-part="arrow"
-                aria-hidden
-              >
+              <span className={classes.arrow} data-part="arrow" aria-hidden>
                 <Icon name="chevronDown" size={iconSizeMap[size]} />
               </span>
             )}
