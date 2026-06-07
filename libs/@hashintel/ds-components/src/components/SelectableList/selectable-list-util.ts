@@ -44,20 +44,22 @@ export const isGroup = (
 
 /**
  * Flattens an items-or-groups tree into the ordered list of ids that are
- * actually navigable via keyboard (skipping disabled items).
+ * actually navigable via keyboard (skipping disabled or loading items, which
+ * `ItemRow` renders as non-interactive).
  */
 export const collectNavigableItemIds = (
   items: Array<ItemOrGroup<Item>>,
 ): string[] => {
   const result: string[] = [];
+  const isNavigable = (item: Item) => !item.disabled && !item.loading;
   for (const entry of items) {
     if (isGroup(entry)) {
       for (const item of entry.items) {
-        if (!item.disabled) {
+        if (isNavigable(item)) {
           result.push(item.id);
         }
       }
-    } else if (!entry.disabled) {
+    } else if (isNavigable(entry)) {
       result.push(entry.id);
     }
   }
