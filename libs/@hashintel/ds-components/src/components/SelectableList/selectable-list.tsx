@@ -12,7 +12,12 @@ import { isEmptyString } from "../../util/string";
 import { LoadingSpinner } from "../Loading/loading-spinner";
 import { ItemBody } from "./selectable-list-item";
 import { styles as itemStyles } from "./selectable-list-item.recipe";
-import { type Item, type ItemOrGroup, isGroup } from "./selectable-list-util";
+import {
+  type Item,
+  type ItemOrGroup,
+  isGroup,
+  useLoopSelection,
+} from "./selectable-list-util";
 import { styles } from "./selectable-list.recipe";
 
 import type { FormInputSize } from "../../util/form-shared";
@@ -28,8 +33,57 @@ type RenderCtx = {
   contentClassName: string | undefined;
 };
 
-const ItemRow = ({ item, ctx }: { item: Item; ctx: RenderCtx }) => {
+const NestedMenu = ({
+  item,
+  nestedItems,
+  body,
+  className,
+  isSelected,
+  ctx,
+}: {
+  item: Item;
+  nestedItems: ItemOrGroup<Item>;
+  body: React.ReactNode;
+  className: string | undefined;
+  isSelected: boolean;
+  ctx: RenderCtx;
+}) => {
   const portalContainerRef = usePortalContainerRef();
+  const nestedEntries = useMemo(() => [nestedItems], [nestedItems]);
+  const handleLoopKeyDown = useLoopSelection(nestedEntries);
+
+  return (
+    <Menu.Root
+      closeOnSelect={false}
+      loopFocus={false}
+      ids={{ trigger: item.id }}
+    >
+      <Menu.Context>
+        {(menu) => (
+          <>
+            <Menu.TriggerItem
+              className={className}
+              data-selected={isSelected || undefined}
+            >
+              {body}
+            </Menu.TriggerItem>
+            <Portal container={portalContainerRef}>
+              <Menu.Positioner
+                onKeyDownCapture={(event) => handleLoopKeyDown(event, menu)}
+              >
+                <Menu.Content className={ctx.contentClassName}>
+                  {renderEntry(nestedItems, ctx)}
+                </Menu.Content>
+              </Menu.Positioner>
+            </Portal>
+          </>
+        )}
+      </Menu.Context>
+    </Menu.Root>
+  );
+};
+
+const ItemRow = ({ item, ctx }: { item: Item; ctx: RenderCtx }) => {
   const isSelected = ctx.selectedSet.has(item.id);
   const selectedStyle = item.selectedStyle ?? "highlight";
   const highlighted = isSelected && selectedStyle === "highlight";
@@ -64,21 +118,14 @@ const ItemRow = ({ item, ctx }: { item: Item; ctx: RenderCtx }) => {
 
   if (item.nestedItems && !item.disabled) {
     return (
-      <Menu.Root closeOnSelect={false} ids={{ trigger: item.id }}>
-        <Menu.TriggerItem
-          className={classes.item}
-          data-selected={isSelected || undefined}
-        >
-          {body}
-        </Menu.TriggerItem>
-        <Portal container={portalContainerRef}>
-          <Menu.Positioner>
-            <Menu.Content className={ctx.contentClassName}>
-              {renderEntry(item.nestedItems, ctx)}
-            </Menu.Content>
-          </Menu.Positioner>
-        </Portal>
-      </Menu.Root>
+      <NestedMenu
+        item={item}
+        nestedItems={item.nestedItems}
+        body={body}
+        className={classes.item}
+        isSelected={isSelected}
+        ctx={ctx}
+      />
     );
   }
 
