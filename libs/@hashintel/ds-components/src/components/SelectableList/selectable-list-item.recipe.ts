@@ -31,7 +31,7 @@ export const styles = sva({
       "&[data-highlighted]": {
         backgroundColor: "neutral.a35",
       },
-      "&[data-disabled]": {
+      "&[data-disabled]:not([data-loading])": {
         cursor: "default",
         opacity: "[0.5]",
       },

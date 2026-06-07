@@ -100,6 +100,7 @@ const ItemRow = ({ item, ctx }: { item: Item; ctx: RenderCtx }) => {
   const isSelected = ctx.selectedSet.has(item.id);
   const selectedStyle = item.selectedStyle ?? "highlight";
   const highlighted = isSelected && selectedStyle === "highlight";
+  const isInteractive = !item.disabled && !item.loading;
 
   const classes = itemStyles({
     size: ctx.size,
@@ -123,13 +124,14 @@ const ItemRow = ({ item, ctx }: { item: Item; ctx: RenderCtx }) => {
         item={item}
         className={classes.item}
         data-selected={isSelected || undefined}
+        data-loading={item.loading || undefined}
       >
         {body}
       </Select.Item>
     );
   }
 
-  if (item.nestedItems && !item.disabled) {
+  if (item.nestedItems && isInteractive) {
     return (
       <NestedMenu
         item={item}
@@ -142,7 +144,7 @@ const ItemRow = ({ item, ctx }: { item: Item; ctx: RenderCtx }) => {
     );
   }
 
-  if ("href" in item && item.href && !item.disabled) {
+  if ("href" in item && item.href && isInteractive) {
     return (
       <Menu.Item value={item.id} asChild>
         <a
@@ -166,10 +168,11 @@ const ItemRow = ({ item, ctx }: { item: Item; ctx: RenderCtx }) => {
   return (
     <Menu.Item
       value={item.id}
-      disabled={item.disabled}
+      disabled={!isInteractive}
       onSelect={handleSelect}
       className={classes.item}
       data-selected={isSelected || undefined}
+      data-loading={item.loading || undefined}
     >
       {body}
     </Menu.Item>
