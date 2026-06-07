@@ -91,6 +91,18 @@ export const useLoopSelection = (items: Array<ItemOrGroup<Item>>) => {
       return;
     }
 
+    // Nested submenus portal to body but remain React descendants, so their
+    // key events bubble through capture on this handler. DOM containment lets
+    // us ignore those — only events from inside this menu's positioner apply.
+    const { currentTarget, target } = event;
+    if (
+      !(currentTarget instanceof Node) ||
+      !(target instanceof Node) ||
+      !currentTarget.contains(target)
+    ) {
+      return;
+    }
+
     const current = menu.highlightedValue;
     const atBottom = lastId !== undefined && current === lastId;
     const atTop = firstId !== undefined && current === firstId;
