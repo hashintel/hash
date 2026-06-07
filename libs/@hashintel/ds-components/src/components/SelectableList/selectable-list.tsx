@@ -57,6 +57,7 @@ const NestedMenu = ({
       closeOnSelect={false}
       loopFocus={false}
       ids={{ trigger: item.id }}
+      positioning={{ placement: "right" }}
     >
       <Menu.Context>
         {(menu) => (

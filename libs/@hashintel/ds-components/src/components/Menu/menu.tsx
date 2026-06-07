@@ -30,8 +30,11 @@ export const Menu = ({
           <>
             <ArkMenu.Trigger asChild>
               {cloneElement(
-                trigger as React.ReactElement<{ pressed?: boolean }>,
-                { pressed: menu.open },
+                trigger as React.ReactElement<{
+                  pressed?: boolean;
+                  "aria-pressed"?: boolean;
+                }>,
+                { pressed: menu.open, "aria-pressed": false },
               )}
             </ArkMenu.Trigger>
             {items.length > 0 && (
