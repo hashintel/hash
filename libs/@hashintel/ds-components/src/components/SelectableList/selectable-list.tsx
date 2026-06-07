@@ -188,11 +188,7 @@ const renderEntry = (
 
     if (ctx.as === "Select") {
       return (
-        <Select.ItemGroup
-          key={entry.id}
-          id={entry.id}
-          className={groupClasses.group}
-        >
+        <Select.ItemGroup key={entry.id} className={groupClasses.group}>
           {showLabel && (
             <Select.ItemGroupLabel className={groupClasses.groupLabel}>
               {entry.label}
@@ -206,11 +202,7 @@ const renderEntry = (
     }
 
     return (
-      <Menu.ItemGroup
-        key={entry.id}
-        id={entry.id}
-        className={groupClasses.group}
-      >
+      <Menu.ItemGroup key={entry.id} className={groupClasses.group}>
         {showLabel && (
           <Menu.ItemGroupLabel className={groupClasses.groupLabel}>
             {entry.label}
