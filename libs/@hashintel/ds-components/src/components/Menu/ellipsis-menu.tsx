@@ -25,8 +25,8 @@ export const EllipsisMenu = ({
           aria-label="Actions"
         />
       }
-      position={props.position ?? "bottom-end"}
       {...props}
+      position={props.position ?? "bottom-end"}
     />
   );
 };
