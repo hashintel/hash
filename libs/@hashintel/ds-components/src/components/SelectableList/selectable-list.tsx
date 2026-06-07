@@ -3,7 +3,7 @@
 import { Menu } from "@ark-ui/react/menu";
 import { Portal } from "@ark-ui/react/portal";
 import { Select } from "@ark-ui/react/select";
-import { useMemo } from "react";
+import { createContext, use, useMemo } from "react";
 
 import { cx } from "@hashintel/ds-helpers/css";
 
@@ -33,6 +33,8 @@ type RenderCtx = {
   contentClassName: string | undefined;
 };
 
+const NestedMenuDepthContext = createContext(0);
+
 const NestedMenu = ({
   item,
   nestedItems,
@@ -49,6 +51,8 @@ const NestedMenu = ({
   ctx: RenderCtx;
 }) => {
   const portalContainerRef = usePortalContainerRef();
+  const parentDepth = use(NestedMenuDepthContext);
+  const depth = parentDepth + 1;
   const nestedEntries = useMemo(() => [nestedItems], [nestedItems]);
   const handleLoopKeyDown = useLoopSelection(nestedEntries);
 
@@ -70,10 +74,15 @@ const NestedMenu = ({
             </Menu.TriggerItem>
             <Portal container={portalContainerRef}>
               <Menu.Positioner
+                style={{
+                  zIndex: `calc(var(--z-index-popover) + ${depth})`,
+                }}
                 onKeyDownCapture={(event) => handleLoopKeyDown(event, menu)}
               >
                 <Menu.Content className={ctx.contentClassName}>
-                  {renderEntry(nestedItems, ctx)}
+                  <NestedMenuDepthContext value={depth}>
+                    {renderEntry(nestedItems, ctx)}
+                  </NestedMenuDepthContext>
                 </Menu.Content>
               </Menu.Positioner>
             </Portal>
