@@ -18,7 +18,7 @@ import {
   isGroup,
   useLoopSelection,
 } from "./selectable-list-util";
-import { styles } from "./selectable-list.recipe";
+import { contentPaddingPx, styles } from "./selectable-list.recipe";
 
 import type { FormInputSize } from "../../util/form-shared";
 
@@ -61,7 +61,10 @@ const NestedMenu = ({
       closeOnSelect={false}
       loopFocus={false}
       ids={{ trigger: item.id }}
-      positioning={{ placement: "right" }}
+      positioning={{
+        placement: "right-start",
+        offset: { mainAxis: 0, crossAxis: -contentPaddingPx[ctx.size] },
+      }}
     >
       <Menu.Context>
         {(menu) => (

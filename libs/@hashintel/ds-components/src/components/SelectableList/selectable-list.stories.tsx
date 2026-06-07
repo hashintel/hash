@@ -16,6 +16,25 @@ const StaticMenu = ({ children }: { children: React.ReactNode }) => (
   </Menu.Root>
 );
 
+function prefixIds(
+  entry: ItemOrGroup<Item>,
+  prefix: string,
+): ItemOrGroup<Item> {
+  if ("items" in entry) {
+    return {
+      ...entry,
+      id: `${prefix}-${entry.id}`,
+      items: entry.items.map((item) => prefixIds(item, prefix) as Item),
+    };
+  }
+  const nested = (entry as { nestedItems?: ItemOrGroup<Item> }).nestedItems;
+  return {
+    ...entry,
+    id: `${prefix}-${entry.id}`,
+    ...(nested ? { nestedItems: prefixIds(nested, prefix) } : {}),
+  } as unknown as Item;
+}
+
 function withDisabled(entry: ItemOrGroup<Item>): ItemOrGroup<Item> {
   if ("items" in entry) {
     return {
@@ -99,8 +118,8 @@ export const Sizes: Story<SelectableListProps> = (args) => (
           <SelectableList
             {...args}
             size={size}
-            items={groupedItems}
-            selected={defaultSelected}
+            items={groupedItems.map((entry) => prefixIds(entry, size))}
+            selected={defaultSelected.map((id) => `${size}-${id}`)}
           />
         </StaticMenu>
       </div>

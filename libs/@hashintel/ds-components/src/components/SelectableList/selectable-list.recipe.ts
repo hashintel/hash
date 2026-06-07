@@ -1,5 +1,7 @@
 import { sva } from "@hashintel/ds-helpers/css";
 
+import type { FormInputSize } from "../../util/form-shared";
+
 export const styles = sva({
   slots: [
     "content",
@@ -131,3 +133,12 @@ export const styles = sva({
     size: "md",
   },
 });
+
+// Matches the vertical padding of a menu
+export const contentPaddingPx: Record<FormInputSize, number> = {
+  xxs: 3,
+  xs: 3,
+  sm: 5,
+  md: 5,
+  lg: 7,
+};
