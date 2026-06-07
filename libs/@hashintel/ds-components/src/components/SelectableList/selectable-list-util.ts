@@ -26,7 +26,7 @@ export type Item = {
       onClick: (id: string) => void;
     }
   | {
-      nestedItems?: ItemOrGroup<Item>;
+      nestedItems: ItemOrGroup<Item>;
     }
 >;
 
