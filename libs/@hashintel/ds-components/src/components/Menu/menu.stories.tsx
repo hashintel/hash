@@ -34,13 +34,9 @@ export default {
     position: {
       control: { type: "select", options: positions },
     },
-    loading: {
-      control: { type: "boolean" },
-    },
   },
   args: {
     position: "bottom-start",
-    loading: false,
   },
 } satisfies StoryDefault<MenuProps>;
 
