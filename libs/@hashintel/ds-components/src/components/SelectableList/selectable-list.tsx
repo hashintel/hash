@@ -64,7 +64,7 @@ const ItemRow = ({ item, ctx }: { item: Item; ctx: RenderCtx }) => {
 
   if (item.nestedItems && !item.disabled) {
     return (
-      <Menu.Root closeOnSelect={false}>
+      <Menu.Root closeOnSelect={false} ids={{ trigger: item.id }}>
         <Menu.TriggerItem
           className={classes.item}
           data-selected={isSelected || undefined}
