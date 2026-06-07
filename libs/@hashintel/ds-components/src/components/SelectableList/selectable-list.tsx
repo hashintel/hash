@@ -62,7 +62,8 @@ const NestedMenu = ({
       ids={{ trigger: item.id }}
       positioning={{
         placement: "right-start",
-        offset: { mainAxis: 0, crossAxis: -contentPaddingPx[ctx.size] },
+        offset: { mainAxis: 0 },
+        shift: -contentPaddingPx[ctx.size],
       }}
     >
       <Menu.Context>
