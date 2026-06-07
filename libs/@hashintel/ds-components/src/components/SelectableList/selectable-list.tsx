@@ -201,9 +201,6 @@ export const SelectableList = ({
   const classes = styles({ size });
 
   const isEmpty = items.length === 0;
-  if (isEmpty && !emptyState && !loading) {
-    return null;
-  }
 
   const ctx: RenderCtx = {
     as,

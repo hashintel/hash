@@ -15,15 +15,13 @@ export const Menu = ({
   items,
   trigger,
   position = "bottom-start",
-  loading,
 }: {
   items: Array<ItemOrGroup<Item>>;
   trigger: React.ReactElement;
   position?: Position;
-  loading?: boolean;
 }) => {
   const portalContainerRef = usePortalContainerRef();
-  const handleLoopKeyDown = useLoopSelection(loading ? [] : items);
+  const handleLoopKeyDown = useLoopSelection(items);
 
   return (
     <ArkMenu.Root positioning={{ placement: position }} loopFocus={false}>
@@ -36,13 +34,15 @@ export const Menu = ({
                 { pressed: menu.open },
               )}
             </ArkMenu.Trigger>
-            <Portal container={portalContainerRef}>
-              <ArkMenu.Positioner
-                onKeyDownCapture={(event) => handleLoopKeyDown(event, menu)}
-              >
-                <SelectableList items={items} loading={loading} />
-              </ArkMenu.Positioner>
-            </Portal>
+            {items.length > 0 && (
+              <Portal container={portalContainerRef}>
+                <ArkMenu.Positioner
+                  onKeyDownCapture={(event) => handleLoopKeyDown(event, menu)}
+                >
+                  <SelectableList items={items} />
+                </ArkMenu.Positioner>
+              </Portal>
+            )}
           </>
         )}
       </ArkMenu.Context>
