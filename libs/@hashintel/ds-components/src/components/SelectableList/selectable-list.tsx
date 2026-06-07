@@ -124,7 +124,7 @@ const ItemRow = ({ item, ctx }: { item: Item; ctx: RenderCtx }) => {
         item={item}
         className={classes.item}
         data-selected={isSelected || undefined}
-        data-loading={item.loading || undefined}
+        data-loading={!!item.loading || undefined}
       >
         {body}
       </Select.Item>
@@ -172,7 +172,7 @@ const ItemRow = ({ item, ctx }: { item: Item; ctx: RenderCtx }) => {
       onSelect={handleSelect}
       className={classes.item}
       data-selected={isSelected || undefined}
-      data-loading={item.loading || undefined}
+      data-loading={!!item.loading || undefined}
     >
       {body}
     </Menu.Item>
