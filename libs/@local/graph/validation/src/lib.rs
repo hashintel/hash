@@ -164,6 +164,29 @@ mod tests {
                     .collect(),
             }
         }
+
+        fn get_closed_data_type_by_uuid_impl(
+            &self,
+            data_type_uuid: DataTypeUuid,
+        ) -> Result<ClosedDataType, Report<InvalidDataType>> {
+            let mut ontology_type_resolver = OntologyTypeResolver::default();
+
+            for (data_type_id, data_type) in &self.data_types {
+                ontology_type_resolver
+                    .add_unresolved_data_type(*data_type_id, Arc::new(data_type.schema.clone()));
+            }
+
+            let schema_metadata = ontology_type_resolver
+                .resolve_data_type_metadata(data_type_uuid)
+                .change_context(InvalidDataType)?;
+            let data_type = self
+                .data_types
+                .get(&data_type_uuid)
+                .ok_or_else(|| Report::new(InvalidDataType))?;
+
+            ClosedDataType::from_resolve_data(data_type.schema.clone(), &schema_metadata)
+                .change_context(InvalidDataType)
+        }
     }
 
     #[derive(Debug, Error)]
@@ -189,13 +212,15 @@ mod tests {
 
     impl EntityProvider for Provider {
         #[expect(refining_impl_trait)]
-        async fn provide_entity(
+        fn provide_entity(
             &self,
             entity_id: EntityId,
-        ) -> Result<&Entity, Report<InvalidEntity>> {
-            self.entities
-                .get(&entity_id)
-                .ok_or_else(|| Report::new(InvalidEntity { id: entity_id }))
+        ) -> impl Future<Output = Result<&Entity, Report<InvalidEntity>>> + Send {
+            core::future::ready(
+                self.entities
+                    .get(&entity_id)
+                    .ok_or_else(|| Report::new(InvalidEntity { id: entity_id })),
+            )
         }
     }
 
@@ -203,18 +228,21 @@ mod tests {
         type Value = Arc<ClosedEntityType>;
 
         #[expect(refining_impl_trait)]
-        async fn provide_type(
+        fn provide_type(
             &self,
             type_id: &VersionedUrl,
-        ) -> Result<Arc<ClosedEntityType>, Report<InvalidEntityType>> {
-            self.entity_types
-                .get(type_id)
-                .map(Arc::clone)
-                .ok_or_else(|| {
-                    Report::new(InvalidEntityType {
-                        id: type_id.clone(),
-                    })
-                })
+        ) -> impl Future<Output = Result<Arc<ClosedEntityType>, Report<InvalidEntityType>>> + Send
+        {
+            core::future::ready(
+                self.entity_types
+                    .get(type_id)
+                    .map(Arc::clone)
+                    .ok_or_else(|| {
+                        Report::new(InvalidEntityType {
+                            id: type_id.clone(),
+                        })
+                    }),
+            )
         }
     }
 
@@ -222,18 +250,21 @@ mod tests {
         type Value = Arc<PropertyType>;
 
         #[expect(refining_impl_trait)]
-        async fn provide_type(
+        fn provide_type(
             &self,
             type_id: &VersionedUrl,
-        ) -> Result<Arc<PropertyType>, Report<InvalidPropertyType>> {
-            self.property_types
-                .get(type_id)
-                .map(Arc::clone)
-                .ok_or_else(|| {
-                    Report::new(InvalidPropertyType {
-                        id: type_id.clone(),
-                    })
-                })
+        ) -> impl Future<Output = Result<Arc<PropertyType>, Report<InvalidPropertyType>>> + Send
+        {
+            core::future::ready(
+                self.property_types
+                    .get(type_id)
+                    .map(Arc::clone)
+                    .ok_or_else(|| {
+                        Report::new(InvalidPropertyType {
+                            id: type_id.clone(),
+                        })
+                    }),
+            )
         }
     }
 
@@ -242,37 +273,24 @@ mod tests {
         type DataTypeWithMetadata = Arc<DataTypeWithMetadata>;
         type Error = InvalidDataType;
 
-        async fn get_data_type_by_uuid(
+        fn get_data_type_by_uuid(
             &self,
             data_type_uuid: DataTypeUuid,
-        ) -> Result<Arc<DataTypeWithMetadata>, Report<InvalidDataType>> {
-            self.data_types
-                .get(&data_type_uuid)
-                .map(Arc::clone)
-                .ok_or_else(|| Report::new(InvalidDataType))
+        ) -> impl Future<Output = Result<Arc<DataTypeWithMetadata>, Report<InvalidDataType>>>
+        {
+            core::future::ready(
+                self.data_types
+                    .get(&data_type_uuid)
+                    .map(Arc::clone)
+                    .ok_or_else(|| Report::new(InvalidDataType)),
+            )
         }
 
-        async fn get_closed_data_type_by_uuid(
+        fn get_closed_data_type_by_uuid(
             &self,
             data_type_uuid: DataTypeUuid,
-        ) -> Result<Self::ClosedDataType, Report<Self::Error>> {
-            let mut ontology_type_resolver = OntologyTypeResolver::default();
-
-            for (data_type_id, data_type) in &self.data_types {
-                ontology_type_resolver
-                    .add_unresolved_data_type(*data_type_id, Arc::new(data_type.schema.clone()));
-            }
-
-            let schema_metadata = ontology_type_resolver
-                .resolve_data_type_metadata(data_type_uuid)
-                .change_context(InvalidDataType)?;
-            let data_type = self
-                .data_types
-                .get(&data_type_uuid)
-                .ok_or_else(|| Report::new(InvalidDataType))?;
-
-            ClosedDataType::from_resolve_data(data_type.schema.clone(), &schema_metadata)
-                .change_context(InvalidDataType)
+        ) -> impl Future<Output = Result<Self::ClosedDataType, Report<Self::Error>>> {
+            core::future::ready(self.get_closed_data_type_by_uuid_impl(data_type_uuid))
         }
 
         async fn is_parent_of(
@@ -290,12 +308,13 @@ mod tests {
         }
 
         #[expect(refining_impl_trait)]
-        async fn find_conversion(
+        fn find_conversion(
             &self,
             _: &DataTypeReference,
             _: &DataTypeReference,
-        ) -> Result<Vec<ConversionExpression>, Report<InvalidDataType>> {
-            Ok(Vec::new())
+        ) -> impl Future<Output = Result<Vec<ConversionExpression>, Report<InvalidDataType>>>
+        {
+            core::future::ready(Ok(Vec::new()))
         }
     }
 

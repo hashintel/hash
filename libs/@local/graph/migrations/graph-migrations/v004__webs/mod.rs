@@ -8,17 +8,17 @@ impl Migration for Webs {
     type Context = Client;
     type Error = tokio_postgres::Error;
 
-    async fn up(
+    fn up(
         self,
         _context: &mut <Self::Context as Context>::Transaction<'_>,
-    ) -> Result<(), Report<Self::Error>> {
-        Ok(())
+    ) -> impl Future<Output = Result<(), Report<Self::Error>>> {
+        core::future::ready(Ok(()))
     }
 
-    async fn down(
+    fn down(
         self,
         _context: &mut <Self::Context as Context>::Transaction<'_>,
-    ) -> Result<(), Report<Self::Error>> {
-        Ok(())
+    ) -> impl Future<Output = Result<(), Report<Self::Error>>> {
+        core::future::ready(Ok(()))
     }
 }

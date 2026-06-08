@@ -154,12 +154,12 @@ where
 {
     type ExecutionScope = S;
 
-    async fn create_account(
+    fn create_account(
         &self,
         scope: Self::ExecutionScope,
         payload: CreateAccount,
-    ) -> Result<ActorEntityUuid, Report<AccountError>> {
-        Ok(ActorEntityUuid::new(Uuid::new_v4()))
+    ) -> impl Future<Output = Result<ActorEntityUuid, Report<AccountError>>> {
+        core::future::ready(Ok(ActorEntityUuid::new(Uuid::new_v4())))
     }
 }
 
