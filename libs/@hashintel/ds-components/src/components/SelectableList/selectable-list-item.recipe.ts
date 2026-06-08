@@ -130,6 +130,7 @@ export const styles = sva({
         },
         icon: { marginTop: "[calc((1lh - 24px) / 2)]" },
         spinner: { marginTop: "[calc((1lh - 24px) / 2)]" },
+        tick: { marginX: "-0.5" },
       },
       lg: {
         item: {
@@ -146,6 +147,7 @@ export const styles = sva({
         },
         icon: { marginTop: "[calc((1lh - 24px) / 2)]" },
         spinner: { marginTop: "[calc((1lh - 24px) / 2)]" },
+        tick: { marginX: "-0.5" },
       },
     },
     tone: {
