@@ -14,8 +14,9 @@ use core::num::NonZero;
 use std::thread::available_parallelism;
 
 use axum::{Extension, Router, response::IntoResponse as _, routing::post};
+use hash_graph_authorization::policies::action::ActionName;
 use hash_graph_postgres_store::store::PostgresStorePool;
-use hash_graph_store::pool::StorePool as _;
+use hash_graph_store::pool::StorePool;
 use hash_temporal_client::TemporalClient;
 use hashql_core::{
     heap::{HeapPool, ScratchPool},
@@ -26,7 +27,7 @@ use hashql_diagnostics::{
     severity::Critical,
 };
 use hashql_eval::{error::EvalDiagnosticCategory, orchestrator::Orchestrator};
-use hashql_mir::interpret::Inputs;
+use hashql_mir::{body, interpret::Inputs};
 use hashql_syntax_jexpr::span::Span;
 use http::StatusCode;
 use serde_json::value::RawValue;
@@ -38,6 +39,7 @@ use self::{
     error::{HashQlDiagnosticCategory, status_to_response},
     value::OwnedValue,
 };
+use super::AuthenticatedUserHeader;
 use crate::rest::{InteractiveHeader, JsonCompatHeader, json::Json, status::BoxedResponse};
 
 /// Shared resources for HashQL query compilation and execution, created once at server startup.
@@ -219,6 +221,7 @@ pub(crate) struct HashQlRequest {
     request_body = HashQlRequest,
     tag = "HashQL",
     params(
+        ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
         ("Interactive" = Option<bool>, Header, description = "When true, error responses are rendered as HTML instead of JSON"),
         ("Json-Compat" = Option<bool>, Header, description = "When true, serializes the result as plain JSON values, stripping HashQL-specific type wrappers"),
     ),
@@ -228,14 +231,20 @@ pub(crate) struct HashQlRequest {
         (status = 500, description = "Internal compiler or database error"),
     )
 )]
-pub(crate) async fn query_hashql(
+pub(crate) async fn query_hashql<S>(
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    Extension(store_pool): Extension<Arc<S>>,
+    Extension(temporal_client): Extension<Option<Arc<TemporalClient>>>,
     Extension(compiler): Extension<Arc<CompilerContext>>,
     Extension(postgres): Extension<Arc<PostgresStorePool>>,
     Extension(temporal): Extension<Option<Arc<TemporalClient>>>,
     InteractiveHeader(interactive): InteractiveHeader,
     JsonCompatHeader(json_compat): JsonCompatHeader,
     Json(request): Json<HashQlRequest>,
-) -> BoxedResponse {
+) -> BoxedResponse
+where
+    S: StorePool + Send + Sync,
+{
     let exec = ExecutionContext {
         postgres: (*postgres).clone(),
         temporal,
