@@ -164,6 +164,8 @@ function mapToMenuItems(
   );
 }
 
+const NONE_VALUE = "__select_none__";
+
 function flattenItems(items: Array<ItemOrGroup<Item>>): Item[] {
   const flat: Item[] = [];
   for (const entry of items) {
@@ -225,7 +227,20 @@ export const Select = ({
   const selectedItem = findSelectItem(items, value);
   const displayText = selectedItem?.children ?? "";
 
-  const menuItems = useMemo(() => mapToMenuItems(items), [items]);
+  const isOptional = required !== true;
+  const menuItems = useMemo(() => {
+    const mapped = mapToMenuItems(items);
+    if (!isOptional) {
+      return mapped;
+    }
+    const noneItem: Item = {
+      id: NONE_VALUE,
+      text: "\u200B",
+      nestedItems: undefined,
+      onClick: () => {},
+    };
+    return [noneItem, ...mapped];
+  }, [items, isOptional]);
   const collection = useMemo(
     () =>
       createListCollection<Item>({
@@ -273,6 +288,10 @@ export const Select = ({
       value={value != null && value !== "" ? [value] : []}
       onValueChange={({ value: nextValue }) => {
         const next = nextValue[0];
+        if (next === NONE_VALUE) {
+          (onChange as (value: null) => void)(null);
+          return;
+        }
         if (next !== undefined) {
           onChange(next);
         }
