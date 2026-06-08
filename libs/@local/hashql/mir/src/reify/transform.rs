@@ -1,3 +1,5 @@
+use core::alloc::Allocator;
+
 use hashql_core::{
     collections::TinyVec,
     id::{IdVec, bit_vec::BitRelations as _},
@@ -28,7 +30,7 @@ use crate::{
     def::DefId,
 };
 
-impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
+impl<'mir, 'heap, A: Allocator, S: Allocator> Reifier<'_, 'mir, '_, '_, 'heap, A, S> {
     pub(super) fn transform_closure(
         &mut self,
         block: &mut CurrentBlock<'mir, 'heap>,

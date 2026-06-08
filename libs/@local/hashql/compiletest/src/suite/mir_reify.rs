@@ -8,7 +8,7 @@ use std::{
 use error_stack::ReportSink;
 use hashql_ast::node::expr::Expr;
 use hashql_core::{
-    heap::Heap,
+    heap::{Heap, Scratch},
     id::IdVec,
     module::ModuleRegistry,
     pretty::Formatter,
@@ -32,7 +32,8 @@ pub(crate) fn mir_reify<'heap>(
     interner: &Interner<'heap>,
     environment: &mut Environment<'heap>,
     diagnostics: &mut Vec<SuiteDiagnostic>,
-) -> Result<(DefId, DefIdVec<Body<'heap>>), SuiteDiagnostic> {
+) -> Result<(DefId, DefIdVec<Body<'heap>>, Scratch), SuiteDiagnostic> {
+    let scratch = Scratch::new();
     let registry = ModuleRegistry::new(environment);
     let hir_interner = hashql_hir::intern::Interner::new(heap);
     let mut hir_context = HirContext::new(&hir_interner, &registry);
@@ -66,11 +67,12 @@ pub(crate) fn mir_reify<'heap>(
                 bodies: &mut bodies,
                 mir: &mut mir_context,
                 hir: &hir_context,
+                scratch: &scratch,
             },
         ),
     )?;
 
-    Ok((root, bodies))
+    Ok((root, bodies, scratch))
 }
 
 pub(crate) fn mir_format_text<'heap>(
@@ -208,7 +210,7 @@ impl Suite for MirReifySuite {
         let mut environment = Environment::new(heap);
         let interner = Interner::new(heap);
 
-        let (root, bodies) = mir_reify(heap, expr, &interner, &mut environment, diagnostics)?;
+        let (root, bodies, _) = mir_reify(heap, expr, &interner, &mut environment, diagnostics)?;
 
         let mut buffer = Vec::new();
         mir_format_text(heap, &environment, &mut buffer, root, &bodies);

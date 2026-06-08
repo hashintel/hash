@@ -483,6 +483,7 @@ impl<A: BumpAllocator> CfgSimplify<A> {
 }
 
 impl Default for CfgSimplify {
+    #[inline]
     fn default() -> Self {
         Self::new()
     }

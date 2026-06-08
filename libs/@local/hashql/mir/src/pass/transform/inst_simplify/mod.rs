@@ -158,6 +158,7 @@ impl InstSimplify {
 }
 
 impl Default for InstSimplify {
+    #[inline]
     fn default() -> Self {
         Self::new()
     }

@@ -17,7 +17,7 @@
 //! individual crate APIs.
 
 use hashql_core::{
-    heap::{Heap, ResetAllocator as _, Scratch},
+    heap::{Heap, Scratch},
     module::ModuleRegistry,
     span::{SpanId, SpanTable},
     r#type::environment::Environment,
@@ -31,12 +31,7 @@ use hashql_mir::{
     body::Body,
     context::MirContext,
     def::{DefId, DefIdSlice, DefIdVec},
-    pass::{
-        Changed, GlobalAnalysisPass as _, GlobalTransformPass as _, GlobalTransformState,
-        analysis::SizeEstimationAnalysis,
-        execution::{ExecutionAnalysis, ExecutionAnalysisResidual},
-        transform::{Inline, InlineConfig, PostInline, PreInline},
-    },
+    pass::{self, LowerConfig, execution::ExecutionAnalysisResidual},
     reify::ReifyContext,
 };
 use hashql_syntax_jexpr::span::Span;
@@ -189,6 +184,7 @@ impl<'heap> Pipeline<'heap> {
             bodies: &mut bodies,
             mir: &mut mir_context,
             hir: &hir_context,
+            scratch: &self.scratch,
         };
 
         let entry = tri!(hashql_mir::reify::from_hir(node, &mut reify_context));
@@ -218,24 +214,14 @@ impl<'heap> Pipeline<'heap> {
         bodies: &mut DefIdSlice<Body<'heap>>,
     ) -> Result<(), BoxedDiagnostic<'static, SpanId>> {
         let mut context = MirContext::new(&self.env, interner);
-        let mut state = GlobalTransformState::new_in(&*bodies, self.heap);
 
-        self.scratch.reset();
-
-        let mut pass = PreInline::new_in(&mut self.scratch);
-        let _: Changed = pass.run(&mut context, &mut state, bodies);
-        self.scratch.reset();
-
-        let mut pass = Inline::new_in(InlineConfig::default(), &mut self.scratch);
-        let _: Changed = pass.run(&mut context, &mut state, bodies);
-        self.scratch.reset();
-
-        let mut pass = PostInline::new_in(&mut self.scratch);
-        let _: Changed = pass.run(&mut context, &mut state, bodies);
-        self.scratch.reset();
-
-        let status = context.diagnostics.generalize().boxed().into_status(());
-        process_status(&mut self.diagnostics, status)?;
+        let result = pass::lower(
+            &mut context,
+            &mut self.scratch,
+            bodies,
+            &LowerConfig::default(),
+        );
+        process_status(&mut self.diagnostics, result)?;
 
         Ok(())
     }
@@ -262,20 +248,8 @@ impl<'heap> Pipeline<'heap> {
     > {
         let mut context = MirContext::new(&self.env, interner);
 
-        let mut pass = SizeEstimationAnalysis::new_in(&self.scratch);
-        pass.run(&mut context, bodies);
-        let footprints = pass.finish();
-        self.scratch.reset();
-
-        let pass = ExecutionAnalysis {
-            footprints: &footprints,
-            scratch: &mut self.scratch,
-        };
-        let analysis = pass.run_all_in(&mut context, bodies, self.heap);
-        self.scratch.reset();
-
-        let status = context.diagnostics.generalize().boxed().into_status(());
-        process_status(&mut self.diagnostics, status)?;
+        let status = pass::place(&mut context, &mut self.scratch, bodies);
+        let analysis = process_status(&mut self.diagnostics, status)?;
 
         Ok(analysis)
     }
