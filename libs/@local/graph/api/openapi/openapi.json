@@ -2558,6 +2558,58 @@
         }
       }
     },
+    "/hashql": {
+      "post": {
+        "tags": [
+          "Graph",
+          "HashQL"
+        ],
+        "operationId": "query_hashql",
+        "parameters": [
+          {
+            "name": "Interactive",
+            "in": "header",
+            "description": "When true, error responses are rendered as HTML instead of JSON",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "nullable": true
+            }
+          },
+          {
+            "name": "Json-Compat",
+            "in": "header",
+            "description": "When true, serializes the result as plain JSON values, stripping HashQL-specific type wrappers",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "nullable": true
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HashQlRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Query executed successfully"
+          },
+          "400": {
+            "description": "Query compilation or validation error"
+          },
+          "500": {
+            "description": "Internal compiler or database error"
+          }
+        }
+      }
+    },
     "/policies": {
       "post": {
         "tags": [
@@ -5560,6 +5612,25 @@
           }
         },
         "additionalProperties": false
+      },
+      "HashQlRequest": {
+        "type": "object",
+        "description": "Request body for the `/hashql` endpoint.",
+        "required": [
+          "query",
+          "inputs"
+        ],
+        "properties": {
+          "inputs": {
+            "type": "array",
+            "items": {
+              "default": null,
+              "nullable": true
+            },
+            "description": "Input values for the query. Must be an empty list until input support ships."
+          },
+          "query": {}
+        }
       },
       "IncludeEntityTypeOption": {
         "type": "string",
@@ -9806,6 +9877,10 @@
     {
       "name": "Principal",
       "description": "Principal management API"
+    },
+    {
+      "name": "HashQL",
+      "description": "HashQL query execution API"
     }
   ]
 }

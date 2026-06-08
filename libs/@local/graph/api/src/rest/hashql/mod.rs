@@ -176,6 +176,7 @@ async fn run_query(
 /// Request body for the `/hashql` endpoint.
 #[derive(serde::Deserialize, utoipa::ToSchema)]
 pub(crate) struct HashQlRequest {
+    #[schema(value_type = serde_json::Value)]
     query: Arc<RawValue>,
     /// Input values for the query. Must be an empty list until input support ships.
     #[expect(
