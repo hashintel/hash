@@ -51,7 +51,7 @@ const rowVariants: RowVariant[] = [
 const noop = () => {};
 
 const findItemText = (
-  items: Array<ItemOrGroup<SelectItem>>,
+  items: ReadonlyArray<ItemOrGroup<SelectItem>>,
   value: string,
 ): string => {
   for (const entry of items) {
@@ -425,12 +425,16 @@ export const Size: Story<SelectProps> = (args) => (
   </div>
 );
 
-const colorItems: Array<ItemOrGroup<SelectItem>> = [
+// Declared `as const` so the `Select` below can narrow `value` / `onChange` to
+// the literal union of these values — see `CustomRender` for the assertion.
+const colorItems = [
   { value: "red", text: "Red" },
   { value: "green", text: "Green" },
   { value: "blue", text: "Blue" },
   { value: "orange", text: "Orange" },
-];
+] as const;
+
+type ColorValue = (typeof colorItems)[number]["value"];
 
 const ColorSwatch = ({ value }: { value: string }) => (
   <span
@@ -460,39 +464,62 @@ const renderColorSelected = (value: string): React.ReactNode => (
   </span>
 );
 
-export const CustomRender: Story<SelectProps> = (args) => (
-  <div
-    style={{
-      display: "grid",
-      gridTemplateColumns: "auto auto",
-      columnGap: 32,
-      rowGap: 12,
-      alignItems: "center",
-      justifyContent: "start",
-    }}
-  >
-    <span style={subheadingStyle}>
-      renderItem + renderSelectedItem (same renderer)
-    </span>
-    <span style={subheadingStyle}>
-      renderItem (with swatch) + renderSelectedItem (bold label)
-    </span>
-    <Controlled
-      {...args}
-      items={colorItems}
-      value="red"
-      renderItem={renderColorItem}
-      renderSelectedItem={renderColorItem}
-    />
-    <Controlled
-      {...args}
-      items={colorItems}
-      value="green"
-      renderItem={renderColorItem}
-      renderSelectedItem={renderColorSelected}
-    />
-  </div>
-);
+export const CustomRender: Story<SelectProps> = (args) => {
+  const [valueA, setValueA] = useState<ColorValue | null>("red");
+  const [valueB, setValueB] = useState<ColorValue | null>("green");
+  const spreadArgs = args as Omit<
+    SelectProps,
+    "items" | "value" | "onChange" | "required"
+  >;
+
+  return (
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "auto auto",
+        columnGap: 32,
+        rowGap: 12,
+        alignItems: "center",
+        justifyContent: "start",
+      }}
+    >
+      <span style={subheadingStyle}>
+        renderItem + renderSelectedItem (same renderer)
+      </span>
+      <span style={subheadingStyle}>
+        renderItem (with swatch) + renderSelectedItem (bold label)
+      </span>
+      <Select
+        {...spreadArgs}
+        items={colorItems}
+        value={valueA}
+        onChange={(next) => {
+          // Compile-time narrowing proof — fails if TValue widens to `string`.
+          const narrowed: ColorValue | null | undefined = next;
+          setValueA(narrowed ?? null);
+        }}
+        renderItem={renderColorItem}
+        renderSelectedItem={renderColorItem}
+      />
+      <Select
+        {...spreadArgs}
+        items={colorItems}
+        value={valueB}
+        onChange={(next) => setValueB(next ?? null)}
+        renderItem={renderColorItem}
+        renderSelectedItem={renderColorSelected}
+      />
+      <div style={{ display: "none" }}>
+        <Select
+          items={colorItems}
+          // @ts-expect-error — "yellow" is not a value declared in colorItems
+          value="yellow"
+          onChange={noop}
+        />
+      </div>
+    </div>
+  );
+};
 
 export const Widths: Story<SelectProps> = (args) => (
   <div className={sectionStyle}>
@@ -560,40 +587,3 @@ export const Connected: Story = () => (
     </div>
   </div>
 );
-
-const FRUIT_ITEMS = [
-  { value: "apple", text: "Apple" },
-  { value: "banana", text: "Banana" },
-  { value: "cherry", text: "Cherry" },
-] as const satisfies ReadonlyArray<SelectItem>;
-
-type Fruit = (typeof FRUIT_ITEMS)[number]["value"];
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const TypedValues = () => {
-  const [value, setValue] = useState<Fruit | null>("apple");
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-      <span style={subheadingStyle}>
-        Items typed via <code>as const</code> — <code>value</code> /{" "}
-        <code>onChange</code> narrow to{" "}
-        <code>{`"apple" | "banana" | "cherry"`}</code>
-      </span>
-      <Select
-        items={FRUIT_ITEMS}
-        value={value}
-        onChange={(next) => {
-          const narrowed: Fruit | null | undefined = next;
-          setValue(narrowed ?? null);
-        }}
-        placeholder="Pick a fruit..."
-      />
-      <Select
-        items={FRUIT_ITEMS}
-        // @ts-expect-error — "mango" is not a value declared in FRUIT_ITEMS
-        value="mango"
-        onChange={noop}
-      />
-    </div>
-  );
-};
