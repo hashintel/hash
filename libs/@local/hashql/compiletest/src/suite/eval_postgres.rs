@@ -7,7 +7,7 @@ use hashql_core::{
     r#type::{TypeFormatter, TypeFormatterOptions, environment::Environment},
 };
 use hashql_diagnostics::DiagnosticIssues;
-use hashql_eval::{context::CodeGenerationContext, postgres::PostgresCompiler};
+use hashql_eval::{context::EvalContext, postgres::PostgresCompiler};
 use hashql_mir::{
     body::{Body, basic_block::BasicBlockId, terminator::TerminatorKind},
     context::MirContext,
@@ -117,8 +117,7 @@ impl Suite for EvalPostgres {
         let mir_buf = format_mir_with_placement(heap, &environment, &bodies, &analysis);
         secondary_outputs.insert("mir", mir_buf);
 
-        let interner = interner.into();
-        let mut context = CodeGenerationContext::new_in(
+        let mut context = EvalContext::new_in(
             &environment,
             &interner,
             &bodies,

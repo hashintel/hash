@@ -1,4 +1,4 @@
-//@ run: fail
+//@ run: pass
 //@ description: The interpreter should be able to simply delegate to the underlying struct.
 [
   "newtype",
@@ -9,6 +9,5 @@
     "Outer",
     { "#struct": { "x": "A", "y": "A" } },
     ["Outer", { "#struct": { "x": ["A"], "y": ["A"] } }]
-    //~^ INTERNAL COMPILER ERROR cannot project field
   ]
 ]

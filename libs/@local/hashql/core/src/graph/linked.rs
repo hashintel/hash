@@ -50,6 +50,7 @@
 use alloc::alloc::Global;
 use core::{
     alloc::Allocator,
+    fmt,
     ops::{Index, IndexMut},
 };
 
@@ -213,7 +214,7 @@ impl<E> Edge<E> {
 /// }
 /// # else { unreachable!() }
 /// ```
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct LinkedGraph<N, E, A: Allocator = Global> {
     /// All nodes in the graph, indexed by [`NodeId`].
     nodes: IdVec<NodeId, Node<N>, A>,
@@ -538,6 +539,17 @@ impl<N, E, A: Allocator> LinkedGraph<N, E, A> {
 impl<N, E> Default for LinkedGraph<N, E> {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl<N: core::fmt::Debug, E: core::fmt::Debug, A: Allocator> core::fmt::Debug
+    for LinkedGraph<N, E, A>
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("LinkedGraph")
+            .field("nodes", &self.nodes)
+            .field("edges", &self.edges)
+            .finish()
     }
 }
 
