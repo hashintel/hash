@@ -469,51 +469,126 @@ const renderColorSelected = (value: string): React.ReactNode => (
   </span>
 );
 
+const renderColorDoubleHeight = (value: string): React.ReactNode => (
+  <span
+    style={{
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 8,
+      height: "calc(var(--form-line-height) * 2)",
+    }}
+  >
+    <ColorSwatch value={value} />
+    {findItemText(colorItems, value)}
+  </span>
+);
+
+const renderColorHalfHeight = (value: string): React.ReactNode => (
+  <span
+    style={{
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 8,
+      height: "calc(var(--form-line-height) / 2)",
+    }}
+  >
+    <ColorSwatch value={value} />
+    {findItemText(colorItems, value)}
+  </span>
+);
+
 export const CustomRender: Story<SelectProps> = (args) => {
   const [valueA, setValueA] = useState<ColorValue | null>("red");
   const [valueB, setValueB] = useState<ColorValue | null>("green");
+  const [valueC, setValueC] = useState<ColorValue | null>("blue");
+  const [valueD, setValueD] = useState<ColorValue | null>("orange");
+  const [valueE, setValueE] = useState<ColorValue | null>("red");
+  const [valueF, setValueF] = useState<ColorValue | null>("green");
   const spreadArgs = args as Omit<
     SelectProps,
     "items" | "value" | "onChange" | "required"
   >;
 
   return (
-    <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: "auto auto",
-        columnGap: 32,
-        rowGap: 12,
-        alignItems: "center",
-        justifyContent: "start",
-      }}
-    >
-      <span style={subheadingStyle}>
-        renderItem + renderSelectedItem (same renderer)
-      </span>
-      <span style={subheadingStyle}>
-        renderItem (with swatch) + renderSelectedItem (bold label)
-      </span>
-      <Select
-        {...spreadArgs}
-        items={colorItems}
-        value={valueA}
-        onChange={(next) => {
-          // Compile-time narrowing proof — fails if TValue widens to `string`.
-          const narrowed: ColorValue | null | undefined = next;
-          setValueA(narrowed ?? null);
+    <div className={sectionStyle}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "auto auto",
+          columnGap: 32,
+          rowGap: 12,
+          alignItems: "center",
+          justifyContent: "start",
         }}
-        renderItem={renderColorItem}
-        renderSelectedItem={renderColorItem}
-      />
-      <Select
-        {...spreadArgs}
-        items={colorItems}
-        value={valueB}
-        onChange={(next) => setValueB(next ?? null)}
-        renderItem={renderColorItem}
-        renderSelectedItem={renderColorSelected}
-      />
+      >
+        <span style={subheadingStyle}>
+          renderItem + renderSelectedItem (same renderer)
+        </span>
+        <span style={subheadingStyle}>
+          renderItem (with swatch) + renderSelectedItem (bold label)
+        </span>
+        <Select
+          {...spreadArgs}
+          items={colorItems}
+          value={valueA}
+          onChange={(next) => {
+            // Compile-time narrowing proof — fails if TValue widens to `string`.
+            const narrowed: ColorValue | null | undefined = next;
+            setValueA(narrowed ?? null);
+          }}
+          renderItem={renderColorItem}
+          renderSelectedItem={renderColorItem}
+        />
+        <Select
+          {...spreadArgs}
+          items={colorItems}
+          value={valueB}
+          onChange={(next) => setValueB(next ?? null)}
+          renderItem={renderColorItem}
+          renderSelectedItem={renderColorSelected}
+        />
+        <span style={subheadingStyle}>renderSelectedItem (2× height)</span>
+        <span style={subheadingStyle}>renderSelectedItem (½× height)</span>
+        <Select
+          {...spreadArgs}
+          items={colorItems}
+          value={valueC}
+          onChange={(next) => setValueC(next ?? null)}
+          renderItem={renderColorItem}
+          renderSelectedItem={renderColorDoubleHeight}
+        />
+        <Select
+          {...spreadArgs}
+          items={colorItems}
+          value={valueD}
+          onChange={(next) => setValueD(next ?? null)}
+          renderItem={renderColorItem}
+          renderSelectedItem={renderColorHalfHeight}
+        />
+      </div>
+      <div className={groupStyle}>
+        <span style={subheadingStyle}>Connected: ½× left + 2× right</span>
+        <div style={{ display: "flex", alignItems: "center" }}>
+          <Select
+            {...spreadArgs}
+            items={colorItems}
+            value={valueE}
+            onChange={(next) => setValueE(next ?? null)}
+            renderItem={renderColorItem}
+            renderSelectedItem={renderColorHalfHeight}
+            connectToRightInput
+          />
+          <Select
+            {...spreadArgs}
+            items={colorItems}
+            value={valueF}
+            onChange={(next) => setValueF(next ?? null)}
+            renderItem={renderColorItem}
+            renderSelectedItem={renderColorDoubleHeight}
+            connectToLeftInput
+          />
+        </div>
+      </div>
       <div style={{ display: "none" }}>
         <Select
           items={colorItems}
