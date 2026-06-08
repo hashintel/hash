@@ -284,14 +284,19 @@ export const Default: Story<SelectProps> = (args) => (
               {col.label}
             </span>
           ))}
-          {stateRows.flatMap((row) =>
-            stateColumns.map((col) => {
-              const value = col.withValue ? "apple" : "";
+          {stateRows.flatMap((row) => {
+            const itemsForRow: Array<ItemOrGroup<SelectItem>> = [
+              { value: row.label, children: row.label },
+              ...sampleItems,
+            ];
+            return stateColumns.map((col) => {
+              const value = col.withValue ? row.label : "";
               const cellKey = `${row.key}-${col.key}`;
               return row.clearable ? (
                 <ClearableSelect
                   key={cellKey}
                   {...args}
+                  items={itemsForRow}
                   value={value}
                   variant={variant}
                   readonly={col.readonly}
@@ -301,14 +306,15 @@ export const Default: Story<SelectProps> = (args) => (
                 <Controlled
                   key={cellKey}
                   {...args}
+                  items={itemsForRow}
                   value={value}
                   variant={variant}
                   readonly={col.readonly}
                   {...row.extraProps}
                 />
               );
-            }),
-          )}
+            });
+          })}
         </div>
       </div>
     ))}
