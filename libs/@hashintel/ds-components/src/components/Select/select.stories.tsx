@@ -30,10 +30,10 @@ const widths = [
 ] as const satisfies readonly FormInputWidth[];
 
 const sampleItems: Array<ItemOrGroup<SelectItem>> = [
-  { value: "apple", children: "Apple" },
-  { value: "banana", children: "Banana" },
-  { value: "cherry", children: "Cherry" },
-  { value: "date", children: "Date" },
+  { value: "apple", text: "Apple" },
+  { value: "banana", text: "Banana" },
+  { value: "cherry", text: "Cherry" },
+  { value: "date", text: "Date" },
 ];
 
 type RowVariant = {
@@ -315,7 +315,7 @@ export const Default: Story<SelectProps> = (args) => (
           ))}
           {stateRows.flatMap((row) => {
             const itemsForRow: Array<ItemOrGroup<SelectItem>> = [
-              { value: row.label, children: row.label },
+              { value: row.label, text: row.label },
               ...sampleItems,
             ];
             return stateColumns.map((col) => {

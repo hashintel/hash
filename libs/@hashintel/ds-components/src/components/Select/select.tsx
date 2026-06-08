@@ -314,7 +314,6 @@ export const Select = ({
 
         <div className={classes.triggerWrapper}>
           <ArkSelect.Trigger
-            asChild
             id={inputId}
             autoFocus={autoFocus === true ? true : undefined}
             ref={mergedTriggerRef as React.Ref<HTMLButtonElement>}
