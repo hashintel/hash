@@ -86,6 +86,12 @@ const cellStyle = css({
   verticalAlign: "top",
 });
 
+const singleLineCellStyle = css({
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+});
+
 const eventColumnStyle = css({
   width: "[64px]",
 });
@@ -116,14 +122,12 @@ const transitionCellStyle = css({
   color: "neutral.s125",
   fontFamily: "mono",
   fontWeight: "medium",
-  overflowWrap: "anywhere",
 });
 
 const markingCellStyle = css({
   color: "neutral.s115",
   fontFamily: "mono",
   fontSize: "[11px]",
-  overflowWrap: "anywhere",
 });
 
 const footerNoteStyle = css({
@@ -167,19 +171,47 @@ const EventRow: React.FC<{
   index: number;
 }> = ({ firing, index }) => (
   <tr>
-    <td className={cx(cellStyle, eventColumnStyle, indexCellStyle)}>
+    <td
+      className={cx(
+        cellStyle,
+        singleLineCellStyle,
+        eventColumnStyle,
+        indexCellStyle,
+      )}
+    >
       #{index + 1}
     </td>
-    <td className={cx(cellStyle, timestampColumnStyle, timestampCellStyle)}>
+    <td
+      className={cx(
+        cellStyle,
+        singleLineCellStyle,
+        timestampColumnStyle,
+        timestampCellStyle,
+      )}
+    >
       {formatTimestamp(firing.ts)}
     </td>
-    <td className={cx(cellStyle, transitionColumnStyle, transitionCellStyle)}>
+    <td
+      className={cx(
+        cellStyle,
+        singleLineCellStyle,
+        transitionColumnStyle,
+        transitionCellStyle,
+      )}
+    >
       {firing.transitionId}
     </td>
-    <td className={cx(cellStyle, effectColumnStyle, markingCellStyle)}>
+    <td
+      className={cx(
+        cellStyle,
+        singleLineCellStyle,
+        effectColumnStyle,
+        markingCellStyle,
+      )}
+    >
       {formatMarking(firing.input)}
     </td>
-    <td className={cx(cellStyle, markingCellStyle)}>
+    <td className={cx(cellStyle, singleLineCellStyle, markingCellStyle)}>
       {formatMarking(firing.output)}
     </td>
   </tr>
@@ -249,13 +281,43 @@ const ActualEventsContent: React.FC = () => {
           <table className={tableStyle}>
             <thead>
               <tr className={headerRowStyle}>
-                <th className={cx(cellStyle, eventColumnStyle)}>Event</th>
-                <th className={cx(cellStyle, timestampColumnStyle)}>Time</th>
-                <th className={cx(cellStyle, transitionColumnStyle)}>
+                <th
+                  className={cx(
+                    cellStyle,
+                    singleLineCellStyle,
+                    eventColumnStyle,
+                  )}
+                >
+                  Event
+                </th>
+                <th
+                  className={cx(
+                    cellStyle,
+                    singleLineCellStyle,
+                    timestampColumnStyle,
+                  )}
+                >
+                  Time
+                </th>
+                <th
+                  className={cx(
+                    cellStyle,
+                    singleLineCellStyle,
+                    transitionColumnStyle,
+                  )}
+                >
                   Transition
                 </th>
-                <th className={cx(cellStyle, effectColumnStyle)}>Input</th>
-                <th className={cellStyle}>Output</th>
+                <th
+                  className={cx(
+                    cellStyle,
+                    singleLineCellStyle,
+                    effectColumnStyle,
+                  )}
+                >
+                  Input
+                </th>
+                <th className={cx(cellStyle, singleLineCellStyle)}>Output</th>
               </tr>
             </thead>
             <tbody>
