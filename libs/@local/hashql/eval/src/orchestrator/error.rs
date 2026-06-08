@@ -21,9 +21,7 @@ use hashql_diagnostics::{
 use hashql_mir::{
     body::{basic_block::BasicBlockId, local::Local},
     def::DefId,
-    interpret::error::{
-        InterpretDiagnostic, InterpretDiagnosticCategory, SuspensionDiagnosticCategory,
-    },
+    interpret::error::{InterpretDiagnostic, InterpretDiagnosticCategory},
 };
 
 use super::{Indexed, codec::JsonValueKind};
