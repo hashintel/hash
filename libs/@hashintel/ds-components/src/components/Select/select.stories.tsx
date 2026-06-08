@@ -155,7 +155,12 @@ const subheadingStyle: React.CSSProperties = {
   color: "#666",
 };
 
-const stateRows = [
+const stateRows: Array<{
+  key: string;
+  label: string;
+  clearable?: boolean;
+  extraProps: Partial<SelectProps>;
+}> = [
   { key: "disabled", label: "Disabled", extraProps: { disabled: true } },
   { key: "invalid", label: "Invalid", extraProps: { invalid: true } },
   { key: "loading", label: "Loading", extraProps: { loading: true } },
@@ -164,6 +169,32 @@ const stateRows = [
     key: "placeholder",
     label: "Placeholder",
     extraProps: { placeholder: "Placeholder text..." },
+  },
+  {
+    key: "hide-arrow",
+    label: "Hide arrow",
+    extraProps: { hideArrow: true },
+  },
+  {
+    key: "prefix-icon",
+    label: "Icon prefix",
+    extraProps: { prefix: { iconName: "search" } },
+  },
+  {
+    key: "prefix-text",
+    label: "Text prefix",
+    extraProps: { prefix: { text: "$" } },
+  },
+  {
+    key: "prefix-content",
+    label: "Custom prefix",
+    extraProps: {
+      prefix: {
+        content: (
+          <span style={{ fontStyle: "italic", fontWeight: 600 }}>Pre</span>
+        ),
+      },
+    },
   },
 ];
 
