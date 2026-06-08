@@ -335,10 +335,7 @@ export const Select = <TValue extends string>({
             id={inputId}
             autoFocus={autoFocus === true ? true : undefined}
             ref={mergedTriggerRef as React.Ref<HTMLButtonElement>}
-            className={cx(
-              classes.trigger,
-              !selectedItem && classes.placeholder,
-            )}
+            className={classes.trigger}
             data-part="trigger"
             data-testid={testId}
             tabIndex={tabIndex}
