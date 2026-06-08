@@ -64,6 +64,7 @@ export const selectRecipe = sva({
         borderBottom: "[1.5px solid currentColor]",
         color: "neutral.s100",
         transform: "[rotate(45deg) translateY(-15%)]",
+        flex: "[0 0 auto]",
       },
     },
     readonly: {
