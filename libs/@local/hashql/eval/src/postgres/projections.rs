@@ -20,6 +20,7 @@ enum ComputedColumn {
 }
 
 impl From<ComputedColumn> for ColumnName<'_> {
+    #[inline]
     fn from(value: ComputedColumn) -> Self {
         match value {
             ComputedColumn::EntityTypeIds => ColumnName::from(Identifier::from("entity_type_ids")),

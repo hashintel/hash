@@ -138,11 +138,13 @@ impl<E> HasId for Edge<E> {
 
 impl<E> Edge<E> {
     /// Returns the source node of this edge.
+    #[inline]
     pub const fn source(&self) -> NodeId {
         self.source
     }
 
     /// Returns the target node of this edge.
+    #[inline]
     pub const fn target(&self) -> NodeId {
         self.target
     }
@@ -542,11 +544,9 @@ impl<N, E> Default for LinkedGraph<N, E> {
     }
 }
 
-impl<N: core::fmt::Debug, E: core::fmt::Debug, A: Allocator> core::fmt::Debug
-    for LinkedGraph<N, E, A>
-{
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("LinkedGraph")
+impl<N: fmt::Debug, E: fmt::Debug, A: Allocator> fmt::Debug for LinkedGraph<N, E, A> {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt.debug_struct("LinkedGraph")
             .field("nodes", &self.nodes)
             .field("edges", &self.edges)
             .finish()
