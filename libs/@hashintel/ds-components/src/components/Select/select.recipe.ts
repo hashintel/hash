@@ -30,7 +30,6 @@ export const selectRecipe = sva({
     select: {
       ...formWidths.base,
       display: "inline-flex",
-      // alignItems: "stretch",
       cursor: "pointer",
       width: "[fit-content]",
       minWidth: "[min-content]",
@@ -170,6 +169,8 @@ export const selectRecipe = sva({
     list: {
       ...formWidths.base,
       width: "var(--reference-width)",
+      maxWidth: "var(--reference-width)",
+      minWidth: "[var(--form-min-width) !important]",
     },
   },
   variants: {
@@ -223,7 +224,7 @@ export const selectRecipe = sva({
             },
           },
           "&::after": {
-            marginRight: "calc(var(--base-input-padding-x) / 2)",
+            marginRight: "[calc(var(--base-input-padding-x) / 2)]",
           },
         },
         clear: {
@@ -341,7 +342,6 @@ export const selectRecipe = sva({
         },
         list: {
           width: "[auto]",
-          minWidth: "var(--form-min-width)",
         },
       },
     },
