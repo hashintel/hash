@@ -11,3 +11,5 @@ yarn httpyac send --all tests/ambiguous.http -o none
 yarn reset-database -o none
 yarn httpyac send --all tests/link-inheritance.http -o none
 yarn reset-database -o none
+yarn httpyac send --all tests/hashql.http -o none
+yarn reset-database -o none

@@ -2,7 +2,7 @@ use alloc::sync::Arc;
 use core::{
     fmt,
     net::{AddrParseError, SocketAddr},
-    str::FromStr as _,
+    str::FromStr,
     time::Duration,
 };
 use std::path::PathBuf;
@@ -14,7 +14,10 @@ use harpc_codec::json::JsonCodec;
 use harpc_server::Server;
 use hash_codec::bytes::JsonLinesEncoder;
 use hash_graph_api::{
-    rest::{ApiConfig, QueryLogger, RestApiStore, RestRouterDependencies, rest_api_router},
+    rest::{
+        ApiConfig, QueryLogger, RestApiStore, RestRouterDependencies, hashql::CompilerContext,
+        rest_api_router,
+    },
     rpc::Dependencies,
 };
 use hash_graph_authorization::policies::store::{PolicyStore, PrincipalStore};
@@ -103,6 +106,73 @@ pub struct TemporalConfig {
     pub address: TemporalAddress,
 }
 
+/// A pool size that can be either a concrete count or unbounded.
+///
+/// Parses positive integers as a bounded size and `-1` as unbounded.
+#[derive(Debug, Copy, Clone)]
+pub struct PoolSize(Option<usize>);
+
+impl PoolSize {
+    #[inline]
+    const fn get(self) -> Option<usize> {
+        self.0
+    }
+}
+
+impl fmt::Display for PoolSize {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self.0 {
+            Some(size) => write!(fmt, "{size}"),
+            None => write!(fmt, "-1"),
+        }
+    }
+}
+
+impl FromStr for PoolSize {
+    type Err = <i64 as FromStr>::Err;
+
+    #[expect(
+        clippy::cast_sign_loss,
+        clippy::cast_possible_truncation,
+        reason = "negative values produce None, and pool sizes never approach u32::MAX"
+    )]
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let value = s.parse::<i64>()?;
+        if value < 0 {
+            Ok(Self(None))
+        } else {
+            Ok(Self(Some(value as usize)))
+        }
+    }
+}
+
+/// Configuration for the HashQL compiler and execution pool.
+#[derive(Debug, Clone, Parser)]
+pub struct CompilerConfig {
+    /// Number of pre-allocated heap/scratch instances in the compiler memory pool.
+    ///
+    /// Set to -1 for an unbounded pool that grows without limit.
+    #[clap(
+        long,
+        default_value = "16",
+        env = "HASH_GRAPH_COMPILER_MEMORY_POOL_SIZE",
+        allow_hyphen_values = true
+    )]
+    pub compiler_memory_pool_size: PoolSize,
+
+    /// Number of threads in the compiler execution pool.
+    ///
+    /// Each thread runs a `LocalSet` for `!Send` query execution. Set to -1 to use the number
+    /// of available CPU cores.
+    #[clap(
+        long,
+        default_value = "-1",
+        env = "HASH_GRAPH_COMPILER_EXEC_POOL_SIZE",
+        allow_hyphen_values = true
+    )]
+    pub compiler_exec_pool_size: PoolSize,
+}
+
 /// Configuration for the main graph API server.
 ///
 /// Groups HTTP address, RPC address, temporal client, store behavior, and
@@ -166,6 +236,9 @@ pub struct ServerConfig {
 
     #[clap(flatten)]
     pub api_config: ApiConfig,
+
+    #[clap(flatten)]
+    pub compiler: CompilerConfig,
 
     /// Outputs the queries made to the graph to the specified file.
     #[clap(long)]
@@ -233,7 +306,12 @@ async fn run_rest_server(
 async fn create_temporal_client(
     config: &TemporalConfig,
 ) -> Result<Option<TemporalClient>, Report<GraphError>> {
-    if let Some(host) = &config.address.temporal_host {
+    if let Some(host) = config
+        .address
+        .temporal_host
+        .as_deref()
+        .filter(|host| !host.is_empty())
+    {
         TemporalClientConfig::new(
             Url::from_str(&format!("{host}:{}", config.address.temporal_port))
                 .change_context(GraphError)?,
@@ -314,6 +392,8 @@ where
 /// Starts the main graph API server (REST + optional RPC).
 async fn start_server<S>(
     pool: S,
+    postgres: PostgresStorePool,
+    compiler: Arc<CompilerContext>,
     config: ServerConfig,
     query_logger: Option<QueryLogger>,
     lifecycle: &ServerLifecycle,
@@ -343,10 +423,12 @@ where
 
     let router = rest_api_router(RestRouterDependencies {
         store,
-        domain_regex: DomainValidator::new(config.allowed_url_domain),
+        postgres,
         temporal_client,
+        domain_regex: DomainValidator::new(config.allowed_url_domain),
         query_logger,
         api_config: config.api_config,
+        compiler,
     });
     start_rest_server(router, config.http_address, lifecycle);
 
@@ -405,6 +487,8 @@ pub async fn server(mut args: ServerArgs) -> Result<(), Report<GraphError>> {
 
     let lifecycle = ServerLifecycle::new();
 
+    let postgres = pool.clone();
+
     if args.embed_admin {
         start_admin_server(pool.clone(), args.admin, &lifecycle);
     }
@@ -441,7 +525,21 @@ pub async fn server(mut args: ServerArgs) -> Result<(), Report<GraphError>> {
         None
     };
 
-    if let Err(error) = start_server(pool, args.config, query_logger, &lifecycle).await {
+    let compiler = Arc::new(CompilerContext::new(
+        args.config.compiler.compiler_memory_pool_size.get(),
+        args.config.compiler.compiler_exec_pool_size.get(),
+    ));
+
+    if let Err(error) = start_server(
+        pool,
+        postgres,
+        compiler,
+        args.config,
+        query_logger,
+        &lifecycle,
+    )
+    .await
+    {
         lifecycle.shutdown_and_wait().await;
         return Err(error);
     }

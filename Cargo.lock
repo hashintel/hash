@@ -3575,6 +3575,7 @@ dependencies = [
  "hashql-diagnostics",
  "hashql-eval",
  "hashql-hir",
+ "hashql-mir",
  "hashql-syntax-jexpr",
  "http 1.4.2",
  "hyper",
