@@ -56,17 +56,14 @@ export const selectRecipe = sva({
         content: '""',
         display: "block",
         alignSelf: "center",
-        marginRight: "2",
+        marginLeft: "var(--base-input-padding-x)",
+        marginRight: "var(--base-input-padding-x)",
         width: "[0.5em]",
         height: "[0.5em]",
         borderRight: "[1.5px solid currentColor]",
         borderBottom: "[1.5px solid currentColor]",
         color: "neutral.s100",
         transform: "[rotate(45deg) translateY(-15%)]",
-        transition: "[transform 0.15s ease]",
-      },
-      "&:has([data-state='open'])::after": {
-        transform: "[rotate(225deg) translateY(-15%)]",
       },
     },
     readonly: {
@@ -113,13 +110,12 @@ export const selectRecipe = sva({
     },
     loading: {
       alignSelf: "center",
-      paddingRight: "2",
       position: "relative",
     },
     clear: {
       position: "absolute",
       zIndex: "[1]",
-      right: "2",
+      right: "-1",
       display: "flex",
       alignItems: "center",
       opacity: "0",
@@ -198,7 +194,7 @@ export const selectRecipe = sva({
           borderLeftColor: "var(--colors-neutral-s40)",
         },
         trigger: {
-          paddingX: "var(--base-input-padding-x)",
+          paddingLeft: "var(--base-input-padding-x)",
         },
       },
       subtle: {
@@ -238,12 +234,9 @@ export const selectRecipe = sva({
             left: "[calc(var(--base-input-padding-x) * -0.8 + 1px)]",
           },
         },
-        loading: {
-          right: "[calc(var(--base-input-padding-x) * -1 + 1px)]",
-        },
         clear: {
           right:
-            "[calc(var(--base-input-padding-x) * -1 + 1px + var(--spacing-2))]",
+            "[calc(var(--base-input-padding-x) * -1 + 1px + var(--spacing-1))]",
         },
         adornment: {
           position: "relative",
@@ -306,6 +299,9 @@ export const selectRecipe = sva({
         select: {
           ...({ layerStyle: "disabled" } as Record<string, string>),
           cursor: "auto",
+          "&::after": {
+            color: "neutral.s80",
+          },
         },
       },
     },
@@ -357,10 +353,7 @@ export const selectRecipe = sva({
     loading: {
       true: {
         clear: {
-          right: "1.5",
-        },
-        select: {
-          "&::after": { display: "none" },
+          right: "1",
         },
       },
     },
@@ -394,7 +387,7 @@ export const selectRecipe = sva({
       css: {
         clear: {
           right:
-            "[calc(var(--base-input-padding-x) * -1 + 1px + var(--spacing-1\\.5))]",
+            "[calc(var(--base-input-padding-x) * -1 + 1px + var(--spacing-2\\.5))]",
         },
       },
     },
