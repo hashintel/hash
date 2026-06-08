@@ -26,13 +26,13 @@ import type {
 } from "../../util/form-shared";
 import type { IconName } from "../Icon/icon";
 
-export type SelectItem = {
-  value: string;
+export type SelectItem<TValue extends string = string> = {
+  value: TValue;
   text: string; // Visible label
   disabled?: boolean;
 };
 
-type SelectBaseProps = {
+type SelectBaseProps<TValue extends string> = {
   /** An optional placeholder shown when no value is selected */
   placeholder?: string;
   /** Disable editing of the input. Unlike disabled this strips the input styles and displays the value as text */
@@ -61,30 +61,31 @@ type SelectBaseProps = {
   onClick?: React.MouseEventHandler<Element>;
   onKeyDown?: React.KeyboardEventHandler<Element>;
   tabIndex?: number;
-  items: Array<ItemOrGroup<SelectItem>>;
+  items: ReadonlyArray<ItemOrGroup<SelectItem<TValue>>>;
   /** Custom renderer for items in the dropdown. Defaults to the item's `text`. */
-  renderItem?: (value: string) => React.ReactNode;
+  renderItem?: (value: TValue) => React.ReactNode;
   /** Custom renderer for the selected value in the trigger. Defaults to `renderItem`, or the item's `text` if neither is provided. */
-  renderSelectedItem?: (value: string) => React.ReactNode;
+  renderSelectedItem?: (value: TValue) => React.ReactNode;
 } & Omit<
   SharedInputProps<HTMLButtonElement, string | null | undefined>,
   "value" | "onChange" | "required"
 > &
   React.AriaAttributes;
 
-export type SelectProps = SelectBaseProps &
-  (
-    | {
-        required: true;
-        value: string;
-        onChange: (value: string) => void;
-      }
-    | {
-        required?: false;
-        value: string | null | undefined;
-        onChange: (value: string | null | undefined) => void;
-      }
-  );
+export type SelectProps<TValue extends string = string> =
+  SelectBaseProps<TValue> &
+    (
+      | {
+          required: true;
+          value: NoInfer<TValue>;
+          onChange: (value: NoInfer<TValue>) => void;
+        }
+      | {
+          required?: false;
+          value: NoInfer<TValue> | null | undefined;
+          onChange: (value: NoInfer<TValue> | null | undefined) => void;
+        }
+    );
 
 type SelectSlots = ReturnType<typeof selectRecipe>;
 type Prefix =
@@ -130,10 +131,10 @@ function renderPrefix(
   );
 }
 
-function findSelectItem(
-  items: Array<ItemOrGroup<SelectItem>>,
-  value: string | null | undefined,
-): SelectItem | undefined {
+function findSelectItem<TValue extends string>(
+  items: ReadonlyArray<ItemOrGroup<SelectItem<TValue>>>,
+  value: TValue | null | undefined,
+): SelectItem<TValue> | undefined {
   if (value == null) {
     return undefined;
   }
@@ -150,11 +151,11 @@ function findSelectItem(
   return undefined;
 }
 
-function mapToMenuItems(
-  items: Array<ItemOrGroup<SelectItem>>,
-  renderItem: (value: string) => React.ReactNode,
+function mapToMenuItems<TValue extends string>(
+  items: ReadonlyArray<ItemOrGroup<SelectItem<TValue>>>,
+  renderItem: (value: TValue) => React.ReactNode,
 ): Array<ItemOrGroup<Item>> {
-  const toItem = (it: SelectItem): Item => ({
+  const toItem = (it: SelectItem<TValue>): Item => ({
     id: it.value,
     text: renderItem(it.value),
     disabled: it.disabled,
@@ -183,7 +184,7 @@ function flattenItems(items: Array<ItemOrGroup<Item>>): Item[] {
   return flat;
 }
 
-export const Select = ({
+export const Select = <TValue extends string>({
   placeholder,
   readonly,
   loading,
@@ -217,7 +218,7 @@ export const Select = ({
   invalid,
   autoFocus,
   ...ariaProps
-}: SelectProps) => {
+}: SelectProps<TValue>) => {
   const portalContainerRef = usePortalContainerRef();
   const internalRef = useRef<HTMLButtonElement>(null);
   const mergedTriggerRef = useMergeRefs([
@@ -233,9 +234,9 @@ export const Select = ({
 
   const selectedItem = findSelectItem(items, value);
 
-  const resolvedRenderItem = useMemo<(value: string) => React.ReactNode>(
+  const resolvedRenderItem = useMemo<(value: TValue) => React.ReactNode>(
     () =>
-      renderItem ?? ((val: string) => findSelectItem(items, val)?.text ?? val),
+      renderItem ?? ((val: TValue) => findSelectItem(items, val)?.text ?? val),
     [renderItem, items],
   );
   const resolvedRenderSelectedItem = renderSelectedItem ?? resolvedRenderItem;
@@ -306,7 +307,7 @@ export const Select = ({
           return;
         }
         if (next !== undefined) {
-          onChange(next);
+          onChange(next as TValue);
         }
       }}
       disabled={disabled}

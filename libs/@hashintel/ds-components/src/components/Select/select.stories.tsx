@@ -560,3 +560,40 @@ export const Connected: Story = () => (
     </div>
   </div>
 );
+
+const FRUIT_ITEMS = [
+  { value: "apple", text: "Apple" },
+  { value: "banana", text: "Banana" },
+  { value: "cherry", text: "Cherry" },
+] as const satisfies ReadonlyArray<SelectItem>;
+
+type Fruit = (typeof FRUIT_ITEMS)[number]["value"];
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const TypedValues = () => {
+  const [value, setValue] = useState<Fruit | null>("apple");
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      <span style={subheadingStyle}>
+        Items typed via <code>as const</code> — <code>value</code> /{" "}
+        <code>onChange</code> narrow to{" "}
+        <code>{`"apple" | "banana" | "cherry"`}</code>
+      </span>
+      <Select
+        items={FRUIT_ITEMS}
+        value={value}
+        onChange={(next) => {
+          const narrowed: Fruit | null | undefined = next;
+          setValue(narrowed ?? null);
+        }}
+        placeholder="Pick a fruit..."
+      />
+      <Select
+        items={FRUIT_ITEMS}
+        // @ts-expect-error — "mango" is not a value declared in FRUIT_ITEMS
+        value="mango"
+        onChange={noop}
+      />
+    </div>
+  );
+};
