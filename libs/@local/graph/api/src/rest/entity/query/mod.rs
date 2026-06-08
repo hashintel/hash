@@ -1,4 +1,3 @@
-pub(crate) mod filter;
 pub(crate) mod request;
 
 use alloc::sync::Arc;
