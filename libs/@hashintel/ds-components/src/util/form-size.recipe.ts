@@ -13,13 +13,13 @@ import { cva } from "@hashintel/ds-helpers/css";
  * each property are emitted to the stylesheet and reused by every recipe
  * that spreads from this config.
  *
- *   size | textStyle | --form-padding-y | --form-line-height
- *   -----+-----------+------------------+-------------------
- *   xxs  | xxs       | 1px              | 1.6em
- *   xs   | xs        | spacing.0        | 1.6em
- *   sm   | sm        | spacing.0.5      | 1.6em
- *   md   | base      | spacing.1        | 1.5em
- *   lg   | base      | spacing.2        | 1.5em
+ *   size | textStyle | --form-padding-y | --form-line-height | --base-input-connector-width
+ *   -----+-----------+------------------+--------------------+-----------------------------
+ *   xxs  | xxs       | 1px              | 1.6em              | 5px
+ *   xs   | xs        | spacing.0        | 1.6em              | 6px
+ *   sm   | sm        | spacing.0.5      | 1.6em              | 8px
+ *   md   | base      | spacing.1        | 1.5em              | 10px
+ *   lg   | base      | spacing.2        | 1.5em              | 12px
  *
  * `--form-border-width` is `1px` for every size. The line-height matches
  * the corresponding `textStyle` definition; call sites multiply it by
@@ -33,30 +33,35 @@ export const formSizes = {
         "--form-border-width": "1px",
         "--form-padding-y": "1px",
         "--form-line-height": "1.6em",
+        "--base-input-connector-width": "5px",
       },
       xs: {
         textStyle: "xs",
         "--form-border-width": "1px",
         "--form-padding-y": "spacing.0",
         "--form-line-height": "1.6em",
+        "--base-input-connector-width": "6px",
       },
       sm: {
         textStyle: "sm",
         "--form-border-width": "1px",
         "--form-padding-y": "spacing.0.5",
         "--form-line-height": "1.6em",
+        "--base-input-connector-width": "8px",
       },
       md: {
         textStyle: "base",
         "--form-border-width": "1px",
         "--form-padding-y": "spacing.1",
         "--form-line-height": "1.5em",
+        "--base-input-connector-width": "10px",
       },
       lg: {
         textStyle: "base",
         "--form-border-width": "1px",
         "--form-padding-y": "spacing.2",
         "--form-line-height": "1.5em",
+        "--base-input-connector-width": "12px",
       },
     },
   },

@@ -23,12 +23,11 @@ export const selectRecipe = sva({
   ],
   base: {
     wrapper: {
+      ...formWidths.base,
       display: "inline-flex",
       position: "relative",
-      "--base-input-connector-width": "10px",
     },
     select: {
-      ...formWidths.base,
       display: "inline-flex",
       cursor: "pointer",
       width: "[fit-content]",
@@ -249,8 +248,7 @@ export const selectRecipe = sva({
     },
     size: {
       xxs: {
-        wrapper: { "--base-input-connector-width": "5px" },
-        select: {
+        wrapper: {
           ...formSizes.variants.sizes.xxs,
           "--base-input-border-radius": "radii.md",
           "--base-input-padding-x": "spacing.2",
@@ -260,8 +258,7 @@ export const selectRecipe = sva({
         },
       },
       xs: {
-        wrapper: { "--base-input-connector-width": "6px" },
-        select: {
+        wrapper: {
           ...formSizes.variants.sizes.xs,
           "--base-input-border-radius": "radii.md",
           "--base-input-padding-x": "spacing.2",
@@ -271,8 +268,7 @@ export const selectRecipe = sva({
         },
       },
       sm: {
-        wrapper: { "--base-input-connector-width": "8px" },
-        select: {
+        wrapper: {
           ...formSizes.variants.sizes.sm,
           "--base-input-border-radius": "radii.lg",
           "--base-input-padding-x": "spacing.2.5",
@@ -282,8 +278,7 @@ export const selectRecipe = sva({
         },
       },
       md: {
-        wrapper: { "--base-input-connector-width": "10px" },
-        select: {
+        wrapper: {
           ...formSizes.variants.sizes.md,
           "--base-input-border-radius": "radii.lg",
           "--base-input-padding-x": "spacing.3",
@@ -293,8 +288,7 @@ export const selectRecipe = sva({
         },
       },
       lg: {
-        wrapper: { "--base-input-connector-width": "12px" },
-        select: {
+        wrapper: {
           ...formSizes.variants.sizes.lg,
           "--base-input-border-radius": "radii.xl",
           "--base-input-padding-x": "spacing.4",
