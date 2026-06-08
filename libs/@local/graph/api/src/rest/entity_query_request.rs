@@ -51,10 +51,10 @@ use hashql_core::{
     span::{SpanId, SpanTable},
 };
 use hashql_diagnostics::{
-    DiagnosticIssues, Failure, Severity, Status, Success,
+    DiagnosticIssues, Failure, Severity,
     category::{DiagnosticCategory, canonical_category_id},
     diagnostic::render::{Format, RenderOptions},
-    source::{DiagnosticSpan, Source, SourceId, Sources},
+    source::{DiagnosticSpan, Source, Sources},
 };
 use hashql_eval::error::EvalDiagnosticCategory;
 use hashql_hir::error::HirDiagnosticCategory;
@@ -315,14 +315,6 @@ pub enum EntityQuery<'q> {
 }
 
 impl<'q> EntityQuery<'q> {
-    fn compile_query<'heap>(
-        _: &'heap Heap,
-        _: &mut SpanTable<Span>,
-        _: &RawJsonValue,
-    ) -> Status<Filter<'heap, Entity>, HashQLDiagnosticCategory, SpanId> {
-        unimplemented!("https://linear.app/hash/issue/BE-537/hashql-remove-old-backend-wire-up-hashql-in-the-api")
-    }
-
     /// Compiles a query into an executable entity filter.
     ///
     /// Transforms the query representation into a [`Filter`] that can be executed
@@ -335,35 +327,14 @@ impl<'q> EntityQuery<'q> {
     /// Returns an error if the HashQL query cannot be compiled.
     pub(crate) fn compile(
         self,
-        heap: &'q Heap,
-        options: CompilationOptions,
+        _: &'q Heap,
+        _: CompilationOptions,
     ) -> Result<Filter<'q, Entity>, BoxedResponse> {
         match self {
             EntityQuery::Filter { filter } => Ok(filter),
-            EntityQuery::Query { query } => {
-                let mut spans = SpanTable::new(SourceId::new_unchecked(0x00));
-
-                let Success {
-                    value: filter,
-                    advisories,
-                } = Self::compile_query(heap, &mut spans, query).map_err(|failure| {
-                    failure_to_response(failure, query.get(), &spans, options)
-                })?;
-                if !advisories.is_empty() {
-                    // This isn't perfect, what we'd want instead is to return it alongside the
-                    // response, the problem with that approach is just how: we'd need to adjust the
-                    // return type, and respect interactive. Returning warnings before so that user
-                    // can fix them before trying again seems to be the best approach for now.
-                    return Err(issues_to_response(
-                        advisories.generalize(),
-                        Severity::Warning,
-                        query.get(),
-                        &spans,
-                        options,
-                    ));
-                }
-
-                Ok(filter)
+            EntityQuery::Query { query: _ } => {
+                let response = (StatusCode::NOT_IMPLEMENTED, "https://linear.app/hash/issue/BE-537/hashql-remove-old-backend-wire-up-hashql-in-the-api").into_response();
+                Err(response.into())
             }
         }
     }
