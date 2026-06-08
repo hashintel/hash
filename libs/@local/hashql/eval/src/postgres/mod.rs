@@ -235,8 +235,8 @@ impl<'heap, A: Allocator> PreparedQueries<'heap, A> {
 /// Compiles Postgres-targeted MIR islands into a single PostgreSQL `SELECT`.
 ///
 /// Created per evaluation and used to compile [`GraphRead`] terminators. Compilation emits
-/// diagnostics into the shared [`EvalContext`] rather than returning `Result`, so multiple
-/// errors can be reported from a single compilation pass.
+/// diagnostics into the shared [`CodeGenerationContext`] rather than returning `Result`, so
+/// multiple errors can be reported from a single compilation pass.
 ///
 /// [`GraphRead`]: hashql_mir::body::terminator::GraphRead
 pub struct PostgresCompiler<'eval, 'ctx, 'heap, A: Allocator, S: Allocator> {
