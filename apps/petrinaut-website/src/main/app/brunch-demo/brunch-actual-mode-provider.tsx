@@ -5,9 +5,10 @@ import { ActualModeContext } from "@hashintel/petrinaut/react";
 
 import { normalizeBrunchDefinition } from "./brunch-definition";
 import {
-  parseDefinitionFrame,
-  parseMarkingFrame,
-  parseTransitionFiringFrame,
+  parseDefinitionFrameData,
+  parseJsonEventData,
+  parseMarkingFrameData,
+  parseTransitionFiringFrameData,
 } from "./brunch-frame-parsers";
 
 import type { ActualModeContextValue } from "@hashintel/petrinaut-core";
@@ -35,6 +36,7 @@ const createLoadingActualModeValue = (
     definition: null,
     initialState: null,
     transitionFirings: [],
+    receivedEvents: [],
     currentFrameIndex: 0,
     timelineStartedAtMs: now,
     timelineNowMs: now,
@@ -99,7 +101,20 @@ export const BrunchActualModeProvider: FC<
     const onDefinition = (event: Event) => {
       void (async () => {
         try {
-          const definition = parseDefinitionFrame(event as MessageEvent);
+          const data = parseJsonEventData(event as MessageEvent, "definition");
+          const definition = parseDefinitionFrameData(data);
+
+          setValue((prev) => ({
+            ...prev,
+            status: prev.status === "complete" ? "complete" : "streaming",
+            receivedEvents: [
+              ...prev.receivedEvents,
+              { event: "definition", data },
+            ],
+            timelineNowMs: Date.now(),
+            error: null,
+          }));
+
           const sdcpn = await normalizeBrunchDefinition(definition);
 
           if (cancelled) {
@@ -122,11 +137,16 @@ export const BrunchActualModeProvider: FC<
 
     const onInitialState = (event: Event) => {
       try {
-        const initialState = parseMarkingFrame(event as MessageEvent);
+        const data = parseJsonEventData(event as MessageEvent, "initial_state");
+        const initialState = parseMarkingFrameData(data);
         setValue((prev) => ({
           ...prev,
           status: prev.status === "complete" ? "complete" : "streaming",
           initialState,
+          receivedEvents: [
+            ...prev.receivedEvents,
+            { event: "initial_state", data },
+          ],
           timelineNowMs: Date.now(),
           error: null,
         }));
@@ -137,11 +157,19 @@ export const BrunchActualModeProvider: FC<
 
     const onTransitionFiring = (event: Event) => {
       try {
-        const firing = parseTransitionFiringFrame(event as MessageEvent);
+        const data = parseJsonEventData(
+          event as MessageEvent,
+          "transition_firing",
+        );
+        const firing = parseTransitionFiringFrameData(data);
         setValue((prev) => ({
           ...prev,
           status: prev.status === "complete" ? "complete" : "streaming",
           transitionFirings: [...prev.transitionFirings, firing],
+          receivedEvents: [
+            ...prev.receivedEvents,
+            { event: "transition_firing", data },
+          ],
           timelineNowMs: Date.now(),
           error: null,
         }));

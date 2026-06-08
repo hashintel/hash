@@ -32,6 +32,11 @@ export type ActualModeTransitionFiring = {
   ts: string;
 };
 
+export type ActualModeReceivedEvent = {
+  event: string;
+  data: unknown;
+};
+
 export type ActualModeSource = {
   kind: "brunch";
   endpoint: string;
@@ -48,6 +53,14 @@ export type ActualModeRecording = {
   transitionFirings: ActualModeTransitionFiring[];
 };
 
+export type ActualModeReceivedEventsRecording = {
+  version: typeof ACTUAL_MODE_RECORDING_VERSION;
+  exportedAt: string;
+  title: string | null;
+  source: ActualModeSource | null;
+  events: ActualModeReceivedEvent[];
+};
+
 export type ActualModeContextValue =
   | {
       available: false;
@@ -57,6 +70,7 @@ export type ActualModeContextValue =
       definition: null;
       initialState: null;
       transitionFirings: readonly [];
+      receivedEvents: readonly [];
       currentFrameIndex: 0;
       timelineStartedAtMs: null;
       timelineNowMs: null;
@@ -71,6 +85,7 @@ export type ActualModeContextValue =
       definition: SDCPN | null;
       initialState: ActualModeMarking | null;
       transitionFirings: readonly ActualModeTransitionFiring[];
+      receivedEvents: readonly ActualModeReceivedEvent[];
       currentFrameIndex: number;
       timelineStartedAtMs: number | null;
       timelineNowMs: number | null;
@@ -277,6 +292,7 @@ export const unavailableActualMode: ActualModeContextValue = {
   definition: null,
   initialState: null,
   transitionFirings: [],
+  receivedEvents: [],
   currentFrameIndex: 0,
   timelineStartedAtMs: null,
   timelineNowMs: null,
@@ -315,6 +331,22 @@ export const createActualModeRecording = (params: {
   definition: params.definition,
   initialState: params.initialState,
   transitionFirings: params.transitionFirings.map((firing) => ({ ...firing })),
+});
+
+export const createActualModeReceivedEventsRecording = (params: {
+  title: string | null;
+  source: ActualModeSource | null;
+  events: readonly ActualModeReceivedEvent[];
+  exportedAt?: string;
+}): ActualModeReceivedEventsRecording => ({
+  version: ACTUAL_MODE_RECORDING_VERSION,
+  exportedAt: params.exportedAt ?? new Date().toISOString(),
+  title: params.title,
+  source: params.source,
+  events: params.events.map((event) => ({
+    event: event.event,
+    data: event.data,
+  })),
 });
 
 export const parseActualModeRecording = (data: unknown): ActualModeRecording =>

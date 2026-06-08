@@ -189,8 +189,8 @@ const ActualEventsContent: React.FC = () => {
   const actualMode = use(ActualModeContext);
   const canExport =
     actualMode.available &&
-    actualMode.definition !== null &&
-    actualMode.initialState !== null;
+    (actualMode.receivedEvents.length > 0 ||
+      (actualMode.definition !== null && actualMode.initialState !== null));
   const transitionFirings = actualMode.transitionFirings;
   const visibleFirings = transitionFirings.slice(-MAX_VISIBLE_EVENTS);
   const firstVisibleIndex = transitionFirings.length - visibleFirings.length;
@@ -207,6 +207,7 @@ const ActualEventsContent: React.FC = () => {
     exportActualModeRecording({
       definition: actualMode.definition,
       initialState: actualMode.initialState,
+      receivedEvents: actualMode.receivedEvents,
       source: actualMode.source,
       title: actualMode.title,
       transitionFirings,
@@ -286,6 +287,6 @@ export const actualEventsSubView: SubView = {
   id: "actual-events",
   title: "Events",
   tooltip:
-    "Inspect the Actual mode transition stream and export a replay recording as JSON.",
+    "Inspect the Actual mode transition stream and export received events as JSON.",
   component: ActualEventsContent,
 };

@@ -20,9 +20,9 @@ If the stream cannot be reached or sends invalid data, Petrinaut shows an error 
 
 Actual mode opens the bottom panel with an Actual timeline once execution data is available. The timeline can be scrubbed to inspect the net state at earlier points in the received stream.
 
-The bottom panel also includes an **Events** tab. It shows the received transition stream in order, including each event timestamp, transition id, input tokens, and output tokens. Use **Export JSON** in this tab to download an Actual-mode recording containing the net definition, initial state, and all received transition events.
+The bottom panel also includes an **Events** tab. It shows the received transition stream in order, including each event timestamp, transition id, input tokens, and output tokens. Use **Export JSON** in this tab to download the received event stream. Brunch exports preserve the raw JSON payloads received from the SSE endpoint instead of the normalized SDCPN used internally for rendering.
 
-Each exported transition event stores the firing effect rather than a full before/after snapshot. The `input` and `output` fields are numeric count maps keyed by place id:
+For Brunch, the export is a JSON object with an `events` array. Each item stores the SSE event name and the parsed JSON payload exactly as Petrinaut received it. Transition payloads store the firing effect rather than a full before/after snapshot. The `input` and `output` fields are numeric count maps keyed by place id:
 
 ```json
 {
@@ -33,7 +33,7 @@ Each exported transition event stores the firing effect rather than a full befor
 }
 ```
 
-The exported JSON is a replay artifact for tooling that can serve the Brunch SSE protocol. The demo website does not replay the file directly.
+The exported JSON is an event-stream artifact for tooling that can serve the Brunch SSE protocol. The demo website does not replay the file directly.
 
 ## Current limits
 

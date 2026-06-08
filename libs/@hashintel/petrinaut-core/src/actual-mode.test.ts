@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  createActualModeReceivedEventsRecording,
   createActualModeRecording,
   createActualModeTimelineFrameReader,
   parseActualModeRecording,
@@ -49,6 +50,29 @@ describe("Actual mode recordings", () => {
     });
 
     expect(parseActualModeRecording(recording)).toEqual(recording);
+  });
+
+  it("exports raw received events without mapping to SDCPN", () => {
+    const rawDefinition = {
+      title: "Raw Brunch run",
+      places: [{ id: "queued", name: "Queued" }],
+      transitions: [],
+    };
+
+    const recording = createActualModeReceivedEventsRecording({
+      title: "Replay",
+      source: null,
+      events: [{ event: "definition", data: rawDefinition }],
+      exportedAt: "2026-06-05T10:01:00.000Z",
+    });
+
+    expect(recording).toEqual({
+      version: 1,
+      exportedAt: "2026-06-05T10:01:00.000Z",
+      title: "Replay",
+      source: null,
+      events: [{ event: "definition", data: rawDefinition }],
+    });
   });
 
   it("retimes transition firings relative to the first event", () => {

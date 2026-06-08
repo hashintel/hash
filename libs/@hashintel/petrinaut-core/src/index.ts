@@ -15,6 +15,7 @@ export {
   applyActualModeTransitionFiring,
   buildActualModeTimelinePoints,
   createActualModeRecording,
+  createActualModeReceivedEventsRecording,
   createActualModeTimelineFrameReader,
   getActualModeMarkingAtTransitionFiringIndex,
   getActualModeTransitionFiringTimesMs,
@@ -25,6 +26,8 @@ export {
 export type {
   ActualModeContextValue,
   ActualModeMarking,
+  ActualModeReceivedEvent,
+  ActualModeReceivedEventsRecording,
   ActualModeRecording,
   ActualModeSource,
   ActualModeTimelinePoint,
