@@ -29,7 +29,6 @@ export type SelectItem = {
   value: string;
   children: string; // Visible label
   disabled?: boolean;
-  selectedStyle?: Item["selectedStyle"];
 };
 
 type SelectBaseProps = {
@@ -153,7 +152,7 @@ function mapToMenuItems(
     id: it.value,
     text: it.children,
     disabled: it.disabled,
-    selectedStyle: it.selectedStyle,
+    selectedStyle: "tick",
     nestedItems: undefined,
     onClick: () => {},
   });
