@@ -1,12 +1,22 @@
-//! Errors that occur while fulfilling [`GraphRead`] suspensions.
+//! Error types for the orchestration layer.
 //!
-//! These are internal runtime errors: failures in compiled query execution,
-//! row decoding, or parameter encoding. The user wrote HashQL, not SQL; if
-//! the bridge fails, it indicates a bug in the compiler or runtime.
+//! The orchestrator sits between the MIR interpreter and external data sources
+//! (PostgreSQL). Errors fall into two families:
+//!
+//! - **Interpreter errors**: failures in the MIR interpreter itself (type invariant violations,
+//!   control flow errors, etc.). These are produced by the interpreter and forwarded through the
+//!   orchestrator.
+//! - **Bridge errors**: failures while fulfilling [`GraphRead`] suspensions (query execution, row
+//!   decoding, parameter encoding). The user wrote HashQL, not SQL; if the bridge fails, it
+//!   indicates a bug in the compiler or runtime.
+//!
+//! [`OrchestratorDiagnosticCategory`] unifies both families under a single
+//! category hierarchy so that downstream consumers (the eval crate) see one
+//! coherent diagnostic type from the orchestration layer.
 //!
 //! [`GraphRead`]: hashql_mir::body::terminator::GraphRead
 
-use alloc::string::String;
+use alloc::{borrow::Cow, string::String};
 
 use hashql_core::{
     pretty::{Formatter, RenderOptions},
@@ -15,13 +25,15 @@ use hashql_core::{
     r#type::{TypeFormatter, TypeFormatterOptions, TypeId, environment::Environment},
 };
 use hashql_diagnostics::{
-    Diagnostic, Label, category::TerminalDiagnosticCategory, diagnostic::Message,
-    severity::Severity,
+    Diagnostic, Label,
+    category::{DiagnosticCategory, TerminalDiagnosticCategory},
+    diagnostic::Message,
+    severity::Critical,
 };
 use hashql_mir::{
     body::{basic_block::BasicBlockId, local::Local},
     def::DefId,
-    interpret::error::{InterpretDiagnostic, InterpretDiagnosticCategory},
+    interpret::error::InterpretDiagnosticCategory,
 };
 
 use super::{Indexed, codec::JsonValueKind};
@@ -87,8 +99,64 @@ const VALUE_SERIALIZATION: TerminalDiagnosticCategory = TerminalDiagnosticCatego
     name: "Value Serialization",
 };
 
-const fn category(terminal: &'static TerminalDiagnosticCategory) -> InterpretDiagnosticCategory {
-    InterpretDiagnosticCategory::Suspension(SuspensionDiagnosticCategory(terminal))
+/// Type alias for orchestrator diagnostics.
+///
+/// The default severity kind is [`Severity`], which allows any severity level.
+pub type OrchestratorDiagnostic<K = Critical> =
+    Diagnostic<OrchestratorDiagnosticCategory, SpanId, K>;
+
+/// Diagnostic subcategory for errors that occur while fulfilling a suspension.
+///
+/// Wraps a [`TerminalDiagnosticCategory`] that identifies the specific bridge
+/// failure (query execution, row hydration, parameter encoding, etc.).
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub struct BridgeDiagnosticCategory(pub &'static TerminalDiagnosticCategory);
+
+impl DiagnosticCategory for BridgeDiagnosticCategory {
+    fn id(&self) -> Cow<'_, str> {
+        Cow::Borrowed("bridge")
+    }
+
+    fn name(&self) -> Cow<'_, str> {
+        Cow::Borrowed("Bridge")
+    }
+
+    fn subcategory(&self) -> Option<&dyn DiagnosticCategory> {
+        Some(self.0)
+    }
+}
+
+/// Top-level diagnostic category for the orchestration layer.
+///
+/// Unifies interpreter errors (forwarded from the MIR interpreter) and bridge
+/// errors (failures while fulfilling suspensions) under a single hierarchy.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum OrchestratorDiagnosticCategory {
+    /// An error produced by the MIR interpreter itself.
+    Interpret(InterpretDiagnosticCategory),
+    /// An error from the bridge while fulfilling a suspension.
+    Bridge(BridgeDiagnosticCategory),
+}
+
+impl DiagnosticCategory for OrchestratorDiagnosticCategory {
+    fn id(&self) -> Cow<'_, str> {
+        Cow::Borrowed("orchestrator")
+    }
+
+    fn name(&self) -> Cow<'_, str> {
+        Cow::Borrowed("Orchestrator")
+    }
+
+    fn subcategory(&self) -> Option<&dyn DiagnosticCategory> {
+        match self {
+            Self::Interpret(cat) => Some(cat),
+            Self::Bridge(cat) => Some(cat),
+        }
+    }
+}
+
+const fn category(terminal: &'static TerminalDiagnosticCategory) -> OrchestratorDiagnosticCategory {
+    OrchestratorDiagnosticCategory::Bridge(BridgeDiagnosticCategory(terminal))
 }
 
 /// Errors that occur while decoding a JSON value into a typed [`Value`].
@@ -354,7 +422,7 @@ pub enum BridgeError<'heap> {
 }
 
 impl<'heap> BridgeError<'heap> {
-    pub fn into_diagnostic(self, span: SpanId, env: &Environment<'heap>) -> InterpretDiagnostic {
+    pub fn into_diagnostic(self, span: SpanId, env: &Environment<'heap>) -> OrchestratorDiagnostic {
         match self {
             Self::QueryExecution { sql, source } => query_execution(span, &sql, &source),
             Self::RowHydration { column, source } => row_hydration(span, column, &source),
@@ -386,8 +454,12 @@ impl<'heap> BridgeError<'heap> {
     }
 }
 
-fn query_execution(span: SpanId, sql: &str, error: &tokio_postgres::Error) -> InterpretDiagnostic {
-    let mut diagnostic = Diagnostic::new(category(&QUERY_EXECUTION), Severity::Bug).primary(
+fn query_execution(
+    span: SpanId,
+    sql: &str,
+    error: &tokio_postgres::Error,
+) -> OrchestratorDiagnostic {
+    let mut diagnostic = Diagnostic::new(category(&QUERY_EXECUTION), Critical::BUG).primary(
         Label::new(span, "compiled query was rejected by the database"),
     );
 
@@ -409,9 +481,9 @@ fn row_hydration(
         value: column,
     }: Indexed<ColumnDescriptor>,
     source: &tokio_postgres::Error,
-) -> InterpretDiagnostic {
+) -> OrchestratorDiagnostic {
     let mut diagnostic =
-        Diagnostic::new(category(&ROW_HYDRATION), Severity::Bug).primary(Label::new(
+        Diagnostic::new(category(&ROW_HYDRATION), Critical::BUG).primary(Label::new(
             span,
             format!("cannot decode result column {index} ({column})"),
         ));
@@ -427,7 +499,7 @@ fn row_hydration(
 
 /// Adds notes describing a [`DecodeError`] to a diagnostic.
 fn add_decode_error_notes(
-    diagnostic: &mut InterpretDiagnostic,
+    diagnostic: &mut OrchestratorDiagnostic,
     source: &DecodeError<'_>,
     env: &Environment<'_>,
 ) {
@@ -541,9 +613,9 @@ fn value_deserialization(
     }: Indexed<ColumnDescriptor>,
     source: &DecodeError<'_>,
     env: &Environment<'_>,
-) -> InterpretDiagnostic {
+) -> OrchestratorDiagnostic {
     let mut diagnostic =
-        Diagnostic::new(category(&VALUE_DESERIALIZATION), Severity::Bug).primary(Label::new(
+        Diagnostic::new(category(&VALUE_DESERIALIZATION), Critical::BUG).primary(Label::new(
             span,
             format!("cannot deserialize result column {index} ({column})"),
         ));
@@ -563,8 +635,8 @@ fn continuation_deserialization(
     local: Local,
     source: &DecodeError<'_>,
     env: &Environment<'_>,
-) -> InterpretDiagnostic {
-    let mut diagnostic = Diagnostic::new(category(&CONTINUATION_DESERIALIZATION), Severity::Bug)
+) -> OrchestratorDiagnostic {
+    let mut diagnostic = Diagnostic::new(category(&CONTINUATION_DESERIALIZATION), Critical::BUG)
         .primary(Label::new(
             span,
             format!("cannot deserialize continuation local {local} in definition {body}"),
@@ -580,9 +652,13 @@ fn continuation_deserialization(
     diagnostic
 }
 
-fn invalid_continuation_block_id(span: SpanId, body: DefId, block_id: i32) -> InterpretDiagnostic {
+fn invalid_continuation_block_id(
+    span: SpanId,
+    body: DefId,
+    block_id: i32,
+) -> OrchestratorDiagnostic {
     let mut diagnostic =
-        Diagnostic::new(category(&INVALID_CONTINUATION_BLOCK_ID), Severity::Bug).primary(
+        Diagnostic::new(category(&INVALID_CONTINUATION_BLOCK_ID), Critical::BUG).primary(
             Label::new(span, "continuation returned an invalid block ID"),
         );
 
@@ -597,8 +673,8 @@ fn invalid_continuation_block_id(span: SpanId, body: DefId, block_id: i32) -> In
     diagnostic
 }
 
-fn invalid_continuation_local(span: SpanId, body: DefId, local: i32) -> InterpretDiagnostic {
-    let mut diagnostic = Diagnostic::new(category(&INVALID_CONTINUATION_LOCAL), Severity::Bug)
+fn invalid_continuation_local(span: SpanId, body: DefId, local: i32) -> OrchestratorDiagnostic {
+    let mut diagnostic = Diagnostic::new(category(&INVALID_CONTINUATION_LOCAL), Critical::BUG)
         .primary(Label::new(span, "continuation returned an invalid local"));
 
     diagnostic.add_message(Message::note(format!(
@@ -616,9 +692,9 @@ fn parameter_encoding(
     span: SpanId,
     parameter: usize,
     error: &(dyn core::error::Error + Send + Sync),
-) -> InterpretDiagnostic {
+) -> OrchestratorDiagnostic {
     let mut diagnostic =
-        Diagnostic::new(category(&PARAMETER_ENCODING), Severity::Bug).primary(Label::new(
+        Diagnostic::new(category(&PARAMETER_ENCODING), Critical::BUG).primary(Label::new(
             span,
             format!(
                 "cannot encode parameter ${} for the database",
@@ -635,8 +711,8 @@ fn parameter_encoding(
     diagnostic
 }
 
-fn query_lookup(span: SpanId, body: DefId, block: BasicBlockId) -> InterpretDiagnostic {
-    let mut diagnostic = Diagnostic::new(category(&QUERY_LOOKUP), Severity::Bug).primary(
+fn query_lookup(span: SpanId, body: DefId, block: BasicBlockId) -> OrchestratorDiagnostic {
+    let mut diagnostic = Diagnostic::new(category(&QUERY_LOOKUP), Critical::BUG).primary(
         Label::new(span, "no compiled query found for this data access"),
     );
 
@@ -651,8 +727,8 @@ fn query_lookup(span: SpanId, body: DefId, block: BasicBlockId) -> InterpretDiag
     diagnostic
 }
 
-fn incomplete_continuation(span: SpanId, body: DefId, field: &str) -> InterpretDiagnostic {
-    let mut diagnostic = Diagnostic::new(category(&INCOMPLETE_CONTINUATION), Severity::Bug)
+fn incomplete_continuation(span: SpanId, body: DefId, field: &str) -> OrchestratorDiagnostic {
+    let mut diagnostic = Diagnostic::new(category(&INCOMPLETE_CONTINUATION), Critical::BUG)
         .primary(Label::new(
             span,
             "continuation state is missing required columns",
@@ -669,8 +745,8 @@ fn incomplete_continuation(span: SpanId, body: DefId, field: &str) -> InterpretD
     diagnostic
 }
 
-fn missing_execution_residual(span: SpanId, body: DefId) -> InterpretDiagnostic {
-    let mut diagnostic = Diagnostic::new(category(&MISSING_EXECUTION_RESIDUAL), Severity::Bug)
+fn missing_execution_residual(span: SpanId, body: DefId) -> OrchestratorDiagnostic {
+    let mut diagnostic = Diagnostic::new(category(&MISSING_EXECUTION_RESIDUAL), Critical::BUG)
         .primary(Label::new(
             span,
             "no execution residual found for this definition",
@@ -687,8 +763,8 @@ fn missing_execution_residual(span: SpanId, body: DefId) -> InterpretDiagnostic 
     diagnostic
 }
 
-fn invalid_filter_return(span: SpanId, body: DefId) -> InterpretDiagnostic {
-    let mut diagnostic = Diagnostic::new(category(&INVALID_FILTER_RETURN), Severity::Bug)
+fn invalid_filter_return(span: SpanId, body: DefId) -> OrchestratorDiagnostic {
+    let mut diagnostic = Diagnostic::new(category(&INVALID_FILTER_RETURN), Critical::BUG)
         .primary(Label::new(span, "filter body returned a non-boolean value"));
 
     diagnostic.add_message(Message::note(format!(
@@ -702,8 +778,8 @@ fn invalid_filter_return(span: SpanId, body: DefId) -> InterpretDiagnostic {
     diagnostic
 }
 
-fn value_serialization(span: SpanId, error: &serde_json::Error) -> InterpretDiagnostic {
-    let mut diagnostic = Diagnostic::new(category(&VALUE_SERIALIZATION), Severity::Bug)
+fn value_serialization(span: SpanId, error: &serde_json::Error) -> OrchestratorDiagnostic {
+    let mut diagnostic = Diagnostic::new(category(&VALUE_SERIALIZATION), Critical::BUG)
         .primary(Label::new(span, "cannot serialize runtime value to JSON"));
 
     diagnostic.add_message(Message::note(format!("serialization failed: {error}")));
