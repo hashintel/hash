@@ -347,7 +347,7 @@ export const Select = <TValue extends string>({
           >
             {selectedItem
               ? resolvedRenderSelectedItem(selectedItem.value)
-              : (placeholder ?? " ")}
+              : (placeholder ?? "\u200B")}
           </ArkSelect.Trigger>
           {showClear && (
             <button
