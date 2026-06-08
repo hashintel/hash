@@ -12,7 +12,6 @@
     // Library Features
     allocator_api,
     iter_array_chunks,
-    iterator_try_collect,
     maybe_uninit_fill,
     impl_trait_in_assoc_type,
     try_blocks
@@ -25,8 +24,6 @@
 extern crate alloc;
 pub mod context;
 pub mod error;
-#[cfg(feature = "graph")]
-pub mod graph;
 pub mod intern;
 pub mod orchestrator;
 pub mod postgres;
