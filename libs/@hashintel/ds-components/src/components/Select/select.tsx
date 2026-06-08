@@ -275,6 +275,7 @@ export const Select = <TValue extends string>({
     disabled: !!disabled,
     loading: !!loading,
     hideArrow: !!hideArrow,
+    hasPrefix: !!prefix,
     connectsLeft,
     connectsRight,
     willClear:
@@ -321,6 +322,7 @@ export const Select = <TValue extends string>({
       className={cx(classes.wrapper, className)}
     >
       <ArkSelect.HiddenSelect />
+      {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- click-to-focus container delegates to inner <input> */}
       <div
         className={classes.select}
         onClick={(event) => {
