@@ -14,6 +14,10 @@
 //!
 //! When changing any of these types, make sure that the OpenAPI generator types do not degenerate
 //! into any of these cases.
+#![expect(
+    dead_code,
+    reason = "https://linear.app/hash/issue/BE-537/hashql-remove-old-backend-wire-up-hashql-in-the-api"
+)]
 use alloc::borrow::Cow;
 use core::{cmp, ops::Range};
 
@@ -43,23 +47,17 @@ use hash_graph_store::{
 use hash_graph_types::Embedding;
 use hashql_ast::error::AstDiagnosticCategory;
 use hashql_core::{
-    collections::fast_hash_map_with_capacity,
     heap::Heap,
-    module::ModuleRegistry,
     span::{SpanId, SpanTable},
-    r#type::environment::Environment,
 };
 use hashql_diagnostics::{
-    DiagnosticIssues, Failure, Severity, Status, StatusExt as _, Success,
+    DiagnosticIssues, Failure, Severity, Status, Success,
     category::{DiagnosticCategory, canonical_category_id},
     diagnostic::render::{Format, RenderOptions},
     source::{DiagnosticSpan, Source, SourceId, Sources},
 };
-use hashql_eval::{
-    error::EvalDiagnosticCategory,
-    graph::{error::GraphCompilerDiagnosticCategory, read::FilterSlice},
-};
-use hashql_hir::{error::HirDiagnosticCategory, visit::Visitor as _};
+use hashql_eval::error::EvalDiagnosticCategory;
+use hashql_hir::error::HirDiagnosticCategory;
 use hashql_syntax_jexpr::{error::JExprDiagnosticCategory, span::Span};
 use http::StatusCode;
 use serde::Deserialize;
@@ -318,89 +316,11 @@ pub enum EntityQuery<'q> {
 
 impl<'q> EntityQuery<'q> {
     fn compile_query<'heap>(
-        heap: &'heap Heap,
-        spans: &mut SpanTable<Span>,
-        query: &RawJsonValue,
+        _: &'heap Heap,
+        _: &mut SpanTable<Span>,
+        _: &RawJsonValue,
     ) -> Status<Filter<'heap, Entity>, HashQLDiagnosticCategory, SpanId> {
-        // Parse the query
-        let mut parser = hashql_syntax_jexpr::Parser::new(heap, spans);
-        let mut ast = parser
-            .parse_expr(query.get().as_bytes())
-            .map_err(|diagnostic| {
-                Failure::new(diagnostic.map_category(HashQLDiagnosticCategory::JExpr))
-            })?;
-
-        let mut env = Environment::new(heap);
-        let modules = ModuleRegistry::new(&env);
-
-        // Lower the AST
-        let Success {
-            value: types,
-            advisories,
-        } = hashql_ast::lowering::lower(heap.intern_symbol("main"), &mut ast, &env, &modules)
-            .map_category(|category| {
-                HashQLDiagnosticCategory::Ast(AstDiagnosticCategory::Lowering(category))
-            })?;
-
-        let interner = hashql_hir::intern::Interner::new(heap);
-        let mut context = hashql_hir::context::HirContext::new(&interner, &modules);
-
-        // Reify the HIR from the AST
-        let Success {
-            value: hir,
-            advisories,
-        } = hashql_hir::node::NodeData::from_ast(ast, &mut context, &types)
-            .map_category(|category| {
-                HashQLDiagnosticCategory::Hir(HirDiagnosticCategory::Reification(category))
-            })
-            .with_diagnostics(advisories)?;
-
-        // Lower the HIR
-        let Success {
-            value: hir,
-            advisories,
-        } = hashql_hir::lower::lower(hir, &types, &mut env, &mut context)
-            .map_category(|category| {
-                HashQLDiagnosticCategory::Hir(HirDiagnosticCategory::Lowering(category))
-            })
-            .with_diagnostics(advisories)?;
-
-        // Evaluate the HIR
-        // TODO: https://linear.app/hash/issue/BE-41/hashql-expose-input-in-graph-api
-        let inputs = fast_hash_map_with_capacity(0);
-        let mut compiler = hashql_eval::graph::read::GraphReadCompiler::new(heap, &inputs);
-
-        compiler.visit_node(hir);
-
-        let Success {
-            value: result,
-            advisories,
-        } = compiler
-            .finish()
-            .map_category(|category| {
-                HashQLDiagnosticCategory::Eval(EvalDiagnosticCategory::Graph(
-                    GraphCompilerDiagnosticCategory::Read(category),
-                ))
-            })
-            .with_diagnostics(advisories)?;
-
-        let output = result.output.get(&hir.id).expect("TODO");
-
-        // Compile the Filter into one
-        let filters = match output {
-            FilterSlice::Entity { range } => result.filters.entity(range.clone()),
-        };
-
-        let filter = match filters {
-            [] => Filter::All(Vec::new()),
-            [filter] => filter.clone(),
-            _ => Filter::All(filters.to_vec()),
-        };
-
-        Ok(Success {
-            value: filter,
-            advisories,
-        })
+        unimplemented!("https://linear.app/hash/issue/BE-537/hashql-remove-old-backend-wire-up-hashql-in-the-api")
     }
 
     /// Compiles a query into an executable entity filter.
