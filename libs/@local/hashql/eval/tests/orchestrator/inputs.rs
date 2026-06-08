@@ -46,14 +46,14 @@ fn exclusive_bound(heap: &Heap, ms: i128) -> Value<'_, &Heap> {
 
 /// Constructs `Opaque(Interval, {end: .., start: ..})`.
 ///
-/// Fields are sorted lexicographically (`end` before `start`).
+/// Field order in `push` calls does not matter; [`StructBuilder::finish`]
+/// sorts fields lexicographically.
 fn interval_value<'heap>(
     heap: &'heap Heap,
     symbols: &InternSet<'heap, [Symbol<'heap>]>,
     start: Value<'heap, &'heap Heap>,
     end: Value<'heap, &'heap Heap>,
 ) -> Value<'heap, &'heap Heap> {
-    // Fields sorted: "end" < "start"
     let mut builder = StructBuilder::<_, 2>::new();
     builder.push(sym::end, end);
     builder.push(sym::start, start);
@@ -222,9 +222,12 @@ fn option<'heap, T>(
 
 /// Builds the shared input set from seeded entity data and axis directives.
 ///
-/// Uses the decoder and the post-lowering type environment to construct
-/// properly typed `Value`s for entity UUIDs and entity IDs. The input names
-/// match what J-Expr test files reference via `["input", "<name>", "<type>"]`.
+/// Constructs interpreter [`Value`]s directly from the Rust-typed seed data,
+/// mirroring the opaque wrapping structure of the HashQL type system
+/// (e.g. `EntityId(Struct { web_id: WebId(ActorGroupEntityUuid(Uuid(String))), ... })`).
+///
+/// The input names match what J-Expr test files reference via
+/// `["input", "<name>", "<type>"]`.
 pub(crate) fn build_inputs<'heap>(
     heap: &'heap Heap,
     symbols: &InternSet<'heap, [Symbol<'heap>]>,
