@@ -27,7 +27,7 @@ import type { IconName } from "../Icon/icon";
 
 export type SelectItem = {
   value: string;
-  children: string; // Visible label
+  text: string; // Visible label
   disabled?: boolean;
 };
 
@@ -150,7 +150,7 @@ function mapToMenuItems(
 ): Array<ItemOrGroup<Item>> {
   const toItem = (it: SelectItem): Item => ({
     id: it.value,
-    text: it.children,
+    text: it.text,
     disabled: it.disabled,
     selectedStyle: "tick",
     nestedItems: undefined,
@@ -224,7 +224,7 @@ export const Select = ({
   const connectsRight = connectToRightInput && variant === "default";
 
   const selectedItem = findSelectItem(items, value);
-  const displayText = selectedItem?.children ?? "";
+  const displayText = selectedItem?.text ?? "";
 
   const isOptional = required !== true;
   const menuItems = useMemo(() => {
@@ -303,19 +303,7 @@ export const Select = ({
       ref={ref as React.Ref<HTMLDivElement>}
       className={cx(classes.wrapper, className)}
     >
-      <ArkSelect.Trigger
-        id={inputId}
-        autoFocus={autoFocus === true ? true : undefined}
-        ref={mergedTriggerRef}
-        className={classes.trigger}
-        data-testid={testId}
-        tabIndex={tabIndex}
-        onClick={onClick}
-        onKeyDown={onKeyDown}
-        onFocus={onFocus}
-        onBlur={onBlur}
-        {...ariaProps}
-      >
+      <div className={classes.select}>
         {prefix != null && renderPrefix(prefix, size, classes)}
         {connectToLeftInput && variant === "default" && (
           <InputConnector
@@ -324,13 +312,27 @@ export const Select = ({
           />
         )}
 
-        <div className={classes.inputWrapper}>
-          <span
-            className={cx(classes.value, !selectedItem && classes.placeholder)}
-            data-part="value"
+        <div className={classes.triggerWrapper}>
+          <ArkSelect.Trigger
+            asChild
+            id={inputId}
+            autoFocus={autoFocus === true ? true : undefined}
+            ref={mergedTriggerRef as React.Ref<HTMLButtonElement>}
+            className={cx(
+              classes.trigger,
+              !selectedItem && classes.placeholder,
+            )}
+            data-part="trigger"
+            data-testid={testId}
+            tabIndex={tabIndex}
+            onClick={onClick}
+            onKeyDown={onKeyDown}
+            onFocus={onFocus}
+            onBlur={onBlur}
+            {...ariaProps}
           >
             {displayText !== "" ? displayText : (placeholder ?? " ")}
-          </span>
+          </ArkSelect.Trigger>
           {showClear && (
             <button
               type="button"
@@ -372,7 +374,7 @@ export const Select = ({
             data-part="connector"
           />
         )}
-      </ArkSelect.Trigger>
+      </div>
       <Portal container={portalContainerRef}>
         <ArkSelect.Positioner>
           <SelectableList

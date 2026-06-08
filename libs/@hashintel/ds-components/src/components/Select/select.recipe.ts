@@ -6,9 +6,9 @@ import { formWidths } from "../../util/form-width.recipe";
 export const selectRecipe = sva({
   slots: [
     "wrapper",
+    "select",
     "trigger",
-    "inputWrapper",
-    "value",
+    "triggerWrapper",
     "placeholder",
     "prefix",
     "adornment",
@@ -27,7 +27,7 @@ export const selectRecipe = sva({
       position: "relative",
       "--base-input-connector-width": "10px",
     },
-    trigger: {
+    select: {
       ...formWidths.base,
       display: "inline-flex",
       // alignItems: "stretch",
@@ -43,8 +43,8 @@ export const selectRecipe = sva({
       "--base-input-focus-color": "var(--colors-neutral-s40)",
       "--base-input-border-color": "var(--colors-neutral-s40)",
       "--base-input-border-hover-color": "var(--colors-neutral-s80)",
-      "&[data-disabled]": { cursor: "auto" },
-      "&:focus": { outline: "none" },
+      "&:has([data-disabled])": { cursor: "auto" },
+      "& [data-part='trigger']:focus": { outline: "none" },
       "&:not(.layer-style_disabled):hover [data-part='clear']": {
         opacity: "1",
         visibility: "visible",
@@ -66,7 +66,7 @@ export const selectRecipe = sva({
         transform: "[rotate(45deg) translateY(-15%)]",
         transition: "[transform 0.15s ease]",
       },
-      "&[data-state='open']::after": {
+      "&:has([data-state='open'])::after": {
         transform: "[rotate(225deg) translateY(-15%)]",
       },
     },
@@ -74,7 +74,7 @@ export const selectRecipe = sva({
       display: "inline",
       color: "fg.body",
     },
-    inputWrapper: {
+    triggerWrapper: {
       position: "relative",
       display: "flex",
       alignItems: "center",
@@ -84,7 +84,7 @@ export const selectRecipe = sva({
       width: "var(--form-width)",
       maxWidth: "var(--form-width)",
     },
-    value: {
+    trigger: {
       flex: "1",
       minWidth: "0",
       width: "[100%]",
@@ -176,7 +176,7 @@ export const selectRecipe = sva({
   variants: {
     variant: {
       default: {
-        trigger: {
+        select: {
           borderColor: "var(--base-input-border-color)",
           color: "fg.body",
           "&:not(.layer-style_disabled):hover": {
@@ -196,12 +196,12 @@ export const selectRecipe = sva({
           borderRightColor: "var(--colors-neutral-s40)",
           borderLeftColor: "var(--colors-neutral-s40)",
         },
-        value: {
+        trigger: {
           paddingX: "var(--base-input-padding-x)",
         },
       },
       subtle: {
-        trigger: {
+        select: {
           "--base-input-border-hover-color": "var(--colors-neutral-a40)",
           "--base-input-background-color": "transparent",
           _before: {
@@ -252,7 +252,7 @@ export const selectRecipe = sva({
     size: {
       xxs: {
         wrapper: { "--base-input-connector-width": "5px" },
-        trigger: {
+        select: {
           ...formSizes.variants.sizes.xxs,
           "--base-input-border-radius": "radii.md",
           "--base-input-padding-x": "spacing.2",
@@ -260,7 +260,7 @@ export const selectRecipe = sva({
       },
       xs: {
         wrapper: { "--base-input-connector-width": "6px" },
-        trigger: {
+        select: {
           ...formSizes.variants.sizes.xs,
           "--base-input-border-radius": "radii.md",
           "--base-input-padding-x": "spacing.2",
@@ -268,7 +268,7 @@ export const selectRecipe = sva({
       },
       sm: {
         wrapper: { "--base-input-connector-width": "8px" },
-        trigger: {
+        select: {
           ...formSizes.variants.sizes.sm,
           "--base-input-border-radius": "radii.lg",
           "--base-input-padding-x": "spacing.2.5",
@@ -276,7 +276,7 @@ export const selectRecipe = sva({
       },
       md: {
         wrapper: { "--base-input-connector-width": "10px" },
-        trigger: {
+        select: {
           ...formSizes.variants.sizes.md,
           "--base-input-border-radius": "radii.lg",
           "--base-input-padding-x": "spacing.3",
@@ -284,7 +284,7 @@ export const selectRecipe = sva({
       },
       lg: {
         wrapper: { "--base-input-connector-width": "12px" },
-        trigger: {
+        select: {
           ...formSizes.variants.sizes.lg,
           "--base-input-border-radius": "radii.xl",
           "--base-input-padding-x": "spacing.4",
@@ -293,7 +293,7 @@ export const selectRecipe = sva({
     },
     invalid: {
       true: {
-        trigger: {
+        select: {
           "--base-input-focus-color": "var(--colors-red-s60)",
           "--base-input-border-color": "var(--colors-red-s60)",
           "--base-input-border-hover-color": "var(--colors-red-s65)",
@@ -302,7 +302,7 @@ export const selectRecipe = sva({
     },
     disabled: {
       true: {
-        trigger: {
+        select: {
           ...({ layerStyle: "disabled" } as Record<string, string>),
           cursor: "auto",
         },
@@ -310,35 +310,35 @@ export const selectRecipe = sva({
     },
     width: {
       xs: {
-        trigger: { ...formWidths.variants.widths.xs },
+        select: { ...formWidths.variants.widths.xs },
       },
       sm: {
-        trigger: { ...formWidths.variants.widths.sm },
+        select: { ...formWidths.variants.widths.sm },
       },
       md: {
-        trigger: { ...formWidths.variants.widths.md },
+        select: { ...formWidths.variants.widths.md },
       },
       lg: {
-        trigger: { ...formWidths.variants.widths.lg },
+        select: { ...formWidths.variants.widths.lg },
       },
       fullWidth: {
         wrapper: { width: "[100%]" },
-        trigger: {
+        select: {
           ...formWidths.variants.widths.fullWidth,
           width: "[100%]",
         },
       },
       fitContent: {
-        trigger: {
+        select: {
           ...formWidths.variants.widths.fitContent,
           width: "[fit-content]",
         },
         readonly: { width: "[fit-content]" },
-        inputWrapper: {
+        triggerWrapper: {
           display: "inline-grid",
           minWidth: "[unset]",
         },
-        value: {
+        trigger: {
           gridArea: "[1 / 1]",
         },
         clear: {
@@ -349,23 +349,23 @@ export const selectRecipe = sva({
       },
     },
     align: {
-      left: { value: { textAlign: "start" } },
-      center: { value: { textAlign: "center" } },
-      right: { value: { textAlign: "end" } },
+      left: { trigger: { textAlign: "start" } },
+      center: { trigger: { textAlign: "center" } },
+      right: { trigger: { textAlign: "end" } },
     },
     loading: {
       true: {
         clear: {
           right: "1.5",
         },
-        trigger: {
+        select: {
           "&::after": { display: "none" },
         },
       },
     },
     hideArrow: {
       true: {
-        trigger: {
+        select: {
           "&::after": { display: "none" },
         },
       },
@@ -401,7 +401,7 @@ export const selectRecipe = sva({
       variant: "default",
       disabled: true,
       css: {
-        trigger: {
+        select: {
           "--base-input-border-color": "var(--colors-neutral-s50)",
           "--base-input-background-color": "var(--colors-neutral-s20)",
           color: "neutral.s80",
@@ -412,7 +412,7 @@ export const selectRecipe = sva({
       variant: "subtle",
       disabled: true,
       css: {
-        trigger: {
+        select: {
           color: "neutral.s80",
         },
       },
@@ -430,7 +430,7 @@ export const selectRecipe = sva({
       variant: "default",
       invalid: true,
       css: {
-        trigger: {
+        select: {
           "&:not(.layer-style_disabled):hover": {
             "--base-input-background-color": "var(--colors-red-s05)",
           },
@@ -441,7 +441,7 @@ export const selectRecipe = sva({
       variant: "subtle",
       invalid: true,
       css: {
-        trigger: {
+        select: {
           _before: {
             borderColor: "var(--base-input-border-color)",
           },
@@ -452,7 +452,7 @@ export const selectRecipe = sva({
       variant: "subtle",
       size: "xxs",
       css: {
-        trigger: {
+        select: {
           "--base-input-padding-x": "spacing.2",
         },
       },
@@ -461,7 +461,7 @@ export const selectRecipe = sva({
       variant: "subtle",
       size: "xs",
       css: {
-        trigger: {
+        select: {
           "--base-input-padding-x": "spacing.2",
         },
       },
@@ -470,7 +470,7 @@ export const selectRecipe = sva({
       variant: "subtle",
       size: "sm",
       css: {
-        trigger: {
+        select: {
           "--base-input-padding-x": "spacing.2",
         },
       },
@@ -479,7 +479,7 @@ export const selectRecipe = sva({
       variant: "subtle",
       size: "md",
       css: {
-        trigger: {
+        select: {
           "--base-input-padding-x": "spacing.2",
         },
       },
@@ -488,7 +488,7 @@ export const selectRecipe = sva({
       variant: "subtle",
       size: "lg",
       css: {
-        trigger: {
+        select: {
           "--base-input-padding-x": "spacing.2",
         },
       },
