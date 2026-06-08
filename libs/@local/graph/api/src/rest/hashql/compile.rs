@@ -1,6 +1,7 @@
+use hash_graph_authorization::policies::action::ActionName;
 use hashql_ast::error::AstDiagnosticCategory;
 use hashql_core::{
-    heap::{Heap, ResetAllocator as _, Scratch},
+    heap::{self, Heap, ResetAllocator as _, Scratch},
     module::ModuleRegistry,
     span::{SpanId, SpanTable},
     symbol::sym,
@@ -17,16 +18,43 @@ use hashql_mir::{
     def::{DefId, DefIdVec},
     error::MirDiagnosticCategory,
     pass::{LowerConfig, execution::ExecutionAnalysisResidual},
+    visit::Visitor,
 };
 use hashql_syntax_jexpr::span::Span;
 
 use super::error::HashQlDiagnosticCategory;
+
+struct FindActions<'heap> {
+    actions: heap::Vec<'heap, ActionName>,
+}
+
+impl<'heap> hashql_mir::visit::Visitor<'heap> for FindActions<'heap> {
+    type Result = Result<(), !>;
+
+    fn visit_graph_read_head(
+        &mut self,
+        _: hashql_mir::body::terminator::GraphReadLocation,
+        head: &hashql_mir::body::terminator::GraphReadHead<'heap>,
+    ) -> Self::Result {
+        match head {
+            hashql_mir::body::terminator::GraphReadHead::Entity { axis: _ } => {
+                self.actions.push(ActionName::ViewEntity);
+            }
+        }
+
+        Ok(())
+    }
+}
 
 pub(crate) struct CodeCompilationArtifact<'heap> {
     pub assignment: DefIdVec<Option<ExecutionAnalysisResidual<&'heap Heap>>, &'heap Heap>,
 
     pub interpreter: DefIdVec<Body<'heap>, &'heap Heap>,
     pub postgres: PreparedQueries<'heap, &'heap Heap>,
+}
+
+pub(crate) struct CodeExecutionPermissions<'heap> {
+    pub actions: heap::Vec<'heap, ActionName>,
 }
 
 pub(crate) struct Compilation<'heap> {
@@ -39,6 +67,7 @@ pub(crate) struct Compilation<'heap> {
 
     pub entrypoint: DefId,
     pub artifact: CodeCompilationArtifact<'heap>,
+    pub permissions: CodeExecutionPermissions<'heap>,
 }
 
 impl<'heap> Compilation<'heap> {
@@ -135,6 +164,17 @@ impl<'heap> Compilation<'heap> {
         .map_category(HashQlDiagnosticCategory::Mir)
         .with_diagnostics(advisories)?;
 
+        let mut actions = FindActions {
+            actions: heap::Vec::new_in(heap),
+        };
+        for body in &bodies {
+            Ok(()) = actions.visit_body(body)
+        }
+
+        let permissions = CodeExecutionPermissions {
+            actions: actions.actions,
+        };
+
         // Plan the execution
         let Success {
             value: execution,
@@ -176,6 +216,7 @@ impl<'heap> Compilation<'heap> {
                 interpreter: bodies,
                 postgres: queries,
             },
+            permissions,
         })
     }
 
