@@ -6,6 +6,7 @@
 #![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
 #![feature(
     // Library Features
+    core_io,
     exit_status_error
 )]
 

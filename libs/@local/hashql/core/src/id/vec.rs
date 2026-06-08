@@ -374,7 +374,7 @@ where
     ///
     /// See [`Vec::as_slice`] for details.
     #[inline]
-    pub fn as_slice(&self) -> &IdSlice<I, T> {
+    pub const fn as_slice(&self) -> &IdSlice<I, T> {
         IdSlice::from_raw(&self.raw)
     }
 
@@ -382,7 +382,7 @@ where
     ///
     /// See [`Vec::as_mut_slice`] for details.
     #[inline]
-    pub fn as_mut_slice(&mut self) -> &mut IdSlice<I, T> {
+    pub const fn as_mut_slice(&mut self) -> &mut IdSlice<I, T> {
         IdSlice::from_raw_mut(&mut self.raw)
     }
 

@@ -1083,16 +1083,16 @@ where
     }
 
     #[expect(
-        clippy::unused_async,
+        clippy::unused_self,
         clippy::needless_pass_by_ref_mut,
         reason = "Placeholder for future implementation"
     )]
-    pub(crate) async fn synchronize_action_hierarchies(
+    pub(crate) fn synchronize_action_hierarchies(
         &mut self,
-    ) -> Result<(), Report<ActionError>> {
+    ) -> impl Future<Output = Result<(), Report<ActionError>>> {
         // TODO: Implement logic to synchronize action hierarchies
         //   see https://linear.app/hash/issue/H-4713/when-synchronizing-policy-actions-also-synchronize-the-hierarchy
-        Ok(())
+        core::future::ready(Ok(()))
     }
 
     /// Gets all parent actions for a given action.

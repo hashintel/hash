@@ -44,7 +44,7 @@ pub(crate) mod style {
         }
     }
 
-    impl const From<Style> for StyleProxy {
+    const impl From<Style> for StyleProxy {
         fn from(value: Style) -> Self {
             Self {
                 effects: value.get_effects(),
@@ -55,7 +55,7 @@ pub(crate) mod style {
         }
     }
 
-    impl const From<StyleProxy> for Style {
+    const impl From<StyleProxy> for Style {
         fn from(value: StyleProxy) -> Self {
             Self::new()
                 .effects(value.effects)
@@ -198,13 +198,13 @@ pub(crate) mod color {
     #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
     pub(crate) struct ColorProxy(Color);
 
-    impl const From<Color> for ColorProxy {
+    const impl From<Color> for ColorProxy {
         fn from(color: Color) -> Self {
             Self(color)
         }
     }
 
-    impl const From<ColorProxy> for Color {
+    const impl From<ColorProxy> for Color {
         fn from(color_proxy: ColorProxy) -> Self {
             color_proxy.0
         }

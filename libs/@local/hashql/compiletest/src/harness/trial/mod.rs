@@ -1,7 +1,6 @@
-use core::{any::Any, fmt::Display};
+use core::{any::Any, fmt::Display, io::Cursor};
 use std::{
     fs::File,
-    io::Cursor,
     panic,
     path::{Path, PathBuf},
     time::Instant,

@@ -266,7 +266,7 @@ impl<A: Allocator + Clone> TerminatorTransitionCostVec<A> {
     }
 
     #[expect(clippy::cast_possible_truncation)]
-    fn successor_count(block: &BasicBlock) -> u32 {
+    const fn successor_count(block: &BasicBlock) -> u32 {
         match &block.terminator.kind {
             TerminatorKind::SwitchInt(switch) => switch.targets.targets().len() as u32,
             TerminatorKind::Goto(_) | TerminatorKind::GraphRead(_) => 1,
