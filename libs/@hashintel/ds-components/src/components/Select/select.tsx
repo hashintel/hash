@@ -319,6 +319,7 @@ export const Select = ({
       ref={ref as React.Ref<HTMLDivElement>}
       className={cx(classes.wrapper, className)}
     >
+      <ArkSelect.HiddenSelect />
       <div className={classes.select}>
         {prefix != null && renderPrefix(prefix, size, classes)}
         {connectToLeftInput && variant === "default" && (
