@@ -15,6 +15,7 @@ import { styles as itemStyles } from "./selectable-list-item.recipe";
 import {
   type Item,
   type ItemOrGroup,
+  getItemId,
   isGroup,
   useLoopSelection,
 } from "./selectable-list-util";
@@ -59,7 +60,7 @@ const NestedMenu = ({
   return (
     <Menu.Root
       loopFocus={false}
-      ids={{ trigger: item.id }}
+      ids={{ trigger: getItemId(item) }}
       positioning={{
         placement: "right-start",
         offset: { mainAxis: 0 },
@@ -97,7 +98,8 @@ const NestedMenu = ({
 };
 
 const ItemRow = ({ item, ctx }: { item: Item; ctx: RenderCtx }) => {
-  const isSelected = ctx.selectedSet.has(item.id);
+  const itemId = getItemId(item);
+  const isSelected = ctx.selectedSet.has(itemId);
   const selectedStyle = item.selectedStyle ?? "highlight";
   const highlighted = isSelected && selectedStyle === "highlight";
   const isInteractive = !item.disabled && !item.loading;
@@ -146,7 +148,7 @@ const ItemRow = ({ item, ctx }: { item: Item; ctx: RenderCtx }) => {
 
   if ("href" in item && item.href && isInteractive) {
     return (
-      <Menu.Item value={item.id} asChild>
+      <Menu.Item value={itemId} asChild>
         <a
           href={item.href}
           target={item.target}
@@ -161,13 +163,13 @@ const ItemRow = ({ item, ctx }: { item: Item; ctx: RenderCtx }) => {
 
   const handleSelect = () => {
     if ("onClick" in item && item.onClick) {
-      item.onClick(item.id);
+      item.onClick(itemId);
     }
   };
 
   return (
     <Menu.Item
-      value={item.id}
+      value={itemId}
       disabled={!isInteractive}
       onSelect={handleSelect}
       className={classes.item}
@@ -199,7 +201,7 @@ const renderEntry = (
             </Select.ItemGroupLabel>
           )}
           {entry.items.map((child) => (
-            <ItemRow key={child.id} item={child} ctx={ctx} />
+            <ItemRow key={getItemId(child)} item={child} ctx={ctx} />
           ))}
         </Select.ItemGroup>
       );
@@ -219,7 +221,7 @@ const renderEntry = (
     );
   }
 
-  return <ItemRow key={entry.id} item={entry} ctx={ctx} />;
+  return <ItemRow key={getItemId(entry)} item={entry} ctx={ctx} />;
 };
 
 /**

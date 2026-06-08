@@ -15,6 +15,7 @@ import {
   type Item,
   type ItemOrGroup,
 } from "../SelectableList/selectable-list";
+import { getItemId } from "../SelectableList/selectable-list-util";
 import { InputConnector } from "../TextInput/input-connector";
 import { selectRecipe } from "./select.recipe";
 
@@ -257,8 +258,8 @@ export const Select = ({
     () =>
       createListCollection<Item>({
         items: flattenItems(menuItems),
-        itemToValue: (item) => item.id,
-        itemToString: (item) => item.id,
+        itemToValue: (item) => getItemId(item),
+        itemToString: (item) => getItemId(item),
         isItemDisabled: (item) => !!item.disabled,
       }),
     [menuItems],
