@@ -53,12 +53,13 @@ const noop = () => {};
 const Controlled = (
   props: Omit<SelectProps, "items"> & { items?: SelectProps["items"] },
 ) => {
+  const { required: _required, ...rest } = props;
   const [value, setValue] = useState<string | null | undefined>(
     props.value ?? "",
   );
   return (
     <Select
-      {...props}
+      {...rest}
       items={props.items ?? sampleItems}
       value={value}
       onChange={(val) => setValue(val)}
@@ -71,12 +72,13 @@ const ClearableSelect = (
     items?: SelectProps["items"];
   },
 ) => {
+  const { required: _required, ...rest } = props;
   const [value, setValue] = useState<string | null | undefined>(
     props.value ?? "",
   );
   return (
     <Select
-      {...props}
+      {...rest}
       items={props.items ?? sampleItems}
       value={value}
       onChange={(val) => setValue(val)}

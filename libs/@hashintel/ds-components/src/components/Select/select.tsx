@@ -32,7 +32,7 @@ export type SelectItem = {
   selectedStyle?: Item["selectedStyle"];
 };
 
-export type SelectProps = {
+type SelectBaseProps = {
   /** An optional placeholder shown when no value is selected */
   placeholder?: string;
   /** Disable editing of the input. Unlike disabled this strips the input styles and displays the value as text */
@@ -62,12 +62,25 @@ export type SelectProps = {
   onKeyDown?: React.KeyboardEventHandler<Element>;
   tabIndex?: number;
   items: Array<ItemOrGroup<SelectItem>>;
-} & SharedInputProps<
-  HTMLButtonElement,
-  string | null | undefined,
-  (value: string | null | undefined) => void
+} & Omit<
+  SharedInputProps<HTMLButtonElement, string | null | undefined>,
+  "value" | "onChange" | "required"
 > &
   React.AriaAttributes;
+
+export type SelectProps = SelectBaseProps &
+  (
+    | {
+        required: true;
+        value: string;
+        onChange: (value: string) => void;
+      }
+    | {
+        required?: false;
+        value: string | null | undefined;
+        onChange: (value: string | null | undefined) => void;
+      }
+  );
 
 type SelectSlots = ReturnType<typeof selectRecipe>;
 type Prefix =
