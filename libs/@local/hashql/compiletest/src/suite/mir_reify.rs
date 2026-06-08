@@ -8,7 +8,7 @@ use std::{
 use error_stack::ReportSink;
 use hashql_ast::node::expr::Expr;
 use hashql_core::{
-    heap::{Heap, ResetAllocator, Scratch},
+    heap::{Heap, ResetAllocator as _, Scratch},
     id::IdVec,
     module::ModuleRegistry,
     pretty::Formatter,
