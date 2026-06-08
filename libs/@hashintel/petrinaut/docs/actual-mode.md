@@ -18,7 +18,7 @@ If the stream cannot be reached or sends invalid data, Petrinaut shows an error 
 
 ## Timeline and events
 
-Actual mode opens the bottom panel with an Actual timeline once execution data is available. The timeline can be scrubbed to inspect the net state at earlier points in the received stream.
+Actual mode opens the bottom panel with an Actual timeline once execution data is available. The timeline can be scrubbed to inspect the net state at earlier points in the received stream. Use the searchable series selector below the chart to show, hide, or focus individual traces.
 
 The bottom panel also includes an **Events** tab. It shows the received transition stream in order, including each event timestamp, transition id, input tokens, and output tokens. Use the **Export** dropdown in this tab to download either the received event stream or the current Petri net.
 

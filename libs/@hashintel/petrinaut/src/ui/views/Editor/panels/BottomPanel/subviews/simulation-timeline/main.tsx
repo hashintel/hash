@@ -25,18 +25,6 @@ const SimulationTimelineContent: React.FC = () => {
 
   const [hiddenSeries, setHiddenSeries] = useState<Set<string>>(new Set());
 
-  const toggleSeriesVisibility = (seriesId: string) => {
-    setHiddenSeries((prev) => {
-      const next = new Set(prev);
-      if (next.has(seriesId)) {
-        next.delete(seriesId);
-      } else {
-        next.add(seriesId);
-      }
-      return next;
-    });
-  };
-
   if (metricError) {
     return (
       <div className={containerStyle}>
@@ -70,7 +58,7 @@ const SimulationTimelineContent: React.FC = () => {
         <TimelineLegend
           series={store.series}
           hiddenSeries={hiddenSeries}
-          onToggleVisibility={toggleSeriesVisibility}
+          onHiddenSeriesChange={setHiddenSeries}
         />
       )}
     </div>

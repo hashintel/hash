@@ -43,18 +43,6 @@ const ActualTimelineContent: React.FC = () => {
     }
   }, [currentFrameIndex, lastFrameIndex, setCurrentFrameIndex]);
 
-  const toggleSeriesVisibility = (seriesId: string) => {
-    setHiddenSeries((prev) => {
-      const next = new Set(prev);
-      if (next.has(seriesId)) {
-        next.delete(seriesId);
-      } else {
-        next.add(seriesId);
-      }
-      return next;
-    });
-  };
-
   const handleScrub = (frameIndex: number) => {
     setCurrentFrameIndex(frameIndex);
     setIsFollowingLive(frameIndex >= lastFrameIndex);
@@ -93,7 +81,7 @@ const ActualTimelineContent: React.FC = () => {
         <TimelineLegend
           series={store.series}
           hiddenSeries={hiddenSeries}
-          onToggleVisibility={toggleSeriesVisibility}
+          onHiddenSeriesChange={setHiddenSeries}
         />
       )}
     </div>

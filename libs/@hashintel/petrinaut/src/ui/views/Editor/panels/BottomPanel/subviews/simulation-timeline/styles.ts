@@ -15,12 +15,12 @@ export const chartAreaStyle = css({
 
 export const legendContainerStyle = css({
   display: "flex",
-  flexWrap: "wrap",
-  gap: "[12px]",
-  fontSize: "[11px]",
-  color: "[#666]",
-  paddingY: "3",
+  alignItems: "center",
+  minHeight: "[42px]",
   paddingX: "3",
+  paddingY: "1.5",
+  borderTopWidth: "thin",
+  borderColor: "neutral.bd.subtle",
 });
 
 export const legendItemStyle = css({
