@@ -8,7 +8,7 @@ use std::{
 use error_stack::ReportSink;
 use hashql_ast::node::expr::Expr;
 use hashql_core::{
-    heap::{Heap, Scratch},
+    heap::{Heap, ResetAllocator, Scratch},
     id::IdVec,
     module::ModuleRegistry,
     pretty::Formatter,
@@ -33,7 +33,7 @@ pub(crate) fn mir_reify<'heap>(
     environment: &mut Environment<'heap>,
     diagnostics: &mut Vec<SuiteDiagnostic>,
 ) -> Result<(DefId, DefIdVec<Body<'heap>>, Scratch), SuiteDiagnostic> {
-    let scratch = Scratch::new();
+    let mut scratch = Scratch::new();
     let registry = ModuleRegistry::new(environment);
     let hir_interner = hashql_hir::intern::Interner::new(heap);
     let mut hir_context = HirContext::new(&hir_interner, &registry);
@@ -71,6 +71,7 @@ pub(crate) fn mir_reify<'heap>(
             },
         ),
     )?;
+    scratch.reset();
 
     Ok((root, bodies, scratch))
 }
