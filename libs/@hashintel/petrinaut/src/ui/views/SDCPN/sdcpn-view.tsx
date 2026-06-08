@@ -457,7 +457,9 @@ export const SDCPNView: React.FC<{
         <Background gap={SNAP_GRID_SIZE} size={1} />
         {hasCanvasSelection && <div className={fadeBgStyle} />}
         {showMinimap && <MiniMap pannable zoomable />}
-        {!isActualMode && <ViewportControls viewportActions={viewportActions} />}
+        {!isActualMode && (
+          <ViewportControls viewportActions={viewportActions} />
+        )}
       </ReactFlow>
     </div>
   );

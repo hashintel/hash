@@ -11,7 +11,6 @@ import {
 } from "@hashintel/petrinaut/ui";
 
 import { useSentryFeedbackAction } from "../sentry-feedback-button";
-
 import { useLocalStorageAiMessages } from "./use-local-storage-ai-messages";
 import {
   type SDCPNInLocalStorage,

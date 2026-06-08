@@ -106,8 +106,9 @@ const getPlaceMarkingTokenCount = (
   return isTokenColourArray(markingValue) ? markingValue.length : markingValue;
 };
 
-const cloneTokenColour = (token: ActualModeTokenColour): ActualModeTokenColour =>
-  ({ ...token });
+const cloneTokenColour = (
+  token: ActualModeTokenColour,
+): ActualModeTokenColour => ({ ...token });
 
 const cloneMarkingValue = (
   markingValue: number | ActualModeTokenColour[],
@@ -167,7 +168,8 @@ export const applyActualModeTransitionFiring = (
       continue;
     }
 
-    next[placeId] = (currentValue ?? 0) - (inputValue ?? 0) + (outputValue ?? 0);
+    next[placeId] =
+      (currentValue ?? 0) - (inputValue ?? 0) + (outputValue ?? 0);
   }
 
   return next;
@@ -210,12 +212,14 @@ export const actualModeTransitionEffectSchema = z.record(
   z.string(),
   z.number(),
 ) satisfies z.ZodType<ActualModeTransitionEffect>;
-const actualModeTransitionFiringEffectSchema = z.object({
-  transitionId: z.string(),
-  input: actualModeTransitionEffectSchema,
-  output: actualModeTransitionEffectSchema,
-  ts: z.string(),
-}).strict();
+const actualModeTransitionFiringEffectSchema = z
+  .object({
+    transitionId: z.string(),
+    input: actualModeTransitionEffectSchema,
+    output: actualModeTransitionEffectSchema,
+    ts: z.string(),
+  })
+  .strict();
 export const actualModeTransitionFiringSchema =
   actualModeTransitionFiringEffectSchema satisfies z.ZodType<ActualModeTransitionFiring>;
 export const actualModeSourceSchema = z.object({

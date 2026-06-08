@@ -12,8 +12,8 @@ import {
 } from "@hashintel/petrinaut-core/examples";
 
 import { usePetrinautCommands } from "../../../react";
-import { ExperimentsContext } from "../../../react/experiments/context";
 import { ActualModeContext } from "../../../react/actual-mode-context";
+import { ExperimentsContext } from "../../../react/experiments/context";
 import { EditorContext } from "../../../react/state/editor-context";
 import { SDCPNContext } from "../../../react/state/sdcpn-context";
 import { useSelectionCleanup } from "../../../react/state/use-selection-cleanup";

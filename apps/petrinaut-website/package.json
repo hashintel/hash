@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "vite build",
     "brunch:fixture": "node scripts/brunch-sse-fixture.ts",
+    "build": "vite build",
     "dev": "vite",
     "fix:eslint": "oxlint --fix --type-aware --report-unused-disable-directives-severity=error .",
     "generate:icons": "node scripts/generate-favicons.mjs",
