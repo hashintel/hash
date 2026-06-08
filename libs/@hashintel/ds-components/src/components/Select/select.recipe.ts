@@ -30,7 +30,7 @@ export const selectRecipe = sva({
     trigger: {
       ...formWidths.base,
       display: "inline-flex",
-      alignItems: "stretch",
+      // alignItems: "stretch",
       cursor: "pointer",
       width: "[fit-content]",
       minWidth: "[min-content]",

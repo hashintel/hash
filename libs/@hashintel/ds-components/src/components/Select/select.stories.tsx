@@ -364,46 +364,47 @@ export const Widths: Story<SelectProps> = (args) => (
 
 export const Connected: Story = () => (
   <div className={sectionStyle}>
-    <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: `auto repeat(${sharedConnectedStates.length}, auto)`,
-        columnGap: 24,
-        rowGap: 12,
-        alignItems: "center",
-        justifyContent: "start",
-      }}
-    >
-      <span />
-      {sharedConnectedStates.map((col) => (
-        <span key={`col-${col.key}`} style={subheadingStyle}>
-          Right: {col.label}
-        </span>
-      ))}
-      {sharedConnectedStates.flatMap((row) => [
-        <span key={`row-${row.key}`} style={subheadingStyle}>
-          Left: {row.label}
-        </span>,
-        ...sharedConnectedStates.map((col) => (
-          <ConnectedPair
-            key={`${row.key}__${col.key}`}
-            size="md"
-            left={row.props}
-            right={col.props}
-          />
-        )),
-      ])}
-    </div>
-  </div>
-);
-
-export const ConnectedSize: Story = () => (
-  <div className={sectionStyle}>
-    {formInputSizes.map((size) => (
-      <div key={size} className={groupStyle}>
-        <h3 style={headingStyle}>{size}</h3>
-        <ConnectedPair size={size} left={{}} right={{}} />
+    <div className={groupStyle}>
+      <h3 style={headingStyle}>States (md)</h3>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: `auto repeat(${sharedConnectedStates.length}, auto)`,
+          columnGap: 24,
+          rowGap: 12,
+          alignItems: "center",
+          justifyContent: "start",
+        }}
+      >
+        <span />
+        {sharedConnectedStates.map((col) => (
+          <span key={`col-${col.key}`} style={subheadingStyle}>
+            Right: {col.label}
+          </span>
+        ))}
+        {sharedConnectedStates.flatMap((row) => [
+          <span key={`row-${row.key}`} style={subheadingStyle}>
+            Left: {row.label}
+          </span>,
+          ...sharedConnectedStates.map((col) => (
+            <ConnectedPair
+              key={`${row.key}__${col.key}`}
+              size="md"
+              left={row.props}
+              right={col.props}
+            />
+          )),
+        ])}
       </div>
-    ))}
+    </div>
+    <div className={groupStyle}>
+      <h3 style={headingStyle}>Sizes</h3>
+      {formInputSizes.map((size) => (
+        <Fragment key={size}>
+          <span style={subheadingStyle}>{size}</span>
+          <ConnectedPair size={size} left={{}} right={{}} />
+        </Fragment>
+      ))}
+    </div>
   </div>
 );
