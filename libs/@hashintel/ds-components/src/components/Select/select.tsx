@@ -67,6 +67,8 @@ type SelectBaseProps<TValue extends string> = {
   renderSelectedItem?: (value: TValue) => React.ReactNode;
   /** The input ref - this is different to the ref, which is the containing element. This refers instead to a hidden select element (the actual ui uses a button to handle custom styling). Use this to access the internal select state and/or to set focus. */
   inputRef?: React.Ref<HTMLSelectElement>;
+  /** Optional custom message for scenarios where there are no items available to show */
+  emptyState?: React.ReactNode;
 } & Omit<
   SharedInputProps<HTMLButtonElement, string | null | undefined>,
   "value" | "onChange" | "required" | "inputRef"
@@ -218,6 +220,7 @@ export const Select = <TValue extends string>({
   required,
   invalid,
   autoFocus,
+  emptyState,
   ...ariaProps
 }: SelectProps<TValue>) => {
   const portalContainerRef = usePortalContainerRef();
@@ -242,7 +245,7 @@ export const Select = <TValue extends string>({
   const isOptional = required !== true;
   const menuItems = useMemo(() => {
     const mapped = mapToMenuItems(items, resolvedRenderItem);
-    if (!isOptional) {
+    if (!isOptional || mapped.length === 0) {
       return mapped;
     }
     const noneItem: Item = {
@@ -413,6 +416,10 @@ export const Select = <TValue extends string>({
             items={menuItems}
             selected={value != null && value !== "" ? [value] : []}
             size={size}
+            emptyState={
+              emptyState ??
+              (loading ? "Loading options…" : "No options available")
+            }
           />
         </ArkSelect.Positioner>
       </Portal>
