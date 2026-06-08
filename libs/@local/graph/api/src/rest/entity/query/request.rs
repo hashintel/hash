@@ -156,7 +156,7 @@ fn generate_sorting_paths(
     clippy::struct_excessive_bools,
     reason = "Parameter struct deserialized from JSON"
 )]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct QueryEntitiesRequest<'q, 's, 'p> {
     #[serde(borrow)]
     pub filter: Filter<'q, Entity>,
@@ -681,6 +681,81 @@ mod tests {
                 traversal_paths,
                 ..
             }) if traversal_paths.len() == 1 && traversal_paths[0].edges.len() == 2
+        );
+    }
+
+    #[test]
+    fn reject_entity_request_unknown_field() {
+        let payload = json!({
+            "filter": { "all": [] },
+            "temporalAxes": temporal_axes(),
+            "includeDrafts": false,
+            "includePermissions": false,
+            "bogusField": 42
+        })
+        .to_string();
+        let err = serde_json::from_str::<QueryEntitiesRequest<'_, '_, '_>>(&payload)
+            .expect_err("unknown field should be rejected")
+            .to_string();
+        assert!(err.contains("bogusField"), "{err}");
+    }
+
+    #[test]
+    fn reject_subgraph_unknown_field_through_flatten() {
+        // The subgraph enum uses `#[serde(flatten)]` on the inner request.
+        // Verify that `deny_unknown_fields` still catches unknown keys that
+        // would pass through the flattened struct boundary.
+        let payload = json!({
+            "traversalPaths": [
+                {
+                    "edges": [
+                        { "kind": "has-left-entity", "direction": "incoming" }
+                    ]
+                }
+            ],
+            "filter": { "all": [] },
+            "temporalAxes": temporal_axes(),
+            "includeDrafts": false,
+            "includePermissions": false,
+            "bogusField": 42
+        })
+        .to_string();
+        let err = serde_json::from_str::<QueryEntitySubgraphRequest<'_, '_, '_>>(&payload)
+            .expect_err("unknown field through flatten should be rejected")
+            .to_string();
+        // With untagged + flatten, serde reports "did not match any variant"
+        // because both variants reject the unknown field.
+        assert!(
+            err.contains("bogusField") || err.contains("did not match any variant"),
+            "{err}"
+        );
+    }
+
+    #[test]
+    fn reject_subgraph_resolve_depths_unknown_field_through_flatten() {
+        let payload = json!({
+            "traversalPaths": [],
+            "graphResolveDepths": {
+                "inheritsFrom": 0,
+                "constrainsValuesOn": 0,
+                "constrainsPropertiesOn": 0,
+                "constrainsLinksOn": 0,
+                "constrainsLinkDestinationsOn": 0,
+                "isOfType": false
+            },
+            "filter": { "all": [] },
+            "temporalAxes": temporal_axes(),
+            "includeDrafts": false,
+            "includePermissions": false,
+            "sneakyExtra": true
+        })
+        .to_string();
+        let err = serde_json::from_str::<QueryEntitySubgraphRequest<'_, '_, '_>>(&payload)
+            .expect_err("unknown field through flatten should be rejected")
+            .to_string();
+        assert!(
+            err.contains("sneakyExtra") || err.contains("did not match any variant"),
+            "{err}"
         );
     }
 
