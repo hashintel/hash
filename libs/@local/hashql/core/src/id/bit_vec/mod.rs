@@ -108,6 +108,7 @@ pub struct DenseBitSet<T> {
 
 impl<T> DenseBitSet<T> {
     /// Gets the domain size.
+    #[inline]
     #[must_use]
     pub const fn domain_size(&self) -> usize {
         self.domain_size
@@ -581,6 +582,7 @@ enum Chunk {
 const _: () = assert!(size_of::<Chunk>() == 16);
 
 impl<T> ChunkedBitSet<T> {
+    #[inline]
     #[must_use]
     pub const fn domain_size(&self) -> usize {
         self.domain_size

@@ -111,7 +111,7 @@ pub use self::{
     clone::{CloneIn, TryCloneIn},
     convert::{FromIn, IntoIn},
     iter::{CollectIn, FromIteratorIn},
-    pool::{ScratchPool, ScratchPoolGuard},
+    pool::{HeapPool, HeapPoolGuard, ScratchPool, ScratchPoolGuard},
     scratch::Scratch,
     transfer::TransferInto,
 };
@@ -288,6 +288,7 @@ impl Heap {
 }
 
 impl Default for Heap {
+    #[inline]
     fn default() -> Self {
         Self::new()
     }
