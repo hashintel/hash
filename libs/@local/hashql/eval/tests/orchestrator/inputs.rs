@@ -279,7 +279,11 @@ pub(crate) fn build_inputs<'heap>(
         builder.push(sym::draft_id, draft_id(value.draft_id));
 
         let r#struct = builder.finish(symbols, heap);
-        value::Value::Struct(r#struct)
+        let inner = value::Value::Struct(r#struct);
+        value::Value::Opaque(value::Opaque::new(
+            sym::path::EntityId,
+            Rc::new_in(inner, heap),
+        ))
     };
 
     // Insert an EntityUuid-typed input.
