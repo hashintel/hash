@@ -321,7 +321,17 @@ export const Select = <TValue extends string>({
       className={cx(classes.wrapper, className)}
     >
       <ArkSelect.HiddenSelect />
-      <div className={classes.select}>
+      <div
+        className={classes.select}
+        onClick={(event) => {
+          if (
+            internalRef.current &&
+            !internalRef.current.contains(event.target as Node)
+          ) {
+            internalRef.current.click();
+          }
+        }}
+      >
         {prefix != null && renderPrefix(prefix, size, classes)}
         {connectToLeftInput && variant === "default" && (
           <InputConnector
