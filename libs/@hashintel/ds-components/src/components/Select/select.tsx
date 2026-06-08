@@ -233,18 +233,33 @@ export const Select = <TValue extends string>({
   const connectsLeft = connectToLeftInput && variant === "default";
   const connectsRight = connectToRightInput && variant === "default";
 
-  const selectedItem = findSelectItem(items, value);
+  const effectiveItems = useMemo<
+    ReadonlyArray<ItemOrGroup<SelectItem<TValue>>>
+  >(() => {
+    if (value == null || value === "" || findSelectItem(items, value)) {
+      return items;
+    }
+    const orphan: SelectItem<TValue> = {
+      value,
+      text: value,
+      disabled: true,
+    };
+    return [orphan, ...items];
+  }, [items, value]);
+
+  const selectedItem = findSelectItem(effectiveItems, value);
 
   const resolvedRenderItem = useMemo<(value: TValue) => React.ReactNode>(
     () =>
-      renderItem ?? ((val: TValue) => findSelectItem(items, val)?.text ?? val),
-    [renderItem, items],
+      renderItem ??
+      ((val: TValue) => findSelectItem(effectiveItems, val)?.text ?? val),
+    [renderItem, effectiveItems],
   );
   const resolvedRenderSelectedItem = renderSelectedItem ?? resolvedRenderItem;
 
   const isOptional = required !== true;
   const menuItems = useMemo(() => {
-    const mapped = mapToMenuItems(items, resolvedRenderItem);
+    const mapped = mapToMenuItems(effectiveItems, resolvedRenderItem);
     if (!isOptional || mapped.length === 0) {
       return mapped;
     }
@@ -255,7 +270,7 @@ export const Select = <TValue extends string>({
       onClick: () => {},
     };
     return [noneItem, ...mapped];
-  }, [items, isOptional, resolvedRenderItem]);
+  }, [effectiveItems, isOptional, resolvedRenderItem]);
   const collection = useMemo(
     () =>
       createListCollection<Item>({

@@ -336,7 +336,12 @@ export const Default: Story<SelectProps> = (args) => (
                 ? []
                 : [{ value: row.label, text: row.label }, ...sampleItems];
             return stateColumns.map((col) => {
-              const value = col.withValue ? row.label : "";
+              const value =
+                row.key === "loading"
+                  ? "loading"
+                  : col.withValue
+                    ? row.label
+                    : "";
               const cellKey = `${row.key}-${col.key}`;
               return row.clearable ? (
                 <ClearableSelect
