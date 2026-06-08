@@ -19,6 +19,13 @@ fn serialize_ptr<S: serde::Serializer>(ptr: &Ptr, serializer: S) -> Result<S::Ok
     ptr.def().as_u32().serialize(serializer)
 }
 
+fn serialize_dict<S: serde::Serializer>(
+    dict: &BTreeMap<OwnedValue, OwnedValue>,
+    serializer: S,
+) -> Result<S::Ok, S::Error> {
+    serializer.collect_seq(dict)
+}
+
 // This is only here until https://linear.app/hash/issue/BE-540/hashql-register-based-bytecode-vm
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, serde::Serialize)]
 pub(crate) enum OwnedValue {
@@ -42,7 +49,7 @@ pub(crate) enum OwnedValue {
     /// An ordered list.
     List(Vec<Self>),
     /// An ordered dictionary.
-    Dict(BTreeMap<Self, Self>),
+    Dict(#[serde(serialize_with = "serialize_dict")] BTreeMap<Self, Self>),
 }
 
 impl<'heap, A: Allocator + Clone> From<Value<'heap, A>> for OwnedValue {
@@ -114,11 +121,22 @@ impl serde::Serialize for JsonValueSerialize<'_> {
                 serializer.collect_seq(owned_values.iter().map(Self))
             }
             OwnedValue::List(owned_values) => serializer.collect_seq(owned_values.iter().map(Self)),
-            OwnedValue::Dict(btree_map) => serializer.collect_map(
-                btree_map
+            OwnedValue::Dict(btree_map) => {
+                let iter = btree_map
                     .iter()
-                    .map(|(key, value)| (Self(key), Self(value))),
-            ),
+                    .map(|(key, value)| (Self(key), Self(value)));
+
+                // If all the keys are strings we can collect a map, otherwise we must fallback
+                // to collecting as a sequence
+                if btree_map
+                    .keys()
+                    .all(|key| matches!(key, OwnedValue::String(_)))
+                {
+                    serializer.collect_map(iter)
+                } else {
+                    serializer.collect_seq(iter)
+                }
+            }
         }
     }
 }

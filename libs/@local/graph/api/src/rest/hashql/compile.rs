@@ -3,6 +3,7 @@ use hashql_core::{
     heap::{Heap, ResetAllocator as _, Scratch},
     module::ModuleRegistry,
     span::{SpanId, SpanTable},
+    symbol::sym,
     r#type::environment::Environment,
 };
 use hashql_diagnostics::{DiagnosticIssues, IntoStatus as _, Status, StatusExt as _, Success};
@@ -67,7 +68,7 @@ impl<'heap> Compilation<'heap> {
         let Success {
             value: types,
             advisories,
-        } = hashql_ast::lowering::lower(heap.intern_symbol("main"), &mut ast, &env, &modules)
+        } = hashql_ast::lowering::lower(sym::path::main, &mut ast, &env, &modules)
             .map_category(|category| {
                 HashQlDiagnosticCategory::Ast(AstDiagnosticCategory::Lowering(category))
             })
