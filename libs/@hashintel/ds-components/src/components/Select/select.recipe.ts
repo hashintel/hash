@@ -12,9 +12,7 @@ export const selectRecipe = sva({
     "placeholder",
     "prefix",
     "adornment",
-    "adornmentText",
     "loading",
-    "arrow",
     "clear",
     "clearIcon",
     "hideClear",
@@ -22,7 +20,6 @@ export const selectRecipe = sva({
     "connector",
     "connectRight",
     "connectLeft",
-    "connectAdornment",
   ],
   base: {
     wrapper: {
@@ -55,6 +52,22 @@ export const selectRecipe = sva({
       "&:focus-within [data-part='clear']": {
         opacity: "1",
         visibility: "visible",
+      },
+      "&::after": {
+        content: '""',
+        display: "block",
+        alignSelf: "center",
+        marginRight: "2",
+        width: "[0.5em]",
+        height: "[0.5em]",
+        borderRight: "[1.5px solid currentColor]",
+        borderBottom: "[1.5px solid currentColor]",
+        color: "neutral.s100",
+        transform: "[rotate(45deg) translateY(-15%)]",
+        transition: "[transform 0.15s ease]",
+      },
+      "&[data-state='open']::after": {
+        transform: "[rotate(225deg) translateY(-15%)]",
       },
     },
     readonly: {
@@ -95,25 +108,12 @@ export const selectRecipe = sva({
       justifyContent: "center",
       flexShrink: 0,
       whiteSpace: "nowrap",
-    },
-    adornmentText: {
       color: "fg.muted",
     },
     loading: {
       alignSelf: "center",
       paddingRight: "2",
       position: "relative",
-    },
-    arrow: {
-      alignSelf: "center",
-      display: "inline-flex",
-      alignItems: "center",
-      paddingRight: "2",
-      color: "neutral.s100",
-      transition: "[transform 0.15s ease]",
-      "[data-state='open'] &": {
-        transform: "rotate(180deg)",
-      },
     },
     clear: {
       position: "absolute",
@@ -172,9 +172,6 @@ export const selectRecipe = sva({
       right: "[100%]",
       maskImage: "[linear-gradient(to right, transparent, black)]",
     },
-    connectAdornment: {
-      fill: "[var(--colors-neutral-s20)]",
-    },
   },
   variants: {
     variant: {
@@ -229,6 +226,9 @@ export const selectRecipe = sva({
               borderColor: "var(--base-input-border-color)",
             },
           },
+          "&::after": {
+            marginRight: "0",
+          },
         },
         prefix: {
           paddingLeft: "1",
@@ -239,9 +239,6 @@ export const selectRecipe = sva({
         },
         loading: {
           right: "[calc(var(--base-input-padding-x) * -1 + 1px)]",
-        },
-        arrow: {
-          paddingRight: "0",
         },
         clear: {
           right:
@@ -361,10 +358,19 @@ export const selectRecipe = sva({
         clear: {
           right: "1.5",
         },
+        trigger: {
+          "&::after": { display: "none" },
+        },
+      },
+    },
+    hideArrow: {
+      true: {
+        trigger: {
+          "&::after": { display: "none" },
+        },
       },
     },
     willClear: { true: {} },
-    hasIcons: { true: {} },
     connectsRight: {
       true: {
         wrapper: {

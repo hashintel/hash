@@ -63,7 +63,7 @@ export type SelectProps = {
   tabIndex?: number;
   items: Array<ItemOrGroup<SelectItem>>;
 } & SharedInputProps<
-  HTMLDivElement,
+  HTMLButtonElement,
   string | null | undefined,
   (value: string) => void
 > &
@@ -109,12 +109,7 @@ function renderPrefix(
     adornment.content
   );
   return (
-    <span
-      className={cx(classes.prefix, classes.adornment, classes.adornmentText)}
-      data-part="adornment-text"
-    >
-      {content}
-    </span>
+    <span className={cx(classes.prefix, classes.adornment)}>{content}</span>
   );
 }
 
@@ -202,16 +197,15 @@ export const Select = ({
   ...ariaProps
 }: SelectProps) => {
   const portalContainerRef = usePortalContainerRef();
-  const internalRef = useRef<HTMLDivElement>(null);
+  const internalRef = useRef<HTMLButtonElement>(null);
   const mergedTriggerRef = useMergeRefs([
     internalRef,
-    ...(inputRef ? [inputRef as unknown as React.Ref<HTMLDivElement>] : []),
+    ...(inputRef ? [inputRef as unknown as React.Ref<HTMLButtonElement>] : []),
   ]);
   const fieldIdFromContext = useFieldId();
   const inputId = htmlForId ?? fieldIdFromContext ?? undefined;
 
   const showClear = !!(clearable && !disabled);
-  const hasIcons = !!loading || showClear || !hideArrow;
   const connectsLeft = connectToLeftInput && variant === "default";
   const connectsRight = connectToRightInput && variant === "default";
 
@@ -238,7 +232,7 @@ export const Select = ({
     invalid: !!invalid,
     disabled: !!disabled,
     loading: !!loading,
-    hasIcons,
+    hideArrow: !!hideArrow,
     connectsLeft,
     connectsRight,
     willClear:
@@ -279,93 +273,74 @@ export const Select = ({
       className={cx(classes.wrapper, className)}
     >
       <ArkSelect.Trigger
-        asChild
         id={inputId}
         autoFocus={autoFocus === true ? true : undefined}
+        ref={mergedTriggerRef}
+        className={classes.trigger}
+        data-testid={testId}
+        tabIndex={tabIndex}
+        onClick={onClick}
+        onKeyDown={onKeyDown}
+        onFocus={onFocus}
+        onBlur={onBlur}
+        {...ariaProps}
       >
-        {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions -- ark-ui sets button role / keyboard handlers via asChild on Select.Trigger */}
-        <div
-          ref={mergedTriggerRef}
-          className={classes.trigger}
-          data-testid={testId}
-          tabIndex={tabIndex}
-          data-name={name}
-          onClick={onClick}
-          onKeyDown={onKeyDown}
-          onFocus={onFocus}
-          onBlur={onBlur}
-          {...ariaProps}
-        >
-          {prefix != null && renderPrefix(prefix, size, classes)}
-          {connectToLeftInput && variant === "default" && (
-            <InputConnector
-              className={cx(
-                classes.connector,
-                classes.connectLeft,
-                prefix && classes.connectAdornment,
-              )}
-              data-part="connector"
-            />
-          )}
+        {prefix != null && renderPrefix(prefix, size, classes)}
+        {connectToLeftInput && variant === "default" && (
+          <InputConnector
+            className={cx(classes.connector, classes.connectLeft)}
+            data-part="connector"
+          />
+        )}
 
-          <div className={classes.inputWrapper}>
-            <span
+        <div className={classes.inputWrapper}>
+          <span
+            className={cx(classes.value, !selectedItem && classes.placeholder)}
+            data-part="value"
+          >
+            {displayText !== "" ? displayText : (placeholder ?? " ")}
+          </span>
+          {showClear && (
+            <button
+              type="button"
+              data-part="clear"
+              onMouseDown={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+              }}
+              onClick={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                clearable.onClear();
+                internalRef.current?.focus();
+              }}
               className={cx(
-                classes.value,
-                !selectedItem && classes.placeholder,
+                classes.clear,
+                (!clearable.clearable || !value) && classes.hideClear,
               )}
-              data-part="value"
+              aria-label="Clear input"
             >
-              {displayText !== "" ? displayText : (placeholder ?? " ")}
-            </span>
-            {showClear && (
-              <button
-                type="button"
-                data-part="clear"
-                onMouseDown={(event) => {
-                  event.preventDefault();
-                  event.stopPropagation();
-                }}
-                onClick={(event) => {
-                  event.preventDefault();
-                  event.stopPropagation();
-                  clearable.onClear();
-                  internalRef.current?.focus();
-                }}
-                className={cx(
-                  classes.clear,
-                  (!clearable.clearable || !value) && classes.hideClear,
-                )}
-                aria-label="Clear input"
-              >
-                <Icon
-                  name="close"
-                  size={iconSizeMap[size]}
-                  className={classes.clearIcon}
-                />
-              </button>
-            )}
-          </div>
-
-          {loading && (
-            <span className={classes.loading} data-part="loading">
-              <LoadingSpinner size={loadingSizeMap[size]} variant="bars" />
-            </span>
-          )}
-
-          {!hideArrow && !loading && (
-            <span className={classes.arrow} data-part="arrow" aria-hidden>
-              <Icon name="chevronDown" size={iconSizeMap[size]} />
-            </span>
-          )}
-
-          {connectToRightInput && variant === "default" && (
-            <InputConnector
-              className={cx(classes.connector, classes.connectRight)}
-              data-part="connector"
-            />
+              <Icon
+                name="close"
+                size={iconSizeMap[size]}
+                className={classes.clearIcon}
+              />
+            </button>
           )}
         </div>
+
+        {loading && (
+          <span className={classes.loading} data-part="loading">
+            <LoadingSpinner size={loadingSizeMap[size]} variant="bars" />
+          </span>
+        )}
+
+        {connectToRightInput && variant === "default" && (
+          <InputConnector
+            className={cx(classes.connector, classes.connectRight)}
+            data-part="connector"
+          />
+        )}
       </ArkSelect.Trigger>
       <Portal container={portalContainerRef}>
         <ArkSelect.Positioner>
