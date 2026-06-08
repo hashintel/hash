@@ -233,21 +233,23 @@ export const Select = <TValue extends string>({
   const connectsLeft = connectToLeftInput && variant === "default";
   const connectsRight = connectToRightInput && variant === "default";
 
+  const orphan = useMemo<SelectItem<TValue> | undefined>(() => {
+    if (value == null || value === "" || findSelectItem(items, value)) {
+      return undefined;
+    }
+    return { value, text: value, disabled: true };
+  }, [items, value]);
+
   const effectiveItems = useMemo<
     ReadonlyArray<ItemOrGroup<SelectItem<TValue>>>
   >(() => {
-    if (value == null || value === "" || findSelectItem(items, value)) {
+    if (!orphan || (loading && items.length === 0)) {
       return items;
     }
-    const orphan: SelectItem<TValue> = {
-      value,
-      text: value,
-      disabled: true,
-    };
     return [orphan, ...items];
-  }, [items, value]);
+  }, [items, orphan, loading]);
 
-  const selectedItem = findSelectItem(effectiveItems, value);
+  const selectedItem = findSelectItem(effectiveItems, value) ?? orphan;
 
   const resolvedRenderItem = useMemo<(value: TValue) => React.ReactNode>(
     () =>
