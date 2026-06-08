@@ -14,7 +14,20 @@ use crate::macros::{forward_ref_binop, forward_ref_unop};
 /// A floating-point number value with total ordering semantics.
 ///
 /// Wraps an [`f64`] and implements [`Ord`] using [`f64::total_cmp`], which follows
-/// the IEEE 754 `totalOrder` predicate.
+/// the IEEE 754 `totalOrder` predicate. Negative zero and positive zero are
+/// treated as equal.
+///
+/// # Examples
+///
+/// ```
+/// use hashql_mir::interpret::value::Num;
+///
+/// let n = Num::from(3.14);
+/// assert_eq!(n.as_f64(), 3.14);
+///
+/// // Negative and positive zero are equal
+/// assert_eq!(Num::from(-0.0), Num::from(0.0));
+/// ```
 #[derive(Debug, Copy, Clone)]
 pub struct Num {
     value: f64,
@@ -22,6 +35,16 @@ pub struct Num {
 
 impl Num {
     /// Returns the underlying [`f64`] value.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hashql_mir::interpret::value::Num;
+    ///
+    /// let n = Num::from(2.5);
+    /// assert_eq!(n.as_f64(), 2.5);
+    /// ```
+    #[inline]
     #[must_use]
     pub const fn as_f64(self) -> f64 {
         self.value

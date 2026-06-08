@@ -1735,6 +1735,7 @@ fn ice_struct_field_length_mismatch() {
 ///
 /// where `pinned` = `Opaque(TransactionTime, Opaque(Timestamp, Integer(pinned_ms)))` and
 /// `variable` wraps an interval with inclusive start and unbounded end.
+#[expect(unsafe_code)]
 fn make_temporal_axes<'heap>(
     interner: &Interner<'heap>,
     pinned_ms: i128,
@@ -1770,7 +1771,9 @@ fn make_temporal_axes<'heap>(
 
     // Interval(Struct { start, end })
     let interval_fields = interner.symbols.intern_slice(&[sym::end, sym::start]);
-    let interval_struct = Struct::new_unchecked(interval_fields, Rc::new([end_bound, start_bound]));
+    // SAFETY: p is before v in the alphabetical order
+    let interval_struct =
+        unsafe { Struct::new_unchecked(interval_fields, Rc::new([end_bound, start_bound])) };
     let interval = Value::Opaque(Opaque::new(
         sym::path::Interval,
         Rc::new(Value::Struct(interval_struct)),
@@ -1781,7 +1784,8 @@ fn make_temporal_axes<'heap>(
 
     // PinnedTransactionTimeTemporalAxes(Struct { pinned, variable })
     let axes_fields = interner.symbols.intern_slice(&[sym::pinned, sym::variable]);
-    let axes_struct = Struct::new_unchecked(axes_fields, Rc::new([pinned, variable]));
+    // SAFETY: p is before v in the alphabetical order
+    let axes_struct = unsafe { Struct::new_unchecked(axes_fields, Rc::new([pinned, variable])) };
 
     Value::Opaque(Opaque::new(
         sym::path::PinnedTransactionTimeTemporalAxes,
