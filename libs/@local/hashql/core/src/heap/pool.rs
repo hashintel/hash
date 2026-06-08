@@ -2,11 +2,11 @@
 //!
 //! [`ScratchPool`] provides thread-safe scratch allocation. Each thread borrows
 //! its own [`ScratchPoolGuard`] via [`get`](ScratchPool::get), which derefs to
-//! [`Scratch`](super::Scratch).
+//! [`Scratch`].
 //!
 //! [`HeapPool`] provides thread-safe heap allocation with symbol interning.
 //! Each thread borrows its own [`HeapPoolGuard`] via [`get`](HeapPool::get),
-//! which derefs to [`Heap`](super::Heap).
+//! which derefs to [`Heap`].
 
 use core::{
     mem::ManuallyDrop,
