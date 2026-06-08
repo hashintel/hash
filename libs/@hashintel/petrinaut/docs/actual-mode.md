@@ -33,13 +33,7 @@ Each exported transition event stores the firing effect rather than a full befor
 }
 ```
 
-The exported JSON can be replayed with the Petrinaut CLI:
-
-```sh
-yarn workspace @hashintel/petrinaut-cli replay ./recording.petrinaut-actual.json
-```
-
-The replay server prints a `/brunch?brunch_endpoint=...` URL that can be opened in the demo website. During replay, the first recorded event is shifted to the current launch time and every later event keeps its original relative delay.
+The exported JSON is a replay artifact for tooling that can serve the Brunch SSE protocol. The demo website does not replay the file directly.
 
 ## Current limits
 
