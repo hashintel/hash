@@ -57,6 +57,20 @@ const Controlled = (
   const [value, setValue] = useState<string | null | undefined>(
     props.value ?? "",
   );
+  if (props.required === true) {
+    return (
+      <Select
+        {...(rest as Omit<
+          SelectProps,
+          "value" | "onChange" | "items" | "required"
+        >)}
+        required
+        items={props.items ?? sampleItems}
+        value={value ?? ""}
+        onChange={(val) => setValue(val)}
+      />
+    );
+  }
   return (
     <Select
       {...rest}
@@ -168,9 +182,22 @@ const stateRows: Array<{
   { key: "loading", label: "Loading", extraProps: { loading: true } },
   { key: "clearable", label: "Clearable", clearable: true, extraProps: {} },
   {
-    key: "placeholder",
-    label: "Placeholder",
+    key: "placeholder-required",
+    label: "Placeholder + required",
+    extraProps: {
+      placeholder: "Placeholder text...",
+      required: true,
+    } as Partial<SelectProps>,
+  },
+  {
+    key: "placeholder-not-required",
+    label: "Placeholder + not required",
     extraProps: { placeholder: "Placeholder text..." },
+  },
+  {
+    key: "required",
+    label: "Required",
+    extraProps: { required: true } as Partial<SelectProps>,
   },
   {
     key: "hide-arrow",
