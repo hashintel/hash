@@ -107,21 +107,85 @@ export const Sizes: Story<SelectableListProps> = (args) => (
           display: "flex",
           flexDirection: "column",
           alignItems: "stretch",
-          gap: "[8px]",
+          gap: "[16px]",
           minWidth: "[240px]",
         })}
       >
-        <span className={css({ fontSize: "[12px]", color: "neutral.s80" })}>
+        <span
+          className={css({
+            fontSize: "[12px]",
+            color: "neutral.s80",
+            fontWeight: "medium",
+          })}
+        >
           {size}
         </span>
-        <StaticMenu>
-          <SelectableList
-            {...args}
-            size={size}
-            items={groupedItems.map((entry) => prefixIds(entry, size))}
-            selected={defaultSelected.map((id) => `${size}-${id}`)}
-          />
-        </StaticMenu>
+        <div
+          className={css({
+            display: "flex",
+            flexDirection: "column",
+            gap: "[8px]",
+          })}
+        >
+          <span className={css({ fontSize: "[12px]", color: "neutral.s80" })}>
+            items
+          </span>
+          <StaticMenu>
+            <SelectableList
+              {...args}
+              size={size}
+              items={groupedItems.map((entry) => prefixIds(entry, size))}
+              selected={defaultSelected.map((id) => `${size}-${id}`)}
+            />
+          </StaticMenu>
+        </div>
+        <div
+          className={css({
+            display: "flex",
+            flexDirection: "column",
+            gap: "[8px]",
+          })}
+        >
+          <span className={css({ fontSize: "[12px]", color: "neutral.s80" })}>
+            items=[] (no emptyState)
+          </span>
+          <StaticMenu>
+            <SelectableList {...args} size={size} items={[]} />
+          </StaticMenu>
+        </div>
+        <div
+          className={css({
+            display: "flex",
+            flexDirection: "column",
+            gap: "[8px]",
+          })}
+        >
+          <span className={css({ fontSize: "[12px]", color: "neutral.s80" })}>
+            items=[] with emptyState
+          </span>
+          <StaticMenu>
+            <SelectableList
+              {...args}
+              size={size}
+              items={[]}
+              emptyState={<div>Nothing to show yet</div>}
+            />
+          </StaticMenu>
+        </div>
+        <div
+          className={css({
+            display: "flex",
+            flexDirection: "column",
+            gap: "[8px]",
+          })}
+        >
+          <span className={css({ fontSize: "[12px]", color: "neutral.s80" })}>
+            loading=true
+          </span>
+          <StaticMenu>
+            <SelectableList {...args} size={size} items={[]} loading />
+          </StaticMenu>
+        </div>
       </div>
     ))}
   </div>
@@ -129,64 +193,3 @@ export const Sizes: Story<SelectableListProps> = (args) => (
 Sizes.parameters = {
   controls: { exclude: ["size"] },
 };
-
-export const EmptyAndLoading: Story<SelectableListProps> = (args) => (
-  <div
-    className={css({
-      display: "flex",
-      gap: "[32px]",
-      alignItems: "flex-start",
-      flexWrap: "wrap",
-    })}
-  >
-    <div
-      className={css({
-        display: "flex",
-        flexDirection: "column",
-        gap: "[8px]",
-        minWidth: "[240px]",
-      })}
-    >
-      <span className={css({ fontSize: "[12px]", color: "neutral.s80" })}>
-        items=[] (no emptyState)
-      </span>
-      <StaticMenu>
-        <SelectableList {...args} items={[]} />
-      </StaticMenu>
-    </div>
-    <div
-      className={css({
-        display: "flex",
-        flexDirection: "column",
-        gap: "[8px]",
-        minWidth: "[240px]",
-      })}
-    >
-      <span className={css({ fontSize: "[12px]", color: "neutral.s80" })}>
-        items=[] with emptyState
-      </span>
-      <StaticMenu>
-        <SelectableList
-          {...args}
-          items={[]}
-          emptyState={<div>Nothing to show yet</div>}
-        />
-      </StaticMenu>
-    </div>
-    <div
-      className={css({
-        display: "flex",
-        flexDirection: "column",
-        gap: "[8px]",
-        minWidth: "[240px]",
-      })}
-    >
-      <span className={css({ fontSize: "[12px]", color: "neutral.s80" })}>
-        loading=true
-      </span>
-      <StaticMenu>
-        <SelectableList {...args} items={[]} loading />
-      </StaticMenu>
-    </div>
-  </div>
-);

@@ -331,10 +331,10 @@ export const Default: Story<SelectProps> = (args) => (
             </span>
           ))}
           {stateRows.flatMap((row) => {
-            const itemsForRow: Array<ItemOrGroup<SelectItem>> = [
-              { value: row.label, text: row.label },
-              ...sampleItems,
-            ];
+            const itemsForRow: Array<ItemOrGroup<SelectItem>> =
+              row.key === "loading"
+                ? []
+                : [{ value: row.label, text: row.label }, ...sampleItems];
             return stateColumns.map((col) => {
               const value = col.withValue ? row.label : "";
               const cellKey = `${row.key}-${col.key}`;

@@ -64,9 +64,8 @@ export const styles = sva({
     },
     emptyContainer: {
       textAlign: "center",
-      padding: "3",
       color: "neutral.s80",
-      textStyle: "sm",
+      padding: "1",
     },
   },
   variants: {
@@ -82,6 +81,10 @@ export const styles = sva({
           paddingTop: "0.5",
           paddingBottom: "1.5",
         },
+        emptyContainer: {
+          fontSize: "[9px]",
+          lineHeight: "[10px]",
+        },
       },
       xs: {
         content: {
@@ -92,6 +95,9 @@ export const styles = sva({
           textStyle: "xxs",
           paddingTop: "0.5",
           paddingBottom: "2",
+        },
+        emptyContainer: {
+          textStyle: "xxs",
         },
       },
       sm: {
@@ -104,6 +110,9 @@ export const styles = sva({
           paddingTop: "1",
           paddingBottom: "2",
         },
+        emptyContainer: {
+          textStyle: "xs",
+        },
       },
       md: {
         content: {
@@ -115,6 +124,9 @@ export const styles = sva({
           paddingTop: "1.5",
           paddingBottom: "2.5",
         },
+        emptyContainer: {
+          textStyle: "sm",
+        },
       },
       lg: {
         content: {
@@ -125,6 +137,9 @@ export const styles = sva({
           textStyle: "sm",
           paddingTop: "1.5",
           paddingBottom: "2.5",
+        },
+        emptyContainer: {
+          textStyle: "sm",
         },
       },
     },
