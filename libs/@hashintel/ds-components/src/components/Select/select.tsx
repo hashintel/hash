@@ -61,6 +61,10 @@ type SelectBaseProps = {
   onKeyDown?: React.KeyboardEventHandler<Element>;
   tabIndex?: number;
   items: Array<ItemOrGroup<SelectItem>>;
+  /** Custom renderer for items in the dropdown. Defaults to the item's `text`. */
+  renderItem?: (value: string) => React.ReactNode;
+  /** Custom renderer for the selected value in the trigger. Defaults to `renderItem`, or the item's `text` if neither is provided. */
+  renderSelectedItem?: (value: string) => React.ReactNode;
 } & Omit<
   SharedInputProps<HTMLButtonElement, string | null | undefined>,
   "value" | "onChange" | "required"
@@ -147,10 +151,11 @@ function findSelectItem(
 
 function mapToMenuItems(
   items: Array<ItemOrGroup<SelectItem>>,
+  renderItem: (value: string) => React.ReactNode,
 ): Array<ItemOrGroup<Item>> {
   const toItem = (it: SelectItem): Item => ({
     id: it.value,
-    text: it.text,
+    text: renderItem(it.value),
     disabled: it.disabled,
     selectedStyle: "tick",
     nestedItems: undefined,
@@ -193,6 +198,8 @@ export const Select = ({
   onKeyDown,
   tabIndex,
   items,
+  renderItem,
+  renderSelectedItem,
   className,
   name,
   value,
@@ -224,11 +231,17 @@ export const Select = ({
   const connectsRight = connectToRightInput && variant === "default";
 
   const selectedItem = findSelectItem(items, value);
-  const displayText = selectedItem?.text ?? "";
+
+  const resolvedRenderItem = useMemo<(value: string) => React.ReactNode>(
+    () =>
+      renderItem ?? ((val: string) => findSelectItem(items, val)?.text ?? val),
+    [renderItem, items],
+  );
+  const resolvedRenderSelectedItem = renderSelectedItem ?? resolvedRenderItem;
 
   const isOptional = required !== true;
   const menuItems = useMemo(() => {
-    const mapped = mapToMenuItems(items);
+    const mapped = mapToMenuItems(items, resolvedRenderItem);
     if (!isOptional) {
       return mapped;
     }
@@ -239,7 +252,7 @@ export const Select = ({
       onClick: () => {},
     };
     return [noneItem, ...mapped];
-  }, [items, isOptional]);
+  }, [items, isOptional, resolvedRenderItem]);
   const collection = useMemo(
     () =>
       createListCollection<Item>({
@@ -276,7 +289,7 @@ export const Select = ({
         data-testid={testId}
         {...ariaProps}
       >
-        {displayText}
+        {selectedItem ? resolvedRenderSelectedItem(selectedItem.value) : ""}
       </span>
     );
   }
@@ -330,7 +343,9 @@ export const Select = ({
             onBlur={onBlur}
             {...ariaProps}
           >
-            {displayText !== "" ? displayText : (placeholder ?? " ")}
+            {selectedItem
+              ? resolvedRenderSelectedItem(selectedItem.value)
+              : (placeholder ?? " ")}
           </ArkSelect.Trigger>
           {showClear && (
             <button

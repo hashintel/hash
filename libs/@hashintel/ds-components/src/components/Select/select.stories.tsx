@@ -50,6 +50,23 @@ const rowVariants: RowVariant[] = [
 
 const noop = () => {};
 
+const findItemText = (
+  items: Array<ItemOrGroup<SelectItem>>,
+  value: string,
+): string => {
+  for (const entry of items) {
+    if ("items" in entry) {
+      const found = entry.items.find((it) => it.value === value);
+      if (found) {
+        return found.text;
+      }
+    } else if (entry.value === value) {
+      return entry.text;
+    }
+  }
+  return value;
+};
+
 const Controlled = (
   props: Omit<SelectProps, "items"> & { items?: SelectProps["items"] },
 ) => {
@@ -405,6 +422,75 @@ export const Size: Story<SelectProps> = (args) => (
         />
       )),
     ])}
+  </div>
+);
+
+const colorItems: Array<ItemOrGroup<SelectItem>> = [
+  { value: "red", text: "Red" },
+  { value: "green", text: "Green" },
+  { value: "blue", text: "Blue" },
+  { value: "orange", text: "Orange" },
+];
+
+const ColorSwatch = ({ value }: { value: string }) => (
+  <span
+    aria-hidden="true"
+    style={{
+      display: "inline-block",
+      width: 10,
+      height: 10,
+      borderRadius: "50%",
+      background: value,
+      flexShrink: 0,
+    }}
+  />
+);
+
+const renderColorItem = (value: string): React.ReactNode => (
+  <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+    <ColorSwatch value={value} />
+    {findItemText(colorItems, value)}
+  </span>
+);
+
+const renderColorSelected = (value: string): React.ReactNode => (
+  <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+    <ColorSwatch value={value} />
+    <span style={{ fontWeight: 600 }}>{findItemText(colorItems, value)}</span>
+  </span>
+);
+
+export const CustomRender: Story<SelectProps> = (args) => (
+  <div
+    style={{
+      display: "grid",
+      gridTemplateColumns: "auto auto",
+      columnGap: 32,
+      rowGap: 12,
+      alignItems: "center",
+      justifyContent: "start",
+    }}
+  >
+    <span style={subheadingStyle}>
+      renderItem + renderSelectedItem (same renderer)
+    </span>
+    <span style={subheadingStyle}>
+      renderItem (with swatch) + renderSelectedItem (bold label)
+    </span>
+    <Controlled
+      {...args}
+      items={colorItems}
+      value="red"
+      renderItem={renderColorItem}
+      renderSelectedItem={renderColorItem}
+    />
+    <Controlled
+      {...args}
+      items={colorItems}
+      value="green"
+      renderItem={renderColorItem}
+      renderSelectedItem={renderColorSelected}
+    />
   </div>
 );
 
