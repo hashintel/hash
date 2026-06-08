@@ -146,7 +146,7 @@ impl FromStr for PoolSize {
 /// Configuration for the HashQL compiler and execution pool.
 #[derive(Debug, Clone, Parser)]
 pub struct CompilerConfig {
-    /// Number of pre-allocated heap/scratch instances in the compiler memory pool.
+    /// Number of retained heap/scratch instances in the compiler memory pool.
     ///
     /// Set to 0 for an unbounded pool that grows without limit.
     #[clap(

@@ -28,6 +28,7 @@ use hashql_diagnostics::{
 use hashql_eval::{error::EvalDiagnosticCategory, orchestrator::Orchestrator};
 use hashql_mir::interpret::Inputs;
 use hashql_syntax_jexpr::span::Span;
+use http::StatusCode;
 use serde_json::value::RawValue;
 use tokio_util::task::LocalPoolHandle;
 use utoipa::OpenApi;
@@ -168,7 +169,10 @@ async fn run_query(
         .await;
 
     result.unwrap_or_else(|_| {
-        Json(serde_json::json!({"fatal": "internal error: query execution failed"}))
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({"fatal": "internal error: query execution failed"})),
+        )
             .into_response()
             .into()
     })
