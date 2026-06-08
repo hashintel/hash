@@ -85,6 +85,8 @@ export const selectRecipe = sva({
       minWidth: "0",
       width: "[100%]",
       paddingY: "var(--form-padding-y)",
+      display: "inline-flex",
+      alignItems: "center",
       appearance: "none",
       outline: "0",
       border: "none",
@@ -348,9 +350,9 @@ export const selectRecipe = sva({
       },
     },
     align: {
-      left: { trigger: { textAlign: "start" } },
-      center: { trigger: { textAlign: "center" } },
-      right: { trigger: { textAlign: "end" } },
+      left: { trigger: { justifyContent: "flex-start" } },
+      center: { trigger: { justifyContent: "center" } },
+      right: { trigger: { justifyContent: "flex-end" } },
     },
     loading: {
       true: {

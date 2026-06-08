@@ -379,9 +379,14 @@ export const Select = <TValue extends string>({
             onBlur={onBlur}
             {...ariaProps}
           >
-            {selectedItem
-              ? resolvedRenderSelectedItem(selectedItem.value)
-              : (placeholder ?? "\u200B")}
+            {selectedItem ? (
+              <>
+                {(renderItem || renderSelectedItem) && "\u200B"}
+                {resolvedRenderSelectedItem(selectedItem.value)}
+              </>
+            ) : (
+              (placeholder ?? "\u200B")
+            )}
           </ArkSelect.Trigger>
           {showClear && (
             <button
