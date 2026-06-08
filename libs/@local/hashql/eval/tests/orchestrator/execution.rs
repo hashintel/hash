@@ -146,6 +146,7 @@ fn run_impl<'heap>(
 
     let value = runtime
         .block_on(orchestrator.run(inputs, entry, []))
+        .map_err(Diagnostic::generalize)
         .map_err(Diagnostic::boxed)?;
 
     Ok((value, event_log.take()))
