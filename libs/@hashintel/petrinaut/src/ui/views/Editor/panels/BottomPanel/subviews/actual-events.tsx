@@ -1,10 +1,12 @@
 import { use } from "react";
 
-import { Button } from "@hashintel/ds-components";
+import { Button, Icon } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { ActualModeContext } from "../../../../../../react/actual-mode-context";
+import { Menu, type MenuItem } from "../../../../../components/menu";
 import { exportActualModeRecording } from "../../../../../file-io/export-actual-mode-recording";
+import { exportSDCPN } from "../../../../../file-io/export-sdcpn";
 
 import type { SubView } from "../../../../../components/sub-view/types";
 import type {
@@ -42,6 +44,10 @@ const statusStyle = css({
 const countStyle = css({
   color: "neutral.s120",
   fontWeight: "medium",
+});
+
+const exportChevronStyle = css({
+  opacity: "[0.65]",
 });
 
 const emptyStyle = css({
@@ -219,15 +225,17 @@ const EventRow: React.FC<{
 
 const ActualEventsContent: React.FC = () => {
   const actualMode = use(ActualModeContext);
-  const canExport =
+  const canExportStream =
     actualMode.available &&
     (actualMode.receivedEvents.length > 0 ||
       (actualMode.definition !== null && actualMode.initialState !== null));
+  const canExportNet = actualMode.available && actualMode.definition !== null;
+  const canExport = canExportStream || canExportNet;
   const transitionFirings = actualMode.transitionFirings;
   const visibleFirings = transitionFirings.slice(-MAX_VISIBLE_EVENTS);
   const firstVisibleIndex = transitionFirings.length - visibleFirings.length;
 
-  const handleExport = () => {
+  const handleExportStream = () => {
     if (
       !actualMode.available ||
       actualMode.definition === null ||
@@ -246,6 +254,32 @@ const ActualEventsContent: React.FC = () => {
     });
   };
 
+  const handleExportNet = () => {
+    if (!actualMode.available || actualMode.definition === null) {
+      return;
+    }
+
+    exportSDCPN({
+      petriNetDefinition: actualMode.definition,
+      title: actualMode.title ?? "actual-mode-net",
+    });
+  };
+
+  const exportMenuItems: MenuItem[] = [
+    {
+      id: "export-stream",
+      label: "Export Stream",
+      disabled: !canExportStream,
+      onClick: handleExportStream,
+    },
+    {
+      id: "export-net",
+      label: "Export Net",
+      disabled: !canExportNet,
+      onClick: handleExportNet,
+    },
+  ];
+
   if (!actualMode.available) {
     return <span className={emptyStyle}>Actual mode is not available.</span>;
   }
@@ -262,16 +296,28 @@ const ActualEventsContent: React.FC = () => {
             <span className={countStyle}>{transitionFirings.length}</span>
           </span>
         </div>
-        <Button
-          variant="subtle"
-          tone="neutral"
-          size="xs"
-          iconName="download"
-          disabled={!canExport}
-          onClick={handleExport}
-        >
-          Export JSON
-        </Button>
+        <Menu
+          trigger={
+            <Button
+              variant="subtle"
+              tone="neutral"
+              size="xs"
+              disabled={!canExport}
+              suffix={
+                <Icon
+                  name="chevronDown"
+                  size="xs"
+                  className={exportChevronStyle}
+                />
+              }
+            >
+              Export
+            </Button>
+          }
+          items={exportMenuItems}
+          placement="bottom-end"
+          animated
+        />
       </div>
 
       {visibleFirings.length === 0 ? (
@@ -349,6 +395,6 @@ export const actualEventsSubView: SubView = {
   id: "actual-events",
   title: "Events",
   tooltip:
-    "Inspect the Actual mode transition stream and export received events as JSON.",
+    "Inspect the Actual mode transition stream and export stream or net JSON.",
   component: ActualEventsContent,
 };

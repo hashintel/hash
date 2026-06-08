@@ -45,7 +45,7 @@ Petrinaut global modes are switched via the centre control in the top bar.
 
 In Simulate mode the net structure becomes read-only -- you can still create, edit, and delete scenarios and metrics, but you cannot change places, transitions, arcs, types, or parameters. Switch back to Edit mode to modify the net.
 
-In Actual mode the net is also read-only. It shows the Petri net supplied by the live source; streamed events are collected internally but are not shown in the timeline yet.
+In Actual mode the net is also read-only. It shows the Petri net supplied by the live source, with an Actual timeline and Events tab in the bottom panel when execution data is available.
 
 Switching modes does not stop background experiments. The active-experiments indicator remains visible in the top bar from any mode.
 
