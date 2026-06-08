@@ -1771,7 +1771,7 @@ fn make_temporal_axes<'heap>(
 
     // Interval(Struct { start, end })
     let interval_fields = interner.symbols.intern_slice(&[sym::end, sym::start]);
-    // SAFETY: p is before v in the alphabetical order
+    // SAFETY: e is before s in the alphabetical order
     let interval_struct =
         unsafe { Struct::new_unchecked(interval_fields, Rc::new([end_bound, start_bound])) };
     let interval = Value::Opaque(Opaque::new(
