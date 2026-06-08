@@ -6,9 +6,9 @@ import {
   createActualModeTimelineFrameReader,
   parseActualModeRecording,
   retimeActualModeRecordingForReplay,
-} from "./actual-mode";
+} from ".";
 
-import type { SDCPN } from "./types/sdcpn";
+import type { SDCPN } from "../types/sdcpn";
 
 const definition: SDCPN = {
   places: [
