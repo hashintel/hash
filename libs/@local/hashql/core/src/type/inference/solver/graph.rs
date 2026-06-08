@@ -113,6 +113,7 @@ impl Edges {
 }
 
 impl Default for Edges {
+    #[inline]
     fn default() -> Self {
         Self::new()
     }
