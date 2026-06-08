@@ -314,6 +314,8 @@ export const Select = ({
       required={required}
       name={name}
       loopFocus={false}
+      lazyMount
+      unmountOnExit
       ref={ref as React.Ref<HTMLDivElement>}
       className={cx(classes.wrapper, className)}
     >
