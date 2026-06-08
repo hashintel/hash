@@ -2,7 +2,6 @@ import { createListCollection } from "@ark-ui/react/collection";
 import { Portal } from "@ark-ui/react/portal";
 import { Select as ArkSelect } from "@ark-ui/react/select";
 import { useMemo, useRef } from "react";
-import { useMergeRefs } from "use-callback-ref";
 
 import { cx } from "@hashintel/ds-helpers/css";
 
@@ -66,9 +65,11 @@ type SelectBaseProps<TValue extends string> = {
   renderItem?: (value: TValue) => React.ReactNode;
   /** Custom renderer for the selected value in the trigger. Defaults to `renderItem`, or the item's `text` if neither is provided. */
   renderSelectedItem?: (value: TValue) => React.ReactNode;
+  /** The input ref - this is different to the ref, which is the containing element. This refers instead to a hidden select element (the actual ui uses a button to handle custom styling). Use this to access the internal select state and/or to set focus. */
+  inputRef?: React.Ref<HTMLSelectElement>;
 } & Omit<
   SharedInputProps<HTMLButtonElement, string | null | undefined>,
-  "value" | "onChange" | "required"
+  "value" | "onChange" | "required" | "inputRef"
 > &
   React.AriaAttributes;
 
@@ -222,10 +223,6 @@ export const Select = <TValue extends string>({
   const portalContainerRef = usePortalContainerRef();
   const internalRef = useRef<HTMLButtonElement>(null);
   const selectRef = useRef<HTMLDivElement>(null);
-  const mergedTriggerRef = useMergeRefs([
-    internalRef,
-    ...(inputRef ? [inputRef as unknown as React.Ref<HTMLButtonElement>] : []),
-  ]);
   const fieldIdFromContext = useFieldId();
   const inputId = htmlForId ?? fieldIdFromContext ?? undefined;
 
@@ -325,7 +322,7 @@ export const Select = <TValue extends string>({
       ref={ref as React.Ref<HTMLDivElement>}
       className={cx(classes.wrapper, className)}
     >
-      <ArkSelect.HiddenSelect />
+      <ArkSelect.HiddenSelect ref={inputRef} />
       {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- click-to-focus container delegates to inner <input> */}
       <div
         ref={selectRef}
@@ -351,7 +348,7 @@ export const Select = <TValue extends string>({
           <ArkSelect.Trigger
             id={inputId}
             autoFocus={autoFocus === true ? true : undefined}
-            ref={mergedTriggerRef as React.Ref<HTMLButtonElement>}
+            ref={internalRef as React.Ref<HTMLButtonElement>}
             className={classes.trigger}
             data-part="trigger"
             data-testid={testId}
