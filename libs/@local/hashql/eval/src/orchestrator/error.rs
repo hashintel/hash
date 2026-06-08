@@ -101,7 +101,7 @@ const VALUE_SERIALIZATION: TerminalDiagnosticCategory = TerminalDiagnosticCatego
 
 /// Type alias for orchestrator diagnostics.
 ///
-/// The default severity kind is [`Severity`], which allows any severity level.
+/// The default severity kind is [`Critical`].
 pub type OrchestratorDiagnostic<K = Critical> =
     Diagnostic<OrchestratorDiagnosticCategory, SpanId, K>;
 

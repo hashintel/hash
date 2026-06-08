@@ -26,7 +26,7 @@ use crate::body::{
 
 /// Type alias for interpreter diagnostics.
 ///
-/// The default severity kind is [`Severity`], which allows any severity level.
+/// The default severity kind is [`Critical`].
 pub type InterpretDiagnostic<K = Critical> = Diagnostic<InterpretDiagnosticCategory, SpanId, K>;
 
 // Terminal categories for ICEs
