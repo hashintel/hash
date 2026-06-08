@@ -65,7 +65,7 @@ export type SelectProps = {
 } & SharedInputProps<
   HTMLButtonElement,
   string | null | undefined,
-  (value: string) => void
+  (value: string | null | undefined) => void
 > &
   React.AriaAttributes;
 
