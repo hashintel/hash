@@ -221,6 +221,7 @@ export const Select = <TValue extends string>({
 }: SelectProps<TValue>) => {
   const portalContainerRef = usePortalContainerRef();
   const internalRef = useRef<HTMLButtonElement>(null);
+  const selectRef = useRef<HTMLDivElement>(null);
   const mergedTriggerRef = useMergeRefs([
     internalRef,
     ...(inputRef ? [inputRef as unknown as React.Ref<HTMLButtonElement>] : []),
@@ -318,12 +319,16 @@ export const Select = <TValue extends string>({
       loopFocus={false}
       lazyMount
       unmountOnExit
+      positioning={{
+        getAnchorRect: () => selectRef.current?.getBoundingClientRect() ?? null,
+      }}
       ref={ref as React.Ref<HTMLDivElement>}
       className={cx(classes.wrapper, className)}
     >
       <ArkSelect.HiddenSelect />
       {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- click-to-focus container delegates to inner <input> */}
       <div
+        ref={selectRef}
         className={classes.select}
         onClick={(event) => {
           if (
@@ -407,6 +412,7 @@ export const Select = <TValue extends string>({
         <ArkSelect.Positioner>
           <SelectableList
             as="Select"
+            className={classes.list}
             items={menuItems}
             selected={value != null && value !== "" ? [value] : []}
             size={size}

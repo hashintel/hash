@@ -19,6 +19,7 @@ export const selectRecipe = sva({
     "connector",
     "connectRight",
     "connectLeft",
+    "list",
   ],
   base: {
     wrapper: {
@@ -165,6 +166,10 @@ export const selectRecipe = sva({
     connectLeft: {
       right: "[100%]",
       maskImage: "[linear-gradient(to right, transparent, black)]",
+    },
+    list: {
+      ...formWidths.base,
+      width: "var(--reference-width)",
     },
   },
   variants: {
@@ -333,6 +338,10 @@ export const selectRecipe = sva({
           position: "relative",
           right: "[auto]",
           gridArea: "[1 / 2]",
+        },
+        list: {
+          width: "[auto]",
+          minWidth: "var(--form-min-width)",
         },
       },
     },
