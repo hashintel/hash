@@ -557,6 +557,8 @@ pub fn place<'heap>(
     MirDiagnosticCategory,
     SpanId,
 > {
+    scratch.reset();
+
     let heap = context.heap;
 
     let mut pass = SizeEstimationAnalysis::new_in(&*scratch);
