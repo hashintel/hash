@@ -1,67 +1,74 @@
 import { z } from "zod";
 
-export const brunchInputArcSchema = z.object({
-  placeId: z.string(),
-  weight: z.number(),
-  type: z
-    .enum(["standard", "read", "inhibitor"])
-    .optional()
-    .default("standard"),
-});
+export const brunchInputArcSchema = z
+  .object({
+    placeId: z.string(),
+    weight: z.number(),
+    type: z
+      .enum(["standard", "read", "inhibitor"])
+      .optional()
+      .default("standard"),
+  })
+  .strict();
 
-export const brunchOutputArcSchema = z.object({
-  placeId: z.string(),
-  weight: z.number(),
-});
+export const brunchOutputArcSchema = z
+  .object({
+    placeId: z.string(),
+    weight: z.number(),
+  })
+  .strict();
 
-export const brunchPlaceSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  colorId: z.string().nullable().optional().default(null),
-  dynamicsEnabled: z.boolean().optional().default(false),
-  differentialEquationId: z.string().nullable().optional().default(null),
-  visualizerCode: z.string().optional(),
-  showAsInitialState: z.boolean().optional(),
-  x: z.number().optional(),
-  y: z.number().optional(),
-});
+export const brunchPlaceSchema = z
+  .object({
+    id: z.string(),
+    name: z.string(),
+    x: z.number().optional(),
+    y: z.number().optional(),
+  })
+  .strict();
 
-export const brunchTransitionSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  inputArcs: z.array(brunchInputArcSchema),
-  outputArcs: z.array(brunchOutputArcSchema),
-  lambdaType: z
-    .enum(["predicate", "stochastic"])
-    .optional()
-    .default("predicate"),
-  lambdaCode: z.string().optional().default(""),
-  transitionKernelCode: z.string().optional().default(""),
-  x: z.number().optional(),
-  y: z.number().optional(),
-});
+export const brunchTransitionSchema = z
+  .object({
+    id: z.string(),
+    name: z.string(),
+    inputArcs: z.array(brunchInputArcSchema),
+    outputArcs: z.array(brunchOutputArcSchema),
+    x: z.number().optional(),
+    y: z.number().optional(),
+  })
+  .strict();
 
 /**
- * Root schema for the Brunch execution-plan definition accepted by the demo.
+ * Temporary root schema for the Brunch execution-plan definition accepted by
+ * the demo.
  *
- * Brunch currently sends a lightweight Petri net shape rather than Petrinaut's
- * full SDCPN document format. This schema validates that experimental input and
- * applies adapter defaults before `normalizeBrunchDefinition` converts it into
- * a read-only SDCPN with unsupported Petrinaut extensions disabled.
+ * This is intentionally not Petrinaut's full SDCPN document format. It only
+ * accepts the plain graph data Actual Mode currently reads from Brunch:
+ * places, transitions, arcs, weights, arc types, and optional coordinates.
+ *
+ * Extension-specific SDCPN fields are excluded on purpose. The Brunch Actual
+ * Mode route does not currently support colours, stochasticity, dynamics,
+ * parameters, transition lambdas, transition kernels, visualizers, or colour
+ * types. `normalizeBrunchDefinition` supplies the required SDCPN defaults while
+ * creating a read-only handle with Petrinaut extensions disabled.
+ *
+ * The whole schema is temporary and should be replaced by the standardized
+ * Brunch/Petrinaut protocol once that protocol is owned in Petrinaut Core.
  */
-export const brunchNetDefinitionSchema = z.object({
-  version: z.number().optional().default(1),
-  meta: z
-    .object({
-      generator: z.string().optional(),
-      generatorVersion: z.string().optional(),
-    })
-    .optional(),
-  title: z.string().optional().default("Brunch run"),
-  places: z.array(brunchPlaceSchema),
-  transitions: z.array(brunchTransitionSchema),
-  types: z.array(z.unknown()).optional().default([]),
-});
+export const brunchNetDefinitionSchema = z
+  .object({
+    version: z.number().optional().default(1),
+    meta: z
+      .object({
+        generator: z.string().optional(),
+        generatorVersion: z.string().optional(),
+      })
+      .optional(),
+    title: z.string().optional().default("Brunch run"),
+    places: z.array(brunchPlaceSchema),
+    transitions: z.array(brunchTransitionSchema),
+  })
+  .strict();
 
 export type BrunchNetDefinition = z.output<typeof brunchNetDefinitionSchema>;
 export type BrunchNetDefinitionInput = z.input<
