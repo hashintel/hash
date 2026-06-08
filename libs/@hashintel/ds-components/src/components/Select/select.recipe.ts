@@ -239,10 +239,11 @@ export const selectRecipe = sva({
           },
         },
         list: {
-          width: "[calc(var(--reference-width) + var(--base-input-padding-x))]",
+          width:
+            "[calc(var(--reference-width) + var(--base-input-padding-x) * 2)]",
           maxWidth:
-            "[calc(var(--reference-width) + var(--base-input-padding-x))]",
-          marginLeft: "[calc(-1 * var(--base-input-padding-x) / 2)]",
+            "[calc(var(--reference-width) + var(--base-input-padding-x) * 2)]",
+          marginLeft: "[calc(-1 * var(--base-input-padding-x))]",
         },
       },
     },
@@ -253,17 +254,11 @@ export const selectRecipe = sva({
           "--base-input-border-radius": "radii.md",
           "--base-input-padding-x": "spacing.2",
         },
-        list: {
-          "--base-input-padding-x": "spacing.2",
-        },
       },
       xs: {
         wrapper: {
           ...formSizes.variants.sizes.xs,
           "--base-input-border-radius": "radii.md",
-          "--base-input-padding-x": "spacing.2",
-        },
-        list: {
           "--base-input-padding-x": "spacing.2",
         },
       },
@@ -273,9 +268,6 @@ export const selectRecipe = sva({
           "--base-input-border-radius": "radii.lg",
           "--base-input-padding-x": "spacing.2.5",
         },
-        list: {
-          "--base-input-padding-x": "spacing.2.5",
-        },
       },
       md: {
         wrapper: {
@@ -283,17 +275,11 @@ export const selectRecipe = sva({
           "--base-input-border-radius": "radii.lg",
           "--base-input-padding-x": "spacing.3",
         },
-        list: {
-          "--base-input-padding-x": "spacing.3",
-        },
       },
       lg: {
         wrapper: {
           ...formSizes.variants.sizes.lg,
           "--base-input-border-radius": "radii.xl",
-          "--base-input-padding-x": "spacing.4",
-        },
-        list: {
           "--base-input-padding-x": "spacing.4",
         },
       },
@@ -466,6 +452,9 @@ export const selectRecipe = sva({
         select: {
           "--base-input-padding-x": "spacing.2",
         },
+        list: {
+          "--base-input-padding-x": "spacing.2",
+        },
       },
     },
     {
@@ -473,6 +462,9 @@ export const selectRecipe = sva({
       size: "xs",
       css: {
         select: {
+          "--base-input-padding-x": "spacing.2",
+        },
+        list: {
           "--base-input-padding-x": "spacing.2",
         },
       },
@@ -484,6 +476,9 @@ export const selectRecipe = sva({
         select: {
           "--base-input-padding-x": "spacing.2",
         },
+        list: {
+          "--base-input-padding-x": "spacing.2",
+        },
       },
     },
     {
@@ -493,6 +488,9 @@ export const selectRecipe = sva({
         select: {
           "--base-input-padding-x": "spacing.2",
         },
+        list: {
+          "--base-input-padding-x": "spacing.2",
+        },
       },
     },
     {
@@ -500,6 +498,9 @@ export const selectRecipe = sva({
       size: "lg",
       css: {
         select: {
+          "--base-input-padding-x": "spacing.2",
+        },
+        list: {
           "--base-input-padding-x": "spacing.2",
         },
       },
