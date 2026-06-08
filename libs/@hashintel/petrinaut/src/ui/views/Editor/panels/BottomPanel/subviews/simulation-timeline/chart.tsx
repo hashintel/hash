@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useRef } from "react";
 import uPlot from "uplot";
 
 import { useElementSize } from "../../../../../../../react/hooks/use-element-size";
@@ -500,14 +500,6 @@ export const UPlotChart: FC<{
     onScrub(Math.max(0, Math.min(idx, totalFrames - 1)));
   });
 
-  const data = useMemo(
-    () =>
-      chartType === "stacked"
-        ? buildStackedData(store, hiddenSeries, dataLength)
-        : buildRunData(store, hiddenSeries, dataLength),
-    [store, dataLength, chartType, hiddenSeries],
-  );
-
   useEffect(() => {
     const wrapper = wrapperRef.current;
     if (!wrapper || !hasSize) {
@@ -569,8 +561,13 @@ export const UPlotChart: FC<{
   }, [size]);
 
   useEffect(() => {
+    const data =
+      chartType === "stacked"
+        ? buildStackedData(store, hiddenSeries, dataLength)
+        : buildRunData(store, hiddenSeries, dataLength);
+
     chartRef.current?.setData(data);
-  }, [data]);
+  }, [chartType, dataLength, hiddenSeries, store]);
 
   useEffect(() => {
     playheadFrameRef.current = currentFrameIndex;

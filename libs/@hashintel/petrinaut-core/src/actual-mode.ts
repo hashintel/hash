@@ -204,10 +204,23 @@ const actualModeMarkingValueSchema = z.union([
   z.number(),
   z.array(actualModeTokenColourSchema),
 ]);
+/**
+ * Root schema for an Actual Mode marking.
+ *
+ * This validates `initial_state` stream frames and recording snapshots. Places
+ * can currently be represented by a numeric token count or by token-colour
+ * arrays for future coloured-token support.
+ */
 export const actualModeMarkingSchema = z.record(
   z.string(),
   actualModeMarkingValueSchema,
 ) satisfies z.ZodType<ActualModeMarking>;
+/**
+ * Root schema for a transition-local token effect.
+ *
+ * This is intentionally not a full marking: keys are only the places affected
+ * by a transition, and values are the token counts consumed or produced there.
+ */
 export const actualModeTransitionEffectSchema = z.record(
   z.string(),
   z.number(),
@@ -220,6 +233,13 @@ const actualModeTransitionFiringEffectSchema = z
     ts: z.string(),
   })
   .strict();
+/**
+ * Root schema for Actual Mode transition events.
+ *
+ * This is the only accepted `transition_firing` payload shape for this PR:
+ * `input` contains consumed token counts, `output` contains produced token
+ * counts, and neither field carries a full before or after marking.
+ */
 export const actualModeTransitionFiringSchema =
   actualModeTransitionFiringEffectSchema satisfies z.ZodType<ActualModeTransitionFiring>;
 export const actualModeSourceSchema = z.object({
@@ -231,6 +251,12 @@ const actualModeRecordingDefinitionSchema = z.custom<SDCPN>(
   (value) => sdcpnSchema.safeParse(value).success,
   { message: "Invalid SDCPN definition" },
 );
+/**
+ * Root schema for exported Actual Mode replay recordings.
+ *
+ * A recording combines the normalized SDCPN, initial marking, source metadata,
+ * and ordered transition events needed to reconstruct the timeline offline.
+ */
 export const actualModeRecordingSchema = z.object({
   version: z.literal(ACTUAL_MODE_RECORDING_VERSION),
   exportedAt: z.string(),

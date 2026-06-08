@@ -1,4 +1,4 @@
-import { use, useCallback, useMemo } from "react";
+import { use } from "react";
 
 import {
   buildActualModeTimelinePoints,
@@ -42,101 +42,58 @@ export const useActualTimelineSource = (): {
   const actualMode = use(ActualModeContext);
   const { petriNetDefinition } = use(SDCPNContext);
 
-  const timelinePoints = useMemo(
-    () =>
-      buildActualModeTimelinePoints({
-        status: actualMode.status,
-        transitionFirings: actualMode.transitionFirings,
-        timelineStartedAtMs: actualMode.timelineStartedAtMs,
-        timelineNowMs: actualMode.timelineNowMs,
-      }),
-    [
-      actualMode.status,
-      actualMode.timelineNowMs,
-      actualMode.timelineStartedAtMs,
-      actualMode.transitionFirings,
-    ],
-  );
-  const transitionFiringTimesMs = useMemo(
-    () =>
-      getActualModeTransitionFiringTimesMs(
-        actualMode.transitionFirings,
-        actualMode.timelineStartedAtMs,
-        actualMode.timelineNowMs,
-      ),
-    [
-      actualMode.timelineNowMs,
-      actualMode.timelineStartedAtMs,
-      actualMode.transitionFirings,
-    ],
-  );
-
-  const getFramesInRange = useCallback(
-    async (
-      startIndex: number,
-      endIndex = timelinePoints.length,
-    ): Promise<SimulationFrameReader[]> => {
-      const initialState = actualMode.initialState;
-
-      if (!initialState) {
-        return [];
-      }
-
-      return timelinePoints.slice(startIndex, endIndex).map((point, offset) =>
-        createActualModeTimelineFrameReader({
-          definition: petriNetDefinition,
-          initialState,
-          transitionFirings: actualMode.transitionFirings,
-          transitionFiringTimesMs,
-          point,
-          number: startIndex + offset,
-        }),
-      );
-    },
-    [
-      actualMode.initialState,
-      actualMode.transitionFirings,
-      petriNetDefinition,
-      timelinePoints,
-      transitionFiringTimesMs,
-    ],
-  );
-
-  const sourceId = useMemo(() => {
-    const source = actualMode.source;
-    const sourceName = source
-      ? `${source.kind}:${source.endpoint}:${source.runId ?? ""}`
-      : "unavailable";
-    const baselineKey = getSourceBaselineKey(
-      actualMode.transitionFirings,
-      actualMode.timelineStartedAtMs,
-    );
-
-    return `actual:${sourceName}:${baselineKey}`;
-  }, [
-    actualMode.source,
-    actualMode.timelineStartedAtMs,
+  const timelinePoints = buildActualModeTimelinePoints({
+    status: actualMode.status,
+    transitionFirings: actualMode.transitionFirings,
+    timelineStartedAtMs: actualMode.timelineStartedAtMs,
+    timelineNowMs: actualMode.timelineNowMs,
+  });
+  const transitionFiringTimesMs = getActualModeTransitionFiringTimesMs(
     actualMode.transitionFirings,
-  ]);
-
-  const source = useMemo<TimelineFrameSource>(
-    () => ({
-      sourceId,
-      totalFrames: actualMode.initialState ? timelinePoints.length : 0,
-      getFramesInRange,
-    }),
-    [
-      actualMode.initialState,
-      getFramesInRange,
-      sourceId,
-      timelinePoints.length,
-    ],
+    actualMode.timelineStartedAtMs,
+    actualMode.timelineNowMs,
   );
+
+  const getFramesInRange = async (
+    startIndex: number,
+    endIndex = timelinePoints.length,
+  ): Promise<SimulationFrameReader[]> => {
+    const initialState = actualMode.initialState;
+
+    if (!initialState) {
+      return [];
+    }
+
+    return timelinePoints.slice(startIndex, endIndex).map((point, offset) =>
+      createActualModeTimelineFrameReader({
+        definition: petriNetDefinition,
+        initialState,
+        transitionFirings: actualMode.transitionFirings,
+        transitionFiringTimesMs,
+        point,
+        number: startIndex + offset,
+      }),
+    );
+  };
+
+  const source = actualMode.source;
+  const sourceName = source
+    ? `${source.kind}:${source.endpoint}:${source.runId ?? ""}`
+    : "unavailable";
+  const baselineKey = getSourceBaselineKey(
+    actualMode.transitionFirings,
+    actualMode.timelineStartedAtMs,
+  );
+  const sourceId = `actual:${sourceName}:${baselineKey}`;
 
   return {
     currentFrameIndex: actualMode.currentFrameIndex,
     isAvailable: actualMode.available && actualMode.initialState !== null,
     setCurrentFrameIndex: actualMode.setCurrentFrameIndex,
-    source,
+    source: {
+      sourceId,
+      totalFrames: actualMode.initialState ? timelinePoints.length : 0,
+      getFramesInRange,
+    },
   };
 };

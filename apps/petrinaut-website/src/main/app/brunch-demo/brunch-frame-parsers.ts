@@ -5,9 +5,9 @@ import {
   actualModeTransitionFiringSchema,
 } from "@hashintel/petrinaut-core";
 
-import { brunchNetDefinitionSchema } from "./brunch-definition";
+import { brunchNetDefinitionSchema } from "./brunch-protocol";
 
-import type { BrunchNetDefinition } from "./brunch-definition";
+import type { BrunchNetDefinition } from "./brunch-protocol";
 import type {
   ActualModeMarking,
   ActualModeTransitionFiring,

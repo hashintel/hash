@@ -1,4 +1,4 @@
-import { use, useCallback, useRef, useState } from "react";
+import { use, useRef, useState } from "react";
 
 import {
   getNodeConnections,
@@ -63,18 +63,18 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
    * same setState call as the layout change so CSS transitions are active
    * before the panel's open/close state flips.
    */
-  const animationPatch = useCallback((): Partial<EditorState> => {
+  const animationPatch = (): Partial<EditorState> => {
     if (!userSettings.showAnimations) {
       return {};
     }
     return { isPanelAnimating: true };
-  }, [userSettings.showAnimations]);
+  };
 
   /**
    * Schedule clearing the animation flag after transitions complete.
    * Called outside setState updaters to keep them pure.
    */
-  const scheduleAnimationEnd = useCallback(() => {
+  const scheduleAnimationEnd = () => {
     if (!userSettings.showAnimations) {
       return;
     }
@@ -82,7 +82,7 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     animationTimerRef.current = setTimeout(() => {
       setState((prev) => ({ ...prev, isPanelAnimating: false }));
     }, 500);
-  }, [userSettings.showAnimations]);
+  };
 
   const setSelection = (
     selectionOrUpdater: SelectionMap | ((prev: SelectionMap) => SelectionMap),

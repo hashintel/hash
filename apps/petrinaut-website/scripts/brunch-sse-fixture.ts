@@ -17,55 +17,18 @@
 
 import http, { type ServerResponse } from "node:http";
 
-type BrunchArcType = "standard" | "read" | "inhibitor";
+import type {
+  BrunchNetDefinitionInput,
+  BrunchTransitionInput,
+} from "../src/main/app/brunch-demo/brunch-protocol";
+import type { ActualModeTransitionFiring } from "@hashintel/petrinaut-core";
 
-type InputArc = {
-  placeId: string;
-  type: BrunchArcType;
-  weight: number;
-};
-
-type OutputArc = {
-  placeId: string;
-  weight: number;
-};
-
-type Place = {
-  id: string;
-  name: string;
-};
-
-type Transition = {
-  id: string;
-  inputArcs: InputArc[];
-  name: string;
-  outputArcs: OutputArc[];
-};
-
-type NetDefinition = {
-  meta: {
-    generator: string;
-    generatorVersion: string;
-  };
-  places: Place[];
-  title: string;
-  transitions: Transition[];
-  version: number;
-};
-
-type Marking = Record<string, number>;
-
-type TransitionFiring = {
-  input: Marking;
-  output: Marking;
-  transitionId: string;
-  ts: string;
-};
+type NumericMarking = Record<string, number>;
 
 type SseFrame =
-  | { data: NetDefinition; event: "definition" }
-  | { data: Marking; event: "initial_state" }
-  | { data: TransitionFiring; event: "transition_firing" };
+  | { data: BrunchNetDefinitionInput; event: "definition" }
+  | { data: NumericMarking; event: "initial_state" }
+  | { data: ActualModeTransitionFiring; event: "transition_firing" };
 
 const args = new Map<string, string>(
   process.argv.slice(2).flatMap((arg) => {
@@ -104,7 +67,7 @@ const intervalMs = readPositiveNumberArg("interval", "INTERVAL", 2_500);
 const port = readPositiveNumberArg("port", "PORT", 5_184);
 const runId = args.get("runId") ?? process.env.RUN_ID ?? "dummy-brunch-run";
 
-const definition: NetDefinition = {
+const definition: BrunchNetDefinitionInput = {
   version: 1,
   title: "Dummy Brunch Execution Plan",
   meta: {
@@ -146,7 +109,7 @@ const definition: NetDefinition = {
   ],
 };
 
-const initialState: Marking = {
+const initialState: NumericMarking = {
   ideas: 100,
   queued: 0,
   implementing: 0,
@@ -158,9 +121,11 @@ const transitionById = new Map(
   definition.transitions.map((transition) => [transition.id, transition]),
 );
 
-const cloneMarking = (marking: Marking): Marking => ({ ...marking });
+const cloneMarking = (marking: NumericMarking): NumericMarking => ({
+  ...marking,
+});
 
-const getTransition = (transitionId: string): Transition => {
+const getTransition = (transitionId: string): BrunchTransitionInput => {
   const transition = transitionById.get(transitionId);
 
   if (!transition) {
@@ -170,7 +135,7 @@ const getTransition = (transitionId: string): Transition => {
   return transition;
 };
 
-const canFire = (marking: Marking, transitionId: string): boolean => {
+const canFire = (marking: NumericMarking, transitionId: string): boolean => {
   const transition = getTransition(transitionId);
 
   return transition.inputArcs.every(
@@ -179,15 +144,15 @@ const canFire = (marking: Marking, transitionId: string): boolean => {
 };
 
 const applyTransition = (
-  marking: Marking,
+  marking: NumericMarking,
   transitionId: string,
-): TransitionFiring => {
+): ActualModeTransitionFiring => {
   const transition = getTransition(transitionId);
-  const input: Marking = {};
-  const output: Marking = {};
+  const input: ActualModeTransitionFiring["input"] = {};
+  const output: ActualModeTransitionFiring["output"] = {};
 
   for (const arc of transition.inputArcs) {
-    if (arc.type !== "standard") {
+    if ((arc.type ?? "standard") !== "standard") {
       continue;
     }
 
@@ -209,13 +174,13 @@ const applyTransition = (
 };
 
 const currentMarking = cloneMarking(initialState);
-const transitionFirings: TransitionFiring[] = [];
+const transitionFirings: ActualModeTransitionFiring[] = [];
 const replayFrames: SseFrame[] = [
   { event: "definition", data: definition },
   { event: "initial_state", data: initialState },
 ];
 
-const appendFiring = (transitionId: string): TransitionFiring => {
+const appendFiring = (transitionId: string): ActualModeTransitionFiring => {
   const firing = applyTransition(currentMarking, transitionId);
 
   transitionFirings.push(firing);
@@ -246,7 +211,7 @@ const liveTransitionCycle = [
   "merge_change",
 ];
 
-const nextLiveFiring = (): TransitionFiring => {
+const nextLiveFiring = (): ActualModeTransitionFiring => {
   for (let attempts = 0; attempts < liveTransitionCycle.length; attempts += 1) {
     const transitionId = liveTransitionCycle[liveTransitionIndex]!;
     liveTransitionIndex =

@@ -1,4 +1,4 @@
-import { use, useMemo } from "react";
+import { use } from "react";
 
 import {
   buildActualModeTimelinePoints,
@@ -29,15 +29,13 @@ export const useCurrentExecutionFrame = (): CurrentExecutionFrame => {
   const { globalMode } = use(EditorContext);
   const { petriNetDefinition } = use(SDCPNContext);
 
-  const actualFrame = useMemo<CurrentExecutionFrame | null>(() => {
-    if (
-      globalMode !== "actual" ||
-      !actualMode.available ||
-      !actualMode.initialState
-    ) {
-      return null;
-    }
+  let actualFrame: CurrentExecutionFrame | null = null;
 
+  if (
+    globalMode === "actual" &&
+    actualMode.available &&
+    actualMode.initialState
+  ) {
     const timelinePoints = buildActualModeTimelinePoints({
       status: actualMode.status,
       transitionFirings: actualMode.transitionFirings,
@@ -46,49 +44,39 @@ export const useCurrentExecutionFrame = (): CurrentExecutionFrame => {
     });
 
     if (timelinePoints.length === 0) {
-      return {
+      actualFrame = {
         currentFrameIndex: 0,
         currentFrameReader: null,
         currentViewedFrame: null,
         totalFrames: 0,
       };
+    } else {
+      const currentFrameIndex = Math.min(
+        actualMode.currentFrameIndex,
+        timelinePoints.length - 1,
+      );
+      const transitionFiringTimesMs = getActualModeTransitionFiringTimesMs(
+        actualMode.transitionFirings,
+        actualMode.timelineStartedAtMs,
+        actualMode.timelineNowMs,
+      );
+      const currentFrameReader = createActualModeTimelineFrameReader({
+        definition: petriNetDefinition,
+        initialState: actualMode.initialState,
+        transitionFirings: actualMode.transitionFirings,
+        transitionFiringTimesMs,
+        point: timelinePoints[currentFrameIndex]!,
+        number: currentFrameIndex,
+      });
+
+      actualFrame = {
+        currentFrameIndex,
+        currentFrameReader,
+        currentViewedFrame: currentFrameReader.toFrameState(),
+        totalFrames: timelinePoints.length,
+      };
     }
-
-    const currentFrameIndex = Math.min(
-      actualMode.currentFrameIndex,
-      timelinePoints.length - 1,
-    );
-    const transitionFiringTimesMs = getActualModeTransitionFiringTimesMs(
-      actualMode.transitionFirings,
-      actualMode.timelineStartedAtMs,
-      actualMode.timelineNowMs,
-    );
-    const currentFrameReader = createActualModeTimelineFrameReader({
-      definition: petriNetDefinition,
-      initialState: actualMode.initialState,
-      transitionFirings: actualMode.transitionFirings,
-      transitionFiringTimesMs,
-      point: timelinePoints[currentFrameIndex]!,
-      number: currentFrameIndex,
-    });
-
-    return {
-      currentFrameIndex,
-      currentFrameReader,
-      currentViewedFrame: currentFrameReader.toFrameState(),
-      totalFrames: timelinePoints.length,
-    };
-  }, [
-    actualMode.available,
-    actualMode.currentFrameIndex,
-    actualMode.initialState,
-    actualMode.status,
-    actualMode.timelineNowMs,
-    actualMode.timelineStartedAtMs,
-    actualMode.transitionFirings,
-    globalMode,
-    petriNetDefinition,
-  ]);
+  }
 
   return actualFrame ?? playback;
 };

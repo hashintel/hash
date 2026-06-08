@@ -1,4 +1,4 @@
-import { use, useMemo, useState } from "react";
+import { use, useState } from "react";
 
 import { PlaybackContext } from "../../../../../../../react/playback/context";
 import { SimulationContext } from "../../../../../../../react/simulation/context";
@@ -16,14 +16,11 @@ const SimulationTimelineContent: React.FC = () => {
   const { timelineChartType: chartType } = use(EditorContext);
   const { getFramesInRange, totalFrames } = use(SimulationContext);
   const { currentFrameIndex, setCurrentViewedFrame } = use(PlaybackContext);
-  const source = useMemo<TimelineFrameSource>(
-    () => ({
-      sourceId: "simulation",
-      totalFrames,
-      getFramesInRange,
-    }),
-    [getFramesInRange, totalFrames],
-  );
+  const source: TimelineFrameSource = {
+    sourceId: "simulation",
+    totalFrames,
+    getFramesInRange,
+  };
   const { store, metricError } = useStreamingData(source);
 
   const [hiddenSeries, setHiddenSeries] = useState<Set<string>>(new Set());

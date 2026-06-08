@@ -1,11 +1,4 @@
-import {
-  use,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  useSyncExternalStore,
-} from "react";
+import { use, useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import {
   compileMetric,
@@ -156,52 +149,27 @@ export function useStreamingData(source: TimelineFrameSource): {
   const colorsEnabled = extensions.colors;
   const { timelineView } = use(EditorContext);
 
-  const selectedMetric = useMemo(
-    () =>
-      timelineView.kind === "metric"
-        ? (metrics?.find((metric) => metric.id === timelineView.metricId) ??
-          null)
-        : null,
-    [metrics, timelineView],
-  );
+  const selectedMetric =
+    timelineView.kind === "metric"
+      ? (metrics?.find((metric) => metric.id === timelineView.metricId) ?? null)
+      : null;
 
-  const compiledMetric = useMemo(
-    () => compileTimelineMetric(selectedMetric),
-    [selectedMetric],
-  );
-  const availableTypes = useMemo(
-    () => (colorsEnabled ? types : []),
-    [colorsEnabled, types],
-  );
-  const availablePlaces = useMemo(
-    () =>
-      colorsEnabled
-        ? places
-        : places.map((place) => ({ ...place, colorId: null })),
-    [colorsEnabled, places],
-  );
+  const compiledMetric = compileTimelineMetric(selectedMetric);
+  const availableTypes = colorsEnabled ? types : [];
+  const availablePlaces = colorsEnabled
+    ? places
+    : places.map((place) => ({ ...place, colorId: null }));
 
   // Computes the active timeline view mode described above into concrete uPlot
   // series metadata and the per-frame value extractor used while streaming.
-  const seriesConfig = useMemo(
-    () =>
-      buildTimelineSeriesConfig({
-        timelineView,
-        places: availablePlaces,
-        types: availableTypes,
-        transitions,
-        selectedMetric,
-        compiledMetric: compiledMetric.fn,
-      }),
-    [
-      availablePlaces,
-      availableTypes,
-      compiledMetric.fn,
-      selectedMetric,
-      timelineView,
-      transitions,
-    ],
-  );
+  const seriesConfig = buildTimelineSeriesConfig({
+    timelineView,
+    places: availablePlaces,
+    types: availableTypes,
+    transitions,
+    selectedMetric,
+    compiledMetric: compiledMetric.fn,
+  });
 
   const [storeController] = useState(() => createStreamingStoreController([]));
   const { store } = useSyncExternalStore(

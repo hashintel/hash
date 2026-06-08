@@ -1,11 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-  type FC,
-  type PropsWithChildren,
-} from "react";
+import { useEffect, useState, type FC, type PropsWithChildren } from "react";
 
 import { ACTUAL_MODE_TIMELINE_TICK_MS } from "@hashintel/petrinaut-core";
 import { ActualModeContext } from "@hashintel/petrinaut/react";
@@ -57,12 +50,12 @@ export const BrunchActualModeProvider: FC<
     createLoadingActualModeValue(endpoint, runId),
   );
 
-  const setCurrentFrameIndex = useCallback((frameIndex: number) => {
+  const setCurrentFrameIndex = (frameIndex: number) => {
     setValue((prev) => ({
       ...prev,
       currentFrameIndex: Math.max(0, Math.floor(frameIndex)),
     }));
-  }, []);
+  };
 
   useEffect(() => {
     const interval = window.setInterval(() => {
@@ -187,13 +180,10 @@ export const BrunchActualModeProvider: FC<
     };
   }, [endpoint, runId]);
 
-  const contextValue = useMemo<AvailableActualModeContextValue>(
-    () => ({
-      ...value,
-      setCurrentFrameIndex,
-    }),
-    [setCurrentFrameIndex, value],
-  );
+  const contextValue: AvailableActualModeContextValue = {
+    ...value,
+    setCurrentFrameIndex,
+  };
 
   return <ActualModeContext value={contextValue}>{children}</ActualModeContext>;
 };
