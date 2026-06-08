@@ -51,14 +51,15 @@ impl CompilerContext {
     ///
     /// `memory_pool_size` bounds the heap and scratch pools; `None` leaves them unbounded.
     /// `exec_pool_size` sets the thread count; `None` uses the number of available CPU cores.
-    pub fn new(memory_pool_size: Option<usize>, exec_pool_size: Option<usize>) -> Self {
+    pub fn new(memory_pool_size: Option<usize>, exec_pool_size: Option<NonZero<usize>>) -> Self {
         let scratches = memory_pool_size.map_or_else(ScratchPool::new, ScratchPool::bounded);
         let heaps = memory_pool_size.map_or_else(HeapPool::new, HeapPool::bounded);
 
-        let thread_count =
-            exec_pool_size.unwrap_or_else(|| available_parallelism().map_or(4, NonZero::get));
+        let thread_count = exec_pool_size.unwrap_or_else(|| {
+            available_parallelism().unwrap_or(const { NonZero::new(4).unwrap() })
+        });
 
-        let pool = LocalPoolHandle::new(thread_count);
+        let pool = LocalPoolHandle::new(thread_count.get());
         Self {
             scratches,
             heaps,

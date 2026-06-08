@@ -2,6 +2,7 @@ use alloc::sync::Arc;
 use core::{
     fmt,
     net::{AddrParseError, SocketAddr},
+    num::NonZero,
     str::FromStr,
     time::Duration,
 };
@@ -108,14 +109,19 @@ pub struct TemporalConfig {
 
 /// A pool size that can be either a concrete count or unbounded.
 ///
-/// Parses positive integers as a bounded size and `-1` as unbounded.
+/// Parses positive integers as a bounded size and `0` as unbounded.
 #[derive(Debug, Copy, Clone)]
-pub struct PoolSize(Option<usize>);
+pub struct PoolSize(Option<NonZero<usize>>);
 
 impl PoolSize {
     #[inline]
-    const fn get(self) -> Option<usize> {
+    const fn get(self) -> Option<NonZero<usize>> {
         self.0
+    }
+
+    #[inline]
+    fn as_usize(self) -> Option<usize> {
+        self.0.map(NonZero::get)
     }
 }
 
@@ -123,26 +129,17 @@ impl fmt::Display for PoolSize {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self.0 {
             Some(size) => write!(fmt, "{size}"),
-            None => write!(fmt, "-1"),
+            None => write!(fmt, "0"),
         }
     }
 }
 
 impl FromStr for PoolSize {
-    type Err = <i64 as FromStr>::Err;
+    type Err = <usize as FromStr>::Err;
 
-    #[expect(
-        clippy::cast_sign_loss,
-        clippy::cast_possible_truncation,
-        reason = "negative values produce None, and pool sizes never approach u32::MAX"
-    )]
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let value = s.parse::<i64>()?;
-        if value < 0 {
-            Ok(Self(None))
-        } else {
-            Ok(Self(Some(value as usize)))
-        }
+        let value = s.parse::<usize>()?;
+        Ok(Self(NonZero::new(value)))
     }
 }
 
@@ -151,7 +148,7 @@ impl FromStr for PoolSize {
 pub struct CompilerConfig {
     /// Number of pre-allocated heap/scratch instances in the compiler memory pool.
     ///
-    /// Set to -1 for an unbounded pool that grows without limit.
+    /// Set to 0 for an unbounded pool that grows without limit.
     #[clap(
         long,
         default_value = "16",
@@ -162,11 +159,11 @@ pub struct CompilerConfig {
 
     /// Number of threads in the compiler execution pool.
     ///
-    /// Each thread runs a `LocalSet` for `!Send` query execution. Set to -1 to use the number
+    /// Each thread runs a `LocalSet` for `!Send` query execution. Set to 0 to use the number
     /// of available CPU cores.
     #[clap(
         long,
-        default_value = "-1",
+        default_value = "0",
         env = "HASH_GRAPH_COMPILER_EXEC_POOL_SIZE",
         allow_hyphen_values = true
     )]
@@ -526,7 +523,7 @@ pub async fn server(mut args: ServerArgs) -> Result<(), Report<GraphError>> {
     };
 
     let compiler = Arc::new(CompilerContext::new(
-        args.config.compiler.compiler_memory_pool_size.get(),
+        args.config.compiler.compiler_memory_pool_size.as_usize(),
         args.config.compiler.compiler_exec_pool_size.get(),
     ));
 
