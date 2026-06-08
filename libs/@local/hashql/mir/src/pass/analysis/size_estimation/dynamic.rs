@@ -267,7 +267,7 @@ impl<'ctx, 'footprints, 'env, 'heap, A: Allocator, C: Allocator>
                 operands,
             } => {
                 let mut average: Estimate<InformationRange> = SaturatingSemiring.bottom();
-                debug_assert!(operands.len() % 2 == 0);
+                debug_assert_eq!(operands.len() % 2, 0);
 
                 for [key, value] in operands.iter().array_chunks::<2>() {
                     let mut key_units = self
