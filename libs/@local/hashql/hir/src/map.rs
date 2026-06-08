@@ -169,6 +169,7 @@ impl<'heap> HirMap<'heap> {
 }
 
 impl Default for HirMap<'_> {
+    #[inline]
     fn default() -> Self {
         Self::new()
     }

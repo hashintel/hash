@@ -26,6 +26,7 @@ impl Visitor<'_> for NodeRenumberer {
 }
 
 impl Default for NodeRenumberer {
+    #[inline]
     fn default() -> Self {
         Self::new()
     }
