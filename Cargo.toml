@@ -154,6 +154,7 @@ futures                            = { version = "0.3.31", default-features = fa
 futures-channel                    = { version = "0.3.31", default-features = false }
 futures-core                       = { version = "0.3.31", default-features = false }
 futures-io                         = { version = "0.3.31", default-features = false }
+futures-lite                       = { version = "2.6.1" }
 futures-sink                       = { version = "0.3.31", default-features = false }
 futures-util                       = { version = "0.3.31", default-features = false }
 glob                               = { version = "0.3.3" }
