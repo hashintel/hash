@@ -9,7 +9,6 @@ import { NumberInput } from "../NumberInput/number-input";
 import { TextInput } from "../TextInput/text-input";
 import { Errors } from "./errors";
 import { Form } from "./form";
-import { FormRow } from "./form-row";
 
 import type { Story, StoryDefault } from "@ladle/react";
 
@@ -22,8 +21,8 @@ const labelDirections = [
   "right",
 ] as const satisfies readonly LabelDirection[];
 
-type FormRowGap = NonNullable<React.ComponentProps<typeof FormRow>["gap"]>;
-type FormRowAlign = NonNullable<React.ComponentProps<typeof FormRow>["align"]>;
+type FormRowGap = NonNullable<React.ComponentProps<typeof Form.Row>["gap"]>;
+type FormRowAlign = NonNullable<React.ComponentProps<typeof Form.Row>["align"]>;
 
 const formRowGaps = [
   "md",
@@ -342,20 +341,20 @@ const renderRowField = (
 
 export const FormRowDefault: Story<FormFieldArgs> = (args) => (
   <div className={sectionStyle}>
-    <FormRow>
+    <Form.Row>
       {renderRowField(args, "form-row-default-single", 0, {
         label: "1 field",
       })}
-    </FormRow>
+    </Form.Row>
 
-    <FormRow>
+    <Form.Row>
       {renderRowField(args, "form-row-default-pair", 0, {
         label: "2 fields (second has no label)",
       })}
       {renderRowField(args, "form-row-default-pair", 1, { hideLabel: true })}
-    </FormRow>
+    </Form.Row>
 
-    <FormRow
+    <Form.Row
       errors={
         <Errors
           errors={["Something is wrong with the values in this row"]}
@@ -369,14 +368,14 @@ export const FormRowDefault: Story<FormFieldArgs> = (args) => (
           ...(index === 0 ? { label: "4 fields with row errors" } : {}),
         }),
       )}
-    </FormRow>
+    </Form.Row>
   </div>
 );
 
 export const FormRowGap: Story<FormFieldArgs> = (args) => (
   <div className={sectionStyle}>
     {formRowGaps.map((gap) => (
-      <FormRow key={gap} gap={gap} noWrap={gap === "none"}>
+      <Form.Row key={gap} gap={gap} noWrap={gap === "none"}>
         {Array.from({ length: 4 }, (_, index) =>
           renderRowField(args, `form-row-gap-${gap}`, index, {
             label: index === 0 ? `Gap: ${gap}` : "...",
@@ -386,7 +385,7 @@ export const FormRowGap: Story<FormFieldArgs> = (args) => (
             }),
           }),
         )}
-      </FormRow>
+      </Form.Row>
     ))}
   </div>
 );
@@ -394,14 +393,14 @@ export const FormRowGap: Story<FormFieldArgs> = (args) => (
 export const FormRowAlign: Story<FormFieldArgs> = (args) => (
   <div className={sectionStyle}>
     {formRowAligns.map((align) => (
-      <FormRow key={align} align={align}>
+      <Form.Row key={align} align={align}>
         {Array.from({ length: 4 }, (_, index) =>
           renderRowField(args, `form-row-align-${align}`, index, {
             hideLabel: index > 0,
             ...(index === 0 ? { label: `Align: ${align}` } : {}),
           }),
         )}
-      </FormRow>
+      </Form.Row>
     ))}
   </div>
 );

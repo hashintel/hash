@@ -13,6 +13,7 @@ export const styles = sva({
       height: "[1em]",
       color: "fg.subtle",
       verticalAlign: "text-top",
+      display: "inline-block",
     },
     helpIcon: {
       position: "absolute",
