@@ -10,6 +10,9 @@ import type { StepInput } from "@local/hash-isomorphic-utils/flows/types";
 
 test(
   "Test getWebPageSummaryAction",
+  {
+    timeout: 10 * 60 * 1000,
+  },
   async () => {
     const url = "https://www.amazon.com/stores/author/B072YR2LJP";
 
@@ -30,8 +33,5 @@ test(
     });
 
     expect(status).toBeDefined();
-  },
-  {
-    timeout: 10 * 60 * 1000,
   },
 );

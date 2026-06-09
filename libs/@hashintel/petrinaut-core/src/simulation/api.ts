@@ -1,6 +1,7 @@
 import type { AbortSignalLike, WorkerFactoryLike } from "../environment";
-import type { ReadableStore } from "../handle";
+import type { PetrinautExtensionSettings } from "../extensions";
 import type { EventStream } from "../instance";
+import type { ReadableStore } from "../store";
 import type { Color, Place, SDCPN } from "../types/sdcpn";
 
 export type SimulationState =
@@ -48,6 +49,7 @@ export type InitialMarking = Record<string, InitialPlaceMarking>;
  */
 export type SimulationConfig = {
   sdcpn: SDCPN;
+  extensions?: PetrinautExtensionSettings;
   initialMarking: InitialMarking;
   parameterValues: Record<string, string>;
   seed: number;

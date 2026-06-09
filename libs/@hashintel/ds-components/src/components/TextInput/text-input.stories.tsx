@@ -5,7 +5,7 @@ import { css } from "@hashintel/ds-helpers/css";
 import { formInputSizes } from "../../util/form-shared";
 import { TextInput } from "./text-input";
 
-import type { FormInputWidth } from "../../util/form-shared";
+import type { FormInputSize, FormInputWidth } from "../../util/form-shared";
 import type { Story, StoryDefault } from "@ladle/react";
 
 type TextInputProps = React.ComponentProps<typeof TextInput>;
@@ -85,6 +85,77 @@ const StyledNumberInput = ({
     />
   );
 };
+
+type ConnectedSideProps = Pick<
+  TextInputProps,
+  "invalid" | "disabled" | "readonly" | "variant" | "prefix" | "suffix"
+>;
+
+const ConnectedPair = ({
+  left,
+  right,
+  size,
+}: {
+  left: ConnectedSideProps;
+  right: ConnectedSideProps;
+  size: FormInputSize;
+}) => (
+  <div style={{ display: "flex", alignItems: "center" }}>
+    <TextInput
+      value="Left"
+      onChange={noop}
+      size={size}
+      connectToRightInput
+      {...left}
+    />
+    <TextInput
+      value="Right"
+      onChange={noop}
+      size={size}
+      connectToLeftInput
+      {...right}
+    />
+  </div>
+);
+
+const adornmentButton = { iconName: "search", onClick: noop } as const;
+
+const sharedConnectedStates: {
+  key: string;
+  label: string;
+  props: ConnectedSideProps;
+}[] = [
+  { key: "default", label: "Default", props: {} },
+  { key: "invalid", label: "Invalid", props: { invalid: true } },
+  { key: "disabled", label: "Disabled", props: { disabled: true } },
+  {
+    key: "invalid-disabled",
+    label: "Invalid + Disabled",
+    props: { invalid: true, disabled: true },
+  },
+];
+
+const leftConnectedStates: typeof sharedConnectedStates = [
+  ...sharedConnectedStates,
+  {
+    key: "suffix-button",
+    label: "Suffix button",
+    props: { suffix: adornmentButton },
+  },
+  {
+    key: "suffix-button-invalid",
+    label: "Suffix button + Invalid",
+    props: { suffix: adornmentButton, invalid: true },
+  },
+  {
+    key: "suffix-button-disabled",
+    label: "Suffix button + Disabled",
+    props: {
+      suffix: { ...adornmentButton, disabled: true },
+      disabled: true,
+    },
+  },
+];
 
 const sectionStyle = css({
   display: "flex",
@@ -590,5 +661,51 @@ export const PrefixAndSuffix: Story<TextInputProps> = (args) => (
         ),
       ),
     )}
+  </div>
+);
+
+export const Connected: Story = () => (
+  <div className={sectionStyle}>
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: `auto repeat(${sharedConnectedStates.length}, auto)`,
+        columnGap: 24,
+        rowGap: 12,
+        alignItems: "center",
+        justifyContent: "start",
+      }}
+    >
+      <span />
+      {sharedConnectedStates.map((col) => (
+        <span key={`col-${col.key}`} style={subheadingStyle}>
+          Right: {col.label}
+        </span>
+      ))}
+      {leftConnectedStates.flatMap((row) => [
+        <span key={`row-${row.key}`} style={subheadingStyle}>
+          Left: {row.label}
+        </span>,
+        ...sharedConnectedStates.map((col) => (
+          <ConnectedPair
+            key={`${row.key}__${col.key}`}
+            size="md"
+            left={row.props}
+            right={col.props}
+          />
+        )),
+      ])}
+    </div>
+  </div>
+);
+
+export const ConnectedSize: Story = () => (
+  <div className={sectionStyle}>
+    {formInputSizes.map((size) => (
+      <div key={size} className={groupStyle}>
+        <h3 style={headingStyle}>{size}</h3>
+        <ConnectedPair size={size} left={{}} right={{}} />
+      </div>
+    ))}
   </div>
 );

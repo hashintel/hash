@@ -10,6 +10,13 @@ import {
   type MutationActionInput,
 } from "./action-schemas";
 import { generateArcId } from "./arc-id";
+import {
+  DEFAULT_PETRINAUT_EXTENSIONS,
+  sanitizePlaceForExtensions,
+  sanitizeTransitionForExtensions,
+  stripDisabledExtensionData,
+  type PetrinautExtensionSettings,
+} from "./extensions";
 
 import type { SDCPN } from "./types/sdcpn";
 
@@ -17,6 +24,15 @@ export type MutationHelperFunctions = {
   [Name in keyof typeof mutationActionInputSchemas]: (
     input: MutationActionInput<Name>,
   ) => void;
+};
+
+export type CreatePetrinautActionsOptions = {
+  /**
+   * Whether action helpers should run the full document-level extension
+   * sanitizer after each mutation. Defaults to true only when at least one
+   * extension is disabled.
+   */
+  sanitizeAfterMutation?: boolean;
 };
 
 /**
@@ -58,23 +74,64 @@ function assertPlaceDynamicsReferences(
 
 export function createPetrinautActions(
   mutate: (fn: (sdcpn: SDCPN) => void) => void,
+  extensions: PetrinautExtensionSettings = DEFAULT_PETRINAUT_EXTENSIONS,
+  options: CreatePetrinautActionsOptions = {},
 ): MutationHelperFunctions {
+  const canUseColors = extensions.colors;
+  const canUseDynamics = extensions.colors && extensions.dynamics;
+  const canUseParameters = extensions.parameters;
+  const hasDisabledExtensions = Object.values(extensions).some(
+    (enabled) => !enabled,
+  );
+  const shouldSanitizeAfterMutation =
+    options.sanitizeAfterMutation ?? hasDisabledExtensions;
+
+  const sanitizeTransition = (
+    transition: SDCPN["transitions"][number],
+    sdcpn: SDCPN,
+  ): void => {
+    Object.assign(
+      transition,
+      sanitizeTransitionForExtensions(transition, sdcpn, extensions),
+    );
+  };
+
+  const sanitizeAllTransitions = (sdcpn: SDCPN): void => {
+    for (const transition of sdcpn.transitions) {
+      sanitizeTransition(transition, sdcpn);
+    }
+  };
+
+  const mutateWithExtensionGuards = (fn: (sdcpn: SDCPN) => void): void => {
+    mutate((sdcpn) => {
+      fn(sdcpn);
+      if (shouldSanitizeAfterMutation) {
+        stripDisabledExtensionData(sdcpn, extensions);
+      }
+    });
+  };
+
   return {
     addPlace(place) {
-      const parsedPlace = placeSchema.parse(place);
-      mutate((sdcpn) => {
+      const parsedPlace = sanitizePlaceForExtensions(
+        placeSchema.parse(place),
+        extensions,
+      );
+      mutateWithExtensionGuards((sdcpn) => {
         assertPlaceDynamicsReferences(parsedPlace, sdcpn.differentialEquations);
         sdcpn.places.push(parsedPlace);
       });
     },
     updatePlace(input) {
       const parsed = mutationActionInputSchemas.updatePlace.parse(input);
-      mutate((sdcpn) => {
+      mutateWithExtensionGuards((sdcpn) => {
         for (const place of sdcpn.places) {
           if (place.id === parsed.placeId) {
             Object.assign(place, parsed.update);
+            Object.assign(place, sanitizePlaceForExtensions(place, extensions));
             placeSchema.parse(place);
             assertPlaceDynamicsReferences(place, sdcpn.differentialEquations);
+            sanitizeAllTransitions(sdcpn);
             break;
           }
         }
@@ -83,7 +140,7 @@ export function createPetrinautActions(
     updatePlacePosition(input) {
       const parsed =
         mutationActionInputSchemas.updatePlacePosition.parse(input);
-      mutate((sdcpn) => {
+      mutateWithExtensionGuards((sdcpn) => {
         for (const place of sdcpn.places) {
           if (place.id === parsed.placeId) {
             place.x = parsed.position.x;
@@ -96,7 +153,7 @@ export function createPetrinautActions(
     removePlace(input) {
       const { placeId: parsedPlaceId } =
         mutationActionInputSchemas.removePlace.parse(input);
-      mutate((sdcpn) => {
+      mutateWithExtensionGuards((sdcpn) => {
         for (const [placeIndex, place] of sdcpn.places.entries()) {
           if (place.id === parsedPlaceId) {
             sdcpn.places.splice(placeIndex, 1);
@@ -113,6 +170,7 @@ export function createPetrinautActions(
                 }
               }
             }
+            sanitizeAllTransitions(sdcpn);
             break;
           }
         }
@@ -120,16 +178,19 @@ export function createPetrinautActions(
     },
     addTransition(transition) {
       const parsedTransition = transitionSchema.parse(transition);
-      mutate((sdcpn) => {
-        sdcpn.transitions.push(parsedTransition);
+      mutateWithExtensionGuards((sdcpn) => {
+        sdcpn.transitions.push(
+          sanitizeTransitionForExtensions(parsedTransition, sdcpn, extensions),
+        );
       });
     },
     updateTransition(input) {
       const parsed = mutationActionInputSchemas.updateTransition.parse(input);
-      mutate((sdcpn) => {
+      mutateWithExtensionGuards((sdcpn) => {
         for (const transition of sdcpn.transitions) {
           if (transition.id === parsed.transitionId) {
             Object.assign(transition, parsed.update);
+            sanitizeTransition(transition, sdcpn);
             transitionSchema.parse(transition);
             break;
           }
@@ -139,7 +200,7 @@ export function createPetrinautActions(
     updateTransitionPosition(input) {
       const parsed =
         mutationActionInputSchemas.updateTransitionPosition.parse(input);
-      mutate((sdcpn) => {
+      mutateWithExtensionGuards((sdcpn) => {
         for (const transition of sdcpn.transitions) {
           if (transition.id === parsed.transitionId) {
             transition.x = parsed.position.x;
@@ -152,7 +213,7 @@ export function createPetrinautActions(
     removeTransition(input) {
       const { transitionId: parsedTransitionId } =
         mutationActionInputSchemas.removeTransition.parse(input);
-      mutate((sdcpn) => {
+      mutateWithExtensionGuards((sdcpn) => {
         for (const [index, transition] of sdcpn.transitions.entries()) {
           if (transition.id === parsedTransitionId) {
             sdcpn.transitions.splice(index, 1);
@@ -163,12 +224,12 @@ export function createPetrinautActions(
     },
     addArc(input) {
       const parsed = mutationActionInputSchemas.addArc.parse(input);
-      mutate((sdcpn) => {
+      mutateWithExtensionGuards((sdcpn) => {
         for (const transition of sdcpn.transitions) {
           if (transition.id === parsed.transitionId) {
             if (parsed.arcDirection === "input") {
               transition.inputArcs.push({
-                type: "standard",
+                type: parsed.type ?? "standard",
                 placeId: parsed.placeId,
                 weight: parsed.weight,
               });
@@ -178,6 +239,7 @@ export function createPetrinautActions(
                 weight: parsed.weight,
               });
             }
+            sanitizeTransition(transition, sdcpn);
             break;
           }
         }
@@ -185,7 +247,7 @@ export function createPetrinautActions(
     },
     removeArc(input) {
       const parsed = mutationActionInputSchemas.removeArc.parse(input);
-      mutate((sdcpn) => {
+      mutateWithExtensionGuards((sdcpn) => {
         for (const transition of sdcpn.transitions) {
           if (transition.id === parsed.transitionId) {
             for (const [index, arc] of transition[
@@ -198,6 +260,7 @@ export function createPetrinautActions(
                 break;
               }
             }
+            sanitizeTransition(transition, sdcpn);
             break;
           }
         }
@@ -205,7 +268,7 @@ export function createPetrinautActions(
     },
     updateArcWeight(input) {
       const parsed = mutationActionInputSchemas.updateArcWeight.parse(input);
-      mutate((sdcpn) => {
+      mutateWithExtensionGuards((sdcpn) => {
         for (const transition of sdcpn.transitions) {
           if (transition.id === parsed.transitionId) {
             for (const arc of transition[
@@ -223,7 +286,7 @@ export function createPetrinautActions(
     },
     updateArcType(input) {
       const parsed = mutationActionInputSchemas.updateArcType.parse(input);
-      mutate((sdcpn) => {
+      mutateWithExtensionGuards((sdcpn) => {
         for (const transition of sdcpn.transitions) {
           if (transition.id === parsed.transitionId) {
             for (const arc of transition.inputArcs) {
@@ -232,6 +295,7 @@ export function createPetrinautActions(
                 break;
               }
             }
+            sanitizeTransition(transition, sdcpn);
             break;
           }
         }
@@ -239,7 +303,7 @@ export function createPetrinautActions(
     },
     updateArcPlace(input) {
       const parsed = mutationActionInputSchemas.updateArcPlace.parse(input);
-      mutate((sdcpn) => {
+      mutateWithExtensionGuards((sdcpn) => {
         for (const transition of sdcpn.transitions) {
           if (transition.id === parsed.transitionId) {
             for (const arc of transition[
@@ -250,6 +314,7 @@ export function createPetrinautActions(
                 break;
               }
             }
+            sanitizeTransition(transition, sdcpn);
             break;
           }
         }
@@ -257,13 +322,19 @@ export function createPetrinautActions(
     },
     addType(type) {
       const parsedType = colorSchema.parse(type);
-      mutate((sdcpn) => {
+      if (!canUseColors) {
+        return;
+      }
+      mutateWithExtensionGuards((sdcpn) => {
         sdcpn.types.push(parsedType);
       });
     },
     updateType(input) {
       const parsed = mutationActionInputSchemas.updateType.parse(input);
-      mutate((sdcpn) => {
+      if (!canUseColors) {
+        return;
+      }
+      mutateWithExtensionGuards((sdcpn) => {
         for (const type of sdcpn.types) {
           if (type.id === parsed.typeId) {
             Object.assign(type, parsed.update);
@@ -275,7 +346,10 @@ export function createPetrinautActions(
     },
     addTypeElement(input) {
       const parsed = mutationActionInputSchemas.addTypeElement.parse(input);
-      mutate((sdcpn) => {
+      if (!canUseColors) {
+        return;
+      }
+      mutateWithExtensionGuards((sdcpn) => {
         for (const type of sdcpn.types) {
           if (type.id === parsed.typeId) {
             type.elements.push(parsed.element);
@@ -287,7 +361,10 @@ export function createPetrinautActions(
     },
     updateTypeElement(input) {
       const parsed = mutationActionInputSchemas.updateTypeElement.parse(input);
-      mutate((sdcpn) => {
+      if (!canUseColors) {
+        return;
+      }
+      mutateWithExtensionGuards((sdcpn) => {
         for (const type of sdcpn.types) {
           if (type.id === parsed.typeId) {
             for (const element of type.elements) {
@@ -304,7 +381,10 @@ export function createPetrinautActions(
     },
     removeTypeElement(input) {
       const parsed = mutationActionInputSchemas.removeTypeElement.parse(input);
-      mutate((sdcpn) => {
+      if (!canUseColors) {
+        return;
+      }
+      mutateWithExtensionGuards((sdcpn) => {
         for (const type of sdcpn.types) {
           if (type.id === parsed.typeId) {
             for (const [index, element] of type.elements.entries()) {
@@ -321,7 +401,10 @@ export function createPetrinautActions(
     },
     moveTypeElement(input) {
       const parsed = mutationActionInputSchemas.moveTypeElement.parse(input);
-      mutate((sdcpn) => {
+      if (!canUseColors) {
+        return;
+      }
+      mutateWithExtensionGuards((sdcpn) => {
         for (const type of sdcpn.types) {
           if (type.id === parsed.typeId) {
             const fromIndex = type.elements.findIndex(
@@ -343,7 +426,10 @@ export function createPetrinautActions(
     removeType(input) {
       const { typeId: parsedTypeId } =
         mutationActionInputSchemas.removeType.parse(input);
-      mutate((sdcpn) => {
+      if (!canUseColors) {
+        return;
+      }
+      mutateWithExtensionGuards((sdcpn) => {
         for (const [index, type] of sdcpn.types.entries()) {
           if (type.id === parsedTypeId) {
             sdcpn.types.splice(index, 1);
@@ -360,11 +446,15 @@ export function createPetrinautActions(
             equation.colorId = null;
           }
         }
+        sanitizeAllTransitions(sdcpn);
       });
     },
     addDifferentialEquation(equation) {
       const parsedEquation = differentialEquationSchema.parse(equation);
-      mutate((sdcpn) => {
+      if (!canUseDynamics) {
+        return;
+      }
+      mutateWithExtensionGuards((sdcpn) => {
         sdcpn.differentialEquations.push(parsedEquation);
         for (const place of sdcpn.places) {
           if (place.differentialEquationId === parsedEquation.id) {
@@ -376,7 +466,10 @@ export function createPetrinautActions(
     updateDifferentialEquation(input) {
       const parsed =
         mutationActionInputSchemas.updateDifferentialEquation.parse(input);
-      mutate((sdcpn) => {
+      if (!canUseDynamics) {
+        return;
+      }
+      mutateWithExtensionGuards((sdcpn) => {
         for (const equation of sdcpn.differentialEquations) {
           if (equation.id === parsed.equationId) {
             Object.assign(equation, parsed.update);
@@ -399,7 +492,10 @@ export function createPetrinautActions(
         mutationActionInputSchemas.removeDifferentialEquation.parse({
           ...input,
         });
-      mutate((sdcpn) => {
+      if (!canUseDynamics) {
+        return;
+      }
+      mutateWithExtensionGuards((sdcpn) => {
         for (const [index, equation] of sdcpn.differentialEquations.entries()) {
           if (equation.id === parsedEquationId) {
             sdcpn.differentialEquations.splice(index, 1);
@@ -415,13 +511,19 @@ export function createPetrinautActions(
     },
     addParameter(parameter) {
       const parsedParameter = parameterSchema.parse(parameter);
-      mutate((sdcpn) => {
+      if (!canUseParameters) {
+        return;
+      }
+      mutateWithExtensionGuards((sdcpn) => {
         sdcpn.parameters.push(parsedParameter);
       });
     },
     updateParameter(input) {
       const parsed = mutationActionInputSchemas.updateParameter.parse(input);
-      mutate((sdcpn) => {
+      if (!canUseParameters) {
+        return;
+      }
+      mutateWithExtensionGuards((sdcpn) => {
         for (const parameter of sdcpn.parameters) {
           if (parameter.id === parsed.parameterId) {
             Object.assign(parameter, parsed.update);
@@ -434,7 +536,10 @@ export function createPetrinautActions(
     removeParameter(input) {
       const { parameterId: parsedParameterId } =
         mutationActionInputSchemas.removeParameter.parse(input);
-      mutate((sdcpn) => {
+      if (!canUseParameters) {
+        return;
+      }
+      mutateWithExtensionGuards((sdcpn) => {
         for (const [index, parameter] of sdcpn.parameters.entries()) {
           if (parameter.id === parsedParameterId) {
             sdcpn.parameters.splice(index, 1);
@@ -445,7 +550,7 @@ export function createPetrinautActions(
     },
     addScenario(scenario) {
       const parsedScenario = scenarioSchema.parse(scenario);
-      mutate((sdcpn) => {
+      mutateWithExtensionGuards((sdcpn) => {
         const scenarios = sdcpn.scenarios ?? [];
         scenarios.push(parsedScenario);
         // eslint-disable-next-line no-param-reassign -- mutating draft inside immer/structuredClone
@@ -454,7 +559,7 @@ export function createPetrinautActions(
     },
     updateScenario(input) {
       const parsed = mutationActionInputSchemas.updateScenario.parse(input);
-      mutate((sdcpn) => {
+      mutateWithExtensionGuards((sdcpn) => {
         for (const scenario of sdcpn.scenarios ?? []) {
           if (scenario.id === parsed.scenarioId) {
             Object.assign(scenario, parsed.update);
@@ -467,7 +572,7 @@ export function createPetrinautActions(
     removeScenario(input) {
       const { scenarioId: parsedScenarioId } =
         mutationActionInputSchemas.removeScenario.parse(input);
-      mutate((sdcpn) => {
+      mutateWithExtensionGuards((sdcpn) => {
         const scenarios = sdcpn.scenarios;
         if (!scenarios) {
           return;
@@ -482,7 +587,7 @@ export function createPetrinautActions(
     },
     addMetric(metric) {
       const parsedMetric = metricSchema.parse(metric);
-      mutate((sdcpn) => {
+      mutateWithExtensionGuards((sdcpn) => {
         const metrics = sdcpn.metrics ?? [];
         metrics.push(parsedMetric);
         // eslint-disable-next-line no-param-reassign -- mutating draft inside immer/structuredClone
@@ -491,7 +596,7 @@ export function createPetrinautActions(
     },
     updateMetric(input) {
       const parsed = mutationActionInputSchemas.updateMetric.parse(input);
-      mutate((sdcpn) => {
+      mutateWithExtensionGuards((sdcpn) => {
         for (const metric of sdcpn.metrics ?? []) {
           if (metric.id === parsed.metricId) {
             Object.assign(metric, parsed.update);
@@ -504,7 +609,7 @@ export function createPetrinautActions(
     removeMetric(input) {
       const { metricId: parsedMetricId } =
         mutationActionInputSchemas.removeMetric.parse(input);
-      mutate((sdcpn) => {
+      mutateWithExtensionGuards((sdcpn) => {
         const metrics = sdcpn.metrics;
         if (!metrics) {
           return;
@@ -520,7 +625,7 @@ export function createPetrinautActions(
     deleteItemsByIds(input) {
       const parsedItems =
         mutationActionInputSchemas.deleteItemsByIds.parse(input).items;
-      mutate((sdcpn) => {
+      mutateWithExtensionGuards((sdcpn) => {
         const placeIds = new Set<string>();
         const transitionIds = new Set<string>();
         const arcIds = new Set<string>();
@@ -644,12 +749,16 @@ export function createPetrinautActions(
             }
           }
         }
+
+        if (hasCanvasDeletes || typeIds.size > 0) {
+          sanitizeAllTransitions(sdcpn);
+        }
       });
     },
     commitNodePositions(input) {
       const { commits: parsedCommits } =
         mutationActionInputSchemas.commitNodePositions.parse(input);
-      mutate((sdcpn) => {
+      mutateWithExtensionGuards((sdcpn) => {
         for (const { id, itemType, position } of parsedCommits) {
           if (itemType === "place") {
             for (const place of sdcpn.places) {

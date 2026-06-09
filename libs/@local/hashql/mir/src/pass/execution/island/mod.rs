@@ -30,7 +30,6 @@ use crate::{
 };
 
 pub(crate) mod graph;
-pub(crate) mod schedule;
 #[cfg(test)]
 mod tests;
 

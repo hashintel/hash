@@ -51,7 +51,7 @@ export const generateDefaultLambdaCode = (
 ): string => `/**
 * This function controls when the transition will fire,
 * once enabled by sufficient tokens in its input places.
-* It receives tokens from input places keyed by place name,
+* It receives tokens from coloured standard/read input places keyed by place name,
 * and any global parameters defined.
 */
 export default Lambda((tokensByPlace, parameters) => {
@@ -77,7 +77,7 @@ export function generateDefaultTransitionKernelCode(
 ): string {
   return `/**
 * This function defines the kernel for the transition.
-* It receives tokens from input places,
+* It receives tokens from coloured standard/read input places,
 * and any global parameters defined,
 * and should return tokens for output places keyed by place name.
 */
@@ -107,7 +107,7 @@ export default TransitionKernel((tokensByPlace, parameters) => {
 
 export const DEFAULT_TRANSITION_KERNEL_CODE = `/**
 * This function defines the kernel for the transition.
-* It receives tokens from input places,
+* It receives tokens from coloured standard/read input places,
 * and any global parameters defined,
 * and should return tokens for output places keyed by place name.
 */

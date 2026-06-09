@@ -18,6 +18,8 @@ This is the simplest way to model duration and works well for many processes (se
 
 For other distributions (e.g. log-normal, deterministic), place dynamics and durations sampled in the preceding transition kernel can be used. The general approach:
 
+This pattern requires stochasticity to be enabled. If stochasticity is disabled, use fixed numeric duration values instead of `Distribution`.
+
 1. **Add a time dimension** to the token type (e.g. `remaining_time`).
 2. **Sample the duration** in a transition kernel using a `Distribution`:
 
@@ -64,7 +66,19 @@ Use a place as a **pool** of tokens representing limited resources (machines, wo
 
 The number of initial tokens in "Available" determines the resource capacity. If no tokens are available, "StartWork" cannot fire -- work is naturally queued.
 
-**Example:** the [Production Machines](examples.md#production-machines) example models machines cycling between available, producing, broken, and being repaired states.
+**Example:** the [Production With Machine Failure](examples.md#production-with-machine-failure) example models machines cycling between available, producing, broken, and being repaired states.
+
+## Shared-state checks with read arcs
+
+Use a [read arc](petri-net-extensions.md#read-arcs) when a transition needs a token to be present, and may need to inspect its typed attributes in the lambda or kernel, but should leave that token in place.
+
+**Structure:**
+
+```text
+(SensorState) ---> [ReactToReading]    (read arc, weight 1)
+```
+
+The transition can read `tokensByPlace.SensorState[0]` while the sensor-state token remains available for future transitions.
 
 ## Mutual exclusion with inhibitor arcs
 
@@ -95,7 +109,7 @@ Use the transition kernel to define the properties of newly created tokens (if t
 **Examples:**
 
 - [Deployment Pipeline](examples.md#deployment-pipeline) -- "Create Deployment" and "Incident Raised" generate events at configurable rates.
-- [Probabilistic Satellites Launcher](examples.md#probabilistic-satellites-launcher) -- "LaunchSatellite" creates satellites with randomized initial positions and velocities using `Distribution.Uniform` and `Distribution.Gaussian`.
+- [Probabilistic Satellite Launcher](examples.md#probabilistic-satellite-launcher) -- "LaunchSatellite" creates satellites with randomized initial positions and velocities using `Distribution.Uniform` and `Distribution.Gaussian`.
 
 ## Sink transitions (removal / absorption)
 
@@ -131,12 +145,12 @@ export default Lambda((tokensByPlace, parameters) => {
 });
 ```
 
-**Example:** the [Supply Chain (Stochastic)](examples.md#supply-chain-stochastic) example routes products to dispatch or disposal based on a quality threshold.
+**Example:** the [Supply Chain with Disruption](examples.md#supply-chain-with-disruption) example routes production batches to finished goods or scrap based on a quality threshold, and inbound/outbound shipments to received-or-damaged and delivered-or-lost.
 
 ## Arc weight for multi-token operations
 
 An input arc with **weight > 1** requires multiple tokens from the same place for the transition to be enabled. This is useful for interactions between entities.
 
-**Example:** the [Satellites in Orbit](examples.md#satellites-in-orbit) example has a "Collision" transition with input weight 2 from the "Space" place -- it requires two satellites to be present and checks their distance in the lambda to detect collisions.
+**Example:** the [Probabilistic Satellite Launcher](examples.md#probabilistic-satellite-launcher) example has a "Collision" transition with input weight 2 from the "Space" place -- it requires two satellites to be present and checks their distance in the lambda to detect collisions.
 
 The transition kernel receives the consumed tokens and can compute outputs based on all of them.

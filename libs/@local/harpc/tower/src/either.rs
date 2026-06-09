@@ -196,7 +196,7 @@ where
         fn copy_to_bytes(&mut self, len: usize) -> bytes::Bytes;
     );
 
-    fn chunks_vectored<'a>(&'a self, dst: &mut [std::io::IoSlice<'a>]) -> usize {
+    fn chunks_vectored<'a>(&'a self, dst: &mut [core::io::IoSlice<'a>]) -> usize {
         match self {
             Self::Left(left) => left.chunks_vectored(dst),
             Self::Right(right) => right.chunks_vectored(dst),

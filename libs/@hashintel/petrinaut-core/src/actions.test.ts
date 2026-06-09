@@ -157,6 +157,64 @@ describe("Petrinaut core actions", () => {
     });
   });
 
+  test("adds and updates read input arcs", () => {
+    const instance = createInstance({
+      ...emptySDCPN,
+      transitions: [
+        {
+          id: "transition-1",
+          name: "Move",
+          inputArcs: [],
+          outputArcs: [],
+          lambdaType: "predicate",
+          lambdaCode: "export default Lambda(() => true);",
+          transitionKernelCode: "",
+          x: 50,
+          y: 0,
+        },
+      ],
+    });
+
+    instance.mutations.addArc({
+      transitionId: "transition-1",
+      arcDirection: "input",
+      placeId: "place-1",
+      weight: 2,
+      type: "read",
+    });
+    instance.mutations.updateArcType({
+      transitionId: "transition-1",
+      placeId: "place-1",
+      type: "standard",
+    });
+    instance.mutations.updateArcType({
+      transitionId: "transition-1",
+      placeId: "place-1",
+      type: "read",
+    });
+    instance.mutations.addArc({
+      transitionId: "transition-1",
+      arcDirection: "output",
+      placeId: "place-2",
+      weight: 3,
+    });
+
+    expect(() =>
+      callActionWithUnknownInput(instance.mutations.addArc, {
+        transitionId: "transition-1",
+        arcDirection: "output",
+        placeId: "place-3",
+        weight: 1,
+        type: "read",
+      }),
+    ).toThrow();
+
+    expect(instance.definition.get().transitions[0]).toMatchObject({
+      inputArcs: [{ placeId: "place-1", weight: 2, type: "read" }],
+      outputArcs: [{ placeId: "place-2", weight: 3 }],
+    });
+  });
+
   test("adds, updates, removes, and moves type elements granularly", () => {
     const instance = createInstance({
       ...emptySDCPN,
@@ -263,6 +321,173 @@ describe("Petrinaut core actions", () => {
     });
 
     expect(instance.definition.get().places).toEqual([]);
+  });
+
+  test("honors disabled extension capabilities", () => {
+    const instance = createPetrinaut({
+      document: createJsonDocHandle({
+        initial: cloneSDCPN(emptySDCPN),
+        capabilities: {
+          disabledExtensions: [
+            "colors",
+            "stochasticity",
+            "dynamics",
+            "parameters",
+          ],
+        },
+      }),
+    });
+
+    instance.mutations.addType({
+      id: "type-1",
+      name: "Particle",
+      iconSlug: "circle",
+      displayColor: "#34a0fa",
+      elements: [],
+    });
+    instance.mutations.addDifferentialEquation({
+      id: "equation-1",
+      name: "Motion",
+      colorId: "type-1",
+      code: "export default Dynamics(() => []);",
+    });
+    instance.mutations.addPlace({
+      id: "place-1",
+      name: "Dynamic",
+      colorId: "type-1",
+      dynamicsEnabled: true,
+      differentialEquationId: "equation-1",
+      visualizerCode: "export default Visualization(() => null);",
+      x: 0,
+      y: 0,
+    });
+    instance.mutations.addTransition({
+      id: "transition-1",
+      name: "Move",
+      inputArcs: [],
+      outputArcs: [],
+      lambdaType: "stochastic",
+      lambdaCode: "export default Lambda(() => 1);",
+      transitionKernelCode: "export default TransitionKernel(() => ({}));",
+      x: 0,
+      y: 0,
+    });
+    instance.mutations.addParameter({
+      id: "parameter-1",
+      name: "Rate",
+      variableName: "rate",
+      type: "real",
+      defaultValue: "1",
+    });
+
+    const definition = instance.definition.get();
+    expect(definition.types).toEqual([]);
+    expect(definition.differentialEquations).toEqual([]);
+    expect(definition.parameters).toEqual([]);
+    expect(definition.places[0]).toMatchObject({
+      colorId: null,
+      dynamicsEnabled: false,
+      differentialEquationId: null,
+    });
+    expect(definition.places[0]).not.toHaveProperty("visualizerCode");
+    expect(definition.transitions[0]).toMatchObject({
+      lambdaType: "predicate",
+      lambdaCode: "",
+      transitionKernelCode: "",
+    });
+  });
+
+  test("keeps predicate lambda code when stochasticity is disabled but coloured inputs exist", () => {
+    const instance = createPetrinaut({
+      document: createJsonDocHandle({
+        initial: cloneSDCPN({
+          ...emptySDCPN,
+          types: [
+            {
+              id: "type-1",
+              name: "Particle",
+              iconSlug: "circle",
+              displayColor: "#34a0fa",
+              elements: [
+                { elementId: "element-1", name: "Mass", type: "real" },
+              ],
+            },
+          ],
+          places: [
+            {
+              id: "place-1",
+              name: "Input",
+              colorId: "type-1",
+              dynamicsEnabled: false,
+              differentialEquationId: null,
+              x: 0,
+              y: 0,
+            },
+          ],
+        }),
+        capabilities: {
+          disabledExtensions: ["stochasticity"],
+        },
+      }),
+    });
+
+    instance.mutations.addTransition({
+      id: "transition-1",
+      name: "Move",
+      inputArcs: [{ placeId: "place-1", weight: 1, type: "standard" }],
+      outputArcs: [],
+      lambdaType: "predicate",
+      lambdaCode: "export default Lambda((input) => input.Input[0].Mass > 0);",
+      transitionKernelCode: "",
+      x: 0,
+      y: 0,
+    });
+
+    expect(instance.definition.get().transitions[0]).toMatchObject({
+      lambdaType: "predicate",
+      lambdaCode: "export default Lambda((input) => input.Input[0].Mass > 0);",
+    });
+  });
+
+  test("clears predicate lambda code when stochasticity is disabled and no coloured standard/read input exists", () => {
+    const instance = createPetrinaut({
+      document: createJsonDocHandle({
+        initial: cloneSDCPN({
+          ...emptySDCPN,
+          places: [
+            {
+              id: "place-1",
+              name: "Input",
+              colorId: null,
+              dynamicsEnabled: false,
+              differentialEquationId: null,
+              x: 0,
+              y: 0,
+            },
+          ],
+        }),
+        capabilities: {
+          disabledExtensions: ["stochasticity"],
+        },
+      }),
+    });
+
+    instance.mutations.addTransition({
+      id: "transition-1",
+      name: "Move",
+      inputArcs: [{ placeId: "place-1", weight: 1, type: "standard" }],
+      outputArcs: [],
+      lambdaType: "predicate",
+      lambdaCode: "export default Lambda(() => true);",
+      transitionKernelCode: "",
+      x: 0,
+      y: 0,
+    });
+
+    expect(instance.definition.get().transitions[0]).toMatchObject({
+      lambdaType: "predicate",
+      lambdaCode: "",
+    });
   });
 
   test("validates add action inputs before mutating", () => {

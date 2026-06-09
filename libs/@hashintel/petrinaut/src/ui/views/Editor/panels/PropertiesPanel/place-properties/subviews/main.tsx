@@ -49,6 +49,7 @@ const PlaceMainContent: React.FC = () => {
 
   const {
     getItemType,
+    extensions,
     petriNetDefinition: { differentialEquations, types: availableTypes },
   } = use(SDCPNContext);
 
@@ -134,192 +135,198 @@ const PlaceMainContent: React.FC = () => {
           )}
         </Section>
 
-        <Section
-          title="Accepted token type"
-          tooltip={`If tokens in this place should carry data ("colour"), assign a data type here.${
-            availableTypes.length === 0
-              ? " You must create a data type in the left-hand sidebar first."
-              : ""
-          } Tokens in places don't have to carry data, but they need one to enable dynamics (token data changing over time when in a place).`}
-        >
-          <Select
-            value={place.colorId ?? ""}
-            onValueChange={(value) => {
-              const newType = value === "" ? null : value;
-              updatePlace({
-                placeId: place.id,
-                update: {
-                  colorId: newType,
-                  dynamicsEnabled:
-                    newType === null && place.dynamicsEnabled
-                      ? false
-                      : place.dynamicsEnabled,
-                },
-              });
-            }}
-            options={[
-              { value: "", label: "None" },
-              ...types.map((type) => ({
-                value: type.id,
-                label: type.name,
-              })),
-            ]}
-            renderTrigger={({ selectedOption }) => {
-              const selectedColor = types.find(
-                (tp) => tp.id === selectedOption?.value,
-              )?.displayColor;
-              return (
-                <>
-                  {selectedColor && (
-                    <div
-                      className={typeColorDotStyle}
-                      style={{ backgroundColor: selectedColor }}
-                    />
-                  )}
-                  <span>{selectedOption?.label ?? "None"}</span>
-                </>
-              );
-            }}
-            renderItem={(item: SelectOption) => {
-              const typeColor = types.find(
-                (tp) => tp.id === item.value,
-              )?.displayColor;
-              return (
-                <>
-                  {typeColor && (
-                    <div
-                      className={typeColorDotStyle}
-                      style={{ backgroundColor: typeColor }}
-                    />
-                  )}
-                  {item.label}
-                </>
-              );
-            }}
-            disabled={isReadOnly}
-            tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
-          />
-
-          {place.colorId && (
-            <div className={jumpButtonContainerStyle}>
-              <Button
-                variant="subtle"
-                tone="neutral"
-                size="xs"
-                onClick={() => {
-                  if (place.colorId) {
-                    const itemType = getItemType(place.colorId);
-                    if (itemType) {
-                      selectItem({ type: itemType, id: place.colorId });
-                    }
-                  }
-                }}
-                suffix={<Icon name="arrowRight" />}
-              >
-                Jump to Type
-              </Button>
-            </div>
-          )}
-        </Section>
-
-        <Section
-          title="Dynamics"
-          tooltip="Token data can dynamically change over time when tokens remain in a place, governed by a differential equation."
-          renderHeaderAction={() => (
-            <Switch
-              checked={!!place.colorId && place.dynamicsEnabled}
-              disabled={
-                isReadOnly ||
-                place.colorId === null ||
-                availableDiffEqs.length === 0
-              }
-              tooltip={
-                isReadOnly
-                  ? UI_MESSAGES.READ_ONLY_MODE
-                  : place.colorId === null
-                    ? UI_MESSAGES.DYNAMICS_REQUIRES_TYPE
-                    : availableDiffEqs.length === 0
-                      ? "Create a differential equation for this type first"
-                      : undefined
-              }
-              onCheckedChange={(checked) => {
-                const update: {
-                  dynamicsEnabled: boolean;
-                  differentialEquationId?: string | null;
-                } = { dynamicsEnabled: checked };
-
-                if (checked) {
-                  // Auto-select first available diff eq if none selected or previous no longer exists
-                  const currentIsValid = availableDiffEqs.some(
-                    (eq) => eq.id === place.differentialEquationId,
-                  );
-                  if (!currentIsValid && availableDiffEqs.length > 0) {
-                    update.differentialEquationId = availableDiffEqs[0]!.id;
-                  }
-                }
-
+        {extensions.colors && (
+          <Section
+            title="Accepted token type"
+            tooltip={`If tokens in this place should carry data ("colour"), assign a data type here.${
+              availableTypes.length === 0
+                ? " You must create a data type in the left-hand sidebar first."
+                : ""
+            } Tokens in places don't have to carry data, but they need one to enable dynamics (token data changing over time when in a place).`}
+          >
+            <Select
+              value={place.colorId ?? ""}
+              onValueChange={(value) => {
+                const newType = value === "" ? null : value;
                 updatePlace({
                   placeId: place.id,
-                  update,
+                  update: {
+                    colorId: newType,
+                    dynamicsEnabled:
+                      newType === null && place.dynamicsEnabled
+                        ? false
+                        : place.dynamicsEnabled,
+                  },
                 });
               }}
+              options={[
+                { value: "", label: "None" },
+                ...types.map((type) => ({
+                  value: type.id,
+                  label: type.name,
+                })),
+              ]}
+              renderTrigger={({ selectedOption }) => {
+                const selectedColor = types.find(
+                  (tp) => tp.id === selectedOption?.value,
+                )?.displayColor;
+                return (
+                  <>
+                    {selectedColor && (
+                      <div
+                        className={typeColorDotStyle}
+                        style={{ backgroundColor: selectedColor }}
+                      />
+                    )}
+                    <span>{selectedOption?.label ?? "None"}</span>
+                  </>
+                );
+              }}
+              renderItem={(item: SelectOption) => {
+                const typeColor = types.find(
+                  (tp) => tp.id === item.value,
+                )?.displayColor;
+                return (
+                  <>
+                    {typeColor && (
+                      <div
+                        className={typeColorDotStyle}
+                        style={{ backgroundColor: typeColor }}
+                      />
+                    )}
+                    {item.label}
+                  </>
+                );
+              }}
+              disabled={isReadOnly}
+              tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
             />
-          )}
-        >
-          {place.colorId === null ? (
-            <div className={hintTextStyle}>
-              {availableTypes.length === 0
-                ? "Create a type in the left-hand sidebar first, then select it to enable dynamics."
-                : "Select a type to enable dynamics"}
-            </div>
-          ) : availableDiffEqs.length === 0 ? (
-            <div className={hintTextStyle}>
-              Create a differential equation for the selected type in the
-              left-hand sidebar first
-            </div>
-          ) : (
-            place.dynamicsEnabled && (
-              <>
-                <Select
-                  value={place.differentialEquationId ?? undefined}
-                  onValueChange={(value) => {
-                    updatePlace({
-                      placeId: place.id,
-                      update: { differentialEquationId: value },
-                    });
-                  }}
-                  options={availableDiffEqs.map((eq) => ({
-                    value: eq.id,
-                    label: eq.name,
-                  }))}
-                  disabled={isReadOnly}
-                  tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
-                />
 
-                {place.differentialEquationId && (
-                  <div className={jumpButtonContainerStyle}>
-                    <Button
-                      variant="subtle"
-                      tone="neutral"
-                      size="xs"
-                      onClick={() => {
-                        if (place.differentialEquationId) {
-                          selectItem({
-                            type: "differentialEquation",
-                            id: place.differentialEquationId,
-                          });
-                        }
-                      }}
-                      suffix={<Icon name="arrowRight" />}
-                    >
-                      Jump to Differential Equation
-                    </Button>
-                  </div>
-                )}
-              </>
-            )
-          )}
-        </Section>
+            {place.colorId && (
+              <div className={jumpButtonContainerStyle}>
+                <Button
+                  variant="subtle"
+                  tone="neutral"
+                  size="xs"
+                  onClick={() => {
+                    if (place.colorId) {
+                      const itemType = getItemType(place.colorId);
+                      if (itemType) {
+                        selectItem({ type: itemType, id: place.colorId });
+                      }
+                    }
+                  }}
+                  suffix={<Icon name="arrowRight" />}
+                >
+                  Jump to Type
+                </Button>
+              </div>
+            )}
+          </Section>
+        )}
+
+        {extensions.colors && extensions.dynamics && (
+          <Section
+            title="Dynamics"
+            tooltip="Token data can dynamically change over time when tokens remain in a place, governed by a differential equation."
+            renderHeaderAction={() => (
+              <Switch
+                checked={!!place.colorId && place.dynamicsEnabled}
+                disabled={
+                  isReadOnly ||
+                  place.colorId === null ||
+                  availableDiffEqs.length === 0
+                }
+                tooltip={
+                  isReadOnly
+                    ? UI_MESSAGES.READ_ONLY_MODE
+                    : place.colorId === null
+                      ? UI_MESSAGES.DYNAMICS_REQUIRES_TYPE
+                      : availableDiffEqs.length === 0
+                        ? "Create a differential equation for this type first"
+                        : undefined
+                }
+                onCheckedChange={(checked) => {
+                  const update: {
+                    dynamicsEnabled: boolean;
+                    differentialEquationId?: string | null;
+                  } = { dynamicsEnabled: checked };
+
+                  if (checked) {
+                    // Auto-select first available diff eq if none selected or previous no longer exists
+                    const currentIsValid = availableDiffEqs.some(
+                      (eq) => eq.id === place.differentialEquationId,
+                    );
+                    if (!currentIsValid && availableDiffEqs.length > 0) {
+                      update.differentialEquationId = availableDiffEqs[0]!.id;
+                    }
+                  }
+
+                  updatePlace({
+                    placeId: place.id,
+                    update,
+                  });
+                }}
+              />
+            )}
+          >
+            {place.colorId === null ? (
+              <div className={hintTextStyle}>
+                {availableTypes.length === 0
+                  ? "Create a type in the left-hand sidebar first, then select it to enable dynamics."
+                  : "Select a type to enable dynamics"}
+              </div>
+            ) : availableDiffEqs.length === 0 ? (
+              <div className={hintTextStyle}>
+                Create a differential equation for the selected type in the
+                left-hand sidebar first
+              </div>
+            ) : (
+              place.dynamicsEnabled && (
+                <>
+                  <Select
+                    value={place.differentialEquationId ?? undefined}
+                    onValueChange={(value) => {
+                      updatePlace({
+                        placeId: place.id,
+                        update: { differentialEquationId: value },
+                      });
+                    }}
+                    options={availableDiffEqs.map((eq) => ({
+                      value: eq.id,
+                      label: eq.name,
+                    }))}
+                    disabled={isReadOnly}
+                    tooltip={
+                      isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined
+                    }
+                  />
+
+                  {place.differentialEquationId && (
+                    <div className={jumpButtonContainerStyle}>
+                      <Button
+                        variant="subtle"
+                        tone="neutral"
+                        size="xs"
+                        onClick={() => {
+                          if (place.differentialEquationId) {
+                            selectItem({
+                              type: "differentialEquation",
+                              id: place.differentialEquationId,
+                            });
+                          }
+                        }}
+                        suffix={<Icon name="arrowRight" />}
+                      >
+                        Jump to Differential Equation
+                      </Button>
+                    </div>
+                  )}
+                </>
+              )
+            )}
+          </Section>
+        )}
         <Section
           title="Default starting place"
           tooltip="Pre-selects this place when creating a new scenario."

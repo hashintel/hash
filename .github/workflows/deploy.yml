@@ -1,6 +1,7 @@
 name: Deploy
 
 on:
+  workflow_dispatch:
   pull_request:
   push:
     branches:
@@ -12,9 +13,26 @@ env:
   TURBO_TEAM: hashintel
   TURBO_CACHE: remote:rw
 
+  AWS_REGION: eu-central-1
+  AWS_ECR_ACCOUNT_ID: "469596578827"
+  AWS_DEPLOY_ACCOUNT_ID: "054238437032"
+  OIDC_HASH_CD_PUSH_ROLE: github-oidc-hash-cd-push
+  OIDC_HASH_CD_DEPLOY_ROLE: github-oidc-hash-cd-deploy
+
+# PR and merge_group runs cancel their previous attempt (cancel-in-progress):
+# a new commit or queue reshuffle obsoletes the in-flight build-only validation.
+#
+# Push and workflow_dispatch get a UNIQUE per-run group (github.run_id) so they
+# are NEVER cancelled or evicted at the run level. This is critical: the build
+# matrix is computed per-commit (turbo affected vs HEAD^), so if a publishing
+# run were dropped, the services that *only* that commit changed would never
+# publish. The builds themselves run unserialized — their pushes are immutable
+# (GHCR by digest, ECR :sha/:run). Only the mutable tags and rollouts serialize
+# per service via `queue: max`: :staging in `stage`, :latest in `manifest`, ECS
+# in `deploy`; the tag-if-newer guard keeps :staging/:latest moving only forward.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.run_id || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
 
 jobs:
   setup:
@@ -23,6 +41,10 @@ jobs:
       id-token: write
     outputs:
       sourcemaps: ${{ steps.packages.outputs.sourcemaps }}
+      backend-images: ${{ steps.packages.outputs.backend-images }}
+      backend-manifests: ${{ steps.packages.outputs.backend-manifests }}
+      backend-deploys: ${{ steps.packages.outputs.backend-deploys }}
+      backend-staging: ${{ steps.packages.outputs.backend-staging }}
     steps:
       - name: Checkout source code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -36,9 +58,25 @@ jobs:
           vault_address: ${{ secrets.VAULT_ADDR }}
           rust: false
 
+      # Service catalog: the single source of truth for build/manifest/deploy.
+      # App images are detected via turbo's affected-package query (`package`,
+      # dependency-aware — a shared-lib change rebuilds its dependents). Kratos
+      # and Hydra aren't JS packages so turbo can't see them; their image
+      # context is their own directory, so a git diff of `paths` is a complete
+      # change signal. `ecs` lists the ECS task definitions to redeploy when the
+      # image publishes; one app may drive several (e.g. `graph` → graph +
+      # graph-admin + type-fetcher).
       - name: Determine changed packages
         id: packages
+        env:
+          IS_DISPATCH: ${{ github.event_name == 'workflow_dispatch' }}
+          SKIP_AMD64: ${{ github.event_name == 'pull_request' }}
         run: |
+          # Without pipefail a failing `turbo query` piped into jq is masked by
+          # jq's exit 0 on empty input — yielding an empty matrix and a green
+          # run that silently builds/deploys nothing. Fail loud instead.
+          set -euo pipefail
+
           SOURCEMAPS_QUERY='query { affectedPackages(base: "HEAD^", filter: {has: {field: TASK_NAME, value: "sentry:sourcemaps"}}) { items { name path } } }'
 
           SOURCEMAPS_PACKAGES=$(turbo query "$SOURCEMAPS_QUERY" \
@@ -46,13 +84,147 @@ jobs:
 
           echo "sourcemaps=$SOURCEMAPS_PACKAGES" | tee -a $GITHUB_OUTPUT
 
+          CATALOG=$(jq -nc '[
+            {
+              package:    "@apps/hash-graph",
+              service:    "graph",
+              push:       ["ecr", "ghcr"],
+              dockerfile: "apps/hash-graph/docker/Dockerfile",
+              context:    ".",
+              ecs: [
+                { service: "graph",        cluster: "h-stage-euc1-app", service_name: "h-stage-euc1-app-graph" },
+                { service: "graph-admin",  cluster: "h-stage-euc1-app", service_name: "h-stage-euc1-app-graph-admin" },
+                { service: "type-fetcher", cluster: "h-stage-euc1-app", service_name: "h-stage-euc1-app-type-fetcher" }
+              ]
+            },
+            {
+              package:    "@apps/hash-api",
+              service:    "api",
+              push:       ["ecr", "ghcr"],
+              dockerfile: "apps/hash-api/docker/Dockerfile",
+              context:    ".",
+              ecs: [{ service: "api", cluster: "h-stage-euc1-app", service_name: "h-stage-euc1-app-api" }]
+            },
+            {
+              package:    "@apps/hash-frontend",
+              service:    "frontend",
+              push:       ["ecr", "ghcr"],
+              dockerfile: "apps/hash-frontend/docker/Dockerfile",
+              context:    ".",
+              # TODO(FE-752): drop build_args once frontend is runtime-configurable.
+              build_args: "API_ORIGIN=http://localhost:5001\nFRONTEND_URL=http://localhost:3000\n",
+              ecs:        []
+            },
+            {
+              package:    "@apps/hash-ai-worker-ts",
+              service:    "ai-worker-ts",
+              push:       ["ecr", "ghcr"],
+              dockerfile: "apps/hash-ai-worker-ts/docker/Dockerfile",
+              context:    ".",
+              ecs: [{ service: "ai-ts-worker", cluster: "h-stage-euc1-worker", service_name: "h-stage-euc1-worker-ai-ts" }]
+            },
+            {
+              package:    "@apps/hash-integration-worker",
+              service:    "integration-worker",
+              push:       ["ecr", "ghcr"],
+              dockerfile: "apps/hash-integration-worker/docker/Dockerfile",
+              context:    ".",
+              ecs: [{ service: "integration-worker", cluster: "h-stage-euc1-worker", service_name: "h-stage-euc1-worker-integration" }]
+            },
+            {
+              service:    "kratos",
+              push:       ["ecr"],
+              dockerfile: "infra/compose/kratos/Dockerfile",
+              context:    "infra/compose/kratos",
+              paths:      ["infra/compose/kratos"],
+              ecs: [{ service: "kratos", cluster: "h-stage-euc1-auth", service_name: "h-stage-euc1-auth-kratos" }]
+            },
+            {
+              service:    "hydra",
+              push:       ["ecr"],
+              dockerfile: "infra/compose/hydra/Dockerfile",
+              context:    "infra/compose/hydra",
+              paths:      ["infra/compose/hydra"],
+              ecs: [{ service: "hydra", cluster: "h-stage-euc1-auth", service_name: "h-stage-euc1-auth-hydra" }]
+            }
+          ]')
+
+          # workflow_dispatch rebuilds everything (manual re-trigger). Otherwise
+          # filter to the affected set: app packages via turbo (dependency
+          # aware), infra services via a git diff of their context dir.
+          if [[ "$IS_DISPATCH" == "true" ]]; then
+            AFFECTED_CATALOG=$(jq -c '.' <<<"$CATALOG")
+          else
+            # App images — turbo affected, excluding the workspace root "//".
+            IMAGES_QUERY='query { affectedPackages(base: "HEAD^", filter: {has: {field: TASK_NAME, value: "build:docker"}}) { items { name } } }'
+            AFFECTED_PKGS=$(turbo query "$IMAGES_QUERY" | jq -c '[.data.affectedPackages.items[].name | select(. != "//")]')
+
+            # Fail loudly if turbo flags a `build:docker` package the catalog
+            # doesn't know about — otherwise its image would silently never
+            # publish. (Infra services aren't turbo packages, so they never
+            # appear here.)
+            MISSING=$(jq -nc --argjson pkgs "$AFFECTED_PKGS" --argjson catalog "$CATALOG" \
+              '[$pkgs[] | select(. as $p | ($catalog | map(.package) | index($p)) | not)]')
+            if [[ "$(jq length <<<"$MISSING")" -gt 0 ]]; then
+              echo "::error ::affected build:docker packages missing from deploy catalog: $MISSING"
+              exit 1
+            fi
+
+            # Infra images — turbo is blind to them; a changed file under their
+            # context dir is a complete signal (the dir IS the build context).
+            CHANGED=$(git diff --name-only HEAD^ HEAD | jq -Rsc 'split("\n") | map(select(length > 0))')
+
+            AFFECTED_CATALOG=$(jq -c --argjson pkgs "$AFFECTED_PKGS" --argjson changed "$CHANGED" '
+              [.[] | select(
+                (.package != null and (.package as $p | $pkgs | index($p) != null))
+                or
+                ((.paths // []) as $paths | any($paths[]; . as $d | ($changed | any(.[]; startswith($d + "/")))))
+              )]' <<<"$CATALOG")
+          fi
+
+          # Build matrix: expand each affected entry to its arches. Skip amd64
+          # for services that don't publish to GHCR (ECR is arm64-only) and
+          # also on PR events (arch divergence in Rust/Node is rare;
+          # merge_group still validates amd64 before main).
+          BUILD_MATRIX=$(jq -c --argjson skip_amd64 "$SKIP_AMD64" '
+            [.[] as $e
+              | ({arch: "arm64"}, {arch: "amd64"})
+              | $e + .
+              | select(($e.push | index("ghcr")) or .arch == "arm64")
+              | select($skip_amd64 != true or .arch != "amd64")
+              | del(.package, .ecs, .paths)
+            ] | { include: . }' <<<"$AFFECTED_CATALOG")
+
+          # Manifest matrix: services that publish multi-arch to GHCR.
+          MANIFEST_MATRIX=$(jq -c '
+            map(select(.push | index("ghcr"))) | { service: [.[].service] }
+          ' <<<"$AFFECTED_CATALOG")
+
+          # Deploy matrix: flatten the per-service `ecs` arrays.
+          DEPLOY_MATRIX=$(jq -c '
+            [.[] | .ecs[]] | { include: . }
+          ' <<<"$AFFECTED_CATALOG")
+
+          # Staging matrix: services whose arm64 image is pushed to ECR and
+          # tagged :staging (one guard run per such service).
+          STAGING_MATRIX=$(jq -c '
+            map(select(.push | index("ecr"))) | { service: [.[].service] }
+          ' <<<"$AFFECTED_CATALOG")
+
+          echo "backend-images=$BUILD_MATRIX" | tee -a $GITHUB_OUTPUT
+          echo "backend-manifests=$MANIFEST_MATRIX" | tee -a $GITHUB_OUTPUT
+          echo "backend-deploys=$DEPLOY_MATRIX" | tee -a $GITHUB_OUTPUT
+          echo "backend-staging=$STAGING_MATRIX" | tee -a $GITHUB_OUTPUT
+
   sourcemaps:
     name: Sourcemaps
     needs: [setup]
     strategy:
       matrix: ${{ fromJSON(needs.setup.outputs.sourcemaps) }}
       fail-fast: false
-    if: needs.setup.outputs.sourcemaps != '{"name":[],"include":[]}' && github.event.pull_request.head.repo.full_name == github.repository
+    # Fork-only check applies to PRs — the Vault role for SENTRY_AUTH_TOKEN
+    # isn't reachable from forks.
+    if: needs.setup.outputs.sourcemaps != '{"name":[],"include":[]}' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-24.04
     permissions:
       id-token: write
@@ -93,20 +265,320 @@ jobs:
       - name: Build sourcemaps
         run: turbo run sentry:sourcemaps --env-mode=loose --filter "${{ matrix.name }}"
 
+  build:
+    name: Build${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && ' and push' || '' }} ${{ matrix.service }} (${{ matrix.arch }})
+    runs-on: ${{ matrix.arch == 'arm64' && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
+    needs: [setup]
+    if: fromJSON(needs.setup.outputs.backend-images).include[0] != null
+    # No concurrency: builds and their immutable pushes (GHCR by digest, ECR
+    # :sha/:run) are idempotent, so parallel runs don't race — they run free.
+    # Only the mutable tags need serialization: :staging in the `stage` job,
+    # :latest in the `manifest` job.
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.setup.outputs.backend-images) }}
+    permissions:
+      id-token: write
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      # Tag-list assembly. The dynamic matrix already filtered the (service,
+      # arch) entries to what should build, so this step only decides whether
+      # to push and which tags to apply.
+      - name: Compute targets
+        id: targets
+        shell: bash
+        env:
+          PUSH_LIST: ${{ join(matrix.push, ' ') }}
+          ARCH: ${{ matrix.arch }}
+          REF: ${{ github.ref }}
+          EVENT: ${{ github.event_name }}
+          SERVICE: ${{ matrix.service }}
+          SHA: ${{ github.sha }}
+          RUN_ID: ${{ github.run_id }}
+          GHCR_OWNER: ${{ github.repository_owner }}
+          ECR_ACCOUNT: ${{ env.AWS_ECR_ACCOUNT_ID }}
+          ECR_REGION: ${{ env.AWS_REGION }}
+          ECR_REPO: ${{ github.repository }}
+        run: |
+          is_push_event=false
+          case "$EVENT" in push|workflow_dispatch) is_push_event=true ;; esac
+          is_main=false
+          [[ "$REF" == refs/heads/main ]] && is_main=true
+
+          push_ecr=false
+          if [[ " $PUSH_LIST " == *" ecr "* && "$ARCH" == arm64 && "$is_main" == true && "$is_push_event" == true ]]; then
+            push_ecr=true
+          fi
+          push_ghcr=false
+          if [[ " $PUSH_LIST " == *" ghcr "* && "$is_push_event" == true ]]; then
+            push_ghcr=true
+          fi
+
+          push=false
+          if $push_ecr || $push_ghcr; then
+            push=true
+          fi
+
+          ecr_host="$ECR_ACCOUNT.dkr.ecr.$ECR_REGION.amazonaws.com"
+
+          {
+            echo "push_ecr=$push_ecr"
+            echo "push_ghcr=$push_ghcr"
+            echo "push=$push"
+
+            # ECR is single-arch (arm64), tag-based. Only immutable tags here
+            # (:sha / :run); the mutable :staging tag is set by the `stage` job.
+            echo "ecr_tags<<EOF"
+            if $push_ecr; then
+              echo "$ecr_host/$ECR_REPO/$SERVICE:sha-$SHA"
+              echo "$ecr_host/$ECR_REPO/$SERVICE:run-$RUN_ID"
+            fi
+            echo EOF
+
+            # GHCR is pushed by digest (no per-arch tags); the manifest job
+            # assembles :sha-<sha> and advances :latest from the collected digests.
+            if $push_ghcr; then
+              echo "ghcr_image=ghcr.io/$GHCR_OWNER/hash/$SERVICE"
+            else
+              echo "ghcr_image="
+            fi
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Configure AWS credentials (ECR push)
+        if: steps.targets.outputs.push_ecr == 'true'
+        uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4.3.1
+        with:
+          role-to-assume: arn:aws:iam::${{ env.AWS_ECR_ACCOUNT_ID }}:role/${{ env.OIDC_HASH_CD_PUSH_ROLE }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Build${{ steps.targets.outputs.push == 'true' && ' and push' || '' }} ${{ matrix.service }} (${{ matrix.arch }})
+        id: build
+        uses: ./.github/actions/docker-build-push
+        with:
+          CONTEXT_PATH: ${{ github.workspace }}/${{ matrix.context }}
+          DOCKERFILE_LOCATION: ${{ github.workspace }}/${{ matrix.dockerfile }}
+          PLATFORM: linux/${{ matrix.arch }}
+          CACHE_REF: ghcr.io/${{ github.repository_owner }}/hash/${{ matrix.service }}/cache:${{ matrix.arch }}
+          GITHUB_TOKEN: ${{ github.token }}
+          PUSH: ${{ steps.targets.outputs.push }}
+          BUILD_ARGS: ${{ matrix.build_args }}
+          ECR_TAGS: ${{ steps.targets.outputs.ecr_tags }}
+          GHCR_IMAGE: ${{ steps.targets.outputs.ghcr_image }}
+
+      # GHCR was pushed by digest; stash the digest so the manifest job can
+      # assemble the multi-arch tags from the exact images this run built.
+      - name: Export GHCR digest
+        if: steps.targets.outputs.push_ghcr == 'true'
+        shell: bash
+        env:
+          DIGEST: ${{ steps.build.outputs.ghcr-digest }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/digests"
+          echo "$DIGEST" > "$RUNNER_TEMP/digests/${{ matrix.service }}-${{ matrix.arch }}"
+
+      - name: Upload GHCR digest
+        if: steps.targets.outputs.push_ghcr == 'true'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: digest-${{ matrix.service }}-${{ matrix.arch }}
+          path: ${{ runner.temp }}/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  # Advance the mutable ECR :staging tag, serialized per service so an
+  # out-of-order run can't move it backwards. The build job runs unserialized
+  # (its pushes are immutable); only this small, fast tag step needs ordering.
+  stage:
+    name: Tag :staging (${{ matrix.service }})
+    runs-on: ubuntu-latest
+    needs: [setup, build]
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && fromJSON(needs.setup.outputs.backend-staging).service[0] != null
+    concurrency:
+      group: ${{ github.workflow }}-staging-${{ matrix.service }}
+      queue: max
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.setup.outputs.backend-staging) }}
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          # tag-if-newer needs full history for `git merge-base --is-ancestor`.
+          fetch-depth: 0
+
+      - name: Configure AWS credentials (ECR push)
+        uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4.3.1
+        with:
+          role-to-assume: arn:aws:iam::${{ env.AWS_ECR_ACCOUNT_ID }}:role/${{ env.OIDC_HASH_CD_PUSH_ROLE }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Log in to ECR
+        uses: ./.github/actions/docker-ecr-login
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
+
+      # ECR images are single-arch (arm64). Advance :staging onto this commit's
+      # immutable sha tag only if it is newer than the one currently tagged.
+      - name: Advance :staging if newer
+        uses: ./.github/actions/tag-if-newer
+        with:
+          image: ${{ env.AWS_ECR_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ github.repository }}/${{ matrix.service }}
+          mutable-tag: staging
+          source-tag: sha-${{ github.sha }}
+          candidate-sha: ${{ github.sha }}
+
+  manifest:
+    name: Publish multi-arch manifest (${{ matrix.service }})
+    runs-on: ubuntu-latest
+    needs: [setup, build]
+    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && fromJSON(needs.setup.outputs.backend-manifests).service[0] != null
+    # Serialize the `:latest` multi-arch manifest per service so a newer push's
+    # manifest never interleaves with an older one. `queue: max` => no drops.
+    concurrency:
+      group: ${{ github.workflow }}-manifest-${{ matrix.service }}
+      queue: max
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.setup.outputs.backend-manifests) }}
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          # tag-if-newer (the :latest guard) needs full history.
+          fetch-depth: 0
+
+      - name: Login to GHCR
+        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
+
+      - name: Download per-arch digests
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+        with:
+          path: ${{ runner.temp }}/digests
+          pattern: digest-${{ matrix.service }}-*
+          merge-multiple: true
+
+      # Assemble the immutable :sha-<sha> multi-arch manifest from the exact
+      # per-arch digests this run pushed — no tag readback, so no Frankenstein
+      # manifest even if a parallel run is mid-push.
+      - name: Assemble :sha-<sha> manifest
+        uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
+        env:
+          IMAGE: ghcr.io/${{ github.repository_owner }}/hash/${{ matrix.service }}
+          SHA: ${{ github.sha }}
+        with:
+          timeout_minutes: 5
+          max_attempts: 3
+          retry_wait_seconds: 10
+          command: |
+            cd "$RUNNER_TEMP/digests"
+            refs="$(cat ./* 2>/dev/null | sed "s|^|$IMAGE@|")"
+            [ -n "$refs" ] || { echo "::error ::no digests collected for $IMAGE"; exit 1; }
+            docker buildx imagetools create --tag "$IMAGE:sha-$SHA" $refs
+
+      # :latest is mutable -> advance onto :sha-<sha> only if this commit is newer
+      # than the one :latest currently points at. main-only: a feature-branch
+      # dispatch would otherwise move :latest onto a commit no later main push
+      # descends from, permanently blocking the guard from ever advancing it again.
+      - name: Advance :latest if newer
+        if: github.ref == 'refs/heads/main'
+        uses: ./.github/actions/tag-if-newer
+        with:
+          image: ghcr.io/${{ github.repository_owner }}/hash/${{ matrix.service }}
+          mutable-tag: latest
+          source-tag: sha-${{ github.sha }}
+          candidate-sha: ${{ github.sha }}
+
+  deploy:
+    name: Redeploy ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    needs: [setup, build, stage]
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && fromJSON(needs.setup.outputs.backend-deploys).include[0] != null
+    # Serialize ECS redeploys per service (one rollout at a time per service);
+    # different services deploy in parallel. `queue: max` => no deploy dropped.
+    concurrency:
+      group: ${{ github.workflow }}-deploy-${{ matrix.service_name }}
+      queue: max
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.setup.outputs.backend-deploys) }}
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Configure AWS credentials (ECS deploy)
+        uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4.3.1
+        with:
+          role-to-assume: arn:aws:iam::${{ env.AWS_DEPLOY_ACCOUNT_ID }}:role/${{ env.OIDC_HASH_CD_DEPLOY_ROLE }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Redeploy ${{ matrix.service }} staging service
+        uses: ./.github/actions/redeploy-ecs-service
+        with:
+          ECS_CLUSTER_NAME: ${{ matrix.cluster }}
+          ECS_SERVICE_NAME: ${{ matrix.service_name }}
+
+  # Single gate suitable as a Required status check in branch protection. The
+  # underlying matrix jobs change as services are added/removed; this job's
+  # name is stable. It is also the one place failures are announced to Slack:
+  # the Check steps cover every pipeline job, so a step-level `failure()`
+  # fires whenever any of setup/sourcemaps/build/manifest/deploy fails —
+  # including the case where `build` fails and `deploy` is skipped (which a
+  # `needs: deploy` notifier would miss, since a skipped job is not a failure).
   passed:
     name: Deployments passed
-    needs: [setup, sourcemaps]
+    needs: [setup, sourcemaps, build, stage, manifest, deploy]
     if: always()
     runs-on: ubuntu-latest
     steps:
-      - name: Check setup script
+      - name: Check setup
         run: |
           [[ ${{ needs.setup.result }} = success ]]
       - name: Check sourcemaps
         run: |
           [[ ${{ needs.sourcemaps.result }} =~ success|skipped ]]
+      - name: Check build
+        run: |
+          [[ ${{ needs.build.result }} =~ success|skipped ]]
+      - name: Check stage
+        run: |
+          [[ ${{ needs.stage.result }} =~ success|skipped ]]
+      - name: Check manifest
+        run: |
+          [[ ${{ needs.manifest.result }} =~ success|skipped ]]
+      - name: Check deploy
+        run: |
+          [[ ${{ needs.deploy.result }} =~ success|skipped ]]
 
-      - name: Notify Slack on failure
+      - name: Notify Slack on main failure
+        uses: rtCamp/action-slack-notify@c58b60ee33df2229ed2d2eed86eeaf7e6c527c5a
+        if: ${{ failure() && github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') }}
+        env:
+          SLACK_LINK_NAMES: true
+          SLACK_MESSAGE: "A job in the HASH backend Deploy workflow failed on `main` <!subteam^S09KH99698T>" # Notifies @infra
+          SLACK_TITLE: Backend deployment failed
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_USERNAME: GitHub
+          VAULT_ADDR: ""
+          VAULT_TOKEN: ""
+
+      - name: Notify Slack on merge-queue failure
         uses: rtCamp/action-slack-notify@c58b60ee33df2229ed2d2eed86eeaf7e6c527c5a
         if: ${{ failure() && github.event_name == 'merge_group' }}
         env:

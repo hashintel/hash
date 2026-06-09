@@ -277,6 +277,9 @@ const baseDirectoryPath = path.join(
 
 test(
   "Extract links form text system prompt test",
+  {
+    timeout: 30 * 60 * 1000,
+  },
   async () => {
     const models: LlmParams["model"][] = ["claude-haiku-4-5-20251001"];
 
@@ -288,8 +291,5 @@ test(
       attemptsPerPrompt: 3,
       promptIterations: 4,
     });
-  },
-  {
-    timeout: 30 * 60 * 1000,
   },
 );

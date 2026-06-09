@@ -3,6 +3,7 @@ import { use, useMemo } from "react";
 import { css, cva, cx } from "@hashintel/ds-helpers/css";
 
 import { EditorContext } from "../../../../../react/state/editor-context";
+import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
 import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
 import { GlassPanel } from "../../../../components/glass-panel";
 import { VerticalSubViewsContainer } from "../../../../components/sub-view/vertical/vertical-sub-views-container";
@@ -18,7 +19,7 @@ import { searchSubView } from "./subviews/search-panel";
 
 const glassPanelBaseStyle = css({
   position: "absolute",
-  zIndex: 1002,
+  zIndex: "[calc(var(--z-index-sticky) - 1)]",
   top: "0",
   left: "0",
   bottom: "0",
@@ -104,6 +105,7 @@ export const LeftSideBar: React.FC = () => {
     isPanelAnimating,
     isSearchOpen,
   } = use(EditorContext);
+  const { extensions } = use(SDCPNContext);
 
   const { keepPanelsMounted, useEntitiesTreeView } = use(UserSettingsContext);
 
@@ -112,7 +114,18 @@ export const LeftSideBar: React.FC = () => {
 
   const sidebarSubViews = useEntitiesTreeView
     ? LEFT_SIDEBAR_TREE_SUBVIEWS
-    : LEFT_SIDEBAR_SUBVIEWS;
+    : LEFT_SIDEBAR_SUBVIEWS.filter((subView) => {
+        if (subView.id === "token-types-list") {
+          return extensions.colors;
+        }
+        if (subView.id === "differential-equations-list") {
+          return extensions.colors && extensions.dynamics;
+        }
+        if (subView.id === "parameters-list") {
+          return extensions.parameters;
+        }
+        return true;
+      });
 
   const searchSubViews = useMemo(() => [searchSubView], []);
 

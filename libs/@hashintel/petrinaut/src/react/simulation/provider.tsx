@@ -4,6 +4,7 @@ import {
   createSimulation,
   compileScenario,
   type ReadableStore,
+  type Scenario,
   type Simulation,
   type SimulationState as CoreSimulationState,
   type WorkerFactory,
@@ -32,21 +33,61 @@ import {
 type SimulationStateValues = {
   parameterValues: Record<string, string>;
   initialMarking: InitialMarking;
-  selectedScenarioId: string | null;
+  /**
+   * `undefined` means "auto-select the model's first scenario".
+   * `null` means the user explicitly selected no scenario.
+   */
+  selectedScenarioId: string | null | undefined;
   /** User-editable scenario parameter values (identifier → string value). */
   scenarioParameterValues: Record<string, string>;
   dt: number;
   maxTime: number | null;
 };
 
-const INITIAL_STATE_VALUES: SimulationStateValues = {
-  parameterValues: {},
-  initialMarking: {},
-  selectedScenarioId: null,
-  scenarioParameterValues: {},
-  dt: 0.01,
-  maxTime: null,
-};
+function getScenarioParameterDefaults(
+  scenario?: Scenario,
+): Record<string, string> {
+  const values: Record<string, string> = {};
+
+  if (!scenario) {
+    return values;
+  }
+
+  for (const parameter of scenario.scenarioParameters) {
+    values[parameter.identifier] = String(parameter.default);
+  }
+
+  return values;
+}
+
+function createInitialStateValues(): SimulationStateValues {
+  return {
+    parameterValues: {},
+    initialMarking: {},
+    selectedScenarioId: undefined,
+    scenarioParameterValues: {},
+    dt: 0.01,
+    maxTime: null,
+  };
+}
+
+function getEffectiveSelectedScenarioId(
+  scenarios: readonly Scenario[] | undefined,
+  selectedScenarioId: string | null | undefined,
+): string | null {
+  if (selectedScenarioId === null) {
+    return null;
+  }
+
+  if (
+    selectedScenarioId &&
+    scenarios?.some((scenario) => scenario.id === selectedScenarioId)
+  ) {
+    return selectedScenarioId;
+  }
+
+  return scenarios?.[0]?.id ?? null;
+}
 
 const EMPTY_STATUS_STORE: ReadableStore<CoreSimulationState> = {
   get: () => "Initializing",
@@ -113,15 +154,17 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
   workerFactory,
 }) => {
   const sdcpnContext = use(SDCPNContext);
-  const { petriNetDefinition } = sdcpnContext;
+  const { extensions, petriNetDefinition } = sdcpnContext;
   const { addNotification } = use(NotificationsContext);
 
   const petriNetDefinitionRef = useLatest(petriNetDefinition);
+  const extensionsRef = useLatest(extensions);
   const workerFactoryRef = useLatest(workerFactory ?? createSimulationWorker);
 
   // Configuration state (not managed by the simulation handle)
-  const [stateValues, setStateValues] =
-    useState<SimulationStateValues>(INITIAL_STATE_VALUES);
+  const [stateValues, setStateValues] = useState<SimulationStateValues>(() =>
+    createInitialStateValues(),
+  );
   const stateValuesRef = useLatest(stateValues);
 
   // Active simulation handle. Lifecycle is owned by this provider.
@@ -190,22 +233,14 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
       }
 
       setStateValues((prev) => {
-        // Initialize scenario parameter values from the scenario's defaults
-        const scenarioParameterValues: Record<string, string> = {};
-        if (scenarioId) {
-          const sc = petriNetDefinition.scenarios?.find(
-            (s) => s.id === scenarioId,
-          );
-          if (sc) {
-            for (const sp of sc.scenarioParameters) {
-              scenarioParameterValues[sp.identifier] = String(sp.default);
-            }
-          }
-        }
+        const scenario = petriNetDefinition.scenarios?.find(
+          (s) => s.id === scenarioId,
+        );
+
         return {
           ...prev,
           selectedScenarioId: scenarioId,
-          scenarioParameterValues,
+          scenarioParameterValues: getScenarioParameterDefaults(scenario),
         };
       });
     };
@@ -220,6 +255,13 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
 
       setStateValues((prev) => ({
         ...prev,
+        selectedScenarioId:
+          prev.selectedScenarioId === undefined
+            ? getEffectiveSelectedScenarioId(
+                petriNetDefinition.scenarios,
+                prev.selectedScenarioId,
+              )
+            : prev.selectedScenarioId,
         scenarioParameterValues: {
           ...prev.scenarioParameterValues,
           [identifier]: value,
@@ -285,6 +327,9 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
   }) => {
     const currentState = stateValuesRef.current;
     const sdcpn = petriNetDefinitionRef.current;
+    const simulationSdcpn = extensionsRef.current.parameters
+      ? sdcpn
+      : { ...sdcpn, parameters: [] };
 
     // Dispose any in-flight simulation before starting a new one. Update both
     // the ref (synchronous, so callers in the same tick see `null` not the
@@ -304,7 +349,8 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     let sim: Simulation;
     try {
       sim = await createSimulation({
-        sdcpn,
+        sdcpn: simulationSdcpn,
+        extensions: extensionsRef.current,
         // eslint-disable-next-line no-use-before-define -- closure; ref is defined later in render
         initialMarking: effectiveInitialMarkingRef.current,
         // eslint-disable-next-line no-use-before-define -- closure; ref is defined later in render
@@ -347,7 +393,8 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
 
   const reset: SimulationContextValue["reset"] = () => {
     const sdcpn = petriNetDefinitionRef.current;
-    const defaultValues = deriveDefaultParameterValues(sdcpn.parameters);
+    const parameters = extensionsRef.current.parameters ? sdcpn.parameters : [];
+    const defaultValues = deriveDefaultParameterValues(parameters);
 
     const parameterValues: Record<string, string> = {};
     for (const [key, value] of Object.entries(defaultValues)) {
@@ -427,13 +474,22 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
 
   const simulationState = mapCoreState(simulation ? coreStatus : null);
   const totalFrames = frameSummary.count;
+  const effectiveSelectedScenarioId = getEffectiveSelectedScenarioId(
+    petriNetDefinition.scenarios,
+    stateValues.selectedScenarioId,
+  );
+  const effectiveScenarioParameterValues =
+    stateValues.selectedScenarioId === undefined ||
+    stateValues.selectedScenarioId === effectiveSelectedScenarioId
+      ? stateValues.scenarioParameterValues
+      : {};
 
   // Compile scenario when one is selected — computed during render.
   // React Compiler will memoize based on inputs.
   let compiledScenarioResult: CompiledScenarioResult | null = null;
-  if (stateValues.selectedScenarioId) {
+  if (effectiveSelectedScenarioId) {
     const selectedScenario = petriNetDefinition.scenarios?.find(
-      (s) => s.id === stateValues.selectedScenarioId,
+      (s) => s.id === effectiveSelectedScenarioId,
     );
     if (selectedScenario) {
       // Build a scenario with user-tweaked parameter values
@@ -442,13 +498,13 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
         scenarioParameters: selectedScenario.scenarioParameters.map((sp) => ({
           ...sp,
           default: Number(
-            stateValues.scenarioParameterValues[sp.identifier] ?? sp.default,
+            effectiveScenarioParameterValues[sp.identifier] ?? sp.default,
           ),
         })),
       };
       const outcome = compileScenario(
         tweakedScenario,
-        petriNetDefinition.parameters,
+        extensions.parameters ? petriNetDefinition.parameters : [],
         petriNetDefinition.places,
         petriNetDefinition.types,
       );
@@ -460,7 +516,9 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
 
   // When a scenario is compiled, override parameterValues and initialMarking
   // with the scenario's resolved output.
-  let effectiveParameterValues = stateValues.parameterValues;
+  let effectiveParameterValues = extensions.parameters
+    ? stateValues.parameterValues
+    : {};
   let effectiveInitialMarking = stateValues.initialMarking;
 
   if (compiledScenarioResult) {
@@ -484,8 +542,8 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     errorItemId,
     parameterValues: effectiveParameterValues,
     initialMarking: effectiveInitialMarking,
-    selectedScenarioId: stateValues.selectedScenarioId,
-    scenarioParameterValues: stateValues.scenarioParameterValues,
+    selectedScenarioId: effectiveSelectedScenarioId,
+    scenarioParameterValues: effectiveScenarioParameterValues,
     compiledScenarioResult,
     dt: stateValues.dt,
     maxTime: stateValues.maxTime,

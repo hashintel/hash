@@ -1,4 +1,5 @@
 import type { SimulationFrameReader } from "../../../react/simulation/context";
+import type { InputArc } from "@hashintel/petrinaut-core";
 import type { Edge, Node, ReactFlowInstance } from "@xyflow/react";
 
 type TransitionFrameState = NonNullable<
@@ -12,7 +13,7 @@ type TransitionFrameState = NonNullable<
 
 export type ArcData = {
   weight: number;
-  arcType: "standard" | "inhibitor";
+  arcType: InputArc["type"];
   /**
    * State of the transition connected to this arc in the current simulation frame.
    * Null when no simulation is running.
@@ -29,6 +30,8 @@ export type PlaceNodeData = {
   type: "place";
   dynamicsEnabled: boolean;
   hasColorType: boolean;
+  /** Whether this place has custom visualizer code defined. */
+  hasVisualizer: boolean;
   typeColor?: string; // Color code from the type, if assigned
 };
 
@@ -41,7 +44,7 @@ export type TransitionNodeData = {
    * so we add our own discriminating field here to make it easier to narrow between Transition and Place nodes.
    */
   type: "transition";
-  lambdaType: "predicate" | "stochastic";
+  lambdaType: "none" | "predicate" | "stochastic";
   /**
    * State of this transition in the current simulation frame.
    * Null when no simulation is running.

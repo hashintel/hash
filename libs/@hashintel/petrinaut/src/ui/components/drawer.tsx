@@ -33,7 +33,7 @@ const overlayStyle = css({
   justifyContent: "flex-end",
   pointerEvents: "auto",
   padding: "[8px]",
-  zIndex: 1100,
+  zIndex: "modal",
 });
 
 const enteringStyle = css({

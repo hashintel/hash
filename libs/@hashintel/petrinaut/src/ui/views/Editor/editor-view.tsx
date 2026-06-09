@@ -6,9 +6,8 @@ import {
   deploymentPipelineSDCPN,
   probabilisticSatellitesSDCPN,
   productionMachines,
-  satellitesSDCPN,
   sirModel,
-  supplyChainStochasticSDCPN,
+  supplyChainWithDisruption,
 } from "@hashintel/petrinaut-core/examples";
 
 import { usePetrinautCommands } from "../../../react";
@@ -19,6 +18,11 @@ import { useSelectionCleanup } from "../../../react/state/use-selection-cleanup"
 import { UserSettingsContext } from "../../../react/state/user-settings-context";
 import { Box } from "../../components/box";
 import { Stack } from "../../components/stack";
+import {
+  WalkthroughContext,
+  willShowWalkthroughDialog,
+} from "../../components/walkthrough/walkthrough-context";
+import { WalkthroughDialog } from "../../components/walkthrough/walkthrough-dialog";
 import { exportSDCPN } from "../../file-io/export-sdcpn";
 import { exportTikZ } from "../../file-io/export-tikz";
 import { importSDCPN } from "../../file-io/import-sdcpn";
@@ -96,10 +100,14 @@ export const EditorView = ({
   viewportActions,
 }: {
   aiAssistant?: PetrinautAiAssistant;
-  hideNetManagementControls: boolean;
+  /**
+   * See {@link TopBar} for the full semantics.
+   */
+  hideNetManagementControls?: "all" | "except-title";
   slots?: PetrinautSlots;
   viewportActions?: ViewportAction[];
 }) => {
+  const showNetManagementMenuItems = hideNetManagementControls === undefined;
   // Get data from sdcpn-store
   const {
     createNewNet,
@@ -134,8 +142,25 @@ export const EditorView = ({
   >(null);
   const [isAiCtaDismissed, setIsAiCtaDismissed] = useState(false);
 
-  const { compactNodes } = use(UserSettingsContext);
+  const { compactNodes, showWalkthroughOnInit, setShowWalkthroughOnInit } =
+    use(UserSettingsContext);
+  const walkthrough = use(WalkthroughContext);
   const dims = compactNodes ? compactNodeDimensions : classicNodeDimensions;
+
+  // Live open state for the walkthrough. Seeded once from the persisted
+  // "show on init" preference, so toggling that preference only takes effect
+  // on the next init rather than reopening the walkthrough mid-session.
+  const [isWalkthroughOpen, setIsWalkthroughOpen] = useState(
+    showWalkthroughOnInit,
+  );
+
+  // Dismissing the walkthrough closes it for this session and clears the
+  // "show on init" preference, so it doesn't reappear next init unless the
+  // user re-enables it from the settings dialog.
+  const closeWalkthrough = () => {
+    setIsWalkthroughOpen(false);
+    setShowWalkthroughOnInit(false);
+  };
 
   const [importError, setImportError] = useState<string | null>(null);
 
@@ -225,7 +250,7 @@ export const EditorView = ({
   }
 
   const menuItems = [
-    ...(!hideNetManagementControls
+    ...(showNetManagementMenuItems
       ? [
           {
             id: "new",
@@ -234,7 +259,7 @@ export const EditorView = ({
           },
         ]
       : []),
-    ...(!hideNetManagementControls && Object.keys(existingNets).length > 0
+    ...(showNetManagementMenuItems && existingNets.length > 0
       ? [
           {
             id: "open",
@@ -272,7 +297,7 @@ export const EditorView = ({
         },
       ],
     },
-    ...(!hideNetManagementControls
+    ...(showNetManagementMenuItems
       ? [
           {
             id: "import",
@@ -286,7 +311,7 @@ export const EditorView = ({
       label: "Layout",
       onClick: applyAutoLayout,
     },
-    ...(!hideNetManagementControls
+    ...(showNetManagementMenuItems
       ? [
           {
             id: "load-example",
@@ -294,23 +319,15 @@ export const EditorView = ({
             submenu: [
               {
                 id: "load-example-supply-chain-stochastic",
-                label: "Probabilistic Supply Chain",
+                label: "Supply Chain with Disruption",
                 onClick: () => {
-                  createNewNet(supplyChainStochasticSDCPN);
-                  clearSelection();
-                },
-              },
-              {
-                id: "load-example-satellites",
-                label: "Satellites",
-                onClick: () => {
-                  createNewNet(satellitesSDCPN);
+                  createNewNet(supplyChainWithDisruption);
                   clearSelection();
                 },
               },
               {
                 id: "load-example-probabilistic-satellites",
-                label: "Probabilistic Satellites Launcher",
+                label: "Probabilistic Satellite Launcher",
                 onClick: () => {
                   createNewNet(probabilisticSatellitesSDCPN);
                   clearSelection();
@@ -318,7 +335,7 @@ export const EditorView = ({
               },
               {
                 id: "load-example-production-machines",
-                label: "Production Machines",
+                label: "Production with Machine Failure",
                 onClick: () => {
                   createNewNet(productionMachines);
                   clearSelection();
@@ -361,6 +378,7 @@ export const EditorView = ({
     aiAssistant !== undefined &&
     !isAiAssistantOpen &&
     !isAiCtaDismissed &&
+    !willShowWalkthroughDialog(walkthrough, isWalkthroughOpen) &&
     isEmptySDCPN(petriNetDefinition);
 
   return (
@@ -375,6 +393,8 @@ export const EditorView = ({
         errorMessage={importError ?? ""}
         onCreateEmpty={handleCreateEmpty}
       />
+
+      <WalkthroughDialog open={isWalkthroughOpen} onClose={closeWalkthrough} />
 
       {/* Top Bar - always visible */}
       <TopBar

@@ -5,19 +5,15 @@ import {
 } from "@ark-ui/react/select";
 import { useMemo } from "react";
 
-import { Icon, Tooltip, usePortalContainerRef } from "@hashintel/ds-components";
+import {
+  Icon,
+  type IconName,
+  Tooltip,
+  usePortalContainerRef,
+} from "@hashintel/ds-components";
 import { css, cva, cx } from "@hashintel/ds-helpers/css";
 
 import type { ComponentProps, ReactNode } from "react";
-
-// -- Helpers ------------------------------------------------------------------
-
-const ConditionalPortal: React.FC<{
-  enabled: boolean;
-  container?: React.RefObject<HTMLElement | null>;
-  children: ReactNode;
-}> = ({ enabled, container, children }) =>
-  enabled ? <Portal container={container}>{children}</Portal> : children;
 
 // -- Figma design tokens ------------------------------------------------------
 
@@ -114,6 +110,7 @@ const placeholderStyle = css({
 const customTriggerWrapperStyle = css({
   display: "flex",
   alignItems: "center",
+  justifyContent: "space-between",
   gap: "2",
   width: "[100%]",
   minWidth: "[0]",
@@ -128,6 +125,7 @@ const positionerStyle = css({
   // behind floating panels stays interactive. Re-enable here so dropdown
   // items receive clicks/hover.
   pointerEvents: "auto",
+  zIndex: "popover !important",
 });
 
 const contentStyle = css({
@@ -174,12 +172,34 @@ const itemTextStyle = css({
   whiteSpace: "nowrap",
 });
 
+const itemIconStyle = css({
+  flexShrink: "0",
+  color: "neutral.s90",
+});
+
+const groupLabelStyle = css({
+  paddingX: "2",
+  paddingTop: "1.5",
+  paddingBottom: "1",
+  fontSize: "[11px]",
+  fontWeight: "semibold",
+  textTransform: "uppercase",
+  letterSpacing: "[0.04em]",
+  color: "neutral.s70",
+});
+
 // -- Types --------------------------------------------------------------------
 
 export interface SelectOption {
   value: string;
   label: string;
   disabled?: boolean;
+  icon?: IconName;
+}
+
+export interface SelectOptionGroup {
+  label: string;
+  options: SelectOption[];
 }
 
 interface SelectBaseProps {
@@ -187,8 +207,10 @@ interface SelectBaseProps {
   value?: string;
   /** Callback when value changes */
   onValueChange?: (value: string) => void;
-  /** Available options */
-  options: SelectOption[];
+  /** Available options (flat). Ignored when `groups` is provided. */
+  options?: SelectOption[];
+  /** Available options split into labelled sections. */
+  groups?: SelectOptionGroup[];
   /** Placeholder text when no value selected */
   placeholder?: string;
   /** Size variant */
@@ -212,8 +234,6 @@ interface SelectBaseProps {
   className?: string;
   /** Ark UI positioning options */
   positioning?: { sameWidth?: boolean };
-  /** Whether to portal the dropdown. Set to false when inside a Dialog. */
-  portal?: boolean;
   tooltip?: string;
   tooltipOptions?: Omit<ComponentProps<typeof Tooltip>, "children" | "content">;
 }
@@ -224,6 +244,7 @@ export const Select: React.FC<SelectBaseProps> = ({
   value,
   onValueChange,
   options,
+  groups,
   placeholder = "Select…",
   size = "sm",
   disabled = false,
@@ -232,27 +253,48 @@ export const Select: React.FC<SelectBaseProps> = ({
   triggerClassName,
   className,
   positioning,
-  portal = false,
   tooltip,
   tooltipOptions,
 }) => {
   const portalContainerRef = usePortalContainerRef();
 
+  const flatOptions = useMemo(
+    () => (groups ? groups.flatMap((group) => group.options) : (options ?? [])),
+    [groups, options],
+  );
+
   const collection = useMemo(
     () =>
       createListCollection({
-        items: options,
+        items: flatOptions,
         itemToValue: (item) => item.value,
         itemToString: (item) => item.label,
       }),
-    [options],
+    [flatOptions],
   );
 
   const selectedOption = value
-    ? options.find((opt) => opt.value === value)
+    ? flatOptions.find((opt) => opt.value === value)
     : undefined;
 
   const iconSize = ICON_SIZE[size];
+
+  const renderOption = (item: SelectOption) => (
+    <ArkSelect.Item key={item.value} item={item} className={itemStyle}>
+      {renderItem ? (
+        renderItem(item)
+      ) : (
+        <>
+          {item.icon ? (
+            <Icon name={item.icon} size={iconSize} className={itemIconStyle} />
+          ) : null}
+          <ArkSelect.ItemText className={itemTextStyle}>
+            {item.label}
+          </ArkSelect.ItemText>
+        </>
+      )}
+    </ArkSelect.Item>
+  );
 
   const element = (
     <ArkSelect.Root
@@ -293,31 +335,22 @@ export const Select: React.FC<SelectBaseProps> = ({
           </>
         )}
       </ArkSelect.Trigger>
-      <ConditionalPortal enabled={portal} container={portalContainerRef}>
-        <ArkSelect.Positioner
-          className={positionerStyle}
-          // Manual override because z-index is relying on a CSS variable by default here
-          style={{ zIndex: 999 }}
-        >
+      <Portal container={portalContainerRef}>
+        <ArkSelect.Positioner className={positionerStyle}>
           <ArkSelect.Content className={contentStyle}>
-            {collection.items.map((item) => (
-              <ArkSelect.Item
-                key={item.value}
-                item={item}
-                className={itemStyle}
-              >
-                {renderItem ? (
-                  renderItem(item)
-                ) : (
-                  <ArkSelect.ItemText className={itemTextStyle}>
-                    {item.label}
-                  </ArkSelect.ItemText>
-                )}
-              </ArkSelect.Item>
-            ))}
+            {groups
+              ? groups.map((group) => (
+                  <ArkSelect.ItemGroup key={group.label}>
+                    <ArkSelect.ItemGroupLabel className={groupLabelStyle}>
+                      {group.label}
+                    </ArkSelect.ItemGroupLabel>
+                    {group.options.map(renderOption)}
+                  </ArkSelect.ItemGroup>
+                ))
+              : collection.items.map(renderOption)}
           </ArkSelect.Content>
         </ArkSelect.Positioner>
-      </ConditionalPortal>
+      </Portal>
     </ArkSelect.Root>
   );
 

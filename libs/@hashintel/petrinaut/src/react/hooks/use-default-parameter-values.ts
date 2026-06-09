@@ -27,10 +27,14 @@ export {
  */
 export function useDefaultParameterValues(): DefaultParameterValues {
   const {
+    extensions,
     petriNetDefinition: { parameters },
   } = use(SDCPNContext);
 
   return useMemo(() => {
+    if (!extensions.parameters) {
+      return {};
+    }
     return deriveDefaultParameterValues(parameters);
-  }, [parameters]);
+  }, [extensions.parameters, parameters]);
 }

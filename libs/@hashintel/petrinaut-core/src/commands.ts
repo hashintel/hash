@@ -7,6 +7,12 @@ import {
 } from "./action-schemas";
 import { pastePayloadIntoSDCPN } from "./clipboard/paste";
 import { commandActionInputSchemas } from "./command-schemas";
+import {
+  DEFAULT_PETRINAUT_EXTENSIONS,
+  isSelectionTypeAvailableForExtensions,
+  stripDisabledExtensionData,
+  type PetrinautExtensionSettings,
+} from "./extensions";
 import { calculateGraphLayout } from "./layout/calculate-graph-layout";
 import { layoutNodeDimensions } from "./layout/dimensions";
 
@@ -114,6 +120,7 @@ const validateNewlyPastedItems = (
 export function createPetrinautCommands(
   mutate: (fn: (sdcpn: SDCPN) => void) => void,
   read: () => SDCPN,
+  extensions: PetrinautExtensionSettings = DEFAULT_PETRINAUT_EXTENSIONS,
 ): CommandHelperFunctions {
   return {
     applyClipboardPaste(input) {
@@ -122,7 +129,10 @@ export function createPetrinautCommands(
       let newItemIds: Array<{ type: string; id: string }> = [];
       mutate((sdcpn) => {
         const result = pastePayloadIntoSDCPN(sdcpn, payload);
-        newItemIds = result.newItemIds;
+        stripDisabledExtensionData(sdcpn, extensions);
+        newItemIds = result.newItemIds.filter((item) =>
+          isSelectionTypeAvailableForExtensions(item.type, extensions),
+        );
         validateNewlyPastedItems(sdcpn, newItemIds);
       });
       return { newItemIds };

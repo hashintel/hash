@@ -61,6 +61,24 @@ describe("parseSDCPNFile", () => {
       expect(result.sdcpn.differentialEquations).toEqual([]);
     });
 
+    it("preserves read arc types during import", () => {
+      const result = parseSDCPNFile({
+        version: 1,
+        meta: { generator: "Petrinaut" },
+        ...minimalSDCPN,
+        transitions: [
+          {
+            ...minimalTransition,
+            inputArcs: [{ placeId: "p1", weight: 1, type: "read" }],
+          },
+        ],
+      });
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.sdcpn.transitions[0]?.inputArcs[0]?.type).toBe("read");
+    });
+
     it("preserves relaxed scenario and metric import defaults", () => {
       const result = parseSDCPNFile({
         version: 1,
@@ -78,6 +96,30 @@ describe("parseSDCPNFile", () => {
         initialState: { type: "per_place", content: {} },
       });
       expect(result.sdcpn.metrics?.[0]?.code).toBe("");
+    });
+
+    it("defaults optional transition lambda and kernel fields", () => {
+      const result = parseSDCPNFile({
+        version: 1,
+        meta: { generator: "Petrinaut" },
+        ...minimalSDCPN,
+        transitions: [
+          {
+            id: "t1",
+            name: "Transition 1",
+            inputArcs: [{ placeId: "p1", weight: 1 }],
+            outputArcs: [],
+          },
+        ],
+      });
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.sdcpn.transitions[0]).toMatchObject({
+        lambdaType: "predicate",
+        lambdaCode: "",
+        transitionKernelCode: "",
+      });
     });
 
     it("strips version and meta from the returned sdcpn", () => {

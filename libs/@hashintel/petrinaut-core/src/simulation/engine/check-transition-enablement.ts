@@ -26,8 +26,9 @@ export type TransitionEnablementResult = {
 /**
  * Checks if a single transition has its input token requirements satisfied.
  *
- * A transition is structurally enabled when all its input places have at least
- * as many tokens as required by their respective arc weights.
+ * A transition is structurally enabled when standard/read input places have at
+ * least as many tokens as required by their respective arc weights, and
+ * inhibitor input places have fewer tokens than their arc weights.
  *
  * Note: This only checks token counts, not lambda conditions. A transition may
  * be structurally enabled but still not fire due to lambda returning 0 or false.
@@ -53,7 +54,7 @@ function isTransitionStructurallyEnabledSnapshot(
     );
   }
 
-  // Check if all input places have enough tokens for the required arc weights
+  // Check if all input places satisfy the required arc conditions.
   return transition.inputArcs.every((arc) => {
     const placeState = snapshot.places[arc.placeId];
     if (!placeState) {

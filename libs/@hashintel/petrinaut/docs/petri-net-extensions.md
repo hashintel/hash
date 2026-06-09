@@ -2,6 +2,8 @@
 
 Petrinaut extends basic Petri nets with typed tokens, continuous dynamics, stochastic firing, and more. This page covers each extension.
 
+Some embedded Petrinaut documents can disable one or more extensions. When an extension is unavailable for the current document, its sidebar sections and property editors are hidden or disabled, diagnostics for its code surfaces are skipped, and saved extension data is ignored by simulation.
+
 ## Typed vs untyped places
 
 By default, places hold **untyped tokens** -- they only track a count. Tokens are indistinguishable from each other. This is sufficient for simple flow models.
@@ -60,7 +62,7 @@ The function receives the current token values and global parameters. It must re
 
 <img width="1707" height="1055" alt="diff-equations" src="https://github.com/user-attachments/assets/bb18dc15-e43c-4233-974a-70ff9a0c1978" />
 
-**Example:** in [Satellites in Orbit](examples.md#satellites-in-orbit), the orbital dynamics equation computes gravitational acceleration to update satellite position and velocity each step.
+**Example:** in [Probabilistic Satellite Launcher](examples.md#probabilistic-satellite-launcher), the orbital dynamics equation computes gravitational acceleration to update satellite position and velocity each step.
 
 ## Visualizer
 
@@ -88,11 +90,13 @@ Use the menu in the code editor header to **Load default template** for a starti
 
 You can also toggle between the code, a preview, and both at once.
 
-**Example:** the [Satellites in Orbit](examples.md#satellites-in-orbit) example includes a visualizer that renders Earth and orbiting satellites with velocity vectors.
+**Example:** the [Probabilistic Satellite Launcher](examples.md#probabilistic-satellite-launcher) example includes a visualizer that renders the planet and orbiting satellites with velocity vectors. The [Supply Chain with Disruption](examples.md#supply-chain-with-disruption) and [Deployment Pipeline](examples.md#deployment-pipeline) examples add visualizers on several places at once.
 
 ## Transition kernel
 
 The transition kernel defines how input tokens are transformed into output tokens when a transition fires.
+
+The **Transition Results** editor is shown only when the transition has at least one coloured output place. If every output place is uncoloured, leave the kernel empty; the engine creates the right number of plain tokens from the output arc weights.
 
 ```ts
 export default TransitionKernel((tokensByPlace, parameters) => {
@@ -102,13 +106,20 @@ export default TransitionKernel((tokensByPlace, parameters) => {
 });
 ```
 
-`tokensByPlace` is keyed by **place name**. Each value is an array of token objects from that input place. The return value is keyed by **output place name**, each containing an array of token objects to produce.
+`tokensByPlace` is keyed by **place name**. Each value is a tuple of token objects -- one entry per token consumed from that arc, sized to the arc weight. The return value is keyed by **output place name**, each containing an array of token objects to produce sized to the output arc weight.
+
+Two important asymmetries:
+
+- **Uncoloured input places and inhibitor arcs are not included in `tokensByPlace`**. Only typed input places appear, and only for normal (non-inhibitor) arcs.
+- **Uncoloured output places do not need to appear in the return value** -- the engine generates the correct number of plain tokens automatically based on the output arc weight. Coloured output places must appear with one token object per token produced.
+
+Tokens from **read arcs** are included in `tokensByPlace` like standard input arcs, but are not consumed when the transition fires. Tokens from inhibitor arcs are not included.
 
 Use the menu in the code editor header to **Load default template** for a starting point.
 
 ### Distributions
 
-Kernel output values can be numbers or `Distribution` objects for stochastic output:
+Kernel output values are plain numbers or booleans. When stochasticity is enabled for the document, numeric output values can also be `Distribution` objects for stochastic output:
 
 - `Distribution.Gaussian(mean, standardDeviation)`
 - `Distribution.Uniform(min, max)`
@@ -130,13 +141,18 @@ return {
 
 The underlying random sample is drawn once and shared across chained `.map()` calls, so `x` and `y` above are derived from the same angle.
 
-### Empty kernels
-
-For transitions where all output places are **untyped**, the kernel code can be left empty. The engine produces the correct number of black tokens automatically.
+If stochasticity is disabled, `Distribution` is not available in transition kernels. Use fixed output values instead.
 
 ## Firing rate / predicate
 
-Each transition has a **firing rate** that controls when it fires, once structurally enabled (sufficient tokens in input places). Choose between two modes in the transition properties:
+A transition can have a **firing rate** or **predicate** that controls when it fires, once structurally enabled (sufficient tokens in input places). When both modes are meaningful, choose between them in the transition properties:
+
+The **Firing Time** editor is shown when at least one lambda mode is meaningful:
+
+- **Stochastic rate** is available when stochasticity is enabled for the document.
+- **Predicate** is available when stochasticity is enabled for the document, or when colours are enabled and the transition has at least one standard or read input arc from a coloured place.
+
+If neither condition applies, the transition has no lambda editor. It fires whenever its structural arc conditions are satisfied.
 
 ### Predicate
 
@@ -164,6 +180,8 @@ export default Lambda((tokensByPlace, parameters) => {
 });
 ```
 
+The same `tokensByPlace` rules from the [Transition kernel](#transition-kernel) section apply: only typed input places appear, and only for normal arcs. A transition with **no input arcs** therefore sees an empty `tokensByPlace` and is always structurally enabled -- this is how you model exogenous arrivals (see [Source transitions](useful-patterns.md#source-transitions-exogenous-arrivals)).
+
 ## Inhibitor arcs
 
 An inhibitor arc is a special input arc that **prevents** a transition from firing when the source place has tokens equal to or greater than the arc weight -- the opposite of a normal arc.
@@ -178,8 +196,20 @@ Inhibitor arcs **do not consume tokens** when the transition fires.
 
 **Example:** in [Deployment Pipeline](examples.md#deployment-pipeline), inhibitor arcs from "IncidentBeingInvestigated" and "DeploymentInProgress" block new deployments while an incident is open or a deployment is already running.
 
+## Read arcs
+
+A read arc is a special input arc that **requires** tokens to be present and exposes those tokens to the transition lambda and kernel, but **does not consume** them when the transition fires.
+
+**To set:** select an input arc (place to transition) and switch its **Type** to **Read** in the properties panel. Only input arcs can be read arcs.
+
+**Semantics:** the transition is enabled (on this arc) when the source place has **at least the arc weight** in tokens. For coloured places, the lambda and transition kernel receive a tuple of tokens under `tokensByPlace.SourcePlaceName`, sized to the arc weight. If the transition fires, those read tokens remain in the source place.
+
+Use read arcs when a transition needs to inspect shared state, permission tokens, sensor readings, or another entity's attributes without moving that token through the transition.
+
 ## Diagnostics
 
 The **Diagnostics** tab in the bottom panel shows TypeScript errors in your code (dynamics, firing rate, kernels, visualizers), grouped by entity. Click a diagnostic to select the relevant entity and see the error in context.
+
+Petrinaut only reports diagnostics for code surfaces that are active for the current document and graph shape. For example, a hidden firing-time editor or a transition with no coloured outputs will not produce lambda or kernel diagnostics.
 
 Diagnostics must be resolved before running a simulation -- pressing Play with unresolved errors opens the Diagnostics tab instead of starting the simulation.

@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState, type ReactNode } from "react";
 
+import { DEFAULT_PETRINAUT_EXTENSIONS } from "@hashintel/petrinaut-core";
 import { sirModel } from "@hashintel/petrinaut-core/examples";
 
 import {
@@ -24,6 +25,7 @@ export const sirSdcpnContextValue: SDCPNContextValue = {
   petriNetId: "sir-story-net",
   petriNetDefinition: sirModel.petriNetDefinition,
   readonly: false,
+  extensions: DEFAULT_PETRINAUT_EXTENSIONS,
   setTitle: () => {},
   title: sirModel.title,
   getItemType: (id) => {
@@ -82,6 +84,7 @@ export function makeExperiment(
     maxTime: 180,
     status,
     error: null,
+    metricSpecs: [],
     progress:
       status === "initializing"
         ? null
@@ -92,7 +95,8 @@ export function makeExperiment(
             time: status === "complete" ? 180 : 45,
             frameNumber: status === "complete" ? 180 : 45,
           }),
-    distributionFrames: [],
+    latestMetricFramesById: {},
+    metricFrames: [],
     ...overrides,
   };
 }
@@ -156,8 +160,10 @@ const createFakeExperiment = (
   maxTime: input.maxTime,
   status: "initializing",
   error: null,
+  metricSpecs: input.metricSpecs,
   progress: null,
-  distributionFrames: [],
+  latestMetricFramesById: {},
+  metricFrames: [],
 });
 
 export function FakeExperimentsProvider({

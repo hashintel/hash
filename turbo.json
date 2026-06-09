@@ -125,9 +125,7 @@
     "package.json",
     "pyproject.toml",
     "rust-toolchain.toml",
-    "yarn*",
-    // External services
-    "apps/hash-external-services/**"
+    "yarn*"
   ],
   "globalPassThroughEnv": [
     "CARGO_TERM_PROGRESS_WHEN",

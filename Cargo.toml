@@ -169,7 +169,7 @@ include_dir_macros                 = { version = "0.7.4", default-features = fal
 indexmap                           = { version = "2.12.0", default-features = false }
 indoc                              = { version = "2.0.7", default-features = false }
 inferno                            = { version = "0.12.3", default-features = false }
-insta                              = { version = "1.43.2", default-features = false }
+insta                              = { version = "1.47.2", default-features = false }
 iso8601-duration                   = { version = "0.2.0", default-features = false }
 itertools                          = { version = "0.14.0", default-features = false }
 jsonptr                            = { version = "0.7.1", default-features = false }
@@ -358,6 +358,7 @@ as_conversions                 = "allow"
 # Too many false positives when macros and/or loops are involved
 cognitive_complexity    = "allow"
 expect_used             = "allow"
+inline_modules          = "allow" # right now flags inline test modules, even if it shouldn't
 let_underscore_must_use = "allow"
 missing_assert_message  = "allow"
 multiple_inherent_impl  = "allow"
@@ -368,6 +369,7 @@ unwrap_in_result        = "allow"
 # Consider enabling:
 default_numeric_fallback      = "allow"
 impl_trait_in_params          = "allow"
+inline_trait_bounds           = "allow"
 iter_over_hash_type           = "allow"
 multiple_unsafe_ops_per_block = "allow"
 pattern_type_mismatch         = "allow"

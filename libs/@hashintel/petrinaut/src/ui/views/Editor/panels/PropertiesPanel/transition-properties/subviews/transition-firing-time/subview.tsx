@@ -2,7 +2,10 @@ import { use } from "react";
 
 import { Button, Icon, Tooltip } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
-import { generateDefaultLambdaCode } from "@hashintel/petrinaut-core";
+import {
+  generateDefaultLambdaCode,
+  getEffectiveTransitionLambdaType,
+} from "@hashintel/petrinaut-core";
 
 import { EditorContext } from "../../../../../../../../react/state/editor-context";
 import { Menu } from "../../../../../../../components/menu";
@@ -42,12 +45,18 @@ const aiMenuItemStyle = css({
 });
 
 const FiringTimeHeaderAction: React.FC = () => {
-  const { transition, updateTransition } = useTransitionPropertiesContext();
+  const { logicAvailability, transition, updateTransition } =
+    useTransitionPropertiesContext();
   const { globalMode } = use(EditorContext);
 
-  if (globalMode !== "edit") {
+  if (globalMode !== "edit" || !logicAvailability.lambda) {
     return null;
   }
+
+  const lambdaType = getEffectiveTransitionLambdaType(
+    transition,
+    logicAvailability,
+  );
 
   return (
     <Menu
@@ -69,7 +78,8 @@ const FiringTimeHeaderAction: React.FC = () => {
             updateTransition({
               transitionId: transition.id,
               update: {
-                lambdaCode: generateDefaultLambdaCode(transition.lambdaType),
+                lambdaType,
+                lambdaCode: generateDefaultLambdaCode(lambdaType),
               },
             });
           },
@@ -95,33 +105,42 @@ const FiringTimeHeaderAction: React.FC = () => {
 };
 
 const TransitionFiringTimeContent: React.FC = () => {
-  const { transition, isReadOnly, updateTransition } =
+  const { logicAvailability, transition, isReadOnly, updateTransition } =
     useTransitionPropertiesContext();
+  const lambdaType = getEffectiveTransitionLambdaType(
+    transition,
+    logicAvailability,
+  );
+  const lambdaCode =
+    transition.lambdaType === lambdaType ? transition.lambdaCode : "";
+  const showLambdaTypeSelector = logicAvailability.stochasticLambda;
 
   return (
     <div className={contentStyle}>
-      <div className={segmentGroupContainerStyle}>
-        <SegmentGroup
-          value={transition.lambdaType}
-          options={[
-            { value: "predicate", label: "Predicate" },
-            { value: "stochastic", label: "Stochastic Rate" },
-          ]}
-          onChange={(value) => {
-            updateTransition({
-              transitionId: transition.id,
-              update: {
-                lambdaType: value as "predicate" | "stochastic",
-              },
-            });
-          }}
-          disabled={isReadOnly}
-          tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
-        />
-      </div>
+      {showLambdaTypeSelector && (
+        <div className={segmentGroupContainerStyle}>
+          <SegmentGroup
+            value={lambdaType}
+            options={[
+              { value: "predicate", label: "Predicate" },
+              { value: "stochastic", label: "Stochastic Rate" },
+            ]}
+            onChange={(value) => {
+              updateTransition({
+                transitionId: transition.id,
+                update: {
+                  lambdaType: value as "predicate" | "stochastic",
+                },
+              });
+            }}
+            disabled={isReadOnly}
+            tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
+          />
+        </div>
+      )}
 
       <div className={infoBoxStyle}>
-        {transition.lambdaType === "predicate"
+        {lambdaType === "predicate"
           ? "Define a boolean guard condition. The transition fires when this function returns true, enabling discrete control flow based on token data."
           : "Return a numeric rate representing the average number of firings per second. The transition fires stochastically according to this rate."}
       </div>
@@ -129,12 +148,12 @@ const TransitionFiringTimeContent: React.FC = () => {
       <CodeEditor
         path={getDocumentUri("transition-lambda", transition.id)}
         language="typescript"
-        value={transition.lambdaCode || ""}
+        value={lambdaCode}
         height="100%"
         onChange={(value) => {
           updateTransition({
             transitionId: transition.id,
-            update: { lambdaCode: value ?? "" },
+            update: { lambdaType, lambdaCode: value ?? "" },
           });
         }}
         options={{ readOnly: isReadOnly }}

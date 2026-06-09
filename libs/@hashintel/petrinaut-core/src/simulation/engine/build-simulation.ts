@@ -1,9 +1,17 @@
 import { SDCPNItemError } from "../../errors";
 import {
+  DEFAULT_PETRINAUT_EXTENSIONS,
+  getEffectiveTransitionLambdaType,
+  getTransitionLogicAvailability,
+  sanitizeSDCPNForExtensions,
+  type PetrinautExtensionSettings,
+} from "../../extensions";
+import {
   deriveDefaultParameterValues,
   mergeParameterValues,
 } from "../../parameter-values";
 import { compileUserCode } from "../authoring/user-code/compile-user-code";
+import { isDistribution } from "../authoring/user-code/distribution";
 import {
   createEngineFrame,
   createEngineFrameLayout,
@@ -203,14 +211,33 @@ function getPlaceElementNames(
   return type.elements.map((element) => element.name);
 }
 
-function createLambdaFn(
-  transition: SimulationInput["sdcpn"]["transitions"][number],
-  parameterValues: ParameterValues,
-): LambdaFn {
+function createLambdaFn({
+  transition,
+  sdcpn,
+  extensions,
+  parameterValues,
+}: {
+  transition: SimulationInput["sdcpn"]["transitions"][number];
+  sdcpn: SimulationInput["sdcpn"];
+  extensions: PetrinautExtensionSettings;
+  parameterValues: ParameterValues;
+}): LambdaFn {
+  const availability = getTransitionLogicAvailability(
+    transition,
+    sdcpn,
+    extensions,
+  );
+  const lambdaType = getEffectiveTransitionLambdaType(transition, availability);
+
+  if (!availability.lambda || transition.lambdaCode.trim() === "") {
+    return lambdaType === "stochastic" ? () => Infinity : () => true;
+  }
+
   try {
     const userFn = compileUserCode<[TransitionTokenValues, ParameterValues]>(
       transition.lambdaCode,
       "Lambda",
+      { enableDistribution: extensions.stochasticity },
     ) as UserLambdaFn;
 
     return (tokenValues) => userFn(tokenValues, parameterValues);
@@ -226,10 +253,12 @@ function createLambdaFn(
 
 function createTransitionKernelFn({
   transition,
+  extensions,
   placesMap,
   parameterValues,
 }: {
   transition: SimulationInput["sdcpn"]["transitions"][number];
+  extensions: PetrinautExtensionSettings;
   placesMap: ReadonlyMap<string, SimulationInput["sdcpn"]["places"][number]>;
   parameterValues: ParameterValues;
 }): TransitionKernelFn {
@@ -246,9 +275,26 @@ function createTransitionKernelFn({
     const userFn = compileUserCode<[TransitionTokenValues, ParameterValues]>(
       transition.transitionKernelCode,
       "TransitionKernel",
+      { enableDistribution: extensions.stochasticity },
     ) as UserTransitionKernelFn;
 
-    return (tokenValues) => userFn(tokenValues, parameterValues);
+    return (tokenValues) => {
+      const output = userFn(tokenValues, parameterValues);
+      if (!extensions.stochasticity) {
+        for (const [placeName, tokens] of Object.entries(output)) {
+          for (const token of tokens) {
+            for (const [elementName, value] of Object.entries(token)) {
+              if (isDistribution(value)) {
+                throw new Error(
+                  `Transition kernel output for place "${placeName}" returned a Distribution for "${elementName}", but stochasticity is disabled.`,
+                );
+              }
+            }
+          }
+        }
+      }
+      return output;
+    };
   } catch (error) {
     throw new SDCPNItemError(
       `Failed to compile transition kernel for transition \`${
@@ -333,13 +379,14 @@ function createCompiledTransition({
  */
 export function buildSimulation(input: SimulationInput): SimulationInstance {
   const {
-    sdcpn,
     initialMarking,
     parameterValues: inputParameterValues,
     seed,
     dt,
     maxTime,
   } = input;
+  const extensions = input.extensions ?? DEFAULT_PETRINAUT_EXTENSIONS;
+  const sdcpn = sanitizeSDCPNForExtensions(input.sdcpn, extensions);
 
   // Build maps for quick lookup
   const placesMap = new Map(sdcpn.places.map((place) => [place.id, place]));
@@ -351,10 +398,9 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
   // Build parameter values: merge input values with SDCPN defaults
   // Input values (from simulation store) take precedence over defaults
   const defaultParameterValues = deriveDefaultParameterValues(sdcpn.parameters);
-  const parameterValues = mergeParameterValues(
-    inputParameterValues,
-    defaultParameterValues,
-  );
+  const parameterValues = extensions.parameters
+    ? mergeParameterValues(inputParameterValues, defaultParameterValues)
+    : {};
 
   // Validate that all places in initialMarking exist in SDCPN
   for (const placeId of Object.keys(initialMarking)) {
@@ -409,7 +455,9 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
 
       const userFn = compileUserCode<
         [Record<string, number>[], ParameterValues]
-      >(code, "Dynamics") as UserDifferentialEquationFn;
+      >(code, "Dynamics", {
+        enableDistribution: extensions.stochasticity,
+      }) as UserDifferentialEquationFn;
       differentialEquationFns.set(
         place.id,
         createDifferentialEquationFn({
@@ -438,9 +486,15 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
         transition,
         placesMap,
         typesMap,
-        lambdaFn: createLambdaFn(transition, parameterValues),
+        lambdaFn: createLambdaFn({
+          transition,
+          sdcpn,
+          extensions,
+          parameterValues,
+        }),
         transitionKernelFn: createTransitionKernelFn({
           transition,
+          extensions,
           placesMap,
           parameterValues,
         }),

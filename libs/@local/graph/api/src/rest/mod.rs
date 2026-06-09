@@ -112,10 +112,8 @@ use self::{
 
 pub struct AuthenticatedUserHeader(pub ActorEntityUuid);
 
-impl<S: Sync> FromRequestParts<S> for AuthenticatedUserHeader {
-    type Rejection = (StatusCode, Cow<'static, str>);
-
-    async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
+impl AuthenticatedUserHeader {
+    fn from_request_parts_impl(parts: &Parts) -> Result<Self, (StatusCode, Cow<'static, str>)> {
         if let Some(header_value) = parts.headers.get("X-Authenticated-User-Actor-Id") {
             let header_string = header_value
                 .to_str()
@@ -132,29 +130,43 @@ impl<S: Sync> FromRequestParts<S> for AuthenticatedUserHeader {
     }
 }
 
+impl<S: Sync> FromRequestParts<S> for AuthenticatedUserHeader {
+    type Rejection = (StatusCode, Cow<'static, str>);
+
+    fn from_request_parts(
+        parts: &mut Parts,
+        _state: &S,
+    ) -> impl Future<Output = Result<Self, Self::Rejection>> + Send {
+        core::future::ready(Self::from_request_parts_impl(parts))
+    }
+}
+
 pub struct InteractiveHeader(pub bool);
 
 impl<S: Sync> FromRequestParts<S> for InteractiveHeader {
     type Rejection = (StatusCode, Cow<'static, str>);
 
-    async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
+    fn from_request_parts(
+        parts: &mut Parts,
+        _state: &S,
+    ) -> impl Future<Output = Result<Self, Self::Rejection>> + Send {
         let Some(value) = parts.headers.get("Interactive") else {
-            return Ok(Self(false));
+            return core::future::ready(Ok(Self(false)));
         };
 
         let bytes = value.as_ref();
         if bytes.eq_ignore_ascii_case(b"true") || bytes.eq_ignore_ascii_case(b"1") {
-            return Ok(Self(true));
+            return core::future::ready(Ok(Self(true)));
         }
 
         if bytes.eq_ignore_ascii_case(b"false") || bytes.eq_ignore_ascii_case(b"0") {
-            return Ok(Self(false));
+            return core::future::ready(Ok(Self(false)));
         }
 
-        Err((
+        core::future::ready(Err((
             StatusCode::BAD_REQUEST,
             Cow::Borrowed("`Interactive` header must be either `true` (`1`) or `false` (`0`)"),
-        ))
+        )))
     }
 }
 

@@ -12,7 +12,7 @@ import {
 } from "./tooltip.recipe";
 
 type Direction = "bottom" | "top" | "left" | "right";
-type Position = Direction | `${Direction}-${"start" | "end"}`;
+export type Position = Direction | `${Direction}-${"start" | "end"}`;
 type Delay = "fast" | "medium" | "slow" | "none";
 
 const openDelayMsMap = {

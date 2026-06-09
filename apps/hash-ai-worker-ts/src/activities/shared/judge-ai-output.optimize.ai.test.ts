@@ -161,8 +161,11 @@ const baseDirectoryPath = path.join(__dirname, "/var/judge-ai-output-test");
 
 test(
   "Judge AI outputs",
+  {
+    timeout: 30 * 60 * 1000,
+  },
   async () => {
-    const models: LlmParams["model"][] = ["gemini-1.5-pro-002"];
+    const models: LlmParams["model"][] = ["gemini-3.1-pro-preview"];
 
     await optimizeSystemPrompt({
       attemptsPerPrompt: 3,
@@ -172,8 +175,5 @@ test(
       metrics,
       promptIterations: 5,
     });
-  },
-  {
-    timeout: 30 * 60 * 1000,
   },
 );

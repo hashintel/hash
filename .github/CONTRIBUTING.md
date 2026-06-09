@@ -201,7 +201,7 @@ lsof -n -i:PORT_NUMBER
 ### User Registration failing (WSL users)
 
 If you're running the application on Windows through Windows Subsystem for Linux (WSL) you might need to
-change the registration url in `apps/hash-external-services/docker-compose.yml` from
+change the registration url in `infra/compose/compose.yml` from
 `http://host.docker.internal:5001/kratos-after-registration` to `http://{WSL_IP}:5001/kratos-after-registration`,
 where `WSL_IP` is the IP address you get by running:
 

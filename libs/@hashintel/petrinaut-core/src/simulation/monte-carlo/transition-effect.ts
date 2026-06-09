@@ -59,8 +59,8 @@ export function computeTransitionEffect(
   const inputPlacesWithValues = inputPlaces.filter(
     (place) => place.dimensions > 0 && place.arcType !== "inhibitor",
   );
-  const inputPlacesWithoutValues = inputPlaces.filter(
-    (place) => place.dimensions === 0 && place.arcType !== "inhibitor",
+  const standardInputPlacesWithoutValues = inputPlaces.filter(
+    (place) => place.dimensions === 0 && place.arcType === "standard",
   );
 
   const tokenCombinations = enumerateWeightedMarkingIndicesGenerator(
@@ -180,12 +180,14 @@ export function computeTransitionEffect(
     }
 
     const remove: TransitionEffect["remove"] = {};
-    for (const inputPlace of inputPlacesWithoutValues) {
+    for (const inputPlace of standardInputPlacesWithoutValues) {
       remove[inputPlace.placeId] = inputPlace.weight;
     }
     for (const [index, tokenIndices] of tokenCombinationIndices.entries()) {
       const inputPlace = inputPlacesWithValues[index]!;
-      remove[inputPlace.placeId] = new Set(tokenIndices);
+      if (inputPlace.arcType === "standard") {
+        remove[inputPlace.placeId] = new Set(tokenIndices);
+      }
     }
 
     return {

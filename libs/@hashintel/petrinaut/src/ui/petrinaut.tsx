@@ -29,16 +29,6 @@ const editorRootStyle = css({
   backgroundColor: "neutral.s25",
 });
 
-const portalContainerStyle = css({
-  position: "absolute",
-  top: "0",
-  left: "0",
-  width: "full",
-  height: "full",
-  zIndex: "99999",
-  pointerEvents: "none",
-});
-
 import type {
   PetrinautAiMessage,
   PetrinautAiTransport,
@@ -62,7 +52,17 @@ export type PetrinautProps = {
   title?: string;
   setTitle?: (title: string) => void;
   readonly?: boolean;
-  hideNetManagementControls?: boolean;
+  /**
+   * Controls visibility of net-management UI in the editor's top bar and
+   * burger menu.
+   *
+   * - [omitted] (default): show the title, includethe "New", "Open", "Import",
+   *   and "Load example" menu items in the burger menu.
+   * - `"except-title"`: hide the management menu items but keep the title
+   *   viewable and editable in the top bar.
+   * - `"all"`: hide the title and all net-management menu items.
+   */
+  hideNetManagementControls?: "all" | "except-title";
   existingNets?: MinimalNetMetadata[];
   createNewNet?: (params: { petriNetDefinition: SDCPN; title: string }) => void;
   loadPetriNet?: (petriNetId: string) => void;
@@ -110,7 +110,7 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
   title = "Untitled",
   setTitle = noop,
   readonly = false,
-  hideNetManagementControls = true,
+  hideNetManagementControls,
   existingNets = [],
   createNewNet = noop,
   loadPetriNet = noop,
@@ -147,8 +147,10 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
         lspWorkerFactory={lspWorkerFactory}
       >
         <MonacoProvider>
-          <Stack className={cx(editorRootStyle, "petrinaut-root")}>
-            <div ref={portalContainerRef} className={portalContainerStyle} />
+          <Stack
+            className={cx(editorRootStyle, "petrinaut-root")}
+            ref={portalContainerRef}
+          >
             <EditorView
               aiAssistant={aiAssistant}
               hideNetManagementControls={hideNetManagementControls}

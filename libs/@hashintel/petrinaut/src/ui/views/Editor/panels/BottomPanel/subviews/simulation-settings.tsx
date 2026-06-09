@@ -169,8 +169,10 @@ const NO_SCENARIO = "__none__";
 const SimulationSettingsContent: React.FC = () => {
   const { setGlobalMode } = use(EditorContext);
   const {
+    extensions,
     petriNetDefinition: { parameters, scenarios },
   } = use(SDCPNContext);
+  const globalParameters = extensions.parameters ? parameters : [];
   const {
     state: simulationState,
     dt,
@@ -209,7 +211,7 @@ const SimulationSettingsContent: React.FC = () => {
         type: sp.type,
         defaultValue: String(sp.default),
       }))
-    : parameters.map((p) => ({
+    : globalParameters.map((p) => ({
         key: p.id,
         name: p.name,
         variableName: p.variableName,
@@ -218,8 +220,8 @@ const SimulationSettingsContent: React.FC = () => {
       }));
 
   const scenarioOptions = [
-    { value: NO_SCENARIO, label: "No scenario" },
     ...(scenarios ?? []).map((s) => ({ value: s.id, label: s.name })),
+    { value: NO_SCENARIO, label: "No scenario" },
   ];
 
   return (

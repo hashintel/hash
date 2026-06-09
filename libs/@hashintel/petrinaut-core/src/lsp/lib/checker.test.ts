@@ -4,13 +4,14 @@ import { checkSDCPN } from "./checker";
 import { SDCPNLanguageServer } from "./create-sdcpn-language-service";
 import { createSDCPN } from "./helper/create-sdcpn";
 
+import type { PetrinautExtensionSettings } from "../../extensions";
 import type { SDCPN } from "../../types/sdcpn";
 
 /** Create a server, sync the SDCPN, and run diagnostics. */
-function check(sdcpn: SDCPN) {
+function check(sdcpn: SDCPN, extensions?: PetrinautExtensionSettings) {
   const server = new SDCPNLanguageServer();
-  server.syncFiles(sdcpn);
-  return checkSDCPN(sdcpn, server);
+  server.syncFiles(sdcpn, extensions);
+  return checkSDCPN(sdcpn, server, extensions);
 }
 
 describe("checkSDCPN", () => {
@@ -329,6 +330,64 @@ describe("checkSDCPN", () => {
       expect(result.isValid).toBe(true);
       expect(result.itemDiagnostics).toHaveLength(0);
     });
+
+    it("does not lint Lambda code when transition lambdas are unavailable", () => {
+      const sdcpn = createSDCPN({
+        places: [{ id: "place1", name: "Source", colorId: null }],
+        transitions: [
+          {
+            id: "t1",
+            lambdaType: "predicate",
+            inputArcs: [{ placeId: "place1", weight: 1, type: "standard" }],
+            outputArcs: [],
+            lambdaCode: `export default Lambda((input, parameters) => {
+              return input.Source[0].missing;
+            });`,
+          },
+        ],
+      });
+
+      const result = check(sdcpn, {
+        colors: true,
+        stochasticity: false,
+        dynamics: true,
+        parameters: true,
+      });
+
+      expect(result.isValid).toBe(true);
+      expect(result.itemDiagnostics).toHaveLength(0);
+    });
+
+    it("still lints predicate Lambda code when stochasticity is disabled but coloured inputs exist", () => {
+      const sdcpn = createSDCPN({
+        types: [{ id: "color1", elements: [{ name: "x", type: "real" }] }],
+        places: [{ id: "place1", name: "Source", colorId: "color1" }],
+        transitions: [
+          {
+            id: "t1",
+            lambdaType: "predicate",
+            inputArcs: [{ placeId: "place1", weight: 1, type: "standard" }],
+            outputArcs: [],
+            lambdaCode: `export default Lambda((input, parameters) => {
+              return input.Source[0].missing;
+            });`,
+          },
+        ],
+      });
+
+      const result = check(sdcpn, {
+        colors: true,
+        stochasticity: false,
+        dynamics: true,
+        parameters: true,
+      });
+
+      expect(result.isValid).toBe(false);
+      expect(result.itemDiagnostics[0]?.itemType).toBe("transition-lambda");
+      expect(result.itemDiagnostics[0]?.diagnostics[0]?.messageText).toContain(
+        "missing",
+      );
+    });
   });
 
   describe("Transition Kernel", () => {
@@ -358,6 +417,69 @@ describe("checkSDCPN", () => {
       // THEN
       expect(result.isValid).toBe(true);
       expect(result.itemDiagnostics).toHaveLength(0);
+    });
+
+    it("allows plain TransitionKernel outputs when stochasticity is disabled", () => {
+      const sdcpn = createSDCPN({
+        types: [{ id: "color1", elements: [{ name: "x", type: "real" }] }],
+        places: [
+          { id: "place1", name: "Source", colorId: "color1" },
+          { id: "place2", name: "Target", colorId: "color1" },
+        ],
+        transitions: [
+          {
+            id: "t1",
+            inputArcs: [{ placeId: "place1", weight: 1, type: "standard" }],
+            outputArcs: [{ placeId: "place2", weight: 1 }],
+            transitionKernelCode: `export default TransitionKernel((input, parameters) => {
+              return { Target: [{ x: input.Source[0].x + 1 }] };
+            });`,
+          },
+        ],
+      });
+
+      const result = check(sdcpn, {
+        colors: true,
+        stochasticity: false,
+        dynamics: true,
+        parameters: true,
+      });
+
+      expect(result.isValid).toBe(true);
+      expect(result.itemDiagnostics).toHaveLength(0);
+    });
+
+    it("returns invalid when TransitionKernel uses Distribution while stochasticity is disabled", () => {
+      const sdcpn = createSDCPN({
+        types: [{ id: "color1", elements: [{ name: "x", type: "real" }] }],
+        places: [
+          { id: "place1", name: "Source", colorId: "color1" },
+          { id: "place2", name: "Target", colorId: "color1" },
+        ],
+        transitions: [
+          {
+            id: "t1",
+            inputArcs: [{ placeId: "place1", weight: 1, type: "standard" }],
+            outputArcs: [{ placeId: "place2", weight: 1 }],
+            transitionKernelCode: `export default TransitionKernel((input, parameters) => {
+              return { Target: [{ x: Distribution.Uniform(0, 1) }] };
+            });`,
+          },
+        ],
+      });
+
+      const result = check(sdcpn, {
+        colors: true,
+        stochasticity: false,
+        dynamics: true,
+        parameters: true,
+      });
+
+      expect(result.isValid).toBe(false);
+      expect(result.itemDiagnostics[0]?.itemType).toBe("transition-kernel");
+      expect(result.itemDiagnostics[0]?.diagnostics[0]?.messageText).toContain(
+        "Distribution",
+      );
     });
 
     it("returns invalid when TransitionKernel returns wrong output place", () => {

@@ -1,6 +1,11 @@
 import { createContext } from "react";
 
-import type { MinimalNetMetadata, SDCPN } from "@hashintel/petrinaut-core";
+import {
+  DEFAULT_PETRINAUT_EXTENSIONS,
+  type MinimalNetMetadata,
+  type PetrinautExtensionSettings,
+  type SDCPN,
+} from "@hashintel/petrinaut-core";
 
 export type SDCPNProviderProps = {
   createNewNet: (params: { petriNetDefinition: SDCPN; title: string }) => void;
@@ -9,6 +14,7 @@ export type SDCPNProviderProps = {
   petriNetId: string | null;
   petriNetDefinition: SDCPN;
   readonly: boolean;
+  extensions: PetrinautExtensionSettings;
   setTitle: (title: string) => void;
   title: string;
 };
@@ -39,6 +45,7 @@ const DEFAULT_CONTEXT_VALUE: SDCPNContextValue = {
     parameters: [],
   },
   readonly: true,
+  extensions: DEFAULT_PETRINAUT_EXTENSIONS,
   setTitle: () => {},
   title: "",
   getItemType: () => null,

@@ -364,7 +364,7 @@ impl<N, E, A: Allocator> LinkedGraph<N, E, A> {
     /// Returns a slice view of all nodes in the graph.
     ///
     /// Nodes are indexed by their [`NodeId`] and returned in insertion order.
-    pub fn nodes(&self) -> &IdSlice<NodeId, Node<N>> {
+    pub const fn nodes(&self) -> &IdSlice<NodeId, Node<N>> {
         self.nodes.as_slice()
     }
 
@@ -434,7 +434,7 @@ impl<N, E, A: Allocator> LinkedGraph<N, E, A> {
     /// Returns a slice view of all edges in the graph.
     ///
     /// Edges are indexed by their [`EdgeId`] and returned in insertion order.
-    pub fn edges(&self) -> &IdSlice<EdgeId, Edge<E>> {
+    pub const fn edges(&self) -> &IdSlice<EdgeId, Edge<E>> {
         self.edges.as_slice()
     }
 

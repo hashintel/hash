@@ -9,26 +9,12 @@ on:
   merge_group:
 
 jobs:
-  stale-approvals:
-    name: Stale approvals
-    permissions:
-      actions: read
-      contents: read
-      # Required by the reusable workflow to extract job_workflow_ref from the
-      # OIDC token to resolve the correct checkout ref for the composite action.
-      # see: https://github.com/actions/toolkit/issues/1264
-      # TODO: Remove once $/ syntax is available
-      # see: https://github.com/orgs/community/discussions/26245#discussioncomment-15601440
-      id-token: write
-      pull-requests: write
-    uses: hashintel/.github/.github/workflows/preflight-stale-approvals.yml@e12e306a03b1939c357d92c55b48d539d4286bd6
-
   dependencies:
     name: Dependencies
     permissions:
       contents: read
       pull-requests: write
-    uses: hashintel/.github/.github/workflows/preflight-dependencies.yml@e12e306a03b1939c357d92c55b48d539d4286bd6
+    uses: hashintel/.github/.github/workflows/preflight-dependencies.yml@ae4227bc6b6375f06ac30093826318283eefb203
 
   labeler:
     name: Labeler
@@ -47,10 +33,10 @@ jobs:
     name: Todo comments
     permissions:
       contents: read
-    uses: hashintel/.github/.github/workflows/preflight-todo-comments.yml@e12e306a03b1939c357d92c55b48d539d4286bd6
+    uses: hashintel/.github/.github/workflows/preflight-todo-comments.yml@ae4227bc6b6375f06ac30093826318283eefb203
 
   pr-title:
     name: PR title
     permissions:
       contents: read
-    uses: hashintel/.github/.github/workflows/preflight-pr-title.yml@e12e306a03b1939c357d92c55b48d539d4286bd6
+    uses: hashintel/.github/.github/workflows/preflight-pr-title.yml@ae4227bc6b6375f06ac30093826318283eefb203

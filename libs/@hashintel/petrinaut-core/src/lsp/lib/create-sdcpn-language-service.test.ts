@@ -173,6 +173,26 @@ describe("SDCPNLanguageServer completions", () => {
       expect(names).toContain("x");
     });
 
+    it("returns token properties for read arc inputs", () => {
+      const names = getCompletionNames(
+        {
+          ...baseSdcpn,
+          transitions: [
+            {
+              ...baseSdcpn.transitions[0]!,
+              inputArcs: [
+                { placeId: "place1", weight: 1, type: "read" as const },
+              ],
+            },
+          ],
+        },
+        `export default Lambda((input, parameters) => {\n  const token = input.Source[0];\n  return token.${CURSOR};\n});`,
+        { type: "transition-lambda" },
+      );
+
+      expect(names).toContain("x");
+    });
+
     it("returns String methods after string expression", () => {
       const names = getCompletionNames(
         baseSdcpn,

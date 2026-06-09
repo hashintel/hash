@@ -15,6 +15,9 @@
 **/*.md
 !**/README*.md
 !**/LICENSE*.md
+# Petrinaut bundles its user-facing docs into the build via `?raw` imports,
+# so they must be present in the Docker context (not just README.md).
+!libs/@hashintel/petrinaut/docs/*.md
 
 ########################
 ## Same as in .gitignore

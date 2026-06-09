@@ -2,9 +2,11 @@ import { createContext, use } from "react";
 
 import { Button, Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
-
-const ArcIcon = () => <Icon name="scribble" />;
-import { parseArcId, type SDCPN } from "@hashintel/petrinaut-core";
+import {
+  parseArcId,
+  type InputArc,
+  type SDCPN,
+} from "@hashintel/petrinaut-core";
 
 import { EditorContext } from "../../../../../../react/state/editor-context";
 import { useIsReadOnly } from "../../../../../../react/state/use-is-read-only";
@@ -16,6 +18,8 @@ import { UI_MESSAGES } from "../../../../../constants/ui-messages";
 
 import type { PetrinautMutations } from "../../../../../../react";
 import type { SubView } from "../../../../../components/sub-view/types";
+
+const ArcIcon = () => <Icon name="scribble" />;
 
 const containerStyle = css({
   display: "flex",
@@ -38,7 +42,7 @@ interface ArcPropertiesData {
   sourceName: string;
   targetName: string;
   weight: number;
-  type: "standard" | "inhibitor";
+  type: InputArc["type"];
   updateArcWeight: PetrinautMutations["updateArcWeight"];
   updateArcType: PetrinautMutations["updateArcType"];
   removeArc: PetrinautMutations["removeArc"];
@@ -86,11 +90,12 @@ const ArcMainContent: React.FC = () => {
               updateArcType({
                 transitionId,
                 placeId,
-                type: value as "inhibitor" | "standard",
+                type: value as InputArc["type"],
               });
             }}
             options={[
               { value: "standard", label: "Standard" },
+              { value: "read", label: "Read" },
               { value: "inhibitor", label: "Inhibitor" },
             ]}
             disabled={isReadOnly}

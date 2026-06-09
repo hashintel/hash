@@ -68,6 +68,9 @@ const persistState = (params: {
 
 test(
   "Test runSubCoordinatorAgent: Find Ben Werner's Github profile URL",
+  {
+    timeout: 10 * 60 * 1000,
+  },
   async () => {
     const { userAuthentication } = await getFlowContext();
 
@@ -104,8 +107,5 @@ test(
     });
 
     expect(status).toBeDefined();
-  },
-  {
-    timeout: 10 * 60 * 1000,
   },
 );

@@ -1,5 +1,12 @@
 # @blockprotocol/graph
 
+## 0.4.3
+
+### Patch Changes
+
+- Updated dependencies [[`0e52504`](https://github.com/hashintel/hash/commit/0e52504315a909befc9fe2c748edd765f183e15a)]:
+  - @blockprotocol/type-system@0.2.2
+
 ## 0.4.2
 
 ### Patch Changes

@@ -38,8 +38,11 @@ const sentryWebpackPluginOptions = {
 process.env.NEXT_PUBLIC_SHOW_WORKER_COST =
   process.env.SHOW_WORKER_COST ?? "false";
 
-// This allows the frontend to generate the graph type IDs in the browser
-process.env.NEXT_PUBLIC_FRONTEND_URL = process.env.FRONTEND_URL;
+if (process.env.FRONTEND_URL) {
+  // Feeds frontendUrl in isomorphic-utils/environment.ts
+  // Fallbacks to Vercel-provided URL, and ultimately localhost:3000.
+  process.env.NEXT_PUBLIC_FRONTEND_URL = process.env.FRONTEND_URL;
+}
 
 // The API origin
 process.env.NEXT_PUBLIC_API_ORIGIN =
@@ -139,6 +142,22 @@ export default withSentryConfig(
               },
             ],
           },
+          {
+            /**
+             * Self-hosted fonts referenced from `globals.scss` (Inter, Open
+             * Sauce Two, Apercu, IBM Plex, …). The Petrinaut embed route is
+             * loaded into a sandboxed null-origin iframe; the browser's
+             * anonymous-CORS rule for font fetches treats the same-host
+             * request as cross-origin and rejects it without these headers.
+             */
+            source: "/fonts/:path*",
+            headers: [
+              {
+                key: "access-control-allow-origin",
+                value: "*",
+              },
+            ],
+          },
         ];
       },
       pageExtensions: ["page.tsx", "page.ts", "page.jsx", "page.jsx", "api.ts"],
@@ -164,7 +183,9 @@ export default withSentryConfig(
         "@emotion/server",
         "@hashintel/block-design-system",
         "@hashintel/design-system",
+        "@hashintel/integrations-catalog",
         "@hashintel/petrinaut",
+        "@hashintel/petrinaut-core",
         "@hashintel/ds-components",
         "@hashintel/ds-helpers",
         "@hashintel/type-editor",

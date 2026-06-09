@@ -1,6 +1,7 @@
 import { type ReactNode, useRef, useState } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
+import { DEFAULT_PETRINAUT_EXTENSIONS } from "@hashintel/petrinaut-core";
 
 import { LanguageClientProvider } from "../../react/lsp/provider";
 import {
@@ -103,6 +104,7 @@ const LSP_CONTEXT: SDCPNContextValue = {
   petriNetId: "story-net",
   petriNetDefinition: LAMBDA_SDCPN,
   readonly: false,
+  extensions: DEFAULT_PETRINAUT_EXTENSIONS,
   setTitle: () => {},
   title: "Story Net",
   getItemType: () => null,

@@ -27,7 +27,7 @@ const glassPanelStyle = css({
   boxSizing: "border-box",
   top: "[0]",
   right: "[0]",
-  zIndex: 1000,
+  zIndex: "[calc(var(--z-index-sticky) - 3)]",
   pointerEvents: "auto",
   borderLeftWidth: "thin",
 });
@@ -66,7 +66,7 @@ export const PropertiesPanel: React.FC = () => {
     isPanelAnimating,
   } = use(EditorContext);
 
-  const { petriNetDefinition } = use(SDCPNContext);
+  const { extensions, petriNetDefinition } = use(SDCPNContext);
   const {
     updatePlace,
     updateTransition,
@@ -120,7 +120,7 @@ export const PropertiesPanel: React.FC = () => {
           content = (
             <PlaceProperties
               place={placeData}
-              types={petriNetDefinition.types}
+              types={extensions.colors ? petriNetDefinition.types : []}
               updatePlace={updatePlace}
             />
           );
@@ -137,7 +137,7 @@ export const PropertiesPanel: React.FC = () => {
             <TransitionProperties
               transition={transitionData}
               places={petriNetDefinition.places}
-              types={petriNetDefinition.types}
+              types={extensions.colors ? petriNetDefinition.types : []}
               onArcWeightUpdate={updateArcWeight}
               updateTransition={updateTransition}
               updateArcPlace={updateArcPlace}
@@ -162,6 +162,9 @@ export const PropertiesPanel: React.FC = () => {
       }
 
       case "type": {
+        if (!extensions.colors) {
+          break;
+        }
         const typeData = petriNetDefinition.types.find(
           (type) => type.id === item.id,
         );
@@ -181,6 +184,9 @@ export const PropertiesPanel: React.FC = () => {
       }
 
       case "differentialEquation": {
+        if (!extensions.colors || !extensions.dynamics) {
+          break;
+        }
         const equationData = petriNetDefinition.differentialEquations.find(
           (equation) => equation.id === item.id,
         );
@@ -198,6 +204,9 @@ export const PropertiesPanel: React.FC = () => {
       }
 
       case "parameter": {
+        if (!extensions.parameters) {
+          break;
+        }
         const parameterData = petriNetDefinition.parameters.find(
           (parameter) => parameter.id === item.id,
         );

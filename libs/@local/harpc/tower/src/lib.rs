@@ -8,6 +8,7 @@
     never_type,
 
     // Library Features
+    core_io,
     error_generic_member_access,
 )]
 

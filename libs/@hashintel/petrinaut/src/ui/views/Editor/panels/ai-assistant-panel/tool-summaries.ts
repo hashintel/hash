@@ -15,6 +15,12 @@ export type AiToolSummary = {
   detail?: string;
   items?: string[];
   target?: AiToolTarget;
+  /**
+   * External URL the tool row links to (opens in a new tab). Set for
+   * read-only tools that surface a user-guide page so the user can open the
+   * page they saw the assistant consult.
+   */
+  href?: string;
 };
 
 export type AiToolBlockedOutput = {
@@ -161,6 +167,21 @@ const arcEndpointDetail = (
   return `${place} <-> ${transition}`;
 };
 
+const addArcTitle = (input: {
+  arcDirection: "input" | "output";
+  type?: "standard" | "read" | "inhibitor";
+}): string => {
+  if (
+    input.arcDirection === "input" &&
+    input.type !== undefined &&
+    input.type !== "standard"
+  ) {
+    return `Added ${input.type} input arc`;
+  }
+
+  return `Added ${input.arcDirection} arc`;
+};
+
 const arcTarget = (input: {
   arcDirection: "input" | "output";
   placeId: string;
@@ -295,7 +316,7 @@ export const summarizePetrinautAiToolCall = (
       };
     case "addArc":
       return {
-        title: `Added ${input.arcDirection} arc`,
+        title: addArcTitle(input),
         detail: arcEndpointDetail(definition, input),
         target: selectionTarget(arcTarget(input)),
       };

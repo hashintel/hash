@@ -5,7 +5,14 @@
  * part of the public simulation API.
  */
 
-import type { Color, Place, SDCPN, Transition } from "../../types/sdcpn";
+import type { PetrinautExtensionSettings } from "../../extensions";
+import type {
+  Color,
+  InputArcType,
+  Place,
+  SDCPN,
+  Transition,
+} from "../../types/sdcpn";
 import type { InitialMarking } from "../api";
 import type { RuntimeDistribution } from "../authoring/user-code/distribution";
 import type { EngineFrame, EngineFrameLayout } from "../frames/internal-frame";
@@ -63,7 +70,7 @@ export type CompiledTransitionPlace = {
 };
 
 export type CompiledTransitionInputPlace = CompiledTransitionPlace & {
-  arcType: "standard" | "inhibitor";
+  arcType: InputArcType;
 };
 
 export type CompiledTransition = {
@@ -81,6 +88,8 @@ export type CompiledTransition = {
 export type SimulationInput = {
   /** The SDCPN definition to simulate */
   sdcpn: SDCPN;
+  /** Enabled SDCPN extensions for this simulation run. */
+  extensions?: PetrinautExtensionSettings;
   /** Initial token distribution across places */
   initialMarking: InitialMarking;
   /** Parameter values from the simulation store (overrides SDCPN defaults) */

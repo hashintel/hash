@@ -2,12 +2,15 @@ export { Avatar, type AvatarProps } from "./components/Avatar/avatar";
 export { Badge, type BadgeProps } from "./components/Badge/badge";
 export { Button, type ButtonProps } from "./components/Button/button";
 export { Checkbox, type CheckboxProps } from "./components/Checkbox/checkbox";
+export { Dialog } from "./components/Dialog/dialog";
 export { Form } from "./components/Form/form";
 export { Icon, type IconName, iconNames } from "./components/Icon/icon";
 export {
   LoadingSpinner,
   type LoadingSpinnerVariant,
 } from "./components/Loading/loading-spinner";
+export { EllipsisMenu } from "./components/Menu/ellipsis-menu";
+export { Menu } from "./components/Menu/menu";
 export { NumberInput } from "./components/NumberInput/number-input";
 export {
   RadioGroup,

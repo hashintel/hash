@@ -23,21 +23,27 @@ import type { SubView } from "../../../../../components/sub-view/types";
 export const DifferentialEquationsSectionHeaderAction: React.FC = () => {
   const {
     petriNetDefinition: { types, differentialEquations },
+    extensions,
   } = use(SDCPNContext);
   const { addDifferentialEquation } = usePetrinautMutations();
   const { selectItem } = use(EditorContext);
 
   const isReadOnly = useIsReadOnly();
+  const isDisabled = isReadOnly || !extensions.colors || !extensions.dynamics;
+  let tooltip = "Add differential equation";
+  if (isReadOnly) {
+    tooltip = UI_MESSAGES.READ_ONLY_MODE;
+  } else if (!extensions.colors || !extensions.dynamics) {
+    tooltip = UI_MESSAGES.EXTENSION_UNAVAILABLE;
+  }
 
   return (
     <Button
       aria-label="Add differential equation"
       size="xs"
       variant="ghost"
-      disabled={isReadOnly}
-      tooltip={
-        isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : "Add differential equation"
-      }
+      disabled={isDisabled}
+      tooltip={tooltip}
       iconName="plus"
       onClick={() => {
         const name = `Equation ${differentialEquations.length + 1}`;
@@ -56,7 +62,9 @@ export const DifferentialEquationsSectionHeaderAction: React.FC = () => {
 
 const DiffEqRowMenu: React.FC<{ item: { id: string } }> = ({ item }) => {
   const { removeDifferentialEquation } = usePetrinautMutations();
+  const { extensions } = use(SDCPNContext);
   const isReadOnly = useIsReadOnly();
+  const isDisabled = isReadOnly || !extensions.colors || !extensions.dynamics;
 
   return (
     <RowMenu
@@ -66,7 +74,7 @@ const DiffEqRowMenu: React.FC<{ item: { id: string } }> = ({ item }) => {
           label: "Delete",
           icon: <Icon name="trash" size="sm" />,
           destructive: true,
-          disabled: isReadOnly,
+          disabled: isDisabled,
           onClick: () => removeDifferentialEquation({ equationId: item.id }),
         },
       ]}

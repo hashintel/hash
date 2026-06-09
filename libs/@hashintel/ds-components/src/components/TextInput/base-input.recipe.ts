@@ -5,6 +5,7 @@ import { formWidths } from "../../util/form-width.recipe";
 
 export const baseInputRecipe = sva({
   slots: [
+    "wrapper",
     "root",
     "inputWrapper",
     "input",
@@ -23,19 +24,30 @@ export const baseInputRecipe = sva({
     "hideClear",
     "styledValueOverlay",
     "readonly",
+    "connector",
+    "connectRight",
+    "connectLeft",
+    "connectAdornment",
   ],
   base: {
+    wrapper: {
+      display: "inline-flex",
+      position: "relative",
+      "--base-input-connector-width": "10px",
+    },
     root: {
       ...formWidths.base,
       display: "inline-flex",
       width: "[fit-content]",
       minWidth: "[min-content]",
       position: "relative",
+      background: "[var(--base-input-background-color)]",
       border: "var(--form-border-width) solid transparent",
       borderRadius: "var(--base-input-border-radius)",
       transition: "[background 0.15s ease, border 0.15s ease]",
-      "--base-input-focus-color": "var(--colors-bd-solid)",
-      "--base-input-border-color": "var(--colors-bd-solid)",
+      "--base-input-background-color": "var(--colors-white)",
+      "--base-input-focus-color": "var(--colors-neutral-s40)",
+      "--base-input-border-color": "var(--colors-neutral-s40)",
       "--base-input-border-hover-color": "var(--colors-neutral-s80)",
       "&:not(.layer-style_disabled):hover [data-part='clear']": {
         opacity: "1",
@@ -124,15 +136,24 @@ export const baseInputRecipe = sva({
         background: "neutral.s30",
         color: "neutral.s120",
       },
+      "&:not([disabled]):hover + [data-part='connector']": {
+        fill: "[var(--colors-neutral-s30)]",
+      },
       "&:not([disabled]):active": {
         background: "neutral.s40",
         color: "neutral.s125",
+      },
+      "&:not([disabled]):active + [data-part='connector']": {
+        fill: "neutral.s40",
       },
       "&:focus:not(:focus-visible)": { outline: "none" },
       _focusVisible: {
         outline: "[1px solid var(--colors-neutral-s80)]",
         outlineOffset: "0",
         background: "neutral.s25",
+      },
+      "&:focus-visible + [data-part='connector']": {
+        fill: "neutral.s25",
       },
     },
     adornmentInteractive: {
@@ -158,7 +179,7 @@ export const baseInputRecipe = sva({
     },
     editIcon: {
       position: "absolute",
-      zIndex: "1",
+      zIndex: "[1]",
       right: "2",
       paddingX: "0.5",
       display: "flex",
@@ -170,14 +191,14 @@ export const baseInputRecipe = sva({
         position: "absolute",
         paddingY: "[var(--form-padding-y)]",
         insetX: "0",
-        background: "white",
-        zIndex: "-2",
+        background: "[var(--base-input-background-color)]",
+        zIndex: "[-2]",
         borderRightRadius: "var(--base-input-border-radius)",
       },
     },
     clear: {
       position: "absolute",
-      zIndex: "1",
+      zIndex: "[1]",
       right: "2",
       display: "flex",
       alignItems: "center",
@@ -195,8 +216,8 @@ export const baseInputRecipe = sva({
         position: "absolute",
         paddingY: "[var(--form-padding-y)]",
         insetX: "0",
-        background: "white",
-        zIndex: "-2",
+        background: "[var(--base-input-background-color)]",
+        zIndex: "[-2]",
         borderRightRadius: "var(--base-input-border-radius)",
       },
       _after: {
@@ -204,7 +225,7 @@ export const baseInputRecipe = sva({
         position: "absolute",
         borderRadius: "full",
         inset: "0",
-        zIndex: "-1",
+        zIndex: "[-1]",
       },
     },
     clearIcon: {
@@ -222,6 +243,29 @@ export const baseInputRecipe = sva({
       overflow: "hidden",
       paddingY: "var(--form-padding-y)",
     },
+    connector: {
+      position: "absolute",
+      top: "0",
+      zIndex: "[1]",
+      width: "var(--base-input-connector-width)",
+      height: "[100%]",
+      color: "var(--base-input-border-color)",
+      strokeWidth: "1px",
+      fill: "[var(--base-input-background-color)]",
+      transition: "[fill 0.15s ease, color 0.15s ease]",
+      // Fixes subpixel rounding error in safari
+      transform: "scaleX(100.01%)",
+    },
+    connectRight: {
+      left: "[100%]",
+    },
+    connectLeft: {
+      right: "[100%]",
+      maskImage: "[linear-gradient(to right, transparent, black)]",
+    },
+    connectAdornment: {
+      fill: "[var(--colors-neutral-s20)]",
+    },
   },
   variants: {
     variant: {
@@ -229,16 +273,12 @@ export const baseInputRecipe = sva({
         root: {
           borderColor: "var(--base-input-border-color)",
           color: "fg.body",
-          bg: "white",
           "&:not(.layer-style_disabled):hover": {
             borderColor: "var(--base-input-border-hover-color)",
-            bg: "neutral.s10",
-          },
-          "&:not(.layer-style_disabled):hover [data-part='clear']:before": {
-            bg: "neutral.s10",
-          },
-          "&:not(.layer-style_disabled):hover [data-part='edit']:before": {
-            bg: "neutral.s10",
+            "--base-input-background-color": "var(--colors-neutral-s10)",
+            "& [data-part='connector']": {
+              color: "var(--base-input-border-hover-color)",
+            },
           },
           "&:focus-within:not(.layer-style_disabled)": {
             outline: "[1px solid var(--base-input-focus-color)]",
@@ -247,12 +287,12 @@ export const baseInputRecipe = sva({
         adornment: {
           background: "neutral.s20",
           paddingX: "2",
-          borderRightColor: "var(--colors-bd-solid)",
-          borderLeftColor: "var(--colors-bd-solid)",
+          borderRightColor: "var(--colors-neutral-s40)",
+          borderLeftColor: "var(--colors-neutral-s40)",
         },
         adornmentButton: {
-          borderRightColor: "var(--colors-bd-solid)",
-          borderLeftColor: "var(--colors-bd-solid)",
+          borderRightColor: "var(--colors-neutral-s40)",
+          borderLeftColor: "var(--colors-neutral-s40)",
         },
         input: {
           paddingX: "var(--base-input-padding-x)",
@@ -264,6 +304,7 @@ export const baseInputRecipe = sva({
       subtle: {
         root: {
           "--base-input-border-hover-color": "var(--colors-neutral-a40)",
+          "--base-input-background-color": "transparent",
           _before: {
             content: '""',
             position: "absolute",
@@ -272,6 +313,8 @@ export const baseInputRecipe = sva({
             borderRadius: "var(--base-input-border-radius)",
             border: "1px solid transparent",
             pointerEvents: "none",
+            background: "[var(--base-input-background-color)]",
+            transition: "[background 0.15s ease, border 0.15s ease]",
           },
           "&:not(.layer-style_disabled):hover": {
             _before: {
@@ -279,7 +322,7 @@ export const baseInputRecipe = sva({
             },
           },
           "&:focus-within:not(.layer-style_disabled)": {
-            bg: "white",
+            "--base-input-background-color": "var(--colors-white)",
             _before: {
               borderColor: "var(--base-input-border-color)",
             },
@@ -308,16 +351,10 @@ export const baseInputRecipe = sva({
         editIcon: {
           right:
             "[calc(var(--base-input-padding-x) * -1 + 1px + var(--spacing-2))]",
-          _before: {
-            background: "[transparent]",
-          },
         },
         clear: {
           right:
             "[calc(var(--base-input-padding-x) * -1 + 1px + var(--spacing-2))]",
-          _before: {
-            background: "[transparent]",
-          },
         },
         adornment: {
           position: "relative",
@@ -329,6 +366,7 @@ export const baseInputRecipe = sva({
     },
     size: {
       xxs: {
+        wrapper: { "--base-input-connector-width": "5px" },
         root: {
           ...formSizes.variants.sizes.xxs,
           "--base-input-border-radius": "radii.md",
@@ -336,6 +374,7 @@ export const baseInputRecipe = sva({
         },
       },
       xs: {
+        wrapper: { "--base-input-connector-width": "6px" },
         root: {
           ...formSizes.variants.sizes.xs,
           "--base-input-border-radius": "radii.md",
@@ -343,6 +382,7 @@ export const baseInputRecipe = sva({
         },
       },
       sm: {
+        wrapper: { "--base-input-connector-width": "8px" },
         root: {
           ...formSizes.variants.sizes.sm,
           "--base-input-border-radius": "radii.lg",
@@ -350,6 +390,7 @@ export const baseInputRecipe = sva({
         },
       },
       md: {
+        wrapper: { "--base-input-connector-width": "10px" },
         root: {
           ...formSizes.variants.sizes.md,
           "--base-input-border-radius": "radii.lg",
@@ -357,6 +398,7 @@ export const baseInputRecipe = sva({
         },
       },
       lg: {
+        wrapper: { "--base-input-connector-width": "12px" },
         root: {
           ...formSizes.variants.sizes.lg,
           "--base-input-border-radius": "radii.xl",
@@ -367,8 +409,8 @@ export const baseInputRecipe = sva({
     invalid: {
       true: {
         root: {
-          "--base-input-focus-color": "var(--colors-status-error-bd-solid)",
-          "--base-input-border-color": "var(--colors-status-error-bd-solid)",
+          "--base-input-focus-color": "var(--colors-red-s60)",
+          "--base-input-border-color": "var(--colors-red-s60)",
           "--base-input-border-hover-color": "var(--colors-red-s65)",
         },
       },
@@ -395,6 +437,7 @@ export const baseInputRecipe = sva({
         root: { ...formWidths.variants.widths.lg },
       },
       fullWidth: {
+        wrapper: { width: "[100%]" },
         root: {
           ...formWidths.variants.widths.fullWidth,
           width: "[100%]",
@@ -468,6 +511,20 @@ export const baseInputRecipe = sva({
         },
       },
     },
+    connectsRight: {
+      true: {
+        wrapper: {
+          paddingRight: "[calc(var(--base-input-connector-width) / 2 - 1px)]",
+        },
+      },
+    },
+    connectsLeft: {
+      true: {
+        wrapper: {
+          paddingLeft: "[calc(var(--base-input-connector-width) / 2 - 1px)]",
+        },
+      },
+    },
   },
   compoundVariants: [
     {
@@ -489,8 +546,8 @@ export const baseInputRecipe = sva({
       disabled: true,
       css: {
         root: {
-          "--base-input-border-color": "var(--colors-neutral-a50)",
-          background: "neutral.s20",
+          "--base-input-border-color": "var(--colors-neutral-s50)",
+          "--base-input-background-color": "var(--colors-neutral-s20)",
           color: "neutral.s80",
           "&:after": {
             content: "''",
@@ -544,7 +601,7 @@ export const baseInputRecipe = sva({
       css: {
         root: {
           "&:not(.layer-style_disabled):hover": {
-            bg: "red.s05",
+            "--base-input-background-color": "var(--colors-red-s05)",
           },
         },
       },

@@ -7,6 +7,8 @@ import type {
   PetrinautAiMutationToolInput,
   PetrinautAiMutationToolName,
   PetrinautAiToolInput,
+  PetrinautExtensionSettings,
+  readPetrinautDocToolName,
   SDCPN,
   setNetTitleToolName,
 } from "@hashintel/petrinaut-core";
@@ -25,7 +27,11 @@ type PetrinautAiUiTools = {
 } & {
   [getLatestNetDefinitionToolName]: {
     input: PetrinautAiToolInput<typeof getLatestNetDefinitionToolName>;
-    output: { title: string; definition: SDCPN };
+    output: {
+      title: string;
+      definition: SDCPN;
+      extensions: PetrinautExtensionSettings;
+    };
   };
   [getNetCompilationErrorsToolName]: {
     input: PetrinautAiToolInput<typeof getNetCompilationErrorsToolName>;
@@ -34,6 +40,10 @@ type PetrinautAiUiTools = {
   [setNetTitleToolName]: {
     input: PetrinautAiToolInput<typeof setNetTitleToolName>;
     output: AiToolOutput;
+  };
+  [readPetrinautDocToolName]: {
+    input: PetrinautAiToolInput<typeof readPetrinautDocToolName>;
+    output: string;
   };
 };
 

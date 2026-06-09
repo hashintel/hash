@@ -1,4 +1,4 @@
-import { use, useMemo, useState } from "react";
+import { use, useState } from "react";
 
 import { Button, Icon, Tooltip } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
@@ -7,21 +7,15 @@ import {
   generateDefaultVisualizerCode,
 } from "@hashintel/petrinaut-core";
 
-import {
-  mergeParameterValues,
-  useDefaultParameterValues,
-} from "../../../../../../../../react/hooks/use-default-parameter-values";
 import { PlaybackContext } from "../../../../../../../../react/playback/context";
-import { SimulationContext } from "../../../../../../../../react/simulation/context";
 import { EditorContext } from "../../../../../../../../react/state/editor-context";
 import { Menu } from "../../../../../../../components/menu";
 import { SegmentGroup } from "../../../../../../../components/segment-group";
 import { Switch } from "../../../../../../../components/switch";
 import { UI_MESSAGES } from "../../../../../../../constants/ui-messages";
-import { compileVisualizer } from "../../../../../../../lib/compile-visualizer";
 import { CodeEditor } from "../../../../../../../monaco/code-editor";
+import { PlaceStateVisualization } from "../../../../../../shared/place-state-visualization";
 import { usePlacePropertiesContext } from "../../context";
-import { VisualizerErrorBoundary } from "./visualizer-error-boundary";
 
 import type { SubView } from "../../../../../../../components/sub-view/types";
 
@@ -60,11 +54,6 @@ const messageStyle = css({
   lineHeight: "[1.5]",
 });
 
-const visualizerErrorStyle = css({
-  padding: "[12px]",
-  color: "[#d32f2f]",
-});
-
 const aiMenuItemStyle = css({
   display: "flex",
   alignItems: "center",
@@ -76,93 +65,9 @@ const aiMenuItemStyle = css({
  * using simulation frame data or initial marking.
  */
 const VisualizerPreview: React.FC = () => {
-  "use no memo"; // User-authored visualizer code is compiled into a component at runtime.
-
   const { place, placeType } = usePlacePropertiesContext();
 
-  const { initialMarking, parameterValues } = use(SimulationContext);
-  const { currentFrameReader, totalFrames } = use(PlaybackContext);
-
-  const defaultParameterValues = useDefaultParameterValues();
-
-  const VisualizerComponent = useMemo(() => {
-    if (!place.visualizerCode) {
-      return null;
-    }
-    try {
-      return compileVisualizer(place.visualizerCode);
-    } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error("Failed to compile visualizer code:", error);
-      return null;
-    }
-  }, [place.visualizerCode]);
-
-  if (!place.visualizerCode) {
-    return <div className={messageStyle}>No visualizer code defined</div>;
-  }
-
-  if (!placeType) {
-    return <div className={messageStyle}>Place has no type set</div>;
-  }
-
-  const dimensions = placeType.elements.length;
-  const tokens: Record<string, number>[] = [];
-  let parameters: Record<string, number | boolean> = {};
-
-  if (totalFrames > 0 && currentFrameReader) {
-    const placeTokenValues = currentFrameReader.getPlaceTokenValues(place.id);
-    if (!placeTokenValues) {
-      return <div className={messageStyle}>Place not found in frame</div>;
-    }
-
-    const tokenValues = Array.from(placeTokenValues.values);
-
-    for (
-      let tokenIndex = 0;
-      tokenIndex < placeTokenValues.count;
-      tokenIndex++
-    ) {
-      const token: Record<string, number> = {};
-      for (let colIndex = 0; colIndex < dimensions; colIndex++) {
-        const dimensionName = placeType.elements[colIndex]!.name;
-        token[dimensionName] =
-          tokenValues[tokenIndex * dimensions + colIndex] ?? 0;
-      }
-      tokens.push(token);
-    }
-
-    parameters = mergeParameterValues(parameterValues, defaultParameterValues);
-  } else {
-    const marking = initialMarking[place.id];
-    if (Array.isArray(marking) && marking.length > 0) {
-      for (let tokenIndex = 0; tokenIndex < marking.length; tokenIndex++) {
-        const token: Record<string, number> = {};
-        for (let colIndex = 0; colIndex < dimensions; colIndex++) {
-          const dimensionName = placeType.elements[colIndex]!.name;
-          token[dimensionName] = marking[tokenIndex]?.[dimensionName] ?? 0;
-        }
-        tokens.push(token);
-      }
-    }
-
-    parameters = mergeParameterValues(parameterValues, defaultParameterValues);
-  }
-
-  if (!VisualizerComponent) {
-    return (
-      <div className={visualizerErrorStyle}>
-        Failed to compile visualizer code. Check console for errors.
-      </div>
-    );
-  }
-
-  return (
-    <VisualizerErrorBoundary>
-      {/* eslint-disable-next-line react-hooks-js/static-components -- Runtime visualizer code intentionally creates a component from user input. */}
-      <VisualizerComponent tokens={tokens} parameters={parameters} />
-    </VisualizerErrorBoundary>
-  );
+  return <PlaceStateVisualization place={place} placeType={placeType} />;
 };
 
 const PlaceVisualizerContent: React.FC = () => {

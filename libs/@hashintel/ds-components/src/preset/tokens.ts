@@ -10,6 +10,7 @@ import {
   red,
   staticColors,
 } from "./tokens/gen";
+import { zIndex } from "./tokens/stubs/z-index";
 import { createSemanticSet } from "./tokens/utils";
 
 type TokenTree = Record<string, unknown>;
@@ -86,6 +87,7 @@ export const tokens = {
   spacing: scaledSpacing,
   radii: scaledRadii,
   lineHeights: scaledLineHeights as typeof pandaPreset.theme.tokens.lineHeights,
+  zIndex,
 };
 
 export const semanticTokens = {

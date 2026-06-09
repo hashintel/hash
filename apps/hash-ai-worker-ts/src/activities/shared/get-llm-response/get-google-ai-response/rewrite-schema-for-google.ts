@@ -1,9 +1,9 @@
-import { SchemaType } from "@google-cloud/vertexai";
+import { Type } from "@google/genai";
 
 import { mustHaveAtLeastOne } from "@blockprotocol/type-system";
 
 import type { LlmToolDefinition } from "../types.js";
-import type { FunctionDeclarationSchema, Schema } from "@google-cloud/vertexai";
+import type { Schema } from "@google/genai";
 import type { JSONSchema } from "openai/lib/jsonschema.mjs";
 
 /**
@@ -104,7 +104,7 @@ export const rewriteSchemaPart = (
         );
       } else {
         // Google wants the type to be uppercase for some reason
-        result[key] = value.toUpperCase() as SchemaType;
+        result[key] = value.toUpperCase() as Type;
       }
     } else if (fieldsToExclude.includes(key)) {
       if (typeof value === "object" && value !== null) {
@@ -180,13 +180,13 @@ export const rewriteSchemaPart = (
       result[key] = value;
     }
   }
-  return result;
+  return result as SchemaValue;
 };
 
 export const rewriteSchemaForGoogle = (
   schema: LlmToolDefinition["inputSchema"],
-): FunctionDeclarationSchema => {
-  const properties: FunctionDeclarationSchema["properties"] = {};
+): Schema => {
+  const properties: NonNullable<Schema["properties"]> = {};
 
   for (const [key, value] of Object.entries(schema.properties ?? {})) {
     // @ts-expect-error -- @todo fix this
@@ -195,7 +195,7 @@ export const rewriteSchemaForGoogle = (
 
   return {
     description: schema.description,
-    type: SchemaType.OBJECT,
+    type: Type.OBJECT,
     properties,
     required: schema.required,
   };

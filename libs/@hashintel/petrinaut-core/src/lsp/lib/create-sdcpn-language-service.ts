@@ -13,6 +13,7 @@ import {
   type ScenarioSessionData,
 } from "./generate-virtual-files";
 
+import type { PetrinautExtensionSettings } from "../../extensions";
 import type { SDCPN } from "../../types/sdcpn";
 
 /**
@@ -66,8 +67,8 @@ export class SDCPNLanguageServer {
    * Files under `/_temp/` are managed separately (e.g., scenario sessions)
    * and are not removed by this method.
    */
-  syncFiles(sdcpn: SDCPN): void {
-    const newFiles = generateVirtualFiles(sdcpn);
+  syncFiles(sdcpn: SDCPN, extensions?: PetrinautExtensionSettings): void {
+    const newFiles = generateVirtualFiles(sdcpn, extensions);
 
     // Remove files that no longer exist (skip temp files managed separately)
     for (const existingName of this.controller.getFileNames()) {

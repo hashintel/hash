@@ -300,6 +300,137 @@ fn param_cycle_detection() {
     );
 }
 
+/// Tests that a loop-carried parameter resolves through the non-cyclic init edge
+/// when the back-edge just passes the value through unchanged.
+///
+/// The init edge provides constant 42, the back-edge creates a cycle (x depends on x).
+/// Since cyclic predecessors are identity transfers, the non-cyclic init edge determines
+/// the value: x should resolve to 42.
+#[test]
+fn param_cycle_with_const_init() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; fn@0/0 -> Int {
+        decl x: Int, cond: Int;
+
+        bb0() {
+            cond = input.load! "cond";
+            goto bb1(42);
+        },
+        bb1(x) {
+            if cond then bb1(x) else bb2(x);
+        },
+        bb2(x) {
+            return x;
+        }
+    });
+
+    assert_data_dependency(
+        "param_cycle_with_const_init",
+        &body,
+        &mut MirContext {
+            heap: &heap,
+            env: &env,
+            interner: &interner,
+            diagnostics: DiagnosticIssues::new(),
+        },
+    );
+}
+
+/// Tests that a multi-node cycle with a constant init edge resolves correctly,
+/// even when the node with the init edge is not the cycle root.
+///
+/// The cycle is x -> y -> x (through bb1 -> bb2 -> bb1). The init edge provides
+/// constant 42 to x from bb0. During resolution of y, x is encountered as a non-root
+/// participant in the cycle. x must skip the cyclic Backtrack from y and use its
+/// non-cyclic constant init edge to resolve to 42, which then propagates through y
+/// and out to the consumer (result).
+#[test]
+fn param_cycle_multi_node_with_const_init() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; fn@0/0 -> Int {
+        decl x: Int, y: Int, cond: Int, result: Int;
+
+        bb0() {
+            cond = input.load! "cond";
+            goto bb1(42);
+        },
+        bb1(x) {
+            goto bb2(x);
+        },
+        bb2(y) {
+            if cond then bb1(y) else bb3(y);
+        },
+        bb3(result) {
+            return result;
+        }
+    });
+
+    assert_data_dependency(
+        "param_cycle_multi_node_with_const_init",
+        &body,
+        &mut MirContext {
+            heap: &heap,
+            env: &env,
+            interner: &interner,
+            diagnostics: DiagnosticIssues::new(),
+        },
+    );
+}
+
+/// Tests that the visited set is cleaned up when non-cyclic predecessors disagree
+/// inside another node's cycle resolution.
+///
+/// y has a self-loop (creating a cycle). When resolving y, the cycle root tracks
+/// visited locals. x is resolved inside y's resolution and has disagreeing predecessors
+/// (constant 42 from bb0, opaque `input` from bb1). x must remove itself from the
+/// visited set before returning Incomplete, otherwise later resolutions would see
+/// false cycle detections.
+#[test]
+fn param_cycle_visited_cleanup_on_diverge() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; fn@0/0 -> Int {
+        decl input: Int, x: Int, y: Int, cond: Int;
+
+        bb0() {
+            input = input.load! "x";
+            cond = input.load! "cond";
+            goto bb3(42);
+        },
+        bb1() {
+            goto bb3(input);
+        },
+        bb3(x) {
+            goto bb4(x);
+        },
+        bb4(y) {
+            if cond then bb4(y) else bb5(y);
+        },
+        bb5(y) {
+            return y;
+        }
+    });
+
+    assert_data_dependency(
+        "param_cycle_visited_cleanup_on_diverge",
+        &body,
+        &mut MirContext {
+            heap: &heap,
+            env: &env,
+            interner: &interner,
+            diagnostics: DiagnosticIssues::new(),
+        },
+    );
+}
+
 /// Tests constant propagation through edges.
 #[test]
 fn constant_propagation() {
@@ -535,6 +666,197 @@ fn projection_prepending_opaque_source() {
 
     assert_data_dependency(
         "projection_prepending_opaque_source",
+        &body,
+        &mut MirContext {
+            heap: &heap,
+            env: &env,
+            interner: &interner,
+            diagnostics: DiagnosticIssues::new(),
+        },
+    );
+}
+
+/// Tests mixed Param resolution through nested tuple wrapping where predecessors provide
+/// a mix of constants and projections that all resolve to the same value.
+#[test]
+fn load_param_mixed() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; fn@0/0 -> Int {
+        decl _1: (Int), _3: Int, _4: (Int), _5: Int;
+        @proj _1_0 = _1.0: Int, _4_0 = _4.0: Int;
+
+        bb0() {
+            goto bb2(42);
+        },
+        bb1() {
+            _1 = tuple 42;
+            goto bb2(_1_0);
+        },
+        bb2(_3) {
+            _4 = tuple _3;
+            goto bb4(_4_0);
+        },
+        bb3() {
+            goto bb4(42);
+        },
+        bb4(_5) {
+            return _5;
+        }
+    });
+
+    assert_data_dependency(
+        "load_param_mixed",
+        &body,
+        &mut MirContext {
+            heap: &heap,
+            env: &env,
+            interner: &interner,
+            diagnostics: DiagnosticIssues::new(),
+        },
+    );
+}
+
+/// Tests that Param consensus resolves through projections when predecessors are
+/// different tuples but the queried field is the same constant.
+///
+/// Both paths construct different tuples (`a = (42, u)`, `b = (42, v)`) but the
+/// `.0` field is the same constant `42` in both. Current algorithm compares the
+/// tuple bases (`a` vs `b`), which disagree, so it returns `Incomplete(x.0)`.
+/// Correct behavior: resolve `a.0` and `b.0` individually, find they both yield
+/// `42`, and return `Resolved(42)`.
+#[test]
+fn param_consensus_projected_field_const() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; fn@0/0 -> Int {
+        decl u: Int, v: Int, a: (Int, Int), b: (Int, Int), cond: Int, x: (Int, Int), result: Int;
+        @proj x_0 = x.0: Int;
+
+        bb0() {
+            u = input.load! "u";
+            v = input.load! "v";
+            cond = input.load! "cond";
+            a = tuple 42, u;
+            b = tuple 42, v;
+            if cond then bb1() else bb2();
+        },
+        bb1() {
+            goto bb3(a);
+        },
+        bb2() {
+            goto bb3(b);
+        },
+        bb3(x) {
+            result = load x_0;
+            return result;
+        }
+    });
+
+    assert_data_dependency(
+        "param_consensus_projected_field_const",
+        &body,
+        &mut MirContext {
+            heap: &heap,
+            env: &env,
+            interner: &interner,
+            diagnostics: DiagnosticIssues::new(),
+        },
+    );
+}
+
+/// Tests that Param consensus resolves through projections when predecessors are
+/// different tuples but the queried field is the same place.
+///
+/// Both paths construct different tuples (`a = (src, u)`, `b = (src, v)`) but the
+/// `.0` field is the same local `src` in both. Current algorithm compares the
+/// tuple bases (`a` vs `b`), which disagree, so it returns `Incomplete(x.0)`.
+/// Correct behavior: resolve `a.0` and `b.0` individually, find they both yield
+/// `src`, and return `Resolved(src)`.
+#[test]
+fn param_consensus_projected_field_place() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; fn@0/0 -> Int {
+        decl src: Int, u: Int, v: Int, a: (Int, Int), b: (Int, Int), cond: Int, x: (Int, Int), result: Int;
+        @proj x_0 = x.0: Int;
+
+        bb0() {
+            src = input.load! "src";
+            u = input.load! "u";
+            v = input.load! "v";
+            cond = input.load! "cond";
+            a = tuple src, u;
+            b = tuple src, v;
+            if cond then bb1() else bb2();
+        },
+        bb1() {
+            goto bb3(a);
+        },
+        bb2() {
+            goto bb3(b);
+        },
+        bb3(x) {
+            result = load x_0;
+            return result;
+        }
+    });
+
+    assert_data_dependency(
+        "param_consensus_projected_field_place",
+        &body,
+        &mut MirContext {
+            heap: &heap,
+            env: &env,
+            interner: &interner,
+            diagnostics: DiagnosticIssues::new(),
+        },
+    );
+}
+
+/// Tests that a cycle with a loop-invariant projected field resolves correctly.
+///
+/// The cycle is `x -> x` via the back-edge in `bb1`. The init edge provides
+/// `init = (src, other)`. The back-edge reconstructs `t = (x.0, other)`,
+/// preserving `x.0` across iterations. So `x.0` is loop-invariant and should
+/// resolve to `src`. Current algorithm compares `init` vs `t` as bases, which
+/// disagree, yielding `Incomplete(x.0)`. Correct behavior: resolve the full
+/// `init.0 = src` and see that `t.0 = x.0` is a cyclic identity, so the
+/// non-cyclic init determines the answer.
+#[test]
+fn param_cycle_invariant_projected_field() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; fn@0/0 -> Int {
+        decl src: Int, other: Int, init: (Int, Int), x: (Int, Int), t: (Int, Int), cond: Int, result: Int;
+        @proj x_0 = x.0: Int;
+
+        bb0() {
+            src = input.load! "src";
+            other = input.load! "other";
+            cond = input.load! "cond";
+            init = tuple src, other;
+            goto bb1(init);
+        },
+        bb1(x) {
+            t = tuple x_0, other;
+            if cond then bb1(t) else bb2(x_0);
+        },
+        bb2(result) {
+            return result;
+        }
+    });
+
+    assert_data_dependency(
+        "param_cycle_invariant_projected_field",
         &body,
         &mut MirContext {
             heap: &heap,

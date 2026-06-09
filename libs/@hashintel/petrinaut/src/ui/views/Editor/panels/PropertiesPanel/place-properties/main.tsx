@@ -1,5 +1,8 @@
+import { use } from "react";
+
 import { css } from "@hashintel/ds-helpers/css";
 
+import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { useIsReadOnly } from "../../../../../../react/state/use-is-read-only";
 import { VerticalSubViewsContainer } from "../../../../../components/sub-view/vertical/vertical-sub-views-container";
 import { PlacePropertiesProvider } from "./context";
@@ -18,10 +21,9 @@ const containerStyle = css({
   minHeight: "[0]",
 });
 
-const subViews: SubView[] = [
+const baseSubViews: SubView[] = [
   placeMainContentSubView,
   placeInitialStateSubView,
-  placeVisualizerSubView,
 ];
 
 interface PlacePropertiesProps {
@@ -36,10 +38,15 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
   updatePlace,
 }) => {
   const isReadOnly = useIsReadOnly();
+  const { extensions } = use(SDCPNContext);
 
-  const placeType = place.colorId
-    ? (types.find((tp) => tp.id === place.colorId) ?? null)
-    : null;
+  const placeType =
+    extensions.colors && place.colorId
+      ? (types.find((tp) => tp.id === place.colorId) ?? null)
+      : null;
+  const subViews = extensions.colors
+    ? [...baseSubViews, placeVisualizerSubView]
+    : baseSubViews;
 
   return (
     <div className={containerStyle}>

@@ -1,4 +1,5 @@
 import { advanceRun } from "./advance-run";
+import { createMonteCarloFrameReader } from "./frame-reader";
 import {
   createRunState,
   getRunSnapshot,
@@ -171,6 +172,15 @@ class MonteCarloSimulatorImpl implements MonteCarloSimulator {
             }
           }
         },
+        forEachRunFrame: (visitor) => {
+          for (const run of this.#runs) {
+            visitor({
+              runIndex: run.index,
+              status: run.status,
+              frame: createMonteCarloFrameReader(run),
+            });
+          }
+        },
       });
     }
   }
@@ -189,7 +199,11 @@ class MonteCarloSimulatorImpl implements MonteCarloSimulator {
 }
 
 /**
- * Creates a Monte Carlo simulator from an SDCPN and run configuration.
+ * Creates the synchronous Monte Carlo engine controller.
+ *
+ * Callers drive the returned simulator directly with `advanceAll()` or
+ * `runUntilComplete()`, making this API useful for tests, scripts, and custom
+ * in-memory metrics where running on the current thread is acceptable.
  */
 export function createMonteCarloSimulator(
   config: MonteCarloSimulatorConfig,

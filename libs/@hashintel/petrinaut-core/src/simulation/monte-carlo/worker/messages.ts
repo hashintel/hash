@@ -1,11 +1,16 @@
+import type { PetrinautExtensionSettings } from "../../../extensions";
 import type { SDCPN } from "../../../types/sdcpn";
 import type { InitialMarking } from "../../api";
-import type { PlaceTokenCountDistributionFrame } from "../metrics";
+import type {
+  MonteCarloMetricSpec,
+  MonteCarloUserDefinedMetricFrame,
+} from "../metrics";
 import type { MonteCarloAdvanceResult } from "../types";
 
 export type MonteCarloInitMessage = {
   type: "init";
   sdcpn: SDCPN;
+  extensions?: PetrinautExtensionSettings;
   initialMarking: InitialMarking;
   parameterValues: Record<string, string>;
   seed: number;
@@ -13,6 +18,7 @@ export type MonteCarloInitMessage = {
   maxTime: number;
   runCount: number;
   batchSize?: number;
+  metricSpecs?: readonly MonteCarloMetricSpec[];
 };
 
 export type MonteCarloStartMessage = {
@@ -33,9 +39,9 @@ export type MonteCarloProgressMessage = {
   progress: MonteCarloWorkerProgress;
 };
 
-export type MonteCarloDistributionFramesMessage = {
-  type: "distributionFrames";
-  frames: PlaceTokenCountDistributionFrame[];
+export type MonteCarloMetricFramesMessage = {
+  type: "metricFrames";
+  frames: MonteCarloUserDefinedMetricFrame[];
 };
 
 export type MonteCarloReadyMessage = {
@@ -67,7 +73,7 @@ export type MonteCarloWorkerProgress = MonteCarloAdvanceResult & {
 export type MonteCarloToMainMessage =
   | MonteCarloReadyMessage
   | MonteCarloProgressMessage
-  | MonteCarloDistributionFramesMessage
+  | MonteCarloMetricFramesMessage
   | MonteCarloCompleteMessage
   | MonteCarloCancelledMessage
   | MonteCarloErrorMessage;

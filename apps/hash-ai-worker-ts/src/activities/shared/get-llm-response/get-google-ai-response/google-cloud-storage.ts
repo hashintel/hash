@@ -1,6 +1,7 @@
 import { Storage } from "@google-cloud/storage";
 
 import { logger } from "../../activity-logger.js";
+import { getGoogleAuthClient } from "../google-auth-client.js";
 
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { File } from "@local/hash-isomorphic-utils/system-types/shared";
@@ -14,7 +15,8 @@ const getGoogleCloudStorage = () => {
     return _googleCloudStorage;
   }
 
-  const storage = new Storage();
+  const authClient = getGoogleAuthClient();
+  const storage = new Storage(authClient ? { authClient } : undefined);
   _googleCloudStorage = storage;
 
   return storage;

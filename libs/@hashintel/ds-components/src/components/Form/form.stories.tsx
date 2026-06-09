@@ -7,6 +7,7 @@ import { formInputSizes, type FormInputSize } from "../../util/form-shared";
 import { Button } from "../Button/button";
 import { NumberInput } from "../NumberInput/number-input";
 import { TextInput } from "../TextInput/text-input";
+import { Errors } from "./errors";
 import { Form } from "./form";
 
 import type { Story, StoryDefault } from "@ladle/react";
@@ -19,6 +20,23 @@ const labelDirections = [
   "left",
   "right",
 ] as const satisfies readonly LabelDirection[];
+
+type FormRowGap = NonNullable<React.ComponentProps<typeof Form.Row>["gap"]>;
+type FormRowAlign = NonNullable<React.ComponentProps<typeof Form.Row>["align"]>;
+
+const formRowGaps = [
+  "md",
+  "lg",
+  "xl",
+  "spaceBetween",
+  "none",
+] as const satisfies readonly FormRowGap[];
+
+const formRowAligns = [
+  "bottom",
+  "center",
+  "top",
+] as const satisfies readonly FormRowAlign[];
 
 const noop = () => {};
 
@@ -282,6 +300,107 @@ export const LabelDirection: Story<FormFieldArgs> = (args) => (
           invalid
         />
       </Form.Field>
+    ))}
+  </div>
+);
+
+const renderRowField = (
+  args: FormFieldArgs,
+  prefix: string,
+  index: number,
+  overrides?: Partial<FormFieldArgs> & {
+    invalid?: boolean;
+    connectToLeftInput?: boolean;
+    connectToRightInput?: boolean;
+  },
+) => {
+  const {
+    invalid,
+    connectToLeftInput,
+    connectToRightInput,
+    ...fieldOverrides
+  } = overrides ?? {};
+  return (
+    <Form.Field
+      {...args}
+      label={`Field ${index + 1}`}
+      {...fieldOverrides}
+      key={`${prefix}-${index}`}
+      as="label"
+    >
+      <ControlledTextInput
+        name={`${prefix}-${index + 1}`}
+        size={args.size}
+        invalid={invalid}
+        connectToLeftInput={connectToLeftInput}
+        connectToRightInput={connectToRightInput}
+      />
+    </Form.Field>
+  );
+};
+
+export const FormRowDefault: Story<FormFieldArgs> = (args) => (
+  <div className={sectionStyle}>
+    <Form.Row>
+      {renderRowField(args, "form-row-default-single", 0, {
+        label: "1 field",
+      })}
+    </Form.Row>
+
+    <Form.Row>
+      {renderRowField(args, "form-row-default-pair", 0, {
+        label: "2 fields (second has no label)",
+      })}
+      {renderRowField(args, "form-row-default-pair", 1, { hideLabel: true })}
+    </Form.Row>
+
+    <Form.Row
+      errors={
+        <Errors
+          errors={["Something is wrong with the values in this row"]}
+          size={args.size}
+        />
+      }
+    >
+      {Array.from({ length: 4 }, (_, index) =>
+        renderRowField(args, "form-row-default-quad", index, {
+          invalid: true,
+          ...(index === 0 ? { label: "4 fields with row errors" } : {}),
+        }),
+      )}
+    </Form.Row>
+  </div>
+);
+
+export const FormRowGap: Story<FormFieldArgs> = (args) => (
+  <div className={sectionStyle}>
+    {formRowGaps.map((gap) => (
+      <Form.Row key={gap} gap={gap} noWrap={gap === "none"}>
+        {Array.from({ length: 4 }, (_, index) =>
+          renderRowField(args, `form-row-gap-${gap}`, index, {
+            label: index === 0 ? `Gap: ${gap}` : "...",
+            ...(gap === "none" && {
+              connectToLeftInput: index > 0,
+              connectToRightInput: index < 3,
+            }),
+          }),
+        )}
+      </Form.Row>
+    ))}
+  </div>
+);
+
+export const FormRowAlign: Story<FormFieldArgs> = (args) => (
+  <div className={sectionStyle}>
+    {formRowAligns.map((align) => (
+      <Form.Row key={align} align={align}>
+        {Array.from({ length: 4 }, (_, index) =>
+          renderRowField(args, `form-row-align-${align}`, index, {
+            hideLabel: index > 0,
+            ...(index === 0 ? { label: `Align: ${align}` } : {}),
+          }),
+        )}
+      </Form.Row>
     ))}
   </div>
 );

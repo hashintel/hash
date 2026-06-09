@@ -20,12 +20,14 @@ import {
 } from "vscode-languageserver-types";
 
 import { createWorkerThreadRuntime } from "../../environment";
+import { DEFAULT_PETRINAUT_EXTENSIONS } from "../../extensions";
 import { checkSDCPN } from "../lib/checker";
 import { SDCPNLanguageServer } from "../lib/create-sdcpn-language-service";
 import { filePathToUri, uriToFilePath } from "../lib/document-uris";
 import { offsetToPosition, positionToOffset } from "../lib/position-utils";
 import { serializeDiagnostic, toCompletionItemKind } from "../lib/ts-to-lsp";
 
+import type { PetrinautExtensionSettings } from "../../extensions";
 import type { SDCPN } from "../../types/sdcpn";
 import type {
   MetricSessionData,
@@ -70,12 +72,15 @@ function respondError(id: number, message: string): void {
 }
 
 /** Run diagnostics on all SDCPN code files and push results to the main thread. */
-function publishAllDiagnostics(sdcpn: SDCPN): void {
+function publishAllDiagnostics(
+  sdcpn: SDCPN,
+  extensions: PetrinautExtensionSettings,
+): void {
   if (!server) {
     return;
   }
 
-  const result = checkSDCPN(sdcpn, server);
+  const result = checkSDCPN(sdcpn, server, extensions);
   const params: PublishDiagnosticsParams[] = result.itemDiagnostics.map(
     (item) => {
       const uri = filePathToUri(item.filePath);
@@ -164,13 +169,14 @@ function toSessionData(params: ScenarioSessionParams): ScenarioSessionData {
 function syncScenarioSession(
   sessionData: ScenarioSessionData,
   sdcpn: SDCPN,
+  extensions: PetrinautExtensionSettings,
 ): void {
   if (!server) {
     return;
   }
   scenarioSessions.set(sessionData.sessionId, sessionData);
   server.syncScenarioFiles(sdcpn, sessionData);
-  publishAllDiagnostics(sdcpn);
+  publishAllDiagnostics(sdcpn, extensions);
 }
 
 /** Convert protocol params to internal metric session data. */
@@ -182,13 +188,17 @@ function toMetricSessionData(params: MetricSessionParams): MetricSessionData {
 }
 
 /** Sync metric session files and publish diagnostics. */
-function syncMetricSession(sessionData: MetricSessionData, sdcpn: SDCPN): void {
+function syncMetricSession(
+  sessionData: MetricSessionData,
+  sdcpn: SDCPN,
+  extensions: PetrinautExtensionSettings,
+): void {
   if (!server) {
     return;
   }
   metricSessions.set(sessionData.sessionId, sessionData);
   server.syncMetricFiles(sdcpn, sessionData);
-  publishAllDiagnostics(sdcpn);
+  publishAllDiagnostics(sdcpn, extensions);
 }
 
 // ---------------------------------------------------------------------------
@@ -197,6 +207,7 @@ function syncMetricSession(sessionData: MetricSessionData, sdcpn: SDCPN): void {
 
 /** Cache the last SDCPN for re-running diagnostics after single-file changes. */
 let lastSDCPN: SDCPN | null = null;
+let lastExtensions: PetrinautExtensionSettings = DEFAULT_PETRINAUT_EXTENSIONS;
 
 /**
  * Scenario sessions queued before the SDCPN `initialize` message arrives.
@@ -215,9 +226,12 @@ workerRuntime.onMessage((data) => {
 
       case "initialize": {
         const { sdcpn } = data.params;
+        const extensions =
+          data.params.extensions ?? DEFAULT_PETRINAUT_EXTENSIONS;
         lastSDCPN = sdcpn;
+        lastExtensions = extensions;
         server = new SDCPNLanguageServer();
-        server.syncFiles(sdcpn);
+        server.syncFiles(sdcpn, extensions);
         // Replay scenario sessions that arrived before SDCPN init
         for (const session of pendingScenarioInits) {
           scenarioSessions.set(session.sessionId, session);
@@ -230,15 +244,18 @@ workerRuntime.onMessage((data) => {
           server.syncMetricFiles(sdcpn, session);
         }
         pendingMetricInits = [];
-        publishAllDiagnostics(sdcpn);
+        publishAllDiagnostics(sdcpn, extensions);
         break;
       }
 
       case "sdcpn/didChange": {
         const { sdcpn } = data.params;
+        const extensions =
+          data.params.extensions ?? DEFAULT_PETRINAUT_EXTENSIONS;
         lastSDCPN = sdcpn;
+        lastExtensions = extensions;
         server ??= new SDCPNLanguageServer();
-        server.syncFiles(sdcpn);
+        server.syncFiles(sdcpn, extensions);
         // Re-sync all scenario sessions since SDCPN types may have changed
         for (const session of scenarioSessions.values()) {
           server.syncScenarioFiles(sdcpn, session);
@@ -247,7 +264,7 @@ workerRuntime.onMessage((data) => {
         for (const session of metricSessions.values()) {
           server.syncMetricFiles(sdcpn, session);
         }
-        publishAllDiagnostics(sdcpn);
+        publishAllDiagnostics(sdcpn, extensions);
         break;
       }
 
@@ -260,7 +277,7 @@ workerRuntime.onMessage((data) => {
           server.updateDocumentContent(filePath, data.params.text);
           // Re-run full diagnostics since type changes can cascade
           if (lastSDCPN) {
-            publishAllDiagnostics(lastSDCPN);
+            publishAllDiagnostics(lastSDCPN, lastExtensions);
           }
         }
         break;
@@ -273,7 +290,7 @@ workerRuntime.onMessage((data) => {
           pendingScenarioInits.push(sessionData);
           break;
         }
-        syncScenarioSession(sessionData, lastSDCPN);
+        syncScenarioSession(sessionData, lastSDCPN, lastExtensions);
         break;
       }
 
@@ -291,7 +308,7 @@ workerRuntime.onMessage((data) => {
           }
           break;
         }
-        syncScenarioSession(sessionData, lastSDCPN);
+        syncScenarioSession(sessionData, lastSDCPN, lastExtensions);
         break;
       }
 
@@ -303,7 +320,7 @@ workerRuntime.onMessage((data) => {
         );
         server?.removeScenarioSession(sessionId);
         if (lastSDCPN) {
-          publishAllDiagnostics(lastSDCPN);
+          publishAllDiagnostics(lastSDCPN, lastExtensions);
         }
         break;
       }
@@ -314,7 +331,7 @@ workerRuntime.onMessage((data) => {
           pendingMetricInits.push(sessionData);
           break;
         }
-        syncMetricSession(sessionData, lastSDCPN);
+        syncMetricSession(sessionData, lastSDCPN, lastExtensions);
         break;
       }
 
@@ -331,7 +348,7 @@ workerRuntime.onMessage((data) => {
           }
           break;
         }
-        syncMetricSession(sessionData, lastSDCPN);
+        syncMetricSession(sessionData, lastSDCPN, lastExtensions);
         break;
       }
 
@@ -343,7 +360,7 @@ workerRuntime.onMessage((data) => {
         );
         server?.removeMetricSession(sessionId);
         if (lastSDCPN) {
-          publishAllDiagnostics(lastSDCPN);
+          publishAllDiagnostics(lastSDCPN, lastExtensions);
         }
         break;
       }

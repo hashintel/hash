@@ -1,7 +1,7 @@
 import { use, useState } from "react";
 
 import { Button, Icon } from "@hashintel/ds-components";
-import { css } from "@hashintel/ds-helpers/css";
+import { css, cx } from "@hashintel/ds-helpers/css";
 
 import {
   ExperimentsContext,
@@ -9,7 +9,10 @@ import {
 } from "../../../../../../react/experiments/context";
 import { Drawer } from "../../../../../components/drawer";
 import { Section, SectionList } from "../../../../../components/section";
-import { ExperimentTimeline } from "./experiment-timeline";
+import {
+  ExperimentMetricTimeline,
+  type MetricSize,
+} from "./experiment-metric-timeline";
 
 const bodyStyle = css({
   overflowY: "auto",
@@ -66,9 +69,35 @@ const errorStyle = css({
   whiteSpace: "pre-wrap",
 });
 
+const metricGridStyle = css({
+  display: "grid",
+  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+  alignItems: "start",
+  gap: "3",
+});
+
+const metricItemStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "1",
+  minWidth: "[0]",
+  padding: "3",
+  borderWidth: "[1px]",
+  borderStyle: "solid",
+  borderColor: "neutral.bd.subtle",
+  borderRadius: "md",
+  backgroundColor: "neutral.s00",
+});
+
+const metricItemLargeStyle = css({
+  gridColumn: "[1 / -1]",
+});
+
 const footerSpacerStyle = css({
   flex: "1",
 });
+
+type MetricFrame = ExperimentRecord["metricFrames"][number];
 
 function formatNumber(value: number): string {
   return Number.isInteger(value) ? String(value) : value.toFixed(3);
@@ -87,6 +116,20 @@ function formatStatus(experiment: ExperimentRecord): string {
     case "cancelled":
       return "Cancelled";
   }
+}
+
+function groupMetricFramesByMetric(
+  metricFrames: readonly MetricFrame[],
+): MetricFrame[][] {
+  const groups = new Map<string, MetricFrame[]>();
+
+  for (const frame of metricFrames) {
+    const frames = groups.get(frame.metricId) ?? [];
+    frames.push(frame);
+    groups.set(frame.metricId, frames);
+  }
+
+  return [...groups.values()];
 }
 
 const ExperimentSummary = ({
@@ -150,6 +193,49 @@ const ExperimentSummary = ({
   );
 };
 
+const ExperimentMetrics = ({
+  experiment,
+}: {
+  experiment: ExperimentRecord;
+}) => {
+  const [sizes, setSizes] = useState<Record<string, MetricSize>>({});
+  const metricFrameGroups = groupMetricFramesByMetric(experiment.metricFrames);
+
+  if (metricFrameGroups.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className={metricGridStyle}>
+      {metricFrameGroups.map((frames) => {
+        const latestFrame = frames.at(-1)!;
+        const size = sizes[latestFrame.metricId] ?? "small";
+
+        return (
+          <div
+            key={latestFrame.metricId}
+            className={cx(
+              metricItemStyle,
+              size === "large" && metricItemLargeStyle,
+            )}
+          >
+            <ExperimentMetricTimeline
+              frames={frames}
+              displaySize={size}
+              onDisplaySizeChange={(nextSize) =>
+                setSizes((previous) => ({
+                  ...previous,
+                  [latestFrame.metricId]: nextSize,
+                }))
+              }
+            />
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
 export const ViewExperimentDrawer = ({
   open,
   onClose,
@@ -160,7 +246,6 @@ export const ViewExperimentDrawer = ({
   experiment: ExperimentRecord | undefined;
 }) => {
   const { cancelExperiment, removeExperiment } = use(ExperimentsContext);
-  const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null);
 
   if (!experiment) {
     return (
@@ -176,7 +261,7 @@ export const ViewExperimentDrawer = ({
   return (
     <Drawer.Root open={open} onClose={onClose} className={drawerStyle}>
       <Drawer.Card onClose={onClose}>
-        <Drawer.Header description="Monte Carlo token-count distributions streamed from the worker">
+        <Drawer.Header description="Monte Carlo experiment metrics">
           {experiment.name}
         </Drawer.Header>
         <Drawer.Body className={bodyStyle}>
@@ -184,13 +269,11 @@ export const ViewExperimentDrawer = ({
             <Section title="Summary" collapsible defaultOpen>
               <ExperimentSummary experiment={experiment} />
             </Section>
-            <Section title="Token counts" collapsible defaultOpen>
-              <ExperimentTimeline
-                experiment={experiment}
-                placeId={selectedPlaceId}
-                onPlaceIdChange={setSelectedPlaceId}
-              />
-            </Section>
+            {experiment.metricFrames.length > 0 ? (
+              <Section title="Metrics" collapsible defaultOpen>
+                <ExperimentMetrics experiment={experiment} />
+              </Section>
+            ) : null}
           </SectionList>
         </Drawer.Body>
       </Drawer.Card>

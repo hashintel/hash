@@ -17,7 +17,7 @@ runs:
     - name: Copy required files
       shell: bash
       run: |
-        cp -R Cargo.toml Cargo.lock rust-toolchain.toml oxfmt.config.ts out/
+        cp -R Cargo.toml Cargo.lock rust-toolchain.toml oxfmt.config.ts infra/ out/
 
         # Globs are fun, especially in Bash. Covers all dot-files except `.`, `..`, and `.git`.
         shopt -s extglob

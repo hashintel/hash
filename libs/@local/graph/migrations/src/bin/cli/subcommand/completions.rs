@@ -14,13 +14,14 @@ pub struct CompletionsCommand {
 }
 
 impl Command for CompletionsCommand {
-    async fn execute(self) -> Result<(), Box<dyn Error>> {
+    fn execute(self) -> impl Future<Output = Result<(), Box<dyn Error>>> {
         clap_complete::generate(
             self.shell,
             &mut Entry::augment_args(clap::Command::new(env!("CARGO_PKG_NAME"))),
             env!("CARGO_PKG_NAME"),
             &mut std::io::stdout(),
         );
-        Ok(())
+
+        core::future::ready(Ok(()))
     }
 }

@@ -7,6 +7,7 @@ import { variableNameSchema } from "../validation/variable-name";
 import type {
   Color,
   DifferentialEquation,
+  InputArc,
   Parameter,
   Place,
   Transition,
@@ -49,16 +50,16 @@ export const inputArcSchema = z
     }),
     weight: z.number().positive().meta({
       description:
-        "Number of tokens consumed from the input place per firing. For coloured input places this also determines the tuple length the transition's lambda and kernel see at `input.PlaceName` (weight 2 means a 2-token array).",
+        "Token multiplicity for this input arc. Standard arcs consume this many tokens; read arcs require and expose this many tokens without consuming them; inhibitor arcs require the source place to have fewer than this many tokens. For coloured standard/read input places this also determines the tuple length the transition's lambda and kernel see at `input.PlaceName` (weight 2 means a 2-token array).",
     }),
-    type: z.enum(["standard", "inhibitor"]).meta({
+    type: z.enum(["standard", "inhibitor", "read"]).meta({
       description:
-        "Standard arcs consume tokens from the input place; inhibitor arcs prevent firing when the source place has at least the weight indicated. Inhibitor arcs do NOT consume tokens and their place is NOT present in the lambda or kernel `input`.",
+        "Standard arcs consume tokens from the input place; read arcs require and expose tokens to the lambda/kernel but do NOT consume them; inhibitor arcs prevent firing when the source place has at least the weight indicated and are NOT present in the lambda or kernel `input`.",
     }),
   })
   .meta({
     description: "Input arc from a place into a transition.",
-  });
+  }) satisfies z.ZodType<InputArc>;
 
 export const outputArcSchema = z
   .strictObject({
@@ -150,7 +151,7 @@ export const transitionSchema = z
     }),
     inputArcs: z.array(inputArcSchema).meta({
       description:
-        "Input arcs that gate and consume tokens for this transition.",
+        "Input arcs that gate transition firing. Standard arcs consume tokens, read arcs observe tokens without consuming them, and inhibitor arcs block firing based on token counts.",
     }),
     outputArcs: z.array(outputArcSchema).meta({
       description:
@@ -158,27 +159,31 @@ export const transitionSchema = z
     }),
     lambdaType: z.enum(["predicate", "stochastic"]).meta({
       description:
-        "Use predicate for boolean enabling logic; use stochastic for rate-based firing.",
+        "Use predicate for boolean enabling logic when transition lambda authoring is available; use stochastic for rate-based firing when stochasticity is available.",
     }),
     lambdaCode: z.string().meta({
       description: [
-        "Module: `export default Lambda((input, parameters) => …)`.",
-        "`input` is keyed by INPUT PLACE NAME (PascalCase) and the value is a tuple sized to that arc's weight (weight 2 means a 2-token array).",
+        "Optional module: `export default Lambda((input, parameters) => …)`.",
+        "Lambda code is meaningful only when stochasticity is enabled OR when colours are enabled and the transition has at least one standard or read input arc from a coloured place.",
+        "`input` is keyed by INPUT PLACE NAME (PascalCase) for coloured standard and read arcs, and the value is a tuple sized to that arc's weight (weight 2 means a 2-token array).",
+        "Read arc tokens are present in `input` but are not consumed when the transition fires.",
         "Inhibitor arcs and uncoloured input places are NOT present in `input`.",
         "Each token is an object keyed by the colour type's element names (e.g. `{ x, y, velocity }`).",
         "`parameters` is keyed by each parameter's `variableName` value (lower_snake_case, e.g. `parameters.infection_rate`).",
         "Predicate lambdas MUST return a boolean (true = enabled given these tokens, false = disabled).",
-        "Stochastic lambdas MUST return a non-negative finite number = expected firings per simulation second (0 disables, Infinity always fires).",
+        "Stochastic lambdas MUST return a non-negative number = expected firings per simulation second (0 disables, Infinity always fires).",
         "Lambda is called per token combination satisfying arc weights, so it MUST be deterministic — put randomness in the transition kernel, not here.",
+        "Leave empty when lambda authoring is unavailable; the runtime supplies the always-enabled default.",
       ].join(" "),
     }),
     transitionKernelCode: z.string().meta({
       description: [
-        "Module: `export default TransitionKernel((input, parameters) => …)`.",
+        "Optional module: `export default TransitionKernel((input, parameters) => …)`.",
+        "Transition kernel code is meaningful only when colours are enabled and the transition has at least one coloured output place.",
         "`input` and `parameters` have the same shape as the transition's lambda.",
         "MUST return an object keyed by OUTPUT PLACE NAME with a tuple sized to that arc's weight. Coloured output places MUST be present; uncoloured output places MUST be omitted (they are auto-populated with empty tokens).",
-        "Token attribute values can be plain numbers/booleans OR `Distribution.Gaussian(mean, sd)` / `Distribution.Uniform(min, max)` / `Distribution.Lognormal(mu, sigma)`; each distribution is sampled once per token, and chained `.map(fn)` calls on the same distribution share that single sample (useful for deriving multiple attributes from one draw).",
-        "Always required even when no stochasticity is needed; use `export default TransitionKernel(() => ({}))` when every output place is uncoloured.",
+        "Token attribute values can be plain numbers/booleans. When stochasticity is enabled, values can also be `Distribution.Gaussian(mean, sd)` / `Distribution.Uniform(min, max)` / `Distribution.Lognormal(mu, sigma)`; each distribution is sampled once per token, and chained `.map(fn)` calls on the same distribution share that single sample (useful for deriving multiple attributes from one draw).",
+        "Leave empty when no coloured outputs exist.",
       ].join(" "),
     }),
     x: z.number().meta({

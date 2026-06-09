@@ -135,6 +135,9 @@ const nonDuplicateEntitySummaries: LocalEntitySummary[] = [
 
 test.skip(
   "Test deduplicate entities with FTSE350 companies",
+  {
+    timeout: 5 * 60 * 1000,
+  },
   async () => {
     const { duplicates } = await deduplicateEntities({
       entities: [
@@ -170,9 +173,6 @@ test.skip(
         ),
       ).toBeUndefined();
     }
-  },
-  {
-    timeout: 5 * 60 * 1000,
   },
 );
 
@@ -343,6 +343,9 @@ const llmProviderExistingEntitySummaries: LocalEntitySummary[] = [
 
 test.skip(
   "Test deduplicate LLM providers",
+  {
+    timeout: 5 * 60 * 1000,
+  },
   async () => {
     const { duplicates } = await deduplicateEntities({
       entities: llmProviderExistingEntitySummaries,
@@ -352,8 +355,5 @@ test.skip(
     console.log(JSON.stringify({ duplicates }, null, 2));
 
     expect(duplicates).toBeDefined();
-  },
-  {
-    timeout: 5 * 60 * 1000,
   },
 );

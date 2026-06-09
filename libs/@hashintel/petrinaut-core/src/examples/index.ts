@@ -1,6 +1,5 @@
-export { productionMachines } from "./broken-machines";
+export { productionMachines } from "./production-with-machine-failure";
 export { deploymentPipelineSDCPN } from "./deployment-pipeline";
 export { probabilisticSatellitesSDCPN } from "./satellites-launcher";
-export { satellitesSDCPN } from "./satellites";
 export { sirModel } from "./sir-model";
-export { supplyChainStochasticSDCPN } from "./supply-chain-stochastic";
+export { supplyChainWithDisruption } from "./supply-chain-with-disruption";

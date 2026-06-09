@@ -3,13 +3,7 @@ import { uploadFileToGcpStorage } from "./google-cloud-storage.js";
 
 import type { LlmMessage } from "../llm-message.js";
 import type { PropertyValue } from "@blockprotocol/type-system";
-import type {
-  FileDataPart,
-  FunctionCallPart,
-  FunctionResponsePart,
-  Part,
-  TextPart,
-} from "@google-cloud/vertexai";
+import type { Part } from "@google/genai";
 
 export const mapLlmContentToGooglePartAndUploadFiles = async (
   content: LlmMessage["content"][number],
@@ -42,7 +36,7 @@ export const mapLlmContentToGooglePartAndUploadFiles = async (
               fileUri: gcpStorageUri,
               mimeType,
             },
-          } satisfies FileDataPart;
+          } satisfies Part;
 
           return uploadedFileData;
         },
@@ -51,7 +45,7 @@ export const mapLlmContentToGooglePartAndUploadFiles = async (
     case "text": {
       return {
         text: content.text,
-      } satisfies TextPart;
+      } satisfies Part;
     }
     case "tool_result": {
       try {
@@ -64,9 +58,9 @@ export const mapLlmContentToGooglePartAndUploadFiles = async (
         return {
           functionResponse: {
             name: content.tool_use_id,
-            response: parsedContent,
+            response: parsedContent as Record<string, unknown>,
           },
-        } satisfies FunctionResponsePart;
+        } satisfies Part;
       } catch {
         throw new Error(
           `Failed to parse tool result content: ${content.content}`,
@@ -77,9 +71,9 @@ export const mapLlmContentToGooglePartAndUploadFiles = async (
       return {
         functionCall: {
           name: content.name,
-          args: content.input,
+          args: content.input as Record<string, unknown>,
         },
-      } satisfies FunctionCallPart;
+      } satisfies Part;
     }
   }
 };
