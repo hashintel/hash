@@ -1039,6 +1039,16 @@ mod tests {
             r#""data_types_0_1_0"."schema"->>'description' IS NULL"#,
             &[],
         );
+
+        // Double negation (e.g. `Not(IsRemote)`, where `IsRemote` is itself `Not(Exists)`):
+        // three nested `Not`s over `IsNull` must still resolve to `IS NOT NULL`.
+        test_condition(
+            &Filter::Not(Box::new(Filter::Not(Box::new(Filter::Exists {
+                path: DataTypeQueryPath::Description,
+            })))),
+            r#""data_types_0_1_0"."schema"->>'description' IS NOT NULL"#,
+            &[],
+        );
     }
 
     #[test]
