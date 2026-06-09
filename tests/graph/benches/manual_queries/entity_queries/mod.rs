@@ -323,7 +323,7 @@ where
                     request.actor_id,
                     request
                         .request
-                        .into_params(config)
+                        .into_params_unchecked(config, None)
                         .expect("limit should not exceed configured maximum"),
                 )
                 .await
@@ -335,7 +335,7 @@ where
                     request.actor_id,
                     request
                         .request
-                        .into_traversal_params(config)
+                        .into_traversal_params_unchecked(config)
                         .expect("limit should not exceed configured maximum"),
                 )
                 .await
