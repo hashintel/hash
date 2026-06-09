@@ -2,7 +2,7 @@ import { Menu } from "@ark-ui/react/menu";
 
 import { css } from "@hashintel/ds-helpers/css";
 
-import { formInputSizes } from "../../util/form-shared";
+import { formInputSizes } from "../../../util/form-shared";
 import { type Item, type ItemOrGroup, SelectableList } from "./selectable-list";
 import { defaultSelected, groupedItems } from "./selectable-list.fixtures";
 
@@ -64,7 +64,7 @@ const disabledGroupedItems: ItemOrGroup<Item>[] =
 const disabledSelected = defaultSelected.map((id) => `disabled-${id}`);
 
 export default {
-  title: "Components/SelectableList",
+  title: "Internal/SelectableList",
   parameters: {
     layout: "centered",
   },

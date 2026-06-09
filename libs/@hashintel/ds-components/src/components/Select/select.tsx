@@ -13,8 +13,8 @@ import {
   SelectableList,
   type Item,
   type ItemOrGroup,
-} from "../SelectableList/selectable-list";
-import { getItemId } from "../SelectableList/selectable-list-util";
+} from "../Menu/SelectableList/selectable-list";
+import { getItemId } from "../Menu/SelectableList/selectable-list-util";
 import { InputConnector } from "../TextInput/input-connector";
 import { selectRecipe } from "./select.recipe";
 

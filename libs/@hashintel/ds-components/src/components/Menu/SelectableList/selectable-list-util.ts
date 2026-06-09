@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 
-import { type IconName } from "../Icon/icon";
+import { type IconName } from "../../Icon/icon";
 
 import type { UseMenuContext } from "@ark-ui/react/menu";
 import type { ExclusifyUnion } from "type-fest";

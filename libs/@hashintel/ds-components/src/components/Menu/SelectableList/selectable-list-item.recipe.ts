@@ -1,6 +1,6 @@
 import { sva } from "@hashintel/ds-helpers/css";
 
-import type { FormInputSize } from "../../util/form-shared";
+import type { FormInputSize } from "../../../util/form-shared";
 
 export const styles = sva({
   slots: [

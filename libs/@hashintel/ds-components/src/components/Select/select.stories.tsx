@@ -6,7 +6,7 @@ import { formInputSizes } from "../../util/form-shared";
 import { Select } from "./select";
 
 import type { FormInputSize, FormInputWidth } from "../../util/form-shared";
-import type { ItemOrGroup } from "../SelectableList/selectable-list";
+import type { ItemOrGroup } from "../Menu/SelectableList/selectable-list";
 import type { SelectItem } from "./select";
 import type { Story, StoryDefault } from "@ladle/react";
 
