@@ -15,10 +15,12 @@ export const Menu = ({
   items,
   trigger,
   position = "bottom-start",
+  className,
 }: {
   items: Array<ItemOrGroup<Item>>;
   trigger: React.ReactElement;
   position?: Position;
+  className?: string;
 }) => {
   const portalContainerRef = usePortalContainerRef();
   const handleLoopKeyDown = useLoopSelection(items);
@@ -42,7 +44,7 @@ export const Menu = ({
                 <ArkMenu.Positioner
                   onKeyDownCapture={(event) => handleLoopKeyDown(event, menu)}
                 >
-                  <SelectableList items={items} />
+                  <SelectableList items={items} className={className} />
                 </ArkMenu.Positioner>
               </Portal>
             )}
