@@ -198,10 +198,15 @@ function computeArcTickMarks(path: string): TickMark[] {
 
   for (let index = 0; index <= tickCount; index++) {
     const distance = startMargin + index * INHIBITOR_TICK_SPACING;
-    const point = pathElement.getPointAtLength(distance);
-    const ahead = pathElement.getPointAtLength(
-      Math.min(distance + 1, totalLength),
-    );
+
+    let point: DOMPoint;
+    let ahead: DOMPoint;
+    try {
+      point = pathElement.getPointAtLength(distance);
+      ahead = pathElement.getPointAtLength(Math.min(distance + 1, totalLength));
+    } catch {
+      return [];
+    }
 
     const dx = ahead.x - point.x;
     const dy = ahead.y - point.y;
