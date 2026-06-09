@@ -66,7 +66,6 @@ A software release process with a safety gate and an incident feedback loop. Dep
 
 <img width="1070" height="550" alt="deployment-pipeline" src="https://github.com/user-attachments/assets/44999019-c5f1-4007-8bec-1625a2be213c" />
 
-
 ## Production with Machine Failure
 
 A manufacturing system where machines produce goods, accumulate damage, break down, and are repaired by travelling technicians.
