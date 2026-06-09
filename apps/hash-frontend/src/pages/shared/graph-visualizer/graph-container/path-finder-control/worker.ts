@@ -1,4 +1,4 @@
-import { MultiDirectedGraph } from "graphology";
+import { MultiDirectedGraph, MultiUndirectedGraph } from "graphology";
 import { edgePathFromNodePath } from "graphology-shortest-path";
 import { allSimplePaths } from "graphology-simple-path";
 
@@ -24,13 +24,31 @@ const generateSimplePaths = async ({
   endNode,
   graph: serializedGraph,
   maxSimplePathDepth,
+  pathDirection,
   requestId,
   simplePathSort,
   startNode,
   viaNode,
 }: GenerateSimplePathsParams & { requestId: string }) => {
-  const graph = new MultiDirectedGraph();
-  graph.import(serializedGraph);
+  const directedGraph = new MultiDirectedGraph();
+  directedGraph.import(serializedGraph);
+
+  /**
+   * The serialized graph is always directed (edges point from a link's left
+   * entity to its right entity). When the user asks to ignore direction we
+   * rebuild an undirected copy so that traversal can follow links either way.
+   */
+  let graph: MultiDirectedGraph | MultiUndirectedGraph = directedGraph;
+  if (pathDirection === "Undirected") {
+    const undirectedGraph = new MultiUndirectedGraph();
+    directedGraph.forEachNode((node, attributes) => {
+      undirectedGraph.addNode(node, attributes);
+    });
+    directedGraph.forEachEdge((_edge, attributes, source, target) => {
+      undirectedGraph.addEdge(source, target, attributes);
+    });
+    graph = undirectedGraph;
+  }
 
   const unfilteredSimplePaths = allSimplePaths(
     graph,

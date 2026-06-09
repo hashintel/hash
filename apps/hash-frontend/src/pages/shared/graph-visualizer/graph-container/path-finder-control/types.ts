@@ -24,11 +24,16 @@ export const simplePathSorts = [
 
 export type SimplePathSort = (typeof simplePathSorts)[number];
 
+export const pathDirections = ["Outgoing only", "Undirected"] as const;
+
+export type PathDirection = (typeof pathDirections)[number];
+
 export type GenerateSimplePathsParams = {
   allowRepeatedNodeTypes: boolean;
   endNode: NodeData;
   graph: SerializedGraph;
   maxSimplePathDepth: number;
+  pathDirection: PathDirection;
   simplePathSort: SimplePathSort;
   startNode: NodeData;
   viaNode: NodeData | null;

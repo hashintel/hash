@@ -1,5 +1,6 @@
 import { Box, Stack, Switch } from "@mui/material";
 import { useSigma } from "@react-sigma/core";
+import { MultiUndirectedGraph } from "graphology";
 import { dijkstra, edgePathFromNodePath } from "graphology-shortest-path";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
@@ -8,7 +9,7 @@ import { formatNumber } from "@local/hash-isomorphic-utils/format-number";
 
 import { MenuItem } from "../../../../shared/ui/menu-item";
 import { GrayToBlueIconButton } from "../../gray-to-blue-icon-button";
-import { simplePathSorts } from "./path-finder-control/types";
+import { pathDirections, simplePathSorts } from "./path-finder-control/types";
 import {
   ControlPanel,
   ControlSectionContainer,
@@ -24,6 +25,7 @@ import type {
   GenerateSimplePathsResultMessage,
   NodeData,
   Path,
+  PathDirection,
   SimplePathSort,
 } from "./path-finder-control/types";
 import type { GraphVizNode } from "./shared/types";
@@ -196,9 +198,41 @@ const PathFinderPanel: FunctionComponent<{
   ]);
 
   const [maxSimplePathDepth, setMaxSimplePathDepth] = useState(3);
-  const [allowRepeatedNodeTypes, setAllowRepeatedNodeTypes] = useState(false);
+  const [allowRepeatedNodeTypes, setAllowRepeatedNodeTypes] = useState(true);
+  const [pathDirection, setPathDirection] =
+    useState<PathDirection>("Outgoing only");
   const [simplePathSort, setSimplePathSort] =
     useState<SimplePathSort>("Significance");
+
+  /**
+   * The Sigma graph is directed (edges point from a link's left entity to its
+   * right entity). When the user chooses to ignore direction we run the
+   * shortest-path queries against an undirected copy so links can be traversed
+   * either way. `nodes` is included as a dependency because it changes whenever
+   * the underlying graph data is reloaded.
+   */
+  const pathfindingGraph = useMemo(() => {
+    const graph = sigma.getGraph();
+
+    if (pathDirection === "Outgoing only") {
+      return graph;
+    }
+
+    const undirectedGraph = new MultiUndirectedGraph();
+    graph.forEachNode((node, attributes) => {
+      undirectedGraph.addNode(node, attributes);
+    });
+    graph.forEachEdge((edge, attributes, source, target) => {
+      /**
+       * Preserve the original edge keys so that an edge path derived from this
+       * graph still references the edge ids Sigma uses for rendering/highlighting.
+       */
+      undirectedGraph.addEdgeWithKey(edge, source, target, attributes);
+    });
+
+    return undirectedGraph;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sigma, pathDirection, nodes]);
 
   const [simplePaths, setSimplePaths] = useState<Path[]>([]);
   const [selectedSimplePath, _setSelectedSimplePath] = useState<Path | null>(
@@ -214,12 +248,12 @@ const PathFinderPanel: FunctionComponent<{
         return;
       }
 
-      const edgePath = edgePathFromNodePath(sigma.getGraph(), nodePath);
+      const edgePath = edgePathFromNodePath(pathfindingGraph, nodePath);
 
       setGraphState("highlightedEdgePath", edgePath);
       sigma.refresh({ skipIndexation: true });
     },
-    [sigma, setGraphState],
+    [pathfindingGraph, sigma, setGraphState],
   );
 
   const setSelectedSimplePath = useCallback(
@@ -276,6 +310,7 @@ const PathFinderPanel: FunctionComponent<{
         endNode,
         graph: sigma.getGraph().export(),
         maxSimplePathDepth,
+        pathDirection,
         simplePathSort,
         startNode,
         viaNode,
@@ -290,6 +325,7 @@ const PathFinderPanel: FunctionComponent<{
     allowRepeatedNodeTypes,
     endNode,
     maxSimplePathDepth,
+    pathDirection,
     simplePathSort,
     sigma,
     startNode,
@@ -325,12 +361,12 @@ const PathFinderPanel: FunctionComponent<{
         let shortestPath: string[] | null = null;
         if (viaNode) {
           const firstPart = dijkstra.bidirectional(
-            sigma.getGraph(),
+            pathfindingGraph,
             startNode.nodeId,
             node.nodeId,
           ) as string[] | null; // library types are wrong, might be null
           const secondPart = dijkstra.bidirectional(
-            sigma.getGraph(),
+            pathfindingGraph,
             node.nodeId,
             viaNode.nodeId,
           ) as string[] | null; // library types are wrong, might be null
@@ -351,7 +387,7 @@ const PathFinderPanel: FunctionComponent<{
           }
         } else {
           shortestPath = dijkstra.bidirectional(
-            sigma.getGraph(),
+            pathfindingGraph,
             startNode.nodeId,
             node.nodeId,
           );
@@ -385,12 +421,12 @@ const PathFinderPanel: FunctionComponent<{
 
           if (!shortestPath) {
             const firstPart = dijkstra.bidirectional(
-              sigma.getGraph(),
+              pathfindingGraph,
               startNode.nodeId,
               node.nodeId,
             ) as string[] | null;
             const secondPart = dijkstra.bidirectional(
-              sigma.getGraph(),
+              pathfindingGraph,
               node.nodeId,
               endNode.nodeId,
             ) as string[] | null;
@@ -419,7 +455,7 @@ const PathFinderPanel: FunctionComponent<{
   }, [
     endNode,
     endType,
-    sigma,
+    pathfindingGraph,
     startNode,
     viaNode,
     viaType,
@@ -450,7 +486,7 @@ const PathFinderPanel: FunctionComponent<{
   const selectStartNode = (newStartNode: NodeData | null) => {
     if (newStartNode && endNode) {
       const shortestPath = dijkstra.bidirectional(
-        sigma.getGraph(),
+        pathfindingGraph,
         newStartNode.nodeId,
         endNode.nodeId,
       );
@@ -525,7 +561,7 @@ const PathFinderPanel: FunctionComponent<{
       >
         <SimpleAutocomplete
           disabled={waitingSimplePathResult}
-          key={`${startNode?.nodeId}-${endNode?.nodeId}-${viaNode?.nodeId}-${maxSimplePathDepth}-${allowRepeatedNodeTypes}-${simplePathSort}`}
+          key={`${startNode?.nodeId}-${endNode?.nodeId}-${viaNode?.nodeId}-${maxSimplePathDepth}-${allowRepeatedNodeTypes}-${pathDirection}-${simplePathSort}`}
           placeholder={
             waitingSimplePathResult
               ? "Finding simple paths..."
@@ -553,6 +589,28 @@ const PathFinderPanel: FunctionComponent<{
               }}
               width={80}
             />
+          </Box>
+          <Box>
+            <ItemLabel tooltip="“Outgoing only” follows links in their direction (from a link's source to its target). “Undirected” ignores direction, so links can be traversed either way.">
+              Direction
+            </ItemLabel>
+            <Select
+              value={pathDirection}
+              onChange={(event) => {
+                setPathDirection(event.target.value as PathDirection);
+                setSelectedSimplePath(null);
+              }}
+              MenuProps={{
+                container: graphContainerRef.current,
+              }}
+              sx={selectSx}
+            >
+              {pathDirections.map((option) => (
+                <MenuItem key={option} value={option}>
+                  {option}
+                </MenuItem>
+              ))}
+            </Select>
           </Box>
           <Box>
             <ItemLabel tooltip="How to sort the simple path options">
