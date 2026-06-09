@@ -236,11 +236,7 @@ const ActualEventsContent: React.FC = () => {
   const firstVisibleIndex = transitionFirings.length - visibleFirings.length;
 
   const handleExportStream = () => {
-    if (
-      !actualMode.available ||
-      actualMode.definition === null ||
-      actualMode.initialState === null
-    ) {
+    if (!actualMode.available || !canExportStream) {
       return;
     }
 
