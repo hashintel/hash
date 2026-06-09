@@ -118,6 +118,7 @@ export const GraphContextProvider = <
     onEdgeClick,
     onNodeSecondClick,
     onRender,
+    pathFinderPanelOpen,
     setConfigPanelOpen,
     setFilterPanelOpen,
     setPathFinderPanelOpen,
