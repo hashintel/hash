@@ -85,7 +85,7 @@ export const selectRecipe = sva({
       minWidth: "0",
       width: "[100%]",
       paddingY: "var(--form-padding-y)",
-      display: "inline-flex",
+      display: "inline",
       alignItems: "center",
       appearance: "none",
       outline: "0",
@@ -351,9 +351,9 @@ export const selectRecipe = sva({
       },
     },
     align: {
-      left: { trigger: { justifyContent: "flex-start" } },
-      center: { trigger: { justifyContent: "center" } },
-      right: { trigger: { justifyContent: "flex-end" } },
+      left: { trigger: { textAlign: "start", justifyContent: "flex-start" } },
+      center: { trigger: { textAlign: "center", justifyContent: "center" } },
+      right: { trigger: { textAlign: "end", justifyContent: "flex-end" } },
     },
     loading: {
       true: {
@@ -388,6 +388,7 @@ export const selectRecipe = sva({
     clampTriggerHeight: {
       true: {
         trigger: {
+          display: "inline-flex",
           maxHeight:
             "[calc(var(--form-line-height) + 2 * var(--form-padding-y))]",
         },

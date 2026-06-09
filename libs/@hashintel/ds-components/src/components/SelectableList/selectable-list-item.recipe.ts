@@ -38,6 +38,8 @@ export const styles = sva({
     },
     textColumn: {
       minWidth: "0",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
     },
     description: {
       display: "block",
