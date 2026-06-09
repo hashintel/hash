@@ -89,7 +89,10 @@ export const BrunchPetrinaut = ({
     return (
       <BrunchStatusPage
         title="Connecting to Brunch"
-        body="Waiting for the Petri net definition and initial state."
+        body={
+          actualMode.error ??
+          "Waiting for the Petri net definition and initial state."
+        }
         endpoint={actualMode.source.endpoint}
       />
     );

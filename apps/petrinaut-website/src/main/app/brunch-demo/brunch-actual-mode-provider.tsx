@@ -84,7 +84,7 @@ export const BrunchActualModeProvider: FC<
     let cancelled = false;
     const eventSource = new EventSource(endpoint);
 
-    const setError = (message: string) => {
+    const setFatalError = (message: string) => {
       if (cancelled) {
         return;
       }
@@ -95,6 +95,44 @@ export const BrunchActualModeProvider: FC<
         status: "error",
         timelineNowMs: Date.now(),
         error: message,
+      }));
+    };
+
+    const setRecoverableConnectionError = (message: string) => {
+      if (cancelled) {
+        return;
+      }
+
+      setValue((prev) => {
+        if (prev.status === "error") {
+          return prev;
+        }
+
+        const canRenderActualMode =
+          prev.definition !== null && prev.initialState !== null;
+
+        return {
+          ...prev,
+          status:
+            prev.status === "complete"
+              ? "complete"
+              : canRenderActualMode
+                ? "streaming"
+                : "loading",
+          timelineNowMs: Date.now(),
+          error: message,
+        };
+      });
+    };
+
+    const onOpen = () => {
+      if (cancelled) {
+        return;
+      }
+
+      setValue((prev) => ({
+        ...prev,
+        error: prev.status === "error" ? prev.error : null,
       }));
     };
 
@@ -130,7 +168,7 @@ export const BrunchActualModeProvider: FC<
             error: null,
           }));
         } catch (err) {
-          setError(err instanceof Error ? err.message : String(err));
+          setFatalError(err instanceof Error ? err.message : String(err));
         }
       })();
     };
@@ -151,7 +189,7 @@ export const BrunchActualModeProvider: FC<
           error: null,
         }));
       } catch (err) {
-        setError(err instanceof Error ? err.message : String(err));
+        setFatalError(err instanceof Error ? err.message : String(err));
       }
     };
 
@@ -174,7 +212,7 @@ export const BrunchActualModeProvider: FC<
           error: null,
         }));
       } catch (err) {
-        setError(err instanceof Error ? err.message : String(err));
+        setFatalError(err instanceof Error ? err.message : String(err));
       }
     };
 
@@ -184,13 +222,17 @@ export const BrunchActualModeProvider: FC<
         ...prev,
         status: "complete",
         timelineNowMs: Date.now(),
+        error: null,
       }));
     };
 
     const onError = () => {
-      setError("Unable to connect to the Brunch stream endpoint.");
+      setRecoverableConnectionError(
+        "Connection to the Brunch stream was interrupted. Reconnecting...",
+      );
     };
 
+    eventSource.addEventListener("open", onOpen);
     eventSource.addEventListener("definition", onDefinition);
     eventSource.addEventListener("initial_state", onInitialState);
     eventSource.addEventListener("transition_firing", onTransitionFiring);
@@ -200,6 +242,7 @@ export const BrunchActualModeProvider: FC<
     return () => {
       cancelled = true;
       eventSource.close();
+      eventSource.removeEventListener("open", onOpen);
       eventSource.removeEventListener("definition", onDefinition);
       eventSource.removeEventListener("initial_state", onInitialState);
       eventSource.removeEventListener("transition_firing", onTransitionFiring);
