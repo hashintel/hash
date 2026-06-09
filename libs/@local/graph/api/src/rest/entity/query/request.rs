@@ -188,20 +188,21 @@ pub struct QueryEntitiesRequest<'q, 's, 'p> {
 }
 
 impl<'q, 'p> QueryEntitiesRequest<'q, '_, 'p> {
-    /// # Errors
+    /// Convert this request into [`QueryEntitiesParams`] with the given [`ApiConfig`] and resolved
+    /// limit.
     ///
-    /// Returns [`LimitExceededError`] if the requested limit exceeds the configured maximum in
-    /// [`ApiConfig::query_entity_limit`].
-    pub fn into_params(
+    /// Does not validate that the resolved limit does not exceed [`ApiConfig::query_entity_limit`].
+    pub fn into_params_unchecked(
         self,
         config: ApiConfig,
-    ) -> Result<QueryEntitiesParams<'q>, Report<LimitExceededError>>
+        limit: Option<usize>,
+    ) -> QueryEntitiesParams<'q>
     where
         'p: 'q,
     {
-        let limit = resolve_limit(self.limit, config.query_entity_limit)?;
+        let limit = limit.or(self.limit).unwrap_or(config.query_entity_limit);
 
-        Ok(QueryEntitiesParams {
+        QueryEntitiesParams {
             filter: self.filter,
             sorting: EntityQuerySorting {
                 paths: generate_sorting_paths(self.sorting_paths, &self.temporal_axes),
@@ -219,7 +220,26 @@ impl<'q, 'p> QueryEntitiesRequest<'q, '_, 'p> {
             include_type_ids: self.include_type_ids,
             include_type_titles: self.include_type_titles,
             include_permissions: self.include_permissions,
-        })
+        }
+    }
+
+    /// Convert this request into [`QueryEntitiesParams`] with the given [`ApiConfig`] and resolved
+    /// limit.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`LimitExceededError`] if the requested limit exceeds the configured maximum in
+    /// [`ApiConfig::query_entity_limit`].
+    pub fn into_params(
+        self,
+        config: ApiConfig,
+    ) -> Result<QueryEntitiesParams<'q>, Report<LimitExceededError>>
+    where
+        'p: 'q,
+    {
+        let limit = resolve_limit(self.limit, config.query_entity_limit)?;
+
+        Ok(self.into_params_unchecked(config, Some(limit)))
     }
 }
 
@@ -286,6 +306,35 @@ impl<'q, 's, 'p> QueryEntitySubgraphRequest<'q, 's, 'p> {
         }
     }
 
+    /// Convert the request into traversal parameters. Skipping validation.
+    #[must_use]
+    pub fn into_traversal_params_unchecked(self, config: ApiConfig) -> QueryEntitySubgraphParams<'q>
+    where
+        'p: 'q,
+    {
+        let (request, params) = self.into_parts();
+        let request = request.into_params_unchecked(config, None);
+
+        match params {
+            SubgraphTraversalParams::Paths { traversal_paths } => {
+                QueryEntitySubgraphParams::Paths {
+                    traversal_paths,
+                    request,
+                }
+            }
+            SubgraphTraversalParams::ResolveDepths {
+                traversal_paths,
+                graph_resolve_depths,
+            } => QueryEntitySubgraphParams::ResolveDepths {
+                traversal_paths,
+                graph_resolve_depths,
+                request,
+            },
+        }
+    }
+
+    /// Convert the request into traversal parameters.
+    ///
     /// # Errors
     ///
     /// Returns [`QueryEntitySubgraphError`] if:
