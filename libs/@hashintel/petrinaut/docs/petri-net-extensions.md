@@ -192,7 +192,7 @@ An inhibitor arc is a special input arc that **prevents** a transition from firi
 
 Inhibitor arcs **do not consume tokens** when the transition fires.
 
-<img width="757" height="577" alt="" src="https://github.com/user-attachments/assets/84bcc51a-5dbb-476f-9c01-081c77ecf06f" />
+<img width="757" height="577" alt="Visual appearance of inhibitor arcs: a solid line crossed by evenly spaced perpendicular tick marks" src="https://github.com/user-attachments/assets/84bcc51a-5dbb-476f-9c01-081c77ecf06f" />
 
 **Example:** in [Deployment Pipeline](examples.md#deployment-pipeline), inhibitor arcs from "IncidentBeingInvestigated" and "DeploymentInProgress" block new deployments while an incident is open or a deployment is already running.
 
