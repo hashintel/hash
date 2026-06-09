@@ -23,9 +23,7 @@ const INHIBITOR_MARKER_SIZE = (INHIBITOR_MARKER_RADIUS + BASE_STROKE_WIDTH) * 2;
 const READ_MARKER_RADIUS = 4;
 const READ_MARKER_SIZE = (READ_MARKER_RADIUS + BASE_STROKE_WIDTH) * 2;
 
-// Inhibitor arcs are drawn as a solid line crossed by evenly spaced
-// perpendicular tick marks (a "barrier" look) to set them clearly apart from
-// the sparse dotted read arc.
+// Perpendicular tick marks for inhibitor arcs
 const INHIBITOR_TICK_SPACING = 13;
 const INHIBITOR_TICK_HALF_LENGTH = 5;
 
@@ -160,8 +158,7 @@ type TickMark = { x1: number; y1: number; x2: number; y2: number };
  * end so the ticks do not collide with the inhibitor circle marker.
  *
  * This is a pure computation (the path element is never attached to the
- * document) and is safe to run during render; the React Compiler memoizes it on
- * `path`.
+ * document) and is safe to run during render.
  */
 function computeArcTickMarks(path: string): TickMark[] {
   if (typeof document === "undefined") {
@@ -174,12 +171,12 @@ function computeArcTickMarks(path: string): TickMark[] {
   );
   pathElement.setAttribute("d", path);
 
-  // `getTotalLength`/`getPointAtLength` are unavailable in some non-browser
-  // environments (e.g. jsdom); fall back to no ticks rather than throwing.
   let totalLength: number;
   try {
     totalLength = pathElement.getTotalLength();
   } catch {
+    // `getTotalLength`/`getPointAtLength` are unavailable in some non-browser
+    // environments (e.g. jsdom); fall back to no ticks rather than throwing.
     return [];
   }
 
@@ -297,7 +294,6 @@ export const Arc: React.FC<EdgeProps<ArcEdgeType>> = ({
   useFiringAnimation(arcPathRef, firingDelta, data?.weight ?? 1);
 
   // Compute path based on arc rendering setting.
-
   const [arcPath, labelX, labelY] =
     arcRendering === "smoothstep"
       ? getSmoothStepPath({
