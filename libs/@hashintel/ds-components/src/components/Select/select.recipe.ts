@@ -3,31 +3,23 @@ import { sva } from "@hashintel/ds-helpers/css";
 import { formSizes } from "../../util/form-size.recipe";
 import { formWidths } from "../../util/form-width.recipe";
 
-export const baseInputRecipe = sva({
+export const selectRecipe = sva({
   slots: [
     "wrapper",
-    "root",
-    "inputWrapper",
-    "input",
-    "hiddenInput",
+    "select",
+    "trigger",
+    "triggerWrapper",
     "prefix",
-    "suffix",
     "adornment",
-    "adornmentButton",
-    "adornmentText",
-    "adornmentInteractive",
-    "disabledButton",
     "loading",
-    "editIcon",
     "clear",
     "clearIcon",
     "hideClear",
-    "styledValueOverlay",
     "readonly",
     "connector",
     "connectRight",
     "connectLeft",
-    "connectAdornment",
+    "list",
   ],
   base: {
     wrapper: {
@@ -35,8 +27,9 @@ export const baseInputRecipe = sva({
       display: "inline-flex",
       position: "relative",
     },
-    root: {
+    select: {
       display: "inline-flex",
+      cursor: "pointer",
       width: "[fit-content]",
       minWidth: "[min-content]",
       position: "relative",
@@ -48,6 +41,8 @@ export const baseInputRecipe = sva({
       "--base-input-focus-color": "var(--colors-neutral-s40)",
       "--base-input-border-color": "var(--colors-neutral-s40)",
       "--base-input-border-hover-color": "var(--colors-neutral-s80)",
+      "&:has([data-disabled])": { cursor: "auto" },
+      "& [data-part='trigger']:focus": { outline: "none" },
       "&:not(.layer-style_disabled):hover [data-part='clear']": {
         opacity: "1",
         visibility: "visible",
@@ -56,15 +51,26 @@ export const baseInputRecipe = sva({
         opacity: "1",
         visibility: "visible",
       },
-      "&:focus-within [data-part='edit']": {
-        display: "none",
+      "&::after": {
+        content: '""',
+        display: "block",
+        alignSelf: "center",
+        marginLeft: "var(--base-input-padding-x)",
+        marginRight: "var(--base-input-padding-x)",
+        width: "[0.5em]",
+        height: "[0.5em]",
+        borderRight: "[1.5px solid currentColor]",
+        borderBottom: "[1.5px solid currentColor]",
+        color: "neutral.s100",
+        transform: "[rotate(45deg) translateY(-15%)]",
+        flex: "[0 0 auto]",
       },
     },
     readonly: {
       display: "inline",
       color: "fg.body",
     },
-    inputWrapper: {
+    triggerWrapper: {
       position: "relative",
       display: "flex",
       alignItems: "center",
@@ -73,50 +79,24 @@ export const baseInputRecipe = sva({
       flex: "[1 1 auto]",
       width: "var(--form-width)",
       maxWidth: "var(--form-width)",
-      "&:hover [data-part='edit']": {
-        color: "fg.body",
-      },
     },
-    input: {
+    trigger: {
       flex: "1",
       minWidth: "0",
       width: "[100%]",
       paddingY: "var(--form-padding-y)",
+      display: "inline",
+      alignItems: "center",
       appearance: "none",
       outline: "0",
       border: "none",
       bg: "[inherit]",
       color: "[inherit]",
       borderRadius: "var(--base-input-border-radius)",
-      _placeholder: { color: "neutral.s80" },
-      _disabled: { cursor: "auto" },
-
-      // Hide the number step controls in safari + chrome when not focused.
-      // Use opacity (not appearance) so the controls still reserve layout
-      // space — otherwise the input would grow when focus reveals them.
-      "&[type=number]:not(:focus)::-webkit-outer-spin-button, &[type=number]:not(:focus)::-webkit-inner-spin-button":
-        {
-          opacity: 0,
-          pointerEvents: "none",
-        },
-      // Firefox exposes no public selector for the spin buttons, so we can't
-      // reserve their space. Hide them permanently to keep the width stable.
-      "&[type=number]": {
-        // @ts-expect-error moz-appearance is a valid firefox property
-        "-moz-appearance": "textfield",
-      },
-    },
-    hiddenInput: {
-      color: "[transparent]",
-      caretColor: "[transparent]",
-    },
-    prefix: {
-      borderLeftRadius: "var(--base-input-border-radius)",
-      borderRight: "1px solid transparent",
-    },
-    suffix: {
-      borderRightRadius: "var(--base-input-border-radius)",
-      borderLeft: "1px solid transparent",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap",
+      "&[data-placeholder-shown]": { color: "neutral.s80" },
     },
     adornment: {
       display: "inline-flex",
@@ -124,81 +104,17 @@ export const baseInputRecipe = sva({
       justifyContent: "center",
       flexShrink: 0,
       whiteSpace: "nowrap",
-    },
-    adornmentButton: {
-      color: "fg.body",
-      cursor: "pointer",
-      padding: "0",
-      transition:
-        "[background 0.15s ease, border 0.15s ease, color 0.15s ease]",
-      "&:not([disabled]):hover": {
-        background: "neutral.s30",
-        color: "neutral.s120",
-      },
-      "&:not([disabled]):hover + [data-part='connector']": {
-        fill: "[var(--colors-neutral-s30)]",
-      },
-      "&:not([disabled]):active": {
-        background: "neutral.s40",
-        color: "neutral.s125",
-      },
-      "&:not([disabled]):active + [data-part='connector']": {
-        fill: "neutral.s40",
-      },
-      "&:focus:not(:focus-visible)": { outline: "none" },
-      _focusVisible: {
-        outline: "[1px solid var(--colors-neutral-s80)]",
-        outlineOffset: "0",
-        background: "neutral.s25",
-      },
-      "&:focus-visible + [data-part='connector']": {
-        fill: "neutral.s25",
-      },
-    },
-    adornmentInteractive: {
-      transition:
-        "[background 0.15s ease, border 0.15s ease, color 0.15s ease]",
-      _focusWithin: {
-        outline: "[1px solid var(--colors-neutral-s80)]",
-        outlineOffset: "0",
-        background: "neutral.s25",
-      },
-    },
-    disabledButton: {
-      cursor: "auto",
       color: "fg.muted",
-    },
-    adornmentText: {
-      color: "fg.muted",
+      position: "relative",
     },
     loading: {
       alignSelf: "center",
-      paddingRight: "2",
       position: "relative",
-    },
-    editIcon: {
-      position: "absolute",
-      zIndex: "[1]",
-      right: "2",
-      paddingX: "0.5",
-      display: "flex",
-      alignItems: "center",
-      color: "fg.muted",
-      cursor: "pointer",
-      _before: {
-        content: "'\\200B'",
-        position: "absolute",
-        paddingY: "[var(--form-padding-y)]",
-        insetX: "0",
-        background: "[var(--base-input-background-color)]",
-        zIndex: "[-2]",
-        borderRightRadius: "var(--base-input-border-radius)",
-      },
     },
     clear: {
       position: "absolute",
       zIndex: "[1]",
-      right: "2",
+      right: "-1",
       display: "flex",
       alignItems: "center",
       opacity: "0",
@@ -233,15 +149,6 @@ export const baseInputRecipe = sva({
     hideClear: {
       visibility: "hidden !important",
     },
-    styledValueOverlay: {
-      position: "absolute",
-      inset: "0",
-      display: "flex",
-      alignItems: "center",
-      pointerEvents: "none",
-      overflow: "hidden",
-      paddingY: "var(--form-padding-y)",
-    },
     connector: {
       position: "absolute",
       top: "0",
@@ -252,7 +159,6 @@ export const baseInputRecipe = sva({
       strokeWidth: "1px",
       fill: "[var(--base-input-background-color)]",
       transition: "[fill 0.15s ease, color 0.15s ease]",
-      // Fixes subpixel rounding error in safari
       transform: "scaleX(100.01%)",
     },
     connectRight: {
@@ -262,14 +168,17 @@ export const baseInputRecipe = sva({
       right: "[100%]",
       maskImage: "[linear-gradient(to right, transparent, black)]",
     },
-    connectAdornment: {
-      fill: "[var(--colors-neutral-s20)]",
+    list: {
+      ...formWidths.base,
+      width: "var(--reference-width)",
+      maxWidth: "var(--reference-width)",
+      minWidth: "[var(--form-min-width) !important]",
     },
   },
   variants: {
     variant: {
       default: {
-        root: {
+        select: {
           borderColor: "var(--base-input-border-color)",
           color: "fg.body",
           "&:not(.layer-style_disabled):hover": {
@@ -283,25 +192,15 @@ export const baseInputRecipe = sva({
             outline: "[1px solid var(--base-input-focus-color)]",
           },
         },
-        adornment: {
-          background: "neutral.s20",
-          paddingX: "2",
-          borderRightColor: "var(--colors-neutral-s40)",
-          borderLeftColor: "var(--colors-neutral-s40)",
+        trigger: {
+          paddingLeft: "var(--base-input-padding-x)",
         },
-        adornmentButton: {
-          borderRightColor: "var(--colors-neutral-s40)",
-          borderLeftColor: "var(--colors-neutral-s40)",
-        },
-        input: {
-          paddingX: "var(--base-input-padding-x)",
-        },
-        styledValueOverlay: {
-          paddingX: "var(--base-input-padding-x)",
+        prefix: {
+          paddingLeft: "2",
         },
       },
       subtle: {
-        root: {
+        select: {
           "--base-input-border-hover-color": "var(--colors-neutral-a40)",
           "--base-input-background-color": "transparent",
           _before: {
@@ -326,40 +225,27 @@ export const baseInputRecipe = sva({
               borderColor: "var(--base-input-border-color)",
             },
           },
-          "&:not(.layer-style_disabled):hover [data-part='edit']": {
-            visibility: "hidden",
+          "&::after": {
+            marginRight: "[calc(var(--base-input-padding-x) / 2)]",
           },
+        },
+        clear: {
+          right:
+            "[calc(var(--base-input-padding-x) * -1 + 1px + var(--spacing-1))]",
         },
         prefix: {
           paddingLeft: "1",
           left: "[calc(var(--base-input-padding-x) * -1 + 1px)]",
-          "&[data-part='adornment-text']:not([data-interactive='true'])": {
+          "&[data-part='adornment-text']": {
             left: "[calc(var(--base-input-padding-x) * -0.8 + 1px)]",
           },
         },
-        suffix: {
-          paddingRight: "1",
-          right: "[calc(var(--base-input-padding-x) * -1 + 1px)]",
-          "&[data-part='adornment-text']:not([data-interactive='true'])": {
-            right: "[calc(var(--base-input-padding-x) * -0.8 + 1px)]",
-          },
-        },
-        loading: {
-          right: "[calc(var(--base-input-padding-x) * -1 + 1px)]",
-        },
-        editIcon: {
-          right:
-            "[calc(var(--base-input-padding-x) * -1 + 1px + var(--spacing-2))]",
-        },
-        clear: {
-          right:
-            "[calc(var(--base-input-padding-x) * -1 + 1px + var(--spacing-2))]",
-        },
-        adornment: {
-          position: "relative",
-        },
-        adornmentButton: {
-          paddingX: "1",
+        list: {
+          width:
+            "[calc(var(--reference-width) + var(--base-input-padding-x) * 2)]",
+          maxWidth:
+            "[calc(var(--reference-width) + var(--base-input-padding-x) * 2)]",
+          marginLeft: "[calc(-1 * var(--base-input-padding-x))]",
         },
       },
     },
@@ -402,7 +288,7 @@ export const baseInputRecipe = sva({
     },
     invalid: {
       true: {
-        root: {
+        select: {
           "--base-input-focus-color": "var(--colors-red-s60)",
           "--base-input-border-color": "var(--colors-red-s60)",
           "--base-input-border-hover-color": "var(--colors-red-s65)",
@@ -411,102 +297,80 @@ export const baseInputRecipe = sva({
     },
     disabled: {
       true: {
-        root: {
+        select: {
           ...({ layerStyle: "disabled" } as Record<string, string>),
           cursor: "auto",
+          "&::after": {
+            color: "neutral.s80",
+          },
         },
       },
     },
     width: {
       xs: {
-        wrapper: { ...formWidths.variants.widths.xs },
+        select: { ...formWidths.variants.widths.xs },
       },
       sm: {
-        wrapper: { ...formWidths.variants.widths.sm },
+        select: { ...formWidths.variants.widths.sm },
       },
       md: {
-        wrapper: { ...formWidths.variants.widths.md },
+        select: { ...formWidths.variants.widths.md },
       },
       lg: {
-        wrapper: { ...formWidths.variants.widths.lg },
+        select: { ...formWidths.variants.widths.lg },
       },
       fullWidth: {
-        wrapper: {
+        wrapper: { width: "[100%]" },
+        select: {
           ...formWidths.variants.widths.fullWidth,
-          width: "[100%]",
-        },
-        root: {
           width: "[100%]",
         },
       },
       fitContent: {
-        wrapper: { ...formWidths.variants.widths.fitContent },
-        root: {
+        select: {
+          ...formWidths.variants.widths.fitContent,
           width: "[fit-content]",
         },
         readonly: { width: "[fit-content]" },
-        inputWrapper: {
+        triggerWrapper: {
           display: "inline-grid",
           minWidth: "[unset]",
         },
-        input: {
+        trigger: {
           gridArea: "[1 / 1]",
-          fieldSizing: "content",
-          "&[type=number]::-webkit-outer-spin-button, &[type=number]::-webkit-inner-spin-button":
-            {
-              marginLeft: "1.5",
-            },
         },
         clear: {
           position: "relative",
           right: "[auto]",
           gridArea: "[1 / 2]",
         },
-        editIcon: {
-          position: "relative",
-          right: "[auto]",
-          gridArea: "[1 / 2]",
+        list: {
+          width: "[auto]",
+          maxWidth: "[auto]",
         },
       },
     },
     align: {
-      left: { input: { textAlign: "start" } },
-      center: { input: { textAlign: "center" } },
-      right: { input: { textAlign: "end" } },
+      left: { trigger: { textAlign: "start", justifyContent: "flex-start" } },
+      center: { trigger: { textAlign: "center", justifyContent: "center" } },
+      right: { trigger: { textAlign: "end", justifyContent: "flex-end" } },
     },
     loading: {
       true: {
         clear: {
-          right: "1.5",
+          right: "1",
         },
-        editIcon: {
-          right: "1.5",
+      },
+    },
+    hideArrow: {
+      true: {
+        select: {
+          "&::after": { display: "none" },
         },
       },
     },
     willClear: { true: {} },
-    editAndClear: {
-      true: {
-        editIcon: {
-          _before: {
-            left: "[calc(var(--spacing-1\\.5) * -1 - 1px)]",
-          },
-        },
-      },
-    },
-    hasIcons: { true: {} },
-    hasBrowserControls: {
-      true: {
-        clear: {
-          position: "relative",
-          right: "1",
-          gridArea: "[1 / 2]",
-        },
-        editIcon: {
-          paddingX: "0.5",
-        },
-      },
-    },
+    hasPrefix: { true: {} },
     connectsRight: {
       true: {
         wrapper: {
@@ -521,19 +385,33 @@ export const baseInputRecipe = sva({
         },
       },
     },
+    clampTriggerHeight: {
+      true: {
+        trigger: {
+          display: "inline-flex",
+          maxHeight:
+            "[calc(var(--form-line-height) + 2 * var(--form-padding-y))]",
+        },
+      },
+    },
   },
   compoundVariants: [
+    {
+      variant: "default",
+      hasPrefix: true,
+      css: {
+        trigger: {
+          paddingLeft: "[calc(var(--base-input-padding-x) * 3 / 4)]",
+        },
+      },
+    },
     {
       variant: "subtle",
       loading: true,
       css: {
         clear: {
           right:
-            "[calc(var(--base-input-padding-x) * -1 + 1px + var(--spacing-1\\.5))]",
-        },
-        editIcon: {
-          right:
-            "[calc(var(--base-input-padding-x) * -1 + 1px + var(--spacing-1\\.5))]",
+            "[calc(var(--base-input-padding-x) * -1 + 1px + var(--spacing-2\\.5))]",
         },
       },
     },
@@ -541,27 +419,10 @@ export const baseInputRecipe = sva({
       variant: "default",
       disabled: true,
       css: {
-        root: {
+        select: {
           "--base-input-border-color": "var(--colors-neutral-s50)",
           "--base-input-background-color": "var(--colors-neutral-s20)",
           color: "neutral.s80",
-          "&:after": {
-            content: "''",
-            position: "absolute",
-            inset: "[-1px]",
-            borderRadius: "var(--base-input-border-radius)",
-            pointerEvents: "none",
-            transition: "[border 0.15s ease]",
-          },
-          "&:has([data-part='adornment-button']:not([disabled]):hover)::after, &:has([data-part='adornment-text'][data-interactive]:hover)::after":
-            {
-              border: "1px solid var(--base-input-border-hover-color)",
-            },
-          "&:has([data-part='adornment-button']:not([disabled]):focus-visible)::after, &:has([data-part='adornment-text'][data-interactive]:focus-within)::after":
-            {
-              border: "1px solid var(--base-input-border-hover-color)",
-              outline: "[1px solid var(--base-input-focus-color)]",
-            },
         },
       },
     },
@@ -569,25 +430,8 @@ export const baseInputRecipe = sva({
       variant: "subtle",
       disabled: true,
       css: {
-        root: {
+        select: {
           color: "neutral.s80",
-          "&:has([data-part='adornment-button']:not([disabled]):hover)::before, &:has([data-part='adornment-text'][data-interactive]:hover)::before":
-            {
-              borderColor: "var(--base-input-border-hover-color)",
-            },
-          "&:has([data-part='adornment-button']:not([disabled]):focus-visible)::before, &:has([data-part='adornment-text'][data-interactive]:focus-within)::before":
-            {
-              borderColor: "var(--base-input-border-color)",
-            },
-        },
-      },
-    },
-    {
-      variant: "default",
-      size: "lg",
-      css: {
-        adornment: {
-          paddingX: "2.5",
         },
       },
     },
@@ -595,7 +439,7 @@ export const baseInputRecipe = sva({
       variant: "default",
       invalid: true,
       css: {
-        root: {
+        select: {
           "&:not(.layer-style_disabled):hover": {
             "--base-input-background-color": "var(--colors-red-s05)",
           },
@@ -606,7 +450,7 @@ export const baseInputRecipe = sva({
       variant: "subtle",
       invalid: true,
       css: {
-        root: {
+        select: {
           _before: {
             borderColor: "var(--base-input-border-color)",
           },
@@ -617,7 +461,10 @@ export const baseInputRecipe = sva({
       variant: "subtle",
       size: "xxs",
       css: {
-        root: {
+        select: {
+          "--base-input-padding-x": "spacing.2",
+        },
+        list: {
           "--base-input-padding-x": "spacing.2",
         },
       },
@@ -626,7 +473,10 @@ export const baseInputRecipe = sva({
       variant: "subtle",
       size: "xs",
       css: {
-        root: {
+        select: {
+          "--base-input-padding-x": "spacing.2",
+        },
+        list: {
           "--base-input-padding-x": "spacing.2",
         },
       },
@@ -635,7 +485,10 @@ export const baseInputRecipe = sva({
       variant: "subtle",
       size: "sm",
       css: {
-        root: {
+        select: {
+          "--base-input-padding-x": "spacing.2",
+        },
+        list: {
           "--base-input-padding-x": "spacing.2",
         },
       },
@@ -644,7 +497,10 @@ export const baseInputRecipe = sva({
       variant: "subtle",
       size: "md",
       css: {
-        root: {
+        select: {
+          "--base-input-padding-x": "spacing.2",
+        },
+        list: {
           "--base-input-padding-x": "spacing.2",
         },
       },
@@ -653,45 +509,11 @@ export const baseInputRecipe = sva({
       variant: "subtle",
       size: "lg",
       css: {
-        root: {
+        select: {
           "--base-input-padding-x": "spacing.2",
         },
-      },
-    },
-    {
-      hasBrowserControls: true,
-      willClear: true,
-      css: {
-        input: {
-          // Hide the number scroll arrows in safari + firefox when not focused
-          "&[type=number]::-webkit-outer-spin-button, &[type=number]::-webkit-inner-spin-button":
-            {
-              WebkitAppearance: "none",
-            },
-          "&[type=number]": {
-            // @ts-expect-error moz-appearance is a valid firefox property
-            "-moz-appearance": "textfield",
-          },
-        },
-      },
-    },
-    {
-      hasBrowserControls: true,
-      hasIcons: true,
-      css: {
-        input: {
-          paddingRight: "1",
-        },
-      },
-    },
-    {
-      hasBrowserControls: true,
-      editAndClear: true,
-      css: {
-        editIcon: {
-          _before: {
-            left: "0",
-          },
+        list: {
+          "--base-input-padding-x": "spacing.2",
         },
       },
     },

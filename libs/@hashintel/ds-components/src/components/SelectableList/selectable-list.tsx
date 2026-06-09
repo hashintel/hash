@@ -9,12 +9,12 @@ import { cx } from "@hashintel/ds-helpers/css";
 
 import { usePortalContainerRef } from "../../util/portal-container-context";
 import { isEmptyString } from "../../util/string";
-import { LoadingSpinner } from "../Loading/loading-spinner";
 import { ItemBody } from "./selectable-list-item";
 import { styles as itemStyles } from "./selectable-list-item.recipe";
 import {
   type Item,
   type ItemOrGroup,
+  getItemId,
   isGroup,
   useLoopSelection,
 } from "./selectable-list-util";
@@ -59,7 +59,7 @@ const NestedMenu = ({
   return (
     <Menu.Root
       loopFocus={false}
-      ids={{ trigger: item.id }}
+      ids={{ trigger: getItemId(item) }}
       positioning={{
         placement: "right-start",
         offset: { mainAxis: 0 },
@@ -97,7 +97,8 @@ const NestedMenu = ({
 };
 
 const ItemRow = ({ item, ctx }: { item: Item; ctx: RenderCtx }) => {
-  const isSelected = ctx.selectedSet.has(item.id);
+  const itemId = getItemId(item);
+  const isSelected = ctx.selectedSet.has(itemId);
   const selectedStyle = item.selectedStyle ?? "highlight";
   const highlighted = isSelected && selectedStyle === "highlight";
   const isInteractive = !item.disabled && !item.loading;
@@ -124,7 +125,7 @@ const ItemRow = ({ item, ctx }: { item: Item; ctx: RenderCtx }) => {
         item={item}
         className={classes.item}
         data-selected={isSelected || undefined}
-        data-loading={!!item.loading || undefined}
+        data-loading={(item.loading && !item.disabled) || undefined}
       >
         {body}
       </Select.Item>
@@ -146,7 +147,7 @@ const ItemRow = ({ item, ctx }: { item: Item; ctx: RenderCtx }) => {
 
   if ("href" in item && item.href && isInteractive) {
     return (
-      <Menu.Item value={item.id} asChild>
+      <Menu.Item value={itemId} asChild>
         <a
           href={item.href}
           target={item.target}
@@ -161,18 +162,18 @@ const ItemRow = ({ item, ctx }: { item: Item; ctx: RenderCtx }) => {
 
   const handleSelect = () => {
     if ("onClick" in item && item.onClick) {
-      item.onClick(item.id);
+      item.onClick(itemId);
     }
   };
 
   return (
     <Menu.Item
-      value={item.id}
+      value={itemId}
       disabled={!isInteractive}
       onSelect={handleSelect}
       className={classes.item}
       data-selected={isSelected || undefined}
-      data-loading={!!item.loading || undefined}
+      data-loading={(item.loading && !item.disabled) || undefined}
     >
       {body}
     </Menu.Item>
@@ -199,7 +200,7 @@ const renderEntry = (
             </Select.ItemGroupLabel>
           )}
           {entry.items.map((child) => (
-            <ItemRow key={child.id} item={child} ctx={ctx} />
+            <ItemRow key={getItemId(child)} item={child} ctx={ctx} />
           ))}
         </Select.ItemGroup>
       );
@@ -213,13 +214,13 @@ const renderEntry = (
           </Menu.ItemGroupLabel>
         )}
         {entry.items.map((child) => (
-          <ItemRow key={child.id} item={child} ctx={ctx} />
+          <ItemRow key={getItemId(child)} item={child} ctx={ctx} />
         ))}
       </Menu.ItemGroup>
     );
   }
 
-  return <ItemRow key={entry.id} item={entry} ctx={ctx} />;
+  return <ItemRow key={getItemId(entry)} item={entry} ctx={ctx} />;
 };
 
 /**
@@ -241,7 +242,6 @@ export const SelectableList = ({
   selected,
   size = "md",
   emptyState,
-  loading = false,
 }: {
   /** Which ark-ui primitive set to render inside. Defaults to Menu. */
   as?: SelectableListAs;
@@ -250,7 +250,6 @@ export const SelectableList = ({
   size?: FormInputSize;
   selected?: string[] | Set<string>;
   emptyState?: React.ReactNode;
-  loading?: boolean;
 }) => {
   const selectedSet = useMemo(() => new Set(selected ?? []), [selected]);
   const classes = styles({ size });
@@ -264,11 +263,7 @@ export const SelectableList = ({
     contentClassName: classes.content,
   };
 
-  const body = loading ? (
-    <div className={classes.loadingContainer}>
-      <LoadingSpinner size={size} />
-    </div>
-  ) : isEmpty ? (
+  const body = isEmpty ? (
     <div className={classes.emptyContainer}>{emptyState}</div>
   ) : (
     items.map((item) => renderEntry(item, ctx))

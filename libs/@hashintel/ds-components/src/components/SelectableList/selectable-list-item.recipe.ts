@@ -38,6 +38,8 @@ export const styles = sva({
     },
     textColumn: {
       minWidth: "0",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
     },
     description: {
       display: "block",
@@ -130,6 +132,7 @@ export const styles = sva({
         },
         icon: { marginTop: "[calc((1lh - 24px) / 2)]" },
         spinner: { marginTop: "[calc((1lh - 24px) / 2)]" },
+        tick: { marginX: "-0.5" },
       },
       lg: {
         item: {
@@ -146,6 +149,7 @@ export const styles = sva({
         },
         icon: { marginTop: "[calc((1lh - 24px) / 2)]" },
         spinner: { marginTop: "[calc((1lh - 24px) / 2)]" },
+        tick: { marginX: "-0.5" },
       },
     },
     tone: {

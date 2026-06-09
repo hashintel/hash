@@ -44,7 +44,7 @@ export type SharedInputProps<
   /** The ref of the containing element. Use this for measurements/placement */
   ref?: React.Ref<HTMLElement>;
   /** The input ref - this could be different to the ref, which may be a containing element. Use this to access the internal input state and/or to set focus */
-  inputRef?: React.Ref<HTMLInputElement>;
+  inputRef?: React.Ref<Element>;
   /** Set to true to make the element focused on mount */
   autoFocus?: boolean;
 } & SharedInputAndFieldProps;

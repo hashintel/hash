@@ -24,7 +24,7 @@ const SelectionIndicator = ({
   classes: ItemClasses;
   size: FormInputSize;
 }) => {
-  if (style === "none" || style === "highlight") {
+  if (style === "highlight") {
     return null;
   }
 

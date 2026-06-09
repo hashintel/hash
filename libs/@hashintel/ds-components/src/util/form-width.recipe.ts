@@ -2,16 +2,15 @@ import { cva } from "@hashintel/ds-helpers/css";
 
 /**
  * Shared per-width style values for sized form-input components
- * (TextInput, …). Internal — these CSS variables are NOT part of the
- * public token API and are not re-exported through
+ * (TextInput, Select, …). Internal — these CSS variables are NOT part of
+ * the public token API and are not re-exported through
  * `@hashintel/ds-components/tokens`.
  *
- * Recipes spread `formWidthBase` into the root unconditionally (to
- * define `--form-min-width`) and `formWidths.<width>` into the width
- * variants (to define `--form-width`). Inner slots reference
- * `var(--form-width)` and `var(--form-min-width)` wherever the input
- * is sized — same pattern as `formSizes` is consumed by
- * `base-input.recipe.ts`.
+ * Recipes spread `formWidths.base` into the wrapper unconditionally (to
+ * define `--form-min-width`) and `formWidths.variants.widths.<width>`
+ * into the width variants (to define `--form-width`). Inner slots
+ * reference `var(--form-width)` and `var(--form-min-width)` — the
+ * values cascade from the wrapper.
  *
  *   width | --form-width
  *   ------+-------------

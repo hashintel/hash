@@ -5,10 +5,7 @@ import { type IconName } from "../Icon/icon";
 import type { UseMenuContext } from "@ark-ui/react/menu";
 import type { ExclusifyUnion } from "type-fest";
 
-export type Item = {
-  id: string;
-
-  text: React.ReactNode;
+type ItemBase = {
   description?: React.ReactNode;
   icon?: IconName;
   loading?: boolean;
@@ -16,19 +13,32 @@ export type Item = {
   indent?: number;
   disabled?: boolean;
   tone?: "neutral" | "brand" | "error";
-  selectedStyle?: "none" | "tick" | "checkbox" | "highlight";
-} & ExclusifyUnion<
-  | {
-      href: string;
-      target?: "_blank";
-    }
-  | {
-      onClick: (id: string) => void;
-    }
-  | {
-      nestedItems: ItemOrGroup<Item>;
-    }
->;
+  selectedStyle?: "tick" | "checkbox" | "highlight";
+};
+
+// When `text` is a plain string we can use it as a stable id, so callers can
+// omit `id`. For any non-string `text` (e.g. JSX) an explicit `id` is required.
+type ItemTextAndId =
+  | { id: string; text: React.ReactNode }
+  | { id?: string; text: string };
+
+export type Item = ItemBase &
+  ItemTextAndId &
+  ExclusifyUnion<
+    | {
+        href: string;
+        target?: "_blank";
+      }
+    | {
+        onClick: (id: string) => void;
+      }
+    | {
+        nestedItems: ItemOrGroup<Item>;
+      }
+  >;
+
+export const getItemId = (item: Item): string =>
+  item.id ?? (typeof item.text === "string" ? item.text : "");
 
 export type ItemOrGroup<ItemType> =
   | ItemType
@@ -56,11 +66,11 @@ export const collectNavigableItemIds = (
     if (isGroup(entry)) {
       for (const item of entry.items) {
         if (isNavigable(item)) {
-          result.push(item.id);
+          result.push(getItemId(item));
         }
       }
     } else if (isNavigable(entry)) {
-      result.push(entry.id);
+      result.push(getItemId(entry));
     }
   }
   return result;

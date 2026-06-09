@@ -3,7 +3,7 @@ import { css } from "@hashintel/ds-helpers/css";
 import { type Item, type ItemOrGroup } from "./selectable-list";
 
 const tones = ["neutral", "brand", "error"] as const;
-const selectedStyles = ["none", "tick", "checkbox", "highlight"] as const;
+const selectedStyles = ["tick", "checkbox", "highlight"] as const;
 
 const noop = () => {};
 
