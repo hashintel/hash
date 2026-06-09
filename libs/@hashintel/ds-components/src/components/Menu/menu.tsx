@@ -81,6 +81,7 @@ export const Menu = ({
                     items={items}
                     className={className}
                     selected={selected}
+                    size="sm"
                   />
                 </ArkMenu.Positioner>
               </Portal>

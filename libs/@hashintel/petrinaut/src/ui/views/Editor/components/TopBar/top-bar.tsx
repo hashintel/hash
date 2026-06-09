@@ -1,6 +1,6 @@
 import { use } from "react";
 
-import { Button } from "@hashintel/ds-components";
+import { Button, Menu, type MenuItem } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import {
@@ -8,7 +8,6 @@ import {
   type EditorState,
 } from "../../../../../react/state/editor-context";
 import { UndoRedoContext } from "../../../../../react/state/undo-redo-context";
-import { Menu, type MenuItem } from "../../../../components/menu";
 import { FloatingTitle } from "./floating-title";
 import { ModeSelector } from "./mode-selector";
 import { RunningExperimentsPopover } from "./running-experiments-popover";
@@ -104,7 +103,6 @@ export const TopBar: React.FC<TopBarProps> = ({
             />
           }
           items={menuItems}
-          animated
         />
 
         {hideNetManagementControls !== "all" && (

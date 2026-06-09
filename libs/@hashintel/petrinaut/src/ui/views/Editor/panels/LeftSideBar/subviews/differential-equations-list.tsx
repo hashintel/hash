@@ -1,7 +1,7 @@
 import { use } from "react";
 import { v4 as uuidv4 } from "uuid";
 
-import { Button, Icon } from "@hashintel/ds-components";
+import { Button } from "@hashintel/ds-components";
 import { DEFAULT_DIFFERENTIAL_EQUATION_CODE } from "@hashintel/petrinaut-core";
 
 import { usePetrinautMutations } from "../../../../../../react/hooks/use-petrinaut-mutations";
@@ -71,9 +71,9 @@ const DiffEqRowMenu: React.FC<{ item: { id: string } }> = ({ item }) => {
       items={[
         {
           id: "delete",
-          label: "Delete",
-          icon: <Icon name="trash" size="sm" />,
-          destructive: true,
+          text: "Delete",
+          icon: "trash",
+          tone: "error",
           disabled: isDisabled,
           onClick: () => removeDifferentialEquation({ equationId: item.id }),
         },

@@ -1,8 +1,7 @@
-import { Icon } from "@hashintel/ds-components";
+import { Icon, Menu, type MenuItem } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 
 import { useIsReadOnly } from "../../../../../react/state/use-is-read-only";
-import { Menu, type MenuItem } from "../../../../components/menu";
 import { ToolbarButton } from "./toolbar-button";
 import { ToolbarDivider } from "./toolbar-divider";
 
@@ -73,17 +72,19 @@ const CursorModeDropdown: React.FC<{
   const items: MenuItem[] = [
     {
       id: "select",
-      icon: <Icon name="cursor" size="sm" />,
-      label: "Select",
+      icon: "cursor",
+      text: "Select",
       suffix: "V",
+      tone: cursorMode === "select" ? "brand" : "neutral",
       selected: cursorMode === "select",
       onClick: () => handleCursorChange("select"),
     },
     {
       id: "pan",
-      icon: <Icon name="hand" size="sm" />,
-      label: "Pan",
+      icon: "hand",
+      text: "Pan",
       suffix: "H",
+      tone: cursorMode === "pan" ? "brand" : "neutral",
       selected: cursorMode === "pan",
       onClick: () => handleCursorChange("pan"),
     },
@@ -102,8 +103,7 @@ const CursorModeDropdown: React.FC<{
         </button>
       }
       items={items}
-      placement="top"
-      animated
+      position="top"
     />
   );
 };

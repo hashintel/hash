@@ -1,6 +1,6 @@
 import { use, useState } from "react";
 
-import { Button, Icon, Tooltip } from "@hashintel/ds-components";
+import { Button, Icon, Menu, Tooltip } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import {
   DEFAULT_VISUALIZER_CODE,
@@ -9,7 +9,6 @@ import {
 
 import { PlaybackContext } from "../../../../../../../../react/playback/context";
 import { EditorContext } from "../../../../../../../../react/state/editor-context";
-import { Menu } from "../../../../../../../components/menu";
 import { SegmentGroup } from "../../../../../../../components/segment-group";
 import { Switch } from "../../../../../../../components/switch";
 import { UI_MESSAGES } from "../../../../../../../constants/ui-messages";
@@ -180,7 +179,6 @@ const VisualizerHeaderAction: React.FC = () => {
       )}
       {hasVisualizer && globalMode === "edit" && (
         <Menu
-          animated
           trigger={
             <Button
               aria-label="More options"
@@ -193,7 +191,7 @@ const VisualizerHeaderAction: React.FC = () => {
           items={[
             {
               id: "load-default",
-              label: "Load default template",
+              text: "Load default template",
               onClick: () => {
                 const currentPlaceType = place.colorId
                   ? types.find((type) => type.id === place.colorId)
@@ -211,8 +209,11 @@ const VisualizerHeaderAction: React.FC = () => {
             },
             {
               id: "generate-ai",
-              label: (
-                <Tooltip content={UI_MESSAGES.AI_FEATURE_COMING_SOON}>
+              text: (
+                <Tooltip
+                  content={UI_MESSAGES.AI_FEATURE_COMING_SOON}
+                  position="bottom"
+                >
                   <div className={aiMenuItemStyle}>
                     <Icon name="sparkles" size="sm" />
                     Generate with AI

@@ -1,6 +1,6 @@
 import { use } from "react";
 
-import { Button, Icon, Tooltip } from "@hashintel/ds-components";
+import { Button, Icon, Menu, Tooltip } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import {
   generateDefaultLambdaCode,
@@ -8,7 +8,6 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import { EditorContext } from "../../../../../../../../react/state/editor-context";
-import { Menu } from "../../../../../../../components/menu";
 import { SegmentGroup } from "../../../../../../../components/segment-group";
 import { UI_MESSAGES } from "../../../../../../../constants/ui-messages";
 import { CodeEditor } from "../../../../../../../monaco/code-editor";
@@ -60,7 +59,6 @@ const FiringTimeHeaderAction: React.FC = () => {
 
   return (
     <Menu
-      animated
       trigger={
         <Button
           aria-label="More options"
@@ -73,7 +71,7 @@ const FiringTimeHeaderAction: React.FC = () => {
       items={[
         {
           id: "load-default",
-          label: "Load default template",
+          text: "Load default template",
           onClick: () => {
             updateTransition({
               transitionId: transition.id,
@@ -86,8 +84,11 @@ const FiringTimeHeaderAction: React.FC = () => {
         },
         {
           id: "generate-ai",
-          label: (
-            <Tooltip content={UI_MESSAGES.AI_FEATURE_COMING_SOON}>
+          text: (
+            <Tooltip
+              content={UI_MESSAGES.AI_FEATURE_COMING_SOON}
+              position="bottom"
+            >
               <div className={aiMenuItemStyle}>
                 <Icon name="sparkles" size="sm" />
                 Generate with AI

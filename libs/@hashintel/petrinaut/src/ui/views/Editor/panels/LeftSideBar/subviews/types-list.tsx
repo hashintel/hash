@@ -1,6 +1,6 @@
 import { use } from "react";
 
-import { Button, Icon } from "@hashintel/ds-components";
+import { Button } from "@hashintel/ds-components";
 
 import { usePetrinautMutations } from "../../../../../../react/hooks/use-petrinaut-mutations";
 import { EditorContext } from "../../../../../../react/state/editor-context";
@@ -126,9 +126,9 @@ const TypeRowMenu: React.FC<{ item: { id: string } }> = ({ item }) => {
       items={[
         {
           id: "delete",
-          label: "Delete",
-          icon: <Icon name="trash" size="sm" />,
-          destructive: true,
+          text: "Delete",
+          icon: "trash",
+          tone: "error",
           disabled: isDisabled,
           onClick: () => removeType({ typeId: item.id }),
         },
