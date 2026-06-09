@@ -738,10 +738,9 @@ const closeClient = (response: ServerResponse): void => {
 const publicHost = host === "0.0.0.0" ? "127.0.0.1" : host;
 const endpoint = `http://${publicHost}:${port}/stream`;
 const encodedEndpoint = encodeURIComponent(endpoint);
-const brunchRoute = `/brunch?mode=actual&sse=${encodedEndpoint}&runId=${encodeURIComponent(
+const brunchRoute = `/brunch?sse=${encodedEndpoint}&runId=${encodeURIComponent(
   runId,
 )}`;
-const brunchEndpointRoute = `/brunch?brunch_endpoint=${encodedEndpoint}`;
 const snapshotUrl = `http://${publicHost}:${port}/snapshot`;
 
 const replayRecordingToClient = (
@@ -851,7 +850,6 @@ const server = http.createServer((request, response) => {
       "",
       `SSE endpoint: ${endpoint}`,
       `Petrinaut route: ${brunchRoute}`,
-      `Petrinaut brunch_endpoint route: ${brunchEndpointRoute}`,
       `Snapshot JSON: ${snapshotUrl}`,
       "",
       recordingReplay
@@ -897,7 +895,6 @@ server.listen(port, host, () => {
   console.log("");
   console.log(`SSE endpoint: ${endpoint}`);
   console.log(`Petrinaut route: ${brunchRoute}`);
-  console.log(`Petrinaut brunch_endpoint route: ${brunchEndpointRoute}`);
   console.log(`Snapshot JSON: ${snapshotUrl}`);
   console.log("");
   if (recordingReplay) {

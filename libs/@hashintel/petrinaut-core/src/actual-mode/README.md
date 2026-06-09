@@ -33,7 +33,7 @@ independently of how a host transports events:
 
 The current demo path is:
 
-1. `apps/petrinaut-website` opens `/brunch?brunch_endpoint=<url>`.
+1. `apps/petrinaut-website` opens `/brunch?sse=<url>`.
 2. The Brunch provider connects with `EventSource`.
 3. Website-local parsers validate the temporary Brunch definition, initial
    state, and transition firing payloads.

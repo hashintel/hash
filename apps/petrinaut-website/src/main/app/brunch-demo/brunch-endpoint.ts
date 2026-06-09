@@ -24,28 +24,13 @@ export const getBrunchEndpointFromLocation = (
   location: Location,
 ): BrunchEndpointResult => {
   const params = new URLSearchParams(location.search);
-  const rawEndpoint =
-    params.get("brunch_endpoint") ?? params.get("sse") ?? undefined;
+  const rawEndpoint = params.get("sse") ?? undefined;
 
   try {
-    if (rawEndpoint) {
+    if (rawEndpoint !== undefined) {
       return {
         ok: true,
         endpoint: normalizeEndpoint(rawEndpoint),
-        runId: params.get("runId") ?? undefined,
-      };
-    }
-
-    const rawSearch = location.search.startsWith("?")
-      ? location.search.slice(1)
-      : location.search;
-    const prefix = "brunch_endpoint";
-
-    if (rawSearch.startsWith(prefix)) {
-      const endpoint = decodeURIComponent(rawSearch.slice(prefix.length));
-      return {
-        ok: true,
-        endpoint: normalizeEndpoint(endpoint),
         runId: params.get("runId") ?? undefined,
       };
     }
@@ -58,7 +43,6 @@ export const getBrunchEndpointFromLocation = (
 
   return {
     ok: false,
-    error:
-      "Missing Brunch stream endpoint. Add ?brunch_endpoint=<url> or ?sse=<url>.",
+    error: "Missing Brunch stream endpoint. Add ?sse=<url>.",
   };
 };

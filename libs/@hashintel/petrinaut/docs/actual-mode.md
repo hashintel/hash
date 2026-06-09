@@ -9,7 +9,7 @@ When Actual mode is available, the top-bar mode selector enables **Actual** and 
 The demo website enables Actual mode on the `/brunch` route when the URL includes a Brunch stream endpoint:
 
 ```text
-/brunch?brunch_endpoint=<Brunch stream URL>
+/brunch?sse=<Brunch stream URL>
 ```
 
 Petrinaut connects to the stream, waits for the Petri net definition and initial state, lays out the net if the stream did not include node positions, and then shows the net in Actual mode.
