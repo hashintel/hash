@@ -47,8 +47,14 @@ export type EntitiesVisualizerData = Partial<
   >
 > & {
   entities?: HashEntity[];
+
   hadCachedContent: boolean;
   loading: boolean;
+  /**
+   * Whether or not a network request is in process.
+   * Note that if is hasCachedContent is true, data for the given query is available before loading is complete.
+   * The cached content will be replaced automatically and the value updated when the network request completes.
+   */
   refetch: () => Promise<ApolloQueryResult<QueryEntitySubgraphQuery>>;
   subgraph?: Subgraph<EntityRootType<HashEntity>>;
   tableData: EntitiesTableData | null;
