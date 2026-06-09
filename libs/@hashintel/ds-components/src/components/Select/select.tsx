@@ -273,16 +273,30 @@ export const Select = <TValue extends string>({
     };
     return [noneItem, ...mapped];
   }, [effectiveItems, isOptional, resolvedRenderItem]);
-  const collection = useMemo(
-    () =>
-      createListCollection<Item>({
-        items: flattenItems(menuItems),
-        itemToValue: (item) => getItemId(item),
-        itemToString: (item) => getItemId(item),
-        isItemDisabled: (item) => !!item.disabled,
-      }),
-    [menuItems],
-  );
+  const collection = useMemo(() => {
+    const valueToText = new Map<string, string>();
+    for (const entry of effectiveItems) {
+      if ("items" in entry) {
+        for (const it of entry.items) {
+          valueToText.set(it.value, it.text);
+        }
+      } else {
+        valueToText.set(entry.value, entry.text);
+      }
+    }
+    return createListCollection<Item>({
+      items: flattenItems(menuItems),
+      itemToValue: (item) => getItemId(item),
+      itemToString: (item) => {
+        const id = getItemId(item);
+        if (id === NONE_VALUE) {
+          return "";
+        }
+        return valueToText.get(id) ?? id;
+      },
+      isItemDisabled: (item) => !!item.disabled,
+    });
+  }, [menuItems, effectiveItems]);
 
   const classes = selectRecipe({
     variant,
