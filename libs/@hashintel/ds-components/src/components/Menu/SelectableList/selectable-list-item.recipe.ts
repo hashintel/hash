@@ -59,8 +59,10 @@ export const styles = sva({
     suffix: {
       marginLeft: "auto",
       flexShrink: "0",
-      color: "fg.subtle",
+      color: "neutral.s80",
       alignSelf: "flex-start",
+      fontWeight: "normal",
+      fontSize: "[0.9em]",
     },
     arrow: {
       alignSelf: "center",
