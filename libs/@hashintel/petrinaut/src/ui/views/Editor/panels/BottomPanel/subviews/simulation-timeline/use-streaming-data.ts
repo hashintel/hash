@@ -188,7 +188,12 @@ export function useStreamingData(source: TimelineFrameSource): {
     processedRef.current = 0;
   }, [seriesConfig.series, source.sourceId, storeController]);
 
-  // Stream new frames into the store
+  // TODO(actual-mode follow-up): this effect still depends on the
+  // TimelineFrameSource object identity. Callers currently create source
+  // objects inline, so unrelated renders can restart frame reads. Leave this
+  // unresolved in this PR; the next pass should move to a stable source adapter
+  // contract or depend on sourceId, totalFrames, and getFramesInRange directly.
+  // Stream new frames into the store.
   useEffect(() => {
     let cancelled = false;
 

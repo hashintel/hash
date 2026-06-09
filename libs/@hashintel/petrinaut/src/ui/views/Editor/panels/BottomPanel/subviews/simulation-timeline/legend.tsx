@@ -397,6 +397,10 @@ export const TimelineLegend: FC<{
                 </span>
               ))}
             </span>
+            {/* TODO(actual-mode follow-up): add explicit accessible names for
+            the combobox input and icon-only triggers. The visual selector is
+            usable, but screen readers should not rely on a placeholder that
+            disappears once timeline series are selected. */}
             <Combobox.Input
               className={legendInputStyle}
               placeholder={
