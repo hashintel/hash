@@ -234,7 +234,7 @@ export const getLatestEntityById = async <
      * ...whether the prioritisation is fixed behavior or varied by parameter.
      */
     allFilter.push({
-      exists: { path: ["draftId"] },
+      not: { exists: { path: ["draftId"] } },
     });
   }
 

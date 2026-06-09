@@ -66,11 +66,13 @@ export const generateUseEntityTypeEntitiesFilter = ({
           {
             any: [
               {
-                exists: {
-                  path: [
-                    "properties",
-                    systemPropertyTypes.archived.propertyTypeBaseUrl,
-                  ],
+                not: {
+                  exists: {
+                    path: [
+                      "properties",
+                      systemPropertyTypes.archived.propertyTypeBaseUrl,
+                    ],
+                  },
                 },
               },
               {

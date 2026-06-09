@@ -261,8 +261,10 @@ const archivedBaseUrl = systemPropertyTypes.archived.propertyTypeBaseUrl;
 export const pageOrNotificationNotArchivedFilter: Filter = {
   any: [
     {
-      exists: {
-        path: ["properties", archivedBaseUrl],
+      not: {
+        exists: {
+          path: ["properties", archivedBaseUrl],
+        },
       },
     },
     {
