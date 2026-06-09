@@ -145,9 +145,12 @@ const ItemRow = ({ item, ctx }: { item: Item; ctx: RenderCtx }) => {
     );
   }
 
+  const closeOnSelect =
+    item.keepOpenOnSelect !== undefined ? !item.keepOpenOnSelect : undefined;
+
   if ("href" in item && item.href && isInteractive) {
     return (
-      <Menu.Item value={itemId} asChild>
+      <Menu.Item value={itemId} closeOnSelect={closeOnSelect} asChild>
         <a
           href={item.href}
           target={item.target}
@@ -170,6 +173,7 @@ const ItemRow = ({ item, ctx }: { item: Item; ctx: RenderCtx }) => {
     <Menu.Item
       value={itemId}
       disabled={!isInteractive}
+      closeOnSelect={closeOnSelect}
       onSelect={handleSelect}
       className={classes.item}
       data-selected={isSelected || undefined}

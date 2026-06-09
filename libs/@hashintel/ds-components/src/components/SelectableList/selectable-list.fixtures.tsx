@@ -41,6 +41,13 @@ const itemWithSuffix: Item = {
   onClick: noop,
 };
 
+const itemKeepsMenuOpen: Item = {
+  id: "keep-open",
+  text: "Keeps menu open on click",
+  keepOpenOnSelect: true,
+  onClick: noop,
+};
+
 const itemIndent1: Item = {
   id: "indent-1",
   text: "Indented 1",
@@ -200,6 +207,7 @@ export const groupedItems: ItemOrGroup<Item>[] = [
   itemWithIcon,
   itemWithLoading,
   itemWithSuffix,
+  itemKeepsMenuOpen,
   itemWithHref,
   {
     id: "group-indented",

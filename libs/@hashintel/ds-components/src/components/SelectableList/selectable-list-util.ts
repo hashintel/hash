@@ -15,6 +15,12 @@ type ItemBase = {
   disabled?: boolean;
   tone?: "neutral" | "brand" | "error";
   selectedStyle?: "tick" | "checkbox" | "highlight";
+
+  /**
+   * When true, selecting this item does not close the parent menu. Has no
+   * effect when rendered inside a `Select` or as a nested-menu trigger.
+   */
+  keepOpenOnSelect?: boolean;
 };
 
 // When `text` is a plain string we can use it as a stable id, so callers can
