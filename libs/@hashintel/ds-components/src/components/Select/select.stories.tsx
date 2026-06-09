@@ -567,7 +567,9 @@ export const CustomRender: Story<SelectProps> = (args) => {
         />
       </div>
       <div className={groupStyle}>
-        <span style={subheadingStyle}>Connected: ½× left + 2× right</span>
+        <span style={subheadingStyle}>
+          Connected: ½× left + 2× right - large connected items are clamped
+        </span>
         <div style={{ display: "flex", alignItems: "flex-end" }}>
           <Select
             {...spreadArgs}
