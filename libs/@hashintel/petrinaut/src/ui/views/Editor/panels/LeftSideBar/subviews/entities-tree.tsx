@@ -1,6 +1,5 @@
 import { use } from "react";
 
-import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { usePetrinautMutations } from "../../../../../../react";
@@ -84,9 +83,9 @@ const EntityRowMenu: React.FC<{ item: EntityTreeItem }> = ({ item }) => {
       items={[
         {
           id: "delete",
-          label: "Delete",
-          icon: <Icon name="trash" size="sm" />,
-          destructive: true,
+          text: "Delete",
+          icon: "trash",
+          tone: "error",
           disabled: isReadOnly,
           onClick: deleteAction,
         },

@@ -13,8 +13,8 @@ import {
   SelectableList,
   type Item,
   type ItemOrGroup,
-} from "../SelectableList/selectable-list";
-import { getItemId } from "../SelectableList/selectable-list-util";
+} from "../Menu/SelectableList/selectable-list";
+import { getItemId } from "../Menu/SelectableList/selectable-list-util";
 import { InputConnector } from "../TextInput/input-connector";
 import { selectRecipe } from "./select.recipe";
 
@@ -163,7 +163,7 @@ function mapToMenuItems<TValue extends string>(
     text: renderItem(it.value),
     disabled: it.disabled,
     selectedStyle: "tick",
-    nestedItems: undefined,
+    subItems: undefined,
     onClick: () => {},
   });
   return items.map((entry) =>
@@ -269,7 +269,7 @@ export const Select = <TValue extends string>({
     const noneItem: Item = {
       id: noneValue,
       text: "\u200B",
-      nestedItems: undefined,
+      subItems: undefined,
       onClick: () => {},
     };
     return [noneItem, ...mapped];

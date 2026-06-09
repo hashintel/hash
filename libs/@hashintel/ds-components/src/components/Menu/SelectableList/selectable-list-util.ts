@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 
-import { type IconName } from "../Icon/icon";
+import { type IconName } from "../../Icon/icon";
 
 import type { UseMenuContext } from "@ark-ui/react/menu";
 import type { ExclusifyUnion } from "type-fest";
@@ -9,11 +9,18 @@ type ItemBase = {
   description?: React.ReactNode;
   icon?: IconName;
   loading?: boolean;
+  suffix?: React.ReactNode;
 
   indent?: number;
   disabled?: boolean;
   tone?: "neutral" | "brand" | "error";
   selectedStyle?: "tick" | "checkbox" | "highlight";
+
+  /**
+   * When true, selecting this item does not close the parent menu. Has no
+   * effect when rendered inside a `Select` or as a nested-menu trigger.
+   */
+  keepOpenOnSelect?: boolean;
 };
 
 // When `text` is a plain string we can use it as a stable id, so callers can
@@ -33,7 +40,7 @@ export type Item = ItemBase &
         onClick: (id: string) => void;
       }
     | {
-        nestedItems: ItemOrGroup<Item>;
+        subItems: Array<ItemOrGroup<Item>>;
       }
   >;
 

@@ -68,7 +68,6 @@ export const selectRecipe = sva({
     },
     readonly: {
       display: "inline",
-      color: "fg.body",
     },
     triggerWrapper: {
       position: "relative",
@@ -256,6 +255,7 @@ export const selectRecipe = sva({
           "--base-input-border-radius": "radii.md",
           "--base-input-padding-x": "spacing.2",
         },
+        readonly: { textStyle: formSizes.variants.sizes.xxs.textStyle },
       },
       xs: {
         wrapper: {
@@ -263,6 +263,7 @@ export const selectRecipe = sva({
           "--base-input-border-radius": "radii.md",
           "--base-input-padding-x": "spacing.2",
         },
+        readonly: { textStyle: formSizes.variants.sizes.xs.textStyle },
       },
       sm: {
         wrapper: {
@@ -270,6 +271,7 @@ export const selectRecipe = sva({
           "--base-input-border-radius": "radii.lg",
           "--base-input-padding-x": "spacing.2.5",
         },
+        readonly: { textStyle: formSizes.variants.sizes.sm.textStyle },
       },
       md: {
         wrapper: {
@@ -277,6 +279,7 @@ export const selectRecipe = sva({
           "--base-input-border-radius": "radii.lg",
           "--base-input-padding-x": "spacing.3",
         },
+        readonly: { textStyle: formSizes.variants.sizes.md.textStyle },
       },
       lg: {
         wrapper: {
@@ -284,6 +287,7 @@ export const selectRecipe = sva({
           "--base-input-border-radius": "radii.xl",
           "--base-input-padding-x": "spacing.4",
         },
+        readonly: { textStyle: formSizes.variants.sizes.lg.textStyle },
       },
     },
     invalid: {

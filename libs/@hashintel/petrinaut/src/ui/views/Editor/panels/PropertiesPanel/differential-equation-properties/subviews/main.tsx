@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import { Button, Dialog, Icon, Tooltip } from "@hashintel/ds-components";
+import { Button, Dialog, Icon, Menu, Tooltip } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import {
   DEFAULT_DIFFERENTIAL_EQUATION_CODE,
@@ -10,7 +10,6 @@ import {
 
 import { useIsReadOnly } from "../../../../../../../react/state/use-is-read-only";
 import { DraftFieldInput } from "../../../../../../components/draft-field-input";
-import { Menu } from "../../../../../../components/menu";
 import { Section, SectionList } from "../../../../../../components/section";
 import { Select } from "../../../../../../components/select";
 import { DifferentialEquationIcon } from "../../../../../../constants/entity-icons";
@@ -245,7 +244,6 @@ const DiffEqCodeAction: React.FC = () => {
 
   return (
     <Menu
-      animated
       trigger={
         <Button
           aria-label="More options"
@@ -258,7 +256,7 @@ const DiffEqCodeAction: React.FC = () => {
       items={[
         {
           id: "load-default",
-          label: "Load default template",
+          text: "Load default template",
           onClick: () => {
             const equationType = types.find(
               (tp) => tp.id === differentialEquation.colorId,
@@ -276,8 +274,11 @@ const DiffEqCodeAction: React.FC = () => {
         },
         {
           id: "generate-ai",
-          label: (
-            <Tooltip content={UI_MESSAGES.AI_FEATURE_COMING_SOON}>
+          text: (
+            <Tooltip
+              content={UI_MESSAGES.AI_FEATURE_COMING_SOON}
+              position="bottom"
+            >
               <div className={aiMenuItemStyle}>
                 <Icon name="sparkles" size="sm" />
                 Generate with AI

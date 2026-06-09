@@ -34,6 +34,20 @@ const itemWithLoading: Item = {
   onClick: noop,
 };
 
+const itemWithSuffix: Item = {
+  id: "with-suffix",
+  text: "Item with suffix",
+  suffix: "⌘K",
+  onClick: noop,
+};
+
+const itemKeepsMenuOpen: Item = {
+  id: "keep-open",
+  text: "Keeps menu open on click",
+  keepOpenOnSelect: true,
+  onClick: noop,
+};
+
 const itemIndent1: Item = {
   id: "indent-1",
   text: "Indented 1",
@@ -55,20 +69,38 @@ const toneItems: Item[] = tones.map((tone) => ({
   onClick: noop,
 }));
 
-const selectedStyleVariantItems: Item[] = selectedStyles.flatMap((style) => [
-  {
-    id: `style-${style}-unselected`,
-    text: `selectedStyle: ${style} (not selected)`,
-    selectedStyle: style,
-    onClick: noop,
-  },
-  {
+const selectedStyleVariantItems: Item[] = selectedStyles.flatMap((style) => {
+  const selected: Item = {
     id: `style-${style}-selected`,
     text: `selectedStyle: ${style} (selected)`,
     selectedStyle: style,
     onClick: noop,
-  },
-]);
+  };
+
+  if (style === "highlight") {
+    return [selected];
+  }
+
+  return [
+    {
+      id: `style-${style}-unselected`,
+      text: `selectedStyle: ${style} (not selected)`,
+      selectedStyle: style,
+      onClick: noop,
+    },
+    selected,
+  ];
+});
+
+const highlightToneVariantItems: Item[] = (["brand", "error"] as const).map(
+  (tone) => ({
+    id: `style-highlight-${tone}-selected`,
+    text: `selectedStyle: highlight, tone: ${tone} (selected)`,
+    tone,
+    selectedStyle: "highlight",
+    onClick: noop,
+  }),
+);
 
 const itemWithHref: Item = {
   id: "with-href",
@@ -102,6 +134,7 @@ const kitchenSinkItem: Item = {
   indent: 1,
   tone: "error",
   selectedStyle: "checkbox",
+  suffix: "⌘K",
   onClick: noop,
 };
 
@@ -144,7 +177,7 @@ const nestedNestedChild = {
   text: "First level",
   icon: "arrowRight",
   onClick: noop,
-  nestedItems: nestedNestedGrandchild,
+  subItems: [nestedNestedGrandchild],
 } as unknown as Item;
 
 const itemWithSingleSubAction = {
@@ -152,7 +185,7 @@ const itemWithSingleSubAction = {
   text: "Item with a single sub-action",
   icon: "sliders",
   onClick: noop,
-  nestedItems: nestedItemSingleChild,
+  subItems: [nestedItemSingleChild],
 } as unknown as Item;
 
 const itemWithGroupedSubActions = {
@@ -160,11 +193,13 @@ const itemWithGroupedSubActions = {
   text: "Item with grouped sub-actions",
   icon: "magic",
   onClick: noop,
-  nestedItems: {
-    id: "sa-grouped-group",
-    label: "Sub-action group",
-    items: nestedGroupedChildren,
-  },
+  subItems: [
+    {
+      id: "sa-grouped-group",
+      label: "Sub-action group",
+      items: nestedGroupedChildren,
+    },
+  ],
 } as unknown as Item;
 
 const itemWithNestedSubActions = {
@@ -172,7 +207,7 @@ const itemWithNestedSubActions = {
   text: "Item with nested sub-actions",
   icon: "shapes",
   onClick: noop,
-  nestedItems: nestedNestedChild,
+  subItems: [nestedNestedChild],
 } as unknown as Item;
 
 const itemWithoutSubActions: Item = {
@@ -183,6 +218,8 @@ const itemWithoutSubActions: Item = {
 
 export const defaultSelected = [
   ...selectedStyles.map((style) => `style-${style}-selected`),
+  "style-highlight-brand-selected",
+  "style-highlight-error-selected",
   "kitchen-sink",
 ];
 
@@ -191,6 +228,8 @@ export const groupedItems: ItemOrGroup<Item>[] = [
   itemWithDescription,
   itemWithIcon,
   itemWithLoading,
+  itemWithSuffix,
+  itemKeepsMenuOpen,
   itemWithHref,
   {
     id: "group-indented",
@@ -205,7 +244,7 @@ export const groupedItems: ItemOrGroup<Item>[] = [
   {
     id: "group-selected",
     label: "Selected",
-    items: selectedStyleVariantItems,
+    items: [...selectedStyleVariantItems, ...highlightToneVariantItems],
   },
   {
     id: "group-nested-items",

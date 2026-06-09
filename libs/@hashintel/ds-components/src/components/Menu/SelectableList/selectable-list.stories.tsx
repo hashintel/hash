@@ -2,7 +2,7 @@ import { Menu } from "@ark-ui/react/menu";
 
 import { css } from "@hashintel/ds-helpers/css";
 
-import { formInputSizes } from "../../util/form-shared";
+import { formInputSizes } from "../../../util/form-shared";
 import { type Item, type ItemOrGroup, SelectableList } from "./selectable-list";
 import { defaultSelected, groupedItems } from "./selectable-list.fixtures";
 
@@ -27,11 +27,13 @@ function prefixIds(
       items: entry.items.map((item) => prefixIds(item, prefix) as Item),
     };
   }
-  const nested = (entry as { nestedItems?: ItemOrGroup<Item> }).nestedItems;
+  const nested = (entry as { subItems?: Array<ItemOrGroup<Item>> }).subItems;
   return {
     ...entry,
     id: `${prefix}-${entry.id}`,
-    ...(nested ? { nestedItems: prefixIds(nested, prefix) } : {}),
+    ...(nested
+      ? { subItems: nested.map((child) => prefixIds(child, prefix)) }
+      : {}),
   } as unknown as Item;
 }
 
@@ -43,12 +45,12 @@ function withDisabled(entry: ItemOrGroup<Item>): ItemOrGroup<Item> {
       items: entry.items.map((item) => withDisabled(item) as Item),
     };
   }
-  const nested = (entry as { nestedItems?: ItemOrGroup<Item> }).nestedItems;
+  const nested = (entry as { subItems?: Array<ItemOrGroup<Item>> }).subItems;
   return {
     ...entry,
     id: `disabled-${entry.id}`,
     disabled: true,
-    ...(nested ? { nestedItems: withDisabled(nested) } : {}),
+    ...(nested ? { subItems: nested.map((child) => withDisabled(child)) } : {}),
   } as unknown as Item;
 }
 
@@ -58,7 +60,7 @@ const disabledGroupedItems: ItemOrGroup<Item>[] =
 const disabledSelected = defaultSelected.map((id) => `disabled-${id}`);
 
 export default {
-  title: "Components/SelectableList",
+  title: "Internal/SelectableList",
   parameters: {
     layout: "centered",
   },

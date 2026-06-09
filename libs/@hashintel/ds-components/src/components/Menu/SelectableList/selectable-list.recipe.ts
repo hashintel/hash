@@ -1,6 +1,6 @@
 import { sva } from "@hashintel/ds-helpers/css";
 
-import type { FormInputSize } from "../../util/form-shared";
+import type { FormInputSize } from "../../../util/form-shared";
 
 export const styles = sva({
   slots: ["content", "group", "groupLabel", "emptyContainer"],
@@ -16,8 +16,15 @@ export const styles = sva({
       overflowY: "auto",
       scrollbarWidth: "[thin]",
       color: "fg.heading",
-      minWidth: "[180px]",
+      minWidth: "[140px]",
       zIndex: "popover",
+      transformOrigin: "var(--transform-origin)",
+      '&[data-state="open"]': {
+        animation: "popoverIn 120ms ease-out",
+      },
+      '&[data-state="closed"]': {
+        animation: "popoverOut 50ms ease-in",
+      },
     },
     group: {
       width: "full",

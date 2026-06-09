@@ -6,7 +6,7 @@ import { formInputSizes } from "../../util/form-shared";
 import { Select } from "./select";
 
 import type { FormInputSize, FormInputWidth } from "../../util/form-shared";
-import type { ItemOrGroup } from "../SelectableList/selectable-list";
+import type { ItemOrGroup } from "../Menu/SelectableList/selectable-list";
 import type { SelectItem } from "./select";
 import type { Story, StoryDefault } from "@ladle/react";
 
@@ -590,6 +590,20 @@ export const CustomRender: Story<SelectProps> = (args) => {
             connectToLeftInput
           />
         </div>
+      </div>
+      <div className={groupStyle}>
+        <span style={subheadingStyle}>
+          Readonly with custom renderSelectedItem (bold label)
+        </span>
+        <Select
+          {...spreadArgs}
+          items={colorItems}
+          value="red"
+          onChange={noop}
+          renderItem={renderColorItem}
+          renderSelectedItem={renderColorSelected}
+          readonly
+        />
       </div>
       <div style={{ display: "none" }}>
         <Select

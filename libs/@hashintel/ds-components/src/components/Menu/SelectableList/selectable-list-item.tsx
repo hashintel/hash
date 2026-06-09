@@ -1,7 +1,7 @@
 import { cx } from "@hashintel/ds-helpers/css";
 
-import { Icon } from "../Icon/icon";
-import { LoadingSpinner } from "../Loading/loading-spinner";
+import { Icon } from "../../Icon/icon";
+import { LoadingSpinner } from "../../Loading/loading-spinner";
 import {
   checkIconSizeMap,
   arrowIconSizeMap,
@@ -9,7 +9,7 @@ import {
   indentUnitPx,
 } from "./selectable-list-item.recipe";
 
-import type { FormInputSize } from "../../util/form-shared";
+import type { FormInputSize } from "../../../util/form-shared";
 import type { ItemClasses } from "./selectable-list-item.recipe";
 import type { Item } from "./selectable-list-util";
 
@@ -98,7 +98,7 @@ export const ItemBody = ({
           <span className={classes.description}>{item.description}</span>
         )}
       </span>
-      {item.nestedItems && (
+      {item.subItems && item.subItems.length > 0 && (
         <Icon
           name="chevronRight"
           size={arrowIconSizeMap[size]}
@@ -106,6 +106,7 @@ export const ItemBody = ({
           aria-hidden="true"
         />
       )}
+      {item.suffix && <span className={classes.suffix}>{item.suffix}</span>}
     </>
   );
 };

@@ -1,13 +1,11 @@
 import { Fragment, use, useEffect, useRef, useState } from "react";
 
-import { Button, Icon } from "@hashintel/ds-components";
+import { Button, Icon, Menu, type MenuItem } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 
 import { EditorContext } from "../../../../../../react/state/editor-context";
-import { Menu } from "../../../../../components/menu";
 import { clampIndex } from "../../../../../lib/clamp-index";
 
-import type { MenuItem } from "../../../../../components/menu";
 import type {
   SubView,
   SubViewResizeConfig,
@@ -224,7 +222,6 @@ export const RowMenu: React.FC<{ items: MenuItem[] }> = ({ items }) => {
 
   return (
     <Menu
-      animated
       trigger={
         <Button
           aria-label="More options"
@@ -237,7 +234,7 @@ export const RowMenu: React.FC<{ items: MenuItem[] }> = ({ items }) => {
         />
       }
       items={items}
-      placement="bottom-end"
+      position="right"
     />
   );
 };

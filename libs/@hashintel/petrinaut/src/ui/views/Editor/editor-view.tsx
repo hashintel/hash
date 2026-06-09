@@ -1,5 +1,6 @@
 import { use, useState } from "react";
 
+import { type MenuItem } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import { calculateGraphLayout, type SDCPN } from "@hashintel/petrinaut-core";
 import {
@@ -249,12 +250,12 @@ export const EditorView = ({
     clearSelection();
   }
 
-  const menuItems = [
+  const menuItems: MenuItem[] = [
     ...(showNetManagementMenuItems
       ? [
           {
             id: "new",
-            label: "New",
+            text: "New",
             onClick: handleNew,
           },
         ]
@@ -263,10 +264,10 @@ export const EditorView = ({
       ? [
           {
             id: "open",
-            label: "Open",
-            submenu: existingNets.map((net) => ({
+            text: "Open",
+            subItems: existingNets.map((net) => ({
               id: `open-${net.netId}`,
-              label: net.title,
+              text: net.title,
               suffix: formatRelativeTime(net.lastUpdated),
               onClick: () => {
                 loadPetriNet(net.netId);
@@ -278,21 +279,21 @@ export const EditorView = ({
       : []),
     {
       id: "export",
-      label: "Export",
-      submenu: [
+      text: "Export",
+      subItems: [
         {
           id: "export-json",
-          label: "JSON",
+          text: "JSON",
           onClick: handleExport,
         },
         {
           id: "export-without-visuals",
-          label: "JSON without visual info",
+          text: "JSON without visual info",
           onClick: handleExportWithoutVisualInfo,
         },
         {
           id: "export-tikz",
-          label: "TikZ",
+          text: "TikZ",
           onClick: handleExportTikZ,
         },
       ],
@@ -301,25 +302,27 @@ export const EditorView = ({
       ? [
           {
             id: "import",
-            label: "Import",
+            text: "Import",
             onClick: handleImport,
           },
         ]
       : []),
     {
       id: "layout",
-      label: "Layout",
-      onClick: applyAutoLayout,
+      text: "Layout",
+      onClick: () => {
+        void applyAutoLayout();
+      },
     },
     ...(showNetManagementMenuItems
       ? [
           {
             id: "load-example",
-            label: "Load example",
-            submenu: [
+            text: "Load example",
+            subItems: [
               {
                 id: "load-example-supply-chain-stochastic",
-                label: "Supply Chain with Disruption",
+                text: "Supply Chain with Disruption",
                 onClick: () => {
                   createNewNet(supplyChainWithDisruption);
                   clearSelection();
@@ -327,7 +330,7 @@ export const EditorView = ({
               },
               {
                 id: "load-example-probabilistic-satellites",
-                label: "Probabilistic Satellite Launcher",
+                text: "Probabilistic Satellite Launcher",
                 onClick: () => {
                   createNewNet(probabilisticSatellitesSDCPN);
                   clearSelection();
@@ -335,7 +338,7 @@ export const EditorView = ({
               },
               {
                 id: "load-example-production-machines",
-                label: "Production with Machine Failure",
+                text: "Production with Machine Failure",
                 onClick: () => {
                   createNewNet(productionMachines);
                   clearSelection();
@@ -343,7 +346,7 @@ export const EditorView = ({
               },
               {
                 id: "load-example-sir-model",
-                label: "SIR Model",
+                text: "SIR Model",
                 onClick: () => {
                   createNewNet(sirModel);
                   clearSelection();
@@ -351,7 +354,7 @@ export const EditorView = ({
               },
               {
                 id: "load-example-deployment-pipeline",
-                label: "Deployment Pipeline",
+                text: "Deployment Pipeline",
                 onClick: () => {
                   createNewNet(deploymentPipelineSDCPN);
                   clearSelection();
@@ -363,7 +366,7 @@ export const EditorView = ({
       : []),
     {
       id: "docs",
-      label: "Docs",
+      text: "Docs",
       onClick: () => {
         window.open(
           "https://github.com/hashintel/hash/tree/main/libs/%40hashintel/petrinaut/docs",

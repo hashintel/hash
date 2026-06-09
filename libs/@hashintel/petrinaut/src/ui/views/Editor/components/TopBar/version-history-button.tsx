@@ -1,9 +1,9 @@
-import { use, useMemo } from "react";
+import { use } from "react";
 
-import { Button, Icon } from "@hashintel/ds-components";
+import { Button, Icon, Menu, type MenuItem } from "@hashintel/ds-components";
+import { css } from "@hashintel/ds-helpers/css";
 
 import { UndoRedoContext } from "../../../../../react/state/undo-redo-context";
-import { Menu, type MenuItem } from "../../../../components/menu";
 
 function formatTime(timestamp: string): string {
   const date = new Date(timestamp);
@@ -14,31 +14,32 @@ function formatTime(timestamp: string): string {
   });
 }
 
+const menuMaxHeightStyle = css({ maxHeight: "[310px]", minWidth: "[170px]" });
+
 export const VersionHistoryButton = () => {
   const undoRedo = use(UndoRedoContext);
-
-  const menuItems: MenuItem[] = useMemo(() => {
-    if (!undoRedo) {
-      return [];
-    }
-    const { history, currentIndex, goToIndex } = undoRedo;
-
-    return [...history].reverse().map((entry, reversedIdx) => {
-      const realIndex = history.length - 1 - reversedIdx;
-      const isCurrent = realIndex === currentIndex;
-      return {
-        id: `version-${String(realIndex)}`,
-        label: formatTime(entry.timestamp),
-        suffix: isCurrent && <Icon name="check" size="sm" />,
-        selected: isCurrent,
-        onClick: () => goToIndex(realIndex),
-      };
-    });
-  }, [undoRedo]);
 
   if (!undoRedo) {
     return null;
   }
+
+  const { history, currentIndex, goToIndex } = undoRedo;
+
+  const menuItems: MenuItem[] = [...history]
+    .reverse()
+    .map((entry, reversedIdx) => {
+      const realIndex = history.length - 1 - reversedIdx;
+      const isCurrent = realIndex === currentIndex;
+      return {
+        id: `version-${String(realIndex)}`,
+        text: formatTime(entry.timestamp),
+        suffix: isCurrent && <Icon name="check" size="xs" />,
+        selected: isCurrent,
+        tone: isCurrent ? "brand" : "neutral",
+        keepOpenOnSelect: true,
+        onClick: () => goToIndex(realIndex),
+      };
+    });
 
   return (
     <Menu
@@ -52,10 +53,8 @@ export const VersionHistoryButton = () => {
         />
       }
       items={menuItems}
-      animated
-      maxHeight="310px"
-      closeOnSelect={false}
-      placement="bottom-end"
+      className={menuMaxHeightStyle}
+      position="bottom-end"
     />
   );
 };

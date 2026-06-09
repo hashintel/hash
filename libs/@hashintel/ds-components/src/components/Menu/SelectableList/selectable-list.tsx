@@ -7,8 +7,8 @@ import { createContext, use, useMemo } from "react";
 
 import { cx } from "@hashintel/ds-helpers/css";
 
-import { usePortalContainerRef } from "../../util/portal-container-context";
-import { isEmptyString } from "../../util/string";
+import { usePortalContainerRef } from "../../../util/portal-container-context";
+import { isEmptyString } from "../../../util/string";
 import { ItemBody } from "./selectable-list-item";
 import { styles as itemStyles } from "./selectable-list-item.recipe";
 import {
@@ -20,7 +20,7 @@ import {
 } from "./selectable-list-util";
 import { contentPaddingPx, styles } from "./selectable-list.recipe";
 
-import type { FormInputSize } from "../../util/form-shared";
+import type { FormInputSize } from "../../../util/form-shared";
 
 export { isGroup, type Item, type ItemOrGroup };
 
@@ -37,14 +37,14 @@ const NestedMenuDepthContext = createContext(0);
 
 const NestedMenu = ({
   item,
-  nestedItems,
+  subItems,
   body,
   className,
   isSelected,
   ctx,
 }: {
   item: Item;
-  nestedItems: ItemOrGroup<Item>;
+  subItems: Array<ItemOrGroup<Item>>;
   body: React.ReactNode;
   className: string | undefined;
   isSelected: boolean;
@@ -53,8 +53,7 @@ const NestedMenu = ({
   const portalContainerRef = usePortalContainerRef();
   const parentDepth = use(NestedMenuDepthContext);
   const depth = parentDepth + 1;
-  const nestedEntries = useMemo(() => [nestedItems], [nestedItems]);
-  const handleLoopKeyDown = useLoopSelection(nestedEntries);
+  const handleLoopKeyDown = useLoopSelection(subItems);
 
   return (
     <Menu.Root
@@ -84,7 +83,7 @@ const NestedMenu = ({
               >
                 <Menu.Content className={ctx.contentClassName}>
                   <NestedMenuDepthContext value={depth}>
-                    {renderEntry(nestedItems, ctx)}
+                    {subItems.map((entry) => renderEntry(entry, ctx))}
                   </NestedMenuDepthContext>
                 </Menu.Content>
               </Menu.Positioner>
@@ -104,6 +103,7 @@ const ItemRow = ({ item, ctx }: { item: Item; ctx: RenderCtx }) => {
   const isInteractive = !item.disabled && !item.loading;
 
   const classes = itemStyles({
+    as: ctx.as,
     size: ctx.size,
     tone: item.tone,
     highlighted,
@@ -132,11 +132,11 @@ const ItemRow = ({ item, ctx }: { item: Item; ctx: RenderCtx }) => {
     );
   }
 
-  if (item.nestedItems && isInteractive) {
+  if (item.subItems && item.subItems.length > 0 && isInteractive) {
     return (
       <NestedMenu
         item={item}
-        nestedItems={item.nestedItems}
+        subItems={item.subItems}
         body={body}
         className={classes.item}
         isSelected={isSelected}
@@ -145,9 +145,12 @@ const ItemRow = ({ item, ctx }: { item: Item; ctx: RenderCtx }) => {
     );
   }
 
+  const closeOnSelect =
+    item.keepOpenOnSelect !== undefined ? !item.keepOpenOnSelect : undefined;
+
   if ("href" in item && item.href && isInteractive) {
     return (
-      <Menu.Item value={itemId} asChild>
+      <Menu.Item value={itemId} closeOnSelect={closeOnSelect} asChild>
         <a
           href={item.href}
           target={item.target}
@@ -170,6 +173,7 @@ const ItemRow = ({ item, ctx }: { item: Item; ctx: RenderCtx }) => {
     <Menu.Item
       value={itemId}
       disabled={!isInteractive}
+      closeOnSelect={closeOnSelect}
       onSelect={handleSelect}
       className={classes.item}
       data-selected={isSelected || undefined}
