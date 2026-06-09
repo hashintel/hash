@@ -241,7 +241,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
         let table = Table::EntityTemporalMetadata.aliased(alias);
         if self.artifacts.table_info.tables.insert(table.clone()) {
             if !self.include_drafts {
-                conditions.push(Expression::exists(Expression::ColumnReference(
+                conditions.push(Expression::is_null(Expression::ColumnReference(
                     Column::EntityTemporalMetadata(EntityTemporalMetadata::DraftId).aliased(alias),
                 )));
             }
@@ -450,7 +450,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                 self.compile_filter_expression(lhs).0,
                 self.compile_filter_expression(rhs).0,
             ),
-            Filter::Exists { path } => Expression::exists(self.compile_path_column(path)),
+            Filter::Exists { path } => Expression::is_not_null(self.compile_path_column(path)),
             Filter::Greater(lhs, rhs) => Expression::greater(
                 self.compile_filter_expression(lhs).0,
                 self.compile_filter_expression(rhs).0,

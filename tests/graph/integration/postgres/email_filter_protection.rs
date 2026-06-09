@@ -160,19 +160,15 @@ fn email_filter(email: &str) -> Filter<'static, type_system::knowledge::entity::
     )
 }
 
-/// Helper to create an "exists" filter for the email property.
-/// Helper to create a filter that matches entities where email property exists (is NOT NULL).
-///
-/// Note: In this codebase, `Filter::Exists` transpiles to `IS NULL` (checking for absence),
-/// so to check for existence we use `Not(Exists { ... })` which transpiles to `IS NOT NULL`.
+/// Helper to create a filter that matches entities where the email property exists (`IS NOT NULL`).
 fn email_exists_filter() -> Filter<'static, type_system::knowledge::entity::Entity> {
-    Filter::Not(Box::new(Filter::Exists {
+    Filter::Exists {
         path: hash_graph_store::entity::EntityQueryPath::Properties(Some(
             JsonPath::from_path_tokens(vec![PathToken::Field(Cow::Owned(
                 EMAIL_PROPERTY_BASE_URL.to_owned(),
             ))]),
         )),
-    }))
+    }
 }
 
 /// Helper to create a "startsWith" filter for the email property.

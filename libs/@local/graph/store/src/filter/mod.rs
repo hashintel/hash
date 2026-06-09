@@ -279,9 +279,9 @@ impl<'p> Filter<'p, DataTypeWithMetadata> {
                     convert: None,
                 },
             ),
-            DataTypeResourceFilter::IsRemote => Self::Exists {
+            DataTypeResourceFilter::IsRemote => Self::Not(Box::new(Self::Exists {
                 path: DataTypeQueryPath::WebId,
-            },
+            })),
         }
     }
 
@@ -520,9 +520,9 @@ impl<'p> Filter<'p, PropertyTypeWithMetadata> {
                     convert: None,
                 },
             ),
-            PropertyTypeResourceFilter::IsRemote => Self::Exists {
+            PropertyTypeResourceFilter::IsRemote => Self::Not(Box::new(Self::Exists {
                 path: PropertyTypeQueryPath::WebId,
-            },
+            })),
         }
     }
 
@@ -680,9 +680,9 @@ impl<'p> Filter<'p, EntityTypeWithMetadata> {
                     convert: None,
                 },
             ),
-            EntityTypeResourceFilter::IsRemote => Self::Exists {
+            EntityTypeResourceFilter::IsRemote => Self::Not(Box::new(Self::Exists {
                 path: EntityTypeQueryPath::WebId,
-            },
+            })),
         }
     }
 
