@@ -18,6 +18,13 @@ export const styles = sva({
       color: "fg.heading",
       minWidth: "[140px]",
       zIndex: "popover",
+      transformOrigin: "var(--transform-origin)",
+      '&[data-state="open"]': {
+        animation: "popoverIn 120ms ease-out",
+      },
+      '&[data-state="closed"]': {
+        animation: "popoverOut 50ms ease-in",
+      },
     },
     group: {
       width: "full",

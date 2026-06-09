@@ -59,7 +59,12 @@ export const Menu = ({
   const selected = useMemo(() => collectSelectedIds(items), [items]);
 
   return (
-    <ArkMenu.Root positioning={{ placement: position }} loopFocus={false}>
+    <ArkMenu.Root
+      positioning={{ placement: position }}
+      loopFocus={false}
+      lazyMount
+      unmountOnExit
+    >
       <ArkMenu.Context>
         {(menu) => (
           <>
