@@ -163,7 +163,7 @@ function mapToMenuItems<TValue extends string>(
     text: renderItem(it.value),
     disabled: it.disabled,
     selectedStyle: "tick",
-    nestedItems: undefined,
+    subItems: undefined,
     onClick: () => {},
   });
   return items.map((entry) =>
@@ -269,7 +269,7 @@ export const Select = <TValue extends string>({
     const noneItem: Item = {
       id: noneValue,
       text: "\u200B",
-      nestedItems: undefined,
+      subItems: undefined,
       onClick: () => {},
     };
     return [noneItem, ...mapped];

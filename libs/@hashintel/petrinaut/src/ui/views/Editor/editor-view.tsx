@@ -265,7 +265,7 @@ export const EditorView = ({
           {
             id: "open",
             text: "Open",
-            nestedItems: existingNets.map((net) => ({
+            subItems: existingNets.map((net) => ({
               id: `open-${net.netId}`,
               text: net.title,
               suffix: formatRelativeTime(net.lastUpdated),
@@ -280,7 +280,7 @@ export const EditorView = ({
     {
       id: "export",
       text: "Export",
-      nestedItems: [
+      subItems: [
         {
           id: "export-json",
           text: "JSON",
@@ -319,7 +319,7 @@ export const EditorView = ({
           {
             id: "load-example",
             text: "Load example",
-            nestedItems: [
+            subItems: [
               {
                 id: "load-example-supply-chain-stochastic",
                 text: "Supply Chain with Disruption",

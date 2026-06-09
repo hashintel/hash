@@ -31,8 +31,8 @@ const collectSelectedIds = (
     if (entry.selected) {
       result.push(getItemId(entry));
     }
-    if (entry.nestedItems) {
-      for (const child of entry.nestedItems) {
+    if (entry.subItems) {
+      for (const child of entry.subItems) {
         visit(child);
       }
     }

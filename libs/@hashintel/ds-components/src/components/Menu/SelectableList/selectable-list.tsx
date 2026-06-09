@@ -37,14 +37,14 @@ const NestedMenuDepthContext = createContext(0);
 
 const NestedMenu = ({
   item,
-  nestedItems,
+  subItems,
   body,
   className,
   isSelected,
   ctx,
 }: {
   item: Item;
-  nestedItems: Array<ItemOrGroup<Item>>;
+  subItems: Array<ItemOrGroup<Item>>;
   body: React.ReactNode;
   className: string | undefined;
   isSelected: boolean;
@@ -53,7 +53,7 @@ const NestedMenu = ({
   const portalContainerRef = usePortalContainerRef();
   const parentDepth = use(NestedMenuDepthContext);
   const depth = parentDepth + 1;
-  const handleLoopKeyDown = useLoopSelection(nestedItems);
+  const handleLoopKeyDown = useLoopSelection(subItems);
 
   return (
     <Menu.Root
@@ -83,7 +83,7 @@ const NestedMenu = ({
               >
                 <Menu.Content className={ctx.contentClassName}>
                   <NestedMenuDepthContext value={depth}>
-                    {nestedItems.map((entry) => renderEntry(entry, ctx))}
+                    {subItems.map((entry) => renderEntry(entry, ctx))}
                   </NestedMenuDepthContext>
                 </Menu.Content>
               </Menu.Positioner>
@@ -132,11 +132,11 @@ const ItemRow = ({ item, ctx }: { item: Item; ctx: RenderCtx }) => {
     );
   }
 
-  if (item.nestedItems && item.nestedItems.length > 0 && isInteractive) {
+  if (item.subItems && item.subItems.length > 0 && isInteractive) {
     return (
       <NestedMenu
         item={item}
-        nestedItems={item.nestedItems}
+        subItems={item.subItems}
         body={body}
         className={classes.item}
         isSelected={isSelected}

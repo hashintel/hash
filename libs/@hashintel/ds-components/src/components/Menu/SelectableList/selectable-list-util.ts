@@ -40,7 +40,7 @@ export type Item = ItemBase &
         onClick: (id: string) => void;
       }
     | {
-        nestedItems: Array<ItemOrGroup<Item>>;
+        subItems: Array<ItemOrGroup<Item>>;
       }
   >;
 

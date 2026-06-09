@@ -23,20 +23,19 @@ function prefixIds(
       items: entry.items.map((item) => prefixIds(item, prefix) as Item),
     };
   }
-  const nested = (entry as { nestedItems?: Array<ItemOrGroup<Item>> })
-    .nestedItems;
+  const nested = (entry as { subItems?: Array<ItemOrGroup<Item>> }).subItems;
   return {
     ...entry,
     id: `${prefix}-${entry.id}`,
     ...(nested
-      ? { nestedItems: nested.map((child) => prefixIds(child, prefix)) }
+      ? { subItems: nested.map((child) => prefixIds(child, prefix)) }
       : {}),
   } as unknown as Item;
 }
 
 /**
  * Recursively rewires items so that selecting any leaf (non-`href`,
- * non-`nestedItems` parent) toggles its id via the provided callback
+ * non-`subItems` parent) toggles its id via the provided callback
  * and reflects the current selection state via the `selected` flag.
  * Sets `keepOpenOnSelect` so the demo shows the selection update
  * without the menu closing.
@@ -54,14 +53,11 @@ function withSelection(
       ),
     };
   }
-  const nested = (entry as { nestedItems?: Array<ItemOrGroup<Item>> })
-    .nestedItems;
+  const nested = (entry as { subItems?: Array<ItemOrGroup<Item>> }).subItems;
   if (nested) {
     return {
       ...entry,
-      nestedItems: nested.map((child) =>
-        withSelection(child, selected, toggle),
-      ),
+      subItems: nested.map((child) => withSelection(child, selected, toggle)),
     } as unknown as MenuItem;
   }
   if ("href" in entry && entry.href) {

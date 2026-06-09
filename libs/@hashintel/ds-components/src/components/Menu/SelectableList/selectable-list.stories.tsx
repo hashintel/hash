@@ -27,13 +27,12 @@ function prefixIds(
       items: entry.items.map((item) => prefixIds(item, prefix) as Item),
     };
   }
-  const nested = (entry as { nestedItems?: Array<ItemOrGroup<Item>> })
-    .nestedItems;
+  const nested = (entry as { subItems?: Array<ItemOrGroup<Item>> }).subItems;
   return {
     ...entry,
     id: `${prefix}-${entry.id}`,
     ...(nested
-      ? { nestedItems: nested.map((child) => prefixIds(child, prefix)) }
+      ? { subItems: nested.map((child) => prefixIds(child, prefix)) }
       : {}),
   } as unknown as Item;
 }
@@ -46,15 +45,12 @@ function withDisabled(entry: ItemOrGroup<Item>): ItemOrGroup<Item> {
       items: entry.items.map((item) => withDisabled(item) as Item),
     };
   }
-  const nested = (entry as { nestedItems?: Array<ItemOrGroup<Item>> })
-    .nestedItems;
+  const nested = (entry as { subItems?: Array<ItemOrGroup<Item>> }).subItems;
   return {
     ...entry,
     id: `disabled-${entry.id}`,
     disabled: true,
-    ...(nested
-      ? { nestedItems: nested.map((child) => withDisabled(child)) }
-      : {}),
+    ...(nested ? { subItems: nested.map((child) => withDisabled(child)) } : {}),
   } as unknown as Item;
 }
 
