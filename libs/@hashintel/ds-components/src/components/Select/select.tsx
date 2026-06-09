@@ -311,8 +311,7 @@ export const Select = <TValue extends string>({
     connectsLeft,
     connectsRight,
     clampTriggerHeight:
-      (!!renderItem || !!renderSelectedItem) &&
-      (!!connectToLeftInput || !!connectToRightInput),
+      (!!renderItem || !!renderSelectedItem) && (connectsLeft || connectsRight),
     willClear:
       showClear &&
       clearable.clearable &&
