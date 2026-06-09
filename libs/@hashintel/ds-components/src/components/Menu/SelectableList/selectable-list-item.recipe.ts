@@ -80,6 +80,11 @@ export const styles = sva({
   variants: {
     as: {
       Menu: {
+        item: {
+          "& + &": {
+            marginTop: "[1px]",
+          },
+        },
         textColumn: {
           fontWeight: "[450]",
         },
@@ -129,7 +134,7 @@ export const styles = sva({
           paddingY: "[3px]",
           borderRadius: "md",
         },
-        description: { textStyle: "xs", marginTop: "[-1px]" },
+        description: { textStyle: "xs", marginTop: "[-2px]" },
         indicator: {
           width: "[14px]",
           height: "[14px]",
@@ -142,10 +147,10 @@ export const styles = sva({
         item: {
           textStyle: "base",
           gap: "2",
-          paddingY: "[5px]",
+          paddingY: "[4px]",
           borderRadius: "lg",
         },
-        description: { textStyle: "sm", marginTop: "-0.5" },
+        description: { textStyle: "sm", marginTop: "[-3px]" },
         indicator: {
           width: "[16px]",
           height: "[16px]",
@@ -159,7 +164,7 @@ export const styles = sva({
         item: {
           textStyle: "base",
           gap: "2",
-          paddingY: "[5px]",
+          paddingY: "[4px]",
           borderRadius: "lg",
         },
         description: { textStyle: "sm", marginTop: "-0.5" },
@@ -178,7 +183,7 @@ export const styles = sva({
         item: {
           color: "fg.heading",
           "&[data-highlighted]": {
-            backgroundColor: "neutral.a35",
+            backgroundColor: "neutral.a25",
           },
         },
       },
@@ -186,7 +191,7 @@ export const styles = sva({
         item: {
           color: "blue.s90",
           "&[data-highlighted]": {
-            backgroundColor: "blue.a35",
+            backgroundColor: "blue.a30",
           },
         },
       },
@@ -194,7 +199,7 @@ export const styles = sva({
         item: {
           color: "red.s90",
           "&[data-highlighted]": {
-            backgroundColor: "red.a35",
+            backgroundColor: "red.a30",
           },
         },
       },
@@ -218,7 +223,7 @@ export const styles = sva({
       highlighted: true,
       css: {
         item: {
-          backgroundColor: "neutral.a50",
+          backgroundColor: "neutral.a35",
         },
       },
     },
@@ -227,7 +232,7 @@ export const styles = sva({
       highlighted: true,
       css: {
         item: {
-          backgroundColor: "blue.a50",
+          backgroundColor: "blue.a40",
         },
       },
     },
@@ -236,7 +241,7 @@ export const styles = sva({
       highlighted: true,
       css: {
         item: {
-          backgroundColor: "red.a50",
+          backgroundColor: "red.a40",
         },
       },
     },
