@@ -29,6 +29,7 @@ pub struct UnaryExpression {
 impl Transpile for UnaryExpression {
     fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match self.op {
+            #[expect(clippy::wildcard_enum_match_arm)]
             UnaryOperator::Not => match &*self.expr {
                 Expression::Unary(Self {
                     op: UnaryOperator::IsNull,
@@ -41,7 +42,6 @@ impl Transpile for UnaryExpression {
                     op: UnaryOperator::Not,
                     expr,
                 }) => expr.transpile(fmt),
-                #[expect(clippy::wildcard_enum_match_arm)]
                 _ => {
                     fmt.write_str("NOT(")?;
                     self.expr.transpile(fmt)?;
