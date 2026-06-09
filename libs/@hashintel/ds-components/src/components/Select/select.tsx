@@ -1,7 +1,7 @@
 import { createListCollection } from "@ark-ui/react/collection";
 import { Portal } from "@ark-ui/react/portal";
 import { Select as ArkSelect } from "@ark-ui/react/select";
-import { useMemo, useRef } from "react";
+import { useId, useMemo, useRef } from "react";
 
 import { cx } from "@hashintel/ds-helpers/css";
 
@@ -173,8 +173,6 @@ function mapToMenuItems<TValue extends string>(
   );
 }
 
-const NONE_VALUE = "__select_none__";
-
 function flattenItems(items: Array<ItemOrGroup<Item>>): Item[] {
   const flat: Item[] = [];
   for (const entry of items) {
@@ -228,6 +226,9 @@ export const Select = <TValue extends string>({
   const selectRef = useRef<HTMLDivElement>(null);
   const fieldIdFromContext = useFieldId();
   const inputId = htmlForId ?? fieldIdFromContext ?? undefined;
+  // Per-instance sentinel for the "clear" row — guaranteed not to collide
+  // with any consumer-supplied item value.
+  const noneValue = useId();
 
   const showClear = !!(clearable && !disabled);
   const connectsLeft = connectToLeftInput && variant === "default";
@@ -266,13 +267,13 @@ export const Select = <TValue extends string>({
       return mapped;
     }
     const noneItem: Item = {
-      id: NONE_VALUE,
+      id: noneValue,
       text: "\u200B",
       nestedItems: undefined,
       onClick: () => {},
     };
     return [noneItem, ...mapped];
-  }, [effectiveItems, isOptional, resolvedRenderItem]);
+  }, [effectiveItems, isOptional, resolvedRenderItem, noneValue]);
   const collection = useMemo(() => {
     const valueToText = new Map<string, string>();
     for (const entry of effectiveItems) {
@@ -289,14 +290,14 @@ export const Select = <TValue extends string>({
       itemToValue: (item) => getItemId(item),
       itemToString: (item) => {
         const id = getItemId(item);
-        if (id === NONE_VALUE) {
+        if (id === noneValue) {
           return "";
         }
         return valueToText.get(id) ?? id;
       },
       isItemDisabled: (item) => !!item.disabled,
     });
-  }, [menuItems, effectiveItems]);
+  }, [menuItems, effectiveItems, noneValue]);
 
   const classes = selectRecipe({
     variant,
@@ -337,7 +338,7 @@ export const Select = <TValue extends string>({
       value={value != null && value !== "" ? [value] : []}
       onValueChange={({ value: nextValue }) => {
         const next = nextValue[0];
-        if (next === NONE_VALUE) {
+        if (next === noneValue) {
           (onChange as (value: null) => void)(null);
           return;
         }
