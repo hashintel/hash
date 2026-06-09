@@ -16,7 +16,7 @@ export const styles = sva({
       overflowY: "auto",
       scrollbarWidth: "[thin]",
       color: "fg.heading",
-      minWidth: "[180px]",
+      minWidth: "[140px]",
       zIndex: "popover",
     },
     group: {

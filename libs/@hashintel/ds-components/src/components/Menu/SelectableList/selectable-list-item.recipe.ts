@@ -63,6 +63,7 @@ export const styles = sva({
       alignSelf: "flex-start",
       fontWeight: "normal",
       fontSize: "[0.9em]",
+      paddingLeft: "5",
     },
     arrow: {
       alignSelf: "center",
@@ -77,6 +78,17 @@ export const styles = sva({
     },
   },
   variants: {
+    as: {
+      Menu: {
+        textColumn: {
+          fontWeight: "[450]",
+        },
+        description: {
+          fontWeight: "normal",
+        },
+      },
+      Select: {},
+    },
     size: {
       xxs: {
         item: {
@@ -230,6 +242,7 @@ export const styles = sva({
     },
   ],
   defaultVariants: {
+    as: "Menu",
     size: "md",
     tone: "neutral",
     highlighted: false,

@@ -103,6 +103,7 @@ const ItemRow = ({ item, ctx }: { item: Item; ctx: RenderCtx }) => {
   const isInteractive = !item.disabled && !item.loading;
 
   const classes = itemStyles({
+    as: ctx.as,
     size: ctx.size,
     tone: item.tone,
     highlighted,
