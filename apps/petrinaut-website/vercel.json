@@ -11,10 +11,6 @@
     {
       "source": "/brunch",
       "destination": "/"
-    },
-    {
-      "source": "/brunch/:path*",
-      "destination": "/"
     }
   ],
   "functions": {
