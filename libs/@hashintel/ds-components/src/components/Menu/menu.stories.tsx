@@ -23,11 +23,14 @@ function prefixIds(
       items: entry.items.map((item) => prefixIds(item, prefix) as Item),
     };
   }
-  const nested = (entry as { nestedItems?: ItemOrGroup<Item> }).nestedItems;
+  const nested = (entry as { nestedItems?: Array<ItemOrGroup<Item>> })
+    .nestedItems;
   return {
     ...entry,
     id: `${prefix}-${entry.id}`,
-    ...(nested ? { nestedItems: prefixIds(nested, prefix) } : {}),
+    ...(nested
+      ? { nestedItems: nested.map((child) => prefixIds(child, prefix)) }
+      : {}),
   } as unknown as Item;
 }
 
@@ -51,11 +54,14 @@ function withSelection(
       ),
     };
   }
-  const nested = (entry as { nestedItems?: ItemOrGroup<Item> }).nestedItems;
+  const nested = (entry as { nestedItems?: Array<ItemOrGroup<Item>> })
+    .nestedItems;
   if (nested) {
     return {
       ...entry,
-      nestedItems: withSelection(nested, selected, toggle),
+      nestedItems: nested.map((child) =>
+        withSelection(child, selected, toggle),
+      ),
     } as unknown as MenuItem;
   }
   if ("href" in entry && entry.href) {

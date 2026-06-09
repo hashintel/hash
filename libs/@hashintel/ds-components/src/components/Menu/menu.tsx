@@ -31,10 +31,10 @@ const collectSelectedIds = (
     if (entry.selected) {
       result.push(getItemId(entry));
     }
-    const nested = (entry as { nestedItems?: ItemOrGroup<MenuItem> })
-      .nestedItems;
-    if (nested) {
-      visit(nested);
+    if (entry.nestedItems) {
+      for (const child of entry.nestedItems) {
+        visit(child);
+      }
     }
   };
   for (const entry of entries) {

@@ -98,7 +98,7 @@ export const ItemBody = ({
           <span className={classes.description}>{item.description}</span>
         )}
       </span>
-      {item.nestedItems && (
+      {item.nestedItems && item.nestedItems.length > 0 && (
         <Icon
           name="chevronRight"
           size={arrowIconSizeMap[size]}

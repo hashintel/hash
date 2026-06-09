@@ -159,7 +159,7 @@ const nestedNestedChild = {
   text: "First level",
   icon: "arrowRight",
   onClick: noop,
-  nestedItems: nestedNestedGrandchild,
+  nestedItems: [nestedNestedGrandchild],
 } as unknown as Item;
 
 const itemWithSingleSubAction = {
@@ -167,7 +167,7 @@ const itemWithSingleSubAction = {
   text: "Item with a single sub-action",
   icon: "sliders",
   onClick: noop,
-  nestedItems: nestedItemSingleChild,
+  nestedItems: [nestedItemSingleChild],
 } as unknown as Item;
 
 const itemWithGroupedSubActions = {
@@ -175,11 +175,13 @@ const itemWithGroupedSubActions = {
   text: "Item with grouped sub-actions",
   icon: "magic",
   onClick: noop,
-  nestedItems: {
-    id: "sa-grouped-group",
-    label: "Sub-action group",
-    items: nestedGroupedChildren,
-  },
+  nestedItems: [
+    {
+      id: "sa-grouped-group",
+      label: "Sub-action group",
+      items: nestedGroupedChildren,
+    },
+  ],
 } as unknown as Item;
 
 const itemWithNestedSubActions = {
@@ -187,7 +189,7 @@ const itemWithNestedSubActions = {
   text: "Item with nested sub-actions",
   icon: "shapes",
   onClick: noop,
-  nestedItems: nestedNestedChild,
+  nestedItems: [nestedNestedChild],
 } as unknown as Item;
 
 const itemWithoutSubActions: Item = {
