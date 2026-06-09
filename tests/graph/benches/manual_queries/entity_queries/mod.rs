@@ -321,10 +321,7 @@ where
             let _response = store
                 .query_entities(
                     request.actor_id,
-                    request
-                        .request
-                        .into_params_unchecked(config, None)
-                        .expect("limit should not exceed configured maximum"),
+                    request.request.into_params_unchecked(config, None),
                 )
                 .await
                 .expect("failed to read entities from store");
@@ -333,10 +330,7 @@ where
             let _response = store
                 .query_entity_subgraph(
                     request.actor_id,
-                    request
-                        .request
-                        .into_traversal_params_unchecked(config)
-                        .expect("limit should not exceed configured maximum"),
+                    request.request.into_traversal_params_unchecked(config),
                 )
                 .await
                 .expect("failed to read entity subgraph from store");
