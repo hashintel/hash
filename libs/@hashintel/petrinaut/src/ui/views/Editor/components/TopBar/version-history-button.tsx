@@ -14,7 +14,7 @@ function formatTime(timestamp: string): string {
   });
 }
 
-const menuMaxHeightStyle = css({ maxHeight: "[310px]", overflowY: "auto" });
+const menuMaxHeightStyle = css({ maxHeight: "[310px]", minWidth: "[170px]" });
 
 export const VersionHistoryButton = () => {
   const undoRedo = use(UndoRedoContext);
@@ -33,7 +33,7 @@ export const VersionHistoryButton = () => {
       return {
         id: `version-${String(realIndex)}`,
         text: formatTime(entry.timestamp),
-        suffix: isCurrent && <Icon name="check" size="sm" />,
+        suffix: isCurrent && <Icon name="check" size="xs" />,
         selected: isCurrent,
         tone: isCurrent ? "brand" : "neutral",
         keepOpenOnSelect: true,

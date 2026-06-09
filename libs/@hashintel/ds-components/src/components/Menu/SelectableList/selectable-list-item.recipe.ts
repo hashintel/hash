@@ -62,7 +62,7 @@ export const styles = sva({
       color: "neutral.s80",
       alignSelf: "flex-start",
       fontWeight: "normal",
-      fontSize: "[0.9em]",
+      fontSize: "[0.85em]",
       paddingLeft: "5",
     },
     arrow: {
