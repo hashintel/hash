@@ -15,7 +15,7 @@ use hash_graph_store::{
 };
 use hash_temporal_client::TemporalClient;
 use serde::Deserialize as _;
-use serde_json::value::RawValue as RawJsonvalue;
+use serde_json::value::RawValue as RawJsonValue;
 use type_system::{
     knowledge::entity::id::EntityId,
     ontology::VersionedUrl,
@@ -59,7 +59,7 @@ pub(super) async fn query_entities<S>(
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Extension(api_config): Extension<ApiConfig>,
     mut query_logger: Option<Extension<QueryLogger>>,
-    Json(request): Json<Box<RawJsonvalue>>,
+    Json(request): Json<Box<RawJsonValue>>,
 ) -> Result<Json<QueryEntitiesResponse<'static>>, BoxedResponse>
 where
     S: StorePool + Send + Sync,
