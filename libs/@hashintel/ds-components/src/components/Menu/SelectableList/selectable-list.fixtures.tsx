@@ -69,20 +69,38 @@ const toneItems: Item[] = tones.map((tone) => ({
   onClick: noop,
 }));
 
-const selectedStyleVariantItems: Item[] = selectedStyles.flatMap((style) => [
-  {
-    id: `style-${style}-unselected`,
-    text: `selectedStyle: ${style} (not selected)`,
-    selectedStyle: style,
-    onClick: noop,
-  },
-  {
+const selectedStyleVariantItems: Item[] = selectedStyles.flatMap((style) => {
+  const selected: Item = {
     id: `style-${style}-selected`,
     text: `selectedStyle: ${style} (selected)`,
     selectedStyle: style,
     onClick: noop,
-  },
-]);
+  };
+
+  if (style === "highlight") {
+    return [selected];
+  }
+
+  return [
+    {
+      id: `style-${style}-unselected`,
+      text: `selectedStyle: ${style} (not selected)`,
+      selectedStyle: style,
+      onClick: noop,
+    },
+    selected,
+  ];
+});
+
+const highlightToneVariantItems: Item[] = (["brand", "error"] as const).map(
+  (tone) => ({
+    id: `style-highlight-${tone}-selected`,
+    text: `selectedStyle: highlight, tone: ${tone} (selected)`,
+    tone,
+    selectedStyle: "highlight",
+    onClick: noop,
+  }),
+);
 
 const itemWithHref: Item = {
   id: "with-href",
@@ -200,6 +218,8 @@ const itemWithoutSubActions: Item = {
 
 export const defaultSelected = [
   ...selectedStyles.map((style) => `style-${style}-selected`),
+  "style-highlight-brand-selected",
+  "style-highlight-error-selected",
   "kitchen-sink",
 ];
 
@@ -224,7 +244,7 @@ export const groupedItems: ItemOrGroup<Item>[] = [
   {
     id: "group-selected",
     label: "Selected",
-    items: selectedStyleVariantItems,
+    items: [...selectedStyleVariantItems, ...highlightToneVariantItems],
   },
   {
     id: "group-nested-items",
