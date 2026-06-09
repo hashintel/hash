@@ -1,6 +1,6 @@
 import { Menu as ArkMenu } from "@ark-ui/react/menu";
 import { Portal } from "@ark-ui/react/portal";
-import { cloneElement } from "react";
+import { cloneElement, useMemo } from "react";
 
 import { usePortalContainerRef } from "../../util/portal-container-context";
 import {
@@ -8,8 +8,40 @@ import {
   type Item,
   type ItemOrGroup,
 } from "../SelectableList/selectable-list";
-import { useLoopSelection } from "../SelectableList/selectable-list-util";
+import {
+  getItemId,
+  isGroup,
+  useLoopSelection,
+} from "../SelectableList/selectable-list-util";
 import { type Position } from "../Tooltip/tooltip";
+
+export type MenuItem = Item & { selected?: boolean };
+
+const collectSelectedIds = (
+  entries: Array<ItemOrGroup<MenuItem>>,
+): string[] => {
+  const result: string[] = [];
+  const visit = (entry: ItemOrGroup<MenuItem>) => {
+    if (isGroup(entry)) {
+      for (const child of entry.items) {
+        visit(child);
+      }
+      return;
+    }
+    if (entry.selected) {
+      result.push(getItemId(entry));
+    }
+    const nested = (entry as { nestedItems?: ItemOrGroup<MenuItem> })
+      .nestedItems;
+    if (nested) {
+      visit(nested);
+    }
+  };
+  for (const entry of entries) {
+    visit(entry);
+  }
+  return result;
+};
 
 export const Menu = ({
   items,
@@ -17,13 +49,14 @@ export const Menu = ({
   position = "bottom-start",
   className,
 }: {
-  items: Array<ItemOrGroup<Item>>;
+  items: Array<ItemOrGroup<MenuItem>>;
   trigger: React.ReactElement;
   position?: Position;
   className?: string;
 }) => {
   const portalContainerRef = usePortalContainerRef();
   const handleLoopKeyDown = useLoopSelection(items);
+  const selected = useMemo(() => collectSelectedIds(items), [items]);
 
   return (
     <ArkMenu.Root positioning={{ placement: position }} loopFocus={false}>
@@ -44,7 +77,11 @@ export const Menu = ({
                 <ArkMenu.Positioner
                   onKeyDownCapture={(event) => handleLoopKeyDown(event, menu)}
                 >
-                  <SelectableList items={items} className={className} />
+                  <SelectableList
+                    items={items}
+                    className={className}
+                    selected={selected}
+                  />
                 </ArkMenu.Positioner>
               </Portal>
             )}
