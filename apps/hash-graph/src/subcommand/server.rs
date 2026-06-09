@@ -152,8 +152,7 @@ pub struct CompilerConfig {
     #[clap(
         long,
         default_value = "16",
-        env = "HASH_GRAPH_COMPILER_MEMORY_POOL_SIZE",
-        allow_hyphen_values = true
+        env = "HASH_GRAPH_COMPILER_MEMORY_POOL_SIZE"
     )]
     pub compiler_memory_pool_size: PoolSize,
 
@@ -161,12 +160,7 @@ pub struct CompilerConfig {
     ///
     /// Each thread runs a `LocalSet` for `!Send` query execution. Set to 0 to use the number
     /// of available CPU cores.
-    #[clap(
-        long,
-        default_value = "0",
-        env = "HASH_GRAPH_COMPILER_EXEC_POOL_SIZE",
-        allow_hyphen_values = true
-    )]
+    #[clap(long, default_value = "0", env = "HASH_GRAPH_COMPILER_EXEC_POOL_SIZE")]
     pub compiler_exec_pool_size: PoolSize,
 }
 
