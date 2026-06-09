@@ -214,7 +214,7 @@ const renderEntry = (
           </Menu.ItemGroupLabel>
         )}
         {entry.items.map((child) => (
-          <ItemRow key={child.id} item={child} ctx={ctx} />
+          <ItemRow key={getItemId(child)} item={child} ctx={ctx} />
         ))}
       </Menu.ItemGroup>
     );
