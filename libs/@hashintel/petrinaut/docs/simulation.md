@@ -129,7 +129,7 @@ The **Timeline** tab appears in the bottom panel during and after simulation. It
 
 - **Chart type** -- toggle between **Run** (line chart) and **Stacked** (area chart) using the control in the tab header.
 - **Scrub** -- click or drag on the chart to jump to any frame. A playhead indicator shows the current position.
-- **Series selector** -- use the searchable selector below the chart to show or hide traces. The badge shows how many traces are currently selected. Use **Select All** or **Unselect All** for bulk changes, or choose **Only** next to a trace to focus the chart on that one series. Y axis is automatically scaled to the maximum value.
+- **Series selector** -- use the selector below the chart to show or hide traces. Click visible trace names in the selector to toggle them directly, or open the dropdown to search. The badge shows how many traces are currently selected. Use **Select All** or **Unselect All** for bulk changes, or choose **Only** on a trace row to focus the chart on that one series. Y axis is automatically scaled to the maximum value.
 
 ## Viewing state during simulation
 

@@ -59,6 +59,7 @@ const selectedNamesStyle = css({
   position: "absolute",
   inset: "[0]",
   display: "block",
+  zIndex: "[1]",
   overflow: "hidden",
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
@@ -77,6 +78,17 @@ const selectedNameItemStyle = css({
   minWidth: "[0]",
   marginRight: "2",
   verticalAlign: "middle",
+  padding: "[0]",
+  border: "[0]",
+  backgroundColor: "[transparent]",
+  color: "[inherit]",
+  cursor: "pointer",
+  font: "[inherit]",
+  lineHeight: "[inherit]",
+  pointerEvents: "auto",
+  _hover: {
+    color: "neutral.s125",
+  },
 });
 
 const selectedNameSwatchStyle = css({
@@ -84,6 +96,11 @@ const selectedNameSwatchStyle = css({
   height: "[8px]",
   borderRadius: "[2px]",
   flexShrink: 0,
+});
+
+const hiddenSelectedNameItemStyle = css({
+  opacity: 0.45,
+  textDecoration: "line-through",
 });
 
 const selectedNameTextStyle = css({
@@ -114,7 +131,7 @@ const selectedCountBadgeStyle = css({
 
 const legendInputStyle = css({
   position: "relative",
-  zIndex: "base",
+  zIndex: "[0]",
   width: "[100%]",
   height: "[100%]",
   border: "[0]",
@@ -209,20 +226,37 @@ const listStyle = css({
 
 const itemStyle = css({
   display: "grid",
-  gridTemplateColumns: "[12px minmax(0, 1fr) auto auto]",
+  gridTemplateColumns: "[12px minmax(0, 1fr)]",
   alignItems: "center",
   gap: "2",
+  position: "relative",
   minHeight: "[34px]",
-  padding: "[5px 6px]",
+  padding: "[5px 44px 5px 6px]",
   borderRadius: "md",
   color: "neutral.s115",
   cursor: "pointer",
   outline: "none",
   _highlighted: {
     backgroundColor: "neutral.bg.subtle.hover",
+    "& .timelineLegendOnlyAction": {
+      opacity: 1,
+      pointerEvents: "auto",
+    },
   },
   _selected: {
     color: "neutral.s125",
+  },
+  _focusWithin: {
+    "& .timelineLegendOnlyAction": {
+      opacity: 1,
+      pointerEvents: "auto",
+    },
+  },
+  _hover: {
+    "& .timelineLegendOnlyAction": {
+      opacity: 1,
+      pointerEvents: "auto",
+    },
   },
 });
 
@@ -263,7 +297,13 @@ const itemActionStyle = css({
 });
 
 const onlyActionStyle = css({
+  position: "absolute",
+  right: "1.5",
+  top: "[50%]",
+  transform: "[translateY(-50%)]",
   color: "blue.s90",
+  opacity: 0,
+  pointerEvents: "none",
 });
 
 const emptyStyle = css({
@@ -322,6 +362,10 @@ export const TimelineLegend: FC<{
   const selectedSeries = series.filter(
     (item) => !hiddenSeries.has(item.seriesId),
   );
+  const collapsedLegendSeries = [
+    ...selectedSeries,
+    ...series.filter((item) => hiddenSeries.has(item.seriesId)),
+  ];
   const selectedCount = selectedSeriesIds.length;
 
   const toggleSeries = (seriesId: string) => {
@@ -385,28 +429,42 @@ export const TimelineLegend: FC<{
                 inputValue.length > 0 && visuallyHiddenTextStyle,
               )}
             >
-              {selectedSeries.map((item) => (
-                <span key={item.seriesId} className={selectedNameItemStyle}>
-                  <span
-                    className={selectedNameSwatchStyle}
-                    style={{ backgroundColor: item.color }}
-                  />
-                  <span className={selectedNameTextStyle}>
-                    {item.seriesName}
-                  </span>
-                </span>
-              ))}
+              {collapsedLegendSeries.map((item) => {
+                const isSelected = !hiddenSeries.has(item.seriesId);
+
+                return (
+                  <button
+                    key={item.seriesId}
+                    type="button"
+                    className={cx(
+                      selectedNameItemStyle,
+                      !isSelected && hiddenSelectedNameItemStyle,
+                    )}
+                    onClick={(event) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      toggleSeries(item.seriesId);
+                    }}
+                    onPointerDown={(event) => {
+                      event.stopPropagation();
+                    }}
+                  >
+                    <span
+                      className={selectedNameSwatchStyle}
+                      style={{ backgroundColor: item.color }}
+                    />
+                    <span className={selectedNameTextStyle}>
+                      {item.seriesName}
+                    </span>
+                  </button>
+                );
+              })}
             </span>
             {/* TODO(actual-mode follow-up): add explicit accessible names for
             the combobox input and icon-only triggers. The visual selector is
-            usable, but screen readers should not rely on a placeholder that
-            disappears once timeline series are selected. */}
-            <Combobox.Input
-              className={legendInputStyle}
-              placeholder={
-                selectedCount === 0 ? "Search timeline series" : undefined
-              }
-            />
+            usable, but screen readers still need stable labels for these
+            controls. */}
+            <Combobox.Input className={legendInputStyle} />
           </div>
           {inputValue ? (
             <Combobox.ClearTrigger className={triggerButtonStyle}>
@@ -463,18 +521,11 @@ export const TimelineLegend: FC<{
                       </Combobox.ItemText>
                       <button
                         type="button"
-                        className={itemActionStyle}
-                        onClick={(event) => {
-                          preventNestedActionSelection(event);
-                          toggleSeries(item.value);
-                        }}
-                        onPointerDown={preventNestedActionSelection}
-                      >
-                        {isSelected ? "Unselect" : "Select"}
-                      </button>
-                      <button
-                        type="button"
-                        className={cx(itemActionStyle, onlyActionStyle)}
+                        className={cx(
+                          itemActionStyle,
+                          onlyActionStyle,
+                          "timelineLegendOnlyAction",
+                        )}
                         onClick={(event) => {
                           preventNestedActionSelection(event);
                           selectOnly(item.value);
