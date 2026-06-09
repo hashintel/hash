@@ -168,7 +168,9 @@ async fn run_query(
         .spawn_pinned(|| query_local(ctx, exec, query, options))
         .await;
 
-    result.unwrap_or_else(|_| {
+    result.unwrap_or_else(|error| {
+        tracing::error!(?error, "panicked by trying to execute query");
+
         (
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(serde_json::json!({"fatal": "internal error: query execution failed"})),
