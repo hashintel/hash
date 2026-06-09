@@ -591,6 +591,20 @@ export const CustomRender: Story<SelectProps> = (args) => {
           />
         </div>
       </div>
+      <div className={groupStyle}>
+        <span style={subheadingStyle}>
+          Readonly with custom renderSelectedItem (bold label)
+        </span>
+        <Select
+          {...spreadArgs}
+          items={colorItems}
+          value="red"
+          onChange={noop}
+          renderItem={renderColorItem}
+          renderSelectedItem={renderColorSelected}
+          readonly
+        />
+      </div>
       <div style={{ display: "none" }}>
         <Select
           items={colorItems}
