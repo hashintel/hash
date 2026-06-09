@@ -69,10 +69,8 @@ export const DraftEntitiesContextProvider: FunctionComponent<
           filter: {
             all: [
               {
-                not: {
-                  exists: {
-                    path: ["draftId"],
-                  },
+                exists: {
+                  path: ["draftId"],
                 },
               },
               {

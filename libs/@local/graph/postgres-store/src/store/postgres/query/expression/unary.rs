@@ -29,20 +29,25 @@ pub struct UnaryExpression {
 impl Transpile for UnaryExpression {
     fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match self.op {
-            UnaryOperator::Not => {
-                if let Expression::Unary(Self {
+            #[expect(clippy::wildcard_enum_match_arm)]
+            UnaryOperator::Not => match &*self.expr {
+                Expression::Unary(Self {
                     op: UnaryOperator::IsNull,
                     expr,
-                }) = &*self.expr
-                {
+                }) => {
                     expr.transpile(fmt)?;
                     fmt.write_str(" IS NOT NULL")
-                } else {
+                }
+                Expression::Unary(Self {
+                    op: UnaryOperator::Not,
+                    expr,
+                }) => expr.transpile(fmt),
+                _ => {
                     fmt.write_str("NOT(")?;
                     self.expr.transpile(fmt)?;
                     fmt.write_char(')')
                 }
-            }
+            },
             UnaryOperator::IsNull => {
                 self.expr.transpile(fmt)?;
                 fmt.write_str(" IS NULL")

@@ -814,7 +814,7 @@ mod tests {
             WHERE "entity_temporal_metadata_0_0_0"."draft_id" IS NULL
               AND "entity_temporal_metadata_0_0_0"."transaction_time" @> $2::TIMESTAMPTZ
               AND "entity_temporal_metadata_0_0_0"."decision_time" && $3
-              AND jsonb_path_query_first("entity_editions_0_1_0"."properties", (($1::text)::jsonpath)) IS NULL
+              AND jsonb_path_query_first("entity_editions_0_1_0"."properties", (($1::text)::jsonpath)) IS NOT NULL
             "#,
             &[
                 &json_path,

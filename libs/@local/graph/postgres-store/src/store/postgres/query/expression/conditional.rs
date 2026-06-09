@@ -424,11 +424,16 @@ impl Expression {
     }
 
     #[must_use]
-    pub fn exists(expr: Self) -> Self {
+    pub fn is_null(expr: Self) -> Self {
         Self::Unary(UnaryExpression {
             op: UnaryOperator::IsNull,
             expr: Box::new(expr),
         })
+    }
+
+    #[must_use]
+    pub fn is_not_null(expr: Self) -> Self {
+        Self::is_null(expr).not()
     }
 
     #[must_use]
@@ -1023,7 +1028,7 @@ mod tests {
             &Filter::Exists {
                 path: DataTypeQueryPath::Description,
             },
-            r#""data_types_0_1_0"."schema"->>'description' IS NULL"#,
+            r#""data_types_0_1_0"."schema"->>'description' IS NOT NULL"#,
             &[],
         );
 
@@ -1031,6 +1036,16 @@ mod tests {
             &Filter::Not(Box::new(Filter::Exists {
                 path: DataTypeQueryPath::Description,
             })),
+            r#""data_types_0_1_0"."schema"->>'description' IS NULL"#,
+            &[],
+        );
+
+        // Double negation (e.g. `Not(IsRemote)`, where `IsRemote` is itself `Not(Exists)`):
+        // three nested `Not`s over `IsNull` must still resolve to `IS NOT NULL`.
+        test_condition(
+            &Filter::Not(Box::new(Filter::Not(Box::new(Filter::Exists {
+                path: DataTypeQueryPath::Description,
+            })))),
             r#""data_types_0_1_0"."schema"->>'description' IS NOT NULL"#,
             &[],
         );
