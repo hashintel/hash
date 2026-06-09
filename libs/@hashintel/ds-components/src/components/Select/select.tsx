@@ -61,9 +61,9 @@ type SelectBaseProps<TValue extends string> = {
   onKeyDown?: React.KeyboardEventHandler<Element>;
   tabIndex?: number;
   items: ReadonlyArray<ItemOrGroup<SelectItem<TValue>>>;
-  /** Custom renderer for items in the dropdown. Defaults to the item's `text`. */
+  /** Custom renderer for items in the dropdown. Defaults to the item's `text`. Note that if connectToLeftInput or connectToRightInput the height of the rendered selected item is clamped to the default height of select so that it correctly aligns. */
   renderItem?: (value: TValue) => React.ReactNode;
-  /** Custom renderer for the selected value in the trigger. Defaults to `renderItem`, or the item's `text` if neither is provided. */
+  /** Custom renderer for the selected value in the trigger. Defaults to `renderItem`, or the item's `text` if neither is provided. Note that if connectToLeftInput or connectToRightInput the height of the rendered selected item is clamped to the default height of select so that it correctly aligns. */
   renderSelectedItem?: (value: TValue) => React.ReactNode;
   /** The input ref - this is different to the ref, which is the containing element. This refers instead to a hidden select element (the actual ui uses a button to handle custom styling). Use this to access the internal select state and/or to set focus. */
   inputRef?: React.Ref<HTMLSelectElement>;
@@ -296,6 +296,9 @@ export const Select = <TValue extends string>({
     hasPrefix: !!prefix,
     connectsLeft,
     connectsRight,
+    clampTriggerHeight:
+      (!!renderItem || !!renderSelectedItem) &&
+      (!!connectToLeftInput || !!connectToRightInput),
     willClear:
       showClear &&
       clearable.clearable &&

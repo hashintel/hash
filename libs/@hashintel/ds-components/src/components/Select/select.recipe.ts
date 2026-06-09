@@ -384,6 +384,14 @@ export const selectRecipe = sva({
         },
       },
     },
+    clampTriggerHeight: {
+      true: {
+        trigger: {
+          maxHeight:
+            "[calc(var(--form-line-height) + 2 * var(--form-padding-y))]",
+        },
+      },
+    },
   },
   compoundVariants: [
     {
