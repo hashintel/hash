@@ -17,12 +17,15 @@ import type { ArcData, ArcEdgeType } from "../reactflow-types";
 
 const BASE_STROKE_WIDTH = 2;
 const ANIMATION_DURATION_MS = 500;
-const INHIBITOR_DASH_PATTERN = "10 5 3 3 3 5";
 const READ_DASH_PATTERN = "2 6";
 const INHIBITOR_MARKER_RADIUS = 10;
 const INHIBITOR_MARKER_SIZE = (INHIBITOR_MARKER_RADIUS + BASE_STROKE_WIDTH) * 2;
 const READ_MARKER_RADIUS = 4;
 const READ_MARKER_SIZE = (READ_MARKER_RADIUS + BASE_STROKE_WIDTH) * 2;
+
+// Perpendicular tick marks for inhibitor arcs
+const INHIBITOR_TICK_SPACING = 13;
+const INHIBITOR_TICK_HALF_LENGTH = 5;
 
 type AnimationState = {
   animation: Animation;
@@ -137,13 +140,91 @@ const weightTextStyle = css({
 function getArcStrokeDasharray(
   arcType: ArcData["arcType"] | undefined,
 ): string | undefined {
-  if (arcType === "inhibitor") {
-    return INHIBITOR_DASH_PATTERN;
-  }
   if (arcType === "read") {
     return READ_DASH_PATTERN;
   }
   return undefined;
+}
+
+type TickMark = { x1: number; y1: number; x2: number; y2: number };
+
+/**
+ * Computes evenly spaced perpendicular tick marks along an SVG path.
+ *
+ * Used to render the inhibitor arc as a crossed "barrier" line. The geometry is
+ * derived from the actual rendered path (bezier, smoothstep, or custom) by
+ * walking a detached path element with `getPointAtLength`, so the ticks follow
+ * whichever arc rendering the user has selected. A margin is left at the target
+ * end so the ticks do not collide with the inhibitor circle marker.
+ *
+ * This is a pure computation (the path element is never attached to the
+ * document) and is safe to run during render.
+ */
+function computeArcTickMarks(path: string): TickMark[] {
+  if (typeof document === "undefined") {
+    return [];
+  }
+
+  const pathElement = document.createElementNS(
+    "http://www.w3.org/2000/svg",
+    "path",
+  );
+  pathElement.setAttribute("d", path);
+
+  let totalLength: number;
+  try {
+    totalLength = pathElement.getTotalLength();
+  } catch {
+    // `getTotalLength`/`getPointAtLength` are unavailable in some non-browser
+    // environments (e.g. jsdom); fall back to no ticks rather than throwing.
+    return [];
+  }
+
+  if (!Number.isFinite(totalLength) || totalLength <= 0) {
+    return [];
+  }
+
+  // Keep ticks clear of the source node and of the circle marker at the target.
+  const startMargin = INHIBITOR_TICK_SPACING;
+  const endMargin = INHIBITOR_MARKER_SIZE / 2 + INHIBITOR_TICK_SPACING;
+  const usableLength = totalLength - startMargin - endMargin;
+
+  if (usableLength <= 0) {
+    return [];
+  }
+
+  const tickCount = Math.floor(usableLength / INHIBITOR_TICK_SPACING);
+  const ticks: TickMark[] = [];
+
+  for (let index = 0; index <= tickCount; index++) {
+    const distance = startMargin + index * INHIBITOR_TICK_SPACING;
+
+    let point: DOMPoint;
+    let ahead: DOMPoint;
+    try {
+      point = pathElement.getPointAtLength(distance);
+      ahead = pathElement.getPointAtLength(Math.min(distance + 1, totalLength));
+    } catch {
+      return [];
+    }
+
+    const dx = ahead.x - point.x;
+    const dy = ahead.y - point.y;
+    const length = Math.hypot(dx, dy) || 1;
+
+    // Unit vector perpendicular to the path tangent.
+    const nx = -dy / length;
+    const ny = dx / length;
+
+    ticks.push({
+      x1: point.x - nx * INHIBITOR_TICK_HALF_LENGTH,
+      y1: point.y - ny * INHIBITOR_TICK_HALF_LENGTH,
+      x2: point.x + nx * INHIBITOR_TICK_HALF_LENGTH,
+      y2: point.y + ny * INHIBITOR_TICK_HALF_LENGTH,
+    });
+  }
+
+  return ticks;
 }
 
 /**
@@ -217,43 +298,40 @@ export const Arc: React.FC<EdgeProps<ArcEdgeType>> = ({
   // Animate stroke width when firing delta changes (scaled by arc weight)
   useFiringAnimation(arcPathRef, firingDelta, data?.weight ?? 1);
 
-  // Compute path based on arc rendering setting
-  let arcPath: string;
-  let labelX: number;
-  let labelY: number;
-
-  if (arcRendering === "smoothstep") {
-    [arcPath, labelX, labelY] = getSmoothStepPath({
-      sourceX,
-      sourceY,
-      sourcePosition,
-      targetX,
-      targetY,
-      targetPosition,
-    });
-  } else if (arcRendering === "bezier") {
-    [arcPath, labelX, labelY] = getBezierPath({
-      sourceX,
-      sourceY,
-      sourcePosition,
-      targetX,
-      targetY,
-      targetPosition,
-    });
-  } else {
-    [arcPath, labelX, labelY] = getCustomArcPath({
-      sourceX,
-      sourceY,
-      sourcePosition,
-      targetX,
-      targetY,
-      targetPosition,
-    });
-  }
+  // Compute path based on arc rendering setting.
+  const [arcPath, labelX, labelY] =
+    arcRendering === "smoothstep"
+      ? getSmoothStepPath({
+          sourceX,
+          sourceY,
+          sourcePosition,
+          targetX,
+          targetY,
+          targetPosition,
+        })
+      : arcRendering === "bezier"
+        ? getBezierPath({
+            sourceX,
+            sourceY,
+            sourcePosition,
+            targetX,
+            targetY,
+            targetPosition,
+          })
+        : getCustomArcPath({
+            sourceX,
+            sourceY,
+            sourcePosition,
+            targetX,
+            targetY,
+            targetPosition,
+          });
 
   let strokeColor = style?.stroke ?? "#b1b1b7";
   const arcType = data?.arcType;
   const strokeDasharray = getArcStrokeDasharray(arcType);
+
+  const tickMarks = arcType === "inhibitor" ? computeArcTickMarks(arcPath) : [];
   const markerEndOverride =
     arcType === "inhibitor"
       ? `url(#${inhibitorMarkerId})`
@@ -344,6 +422,25 @@ export const Arc: React.FC<EdgeProps<ArcEdgeType>> = ({
             : { ...style, stroke: strokeColor }
         }
       />
+
+      {/* Perpendicular tick marks crossing inhibitor arcs */}
+      {arcType === "inhibitor" && tickMarks.length > 0 && (
+        <g style={{ pointerEvents: "none" }}>
+          {tickMarks.map((tick, index) => (
+            <line
+              // eslint-disable-next-line react/no-array-index-key -- ticks are derived purely from path geometry and re-rendered as a whole
+              key={index}
+              x1={tick.x1}
+              y1={tick.y1}
+              x2={tick.x2}
+              y2={tick.y2}
+              stroke={strokeColor}
+              strokeWidth={BASE_STROKE_WIDTH}
+              strokeLinecap="round"
+            />
+          ))}
+        </g>
+      )}
 
       {/* Labels container */}
       <g transform={`translate(${labelX}, ${labelY})`}>

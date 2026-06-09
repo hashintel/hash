@@ -64,7 +64,7 @@ A software release process with a safety gate and an incident feedback loop. Dep
 
 **Key concepts:** [inhibitor arcs](petri-net-extensions.md#inhibitor-arcs), [source transitions](useful-patterns.md#source-transitions-exogenous-arrivals), [mutual exclusion](useful-patterns.md#mutual-exclusion-with-inhibitor-arcs), [distributions](petri-net-extensions.md#distributions), [visualizers](petri-net-extensions.md#visualizer).
 
-<img width="1323" height="676" alt="deployment-pipeline" src="https://github.com/user-attachments/assets/002dfe2f-c35c-4a24-a2ba-dd1a73325e67" />
+<img width="1070" height="550" alt="deployment-pipeline" src="https://github.com/user-attachments/assets/44999019-c5f1-4007-8bec-1625a2be213c" />
 
 ## Production with Machine Failure
 
