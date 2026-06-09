@@ -41,6 +41,7 @@ impl Transpile for UnaryExpression {
                     op: UnaryOperator::Not,
                     expr,
                 }) => expr.transpile(fmt),
+                #[expect(clippy::wildcard_enum_match_arm)]
                 _ => {
                     fmt.write_str("NOT(")?;
                     self.expr.transpile(fmt)?;
