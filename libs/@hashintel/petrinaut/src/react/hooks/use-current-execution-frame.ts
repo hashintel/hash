@@ -23,60 +23,64 @@ export type CurrentExecutionFrame = {
   totalFrames: number;
 };
 
+const emptyExecutionFrame: CurrentExecutionFrame = {
+  currentFrameIndex: 0,
+  currentFrameReader: null,
+  currentViewedFrame: null,
+  totalFrames: 0,
+};
+
 export const useCurrentExecutionFrame = (): CurrentExecutionFrame => {
   const actualMode = use(ActualModeContext);
   const playback = use(PlaybackContext);
   const { globalMode } = use(EditorContext);
   const { petriNetDefinition } = use(SDCPNContext);
 
-  let actualFrame: CurrentExecutionFrame | null = null;
-
-  if (
-    globalMode === "actual" &&
-    actualMode.available &&
-    actualMode.initialState
-  ) {
-    const timelinePoints = buildActualModeTimelinePoints({
-      status: actualMode.status,
-      transitionFirings: actualMode.transitionFirings,
-      timelineStartedAtMs: actualMode.timelineStartedAtMs,
-      timelineNowMs: actualMode.timelineNowMs,
-    });
-
-    if (timelinePoints.length === 0) {
-      actualFrame = {
-        currentFrameIndex: 0,
-        currentFrameReader: null,
-        currentViewedFrame: null,
-        totalFrames: 0,
-      };
-    } else {
-      const currentFrameIndex = Math.min(
-        actualMode.currentFrameIndex,
-        timelinePoints.length - 1,
-      );
-      const transitionFiringTimesMs = getActualModeTransitionFiringTimesMs(
-        actualMode.transitionFirings,
-        actualMode.timelineStartedAtMs,
-        actualMode.timelineNowMs,
-      );
-      const currentFrameReader = createActualModeTimelineFrameReader({
-        definition: petriNetDefinition,
-        initialState: actualMode.initialState,
-        transitionFirings: actualMode.transitionFirings,
-        transitionFiringTimesMs,
-        point: timelinePoints[currentFrameIndex]!,
-        number: currentFrameIndex,
-      });
-
-      actualFrame = {
-        currentFrameIndex,
-        currentFrameReader,
-        currentViewedFrame: currentFrameReader.toFrameState(),
-        totalFrames: timelinePoints.length,
-      };
-    }
+  // TODO: reverse this responsibility in a future refactor. This hook should
+  // not decide whether execution state comes from PlaybackContext or
+  // ActualModeContext. Route to separate simulation/actual views upstream, each
+  // with its own adapter, and let those views share lower-level components.
+  if (globalMode !== "actual") {
+    return playback;
   }
 
-  return actualFrame ?? playback;
+  if (!actualMode.available || actualMode.initialState === null) {
+    return emptyExecutionFrame;
+  }
+
+  const timelinePoints = buildActualModeTimelinePoints({
+    status: actualMode.status,
+    transitionFirings: actualMode.transitionFirings,
+    timelineStartedAtMs: actualMode.timelineStartedAtMs,
+    timelineNowMs: actualMode.timelineNowMs,
+  });
+
+  if (timelinePoints.length === 0) {
+    return emptyExecutionFrame;
+  }
+
+  const currentFrameIndex = Math.min(
+    actualMode.currentFrameIndex,
+    timelinePoints.length - 1,
+  );
+  const transitionFiringTimesMs = getActualModeTransitionFiringTimesMs(
+    actualMode.transitionFirings,
+    actualMode.timelineStartedAtMs,
+    actualMode.timelineNowMs,
+  );
+  const currentFrameReader = createActualModeTimelineFrameReader({
+    definition: petriNetDefinition,
+    initialState: actualMode.initialState,
+    transitionFirings: actualMode.transitionFirings,
+    transitionFiringTimesMs,
+    point: timelinePoints[currentFrameIndex]!,
+    number: currentFrameIndex,
+  });
+
+  return {
+    currentFrameIndex,
+    currentFrameReader,
+    currentViewedFrame: currentFrameReader.toFrameState(),
+    totalFrames: timelinePoints.length,
+  };
 };
