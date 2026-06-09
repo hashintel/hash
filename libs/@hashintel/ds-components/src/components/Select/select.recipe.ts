@@ -346,6 +346,7 @@ export const selectRecipe = sva({
         },
         list: {
           width: "[auto]",
+          maxWidth: "[auto]",
         },
       },
     },
