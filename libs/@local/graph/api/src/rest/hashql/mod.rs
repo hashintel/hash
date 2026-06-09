@@ -14,7 +14,6 @@ use core::num::NonZero;
 use std::thread::available_parallelism;
 
 use axum::{Extension, Router, response::IntoResponse as _, routing::post};
-use hash_graph_authorization::policies::action::ActionName;
 use hash_graph_postgres_store::store::PostgresStorePool;
 use hash_graph_store::pool::StorePool;
 use hash_temporal_client::TemporalClient;
