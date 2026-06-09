@@ -9,6 +9,7 @@ type ItemBase = {
   description?: React.ReactNode;
   icon?: IconName;
   loading?: boolean;
+  suffix?: React.ReactNode;
 
   indent?: number;
   disabled?: boolean;

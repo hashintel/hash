@@ -12,6 +12,7 @@ export const styles = sva({
     "checkbox",
     "spinner",
     "icon",
+    "suffix",
     "arrow",
   ],
   base: {
@@ -55,6 +56,12 @@ export const styles = sva({
       color: "neutral.s90",
     },
     icon: {},
+    suffix: {
+      marginLeft: "auto",
+      flexShrink: "0",
+      color: "fg.subtle",
+      alignSelf: "flex-start",
+    },
     arrow: {
       alignSelf: "center",
     },

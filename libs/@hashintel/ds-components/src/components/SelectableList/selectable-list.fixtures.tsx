@@ -34,6 +34,13 @@ const itemWithLoading: Item = {
   onClick: noop,
 };
 
+const itemWithSuffix: Item = {
+  id: "with-suffix",
+  text: "Item with suffix",
+  suffix: "⌘K",
+  onClick: noop,
+};
+
 const itemIndent1: Item = {
   id: "indent-1",
   text: "Indented 1",
@@ -102,6 +109,7 @@ const kitchenSinkItem: Item = {
   indent: 1,
   tone: "error",
   selectedStyle: "checkbox",
+  suffix: "⌘K",
   onClick: noop,
 };
 
@@ -191,6 +199,7 @@ export const groupedItems: ItemOrGroup<Item>[] = [
   itemWithDescription,
   itemWithIcon,
   itemWithLoading,
+  itemWithSuffix,
   itemWithHref,
   {
     id: "group-indented",

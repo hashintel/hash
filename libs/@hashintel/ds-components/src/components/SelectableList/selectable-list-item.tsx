@@ -106,6 +106,9 @@ export const ItemBody = ({
           aria-hidden="true"
         />
       )}
+      {item.suffix !== undefined && item.suffix !== null && (
+        <span className={classes.suffix}>{item.suffix}</span>
+      )}
     </>
   );
 };
