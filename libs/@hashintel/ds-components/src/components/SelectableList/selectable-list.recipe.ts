@@ -3,13 +3,7 @@ import { sva } from "@hashintel/ds-helpers/css";
 import type { FormInputSize } from "../../util/form-shared";
 
 export const styles = sva({
-  slots: [
-    "content",
-    "group",
-    "groupLabel",
-    "loadingContainer",
-    "emptyContainer",
-  ],
+  slots: ["content", "group", "groupLabel", "emptyContainer"],
   base: {
     content: {
       backgroundColor: "white",
@@ -52,15 +46,6 @@ export const styles = sva({
       paddingX: "[var(--selectable-list-padding-x)]",
       userSelect: "none",
       width: "full",
-    },
-    loadingContainer: {
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      width: "full",
-      color: "fg.subtle",
-      paddingX: "2",
-      paddingY: "3",
     },
     emptyContainer: {
       textAlign: "center",

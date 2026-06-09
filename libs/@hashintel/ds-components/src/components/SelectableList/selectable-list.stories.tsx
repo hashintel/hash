@@ -172,20 +172,6 @@ export const Sizes: Story<SelectableListProps> = (args) => (
             />
           </StaticMenu>
         </div>
-        <div
-          className={css({
-            display: "flex",
-            flexDirection: "column",
-            gap: "[8px]",
-          })}
-        >
-          <span className={css({ fontSize: "[12px]", color: "neutral.s80" })}>
-            loading=true
-          </span>
-          <StaticMenu>
-            <SelectableList {...args} size={size} items={[]} loading />
-          </StaticMenu>
-        </div>
       </div>
     ))}
   </div>

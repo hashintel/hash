@@ -9,7 +9,6 @@ import { cx } from "@hashintel/ds-helpers/css";
 
 import { usePortalContainerRef } from "../../util/portal-container-context";
 import { isEmptyString } from "../../util/string";
-import { LoadingSpinner } from "../Loading/loading-spinner";
 import { ItemBody } from "./selectable-list-item";
 import { styles as itemStyles } from "./selectable-list-item.recipe";
 import {
@@ -243,7 +242,6 @@ export const SelectableList = ({
   selected,
   size = "md",
   emptyState,
-  loading = false,
 }: {
   /** Which ark-ui primitive set to render inside. Defaults to Menu. */
   as?: SelectableListAs;
@@ -252,7 +250,6 @@ export const SelectableList = ({
   size?: FormInputSize;
   selected?: string[] | Set<string>;
   emptyState?: React.ReactNode;
-  loading?: boolean;
 }) => {
   const selectedSet = useMemo(() => new Set(selected ?? []), [selected]);
   const classes = styles({ size });
@@ -266,11 +263,7 @@ export const SelectableList = ({
     contentClassName: classes.content,
   };
 
-  const body = loading ? (
-    <div className={classes.loadingContainer}>
-      <LoadingSpinner size={size} />
-    </div>
-  ) : isEmpty ? (
+  const body = isEmpty ? (
     <div className={classes.emptyContainer}>{emptyState}</div>
   ) : (
     items.map((item) => renderEntry(item, ctx))
