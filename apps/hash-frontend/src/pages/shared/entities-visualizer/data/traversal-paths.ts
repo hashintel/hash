@@ -12,6 +12,12 @@ const graphViewTraversalPaths: TraversalPath[] = [
       { kind: "has-right-entity", direction: "outgoing" },
     ],
   },
+  {
+    edges: [
+      { kind: "has-right-entity", direction: "incoming" },
+      { kind: "has-left-entity", direction: "outgoing" },
+    ],
+  },
 ];
 
 /**

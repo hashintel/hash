@@ -1,7 +1,7 @@
 import { useQuery } from "@apollo/client";
 import { useMemo } from "react";
 
-import { getRoots } from "@blockprotocol/graph/stdlib";
+import { getLatestEntityVertices, getRoots } from "@blockprotocol/graph/stdlib";
 import {
   type ConversionRequest,
   deserializeQueryEntitySubgraphResponse,
@@ -176,8 +176,13 @@ export const useEntitiesVisualizerData = (params: {
   );
 
   const entities = useMemo(
-    () => (subgraph ? getRoots(subgraph) : undefined),
-    [subgraph],
+    () =>
+      subgraph
+        ? view === "Table"
+          ? getRoots(subgraph)
+          : getLatestEntityVertices(subgraph).map((vertex) => vertex.inner)
+        : undefined,
+    [subgraph, view],
   );
 
   return useMemo(

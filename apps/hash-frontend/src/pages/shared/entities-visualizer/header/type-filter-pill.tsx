@@ -270,12 +270,16 @@ export const TypeFilterPill: FunctionComponent<TypeFilterPillProps> = ({
 
     const showUnknownTypes = !searchQuery;
 
-    return (
-      <>
-        {showUnknownTypes &&
-          unknownSelectedIds.map((id) => (
+    /**
+     * MUI's `Menu` iterates over its children to manage focus and keyboard
+     * navigation, and warns if any child is a `Fragment`. We therefore return a
+     * flat array of menu items rather than wrapping them in a `Fragment`.
+     */
+    return [
+      ...(showUnknownTypes
+        ? unknownSelectedIds.map((id) => (
             <MenuCheckboxItem
-              key={id}
+              key={`unknown-${id}`}
               selected
               onClick={() => toggle(id)}
               sx={{ minWidth: 260 }}
@@ -290,20 +294,20 @@ export const TypeFilterPill: FunctionComponent<TypeFilterPillProps> = ({
                 }}
               />
             </MenuCheckboxItem>
-          ))}
-        {filteredTypes.map(({ entityTypeId, title, count }) => (
-          <TypeFilterMenuItem
-            key={entityTypeId}
-            entityTypeId={entityTypeId}
-            title={title}
-            count={count}
-            checked={isChecked(entityTypeId)}
-            onToggle={toggle}
-            onSelectOnly={selectOnly}
-          />
-        ))}
-      </>
-    );
+          ))
+        : []),
+      ...filteredTypes.map(({ entityTypeId, title, count }) => (
+        <TypeFilterMenuItem
+          key={entityTypeId}
+          entityTypeId={entityTypeId}
+          title={title}
+          count={count}
+          checked={isChecked(entityTypeId)}
+          onToggle={toggle}
+          onSelectOnly={selectOnly}
+        />
+      )),
+    ];
   };
 
   return (
