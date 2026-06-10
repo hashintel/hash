@@ -332,7 +332,6 @@ const SimulationSettingsContent: React.FC = () => {
                         disabled={isSimulationActive}
                       />
                       <NumberInput
-                        type="float"
                         size="xs"
                         min={0}
                         max={1}
@@ -356,12 +355,11 @@ const SimulationSettingsContent: React.FC = () => {
                     </div>
                   ) : (
                     <NumberInput
-                      type={param.type === "integer" ? "integer" : "float"}
                       size="xs"
                       width="xs"
                       align="right"
+                      step={param.type === "integer" ? 1 : 0.001}
                       hideStepper
-                      max={Number.MAX_SAFE_INTEGER}
                       value={Number(
                         selectedScenario
                           ? (scenarioParameterValues[param.variableName] ??
@@ -405,7 +403,6 @@ const SimulationSettingsContent: React.FC = () => {
                 <InfoIconTooltip tooltip="Controls the resolution of the ODE solver. Smaller steps yield finer approximations but take longer to compute." />
               </label>
               <NumberInput
-                type="float"
                 htmlForId="time-step-input"
                 size="xs"
                 min={0.001}

@@ -55,7 +55,7 @@ export type BaseInputProps = {
   onKeyDown?: React.KeyboardEventHandler<Element>;
   min?: number;
   max?: number;
-  step?: number;
+  step?: number | "any";
   maxLength?: number;
   pattern?: string;
   spellcheck?: boolean;

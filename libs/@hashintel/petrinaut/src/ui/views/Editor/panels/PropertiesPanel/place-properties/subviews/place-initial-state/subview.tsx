@@ -130,7 +130,6 @@ const PlaceInitialStateContent: React.FC = () => {
         </div>
         <Tooltip content="Defined by the selected scenario">
           <NumberInput
-            type="integer"
             size="sm"
             min={0}
             value={tokenCount}
@@ -162,9 +161,7 @@ const PlaceInitialStateContent: React.FC = () => {
           disableTooltip={!hasSimulationFrames}
         >
           <NumberInput
-            type="integer"
             min={0}
-            step={1}
             value={currentTokenCount}
             onChange={(tokenCount) => {
               setInitialMarking(place.id, Math.max(0, tokenCount ?? 0));

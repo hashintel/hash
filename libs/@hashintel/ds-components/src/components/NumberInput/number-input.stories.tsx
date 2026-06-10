@@ -41,29 +41,16 @@ const rowVariants: RowVariant[] = [
 
 const noop = () => {};
 
-const Controlled = ({
-  type = "integer",
-  ...props
-}: Omit<NumberInputProps, "type"> & {
-  type?: "integer" | "float";
-}) => {
+const Controlled = ({ ...props }: NumberInputProps) => {
   const [value, setValue] = useState(props.value ?? null);
   return (
-    <NumberInput
-      {...props}
-      value={value}
-      onChange={(val) => setValue(val)}
-      type={type}
-    />
+    <NumberInput {...props} value={value} onChange={(val) => setValue(val)} />
   );
 };
 
 const ClearableInput = ({
-  type = "integer",
   ...props
-}: Omit<NumberInputProps, "clearable" | "onChange" | "type"> & {
-  type?: "integer" | "float";
-}) => {
+}: Omit<NumberInputProps, "clearable" | "onChange">) => {
   const [value, setValue] = useState(props.value ?? null);
   return (
     <NumberInput
@@ -71,7 +58,6 @@ const ClearableInput = ({
       value={value}
       onChange={(val) => setValue(val)}
       clearable={{ clearable: true, onClear: () => setValue(null) }}
-      type={type}
     />
   );
 };
@@ -81,7 +67,7 @@ const StyledNumberInput = ({
   ...props
 }: Omit<
   NumberInputProps,
-  "value" | "onChange" | "styledValue" | "clearable" | "type"
+  "value" | "onChange" | "styledValue" | "clearable"
 > & {
   clearable?: boolean;
 }) => {
@@ -91,7 +77,6 @@ const StyledNumberInput = ({
       {...props}
       value={value}
       onChange={(val) => setValue(val)}
-      type="integer"
       clearable={
         clearable
           ? { clearable: true, onClear: () => setValue(null) }
@@ -148,6 +133,11 @@ const stateRows = [
     label: "Show Edit Icon",
     extraProps: { showEditIcon: true },
   },
+  {
+    key: "hideStepper",
+    label: "Hide Stepper",
+    extraProps: { hideStepper: true },
+  },
 ];
 
 const stateColumns = [
@@ -156,16 +146,9 @@ const stateColumns = [
   { key: "readonly", label: "Read-only", withValue: true, readonly: true },
 ];
 
-const numberTypes = ["integer", "float"] as const;
-
 export default {
   title: "Components/NumberInput",
   argTypes: {
-    type: {
-      control: { type: "radio" },
-      options: numberTypes,
-      description: "Numeric type",
-    },
     placeholder: {
       control: { type: "text" },
       description: "Placeholder text shown when the input is empty",
@@ -212,7 +195,6 @@ export default {
     },
   },
   args: {
-    type: "integer",
     disabled: false,
     invalid: false,
     readonly: false,
@@ -225,13 +207,11 @@ export default {
 } satisfies StoryDefault<NumberInputProps>;
 
 const StateGrid = ({
-  type,
   filledValue,
   forwardProps,
 }: {
-  type: "integer" | "float";
   filledValue: number;
-  forwardProps?: Omit<NumberInputProps, "value" | "onChange" | "type">;
+  forwardProps?: Omit<NumberInputProps, "value" | "onChange">;
 }) => (
   <div className={sectionStyle}>
     {variants.map((variant) => (
@@ -263,7 +243,6 @@ const StateGrid = ({
                   value={value}
                   variant={variant}
                   readonly={col.readonly}
-                  type={type}
                   {...row.extraProps}
                 />
               ) : (
@@ -274,7 +253,6 @@ const StateGrid = ({
                   onChange={noop}
                   variant={variant}
                   readonly={col.readonly}
-                  type={type}
                   {...row.extraProps}
                 />
               );
@@ -286,18 +264,15 @@ const StateGrid = ({
   </div>
 );
 
-export const Default: Story<NumberInputProps> = ({
-  type: _type,
-  ...forwardProps
-}) => (
-  <StateGrid type="integer" filledValue={1234} forwardProps={forwardProps} />
+export const Default: Story<NumberInputProps> = (forwardProps) => (
+  <StateGrid filledValue={1234} forwardProps={forwardProps} />
 );
 
-export const Float: Story<NumberInputProps> = ({
-  type: _type,
-  ...forwardProps
-}) => (
-  <StateGrid type="float" filledValue={1234.56} forwardProps={forwardProps} />
+export const Float: Story<NumberInputProps> = (forwardProps) => (
+  <StateGrid
+    filledValue={1234.56}
+    forwardProps={{ ...forwardProps, step: 0.01 }}
+  />
 );
 
 export const Alignment: Story<NumberInputProps> = (args) => (
@@ -462,7 +437,7 @@ export const Widths: Story<NumberInputProps> = (args) => (
 type PrefixSuffixRow = {
   key: string;
   clearable?: boolean;
-  props: Omit<NumberInputProps, "variant" | "width" | "onChange" | "type">;
+  props: Omit<NumberInputProps, "variant" | "width" | "onChange">;
 };
 
 const prefixSuffixRows: PrefixSuffixRow[] = [

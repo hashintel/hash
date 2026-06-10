@@ -728,7 +728,6 @@ const ScenarioFormSections = ({
                     />
                   ) : (
                     <NumberInput
-                      type={param.type === "integer" ? "integer" : "float"}
                       size="sm"
                       connectToLeftInput
                       max={Number.MAX_SAFE_INTEGER}

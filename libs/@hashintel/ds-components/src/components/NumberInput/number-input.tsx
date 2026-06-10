@@ -24,10 +24,10 @@ const hideStepperStyle = css({
 });
 
 export const NumberInput = ({
-  type,
   value,
   min = 0,
   max = Number.MAX_SAFE_INTEGER,
+  step = 1,
   inputMode,
   onChange,
   onFocus,
@@ -40,7 +40,6 @@ export const NumberInput = ({
   BaseInputProps,
   "type" | "maxLength" | "spellcheck" | "value" | "onChange"
 > & {
-  type: "integer" | "float";
   value: number | null | undefined;
   hideStepper?: boolean;
   onChange: (
@@ -48,12 +47,11 @@ export const NumberInput = ({
     event: React.ChangeEvent<HTMLInputElement>,
   ) => void;
 }) => {
-  if (
-    type === "integer" ? max > Number.MAX_SAFE_INTEGER : max > Number.MAX_VALUE
-  ) {
+  const isInteger = step !== "any" && Number.isInteger(step);
+  if (isInteger ? max > Number.MAX_SAFE_INTEGER : max > Number.MAX_VALUE) {
     // eslint-disable-next-line no-console
     console.error(
-      type === "integer"
+      isInteger
         ? "The max number should be a safe js integer value"
         : "The max number should be a safe float value",
     );
@@ -67,8 +65,8 @@ export const NumberInput = ({
       value={value?.toString() ?? null}
       min={min}
       max={max}
-      step={props.step ?? (type === "integer" ? 1 : undefined)}
-      inputMode={inputMode ?? (type === "integer" ? "numeric" : "decimal")}
+      step={step}
+      inputMode={inputMode ?? (isInteger ? "numeric" : "decimal")}
       onFocus={(event) => {
         onFocus?.(event);
         event.target.addEventListener("wheel", preventWheel, {
@@ -82,7 +80,7 @@ export const NumberInput = ({
       onKeyDown={(event) => {
         onKeyDown?.(event);
         if (
-          type === "integer" &&
+          isInteger &&
           !event.defaultPrevented &&
           integerBlockedKeys.has(event.key)
         ) {
@@ -90,10 +88,11 @@ export const NumberInput = ({
         }
       }}
       onChange={(newValue, event) => {
-        const parsedRaw =
-          type === "integer" ? parseInt(newValue, 10) : parseFloat(newValue);
+        const parsedRaw = isInteger
+          ? parseInt(newValue, 10)
+          : parseFloat(newValue);
         const parsed =
-          type === "integer" && !Number.isNaN(parsedRaw)
+          isInteger && !Number.isNaN(parsedRaw)
             ? Math.trunc(parsedRaw)
             : parsedRaw;
         onChange(Number.isNaN(parsed) ? null : parsed, event);

@@ -1035,10 +1035,8 @@ export const CreateExperimentDrawer = ({
                 <div className={fieldStyle}>
                   <span className={labelStyle}>Runs</span>
                   <NumberInput
-                    type="integer"
                     size="sm"
                     min={1}
-                    step={1}
                     value={runCount === "" ? null : Number(runCount)}
                     onChange={(nextRunCount) =>
                       setRunCount(
@@ -1050,9 +1048,9 @@ export const CreateExperimentDrawer = ({
                 <div className={fieldStyle}>
                   <span className={labelStyle}>Time step</span>
                   <NumberInput
-                    type="float"
                     size="sm"
                     min={0}
+                    step="any"
                     value={dt === "" ? null : Number(dt)}
                     onChange={(nextDt) =>
                       setDt(nextDt === null ? "" : String(nextDt))
@@ -1062,9 +1060,9 @@ export const CreateExperimentDrawer = ({
                 <div className={fieldStyle}>
                   <span className={labelStyle}>Max time (s)</span>
                   <NumberInput
-                    type="float"
                     size="sm"
                     min={0}
+                    step="any"
                     value={maxTime === "" ? null : Number(maxTime)}
                     onChange={(nextMaxTime) =>
                       setMaxTime(

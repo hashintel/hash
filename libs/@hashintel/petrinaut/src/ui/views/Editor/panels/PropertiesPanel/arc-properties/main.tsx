@@ -115,10 +115,8 @@ const ArcMainContent: React.FC = () => {
       )}
       <Section title="Weight">
         <NumberInput
-          type="integer"
           size="sm"
           min={1}
-          step={1}
           value={weight}
           onChange={(nextWeight) => {
             if (nextWeight !== null && nextWeight > 0) {

@@ -486,7 +486,6 @@ const IntegerField = ({
       errors={field.state.meta.errors}
     >
       <NumberInput
-        type="integer"
         name={field.name}
         value={field.state.value}
         min={min}

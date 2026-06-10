@@ -334,7 +334,6 @@ export const PlaybackSettingsMenu = () => {
               {stoppingCondition === "fixed" && (
                 <>
                   <NumberInput
-                    type="float"
                     size="sm"
                     min={0.1}
                     step={0.1}

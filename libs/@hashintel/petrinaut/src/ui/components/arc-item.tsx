@@ -144,10 +144,8 @@ export const ArcItem = ({
         }}
       />
       <NumberInput
-        type="integer"
         value={weight}
         min={1}
-        step={1}
         disabled={disabled}
         size="sm"
         connectToLeftInput={hasSelect}
