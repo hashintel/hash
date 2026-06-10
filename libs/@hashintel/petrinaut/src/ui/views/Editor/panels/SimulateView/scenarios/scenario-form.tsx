@@ -684,14 +684,17 @@ const ScenarioFormSections = ({
                 />
               </div>
               <div className={paramFieldConnectedStyle}>
-                <div className={paramFieldSmStyle}>
+                <div className={paramFieldStyle}>
                   <span className={paramLabelStyle}>Type</span>
                   <Select
                     required
                     size="sm"
-                    width="fitContent"
                     connectToRightInput={param.type !== "boolean"}
                     value={param.type}
+                    className={css({
+                      width: "[80px]",
+                      flex: "[0 0 auto]",
+                    })}
                     onChange={(type) =>
                       updateScenarioParam(param._key, { type })
                     }
@@ -723,6 +726,7 @@ const ScenarioFormSections = ({
                     <NumberInput
                       size="sm"
                       connectToLeftInput
+                      hideStepper
                       max={Number.MAX_SAFE_INTEGER}
                       step={param.type === "integer" ? 1 : 0.001}
                       value={param.default}

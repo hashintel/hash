@@ -32,13 +32,14 @@ const getMaxNumberCharCount = (max: number, step: number | "any"): number => {
 const numberInputStyle = css({
   // Number inputs can be much smaller than text inputs. Size to fit two digits
   // (the `0` advance width × 2) plus the input's horizontal padding on each side.
-  "--form-min-width": "[calc(2ch + 2 * var(--base-input-padding-x))]",
+  "--form-min-width":
+    "[calc(2ch + 2 * var(--base-input-padding-x)) !important]",
 });
 
 const subtleNumberInputStyle = css({
   // Number inputs can be much smaller than text inputs. Size to fit two digits
   // (the `0` advance width × 2) plus the input's horizontal padding on each side.
-  "--form-min-width": "[2ch]",
+  "--form-min-width": "[2ch !important]",
 });
 
 // The base recipe only hides spin buttons via `opacity: 0` when unfocused so

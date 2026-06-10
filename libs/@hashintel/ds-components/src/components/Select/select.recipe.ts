@@ -74,7 +74,7 @@ export const selectRecipe = sva({
       display: "flex",
       alignItems: "center",
       borderRadius: "var(--base-input-border-radius)",
-      minWidth: "var(--form-min-width)",
+      minWidth: "0",
       flex: "[1 1 auto]",
       width: "var(--form-width)",
       maxWidth: "var(--form-width)",
