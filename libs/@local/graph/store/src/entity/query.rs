@@ -119,7 +119,14 @@ pub enum EntityQueryPath<'p> {
     /// [`Entity`]: type_system::knowledge::Entity
     /// [`EntityType`]: type_system::ontology::entity_type::EntityType
     /// [`EntityTypeEdge`]: Self::EntityTypeEdge
-    TypeVersions,
+    TypeVersionedUrls,
+    /// The number of direct (non-inherited) types of the [`Entity`].
+    ///
+    /// The type arrays in the edition cache list direct types first, so this is the length
+    /// of the direct-type prefix.
+    ///
+    /// [`Entity`]: type_system::knowledge::Entity
+    DirectTypeCount,
     /// The confidence value for the [`Entity`].
     ///
     /// It's currently not possible to query for the entity confidence value directly.
@@ -466,13 +473,6 @@ pub enum EntityQueryPath<'p> {
     /// [`Entity`]: type_system::knowledge::Entity
     /// [`EntityType`]: type_system::ontology::entity_type::EntityType
     FirstTypeTitle,
-    /// Corresponds to the title of the [`Entity`]'s last [`EntityType`].
-    ///
-    /// It's currently not possible to query for the last title directly.
-    ///
-    /// [`Entity`]: type_system::knowledge::Entity
-    /// [`EntityType`]: type_system::ontology::entity_type::EntityType
-    LastTypeTitle,
     /// Corresponds to the first set label of the [`Entity`] as specified by it's [`EntityType`]s.
     ///
     /// It's currently not possible to query for the first label directly.
@@ -480,13 +480,6 @@ pub enum EntityQueryPath<'p> {
     /// [`Entity`]: type_system::knowledge::Entity
     /// [`EntityType`]: type_system::ontology::entity_type::EntityType
     FirstLabel,
-    /// Corresponds to the last set label of the [`Entity`] as specified by it's [`EntityType`]s.
-    ///
-    /// It's currently not possible to query for the last label directly.
-    ///
-    /// [`Entity`]: type_system::knowledge::Entity
-    /// [`EntityType`]: type_system::ontology::entity_type::EntityType
-    LastLabel,
 }
 
 impl fmt::Display for EntityQueryPath<'_> {
@@ -499,7 +492,8 @@ impl fmt::Display for EntityQueryPath<'_> {
             Self::DecisionTime => fmt.write_str("decisionTime"),
             Self::TransactionTime => fmt.write_str("transactionTime"),
             Self::TypeBaseUrls => fmt.write_str("typeBaseUrls"),
-            Self::TypeVersions => fmt.write_str("typeVersions"),
+            Self::TypeVersionedUrls => fmt.write_str("typeVersionedUrls"),
+            Self::DirectTypeCount => fmt.write_str("directTypeCount"),
             Self::Archived => fmt.write_str("archived"),
             Self::Properties(Some(property)) => write!(fmt, "properties.{property}"),
             Self::Properties(None) => fmt.write_str("properties"),
@@ -547,9 +541,7 @@ impl fmt::Display for EntityQueryPath<'_> {
             Self::RightEntityConfidence => fmt.write_str("rightEntityConfidence"),
             Self::RightEntityProvenance => fmt.write_str("rightEntityProvenance"),
             Self::FirstTypeTitle => fmt.write_str("firstTypeTitle"),
-            Self::LastTypeTitle => fmt.write_str("lasttTypeTitle"),
             Self::FirstLabel => fmt.write_str("firstLabel"),
-            Self::LastLabel => fmt.write_str("lastLabel"),
         }
     }
 }
@@ -560,9 +552,8 @@ impl QueryPath for EntityQueryPath<'_> {
             Self::EditionId | Self::Uuid | Self::WebId | Self::DraftId => ParameterType::Uuid,
             Self::DecisionTime | Self::TransactionTime => ParameterType::TimeInterval,
             Self::TypeBaseUrls => ParameterType::Vector(Box::new(ParameterType::VersionedUrl)),
-            Self::TypeVersions => {
-                ParameterType::Vector(Box::new(ParameterType::OntologyTypeVersion))
-            }
+            Self::TypeVersionedUrls => ParameterType::Vector(Box::new(ParameterType::VersionedUrl)),
+            Self::DirectTypeCount => ParameterType::Decimal,
             Self::Properties(_)
             | Self::Label { .. }
             | Self::Provenance(_)
@@ -577,9 +568,7 @@ impl QueryPath for EntityQueryPath<'_> {
             Self::Archived => ParameterType::Boolean,
             Self::EntityTypeEdge { path, .. } => path.expected_type(),
             Self::EntityEdge { path, .. } => path.expected_type(),
-            Self::FirstTypeTitle | Self::LastTypeTitle | Self::FirstLabel | Self::LastLabel => {
-                ParameterType::Text
-            }
+            Self::FirstTypeTitle | Self::FirstLabel => ParameterType::Text,
         }
     }
 }
@@ -920,7 +909,8 @@ impl<'de: 'p, 'p> EntityQueryPath<'p> {
             Self::DecisionTime => EntityQueryPath::DecisionTime,
             Self::TransactionTime => EntityQueryPath::TransactionTime,
             Self::TypeBaseUrls => EntityQueryPath::TypeBaseUrls,
-            Self::TypeVersions => EntityQueryPath::TypeVersions,
+            Self::TypeVersionedUrls => EntityQueryPath::TypeVersionedUrls,
+            Self::DirectTypeCount => EntityQueryPath::DirectTypeCount,
             Self::Archived => EntityQueryPath::Archived,
             Self::EntityTypeEdge {
                 path,
@@ -956,9 +946,7 @@ impl<'de: 'p, 'p> EntityQueryPath<'p> {
                 EntityQueryPath::PropertyMetadata(path.map(JsonPath::into_owned))
             }
             Self::FirstTypeTitle => EntityQueryPath::FirstTypeTitle,
-            Self::LastTypeTitle => EntityQueryPath::LastTypeTitle,
             Self::FirstLabel => EntityQueryPath::FirstLabel,
-            Self::LastLabel => EntityQueryPath::LastLabel,
         }
     }
 }
@@ -986,19 +974,7 @@ impl<'s, 'de: 's> Deserialize<'de> for EntityQuerySortingRecord<'s> {
             pub nulls: Option<NullOrdering>,
         }
 
-        let mut record = EntityQuerySortingRecord::deserialize(deserializer)?;
-        // If we sort in descending order, we use the last title/label instead of the first one.
-        // TODO: Change behavior when order is fixed
-        //   see https://linear.app/hash/issue/H-3997/make-ontology-type-ids-ordered-in-inheritance-and-entities
-        match (&record.path, record.ordering) {
-            (EntityQueryPath::FirstTypeTitle, Ordering::Descending) => {
-                record.path = EntityQueryPath::LastTypeTitle;
-            }
-            (EntityQueryPath::FirstLabel, Ordering::Descending) => {
-                record.path = EntityQueryPath::LastLabel;
-            }
-            _ => {}
-        }
+        let record = EntityQuerySortingRecord::deserialize(deserializer)?;
 
         Ok(Self {
             path: record.path,
