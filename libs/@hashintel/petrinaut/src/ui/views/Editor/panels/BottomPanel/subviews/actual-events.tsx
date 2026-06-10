@@ -1,10 +1,9 @@
 import { use } from "react";
 
-import { Button, Icon } from "@hashintel/ds-components";
+import { Button, Icon, Menu, type MenuItem } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { ActualModeContext } from "../../../../../../react/actual-mode-context";
-import { Menu, type MenuItem } from "../../../../../components/menu";
 import { exportActualModeRecording } from "../../../../../file-io/export-actual-mode-recording";
 import { exportSDCPN } from "../../../../../file-io/export-sdcpn";
 
@@ -264,13 +263,13 @@ const ActualEventsContent: React.FC = () => {
   const exportMenuItems: MenuItem[] = [
     {
       id: "export-stream",
-      label: "Export Stream",
+      text: "Export Stream",
       disabled: !canExportStream,
       onClick: handleExportStream,
     },
     {
       id: "export-net",
-      label: "Export Net",
+      text: "Export Net",
       disabled: !canExportNet,
       onClick: handleExportNet,
     },
@@ -311,8 +310,7 @@ const ActualEventsContent: React.FC = () => {
             </Button>
           }
           items={exportMenuItems}
-          placement="bottom-end"
-          animated
+          position="bottom"
         />
       </div>
 
