@@ -4,6 +4,7 @@ import { createDefaultFilterState } from "../data/types";
 import { AddFiltersMenu } from "./add-filters-menu";
 import { ClearFiltersButton } from "./clear-filters-button";
 import { IncludeArchivedPill } from "./include-archived-pill";
+import { SemanticSearchPill } from "./semantic-search-pill";
 import { TypeFilterPill } from "./type-filter-pill";
 import { WebFilterPill } from "./web-filter-pill";
 
@@ -21,6 +22,14 @@ type FilterRibbonProps = {
   setFilterState: (
     updater: (prev: EntitiesFilterState) => EntitiesFilterState,
   ) => void;
+  /** Semantic search, added as a dismissable filter from the "Add filter" menu. */
+  semanticSearch: {
+    added: boolean;
+    initialQuery: string;
+    onAdd: () => void;
+    onQueryChange: (query: string) => void;
+    onRemove: () => void;
+  };
 };
 
 const isWebFilterDefault = (
@@ -54,6 +63,7 @@ export const FilterRibbon: FunctionComponent<FilterRibbonProps> = ({
   internalWebIds,
   isTypePinned,
   setFilterState,
+  semanticSearch,
 }) => {
   const setIncludeArchived = (includeArchived: boolean) =>
     setFilterState((prev) => ({ ...prev, includeArchived }));
@@ -62,14 +72,22 @@ export const FilterRibbon: FunctionComponent<FilterRibbonProps> = ({
   const typeIsDefault =
     isTypePinned || isTypeFilterDefault(filterState.type, availableTypes);
   const archivedIsDefault = !filterState.includeArchived;
+  const semanticIsDefault = !semanticSearch.added;
 
-  const filtersAreDefault = webIsDefault && typeIsDefault && archivedIsDefault;
+  const filtersAreDefault =
+    webIsDefault && typeIsDefault && archivedIsDefault && semanticIsDefault;
 
   const handleClear = () => {
     setFilterState(() => createDefaultFilterState(internalWebIds));
   };
 
-  const allExtraFiltersEnabled = filterState.includeArchived;
+  /**
+   * The "Add filter" menu offers two filters (archived, semantic search). Hide
+   * it only once *both* are added; otherwise keep it visible and let each menu
+   * item gate itself, so adding one filter never blocks adding the other.
+   */
+  const allExtraFiltersAdded =
+    filterState.includeArchived && semanticSearch.added;
 
   return (
     <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
@@ -93,8 +111,24 @@ export const FilterRibbon: FunctionComponent<FilterRibbonProps> = ({
       {filterState.includeArchived && (
         <IncludeArchivedPill onRemove={() => setIncludeArchived(false)} />
       )}
-      {!allExtraFiltersEnabled && (
-        <AddFiltersMenu onAddIncludeArchived={() => setIncludeArchived(true)} />
+      {semanticSearch.added && (
+        <SemanticSearchPill
+          initialQuery={semanticSearch.initialQuery}
+          onQueryChange={semanticSearch.onQueryChange}
+          onRemove={semanticSearch.onRemove}
+        />
+      )}
+      {!allExtraFiltersAdded && (
+        <AddFiltersMenu
+          onAddIncludeArchived={
+            filterState.includeArchived
+              ? undefined
+              : () => setIncludeArchived(true)
+          }
+          onAddSemanticSearch={
+            semanticSearch.added ? undefined : semanticSearch.onAdd
+          }
+        />
       )}
       {!filtersAreDefault && <ClearFiltersButton onClear={handleClear} />}
     </Box>

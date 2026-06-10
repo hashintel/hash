@@ -14,11 +14,15 @@ import { dashedPillSx } from "./pill-styles";
 import type { FunctionComponent } from "react";
 
 type AddFiltersMenuProps = {
-  onAddIncludeArchived: () => void;
+  /** When set, adds an "Include archived" filter option to the menu. */
+  onAddIncludeArchived?: () => void;
+  /** When set, adds a "Semantic search" filter option to the menu. */
+  onAddSemanticSearch?: () => void;
 };
 
 export const AddFiltersMenu: FunctionComponent<AddFiltersMenuProps> = ({
   onAddIncludeArchived,
+  onAddSemanticSearch,
 }) => {
   const popupState = usePopupState({
     variant: "popover",
@@ -26,7 +30,12 @@ export const AddFiltersMenu: FunctionComponent<AddFiltersMenuProps> = ({
   });
 
   const handleSelectIncludeArchived = () => {
-    onAddIncludeArchived();
+    onAddIncludeArchived?.();
+    popupState.close();
+  };
+
+  const handleSelectSemanticSearch = () => {
+    onAddSemanticSearch?.();
     popupState.close();
   };
 
@@ -47,9 +56,19 @@ export const AddFiltersMenu: FunctionComponent<AddFiltersMenuProps> = ({
         anchorOrigin={{ vertical: 30, horizontal: "left" }}
         transformOrigin={{ vertical: "top", horizontal: "left" }}
       >
-        <MenuItem onClick={handleSelectIncludeArchived} sx={{ minWidth: 200 }}>
-          <ListItemText primary="Include archived" />
-        </MenuItem>
+        {onAddIncludeArchived && (
+          <MenuItem
+            onClick={handleSelectIncludeArchived}
+            sx={{ minWidth: 200 }}
+          >
+            <ListItemText primary="Include archived" />
+          </MenuItem>
+        )}
+        {onAddSemanticSearch && (
+          <MenuItem onClick={handleSelectSemanticSearch} sx={{ minWidth: 200 }}>
+            <ListItemText primary="Semantic search" />
+          </MenuItem>
+        )}
       </Menu>
     </Box>
   );
