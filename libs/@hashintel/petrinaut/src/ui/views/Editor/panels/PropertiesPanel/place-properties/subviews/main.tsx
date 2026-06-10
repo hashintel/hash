@@ -44,6 +44,12 @@ const typeColorDotStyle = css({
   flexShrink: 0,
 });
 
+const arcStyle = css({
+  display: "flex",
+  gap: "2",
+  alignItems: "center",
+});
+
 /**
  * Main content section for the Place properties panel.
  * Rendered as a headerless SubView at the top of the proportional layout.
@@ -122,6 +128,7 @@ const PlaceMainContent: React.FC = () => {
             disableTooltip={!isReadOnly}
           >
             <TextInput
+              size="sm"
               inputRef={nameInputRef}
               value={nameField.value}
               onChange={(value) => {
@@ -159,6 +166,7 @@ const PlaceMainContent: React.FC = () => {
             >
               <Select
                 required
+                size="sm"
                 value={place.colorId ?? ""}
                 onChange={(value) => {
                   const newType = value === "" ? null : value;
@@ -180,28 +188,10 @@ const PlaceMainContent: React.FC = () => {
                     text: type.name,
                   })),
                 ]}
-                renderSelectedItem={(value) => {
-                  const selectedColor = types.find(
-                    (tp) => tp.id === value,
-                  )?.displayColor;
-                  const selectedName =
-                    types.find((tp) => tp.id === value)?.name ?? "None";
-                  return (
-                    <>
-                      {selectedColor && (
-                        <div
-                          className={typeColorDotStyle}
-                          style={{ backgroundColor: selectedColor }}
-                        />
-                      )}
-                      <span>{selectedName}</span>
-                    </>
-                  );
-                }}
                 renderItem={(value) => {
                   const type = types.find((tp) => tp.id === value);
                   return (
-                    <>
+                    <div className={arcStyle}>
                       {type?.displayColor && (
                         <div
                           className={typeColorDotStyle}
@@ -209,7 +199,7 @@ const PlaceMainContent: React.FC = () => {
                         />
                       )}
                       {type?.name ?? "None"}
-                    </>
+                    </div>
                   );
                 }}
                 disabled={isReadOnly}
@@ -305,6 +295,7 @@ const PlaceMainContent: React.FC = () => {
                     <Select
                       required
                       value={place.differentialEquationId ?? ""}
+                      size="sm"
                       onChange={(value) => {
                         if (value) {
                           updatePlace({

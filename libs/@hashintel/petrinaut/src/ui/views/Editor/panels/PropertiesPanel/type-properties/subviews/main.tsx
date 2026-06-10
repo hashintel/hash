@@ -107,8 +107,8 @@ const indexChipStyle = css({
 });
 
 const dimensionNameInputStyle = css({
-  fontSize: "sm",
   flex: "[1]",
+  marginX: "1",
 });
 
 type ElementNameInputState = Record<
@@ -363,9 +363,11 @@ const TypeMainContent: React.FC = () => {
                 <Tooltip
                   content={UI_MESSAGES.READ_ONLY_MODE}
                   disableTooltip={!isDisabled}
+                  className={dimensionNameInputStyle}
                 >
                   <TextInput
                     value={getElementNameInputValue(element)}
+                    size="sm"
                     onChange={(value) => {
                       handleUpdateElementName(element.elementId, value);
                     }}
@@ -377,7 +379,6 @@ const TypeMainContent: React.FC = () => {
                     }}
                     disabled={isDisabled}
                     placeholder="dimension_name"
-                    className={dimensionNameInputStyle}
                   />
                 </Tooltip>
 

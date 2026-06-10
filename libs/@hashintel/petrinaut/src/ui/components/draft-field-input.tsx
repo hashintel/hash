@@ -53,6 +53,7 @@ export const DraftFieldInput: React.FC<DraftFieldInputProps> = ({
       <Tooltip content={tooltip ?? ""} disableTooltip={!tooltip}>
         <TextInput
           value={field.value}
+          size="sm"
           className={monospace ? monospaceInputStyle : undefined}
           onChange={(value) => {
             field.setValue(value);

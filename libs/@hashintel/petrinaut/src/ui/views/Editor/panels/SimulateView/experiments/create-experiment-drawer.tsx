@@ -156,42 +156,8 @@ const metricTitleGroupStyle = css({
 });
 
 const metricTitleInputStyle = css({
-  height: "[24px]",
-  minWidth: "[0]",
-  flex: "1",
-  borderColor: "[transparent !important]",
-  backgroundColor: "[transparent !important]",
-  boxShadow: "[none !important]",
-  color: "neutral.s120",
-  fontSize: "sm",
   fontWeight: "semibold",
-  paddingX: "1",
-  _hover: {
-    borderColor: "[{colors.neutral.bd.subtle.hover} !important]",
-    backgroundColor: "[{colors.neutral.s00} !important]",
-  },
-  _focus: {
-    borderColor: "[{colors.neutral.bd.subtle} !important]",
-    backgroundColor: "[{colors.neutral.s00} !important]",
-    boxShadow: "[0px 0px 0px 2px {colors.neutral.a25} !important]",
-  },
-});
-
-const metricKindSelectStyle = css({
-  minWidth: "[0]",
-});
-
-const metricKindTriggerStyle = css({
-  "& [data-part='trigger']": {
-    height: "[26px !important]",
-    borderColor: "[transparent !important]",
-    backgroundColor: "[{colors.neutral.s10} !important]",
-    paddingX: "[8px !important]",
-    _hover: {
-      borderColor: "[{colors.neutral.bd.subtle} !important]",
-      backgroundColor: "[{colors.neutral.s20} !important]",
-    },
-  },
+  marginRight: "1",
 });
 
 const metricKindTriggerLabelStyle = css({
@@ -761,7 +727,8 @@ const ExperimentMetricRow = ({
             <TextInput
               inputRef={labelInputRef}
               className={metricTitleInputStyle}
-              size="xs"
+              size="sm"
+              variant="subtle"
               value={metric.label}
               placeholder="Untitled metric"
               aria-label="Metric label"
@@ -779,8 +746,7 @@ const ExperimentMetricRow = ({
             }
             onChange={handleKindChange}
             items={kindGroups}
-            size="xs"
-            className={cx(metricKindSelectStyle, metricKindTriggerStyle)}
+            size="sm"
             renderSelectedItem={() => (
               <span className={metricKindTriggerLabelStyle}>
                 {getMetricSummaryLabel(metric, sdcpn)}
@@ -1064,7 +1030,7 @@ export const CreateExperimentDrawer = ({
               <div className={fieldStyle}>
                 <span className={labelStyle}>Name</span>
                 <TextInput
-                  size="md"
+                  size="sm"
                   value={name}
                   onChange={(value) => setName(value)}
                 />
@@ -1074,7 +1040,7 @@ export const CreateExperimentDrawer = ({
                   <span className={labelStyle}>Runs</span>
                   <NumberInput
                     type="integer"
-                    size="md"
+                    size="sm"
                     min={1}
                     step={1}
                     value={runCount === "" ? null : Number(runCount)}
@@ -1087,7 +1053,7 @@ export const CreateExperimentDrawer = ({
                   <span className={labelStyle}>Time step</span>
                   <NumberInput
                     type="float"
-                    size="md"
+                    size="sm"
                     min={0}
                     value={dt === "" ? null : Number(dt)}
                     onChange={(value) =>
@@ -1099,7 +1065,7 @@ export const CreateExperimentDrawer = ({
                   <span className={labelStyle}>Max time (s)</span>
                   <NumberInput
                     type="float"
-                    size="md"
+                    size="sm"
                     min={0}
                     value={maxTime === "" ? null : Number(maxTime)}
                     onChange={(value) =>
@@ -1117,7 +1083,7 @@ export const CreateExperimentDrawer = ({
                   value={effectiveSelectedScenarioId}
                   onChange={handleScenarioChange}
                   items={scenarioOptions}
-                  size="md"
+                  size="sm"
                   renderItem={(value) => {
                     const option = scenarioOptions.find(
                       (opt) => opt.value === value,

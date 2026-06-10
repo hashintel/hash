@@ -67,6 +67,7 @@ const ParameterMainContent: React.FC = () => {
             value={parameter.defaultValue}
             onChange={handleUpdateDefaultValue}
             disabled={isDisabled}
+            size="sm"
           />
         </Tooltip>
       </Section>

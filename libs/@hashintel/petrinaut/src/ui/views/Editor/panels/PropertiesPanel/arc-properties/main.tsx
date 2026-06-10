@@ -95,6 +95,7 @@ const ArcMainContent: React.FC = () => {
             <Select
               required
               value={type}
+              size="sm"
               onChange={(value) => {
                 updateArcType({
                   transitionId,

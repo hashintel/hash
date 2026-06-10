@@ -57,6 +57,12 @@ const aiMenuItemStyle = css({
   gap: "[6px]",
 });
 
+const arcStyle = css({
+  display: "flex",
+  gap: "2",
+  alignItems: "center",
+});
+
 const DiffEqMainContent: React.FC = () => {
   const { differentialEquation, types, places, updateDifferentialEquation } =
     useDiffEqPropertiesContext();
@@ -140,31 +146,16 @@ const DiffEqMainContent: React.FC = () => {
             placeholder="Select a type"
             size="sm"
             disabled={isReadOnly}
-            renderSelectedItem={(value) => {
-              const type = types.find((tp) => tp.id === value);
-              if (!type) {
-                return null;
-              }
-              return (
-                <>
-                  <div
-                    className={colorDotStyle}
-                    style={{ backgroundColor: type.displayColor }}
-                  />
-                  <span>{type.name}</span>
-                </>
-              );
-            }}
             renderItem={(value) => {
               const type = types.find((tp) => tp.id === value);
               return (
-                <>
+                <div className={arcStyle}>
                   <div
                     className={colorDotStyle}
                     style={{ backgroundColor: type?.displayColor }}
                   />
                   {type?.name ?? value}
-                </>
+                </div>
               );
             }}
           />

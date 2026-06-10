@@ -56,15 +56,6 @@ export const ColorSelect: React.FC<ColorSelectProps> = ({
       items={TYPE_COLOR_POOL}
       disabled={disabled}
       size="sm"
-      renderSelectedItem={(selectedValue) => (
-        <div className={itemContainerStyle}>
-          <div
-            className={colorSwatchStyle}
-            style={{ backgroundColor: selectedValue }}
-          />
-          <span className={colorCodeStyle}>{selectedValue}</span>
-        </div>
-      )}
       renderItem={(itemValue) => (
         <div className={itemContainerStyle}>
           <div

@@ -131,6 +131,7 @@ const PlaceInitialStateContent: React.FC = () => {
         <Tooltip content="Defined by the selected scenario">
           <NumberInput
             type="integer"
+            size="sm"
             min={0}
             value={tokenCount}
             onChange={() => {}}
