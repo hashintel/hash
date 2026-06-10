@@ -152,7 +152,7 @@ export const AiCtaModal = ({
         <TextInput
           inputRef={inputRef}
           value={promptInput}
-          onChange={(value) => setPromptInput(value)}
+          onChange={setPromptInput}
           placeholder="e.g. Model an SIR outbreak with recovery"
           aria-label="Describe the process you want to create"
           size="lg"

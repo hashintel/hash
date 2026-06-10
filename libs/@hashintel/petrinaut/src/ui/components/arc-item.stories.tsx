@@ -37,14 +37,11 @@ const InteractiveArcItem = ({
 }) => {
   const [weight, setWeight] = useState(initialWeight);
   const [currentPlaceId, setCurrentPlaceId] = useState(placeId);
-  const currentPlace = availablePlaces?.find((pl) => pl.id === currentPlaceId);
   return (
     <div style={{ width: 260 }}>
       <ArcItem
         placeId={currentPlaceId}
-        placeName={currentPlace?.name ?? props.placeName}
         weight={weight}
-        color={currentPlace?.color ?? props.color}
         disabled={props.disabled}
         availablePlaces={availablePlaces}
         onPlaceChange={setCurrentPlaceId}
@@ -131,23 +128,18 @@ const ArcListStory = () => {
       <ArcList>
         <ArcItem
           placeId="place-1"
-          placeName="PlantASupply"
-          color="#FF6B35"
           weight={weights[0]!}
           onWeightChange={(wt) => updateWeight(0, wt)}
           onDelete={() => {}}
         />
         <ArcItem
           placeId="place-2"
-          placeName="Warehouse"
-          color="#7B68EE"
           weight={weights[1]!}
           onWeightChange={(wt) => updateWeight(1, wt)}
           onDelete={() => {}}
         />
         <ArcItem
           placeId="place-3"
-          placeName="Output"
           weight={weights[2]!}
           onWeightChange={(wt) => updateWeight(2, wt)}
           onDelete={() => {}}

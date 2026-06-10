@@ -614,7 +614,7 @@ const ScenarioFormSections = ({
             htmlForId={`${idPrefix}scenario-name`}
             size="sm"
             value={state.name}
-            onChange={(value) => callbacks.onNameChange(value)}
+            onChange={callbacks.onNameChange}
             invalid={nameHasError && state.name !== ""}
           />
         </div>
@@ -666,9 +666,9 @@ const ScenarioFormSections = ({
                   size="sm"
                   className={monospaceInputStyle}
                   value={param.identifier}
-                  onChange={(value) =>
+                  onChange={(identifier) =>
                     updateScenarioParam(param._key, {
-                      identifier: value,
+                      identifier,
                     })
                   }
                   onBlur={(e) => {
@@ -692,8 +692,8 @@ const ScenarioFormSections = ({
                     width="fitContent"
                     connectToRightInput={param.type !== "boolean"}
                     value={param.type}
-                    onChange={(value) =>
-                      updateScenarioParam(param._key, { type: value })
+                    onChange={(type) =>
+                      updateScenarioParam(param._key, { type })
                     }
                     items={[
                       {
@@ -734,12 +734,12 @@ const ScenarioFormSections = ({
                       max={Number.MAX_SAFE_INTEGER}
                       step={param.type === "integer" ? 1 : 0.001}
                       value={param.default}
-                      onChange={(value) => {
-                        let val = value ?? 0;
+                      onChange={(defaultValue) => {
+                        let next = defaultValue ?? 0;
                         if (param.type === "ratio") {
-                          val = Math.max(0, Math.min(1, val));
+                          next = Math.max(0, Math.min(1, next));
                         }
-                        updateScenarioParam(param._key, { default: val });
+                        updateScenarioParam(param._key, { default: next });
                       }}
                     />
                   )}

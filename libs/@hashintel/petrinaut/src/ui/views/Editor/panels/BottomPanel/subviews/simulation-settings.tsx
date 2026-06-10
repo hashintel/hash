@@ -220,8 +220,8 @@ const SimulationSettingsContent: React.FC = () => {
         <Select
           required
           value={selectedScenarioId}
-          onChange={(value) =>
-            setContextScenarioId(value === NO_SCENARIO ? null : value)
+          onChange={(scenarioId) =>
+            setContextScenarioId(scenarioId === NO_SCENARIO ? null : scenarioId)
           }
           items={scenarioOptions}
           size="xs"
@@ -344,10 +344,10 @@ const SimulationSettingsContent: React.FC = () => {
                           scenarioParameterValues[param.variableName] ??
                             param.defaultValue,
                         )}
-                        onChange={(value) =>
+                        onChange={(paramValue) =>
                           setScenarioParameterValue(
                             param.variableName,
-                            value === null ? "" : String(value),
+                            paramValue === null ? "" : String(paramValue),
                           )
                         }
                         disabled={isSimulationActive}
@@ -369,12 +369,13 @@ const SimulationSettingsContent: React.FC = () => {
                           : (parameterValues[param.variableName] ??
                               param.defaultValue),
                       )}
-                      onChange={(value) => {
-                        const val = value === null ? "" : String(value);
+                      onChange={(paramValue) => {
+                        const next =
+                          paramValue === null ? "" : String(paramValue);
                         if (selectedScenario) {
-                          setScenarioParameterValue(param.variableName, val);
+                          setScenarioParameterValue(param.variableName, next);
                         } else {
-                          setParameterValue(param.variableName, val);
+                          setParameterValue(param.variableName, next);
                         }
                       }}
                       placeholder={param.defaultValue}
@@ -412,9 +413,9 @@ const SimulationSettingsContent: React.FC = () => {
                 hideStepper
                 value={dt}
                 width="xs"
-                onChange={(value) => {
-                  if (value !== null && value > 0) {
-                    setDt(value);
+                onChange={(nextDt) => {
+                  if (nextDt !== null && nextDt > 0) {
+                    setDt(nextDt);
                   }
                 }}
                 disabled={isSimulationActive}
@@ -429,7 +430,7 @@ const SimulationSettingsContent: React.FC = () => {
                 required
                 width="xs"
                 value={odeSolver}
-                onChange={(value) => setOdeSolver(value)}
+                onChange={setOdeSolver}
                 items={[{ value: "euler", text: "Euler" }]}
                 size="xs"
                 disabled={isSimulationActive}

@@ -96,11 +96,11 @@ const ArcMainContent: React.FC = () => {
               required
               value={type}
               size="sm"
-              onChange={(value) => {
+              onChange={(nextType) => {
                 updateArcType({
                   transitionId,
                   placeId,
-                  type: value,
+                  type: nextType,
                 });
               }}
               items={[
@@ -120,13 +120,13 @@ const ArcMainContent: React.FC = () => {
           min={1}
           step={1}
           value={weight}
-          onChange={(value) => {
-            if (value !== null && value > 0) {
+          onChange={(nextWeight) => {
+            if (nextWeight !== null && nextWeight > 0) {
               updateArcWeight({
                 transitionId,
                 arcDirection,
                 placeId,
-                weight: value,
+                weight: nextWeight,
               });
             }
           }}

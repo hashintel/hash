@@ -131,8 +131,8 @@ const PlaceMainContent: React.FC = () => {
               size="sm"
               inputRef={nameInputRef}
               value={nameField.value}
-              onChange={(value) => {
-                nameField.setValue(value);
+              onChange={(name) => {
+                nameField.setValue(name);
                 if (nameField.error) {
                   nameField.setError(null);
                 }
@@ -168,14 +168,14 @@ const PlaceMainContent: React.FC = () => {
                 required
                 size="sm"
                 value={place.colorId ?? ""}
-                onChange={(value) => {
-                  const newType = value === "" ? null : value;
+                onChange={(colorId) => {
+                  const nextColorId = colorId === "" ? null : colorId;
                   updatePlace({
                     placeId: place.id,
                     update: {
-                      colorId: newType,
+                      colorId: nextColorId,
                       dynamicsEnabled:
-                        newType === null && place.dynamicsEnabled
+                        nextColorId === null && place.dynamicsEnabled
                           ? false
                           : place.dynamicsEnabled,
                     },
@@ -296,11 +296,11 @@ const PlaceMainContent: React.FC = () => {
                       required
                       value={place.differentialEquationId ?? ""}
                       size="sm"
-                      onChange={(value) => {
-                        if (value) {
+                      onChange={(differentialEquationId) => {
+                        if (differentialEquationId) {
                           updatePlace({
                             placeId: place.id,
-                            update: { differentialEquationId: value },
+                            update: { differentialEquationId },
                           });
                         }
                       }}

@@ -134,9 +134,9 @@ const DiffEqMainContent: React.FC = () => {
           <Select
             required
             value={differentialEquation.colorId ?? ""}
-            onChange={(value) => {
-              if (value) {
-                handleTypeChange(value);
+            onChange={(colorId) => {
+              if (colorId) {
+                handleTypeChange(colorId);
               }
             }}
             items={types.map((type) => ({

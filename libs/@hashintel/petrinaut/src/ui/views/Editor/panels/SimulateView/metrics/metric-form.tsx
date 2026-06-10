@@ -213,7 +213,7 @@ const MetricFormSections = ({
             htmlForId={`${idPrefix}metric-name`}
             size="md"
             value={state.name}
-            onChange={(value) => callbacks.onNameChange(value)}
+            onChange={callbacks.onNameChange}
             invalid={nameHasError && state.name !== ""}
           />
         </div>

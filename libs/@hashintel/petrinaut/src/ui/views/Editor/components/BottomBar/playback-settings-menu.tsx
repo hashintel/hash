@@ -341,9 +341,9 @@ export const PlaybackSettingsMenu = () => {
                     value={maxTime ?? 10}
                     align="right"
                     disabled={hasSimulation}
-                    onChange={(value) => {
-                      if (value !== null && value > 0) {
-                        setMaxTime(value);
+                    onChange={(nextMaxTime) => {
+                      if (nextMaxTime !== null && nextMaxTime > 0) {
+                        setMaxTime(nextMaxTime);
                       }
                     }}
                     onClick={(event) => event.stopPropagation()}

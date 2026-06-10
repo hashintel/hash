@@ -166,9 +166,8 @@ const PlaceInitialStateContent: React.FC = () => {
             min={0}
             step={1}
             value={currentTokenCount}
-            onChange={(value) => {
-              const count = Math.max(0, value ?? 0);
-              setInitialMarking(place.id, count);
+            onChange={(tokenCount) => {
+              setInitialMarking(place.id, Math.max(0, tokenCount ?? 0));
             }}
             disabled={hasSimulationFrames}
           />

@@ -156,7 +156,9 @@ export const ViewportSettingsDialog: React.FC<ViewportSettingsDialogProps> = ({
             className={selectStyle}
             required
             value={arcRendering}
-            onChange={(value) => setArcRendering(value as ArcRendering)}
+            onChange={(nextArcRendering) =>
+              setArcRendering(nextArcRendering as ArcRendering)
+            }
             items={[
               { value: "smoothstep", text: "Square" },
               { value: "bezier", text: "Bezier" },

@@ -17,10 +17,10 @@ const ParameterMainContent: React.FC = () => {
   const { parameter, updateParameter } = useParameterPropertiesContext();
   const isDisabled = useIsReadOnly();
 
-  const handleUpdateDefaultValue = (value: string) => {
+  const handleUpdateDefaultValue = (defaultValue: string) => {
     updateParameter({
       parameterId: parameter.id,
-      update: { defaultValue: value },
+      update: { defaultValue },
     });
   };
 

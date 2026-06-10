@@ -368,8 +368,8 @@ const TypeMainContent: React.FC = () => {
                   <TextInput
                     value={getElementNameInputValue(element)}
                     size="sm"
-                    onChange={(value) => {
-                      handleUpdateElementName(element.elementId, value);
+                    onChange={(name) => {
+                      handleUpdateElementName(element.elementId, name);
                     }}
                     onBlur={(event) => {
                       handleBlurElementName(

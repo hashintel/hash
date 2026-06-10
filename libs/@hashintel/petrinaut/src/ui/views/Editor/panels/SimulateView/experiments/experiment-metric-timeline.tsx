@@ -1451,7 +1451,7 @@ export const ExperimentMetricTimeline = ({
               <Select
                 required
                 value={runAggregation}
-                onChange={(value) => setRunAggregation(value)}
+                onChange={setRunAggregation}
                 items={runAggregationOptions}
                 size="xs"
                 className={aggregationSelectStyle}
@@ -1460,7 +1460,7 @@ export const ExperimentMetricTimeline = ({
               <Select
                 required
                 value={distributionView}
-                onChange={(value) => setDistributionView(value)}
+                onChange={setDistributionView}
                 items={distributionViewOptions}
                 size="xs"
                 className={aggregationSelectStyle}
@@ -1480,7 +1480,7 @@ export const ExperimentMetricTimeline = ({
             <Select
               required
               value={timeAggregation}
-              onChange={(value) => setTimeAggregation(value)}
+              onChange={setTimeAggregation}
               items={timeAggregationOptions}
               size="xs"
               className={aggregationSelectStyle}
@@ -1489,7 +1489,7 @@ export const ExperimentMetricTimeline = ({
             <Select
               required
               value={timeTrace}
-              onChange={(value) => setTimeTrace(value)}
+              onChange={setTimeTrace}
               items={timeTraceOptions}
               size="xs"
               className={aggregationSelectStyle}

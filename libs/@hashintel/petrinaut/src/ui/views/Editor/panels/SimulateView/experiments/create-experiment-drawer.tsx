@@ -632,11 +632,11 @@ const ExperimentMetricRow = ({
   const updateMetric = (patch: Partial<ExperimentMetricDraft>) => {
     onChange({ ...metric, ...patch });
   };
-  const handleKindChange = (value: string) => {
+  const handleKindChange = (kindValue: string) => {
     // A custom metric defined on the model becomes an expression metric
     // pre-filled with that metric's code and name.
-    if (value.startsWith(MODEL_METRIC_VALUE_PREFIX)) {
-      const modelMetricId = value.slice(MODEL_METRIC_VALUE_PREFIX.length);
+    if (kindValue.startsWith(MODEL_METRIC_VALUE_PREFIX)) {
+      const modelMetricId = kindValue.slice(MODEL_METRIC_VALUE_PREFIX.length);
       const modelMetric = sdcpn.metrics?.find(
         (candidate) => candidate.id === modelMetricId,
       );
@@ -658,7 +658,7 @@ const ExperimentMetricRow = ({
       return;
     }
 
-    const nextKind = value as ExperimentMetricKind;
+    const nextKind = kindValue as ExperimentMetricKind;
     const nextLabel = canReplaceMetricLabel(metric.label, sdcpn)
       ? getDefaultMetricLabel(nextKind, sdcpn)
       : metric.label;
@@ -732,8 +732,8 @@ const ExperimentMetricRow = ({
               value={metric.label}
               placeholder="Untitled metric"
               aria-label="Metric label"
-              onChange={(value) => {
-                updateMetric({ label: value });
+              onChange={(label) => {
+                updateMetric({ label });
               }}
             />
           </div>
@@ -793,7 +793,7 @@ const ExperimentMetricRow = ({
                   <Select
                     required
                     value={metric.placeId}
-                    onChange={(value) => updateMetric({ placeId: value })}
+                    onChange={(placeId) => updateMetric({ placeId })}
                     items={placeOptions}
                     size="sm"
                   />
@@ -806,8 +806,8 @@ const ExperimentMetricRow = ({
                     <Select
                       required
                       value={metric.transitionId}
-                      onChange={(value) =>
-                        updateMetric({ transitionId: value })
+                      onChange={(transitionId) =>
+                        updateMetric({ transitionId })
                       }
                       items={transitionOptions}
                       size="sm"
@@ -818,8 +818,8 @@ const ExperimentMetricRow = ({
                     <Select
                       required
                       value={metric.transitionMode}
-                      onChange={(value) =>
-                        updateMetric({ transitionMode: value })
+                      onChange={(transitionMode) =>
+                        updateMetric({ transitionMode })
                       }
                       items={transitionModeOptions}
                       size="sm"
@@ -921,8 +921,8 @@ export const CreateExperimentDrawer = ({
     onClose();
   };
 
-  const handleScenarioChange = (value: string) => {
-    setSelectedScenarioId(value);
+  const handleScenarioChange = (scenarioId: string) => {
+    setSelectedScenarioId(scenarioId);
     setParamValues({});
     setError(null);
   };
@@ -1029,11 +1029,7 @@ export const CreateExperimentDrawer = ({
             <Section title="Experiment" collapsible defaultOpen>
               <div className={fieldStyle}>
                 <span className={labelStyle}>Name</span>
-                <TextInput
-                  size="sm"
-                  value={name}
-                  onChange={(value) => setName(value)}
-                />
+                <TextInput size="sm" value={name} onChange={setName} />
               </div>
               <div className={gridStyle}>
                 <div className={fieldStyle}>
@@ -1044,8 +1040,10 @@ export const CreateExperimentDrawer = ({
                     min={1}
                     step={1}
                     value={runCount === "" ? null : Number(runCount)}
-                    onChange={(value) =>
-                      setRunCount(value === null ? "" : String(value))
+                    onChange={(nextRunCount) =>
+                      setRunCount(
+                        nextRunCount === null ? "" : String(nextRunCount),
+                      )
                     }
                   />
                 </div>
@@ -1056,8 +1054,8 @@ export const CreateExperimentDrawer = ({
                     size="sm"
                     min={0}
                     value={dt === "" ? null : Number(dt)}
-                    onChange={(value) =>
-                      setDt(value === null ? "" : String(value))
+                    onChange={(nextDt) =>
+                      setDt(nextDt === null ? "" : String(nextDt))
                     }
                   />
                 </div>
@@ -1068,8 +1066,10 @@ export const CreateExperimentDrawer = ({
                     size="sm"
                     min={0}
                     value={maxTime === "" ? null : Number(maxTime)}
-                    onChange={(value) =>
-                      setMaxTime(value === null ? "" : String(value))
+                    onChange={(nextMaxTime) =>
+                      setMaxTime(
+                        nextMaxTime === null ? "" : String(nextMaxTime),
+                      )
                     }
                   />
                 </div>
