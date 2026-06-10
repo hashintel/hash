@@ -451,6 +451,31 @@ export const Widths: Story<NumberInputProps> = (args) => (
             className={customWidthStyle}
             hideStepper
           />
+          <span style={subheadingStyle}>maxNumber (int, max=999)</span>
+          <Controlled
+            {...args}
+            value={999}
+            onChange={noop}
+            variant={rv.variant}
+            readonly={rv.readonly}
+            width="maxNumber"
+            hideStepper
+            max={999}
+          />
+          <span style={subheadingStyle}>
+            maxNumber (float, max=99, step=0.001)
+          </span>
+          <Controlled
+            {...args}
+            value={99.999}
+            onChange={noop}
+            variant={rv.variant}
+            readonly={rv.readonly}
+            width="maxNumber"
+            hideStepper
+            max={99}
+            step={0.001}
+          />
           {!rv.readonly && (
             <>
               <span style={subheadingStyle}>with items</span>

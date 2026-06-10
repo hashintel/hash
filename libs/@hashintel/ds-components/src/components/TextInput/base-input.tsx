@@ -60,6 +60,8 @@ export type BaseInputProps = {
   pattern?: string;
   spellcheck?: boolean;
   tabIndex?: number;
+  /** Inline style applied to the outer wrapper. Useful for setting CSS variables like `--form-width`. */
+  style?: React.CSSProperties;
 } & SharedInputProps<
   HTMLInputElement,
   string | null | undefined,
@@ -176,6 +178,7 @@ export const BaseInput = ({
   spellcheck,
   autocomplete = false,
   className,
+  style,
   name,
   value,
   onChange,
@@ -291,6 +294,7 @@ export const BaseInput = ({
     <div
       ref={ref as React.Ref<HTMLDivElement>}
       className={cx(classes.wrapper, className)}
+      style={style}
     >
       {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- click-to-focus container delegates to inner <input> */}
       <div
