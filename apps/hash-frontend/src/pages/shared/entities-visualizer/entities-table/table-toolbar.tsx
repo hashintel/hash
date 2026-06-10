@@ -1,22 +1,17 @@
 import { Box, Tooltip, type SxProps } from "@mui/material";
-import { unparse } from "papaparse";
-import { useCallback } from "react";
 
 import { IconButton } from "@hashintel/design-system";
 
 import { MagnifyingGlassRegularIcon } from "../../../../shared/icons/magnifying-glass-regular-icon";
-import { TableHeaderButton } from "../../../../shared/table-header/table-header-button";
-import { generateEntitiesCsvFile } from "./generate-csv-file";
+import { ExportToCsvButton } from "../../../../shared/table-header/export-to-csv-button";
 import { SortControl } from "./sort-control";
 
 import type { GridSort } from "../../../../components/grid/grid";
-import type {
-  EntitiesTableRow,
-  SortableEntitiesTableColumnKey,
-} from "../types";
+import type { GenerateCsvFileFunction } from "../../../../shared/table-header/export-to-csv-button";
+import type { SortableEntitiesTableColumnKey } from "../types";
 import type { BaseUrl } from "@blockprotocol/type-system";
 import type { SizedGridColumn } from "@glideapps/glide-data-grid";
-import type { FunctionComponent, MutableRefObject, RefObject } from "react";
+import type { FunctionComponent } from "react";
 
 export const toolbarHeight = 44;
 
@@ -27,10 +22,8 @@ const groupSx: SxProps = {
 };
 
 type TableToolbarProps = {
-  csvFileTitle: string;
-  currentlyDisplayedColumnsRef: MutableRefObject<SizedGridColumn[] | null>;
-  currentlyDisplayedRowsRef: RefObject<EntitiesTableRow[] | null>;
   displayedColumns: SizedGridColumn[];
+  generateCsvFile: GenerateCsvFileFunction;
   showSearch: boolean;
   setShowSearch: (showSearch: boolean) => void;
   sort: GridSort<SortableEntitiesTableColumnKey>;
@@ -42,49 +35,19 @@ type TableToolbarProps = {
 };
 
 export const TableToolbar: FunctionComponent<TableToolbarProps> = ({
-  csvFileTitle,
-  currentlyDisplayedColumnsRef,
-  currentlyDisplayedRowsRef,
   displayedColumns,
+  generateCsvFile,
   showSearch,
   setShowSearch,
   sort,
   setSort,
 }) => {
-  const handleExportToCsv = useCallback(() => {
-    const columns = currentlyDisplayedColumnsRef.current;
-    const rows = currentlyDisplayedRowsRef.current;
-
-    if (!columns || !rows) {
-      return;
-    }
-
-    const { title, content } = generateEntitiesCsvFile({
-      columns,
-      rows,
-      title: csvFileTitle,
-    });
-
-    const stringifiedContent = unparse(content);
-
-    const blob = new Blob([stringifiedContent], {
-      type: "text/csv;charset=utf-8;",
-    });
-
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.setAttribute("download", `${title}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  }, [csvFileTitle, currentlyDisplayedColumnsRef, currentlyDisplayedRowsRef]);
-
   return (
     <Box
       sx={{
         display: "flex",
         alignItems: "center",
-        justifyContent: "space-between",
+        justifyContent: "flex-end",
         background: ({ palette }) => palette.common.white,
         borderLeftWidth: 1,
         borderRightWidth: 1,
@@ -103,16 +66,14 @@ export const TableToolbar: FunctionComponent<TableToolbarProps> = ({
             <MagnifyingGlassRegularIcon />
           </IconButton>
         </Tooltip>
-        <Tooltip title="Export the visible rows to CSV" placement="top">
-          <TableHeaderButton
-            onClick={handleExportToCsv}
-            sx={{ borderRadius: "4px", px: 1.25 }}
-          >
-            Export
-          </TableHeaderButton>
-        </Tooltip>
-      </Box>
-      <Box sx={groupSx}>
+        <ExportToCsvButton
+          generateCsvFile={generateCsvFile}
+          sx={({ palette }) => ({
+            borderRadius: "4px",
+            px: 1.25,
+            border: `1px solid ${palette.gray[30]}`,
+          })}
+        />
         <SortControl columns={displayedColumns} sort={sort} setSort={setSort} />
       </Box>
     </Box>

@@ -20,10 +20,7 @@ import { createDefaultFilterState } from "./entities-visualizer/data/types";
 import { useAvailableTypes } from "./entities-visualizer/data/use-available-types";
 import { EntitiesTable } from "./entities-visualizer/entities-table";
 import { GridView } from "./entities-visualizer/entities-table/grid-view";
-import {
-  TableToolbar,
-  toolbarHeight,
-} from "./entities-visualizer/entities-table/table-toolbar";
+import { toolbarHeight } from "./entities-visualizer/entities-table/table-toolbar";
 import { FilterRibbon } from "./entities-visualizer/header/filter-ribbon";
 import { QueryCount } from "./entities-visualizer/header/query-count";
 import {
@@ -558,41 +555,30 @@ export const EntitiesVisualizer: FunctionComponent<{
       ) : view === "Grid" ? (
         <GridView entities={entities} onEntityClick={handleEntityClick} />
       ) : (
-        <>
-          <TableToolbar
-            csvFileTitle="Entities"
-            currentlyDisplayedColumnsRef={currentlyDisplayedColumnsRef}
-            currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
-            displayedColumns={visualizerData.tableData?.columns ?? []}
-            showSearch={showTableSearch}
-            setShowSearch={setShowTableSearch}
-            sort={sort}
-            setSort={setSort}
-          />
-          <EntitiesTable
-            activeConversions={activeConversions}
-            currentlyDisplayedColumnsRef={currentlyDisplayedColumnsRef}
-            currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
-            definitions={definitions}
-            handleEntityClick={handleEntityClick}
-            loading={dataLoading}
-            isViewingOnlyPages={isViewingOnlyPages}
-            maxHeight={`calc(${tableHeight} - ${toolbarHeight}px)`}
-            loadMoreRows={nextCursor ? nextPage : undefined}
-            setActiveConversions={setActiveConversions}
-            setSelectedEntityType={handleEntityTypeClick}
-            setSelectedRows={setSelectedTableRows}
-            selectedRows={selectedTableRows}
-            showSearch={showTableSearch}
-            setShowSearch={setShowTableSearch}
-            sort={sort}
-            setSort={setSort}
-            subgraph={subgraph}
-            tableData={visualizerData.tableData}
-            totalResultCount={totalResultCount}
-            webIds={webIds}
-          />
-        </>
+        <EntitiesTable
+          activeConversions={activeConversions}
+          csvFileTitle="Entities"
+          currentlyDisplayedColumnsRef={currentlyDisplayedColumnsRef}
+          currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
+          definitions={definitions}
+          handleEntityClick={handleEntityClick}
+          loading={dataLoading}
+          isViewingOnlyPages={isViewingOnlyPages}
+          maxHeight={`calc(${tableHeight} - ${toolbarHeight}px)`}
+          loadMoreRows={nextCursor ? nextPage : undefined}
+          setActiveConversions={setActiveConversions}
+          setSelectedEntityType={handleEntityTypeClick}
+          setSelectedRows={setSelectedTableRows}
+          selectedRows={selectedTableRows}
+          showSearch={showTableSearch}
+          setShowSearch={setShowTableSearch}
+          sort={sort}
+          setSort={setSort}
+          subgraph={subgraph}
+          tableData={visualizerData.tableData}
+          totalResultCount={totalResultCount}
+          webIds={webIds}
+        />
       )}
     </Box>
   );

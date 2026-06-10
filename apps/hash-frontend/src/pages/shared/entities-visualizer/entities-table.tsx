@@ -18,6 +18,7 @@ import { Grid } from "../../../components/grid/grid";
 import { blankCell } from "../../../components/grid/utils";
 import { useGetOwnerForEntity } from "../../../components/hooks/use-get-owner-for-entity";
 import { findDataTypeConversionTargetsQuery } from "../../../graphql/queries/ontology/data-type.queries";
+import { generateCsvFile as buildCsvFile } from "../../../shared/table-header/generate-csv-file";
 import { Button } from "../../../shared/ui/button";
 import {
   isAiMachineActor,
@@ -31,6 +32,7 @@ import {
   createRenderEntitiesTableValueCell,
   type EntitiesTableValueCellProps,
 } from "./entities-table/entities-table-value-cell";
+import { TableToolbar } from "./entities-table/table-toolbar";
 import { createRenderTextIconCell } from "./entities-table/text-icon-cell";
 
 import type {
@@ -43,6 +45,7 @@ import type {
   FindDataTypeConversionTargetsQuery,
   FindDataTypeConversionTargetsQueryVariables,
 } from "../../../graphql/api-types.gen";
+import type { GenerateCsvFileFunction } from "../../../shared/table-header/export-to-csv-button";
 import type { ChipCellProps } from "../chip-cell";
 import type { UrlCellProps } from "../url-cell";
 import type { TextIconCell } from "./entities-table/text-icon-cell";
@@ -97,6 +100,7 @@ export const EntitiesTable: FunctionComponent<
         title: string;
       };
     } | null;
+    csvFileTitle: string;
     currentlyDisplayedColumnsRef: MutableRefObject<SizedGridColumn[] | null>;
     currentlyDisplayedRowsRef: RefObject<EntitiesTableRow[] | null>;
     disableTypeClick?: boolean;
@@ -126,6 +130,7 @@ export const EntitiesTable: FunctionComponent<
   }
 > = ({
   activeConversions,
+  csvFileTitle,
   currentlyDisplayedColumnsRef,
   currentlyDisplayedRowsRef,
   definitions,
@@ -723,6 +728,44 @@ export const EntitiesTable: FunctionComponent<
     [conversionTargetsByColumnKey, setSort],
   );
 
+  const generateCsvFile = useCallback<GenerateCsvFileFunction>(() => {
+    const csvColumns = currentlyDisplayedColumnsRef.current;
+    const csvRows = currentlyDisplayedRowsRef.current;
+
+    if (!csvColumns || !csvRows) {
+      return null;
+    }
+
+    return buildCsvFile({
+      columns: csvColumns,
+      rows: csvRows,
+      title: csvFileTitle,
+      /**
+       * The entities table stores actor and web ids on the row, resolving them to
+       * display names elsewhere in the component. Translate them here so the export
+       * matches what's shown in the grid rather than emitting raw ids.
+       */
+      resolveCell: (key, row) => {
+        if (key === "createdById" || key === "lastEditedById") {
+          return actorsByAccountId[row[key]]?.displayName ?? "";
+        }
+
+        if (key === "webId") {
+          const shortname = webNameByWebId[row.webId];
+          return shortname ? `@${shortname}` : "";
+        }
+
+        return undefined;
+      },
+    });
+  }, [
+    actorsByAccountId,
+    csvFileTitle,
+    currentlyDisplayedColumnsRef,
+    currentlyDisplayedRowsRef,
+    webNameByWebId,
+  ]);
+
   const [
     { horizontalScrollbarHeight, verticalScrollbarWidth },
     setScrollbarSizes,
@@ -752,104 +795,114 @@ export const EntitiesTable: FunctionComponent<
   const loadMoreRowHeight = 60;
 
   return (
-    <Stack sx={{ gap: 1, position: "relative" }}>
-      <Grid
-        activeConversions={activeConversions}
-        columns={columns}
-        conversionTargetsByColumnKey={conversionTargetsByColumnKey}
-        createGetCellContent={createGetCellContent}
-        currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
-        customRenderers={customRenderers}
-        dataLoading={false}
-        enableCheckboxSelection
-        experimental={{
-          paddingBottom: hasMoreRowsAvailable ? loadMoreRowHeight : 0,
-        }}
-        firstColumnLeftPadding={firstColumnLeftPadding}
-        freezeColumns={1}
-        height={`min(${maxHeight}, 600px)`}
-        onConversionTargetSelected={onConversionTargetSelected}
-        onSearchClose={() => setShowSearch(false)}
-        onSelectedRowsChange={(updatedSelectedRows) =>
-          setSelectedRows(updatedSelectedRows)
-        }
-        rows={rows}
-        selectedRows={selectedRows}
+    <>
+      <TableToolbar
+        generateCsvFile={generateCsvFile}
+        displayedColumns={columns}
         showSearch={showSearch}
-        sortableColumns={sortableColumns}
+        setShowSearch={setShowSearch}
         sort={sort}
         setSort={setSortWithConversion}
       />
+      <Stack sx={{ gap: 1, position: "relative" }}>
+        <Grid
+          activeConversions={activeConversions}
+          columns={columns}
+          conversionTargetsByColumnKey={conversionTargetsByColumnKey}
+          createGetCellContent={createGetCellContent}
+          currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
+          customRenderers={customRenderers}
+          dataLoading={false}
+          enableCheckboxSelection
+          experimental={{
+            paddingBottom: hasMoreRowsAvailable ? loadMoreRowHeight : 0,
+          }}
+          firstColumnLeftPadding={firstColumnLeftPadding}
+          freezeColumns={1}
+          height={`min(${maxHeight}, 600px)`}
+          onConversionTargetSelected={onConversionTargetSelected}
+          onSearchClose={() => setShowSearch(false)}
+          onSelectedRowsChange={(updatedSelectedRows) =>
+            setSelectedRows(updatedSelectedRows)
+          }
+          rows={rows}
+          selectedRows={selectedRows}
+          showSearch={showSearch}
+          sortableColumns={sortableColumns}
+          sort={sort}
+          setSort={setSortWithConversion}
+        />
 
-      {hasMoreRowsAvailable && (
-        <Stack
-          sx={({ palette }) => ({
-            alignItems: "center",
-            justifyContent: "center",
-            background: palette.common.white,
-            borderTop: `1px solid ${palette.gray[20]}`,
-            height: loadMoreRowHeight,
-            position: "absolute",
-            bottom: horizontalScrollbarHeight,
-            p: 1,
-            width: `calc(100% - ${verticalScrollbarWidth}px)`,
-          })}
-        >
-          <Button
-            component="button"
-            onClick={loadMoreRows}
-            disabled={entityDataLoading}
-            size="small"
+        {hasMoreRowsAvailable && (
+          <Stack
             sx={({ palette }) => ({
-              background: palette.gray[10],
-              color: palette.gray[70],
-              fontSize: 14,
-              fontWeight: 500,
-              width: "100%",
-              height: "100%",
-              display: "flex",
               alignItems: "center",
-              "::before": {
-                background: "none",
-              },
-              "&:hover": {
-                background: palette.gray[15],
+              justifyContent: "center",
+              background: palette.common.white,
+              borderTop: `1px solid ${palette.gray[20]}`,
+              height: loadMoreRowHeight,
+              position: "absolute",
+              bottom: horizontalScrollbarHeight,
+              p: 1,
+              width: `calc(100% - ${verticalScrollbarWidth}px)`,
+            })}
+          >
+            <Button
+              component="button"
+              onClick={loadMoreRows}
+              disabled={entityDataLoading}
+              size="small"
+              sx={({ palette }) => ({
+                background: palette.gray[10],
+                color: palette.gray[70],
+                fontSize: 14,
+                fontWeight: 500,
+                width: "100%",
+                height: "100%",
+                display: "flex",
+                alignItems: "center",
                 "::before": {
                   background: "none",
                 },
-              },
-            })}
-          >
-            {entityDataLoading ? (
-              <>
-                <Box component="span" mr={1}>
-                  Loading...
-                </Box>
-                <LoadingSpinner size={16} color={theme.palette.gray[60]} />
-              </>
-            ) : (
-              <>
-                Show more entities
-                <Box
-                  component="span"
-                  sx={{ color: ({ palette }) => palette.gray[50], ml: 0.5 }}
-                >
-                  - {formatNumber(totalResultCount - rows.length)} remaining
-                </Box>
-                <ArrowDownRegularIcon
-                  sx={{
-                    fontSize: 11,
-                    ml: 0.8,
-                    position: "relative",
-                    top: 1,
-                    color: ({ palette }) => palette.gray[50],
-                  }}
-                />
-              </>
-            )}
-          </Button>
-        </Stack>
-      )}
-    </Stack>
+                "&:hover": {
+                  background: palette.gray[15],
+                  "::before": {
+                    background: "none",
+                  },
+                },
+              })}
+            >
+              {entityDataLoading ? (
+                <>
+                  <Box component="span" mr={1}>
+                    Loading...
+                  </Box>
+                  <LoadingSpinner size={16} color={theme.palette.gray[60]} />
+                </>
+              ) : (
+                <>
+                  Show more entities
+                  <Box
+                    component="span"
+                    sx={{ color: ({ palette }) => palette.gray[50], ml: 0.5 }}
+                  >
+                    - {formatNumber(totalResultCount - rows.length)} remaining
+                  </Box>
+                  <ArrowDownRegularIcon
+                    sx={{
+                      fontSize: 11,
+                      ml: 0.8,
+                      position: "relative",
+                      top: 1,
+                      color: ({ palette }) => palette.gray[50],
+                    }}
+                  />
+                </>
+              )}
+            </Button>
+          </Stack>
+        )}
+      </Stack>
+    </>
   );
 };

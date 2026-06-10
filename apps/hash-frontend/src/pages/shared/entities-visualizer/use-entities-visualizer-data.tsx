@@ -178,9 +178,9 @@ export const useEntitiesVisualizerData = (params: {
   const entities = useMemo(
     () =>
       subgraph
-        ? view === "Table"
-          ? getRoots(subgraph)
-          : getLatestEntityVertices(subgraph).map((vertex) => vertex.inner)
+        ? view === "Graph"
+          ? getLatestEntityVertices(subgraph).map((vertex) => vertex.inner)
+          : getRoots(subgraph)
         : undefined,
     [subgraph, view],
   );
