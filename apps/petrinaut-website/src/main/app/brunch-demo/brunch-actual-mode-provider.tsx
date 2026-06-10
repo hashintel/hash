@@ -82,6 +82,7 @@ export const BrunchActualModeProvider: FC<
 
   useEffect(() => {
     let cancelled = false;
+    let hasConnectedBefore = false;
     const eventSource = new EventSource(endpoint);
 
     const setFatalError = (message: string) => {
@@ -130,10 +131,30 @@ export const BrunchActualModeProvider: FC<
         return;
       }
 
-      setValue((prev) => ({
-        ...prev,
-        error: prev.status === "error" ? prev.error : null,
-      }));
+      const isReconnect = hasConnectedBefore;
+      hasConnectedBefore = true;
+
+      setValue((prev) => {
+        const error = prev.status === "error" ? prev.error : null;
+
+        if (!isReconnect) {
+          return { ...prev, error };
+        }
+
+        // The temporary Brunch protocol replays the whole run (definition,
+        // initial_state, and every past transition_firing) on each connection,
+        // so appending across an automatic reconnect would duplicate every
+        // previously received event. Drop the accumulated events and let the
+        // replay rebuild them; the already-loaded definition and initial state
+        // stay visible until the replay re-delivers them.
+        return {
+          ...prev,
+          transitionFirings: [],
+          receivedEvents: [],
+          timelineNowMs: Date.now(),
+          error,
+        };
+      });
     };
 
     const onDefinition = (event: Event) => {

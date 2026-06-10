@@ -14,7 +14,7 @@ The demo website enables Actual mode on the `/brunch` route when the URL include
 
 Petrinaut connects to the stream, waits for the Petri net definition and initial state, lays out the net if the stream did not include node positions, and then shows the net in Actual mode.
 
-If the stream connection is interrupted, Petrinaut keeps any loaded Actual mode data visible and waits for the browser to reconnect. If the stream sends invalid data, Petrinaut shows an error page with a link back to the normal demo site.
+If the stream connection is interrupted, Petrinaut keeps any loaded Actual mode data visible and waits for the browser to reconnect. Once the connection is restored, the Brunch stream replays the run from the beginning and Petrinaut rebuilds the timeline and events from that replay, so an interruption does not duplicate transition events or miss ones that fired while disconnected. If the stream sends invalid data, Petrinaut shows an error page with a link back to the normal demo site.
 
 ## Timeline and events
 
