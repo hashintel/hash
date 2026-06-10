@@ -41,7 +41,7 @@ const bottomBarPositionStyle = css({
   position: "absolute",
   left: "[50%]",
   transform: "translateX(-50%)",
-  zIndex: "[calc(var(--z-index-sticky) - 3)]",
+  zIndex: "[calc(var(--z-index-sticky) + 1)]",
   display: "flex",
   gap: "[20px]",
 });
