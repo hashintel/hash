@@ -6,6 +6,7 @@ import {
   type WorkerFactory,
 } from "@hashintel/petrinaut-core";
 
+import { ExecutionFrameProvider } from "./execution-frame/provider";
 import { ExperimentsProvider } from "./experiments/provider";
 import { PetrinautInstanceContext } from "./instance-context";
 import { LanguageClientProvider } from "./lsp/provider";
@@ -78,7 +79,9 @@ export const PetrinautProvider: React.FC<PetrinautProviderProps> = ({
             <ExperimentsProvider workerFactory={monteCarloWorkerFactory}>
               <PlaybackProvider>
                 <UserSettingsProvider>
-                  <EditorProvider>{children}</EditorProvider>
+                  <EditorProvider>
+                    <ExecutionFrameProvider>{children}</ExecutionFrameProvider>
+                  </EditorProvider>
                 </UserSettingsProvider>
               </PlaybackProvider>
             </ExperimentsProvider>

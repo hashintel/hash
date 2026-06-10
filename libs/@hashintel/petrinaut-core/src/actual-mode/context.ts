@@ -1,7 +1,5 @@
 import type { ActualModeContextValue } from "./types";
 
-const noopSetCurrentFrameIndex = () => {};
-
 export const unavailableActualMode: ActualModeContextValue = {
   available: false,
   source: null,
@@ -11,9 +9,7 @@ export const unavailableActualMode: ActualModeContextValue = {
   initialState: null,
   transitionFirings: [],
   receivedEvents: [],
-  currentFrameIndex: 0,
   timelineStartedAtMs: null,
   timelineNowMs: null,
-  setCurrentFrameIndex: noopSetCurrentFrameIndex,
   error: null,
 };

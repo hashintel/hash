@@ -1,10 +1,10 @@
 import { use, useEffect, useState } from "react";
 
+import { ExecutionFrameSourceContext } from "../../../../../../../react/execution-frame/context";
 import { EditorContext } from "../../../../../../../react/state/editor-context";
 import { UPlotChart } from "./chart";
 import { TimelineLegend } from "./legend";
 import { chartAreaStyle, containerStyle } from "./styles";
-import { useActualTimelineSource } from "./use-actual-timeline-source";
 import { useStreamingData } from "./use-streaming-data";
 
 import type { SubView } from "../../../../../../components/sub-view/types";
@@ -15,15 +15,13 @@ const ActualTimelineContent: React.FC = () => {
     timelineChartType: chartType,
     timelineView,
   } = use(EditorContext);
-  const { currentFrameIndex, isAvailable, setCurrentFrameIndex, source } =
-    useActualTimelineSource();
+  const source = use(ExecutionFrameSourceContext);
   const { store, metricError } = useStreamingData(source);
 
   const [hiddenSeries, setHiddenSeries] = useState<Set<string>>(new Set());
   const [isFollowingLive, setIsFollowingLive] = useState(true);
-  const totalFrames = source.totalFrames;
+  const { currentFrameIndex, scrubToFrame, totalFrames } = source;
   const lastFrameIndex = Math.max(0, totalFrames - 1);
-  const safeCurrentFrameIndex = Math.min(currentFrameIndex, lastFrameIndex);
 
   useEffect(() => {
     if (timelineView.kind === "metric") {
@@ -33,18 +31,12 @@ const ActualTimelineContent: React.FC = () => {
 
   useEffect(() => {
     if (isFollowingLive && totalFrames > 0) {
-      setCurrentFrameIndex(lastFrameIndex);
+      scrubToFrame(lastFrameIndex);
     }
-  }, [isFollowingLive, lastFrameIndex, setCurrentFrameIndex, totalFrames]);
-
-  useEffect(() => {
-    if (currentFrameIndex > lastFrameIndex) {
-      setCurrentFrameIndex(lastFrameIndex);
-    }
-  }, [currentFrameIndex, lastFrameIndex, setCurrentFrameIndex]);
+  }, [isFollowingLive, lastFrameIndex, scrubToFrame, totalFrames]);
 
   const handleScrub = (frameIndex: number) => {
-    setCurrentFrameIndex(frameIndex);
+    scrubToFrame(frameIndex);
     setIsFollowingLive(frameIndex >= lastFrameIndex);
   };
 
@@ -56,7 +48,7 @@ const ActualTimelineContent: React.FC = () => {
     );
   }
 
-  if (!isAvailable || store.length === 0 || totalFrames === 0) {
+  if (store.length === 0 || totalFrames === 0) {
     return (
       <div className={containerStyle}>
         <span style={{ fontSize: 12, color: "#999" }}>
@@ -74,7 +66,7 @@ const ActualTimelineContent: React.FC = () => {
         chartType={chartType}
         hiddenSeries={hiddenSeries}
         totalFrames={totalFrames}
-        currentFrameIndex={safeCurrentFrameIndex}
+        currentFrameIndex={currentFrameIndex}
         onScrub={handleScrub}
       />
       {store.series.length > 1 && (

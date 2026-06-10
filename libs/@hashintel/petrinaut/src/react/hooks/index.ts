@@ -48,11 +48,6 @@ export {
 } from "./use-playback";
 
 export {
-  useCurrentExecutionFrame,
-  type CurrentExecutionFrame,
-} from "./use-current-execution-frame";
-
-export {
   useDiagnostics,
   useDiagnosticsForUri,
   useLspActions,

@@ -1,7 +1,6 @@
 import { use, useState } from "react";
 
-import { PlaybackContext } from "../../../../../../../react/playback/context";
-import { SimulationContext } from "../../../../../../../react/simulation/context";
+import { ExecutionFrameSourceContext } from "../../../../../../../react/execution-frame/context";
 import { EditorContext } from "../../../../../../../react/state/editor-context";
 import { UPlotChart } from "./chart";
 import { TimelineHeaderActions } from "./header";
@@ -10,17 +9,10 @@ import { chartAreaStyle, containerStyle } from "./styles";
 import { useStreamingData } from "./use-streaming-data";
 
 import type { SubView } from "../../../../../../components/sub-view/types";
-import type { TimelineFrameSource } from "./types";
 
 const SimulationTimelineContent: React.FC = () => {
   const { timelineChartType: chartType } = use(EditorContext);
-  const { getFramesInRange, totalFrames } = use(SimulationContext);
-  const { currentFrameIndex, setCurrentViewedFrame } = use(PlaybackContext);
-  const source: TimelineFrameSource = {
-    sourceId: "simulation",
-    totalFrames,
-    getFramesInRange,
-  };
+  const source = use(ExecutionFrameSourceContext);
   const { store, metricError } = useStreamingData(source);
 
   const [hiddenSeries, setHiddenSeries] = useState<Set<string>>(new Set());
@@ -33,7 +25,7 @@ const SimulationTimelineContent: React.FC = () => {
     );
   }
 
-  if (store.length === 0 || totalFrames === 0) {
+  if (store.length === 0 || source.totalFrames === 0) {
     return (
       <div className={containerStyle}>
         <span style={{ fontSize: 12, color: "#999" }}>
@@ -50,9 +42,9 @@ const SimulationTimelineContent: React.FC = () => {
         store={store}
         chartType={chartType}
         hiddenSeries={hiddenSeries}
-        totalFrames={totalFrames}
-        currentFrameIndex={currentFrameIndex}
-        onScrub={setCurrentViewedFrame}
+        totalFrames={source.totalFrames}
+        currentFrameIndex={source.currentFrameIndex}
+        onScrub={source.scrubToFrame}
       />
       {store.series.length > 1 && (
         <TimelineLegend

@@ -64,10 +64,8 @@ export type ActualModeContextValue =
       initialState: null;
       transitionFirings: readonly [];
       receivedEvents: readonly [];
-      currentFrameIndex: 0;
       timelineStartedAtMs: null;
       timelineNowMs: null;
-      setCurrentFrameIndex: (frameIndex: number) => void;
       error: null;
     }
   | {
@@ -79,10 +77,8 @@ export type ActualModeContextValue =
       initialState: ActualModeMarking | null;
       transitionFirings: readonly ActualModeTransitionFiring[];
       receivedEvents: readonly ActualModeReceivedEvent[];
-      currentFrameIndex: number;
       timelineStartedAtMs: number | null;
       timelineNowMs: number | null;
-      setCurrentFrameIndex: (frameIndex: number) => void;
       error: string | null;
     };
 

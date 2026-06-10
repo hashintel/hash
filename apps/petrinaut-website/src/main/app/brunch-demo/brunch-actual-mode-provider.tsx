@@ -37,10 +37,8 @@ const createLoadingActualModeValue = (
     initialState: null,
     transitionFirings: [],
     receivedEvents: [],
-    currentFrameIndex: 0,
     timelineStartedAtMs: now,
     timelineNowMs: now,
-    setCurrentFrameIndex: () => {},
     error: null,
   };
 };
@@ -51,13 +49,6 @@ export const BrunchActualModeProvider: FC<
   const [value, setValue] = useState<AvailableActualModeContextValue>(() =>
     createLoadingActualModeValue(endpoint, runId),
   );
-
-  const setCurrentFrameIndex = (frameIndex: number) => {
-    setValue((prev) => ({
-      ...prev,
-      currentFrameIndex: Math.max(0, Math.floor(frameIndex)),
-    }));
-  };
 
   useEffect(() => {
     const interval = window.setInterval(() => {
@@ -272,10 +263,5 @@ export const BrunchActualModeProvider: FC<
     };
   }, [endpoint, runId]);
 
-  const contextValue: AvailableActualModeContextValue = {
-    ...value,
-    setCurrentFrameIndex,
-  };
-
-  return <ActualModeContext value={contextValue}>{children}</ActualModeContext>;
+  return <ActualModeContext value={value}>{children}</ActualModeContext>;
 };

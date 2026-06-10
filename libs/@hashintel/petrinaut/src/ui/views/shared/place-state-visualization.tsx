@@ -2,7 +2,7 @@ import { use, useMemo } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 
-import { useCurrentExecutionFrame } from "../../../react/hooks/use-current-execution-frame";
+import { ExecutionFrameSourceContext } from "../../../react/execution-frame/context";
 import {
   mergeParameterValues,
   useDefaultParameterValues,
@@ -40,7 +40,7 @@ export const PlaceStateVisualization: React.FC<
   "use no memo"; // User-authored visualizer code is compiled into a component at runtime.
 
   const { initialMarking, parameterValues } = use(SimulationContext);
-  const { currentFrameReader, totalFrames } = useCurrentExecutionFrame();
+  const { currentFrameReader, totalFrames } = use(ExecutionFrameSourceContext);
 
   const defaultParameterValues = useDefaultParameterValues();
 

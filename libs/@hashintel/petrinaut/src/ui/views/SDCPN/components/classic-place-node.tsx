@@ -4,7 +4,7 @@ import { use } from "react";
 import { Icon } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 
-import { useCurrentExecutionFrame } from "../../../../react/hooks/use-current-execution-frame";
+import { ExecutionFrameSourceContext } from "../../../../react/execution-frame/context";
 import { SimulationContext } from "../../../../react/simulation/context";
 import { EditorContext } from "../../../../react/state/editor-context";
 import { hexToHsl } from "../../../lib/hsl-color";
@@ -133,7 +133,7 @@ export const ClassicPlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
   } = use(EditorContext);
   const isSimulateMode = globalMode === "simulate";
   const { initialMarking } = use(SimulationContext);
-  const { currentViewedFrame, totalFrames } = useCurrentExecutionFrame();
+  const { currentViewedFrame, totalFrames } = use(ExecutionFrameSourceContext);
 
   // Show the visualizer on hover for places with a visualizer during simulation.
   const showStateTooltip =

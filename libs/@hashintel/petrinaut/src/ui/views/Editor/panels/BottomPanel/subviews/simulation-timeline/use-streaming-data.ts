@@ -10,10 +10,10 @@ import { EditorContext } from "../../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../../react/state/sdcpn-context";
 import { buildTimelineSeriesConfig } from "./series-config";
 
+import type { ExecutionFrameSource } from "../../../../../../../react/execution-frame/context";
 import type {
   StreamingStore,
   TimelineFrame,
-  TimelineFrameSource,
   TimelineSeriesExtractor,
   TimelineSeriesMeta,
 } from "./types";
@@ -138,7 +138,7 @@ function compileTimelineMetric(metric: Metric | null): {
  *    places), values are the sum of token counts across places of that type.
  *  - `metric`: a single series computed by the compiled user metric.
  */
-export function useStreamingData(source: TimelineFrameSource): {
+export function useStreamingData(source: ExecutionFrameSource): {
   store: StreamingStore;
   metricError: string | null;
 } {
@@ -182,23 +182,23 @@ export function useStreamingData(source: TimelineFrameSource): {
   // yet been appended to the uPlot columns. Updating it should not re-render.
   const processedRef = useRef(0);
 
+  // The frame-related fields are depended on individually below so that
+  // changes to unrelated source fields (e.g. the viewed frame index moving
+  // during playback or scrubbing) do not restart frame reads.
+  const { getFramesInRange, sourceId, totalFrames } = source;
+
   // Reset store when the source identity or series structure changes.
   useEffect(() => {
     storeController.reset(seriesConfig.series);
     processedRef.current = 0;
-  }, [seriesConfig.series, source.sourceId, storeController]);
+  }, [seriesConfig.series, sourceId, storeController]);
 
-  // TODO(actual-mode follow-up): this effect still depends on the
-  // TimelineFrameSource object identity. Callers currently create source
-  // objects inline, so unrelated renders can restart frame reads. Leave this
-  // unresolved in this PR; the next pass should move to a stable source adapter
-  // contract or depend on sourceId, totalFrames, and getFramesInRange directly.
   // Stream new frames into the store.
   useEffect(() => {
     let cancelled = false;
 
     const fetchData = async () => {
-      if (source.totalFrames === 0) {
+      if (totalFrames === 0) {
         if (storeController.getLength() > 0) {
           storeController.resetCurrentSeries();
           processedRef.current = 0;
@@ -207,17 +207,17 @@ export function useStreamingData(source: TimelineFrameSource): {
       }
 
       // Handle simulation restart
-      if (source.totalFrames < processedRef.current) {
+      if (totalFrames < processedRef.current) {
         storeController.resetCurrentSeries();
         processedRef.current = 0;
       }
 
       const startIndex = processedRef.current;
-      if (startIndex >= source.totalFrames) {
+      if (startIndex >= totalFrames) {
         return;
       }
 
-      const newFrames = await source.getFramesInRange(startIndex);
+      const newFrames = await getFramesInRange(startIndex);
       if (cancelled || newFrames.length === 0) {
         return;
       }
@@ -230,7 +230,7 @@ export function useStreamingData(source: TimelineFrameSource): {
     return () => {
       cancelled = true;
     };
-  }, [seriesConfig, source, storeController]);
+  }, [getFramesInRange, seriesConfig, storeController, totalFrames]);
 
   return {
     store,

@@ -3,16 +3,6 @@ import type { SimulationFrameReader } from "../../../../../../../react/simulatio
 /** Frame reader consumed by timeline series extractors. */
 export type TimelineFrame = SimulationFrameReader;
 
-/** Source of frame readers consumed by the reusable timeline chart. */
-export interface TimelineFrameSource {
-  sourceId: string;
-  totalFrames: number;
-  getFramesInRange: (
-    startIndex: number,
-    endIndex?: number,
-  ) => Promise<TimelineFrame[]>;
-}
-
 /** Metadata for each plotted series, stable across streaming updates. */
 export interface TimelineSeriesMeta {
   seriesId: string;
