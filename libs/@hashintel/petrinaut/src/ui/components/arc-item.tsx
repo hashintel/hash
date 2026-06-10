@@ -148,6 +148,7 @@ export const ArcItem = ({
         min={1}
         disabled={disabled}
         size="sm"
+        hideStepper
         connectToLeftInput={hasSelect}
         className={weightInputStyle}
         onChange={(newWeight) => {
