@@ -145,11 +145,6 @@ const ratioSliderStyle = css({
   opacity: "[1]",
 });
 
-const ratioInputStyle = css({
-  width: "[65px]",
-  textAlign: "right",
-});
-
 const emptyMessageStyle = css({
   fontSize: "xs",
   color: "neutral.s85",
@@ -347,6 +342,7 @@ const SimulationSettingsContent: React.FC = () => {
                         min={0}
                         max={1}
                         step={0.00001}
+                        align="right"
                         value={Number(
                           scenarioParameterValues[param.variableName] ??
                             param.defaultValue,
@@ -358,13 +354,13 @@ const SimulationSettingsContent: React.FC = () => {
                           )
                         }
                         disabled={isSimulationActive}
-                        className={ratioInputStyle}
                       />
                     </div>
                   ) : (
                     <NumberInput
                       type={param.type === "integer" ? "integer" : "float"}
                       size="xs"
+                      align="right"
                       max={Number.MAX_SAFE_INTEGER}
                       value={Number(
                         selectedScenario

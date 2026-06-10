@@ -121,8 +121,6 @@ const popoverDividerStyle = css({
 
 const maxTimeInputStyle = css({
   width: "[60px]",
-  textAlign: "right",
-  flexShrink: 0,
   fontVariantNumeric: "tabular-nums",
 });
 
@@ -341,6 +339,7 @@ export const PlaybackSettingsMenu = () => {
                     min={0.1}
                     step={0.1}
                     value={maxTime ?? 10}
+                    align="right"
                     disabled={hasSimulation}
                     onChange={(value) => {
                       if (value !== null && value > 0) {

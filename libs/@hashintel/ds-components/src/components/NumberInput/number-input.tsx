@@ -19,6 +19,7 @@ export const NumberInput = ({
   onFocus,
   onBlur,
   onKeyDown,
+  hideStepper,
   ...props
 }: Omit<
   BaseInputProps,
@@ -26,6 +27,7 @@ export const NumberInput = ({
 > & {
   type: "integer" | "float";
   value: number | null | undefined;
+  hideStepper?: boolean;
   onChange: (
     value: number | null,
     event: React.ChangeEvent<HTMLInputElement>,

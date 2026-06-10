@@ -52,6 +52,11 @@ const rightSectionStyle = css({
   minWidth: "[0]",
 });
 
+const titleStyles = css({
+  marginX: "2",
+  fontWeight: "medium",
+});
+
 interface TopBarProps {
   actualModeAvailable: boolean;
   menuItems: MenuItem[];
@@ -117,6 +122,8 @@ export const TopBar: React.FC<TopBarProps> = ({
             value={title}
             onChange={onTitleChange}
             placeholder="Process"
+            className={titleStyles}
+            size="sm"
           />
         )}
       </div>
