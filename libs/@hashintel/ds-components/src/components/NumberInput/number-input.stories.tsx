@@ -422,11 +422,10 @@ export const Widths: Story<NumberInputProps> = (args) => (
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "auto auto",
+            gridTemplateColumns: "auto 1fr",
             columnGap: 32,
             rowGap: 12,
             alignItems: "center",
-            justifyContent: "start",
           }}
         >
           {widths.map((width) => (
