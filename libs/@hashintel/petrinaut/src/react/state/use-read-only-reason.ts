@@ -57,7 +57,7 @@ export const formatReadOnlyReason = (reason: ReadOnlyReason): string => {
     case "host-readonly":
       return "This document is read-only; mutations are disabled.";
     case "simulate-mode":
-      return "The editor is in simulate mode. Ask the user to switch reset the simulation before mutating.";
+      return "The editor is in simulate mode. Ask the user to switch to edit mode before mutating.";
     case "actual-mode":
       return "The editor is in actual mode. Ask the user to switch to edit mode before mutating.";
     case "simulation-active":
