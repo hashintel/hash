@@ -1,7 +1,15 @@
 import { Collapsible } from "@ark-ui/react/collapsible";
 import { use, useEffect, useLayoutEffect, useRef, useState } from "react";
 
-import { Button, Icon, LoadingSpinner } from "@hashintel/ds-components";
+import {
+  Button,
+  Icon,
+  LoadingSpinner,
+  NumberInput,
+  Select,
+  TextInput,
+  type SelectItem,
+} from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 import { compileMetric } from "@hashintel/petrinaut-core";
 
@@ -11,13 +19,7 @@ import { LanguageClientContext } from "../../../../../../react/lsp/context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { UserSettingsContext } from "../../../../../../react/state/user-settings-context";
 import { Drawer } from "../../../../../components/drawer";
-import { Input } from "../../../../../components/input";
-import { NumberInput } from "../../../../../components/number-input";
 import { Section, SectionList } from "../../../../../components/section";
-import {
-  Select,
-  type SelectOptionGroup,
-} from "../../../../../components/select";
 import { CodeEditor } from "../../../../../monaco/code-editor";
 import { getMetricDocumentUri } from "../../../../../monaco/editor-paths";
 import { useMetricLspSession } from "../metrics/metric-form";
@@ -180,13 +182,15 @@ const metricKindSelectStyle = css({
 });
 
 const metricKindTriggerStyle = css({
-  height: "[26px]",
-  borderColor: "[transparent]",
-  backgroundColor: "neutral.s10",
-  paddingX: "2",
-  _hover: {
-    borderColor: "neutral.bd.subtle",
-    backgroundColor: "neutral.s20",
+  "& [data-part='trigger']": {
+    height: "[26px !important]",
+    borderColor: "[transparent !important]",
+    backgroundColor: "[{colors.neutral.s10} !important]",
+    paddingX: "[8px !important]",
+    _hover: {
+      borderColor: "[{colors.neutral.bd.subtle} !important]",
+      backgroundColor: "[{colors.neutral.s20} !important]",
+    },
   },
 });
 
@@ -198,11 +202,6 @@ const metricKindTriggerLabelStyle = css({
   color: "neutral.s100",
   fontSize: "xs",
   fontWeight: "medium",
-});
-
-const metricKindTriggerChevronStyle = css({
-  flexShrink: 0,
-  color: "neutral.s80",
 });
 
 const metricExpandedContentStyle = css({
@@ -301,9 +300,9 @@ function createScenarioOptions(scenarios: readonly Scenario[]) {
   return [
     ...scenarios.map((scenario) => ({
       value: scenario.id,
-      label: scenario.name,
+      text: scenario.name,
     })),
-    { value: NO_SCENARIO_VALUE, label: "No scenario" },
+    { value: NO_SCENARIO_VALUE, text: "No scenario" },
   ];
 }
 
@@ -332,11 +331,10 @@ type ExperimentMetricDraft = {
 
 const MODEL_METRIC_VALUE_PREFIX = "model:";
 
-const transitionModeOptions: { value: TransitionFiringMode; label: string }[] =
-  [
-    { value: "firedInThisFrame", label: "Per frame" },
-    { value: "cumulative", label: "Cumulative" },
-  ];
+const transitionModeOptions: { value: TransitionFiringMode; text: string }[] = [
+  { value: "firedInThisFrame", text: "Per frame" },
+  { value: "cumulative", text: "Cumulative" },
+];
 
 function getMetricKindLabel(kind: ExperimentMetricKind): string {
   switch (kind) {
@@ -399,17 +397,20 @@ function canReplaceMetricLabel(label: string, sdcpn: SDCPN): boolean {
   ]).has(trimmed);
 }
 
-function createMetricKindGroups(sdcpn: SDCPN): SelectOptionGroup[] {
-  const groups: SelectOptionGroup[] = [
+type MetricKindGroup = {
+  id: string;
+  label: string;
+  items: SelectItem<string>[];
+};
+
+function createMetricKindGroups(sdcpn: SDCPN): MetricKindGroup[] {
+  const groups: MetricKindGroup[] = [
     {
+      id: "built-in",
       label: "Built-in",
-      options: [
-        { value: "placeTokenCountMean", label: "Place tokens", icon: "circle" },
-        {
-          value: "transitionFiringCount",
-          label: "Transition firing",
-          icon: "lightning",
-        },
+      items: [
+        { value: "placeTokenCountMean", text: "Place tokens" },
+        { value: "transitionFiringCount", text: "Transition firing" },
       ],
     },
   ];
@@ -417,21 +418,37 @@ function createMetricKindGroups(sdcpn: SDCPN): SelectOptionGroup[] {
   const modelMetrics = sdcpn.metrics ?? [];
   if (modelMetrics.length > 0) {
     groups.push({
+      id: "model",
       label: "Model metrics",
-      options: modelMetrics.map((metric) => ({
+      items: modelMetrics.map((metric) => ({
         value: `${MODEL_METRIC_VALUE_PREFIX}${metric.id}`,
-        label: metric.name,
-        icon: "function",
+        text: metric.name,
       })),
     });
   }
 
   groups.push({
+    id: "custom",
     label: "Custom",
-    options: [{ value: "expression", label: "Custom code", icon: "code" }],
+    items: [{ value: "expression", text: "Custom code" }],
   });
 
   return groups;
+}
+
+const METRIC_KIND_ICONS: Record<string, "circle" | "lightning" | "code"> = {
+  placeTokenCountMean: "circle",
+  transitionFiringCount: "lightning",
+  expression: "code",
+};
+
+function getMetricKindIcon(
+  value: string,
+): "circle" | "lightning" | "code" | "function" | undefined {
+  if (value.startsWith(MODEL_METRIC_VALUE_PREFIX)) {
+    return "function";
+  }
+  return METRIC_KIND_ICONS[value];
 }
 
 function createDefaultMetricDraft(sdcpn: SDCPN): ExperimentMetricDraft {
@@ -627,7 +644,7 @@ const ExperimentMetricRow = ({
 }: {
   metric: ExperimentMetricDraft;
   sdcpn: SDCPN;
-  kindGroups: SelectOptionGroup[];
+  kindGroups: MetricKindGroup[];
   autoFocusLabel: boolean;
   onChange: (metric: ExperimentMetricDraft) => void;
   onLspDiagnosticsChange: (diagnostics: MetricLspDiagnosticSummary) => void;
@@ -636,14 +653,16 @@ const ExperimentMetricRow = ({
   const { showAnimations } = use(UserSettingsContext);
   const labelInputRef = useRef<HTMLInputElement>(null);
   const didAutoFocusLabelRef = useRef(false);
-  const placeOptions = sdcpn.places.map((place) => ({
+  const placeOptions: SelectItem<string>[] = sdcpn.places.map((place) => ({
     value: place.id,
-    label: place.name,
+    text: place.name,
   }));
-  const transitionOptions = sdcpn.transitions.map((transition) => ({
-    value: transition.id,
-    label: transition.name,
-  }));
+  const transitionOptions: SelectItem<string>[] = sdcpn.transitions.map(
+    (transition) => ({
+      value: transition.id,
+      text: transition.name,
+    }),
+  );
   const updateMetric = (patch: Partial<ExperimentMetricDraft>) => {
     onChange({ ...metric, ...patch });
   };
@@ -739,41 +758,47 @@ const ExperimentMetricRow = ({
             </button>
           </Collapsible.Trigger>
           <div className={metricTitleGroupStyle}>
-            <Input
-              ref={labelInputRef}
+            <TextInput
+              inputRef={labelInputRef}
               className={metricTitleInputStyle}
               size="xs"
               value={metric.label}
               placeholder="Untitled metric"
               aria-label="Metric label"
-              onChange={(event) => {
-                updateMetric({ label: event.currentTarget.value });
+              onChange={(value) => {
+                updateMetric({ label: value });
               }}
             />
           </div>
           <Select
+            required
             value={
               metric.sourceMetricId
                 ? `${MODEL_METRIC_VALUE_PREFIX}${metric.sourceMetricId}`
                 : metric.kind
             }
-            onValueChange={handleKindChange}
-            groups={kindGroups}
+            onChange={handleKindChange}
+            items={kindGroups}
             size="xs"
-            className={metricKindSelectStyle}
-            triggerClassName={metricKindTriggerStyle}
-            renderTrigger={() => (
-              <>
-                <span className={metricKindTriggerLabelStyle}>
-                  {getMetricSummaryLabel(metric, sdcpn)}
-                </span>
-                <Icon
-                  name="chevronDown"
-                  size="xs"
-                  className={metricKindTriggerChevronStyle}
-                />
-              </>
+            className={cx(metricKindSelectStyle, metricKindTriggerStyle)}
+            renderSelectedItem={() => (
+              <span className={metricKindTriggerLabelStyle}>
+                {getMetricSummaryLabel(metric, sdcpn)}
+              </span>
             )}
+            renderItem={(value) => {
+              const icon = getMetricKindIcon(value);
+              const text =
+                kindGroups
+                  .flatMap((g) => g.items)
+                  .find((it) => it.value === value)?.text ?? value;
+              return (
+                <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  {icon && <Icon name={icon} size="xs" />}
+                  {text}
+                </span>
+              );
+            }}
           />
         </div>
         <Button
@@ -800,9 +825,10 @@ const ExperimentMetricRow = ({
                 <div className={fieldStyle}>
                   <span className={labelStyle}>Place</span>
                   <Select
+                    required
                     value={metric.placeId}
-                    onValueChange={(value) => updateMetric({ placeId: value })}
-                    options={placeOptions}
+                    onChange={(value) => updateMetric({ placeId: value })}
+                    items={placeOptions}
                     size="sm"
                   />
                 </div>
@@ -812,24 +838,24 @@ const ExperimentMetricRow = ({
                   <div className={fieldStyle}>
                     <span className={labelStyle}>Transition</span>
                     <Select
+                      required
                       value={metric.transitionId}
-                      onValueChange={(value) =>
+                      onChange={(value) =>
                         updateMetric({ transitionId: value })
                       }
-                      options={transitionOptions}
+                      items={transitionOptions}
                       size="sm"
                     />
                   </div>
                   <div className={fieldStyle}>
                     <span className={labelStyle}>Count</span>
                     <Select
+                      required
                       value={metric.transitionMode}
-                      onValueChange={(value) =>
-                        updateMetric({
-                          transitionMode: value as TransitionFiringMode,
-                        })
+                      onChange={(value) =>
+                        updateMetric({ transitionMode: value })
                       }
-                      options={transitionModeOptions}
+                      items={transitionModeOptions}
                       size="sm"
                     />
                   </div>
@@ -1037,41 +1063,48 @@ export const CreateExperimentDrawer = ({
             <Section title="Experiment" collapsible defaultOpen>
               <div className={fieldStyle}>
                 <span className={labelStyle}>Name</span>
-                <Input
+                <TextInput
                   size="md"
                   value={name}
-                  onChange={(event) => setName(event.currentTarget.value)}
+                  onChange={(value) => setName(value)}
                 />
               </div>
               <div className={gridStyle}>
                 <div className={fieldStyle}>
                   <span className={labelStyle}>Runs</span>
                   <NumberInput
+                    type="integer"
                     size="md"
                     min={1}
                     step={1}
-                    value={runCount}
-                    onChange={(event) => setRunCount(event.currentTarget.value)}
+                    value={runCount === "" ? null : Number(runCount)}
+                    onChange={(value) =>
+                      setRunCount(value === null ? "" : String(value))
+                    }
                   />
                 </div>
                 <div className={fieldStyle}>
                   <span className={labelStyle}>Time step</span>
                   <NumberInput
+                    type="float"
                     size="md"
                     min={0}
-                    step="any"
-                    value={dt}
-                    onChange={(event) => setDt(event.currentTarget.value)}
+                    value={dt === "" ? null : Number(dt)}
+                    onChange={(value) =>
+                      setDt(value === null ? "" : String(value))
+                    }
                   />
                 </div>
                 <div className={fieldStyle}>
                   <span className={labelStyle}>Max time (s)</span>
                   <NumberInput
+                    type="float"
                     size="md"
                     min={0}
-                    step="any"
-                    value={maxTime}
-                    onChange={(event) => setMaxTime(event.currentTarget.value)}
+                    value={maxTime === "" ? null : Number(maxTime)}
+                    onChange={(value) =>
+                      setMaxTime(value === null ? "" : String(value))
+                    }
                   />
                 </div>
               </div>
@@ -1080,24 +1113,34 @@ export const CreateExperimentDrawer = ({
             <Section title="Scenario" collapsible defaultOpen>
               <div className={fieldStyle}>
                 <Select
+                  required
                   value={effectiveSelectedScenarioId}
-                  onValueChange={handleScenarioChange}
-                  options={scenarioOptions}
+                  onChange={handleScenarioChange}
+                  items={scenarioOptions}
                   size="md"
-                  renderItem={(option) => (
-                    <span
-                      style={{ display: "flex", alignItems: "center", gap: 6 }}
-                    >
-                      {option.value === NO_SCENARIO_VALUE && (
-                        <Icon
-                          name="dash"
-                          size="xs"
-                          className={css({ opacity: "[0.4]" })}
-                        />
-                      )}
-                      {option.label}
-                    </span>
-                  )}
+                  renderItem={(value) => {
+                    const option = scenarioOptions.find(
+                      (opt) => opt.value === value,
+                    );
+                    return (
+                      <span
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 6,
+                        }}
+                      >
+                        {value === NO_SCENARIO_VALUE && (
+                          <Icon
+                            name="dash"
+                            size="xs"
+                            className={css({ opacity: "[0.4]" })}
+                          />
+                        )}
+                        {option?.text}
+                      </span>
+                    );
+                  }}
                 />
               </div>
 

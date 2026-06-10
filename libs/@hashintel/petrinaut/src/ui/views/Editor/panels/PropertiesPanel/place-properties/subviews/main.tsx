@@ -1,15 +1,20 @@
 import { use, useEffect, useRef, useState } from "react";
 
-import { Button, Checkbox, Icon } from "@hashintel/ds-components";
+import {
+  Button,
+  Checkbox,
+  Icon,
+  Select,
+  TextInput,
+  Tooltip,
+} from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import { validateEntityName } from "@hashintel/petrinaut-core";
 
 import { usePetrinautMutations } from "../../../../../../../react";
 import { EditorContext } from "../../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../../react/state/sdcpn-context";
-import { Input } from "../../../../../../components/input";
 import { Section, SectionList } from "../../../../../../components/section";
-import { Select, type SelectOption } from "../../../../../../components/select";
 import { Switch } from "../../../../../../components/switch";
 import { PlaceIcon } from "../../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
@@ -112,24 +117,28 @@ const PlaceMainContent: React.FC = () => {
     <div ref={rootDivRef}>
       <SectionList>
         <Section title="Name">
-          <Input
-            ref={nameInputRef}
-            value={nameField.value}
-            onChange={(event) => {
-              nameField.setValue(event.target.value);
-              if (nameField.error) {
-                nameField.setError(null);
-              }
-            }}
-            onFocus={() => setIsNameInputFocused(true)}
-            onBlur={() => {
-              setIsNameInputFocused(false);
-              handleNameBlur();
-            }}
-            disabled={isReadOnly}
-            hasError={!!nameField.error}
-            tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
-          />
+          <Tooltip
+            content={UI_MESSAGES.READ_ONLY_MODE}
+            disableTooltip={!isReadOnly}
+          >
+            <TextInput
+              inputRef={nameInputRef}
+              value={nameField.value}
+              onChange={(value) => {
+                nameField.setValue(value);
+                if (nameField.error) {
+                  nameField.setError(null);
+                }
+              }}
+              onFocus={() => setIsNameInputFocused(true)}
+              onBlur={() => {
+                setIsNameInputFocused(false);
+                handleNameBlur();
+              }}
+              disabled={isReadOnly}
+              invalid={!!nameField.error}
+            />
+          </Tooltip>
           {nameField.error && (
             <div className={errorMessageStyle}>{nameField.error}</div>
           )}
@@ -144,63 +153,68 @@ const PlaceMainContent: React.FC = () => {
                 : ""
             } Tokens in places don't have to carry data, but they need one to enable dynamics (token data changing over time when in a place).`}
           >
-            <Select
-              value={place.colorId ?? ""}
-              onValueChange={(value) => {
-                const newType = value === "" ? null : value;
-                updatePlace({
-                  placeId: place.id,
-                  update: {
-                    colorId: newType,
-                    dynamicsEnabled:
-                      newType === null && place.dynamicsEnabled
-                        ? false
-                        : place.dynamicsEnabled,
-                  },
-                });
-              }}
-              options={[
-                { value: "", label: "None" },
-                ...types.map((type) => ({
-                  value: type.id,
-                  label: type.name,
-                })),
-              ]}
-              renderTrigger={({ selectedOption }) => {
-                const selectedColor = types.find(
-                  (tp) => tp.id === selectedOption?.value,
-                )?.displayColor;
-                return (
-                  <>
-                    {selectedColor && (
-                      <div
-                        className={typeColorDotStyle}
-                        style={{ backgroundColor: selectedColor }}
-                      />
-                    )}
-                    <span>{selectedOption?.label ?? "None"}</span>
-                  </>
-                );
-              }}
-              renderItem={(item: SelectOption) => {
-                const typeColor = types.find(
-                  (tp) => tp.id === item.value,
-                )?.displayColor;
-                return (
-                  <>
-                    {typeColor && (
-                      <div
-                        className={typeColorDotStyle}
-                        style={{ backgroundColor: typeColor }}
-                      />
-                    )}
-                    {item.label}
-                  </>
-                );
-              }}
-              disabled={isReadOnly}
-              tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
-            />
+            <Tooltip
+              content={UI_MESSAGES.READ_ONLY_MODE}
+              disableTooltip={!isReadOnly}
+            >
+              <Select
+                required
+                value={place.colorId ?? ""}
+                onChange={(value) => {
+                  const newType = value === "" ? null : value;
+                  updatePlace({
+                    placeId: place.id,
+                    update: {
+                      colorId: newType,
+                      dynamicsEnabled:
+                        newType === null && place.dynamicsEnabled
+                          ? false
+                          : place.dynamicsEnabled,
+                    },
+                  });
+                }}
+                items={[
+                  { value: "", text: "None" },
+                  ...types.map((type) => ({
+                    value: type.id,
+                    text: type.name,
+                  })),
+                ]}
+                renderSelectedItem={(value) => {
+                  const selectedColor = types.find(
+                    (tp) => tp.id === value,
+                  )?.displayColor;
+                  const selectedName =
+                    types.find((tp) => tp.id === value)?.name ?? "None";
+                  return (
+                    <>
+                      {selectedColor && (
+                        <div
+                          className={typeColorDotStyle}
+                          style={{ backgroundColor: selectedColor }}
+                        />
+                      )}
+                      <span>{selectedName}</span>
+                    </>
+                  );
+                }}
+                renderItem={(value) => {
+                  const type = types.find((tp) => tp.id === value);
+                  return (
+                    <>
+                      {type?.displayColor && (
+                        <div
+                          className={typeColorDotStyle}
+                          style={{ backgroundColor: type.displayColor }}
+                        />
+                      )}
+                      {type?.name ?? "None"}
+                    </>
+                  );
+                }}
+                disabled={isReadOnly}
+              />
+            </Tooltip>
 
             {place.colorId && (
               <div className={jumpButtonContainerStyle}>
@@ -284,23 +298,28 @@ const PlaceMainContent: React.FC = () => {
             ) : (
               place.dynamicsEnabled && (
                 <>
-                  <Select
-                    value={place.differentialEquationId ?? undefined}
-                    onValueChange={(value) => {
-                      updatePlace({
-                        placeId: place.id,
-                        update: { differentialEquationId: value },
-                      });
-                    }}
-                    options={availableDiffEqs.map((eq) => ({
-                      value: eq.id,
-                      label: eq.name,
-                    }))}
-                    disabled={isReadOnly}
-                    tooltip={
-                      isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined
-                    }
-                  />
+                  <Tooltip
+                    content={UI_MESSAGES.READ_ONLY_MODE}
+                    disableTooltip={!isReadOnly}
+                  >
+                    <Select
+                      required
+                      value={place.differentialEquationId ?? ""}
+                      onChange={(value) => {
+                        if (value) {
+                          updatePlace({
+                            placeId: place.id,
+                            update: { differentialEquationId: value },
+                          });
+                        }
+                      }}
+                      items={availableDiffEqs.map((eq) => ({
+                        value: eq.id,
+                        text: eq.name,
+                      }))}
+                      disabled={isReadOnly}
+                    />
+                  </Tooltip>
 
                   {place.differentialEquationId && (
                     <div className={jumpButtonContainerStyle}>

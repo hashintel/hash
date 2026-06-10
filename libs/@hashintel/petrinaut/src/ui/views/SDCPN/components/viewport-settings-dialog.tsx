@@ -1,10 +1,9 @@
 import { use } from "react";
 
-import { Button, Dialog } from "@hashintel/ds-components";
+import { Button, Dialog, Select } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { UserSettingsContext } from "../../../../react/state/user-settings-context";
-import { Select } from "../../../components/select";
 import { Switch } from "../../../components/switch";
 
 import type { ArcRendering } from "../../../../react/state/user-settings-context";
@@ -154,12 +153,13 @@ export const ViewportSettingsDialog: React.FC<ViewportSettingsDialogProps> = ({
         <SettingRow label="Arcs rendering">
           <Select
             className={selectStyle}
+            required
             value={arcRendering}
-            onValueChange={(value) => setArcRendering(value as ArcRendering)}
-            options={[
-              { value: "smoothstep", label: "Square" },
-              { value: "bezier", label: "Bezier" },
-              { value: "custom", label: "Adaptive Bezier" },
+            onChange={(value) => setArcRendering(value as ArcRendering)}
+            items={[
+              { value: "smoothstep", text: "Square" },
+              { value: "bezier", text: "Bezier" },
+              { value: "custom", text: "Adaptive Bezier" },
             ]}
           />
         </SettingRow>

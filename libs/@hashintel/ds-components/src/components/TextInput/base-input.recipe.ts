@@ -38,7 +38,7 @@ export const baseInputRecipe = sva({
     root: {
       display: "inline-flex",
       width: "[fit-content]",
-      minWidth: "[min-content]",
+      minWidth: "0",
       position: "relative",
       background: "[var(--base-input-background-color)]",
       border: "var(--form-border-width) solid transparent",
@@ -68,7 +68,7 @@ export const baseInputRecipe = sva({
       display: "flex",
       alignItems: "center",
       borderRadius: "var(--base-input-border-radius)",
-      minWidth: "var(--form-min-width)",
+      minWidth: "0",
       flex: "[1 1 auto]",
       width: "var(--form-width)",
       maxWidth: "var(--form-width)",

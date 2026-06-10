@@ -1,10 +1,9 @@
 import { useRef, useEffect, useState } from "react";
 
-import { Button } from "@hashintel/ds-components";
+import { Button, TextInput } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { AiAssistantIcon } from "../../../components/ai-assistant-icon";
-import { Input } from "../../../components/input";
 
 const aiCtaModalLayerStyle = css({
   position: "absolute",
@@ -184,11 +183,11 @@ export const AiCtaModal = ({
           </h2>
         </div>
         <div className={aiCtaModalFormStyle}>
-          <Input
-            ref={inputRef}
+          <TextInput
+            inputRef={inputRef}
             className={aiCtaModalInputStyle}
             value={promptInput}
-            onChange={(event) => setPromptInput(event.currentTarget.value)}
+            onChange={(value) => setPromptInput(value)}
             placeholder="e.g. Model an SIR outbreak with recovery"
             aria-label="Describe the process you want to create"
             size="lg"

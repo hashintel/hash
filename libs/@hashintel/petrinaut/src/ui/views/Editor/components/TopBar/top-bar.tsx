@@ -1,6 +1,11 @@
 import { use } from "react";
 
-import { Button, Menu, type MenuItem } from "@hashintel/ds-components";
+import {
+  Button,
+  Menu,
+  TextInput,
+  type MenuItem,
+} from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import {
@@ -8,7 +13,6 @@ import {
   type EditorState,
 } from "../../../../../react/state/editor-context";
 import { UndoRedoContext } from "../../../../../react/state/undo-redo-context";
-import { FloatingTitle } from "./floating-title";
 import { ModeSelector } from "./mode-selector";
 import { RunningExperimentsPopover } from "./running-experiments-popover";
 import { VersionHistoryButton } from "./version-history-button";
@@ -108,7 +112,8 @@ export const TopBar: React.FC<TopBarProps> = ({
         />
 
         {hideNetManagementControls !== "all" && (
-          <FloatingTitle
+          <TextInput
+            variant="subtle"
             value={title}
             onChange={onTitleChange}
             placeholder="Process"

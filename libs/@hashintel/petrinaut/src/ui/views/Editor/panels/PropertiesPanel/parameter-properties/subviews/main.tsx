@@ -1,3 +1,4 @@
+import { TextInput, Tooltip } from "@hashintel/ds-components";
 import {
   validateDisplayName,
   validateVariableName,
@@ -5,7 +6,6 @@ import {
 
 import { useIsReadOnly } from "../../../../../../../react/state/use-is-read-only";
 import { DraftFieldInput } from "../../../../../../components/draft-field-input";
-import { Input } from "../../../../../../components/input";
 import { Section, SectionList } from "../../../../../../components/section";
 import { ParameterIcon } from "../../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
@@ -17,12 +17,10 @@ const ParameterMainContent: React.FC = () => {
   const { parameter, updateParameter } = useParameterPropertiesContext();
   const isDisabled = useIsReadOnly();
 
-  const handleUpdateDefaultValue = (
-    event: React.ChangeEvent<HTMLInputElement>,
-  ) => {
+  const handleUpdateDefaultValue = (value: string) => {
     updateParameter({
       parameterId: parameter.id,
-      update: { defaultValue: event.target.value },
+      update: { defaultValue: value },
     });
   };
 
@@ -64,12 +62,13 @@ const ParameterMainContent: React.FC = () => {
       </Section>
 
       <Section title="Default Value">
-        <Input
-          value={parameter.defaultValue}
-          onChange={handleUpdateDefaultValue}
-          disabled={isDisabled}
-          tooltip={readOnlyTooltip}
-        />
+        <Tooltip content={readOnlyTooltip ?? ""} disableTooltip={!isDisabled}>
+          <TextInput
+            value={parameter.defaultValue}
+            onChange={handleUpdateDefaultValue}
+            disabled={isDisabled}
+          />
+        </Tooltip>
       </Section>
     </SectionList>
   );

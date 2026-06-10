@@ -1,6 +1,13 @@
 import { useState } from "react";
 
-import { Button, Dialog, Icon, Menu, Tooltip } from "@hashintel/ds-components";
+import {
+  Button,
+  Dialog,
+  Icon,
+  Menu,
+  Select,
+  Tooltip,
+} from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import {
   DEFAULT_DIFFERENTIAL_EQUATION_CODE,
@@ -11,7 +18,6 @@ import {
 import { useIsReadOnly } from "../../../../../../../react/state/use-is-read-only";
 import { DraftFieldInput } from "../../../../../../components/draft-field-input";
 import { Section, SectionList } from "../../../../../../components/section";
-import { Select } from "../../../../../../components/select";
 import { DifferentialEquationIcon } from "../../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
 import { CodeEditor } from "../../../../../../monaco/code-editor";
@@ -115,47 +121,54 @@ const DiffEqMainContent: React.FC = () => {
       </Section>
 
       <Section title="Associated Type">
-        <Select
-          value={differentialEquation.colorId ?? undefined}
-          onValueChange={handleTypeChange}
-          options={types.map((type) => ({
-            value: type.id,
-            label: type.name,
-          }))}
-          placeholder="Select a type"
-          size="sm"
-          disabled={isReadOnly}
-          tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
-          renderTrigger={({ selectedOption }) => {
-            const type = selectedOption
-              ? types.find((tp) => tp.id === selectedOption.value)
-              : undefined;
-            if (!type) {
-              return null;
-            }
-            return (
-              <>
-                <div
-                  className={colorDotStyle}
-                  style={{ backgroundColor: type.displayColor }}
-                />
-                <span>{type.name}</span>
-              </>
-            );
-          }}
-          renderItem={(option) => {
-            const type = types.find((tp) => tp.id === option.value);
-            return (
-              <>
-                <div
-                  className={colorDotStyle}
-                  style={{ backgroundColor: type?.displayColor }}
-                />
-                {option.label}
-              </>
-            );
-          }}
-        />
+        <Tooltip
+          content={UI_MESSAGES.READ_ONLY_MODE}
+          disableTooltip={!isReadOnly}
+        >
+          <Select
+            required
+            value={differentialEquation.colorId ?? ""}
+            onChange={(value) => {
+              if (value) {
+                handleTypeChange(value);
+              }
+            }}
+            items={types.map((type) => ({
+              value: type.id,
+              text: type.name,
+            }))}
+            placeholder="Select a type"
+            size="sm"
+            disabled={isReadOnly}
+            renderSelectedItem={(value) => {
+              const type = types.find((tp) => tp.id === value);
+              if (!type) {
+                return null;
+              }
+              return (
+                <>
+                  <div
+                    className={colorDotStyle}
+                    style={{ backgroundColor: type.displayColor }}
+                  />
+                  <span>{type.name}</span>
+                </>
+              );
+            }}
+            renderItem={(value) => {
+              const type = types.find((tp) => tp.id === value);
+              return (
+                <>
+                  <div
+                    className={colorDotStyle}
+                    style={{ backgroundColor: type?.displayColor }}
+                  />
+                  {type?.name ?? value}
+                </>
+              );
+            }}
+          />
+        </Tooltip>
       </Section>
 
       {showConfirmDialog && (

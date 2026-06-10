@@ -1,6 +1,6 @@
 import { use } from "react";
 
-import { Button, Icon } from "@hashintel/ds-components";
+import { Button, Icon, NumberInput } from "@hashintel/ds-components";
 import { css, cva, cx } from "@hashintel/ds-helpers/css";
 
 import {
@@ -10,7 +10,6 @@ import {
   type PlaybackSpeed,
 } from "../../../../../react/playback/context";
 import { SimulationContext } from "../../../../../react/simulation/context";
-import { NumberInput } from "../../../../components/number-input";
 import { Popover } from "../../../../components/popover";
 import { ToolbarButton } from "./toolbar-button";
 
@@ -337,16 +336,14 @@ export const PlaybackSettingsMenu = () => {
               {stoppingCondition === "fixed" && (
                 <>
                   <NumberInput
+                    type="float"
                     size="sm"
                     min={0.1}
                     step={0.1}
                     value={maxTime ?? 10}
                     disabled={hasSimulation}
-                    onChange={(event) => {
-                      const value = Number.parseFloat(
-                        (event.target as HTMLInputElement).value,
-                      );
-                      if (!Number.isNaN(value) && value > 0) {
+                    onChange={(value) => {
+                      if (value !== null && value > 0) {
                         setMaxTime(value);
                       }
                     }}

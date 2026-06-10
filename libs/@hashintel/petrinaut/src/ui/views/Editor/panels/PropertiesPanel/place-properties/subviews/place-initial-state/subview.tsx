@@ -1,11 +1,10 @@
 import { use } from "react";
 
-import { Button, Icon } from "@hashintel/ds-components";
+import { Button, Icon, NumberInput, Tooltip } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { PlaybackContext } from "../../../../../../../../react/playback/context";
 import { SimulationContext } from "../../../../../../../../react/simulation/context";
-import { NumberInput } from "../../../../../../../components/number-input";
 import { UI_MESSAGES } from "../../../../../../../constants/ui-messages";
 import { usePlacePropertiesContext } from "../../context";
 import { InitialStateEditor } from "./initial-state-editor";
@@ -129,12 +128,15 @@ const PlaceInitialStateContent: React.FC = () => {
         <div className={fieldLabelStyle}>
           {hasSimulationFrames ? "Current tokens" : "Initial tokens"}
         </div>
-        <NumberInput
-          min={0}
-          value={tokenCount}
-          disabled
-          tooltip="Defined by the selected scenario"
-        />
+        <Tooltip content="Defined by the selected scenario">
+          <NumberInput
+            type="integer"
+            min={0}
+            value={tokenCount}
+            onChange={() => {}}
+            disabled
+          />
+        </Tooltip>
       </div>
     );
   }
@@ -154,20 +156,22 @@ const PlaceInitialStateContent: React.FC = () => {
     return (
       <div className={simpleStateContainerStyle}>
         <div className={fieldLabelStyle}>Token count</div>
-        <NumberInput
-          min={0}
-          step={1}
-          value={currentTokenCount}
-          onChange={(event) => {
-            const count = Math.max(
-              0,
-              Number.parseInt(event.target.value, 10) || 0,
-            );
-            setInitialMarking(place.id, count);
-          }}
-          disabled={hasSimulationFrames}
-          tooltip={hasSimulationFrames ? UI_MESSAGES.READ_ONLY_MODE : undefined}
-        />
+        <Tooltip
+          content={UI_MESSAGES.READ_ONLY_MODE}
+          disableTooltip={!hasSimulationFrames}
+        >
+          <NumberInput
+            type="integer"
+            min={0}
+            step={1}
+            value={currentTokenCount}
+            onChange={(value) => {
+              const count = Math.max(0, value ?? 0);
+              setInitialMarking(place.id, count);
+            }}
+            disabled={hasSimulationFrames}
+          />
+        </Tooltip>
       </div>
     );
   }

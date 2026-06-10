@@ -1,13 +1,12 @@
 import { useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 
-import { Button, Tooltip } from "@hashintel/ds-components";
+import { Button, TextInput, Tooltip } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 import { validateDisplayName } from "@hashintel/petrinaut-core";
 
 import { useIsReadOnly } from "../../../../../../../react/state/use-is-read-only";
 import { DraftFieldInput } from "../../../../../../components/draft-field-input";
-import { Input } from "../../../../../../components/input";
 import { Section, SectionList } from "../../../../../../components/section";
 import { TokenTypeIcon } from "../../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
@@ -361,25 +360,26 @@ const TypeMainContent: React.FC = () => {
                 <div className={indexChipStyle}>{index}</div>
 
                 {/* Name input */}
-                <Input
-                  value={getElementNameInputValue(element)}
-                  onChange={(event) => {
-                    handleUpdateElementName(
-                      element.elementId,
-                      event.target.value,
-                    );
-                  }}
-                  onBlur={(event) => {
-                    handleBlurElementName(
-                      element.elementId,
-                      event.target.value,
-                    );
-                  }}
-                  disabled={isDisabled}
-                  placeholder="dimension_name"
-                  className={dimensionNameInputStyle}
-                  tooltip={isDisabled ? UI_MESSAGES.READ_ONLY_MODE : undefined}
-                />
+                <Tooltip
+                  content={UI_MESSAGES.READ_ONLY_MODE}
+                  disableTooltip={!isDisabled}
+                >
+                  <TextInput
+                    value={getElementNameInputValue(element)}
+                    onChange={(value) => {
+                      handleUpdateElementName(element.elementId, value);
+                    }}
+                    onBlur={(event) => {
+                      handleBlurElementName(
+                        element.elementId,
+                        event.target.value,
+                      );
+                    }}
+                    disabled={isDisabled}
+                    placeholder="dimension_name"
+                    className={dimensionNameInputStyle}
+                  />
+                </Tooltip>
 
                 {/* Delete button */}
                 <Button
