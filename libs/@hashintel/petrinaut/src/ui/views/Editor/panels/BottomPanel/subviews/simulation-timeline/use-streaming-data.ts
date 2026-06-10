@@ -230,7 +230,9 @@ export function useStreamingData(source: ExecutionFrameSource): {
     return () => {
       cancelled = true;
     };
-  }, [getFramesInRange, seriesConfig, storeController, totalFrames]);
+    // sourceId is depended on so a source-identity change always restarts
+    // frame reads after the reset effect above cleared the store.
+  }, [getFramesInRange, seriesConfig, sourceId, storeController, totalFrames]);
 
   return {
     store,

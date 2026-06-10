@@ -137,11 +137,14 @@ export const BrunchActualModeProvider: FC<
         // so appending across an automatic reconnect would duplicate every
         // previously received event. Drop the accumulated events and let the
         // replay rebuild them; the already-loaded definition and initial state
-        // stay visible until the replay re-delivers them.
+        // stay visible until the replay re-delivers them. The timeline start
+        // is re-baselined too, so the briefly empty firing list does not
+        // synthesize tick frames reaching back to the original page load.
         return {
           ...prev,
           transitionFirings: [],
           receivedEvents: [],
+          timelineStartedAtMs: Date.now(),
           timelineNowMs: Date.now(),
           error,
         };
