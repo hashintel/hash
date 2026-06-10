@@ -11,6 +11,10 @@ const preventWheel = (event: WheelEvent) => {
 
 const integerBlockedKeys = new Set([".", "e", "E", "+"]);
 
+const numberInputStyle = css({
+  "--form-min-width": "[60px]",
+});
+
 // The base recipe only hides spin buttons via `opacity: 0` when unfocused so
 // their layout space is preserved; on focus they reappear. `hideStepper`
 // removes them entirely.
@@ -60,7 +64,11 @@ export const NumberInput = ({
   return (
     <BaseInput
       {...props}
-      className={cx(hideStepper && hideStepperStyle, className)}
+      className={cx(
+        numberInputStyle,
+        hideStepper && hideStepperStyle,
+        className,
+      )}
       type="number"
       value={value?.toString() ?? null}
       min={min}

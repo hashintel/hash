@@ -99,6 +99,10 @@ const sectionStyle = css({
   gap: "[32px]",
 });
 
+const customWidthStyle = css({
+  width: "[50px]",
+});
+
 const groupStyle = css({
   display: "flex",
   flexDirection: "column",
@@ -417,6 +421,14 @@ export const Widths: Story<NumberInputProps> = (args) => (
             width={width}
           />
         ))}
+        <Controlled
+          {...args}
+          value={1234567890}
+          onChange={noop}
+          variant={rv.variant}
+          readonly={rv.readonly}
+          className={customWidthStyle}
+        />
         {!rv.readonly && (
           <ClearableInput
             {...args}
