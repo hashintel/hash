@@ -15,6 +15,22 @@ import { TimelineLegend } from "./legend";
 
 import type { TimelineSeriesMeta } from "./types";
 
+// jsdom provides neither observer, but opening the combobox dropdown makes
+// zag's popper schedule @floating-ui/dom's autoUpdate on an animation frame,
+// which constructs both. Without stubs that callback throws asynchronously
+// after the tests pass, failing the run as an unhandled error.
+class ObserverStub {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+  takeRecords(): never[] {
+    return [];
+  }
+}
+globalThis.ResizeObserver = ObserverStub as unknown as typeof ResizeObserver;
+globalThis.IntersectionObserver =
+  ObserverStub as unknown as typeof IntersectionObserver;
+
 // Vitest globals are disabled in this package, so testing-library cannot
 // auto-register its cleanup hook.
 afterEach(() => {
