@@ -152,6 +152,7 @@ export const ViewportSettingsDialog: React.FC<ViewportSettingsDialogProps> = ({
         </SettingRow>
         <SettingRow label="Arcs rendering">
           <Select
+            size="sm"
             className={selectStyle}
             required
             value={arcRendering}

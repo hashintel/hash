@@ -88,7 +88,11 @@ const paramFieldSmStyle = css({
   flexDirection: "column",
   gap: "[4px]",
   width: "[64px]",
-  flexShrink: 0,
+  flex: "[0 0 auto]",
+});
+
+const paramFieldConnectedStyle = css({
+  display: "flex",
 });
 
 const paramLabelStyle = css({
@@ -194,11 +198,6 @@ const switchLabelStyle = css({
   fontWeight: "medium",
   color: "neutral.s80",
   cursor: "pointer",
-});
-
-const selectStyle = css({
-  width: "[100px]",
-  flexShrink: 0,
 });
 
 const monospaceInputStyle = css({
@@ -613,7 +612,7 @@ const ScenarioFormSections = ({
           </label>
           <TextInput
             htmlForId={`${idPrefix}scenario-name`}
-            size="md"
+            size="sm"
             value={state.name}
             onChange={(value) => callbacks.onNameChange(value)}
             invalid={nameHasError && state.name !== ""}
@@ -684,62 +683,67 @@ const ScenarioFormSections = ({
                   invalid={identifierHasError(param.identifier)}
                 />
               </div>
-              <div className={paramFieldSmStyle}>
-                <span className={paramLabelStyle}>Type</span>
-                <Select
-                  className={selectStyle}
-                  required
-                  value={param.type}
-                  onChange={(value) =>
-                    updateScenarioParam(param._key, { type: value })
-                  }
-                  items={[
-                    {
-                      value: "real" as ScenarioParameter["type"],
-                      text: "Real",
-                    },
-                    {
-                      value: "integer" as ScenarioParameter["type"],
-                      text: "Int",
-                    },
-                    {
-                      value: "boolean" as ScenarioParameter["type"],
-                      text: "Bool",
-                    },
-                    {
-                      value: "ratio" as ScenarioParameter["type"],
-                      text: "Ratio",
-                    },
-                  ]}
-                />
-              </div>
-              <div className={paramFieldSmStyle}>
-                <span className={paramLabelStyle}>Default</span>
-                {param.type === "boolean" ? (
-                  <Switch
-                    checked={param.default !== 0}
-                    onCheckedChange={(checked) =>
-                      updateScenarioParam(param._key, {
-                        default: checked ? 1 : 0,
-                      })
-                    }
-                  />
-                ) : (
-                  <NumberInput
-                    type={param.type === "integer" ? "integer" : "float"}
+              <div className={paramFieldConnectedStyle}>
+                <div className={paramFieldSmStyle}>
+                  <span className={paramLabelStyle}>Type</span>
+                  <Select
+                    required
                     size="sm"
-                    max={Number.MAX_SAFE_INTEGER}
-                    step={param.type === "integer" ? 1 : 0.001}
-                    value={param.default}
-                    onChange={(value) => {
-                      let val = value ?? 0;
-                      if (param.type === "ratio") {
-                        val = Math.max(0, Math.min(1, val));
-                      }
-                      updateScenarioParam(param._key, { default: val });
-                    }}
+                    width="fitContent"
+                    connectToRightInput={param.type !== "boolean"}
+                    value={param.type}
+                    onChange={(value) =>
+                      updateScenarioParam(param._key, { type: value })
+                    }
+                    items={[
+                      {
+                        value: "real" as ScenarioParameter["type"],
+                        text: "Real",
+                      },
+                      {
+                        value: "integer" as ScenarioParameter["type"],
+                        text: "Int",
+                      },
+                      {
+                        value: "boolean" as ScenarioParameter["type"],
+                        text: "Bool",
+                      },
+                      {
+                        value: "ratio" as ScenarioParameter["type"],
+                        text: "Ratio",
+                      },
+                    ]}
                   />
-                )}
+                </div>
+                <div className={paramFieldSmStyle}>
+                  <span className={paramLabelStyle}>Default</span>
+                  {param.type === "boolean" ? (
+                    <Switch
+                      checked={param.default !== 0}
+                      onCheckedChange={(checked) =>
+                        updateScenarioParam(param._key, {
+                          default: checked ? 1 : 0,
+                        })
+                      }
+                    />
+                  ) : (
+                    <NumberInput
+                      type={param.type === "integer" ? "integer" : "float"}
+                      size="sm"
+                      connectToLeftInput
+                      max={Number.MAX_SAFE_INTEGER}
+                      step={param.type === "integer" ? 1 : 0.001}
+                      value={param.default}
+                      onChange={(value) => {
+                        let val = value ?? 0;
+                        if (param.type === "ratio") {
+                          val = Math.max(0, Math.min(1, val));
+                        }
+                        updateScenarioParam(param._key, { default: val });
+                      }}
+                    />
+                  )}
+                </div>
               </div>
               <Button
                 size="xs"
