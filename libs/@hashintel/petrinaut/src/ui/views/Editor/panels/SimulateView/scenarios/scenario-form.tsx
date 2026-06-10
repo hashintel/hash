@@ -695,24 +695,17 @@ const ScenarioFormSections = ({
                     onChange={(type) =>
                       updateScenarioParam(param._key, { type })
                     }
-                    items={[
-                      {
-                        value: "real" as ScenarioParameter["type"],
-                        text: "Real",
-                      },
-                      {
-                        value: "integer" as ScenarioParameter["type"],
-                        text: "Int",
-                      },
-                      {
-                        value: "boolean" as ScenarioParameter["type"],
-                        text: "Bool",
-                      },
-                      {
-                        value: "ratio" as ScenarioParameter["type"],
-                        text: "Ratio",
-                      },
-                    ]}
+                    items={
+                      [
+                        { value: "real", text: "Real" },
+                        { value: "integer", text: "Int" },
+                        { value: "boolean", text: "Bool" },
+                        { value: "ratio", text: "Ratio" },
+                      ] as Array<{
+                        value: ScenarioParameter["type"];
+                        text: string;
+                      }>
+                    }
                   />
                 </div>
                 <div className={paramFieldSmStyle}>
