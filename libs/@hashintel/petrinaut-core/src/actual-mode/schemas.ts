@@ -62,11 +62,13 @@ const actualModeTransitionFiringEffectSchema = z
 export const actualModeTransitionFiringSchema =
   actualModeTransitionFiringEffectSchema satisfies z.ZodType<ActualModeTransitionFiring>;
 
-export const actualModeSourceSchema = z.object({
-  kind: z.literal("brunch"),
-  endpoint: z.string(),
-  runId: z.string().optional(),
-}) satisfies z.ZodType<ActualModeSource>;
+export const actualModeSourceSchema = z
+  .object({
+    kind: z.literal("brunch"),
+    endpoint: z.string(),
+    runId: z.string().optional(),
+  })
+  .strict() satisfies z.ZodType<ActualModeSource>;
 
 export const actualModeReceivedEventSchema = z
   .object({

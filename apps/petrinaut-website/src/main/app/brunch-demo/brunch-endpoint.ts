@@ -9,15 +9,21 @@ const normalizeEndpoint = (value: string): string => {
     throw new Error("Brunch endpoint is empty.");
   }
 
-  if (/^https?:\/\//u.test(trimmed)) {
-    return new URL(trimmed).toString();
+  const url = /^https?:\/\//u.test(trimmed)
+    ? new URL(trimmed)
+    : /^(localhost|127\.0\.0\.1|\[::1\])(?::|\/)/u.test(trimmed)
+      ? new URL(`http://${trimmed}`)
+      : new URL(trimmed, window.location.href);
+
+  // EventSource throws synchronously on non-HTTP(S) URLs; reject them here so
+  // the route renders the friendly status page instead.
+  if (url.protocol !== "http:" && url.protocol !== "https:") {
+    throw new Error(
+      `Brunch endpoint must use http(s), received "${url.protocol}".`,
+    );
   }
 
-  if (/^(localhost|127\.0\.0\.1|\[::1\])(?::|\/)/u.test(trimmed)) {
-    return new URL(`http://${trimmed}`).toString();
-  }
-
-  return new URL(trimmed, window.location.href).toString();
+  return url.toString();
 };
 
 export const getBrunchEndpointFromLocation = (

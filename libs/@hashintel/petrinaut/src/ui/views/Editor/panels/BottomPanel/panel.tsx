@@ -158,10 +158,13 @@ export const BottomPanel: React.FC = () => {
     }
 
     if (
+      !isActualMode &&
       !isActualTimelineActive &&
       wasActualTimelineActive &&
       activeTab === "actual-timeline"
     ) {
+      // Only fall back to diagnostics when leaving Actual mode entirely; while
+      // still in Actual mode the timeline tab stays valid even without data.
       setActiveTab("diagnostics");
     }
   }, [

@@ -685,7 +685,7 @@ const liveTransitionCycle = [
   "merge_change",
 ];
 
-const nextLiveFiring = (): ActualModeTransitionFiring => {
+const nextLiveFiring = (): ActualModeTransitionFiring | null => {
   for (let attempts = 0; attempts < liveTransitionCycle.length; attempts += 1) {
     const transitionId = liveTransitionCycle[liveTransitionIndex]!;
     liveTransitionIndex =
@@ -696,7 +696,9 @@ const nextLiveFiring = (): ActualModeTransitionFiring => {
     }
   }
 
-  return appendFiring("plan_task");
+  // No transition is enabled (the dummy net ran out of tokens); skip the
+  // tick instead of firing an impossible transition into negative counts.
+  return null;
 };
 
 const streamFrame = (
@@ -864,6 +866,10 @@ const server = http.createServer((request, response) => {
 
 const broadcastLiveFiring = (): void => {
   const firing = nextLiveFiring();
+
+  if (!firing) {
+    return;
+  }
 
   for (const client of clients.keys()) {
     streamFrame(client, "transition_firing", firing);
