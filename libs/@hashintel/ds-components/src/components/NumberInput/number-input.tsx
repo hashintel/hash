@@ -49,7 +49,7 @@ export const NumberInput = ({
       value={value?.toString() ?? null}
       min={min}
       max={max}
-      step={type === "integer" ? 1 : undefined}
+      step={props.step ?? (type === "integer" ? 1 : undefined)}
       inputMode={inputMode ?? (type === "integer" ? "numeric" : "decimal")}
       onFocus={(event) => {
         onFocus?.(event);
