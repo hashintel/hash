@@ -157,7 +157,7 @@ export const AiCtaModal = ({
           aria-label="Describe the process you want to create"
           size="lg"
           suffix={{
-            type: "text",
+            variant: "subtle",
             content: (
               <Button
                 type="submit"
