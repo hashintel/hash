@@ -12,7 +12,9 @@ const preventWheel = (event: WheelEvent) => {
 const integerBlockedKeys = new Set([".", "e", "E", "+"]);
 
 const numberInputStyle = css({
-  "--form-min-width": "[60px]",
+  // Number inputs can be much smaller than text inputs
+  // we manually size this to approximately be the size of a double digit number
+  "--form-min-width": "[44px]",
 });
 
 // The base recipe only hides spin buttons via `opacity: 0` when unfocused so

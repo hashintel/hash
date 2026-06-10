@@ -100,7 +100,7 @@ const sectionStyle = css({
 });
 
 const customWidthStyle = css({
-  width: "[50px]",
+  width: "[30px]",
 });
 
 const groupStyle = css({
@@ -441,7 +441,7 @@ export const Widths: Story<NumberInputProps> = (args) => (
               />
             </Fragment>
           ))}
-          <span style={subheadingStyle}>custom 50px</span>
+          <span style={subheadingStyle}>custom 30px (below min)</span>
           <Controlled
             {...args}
             value={1234567890}
@@ -449,6 +449,7 @@ export const Widths: Story<NumberInputProps> = (args) => (
             variant={rv.variant}
             readonly={rv.readonly}
             className={customWidthStyle}
+            hideStepper
           />
           {!rv.readonly && (
             <>
