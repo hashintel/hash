@@ -288,6 +288,18 @@ export const baseInputRecipe = sva({
             paddingX: "1 !important",
           },
         },
+        prefix: {
+          "&[data-variant='subtle'][data-part='adornment-text']": {
+            position: "relative",
+            left: "1",
+          },
+        },
+        suffix: {
+          "&[data-variant='subtle'][data-part='adornment-text']": {
+            position: "relative",
+            right: "1",
+          },
+        },
         adornmentButton: {
           borderRightColor: "var(--colors-neutral-s40)",
           borderLeftColor: "var(--colors-neutral-s40)",
