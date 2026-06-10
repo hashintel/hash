@@ -1,4 +1,4 @@
-import { use, useState } from "react";
+import { use } from "react";
 
 import { ExecutionFrameSourceContext } from "../../../../../../../react/execution-frame/context";
 import { EditorContext } from "../../../../../../../react/state/editor-context";
@@ -11,11 +11,13 @@ import { useStreamingData } from "./use-streaming-data";
 import type { SubView } from "../../../../../../components/sub-view/types";
 
 const SimulationTimelineContent: React.FC = () => {
-  const { timelineChartType: chartType } = use(EditorContext);
+  const {
+    hiddenTimelineSeriesIds: hiddenSeries,
+    setHiddenTimelineSeriesIds: setHiddenSeries,
+    timelineChartType: chartType,
+  } = use(EditorContext);
   const source = use(ExecutionFrameSourceContext);
   const { store, metricError } = useStreamingData(source);
-
-  const [hiddenSeries, setHiddenSeries] = useState<Set<string>>(new Set());
 
   if (metricError) {
     return (

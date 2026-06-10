@@ -23,24 +23,6 @@ export const legendContainerStyle = css({
   borderColor: "neutral.bd.subtle",
 });
 
-export const legendItemStyle = css({
-  display: "flex",
-  alignItems: "center",
-  gap: "[4px]",
-  cursor: "pointer",
-  userSelect: "none",
-  transition: "[opacity 0.15s ease]",
-  _hover: {
-    opacity: 1,
-  },
-});
-
-export const legendColorStyle = css({
-  width: "[10px]",
-  height: "[10px]",
-  borderRadius: "[2px]",
-});
-
 export const tooltipStyle = css({
   position: "absolute",
   pointerEvents: "none",

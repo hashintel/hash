@@ -80,6 +80,12 @@ export type EditorState = {
    */
   timelineView: TimelineView;
   /**
+   * Series hidden in the timeline chart, keyed by series id. Lifted here so
+   * the selection survives bottom-panel tab switches, which unmount the
+   * timeline subviews.
+   */
+  hiddenTimelineSeriesIds: Set<string>;
+  /**
    * Which tab is active in the SimulateView sidebar ("scenarios" | "metrics"
    * | "experiments"). Lifted here so external actions (e.g. the "Manage"
    * button in the timeline header) can switch it.
@@ -135,6 +141,7 @@ export type EditorActions = {
   collapseAllPanels: () => void;
   setTimelineChartType: (chartType: TimelineChartType) => void;
   setTimelineView: (view: TimelineView) => void;
+  setHiddenTimelineSeriesIds: (seriesIds: Set<string>) => void;
   setSimulateViewMode: (mode: SimulateViewMode) => void;
   setSimulateDrawer: (drawer: SimulateDrawerState) => void;
   setSearchOpen: (isOpen: boolean) => void;
@@ -167,6 +174,7 @@ export const initialEditorState: EditorState = {
   draggingStateByNodeId: {},
   timelineChartType: "run",
   timelineView: { kind: "per-place" },
+  hiddenTimelineSeriesIds: new Set(),
   simulateViewMode: "experiments",
   simulateDrawer: { type: "closed" },
   isPanelAnimating: false,
@@ -205,6 +213,7 @@ const DEFAULT_CONTEXT_VALUE: EditorContextValue = {
   collapseAllPanels: () => {},
   setTimelineChartType: () => {},
   setTimelineView: () => {},
+  setHiddenTimelineSeriesIds: () => {},
   setSimulateViewMode: () => {},
   setSimulateDrawer: () => {},
   setSearchOpen: () => {},

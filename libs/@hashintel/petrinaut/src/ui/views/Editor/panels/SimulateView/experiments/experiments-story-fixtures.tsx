@@ -264,6 +264,7 @@ export function FakeEditorProvider({
       collapseAllPanels: () => {},
       setTimelineChartType: () => {},
       setTimelineView: () => {},
+      setHiddenTimelineSeriesIds: () => {},
       setSimulateViewMode,
       setSearchOpen: () => {},
       triggerPanelAnimation: () => {},

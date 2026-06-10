@@ -228,6 +228,8 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
       setState((prev) => ({ ...prev, timelineChartType: chartType })),
     setTimelineView: (view) =>
       setState((prev) => ({ ...prev, timelineView: view })),
+    setHiddenTimelineSeriesIds: (seriesIds) =>
+      setState((prev) => ({ ...prev, hiddenTimelineSeriesIds: seriesIds })),
     setSimulateViewMode: (mode) =>
       setState((prev) => ({ ...prev, simulateViewMode: mode })),
     setSimulateDrawer: (drawer) =>

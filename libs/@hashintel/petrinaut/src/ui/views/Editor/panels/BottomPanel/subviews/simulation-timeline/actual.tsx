@@ -11,6 +11,8 @@ import type { SubView } from "../../../../../../components/sub-view/types";
 
 const ActualTimelineContent: React.FC = () => {
   const {
+    hiddenTimelineSeriesIds: hiddenSeries,
+    setHiddenTimelineSeriesIds: setHiddenSeries,
     setTimelineView,
     timelineChartType: chartType,
     timelineView,
@@ -18,7 +20,6 @@ const ActualTimelineContent: React.FC = () => {
   const source = use(ExecutionFrameSourceContext);
   const { store, metricError } = useStreamingData(source);
 
-  const [hiddenSeries, setHiddenSeries] = useState<Set<string>>(new Set());
   const [isFollowingLive, setIsFollowingLive] = useState(true);
   const { currentFrameIndex, scrubToFrame, totalFrames } = source;
   const lastFrameIndex = Math.max(0, totalFrames - 1);

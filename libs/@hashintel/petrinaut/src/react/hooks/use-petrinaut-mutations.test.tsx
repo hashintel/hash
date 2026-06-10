@@ -70,6 +70,7 @@ const editorContextValue = (
   collapseAllPanels: () => {},
   setTimelineChartType: () => {},
   setTimelineView: () => {},
+  setHiddenTimelineSeriesIds: () => {},
   setSimulateViewMode: () => {},
   setSimulateDrawer: () => {},
   setSearchOpen: () => {},

@@ -18,7 +18,7 @@ If the stream connection is interrupted, Petrinaut keeps any loaded Actual mode 
 
 ## Timeline and events
 
-Actual mode opens the bottom panel with an Actual timeline once execution data is available. The timeline can be scrubbed to inspect the net state at earlier points in the received stream. Use the series selector below the chart to show, hide, or focus individual traces. Click visible trace names in the selector to toggle them directly, or open the dropdown to search and use **Only**.
+Actual mode opens the bottom panel with an Actual timeline once execution data is available. The timeline can be scrubbed to inspect the net state at earlier points in the received stream. Use the series selector below the chart to show, hide, or focus individual traces. Hover a trace and click the eye icon to hide it -- it stays in place, struck through, until the pointer leaves the selector, so a second click undoes the change -- or open the dropdown to search and use **Only**.
 
 The bottom panel also includes an **Events** tab. It shows the received transition stream in order, including each event timestamp, transition id, input tokens, and output tokens. Use the **Export** dropdown in this tab to download either the received event stream or the current Petri net.
 

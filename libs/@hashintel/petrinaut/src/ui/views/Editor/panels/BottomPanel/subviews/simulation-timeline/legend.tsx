@@ -1,23 +1,23 @@
 import { Combobox, createListCollection } from "@ark-ui/react/combobox";
 import { useFilter } from "@ark-ui/react/locale";
-import { Portal } from "@ark-ui/react/portal";
 import { useState } from "react";
 
-import { Icon, usePortalContainerRef } from "@hashintel/ds-components";
-import { css, cx } from "@hashintel/ds-helpers/css";
+import { Icon } from "@hashintel/ds-components";
+import { css } from "@hashintel/ds-helpers/css";
 
+import { SeriesDropdown } from "./legend/series-dropdown";
+import { SeriesStrip, useStripLingering } from "./legend/series-strip";
 import { legendContainerStyle } from "./styles";
 
+import type { LegendComboboxItem } from "./legend/series-dropdown";
 import type { TimelineSeriesMeta } from "./types";
 import type { FC } from "react";
 
 const MAX_RENDERED_OPTIONS = 250;
 
-type LegendComboboxItem = {
-  color: string;
-  label: string;
-  value: string;
-};
+// Hoisted so `useFilter`'s memo (keyed on its props object) stays stable and
+// the filtered collection is only rebuilt when the series or query change.
+const FILTER_OPTIONS = { sensitivity: "base" } as const;
 
 const legendSelectorStyle = css({
   width: "[100%]",
@@ -55,65 +55,6 @@ const legendSearchAreaStyle = css({
   height: "[100%]",
 });
 
-const selectedNamesStyle = css({
-  position: "absolute",
-  inset: "[0]",
-  display: "block",
-  zIndex: "[1]",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
-  color: "neutral.s100",
-  fontSize: "xs",
-  fontWeight: "medium",
-  lineHeight: "[30px]",
-  pointerEvents: "none",
-});
-
-const selectedNameItemStyle = css({
-  display: "inline-flex",
-  alignItems: "center",
-  gap: "1",
-  maxWidth: "[100%]",
-  minWidth: "[0]",
-  marginRight: "2",
-  verticalAlign: "middle",
-  padding: "[0]",
-  border: "[0]",
-  backgroundColor: "[transparent]",
-  color: "[inherit]",
-  cursor: "pointer",
-  font: "[inherit]",
-  lineHeight: "[inherit]",
-  pointerEvents: "auto",
-  _hover: {
-    color: "neutral.s125",
-  },
-});
-
-const selectedNameSwatchStyle = css({
-  width: "[8px]",
-  height: "[8px]",
-  borderRadius: "[2px]",
-  flexShrink: 0,
-});
-
-const hiddenSelectedNameItemStyle = css({
-  opacity: 0.45,
-  textDecoration: "line-through",
-});
-
-const selectedNameTextStyle = css({
-  minWidth: "[0]",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
-});
-
-const visuallyHiddenTextStyle = css({
-  visibility: "hidden",
-});
-
 const selectedCountBadgeStyle = css({
   display: "inline-flex",
   alignItems: "center",
@@ -124,6 +65,7 @@ const selectedCountBadgeStyle = css({
   backgroundColor: "neutral.s30",
   color: "neutral.s115",
   fontSize: "[11px]",
+  fontVariantNumeric: "tabular-nums",
   fontWeight: "semibold",
   lineHeight: "[1]",
   whiteSpace: "nowrap",
@@ -163,155 +105,6 @@ const triggerButtonStyle = css({
   },
 });
 
-const positionerStyle = css({
-  pointerEvents: "auto",
-  zIndex: "popover !important",
-});
-
-const contentStyle = css({
-  width: "[min(520px, calc(100vw - 32px))]",
-  maxHeight: "[min(420px, var(--available-height))]",
-  overflow: "hidden",
-  display: "flex",
-  flexDirection: "column",
-  backgroundColor: "neutral.s00",
-  borderRadius: "lg",
-  boxShadow:
-    "[0px 6px 12px -4px rgba(0, 0, 0, 0.12), 0px 2px 4px -1px rgba(0, 0, 0, 0.04), 0px 0px 0px 1px rgba(0, 0, 0, 0.06)]",
-  padding: "1",
-  outline: "none",
-});
-
-const globalActionsStyle = css({
-  display: "flex",
-  alignItems: "center",
-  gap: "1",
-  padding: "1",
-  borderBottomWidth: "thin",
-  borderColor: "neutral.bd.subtle",
-});
-
-const actionButtonStyle = css({
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  height: "[24px]",
-  paddingX: "2",
-  border: "[0]",
-  borderRadius: "md",
-  backgroundColor: "[transparent]",
-  color: "neutral.s110",
-  cursor: "pointer",
-  fontSize: "xs",
-  fontWeight: "medium",
-  whiteSpace: "nowrap",
-  _hover: {
-    backgroundColor: "neutral.s20",
-    color: "neutral.s125",
-  },
-  _disabled: {
-    color: "neutral.s70",
-    cursor: "not-allowed",
-    _hover: {
-      backgroundColor: "[transparent]",
-    },
-  },
-});
-
-const listStyle = css({
-  minHeight: "[0]",
-  overflowY: "auto",
-  paddingY: "1",
-});
-
-const itemStyle = css({
-  display: "grid",
-  gridTemplateColumns: "[12px minmax(0, 1fr)]",
-  alignItems: "center",
-  gap: "2",
-  position: "relative",
-  minHeight: "[34px]",
-  padding: "[5px 44px 5px 6px]",
-  borderRadius: "md",
-  color: "neutral.s115",
-  cursor: "pointer",
-  outline: "none",
-  _highlighted: {
-    backgroundColor: "neutral.bg.subtle.hover",
-    "& .timelineLegendOnlyAction": {
-      opacity: 1,
-      pointerEvents: "auto",
-    },
-  },
-  _selected: {
-    color: "neutral.s125",
-  },
-  _focusWithin: {
-    "& .timelineLegendOnlyAction": {
-      opacity: 1,
-      pointerEvents: "auto",
-    },
-  },
-  _hover: {
-    "& .timelineLegendOnlyAction": {
-      opacity: 1,
-      pointerEvents: "auto",
-    },
-  },
-});
-
-const hiddenItemStyle = css({
-  color: "neutral.s85",
-});
-
-const itemSwatchStyle = css({
-  width: "[10px]",
-  height: "[10px]",
-  borderRadius: "[2px]",
-});
-
-const itemLabelStyle = css({
-  minWidth: "[0]",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
-  fontSize: "xs",
-  fontWeight: "medium",
-});
-
-const itemActionStyle = css({
-  height: "[22px]",
-  paddingX: "1.5",
-  border: "[0]",
-  borderRadius: "sm",
-  backgroundColor: "[transparent]",
-  color: "neutral.s100",
-  cursor: "pointer",
-  fontSize: "[11px]",
-  fontWeight: "medium",
-  whiteSpace: "nowrap",
-  _hover: {
-    backgroundColor: "neutral.s20",
-    color: "neutral.s125",
-  },
-});
-
-const onlyActionStyle = css({
-  position: "absolute",
-  right: "1.5",
-  top: "[50%]",
-  transform: "[translateY(-50%)]",
-  color: "blue.s90",
-  opacity: 0,
-  pointerEvents: "none",
-});
-
-const emptyStyle = css({
-  padding: "2",
-  color: "neutral.s85",
-  fontSize: "xs",
-});
-
 const buildHiddenSeries = (
   series: TimelineSeriesMeta[],
   selectedSeriesIds: string[],
@@ -325,32 +118,33 @@ const buildHiddenSeries = (
   );
 };
 
-const preventNestedActionSelection = (
-  event:
-    | React.MouseEvent<HTMLButtonElement>
-    | React.PointerEvent<HTMLButtonElement>,
-) => {
-  event.preventDefault();
-  event.stopPropagation();
-};
-
+/**
+ * Selector for the timeline chart's series: a collapsed strip of the visible
+ * series (with hover actions to hide them) plus a searchable multi-select
+ * dropdown for managing everything.
+ *
+ * `hiddenSeries` is the inverse of the combobox selection — the chart reads
+ * hidden ids, the combobox speaks in selected values, and this component
+ * translates at the boundary.
+ */
 export const TimelineLegend: FC<{
   series: TimelineSeriesMeta[];
   hiddenSeries: Set<string>;
   onHiddenSeriesChange: (hiddenSeries: Set<string>) => void;
 }> = ({ series, hiddenSeries, onHiddenSeriesChange }) => {
-  const portalContainerRef = usePortalContainerRef();
-  const filter = useFilter({ sensitivity: "base" });
+  const filter = useFilter(FILTER_OPTIONS);
   const [inputValue, setInputValue] = useState("");
+  const lingering = useStripLingering(hiddenSeries);
 
-  const items = series.map((item) => ({
+  const items: LegendComboboxItem[] = series.map((item) => ({
     color: item.color,
     label: item.seriesName,
     value: item.seriesId,
   }));
-  const visibleItems = items
-    .filter((item) => filter.contains(item.label, inputValue))
-    .slice(0, MAX_RENDERED_OPTIONS);
+  const matchingItems = items.filter((item) =>
+    filter.contains(item.label, inputValue),
+  );
+  const visibleItems = matchingItems.slice(0, MAX_RENDERED_OPTIONS);
   const collection = createListCollection<LegendComboboxItem>({
     items: visibleItems,
     itemToString: (item) => item.label,
@@ -359,13 +153,6 @@ export const TimelineLegend: FC<{
   const selectedSeriesIds = series
     .filter((item) => !hiddenSeries.has(item.seriesId))
     .map((item) => item.seriesId);
-  const selectedSeries = series.filter(
-    (item) => !hiddenSeries.has(item.seriesId),
-  );
-  const collapsedLegendSeries = [
-    ...selectedSeries,
-    ...series.filter((item) => hiddenSeries.has(item.seriesId)),
-  ];
   const selectedCount = selectedSeriesIds.length;
 
   const toggleSeries = (seriesId: string) => {
@@ -415,132 +202,71 @@ export const TimelineLegend: FC<{
         onValueChange={(details) => {
           onHiddenSeriesChange(buildHiddenSeries(series, details.value));
         }}
+        openOnClick
         positioning={{ placement: "top-start", sameWidth: false, gutter: 8 }}
         value={selectedSeriesIds}
       >
-        <Combobox.Control className={legendControlStyle}>
+        <Combobox.Control
+          className={legendControlStyle}
+          // Just-toggled strip entries linger until the pointer or focus has
+          // left the whole selector for a grace period, so several can be
+          // toggled in a row and a quick return keeps them in place.
+          onPointerEnter={lingering.cancelRelease}
+          onPointerLeave={lingering.scheduleRelease}
+          onFocus={lingering.cancelRelease}
+          onBlur={(event) => {
+            if (
+              !event.currentTarget.contains(event.relatedTarget as Node | null)
+            ) {
+              lingering.scheduleRelease();
+            }
+          }}
+        >
           <span className={selectedCountBadgeStyle}>
             {selectedCount}/{series.length} shown
           </span>
           <div className={legendSearchAreaStyle}>
-            <span
-              className={cx(
-                selectedNamesStyle,
-                inputValue.length > 0 && visuallyHiddenTextStyle,
-              )}
-            >
-              {collapsedLegendSeries.map((item) => {
-                const isSelected = !hiddenSeries.has(item.seriesId);
-
-                return (
-                  <button
-                    key={item.seriesId}
-                    type="button"
-                    className={cx(
-                      selectedNameItemStyle,
-                      !isSelected && hiddenSelectedNameItemStyle,
-                    )}
-                    onClick={(event) => {
-                      event.preventDefault();
-                      event.stopPropagation();
-                      toggleSeries(item.seriesId);
-                    }}
-                    onPointerDown={(event) => {
-                      event.stopPropagation();
-                    }}
-                  >
-                    <span
-                      className={selectedNameSwatchStyle}
-                      style={{ backgroundColor: item.color }}
-                    />
-                    <span className={selectedNameTextStyle}>
-                      {item.seriesName}
-                    </span>
-                  </button>
-                );
-              })}
-            </span>
-            {/* TODO(actual-mode follow-up): add explicit accessible names for
-            the combobox input and icon-only triggers. The visual selector is
-            usable, but screen readers still need stable labels for these
-            controls. */}
-            <Combobox.Input className={legendInputStyle} />
+            <SeriesStrip
+              series={series}
+              hiddenSeries={hiddenSeries}
+              isSearching={inputValue.length > 0}
+              lingering={lingering}
+              onToggleSeries={toggleSeries}
+            />
+            <Combobox.Input
+              aria-label="Filter timeline series"
+              className={legendInputStyle}
+            />
           </div>
           {inputValue ? (
-            <Combobox.ClearTrigger className={triggerButtonStyle}>
+            // Deliberately not Combobox.ClearTrigger: that part clears the
+            // *selection* as well as the input, which would hide every series.
+            <button
+              type="button"
+              aria-label="Clear search"
+              className={triggerButtonStyle}
+              onClick={() => setInputValue("")}
+            >
               <Icon name="close" size="xxs" />
-            </Combobox.ClearTrigger>
+            </button>
           ) : null}
-          <Combobox.Trigger className={triggerButtonStyle}>
+          <Combobox.Trigger
+            aria-label="Toggle series list"
+            className={triggerButtonStyle}
+          >
             <Icon name="chevronDown" size="xs" />
           </Combobox.Trigger>
         </Combobox.Control>
-        <Portal container={portalContainerRef}>
-          <Combobox.Positioner className={positionerStyle}>
-            <Combobox.Content className={contentStyle}>
-              <div className={globalActionsStyle}>
-                <button
-                  type="button"
-                  className={actionButtonStyle}
-                  disabled={selectedCount === series.length}
-                  onClick={selectAll}
-                >
-                  Select All
-                </button>
-                <button
-                  type="button"
-                  className={actionButtonStyle}
-                  disabled={selectedCount === 0}
-                  onClick={unselectAll}
-                >
-                  Unselect All
-                </button>
-              </div>
-              <Combobox.Empty className={emptyStyle}>
-                No series found.
-              </Combobox.Empty>
-              <Combobox.List className={listStyle}>
-                {collection.items.map((item) => {
-                  const isSelected = !hiddenSeries.has(item.value);
-
-                  return (
-                    <Combobox.Item
-                      key={item.value}
-                      item={item}
-                      className={cx(itemStyle, !isSelected && hiddenItemStyle)}
-                    >
-                      <span
-                        className={itemSwatchStyle}
-                        style={{
-                          backgroundColor: item.color,
-                          opacity: isSelected ? 1 : 0.45,
-                        }}
-                      />
-                      <Combobox.ItemText className={itemLabelStyle}>
-                        {item.label}
-                      </Combobox.ItemText>
-                      <button
-                        type="button"
-                        className={cx(
-                          itemActionStyle,
-                          onlyActionStyle,
-                          "timelineLegendOnlyAction",
-                        )}
-                        onClick={(event) => {
-                          preventNestedActionSelection(event);
-                          selectOnly(item.value);
-                        }}
-                        onPointerDown={preventNestedActionSelection}
-                      >
-                        Only
-                      </button>
-                    </Combobox.Item>
-                  );
-                })}
-              </Combobox.List>
-            </Combobox.Content>
-          </Combobox.Positioner>
-        </Portal>
+        <SeriesDropdown
+          items={visibleItems}
+          matchCount={matchingItems.length}
+          hiddenSeries={hiddenSeries}
+          selectedCount={selectedCount}
+          totalCount={series.length}
+          onSelectAll={selectAll}
+          onUnselectAll={unselectAll}
+          onSelectOnly={selectOnly}
+        />
       </Combobox.Root>
     </div>
   );
