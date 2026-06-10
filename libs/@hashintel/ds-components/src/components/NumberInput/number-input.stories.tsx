@@ -623,7 +623,6 @@ const prefixSuffixRows: PrefixSuffixRow[] = [
     props: {
       value: null,
       prefix: {
-        type: "interactive",
         content: (
           <button type="button" onClick={noop} style={{ outline: "none" }}>
             Go
@@ -631,14 +630,13 @@ const prefixSuffixRows: PrefixSuffixRow[] = [
         ),
       },
       suffix: {
-        type: "interactive",
         content: (
           <button type="button" onClick={noop} style={{ outline: "none" }}>
             Clear
           </button>
         ),
       },
-      placeholder: "Interactive button prefix + suffix",
+      placeholder: "Custom prefix + suffix button",
     },
   },
 ];

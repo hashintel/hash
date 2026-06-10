@@ -608,7 +608,6 @@ const prefixSuffixRows: PrefixSuffixRow[] = [
     props: {
       value: "",
       prefix: {
-        type: "interactive",
         content: (
           <button type="button" onClick={noop} style={{ outline: "none" }}>
             Go
@@ -616,50 +615,95 @@ const prefixSuffixRows: PrefixSuffixRow[] = [
         ),
       },
       suffix: {
-        type: "interactive",
         content: (
           <button type="button" onClick={noop} style={{ outline: "none" }}>
             Clear
           </button>
         ),
       },
-      placeholder: "Interactive button prefix + suffix",
+      placeholder: "Custom prefix + suffix button",
     },
   },
 ];
+
+type PrefixSuffixColumn = {
+  key: string;
+  label: string;
+  variant: Variant;
+  adornmentVariant?: "subtle";
+};
+
+const prefixSuffixColumns: PrefixSuffixColumn[] = [
+  { key: "default", label: "Default", variant: "default" },
+  { key: "subtle", label: "Subtle", variant: "subtle" },
+  {
+    key: "default-subtle-adornment",
+    label: "Default + subtle adornments",
+    variant: "default",
+    adornmentVariant: "subtle",
+  },
+  {
+    key: "subtle-subtle-adornment",
+    label: "Subtle + subtle adornments",
+    variant: "subtle",
+    adornmentVariant: "subtle",
+  },
+];
+
+const applyAdornmentVariant = (
+  props: PrefixSuffixRow["props"],
+  adornmentVariant: "subtle" | undefined,
+): PrefixSuffixRow["props"] => {
+  if (!adornmentVariant) {
+    return props;
+  }
+  return {
+    ...props,
+    prefix: props.prefix
+      ? { ...props.prefix, variant: adornmentVariant }
+      : undefined,
+    suffix: props.suffix
+      ? { ...props.suffix, variant: adornmentVariant }
+      : undefined,
+  };
+};
 
 export const PrefixAndSuffix: Story<TextInputProps> = (args) => (
   <div
     style={{
       display: "grid",
-      gridTemplateColumns: "auto auto",
+      gridTemplateColumns: `repeat(${prefixSuffixColumns.length}, auto)`,
       columnGap: 32,
       rowGap: 12,
       alignItems: "center",
       justifyContent: "start",
     }}
   >
-    <span style={subheadingStyle}>Default</span>
-    <span style={subheadingStyle}>Subtle</span>
+    {prefixSuffixColumns.map((column) => (
+      <span key={column.key} style={subheadingStyle}>
+        {column.label}
+      </span>
+    ))}
     {prefixSuffixRows.flatMap((row) =>
-      variants.map((variant) =>
-        row.clearable ? (
+      prefixSuffixColumns.map((column) => {
+        const props = applyAdornmentVariant(row.props, column.adornmentVariant);
+        return row.clearable ? (
           <ClearableInput
-            key={`${row.key}-${variant}`}
+            key={`${row.key}-${column.key}`}
             {...args}
-            {...row.props}
-            variant={variant}
+            {...props}
+            variant={column.variant}
           />
         ) : (
           <Controlled
-            key={`${row.key}-${variant}`}
+            key={`${row.key}-${column.key}`}
             {...args}
-            {...row.props}
+            {...props}
             onChange={noop}
-            variant={variant}
+            variant={column.variant}
           />
-        ),
-      ),
+        );
+      }),
     )}
   </div>
 );
