@@ -45,6 +45,10 @@ const scenarioSelectStyle = css({
 });
 
 const parameterInputStyles = css({
+  width: "[80px]",
+});
+
+const parameterSliderInputStyles = css({
   width: "[65px]",
 });
 
@@ -350,7 +354,7 @@ const SimulationSettingsContent: React.FC = () => {
                           )
                         }
                         disabled={isSimulationActive}
-                        className={parameterInputStyles}
+                        className={parameterSliderInputStyles}
                       />
                     </div>
                   ) : (
@@ -378,6 +382,7 @@ const SimulationSettingsContent: React.FC = () => {
                       }}
                       placeholder={param.defaultValue}
                       disabled={isSimulationActive}
+                      className={parameterInputStyles}
                     />
                   )}
                 </div>
@@ -405,11 +410,11 @@ const SimulationSettingsContent: React.FC = () => {
               <NumberInput
                 htmlForId="time-step-input"
                 size="xs"
+                width="xs"
                 min={0.001}
                 step={0.001}
                 hideStepper
                 value={dt}
-                width="xs"
                 onChange={(nextDt) => {
                   if (nextDt !== null && nextDt > 0) {
                     setDt(nextDt);

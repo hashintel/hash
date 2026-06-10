@@ -339,6 +339,7 @@ export const PlaybackSettingsMenu = () => {
                     step={0.1}
                     value={maxTime ?? 10}
                     align="right"
+                    hideStepper
                     disabled={hasSimulation}
                     onChange={(nextMaxTime) => {
                       if (nextMaxTime !== null && nextMaxTime > 0) {
