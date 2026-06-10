@@ -58,6 +58,10 @@ export const Menu = ({
   const handleLoopKeyDown = useLoopSelection(items);
   const selected = useMemo(() => collectSelectedIds(items), [items]);
 
+  if (items.length === 0) {
+    return trigger;
+  }
+
   return (
     <ArkMenu.Root
       positioning={{ placement: position }}
@@ -77,20 +81,18 @@ export const Menu = ({
                 { pressed: menu.open, "aria-pressed": false },
               )}
             </ArkMenu.Trigger>
-            {items.length > 0 && (
-              <Portal container={portalContainerRef}>
-                <ArkMenu.Positioner
-                  onKeyDownCapture={(event) => handleLoopKeyDown(event, menu)}
-                >
-                  <SelectableList
-                    items={items}
-                    className={className}
-                    selected={selected}
-                    size="sm"
-                  />
-                </ArkMenu.Positioner>
-              </Portal>
-            )}
+            <Portal container={portalContainerRef}>
+              <ArkMenu.Positioner
+                onKeyDownCapture={(event) => handleLoopKeyDown(event, menu)}
+              >
+                <SelectableList
+                  items={items}
+                  className={className}
+                  selected={selected}
+                  size="sm"
+                />
+              </ArkMenu.Positioner>
+            </Portal>
           </>
         )}
       </ArkMenu.Context>
