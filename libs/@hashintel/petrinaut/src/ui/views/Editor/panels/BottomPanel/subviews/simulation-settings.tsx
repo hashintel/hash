@@ -341,7 +341,6 @@ const SimulationSettingsContent: React.FC = () => {
                         max={1}
                         step={0.00001}
                         align="right"
-                        width="xs"
                         hideStepper
                         value={Number(
                           scenarioParameterValues[param.variableName] ??
@@ -360,7 +359,6 @@ const SimulationSettingsContent: React.FC = () => {
                   ) : (
                     <NumberInput
                       size="xs"
-                      width="xs"
                       align="right"
                       step={param.type === "integer" ? 1 : 0.001}
                       hideStepper
