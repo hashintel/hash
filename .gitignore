@@ -182,4 +182,6 @@ out/
 
 # Jujutsu
 .jj/
-.vercel
+
+# napi
+libs/@local/effect-dns/hickory/npm
