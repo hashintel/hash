@@ -256,6 +256,12 @@ export const selectRecipe = sva({
           "--base-input-padding-x": "spacing.2",
         },
         readonly: { textStyle: formSizes.variants.sizes.xxs.textStyle },
+        select: {
+          "&:after": {
+            borderRightWidth: "[1px]",
+            borderBottomWidth: "[1px]",
+          },
+        },
       },
       xs: {
         wrapper: {
@@ -264,6 +270,12 @@ export const selectRecipe = sva({
           "--base-input-padding-x": "spacing.2",
         },
         readonly: { textStyle: formSizes.variants.sizes.xs.textStyle },
+        select: {
+          "&:after": {
+            borderRightWidth: "[1px]",
+            borderBottomWidth: "[1px]",
+          },
+        },
       },
       sm: {
         wrapper: {
