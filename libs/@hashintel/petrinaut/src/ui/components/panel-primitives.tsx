@@ -65,7 +65,6 @@ export const Card = ({
         variant="ghost"
         size="sm"
         aria-label="Close"
-        tooltip="Close"
         iconName="close"
       />
     )}

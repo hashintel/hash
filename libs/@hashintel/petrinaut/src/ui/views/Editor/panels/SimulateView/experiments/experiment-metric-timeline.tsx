@@ -1383,7 +1383,6 @@ export const ExperimentMetricTimeline = ({
             size="xxs"
             iconName="close"
             aria-label="Close"
-            tooltip="Close"
             onClick={() => {
               setSelectedFrameKey(null);
               setFramePopoverPosition(null);
