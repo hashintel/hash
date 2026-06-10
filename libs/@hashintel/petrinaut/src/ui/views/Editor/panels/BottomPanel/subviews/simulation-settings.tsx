@@ -44,6 +44,10 @@ const scenarioSelectStyle = css({
   width: "[200px]",
 });
 
+const parameterInputStyles = css({
+  width: "[65px]",
+});
+
 const containerStyle = css({
   display: "grid",
   gridTemplateColumns: "[1fr 1fr]",
@@ -93,10 +97,6 @@ const smallLabelStyle = css({
   fontWeight: "normal",
 });
 
-const settingInputStyle = css({
-  width: "[100px]",
-});
-
 const parametersListStyle = css({
   display: "flex",
   flexDirection: "column",
@@ -126,11 +126,6 @@ const parameterVarNameStyle = css({
   fontSize: "[11px]",
   color: "neutral.s100",
   fontFamily: "mono",
-});
-
-const parameterInputStyle = css({
-  width: "[80px]",
-  textAlign: "right",
 });
 
 const ratioRowStyle = css({
@@ -179,7 +174,7 @@ const SimulationSettingsContent: React.FC = () => {
   } = use(SimulationContext);
 
   const selectedScenarioId = contextScenarioId ?? NO_SCENARIO;
-  const [odeSolver, setOdeSolver] = useState("euler");
+  const [odeSolver, setOdeSolver] = useState("euler" as const);
   const [isCreateScenarioOpen, setIsCreateScenarioOpen] = useState(false);
   const [isViewScenarioOpen, setIsViewScenarioOpen] = useState(false);
 
@@ -343,6 +338,8 @@ const SimulationSettingsContent: React.FC = () => {
                         max={1}
                         step={0.00001}
                         align="right"
+                        width="xs"
+                        hideStepper
                         value={Number(
                           scenarioParameterValues[param.variableName] ??
                             param.defaultValue,
@@ -354,13 +351,16 @@ const SimulationSettingsContent: React.FC = () => {
                           )
                         }
                         disabled={isSimulationActive}
+                        className={parameterInputStyles}
                       />
                     </div>
                   ) : (
                     <NumberInput
                       type={param.type === "integer" ? "integer" : "float"}
                       size="xs"
+                      width="xs"
                       align="right"
+                      hideStepper
                       max={Number.MAX_SAFE_INTEGER}
                       value={Number(
                         selectedScenario
@@ -379,7 +379,6 @@ const SimulationSettingsContent: React.FC = () => {
                       }}
                       placeholder={param.defaultValue}
                       disabled={isSimulationActive}
-                      className={parameterInputStyle}
                     />
                   )}
                 </div>
@@ -410,14 +409,15 @@ const SimulationSettingsContent: React.FC = () => {
                 size="xs"
                 min={0.001}
                 step={0.001}
+                hideStepper
                 value={dt}
+                width="xs"
                 onChange={(value) => {
                   if (value !== null && value > 0) {
                     setDt(value);
                   }
                 }}
                 disabled={isSimulationActive}
-                className={settingInputStyle}
               />
             </div>
             {/* ODE Solver Method Select */}
@@ -425,14 +425,14 @@ const SimulationSettingsContent: React.FC = () => {
               <label htmlFor="ode-solver-select" className={labelStyle}>
                 ODE Solver
               </label>
-              <Select<string>
+              <Select
                 required
+                width="xs"
                 value={odeSolver}
                 onChange={(value) => setOdeSolver(value)}
                 items={[{ value: "euler", text: "Euler" }]}
                 size="xs"
                 disabled={isSimulationActive}
-                className={settingInputStyle}
               />
             </div>
           </div>

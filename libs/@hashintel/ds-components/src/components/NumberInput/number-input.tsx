@@ -1,3 +1,5 @@
+import { css, cx } from "@hashintel/ds-helpers/css";
+
 import { BaseInput, type BaseInputProps } from "../TextInput/base-input";
 
 // Disable scrolling over a number input while it is focused
@@ -8,6 +10,18 @@ const preventWheel = (event: WheelEvent) => {
 };
 
 const integerBlockedKeys = new Set([".", "e", "E", "+"]);
+
+// The base recipe only hides spin buttons via `opacity: 0` when unfocused so
+// their layout space is preserved; on focus they reappear. `hideStepper`
+// removes them entirely.
+const hideStepperStyle = css({
+  "& input[type=number]::-webkit-outer-spin-button": {
+    display: "none",
+  },
+  "& input[type=number]::-webkit-inner-spin-button": {
+    display: "none",
+  },
+});
 
 export const NumberInput = ({
   type,
@@ -20,6 +34,7 @@ export const NumberInput = ({
   onBlur,
   onKeyDown,
   hideStepper,
+  className,
   ...props
 }: Omit<
   BaseInputProps,
@@ -47,6 +62,7 @@ export const NumberInput = ({
   return (
     <BaseInput
       {...props}
+      className={cx(hideStepper && hideStepperStyle, className)}
       type="number"
       value={value?.toString() ?? null}
       min={min}
