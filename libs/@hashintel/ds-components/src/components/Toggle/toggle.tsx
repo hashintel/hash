@@ -1,8 +1,4 @@
-import type {
-  FormInputSize,
-  FormInputWidth,
-  SharedInputProps,
-} from "../../util/form-shared";
+import type { SharedInputProps, Tone } from "../../util/form-shared";
 
 export const Toggle = ({
   className,
@@ -25,7 +21,7 @@ export const Toggle = ({
   labelOffText,
   ...ariaProps
 }: {
-  tone?: "neutral" | "error";
+  tone?: Tone;
   labelOnText?: string;
   labelOffText?: string;
 } & SharedInputProps<HTMLInputElement, boolean> &
