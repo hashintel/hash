@@ -714,14 +714,16 @@ const ScenarioFormSections = ({
                 <div className={paramFieldSmStyle}>
                   <span className={paramLabelStyle}>Default</span>
                   {param.type === "boolean" ? (
-                    <Switch
-                      checked={param.default !== 0}
-                      onCheckedChange={(checked) =>
-                        updateScenarioParam(param._key, {
-                          default: checked ? 1 : 0,
-                        })
-                      }
-                    />
+                    <div className={css({ marginLeft: "3", marginTop: "1" })}>
+                      <Switch
+                        checked={param.default !== 0}
+                        onCheckedChange={(checked) =>
+                          updateScenarioParam(param._key, {
+                            default: checked ? 1 : 0,
+                          })
+                        }
+                      />
+                    </div>
                   ) : (
                     <NumberInput
                       size="sm"
@@ -748,6 +750,7 @@ const ScenarioFormSections = ({
                 aria-label="Remove parameter"
                 tooltip="Remove parameter"
                 iconName="trash"
+                className={css({ marginBottom: "1" })}
                 onClick={() => removeScenarioParam(param._key)}
               />
             </div>
