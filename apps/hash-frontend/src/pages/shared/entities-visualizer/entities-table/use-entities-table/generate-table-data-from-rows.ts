@@ -251,7 +251,7 @@ export const generateTableDataFromRows = (
       }
 
       if (!propertyColumnsMap.has(baseUrl)) {
-        const width = getTextWidth(propertyType.title) + 85;
+        const width = getTextWidth(propertyType.title) + 100;
 
         propertyColumnsMap.set(baseUrl, {
           id: baseUrl,

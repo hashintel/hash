@@ -20,7 +20,6 @@ import {
   LoadingSpinner,
 } from "@hashintel/design-system";
 import { formatNumber } from "@local/hash-isomorphic-utils/format-number";
-import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 
 import { EarthAmericasRegularIcon } from "./icons/earth-americas-regular";
 import { FilterListIcon } from "./icons/filter-list-icon";
@@ -28,12 +27,10 @@ import { HouseRegularIcon } from "./icons/house-regular-icon";
 import { MagnifyingGlassRegularIcon } from "./icons/magnifying-glass-regular-icon";
 import { BulkActionsDropdown } from "./table-header/bulk-actions-dropdown";
 import { ExportToCsvButton } from "./table-header/export-to-csv-button";
+import { generateCsvFile as buildCsvFile } from "./table-header/generate-csv-file";
 import { TableHeaderButton } from "./table-header/table-header-button";
 
 import type { GridRow } from "../components/grid/grid";
-import type { MinimalUser } from "../lib/user-and-org";
-import type { EntitiesTableRow } from "../pages/shared/entities-visualizer/types";
-import type { TypesTableRow } from "../pages/shared/types-table";
 import type { GenerateCsvFileFunction } from "./table-header/export-to-csv-button";
 import type {
   DataTypeWithMetadata,
@@ -174,51 +171,11 @@ export const TableHeader = <R extends GridRow>({
       return null;
     }
 
-    // Entity metadata columns (i.e. what's already being displayed in the entities table)
-
-    const columnRowKeys = currentlyDisplayedColumns.map(({ id }) => id).flat();
-
-    const tableContentColumnTitles = currentlyDisplayedColumns.map((column) =>
-      /**
-       * If the column is the entity label column, add the word "label" to the
-       * column title. Otherwise we'd end up with an "Entity" or "Page" column title,
-       * making it harder to distinguish from the property/outgoing link columns.
-       */
-      column.id === "entityLabel" ? `${column.title} label` : column.title,
-    );
-
-    // Collate the contents of the CSV file row by row (including the header)
-    const content: string[][] = [
-      tableContentColumnTitles,
-      ...currentlyDisplayedRows.map((row) => {
-        const tableCells = columnRowKeys.map((key) => {
-          const value = row[key as keyof R];
-
-          if (typeof value === "string") {
-            return value;
-          } else if (key === "lastEditedBy" || key === "createdBy") {
-            const user = value as MinimalUser | undefined;
-
-            return user?.displayName ?? "";
-          } else if (key === "archived") {
-            return (row as unknown as TypesTableRow).archived ? "Yes" : "No";
-          } else if (key === "sourceEntity" || key === "targetEntity") {
-            return (
-              (row as unknown as EntitiesTableRow).sourceEntity?.label ?? ""
-            );
-          } else if (key === "entityTypes") {
-            return (row as unknown as EntitiesTableRow).entityTypes
-              .map((type) => type.title)
-              .join(", ");
-          } else {
-            return stringifyPropertyValue(value);
-          }
-        });
-        return tableCells;
-      }),
-    ];
-
-    return { title, content };
+    return buildCsvFile({
+      columns: currentlyDisplayedColumns,
+      rows: currentlyDisplayedRows,
+      title,
+    });
   }, [title, currentlyDisplayedColumnsRef, currentlyDisplayedRowsRef]);
 
   return (
@@ -262,9 +219,11 @@ export const TableHeader = <R extends GridRow>({
                     }}
                   />
                 }
-                label={`${numberOfUserWebItems !== undefined ? formatNumber(numberOfUserWebItems) : "–"} in ${
-                  onlyOneWeb ? "this web" : "your webs"
-                }`}
+                label={`${
+                  numberOfUserWebItems !== undefined
+                    ? formatNumber(numberOfUserWebItems)
+                    : "–"
+                } in ${onlyOneWeb ? "this web" : "your webs"}`}
                 sx={{
                   ...commonChipSx,
                   [`.${chipClasses.label}`]: {
