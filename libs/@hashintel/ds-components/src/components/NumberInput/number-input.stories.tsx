@@ -224,20 +224,24 @@ const StateGrid = ({
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "auto auto auto",
+            gridTemplateColumns: "auto auto auto auto",
             columnGap: 32,
             rowGap: 12,
             alignItems: "center",
             justifyContent: "start",
           }}
         >
+          <span />
           {stateColumns.map((col) => (
             <span key={col.key} style={subheadingStyle}>
               {col.label}
             </span>
           ))}
-          {stateRows.flatMap((row) =>
-            stateColumns.map((col) => {
+          {stateRows.flatMap((row) => [
+            <span key={`${row.key}-label`} style={subheadingStyle}>
+              {row.label}
+            </span>,
+            ...stateColumns.map((col) => {
               const value = col.withValue ? filledValue : null;
               const cellKey = `${row.key}-${col.key}`;
               return row.clearable ? (
@@ -261,7 +265,7 @@ const StateGrid = ({
                 />
               );
             }),
-          )}
+          ])}
         </div>
       </div>
     ))}
@@ -283,17 +287,19 @@ export const Alignment: Story<NumberInputProps> = (args) => (
   <div
     style={{
       display: "grid",
-      gridTemplateColumns: "auto auto",
+      gridTemplateColumns: "auto auto auto",
       columnGap: 32,
       rowGap: 12,
       alignItems: "center",
       justifyContent: "start",
     }}
   >
+    <span />
     <span style={subheadingStyle}>Editable</span>
     <span style={subheadingStyle}>Read-only</span>
     {alignments.map((align) => (
       <Fragment key={align}>
+        <span style={subheadingStyle}>{align}</span>
         <Controlled {...args} value={1234} onChange={noop} align={align} />
         <Controlled
           {...args}
@@ -314,23 +320,26 @@ export const StyledValue: Story<NumberInputProps> = ({
   <div
     style={{
       display: "grid",
-      gridTemplateColumns: "auto auto",
+      gridTemplateColumns: "auto auto auto",
       columnGap: 32,
       rowGap: 12,
       alignItems: "center",
       justifyContent: "start",
     }}
   >
+    <span />
     <span style={subheadingStyle}>Editable</span>
     <span style={subheadingStyle}>Read-only</span>
     {variants.map((variant) => (
       <Fragment key={variant}>
+        <span style={subheadingStyle}>{variant}</span>
         <StyledNumberInput {...args} variant={variant} />
         <StyledNumberInput {...args} variant={variant} readonly />
       </Fragment>
     ))}
     {variants.map((variant) => (
       <Fragment key={`sink-${variant}`}>
+        <span style={subheadingStyle}>{variant} (with items)</span>
         <StyledNumberInput
           {...args}
           variant={variant}
@@ -410,37 +419,54 @@ export const Widths: Story<NumberInputProps> = (args) => (
     {rowVariants.map((rv) => (
       <div key={rv.label} className={groupStyle}>
         <h3 style={headingStyle}>{rv.label}</h3>
-        {widths.map((width) => (
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "auto auto",
+            columnGap: 32,
+            rowGap: 12,
+            alignItems: "center",
+            justifyContent: "start",
+          }}
+        >
+          {widths.map((width) => (
+            <Fragment key={width}>
+              <span style={subheadingStyle}>{width}</span>
+              <Controlled
+                {...args}
+                value={1234567890}
+                onChange={noop}
+                variant={rv.variant}
+                readonly={rv.readonly}
+                width={width}
+              />
+            </Fragment>
+          ))}
+          <span style={subheadingStyle}>custom 50px</span>
           <Controlled
-            key={width}
             {...args}
             value={1234567890}
             onChange={noop}
             variant={rv.variant}
             readonly={rv.readonly}
-            width={width}
+            className={customWidthStyle}
           />
-        ))}
-        <Controlled
-          {...args}
-          value={1234567890}
-          onChange={noop}
-          variant={rv.variant}
-          readonly={rv.readonly}
-          className={customWidthStyle}
-        />
-        {!rv.readonly && (
-          <ClearableInput
-            {...args}
-            value={1234567890}
-            variant={rv.variant}
-            width="fitContent"
-            prefix={{ iconName: "search" }}
-            suffix={{ text: "kg" }}
-            loading
-            showEditIcon
-          />
-        )}
+          {!rv.readonly && (
+            <>
+              <span style={subheadingStyle}>with items</span>
+              <ClearableInput
+                {...args}
+                value={1234567890}
+                variant={rv.variant}
+                width="fitContent"
+                prefix={{ iconName: "search" }}
+                suffix={{ text: "kg" }}
+                loading
+                showEditIcon
+              />
+            </>
+          )}
+        </div>
       </div>
     ))}
   </div>
@@ -596,17 +622,21 @@ export const PrefixAndSuffix: Story<NumberInputProps> = (args) => (
   <div
     style={{
       display: "grid",
-      gridTemplateColumns: "auto auto",
+      gridTemplateColumns: "auto auto auto",
       columnGap: 32,
       rowGap: 12,
       alignItems: "center",
       justifyContent: "start",
     }}
   >
+    <span />
     <span style={subheadingStyle}>Default</span>
     <span style={subheadingStyle}>Subtle</span>
-    {prefixSuffixRows.flatMap((row) =>
-      variants.map((variant) =>
+    {prefixSuffixRows.flatMap((row) => [
+      <span key={`${row.key}-label`} style={subheadingStyle}>
+        {row.key}
+      </span>,
+      ...variants.map((variant) =>
         row.clearable ? (
           <ClearableInput
             key={`${row.key}-${variant}`}
@@ -624,6 +654,6 @@ export const PrefixAndSuffix: Story<NumberInputProps> = (args) => (
           />
         ),
       ),
-    )}
+    ])}
   </div>
 );
