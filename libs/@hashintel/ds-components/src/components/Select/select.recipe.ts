@@ -389,10 +389,16 @@ export const selectRecipe = sva({
         },
       },
     },
-    clampTriggerHeight: {
+    customRender: {
       true: {
         trigger: {
           display: "inline-flex",
+        },
+      },
+    },
+    clampTriggerHeight: {
+      true: {
+        trigger: {
           maxHeight:
             "[calc(var(--form-line-height) + 2 * var(--form-padding-y))]",
         },

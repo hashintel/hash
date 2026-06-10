@@ -456,14 +456,14 @@ const ColorSwatch = ({ value }: { value: string }) => (
 );
 
 const renderColorItem = (value: string): React.ReactNode => (
-  <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+  <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
     <ColorSwatch value={value} />
     {findItemText(colorItems, value)}
   </span>
 );
 
 const renderColorSelected = (value: string): React.ReactNode => (
-  <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+  <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
     <ColorSwatch value={value} />
     <span style={{ fontWeight: 600 }}>{findItemText(colorItems, value)}</span>
   </span>
@@ -472,7 +472,7 @@ const renderColorSelected = (value: string): React.ReactNode => (
 const renderColorDoubleHeight = (value: string): React.ReactNode => (
   <span
     style={{
-      display: "inline-flex",
+      display: "flex",
       alignItems: "center",
       gap: 8,
       height: "calc(var(--form-line-height) * 2)",
@@ -486,7 +486,7 @@ const renderColorDoubleHeight = (value: string): React.ReactNode => (
 const renderColorHalfHeight = (value: string): React.ReactNode => (
   <span
     style={{
-      display: "inline-flex",
+      display: "flex",
       alignItems: "center",
       gap: 8,
       height: "calc(var(--form-line-height) / 2)",
