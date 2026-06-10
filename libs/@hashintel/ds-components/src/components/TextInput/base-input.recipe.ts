@@ -525,8 +525,21 @@ export const baseInputRecipe = sva({
         },
       },
     },
+    subtlePrefix: { true: {} },
   },
   compoundVariants: [
+    {
+      variant: "default",
+      subtlePrefix: true,
+      css: {
+        input: {
+          paddingLeft: "[calc(var(--base-input-padding-x) / 2)]",
+        },
+        styledValueOverlay: {
+          paddingLeft: "[calc(var(--base-input-padding-x) / 2)]",
+        },
+      },
+    },
     {
       variant: "subtle",
       loading: true,

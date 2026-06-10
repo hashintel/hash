@@ -206,6 +206,7 @@ export const BaseInput = ({
   const hasIcons = !!loading || showClear;
   const connectsLeft = connectToLeftInput && variant === "default";
   const connectsRight = connectToRightInput && variant === "default";
+  const subtlePrefix = variant === "default" && prefix?.variant === "subtle";
 
   const classes = baseInputRecipe({
     variant,
@@ -220,6 +221,7 @@ export const BaseInput = ({
     editAndClear: showClear && showEditIcon,
     connectsLeft,
     connectsRight,
+    subtlePrefix,
     willClear:
       showClear &&
       clearable.clearable &&
