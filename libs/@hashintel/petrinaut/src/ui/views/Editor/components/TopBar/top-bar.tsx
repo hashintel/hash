@@ -49,6 +49,7 @@ const rightSectionStyle = css({
 });
 
 interface TopBarProps {
+  actualModeAvailable: boolean;
   menuItems: MenuItem[];
   title: string;
   onTitleChange: (value: string) => void;
@@ -60,6 +61,7 @@ interface TopBarProps {
 }
 
 export const TopBar: React.FC<TopBarProps> = ({
+  actualModeAvailable,
   menuItems,
   title,
   onTitleChange,
@@ -115,7 +117,11 @@ export const TopBar: React.FC<TopBarProps> = ({
       </div>
 
       {/* Center section - mode switcher */}
-      <ModeSelector mode={mode} onChange={onModeChange} />
+      <ModeSelector
+        actualModeAvailable={actualModeAvailable}
+        mode={mode}
+        onChange={onModeChange}
+      />
 
       <div className={rightSectionStyle}>
         <RunningExperimentsPopover

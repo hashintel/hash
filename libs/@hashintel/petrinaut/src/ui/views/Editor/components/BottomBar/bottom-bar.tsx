@@ -41,7 +41,7 @@ const bottomBarPositionStyle = css({
   position: "absolute",
   left: "[50%]",
   transform: "translateX(-50%)",
-  zIndex: "[calc(var(--z-index-sticky) - 3)]",
+  zIndex: "[calc(var(--z-index-sticky) + 1)]",
   display: "flex",
   gap: "[20px]",
 });
@@ -77,6 +77,7 @@ export const BottomBar: React.FC<BottomBarProps> = ({
   cursorMode,
   onCursorModeChange,
 }) => {
+  const isActualMode = mode === "actual";
   const {
     isBottomPanelOpen,
     setBottomPanelOpen,
@@ -99,10 +100,10 @@ export const BottomBar: React.FC<BottomBarProps> = ({
     setBottomPanelOpen(!isBottomPanelOpen);
   }, [setBottomPanelOpen, isBottomPanelOpen]);
 
-  // Fallback to 'pan' mode when switching to simulate mode if mutative mode
+  // Fallback to cursor mode when switching away from edit while in a mutative mode.
   useEffect(() => {
     if (
-      mode === "simulate" &&
+      mode !== "edit" &&
       (editionMode === "add-place" || editionMode === "add-transition")
     ) {
       onEditionModeChange("cursor");
@@ -138,8 +139,9 @@ export const BottomBar: React.FC<BottomBarProps> = ({
             onEditionModeChange={onEditionModeChange}
             cursorMode={cursorMode}
             onCursorModeChange={onCursorModeChange}
+            showEditTools={!isActualMode}
           />
-          {hasAiAssistant && (
+          {hasAiAssistant && !isActualMode && (
             <>
               <ToolbarDivider />
               <ToolbarButton
@@ -183,12 +185,16 @@ export const BottomBar: React.FC<BottomBarProps> = ({
               <Icon name="chevronUp" size="sm" />
             )}
           </ToolbarButton>
-          <DiagnosticsIndicator
-            onClick={showDiagnostics}
-            isExpanded={isBottomPanelOpen}
-          />
-          <ToolbarDivider />
-          <SimulationControls disabled={hasDiagnostics} />
+          {!isActualMode && (
+            <>
+              <DiagnosticsIndicator
+                onClick={showDiagnostics}
+                isExpanded={isBottomPanelOpen}
+              />
+              <ToolbarDivider />
+              <SimulationControls disabled={hasDiagnostics} />
+            </>
+          )}
         </div>
       </refractive.div>
     </div>

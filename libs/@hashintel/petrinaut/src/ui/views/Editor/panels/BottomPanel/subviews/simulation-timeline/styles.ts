@@ -15,30 +15,12 @@ export const chartAreaStyle = css({
 
 export const legendContainerStyle = css({
   display: "flex",
-  flexWrap: "wrap",
-  gap: "[12px]",
-  fontSize: "[11px]",
-  color: "[#666]",
-  paddingY: "3",
-  paddingX: "3",
-});
-
-export const legendItemStyle = css({
-  display: "flex",
   alignItems: "center",
-  gap: "[4px]",
-  cursor: "pointer",
-  userSelect: "none",
-  transition: "[opacity 0.15s ease]",
-  _hover: {
-    opacity: 1,
-  },
-});
-
-export const legendColorStyle = css({
-  width: "[10px]",
-  height: "[10px]",
-  borderRadius: "[2px]",
+  minHeight: "[42px]",
+  paddingX: "3",
+  paddingY: "1.5",
+  borderTopWidth: "thin",
+  borderColor: "neutral.bd.subtle",
 });
 
 export const tooltipStyle = css({

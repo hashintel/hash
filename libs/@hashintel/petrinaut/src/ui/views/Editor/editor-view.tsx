@@ -12,6 +12,7 @@ import {
 } from "@hashintel/petrinaut-core/examples";
 
 import { usePetrinautCommands } from "../../../react";
+import { ActualModeContext } from "../../../react/actual-mode-context";
 import { ExperimentsContext } from "../../../react/experiments/context";
 import { EditorContext } from "../../../react/state/editor-context";
 import { SDCPNContext } from "../../../react/state/sdcpn-context";
@@ -137,6 +138,7 @@ export const EditorView = ({
     bottomPanelHeight,
   } = use(EditorContext);
   const { setSelectedExperimentId } = use(ExperimentsContext);
+  const actualMode = use(ActualModeContext);
 
   const [pendingAiAssistantMessage, setPendingAiAssistantMessage] = useState<
     string | null
@@ -401,6 +403,7 @@ export const EditorView = ({
 
       {/* Top Bar - always visible */}
       <TopBar
+        actualModeAvailable={actualMode.available}
         menuItems={menuItems}
         title={title}
         onTitleChange={setTitle}
@@ -438,7 +441,7 @@ export const EditorView = ({
               />
             )}
 
-            {/* Bottom Panel - Diagnostics, Simulation Settings */}
+            {/* Bottom Panel */}
             <BottomPanel />
 
             <BottomBar

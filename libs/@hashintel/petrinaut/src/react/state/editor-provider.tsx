@@ -6,6 +6,7 @@ import {
   type SelectionMap,
 } from "@hashintel/petrinaut-core";
 
+import { ActualModeContext } from "../actual-mode-context";
 import {
   type DraggingStateByNodeId,
   type EditorActions,
@@ -29,16 +30,27 @@ const canvasSelections = (selection: SelectionMap) =>
 export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
   const userSettings = use(UserSettingsContext);
   const { petriNetDefinition } = use(SDCPNContext);
+  const actualMode = use(ActualModeContext);
+  const startsInActualMode = actualMode.available;
+  const startsWithActualTimeline =
+    startsInActualMode &&
+    actualMode.initialState !== null &&
+    (actualMode.status === "streaming" || actualMode.status === "complete");
 
   const [state, setState] = useState<EditorState>(() => ({
     ...initialEditorState,
+    globalMode: startsInActualMode ? "actual" : initialEditorState.globalMode,
     cursorMode: userSettings.cursorMode,
     isLeftSidebarOpen: userSettings.isLeftSidebarOpen,
     leftSidebarWidth: userSettings.leftSidebarWidth,
     propertiesPanelWidth: userSettings.propertiesPanelWidth,
-    isBottomPanelOpen: userSettings.isBottomPanelOpen,
+    isBottomPanelOpen: startsWithActualTimeline
+      ? true
+      : userSettings.isBottomPanelOpen,
     bottomPanelHeight: userSettings.bottomPanelHeight,
-    activeBottomPanelTab: userSettings.activeBottomPanelTab,
+    activeBottomPanelTab: startsWithActualTimeline
+      ? "actual-timeline"
+      : userSettings.activeBottomPanelTab,
     timelineChartType: userSettings.timelineChartType,
   }));
 
@@ -216,6 +228,8 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
       setState((prev) => ({ ...prev, timelineChartType: chartType })),
     setTimelineView: (view) =>
       setState((prev) => ({ ...prev, timelineView: view })),
+    setHiddenTimelineSeriesIds: (seriesIds) =>
+      setState((prev) => ({ ...prev, hiddenTimelineSeriesIds: seriesIds })),
     setSimulateViewMode: (mode) =>
       setState((prev) => ({ ...prev, simulateViewMode: mode })),
     setSimulateDrawer: (drawer) =>

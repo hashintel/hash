@@ -113,6 +113,7 @@ interface ToolbarModesProps {
   onEditionModeChange: (mode: EditorEditionMode) => void;
   cursorMode: CursorMode;
   onCursorModeChange: (mode: CursorMode) => void;
+  showEditTools?: boolean;
 }
 
 export const ToolbarModes: React.FC<ToolbarModesProps> = ({
@@ -120,6 +121,7 @@ export const ToolbarModes: React.FC<ToolbarModesProps> = ({
   onEditionModeChange,
   cursorMode,
   onCursorModeChange,
+  showEditTools = true,
 }) => {
   const isReadOnly = useIsReadOnly();
 
@@ -131,7 +133,7 @@ export const ToolbarModes: React.FC<ToolbarModesProps> = ({
         cursorMode={cursorMode}
         onCursorModeChange={onCursorModeChange}
       />
-      {!isReadOnly && (
+      {showEditTools && !isReadOnly && (
         <>
           <ToolbarDivider />
           <ToolbarButton

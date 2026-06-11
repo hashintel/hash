@@ -5,7 +5,7 @@ import * as Sentry from "@sentry/react";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
-import { DevApp } from "./main/app";
+import { DemoApp } from "./main/app";
 import { SentryErrorTrackerProvider } from "./sentry/sentry-error-tracker-provider";
 
 const root = createRoot(document.getElementById("root")!, {
@@ -25,7 +25,7 @@ const root = createRoot(document.getElementById("root")!, {
 root.render(
   <StrictMode>
     <SentryErrorTrackerProvider>
-      <DevApp />
+      <DemoApp />
     </SentryErrorTrackerProvider>
   </StrictMode>,
 );

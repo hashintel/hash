@@ -2,14 +2,16 @@ import { Icon } from "@hashintel/ds-components";
 
 import { SegmentGroup } from "../../../../components/segment-group";
 
+import type { EditorGlobalMode } from "../../../../../react/state/editor-context";
 import type { SegmentOption } from "../../../../components/segment-group";
 
 export interface ModeSelectorProps {
-  mode: "edit" | "simulate";
-  onChange: (mode: "edit" | "simulate") => void;
+  actualModeAvailable: boolean;
+  mode: EditorGlobalMode;
+  onChange: (mode: EditorGlobalMode) => void;
 }
 
-const options: SegmentOption[] = [
+const getOptions = (actualModeAvailable: boolean): SegmentOption[] => [
   {
     label: "Edit",
     value: "edit",
@@ -24,20 +26,23 @@ const options: SegmentOption[] = [
     label: "Actual",
     value: "actual",
     icon: <Icon name="circleFilled" size="sm" />,
-    disabled: true,
-    tooltip: "Actual mode is not yet available.",
+    disabled: !actualModeAvailable,
+    tooltip: actualModeAvailable
+      ? "View actual execution state."
+      : "Actual mode is not yet available.",
   },
 ];
 
 export const ModeSelector: React.FC<ModeSelectorProps> = ({
+  actualModeAvailable,
   mode,
   onChange,
 }) => {
   return (
     <SegmentGroup
       value={mode}
-      options={options}
-      onChange={(value) => onChange(value as "edit" | "simulate")}
+      options={getOptions(actualModeAvailable)}
+      onChange={(value) => onChange(value as EditorGlobalMode)}
     />
   );
 };

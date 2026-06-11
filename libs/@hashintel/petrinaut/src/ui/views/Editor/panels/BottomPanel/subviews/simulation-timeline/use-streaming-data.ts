@@ -1,4 +1,4 @@
-import { use, useEffect, useRef, useSyncExternalStore } from "react";
+import { use, useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import {
   compileMetric,
@@ -6,11 +6,11 @@ import {
   type Metric,
 } from "@hashintel/petrinaut-core";
 
-import { SimulationContext } from "../../../../../../../react/simulation/context";
 import { EditorContext } from "../../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../../react/state/sdcpn-context";
 import { buildTimelineSeriesConfig } from "./series-config";
 
+import type { ExecutionFrameSource } from "../../../../../../../react/execution-frame/context";
 import type {
   StreamingStore,
   TimelineFrame,
@@ -138,11 +138,10 @@ function compileTimelineMetric(metric: Metric | null): {
  *    places), values are the sum of token counts across places of that type.
  *  - `metric`: a single series computed by the compiled user metric.
  */
-export function useStreamingData(): {
+export function useStreamingData(source: ExecutionFrameSource): {
   store: StreamingStore;
   metricError: string | null;
 } {
-  const { dt, getFramesInRange, totalFrames } = use(SimulationContext);
   const {
     extensions,
     petriNetDefinition: { places, types, transitions, metrics },
@@ -172,7 +171,7 @@ export function useStreamingData(): {
     compiledMetric: compiledMetric.fn,
   });
 
-  const storeController = createStreamingStoreController([]);
+  const [storeController] = useState(() => createStreamingStoreController([]));
   const { store } = useSyncExternalStore(
     storeController.subscribe,
     storeController.getSnapshot,
@@ -183,13 +182,18 @@ export function useStreamingData(): {
   // yet been appended to the uPlot columns. Updating it should not re-render.
   const processedRef = useRef(0);
 
-  // Reset store when the series structure or x-axis timing changes.
+  // The frame-related fields are depended on individually below so that
+  // changes to unrelated source fields (e.g. the viewed frame index moving
+  // during playback or scrubbing) do not restart frame reads.
+  const { getFramesInRange, sourceId, totalFrames } = source;
+
+  // Reset store when the source identity or series structure changes.
   useEffect(() => {
     storeController.reset(seriesConfig.series);
     processedRef.current = 0;
-  }, [dt, seriesConfig.series, storeController]);
+  }, [seriesConfig.series, sourceId, storeController]);
 
-  // Stream new frames into the store
+  // Stream new frames into the store.
   useEffect(() => {
     let cancelled = false;
 
@@ -219,14 +223,16 @@ export function useStreamingData(): {
       }
 
       storeController.appendFrames(newFrames, seriesConfig.extract);
-      processedRef.current = totalFrames;
+      processedRef.current = startIndex + newFrames.length;
     };
 
     void fetchData();
     return () => {
       cancelled = true;
     };
-  }, [dt, getFramesInRange, totalFrames, seriesConfig, storeController]);
+    // sourceId is depended on so a source-identity change always restarts
+    // frame reads after the reset effect above cleared the store.
+  }, [getFramesInRange, seriesConfig, sourceId, storeController, totalFrames]);
 
   return {
     store,

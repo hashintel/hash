@@ -5,6 +5,38 @@
 
 // --- Document ---
 export {
+  ACTUAL_MODE_RECORDING_VERSION,
+  ACTUAL_MODE_TIMELINE_TICK_MS,
+  actualModeMarkingSchema,
+  actualModeRecordingSchema,
+  actualModeSourceSchema,
+  actualModeTransitionEffectSchema,
+  actualModeTransitionFiringSchema,
+  applyActualModeTransitionFiring,
+  buildActualModeTimelinePoints,
+  createActualModeRecording,
+  createActualModeReceivedEventsRecording,
+  createActualModeTimelineFrameReader,
+  getActualModeMarkingAtTransitionFiringIndex,
+  getActualModeTransitionFiringTimesMs,
+  parseActualModeRecording,
+  retimeActualModeRecordingForReplay,
+  unavailableActualMode,
+} from "./actual-mode";
+export type {
+  ActualModeContextValue,
+  ActualModeMarking,
+  ActualModeReceivedEvent,
+  ActualModeReceivedEventsRecording,
+  ActualModeRecording,
+  ActualModeSource,
+  ActualModeTimelinePoint,
+  ActualModeTimelinePointKind,
+  ActualModeTokenColour,
+  ActualModeTransitionEffect,
+  ActualModeTransitionFiring,
+} from "./actual-mode";
+export {
   createJsonDocHandle,
   type CreateJsonDocHandleOptions,
   type DocChangeEvent,

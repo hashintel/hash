@@ -7,7 +7,7 @@ import {
   generateDefaultVisualizerCode,
 } from "@hashintel/petrinaut-core";
 
-import { PlaybackContext } from "../../../../../../../../react/playback/context";
+import { ExecutionFrameSourceContext } from "../../../../../../../../react/execution-frame/context";
 import { EditorContext } from "../../../../../../../../react/state/editor-context";
 import { SegmentGroup } from "../../../../../../../components/segment-group";
 import { Switch } from "../../../../../../../components/switch";
@@ -71,7 +71,7 @@ const VisualizerPreview: React.FC = () => {
 
 const PlaceVisualizerContent: React.FC = () => {
   const { place, updatePlace } = usePlacePropertiesContext();
-  const { totalFrames } = use(PlaybackContext);
+  const { totalFrames } = use(ExecutionFrameSourceContext);
   const [viewMode, setViewMode] = useState<ViewMode>("code");
 
   const hasVisualizer = place.visualizerCode !== undefined;

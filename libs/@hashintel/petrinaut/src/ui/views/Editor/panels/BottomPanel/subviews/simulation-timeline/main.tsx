@@ -1,7 +1,6 @@
-import { use, useState } from "react";
+import { use } from "react";
 
-import { PlaybackContext } from "../../../../../../../react/playback/context";
-import { SimulationContext } from "../../../../../../../react/simulation/context";
+import { ExecutionFrameSourceContext } from "../../../../../../../react/execution-frame/context";
 import { EditorContext } from "../../../../../../../react/state/editor-context";
 import { UPlotChart } from "./chart";
 import { TimelineHeaderActions } from "./header";
@@ -12,24 +11,13 @@ import { useStreamingData } from "./use-streaming-data";
 import type { SubView } from "../../../../../../components/sub-view/types";
 
 const SimulationTimelineContent: React.FC = () => {
-  const { timelineChartType: chartType } = use(EditorContext);
-  const { totalFrames } = use(SimulationContext);
-  const { currentFrameIndex } = use(PlaybackContext);
-  const { store, metricError } = useStreamingData();
-
-  const [hiddenSeries, setHiddenSeries] = useState<Set<string>>(new Set());
-
-  const toggleSeriesVisibility = (seriesId: string) => {
-    setHiddenSeries((prev) => {
-      const next = new Set(prev);
-      if (next.has(seriesId)) {
-        next.delete(seriesId);
-      } else {
-        next.add(seriesId);
-      }
-      return next;
-    });
-  };
+  const {
+    hiddenTimelineSeriesIds: hiddenSeries,
+    setHiddenTimelineSeriesIds: setHiddenSeries,
+    timelineChartType: chartType,
+  } = use(EditorContext);
+  const source = use(ExecutionFrameSourceContext);
+  const { store, metricError } = useStreamingData(source);
 
   if (metricError) {
     return (
@@ -39,7 +27,7 @@ const SimulationTimelineContent: React.FC = () => {
     );
   }
 
-  if (store.length === 0 || totalFrames === 0) {
+  if (store.length === 0 || source.totalFrames === 0) {
     return (
       <div className={containerStyle}>
         <span style={{ fontSize: 12, color: "#999" }}>
@@ -56,14 +44,15 @@ const SimulationTimelineContent: React.FC = () => {
         store={store}
         chartType={chartType}
         hiddenSeries={hiddenSeries}
-        totalFrames={totalFrames}
-        currentFrameIndex={currentFrameIndex}
+        totalFrames={source.totalFrames}
+        currentFrameIndex={source.currentFrameIndex}
+        onScrub={source.scrubToFrame}
       />
       {store.series.length > 1 && (
         <TimelineLegend
           series={store.series}
           hiddenSeries={hiddenSeries}
-          onToggleVisibility={toggleSeriesVisibility}
+          onHiddenSeriesChange={setHiddenSeries}
         />
       )}
     </div>

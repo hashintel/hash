@@ -3,6 +3,7 @@ import {
   petrinautDocNames,
 } from "@hashintel/petrinaut-core";
 
+import actualMode from "../../../../../../docs/actual-mode.md?raw";
 import aiAssistant from "../../../../../../docs/ai-assistant.md?raw";
 import drawingANet from "../../../../../../docs/drawing-a-net.md?raw";
 import examples from "../../../../../../docs/examples.md?raw";
@@ -32,6 +33,7 @@ const rawDocsByName: Record<PetrinautDocName, string> = {
   simulation,
   scenarios,
   experiments,
+  "actual-mode": actualMode,
   "ai-assistant": aiAssistant,
   "visual-settings": visualSettings,
   examples,

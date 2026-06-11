@@ -19,10 +19,11 @@ A quick map of the things you'll encounter:
 - **Metric** -- a built-in or user-authored function over simulation state that returns a number to plot on the Timeline.
 - **Experiment** -- a Monte Carlo batch: many independent simulation runs of the current net, optionally against one scenario, aggregated as distributions over time.
 
-Petrinaut has two global modes you switch between in the top bar:
+Petrinaut has three global modes in the top bar, though **Actual** is only enabled when the host application provides a live execution source:
 
 - **Edit** -- the drawing/configuration workspace plus single-run simulation playback.
 - **Simulate** -- a separate management surface for scenarios, metrics, and experiments.
+- **Actual** -- a read-only live-execution view supplied by a host such as Brunch.
 
 ## Contents
 
@@ -32,6 +33,7 @@ Petrinaut has two global modes you switch between in the top bar:
 - [Simulation](simulation.md) -- Set initial state, run a single simulation, use the timeline, control playback.
 - [Scenarios](scenarios.md) -- Save and switch between named simulation configurations.
 - [Experiments](experiments.md) -- Run Monte Carlo batches and inspect token-count distributions over time.
+- [Actual Mode](actual-mode.md) -- View a host-provided live Petri net execution, currently via Brunch.
 - [AI Assistant](ai-assistant.md) -- Build, review, and revise nets using natural language.
 - [Visual Settings](visual-settings.md) -- Configure the editor appearance and behavior.
 - [Examples](examples.md) -- Walkthrough of the built-in example nets.
