@@ -1,6 +1,7 @@
+import { use } from "react";
+
 import { Icon, Menu, type MenuItem } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
-import { use } from "react";
 
 import { ActiveNetContext } from "../../../../../react/state/active-net-context";
 import { EditorContext } from "../../../../../react/state/editor-context";
@@ -122,8 +123,8 @@ const ComponentDropdown: React.FC<{
 
   const items: MenuItem[] = (subnets ?? []).map((subnet) => ({
     id: subnet.id,
-    icon: <Icon name="cube" size="sm" />,
-    label: subnet.name,
+    icon: "cube",
+    text: subnet.name,
     selected:
       editionMode === "add-component" && componentSubnetId === subnet.id,
     onClick: () => setAddComponentMode(subnet.id),
@@ -132,8 +133,9 @@ const ComponentDropdown: React.FC<{
   if (items.length === 0) {
     items.push({
       id: "empty",
-      label: "No subnets defined",
+      text: "No subnets defined",
       disabled: true,
+      onClick: () => {},
     });
   }
 
@@ -153,8 +155,7 @@ const ComponentDropdown: React.FC<{
         </button>
       }
       items={items}
-      placement="top"
-      animated
+      position="top"
     />
   );
 };

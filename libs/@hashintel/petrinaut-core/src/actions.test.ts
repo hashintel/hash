@@ -716,6 +716,62 @@ describe("Petrinaut core actions", () => {
     ).toThrow();
   });
 
+  test("adds optional root collections when they are initially absent", () => {
+    const instance = createInstance();
+
+    instance.mutations.addScenario({
+      id: "scenario-1",
+      name: "Scenario",
+      scenarioParameters: [],
+      parameterOverrides: {},
+      initialState: { type: "per_place", content: {} },
+    });
+    instance.mutations.addMetric({
+      id: "metric-1",
+      name: "Metric",
+      code: "return 0;",
+    });
+    instance.mutations.addSubnet({
+      id: "subnet-1",
+      name: "Reusable subnet",
+      places: [],
+      transitions: [],
+      types: [],
+      differentialEquations: [],
+      parameters: [],
+      componentInstances: [],
+    });
+
+    expect(instance.definition.get().scenarios).toEqual([
+      {
+        id: "scenario-1",
+        name: "Scenario",
+        scenarioParameters: [],
+        parameterOverrides: {},
+        initialState: { type: "per_place", content: {} },
+      },
+    ]);
+    expect(instance.definition.get().metrics).toEqual([
+      {
+        id: "metric-1",
+        name: "Metric",
+        code: "return 0;",
+      },
+    ]);
+    expect(instance.definition.get().subnets).toEqual([
+      {
+        id: "subnet-1",
+        name: "Reusable subnet",
+        places: [],
+        transitions: [],
+        types: [],
+        differentialEquations: [],
+        parameters: [],
+        componentInstances: [],
+      },
+    ]);
+  });
+
   test("targets place mutations at a subnet when targetSubnetId is provided", () => {
     const instance = createInstance();
 

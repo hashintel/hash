@@ -261,7 +261,11 @@ export function createPetrinautActions(
     };
     Object.assign(
       transition,
-      sanitizeTransitionForExtensions(transition, transitionContext, extensions),
+      sanitizeTransitionForExtensions(
+        transition,
+        transitionContext,
+        extensions,
+      ),
     );
   };
 
@@ -273,38 +277,11 @@ export function createPetrinautActions(
     }
   };
 
-  const stripDisabledExtensionDataFromAllNets = (sdcpn: SDCPN): void => {
-    stripDisabledExtensionData(sdcpn, extensions);
-
-    for (const subnet of sdcpn.subnets ?? []) {
-      if (!extensions.colors) {
-        subnet.types.splice(0);
-      }
-      if (!canUseDynamics) {
-        subnet.differentialEquations.splice(0);
-      }
-      if (!extensions.parameters) {
-        subnet.parameters.splice(0);
-      }
-
-      for (const place of subnet.places) {
-        Object.assign(place, sanitizePlaceForExtensions(place, extensions));
-        if (!extensions.colors) {
-          delete place.visualizerCode;
-        }
-      }
-
-      for (const transition of subnet.transitions) {
-        sanitizeTransition(transition, subnet);
-      }
-    }
-  };
-
   const mutateWithExtensionGuards = (fn: (sdcpn: SDCPN) => void): void => {
     mutate((sdcpn) => {
       fn(sdcpn);
       if (shouldSanitizeAfterMutation) {
-        stripDisabledExtensionDataFromAllNets(sdcpn);
+        stripDisabledExtensionData(sdcpn, extensions);
       }
     });
   };
@@ -709,10 +686,7 @@ export function createPetrinautActions(
             differentialEquationSchema.parse(equation);
             for (const place of net.places) {
               if (place.differentialEquationId === equation.id) {
-                assertPlaceDynamicsReferences(
-                  place,
-                  net.differentialEquations,
-                );
+                assertPlaceDynamicsReferences(place, net.differentialEquations);
               }
             }
             break;
@@ -789,9 +763,9 @@ export function createPetrinautActions(
       const parsedScenario = scenarioSchema.parse(scenario);
       mutateWithExtensionGuards((sdcpn) => {
         const targetSdcpn = sdcpn;
-        const scenarios = targetSdcpn.scenarios ?? [];
+        targetSdcpn.scenarios ??= [];
+        const scenarios = targetSdcpn.scenarios;
         scenarios.push(parsedScenario);
-        targetSdcpn.scenarios = scenarios;
       });
     },
     updateScenario(input) {
@@ -826,9 +800,9 @@ export function createPetrinautActions(
       const parsedMetric = metricSchema.parse(metric);
       mutateWithExtensionGuards((sdcpn) => {
         const targetSdcpn = sdcpn;
-        const metrics = targetSdcpn.metrics ?? [];
+        targetSdcpn.metrics ??= [];
+        const metrics = targetSdcpn.metrics;
         metrics.push(parsedMetric);
-        targetSdcpn.metrics = metrics;
       });
     },
     updateMetric(input) {
@@ -863,9 +837,9 @@ export function createPetrinautActions(
       const parsedSubnet = subnetSchema.parse(subnet);
       mutateWithExtensionGuards((sdcpn) => {
         const targetSdcpn = sdcpn;
-        const subnets = targetSdcpn.subnets ?? [];
+        targetSdcpn.subnets ??= [];
+        const subnets = targetSdcpn.subnets;
         subnets.push(parsedSubnet);
-        targetSdcpn.subnets = subnets;
       });
     },
     updateSubnet(input) {

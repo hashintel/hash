@@ -8,7 +8,7 @@ import { SDCPNContext } from "../../../../react/state/sdcpn-context";
 const tooltipStyle = css({
   position: "fixed",
   pointerEvents: "none",
-  zIndex: 9999,
+  zIndex: "[9999]",
   paddingX: "2",
   paddingY: "1",
   borderRadius: "md",

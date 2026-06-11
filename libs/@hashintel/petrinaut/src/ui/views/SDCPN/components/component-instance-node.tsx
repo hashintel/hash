@@ -91,7 +91,7 @@ const portStyle = css({
   background: "[#6b7280]",
   borderRadius: "full",
   border: "none",
-  zIndex: 3,
+  zIndex: "[3]",
 });
 
 const portLabelStyle = css({

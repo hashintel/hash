@@ -240,20 +240,64 @@ export const sanitizeTransitionForExtensions = <
   };
 };
 
+type SanitizableNet = Pick<
+  SDCPN,
+  "places" | "transitions" | "types" | "differentialEquations" | "parameters"
+> & {
+  componentInstances?: SDCPN["componentInstances"];
+};
+
+const stripDisabledExtensionDataFromNet = (
+  net: SanitizableNet,
+  extensions: PetrinautExtensionSettings,
+): void => {
+  if (!extensions.colors) {
+    net.types.splice(0);
+  }
+
+  if (!canUseDynamics(extensions)) {
+    net.differentialEquations.splice(0);
+  }
+
+  if (!extensions.parameters) {
+    net.parameters.splice(0);
+  }
+
+  for (const place of net.places) {
+    Object.assign(place, sanitizePlaceForExtensions(place, extensions));
+    if (!extensions.colors) {
+      delete place.visualizerCode;
+    }
+  }
+
+  const transitionContext: SDCPN = {
+    places: net.places,
+    transitions: net.transitions,
+    types: net.types,
+    differentialEquations: net.differentialEquations,
+    parameters: net.parameters,
+    componentInstances: net.componentInstances,
+  };
+
+  for (const transition of net.transitions) {
+    Object.assign(
+      transition,
+      sanitizeTransitionForExtensions(
+        transition,
+        transitionContext,
+        extensions,
+      ),
+    );
+  }
+};
+
 export const stripDisabledExtensionData = (
   sdcpn: SDCPN,
   extensions: PetrinautExtensionSettings,
 ): void => {
-  if (!extensions.colors) {
-    sdcpn.types.splice(0);
-  }
-
-  if (!canUseDynamics(extensions)) {
-    sdcpn.differentialEquations.splice(0);
-  }
+  stripDisabledExtensionDataFromNet(sdcpn, extensions);
 
   if (!extensions.parameters) {
-    sdcpn.parameters.splice(0);
     for (const scenario of sdcpn.scenarios ?? []) {
       scenario.parameterOverrides = {};
     }
@@ -268,20 +312,41 @@ export const stripDisabledExtensionData = (
     }
   }
 
-  for (const place of sdcpn.places) {
-    Object.assign(place, sanitizePlaceForExtensions(place, extensions));
-    if (!extensions.colors) {
-      delete place.visualizerCode;
-    }
-  }
-
-  for (const transition of sdcpn.transitions) {
-    Object.assign(
-      transition,
-      sanitizeTransitionForExtensions(transition, sdcpn, extensions),
-    );
+  for (const subnet of sdcpn.subnets ?? []) {
+    stripDisabledExtensionDataFromNet(subnet, extensions);
   }
 };
+
+const cloneComponentInstances = (
+  componentInstances: SDCPN["componentInstances"],
+): SDCPN["componentInstances"] =>
+  componentInstances?.map((instance) => ({
+    ...instance,
+    parameterValues: { ...instance.parameterValues },
+    wiring: instance.wiring.map((wire) => ({ ...wire })),
+  }));
+
+const cloneSubnet = (
+  subnet: NonNullable<SDCPN["subnets"]>[number],
+): NonNullable<SDCPN["subnets"]>[number] => ({
+  id: subnet.id,
+  name: subnet.name,
+  places: subnet.places.map((place) => ({ ...place })),
+  transitions: subnet.transitions.map((transition) => ({
+    ...transition,
+    inputArcs: transition.inputArcs.map((arc) => ({ ...arc })),
+    outputArcs: transition.outputArcs.map((arc) => ({ ...arc })),
+  })),
+  types: subnet.types.map((type) => ({
+    ...type,
+    elements: type.elements.map((element) => ({ ...element })),
+  })),
+  differentialEquations: subnet.differentialEquations.map((equation) => ({
+    ...equation,
+  })),
+  parameters: subnet.parameters.map((parameter) => ({ ...parameter })),
+  componentInstances: cloneComponentInstances(subnet.componentInstances),
+});
 
 export const sanitizeSDCPNForExtensions = (
   sdcpn: SDCPN,
@@ -324,6 +389,8 @@ export const sanitizeSDCPNForExtensions = (
             },
     })),
     metrics: sdcpn.metrics?.map((metric) => ({ ...metric })),
+    subnets: sdcpn.subnets?.map(cloneSubnet),
+    componentInstances: cloneComponentInstances(sdcpn.componentInstances),
   };
 
   stripDisabledExtensionData(next, extensions);

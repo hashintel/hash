@@ -367,7 +367,7 @@ export const EditorView = ({
               },
               {
                 id: "load-example-hospital-network",
-                label: "Hospital Network with Subnet",
+                text: "Hospital Network with Subnet",
                 onClick: () => {
                   createNewNet(hospitalNetworkSDCPN);
                   clearSelection();

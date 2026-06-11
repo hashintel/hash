@@ -1,7 +1,7 @@
 import { use } from "react";
 import { v4 as generateUuid } from "uuid";
 
-import { Icon } from "@hashintel/ds-components";
+import { Button, Icon } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 
 import { usePetrinautMutations } from "../../../../../../react";
@@ -9,7 +9,6 @@ import { ActiveNetContext } from "../../../../../../react/state/active-net-conte
 import { EditorContext } from "../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { useIsReadOnly } from "../../../../../../react/state/use-is-read-only";
-import { Button } from "../../../../../components/button";
 import { UI_MESSAGES } from "../../../../../constants/ui-messages";
 
 import type { SubView } from "../../../../../components/sub-view/types";
@@ -74,7 +73,6 @@ const NetsHeaderAction: React.FC = () => {
       iconName="plus"
       disabled={isReadOnly}
       tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : "Add subnet"}
-      tooltipDisplay="inline"
       onClick={() => {
         const count = (subnets ?? []).length;
         addSubnet({
