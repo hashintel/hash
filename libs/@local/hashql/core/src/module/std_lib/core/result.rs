@@ -1,7 +1,6 @@
 use crate::{
-    heap::Heap,
     module::std_lib::{ItemDef, ModuleDef, StandardLibrary, StandardLibraryModule},
-    symbol::Symbol,
+    symbol::{Symbol, sym},
 };
 
 pub(in crate::module::std_lib) struct Result {
@@ -11,8 +10,8 @@ pub(in crate::module::std_lib) struct Result {
 impl<'heap> StandardLibraryModule<'heap> for Result {
     type Children = ();
 
-    fn name(heap: &'heap Heap) -> Symbol<'heap> {
-        heap.intern_symbol("result")
+    fn name() -> Symbol<'heap> {
+        sym::result
     }
 
     fn define(lib: &mut StandardLibrary<'_, 'heap>) -> ModuleDef<'heap> {

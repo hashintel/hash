@@ -109,7 +109,7 @@ pub(in crate::module::std_lib) struct Temporal {
 impl<'heap> StandardLibraryModule<'heap> for Temporal {
     type Children = ();
 
-    fn name(_heap: &'heap Heap) -> Symbol<'heap> {
+    fn name() -> Symbol<'heap> {
         sym::temporal
     }
 

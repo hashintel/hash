@@ -5,19 +5,19 @@ use crate::symbol::Symbol;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct IntrinsicValueItem<'heap> {
-    pub name: &'static str,
+    pub name: Symbol<'heap>,
     pub r#type: TypeDef<'heap>,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct IntrinsicTypeItem {
-    pub name: &'static str,
+pub struct IntrinsicTypeItem<'heap> {
+    pub name: Symbol<'heap>,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, derive_more::From)]
 pub enum IntrinsicItem<'heap> {
     Value(IntrinsicValueItem<'heap>),
-    Type(IntrinsicTypeItem),
+    Type(IntrinsicTypeItem<'heap>),
 }
 
 impl IntrinsicItem<'_> {

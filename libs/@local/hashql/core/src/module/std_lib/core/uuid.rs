@@ -22,7 +22,7 @@ pub(in crate::module::std_lib) struct Uuid {
 impl<'heap> StandardLibraryModule<'heap> for Uuid {
     type Children = ();
 
-    fn name(_: &'heap Heap) -> Symbol<'heap> {
+    fn name() -> Symbol<'heap> {
         sym::uuid
     }
 
