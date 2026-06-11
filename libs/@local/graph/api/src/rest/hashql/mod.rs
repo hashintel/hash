@@ -189,7 +189,7 @@ fn deserialize_empty_inputs<'de, D>(deserializer: D) -> Result<Vec<()>, D::Error
 where
     D: serde::Deserializer<'de>,
 {
-    let inputs = serde::Deserialize::<'de>::deserialize(deserializer)?;
+    let inputs: Vec<()> = serde::Deserialize::<'de>::deserialize(deserializer)?;
     if inputs.is_empty() {
         return Ok(inputs);
     }
