@@ -404,15 +404,15 @@ where
     fn intrinsic(
         &mut self,
         span: SpanId,
-        name: &'static str,
+        name: Symbol<'heap>,
         parameters: &[PathSegmentArgument<'heap>],
     ) -> TypeKind<'heap> {
-        match name {
+        match name.as_str() {
             "::kernel::type::List" => {
                 if parameters.len() != 1 {
                     self.diagnostics.push(intrinsic_parameter_count_mismatch(
                         span,
-                        name,
+                        name.as_str(),
                         1,
                         parameters.len(),
                     ));
@@ -432,7 +432,7 @@ where
                 if parameters.len() != 2 {
                     self.diagnostics.push(intrinsic_parameter_count_mismatch(
                         span,
-                        name,
+                        name.as_str(),
                         2,
                         parameters.len(),
                     ));
@@ -458,7 +458,7 @@ where
                 self.diagnostics.push(unknown_intrinsic_type(
                     span,
                     self.env.heap,
-                    name,
+                    name.as_str(),
                     &["::kernel::type::List", "::kernel::type::Dict"],
                 ));
 

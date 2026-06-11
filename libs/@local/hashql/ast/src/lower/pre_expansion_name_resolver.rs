@@ -264,8 +264,9 @@ impl<'env, 'heap> PreExpansionNameResolver<'env, 'heap> {
 
         // The name is a fully qualified path, that we need to convert into a path
         let (rooted, path) = path
+            .as_str()
             .strip_prefix("::")
-            .map_or((false, path), |path| (true, path));
+            .map_or((false, path.as_str()), |path| (true, path));
 
         let segments = path
             .split("::")
