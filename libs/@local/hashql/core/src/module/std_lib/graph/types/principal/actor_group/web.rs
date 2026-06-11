@@ -1,5 +1,4 @@
 use crate::{
-    heap::Heap,
     module::{
         StandardLibrary,
         std_lib::{self, ItemDef, ModuleDef, StandardLibraryModule},
@@ -40,8 +39,8 @@ pub(in crate::module::std_lib) struct Web {
 impl<'heap> StandardLibraryModule<'heap> for Web {
     type Children = ();
 
-    fn name(heap: &'heap Heap) -> Symbol<'heap> {
-        heap.intern_symbol("web")
+    fn name() -> Symbol<'heap> {
+        sym::web
     }
 
     fn define(lib: &mut StandardLibrary<'_, 'heap>) -> ModuleDef<'heap> {

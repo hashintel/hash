@@ -495,9 +495,9 @@ mod tests {
         assert_matches!(
             item.kind,
             ItemKind::Intrinsic(IntrinsicItem::Value(IntrinsicValueItem {
-                name: "::core::math::add",
+                name,
                 r#type: _
-            }))
+            })) if name.as_str() == "::core::math::add"
         );
     }
 
@@ -524,11 +524,11 @@ mod tests {
         assert_eq!(item.name.as_str(), "Dict");
         assert_eq!(item.kind.universe(), Some(Universe::Type));
 
-        assert_eq!(
+        assert_matches!(
             item.kind,
             ItemKind::Intrinsic(IntrinsicItem::Type(IntrinsicTypeItem {
-                name: "::kernel::type::Dict",
-            }))
+                name,
+            })) if name.as_str() == "::kernel::type::Dict"
         );
     }
 
@@ -562,9 +562,9 @@ mod tests {
         assert_matches!(
             item.kind,
             ItemKind::Intrinsic(IntrinsicItem::Value(IntrinsicValueItem {
-                name: "::kernel::special_form::let",
+                name,
                 r#type: _
-            }))
+            })) if name.as_str() == "::kernel::special_form::let"
         );
     }
 
@@ -595,11 +595,11 @@ mod tests {
         assert_eq!(item.name.as_str(), "Dict");
         assert_eq!(item.kind.universe(), Some(Universe::Type));
 
-        assert_eq!(
+        assert_matches!(
             item.kind,
             ItemKind::Intrinsic(IntrinsicItem::Type(IntrinsicTypeItem {
-                name: "::kernel::type::Dict",
-            }))
+                name,
+            })) if name.as_str() == "::kernel::type::Dict"
         );
     }
 
@@ -646,10 +646,11 @@ mod tests {
 
         assert_matches!(
             item.kind,
-            ItemKind::Intrinsic(IntrinsicItem::Value(IntrinsicValueItem {
-                name: "::kernel::special_form::let",
+            ItemKind::Intrinsic(
+                IntrinsicItem::Value(IntrinsicValueItem {
+                name,
                 r#type: _
-            }))
+            })) if name.as_str() == "::kernel::special_form::let"
         );
     }
 
@@ -671,7 +672,7 @@ mod tests {
                 module: id.value(),
                 name: heap.intern_symbol("bar"),
                 kind: ItemKind::Intrinsic(IntrinsicItem::Type(IntrinsicTypeItem {
-                    name: "::foo::bar",
+                    name: heap.intern_symbol("::foo::bar"),
                 })),
             }]),
         });
@@ -691,11 +692,11 @@ mod tests {
         assert_eq!(import.name.as_str(), "Dict");
         assert_eq!(import.kind.universe(), Some(Universe::Type));
 
-        assert_eq!(
+        assert_matches!(
             import.kind,
             ItemKind::Intrinsic(IntrinsicItem::Type(IntrinsicTypeItem {
-                name: "::kernel::type::Dict",
-            }))
+                name,
+            })) if name.as_str() == "::kernel::type::Dict"
         );
 
         namespace
@@ -724,11 +725,11 @@ mod tests {
         assert_eq!(import.name.as_str(), "bar");
         assert_eq!(import.kind.universe(), Some(Universe::Type));
 
-        assert_eq!(
+        assert_matches!(
             import.kind,
             ItemKind::Intrinsic(IntrinsicItem::Type(IntrinsicTypeItem {
-                name: "::foo::bar"
-            }))
+                name,
+            })) if name.as_str() == "::foo::bar"
         );
     }
 

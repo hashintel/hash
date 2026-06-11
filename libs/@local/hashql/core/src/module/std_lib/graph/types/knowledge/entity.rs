@@ -373,7 +373,7 @@ pub(in crate::module::std_lib) struct Entity {
 impl<'heap> StandardLibraryModule<'heap> for Entity {
     type Children = ();
 
-    fn name(_: &'heap Heap) -> Symbol<'heap> {
+    fn name() -> Symbol<'heap> {
         sym::entity
     }
 

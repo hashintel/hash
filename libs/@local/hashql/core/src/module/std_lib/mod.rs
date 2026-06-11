@@ -214,7 +214,7 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
             }
 
             // create all the child modules
-            let children_names = M::Children::names(self.heap);
+            let children_names = M::Children::names();
             let children_modules = M::Children::modules(self, depth.saturating_add(1), id.value());
 
             for (name, module) in children_names.into_iter().zip(children_modules) {
@@ -226,7 +226,7 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
             }
 
             PartialModule {
-                name: M::name(self.heap),
+                name: M::name(),
                 parent,
                 depth,
                 items: self.registry.intern_items(&output),
@@ -251,7 +251,7 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
 trait Submodules<'heap> {
     const LENGTH: usize;
 
-    fn names(heap: &'heap Heap) -> impl IntoIterator<Item = Symbol<'heap>>;
+    fn names() -> impl IntoIterator<Item = Symbol<'heap>>;
 
     fn modules(
         lib: &mut StandardLibrary<'_, 'heap>,
@@ -263,7 +263,7 @@ trait Submodules<'heap> {
 impl<'heap> Submodules<'heap> for () {
     const LENGTH: usize = 0;
 
-    fn names(_: &'heap Heap) -> impl IntoIterator<Item = Symbol<'heap>> {
+    fn names() -> impl IntoIterator<Item = Symbol<'heap>> {
         iter::empty()
     }
 
@@ -296,8 +296,8 @@ macro_rules! impl_submodules {
         {
             const LENGTH: usize = ${count($item)};
 
-            fn names(heap: &'heap Heap) -> impl IntoIterator<Item = Symbol<'heap>> {
-                $(let $item = $item::name(heap);)*
+            fn names() -> impl IntoIterator<Item = Symbol<'heap>> {
+                $(let $item = $item::name();)*
 
                 [$($item),*]
             }
@@ -320,7 +320,7 @@ impl_submodules!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P);
 trait StandardLibraryModule<'heap>: 'static {
     type Children: Submodules<'heap>;
 
-    fn name(heap: &'heap Heap) -> Symbol<'heap>;
+    fn name() -> Symbol<'heap>;
 
     fn define(lib: &mut StandardLibrary<'_, 'heap>) -> ModuleDef<'heap>;
 }

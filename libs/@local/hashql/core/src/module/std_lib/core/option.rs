@@ -27,8 +27,8 @@ pub(in crate::module::std_lib) struct Option {
 impl<'heap> StandardLibraryModule<'heap> for Option {
     type Children = ();
 
-    fn name(heap: &'heap Heap) -> Symbol<'heap> {
-        heap.intern_symbol("option")
+    fn name() -> Symbol<'heap> {
+        sym::option
     }
 
     fn define(lib: &mut StandardLibrary<'_, 'heap>) -> ModuleDef<'heap> {

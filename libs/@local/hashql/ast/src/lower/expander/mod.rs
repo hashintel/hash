@@ -26,7 +26,7 @@ pub struct Expander<'env, 'heap> {
     current_universe: Universe,
     diagnostics: ExpanderDiagnosticIssues,
     current_item: Option<module::item::Item<'heap>>,
-    replace_with_dummy: bool,
+    trampoline: Option<node::expr::Expr<'heap>>,
 }
 
 impl<'env, 'heap> Expander<'env, 'heap> {
@@ -36,7 +36,7 @@ impl<'env, 'heap> Expander<'env, 'heap> {
             current_universe: Universe::Value,
             diagnostics: ExpanderDiagnosticIssues::new(),
             current_item: None,
-            replace_with_dummy: false,
+            trampoline: None,
         }
     }
 }
@@ -48,7 +48,7 @@ impl<'heap> Visitor<'heap> for Expander<'_, 'heap> {
 
         let [modules @ .., _] = &*path.segments else {
             todo!("BUG diagnostic: empty path, should never happen");
-            self.replace_with_dummy = true;
+            self.trampoline = Some(node::expr::Expr::dummy());
             return;
         };
 
@@ -66,7 +66,7 @@ impl<'heap> Visitor<'heap> for Expander<'_, 'heap> {
         }
 
         if !should_continue {
-            self.replace_with_dummy = true;
+            self.trampoline = Some(node::expr::Expr::dummy());
             return;
         }
 
@@ -140,5 +140,32 @@ impl<'heap> Visitor<'heap> for Expander<'_, 'heap> {
         }
 
         path.rooted = true;
+    }
+
+    fn visit_call_expr(
+        &mut self,
+        node::expr::CallExpr {
+            id,
+            span,
+            function,
+            arguments,
+            labeled_arguments,
+        }: &mut node::expr::CallExpr<'heap>,
+    ) {
+        let prev_current_item = self.current_item.take();
+        self.visit_expr(function);
+
+        if let Some(item) = self.current_item {
+            match item.kind {
+                module::item::ItemKind::Module(module_id) => todo!(),
+                module::item::ItemKind::Type(type_def) => todo!(),
+                module::item::ItemKind::Constructor(_) => {
+                    // this stays a call expression, and is resolved later to a dedicated node.
+                }
+                module::item::ItemKind::Intrinsic(intrinsic_item) => todo!(),
+            }
+        }
+
+        self.current_item = prev_current_item;
     }
 }

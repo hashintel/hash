@@ -400,7 +400,7 @@ fn add_available_imports<'heap>(
 
 fn format_absolute_path<'heap>(item: &Item<'heap>, registry: &ModuleRegistry<'heap>) -> String {
     iter::once("")
-        .chain(item.absolute_path(registry).map(Symbol::unwrap))
+        .chain(item.absolute_path(registry).into_iter().map(Symbol::unwrap))
         .intersperse("::")
         .collect()
 }

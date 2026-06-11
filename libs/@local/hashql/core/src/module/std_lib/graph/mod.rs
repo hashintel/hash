@@ -7,12 +7,11 @@ pub(in crate::module::std_lib) mod tmp;
 pub mod types;
 
 use crate::{
-    heap::Heap,
     module::{
         StandardLibrary,
         std_lib::{ItemDef, ModuleDef, StandardLibraryModule},
     },
-    symbol::Symbol,
+    symbol::{Symbol, sym},
 };
 
 pub(in crate::module::std_lib) struct Graph {
@@ -30,8 +29,8 @@ impl<'heap> StandardLibraryModule<'heap> for Graph {
         self::types::Types,
     );
 
-    fn name(heap: &'heap Heap) -> Symbol<'heap> {
-        heap.intern_symbol("graph")
+    fn name() -> Symbol<'heap> {
+        sym::graph
     }
 
     fn define(lib: &mut StandardLibrary<'_, 'heap>) -> ModuleDef<'heap> {

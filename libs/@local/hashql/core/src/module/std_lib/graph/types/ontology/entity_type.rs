@@ -4,7 +4,7 @@ use crate::{
         StandardLibrary,
         std_lib::{self, ItemDef, ModuleDef, StandardLibraryModule, core::option::types::option},
     },
-    symbol::Symbol,
+    symbol::{Symbol, sym},
 };
 
 pub(in crate::module::std_lib) struct EntityType {
@@ -17,8 +17,8 @@ pub(in crate::module::std_lib) struct EntityType {
 impl<'heap> StandardLibraryModule<'heap> for EntityType {
     type Children = ();
 
-    fn name(heap: &'heap Heap) -> Symbol<'heap> {
-        heap.intern_symbol("entity_type")
+    fn name() -> Symbol<'heap> {
+        sym::entity_type
     }
 
     fn define(lib: &mut StandardLibrary<'_, 'heap>) -> ModuleDef<'heap> {

@@ -5,7 +5,7 @@ use crate::{
         StandardLibrary,
         std_lib::{ModuleDef, StandardLibraryModule},
     },
-    symbol::Symbol,
+    symbol::{Symbol, sym},
 };
 
 pub mod knowledge;
@@ -23,8 +23,8 @@ impl<'heap> StandardLibraryModule<'heap> for Types {
         self::principal::Principal,
     );
 
-    fn name(heap: &'heap Heap) -> Symbol<'heap> {
-        heap.intern_symbol("types")
+    fn name() -> Symbol<'heap> {
+        sym::types
     }
 
     fn define(_: &mut StandardLibrary<'_, 'heap>) -> ModuleDef<'heap> {
