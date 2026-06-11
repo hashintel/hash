@@ -38,7 +38,7 @@ pub(crate) fn mir_reify<'heap>(
     let hir_interner = hashql_hir::intern::Interner::new(heap);
     let mut hir_context = HirContext::new(&hir_interner, &registry);
 
-    let result = hashql_ast::lowering::lower(
+    let result = hashql_ast::lower::lower(
         heap.intern_symbol("::main"),
         &mut expr,
         environment,

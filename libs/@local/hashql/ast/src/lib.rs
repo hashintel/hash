@@ -61,6 +61,6 @@ extern crate alloc;
 
 pub mod error;
 pub mod format;
-pub mod lowering;
+pub mod lower;
 pub mod node;
 pub mod visit;

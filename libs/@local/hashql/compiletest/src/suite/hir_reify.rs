@@ -1,5 +1,5 @@
 use hashql_ast::{
-    lowering::{ExtractedTypes, lower},
+    lower::{ExtractedTypes, lower},
     node::expr::Expr,
 };
 use hashql_core::{

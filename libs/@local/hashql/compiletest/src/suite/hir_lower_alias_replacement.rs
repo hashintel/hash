@@ -1,6 +1,6 @@
 use core::fmt::Write as _;
 
-use hashql_ast::{lowering::ExtractedTypes, node::expr::Expr};
+use hashql_ast::{lower::ExtractedTypes, node::expr::Expr};
 use hashql_core::{
     heap::Heap,
     module::ModuleRegistry,

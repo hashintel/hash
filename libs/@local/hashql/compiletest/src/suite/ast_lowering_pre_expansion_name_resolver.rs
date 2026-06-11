@@ -1,5 +1,5 @@
 use hashql_ast::{
-    format::SyntaxDump as _, lowering::pre_expansion_name_resolver::PreExpansionNameResolver,
+    format::SyntaxDump as _, lower::pre_expansion_name_resolver::PreExpansionNameResolver,
     node::expr::Expr, visit::Visitor as _,
 };
 use hashql_core::{module::ModuleRegistry, r#type::environment::Environment};

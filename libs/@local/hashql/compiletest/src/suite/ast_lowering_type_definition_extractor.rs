@@ -2,7 +2,7 @@ use core::fmt::Write as _;
 
 use hashql_ast::{
     format::SyntaxDump as _,
-    lowering::{
+    lower::{
         import_resolver::ImportResolver, name_mangler::NameMangler,
         pre_expansion_name_resolver::PreExpansionNameResolver,
         special_form_expander::SpecialFormExpander, type_extractor::TypeDefinitionExtractor,

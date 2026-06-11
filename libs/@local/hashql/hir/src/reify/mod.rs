@@ -3,7 +3,7 @@ pub mod error;
 use core::mem;
 
 use hashql_ast::{
-    lowering::ExtractedTypes,
+    lower::ExtractedTypes,
     node::{
         expr::{
             AsExpr, CallExpr, ClosureExpr, DictExpr, Expr, ExprKind, FieldExpr, IfExpr, IndexExpr,
