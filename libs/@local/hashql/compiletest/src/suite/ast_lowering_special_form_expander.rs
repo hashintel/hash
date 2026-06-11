@@ -1,6 +1,6 @@
 use hashql_ast::{
-    format::SyntaxDump as _, lowering::special_form_expander::SpecialFormExpander,
-    node::expr::Expr, visit::Visitor as _,
+    format::SyntaxDump as _, lower::special_form_expander::SpecialFormExpander, node::expr::Expr,
+    visit::Visitor as _,
 };
 
 use super::{RunContext, Suite, SuiteDiagnostic, common::process_issues};

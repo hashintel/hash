@@ -35,7 +35,7 @@ use super::error::{
     invalid_resolved_item, resolution_error, unknown_intrinsic_type, unused_generic_parameter,
 };
 use crate::{
-    lowering::type_extractor::error::{
+    lower::type_extractor::error::{
         generic_parameter_mismatch, intrinsic_parameter_count_mismatch, unbound_type_variable,
     },
     node::{

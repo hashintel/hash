@@ -1,6 +1,6 @@
 use hashql_ast::{
     format::SyntaxDump as _,
-    lowering::{
+    lower::{
         pre_expansion_name_resolver::PreExpansionNameResolver, sanitizer::Sanitizer,
         special_form_expander::SpecialFormExpander,
     },
