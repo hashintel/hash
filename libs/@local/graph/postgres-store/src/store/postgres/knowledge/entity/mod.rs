@@ -2502,7 +2502,10 @@ where
                         ON entity_type_ontology_id = source_entity_type_ontology_id
                      GROUP BY entity_edition_id, target_entity_type_ontology_id;
 
-                    TRUNCATE entity_edition_cache;
+                    -- DELETE instead of TRUNCATE: the runtime role has no TRUNCATE
+                    -- privilege, and DELETE keeps the cache readable for concurrent
+                    -- queries until this transaction commits.
+                    DELETE FROM entity_edition_cache;
                 ",
             )
             .instrument(tracing::info_span!(
