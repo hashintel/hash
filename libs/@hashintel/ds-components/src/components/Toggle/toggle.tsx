@@ -35,7 +35,6 @@ export const Toggle = ({
   ...ariaProps
 }: ToggleProps) => {
   const classes = styles({ size, tone, invalid: !!invalid });
-  const labelText = value ? labelOnText : labelOffText;
 
   return (
     <Switch.Root
@@ -51,11 +50,14 @@ export const Toggle = ({
       className={cx(classes.root, className)}
       {...ariaProps}
     >
+      {labelOffText !== undefined && (
+        <Switch.Label className={classes.label}>{labelOffText}</Switch.Label>
+      )}
       <Switch.Control className={classes.control}>
         <Switch.Thumb className={classes.thumb} />
       </Switch.Control>
-      {labelText !== undefined && (
-        <Switch.Label className={classes.label}>{labelText}</Switch.Label>
+      {labelOnText !== undefined && (
+        <Switch.Label className={classes.label}>{labelOnText}</Switch.Label>
       )}
       <Switch.HiddenInput
         ref={inputRef}
