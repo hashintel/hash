@@ -1,13 +1,12 @@
 import { useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 
-import { Button, Tooltip } from "@hashintel/ds-components";
+import { Button, TextInput, Tooltip } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 import { validateDisplayName } from "@hashintel/petrinaut-core";
 
 import { useIsReadOnly } from "../../../../../../../react/state/use-is-read-only";
 import { DraftFieldInput } from "../../../../../../components/draft-field-input";
-import { Input } from "../../../../../../components/input";
 import { Section, SectionList } from "../../../../../../components/section";
 import { TokenTypeIcon } from "../../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
@@ -108,8 +107,8 @@ const indexChipStyle = css({
 });
 
 const dimensionNameInputStyle = css({
-  fontSize: "sm",
   flex: "[1]",
+  marginX: "1",
 });
 
 type ElementNameInputState = Record<
@@ -361,25 +360,27 @@ const TypeMainContent: React.FC = () => {
                 <div className={indexChipStyle}>{index}</div>
 
                 {/* Name input */}
-                <Input
-                  value={getElementNameInputValue(element)}
-                  onChange={(event) => {
-                    handleUpdateElementName(
-                      element.elementId,
-                      event.target.value,
-                    );
-                  }}
-                  onBlur={(event) => {
-                    handleBlurElementName(
-                      element.elementId,
-                      event.target.value,
-                    );
-                  }}
-                  disabled={isDisabled}
-                  placeholder="dimension_name"
+                <Tooltip
+                  content={UI_MESSAGES.READ_ONLY_MODE}
+                  disableTooltip={!isDisabled}
                   className={dimensionNameInputStyle}
-                  tooltip={isDisabled ? UI_MESSAGES.READ_ONLY_MODE : undefined}
-                />
+                >
+                  <TextInput
+                    value={getElementNameInputValue(element)}
+                    size="sm"
+                    onChange={(name) => {
+                      handleUpdateElementName(element.elementId, name);
+                    }}
+                    onBlur={(event) => {
+                      handleBlurElementName(
+                        element.elementId,
+                        event.target.value,
+                      );
+                    }}
+                    disabled={isDisabled}
+                    placeholder="dimension_name"
+                  />
+                </Tooltip>
 
                 {/* Delete button */}
                 <Button

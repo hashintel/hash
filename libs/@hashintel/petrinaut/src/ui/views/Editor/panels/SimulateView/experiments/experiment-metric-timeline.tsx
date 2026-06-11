@@ -4,6 +4,7 @@ import uPlot from "uplot";
 
 import {
   Button,
+  Select,
   Switch,
   usePortalContainerRef,
 } from "@hashintel/ds-components";
@@ -11,7 +12,6 @@ import { css } from "@hashintel/ds-helpers/css";
 import "uplot/dist/uPlot.min.css";
 
 import { useElementSize } from "../../../../../../react/hooks/use-element-size";
-import { Select } from "../../../../../components/select";
 
 import type { ExperimentRecord } from "../../../../../../react/experiments/context";
 import type { CSSProperties } from "react";
@@ -986,33 +986,33 @@ function chartOptions(
   };
 }
 
-const runAggregationOptions: { value: RunAggregation; label: string }[] = [
-  { value: "mean", label: "Average" },
-  { value: "median", label: "Median" },
-  { value: "min", label: "Minimum" },
-  { value: "max", label: "Maximum" },
-  { value: "p10", label: "10th percentile" },
-  { value: "p25", label: "25th percentile" },
-  { value: "p75", label: "75th percentile" },
-  { value: "p90", label: "90th percentile" },
+const runAggregationOptions: { value: RunAggregation; text: string }[] = [
+  { value: "mean", text: "Average" },
+  { value: "median", text: "Median" },
+  { value: "min", text: "Minimum" },
+  { value: "max", text: "Maximum" },
+  { value: "p10", text: "10th percentile" },
+  { value: "p25", text: "25th percentile" },
+  { value: "p75", text: "75th percentile" },
+  { value: "p90", text: "90th percentile" },
 ] as const;
 
-const distributionViewOptions: { value: DistributionView; label: string }[] = [
-  { value: "heatmap", label: "Heatmap" },
-  { value: "bands", label: "Percentile lines" },
+const distributionViewOptions: { value: DistributionView; text: string }[] = [
+  { value: "heatmap", text: "Heatmap" },
+  { value: "bands", text: "Percentile lines" },
 ] as const;
 
-const timeTraceOptions: { value: TimeTrace; label: string }[] = [
-  { value: "value", label: "Value" },
-  { value: "minToDate", label: "Minimum to date" },
-  { value: "maxToDate", label: "Maximum to date" },
+const timeTraceOptions: { value: TimeTrace; text: string }[] = [
+  { value: "value", text: "Value" },
+  { value: "minToDate", text: "Minimum to date" },
+  { value: "maxToDate", text: "Maximum to date" },
 ] as const;
 
-const timeAggregationOptions: { value: TimeAggregation; label: string }[] = [
-  { value: "mean", label: "Average" },
-  { value: "min", label: "Minimum" },
-  { value: "max", label: "Maximum" },
-  { value: "sum", label: "Sum" },
+const timeAggregationOptions: { value: TimeAggregation; text: string }[] = [
+  { value: "mean", text: "Average" },
+  { value: "min", text: "Minimum" },
+  { value: "max", text: "Maximum" },
+  { value: "sum", text: "Sum" },
 ] as const;
 
 function formatLatestMetricValue(value: number | null): string {
@@ -1383,7 +1383,6 @@ export const ExperimentMetricTimeline = ({
             size="xxs"
             iconName="close"
             aria-label="Close"
-            tooltip="Close"
             onClick={() => {
               setSelectedFrameKey(null);
               setFramePopoverPosition(null);
@@ -1449,21 +1448,19 @@ export const ExperimentMetricTimeline = ({
             </div>
             {aggregateRuns ? (
               <Select
+                required
                 value={runAggregation}
-                onValueChange={(value) =>
-                  setRunAggregation(value as RunAggregation)
-                }
-                options={runAggregationOptions}
+                onChange={setRunAggregation}
+                items={runAggregationOptions}
                 size="xs"
                 className={aggregationSelectStyle}
               />
             ) : (
               <Select
+                required
                 value={distributionView}
-                onValueChange={(value) =>
-                  setDistributionView(value as DistributionView)
-                }
-                options={distributionViewOptions}
+                onChange={setDistributionView}
+                items={distributionViewOptions}
                 size="xs"
                 className={aggregationSelectStyle}
               />
@@ -1480,19 +1477,19 @@ export const ExperimentMetricTimeline = ({
           </div>
           {aggregateTime ? (
             <Select
+              required
               value={timeAggregation}
-              onValueChange={(value) =>
-                setTimeAggregation(value as TimeAggregation)
-              }
-              options={timeAggregationOptions}
+              onChange={setTimeAggregation}
+              items={timeAggregationOptions}
               size="xs"
               className={aggregationSelectStyle}
             />
           ) : (
             <Select
+              required
               value={timeTrace}
-              onValueChange={(value) => setTimeTrace(value as TimeTrace)}
-              options={timeTraceOptions}
+              onChange={setTimeTrace}
+              items={timeTraceOptions}
               size="xs"
               className={aggregationSelectStyle}
             />

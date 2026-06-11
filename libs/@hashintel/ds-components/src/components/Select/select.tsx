@@ -311,6 +311,7 @@ export const Select = <TValue extends string>({
     hasPrefix: !!prefix,
     connectsLeft,
     connectsRight,
+    customRender: !!renderItem || !!renderSelectedItem,
     clampTriggerHeight:
       (!!renderItem || !!renderSelectedItem) && (connectsLeft || connectsRight),
     willClear:

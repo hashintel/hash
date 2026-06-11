@@ -15,7 +15,6 @@ export const baseInputRecipe = sva({
     "adornment",
     "adornmentButton",
     "adornmentText",
-    "adornmentInteractive",
     "disabledButton",
     "loading",
     "editIcon",
@@ -123,6 +122,11 @@ export const baseInputRecipe = sva({
       justifyContent: "center",
       flexShrink: 0,
       whiteSpace: "nowrap",
+      "&[data-variant='subtle']": {
+        background: "[transparent]",
+        borderRightColor: "[transparent]",
+        borderLeftColor: "[transparent]",
+      },
     },
     adornmentButton: {
       color: "fg.body",
@@ -152,15 +156,6 @@ export const baseInputRecipe = sva({
       },
       "&:focus-visible + [data-part='connector']": {
         fill: "neutral.s25",
-      },
-    },
-    adornmentInteractive: {
-      transition:
-        "[background 0.15s ease, border 0.15s ease, color 0.15s ease]",
-      _focusWithin: {
-        outline: "[1px solid var(--colors-neutral-s80)]",
-        outlineOffset: "0",
-        background: "neutral.s25",
       },
     },
     disabledButton: {
@@ -284,9 +279,26 @@ export const baseInputRecipe = sva({
         },
         adornment: {
           background: "neutral.s20",
-          paddingX: "2",
           borderRightColor: "var(--colors-neutral-s40)",
           borderLeftColor: "var(--colors-neutral-s40)",
+          "&:not([data-variant='subtle'])": {
+            paddingX: "2",
+          },
+          "&[data-variant='subtle']": {
+            paddingX: "1 !important",
+          },
+        },
+        prefix: {
+          "&[data-variant='subtle'][data-part='adornment-text']": {
+            position: "relative",
+            left: "1",
+          },
+        },
+        suffix: {
+          "&[data-variant='subtle'][data-part='adornment-text']": {
+            position: "relative",
+            right: "1",
+          },
         },
         adornmentButton: {
           borderRightColor: "var(--colors-neutral-s40)",
@@ -332,14 +344,14 @@ export const baseInputRecipe = sva({
         prefix: {
           paddingLeft: "1",
           left: "[calc(var(--base-input-padding-x) * -1 + 1px)]",
-          "&[data-part='adornment-text']:not([data-interactive='true'])": {
+          "&[data-part='adornment-text']": {
             left: "[calc(var(--base-input-padding-x) * -0.8 + 1px)]",
           },
         },
         suffix: {
           paddingRight: "1",
           right: "[calc(var(--base-input-padding-x) * -1 + 1px)]",
-          "&[data-part='adornment-text']:not([data-interactive='true'])": {
+          "&[data-part='adornment-text']": {
             right: "[calc(var(--base-input-padding-x) * -0.8 + 1px)]",
           },
         },
@@ -525,8 +537,21 @@ export const baseInputRecipe = sva({
         },
       },
     },
+    subtlePrefix: { true: {} },
   },
   compoundVariants: [
+    {
+      variant: "default",
+      subtlePrefix: true,
+      css: {
+        input: {
+          paddingLeft: "[calc(var(--base-input-padding-x) / 2)]",
+        },
+        styledValueOverlay: {
+          paddingLeft: "[calc(var(--base-input-padding-x) / 2)]",
+        },
+      },
+    },
     {
       variant: "subtle",
       loading: true,
@@ -557,11 +582,11 @@ export const baseInputRecipe = sva({
             pointerEvents: "none",
             transition: "[border 0.15s ease]",
           },
-          "&:has([data-part='adornment-button']:not([disabled]):hover)::after, &:has([data-part='adornment-text'][data-interactive]:hover)::after":
+          "&:has([data-part='adornment-button']:not([disabled]):hover)::after":
             {
               border: "1px solid var(--base-input-border-hover-color)",
             },
-          "&:has([data-part='adornment-button']:not([disabled]):focus-visible)::after, &:has([data-part='adornment-text'][data-interactive]:focus-within)::after":
+          "&:has([data-part='adornment-button']:not([disabled]):focus-visible)::after":
             {
               border: "1px solid var(--base-input-border-hover-color)",
               outline: "[1px solid var(--base-input-focus-color)]",
@@ -575,11 +600,11 @@ export const baseInputRecipe = sva({
       css: {
         root: {
           color: "neutral.s80",
-          "&:has([data-part='adornment-button']:not([disabled]):hover)::before, &:has([data-part='adornment-text'][data-interactive]:hover)::before":
+          "&:has([data-part='adornment-button']:not([disabled]):hover)::before":
             {
               borderColor: "var(--base-input-border-hover-color)",
             },
-          "&:has([data-part='adornment-button']:not([disabled]):focus-visible)::before, &:has([data-part='adornment-text'][data-interactive]:focus-within)::before":
+          "&:has([data-part='adornment-button']:not([disabled]):focus-visible)::before":
             {
               borderColor: "var(--base-input-border-color)",
             },

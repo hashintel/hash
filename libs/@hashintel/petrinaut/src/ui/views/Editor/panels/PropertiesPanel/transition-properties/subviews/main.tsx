@@ -33,14 +33,6 @@ const TransitionMainContent: React.FC = () => {
     removeArc,
   } = useTransitionPropertiesContext();
 
-  const getPlaceColor = (placeId: string): string | undefined => {
-    const place = places.find((pl) => pl.id === placeId);
-    if (!place?.colorId) {
-      return undefined;
-    }
-    return types.find((tp) => tp.id === place.colorId)?.displayColor;
-  };
-
   const toPlaceOption = (pl: (typeof places)[number]): PlaceOption => ({
     id: pl.id,
     name: pl.name,
@@ -133,17 +125,11 @@ const TransitionMainContent: React.FC = () => {
         ) : (
           <ArcList>
             {transition.inputArcs.map((arc) => {
-              const place = places.find(
-                (placeItem) => placeItem.id === arc.placeId,
-              );
               return (
                 <ArcItem
                   key={arc.placeId}
                   placeId={arc.placeId}
-                  placeName={place?.name ?? arc.placeId}
                   weight={arc.weight}
-                  color={getPlaceColor(arc.placeId)}
-                  arcType={arc.type}
                   disabled={isReadOnly}
                   availablePlaces={getAvailableInputPlaces(arc.placeId)}
                   onPlaceChange={(newPlaceId) =>
@@ -173,17 +159,11 @@ const TransitionMainContent: React.FC = () => {
         ) : (
           <ArcList>
             {transition.outputArcs.map((arc) => {
-              const place = places.find(
-                (placeItem) => placeItem.id === arc.placeId,
-              );
               return (
                 <ArcItem
                   key={arc.placeId}
                   placeId={arc.placeId}
-                  placeName={place?.name ?? arc.placeId}
                   weight={arc.weight}
-                  color={getPlaceColor(arc.placeId)}
-                  arcType="standard"
                   disabled={isReadOnly}
                   availablePlaces={getAvailableOutputPlaces(arc.placeId)}
                   onPlaceChange={(newPlaceId) =>

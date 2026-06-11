@@ -1,14 +1,12 @@
 import { use, useState } from "react";
 
-import { Button, Icon } from "@hashintel/ds-components";
+import { Button, Icon, NumberInput, Select } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { SimulationContext } from "../../../../../../react/simulation/context";
 import { EditorContext } from "../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { InfoIconTooltip } from "../../../../../components/info-icon-tooltip";
-import { NumberInput } from "../../../../../components/number-input";
-import { Select } from "../../../../../components/select";
 import { Slider } from "../../../../../components/slider";
 import { Switch } from "../../../../../components/switch";
 import { CreateScenarioDrawer } from "../../SimulateView/scenarios/create-scenario-drawer";
@@ -44,6 +42,14 @@ const scenarioLabelStyle = css({
 
 const scenarioSelectStyle = css({
   width: "[200px]",
+});
+
+const parameterInputStyles = css({
+  width: "[80px]",
+});
+
+const parameterSliderInputStyles = css({
+  width: "[65px]",
 });
 
 const containerStyle = css({
@@ -95,10 +101,6 @@ const smallLabelStyle = css({
   fontWeight: "normal",
 });
 
-const settingInputStyle = css({
-  width: "[100px]",
-});
-
 const parametersListStyle = css({
   display: "flex",
   flexDirection: "column",
@@ -130,11 +132,6 @@ const parameterVarNameStyle = css({
   fontFamily: "mono",
 });
 
-const parameterInputStyle = css({
-  width: "[80px]",
-  textAlign: "right",
-});
-
 const ratioRowStyle = css({
   display: "flex",
   alignItems: "center",
@@ -145,11 +142,6 @@ const ratioRowStyle = css({
 const ratioSliderStyle = css({
   width: "[120px]",
   opacity: "[1]",
-});
-
-const ratioInputStyle = css({
-  width: "[65px]",
-  textAlign: "right",
 });
 
 const emptyMessageStyle = css({
@@ -186,7 +178,7 @@ const SimulationSettingsContent: React.FC = () => {
   } = use(SimulationContext);
 
   const selectedScenarioId = contextScenarioId ?? NO_SCENARIO;
-  const [odeSolver, setOdeSolver] = useState("euler");
+  const [odeSolver, setOdeSolver] = useState("euler" as const);
   const [isCreateScenarioOpen, setIsCreateScenarioOpen] = useState(false);
   const [isViewScenarioOpen, setIsViewScenarioOpen] = useState(false);
 
@@ -220,8 +212,8 @@ const SimulationSettingsContent: React.FC = () => {
       }));
 
   const scenarioOptions = [
-    ...(scenarios ?? []).map((s) => ({ value: s.id, label: s.name })),
-    { value: NO_SCENARIO, label: "No scenario" },
+    ...(scenarios ?? []).map((s) => ({ value: s.id, text: s.name })),
+    { value: NO_SCENARIO, text: "No scenario" },
   ];
 
   return (
@@ -230,26 +222,30 @@ const SimulationSettingsContent: React.FC = () => {
       <div className={scenarioRowStyle}>
         <span className={scenarioLabelStyle}>Scenario</span>
         <Select
+          required
           value={selectedScenarioId}
-          onValueChange={(value) =>
-            setContextScenarioId(value === NO_SCENARIO ? null : value)
+          onChange={(scenarioId) =>
+            setContextScenarioId(scenarioId === NO_SCENARIO ? null : scenarioId)
           }
-          options={scenarioOptions}
+          items={scenarioOptions}
           size="xs"
           disabled={isSimulationActive}
           className={scenarioSelectStyle}
-          renderItem={(option) => (
-            <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              {option.value === NO_SCENARIO && (
-                <Icon
-                  name="dash"
-                  size="xs"
-                  className={css({ opacity: "[0.4]" })}
-                />
-              )}
-              {option.label}
-            </span>
-          )}
+          renderItem={(value) => {
+            const option = scenarioOptions.find((opt) => opt.value === value);
+            return (
+              <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                {value === NO_SCENARIO && (
+                  <Icon
+                    name="dash"
+                    size="xs"
+                    className={css({ opacity: "[0.4]" })}
+                  />
+                )}
+                {option?.text}
+              </span>
+            );
+          }}
         />
         <div style={{ display: "flex" }}>
           {selectedScenario && (
@@ -344,41 +340,47 @@ const SimulationSettingsContent: React.FC = () => {
                         min={0}
                         max={1}
                         step={0.00001}
-                        value={
+                        align="right"
+                        hideStepper
+                        value={Number(
                           scenarioParameterValues[param.variableName] ??
-                          param.defaultValue
-                        }
-                        onChange={(e) =>
+                            param.defaultValue,
+                        )}
+                        onChange={(paramValue) =>
                           setScenarioParameterValue(
                             param.variableName,
-                            (e.target as HTMLInputElement).value,
+                            paramValue === null ? "" : String(paramValue),
                           )
                         }
                         disabled={isSimulationActive}
-                        className={ratioInputStyle}
+                        className={parameterSliderInputStyles}
                       />
                     </div>
                   ) : (
                     <NumberInput
                       size="xs"
-                      value={
+                      align="right"
+                      step={param.type === "integer" ? 1 : 0.001}
+                      hideStepper
+                      value={Number(
                         selectedScenario
                           ? (scenarioParameterValues[param.variableName] ??
-                            param.defaultValue)
+                              param.defaultValue)
                           : (parameterValues[param.variableName] ??
-                            param.defaultValue)
-                      }
-                      onChange={(event) => {
-                        const val = (event.target as HTMLInputElement).value;
+                              param.defaultValue),
+                      )}
+                      onChange={(paramValue) => {
+                        const next =
+                          paramValue === null ? "" : String(paramValue);
                         if (selectedScenario) {
-                          setScenarioParameterValue(param.variableName, val);
+                          setScenarioParameterValue(param.variableName, next);
                         } else {
-                          setParameterValue(param.variableName, val);
+                          setParameterValue(param.variableName, next);
                         }
                       }}
                       placeholder={param.defaultValue}
                       disabled={isSimulationActive}
-                      className={parameterInputStyle}
+                      className={parameterInputStyles}
                     />
                   )}
                 </div>
@@ -404,21 +406,19 @@ const SimulationSettingsContent: React.FC = () => {
                 <InfoIconTooltip tooltip="Controls the resolution of the ODE solver. Smaller steps yield finer approximations but take longer to compute." />
               </label>
               <NumberInput
-                id="time-step-input"
+                htmlForId="time-step-input"
                 size="xs"
+                width="xs"
                 min={0.001}
                 step={0.001}
+                hideStepper
                 value={dt}
-                onChange={(event) => {
-                  const value = Number.parseFloat(
-                    (event.target as HTMLInputElement).value,
-                  );
-                  if (value > 0) {
-                    setDt(value);
+                onChange={(nextDt) => {
+                  if (nextDt !== null && nextDt > 0) {
+                    setDt(nextDt);
                   }
                 }}
                 disabled={isSimulationActive}
-                className={settingInputStyle}
               />
             </div>
             {/* ODE Solver Method Select */}
@@ -427,12 +427,13 @@ const SimulationSettingsContent: React.FC = () => {
                 ODE Solver
               </label>
               <Select
+                required
+                width="xs"
                 value={odeSolver}
-                onValueChange={(value) => setOdeSolver(value)}
-                options={[{ value: "euler", label: "Euler" }]}
+                onChange={setOdeSolver}
+                items={[{ value: "euler", text: "Euler" }]}
                 size="xs"
                 disabled={isSimulationActive}
-                className={settingInputStyle}
               />
             </div>
           </div>

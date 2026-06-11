@@ -25,6 +25,11 @@ export {
   SegmentedControl,
   type SegmentedControlProps,
 } from "./components/SegmentedControl/segmented-control";
+export {
+  Select,
+  type SelectItem,
+  type SelectProps,
+} from "./components/Select/select";
 export { Slider, type SliderProps } from "./components/Slider/slider";
 export { Switch, type SwitchProps } from "./components/Switch/switch";
 export { TextInput } from "./components/TextInput/text-input";

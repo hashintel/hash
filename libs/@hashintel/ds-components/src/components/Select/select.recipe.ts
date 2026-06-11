@@ -74,7 +74,7 @@ export const selectRecipe = sva({
       display: "flex",
       alignItems: "center",
       borderRadius: "var(--base-input-border-radius)",
-      minWidth: "var(--form-min-width)",
+      minWidth: "0",
       flex: "[1 1 auto]",
       width: "var(--form-width)",
       maxWidth: "var(--form-width)",
@@ -256,6 +256,12 @@ export const selectRecipe = sva({
           "--base-input-padding-x": "spacing.2",
         },
         readonly: { textStyle: formSizes.variants.sizes.xxs.textStyle },
+        select: {
+          "&:after": {
+            borderRightWidth: "[1px]",
+            borderBottomWidth: "[1px]",
+          },
+        },
       },
       xs: {
         wrapper: {
@@ -264,6 +270,12 @@ export const selectRecipe = sva({
           "--base-input-padding-x": "spacing.2",
         },
         readonly: { textStyle: formSizes.variants.sizes.xs.textStyle },
+        select: {
+          "&:after": {
+            borderRightWidth: "[1px]",
+            borderBottomWidth: "[1px]",
+          },
+        },
       },
       sm: {
         wrapper: {
@@ -389,10 +401,16 @@ export const selectRecipe = sva({
         },
       },
     },
-    clampTriggerHeight: {
+    customRender: {
       true: {
         trigger: {
           display: "inline-flex",
+        },
+      },
+    },
+    clampTriggerHeight: {
+      true: {
+        trigger: {
           maxHeight:
             "[calc(var(--form-line-height) + 2 * var(--form-padding-y))]",
         },

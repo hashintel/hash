@@ -1,6 +1,5 @@
+import { Select } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
-
-import { Select } from "../../../../../components/select";
 
 const colorSwatchStyle = css({
   width: "4",
@@ -26,16 +25,16 @@ const itemContainerStyle = css({
 
 // Pool of 10 well-differentiated colors for types
 const TYPE_COLOR_POOL = [
-  { value: "#3b82f6", label: "Blue" },
-  { value: "#ef4444", label: "Red" },
-  { value: "#10b981", label: "Green" },
-  { value: "#f59e0b", label: "Amber" },
-  { value: "#8b5cf6", label: "Violet" },
-  { value: "#ec4899", label: "Pink" },
-  { value: "#14b8a6", label: "Teal" },
-  { value: "#f97316", label: "Orange" },
-  { value: "#6366f1", label: "Indigo" },
-  { value: "#84cc16", label: "Lime" },
+  { value: "#3b82f6", text: "Blue" },
+  { value: "#ef4444", text: "Red" },
+  { value: "#10b981", text: "Green" },
+  { value: "#f59e0b", text: "Amber" },
+  { value: "#8b5cf6", text: "Violet" },
+  { value: "#ec4899", text: "Pink" },
+  { value: "#14b8a6", text: "Teal" },
+  { value: "#f97316", text: "Orange" },
+  { value: "#6366f1", text: "Indigo" },
+  { value: "#84cc16", text: "Lime" },
 ];
 
 interface ColorSelectProps {
@@ -51,29 +50,19 @@ export const ColorSelect: React.FC<ColorSelectProps> = ({
 }) => {
   return (
     <Select
+      required
       value={value}
-      onValueChange={onChange}
-      options={TYPE_COLOR_POOL}
+      onChange={onChange}
+      items={TYPE_COLOR_POOL}
       disabled={disabled}
       size="sm"
-      renderTrigger={({ selectedOption }) => (
+      renderItem={(itemValue) => (
         <div className={itemContainerStyle}>
           <div
             className={colorSwatchStyle}
-            style={{ backgroundColor: selectedOption?.value ?? value }}
+            style={{ backgroundColor: itemValue }}
           />
-          <span className={colorCodeStyle}>
-            {selectedOption?.value ?? value}
-          </span>
-        </div>
-      )}
-      renderItem={(option) => (
-        <div className={itemContainerStyle}>
-          <div
-            className={colorSwatchStyle}
-            style={{ backgroundColor: option.value }}
-          />
-          <span className={colorCodeStyle}>{option.value}</span>
+          <span className={colorCodeStyle}>{itemValue}</span>
         </div>
       )}
     />

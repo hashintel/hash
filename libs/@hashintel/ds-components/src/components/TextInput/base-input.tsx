@@ -55,11 +55,13 @@ export type BaseInputProps = {
   onKeyDown?: React.KeyboardEventHandler<Element>;
   min?: number;
   max?: number;
-  step?: number;
+  step?: number | "any";
   maxLength?: number;
   pattern?: string;
   spellcheck?: boolean;
   tabIndex?: number;
+  /** Inline style applied to the outer wrapper. Useful for setting CSS variables like `--form-width`. */
+  style?: React.CSSProperties;
 } & SharedInputProps<
   HTMLInputElement,
   string | null | undefined,
@@ -68,10 +70,11 @@ export type BaseInputProps = {
   React.AriaAttributes;
 
 type BaseInputSlots = ReturnType<typeof baseInputRecipe>;
-type PrefixOrSuffix =
+type PrefixOrSuffix = (
   | { iconName: IconName; onClick?: () => void; disabled?: boolean }
   | { text: string; onClick?: () => void; disabled?: boolean }
-  | { type: "text" | "interactive"; content: React.ReactNode };
+  | { content: React.ReactNode }
+) & { variant?: "default" | "subtle" };
 
 function isIconAdornment(
   val: unknown,
@@ -114,6 +117,7 @@ function renderAdornment(
   ) : (
     adornment.content
   );
+  const dataVariant = adornment.variant === "subtle" ? "subtle" : undefined;
   if (!("content" in adornment) && adornment.onClick) {
     return (
       <button
@@ -121,6 +125,7 @@ function renderAdornment(
         onClick={adornment.onClick}
         disabled={adornment.disabled}
         data-part="adornment-button"
+        data-variant={dataVariant}
         className={cx(
           classes[type],
           classes.adornment,
@@ -132,18 +137,11 @@ function renderAdornment(
       </button>
     );
   }
-  const isInteractive =
-    "content" in adornment && adornment.type === "interactive";
   return (
     <span
-      className={cx(
-        classes[type],
-        classes.adornment,
-        classes.adornmentText,
-        isInteractive && classes.adornmentInteractive,
-      )}
+      className={cx(classes[type], classes.adornment, classes.adornmentText)}
       data-part="adornment-text"
-      data-interactive={isInteractive || undefined}
+      data-variant={dataVariant}
     >
       {content}
     </span>
@@ -176,6 +174,7 @@ export const BaseInput = ({
   spellcheck,
   autocomplete = false,
   className,
+  style,
   name,
   value,
   onChange,
@@ -207,6 +206,7 @@ export const BaseInput = ({
   const hasIcons = !!loading || showClear;
   const connectsLeft = connectToLeftInput && variant === "default";
   const connectsRight = connectToRightInput && variant === "default";
+  const subtlePrefix = variant === "default" && prefix?.variant === "subtle";
 
   const classes = baseInputRecipe({
     variant,
@@ -221,6 +221,7 @@ export const BaseInput = ({
     editAndClear: showClear && showEditIcon,
     connectsLeft,
     connectsRight,
+    subtlePrefix,
     willClear:
       showClear &&
       clearable.clearable &&
@@ -291,6 +292,7 @@ export const BaseInput = ({
     <div
       ref={ref as React.Ref<HTMLDivElement>}
       className={cx(classes.wrapper, className)}
+      style={style}
     >
       {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- click-to-focus container delegates to inner <input> */}
       <div

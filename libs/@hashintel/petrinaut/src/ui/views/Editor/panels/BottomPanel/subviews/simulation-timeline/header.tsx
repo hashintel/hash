@@ -1,6 +1,6 @@
 import { use, useEffect, useState } from "react";
 
-import { Button } from "@hashintel/ds-components";
+import { Button, Select } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import {
@@ -10,7 +10,6 @@ import {
 } from "../../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../../react/state/sdcpn-context";
 import { SegmentGroup } from "../../../../../../components/segment-group";
-import { Select } from "../../../../../../components/select";
 import { CreateMetricDrawer } from "../../../SimulateView/metrics/create-metric-drawer";
 import { ViewMetricDrawer } from "../../../SimulateView/metrics/view-metric-drawer";
 
@@ -108,12 +107,12 @@ const TimelineViewPicker: React.FC = () => {
       : undefined;
 
   const options = [
-    { value: PER_PLACE_VALUE, label: "Tokens per place" },
+    { value: PER_PLACE_VALUE, text: "Tokens per place" },
     ...(colorsEnabled
-      ? [{ value: PER_TYPE_VALUE, label: "Tokens per type" }]
+      ? [{ value: PER_TYPE_VALUE, text: "Tokens per type" }]
       : []),
-    { value: PER_TRANSITION_VALUE, label: "Transition firings" },
-    ...metrics.map((m) => ({ value: m.id, label: m.name })),
+    { value: PER_TRANSITION_VALUE, text: "Transition firings" },
+    ...metrics.map((m) => ({ value: m.id, text: m.name })),
   ];
   const selectedValue =
     colorsEnabled || timelineView.kind !== "per-type"
@@ -126,9 +125,10 @@ const TimelineViewPicker: React.FC = () => {
       <div className={metricPickerWrapperStyle}>
         <Select
           size="xs"
+          required
           value={selectedValue}
-          options={options}
-          onValueChange={(value) => setTimelineView(selectValueToView(value))}
+          items={options}
+          onChange={(value) => setTimelineView(selectValueToView(value))}
         />
       </div>
       <div style={{ display: "flex" }}>

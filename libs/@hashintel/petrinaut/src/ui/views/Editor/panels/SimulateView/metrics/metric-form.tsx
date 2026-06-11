@@ -1,10 +1,10 @@
 import { useForm, useStore } from "@tanstack/react-form";
 import { use, useEffect, useRef, useState } from "react";
 
+import { TextInput } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
-import { Input } from "../../../../../components/input";
 import { Section, SectionList } from "../../../../../components/section";
 import { CodeEditor } from "../../../../../monaco/code-editor";
 import { getMetricDocumentUri } from "../../../../../monaco/editor-paths";
@@ -209,12 +209,12 @@ const MetricFormSections = ({
           <label className={labelStyle} htmlFor={`${idPrefix}metric-name`}>
             Metric name
           </label>
-          <Input
-            id={`${idPrefix}metric-name`}
+          <TextInput
+            htmlForId={`${idPrefix}metric-name`}
             size="md"
             value={state.name}
-            onChange={(e) => callbacks.onNameChange(e.target.value)}
-            hasError={nameHasError && state.name !== ""}
+            onChange={callbacks.onNameChange}
+            invalid={nameHasError && state.name !== ""}
           />
         </div>
 

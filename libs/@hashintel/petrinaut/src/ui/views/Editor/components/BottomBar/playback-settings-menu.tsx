@@ -1,6 +1,6 @@
 import { use } from "react";
 
-import { Button, Icon } from "@hashintel/ds-components";
+import { Button, Icon, NumberInput } from "@hashintel/ds-components";
 import { css, cva, cx } from "@hashintel/ds-helpers/css";
 
 import {
@@ -10,7 +10,6 @@ import {
   type PlaybackSpeed,
 } from "../../../../../react/playback/context";
 import { SimulationContext } from "../../../../../react/simulation/context";
-import { NumberInput } from "../../../../components/number-input";
 import { Popover } from "../../../../components/popover";
 import { ToolbarButton } from "./toolbar-button";
 
@@ -122,8 +121,6 @@ const popoverDividerStyle = css({
 
 const maxTimeInputStyle = css({
   width: "[60px]",
-  textAlign: "right",
-  flexShrink: 0,
   fontVariantNumeric: "tabular-nums",
 });
 
@@ -341,13 +338,12 @@ export const PlaybackSettingsMenu = () => {
                     min={0.1}
                     step={0.1}
                     value={maxTime ?? 10}
+                    align="right"
+                    hideStepper
                     disabled={hasSimulation}
-                    onChange={(event) => {
-                      const value = Number.parseFloat(
-                        (event.target as HTMLInputElement).value,
-                      );
-                      if (!Number.isNaN(value) && value > 0) {
-                        setMaxTime(value);
+                    onChange={(nextMaxTime) => {
+                      if (nextMaxTime !== null && nextMaxTime > 0) {
+                        setMaxTime(nextMaxTime);
                       }
                     }}
                     onClick={(event) => event.stopPropagation()}

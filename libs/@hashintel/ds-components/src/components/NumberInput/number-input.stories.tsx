@@ -41,29 +41,16 @@ const rowVariants: RowVariant[] = [
 
 const noop = () => {};
 
-const Controlled = ({
-  type = "integer",
-  ...props
-}: Omit<NumberInputProps, "type"> & {
-  type?: "integer" | "float";
-}) => {
+const Controlled = ({ ...props }: NumberInputProps) => {
   const [value, setValue] = useState(props.value ?? null);
   return (
-    <NumberInput
-      {...props}
-      value={value}
-      onChange={(val) => setValue(val)}
-      type={type}
-    />
+    <NumberInput {...props} value={value} onChange={(val) => setValue(val)} />
   );
 };
 
 const ClearableInput = ({
-  type = "integer",
   ...props
-}: Omit<NumberInputProps, "clearable" | "onChange" | "type"> & {
-  type?: "integer" | "float";
-}) => {
+}: Omit<NumberInputProps, "clearable" | "onChange">) => {
   const [value, setValue] = useState(props.value ?? null);
   return (
     <NumberInput
@@ -71,7 +58,6 @@ const ClearableInput = ({
       value={value}
       onChange={(val) => setValue(val)}
       clearable={{ clearable: true, onClear: () => setValue(null) }}
-      type={type}
     />
   );
 };
@@ -81,7 +67,7 @@ const StyledNumberInput = ({
   ...props
 }: Omit<
   NumberInputProps,
-  "value" | "onChange" | "styledValue" | "clearable" | "type"
+  "value" | "onChange" | "styledValue" | "clearable"
 > & {
   clearable?: boolean;
 }) => {
@@ -91,7 +77,6 @@ const StyledNumberInput = ({
       {...props}
       value={value}
       onChange={(val) => setValue(val)}
-      type="integer"
       clearable={
         clearable
           ? { clearable: true, onClear: () => setValue(null) }
@@ -112,6 +97,10 @@ const sectionStyle = css({
   display: "flex",
   flexDirection: "column",
   gap: "[32px]",
+});
+
+const customWidthStyle = css({
+  width: "[30px]",
 });
 
 const groupStyle = css({
@@ -148,6 +137,11 @@ const stateRows = [
     label: "Show Edit Icon",
     extraProps: { showEditIcon: true },
   },
+  {
+    key: "hideStepper",
+    label: "Hide Stepper",
+    extraProps: { hideStepper: true },
+  },
 ];
 
 const stateColumns = [
@@ -156,16 +150,9 @@ const stateColumns = [
   { key: "readonly", label: "Read-only", withValue: true, readonly: true },
 ];
 
-const numberTypes = ["integer", "float"] as const;
-
 export default {
   title: "Components/NumberInput",
   argTypes: {
-    type: {
-      control: { type: "radio" },
-      options: numberTypes,
-      description: "Numeric type",
-    },
     placeholder: {
       control: { type: "text" },
       description: "Placeholder text shown when the input is empty",
@@ -212,7 +199,6 @@ export default {
     },
   },
   args: {
-    type: "integer",
     disabled: false,
     invalid: false,
     readonly: false,
@@ -225,13 +211,11 @@ export default {
 } satisfies StoryDefault<NumberInputProps>;
 
 const StateGrid = ({
-  type,
   filledValue,
   forwardProps,
 }: {
-  type: "integer" | "float";
   filledValue: number;
-  forwardProps?: Omit<NumberInputProps, "value" | "onChange" | "type">;
+  forwardProps?: Omit<NumberInputProps, "value" | "onChange">;
 }) => (
   <div className={sectionStyle}>
     {variants.map((variant) => (
@@ -240,20 +224,24 @@ const StateGrid = ({
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "auto auto auto",
+            gridTemplateColumns: "auto auto auto auto",
             columnGap: 32,
             rowGap: 12,
             alignItems: "center",
             justifyContent: "start",
           }}
         >
+          <span />
           {stateColumns.map((col) => (
             <span key={col.key} style={subheadingStyle}>
               {col.label}
             </span>
           ))}
-          {stateRows.flatMap((row) =>
-            stateColumns.map((col) => {
+          {stateRows.flatMap((row) => [
+            <span key={`${row.key}-label`} style={subheadingStyle}>
+              {row.label}
+            </span>,
+            ...stateColumns.map((col) => {
               const value = col.withValue ? filledValue : null;
               const cellKey = `${row.key}-${col.key}`;
               return row.clearable ? (
@@ -263,7 +251,6 @@ const StateGrid = ({
                   value={value}
                   variant={variant}
                   readonly={col.readonly}
-                  type={type}
                   {...row.extraProps}
                 />
               ) : (
@@ -274,47 +261,45 @@ const StateGrid = ({
                   onChange={noop}
                   variant={variant}
                   readonly={col.readonly}
-                  type={type}
                   {...row.extraProps}
                 />
               );
             }),
-          )}
+          ])}
         </div>
       </div>
     ))}
   </div>
 );
 
-export const Default: Story<NumberInputProps> = ({
-  type: _type,
-  ...forwardProps
-}) => (
-  <StateGrid type="integer" filledValue={1234} forwardProps={forwardProps} />
+export const Default: Story<NumberInputProps> = (forwardProps) => (
+  <StateGrid filledValue={1234} forwardProps={forwardProps} />
 );
 
-export const Float: Story<NumberInputProps> = ({
-  type: _type,
-  ...forwardProps
-}) => (
-  <StateGrid type="float" filledValue={1234.56} forwardProps={forwardProps} />
+export const Float: Story<NumberInputProps> = (forwardProps) => (
+  <StateGrid
+    filledValue={1234.56}
+    forwardProps={{ ...forwardProps, step: 0.01 }}
+  />
 );
 
 export const Alignment: Story<NumberInputProps> = (args) => (
   <div
     style={{
       display: "grid",
-      gridTemplateColumns: "auto auto",
+      gridTemplateColumns: "auto auto auto",
       columnGap: 32,
       rowGap: 12,
       alignItems: "center",
       justifyContent: "start",
     }}
   >
+    <span />
     <span style={subheadingStyle}>Editable</span>
     <span style={subheadingStyle}>Read-only</span>
     {alignments.map((align) => (
       <Fragment key={align}>
+        <span style={subheadingStyle}>{align}</span>
         <Controlled {...args} value={1234} onChange={noop} align={align} />
         <Controlled
           {...args}
@@ -335,23 +320,26 @@ export const StyledValue: Story<NumberInputProps> = ({
   <div
     style={{
       display: "grid",
-      gridTemplateColumns: "auto auto",
+      gridTemplateColumns: "auto auto auto",
       columnGap: 32,
       rowGap: 12,
       alignItems: "center",
       justifyContent: "start",
     }}
   >
+    <span />
     <span style={subheadingStyle}>Editable</span>
     <span style={subheadingStyle}>Read-only</span>
     {variants.map((variant) => (
       <Fragment key={variant}>
+        <span style={subheadingStyle}>{variant}</span>
         <StyledNumberInput {...args} variant={variant} />
         <StyledNumberInput {...args} variant={variant} readonly />
       </Fragment>
     ))}
     {variants.map((variant) => (
       <Fragment key={`sink-${variant}`}>
+        <span style={subheadingStyle}>{variant} (with items)</span>
         <StyledNumberInput
           {...args}
           variant={variant}
@@ -431,29 +419,79 @@ export const Widths: Story<NumberInputProps> = (args) => (
     {rowVariants.map((rv) => (
       <div key={rv.label} className={groupStyle}>
         <h3 style={headingStyle}>{rv.label}</h3>
-        {widths.map((width) => (
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "auto 1fr",
+            columnGap: 32,
+            rowGap: 12,
+            alignItems: "center",
+          }}
+        >
+          {widths.map((width) => (
+            <Fragment key={width}>
+              <span style={subheadingStyle}>{width}</span>
+              <Controlled
+                {...args}
+                value={1234567890}
+                onChange={noop}
+                variant={rv.variant}
+                readonly={rv.readonly}
+                width={width}
+              />
+            </Fragment>
+          ))}
+          <span style={subheadingStyle}>custom 30px (below min)</span>
           <Controlled
-            key={width}
             {...args}
             value={1234567890}
             onChange={noop}
             variant={rv.variant}
             readonly={rv.readonly}
-            width={width}
+            className={customWidthStyle}
+            hideStepper
           />
-        ))}
-        {!rv.readonly && (
-          <ClearableInput
+          <span style={subheadingStyle}>maxNumber (int, max=999)</span>
+          <Controlled
             {...args}
-            value={1234567890}
+            value={999}
+            onChange={noop}
             variant={rv.variant}
-            width="fitContent"
-            prefix={{ iconName: "search" }}
-            suffix={{ text: "kg" }}
-            loading
-            showEditIcon
+            readonly={rv.readonly}
+            width="maxNumber"
+            hideStepper
+            max={999}
           />
-        )}
+          <span style={subheadingStyle}>
+            maxNumber (float, max=99, step=0.001)
+          </span>
+          <Controlled
+            {...args}
+            value={99.999}
+            onChange={noop}
+            variant={rv.variant}
+            readonly={rv.readonly}
+            width="maxNumber"
+            hideStepper
+            max={99}
+            step={0.001}
+          />
+          {!rv.readonly && (
+            <>
+              <span style={subheadingStyle}>with items</span>
+              <ClearableInput
+                {...args}
+                value={1234567890}
+                variant={rv.variant}
+                width="fitContent"
+                prefix={{ iconName: "search" }}
+                suffix={{ text: "kg" }}
+                loading
+                showEditIcon
+              />
+            </>
+          )}
+        </div>
       </div>
     ))}
   </div>
@@ -462,7 +500,7 @@ export const Widths: Story<NumberInputProps> = (args) => (
 type PrefixSuffixRow = {
   key: string;
   clearable?: boolean;
-  props: Omit<NumberInputProps, "variant" | "width" | "onChange" | "type">;
+  props: Omit<NumberInputProps, "variant" | "width" | "onChange">;
 };
 
 const prefixSuffixRows: PrefixSuffixRow[] = [
@@ -585,7 +623,6 @@ const prefixSuffixRows: PrefixSuffixRow[] = [
     props: {
       value: null,
       prefix: {
-        type: "interactive",
         content: (
           <button type="button" onClick={noop} style={{ outline: "none" }}>
             Go
@@ -593,14 +630,13 @@ const prefixSuffixRows: PrefixSuffixRow[] = [
         ),
       },
       suffix: {
-        type: "interactive",
         content: (
           <button type="button" onClick={noop} style={{ outline: "none" }}>
             Clear
           </button>
         ),
       },
-      placeholder: "Interactive button prefix + suffix",
+      placeholder: "Custom prefix + suffix button",
     },
   },
 ];
@@ -609,17 +645,21 @@ export const PrefixAndSuffix: Story<NumberInputProps> = (args) => (
   <div
     style={{
       display: "grid",
-      gridTemplateColumns: "auto auto",
+      gridTemplateColumns: "auto auto auto",
       columnGap: 32,
       rowGap: 12,
       alignItems: "center",
       justifyContent: "start",
     }}
   >
+    <span />
     <span style={subheadingStyle}>Default</span>
     <span style={subheadingStyle}>Subtle</span>
-    {prefixSuffixRows.flatMap((row) =>
-      variants.map((variant) =>
+    {prefixSuffixRows.flatMap((row) => [
+      <span key={`${row.key}-label`} style={subheadingStyle}>
+        {row.key}
+      </span>,
+      ...variants.map((variant) =>
         row.clearable ? (
           <ClearableInput
             key={`${row.key}-${variant}`}
@@ -637,6 +677,6 @@ export const PrefixAndSuffix: Story<NumberInputProps> = (args) => (
           />
         ),
       ),
-    )}
+    ])}
   </div>
 );

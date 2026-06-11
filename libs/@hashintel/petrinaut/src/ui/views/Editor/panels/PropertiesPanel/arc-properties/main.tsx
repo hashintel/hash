@@ -1,6 +1,12 @@
 import { createContext, use } from "react";
 
-import { Button, Icon } from "@hashintel/ds-components";
+import {
+  Button,
+  Icon,
+  NumberInput,
+  Select,
+  Tooltip,
+} from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import {
   parseArcId,
@@ -10,9 +16,7 @@ import {
 
 import { EditorContext } from "../../../../../../react/state/editor-context";
 import { useIsReadOnly } from "../../../../../../react/state/use-is-read-only";
-import { NumberInput } from "../../../../../components/number-input";
 import { Section, SectionList } from "../../../../../components/section";
-import { Select } from "../../../../../components/select";
 import { VerticalSubViewsContainer } from "../../../../../components/sub-view/vertical/vertical-sub-views-container";
 import { UI_MESSAGES } from "../../../../../constants/ui-messages";
 
@@ -84,42 +88,43 @@ const ArcMainContent: React.FC = () => {
       </Section>
       {arcDirection === "input" && (
         <Section title="Type">
-          <Select
-            value={type}
-            onValueChange={(value) => {
-              updateArcType({
-                transitionId,
-                placeId,
-                type: value as InputArc["type"],
-              });
-            }}
-            options={[
-              { value: "standard", label: "Standard" },
-              { value: "read", label: "Read" },
-              { value: "inhibitor", label: "Inhibitor" },
-            ]}
-            disabled={isReadOnly}
-            tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
-          />
+          <Tooltip
+            content={UI_MESSAGES.READ_ONLY_MODE}
+            disableTooltip={!isReadOnly}
+          >
+            <Select
+              required
+              value={type}
+              size="sm"
+              onChange={(nextType) => {
+                updateArcType({
+                  transitionId,
+                  placeId,
+                  type: nextType,
+                });
+              }}
+              items={[
+                { value: "standard" as const, text: "Standard" },
+                { value: "read" as const, text: "Read" },
+                { value: "inhibitor" as const, text: "Inhibitor" },
+              ]}
+              disabled={isReadOnly}
+            />
+          </Tooltip>
         </Section>
       )}
       <Section title="Weight">
         <NumberInput
           size="sm"
           min={1}
-          step={1}
           value={weight}
-          onChange={(event) => {
-            const value = Number.parseInt(
-              (event.target as HTMLInputElement).value,
-              10,
-            );
-            if (value > 0) {
+          onChange={(nextWeight) => {
+            if (nextWeight !== null && nextWeight > 0) {
               updateArcWeight({
                 transitionId,
                 arcDirection,
                 placeId,
-                weight: value,
+                weight: nextWeight,
               });
             }
           }}

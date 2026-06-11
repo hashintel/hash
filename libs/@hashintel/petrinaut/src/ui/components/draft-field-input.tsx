@@ -1,7 +1,7 @@
+import { TextInput, Tooltip } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { useDraftField } from "../hooks/use-draft-field";
-import { Input } from "./input";
 
 type ValidationResult =
   | { valid: true; name: string }
@@ -26,6 +26,12 @@ const errorMessageStyle = css({
   color: "red.s100",
 });
 
+const monospaceInputStyle = css({
+  "& input": {
+    fontFamily: "mono",
+  },
+});
+
 /**
  * Standard text input bound to a {@link useDraftField} draft. Renders the
  * input, runs the validator on blur, surfaces the validation error
@@ -44,32 +50,34 @@ export const DraftFieldInput: React.FC<DraftFieldInputProps> = ({
 
   return (
     <>
-      <Input
-        value={field.value}
-        onChange={(event) => {
-          field.setValue(event.target.value);
-          if (field.error) {
+      <Tooltip content={tooltip ?? ""} disableTooltip={!tooltip}>
+        <TextInput
+          value={field.value}
+          size="sm"
+          className={monospace ? monospaceInputStyle : undefined}
+          onChange={(value) => {
+            field.setValue(value);
+            if (field.error) {
+              field.setError(null);
+            }
+          }}
+          onBlur={() => {
+            const result = validate(field.value);
+
+            if (!result.valid) {
+              field.setError(result.error);
+              return;
+            }
+
             field.setError(null);
-          }
-        }}
-        onBlur={() => {
-          const result = validate(field.value);
-
-          if (!result.valid) {
-            field.setError(result.error);
-            return;
-          }
-
-          field.setError(null);
-          if (result.name !== sourceValue) {
-            onCommit(result.name);
-          }
-        }}
-        disabled={disabled}
-        monospace={monospace}
-        hasError={!!field.error}
-        tooltip={tooltip}
-      />
+            if (result.name !== sourceValue) {
+              onCommit(result.name);
+            }
+          }}
+          disabled={disabled}
+          invalid={!!field.error}
+        />
+      </Tooltip>
       {field.error && <div className={errorMessageStyle}>{field.error}</div>}
     </>
   );
