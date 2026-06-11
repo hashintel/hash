@@ -551,8 +551,9 @@ impl QueryPath for EntityQueryPath<'_> {
         match self {
             Self::EditionId | Self::Uuid | Self::WebId | Self::DraftId => ParameterType::Uuid,
             Self::DecisionTime | Self::TransactionTime => ParameterType::TimeInterval,
-            Self::TypeBaseUrls => ParameterType::Vector(Box::new(ParameterType::VersionedUrl)),
-            Self::TypeVersionedUrls => ParameterType::Vector(Box::new(ParameterType::VersionedUrl)),
+            Self::TypeBaseUrls | Self::TypeVersionedUrls => {
+                ParameterType::Vector(Box::new(ParameterType::VersionedUrl))
+            }
             Self::DirectTypeCount => ParameterType::Decimal,
             Self::Properties(_)
             | Self::Label { .. }

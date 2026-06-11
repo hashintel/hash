@@ -2623,14 +2623,26 @@ struct LockedEntityEdition {
     transaction_time: LeftClosedTemporalInterval<TransactionTime>,
 }
 
-/// Statement template populating `entity_edition_cache` by aggregating the editions'
+/// Builds the statement populating `entity_edition_cache` by aggregating the editions'
 /// `entity_is_of_type` rows joined to the referenced types.
 ///
-/// Built via [`insert_entity_edition_cache_statement`]: the write paths scope it to the
-/// just-written editions (`$1: UUID[]`), `reindex_entity_cache` runs it unscoped over all
-/// editions. Must run after the editions' `entity_is_of_type` rows (including the
-/// inherited ones) have been written.
-const INSERT_ENTITY_EDITION_CACHE_TEMPLATE: &str = "
+/// The write paths pass `scoped` to restrict it to the just-written editions
+/// (`$1: UUID[]`), `reindex_entity_cache` runs it unscoped over all editions. Must run
+/// after the editions' `entity_is_of_type` rows (including the inherited ones) have been
+/// written.
+fn insert_entity_edition_cache_statement(scoped: bool) -> String {
+    let types_scope = if scoped {
+        "WHERE entity_is_of_type.entity_edition_id = ANY($1)"
+    } else {
+        ""
+    };
+    let labels_scope = if scoped {
+        "AND entity_is_of_type.entity_edition_id = ANY($1)"
+    } else {
+        ""
+    };
+    format!(
+        "
     INSERT INTO entity_edition_cache (
         entity_edition_id,
         direct_types,
@@ -2677,7 +2689,7 @@ const INSERT_ENTITY_EDITION_CACHE_TEMPLATE: &str = "
               ON entity_is_of_type.entity_type_ontology_id = ontology_ids.ontology_id
             JOIN entity_types
               ON ontology_ids.ontology_id = entity_types.ontology_id
-           /*TYPES_SCOPE*/
+           {types_scope}
            GROUP BY entity_is_of_type.entity_edition_id
       ) AS types
       LEFT JOIN (
@@ -2696,7 +2708,7 @@ const INSERT_ENTITY_EDITION_CACHE_TEMPLATE: &str = "
            CROSS JOIN LATERAL (
                SELECT jsonb_extract_path(
                           entity_editions.properties, label_path.path
-                      ) #>> '{}' AS label,
+                      ) #>> '{{}}' AS label,
                       label_path.ordinality
                  FROM jsonb_array_elements_text(
                           jsonb_path_query_array(
@@ -2704,32 +2716,13 @@ const INSERT_ENTITY_EDITION_CACHE_TEMPLATE: &str = "
                           )
                       ) WITH ORDINALITY AS label_path (path, ordinality)
            ) AS label_value
-           WHERE entity_is_of_type.inheritance_depth = 0/*LABELS_SCOPE*/
+           WHERE entity_is_of_type.inheritance_depth = 0
+             {labels_scope}
            GROUP BY entity_is_of_type.entity_edition_id
       ) AS labels
         ON types.entity_edition_id = labels.entity_edition_id;
-";
-
-/// Builds the cache population statement; `scoped` restricts it to the editions in
-/// `$1: UUID[]`.
-fn insert_entity_edition_cache_statement(scoped: bool) -> String {
-    INSERT_ENTITY_EDITION_CACHE_TEMPLATE
-        .replace(
-            "/*TYPES_SCOPE*/",
-            if scoped {
-                "WHERE entity_is_of_type.entity_edition_id = ANY($1)"
-            } else {
-                ""
-            },
-        )
-        .replace(
-            "/*LABELS_SCOPE*/",
-            if scoped {
-                "\n             AND entity_is_of_type.entity_edition_id = ANY($1)"
-            } else {
-                ""
-            },
-        )
+"
+    )
 }
 
 impl PostgresStore<tokio_postgres::Transaction<'_>> {
@@ -3294,5 +3287,21 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             decision_time: row.get(0),
             transaction_time: row.get(1),
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::insert_entity_edition_cache_statement;
+
+    #[test]
+    fn cache_statement_scoping() {
+        let scoped = insert_entity_edition_cache_statement(true);
+        let unscoped = insert_entity_edition_cache_statement(false);
+
+        assert_eq!(scoped.matches("= ANY($1)").count(), 2);
+        assert_eq!(unscoped.matches("= ANY($1)").count(), 0);
+        // the jsonb text-extraction operator must survive the `format!` brace escaping
+        assert!(scoped.contains("#>> '{}'"));
     }
 }
