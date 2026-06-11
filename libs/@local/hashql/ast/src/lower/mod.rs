@@ -73,6 +73,7 @@ use self::{
 use crate::{node::expr::Expr, visit::Visitor as _};
 
 pub mod error;
+mod expander;
 pub mod import_resolver;
 pub mod name_mangler;
 pub mod node_renumberer;
