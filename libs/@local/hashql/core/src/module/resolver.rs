@@ -469,7 +469,7 @@ impl<'heap> Resolver<'_, 'heap> {
 #[cfg(test)]
 mod test {
     #![coverage(off)]
-    use core::assert_matches;
+    use core::{assert_matches, num::NonZero};
 
     use super::{Reference, ResolutionError};
     use crate::{
@@ -839,6 +839,7 @@ mod test {
             PartialModule {
                 name: heap.intern_symbol("empty_module"),
                 parent: ModuleId::ROOT,
+                depth: const { NonZero::new(1).unwrap() },
                 items: registry.intern_items(&[]), // No items
             }
         });

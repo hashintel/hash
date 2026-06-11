@@ -8,7 +8,7 @@ use hashql_core::{
         namespace::{ModuleNamespace, ResolutionMode, ResolveOptions},
     },
     span::SpanId,
-    symbol::Ident,
+    symbol::{Ident, sym},
 };
 
 use self::error::ExpanderDiagnosticIssues;
@@ -105,28 +105,40 @@ impl<'heap> Visitor<'heap> for Expander<'_, 'heap> {
         self.current_item = Some(item);
 
         let absolute_path = item.absolute_path_rev(self.namespace.registry());
-        path.segments.reverse();
-        let mut last_span = path.span;
-
-        for (index, name) in absolute_path.into_iter().enumerate() {
-            if let Some(segment) = path.segments.get_mut(index) {
-                last_span = path.span;
-                segment.name.value = name;
-            } else {
-                path.segments.push(node::path::PathSegment {
-                    id: NodeId::PLACEHOLDER,
-                    span: last_span,
-                    name: Ident {
-                        span: last_span,
-                        value: name,
-                        kind: hashql_core::symbol::IdentKind::Lexical,
-                    },
-                    arguments: heap::Vec::new_in(self.namespace.registry().heap),
-                });
-            }
+        if absolute_path.len() < path.segments.len() {
+            todo!("BUG diagnostic: absolute path shorter than path segments");
+            return;
         }
 
-        path.segments.reverse();
+        // We must pad the segments with placeholders so that the path segments match the absolute
+        // path
+        let padding = absolute_path.len() - path.segments.len();
+        let padding_span = path.segments[0].span;
+
+        path.segments.extend(core::iter::repeat_n(
+            node::path::PathSegment {
+                id: NodeId::PLACEHOLDER,
+                span: padding_span,
+                name: Ident {
+                    span: padding_span,
+                    value: sym::dummy,
+                    kind: hashql_core::symbol::IdentKind::Lexical,
+                },
+                arguments: heap::Vec::new_in(self.namespace.registry().heap),
+            },
+            padding,
+        ));
+        path.segments.rotate_right(padding);
+
+        for (segment, name) in path
+            .segments
+            .iter_mut()
+            .rev()
+            .zip(absolute_path.into_iter())
+        {
+            segment.name.value = name;
+        }
+
         path.rooted = true;
     }
 }

@@ -455,7 +455,7 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
 #[cfg(test)]
 mod tests {
     #![coverage(off)]
-    use core::assert_matches;
+    use core::{assert_matches, num::NonZero};
 
     use super::ModuleNamespace;
     use crate::{
@@ -664,6 +664,7 @@ mod tests {
 
         let module = registry.intern_module(|id| PartialModule {
             parent: ModuleId::ROOT,
+            depth: const { NonZero::new(1).unwrap() },
             name: heap.intern_symbol("foo"),
 
             items: registry.intern_items(&[Item {

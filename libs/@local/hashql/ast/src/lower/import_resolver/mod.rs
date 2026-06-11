@@ -260,7 +260,10 @@ impl<'heap> Visitor<'heap> for ImportResolver<'_, 'heap> {
             Reference::Item(item) => item,
         };
 
-        let segments: Vec<_> = item.absolute_path(self.namespace.registry()).collect();
+        let segments: Vec<_> = item
+            .absolute_path(self.namespace.registry())
+            .into_iter()
+            .collect();
 
         // The trailing segments might not be the same due to renames, reset the symbol to the
         // canonical form (but retain the span)

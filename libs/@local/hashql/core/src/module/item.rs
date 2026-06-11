@@ -111,11 +111,41 @@ impl<'heap> Item<'heap> {
     pub fn absolute_path_rev(
         &self,
         registry: &ModuleRegistry<'heap>,
-    ) -> impl IntoIterator<Item = Symbol<'heap>> {
-        iter::once(self.name).chain(
-            self.ancestors(registry)
-                .into_iter()
-                .map(|module| module.name),
-        )
+    ) -> impl ExactSizeIterator<Item = Symbol<'heap>> {
+        struct Iter<I> {
+            inner: I,
+            remaining: u32,
+        }
+
+        impl<I> Iterator for Iter<I>
+        where
+            I: Iterator,
+        {
+            type Item = I::Item;
+
+            fn next(&mut self) -> Option<Self::Item> {
+                let item = self.inner.next()?;
+                self.remaining -= 1;
+
+                Some(item)
+            }
+
+            fn size_hint(&self) -> (usize, Option<usize>) {
+                (self.remaining as usize, Some(self.remaining as usize))
+            }
+        }
+
+        impl<I> ExactSizeIterator for Iter<I> where I: Iterator {}
+
+        let depth = registry.module_depth(self.module);
+
+        Iter {
+            inner: iter::once(self.name).chain(
+                self.ancestors(registry)
+                    .into_iter()
+                    .map(|module| module.name),
+            ),
+            remaining: depth + 1,
+        }
     }
 }
