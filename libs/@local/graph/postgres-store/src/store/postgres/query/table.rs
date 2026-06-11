@@ -753,7 +753,7 @@ impl DatabaseColumn for EntityEditionCache {
     fn parameter_type(self) -> ParameterType {
         match self {
             Self::EntityEditionId => ParameterType::Uuid,
-            Self::DirectTypes => ParameterType::Decimal,
+            Self::DirectTypes => ParameterType::Integer,
             Self::Labels | Self::TypeTitles => ParameterType::Vector(Box::new(ParameterType::Text)),
             Self::BaseUrls => ParameterType::Vector(Box::new(ParameterType::BaseUrl)),
             Self::Versions => ParameterType::Vector(Box::new(ParameterType::OntologyTypeVersion)),

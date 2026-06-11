@@ -554,7 +554,7 @@ impl QueryPath for EntityQueryPath<'_> {
             Self::TypeBaseUrls | Self::TypeVersionedUrls => {
                 ParameterType::Vector(Box::new(ParameterType::VersionedUrl))
             }
-            Self::DirectTypeCount => ParameterType::Decimal,
+            Self::DirectTypeCount => ParameterType::Integer,
             Self::Properties(_)
             | Self::Label { .. }
             | Self::Provenance(_)
