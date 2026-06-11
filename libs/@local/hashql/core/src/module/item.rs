@@ -94,10 +94,11 @@ impl<'heap> Item<'heap> {
         })
     }
 
+    // TODO: deprecate
     pub fn absolute_path(
         &self,
         registry: &ModuleRegistry<'heap>,
-    ) -> impl Iterator<Item = Symbol<'heap>> {
+    ) -> impl IntoIterator<Item = Symbol<'heap>> {
         let mut modules: Vec<_> = self.ancestors(registry).into_iter().collect();
         modules.reverse();
 
@@ -105,5 +106,16 @@ impl<'heap> Item<'heap> {
             .into_iter()
             .map(|module| module.name)
             .chain(iter::once(self.name))
+    }
+
+    pub fn absolute_path_rev(
+        &self,
+        registry: &ModuleRegistry<'heap>,
+    ) -> impl IntoIterator<Item = Symbol<'heap>> {
+        iter::once(self.name).chain(
+            self.ancestors(registry)
+                .into_iter()
+                .map(|module| module.name),
+        )
     }
 }
