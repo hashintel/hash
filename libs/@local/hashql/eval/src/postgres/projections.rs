@@ -249,6 +249,7 @@ impl Projections {
         .build()
     }
 
+    #[expect(clippy::too_many_lines)]
     fn build_entity_type_ids<'item>(
         &self,
         parameters: &mut Parameters<'_, impl Allocator>,
@@ -260,13 +261,14 @@ impl Projections {
             name: TableName::from(Identifier::from("eec")),
             alias: None,
         };
+        let unnest_ref = TableReference {
+            schema: None,
+            name: TableName::from(Identifier::from("u")),
+            alias: None,
+        };
 
         let inner_from = FromItem::table(Table::EntityEditionCache)
-            .alias(TableReference {
-                schema: None,
-                name: TableName::from(Identifier::from("eec")),
-                alias: None,
-            })
+            .alias(eec_ref.clone())
             .build()
             .cross_join(FromItem::Function {
                 lateral: true,
@@ -284,11 +286,7 @@ impl Projections {
                     .cast(PostgresType::Array(Box::new(PostgresType::Text))),
                 ]),
                 with_ordinality: true,
-                alias: Some(TableReference {
-                    schema: None,
-                    name: TableName::from(Identifier::from("u")),
-                    alias: None,
-                }),
+                alias: Some(unnest_ref.clone()),
                 column_alias: vec![
                     ColumnName::from(Identifier::from("b")),
                     ColumnName::from(Identifier::from("v")),
@@ -312,11 +310,7 @@ impl Projections {
         // depths with the direct types as prefix; `entity_type_ids` only exposes direct types.
         let direct_prefix = query::Expression::less_or_equal(
             query::Expression::ColumnReference(ColumnReference {
-                correlation: Some(TableReference {
-                    schema: None,
-                    name: TableName::from(Identifier::from("u")),
-                    alias: None,
-                }),
+                correlation: Some(unnest_ref),
                 name: ColumnName::from(Identifier::from("ordinality")),
             }),
             query::Expression::ColumnReference(ColumnReference {
