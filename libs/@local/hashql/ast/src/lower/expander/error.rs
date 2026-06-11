@@ -164,20 +164,19 @@ fn format_absolute_path<'heap>(item: &Item<'heap>, registry: &ModuleRegistry<'he
 
 /// Emits one `help` message per did-you-mean candidate, each carrying a `Patch` that replaces
 /// `name_span` with the suggested name.
-fn emit_spelling_suggestions(
+fn emit_spelling_suggestions<'heap>(
     diagnostic: &mut ExpanderDiagnostic,
     name_span: SpanId,
-    name: Symbol<'_>,
-    candidates: impl IntoIterator<Item = Symbol<'_>> + Clone,
+    name: Symbol<'heap>,
+    candidates: impl IntoIterator<Item = Symbol<'heap>> + Clone,
     limit: usize,
-    prefix: &str,
+    context: &str,
 ) -> usize {
     let similar = did_you_mean(name, candidates, Some(limit), None);
 
     for candidate in &similar {
         let patch = Suggestions::patch(Patch::new(name_span, candidate.as_str().to_owned()));
-        diagnostic
-            .add_message(Message::help(format!("{prefix} `{candidate}`")).with_suggestions(patch));
+        diagnostic.add_message(Message::help(context).with_suggestions(patch));
     }
 
     similar.len()
@@ -369,7 +368,7 @@ fn package_not_found<'heap>(
         name,
         suggestions.iter().map(|suggestion| suggestion.name),
         5,
-        "use package",
+        "a package with a similar name exists",
     );
 
     if emitted == 0 {
@@ -421,7 +420,7 @@ fn module_not_found<'heap>(
         name,
         suggestions.iter().map(|suggestion| suggestion.name),
         5,
-        "use module",
+        "a module with a similar name exists",
     );
 
     diagnostic.add_message(Message::note(
@@ -452,7 +451,7 @@ fn import_not_found<'heap>(
         name,
         suggestions.iter().map(|suggestion| suggestion.name),
         5,
-        "use",
+        "a similar name is available",
     );
 
     if emitted == 0 {
@@ -500,7 +499,7 @@ fn item_not_found<'heap>(
         name,
         suggestions.iter().map(|suggestion| suggestion.name),
         5,
-        "use",
+        "a similar item exists in this module",
     );
 
     if emitted == 0 {
@@ -545,7 +544,7 @@ fn unresolved_variable<'heap>(
     let mut has_suggestions = false;
 
     // ---- tier 1: local bindings ----
-    let local_suggestions = did_you_mean(name, locals, Some(5), None);
+    let local_suggestions = did_you_mean(name, &locals, Some(5), None);
 
     if !local_suggestions.is_empty() {
         has_suggestions = true;
@@ -553,7 +552,7 @@ fn unresolved_variable<'heap>(
         for candidate in &local_suggestions {
             let patch = Suggestions::patch(Patch::new(name_span, candidate.as_str().to_owned()));
             diagnostic.add_message(
-                Message::help(format!("use local `{candidate}`")).with_suggestions(patch),
+                Message::help("a similar local binding exists").with_suggestions(patch),
             );
         }
     }
@@ -574,7 +573,7 @@ fn unresolved_variable<'heap>(
         for candidate in &import_matches {
             let patch = Suggestions::patch(Patch::new(name_span, candidate.as_str().to_owned()));
             diagnostic.add_message(
-                Message::help(format!("use imported `{candidate}`")).with_suggestions(patch),
+                Message::help("a similar imported name exists").with_suggestions(patch),
             );
         }
     }
@@ -600,7 +599,7 @@ fn unresolved_variable<'heap>(
             let absolute = format_absolute_path(item, registry);
             let patch = Suggestions::patch(Patch::new(name_span, absolute.clone()));
             diagnostic.add_message(
-                Message::help(format!("qualify the name as `{absolute}`")).with_suggestions(patch),
+                Message::help("this item is available in another module").with_suggestions(patch),
             );
         }
 
