@@ -10,7 +10,11 @@ import { PizzaSolidIcon } from "../../shared/icons/pizza-solid-icon";
 
 import type { FunctionComponent, ReactNode } from "react";
 
-const infoItems: { title: string; description: string; icon: ReactNode }[] = [
+const infoItems: {
+  title: string;
+  description: React.ReactNode;
+  icon: ReactNode;
+}[] = [
   /** @todo: add this info item when email verification is supported */
   // {
   //   title: "Skip email verification",
@@ -25,7 +29,11 @@ const infoItems: { title: string; description: string; icon: ReactNode }[] = [
   },
   {
     title: "Reserve your username",
-    description: "@pizza goes fast!",
+    description: (
+      <>
+        <code>@pizza</code> goes fast!
+      </>
+    ),
     icon: <PizzaSolidIcon />,
   },
 ];
@@ -79,6 +87,16 @@ export const SignupRegistrationRightInfo: FunctionComponent = () => {
                 color: ({ palette }) => palette.blue[40],
                 fontSize: 14,
                 lineHeight: "130%",
+                code: {
+                  fontFamily:
+                    'Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+                  fontSize: "0.85em",
+                  color: ({ palette }) => palette.blue[25],
+                  background: "rgba(255, 255, 255, 0.1)",
+                  borderRadius: "4px",
+                  paddingX: 0.75,
+                  paddingY: 0.25,
+                },
               }}
             >
               {description}
