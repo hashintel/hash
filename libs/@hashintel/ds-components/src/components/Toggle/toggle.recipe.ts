@@ -29,7 +29,7 @@ export const styles = sva({
       "&[data-state='unchecked']:hover:not([data-disabled])": {
         backgroundColor: "neutral.s50",
       },
-      "&:focus-visible": {
+      "&:has(~ input:focus-visible)": {
         outline: "[2px solid]",
         outlineOffset: "[2px]",
         outlineColor: "black.a60",
@@ -110,7 +110,7 @@ export const styles = sva({
           "&[data-state='checked']:hover:not([data-disabled])": {
             backgroundColor: "neutral.s110",
           },
-          "&:focus-visible": { outlineColor: "black.a60" },
+          "&:has(~ input:focus-visible)": { outlineColor: "black.a60" },
         },
       },
       brand: {
@@ -121,7 +121,7 @@ export const styles = sva({
           "&[data-state='checked']:hover:not([data-disabled])": {
             backgroundColor: "blue.s85",
           },
-          "&:focus-visible": { outlineColor: "blue.a60" },
+          "&:has(~ input:focus-visible)": { outlineColor: "blue.a60" },
         },
       },
       error: {
@@ -132,7 +132,7 @@ export const styles = sva({
           "&[data-state='checked']:hover:not([data-disabled])": {
             backgroundColor: "red.s85",
           },
-          "&:focus-visible": { outlineColor: "red.a60" },
+          "&:has(~ input:focus-visible)": { outlineColor: "red.a60" },
         },
       },
     },
