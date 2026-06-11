@@ -1,5 +1,4 @@
 import { ignoreNoisySystemTypesFilter } from "@local/hash-isomorphic-utils/graph-queries";
-import { systemPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import type { EntitiesFilterState } from "./types";
 import type { BaseUrl, VersionedUrl, WebId } from "@blockprotocol/type-system";
@@ -15,29 +14,6 @@ const buildArchivedClauses = (includeArchived: boolean): Filter[] => {
   return [
     {
       notEqual: [{ path: ["archived"] }, { parameter: true }],
-    },
-    {
-      any: [
-        {
-          exists: {
-            path: [
-              "properties",
-              systemPropertyTypes.archived.propertyTypeBaseUrl,
-            ],
-          },
-        },
-        {
-          equal: [
-            {
-              path: [
-                "properties",
-                systemPropertyTypes.archived.propertyTypeBaseUrl,
-              ],
-            },
-            { parameter: false },
-          ],
-        },
-      ],
     },
   ];
 };

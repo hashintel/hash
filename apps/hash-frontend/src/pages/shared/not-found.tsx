@@ -86,7 +86,7 @@ export const NotFound = ({
               are logged in as{" "}
               <strong>{authenticatedUser.emails[0]?.address}</strong>
             </Typography>
-            {additionalText && (
+            {additionalText ? (
               <Typography
                 component="p"
                 variant="regularTextParagraphs"
@@ -94,7 +94,7 @@ export const NotFound = ({
               >
                 {additionalText}
               </Typography>
-            )}
+            ) : null}
             <Box mt={5}>
               <GoBackButton />
             </Box>
