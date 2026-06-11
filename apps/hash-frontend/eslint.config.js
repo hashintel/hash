@@ -1,3 +1,5 @@
+import reactX from "eslint-plugin-react-x";
+
 import {
   defineConfig,
   createBase,
@@ -15,9 +17,13 @@ export default [
   ]),
   ...defineConfig([
     {
+      plugins: {
+        "react-x": reactX,
+      },
       rules: {
         "jsx-a11y/label-has-associated-control": "off",
         "import/no-default-export": "error",
+        "react-x/no-leaked-conditional-rendering": "error",
         "no-restricted-imports": [
           "error",
           {

@@ -791,7 +791,7 @@ export const EntitiesTable: FunctionComponent<
   }, [rows.length]);
 
   const hasMoreRowsAvailable =
-    totalResultCount && totalResultCount > rows.length;
+    !!totalResultCount && totalResultCount > rows.length;
   const loadMoreRowHeight = 60;
 
   return (

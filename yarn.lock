@@ -653,6 +653,7 @@ __metadata:
     elkjs: "npm:0.11.0"
     emoji-mart: "npm:5.6.0"
     eslint: "npm:9.39.4"
+    eslint-plugin-react-x: "npm:1.17.2"
     fractional-indexing: "npm:3.2.0"
     framer-motion: "npm:11.18.2"
     graphology: "npm:0.26.0"

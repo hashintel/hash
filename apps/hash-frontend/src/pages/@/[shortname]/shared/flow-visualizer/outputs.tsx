@@ -223,7 +223,7 @@ const SectionTabButton = ({
           {label}
         </Typography>
       </IconButton>
-      {additionalControlElements && (
+      {additionalControlElements ? (
         <Collapse
           orientation="horizontal"
           in={active}
@@ -231,7 +231,7 @@ const SectionTabButton = ({
         >
           {additionalControlElements}
         </Collapse>
-      )}
+      ) : null}
     </Stack>
   );
 };
