@@ -1,0 +1,5 @@
+*thunk foo:0() -> Null {
+    bb0(): {
+        return ()
+    }
+}

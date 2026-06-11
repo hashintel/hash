@@ -14,7 +14,7 @@ fn {graph::read::filter@7}(%0: (), %1: ::graph::types::knowledge::entity::Entity
     let %2: Boolean
 
     bb0(): {
-        %2 = %1.link_data == null
+        %2 = %1.link_data == ()
 
         return %2
     }
@@ -55,7 +55,7 @@ fn {graph::read::filter@7}(%0: (), %1: ::graph::types::knowledge::entity::Entity
     let %2: Boolean
 
     bb0(): {
-        %2 = %1.link_data == null
+        %2 = %1.link_data == ()
 
         return %2
     }
@@ -96,7 +96,7 @@ fn {graph::read::filter@7}(%0: (), %1: ::graph::types::knowledge::entity::Entity
     let %2: Boolean
 
     bb0(): {
-        %2 = %1.link_data == null
+        %2 = %1.link_data == ()
 
         return %2
     }
