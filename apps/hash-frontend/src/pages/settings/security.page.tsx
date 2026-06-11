@@ -239,7 +239,7 @@ const SecurityPage: NextPageWithLayout = () => {
       persistFlowIdInUrl(currentFlow);
 
       try {
-        // Step 1: Unlink TOTP.
+        // Step 1: Unlink 2FA.
         const unlinkedFlow = await submitSettingsUpdate(currentFlow, {
           method: "totp",
           totp_unlink: true,
@@ -252,7 +252,7 @@ const SecurityPage: NextPageWithLayout = () => {
 
         // Step 2: Remove backup codes. Kratos enforces AAL2 as long as
         // any second factor is present, so leaving orphan backup codes
-        // behind after unlinking TOTP would lock the user out at next
+        // behind after unlinking 2FA would lock the user out at next
         // login — they'd be asked for an authenticator code they no
         // longer have.
         const clearedFlow = await submitSettingsUpdate(unlinkedFlow, {
@@ -263,7 +263,7 @@ const SecurityPage: NextPageWithLayout = () => {
 
         if (!clearedFlow) {
           setErrorMessage(
-            "TOTP was disabled, but backup codes could not be removed. " +
+            "2FA was disabled, but backup codes could not be removed. " +
               "Please reload the page and try again to avoid being locked out.",
           );
           return;
@@ -375,12 +375,12 @@ const SecurityPage: NextPageWithLayout = () => {
         );
 
         if (!flowWithBackupCodes) {
-          // Step 2 of enrolment failed. TOTP is active but there are no
+          // Step 2 of enrolment failed. 2FA is active but there are no
           // backup codes. Don't leave the user thinking everything is
           // fine — without codes they have no recovery path if they lose
           // their authenticator device.
           setErrorMessage(
-            "TOTP was enabled, but backup codes could not be generated. " +
+            "2FA was enabled, but backup codes could not be generated. " +
               "Please use the “Regenerate backup codes” button to try again.",
           );
           return;
@@ -391,7 +391,7 @@ const SecurityPage: NextPageWithLayout = () => {
 
         if (regeneratedCodes.length === 0) {
           setErrorMessage(
-            "TOTP was enabled, but no backup codes were returned. " +
+            "2FA was enabled, but no backup codes were returned. " +
               "Please use the “Regenerate backup codes” button to try again.",
           );
           return;
@@ -556,7 +556,7 @@ const SecurityPage: NextPageWithLayout = () => {
             {isTotpEnabled ? (
               <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
                 <Typography sx={{ color: ({ palette }) => palette.gray[80] }}>
-                  TOTP is enabled for your account.
+                  2FA is enabled for your account.
                 </Typography>
                 {showTotpDisableForm ? (
                   <Box
@@ -571,9 +571,9 @@ const SecurityPage: NextPageWithLayout = () => {
                     <Typography
                       sx={{ color: ({ palette }) => palette.gray[80] }}
                     >
-                      Disabling TOTP will also remove your backup codes. You
-                      will sign in with just your password until you enable a
-                      second factor again.
+                      Disabling 2FA will also remove your backup codes. You will
+                      sign in with just your password until you enable a second
+                      factor again.
                     </Typography>
                     <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap" }}>
                       <Button
@@ -610,7 +610,7 @@ const SecurityPage: NextPageWithLayout = () => {
                         setErrorMessage(undefined);
                       }}
                     >
-                      Disable TOTP
+                      Disable 2FA
                     </Button>
                     <Button
                       type="button"
@@ -636,13 +636,13 @@ const SecurityPage: NextPageWithLayout = () => {
                   sx={{ color: ({ palette }) => palette.gray[80] }}
                 >
                   Scan the QR code with your authenticator app, then enter the
-                  6-digit code to enable TOTP.
+                  6-digit code to enable 2FA.
                 </Typography>
                 {totpQrCodeDataUri ? (
                   <Box
                     component="img"
                     src={totpQrCodeDataUri}
-                    alt="TOTP QR code"
+                    alt="2FA QR code"
                     data-testid="totp-qr-code"
                     sx={{
                       width: 180,
@@ -706,7 +706,7 @@ const SecurityPage: NextPageWithLayout = () => {
                     data-testid="enable-totp-button"
                     disabled={!totpCode || enablingTotp}
                   >
-                    {enablingTotp ? "Enabling..." : "Confirm and enable TOTP"}
+                    {enablingTotp ? "Enabling..." : "Confirm and enable 2FA"}
                   </Button>
                   <Button
                     type="button"
@@ -725,7 +725,7 @@ const SecurityPage: NextPageWithLayout = () => {
             ) : (
               <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
                 <Typography sx={{ color: ({ palette }) => palette.gray[80] }}>
-                  TOTP is currently disabled for your account.
+                  2FA is currently disabled for your account.
                 </Typography>
                 <Box>
                   <Button
@@ -736,7 +736,7 @@ const SecurityPage: NextPageWithLayout = () => {
                       setErrorMessage(undefined);
                     }}
                   >
-                    Enable TOTP
+                    Enable 2FA
                   </Button>
                 </Box>
               </Box>
