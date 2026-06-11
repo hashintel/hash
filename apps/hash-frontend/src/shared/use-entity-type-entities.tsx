@@ -10,7 +10,6 @@ import {
   currentTimeInstantTemporalAxes,
   ignoreNoisySystemTypesFilter,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import { systemPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import { queryEntitySubgraphQuery } from "../graphql/queries/knowledge/entity.queries";
 import { apolloClient } from "../lib/apollo-client";
@@ -62,31 +61,6 @@ export const generateUseEntityTypeEntitiesFilter = ({
       ? [
           {
             notEqual: [{ path: ["archived"] }, { parameter: true }],
-          },
-          {
-            any: [
-              {
-                not: {
-                  exists: {
-                    path: [
-                      "properties",
-                      systemPropertyTypes.archived.propertyTypeBaseUrl,
-                    ],
-                  },
-                },
-              },
-              {
-                equal: [
-                  {
-                    path: [
-                      "properties",
-                      systemPropertyTypes.archived.propertyTypeBaseUrl,
-                    ],
-                  },
-                  { parameter: false },
-                ],
-              },
-            ],
           },
         ]
       : []),

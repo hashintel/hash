@@ -513,32 +513,6 @@ export const getCommentNotification: ImpureGraphFunction<
           {
             equal: [{ path: ["webId"] }, { parameter: recipient.accountId }],
           },
-          /** @todo: enforce the type of these links somehow */
-          {
-            any: [
-              {
-                not: {
-                  exists: {
-                    path: [
-                      "properties",
-                      systemPropertyTypes.archived.propertyTypeBaseUrl,
-                    ],
-                  },
-                },
-              },
-              {
-                equal: [
-                  {
-                    path: [
-                      "properties",
-                      systemPropertyTypes.archived.propertyTypeBaseUrl,
-                    ],
-                  },
-                  { parameter: false },
-                ],
-              },
-            ],
-          },
         ],
       },
       traversalPaths: [
