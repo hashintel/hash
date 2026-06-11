@@ -119,7 +119,12 @@ async fn query_local_impl(
                     Label::new(compilation.root_span, "failed to acquire postgres client"),
                 );
 
-            diagnostic.add_message(Message::note(format!("{report:?}")));
+            if cfg!(debug_assertions) {
+                diagnostic.add_message(Message::note(format!("{report:?}")));
+            } else {
+                tracing::error!(?report, "failed to acquire postgres client");
+            }
+
             diagnostic
         })
         .into_status()
@@ -169,7 +174,7 @@ async fn run_query(
         .await;
 
     result.unwrap_or_else(|error| {
-        tracing::error!(?error, "panicked by trying to execute query");
+        tracing::error!(?error, "panicked while executing query");
 
         (
             StatusCode::INTERNAL_SERVER_ERROR,
@@ -178,6 +183,20 @@ async fn run_query(
             .into_response()
             .into()
     })
+}
+
+fn deserialize_empty_inputs<'de, D>(deserializer: D) -> Result<Vec<()>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let inputs = serde::Deserialize::<'de>::deserialize(deserializer)?;
+    if inputs.is_empty() {
+        return Ok(inputs);
+    }
+
+    Err(serde::de::Error::custom(
+        "`inputs` must be an empty array until input support ships",
+    ))
 }
 
 /// Request body for the `/hashql` endpoint.
@@ -190,6 +209,7 @@ pub(crate) struct HashQlRequest {
         dead_code,
         reason = "inputs will be required once HashQL input support ships"
     )]
+    #[serde(deserialize_with = "deserialize_empty_inputs")]
     inputs: Vec<()>,
 }
 
