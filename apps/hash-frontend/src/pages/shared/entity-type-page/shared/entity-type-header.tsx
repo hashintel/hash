@@ -250,6 +250,8 @@ export const EntityTypeHeader = ({
               onClick={() => setShowExtendTypeModal(true)}
               variant="secondary"
               size="small"
+              // Don't let the button get squeezed by long header content
+              sx={{ flexShrink: 0, ml: 2 }}
             >
               Extend <ArrowUpRightIcon sx={{ fontSize: 16, ml: 1.5 }} />
             </Button>
