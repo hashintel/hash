@@ -25,7 +25,7 @@ pub struct Argument<'heap> {
     pub id: NodeId,
     pub span: SpanId,
 
-    pub value: heap::Box<'heap, Expr<'heap>>,
+    pub value: Expr<'heap>,
 }
 
 /// A labeled (named) argument passed to a function call.

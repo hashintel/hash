@@ -71,7 +71,7 @@ impl<'heap> ReificationContext<'_, '_, '_, 'heap> {
         let mut arguments = SmallVec::with_capacity(args.len());
 
         for argument in args {
-            let Some(value) = self.expr(*argument.value) else {
+            let Some(value) = self.expr(argument.value) else {
                 incomplete = true;
                 continue;
             };

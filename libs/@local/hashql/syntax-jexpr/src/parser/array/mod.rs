@@ -60,28 +60,25 @@ fn parse_labelled_argument_shorthand<'heap>(
         value: Argument {
             id: NodeId::PLACEHOLDER,
             span: token_span,
-            value: Box::new_in(
-                Expr {
+            value: Expr {
+                id: NodeId::PLACEHOLDER,
+                span: token_span,
+                kind: ExprKind::Path(Path {
                     id: NodeId::PLACEHOLDER,
                     span: token_span,
-                    kind: ExprKind::Path(Path {
-                        id: NodeId::PLACEHOLDER,
-                        span: token_span,
-                        rooted: false,
-                        segments: {
-                            let mut segments = Vec::with_capacity_in(1, state.heap());
-                            segments.push(PathSegment {
-                                id: NodeId::PLACEHOLDER,
-                                span: token_span,
-                                name: key,
-                                arguments: Vec::new_in(state.heap()),
-                            });
-                            segments
-                        },
-                    }),
-                },
-                state.heap(),
-            ),
+                    rooted: false,
+                    segments: {
+                        let mut segments = Vec::with_capacity_in(1, state.heap());
+                        segments.push(PathSegment {
+                            id: NodeId::PLACEHOLDER,
+                            span: token_span,
+                            name: key,
+                            arguments: Vec::new_in(state.heap()),
+                        });
+                        segments
+                    },
+                }),
+            },
         },
     }])
 }
@@ -163,7 +160,7 @@ fn parse_labelled_argument<'heap>(
             value: Argument {
                 id: NodeId::PLACEHOLDER,
                 span: value.span,
-                value: Box::new_in(value, state.heap()),
+                value,
             },
         });
 
@@ -208,7 +205,7 @@ pub(crate) fn parse_array<'heap, 'source>(
                 arguments.push(Argument {
                     id: NodeId::PLACEHOLDER,
                     span: expr.span,
-                    value: Box::new_in(expr, state.heap()),
+                    value: expr,
                 });
             }
             function @ None => *function = Some(parse_expr(state)?),

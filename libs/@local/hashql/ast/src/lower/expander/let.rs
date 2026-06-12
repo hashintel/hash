@@ -2,13 +2,10 @@ use core::mem;
 
 use hashql_core::{span::SpanId, symbol::Ident};
 
-use super::{Expander, error::ExpanderDiagnosticIssues};
-use crate::{
-    node::{
-        expr::{CallExpr, Expr, ExprKind, LetExpr, call::Argument},
-        id::NodeId,
-    },
-    visit::Visitor,
+use super::Expander;
+use crate::node::{
+    expr::{CallExpr, Expr, ExprKind, LetExpr, call::Argument},
+    id::NodeId,
 };
 
 fn argument_to_ident<'heap>(argument: &Argument<'heap>) -> Option<Ident<'heap>> {
@@ -26,16 +23,15 @@ fn lower_let_3<'heap>(
     expander: &mut Expander<'_, 'heap>,
 
     name: &Argument<'heap>,
-    mut value: Argument<'heap>,
-    mut body: Argument<'heap>,
+    mut value: &mut Argument<'heap>,
+    mut r#type: Option<&mut Argument<'heap>>,
+    mut body: &mut Argument<'heap>,
 ) -> Expr<'heap> {
-    let Some(name) = argument_to_ident(&name) else {
+    let Some(name) = argument_to_ident(name) else {
         todo!("ERROR: name must be an ident");
         return Expr::dummy();
     };
 
-    // TODO: we must make sure that the scoping here works out, the problem is that `visit_expr`
-    // bails out early.
     let item = expander.visit(&mut value.value);
 
     expander.enter(
@@ -47,6 +43,10 @@ fn lower_let_3<'heap>(
         },
     );
 
+    if let Some(r#type) = &mut r#type {
+        expander.visit(&mut r#type.value);
+    }
+
     Expr {
         id: NodeId::PLACEHOLDER,
         span,
@@ -54,9 +54,9 @@ fn lower_let_3<'heap>(
             id: NodeId::PLACEHOLDER,
             span,
             name,
-            value: value.value,
+            value: Box::new_in(mem::replace(&mut value.value, Expr::dummy()), expander.heap),
             r#type: None,
-            body: body.value,
+            body: Box::new_in(mem::replace(&mut body.value, Expr::dummy()), expander.heap),
         }),
     }
 }

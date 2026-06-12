@@ -67,7 +67,7 @@ use self::{
     node_renumberer::NodeRenumberer,
     pre_expansion_name_resolver::PreExpansionNameResolver,
     sanitizer::Sanitizer,
-    special_form_expander::SpecialFormExpander,
+    // special_form_expander::SpecialFormExpander,
     type_extractor::{AnonymousTypes, ClosureSignatures, TypeDefinitionExtractor, TypeExtractor},
 };
 use crate::{node::expr::Expr, visit::Visitor as _};
@@ -79,7 +79,7 @@ pub mod name_mangler;
 pub mod node_renumberer;
 pub mod pre_expansion_name_resolver;
 pub mod sanitizer;
-pub mod special_form_expander;
+// pub mod special_form_expander;
 pub mod type_extractor;
 
 /// Type information extracted during the lowering process.
@@ -188,13 +188,13 @@ pub fn lower<'heap>(
     let mut resolver = PreExpansionNameResolver::new(registry);
     resolver.visit_expr(expr);
 
-    let mut expander = SpecialFormExpander::new(env.heap);
-    expander.visit_expr(expr);
-    diagnostics.append(
-        &mut expander
-            .take_diagnostics()
-            .map_category(LoweringDiagnosticCategory::Expander),
-    );
+    // let mut expander = SpecialFormExpander::new(env.heap);
+    // expander.visit_expr(expr);
+    // diagnostics.append(
+    //     &mut expander
+    //         .take_diagnostics()
+    //         .map_category(LoweringDiagnosticCategory::Expander),
+    // );
 
     let mut sanitizer = Sanitizer::new();
     sanitizer.visit_expr(expr);
