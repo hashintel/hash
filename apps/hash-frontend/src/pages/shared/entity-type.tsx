@@ -50,7 +50,7 @@ import {
 } from "./shared/type-editor-styling";
 import { useSlideStack } from "./slide-stack";
 import { backForwardHeight } from "./slide-stack/slide-back-forward-close-bar";
-import { TOP_CONTEXT_BAR_HEIGHT, TopContextBar } from "./top-context-bar";
+import { TopContextBar } from "./top-context-bar";
 
 import type {
   BaseUrl,
