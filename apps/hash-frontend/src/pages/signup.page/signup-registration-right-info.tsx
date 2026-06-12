@@ -31,7 +31,7 @@ const infoItems: {
     title: "Reserve your username",
     description: (
       <>
-        <code>@pizza</code> goes fast!
+        Before someone else grabs <code>@pizza</code>!
       </>
     ),
     icon: <PizzaSolidIcon />,
