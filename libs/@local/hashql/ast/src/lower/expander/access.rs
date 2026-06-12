@@ -116,14 +116,13 @@ where
             .push(error::labeled_arguments_in_access(labeled_arguments));
     }
 
-    match &mut **arguments {
-        [value, field] => lower_access_impl(*span, expander, value, field),
-        _ => {
-            expander
-                .diagnostics
-                .push(error::invalid_access_argument_count(*span, arguments));
+    if let [value, field] = &mut **arguments {
+        lower_access_impl(*span, expander, value, field)
+    } else {
+        expander
+            .diagnostics
+            .push(error::invalid_access_argument_count(*span, arguments));
 
-            Expr::dummy()
-        }
+        Expr::dummy()
     }
 }

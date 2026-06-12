@@ -58,14 +58,13 @@ where
             .push(error::labeled_arguments_in_index(labeled_arguments));
     }
 
-    match &mut **arguments {
-        [value, index] => lower_index_impl(*span, expander, value, index),
-        _ => {
-            expander
-                .diagnostics
-                .push(error::invalid_index_argument_count(*span, arguments));
+    if let [value, index] = &mut **arguments {
+        lower_index_impl(*span, expander, value, index)
+    } else {
+        expander
+            .diagnostics
+            .push(error::invalid_index_argument_count(*span, arguments));
 
-            Expr::dummy()
-        }
+        Expr::dummy()
     }
 }

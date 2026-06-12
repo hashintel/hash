@@ -2,15 +2,15 @@ use core::mem;
 
 use hashql_core::{
     collections::fast_hash_map_with_capacity_in,
-    heap::{self, BumpAllocator},
+    heap::{self, BumpAllocator, Heap},
     module::item::{IntrinsicItem, Item},
     span::SpanId,
     symbol::{Ident, sym},
 };
 
-use super::Expander;
+use super::{Expander, error::ExpanderDiagnosticIssues};
 use crate::{
-    lower::expander::{error, r#let::argument_to_ident},
+    lower::expander::error,
     node::{
         expr::{CallExpr, Expr, ExprKind, TypeExpr, call::Argument},
         generic::{self, GenericConstraint},
@@ -207,15 +207,17 @@ where
 }
 
 fn path_arguments_to_constraints<'heap, S>(
-    expander: &mut Expander<'_, 'heap, S>,
+    heap: &'heap Heap,
+    scratch: S,
+    diagnostics: &mut ExpanderDiagnosticIssues,
 
     arguments: &mut [PathSegmentArgument<'heap>],
 ) -> heap::Vec<'heap, GenericConstraint<'heap>>
 where
     S: BumpAllocator,
 {
-    let mut constraints = heap::Vec::with_capacity_in(arguments.len(), expander.heap);
-    let mut seen = fast_hash_map_with_capacity_in(arguments.len(), &expander.scratch);
+    let mut constraints = heap::Vec::with_capacity_in(arguments.len(), heap);
+    let mut seen = fast_hash_map_with_capacity_in(arguments.len(), scratch);
 
     for argument in arguments {
         match argument {
@@ -231,7 +233,12 @@ where
             }) if let Some(&ident) = path.as_ident() => {
                 // In this case it's simply interpreted as a generic constraint with no bounds.
                 if let Err(error) = seen.try_insert(ident.value, ident.span) {
-                    todo!("kael you know what to do");
+                    diagnostics.push(error::duplicate_generic_constraint(
+                        ident.span,
+                        ident.value,
+                        *error.entry.get(),
+                    ));
+
                     continue;
                 }
 
@@ -242,17 +249,25 @@ where
                     bound: None,
                 });
             }
-            PathSegmentArgument::Argument(_) => {
-                todo!(
-                    "kael you know what to do, means that there's no path, we may want to \
-                     specialize in case of a path encountered to educate the user"
-                )
+            PathSegmentArgument::Argument(generic_argument) => {
+                let is_path = matches!(generic_argument.r#type.kind, TypeKind::Path(_));
+                let span = if is_path {
+                    generic_argument.r#type.span
+                } else {
+                    generic_argument.span
+                };
+
+                diagnostics.push(error::invalid_generic_argument(span, is_path));
             }
             PathSegmentArgument::Constraint(generic_constraint) => {
                 if let Err(error) =
                     seen.try_insert(generic_constraint.name.value, generic_constraint.name.span)
                 {
-                    todo!("kael you know what to do");
+                    diagnostics.push(error::duplicate_generic_constraint(
+                        generic_constraint.name.span,
+                        generic_constraint.name.value,
+                        *error.entry.get(),
+                    ));
 
                     continue;
                 }
@@ -270,7 +285,7 @@ where
     constraints
 }
 
-fn argument_to_generic_ident<'argument, 'heap, S>(
+pub(super) fn argument_to_generic_ident<'heap, S>(
     expander: &mut Expander<'_, 'heap, S>,
 
     argument: &mut Argument<'heap>,
@@ -281,7 +296,14 @@ where
     if let ExprKind::Path(path) = &mut argument.value.kind
         && let Some((name, arguments)) = path.as_generic_ident_mut()
     {
-        let constraints = path_arguments_to_constraints(expander, arguments);
+        let constraints = expander.scratch.scoped(|scratch| {
+            path_arguments_to_constraints(
+                expander.heap,
+                scratch,
+                &mut expander.diagnostics,
+                arguments,
+            )
+        });
 
         Some((name, constraints))
     } else {
@@ -301,7 +323,9 @@ where
     S: BumpAllocator,
 {
     let Some((name, constraints)) = argument_to_generic_ident(expander, name) else {
-        todo!("kael you know what to do :3");
+        expander
+            .diagnostics
+            .push(error::invalid_type_binding_name(name));
 
         return Expr::dummy();
     };
@@ -349,13 +373,18 @@ where
     S: BumpAllocator,
 {
     if !labeled_arguments.is_empty() {
-        todo!("kael you know what to do")
+        expander
+            .diagnostics
+            .push(error::labeled_arguments_in_type(labeled_arguments));
     }
 
-    match &mut **arguments {
-        [name, value, body] => lower_type_impl(*span, expander, name, value, body),
-        _ => {
-            todo!("kael you know what to do :3")
-        }
+    if let [name, value, body] = &mut **arguments {
+        lower_type_impl(*span, expander, name, value, body)
+    } else {
+        expander
+            .diagnostics
+            .push(error::invalid_type_argument_count(*span, arguments));
+
+        Expr::dummy()
     }
 }

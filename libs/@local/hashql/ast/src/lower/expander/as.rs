@@ -59,14 +59,13 @@ where
             .push(error::labeled_arguments_in_as(labeled_arguments));
     }
 
-    match &mut **arguments {
-        [body, r#type] => lower_as_impl(*span, expander, body, r#type),
-        _ => {
-            expander
-                .diagnostics
-                .push(error::invalid_as_argument_count(*span, arguments));
+    if let [body, r#type] = &mut **arguments {
+        lower_as_impl(*span, expander, body, r#type)
+    } else {
+        expander
+            .diagnostics
+            .push(error::invalid_as_argument_count(*span, arguments));
 
-            Expr::dummy()
-        }
+        Expr::dummy()
     }
 }

@@ -143,6 +143,16 @@ const INVALID_ACCESS_FIELD: TerminalDiagnosticCategory = TerminalDiagnosticCateg
     name: "Invalid access field",
 };
 
+const DUPLICATE_GENERIC_CONSTRAINT: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "duplicate-generic-constraint",
+    name: "Duplicate generic constraint",
+};
+
+const INVALID_GENERIC_ARGUMENT: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "invalid-generic-argument",
+    name: "Invalid generic argument",
+};
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum ExpanderDiagnosticCategory {
     EmptyPath,
@@ -167,6 +177,8 @@ pub enum ExpanderDiagnosticCategory {
     InvalidFieldLiteralType,
     FieldIndexOutOfBounds,
     InvalidAccessField,
+    DuplicateGenericConstraint,
+    InvalidGenericArgument,
 }
 
 impl DiagnosticCategory for ExpanderDiagnosticCategory {
@@ -202,6 +214,8 @@ impl DiagnosticCategory for ExpanderDiagnosticCategory {
             Self::InvalidFieldLiteralType => Some(&INVALID_FIELD_LITERAL_TYPE),
             Self::FieldIndexOutOfBounds => Some(&FIELD_INDEX_OUT_OF_BOUNDS),
             Self::InvalidAccessField => Some(&INVALID_ACCESS_FIELD),
+            Self::DuplicateGenericConstraint => Some(&DUPLICATE_GENERIC_CONSTRAINT),
+            Self::InvalidGenericArgument => Some(&INVALID_GENERIC_ARGUMENT),
         }
     }
 }
@@ -1276,6 +1290,237 @@ pub(crate) fn field_index_out_of_bounds(literal_span: SpanId) -> ExpanderDiagnos
 
     diagnostic.add_message(Message::help(
         "use a non-negative integer that fits within platform bounds",
+    ));
+
+    diagnostic
+}
+
+/// A `type` call was passed labeled arguments.
+pub(crate) fn labeled_arguments_in_type(
+    labeled_arguments: &[LabeledArgument<'_>],
+) -> ExpanderDiagnostic {
+    let (first, rest) = labeled_arguments
+        .split_first()
+        .expect("caller should check that labeled_arguments is non-empty");
+
+    let mut diagnostic = Diagnostic::new(
+        ExpanderDiagnosticCategory::LabeledArgumentsNotSupported,
+        Severity::Error,
+    )
+    .primary(Label::new(
+        first.span,
+        "labeled arguments are not allowed in `type`",
+    ));
+
+    for argument in rest {
+        diagnostic.add_label(Label::new(
+            argument.span,
+            "labeled argument not allowed here",
+        ));
+    }
+
+    diagnostic.add_message(Message::help(
+        "pass the arguments positionally: `(type Name type-expr body)`",
+    ));
+
+    diagnostic
+}
+
+/// A `type` call was passed the wrong number of arguments.
+///
+/// `type` accepts exactly 3 arguments: `(type Name type-expr body)`.
+pub(crate) fn invalid_type_argument_count(
+    call_span: SpanId,
+    arguments: &[Argument<'_>],
+) -> ExpanderDiagnostic {
+    let count = arguments.len();
+
+    let mut diagnostic = Diagnostic::new(
+        ExpanderDiagnosticCategory::InvalidArgumentCount,
+        Severity::Error,
+    )
+    .primary(Label::new(
+        call_span,
+        format!("expected 3 arguments to `type`, found {count}"),
+    ));
+
+    for argument in arguments.iter().skip(3) {
+        diagnostic.add_label(Label::new(argument.span, "unexpected argument"));
+    }
+
+    diagnostic.add_message(Message::help("use `(type Name type-expr body)`"));
+
+    diagnostic.add_message(Message::note(
+        "the arguments are, in order: the type name (optionally with generic parameters), the \
+         type definition, and the body where the name is in scope",
+    ));
+
+    diagnostic
+}
+
+/// The first argument to `type` is not a valid type name.
+///
+/// The name position requires a simple identifier, optionally with generic
+/// parameters like `Foo<T>`, not a qualified path or arbitrary expression.
+pub(crate) fn invalid_type_binding_name(name: &Argument<'_>) -> ExpanderDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        ExpanderDiagnosticCategory::InvalidBindingName,
+        Severity::Error,
+    )
+    .primary(Label::new(
+        name.value.span,
+        "expected a type name for the `type` binding",
+    ));
+
+    diagnostic.add_message(Message::help(
+        "write `(type Name type-expr body)` with a name like `MyType` or `Pair<A, B>`",
+    ));
+
+    diagnostic.add_message(Message::note(
+        "the first argument to `type` introduces a new type alias and must be a simple \
+         identifier, optionally with generic parameters",
+    ));
+
+    diagnostic
+}
+
+/// The first argument to `newtype` is not a valid type name.
+pub(crate) fn invalid_newtype_binding_name(name: &Argument<'_>) -> ExpanderDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        ExpanderDiagnosticCategory::InvalidBindingName,
+        Severity::Error,
+    )
+    .primary(Label::new(
+        name.value.span,
+        "expected a type name for the `newtype` binding",
+    ));
+
+    diagnostic.add_message(Message::help(
+        "write `(newtype Name type-expr body)` with a name like `UserId` or `Pair<A, B>`",
+    ));
+
+    diagnostic.add_message(Message::note(
+        "the first argument to `newtype` introduces a new distinct type and must be a simple \
+         identifier, optionally with generic parameters",
+    ));
+
+    diagnostic
+}
+
+/// A `newtype` call was passed labeled arguments.
+pub(crate) fn labeled_arguments_in_newtype(
+    labeled_arguments: &[LabeledArgument<'_>],
+) -> ExpanderDiagnostic {
+    let (first, rest) = labeled_arguments
+        .split_first()
+        .expect("caller should check that labeled_arguments is non-empty");
+
+    let mut diagnostic = Diagnostic::new(
+        ExpanderDiagnosticCategory::LabeledArgumentsNotSupported,
+        Severity::Error,
+    )
+    .primary(Label::new(
+        first.span,
+        "labeled arguments are not allowed in `newtype`",
+    ));
+
+    for argument in rest {
+        diagnostic.add_label(Label::new(
+            argument.span,
+            "labeled argument not allowed here",
+        ));
+    }
+
+    diagnostic.add_message(Message::help(
+        "pass the arguments positionally: `(newtype Name type-expr body)`",
+    ));
+
+    diagnostic
+}
+
+/// A `newtype` call was passed the wrong number of arguments.
+///
+/// `newtype` accepts exactly 3 arguments: `(newtype Name type-expr body)`.
+pub(crate) fn invalid_newtype_argument_count(
+    call_span: SpanId,
+    arguments: &[Argument<'_>],
+) -> ExpanderDiagnostic {
+    let count = arguments.len();
+
+    let mut diagnostic = Diagnostic::new(
+        ExpanderDiagnosticCategory::InvalidArgumentCount,
+        Severity::Error,
+    )
+    .primary(Label::new(
+        call_span,
+        format!("expected 3 arguments to `newtype`, found {count}"),
+    ));
+
+    for argument in arguments.iter().skip(3) {
+        diagnostic.add_label(Label::new(argument.span, "unexpected argument"));
+    }
+
+    diagnostic.add_message(Message::help("use `(newtype Name type-expr body)`"));
+
+    diagnostic.add_message(Message::note(
+        "the arguments are, in order: the type name (optionally with generic parameters), the \
+         underlying type, and the body where the name is in scope",
+    ));
+
+    diagnostic
+}
+
+/// A generic parameter was declared more than once.
+pub(crate) fn duplicate_generic_constraint(
+    duplicate_span: SpanId,
+    name: Symbol<'_>,
+    original_span: SpanId,
+) -> ExpanderDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        ExpanderDiagnosticCategory::DuplicateGenericConstraint,
+        Severity::Error,
+    )
+    .primary(Label::new(
+        duplicate_span,
+        format!("duplicate generic parameter `{name}`"),
+    ));
+
+    diagnostic.add_label(Label::new(
+        original_span,
+        format!("`{name}` was first declared here"),
+    ));
+
+    diagnostic.add_message(Message::help(
+        "remove the duplicate declaration or use a different name",
+    ));
+
+    diagnostic
+}
+
+/// A generic argument in a type name is not a valid constraint.
+///
+/// Generic arguments must be simple identifiers (for unconstrained parameters)
+/// or named constraints like `T: Bound`.
+pub(crate) fn invalid_generic_argument(span: SpanId, is_path: bool) -> ExpanderDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        ExpanderDiagnosticCategory::InvalidGenericArgument,
+        Severity::Error,
+    )
+    .primary(Label::new(span, "expected a simple type parameter"));
+
+    if is_path {
+        diagnostic.add_message(Message::help(
+            "use a simple identifier like `T`, not a qualified path",
+        ));
+    } else {
+        diagnostic.add_message(Message::help(
+            "use a simple identifier like `T` or a constraint like `T: Bound`",
+        ));
+    }
+
+    diagnostic.add_message(Message::note(
+        "generic parameters are declared as `Name<T>` for unconstrained or `Name<T: Bound>` for \
+         constrained parameters",
     ));
 
     diagnostic
