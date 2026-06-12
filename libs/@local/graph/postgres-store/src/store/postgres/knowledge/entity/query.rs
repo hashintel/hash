@@ -1,6 +1,7 @@
 use hash_graph_store::{
     entity::EntityQueryPath,
-    subgraph::edges::{EdgeDirection, KnowledgeGraphEdgeKind},
+    entity_type::EntityTypeQueryPath,
+    subgraph::edges::{EdgeDirection, KnowledgeGraphEdgeKind, SharedEdgeKind},
 };
 use serde::Deserialize as _;
 use tokio_postgres::Row;
@@ -227,8 +228,11 @@ impl PostgresRecord for Entity {
             ),
 
             edition_id: compiler.add_selection_path(&EntityQueryPath::EditionId),
-            type_versioned_urls_id: compiler
-                .add_selection_path(&EntityQueryPath::TypeVersionedUrls),
+            type_versioned_urls_id: compiler.add_selection_path(&EntityQueryPath::EntityTypeEdge {
+                edge_kind: SharedEdgeKind::IsOfType,
+                path: EntityTypeQueryPath::VersionedUrl,
+                inheritance_depth: None,
+            }),
             direct_type_count_id: compiler.add_selection_path(&EntityQueryPath::DirectTypeCount),
 
             properties: compiler.add_selection_path(&EntityQueryPath::Properties(None)),

@@ -555,7 +555,9 @@ use type_system::{
 
 use crate::{
     entity::EntityQueryPath,
+    entity_type::EntityTypeQueryPath,
     filter::{Filter, FilterExpression, JsonPath, Parameter, PathToken},
+    subgraph::edges::SharedEdgeKind,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -640,7 +642,11 @@ impl<'p> PropertyProtectionFilterConfig<'p> {
                         )),
                     },
                     PropertyFilterExpressionList::Path {
-                        path: EntityQueryPath::TypeBaseUrls,
+                        path: EntityQueryPath::EntityTypeEdge {
+                            edge_kind: SharedEdgeKind::IsOfType,
+                            path: EntityTypeQueryPath::BaseUrl,
+                            inheritance_depth: None,
+                        },
                     },
                 ),
                 PropertyFilter::NotEqual(
@@ -857,8 +863,6 @@ fn collect_from_path<'f, 'p, I: Extend<&'f PropertyFilter<'p>>>(
         | EntityQueryPath::EditionId
         | EntityQueryPath::DecisionTime
         | EntityQueryPath::TransactionTime
-        | EntityQueryPath::TypeBaseUrls
-        | EntityQueryPath::TypeVersionedUrls
         | EntityQueryPath::DirectTypeCount
         | EntityQueryPath::EntityConfidence
         | EntityQueryPath::LeftEntityConfidence
@@ -1414,7 +1418,7 @@ mod tests {
 
         use super::*;
 
-        /// Creates `User IN TypeBaseUrls` filter (entity has User type).
+        /// Creates a `User IN type base URLs` filter (entity has User type).
         fn type_is_user() -> Filter<'static, Entity> {
             Filter::In(
                 FilterExpression::Parameter {
@@ -1422,7 +1426,11 @@ mod tests {
                     convert: None,
                 },
                 FilterExpressionList::Path {
-                    path: EntityQueryPath::TypeBaseUrls,
+                    path: EntityQueryPath::EntityTypeEdge {
+                        edge_kind: SharedEdgeKind::IsOfType,
+                        path: EntityTypeQueryPath::BaseUrl,
+                        inheritance_depth: None,
+                    },
                 },
             )
         }

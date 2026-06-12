@@ -9,7 +9,9 @@ use std::collections::HashMap;
 use error_stack::{Report, ResultExt as _};
 use hash_graph_store::{
     entity::{EntityQueryPath, QueryEntitiesParams},
+    entity_type::EntityTypeQueryPath,
     error::QueryError,
+    subgraph::edges::SharedEdgeKind,
 };
 use tokio_postgres::Row;
 use type_system::{
@@ -112,7 +114,11 @@ impl EntitySummaryQuery {
                 .then(|| compiler.add_selection_path(&EntityQueryPath::EditionProvenance(None))),
             type_columns: (params.include_type_ids || params.include_type_titles).then(|| {
                 (
-                    compiler.add_selection_path(&EntityQueryPath::TypeVersionedUrls),
+                    compiler.add_selection_path(&EntityQueryPath::EntityTypeEdge {
+                        edge_kind: SharedEdgeKind::IsOfType,
+                        path: EntityTypeQueryPath::VersionedUrl,
+                        inheritance_depth: None,
+                    }),
                     compiler.add_selection_path(&EntityQueryPath::DirectTypeCount),
                 )
             }),
