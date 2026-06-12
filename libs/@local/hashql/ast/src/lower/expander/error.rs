@@ -153,6 +153,31 @@ const INVALID_GENERIC_ARGUMENT: TerminalDiagnosticCategory = TerminalDiagnosticC
     name: "Invalid generic argument",
 };
 
+const FN_GENERICS_TYPE_ANNOTATION: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "fn-generics-type-annotation",
+    name: "Type annotation on generic parameter list",
+};
+
+const INVALID_FN_GENERICS: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "invalid-fn-generics",
+    name: "Invalid generic parameter list",
+};
+
+const INVALID_FN_GENERIC_PARAM: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "invalid-fn-generic-param",
+    name: "Invalid generic parameter",
+};
+
+const FN_PARAMS_TYPE_ANNOTATION: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "fn-params-type-annotation",
+    name: "Type annotation on parameter list",
+};
+
+const INVALID_FN_PARAMS: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "invalid-fn-params",
+    name: "Invalid parameter list",
+};
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum ExpanderDiagnosticCategory {
     EmptyPath,
@@ -179,6 +204,11 @@ pub enum ExpanderDiagnosticCategory {
     InvalidAccessField,
     DuplicateGenericConstraint,
     InvalidGenericArgument,
+    FnGenericsTypeAnnotation,
+    InvalidFnGenerics,
+    InvalidFnGenericParam,
+    FnParamsTypeAnnotation,
+    InvalidFnParams,
 }
 
 impl DiagnosticCategory for ExpanderDiagnosticCategory {
@@ -216,6 +246,11 @@ impl DiagnosticCategory for ExpanderDiagnosticCategory {
             Self::InvalidAccessField => Some(&INVALID_ACCESS_FIELD),
             Self::DuplicateGenericConstraint => Some(&DUPLICATE_GENERIC_CONSTRAINT),
             Self::InvalidGenericArgument => Some(&INVALID_GENERIC_ARGUMENT),
+            Self::FnGenericsTypeAnnotation => Some(&FN_GENERICS_TYPE_ANNOTATION),
+            Self::InvalidFnGenerics => Some(&INVALID_FN_GENERICS),
+            Self::InvalidFnGenericParam => Some(&INVALID_FN_GENERIC_PARAM),
+            Self::FnParamsTypeAnnotation => Some(&FN_PARAMS_TYPE_ANNOTATION),
+            Self::InvalidFnParams => Some(&INVALID_FN_PARAMS),
         }
     }
 }
@@ -1742,4 +1777,176 @@ pub(crate) fn invalid_expression_in_type_position(
     diagnostic.add_message(Message::note(VALID_TYPE_FORMS));
 
     Some(diagnostic)
+}
+
+/// A `fn` call was passed labeled arguments.
+pub(crate) fn labeled_arguments_in_fn(
+    labeled_arguments: &[LabeledArgument<'_>],
+) -> ExpanderDiagnostic {
+    let (first, rest) = labeled_arguments
+        .split_first()
+        .expect("caller should check that labeled_arguments is non-empty");
+
+    let mut diagnostic = Diagnostic::new(
+        ExpanderDiagnosticCategory::LabeledArgumentsNotSupported,
+        Severity::Error,
+    )
+    .primary(Label::new(
+        first.span,
+        "labeled arguments are not allowed in `fn`",
+    ));
+
+    for argument in rest {
+        diagnostic.add_label(Label::new(
+            argument.span,
+            "labeled argument not allowed here",
+        ));
+    }
+
+    diagnostic.add_message(Message::help(
+        "pass the arguments positionally: `(fn generics params return-type body)`",
+    ));
+
+    diagnostic
+}
+
+/// A `fn` call was passed the wrong number of arguments.
+///
+/// `fn` accepts exactly 4 arguments: `(fn generics params return-type body)`.
+pub(crate) fn invalid_fn_argument_count(
+    call_span: SpanId,
+    arguments: &[Argument<'_>],
+) -> ExpanderDiagnostic {
+    let count = arguments.len();
+
+    let mut diagnostic = Diagnostic::new(
+        ExpanderDiagnosticCategory::InvalidArgumentCount,
+        Severity::Error,
+    )
+    .primary(Label::new(
+        call_span,
+        format!("expected 4 arguments to `fn`, found {count}"),
+    ));
+
+    for argument in arguments.iter().skip(4) {
+        diagnostic.add_label(Label::new(argument.span, "unexpected argument"));
+    }
+
+    diagnostic.add_message(Message::help("use `(fn generics params return-type body)`"));
+
+    diagnostic.add_message(Message::note(
+        "the arguments are, in order: the generic parameters (a tuple or struct), the function \
+         parameters (a struct), the return type, and the body expression",
+    ));
+
+    diagnostic
+}
+
+/// The generic parameter list of a `fn` has a type annotation.
+///
+/// The generics argument to `fn` is a tuple or struct that declares type
+/// variables. Annotating it with a type (e.g., `(T, U): something`) is not
+/// meaningful.
+pub(crate) fn fn_generics_type_annotation(annotation_span: SpanId) -> ExpanderDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        ExpanderDiagnosticCategory::FnGenericsTypeAnnotation,
+        Severity::Error,
+    )
+    .primary(Label::new(
+        annotation_span,
+        "type annotation is not allowed on the generic parameter list",
+    ));
+
+    diagnostic.add_message(Message::help(
+        "remove the type annotation; the generic parameter list declares type variables, not a \
+         typed value",
+    ));
+
+    diagnostic.add_message(Message::note(
+        "write `(fn (T, U) ...)` for unbounded generics or `(fn (T: bound, U: _) ...)` for \
+         bounded generics",
+    ));
+
+    diagnostic
+}
+
+/// The generics argument to `fn` is not a valid form.
+///
+/// Generic parameters must be specified as a tuple of identifiers (unbounded)
+/// or a struct with optional bounds.
+pub(crate) fn invalid_fn_generics(span: SpanId) -> ExpanderDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        ExpanderDiagnosticCategory::InvalidFnGenerics,
+        Severity::Error,
+    )
+    .primary(Label::new(
+        span,
+        "expected a tuple or struct for generic parameters",
+    ));
+
+    diagnostic.add_message(Message::help(
+        "use a tuple like `(T, U)` for unbounded generics or a struct like `(T: bound, U: _)` for \
+         bounded generics",
+    ));
+
+    diagnostic
+}
+
+/// A generic parameter in a `fn` tuple is not a simple identifier.
+///
+/// Each element of the generics tuple must be a plain name like `T`,
+/// not a qualified path or complex expression.
+pub(crate) fn invalid_fn_generic_param(span: SpanId) -> ExpanderDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        ExpanderDiagnosticCategory::InvalidFnGenericParam,
+        Severity::Error,
+    )
+    .primary(Label::new(span, "expected a simple type parameter name"));
+
+    diagnostic.add_message(Message::help(
+        "each generic parameter must be a plain identifier like `T`, not a qualified path or \
+         expression",
+    ));
+
+    diagnostic
+}
+
+/// The parameter list of a `fn` has a type annotation.
+///
+/// The params argument to `fn` is a struct where each field declares a
+/// parameter and its type. Annotating the struct itself is not meaningful.
+pub(crate) fn fn_params_type_annotation(annotation_span: SpanId) -> ExpanderDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        ExpanderDiagnosticCategory::FnParamsTypeAnnotation,
+        Severity::Error,
+    )
+    .primary(Label::new(
+        annotation_span,
+        "type annotation is not allowed on the parameter list",
+    ));
+
+    diagnostic.add_message(Message::help(
+        "remove the type annotation; each parameter already declares its type individually as \
+         `(name: type)`",
+    ));
+
+    diagnostic
+}
+
+/// The params argument to `fn` is not a struct expression.
+///
+/// Function parameters must be declared as a struct where each field is a
+/// parameter with its type.
+pub(crate) fn invalid_fn_params(span: SpanId) -> ExpanderDiagnostic {
+    let mut diagnostic =
+        Diagnostic::new(ExpanderDiagnosticCategory::InvalidFnParams, Severity::Error).primary(
+            Label::new(span, "expected a struct for function parameters"),
+        );
+
+    diagnostic.add_message(Message::help(
+        "write parameters as `(x: int, y: string)` where each field declares a parameter and its \
+         type",
+    ));
+
+    diagnostic
 }
