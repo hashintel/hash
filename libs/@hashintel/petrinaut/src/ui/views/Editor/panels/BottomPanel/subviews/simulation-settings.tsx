@@ -1,12 +1,17 @@
 import { use, useState } from "react";
 
-import { Button, Icon, NumberInput, Select } from "@hashintel/ds-components";
+import {
+  Button,
+  Form,
+  Icon,
+  NumberInput,
+  Select,
+} from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { SimulationContext } from "../../../../../../react/simulation/context";
 import { EditorContext } from "../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
-import { InfoIconTooltip } from "../../../../../components/info-icon-tooltip";
 import { Slider } from "../../../../../components/slider";
 import { Switch } from "../../../../../components/switch";
 import { CreateScenarioDrawer } from "../../SimulateView/scenarios/create-scenario-drawer";
@@ -84,16 +89,7 @@ const settingsRowStyle = css({
 });
 
 const settingGroupStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  gap: "1",
   minWidth: "[120px]",
-});
-
-const labelStyle = css({
-  fontSize: "xs",
-  fontWeight: "medium",
-  color: "neutral.fg.body",
 });
 
 const smallLabelStyle = css({
@@ -399,14 +395,17 @@ const SimulationSettingsContent: React.FC = () => {
         <div className={sectionStyle}>
           <div className={sectionTitleStyle}>Computation</div>
           <div className={settingsRowStyle}>
-            {/* Time Step Input */}
-            <div className={settingGroupStyle}>
-              <label htmlFor="time-step-input" className={labelStyle}>
-                Time Step <span className={smallLabelStyle}>(sec/frame)</span>
-                <InfoIconTooltip tooltip="Controls the resolution of the ODE solver. Smaller steps yield finer approximations but take longer to compute." />
-              </label>
+            <Form.Field
+              label={
+                <>
+                  Time Step <span className={smallLabelStyle}>(sec/frame)</span>
+                </>
+              }
+              size="xs"
+              className={settingGroupStyle}
+              labelTooltip="Controls the resolution of the ODE solver. Smaller steps yield finer approximations but take longer to compute."
+            >
               <NumberInput
-                htmlForId="time-step-input"
                 size="xs"
                 width="xs"
                 min={0.001}
@@ -420,12 +419,12 @@ const SimulationSettingsContent: React.FC = () => {
                 }}
                 disabled={isSimulationActive}
               />
-            </div>
-            {/* ODE Solver Method Select */}
-            <div className={settingGroupStyle}>
-              <label htmlFor="ode-solver-select" className={labelStyle}>
-                ODE Solver
-              </label>
+            </Form.Field>
+            <Form.Field
+              label="ODE Solver"
+              size="xs"
+              className={settingGroupStyle}
+            >
               <Select
                 required
                 width="xs"
@@ -435,7 +434,7 @@ const SimulationSettingsContent: React.FC = () => {
                 size="xs"
                 disabled={isSimulationActive}
               />
-            </div>
+            </Form.Field>
           </div>
         </div>
       </div>

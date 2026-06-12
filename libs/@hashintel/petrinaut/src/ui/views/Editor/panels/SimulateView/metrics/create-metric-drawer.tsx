@@ -138,11 +138,7 @@ export const CreateMetricDrawer = ({
           Create a metric
         </Drawer.Header>
         <Drawer.Body>
-          <MetricFormBody
-            form={form}
-            idPrefix="create-"
-            metricSessionId={metricSessionId}
-          />
+          <MetricFormBody form={form} metricSessionId={metricSessionId} />
         </Drawer.Body>
       </Drawer.Card>
       <CreateMetricFooter

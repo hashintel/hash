@@ -3,6 +3,7 @@ import { use, useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import {
   Button,
+  Form,
   Icon,
   LoadingSpinner,
   NumberInput,
@@ -39,18 +40,6 @@ import type {
 } from "@hashintel/petrinaut-core";
 
 // -- Styles -------------------------------------------------------------------
-
-const fieldStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  gap: "[6px]",
-});
-
-const labelStyle = css({
-  fontSize: "sm",
-  fontWeight: "medium",
-  color: "neutral.s120",
-});
 
 const gridStyle = css({
   display: "grid",
@@ -580,8 +569,7 @@ const ExperimentExpressionMetricEditor = ({
   const codeUri = getMetricDocumentUri(metricSessionId);
 
   return (
-    <div className={fieldStyle}>
-      <span className={labelStyle}>Code</span>
+    <Form.Field as="legend" label="Code" size="sm">
       <CodeEditor
         language="typescript"
         path={codeUri}
@@ -595,7 +583,7 @@ const ExperimentExpressionMetricEditor = ({
           {lspDiagnostics.firstMessage ?? `${lspDiagnostics.count} diagnostics`}
         </span>
       ) : null}
-    </div>
+    </Form.Field>
   );
 };
 
@@ -788,8 +776,7 @@ const ExperimentMetricRow = ({
           metric.kind === "transitionFiringCount" ? (
             <div className={metricSpecificFieldsStyle}>
               {metric.kind === "placeTokenCountMean" ? (
-                <div className={fieldStyle}>
-                  <span className={labelStyle}>Place</span>
+                <Form.Field label="Place" size="sm">
                   <Select
                     required
                     value={metric.placeId}
@@ -797,12 +784,11 @@ const ExperimentMetricRow = ({
                     items={placeOptions}
                     size="sm"
                   />
-                </div>
+                </Form.Field>
               ) : null}
               {metric.kind === "transitionFiringCount" ? (
                 <>
-                  <div className={fieldStyle}>
-                    <span className={labelStyle}>Transition</span>
+                  <Form.Field label="Transition" size="sm">
                     <Select
                       required
                       value={metric.transitionId}
@@ -812,9 +798,8 @@ const ExperimentMetricRow = ({
                       items={transitionOptions}
                       size="sm"
                     />
-                  </div>
-                  <div className={fieldStyle}>
-                    <span className={labelStyle}>Count</span>
+                  </Form.Field>
+                  <Form.Field label="Count" size="sm">
                     <Select
                       required
                       value={metric.transitionMode}
@@ -824,7 +809,7 @@ const ExperimentMetricRow = ({
                       items={transitionModeOptions}
                       size="sm"
                     />
-                  </div>
+                  </Form.Field>
                 </>
               ) : null}
             </div>
@@ -1027,13 +1012,11 @@ export const CreateExperimentDrawer = ({
         <Drawer.Body>
           <SectionList>
             <Section title="Experiment" collapsible defaultOpen>
-              <div className={fieldStyle}>
-                <span className={labelStyle}>Name</span>
+              <Form.Field label="Name" size="sm">
                 <TextInput size="sm" value={name} onChange={setName} />
-              </div>
+              </Form.Field>
               <div className={gridStyle}>
-                <div className={fieldStyle}>
-                  <span className={labelStyle}>Runs</span>
+                <Form.Field label="Runs" size="sm">
                   <NumberInput
                     size="sm"
                     min={1}
@@ -1044,9 +1027,8 @@ export const CreateExperimentDrawer = ({
                       )
                     }
                   />
-                </div>
-                <div className={fieldStyle}>
-                  <span className={labelStyle}>Time step</span>
+                </Form.Field>
+                <Form.Field label="Time step" size="sm">
                   <NumberInput
                     size="sm"
                     min={0}
@@ -1056,9 +1038,8 @@ export const CreateExperimentDrawer = ({
                       setDt(nextDt === null ? "" : String(nextDt))
                     }
                   />
-                </div>
-                <div className={fieldStyle}>
-                  <span className={labelStyle}>Max time (s)</span>
+                </Form.Field>
+                <Form.Field label="Max time (s)" size="sm">
                   <NumberInput
                     size="sm"
                     min={0}
@@ -1070,43 +1051,41 @@ export const CreateExperimentDrawer = ({
                       )
                     }
                   />
-                </div>
+                </Form.Field>
               </div>
             </Section>
 
             <Section title="Scenario" collapsible defaultOpen>
-              <div className={fieldStyle}>
-                <Select
-                  required
-                  value={effectiveSelectedScenarioId}
-                  onChange={handleScenarioChange}
-                  items={scenarioOptions}
-                  size="sm"
-                  renderItem={(value) => {
-                    const option = scenarioOptions.find(
-                      (opt) => opt.value === value,
-                    );
-                    return (
-                      <span
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 6,
-                        }}
-                      >
-                        {value === NO_SCENARIO_VALUE && (
-                          <Icon
-                            name="dash"
-                            size="xs"
-                            className={css({ opacity: "[0.4]" })}
-                          />
-                        )}
-                        {option?.text}
-                      </span>
-                    );
-                  }}
-                />
-              </div>
+              <Select
+                required
+                value={effectiveSelectedScenarioId}
+                onChange={handleScenarioChange}
+                items={scenarioOptions}
+                size="sm"
+                renderItem={(value) => {
+                  const option = scenarioOptions.find(
+                    (opt) => opt.value === value,
+                  );
+                  return (
+                    <span
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 6,
+                      }}
+                    >
+                      {value === NO_SCENARIO_VALUE && (
+                        <Icon
+                          name="dash"
+                          size="xs"
+                          className={css({ opacity: "[0.4]" })}
+                        />
+                      )}
+                      {option?.text}
+                    </span>
+                  );
+                }}
+              />
 
               {selectedScenario ? (
                 selectedScenario.scenarioParameters.length === 0 ? (

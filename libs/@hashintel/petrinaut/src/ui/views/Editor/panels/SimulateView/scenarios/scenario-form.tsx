@@ -3,9 +3,11 @@ import { use, useEffect, useRef, useState } from "react";
 
 import {
   Button,
+  Form,
   NumberInput,
   Select,
   TextInput,
+  useFieldId,
 } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
@@ -25,18 +27,6 @@ import type {
 } from "@hashintel/petrinaut-core";
 
 // -- Form styles --------------------------------------------------------------
-
-const fieldStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  gap: "[6px]",
-});
-
-const labelStyle = css({
-  fontSize: "sm",
-  fontWeight: "medium",
-  color: "neutral.s120",
-});
 
 const textareaStyle = css({
   boxSizing: "border-box",
@@ -75,30 +65,24 @@ const paramRowStyle = css({
   gap: "[8px]",
 });
 
-const paramFieldStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  gap: "[4px]",
-  flex: "1",
+const paramIdentifierFieldStyle = css({
+  flex: "[1]",
   minWidth: "[0]",
 });
 
-const paramFieldSmStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  gap: "[4px]",
+const paramTypeFieldStyle = css({
+  width: "[80px]",
+  flex: "[0 0 auto]",
+});
+
+const paramDefaultFieldStyle = css({
   width: "[64px]",
   flex: "[0 0 auto]",
 });
 
 const paramFieldConnectedStyle = css({
   display: "flex",
-});
-
-const paramLabelStyle = css({
-  fontSize: "xs",
-  fontWeight: "medium",
-  color: "neutral.s100",
+  alignItems: "flex-end",
 });
 
 // -- Override row styles -------------------------------------------------------
@@ -205,6 +189,26 @@ const monospaceInputStyle = css({
     fontFamily: "mono",
   },
 });
+
+// -- Field-id-aware textarea -------------------------------------------------
+
+const FieldTextarea = ({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+}) => {
+  const id = useFieldId();
+  return (
+    <textarea
+      id={id ?? undefined}
+      className={textareaStyle}
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+    />
+  );
+};
 
 // -- Types --------------------------------------------------------------------
 
@@ -531,8 +535,6 @@ interface ScenarioFormSectionsProps {
   places: Place[];
   /** Map of type ID → Color */
   typesById: Map<string, Color>;
-  /** Unique prefix for element IDs to avoid collisions when multiple forms exist */
-  idPrefix?: string;
   /** LSP session ID for scenario expression type-checking */
   scenarioSessionId?: string;
 }
@@ -545,7 +547,6 @@ const ScenarioFormSections = ({
   parameters,
   places,
   typesById,
-  idPrefix = "",
   scenarioSessionId,
 }: ScenarioFormSectionsProps) => {
   const { diagnosticsByUri } = use(LanguageClientContext);
@@ -606,33 +607,21 @@ const ScenarioFormSections = ({
     <SectionList>
       {/* -- General -------------------------------------------------- */}
       <Section title="General" collapsible defaultOpen>
-        <div className={fieldStyle}>
-          <label className={labelStyle} htmlFor={`${idPrefix}scenario-name`}>
-            Scenario name
-          </label>
+        <Form.Field label="Scenario name" size="sm">
           <TextInput
-            htmlForId={`${idPrefix}scenario-name`}
             size="sm"
             value={state.name}
             onChange={callbacks.onNameChange}
             invalid={nameHasError && state.name !== ""}
           />
-        </div>
+        </Form.Field>
 
-        <div className={fieldStyle}>
-          <label
-            className={labelStyle}
-            htmlFor={`${idPrefix}scenario-description`}
-          >
-            Description
-          </label>
-          <textarea
-            id={`${idPrefix}scenario-description`}
-            className={textareaStyle}
+        <Form.Field label="Description" size="sm">
+          <FieldTextarea
             value={state.description}
-            onChange={(e) => callbacks.onDescriptionChange(e.target.value)}
+            onChange={callbacks.onDescriptionChange}
           />
-        </div>
+        </Form.Field>
       </Section>
 
       {/* -- Scenario Parameters -------------------------------------- */}
@@ -660,8 +649,11 @@ const ScenarioFormSections = ({
         ) : (
           state.scenarioParams.map((param) => (
             <div key={param._key} className={paramRowStyle}>
-              <div className={paramFieldStyle}>
-                <span className={paramLabelStyle}>Identifier</span>
+              <Form.Field
+                label="Identifier"
+                size="xs"
+                className={paramIdentifierFieldStyle}
+              >
                 <TextInput
                   size="sm"
                   className={monospaceInputStyle}
@@ -682,19 +674,18 @@ const ScenarioFormSections = ({
                   placeholder="name"
                   invalid={identifierHasError(param.identifier)}
                 />
-              </div>
+              </Form.Field>
               <div className={paramFieldConnectedStyle}>
-                <div className={paramFieldStyle}>
-                  <span className={paramLabelStyle}>Type</span>
+                <Form.Field
+                  label="Type"
+                  size="xs"
+                  className={paramTypeFieldStyle}
+                >
                   <Select
                     required
                     size="sm"
                     connectToRightInput={param.type !== "boolean"}
                     value={param.type}
-                    className={css({
-                      width: "[80px]",
-                      flex: "[0 0 auto]",
-                    })}
                     onChange={(type) =>
                       updateScenarioParam(param._key, { type })
                     }
@@ -710,9 +701,12 @@ const ScenarioFormSections = ({
                       }>
                     }
                   />
-                </div>
-                <div className={paramFieldSmStyle}>
-                  <span className={paramLabelStyle}>Default</span>
+                </Form.Field>
+                <Form.Field
+                  label="Default"
+                  size="xs"
+                  className={paramDefaultFieldStyle}
+                >
                   {param.type === "boolean" ? (
                     <div className={css({ marginLeft: "3", marginTop: "1" })}>
                       <Switch
@@ -741,7 +735,7 @@ const ScenarioFormSections = ({
                       }}
                     />
                   )}
-                </div>
+                </Form.Field>
               </div>
               <Button
                 size="xs"
@@ -916,8 +910,6 @@ export interface ScenarioFormBodyProps {
   parameters: Parameter[];
   /** The net-level places */
   places: Place[];
-  /** Unique prefix for element IDs */
-  idPrefix?: string;
 }
 
 /**
@@ -930,7 +922,6 @@ export const ScenarioFormBody = ({
   typesById,
   parameters,
   places,
-  idPrefix,
 }: ScenarioFormBodyProps) => {
   const values = useStore(form.store, (state) => state.values);
 
@@ -970,7 +961,6 @@ export const ScenarioFormBody = ({
       parameters={parameters}
       places={places}
       typesById={typesById}
-      idPrefix={idPrefix}
       scenarioSessionId={scenarioSessionId}
     />
   );

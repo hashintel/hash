@@ -3,6 +3,7 @@ import { useState } from "react";
 import {
   Button,
   Dialog,
+  Form,
   Icon,
   Menu,
   Select,
@@ -110,23 +111,22 @@ const DiffEqMainContent: React.FC = () => {
 
   return (
     <SectionList>
-      <Section title="Name">
-        <DraftFieldInput
-          sourceId={differentialEquation.id}
-          sourceValue={differentialEquation.name}
-          validate={validateDisplayName}
-          onCommit={(name) =>
-            updateDifferentialEquation({
-              equationId: differentialEquation.id,
-              update: { name },
-            })
-          }
-          disabled={isReadOnly}
-          tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
-        />
-      </Section>
+      <DraftFieldInput
+        label="Name"
+        sourceId={differentialEquation.id}
+        sourceValue={differentialEquation.name}
+        validate={validateDisplayName}
+        onCommit={(name) =>
+          updateDifferentialEquation({
+            equationId: differentialEquation.id,
+            update: { name },
+          })
+        }
+        disabled={isReadOnly}
+        tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
+      />
 
-      <Section title="Associated Type">
+      <Form.Field label="Associated Type" size="sm" disabled={isReadOnly}>
         <Tooltip
           content={UI_MESSAGES.READ_ONLY_MODE}
           disableTooltip={!isReadOnly}
@@ -160,7 +160,7 @@ const DiffEqMainContent: React.FC = () => {
             }}
           />
         </Tooltip>
-      </Section>
+      </Form.Field>
 
       {showConfirmDialog && (
         <Dialog size="xs" onClose={cancelTypeChange}>

@@ -181,7 +181,6 @@ const ViewScenarioContent = ({
             }
             places={petriNetDefinition.places}
             typesById={typesById}
-            idPrefix="view-"
           />
         </Drawer.Body>
       </Drawer.Card>

@@ -1,7 +1,7 @@
 import { useForm, useStore } from "@tanstack/react-form";
 import { use, useEffect, useRef, useState } from "react";
 
-import { TextInput } from "@hashintel/ds-components";
+import { Form, TextInput, useFieldId } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
@@ -10,18 +10,6 @@ import { CodeEditor } from "../../../../../monaco/code-editor";
 import { getMetricDocumentUri } from "../../../../../monaco/editor-paths";
 
 // -- Styles -------------------------------------------------------------------
-
-const fieldStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  gap: "[6px]",
-});
-
-const labelStyle = css({
-  fontSize: "sm",
-  fontWeight: "medium",
-  color: "neutral.s120",
-});
 
 const textareaStyle = css({
   boxSizing: "border-box",
@@ -57,6 +45,26 @@ const hintStyle = css({
   color: "neutral.s80",
   lineHeight: "[1.4]",
 });
+
+// -- Field-id-aware textarea -------------------------------------------------
+
+const FieldTextarea = ({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+}) => {
+  const id = useFieldId();
+  return (
+    <textarea
+      id={id ?? undefined}
+      className={textareaStyle}
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+    />
+  );
+};
 
 // -- Form state ---------------------------------------------------------------
 
@@ -183,8 +191,6 @@ export function useMetricLspSession(
 interface MetricFormSectionsProps {
   state: MetricFormState;
   callbacks: MetricFormCallbacks;
-  /** Unique prefix for element IDs to avoid collisions when multiple forms exist */
-  idPrefix?: string;
   /** LSP session ID for metric body type-checking */
   metricSessionId?: string;
 }
@@ -192,7 +198,6 @@ interface MetricFormSectionsProps {
 const MetricFormSections = ({
   state,
   callbacks,
-  idPrefix = "",
   metricSessionId,
 }: MetricFormSectionsProps) => {
   const nameHasError = state.name.trim() === "";
@@ -205,33 +210,21 @@ const MetricFormSections = ({
     <SectionList>
       {/* -- General -------------------------------------------------- */}
       <Section title="General" collapsible defaultOpen>
-        <div className={fieldStyle}>
-          <label className={labelStyle} htmlFor={`${idPrefix}metric-name`}>
-            Metric name
-          </label>
+        <Form.Field label="Metric name" size="md">
           <TextInput
-            htmlForId={`${idPrefix}metric-name`}
             size="md"
             value={state.name}
             onChange={callbacks.onNameChange}
             invalid={nameHasError && state.name !== ""}
           />
-        </div>
+        </Form.Field>
 
-        <div className={fieldStyle}>
-          <label
-            className={labelStyle}
-            htmlFor={`${idPrefix}metric-description`}
-          >
-            Description
-          </label>
-          <textarea
-            id={`${idPrefix}metric-description`}
-            className={textareaStyle}
+        <Form.Field label="Description" size="md">
+          <FieldTextarea
             value={state.description}
-            onChange={(e) => callbacks.onDescriptionChange(e.target.value)}
+            onChange={callbacks.onDescriptionChange}
           />
-        </div>
+        </Form.Field>
       </Section>
 
       {/* -- Code ----------------------------------------------------- */}
@@ -258,8 +251,6 @@ const MetricFormSections = ({
 
 export interface MetricFormBodyProps {
   form: MetricFormInstance;
-  /** Unique prefix for element IDs */
-  idPrefix?: string;
   /**
    * LSP session ID for the metric body. Owned by the drawer parent so the
    * footer can scope its diagnostics summary to the same session.
@@ -269,7 +260,6 @@ export interface MetricFormBodyProps {
 
 export const MetricFormBody = ({
   form,
-  idPrefix,
   metricSessionId,
 }: MetricFormBodyProps) => {
   const values = useStore(form.store, (state) => state.values);
@@ -283,7 +273,6 @@ export const MetricFormBody = ({
           form.setFieldValue("description", value),
         onCodeChange: (value) => form.setFieldValue("code", value),
       }}
-      idPrefix={idPrefix}
       metricSessionId={metricSessionId}
     />
   );

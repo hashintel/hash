@@ -166,11 +166,7 @@ const ViewMetricContent = ({
       <Drawer.Card onClose={onClose}>
         <Drawer.Header>{metric.name}</Drawer.Header>
         <Drawer.Body>
-          <MetricFormBody
-            form={form}
-            idPrefix="view-"
-            metricSessionId={metricSessionId}
-          />
+          <MetricFormBody form={form} metricSessionId={metricSessionId} />
         </Drawer.Body>
       </Drawer.Card>
       <ViewMetricFooter

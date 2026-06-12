@@ -3,6 +3,7 @@ import { use, useEffect, useRef, useState } from "react";
 import {
   Button,
   Checkbox,
+  Form,
   Icon,
   Select,
   TextInput,
@@ -22,11 +23,6 @@ import { useDraftField } from "../../../../../../hooks/use-draft-field";
 import { usePlacePropertiesContext } from "../context";
 
 import type { SubView } from "../../../../../../components/sub-view/types";
-
-const errorMessageStyle = css({
-  fontSize: "xs",
-  color: "red.s100",
-});
 
 const jumpButtonContainerStyle = css({
   textAlign: "right",
@@ -122,7 +118,12 @@ const PlaceMainContent: React.FC = () => {
   return (
     <div ref={rootDivRef}>
       <SectionList>
-        <Section title="Name">
+        <Form.Field
+          label="Name"
+          size="sm"
+          disabled={isReadOnly}
+          errors={nameField.error ? [nameField.error] : undefined}
+        >
           <Tooltip
             content={UI_MESSAGES.READ_ONLY_MODE}
             disableTooltip={!isReadOnly}
@@ -146,15 +147,14 @@ const PlaceMainContent: React.FC = () => {
               invalid={!!nameField.error}
             />
           </Tooltip>
-          {nameField.error && (
-            <div className={errorMessageStyle}>{nameField.error}</div>
-          )}
-        </Section>
+        </Form.Field>
 
         {extensions.colors && (
-          <Section
-            title="Accepted token type"
-            tooltip={`If tokens in this place should carry data ("colour"), assign a data type here.${
+          <Form.Field
+            label="Accepted token type"
+            size="sm"
+            disabled={isReadOnly}
+            labelTooltip={`If tokens in this place should carry data ("colour"), assign a data type here.${
               availableTypes.length === 0
                 ? " You must create a data type in the left-hand sidebar first."
                 : ""
@@ -226,7 +226,7 @@ const PlaceMainContent: React.FC = () => {
                 </Button>
               </div>
             )}
-          </Section>
+          </Form.Field>
         )}
 
         {extensions.colors && extensions.dynamics && (

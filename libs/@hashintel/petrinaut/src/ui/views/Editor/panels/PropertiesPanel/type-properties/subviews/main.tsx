@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 
-import { Button, TextInput, Tooltip } from "@hashintel/ds-components";
+import { Button, Form, TextInput, Tooltip } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 import { validateDisplayName } from "@hashintel/petrinaut-core";
 
@@ -274,23 +274,22 @@ const TypeMainContent: React.FC = () => {
 
   return (
     <SectionList>
-      <Section title="Name">
-        <DraftFieldInput
-          sourceId={type.id}
-          sourceValue={type.name}
-          validate={validateDisplayName}
-          onCommit={(name) =>
-            updateType({
-              typeId: type.id,
-              update: { name },
-            })
-          }
-          disabled={isDisabled}
-          tooltip={isDisabled ? UI_MESSAGES.READ_ONLY_MODE : undefined}
-        />
-      </Section>
+      <DraftFieldInput
+        label="Name"
+        sourceId={type.id}
+        sourceValue={type.name}
+        validate={validateDisplayName}
+        onCommit={(name) =>
+          updateType({
+            typeId: type.id,
+            update: { name },
+          })
+        }
+        disabled={isDisabled}
+        tooltip={isDisabled ? UI_MESSAGES.READ_ONLY_MODE : undefined}
+      />
 
-      <Section title="Color">
+      <Form.Field label="Color" size="sm" disabled={isDisabled}>
         <Tooltip
           content={isDisabled ? UI_MESSAGES.READ_ONLY_MODE : ""}
           disableTooltip={!isDisabled}
@@ -306,7 +305,7 @@ const TypeMainContent: React.FC = () => {
             disabled={isDisabled}
           />
         </Tooltip>
-      </Section>
+      </Form.Field>
 
       <Section
         title="Dimensions"

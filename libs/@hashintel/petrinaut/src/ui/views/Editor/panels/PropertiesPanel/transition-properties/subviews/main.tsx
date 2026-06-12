@@ -101,21 +101,20 @@ const TransitionMainContent: React.FC = () => {
 
   return (
     <SectionList>
-      <Section title="Name">
-        <DraftFieldInput
-          sourceId={transition.id}
-          sourceValue={transition.name}
-          validate={validateDisplayName}
-          onCommit={(name) =>
-            updateTransition({
-              transitionId: transition.id,
-              update: { name },
-            })
-          }
-          disabled={isReadOnly}
-          tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
-        />
-      </Section>
+      <DraftFieldInput
+        label="Name"
+        sourceId={transition.id}
+        sourceValue={transition.name}
+        validate={validateDisplayName}
+        onCommit={(name) =>
+          updateTransition({
+            transitionId: transition.id,
+            update: { name },
+          })
+        }
+        disabled={isReadOnly}
+        tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
+      />
 
       <Section title="Input Arcs" collapsible>
         {transition.inputArcs.length === 0 ? (

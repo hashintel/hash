@@ -3,6 +3,7 @@ export { Badge, type BadgeProps } from "./components/Badge/badge";
 export { Button, type ButtonProps } from "./components/Button/button";
 export { Checkbox, type CheckboxProps } from "./components/Checkbox/checkbox";
 export { Dialog } from "./components/Dialog/dialog";
+export { useFieldId } from "./components/Form/field-id-context";
 export { Form } from "./components/Form/form";
 export { Icon, type IconName, iconNames } from "./components/Icon/icon";
 export {

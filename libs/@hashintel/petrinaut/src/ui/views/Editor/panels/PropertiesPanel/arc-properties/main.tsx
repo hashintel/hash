@@ -2,6 +2,7 @@ import { createContext, use } from "react";
 
 import {
   Button,
+  Form,
   Icon,
   NumberInput,
   Select,
@@ -16,7 +17,7 @@ import {
 
 import { EditorContext } from "../../../../../../react/state/editor-context";
 import { useIsReadOnly } from "../../../../../../react/state/use-is-read-only";
-import { Section, SectionList } from "../../../../../components/section";
+import { SectionList } from "../../../../../components/section";
 import { VerticalSubViewsContainer } from "../../../../../components/sub-view/vertical/vertical-sub-views-container";
 import { UI_MESSAGES } from "../../../../../constants/ui-messages";
 
@@ -80,14 +81,14 @@ const ArcMainContent: React.FC = () => {
 
   return (
     <SectionList>
-      <Section title="Source">
+      <Form.Field as="legend" label="Source" size="sm">
         <div className={readOnlyFieldStyle}>{sourceName}</div>
-      </Section>
-      <Section title="Target">
+      </Form.Field>
+      <Form.Field as="legend" label="Target" size="sm">
         <div className={readOnlyFieldStyle}>{targetName}</div>
-      </Section>
+      </Form.Field>
       {arcDirection === "input" && (
-        <Section title="Type">
+        <Form.Field label="Type" size="sm" disabled={isReadOnly}>
           <Tooltip
             content={UI_MESSAGES.READ_ONLY_MODE}
             disableTooltip={!isReadOnly}
@@ -111,9 +112,9 @@ const ArcMainContent: React.FC = () => {
               disabled={isReadOnly}
             />
           </Tooltip>
-        </Section>
+        </Form.Field>
       )}
-      <Section title="Weight">
+      <Form.Field label="Weight" size="sm" disabled={isReadOnly}>
         <NumberInput
           size="sm"
           min={1}
@@ -130,7 +131,7 @@ const ArcMainContent: React.FC = () => {
           }}
           disabled={isReadOnly}
         />
-      </Section>
+      </Form.Field>
     </SectionList>
   );
 };
