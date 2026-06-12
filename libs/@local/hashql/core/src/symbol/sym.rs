@@ -261,6 +261,8 @@ hashql_macros::define_symbols! {
         Confidence: "::graph::types::knowledge::entity::Confidence",
         DecisionTime: "::graph::temporal::DecisionTime",
         Dict: "::kernel::type::Dict",
+        Union: "::kernel::type::Union",
+        Intersection: "::kernel::type::Intersection",
         DraftId: "::graph::types::knowledge::entity::DraftId",
         Entity: "::graph::types::knowledge::entity::Entity",
         EntityEditionId: "::graph::types::knowledge::entity::EntityEditionId",

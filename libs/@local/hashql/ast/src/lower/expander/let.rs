@@ -2,7 +2,7 @@ use core::mem;
 
 use hashql_core::{span::SpanId, symbol::Ident};
 
-use super::Expander;
+use super::{Expander, r#type::lower_expr_to_type};
 use crate::node::{
     expr::{CallExpr, Expr, ExprKind, LetExpr, call::Argument},
     id::NodeId,
@@ -18,14 +18,14 @@ fn argument_to_ident<'heap>(argument: &Argument<'heap>) -> Option<Ident<'heap>> 
     }
 }
 
-fn lower_let_3<'heap>(
+fn lower_let_impl<'heap>(
     span: SpanId,
     expander: &mut Expander<'_, 'heap>,
 
     name: &Argument<'heap>,
-    mut value: &mut Argument<'heap>,
-    mut r#type: Option<&mut Argument<'heap>>,
-    mut body: &mut Argument<'heap>,
+    value: &mut Argument<'heap>,
+    r#type: Option<&mut Argument<'heap>>,
+    body: &mut Argument<'heap>,
 ) -> Expr<'heap> {
     let Some(name) = argument_to_ident(name) else {
         todo!("ERROR: name must be an ident");
@@ -43,9 +43,17 @@ fn lower_let_3<'heap>(
         },
     );
 
-    if let Some(r#type) = &mut r#type {
-        expander.visit(&mut r#type.value);
-    }
+    let r#type = if let Some(r#type) = r#type {
+        let mut value = mem::replace(&mut r#type.value, Expr::dummy());
+
+        expander.with_universe(hashql_core::module::Universe::Type, |expander| {
+            expander.visit(&mut value);
+        });
+
+        Some(lower_expr_to_type(expander, value))
+    } else {
+        None
+    };
 
     Expr {
         id: NodeId::PLACEHOLDER,
@@ -55,14 +63,14 @@ fn lower_let_3<'heap>(
             span,
             name,
             value: Box::new_in(mem::replace(&mut value.value, Expr::dummy()), expander.heap),
-            r#type: None,
+            r#type: r#type.map(|r#type| Box::new_in(r#type, expander.heap)),
             body: Box::new_in(mem::replace(&mut body.value, Expr::dummy()), expander.heap),
         }),
     }
 }
 
-pub(super) fn lower_let<'env, 'heap>(
-    expander: &mut Expander<'env, 'heap>,
+pub(super) fn lower_let<'heap>(
+    expander: &mut Expander<'_, 'heap>,
     CallExpr {
         id: _,
         span,
@@ -77,11 +85,9 @@ pub(super) fn lower_let<'env, 'heap>(
     }
 
     match &mut **arguments {
-        [name, value, body] => {
-            todo!()
-        }
+        [name, value, body] => lower_let_impl(*span, expander, name, value, None, body),
         [name, r#type, value, body] => {
-            todo!()
+            lower_let_impl(*span, expander, name, value, Some(r#type), body)
         }
         _ => {
             todo!("ERROR: issue diagnostic");

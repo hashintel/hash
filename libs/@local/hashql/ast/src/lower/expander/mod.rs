@@ -1,5 +1,6 @@
 mod error;
 mod r#let;
+mod r#type;
 
 use hashql_core::{
     heap,
@@ -32,7 +33,7 @@ pub struct Expander<'env, 'heap> {
     trampoline: Option<node::expr::Expr<'heap>>,
 }
 
-impl<'env, 'heap> Expander<'env, 'heap> {
+impl<'heap> Expander<'_, 'heap> {
     fn visit(&mut self, expr: &mut node::expr::Expr<'heap>) -> Option<module::item::Item<'heap>> {
         let prev_current_item = self.current_item.take();
         visit::walk_expr(self, expr);
@@ -45,6 +46,14 @@ impl<'env, 'heap> Expander<'env, 'heap> {
         self.current_item = prev_current_item;
 
         current_item
+    }
+
+    fn with_universe<T>(&mut self, universe: Universe, closure: impl FnOnce(&mut Self) -> T) -> T {
+        let prev_universe = self.current_universe;
+        self.current_universe = universe;
+        let result = closure(self);
+        self.current_universe = prev_universe;
+        result
     }
 
     fn enter<T>(
