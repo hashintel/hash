@@ -41,10 +41,12 @@ where
     });
     let value = lower_expr_to_type(expander, value);
 
-    expander.enter(
-        hashql_core::module::Universe::Type,
-        name.value,
-        None,
+    expander.bind_many(
+        // Newtype expressions are scoped to both universes
+        [
+            (name.value, hashql_core::module::Universe::Type),
+            (name.value, hashql_core::module::Universe::Value),
+        ],
         |expander| expander.visit(&mut body),
     );
 

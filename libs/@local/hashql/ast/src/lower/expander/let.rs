@@ -2,7 +2,7 @@ use core::mem;
 
 use hashql_core::{heap::BumpAllocator, span::SpanId, symbol::Ident};
 
-use super::{Expander, r#type::lower_expr_to_type};
+use super::{BindingKind, Expander, r#type::lower_expr_to_type};
 use crate::{
     lower::expander::error,
     node::{
@@ -11,14 +11,18 @@ use crate::{
     },
 };
 
-pub(super) fn argument_to_ident<'heap>(argument: &Argument<'heap>) -> Option<Ident<'heap>> {
-    if let ExprKind::Path(path) = &argument.value.kind
+pub(super) fn expr_to_ident<'heap>(expr: &Expr<'heap>) -> Option<Ident<'heap>> {
+    if let ExprKind::Path(path) = &expr.kind
         && let Some(&ident) = path.as_ident()
     {
         Some(ident)
     } else {
         None
     }
+}
+
+pub(super) fn argument_to_ident<'heap>(argument: &Argument<'heap>) -> Option<Ident<'heap>> {
+    expr_to_ident(&argument.value)
 }
 
 fn lower_let_impl<'heap, S>(
@@ -42,10 +46,12 @@ where
 
     let item = expander.visit(&mut value.value);
 
-    expander.enter(
-        hashql_core::module::Universe::Value,
+    expander.bind(
         name.value,
-        item,
+        item.map_or(
+            BindingKind::Local(hashql_core::module::Universe::Value),
+            Into::into,
+        ),
         |expander| {
             expander.visit(&mut body.value);
         },
