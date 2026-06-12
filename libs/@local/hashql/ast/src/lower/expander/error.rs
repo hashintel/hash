@@ -178,6 +178,16 @@ const INVALID_FN_PARAMS: TerminalDiagnosticCategory = TerminalDiagnosticCategory
     name: "Invalid parameter list",
 };
 
+const DUPLICATE_FN_GENERIC: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "duplicate-fn-generic",
+    name: "Duplicate generic parameter",
+};
+
+const DUPLICATE_FN_PARAMETER: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "duplicate-fn-parameter",
+    name: "Duplicate function parameter",
+};
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum ExpanderDiagnosticCategory {
     EmptyPath,
@@ -209,6 +219,8 @@ pub enum ExpanderDiagnosticCategory {
     InvalidFnGenericParam,
     FnParamsTypeAnnotation,
     InvalidFnParams,
+    DuplicateFnGeneric,
+    DuplicateFnParameter,
 }
 
 impl DiagnosticCategory for ExpanderDiagnosticCategory {
@@ -251,6 +263,8 @@ impl DiagnosticCategory for ExpanderDiagnosticCategory {
             Self::InvalidFnGenericParam => Some(&INVALID_FN_GENERIC_PARAM),
             Self::FnParamsTypeAnnotation => Some(&FN_PARAMS_TYPE_ANNOTATION),
             Self::InvalidFnParams => Some(&INVALID_FN_PARAMS),
+            Self::DuplicateFnGeneric => Some(&DUPLICATE_FN_GENERIC),
+            Self::DuplicateFnParameter => Some(&DUPLICATE_FN_PARAMETER),
         }
     }
 }
@@ -1946,6 +1960,60 @@ pub(crate) fn invalid_fn_params(span: SpanId) -> ExpanderDiagnostic {
     diagnostic.add_message(Message::help(
         "write parameters as `(x: int, y: string)` where each field declares a parameter and its \
          type",
+    ));
+
+    diagnostic
+}
+
+/// A generic parameter name was declared more than once in a `fn` form.
+pub(crate) fn duplicate_fn_generic(
+    duplicate_span: SpanId,
+    name: Symbol<'_>,
+    original_span: SpanId,
+) -> ExpanderDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        ExpanderDiagnosticCategory::DuplicateFnGeneric,
+        Severity::Error,
+    )
+    .primary(Label::new(
+        duplicate_span,
+        format!("duplicate generic parameter `{name}`"),
+    ));
+
+    diagnostic.add_label(Label::new(
+        original_span,
+        format!("`{name}` was first declared here"),
+    ));
+
+    diagnostic.add_message(Message::help(
+        "remove the duplicate declaration or use a different name",
+    ));
+
+    diagnostic
+}
+
+/// A function parameter name was declared more than once in a `fn` form.
+pub(crate) fn duplicate_fn_parameter(
+    duplicate_span: SpanId,
+    name: Symbol<'_>,
+    original_span: SpanId,
+) -> ExpanderDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        ExpanderDiagnosticCategory::DuplicateFnParameter,
+        Severity::Error,
+    )
+    .primary(Label::new(
+        duplicate_span,
+        format!("duplicate parameter `{name}`"),
+    ));
+
+    diagnostic.add_label(Label::new(
+        original_span,
+        format!("`{name}` was first declared here"),
+    ));
+
+    diagnostic.add_message(Message::help(
+        "remove the duplicate parameter or use a different name",
     ));
 
     diagnostic
