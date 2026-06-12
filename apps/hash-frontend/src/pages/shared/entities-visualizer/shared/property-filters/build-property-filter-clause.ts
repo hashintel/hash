@@ -1,4 +1,4 @@
-import type { PropertyFilter } from "./types";
+import type { PropertyFilter } from "./property-filter";
 import type { BaseUrl } from "@blockprotocol/type-system";
 import type { Filter } from "@local/hash-graph-client";
 
@@ -52,10 +52,6 @@ const coerceValueParameter = (
  * returns `null` when the filter contributes no constraint (it is incomplete or
  * its value is invalid for its kind). Null clauses are omitted from the query,
  * so an unfinished pill is inert rather than matching nothing.
- *
- * This is the correctness core of the property-filter feature: it owns
- * parameter typing and the `exists` / `not exists` composition. It is authored
- * as a pure function so the behaviour can be unit-tested in isolation.
  */
 export const buildPropertyFilterClause = (
   filter: PropertyFilter,

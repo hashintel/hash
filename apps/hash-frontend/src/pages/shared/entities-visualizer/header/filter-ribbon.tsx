@@ -1,20 +1,20 @@
 import { Box } from "@mui/material";
 import { useState } from "react";
 
-import { getDefaultOperatorForKind } from "../data/property-filters/get-operators-for-kind";
+import { getDefaultOperatorForKind } from "../shared/property-filters/get-operators-for-kind";
 import { AddFiltersMenu } from "./add-filters-menu";
 import { IncludeArchivedPill } from "./include-archived-pill";
 import { PropertyFilterPill } from "./property-filter-pill";
 import { TypeFilterPill } from "./type-filter-pill";
 import { WebFilterPill } from "./web-filter-pill";
 
+import type { EntitiesFilterState } from "../shared/filter-state";
 import type {
   FilterableProperty,
   FilterValueKind,
   PropertyFilter,
-} from "../data/property-filters/types";
-import type { EntitiesFilterState } from "../data/types";
-import type { AvailableType } from "../data/use-available-types";
+} from "../shared/property-filters/property-filter";
+import type { AvailableType } from "../shared/use-available-types";
 import type { BaseUrl, WebId } from "@blockprotocol/type-system";
 import type { FunctionComponent } from "react";
 

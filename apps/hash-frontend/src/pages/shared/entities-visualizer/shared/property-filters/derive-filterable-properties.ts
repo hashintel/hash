@@ -1,7 +1,7 @@
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import { getMergedDataTypeSchema } from "@local/hash-isomorphic-utils/data-types";
 
-import type { FilterableProperty, FilterValueKind } from "./types";
+import type { FilterableProperty, FilterValueKind } from "./property-filter";
 import type {
   BaseUrl,
   ClosedMultiEntityType,

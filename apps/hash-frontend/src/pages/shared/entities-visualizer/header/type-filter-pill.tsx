@@ -8,8 +8,8 @@ import { formatNumber } from "@local/hash-isomorphic-utils/format-number";
 import { AsteriskLightIcon } from "../../../../shared/icons/asterisk-light-icon";
 import { FilterPill } from "./filter-pill";
 
-import type { EntitiesFilterState } from "../data/types";
-import type { AvailableType } from "../data/use-available-types";
+import type { EntitiesFilterState } from "../shared/filter-state";
+import type { AvailableType } from "../shared/use-available-types";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { FunctionComponent } from "react";
 

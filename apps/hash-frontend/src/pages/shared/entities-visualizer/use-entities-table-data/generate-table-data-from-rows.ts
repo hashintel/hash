@@ -20,7 +20,7 @@ import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-
 import { includesPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 
-import { gridHeaderBaseFont } from "../../../../../components/grid/grid";
+import { gridHeaderBaseFont } from "../../../../components/grid/grid";
 
 import type {
   EntitiesTableColumn,
@@ -30,7 +30,7 @@ import type {
   EntitiesTableRowPropertyCell,
   GenerateEntitiesTableDataParams,
   VisibleDataTypeIdsByPropertyBaseUrl,
-} from "../../types";
+} from "../entities-table-data";
 import type { BaseUrl, VersionedUrl } from "@blockprotocol/type-system";
 import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 

@@ -19,18 +19,18 @@ import { CheckRegularIcon } from "../../../../shared/icons/check-regular-icon";
 import { FontCaseRegularIcon } from "../../../../shared/icons/font-case-regular-icon";
 import { HashtagRegularIcon } from "../../../../shared/icons/hashtag-regular-icon";
 import { Button, MenuItem } from "../../../../shared/ui";
-import { isPropertyFilterActive } from "../data/property-filters/build-property-filter-clause";
+import { isPropertyFilterActive } from "../shared/property-filters/build-property-filter-clause";
 import {
   getOperatorDescriptor,
   getOperatorsForKind,
-} from "../data/property-filters/get-operators-for-kind";
+} from "../shared/property-filters/get-operators-for-kind";
 import { activePillSx, incompletePillSx } from "./pill-styles";
 
 import type {
   FilterValueKind,
   PropertyFilter,
   PropertyFilterOperator,
-} from "../data/property-filters/types";
+} from "../shared/property-filters/property-filter";
 import type { SelectChangeEvent, SvgIconProps } from "@mui/material";
 import type { ComponentType, FunctionComponent } from "react";
 

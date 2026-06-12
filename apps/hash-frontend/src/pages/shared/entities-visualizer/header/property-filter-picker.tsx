@@ -13,7 +13,7 @@ import type {
   FilterableProperty,
   FilterValueKind,
   PropertyFilterDisabledReason,
-} from "../data/property-filters/types";
+} from "../shared/property-filters/property-filter";
 import type { BaseUrl } from "@blockprotocol/type-system";
 import type { FunctionComponent } from "react";
 

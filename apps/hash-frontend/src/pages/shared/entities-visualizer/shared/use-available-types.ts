@@ -10,7 +10,7 @@ import type {
   QueryEntitySubgraphQuery,
   QueryEntitySubgraphQueryVariables,
 } from "../../../../graphql/api-types.gen";
-import type { EntitiesFilterState } from "./types";
+import type { EntitiesFilterState } from "./filter-state";
 import type { BaseUrl, VersionedUrl, WebId } from "@blockprotocol/type-system";
 
 export type AvailableType = {

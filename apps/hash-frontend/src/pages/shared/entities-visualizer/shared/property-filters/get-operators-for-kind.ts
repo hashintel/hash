@@ -1,4 +1,7 @@
-import type { FilterValueKind, PropertyFilterOperator } from "./types";
+import type {
+  FilterValueKind,
+  PropertyFilterOperator,
+} from "./property-filter";
 
 export type OperatorDescriptor = {
   operator: PropertyFilterOperator;

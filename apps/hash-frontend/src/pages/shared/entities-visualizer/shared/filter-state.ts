@@ -1,4 +1,4 @@
-import type { PropertyFilter } from "./property-filters/types";
+import type { PropertyFilter } from "./property-filters/property-filter";
 import type { VersionedUrl, WebId } from "@blockprotocol/type-system";
 
 export type EntitiesFilterState = {

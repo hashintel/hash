@@ -16,7 +16,7 @@ import { PropertyFilterPicker } from "./property-filter-picker";
 import type {
   FilterableProperty,
   FilterValueKind,
-} from "../data/property-filters/types";
+} from "../shared/property-filters/property-filter";
 import type { BaseUrl } from "@blockprotocol/type-system";
 import type { FunctionComponent } from "react";
 

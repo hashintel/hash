@@ -8,7 +8,7 @@ import { useGetOwnerForEntity } from "../../../../components/hooks/use-get-owner
 import { HouseRegularIcon } from "../../../../shared/icons/house-regular-icon";
 import { FilterPill } from "./filter-pill";
 
-import type { EntitiesFilterState } from "../data/types";
+import type { EntitiesFilterState } from "../shared/filter-state";
 import type { WebId } from "@blockprotocol/type-system";
 import type { FunctionComponent } from "react";
 

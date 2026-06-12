@@ -11,8 +11,8 @@ import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/gra
 
 import { queryEntitySubgraphQuery } from "../../../graphql/queries/knowledge/entity.queries";
 import { apolloClient } from "../../../lib/apollo-client";
-import { buildEntitiesFilter } from "./data/build-filter";
-import { traversalPathsForView } from "./data/traversal-paths";
+import { buildEntitiesFilter } from "./shared/build-filter";
+import { traversalPathsForView } from "./shared/traversal-paths";
 import { useEntitiesTableData } from "./use-entities-table-data";
 
 import type {
@@ -20,12 +20,12 @@ import type {
   QueryEntitySubgraphQueryVariables,
 } from "../../../graphql/api-types.gen";
 import type { VisualizerView } from "../visualizer-views";
-import type { EntitiesFilterState } from "./data/types";
 import type {
   EntitiesTableData,
   EntitiesTableRow,
   UpdateTableDataFn,
-} from "./types";
+} from "./entities-table-data";
+import type { EntitiesFilterState } from "./shared/filter-state";
 import type { ApolloQueryResult } from "@apollo/client";
 import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
 import type { BaseUrl, VersionedUrl, WebId } from "@blockprotocol/type-system";

@@ -4,7 +4,7 @@ import { isBaseUrl } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import { serializeSubgraph } from "@local/hash-graph-sdk/subgraph";
 
-import { generateTableDataFromRows } from "./entities-table/use-entities-table/generate-table-data-from-rows";
+import { generateTableDataFromRows } from "./use-entities-table-data/generate-table-data-from-rows";
 
 import type {
   EntitiesTableColumn,
@@ -13,7 +13,7 @@ import type {
   SourceOrTargetFilterData,
   UpdateTableDataFn,
   VisibleDataTypeIdsByPropertyBaseUrl,
-} from "./types";
+} from "./entities-table-data";
 import type { EntitiesVisualizerData } from "./use-entities-visualizer-data";
 import type { EntityQueryCursor } from "@local/hash-graph-client/api";
 import type { ClosedMultiEntityTypesRootMap } from "@local/hash-graph-sdk/ontology";

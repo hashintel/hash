@@ -28,13 +28,13 @@ import {
 import { useMemoCompare } from "../../../shared/use-memo-compare";
 import { createRenderChipCell } from "../chip-cell";
 import { getReferencedDataTypeIds } from "../format-value";
+import { createRenderTextIconCell } from "../text-icon-cell";
 import { createRenderUrlCell } from "../url-cell";
 import {
   createRenderEntitiesTableValueCell,
   type EntitiesTableValueCellProps,
 } from "./entities-table/entities-table-value-cell";
 import { TableToolbar } from "./entities-table/table-toolbar";
-import { createRenderTextIconCell } from "./entities-table/text-icon-cell";
 
 import type {
   ConversionTargetsByColumnKey,
@@ -48,13 +48,13 @@ import type {
 } from "../../../graphql/api-types.gen";
 import type { GenerateCsvFileFunction } from "../../../shared/table-header/export-to-csv-button";
 import type { ChipCellProps } from "../chip-cell";
+import type { TextIconCell } from "../text-icon-cell";
 import type { UrlCellProps } from "../url-cell";
-import type { TextIconCell } from "./entities-table/text-icon-cell";
 import type {
   EntitiesTableData,
   EntitiesTableRow,
   SortableEntitiesTableColumnKey,
-} from "./types";
+} from "./entities-table-data";
 import type { EntitiesVisualizerData } from "./use-entities-visualizer-data";
 import type {
   ActorEntityUuid,
@@ -77,6 +77,8 @@ import type {
   RefObject,
   SetStateAction,
 } from "react";
+
+export { toolbarHeight } from "./entities-table/table-toolbar";
 
 const firstColumnLeftPadding = 16;
 

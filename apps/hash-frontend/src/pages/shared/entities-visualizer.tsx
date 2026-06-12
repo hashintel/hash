@@ -16,18 +16,20 @@ import { tableContentSx } from "../../shared/table-content";
 import { BulkActionsDropdown } from "../../shared/table-header/bulk-actions-dropdown";
 import { useMemoCompare } from "../../shared/use-memo-compare";
 import { useAuthenticatedUser } from "./auth-info-context";
-import { deriveFilterableProperties } from "./entities-visualizer/data/property-filters/derive-filterable-properties";
-import { createDefaultFilterState } from "./entities-visualizer/data/types";
-import { useAvailableTypes } from "./entities-visualizer/data/use-available-types";
-import { EntitiesTable } from "./entities-visualizer/entities-table";
-import { GridView } from "./entities-visualizer/entities-table/grid-view";
-import { toolbarHeight } from "./entities-visualizer/entities-table/table-toolbar";
-import { FilterRibbon } from "./entities-visualizer/header/filter-ribbon";
-import { QueryCount } from "./entities-visualizer/header/query-count";
 import {
+  EntitiesTable,
+  toolbarHeight,
+} from "./entities-visualizer/entities-table";
+import { GridView } from "./entities-visualizer/grid-view";
+import {
+  FilterRibbon,
+  QueryCount,
   VisualizerHeader,
   visualizerHeaderHeight,
-} from "./entities-visualizer/header/visualizer-header";
+} from "./entities-visualizer/header";
+import { createDefaultFilterState } from "./entities-visualizer/shared/filter-state";
+import { deriveFilterableProperties } from "./entities-visualizer/shared/property-filters/derive-filterable-properties";
+import { useAvailableTypes } from "./entities-visualizer/shared/use-available-types";
 import { useEntitiesVisualizerData } from "./entities-visualizer/use-entities-visualizer-data";
 import { EntityGraphVisualizer } from "./entity-graph-visualizer";
 import { useSlideStack } from "./slide-stack";
@@ -36,11 +38,11 @@ import { TOP_CONTEXT_BAR_HEIGHT } from "./top-context-bar";
 import { visualizerViewIcons } from "./visualizer-views";
 
 import type { ColumnSort } from "../../components/grid/utils/sorting";
-import type { EntitiesFilterState } from "./entities-visualizer/data/types";
 import type {
   EntitiesTableRow,
   SortableEntitiesTableColumnKey,
-} from "./entities-visualizer/types";
+} from "./entities-visualizer/entities-table-data";
+import type { EntitiesFilterState } from "./entities-visualizer/shared/filter-state";
 import type { EntityEditorProps } from "./entity/entity-editor";
 import type { VisualizerView } from "./visualizer-views";
 import type {

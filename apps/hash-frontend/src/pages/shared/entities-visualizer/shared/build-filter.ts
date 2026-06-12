@@ -2,7 +2,7 @@ import { ignoreNoisySystemTypesFilter } from "@local/hash-isomorphic-utils/graph
 
 import { buildPropertyFilterClause } from "./property-filters/build-property-filter-clause";
 
-import type { EntitiesFilterState } from "./types";
+import type { EntitiesFilterState } from "./filter-state";
 import type { BaseUrl, VersionedUrl, WebId } from "@blockprotocol/type-system";
 import type { Filter } from "@local/hash-graph-client";
 
