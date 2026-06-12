@@ -1,21 +1,23 @@
 use core::mem;
 
 use hashql_core::{
-    heap::{self, BumpAllocator, Heap},
+    heap::{self, BumpAllocator},
     module::Universe,
     span::SpanId,
-    symbol::{Symbol, sym::path::r#type},
 };
 
 use super::{Expander, r#let::expr_to_ident, r#type::lower_expr_to_type};
-use crate::node::{
-    expr::{
-        CallExpr, ClosureExpr, Expr, ExprKind,
-        call::Argument,
-        closure::{ClosureParam, ClosureSignature},
+use crate::{
+    lower::expander::error,
+    node::{
+        expr::{
+            CallExpr, ClosureExpr, Expr, ExprKind,
+            call::Argument,
+            closure::{ClosureParam, ClosureSignature},
+        },
+        generic::{GenericParam, Generics},
+        id::NodeId,
     },
-    generic::{GenericParam, Generics},
-    id::NodeId,
 };
 
 fn lower_generics<'heap, S>(
@@ -29,14 +31,18 @@ where
     match &mut generics.value.kind {
         ExprKind::Tuple(tuple) => {
             if let Some(annotation) = tuple.r#type.as_ref() {
-                todo!("ERROR: issue diagnostic");
+                expander
+                    .diagnostics
+                    .push(error::fn_generics_type_annotation(annotation.span));
             }
 
             let mut params = Vec::with_capacity_in(tuple.elements.len(), expander.heap);
 
             for element in &mut tuple.elements {
                 let Some(ident) = expr_to_ident(&element.value) else {
-                    todo!("kael you know what to do");
+                    expander
+                        .diagnostics
+                        .push(error::invalid_fn_generic_param(element.value.span));
 
                     continue;
                 };
@@ -57,7 +63,9 @@ where
         }
         ExprKind::Struct(r#struct) => {
             if let Some(annotation) = r#struct.r#type.as_ref() {
-                todo!("ERROR: issue diagnostic");
+                expander
+                    .diagnostics
+                    .push(error::fn_generics_type_annotation(annotation.span));
             }
 
             let mut params = Vec::with_capacity_in(r#struct.entries.len(), expander.heap);
@@ -80,7 +88,7 @@ where
                                 span: entry.span,
                                 name: entry.key,
                                 bound: Some(bound).filter(|bound| {
-                                    matches!(bound.kind, crate::node::r#type::TypeKind::Infer)
+                                    !matches!(bound.kind, crate::node::r#type::TypeKind::Infer)
                                 }),
                             });
                         }
@@ -94,7 +102,17 @@ where
                 params,
             }
         }
-        _ => todo!("error out and return empty"),
+        _ => {
+            expander
+                .diagnostics
+                .push(error::invalid_fn_generics(generics.value.span));
+
+            Generics {
+                id: NodeId::PLACEHOLDER,
+                span: generics.value.span,
+                params: heap::Vec::new_in(expander.heap),
+            }
+        }
     }
 }
 
@@ -108,12 +126,17 @@ where
     S: BumpAllocator,
 {
     let ExprKind::Struct(r#struct) = &mut params.value.kind else {
-        todo!("ERROR: issue diagnostic");
+        expander
+            .diagnostics
+            .push(error::invalid_fn_params(params.value.span));
+
         return heap::Vec::new_in(expander.heap);
     };
 
     if let Some(annotation) = r#struct.r#type.as_ref() {
-        todo!("ERROR: issue diagnostic");
+        expander
+            .diagnostics
+            .push(error::fn_params_type_annotation(annotation.span));
     }
 
     let mut params = Vec::with_capacity_in(r#struct.entries.len(), expander.heap);
@@ -219,13 +242,18 @@ where
     S: BumpAllocator,
 {
     if !labeled_arguments.is_empty() {
-        todo!("kael you know what to do");
+        expander
+            .diagnostics
+            .push(error::labeled_arguments_in_fn(labeled_arguments));
     }
 
     if let [generics, params, r#return, body] = &mut **arguments {
         lower_fn_impl(*span, expander, generics, params, r#return, body)
     } else {
-        todo!("kael you know what to do");
+        expander
+            .diagnostics
+            .push(error::invalid_fn_argument_count(*span, arguments));
+
         Expr::dummy()
     }
 }
