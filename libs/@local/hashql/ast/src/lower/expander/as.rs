@@ -4,7 +4,7 @@ use hashql_core::{module::Universe, span::SpanId};
 
 use super::Expander;
 use crate::{
-    lower::expander::r#type::lower_expr_to_type,
+    lower::expander::{error, r#type::lower_expr_to_type},
     node::{
         expr::{AsExpr, CallExpr, Expr, ExprKind, call::Argument},
         id::NodeId,
@@ -48,14 +48,17 @@ pub(super) fn lower_as<'heap>(
     }: &mut CallExpr<'heap>,
 ) -> Expr<'heap> {
     if !labeled_arguments.is_empty() {
-        todo!("ERROR: labelled arguments are not supported")
-        // we continue after diagnostic issue
+        expander
+            .diagnostics
+            .push(error::labeled_arguments_in_as(labeled_arguments));
     }
 
     match &mut **arguments {
         [body, r#type] => lower_as_impl(*span, expander, body, r#type),
         _ => {
-            todo!("ERROR: issue diagnostic");
+            expander
+                .diagnostics
+                .push(error::invalid_as_argument_count(*span, arguments));
 
             Expr::dummy()
         }

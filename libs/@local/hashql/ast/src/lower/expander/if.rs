@@ -3,9 +3,12 @@ use core::mem;
 use hashql_core::span::SpanId;
 
 use super::Expander;
-use crate::node::{
-    expr::{CallExpr, Expr, ExprKind, IfExpr, call::Argument},
-    id::NodeId,
+use crate::{
+    lower::expander::error,
+    node::{
+        expr::{CallExpr, Expr, ExprKind, IfExpr, call::Argument},
+        id::NodeId,
+    },
 };
 
 fn lower_if_impl<'heap>(
@@ -50,15 +53,18 @@ pub(super) fn lower_if<'heap>(
     }: &mut CallExpr<'heap>,
 ) -> Expr<'heap> {
     if !labeled_arguments.is_empty() {
-        todo!("ERROR: labelled arguments are not supported")
-        // we continue after diagnostic issue
+        expander
+            .diagnostics
+            .push(error::labeled_arguments_in_if(labeled_arguments));
     }
 
     match &mut **arguments {
         [test, then] => lower_if_impl(*span, expander, test, then, None),
         [test, then, r#else] => lower_if_impl(*span, expander, test, then, Some(r#else)),
         _ => {
-            todo!("ERROR: issue diagnostic");
+            expander
+                .diagnostics
+                .push(error::invalid_if_argument_count(*span, arguments));
 
             Expr::dummy()
         }

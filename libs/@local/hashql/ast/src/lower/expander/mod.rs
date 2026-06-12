@@ -14,7 +14,7 @@ use hashql_core::{
     symbol::{Ident, Symbol, sym},
 };
 
-use self::{error::ExpanderDiagnosticIssues, r#if::lower_if, r#let::lower_let};
+use self::{r#as::lower_as, error::ExpanderDiagnosticIssues, r#if::lower_if, r#let::lower_let};
 use crate::{
     node::{self, id::NodeId},
     visit::{self, Visitor},
@@ -202,7 +202,10 @@ impl<'heap> Visitor<'heap> for Expander<'_, 'heap> {
                     self.trampoline = Some(lower_if(self, expr));
                     return;
                 }
-                sym::path::r#as::CONST => {}
+                sym::path::r#as::CONST => {
+                    self.trampoline = Some(lower_as(self, expr));
+                    return;
+                }
                 sym::path::r#let::CONST => {
                     self.trampoline = Some(lower_let(self, expr));
                     return;
