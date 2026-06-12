@@ -32,6 +32,12 @@ const ignoredDependencies = [
   "vitest",
   "@dnd-kit/sortable",
   "@babel/core",
+  // Petrinaut + refractive use @types/react 19.2.17; other workspaces are on 19.2.14
+  "@types/react",
+  // petrinaut-core bundles TypeScript 6 into its LSP worker; the rest of the repo is on 5.9
+  "typescript",
+  // Petrinaut tests run on jsdom 29; hash-ai-worker-ts is still on 24
+  "jsdom",
 ];
 const ignoredWorkspaces = [];
 

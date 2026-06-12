@@ -70,13 +70,13 @@
   "devDependencies": {
     "@types/babel__standalone": "7.1.9",
     "@types/node": "22.18.13",
-    "@typescript/native-preview": "7.0.0-dev.20260511.1",
+    "@typescript/native-preview": "7.0.0-dev.20260607.1",
     "oxlint": "1.63.0",
     "oxlint-tsgolint": "0.22.1",
-    "rolldown": "1.0.0",
-    "rolldown-plugin-dts": "0.25.0",
-    "typescript": "5.9.3",
-    "vite": "8.0.12",
-    "vitest": "4.1.7"
+    "rolldown": "1.0.3",
+    "rolldown-plugin-dts": "0.25.2",
+    "typescript": "6.0.3",
+    "vite": "8.0.16",
+    "vitest": "4.1.8"
   }
 }

@@ -24,22 +24,23 @@
     "@sentry/react": "10.54.0",
     "ai": "6.0.182",
     "immer": "10.1.3",
-    "react": "19.2.6",
-    "react-dom": "19.2.6",
+    "react": "19.2.7",
+    "react-dom": "19.2.7",
     "react-icons": "5.5.0",
     "zod": "4.4.3"
   },
   "devDependencies": {
-    "@rolldown/plugin-babel": "0.2.1",
-    "@types/react": "19.2.14",
+    "@babel/core": "7.29.7",
+    "@rolldown/plugin-babel": "0.2.3",
+    "@types/react": "19.2.17",
     "@types/react-dom": "19.2.3",
-    "@typescript/native-preview": "7.0.0-dev.20260511.1",
-    "@vitejs/plugin-react": "6.0.1",
+    "@typescript/native-preview": "7.0.0-dev.20260607.1",
+    "@vitejs/plugin-react": "6.0.2",
     "@whatwg-node/server": "0.10.18",
     "babel-plugin-react-compiler": "1.0.0",
     "oxlint": "1.63.0",
     "oxlint-tsgolint": "0.22.1",
     "sharp": "0.34.5",
-    "vite": "8.0.12"
+    "vite": "8.0.16"
   }
 }
