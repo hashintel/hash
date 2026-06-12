@@ -1,6 +1,6 @@
 use core::mem;
 
-use hashql_core::{module::Universe, span::SpanId, symbol::Ident};
+use hashql_core::{heap::BumpAllocator, module::Universe, span::SpanId, symbol::Ident};
 
 use super::Expander;
 use crate::{
@@ -21,14 +21,17 @@ fn argument_to_ident<'heap>(argument: &Argument<'heap>) -> Option<Ident<'heap>> 
     }
 }
 
-fn lower_input_impl<'heap>(
+fn lower_input_impl<'heap, S>(
     span: SpanId,
-    expander: &mut Expander<'_, 'heap>,
+    expander: &mut Expander<'_, 'heap, S>,
 
     name: &Argument<'heap>,
     r#type: &mut Argument<'heap>,
     default: Option<&mut Argument<'heap>>,
-) -> Expr<'heap> {
+) -> Expr<'heap>
+where
+    S: BumpAllocator,
+{
     let Some(name) = argument_to_ident(name) else {
         expander
             .diagnostics
@@ -61,8 +64,8 @@ fn lower_input_impl<'heap>(
     }
 }
 
-pub(super) fn lower_input<'heap>(
-    expander: &mut Expander<'_, 'heap>,
+pub(super) fn lower_input<'heap, S>(
+    expander: &mut Expander<'_, 'heap, S>,
     CallExpr {
         id: _,
         span,
@@ -70,7 +73,10 @@ pub(super) fn lower_input<'heap>(
         arguments,
         labeled_arguments,
     }: &mut CallExpr<'heap>,
-) -> Expr<'heap> {
+) -> Expr<'heap>
+where
+    S: BumpAllocator,
+{
     if !labeled_arguments.is_empty() {
         expander
             .diagnostics

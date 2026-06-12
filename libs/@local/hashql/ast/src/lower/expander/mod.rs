@@ -8,7 +8,7 @@ mod r#let;
 mod r#type;
 
 use hashql_core::{
-    heap,
+    heap::{self, BumpAllocator},
     module::{
         self, Reference, Universe,
         item::{IntrinsicItem, Item},
@@ -27,8 +27,9 @@ use crate::{
 // The expander does the following:
 // 1. it resolves imports
 // 2. once resolved, it expands special forms
-pub struct Expander<'env, 'heap> {
+pub struct Expander<'env, 'heap, S> {
     heap: &'heap heap::Heap,
+    scratch: S,
 
     namespace: ModuleNamespace<'env, 'heap>,
     current_universe: Universe,
@@ -38,11 +39,12 @@ pub struct Expander<'env, 'heap> {
     trampoline: Option<node::expr::Expr<'heap>>,
 }
 
-impl<'env, 'heap> Expander<'env, 'heap> {
-    pub const fn new(namespace: ModuleNamespace<'env, 'heap>) -> Self {
+impl<'env, 'heap, S> Expander<'env, 'heap, S> {
+    pub const fn new(namespace: ModuleNamespace<'env, 'heap>, scratch: S) -> Self {
         Self {
             heap: namespace.registry().heap,
             namespace,
+            scratch,
             current_universe: Universe::Value,
             diagnostics: ExpanderDiagnosticIssues::new(),
             current_item: None,
@@ -50,7 +52,10 @@ impl<'env, 'heap> Expander<'env, 'heap> {
         }
     }
 
-    fn visit(&mut self, expr: &mut node::expr::Expr<'heap>) -> Option<module::item::Item<'heap>> {
+    fn visit(&mut self, expr: &mut node::expr::Expr<'heap>) -> Option<module::item::Item<'heap>>
+    where
+        S: BumpAllocator,
+    {
         let prev_current_item = self.current_item.take();
         visit::walk_expr(self, expr);
 
@@ -94,7 +99,10 @@ impl<'env, 'heap> Expander<'env, 'heap> {
     }
 }
 
-impl<'heap> Visitor<'heap> for Expander<'_, 'heap> {
+impl<'heap, S> Visitor<'heap> for Expander<'_, 'heap, S>
+where
+    S: BumpAllocator,
+{
     fn visit_path(&mut self, path: &mut node::path::Path<'heap>) {
         self.current_item = None;
         visit::walk_path(self, path);

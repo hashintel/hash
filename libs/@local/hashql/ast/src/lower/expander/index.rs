@@ -1,6 +1,6 @@
 use core::mem;
 
-use hashql_core::span::SpanId;
+use hashql_core::{heap::BumpAllocator, span::SpanId};
 
 use super::Expander;
 use crate::{
@@ -11,13 +11,16 @@ use crate::{
     },
 };
 
-fn lower_index_impl<'heap>(
+fn lower_index_impl<'heap, S>(
     span: SpanId,
-    expander: &mut Expander<'_, 'heap>,
+    expander: &mut Expander<'_, 'heap, S>,
 
     value: &mut Argument<'heap>,
     index: &mut Argument<'heap>,
-) -> Expr<'heap> {
+) -> Expr<'heap>
+where
+    S: BumpAllocator,
+{
     let mut value = mem::replace(&mut value.value, Expr::dummy());
     let mut index = mem::replace(&mut index.value, Expr::dummy());
 
@@ -36,8 +39,8 @@ fn lower_index_impl<'heap>(
     }
 }
 
-pub(super) fn lower_index<'heap>(
-    expander: &mut Expander<'_, 'heap>,
+pub(super) fn lower_index<'heap, S>(
+    expander: &mut Expander<'_, 'heap, S>,
     CallExpr {
         id: _,
         span,
@@ -45,7 +48,10 @@ pub(super) fn lower_index<'heap>(
         arguments,
         labeled_arguments,
     }: &mut CallExpr<'heap>,
-) -> Expr<'heap> {
+) -> Expr<'heap>
+where
+    S: BumpAllocator,
+{
     if !labeled_arguments.is_empty() {
         expander
             .diagnostics

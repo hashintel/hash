@@ -17,7 +17,7 @@ pub struct GenericArgument<'heap> {
     pub id: NodeId,
     pub span: SpanId,
 
-    pub r#type: heap::Box<'heap, Type<'heap>>,
+    pub r#type: Type<'heap>,
 }
 
 /// Represents a constraint applied to a generic type parameter.
@@ -46,7 +46,7 @@ pub struct GenericConstraint<'heap> {
 
     pub name: Ident<'heap>,
     // Due to the fact that we have `&` and `|`, we don't need to have `Vec` of bounds
-    pub bound: Option<heap::Box<'heap, Type<'heap>>>,
+    pub bound: Option<Type<'heap>>,
 }
 
 /// A generic type parameter declaration.
@@ -66,7 +66,7 @@ pub struct GenericParam<'heap> {
     pub span: SpanId,
 
     pub name: Ident<'heap>,
-    pub bound: Option<heap::Box<'heap, Type<'heap>>>,
+    pub bound: Option<Type<'heap>>,
 }
 
 /// A collection of generic parameters for a type or function.
