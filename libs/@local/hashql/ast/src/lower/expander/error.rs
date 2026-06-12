@@ -841,6 +841,137 @@ pub(crate) fn invalid_let_argument_count(
     diagnostic
 }
 
+/// An `as` call was passed labeled arguments.
+///
+/// `as` only accepts positional arguments.
+pub(crate) fn labeled_arguments_in_as(
+    labeled_arguments: &[LabeledArgument<'_>],
+) -> ExpanderDiagnostic {
+    let (first, rest) = labeled_arguments
+        .split_first()
+        .expect("caller should check that labeled_arguments is non-empty");
+
+    let mut diagnostic = Diagnostic::new(
+        ExpanderDiagnosticCategory::LabeledArgumentsNotSupported,
+        Severity::Error,
+    )
+    .primary(Label::new(
+        first.span,
+        "labeled arguments are not allowed in `as`",
+    ));
+
+    for argument in rest {
+        diagnostic.add_label(Label::new(
+            argument.span,
+            "labeled argument not allowed here",
+        ));
+    }
+
+    diagnostic.add_message(Message::help(
+        "pass the arguments positionally: `(as value Type)`",
+    ));
+
+    diagnostic
+}
+
+/// An `as` call was passed the wrong number of arguments.
+///
+/// `as` accepts exactly 2 arguments: `(as value Type)`.
+pub(crate) fn invalid_as_argument_count(
+    call_span: SpanId,
+    arguments: &[Argument<'_>],
+) -> ExpanderDiagnostic {
+    let count = arguments.len();
+
+    let mut diagnostic = Diagnostic::new(
+        ExpanderDiagnosticCategory::InvalidArgumentCount,
+        Severity::Error,
+    )
+    .primary(Label::new(
+        call_span,
+        format!("expected 2 arguments to `as`, found {count}"),
+    ));
+
+    for argument in arguments.iter().skip(2) {
+        diagnostic.add_label(Label::new(argument.span, "unexpected argument"));
+    }
+
+    diagnostic.add_message(Message::help("use `(as value Type)`"));
+
+    diagnostic.add_message(Message::note(
+        "the first argument is the value to cast and the second is the target type",
+    ));
+
+    diagnostic
+}
+
+/// An `if` call was passed labeled arguments.
+///
+/// `if` only accepts positional arguments.
+pub(crate) fn labeled_arguments_in_if(
+    labeled_arguments: &[LabeledArgument<'_>],
+) -> ExpanderDiagnostic {
+    let (first, rest) = labeled_arguments
+        .split_first()
+        .expect("caller should check that labeled_arguments is non-empty");
+
+    let mut diagnostic = Diagnostic::new(
+        ExpanderDiagnosticCategory::LabeledArgumentsNotSupported,
+        Severity::Error,
+    )
+    .primary(Label::new(
+        first.span,
+        "labeled arguments are not allowed in `if`",
+    ));
+
+    for argument in rest {
+        diagnostic.add_label(Label::new(
+            argument.span,
+            "labeled argument not allowed here",
+        ));
+    }
+
+    diagnostic.add_message(Message::help(
+        "pass the arguments positionally: `(if condition then)` or `(if condition then else)`",
+    ));
+
+    diagnostic
+}
+
+/// An `if` call was passed the wrong number of arguments.
+///
+/// `if` accepts either 2 arguments `(if condition then)` or 3 arguments
+/// `(if condition then else)`.
+pub(crate) fn invalid_if_argument_count(
+    call_span: SpanId,
+    arguments: &[Argument<'_>],
+) -> ExpanderDiagnostic {
+    let count = arguments.len();
+
+    let mut diagnostic = Diagnostic::new(
+        ExpanderDiagnosticCategory::InvalidArgumentCount,
+        Severity::Error,
+    )
+    .primary(Label::new(
+        call_span,
+        format!("expected 2 or 3 arguments to `if`, found {count}"),
+    ));
+
+    for argument in arguments.iter().skip(3) {
+        diagnostic.add_label(Label::new(argument.span, "unexpected argument"));
+    }
+
+    diagnostic.add_message(Message::help(
+        "use `(if condition then)` or `(if condition then else)`",
+    ));
+
+    diagnostic.add_message(Message::note(
+        "the arguments are, in order: the condition, the then branch, and an optional else branch",
+    ));
+
+    diagnostic
+}
+
 /// A type constructor call was passed labeled arguments.
 ///
 /// Type constructor calls like `(| Int String)` only accept positional operands.
@@ -969,7 +1100,7 @@ impl Display for AggregateKind {
 /// A tuple or struct expression in type position has a redundant type annotation.
 ///
 /// When used as a type, `(Int, String)` already defines a tuple type and
-/// `{name: String}` already defines a struct type. Adding an annotation is
+/// `(name: String)` already defines a struct type. Adding an annotation is
 /// contradictory.
 pub(crate) fn type_annotation_in_type_position(
     annotation_span: SpanId,
@@ -994,7 +1125,7 @@ pub(crate) fn type_annotation_in_type_position(
 
     let note = match kind {
         AggregateKind::Tuple => "in type position, `(Int, String)` already defines a tuple type",
-        AggregateKind::Struct => "in type position, `{name: String}` already defines a struct type",
+        AggregateKind::Struct => "in type position, `(name: String)` already defines a struct type",
     };
 
     diagnostic.add_message(Message::note(note));
@@ -1003,7 +1134,7 @@ pub(crate) fn type_annotation_in_type_position(
 }
 
 const VALID_TYPE_FORMS: &str = "valid type forms are: type paths like `String`, tuple types like \
-                                `(Int, String)`, struct types like `{name: String}`, `_` for \
+                                `(Int, String)`, struct types like `(name: String)`, `_` for \
                                 inference, unions `(| ...)`, and intersections `(& ...)`";
 
 /// An expression that cannot be used as a type was found in type position.

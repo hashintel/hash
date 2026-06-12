@@ -18,7 +18,11 @@ fn lower_call_to_type<'heap>(
     mut call: CallExpr<'heap>,
 ) -> Type<'heap> {
     if !call.labeled_arguments.is_empty() {
-        todo!("ERROR: labeled arguments are not supported in type calls");
+        expander
+            .diagnostics
+            .push(error::labeled_arguments_in_type_call(
+                &call.labeled_arguments,
+            ));
         return Type::dummy();
     }
 
@@ -30,7 +34,17 @@ fn lower_call_to_type<'heap>(
         expander.visit(&mut call.function)
     })
     else {
-        todo!("ERROR: unrecognized constructor function");
+        // Only emit a diagnostic if the function didn't become Dummy from an earlier
+        // resolution error. Dummy means a resolution diagnostic was already emitted.
+        if !matches!(call.function.kind, ExprKind::Dummy) {
+            expander
+                .diagnostics
+                .push(error::invalid_type_constructor_call(
+                    call.function.span,
+                    call.span,
+                ));
+        }
+
         return Type::dummy();
     };
 
@@ -51,7 +65,11 @@ fn lower_call_to_type<'heap>(
             types,
         }),
         _ => {
-            todo!("ERROR: unrecognized constructor function");
+            expander.diagnostics.push(error::type_is_not_callable(
+                type_intrinsic.name,
+                call.function.span,
+                call.span,
+            ));
             return Type::dummy();
         }
     };
