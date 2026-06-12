@@ -11,7 +11,7 @@ import {
   queryEntitySubgraphQuery,
 } from "../../../../graphql/queries/knowledge/entity.queries";
 import { useActiveWorkspace } from "../../../../pages/shared/workspace-context";
-import { generateSidebarEntityTypeEntitiesQueryVariables } from "../../../../shared/use-entity-type-entities";
+import { generateSidebarEntitiesQueryVariables } from "../../../../shared/generate-sidebar-entities-query-variables";
 
 import type {
   CreateEntityMutation,
@@ -41,7 +41,7 @@ export const useBlockProtocolCreateEntity = (
            */
           {
             query: queryEntitySubgraphQuery,
-            variables: generateSidebarEntityTypeEntitiesQueryVariables({
+            variables: generateSidebarEntitiesQueryVariables({
               webId: activeWorkspaceWebId,
             }),
           },

@@ -18,8 +18,8 @@ import {
   createEntityMutation,
   queryEntitySubgraphQuery,
 } from "../../../../../graphql/queries/knowledge/entity.queries";
+import { generateSidebarEntitiesQueryVariables } from "../../../../../shared/generate-sidebar-entities-query-variables";
 import { Link } from "../../../../../shared/ui/link";
-import { generateSidebarEntityTypeEntitiesQueryVariables } from "../../../../../shared/use-entity-type-entities";
 import { Entity } from "../../../../shared/entity";
 import { EntityPageLoadingState } from "../../../../shared/entity/entity-page-loading-state";
 import { useApplyDraftLinkEntityChanges } from "../../../../shared/entity/shared/use-apply-draft-link-entity-changes";
@@ -58,7 +58,7 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
            */
           {
             query: queryEntitySubgraphQuery,
-            variables: generateSidebarEntityTypeEntitiesQueryVariables({
+            variables: generateSidebarEntitiesQueryVariables({
               webId: activeWorkspaceWebId,
             }),
           },

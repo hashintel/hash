@@ -19,11 +19,11 @@ import { queryEntitiesQuery } from "../../../../graphql/queries/knowledge/entity
 import { hiddenEntityTypeIds } from "../../../../pages/shared/hidden-types";
 import { useActiveWorkspace } from "../../../../pages/shared/workspace-context";
 import { useLatestEntityTypesOptional } from "../../../entity-types-context/hooks";
+import { generateSidebarEntitiesQueryVariables } from "../../../generate-sidebar-entities-query-variables";
 import { ArrowDownAZRegularIcon } from "../../../icons/arrow-down-a-z-regular-icon";
 import { ArrowUpZARegularIcon } from "../../../icons/arrow-up-a-z-regular-icon";
 import { PlusRegularIcon } from "../../../icons/plus-regular";
 import { Link } from "../../../ui";
-import { generateSidebarEntityTypeEntitiesQueryVariables } from "../../../use-entity-type-entities";
 import { useUserPreferences } from "../../../use-user-preferences";
 import { LoadingSkeleton } from "../shared/loading-skeleton";
 import { EntityOrTypeSidebarItem } from "./shared/entity-or-type-sidebar-item";
@@ -88,7 +88,7 @@ export const AccountEntitiesList: FunctionComponent<
     QueryEntitiesQuery,
     QueryEntitiesQueryVariables
   >(queryEntitiesQuery, {
-    variables: generateSidebarEntityTypeEntitiesQueryVariables({
+    variables: generateSidebarEntitiesQueryVariables({
       webId,
     }),
     fetchPolicy: "network-only",
