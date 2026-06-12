@@ -64,6 +64,16 @@ where
     }
 }
 
+/// Lowers an `input` call into an [`InputExpr`].
+///
+/// Accepts two forms:
+/// - `(input name type)` for a required input
+/// - `(input name type default)` for an input with a default value
+///
+/// The type is resolved in the type universe. The default (if present)
+/// is resolved in the value universe.
+///
+/// [`InputExpr`]: crate::node::expr::InputExpr
 pub(super) fn lower_input<'heap, S>(
     expander: &mut Expander<'_, 'heap, S>,
     CallExpr {

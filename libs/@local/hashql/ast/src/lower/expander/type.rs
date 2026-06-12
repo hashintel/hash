@@ -95,6 +95,11 @@ where
     }
 }
 
+/// Converts a value-position [`Expr`] into a [`Type`].
+///
+/// Paths, tuples, structs, `_`, and type constructor calls (`|`, `&`) are
+/// valid. Everything else produces a diagnostic and returns [`Type::dummy`].
+/// [`Expr::Dummy`] is suppressed (a resolution error was already reported).
 pub(super) fn lower_expr_to_type<'heap, S>(
     expander: &mut Expander<'_, 'heap, S>,
     expr: Expr<'heap>,
@@ -390,6 +395,16 @@ where
     }
 }
 
+/// Lowers a `type` call into a [`TypeExpr`].
+///
+/// Form: `(type Name type-expr body)`. The name may include generic
+/// parameters like `Pair<A, B>`. Constraints on generic parameters are
+/// validated after all parameter names are in scope, so recursive
+/// constraints like `T: Container<T>` are supported.
+///
+/// The name is bound in the type universe for `body`.
+///
+/// [`TypeExpr`]: crate::node::expr::TypeExpr
 pub(super) fn lower_type<'heap, S>(
     expander: &mut Expander<'_, 'heap, S>,
     CallExpr {

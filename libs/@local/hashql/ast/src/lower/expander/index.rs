@@ -39,6 +39,12 @@ where
     }
 }
 
+/// Lowers an `[]` call into an [`IndexExpr`].
+///
+/// Form: `([] collection index)`. Both arguments are resolved in the
+/// current universe.
+///
+/// [`IndexExpr`]: crate::node::expr::IndexExpr
 pub(super) fn lower_index<'heap, S>(
     expander: &mut Expander<'_, 'heap, S>,
     CallExpr {

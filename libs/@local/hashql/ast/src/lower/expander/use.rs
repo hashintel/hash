@@ -249,6 +249,19 @@ where
     body
 }
 
+/// Lowers a `use` call, importing names into scope for the body.
+///
+/// Form: `(use path imports body)` where:
+/// - `path` is a module path like `core::math`
+/// - `imports` is one of:
+///   - `*` for a glob import
+///   - `(sin, cos)` for named imports
+///   - `(sin: my_sin, cos: _)` for aliased imports (`_` keeps the original name)
+/// - `body` is the expression where the imports are in scope
+///
+/// Unlike other forms, `use` does not produce a dedicated AST node.
+/// It resolves the imports into the namespace, visits the body with
+/// those imports available, and returns the body directly.
 pub(super) fn lower_use<'heap, S>(
     expander: &mut Expander<'_, 'heap, S>,
     CallExpr {

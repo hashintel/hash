@@ -286,6 +286,19 @@ where
     }
 }
 
+/// Lowers a `fn` call into a [`ClosureExpr`].
+///
+/// Form: `(fn generics params return-type body)` where:
+/// - `generics` is a tuple `(T, U)` or struct `(T: bound, U: _)` of type parameters
+/// - `params` is a struct `(x: int, y: string)` of named parameters
+/// - `return-type` is a type expression
+/// - `body` is the function body
+///
+/// Generic names are bound in the type universe. Parameter names are
+/// bound in the value universe. Both are in scope for the return type
+/// and body.
+///
+/// [`ClosureExpr`]: crate::node::expr::ClosureExpr
 pub(super) fn lower_fn<'heap, S>(
     expander: &mut Expander<'_, 'heap, S>,
     CallExpr {
