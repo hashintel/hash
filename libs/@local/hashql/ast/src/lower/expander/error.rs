@@ -167,7 +167,7 @@ fn format_absolute_path<'heap>(item: &Item<'heap>, registry: &ModuleRegistry<'he
     iter::once("").chain(path).intersperse("::").collect()
 }
 
-pub struct SpellingSuggestions<'heap, I> {
+struct SpellingSuggestions<'heap, I> {
     name: Spanned<Symbol<'heap>>,
     candidates: I,
     context: &'static str,
