@@ -1,3 +1,11 @@
+//! Combined name resolution and special form expansion pass.
+//!
+//! The expander walks the AST top-down, resolving every path against a
+//! [`ModuleNamespace`] and rewriting it to its absolute form. When a call
+//! expression targets a special form (like `let`, `fn`, or `use`), the
+//! expander lowers it into the corresponding typed AST node in the same
+//! traversal.
+
 mod access;
 mod r#as;
 mod error;
@@ -30,8 +38,14 @@ use crate::{
     visit::{self, Visitor},
 };
 
+/// Whether a binding introduced during expansion is a local (opaque) or
+/// an alias for a resolved registry item.
 enum BindingKind<'heap> {
+    /// A binding with no identity beyond its name and universe
+    /// (e.g., a `let` binding or function parameter).
     Local(Universe),
+    /// An alias for a known registry item, preserving its identity through
+    /// rebinding (e.g., a `use` import).
     Remote(Item<'heap>),
 }
 
@@ -47,6 +61,11 @@ impl<'heap> From<Universe> for BindingKind<'heap> {
     }
 }
 
+/// Handle for registering bindings without exposing the full namespace.
+///
+/// Passed into the `register` closure of [`Expander::bind_many_with`] so
+/// that the closure can declare bindings while the caller retains a
+/// separate mutable reference to its own data.
 struct Binder<'ns, 'env, 'heap> {
     namespace: &'ns mut ModuleNamespace<'env, 'heap>,
 }
@@ -60,10 +79,13 @@ impl<'heap> Binder<'_, '_, 'heap> {
     }
 }
 
-// What does the expander do?
-// The expander does the following:
-// 1. it resolves imports
-// 2. once resolved, it expands special forms
+/// Combined name resolution and special form expansion visitor.
+///
+/// Resolves every path in the AST against the module namespace, rewrites
+/// paths to their absolute form, and lowers special form calls (e.g., `let`,
+/// `fn`, `use`) into typed AST nodes. Errors that prevent resolution produce
+/// [`Expr::dummy`] placeholders so that later diagnostics can be suppressed
+/// for cascading failures.
 pub struct Expander<'env, 'heap, S> {
     heap: &'heap heap::Heap,
     scratch: S,
@@ -89,6 +111,12 @@ impl<'env, 'heap, S> Expander<'env, 'heap, S> {
         }
     }
 
+    /// Walks `expr`, applying resolution and expansion, and returns the
+    /// resolved [`Item`] if the expression was a path that resolved to one.
+    ///
+    /// Returns `None` when the expression resolved to a local binding,
+    /// was not a path, or resolution failed (in which case the expression
+    /// is replaced with [`Expr::dummy`]).
     fn visit(&mut self, expr: &mut node::expr::Expr<'heap>) -> Option<module::item::Item<'heap>>
     where
         S: BumpAllocator,
@@ -106,6 +134,8 @@ impl<'env, 'heap, S> Expander<'env, 'heap, S> {
         current_item
     }
 
+    /// Runs `closure` with the resolution universe temporarily set to
+    /// `universe`, restoring the previous universe afterwards.
     fn with_universe<T>(&mut self, universe: Universe, closure: impl FnOnce(&mut Self) -> T) -> T {
         let prev_universe = self.current_universe;
         self.current_universe = universe;
@@ -114,6 +144,8 @@ impl<'env, 'heap, S> Expander<'env, 'heap, S> {
         result
     }
 
+    /// Introduces a single binding for the duration of `closure`, then
+    /// rolls back the namespace.
     fn bind<T>(
         &mut self,
         variable: Symbol<'heap>,
@@ -123,6 +155,17 @@ impl<'env, 'heap, S> Expander<'env, 'heap, S> {
         self.bind_many([(variable, kind)], closure)
     }
 
+    /// Introduces bindings derived from `value` and then runs `closure`
+    /// with both `&mut Self` and `&mut U` available.
+    ///
+    /// `register` inspects `value` (shared) and pushes bindings through
+    /// the [`Binder`]. Once it returns, `closure` receives full mutable
+    /// access to both the expander and `value`. The namespace is rolled
+    /// back after `closure` completes.
+    ///
+    /// This two-closure design exists because Rust closures cannot return
+    /// iterators that borrow from their arguments. The push-style
+    /// `register` avoids that limitation without dynamic dispatch.
     fn bind_many_with<T, U>(
         &mut self,
         mut value: U,
@@ -143,6 +186,8 @@ impl<'env, 'heap, S> Expander<'env, 'heap, S> {
         (value, result)
     }
 
+    /// Introduces all `variables` as bindings for the duration of `closure`,
+    /// then rolls back the namespace.
     fn bind_many<T, K>(
         &mut self,
         variables: impl IntoIterator<Item = (Symbol<'heap>, K)>,
@@ -151,8 +196,8 @@ impl<'env, 'heap, S> Expander<'env, 'heap, S> {
     where
         K: Into<BindingKind<'heap>>,
     {
-        // The inline is here, because this is a hot path, this is just desugaring of the underlying
-        // iterator, make it explicit so that it indeed inlines the call
+        // The inline is here, because this is a hot path, this is just desugaring of the
+        // underlying iterator, make it explicit so that it indeed inlines the call
         let ((), result) = self.bind_many_with(
             (),
             #[inline]

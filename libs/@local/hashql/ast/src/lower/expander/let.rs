@@ -83,6 +83,15 @@ where
     }
 }
 
+/// Lowers a `let` call into a [`LetExpr`].
+///
+/// Accepts two forms:
+/// - `(let name value body)` with no type annotation
+/// - `(let name type value body)` with an explicit type
+///
+/// The `name` is bound in scope for `body` only.
+///
+/// [`LetExpr`]: crate::node::expr::LetExpr
 pub(super) fn lower_let<'heap, S>(
     expander: &mut Expander<'_, 'heap, S>,
     CallExpr {

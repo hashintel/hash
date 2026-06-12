@@ -45,6 +45,13 @@ where
     }
 }
 
+/// Lowers an `if` call into an [`IfExpr`].
+///
+/// Accepts two forms:
+/// - `(if condition then)` without an else branch
+/// - `(if condition then else)` with an else branch
+///
+/// [`IfExpr`]: crate::node::expr::IfExpr
 pub(super) fn lower_if<'heap, S>(
     expander: &mut Expander<'_, 'heap, S>,
     CallExpr {

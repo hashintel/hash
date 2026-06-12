@@ -97,6 +97,12 @@ where
     }
 }
 
+/// Lowers a `.` call into a [`FieldExpr`].
+///
+/// Form: `(. value field)`. The field must be either a named identifier
+/// or a non-negative integer literal (for positional tuple access).
+///
+/// [`FieldExpr`]: crate::node::expr::FieldExpr
 pub(super) fn lower_access<'heap, S>(
     expander: &mut Expander<'_, 'heap, S>,
     CallExpr {

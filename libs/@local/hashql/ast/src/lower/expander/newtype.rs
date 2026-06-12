@@ -64,6 +64,14 @@ where
     }
 }
 
+/// Lowers a `newtype` call into a [`NewTypeExpr`].
+///
+/// Form: `(newtype Name type-expr body)`. Like `type`, but introduces a
+/// distinct nominal type rather than an alias. The name is bound in both
+/// the type and value universes for `body` (the value binding acts as a
+/// constructor).
+///
+/// [`NewTypeExpr`]: crate::node::expr::NewTypeExpr
 pub(super) fn lower_newtype<'heap, S>(
     expander: &mut Expander<'_, 'heap, S>,
     CallExpr {

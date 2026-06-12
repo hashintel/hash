@@ -40,6 +40,12 @@ where
     }
 }
 
+/// Lowers an `as` call into an [`AsExpr`].
+///
+/// Form: `(as value type)`. The type annotation is resolved in the type
+/// universe.
+///
+/// [`AsExpr`]: crate::node::expr::AsExpr
 pub(super) fn lower_as<'heap, S>(
     expander: &mut Expander<'_, 'heap, S>,
     CallExpr {
