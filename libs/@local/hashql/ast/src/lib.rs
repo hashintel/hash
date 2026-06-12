@@ -50,6 +50,7 @@
     // Language Features
     coverage_attribute,
     macro_metavar_expr_concat,
+    default_field_values,
 
     // Library Features
     allocator_api,
