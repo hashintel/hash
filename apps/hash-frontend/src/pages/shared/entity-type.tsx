@@ -49,7 +49,8 @@ import {
   typeHeaderContainerStyles,
 } from "./shared/type-editor-styling";
 import { useSlideStack } from "./slide-stack";
-import { TopContextBar } from "./top-context-bar";
+import { backForwardHeight } from "./slide-stack/slide-back-forward-close-bar";
+import { TOP_CONTEXT_BAR_HEIGHT, TopContextBar } from "./top-context-bar";
 
 import type {
   BaseUrl,
@@ -480,7 +481,25 @@ export const EntityType = ({
                 void refetch();
               }}
               scrollToTop={() => {}}
-              sx={{ bgcolor: "white" }}
+              sx={[
+                { bgcolor: "white" },
+                /**
+                 * In a slide, the slide stack renders absolutely-positioned
+                 * back/forward/close buttons over the top-right corner – push
+                 * the bar's content down so the breadcrumbs and actions menu
+                 * sit below those buttons rather than behind them, and align
+                 * the breadcrumbs with the slide's 32px content padding
+                 * instead of the sidebar-state based padding used on regular
+                 * pages.
+                 */
+                isInSlide
+                  ? {
+                      pt: `${backForwardHeight}px`,
+                      pl: 4,
+                      pr: 3,
+                    }
+                  : {},
+              ]}
             />
 
             {!isReadonly && (
