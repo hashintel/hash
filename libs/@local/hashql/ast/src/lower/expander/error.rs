@@ -1,9 +1,8 @@
 use alloc::borrow::Cow;
-use core::fmt::{self, Display, Write as _};
+use core::fmt::{self, Display};
 
 use hashql_core::{
     algorithms::did_you_mean,
-    collections::FastHashSet,
     module::{
         ModuleId, ModuleRegistry, Universe,
         error::{ResolutionError, ResolutionSuggestion},
@@ -82,6 +81,11 @@ const EMPTY_MODULE: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     name: "Empty module",
 };
 
+const INVALID_QUERY_LENGTH: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "invalid-query-length",
+    name: "Invalid query length",
+};
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum ExpanderDiagnosticCategory {
     EmptyPath,
@@ -95,6 +99,7 @@ pub enum ExpanderDiagnosticCategory {
     ModuleRequired,
     AmbiguousName,
     EmptyModule,
+    InvalidQueryLength,
 }
 
 impl DiagnosticCategory for ExpanderDiagnosticCategory {
@@ -119,6 +124,7 @@ impl DiagnosticCategory for ExpanderDiagnosticCategory {
             Self::ModuleRequired => Some(&MODULE_REQUIRED),
             Self::AmbiguousName => Some(&AMBIGUOUS_NAME),
             Self::EmptyModule => Some(&EMPTY_MODULE),
+            Self::InvalidQueryLength => Some(&INVALID_QUERY_LENGTH),
         }
     }
 }
@@ -136,10 +142,9 @@ impl Display for FormatUserPath<'_, '_> {
             fmt.write_str("::")?;
         }
 
-        let segments = match self.up_to {
-            Some(depth) => &self.segments[..=depth],
-            None => self.segments,
-        };
+        let segments = self
+            .up_to
+            .map_or(self.segments, |depth| &self.segments[..=depth]);
 
         for (index, segment) in segments.iter().enumerate() {
             if index > 0 {
@@ -236,15 +241,12 @@ pub(crate) fn absolute_path_mismatch(
 
 pub(crate) fn generic_arguments_in_module(
     module_segments: &[PathSegment<'_>],
-    path_span: SpanId,
-) -> ExpanderDiagnostic {
+) -> Option<ExpanderDiagnostic> {
     let mut arguments = module_segments
         .iter()
         .flat_map(|segment| &segment.arguments);
 
-    let primary_span = arguments
-        .next()
-        .map_or(path_span, PathSegmentArgument::span);
+    let primary_span = arguments.next().map(PathSegmentArgument::span)?;
 
     let mut diagnostic = Diagnostic::new(
         ExpanderDiagnosticCategory::GenericArgumentsInModule,
@@ -267,7 +269,7 @@ pub(crate) fn generic_arguments_in_module(
         "modules are not generic; only the final item in a path can be parameterized",
     ));
 
-    diagnostic
+    Some(diagnostic)
 }
 
 /// Converts a `ResolutionError` into an expander diagnostic.
@@ -312,9 +314,11 @@ pub(crate) fn from_resolution_error<'heap>(
 }
 
 fn invalid_query_length(path: &Path<'_>, expected: usize) -> ExpanderDiagnostic {
-    let mut diagnostic =
-        Diagnostic::new(ExpanderDiagnosticCategory::ImportNotFound, Severity::Error)
-            .primary(Label::new(path.span, "path is too short to resolve"));
+    let mut diagnostic = Diagnostic::new(
+        ExpanderDiagnosticCategory::InvalidQueryLength,
+        Severity::Error,
+    )
+    .primary(Label::new(path.span, "path is too short to resolve"));
 
     diagnostic.add_message(Message::help(format!(
         "provide a path with at least {expected} segments, for example `module::item`",
@@ -331,19 +335,15 @@ fn module_required(path: &Path<'_>, depth: usize, found: Option<Universe>) -> Ex
         up_to: Some(depth),
     };
 
-    let kind_description = match found {
-        Some(Universe::Value) => "a value",
-        Some(Universe::Type) => "a type",
-        None => "not a module",
+    let primary_message = match found {
+        Some(Universe::Value) => format!("`{user_path}` is a value, not a module"),
+        Some(Universe::Type) => format!("`{user_path}` is a type, not a module"),
+        None => format!("`{user_path}` is not a module"),
     };
 
     let mut diagnostic =
-        Diagnostic::new(ExpanderDiagnosticCategory::ModuleRequired, Severity::Error).primary(
-            Label::new(
-                segment.name.span,
-                format!("`{user_path}` is {kind_description}, not a module"),
-            ),
-        );
+        Diagnostic::new(ExpanderDiagnosticCategory::ModuleRequired, Severity::Error)
+            .primary(Label::new(segment.name.span, primary_message));
 
     if depth + 1 < path.segments.len() {
         diagnostic.add_label(Label::new(
@@ -432,13 +432,19 @@ fn module_not_found<'heap>(
         ));
     }
 
-    SpellingSuggestions {
+    let emitted = SpellingSuggestions {
         name: segment.name.symbol(),
         candidates: suggestions.iter().map(|suggestion| suggestion.name),
         context: "a module with a similar name exists",
         ..
     }
     .emit(&mut diagnostic);
+
+    if emitted.is_empty() {
+        diagnostic.add_message(Message::help(
+            "check the module name and ensure it is exported from its parent",
+        ));
+    }
 
     diagnostic.add_message(Message::note(
         "only exported sub-modules are reachable via `::`",
@@ -558,7 +564,7 @@ fn unresolved_variable<'heap>(
 
     let mut has_suggestions = false;
 
-    // ---- tier 1: local bindings ----
+    // Suggest similar local bindings.
     let emitted = SpellingSuggestions {
         name: Spanned {
             span: name_span,
@@ -571,20 +577,26 @@ fn unresolved_variable<'heap>(
     .emit(&mut diagnostic);
     has_suggestions |= !emitted.is_empty();
 
-    // ---- tier 2: already-imported names ----
+    // Suggest similar imported names, excluding those already covered by locals.
+    let import_candidates: Vec<_> = import_suggestions
+        .iter()
+        .map(|suggestion| suggestion.name)
+        .filter(|suggestion_name| !locals.contains(suggestion_name))
+        .collect();
+
     let emitted = SpellingSuggestions {
         name: Spanned {
             span: name_span,
             value: name,
         },
-        candidates: import_suggestions.iter().map(|suggestion| suggestion.name),
+        candidates: import_candidates.iter().copied(),
         context: "a similar imported name exists",
         ..
     }
     .emit(&mut diagnostic);
     has_suggestions |= !emitted.is_empty();
 
-    // ---- tier 3: items available elsewhere in the registry ----
+    // Suggest fully qualified paths for items available elsewhere in the registry.
     let importable: Vec<_> = registry
         .search_by_name(name, universe)
         .into_iter()
@@ -596,17 +608,20 @@ fn unresolved_variable<'heap>(
             .take(5)
             .map(|item| Patch::new(name_span, format_absolute_path(item, registry))),
     ) {
+        has_suggestions = true;
         diagnostic.add_message(
-            Message::help("this item is available in another module").with_suggestions(suggestions),
+            Message::help("use one of these fully qualified paths").with_suggestions(suggestions),
         );
     }
 
     if let Some(first) = importable.first() {
-        // Show how to import instead (text-only, no insertion span available)
         let absolute = format_absolute_path(first, registry);
-        diagnostic.add_message(Message::note(format!(
-            "alternatively, bring it into scope: `use {absolute} in`",
-        )));
+        let example = if importable.len() > 1 {
+            format!("for example, bring it into scope: `use {absolute} in`")
+        } else {
+            format!("bring it into scope: `use {absolute} in`")
+        };
+        diagnostic.add_message(Message::help(example));
     }
 
     let remaining = importable.len().saturating_sub(5);
@@ -614,7 +629,6 @@ fn unresolved_variable<'heap>(
         diagnostic.add_message(Message::note(format!(
             "{remaining} more items with this name exist in other modules",
         )));
-        has_suggestions = true;
     }
 
     if !has_suggestions {

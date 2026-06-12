@@ -4,10 +4,9 @@ use hashql_core::{
     heap,
     module::{
         self, Reference, Universe,
-        error::ResolutionError,
+        item::{IntrinsicItem, Item},
         namespace::{ModuleNamespace, ResolutionMode, ResolveOptions},
     },
-    span::SpanId,
     symbol::{Ident, sym},
 };
 
@@ -47,25 +46,14 @@ impl<'heap> Visitor<'heap> for Expander<'_, 'heap> {
         visit::walk_path(self, path);
 
         let [modules @ .., _] = &*path.segments else {
-            todo!("BUG diagnostic: empty path, should never happen");
+            self.diagnostics.push(error::empty_path(path.span));
             self.trampoline = Some(node::expr::Expr::dummy());
             return;
         };
 
         // We don't support generics except for the *last* segment
-        let mut should_continue = true;
-        for module in modules {
-            if !module.arguments.is_empty() {
-                todo!(
-                    "ERROR: generic arguments in module path, not supported (yet) – module items \
-                     with self don't exist yet"
-                );
-
-                should_continue = false;
-            }
-        }
-
-        if !should_continue {
+        if let Some(diagnostic) = error::generic_arguments_in_module(modules) {
+            self.diagnostics.push(diagnostic);
             self.trampoline = Some(node::expr::Expr::dummy());
             return;
         }
@@ -85,7 +73,14 @@ impl<'heap> Visitor<'heap> for Expander<'_, 'heap> {
         let reference = match reference {
             Ok(reference) => reference,
             Err(error) => {
-                todo!("ERROR: convert from resolution error")
+                self.diagnostics.push(error::from_resolution_error(
+                    path,
+                    &self.namespace,
+                    self.current_universe,
+                    error,
+                ));
+                self.trampoline = Some(node::expr::Expr::dummy());
+                return;
             }
         };
 
@@ -106,7 +101,12 @@ impl<'heap> Visitor<'heap> for Expander<'_, 'heap> {
 
         let absolute_path = item.absolute_path_rev(self.namespace.registry());
         if absolute_path.len() < path.segments.len() {
-            todo!("BUG diagnostic: absolute path shorter than path segments");
+            self.diagnostics.push(error::absolute_path_mismatch(
+                path.span,
+                path.segments.len(),
+                absolute_path.len(),
+            ));
+            self.trampoline = Some(node::expr::Expr::dummy());
             return;
         }
 
@@ -130,42 +130,52 @@ impl<'heap> Visitor<'heap> for Expander<'_, 'heap> {
         ));
         path.segments.rotate_right(padding);
 
-        for (segment, name) in path
-            .segments
-            .iter_mut()
-            .rev()
-            .zip(absolute_path.into_iter())
-        {
+        for (segment, name) in path.segments.iter_mut().rev().zip(absolute_path) {
             segment.name.value = name;
         }
 
         path.rooted = true;
     }
 
-    fn visit_call_expr(
-        &mut self,
-        node::expr::CallExpr {
-            id,
-            span,
-            function,
-            arguments,
-            labeled_arguments,
-        }: &mut node::expr::CallExpr<'heap>,
-    ) {
+    fn visit_call_expr(&mut self, expr: &mut node::expr::CallExpr<'heap>) {
         let prev_current_item = self.current_item.take();
-        self.visit_expr(function);
+        self.visit_expr(&mut expr.function);
 
-        if let Some(item) = self.current_item {
-            match item.kind {
-                module::item::ItemKind::Module(module_id) => todo!(),
-                module::item::ItemKind::Type(type_def) => todo!(),
-                module::item::ItemKind::Constructor(_) => {
-                    // this stays a call expression, and is resolved later to a dedicated node.
-                }
-                module::item::ItemKind::Intrinsic(intrinsic_item) => todo!(),
+        // TODO: what happens on let-rebinding?
+
+        if let Some(Item {
+            kind: module::item::ItemKind::Intrinsic(IntrinsicItem::Value(value)),
+            ..
+        }) = self.current_item
+            && let Some(constant) = value.name.as_constant()
+        {
+            match constant {
+                sym::path::r#if::CONST => {}
+                sym::path::r#as::CONST => {}
+                sym::path::r#let::CONST => {}
+                sym::path::r#type::CONST => {}
+                sym::path::newtype::CONST => {}
+                sym::path::r#use::CONST => {}
+                sym::path::r#fn::CONST => {}
+                sym::path::input::CONST => {}
+                sym::path::index::CONST => {}
+                sym::path::access::CONST => {}
+                _ => {}
             }
         }
 
         self.current_item = prev_current_item;
+
+        // We haven't encountered a special-form, meaning that we can treat this as a regular call
+        // expression
+        visit::walk_call_expr(self, expr);
+    }
+
+    fn visit_expr(&mut self, expr: &mut node::expr::Expr<'heap>) {
+        visit::walk_expr(self, expr);
+
+        if let Some(trampoline) = self.trampoline.take() {
+            *expr = trampoline;
+        }
     }
 }
