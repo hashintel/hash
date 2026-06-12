@@ -1,6 +1,5 @@
+import { HelpTooltip } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
-
-import { InfoIconTooltip } from "../../info-icon-tooltip";
 
 import type { SubView } from "../types";
 
@@ -84,7 +83,7 @@ const TabButton: React.FC<TabButtonProps> = ({
       role="tab"
     >
       {subView.title}
-      {subView.tooltip && <InfoIconTooltip tooltip={subView.tooltip} />}
+      {subView.tooltip && <HelpTooltip content={subView.tooltip} />}
     </button>
   );
 };
