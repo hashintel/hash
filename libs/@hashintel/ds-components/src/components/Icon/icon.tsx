@@ -13,6 +13,8 @@ import ArrowRightArrowLeft from "./svgs/regular/arrow-right-arrow-left.svg";
 import ArrowRightToLine from "./svgs/regular/arrow-right-to-line.svg";
 import ArrowRight from "./svgs/regular/arrow-right.svg";
 import ArrowRotateLeft from "./svgs/regular/arrow-rotate-left.svg";
+import ArrowTrendDown from "./svgs/regular/arrow-trend-down.svg";
+import ArrowTrendUp from "./svgs/regular/arrow-trend-up.svg";
 import ArrowUpRightAndArrowDownLeftFromCenter from "./svgs/regular/arrow-up-right-and-arrow-down-left-from-center.svg";
 import ArrowUpRightFromSquare from "./svgs/regular/arrow-up-right-from-square.svg";
 import ArrowUpRight from "./svgs/regular/arrow-up-right.svg";
@@ -62,12 +64,14 @@ import EmptySet from "./svgs/regular/empty-set.svg";
 import EyeSlash from "./svgs/regular/eye-slash.svg";
 import Eye from "./svgs/regular/eye.svg";
 import Feather from "./svgs/regular/feather.svg";
+import FileLines from "./svgs/regular/file-lines.svg";
 import FileSpreadsheet from "./svgs/regular/file-spreadsheet.svg";
 import File from "./svgs/regular/file.svg";
 import Flask from "./svgs/regular/flask.svg";
 import ForwardStep from "./svgs/regular/forward-step.svg";
 import FunctionSymbol from "./svgs/regular/function.svg";
 import Gear from "./svgs/regular/gear.svg";
+import Grid from "./svgs/regular/grid-2.svg";
 import Hand from "./svgs/regular/hand.svg";
 import Image from "./svgs/regular/image.svg";
 import InfinityLoop from "./svgs/regular/infinity.svg";
@@ -90,6 +94,8 @@ import PersonRunning from "./svgs/regular/person-running.svg";
 import Play from "./svgs/regular/play.svg";
 import Plug from "./svgs/regular/plug.svg";
 import Plus from "./svgs/regular/plus.svg";
+import Print from "./svgs/regular/print.svg";
+import PuzzlePiece from "./svgs/regular/puzzle-piece.svg";
 import Rotate from "./svgs/regular/rotate.svg";
 import Ruler from "./svgs/regular/ruler.svg";
 import Scribble from "./svgs/regular/scribble.svg";
@@ -106,6 +112,7 @@ import Text from "./svgs/regular/text.svg";
 import ThoughtBubble from "./svgs/regular/thought-bubble.svg";
 import TrashCan from "./svgs/regular/trash-can.svg";
 import TriangleExclamation from "./svgs/regular/triangle-exclamation.svg";
+import Truck from "./svgs/regular/truck.svg";
 import UnlockKeyhole from "./svgs/regular/unlock-keyhole.svg";
 import UserPlus from "./svgs/regular/user-plus.svg";
 import WandMagicSparkles from "./svgs/regular/wand-magic-sparkles.svg";
@@ -127,6 +134,8 @@ const IconMap = {
   arrowDown: ArrowDown,
   arrowLeft: ArrowLeft,
   arrowRight: ArrowRight,
+  arrowTrendDown: ArrowTrendDown,
+  arrowTrendUp: ArrowTrendUp,
   arrowUp: ArrowUp,
   arrowUpRight: ArrowUpRight,
   arrowsLeftRight: ArrowRightArrowLeft,
@@ -182,10 +191,12 @@ const IconMap = {
   eyeSlash: EyeSlash,
   feather: Feather,
   file: File,
+  fileLines: FileLines,
   fileSpreadsheet: FileSpreadsheet,
   flask: Flask,
   function: FunctionSymbol,
   gear: Gear,
+  grid: Grid,
   hand: Hand,
   image: Image,
   infinity: InfinityLoop,
@@ -211,6 +222,8 @@ const IconMap = {
   playFilled: PlaySolid,
   plug: Plug,
   plus: Plus,
+  print: Print,
+  puzzlePiece: PuzzlePiece,
   refresh: ArrowsRotate,
   rightToLine: ArrowRightToLine,
   rotate: Rotate,
@@ -240,6 +253,7 @@ const IconMap = {
   thoughtBubble: ThoughtBubble,
   threeCircles: ThreeCircles,
   trash: TrashCan,
+  truck: Truck,
   undo: ArrowRotateLeft,
   userPlus: UserPlus,
   warning: TriangleExclamation,
