@@ -60,6 +60,13 @@ impl<'heap> StandardLibraryModule<'heap> for Type {
         Self::intrinsic(&mut def, sym::path::List, sym::List);
         Self::intrinsic(&mut def, sym::path::Dict, sym::Dict);
 
+        // Union and Intersection are both type intrinsics with an alias, they are only used during
+        // special form desurgaring.
+        let index = Self::intrinsic(&mut def, sym::path::Union, sym::Union);
+        def.alias(index, sym::symbol::pipe);
+        let index = Self::intrinsic(&mut def, sym::path::Intersection, sym::Intersection);
+        def.alias(index, sym::symbol::ampersand);
+
         def
     }
 }

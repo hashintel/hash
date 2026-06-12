@@ -12,7 +12,7 @@ pub struct TupleElement<'heap> {
     pub id: NodeId,
     pub span: SpanId,
 
-    pub value: heap::Box<'heap, Expr<'heap>>,
+    pub value: Expr<'heap>,
 }
 
 /// A tuple expression in the HashQL Abstract Syntax Tree.

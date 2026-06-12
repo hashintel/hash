@@ -13,7 +13,7 @@ pub struct StructEntry<'heap> {
     pub span: SpanId,
 
     pub key: Ident<'heap>,
-    pub value: heap::Box<'heap, Expr<'heap>>,
+    pub value: Expr<'heap>,
 }
 
 /// A struct expression in the HashQL Abstract Syntax Tree.

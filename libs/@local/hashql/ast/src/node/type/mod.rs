@@ -206,3 +206,13 @@ pub struct Type<'heap> {
 
     pub kind: TypeKind<'heap>,
 }
+
+impl<'heap> Type<'heap> {
+    pub const fn dummy() -> Self {
+        Self {
+            id: NodeId::PLACEHOLDER,
+            span: SpanId::SYNTHETIC,
+            kind: TypeKind::Dummy,
+        }
+    }
+}
