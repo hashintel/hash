@@ -202,12 +202,7 @@ export const EntityTypeHeader = ({
                   >
                     {entityTypeSchema.title}
                     {isInSlide && (
-                      /**
-                       * The Panda CSS stylesheet backing TextMark's own
-                       * `white-space: nowrap` class is not loaded in this app,
-                       * so re-apply the rule via `sx`.
-                       */
-                      <Box component={TextMark} sx={{ whiteSpace: "nowrap" }}>
+                      <TextMark>
                         <Link
                           href={
                             generateLinkParameters(entityTypeSchema.$id).href
@@ -226,7 +221,7 @@ export const EntityTypeHeader = ({
                             }}
                           />
                         </Link>
-                      </Box>
+                      </TextMark>
                     )}
                   </Typography>
                 </Tooltip>
