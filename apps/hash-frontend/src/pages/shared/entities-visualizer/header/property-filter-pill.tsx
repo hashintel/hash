@@ -9,6 +9,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   CaretDownSolidIcon,
   Chip,
+  IconButton,
   Select,
   TextField,
   XMarkRegularIcon,
@@ -33,8 +34,6 @@ import type {
 import type { SelectChangeEvent, SvgIconProps } from "@mui/material";
 import type { ComponentType, FunctionComponent } from "react";
 
-const VALUE_DEBOUNCE_MS = 350;
-
 const kindIcon: Record<FilterValueKind, ComponentType<SvgIconProps>> = {
   number: HashtagRegularIcon,
   string: FontCaseRegularIcon,
@@ -43,18 +42,20 @@ const kindIcon: Record<FilterValueKind, ComponentType<SvgIconProps>> = {
 
 type PropertyFilterPillProps = {
   filter: PropertyFilter;
-  /** Whether to open the editor automatically (just-added pill). */
+  mode: "add" | "edit";
+  /** Whether to open the editor automatically (just-added draft). */
   autoOpen: boolean;
   onAutoOpenHandled: () => void;
-  onChange: (updater: (prev: PropertyFilter) => PropertyFilter) => void;
+  onCommit: (filter: PropertyFilter) => void;
   onRemove: () => void;
 };
 
 export const PropertyFilterPill: FunctionComponent<PropertyFilterPillProps> = ({
   filter,
+  mode,
   autoOpen,
   onAutoOpenHandled,
-  onChange,
+  onCommit,
   onRemove,
 }) => {
   const popupState = usePopupState({
@@ -65,37 +66,19 @@ export const PropertyFilterPill: FunctionComponent<PropertyFilterPillProps> = ({
   const anchorRef = useRef<HTMLDivElement>(null);
 
   const operators = getOperatorsForKind(filter.kind);
-  const descriptor = getOperatorDescriptor(filter.kind, filter.operator);
-  const requiresValue = descriptor?.requiresValue ?? false;
-  const connector = descriptor?.pillConnector ?? "";
 
-  /**
-   * Value typing is debounced before it reaches the shared filter state, so the
-   * list doesn't refetch on every keystroke. Operator changes and removal apply
-   * immediately.
-   */
+  const [operator, setOperator] = useState<PropertyFilterOperator>(
+    filter.operator,
+  );
   const [valueDraft, setValueDraft] = useState(filter.value ?? "");
 
-  /**
-   * Latest-value refs so the debounce effect only depends on `valueDraft`. The
-   * parent re-creates `onChange` on every render, and `filter.value` changes
-   * when the debounce commits; depending on either would reset the timer on
-   * unrelated re-renders and break the debounce.
-   */
-  const onChangeRef = useRef(onChange);
-  onChangeRef.current = onChange;
-  const committedValueRef = useRef(filter.value);
-  committedValueRef.current = filter.value;
-
   useEffect(() => {
-    const timeout = setTimeout(() => {
-      if ((committedValueRef.current ?? "") !== valueDraft) {
-        onChangeRef.current((prev) => ({ ...prev, value: valueDraft }));
-      }
-    }, VALUE_DEBOUNCE_MS);
-
-    return () => clearTimeout(timeout);
-  }, [valueDraft]);
+    if (popupState.isOpen) {
+      setOperator(filter.operator);
+      setValueDraft(filter.value ?? "");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- resync only when (re)opening
+  }, [popupState.isOpen]);
 
   useEffect(() => {
     if (autoOpen && anchorRef.current) {
@@ -105,10 +88,41 @@ export const PropertyFilterPill: FunctionComponent<PropertyFilterPillProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only react to autoOpen flipping on
   }, [autoOpen]);
 
-  const handleOperatorChange = (event: SelectChangeEvent) => {
-    const nextOperator = event.target.value as PropertyFilterOperator;
-    onChange((prev) => ({ ...prev, operator: nextOperator }));
+  const bufferDescriptor = getOperatorDescriptor(filter.kind, operator);
+  const bufferRequiresValue = bufferDescriptor?.requiresValue ?? false;
+
+  const bufferedFilter: PropertyFilter = {
+    ...filter,
+    operator,
+    value: bufferRequiresValue ? valueDraft : undefined,
   };
+
+  const canCommit = isPropertyFilterActive(bufferedFilter);
+
+  const handleOperatorChange = (event: SelectChangeEvent) => {
+    setOperator(event.target.value as PropertyFilterOperator);
+  };
+
+  const handleCommit = () => {
+    if (!canCommit) {
+      return;
+    }
+    onCommit(bufferedFilter);
+    popupState.close();
+  };
+
+  const handleClose = () => {
+    popupState.close();
+    if (mode === "add") {
+      // A draft that is never committed is discarded when its editor closes.
+      onRemove();
+    }
+  };
+
+  // Closed-pill display reflects the committed filter (not the unsaved buffer).
+  const descriptor = getOperatorDescriptor(filter.kind, filter.operator);
+  const requiresValue = descriptor?.requiresValue ?? false;
+  const connector = descriptor?.pillConnector ?? "";
 
   const active = isPropertyFilterActive(filter);
 
@@ -127,7 +141,12 @@ export const PropertyFilterPill: FunctionComponent<PropertyFilterPillProps> = ({
   const Icon = kindIcon[filter.kind];
 
   return (
-    <Box ref={anchorRef} sx={{ display: "inline-flex" }}>
+    <Box
+      ref={anchorRef}
+      sx={{
+        display: "inline-flex",
+      }}
+    >
       <Chip
         icon={
           <Icon
@@ -170,6 +189,27 @@ export const PropertyFilterPill: FunctionComponent<PropertyFilterPillProps> = ({
                 transform: `rotate(${popupState.isOpen ? 180 : 0}deg)`,
               }}
             />
+            <IconButton
+              size="small"
+              onClick={(event) => {
+                event.stopPropagation();
+                onRemove();
+              }}
+              aria-label={`Remove ${filter.title} filter`}
+              sx={{
+                p: 0,
+                ml: 0.1,
+                color: ({ palette }) =>
+                  active ? palette.blue[70] : palette.gray[50],
+                "&:hover": {
+                  color: ({ palette }) =>
+                    active ? palette.blue[90] : palette.gray[70],
+                  background: "transparent",
+                },
+              }}
+            >
+              <XMarkRegularIcon sx={{ fontSize: 13 }} />
+            </IconButton>
           </Box>
         }
         sx={active ? activePillSx : incompletePillSx}
@@ -177,13 +217,14 @@ export const PropertyFilterPill: FunctionComponent<PropertyFilterPillProps> = ({
       />
       <Popover
         {...bindPopover(popupState)}
+        onClose={handleClose}
         anchorOrigin={{ vertical: 36, horizontal: "left" }}
         transformOrigin={{ vertical: "top", horizontal: "left" }}
         slotProps={{ paper: { sx: { width: 260, p: 1.5 } } }}
       >
         <FormControl fullWidth size="small">
           <Select
-            value={filter.operator}
+            value={operator}
             onChange={handleOperatorChange}
             sx={{ fontSize: 13 }}
             MenuProps={{ sx: { maxHeight: 360 } }}
@@ -199,7 +240,7 @@ export const PropertyFilterPill: FunctionComponent<PropertyFilterPillProps> = ({
             ))}
           </Select>
         </FormControl>
-        {requiresValue && (
+        {bufferRequiresValue && (
           <Box sx={{ mt: 1 }}>
             <TextField
               autoFocus
@@ -209,6 +250,11 @@ export const PropertyFilterPill: FunctionComponent<PropertyFilterPillProps> = ({
               placeholder="Value"
               value={valueDraft}
               onChange={(event) => setValueDraft(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" && canCommit) {
+                  handleCommit();
+                }
+              }}
             />
             {filter.kind === "string" && (
               <Box
@@ -236,16 +282,12 @@ export const PropertyFilterPill: FunctionComponent<PropertyFilterPillProps> = ({
         )}
         <Box sx={{ mt: 1.5, display: "flex", justifyContent: "flex-end" }}>
           <Button
-            variant="tertiary_quiet"
+            variant="primary"
             size="xs"
-            startIcon={<XMarkRegularIcon />}
-            onClick={() => {
-              onRemove();
-              popupState.close();
-            }}
-            sx={{ background: "transparent" }}
+            disabled={!canCommit}
+            onClick={handleCommit}
           >
-            Remove
+            {mode === "add" ? "Add" : "Save"}
           </Button>
         </Box>
       </Popover>

@@ -78,15 +78,15 @@ const numberOperators: OperatorDescriptor[] = [
 
 const stringOperators: OperatorDescriptor[] = [
   {
-    operator: "contains",
-    label: "contains",
-    pillConnector: "contains",
-    requiresValue: true,
-  },
-  {
     operator: "equals",
     label: "equals",
     pillConnector: "equals",
+    requiresValue: true,
+  },
+  {
+    operator: "contains",
+    label: "contains",
+    pillConnector: "contains",
     requiresValue: true,
   },
   {
@@ -134,8 +134,8 @@ const operatorsByKind: Record<FilterValueKind, OperatorDescriptor[]> = {
 
 /**
  * Returns the operator descriptors for a value kind, ordered so that the first
- * entry is the sensible default (`equals` for numbers, `contains` for text,
- * `is true` for booleans).
+ * entry is the sensible default (`equals` for numbers and text, `is true` for
+ * booleans).
  */
 export const getOperatorsForKind = (
   kind: FilterValueKind,
