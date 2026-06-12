@@ -24,19 +24,29 @@ use crate::{
 /// even if their representations are identical. This contrasts with structural typing where
 /// compatibility is based on structure alone.
 ///
-/// # Type System Design
+/// # Semantic Model
 ///
-/// This implementation uses a refined context-sensitive variance approach:
-/// - For concrete types or when inference is disabled: Opaque types are **invariant** with respect
-///   to their inner representation, enforcing strict nominal typing semantics.
-/// - Only for non-concrete types during inference: Opaque types use a **covariant-like** approach
-///   that allows them to act as "carriers" for inference variables.
+/// For each opaque name `N`, the type constructor is interpreted as:
 ///
-/// This precise, context-sensitive approach provides several benefits:
-/// 1. Proper constraint propagation for types containing inference variables
-/// 2. Strict nominal type safety for all concrete types
-/// 3. Clear separation between inference and checking phases
-/// 4. Consistent variance behavior across the type system
+/// ```text
+/// ⟦N<T>⟧ = { wrap_N(v) | v ∈ ⟦T⟧ }
+/// ```
+///
+/// with `wrap_N` injective and distinct names having disjoint images. This gives:
+///
+/// - **Covariance**: `⟦A⟧ ⊆ ⟦B⟧ ⟹ ⟦N<A>⟧ ⊆ ⟦N<B>⟧`, so `N<A> <: N<B>`.
+/// - **Nominal separation**: if `N ≠ M`, then `⟦N<A>⟧ ∩ ⟦M<B>⟧ = ∅`.
+/// - **Meet**: `⟦N<A>⟧ ∩ ⟦N<B>⟧ = ⟦N<A ∧ B>⟧`.
+/// - **Join**: `⟦N<A>⟧ ∪ ⟦N<B>⟧ = ⟦N<A ∨ B>⟧`, extensionally.
+///
+/// Covariance is sound because HashQL values are immutable: the wrapper has no operation
+/// that can exploit a `W<B>` view to smuggle an arbitrary `B` back into a `W<A>`. This
+/// removes the classic mutation-based unsoundness argument (Pierce, TAPL Ch. 15).
+///
+/// An opaque type is never the global top: `W(⊤)` is only the top of the `W` fiber
+/// (all `W`-wrapped values), not the whole universe, because it does not contain
+/// unwrapped values or values of other opaque families. However, `W(⊥)` IS the
+/// global bottom: wrapping an empty set gives an empty set, and `∅ ⊆ S` for any `S`.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct OpaqueType<'heap> {
     pub name: Symbol<'heap>,
@@ -134,21 +144,14 @@ impl<'heap> Lattice<'heap> for OpaqueType<'heap> {
 
     /// Computes the meet (greatest lower bound) of two opaque types.
     ///
-    /// The meet operation uses a refined context-sensitive approach:
+    /// For same-name opaques, meets the inner representations covariantly:
+    /// `W<A|B> & W<A>` produces `W<A>`, because `meet(A|B, A) = A`.
     ///
-    /// When inference is enabled AND at least one type contains inference variables:
-    /// - If types have different names: Return Never (empty set).
-    /// - If types have the same name: Meet their inner representations, allowing the opaque type to
-    ///   act as a "carrier" for inference variables until they are resolved.
+    /// During inference with non-concrete types, both representations are kept as a
+    /// "carrier" to defer evaluation until inference variables are resolved.
     ///
-    /// Otherwise (for concrete types or when inference is disabled):
-    /// - If types have different names: Return Never (empty set).
-    /// - If types have the same name but different representations: Return Never (empty set).
-    /// - If types have the same name and equivalent representations: Return the type itself.
-    ///
-    /// This approach prevents premature failure during inference while maintaining strict
-    /// nominal semantics once types are fully resolved. It allows constraint propagation while
-    /// preserving type safety.
+    /// For different-name opaques, returns Never (empty set): distinct nominal types have
+    /// no common subtype.
     fn meet(
         self: Type<'heap, Self>,
         other: Type<'heap, Self>,
@@ -158,26 +161,38 @@ impl<'heap> Lattice<'heap> for OpaqueType<'heap> {
             return SmallVec::new();
         }
 
+        if env.is_equivalent(self.kind.repr, other.kind.repr) {
+            return SmallVec::from_slice_copy(&[self.id]);
+        }
+
         if env.is_inference_enabled()
             && (!env.is_concrete(self.kind.repr) || !env.is_concrete(other.kind.repr))
         {
+            // During inference, keep both representations as carriers. The meet is deferred
+            // until inference variables are resolved and the result is simplified.
             let self_repr = env.r#type(self.kind.repr);
             let other_repr = env.r#type(other.kind.repr);
 
-            // We circumvent `env.meet` here, by directly meeting the representations. This is
-            // intentional, so that we can propagate the meet result instead of having a
-            // `Intersection`.
             let result = self_repr.meet(other_repr, env);
 
-            // If any of the types aren't concrete, we effectively convert ourselves into a
-            // "carrier" to defer evaluation of the term, once inference is completed we'll simplify
-            // and postprocess the result.
-            self.postprocess_lattice(result, env.environment)
-        } else if env.is_equivalent(self.kind.repr, other.kind.repr) {
-            SmallVec::from_slice_copy(&[self.id])
-        } else {
-            SmallVec::new()
+            return self.postprocess_lattice(result, env.environment);
         }
+
+        // For concrete same-name opaques, meet the inner representations through the full
+        // lattice meet path which handles simplification (e.g. `Number | Never` to `Number`).
+        let repr = env.meet(self.kind.repr, other.kind.repr);
+
+        if env.is_bottom(repr) {
+            return SmallVec::new();
+        }
+
+        SmallVec::from_slice_copy(&[env.environment.intern_type(PartialType {
+            span: self.span,
+            kind: env.environment.intern_kind(TypeKind::Opaque(OpaqueType {
+                name: self.kind.name,
+                repr,
+            })),
+        })])
     }
 
     fn projection(
@@ -201,8 +216,11 @@ impl<'heap> Lattice<'heap> for OpaqueType<'heap> {
         env.is_bottom(self.kind.repr)
     }
 
-    fn is_top(self: Type<'heap, Self>, env: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
-        env.is_top(self.kind.repr)
+    fn is_top(self: Type<'heap, Self>, _env: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
+        // W(Unknown) is the top of the W fiber, not the global top. It does not contain
+        // unwrapped values or values of other opaque families. Reporting true here would
+        // cause `T | W(Unknown)` to collapse to `Unknown`, destroying nominal separation.
+        false
     }
 
     fn is_concrete(self: Type<'heap, Self>, env: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
@@ -231,10 +249,14 @@ impl<'heap> Lattice<'heap> for OpaqueType<'heap> {
 
     /// Determines if one opaque type is a subtype of another.
     ///
-    /// Implements invariant nominal typing semantics:
+    /// Implements covariant nominal typing semantics:
     /// 1. Types with different names are always unrelated (neither is a subtype of the other)
-    /// 2. Types with the same name follow invariant rules for their inner representation (enforced
-    ///    via the `in_invariant` context)
+    /// 2. Types with the same name check their inner representations covariantly
+    ///
+    /// Covariance is sound because HashQL values are immutable: there is no operation that
+    /// could "put back" a value through the opaque boundary, so the classic mutation-based
+    /// unsoundness argument does not apply. The nominal boundary (distinct names) is preserved
+    /// regardless of variance.
     fn is_subtype_of(
         self: Type<'heap, Self>,
         supertype: Type<'heap, Self>,
@@ -248,7 +270,7 @@ impl<'heap> Lattice<'heap> for OpaqueType<'heap> {
             return false;
         }
 
-        env.is_subtype_of(Variance::Invariant, self.kind.repr, supertype.kind.repr)
+        env.is_subtype_of(Variance::Covariant, self.kind.repr, supertype.kind.repr)
     }
 
     fn is_equivalent(
@@ -297,8 +319,10 @@ impl<'heap> Inference<'heap> for OpaqueType<'heap> {
             return;
         }
 
-        // Opaque types are invariant in regards to their arguments
-        env.collect_constraints(Variance::Invariant, self.kind.repr, supertype.kind.repr);
+        // Opaque types are covariant: the inner representation of the subtype must be a subtype
+        // of the inner representation of the supertype. This is sound because HashQL values are
+        // immutable.
+        env.collect_constraints(Variance::Covariant, self.kind.repr, supertype.kind.repr);
     }
 
     fn instantiate(self: Type<'heap, Self>, env: &mut InstantiateEnvironment<'_, 'heap>) -> TypeId {
