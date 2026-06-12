@@ -160,9 +160,11 @@ pub(super) fn lower_expr_to_type<'heap>(
         | ExprKind::Index(_)
         | ExprKind::As(_)
         | ExprKind::Dummy => {
-            expander
-                .diagnostics
-                .push(error::invalid_expression_in_type_position(expr.span, "..."));
+            if let Some(diagnostic) =
+                error::invalid_expression_in_type_position(expr.span, &expr.kind)
+            {
+                expander.diagnostics.push(diagnostic);
+            }
 
             Type {
                 id: NodeId::PLACEHOLDER,

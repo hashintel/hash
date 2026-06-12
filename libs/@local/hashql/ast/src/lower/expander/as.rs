@@ -1,16 +1,40 @@
-use hashql_core::span::SpanId;
+use core::mem;
+
+use hashql_core::{module::Universe, span::SpanId};
 
 use super::Expander;
-use crate::node::expr::{CallExpr, Expr, call::Argument};
+use crate::{
+    lower::expander::r#type::lower_expr_to_type,
+    node::{
+        expr::{AsExpr, CallExpr, Expr, ExprKind, call::Argument},
+        id::NodeId,
+    },
+};
 
-fn lower_if_impl<'heap>(
+fn lower_as_impl<'heap>(
     span: SpanId,
     expander: &mut Expander<'_, 'heap>,
 
     body: &mut Argument<'heap>,
     r#type: &mut Argument<'heap>,
 ) -> Expr<'heap> {
-    todo!()
+    let mut body = mem::replace(&mut body.value, Expr::dummy());
+    let mut r#type = mem::replace(&mut r#type.value, Expr::dummy());
+
+    expander.visit(&mut body);
+    expander.with_universe(Universe::Type, |expander| expander.visit(&mut r#type));
+    let r#type = lower_expr_to_type(expander, r#type);
+
+    Expr {
+        id: NodeId::PLACEHOLDER,
+        span,
+        kind: ExprKind::As(AsExpr {
+            id: NodeId::PLACEHOLDER,
+            span,
+            value: Box::new_in(body, expander.heap),
+            r#type: Box::new_in(r#type, expander.heap),
+        }),
+    }
 }
 
 pub(super) fn lower_as<'heap>(
