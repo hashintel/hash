@@ -52,7 +52,7 @@ use crate::{
 
 pub struct TypeCheckingResidual<'heap> {
     pub inputs: FastHashMap<Symbol<'heap>, TypeId>,
-    pub intrinsics: HirIdMap<&'static str>,
+    pub intrinsics: HirIdMap<Symbol<'heap>>,
 }
 
 pub struct TypeChecking<'ctx, 'env, 'hir, 'heap> {
@@ -60,7 +60,7 @@ pub struct TypeChecking<'ctx, 'env, 'hir, 'heap> {
     context: &'ctx mut HirContext<'hir, 'heap>,
 
     locals: VarIdMap<Local<'heap>>,
-    intrinsics: HirIdMap<&'static str>,
+    intrinsics: HirIdMap<Symbol<'heap>>,
     closures: HirIdMap<TypeId>,
 
     lattice: LatticeEnvironment<'env, 'heap>,

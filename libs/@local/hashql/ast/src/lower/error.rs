@@ -6,7 +6,7 @@ use hashql_diagnostics::{Diagnostic, category::DiagnosticCategory};
 use super::{
     import_resolver::error::ImportResolverDiagnosticCategory,
     sanitizer::SanitizerDiagnosticCategory,
-    special_form_expander::error::SpecialFormExpanderDiagnosticCategory,
+    // special_form_expander::error::SpecialFormExpanderDiagnosticCategory,
     type_extractor::error::TypeExtractorDiagnosticCategory,
 };
 
@@ -14,7 +14,7 @@ pub type LoweringDiagnostic = Diagnostic<LoweringDiagnosticCategory, SpanId>;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum LoweringDiagnosticCategory {
-    Expander(SpecialFormExpanderDiagnosticCategory),
+    // Expander(SpecialFormExpanderDiagnosticCategory),
     Sanitizer(SanitizerDiagnosticCategory),
     Resolver(ImportResolverDiagnosticCategory),
     Extractor(TypeExtractorDiagnosticCategory),
@@ -31,7 +31,7 @@ impl DiagnosticCategory for LoweringDiagnosticCategory {
 
     fn subcategory(&self) -> Option<&dyn DiagnosticCategory> {
         match self {
-            Self::Expander(special_form) => Some(special_form),
+            // Self::Expander(special_form) => Some(special_form),
             Self::Sanitizer(sanitizer) => Some(sanitizer),
             Self::Resolver(resolver) => Some(resolver),
             Self::Extractor(extractor) => Some(extractor),

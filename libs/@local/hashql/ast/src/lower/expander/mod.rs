@@ -22,6 +22,8 @@ use crate::{
 // 1. it resolves imports
 // 2. once resolved, it expands special forms
 pub struct Expander<'env, 'heap> {
+    heap: &'heap heap::Heap,
+
     namespace: ModuleNamespace<'env, 'heap>,
     current_universe: Universe,
     diagnostics: ExpanderDiagnosticIssues,
@@ -70,6 +72,7 @@ impl<'env, 'heap> Expander<'env, 'heap> {
 impl<'env, 'heap> Expander<'env, 'heap> {
     pub const fn new(namespace: ModuleNamespace<'env, 'heap>) -> Self {
         Self {
+            heap: namespace.registry().heap,
             namespace,
             current_universe: Universe::Value,
             diagnostics: ExpanderDiagnosticIssues::new(),

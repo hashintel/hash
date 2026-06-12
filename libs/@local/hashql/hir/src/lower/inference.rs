@@ -6,6 +6,7 @@ use hashql_core::{
         locals::TypeDef,
     },
     span::{SpanId, Spanned},
+    symbol::Symbol,
     r#type::{
         PartialType, TypeBuilder, TypeId,
         environment::{
@@ -46,14 +47,14 @@ use crate::{
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Local<'heap> {
     pub r#type: TypeDef<'heap>,
-    pub intrinsic: Option<&'static str>,
+    pub intrinsic: Option<Symbol<'heap>>,
 }
 
 // We do not persist the types into the `HirMap` *yet* as we haven't yet verified if they are
 // correct.
 pub struct TypeInferenceResidual<'heap> {
     pub locals: VarIdMap<Local<'heap>>,
-    pub intrinsics: HirIdMap<&'static str>,
+    pub intrinsics: HirIdMap<Symbol<'heap>>,
     pub closures: HirIdMap<TypeId>,
 }
 
@@ -69,7 +70,7 @@ pub struct TypeInference<'ctx, 'env, 'hir, 'heap> {
 
     visited: HirIdSet,
     locals: VarIdMap<Local<'heap>>,
-    intrinsics: HirIdMap<&'static str>,
+    intrinsics: HirIdMap<Symbol<'heap>>,
     closures: HirIdMap<TypeId>,
 }
 
