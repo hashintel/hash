@@ -1,5 +1,5 @@
 use core::{assert_matches, str::FromStr as _};
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use hash_graph_store::{
     entity::{
@@ -443,5 +443,148 @@ async fn create_multi() {
             properties: alice(),
             link_data: None
         }]
+    );
+}
+
+#[tokio::test]
+#[expect(clippy::too_many_lines)]
+async fn summary_aggregations() {
+    let mut database = DatabaseTestWrapper::new().await;
+    let mut api = seed(&mut database).await;
+
+    let account_id = api.account_id;
+    let create_params = |entity_type_ids, properties: &str| CreateEntityParams {
+        web_id: WebId::new(account_id),
+        entity_uuid: None,
+        decision_time: None,
+        entity_type_ids,
+        properties: PropertyObjectWithMetadata::from_parts(
+            serde_json::from_str(properties).expect("could not parse entity"),
+            None,
+        )
+        .expect("could not create property with metadata object"),
+        confidence: None,
+        link_data: None,
+        draft: false,
+        policies: Vec::new(),
+        provenance: ProvidedEntityEditionProvenance {
+            actor_type: ActorType::User,
+            origin: OriginProvenance::from_empty_type(OriginType::Api),
+            sources: Vec::new(),
+        },
+    };
+
+    api.create_entity(
+        api.account_id,
+        create_params(
+            HashSet::from([person_entity_type_id()]),
+            entity::PERSON_ALICE_V1,
+        ),
+    )
+    .await
+    .expect("could not create entity");
+    api.create_entity(
+        api.account_id,
+        create_params(
+            HashSet::from([person_entity_type_id(), org_entity_type_id()]),
+            entity::PERSON_BOB_V1,
+        ),
+    )
+    .await
+    .expect("could not create entity");
+
+    let response = Box::pin(api.query_entities(
+        api.account_id,
+        QueryEntitiesParams {
+            filter: Filter::for_entity_by_type_id(&person_entity_type_id()),
+            temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                pinned: PinnedTemporalAxisUnresolved::new(None),
+                variable: VariableTemporalAxisUnresolved::new(None, None),
+            },
+            sorting: EntityQuerySorting {
+                paths: Vec::new(),
+                cursor: None,
+            },
+            limit: 1000,
+            conversions: Vec::new(),
+            include_count: true,
+            include_entity_types: None,
+            include_drafts: false,
+            include_web_ids: true,
+            include_created_by_ids: true,
+            include_edition_created_by_ids: true,
+            include_type_ids: true,
+            include_type_titles: true,
+            include_permissions: false,
+        },
+    ))
+    .await
+    .expect("could not get entities");
+
+    assert_eq!(response.entities.len(), 2);
+    assert_eq!(response.count, Some(2));
+    assert_eq!(
+        response.web_ids,
+        Some(HashMap::from([(WebId::new(api.account_id), 2)]))
+    );
+    assert_eq!(
+        response.created_by_ids,
+        Some(HashMap::from([(api.account_id, 2)]))
+    );
+    assert_eq!(
+        response.edition_created_by_ids,
+        Some(HashMap::from([(api.account_id, 2)]))
+    );
+    assert_eq!(
+        response.type_ids,
+        Some(HashMap::from([
+            (person_entity_type_id(), 2),
+            (org_entity_type_id(), 1),
+        ]))
+    );
+    assert_eq!(
+        response.type_titles,
+        Some(HashMap::from([
+            (person_entity_type_id(), "Person".to_owned()),
+            (org_entity_type_id(), "Organization".to_owned()),
+        ]))
+    );
+
+    let titles_only = Box::pin(api.query_entities(
+        api.account_id,
+        QueryEntitiesParams {
+            filter: Filter::for_entity_by_type_id(&person_entity_type_id()),
+            temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                pinned: PinnedTemporalAxisUnresolved::new(None),
+                variable: VariableTemporalAxisUnresolved::new(None, None),
+            },
+            sorting: EntityQuerySorting {
+                paths: Vec::new(),
+                cursor: None,
+            },
+            limit: 1000,
+            conversions: Vec::new(),
+            include_count: false,
+            include_entity_types: None,
+            include_drafts: false,
+            include_web_ids: false,
+            include_created_by_ids: false,
+            include_edition_created_by_ids: false,
+            include_type_ids: false,
+            include_type_titles: true,
+            include_permissions: false,
+        },
+    ))
+    .await
+    .expect("could not get entities");
+
+    assert_eq!(titles_only.count, None);
+    assert_eq!(titles_only.type_ids, None);
+    assert_eq!(
+        titles_only.type_titles,
+        Some(HashMap::from([
+            (person_entity_type_id(), "Person".to_owned()),
+            (org_entity_type_id(), "Organization".to_owned()),
+        ]))
     );
 }
