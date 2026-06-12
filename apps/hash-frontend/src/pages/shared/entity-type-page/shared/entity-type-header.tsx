@@ -107,8 +107,14 @@ export const EntityTypeHeader = ({
           alignItems="center"
           justifyContent="space-between"
         >
-          <Stack direction="row" alignItems="center" gap={5}>
-            <Stack direction="row" alignItems="flex-start" mt={1} mb={3}>
+          <Stack direction="row" alignItems="center" gap={5} minWidth={0}>
+            <Stack
+              direction="row"
+              alignItems="flex-start"
+              mt={1}
+              mb={3}
+              minWidth={0}
+            >
               {entityTypeNameSize !== null && (
                 <Controller
                   control={control}
@@ -166,7 +172,7 @@ export const EntityTypeHeader = ({
                   }}
                 />
               )}
-              <Box sx={{ ml: 2.5 }}>
+              <Box sx={{ ml: 2.5, minWidth: 0 }}>
                 <Tooltip
                   placement="top-start"
                   componentsProps={{
@@ -196,9 +202,7 @@ export const EntityTypeHeader = ({
                     variant="h1"
                     fontWeight="bold"
                     ref={entityTypeNameTextRef}
-                    sx={{
-                      lineHeight: 1.2,
-                    }}
+                    sx={{ overflow: "hidden", textOverflow: "ellipsis" }}
                   >
                     {entityTypeSchema.title}
                     {isInSlide && (
