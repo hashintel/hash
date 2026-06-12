@@ -8,6 +8,7 @@ mod input;
 mod r#let;
 mod newtype;
 mod r#type;
+mod r#use;
 
 use hashql_core::{
     heap::{self, BumpAllocator},
@@ -20,8 +21,9 @@ use hashql_core::{
 };
 
 use self::{
-    r#as::lower_as, error::ExpanderDiagnosticIssues, r#if::lower_if, r#let::lower_let,
-    r#type::lower_type,
+    access::lower_access, r#as::lower_as, error::ExpanderDiagnosticIssues, r#fn::lower_fn,
+    r#if::lower_if, index::lower_index, input::lower_input, r#let::lower_let,
+    newtype::lower_newtype, r#type::lower_type,
 };
 use crate::{
     node::{self, id::NodeId},
@@ -294,21 +296,24 @@ where
                     return;
                 }
                 sym::path::newtype::CONST => {
-                    self.trampoline = Some(newtype::lower_newtype(self, expr));
+                    self.trampoline = Some(lower_newtype(self, expr));
                     return;
                 }
                 sym::path::r#use::CONST => {}
-                sym::path::r#fn::CONST => {}
+                sym::path::r#fn::CONST => {
+                    self.trampoline = Some(lower_fn(self, expr));
+                    return;
+                }
                 sym::path::input::CONST => {
-                    self.trampoline = Some(input::lower_input(self, expr));
+                    self.trampoline = Some(lower_input(self, expr));
                     return;
                 }
                 sym::path::index::CONST => {
-                    self.trampoline = Some(index::lower_index(self, expr));
+                    self.trampoline = Some(lower_index(self, expr));
                     return;
                 }
                 sym::path::access::CONST => {
-                    self.trampoline = Some(access::lower_access(self, expr));
+                    self.trampoline = Some(lower_access(self, expr));
                     return;
                 }
                 _ => {}

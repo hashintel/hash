@@ -132,18 +132,25 @@ where
         }
     };
 
-    expander.scratch.scoped(|scratch| {
-        let mut seen = fast_hash_map_with_capacity_in(generics.params.len(), scratch);
+    {
+        let diagnostics = &mut expander.diagnostics;
+        expander.scratch.scoped(|scratch| {
+            let mut seen = fast_hash_map_with_capacity_in(generics.params.len(), scratch);
 
-        generics.params.retain(|param| {
-            if let Err(error) = seen.try_insert(param.name.value, param.span) {
-                todo!("issue diagnostic");
-                return false;
-            }
+            generics.params.retain(|param| {
+                if let Err(error) = seen.try_insert(param.name.value, param.span) {
+                    diagnostics.push(error::duplicate_fn_generic(
+                        param.span,
+                        param.name.value,
+                        *error.entry.get(),
+                    ));
+                    return false;
+                }
 
-            true
+                true
+            });
         });
-    });
+    }
 
     generics
 }
@@ -186,18 +193,25 @@ where
         }
     });
 
-    expander.scratch.scoped(|scratch| {
-        let mut seen = fast_hash_map_with_capacity_in(params.len(), scratch);
+    {
+        let diagnostics = &mut expander.diagnostics;
+        expander.scratch.scoped(|scratch| {
+            let mut seen = fast_hash_map_with_capacity_in(params.len(), scratch);
 
-        params.retain(|param| {
-            if let Err(error) = seen.try_insert(param.name.value, param.span) {
-                todo!("issue diagnostic");
-                return false;
-            }
+            params.retain(|param| {
+                if let Err(error) = seen.try_insert(param.name.value, param.span) {
+                    diagnostics.push(error::duplicate_fn_parameter(
+                        param.span,
+                        param.name.value,
+                        *error.entry.get(),
+                    ));
+                    return false;
+                }
 
-            true
+                true
+            });
         });
-    });
+    }
 
     params
 }
