@@ -174,6 +174,13 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
         });
     }
 
+    pub fn alias(&mut self, name: Symbol<'heap>, item: Item<'heap>) {
+        self.imports.push(Import {
+            name,
+            item: ImportReference::Item(item),
+        });
+    }
+
     /// Return all the locals that have been registered so far.
     #[must_use]
     pub fn locals(&self, universe: Universe) -> FastHashSet<Symbol<'heap>> {

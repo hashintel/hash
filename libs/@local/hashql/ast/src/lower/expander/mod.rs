@@ -1,4 +1,5 @@
 mod error;
+mod r#let;
 
 use hashql_core::{
     heap,
@@ -7,7 +8,7 @@ use hashql_core::{
         item::{IntrinsicItem, Item},
         namespace::{ModuleNamespace, ResolutionMode, ResolveOptions},
     },
-    symbol::{Ident, sym},
+    symbol::{Ident, Symbol, sym},
 };
 
 use self::error::ExpanderDiagnosticIssues;
@@ -24,8 +25,46 @@ pub struct Expander<'env, 'heap> {
     namespace: ModuleNamespace<'env, 'heap>,
     current_universe: Universe,
     diagnostics: ExpanderDiagnosticIssues,
+
     current_item: Option<module::item::Item<'heap>>,
     trampoline: Option<node::expr::Expr<'heap>>,
+}
+
+impl<'env, 'heap> Expander<'env, 'heap> {
+    fn visit(&mut self, expr: &mut node::expr::Expr<'heap>) -> Option<module::item::Item<'heap>> {
+        let prev_current_item = self.current_item.take();
+        visit::walk_expr(self, expr);
+
+        if let Some(trampoline) = self.trampoline.take() {
+            *expr = trampoline;
+        }
+
+        let current_item = self.current_item.take();
+        self.current_item = prev_current_item;
+
+        current_item
+    }
+
+    fn enter<T>(
+        &mut self,
+        universe: Universe,
+        symbol: Symbol<'heap>,
+        item: Option<module::item::Item<'heap>>,
+        closure: impl FnOnce(&mut Self) -> T,
+    ) -> T {
+        let snapshot = self.namespace.snapshot();
+        if let Some(item) = item {
+            self.namespace.alias(symbol, item);
+        } else {
+            self.namespace.local(symbol, universe);
+        }
+
+        let result = closure(self);
+
+        self.namespace.rollback_to(snapshot);
+
+        result
+    }
 }
 
 impl<'env, 'heap> Expander<'env, 'heap> {
@@ -138,15 +177,12 @@ impl<'heap> Visitor<'heap> for Expander<'_, 'heap> {
     }
 
     fn visit_call_expr(&mut self, expr: &mut node::expr::CallExpr<'heap>) {
-        let prev_current_item = self.current_item.take();
-        self.visit_expr(&mut expr.function);
-
-        // TODO: what happens on let-rebinding?
+        let item = self.visit(&mut expr.function);
 
         if let Some(Item {
             kind: module::item::ItemKind::Intrinsic(IntrinsicItem::Value(value)),
             ..
-        }) = self.current_item
+        }) = item
             && let Some(constant) = value.name.as_constant()
         {
             match constant {
@@ -164,18 +200,12 @@ impl<'heap> Visitor<'heap> for Expander<'_, 'heap> {
             }
         }
 
-        self.current_item = prev_current_item;
-
         // We haven't encountered a special-form, meaning that we can treat this as a regular call
         // expression
         visit::walk_call_expr(self, expr);
     }
 
     fn visit_expr(&mut self, expr: &mut node::expr::Expr<'heap>) {
-        visit::walk_expr(self, expr);
-
-        if let Some(trampoline) = self.trampoline.take() {
-            *expr = trampoline;
-        }
+        self.visit(expr);
     }
 }
