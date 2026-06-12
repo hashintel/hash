@@ -1,6 +1,9 @@
+mod access;
 mod r#as;
 mod error;
 mod r#if;
+mod index;
+mod input;
 mod r#let;
 mod r#type;
 
@@ -214,9 +217,18 @@ impl<'heap> Visitor<'heap> for Expander<'_, 'heap> {
                 sym::path::newtype::CONST => {}
                 sym::path::r#use::CONST => {}
                 sym::path::r#fn::CONST => {}
-                sym::path::input::CONST => {}
-                sym::path::index::CONST => {}
-                sym::path::access::CONST => {}
+                sym::path::input::CONST => {
+                    self.trampoline = Some(input::lower_input(self, expr));
+                    return;
+                }
+                sym::path::index::CONST => {
+                    self.trampoline = Some(index::lower_index(self, expr));
+                    return;
+                }
+                sym::path::access::CONST => {
+                    self.trampoline = Some(access::lower_access(self, expr));
+                    return;
+                }
                 _ => {}
             }
         }
