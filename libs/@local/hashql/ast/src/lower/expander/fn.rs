@@ -1,6 +1,7 @@
 use core::mem;
 
 use hashql_core::{
+    collections::fast_hash_map_with_capacity_in,
     heap::{self, BumpAllocator},
     module::Universe,
     span::SpanId,
@@ -28,7 +29,7 @@ fn lower_generics<'heap, S>(
 where
     S: BumpAllocator,
 {
-    match &mut generics.value.kind {
+    let mut generics = match &mut generics.value.kind {
         ExprKind::Tuple(tuple) => {
             if let Some(annotation) = tuple.r#type.as_ref() {
                 expander
@@ -102,7 +103,23 @@ where
                 params,
             }
         }
-        _ => {
+        ExprKind::Call(_)
+        | ExprKind::Dict(_)
+        | ExprKind::List(_)
+        | ExprKind::Literal(_)
+        | ExprKind::Path(_)
+        | ExprKind::Let(_)
+        | ExprKind::Type(_)
+        | ExprKind::NewType(_)
+        | ExprKind::Use(_)
+        | ExprKind::Input(_)
+        | ExprKind::Closure(_)
+        | ExprKind::If(_)
+        | ExprKind::Field(_)
+        | ExprKind::Index(_)
+        | ExprKind::As(_)
+        | ExprKind::Underscore
+        | ExprKind::Dummy => {
             expander
                 .diagnostics
                 .push(error::invalid_fn_generics(generics.value.span));
@@ -113,13 +130,27 @@ where
                 params: heap::Vec::new_in(expander.heap),
             }
         }
-    }
+    };
+
+    expander.scratch.scoped(|scratch| {
+        let mut seen = fast_hash_map_with_capacity_in(generics.params.len(), scratch);
+
+        generics.params.retain(|param| {
+            if let Err(error) = seen.try_insert(param.name.value, param.span) {
+                todo!("issue diagnostic");
+                return false;
+            }
+
+            true
+        });
+    });
+
+    generics
 }
 
 fn lower_params<'heap, S>(
     expander: &mut Expander<'_, 'heap, S>,
 
-    generics: &Generics<'heap>,
     params: &mut Argument<'heap>,
 ) -> heap::Vec<'heap, ClosureParam<'heap>>
 where
@@ -155,6 +186,19 @@ where
         }
     });
 
+    expander.scratch.scoped(|scratch| {
+        let mut seen = fast_hash_map_with_capacity_in(params.len(), scratch);
+
+        params.retain(|param| {
+            if let Err(error) = seen.try_insert(param.name.value, param.span) {
+                todo!("issue diagnostic");
+                return false;
+            }
+
+            true
+        });
+    });
+
     params
 }
 
@@ -178,7 +222,7 @@ where
             .iter()
             .map(|param| (param.name.value, Universe::Type)),
         |expander| {
-            let params = lower_params(expander, &generics, params);
+            let params = lower_params(expander, params);
 
             let (returns, body) = expander.bind_many(
                 params
