@@ -188,6 +188,36 @@ const DUPLICATE_FN_PARAMETER: TerminalDiagnosticCategory = TerminalDiagnosticCat
     name: "Duplicate function parameter",
 };
 
+const INVALID_USE_IMPORTS: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "invalid-use-imports",
+    name: "Invalid use imports",
+};
+
+const INVALID_USE_IMPORT_BINDING: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "invalid-use-import-binding",
+    name: "Invalid use import binding",
+};
+
+const INVALID_USE_ALIAS: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "invalid-use-alias",
+    name: "Invalid use alias",
+};
+
+const DUPLICATE_USE_BINDING: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "duplicate-use-binding",
+    name: "Duplicate use binding",
+};
+
+const INVALID_USE_PATH: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "invalid-use-path",
+    name: "Invalid use path",
+};
+
+const USE_PATH_GENERIC_ARGUMENTS: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "use-path-generic-arguments",
+    name: "Generic arguments in use path",
+};
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum ExpanderDiagnosticCategory {
     EmptyPath,
@@ -221,6 +251,12 @@ pub enum ExpanderDiagnosticCategory {
     InvalidFnParams,
     DuplicateFnGeneric,
     DuplicateFnParameter,
+    InvalidUseImports,
+    InvalidUseImportBinding,
+    InvalidUseAlias,
+    DuplicateUseBinding,
+    InvalidUsePath,
+    UsePathGenericArguments,
 }
 
 impl DiagnosticCategory for ExpanderDiagnosticCategory {
@@ -265,6 +301,12 @@ impl DiagnosticCategory for ExpanderDiagnosticCategory {
             Self::InvalidFnParams => Some(&INVALID_FN_PARAMS),
             Self::DuplicateFnGeneric => Some(&DUPLICATE_FN_GENERIC),
             Self::DuplicateFnParameter => Some(&DUPLICATE_FN_PARAMETER),
+            Self::InvalidUseImports => Some(&INVALID_USE_IMPORTS),
+            Self::InvalidUseImportBinding => Some(&INVALID_USE_IMPORT_BINDING),
+            Self::InvalidUseAlias => Some(&INVALID_USE_ALIAS),
+            Self::DuplicateUseBinding => Some(&DUPLICATE_USE_BINDING),
+            Self::InvalidUsePath => Some(&INVALID_USE_PATH),
+            Self::UsePathGenericArguments => Some(&USE_PATH_GENERIC_ARGUMENTS),
         }
     }
 }
@@ -448,6 +490,56 @@ pub(crate) fn from_resolution_error<'heap>(
             name,
             suggestions,
         } => item_not_found(path, depth, name, &suggestions),
+        ResolutionError::Ambiguous(reference) => ambiguous_name(path, reference.name()),
+        ResolutionError::ModuleEmpty { depth } => empty_module(path, depth),
+    }
+}
+
+/// Converts a `ResolutionError` from a `use` import into an expander diagnostic.
+///
+/// For named imports, the resolution query extends beyond the path by one segment
+/// (the binding name). When `depth` points past the path segments, `binding_name`
+/// provides the span and name for the error.
+pub(crate) fn from_import_resolution_error<'heap>(
+    path: &Path<'heap>,
+    binding_name: Option<Spanned<Symbol<'heap>>>,
+    error: ResolutionError<'heap>,
+) -> ExpanderDiagnostic {
+    match error {
+        ResolutionError::InvalidQueryLength { expected } => invalid_query_length(path, expected),
+        ResolutionError::ModuleRequired { depth, found } => module_required(path, depth, found),
+        ResolutionError::PackageNotFound {
+            depth,
+            name,
+            suggestions,
+        } => package_not_found(path, depth, name, &suggestions),
+        ResolutionError::ModuleNotFound {
+            depth,
+            name,
+            suggestions,
+        } => module_not_found(path, depth, name, &suggestions),
+        ResolutionError::ImportNotFound {
+            depth,
+            name,
+            suggestions,
+        } => import_not_found(path, depth, name, &suggestions),
+        ResolutionError::ItemNotFound {
+            depth,
+            name,
+            suggestions,
+        } => {
+            // For named imports, the item (binding name) is beyond the path segments.
+            // Use the binding's span if available, otherwise fall back to the path span.
+            if depth >= path.segments.len() {
+                if let Some(binding) = binding_name {
+                    item_not_found_at(binding.span, path, name, &suggestions)
+                } else {
+                    item_not_found(path, depth.min(path.segments.len() - 1), name, &suggestions)
+                }
+            } else {
+                item_not_found(path, depth, name, &suggestions)
+            }
+        }
         ResolutionError::Ambiguous(reference) => ambiguous_name(path, reference.name()),
         ResolutionError::ModuleEmpty { depth } => empty_module(path, depth),
     }
@@ -657,6 +749,50 @@ fn item_not_found<'heap>(
 
     let emitted = SpellingSuggestions {
         name: segment.name.symbol(),
+        candidates: suggestions.iter().map(|suggestion| suggestion.name),
+        context: "a similar item exists in this module",
+        ..
+    }
+    .emit(&mut diagnostic);
+
+    if emitted.is_empty() {
+        diagnostic.add_message(Message::help(
+            "check the spelling and ensure the item is exported",
+        ));
+    }
+
+    diagnostic
+}
+
+/// Like `item_not_found`, but for items that are beyond the path's segments.
+///
+/// Used by import resolution when the binding name (appended to the path query)
+/// is the item that was not found. The primary label points at `span` instead of
+/// indexing into `path.segments`.
+fn item_not_found_at<'heap>(
+    span: SpanId,
+    path: &Path<'heap>,
+    name: Symbol<'heap>,
+    suggestions: &[ResolutionSuggestion<'heap, Item<'heap>>],
+) -> ExpanderDiagnostic {
+    let parent_path = FormatUserPath {
+        rooted: path.rooted,
+        segments: &path.segments,
+        up_to: path.segments.len().checked_sub(1),
+    };
+
+    let mut diagnostic = Diagnostic::new(ExpanderDiagnosticCategory::ItemNotFound, Severity::Error)
+        .primary(Label::new(
+            span,
+            format!("cannot find `{name}` in module `{parent_path}`"),
+        ));
+
+    if let Some(last) = path.segments.last() {
+        diagnostic.add_label(Label::new(last.name.span, "looked in this module"));
+    }
+
+    let emitted = SpellingSuggestions {
+        name: Spanned { span, value: name },
         candidates: suggestions.iter().map(|suggestion| suggestion.name),
         context: "a similar item exists in this module",
         ..
@@ -2014,6 +2150,178 @@ pub(crate) fn duplicate_fn_parameter(
 
     diagnostic.add_message(Message::help(
         "remove the duplicate parameter or use a different name",
+    ));
+
+    diagnostic
+}
+
+/// A `use` call was passed labeled arguments.
+pub(crate) fn labeled_arguments_in_use(
+    labeled_arguments: &[LabeledArgument<'_>],
+) -> ExpanderDiagnostic {
+    let (first, rest) = labeled_arguments
+        .split_first()
+        .expect("caller should check that labeled_arguments is non-empty");
+
+    let mut diagnostic = Diagnostic::new(
+        ExpanderDiagnosticCategory::LabeledArgumentsNotSupported,
+        Severity::Error,
+    )
+    .primary(Label::new(
+        first.span,
+        "labeled arguments are not allowed in `use`",
+    ));
+
+    for argument in rest {
+        diagnostic.add_label(Label::new(
+            argument.span,
+            "labeled argument not allowed here",
+        ));
+    }
+
+    diagnostic.add_message(Message::help(
+        "pass the arguments positionally: `(use path imports body)`",
+    ));
+
+    diagnostic
+}
+
+/// A `use` call was passed the wrong number of arguments.
+pub(crate) fn invalid_use_argument_count(
+    call_span: SpanId,
+    arguments: &[Argument<'_>],
+) -> ExpanderDiagnostic {
+    let count = arguments.len();
+
+    let mut diagnostic = Diagnostic::new(
+        ExpanderDiagnosticCategory::InvalidArgumentCount,
+        Severity::Error,
+    )
+    .primary(Label::new(
+        call_span,
+        format!("expected 3 arguments to `use`, found {count}"),
+    ));
+
+    for argument in arguments.iter().skip(3) {
+        diagnostic.add_label(Label::new(argument.span, "unexpected argument"));
+    }
+
+    diagnostic.add_message(Message::help("use `(use path imports body)`"));
+
+    diagnostic.add_message(Message::note(
+        "the arguments are, in order: the module path to import from, the import specifier (`*`, \
+         a tuple of names, or a struct of aliases), and the body where the imports are in scope",
+    ));
+
+    diagnostic
+}
+
+/// The imports argument to `use` is not a valid form.
+pub(crate) fn invalid_use_imports(span: SpanId) -> ExpanderDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        ExpanderDiagnosticCategory::InvalidUseImports,
+        Severity::Error,
+    )
+    .primary(Label::new(
+        span,
+        "expected `*`, a tuple of names, or a struct of aliases",
+    ));
+
+    diagnostic.add_message(Message::help(
+        "use `*` to import everything, `(a, b)` to import specific names, or `(a: alias, b: _)` \
+         to import with aliases",
+    ));
+
+    diagnostic
+}
+
+/// An import binding in a `use` tuple is not a simple identifier.
+pub(crate) fn invalid_use_import_binding(span: SpanId) -> ExpanderDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        ExpanderDiagnosticCategory::InvalidUseImportBinding,
+        Severity::Error,
+    )
+    .primary(Label::new(span, "expected a simple name to import"));
+
+    diagnostic.add_message(Message::help(
+        "each import must be a plain identifier like `foo`, not a qualified path or expression",
+    ));
+
+    diagnostic
+}
+
+/// An alias in a `use` struct binding is not a valid form.
+///
+/// Aliases must be either `_` (keep the original name) or a simple identifier.
+pub(crate) fn invalid_use_alias(span: SpanId) -> ExpanderDiagnostic {
+    let mut diagnostic =
+        Diagnostic::new(ExpanderDiagnosticCategory::InvalidUseAlias, Severity::Error).primary(
+            Label::new(span, "expected `_` or a simple identifier as the alias"),
+        );
+
+    diagnostic.add_message(Message::help(
+        "use `_` to keep the original name or a simple identifier to rename: `(name: alias)` or \
+         `(name: _)`",
+    ));
+
+    diagnostic
+}
+
+/// The same effective name was bound twice in a `use` import list.
+pub(crate) fn duplicate_use_binding(
+    duplicate_span: SpanId,
+    name: Symbol<'_>,
+    original_span: SpanId,
+) -> ExpanderDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        ExpanderDiagnosticCategory::DuplicateUseBinding,
+        Severity::Error,
+    )
+    .primary(Label::new(
+        duplicate_span,
+        format!("duplicate import binding `{name}`"),
+    ));
+
+    diagnostic.add_label(Label::new(
+        original_span,
+        format!("`{name}` was first imported here"),
+    ));
+
+    diagnostic.add_message(Message::help(
+        "remove the duplicate or use an alias to import under a different name",
+    ));
+
+    diagnostic
+}
+
+/// The path argument to `use` is not a path expression.
+pub(crate) fn invalid_use_path(span: SpanId) -> ExpanderDiagnostic {
+    let mut diagnostic =
+        Diagnostic::new(ExpanderDiagnosticCategory::InvalidUsePath, Severity::Error)
+            .primary(Label::new(span, "expected a module path"));
+
+    diagnostic.add_message(Message::help(
+        "the first argument to `use` must be a path like `core::math` identifying the module to \
+         import from",
+    ));
+
+    diagnostic
+}
+
+/// The path in a `use` statement contains generic arguments.
+pub(crate) fn use_path_generic_arguments(path_span: SpanId) -> ExpanderDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        ExpanderDiagnosticCategory::UsePathGenericArguments,
+        Severity::Error,
+    )
+    .primary(Label::new(
+        path_span,
+        "generic arguments are not allowed in `use` paths",
+    ));
+
+    diagnostic.add_message(Message::help(
+        "remove the generic arguments; `use` imports modules and items, which do not take type \
+         parameters at the import site",
     ));
 
     diagnostic

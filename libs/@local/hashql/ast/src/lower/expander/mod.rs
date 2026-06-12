@@ -23,7 +23,7 @@ use hashql_core::{
 use self::{
     access::lower_access, r#as::lower_as, error::ExpanderDiagnosticIssues, r#fn::lower_fn,
     r#if::lower_if, index::lower_index, input::lower_input, r#let::lower_let,
-    newtype::lower_newtype, r#type::lower_type,
+    newtype::lower_newtype, r#type::lower_type, r#use::lower_use,
 };
 use crate::{
     node::{self, id::NodeId},
@@ -299,7 +299,10 @@ where
                     self.trampoline = Some(lower_newtype(self, expr));
                     return;
                 }
-                sym::path::r#use::CONST => {}
+                sym::path::r#use::CONST => {
+                    self.trampoline = Some(lower_use(self, expr));
+                    return;
+                }
                 sym::path::r#fn::CONST => {
                     self.trampoline = Some(lower_fn(self, expr));
                     return;
