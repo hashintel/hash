@@ -1,3 +1,4 @@
+mod r#as;
 mod error;
 mod r#if;
 mod r#let;
@@ -13,7 +14,7 @@ use hashql_core::{
     symbol::{Ident, Symbol, sym},
 };
 
-use self::{error::ExpanderDiagnosticIssues, r#let::lower_let};
+use self::{error::ExpanderDiagnosticIssues, r#if::lower_if, r#let::lower_let};
 use crate::{
     node::{self, id::NodeId},
     visit::{self, Visitor},
@@ -197,7 +198,10 @@ impl<'heap> Visitor<'heap> for Expander<'_, 'heap> {
             && let Some(constant) = value.name.as_constant()
         {
             match constant {
-                sym::path::r#if::CONST => {}
+                sym::path::r#if::CONST => {
+                    self.trampoline = Some(lower_if(self, expr));
+                    return;
+                }
                 sym::path::r#as::CONST => {}
                 sym::path::r#let::CONST => {
                     self.trampoline = Some(lower_let(self, expr));

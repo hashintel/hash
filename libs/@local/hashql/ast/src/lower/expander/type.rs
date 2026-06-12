@@ -4,10 +4,13 @@ use hashql_core::{
 };
 
 use super::Expander;
-use crate::node::{
-    expr::{CallExpr, Expr, ExprKind},
-    id::NodeId,
-    r#type::{IntersectionType, StructType, TupleType, Type, TypeKind, UnionType},
+use crate::{
+    lower::expander::error,
+    node::{
+        expr::{CallExpr, Expr, ExprKind},
+        id::NodeId,
+        r#type::{IntersectionType, StructType, TupleType, Type, TypeKind, UnionType},
+    },
 };
 
 fn lower_call_to_type<'heap>(
@@ -67,8 +70,16 @@ pub(super) fn lower_expr_to_type<'heap>(
     match expr.kind {
         ExprKind::Call(call) => lower_call_to_type(expander, call),
         ExprKind::Tuple(tuple) => {
-            if let Some(existing) = &tuple.r#type {
-                todo!("ERROR: tuple has a type annotation in a type position, invalid")
+            if let Some(annotation) = &tuple.r#type {
+                // We continue, because it's not fatal, we just ignore it, compilation will
+                // terminate before ever reaching the HIR.
+                expander
+                    .diagnostics
+                    .push(error::type_annotation_in_type_position(
+                        annotation.span,
+                        expr.span,
+                        error::AggregateKind::Tuple,
+                    ));
             }
 
             let mut elements = Vec::with_capacity_in(tuple.elements.len(), expander.heap);
@@ -92,8 +103,16 @@ pub(super) fn lower_expr_to_type<'heap>(
             }
         }
         ExprKind::Struct(r#struct) => {
-            if let Some(existing) = &r#struct.r#type {
-                todo!("ERROR: tuple has a type annotation in a type position, invalid")
+            if let Some(annotation) = &r#struct.r#type {
+                // We continue, because it's not fatal, we just ignore it, compilation will
+                // terminate before ever reaching the HIR.
+                expander
+                    .diagnostics
+                    .push(error::type_annotation_in_type_position(
+                        annotation.span,
+                        expr.span,
+                        error::AggregateKind::Struct,
+                    ));
             }
 
             let mut fields = Vec::with_capacity_in(r#struct.entries.len(), expander.heap);
@@ -141,7 +160,9 @@ pub(super) fn lower_expr_to_type<'heap>(
         | ExprKind::Index(_)
         | ExprKind::As(_)
         | ExprKind::Dummy => {
-            todo!("ERROR: cannot use in type position");
+            expander
+                .diagnostics
+                .push(error::invalid_expression_in_type_position(expr.span, "..."));
 
             Type {
                 id: NodeId::PLACEHOLDER,

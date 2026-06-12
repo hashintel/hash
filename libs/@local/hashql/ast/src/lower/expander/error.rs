@@ -20,7 +20,13 @@ use hashql_diagnostics::{
     severity::Severity,
 };
 
-use crate::node::path::{Path, PathSegment, PathSegmentArgument};
+use crate::node::{
+    expr::{
+        ExprKind,
+        call::{Argument, LabeledArgument},
+    },
+    path::{Path, PathSegment, PathSegmentArgument},
+};
 
 pub(crate) type ExpanderDiagnostic = Diagnostic<ExpanderDiagnosticCategory, SpanId>;
 
@@ -86,6 +92,37 @@ const INVALID_QUERY_LENGTH: TerminalDiagnosticCategory = TerminalDiagnosticCateg
     name: "Invalid query length",
 };
 
+const INVALID_BINDING_NAME: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "invalid-binding-name",
+    name: "Invalid binding name",
+};
+
+const LABELED_ARGUMENTS_NOT_SUPPORTED: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "labeled-arguments-not-supported",
+    name: "Labeled arguments not supported",
+};
+
+const INVALID_ARGUMENT_COUNT: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "invalid-argument-count",
+    name: "Invalid argument count",
+};
+
+const INVALID_TYPE_CONSTRUCTOR_CALL: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "invalid-type-constructor-call",
+    name: "Invalid type constructor call",
+};
+
+const TYPE_ANNOTATION_IN_TYPE_POSITION: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "type-annotation-in-type-position",
+    name: "Type annotation in type position",
+};
+
+const INVALID_EXPRESSION_IN_TYPE_POSITION: TerminalDiagnosticCategory =
+    TerminalDiagnosticCategory {
+        id: "invalid-expression-in-type-position",
+        name: "Invalid expression in type position",
+    };
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum ExpanderDiagnosticCategory {
     EmptyPath,
@@ -100,6 +137,12 @@ pub enum ExpanderDiagnosticCategory {
     AmbiguousName,
     EmptyModule,
     InvalidQueryLength,
+    InvalidBindingName,
+    LabeledArgumentsNotSupported,
+    InvalidArgumentCount,
+    InvalidTypeConstructorCall,
+    TypeAnnotationInTypePosition,
+    InvalidExpressionInTypePosition,
 }
 
 impl DiagnosticCategory for ExpanderDiagnosticCategory {
@@ -125,6 +168,12 @@ impl DiagnosticCategory for ExpanderDiagnosticCategory {
             Self::AmbiguousName => Some(&AMBIGUOUS_NAME),
             Self::EmptyModule => Some(&EMPTY_MODULE),
             Self::InvalidQueryLength => Some(&INVALID_QUERY_LENGTH),
+            Self::InvalidBindingName => Some(&INVALID_BINDING_NAME),
+            Self::LabeledArgumentsNotSupported => Some(&LABELED_ARGUMENTS_NOT_SUPPORTED),
+            Self::InvalidArgumentCount => Some(&INVALID_ARGUMENT_COUNT),
+            Self::InvalidTypeConstructorCall => Some(&INVALID_TYPE_CONSTRUCTOR_CALL),
+            Self::TypeAnnotationInTypePosition => Some(&TYPE_ANNOTATION_IN_TYPE_POSITION),
+            Self::InvalidExpressionInTypePosition => Some(&INVALID_EXPRESSION_IN_TYPE_POSITION),
         }
     }
 }
@@ -692,4 +741,320 @@ fn empty_module(path: &Path<'_>, depth: usize) -> ExpanderDiagnostic {
     ));
 
     diagnostic
+}
+
+/// The first argument to `let` is not a simple identifier.
+///
+/// The name position requires a plain name like `x` or `count`, not a qualified
+/// path, generic expression, or arbitrary expression.
+pub(crate) fn invalid_let_binding_name(name: &Argument<'_>) -> ExpanderDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        ExpanderDiagnosticCategory::InvalidBindingName,
+        Severity::Error,
+    )
+    .primary(Label::new(
+        name.value.span,
+        "expected a simple identifier for the `let` binding name",
+    ));
+
+    diagnostic.add_message(Message::help(
+        "write `(let name value body)` with a plain name such as `x`",
+    ));
+
+    diagnostic.add_message(Message::note(
+        "the first argument to `let` introduces a new local binding and must be a plain \
+         identifier without path qualification or generic arguments",
+    ));
+
+    diagnostic
+}
+
+/// A `let` call was passed labeled arguments.
+///
+/// `let` only accepts positional arguments in a fixed order.
+pub(crate) fn labeled_arguments_in_let(
+    labeled_arguments: &[LabeledArgument<'_>],
+) -> ExpanderDiagnostic {
+    let (first, rest) = labeled_arguments
+        .split_first()
+        .expect("caller should check that labeled_arguments is non-empty");
+
+    let mut diagnostic = Diagnostic::new(
+        ExpanderDiagnosticCategory::LabeledArgumentsNotSupported,
+        Severity::Error,
+    )
+    .primary(Label::new(
+        first.span,
+        "labeled arguments are not allowed in `let`",
+    ));
+
+    for argument in rest {
+        diagnostic.add_label(Label::new(
+            argument.span,
+            "labeled argument not allowed here",
+        ));
+    }
+
+    diagnostic.add_message(Message::help(
+        "pass the arguments positionally: `(let name value body)` or `(let name Type value body)`",
+    ));
+
+    diagnostic.add_message(Message::note(
+        "`let` has a fixed argument order: name, optional type annotation, value, body",
+    ));
+
+    diagnostic
+}
+
+/// A `let` call was passed the wrong number of arguments.
+///
+/// `let` accepts either 3 arguments `(let name value body)` or 4 arguments
+/// `(let name Type value body)`.
+pub(crate) fn invalid_let_argument_count(
+    call_span: SpanId,
+    arguments: &[Argument<'_>],
+) -> ExpanderDiagnostic {
+    let count = arguments.len();
+
+    let mut diagnostic = Diagnostic::new(
+        ExpanderDiagnosticCategory::InvalidArgumentCount,
+        Severity::Error,
+    )
+    .primary(Label::new(
+        call_span,
+        format!("expected 3 or 4 arguments to `let`, found {count}"),
+    ));
+
+    for argument in arguments.iter().skip(4) {
+        diagnostic.add_label(Label::new(argument.span, "unexpected argument"));
+    }
+
+    diagnostic.add_message(Message::help(
+        "use `(let name value body)` or `(let name type value body)`",
+    ));
+
+    diagnostic.add_message(Message::note(
+        "the arguments are, in order: the binding name, an optional type annotation, the bound \
+         value, and the body expression where the name is in scope",
+    ));
+
+    diagnostic
+}
+
+/// A type constructor call was passed labeled arguments.
+///
+/// Type constructor calls like `(| Int String)` only accept positional operands.
+pub(crate) fn labeled_arguments_in_type_call(
+    labeled_arguments: &[LabeledArgument<'_>],
+) -> ExpanderDiagnostic {
+    let (first, rest) = labeled_arguments
+        .split_first()
+        .expect("caller should check that labeled_arguments is non-empty");
+
+    let mut diagnostic = Diagnostic::new(
+        ExpanderDiagnosticCategory::LabeledArgumentsNotSupported,
+        Severity::Error,
+    )
+    .primary(Label::new(
+        first.span,
+        "labeled arguments are not allowed in type constructor calls",
+    ));
+
+    for argument in rest {
+        diagnostic.add_label(Label::new(
+            argument.span,
+            "labeled argument not allowed here",
+        ));
+    }
+
+    diagnostic.add_message(Message::help(
+        "remove the labels and write the operand types positionally, for example `(| Int String)`",
+    ));
+
+    diagnostic.add_message(Message::note(
+        "type constructors such as `|` (union) and `&` (intersection) take positional type \
+         operands",
+    ));
+
+    diagnostic
+}
+
+/// A call expression in type position resolved to something that is not a
+/// type constructor.
+///
+/// Only type constructors like `|` (union) and `&` (intersection) use call
+/// syntax in type position. Other types are referenced directly by path.
+pub(crate) fn invalid_type_constructor_call(
+    function_span: SpanId,
+    call_span: SpanId,
+) -> ExpanderDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        ExpanderDiagnosticCategory::InvalidTypeConstructorCall,
+        Severity::Error,
+    )
+    .primary(Label::new(
+        function_span,
+        "cannot use this as a type constructor",
+    ));
+
+    diagnostic.add_label(Label::new(
+        call_span,
+        "this call appears in a type position",
+    ));
+
+    diagnostic.add_message(Message::help(
+        "use a type path directly, or use `(| ...)` / `(& ...)` for unions and intersections",
+    ));
+
+    diagnostic.add_message(Message::note(
+        "generic type arguments belong on the type path itself, for example `Foo<T>`, not `(Foo \
+         T)`",
+    ));
+
+    diagnostic
+}
+
+/// A type was called like a function in type position, but types are not
+/// callable type constructors.
+///
+/// The user wrote something like `(String Int)` when they probably meant
+/// `String<Int>` for generics or just `String` as a plain type reference.
+pub(crate) fn type_is_not_callable(
+    name: Symbol<'_>,
+    function_span: SpanId,
+    call_span: SpanId,
+) -> ExpanderDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        ExpanderDiagnosticCategory::InvalidTypeConstructorCall,
+        Severity::Error,
+    )
+    .primary(Label::new(
+        function_span,
+        format!("`{name}` is a type, not a type constructor"),
+    ));
+
+    diagnostic.add_label(Label::new(
+        call_span,
+        "call syntax is only valid for type constructors like `|` and `&`",
+    ));
+
+    diagnostic.add_message(Message::help(format!(
+        "use `{name}` directly as a type path, or write `{name}<...>` for generic arguments",
+    )));
+
+    diagnostic.add_message(Message::note(
+        "only `|` (union) and `&` (intersection) can be called as type constructors in type \
+         position",
+    ));
+
+    diagnostic
+}
+
+/// Whether the aggregate expression is a tuple or a struct.
+#[derive(Debug, Copy, Clone)]
+pub(crate) enum AggregateKind {
+    Tuple,
+    Struct,
+}
+
+impl Display for AggregateKind {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Tuple => fmt.write_str("tuple"),
+            Self::Struct => fmt.write_str("struct"),
+        }
+    }
+}
+
+/// A tuple or struct expression in type position has a redundant type annotation.
+///
+/// When used as a type, `(Int, String)` already defines a tuple type and
+/// `{name: String}` already defines a struct type. Adding an annotation is
+/// contradictory.
+pub(crate) fn type_annotation_in_type_position(
+    annotation_span: SpanId,
+    expr_span: SpanId,
+    kind: AggregateKind,
+) -> ExpanderDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        ExpanderDiagnosticCategory::TypeAnnotationInTypePosition,
+        Severity::Error,
+    )
+    .primary(Label::new(
+        annotation_span,
+        "type annotations are not allowed inside a type expression",
+    ));
+
+    diagnostic.add_label(Label::new(
+        expr_span,
+        format!("this {kind} is already being used as a type"),
+    ));
+
+    diagnostic.add_message(Message::help("remove the type annotation"));
+
+    let note = match kind {
+        AggregateKind::Tuple => "in type position, `(Int, String)` already defines a tuple type",
+        AggregateKind::Struct => "in type position, `{name: String}` already defines a struct type",
+    };
+
+    diagnostic.add_message(Message::note(note));
+
+    diagnostic
+}
+
+const VALID_TYPE_FORMS: &str = "valid type forms are: type paths like `String`, tuple types like \
+                                `(Int, String)`, struct types like `{name: String}`, `_` for \
+                                inference, unions `(| ...)`, and intersections `(& ...)`";
+
+/// An expression that cannot be used as a type was found in type position.
+///
+/// Type expressions are a restricted subset of general expressions. Paths,
+/// tuples, structs, `_`, unions, and intersections are the valid forms.
+///
+/// Returns `None` for `Dummy` expressions, which are recovery sentinels from
+/// earlier errors.
+pub(crate) fn invalid_expression_in_type_position(
+    span: SpanId,
+    kind: &ExprKind<'_>,
+) -> Option<ExpanderDiagnostic> {
+    let description = match kind {
+        ExprKind::Dict(_) => "a dictionary expression",
+        ExprKind::List(_) => "a list expression",
+        ExprKind::Literal(_) => "a literal value",
+        ExprKind::Let(_) => "a `let` expression",
+        ExprKind::Type(_) => "a `type` declaration",
+        ExprKind::NewType(_) => "a `newtype` declaration",
+        ExprKind::Use(_) => "a `use` expression",
+        ExprKind::Input(_) => "an `input` expression",
+        ExprKind::Closure(_) => "a closure expression",
+        ExprKind::If(_) => "an `if` expression",
+        ExprKind::Field(_) => "a field access expression",
+        ExprKind::Index(_) => "an index expression",
+        ExprKind::As(_) => "an `as` expression",
+        ExprKind::Dummy => return None,
+        ExprKind::Call(_)
+        | ExprKind::Tuple(_)
+        | ExprKind::Struct(_)
+        | ExprKind::Path(_)
+        | ExprKind::Underscore => {
+            unreachable!("these expression kinds are valid in type position")
+        }
+    };
+
+    let mut diagnostic = Diagnostic::new(
+        ExpanderDiagnosticCategory::InvalidExpressionInTypePosition,
+        Severity::Error,
+    )
+    .primary(Label::new(
+        span,
+        format!("cannot use {description} as a type"),
+    ));
+
+    diagnostic.add_message(Message::help(
+        "replace this with a type path, tuple type, struct type, `_`, `(| ...)`, or `(& ...)`",
+    ));
+
+    diagnostic.add_message(Message::note(VALID_TYPE_FORMS));
+
+    Some(diagnostic)
 }

@@ -3,9 +3,12 @@ use core::mem;
 use hashql_core::{span::SpanId, symbol::Ident};
 
 use super::{Expander, r#type::lower_expr_to_type};
-use crate::node::{
-    expr::{CallExpr, Expr, ExprKind, LetExpr, call::Argument},
-    id::NodeId,
+use crate::{
+    lower::expander::error,
+    node::{
+        expr::{CallExpr, Expr, ExprKind, LetExpr, call::Argument},
+        id::NodeId,
+    },
 };
 
 fn argument_to_ident<'heap>(argument: &Argument<'heap>) -> Option<Ident<'heap>> {
@@ -28,7 +31,9 @@ fn lower_let_impl<'heap>(
     body: &mut Argument<'heap>,
 ) -> Expr<'heap> {
     let Some(name) = argument_to_ident(name) else {
-        todo!("ERROR: name must be an ident");
+        expander
+            .diagnostics
+            .push(error::invalid_let_binding_name(name));
         return Expr::dummy();
     };
 
@@ -80,8 +85,11 @@ pub(super) fn lower_let<'heap>(
     }: &mut CallExpr<'heap>,
 ) -> Expr<'heap> {
     if !labeled_arguments.is_empty() {
-        todo!("ERROR: labelled arguments are not supported")
-        // we continue after diagnostic issue
+        // We continue, to try to recover, if that means that the user has a labeled argument
+        // instead of a positional one we error twice, but that is deemed acceptable.
+        expander
+            .diagnostics
+            .push(error::labeled_arguments_in_let(labeled_arguments));
     }
 
     match &mut **arguments {
@@ -90,7 +98,9 @@ pub(super) fn lower_let<'heap>(
             lower_let_impl(*span, expander, name, value, Some(r#type), body)
         }
         _ => {
-            todo!("ERROR: issue diagnostic");
+            expander
+                .diagnostics
+                .push(error::invalid_let_argument_count(*span, arguments));
 
             Expr::dummy()
         }
