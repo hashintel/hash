@@ -1,6 +1,7 @@
 mod access;
 mod r#as;
 mod error;
+mod r#fn;
 mod r#if;
 mod index;
 mod input;
@@ -26,6 +27,23 @@ use crate::{
     node::{self, id::NodeId},
     visit::{self, Visitor},
 };
+
+enum BindingKind<'heap> {
+    Local(Universe),
+    Remote(Item<'heap>),
+}
+
+impl<'heap> From<Item<'heap>> for BindingKind<'heap> {
+    fn from(v: Item<'heap>) -> Self {
+        Self::Remote(v)
+    }
+}
+
+impl<'heap> From<Universe> for BindingKind<'heap> {
+    fn from(v: Universe) -> Self {
+        Self::Local(v)
+    }
+}
 
 // What does the expander do?
 // The expander does the following:
@@ -81,18 +99,34 @@ impl<'env, 'heap, S> Expander<'env, 'heap, S> {
         result
     }
 
-    fn enter<T>(
+    fn bind<T>(
         &mut self,
-        universe: Universe,
-        symbol: Symbol<'heap>,
-        item: Option<module::item::Item<'heap>>,
+        variable: Symbol<'heap>,
+        kind: impl Into<BindingKind<'heap>>,
         closure: impl FnOnce(&mut Self) -> T,
     ) -> T {
+        self.bind_many([(variable, kind)], closure)
+    }
+
+    fn bind_many<T, K>(
+        &mut self,
+        variables: impl IntoIterator<Item = (Symbol<'heap>, K)>,
+        closure: impl FnOnce(&mut Self) -> T,
+    ) -> T
+    where
+        K: Into<BindingKind<'heap>>,
+    {
         let snapshot = self.namespace.snapshot();
-        if let Some(item) = item {
-            self.namespace.alias(symbol, item);
-        } else {
-            self.namespace.local(symbol, universe);
+        for (variable, kind) in variables {
+            let kind = kind.into();
+            match kind {
+                BindingKind::Local(universe) => {
+                    self.namespace.local(variable, universe);
+                }
+                BindingKind::Remote(item) => {
+                    self.namespace.alias(variable, item);
+                }
+            }
         }
 
         let result = closure(self);

@@ -3,7 +3,10 @@ use core::mem;
 use hashql_core::{
     collections::fast_hash_map_with_capacity_in,
     heap::{self, BumpAllocator, Heap},
-    module::item::{IntrinsicItem, Item},
+    module::{
+        Universe,
+        item::{IntrinsicItem, Item},
+    },
     span::SpanId,
     symbol::{Ident, sym},
 };
@@ -18,6 +21,7 @@ use crate::{
         path::PathSegmentArgument,
         r#type::{IntersectionType, StructType, TupleType, Type, TypeKind, UnionType},
     },
+    visit::Visitor,
 };
 
 fn lower_call_to_type<'heap, S>(
@@ -207,9 +211,7 @@ where
 }
 
 fn path_arguments_to_constraints<'heap, S>(
-    heap: &'heap Heap,
-    scratch: S,
-    diagnostics: &mut ExpanderDiagnosticIssues,
+    expander: &mut Expander<'_, 'heap, S>,
 
     arguments: &mut [PathSegmentArgument<'heap>],
 ) -> heap::Vec<'heap, GenericConstraint<'heap>>
@@ -282,6 +284,19 @@ where
         }
     }
 
+    expander.bind_many(
+        seen.into_keys().map(|variable| (variable, Universe::Type)),
+        |expander| {
+            // The constraints _have not yet_ been validated, this is on purpose, because we must
+            // first convert them, now that they are converted, we can validate them.
+            for constraint in &mut constraints {
+                if let Some(bound) = constraint.bound.as_mut() {
+                    expander.visit_type(bound);
+                }
+            }
+        },
+    );
+
     constraints
 }
 
@@ -296,13 +311,17 @@ where
     if let ExprKind::Path(path) = &mut argument.value.kind
         && let Some((name, arguments)) = path.as_generic_ident_mut()
     {
-        let constraints = expander.scratch.scoped(|scratch| {
-            path_arguments_to_constraints(
-                expander.heap,
-                scratch,
-                &mut expander.diagnostics,
-                arguments,
-            )
+        // Generic constraints _may_ be recursive. To allow for that we must put the name of the
+        // ident into view before we do anything
+        let constraints = expander.bind(name.value, Universe::Type, |expander| {
+            expander.scratch.scoped(|scratch| {
+                path_arguments_to_constraints(
+                    expander.heap,
+                    scratch,
+                    &mut expander.diagnostics,
+                    arguments,
+                )
+            })
         });
 
         Some((name, constraints))
@@ -338,10 +357,9 @@ where
     });
     let value = lower_expr_to_type(expander, value);
 
-    expander.enter(
-        hashql_core::module::Universe::Type,
+    expander.bind(
         name.value,
-        None,
+        hashql_core::module::Universe::Type,
         |expander| expander.visit(&mut body),
     );
 
