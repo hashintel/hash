@@ -36,5 +36,5 @@ pub use self::{
     issues::{DiagnosticIssues, DiagnosticSink},
     severity::Severity,
     source::{Source, Sources},
-    status::{Failure, Status, StatusExt, Success},
+    status::{Failure, IntoStatus, Status, StatusExt, Success},
 };

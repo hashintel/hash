@@ -130,6 +130,7 @@ impl<'heap> Pipeline<'heap> {
 
         parser
             .parse_expr(content.as_ref())
+            .map_err(Diagnostic::generalize)
             .map_err(Diagnostic::boxed)
     }
 
