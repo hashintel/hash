@@ -14,6 +14,7 @@ import {
   EntityTypeIcon,
   LinkTypeIcon,
 } from "@hashintel/design-system";
+import { TextMark } from "@hashintel/ds-components";
 import { useEntityTypeFormContext } from "@hashintel/type-editor";
 
 import { EditEmojiIconButton } from "../../../../shared/edit-emoji-icon-button";
@@ -165,7 +166,7 @@ export const EntityTypeHeader = ({
                   }}
                 />
               )}
-              <Box sx={{ position: "relative", ml: 2.5 }}>
+              <Box sx={{ ml: 2.5 }}>
                 <Tooltip
                   placement="top-start"
                   componentsProps={{
@@ -200,34 +201,35 @@ export const EntityTypeHeader = ({
                     }}
                   >
                     {entityTypeSchema.title}
+                    {isInSlide && (
+                      /**
+                       * The Panda CSS stylesheet backing TextMark's own
+                       * `white-space: nowrap` class is not loaded in this app,
+                       * so re-apply the rule via `sx`.
+                       */
+                      <Box component={TextMark} sx={{ whiteSpace: "nowrap" }}>
+                        <Link
+                          href={
+                            generateLinkParameters(entityTypeSchema.$id).href
+                          }
+                          sx={{ ml: 2.5 }}
+                          target="_blank"
+                        >
+                          <ArrowUpRightFromSquareRegularIcon
+                            sx={{
+                              fill: ({ palette }) => palette.blue[50],
+                              fontSize: 24,
+                              verticalAlign: "middle",
+                              "&:hover": {
+                                fill: ({ palette }) => palette.blue[70],
+                              },
+                            }}
+                          />
+                        </Link>
+                      </Box>
+                    )}
                   </Typography>
                 </Tooltip>
-                {isInSlide && entityTypeNameSize !== null && (
-                  <Link
-                    href={generateLinkParameters(entityTypeSchema.$id).href}
-                    sx={{
-                      position: "absolute",
-                      left: entityTypeNameSize.lastLineWidth + 20,
-                      /**
-                       * The vertical center of the text plus offset half the icon size
-                       */
-                      top:
-                        entityTypeNameSize.lastLineTop +
-                        (entityTypeNameSize.lineHeight / 2 - 12),
-                    }}
-                    target="_blank"
-                  >
-                    <ArrowUpRightFromSquareRegularIcon
-                      sx={{
-                        fill: ({ palette }) => palette.blue[50],
-                        fontSize: 24,
-                        "&:hover": {
-                          fill: ({ palette }) => palette.blue[70],
-                        },
-                      }}
-                    />
-                  </Link>
-                )}
               </Box>
             </Stack>
             <Stack
