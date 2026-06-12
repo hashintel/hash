@@ -123,6 +123,26 @@ const INVALID_EXPRESSION_IN_TYPE_POSITION: TerminalDiagnosticCategory =
         name: "Invalid expression in type position",
     };
 
+const FIELD_LITERAL_TYPE_ANNOTATION: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "field-literal-type-annotation",
+    name: "Field literal with type annotation",
+};
+
+const INVALID_FIELD_LITERAL_TYPE: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "invalid-field-literal-type",
+    name: "Invalid field literal type",
+};
+
+const FIELD_INDEX_OUT_OF_BOUNDS: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "field-index-out-of-bounds",
+    name: "Field index out of bounds",
+};
+
+const INVALID_ACCESS_FIELD: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "invalid-access-field",
+    name: "Invalid access field",
+};
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum ExpanderDiagnosticCategory {
     EmptyPath,
@@ -143,6 +163,10 @@ pub enum ExpanderDiagnosticCategory {
     InvalidTypeConstructorCall,
     TypeAnnotationInTypePosition,
     InvalidExpressionInTypePosition,
+    FieldLiteralTypeAnnotation,
+    InvalidFieldLiteralType,
+    FieldIndexOutOfBounds,
+    InvalidAccessField,
 }
 
 impl DiagnosticCategory for ExpanderDiagnosticCategory {
@@ -174,6 +198,10 @@ impl DiagnosticCategory for ExpanderDiagnosticCategory {
             Self::InvalidTypeConstructorCall => Some(&INVALID_TYPE_CONSTRUCTOR_CALL),
             Self::TypeAnnotationInTypePosition => Some(&TYPE_ANNOTATION_IN_TYPE_POSITION),
             Self::InvalidExpressionInTypePosition => Some(&INVALID_EXPRESSION_IN_TYPE_POSITION),
+            Self::FieldLiteralTypeAnnotation => Some(&FIELD_LITERAL_TYPE_ANNOTATION),
+            Self::InvalidFieldLiteralType => Some(&INVALID_FIELD_LITERAL_TYPE),
+            Self::FieldIndexOutOfBounds => Some(&FIELD_INDEX_OUT_OF_BOUNDS),
+            Self::InvalidAccessField => Some(&INVALID_ACCESS_FIELD),
         }
     }
 }
@@ -796,7 +824,7 @@ pub(crate) fn labeled_arguments_in_let(
     }
 
     diagnostic.add_message(Message::help(
-        "pass the arguments positionally: `(let name value body)` or `(let name Type value body)`",
+        "pass the arguments positionally: `(let name value body)` or `(let name type value body)`",
     ));
 
     diagnostic.add_message(Message::note(
@@ -809,7 +837,7 @@ pub(crate) fn labeled_arguments_in_let(
 /// A `let` call was passed the wrong number of arguments.
 ///
 /// `let` accepts either 3 arguments `(let name value body)` or 4 arguments
-/// `(let name Type value body)`.
+/// `(let name type value body)`.
 pub(crate) fn invalid_let_argument_count(
     call_span: SpanId,
     arguments: &[Argument<'_>],
@@ -868,7 +896,7 @@ pub(crate) fn labeled_arguments_in_as(
     }
 
     diagnostic.add_message(Message::help(
-        "pass the arguments positionally: `(as value Type)`",
+        "pass the arguments positionally: `(as value type)`",
     ));
 
     diagnostic
@@ -896,7 +924,7 @@ pub(crate) fn invalid_as_argument_count(
         diagnostic.add_label(Label::new(argument.span, "unexpected argument"));
     }
 
-    diagnostic.add_message(Message::help("use `(as value Type)`"));
+    diagnostic.add_message(Message::help("use `(as value type)`"));
 
     diagnostic.add_message(Message::note(
         "the first argument is the value to cast and the second is the target type",
@@ -967,6 +995,287 @@ pub(crate) fn invalid_if_argument_count(
 
     diagnostic.add_message(Message::note(
         "the arguments are, in order: the condition, the then branch, and an optional else branch",
+    ));
+
+    diagnostic
+}
+
+/// An `input` call was passed labeled arguments.
+pub(crate) fn labeled_arguments_in_input(
+    labeled_arguments: &[LabeledArgument<'_>],
+) -> ExpanderDiagnostic {
+    let (first, rest) = labeled_arguments
+        .split_first()
+        .expect("caller should check that labeled_arguments is non-empty");
+
+    let mut diagnostic = Diagnostic::new(
+        ExpanderDiagnosticCategory::LabeledArgumentsNotSupported,
+        Severity::Error,
+    )
+    .primary(Label::new(
+        first.span,
+        "labeled arguments are not allowed in `input`",
+    ));
+
+    for argument in rest {
+        diagnostic.add_label(Label::new(
+            argument.span,
+            "labeled argument not allowed here",
+        ));
+    }
+
+    diagnostic.add_message(Message::help(
+        "pass the arguments positionally: `(input name type)` or `(input name type default)`",
+    ));
+
+    diagnostic
+}
+
+/// An `input` call was passed the wrong number of arguments.
+///
+/// `input` accepts either 2 arguments `(input name Type)` or 3 arguments
+/// `(input name Type default)`.
+pub(crate) fn invalid_input_argument_count(
+    call_span: SpanId,
+    arguments: &[Argument<'_>],
+) -> ExpanderDiagnostic {
+    let count = arguments.len();
+
+    let mut diagnostic = Diagnostic::new(
+        ExpanderDiagnosticCategory::InvalidArgumentCount,
+        Severity::Error,
+    )
+    .primary(Label::new(
+        call_span,
+        format!("expected 2 or 3 arguments to `input`, found {count}"),
+    ));
+
+    for argument in arguments.iter().skip(3) {
+        diagnostic.add_label(Label::new(argument.span, "unexpected argument"));
+    }
+
+    diagnostic.add_message(Message::help(
+        "use `(input name type)` or `(input name type default)`",
+    ));
+
+    diagnostic.add_message(Message::note(
+        "the arguments are, in order: the input name, its type, and an optional default value",
+    ));
+
+    diagnostic
+}
+
+/// The first argument to `input` is not a simple identifier.
+pub(crate) fn invalid_input_binding_name(name: &Argument<'_>) -> ExpanderDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        ExpanderDiagnosticCategory::InvalidBindingName,
+        Severity::Error,
+    )
+    .primary(Label::new(
+        name.value.span,
+        "expected a simple identifier for the `input` name",
+    ));
+
+    diagnostic.add_message(Message::help(
+        "write `(input name type)` with a plain name such as `user_id`",
+    ));
+
+    diagnostic.add_message(Message::note(
+        "the first argument to `input` declares a named parameter and must be a plain identifier",
+    ));
+
+    diagnostic
+}
+
+/// An `index` call was passed labeled arguments.
+pub(crate) fn labeled_arguments_in_index(
+    labeled_arguments: &[LabeledArgument<'_>],
+) -> ExpanderDiagnostic {
+    let (first, rest) = labeled_arguments
+        .split_first()
+        .expect("caller should check that labeled_arguments is non-empty");
+
+    let mut diagnostic = Diagnostic::new(
+        ExpanderDiagnosticCategory::LabeledArgumentsNotSupported,
+        Severity::Error,
+    )
+    .primary(Label::new(
+        first.span,
+        "labeled arguments are not allowed in `[]`",
+    ));
+
+    for argument in rest {
+        diagnostic.add_label(Label::new(
+            argument.span,
+            "labeled argument not allowed here",
+        ));
+    }
+
+    diagnostic.add_message(Message::help(
+        "pass the arguments positionally: `([] collection index)`",
+    ));
+
+    diagnostic
+}
+
+/// An `index` call was passed the wrong number of arguments.
+///
+/// `index` accepts exactly 2 arguments: `([] collection index)`.
+pub(crate) fn invalid_index_argument_count(
+    call_span: SpanId,
+    arguments: &[Argument<'_>],
+) -> ExpanderDiagnostic {
+    let count = arguments.len();
+
+    let mut diagnostic = Diagnostic::new(
+        ExpanderDiagnosticCategory::InvalidArgumentCount,
+        Severity::Error,
+    )
+    .primary(Label::new(
+        call_span,
+        format!("expected 2 arguments to `[]`, found {count}"),
+    ));
+
+    for argument in arguments.iter().skip(2) {
+        diagnostic.add_label(Label::new(argument.span, "unexpected argument"));
+    }
+
+    diagnostic.add_message(Message::help("use `([] collection index)`"));
+
+    diagnostic.add_message(Message::note(
+        "the first argument is the collection and the second is the index",
+    ));
+
+    diagnostic
+}
+
+/// An `access` call was passed labeled arguments.
+pub(crate) fn labeled_arguments_in_access(
+    labeled_arguments: &[LabeledArgument<'_>],
+) -> ExpanderDiagnostic {
+    let (first, rest) = labeled_arguments
+        .split_first()
+        .expect("caller should check that labeled_arguments is non-empty");
+
+    let mut diagnostic = Diagnostic::new(
+        ExpanderDiagnosticCategory::LabeledArgumentsNotSupported,
+        Severity::Error,
+    )
+    .primary(Label::new(
+        first.span,
+        "labeled arguments are not allowed in `.`",
+    ));
+
+    for argument in rest {
+        diagnostic.add_label(Label::new(
+            argument.span,
+            "labeled argument not allowed here",
+        ));
+    }
+
+    diagnostic.add_message(Message::help(
+        "pass the arguments positionally: `(. value field)`",
+    ));
+
+    diagnostic
+}
+
+/// An `access` call was passed the wrong number of arguments.
+///
+/// `access` accepts exactly 2 arguments: `(. value field)`.
+pub(crate) fn invalid_access_argument_count(
+    call_span: SpanId,
+    arguments: &[Argument<'_>],
+) -> ExpanderDiagnostic {
+    let count = arguments.len();
+
+    let mut diagnostic = Diagnostic::new(
+        ExpanderDiagnosticCategory::InvalidArgumentCount,
+        Severity::Error,
+    )
+    .primary(Label::new(
+        call_span,
+        format!("expected 2 arguments to `.`, found {count}"),
+    ));
+
+    for argument in arguments.iter().skip(2) {
+        diagnostic.add_label(Label::new(argument.span, "unexpected argument"));
+    }
+
+    diagnostic.add_message(Message::help("use `(. value field)`"));
+
+    diagnostic.add_message(Message::note(
+        "the first argument is the value and the second is the field name or index",
+    ));
+
+    diagnostic
+}
+
+/// The field argument to `access` is not a valid field identifier or integer index.
+pub(crate) fn invalid_access_field(argument: &Argument<'_>) -> ExpanderDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        ExpanderDiagnosticCategory::InvalidAccessField,
+        Severity::Error,
+    )
+    .primary(Label::new(
+        argument.value.span,
+        "expected a field name or integer index",
+    ));
+
+    diagnostic.add_message(Message::help(
+        "use a simple identifier like `name` or an integer like `0` for tuple fields",
+    ));
+
+    diagnostic
+}
+
+/// A numeric field literal in `access` has a type annotation.
+pub(crate) fn field_literal_type_annotation(annotation_span: SpanId) -> ExpanderDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        ExpanderDiagnosticCategory::FieldLiteralTypeAnnotation,
+        Severity::Error,
+    )
+    .primary(Label::new(
+        annotation_span,
+        "type annotations are not allowed on field index literals",
+    ));
+
+    diagnostic.add_message(Message::help(
+        "remove the type annotation and use a plain integer like `0`",
+    ));
+
+    diagnostic
+}
+
+/// A field literal in `access` is not an integer.
+pub(crate) fn invalid_field_literal_type(literal_span: SpanId) -> ExpanderDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        ExpanderDiagnosticCategory::InvalidFieldLiteralType,
+        Severity::Error,
+    )
+    .primary(Label::new(
+        literal_span,
+        "expected an integer for field indexing",
+    ));
+
+    diagnostic.add_message(Message::help(
+        "use an integer index like `0` for tuple field access, or a name like `field` for named \
+         field access",
+    ));
+
+    diagnostic
+}
+
+/// A field index literal is too large.
+pub(crate) fn field_index_out_of_bounds(literal_span: SpanId) -> ExpanderDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        ExpanderDiagnosticCategory::FieldIndexOutOfBounds,
+        Severity::Error,
+    )
+    .primary(Label::new(literal_span, "field index is out of bounds"));
+
+    diagnostic.add_message(Message::help(
+        "use a non-negative integer that fits within platform bounds",
     ));
 
     diagnostic
