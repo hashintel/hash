@@ -215,8 +215,12 @@ export const EntityTypeHeader = ({
                               fill: ({ palette }) => palette.blue[50],
                               fontSize: 24,
                               verticalAlign: "middle",
+                              // Nudge the icon up slightly relative to the
+                              // text, without affecting line-box layout
+                              position: "relative",
+                              top: -8,
                               "&:hover": {
-                                fill: ({ palette }) => palette.blue[70],
+                                fill: ({ palette }) => palette.blue[60],
                               },
                             }}
                           />
