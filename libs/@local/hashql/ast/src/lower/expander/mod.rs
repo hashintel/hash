@@ -1,4 +1,5 @@
 mod error;
+mod r#if;
 mod r#let;
 mod r#type;
 
@@ -12,7 +13,7 @@ use hashql_core::{
     symbol::{Ident, Symbol, sym},
 };
 
-use self::error::ExpanderDiagnosticIssues;
+use self::{error::ExpanderDiagnosticIssues, r#let::lower_let};
 use crate::{
     node::{self, id::NodeId},
     visit::{self, Visitor},
@@ -33,7 +34,18 @@ pub struct Expander<'env, 'heap> {
     trampoline: Option<node::expr::Expr<'heap>>,
 }
 
-impl<'heap> Expander<'_, 'heap> {
+impl<'env, 'heap> Expander<'env, 'heap> {
+    pub const fn new(namespace: ModuleNamespace<'env, 'heap>) -> Self {
+        Self {
+            heap: namespace.registry().heap,
+            namespace,
+            current_universe: Universe::Value,
+            diagnostics: ExpanderDiagnosticIssues::new(),
+            current_item: None,
+            trampoline: None,
+        }
+    }
+
     fn visit(&mut self, expr: &mut node::expr::Expr<'heap>) -> Option<module::item::Item<'heap>> {
         let prev_current_item = self.current_item.take();
         visit::walk_expr(self, expr);
@@ -75,19 +87,6 @@ impl<'heap> Expander<'_, 'heap> {
         self.namespace.rollback_to(snapshot);
 
         result
-    }
-}
-
-impl<'env, 'heap> Expander<'env, 'heap> {
-    pub const fn new(namespace: ModuleNamespace<'env, 'heap>) -> Self {
-        Self {
-            heap: namespace.registry().heap,
-            namespace,
-            current_universe: Universe::Value,
-            diagnostics: ExpanderDiagnosticIssues::new(),
-            current_item: None,
-            trampoline: None,
-        }
     }
 }
 
@@ -200,7 +199,10 @@ impl<'heap> Visitor<'heap> for Expander<'_, 'heap> {
             match constant {
                 sym::path::r#if::CONST => {}
                 sym::path::r#as::CONST => {}
-                sym::path::r#let::CONST => {}
+                sym::path::r#let::CONST => {
+                    self.trampoline = Some(lower_let(self, expr));
+                    return;
+                }
                 sym::path::r#type::CONST => {}
                 sym::path::newtype::CONST => {}
                 sym::path::r#use::CONST => {}
