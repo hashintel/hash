@@ -12,7 +12,7 @@ pub struct ClosureParam<'heap> {
     pub span: SpanId,
 
     pub name: Ident<'heap>,
-    pub bound: heap::Box<'heap, Type<'heap>>,
+    pub bound: Type<'heap>,
 }
 
 /// The signature of a closure.
@@ -28,7 +28,7 @@ pub struct ClosureSignature<'heap> {
     pub generics: Generics<'heap>,
 
     pub inputs: heap::Vec<'heap, ClosureParam<'heap>>,
-    pub output: heap::Box<'heap, Type<'heap>>,
+    pub output: Type<'heap>,
 }
 
 /// A closure expression in the HashQL Abstract Syntax Tree.
