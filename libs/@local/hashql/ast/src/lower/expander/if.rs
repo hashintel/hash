@@ -1,6 +1,6 @@
 use core::mem;
 
-use hashql_core::span::SpanId;
+use hashql_core::{heap::BumpAllocator, span::SpanId};
 
 use super::Expander;
 use crate::{
@@ -11,14 +11,17 @@ use crate::{
     },
 };
 
-fn lower_if_impl<'heap>(
+fn lower_if_impl<'heap, S>(
     span: SpanId,
-    expander: &mut Expander<'_, 'heap>,
+    expander: &mut Expander<'_, 'heap, S>,
 
     test: &mut Argument<'heap>,
     then: &mut Argument<'heap>,
     r#else: Option<&mut Argument<'heap>>,
-) -> Expr<'heap> {
+) -> Expr<'heap>
+where
+    S: BumpAllocator,
+{
     let mut test = mem::replace(&mut test.value, Expr::dummy());
     let mut then = mem::replace(&mut then.value, Expr::dummy());
     let mut r#else = r#else.map(|argument| mem::replace(&mut argument.value, Expr::dummy()));
@@ -42,8 +45,8 @@ fn lower_if_impl<'heap>(
     }
 }
 
-pub(super) fn lower_if<'heap>(
-    expander: &mut Expander<'_, 'heap>,
+pub(super) fn lower_if<'heap, S>(
+    expander: &mut Expander<'_, 'heap, S>,
     CallExpr {
         id: _,
         span,
@@ -51,7 +54,10 @@ pub(super) fn lower_if<'heap>(
         arguments,
         labeled_arguments,
     }: &mut CallExpr<'heap>,
-) -> Expr<'heap> {
+) -> Expr<'heap>
+where
+    S: BumpAllocator,
+{
     if !labeled_arguments.is_empty() {
         expander
             .diagnostics

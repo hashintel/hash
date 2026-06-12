@@ -1,22 +1,32 @@
+use core::mem;
+
 use hashql_core::{
+    collections::fast_hash_map_with_capacity_in,
+    heap::{self, BumpAllocator},
     module::item::{IntrinsicItem, Item},
-    symbol::sym,
+    span::SpanId,
+    symbol::{Ident, sym},
 };
 
 use super::Expander;
 use crate::{
-    lower::expander::error,
+    lower::expander::{error, r#let::argument_to_ident},
     node::{
-        expr::{CallExpr, Expr, ExprKind},
+        expr::{CallExpr, Expr, ExprKind, TypeExpr, call::Argument},
+        generic::{self, GenericConstraint},
         id::NodeId,
+        path::PathSegmentArgument,
         r#type::{IntersectionType, StructType, TupleType, Type, TypeKind, UnionType},
     },
 };
 
-fn lower_call_to_type<'heap>(
-    expander: &mut Expander<'_, 'heap>,
+fn lower_call_to_type<'heap, S>(
+    expander: &mut Expander<'_, 'heap, S>,
     mut call: CallExpr<'heap>,
-) -> Type<'heap> {
+) -> Type<'heap>
+where
+    S: BumpAllocator,
+{
     if !call.labeled_arguments.is_empty() {
         expander
             .diagnostics
@@ -81,10 +91,13 @@ fn lower_call_to_type<'heap>(
     }
 }
 
-pub(super) fn lower_expr_to_type<'heap>(
-    expander: &mut Expander<'_, 'heap>,
+pub(super) fn lower_expr_to_type<'heap, S>(
+    expander: &mut Expander<'_, 'heap, S>,
     expr: Expr<'heap>,
-) -> Type<'heap> {
+) -> Type<'heap>
+where
+    S: BumpAllocator,
+{
     match expr.kind {
         ExprKind::Call(call) => lower_call_to_type(expander, call),
         ExprKind::Tuple(tuple) => {
@@ -189,6 +202,160 @@ pub(super) fn lower_expr_to_type<'heap>(
                 span: expr.span,
                 kind: TypeKind::Dummy,
             }
+        }
+    }
+}
+
+fn path_arguments_to_constraints<'heap, S>(
+    expander: &mut Expander<'_, 'heap, S>,
+
+    arguments: &mut [PathSegmentArgument<'heap>],
+) -> heap::Vec<'heap, GenericConstraint<'heap>>
+where
+    S: BumpAllocator,
+{
+    let mut constraints = heap::Vec::with_capacity_in(arguments.len(), expander.heap);
+    let mut seen = fast_hash_map_with_capacity_in(arguments.len(), &expander.scratch);
+
+    for argument in arguments {
+        match argument {
+            PathSegmentArgument::Argument(generic::GenericArgument {
+                id,
+                span,
+                r#type:
+                    Type {
+                        id: _,
+                        span: _,
+                        kind: TypeKind::Path(path),
+                    },
+            }) if let Some(&ident) = path.as_ident() => {
+                // In this case it's simply interpreted as a generic constraint with no bounds.
+                if let Err(error) = seen.try_insert(ident.value, ident.span) {
+                    todo!("kael you know what to do");
+                    continue;
+                }
+
+                constraints.push(GenericConstraint {
+                    id: *id,
+                    span: *span,
+                    name: ident,
+                    bound: None,
+                });
+            }
+            PathSegmentArgument::Argument(_) => {
+                todo!(
+                    "kael you know what to do, means that there's no path, we may want to \
+                     specialize in case of a path encountered to educate the user"
+                )
+            }
+            PathSegmentArgument::Constraint(generic_constraint) => {
+                if let Err(error) =
+                    seen.try_insert(generic_constraint.name.value, generic_constraint.name.span)
+                {
+                    todo!("kael you know what to do");
+
+                    continue;
+                }
+
+                constraints.push(GenericConstraint {
+                    id: NodeId::PLACEHOLDER,
+                    span: generic_constraint.span,
+                    name: generic_constraint.name,
+                    bound: generic_constraint.bound.take(),
+                });
+            }
+        }
+    }
+
+    constraints
+}
+
+fn argument_to_generic_ident<'argument, 'heap, S>(
+    expander: &mut Expander<'_, 'heap, S>,
+
+    argument: &mut Argument<'heap>,
+) -> Option<(Ident<'heap>, heap::Vec<'heap, GenericConstraint<'heap>>)>
+where
+    S: BumpAllocator,
+{
+    if let ExprKind::Path(path) = &mut argument.value.kind
+        && let Some((name, arguments)) = path.as_generic_ident_mut()
+    {
+        let constraints = path_arguments_to_constraints(expander, arguments);
+
+        Some((name, constraints))
+    } else {
+        None
+    }
+}
+
+fn lower_type_impl<'heap, S>(
+    span: SpanId,
+    expander: &mut Expander<'_, 'heap, S>,
+
+    name: &mut Argument<'heap>,
+    value: &mut Argument<'heap>,
+    body: &mut Argument<'heap>,
+) -> Expr<'heap>
+where
+    S: BumpAllocator,
+{
+    let Some((name, constraints)) = argument_to_generic_ident(expander, name) else {
+        todo!("kael you know what to do :3");
+
+        return Expr::dummy();
+    };
+
+    let mut value = mem::replace(&mut value.value, Expr::dummy());
+    let mut body = mem::replace(&mut body.value, Expr::dummy());
+
+    expander.with_universe(hashql_core::module::Universe::Type, |expander| {
+        expander.visit(&mut value)
+    });
+    let value = lower_expr_to_type(expander, value);
+
+    expander.enter(
+        hashql_core::module::Universe::Type,
+        name.value,
+        None,
+        |expander| expander.visit(&mut body),
+    );
+
+    Expr {
+        id: NodeId::PLACEHOLDER,
+        span,
+        kind: ExprKind::Type(TypeExpr {
+            id: NodeId::PLACEHOLDER,
+            span,
+            name,
+            constraints,
+            value: Box::new_in(value, expander.heap),
+            body: Box::new_in(body, expander.heap),
+        }),
+    }
+}
+
+pub(super) fn lower_type<'heap, S>(
+    expander: &mut Expander<'_, 'heap, S>,
+    CallExpr {
+        id: _,
+        span,
+        function: _,
+        arguments,
+        labeled_arguments,
+    }: &mut CallExpr<'heap>,
+) -> Expr<'heap>
+where
+    S: BumpAllocator,
+{
+    if !labeled_arguments.is_empty() {
+        todo!("kael you know what to do")
+    }
+
+    match &mut **arguments {
+        [name, value, body] => lower_type_impl(*span, expander, name, value, body),
+        _ => {
+            todo!("kael you know what to do :3")
         }
     }
 }

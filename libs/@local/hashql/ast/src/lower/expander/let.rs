@@ -1,6 +1,6 @@
 use core::mem;
 
-use hashql_core::{span::SpanId, symbol::Ident};
+use hashql_core::{heap::BumpAllocator, span::SpanId, symbol::Ident};
 
 use super::{Expander, r#type::lower_expr_to_type};
 use crate::{
@@ -11,7 +11,7 @@ use crate::{
     },
 };
 
-fn argument_to_ident<'heap>(argument: &Argument<'heap>) -> Option<Ident<'heap>> {
+pub(super) fn argument_to_ident<'heap>(argument: &Argument<'heap>) -> Option<Ident<'heap>> {
     if let ExprKind::Path(path) = &argument.value.kind
         && let Some(&ident) = path.as_ident()
     {
@@ -21,15 +21,18 @@ fn argument_to_ident<'heap>(argument: &Argument<'heap>) -> Option<Ident<'heap>> 
     }
 }
 
-fn lower_let_impl<'heap>(
+fn lower_let_impl<'heap, S>(
     span: SpanId,
-    expander: &mut Expander<'_, 'heap>,
+    expander: &mut Expander<'_, 'heap, S>,
 
     name: &Argument<'heap>,
     value: &mut Argument<'heap>,
     r#type: Option<&mut Argument<'heap>>,
     body: &mut Argument<'heap>,
-) -> Expr<'heap> {
+) -> Expr<'heap>
+where
+    S: BumpAllocator,
+{
     let Some(name) = argument_to_ident(name) else {
         expander
             .diagnostics
@@ -74,8 +77,8 @@ fn lower_let_impl<'heap>(
     }
 }
 
-pub(super) fn lower_let<'heap>(
-    expander: &mut Expander<'_, 'heap>,
+pub(super) fn lower_let<'heap, S>(
+    expander: &mut Expander<'_, 'heap, S>,
     CallExpr {
         id: _,
         span,
@@ -83,7 +86,10 @@ pub(super) fn lower_let<'heap>(
         arguments,
         labeled_arguments,
     }: &mut CallExpr<'heap>,
-) -> Expr<'heap> {
+) -> Expr<'heap>
+where
+    S: BumpAllocator,
+{
     if !labeled_arguments.is_empty() {
         // We continue, to try to recover, if that means that the user has a labeled argument
         // instead of a positional one we error twice, but that is deemed acceptable.

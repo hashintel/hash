@@ -1,6 +1,7 @@
 use core::mem;
 
 use hashql_core::{
+    heap::BumpAllocator,
     span::SpanId,
     symbol::{Ident, IdentKind},
     value::Primitive,
@@ -20,8 +21,8 @@ use crate::{
 /// Handles both named field access (identifiers like `name`) and indexed field
 /// access (integer literals like `0` for tuple fields). Integer literals are
 /// validated for bounds.
-fn argument_to_field<'heap>(
-    expander: &mut Expander<'_, 'heap>,
+fn argument_to_field<'heap, S>(
+    expander: &mut Expander<'_, 'heap, S>,
     argument: &Argument<'heap>,
 ) -> Option<Ident<'heap>> {
     // Integer literal for tuple field access
@@ -67,13 +68,16 @@ fn argument_to_field<'heap>(
     None
 }
 
-fn lower_access_impl<'heap>(
+fn lower_access_impl<'heap, S>(
     span: SpanId,
-    expander: &mut Expander<'_, 'heap>,
+    expander: &mut Expander<'_, 'heap, S>,
 
     value: &mut Argument<'heap>,
     field: &Argument<'heap>,
-) -> Expr<'heap> {
+) -> Expr<'heap>
+where
+    S: BumpAllocator,
+{
     let Some(field) = argument_to_field(expander, field) else {
         return Expr::dummy();
     };
@@ -93,8 +97,8 @@ fn lower_access_impl<'heap>(
     }
 }
 
-pub(super) fn lower_access<'heap>(
-    expander: &mut Expander<'_, 'heap>,
+pub(super) fn lower_access<'heap, S>(
+    expander: &mut Expander<'_, 'heap, S>,
     CallExpr {
         id: _,
         span,
@@ -102,7 +106,10 @@ pub(super) fn lower_access<'heap>(
         arguments,
         labeled_arguments,
     }: &mut CallExpr<'heap>,
-) -> Expr<'heap> {
+) -> Expr<'heap>
+where
+    S: BumpAllocator,
+{
     if !labeled_arguments.is_empty() {
         expander
             .diagnostics
