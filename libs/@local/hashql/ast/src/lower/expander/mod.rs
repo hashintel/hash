@@ -5,6 +5,7 @@ mod r#if;
 mod index;
 mod input;
 mod r#let;
+mod newtype;
 mod r#type;
 
 use hashql_core::{
@@ -17,7 +18,10 @@ use hashql_core::{
     symbol::{Ident, Symbol, sym},
 };
 
-use self::{r#as::lower_as, error::ExpanderDiagnosticIssues, r#if::lower_if, r#let::lower_let};
+use self::{
+    r#as::lower_as, error::ExpanderDiagnosticIssues, r#if::lower_if, r#let::lower_let,
+    r#type::lower_type,
+};
 use crate::{
     node::{self, id::NodeId},
     visit::{self, Visitor},
@@ -221,8 +225,14 @@ where
                     self.trampoline = Some(lower_let(self, expr));
                     return;
                 }
-                sym::path::r#type::CONST => {}
-                sym::path::newtype::CONST => {}
+                sym::path::r#type::CONST => {
+                    self.trampoline = Some(lower_type(self, expr));
+                    return;
+                }
+                sym::path::newtype::CONST => {
+                    self.trampoline = Some(newtype::lower_newtype(self, expr));
+                    return;
+                }
                 sym::path::r#use::CONST => {}
                 sym::path::r#fn::CONST => {}
                 sym::path::input::CONST => {
