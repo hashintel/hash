@@ -45,7 +45,7 @@ use core::{
 pub use self::lookup::SymbolLookup;
 use self::repr::{ConstantRepr, Repr};
 pub(crate) use self::table::SymbolTable;
-use crate::span::SpanId;
+use crate::span::{SpanId, Spanned};
 
 /// A predefined symbol that can be used in pattern matching.
 ///
@@ -456,6 +456,27 @@ impl<'heap> Ident<'heap> {
             span: SpanId::SYNTHETIC,
             value,
             kind: IdentKind::Lexical,
+        }
+    }
+
+    /// Drops the [`IdentKind`], keeping only the symbol and its span.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use hashql_core::symbol::{Ident, sym};
+    /// # use hashql_core::span::SpanId;
+    /// let ident = Ident::synthetic(sym::foo);
+    /// let spanned = ident.symbol();
+    ///
+    /// assert_eq!(spanned.span, SpanId::SYNTHETIC);
+    /// assert_eq!(spanned.value, sym::foo);
+    /// ```
+    #[must_use]
+    pub const fn symbol(self) -> Spanned<Symbol<'heap>> {
+        Spanned {
+            span: self.span,
+            value: self.value,
         }
     }
 }

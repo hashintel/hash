@@ -11,7 +11,7 @@ use hashql_core::{
         item::Item,
         namespace::ModuleNamespace,
     },
-    span::SpanId,
+    span::{SpanId, Spanned},
     symbol::Symbol,
 };
 use hashql_diagnostics::{
@@ -162,24 +162,43 @@ fn format_absolute_path<'heap>(item: &Item<'heap>, registry: &ModuleRegistry<'he
     iter::once("").chain(path).intersperse("::").collect()
 }
 
-/// Emits one `help` message per did-you-mean candidate, each carrying a `Patch` that replaces
-/// `name_span` with the suggested name.
-fn emit_spelling_suggestions<'heap>(
-    diagnostic: &mut ExpanderDiagnostic,
-    name_span: SpanId,
-    name: Symbol<'heap>,
-    candidates: impl IntoIterator<Item = Symbol<'heap>> + Clone,
-    limit: usize,
-    context: &str,
-) -> usize {
-    let similar = did_you_mean(name, candidates, Some(limit), None);
+pub struct SpellingSuggestions<'heap, I> {
+    name: Spanned<Symbol<'heap>>,
+    candidates: I,
+    context: &'static str,
 
-    for candidate in &similar {
-        let patch = Suggestions::patch(Patch::new(name_span, candidate.as_str().to_owned()));
-        diagnostic.add_message(Message::help(context).with_suggestions(patch));
+    top_n: usize = 5,
+    cutoff: Option<f64> = None,
+}
+
+impl<'heap, I> SpellingSuggestions<'heap, I> {
+    fn emit(self, diagnostic: &mut ExpanderDiagnostic) -> Vec<Symbol<'heap>>
+    where
+        I: IntoIterator<Item = Symbol<'heap>> + Clone,
+    {
+        let similar = did_you_mean(
+            self.name.value,
+            self.candidates,
+            Some(self.top_n),
+            self.cutoff,
+        );
+
+        let len = similar.len();
+
+        let patches: Vec<_> = similar
+            .iter()
+            .copied()
+            .map(|candidate| Patch::new(self.name.span, candidate.as_str().to_owned()))
+            .collect();
+
+        let Some(suggestions) = Suggestions::try_from_iter(patches) else {
+            debug_assert_eq!(len, 0);
+            return similar;
+        };
+
+        diagnostic.add_message(Message::help(self.context).with_suggestions(suggestions));
+        similar
     }
-
-    similar.len()
 }
 
 pub(crate) fn empty_path(span: SpanId) -> ExpanderDiagnostic {
@@ -362,16 +381,15 @@ fn package_not_found<'heap>(
 
     diagnostic.add_label(Label::new(path.span, "in this path"));
 
-    let emitted = emit_spelling_suggestions(
-        &mut diagnostic,
-        segment.name.span,
-        name,
-        suggestions.iter().map(|suggestion| suggestion.name),
-        5,
-        "a package with a similar name exists",
-    );
+    let emitted = SpellingSuggestions {
+        name: segment.name.symbol(),
+        candidates: suggestions.iter().map(|suggestion| suggestion.name),
+        context: "a package with a similar name exists",
+        ..
+    }
+    .emit(&mut diagnostic);
 
-    if emitted == 0 {
+    if emitted.is_empty() {
         diagnostic.add_message(Message::help(
             "check the package name, or add it to the project dependencies",
         ));
@@ -414,14 +432,13 @@ fn module_not_found<'heap>(
         ));
     }
 
-    emit_spelling_suggestions(
-        &mut diagnostic,
-        segment.name.span,
-        name,
-        suggestions.iter().map(|suggestion| suggestion.name),
-        5,
-        "a module with a similar name exists",
-    );
+    SpellingSuggestions {
+        name: segment.name.symbol(),
+        candidates: suggestions.iter().map(|suggestion| suggestion.name),
+        context: "a module with a similar name exists",
+        ..
+    }
+    .emit(&mut diagnostic);
 
     diagnostic.add_message(Message::note(
         "only exported sub-modules are reachable via `::`",
@@ -445,16 +462,15 @@ fn import_not_found<'heap>(
 
     diagnostic.add_label(Label::new(path.span, "in this path"));
 
-    let emitted = emit_spelling_suggestions(
-        &mut diagnostic,
-        segment.name.span,
-        name,
-        suggestions.iter().map(|suggestion| suggestion.name),
-        5,
-        "a similar name is available",
-    );
+    let emitted = SpellingSuggestions {
+        name: segment.name.symbol(),
+        candidates: suggestions.iter().map(|suggestion| suggestion.name),
+        context: "a similar name is available",
+        ..
+    }
+    .emit(&mut diagnostic);
 
-    if emitted == 0 {
+    if emitted.is_empty() {
         diagnostic.add_message(Message::help(
             "import the name with a `use` statement, or qualify it with a full path",
         ));
@@ -493,16 +509,15 @@ fn item_not_found<'heap>(
         ));
     }
 
-    let emitted = emit_spelling_suggestions(
-        &mut diagnostic,
-        segment.name.span,
-        name,
-        suggestions.iter().map(|suggestion| suggestion.name),
-        5,
-        "a similar item exists in this module",
-    );
+    let emitted = SpellingSuggestions {
+        name: segment.name.symbol(),
+        candidates: suggestions.iter().map(|suggestion| suggestion.name),
+        context: "a similar item exists in this module",
+        ..
+    }
+    .emit(&mut diagnostic);
 
-    if emitted == 0 {
+    if emitted.is_empty() {
         diagnostic.add_message(Message::help(
             "check the spelling and ensure the item is exported",
         ));
@@ -544,79 +559,62 @@ fn unresolved_variable<'heap>(
     let mut has_suggestions = false;
 
     // ---- tier 1: local bindings ----
-    let local_suggestions = did_you_mean(name, &locals, Some(5), None);
-
-    if !local_suggestions.is_empty() {
-        has_suggestions = true;
-
-        for candidate in &local_suggestions {
-            let patch = Suggestions::patch(Patch::new(name_span, candidate.as_str().to_owned()));
-            diagnostic.add_message(
-                Message::help("a similar local binding exists").with_suggestions(patch),
-            );
-        }
+    let emitted = SpellingSuggestions {
+        name: Spanned {
+            span: name_span,
+            value: name,
+        },
+        candidates: locals.iter().copied(),
+        context: "a similar local binding exists",
+        ..
     }
+    .emit(&mut diagnostic);
+    has_suggestions |= !emitted.is_empty();
 
     // ---- tier 2: already-imported names ----
-    // Filter out names that are also local bindings to avoid duplicate suggestions.
-    let import_names: Vec<_> = import_suggestions
-        .iter()
-        .map(|suggestion| suggestion.name)
-        .filter(|suggestion_name| !locals.contains(suggestion_name))
-        .collect();
-
-    let import_matches = did_you_mean(name, &import_names, Some(5), None);
-
-    if !import_matches.is_empty() {
-        has_suggestions = true;
-
-        for candidate in &import_matches {
-            let patch = Suggestions::patch(Patch::new(name_span, candidate.as_str().to_owned()));
-            diagnostic.add_message(
-                Message::help("a similar imported name exists").with_suggestions(patch),
-            );
-        }
+    let emitted = SpellingSuggestions {
+        name: Spanned {
+            span: name_span,
+            value: name,
+        },
+        candidates: import_suggestions.iter().map(|suggestion| suggestion.name),
+        context: "a similar imported name exists",
+        ..
     }
+    .emit(&mut diagnostic);
+    has_suggestions |= !emitted.is_empty();
 
     // ---- tier 3: items available elsewhere in the registry ----
-    // Filter out names already covered by local or import suggestions.
-    let covered: FastHashSet<_> = local_suggestions
-        .iter()
-        .chain(&import_matches)
-        .copied()
-        .collect();
-
     let importable: Vec<_> = registry
         .search_by_name(name, universe)
         .into_iter()
-        .filter(|item| !covered.contains(&item.name))
         .collect();
 
-    if !importable.is_empty() {
-        has_suggestions = true;
+    if let Some(suggestions) = Suggestions::try_from_iter(
+        importable
+            .iter()
+            .take(5)
+            .map(|item| Patch::new(name_span, format_absolute_path(item, registry))),
+    ) {
+        diagnostic.add_message(
+            Message::help("this item is available in another module").with_suggestions(suggestions),
+        );
+    }
 
-        for item in importable.iter().take(5) {
-            let absolute = format_absolute_path(item, registry);
-            let patch = Suggestions::patch(Patch::new(name_span, absolute.clone()));
-            diagnostic.add_message(
-                Message::help("this item is available in another module").with_suggestions(patch),
-            );
-        }
-
+    if let Some(first) = importable.first() {
         // Show how to import instead (text-only, no insertion span available)
-        if let Some(first) = importable.first() {
-            let absolute = format_absolute_path(first, registry);
-            diagnostic.add_message(Message::note(format!(
-                "alternatively, bring it into scope: `use {absolute} in`",
-            )));
-        }
+        let absolute = format_absolute_path(first, registry);
+        diagnostic.add_message(Message::note(format!(
+            "alternatively, bring it into scope: `use {absolute} in`",
+        )));
+    }
 
-        let remaining = importable.len().saturating_sub(5);
-        if remaining > 0 {
-            diagnostic.add_message(Message::note(format!(
-                "{remaining} more items with this name exist in other modules",
-            )));
-        }
+    let remaining = importable.len().saturating_sub(5);
+    if remaining > 0 {
+        diagnostic.add_message(Message::note(format!(
+            "{remaining} more items with this name exist in other modules",
+        )));
+        has_suggestions = true;
     }
 
     if !has_suggestions {
@@ -626,8 +624,8 @@ fn unresolved_variable<'heap>(
     }
 
     diagnostic.add_message(Message::note(
-        "unqualified names resolve against local bindings first, then imported names; names from \
-         other modules must be imported or fully qualified",
+        "this could be a typo, a name used outside its scope, or a missing declaration; if it is \
+         a function or type from another module, you may need to import it first",
     ));
 
     diagnostic
