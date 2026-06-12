@@ -1,4 +1,4 @@
-use core::mem;
+use core::{iter, mem};
 
 use hashql_core::{
     collections::fast_hash_map_with_capacity_in,
@@ -21,7 +21,7 @@ use crate::{
         path::PathSegmentArgument,
         r#type::{IntersectionType, StructType, TupleType, Type, TypeKind, UnionType},
     },
-    visit::Visitor,
+    visit::Visitor as _,
 };
 
 fn lower_call_to_type<'heap, S>(
@@ -210,8 +210,10 @@ where
     }
 }
 
-fn path_arguments_to_constraints<'heap, S>(
-    expander: &mut Expander<'_, 'heap, S>,
+fn path_arguments_to_constraints_unvalidated<'heap, S>(
+    heap: &'heap Heap,
+    scratch: S,
+    diagnostics: &mut ExpanderDiagnosticIssues,
 
     arguments: &mut [PathSegmentArgument<'heap>],
 ) -> heap::Vec<'heap, GenericConstraint<'heap>>
@@ -284,19 +286,6 @@ where
         }
     }
 
-    expander.bind_many(
-        seen.into_keys().map(|variable| (variable, Universe::Type)),
-        |expander| {
-            // The constraints _have not yet_ been validated, this is on purpose, because we must
-            // first convert them, now that they are converted, we can validate them.
-            for constraint in &mut constraints {
-                if let Some(bound) = constraint.bound.as_mut() {
-                    expander.visit_type(bound);
-                }
-            }
-        },
-    );
-
     constraints
 }
 
@@ -313,16 +302,40 @@ where
     {
         // Generic constraints _may_ be recursive. To allow for that we must put the name of the
         // ident into view before we do anything
-        let constraints = expander.bind(name.value, Universe::Type, |expander| {
-            expander.scratch.scoped(|scratch| {
-                path_arguments_to_constraints(
-                    expander.heap,
-                    scratch,
-                    &mut expander.diagnostics,
-                    arguments,
-                )
-            })
+        let constraints = expander.scratch.scoped(|scratch| {
+            path_arguments_to_constraints_unvalidated(
+                expander.heap,
+                scratch,
+                &mut expander.diagnostics,
+                arguments,
+            )
         });
+
+        // constraints are not yet validated (which is what we're doing now)
+        let (constraints, ()) = expander.bind_many_with(
+            constraints,
+            |constraints, binder| {
+                iter::chain(
+                    iter::once((name.value, Universe::Type)),
+                    constraints
+                        .iter()
+                        .map(|constraint| (constraint.name.value, Universe::Type)),
+                )
+                .for_each(|(symbol, universe)| {
+                    binder.bind(symbol, universe);
+                });
+            },
+            |expander, constraints| {
+                // The constraints _have not yet_ been validated, this is on purpose, because we
+                // must first convert them, now that they are converted, we can
+                // validate them.
+                for constraint in constraints {
+                    if let Some(bound) = constraint.bound.as_mut() {
+                        expander.visit_type(bound);
+                    }
+                }
+            },
+        );
 
         Some((name, constraints))
     } else {

@@ -45,6 +45,19 @@ impl<'heap> From<Universe> for BindingKind<'heap> {
     }
 }
 
+struct Binder<'ns, 'env, 'heap> {
+    namespace: &'ns mut ModuleNamespace<'env, 'heap>,
+}
+
+impl<'heap> Binder<'_, '_, 'heap> {
+    fn bind(&mut self, symbol: Symbol<'heap>, kind: impl Into<BindingKind<'heap>>) {
+        match kind.into() {
+            BindingKind::Local(universe) => self.namespace.local(symbol, universe),
+            BindingKind::Remote(item) => self.namespace.alias(symbol, item),
+        }
+    }
+}
+
 // What does the expander do?
 // The expander does the following:
 // 1. it resolves imports
@@ -108,6 +121,26 @@ impl<'env, 'heap, S> Expander<'env, 'heap, S> {
         self.bind_many([(variable, kind)], closure)
     }
 
+    fn bind_many_with<T, U>(
+        &mut self,
+        mut value: U,
+        register: impl FnOnce(&U, &mut Binder<'_, '_, 'heap>),
+        closure: impl FnOnce(&mut Self, &mut U) -> T,
+    ) -> (U, T) {
+        let snapshot = self.namespace.snapshot();
+
+        let mut binder = Binder {
+            namespace: &mut self.namespace,
+        };
+        register(&value, &mut binder);
+
+        let result = closure(self, &mut value);
+
+        self.namespace.rollback_to(snapshot);
+
+        (value, result)
+    }
+
     fn bind_many<T, K>(
         &mut self,
         variables: impl IntoIterator<Item = (Symbol<'heap>, K)>,
@@ -116,22 +149,19 @@ impl<'env, 'heap, S> Expander<'env, 'heap, S> {
     where
         K: Into<BindingKind<'heap>>,
     {
-        let snapshot = self.namespace.snapshot();
-        for (variable, kind) in variables {
-            let kind = kind.into();
-            match kind {
-                BindingKind::Local(universe) => {
-                    self.namespace.local(variable, universe);
+        // The inline is here, because this is a hot path, this is just desugaring of the underlying
+        // iterator, make it explicit so that it indeed inlines the call
+        let ((), result) = self.bind_many_with(
+            (),
+            #[inline]
+            |(), binder| {
+                for (variable, kind) in variables {
+                    binder.bind(variable, kind);
                 }
-                BindingKind::Remote(item) => {
-                    self.namespace.alias(variable, item);
-                }
-            }
-        }
-
-        let result = closure(self);
-
-        self.namespace.rollback_to(snapshot);
+            },
+            #[inline]
+            |this, ()| closure(this),
+        );
 
         result
     }
