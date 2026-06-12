@@ -8,15 +8,18 @@ use hashql_core::{
     symbol::sym,
 };
 
-use super::{BindingKind, Expander};
-use crate::node::{
-    expr::{
-        CallExpr, Expr, ExprKind,
-        call::Argument,
-        r#use::{self, UseBinding, UseKind},
+use super::Expander;
+use crate::{
+    lower::expander::error,
+    node::{
+        expr::{
+            CallExpr, Expr, ExprKind,
+            call::Argument,
+            r#use::{self, UseBinding, UseKind},
+        },
+        id::NodeId,
+        path::Path,
     },
-    id::NodeId,
-    path::Path,
 };
 
 fn lower_imports<'heap, S>(
@@ -42,12 +45,16 @@ where
 
             for element in tuple.elements.drain(..) {
                 let ExprKind::Path(path) = element.value.kind else {
-                    todo!("diagnostic");
+                    expander
+                        .diagnostics
+                        .push(error::invalid_use_import_binding(element.value.span));
                     continue;
                 };
 
                 let Some(name) = path.into_ident() else {
-                    todo!("diagnostic");
+                    expander
+                        .diagnostics
+                        .push(error::invalid_use_import_binding(element.value.span));
                     continue;
                 };
 
@@ -69,7 +76,9 @@ where
                     ExprKind::Underscore => None,
                     ExprKind::Path(path) if let Some(&ident) = path.as_ident() => Some(ident),
                     _ => {
-                        todo!("diagnostic");
+                        expander
+                            .diagnostics
+                            .push(error::invalid_use_alias(entry.value.span));
                         None
                     }
                 };
@@ -85,20 +94,27 @@ where
             Some(UseKind::Named(bindings))
         }
         _ => {
-            todo!("kael you know what to do");
+            expander
+                .diagnostics
+                .push(error::invalid_use_imports(imports.value.span));
             None
         }
     };
 
     if let Some(UseKind::Named(bindings)) = &mut imports {
+        let diagnostics = &mut expander.diagnostics;
         expander.scratch.scoped(|scratch| {
             let mut seen = fast_hash_map_with_capacity_in(bindings.len(), scratch);
 
             bindings.retain(|binding| {
-                if let Err(error) =
-                    seen.try_insert(binding.alias.unwrap_or(binding.name).value, binding.span)
-                {
-                    todo!("diagnostic");
+                let effective_name = binding.alias.unwrap_or(binding.name);
+
+                if let Err(occupied) = seen.try_insert(effective_name.value, binding.span) {
+                    diagnostics.push(error::duplicate_use_binding(
+                        binding.span,
+                        effective_name.value,
+                        *occupied.entry.get(),
+                    ));
                     return false;
                 }
 
@@ -150,8 +166,14 @@ where
                 );
 
                 if let Err(error) = result {
-                    todo!("diagnostic");
-                    errored |= true;
+                    expander
+                        .diagnostics
+                        .push(error::from_import_resolution_error(
+                            &path,
+                            Some(name.symbol()),
+                            error,
+                        ));
+                    errored = true;
                     continue;
                 }
             }
@@ -168,7 +190,7 @@ where
         UseKind::Glob(_) => {
             let result = expander.namespace.import(
                 sym::symbol::asterisk,
-                query.iter().copied(),
+                query,
                 ImportOptions {
                     glob: true,
                     mode,
@@ -180,7 +202,9 @@ where
             expander.visit(&mut body);
 
             if let Err(error) = result {
-                todo!("diagnostic");
+                expander
+                    .diagnostics
+                    .push(error::from_import_resolution_error(&path, None, error));
                 return Expr::dummy();
             }
 
@@ -201,13 +225,17 @@ where
 {
     let path = mem::replace(&mut path.value, Expr::dummy());
     let ExprKind::Path(path) = path.kind else {
-        todo!("kael you know what to do!");
+        expander
+            .diagnostics
+            .push(error::invalid_use_path(path.span));
         return Expr::dummy();
     };
 
     if path.has_generic_arguments() {
-        todo!("kael you know what to do!");
-        // we continue here, because it's not "fatal"
+        expander
+            .diagnostics
+            .push(error::use_path_generic_arguments(path.span));
+        // we continue here, because it's not fatal
     }
 
     let Some(imports) = lower_imports(expander, imports) else {
@@ -225,7 +253,7 @@ pub(super) fn lower_use<'heap, S>(
     expander: &mut Expander<'_, 'heap, S>,
     CallExpr {
         id: _,
-        span: _,
+        span,
         function: _,
         arguments,
         labeled_arguments,
@@ -235,13 +263,17 @@ where
     S: BumpAllocator,
 {
     if !labeled_arguments.is_empty() {
-        todo!("kael you know what to do :3")
+        expander
+            .diagnostics
+            .push(error::labeled_arguments_in_use(labeled_arguments));
     }
 
     if let [path, imports, body] = &mut **arguments {
         lower_use_impl(expander, path, imports, body)
     } else {
-        todo!("kael you know what to do :3");
+        expander
+            .diagnostics
+            .push(error::invalid_use_argument_count(*span, arguments));
 
         Expr::dummy()
     }
