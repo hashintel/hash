@@ -277,22 +277,28 @@ fn lower_use_impl<'heap, S>(
 where
     S: BumpAllocator,
 {
-    let path = mem::replace(&mut path.value, Expr::dummy());
-    let ExprKind::Path(path) = path.kind else {
+    let path_expr = mem::replace(&mut path.value, Expr::dummy());
+    let path = if let ExprKind::Path(path) = path_expr.kind {
+        if path.has_generic_arguments() {
+            expander
+                .diagnostics
+                .push(error::use_path_generic_arguments(path.span));
+            // non-fatal: continue with the path
+        }
+        Some(path)
+    } else {
         expander
             .diagnostics
-            .push(error::invalid_use_path(path.span));
-        return Expr::dummy();
+            .push(error::invalid_use_path(path_expr.span));
+        None
     };
 
-    if path.has_generic_arguments() {
-        expander
-            .diagnostics
-            .push(error::use_path_generic_arguments(path.span));
-        // we continue here, because it's not fatal
-    }
+    let imports = lower_imports(expander, imports);
 
-    let Some(imports) = lower_imports(expander, imports) else {
+    // If either path or imports are invalid, we still visit the body
+    // to collect diagnostics from nested expressions.
+    let Some((path, imports)) = path.zip(imports) else {
+        expander.visit(&mut body.value);
         return Expr::dummy();
     };
 
