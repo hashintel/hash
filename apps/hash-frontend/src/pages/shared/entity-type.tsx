@@ -459,7 +459,7 @@ export const EntityType = ({
                   id: "types",
                 },
                 {
-                  href: "/types/entity-type",
+                  href: `/types/${isLink ? "link" : "entity"}-type`,
                   title: `${isLink ? "Link" : "Entity"} Types`,
                   id: "entity-types",
                 },
@@ -509,7 +509,7 @@ export const EntityType = ({
                   // @todo confirmation of discard when draft
                   isDraft
                     ? {
-                        href: `/new/types/entity-type`,
+                        href: `new/type/${isLink ? "link" : "entity"}-type`,
                       }
                     : {
                         onClick() {
