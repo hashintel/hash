@@ -3,7 +3,7 @@
 //@ suite#continue: true
 [
   "shl",
-  //~^ ERROR cannot find `shl` in this scope
+  //~^ ERROR cannot find value `shl` in this scope
   { "#literal": 1 },
   { "#literal": 4 }
 ]

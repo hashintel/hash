@@ -25,8 +25,8 @@ error[expander::invalid-expression-in-type-position]: Invalid expression in type
 error[expander::item-not-found]: Item not found
    ╭▸ 
 13 │         ["::kernel::special_form::as", { "#literal": 1 }, "Integer"]
-   │                     ┬───────────  ━━ cannot find `as` in module `::kernel::special_form`
+   │                     ┬───────────  ━━ cannot find type `as` in module `::kernel::special_form`
    │                     │
    │                     looked in this module
    │
-   ╰ help: check the spelling and ensure the item is exported
+   ╰ help: `as` exists as a value, not type

@@ -199,35 +199,6 @@ impl<'heap> Path<'heap> {
         Ok((segment.name, segment.arguments))
     }
 
-    /// Checks if this path is an absolute path that matches the provided sequence of identifiers.
-    ///
-    /// A path matches when:
-    /// - The path is absolute (rooted with `::`)
-    /// - It has the same number of segments as provided identifiers
-    /// - Each segment name matches the corresponding identifier
-    /// - None of the path segments have generic arguments
-    pub(crate) fn matches_absolute_path<T>(
-        &self,
-        path: impl IntoIterator<Item = T, IntoIter: ExactSizeIterator>,
-    ) -> bool
-    where
-        T: AsRef<str>,
-    {
-        if !self.rooted {
-            return false;
-        }
-
-        let path = path.into_iter();
-
-        if self.segments.len() != path.len() {
-            return false;
-        }
-
-        self.segments.iter().zip(path).all(|(segment, ident)| {
-            segment.name.value.as_str() == ident.as_ref() && segment.arguments.is_empty()
-        })
-    }
-
     pub(crate) fn starts_with_absolute_path<T>(
         &self,
         path: impl IntoIterator<Item = T, IntoIter: ExactSizeIterator>,

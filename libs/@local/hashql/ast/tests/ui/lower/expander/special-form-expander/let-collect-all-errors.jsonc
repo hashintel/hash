@@ -6,6 +6,6 @@
   { "#literal": 1 },
   //~^ ERROR cannot use a literal value as a type
   "y",
-  //~^ ERROR cannot find `y` in this scope
+  //~^ ERROR cannot find value `y` in this scope
   "x"
 ]

@@ -5,6 +5,6 @@
   "type",
   "Foo",
   "T",
-  //~^ ERROR cannot find `T` in this scope
+  //~^ ERROR cannot find type `T` in this scope
   "_"
 ]
