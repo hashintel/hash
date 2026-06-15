@@ -1,29 +1,3 @@
-error[expander::item-not-found]: Item not found
-  ╭▸ 
-5 │   "::core::math",
-  │            ──── looked in this module
-6 │   {
-7 │     "#struct": { "x": "x" },
-  │                   ━ cannot find `x` in module `::core::math`
-  ╰╴
-help: a similar item exists in this module
-  ╭╴
-7 -     "#struct": { "x": "x" },
-7 +     "#struct": { "sqrt": "x" },
-  ├╴
-7 -     "#struct": { "x": "x" },
-7 +     "#struct": { "sub": "x" },
-  ├╴
-7 -     "#struct": { "x": "x" },
-7 +     "#struct": { "↑": "x" },
-  ├╴
-7 -     "#struct": { "x": "x" },
-7 +     "#struct": { "√": "x" },
-  ├╴
-7 -     "#struct": { "x": "x" },
-7 +     "#struct": { "∛": "x" },
-  ╰╴
-
 error[expander::use-imports-type-annotation]: Type annotation on use imports
   ╭▸ 
 8 │     "#type": "X"

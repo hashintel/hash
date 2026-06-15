@@ -3,5 +3,5 @@
 [
   "::kernel::special_form::as",
   { "#literal": true },
-  { "#struct": { "name": "Name", "birthday": "Date" } }
+  { "#struct": { "name": "String", "birthday": "Integer" } }
 ]

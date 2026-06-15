@@ -4,7 +4,7 @@
   "::kernel::special_form::use",
   "::core::math",
   {
-    "#struct": { "x": "x" },
+    "#struct": { "sqrt": "sqrt" },
     "#type": "X"
     //~^ ERROR type annotations are not allowed on the import list
   },

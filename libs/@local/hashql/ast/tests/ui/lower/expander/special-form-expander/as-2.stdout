@@ -7,5 +7,7 @@ Expr#4294967040@14
             Primitive (True)
       Type#4294967040@13
         TypeKind (Path)
-          Path#4294967040@13 (rooted: false)
-            PathSegment#4294967040@12 (name: Int)
+          Path#4294967040@13 (rooted: true)
+            PathSegment#4294967040@12 (name: kernel)
+            PathSegment#4294967040@12 (name: type)
+            PathSegment#4294967040@12 (name: Integer)

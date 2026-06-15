@@ -6,5 +6,5 @@
   { "#tuple": ["::core::math::sub"], "#type": "Number" },
   //~^ ERROR expected a simple name to import
   //~| ERROR type annotations are not allowed on the import list
-  null
+  { "#literal": 0 }
 ]

@@ -7,7 +7,6 @@
   [
     "::kernel::special_form::access",
     "tuple",
-    //~^ ERROR cannot find `tuple` in this scope
     { "#literal": 0, "#type": "Integer" }
     //~^ ERROR type annotations are not allowed on field index literals
   ]

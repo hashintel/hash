@@ -2,10 +2,10 @@
 //@ description: We should collect all errors when lowering let/4, and not only report the first one.
 [
   "::kernel::special_form::let",
-  "::x",
-  //~^ ERROR expected a simple identifier for the `let` binding name
+  "x",
   { "#literal": 1 },
   //~^ ERROR cannot use a literal value as a type
-  { "#literal": 1 },
+  "y",
+  //~^ ERROR cannot find `y` in this scope
   "x"
 ]

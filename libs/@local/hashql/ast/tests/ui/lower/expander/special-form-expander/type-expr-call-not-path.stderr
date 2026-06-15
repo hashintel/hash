@@ -3,7 +3,7 @@ error[expander::invalid-type-constructor-call]: Invalid type constructor call
  6 │ ┌   [
  7 │ │     ["+", { "#literal": 1 }, { "#literal": 2 }],
    │ │     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ cannot use this as a type constructor
- 8 │ │     //~^ ERROR cannot find `+` in this scope
+ 8 │ │     //~^ ERROR cannot use this as a type constructor
  9 │ │     "Integer",
 10 │ │     "Number"
 11 │ │   ]

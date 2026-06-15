@@ -1,7 +1,7 @@
 error[expander::invalid-expression-in-type-position]: Invalid expression in type position
    ╭▸ 
-22 │   { "#dict": { "a": "b" } }
-   │   ━━━━━━━━━━━━━━━━━━━━━━━━━ cannot use a dictionary expression as a type
+22 │   { "#dict": { "a": { "#literal": 1 } } }
+   │   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ cannot use a dictionary expression as a type
    │
    ├ help: replace this with a type path, tuple type, struct type, `_`, `(| ...)`, or `(& ...)`
    ╰ note: valid type forms are: type paths like `String`, tuple types like `(Int, String)`, struct types like `(name: String)`, `_` for inference, unions `(| ...)`, and intersections `(& ...)`
@@ -14,85 +14,13 @@ error[expander::invalid-expression-in-type-position]: Invalid expression in type
    ├ help: replace this with a type path, tuple type, struct type, `_`, `(| ...)`, or `(& ...)`
    ╰ note: valid type forms are: type paths like `String`, tuple types like `(Int, String)`, struct types like `(name: String)`, `_` for inference, unions `(| ...)`, and intersections `(& ...)`
 
-error[expander::unresolved-variable]: Unresolved variable
-   ╭▸ 
-19 │     { "#list": ["a", "b"] }
-   │                  ━ cannot find `a` in this scope
-   │
-   ╰ note: this could be a typo, a name used outside its scope, or a missing declaration; if it is a function or type from another module, you may need to import it first
-help: a similar imported name exists
-   ╭╴
-19 -     { "#list": ["a", "b"] }
-19 +     { "#list": ["Union", "b"] }
-   ├╴
-19 -     { "#list": ["a", "b"] }
-19 +     { "#list": ["Unknown", "b"] }
-   ├╴
-19 -     { "#list": ["a", "b"] }
-19 +     { "#list": ["Url", "b"] }
-   ├╴
-19 -     { "#list": ["a", "b"] }
-19 +     { "#list": ["|", "b"] }
-   ├╴
-19 -     { "#list": ["a", "b"] }
-19 +     { "#list": ["Boolean", "b"] }
-   ╰╴
-
-error[expander::unresolved-variable]: Unresolved variable
-   ╭▸ 
-19 │     { "#list": ["a", "b"] }
-   │                       ━ cannot find `b` in this scope
-   │
-   ╰ note: this could be a typo, a name used outside its scope, or a missing declaration; if it is a function or type from another module, you may need to import it first
-help: a similar imported name exists
-   ╭╴
-19 -     { "#list": ["a", "b"] }
-19 +     { "#list": ["a", "Union"] }
-   ├╴
-19 -     { "#list": ["a", "b"] }
-19 +     { "#list": ["a", "Unknown"] }
-   ├╴
-19 -     { "#list": ["a", "b"] }
-19 +     { "#list": ["a", "Url"] }
-   ├╴
-19 -     { "#list": ["a", "b"] }
-19 +     { "#list": ["a", "|"] }
-   ├╴
-19 -     { "#list": ["a", "b"] }
-19 +     { "#list": ["a", "Number"] }
-   ╰╴
-
 error[expander::invalid-expression-in-type-position]: Invalid expression in type position
    ╭▸ 
-19 │     { "#list": ["a", "b"] }
-   │     ━━━━━━━━━━━━━━━━━━━━━━━ cannot use a list expression as a type
+19 │     { "#list": [{ "#literal": 1 }, { "#literal": 2 }] }
+   │     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ cannot use a list expression as a type
    │
    ├ help: replace this with a type path, tuple type, struct type, `_`, `(| ...)`, or `(& ...)`
    ╰ note: valid type forms are: type paths like `String`, tuple types like `(Int, String)`, struct types like `(name: String)`, `_` for inference, unions `(| ...)`, and intersections `(& ...)`
-
-error[expander::unresolved-variable]: Unresolved variable
-   ╭▸ 
-22 │   { "#dict": { "a": "b" } }
-   │                      ━ cannot find `b` in this scope
-   │
-   ╰ note: this could be a typo, a name used outside its scope, or a missing declaration; if it is a function or type from another module, you may need to import it first
-help: a similar imported name exists
-   ╭╴
-22 -   { "#dict": { "a": "b" } }
-22 +   { "#dict": { "a": "Union" } }
-   ├╴
-22 -   { "#dict": { "a": "b" } }
-22 +   { "#dict": { "a": "Unknown" } }
-   ├╴
-22 -   { "#dict": { "a": "b" } }
-22 +   { "#dict": { "a": "Url" } }
-   ├╴
-22 -   { "#dict": { "a": "b" } }
-22 +   { "#dict": { "a": "|" } }
-   ├╴
-22 -   { "#dict": { "a": "b" } }
-22 +   { "#dict": { "a": "Number" } }
-   ╰╴
 
 error[expander::item-not-found]: Item not found
    ╭▸ 

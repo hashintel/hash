@@ -3,7 +3,7 @@
 [
   "::kernel::special_form::fn",
   { "#tuple": [] },
-  { "#struct": {} },
+  { "#struct": { "a": "Integer", "b": "Integer" } },
   "_",
   ["+", "a", "b"]
 ]

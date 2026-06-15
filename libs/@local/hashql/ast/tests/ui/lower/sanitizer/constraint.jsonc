@@ -1,8 +1,8 @@
 //@ run: fail
 //@ description: Generic constraints with bounds should be sanitized and error out
 [
-  "::core::math::add<T: Number>",
-  //~^ ERROR Remove this constraint from 'T'
+  "`+`<T: Number>",
+  //~^ ERROR `add` does not accept generic arguments
   { "#literal": 1 },
   { "#literal": 2 }
 ]

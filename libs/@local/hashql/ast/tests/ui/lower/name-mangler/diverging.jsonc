@@ -4,5 +4,5 @@
   "if",
   { "#literal": true },
   ["let", "a", { "#literal": 2 }, { "#literal": 3 }],
-  "a"
+  ["let", "a", { "#literal": 3 }, { "#literal": 2 }]
 ]

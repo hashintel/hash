@@ -3,5 +3,5 @@
 [
   "::kernel::special_form::as",
   { "#literal": true },
-  { "#tuple": ["Name", "Date"] }
+  { "#tuple": ["Integer", "String"] }
 ]

@@ -2,8 +2,8 @@
 //@ description: fn/4 struct generics should compile
 [
   "::kernel::special_form::fn",
-  { "#struct": { "T": "Int" } },
+  { "#struct": { "T": "Integer" } },
   { "#struct": {} },
   "_",
-  ["+", "a", "b"]
+  {"#literal": 0}
 ]
