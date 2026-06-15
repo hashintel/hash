@@ -3,7 +3,7 @@
 [
   "::kernel::special_form::let",
   { "#literal": true },
-  //~^ ERROR Replace this expression with a simple identifier
+  //~^ ERROR expected a simple identifier for the `let` binding name
   { "#literal": true },
   ["+", "x", "x"]
 ]

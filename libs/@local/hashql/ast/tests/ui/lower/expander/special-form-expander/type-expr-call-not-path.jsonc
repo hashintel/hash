@@ -5,8 +5,8 @@
   { "#literal": true },
   [
     ["+", { "#literal": 1 }, { "#literal": 2 }],
-    //~^ ERROR Function call with non-path callee cannot be used as a type
-    "Int",
-    "Float"
+    //~^ ERROR cannot use this as a type constructor
+    "Integer",
+    "Number"
   ]
 ]

@@ -1,14 +1,14 @@
-error[special-form-expander::special-form-argument-length]: Incorrect number of arguments for special form
+error[expander::invalid-argument-count]: Invalid argument count
   ╭▸ 
-3 │ ┌ [
-4 │ │   "::kernel::special_form::access",
-5 │ │   "x",
-6 │ │   "y",
-7 │ │   "z"
-  │ │    ━ Remove this argument
-8 │ │   //~^ ERROR Remove this argument
-9 │ │ ]
-  │ └─┘ In this `access` special form call
+3 │ ┏ [
+4 │ ┃   "::kernel::special_form::access",
+5 │ ┃   "x",
+6 │ ┃   "y",
+7 │ ┃   "z"
+  │ ┃    ─ unexpected argument
+8 │ ┃   //~^ ERROR unexpected argument
+9 │ ┃ ]
+  │ ┗━┛ expected 2 arguments to `.`, found 3
   │
-  ├ help: The access/2 form should look like: (. object field)
-  ╰ note: The access function has 1 variant: access/2
+  ├ help: use `(. value field)`
+  ╰ note: the first argument is the value and the second is the field name or index

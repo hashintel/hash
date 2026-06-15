@@ -12,6 +12,7 @@ use crate::{
         expr::{CallExpr, Expr, ExprKind, NewTypeExpr, call::Argument},
         id::NodeId,
     },
+    visit::Visitor as _,
 };
 
 fn lower_newtype_impl<'heap, S>(

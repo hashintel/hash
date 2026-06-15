@@ -5,7 +5,7 @@
   {
     "#tuple": ["T"],
     "#type": "Int"
-    //~^ ERROR Remove this type annotation
+    //~^ ERROR type annotation is not allowed on the generic parameter list
   },
   { "#struct": {} },
   "_",

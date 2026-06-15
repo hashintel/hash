@@ -1,4 +1,4 @@
 //@ run: fail
 //@ description: newtype/2 should error out
 ["::kernel::special_form::newtype", "x", "Integer"]
-//~^ ERROR Add missing arguments
+//~^ ERROR expected 3 arguments to `newtype`, found 2

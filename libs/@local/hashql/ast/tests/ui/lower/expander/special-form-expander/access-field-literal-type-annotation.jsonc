@@ -4,5 +4,5 @@
   "::kernel::special_form::access",
   "tuple",
   { "#literal": 0, "#type": "Integer" }
-  //~^ ERROR Remove this type annotation
+  //~^ ERROR type annotations are not allowed on field index literals
 ]

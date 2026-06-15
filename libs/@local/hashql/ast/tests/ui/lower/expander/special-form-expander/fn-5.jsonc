@@ -7,5 +7,5 @@
   "_",
   ["+", "a", "b"],
   ["*", "c", "d"]
-  //~^ ERROR Remove this argument
+  //~^ ERROR unexpected argument
 ]

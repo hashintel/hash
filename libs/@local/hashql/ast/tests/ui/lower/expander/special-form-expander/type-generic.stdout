@@ -2,9 +2,9 @@ Expr#4294967040@28
   ExprKind (Type)
     TypeExpr#4294967040@28 (name: Foo)
       GenericConstraint#4294967040@14 (name: Bar)
-      Type#4294967040@24
+      Type#4294967040@25
         TypeKind (Struct)
-          StructType#4294967040@24
+          StructType#4294967040@25
             StructField#4294967040@23 (name: foo)
               Type#4294967040@22
                 TypeKind (Path)

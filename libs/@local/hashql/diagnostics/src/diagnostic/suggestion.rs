@@ -277,9 +277,9 @@ impl<S> Suggestions<S> {
                 .get(source_id)
                 .ok_or(RenderError::SourceNotFound(source_id))?;
 
-            let mut snippet = Snippet::source(&*source.content).path(source.path.as_deref());
-
             for patch in chunk {
+                let mut snippet = Snippet::source(&*source.content).path(source.path.as_deref());
+
                 let patch = patch.render(context).map_err(|error| match error {
                     RenderError::SpanNotFound(None, span) => {
                         RenderError::SpanNotFound(Some(source_id), span)
@@ -288,10 +288,10 @@ impl<S> Suggestions<S> {
                     | RenderError::SpanNotFound(Some(_), _)
                     | RenderError::ConcreteSourceNotFound => error,
                 })?;
-                snippet = snippet.patch(patch);
-            }
 
-            group = group.element(snippet);
+                snippet = snippet.patch(patch);
+                group = group.element(snippet);
+            }
         }
 
         if let Some(trailer) = self.trailer.as_deref() {

@@ -4,6 +4,6 @@
   "::kernel::special_form::use",
   "::core",
   { "#tuple": ["::core::math::sub"] },
-  //~^ ERROR Use a simple identifier here
+  //~^ ERROR expected a simple name to import
   "x"
 ]

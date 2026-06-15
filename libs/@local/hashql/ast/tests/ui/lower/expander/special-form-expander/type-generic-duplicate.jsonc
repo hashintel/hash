@@ -3,7 +3,7 @@
 [
   "::kernel::special_form::type",
   "Foo<T: Bar, T>",
-  //~^ ERROR Remove this duplicate declaration of 'T'
+  //~^ ERROR duplicate generic parameter `T`
   { "#struct": { "foo": "Bar" } },
   "_"
 ]

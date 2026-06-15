@@ -1,7 +1,8 @@
-error[special-form-expander::unknown-special-form]: Unknown special form
+error[expander::item-not-found]: Item not found
   ╭▸ 
 4 │   "::kernel::special_form",
-  │    ━━━━━━━━━━━━━━━━━━━━━━ Fix this path to have exactly 3 segments
+  │      ┬─────  ━━━━━━━━━━━━ cannot find `special_form` in module `::kernel`
+  │      │
+  │      looked in this module
   │
-  ├ help: Special form paths must follow the pattern '::kernel::special_form::<name>' with exactly 3 segments
-  ╰ note: Found path with 2 segments, but special form paths must have exactly 3 segments
+  ╰ help: check the spelling and ensure the item is exported

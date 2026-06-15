@@ -1,10 +1,9 @@
-error[special-form-expander::unknown-special-form]: Unknown special form
+error[expander::module-required]: Module required
   ╭▸ 
 4 │   "::kernel::special_form::if::extra",
-  │    ┯━━━━━━━━━━━━━━━━━━━━━━━━━━━┬────
-  │    │                           │
-  │    │                           Remove this extra segment
-  │    Fix this path to have exactly 3 segments
+  │                            ┯━  ───── cannot access items inside a non-module
+  │                            │
+  │                            `::kernel::special_form::if` is a value, not a module
   │
-  ├ help: Special form paths must follow the pattern '::kernel::special_form::<name>' with exactly 3 segments
-  ╰ note: Found path with 4 segments, but special form paths must have exactly 3 segments
+  ├ help: if you meant to access a field, use `.` instead of `::`
+  ╰ note: the `::` separator navigates into modules; values and types do not contain sub-items

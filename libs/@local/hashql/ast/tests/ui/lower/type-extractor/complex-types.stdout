@@ -16,9 +16,9 @@ Expr#0@38
                   LiteralExpr#9@31
                     Primitive (Integer)
                       Integer (30)
-      Type#10@22
+      Type#10@23
         TypeKind (Struct)
-          StructType#11@22
+          StructType#11@23
             StructField#12@14 (name: name)
               Type#13@13
                 TypeKind (Path)

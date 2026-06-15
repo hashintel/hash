@@ -1,9 +1,52 @@
-error[special-form-expander::unknown-special-form]: Unknown special form
+error[expander::generic-arguments-in-module]: Generic arguments in module path
   ╭▸ 
 3 │ ["::kernel::special_form<T>::if<U>"]
-  │                          ┯      ─ ... and these too
-  │                          │
-  │                          Remove these generic arguments
+  │                          ━ generic argument not allowed here
   │
-  ├ help: Special form paths must not include generic arguments. Remove the angle brackets and their contents.
-  ╰ note: Special forms are built-in language constructs that don't support generics in their path reference.
+  ├ help: move the generic arguments to the final segment of the path, or remove them
+  ╰ note: modules are not generic; only the final item in a path can be parameterized
+
+error[expander::unresolved-variable]: Unresolved variable
+  ╭▸ 
+3 │ ["::kernel::special_form<T>::if<U>"]
+  │                                 ━ cannot find `U` in this scope
+  │
+  ╰ note: this could be a typo, a name used outside its scope, or a missing declaration; if it is a function or type from another module, you may need to import it first
+help: a similar imported name exists
+  ╭╴
+3 - ["::kernel::special_form<T>::if<U>"]
+3 + ["::kernel::special_form<T>::if<String>"]
+  ├╴
+3 - ["::kernel::special_form<T>::if<U>"]
+3 + ["::kernel::special_form<T>::if<|>"]
+  ├╴
+3 │ ["::kernel::special_form<T>::if<Unknown>"]
+  ├╴                                 ++++++
+3 │ ["::kernel::special_form<T>::if<Union>"]
+  ├╴                                 ++++
+3 │ ["::kernel::special_form<T>::if<Url>"]
+  ╰╴                                 ++
+
+error[expander::unresolved-variable]: Unresolved variable
+  ╭▸ 
+3 │ ["::kernel::special_form<T>::if<U>"]
+  │                          ━ cannot find `T` in this scope
+  │
+  ╰ note: this could be a typo, a name used outside its scope, or a missing declaration; if it is a function or type from another module, you may need to import it first
+help: a similar imported name exists
+  ╭╴
+3 - ["::kernel::special_form<T>::if<U>"]
+3 + ["::kernel::special_form<String>::if<U>"]
+  ├╴
+3 - ["::kernel::special_form<T>::if<U>"]
+3 + ["::kernel::special_form<Union>::if<U>"]
+  ├╴
+3 - ["::kernel::special_form<T>::if<U>"]
+3 + ["::kernel::special_form<Unknown>::if<U>"]
+  ├╴
+3 - ["::kernel::special_form<T>::if<U>"]
+3 + ["::kernel::special_form<Url>::if<U>"]
+  ├╴
+3 - ["::kernel::special_form<T>::if<U>"]
+3 + ["::kernel::special_form<|>::if<U>"]
+  ╰╴

@@ -1,12 +1,31 @@
-error[import-resolver::generic-arguments-in-module]: Generic arguments only allowed in final path segment
+error[expander::generic-arguments-in-module]: Generic arguments in module path
   ╭▸ 
 3 │ ["::math<T>::add", { "#literal": 2 }, { "#literal": 3 }]
-  │          ━ Remove this generic argument
+  │          ━ generic argument not allowed here
   │
-  ├ help: Generic arguments can only appear on the final type in a path. Remove them from this module segment or move them to the final type in the path.
-  │       
-  │       Correct: `module::submodule::Type<T>`
-  │       Incorrect: `module<T>::submodule::Type`
-  ╰ note: Module paths don't accept generic parameters because modules themselves aren't generic. Only the final type in a path can have generic parameters.
-          
-          The path resolution happens before any generic type checking, so generic arguments can only be applied after the item is found.
+  ├ help: move the generic arguments to the final segment of the path, or remove them
+  ╰ note: modules are not generic; only the final item in a path can be parameterized
+
+error[expander::unresolved-variable]: Unresolved variable
+  ╭▸ 
+3 │ ["::math<T>::add", { "#literal": 2 }, { "#literal": 3 }]
+  │          ━ cannot find `T` in this scope
+  │
+  ╰ note: this could be a typo, a name used outside its scope, or a missing declaration; if it is a function or type from another module, you may need to import it first
+help: a similar imported name exists
+  ╭╴
+3 - ["::math<T>::add", { "#literal": 2 }, { "#literal": 3 }]
+3 + ["::math<String>::add", { "#literal": 2 }, { "#literal": 3 }]
+  ├╴
+3 - ["::math<T>::add", { "#literal": 2 }, { "#literal": 3 }]
+3 + ["::math<Union>::add", { "#literal": 2 }, { "#literal": 3 }]
+  ├╴
+3 - ["::math<T>::add", { "#literal": 2 }, { "#literal": 3 }]
+3 + ["::math<Unknown>::add", { "#literal": 2 }, { "#literal": 3 }]
+  ├╴
+3 - ["::math<T>::add", { "#literal": 2 }, { "#literal": 3 }]
+3 + ["::math<Url>::add", { "#literal": 2 }, { "#literal": 3 }]
+  ├╴
+3 - ["::math<T>::add", { "#literal": 2 }, { "#literal": 3 }]
+3 + ["::math<|>::add", { "#literal": 2 }, { "#literal": 3 }]
+  ╰╴

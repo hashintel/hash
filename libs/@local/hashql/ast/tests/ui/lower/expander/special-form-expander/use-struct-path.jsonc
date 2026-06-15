@@ -6,7 +6,7 @@
   {
     "#struct": {
       "x": "::core::math::sub"
-      //~^ ERROR Use a simple identifier here
+      //~^ ERROR expected a simple name to import
     }
   },
   "x"

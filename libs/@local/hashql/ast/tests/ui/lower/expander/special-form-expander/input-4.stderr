@@ -1,17 +1,15 @@
-error[special-form-expander::special-form-argument-length]: Incorrect number of arguments for special form
+error[expander::invalid-argument-count]: Invalid argument count
    ╭▸ 
- 3 │ ┌ [
- 4 │ │   "::kernel::special_form::input",
- 5 │ │   "x",
- 6 │ │   "Y",
- 7 │ │   "z",
- 8 │ │   "w"
-   │ │    ━ Remove this argument
- 9 │ │   //~^ ERROR Remove this argument
-10 │ │ ]
-   │ └─┘ In this `input` special form call
+ 3 │ ┏ [
+ 4 │ ┃   "::kernel::special_form::input",
+ 5 │ ┃   "x",
+ 6 │ ┃   "Y",
+ 7 │ ┃   "z",
+ 8 │ ┃   "w"
+   │ ┃    ─ unexpected argument
+ 9 │ ┃   //~^ ERROR unexpected argument
+10 │ ┃ ]
+   │ ┗━┛ expected 2 or 3 arguments to `input`, found 4
    │
-   ├ help: Use either:
-   │       - input/2: (input name type)
-   │       - input/3: (input name type default)
-   ╰ note: The input function has 2 variants: input/2, input/3
+   ├ help: use `(input name type)` or `(input name type default)`
+   ╰ note: the arguments are, in order: the input name, its type, and an optional default value

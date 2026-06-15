@@ -6,5 +6,5 @@
   { "#tuple": ["pi"] },
   "x",
   "y"
-  //~^ ERROR Remove this argument
+  //~^ ERROR unexpected argument
 ]

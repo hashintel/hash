@@ -5,11 +5,15 @@ Expr#4294967040@28
       GenericConstraint#4294967040@19 (name: U)
         Type#4294967040@18
           TypeKind (Path)
-            Path#4294967040@18 (rooted: false)
-              PathSegment#4294967040@17 (name: Bar)
+            Path#4294967040@18 (rooted: true)
+              PathSegment#4294967040@17 (name: kernel)
+              PathSegment#4294967040@17 (name: type)
+              PathSegment#4294967040@17 (name: Number)
       Type#4294967040@25
         TypeKind (Path)
-          Path#4294967040@25 (rooted: false)
+          Path#4294967040@25 (rooted: true)
+            PathSegment#4294967040@24 (name: kernel)
+            PathSegment#4294967040@24 (name: type)
             PathSegment#4294967040@24 (name: Integer)
       Expr#4294967040@27
         ExprKind (Underscore)

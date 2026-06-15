@@ -1,7 +1,11 @@
-error[sanitizer::invalid-generic-constraint]: Invalid generic constraint
+error[expander::unresolved-variable]: Unresolved variable
   ╭▸ 
 4 │   "add<T: Number>",
-  │        ━━━━━━━━━ Remove this constraint from 'T'
+  │    ━━━ cannot find `add` in this scope
   │
-  ├ help: Generic constraints (like 'T: Bound') are not allowed in this context. Use just the parameter name without bounds: 'T'. For example, change 'T: Clone' to just 'T'.
-  ╰ note: Generic constraints with bounds can only be used in certain positions such as function declarations, type declarations and newtype declarations. In other contexts, like usage sites, only the parameter name should be specified.
+  ├ help: bring it into scope: `use ::core::math::add in`
+  ╰ note: this could be a typo, a name used outside its scope, or a missing declaration; if it is a function or type from another module, you may need to import it first
+help: use one of these fully qualified paths
+  ╭╴
+4 │   "::core::math::add<T: Number>",
+  ╰╴   ++++++++++++++

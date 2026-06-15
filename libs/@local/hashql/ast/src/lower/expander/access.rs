@@ -27,10 +27,10 @@ fn argument_to_field<'heap, S>(
 ) -> Option<Ident<'heap>> {
     // Integer literal for tuple field access
     if let ExprKind::Literal(literal) = &argument.value.kind {
-        if literal.r#type.is_some() {
+        if let Some(annotation) = &literal.r#type {
             expander
                 .diagnostics
-                .push(error::field_literal_type_annotation(literal.span));
+                .push(error::field_literal_type_annotation(annotation.span));
         }
 
         let Primitive::Integer(integer) = literal.kind else {

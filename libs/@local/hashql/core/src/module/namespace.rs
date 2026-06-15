@@ -376,6 +376,11 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
 
         successful &= self.import_absolute_static("List", ["kernel", "type", "List"]);
         successful &= self.import_absolute_static("Dict", ["kernel", "type", "Dict"]);
+        successful &= self.import_absolute_static("Union", ["kernel", "type", "Union"]);
+        successful &= self.import_absolute_static("|", ["kernel", "type", "Union"]);
+        successful &=
+            self.import_absolute_static("Intersection", ["kernel", "type", "Intersection"]);
+        successful &= self.import_absolute_static("&", ["kernel", "type", "Intersection"]);
 
         successful &= self.import_absolute_static("Null", ["kernel", "type", "Null"]);
 

@@ -6,5 +6,5 @@
   "Y",
   "z",
   "w"
-  //~^ ERROR Remove this argument
+  //~^ ERROR unexpected argument
 ]

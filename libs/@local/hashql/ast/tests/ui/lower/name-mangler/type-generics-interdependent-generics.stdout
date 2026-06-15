@@ -7,9 +7,9 @@ Expr#4294967040@36
             Path#4294967040@9 (rooted: false)
               PathSegment#4294967040@8 (name: U:0)
       GenericConstraint#4294967040@15 (name: U:0)
-      Type#4294967040@32
+      Type#4294967040@33
         TypeKind (Struct)
-          StructType#4294967040@32
+          StructType#4294967040@33
             StructField#4294967040@24 (name: foo)
               Type#4294967040@23
                 TypeKind (Path)

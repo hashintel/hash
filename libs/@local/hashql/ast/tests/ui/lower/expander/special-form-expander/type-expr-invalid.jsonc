@@ -11,14 +11,14 @@
         "x",
         // ensure that we properly resolve nested is expressions as errors
         ["::kernel::special_form::as", "x", "X"]
-        //~^ ERROR Replace this as with a proper type expression
+        //~^ ERROR cannot use an `as` expression as a type
       ],
       { "#literal": 1 }
-      //~^ ERROR Replace this literal with a type name
+      //~^ ERROR cannot use a literal value as a type
     ],
     { "#list": ["a", "b"] }
-    //~^ ERROR Replace this list with a proper type expression
+    //~^ ERROR cannot use a list expression as a type
   ],
   { "#dict": { "a": "b" } }
-  //~^ ERROR Replace this dictionary with a proper type expression
+  //~^ ERROR cannot use a dictionary expression as a type
 ]

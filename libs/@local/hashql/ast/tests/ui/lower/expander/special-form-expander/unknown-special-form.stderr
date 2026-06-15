@@ -1,10 +1,8 @@
-error[special-form-expander::unknown-special-form]: Unknown special form
+error[expander::item-not-found]: Item not found
   ╭▸ 
 3 │ ["::kernel::special_form::headpat"]
-  │   ┬───────────────────────┯━━━━━━
-  │   │                       │
-  │   │                       Replace 'headpat' with a valid special form name
-  │   This special form path is invalid
+  │             ┬───────────  ━━━━━━━ cannot find `headpat` in module `::kernel::special_form`
+  │             │
+  │             looked in this module
   │
-  ├ help: Special forms must use one of the predefined names shown in the note below
-  ╰ note: Available special forms include: if, as, let, type, newtype, use, fn, input, access, index
+  ╰ help: check the spelling and ensure the item is exported

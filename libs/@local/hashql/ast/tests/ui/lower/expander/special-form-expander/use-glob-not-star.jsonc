@@ -4,6 +4,6 @@
   "::kernel::special_form::use",
   "::math",
   "X",
-  //~^ ERROR Replace with a valid import expression
+  //~^ ERROR expected `*`, a tuple of names, or a struct of aliases
   "x"
 ]

@@ -6,7 +6,7 @@
   {
     "#struct": {},
     "#type": "Int"
-    //~^ ERROR Remove this type annotation
+    //~^ ERROR type annotation is not allowed on the parameter list
   },
   "_",
   ["+", "a", "b"]

@@ -1,7 +1,15 @@
-error[special-form-expander::invalid-generic-argument-path]: Invalid path in generic argument
+error[expander::unresolved-variable]: Unresolved variable
+  ╭▸ 
+7 │   { "#struct": { "foo": "Bar" } },
+  │                          ━━━ cannot find `Bar` in this scope
+  │
+  ├ help: check the spelling, or import the name with a `use` statement
+  ╰ note: this could be a typo, a name used outside its scope, or a missing declaration; if it is a function or type from another module, you may need to import it first
+
+error[expander::invalid-generic-argument]: Invalid generic argument
   ╭▸ 
 5 │   "Foo<foo::Bar>",
-  │        ━━━━━━━━ Replace with a simple identifier
+  │        ━━━━━━━━ expected a simple type parameter
   │
-  ├ help: Generic arguments must be simple identifiers. Qualified paths cannot be used as generic arguments in this context.
-  ╰ note: In generic parameter constraints, arguments should be simple identifiers like 'T', 'U', or 'Element' without namespace qualification or path separators.
+  ├ help: use a simple identifier like `T`, not a qualified path
+  ╰ note: generic parameters are declared as `Name<T>` for unconstrained or `Name<T: Bound>` for constrained parameters
