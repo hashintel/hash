@@ -24,10 +24,11 @@ use hashql_core::{
     heap::{self, BumpAllocator},
     module::{
         self, Reference, Universe,
-        item::{IntrinsicItem, Item},
+        item::{IntrinsicItem, IntrinsicTypeItem, IntrinsicValueItem, Item, ItemKind},
         namespace::{ModuleNamespace, ResolutionMode, ResolveOptions},
     },
     symbol::{Ident, Symbol, sym},
+    r#type::kind::IntrinsicType,
 };
 
 use self::{
@@ -228,7 +229,7 @@ where
         self.current_item = None;
         visit::walk_path(self, path);
 
-        let [modules @ .., _] = &*path.segments else {
+        let [modules @ .., ident] = &*path.segments else {
             self.diagnostics.push(error::empty_path(path.span));
             self.trampoline = Some(node::expr::Expr::dummy());
             return;
@@ -281,6 +282,32 @@ where
         };
 
         self.current_item = Some(item);
+
+        match item.kind {
+            ItemKind::Intrinsic(IntrinsicItem::Type(IntrinsicTypeItem { name }))
+                if let Some(const_name) = name.as_constant()
+                    && matches!(
+                        const_name,
+                        sym::path::Union::CONST | sym::path::Intersection::CONST
+                    )
+                    && !ident.arguments.is_empty() =>
+            {
+                self.diagnostics
+                    .push(error::intrinsic_generic_arguments(ident));
+                self.trampoline = Some(node::expr::Expr::dummy());
+                return;
+            }
+            ItemKind::Intrinsic(IntrinsicItem::Value(_)) if !ident.arguments.is_empty() => {
+                self.diagnostics
+                    .push(error::intrinsic_generic_arguments(ident));
+                self.trampoline = Some(node::expr::Expr::dummy());
+                return;
+            }
+            ItemKind::Module(_)
+            | ItemKind::Type(_)
+            | ItemKind::Constructor(_)
+            | ItemKind::Intrinsic(_) => {}
+        }
 
         let absolute_path = item.absolute_path_rev(self.namespace.registry());
         if absolute_path.len() < path.segments.len() {

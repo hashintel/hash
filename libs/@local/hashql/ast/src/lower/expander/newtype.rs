@@ -1,6 +1,10 @@
 use core::mem;
 
-use hashql_core::{heap::BumpAllocator, span::SpanId};
+use hashql_core::{
+    heap::{self, BumpAllocator},
+    module::Universe,
+    span::SpanId,
+};
 
 use super::Expander;
 use crate::{
@@ -36,32 +40,39 @@ where
     let mut value = mem::replace(&mut value.value, Expr::dummy());
     let mut body = mem::replace(&mut body.value, Expr::dummy());
 
-    expander.with_universe(hashql_core::module::Universe::Type, |expander| {
-        expander.visit(&mut value)
-    });
-    let value = lower_expr_to_type(expander, value);
+    let (_, expr) = expander.bind_many_with(
+        constraints,
+        |constraints, binder| {
+            binder.bind(name.value, Universe::Type);
+            binder.bind(name.value, Universe::Value);
+            for constraint in constraints {
+                binder.bind(constraint.name.value, Universe::Type);
+            }
+        },
+        |expander, constraints| {
+            expander.with_universe(Universe::Type, |expander| {
+                expander.visit(&mut value);
+            });
 
-    expander.bind_many(
-        // Newtype expressions are scoped to both universes
-        [
-            (name.value, hashql_core::module::Universe::Type),
-            (name.value, hashql_core::module::Universe::Value),
-        ],
-        |expander| expander.visit(&mut body),
+            expander.visit(&mut body);
+            let value = lower_expr_to_type(expander, value);
+
+            Expr {
+                id: NodeId::PLACEHOLDER,
+                span,
+                kind: ExprKind::NewType(NewTypeExpr {
+                    id: NodeId::PLACEHOLDER,
+                    span,
+                    name,
+                    constraints: mem::replace(constraints, Vec::new_in(expander.heap)),
+                    value: Box::new_in(value, expander.heap),
+                    body: Box::new_in(body, expander.heap),
+                }),
+            }
+        },
     );
 
-    Expr {
-        id: NodeId::PLACEHOLDER,
-        span,
-        kind: ExprKind::NewType(NewTypeExpr {
-            id: NodeId::PLACEHOLDER,
-            span,
-            name,
-            constraints,
-            value: Box::new_in(value, expander.heap),
-            body: Box::new_in(body, expander.heap),
-        }),
-    }
+    expr
 }
 
 /// Lowers a `newtype` call into a [`NewTypeExpr`].

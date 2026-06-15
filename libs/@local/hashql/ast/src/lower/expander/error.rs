@@ -213,6 +213,11 @@ const INTRINSIC_TYPE_ANNOTATION: TerminalDiagnosticCategory = TerminalDiagnostic
     name: "Type annotation on intrinsic binding",
 };
 
+const INTRINSIC_GENERIC_ARGUMENTS: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "intrinsic-generic-arguments",
+    name: "Generic arguments on intrinsic",
+};
+
 const INVALID_USE_PATH: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     id: "invalid-use-path",
     name: "Invalid use path",
@@ -257,6 +262,7 @@ pub enum ExpanderDiagnosticCategory {
     DuplicateFnGeneric,
     DuplicateFnParameter,
     IntrinsicTypeAnnotation,
+    IntrinsicGenericArguments,
     InvalidUseImports,
     InvalidUseImportBinding,
     InvalidUseAlias,
@@ -308,6 +314,7 @@ impl DiagnosticCategory for ExpanderDiagnosticCategory {
             Self::DuplicateFnGeneric => Some(&DUPLICATE_FN_GENERIC),
             Self::DuplicateFnParameter => Some(&DUPLICATE_FN_PARAMETER),
             Self::IntrinsicTypeAnnotation => Some(&INTRINSIC_TYPE_ANNOTATION),
+            Self::IntrinsicGenericArguments => Some(&INTRINSIC_GENERIC_ARGUMENTS),
             Self::InvalidUseImports => Some(&INVALID_USE_IMPORTS),
             Self::InvalidUseImportBinding => Some(&INVALID_USE_IMPORT_BINDING),
             Self::InvalidUseAlias => Some(&INVALID_USE_ALIAS),
@@ -650,7 +657,7 @@ fn module_not_found<'heap>(
     let parent_path = FormatUserPath {
         rooted: path.rooted,
         segments: &path.segments,
-        up_to: (depth > 0).then_some(depth - 1),
+        up_to: depth.checked_sub(1),
     };
 
     let primary_message = if depth > 0 {
@@ -1105,6 +1112,28 @@ pub(crate) fn intrinsic_type_annotation(
         "compiler intrinsics cannot be given a type annotation because they are not ordinary \
          values",
     ));
+
+    diagnostic
+}
+
+/// Generic arguments were attached to an intrinsic that does not accept them.
+///
+/// Special forms and built-in type operators are not generic. The generic
+/// arguments should be removed.
+pub(crate) fn intrinsic_generic_arguments(ident: &PathSegment<'_>) -> ExpanderDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        ExpanderDiagnosticCategory::IntrinsicGenericArguments,
+        Severity::Error,
+    )
+    .primary(Label::new(
+        ident.span,
+        format!("`{}` does not accept generic arguments", ident.name.value),
+    ));
+
+    diagnostic.add_message(Message::help(format!(
+        "remove the generic arguments from `{}`",
+        ident.name.value,
+    )));
 
     diagnostic
 }
