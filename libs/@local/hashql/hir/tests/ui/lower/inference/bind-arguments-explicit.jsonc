@@ -2,7 +2,7 @@
 //@ description: Ensures type inference fails when explicitly bound generic arguments conflict with provided argument types.
 [
   "`+`<Number, Number>",
-  //~^ ERROR `+` does not accept generic arguments
+  //~^ ERROR Type bound constraint violation
   { "#literal": 42.12 },
   { "#literal": "42" }
 ]

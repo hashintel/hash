@@ -140,7 +140,7 @@ impl<'heap> ModuleRegistry<'heap> {
     /// # Panics
     ///
     /// This function will panic if the internal `RwLock` is poisoned.
-    fn find_by_name(&self, name: Symbol<'heap>) -> Option<Module<'heap>> {
+    pub fn find_by_name(&self, name: Symbol<'heap>) -> Option<Module<'heap>> {
         let root = self.root.read().expect("lock should not be poisoned");
 
         let id = root.get(&name).copied()?;
