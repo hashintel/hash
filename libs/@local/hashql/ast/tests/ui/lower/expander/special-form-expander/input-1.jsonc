@@ -1,4 +1,4 @@
 //@ run: fail
 //@ description: input/1 should error out
 ["::kernel::special_form::input", "x"]
-//~^ ERROR Add missing arguments
+//~^ ERROR expected 2 or 3 arguments to `input`, found 1

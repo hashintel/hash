@@ -1,7 +1,53 @@
-error[special-form-expander::fn-generics-with-type-annotation]: Function generics with type annotation
+error[expander::unresolved-variable]: Unresolved variable
+   ╭▸ 
+12 │   ["+", "a", "b"]
+   │               ━ cannot find `b` in this scope
+   │
+   ╰ note: this could be a typo, a name used outside its scope, or a missing declaration; if it is a function or type from another module, you may need to import it first
+help: a similar imported name exists
+   ╭╴
+12 -   ["+", "a", "b"]
+12 +   ["+", "a", "~"]
+   ├╴
+12 -   ["+", "a", "b"]
+12 +   ["+", "a", "↑"]
+   ├╴
+12 -   ["+", "a", "b"]
+12 +   ["+", "a", "√"]
+   ├╴
+12 -   ["+", "a", "b"]
+12 +   ["+", "a", "∛"]
+   ├╴
+12 -   ["+", "a", "b"]
+12 +   ["+", "a", "cbrt"]
+   ╰╴
+
+error[expander::unresolved-variable]: Unresolved variable
+   ╭▸ 
+12 │   ["+", "a", "b"]
+   │          ━ cannot find `a` in this scope
+   │
+   ╰ note: this could be a typo, a name used outside its scope, or a missing declaration; if it is a function or type from another module, you may need to import it first
+help: a similar imported name exists
+   ╭╴
+12 -   ["+", "a", "b"]
+12 +   ["+", "↑", "b"]
+   ├╴
+12 -   ["+", "a", "b"]
+12 +   ["+", "√", "b"]
+   ├╴
+12 -   ["+", "a", "b"]
+12 +   ["+", "∛", "b"]
+   ├╴
+12 │   ["+", "access", "b"]
+   ├╴          +++++
+12 │   ["+", "as", "b"]
+   ╰╴          +
+
+error[expander::fn-generics-type-annotation]: Type annotation on generic parameter list
   ╭▸ 
 7 │     "#type": "Int"
-  │               ━━━ Remove this type annotation
+  │               ━━━ type annotation is not allowed on the generic parameter list
   │
-  ├ help: Function generics declarations cannot have type annotations. Generic parameter lists define type parameters for the function, and do not have a meaningful type themselves.
-  ╰ note: In the 'fn' special form, the generics argument should be either a tuple of identifiers such as (T, U) or a struct of bounded type parameters such as (T: SomeBound, U: OtherBound, V: _), where an underscore indicates no bound.
+  ├ help: remove the type annotation; the generic parameter list declares type variables, not a typed value
+  ╰ note: write `(fn (T, U) ...)` for unbounded generics or `(fn (T: bound, U: _) ...)` for bounded generics

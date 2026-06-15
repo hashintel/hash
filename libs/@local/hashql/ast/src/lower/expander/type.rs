@@ -334,6 +334,7 @@ where
                 // The constraints _have not yet_ been validated, this is on purpose, because we
                 // must first convert them, now that they are converted, we can
                 // validate them.
+
                 for constraint in constraints {
                     if let Some(bound) = constraint.bound.as_mut() {
                         expander.visit_type(bound);

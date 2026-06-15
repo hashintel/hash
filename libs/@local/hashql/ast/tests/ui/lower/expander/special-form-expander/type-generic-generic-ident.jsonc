@@ -3,7 +3,7 @@
 [
   "::kernel::special_form::type",
   "Foo<Bar<Baz>>",
-  //~^ ERROR Generic arguments must be simple identifiers
+  //~^ ERROR expected a simple type parameter
   { "#struct": { "foo": "Bar" } },
   "_"
 ]

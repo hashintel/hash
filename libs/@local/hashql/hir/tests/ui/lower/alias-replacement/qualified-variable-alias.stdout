@@ -1,9 +1,6 @@
 ════ Initial HIR ═══════════════════════════════════════════════════════════════
 
-let x:0 = ::core::math::add,
-    y:0 = ::core::math::add
-in
-::core::math::mul(y:0, 2)
+::core::math::mul(::core::math::add, 2)
 
 ════ HIR after alias replacement ═══════════════════════════════════════════════
 

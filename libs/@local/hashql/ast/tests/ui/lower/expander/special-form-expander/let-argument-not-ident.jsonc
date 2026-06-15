@@ -3,17 +3,17 @@
 [
   "::kernel::special_form::let",
   "Int<T>",
-  //~^ ERROR Replace this with a simple identifier
+  //~^ ERROR expected a simple identifier for the `let` binding name
   { "#literal": true },
   [
     "::kernel::special_form::let",
     "x::A",
-    //~^ ERROR Replace this with a simple identifier
+    //~^ ERROR expected a simple identifier for the `let` binding name
     "y::B",
     [
       "::kernel::special_form::let",
       "::z",
-      //~^ ERROR Replace this with a simple identifier
+      //~^ ERROR expected a simple identifier for the `let` binding name
       { "#literal": true },
       ["+", "x", "y"]
     ]

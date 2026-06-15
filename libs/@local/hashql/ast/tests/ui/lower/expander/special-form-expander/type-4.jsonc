@@ -6,5 +6,5 @@
   "Boolean",
   ["+", "x", "x"],
   { "#literal": true }
-  //~^ ERROR Remove this argument
+  //~^ ERROR unexpected argument
 ]

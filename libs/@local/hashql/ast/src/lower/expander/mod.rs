@@ -408,4 +408,10 @@ where
     fn visit_expr(&mut self, expr: &mut node::expr::Expr<'heap>) {
         self.visit(expr);
     }
+
+    fn visit_type(&mut self, r#type: &mut node::r#type::Type<'heap>) {
+        self.with_universe(Universe::Type, |this| {
+            visit::walk_type(this, &mut *r#type);
+        });
+    }
 }

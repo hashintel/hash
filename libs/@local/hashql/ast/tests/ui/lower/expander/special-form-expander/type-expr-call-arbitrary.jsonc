@@ -4,5 +4,5 @@
   "::kernel::special_form::as",
   { "#literal": true },
   ["::core::math::headpat", "Int", "Float"]
-  //~^ ERROR This function cannot be used as a type constructor
+  //~^ ERROR cannot use this as a type constructor
 ]

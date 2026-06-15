@@ -6,7 +6,7 @@
   {
     "#tuple": ["Int"],
     "#type": "(Int)"
-    //~^ ERROR Remove this type annotation
+    //~^ ERROR type annotations are not allowed inside a type expression
   },
   "x"
 ]

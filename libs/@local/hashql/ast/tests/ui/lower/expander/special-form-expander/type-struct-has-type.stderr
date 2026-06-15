@@ -1,7 +1,35 @@
-error[special-form-expander::type-with-existing-annotation]: Type expression with redundant type annotation
-  ╭▸ 
-8 │     "#type": "(name: String)"
-  │               ━━━━━━━━━━━━━━ Remove this type annotation
-  │
-  ├ help: Type expressions used in special forms cannot have their own type annotations. The expression itself defines a type and cannot be annotated with another type.
-  ╰ note: When constructing type expressions for special forms like 'type', 'newtype', or 'as', the expression itself represents a type definition and cannot have a separate type annotation.
+error[expander::type-annotation-in-type-position]: Type annotation in type position
+   ╭▸ 
+ 6 │ ┌   {
+ 7 │ │     "#struct": { "name": "String" },
+ 8 │ │     "#type": "(name: String)"
+   │ │               ━━━━━━━━━━━━━━ type annotations are not allowed inside a type expression
+ 9 │ │     //~^ ERROR type annotations are not allowed inside a type expression
+10 │ │   },
+   │ └───┘ this struct is already being used as a type
+   │
+   ├ help: remove the type annotation
+   ╰ note: in type position, `(name: String)` already defines a struct type
+
+error[expander::unresolved-variable]: Unresolved variable
+   ╭▸ 
+11 │   "x"
+   │    ━ cannot find `x` in this scope
+   │
+   ╰ note: this could be a typo, a name used outside its scope, or a missing declaration; if it is a function or type from another module, you may need to import it first
+help: a similar imported name exists
+   ╭╴
+11 -   "x"
+11 +   "~"
+   ├╴
+11 -   "x"
+11 +   "↑"
+   ├╴
+11 -   "x"
+11 +   "√"
+   ├╴
+11 -   "x"
+11 +   "∛"
+   ├╴
+11 │   "index"
+   ╰╴   ++++

@@ -1,13 +1,37 @@
-error[special-form-expander::invalid-type-expression]: Invalid type expression
+error[expander::invalid-type-constructor-call]: Invalid type constructor call
+   ╭▸ 
+ 6 │ ┌   [
+ 7 │ │     ["+", { "#literal": 1 }, { "#literal": 2 }],
+   │ │     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ cannot use this as a type constructor
+ 8 │ │     //~^ ERROR cannot use this as a type constructor
+ 9 │ │     "Integer",
+10 │ │     "Number"
+11 │ │   ]
+   │ └───┘ this call appears in a type position
+   │
+   ├ help: use a type path directly, or use `(| ...)` / `(& ...)` for unions and intersections
+   ╰ note: generic type arguments belong on the type path itself, for example `Foo<T>`, not `(Foo T)`
+
+error[expander::unresolved-variable]: Unresolved variable
   ╭▸ 
 7 │     ["+", { "#literal": 1 }, { "#literal": 2 }],
-  │     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Function call with non-path callee cannot be used as a type
+  │       ━ cannot find `+` in this scope
   │
-  ├ help: Only specific type constructors like intersection (&) and union (|) operators can be used in type expressions.
-  ╰ note: Valid type expressions include:
-          - Type names: String, Int, Float
-          - Struct types: {name: String, age: Int}
-          - Tuple types: (String, Int, Boolean)
-          - Unions: (| String Int)
-          - Intersections: (& String Int)
-          - Generic types: Array<String>, Option<Int>
+  ╰ note: this could be a typo, a name used outside its scope, or a missing declaration; if it is a function or type from another module, you may need to import it first
+help: a similar imported name exists
+  ╭╴
+7 -     ["+", { "#literal": 1 }, { "#literal": 2 }],
+7 +     ["String", { "#literal": 1 }, { "#literal": 2 }],
+  ├╴
+7 -     ["+", { "#literal": 1 }, { "#literal": 2 }],
+7 +     ["Union", { "#literal": 1 }, { "#literal": 2 }],
+  ├╴
+7 -     ["+", { "#literal": 1 }, { "#literal": 2 }],
+7 +     ["Unknown", { "#literal": 1 }, { "#literal": 2 }],
+  ├╴
+7 -     ["+", { "#literal": 1 }, { "#literal": 2 }],
+7 +     ["Url", { "#literal": 1 }, { "#literal": 2 }],
+  ├╴
+7 -     ["+", { "#literal": 1 }, { "#literal": 2 }],
+7 +     ["|", { "#literal": 1 }, { "#literal": 2 }],
+  ╰╴

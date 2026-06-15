@@ -6,7 +6,7 @@
   {
     "#struct": { "name": "String" },
     "#type": "(name: String)"
-    //~^ ERROR Remove this type annotation
+    //~^ ERROR type annotations are not allowed inside a type expression
   },
   "x"
 ]

@@ -1,10 +1,52 @@
-error[special-form-expander::invalid-fn-generics-expression]: Invalid expression in function generics
+error[expander::unresolved-variable]: Unresolved variable
+   ╭▸ 
+13 │   ["+", "a", "b"]
+   │               ━ cannot find `b` in this scope
+   │
+   ╰ note: this could be a typo, a name used outside its scope, or a missing declaration; if it is a function or type from another module, you may need to import it first
+help: a similar imported name exists
+   ╭╴
+13 -   ["+", "a", "b"]
+13 +   ["+", "a", "~"]
+   ├╴
+13 -   ["+", "a", "b"]
+13 +   ["+", "a", "↑"]
+   ├╴
+13 -   ["+", "a", "b"]
+13 +   ["+", "a", "√"]
+   ├╴
+13 -   ["+", "a", "b"]
+13 +   ["+", "a", "∛"]
+   ├╴
+13 -   ["+", "a", "b"]
+13 +   ["+", "a", "cbrt"]
+   ╰╴
+
+error[expander::unresolved-variable]: Unresolved variable
+   ╭▸ 
+13 │   ["+", "a", "b"]
+   │          ━ cannot find `a` in this scope
+   │
+   ╰ note: this could be a typo, a name used outside its scope, or a missing declaration; if it is a function or type from another module, you may need to import it first
+help: a similar imported name exists
+   ╭╴
+13 -   ["+", "a", "b"]
+13 +   ["+", "↑", "b"]
+   ├╴
+13 -   ["+", "a", "b"]
+13 +   ["+", "√", "b"]
+   ├╴
+13 -   ["+", "a", "b"]
+13 +   ["+", "∛", "b"]
+   ├╴
+13 │   ["+", "access", "b"]
+   ├╴          +++++
+13 │   ["+", "as", "b"]
+   ╰╴          +
+
+error[expander::invalid-fn-generic-param]: Invalid generic parameter
   ╭▸ 
 7 │       { "#literal": 1 }
-  │       ━━━━━━━━━━━━━━━━━ Use a valid generics expression
+  │       ━━━━━━━━━━━━━━━━━ expected a simple type parameter name
   │
-  ├ help: Function generics must be specified as either a tuple of identifiers or a struct of bounded type parameters. Other expression types are not valid in this context.
-  ╰ note: Valid generics expressions include:
-          - Empty: ()
-          - Tuple of identifiers: (T, U, V)
-          - Struct with bounds: (T: SomeBound, U: OtherBound) or (T: _, U: _) for unbounded types
+  ╰ help: each generic parameter must be a plain identifier like `T`, not a qualified path or expression

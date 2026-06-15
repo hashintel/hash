@@ -1,7 +1,7 @@
-error[special-form-expander::special-form-argument-length]: Incorrect number of arguments for special form
+error[expander::invalid-argument-count]: Invalid argument count
   ╭▸ 
 3 │ ["::kernel::special_form::type", "x", "Integer"]
-  │ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Add missing arguments
+  │ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ expected 3 arguments to `type`, found 2
   │
-  ├ help: The type/3 form should look like: (type name type-expr body)
-  ╰ note: The type function has 1 variant: type/3
+  ├ help: use `(type Name type-expr body)`
+  ╰ note: the arguments are, in order: the type name (optionally with generic parameters), the type definition, and the body where the name is in scope

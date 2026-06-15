@@ -4,7 +4,7 @@
   "::kernel::special_form::fn",
   { "#struct": {} },
   { "#struct": { "a": "Int", "a": "Int" } },
-  //~^ ERROR Remove this duplicate parameter 'a'
+  //~^ ERROR `a` is already declared as a parameter
   "_",
   ["+", "a", "b"]
 ]

@@ -4,7 +4,7 @@
 [
   "use",
   "kernel::foo",
-  //~^ ERROR Module 'foo' not found
+  //~^ ERROR cannot find module `foo`
   "*",
   ["add", { "#literal": 1 }, { "#literal": 2 }]
 ]

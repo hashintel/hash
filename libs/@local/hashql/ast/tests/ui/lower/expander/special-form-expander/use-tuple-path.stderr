@@ -1,7 +1,29 @@
-error[special-form-expander::invalid-use-import]: Invalid use import expression
+error[expander::unresolved-variable]: Unresolved variable
+  ╭▸ 
+8 │   "x"
+  │    ━ cannot find `x` in this scope
+  │
+  ╰ note: this could be a typo, a name used outside its scope, or a missing declaration; if it is a function or type from another module, you may need to import it first
+help: a similar imported name exists
+  ╭╴
+8 -   "x"
+8 +   "~"
+  ├╴
+8 -   "x"
+8 +   "↑"
+  ├╴
+8 -   "x"
+8 +   "√"
+  ├╴
+8 -   "x"
+8 +   "∛"
+  ├╴
+8 │   "index"
+  ╰╴   ++++
+
+error[expander::invalid-use-import-binding]: Invalid use import binding
   ╭▸ 
 6 │   { "#tuple": ["::core::math::sub"] },
-  │                 ━━━━━━━━━━━━━━━━━ Use a simple identifier here
+  │                 ━━━━━━━━━━━━━━━━━ expected a simple name to import
   │
-  ├ help: Use binding names must be simple identifiers. Qualified paths or complex expressions cannot be used in this context.
-  ╰ note: In tuple imports, each element must be a simple identifier. For example: (name1, name2) is valid, but (path::to::name,) is not.
+  ╰ help: each import must be a plain identifier like `foo`, not a qualified path or expression

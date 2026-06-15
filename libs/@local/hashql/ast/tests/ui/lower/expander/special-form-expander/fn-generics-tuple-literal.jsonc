@@ -5,7 +5,7 @@
   {
     "#tuple": [
       { "#literal": 1 }
-      //~^ ERROR Use a valid generics expression
+      //~^ ERROR expected a tuple or struct for generic parameters
     ]
   },
   { "#struct": {} },

@@ -1,9 +1,24 @@
-error[special-form-expander::duplicate-generic-constraint]: Duplicate generic parameter constraint
+error[expander::unresolved-variable]: Unresolved variable
+  ╭▸ 
+7 │   { "#struct": { "foo": "Bar" } },
+  │                          ━━━ cannot find `Bar` in this scope
+  │
+  ├ help: check the spelling, or import the name with a `use` statement
+  ╰ note: this could be a typo, a name used outside its scope, or a missing declaration; if it is a function or type from another module, you may need to import it first
+
+error[expander::unresolved-variable]: Unresolved variable
   ╭▸ 
 5 │   "Foo<T: Bar, T>",
-  │        ┬       ━ Remove this duplicate declaration of 'T'
-  │        │
-  │        'T' was previously declared here
+  │           ━━━ cannot find `Bar` in this scope
   │
-  ├ help: Each generic parameter can only be declared once in a function or type definition. Remove the duplicate declaration or use a different name.
-  ╰ note: Generic parameter names must be unique within a single generic parameter list. For example, in foo<T: Bound, U: OtherBound>, 'T' and 'U' are unique parameters.
+  ├ help: check the spelling, or import the name with a `use` statement
+  ╰ note: this could be a typo, a name used outside its scope, or a missing declaration; if it is a function or type from another module, you may need to import it first
+
+error[expander::duplicate-generic-constraint]: Duplicate generic constraint
+  ╭▸ 
+5 │   "Foo<T: Bar, T>",
+  │        ┬       ━ duplicate generic parameter `T`
+  │        │
+  │        `T` was first declared here
+  │
+  ╰ help: remove the duplicate declaration or use a different name

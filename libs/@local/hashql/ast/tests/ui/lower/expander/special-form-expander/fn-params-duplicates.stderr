@@ -1,9 +1,53 @@
-error[special-form-expander::duplicate-closure-parameter]: Duplicate closure parameter
+error[expander::unresolved-variable]: Unresolved variable
+  ╭▸ 
+9 │   ["+", "a", "b"]
+  │               ━ cannot find `b` in this scope
+  │
+  ╰ note: this could be a typo, a name used outside its scope, or a missing declaration; if it is a function or type from another module, you may need to import it first
+help: a similar local binding exists
+  ╭╴
+9 -   ["+", "a", "b"]
+9 +   ["+", "a", "a"]
+  ╰╴
+help: a similar imported name exists
+  ╭╴
+9 -   ["+", "a", "b"]
+9 +   ["+", "a", "~"]
+  ├╴
+9 -   ["+", "a", "b"]
+9 +   ["+", "a", "↑"]
+  ├╴
+9 -   ["+", "a", "b"]
+9 +   ["+", "a", "√"]
+  ├╴
+9 -   ["+", "a", "b"]
+9 +   ["+", "a", "∛"]
+  ├╴
+9 -   ["+", "a", "b"]
+9 +   ["+", "a", "cbrt"]
+  ╰╴
+
+error[expander::unresolved-variable]: Unresolved variable
   ╭▸ 
 6 │   { "#struct": { "a": "Int", "a": "Int" } },
-  │                   ┬           ━ Remove this duplicate parameter 'a'
-  │                   │
-  │                   'a' was previously declared here
+  │                                    ━━━ cannot find `Int` in this scope
   │
-  ├ help: Each function parameter must have a unique name. Rename this parameter or remove the duplicate declaration.
-  ╰ note: Function parameters must have unique names within the same parameter list. For example, in fn(x: Int, y: String): ReturnType body), 'x' and 'y' are unique parameters.
+  ├ help: check the spelling, or import the name with a `use` statement
+  ╰ note: this could be a typo, a name used outside its scope, or a missing declaration; if it is a function or type from another module, you may need to import it first
+
+error[expander::duplicate-fn-parameter]: Duplicate function parameter
+  ╭▸ 
+6 │   { "#struct": { "a": "Int", "a": "Int" } },
+  │                  ┬─────────  ━━━━━━━━━━ duplicate parameter `a`
+  │                  │
+  │                  `a` was first declared here
+  │
+  ╰ help: remove the duplicate parameter or use a different name
+
+error[expander::unresolved-variable]: Unresolved variable
+  ╭▸ 
+6 │   { "#struct": { "a": "Int", "a": "Int" } },
+  │                        ━━━ cannot find `Int` in this scope
+  │
+  ├ help: check the spelling, or import the name with a `use` statement
+  ╰ note: this could be a typo, a name used outside its scope, or a missing declaration; if it is a function or type from another module, you may need to import it first

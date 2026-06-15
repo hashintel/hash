@@ -1,7 +1,14 @@
-error[special-form-expander::field-literal-type-annotation]: Field literal with type annotation
+error[expander::unresolved-variable]: Unresolved variable
+  ╭▸ 
+5 │   "tuple",
+  │    ━━━━━ cannot find `tuple` in this scope
+  │
+  ├ help: check the spelling, or import the name with a `use` statement
+  ╰ note: this could be a typo, a name used outside its scope, or a missing declaration; if it is a function or type from another module, you may need to import it first
+
+error[expander::field-literal-type-annotation]: Field literal with type annotation
   ╭▸ 
 6 │   { "#literal": 0, "#type": "Integer" }
-  │                              ━━━━━━━ Remove this type annotation
+  │                              ━━━━━━━ type annotations are not allowed on field index literals
   │
-  ├ help: Field access using numeric literals cannot have type annotations. The literal represents the field index directly and doesn't need a separate type.
-  ╰ note: When using numeric literals for field access (e.g., in tuple destructuring), the number itself indicates the position and cannot be annotated with a type.
+  ╰ help: remove the type annotation and use a plain integer like `0`

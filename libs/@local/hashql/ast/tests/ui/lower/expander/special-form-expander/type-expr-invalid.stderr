@@ -1,55 +1,175 @@
-error[special-form-expander::invalid-type-expression]: Invalid type expression
+error[expander::invalid-expression-in-type-position]: Invalid expression in type position
    ╭▸ 
 22 │   { "#dict": { "a": "b" } }
-   │   ━━━━━━━━━━━━━━━━━━━━━━━━━ Replace this dictionary with a proper type expression
+   │   ━━━━━━━━━━━━━━━━━━━━━━━━━ cannot use a dictionary expression as a type
    │
-   ├ help: Dictionaries do not constitute a valid type expression, did you mean to instantiate a struct type or refer to the `Dict<K, V>` type?
-   ╰ note: Valid type expressions include:
-           - Type names: String, Int, Float
-           - Struct types: {name: String, age: Int}
-           - Tuple types: (String, Int, Boolean)
-           - Unions: (| String Int)
-           - Intersections: (& String Int)
-           - Generic types: Array<String>, Option<Int>
+   ├ help: replace this with a type path, tuple type, struct type, `_`, `(| ...)`, or `(& ...)`
+   ╰ note: valid type forms are: type paths like `String`, tuple types like `(Int, String)`, struct types like `(name: String)`, `_` for inference, unions `(| ...)`, and intersections `(& ...)`
 
-error[special-form-expander::invalid-type-expression]: Invalid type expression
-   ╭▸ 
-16 │       { "#literal": 1 }
-   │       ━━━━━━━━━━━━━━━━━ Replace this literal with a type name
-   │
-   ├ help: Replace this expression with a valid type reference, struct type, or tuple type
-   ╰ note: Valid type expressions include:
-           - Type names: String, Int, Float
-           - Struct types: {name: String, age: Int}
-           - Tuple types: (String, Int, Boolean)
-           - Unions: (| String Int)
-           - Intersections: (& String Int)
-           - Generic types: Array<String>, Option<Int>
-
-error[special-form-expander::invalid-type-expression]: Invalid type expression
-   ╭▸ 
-19 │     { "#list": ["a", "b"] }
-   │     ━━━━━━━━━━━━━━━━━━━━━━━ Replace this list with a proper type expression
-   │
-   ├ help: Arrays do not constitute a valid type expression, did you mean to instantiate a tuple type or refer to the `Array<T>` type?
-   ╰ note: Valid type expressions include:
-           - Type names: String, Int, Float
-           - Struct types: {name: String, age: Int}
-           - Tuple types: (String, Int, Boolean)
-           - Unions: (| String Int)
-           - Intersections: (& String Int)
-           - Generic types: Array<String>, Option<Int>
-
-error[special-form-expander::invalid-type-expression]: Invalid type expression
+error[expander::item-not-found]: Item not found
    ╭▸ 
 13 │         ["::kernel::special_form::as", "x", "X"]
-   │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Replace this as with a proper type expression
+   │                     ┬───────────  ━━ cannot find `as` in module `::kernel::special_form`
+   │                     │
+   │                     looked in this module
    │
-   ├ help: Replace this expression with a valid type reference, struct type, or tuple type
-   ╰ note: Valid type expressions include:
-           - Type names: String, Int, Float
-           - Struct types: {name: String, age: Int}
-           - Tuple types: (String, Int, Boolean)
-           - Unions: (| String Int)
-           - Intersections: (& String Int)
-           - Generic types: Array<String>, Option<Int>
+   ╰ help: check the spelling and ensure the item is exported
+
+error[expander::unresolved-variable]: Unresolved variable
+   ╭▸ 
+13 │         ["::kernel::special_form::as", "x", "X"]
+   │                                         ━ cannot find `x` in this scope
+   │
+   ╰ note: this could be a typo, a name used outside its scope, or a missing declaration; if it is a function or type from another module, you may need to import it first
+help: a similar imported name exists
+   ╭╴
+13 -         ["::kernel::special_form::as", "x", "X"]
+13 +         ["::kernel::special_form::as", "String", "X"]
+   ├╴
+13 -         ["::kernel::special_form::as", "x", "X"]
+13 +         ["::kernel::special_form::as", "Union", "X"]
+   ├╴
+13 -         ["::kernel::special_form::as", "x", "X"]
+13 +         ["::kernel::special_form::as", "Unknown", "X"]
+   ├╴
+13 -         ["::kernel::special_form::as", "x", "X"]
+13 +         ["::kernel::special_form::as", "Url", "X"]
+   ├╴
+13 -         ["::kernel::special_form::as", "x", "X"]
+13 +         ["::kernel::special_form::as", "|", "X"]
+   ╰╴
+
+error[expander::unresolved-variable]: Unresolved variable
+   ╭▸ 
+13 │         ["::kernel::special_form::as", "x", "X"]
+   │                                              ━ cannot find `X` in this scope
+   │
+   ╰ note: this could be a typo, a name used outside its scope, or a missing declaration; if it is a function or type from another module, you may need to import it first
+help: a similar imported name exists
+   ╭╴
+13 -         ["::kernel::special_form::as", "x", "X"]
+13 +         ["::kernel::special_form::as", "x", "String"]
+   ├╴
+13 -         ["::kernel::special_form::as", "x", "X"]
+13 +         ["::kernel::special_form::as", "x", "Union"]
+   ├╴
+13 -         ["::kernel::special_form::as", "x", "X"]
+13 +         ["::kernel::special_form::as", "x", "Unknown"]
+   ├╴
+13 -         ["::kernel::special_form::as", "x", "X"]
+13 +         ["::kernel::special_form::as", "x", "Url"]
+   ├╴
+13 -         ["::kernel::special_form::as", "x", "X"]
+13 +         ["::kernel::special_form::as", "x", "|"]
+   ╰╴
+
+error[expander::invalid-expression-in-type-position]: Invalid expression in type position
+   ╭▸ 
+16 │       { "#literal": 1 }
+   │       ━━━━━━━━━━━━━━━━━ cannot use a literal value as a type
+   │
+   ├ help: replace this with a type path, tuple type, struct type, `_`, `(| ...)`, or `(& ...)`
+   ╰ note: valid type forms are: type paths like `String`, tuple types like `(Int, String)`, struct types like `(name: String)`, `_` for inference, unions `(| ...)`, and intersections `(& ...)`
+
+error[expander::unresolved-variable]: Unresolved variable
+   ╭▸ 
+19 │     { "#list": ["a", "b"] }
+   │                  ━ cannot find `a` in this scope
+   │
+   ╰ note: this could be a typo, a name used outside its scope, or a missing declaration; if it is a function or type from another module, you may need to import it first
+help: a similar imported name exists
+   ╭╴
+19 -     { "#list": ["a", "b"] }
+19 +     { "#list": ["Union", "b"] }
+   ├╴
+19 -     { "#list": ["a", "b"] }
+19 +     { "#list": ["Unknown", "b"] }
+   ├╴
+19 -     { "#list": ["a", "b"] }
+19 +     { "#list": ["Url", "b"] }
+   ├╴
+19 -     { "#list": ["a", "b"] }
+19 +     { "#list": ["|", "b"] }
+   ├╴
+19 -     { "#list": ["a", "b"] }
+19 +     { "#list": ["Boolean", "b"] }
+   ╰╴
+
+error[expander::unresolved-variable]: Unresolved variable
+   ╭▸ 
+19 │     { "#list": ["a", "b"] }
+   │                       ━ cannot find `b` in this scope
+   │
+   ╰ note: this could be a typo, a name used outside its scope, or a missing declaration; if it is a function or type from another module, you may need to import it first
+help: a similar imported name exists
+   ╭╴
+19 -     { "#list": ["a", "b"] }
+19 +     { "#list": ["a", "Union"] }
+   ├╴
+19 -     { "#list": ["a", "b"] }
+19 +     { "#list": ["a", "Unknown"] }
+   ├╴
+19 -     { "#list": ["a", "b"] }
+19 +     { "#list": ["a", "Url"] }
+   ├╴
+19 -     { "#list": ["a", "b"] }
+19 +     { "#list": ["a", "|"] }
+   ├╴
+19 -     { "#list": ["a", "b"] }
+19 +     { "#list": ["a", "Number"] }
+   ╰╴
+
+error[expander::invalid-expression-in-type-position]: Invalid expression in type position
+   ╭▸ 
+19 │     { "#list": ["a", "b"] }
+   │     ━━━━━━━━━━━━━━━━━━━━━━━ cannot use a list expression as a type
+   │
+   ├ help: replace this with a type path, tuple type, struct type, `_`, `(| ...)`, or `(& ...)`
+   ╰ note: valid type forms are: type paths like `String`, tuple types like `(Int, String)`, struct types like `(name: String)`, `_` for inference, unions `(| ...)`, and intersections `(& ...)`
+
+error[expander::unresolved-variable]: Unresolved variable
+   ╭▸ 
+22 │   { "#dict": { "a": "b" } }
+   │                      ━ cannot find `b` in this scope
+   │
+   ╰ note: this could be a typo, a name used outside its scope, or a missing declaration; if it is a function or type from another module, you may need to import it first
+help: a similar imported name exists
+   ╭╴
+22 -   { "#dict": { "a": "b" } }
+22 +   { "#dict": { "a": "Union" } }
+   ├╴
+22 -   { "#dict": { "a": "b" } }
+22 +   { "#dict": { "a": "Unknown" } }
+   ├╴
+22 -   { "#dict": { "a": "b" } }
+22 +   { "#dict": { "a": "Url" } }
+   ├╴
+22 -   { "#dict": { "a": "b" } }
+22 +   { "#dict": { "a": "|" } }
+   ├╴
+22 -   { "#dict": { "a": "b" } }
+22 +   { "#dict": { "a": "Number" } }
+   ╰╴
+
+error[expander::unresolved-variable]: Unresolved variable
+   ╭▸ 
+11 │         "x",
+   │          ━ cannot find `x` in this scope
+   │
+   ╰ note: this could be a typo, a name used outside its scope, or a missing declaration; if it is a function or type from another module, you may need to import it first
+help: a similar imported name exists
+   ╭╴
+11 -         "x",
+11 +         "~",
+   ├╴
+11 -         "x",
+11 +         "↑",
+   ├╴
+11 -         "x",
+11 +         "√",
+   ├╴
+11 -         "x",
+11 +         "∛",
+   ├╴
+11 │         "index",
+   ╰╴         ++++

@@ -1,16 +1,6 @@
-error[type-check::bound-constraint-violation]: Type bound constraint violation
+error[lowering::expander::intrinsic-generic-arguments]: Generic arguments on intrinsic
   ╭▸ 
-1 │ //@ run: fail
-  │ ─ Upper bound `Number` is not a supertype of the lower bound
-  ‡
 4 │   "`+`<Number, Number>",
-  │    ━━━━━━━━━━━━━━━━━━━ Type variable has incompatible upper and lower bounds
-  ‡
-7 │   { "#literal": "42" }
-  │                 ──── Lower bound `String` must be a subtype of the upper bound
+  │    ━━━━━━━━━━━━━━━━━━━ `+` does not accept generic arguments
   │
-  ├ help: These type bounds create an impossible constraint. To fix this:
-  │       1. Modify `String` to be a proper subtype of `Number`
-  │       2. Or adjust `Number` to be a supertype of `String`
-  │       3. Or check your code for contradictory type assertions
-  ╰ note: During type inference, when a variable has both upper and lower bounds, the relationship 'lower <: upper' must hold. This ensures a valid solution exists in the type system. When this relationship is violated, it means your code is requiring contradictory types for the same variable.
+  ╰ help: remove the generic arguments from `+`

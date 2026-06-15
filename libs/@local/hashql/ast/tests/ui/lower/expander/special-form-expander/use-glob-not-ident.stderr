@@ -1,7 +1,6 @@
-error[special-form-expander::invalid-use-import]: Invalid use import expression
+error[expander::invalid-use-imports]: Invalid use imports
   ╭▸ 
 6 │   "::core::math::X",
-  │    ━━━━━━━━━━━━━━━ Use a simple identifier here
+  │    ━━━━━━━━━━━━━━━ expected `*`, a tuple of names, or a struct of aliases
   │
-  ├ help: Use binding names must be simple identifiers. Qualified paths or complex expressions cannot be used in this context.
-  ╰ note: In tuple imports, each element must be a simple identifier. For example: (name1, name2) is valid, but (path::to::name,) is not.
+  ╰ help: use `*` to import everything, `(a, b)` to import specific names, or `(a: alias, b: _)` to import with aliases

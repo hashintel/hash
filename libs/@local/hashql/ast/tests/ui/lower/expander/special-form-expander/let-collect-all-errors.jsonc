@@ -3,9 +3,9 @@
 [
   "::kernel::special_form::let",
   "::x",
-  //~^ ERROR Replace this with a simple identifier
+  //~^ ERROR expected a simple identifier for the `let` binding name
   { "#literal": 1 },
-  //~^ ERROR Replace this literal with a type name
+  //~^ ERROR cannot use a literal value as a type
   { "#literal": 1 },
   "x"
 ]

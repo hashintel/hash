@@ -1,10 +1,31 @@
-error[special-form-expander::use-path-with-generics]: Use path with generic arguments
+error[expander::item-not-found]: Item not found
   ╭▸ 
 3 │ ["use", "kernel::type<T>", { "#tuple": ["T"] }, "_"]
-  │          ┯━━━━━━━┬──────
-  │          │       │
-  │          │       Generic arguments are not allowed here
-  │          Remove these generic arguments
+  │                  ┬───                    ━ cannot find `T` in module `kernel::type`
+  │                  │
+  │                  looked in this module
+  ╰╴
+help: a similar item exists in this module
+  ╭╴
+3 - ["use", "kernel::type<T>", { "#tuple": ["T"] }, "_"]
+3 + ["use", "kernel::type<T>", { "#tuple": ["Number"] }, "_"]
+  ├╴
+3 - ["use", "kernel::type<T>", { "#tuple": ["T"] }, "_"]
+3 + ["use", "kernel::type<T>", { "#tuple": ["String"] }, "_"]
+  ├╴
+3 - ["use", "kernel::type<T>", { "#tuple": ["T"] }, "_"]
+3 + ["use", "kernel::type<T>", { "#tuple": ["Union"] }, "_"]
+  ├╴
+3 - ["use", "kernel::type<T>", { "#tuple": ["T"] }, "_"]
+3 + ["use", "kernel::type<T>", { "#tuple": ["Unknown"] }, "_"]
+  ├╴
+3 - ["use", "kernel::type<T>", { "#tuple": ["T"] }, "_"]
+3 + ["use", "kernel::type<T>", { "#tuple": ["|"] }, "_"]
+  ╰╴
+
+error[expander::use-path-generic-arguments]: Generic arguments in use path
+  ╭▸ 
+3 │ ["use", "kernel::type<T>", { "#tuple": ["T"] }, "_"]
+  │          ━━━━━━━━━━━━━━━ generic arguments are not allowed in `use` paths
   │
-  ├ help: The 'use' special form does not support generic arguments in import paths. Remove all generic arguments from the path.
-  ╰ note: Use statements in HashQL can only import modules or specific symbols, but cannot specify generic parameters during import.
+  ╰ help: remove the generic arguments; `use` imports modules and items, which do not take type parameters at the import site

@@ -5,7 +5,7 @@
   {
     "#struct": {
       "T": { "#literal": 2 }
-      //~^ ERROR Replace this literal with a type name
+      //~^ ERROR expected a simple type parameter
     }
   },
   { "#struct": {} },

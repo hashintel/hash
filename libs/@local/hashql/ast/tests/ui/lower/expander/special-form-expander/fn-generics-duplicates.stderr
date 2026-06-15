@@ -1,9 +1,54 @@
-error[special-form-expander::duplicate-generic-constraint]: Duplicate generic parameter constraint
+error[expander::unresolved-variable]: Unresolved variable
+  ╭▸ 
+9 │   ["+", "a", "b"]
+  │               ━ cannot find `b` in this scope
+  │
+  ╰ note: this could be a typo, a name used outside its scope, or a missing declaration; if it is a function or type from another module, you may need to import it first
+help: a similar imported name exists
+  ╭╴
+9 -   ["+", "a", "b"]
+9 +   ["+", "a", "~"]
+  ├╴
+9 -   ["+", "a", "b"]
+9 +   ["+", "a", "↑"]
+  ├╴
+9 -   ["+", "a", "b"]
+9 +   ["+", "a", "√"]
+  ├╴
+9 -   ["+", "a", "b"]
+9 +   ["+", "a", "∛"]
+  ├╴
+9 -   ["+", "a", "b"]
+9 +   ["+", "a", "cbrt"]
+  ╰╴
+
+error[expander::unresolved-variable]: Unresolved variable
+  ╭▸ 
+9 │   ["+", "a", "b"]
+  │          ━ cannot find `a` in this scope
+  │
+  ╰ note: this could be a typo, a name used outside its scope, or a missing declaration; if it is a function or type from another module, you may need to import it first
+help: a similar imported name exists
+  ╭╴
+9 -   ["+", "a", "b"]
+9 +   ["+", "↑", "b"]
+  ├╴
+9 -   ["+", "a", "b"]
+9 +   ["+", "√", "b"]
+  ├╴
+9 -   ["+", "a", "b"]
+9 +   ["+", "∛", "b"]
+  ├╴
+9 │   ["+", "access", "b"]
+  ├╴          +++++
+9 │   ["+", "as", "b"]
+  ╰╴          +
+
+error[expander::duplicate-fn-generic]: Duplicate generic parameter
   ╭▸ 
 5 │   { "#tuple": ["T", "T"] },
-  │                 ┬    ━ Remove this duplicate generic parameter 'T'
+  │                 ┬    ━ duplicate generic parameter `T`
   │                 │
-  │                 'T' was previously declared here
+  │                 `T` was first declared here
   │
-  ├ help: Each generic parameter can only be declared once in a function definition. Remove the duplicate declaration or use a different name.
-  ╰ note: Generic parameter names must be unique within a function's generic parameter list. For example, in fn<T, U>(param: T): U -> body), 'T' and 'U' are unique parameters.
+  ╰ help: remove the duplicate declaration or use a different name

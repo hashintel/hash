@@ -1,7 +1,52 @@
-error[special-form-expander::fn-params-with-type-annotation]: Function parameters with type annotation
+error[expander::unresolved-variable]: Unresolved variable
+   ╭▸ 
+12 │   ["+", "a", "b"]
+   │               ━ cannot find `b` in this scope
+   │
+   ╰ note: this could be a typo, a name used outside its scope, or a missing declaration; if it is a function or type from another module, you may need to import it first
+help: a similar imported name exists
+   ╭╴
+12 -   ["+", "a", "b"]
+12 +   ["+", "a", "~"]
+   ├╴
+12 -   ["+", "a", "b"]
+12 +   ["+", "a", "↑"]
+   ├╴
+12 -   ["+", "a", "b"]
+12 +   ["+", "a", "√"]
+   ├╴
+12 -   ["+", "a", "b"]
+12 +   ["+", "a", "∛"]
+   ├╴
+12 -   ["+", "a", "b"]
+12 +   ["+", "a", "cbrt"]
+   ╰╴
+
+error[expander::unresolved-variable]: Unresolved variable
+   ╭▸ 
+12 │   ["+", "a", "b"]
+   │          ━ cannot find `a` in this scope
+   │
+   ╰ note: this could be a typo, a name used outside its scope, or a missing declaration; if it is a function or type from another module, you may need to import it first
+help: a similar imported name exists
+   ╭╴
+12 -   ["+", "a", "b"]
+12 +   ["+", "↑", "b"]
+   ├╴
+12 -   ["+", "a", "b"]
+12 +   ["+", "√", "b"]
+   ├╴
+12 -   ["+", "a", "b"]
+12 +   ["+", "∛", "b"]
+   ├╴
+12 │   ["+", "access", "b"]
+   ├╴          +++++
+12 │   ["+", "as", "b"]
+   ╰╴          +
+
+error[expander::fn-params-type-annotation]: Type annotation on parameter list
   ╭▸ 
 8 │     "#type": "Int"
-  │               ━━━ Remove this type annotation
+  │               ━━━ type annotation is not allowed on the parameter list
   │
-  ├ help: Function parameter declarations cannot have type annotations at the struct level. The struct itself represents the parameter list, and each field represents a parameter with its type.
-  ╰ note: In the 'fn' special form, parameter lists should be structured as (param1: Type1, param2: Type2), where the struct itself does not have a type annotation.
+  ╰ help: remove the type annotation; each parameter already declares its type individually as `(name: type)`

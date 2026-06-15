@@ -1,7 +1,52 @@
-error[special-form-expander::invalid-fn-generic-param]: Invalid generic parameter in function declaration
+error[expander::unresolved-variable]: Unresolved variable
+   ╭▸ 
+13 │   ["+", "a", "b"]
+   │               ━ cannot find `b` in this scope
+   │
+   ╰ note: this could be a typo, a name used outside its scope, or a missing declaration; if it is a function or type from another module, you may need to import it first
+help: a similar imported name exists
+   ╭╴
+13 -   ["+", "a", "b"]
+13 +   ["+", "a", "~"]
+   ├╴
+13 -   ["+", "a", "b"]
+13 +   ["+", "a", "↑"]
+   ├╴
+13 -   ["+", "a", "b"]
+13 +   ["+", "a", "√"]
+   ├╴
+13 -   ["+", "a", "b"]
+13 +   ["+", "a", "∛"]
+   ├╴
+13 -   ["+", "a", "b"]
+13 +   ["+", "a", "cbrt"]
+   ╰╴
+
+error[expander::unresolved-variable]: Unresolved variable
+   ╭▸ 
+13 │   ["+", "a", "b"]
+   │          ━ cannot find `a` in this scope
+   │
+   ╰ note: this could be a typo, a name used outside its scope, or a missing declaration; if it is a function or type from another module, you may need to import it first
+help: a similar imported name exists
+   ╭╴
+13 -   ["+", "a", "b"]
+13 +   ["+", "↑", "b"]
+   ├╴
+13 -   ["+", "a", "b"]
+13 +   ["+", "√", "b"]
+   ├╴
+13 -   ["+", "a", "b"]
+13 +   ["+", "∛", "b"]
+   ├╴
+13 │   ["+", "access", "b"]
+   ├╴          +++++
+13 │   ["+", "as", "b"]
+   ╰╴          +
+
+error[expander::invalid-fn-generic-param]: Invalid generic parameter
   ╭▸ 
 7 │       "::core::math::add"
-  │        ━━━━━━━━━━━━━━━━━ Use a simple identifier here
+  │        ━━━━━━━━━━━━━━━━━ expected a simple type parameter name
   │
-  ├ help: Generic type parameters must be simple identifiers. Qualified paths or complex expressions cannot be used in this context.
-  ╰ note: In function generic parameter lists, each element must be a simple identifier. For example: (T, U, V) is valid, but (some::path,) is not.
+  ╰ help: each generic parameter must be a plain identifier like `T`, not a qualified path or expression

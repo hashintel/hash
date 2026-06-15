@@ -7,7 +7,9 @@ Expr#4294967040@27
         ClosureParam#4294967040@16 (name: a:0)
           Type#4294967040@15
             TypeKind (Path)
-              Path#4294967040@15 (rooted: false)
+              Path#4294967040@15 (rooted: true)
+                PathSegment#4294967040@14 (name: kernel)
+                PathSegment#4294967040@14 (name: type)
                 PathSegment#4294967040@14 (name: Integer)
         Type#4294967040@22
           TypeKind (Path)

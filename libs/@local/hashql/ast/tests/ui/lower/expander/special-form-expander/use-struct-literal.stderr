@@ -1,10 +1,40 @@
-error[special-form-expander::invalid-use-import]: Invalid use import expression
+error[expander::unresolved-variable]: Unresolved variable
+   ╭▸ 
+12 │   "x"
+   │    ━ cannot find `x` in this scope
+   │
+   ╰ note: this could be a typo, a name used outside its scope, or a missing declaration; if it is a function or type from another module, you may need to import it first
+help: a similar imported name exists
+   ╭╴
+12 -   "x"
+12 +   "~"
+   ├╴
+12 -   "x"
+12 +   "↑"
+   ├╴
+12 -   "x"
+12 +   "√"
+   ├╴
+12 -   "x"
+12 +   "∛"
+   ├╴
+12 │   "index"
+   ╰╴   ++++
+
+error[expander::package-not-found]: Package not found
+  ╭▸ 
+5 │   "::math",
+  │    ┬─┯━━━
+  │    │ │
+  │    │ cannot find package `math`
+  │    in this path
+  │
+  ├ help: check the package name, or add it to the project dependencies
+  ╰ note: absolute paths start from an installed package
+
+error[expander::invalid-use-alias]: Invalid use alias
   ╭▸ 
 8 │       "x": { "#literal": 1 }
-  │            ━━━━━━━━━━━━━━━━━ Replace with a valid import expression
+  │            ━━━━━━━━━━━━━━━━━ expected `_` or a simple identifier as the alias
   │
-  ├ help: Use imports must be either a glob (*), a tuple of identifiers, or a struct of bindings. Other expression types are not valid in this context.
-  ╰ note: Valid import expressions include:
-          - Glob: *
-          - Tuple of identifiers: (name1, name2)
-          - Struct with aliases: (name1: alias1, name2: alias2) or (name1: _, name2: _)
+  ╰ help: use `_` to keep the original name or a simple identifier to rename: `(name: alias)` or `(name: _)`
