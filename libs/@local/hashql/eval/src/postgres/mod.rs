@@ -331,7 +331,7 @@ impl<'eval, 'ctx, 'heap, A: Allocator, S: BumpAllocator>
         }
 
         // TODO: we might want a longer lived graph read filter compiler here
-        let expression = self.scratch.scoped(|alloc| {
+        let expression = self.scratch.scoped_mut(|alloc| {
             let mut compiler = GraphReadFilterCompiler::new(self.context, body, env, &alloc);
 
             let expression = compiler.compile_body(db, island);

@@ -78,14 +78,36 @@ pub trait BumpAllocator: Allocator {
 
     /// Executes a closure with a scoped sub-arena.
     ///
-    /// A scoped allocator creates a checkpoint in the arena. Allocations made within the
-    /// closure use memory after this checkpoint, and when the closure returns, the arena
-    /// rewinds to the checkpoint—freeing all scoped allocations while preserving any
-    /// allocations made before entering the scope.
+    /// Creates a checkpoint in the arena, runs `func` with a temporary sub-arena,
+    /// then rewinds to the checkpoint when `func` returns. All allocations made
+    /// through the scoped allocator are freed, while allocations made before
+    /// entering the scope are preserved.
     ///
-    /// This is useful for temporary intermediate allocations during a computation that
-    /// should not outlive the computation itself.
-    fn scoped<T>(&mut self, func: impl FnOnce(Self::Scoped<'_>) -> T) -> T;
+    /// This is the preferred way to create a scope. When only a shared reference
+    /// is available (for example, when the allocator is borrowed by collections
+    /// as `&A`), use [`scoped_ref`](Self::scoped_ref) instead.
+    fn scoped_mut<T>(&mut self, func: impl FnOnce(&mut Self::Scoped<'_>) -> T) -> T;
+
+    /// Executes a closure with a scoped sub-arena, requiring only a shared reference.
+    ///
+    /// Behaves like [`scoped_mut`](Self::scoped_mut), but works through `&self`.
+    /// This is useful when the allocator is shared as `&A` by collections or other
+    /// borrowing code that prevents obtaining `&mut self`.
+    ///
+    /// Prefer [`scoped_mut`](Self::scoped_mut) when mutable access is available:
+    /// it is faster and cannot trigger the failure mode described below.
+    ///
+    /// # Allocation failure during scope
+    ///
+    /// While the scope is active, the outer allocator is temporarily unable to
+    /// allocate or grow memory. Attempts to allocate or grow through the outer
+    /// reference will return [`AllocError`], which causes infallible allocation
+    /// paths (such as [`Vec::push`]) to abort the process. Deallocations and
+    /// shrinks through the outer reference are silently ignored during this
+    /// period.
+    ///
+    /// [`AllocError`]: core::alloc::AllocError
+    fn scoped_ref<T>(&self, func: impl FnOnce(&mut Self::Scoped<'_>) -> T) -> T;
 
     /// Creates a checkpoint of the current bump position.
     ///
@@ -220,6 +242,59 @@ pub trait ResetAllocator: BumpAllocator {
     fn reset(&mut self);
 }
 
+impl<A> BumpAllocator for &A
+where
+    A: BumpAllocator,
+{
+    type Checkpoint = A::Checkpoint;
+    type Scoped<'scope> = A::Scoped<'scope>;
+
+    #[inline]
+    fn scoped_mut<T>(&mut self, func: impl FnOnce(&mut Self::Scoped<'_>) -> T) -> T {
+        A::scoped_ref(self, func)
+    }
+
+    #[inline]
+    fn scoped_ref<T>(&self, func: impl FnOnce(&mut Self::Scoped<'_>) -> T) -> T {
+        A::scoped_ref(self, func)
+    }
+
+    #[inline]
+    fn checkpoint(&self) -> Self::Checkpoint {
+        A::checkpoint(self)
+    }
+
+    unsafe fn rollback(&self, checkpoint: Self::Checkpoint) {
+        // SAFETY: same safety requirements as `A::rollback`
+        unsafe {
+            A::rollback(self, checkpoint);
+        }
+    }
+
+    #[inline]
+    fn try_allocate_slice_copy<T: Copy>(&self, slice: &[T]) -> Result<&mut [T], AllocError> {
+        A::try_allocate_slice_copy(self, slice)
+    }
+
+    #[inline]
+    fn allocate_slice_copy<T: Copy>(&self, slice: &[T]) -> &mut [T] {
+        A::allocate_slice_copy(self, slice)
+    }
+
+    #[inline]
+    fn allocate_slice_uninit<T>(&self, len: usize) -> &mut [mem::MaybeUninit<T>] {
+        A::allocate_slice_uninit(self, len)
+    }
+
+    #[inline]
+    fn try_allocate_slice_uninit<T>(
+        &self,
+        len: usize,
+    ) -> Result<&mut [mem::MaybeUninit<T>], AllocError> {
+        A::try_allocate_slice_uninit(self, len)
+    }
+}
+
 impl<A> BumpAllocator for &mut A
 where
     A: BumpAllocator,
@@ -228,8 +303,13 @@ where
     type Scoped<'scope> = A::Scoped<'scope>;
 
     #[inline]
-    fn scoped<T>(&mut self, func: impl FnOnce(Self::Scoped<'_>) -> T) -> T {
-        A::scoped(self, func)
+    fn scoped_mut<T>(&mut self, func: impl FnOnce(&mut Self::Scoped<'_>) -> T) -> T {
+        A::scoped_mut(self, func)
+    }
+
+    #[inline]
+    fn scoped_ref<T>(&self, func: impl FnOnce(&mut Self::Scoped<'_>) -> T) -> T {
+        A::scoped_ref(self, func)
     }
 
     #[inline]
