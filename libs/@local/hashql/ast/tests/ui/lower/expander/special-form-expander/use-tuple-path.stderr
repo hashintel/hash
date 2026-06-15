@@ -1,26 +1,3 @@
-error[expander::unresolved-variable]: Unresolved variable
-  ╭▸ 
-8 │   "x"
-  │    ━ cannot find `x` in this scope
-  │
-  ╰ note: this could be a typo, a name used outside its scope, or a missing declaration; if it is a function or type from another module, you may need to import it first
-help: a similar imported name exists
-  ╭╴
-8 -   "x"
-8 +   "~"
-  ├╴
-8 -   "x"
-8 +   "↑"
-  ├╴
-8 -   "x"
-8 +   "√"
-  ├╴
-8 -   "x"
-8 +   "∛"
-  ├╴
-8 │   "index"
-  ╰╴   ++++
-
 error[expander::invalid-use-import-binding]: Invalid use import binding
   ╭▸ 
 6 │   { "#tuple": ["::core::math::sub"] },
