@@ -4,12 +4,11 @@
   "let",
   "foo",
   "core::math::add<Integer>",
-  //~^ ERROR does not accept generic arguments
   [
     "let",
     "bar",
     "foo<Number>",
-    //~^ ERROR does not accept generic arguments
+    //~^ ERROR additional type arguments are provided here
     "bar"
   ]
 ]

@@ -4,7 +4,7 @@
   "::kernel::special_form::newtype",
   "x",
   "Boolean",
-  ["+", "x", "x"],
+  ["+", { "#literal": true }, { "#literal": false }],
   { "#literal": true }
   //~^ ERROR unexpected argument
 ]

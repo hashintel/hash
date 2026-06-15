@@ -3,10 +3,9 @@ error[expander::invalid-type-constructor-call]: Invalid type constructor call
  6 │ ┌   [
  7 │ │     ["+", { "#literal": 1 }, { "#literal": 2 }],
    │ │     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ cannot use this as a type constructor
- 8 │ │     //~^ ERROR cannot use this as a type constructor
- 9 │ │     "Integer",
-10 │ │     "Number"
-11 │ │   ]
+   ‡ │
+11 │ │     "Number"
+12 │ │   ]
    │ └───┘ this call appears in a type position
    │
    ├ help: use a type path directly, or use `(| ...)` / `(& ...)` for unions and intersections

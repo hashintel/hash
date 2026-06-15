@@ -2,7 +2,7 @@
 //@ description: mangle the name of the generics
 [
   "newtype",
-  "Foo<T: Bar, U: V, V>",
+  "Foo<T: Number, U: V, V>",
   {
     "#struct": { "foo": "T", "bar": "U", "baz": "V", "inner": "Foo<T, U, V>" }
   },

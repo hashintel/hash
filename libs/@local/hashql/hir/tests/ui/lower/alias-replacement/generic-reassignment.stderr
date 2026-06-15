@@ -1,13 +1,10 @@
-error[lowering::expander::intrinsic-generic-arguments]: Generic arguments on intrinsic
+error[lower::argument-override]: Cannot apply type arguments to already-parameterized variable
    ╭▸ 
-11 │     "foo<Number>",
-   │      ━━━━━━━━━━━ `foo` does not accept generic arguments
+ 6 │   "core::math::add<Integer>",
+   │    ━━━━━━━━━━━━━━━━━━━━━━━━ `foo:0` was defined with type arguments here
+   ‡
+10 │     "foo<Number>",
+   │          ────── ... but additional type arguments are provided here
    │
-   ╰ help: remove the generic arguments from `foo`
-
-error[lowering::expander::intrinsic-generic-arguments]: Generic arguments on intrinsic
-  ╭▸ 
-6 │   "core::math::add<Integer>",
-  │                ━━━━━━━━━━━━ `add` does not accept generic arguments
-  │
-  ╰ help: remove the generic arguments from `add`
+   ├ help: The variable `foo:0` already represents `::core::math::add` with type arguments applied. Use `foo:0` directly without additional type arguments, or create a new binding if you need different type parameters.
+   ╰ note: Variables that alias parameterized expressions cannot have additional type arguments applied to them, as this would create ambiguous type parameter bindings.

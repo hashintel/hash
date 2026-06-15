@@ -2,7 +2,7 @@ use core::mem;
 
 use hashql_core::{heap::BumpAllocator, module::item::Item, span::SpanId, symbol::Ident};
 
-use super::{BindingKind, Expander, r#type::lower_expr_to_type};
+use super::{BindingKind, CurrentItem, Expander, r#type::lower_expr_to_type};
 use crate::{
     lower::expander::error,
     node::{
@@ -41,26 +41,33 @@ where
         expander
             .diagnostics
             .push(error::invalid_let_binding_name(name));
+
         return Expr::dummy();
     };
 
     let item = expander.visit(&mut value.value);
 
-    expander.bind(
-        name.value,
-        item.map_or(
-            BindingKind::Local(hashql_core::module::Universe::Value),
-            Into::into,
-        ),
-        |expander| {
-            expander.visit(&mut body.value);
-        },
+    tracing::info!("item: {:?}, item: {:?}", name.value, item);
+    let kind = item.filter(|item| !item.has_arguments).map_or(
+        BindingKind::Local(hashql_core::module::Universe::Value),
+        |item| BindingKind::Remote(item.item),
     );
+    tracing::info!("kind: {:?}", kind);
 
-    if let Some(Item {
-        kind: hashql_core::module::item::ItemKind::Intrinsic(_),
-        ..
+    expander.bind(name.value, kind, |expander| {
+        expander.visit(&mut body.value);
+    });
+
+    if let Some(CurrentItem {
+        item:
+            current_module @ Item {
+                kind: hashql_core::module::item::ItemKind::Intrinsic(_),
+                ..
+            },
+        // We cannot replace an alias with arguments, because we'd lose the arguments
+        has_arguments: false,
     }) = item
+        && current_module.module == expander.special_form_module
     {
         if let Some(r#type) = r#type {
             expander.diagnostics.push(error::intrinsic_type_annotation(

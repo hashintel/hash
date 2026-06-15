@@ -42,6 +42,7 @@ use crate::{
 
 /// Whether a binding introduced during expansion is a local (opaque) or
 /// an alias for a resolved registry item.
+#[derive(Debug)]
 enum BindingKind<'heap> {
     /// A binding with no identity beyond its name and universe
     /// (e.g., a `let` binding or function parameter).
@@ -81,6 +82,12 @@ impl<'heap> Binder<'_, '_, 'heap> {
     }
 }
 
+#[derive(Debug, Copy, Clone)]
+struct CurrentItem<'heap> {
+    item: module::item::Item<'heap>,
+    has_arguments: bool,
+}
+
 /// Combined name resolution and special form expansion visitor.
 ///
 /// Resolves every path in the AST against the module namespace, rewrites
@@ -96,7 +103,7 @@ pub struct Expander<'env, 'heap, S> {
     current_universe: Universe,
     diagnostics: ExpanderDiagnosticIssues,
 
-    current_item: Option<module::item::Item<'heap>>,
+    current_item: Option<CurrentItem<'heap>>,
     trampoline: Option<node::expr::Expr<'heap>>,
     special_form_module: module::ModuleId,
 }
@@ -155,7 +162,7 @@ impl<'env, 'heap, S> Expander<'env, 'heap, S> {
     /// Returns `None` when the expression resolved to a local binding,
     /// was not a path, or resolution failed (in which case the expression
     /// is replaced with [`Expr::dummy`]).
-    fn visit(&mut self, expr: &mut node::expr::Expr<'heap>) -> Option<module::item::Item<'heap>>
+    fn visit(&mut self, expr: &mut node::expr::Expr<'heap>) -> Option<CurrentItem<'heap>>
     where
         S: BumpAllocator,
     {
@@ -257,12 +264,13 @@ where
     S: BumpAllocator,
 {
     fn visit_path(&mut self, path: &mut node::path::Path<'heap>) {
-        self.current_item = None;
         visit::walk_path(self, path);
+        self.current_item = None;
 
         let [modules @ .., ident] = &*path.segments else {
             self.diagnostics.push(error::empty_path(path.span));
             self.trampoline = Some(node::expr::Expr::dummy());
+
             return;
         };
 
@@ -270,6 +278,7 @@ where
         if let Some(diagnostic) = error::generic_arguments_in_module(modules) {
             self.diagnostics.push(diagnostic);
             self.trampoline = Some(node::expr::Expr::dummy());
+
             return;
         }
 
@@ -295,6 +304,7 @@ where
                     error,
                 ));
                 self.trampoline = Some(node::expr::Expr::dummy());
+
                 return;
             }
         };
@@ -312,7 +322,10 @@ where
             Reference::Item(item) => item,
         };
 
-        self.current_item = Some(item);
+        self.current_item = Some(CurrentItem {
+            item,
+            has_arguments: !ident.arguments.is_empty(),
+        });
 
         match item.kind {
             ItemKind::Intrinsic(IntrinsicItem::Type(IntrinsicTypeItem { name }))
@@ -326,6 +339,7 @@ where
                 self.diagnostics
                     .push(error::intrinsic_generic_arguments(ident));
                 self.trampoline = Some(node::expr::Expr::dummy());
+
                 return;
             }
             ItemKind::Intrinsic(IntrinsicItem::Value(_))
@@ -334,6 +348,7 @@ where
                 self.diagnostics
                     .push(error::intrinsic_generic_arguments(ident));
                 self.trampoline = Some(node::expr::Expr::dummy());
+
                 return;
             }
             ItemKind::Module(_)
@@ -350,6 +365,7 @@ where
                 absolute_path.len(),
             ));
             self.trampoline = Some(node::expr::Expr::dummy());
+
             return;
         }
 
@@ -367,7 +383,7 @@ where
                     value: sym::dummy,
                     kind: hashql_core::symbol::IdentKind::Lexical,
                 },
-                arguments: heap::Vec::new_in(self.namespace.registry().heap),
+                arguments: heap::Vec::new_in(self.heap),
             },
             padding,
         ));
@@ -383,9 +399,13 @@ where
     fn visit_call_expr(&mut self, expr: &mut node::expr::CallExpr<'heap>) {
         let item = self.visit(&mut expr.function);
 
-        if let Some(Item {
-            kind: module::item::ItemKind::Intrinsic(IntrinsicItem::Value(value)),
-            ..
+        if let Some(CurrentItem {
+            item:
+                Item {
+                    kind: module::item::ItemKind::Intrinsic(IntrinsicItem::Value(value)),
+                    ..
+                },
+            has_arguments: _, // We ignore it so that we can continue to lower here
         }) = item
             && let Some(constant) = value.name.as_constant()
         {

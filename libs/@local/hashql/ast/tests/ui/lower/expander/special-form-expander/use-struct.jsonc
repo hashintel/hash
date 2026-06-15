@@ -3,6 +3,6 @@
 [
   "::kernel::special_form::use",
   "::core::math",
-  { "#struct": { "x": "y", "z": "_" } },
+  { "#struct": { "sqrt": "y", "cbrt": "_" } },
   { "#literal": 0 }
 ]

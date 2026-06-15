@@ -3,6 +3,6 @@
 [
   "::kernel::special_form::use",
   "::core::math",
-  { "#tuple": ["pi"] },
+  { "#tuple": ["sqrt"] },
   { "#literal": 0 }
 ]
