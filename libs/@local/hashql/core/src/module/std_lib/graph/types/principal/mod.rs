@@ -1,7 +1,6 @@
 pub mod actor_group;
 
 use crate::{
-    heap::Heap,
     module::{
         StandardLibrary,
         std_lib::{ModuleDef, StandardLibraryModule},

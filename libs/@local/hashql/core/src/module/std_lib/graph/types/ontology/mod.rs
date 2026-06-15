@@ -1,5 +1,4 @@
 use crate::{
-    heap::Heap,
     module::{
         StandardLibrary,
         std_lib::{self, ItemDef, ModuleDef, StandardLibraryModule},
