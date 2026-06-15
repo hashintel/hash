@@ -25,6 +25,12 @@ fn lower_imports_tuple<'heap, S>(
     expander: &mut Expander<'_, 'heap, S>,
     tuple: &mut crate::node::expr::TupleExpr<'heap>,
 ) -> UseKind<'heap> {
+    if let Some(annotation) = tuple.r#type.as_ref() {
+        expander
+            .diagnostics
+            .push(error::use_imports_type_annotation(annotation.span));
+    }
+
     let mut bindings = Vec::with_capacity_in(tuple.elements.len(), expander.heap);
 
     for element in tuple.elements.drain(..) {
@@ -57,6 +63,12 @@ fn lower_imports_struct<'heap, S>(
     expander: &mut Expander<'_, 'heap, S>,
     r#struct: &mut crate::node::expr::StructExpr<'heap>,
 ) -> UseKind<'heap> {
+    if let Some(annotation) = r#struct.r#type.as_ref() {
+        expander
+            .diagnostics
+            .push(error::use_imports_type_annotation(annotation.span));
+    }
+
     let mut bindings = Vec::with_capacity_in(r#struct.entries.len(), expander.heap);
 
     for entry in r#struct.entries.drain(..) {
