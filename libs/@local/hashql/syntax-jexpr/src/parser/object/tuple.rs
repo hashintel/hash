@@ -96,7 +96,7 @@ fn parse_tuple<'heap>(
         let element = TupleElement {
             id: NodeId::PLACEHOLDER,
             span: expr.span,
-            value: Box::new_in(expr, state.heap()),
+            value: expr,
         };
 
         elements.push(element);

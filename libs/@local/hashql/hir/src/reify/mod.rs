@@ -170,7 +170,7 @@ impl<'heap> ReificationContext<'_, '_, '_, 'heap> {
         let mut fields = SmallVec::with_capacity(len);
 
         for (index, element) in elements.into_iter().enumerate() {
-            let Some(field) = self.expr(*element.value) else {
+            let Some(field) = self.expr(element.value) else {
                 continue;
             };
 
@@ -244,7 +244,7 @@ impl<'heap> ReificationContext<'_, '_, '_, 'heap> {
         let mut fields = SmallVec::with_capacity(len);
 
         for (index, entry) in entries.into_iter().enumerate() {
-            let Some(value) = self.expr(*entry.value) else {
+            let Some(value) = self.expr(entry.value) else {
                 continue;
             };
 
