@@ -426,29 +426,33 @@ export const EntityType = ({
             })}
           >
             <TopContextBar
-              actionMenuItems={[
-                ...(!isReadonly && remoteEntityType && !isArchived
-                  ? [
-                      <ArchiveMenuItem
-                        key={entityType.schema.$id}
-                        item={remoteEntityType}
-                        onItemChange={() => {
-                          onEntityTypeUpdated?.(entityType);
-                        }}
-                      />,
+              actionMenuItems={
+                isInSlide
+                  ? []
+                  : [
+                      ...(!isReadonly && remoteEntityType && !isArchived
+                        ? [
+                            <ArchiveMenuItem
+                              key={entityType.schema.$id}
+                              item={remoteEntityType}
+                              onItemChange={() => {
+                                onEntityTypeUpdated?.(entityType);
+                              }}
+                            />,
+                          ]
+                        : []),
+                      ...(!isReadonly && !isDraft && !isLink
+                        ? [
+                            <ConvertTypeMenuItem
+                              key={entityType.schema.$id}
+                              convertToLinkType={convertToLinkType}
+                              disabled={isDirty}
+                              typeTitle={entityType.schema.title}
+                            />,
+                          ]
+                        : []),
                     ]
-                  : []),
-                ...(!isReadonly && !isDraft && !isLink
-                  ? [
-                      <ConvertTypeMenuItem
-                        key={entityType.schema.$id}
-                        convertToLinkType={convertToLinkType}
-                        disabled={isDirty}
-                        typeTitle={entityType.schema.title}
-                      />,
-                    ]
-                  : []),
-              ]}
+              }
               defaultCrumbIcon={null}
               item={remoteEntityType ?? undefined}
               crumbs={[
@@ -491,7 +495,7 @@ export const EntityType = ({
                  * instead of the sidebar-state based padding used on regular
                  * pages.
                  */
-                isInSlide ? { mt: -0.6, pr: 7.5 } : {},
+                isInSlide ? { mt: -0.6 } : {},
               ]}
             />
 
