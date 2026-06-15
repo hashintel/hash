@@ -51,9 +51,9 @@
     "test:unit": "vitest"
   },
   "dependencies": {
-    "@ai-sdk/react": "3.0.184",
+    "@ai-sdk/react": "3.0.201",
     "@ark-ui/react": "5.26.2",
-    "@babel/standalone": "7.28.5",
+    "@babel/standalone": "7.29.7",
     "@fontsource-variable/inter": "5.2.8",
     "@fontsource-variable/inter-tight": "5.2.7",
     "@fontsource-variable/jetbrains-mono": "5.2.8",
@@ -63,13 +63,13 @@
     "@hashintel/refractive": "workspace:^",
     "@monaco-editor/react": "4.8.0-rc.3",
     "@tanstack/react-form": "1.29.0",
-    "@xyflow/react": "12.10.1",
+    "@xyflow/react": "12.11.0",
     "ai": "6.0.182",
     "fuzzysort": "3.1.0",
     "lodash-es": "4.18.1",
     "monaco-editor": "0.55.1",
     "react-markdown": "10.1.0",
-    "react-resizable-panels": "4.6.5",
+    "react-resizable-panels": "4.11.2",
     "uplot": "1.6.32",
     "use-sync-external-store": "1.6.0",
     "uuid": "14.0.0"

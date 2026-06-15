@@ -25,6 +25,19 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@ai-sdk/gateway@npm:3.0.127":
+  version: 3.0.127
+  resolution: "@ai-sdk/gateway@npm:3.0.127"
+  dependencies:
+    "@ai-sdk/provider": "npm:3.0.10"
+    "@ai-sdk/provider-utils": "npm:4.0.27"
+    "@vercel/oidc": "npm:3.2.0"
+  peerDependencies:
+    zod: ^3.25.76 || ^4.1.8
+  checksum: 10c0/cb79a8f15754cf3bcbe478883a5649f9aaa749f97cc8c4837015655d33c6900d7f45b4e419a29f2fa3aa0eec53063f32b597b20fd42b8456fda83987bf7ac05d
+  languageName: node
+  linkType: hard
+
 "@ai-sdk/openai@npm:3.0.63":
   version: 3.0.63
   resolution: "@ai-sdk/openai@npm:3.0.63"
@@ -59,17 +72,17 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@ai-sdk/react@npm:3.0.184":
-  version: 3.0.184
-  resolution: "@ai-sdk/react@npm:3.0.184"
+"@ai-sdk/react@npm:3.0.201":
+  version: 3.0.201
+  resolution: "@ai-sdk/react@npm:3.0.201"
   dependencies:
     "@ai-sdk/provider-utils": "npm:4.0.27"
-    ai: "npm:6.0.182"
+    ai: "npm:6.0.199"
     swr: "npm:^2.2.5"
     throttleit: "npm:2.1.0"
   peerDependencies:
     react: ^18 || ~19.0.1 || ~19.1.2 || ^19.2.1
-  checksum: 10c0/1d16f5a20b7a6334a09445f19056afc410b601c3da52ff3ad331f2b7da73657c9b7b7106fc64d081636522009b8d42451cec8c33dea2bf29bbe31773a9aa8229
+  checksum: 10c0/2d2d79764300441ecc1a0ba0a9d0bfafa5001223a05fcdd582b18ddd7cfb0f2347d6d1e7d20c8adf79877d306dd43915d6a5c3e2ae38ff6a5b2853e0b08cf56c
   languageName: node
   linkType: hard
 
@@ -841,7 +854,7 @@ __metadata:
     "@types/react-dom": "npm:19.2.3"
     "@typescript/native-preview": "npm:7.0.0-dev.20260610.1"
     "@vitejs/plugin-react": "npm:6.0.2"
-    "@whatwg-node/server": "npm:0.10.18"
+    "@whatwg-node/server": "npm:0.11.0"
     ai: "npm:6.0.182"
     babel-plugin-react-compiler: "npm:1.0.0"
     immer: "npm:10.1.3"
@@ -849,7 +862,7 @@ __metadata:
     oxlint-tsgolint: "npm:0.23.0"
     react: "npm:19.2.7"
     react-dom: "npm:19.2.7"
-    react-icons: "npm:5.5.0"
+    react-icons: "npm:5.6.0"
     sharp: "npm:0.34.5"
     vite: "npm:8.0.16"
     zod: "npm:4.4.3"
@@ -4410,10 +4423,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@babel/standalone@npm:7.28.5":
-  version: 7.28.5
-  resolution: "@babel/standalone@npm:7.28.5"
-  checksum: 10c0/399118d7326c3dd085fd623caa5f58fb1d3b9990f1a0cad830ad3cede7352f9447cf9515e5383430f6d1b1844c185e4993782d09468941e7305ab92e6f55b7a3
+"@babel/standalone@npm:7.29.7":
+  version: 7.29.7
+  resolution: "@babel/standalone@npm:7.29.7"
+  checksum: 10c0/e31f4c8bb5238ec8095477378fc1639b6c78f1ebb2f075a0c8fb46d71a406d7d6a94fb347009dd7ad2c32632e39ee6c0fd3f3422255e02892b3160435a948869
   languageName: node
   linkType: hard
 
@@ -7389,7 +7402,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@hashintel/petrinaut-core@workspace:libs/@hashintel/petrinaut-core"
   dependencies:
-    "@babel/standalone": "npm:7.28.5"
+    "@babel/standalone": "npm:7.29.7"
     "@types/babel__standalone": "npm:7.1.9"
     "@types/node": "npm:22.18.13"
     "@typescript/native-preview": "npm:7.0.0-dev.20260610.1"
@@ -7412,10 +7425,10 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@hashintel/petrinaut@workspace:libs/@hashintel/petrinaut"
   dependencies:
-    "@ai-sdk/react": "npm:3.0.184"
+    "@ai-sdk/react": "npm:3.0.201"
     "@ark-ui/react": "npm:5.26.2"
     "@babel/core": "npm:7.29.7"
-    "@babel/standalone": "npm:7.28.5"
+    "@babel/standalone": "npm:7.29.7"
     "@fontsource-variable/inter": "npm:5.2.8"
     "@fontsource-variable/inter-tight": "npm:5.2.7"
     "@fontsource-variable/jetbrains-mono": "npm:5.2.8"
@@ -7436,7 +7449,7 @@ __metadata:
     "@types/react-dom": "npm:19.2.3"
     "@typescript/native-preview": "npm:7.0.0-dev.20260610.1"
     "@vitejs/plugin-react": "npm:6.0.2"
-    "@xyflow/react": "npm:12.10.1"
+    "@xyflow/react": "npm:12.11.0"
     ai: "npm:6.0.182"
     babel-plugin-react-compiler: "npm:1.0.0"
     fuzzysort: "npm:3.1.0"
@@ -7448,7 +7461,7 @@ __metadata:
     react: "npm:19.2.7"
     react-dom: "npm:19.2.7"
     react-markdown: "npm:10.1.0"
-    react-resizable-panels: "npm:4.6.5"
+    react-resizable-panels: "npm:4.11.2"
     rolldown: "npm:1.0.3"
     rolldown-plugin-dts: "npm:0.25.2"
     storybook: "npm:10.4.3"
@@ -19943,16 +19956,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@whatwg-node/server@npm:0.10.18":
-  version: 0.10.18
-  resolution: "@whatwg-node/server@npm:0.10.18"
+"@whatwg-node/server@npm:0.11.0":
+  version: 0.11.0
+  resolution: "@whatwg-node/server@npm:0.11.0"
   dependencies:
     "@envelop/instrumentation": "npm:^1.0.0"
     "@whatwg-node/disposablestack": "npm:^0.0.6"
     "@whatwg-node/fetch": "npm:^0.10.13"
     "@whatwg-node/promise-helpers": "npm:^1.3.2"
     tslib: "npm:^2.6.3"
-  checksum: 10c0/794c4776c8cb432d2f607f5a36392bec59649bbee6aa116b52866555e4852f00378e92d80702c1aa67cf32abe147b3eb96a999b7352237d64126b6e7e33acc6c
+  checksum: 10c0/01b2715a9677333fb9fe52aed3dc03ebdaf82185c38fbb8bff82ca4b830c717285b7653bc5b700ca9c05eb1a2bea2fb2c2265cf18055fe93cb1cce4add546450
   languageName: node
   linkType: hard
 
@@ -20020,23 +20033,30 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@xyflow/react@npm:12.10.1":
-  version: 12.10.1
-  resolution: "@xyflow/react@npm:12.10.1"
+"@xyflow/react@npm:12.11.0":
+  version: 12.11.0
+  resolution: "@xyflow/react@npm:12.11.0"
   dependencies:
-    "@xyflow/system": "npm:0.0.75"
+    "@xyflow/system": "npm:0.0.77"
     classcat: "npm:^5.0.3"
     zustand: "npm:^4.4.0"
   peerDependencies:
+    "@types/react": ">=17"
+    "@types/react-dom": ">=17"
     react: ">=17"
     react-dom: ">=17"
-  checksum: 10c0/7fbcbb99a67f2a74a30408d070dba5dab006658add73949773e7475d91563f3762dd40ac2ece4007fc2e7c2918c3448615048875f0dd634e56e1b3b513a6fc39
+  peerDependenciesMeta:
+    "@types/react":
+      optional: true
+    "@types/react-dom":
+      optional: true
+  checksum: 10c0/19894b3029d914cf0f2e5757612d8ef5a6ef56e5097077952c2bf1ba9ffdde8ed7b4761c223e77caf7dcfc03a1973901754bfa5ea5ac3ffed96e09e7955615b3
   languageName: node
   linkType: hard
 
-"@xyflow/system@npm:0.0.75":
-  version: 0.0.75
-  resolution: "@xyflow/system@npm:0.0.75"
+"@xyflow/system@npm:0.0.77":
+  version: 0.0.77
+  resolution: "@xyflow/system@npm:0.0.77"
   dependencies:
     "@types/d3-drag": "npm:^3.0.7"
     "@types/d3-interpolate": "npm:^3.0.4"
@@ -20047,7 +20067,7 @@ __metadata:
     d3-interpolate: "npm:^3.0.1"
     d3-selection: "npm:^3.0.0"
     d3-zoom: "npm:^3.0.0"
-  checksum: 10c0/d7d838465825e6267bd43b169b97ff11b08b313397dde5e249634c2526e1728e0f5bc4b092650d0c970eb13950f1415677926d46dc371faf79a2f46ea1e91ede
+  checksum: 10c0/f9d46866ce17ea8de187a1971b645d285cf2dc6c7b3300629a65e7e32e56bf1bc7e69c1d2dcf89b9bc85a465883c0743f262df127c833067f943ffb009bfe4e2
   languageName: node
   linkType: hard
 
@@ -21079,6 +21099,20 @@ __metadata:
   peerDependencies:
     zod: ^3.25.76 || ^4.1.8
   checksum: 10c0/6c4e19a9ddc6b7effb1e91feee9f3c4c0217bfacd7bf0a681aa392782720f8f25bacff2cf7ef6d121feca057f667276f2fd59c8759f12d7f1ef254ec39c76e4f
+  languageName: node
+  linkType: hard
+
+"ai@npm:6.0.199":
+  version: 6.0.199
+  resolution: "ai@npm:6.0.199"
+  dependencies:
+    "@ai-sdk/gateway": "npm:3.0.127"
+    "@ai-sdk/provider": "npm:3.0.10"
+    "@ai-sdk/provider-utils": "npm:4.0.27"
+    "@opentelemetry/api": "npm:^1.9.0"
+  peerDependencies:
+    zod: ^3.25.76 || ^4.1.8
+  checksum: 10c0/9fa556e787a90e4dcf7733d57386d76c293a6405a1e3277f33ea598be8c89fb87c254c2f971681e1b833d3dc647316a21828e2229cbf85e47664510ac56c62c9
   languageName: node
   linkType: hard
 
@@ -38562,12 +38596,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-icons@npm:5.5.0":
-  version: 5.5.0
-  resolution: "react-icons@npm:5.5.0"
+"react-icons@npm:5.6.0":
+  version: 5.6.0
+  resolution: "react-icons@npm:5.6.0"
   peerDependencies:
     react: "*"
-  checksum: 10c0/a24309bfc993c19cbcbfc928157e53a137851822779977b9588f6dd41ffc4d11ebc98b447f4039b0d309a858f0a42980f6bfb4477fb19f9f2d1bc2e190fcf79c
+  checksum: 10c0/addba1ebfd45cdf7f69291d0c93df64fca1271cfdb66df657abd223e3451c73356b035f50e75858627dd182b02129596c79eaaaa45d32eb52658e443a992645c
   languageName: node
   linkType: hard
 
@@ -38777,13 +38811,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-resizable-panels@npm:4.6.5":
-  version: 4.6.5
-  resolution: "react-resizable-panels@npm:4.6.5"
+"react-resizable-panels@npm:4.11.2":
+  version: 4.11.2
+  resolution: "react-resizable-panels@npm:4.11.2"
   peerDependencies:
     react: ^18.0.0 || ^19.0.0
     react-dom: ^18.0.0 || ^19.0.0
-  checksum: 10c0/90094be816df75e8b44d8f684f1a6715da3ac22e6cf69b5e4f2bdf1c53e6942a6faf93a842eec16864f4440e1ae227d68625e0c482f09449071b237b312d19b6
+  checksum: 10c0/524b60cc40445980e3a9693cf1c6acc23491d57379bee4ccfef7dbb14ac757015a42eb932ad5fdcc9efb507bdb504a358cc79a414ce9ad3de6da8661768873e9
   languageName: node
   linkType: hard
 

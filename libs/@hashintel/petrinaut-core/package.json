@@ -60,7 +60,7 @@
     "test:unit": "vitest"
   },
   "dependencies": {
-    "@babel/standalone": "7.28.5",
+    "@babel/standalone": "7.29.7",
     "elkjs": "0.11.0",
     "immer": "10.1.3",
     "uuid": "14.0.0",

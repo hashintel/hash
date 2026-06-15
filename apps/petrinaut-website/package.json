@@ -26,7 +26,7 @@
     "immer": "10.1.3",
     "react": "19.2.7",
     "react-dom": "19.2.7",
-    "react-icons": "5.5.0",
+    "react-icons": "5.6.0",
     "zod": "4.4.3"
   },
   "devDependencies": {
@@ -36,7 +36,7 @@
     "@types/react-dom": "19.2.3",
     "@typescript/native-preview": "7.0.0-dev.20260610.1",
     "@vitejs/plugin-react": "6.0.2",
-    "@whatwg-node/server": "0.10.18",
+    "@whatwg-node/server": "0.11.0",
     "babel-plugin-react-compiler": "1.0.0",
     "oxlint": "1.69.0",
     "oxlint-tsgolint": "0.23.0",
