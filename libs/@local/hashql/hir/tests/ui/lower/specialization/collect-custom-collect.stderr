@@ -1,34 +1,7 @@
-error[type-check::bound-constraint-violation]: Type bound constraint violation
+error[lowering::expander::unresolved-variable]: Unresolved variable
   ╭▸ 
-1 │ //@ run: fail
-  │ ─ Upper bound `::graph::Graph('marker: ?30)` is not a supertype of the lower bound
-  ‡
-6 │     ["fn", { "#tuple": [] }, { "#struct": { "graph": "_" } }, "_", {"#literal": 0}],
-  │                                                                ┯                ─ Lower bound `Integer` must be a subtype of the upper bound
-  │                                                                │
-  │                                                                Type variable has incompatible upper and lower bounds
+6 │     ["fn", { "#tuple": [] }, { "#struct": { "graph": "_" } }, "_", "graph"],
+  │                                                                     ━━━━━ cannot find `graph` in this scope
   │
-  ├ help: These type bounds create an impossible constraint. To fix this:
-  │       1. Modify `Integer` to be a proper subtype of `::graph::Graph('marker: ?30)`
-  │       2. Or adjust `::graph::Graph('marker: ?30)` to be a supertype of `Integer`
-  │       3. Or check your code for contradictory type assertions
-  ╰ note: During type inference, when a variable has both upper and lower bounds, the relationship 'lower <: upper' must hold. This ensures a valid solution exists in the type system. When this relationship is violated, it means your code is requiring contradictory types for the same variable.
-
-error[type-check::bound-constraint-violation]: Type bound constraint violation
-  ╭▸ 
-1 │   //@ run: fail
-  │   ─ Upper bound `::graph::Graph('marker: ?30)` is not a supertype of the lower bound
-  ‡
-5 │ ┏   [
-6 │ ┃     ["fn", { "#tuple": [] }, { "#struct": { "graph": "_" } }, "_", {"#literal": 0}],
-  │ ┃                                                                                 ─ Lower bound `Integer` must be a subtype of the upper bound
-7 │ ┃     //~^ ERROR This is not a graph intrinsic operation
-8 │ ┃     ["::graph::head::entities", ["::graph::tmp::decision_time_now"]]
-9 │ ┃   ]
-  │ ┗━━━┛ Type variable has incompatible upper and lower bounds
-  │
-  ├ help: These type bounds create an impossible constraint. To fix this:
-  │       1. Modify `Integer` to be a proper subtype of `::graph::Graph('marker: ?30)`
-  │       2. Or adjust `::graph::Graph('marker: ?30)` to be a supertype of `Integer`
-  │       3. Or check your code for contradictory type assertions
-  ╰ note: During type inference, when a variable has both upper and lower bounds, the relationship 'lower <: upper' must hold. This ensures a valid solution exists in the type system. When this relationship is violated, it means your code is requiring contradictory types for the same variable.
+  ├ help: check the spelling, or import the name with a `use` statement
+  ╰ note: this could be a typo, a name used outside its scope, or a missing declaration; if it is a function or type from another module, you may need to import it first

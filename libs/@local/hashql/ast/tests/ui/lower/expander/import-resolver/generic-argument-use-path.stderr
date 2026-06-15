@@ -1,29 +1,6 @@
-error[expander::item-not-found]: Item not found
-  ╭▸ 
-3 │ ["use", "kernel::type<Integer>", { "#tuple": ["T"] }, "_"]
-  │                  ──── looked in this module    ━ cannot find `T` in module `kernel::type`
-  ╰╴
-help: a similar item exists in this module
-  ╭╴
-3 - ["use", "kernel::type<Integer>", { "#tuple": ["T"] }, "_"]
-3 + ["use", "kernel::type<Integer>", { "#tuple": ["Number"] }, "_"]
-  ├╴
-3 - ["use", "kernel::type<Integer>", { "#tuple": ["T"] }, "_"]
-3 + ["use", "kernel::type<Integer>", { "#tuple": ["String"] }, "_"]
-  ├╴
-3 - ["use", "kernel::type<Integer>", { "#tuple": ["T"] }, "_"]
-3 + ["use", "kernel::type<Integer>", { "#tuple": ["Union"] }, "_"]
-  ├╴
-3 - ["use", "kernel::type<Integer>", { "#tuple": ["T"] }, "_"]
-3 + ["use", "kernel::type<Integer>", { "#tuple": ["Unknown"] }, "_"]
-  ├╴
-3 - ["use", "kernel::type<Integer>", { "#tuple": ["T"] }, "_"]
-3 + ["use", "kernel::type<Integer>", { "#tuple": ["|"] }, "_"]
-  ╰╴
-
 error[expander::use-path-generic-arguments]: Generic arguments in use path
   ╭▸ 
-3 │ ["use", "kernel::type<Integer>", { "#tuple": ["T"] }, "_"]
+3 │ ["use", "kernel::type<Integer>", { "#tuple": ["Union"] }, "_"]
   │          ━━━━━━━━━━━━━━━━━━━━━ generic arguments are not allowed in `use` paths
   │
   ╰ help: remove the generic arguments; `use` imports modules and items, which do not take type parameters at the import site

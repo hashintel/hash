@@ -1,0 +1,7 @@
+error[expander::invalid-binding-name]: Invalid binding name
+  ╭▸ 
+5 │   ["+", { "#literal": 1 }, { "#literal": 2 }],
+  │   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ expected a simple identifier for the `let` binding name
+  │
+  ├ help: write `(let name value body)` with a plain name such as `x`
+  ╰ note: the first argument to `let` introduces a new local binding and must be a plain identifier without path qualification or generic arguments
