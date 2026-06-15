@@ -115,7 +115,7 @@ fn parse_struct<'heap>(
             id: NodeId::PLACEHOLDER,
             span: state.insert_range(key.span.cover(value_span)),
             key: ident,
-            value: Box::new_in(value, state.heap()),
+            value,
         });
 
         Ok(())
