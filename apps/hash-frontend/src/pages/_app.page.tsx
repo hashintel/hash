@@ -7,6 +7,7 @@ require("setimmediate");
 
 import "./globals.scss";
 import "./prism.css";
+import "./ds-components-styles.gen.css";
 import { ApolloProvider } from "@apollo/client/react";
 import { CacheProvider } from "@emotion/react";
 import { CssBaseline, GlobalStyles, ThemeProvider } from "@mui/material";

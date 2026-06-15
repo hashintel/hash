@@ -186,6 +186,7 @@ impl FromIterator<SyntaxKind> for SyntaxKindSet {
 }
 
 impl From<SyntaxKind> for SyntaxKindSet {
+    #[inline]
     fn from(kind: SyntaxKind) -> Self {
         Self::from_kind(kind)
     }
@@ -225,6 +226,7 @@ impl BitXor for SyntaxKindSet {
 }
 
 impl Default for SyntaxKindSet {
+    #[inline]
     fn default() -> Self {
         Self::EMPTY
     }

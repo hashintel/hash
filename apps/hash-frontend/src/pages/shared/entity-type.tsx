@@ -426,29 +426,33 @@ export const EntityType = ({
             })}
           >
             <TopContextBar
-              actionMenuItems={[
-                ...(!isReadonly && remoteEntityType && !isArchived
-                  ? [
-                      <ArchiveMenuItem
-                        key={entityType.schema.$id}
-                        item={remoteEntityType}
-                        onItemChange={() => {
-                          onEntityTypeUpdated?.(entityType);
-                        }}
-                      />,
+              actionMenuItems={
+                isInSlide
+                  ? []
+                  : [
+                      ...(!isReadonly && remoteEntityType && !isArchived
+                        ? [
+                            <ArchiveMenuItem
+                              key={entityType.schema.$id}
+                              item={remoteEntityType}
+                              onItemChange={() => {
+                                onEntityTypeUpdated?.(entityType);
+                              }}
+                            />,
+                          ]
+                        : []),
+                      ...(!isReadonly && !isDraft && !isLink
+                        ? [
+                            <ConvertTypeMenuItem
+                              key={entityType.schema.$id}
+                              convertToLinkType={convertToLinkType}
+                              disabled={isDirty}
+                              typeTitle={entityType.schema.title}
+                            />,
+                          ]
+                        : []),
                     ]
-                  : []),
-                ...(!isReadonly && !isDraft && !isLink
-                  ? [
-                      <ConvertTypeMenuItem
-                        key={entityType.schema.$id}
-                        convertToLinkType={convertToLinkType}
-                        disabled={isDirty}
-                        typeTitle={entityType.schema.title}
-                      />,
-                    ]
-                  : []),
-              ]}
+              }
               defaultCrumbIcon={null}
               item={remoteEntityType ?? undefined}
               crumbs={[
@@ -458,7 +462,7 @@ export const EntityType = ({
                   id: "types",
                 },
                 {
-                  href: "/types/entity-type",
+                  href: `/types/${isLink ? "link" : "entity"}-type`,
                   title: `${isLink ? "Link" : "Entity"} Types`,
                   id: "entity-types",
                 },
@@ -480,7 +484,19 @@ export const EntityType = ({
                 void refetch();
               }}
               scrollToTop={() => {}}
-              sx={{ bgcolor: "white" }}
+              sx={[
+                { bgcolor: "white" },
+                /**
+                 * In a slide, the slide stack renders absolutely-positioned
+                 * back/forward/close buttons over the top-right corner – push
+                 * the bar's content down so the breadcrumbs and actions menu
+                 * sit below those buttons rather than behind them, and align
+                 * the breadcrumbs with the slide's 32px content padding
+                 * instead of the sidebar-state based padding used on regular
+                 * pages.
+                 */
+                isInSlide ? { mt: -0.6 } : {},
+              ]}
             />
 
             {!isReadonly && (

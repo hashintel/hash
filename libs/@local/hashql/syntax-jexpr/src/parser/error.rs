@@ -5,7 +5,7 @@ use hashql_diagnostics::{
     Diagnostic, Label,
     category::{DiagnosticCategory, TerminalDiagnosticCategory},
     diagnostic::Message,
-    severity::Severity,
+    severity::Critical,
 };
 
 use super::{
@@ -14,7 +14,7 @@ use super::{
 };
 use crate::lexer::error::LexerDiagnosticCategory;
 
-pub(crate) type ParserDiagnostic = Diagnostic<ParserDiagnosticCategory, SpanId>;
+pub(crate) type ParserDiagnostic<K = Critical> = Diagnostic<ParserDiagnosticCategory, SpanId, K>;
 
 const EXPECTED_LANGUAGE_ITEM: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     id: "unexpected-token",
@@ -76,24 +76,28 @@ impl DiagnosticCategory for ParserDiagnosticCategory {
 }
 
 impl From<LexerDiagnosticCategory> for ParserDiagnosticCategory {
+    #[inline]
     fn from(value: LexerDiagnosticCategory) -> Self {
         Self::Lexer(value)
     }
 }
 
 impl From<StringDiagnosticCategory> for ParserDiagnosticCategory {
+    #[inline]
     fn from(value: StringDiagnosticCategory) -> Self {
         Self::String(value)
     }
 }
 
 impl From<ArrayDiagnosticCategory> for ParserDiagnosticCategory {
+    #[inline]
     fn from(value: ArrayDiagnosticCategory) -> Self {
         Self::Array(value)
     }
 }
 
 impl From<ObjectDiagnosticCategory> for ParserDiagnosticCategory {
+    #[inline]
     fn from(value: ObjectDiagnosticCategory) -> Self {
         Self::Object(value)
     }
@@ -103,7 +107,7 @@ const EXPECTED_EOF_HELP: &str =
     "Remove this token or check for missing delimiters in the preceding expression";
 
 pub(crate) fn expected_eof(span: SpanId) -> ParserDiagnostic {
-    let mut diagnostic = Diagnostic::new(ParserDiagnosticCategory::ExpectedEof, Severity::Error)
+    let mut diagnostic = Diagnostic::new(ParserDiagnosticCategory::ExpectedEof, Critical::ERROR)
         .primary(Label::new(span, "Extra content after expression"));
 
     diagnostic.add_message(Message::help(EXPECTED_EOF_HELP));

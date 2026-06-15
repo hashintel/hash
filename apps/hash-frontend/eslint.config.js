@@ -101,7 +101,14 @@ export default [
       },
     },
     {
-      ignores: ["buildstamp.js", "next.config.js", "next-env.d.ts"],
+      ignores: [
+        "buildstamp.js",
+        "next.config.js",
+        "next-env.d.ts",
+        // Outside the tsconfig project: imports `@hashintel/ds-components/preset`,
+        // an `exports` subpath the legacy `moduleResolution: "node"` cannot resolve
+        "panda.config.ts",
+      ],
     },
   ]),
 ];

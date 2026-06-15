@@ -40,16 +40,14 @@ use crate::{
 /// assert_eq!(result.advisories.critical(), 0);
 /// ```
 #[derive(Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Success<T, C, S> {
     pub value: T,
     pub advisories: DiagnosticIssues<C, S, Advisory>,
 }
 
 impl<T, C, S> Success<T, C, S> {
-    /// Transforms the value in the success result while preserving diagnostics.
-    ///
-    /// This method applies a function to the success value, creating a new [`Success`] with
-    /// the transformed value and the same advisory diagnostics.
+    /// Transforms the value while preserving advisory diagnostics.
     ///
     /// # Examples
     ///
@@ -168,6 +166,7 @@ impl<T, C, S> Success<T, C, S> {
 /// assert_eq!(error.secondary.len(), 1);
 /// ```
 #[derive(Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct Failure<C, S> {
     // boxed to reduce memory footprint
     pub primary: Box<Diagnostic<C, S, Critical>>,
@@ -175,6 +174,27 @@ pub struct Failure<C, S> {
 }
 
 impl<C, S> Failure<C, S> {
+    /// Creates a [`Failure`] from a primary critical diagnostic.
+    ///
+    /// The resulting failure has no secondary diagnostics.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hashql_diagnostics::{Diagnostic, Failure, Label, Severity};
+    /// # use hashql_diagnostics::category::TerminalDiagnosticCategory;
+    /// # const CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    /// #     id: "error", name: "Error"
+    /// # };
+    ///
+    /// let critical = Diagnostic::new(CATEGORY, Severity::Error)
+    ///     .primary(Label::new(10..15, "error here"))
+    ///     .specialize()
+    ///     .expect_err("should be critical");
+    ///
+    /// let failure = Failure::new(critical);
+    /// assert!(failure.secondary.is_empty());
+    /// ```
     pub fn new(primary: Diagnostic<C, S, Critical>) -> Self {
         Self {
             primary: Box::new(primary),
@@ -503,6 +523,34 @@ pub trait StatusExt<T, C, S>: sealed::Sealed {
     #[expect(clippy::missing_errors_doc, reason = "This is a trait on Result")]
     fn map_category<C2>(self, func: impl FnMut(C) -> C2) -> Status<T, C2, S>;
 
+    /// Transforms the span type of all diagnostics in the status.
+    ///
+    /// Applies the function to every span in labels, suggestions, and patches
+    /// across both success advisories and failure diagnostics. This is useful
+    /// when converting between span representations at compilation phase
+    /// boundaries, such as resolving relative spans to absolute positions.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hashql_diagnostics::{Diagnostic, Label, Severity, Status, StatusExt as _};
+    /// # use hashql_diagnostics::category::TerminalDiagnosticCategory;
+    /// # const CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    /// #     id: "example", name: "Example"
+    /// # };
+    ///
+    /// let mut result = Status::success(42);
+    /// result.push_diagnostic(
+    ///     Diagnostic::new(CATEGORY, Severity::Warning).primary(Label::new(10..15, "warning here")),
+    /// );
+    ///
+    /// // Convert Range<usize> spans to (start, end) tuples
+    /// let converted = result.map_spans(|range| (range.start, range.end));
+    /// assert!(converted.is_ok());
+    /// ```
+    #[expect(clippy::missing_errors_doc, reason = "This is a trait on Result")]
+    fn map_spans<S2>(self, func: impl FnMut(S) -> S2) -> Status<T, C, S2>;
+
     /// Converts to a result with type-erased diagnostic categories.
     ///
     /// When combining diagnostics from different compilation phases that use different category
@@ -809,6 +857,19 @@ impl<T, C, S> StatusExt<T, C, S> for Status<T, C, S> {
         }
     }
 
+    fn map_spans<S2>(self, mut func: impl FnMut(S) -> S2) -> Status<T, C, S2> {
+        match self {
+            Ok(Success { value, advisories }) => Ok(Success {
+                value,
+                advisories: advisories.map_spans(func),
+            }),
+            Err(Failure { primary, secondary }) => Err(Failure {
+                primary: Box::new(primary.map_spans(&mut func)),
+                secondary: secondary.map_spans(func),
+            }),
+        }
+    }
+
     fn boxed<'category>(self) -> Self::Boxed<'category>
     where
         C: DiagnosticCategory + 'category,
@@ -922,6 +983,82 @@ impl<T, C, S> StatusExt<T, C, S> for Status<T, C, S> {
                 secondary.append(&mut advisories.generalize());
                 Err(Failure { primary, secondary })
             }
+        }
+    }
+}
+
+/// Conversion into a [`Status`] from result types that carry either a value or
+/// a critical diagnostic, but have no accumulated advisories or secondary
+/// diagnostics.
+///
+/// This is useful at boundaries where a fallible operation returns
+/// `Result<T, Diagnostic<C, S, Critical>>` and the caller needs to feed that
+/// into a [`Status`]-based pipeline.
+pub trait IntoStatus<T, C, S> {
+    /// Converts into a [`Status`].
+    ///
+    /// The resulting status has no advisories on success and no secondary
+    /// diagnostics on failure.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Failure`] when the source value represents a critical
+    /// diagnostic.
+    ///
+    /// # Examples
+    ///
+    /// Successful conversion:
+    ///
+    /// ```
+    /// use hashql_diagnostics::{IntoStatus, Status, StatusExt as _};
+    ///
+    /// let result: Result<i32, _> = Ok(42);
+    /// let status: Status<_, (), ()> = result.into_status();
+    ///
+    /// match status {
+    ///     Ok(success) => {
+    ///         assert_eq!(success.value, 42);
+    ///         assert!(success.advisories.is_empty());
+    ///     }
+    ///     Err(_) => panic!("should be successful"),
+    /// }
+    /// ```
+    ///
+    /// Failed conversion:
+    ///
+    /// ```
+    /// use hashql_diagnostics::{
+    ///     Diagnostic, IntoStatus, Label, Severity, Status, StatusExt as _, severity::SeverityKind,
+    /// };
+    /// # use hashql_diagnostics::category::TerminalDiagnosticCategory;
+    /// # const CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    /// #     id: "example", name: "Example"
+    /// # };
+    ///
+    /// let diagnostic = Diagnostic::new(CATEGORY, Severity::Error)
+    ///     .primary(Label::new(10..15, "something went wrong"))
+    ///     .specialize()
+    ///     .expect_err("should be critical");
+    ///
+    /// let result: Result<i32, _> = Err(diagnostic);
+    /// let status: Status<i32, _, _> = result.into_status();
+    ///
+    /// match status {
+    ///     Ok(_) => panic!("should be a failure"),
+    ///     Err(failure) => {
+    ///         assert!(failure.primary.severity.is_critical());
+    ///         assert!(failure.secondary.is_empty());
+    ///     }
+    /// }
+    /// ```
+    fn into_status(self) -> Status<T, C, S>;
+}
+
+impl<T, C, S> IntoStatus<T, C, S> for Result<T, Diagnostic<C, S, Critical>> {
+    fn into_status(self) -> Status<T, C, S> {
+        match self {
+            Ok(value) => Status::success(value),
+            Err(primary) => Status::failure(primary),
         }
     }
 }

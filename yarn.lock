@@ -627,6 +627,7 @@ __metadata:
     "@next/bundle-analyzer": "npm:15.5.9"
     "@ory/client": "npm:1.22.7"
     "@ory/integrations": "npm:1.3.1"
+    "@pandacss/dev": "npm:1.11.1"
     "@popperjs/core": "npm:2.11.8"
     "@react-sigma/core": "npm:4.0.3"
     "@sentry/nextjs": "npm:10.54.0"

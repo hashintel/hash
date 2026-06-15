@@ -166,12 +166,14 @@ impl SourceSpan {
     }
 
     /// Returns the source file identifier for this span.
+    #[inline]
     #[must_use]
     pub const fn source(&self) -> SourceId {
         self.source
     }
 
     /// Returns the text range within the source file.
+    #[inline]
     #[must_use]
     pub const fn range(&self) -> TextRange {
         self.range
