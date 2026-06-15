@@ -5,7 +5,7 @@ use hashql_core::{
     heap::{self, BumpAllocator, Heap},
     module::{
         Universe,
-        item::{IntrinsicItem, Item},
+        item::{IntrinsicItem, IntrinsicTypeItem, Item},
     },
     span::SpanId,
     symbol::{Ident, sym},
@@ -370,46 +370,62 @@ where
     let mut value = mem::replace(&mut value.value, Expr::dummy());
     let mut body = mem::replace(&mut body.value, Expr::dummy());
 
-    let item = expander.with_universe(hashql_core::module::Universe::Type, |expander| {
-        expander.visit(&mut value)
-    });
-
-    if let Some(
-        item @ Item {
-            kind: hashql_core::module::item::ItemKind::Intrinsic(_),
-            ..
+    let (_, expr) = expander.bind_many_with(
+        constraints,
+        |constraints, binder| {
+            binder.bind(name.value, Universe::Type);
+            for constraint in constraints {
+                binder.bind(constraint.name.value, Universe::Type);
+            }
         },
-    ) = item
-    {
-        // We rebound an intrinsic, instead of erroring out, we use the body directly, and "show"
-        // the new value;
-        expander.bind(name.value, item, |expander| {
+        |expander, constraints| {
+            let item = expander.with_universe(hashql_core::module::Universe::Type, |expander| {
+                expander.visit(&mut value)
+            });
+
+            if let Some(
+                item @ Item {
+                    kind:
+                        hashql_core::module::item::ItemKind::Intrinsic(IntrinsicItem::Type(
+                            IntrinsicTypeItem {
+                                name: intrinsic_name,
+                            },
+                        )),
+                    ..
+                },
+            ) = item
+                && let Some(const_name) = intrinsic_name.as_constant()
+                && matches!(
+                    const_name,
+                    sym::path::Union::CONST | sym::path::Intersection::CONST
+                )
+            {
+                // We rebound an intrinsic, instead of erroring out, we use the body
+                // directly, and "show" the new value:
+                expander.bind(name.value, item, |expander| expander.visit(&mut body));
+
+                return body;
+            }
+
             expander.visit(&mut body);
-        });
+            let value = lower_expr_to_type(expander, value);
 
-        return body;
-    }
-
-    let value = lower_expr_to_type(expander, value);
-
-    expander.bind(
-        name.value,
-        hashql_core::module::Universe::Type,
-        |expander| expander.visit(&mut body),
+            Expr {
+                id: NodeId::PLACEHOLDER,
+                span,
+                kind: ExprKind::Type(TypeExpr {
+                    id: NodeId::PLACEHOLDER,
+                    span,
+                    name,
+                    constraints: mem::replace(constraints, Vec::new_in(expander.heap)),
+                    value: Box::new_in(value, expander.heap),
+                    body: Box::new_in(body, expander.heap),
+                }),
+            }
+        },
     );
 
-    Expr {
-        id: NodeId::PLACEHOLDER,
-        span,
-        kind: ExprKind::Type(TypeExpr {
-            id: NodeId::PLACEHOLDER,
-            span,
-            name,
-            constraints,
-            value: Box::new_in(value, expander.heap),
-            body: Box::new_in(body, expander.heap),
-        }),
-    }
+    expr
 }
 
 /// Lowers a `type` call into a [`TypeExpr`].
