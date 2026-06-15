@@ -4,6 +4,6 @@
   "type",
   "A",
   "::kernel::special_form::let",
-  //~^ ERROR Special form cannot be used as a type
+  //~^ ERROR cannot find `let` in module `::kernel::special_form`
   "_"
 ]

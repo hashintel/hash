@@ -3,6 +3,6 @@
 [
   "::kernel::special_form::as",
   { "#literal": true },
-  ["::core::math::headpat", "Int", "Float"]
-  //~^ ERROR cannot use this as a type constructor
+  ["::core::math::headpat", "Integer", "Number"]
+  //~^ ERROR cannot find `headpat` in module `::core::math`
 ]

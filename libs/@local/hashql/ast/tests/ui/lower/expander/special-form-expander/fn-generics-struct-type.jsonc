@@ -3,11 +3,11 @@
 [
   "::kernel::special_form::fn",
   {
-    "#struct": { "T": "Int" },
-    "#type": "Int"
+    "#struct": { "T": "Integer" },
+    "#type": "Integer"
     //~^ ERROR type annotation is not allowed on the generic parameter list
   },
   { "#struct": {} },
   "_",
-  ["+", "a", "b"]
+  { "#literal": 0 }
 ]

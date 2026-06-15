@@ -5,10 +5,10 @@
   {
     "#struct": {
       "T": { "#literal": 2 }
-      //~^ ERROR expected a simple type parameter
+      //~^ ERROR cannot use a literal value as a type
     }
   },
   { "#struct": {} },
   "_",
-  ["+", "a", "b"]
+  { "#literal": 0 }
 ]

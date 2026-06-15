@@ -4,7 +4,7 @@
 [
   "type",
   "Foo<T: Bar>",
-  //~^ ERROR Cannot find variable 'Bar'
+  //~^ ERROR cannot find `Bar` in this scope
   "Number",
   "_"
 ]

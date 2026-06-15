@@ -7,4 +7,5 @@
   //~^ ERROR cannot find module `foo`
   "*",
   ["add", { "#literal": 1 }, { "#literal": 2 }]
+  //~^ ERROR cannot find `add` in this scope
 ]

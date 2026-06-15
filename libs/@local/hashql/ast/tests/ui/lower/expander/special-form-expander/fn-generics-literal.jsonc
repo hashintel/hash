@@ -6,5 +6,5 @@
   //~^ ERROR expected a tuple or struct for generic parameters
   { "#struct": {} },
   "_",
-  ["+", "a", "b"]
+  { "#literal": 1 }
 ]

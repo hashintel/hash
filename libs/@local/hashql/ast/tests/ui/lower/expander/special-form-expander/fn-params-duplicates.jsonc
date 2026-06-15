@@ -3,8 +3,8 @@
 [
   "::kernel::special_form::fn",
   { "#struct": {} },
-  { "#struct": { "a": "Int", "a": "Int" } },
-  //~^ ERROR `a` is already declared as a parameter
+  { "#struct": { "a": "Integer", "a": "Integer" } },
+  //~^ ERROR duplicate parameter `a`
   "_",
-  ["+", "a", "b"]
+  ["+", "a", { "#literal": 0 }]
 ]

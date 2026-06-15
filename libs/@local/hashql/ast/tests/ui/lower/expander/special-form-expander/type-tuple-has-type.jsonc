@@ -4,9 +4,9 @@
   "::kernel::special_form::type",
   "x",
   {
-    "#tuple": ["Int"],
-    "#type": "(Int)"
+    "#tuple": ["Integer"],
+    "#type": "(Integer)"
     //~^ ERROR type annotations are not allowed inside a type expression
   },
-  "x"
+  { "#literal": 1 }
 ]

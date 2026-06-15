@@ -6,5 +6,5 @@
   { "#tuple": [] },
   //~^ ERROR expected a struct for function parameters
   "_",
-  ["+", "a", "b"]
+  { "#literal": 0 }
 ]

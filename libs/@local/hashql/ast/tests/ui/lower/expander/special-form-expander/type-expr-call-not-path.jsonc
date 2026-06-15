@@ -5,7 +5,7 @@
   { "#literal": true },
   [
     ["+", { "#literal": 1 }, { "#literal": 2 }],
-    //~^ ERROR cannot use this as a type constructor
+    //~^ ERROR cannot find `+` in this scope
     "Integer",
     "Number"
   ]
