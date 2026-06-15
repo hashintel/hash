@@ -3,14 +3,16 @@ use core::fmt::Write as _;
 use hashql_ast::{
     format::SyntaxDump as _,
     lower::{
-        import_resolver::ImportResolver, name_mangler::NameMangler,
-        pre_expansion_name_resolver::PreExpansionNameResolver,
-        special_form_expander::SpecialFormExpander, type_extractor::TypeDefinitionExtractor,
+        expander::Expander,
+        name_mangler::NameMangler,
+        node_renumberer::NodeRenumberer,
+        type_extractor::{TypeDefinitionExtractor, TypeExtractor},
     },
     node::expr::Expr,
     visit::Visitor as _,
 };
 use hashql_core::{
+    heap::Scratch,
     module::{
         ModuleRegistry,
         locals::{Local, TypeDef},
@@ -23,15 +25,15 @@ use hashql_core::{
 use super::{RunContext, Suite, SuiteDiagnostic, common::process_issues};
 use crate::suite::common::Annotated;
 
-pub(crate) struct AstLoweringTypeDefinitionExtractorSuite;
+pub(crate) struct AstLowerTypeExtractorSuite;
 
-impl Suite for AstLoweringTypeDefinitionExtractorSuite {
+impl Suite for AstLowerTypeExtractorSuite {
     fn name(&self) -> &'static str {
-        "ast/lowering/type-definition-extractor"
+        "ast/lower/type-extractor"
     }
 
     fn description(&self) -> &'static str {
-        "Type definition extraction from the AST"
+        "Type information extraction from AST nodes"
     }
 
     fn run<'heap>(
@@ -43,23 +45,14 @@ impl Suite for AstLoweringTypeDefinitionExtractorSuite {
     ) -> Result<String, SuiteDiagnostic> {
         let environment = Environment::new(heap);
         let registry = ModuleRegistry::new(&environment);
-
-        let mut resolver = PreExpansionNameResolver::new(&registry);
-
-        resolver.visit_expr(&mut expr);
-
-        let mut expander = SpecialFormExpander::new(heap);
-        expander.visit_expr(&mut expr);
-
-        process_issues(diagnostics, expander.take_diagnostics())?;
+        let mut scratch = Scratch::new();
 
         let mut namespace = ModuleNamespace::new(&registry);
         namespace.import_prelude();
 
-        let mut resolver = ImportResolver::new(heap, namespace);
-        resolver.visit_expr(&mut expr);
-
-        process_issues(diagnostics, resolver.take_diagnostics())?;
+        let mut expander = Expander::new(namespace, &mut scratch);
+        expander.visit_expr(&mut expr);
+        process_issues(diagnostics, expander.take_diagnostics())?;
 
         let mut mangler = NameMangler::new(heap);
         mangler.visit_expr(&mut expr);
@@ -71,11 +64,19 @@ impl Suite for AstLoweringTypeDefinitionExtractorSuite {
         let (locals, extractor_diagnostics) = extractor.finish();
         process_issues(diagnostics, extractor_diagnostics)?;
 
+        let mut node_renumberer = NodeRenumberer::new();
+        node_renumberer.visit_expr(&mut expr);
+
+        let mut extractor = TypeExtractor::new(&environment, &registry, &locals);
+        extractor.visit_expr(&mut expr);
+
+        process_issues(diagnostics, extractor.take_diagnostics())?;
+
         let mut output = expr.syntax_dump_to_string();
         output.push_str("\n------------------------");
 
-        let mut locals: Vec<_> = locals.iter().collect();
-        locals.sort_by_key(|&Local { name, .. }| name);
+        let mut local_definitions: Vec<_> = locals.iter().collect();
+        local_definitions.sort_by_key(|&Local { name, .. }| name);
 
         let formatter = Formatter::new(heap);
         let mut formatter = TypeFormatter::with_defaults(&formatter, &environment);
@@ -83,7 +84,7 @@ impl Suite for AstLoweringTypeDefinitionExtractorSuite {
         for &Local {
             name,
             value: TypeDef { id, arguments },
-        } in locals
+        } in local_definitions
         {
             let _: Result<(), _> = write!(
                 output,
@@ -91,6 +92,37 @@ impl Suite for AstLoweringTypeDefinitionExtractorSuite {
                 Annotated {
                     content: format!(
                         "{name}{}",
+                        GenericArgumentReference::display_mangled(&arguments)
+                    ),
+                    annotation: formatter.render(id, RenderOptions::default().with_plain())
+                }
+            );
+        }
+
+        let (anon, closures) = extractor.into_types();
+
+        output.push_str("\n------------------------");
+        let mut anon: Vec<_> = anon.into_iter().collect();
+        anon.sort_unstable();
+        for (node_id, type_id) in anon {
+            let _: Result<(), _> = write!(
+                output,
+                "\n\n{node_id} = {}",
+                formatter.render(type_id, RenderOptions::default().with_plain())
+            );
+        }
+
+        output.push_str("\n------------------------");
+        let mut closures: Vec<_> = closures.into_iter().collect();
+        closures.sort_unstable_by_key(|&(key, _)| key);
+
+        for (node_id, TypeDef { id, arguments }) in closures {
+            let _: Result<(), _> = write!(
+                output,
+                "\n\n{}",
+                Annotated {
+                    content: format!(
+                        "{node_id}{}",
                         GenericArgumentReference::display_mangled(&arguments)
                     ),
                     annotation: formatter.render(id, RenderOptions::default().with_plain())

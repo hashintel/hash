@@ -1,5 +1,6 @@
 //@ run: pass
 //@ description: Tests that a `use` statement for a non-existent module (`kernel::foo`) is handled by dummy replacement, allowing lowering to continue.
+//@ suite#continue: true
 [
   "use",
   "kernel::foo",
