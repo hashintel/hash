@@ -1,5 +1,8 @@
 # Metrics
 
+> This guide is a work in progress. The metrics workflow and this documentation
+> may change as the feature continues to evolve.
+
 A **metric** is a numeric value computed from simulation state over time. Use metrics when raw token counts are not the chart you need -- for example, an infected fraction, yield, queue pressure, or average token attribute.
 
 ## Timeline metrics
