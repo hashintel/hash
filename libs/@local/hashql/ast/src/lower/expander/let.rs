@@ -1,6 +1,6 @@
 use core::mem;
 
-use hashql_core::{heap::BumpAllocator, span::SpanId, symbol::Ident};
+use hashql_core::{heap::BumpAllocator, module::item::Item, span::SpanId, symbol::Ident};
 
 use super::{BindingKind, Expander, r#type::lower_expr_to_type};
 use crate::{
@@ -56,6 +56,25 @@ where
             expander.visit(&mut body.value);
         },
     );
+
+    if let Some(Item {
+        kind: hashql_core::module::item::ItemKind::Intrinsic(_),
+        ..
+    }) = item
+    {
+        if let Some(r#type) = r#type {
+            expander.diagnostics.push(error::intrinsic_type_annotation(
+                r#type.value.span,
+                value.value.span,
+                name.value,
+            ));
+        }
+
+        // We do not replace every binding outright, only intrinsic ones for one specific reason:
+        // intrinsic types cannot be annotated, otherwise the binding survives, as the typechk on
+        // the binding could fail (or the typechk is used to narrow the type).
+        return mem::replace(&mut body.value, Expr::dummy());
+    }
 
     let r#type = if let Some(r#type) = r#type {
         let mut value = mem::replace(&mut r#type.value, Expr::dummy());

@@ -208,6 +208,11 @@ const DUPLICATE_USE_BINDING: TerminalDiagnosticCategory = TerminalDiagnosticCate
     name: "Duplicate use binding",
 };
 
+const INTRINSIC_TYPE_ANNOTATION: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "intrinsic-type-annotation",
+    name: "Type annotation on intrinsic binding",
+};
+
 const INVALID_USE_PATH: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     id: "invalid-use-path",
     name: "Invalid use path",
@@ -251,6 +256,7 @@ pub enum ExpanderDiagnosticCategory {
     InvalidFnParams,
     DuplicateFnGeneric,
     DuplicateFnParameter,
+    IntrinsicTypeAnnotation,
     InvalidUseImports,
     InvalidUseImportBinding,
     InvalidUseAlias,
@@ -301,6 +307,7 @@ impl DiagnosticCategory for ExpanderDiagnosticCategory {
             Self::InvalidFnParams => Some(&INVALID_FN_PARAMS),
             Self::DuplicateFnGeneric => Some(&DUPLICATE_FN_GENERIC),
             Self::DuplicateFnParameter => Some(&DUPLICATE_FN_PARAMETER),
+            Self::IntrinsicTypeAnnotation => Some(&INTRINSIC_TYPE_ANNOTATION),
             Self::InvalidUseImports => Some(&INVALID_USE_IMPORTS),
             Self::InvalidUseImportBinding => Some(&INVALID_USE_IMPORT_BINDING),
             Self::InvalidUseAlias => Some(&INVALID_USE_ALIAS),
@@ -1063,6 +1070,41 @@ pub(crate) fn invalid_let_argument_count(
     diagnostic.add_message(Message::note(
         "the arguments are, in order: the binding name, an optional type annotation, the bound \
          value, and the body expression where the name is in scope",
+    ));
+
+    diagnostic
+}
+
+/// A `let` binding with a type annotation resolved to a compiler intrinsic.
+///
+/// Intrinsics are not ordinary values and cannot be narrowed by a type
+/// annotation. The binding is still valid without the annotation.
+pub(crate) fn intrinsic_type_annotation(
+    annotation_span: SpanId,
+    value_span: SpanId,
+    name: Symbol<'_>,
+) -> ExpanderDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        ExpanderDiagnosticCategory::IntrinsicTypeAnnotation,
+        Severity::Error,
+    )
+    .primary(Label::new(
+        annotation_span,
+        format!("type annotation on `{name}` is not allowed here"),
+    ));
+
+    diagnostic.add_label(Label::new(
+        value_span,
+        "this resolves to a compiler intrinsic",
+    ));
+
+    diagnostic.add_message(Message::help(format!(
+        "remove the type annotation: `(let {name} value body)`",
+    )));
+
+    diagnostic.add_message(Message::note(
+        "compiler intrinsics cannot be given a type annotation because they are not ordinary \
+         values",
     ));
 
     diagnostic
