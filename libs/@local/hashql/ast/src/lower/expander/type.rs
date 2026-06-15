@@ -365,12 +365,17 @@ fn lower_type_impl<'heap, S>(
 where
     S: BumpAllocator,
 {
-    let Some((name, constraints)) = argument_to_generic_ident(expander, name) else {
+    let (name, constraints) = if let Some(result) = argument_to_generic_ident(expander, name) {
+        result
+    } else {
         expander
             .diagnostics
             .push(error::invalid_type_binding_name(name));
 
-        return Expr::dummy();
+        (
+            Ident::synthetic(sym::dummy),
+            heap::Vec::new_in(expander.heap),
+        )
     };
 
     let mut value = mem::replace(&mut value.value, Expr::dummy());
@@ -433,6 +438,10 @@ where
             }
         },
     );
+
+    if name.value == sym::dummy {
+        return Expr::dummy();
+    }
 
     expr
 }

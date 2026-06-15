@@ -11,7 +11,7 @@ use hashql_core::{
         namespace::ModuleNamespace,
     },
     span::{SpanId, Spanned},
-    symbol::Symbol,
+    symbol::{Symbol, sym},
 };
 use hashql_diagnostics::{
     Diagnostic, DiagnosticIssues, Label, Patch, Suggestions,
@@ -382,11 +382,13 @@ struct SpellingSuggestions<'heap, I> {
 impl<'heap, I> SpellingSuggestions<'heap, I> {
     fn emit(self, diagnostic: &mut ExpanderDiagnostic) -> Vec<Symbol<'heap>>
     where
-        I: IntoIterator<Item = Symbol<'heap>> + Clone,
+        I: IntoIterator<Item = Symbol<'heap>, IntoIter: Clone>,
     {
         let similar = did_you_mean(
             self.name.value,
-            self.candidates,
+            self.candidates
+                .into_iter()
+                .filter(|candidate| *candidate != sym::dummy),
             Some(self.top_n),
             self.cutoff,
         );

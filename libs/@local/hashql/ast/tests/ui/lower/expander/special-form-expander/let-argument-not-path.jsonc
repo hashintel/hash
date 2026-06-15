@@ -5,5 +5,5 @@
   { "#literal": true },
   //~^ ERROR expected a simple identifier for the `let` binding name
   { "#literal": true },
-  ["+", "x", "x"]
+  ["+", { "#literal": true }, { "#literal": true }]
 ]

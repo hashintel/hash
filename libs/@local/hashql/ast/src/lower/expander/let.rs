@@ -1,6 +1,11 @@
 use core::mem;
 
-use hashql_core::{heap::BumpAllocator, module::item::Item, span::SpanId, symbol::Ident};
+use hashql_core::{
+    heap::BumpAllocator,
+    module::item::Item,
+    span::SpanId,
+    symbol::{Ident, sym},
+};
 
 use super::{BindingKind, CurrentItem, Expander, r#type::lower_expr_to_type};
 use crate::{
@@ -37,12 +42,14 @@ fn lower_let_impl<'heap, S>(
 where
     S: BumpAllocator,
 {
-    let Some(name) = argument_to_ident(name) else {
+    let name = if let Some(name) = argument_to_ident(name) {
+        name
+    } else {
         expander
             .diagnostics
             .push(error::invalid_let_binding_name(name));
 
-        return Expr::dummy();
+        Ident::synthetic(sym::dummy)
     };
 
     let item = expander.visit(&mut value.value);
@@ -94,6 +101,10 @@ where
     } else {
         None
     };
+
+    if name.value == sym::dummy {
+        return Expr::dummy();
+    }
 
     Expr {
         id: NodeId::PLACEHOLDER,
