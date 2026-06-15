@@ -38,6 +38,19 @@ yarn lint:tsc         # Type check with tsgo
 yarn test:unit        # Unit tests (vitest)
 ```
 
+## Documentation
+
+When adding or changing user-facing Petrinaut features, update
+`libs/@hashintel/petrinaut/docs` in the same change. Match the existing guide
+style: concise task-oriented prose, `##` sections, bold UI labels, short
+lists/tables, relative links, and screenshots only where they clarify the
+workflow.
+
+For simulation playback or timeline changes, check `docs/simulation.md`. For
+scenario changes, check `docs/scenarios.md`. For metric changes, check
+`docs/metrics.md`. For experiment changes, check `docs/experiments.md`. Update
+`docs/README.md` if the guide summary changes.
+
 ## Conventions
 
 - Function components only (no class components except error boundaries)

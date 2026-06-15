@@ -11,12 +11,12 @@ The classic Susceptible-Infected-Recovered compartmental model from epidemiology
 - **Stochastic firing rates** controlled by [global parameters](petri-net-extensions.md#global-parameters) (`infection_rate`, `recovery_rate`).
 - **Arc weight > 1** -- the Infection transition consumes 1 Susceptible + 1 Infected and produces 2 Infected tokens, modelling the S+I -> 2I mass-action dynamics.
 - Simple parameter-driven lambdas: `parameters.infection_rate` and `parameters.recovery_rate`.
-- An **Infected fraction** [metric](simulation.md) plotting the share of the population currently infected.
-- Four **scenarios** spanning the epidemic threshold: _Seasonal Flu_ (R₀ ≈ 1.9), _High Virulence Outbreak_ (R₀ ≈ 12), _Contained Outbreak_ (R₀ < 1, dies out), and _Pandemic Wave_ (large population, R₀ ≈ 5).
+- An **Infected fraction** [metric](metrics.md) plotting the share of the population currently infected.
+- Four **scenarios** spanning the epidemic threshold: _Seasonal Flu_ (R₀ ≈ 1.5), _High Virulence Outbreak_ (R₀ ≈ 6), _Contained Outbreak_ (R₀ < 1, dies out), and _Pandemic Wave_ (large population, R₀ ≈ 5).
 
 **Suggested initial state:** pick a scenario and press Play -- each one seeds the Susceptible/Infected/Recovered populations from a configurable `population` and `infected_ratio`. To set it up by hand instead, all places are untyped, so just enter token counts (e.g. Susceptible **100**, Infected **1**, Recovered **0**) and watch the epidemic curve in the timeline.
 
-**Bundled extras:** two scenarios -- **Seasonal Flu** (R₀ ≈ 1.5) and **High Virulence Outbreak** (R₀ ≈ 6) -- driven by `population` and `infected_ratio` scenario parameters. One metric, **Infected Fraction**, plots the share of the population currently infected.
+**Bundled extras:** the four scenarios above, driven by `population` and `infected_ratio` scenario parameters plus infection/recovery parameter bindings. One metric, **Infected Fraction**, plots the share of the population currently infected.
 
 **Key concepts:** [stochastic firing](petri-net-extensions.md#stochastic-rate), [parameters](petri-net-extensions.md#global-parameters), [arc weight](useful-patterns.md#arc-weight-for-multi-token-operations), [scenarios](scenarios.md).
 
@@ -24,7 +24,7 @@ The classic Susceptible-Infected-Recovered compartmental model from epidemiology
 
 ## Supply Chain with Disruption
 
-An end-to-end manufacturing and distribution network (loaded from the **Supply Chai with Disruption** menu item). Raw materials are sourced from two suppliers with different cost/reliability trade-offs, converted into finished goods by a factory machine that wears down over time, then sold to customers whose orders age, back-order, get fulfilled, or are cancelled.
+An end-to-end manufacturing and distribution network (loaded from the **Supply Chain with Disruption** menu item). Raw materials are sourced from two suppliers with different cost/reliability trade-offs, converted into finished goods by a factory machine that wears down over time, then sold to customers whose orders age, back-order, get fulfilled, or are cancelled.
 
 **Demonstrates:**
 
@@ -35,7 +35,7 @@ An end-to-end manufacturing and distribution network (loaded from the **Supply C
 - **Competing predicate transitions** -- inbound shipments are received vs. damaged, production batches pass vs. fail quality, and outbound shipments are delivered vs. lost.
 - **Backorder loop with an inhibitor arc** -- aging open orders convert to backorders, which are fulfilled from replenished stock or cancelled.
 - **Custom SVG [visualizers](petri-net-extensions.md#visualizer)** on five places: inbound lanes, factory work-in-process, the customer queue, backorder heat, and last-mile deliveries.
-- **[Metrics](simulation.md)** -- service level, customer pressure, stock position, inbound pipeline size, average inbound risk, factory availability, scrap fraction, suppliers down, and average waiting order age.
+- **[Metrics](metrics.md)** -- service level, customer pressure, stock position, inbound pipeline size, average inbound risk, factory availability, scrap fraction, suppliers down, and average waiting order age.
 - **Five built-in scenarios** -- _Balanced dual source_ (baseline), _Demand surge and port congestion_, _Reliable supplier outage_, _Low-cost sourcing strategy_, and _Resilience investment_.
 
 **Suggested initial state:** pick a scenario from the scenario panel and press Play -- each scenario seeds initial raw materials and finished goods and wires the relevant parameters, so no manual token placement is needed. Start with _Balanced dual source_, then try _Demand surge and port congestion_ to watch the customer queue and backorder visualizers fill up.
@@ -57,7 +57,7 @@ A software release process with a safety gate and an incident feedback loop. Dep
 - **State-dependent stochastic rates** -- larger and riskier deployments finish more slowly and fail more often; higher-severity incidents resolve more slowly.
 - **Failure feedback loop** -- "Deployment Causes Incident" consumes the in-progress deployment, records it in FailedDeployments, and opens a new incident that then blocks the gate.
 - **Custom SVG [visualizers](petri-net-extensions.md#visualizer)** on every place: release queue, incident bridge, deployment lane progress, and the completed/resolved/failed piles.
-- **[Metrics](simulation.md)** -- successful deployments, failed deployments, release queue length, active incidents, a deployment-gate-blocked flag, and failure share.
+- **[Metrics](metrics.md)** -- successful deployments, failed deployments, release queue length, active incidents, a deployment-gate-blocked flag, and failure share.
 - **Four built-in scenarios** -- _Baseline operations_, _Incident surge_, _High deployment velocity_, and _Risky large releases_.
 
 **Suggested initial state:** no initial tokens needed -- all places can start empty. Pick a scenario (start with _Baseline operations_) and press Play; the source transitions generate deployments and incidents at the scenario's stochastic rates. Try _Risky large releases_ to watch the inhibitor gate close repeatedly as failures spawn incidents.
@@ -76,7 +76,7 @@ A manufacturing system where machines produce goods, accumulate damage, break do
 - **Differential equations** on three places: production progress advancing, damage being repaired, and technicians travelling to the repair site.
 - **Predicate guards** based on continuous state -- production completes when `transformation_progress >= 1`, repair finishes when `machine_damage_ratio <= 0`, technician arrives when `distance_to_site <= 0`.
 - **Competing outcomes** -- "Production Success" (predicate) vs "Machine Fail" (stochastic with rate `machine_damage_ratio ** 100`, increasing sharply with accumulated damage).
-- **[Metrics](simulation.md)** -- good products, defective products, yield, machines down, and average machine damage.
+- **[Metrics](metrics.md)** -- good products, defective products, yield, machines down, and average machine damage.
 - A **Default Production** scenario with configurable raw material, machine count, and initial machine damage.
 
 **Suggested initial state:** load the _Default Production_ scenario and press Play; it seeds the raw material and machine pool for you. To set it up by hand instead:
@@ -108,7 +108,7 @@ An orbital mechanics simulation: satellites are continuously launched into orbit
 - **Predicate transitions based on geometry** -- "Collision" checks the distance between two satellites and "Crash" checks distance from the planet's surface, routing tokens to the Debris place.
 - **Arc weight 2** on the "Collision" transition -- it consumes two satellites from the Space place at once to evaluate pairwise proximity.
 - **Scenarios** -- _Moon Orbit_ (low gravity, gentle arcs) and _Earth Orbit_ (high orbital velocities, frequent launches) preconfigure the gravitational constant, planet radius, and launch parameters.
-- **[Metrics](simulation.md)** -- satellites in orbit, debris objects, average orbital radius, and average orbital speed.
+- **[Metrics](metrics.md)** -- satellites in orbit, debris objects, average orbital radius, and average orbital speed.
 
 **Suggested initial state:** no initial tokens needed -- pick a scenario (e.g. _Earth Orbit_) and press Play. The "LaunchSatellite" source transition creates satellites with randomized orbital positions and velocities. Select the Space place and open the visualizer preview to watch the orbits fill up. The velocity for a roughly circular orbit at radius `r` is approximately `sqrt(gravitational_constant / r)`.
 

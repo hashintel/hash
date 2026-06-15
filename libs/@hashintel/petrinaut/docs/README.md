@@ -30,9 +30,10 @@ Petrinaut has three global modes in the top bar, though **Actual** is only enabl
 - [Drawing a Net](drawing-a-net.md) -- Top bar, canvas, sidebars, adding nodes and connecting arcs, selection, keyboard shortcuts, import/export, auto-layout.
 - [Petri Net Extensions](petri-net-extensions.md) -- Types, dynamics, transition kernels, firing rules, read/inhibitor arcs, as well as parameters and state visualizers.
 - [Useful Patterns](useful-patterns.md) -- Common modelling techniques, including duration and resource pools.
-- [Simulation](simulation.md) -- Set initial state, run a single simulation, use the timeline, control playback.
+- [Simulation](simulation.md) -- Set initial state, run a single simulation, use simulation settings, control playback, and inspect the timeline.
 - [Scenarios](scenarios.md) -- Save and switch between named simulation configurations.
-- [Experiments](experiments.md) -- Run Monte Carlo batches and inspect token-count distributions over time.
+- [Metrics](metrics.md) -- Create custom numeric outputs for timelines and experiments.
+- [Experiments](experiments.md) -- Run Monte Carlo batches and inspect aggregate metric results over time.
 - [Actual Mode](actual-mode.md) -- View a host-provided live Petri net execution, currently via Brunch.
 - [AI Assistant](ai-assistant.md) -- Build, review, and revise nets using natural language.
 - [Visual Settings](visual-settings.md) -- Configure the editor appearance and behavior.

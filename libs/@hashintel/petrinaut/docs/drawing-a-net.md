@@ -2,7 +2,7 @@
 
 ## Editor layout
 
-The editor is organized around a central canvas where you build your net:
+The editor is organized around a central canvas where you build your net in **Edit** mode:
 
 - **Top bar** -- net management menu, optional title field, **Edit / Simulate / Actual** mode switcher, active-experiments indicator, recent-changes history. See [Top bar](#top-bar).
 - **Canvas** (center) -- the main workspace where places and transitions are displayed and connected.
@@ -40,7 +40,7 @@ Petrinaut global modes are switched via the centre control in the top bar.
 | Mode         | Workspace                                                                                                                                                                                 |
 | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Edit**     | Canvas + left sidebar + properties panel + bottom panel + bottom toolbar (with AI assistant). This is where you draw the net, configure entities, write code, and run single simulations. |
-| **Simulate** | Replaces the workspace with the [Scenarios](scenarios.md) and [Experiments](experiments.md) management views.                                                                             |
+| **Simulate** | Replaces the workspace with [scenario](scenarios.md), [metric](metrics.md), and [experiment](experiments.md) management views.                                                            |
 | **Actual**   | Shows a host-provided live execution source. It is disabled unless the host provides Actual-mode data. See [Actual Mode](actual-mode.md).                                                 |
 
 In Simulate mode the net structure becomes read-only -- you can still create, edit, and delete scenarios and metrics, but you cannot change places, transitions, arcs, types, or parameters. Switch back to Edit mode to modify the net.

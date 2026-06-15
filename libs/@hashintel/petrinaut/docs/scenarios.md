@@ -104,7 +104,7 @@ Quick-action buttons next to the dropdown let you edit the selected scenario, cr
 
 Several of the built-in examples ship with scenarios so you can see realistic configurations. See [Examples](examples.md) for the full list; highlights:
 
-- **SIR Epidemic Model** -- "Seasonal Flu" and "High Virulence Outbreak", driven by `population` and `infected_ratio` scenario parameters plus parameter overrides for infection and recovery rates.
+- **SIR Epidemic Model** -- four outbreak scenarios driven by `population` and `infected_ratio` scenario parameters plus parameter overrides for infection and recovery rates.
 - **Production Machines** -- "Default Production", driven by `raw_material`, `machines_count`, and `initial_machine_damage`.
 - **Probabilistic Satellites Launcher** -- four orbit scenarios (Moon, Earth, Mars, Solar).
 

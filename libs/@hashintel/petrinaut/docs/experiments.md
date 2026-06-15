@@ -1,6 +1,6 @@
 # Experiments
 
-An **experiment** is a Monte Carlo batch: many independent simulation runs of the current net, all running the same scenario (or no scenario), with results aggregated as distributions of token counts over simulation time. Use experiments when one run isn't enough -- when the model is stochastic and you want to see the spread, not just one trajectory.
+An **experiment** is a Monte Carlo batch: many independent simulation runs of the current net, all running the same scenario (or no scenario), with results aggregated as metric distributions over simulation time. Use experiments when one run isn't enough -- when the model is stochastic and you want to see the spread, not just one trajectory.
 
 Experiments live under the **Simulate** [global mode](drawing-a-net.md#global-modes). Open the Simulate sidebar and choose **Experiments**.
 
@@ -21,8 +21,9 @@ Experiments live under the **Simulate** [global mode](drawing-a-net.md#global-mo
 | **Runs**                | `1000`                            | Positive integer; how many independent simulations to run.                                                                                                                                                         |
 | **Time step (dt)**      | `1`                               | Same meaning as in single-run simulations (see [Simulation](simulation.md#time-step-dt)).                                                                                                                          |
 | **Max time (seconds)**  | `180`                             | Each run advances until simulation time reaches this value, then completes.                                                                                                                                        |
+| **Metrics**             | none                              | Add at least one metric before running. Metrics can use built-in place-token counts, transition firing counts, saved [model metrics](metrics.md), or custom code.                                                  |
 
-The model used is a snapshot of the current net at the time you press **Run**. Editing the net afterwards does not change runs that have already started.
+The model and metric configuration used are snapshots of the current net at the time you press **Run**. Editing the net or its metrics afterwards does not change runs that have already started.
 
 > Currently, an experiment can only run against one scenario at a time. To compare scenarios, create one experiment per scenario.
 
