@@ -1,6 +1,6 @@
 error[lowering::expander::intrinsic-generic-arguments]: Generic arguments on intrinsic
    ╭▸ 
-10 │     "foo<Number>",
+11 │     "foo<Number>",
    │      ━━━━━━━━━━━ `foo` does not accept generic arguments
    │
    ╰ help: remove the generic arguments from `foo`

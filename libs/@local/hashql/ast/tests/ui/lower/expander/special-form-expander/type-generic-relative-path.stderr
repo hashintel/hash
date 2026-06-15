@@ -1,11 +1,3 @@
-error[expander::unresolved-variable]: Unresolved variable
-  ╭▸ 
-7 │   { "#struct": { "foo": "Bar" } },
-  │                          ━━━ cannot find `Bar` in this scope
-  │
-  ├ help: check the spelling, or import the name with a `use` statement
-  ╰ note: this could be a typo, a name used outside its scope, or a missing declaration; if it is a function or type from another module, you may need to import it first
-
 error[expander::invalid-generic-argument]: Invalid generic argument
   ╭▸ 
 5 │   "Foo<foo::Bar>",

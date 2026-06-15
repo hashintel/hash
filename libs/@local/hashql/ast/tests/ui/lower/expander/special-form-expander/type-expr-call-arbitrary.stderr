@@ -1,22 +1,6 @@
-error[expander::unresolved-variable]: Unresolved variable
-  ╭▸ 
-6 │   ["::core::math::headpat", "Int", "Float"]
-  │                                     ━━━━━ cannot find `Float` in this scope
-  │
-  ├ help: check the spelling, or import the name with a `use` statement
-  ╰ note: this could be a typo, a name used outside its scope, or a missing declaration; if it is a function or type from another module, you may need to import it first
-
-error[expander::unresolved-variable]: Unresolved variable
-  ╭▸ 
-6 │   ["::core::math::headpat", "Int", "Float"]
-  │                              ━━━ cannot find `Int` in this scope
-  │
-  ├ help: check the spelling, or import the name with a `use` statement
-  ╰ note: this could be a typo, a name used outside its scope, or a missing declaration; if it is a function or type from another module, you may need to import it first
-
 error[expander::item-not-found]: Item not found
   ╭▸ 
-6 │   ["::core::math::headpat", "Int", "Float"]
+6 │   ["::core::math::headpat", "Integer", "Number"]
   │             ┬───  ━━━━━━━ cannot find `headpat` in module `::core::math`
   │             │
   │             looked in this module

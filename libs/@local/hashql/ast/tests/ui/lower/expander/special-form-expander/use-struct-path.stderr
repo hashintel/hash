@@ -1,55 +1,6 @@
-error[expander::unresolved-variable]: Unresolved variable
-   ╭▸ 
-12 │   "x"
-   │    ━ cannot find `x` in this scope
-   │
-   ╰ note: this could be a typo, a name used outside its scope, or a missing declaration; if it is a function or type from another module, you may need to import it first
-help: a similar imported name exists
-   ╭╴
-12 -   "x"
-12 +   "~"
-   ├╴
-12 -   "x"
-12 +   "↑"
-   ├╴
-12 -   "x"
-12 +   "√"
-   ├╴
-12 -   "x"
-12 +   "∛"
-   ├╴
-12 │   "index"
-   ╰╴   ++++
-
-error[expander::item-not-found]: Item not found
-  ╭▸ 
-5 │   "::core",
-  │      ──── looked in this module
-  ‡
-8 │       "x": "::core::math::sub"
-  │        ━ cannot find `x` in module `::core`
-  ╰╴
-help: a similar item exists in this module
-  ╭╴
-8 -       "x": "::core::math::sub"
-8 +       "math": "::core::math::sub"
-  ├╴
-8 -       "x": "::core::math::sub"
-8 +       "option": "::core::math::sub"
-  ├╴
-8 -       "x": "::core::math::sub"
-8 +       "result": "::core::math::sub"
-  ├╴
-8 -       "x": "::core::math::sub"
-8 +       "url": "::core::math::sub"
-  ├╴
-8 -       "x": "::core::math::sub"
-8 +       "uuid": "::core::math::sub"
-  ╰╴
-
 error[expander::invalid-use-alias]: Invalid use alias
   ╭▸ 
-8 │       "x": "::core::math::sub"
-  │             ━━━━━━━━━━━━━━━━━ expected `_` or a simple identifier as the alias
+8 │       "add": "::core::math::sub"
+  │               ━━━━━━━━━━━━━━━━━ expected `_` or a simple identifier as the alias
   │
   ╰ help: use `_` to keep the original name or a simple identifier to rename: `(name: alias)` or `(name: _)`

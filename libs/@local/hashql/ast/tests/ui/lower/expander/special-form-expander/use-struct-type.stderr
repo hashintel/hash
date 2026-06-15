@@ -1,33 +1,32 @@
-error[expander::unresolved-variable]: Unresolved variable
-   ╭▸ 
-11 │   "x"
-   │    ━ cannot find `x` in this scope
-   │
-   ╰ note: this could be a typo, a name used outside its scope, or a missing declaration; if it is a function or type from another module, you may need to import it first
-help: a similar imported name exists
-   ╭╴
-11 -   "x"
-11 +   "~"
-   ├╴
-11 -   "x"
-11 +   "↑"
-   ├╴
-11 -   "x"
-11 +   "√"
-   ├╴
-11 -   "x"
-11 +   "∛"
-   ├╴
-11 │   "index"
-   ╰╴   ++++
-
-error[expander::package-not-found]: Package not found
+error[expander::item-not-found]: Item not found
   ╭▸ 
-5 │   "::math",
-  │    ┬─┯━━━
-  │    │ │
-  │    │ cannot find package `math`
-  │    in this path
+5 │   "::core::math",
+  │            ──── looked in this module
+6 │   {
+7 │     "#struct": { "x": "x" },
+  │                   ━ cannot find `x` in module `::core::math`
+  ╰╴
+help: a similar item exists in this module
+  ╭╴
+7 -     "#struct": { "x": "x" },
+7 +     "#struct": { "sqrt": "x" },
+  ├╴
+7 -     "#struct": { "x": "x" },
+7 +     "#struct": { "sub": "x" },
+  ├╴
+7 -     "#struct": { "x": "x" },
+7 +     "#struct": { "↑": "x" },
+  ├╴
+7 -     "#struct": { "x": "x" },
+7 +     "#struct": { "√": "x" },
+  ├╴
+7 -     "#struct": { "x": "x" },
+7 +     "#struct": { "∛": "x" },
+  ╰╴
+
+error[expander::use-imports-type-annotation]: Type annotation on use imports
+  ╭▸ 
+8 │     "#type": "X"
+  │               ━ type annotations are not allowed on the import list
   │
-  ├ help: check the package name, or add it to the project dependencies
-  ╰ note: absolute paths start from an installed package
+  ╰ help: remove the type annotation; the import list declares which names to bring into scope, not a typed value

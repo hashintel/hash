@@ -1,31 +1,7 @@
 error[expander::generic-arguments-in-module]: Generic arguments in module path
   ╭▸ 
-3 │ ["::math<T>::add", { "#literal": 2 }, { "#literal": 3 }]
-  │          ━ generic argument not allowed here
+3 │ ["::core::math<Integer>::add", { "#literal": 2 }, { "#literal": 3 }]
+  │                ━━━━━━━ generic argument not allowed here
   │
   ├ help: move the generic arguments to the final segment of the path, or remove them
   ╰ note: modules are not generic; only the final item in a path can be parameterized
-
-error[expander::unresolved-variable]: Unresolved variable
-  ╭▸ 
-3 │ ["::math<T>::add", { "#literal": 2 }, { "#literal": 3 }]
-  │          ━ cannot find `T` in this scope
-  │
-  ╰ note: this could be a typo, a name used outside its scope, or a missing declaration; if it is a function or type from another module, you may need to import it first
-help: a similar imported name exists
-  ╭╴
-3 - ["::math<T>::add", { "#literal": 2 }, { "#literal": 3 }]
-3 + ["::math<String>::add", { "#literal": 2 }, { "#literal": 3 }]
-  ├╴
-3 - ["::math<T>::add", { "#literal": 2 }, { "#literal": 3 }]
-3 + ["::math<Union>::add", { "#literal": 2 }, { "#literal": 3 }]
-  ├╴
-3 - ["::math<T>::add", { "#literal": 2 }, { "#literal": 3 }]
-3 + ["::math<Unknown>::add", { "#literal": 2 }, { "#literal": 3 }]
-  ├╴
-3 - ["::math<T>::add", { "#literal": 2 }, { "#literal": 3 }]
-3 + ["::math<Url>::add", { "#literal": 2 }, { "#literal": 3 }]
-  ├╴
-3 - ["::math<T>::add", { "#literal": 2 }, { "#literal": 3 }]
-3 + ["::math<|>::add", { "#literal": 2 }, { "#literal": 3 }]
-  ╰╴
