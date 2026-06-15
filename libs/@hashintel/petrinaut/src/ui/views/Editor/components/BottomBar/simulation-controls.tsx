@@ -203,6 +203,7 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
           </div>
 
           <input
+            aria-label="Simulation timeline"
             type="range"
             min="0"
             max={Math.max(0, totalFrames - 1)}

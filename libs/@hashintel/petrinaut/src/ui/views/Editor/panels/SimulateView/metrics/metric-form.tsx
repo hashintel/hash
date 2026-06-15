@@ -227,6 +227,7 @@ const MetricFormSections = ({
           </label>
           <textarea
             id={`${idPrefix}metric-description`}
+            aria-label="Description"
             className={textareaStyle}
             value={state.description}
             onChange={(e) => callbacks.onDescriptionChange(e.target.value)}
