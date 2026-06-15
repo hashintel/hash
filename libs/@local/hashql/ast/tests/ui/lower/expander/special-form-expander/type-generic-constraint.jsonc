@@ -2,7 +2,7 @@
 //@ description: Generics with constraints should be properly lowered
 [
   "::kernel::special_form::type",
-  "Foo<Bar: Baz>",
+  "Foo<Bar: String>",
   { "#struct": { "foo": "Bar" } },
   "_"
 ]

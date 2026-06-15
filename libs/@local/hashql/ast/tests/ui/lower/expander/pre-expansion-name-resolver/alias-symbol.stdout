@@ -1,41 +1,19 @@
-Expr#4294967040@25
+Expr#4294967040@20
   ExprKind (Call)
-    CallExpr#4294967040@25
-      Expr#4294967040@3
+    CallExpr#4294967040@20
+      Expr#4294967040@15
         ExprKind (Path)
-          Path#4294967040@3 (rooted: true)
-            PathSegment#4294967040@2 (name: kernel)
-            PathSegment#4294967040@2 (name: special_form)
-            PathSegment#4294967040@2 (name: let)
-      Argument#4294967040@7
-        Expr#4294967040@7
-          ExprKind (Path)
-            Path#4294967040@7 (rooted: false)
-              PathSegment#4294967040@6 (name: !&&)
-      Argument#4294967040@11
-        Expr#4294967040@11
-          ExprKind (Path)
-            Path#4294967040@11 (rooted: true)
-              PathSegment#4294967040@10 (name: core)
-              PathSegment#4294967040@10 (name: bool)
-              PathSegment#4294967040@10 (name: and)
-      Argument#4294967040@24
-        Expr#4294967040@24
-          ExprKind (Call)
-            CallExpr#4294967040@24
-              Expr#4294967040@15
-                ExprKind (Path)
-                  Path#4294967040@15 (rooted: true)
-                    PathSegment#4294967040@14 (name: core)
-                    PathSegment#4294967040@14 (name: bool)
-                    PathSegment#4294967040@14 (name: and)
-              Argument#4294967040@19
-                Expr#4294967040@19
-                  ExprKind (Path)
-                    Path#4294967040@19 (rooted: false)
-                      PathSegment#4294967040@18 (name: a)
-              Argument#4294967040@23
-                Expr#4294967040@23
-                  ExprKind (Path)
-                    Path#4294967040@23 (rooted: false)
-                      PathSegment#4294967040@22 (name: b)
+          Path#4294967040@15 (rooted: true)
+            PathSegment#4294967040@14 (name: core)
+            PathSegment#4294967040@14 (name: bool)
+            PathSegment#4294967040@14 (name: and)
+      Argument#4294967040@17
+        Expr#4294967040@17
+          ExprKind (Literal)
+            LiteralExpr#4294967040@16
+              Primitive (True)
+      Argument#4294967040@19
+        Expr#4294967040@19
+          ExprKind (Literal)
+            LiteralExpr#4294967040@18
+              Primitive (False)

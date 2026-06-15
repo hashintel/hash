@@ -5,7 +5,7 @@
   "::core::math",
   {
     "#struct": {
-      "x": { "#literal": 1 }
+      "sqrt": { "#literal": 1 }
       //~^ ERROR expected `_` or a simple identifier as the alias
     }
   },

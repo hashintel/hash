@@ -1,6 +1,6 @@
 error[expander::intrinsic-generic-arguments]: Generic arguments on intrinsic
   ╭▸ 
-4 │   "::core::math::add<T: Number>",
-  │                  ━━━━━━━━━━━━━━ `add` does not accept generic arguments
+4 │   "`+`<T: Number>",
+  │    ━━━━━━━━━━━━━━ `+` does not accept generic arguments
   │
-  ╰ help: remove the generic arguments from `add`
+  ╰ help: remove the generic arguments from `+`

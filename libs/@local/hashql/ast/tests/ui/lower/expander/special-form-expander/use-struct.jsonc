@@ -2,7 +2,7 @@
 //@ description: struct pattern should compile to AST node
 [
   "::kernel::special_form::use",
-  "::math",
+  "::core::math",
   { "#struct": { "x": "y", "z": "_" } },
-  "x"
+  { "#literal": 0 }
 ]

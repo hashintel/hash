@@ -16,9 +16,9 @@
       { "#literal": 1 }
       //~^ ERROR cannot use a literal value as a type
     ],
-    { "#list": ["a", "b"] }
+    { "#list": [{ "#literal": 1 }, { "#literal": 2 }] }
     //~^ ERROR cannot use a list expression as a type
   ],
-  { "#dict": { "a": "b" } }
+  { "#dict": { "a": { "#literal": 1 } } }
   //~^ ERROR cannot use a dictionary expression as a type
 ]
