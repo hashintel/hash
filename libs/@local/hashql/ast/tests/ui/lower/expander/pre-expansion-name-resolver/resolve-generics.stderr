@@ -1,6 +1,0 @@
-error[expander::intrinsic-generic-arguments]: Generic arguments on intrinsic
-  ╭▸ 
-3 │ ["`+`<Integer>"]
-  │   ━━━━━━━━━━━━ `+` does not accept generic arguments
-  │
-  ╰ help: remove the generic arguments from `+`
