@@ -24,11 +24,10 @@ use hashql_core::{
     heap::{self, BumpAllocator},
     module::{
         self, Reference, Universe,
-        item::{IntrinsicItem, IntrinsicTypeItem, IntrinsicValueItem, Item, ItemKind},
+        item::{IntrinsicItem, IntrinsicTypeItem, Item, ItemKind},
         namespace::{ModuleNamespace, ResolutionMode, ResolveOptions},
     },
     symbol::{Ident, Symbol, sym},
-    r#type::kind::IntrinsicType,
 };
 
 use self::{

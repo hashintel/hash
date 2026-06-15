@@ -1,10 +1,6 @@
 use core::mem;
 
-use hashql_core::{
-    heap::{self, BumpAllocator},
-    module::Universe,
-    span::SpanId,
-};
+use hashql_core::{heap::BumpAllocator, module::Universe, span::SpanId};
 
 use super::Expander;
 use crate::{
