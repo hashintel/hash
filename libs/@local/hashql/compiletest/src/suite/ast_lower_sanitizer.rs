@@ -1,25 +1,26 @@
 use hashql_ast::{
     format::SyntaxDump as _,
-    lower::{
-        node_renumberer::NodeRenumberer, pre_expansion_name_resolver::PreExpansionNameResolver,
-        special_form_expander::SpecialFormExpander,
-    },
+    lower::{expander::Expander, sanitizer::Sanitizer},
     node::expr::Expr,
     visit::Visitor as _,
 };
-use hashql_core::{module::ModuleRegistry, r#type::environment::Environment};
+use hashql_core::{
+    heap::Scratch,
+    module::{ModuleRegistry, namespace::ModuleNamespace},
+    r#type::environment::Environment,
+};
 
 use super::{RunContext, Suite, SuiteDiagnostic, common::process_issues};
 
-pub(crate) struct AstLoweringNodeRenumbererSuite;
+pub(crate) struct AstLowerSanitizerSuite;
 
-impl Suite for AstLoweringNodeRenumbererSuite {
+impl Suite for AstLowerSanitizerSuite {
     fn name(&self) -> &'static str {
-        "ast/lowering/node-renumberer"
+        "ast/lower/sanitizer"
     }
 
     fn description(&self) -> &'static str {
-        "Sequential node ID assignment in the AST"
+        "AST structure validation and sanitization"
     }
 
     fn run<'heap>(
@@ -31,18 +32,19 @@ impl Suite for AstLoweringNodeRenumbererSuite {
     ) -> Result<String, SuiteDiagnostic> {
         let environment = Environment::new(heap);
         let registry = ModuleRegistry::new(&environment);
+        let mut scratch = Scratch::new();
 
-        let mut resolver = PreExpansionNameResolver::new(&registry);
+        let mut namespace = ModuleNamespace::new(&registry);
+        namespace.import_prelude();
 
-        resolver.visit_expr(&mut expr);
-
-        let mut expander = SpecialFormExpander::new(heap);
+        let mut expander = Expander::new(namespace, &mut scratch);
         expander.visit_expr(&mut expr);
-
         process_issues(diagnostics, expander.take_diagnostics())?;
 
-        let mut renumberer = NodeRenumberer::new();
-        renumberer.visit_expr(&mut expr);
+        let mut sanitizer = Sanitizer::new();
+        sanitizer.visit_expr(&mut expr);
+
+        process_issues(diagnostics, sanitizer.take_diagnostics())?;
 
         Ok(expr.syntax_dump_to_string())
     }

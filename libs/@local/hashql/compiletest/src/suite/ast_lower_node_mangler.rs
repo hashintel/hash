@@ -1,25 +1,26 @@
 use hashql_ast::{
     format::SyntaxDump as _,
-    lower::{
-        pre_expansion_name_resolver::PreExpansionNameResolver, sanitizer::Sanitizer,
-        special_form_expander::SpecialFormExpander,
-    },
+    lower::{expander::Expander, name_mangler::NameMangler},
     node::expr::Expr,
     visit::Visitor as _,
 };
-use hashql_core::{module::ModuleRegistry, r#type::environment::Environment};
+use hashql_core::{
+    heap::Scratch,
+    module::{ModuleRegistry, namespace::ModuleNamespace},
+    r#type::environment::Environment,
+};
 
 use super::{RunContext, Suite, SuiteDiagnostic, common::process_issues};
 
-pub(crate) struct AstLoweringSanitizerSuite;
+pub(crate) struct AstLowerNameManglerSuite;
 
-impl Suite for AstLoweringSanitizerSuite {
+impl Suite for AstLowerNameManglerSuite {
     fn name(&self) -> &'static str {
-        "ast/lowering/sanitizer"
+        "ast/lower/name-mangler"
     }
 
     fn description(&self) -> &'static str {
-        "AST structure validation and sanitization"
+        "Name mangling for unique identification"
     }
 
     fn run<'heap>(
@@ -31,20 +32,17 @@ impl Suite for AstLoweringSanitizerSuite {
     ) -> Result<String, SuiteDiagnostic> {
         let environment = Environment::new(heap);
         let registry = ModuleRegistry::new(&environment);
+        let mut scratch = Scratch::new();
 
-        let mut resolver = PreExpansionNameResolver::new(&registry);
+        let mut namespace = ModuleNamespace::new(&registry);
+        namespace.import_prelude();
 
-        resolver.visit_expr(&mut expr);
-
-        let mut expander = SpecialFormExpander::new(heap);
+        let mut expander = Expander::new(namespace, &mut scratch);
         expander.visit_expr(&mut expr);
-
         process_issues(diagnostics, expander.take_diagnostics())?;
 
-        let mut sanitizer = Sanitizer::new();
-        sanitizer.visit_expr(&mut expr);
-
-        process_issues(diagnostics, sanitizer.take_diagnostics())?;
+        let mut renumberer = NameMangler::new(heap);
+        renumberer.visit_expr(&mut expr);
 
         Ok(expr.syntax_dump_to_string())
     }

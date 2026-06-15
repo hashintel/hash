@@ -158,6 +158,7 @@ impl<'heap> Pipeline<'heap> {
             &mut expr,
             &self.env,
             &registry,
+            &mut self.scratch
         ));
 
         let hir_interner = hashql_hir::intern::Interner::new(self.heap);

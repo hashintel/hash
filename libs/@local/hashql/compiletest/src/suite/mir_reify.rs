@@ -43,7 +43,9 @@ pub(crate) fn mir_reify<'heap>(
         &mut expr,
         environment,
         hir_context.modules,
+        &mut scratch,
     );
+    scratch.reset();
     let types = process_status(diagnostics, result)?;
 
     let node = process_status(
