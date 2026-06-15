@@ -492,13 +492,7 @@ export const EntityType = ({
                  * instead of the sidebar-state based padding used on regular
                  * pages.
                  */
-                isInSlide
-                  ? {
-                      pt: `${backForwardHeight}px`,
-                      pl: 4,
-                      pr: 3,
-                    }
-                  : {},
+                isInSlide ? { mt: -0.6, pr: 7.5 } : {},
               ]}
             />
 

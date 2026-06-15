@@ -106,15 +106,10 @@ export const EntityTypeHeader = ({
           direction="row"
           alignItems="center"
           justifyContent="space-between"
+          mb={3}
         >
           <Stack direction="row" alignItems="center" gap={5} minWidth={0}>
-            <Stack
-              direction="row"
-              alignItems="flex-start"
-              mt={1}
-              mb={3}
-              minWidth={0}
-            >
+            <Stack direction="row" alignItems="flex-start" mt={1} minWidth={0}>
               {entityTypeNameSize !== null && (
                 <Controller
                   control={control}
@@ -165,7 +160,7 @@ export const EntityTypeHeader = ({
                         }
                         sx={{
                           position: "relative",
-                          top: entityTypeNameSize.lineHeight / 2 - 22,
+                          top: entityTypeNameSize.lineHeight / 2 - 25,
                         }}
                       />
                     );
