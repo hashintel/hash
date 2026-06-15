@@ -188,6 +188,11 @@ const DUPLICATE_FN_PARAMETER: TerminalDiagnosticCategory = TerminalDiagnosticCat
     name: "Duplicate function parameter",
 };
 
+const USE_IMPORTS_TYPE_ANNOTATION: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "use-imports-type-annotation",
+    name: "Type annotation on use imports",
+};
+
 const INVALID_USE_IMPORTS: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     id: "invalid-use-imports",
     name: "Invalid use imports",
@@ -263,6 +268,7 @@ pub enum ExpanderDiagnosticCategory {
     DuplicateFnParameter,
     IntrinsicTypeAnnotation,
     IntrinsicGenericArguments,
+    UseImportsTypeAnnotation,
     InvalidUseImports,
     InvalidUseImportBinding,
     InvalidUseAlias,
@@ -315,6 +321,7 @@ impl DiagnosticCategory for ExpanderDiagnosticCategory {
             Self::DuplicateFnParameter => Some(&DUPLICATE_FN_PARAMETER),
             Self::IntrinsicTypeAnnotation => Some(&INTRINSIC_TYPE_ANNOTATION),
             Self::IntrinsicGenericArguments => Some(&INTRINSIC_GENERIC_ARGUMENTS),
+            Self::UseImportsTypeAnnotation => Some(&USE_IMPORTS_TYPE_ANNOTATION),
             Self::InvalidUseImports => Some(&INVALID_USE_IMPORTS),
             Self::InvalidUseImportBinding => Some(&INVALID_USE_IMPORT_BINDING),
             Self::InvalidUseAlias => Some(&INVALID_USE_ALIAS),
@@ -2281,6 +2288,25 @@ pub(crate) fn invalid_use_argument_count(
     diagnostic.add_message(Message::note(
         "the arguments are, in order: the module path to import from, the import specifier (`*`, \
          a tuple of names, or a struct of aliases), and the body where the imports are in scope",
+    ));
+
+    diagnostic
+}
+
+/// The import list in a `use` has a type annotation.
+pub(crate) fn use_imports_type_annotation(annotation_span: SpanId) -> ExpanderDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        ExpanderDiagnosticCategory::UseImportsTypeAnnotation,
+        Severity::Error,
+    )
+    .primary(Label::new(
+        annotation_span,
+        "type annotations are not allowed on the import list",
+    ));
+
+    diagnostic.add_message(Message::help(
+        "remove the type annotation; the import list declares which names to bring into scope, \
+         not a typed value",
     ));
 
     diagnostic

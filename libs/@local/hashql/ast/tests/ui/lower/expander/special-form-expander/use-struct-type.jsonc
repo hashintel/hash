@@ -6,7 +6,7 @@
   {
     "#struct": { "x": "x" },
     "#type": "X"
-    //~^ ERROR Remove this type annotation
+    //~^ ERROR type annotations are not allowed on the import list
   },
   "x"
 ]

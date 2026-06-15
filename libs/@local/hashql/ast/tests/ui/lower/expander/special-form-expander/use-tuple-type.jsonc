@@ -4,6 +4,6 @@
   "::kernel::special_form::use",
   "::core",
   { "#tuple": ["::core::math::sub"], "#type": "Number" },
-  //~^ ERROR Remove this type annotation
+  //~^ ERROR type annotations are not allowed on the import list
   "x"
 ]
