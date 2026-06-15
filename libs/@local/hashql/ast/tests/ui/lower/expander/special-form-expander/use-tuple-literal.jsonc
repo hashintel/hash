@@ -4,6 +4,6 @@
   "::kernel::special_form::use",
   "::math",
   { "#tuple": [{ "#literal": 1 }] },
-  //~^ ERROR expected `*`, a tuple of names, or a struct of aliases
-  "x"
+  //~^ ERROR expected a simple name to import
+  { "#literal": 1 }
 ]

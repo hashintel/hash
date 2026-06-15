@@ -4,6 +4,7 @@
   "::kernel::special_form::use",
   "::core",
   { "#tuple": ["::core::math::sub"], "#type": "Number" },
-  //~^ ERROR type annotations are not allowed on the import list
-  "x"
+  //~^ ERROR expected a simple name to import
+  //~| ERROR type annotations are not allowed on the import list
+  null
 ]

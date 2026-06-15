@@ -5,10 +5,10 @@
   {
     "#tuple": [
       { "#literal": 1 }
-      //~^ ERROR expected a tuple or struct for generic parameters
+      //~^ ERROR expected a simple type parameter name
     ]
   },
   { "#struct": {} },
   "_",
-  ["+", "a", "b"]
+  { "#literal": 0 }
 ]

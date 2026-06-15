@@ -4,6 +4,6 @@
   "::kernel::special_form::use",
   "::core",
   "::core::math::X",
-  //~^ ERROR expected a simple name to import
+  //~^ ERROR expected `*`, a tuple of names, or a struct of aliases
   "x"
 ]

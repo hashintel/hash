@@ -1,8 +1,14 @@
 //@ run: fail
 //@ description: Field literal with type annotation should error
 [
-  "::kernel::special_form::access",
+  "let",
   "tuple",
-  { "#literal": 0, "#type": "Integer" }
-  //~^ ERROR type annotations are not allowed on field index literals
+  { "#tuple": [{ "#literal": 1 }] },
+  [
+    "::kernel::special_form::access",
+    "tuple",
+    //~^ ERROR cannot find `tuple` in this scope
+    { "#literal": 0, "#type": "Integer" }
+    //~^ ERROR type annotations are not allowed on field index literals
+  ]
 ]

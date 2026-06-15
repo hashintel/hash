@@ -3,8 +3,8 @@
 [
   "::kernel::special_form::fn",
   { "#tuple": ["T", "T"] },
-  //~^ ERROR `T` is already declared as a generic parameter
+  //~^ ERROR duplicate generic parameter `T`
   { "#struct": {} },
   "_",
-  ["+", "a", "b"]
+  { "#literal": 0 }
 ]

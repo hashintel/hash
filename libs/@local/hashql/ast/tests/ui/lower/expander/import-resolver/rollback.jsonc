@@ -5,5 +5,5 @@
   { "#literal": true },
   ["use", "core::bits", { "#tuple": ["shl"] }, "shl"],
   "shl"
-  //~^ ERROR Cannot find variable 'shl'
+  //~^ ERROR cannot find `shl` in this scope
 ]

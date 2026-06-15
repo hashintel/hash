@@ -8,5 +8,5 @@
     "#type": "(name: String)"
     //~^ ERROR type annotations are not allowed inside a type expression
   },
-  "x"
+  { "#literal": 1 }
 ]

@@ -4,6 +4,6 @@
   "::kernel::special_form::type",
   "Foo<(a: String)>",
   //~^ ERROR expected a simple type parameter
-  { "#struct": { "foo": "Bar" } },
+  { "#struct": { "foo": "Integer" } },
   "_"
 ]

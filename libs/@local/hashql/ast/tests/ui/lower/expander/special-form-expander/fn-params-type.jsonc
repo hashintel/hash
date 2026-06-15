@@ -9,5 +9,5 @@
     //~^ ERROR type annotation is not allowed on the parameter list
   },
   "_",
-  ["+", "a", "b"]
+  ["+", { "#literal": 1 }, { "#literal": 2 }]
 ]

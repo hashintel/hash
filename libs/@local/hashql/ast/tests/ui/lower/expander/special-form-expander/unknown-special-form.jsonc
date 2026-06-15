@@ -1,4 +1,4 @@
 //@ run: fail
 //@ description: Check if we error out if the special form is unknown
 ["::kernel::special_form::headpat"]
-//~^ERROR This special form path is invalid
+//~^ ERROR cannot find `headpat` in module `::kernel::special_form`

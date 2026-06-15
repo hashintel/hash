@@ -5,5 +5,5 @@
   "::core",
   { "#tuple": ["::core::math::sub"] },
   //~^ ERROR expected a simple name to import
-  "x"
+  { "#literal": 1 }
 ]

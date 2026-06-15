@@ -1,4 +1,4 @@
 //@ run: fail
 //@ description: Tests that generic arguments in 'use' statements are rejected with appropriate error
-["use", "kernel::type<T>", { "#tuple": ["T"] }, "_"]
-//~^ ERROR Generic arguments are not allowed here
+["use", "kernel::type<Integer>", { "#tuple": ["T"] }, "_"]
+//~^ ERROR generic arguments are not allowed in `use` paths
