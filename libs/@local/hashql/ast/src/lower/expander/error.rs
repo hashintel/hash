@@ -734,7 +734,7 @@ fn import_not_found<'heap>(
 ) -> ExpanderDiagnostic {
     let segment = &path.segments[depth];
 
-    let kind_label = expected.map(universe_noun).unwrap_or("name");
+    let kind_label = expected.map_or("name", universe_noun);
 
     let mut diagnostic =
         Diagnostic::new(ExpanderDiagnosticCategory::ImportNotFound, Severity::Error).primary(
@@ -766,7 +766,7 @@ fn import_not_found<'heap>(
 }
 
 /// Formats the universe as a noun for use in diagnostic messages.
-fn universe_noun(universe: Universe) -> &'static str {
+const fn universe_noun(universe: Universe) -> &'static str {
     match universe {
         Universe::Value => "value",
         Universe::Type => "type",
@@ -775,7 +775,7 @@ fn universe_noun(universe: Universe) -> &'static str {
 
 /// Appends a cross-universe hint when the name exists but as a different kind.
 ///
-/// For example: `help: `Url` exists as a type, not a value`
+/// For example: `help: `Url` exists as a type, not a value`.
 fn emit_cross_universe_hint(
     diagnostic: &mut ExpanderDiagnostic,
     name: Symbol<'_>,
@@ -787,24 +787,21 @@ fn emit_cross_universe_hint(
     }
 
     // Remove the expected universe from the found set so we only report alternates.
-    let alternates = match expected {
-        Some(universe) => found.without_universe(universe),
-        None => found,
-    };
+    let alternates = expected.map_or(found, |universe| found.without_universe(universe));
 
     if alternates.is_empty() {
         return;
     }
 
-    let message = match expected {
-        Some(expected) => {
+    let message = expected.map_or_else(
+        || format!("`{name}` exists as {alternates}"),
+        |expected| {
             format!(
                 "`{name}` exists as {alternates}, not {}",
                 universe_noun(expected)
             )
-        }
-        None => format!("`{name}` exists as {alternates}"),
-    };
+        },
+    );
 
     diagnostic.add_message(Message::help(message));
 }
@@ -819,7 +816,7 @@ fn item_not_found<'heap>(
 ) -> ExpanderDiagnostic {
     let segment = &path.segments[depth];
 
-    let kind_label = expected.map(universe_noun).unwrap_or("item");
+    let kind_label = expected.map_or("item", universe_noun);
 
     let primary_message = if depth > 0 {
         let parent_path = FormatUserPath {
@@ -881,7 +878,7 @@ fn item_not_found_at<'heap>(
         up_to: path.segments.len().checked_sub(1),
     };
 
-    let kind_label = expected.map(universe_noun).unwrap_or("item");
+    let kind_label = expected.map_or("item", universe_noun);
 
     let mut diagnostic = Diagnostic::new(ExpanderDiagnosticCategory::ItemNotFound, Severity::Error)
         .primary(Label::new(
