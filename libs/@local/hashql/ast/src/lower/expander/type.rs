@@ -370,9 +370,26 @@ where
     let mut value = mem::replace(&mut value.value, Expr::dummy());
     let mut body = mem::replace(&mut body.value, Expr::dummy());
 
-    expander.with_universe(hashql_core::module::Universe::Type, |expander| {
+    let item = expander.with_universe(hashql_core::module::Universe::Type, |expander| {
         expander.visit(&mut value)
     });
+
+    if let Some(
+        item @ Item {
+            kind: hashql_core::module::item::ItemKind::Intrinsic(_),
+            ..
+        },
+    ) = item
+    {
+        // We rebound an intrinsic, instead of erroring out, we use the body directly, and "show"
+        // the new value;
+        expander.bind(name.value, item, |expander| {
+            expander.visit(&mut body);
+        });
+
+        return body;
+    }
+
     let value = lower_expr_to_type(expander, value);
 
     expander.bind(

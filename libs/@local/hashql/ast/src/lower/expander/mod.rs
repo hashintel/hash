@@ -22,7 +22,7 @@ use hashql_core::{
     heap::{self, BumpAllocator},
     module::{
         self, Reference, Universe,
-        item::{IntrinsicItem, Item},
+        item::{IntrinsicItem, IntrinsicTypeItem, Item},
         namespace::{ModuleNamespace, ResolutionMode, ResolveOptions},
     },
     symbol::{Ident, Symbol, sym},
@@ -50,14 +50,14 @@ enum BindingKind<'heap> {
 }
 
 impl<'heap> From<Item<'heap>> for BindingKind<'heap> {
-    fn from(v: Item<'heap>) -> Self {
-        Self::Remote(v)
+    fn from(value: Item<'heap>) -> Self {
+        Self::Remote(value)
     }
 }
 
-impl<'heap> From<Universe> for BindingKind<'heap> {
-    fn from(v: Universe) -> Self {
-        Self::Local(v)
+impl From<Universe> for BindingKind<'_> {
+    fn from(value: Universe) -> Self {
+        Self::Local(value)
     }
 }
 
