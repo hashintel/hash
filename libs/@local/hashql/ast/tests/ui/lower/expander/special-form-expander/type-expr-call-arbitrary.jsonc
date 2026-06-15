@@ -4,5 +4,5 @@
   "::kernel::special_form::as",
   { "#literal": true },
   ["::core::math::headpat", "Integer", "Number"]
-  //~^ ERROR cannot find `headpat` in module `::core::math`
+  //~^ ERROR cannot find type `headpat` in module `::core::math`
 ]

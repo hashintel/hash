@@ -263,6 +263,10 @@ impl<'heap, S> Visitor<'heap> for Expander<'_, 'heap, S>
 where
     S: BumpAllocator,
 {
+    #[expect(
+        clippy::too_many_lines,
+        reason = "actual algorithm is straightforward, error reporting is what balloons it"
+    )]
     fn visit_path(&mut self, path: &mut node::path::Path<'heap>) {
         visit::walk_path(self, path);
         self.current_item = None;
@@ -327,6 +331,7 @@ where
             has_arguments: !ident.arguments.is_empty(),
         });
 
+        // Make sure that the intrinsic special forms do not have arguments attached to them.
         match item.kind {
             ItemKind::Intrinsic(IntrinsicItem::Type(IntrinsicTypeItem { name }))
                 if let Some(const_name) = name.as_constant()

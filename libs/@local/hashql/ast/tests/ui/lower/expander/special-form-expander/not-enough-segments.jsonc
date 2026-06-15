@@ -2,7 +2,7 @@
 //@ description: check if we error out if the path has not enough segments
 [
   "::kernel::special_form",
-  //~^ ERROR cannot find `special_form` in module `::kernel`
+  //~^ ERROR cannot find value `special_form` in module `::kernel`
   { "#literal": true },
   { "#literal": 1 },
   { "#literal": 2 }

@@ -9,6 +9,6 @@
     "foo",
     { "#literal": 42 },
     "föo"
-    //~^ ERROR cannot find `föo` in this scope
+    //~^ ERROR cannot find value `föo` in this scope
   ]
 ]

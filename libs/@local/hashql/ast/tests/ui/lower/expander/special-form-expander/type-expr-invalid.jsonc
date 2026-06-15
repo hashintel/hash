@@ -11,7 +11,7 @@
         { "#literal": 1 },
         // ensure that we properly resolve nested is expressions as errors
         ["::kernel::special_form::as", { "#literal": 1 }, "Integer"]
-        //~^ ERROR cannot find `as` in module `::kernel::special_form`
+        //~^ ERROR cannot find type `as` in module `::kernel::special_form`
       ],
       { "#literal": 1 }
       //~^ ERROR cannot use a literal value as a type

@@ -5,7 +5,7 @@ use hashql_core::{
     algorithms::did_you_mean,
     module::{
         ModuleId, ModuleRegistry, Universe,
-        error::{ResolutionError, ResolutionSuggestion},
+        error::{KindSet, ResolutionError, ResolutionSuggestion},
         import::Import,
         item::Item,
         namespace::ModuleNamespace,
@@ -498,19 +498,23 @@ pub(crate) fn from_resolution_error<'heap>(
         ResolutionError::ImportNotFound {
             depth,
             name,
+            expected,
+            found,
             suggestions,
         } => {
             if depth == 0 && path.segments.len() == 1 {
-                unresolved_variable(path, name, namespace, universe, &suggestions)
+                unresolved_variable(path, name, namespace, universe, found, &suggestions)
             } else {
-                import_not_found(path, depth, name, &suggestions)
+                import_not_found(path, depth, name, expected, found, &suggestions)
             }
         }
         ResolutionError::ItemNotFound {
             depth,
             name,
+            expected,
+            found,
             suggestions,
-        } => item_not_found(path, depth, name, &suggestions),
+        } => item_not_found(path, depth, name, expected, found, &suggestions),
         ResolutionError::Ambiguous(reference) => ambiguous_name(path, reference.name()),
         ResolutionError::ModuleEmpty { depth } => empty_module(path, depth),
     }
@@ -542,22 +546,37 @@ pub(crate) fn from_import_resolution_error<'heap>(
         ResolutionError::ImportNotFound {
             depth,
             name,
+            expected,
+            found,
             suggestions,
-        } => import_not_found(path, depth, name, &suggestions),
+        } => import_not_found(path, depth, name, expected, found, &suggestions),
         ResolutionError::ItemNotFound {
             depth,
             name,
+            expected,
+            found,
             suggestions,
         } => {
             // For named imports, the item (binding name) is beyond the path segments.
             // Use the binding's span if available, otherwise fall back to the path span.
             if depth >= path.segments.len() {
                 binding_name.map_or_else(
-                    || item_not_found(path, depth.min(path.segments.len() - 1), name, &suggestions),
-                    |binding| item_not_found_at(binding.span, path, name, &suggestions),
+                    || {
+                        item_not_found(
+                            path,
+                            depth.min(path.segments.len() - 1),
+                            name,
+                            expected,
+                            found,
+                            &suggestions,
+                        )
+                    },
+                    |binding| {
+                        item_not_found_at(binding.span, path, name, expected, found, &suggestions)
+                    },
                 )
             } else {
-                item_not_found(path, depth, name, &suggestions)
+                item_not_found(path, depth, name, expected, found, &suggestions)
             }
         }
         ResolutionError::Ambiguous(reference) => ambiguous_name(path, reference.name()),
@@ -709,16 +728,25 @@ fn import_not_found<'heap>(
     path: &Path<'heap>,
     depth: usize,
     name: Symbol<'heap>,
+    expected: Option<Universe>,
+    found: KindSet,
     suggestions: &[ResolutionSuggestion<'heap, Import<'heap>>],
 ) -> ExpanderDiagnostic {
     let segment = &path.segments[depth];
 
+    let kind_label = expected.map(universe_noun).unwrap_or("name");
+
     let mut diagnostic =
         Diagnostic::new(ExpanderDiagnosticCategory::ImportNotFound, Severity::Error).primary(
-            Label::new(segment.name.span, format!("`{name}` is not imported")),
+            Label::new(
+                segment.name.span,
+                format!("{kind_label} `{name}` is not imported"),
+            ),
         );
 
     diagnostic.add_label(Label::new(path.span, "in this path"));
+
+    emit_cross_universe_hint(&mut diagnostic, name, expected, found);
 
     let emitted = SpellingSuggestions {
         name: segment.name.symbol(),
@@ -728,7 +756,7 @@ fn import_not_found<'heap>(
     }
     .emit(&mut diagnostic);
 
-    if emitted.is_empty() {
+    if emitted.is_empty() && found.is_empty() {
         diagnostic.add_message(Message::help(
             "import the name with a `use` statement, or qualify it with a full path",
         ));
@@ -737,13 +765,61 @@ fn import_not_found<'heap>(
     diagnostic
 }
 
+/// Formats the universe as a noun for use in diagnostic messages.
+fn universe_noun(universe: Universe) -> &'static str {
+    match universe {
+        Universe::Value => "value",
+        Universe::Type => "type",
+    }
+}
+
+/// Appends a cross-universe hint when the name exists but as a different kind.
+///
+/// For example: `help: `Url` exists as a type, not a value`
+fn emit_cross_universe_hint(
+    diagnostic: &mut ExpanderDiagnostic,
+    name: Symbol<'_>,
+    expected: Option<Universe>,
+    found: KindSet,
+) {
+    if found.is_empty() {
+        return;
+    }
+
+    // Remove the expected universe from the found set so we only report alternates.
+    let alternates = match expected {
+        Some(universe) => found.without_universe(universe),
+        None => found,
+    };
+
+    if alternates.is_empty() {
+        return;
+    }
+
+    let message = match expected {
+        Some(expected) => {
+            format!(
+                "`{name}` exists as {alternates}, not {}",
+                universe_noun(expected)
+            )
+        }
+        None => format!("`{name}` exists as {alternates}"),
+    };
+
+    diagnostic.add_message(Message::help(message));
+}
+
 fn item_not_found<'heap>(
     path: &Path<'heap>,
     depth: usize,
     name: Symbol<'heap>,
+    expected: Option<Universe>,
+    found: KindSet,
     suggestions: &[ResolutionSuggestion<'heap, Item<'heap>>],
 ) -> ExpanderDiagnostic {
     let segment = &path.segments[depth];
+
+    let kind_label = expected.map(universe_noun).unwrap_or("item");
 
     let primary_message = if depth > 0 {
         let parent_path = FormatUserPath {
@@ -752,9 +828,9 @@ fn item_not_found<'heap>(
             up_to: Some(depth - 1),
         };
 
-        format!("cannot find `{name}` in module `{parent_path}`")
+        format!("cannot find {kind_label} `{name}` in module `{parent_path}`")
     } else {
-        format!("cannot find `{name}` in this scope")
+        format!("cannot find {kind_label} `{name}` in this scope")
     };
 
     let mut diagnostic = Diagnostic::new(ExpanderDiagnosticCategory::ItemNotFound, Severity::Error)
@@ -767,6 +843,8 @@ fn item_not_found<'heap>(
         ));
     }
 
+    emit_cross_universe_hint(&mut diagnostic, name, expected, found);
+
     let emitted = SpellingSuggestions {
         name: segment.name.symbol(),
         candidates: suggestions.iter().map(|suggestion| suggestion.name),
@@ -775,7 +853,7 @@ fn item_not_found<'heap>(
     }
     .emit(&mut diagnostic);
 
-    if emitted.is_empty() {
+    if emitted.is_empty() && found.is_empty() {
         diagnostic.add_message(Message::help(
             "check the spelling and ensure the item is exported",
         ));
@@ -793,6 +871,8 @@ fn item_not_found_at<'heap>(
     span: SpanId,
     path: &Path<'heap>,
     name: Symbol<'heap>,
+    expected: Option<Universe>,
+    found: KindSet,
     suggestions: &[ResolutionSuggestion<'heap, Item<'heap>>],
 ) -> ExpanderDiagnostic {
     let parent_path = FormatUserPath {
@@ -801,15 +881,19 @@ fn item_not_found_at<'heap>(
         up_to: path.segments.len().checked_sub(1),
     };
 
+    let kind_label = expected.map(universe_noun).unwrap_or("item");
+
     let mut diagnostic = Diagnostic::new(ExpanderDiagnosticCategory::ItemNotFound, Severity::Error)
         .primary(Label::new(
             span,
-            format!("cannot find `{name}` in module `{parent_path}`"),
+            format!("cannot find {kind_label} `{name}` in module `{parent_path}`"),
         ));
 
     if let Some(last) = path.segments.last() {
         diagnostic.add_label(Label::new(last.name.span, "looked in this module"));
     }
+
+    emit_cross_universe_hint(&mut diagnostic, name, expected, found);
 
     let emitted = SpellingSuggestions {
         name: Spanned { span, value: name },
@@ -819,7 +903,7 @@ fn item_not_found_at<'heap>(
     }
     .emit(&mut diagnostic);
 
-    if emitted.is_empty() {
+    if emitted.is_empty() && found.is_empty() {
         diagnostic.add_message(Message::help(
             "check the spelling and ensure the item is exported",
         ));
@@ -843,11 +927,14 @@ fn unresolved_variable<'heap>(
     name: Symbol<'heap>,
     namespace: &ModuleNamespace<'_, 'heap>,
     universe: Universe,
+    found: KindSet,
     import_suggestions: &[ResolutionSuggestion<'heap, Import<'heap>>],
 ) -> ExpanderDiagnostic {
     let registry = namespace.registry();
     let locals = namespace.locals(universe);
     let name_span = path.segments[0].name.span;
+
+    let kind_label = universe_noun(universe);
 
     let mut diagnostic = Diagnostic::new(
         ExpanderDiagnosticCategory::UnresolvedVariable,
@@ -855,8 +942,10 @@ fn unresolved_variable<'heap>(
     )
     .primary(Label::new(
         name_span,
-        format!("cannot find `{name}` in this scope"),
+        format!("cannot find {kind_label} `{name}` in this scope"),
     ));
+
+    emit_cross_universe_hint(&mut diagnostic, name, Some(universe), found);
 
     let mut has_suggestions = false;
 
