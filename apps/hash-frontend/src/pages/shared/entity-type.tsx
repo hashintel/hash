@@ -49,7 +49,6 @@ import {
   typeHeaderContainerStyles,
 } from "./shared/type-editor-styling";
 import { useSlideStack } from "./slide-stack";
-import { backForwardHeight } from "./slide-stack/slide-back-forward-close-bar";
 import { TopContextBar } from "./top-context-bar";
 
 import type {
@@ -503,7 +502,7 @@ export const EntityType = ({
                   // @todo confirmation of discard when draft
                   isDraft
                     ? {
-                        href: `new/type/${isLink ? "link" : "entity"}-type`,
+                        href: `new/types/${isLink ? "link" : "entity"}-type`,
                       }
                     : {
                         onClick() {
