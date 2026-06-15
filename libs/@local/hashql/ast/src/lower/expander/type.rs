@@ -11,7 +11,7 @@ use hashql_core::{
     symbol::{Ident, sym},
 };
 
-use super::{Expander, error::ExpanderDiagnosticIssues};
+use super::{CurrentItem, Expander, error::ExpanderDiagnosticIssues};
 use crate::{
     lower::expander::error,
     node::{
@@ -40,10 +40,15 @@ where
         return Type::dummy();
     }
 
-    let Some(Item {
-        module: _,
-        name: _,
-        kind: hashql_core::module::item::ItemKind::Intrinsic(IntrinsicItem::Type(type_intrinsic)),
+    let Some(CurrentItem {
+        item:
+            Item {
+                module: _,
+                name: _,
+                kind:
+                    hashql_core::module::item::ItemKind::Intrinsic(IntrinsicItem::Type(type_intrinsic)),
+            },
+        has_arguments: _, // We don't care here, intrinsics never have arguments
     }) = expander.with_universe(hashql_core::module::Universe::Type, |expander| {
         expander.visit(&mut call.function)
     })
@@ -384,17 +389,20 @@ where
                 expander.visit(&mut value)
             });
 
-            if let Some(
-                item @ Item {
-                    kind:
-                        hashql_core::module::item::ItemKind::Intrinsic(IntrinsicItem::Type(
-                            IntrinsicTypeItem {
-                                name: intrinsic_name,
-                            },
-                        )),
-                    ..
-                },
-            ) = item
+            if let Some(CurrentItem {
+                item:
+                    item @ Item {
+                        kind:
+                            hashql_core::module::item::ItemKind::Intrinsic(IntrinsicItem::Type(
+                                IntrinsicTypeItem {
+                                    name: intrinsic_name,
+                                },
+                            )),
+                        ..
+                    },
+                // We cannot replace an alias with arguments, because we'd lose the arguments
+                has_arguments: false,
+            }) = item
                 && let Some(const_name) = intrinsic_name.as_constant()
                 && matches!(
                     const_name,

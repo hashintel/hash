@@ -4,7 +4,7 @@ error[expander::invalid-argument-count]: Invalid argument count
  4 │ ┃   "::kernel::special_form::newtype",
  5 │ ┃   "x",
  6 │ ┃   "Boolean",
- 7 │ ┃   ["+", "x", "x"],
+ 7 │ ┃   ["+", { "#literal": true }, { "#literal": false }],
  8 │ ┃   { "#literal": true }
    │ ┃   ──────────────────── unexpected argument
  9 │ ┃   //~^ ERROR unexpected argument

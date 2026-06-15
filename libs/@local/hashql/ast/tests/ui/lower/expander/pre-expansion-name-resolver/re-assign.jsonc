@@ -4,5 +4,5 @@
 ["let", "c", {"#literal": 1},
 ["let", "b", "c",
 ["let", "a", "b",
-  ["a", {"#literal": 1}, {"#literal": 3}]
+  ["+", "a", {"#literal": 3}]
 ]]]

@@ -4,17 +4,19 @@ Expr#4294967040@70
       GenericConstraint#4294967040@10 (name: T:0)
         Type#4294967040@9
           TypeKind (Path)
-            Path#4294967040@9 (rooted: false)
-              PathSegment#4294967040@8 (name: Bar)
+            Path#4294967040@9 (rooted: true)
+              PathSegment#4294967040@8 (name: kernel)
+              PathSegment#4294967040@8 (name: type)
+              PathSegment#4294967040@8 (name: Number)
       GenericConstraint#4294967040@15 (name: U:0)
         Type#4294967040@14
           TypeKind (Path)
             Path#4294967040@14 (rooted: false)
               PathSegment#4294967040@13 (name: V:0)
       GenericConstraint#4294967040@20 (name: V:0)
-      Type#4294967040@66
+      Type#4294967040@67
         TypeKind (Struct)
-          StructType#4294967040@66
+          StructType#4294967040@67
             StructField#4294967040@29 (name: foo)
               Type#4294967040@28
                 TypeKind (Path)
