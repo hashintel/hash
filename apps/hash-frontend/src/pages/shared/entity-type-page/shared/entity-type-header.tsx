@@ -236,7 +236,7 @@ export const EntityTypeHeader = ({
               gap={1.5}
               sx={{ position: "relative", top: 5 }}
             >
-              <EntityTypePlural isLinkType readonly={isReadonly} />
+              <EntityTypePlural readonly={isReadonly} />
               {isLink && <EntityTypeInverse readonly={isReadonly} />}
             </Stack>
           </Stack>
