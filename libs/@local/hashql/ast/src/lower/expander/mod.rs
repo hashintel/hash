@@ -36,7 +36,7 @@ use self::{
     newtype::lower_newtype, r#type::lower_type, r#use::lower_use,
 };
 use crate::{
-    node::{self, id::NodeId},
+    node::{self, expr::CallExpr, id::NodeId},
     visit::{self, Visitor},
 };
 
@@ -98,10 +98,41 @@ pub struct Expander<'env, 'heap, S> {
 
     current_item: Option<module::item::Item<'heap>>,
     trampoline: Option<node::expr::Expr<'heap>>,
+    special_form_module: module::ModuleId,
 }
 
 impl<'env, 'heap, S> Expander<'env, 'heap, S> {
-    pub const fn new(namespace: ModuleNamespace<'env, 'heap>, scratch: S) -> Self {
+    /// Creates a new [`Expander`] with the given namespace and scratch space.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the standard library does not contain the kernel module.
+    pub fn new(mut namespace: ModuleNamespace<'env, 'heap>, scratch: S) -> Self {
+        // First we need to find the special form module, this is used during resolution to forbid
+        // the use of generics attached to them.
+        let kernel_module = namespace
+            .registry()
+            .find_by_name(sym::kernel)
+            .unwrap_or_else(|| {
+                namespace.import_prelude();
+
+                namespace
+                    .registry()
+                    .find_by_name(sym::kernel)
+                    .expect("prelude should have been loaded and include the kernel")
+            });
+
+        let Some(&Item {
+            kind: ItemKind::Module(special_form_module),
+            ..
+        }) = kernel_module
+            .items
+            .iter()
+            .find(|item| item.name == sym::special_form)
+        else {
+            panic!("kernel module does not contain the special form item");
+        };
+
         Self {
             heap: namespace.registry().heap,
             namespace,
@@ -110,6 +141,7 @@ impl<'env, 'heap, S> Expander<'env, 'heap, S> {
             diagnostics: ExpanderDiagnosticIssues::new(),
             current_item: None,
             trampoline: None,
+            special_form_module,
         }
     }
 
@@ -296,7 +328,9 @@ where
                 self.trampoline = Some(node::expr::Expr::dummy());
                 return;
             }
-            ItemKind::Intrinsic(IntrinsicItem::Value(_)) if !ident.arguments.is_empty() => {
+            ItemKind::Intrinsic(IntrinsicItem::Value(_))
+                if !ident.arguments.is_empty() && item.module == self.special_form_module =>
+            {
                 self.diagnostics
                     .push(error::intrinsic_generic_arguments(ident));
                 self.trampoline = Some(node::expr::Expr::dummy());
@@ -402,7 +436,20 @@ where
 
         // We haven't encountered a special-form, meaning that we can treat this as a regular call
         // expression
-        visit::walk_call_expr(self, expr);
+        let CallExpr {
+            id: _,
+            span: _,
+            function: _, // we already visited the function
+            arguments,
+            labeled_arguments,
+        } = expr;
+
+        for argument in arguments {
+            self.visit_argument(argument);
+        }
+        for labeled_argument in labeled_arguments {
+            self.visit_labeled_argument(labeled_argument);
+        }
     }
 
     fn visit_expr(&mut self, expr: &mut node::expr::Expr<'heap>) {
