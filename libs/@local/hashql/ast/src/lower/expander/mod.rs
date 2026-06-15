@@ -8,7 +8,7 @@
 
 mod access;
 mod r#as;
-mod error;
+pub mod error;
 mod r#fn;
 mod r#if;
 mod index;
@@ -18,11 +18,13 @@ mod newtype;
 mod r#type;
 mod r#use;
 
+use core::mem;
+
 use hashql_core::{
     heap::{self, BumpAllocator},
     module::{
         self, Reference, Universe,
-        item::{IntrinsicItem, IntrinsicTypeItem, Item},
+        item::{IntrinsicItem, Item},
         namespace::{ModuleNamespace, ResolutionMode, ResolveOptions},
     },
     symbol::{Ident, Symbol, sym},
@@ -109,6 +111,10 @@ impl<'env, 'heap, S> Expander<'env, 'heap, S> {
             current_item: None,
             trampoline: None,
         }
+    }
+
+    pub fn take_diagnostics(&mut self) -> ExpanderDiagnosticIssues {
+        mem::take(&mut self.diagnostics)
     }
 
     /// Walks `expr`, applying resolution and expansion, and returns the

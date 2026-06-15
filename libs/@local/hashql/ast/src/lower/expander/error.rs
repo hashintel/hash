@@ -538,11 +538,10 @@ pub(crate) fn from_import_resolution_error<'heap>(
             // For named imports, the item (binding name) is beyond the path segments.
             // Use the binding's span if available, otherwise fall back to the path span.
             if depth >= path.segments.len() {
-                if let Some(binding) = binding_name {
-                    item_not_found_at(binding.span, path, name, &suggestions)
-                } else {
-                    item_not_found(path, depth.min(path.segments.len() - 1), name, &suggestions)
-                }
+                binding_name.map_or_else(
+                    || item_not_found(path, depth.min(path.segments.len() - 1), name, &suggestions),
+                    |binding| item_not_found_at(binding.span, path, name, &suggestions),
+                )
             } else {
                 item_not_found(path, depth, name, &suggestions)
             }

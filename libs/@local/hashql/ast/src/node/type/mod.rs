@@ -207,7 +207,8 @@ pub struct Type<'heap> {
     pub kind: TypeKind<'heap>,
 }
 
-impl<'heap> Type<'heap> {
+impl Type<'_> {
+    #[must_use]
     pub const fn dummy() -> Self {
         Self {
             id: NodeId::PLACEHOLDER,
