@@ -1,6 +1,5 @@
 use super::func;
 use crate::{
-    heap::Heap,
     module::{
         locals::TypeDef,
         std_lib::{ModuleDef, StandardLibrary, StandardLibraryModule, decl},

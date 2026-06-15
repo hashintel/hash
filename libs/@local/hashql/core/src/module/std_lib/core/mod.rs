@@ -1,6 +1,5 @@
 use super::{ItemDef, ModuleDef, StandardLibrary, StandardLibraryModule};
 use crate::{
-    heap::Heap,
     module::{item::IntrinsicValueItem, locals::TypeDef},
     symbol::{Symbol, sym},
 };

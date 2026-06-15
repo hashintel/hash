@@ -1,6 +1,5 @@
 // This is in a separate module, to facilitate: https://linear.app/hash/issue/H-4735/hashql-convert-rust-types-into-hashql-types
 use crate::{
-    heap::Heap,
     module::{
         StandardLibrary,
         std_lib::{ModuleDef, StandardLibraryModule},

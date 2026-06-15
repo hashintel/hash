@@ -1,5 +1,4 @@
 use crate::{
-    heap::Heap,
     module::std_lib::{ItemDef, ModuleDef, StandardLibrary, StandardLibraryModule},
     symbol::{Symbol, sym},
 };
