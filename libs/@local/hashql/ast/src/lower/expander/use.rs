@@ -4,7 +4,6 @@ use hashql_core::{
     collections::fast_hash_map_with_capacity_in,
     heap::BumpAllocator,
     module::namespace::{ImportOptions, ResolutionMode},
-    span::SpanId,
     symbol::sym,
 };
 
@@ -21,6 +20,84 @@ use crate::{
         path::Path,
     },
 };
+
+fn lower_imports_tuple<'heap, S>(
+    expander: &mut Expander<'_, 'heap, S>,
+    tuple: &mut crate::node::expr::TupleExpr<'heap>,
+) -> UseKind<'heap> {
+    let mut bindings = Vec::with_capacity_in(tuple.elements.len(), expander.heap);
+
+    for element in tuple.elements.drain(..) {
+        let ExprKind::Path(path) = element.value.kind else {
+            expander
+                .diagnostics
+                .push(error::invalid_use_import_binding(element.value.span));
+            continue;
+        };
+
+        let Some(name) = path.into_ident() else {
+            expander
+                .diagnostics
+                .push(error::invalid_use_import_binding(element.value.span));
+            continue;
+        };
+
+        bindings.push(UseBinding {
+            id: NodeId::PLACEHOLDER,
+            span: element.span,
+            name,
+            alias: None,
+        });
+    }
+
+    UseKind::Named(bindings)
+}
+
+fn lower_imports_struct<'heap, S>(
+    expander: &mut Expander<'_, 'heap, S>,
+    r#struct: &mut crate::node::expr::StructExpr<'heap>,
+) -> UseKind<'heap> {
+    let mut bindings = Vec::with_capacity_in(r#struct.entries.len(), expander.heap);
+
+    for entry in r#struct.entries.drain(..) {
+        let alias = match &entry.value.kind {
+            ExprKind::Underscore => None,
+            ExprKind::Path(path) if let Some(&ident) = path.as_ident() => Some(ident),
+            ExprKind::Call(_)
+            | ExprKind::Struct(_)
+            | ExprKind::Dict(_)
+            | ExprKind::Tuple(_)
+            | ExprKind::List(_)
+            | ExprKind::Literal(_)
+            | ExprKind::Path(_)
+            | ExprKind::Let(_)
+            | ExprKind::Type(_)
+            | ExprKind::NewType(_)
+            | ExprKind::Use(_)
+            | ExprKind::Input(_)
+            | ExprKind::Closure(_)
+            | ExprKind::If(_)
+            | ExprKind::Field(_)
+            | ExprKind::Index(_)
+            | ExprKind::As(_)
+            | ExprKind::Dummy => {
+                expander
+                    .diagnostics
+                    .push(error::invalid_use_alias(entry.value.span));
+                None
+            }
+        };
+
+        bindings.push(UseBinding {
+            id: NodeId::PLACEHOLDER,
+            span: entry.span,
+            name: entry.key,
+            alias,
+        });
+    }
+
+    UseKind::Named(bindings)
+}
 
 fn lower_imports<'heap, S>(
     expander: &mut Expander<'_, 'heap, S>,
@@ -40,60 +117,25 @@ where
                 span: ident.span,
             }))
         }
-        ExprKind::Tuple(tuple) => {
-            let mut bindings = Vec::with_capacity_in(tuple.elements.len(), expander.heap);
-
-            for element in tuple.elements.drain(..) {
-                let ExprKind::Path(path) = element.value.kind else {
-                    expander
-                        .diagnostics
-                        .push(error::invalid_use_import_binding(element.value.span));
-                    continue;
-                };
-
-                let Some(name) = path.into_ident() else {
-                    expander
-                        .diagnostics
-                        .push(error::invalid_use_import_binding(element.value.span));
-                    continue;
-                };
-
-                bindings.push(UseBinding {
-                    id: NodeId::PLACEHOLDER,
-                    span: element.span,
-                    name,
-                    alias: None,
-                });
-            }
-
-            Some(UseKind::Named(bindings))
-        }
-        ExprKind::Struct(r#struct) => {
-            let mut bindings = Vec::with_capacity_in(r#struct.entries.len(), expander.heap);
-
-            for entry in r#struct.entries.drain(..) {
-                let alias = match &entry.value.kind {
-                    ExprKind::Underscore => None,
-                    ExprKind::Path(path) if let Some(&ident) = path.as_ident() => Some(ident),
-                    _ => {
-                        expander
-                            .diagnostics
-                            .push(error::invalid_use_alias(entry.value.span));
-                        None
-                    }
-                };
-
-                bindings.push(UseBinding {
-                    id: NodeId::PLACEHOLDER,
-                    span: entry.span,
-                    name: entry.key,
-                    alias,
-                });
-            }
-
-            Some(UseKind::Named(bindings))
-        }
-        _ => {
+        ExprKind::Tuple(tuple) => Some(lower_imports_tuple(expander, tuple)),
+        ExprKind::Struct(r#struct) => Some(lower_imports_struct(expander, r#struct)),
+        ExprKind::Call(_)
+        | ExprKind::Dict(_)
+        | ExprKind::List(_)
+        | ExprKind::Literal(_)
+        | ExprKind::Path(_)
+        | ExprKind::Let(_)
+        | ExprKind::Type(_)
+        | ExprKind::NewType(_)
+        | ExprKind::Use(_)
+        | ExprKind::Input(_)
+        | ExprKind::Closure(_)
+        | ExprKind::If(_)
+        | ExprKind::Field(_)
+        | ExprKind::Index(_)
+        | ExprKind::As(_)
+        | ExprKind::Underscore
+        | ExprKind::Dummy => {
             expander
                 .diagnostics
                 .push(error::invalid_use_imports(imports.value.span));
@@ -128,7 +170,7 @@ where
 
 fn lower_body<'heap, S>(
     expander: &mut Expander<'_, 'heap, S>,
-    path: Path<'heap>,
+    path: &Path<'heap>,
     imports: UseKind<'heap>,
     body: &mut Argument<'heap>,
 ) -> Expr<'heap>
@@ -169,12 +211,12 @@ where
                     expander
                         .diagnostics
                         .push(error::from_import_resolution_error(
-                            &path,
+                            path,
                             Some(name.symbol()),
                             error,
                         ));
+
                     errored = true;
-                    continue;
                 }
             }
 
@@ -204,7 +246,7 @@ where
             if let Err(error) = result {
                 expander
                     .diagnostics
-                    .push(error::from_import_resolution_error(&path, None, error));
+                    .push(error::from_import_resolution_error(path, None, error));
                 return Expr::dummy();
             }
 
@@ -243,7 +285,7 @@ where
     };
 
     let snapshot = expander.namespace.snapshot();
-    let body = lower_body(expander, path, imports, body);
+    let body = lower_body(expander, &path, imports, body);
     expander.namespace.rollback_to(snapshot);
 
     body

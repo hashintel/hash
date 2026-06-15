@@ -53,6 +53,7 @@
 //! ```
 
 use hashql_core::{
+    heap::ResetAllocator,
     module::{ModuleRegistry, locals::TypeLocals, namespace::ModuleNamespace},
     span::SpanId,
     symbol::Symbol,
@@ -62,22 +63,20 @@ use hashql_diagnostics::{DiagnosticIssues, Status, StatusExt as _};
 
 use self::{
     error::LoweringDiagnosticCategory,
-    import_resolver::ImportResolver,
+    expander::Expander,
     name_mangler::NameMangler,
     node_renumberer::NodeRenumberer,
-    pre_expansion_name_resolver::PreExpansionNameResolver,
     sanitizer::Sanitizer,
-    // special_form_expander::SpecialFormExpander,
     type_extractor::{AnonymousTypes, ClosureSignatures, TypeDefinitionExtractor, TypeExtractor},
 };
 use crate::{node::expr::Expr, visit::Visitor as _};
 
 pub mod error;
-mod expander;
-pub mod import_resolver;
+pub mod expander;
+// pub mod import_resolver;
 pub mod name_mangler;
 pub mod node_renumberer;
-pub mod pre_expansion_name_resolver;
+// pub mod pre_expansion_name_resolver;
 pub mod sanitizer;
 // pub mod special_form_expander;
 pub mod type_extractor;
@@ -177,24 +176,29 @@ pub struct ExtractedTypes<'heap> {
 /// - [`LoweringDiagnosticCategory::Sanitizer`] - Errors during code sanitization
 /// - [`LoweringDiagnosticCategory::Resolver`] - Errors during import resolution
 /// - [`LoweringDiagnosticCategory::Extractor`] - Errors during type extraction
-pub fn lower<'heap>(
+pub fn lower<'heap, S>(
     module_name: Symbol<'heap>,
     expr: &mut Expr<'heap>,
     env: &Environment<'heap>,
     registry: &ModuleRegistry<'heap>,
-) -> Status<ExtractedTypes<'heap>, LoweringDiagnosticCategory, SpanId> {
+    mut scratch: S,
+) -> Status<ExtractedTypes<'heap>, LoweringDiagnosticCategory, SpanId>
+where
+    S: ResetAllocator,
+{
     let mut diagnostics = DiagnosticIssues::new();
 
-    let mut resolver = PreExpansionNameResolver::new(registry);
-    resolver.visit_expr(expr);
+    let mut namespace = ModuleNamespace::new(registry);
+    namespace.import_prelude();
 
-    // let mut expander = SpecialFormExpander::new(env.heap);
-    // expander.visit_expr(expr);
-    // diagnostics.append(
-    //     &mut expander
-    //         .take_diagnostics()
-    //         .map_category(LoweringDiagnosticCategory::Expander),
-    // );
+    let mut expander = Expander::new(namespace, &mut scratch);
+    expander.visit_expr(expr);
+    diagnostics.append(
+        &mut expander
+            .take_diagnostics()
+            .map_category(LoweringDiagnosticCategory::Expander),
+    );
+    scratch.reset();
 
     let mut sanitizer = Sanitizer::new();
     sanitizer.visit_expr(expr);
@@ -202,17 +206,6 @@ pub fn lower<'heap>(
         &mut sanitizer
             .take_diagnostics()
             .map_category(LoweringDiagnosticCategory::Sanitizer),
-    );
-
-    let mut namespace = ModuleNamespace::new(registry);
-    namespace.import_prelude();
-
-    let mut resolver = ImportResolver::new(env.heap, namespace);
-    resolver.visit_expr(expr);
-    diagnostics.append(
-        &mut resolver
-            .take_diagnostics()
-            .map_category(LoweringDiagnosticCategory::Resolver),
     );
 
     let mut mangler = NameMangler::new(env.heap);

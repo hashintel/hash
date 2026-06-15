@@ -21,6 +21,90 @@ use crate::{
     },
 };
 
+fn lower_generics_tuple<'heap, S>(
+    expander: &mut Expander<'_, 'heap, S>,
+    tuple: &mut crate::node::expr::TupleExpr<'heap>,
+) -> Generics<'heap> {
+    if let Some(annotation) = tuple.r#type.as_ref() {
+        expander
+            .diagnostics
+            .push(error::fn_generics_type_annotation(annotation.span));
+    }
+
+    let mut params = Vec::with_capacity_in(tuple.elements.len(), expander.heap);
+
+    for element in &mut tuple.elements {
+        let Some(ident) = expr_to_ident(&element.value) else {
+            expander
+                .diagnostics
+                .push(error::invalid_fn_generic_param(element.value.span));
+
+            continue;
+        };
+
+        params.push(GenericParam {
+            id: NodeId::PLACEHOLDER,
+            span: element.span,
+            name: ident,
+            bound: None,
+        });
+    }
+
+    Generics {
+        id: NodeId::PLACEHOLDER,
+        span: tuple.span,
+        params,
+    }
+}
+
+fn lower_generics_struct<'heap, S>(
+    expander: &mut Expander<'_, 'heap, S>,
+    r#struct: &mut crate::node::expr::StructExpr<'heap>,
+) -> Generics<'heap>
+where
+    S: BumpAllocator,
+{
+    if let Some(annotation) = r#struct.r#type.as_ref() {
+        expander
+            .diagnostics
+            .push(error::fn_generics_type_annotation(annotation.span));
+    }
+
+    let mut params = Vec::with_capacity_in(r#struct.entries.len(), expander.heap);
+
+    expander.with_universe(Universe::Type, |expander| {
+        expander.bind_many_with(
+            &mut r#struct.entries,
+            |entries, binder| {
+                for entry in &**entries {
+                    binder.bind(entry.key.value, Universe::Type);
+                }
+            },
+            |expander, entries| {
+                for mut entry in entries.drain(..) {
+                    expander.visit(&mut entry.value);
+                    let bound = lower_expr_to_type(expander, entry.value);
+
+                    params.push(GenericParam {
+                        id: NodeId::PLACEHOLDER,
+                        span: entry.span,
+                        name: entry.key,
+                        bound: Some(bound).filter(|bound| {
+                            !matches!(bound.kind, crate::node::r#type::TypeKind::Infer)
+                        }),
+                    });
+                }
+            },
+        )
+    });
+
+    Generics {
+        id: NodeId::PLACEHOLDER,
+        span: r#struct.span,
+        params,
+    }
+}
+
 fn lower_generics<'heap, S>(
     expander: &mut Expander<'_, 'heap, S>,
 
@@ -30,79 +114,8 @@ where
     S: BumpAllocator,
 {
     let mut generics = match &mut generics.value.kind {
-        ExprKind::Tuple(tuple) => {
-            if let Some(annotation) = tuple.r#type.as_ref() {
-                expander
-                    .diagnostics
-                    .push(error::fn_generics_type_annotation(annotation.span));
-            }
-
-            let mut params = Vec::with_capacity_in(tuple.elements.len(), expander.heap);
-
-            for element in &mut tuple.elements {
-                let Some(ident) = expr_to_ident(&element.value) else {
-                    expander
-                        .diagnostics
-                        .push(error::invalid_fn_generic_param(element.value.span));
-
-                    continue;
-                };
-
-                params.push(GenericParam {
-                    id: NodeId::PLACEHOLDER,
-                    span: element.span,
-                    name: ident,
-                    bound: None,
-                });
-            }
-
-            Generics {
-                id: NodeId::PLACEHOLDER,
-                span: tuple.span,
-                params,
-            }
-        }
-        ExprKind::Struct(r#struct) => {
-            if let Some(annotation) = r#struct.r#type.as_ref() {
-                expander
-                    .diagnostics
-                    .push(error::fn_generics_type_annotation(annotation.span));
-            }
-
-            let mut params = Vec::with_capacity_in(r#struct.entries.len(), expander.heap);
-
-            expander.with_universe(Universe::Type, |expander| {
-                expander.bind_many_with(
-                    &mut r#struct.entries,
-                    |entries, binder| {
-                        for entry in &**entries {
-                            binder.bind(entry.key.value, Universe::Type);
-                        }
-                    },
-                    |expander, entries| {
-                        for mut entry in entries.drain(..) {
-                            expander.visit(&mut entry.value);
-                            let bound = lower_expr_to_type(expander, entry.value);
-
-                            params.push(GenericParam {
-                                id: NodeId::PLACEHOLDER,
-                                span: entry.span,
-                                name: entry.key,
-                                bound: Some(bound).filter(|bound| {
-                                    !matches!(bound.kind, crate::node::r#type::TypeKind::Infer)
-                                }),
-                            });
-                        }
-                    },
-                )
-            });
-
-            Generics {
-                id: NodeId::PLACEHOLDER,
-                span: r#struct.span,
-                params,
-            }
-        }
+        ExprKind::Tuple(tuple) => lower_generics_tuple(expander, tuple),
+        ExprKind::Struct(r#struct) => lower_generics_struct(expander, r#struct),
         ExprKind::Call(_)
         | ExprKind::Dict(_)
         | ExprKind::List(_)
