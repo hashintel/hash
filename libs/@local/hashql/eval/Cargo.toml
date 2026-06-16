@@ -9,7 +9,6 @@ version.workspace = true
 [dependencies]
 # Public workspace dependencies
 hash-graph-postgres-store = { workspace = true, public = true }
-hash-graph-store          = { workspace = true, optional = true, public = true }
 hashql-diagnostics        = { workspace = true, public = true }
 hashql-hir                = { workspace = true, public = true }
 hashql-mir                = { workspace = true, public = true }
@@ -21,16 +20,13 @@ hashql-core = { workspace = true }
 
 # Private third-party dependencies
 bytes             = { workspace = true }
-derive_more       = { workspace = true, features = ["display"] }
 futures-lite      = { workspace = true }
 postgres-protocol = { workspace = true }
 postgres-types    = { workspace = true, features = ["uuid-1"] }
 serde             = { workspace = true }
 serde_json        = { workspace = true, features = ["raw_value"] }
 simple-mermaid    = { workspace = true }
-tokio             = { workspace = true }
 tokio-postgres    = { workspace = true }
-tokio-util        = { workspace = true, features = ["rt"] }
 url               = { workspace = true }
 uuid              = { workspace = true }
 
@@ -49,6 +45,7 @@ sqruff-lib               = { workspace = true }
 sqruff-lib-core          = { workspace = true }
 testcontainers           = { workspace = true, features = ["reusable-containers"] }
 testcontainers-modules   = { workspace = true, features = ["postgres"] }
+tokio                    = { workspace = true }
 type-system              = { workspace = true }
 
 [lints]
