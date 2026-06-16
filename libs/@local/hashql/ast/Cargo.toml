@@ -16,10 +16,6 @@ hashql-diagnostics = { workspace = true, public = true }
 # Private workspace dependencies
 
 # Private third-party dependencies
-derive_more    = { workspace = true, features = ["display"] }
-enum-iterator  = { workspace = true }
-foldhash       = { workspace = true }
-hashbrown      = { workspace = true }
 simple-mermaid = { workspace = true }
 tracing        = { workspace = true }
 
