@@ -104,7 +104,7 @@ where
 ///
 /// Paths, tuples, structs, `_`, and type constructor calls (`|`, `&`) are
 /// valid. Everything else produces a diagnostic and returns [`Type::dummy`].
-/// [`Expr::Dummy`] is suppressed (a resolution error was already reported).
+/// [`ExprKind::Dummy`] is suppressed (a resolution error was already reported).
 pub(super) fn lower_expr_to_type<'heap, S>(
     expander: &mut Expander<'_, 'heap, S>,
     expr: Expr<'heap>,
