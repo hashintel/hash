@@ -1,0 +1,7 @@
+error[expander::labeled-arguments-not-supported]: Labeled arguments not supported
+  ╭▸ 
+8 │   { ":extra": { "#literal": 0 } }
+  │     ━━━━━━━━━━━━━━━━━━━━━━━━━━━ labeled arguments are not allowed in `let`
+  │
+  ├ help: pass the arguments positionally: `(let name value body)` or `(let name type value body)`
+  ╰ note: `let` has a fixed argument order: name, optional type annotation, value, body

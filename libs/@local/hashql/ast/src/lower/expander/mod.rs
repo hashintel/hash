@@ -137,7 +137,7 @@ impl<'env, 'heap, S> Expander<'env, 'heap, S> {
             .iter()
             .find(|item| item.name == sym::special_form)
         else {
-            panic!("kernel module does not contain the special form item");
+            unreachable!("kernel module should always contain the special form module");
         };
 
         Self {
@@ -363,36 +363,34 @@ where
         }
 
         let absolute_path = item.absolute_path_rev(self.namespace.registry());
-        if absolute_path.len() < path.segments.len() {
-            self.diagnostics.push(error::absolute_path_mismatch(
-                path.span,
-                path.segments.len(),
-                absolute_path.len(),
-            ));
-            self.trampoline = Some(node::expr::Expr::dummy());
 
-            return;
-        }
+        if absolute_path.len() >= path.segments.len() {
+            // The canonical path is longer (or equal): pad with placeholder segments,
+            // rotate the originals into position, then fill in the canonical names.
+            let padding = absolute_path.len() - path.segments.len();
+            let padding_span = path.segments[0].span;
 
-        // We must pad the segments with placeholders so that the path segments match the absolute
-        // path
-        let padding = absolute_path.len() - path.segments.len();
-        let padding_span = path.segments[0].span;
-
-        path.segments.extend(core::iter::repeat_n(
-            node::path::PathSegment {
-                id: NodeId::PLACEHOLDER,
-                span: padding_span,
-                name: Ident {
+            path.segments.extend(core::iter::repeat_n(
+                node::path::PathSegment {
+                    id: NodeId::PLACEHOLDER,
                     span: padding_span,
-                    value: sym::dummy,
-                    kind: hashql_core::symbol::IdentKind::Lexical,
+                    name: Ident {
+                        span: padding_span,
+                        value: sym::dummy,
+                        kind: hashql_core::symbol::IdentKind::Lexical,
+                    },
+                    arguments: heap::Vec::new_in(self.heap),
                 },
-                arguments: heap::Vec::new_in(self.heap),
-            },
-            padding,
-        ));
-        path.segments.rotate_right(padding);
+                padding,
+            ));
+            path.segments.rotate_right(padding);
+        } else {
+            // The canonical path is shorter (re-export through a longer path):
+            // truncate the extra leading segments.
+            let excess = path.segments.len() - absolute_path.len();
+            path.segments.rotate_left(excess);
+            path.segments.truncate(absolute_path.len());
+        }
 
         for (segment, name) in path.segments.iter_mut().rev().zip(absolute_path) {
             segment.name.value = name;

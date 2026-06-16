@@ -5,5 +5,5 @@
   { "#struct": { "T": "Integer" } },
   { "#struct": {} },
   "_",
-  {"#literal": 0}
+  { "#literal": 0 }
 ]

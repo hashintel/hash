@@ -1,0 +1,6 @@
+error[expander::intrinsic-generic-arguments]: Generic arguments on intrinsic
+  ╭▸ 
+6 │   ["::kernel::type::Union<Integer>", "String"],
+  │                     ━━━━━━━━━━━━━━ `Union` does not accept generic arguments
+  │
+  ╰ help: remove the generic arguments from `Union`

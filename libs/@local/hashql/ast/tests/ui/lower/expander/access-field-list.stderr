@@ -1,0 +1,6 @@
+error[expander::invalid-access-field]: Invalid access field
+  ╭▸ 
+6 │   { "#list": [{ "#literal": 1 }] }
+  │   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ expected a field name or integer index
+  │
+  ╰ help: use a simple identifier like `name` or an integer like `0` for tuple fields

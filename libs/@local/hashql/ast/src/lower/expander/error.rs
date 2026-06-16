@@ -37,11 +37,6 @@ const EMPTY_PATH: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     name: "Empty path",
 };
 
-const ABSOLUTE_PATH_MISMATCH: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
-    id: "absolute-path-mismatch",
-    name: "Absolute path length mismatch",
-};
-
 const GENERIC_ARGUMENTS_IN_MODULE: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     id: "generic-arguments-in-module",
     name: "Generic arguments in module path",
@@ -236,7 +231,6 @@ const USE_PATH_GENERIC_ARGUMENTS: TerminalDiagnosticCategory = TerminalDiagnosti
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum ExpanderDiagnosticCategory {
     EmptyPath,
-    AbsolutePathMismatch,
     GenericArgumentsInModule,
     UnresolvedVariable,
     PackageNotFound,
@@ -289,7 +283,6 @@ impl DiagnosticCategory for ExpanderDiagnosticCategory {
     fn subcategory(&self) -> Option<&dyn DiagnosticCategory> {
         match self {
             Self::EmptyPath => Some(&EMPTY_PATH),
-            Self::AbsolutePathMismatch => Some(&ABSOLUTE_PATH_MISMATCH),
             Self::GenericArgumentsInModule => Some(&GENERIC_ARGUMENTS_IN_MODULE),
             Self::UnresolvedVariable => Some(&UNRESOLVED_VARIABLE),
             Self::PackageNotFound => Some(&PACKAGE_NOT_FOUND),
@@ -411,34 +404,13 @@ impl<'heap, I> SpellingSuggestions<'heap, I> {
     }
 }
 
+#[coverage(off)] // An empty path should not be possible to be constructed inside the CST.
 pub(crate) fn empty_path(span: SpanId) -> ExpanderDiagnostic {
     let mut diagnostic = Diagnostic::new(ExpanderDiagnosticCategory::EmptyPath, Severity::Bug)
         .primary(Label::new(span, "path has no segments"));
 
     diagnostic.add_message(Message::note(
         "after parsing and lowering, every path must contain at least one segment",
-    ));
-
-    diagnostic
-}
-
-pub(crate) fn absolute_path_mismatch(
-    path_span: SpanId,
-    path_length: usize,
-    absolute_length: usize,
-) -> ExpanderDiagnostic {
-    let mut diagnostic = Diagnostic::new(
-        ExpanderDiagnosticCategory::AbsolutePathMismatch,
-        Severity::Bug,
-    )
-    .primary(Label::new(
-        path_span,
-        format!("path has {path_length} segments but resolved to only {absolute_length}"),
-    ));
-
-    diagnostic.add_message(Message::note(
-        "expansion can only prepend omitted ancestors, so the resolved absolute path must be at \
-         least as long as the user's path",
     ));
 
     diagnostic

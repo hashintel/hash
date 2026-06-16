@@ -1,0 +1,9 @@
+//@ run: fail
+//@ description: calling a type intrinsic that is not a type constructor (Union/Intersection) should error
+[
+  "::kernel::special_form::type",
+  "Foo",
+  ["::kernel::type::List", "Integer"],
+  //~^ ERROR `::kernel::type::List` is a type, not a type constructor
+  { "#literal": 0 }
+]

@@ -1,0 +1,10 @@
+error[expander::package-not-found]: Package not found
+  ╭▸ 
+3 │ "::nonexistent::something"
+  │  ┬─┯━━━━━━━━━━───────────
+  │  │ │
+  │  │ cannot find package `nonexistent`
+  │  in this path
+  │
+  ├ help: check the package name, or add it to the project dependencies
+  ╰ note: absolute paths start from an installed package

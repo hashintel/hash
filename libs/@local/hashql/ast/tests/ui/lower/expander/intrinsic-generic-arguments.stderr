@@ -1,0 +1,6 @@
+error[expander::intrinsic-generic-arguments]: Generic arguments on intrinsic
+  ╭▸ 
+4 │   "::kernel::special_form::if<Integer>",
+  │                            ━━━━━━━━━━━ `if` does not accept generic arguments
+  │
+  ╰ help: remove the generic arguments from `if`

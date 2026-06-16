@@ -1,0 +1,10 @@
+//@ run: fail
+//@ description: labeled arguments are not allowed in `let`
+[
+  "::kernel::special_form::let",
+  "x",
+  { "#literal": 1 },
+  "x",
+  { ":extra": { "#literal": 0 } }
+  //~^ ERROR labeled arguments are not allowed in `let`
+]
