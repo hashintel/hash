@@ -93,8 +93,8 @@ struct CurrentItem<'heap> {
 /// Resolves every path in the AST against the module namespace, rewrites
 /// paths to their absolute form, and lowers special form calls (e.g., `let`,
 /// `fn`, `use`) into typed AST nodes. Errors that prevent resolution produce
-/// [`Expr::dummy`] placeholders so that later diagnostics can be suppressed
-/// for cascading failures.
+/// dummy expression placeholders so that later diagnostics can be
+/// suppressed for cascading failures.
 pub struct Expander<'env, 'heap, S> {
     heap: &'heap heap::Heap,
     scratch: S,
@@ -161,7 +161,7 @@ impl<'env, 'heap, S> Expander<'env, 'heap, S> {
     ///
     /// Returns `None` when the expression resolved to a local binding,
     /// was not a path, or resolution failed (in which case the expression
-    /// is replaced with [`Expr::dummy`]).
+    /// is replaced with a dummy expression).
     fn visit(&mut self, expr: &mut node::expr::Expr<'heap>) -> Option<CurrentItem<'heap>>
     where
         S: BumpAllocator,
