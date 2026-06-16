@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { Fragment, useState } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 
@@ -54,81 +54,60 @@ export default {
   },
 } satisfies StoryDefault<ToggleProps>;
 
-const Row = ({
-  label,
-  children,
-}: {
+type Example = {
   label: string;
-  children: React.ReactNode;
-}) => (
-  <div
-    className={css({
-      display: "flex",
-      alignItems: "center",
-      gap: "[16px]",
-    })}
-  >
-    <span
-      className={css({
-        width: "[220px]",
-        fontSize: "[12px]",
-        color: "neutral.s80",
-      })}
-    >
-      {label}
-    </span>
-    {children}
-  </div>
-);
+  props: Omit<ToggleProps, "value" | "onChange">;
+};
+
+const examples: Example[] = [
+  ...tones.flatMap<Example>((tone) => [
+    { label: `tone=${tone}`, props: { tone } },
+    { label: `tone=${tone}, disabled`, props: { tone, disabled: true } },
+  ]),
+  { label: `offTone=error`, props: { offTone: "error" } },
+  {
+    label: `offTone=error, disabled`,
+    props: { offTone: "error", disabled: true },
+  },
+  { label: "invalid", props: { invalid: true } },
+  { label: "labelOnText", props: { labelOnText: "On" } },
+  { label: "labelOffText", props: { labelOffText: "Off" } },
+  {
+    label: "labelOnText + labelOffText",
+    props: { labelOnText: "On", labelOffText: "Off" },
+  },
+];
+
+const headingClass = css({
+  fontSize: "[12px]",
+  fontWeight: "medium",
+  color: "neutral.s90",
+});
+
+const labelClass = css({
+  fontSize: "[12px]",
+  color: "neutral.s80",
+});
 
 export const Default: Story<ToggleProps> = () => (
   <div
     className={css({
-      display: "flex",
-      flexDirection: "column",
-      gap: "[12px]",
+      display: "grid",
+      gridTemplateColumns: "[260px max-content max-content]",
+      alignItems: "center",
+      columnGap: "[32px]",
+      rowGap: "[12px]",
     })}
   >
-    <Row label="value=true">
-      <ControlledToggle defaultValue />
-    </Row>
-    <Row label="value=false">
-      <ControlledToggle defaultValue={false} />
-    </Row>
-    <Row label="invalid">
-      <ControlledToggle invalid />
-    </Row>
-    <Row label="disabled">
-      <ControlledToggle disabled defaultValue />
-    </Row>
-    <Row label="labelOnText">
-      <ControlledToggle labelOnText="On" defaultValue />
-    </Row>
-    <Row label="labelOffText">
-      <ControlledToggle labelOffText="Off" />
-    </Row>
-    <Row label="labelOnText + labelOffText">
-      <ControlledToggle labelOnText="On" labelOffText="Off" />
-    </Row>
-    {tones.map((tone) => (
-      <Row key={tone} label={`tone=${tone}`}>
-        <ControlledToggle
-          tone={tone}
-          labelOnText="On"
-          labelOffText="Off"
-          defaultValue
-        />
-      </Row>
-    ))}
-    {offTones.map((offTone) => (
-      <Row key={offTone} label={`offTone=${offTone}`}>
-        <ControlledToggle
-          offTone={offTone}
-          labelOnText="On"
-          labelOffText="Off"
-          defaultValue={false}
-        />
-      </Row>
+    <span />
+    <span className={headingClass}>On</span>
+    <span className={headingClass}>Off</span>
+    {examples.map(({ label, props }) => (
+      <Fragment key={label}>
+        <span className={labelClass}>{label}</span>
+        <ControlledToggle {...props} defaultValue />
+        <ControlledToggle {...props} defaultValue={false} />
+      </Fragment>
     ))}
   </div>
 );

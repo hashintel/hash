@@ -143,7 +143,6 @@ export const styles = sva({
         control: {
           "&[data-state='unchecked']": {
             backgroundColor: "red.s40",
-            borderColor: "red.s70",
           },
           "&[data-state='unchecked']:hover:not([data-disabled])": {
             backgroundColor: "red.s50",
@@ -154,9 +153,7 @@ export const styles = sva({
     invalid: {
       true: {
         control: {
-          outline: "[2px solid]",
-          outlineOffset: "[2px]",
-          outlineColor: "red.s90",
+          borderColor: "red.s70",
         },
       },
       false: {},
