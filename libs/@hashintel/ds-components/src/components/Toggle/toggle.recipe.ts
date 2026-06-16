@@ -74,6 +74,10 @@ export const styles = sva({
       fontWeight: "medium",
       lineHeight: "[1]",
       color: "fg.heading",
+
+      "&[data-disabled]": {
+        color: "neutral.s75",
+      },
     },
   },
   variants: {
@@ -94,7 +98,7 @@ export const styles = sva({
           "--toggle-padding": "[2px]",
           "--toggle-thumb-size": "[12px]",
         },
-        label: { fontSize: "[13px]" },
+        label: { fontSize: "[12px]" },
       },
       sm: {
         control: {
@@ -103,7 +107,7 @@ export const styles = sva({
           "--toggle-padding": "[2px]",
           "--toggle-thumb-size": "[14px]",
         },
-        label: { fontSize: "[14px]" },
+        label: { fontSize: "[13px]" },
       },
       md: {
         control: {
@@ -112,7 +116,7 @@ export const styles = sva({
           "--toggle-padding": "[3px]",
           "--toggle-thumb-size": "[18px]",
         },
-        label: { fontSize: "[16px]" },
+        label: { fontSize: "[15px]" },
       },
       lg: {
         control: {
@@ -121,7 +125,7 @@ export const styles = sva({
           "--toggle-padding": "[4px]",
           "--toggle-thumb-size": "[20px]",
         },
-        label: { fontSize: "[18px]" },
+        label: { fontSize: "[17px]" },
       },
     },
     tone: {
