@@ -32,7 +32,7 @@ export const Toggle = ({
   disabled,
   required,
   size = "md",
-  tone = "success",
+  tone = "neutral",
   offTone = "neutral",
   labelOnText,
   labelOffText,

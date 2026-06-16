@@ -10,7 +10,8 @@ export const styles = sva({
       cursor: "pointer",
       userSelect: "none",
       "&[data-disabled]": {
-        opacity: "[0.5]",
+        opacity: "0.7",
+        cursor: "unset",
       },
     },
     control: {
@@ -29,9 +30,6 @@ export const styles = sva({
       outlineColor: "black.a40",
       transition:
         "[background-color 0.15s ease, outline 0.15s ease, box-shadow 0.15s ease]",
-      "&[data-state='unchecked']:hover:not([data-disabled])": {
-        backgroundColor: "neutral.s40",
-      },
       "&:has(~ input:focus-visible)": {
         outline: "[2px solid var(--colors-black-a40)]",
         outlineOffset: "[2px]",
@@ -48,6 +46,14 @@ export const styles = sva({
       "&[data-state='checked']": {
         transform:
           "[translateX(calc(var(--toggle-width) - var(--toggle-thumb-size) - var(--toggle-padding) * 2 - 2px))]",
+      },
+      "&[data-disabled]": {
+        backgroundColor: "neutral.s30 !important",
+      },
+      "&[data-disabled][data-state='unchecked']": {
+        backgroundColor: "neutral.s25 !important",
+        boxShadow:
+          "[0 1px 3px 0 rgba(0, 0, 0, 0.15), 0 1px 2px -1px rgba(0, 0, 0, 0.15)]",
       },
     },
     label: {
@@ -114,15 +120,21 @@ export const styles = sva({
           "&[data-state='checked']:hover:not([data-disabled])": {
             backgroundColor: "neutral.s110",
           },
+          "&[data-disabled][data-state='checked']": {
+            backgroundColor: "neutral.s55 !important",
+          },
         },
       },
       brand: {
         control: {
           "&[data-state='checked']": {
-            backgroundColor: "blue.s90",
+            backgroundColor: "blue.s85",
           },
           "&[data-state='checked']:hover:not([data-disabled])": {
-            backgroundColor: "blue.s85",
+            backgroundColor: "blue.s75",
+          },
+          "&[data-disabled][data-state='checked']": {
+            backgroundColor: "blue.s55 !important",
           },
         },
       },
@@ -134,11 +146,23 @@ export const styles = sva({
           "&[data-state='checked']:hover:not([data-disabled])": {
             backgroundColor: "green.s70",
           },
+          "&[data-disabled][data-state='checked']": {
+            backgroundColor: "green.s55 !important",
+          },
         },
       },
     },
     offTone: {
-      neutral: {},
+      neutral: {
+        control: {
+          "&[data-state='unchecked']:hover:not([data-disabled])": {
+            backgroundColor: "neutral.s40",
+          },
+          "&[data-disabled][data-state='unchecked']": {
+            backgroundColor: "neutral.s30 !important",
+          },
+        },
+      },
       error: {
         control: {
           "&[data-state='unchecked']": {
@@ -146,6 +170,9 @@ export const styles = sva({
           },
           "&[data-state='unchecked']:hover:not([data-disabled])": {
             backgroundColor: "red.s50",
+          },
+          "&[data-disabled][data-state='unchecked']": {
+            backgroundColor: "red.s30 !important",
           },
         },
       },
