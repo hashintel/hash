@@ -72,7 +72,7 @@ use super::{id::NodeId, path::Path};
 /// The examples below demonstrate the `JExpr` syntax (JSON-based frontend), as well as a fictional
 /// "documentation syntax" (used for readability) for each expression kind. Remember that these are
 /// just frontend representations - the AST itself is independent of any particular syntax.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug)]
 pub enum ExprKind<'heap> {
     /// A function call expression.
     ///
@@ -519,7 +519,7 @@ pub enum ExprKind<'heap> {
 /// Each expression has a unique identifier and a span that points to its
 /// location in the source code, which are crucial for error reporting,
 /// debugging, and tracking nodes through transformation phases.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug)]
 pub struct Expr<'heap> {
     pub id: NodeId,
     pub span: SpanId,

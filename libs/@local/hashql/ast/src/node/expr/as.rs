@@ -27,7 +27,7 @@ use crate::node::{id::NodeId, r#type::Type};
 /// value as String
 /// value as {name: String, age: Int}
 /// ```
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug)]
 pub struct AsExpr<'heap> {
     pub id: NodeId,
     pub span: SpanId,

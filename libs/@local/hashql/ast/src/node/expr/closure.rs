@@ -6,7 +6,7 @@ use crate::node::{generic::Generics, id::NodeId, r#type::Type};
 /// A parameter declaration for a closure.
 ///
 /// Represents a named parameter with an associated type in a closure's signature.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug)]
 pub struct ClosureParam<'heap> {
     pub id: NodeId,
     pub span: SpanId,
@@ -20,7 +20,7 @@ pub struct ClosureParam<'heap> {
 /// Defines the interface of a closure function, including its generic type parameters,
 /// input parameters, and return type. The signature provides all type information
 /// necessary for type checking and validation of the closure.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug)]
 pub struct ClosureSignature<'heap> {
     pub id: NodeId,
     pub span: SpanId,
@@ -56,7 +56,7 @@ pub struct ClosureSignature<'heap> {
 /// fn<T>(x: T, y: T): T => *(x, y)
 /// fn<T: Int>(x: T, y: T): T => *(x, y)
 /// ```
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug)]
 pub struct ClosureExpr<'heap> {
     pub id: NodeId,
     pub span: SpanId,
