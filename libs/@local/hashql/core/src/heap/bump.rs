@@ -69,7 +69,8 @@ use core::{
 /// - [`Heap`](super::Heap): Full-featured arena with string interning
 /// - [`Scratch`](super::Scratch): Lightweight arena for temporary allocations
 pub trait BumpAllocator: Allocator {
-    /// The scoped allocator type returned by [`scoped`](Self::scoped).
+    /// The scoped allocator type returned by [`scoped_mut`](Self::scoped_mut) and
+    /// [`scoped_ref`](Self::scoped_ref).
     ///
     /// This associated type allows each allocator to define its own scoped variant
     /// while ensuring it also implements [`BumpAllocator`].
