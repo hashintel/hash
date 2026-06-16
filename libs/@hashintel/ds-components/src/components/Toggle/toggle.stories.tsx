@@ -57,24 +57,38 @@ export default {
 type Example = {
   label: string;
   props: Omit<ToggleProps, "value" | "onChange">;
+  /** The checked state to render the example in */
+  defaultValue: boolean;
+  /** When set, a second column renders the same example in the disabled state */
+  withDisabled?: boolean;
 };
 
 const examples: Example[] = [
-  ...tones.flatMap<Example>((tone) => [
-    { label: `tone=${tone}`, props: { tone } },
-    { label: `tone=${tone}, disabled`, props: { tone, disabled: true } },
-  ]),
-  { label: `offTone=error`, props: { offTone: "error" } },
+  // Each tone is shown in its on state, alongside a disabled variant.
+  ...tones.map<Example>((tone) => ({
+    label: `tone=${tone}`,
+    props: { tone },
+    defaultValue: true,
+    withDisabled: true,
+  })),
+  // Each offTone is shown in its off state, alongside a disabled variant.
+  ...offTones.map<Example>((offTone) => ({
+    label: `offTone=${offTone}`,
+    props: { offTone },
+    defaultValue: false,
+    withDisabled: true,
+  })),
+  { label: "invalid", props: { invalid: true }, defaultValue: false },
+  { label: "labelOnText", props: { labelOnText: "On" }, defaultValue: true },
   {
-    label: `offTone=error, disabled`,
-    props: { offTone: "error", disabled: true },
+    label: "labelOffText",
+    props: { labelOffText: "Off" },
+    defaultValue: false,
   },
-  { label: "invalid", props: { invalid: true } },
-  { label: "labelOnText", props: { labelOnText: "On" } },
-  { label: "labelOffText", props: { labelOffText: "Off" } },
   {
     label: "labelOnText + labelOffText",
     props: { labelOnText: "On", labelOffText: "Off" },
+    defaultValue: true,
   },
 ];
 
@@ -100,13 +114,17 @@ export const Default: Story<ToggleProps> = () => (
     })}
   >
     <span />
-    <span className={headingClass}>On</span>
-    <span className={headingClass}>Off</span>
-    {examples.map(({ label, props }) => (
+    <span className={headingClass}>Default</span>
+    <span className={headingClass}>Disabled</span>
+    {examples.map(({ label, props, defaultValue, withDisabled }) => (
       <Fragment key={label}>
         <span className={labelClass}>{label}</span>
-        <ControlledToggle {...props} defaultValue />
-        <ControlledToggle {...props} defaultValue={false} />
+        <ControlledToggle {...props} defaultValue={defaultValue} />
+        {withDisabled ? (
+          <ControlledToggle {...props} disabled defaultValue={defaultValue} />
+        ) : (
+          <span />
+        )}
       </Fragment>
     ))}
   </div>

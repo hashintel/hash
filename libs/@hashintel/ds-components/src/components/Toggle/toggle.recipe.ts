@@ -25,7 +25,6 @@ export const styles = sva({
       borderRadius: "full",
       border: "[1px solid]",
       borderColor: "black.a15",
-      backgroundColor: "neutral.s30",
       boxShadow: "[inset 0 2px 4px rgba(0, 0, 0, 0.05)]",
       outlineColor: "black.a40",
       transition:
@@ -155,6 +154,9 @@ export const styles = sva({
     offTone: {
       neutral: {
         control: {
+          "&[data-state='unchecked']": {
+            backgroundColor: "neutral.s30",
+          },
           "&[data-state='unchecked']:hover:not([data-disabled])": {
             backgroundColor: "neutral.s40",
           },
