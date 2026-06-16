@@ -2,6 +2,7 @@ import { Switch } from "@ark-ui/react/switch";
 
 import { cx } from "@hashintel/ds-helpers/css";
 
+import { useFieldId } from "../Form/field-id-context";
 import { styles } from "./toggle.recipe";
 
 import type { SharedInputProps, Tone } from "../../util/form-shared";
@@ -38,6 +39,8 @@ export const Toggle = ({
   labelOffText,
   ...ariaProps
 }: ToggleProps) => {
+  const fieldIdFromContext = useFieldId();
+  const inputId = htmlForId ?? fieldIdFromContext ?? undefined;
   const classes = styles({ size, tone, offTone, invalid: !!invalid });
 
   return (
@@ -48,7 +51,7 @@ export const Toggle = ({
       disabled={disabled}
       invalid={invalid}
       required={required}
-      ids={htmlForId ? { hiddenInput: htmlForId } : undefined}
+      ids={inputId ? { hiddenInput: inputId } : undefined}
       data-testid={testId}
       ref={ref as React.Ref<HTMLLabelElement>}
       className={cx(classes.root, className)}

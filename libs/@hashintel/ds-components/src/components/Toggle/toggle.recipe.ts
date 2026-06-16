@@ -74,7 +74,6 @@ export const styles = sva({
       fontWeight: "medium",
       lineHeight: "[1]",
       color: "fg.heading",
-      whiteSpace: "nowrap",
     },
   },
   variants: {

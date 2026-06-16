@@ -87,7 +87,7 @@ const examples: Example[] = [
   },
   {
     label: "labelOnText + labelOffText",
-    props: { labelOnText: "On", labelOffText: "Off" },
+    props: { labelOnText: "Toggle on", labelOffText: "Toggle off" },
     defaultValue: true,
   },
 ];
