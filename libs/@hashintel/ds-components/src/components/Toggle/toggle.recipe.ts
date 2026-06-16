@@ -154,6 +154,15 @@ export const styles = sva({
       true: {
         control: {
           borderColor: "red.s70",
+          "&::after": {
+            content: '""',
+            position: "absolute",
+            inset: "0",
+            borderRadius: "[inherit]",
+            border: "[1px solid]",
+            borderColor: "red.s70",
+            pointerEvents: "none",
+          },
         },
       },
       false: {},
