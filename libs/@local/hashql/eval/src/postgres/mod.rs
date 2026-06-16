@@ -66,6 +66,7 @@ pub use self::{
 };
 use crate::context::CodeGenerationContext;
 
+mod authorization;
 mod continuation;
 pub(crate) mod error;
 mod filter;
@@ -196,6 +197,7 @@ impl Display for ColumnDescriptor {
 pub struct PreparedQuery<'heap, A: Allocator> {
     pub vertex_type: VertexType,
     pub parameters: Parameters<'heap, A>,
+    pub projections: Projections,
     pub statement: SelectStatement,
     pub columns: Vec<ColumnDescriptor, A>,
 }
@@ -502,6 +504,7 @@ impl<'eval, 'ctx, 'heap, A: Allocator, S: BumpAllocator>
             vertex_type: VertexType::Entity,
             parameters: db.parameters,
             statement: query,
+            projections: db.projections,
             columns,
         }
     }
