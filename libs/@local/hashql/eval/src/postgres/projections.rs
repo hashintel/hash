@@ -32,17 +32,18 @@ impl From<ComputedColumn> for ColumnName<'_> {
 ///
 /// Accessors like [`Self::entity_editions`] register that a table is needed and return a
 /// reference to it. The actual `FROM` tree is built once at the end via [`Self::build_from`].
+#[derive(Debug, Clone)]
 pub(crate) struct Projections {
-    index: usize,
+    pub(crate) index: usize,
 
     /// Always present as the base table; everything joins through it.
-    base_alias: Alias,
+    pub base_alias: Alias,
 
-    entity_editions: Option<Alias>,
-    entity_ids: Option<Alias>,
-    entity_type_ids: Option<Alias>,
-    left: Option<Alias>,
-    right: Option<Alias>,
+    pub entity_editions: Option<Alias>,
+    pub entity_ids: Option<Alias>,
+    pub entity_type_ids: Option<Alias>,
+    pub left: Option<Alias>,
+    pub right: Option<Alias>,
 }
 
 impl Projections {
