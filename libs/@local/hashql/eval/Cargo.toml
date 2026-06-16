@@ -22,6 +22,7 @@ hashql-core = { workspace = true }
 bytes                    = { workspace = true }
 futures-lite             = { workspace = true }
 hash-graph-authorization = { workspace = true }
+hash-graph-store         = { workspace = true }
 postgres-protocol        = { workspace = true }
 postgres-types           = { workspace = true, features = ["uuid-1"] }
 serde                    = { workspace = true }
