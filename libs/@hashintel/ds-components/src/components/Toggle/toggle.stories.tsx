@@ -3,13 +3,11 @@ import { Fragment, useState } from "react";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { formInputSizes } from "../../util/form-shared";
-import { TextInput } from "../TextInput/text-input";
 import { Toggle } from "./toggle";
 
 import type { Story, StoryDefault } from "@ladle/react";
 
 type ToggleProps = React.ComponentProps<typeof Toggle>;
-type TextInputProps = React.ComponentProps<typeof TextInput>;
 
 const tones: NonNullable<ToggleProps["tone"]>[] = [
   "neutral",
@@ -25,16 +23,6 @@ const ControlledToggle = ({
 }: Omit<ToggleProps, "value" | "onChange"> & { defaultValue?: boolean }) => {
   const [value, setValue] = useState(defaultValue);
   return <Toggle {...props} value={value} onChange={setValue} />;
-};
-
-const ControlledTextInput = ({
-  defaultValue = "",
-  ...props
-}: Omit<TextInputProps, "value" | "onChange"> & { defaultValue?: string }) => {
-  const [value, setValue] = useState(defaultValue);
-  return (
-    <TextInput {...props} value={value} onChange={(val) => setValue(val)} />
-  );
 };
 
 export default {
@@ -182,45 +170,6 @@ export const Sizes: Story<ToggleProps> = () => (
 );
 
 Sizes.parameters = {
-  actions: { disable: true },
-  interactions: { disable: true },
-  controls: { disable: true },
-};
-
-export const WithTextInput: Story<ToggleProps> = () => (
-  <div
-    className={css({
-      display: "flex",
-      flexDirection: "column",
-      gap: "[16px]",
-    })}
-  >
-    {formInputSizes.map((size) => (
-      <div
-        key={size}
-        className={css({
-          display: "flex",
-          alignItems: "center",
-          gap: "[16px]",
-        })}
-      >
-        <span
-          className={css({
-            width: "[40px]",
-            fontSize: "[12px]",
-            color: "neutral.s80",
-          })}
-        >
-          {size}
-        </span>
-        <ControlledToggle size={size} defaultValue />
-        <ControlledTextInput size={size} width="sm" placeholder="Text input" />
-      </div>
-    ))}
-  </div>
-);
-
-WithTextInput.parameters = {
   actions: { disable: true },
   interactions: { disable: true },
   controls: { disable: true },
