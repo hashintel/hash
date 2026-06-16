@@ -80,15 +80,6 @@ export const styles = sva({
     size: {
       xxs: {
         control: {
-          "--toggle-width": "[20px]",
-          "--toggle-height": "[12px]",
-          "--toggle-padding": "[2px]",
-          "--toggle-thumb-size": "[8px]",
-        },
-        label: { fontSize: "[12px]" },
-      },
-      xs: {
-        control: {
           "--toggle-width": "[24px]",
           "--toggle-height": "[14px]",
           "--toggle-padding": "[2px]",
@@ -96,7 +87,7 @@ export const styles = sva({
         },
         label: { fontSize: "[12px]" },
       },
-      sm: {
+      xs: {
         control: {
           "--toggle-width": "[28px]",
           "--toggle-height": "[16px]",
@@ -105,7 +96,7 @@ export const styles = sva({
         },
         label: { fontSize: "[13px]" },
       },
-      md: {
+      sm: {
         control: {
           "--toggle-width": "[34px]",
           "--toggle-height": "[20px]",
@@ -114,7 +105,7 @@ export const styles = sva({
         },
         label: { fontSize: "[14px]" },
       },
-      lg: {
+      md: {
         control: {
           "--toggle-width": "[42px]",
           "--toggle-height": "[24px]",
@@ -122,6 +113,15 @@ export const styles = sva({
           "--toggle-thumb-size": "[18px]",
         },
         label: { fontSize: "[16px]" },
+      },
+      lg: {
+        control: {
+          "--toggle-width": "[48px]",
+          "--toggle-height": "[28px]",
+          "--toggle-padding": "[4px]",
+          "--toggle-thumb-size": "[20px]",
+        },
+        label: { fontSize: "[18px]" },
       },
     },
     tone: {
