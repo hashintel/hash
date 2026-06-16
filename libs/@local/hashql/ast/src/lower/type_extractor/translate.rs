@@ -8,7 +8,10 @@
 use alloc::borrow::Cow;
 
 use hashql_core::{
-    collections::{FastHashMap, FastHashSet, SmallVec, TinyVec, fast_hash_set_with_capacity},
+    collections::{
+        FastHashMap, FastHashSet, SmallVec, TinyVec, fast_hash_map_with_capacity,
+        fast_hash_set_with_capacity,
+    },
     intern::Provisioned,
     module::{
         ModuleRegistry, Universe,
@@ -640,10 +643,7 @@ where
             node::r#type::TypeKind::Struct(struct_type) => {
                 let mut fields = SmallVec::with_capacity(struct_type.fields.len());
 
-                let mut spans = FastHashMap::with_capacity_and_hasher(
-                    fields.len(),
-                    foldhash::fast::RandomState::default(),
-                );
+                let mut spans = fast_hash_map_with_capacity(fields.len());
 
                 for node::r#type::StructField {
                     name, r#type, span, ..

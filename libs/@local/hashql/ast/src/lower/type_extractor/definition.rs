@@ -101,10 +101,7 @@ impl<'env, 'heap> TypeDefinitionExtractor<'env, 'heap> {
         let mut diagnostics = DiagnosticIssues::new();
 
         // Setup the translation unit and environment
-        let mut locals = FastHashMap::with_capacity_and_hasher(
-            self.alias.len() + self.opaque.len(),
-            foldhash::fast::RandomState::default(),
-        );
+        let mut locals = fast_hash_map_with_capacity(self.alias.len() + self.opaque.len());
         let mut allocated_generic_constraints = 0;
 
         // This could be easier if we were to use a `FastHashMap` for the alias and opaque

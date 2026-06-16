@@ -1,56 +1,31 @@
-//! HashQL AST lowering and transformation pipeline.
+//! AST lowering pipeline.
 //!
-//! This module provides the core lowering functionality that transforms parsed HashQL AST nodes
-//! into a form suitable for type checking and code generation in the HIR. The lowering process
-//! applies multiple transformation passes including name resolution, special form expansion,
-//! sanitization, import resolution, name mangling, type extraction, and node renumbering.
+//! Transforms a parsed HashQL AST into a form suitable for HIR construction
+//! by running a sequence of passes that modify the tree in place.
 //!
-//! The lowering pipeline ensures that:
-//! - All names are properly resolved and scoped
-//! - Special forms and macros are expanded
-//! - Code is sanitized for safety and correctness
-//! - Type information is extracted and preserved
-//! - Nodes are uniquely numbered for analysis
+//! # Pipeline
 //!
-//! # Pipeline Overview
+//! The [`lower`] function runs these passes in order:
 //!
-//! The [`lower`] function orchestrates the complete transformation pipeline:
+//! 1. [`Expander`] resolves names, expands special forms, and resolves imports in a single top-down
+//!    traversal.
+//! 2. [`Sanitizer`] validates the expanded tree (e.g. rejects bare special form references that
+//!    survived expansion).
+//! 3. [`NameMangler`] rewrites user-facing names into internal mangled forms.
+//! 4. [`TypeDefinitionExtractor`] collects named type definitions.
+//! 5. [`NodeRenumberer`] assigns unique IDs to every AST node.
+//! 6. [`TypeExtractor`] collects anonymous types and closure signatures.
 //!
-//! 1. **Pre-expansion name resolution** - Resolves names before macro expansion
-//! 2. **Special form expansion** - Expands macros and special language constructs
-//! 3. **Sanitization** - Applies safety and correctness transformations
-//! 4. **Import resolution** - Resolves module imports and builds namespace
-//! 5. **Name mangling** - Applies name mangling for code generation
-//! 6. **Type definition extraction** - Extracts named type definitions
-//! 7. **Node renumbering** - Assigns unique identifiers to AST nodes
-//! 8. **Type extraction** - Extracts anonymous types and closure signatures
+//! Each pass may emit diagnostics. The pipeline continues through all passes
+//! and returns the union of all diagnostics, so the user sees every error at
+//! once rather than one pass at a time.
 //!
-//! # Examples
-//!
-//! ```rust
-//! use hashql_ast::lower::lower;
-//! use hashql_core::{
-//!     r#type::environment::Environment,
-//!     module::ModuleRegistry,
-//!     symbol::Symbol,
-//! };
-//!
-//! # fn example<'heap>(env: &Environment<'heap>, registry: &ModuleRegistry<'heap>, mut expr: hashql_ast::node::expr::Expr<'heap>, scratch: &mut hashql_core::heap::Scratch) {
-//! let module_name = env.heap.intern_symbol("my_module");
-//! let result = lower(module_name, &mut expr, env, registry, scratch);
-//!
-//! match result {
-//!     Ok(extracted_types) => {
-//!         // Use extracted type information for analysis
-//!         println!("Extracted {} local types", extracted_types.value.locals.len());
-//!     }
-//!     Err(diagnostics) => {
-//!         // Handle lowering errors
-//!         eprintln!("Lowering failed with {} errors", diagnostics.into_issues().len());
-//!     }
-//! }
-//! # }
-//! ```
+//! [`Expander`]: expander::Expander
+//! [`Sanitizer`]: sanitizer::Sanitizer
+//! [`NameMangler`]: name_mangler::NameMangler
+//! [`TypeDefinitionExtractor`]: type_extractor::TypeDefinitionExtractor
+//! [`NodeRenumberer`]: node_renumberer::NodeRenumberer
+//! [`TypeExtractor`]: type_extractor::TypeExtractor
 
 use hashql_core::{
     heap::ResetAllocator,
@@ -73,109 +48,38 @@ use crate::{node::expr::Expr, visit::Visitor as _};
 
 pub mod error;
 pub mod expander;
-// pub mod import_resolver;
 pub mod name_mangler;
 pub mod node_renumberer;
-// pub mod pre_expansion_name_resolver;
 pub mod sanitizer;
-// pub mod special_form_expander;
 pub mod type_extractor;
 
-/// Type information extracted during the lowering process.
-///
-/// This structure contains all the type-related information that is discovered and extracted
-/// during the AST lowering pipeline. It includes locally defined types, anonymous types
-/// (such as tuple types or array types), and closure signatures.
-///
-/// The extracted types are used by subsequent compilation phases for type checking,
-/// inference, and code generation.
+/// Type information collected by the lowering pipeline.
 #[derive(Debug)]
 pub struct ExtractedTypes<'heap> {
     /// Named type definitions local to the current module.
-    ///
-    /// These are types that have been explicitly defined in the source code with names,
-    /// such as struct definitions, enum definitions, and type aliases.
     pub locals: TypeLocals<'heap>,
 
-    /// Anonymous types discovered during lowering.
-    ///
-    /// These include types that don't have explicit names in the source code but are
-    /// constructed from type expressions, such as tuple types, array types, function
-    /// types, and generic instantiations.
+    /// Anonymous types from type expressions (tuples, unions, generics, etc.).
     pub anonymous: AnonymousTypes,
 
-    /// Closure signatures extracted from closure expressions.
-    ///
-    /// Contains type signature information for all closure expressions found in the
-    /// AST, including parameter types, return types, and capture information.
+    /// Closure signatures from closure expressions.
     pub signatures: ClosureSignatures<'heap>,
 }
 
-/// Performs the complete AST lowering transformation pipeline.
+/// Runs the full lowering pipeline on `expr`, modifying it in place.
 ///
-/// This function orchestrates all the transformation passes required to convert a parsed HashQL AST
-/// into a form suitable for type checking and code generation. The lowering process is destructive
-/// – it modifies the provided AST in place while extracting type information and collecting
-/// diagnostics.
-///
-/// The function applies transformations in a specific order to ensure correctness:
-/// each pass may depend on the results of previous passes, and the order is carefully
-/// designed to handle dependencies between different kinds of analysis and transformation.
-///
-/// # Arguments
-///
-/// - `module_name` - The symbolic name of the module being lowered, used for type resolution.
-/// - `expr` - The root expression of the AST to be lowered (modified in place).
-/// - `env` - The type environment containing heap allocation and type system context.
-/// - `registry` - Registry of available modules for import and name resolution.
-///
-/// Returns a [`Status`] containing either the extracted type information on success, or diagnostic
-/// issues if the lowering process encounters errors. Even on success, the status may
-/// contain warnings or other non-fatal diagnostics.
-///
-/// # Examples
-///
-/// ```rust
-/// use hashql_ast::lower::lower;
-/// use hashql_core::{
-///     r#type::environment::Environment,
-///     module::ModuleRegistry,
-///     symbol::Symbol,
-/// };
-/// # use hashql_diagnostics::{Success, Failure};
-///
-/// # fn example<'heap>(env: &Environment<'heap>, registry: &ModuleRegistry<'heap>, mut expr: hashql_ast::node::expr::Expr<'heap>, scratch: &mut hashql_core::heap::Scratch) {
-/// let module_name = env.heap.intern_symbol("my_module");
-/// let result = lower(module_name, &mut expr, env, registry, scratch);
-///
-/// // Check for successful lowering
-/// match result {
-///     Ok(Success {value, advisories}) => {
-///         // Process the successful result
-///         println!("Successfully lowered module with {} local types",
-///                  value.locals.len());
-///     }
-///     Err(Failure {primary, secondary}) => {
-///         // Handle errors
-///         eprintln!("Primary Error: {primary:?}");
-///
-///         for error in secondary {
-///             eprintln!("Secondary Error: {error:?}");
-///         }
-///     }
-/// }
-/// # }
-/// ```
+/// Returns the collected [`ExtractedTypes`] on success. All passes run
+/// regardless of earlier errors so that the returned diagnostics cover
+/// the entire tree.
 ///
 /// # Errors
 ///
-/// The function collects diagnostics from each transformation pass and returns them
-/// as part of the [`Status`]. Possible error categories include:
+/// Returns a [`Status`] containing diagnostics from any pass that failed:
 ///
-/// - [`LoweringDiagnosticCategory::Expander`] - Errors during special form expansion
-/// - [`LoweringDiagnosticCategory::Sanitizer`] - Errors during code sanitization
-/// - [`LoweringDiagnosticCategory::Resolver`] - Errors during import resolution
-/// - [`LoweringDiagnosticCategory::Extractor`] - Errors during type extraction
+/// - [`LoweringDiagnosticCategory::Expander`]: name resolution, special form expansion, or import
+///   resolution errors.
+/// - [`LoweringDiagnosticCategory::Sanitizer`]: invalid AST constructs that survived expansion.
+/// - [`LoweringDiagnosticCategory::Extractor`]: type extraction errors.
 pub fn lower<'heap, S>(
     module_name: Symbol<'heap>,
     expr: &mut Expr<'heap>,

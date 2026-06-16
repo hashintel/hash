@@ -7,7 +7,7 @@ use alloc::borrow::Cow;
 use core::ops::Index;
 
 use hashql_core::{
-    collections::FastHashMap,
+    collections::{FastHashMap, FastHashMapIntoIter},
     module::{
         ModuleRegistry,
         locals::{TypeDef, TypeLocals},
@@ -45,7 +45,7 @@ impl Index<NodeId> for AnonymousTypes {
 }
 
 impl IntoIterator for AnonymousTypes {
-    type IntoIter = hashbrown::hash_map::IntoIter<NodeId, TypeId>;
+    type IntoIter = FastHashMapIntoIter<NodeId, TypeId>;
     type Item = (NodeId, TypeId);
 
     fn into_iter(self) -> Self::IntoIter {
@@ -65,7 +65,7 @@ impl<'heap> Index<NodeId> for ClosureSignatures<'heap> {
 }
 
 impl<'heap> IntoIterator for ClosureSignatures<'heap> {
-    type IntoIter = hashbrown::hash_map::IntoIter<NodeId, TypeDef<'heap>>;
+    type IntoIter = FastHashMapIntoIter<NodeId, TypeDef<'heap>>;
     type Item = (NodeId, TypeDef<'heap>);
 
     fn into_iter(self) -> Self::IntoIter {
