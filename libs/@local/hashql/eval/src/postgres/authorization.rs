@@ -43,6 +43,7 @@ struct AuthorizationProjections<'base> {
     index: usize,
     base: &'base Projections,
 
+    entity_ids: Option<Alias>,
     entity_editions: Option<Alias>,
     entity_is_of_type_ids: Option<Alias>,
 }
@@ -52,6 +53,7 @@ impl<'base> AuthorizationProjections<'base> {
         Self {
             index: base.index,
             base,
+            entity_ids: None,
             entity_editions: None,
             entity_is_of_type_ids: None,
         }
@@ -71,10 +73,30 @@ impl<'base> AuthorizationProjections<'base> {
         self.base.temporal_metadata()
     }
 
-    /// Returns a reference to `entity_editions`, reusing the base join when available.
+    /// Returns a reference to `entity_ids`, reusing the base join when available.
     ///
     /// Used by [`CreatedByPrincipal`](EntityResourceFilter::CreatedByPrincipal) to access
-    /// the `provenance` column.
+    /// entity-level provenance (who created the entity originally).
+    /// Joins on `(web_id, entity_uuid)`.
+    fn entity_ids(&mut self) -> TableReference<'static> {
+        let alias = if let Some(base_alias) = self.base.entity_ids {
+            base_alias
+        } else if let Some(alias) = self.entity_ids {
+            alias
+        } else {
+            let alias = self.next_alias();
+            self.entity_ids = Some(alias);
+            alias
+        };
+
+        TableReference {
+            schema: None,
+            name: TableName::from(Table::EntityIds),
+            alias: Some(alias),
+        }
+    }
+
+    /// Returns a reference to `entity_editions`, reusing the base join when available.
     fn entity_editions(&mut self) -> TableReference<'static> {
         let alias = if let Some(base_alias) = self.base.entity_editions {
             base_alias
@@ -120,21 +142,12 @@ impl<'base> AuthorizationProjections<'base> {
     /// projections. Tables reused from the base are referenced by their existing
     /// alias and require no additional join.
     fn build_joins(&self, mut from: FromItem<'static>) -> FromItem<'static> {
-        if let Some(alias) = self.entity_editions {
-            let fk = ForeignKeyReference::Single {
-                on: Column::EntityTemporalMetadata(table::EntityTemporalMetadata::EditionId),
-                join: Column::EntityEditions(table::EntityEditions::EditionId),
-                join_type: JoinType::Inner,
-            };
+        if let Some(alias) = self.entity_ids {
+            from = self.base.build_entity_ids(from, alias);
+        }
 
-            from = from
-                .join(
-                    JoinType::Inner,
-                    FromItem::table(Table::EntityEditions)
-                        .alias(Table::EntityEditions.aliased(alias)),
-                )
-                .on(fk.conditions(self.base.base_alias, alias))
-                .build();
+        if let Some(alias) = self.entity_editions {
+            from = self.base.build_entity_editions(from, alias);
         }
 
         if let Some(alias) = self.entity_is_of_type_ids {
@@ -295,7 +308,12 @@ fn convert_is_of_base_type<A: Allocator + Clone>(
 
 /// Checks whether the entity was created by the current actor.
 ///
-/// Compares `entity_editions.provenance->>'createdById'` against the actor UUID.
+/// Compares `entity_ids.provenance->>'createdById'` against the actor UUID.
+/// This is entity-level provenance (who created the entity originally), not
+/// edition-level provenance (who created each specific edition). Matches
+/// the existing `EntityQueryPath::Provenance` which maps to `entity_ids`.
+///
+/// The actor UUID is cast to `text` in SQL since `->>'createdById'` returns text.
 /// For anonymous/public requests (no actor), compares against the public actor UUID.
 fn convert_created_by_principal<A: Allocator + Clone>(
     output: &mut PreparedAnalysis<'_, A>,
@@ -306,8 +324,8 @@ fn convert_created_by_principal<A: Allocator + Clone>(
     let actor_index = output.parameters.push(actor_uuid);
 
     let provenance = Expression::ColumnReference(ColumnReference {
-        correlation: Some(output.projections.entity_editions()),
-        name: Column::EntityEditions(table::EntityEditions::Provenance).into(),
+        correlation: Some(output.projections.entity_ids()),
+        name: Column::EntityIds(table::EntityIds::Provenance).into(),
     });
 
     let created_by = Expression::Function(
@@ -317,7 +335,10 @@ fn convert_created_by_principal<A: Allocator + Clone>(
         ),
     );
 
-    Expression::equal(created_by, Expression::Parameter(actor_index))
+    Expression::equal(
+        created_by,
+        Expression::Parameter(actor_index).cast(PostgresType::Text),
+    )
 }
 
 /// Converts an [`EntityResourceFilter`] tree into a SQL [`Expression`].

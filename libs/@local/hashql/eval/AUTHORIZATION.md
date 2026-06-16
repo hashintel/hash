@@ -61,16 +61,24 @@ in the graft phase.
 
 ### Condition shapes
 
-All admission conditions are top-level WHERE predicates or correlated EXISTS
-subqueries. No FROM tree mutation for admission, no alias allocation.
+Entity UUID and web ID conditions are plain WHERE predicates on the base
+table. IsOfType and IsOfBaseType use INNER JOINs on `entity_is_of_type_ids`
+with `array_positions` for paired checks. CreatedByPrincipal checks
+provenance on the joined `entity_editions`.
 
-| Policy condition          | SQL shape                                                |
-| ------------------------- | -------------------------------------------------------- |
-| Entity UUID permit/forbid | `<base>.entity_uuid = $N` or `= ANY($N::uuid[])`         |
-| Web ID permit/forbid      | `<base>.web_id = $N` or `= ANY($N::uuid[])`              |
-| CreatedByPrincipal        | Correlated EXISTS on `entity_editions`                   |
-| IsOfType                  | Correlated EXISTS on `entity_is_of_type_ids` with UNNEST |
-| IsOfBaseType              | Correlated EXISTS on `entity_is_of_type_ids`             |
+INNER JOINs are safe here because both `entity_is_of_type_ids` and
+`entity_editions` have total coverage: every entity in
+`entity_temporal_metadata` has corresponding rows in both tables. This makes
+INNER JOIN semantically equivalent to EXISTS in all Boolean contexts
+(including under OR and NOT).
+
+| Policy condition          | SQL shape                                                                 |
+| ------------------------- | ------------------------------------------------------------------------- |
+| Entity UUID permit/forbid | `<base>.entity_uuid = $N` or `= ANY($N::uuid[])`                          |
+| Web ID permit/forbid      | `<base>.web_id = $N` or `= ANY($N::uuid[])`                               |
+| CreatedByPrincipal        | `ee.provenance->>'createdById' = $N::text`                                |
+| IsOfType                  | `array_positions(eit.base_urls, $N) && array_positions(eit.versions, $M)` |
+| IsOfBaseType              | `$N = ANY(eit.base_urls)`                                                 |
 
 ### Base table conditions
 
@@ -78,62 +86,63 @@ Entity UUID and web ID reference columns on the base table
 (`entity_temporal_metadata`). These are plain WHERE predicates:
 
 ```sql
--- permits (OR'd)
+-- single value
+<base>.entity_uuid = $N
+<base>.web_id = $N
+
+-- batched (from OptimizationData)
 <base>.entity_uuid = ANY($N::uuid[])
 <base>.web_id = ANY($N::uuid[])
-
--- forbids (negated)
-NOT (<base>.entity_uuid = ANY($N::uuid[]))
 ```
 
 ### CreatedByPrincipal
 
-Provenance lives on `entity_editions`. Always expressed as a correlated EXISTS,
-regardless of whether entity_editions is joined in the compiled query.
-PostgreSQL may optimize the correlated EXISTS into a semijoin that shares
-work with an existing join, though this is not guaranteed.
+Checks the entity's provenance on `entity_ids` (not `entity_editions`).
+The existing `Filter::for_resource_filter` uses `EntityQueryPath::Provenance`
+which maps to `Relation::EntityIds`. This is the entity-level provenance
+(who created the entity originally), not the edition-level provenance
+(who created each specific edition).
+
+The authorization projections join `entity_ids` if it is not already
+joined by the compiled query (punch-through via `AuthorizationProjections`).
+The join is on `(web_id, entity_uuid)`:
 
 ```sql
-EXISTS (
-    SELECT 1
-    FROM entity_editions ee_auth
-    WHERE ee_auth.entity_edition_id = <base>.entity_edition_id
-      AND ee_auth.provenance->>'createdById' = $N::text
-)
+ids.provenance->>'createdById' = $N::text
 ```
 
-The actor ID uses `ActorEntityUuid::public_actor()` for anonymous actors,
-matching the existing `for_resource_filter` behavior.
+The actor UUID parameter is pushed as a UUID and cast to `text` in SQL
+(via `.cast(PostgresType::Text)`), not converted to a string in Rust.
+Anonymous actors use `ActorEntityUuid::public_actor()`, matching the
+existing `for_resource_filter` behavior.
 
 ### IsOfType (paired arrays)
 
 `entity_is_of_type_ids` stores `base_urls` (`text[]`) and `versions`
 (`bigint[]`) as parallel arrays. Independent overlap on the two arrays loses
 the pairing invariant (stored pairs `(A,1),(B,2)` would falsely match query
-`(A,2)`). Correct form uses UNNEST:
+`(A,2)`). `array_positions` preserves pairing by finding overlapping
+subscript positions:
 
 ```sql
-EXISTS (
-    SELECT 1
-    FROM entity_is_of_type_ids eit
-      CROSS JOIN LATERAL UNNEST(eit.base_urls, eit.versions) AS u(b, v)
-    WHERE eit.entity_edition_id = <base>.entity_edition_id
-      AND u.b = $N_base::text
-      AND u.v = $N_version::int8
-)
+array_positions(eit.base_urls, $N_base::text)
+&& array_positions(eit.versions, $N_version::bigint)
 ```
+
+`array_positions(arr, val)` returns all subscripts where the element matches.
+The `&&` operator checks whether the two integer arrays share any element.
+A shared position means `base_urls[i] = $base AND versions[i] = $version`.
+
+The `entity_is_of_type_ids` table is joined via `AuthorizationProjections`,
+which always allocates its own join (the compiled query's LATERAL aggregate
+serves a different purpose).
 
 ### IsOfBaseType
 
-Base URL alone is sufficient; no UNNEST needed:
+Base URL alone is sufficient; no pairing needed:
 
 ```sql
-EXISTS (
-    SELECT 1
-    FROM entity_is_of_type_ids eit
-    WHERE eit.entity_edition_id = <base>.entity_edition_id
-      AND $N_base::text = ANY(eit.base_urls)
-)
+$N_base = ANY(eit.base_urls)
 ```
 
 ### Combination algebra
@@ -148,6 +157,26 @@ permits only             -> WHERE (p1 OR p2 OR ... OR uuid_batch OR web_batch)
 permits + forbids        -> WHERE (permits) AND NOT (forbids)
 no permits               -> WHERE FALSE  (deny all)
 ```
+
+### Two-phase allocation
+
+Auxiliary parameters must not be allocated speculatively. Every parameter
+pushed must be referenced by an expression in the final SQL. Dead parameters
+cause bind-arity mismatches at runtime.
+
+The graft uses a two-phase approach:
+
+1. **Normalize**: walk policies, collect constraint references and determine
+   the algebra (blank permit, blank forbid, constrained permits/forbids).
+   No SQL expressions or parameters are allocated.
+
+2. **Lower**: convert only the surviving constraints to SQL expressions and
+   push their parameter values. If blank_permit is true, only forbids are
+   lowered. If no permits survive, return FALSE with empty parameters.
+
+The optimization pass (`OptimizationData`) is also conditional: batched
+permit UUIDs and web IDs are only lowered if permits are live (i.e.
+`blank_permit` is false).
 
 ### Instance admin bypass
 
@@ -184,10 +213,10 @@ and there is nothing to mask.
 
 ### Graft: expression replacement
 
-The graft locates the entity_editions subquery in the FROM tree using
-`JoinMetadata::entity_editions`. It scans the subquery's SELECT list for
-entries with alias `properties` and `property_metadata`, and replaces their
-inner expressions:
+The graft locates the entity_editions subquery in the FROM tree by matching
+the alias from `Projections::entity_editions`. It scans the subquery's SELECT
+list for entries with alias `properties` and `property_metadata`, and replaces
+their inner expressions:
 
 ```
 Before:  properties AS properties
@@ -207,6 +236,19 @@ policy requires.
 The alias is unchanged, so all downstream references (`ee.properties`,
 filter expressions using `ee.properties->>'path'`) transparently get the
 masked version.
+
+### Scope of replacement expressions
+
+The replacement expression lives inside the entity_editions subquery. It can
+reference:
+
+- Columns from the inner source alias (e.g. `ee_src.entity_edition_id`)
+- Constants and parameter placeholders
+- Correlated subqueries keyed on `ee_src.entity_edition_id`
+
+It cannot reference outer aliases (e.g. `entity_temporal_metadata`) unless
+the subquery is made LATERAL. For type-dependent masks, use correlated
+subqueries inside the replacement expression, not references to outer joins.
 
 ### Composability
 
