@@ -5,6 +5,7 @@ export const styles = sva({
   base: {
     root: {
       display: "inline-flex",
+      width: "[fit-content]",
       alignItems: "center",
       gap: "[8px]",
       cursor: "pointer",
@@ -33,8 +34,23 @@ export const styles = sva({
         outline: "[2px solid var(--colors-black-a40)]",
         outlineOffset: "[2px]",
       },
+      // On hover, subtly slide the thumb part-way towards the opposite state as
+      // an affordance hinting that the toggle is interactive.
+      "&[data-state='unchecked']:hover:not([data-disabled]) [data-part='thumb']":
+        {
+          transform:
+            "[translateX(calc(var(--toggle-travel) * var(--toggle-hover-nudge)))]",
+        },
+      "&[data-state='checked']:hover:not([data-disabled]) [data-part='thumb']":
+        {
+          transform:
+            "[translateX(calc(var(--toggle-travel) * (1 - var(--toggle-hover-nudge))))]",
+        },
     },
     thumb: {
+      "--toggle-travel":
+        "[calc(var(--toggle-width) - var(--toggle-thumb-size) - var(--toggle-padding) * 2 - 2px)]",
+      "--toggle-hover-nudge": "[0.07]",
       width: "var(--toggle-thumb-size)",
       height: "var(--toggle-thumb-size)",
       borderRadius: "full",
@@ -43,8 +59,7 @@ export const styles = sva({
         "[0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1)]",
       transition: "[transform 0.18s ease]",
       "&[data-state='checked']": {
-        transform:
-          "[translateX(calc(var(--toggle-width) - var(--toggle-thumb-size) - var(--toggle-padding) * 2 - 2px))]",
+        transform: "[translateX(var(--toggle-travel))]",
       },
       "&[data-disabled]": {
         backgroundColor: "neutral.s30 !important",
