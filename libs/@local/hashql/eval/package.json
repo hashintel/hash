@@ -11,7 +11,6 @@
   },
   "dependencies": {
     "@rust/hash-graph-postgres-store": "workspace:*",
-    "@rust/hash-graph-store": "workspace:*",
     "@rust/hashql-core": "workspace:*",
     "@rust/hashql-diagnostics": "workspace:*",
     "@rust/hashql-hir": "workspace:*",
@@ -21,6 +20,7 @@
     "@blockprotocol/type-system-rs": "workspace:*",
     "@rust/error-stack": "workspace:*",
     "@rust/hash-graph-authorization": "workspace:*",
+    "@rust/hash-graph-store": "workspace:*",
     "@rust/hash-graph-test-data": "workspace:*"
   }
 }
