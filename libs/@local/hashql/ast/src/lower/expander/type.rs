@@ -197,7 +197,6 @@ where
         | ExprKind::Let(_)
         | ExprKind::Type(_)
         | ExprKind::NewType(_)
-        | ExprKind::Use(_)
         | ExprKind::Input(_)
         | ExprKind::Closure(_)
         | ExprKind::If(_)

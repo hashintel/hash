@@ -819,14 +819,6 @@ impl<'heap> ReificationContext<'_, '_, '_, 'heap> {
 
                 return None;
             }
-            ExprKind::Use(_) => {
-                self.diagnostics.push(unprocessed_expression(
-                    expr.span,
-                    "use declaration",
-                    "import resolution",
-                ));
-                return None;
-            }
             ExprKind::Input(input) => (input.span, self.input_expr(hir_id, input)?),
             ExprKind::Closure(closure) => (closure.span, self.closure_expr(hir_id, closure)?),
             ExprKind::If(r#if) => (r#if.span, self.if_expr(r#if)?),

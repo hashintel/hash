@@ -305,7 +305,6 @@ impl<'heap> Visitor<'heap> for TypeDefinitionExtractor<'_, 'heap> {
             | ExprKind::Literal(_)
             | ExprKind::Path(_)
             | ExprKind::Let(_)
-            | ExprKind::Use(_)
             | ExprKind::Input(_)
             | ExprKind::Closure(_)
             | ExprKind::If(_)
