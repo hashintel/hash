@@ -1,15 +1,26 @@
 import { blockProtocolDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
+import { activeCurrencies } from "../currencies";
 import { createSystemDataTypeIfNotExists } from "../util";
 
 import type { MigrationFunction } from "../types";
+
+// Currencies with a well-known symbol; the rest display with their ISO code.
+const currencySymbols: Record<string, string> = {
+  USD: "$",
+  GBP: "£",
+  EUR: "€",
+  JPY: "¥",
+  CNY: "¥",
+  INR: "₹",
+};
 
 const migrate: MigrationFunction = async ({
   context,
   authentication,
   migrationState,
 }) => {
-  const currencyDataTypes = await createSystemDataTypeIfNotExists(
+  const currencyDataType = await createSystemDataTypeIfNotExists(
     context,
     authentication,
     {
@@ -27,50 +38,21 @@ const migrate: MigrationFunction = async ({
     },
   );
 
-  await createSystemDataTypeIfNotExists(context, authentication, {
-    dataTypeDefinition: {
-      allOf: [{ $ref: currencyDataTypes.schema.$id }],
-      title: "USD",
-      description: "An amount denominated in US Dollars.",
-      type: "number",
-      label: {
-        left: "$",
+  for (const { code, name } of activeCurrencies) {
+    const symbol = currencySymbols[code];
+    await createSystemDataTypeIfNotExists(context, authentication, {
+      dataTypeDefinition: {
+        allOf: [{ $ref: currencyDataType.schema.$id }],
+        title: code,
+        description: `An amount denominated in ${name} (ISO 4217 ${code}).`,
+        type: "number",
+        ...(symbol ? { label: { left: symbol } } : {}),
       },
-    },
-    conversions: {},
-    webShortname: "h",
-    migrationState,
-  });
-
-  await createSystemDataTypeIfNotExists(context, authentication, {
-    dataTypeDefinition: {
-      allOf: [{ $ref: currencyDataTypes.schema.$id }],
-      title: "GBP",
-      description: "An amount denominated in British pounds sterling.",
-      type: "number",
-      label: {
-        left: "£",
-      },
-    },
-    conversions: {},
-    webShortname: "h",
-    migrationState,
-  });
-
-  await createSystemDataTypeIfNotExists(context, authentication, {
-    dataTypeDefinition: {
-      allOf: [{ $ref: currencyDataTypes.schema.$id }],
-      title: "EUR",
-      description: "An amount denominated in Euros.",
-      type: "number",
-      label: {
-        left: "€",
-      },
-    },
-    conversions: {},
-    webShortname: "h",
-    migrationState,
-  });
+      conversions: {},
+      webShortname: "h",
+      migrationState,
+    });
+  }
 
   return migrationState;
 };
