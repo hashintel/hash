@@ -2031,7 +2031,6 @@ pub(crate) fn invalid_expression_in_type_position(
         ExprKind::Let(_) => "a `let` expression",
         ExprKind::Type(_) => "a `type` declaration",
         ExprKind::NewType(_) => "a `newtype` declaration",
-        ExprKind::Use(_) => "a `use` expression",
         ExprKind::Input(_) => "an `input` expression",
         ExprKind::Closure(_) => "a closure expression",
         ExprKind::If(_) => "an `if` expression",

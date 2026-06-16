@@ -27,14 +27,12 @@ use crate::node::{
     expr::{
         AsExpr, CallExpr, ClosureExpr, DictExpr, Expr, ExprKind, FieldExpr, IfExpr, IndexExpr,
         InputExpr, LetExpr, ListExpr, LiteralExpr, NewTypeExpr, StructExpr, TupleExpr, TypeExpr,
-        UseExpr,
         call::{Argument, LabeledArgument},
         closure::{ClosureParam, ClosureSignature},
         dict::DictEntry,
         list::ListElement,
         r#struct::StructEntry,
         tuple::TupleElement,
-        r#use::{Glob, UseBinding, UseKind},
     },
     generic::{GenericArgument, GenericConstraint, GenericParam, Generics},
     id::NodeId,
@@ -352,62 +350,6 @@ impl_syntax_dump!(struct TypeExpr(name); []constraints value body);
 
 impl_syntax_dump!(struct NewTypeExpr(name); []constraints value body);
 
-impl SyntaxDump for UseBinding<'_> {
-    fn syntax_dump(&self, fmt: &mut Formatter, depth: usize) -> fmt::Result {
-        let Self {
-            id,
-            span,
-            name,
-            alias,
-        } = self;
-
-        let mut properties = vec![format!("name: {name}")];
-        if let Some(alias) = alias {
-            properties.push(format!("alias: {alias}"));
-        }
-
-        write_header(
-            fmt,
-            depth,
-            "UseBinding",
-            Some(*id),
-            Some(*span),
-            Some(&properties.join(", ")),
-        )
-    }
-}
-
-impl SyntaxDump for Glob {
-    fn syntax_dump(&self, fmt: &mut Formatter, depth: usize) -> fmt::Result {
-        let Self { id, span } = self;
-
-        write_header(fmt, depth, "Glob", Some(*id), Some(*span), None)
-    }
-}
-
-impl SyntaxDump for UseKind<'_> {
-    fn syntax_dump(&self, fmt: &mut Formatter, depth: usize) -> fmt::Result {
-        match self {
-            UseKind::Named(bindings) => {
-                write_header(fmt, depth, "UseKind", None, None, Some("Named"))?;
-
-                for binding in bindings {
-                    binding.syntax_dump(fmt, depth + 1)?;
-                }
-
-                Ok(())
-            }
-            UseKind::Glob(glob) => {
-                write_header(fmt, depth, "UseKind", None, None, Some("Glob"))?;
-
-                glob.syntax_dump(fmt, depth + 1)
-            }
-        }
-    }
-}
-
-impl_syntax_dump!(struct UseExpr(); path kind body);
-
 impl_syntax_dump!(struct InputExpr(name); r#type ?default);
 
 #[rustfmt::skip]
@@ -477,11 +419,6 @@ impl SyntaxDump for ExprKind<'_> {
                 write_header(fmt, depth, "ExprKind", None, None, Some("NewType"))?;
 
                 new_type_expr.syntax_dump(fmt, depth + 1)
-            }
-            Self::Use(use_expr) => {
-                write_header(fmt, depth, "ExprKind", None, None, Some("Use"))?;
-
-                use_expr.syntax_dump(fmt, depth + 1)
             }
             Self::Input(input_expr) => {
                 write_header(fmt, depth, "ExprKind", None, None, Some("Input"))?;

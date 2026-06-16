@@ -59,7 +59,7 @@ pub use self::{
     r#as::AsExpr, call::CallExpr, closure::ClosureExpr, dict::DictExpr, field::FieldExpr,
     r#if::IfExpr, index::IndexExpr, input::InputExpr, r#let::LetExpr, list::ListExpr,
     literal::LiteralExpr, newtype::NewTypeExpr, r#struct::StructExpr, tuple::TupleExpr,
-    r#type::TypeExpr, r#use::UseExpr,
+    r#type::TypeExpr,
 };
 use super::{id::NodeId, path::Path};
 
@@ -319,31 +319,6 @@ pub enum ExprKind<'heap> {
     ///     AccountId("1234")
     /// ```
     NewType(NewTypeExpr<'heap>),
-
-    /// A module import expression (special form).
-    ///
-    /// Imports symbols from another module into the current scope. This is expanded
-    /// from a function call during AST transformation. HashQL supports selective
-    /// imports with optional renaming.
-    ///
-    /// # Examples
-    ///
-    /// ## J-Expr
-    ///
-    /// ```json
-    /// ["use", "path::to::module", {"#struct": {"item1": "_", "original": "renamed"}}, <body>]
-    /// ["use", "path::to::module", {"#tuple": ["item1", "original"]}, <body>]
-    /// ["use", "path::to::module", "*", <body>]
-    /// ```
-    ///
-    /// ## Documentation Format
-    ///
-    /// ```text
-    /// use path::to::module::{item1, original as renamed} in <body>
-    /// use path::to::module::{item1, original} in <body>
-    /// use path::to::module::* in <body>
-    /// ```
-    Use(UseExpr<'heap>),
 
     /// An input parameter declaration (special form).
     ///
