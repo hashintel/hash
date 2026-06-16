@@ -459,7 +459,7 @@ __metadata:
     sanitize-html: "npm:2.17.4"
     tsconfig-paths-webpack-plugin: "npm:4.2.0"
     tsx: "npm:4.20.6"
-    typescript: "npm:5.9.3"
+    typescript: "npm:6.0.3"
     vitest: "npm:4.1.7"
     wait-on: "npm:9.0.1"
   languageName: unknown
@@ -572,7 +572,7 @@ __metadata:
     sanitize-html: "npm:2.17.4"
     ts-json-schema-generator: "npm:1.5.1"
     tsx: "npm:4.20.6"
-    typescript: "npm:5.9.3"
+    typescript: "npm:6.0.3"
     vitest: "npm:4.1.7"
     wait-on: "npm:9.0.1"
     ws: "npm:8.20.1"
@@ -720,7 +720,7 @@ __metadata:
     sigma: "npm:3.0.2"
     signia: "npm:0.1.5"
     signia-react: "npm:0.1.5"
-    typescript: "npm:5.9.3"
+    typescript: "npm:6.0.3"
     url-regex-safe: "npm:4.0.0"
     use-font-face-observer: "npm:1.3.0"
     uuid: "npm:14.0.0"
@@ -781,7 +781,7 @@ __metadata:
     eslint: "npm:9.39.4"
     rimraf: "npm:6.1.3"
     tsx: "npm:4.20.6"
-    typescript: "npm:5.9.3"
+    typescript: "npm:6.0.3"
     uuid: "npm:14.0.0"
     wait-on: "npm:9.0.1"
   languageName: unknown
@@ -804,7 +804,7 @@ __metadata:
     rimraf: "npm:6.1.3"
     shx: "npm:0.4.0"
     tsx: "npm:4.20.6"
-    typescript: "npm:5.9.3"
+    typescript: "npm:6.0.3"
     zod: "npm:4.4.3"
     zod-to-json-schema: "npm:3.24.6"
   bin:
@@ -829,7 +829,7 @@ __metadata:
     rimraf: "npm:6.1.3"
     shx: "npm:0.4.0"
     tsx: "npm:4.20.6"
-    typescript: "npm:5.9.3"
+    typescript: "npm:6.0.3"
     zod: "npm:4.4.3"
     zod-to-json-schema: "npm:3.24.6"
   bin:
@@ -930,7 +930,7 @@ __metadata:
     ts-loader: "npm:9.5.4"
     tsconfig-paths-webpack-plugin: "npm:4.2.0"
     type-fest: "npm:5.3.1"
-    typescript: "npm:5.9.3"
+    typescript: "npm:6.0.3"
     uuid: "npm:14.0.0"
     webextension-polyfill: "npm:0.12.0"
     webpack: "npm:5.104.1"
@@ -4545,7 +4545,7 @@ __metadata:
     lodash.isequal: "npm:4.5.0"
     rimraf: "npm:6.1.3"
     tsx: "npm:4.20.6"
-    typescript: "npm:5.9.3"
+    typescript: "npm:6.0.3"
   peerDependencies:
     react: ^19.0.0
   languageName: unknown
@@ -4583,7 +4583,7 @@ __metadata:
     "@rust/hash-codec": "workspace:*"
     "@rust/hash-codegen": "workspace:*"
     "@rust/hash-graph-temporal-versioning": "workspace:*"
-    typescript: "npm:5.9.3"
+    typescript: "npm:6.0.3"
   languageName: unknown
   linkType: soft
 
@@ -4616,7 +4616,7 @@ __metadata:
     semver: "npm:7.7.3"
     tslib: "npm:2.8.1"
     tsx: "npm:4.20.6"
-    typescript: "npm:5.9.3"
+    typescript: "npm:6.0.3"
     uuid: "npm:14.0.0"
     vite-plugin-wasm-pack: "npm:0.1.12"
     vitest: "npm:4.1.7"
@@ -7282,7 +7282,7 @@ __metadata:
     react-dom: "npm:19.2.7"
     react-syntax-highlighter: "npm:16.1.1"
     react-type-animation: "npm:3.2.0"
-    typescript: "npm:5.9.3"
+    typescript: "npm:6.0.3"
   peerDependencies:
     "@emotion/react": 11.14.0
     "@emotion/styled": 11.14.1
@@ -7315,7 +7315,7 @@ __metadata:
     react: "npm:19.2.7"
     react-dom: "npm:19.2.7"
     react-loading-skeleton: "npm:3.5.0"
-    typescript: "npm:5.9.3"
+    typescript: "npm:6.0.3"
   peerDependencies:
     "@emotion/cache": ^11.14.0
     "@emotion/react": ^11.14.0
@@ -7366,7 +7366,7 @@ __metadata:
     react-dom: "npm:19.2.7"
     tsup: "npm:^8.5.1"
     tsx: "npm:4.20.6"
-    typescript: "npm:5.9.3"
+    typescript: "npm:6.0.3"
     use-callback-ref: "npm:1.3.3"
     vite: "npm:7.3.2"
     vite-plugin-dts: "npm:4.5.4"
@@ -7498,7 +7498,7 @@ __metadata:
     react-dom: "npm:19.2.7"
     react-hook-form: "npm:7.65.0"
     storybook: "npm:9.1.19"
-    typescript: "npm:5.9.3"
+    typescript: "npm:6.0.3"
   peerDependencies:
     "@mui/material": ^5.14.0
     "@mui/system": ^5.14.0
@@ -7559,7 +7559,7 @@ __metadata:
     rooks: "npm:9.3.0"
     setimmediate: "npm:1.0.5"
     storybook: "npm:9.1.19"
-    typescript: "npm:5.9.3"
+    typescript: "npm:6.0.3"
   peerDependencies:
     "@mui/material": ^5.14.0
     "@mui/system": ^5.14.0
@@ -8833,7 +8833,7 @@ __metadata:
     eslint: "npm:9.39.4"
     react: "npm:19.2.7"
     rimraf: "npm:6.1.3"
-    typescript: "npm:5.9.3"
+    typescript: "npm:6.0.3"
   languageName: unknown
   linkType: soft
 
@@ -8848,7 +8848,7 @@ __metadata:
     eslint: "npm:9.39.4"
     natural: "npm:8.1.0"
     tsx: "npm:4.20.6"
-    typescript: "npm:5.9.3"
+    typescript: "npm:6.0.3"
     vitest: "npm:4.1.7"
   languageName: unknown
   linkType: soft
@@ -8862,7 +8862,7 @@ __metadata:
     "@vitest/coverage-istanbul": "npm:4.1.7"
     eslint: "npm:9.39.4"
     rimraf: "npm:6.1.3"
-    typescript: "npm:5.9.3"
+    typescript: "npm:6.0.3"
     vitest: "npm:4.1.7"
   languageName: unknown
   linkType: soft
@@ -8875,7 +8875,7 @@ __metadata:
     "@local/tsconfig": "workspace:*"
     eslint: "npm:9.39.4"
     rimraf: "npm:6.1.3"
-    typescript: "npm:5.9.3"
+    typescript: "npm:6.0.3"
   languageName: unknown
   linkType: soft
 
@@ -8905,7 +8905,7 @@ __metadata:
     globals: "npm:16.4.0"
     rimraf: "npm:6.1.3"
     type-fest: "npm:5.3.1"
-    typescript: "npm:5.9.3"
+    typescript: "npm:6.0.3"
   languageName: unknown
   linkType: soft
 
@@ -8940,7 +8940,7 @@ __metadata:
     libp2p: "npm:3.0.6"
     multiformats: "npm:13.4.1"
     rimraf: "npm:6.1.3"
-    typescript: "npm:5.9.3"
+    typescript: "npm:6.0.3"
     uint8arraylist: "npm:2.4.8"
     vitest: "npm:4.1.7"
   languageName: unknown
@@ -9007,7 +9007,7 @@ __metadata:
     redis: "npm:5.8.3"
     rimraf: "npm:6.1.3"
     slonik: "npm:24.2.0"
-    typescript: "npm:5.9.3"
+    typescript: "npm:6.0.3"
     uuid: "npm:14.0.0"
     vitest: "npm:4.1.7"
     wait-on: "npm:9.0.1"
@@ -9027,7 +9027,7 @@ __metadata:
     axios: "npm:1.16.1"
     fix-esm-import-path: "npm:1.10.3"
     rimraf: "npm:6.1.3"
-    typescript: "npm:5.9.3"
+    typescript: "npm:6.0.3"
   languageName: unknown
   linkType: soft
 
@@ -9049,7 +9049,7 @@ __metadata:
     effect: "npm:3.21.0"
     eslint: "npm:9.39.4"
     rimraf: "npm:6.1.3"
-    typescript: "npm:5.9.3"
+    typescript: "npm:6.0.3"
     uuid: "npm:14.0.0"
     vitest: "npm:4.1.7"
   languageName: unknown
@@ -9104,7 +9104,7 @@ __metadata:
     rimraf: "npm:6.1.3"
     serialize-error: "npm:12.0.0"
     tsx: "npm:4.20.6"
-    typescript: "npm:5.9.3"
+    typescript: "npm:6.0.3"
     uuid: "npm:14.0.0"
     vitest: "npm:4.1.7"
   languageName: unknown
@@ -9118,7 +9118,7 @@ __metadata:
     "@types/node": "npm:22.18.13"
     axios: "npm:1.16.1"
     rimraf: "npm:6.1.3"
-    typescript: "npm:5.9.3"
+    typescript: "npm:6.0.3"
   languageName: unknown
   linkType: soft
 
@@ -9148,7 +9148,7 @@ __metadata:
     js-yaml: "npm:4.1.1"
     regex-parser: "npm:2.3.1"
     tsx: "npm:4.20.6"
-    typescript: "npm:5.9.3"
+    typescript: "npm:6.0.3"
     zod: "npm:4.4.3"
     zod-to-json-schema: "npm:3.24.6"
   languageName: unknown
@@ -9168,7 +9168,7 @@ __metadata:
     lodash-es: "npm:4.18.1"
     quicktype: "npm:16.0.43"
     rimraf: "npm:6.1.3"
-    typescript: "npm:5.9.3"
+    typescript: "npm:6.0.3"
     yargs: "npm:18.0.0"
   languageName: unknown
   linkType: soft
@@ -14339,7 +14339,7 @@ __metadata:
     "@rust/harpc-types": "workspace:*"
     "@rust/harpc-wire-protocol": "workspace:*"
     "@rust/hash-codegen": "workspace:*"
-    typescript: "npm:5.9.3"
+    typescript: "npm:6.0.3"
   languageName: unknown
   linkType: soft
 
@@ -14390,7 +14390,7 @@ __metadata:
     "@rust/error-stack": "workspace:*"
     "@rust/hash-codec": "workspace:*"
     "@rust/hash-codegen": "workspace:*"
-    typescript: "npm:5.9.3"
+    typescript: "npm:6.0.3"
   languageName: unknown
   linkType: soft
 
@@ -14488,7 +14488,7 @@ __metadata:
     "@rust/hash-graph-temporal-versioning": "workspace:*"
     "@rust/hash-graph-types": "workspace:*"
     "@rust/hash-temporal-client": "workspace:*"
-    typescript: "npm:5.9.3"
+    typescript: "npm:6.0.3"
   languageName: unknown
   linkType: soft
 
@@ -14521,7 +14521,7 @@ __metadata:
     eslint: "npm:9.39.4"
     quicktype: "npm:16.0.43"
     tsx: "npm:4.20.6"
-    typescript: "npm:5.9.3"
+    typescript: "npm:6.0.3"
   languageName: unknown
   linkType: soft
 
@@ -16879,7 +16879,7 @@ __metadata:
     graphql: "npm:16.11.0"
     node-fetch: "npm:2.7.0"
     rimraf: "npm:6.1.3"
-    typescript: "npm:5.9.3"
+    typescript: "npm:6.0.3"
     vitest: "npm:4.1.7"
   languageName: unknown
   linkType: soft
@@ -16912,7 +16912,7 @@ __metadata:
     eslint: "npm:9.39.4"
     rimraf: "npm:6.1.3"
     rollup: "npm:4.59.0"
-    typescript: "npm:5.9.3"
+    typescript: "npm:6.0.3"
     uuid: "npm:14.0.0"
   languageName: unknown
   linkType: soft
@@ -16940,7 +16940,7 @@ __metadata:
     graphql: "npm:16.11.0"
     js-yaml: "npm:4.1.1"
     rimraf: "npm:6.1.3"
-    typescript: "npm:5.9.3"
+    typescript: "npm:6.0.3"
   languageName: unknown
   linkType: soft
 
@@ -43294,16 +43294,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"typescript@npm:5.9.3":
-  version: 5.9.3
-  resolution: "typescript@npm:5.9.3"
-  bin:
-    tsc: bin/tsc
-    tsserver: bin/tsserver
-  checksum: 10c0/6bd7552ce39f97e711db5aa048f6f9995b53f1c52f7d8667c1abdc1700c68a76a308f579cd309ce6b53646deb4e9a1be7c813a93baaf0a28ccd536a30270e1c5
-  languageName: node
-  linkType: hard
-
 "typescript@npm:6.0.2":
   version: 6.0.2
   resolution: "typescript@npm:6.0.2"
@@ -43361,16 +43351,6 @@ __metadata:
     tsc: bin/tsc
     tsserver: bin/tsserver
   checksum: 10c0/5448a08e595cc558ab321e49d4cac64fb43d1fa106584f6ff9a8d8e592111b373a995a1d5c7f3046211c8a37201eb6d0f1566f15cdb7a62a5e3be01d087848e2
-  languageName: node
-  linkType: hard
-
-"typescript@patch:typescript@npm%3A5.9.3#optional!builtin<compat/typescript>":
-  version: 5.9.3
-  resolution: "typescript@patch:typescript@npm%3A5.9.3#optional!builtin<compat/typescript>::version=5.9.3&hash=5786d5"
-  bin:
-    tsc: bin/tsc
-    tsserver: bin/tsserver
-  checksum: 10c0/ad09fdf7a756814dce65bc60c1657b40d44451346858eea230e10f2e95a289d9183b6e32e5c11e95acc0ccc214b4f36289dcad4bf1886b0adb84d711d336a430
   languageName: node
   linkType: hard
 
