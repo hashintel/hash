@@ -7,7 +7,10 @@ import { styles } from "./toggle.recipe";
 import type { SharedInputProps, Tone } from "../../util/form-shared";
 
 export type ToggleProps = {
-  tone?: Tone;
+  /** The tone applied when the toggle is on (checked) */
+  tone?: Exclude<Tone, "error"> | "success";
+  /** The tone applied when the toggle is off (unchecked) */
+  offTone?: "neutral" | "error";
   labelOnText?: string;
   labelOffText?: string;
 } & SharedInputProps<HTMLInputElement, boolean> &
@@ -29,12 +32,13 @@ export const Toggle = ({
   disabled,
   required,
   size = "md",
-  tone = "neutral",
+  tone = "success",
+  offTone = "neutral",
   labelOnText,
   labelOffText,
   ...ariaProps
 }: ToggleProps) => {
-  const classes = styles({ size, tone, invalid: !!invalid });
+  const classes = styles({ size, tone, offTone, invalid: !!invalid });
 
   return (
     <Switch.Root

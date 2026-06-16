@@ -10,7 +10,6 @@ export const styles = sva({
       cursor: "pointer",
       userSelect: "none",
       "&[data-disabled]": {
-        cursor: "not-allowed",
         opacity: "[0.5]",
       },
     },
@@ -27,15 +26,15 @@ export const styles = sva({
       borderColor: "black.a15",
       backgroundColor: "neutral.s30",
       boxShadow: "[inset 0 2px 4px rgba(0, 0, 0, 0.05)]",
+      outlineColor: "black.a40",
       transition:
-        "[background-color 0.15s ease, outline-color 0.15s ease, box-shadow 0.15s ease]",
+        "[background-color 0.15s ease, outline 0.15s ease, box-shadow 0.15s ease]",
       "&[data-state='unchecked']:hover:not([data-disabled])": {
         backgroundColor: "neutral.s40",
       },
       "&:has(~ input:focus-visible)": {
-        outline: "[2px solid]",
+        outline: "[2px solid var(--colors-black-a40)]",
         outlineOffset: "[2px]",
-        outlineColor: "black.a60",
       },
     },
     thumb: {
@@ -110,12 +109,11 @@ export const styles = sva({
       neutral: {
         control: {
           "&[data-state='checked']": {
-            backgroundColor: "neutral.s120",
+            backgroundColor: "neutral.s115",
           },
           "&[data-state='checked']:hover:not([data-disabled])": {
             backgroundColor: "neutral.s110",
           },
-          "&:has(~ input:focus-visible)": { outlineColor: "black.a60" },
         },
       },
       brand: {
@@ -126,18 +124,30 @@ export const styles = sva({
           "&[data-state='checked']:hover:not([data-disabled])": {
             backgroundColor: "blue.s85",
           },
-          "&:has(~ input:focus-visible)": { outlineColor: "blue.a60" },
         },
       },
-      error: {
+      success: {
         control: {
           "&[data-state='checked']": {
-            backgroundColor: "red.s90",
+            backgroundColor: "green.s80",
           },
           "&[data-state='checked']:hover:not([data-disabled])": {
-            backgroundColor: "red.s85",
+            backgroundColor: "green.s70",
           },
-          "&:has(~ input:focus-visible)": { outlineColor: "red.a60" },
+        },
+      },
+    },
+    offTone: {
+      neutral: {},
+      error: {
+        control: {
+          "&[data-state='unchecked']": {
+            backgroundColor: "red.s40",
+            borderColor: "red.s70",
+          },
+          "&[data-state='unchecked']:hover:not([data-disabled])": {
+            backgroundColor: "red.s50",
+          },
         },
       },
     },
@@ -155,6 +165,7 @@ export const styles = sva({
   defaultVariants: {
     size: "md",
     tone: "neutral",
+    offTone: "neutral",
     invalid: false,
   },
 });

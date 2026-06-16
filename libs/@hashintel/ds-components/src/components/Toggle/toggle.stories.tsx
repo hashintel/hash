@@ -2,14 +2,20 @@ import { useState } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 
-import { formInputSizes, type Tone } from "../../util/form-shared";
+import { formInputSizes } from "../../util/form-shared";
 import { Toggle } from "./toggle";
 
 import type { Story, StoryDefault } from "@ladle/react";
 
 type ToggleProps = React.ComponentProps<typeof Toggle>;
 
-const tones: Tone[] = ["neutral", "brand", "error"];
+const tones: NonNullable<ToggleProps["tone"]>[] = [
+  "neutral",
+  "brand",
+  "success",
+];
+
+const offTones: NonNullable<ToggleProps["offTone"]>[] = ["neutral", "error"];
 
 const ControlledToggle = ({
   defaultValue = false,
@@ -28,6 +34,9 @@ export default {
     tone: {
       control: { type: "select", options: tones },
     },
+    offTone: {
+      control: { type: "select", options: offTones },
+    },
     size: {
       control: { type: "select", options: formInputSizes },
     },
@@ -38,6 +47,7 @@ export default {
   },
   args: {
     tone: "neutral",
+    offTone: "neutral",
     size: "md",
     disabled: false,
     invalid: false,
@@ -107,6 +117,16 @@ export const Default: Story<ToggleProps> = () => (
           labelOnText="On"
           labelOffText="Off"
           defaultValue
+        />
+      </Row>
+    ))}
+    {offTones.map((offTone) => (
+      <Row key={offTone} label={`offTone=${offTone}`}>
+        <ControlledToggle
+          offTone={offTone}
+          labelOnText="On"
+          labelOffText="Off"
+          defaultValue={false}
         />
       </Row>
     ))}
