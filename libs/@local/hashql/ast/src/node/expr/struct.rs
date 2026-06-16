@@ -7,7 +7,7 @@ use crate::node::{id::NodeId, r#type::Type};
 ///
 /// A struct entry consists of a named field (represented by an identifier)
 /// and its corresponding value expression.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug)]
 pub struct StructEntry<'heap> {
     pub id: NodeId,
     pub span: SpanId,
@@ -42,7 +42,7 @@ pub struct StructEntry<'heap> {
 /// (:)
 /// (field1: value1, field2: value2)
 /// ```
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug)]
 pub struct StructExpr<'heap> {
     pub id: NodeId,
     pub span: SpanId,
