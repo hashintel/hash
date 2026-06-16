@@ -14,7 +14,12 @@ use core::num::NonZero;
 use std::thread::available_parallelism;
 
 use axum::{Extension, Router, response::IntoResponse as _, routing::post};
-use hash_graph_postgres_store::store::PostgresStorePool;
+use hash_graph_authorization::policies::{
+    MergePolicies, PolicyComponents,
+    action::ActionName,
+    store::{PolicyStore, PrincipalStore},
+};
+use hash_graph_postgres_store::store::{PostgresStorePool, postgres::PostgresClient};
 use hash_graph_store::pool::StorePool;
 use hash_temporal_client::TemporalClient;
 use hashql_core::{
@@ -26,11 +31,12 @@ use hashql_diagnostics::{
     severity::Critical,
 };
 use hashql_eval::{error::EvalDiagnosticCategory, orchestrator::Orchestrator};
-use hashql_mir::{body, interpret::Inputs};
+use hashql_mir::interpret::Inputs;
 use hashql_syntax_jexpr::span::Span;
 use http::StatusCode;
 use serde_json::value::RawValue;
 use tokio_util::task::LocalPoolHandle;
+use type_system::principal::actor::{ActorEntityUuid, ActorId};
 use utoipa::OpenApi;
 
 use self::{
@@ -71,9 +77,10 @@ impl CompilerContext {
 }
 
 /// Per-request database context.
-struct ExecutionContext {
-    postgres: PostgresStorePool,
+struct ExecutionContext<S> {
     temporal: Option<Arc<TemporalClient>>,
+    actor_id: ActorEntityUuid,
+    store: Arc<S>,
 }
 
 /// Controls the response format for a HashQL query.
@@ -86,12 +93,15 @@ pub(crate) struct CompilationOutputOptions {
 
 /// Compiles and executes a HashQL query, returning the result as a [`Status`].
 #[expect(clippy::future_not_send)]
-async fn query_local_impl(
+async fn query_local_impl<S>(
     ctx: Arc<CompilerContext>,
-    exec: ExecutionContext,
+    exec: ExecutionContext<S>,
     spans: &mut SpanTable<Span>,
     query: &[u8],
-) -> Status<OwnedValue, HashQlDiagnosticCategory, SpanId> {
+) -> Status<OwnedValue, HashQlDiagnosticCategory, SpanId>
+where
+    S: for<'pool> StorePool<Store<'pool>: AsRef<PostgresClient> + PrincipalStore + PolicyStore>,
+{
     // Heap and scratch must be created inside this function because `spawn_pinned` requires
     // `'static`. Moving them across the spawn boundary isn't possible since they borrow from
     // the pool guards.
@@ -108,11 +118,11 @@ async fn query_local_impl(
     let context = compilation.context();
 
     let Success {
-        value: client,
+        value: store,
         advisories,
     } = exec
-        .postgres
-        .acquire(exec.temporal)
+        .store
+        .acquire(exec.temporal.clone())
         .await
         .map_err(|report| {
             let mut diagnostic =
@@ -131,7 +141,16 @@ async fn query_local_impl(
         .into_status()
         .with_diagnostics(advisories)?;
 
-    let orchestrator = Orchestrator::new(client, &compilation.artifact.postgres, &context);
+    let mut policy_components = PolicyComponents::builder(&store).with_actor(exec.actor_id);
+    policy_components.add_actions(
+        compilation.permissions.actions.iter().copied(),
+        MergePolicies::Yes,
+    );
+    let policy_components = policy_components
+        .await
+        .map_err(|report| todo!("proper diagnostic"))?;
+
+    let orchestrator = Orchestrator::new(&store, &compilation.artifact.postgres, &context);
     orchestrator
         .run(&inputs, compilation.entrypoint, [])
         .await
@@ -144,12 +163,15 @@ async fn query_local_impl(
 }
 
 #[expect(clippy::future_not_send)]
-async fn query_local(
+async fn query_local<S>(
     ctx: Arc<CompilerContext>,
-    exec: ExecutionContext,
+    exec: ExecutionContext<S>,
     query: Arc<RawValue>,
     options: CompilationOutputOptions,
-) -> BoxedResponse {
+) -> BoxedResponse
+where
+    S: for<'pool> StorePool<Store<'pool>: AsRef<PostgresClient>>,
+{
     let mut sources = Sources::new();
     let source_id = sources.push(Source::new(query.get()));
 
@@ -160,12 +182,15 @@ async fn query_local(
 }
 
 /// Spawns a query onto the local thread pool and awaits the response.
-async fn run_query(
+async fn run_query<S>(
     ctx: Arc<CompilerContext>,
-    exec: ExecutionContext,
+    exec: ExecutionContext<S>,
     query: Arc<RawValue>,
     options: CompilationOutputOptions,
-) -> BoxedResponse {
+) -> BoxedResponse
+where
+    S: for<'pool> StorePool<Store<'pool>: AsRef<PostgresClient>> + Send + Sync + 'static,
+{
     // The compiler and interpreter hold references into bump-allocated heaps, making their
     // futures `!Send`. `spawn_pinned` runs them on a dedicated thread; the returned handle
     // is `Send` so the HTTP handler can await it normally.
@@ -233,20 +258,19 @@ pub(crate) struct HashQlRequest {
 pub(crate) async fn query_hashql<S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     Extension(store_pool): Extension<Arc<S>>,
-    Extension(temporal_client): Extension<Option<Arc<TemporalClient>>>,
     Extension(compiler): Extension<Arc<CompilerContext>>,
-    Extension(postgres): Extension<Arc<PostgresStorePool>>,
     Extension(temporal): Extension<Option<Arc<TemporalClient>>>,
     InteractiveHeader(interactive): InteractiveHeader,
     JsonCompatHeader(json_compat): JsonCompatHeader,
     Json(request): Json<HashQlRequest>,
 ) -> BoxedResponse
 where
-    S: StorePool + Send + Sync,
+    S: for<'pool> StorePool<Store<'pool>: AsRef<PostgresClient>> + Send + Sync + 'static,
 {
     let exec = ExecutionContext {
-        postgres: (*postgres).clone(),
         temporal,
+        actor_id,
+        store: store_pool,
     };
 
     let options = CompilationOutputOptions {

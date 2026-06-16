@@ -437,7 +437,6 @@ where
     S: StorePool + Send + Sync + 'static,
 {
     pub store: Arc<S>,
-    pub postgres: PostgresStorePool,
     pub temporal_client: Option<Arc<TemporalClient>>,
     pub domain_regex: DomainValidator,
     pub query_logger: Option<QueryLogger>,
@@ -488,7 +487,6 @@ where
         )
         .layer(http_tracing_layer::HttpTracingLayer)
         .layer(Extension(dependencies.store))
-        .layer(Extension(Arc::new(dependencies.postgres)))
         .layer(Extension(dependencies.temporal_client))
         .layer(Extension(dependencies.domain_regex))
         .layer(Extension(dependencies.api_config))

@@ -51,6 +51,7 @@ use hash_status::StatusCode;
 use hash_temporal_client::TemporalClient;
 use postgres_types::{Json, ToSql};
 use time::OffsetDateTime;
+pub use tokio_postgres::Client as PostgresClient;
 use tokio_postgres::{Client, GenericClient as _, error::SqlState};
 use tracing::Instrument as _;
 use type_system::{
