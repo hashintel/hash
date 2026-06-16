@@ -1,0 +1,10 @@
+//@ run: fail
+//@ description: labeled arguments are not allowed in `type`
+[
+  "::kernel::special_form::type",
+  "Foo",
+  "Integer",
+  { "#literal": 0 },
+  { ":extra": { "#literal": 0 } }
+  //~^ ERROR labeled arguments are not allowed in `type`
+]

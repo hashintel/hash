@@ -1,6 +1,11 @@
 use core::mem;
 
-use hashql_core::{heap::BumpAllocator, module::Universe, span::SpanId, symbol::Ident};
+use hashql_core::{
+    heap::BumpAllocator,
+    module::Universe,
+    span::SpanId,
+    symbol::{Ident, sym},
+};
 
 use super::Expander;
 use crate::{
@@ -32,11 +37,14 @@ fn lower_input_impl<'heap, S>(
 where
     S: BumpAllocator,
 {
-    let Some(name) = argument_to_ident(name) else {
+    let name = if let Some(name) = argument_to_ident(name) {
+        name
+    } else {
         expander
             .diagnostics
             .push(error::invalid_input_binding_name(name));
-        return Expr::dummy();
+
+        Ident::synthetic(sym::dummy)
     };
 
     let mut type_expr = mem::replace(&mut r#type.value, Expr::dummy());
@@ -50,6 +58,10 @@ where
         expander.visit(&mut value);
         Box::new_in(value, expander.heap)
     });
+
+    if name.value == sym::dummy {
+        return Expr::dummy();
+    }
 
     Expr {
         id: NodeId::PLACEHOLDER,

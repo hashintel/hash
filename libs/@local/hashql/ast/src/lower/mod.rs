@@ -28,16 +28,16 @@
 //! # Examples
 //!
 //! ```rust
-//! use hashql_ast::lowering::lower;
+//! use hashql_ast::lower::lower;
 //! use hashql_core::{
 //!     r#type::environment::Environment,
 //!     module::ModuleRegistry,
 //!     symbol::Symbol,
 //! };
 //!
-//! # fn example<'heap>(env: &Environment<'heap>, registry: &ModuleRegistry<'heap>, mut expr: hashql_ast::node::expr::Expr<'heap>) {
+//! # fn example<'heap>(env: &Environment<'heap>, registry: &ModuleRegistry<'heap>, mut expr: hashql_ast::node::expr::Expr<'heap>, scratch: &mut hashql_core::heap::Scratch) {
 //! let module_name = env.heap.intern_symbol("my_module");
-//! let result = lower(module_name, &mut expr, env, registry);
+//! let result = lower(module_name, &mut expr, env, registry, scratch);
 //!
 //! match result {
 //!     Ok(extracted_types) => {
@@ -136,7 +136,7 @@ pub struct ExtractedTypes<'heap> {
 /// # Examples
 ///
 /// ```rust
-/// use hashql_ast::lowering::lower;
+/// use hashql_ast::lower::lower;
 /// use hashql_core::{
 ///     r#type::environment::Environment,
 ///     module::ModuleRegistry,
@@ -144,9 +144,9 @@ pub struct ExtractedTypes<'heap> {
 /// };
 /// # use hashql_diagnostics::{Success, Failure};
 ///
-/// # fn example<'heap>(env: &Environment<'heap>, registry: &ModuleRegistry<'heap>, mut expr: hashql_ast::node::expr::Expr<'heap>) {
+/// # fn example<'heap>(env: &Environment<'heap>, registry: &ModuleRegistry<'heap>, mut expr: hashql_ast::node::expr::Expr<'heap>, scratch: &mut hashql_core::heap::Scratch) {
 /// let module_name = env.heap.intern_symbol("my_module");
-/// let result = lower(module_name, &mut expr, env, registry);
+/// let result = lower(module_name, &mut expr, env, registry, scratch);
 ///
 /// // Check for successful lowering
 /// match result {
