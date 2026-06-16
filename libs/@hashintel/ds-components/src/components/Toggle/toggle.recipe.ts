@@ -23,11 +23,14 @@ export const styles = sva({
       height: "var(--toggle-height)",
       padding: "var(--toggle-padding)",
       borderRadius: "full",
-      backgroundColor: "neutral.s40",
+      border: "[1px solid]",
+      borderColor: "black.a15",
+      backgroundColor: "neutral.s30",
+      boxShadow: "[inset 0 2px 4px rgba(0, 0, 0, 0.05)]",
       transition:
         "[background-color 0.15s ease, outline-color 0.15s ease, box-shadow 0.15s ease]",
       "&[data-state='unchecked']:hover:not([data-disabled])": {
-        backgroundColor: "neutral.s50",
+        backgroundColor: "neutral.s40",
       },
       "&:has(~ input:focus-visible)": {
         outline: "[2px solid]",
@@ -40,15 +43,17 @@ export const styles = sva({
       height: "var(--toggle-thumb-size)",
       borderRadius: "full",
       backgroundColor: "white",
-      boxShadow: "[0 1px 2px rgba(0, 0, 0, 0.25)]",
+      boxShadow:
+        "[0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1)]",
       transition: "[transform 0.18s ease]",
       "&[data-state='checked']": {
         transform:
-          "[translateX(calc(var(--toggle-width) - var(--toggle-thumb-size) - var(--toggle-padding) * 2))]",
+          "[translateX(calc(var(--toggle-width) - var(--toggle-thumb-size) - var(--toggle-padding) * 2 - 2px))]",
       },
     },
     label: {
       fontWeight: "medium",
+      lineHeight: "[1]",
       color: "fg.heading",
       whiteSpace: "nowrap",
     },
@@ -87,7 +92,7 @@ export const styles = sva({
           "--toggle-width": "[34px]",
           "--toggle-height": "[20px]",
           "--toggle-padding": "[2px]",
-          "--toggle-thumb-size": "[16px]",
+          "--toggle-thumb-size": "[14px]",
         },
         label: { fontSize: "[14px]" },
       },
