@@ -215,7 +215,11 @@ impl Projections {
         from
     }
 
-    fn build_entity_editions<'item>(&self, from: FromItem<'item>, alias: Alias) -> FromItem<'item> {
+    pub(crate) fn build_entity_editions<'item>(
+        &self,
+        from: FromItem<'item>,
+        alias: Alias,
+    ) -> FromItem<'item> {
         let fk = ForeignKeyReference::Single {
             on: Column::EntityTemporalMetadata(table::EntityTemporalMetadata::EditionId),
             join: Column::EntityEditions(table::EntityEditions::EditionId),
@@ -230,7 +234,11 @@ impl Projections {
         .build()
     }
 
-    fn build_entity_ids<'item>(&self, from: FromItem<'item>, alias: Alias) -> FromItem<'item> {
+    pub(crate) fn build_entity_ids<'item>(
+        &self,
+        from: FromItem<'item>,
+        alias: Alias,
+    ) -> FromItem<'item> {
         let fk = ForeignKeyReference::Double {
             on: [
                 Column::EntityTemporalMetadata(table::EntityTemporalMetadata::WebId),
