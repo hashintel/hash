@@ -2,7 +2,7 @@
 //!
 //! See [`Projections`] for the main entry point.
 
-use core::alloc::Allocator;
+use core::{alloc::Allocator, mem};
 
 use hash_graph_postgres_store::store::postgres::query::{
     self, Alias, Column, ColumnName, ColumnReference, ForeignKeyReference, FromItem, Identifier,
@@ -172,11 +172,6 @@ impl Projections {
 
         let mut from = base;
 
-        // entity_editions ON edition_id (INNER)
-        if let Some(alias) = self.entity_editions {
-            from = self.build_entity_editions(from, alias);
-        }
-
         // entity_ids ON (web_id, entity_uuid) (INNER)
         if let Some(alias) = self.entity_ids {
             from = self.build_entity_ids(from, alias);
@@ -210,6 +205,11 @@ impl Projections {
             from = self.build_entity_has_right_entity(from, alias);
         }
 
+        // CROSS JOIN LATERAL entity_editions ON edition_id (INNER)
+        if let Some(alias) = self.entity_editions {
+            from = self.build_entity_editions(from, alias);
+        }
+
         // CROSS JOIN LATERALs for continuation subqueries (must come after
         // all regular joins since they may reference any of the joined tables)
         for lateral in laterals {
@@ -222,11 +222,11 @@ impl Projections {
     /// Builds `entity_editions` as a LATERAL subquery with explicit column projections.
     ///
     /// ```sql
-    /// INNER JOIN LATERAL (
+    /// CROSS JOIN LATERAL (
     ///     SELECT ee.<col> AS <col>, ...
     ///     FROM entity_editions AS ee
     ///     WHERE ee.edition_id = base.edition_id
-    /// ) AS <alias> ON TRUE
+    /// ) AS <alias>
     /// ```
     ///
     /// The explicit projections let the authorization graft locate and replace
@@ -302,12 +302,8 @@ impl Projections {
             column_alias: vec![],
         };
 
-        // INNER JOIN LATERAL (...) ON TRUE
-        from.join(JoinType::Inner, lateral)
-            .on(vec![query::Expression::Constant(query::Constant::Boolean(
-                true,
-            ))])
-            .build()
+        // CROSS JOIN LATERAL (...)
+        from.cross_join(lateral)
     }
 
     pub(crate) fn build_entity_ids<'item>(
@@ -593,10 +589,47 @@ impl AuxiliaryProjections {
         }
     }
 
-    /// Appends joins for tables not already present in the base projections.
+    /// Appends authorization joins before the LATERAL subqueries.
+    ///
+    /// The compiled FROM tree ends with a chain of `CROSS JOIN LATERAL` nodes
+    /// (`entity_editions`, then continuations). Authorization joins must appear
+    /// before these so that the LATERAL subqueries can reference them.
+    ///
+    /// This traverses the right spine of `CrossJoin` nodes to find the
+    /// insertion point (the innermost non-LATERAL join tree), appends
+    /// authorization joins there, and reassembles the LATERAL chain on top.
     pub(crate) fn build_joins(&self, mut from: FromItem<'static>) -> FromItem<'static> {
+        // This value has no semantic purpose, but is simply a value that we can construct in a
+        // constant environment and which is cheap. The value will never end up inside of the from
+        // clause, only when it panics, but all bets are off then anyway.
+        const SENTINEL: FromItem<'static> = FromItem::Table {
+            only: true,
+            table: TableReference {
+                schema: None,
+                name: TableName::from_table(table::Table::OntologyIds),
+                alias: None,
+            },
+            alias: None,
+            column_alias: Vec::new(),
+            tablesample: None,
+        };
+
+        if self.entity_ids.is_none() && self.entity_is_of_type_ids.is_none() {
+            return from;
+        }
+
+        // Walk down the left spine of CrossJoin nodes to find the
+        // regular join tree underneath the LATERAL chain.
+        let mut inner = &mut from;
+        while let FromItem::CrossJoin { left, right: _ } = inner {
+            inner = left;
+        }
+
+        // Temporarily swap the core out so we can append joins to it.
+        let mut core = mem::replace(inner, SENTINEL);
+
         if let Some(alias) = self.entity_ids {
-            from = self.base.build_entity_ids(from, alias);
+            core = self.base.build_entity_ids(core, alias);
         }
 
         if let Some(alias) = self.entity_is_of_type_ids {
@@ -606,7 +639,7 @@ impl AuxiliaryProjections {
                 join_type: JoinType::Inner,
             };
 
-            from = from
+            core = core
                 .join(
                     JoinType::Inner,
                     FromItem::table(Table::EntityIsOfTypeIds)
@@ -615,6 +648,9 @@ impl AuxiliaryProjections {
                 .on(fk.conditions(self.base.base_alias, alias))
                 .build();
         }
+
+        // Put the augmented core back; the LATERAL chain above is untouched.
+        *inner = core;
 
         from
     }

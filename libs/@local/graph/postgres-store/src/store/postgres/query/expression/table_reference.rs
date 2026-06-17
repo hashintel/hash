@@ -79,6 +79,13 @@ impl Hash for TableNameImpl<'_> {
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct TableName<'name>(TableNameImpl<'name>);
 
+impl TableName<'_> {
+    #[must_use]
+    pub const fn from_table(name: Table) -> Self {
+        Self(TableNameImpl::Static(name))
+    }
+}
+
 impl fmt::Debug for TableName<'_> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.transpile(fmt)

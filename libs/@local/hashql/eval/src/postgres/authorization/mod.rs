@@ -115,6 +115,13 @@ impl<A: Allocator + Clone, S: Allocator> PatchPreparedQueryLayer<A, S>
             policy.transpile(query.vertex_type, self.policy, &scratch);
         query.statement.where_expression.add_condition(condition);
 
+        next.patch_query(context, query, scratch);
+
+        let Some(entity_edition_alias) = context.projections.entity_edition_alias() else {
+            // we remove the keys _last_, and only iff the entity_editions table is still requested
+            return;
+        };
+
         let mut protection = ProtectionTranslationUnit {
             projections: &mut context.projections,
             parameters: &mut query.auxiliary_parameters,
@@ -124,14 +131,7 @@ impl<A: Allocator + Clone, S: Allocator> PatchPreparedQueryLayer<A, S>
         let ProtectionTranslation { keys_to_remove } =
             protection.transpile(self.policy, self.properties);
 
-        next.patch_query(context, query, scratch);
-
         let Some(keys_to_remove) = keys_to_remove else {
-            return;
-        };
-
-        let Some(entity_edition_alias) = context.projections.entity_edition_alias() else {
-            // we remove the keys _last_, and only iff the entity_editions table is still requested
             return;
         };
 
