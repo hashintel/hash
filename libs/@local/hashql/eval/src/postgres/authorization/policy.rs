@@ -11,13 +11,15 @@ use hash_graph_postgres_store::store::postgres::query::{
     table,
 };
 use hash_graph_store::filter::PathToken;
+use hashql_mir::pass::execution::VertexType;
 use type_system::{
     ontology::{BaseUrl, VersionedUrl},
     principal::actor::{ActorEntityUuid, ActorId},
 };
 
-use super::{AuthorizationProjections, AuxiliaryParameters};
-use crate::postgres::PreparedQuery;
+use crate::postgres::{
+    PreparedQuery, parameters::AuxiliaryParameters, projections::AuxiliaryProjections,
+};
 
 /// Checks whether the entity has a specific `(base_url, version)` type pair.
 ///
@@ -287,16 +289,16 @@ pub(super) struct PolicyTranslation {
 /// Borrows shared projections and parameters so that multiple lowering
 /// passes (policy, protection) accumulate into the same patch.
 pub(crate) struct PolicyTranslationUnit<'parent, 'query, A: Allocator> {
-    projections: &'parent mut AuthorizationProjections<'query>,
-    parameters: &'parent mut AuxiliaryParameters<A>,
-    actor_id: Option<ActorId>,
-    alloc: A,
+    pub projections: &'parent mut AuxiliaryProjections<'query>,
+    pub parameters: &'parent mut AuxiliaryParameters<A>,
+    pub actor_id: Option<ActorId>,
+    pub alloc: A,
 }
 
-impl<'proj, 'query, A: Allocator> PolicyTranslationUnit<'proj, 'query, A> {
+impl<A: Allocator> PolicyTranslationUnit<'_, '_, A> {
     pub(crate) fn transpile<S>(
         &mut self,
-        query: &PreparedQuery<'_, A>,
+        vertex_type: VertexType,
         policy: &PolicyComponents,
         scratch: S,
     ) -> PolicyTranslation
@@ -304,7 +306,7 @@ impl<'proj, 'query, A: Allocator> PolicyTranslationUnit<'proj, 'query, A> {
         S: Allocator,
         A: Clone,
     {
-        let action = match query.vertex_type {
+        let action = match vertex_type {
             hashql_mir::pass::execution::VertexType::Entity => ActionName::ViewEntity,
         };
         let projections_snapshot = self.projections.snapshot();

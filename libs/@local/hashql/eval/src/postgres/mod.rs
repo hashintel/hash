@@ -56,13 +56,13 @@ use hashql_mir::{
 };
 
 use self::{
-    continuation::ContinuationColumn, filter::GraphReadFilterCompiler, projections::Projections,
-    types::traverse_struct,
+    continuation::ContinuationColumn, filter::GraphReadFilterCompiler,
+    parameters::AuxiliaryParameters, projections::Projections, types::traverse_struct,
 };
 pub use self::{
     continuation::ContinuationField,
     parameters::{Parameter, ParameterIndex, ParameterValue, Parameters, TemporalAxis},
-    prepared::{PatchPreparedQuery, PreparedQueries, PreparedQuery, PreparedQueryPatch},
+    prepared::{PreparedQueries, PreparedQuery, PreparedQueryPatch},
 };
 use crate::context::CodeGenerationContext;
 
@@ -432,12 +432,13 @@ impl<'eval, 'ctx, 'heap, A: Allocator, S: BumpAllocator>
             .where_expression(db.where_expression)
             .build();
 
+        let auxiliary_parameters = AuxiliaryParameters::new(&db.parameters, self.alloc.clone());
         prepared::PreparedQuery {
             vertex_type: VertexType::Entity,
             parameters: db.parameters,
             statement: query,
             projections: db.projections,
-            auxiliary_parameters: Vec::new_in(self.alloc.clone()),
+            auxiliary_parameters,
             columns,
         }
     }

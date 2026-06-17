@@ -5,7 +5,7 @@
 use core::{alloc::Allocator, fmt::Display};
 
 use hash_graph_postgres_store::store::postgres::query::{SelectStatement, Transpile as _};
-use hashql_core::id::Id as _;
+use hashql_core::{heap::BumpAllocator, id::Id as _};
 use hashql_mir::{
     body::basic_block::BasicBlockId,
     def::{DefId, DefIdSlice},
@@ -13,7 +13,11 @@ use hashql_mir::{
 };
 use postgres_types::ToSql;
 
-use super::{ColumnDescriptor, Parameters, projections::Projections};
+use super::{
+    ColumnDescriptor, Parameters,
+    parameters::AuxiliaryParameters,
+    projections::{AuxiliaryProjections, Projections},
+};
 
 /// A fully-compiled SQL query ready for execution.
 ///
@@ -27,7 +31,7 @@ pub struct PreparedQuery<'heap, A: Allocator> {
     pub columns: Vec<ColumnDescriptor, A>,
 
     pub(super) projections: Projections,
-    pub(super) auxiliary_parameters: Vec<Box<dyn ToSql + Sync, A>, A>,
+    pub(super) auxiliary_parameters: AuxiliaryParameters<A>,
 }
 
 impl<A: Allocator> PreparedQuery<'_, A> {
@@ -35,56 +39,104 @@ impl<A: Allocator> PreparedQuery<'_, A> {
         core::fmt::from_fn(|fmt| self.statement.transpile(fmt))
     }
 
-    pub(crate) fn projections(&self) -> &Projections {
+    pub(crate) const fn projections(&self) -> &Projections {
         &self.projections
     }
 }
 
-pub trait PatchPreparedQuery {
-    fn patch_statement(&mut self, statement: &mut SelectStatement);
+struct HCons<H, T> {
+    head: H,
+    tail: T,
 }
 
-impl<T: PatchPreparedQuery> PatchPreparedQuery for (T,)
-where
-    T: PatchPreparedQuery,
-{
-    fn patch_statement(&mut self, statement: &mut SelectStatement) {
-        self.0.patch_statement(statement);
+struct HNil;
+
+pub struct PatchContext<'base, A: Allocator> {
+    pub projections: AuxiliaryProjections<'base>,
+    pub alloc: A,
+}
+
+trait PatchPreparedQuery<A: Allocator, S: Allocator> {
+    fn patch_query(
+        &mut self,
+        context: &mut PatchContext<'_, A>,
+        query: &mut PreparedQuery<'_, A>,
+        scratch: S,
+        cont: impl FnOnce(&mut PatchContext<'_, A>, &mut PreparedQuery<'_, A>, S),
+    );
+}
+
+impl<A: Allocator, S: Allocator> PatchPreparedQuery<A, S> for HNil {
+    fn patch_query(
+        &mut self,
+        context: &mut PatchContext<'_, A>,
+        query: &mut PreparedQuery<'_, A>,
+        scratch: S,
+        _: impl FnOnce(&mut PatchContext<'_, A>, &mut PreparedQuery<'_, A>, S),
+    ) {
+        let from = query
+            .statement
+            .from
+            .take()
+            .unwrap_or_else(|| unreachable!("every prepared query must have a FROM clause"));
+
+        query.statement.from = Some(context.projections.build_joins(from));
     }
 }
 
-impl<T: PatchPreparedQuery, U: PatchPreparedQuery> PatchPreparedQuery for (T, U)
+impl<H, T, A: Allocator, S: Allocator> PatchPreparedQuery<A, S> for HCons<H, T>
 where
-    T: PatchPreparedQuery,
-    U: PatchPreparedQuery,
+    H: PatchPreparedQuery<A, S>,
+    T: PatchPreparedQuery<A, S>,
 {
-    fn patch_statement(&mut self, statement: &mut SelectStatement) {
-        self.0.patch_statement(statement);
-        self.1.patch_statement(statement);
+    fn patch_query(
+        &mut self,
+        context: &mut PatchContext<'_, A>,
+        query: &mut PreparedQuery<'_, A>,
+        scratch: S,
+        cont: impl FnOnce(&mut PatchContext<'_, A>, &mut PreparedQuery<'_, A>, S),
+    ) {
+        self.head
+            .patch_query(context, query, scratch, |context, query, scratch| {
+                self.tail.patch_query(context, query, scratch, cont)
+            });
     }
 }
 
-impl<F> PatchPreparedQuery for F
-where
-    F: FnMut(&mut SelectStatement),
-{
-    fn patch_statement(&mut self, statement: &mut SelectStatement) {
-        (self)(statement);
-    }
-}
-
-pub struct PreparedQueryPatch<T, A: Allocator> {
+pub struct PreparedQueryPatch<T> {
     patches: T,
-    parameters: Vec<Box<dyn ToSql + Sync, A>, A>,
 }
 
-impl<T, A: Allocator> PreparedQueryPatch<T, A>
-where
-    T: PatchPreparedQuery,
-{
-    pub fn apply(mut self, query: &mut PreparedQuery<A>) {
-        self.patches.patch_statement(&mut query.statement);
-        query.auxiliary_parameters.append(&mut self.parameters);
+impl PreparedQueryPatch<HNil> {
+    fn new() -> Self {
+        Self { patches: HNil }
+    }
+}
+
+impl<T> PreparedQueryPatch<T> {
+    pub fn layer<T2>(self, other: T2) -> PreparedQueryPatch<HCons<T2, T>> {
+        PreparedQueryPatch {
+            patches: HCons {
+                head: other,
+                tail: self.patches,
+            },
+        }
+    }
+
+    pub fn apply<A: Allocator + Clone, S: Allocator>(
+        &mut self,
+        query: &mut PreparedQuery<A>,
+        scratch: S,
+    ) where
+        T: PatchPreparedQuery<A, S>,
+    {
+        let alloc = query.columns.allocator().clone();
+
+        let mut projections = AuxiliaryProjections::new(&query.projections);
+        let mut context = PatchContext { projections, alloc };
+
+        self.patches
+            .patch_query(&mut context, query, scratch, |_, _, _| {});
     }
 }
 
