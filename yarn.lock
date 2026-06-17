@@ -468,6 +468,7 @@ __metadata:
     "@blockprotocol/core": "npm:0.1.5"
     "@blockprotocol/graph": "workspace:*"
     "@blockprotocol/type-system": "workspace:*"
+    "@faker-js/faker": "npm:10.4.0"
     "@graphql-codegen/cli": "npm:^6.2.1"
     "@graphql-codegen/introspection": "npm:5.0.1"
     "@graphql-codegen/typescript": "npm:5.0.9"
@@ -6106,6 +6107,13 @@ __metadata:
     "@eslint/core": "npm:^0.17.0"
     levn: "npm:^0.4.1"
   checksum: 10c0/51600f78b798f172a9915dffb295e2ffb44840d583427bc732baf12ecb963eb841b253300e657da91d890f4b323d10a1bd12934bf293e3018d8bb66fdce5217b
+  languageName: node
+  linkType: hard
+
+"@faker-js/faker@npm:10.4.0":
+  version: 10.4.0
+  resolution: "@faker-js/faker@npm:10.4.0"
+  checksum: 10c0/29f15e46f91757d654f6f42ac8313ac4aebb6591e2ebae7fdd8d36d5017490327ea67be37cff06d18303db54abf468524bcc7e4b1de53be4eb884c1f71d571c1
   languageName: node
   linkType: hard
 

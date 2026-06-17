@@ -26,4 +26,12 @@ export default defineConfig([
     /* 2022-11-29:  35 */ "@typescript-eslint/restrict-template-expressions",
     "canonical/filename-no-index",
   ]),
+  {
+    // Seed scripts are dev-only tooling, so they may import devDependencies
+    // (e.g. `@faker-js/faker`).
+    files: ["src/seed-data/**"],
+    rules: {
+      "import/no-extraneous-dependencies": ["error", { devDependencies: true }],
+    },
+  },
 ]);
