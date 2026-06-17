@@ -21,7 +21,10 @@ export {
   type RadioGroupOption,
   type RadioGroupProps,
 } from "./components/RadioGroup/radio-group";
-export { Scroller, type ScrollerProps } from "./components/Scroller/scroller";
+export {
+  ScrollHint,
+  type ScrollHintProps,
+} from "./components/ScrollHint/scroll-hint";
 export {
   SegmentedControl,
   type SegmentedControlProps,

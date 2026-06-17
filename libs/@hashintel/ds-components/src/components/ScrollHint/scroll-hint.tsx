@@ -11,7 +11,7 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { useAvoidScrollWidthChange } from "./use-avoid-scroll-width-change";
 
-export interface ScrollerProps {
+export interface ScrollHintProps {
   className?: string;
   children: ReactNode;
   /** Allow scrolling content vertically. Defaults to `true` when no axis is set. */
@@ -73,14 +73,14 @@ const buildMask = (edges: EdgeState): string => {
 };
 
 /** Add a visual cue when content is scrollable. */
-export const Scroller = ({
+export const ScrollHint = ({
   className,
   children,
   vertical,
   horizontal,
   stableScrollGutter,
   onScrolledToBottom,
-}: ScrollerProps) => {
+}: ScrollHintProps) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const wasAtBottom = useRef(false);
 

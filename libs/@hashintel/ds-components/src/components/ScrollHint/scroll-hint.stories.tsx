@@ -4,12 +4,12 @@ import { useState } from "react";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { Button } from "../Button/button";
-import { Scroller } from "./scroller";
+import { ScrollHint } from "./scroll-hint";
 
 import type { Story } from "@ladle/react";
 
 export default {
-  title: "Components/Scroller",
+  title: "Components/ScrollHint",
 };
 
 /** A fixed-size, bordered viewport so the scroll cues are visible. */
@@ -133,36 +133,36 @@ const Example = ({
 export const Default: Story = () => (
   <div className={galleryStyle}>
     <Example label="Vertical">
-      <Scroller vertical className={viewportStyle}>
+      <ScrollHint vertical className={viewportStyle}>
         <VerticalContent />
-      </Scroller>
+      </ScrollHint>
     </Example>
 
     <Example label="Horizontal">
-      <Scroller horizontal className={viewportStyle}>
+      <ScrollHint horizontal className={viewportStyle}>
         <HorizontalContent />
-      </Scroller>
+      </ScrollHint>
     </Example>
 
     <Example label="Both">
-      <Scroller vertical horizontal className={viewportStyle}>
+      <ScrollHint vertical horizontal className={viewportStyle}>
         <BothContent />
-      </Scroller>
+      </ScrollHint>
     </Example>
 
     <Example label="Both (content fits, no scroll)">
-      <Scroller vertical horizontal className={viewportStyle}>
+      <ScrollHint vertical horizontal className={viewportStyle}>
         <p>
           Short content that fits within the viewport, so no scrollbars or cues
           appear.
         </p>
-      </Scroller>
+      </ScrollHint>
     </Example>
   </div>
 );
 
 /**
- * A button that reveals longer content on click, toggling the scroller between
+ * A button that reveals longer content on click, toggling the scroll hint between
  * non-scrollable and scrollable. With `stableScrollGutter` the internal size of
  * the content does not jump as the scrollbar appears and disappears.
  */
@@ -181,7 +181,7 @@ const ToggleExample = ({
 
   return (
     <Example label={label}>
-      <Scroller
+      <ScrollHint
         vertical={vertical}
         horizontal={horizontal}
         stableScrollGutter
@@ -203,7 +203,7 @@ const ToggleExample = ({
           </Button>
           {expanded ? children : null}
         </div>
-      </Scroller>
+      </ScrollHint>
     </Example>
   );
 };
