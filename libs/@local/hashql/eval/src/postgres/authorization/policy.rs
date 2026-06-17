@@ -1,16 +1,3 @@
-//! Converts authorization policies into SQL conditions for entity queries.
-//!
-//! The compilation pipeline produces actor-agnostic queries. This module grafts
-//! actor-specific policy conditions onto those queries at runtime, just before
-//! the orchestrator executes them.
-//!
-//! The entry point is [`analysis_in`], which takes a compiled [`PreparedQuery`]
-//! and a [`PolicyComponents`] and produces an [`AnalysisResidual`] containing:
-//!
-//! - A combined WHERE condition (the permit/forbid algebra)
-//! - Auxiliary parameter values referenced by that condition
-//! - The [`AuthorizationProjections`] that tracks which joins need to be appended
-
 use alloc::borrow::Cow;
 use core::alloc::Allocator;
 
@@ -20,8 +7,8 @@ use hash_graph_authorization::policies::{
     resource::{EntityResourceConstraint, EntityResourceFilter, ResourceConstraint},
 };
 use hash_graph_postgres_store::store::postgres::query::{
-    Alias, BinaryExpression, BinaryOperator, Column, ColumnReference, Constant, Expression,
-    ForeignKeyReference, FromItem, JoinType, PostgresType, Table, TableName, TableReference, table,
+    BinaryExpression, BinaryOperator, Column, ColumnReference, Constant, Expression, PostgresType,
+    table,
 };
 use hash_graph_store::filter::PathToken;
 use postgres_types::ToSql;
@@ -30,170 +17,24 @@ use type_system::{
     principal::actor::{ActorEntityUuid, ActorId},
 };
 
-use super::{PreparedQuery, projections::Projections};
-
-/// Tracks joins that authorization conditions need.
-///
-/// Accessors reuse joins from the base [`Projections`] when available, falling
-/// back to fresh joins compiled by [`build_joins`](Self::build_joins).
-struct AuthorizationProjections<'base> {
-    index: usize,
-    base: &'base Projections,
-
-    entity_ids: Option<Alias>,
-    entity_editions: Option<Alias>,
-    entity_is_of_type_ids: Option<Alias>,
-}
-
-impl<'base> AuthorizationProjections<'base> {
-    const fn new(base: &'base Projections) -> Self {
-        Self {
-            index: base.index,
-            base,
-            entity_ids: None,
-            entity_editions: None,
-            entity_is_of_type_ids: None,
-        }
-    }
-
-    const fn next_alias(&mut self) -> Alias {
-        let alias = Alias {
-            condition_index: 0,
-            chain_depth: 0,
-            number: self.index,
-        };
-        self.index += 1;
-        alias
-    }
-
-    fn temporal_metadata(&self) -> TableReference<'static> {
-        self.base.temporal_metadata()
-    }
-
-    /// Entity-level provenance, joined on `(web_id, entity_uuid)`.
-    fn entity_ids(&mut self) -> TableReference<'static> {
-        let alias = if let Some(base_alias) = self.base.entity_ids {
-            base_alias
-        } else if let Some(alias) = self.entity_ids {
-            alias
-        } else {
-            let alias = self.next_alias();
-            self.entity_ids = Some(alias);
-            alias
-        };
-
-        TableReference {
-            schema: None,
-            name: TableName::from(Table::EntityIds),
-            alias: Some(alias),
-        }
-    }
-
-    /// Entity edition data, joined on `edition_id`.
-    fn entity_editions(&mut self) -> TableReference<'static> {
-        let alias = if let Some(base_alias) = self.base.entity_editions {
-            base_alias
-        } else if let Some(alias) = self.entity_editions {
-            alias
-        } else {
-            let alias = self.next_alias();
-            self.entity_editions = Some(alias);
-            alias
-        };
-
-        TableReference {
-            schema: None,
-            name: TableName::from(Table::EntityEditions),
-            alias: Some(alias),
-        }
-    }
-
-    /// Entity type assignments, joined on `entity_edition_id`.
-    ///
-    /// Always allocates a fresh join; the base projections' type aggregate
-    /// is a scoped LATERAL subquery and cannot be reused.
-    fn entity_is_of_type_ids(&mut self) -> TableReference<'static> {
-        let alias = if let Some(alias) = self.entity_is_of_type_ids {
-            alias
-        } else {
-            let alias = self.next_alias();
-            self.entity_is_of_type_ids = Some(alias);
-            alias
-        };
-
-        TableReference {
-            schema: None,
-            name: TableName::from(Table::EntityIsOfTypeIds),
-            alias: Some(alias),
-        }
-    }
-
-    /// Appends joins for tables not already present in the base projections.
-    fn build_joins(&self, mut from: FromItem<'static>) -> FromItem<'static> {
-        if let Some(alias) = self.entity_ids {
-            from = self.base.build_entity_ids(from, alias);
-        }
-
-        if let Some(alias) = self.entity_editions {
-            from = self.base.build_entity_editions(from, alias);
-        }
-
-        if let Some(alias) = self.entity_is_of_type_ids {
-            let fk = ForeignKeyReference::Single {
-                on: Column::EntityTemporalMetadata(table::EntityTemporalMetadata::EditionId),
-                join: Column::EntityIsOfTypeIds(table::EntityIsOfTypeIds::EntityEditionId),
-                join_type: JoinType::Inner,
-            };
-
-            from = from
-                .join(
-                    JoinType::Inner,
-                    FromItem::table(Table::EntityIsOfTypeIds)
-                        .alias(Table::EntityIsOfTypeIds.aliased(alias)),
-                )
-                .on(fk.conditions(self.base.base_alias, alias))
-                .build();
-        }
-
-        from
-    }
-}
-
-/// Runtime parameter values for authorization conditions, indexed after
-/// the compiled parameters (`$K+1..`).
-struct AuxiliaryParameters<A: Allocator> {
-    initial_offset: usize,
-    parameters: Vec<Box<dyn ToSql + Sync, A>, A>,
-}
-
-impl<A: Allocator> AuxiliaryParameters<A> {
-    /// Pushes a value and returns its 1-based parameter index (`$N`).
-    fn push(&mut self, value: impl ToSql + Sync + 'static) -> usize
-    where
-        A: Clone,
-    {
-        let alloc = self.parameters.allocator().clone();
-        self.parameters.push(Box::new_in(value, alloc));
-
-        self.parameters.len() + self.initial_offset
-    }
-}
+use super::{AuthorizationProjections, AuxiliaryParameters};
+use crate::postgres::PreparedQuery;
 
 /// Context for policy-to-SQL conversion.
-struct PreparedAnalysis<'query, A: Allocator> {
+pub(crate) struct PreparedAnalysis<'query, A: Allocator> {
     projections: AuthorizationProjections<'query>,
     parameters: AuxiliaryParameters<A>,
     actor_id: Option<ActorId>,
 }
 
 impl<'query, A: Allocator> PreparedAnalysis<'query, A> {
-    fn new_in(
+    pub(crate) fn new_in(
         query: &'query PreparedQuery<'_, impl Allocator>,
         policy: &PolicyComponents,
         alloc: A,
     ) -> Self {
         Self {
-            projections: AuthorizationProjections::new(&query.projections),
+            projections: AuthorizationProjections::new(query.projections()),
             parameters: AuxiliaryParameters {
                 initial_offset: query.parameters.len(),
                 parameters: Vec::new_in(alloc),
@@ -201,14 +42,6 @@ impl<'query, A: Allocator> PreparedAnalysis<'query, A> {
             actor_id: policy.actor_id(),
         }
     }
-}
-
-/// Everything needed to graft authorization onto a compiled query.
-struct AnalysisResidual<'query, A: Allocator> {
-    condition: Expression,
-    /// Parameter values referenced by `condition` via `$N` indices.
-    auxiliary_parameters: Vec<Box<dyn ToSql + Sync, A>, A>,
-    projections: AuthorizationProjections<'query>,
 }
 
 /// Checks whether the entity has a specific `(base_url, version)` type pair.
@@ -471,15 +304,23 @@ fn optimize<A: Allocator + Clone>(
     }
 }
 
+/// Everything needed to graft authorization onto a compiled query.
+pub(super) struct PolicyResidual<'query, A: Allocator> {
+    pub condition: Expression,
+    /// Parameter values referenced by `condition` via `$N` indices.
+    pub auxiliary_parameters: Vec<Box<dyn ToSql + Sync, A>, A>,
+    pub projections: AuthorizationProjections<'query>,
+}
+
 /// Converts policies into a SQL condition using the permit/forbid algebra.
 ///
 /// `scratch` is used for temporary constraint collection.
-fn analysis_in<'query, A: Allocator + Clone, S: Allocator>(
+pub(crate) fn lower_policy<'query, A: Allocator + Clone, S: Allocator>(
     query: &'query PreparedQuery<'_, impl Allocator>,
     policy: &PolicyComponents,
     alloc: A,
     scratch: S,
-) -> AnalysisResidual<'query, A> {
+) -> PolicyResidual<'query, A> {
     let action = match query.vertex_type {
         hashql_mir::pass::execution::VertexType::Entity => ActionName::ViewEntity,
     };
@@ -499,10 +340,10 @@ fn analysis_in<'query, A: Allocator + Clone, S: Allocator>(
             }
             (Effect::Forbid, None) => {
                 // Blank forbid: deny everything, no further analysis needed.
-                return AnalysisResidual {
+                return PolicyResidual {
                     condition: Expression::Constant(Constant::Boolean(false)),
                     auxiliary_parameters: Vec::new_in(alloc),
-                    projections: AuthorizationProjections::new(&query.projections),
+                    projections: AuthorizationProjections::new(query.projections()),
                 };
             }
             (Effect::Permit, Some(constraint)) => {
@@ -553,7 +394,7 @@ fn analysis_in<'query, A: Allocator + Clone, S: Allocator>(
         (false, Some(permits), Some(forbids)) => Expression::all(vec![permits, forbids.not()]),
     };
 
-    AnalysisResidual {
+    PolicyResidual {
         condition: expression,
         auxiliary_parameters: output.parameters.parameters,
         projections: output.projections,
