@@ -7,7 +7,7 @@ use core::alloc::Allocator;
 use hash_graph_postgres_store::store::postgres::query::{
     self, Alias, Column, ColumnName, ColumnReference, ForeignKeyReference, FromItem, Identifier,
     JoinType, PostgresType, SelectExpression, SelectStatement, Table, TableName, TableReference,
-    table,
+    table::{self, DatabaseColumn as _},
 };
 use hashql_core::symbol::sym;
 
@@ -215,23 +215,95 @@ impl Projections {
         from
     }
 
+    /// Builds `entity_editions` as a LATERAL subquery with explicit column projections.
+    ///
+    /// ```sql
+    /// INNER JOIN LATERAL (
+    ///     SELECT ee.<col> AS <col>, ...
+    ///     FROM entity_editions AS ee
+    ///     WHERE ee.edition_id = base.edition_id
+    /// ) AS <alias> ON TRUE
+    /// ```
+    ///
+    /// The explicit projections let the authorization graft locate and replace
+    /// individual column expressions (e.g. applying a property mask to `properties`).
     pub(crate) fn build_entity_editions<'item>(
         &self,
         from: FromItem<'item>,
         alias: Alias,
     ) -> FromItem<'item> {
-        let fk = ForeignKeyReference::Single {
-            on: Column::EntityTemporalMetadata(table::EntityTemporalMetadata::EditionId),
-            join: Column::EntityEditions(table::EntityEditions::EditionId),
-            join_type: JoinType::Inner,
+        let inner_ref = TableReference {
+            schema: None,
+            name: TableName::from("ee"),
+            alias: None,
         };
 
-        from.join(
-            JoinType::Inner,
-            FromItem::table(Table::EntityEditions).alias(Table::EntityEditions.aliased(alias)),
-        )
-        .on(fk.conditions(self.base_alias, alias))
-        .build()
+        // entity_editions AS ee
+        let inner_from = FromItem::table(Table::EntityEditions)
+            .alias(inner_ref.clone())
+            .build();
+
+        // ee.edition_id = base.edition_id
+        let correlation = query::Expression::equal(
+            query::Expression::ColumnReference(ColumnReference {
+                correlation: Some(inner_ref.clone()),
+                name: Column::EntityEditions(table::EntityEditions::EditionId).into(),
+            }),
+            query::Expression::ColumnReference(ColumnReference {
+                correlation: Some(self.temporal_metadata()),
+                name: Column::EntityTemporalMetadata(table::EntityTemporalMetadata::EditionId)
+                    .into(),
+            }),
+        );
+
+        // Project every column, `ee.[property] AS [property]`, this mirrors `*`, but makes each
+        // column available by name.
+        let selects = table::EntityEditions::ALL
+            .into_iter()
+            .map(|column| SelectExpression::Expression {
+                expression: query::Expression::ColumnReference(ColumnReference {
+                    correlation: Some(inner_ref.clone()),
+                    name: Column::EntityEditions(column).into(),
+                }),
+                alias: Some(column.as_str().into()),
+            })
+            .collect();
+
+        // WHERE ee.edition_id = base.edition_id
+        let r#where = query::WhereExpression {
+            conditions: vec![correlation],
+            cursor: Vec::new(),
+        };
+
+        // SELECT
+        //  ee.[property] AS [property],
+        //  ...
+        // FROM entity_editions as ee
+        // WHERE ee.edition_id = base.edition_id
+        let subquery = SelectStatement::builder()
+            .selects(selects)
+            .from(inner_from)
+            .where_expression(r#where)
+            .build();
+
+        // LATERAL (subquery) AS [alias]
+        let lateral = FromItem::Subquery {
+            lateral: true,
+            statement: Box::new(subquery),
+            alias: Some(TableReference {
+                schema: None,
+                name: TableName::from(Table::EntityEditions),
+                alias: Some(alias),
+            }),
+            column_alias: vec![],
+        };
+
+        // INNER JOIN LATERAL (...) ON TRUE
+        from.join(JoinType::Inner, lateral)
+            .on(vec![query::Expression::Constant(query::Constant::Boolean(
+                true,
+            ))])
+            .build()
     }
 
     pub(crate) fn build_entity_ids<'item>(

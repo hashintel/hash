@@ -197,7 +197,7 @@ impl Display for ColumnDescriptor {
 pub struct PreparedQuery<'heap, A: Allocator> {
     pub vertex_type: VertexType,
     pub parameters: Parameters<'heap, A>,
-    pub projections: Projections,
+    pub(crate) projections: Projections,
     pub statement: SelectStatement,
     pub columns: Vec<ColumnDescriptor, A>,
 }
@@ -246,14 +246,6 @@ pub struct PostgresCompiler<'eval, 'ctx, 'heap, A: Allocator, S: Allocator> {
 
     alloc: A,
     scratch: S,
-
-    /// Pre-built expression to subtract protected property keys from JSONB columns.
-    ///
-    /// When present, `properties` and `property_metadata` `SELECT` expressions are
-    /// wrapped as `(column - mask)`. The caller builds this from the permission
-    /// system's protection rules; the compiler doesn't know about entity types
-    /// or actors.
-    property_mask: Option<Expression>,
 }
 
 impl<'eval, 'ctx, 'heap, A: Allocator, S: BumpAllocator>
@@ -269,19 +261,7 @@ impl<'eval, 'ctx, 'heap, A: Allocator, S: BumpAllocator>
             context,
             alloc,
             scratch,
-            property_mask: None,
         }
-    }
-
-    /// Sets an optional JSONB key mask applied to selected property columns.
-    ///
-    /// When set, `properties` and `property_metadata` selections are wrapped as
-    /// `(column - mask)` to strip protected keys from the output. The compiler itself does not
-    /// understand permissions; the caller is responsible for building the mask.
-    #[must_use]
-    pub fn with_property_mask(mut self, property_mask: Option<Expression>) -> Self {
-        self.property_mask = property_mask;
-        self
     }
 
     /// Joins the property types across all filter bodies into a single type.
@@ -433,14 +413,7 @@ impl<'eval, 'ctx, 'heap, A: Allocator, S: BumpAllocator>
         for traversal_path in provides[VertexType::Entity].iter() {
             let TraversalPath::Entity(path) = traversal_path;
 
-            let mut expression = traverse::eval_entity_path(&mut db, path);
-
-            if matches!(path, EntityPath::Properties | EntityPath::PropertyMetadata)
-                && let Some(mask) = &self.property_mask
-            {
-                expression = Expression::grouped(Expression::subtract(expression, mask.clone()));
-            }
-
+            let expression = traverse::eval_entity_path(&mut db, path);
             let alias = Identifier::from(traversal_path.as_symbol().unwrap());
 
             let field_type = traversal_path

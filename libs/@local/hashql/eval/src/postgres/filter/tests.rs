@@ -11,7 +11,7 @@
 use alloc::alloc::Global;
 use std::path::PathBuf;
 
-use hash_graph_postgres_store::store::postgres::query::{Expression, Transpile as _};
+use hash_graph_postgres_store::store::postgres::query::Transpile as _;
 use hashql_core::{
     heap::{Heap, Scratch},
     id::Id as _,
@@ -269,14 +269,6 @@ impl core::fmt::Display for QueryReport {
 }
 
 fn compile_full_query<'heap>(fixture: &Fixture<'heap>, heap: &'heap Heap) -> QueryReport {
-    compile_full_query_with_mask(fixture, heap, None)
-}
-
-fn compile_full_query_with_mask<'heap>(
-    fixture: &Fixture<'heap>,
-    heap: &'heap Heap,
-    property_mask: Option<hash_graph_postgres_store::store::postgres::query::Expression>,
-) -> QueryReport {
     let mut scratch = Scratch::new();
     let def = fixture.def();
 
@@ -304,8 +296,7 @@ fn compile_full_query_with_mask<'heap>(
     };
 
     let prepared_query = {
-        let mut compiler =
-            PostgresCompiler::new_in(&mut context, &mut scratch).with_property_mask(property_mask);
+        let mut compiler = PostgresCompiler::new_in(&mut context, &mut scratch);
         compiler.compile_graph_read(&read)
     };
 
@@ -791,46 +782,6 @@ fn left_entity_filter() {
     let settings = snapshot_settings();
     let _guard = settings.bind_to_scope();
     assert_snapshot!("left_entity_filter", report.to_string());
-}
-
-/// Property mask wraps `properties` and `property_metadata` SELECT expressions with
-/// `(col - mask)` but leaves other columns untouched.
-#[test]
-fn property_mask() {
-    let heap = Heap::new();
-    let interner = Interner::new(&heap);
-    let env = Environment::new(&heap);
-
-    let callee_id = DefId::new(99);
-
-    // Properties access in bb0 (Postgres Data island) with an apply in bb1 (Interpreter)
-    // ensures Properties and `PropertyMetadata` appear in the provides set.
-    let body = body!(interner, env; [graph::read::filter]@0/2 -> ? {
-        decl env: (), vertex: (|t| entity_types::types::entity(t, t.unknown(), None)),
-             props: ?, prop_meta: ?, func: [fn() -> ?], result: ?;
-        @proj v_props = vertex.properties: ?,
-              v_meta = vertex.metadata: ?,
-              v_prop_meta = v_meta.property_metadata: ?;
-
-        bb0() {
-            props = load v_props;
-            prop_meta = load v_prop_meta;
-            func = load callee_id;
-            result = apply func;
-            return result;
-        }
-    });
-
-    let fixture = Fixture::new(&heap, env, body);
-
-    // Use a parameter placeholder as the mask expression.
-    let mask = Expression::Parameter(99);
-
-    let report = compile_full_query_with_mask(&fixture, &heap, Some(mask));
-
-    let settings = snapshot_settings();
-    let _guard = settings.bind_to_scope();
-    assert_snapshot!("property_mask", report.to_string());
 }
 
 /// Tuple aggregate followed by `.0` numeric field projection →
