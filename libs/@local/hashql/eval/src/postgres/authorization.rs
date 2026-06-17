@@ -32,13 +32,10 @@ use type_system::{
 
 use super::{PreparedQuery, projections::Projections};
 
-/// Tracks joins that authorization conditions require beyond what the compiled
-/// query already provides.
+/// Tracks joins that authorization conditions need.
 ///
-/// Each accessor checks the base [`Projections`] first. If the table is already
-/// joined in the compiled query, its alias is reused directly. Otherwise, a new
-/// alias is allocated and the join is recorded for later compilation via
-/// [`build_joins`](Self::build_joins).
+/// Accessors reuse joins from the base [`Projections`] when available, falling
+/// back to fresh joins compiled by [`build_joins`](Self::build_joins).
 struct AuthorizationProjections<'base> {
     index: usize,
     base: &'base Projections,
@@ -73,11 +70,7 @@ impl<'base> AuthorizationProjections<'base> {
         self.base.temporal_metadata()
     }
 
-    /// Returns a reference to `entity_ids`, reusing the base join when available.
-    ///
-    /// Used by [`CreatedByPrincipal`](EntityResourceFilter::CreatedByPrincipal) to access
-    /// entity-level provenance (who created the entity originally).
-    /// Joins on `(web_id, entity_uuid)`.
+    /// Entity-level provenance, joined on `(web_id, entity_uuid)`.
     fn entity_ids(&mut self) -> TableReference<'static> {
         let alias = if let Some(base_alias) = self.base.entity_ids {
             base_alias
@@ -96,7 +89,7 @@ impl<'base> AuthorizationProjections<'base> {
         }
     }
 
-    /// Returns a reference to `entity_editions`, reusing the base join when available.
+    /// Entity edition data, joined on `edition_id`.
     fn entity_editions(&mut self) -> TableReference<'static> {
         let alias = if let Some(base_alias) = self.base.entity_editions {
             base_alias
@@ -115,11 +108,10 @@ impl<'base> AuthorizationProjections<'base> {
         }
     }
 
-    /// Returns a reference to `entity_is_of_type_ids`.
+    /// Entity type assignments, joined on `entity_edition_id`.
     ///
-    /// Always allocates its own join. The base projections' `entity_type_ids` is a
-    /// LATERAL aggregate (UNNEST + jsonb_agg for the result set); its internal table
-    /// references are scoped to the subquery and not visible here.
+    /// Always allocates a fresh join; the base projections' type aggregate
+    /// is a scoped LATERAL subquery and cannot be reused.
     fn entity_is_of_type_ids(&mut self) -> TableReference<'static> {
         let alias = if let Some(alias) = self.entity_is_of_type_ids {
             alias
@@ -136,11 +128,7 @@ impl<'base> AuthorizationProjections<'base> {
         }
     }
 
-    /// Appends authorization-specific joins to the FROM tree.
-    ///
-    /// Only produces joins for tables that were not already present in the base
-    /// projections. Tables reused from the base are referenced by their existing
-    /// alias and require no additional join.
+    /// Appends joins for tables not already present in the base projections.
     fn build_joins(&self, mut from: FromItem<'static>) -> FromItem<'static> {
         if let Some(alias) = self.entity_ids {
             from = self.base.build_entity_ids(from, alias);
@@ -171,10 +159,8 @@ impl<'base> AuthorizationProjections<'base> {
     }
 }
 
-/// Accumulates runtime parameter values for authorization conditions.
-///
-/// Compiled parameters occupy `$1..$K`. Auxiliary parameters start at `$K+1`
-/// and are appended after compiled parameters during encoding.
+/// Runtime parameter values for authorization conditions, indexed after
+/// the compiled parameters (`$K+1..`).
 struct AuxiliaryParameters<A: Allocator> {
     initial_offset: usize,
     parameters: Vec<Box<dyn ToSql + Sync, A>, A>,
@@ -193,7 +179,7 @@ impl<A: Allocator> AuxiliaryParameters<A> {
     }
 }
 
-/// Working state for converting policies into SQL expressions.
+/// Context for policy-to-SQL conversion.
 struct PreparedAnalysis<'query, A: Allocator> {
     projections: AuthorizationProjections<'query>,
     parameters: AuxiliaryParameters<A>,
@@ -217,33 +203,23 @@ impl<'query, A: Allocator> PreparedAnalysis<'query, A> {
     }
 }
 
-/// The result of analyzing policies for a single query.
-///
-/// Contains everything needed to graft authorization onto the compiled query:
-/// a WHERE condition, the runtime parameter values it references, and the
-/// projections that track which joins need to be appended to the FROM tree.
+/// Everything needed to graft authorization onto a compiled query.
 struct AnalysisResidual<'query, A: Allocator> {
-    /// Combined permit/forbid condition.
     condition: Expression,
-    /// Runtime values referenced by `condition` via `$N` parameter indices.
+    /// Parameter values referenced by `condition` via `$N` indices.
     auxiliary_parameters: Vec<Box<dyn ToSql + Sync, A>, A>,
-    /// Tracks joins that need to be appended to the FROM tree.
     projections: AuthorizationProjections<'query>,
 }
 
 /// Checks whether the entity has a specific `(base_url, version)` type pair.
-///
-/// Joins `entity_is_of_type_ids` (a view with parallel `base_urls text[]` and
-/// `versions bigint[]` arrays). Uses `array_positions` to find all subscripts
-/// where each value matches, then checks whether the two position sets overlap:
 ///
 /// ```sql
 /// array_positions(eit.base_urls, $base::text)
 /// && array_positions(eit.versions, $version::bigint)
 /// ```
 ///
-/// This preserves the pairing invariant: the overlap means there is some index `i`
-/// where `base_urls[i] = $base AND versions[i] = $version`.
+/// The overlap of position sets preserves the pairing invariant: a shared
+/// position means `base_urls[i] = $base AND versions[i] = $version`.
 fn convert_is_of_type<A: Allocator + Clone>(
     output: &mut PreparedAnalysis<'_, A>,
     url: VersionedUrl,
@@ -253,7 +229,7 @@ fn convert_is_of_type<A: Allocator + Clone>(
     let base_url_index = output.parameters.push(url.base_url);
     let version_index = output.parameters.push(url.version);
 
-    // array_positions(table.base_urls, $base)
+    // array_positions(eit.base_urls, $base)
     let base_url_positions = Expression::Function(
         hash_graph_postgres_store::store::postgres::query::Function::ArrayPositions(
             Box::new(Expression::ColumnReference(ColumnReference {
@@ -264,7 +240,7 @@ fn convert_is_of_type<A: Allocator + Clone>(
         ),
     );
 
-    // array_positions(table.versions, $version)
+    // array_positions(eit.versions, $version)
     let version_positions = Expression::Function(
         hash_graph_postgres_store::store::postgres::query::Function::ArrayPositions(
             Box::new(Expression::ColumnReference(ColumnReference {
@@ -276,8 +252,6 @@ fn convert_is_of_type<A: Allocator + Clone>(
     );
 
     // array_positions(...) && array_positions(...)
-    // The overlap operator checks if the two integer arrays share any element,
-    // which means there is a position where both base_url and version match.
     Expression::Binary(BinaryExpression {
         op: BinaryOperator::Overlap,
         left: Box::new(base_url_positions),
@@ -296,6 +270,7 @@ fn convert_is_of_base_type<A: Allocator + Clone>(
 ) -> Expression {
     let base_url_index = output.parameters.push(base_url);
 
+    // $base = ANY(eit.base_urls)
     Expression::Binary(BinaryExpression {
         op: BinaryOperator::In,
         left: Box::new(Expression::Parameter(base_url_index)),
@@ -308,13 +283,8 @@ fn convert_is_of_base_type<A: Allocator + Clone>(
 
 /// Checks whether the entity was created by the current actor.
 ///
-/// Compares `entity_ids.provenance->>'createdById'` against the actor UUID.
-/// This is entity-level provenance (who created the entity originally), not
-/// edition-level provenance (who created each specific edition). Matches
-/// the existing `EntityQueryPath::Provenance` which maps to `entity_ids`.
-///
-/// The actor UUID is cast to `text` in SQL since `->>'createdById'` returns text.
-/// For anonymous/public requests (no actor), compares against the public actor UUID.
+/// Uses entity-level provenance from `entity_ids` (the original creator).
+/// Anonymous requests compare against the public actor UUID.
 fn convert_created_by_principal<A: Allocator + Clone>(
     output: &mut PreparedAnalysis<'_, A>,
 ) -> Expression {
@@ -323,6 +293,7 @@ fn convert_created_by_principal<A: Allocator + Clone>(
         .map_or_else(ActorEntityUuid::public_actor, ActorEntityUuid::from);
     let actor_index = output.parameters.push(actor_uuid);
 
+    // ids.provenance->>'createdById'
     let provenance = Expression::ColumnReference(ColumnReference {
         correlation: Some(output.projections.entity_ids()),
         name: Column::EntityIds(table::EntityIds::Provenance).into(),
@@ -335,6 +306,7 @@ fn convert_created_by_principal<A: Allocator + Clone>(
         ),
     );
 
+    // ->> returns text, so the UUID parameter needs a text cast
     Expression::equal(
         created_by,
         Expression::Parameter(actor_index).cast(PostgresType::Text),
@@ -384,6 +356,7 @@ fn convert_resource_constraint<A: Allocator + Clone>(
         &ResourceConstraint::Web { web_id } => {
             let index = output.parameters.push(web_id);
 
+            // base.web_id = $N
             Expression::equal(
                 Expression::ColumnReference(ColumnReference {
                     correlation: Some(output.projections.temporal_metadata()),
@@ -396,6 +369,7 @@ fn convert_resource_constraint<A: Allocator + Clone>(
         &ResourceConstraint::Entity(EntityResourceConstraint::Exact { id }) => {
             let index = output.parameters.push(id);
 
+            // base.entity_uuid = $N
             Expression::equal(
                 Expression::ColumnReference(ColumnReference {
                     correlation: Some(output.projections.temporal_metadata()),
@@ -422,6 +396,7 @@ fn convert_resource_constraint<A: Allocator + Clone>(
     }
 }
 
+/// Adds batched permit expressions from pre-analyzed [`OptimizationData`].
 fn optimize<A: Allocator + Clone>(
     output: &mut PreparedAnalysis<'_, A>,
     permits: &mut Option<Vec<Expression>>,
@@ -438,6 +413,7 @@ fn optimize<A: Allocator + Clone>(
         &[entity_uuid] => {
             let index = output.parameters.push(entity_uuid);
 
+            // base.entity_uuid = $N
             permits.get_or_insert_default().push(Expression::equal(
                 Expression::ColumnReference(ColumnReference {
                     correlation: Some(output.projections.temporal_metadata()),
@@ -450,6 +426,7 @@ fn optimize<A: Allocator + Clone>(
         entity_uuids => {
             let index = output.parameters.push(entity_uuids.to_vec());
 
+            // base.entity_uuid = ANY($N::uuid[])
             permits.get_or_insert_default().push(Expression::r#in(
                 Expression::ColumnReference(ColumnReference {
                     correlation: Some(output.projections.temporal_metadata()),
@@ -467,6 +444,7 @@ fn optimize<A: Allocator + Clone>(
         &[web_id] => {
             let index = output.parameters.push(web_id);
 
+            // base.web_id = $N
             permits.get_or_insert_default().push(Expression::equal(
                 Expression::ColumnReference(ColumnReference {
                     correlation: Some(output.projections.temporal_metadata()),
@@ -479,6 +457,7 @@ fn optimize<A: Allocator + Clone>(
         web_ids => {
             let index = output.parameters.push(web_ids.to_vec());
 
+            // base.web_id = ANY($N::uuid[])
             permits.get_or_insert_default().push(Expression::r#in(
                 Expression::ColumnReference(ColumnReference {
                     correlation: Some(output.projections.temporal_metadata()),
@@ -492,10 +471,14 @@ fn optimize<A: Allocator + Clone>(
     }
 }
 
-fn analysis_in<'query, A: Allocator + Clone>(
+/// Converts policies into a SQL condition using the permit/forbid algebra.
+///
+/// `scratch` is used for temporary constraint collection.
+fn analysis_in<'query, A: Allocator + Clone, S: Allocator>(
     query: &'query PreparedQuery<'_, impl Allocator>,
     policy: &PolicyComponents,
     alloc: A,
+    scratch: S,
 ) -> AnalysisResidual<'query, A> {
     let action = match query.vertex_type {
         hashql_mir::pass::execution::VertexType::Entity => ActionName::ViewEntity,
@@ -503,49 +486,70 @@ fn analysis_in<'query, A: Allocator + Clone>(
     let policies = policy.extract_filter_policies(action);
     let optimization_data = policy.optimization_data(action);
 
-    let mut output = PreparedAnalysis::new_in(query, policy, alloc);
-    let mut permits: Option<Vec<Expression>> = None;
-    let mut forbids: Option<Vec<Expression>> = None;
+    let mut permit_constraints = Vec::new_in(&scratch);
+    let mut forbid_constraints = Vec::new_in(&scratch);
     let mut blank_permit = false;
 
     for (effect, constraint) in policies {
         match (effect, constraint) {
             (Effect::Permit, _) if blank_permit => {}
-            (Effect::Permit, None) => blank_permit = true,
+            (Effect::Permit, None) => {
+                blank_permit = true;
+                permit_constraints.clear();
+            }
             (Effect::Forbid, None) => {
                 // Blank forbid: deny everything, no further analysis needed.
-
                 return AnalysisResidual {
                     condition: Expression::Constant(Constant::Boolean(false)),
-                    auxiliary_parameters: Vec::new_in(
-                        output.parameters.parameters.allocator().clone(),
-                    ),
-                    projections: AuthorizationProjections::new(output.projections.base),
+                    auxiliary_parameters: Vec::new_in(alloc),
+                    projections: AuthorizationProjections::new(&query.projections),
                 };
             }
             (Effect::Permit, Some(constraint)) => {
-                permits
-                    .get_or_insert_default()
-                    .push(convert_resource_constraint(&mut output, constraint));
+                permit_constraints.push(constraint);
             }
             (Effect::Forbid, Some(constraint)) => {
-                forbids
-                    .get_or_insert_default()
-                    .push(convert_resource_constraint(&mut output, constraint));
+                forbid_constraints.push(constraint);
             }
         }
     }
 
-    optimize(&mut output, &mut permits, optimization_data);
+    // Phase 2: lower only surviving constraints to SQL
+    let mut output = PreparedAnalysis::new_in(query, policy, alloc);
 
+    let mut permits = Some(permit_constraints)
+        .filter(|constraints| !constraints.is_empty())
+        .map(|constraints| {
+            constraints
+                .into_iter()
+                .map(|constraint| convert_resource_constraint(&mut output, constraint))
+                .collect()
+        });
+    if !blank_permit {
+        optimize(&mut output, &mut permits, optimization_data);
+    }
     let permits = permits.map(Expression::any);
-    let forbids = forbids.map(Expression::any);
+
+    let forbids = Some(forbid_constraints)
+        .filter(|constraints| !constraints.is_empty())
+        .map(|constraints| {
+            constraints
+                .into_iter()
+                .map(|constraint| convert_resource_constraint(&mut output, constraint))
+                .collect()
+        })
+        .map(Expression::any);
 
     let expression = match (blank_permit, permits, forbids) {
+        // blank permit, no forbids: allow all
         (true, _, None) => Expression::Constant(Constant::Boolean(true)),
+        // blank permit + forbids: allow everything except forbidden
         (true, _, Some(forbids)) => forbids.not(),
+        // no permits at all: deny all
         (false, None, _) => Expression::Constant(Constant::Boolean(false)),
+        // constrained permits only
         (false, Some(permits), None) => permits,
+        // constrained permits + forbids
         (false, Some(permits), Some(forbids)) => Expression::all(vec![permits, forbids.not()]),
     };
 
