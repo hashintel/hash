@@ -168,7 +168,10 @@ impl<A: Allocator + Clone, S: Allocator> PatchPreparedQueryLayer<A, S>
                 || alias.as_ref() == table::EntityEditions::PropertyMetadata.as_str()
             {
                 let base = mem::replace(expression, Expression::Parameter(0));
-                *expression = Expression::subtract(base, keys_to_remove.clone());
+
+                // Group the result of the subtraction so that subsequent operators bind to the
+                // result, and not to one of it's parts.
+                *expression = Expression::subtract(base, keys_to_remove.clone()).grouped();
             }
         }
     }
