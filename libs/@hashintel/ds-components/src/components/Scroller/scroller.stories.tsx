@@ -170,14 +170,11 @@ const ToggleExample = ({
   label,
   vertical,
   horizontal,
-  contentPadding,
   children,
 }: {
   label: string;
   vertical?: boolean;
   horizontal?: boolean;
-  /** Inline padding applied to the Scroller's child, in pixels. */
-  contentPadding?: number;
   children: React.ReactNode;
 }) => {
   const [expanded, setExpanded] = useState(false);
@@ -195,11 +192,6 @@ const ToggleExample = ({
             horizontal && !vertical
               ? css({ display: "flex", gap: "3", alignItems: "flex-start" })
               : columnStyle
-          }
-          style={
-            contentPadding === undefined
-              ? undefined
-              : { padding: contentPadding }
           }
         >
           <Button
@@ -227,15 +219,6 @@ export const StableScrollGutter: Story = () => (
     </ToggleExample>
 
     <ToggleExample label="Both" vertical horizontal>
-      <BothContent />
-    </ToggleExample>
-
-    <ToggleExample
-      label="Both (child has inline padding)"
-      vertical
-      horizontal
-      contentPadding={24}
-    >
       <BothContent />
     </ToggleExample>
   </div>
