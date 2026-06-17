@@ -48,13 +48,22 @@ import type {
 } from "../../../../virtualized-table/header/filter";
 import type { VirtualizedTableSort } from "../../../../virtualized-table/header/sort";
 import type { CustomEntityLinksColumn } from "../../shared/types";
-import type { LinkEntityAndRightEntity } from "@blockprotocol/graph";
+import type {
+  EntityRootType,
+  LinkEntityAndRightEntity,
+  Subgraph,
+} from "@blockprotocol/graph";
 import type {
   Entity,
   EntityId,
   PartialEntityType,
   VersionedUrl,
 } from "@blockprotocol/type-system";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import type {
+  ClosedMultiEntityTypesDefinitions,
+  ClosedMultiEntityTypesRootMap,
+} from "@local/hash-graph-sdk/ontology";
 import type { ReactElement } from "react";
 
 type OutgoingLinksFieldId = "linkTypes" | "linkedTo" | "linkedToTypes" | "link";
@@ -239,11 +248,19 @@ const createRowContent: CreateVirtualizedRowContentFn<
 > = (_index, row) => <TableRow row={row.data} />;
 
 type OutgoingLinksTableProps = {
+  closedMultiEntityTypesDefinitions: ClosedMultiEntityTypesDefinitions;
+  closedMultiEntityTypesMap: ClosedMultiEntityTypesRootMap | null;
+  entitySubgraph: Subgraph<EntityRootType<HashEntity>>;
   outgoingLinksAndTargets: LinkEntityAndRightEntity[];
 };
 
 export const OutgoingLinksTable = memo(
-  ({ outgoingLinksAndTargets }: OutgoingLinksTableProps) => {
+  ({
+    closedMultiEntityTypesDefinitions,
+    closedMultiEntityTypesMap,
+    entitySubgraph,
+    outgoingLinksAndTargets,
+  }: OutgoingLinksTableProps) => {
     const [sort, setSort] = useState<
       VirtualizedTableSort<OutgoingLinksFieldId>
     >({
@@ -252,10 +269,6 @@ export const OutgoingLinksTable = memo(
     });
 
     const {
-      closedMultiEntityTypesDefinitions,
-      linkAndDestinationEntitiesClosedMultiEntityTypesMap:
-        closedMultiEntityTypesMap,
-      entitySubgraph,
       customEntityLinksColumns: customColumns,
       defaultOutgoingLinkFilters,
       onEntityClick,
