@@ -62,6 +62,10 @@ impl Projections {
         }
     }
 
+    pub(crate) const fn snapshot(&self) -> Self {
+        Self { ..*self }
+    }
+
     const fn next_alias(index: &mut usize) -> Alias {
         let alias = Alias {
             condition_index: 0,
@@ -507,22 +511,20 @@ impl Projections {
 ///
 /// Accessors reuse joins from the base [`Projections`] when available, falling
 /// back to fresh joins compiled by [`build_joins`](Self::build_joins).
-pub struct AuxiliaryProjections<'base> {
+pub struct AuxiliaryProjections {
     index: usize,
-    base: &'base Projections,
+    base: Projections,
 
     pub entity_ids: Option<Alias>,
-    pub entity_editions: Option<Alias>,
     pub entity_is_of_type_ids: Option<Alias>,
 }
 
-impl<'base> AuxiliaryProjections<'base> {
-    pub(crate) const fn new(base: &'base Projections) -> Self {
+impl AuxiliaryProjections {
+    pub(crate) const fn new(base: &Projections) -> Self {
         Self {
             index: base.index,
-            base,
+            base: base.snapshot(),
             entity_ids: None,
-            entity_editions: None,
             entity_is_of_type_ids: None,
         }
     }
@@ -538,7 +540,10 @@ impl<'base> AuxiliaryProjections<'base> {
     }
 
     pub(crate) const fn snapshot(&self) -> Self {
-        Self { ..*self }
+        Self {
+            base: self.base.snapshot(),
+            ..*self
+        }
     }
 
     pub(crate) fn temporal_metadata(&self) -> TableReference<'static> {
@@ -564,33 +569,8 @@ impl<'base> AuxiliaryProjections<'base> {
         }
     }
 
-    /// Entity edition data, joined on `edition_id`.
-    pub(crate) fn entity_editions(&mut self) -> TableReference<'static> {
-        let alias = if let Some(base_alias) = self.base.entity_editions {
-            base_alias
-        } else if let Some(alias) = self.entity_editions {
-            alias
-        } else {
-            let alias = self.next_alias();
-            self.entity_editions = Some(alias);
-            alias
-        };
-
-        TableReference {
-            schema: None,
-            name: TableName::from(Table::EntityEditions),
-            alias: Some(alias),
-        }
-    }
-
-    pub(crate) fn entity_edition_reference(&self) -> Option<TableReference<'static>> {
-        let alias = self.base.entity_editions.or(self.entity_editions)?;
-
-        Some(TableReference {
-            schema: None,
-            name: TableName::from(Table::EntityEditions),
-            alias: Some(alias),
-        })
+    pub(crate) const fn entity_edition_alias(&self) -> Option<Alias> {
+        self.base.entity_editions
     }
 
     /// Entity type assignments, joined on `entity_edition_id`.
@@ -617,10 +597,6 @@ impl<'base> AuxiliaryProjections<'base> {
     pub(crate) fn build_joins(&self, mut from: FromItem<'static>) -> FromItem<'static> {
         if let Some(alias) = self.entity_ids {
             from = self.base.build_entity_ids(from, alias);
-        }
-
-        if let Some(alias) = self.entity_editions {
-            from = self.base.build_entity_editions(from, alias);
         }
 
         if let Some(alias) = self.entity_is_of_type_ids {

@@ -20,7 +20,7 @@ use crate::postgres::{parameters::AuxiliaryParameters, projections::AuxiliaryPro
 
 /// Resolves a query path to its backing column.
 fn resolve_path<A: Allocator>(
-    unit: &mut ProtectionTranslationUnit<'_, '_, A>,
+    unit: &mut ProtectionTranslationUnit<'_, A>,
     path: PropertyFilterEntityQueryPath,
 ) -> Expression {
     match path {
@@ -41,7 +41,7 @@ fn resolve_path<A: Allocator>(
 
 /// Resolves a filter operand to a SQL expression.
 fn resolve_expression<A: Allocator + Clone>(
-    unit: &mut ProtectionTranslationUnit<'_, '_, A>,
+    unit: &mut ProtectionTranslationUnit<'_, A>,
     expression: &PropertyFilterExpression<'_>,
 ) -> Expression {
     match expression {
@@ -75,7 +75,7 @@ fn resolve_expression<A: Allocator + Clone>(
 
 /// Lowers a [`PropertyFilter`] condition tree into a SQL boolean expression.
 fn lower_filter<A: Allocator + Clone>(
-    unit: &mut ProtectionTranslationUnit<'_, '_, A>,
+    unit: &mut ProtectionTranslationUnit<'_, A>,
     filter: &PropertyFilter<'_>,
 ) -> Expression {
     match filter {
@@ -128,7 +128,7 @@ fn lower_filter<A: Allocator + Clone>(
 /// when the condition holds (property should be masked), or an empty array
 /// otherwise.
 fn lower_property_filter<A: Allocator + Clone>(
-    unit: &mut ProtectionTranslationUnit<'_, '_, A>,
+    unit: &mut ProtectionTranslationUnit<'_, A>,
     property_url: BaseUrl,
     filter: &PropertyFilter<'_>,
 ) -> Expression {
@@ -155,7 +155,7 @@ fn lower_property_filter<A: Allocator + Clone>(
 ///
 /// When present, this expression evaluates to a `text[]` of property base URLs
 /// that should be stripped. It is subtracted from the `properties` and
-/// `property_metadata` columns inside the entity_editions LATERAL subquery.
+/// `property_metadata` columns inside the `entity_editions` LATERAL subquery.
 pub(super) struct ProtectionTranslation {
     /// `NULL` when no properties are protected (no masking needed).
     pub keys_to_remove: Option<Expression>,
@@ -165,22 +165,19 @@ pub(super) struct ProtectionTranslation {
 ///
 /// Borrows shared projections and parameters so that multiple lowering
 /// passes (policy, protection) accumulate into the same patch.
-pub(crate) struct ProtectionTranslationUnit<'parent, 'query, A: Allocator> {
-    pub projections: &'parent mut AuxiliaryProjections<'query>,
+pub(crate) struct ProtectionTranslationUnit<'parent, A: Allocator> {
+    pub projections: &'parent mut AuxiliaryProjections,
     pub parameters: &'parent mut AuxiliaryParameters<A>,
     pub actor_id: Option<ActorId>,
 }
 
-impl<A: Allocator + Clone> ProtectionTranslationUnit<'_, '_, A> {
+impl<A: Allocator + Clone> ProtectionTranslationUnit<'_, A> {
     pub(crate) fn transpile(
         &mut self,
         policy: &PolicyComponents,
         config: &PropertyProtectionFilterConfig<'_>,
     ) -> ProtectionTranslation {
-        if config.is_empty()
-            || policy.is_instance_admin()
-            || self.projections.entity_edition_reference().is_none()
-        {
+        if config.is_empty() || policy.is_instance_admin() {
             return ProtectionTranslation {
                 keys_to_remove: None,
             };

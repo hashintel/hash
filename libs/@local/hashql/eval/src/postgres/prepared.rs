@@ -2,16 +2,15 @@
     clippy::field_scoped_visibility_modifiers,
     reason = "internal module that is opaque to the outside"
 )]
-use core::{alloc::Allocator, fmt::Display};
+use core::{alloc::Allocator, fmt::Display, marker::PhantomData};
 
 use hash_graph_postgres_store::store::postgres::query::{SelectStatement, Transpile as _};
-use hashql_core::{heap::BumpAllocator, id::Id as _};
+use hashql_core::id::Id as _;
 use hashql_mir::{
     body::basic_block::BasicBlockId,
     def::{DefId, DefIdSlice},
     pass::execution::VertexType,
 };
-use postgres_types::ToSql;
 
 use super::{
     ColumnDescriptor, Parameters,
@@ -38,32 +37,39 @@ impl<A: Allocator> PreparedQuery<'_, A> {
     pub fn transpile(&self) -> impl Display {
         core::fmt::from_fn(|fmt| self.statement.transpile(fmt))
     }
-
-    pub(crate) const fn projections(&self) -> &Projections {
-        &self.projections
-    }
 }
 
-struct HCons<H, T> {
+pub struct HCons<H, T> {
     head: H,
     tail: T,
 }
 
 struct HNil;
 
-pub struct PatchContext<'base, A: Allocator> {
-    pub projections: AuxiliaryProjections<'base>,
+pub struct PatchContext<'ctx, A: Allocator> {
+    pub projections: AuxiliaryProjections,
     pub alloc: A,
+    _marker: PhantomData<&'ctx ()>,
 }
 
-trait PatchPreparedQuery<A: Allocator, S: Allocator> {
+pub trait PatchPreparedQuery<A: Allocator, S: Allocator> {
     fn patch_query(
         &mut self,
         context: &mut PatchContext<'_, A>,
         query: &mut PreparedQuery<'_, A>,
         scratch: S,
-        cont: impl FnOnce(&mut PatchContext<'_, A>, &mut PreparedQuery<'_, A>, S),
     );
+}
+
+pub trait PatchPreparedQueryLayer<A: Allocator, S: Allocator> {
+    fn patch_query<N>(
+        &mut self,
+        context: &mut PatchContext<'_, A>,
+        query: &mut PreparedQuery<'_, A>,
+        scratch: S,
+        next: &mut N,
+    ) where
+        N: PatchPreparedQuery<A, S>;
 }
 
 impl<A: Allocator, S: Allocator> PatchPreparedQuery<A, S> for HNil {
@@ -71,8 +77,7 @@ impl<A: Allocator, S: Allocator> PatchPreparedQuery<A, S> for HNil {
         &mut self,
         context: &mut PatchContext<'_, A>,
         query: &mut PreparedQuery<'_, A>,
-        scratch: S,
-        _: impl FnOnce(&mut PatchContext<'_, A>, &mut PreparedQuery<'_, A>, S),
+        _: S,
     ) {
         let from = query
             .statement
@@ -86,7 +91,7 @@ impl<A: Allocator, S: Allocator> PatchPreparedQuery<A, S> for HNil {
 
 impl<H, T, A: Allocator, S: Allocator> PatchPreparedQuery<A, S> for HCons<H, T>
 where
-    H: PatchPreparedQuery<A, S>,
+    H: PatchPreparedQueryLayer<A, S>,
     T: PatchPreparedQuery<A, S>,
 {
     fn patch_query(
@@ -94,12 +99,10 @@ where
         context: &mut PatchContext<'_, A>,
         query: &mut PreparedQuery<'_, A>,
         scratch: S,
-        cont: impl FnOnce(&mut PatchContext<'_, A>, &mut PreparedQuery<'_, A>, S),
     ) {
-        self.head
-            .patch_query(context, query, scratch, |context, query, scratch| {
-                self.tail.patch_query(context, query, scratch, cont)
-            });
+        let Self { head, tail } = self;
+
+        head.patch_query(context, query, scratch, tail);
     }
 }
 
@@ -108,7 +111,8 @@ pub struct PreparedQueryPatch<T> {
 }
 
 impl PreparedQueryPatch<HNil> {
-    fn new() -> Self {
+    #[must_use]
+    pub const fn new() -> Self {
         Self { patches: HNil }
     }
 }
@@ -132,11 +136,20 @@ impl<T> PreparedQueryPatch<T> {
     {
         let alloc = query.columns.allocator().clone();
 
-        let mut projections = AuxiliaryProjections::new(&query.projections);
-        let mut context = PatchContext { projections, alloc };
+        let projections = AuxiliaryProjections::new(&query.projections);
+        let mut context = PatchContext {
+            projections,
+            alloc,
+            _marker: PhantomData,
+        };
 
-        self.patches
-            .patch_query(&mut context, query, scratch, |_, _, _| {});
+        self.patches.patch_query(&mut context, query, scratch);
+    }
+}
+
+impl Default for PreparedQueryPatch<HNil> {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

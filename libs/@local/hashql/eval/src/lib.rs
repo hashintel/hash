@@ -14,8 +14,7 @@
     iter_array_chunks,
     maybe_uninit_fill,
     impl_trait_in_assoc_type,
-    try_blocks,
-    variant_count
+    try_blocks
 )]
 #![cfg_attr(test, feature(
     // Library Features
