@@ -31,7 +31,7 @@
  *
  * Run with (graph must be running and migrated):
  *
- *   yarn workspace @apps/hash-api dev:seed-data
+ *   yarn workspace @apps/hash-api dev:seed-crm-data
  *
  * The generator is deterministic for a given `config.seed`, so re-runs produce
  * the same data. Types are created idempotently; entities are always appended.
@@ -166,7 +166,7 @@ const pickSome = <T>(arr: readonly T[], min: number, max: number): T[] =>
     min: Math.min(min, arr.length),
     max: Math.min(max, arr.length),
   });
-const chance = (probability: number) => faker.datatype.boolean(probability);
+const chance = (probability: number) => faker.datatype.boolean({ probability });
 
 // Domain-specific vocabularies that faker does not provide out of the box.
 const industries = [
@@ -1434,8 +1434,12 @@ const seedCrmData = async () => {
         config.links.minContactCampaigns,
         config.links.maxContactCampaigns,
       );
-      // The first N contacts are also members of the giant campaign.
-      if (i < config.hubs.giantCampaignMembers) {
+      // The first N contacts are also members of the giant campaign (avoid a
+      // duplicate link if `pickSome` already selected it).
+      if (
+        i < config.hubs.giantCampaignMembers &&
+        !memberOfCampaigns.includes(giantCampaign)
+      ) {
         memberOfCampaigns.push(giantCampaign);
       }
 
