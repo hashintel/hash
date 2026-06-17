@@ -17,7 +17,7 @@ use hash_graph_store::filter::protection::PropertyProtectionFilterConfig;
 
 use self::{
     policy::{PolicyTranslation, PolicyTranslationUnit},
-    protection::{ProtectionTranslation, ProtectionTranslationUnit},
+    protection::ProtectionTranslationUnit,
 };
 use super::{PatchPreparedQueryLayer, prepared::PatchContext};
 
@@ -60,7 +60,11 @@ fn find_from_by_alias<'from, 'id>(
             join_type: _,
             right,
             condition: _,
-        } => find_from_by_alias(left, needle).or_else(|| find_from_by_alias(right, needle)),
+        } => {
+            // right biased, that way we're faster in finding our goal, as our tree is left-heavy,
+            // with leaves being on the right side.
+            find_from_by_alias(right, needle).or_else(|| find_from_by_alias(left, needle))
+        }
         FromItem::JoinUsing {
             left: _,
             join_type: _,
@@ -115,23 +119,28 @@ impl<A: Allocator + Clone, S: Allocator> PatchPreparedQueryLayer<A, S>
             policy.transpile(query.vertex_type, self.policy, &scratch);
         query.statement.where_expression.add_condition(condition);
 
+        // Lower protection BEFORE join materialization so its join demands
+        // (e.g. entity_is_of_type_ids for TypeBaseUrls) are registered.
+        // The resulting mask expression is grafted AFTER joins are built.
+        let entity_edition_alias = context.projections.entity_edition_alias();
+
+        let keys_to_remove = entity_edition_alias.and_then(|_| {
+            let mut protection = ProtectionTranslationUnit {
+                projections: &mut context.projections,
+                parameters: &mut query.auxiliary_parameters,
+                actor_id: self.policy.actor_id(),
+            };
+
+            protection
+                .transpile(self.policy, self.properties)
+                .keys_to_remove
+        });
+
         next.patch_query(context, query, scratch);
 
-        let Some(entity_edition_alias) = context.projections.entity_edition_alias() else {
-            // we remove the keys _last_, and only iff the entity_editions table is still requested
-            return;
-        };
-
-        let mut protection = ProtectionTranslationUnit {
-            projections: &mut context.projections,
-            parameters: &mut query.auxiliary_parameters,
-            actor_id: self.policy.actor_id(),
-        };
-
-        let ProtectionTranslation { keys_to_remove } =
-            protection.transpile(self.policy, self.properties);
-
-        let Some(keys_to_remove) = keys_to_remove else {
+        let Some((entity_edition_alias, keys_to_remove)) =
+            Option::zip(entity_edition_alias, keys_to_remove)
+        else {
             return;
         };
 

@@ -354,6 +354,15 @@ impl<A: Allocator> PolicyTranslationUnit<'_, A> {
         }
         let permits = permits.map(Expression::any);
 
+        // No permits means deny-all regardless of forbids.
+        // Return early to avoid lowering forbid constraints (which would
+        // push params and register joins that nothing references).
+        if !blank_permit && permits.is_none() {
+            return PolicyTranslation {
+                condition: Expression::Constant(Constant::Boolean(false)),
+            };
+        }
+
         let forbids = Some(forbid_constraints)
             .filter(|constraints| !constraints.is_empty())
             .map(|constraints| {
@@ -369,12 +378,12 @@ impl<A: Allocator> PolicyTranslationUnit<'_, A> {
             (true, _, None) => Expression::Constant(Constant::Boolean(true)),
             // blank permit + forbids: allow everything except forbidden
             (true, _, Some(forbids)) => forbids.not(),
-            // no permits at all: deny all
-            (false, None, _) => Expression::Constant(Constant::Boolean(false)),
             // constrained permits only
             (false, Some(permits), None) => permits,
             // constrained permits + forbids
             (false, Some(permits), Some(forbids)) => Expression::all(vec![permits, forbids.not()]),
+            // unreachable: handled by early return above
+            (false, None, _) => unreachable!("no-permit case returned early"),
         };
 
         PolicyTranslation {
