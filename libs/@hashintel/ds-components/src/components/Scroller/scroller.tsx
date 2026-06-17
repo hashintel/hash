@@ -101,11 +101,6 @@ export const Scroller = ({
 
   const [edges, setEdges] = useState<EdgeState>(noEdges);
 
-  // Default to vertical scrolling unless the caller opts into an explicit axis.
-  const axisSpecified = vertical !== undefined || horizontal !== undefined;
-  const enableVertical = axisSpecified ? Boolean(vertical) : true;
-  const enableHorizontal = Boolean(horizontal);
-
   const onScrolledToBottomRef = useRef(onScrolledToBottom);
   useEffect(() => {
     onScrolledToBottomRef.current = onScrolledToBottom;
@@ -128,14 +123,12 @@ export const Scroller = ({
     } = element;
 
     const next: EdgeState = {
-      top: enableVertical && scrollTop > edgeTolerance,
+      top: !!vertical && scrollTop > edgeTolerance,
       bottom:
-        enableVertical &&
-        scrollTop + clientHeight < scrollHeight - edgeTolerance,
-      left: enableHorizontal && scrollLeft > edgeTolerance,
+        !!vertical && scrollTop + clientHeight < scrollHeight - edgeTolerance,
+      left: !!horizontal && scrollLeft > edgeTolerance,
       right:
-        enableHorizontal &&
-        scrollLeft + clientWidth < scrollWidth - edgeTolerance,
+        !!horizontal && scrollLeft + clientWidth < scrollWidth - edgeTolerance,
     };
 
     setEdges((prev) =>
@@ -150,14 +143,14 @@ export const Scroller = ({
     // Fire `onScrolledToBottom` once each time the bottom edge is reached, only
     // when the content is actually scrollable vertically.
     const isScrollable = scrollHeight > clientHeight + edgeTolerance;
-    const atBottom = enableVertical && isScrollable && !next.bottom;
+    const atBottom = !!vertical && isScrollable && !next.bottom;
 
     if (atBottom && !wasAtBottom.current) {
       onScrolledToBottomRef.current?.();
     }
 
     wasAtBottom.current = atBottom;
-  }, [enableVertical, enableHorizontal]);
+  }, [vertical, horizontal]);
 
   useEffect(() => {
     const element = scrollRef.current;
@@ -191,8 +184,8 @@ export const Scroller = ({
   const hasFade = edges.top || edges.bottom || edges.left || edges.right;
 
   const style: CSSProperties = {
-    overflowX: enableHorizontal ? "auto" : "hidden",
-    overflowY: enableVertical ? "auto" : "hidden",
+    overflowX: horizontal ? "auto" : undefined,
+    overflowY: vertical ? "auto" : undefined,
   };
 
   if (hasFade) {
