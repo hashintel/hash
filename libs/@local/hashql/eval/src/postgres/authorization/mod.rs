@@ -1,15 +1,11 @@
-//! Converts authorization policies into SQL conditions for entity queries.
+//! Grafts actor-specific authorization onto compiled queries at runtime.
 //!
-//! The compilation pipeline produces actor-agnostic queries. This module grafts
-//! actor-specific policy conditions onto those queries at runtime, just before
-//! the orchestrator executes them.
+//! The compilation pipeline produces actor-agnostic queries. This module patches
+//! them with two kinds of runtime conditions:
 //!
-//! The entry point is [`analysis_in`], which takes a compiled [`PreparedQuery`]
-//! and a [`PolicyComponents`] and produces an [`AnalysisResidual`] containing:
-//!
-//! - A combined WHERE condition (the permit/forbid algebra)
-//! - Auxiliary parameter values referenced by that condition
-//! - The [`AuthorizationProjections`] that tracks which joins need to be appended
+//! - **Policy** ([`policy`]): permit/forbid admission conditions added to WHERE
+//! - **Protection** ([`protection`]): property masking applied inside the entity_editions LATERAL
+//!   subquery
 use core::alloc::Allocator;
 
 use hash_graph_postgres_store::store::postgres::query::{
@@ -17,9 +13,10 @@ use hash_graph_postgres_store::store::postgres::query::{
 };
 use postgres_types::ToSql;
 
-use super::projections::Projections;
+use super::{PreparedQuery, projections::Projections};
 
 mod policy;
+mod protection;
 
 /// Tracks joins that authorization conditions need.
 ///
@@ -53,6 +50,10 @@ impl<'base> AuthorizationProjections<'base> {
         };
         self.index += 1;
         alias
+    }
+
+    const fn snapshot(&self) -> Self {
+        Self { ..*self }
     }
 
     fn temporal_metadata(&self) -> TableReference<'static> {
@@ -156,6 +157,13 @@ struct AuxiliaryParameters<A: Allocator> {
 }
 
 impl<A: Allocator> AuxiliaryParameters<A> {
+    fn new(query: &PreparedQuery<A>, alloc: A) -> Self {
+        Self {
+            initial_offset: query.parameters.len() + query.auxiliary_parameters.len(),
+            parameters: Vec::new_in(alloc),
+        }
+    }
+
     /// Pushes a value and returns its 1-based parameter index (`$N`).
     fn push(&mut self, value: impl ToSql + Sync + 'static) -> usize
     where
