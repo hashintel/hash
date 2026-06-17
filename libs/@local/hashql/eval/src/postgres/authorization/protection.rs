@@ -16,7 +16,7 @@ use type_system::{
     principal::actor::{ActorEntityUuid, ActorId},
 };
 
-use super::{AuthorizationProjections, AuxiliaryParameters};
+use crate::postgres::{parameters::AuxiliaryParameters, projections::AuxiliaryProjections};
 
 /// Resolves a query path to its backing column.
 fn resolve_path<A: Allocator>(
@@ -166,9 +166,9 @@ pub(super) struct ProtectionTranslation {
 /// Borrows shared projections and parameters so that multiple lowering
 /// passes (policy, protection) accumulate into the same patch.
 pub(crate) struct ProtectionTranslationUnit<'parent, 'query, A: Allocator> {
-    projections: &'parent mut AuthorizationProjections<'query>,
-    parameters: &'parent mut AuxiliaryParameters<A>,
-    actor_id: Option<ActorId>,
+    pub projections: &'parent mut AuxiliaryProjections<'query>,
+    pub parameters: &'parent mut AuxiliaryParameters<A>,
+    pub actor_id: Option<ActorId>,
 }
 
 impl<A: Allocator + Clone> ProtectionTranslationUnit<'_, '_, A> {
@@ -177,7 +177,10 @@ impl<A: Allocator + Clone> ProtectionTranslationUnit<'_, '_, A> {
         policy: &PolicyComponents,
         config: &PropertyProtectionFilterConfig<'_>,
     ) -> ProtectionTranslation {
-        if config.is_empty() || policy.is_instance_admin() {
+        if config.is_empty()
+            || policy.is_instance_admin()
+            || self.projections.entity_edition_reference().is_none()
+        {
             return ProtectionTranslation {
                 keys_to_remove: None,
             };
