@@ -24,8 +24,6 @@ export interface ScrollHintProps {
    * content by reserving a stable gutter for the scrollbar.
    */
   stableScrollGutter?: boolean;
-  /** Called when the user scrolls to (or content settles at) the bottom edge. */
-  onScrolledToBottom?: () => void;
 }
 
 /** Which edges currently have more content hidden beyond them. */
@@ -74,10 +72,8 @@ export const ScrollHint = ({
   vertical,
   horizontal,
   stableScrollGutter,
-  onScrolledToBottom,
 }: ScrollHintProps) => {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const wasAtBottom = useRef(false);
 
   // Called from the parent (rather than a child wrapper) so its layout effect
   // runs after the div's ref has been attached — a child's layout effect would
@@ -85,11 +81,6 @@ export const ScrollHint = ({
   useAvoidScrollWidthChange(scrollRef, !!stableScrollGutter);
 
   const [edges, setEdges] = useState<EdgeState>(noEdges);
-
-  const onScrolledToBottomRef = useRef(onScrolledToBottom);
-  useEffect(() => {
-    onScrolledToBottomRef.current = onScrolledToBottom;
-  }, [onScrolledToBottom]);
 
   const update = useCallback(() => {
     const element = scrollRef.current;
@@ -124,17 +115,6 @@ export const ScrollHint = ({
         ? prev
         : next,
     );
-
-    // Fire `onScrolledToBottom` once each time the bottom edge is reached, only
-    // when the content is actually scrollable vertically.
-    const isScrollable = scrollHeight > clientHeight + edgeTolerance;
-    const atBottom = !!vertical && isScrollable && !next.bottom;
-
-    if (atBottom && !wasAtBottom.current) {
-      onScrolledToBottomRef.current?.();
-    }
-
-    wasAtBottom.current = atBottom;
   }, [vertical, horizontal]);
 
   useEffect(() => {

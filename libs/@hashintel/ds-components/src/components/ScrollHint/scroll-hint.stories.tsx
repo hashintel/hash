@@ -19,7 +19,6 @@ const viewportStyle = css({
   border: "[1px solid #d4d4d4]",
   borderRadius: "[8px]",
   padding: "3",
-  backgroundColor: "[#fff]",
 });
 
 const exampleStyle = css({
@@ -148,6 +147,14 @@ export const Default: Story = () => (
       <ScrollHint vertical horizontal className={viewportStyle}>
         <BothContent />
       </ScrollHint>
+    </Example>
+
+    <Example label="Colored background">
+      <div className={css({ backgroundColor: "[black]", color: "[white]" })}>
+        <ScrollHint vertical className={viewportStyle}>
+          <VerticalContent />
+        </ScrollHint>
+      </div>
     </Example>
 
     <Example label="Both (content fits, no scroll)">
