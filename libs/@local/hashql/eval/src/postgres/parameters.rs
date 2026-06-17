@@ -252,7 +252,7 @@ impl<A: Allocator> fmt::Display for Parameters<'_, A> {
 
 /// Runtime parameter values for authorization conditions, indexed after
 /// the compiled parameters (`$K+1..`).
-pub struct AuxiliaryParameters<A: Allocator> {
+pub(crate) struct AuxiliaryParameters<A: Allocator> {
     initial_offset: usize,
     parameters: Vec<Box<dyn ToSql + Sync, A>, A>,
 }

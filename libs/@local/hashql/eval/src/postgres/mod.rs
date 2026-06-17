@@ -55,14 +55,18 @@ use hashql_mir::{
     },
 };
 
+pub use self::{
+    authorization::AuthorizationPatch,
+    continuation::ContinuationField,
+    parameters::{Parameter, ParameterIndex, ParameterValue, Parameters, TemporalAxis},
+    prepared::{
+        PatchPreparedQuery, PatchPreparedQueryLayer, PreparedQueries, PreparedQuery,
+        PreparedQueryPatch,
+    },
+};
 use self::{
     continuation::ContinuationColumn, filter::GraphReadFilterCompiler,
     parameters::AuxiliaryParameters, projections::Projections, types::traverse_struct,
-};
-pub use self::{
-    continuation::ContinuationField,
-    parameters::{Parameter, ParameterIndex, ParameterValue, Parameters, TemporalAxis},
-    prepared::{PreparedQueries, PreparedQuery, PreparedQueryPatch},
 };
 use crate::context::CodeGenerationContext;
 

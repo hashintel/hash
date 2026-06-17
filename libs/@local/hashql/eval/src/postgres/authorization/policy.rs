@@ -17,9 +17,7 @@ use type_system::{
     principal::actor::{ActorEntityUuid, ActorId},
 };
 
-use crate::postgres::{
-    PreparedQuery, parameters::AuxiliaryParameters, projections::AuxiliaryProjections,
-};
+use crate::postgres::{parameters::AuxiliaryParameters, projections::AuxiliaryProjections};
 
 /// Checks whether the entity has a specific `(base_url, version)` type pair.
 ///
@@ -31,7 +29,7 @@ use crate::postgres::{
 /// The overlap of position sets preserves the pairing invariant: a shared
 /// position means `base_urls[i] = $base AND versions[i] = $version`.
 fn convert_is_of_type<A: Allocator + Clone>(
-    unit: &mut PolicyTranslationUnit<'_, '_, A>,
+    unit: &mut PolicyTranslationUnit<'_, A>,
     url: VersionedUrl,
 ) -> Expression {
     let table = unit.projections.entity_is_of_type_ids();
@@ -75,7 +73,7 @@ fn convert_is_of_type<A: Allocator + Clone>(
 /// $base = ANY(eit.base_urls)
 /// ```
 fn convert_is_of_base_type<A: Allocator + Clone>(
-    unit: &mut PolicyTranslationUnit<'_, '_, A>,
+    unit: &mut PolicyTranslationUnit<'_, A>,
     base_url: BaseUrl,
 ) -> Expression {
     let base_url_index = unit.parameters.push(base_url);
@@ -96,7 +94,7 @@ fn convert_is_of_base_type<A: Allocator + Clone>(
 /// Uses entity-level provenance from `entity_ids` (the original creator).
 /// Anonymous requests compare against the public actor UUID.
 fn convert_created_by_principal<A: Allocator + Clone>(
-    unit: &mut PolicyTranslationUnit<'_, '_, A>,
+    unit: &mut PolicyTranslationUnit<'_, A>,
 ) -> Expression {
     let actor_uuid = unit
         .actor_id
@@ -125,7 +123,7 @@ fn convert_created_by_principal<A: Allocator + Clone>(
 
 /// Converts an [`EntityResourceFilter`] tree into a SQL [`Expression`].
 fn convert_entity_resource_filter<A: Allocator + Clone>(
-    unit: &mut PolicyTranslationUnit<'_, '_, A>,
+    unit: &mut PolicyTranslationUnit<'_, A>,
     filter: &EntityResourceFilter,
 ) -> Expression {
     match filter {
@@ -157,7 +155,7 @@ fn convert_entity_resource_filter<A: Allocator + Clone>(
 /// Non-entity resource types (entity types, property types, data types, meta)
 /// produce `FALSE` since they cannot match entity rows.
 fn convert_resource_constraint<A: Allocator + Clone>(
-    unit: &mut PolicyTranslationUnit<'_, '_, A>,
+    unit: &mut PolicyTranslationUnit<'_, A>,
     constraint: &ResourceConstraint,
 ) -> Expression {
     match constraint {
@@ -206,7 +204,7 @@ fn convert_resource_constraint<A: Allocator + Clone>(
 
 /// Adds batched permit expressions from pre-analyzed [`OptimizationData`].
 fn optimize<A: Allocator + Clone>(
-    unit: &mut PolicyTranslationUnit<'_, '_, A>,
+    unit: &mut PolicyTranslationUnit<'_, A>,
     permits: &mut Option<Vec<Expression>>,
     OptimizationData {
         permitted_entity_uuids,
@@ -288,14 +286,13 @@ pub(super) struct PolicyTranslation {
 ///
 /// Borrows shared projections and parameters so that multiple lowering
 /// passes (policy, protection) accumulate into the same patch.
-pub(crate) struct PolicyTranslationUnit<'parent, 'query, A: Allocator> {
-    pub projections: &'parent mut AuxiliaryProjections<'query>,
+pub(crate) struct PolicyTranslationUnit<'parent, A: Allocator> {
+    pub projections: &'parent mut AuxiliaryProjections,
     pub parameters: &'parent mut AuxiliaryParameters<A>,
     pub actor_id: Option<ActorId>,
-    pub alloc: A,
 }
 
-impl<A: Allocator> PolicyTranslationUnit<'_, '_, A> {
+impl<A: Allocator> PolicyTranslationUnit<'_, A> {
     pub(crate) fn transpile<S>(
         &mut self,
         vertex_type: VertexType,
