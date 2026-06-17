@@ -1,7 +1,6 @@
 import {
   type CSSProperties,
   type ReactNode,
-  type RefObject,
   useCallback,
   useEffect,
   useRef,
@@ -73,20 +72,6 @@ const buildMask = (edges: EdgeState): string => {
   return `${vertical}, ${horizontal}`;
 };
 
-/**
- * Mount-gated wrapper so the scrollbar-gutter hook only runs (and only attaches
- * its observers) while `stableScrollGutter` is enabled, and cleanly releases
- * the reserved padding when it is turned off.
- */
-const StableScrollGutter = ({
-  targetRef,
-}: {
-  targetRef: RefObject<HTMLElement | null>;
-}): null => {
-  useAvoidScrollWidthChange(targetRef);
-  return null;
-};
-
 /** Add a visual cue when content is scrollable. */
 export const Scroller = ({
   className,
@@ -98,6 +83,11 @@ export const Scroller = ({
 }: ScrollerProps) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const wasAtBottom = useRef(false);
+
+  // Called from the parent (rather than a child wrapper) so its layout effect
+  // runs after the div's ref has been attached — a child's layout effect would
+  // fire first, while `scrollRef.current` is still null.
+  useAvoidScrollWidthChange(scrollRef, !!stableScrollGutter);
 
   const [edges, setEdges] = useState<EdgeState>(noEdges);
 
@@ -198,7 +188,6 @@ export const Scroller = ({
 
   return (
     <div ref={scrollRef} className={cx(rootStyle, className)} style={style}>
-      {stableScrollGutter ? <StableScrollGutter targetRef={scrollRef} /> : null}
       {children}
     </div>
   );

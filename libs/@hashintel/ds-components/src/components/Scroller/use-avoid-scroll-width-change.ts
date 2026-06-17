@@ -54,14 +54,17 @@ const measureScrollbarSize = (): number => {
  * scrollbar thickness is `0`, so the hook is a no-op.
  *
  * @param ref - ref to the scrollable element to stabilise.
+ * @param enabled - whether to apply the gutter; when `false` the hook is a
+ *   no-op and releases any padding it previously reserved.
  */
 export const useAvoidScrollWidthChange = (
   ref: RefObject<HTMLElement | null>,
+  enabled = true,
 ): void => {
   useLayoutEffect(() => {
     const element = ref.current;
 
-    if (!element || typeof ResizeObserver === "undefined") {
+    if (!enabled || !element || typeof ResizeObserver === "undefined") {
       return;
     }
 
@@ -149,5 +152,5 @@ export const useAvoidScrollWidthChange = (
       element.style[inlineGutterSide()] = "";
       element.style.paddingBottom = "";
     };
-  }, [ref]);
+  }, [ref, enabled]);
 };
