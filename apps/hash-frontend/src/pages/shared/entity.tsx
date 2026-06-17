@@ -56,6 +56,7 @@ import type { EntityEditorProps } from "./entity/entity-editor";
 import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
 import type { EntityId, PropertyObject } from "@blockprotocol/type-system";
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
+import type { EntityTraversalPath } from "@rust/hash-graph-store/types";
 
 interface EntityProps {
   entityId: EntityId;
@@ -250,6 +251,23 @@ export const Entity = ({
 
   const [isDirty, setIsDirty] = useState(!!draftLocalEntity);
 
+  /**
+   * Whether the main entity query should include the entity's incoming and
+   * outgoing link data.
+   *
+   * We only fetch it here when the entity is editable, so that the edit flow has
+   * the links available in the editor subgraph. When the entity is readonly, the
+   * link tables fetch this data themselves (see `selfFetchLinks` below), keeping
+   * the main query (and the editor shell) independent of the entity's link
+   * volume.
+   *
+   * This starts `false` (we don't know the user's permissions until the first
+   * response) and is set from the entity permissions in `onCompleted`. If the
+   * user can edit, the query variables change and the query refetches with the
+   * link data included.
+   */
+  const [includeLinkDataInQuery, setIncludeLinkDataInQuery] = useState(false);
+
   const { data: queryEntitySubgraphData, refetch } = useQuery<
     QueryEntitySubgraphQuery,
     QueryEntitySubgraphQueryVariables
@@ -302,6 +320,10 @@ export const Entity = ({
       setDraftLinksToCreate([]);
       setDraftLinksToArchive([]);
 
+      setIncludeLinkDataInQuery(
+        !!data.queryEntitySubgraph.entityPermissions?.[entityId]?.update,
+      );
+
       setLoading(false);
     },
     variables: {
@@ -325,18 +347,31 @@ export const Entity = ({
         },
         temporalAxes: currentTimeInstantTemporalAxes,
         traversalPaths: [
-          {
-            edges: [
-              { kind: "has-left-entity", direction: "incoming" },
-              { kind: "has-right-entity", direction: "outgoing" },
-            ],
-          },
-          {
-            edges: [
-              { kind: "has-right-entity", direction: "incoming" },
-              { kind: "has-left-entity", direction: "outgoing" },
-            ],
-          },
+          /**
+           * Incoming and outgoing links (and their source/target entities) are
+           * only fetched here when the entity is editable. When readonly, the
+           * link tables fetch this data themselves (see `selfFetchLinks`).
+           */
+          ...(includeLinkDataInQuery
+            ? ([
+                {
+                  edges: [
+                    { kind: "has-left-entity", direction: "incoming" },
+                    { kind: "has-right-entity", direction: "outgoing" },
+                  ],
+                },
+                {
+                  edges: [
+                    { kind: "has-right-entity", direction: "incoming" },
+                    { kind: "has-left-entity", direction: "outgoing" },
+                  ],
+                },
+              ] satisfies EntityTraversalPath[])
+            : []),
+          /**
+           * These paths resolve the entity's own source/target when the entity
+           * is itself a link, and are always required (e.g. by `LinkSection`).
+           */
           {
             edges: [{ kind: "has-left-entity", direction: "outgoing" }],
           },
@@ -388,6 +423,18 @@ export const Entity = ({
     () => (dataFromDb ? getRoots(dataFromDb.entitySubgraph)[0] : null),
     [dataFromDb],
   );
+
+  /**
+   * Whether the link tables should fetch their own incoming/outgoing link data,
+   * rather than reading it from the editor subgraph.
+   *
+   * This is the case for readonly entities that are persisted in the database
+   * (i.e. not local drafts or Flow proposals, whose link data is contained in
+   * the provided subgraph). It mirrors `includeLinkDataInQuery`: the link tables
+   * self-fetch exactly when the main query omits the link data.
+   */
+  const selfFetchLinks =
+    !draftLocalEntity && !proposedEntitySubgraph && !includeLinkDataInQuery;
 
   const resetDraftState = () => {
     setIsDirty(false);
@@ -556,6 +603,7 @@ export const Entity = ({
       {isQueryEntity && shouldShowQueryEditor ? (
         <QueryEditor
           {...draftEntityTypesDetails}
+          selfFetchLinks={selfFetchLinks}
           draftLinksToCreate={draftLinksToCreate}
           draftLinksToArchive={draftLinksToArchive}
           entityLabel={entityLabel}
@@ -680,6 +728,7 @@ export const Entity = ({
             <EntityEditor
               defaultOutgoingLinkFilters={defaultOutgoingLinkFilters}
               {...draftEntityTypesDetails}
+              selfFetchLinks={selfFetchLinks}
               draftLinksToCreate={draftLinksToCreate}
               draftLinksToArchive={draftLinksToArchive}
               entityLabel={entityLabel}

@@ -48,13 +48,22 @@ import type {
 } from "../../../../virtualized-table/header/filter";
 import type { VirtualizedTableSort } from "../../../../virtualized-table/header/sort";
 import type { CustomEntityLinksColumn } from "../../shared/types";
-import type { LinkEntityAndLeftEntity } from "@blockprotocol/graph";
+import type {
+  EntityRootType,
+  LinkEntityAndLeftEntity,
+  Subgraph,
+} from "@blockprotocol/graph";
 import type {
   Entity,
   EntityId,
   PartialEntityType,
   VersionedUrl,
 } from "@blockprotocol/type-system";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import type {
+  ClosedMultiEntityTypesDefinitions,
+  ClosedMultiEntityTypesRootMap,
+} from "@local/hash-graph-sdk/ontology";
 
 type FieldId = "linkedFrom" | "linkTypes" | "linkedFromTypes" | "link";
 
@@ -251,23 +260,27 @@ const createRowContent: CreateVirtualizedRowContentFn<
 > = (_index, row) => <TableRow row={row.data} />;
 
 type IncomingLinksTableProps = {
+  closedMultiEntityTypesDefinitions: ClosedMultiEntityTypesDefinitions;
+  closedMultiEntityTypesMap: ClosedMultiEntityTypesRootMap | null;
+  entitySubgraph: Subgraph<EntityRootType<HashEntity>>;
   incomingLinksAndSources: LinkEntityAndLeftEntity[];
 };
 
 export const IncomingLinksTable = memo(
-  ({ incomingLinksAndSources }: IncomingLinksTableProps) => {
+  ({
+    closedMultiEntityTypesDefinitions,
+    closedMultiEntityTypesMap,
+    entitySubgraph,
+    incomingLinksAndSources,
+  }: IncomingLinksTableProps) => {
     const [sort, setSort] = useState<VirtualizedTableSort<FieldId>>({
       fieldId: "linkedFrom",
       direction: "asc",
     });
 
     const {
-      linkAndDestinationEntitiesClosedMultiEntityTypesMap:
-        closedMultiEntityTypesMap,
-      closedMultiEntityTypesDefinitions,
       customEntityLinksColumns: customColumns,
       draftLinksToArchive,
-      entitySubgraph,
       onEntityClick,
       onTypeClick,
     } = useEntityEditor();
