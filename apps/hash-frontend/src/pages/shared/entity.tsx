@@ -257,9 +257,8 @@ export const Entity = ({
    *
    * We only fetch it here when the entity is editable, so that the edit flow has
    * the links available in the editor subgraph. When the entity is readonly, the
-   * link tables fetch this data themselves (see `selfFetchLinks` below), keeping
-   * the main query (and the editor shell) independent of the entity's link
-   * volume.
+   * link tables fetch this data themselves (see `isReadOnly` below), keeping the
+   * main query (and the editor shell) independent of the entity's link volume.
    *
    * This starts `false` (we don't know the user's permissions until the first
    * response) and is set from the entity permissions in `onCompleted`. If the
@@ -320,10 +319,6 @@ export const Entity = ({
       setDraftLinksToCreate([]);
       setDraftLinksToArchive([]);
 
-      setIncludeLinkDataInQuery(
-        !!data.queryEntitySubgraph.entityPermissions?.[entityId]?.update,
-      );
-
       setLoading(false);
     },
     variables: {
@@ -350,7 +345,7 @@ export const Entity = ({
           /**
            * Incoming and outgoing links (and their source/target entities) are
            * only fetched here when the entity is editable. When readonly, the
-           * link tables fetch this data themselves (see `selfFetchLinks`).
+           * link tables fetch this data themselves (see `isReadOnly`).
            */
           ...(includeLinkDataInQuery
             ? ([
@@ -423,18 +418,6 @@ export const Entity = ({
     () => (dataFromDb ? getRoots(dataFromDb.entitySubgraph)[0] : null),
     [dataFromDb],
   );
-
-  /**
-   * Whether the link tables should fetch their own incoming/outgoing link data,
-   * rather than reading it from the editor subgraph.
-   *
-   * This is the case for readonly entities that are persisted in the database
-   * (i.e. not local drafts or Flow proposals, whose link data is contained in
-   * the provided subgraph). It mirrors `includeLinkDataInQuery`: the link tables
-   * self-fetch exactly when the main query omits the link data.
-   */
-  const selfFetchLinks =
-    !draftLocalEntity && !proposedEntitySubgraph && !includeLinkDataInQuery;
 
   const resetDraftState = () => {
     setIsDirty(false);
@@ -603,7 +586,7 @@ export const Entity = ({
       {isQueryEntity && shouldShowQueryEditor ? (
         <QueryEditor
           {...draftEntityTypesDetails}
-          selfFetchLinks={selfFetchLinks}
+          selfFetchLinks={true}
           draftLinksToCreate={draftLinksToCreate}
           draftLinksToArchive={draftLinksToArchive}
           entityLabel={entityLabel}
@@ -728,7 +711,7 @@ export const Entity = ({
             <EntityEditor
               defaultOutgoingLinkFilters={defaultOutgoingLinkFilters}
               {...draftEntityTypesDetails}
-              selfFetchLinks={selfFetchLinks}
+              selfFetchLinks={true}
               draftLinksToCreate={draftLinksToCreate}
               draftLinksToArchive={draftLinksToArchive}
               entityLabel={entityLabel}
