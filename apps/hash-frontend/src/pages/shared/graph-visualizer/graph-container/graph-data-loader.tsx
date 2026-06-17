@@ -47,6 +47,10 @@ export const GraphDataLoader = memo(({ edges, nodes }: GraphLoaderProps) => {
         !!node.icon?.startsWith("https://") ||
         node.icon?.startsWith("/");
 
+      const imageUrl = node.icon?.startsWith("/")
+        ? new URL(node.icon, window.location.origin).href
+        : node.icon;
+
       graph.addNode(node.nodeId, {
         borderColor: node.borderColor ?? node.color,
         /**
@@ -58,7 +62,7 @@ export const GraphDataLoader = memo(({ edges, nodes }: GraphLoaderProps) => {
         x: index % 20,
         y: Math.floor(index / 20),
         iconColor: customColors.gray[10],
-        image: node.icon,
+        image: imageUrl,
         label: node.label,
         nodeId: node.nodeId,
         nodeTypeId: node.nodeTypeId,
