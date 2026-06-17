@@ -4,7 +4,10 @@
  *
  * This script mirrors the structure of `seed-flow-test-types.ts`: it creates a
  * graph of property types, link entity types and entity types under the `@h`
- * web, and then populates them with entities.
+ * web (where they are globally readable), and then populates them with
+ * entities owned by the existing `example-org` web — created as the org owner
+ * (`alice`) so that all members of that org (`alice`, `bob01`,
+ * `instance-admin`) can see them.
  *
  * The data is *generated* with faker rather than drawn from real businesses,
  * but is shaped to look like a real book of business. Three cohorts are
@@ -71,6 +74,7 @@ import {
   createOrg,
   getOrgByShortname,
 } from "../graph/knowledge/system-types/org";
+import { getUser } from "../graph/knowledge/system-types/user";
 import { createEntityType } from "../graph/ontology/primitive/entity-type";
 import { createPropertyType } from "../graph/ontology/primitive/property-type";
 import { logger } from "../logger";
@@ -417,6 +421,44 @@ const seedCrmData = async () => {
     });
   }
   const webId = org.webId;
+
+  /*
+   * Types are created (above, by the `@h` machine actor) in the `@h` web, where
+   * they are globally readable. The *entities*, however, are created in the
+   * existing `example-org` web and owned by it, so that all members of that org
+   * (the seeded `alice`, `bob01` and `instance-admin` users) can see them.
+   *
+   * We act as the org owner (`alice`) with a user-actor context, mirroring how
+   * `seedOrgsAndUsers` seeds pages into the org web. Org membership confers view
+   * access on web-owned entities, so no per-entity policies are required.
+   */
+  const orgOwner = await getUser(context, authentication, {
+    shortname: "alice",
+  });
+  if (!orgOwner) {
+    throw new Error(
+      'Seeded user "alice" not found — run the dev environment (which seeds users and the example org) before seeding CRM data.',
+    );
+  }
+
+  const exampleOrg = await getOrgByShortname(context, authentication, {
+    shortname: "example-org",
+  });
+  if (!exampleOrg) {
+    throw new Error(
+      'Org "example-org" not found — run the dev environment (which seeds users and the example org) before seeding CRM data.',
+    );
+  }
+
+  const memberAuthentication = { actorId: orgOwner.accountId };
+  const memberContext = {
+    graphApi,
+    provenance: {
+      actorType: "user",
+      origin: { type: "api" },
+    } satisfies ProvidedEntityEditionProvenance,
+  };
+  const entityWebId = exampleOrg.webId;
 
   /* ---------------------------------------------------------------------- */
   /*  Data types used by the CRM domain.                                    */
@@ -1148,13 +1190,15 @@ const seedCrmData = async () => {
     outgoingLinks: LinkSpec[] = [],
     draft = false,
   ) =>
-    createEntity(context, authentication, {
-      webId,
+    // Entities are owned by the example-org web and created as the org owner,
+    // so all members of the org can see them.
+    createEntity(memberContext, memberAuthentication, {
+      webId: entityWebId,
       entityTypeIds: [entityTypeId] as never,
       properties: { value: properties },
       draft,
       outgoingLinks: outgoingLinks.map((spec) => ({
-        webId,
+        webId: entityWebId,
         entityTypeIds: [spec.linkTypeId] as never,
         properties: { value: spec.properties ?? {} },
         linkData: { rightEntityId: spec.rightEntityId },
