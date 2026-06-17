@@ -5,6 +5,7 @@
     "outDir": "dist",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
-    "paths": {}
+    "paths": {},
+    "rootDir": "src"
   }
 }

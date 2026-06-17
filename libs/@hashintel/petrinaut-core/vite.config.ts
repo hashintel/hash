@@ -64,6 +64,11 @@ export default defineConfig(({ command }) => ({
       external: ["typescript"],
     }),
 
+    // The `enforce: "pre"` remap below is still required in Vite 8, despite
+    // upstream recommending `oxc: { exclude }` instead (sxzz/rolldown-plugin-dts#201):
+    // tested 2026-06-12 with vite 8.0.16 + rolldown-plugin-dts 0.25.2, the
+    // exclude-based setup silently emits dts chunks without their local
+    // declarations (e.g. `index.d.d.ts` went missing entirely).
     command === "build" &&
       dts({ tsgo: true }).map((plugin) =>
         plugin.name.endsWith("fake-js")

@@ -40,6 +40,6 @@
   "devDependencies": {
     "@local/tsconfig": "workspace:*",
     "@rust/hash-codegen": "workspace:*",
-    "typescript": "5.9.3"
+    "typescript": "6.0.3"
   }
 }

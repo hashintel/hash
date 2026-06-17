@@ -8,6 +8,8 @@
     "lib": ["es2024"],
     "module": "esnext",
     "moduleResolution": "node",
+    "ignoreDeprecations": "6.0",
+    "types": ["node"],
     "noFallthroughCasesInSwitch": true,
     "noUncheckedIndexedAccess": true,
     "resolveJsonModule": true,
@@ -44,8 +46,7 @@
       "@local/effect-dns-hickory": ["../effect-dns/hickory/dist/index.ts"],
       "@local/eslint": ["../eslint/src/index.ts"],
       "@local/eslint/*": ["../eslint/src/*/index.ts"]
-    },
-    "outDir": "./dist"
+    }
   },
   "ts-node": {
     "transpileOnly": true

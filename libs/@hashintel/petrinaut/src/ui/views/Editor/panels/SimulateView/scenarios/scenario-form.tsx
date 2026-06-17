@@ -628,6 +628,7 @@ const ScenarioFormSections = ({
           </label>
           <textarea
             id={`${idPrefix}scenario-description`}
+            aria-label="Description"
             className={textareaStyle}
             value={state.description}
             onChange={(e) => callbacks.onDescriptionChange(e.target.value)}

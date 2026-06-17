@@ -622,6 +622,7 @@ export const Spreadsheet: React.FC<SpreadsheetProps> = ({
                           ) : isEditing ? (
                             <input
                               ref={inputRef}
+                              aria-label="Cell value"
                               type="number"
                               value={editingValue}
                               onChange={(event) =>

@@ -413,6 +413,7 @@ const SearchTitle: React.FC = () => {
   return (
     <input
       ref={searchInputRef}
+      aria-label="Search"
       type="text"
       placeholder="Find anything…"
       className={searchInputStyle}
