@@ -7,8 +7,9 @@ import {
   useState,
 } from "react";
 
-import { css, cx } from "@hashintel/ds-helpers/css";
+import { cx } from "@hashintel/ds-helpers/css";
 
+import { styles } from "./scroll-hint.recipe";
 import { useAvoidScrollWidthChange } from "./use-avoid-scroll-width-change";
 
 export interface ScrollHintProps {
@@ -47,12 +48,6 @@ const fadeSize = 24;
 
 /** Tolerance, in pixels, for treating a scroll position as "at the edge". */
 const edgeTolerance = 1;
-
-const rootStyle = css({
-  position: "relative",
-  minHeight: "0",
-  minWidth: "0",
-});
 
 /**
  * Build the `mask-image` that fades out content at any edge with more to
@@ -173,21 +168,26 @@ export const ScrollHint = ({
 
   const hasFade = edges.top || edges.bottom || edges.left || edges.right;
 
-  const style: CSSProperties = {
-    overflowX: horizontal ? "auto" : undefined,
-    overflowY: vertical ? "auto" : undefined,
-  };
+  // The fade gradient depends on which edges currently overflow, so it is
+  // computed per render and applied inline; the static styling (overflow,
+  // positioning, mask compositing) lives in the recipe.
+  const style: CSSProperties = {};
 
   if (hasFade) {
     const mask = buildMask(edges);
     style.maskImage = mask;
     style.WebkitMaskImage = mask;
-    style.maskComposite = "intersect";
-    style.WebkitMaskComposite = "source-in";
   }
 
   return (
-    <div ref={scrollRef} className={cx(rootStyle, className)} style={style}>
+    <div
+      ref={scrollRef}
+      className={cx(
+        styles({ vertical: !!vertical, horizontal: !!horizontal, hasFade }),
+        className,
+      )}
+      style={style}
+    >
       {children}
     </div>
   );
