@@ -5,6 +5,7 @@ import { useCallback, useState } from "react";
 import {
   getOutgoingLinkAndTargetEntities,
   getOutgoingLinksForEntity,
+  getRightEntityForLinkEntity,
 } from "@blockprotocol/graph/stdlib";
 import { Chip, FontAwesomeIcon, IconButton } from "@hashintel/design-system";
 
@@ -12,7 +13,6 @@ import { Grid } from "../../../../../components/grid/grid";
 import { createRenderChipCell } from "../../../chip-cell";
 import { SectionWrapper } from "../../../section-wrapper";
 import { LinksSectionEmptyState } from "../../shared/links-section-empty-state";
-import { useEntityEditor } from "../entity-editor-context";
 import { renderSummaryChipCell } from "../shared/summary-chip-cell";
 import { renderLinkCell } from "./outgoing-links-section/cells/link-cell";
 import { renderLinkedWithCell } from "./outgoing-links-section/cells/linked-with-cell";
@@ -23,37 +23,72 @@ import { useRows } from "./outgoing-links-section/use-rows";
 import { useEntityLinks } from "./use-entity-links";
 
 import type { SortGridRows } from "../../../../../components/grid/grid";
+import type { EntityEditorProps } from "../../entity-editor";
 import type {
   LinkColumn,
   LinkColumnKey,
   LinkRow,
 } from "./outgoing-links-section/types";
+import type { LinkEntityAndRightEntity } from "@blockprotocol/graph";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
+
+type OutgoingLinksSectionProps = Pick<
+  EntityEditorProps,
+  | "closedMultiEntityType"
+  | "closedMultiEntityTypesDefinitions"
+  | "customEntityLinksColumns"
+  | "defaultOutgoingLinkFilters"
+  | "draftLinksToArchive"
+  | "draftLinksToCreate"
+  | "entitySubgraph"
+  | "linkAndDestinationEntitiesClosedMultiEntityTypesMap"
+  | "onEntityClick"
+  | "onTypeClick"
+  | "readonly"
+  | "selfFetchLinks"
+  | "setDraftLinksToArchive"
+  | "setDraftLinksToCreate"
+  | "slideContainerRef"
+> & {
+  entity: HashEntity;
+  isLinkEntity: boolean;
+};
 
 export const OutgoingLinksSection = ({
+  closedMultiEntityType,
+  closedMultiEntityTypesDefinitions: editorDefinitions,
+  customEntityLinksColumns,
+  defaultOutgoingLinkFilters,
+  draftLinksToArchive,
+  draftLinksToCreate,
+  entity,
+  entitySubgraph: editorSubgraph,
   isLinkEntity,
-}: {
-  isLinkEntity: boolean;
-}) => {
+  linkAndDestinationEntitiesClosedMultiEntityTypesMap: editorTypesMap,
+  onEntityClick,
+  onTypeClick,
+  readonly,
+  selfFetchLinks,
+  setDraftLinksToArchive,
+  setDraftLinksToCreate,
+  slideContainerRef,
+}: OutgoingLinksSectionProps) => {
   const [showSearch, setShowSearch] = useState(false);
 
-  const {
-    closedMultiEntityTypesDefinitions: editorDefinitions,
-    draftLinksToArchive,
-    entity,
-    entitySubgraph: editorSubgraph,
-    linkAndDestinationEntitiesClosedMultiEntityTypesMap: editorTypesMap,
-    readonly,
-    selfFetchLinks,
-  } = useEntityEditor();
-
   /**
-   * When the entity is readonly we fetch the link data here, so that it does not
-   * need to be part of the main entity query. When editable, the link data is
-   * part of the editor subgraph (so adding/removing/saving links is unchanged).
+   * When the entity is readonly we fetch the link data here (paginated), so it
+   * does not need to be part of the main entity query. When editable, the link
+   * data is part of the editor subgraph (so adding/removing/saving is
+   * unchanged) and is not paginated.
    */
   const {
-    loading,
-    linksSubgraph,
+    initialLoading,
+    loadingMore,
+    loadMore,
+    hasMore,
+    count: fetchedCount,
+    linkEntities,
+    subgraph: fetchedSubgraph,
     linkAndDestinationEntitiesClosedMultiEntityTypesMap: fetchedTypesMap,
     closedMultiEntityTypesDefinitions: fetchedDefinitions,
   } = useEntityLinks({
@@ -62,8 +97,23 @@ export const OutgoingLinksSection = ({
     skip: !selfFetchLinks,
   });
 
-  const rows = useRows();
-  const createGetCellContent = useCreateGetCellContent();
+  const rows = useRows({
+    closedMultiEntityType,
+    closedMultiEntityTypesDefinitions: editorDefinitions,
+    draftLinksToArchive,
+    draftLinksToCreate,
+    entity,
+    entitySubgraph: editorSubgraph,
+    linkAndDestinationEntitiesClosedMultiEntityTypesMap: editorTypesMap,
+    onEntityClick,
+    readonly,
+    setDraftLinksToArchive,
+    setDraftLinksToCreate,
+  });
+  const createGetCellContent = useCreateGetCellContent({
+    readonly,
+    onTypeClick,
+  });
 
   const sortRows = useCallback<
     SortGridRows<LinkRow, LinkColumn, LinkColumnKey>
@@ -91,7 +141,10 @@ export const OutgoingLinksSection = ({
     });
   }, []);
 
-  if (selfFetchLinks && (loading || !linksSubgraph || !fetchedDefinitions)) {
+  if (
+    selfFetchLinks &&
+    (initialLoading || !linkEntities || !fetchedSubgraph || !fetchedDefinitions)
+  ) {
     return (
       <SectionWrapper title="Outgoing Links">
         <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
@@ -101,7 +154,7 @@ export const OutgoingLinksSection = ({
     );
   }
 
-  const entitySubgraph = selfFetchLinks ? linksSubgraph! : editorSubgraph;
+  const entitySubgraph = selfFetchLinks ? fetchedSubgraph! : editorSubgraph;
   const closedMultiEntityTypesMap = selfFetchLinks
     ? (fetchedTypesMap ?? null)
     : editorTypesMap;
@@ -109,17 +162,27 @@ export const OutgoingLinksSection = ({
     ? fetchedDefinitions!
     : editorDefinitions;
 
-  const outgoingLinks = getOutgoingLinksForEntity(
-    entitySubgraph,
-    entity.metadata.recordId.entityId,
-    entity.metadata.temporalVersioning[
-      entitySubgraph.temporalAxes.resolved.variable.axis
-    ],
-  ).filter(
-    (outgoingLink) => !draftLinksToArchive.includes(outgoingLink.entityId),
-  );
+  /**
+   * When paginated, the link count comes from the query; otherwise it is the
+   * number of outgoing links in the editor subgraph (minus any draft removals).
+   */
+  const outgoingLinks = selfFetchLinks
+    ? null
+    : getOutgoingLinksForEntity(
+        entitySubgraph,
+        entity.metadata.recordId.entityId,
+        entity.metadata.temporalVersioning[
+          entitySubgraph.temporalAxes.resolved.variable.axis
+        ],
+      ).filter(
+        (outgoingLink) => !draftLinksToArchive.includes(outgoingLink.entityId),
+      );
 
-  if (outgoingLinks.length === 0 && isLinkEntity) {
+  const linkCount = selfFetchLinks
+    ? (fetchedCount ?? linkEntities!.length)
+    : outgoingLinks!.length;
+
+  if (linkCount === 0 && isLinkEntity) {
     /**
      * We don't show the links tables for link entities unless they have some links already set,
      * because we don't yet fully support linking to/from links in the UI.
@@ -128,15 +191,25 @@ export const OutgoingLinksSection = ({
     return null;
   }
 
-  const outgoingLinksAndTargets = readonly
-    ? getOutgoingLinkAndTargetEntities(
-        entitySubgraph,
-        entity.metadata.recordId.entityId,
-        entity.metadata.temporalVersioning[
-          entitySubgraph.temporalAxes.resolved.variable.axis
-        ],
-      )
-    : null;
+  let outgoingLinksAndTargets: LinkEntityAndRightEntity[] | null = null;
+  if (readonly) {
+    outgoingLinksAndTargets = selfFetchLinks
+      ? linkEntities!.map((linkEntity) => ({
+          linkEntity: [linkEntity],
+          rightEntity:
+            getRightEntityForLinkEntity(
+              entitySubgraph,
+              linkEntity.metadata.recordId.entityId,
+            ) ?? [],
+        }))
+      : getOutgoingLinkAndTargetEntities(
+          entitySubgraph,
+          entity.metadata.recordId.entityId,
+          entity.metadata.temporalVersioning[
+            entitySubgraph.temporalAxes.resolved.variable.axis
+          ],
+        );
+  }
 
   return (
     <SectionWrapper
@@ -146,9 +219,7 @@ export const OutgoingLinksSection = ({
         <Stack direction="row" spacing={1.5}>
           <Chip
             size="xs"
-            label={`${outgoingLinks.length} ${
-              outgoingLinks.length === 1 ? "link" : "links"
-            }`}
+            label={`${linkCount} ${linkCount === 1 ? "link" : "links"}`}
           />
           {!!rows.length && (
             <Stack direction="row" spacing={0.5}>
@@ -188,8 +259,15 @@ export const OutgoingLinksSection = ({
         <OutgoingLinksTable
           closedMultiEntityTypesDefinitions={closedMultiEntityTypesDefinitions}
           closedMultiEntityTypesMap={closedMultiEntityTypesMap}
+          customEntityLinksColumns={customEntityLinksColumns}
+          defaultOutgoingLinkFilters={defaultOutgoingLinkFilters}
           entitySubgraph={entitySubgraph}
+          loadingMore={selfFetchLinks ? loadingMore : undefined}
+          onEndReached={selfFetchLinks && hasMore ? loadMore : undefined}
+          onEntityClick={onEntityClick}
+          onTypeClick={onTypeClick}
           outgoingLinksAndTargets={outgoingLinksAndTargets}
+          slideContainerRef={slideContainerRef}
         />
       ) : (
         <LinksSectionEmptyState direction="Outgoing" />

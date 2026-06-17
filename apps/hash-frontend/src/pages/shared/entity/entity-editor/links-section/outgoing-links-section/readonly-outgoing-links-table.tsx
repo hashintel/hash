@@ -26,7 +26,6 @@ import { VirtualizedTable } from "../../../../virtualized-table";
 import { virtualizedTableHeaderHeight } from "../../../../virtualized-table/header";
 import { isValueIncludedInFilter } from "../../../../virtualized-table/header/filter";
 import { useVirtualizedTableFilterState } from "../../../../virtualized-table/use-filter-state";
-import { useEntityEditor } from "../../entity-editor-context";
 import { PropertiesTooltip } from "../shared/properties-tooltip";
 import {
   linksTableCellSx,
@@ -64,7 +63,7 @@ import type {
   ClosedMultiEntityTypesDefinitions,
   ClosedMultiEntityTypesRootMap,
 } from "@local/hash-graph-sdk/ontology";
-import type { ReactElement } from "react";
+import type { ReactElement, RefObject } from "react";
 
 type OutgoingLinksFieldId = "linkTypes" | "linkedTo" | "linkedToTypes" | "link";
 
@@ -131,6 +130,7 @@ type OutgoingLinkRow = {
   onEntityClick: (entityId: EntityId) => void;
   onTypeClick: (kind: "dataType" | "entityType", itemId: VersionedUrl) => void;
   customFields: { [fieldId: string]: string | number };
+  slideContainerRef?: RefObject<HTMLDivElement | null>;
 };
 
 const TableRow = memo(({ row }: { row: OutgoingLinkRow }) => {
@@ -171,6 +171,7 @@ const TableRow = memo(({ row }: { row: OutgoingLinkRow }) => {
         <PropertiesTooltip
           entityType="target entity"
           properties={row.targetEntityProperties}
+          slideContainerRef={row.slideContainerRef}
         >
           <ClickableCellChip
             onClick={() =>
@@ -218,6 +219,7 @@ const TableRow = memo(({ row }: { row: OutgoingLinkRow }) => {
         <PropertiesTooltip
           entityType="link entity"
           properties={row.linkEntityProperties}
+          slideContainerRef={row.slideContainerRef}
         >
           <ClickableCellChip
             onClick={() =>
@@ -250,16 +252,30 @@ const createRowContent: CreateVirtualizedRowContentFn<
 type OutgoingLinksTableProps = {
   closedMultiEntityTypesDefinitions: ClosedMultiEntityTypesDefinitions;
   closedMultiEntityTypesMap: ClosedMultiEntityTypesRootMap | null;
+  customEntityLinksColumns?: CustomEntityLinksColumn[];
+  defaultOutgoingLinkFilters?: Partial<OutgoingLinksFilterValues>;
   entitySubgraph: Subgraph<EntityRootType<HashEntity>>;
+  loadingMore?: boolean;
+  onEndReached?: () => void;
+  onEntityClick: (entityId: EntityId) => void;
+  onTypeClick: (kind: "dataType" | "entityType", itemId: VersionedUrl) => void;
   outgoingLinksAndTargets: LinkEntityAndRightEntity[];
+  slideContainerRef?: RefObject<HTMLDivElement | null>;
 };
 
 export const OutgoingLinksTable = memo(
   ({
     closedMultiEntityTypesDefinitions,
     closedMultiEntityTypesMap,
+    customEntityLinksColumns: customColumns,
+    defaultOutgoingLinkFilters,
     entitySubgraph,
+    loadingMore,
+    onEndReached,
+    onEntityClick,
+    onTypeClick,
     outgoingLinksAndTargets,
+    slideContainerRef,
   }: OutgoingLinksTableProps) => {
     const [sort, setSort] = useState<
       VirtualizedTableSort<OutgoingLinksFieldId>
@@ -267,13 +283,6 @@ export const OutgoingLinksTable = memo(
       fieldId: "linkedTo",
       direction: "asc",
     });
-
-    const {
-      customEntityLinksColumns: customColumns,
-      defaultOutgoingLinkFilters,
-      onEntityClick,
-      onTypeClick,
-    } = useEntityEditor();
 
     const outputContainerRef = useRef<HTMLDivElement>(null);
     const [outputContainerHeight, setOutputContainerHeight] = useState(400);
@@ -475,6 +484,7 @@ export const OutgoingLinksTable = memo(
             linkEntityProperties,
             onEntityClick,
             onTypeClick,
+            slideContainerRef,
             targetEntity: rightEntity,
             targetEntityLabel: rightEntityLabel,
             targetEntityProperties,
@@ -513,6 +523,7 @@ export const OutgoingLinksTable = memo(
       outgoingLinksAndTargets,
       onEntityClick,
       onTypeClick,
+      slideContainerRef,
     ]);
 
     const [highlightOutgoingLinks, setHighlightOutgoingLinks] = useState(
@@ -675,6 +686,8 @@ export const OutgoingLinksTable = memo(
           createRowContent={createRowContent}
           filterDefinitions={filterDefinitions}
           filterValues={filterValues}
+          loadingMore={loadingMore}
+          onEndReached={onEndReached}
           setFilterValues={setFilterValues}
           rows={rows}
           sort={sort}

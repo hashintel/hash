@@ -2,6 +2,7 @@ import { Box, Stack, TableCell, Typography } from "@mui/material";
 import {
   memo,
   type ReactElement,
+  type RefObject,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -26,7 +27,6 @@ import { VirtualizedTable } from "../../../../virtualized-table";
 import { virtualizedTableHeaderHeight } from "../../../../virtualized-table/header";
 import { isValueIncludedInFilter } from "../../../../virtualized-table/header/filter";
 import { useVirtualizedTableFilterState } from "../../../../virtualized-table/use-filter-state";
-import { useEntityEditor } from "../../entity-editor-context";
 import { PropertiesTooltip } from "../shared/properties-tooltip";
 import {
   linksTableCellSx,
@@ -34,6 +34,7 @@ import {
   linksTableRowHeight,
   maxLinksTableHeight,
 } from "../shared/table-styling";
+import { linksTablePageSize } from "../use-entity-links";
 
 import type {
   CreateVirtualizedRowContentFn,
@@ -47,6 +48,7 @@ import type {
   VirtualizedTableFilterValuesByFieldId,
 } from "../../../../virtualized-table/header/filter";
 import type { VirtualizedTableSort } from "../../../../virtualized-table/header/sort";
+import type { DraftLinksToArchive } from "../../../shared/use-draft-link-state";
 import type { CustomEntityLinksColumn } from "../../shared/types";
 import type {
   EntityRootType,
@@ -127,10 +129,12 @@ type IncomingLinkRow = {
   onEntityClick: (entityId: EntityId) => void;
   onTypeClick: (kind: "dataType" | "entityType", itemId: VersionedUrl) => void;
   customFields: { [fieldId: string]: string | number };
+  entityLabel: string;
+  slideContainerRef?: RefObject<HTMLDivElement | null>;
 };
 
 const TableRow = memo(({ row }: { row: IncomingLinkRow }) => {
-  const { entityLabel } = useEntityEditor();
+  const { entityLabel } = row;
 
   const customCells: ReactElement[] = [];
   for (const [fieldId, value] of typedEntries(row.customFields)) {
@@ -147,6 +151,7 @@ const TableRow = memo(({ row }: { row: IncomingLinkRow }) => {
         <PropertiesTooltip
           entityType="source entity"
           properties={row.sourceEntityProperties}
+          slideContainerRef={row.slideContainerRef}
         >
           <ClickableCellChip
             onClick={() =>
@@ -232,6 +237,7 @@ const TableRow = memo(({ row }: { row: IncomingLinkRow }) => {
         <PropertiesTooltip
           entityType="link entity"
           properties={row.linkEntityProperties}
+          slideContainerRef={row.slideContainerRef}
         >
           <ClickableCellChip
             onClick={() => row.onEntityClick(row.linkEntity.entityId)}
@@ -254,36 +260,71 @@ const TableRow = memo(({ row }: { row: IncomingLinkRow }) => {
   );
 });
 
+/**
+ * A placeholder row standing in for a link that is part of the total count but
+ * has not yet been fetched. These pad the scroll content out to the total link
+ * count so the scrollbar reflects the full set, not just the loaded rows.
+ */
+type PlaceholderRow = { placeholder: true };
+
+type IncomingLinkRowOrPlaceholder = IncomingLinkRow | PlaceholderRow;
+
 const createRowContent: CreateVirtualizedRowContentFn<
-  IncomingLinkRow,
+  IncomingLinkRowOrPlaceholder,
   FieldId
-> = (_index, row) => <TableRow row={row.data} />;
+> = (_index, row, { columns }) =>
+  "placeholder" in row.data ? (
+    <>
+      {columns.map((column) => (
+        <TableCell key={column.id} sx={linksTableCellSx} />
+      ))}
+    </>
+  ) : (
+    <TableRow row={row.data} />
+  );
 
 type IncomingLinksTableProps = {
   closedMultiEntityTypesDefinitions: ClosedMultiEntityTypesDefinitions;
   closedMultiEntityTypesMap: ClosedMultiEntityTypesRootMap | null;
+  customEntityLinksColumns?: CustomEntityLinksColumn[];
+  draftLinksToArchive: DraftLinksToArchive;
+  entityLabel: string;
   entitySubgraph: Subgraph<EntityRootType<HashEntity>>;
   incomingLinksAndSources: LinkEntityAndLeftEntity[];
+  loadingMore?: boolean;
+  onEndReached?: () => void;
+  onEntityClick: (entityId: EntityId) => void;
+  onTypeClick: (kind: "dataType" | "entityType", itemId: VersionedUrl) => void;
+  slideContainerRef?: RefObject<HTMLDivElement | null>;
+  /**
+   * The total number of links matching the query, including those not yet
+   * loaded. When greater than the number of loaded links, the scroll content is
+   * padded with up to one page of placeholder rows so the scrollbar extends
+   * slightly past the loaded rows to indicate there is more to load.
+   */
+  totalLinkCount?: number;
 };
 
 export const IncomingLinksTable = memo(
   ({
     closedMultiEntityTypesDefinitions,
     closedMultiEntityTypesMap,
+    customEntityLinksColumns: customColumns,
+    draftLinksToArchive,
+    entityLabel,
     entitySubgraph,
     incomingLinksAndSources,
+    loadingMore,
+    onEndReached,
+    onEntityClick,
+    onTypeClick,
+    slideContainerRef,
+    totalLinkCount,
   }: IncomingLinksTableProps) => {
     const [sort, setSort] = useState<VirtualizedTableSort<FieldId>>({
       fieldId: "linkedFrom",
       direction: "asc",
     });
-
-    const {
-      customEntityLinksColumns: customColumns,
-      draftLinksToArchive,
-      onEntityClick,
-      onTypeClick,
-    } = useEntityEditor();
 
     const outputContainerRef = useRef<HTMLDivElement>(null);
     const [outputContainerHeight, setOutputContainerHeight] = useState(400);
@@ -485,11 +526,13 @@ export const IncomingLinksTable = memo(
                 inverse: type.inverse,
               };
             }),
+            entityLabel,
             linkEntity,
             linkEntityLabel,
             linkEntityProperties,
             onEntityClick,
             onTypeClick,
+            slideContainerRef,
             sourceEntity: leftEntity,
             sourceEntityLabel: leftEntityLabel,
             sourceEntityProperties,
@@ -525,10 +568,12 @@ export const IncomingLinksTable = memo(
       closedMultiEntityTypesMap,
       customColumns,
       draftLinksToArchive,
+      entityLabel,
       entitySubgraph,
       incomingLinksAndSources,
       onEntityClick,
       onTypeClick,
+      slideContainerRef,
     ]);
 
     const [filterValues, setFilterValues] = useVirtualizedTableFilterState({
@@ -651,9 +696,46 @@ export const IncomingLinksTable = memo(
       [filterValues, sort, unsortedRows],
     );
 
+    /**
+     * Pad the scroll content with placeholder rows for not-yet-loaded links, so
+     * the scrollbar extends a little beyond the loaded rows to indicate there is
+     * more to load. These fill in as further pages load while scrolling (see
+     * `onRangeChange` below).
+     *
+     * The padding is capped at a single page rather than the full remaining
+     * total: because the query only supports sequential (cursor) pagination, we
+     * can't load an arbitrary middle window, so we don't allow scrolling far
+     * past the loaded rows.
+     */
+    const placeholderCount =
+      totalLinkCount === undefined
+        ? 0
+        : Math.min(
+            linksTablePageSize,
+            Math.max(0, totalLinkCount - incomingLinksAndSources.length),
+          );
+
+    const paddedRows = useMemo<
+      VirtualizedTableRow<IncomingLinkRowOrPlaceholder>[]
+    >(
+      () =>
+        placeholderCount === 0
+          ? rows
+          : [
+              ...rows,
+              ...Array.from({ length: placeholderCount }, (_, index) => ({
+                id: `placeholder-${index}`,
+                data: { placeholder: true } as const,
+              })),
+            ],
+      [placeholderCount, rows],
+    );
+
     const height = Math.min(
       maxLinksTableHeight,
-      rows.length * linksTableRowHeight + virtualizedTableHeaderHeight + 2,
+      paddedRows.length * linksTableRowHeight +
+        virtualizedTableHeaderHeight +
+        2,
     );
 
     const columns = useMemo(() => {
@@ -666,6 +748,15 @@ export const IncomingLinksTable = memo(
       return createColumns(applicableCustomColumns ?? []);
     }, [filterValues, customColumns]);
 
+    /**
+     * Whether scrolling to the bottom may trigger a load of the next page. It is
+     * disarmed as soon as a load is triggered and only re-armed when the user
+     * starts scrolling again – so a single scroll to the bottom loads at most
+     * one page, and the user must scroll again to load more (rather than the
+     * table looping while the scroll position stays at the bottom).
+     */
+    const canLoadMoreRef = useRef(true);
+
     return (
       <Box sx={{ height }}>
         <VirtualizedTable
@@ -673,8 +764,32 @@ export const IncomingLinksTable = memo(
           createRowContent={createRowContent}
           filterDefinitions={filterDefinitions}
           filterValues={filterValues}
+          fixedItemHeight={linksTableRowHeight}
+          followOutput={false}
+          loadingMore={loadingMore}
+          onIsScrolling={(isScrolling) => {
+            if (isScrolling) {
+              canLoadMoreRef.current = true;
+            }
+          }}
+          onRangeChange={
+            onEndReached
+              ? ({ endIndex }) => {
+                  // Load the next page once the loaded rows scroll into view,
+                  // before the placeholder rows are reached.
+                  if (
+                    canLoadMoreRef.current &&
+                    !loadingMore &&
+                    endIndex >= rows.length - 1
+                  ) {
+                    canLoadMoreRef.current = false;
+                    onEndReached();
+                  }
+                }
+              : undefined
+          }
           setFilterValues={setFilterValues}
-          rows={rows}
+          rows={paddedRows}
           sort={sort}
           setSort={setSort}
         />
