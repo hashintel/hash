@@ -54,12 +54,10 @@ where
 
     let item = expander.visit(&mut value.value);
 
-    tracing::info!("item: {:?}, item: {:?}", name.value, item);
     let kind = item.filter(|item| !item.has_arguments).map_or(
         BindingKind::Local(hashql_core::module::Universe::Value),
         |item| BindingKind::Remote(item.item),
     );
-    tracing::info!("kind: {:?}", kind);
 
     expander.bind(name.value, kind, |expander| {
         expander.visit(&mut body.value);

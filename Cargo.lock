@@ -4079,7 +4079,6 @@ dependencies = [
  "hashql-core",
  "hashql-diagnostics",
  "simple-mermaid",
- "tracing",
 ]
 
 [[package]]
