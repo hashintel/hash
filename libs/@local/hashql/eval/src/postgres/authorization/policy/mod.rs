@@ -19,6 +19,9 @@ use type_system::{
 
 use crate::postgres::{parameters::AuxiliaryParameters, projections::AuxiliaryProjections};
 
+#[cfg(test)]
+mod tests;
+
 /// Checks whether the entity has a specific `(base_url, version)` type pair.
 ///
 /// ```sql

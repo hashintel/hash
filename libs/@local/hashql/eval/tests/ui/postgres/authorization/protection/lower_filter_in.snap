@@ -1,0 +1,6 @@
+---
+source: libs/@local/hashql/eval/src/postgres/authorization/protection/tests.rs
+description: "In(Parameter { parameter: Text(\"https://hash.ai/@h/types/entity-type/user/\") }, Path { path: TypeBaseUrls })"
+expression: expr.transpile_to_string()
+---
+$1 = ANY("entity_is_of_type_ids_0_0_1"."base_urls")

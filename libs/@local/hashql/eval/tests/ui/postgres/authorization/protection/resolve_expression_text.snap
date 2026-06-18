@@ -1,0 +1,6 @@
+---
+source: libs/@local/hashql/eval/src/postgres/authorization/protection/tests.rs
+description: "Parameter { parameter: Text(\"hello\") }"
+expression: expr.transpile_to_string()
+---
+$1
