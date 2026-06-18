@@ -1,0 +1,6 @@
+---
+source: libs/@local/hashql/eval/src/postgres/authorization/policy/tests.rs
+description: "Web { web_id: WebId(ActorGroupEntityUuid(EntityUuid(33333333-3333-3333-3333-333333333333))) }"
+expression: expr.transpile_to_string()
+---
+"entity_temporal_metadata_0_0_0"."web_id" = $1

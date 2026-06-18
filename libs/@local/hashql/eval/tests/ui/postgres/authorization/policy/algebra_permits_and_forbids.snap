@@ -1,0 +1,6 @@
+---
+source: libs/@local/hashql/eval/src/postgres/authorization/policy/tests.rs
+description: "[ResolvedPolicy { original_policy_id: PolicyId(c9a801c0-c283-423a-89d9-f123274646b3), effect: Permit, actions: [ViewEntity], resource: Some(Entity(Exact { id: EntityUuid(11111111-1111-1111-1111-111111111111) })) }, ResolvedPolicy { original_policy_id: PolicyId(425b625d-99ab-408c-86d2-681c4564080e), effect: Forbid, actions: [ViewEntity], resource: Some(Entity(Any { filter: IsOfType { entity_type: VersionedUrl { base_url: \"https://hash.ai/@h/types/entity-type/user/\", version: OntologyTypeVersion { major: 1, pre_release: None } } } })) }]"
+expression: result.condition.transpile_to_string()
+---
+(("entity_temporal_metadata_0_0_0"."entity_uuid" = $1)) AND (NOT((array_positions("entity_is_of_type_ids_0_0_1"."base_urls", $2) && array_positions("entity_is_of_type_ids_0_0_1"."versions", $3))))

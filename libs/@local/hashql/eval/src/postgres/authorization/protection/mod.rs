@@ -18,6 +18,9 @@ use type_system::{
 
 use crate::postgres::{parameters::AuxiliaryParameters, projections::AuxiliaryProjections};
 
+#[cfg(test)]
+mod tests;
+
 /// Resolves a query path to its backing column.
 fn resolve_path<A: Allocator>(
     unit: &mut ProtectionTranslationUnit<'_, A>,

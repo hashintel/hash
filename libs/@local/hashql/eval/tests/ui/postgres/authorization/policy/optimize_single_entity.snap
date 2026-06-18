@@ -1,0 +1,6 @@
+---
+source: libs/@local/hashql/eval/src/postgres/authorization/policy/tests.rs
+description: "OptimizationData { permitted_entity_uuids: [EntityUuid(11111111-1111-1111-1111-111111111111)], permitted_entity_type_uuids: [], permitted_property_type_uuids: [], permitted_data_type_uuids: [], permitted_web_ids: [] }"
+expression: "expr[0].transpile_to_string()"
+---
+"entity_temporal_metadata_0_0_0"."entity_uuid" = $1

@@ -1,0 +1,6 @@
+---
+source: libs/@local/hashql/eval/src/postgres/authorization/policy/tests.rs
+description: "Any { filters: [IsOfType { entity_type: VersionedUrl { base_url: \"https://hash.ai/@h/types/entity-type/user/\", version: OntologyTypeVersion { major: 1, pre_release: None } } }, IsOfType { entity_type: VersionedUrl { base_url: \"https://hash.ai/@h/types/entity-type/machine/\", version: OntologyTypeVersion { major: 2, pre_release: None } } }] }"
+expression: expr.transpile_to_string()
+---
+((array_positions("entity_is_of_type_ids_0_0_1"."base_urls", $1) && array_positions("entity_is_of_type_ids_0_0_1"."versions", $2)) OR (array_positions("entity_is_of_type_ids_0_0_1"."base_urls", $3) && array_positions("entity_is_of_type_ids_0_0_1"."versions", $4)))

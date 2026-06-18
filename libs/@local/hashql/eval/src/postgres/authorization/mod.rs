@@ -23,6 +23,8 @@ use super::{PatchPreparedQueryLayer, prepared::PatchContext};
 
 mod policy;
 mod protection;
+#[cfg(test)]
+mod tests;
 
 fn find_from_by_alias<'from, 'id>(
     from: &'from mut FromItem<'id>,
