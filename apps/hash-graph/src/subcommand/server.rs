@@ -421,6 +421,7 @@ async fn start_server<S>(
     compiler: Arc<CompilerContext>,
     config: ServerConfig,
     query_logger: Option<QueryLogger>,
+    filter_protection: Arc<PropertyProtectionFilterConfig<'static>>,
     lifecycle: &ServerLifecycle,
 ) -> Result<(), Report<GraphError>>
 where
@@ -455,6 +456,7 @@ where
         query_logger,
         api_config: config.api_config,
         compiler,
+        filter_protection,
     });
     start_rest_server(router, config.http_address, lifecycle);
 
@@ -491,9 +493,9 @@ pub async fn server(mut args: ServerArgs) -> Result<(), Report<GraphError>> {
             validate_links: !args.config.skip_link_validation,
             skip_embedding_creation: args.config.skip_embedding_creation,
             filter_protection: if args.config.skip_filter_protection {
-                PropertyProtectionFilterConfig::new()
+                Arc::new(PropertyProtectionFilterConfig::new())
             } else {
-                PropertyProtectionFilterConfig::hash_default()
+                Arc::new(PropertyProtectionFilterConfig::hash_default())
             },
         },
     )
@@ -520,6 +522,8 @@ pub async fn server(mut args: ServerArgs) -> Result<(), Report<GraphError>> {
     if args.embed_type_fetcher {
         start_type_fetcher(args.type_fetcher.clone(), &lifecycle);
     }
+
+    let filter_protection = Arc::clone(&pool.settings.filter_protection);
 
     let pool = FetchingPool::new(
         pool,
@@ -554,7 +558,16 @@ pub async fn server(mut args: ServerArgs) -> Result<(), Report<GraphError>> {
         args.config.compiler.compiler_exec_pool_size.get(),
     ));
 
-    if let Err(error) = start_server(pool, compiler, args.config, query_logger, &lifecycle).await {
+    if let Err(error) = start_server(
+        pool,
+        compiler,
+        args.config,
+        query_logger,
+        filter_protection,
+        &lifecycle,
+    )
+    .await
+    {
         lifecycle.shutdown_and_wait().await;
         return Err(error);
     }

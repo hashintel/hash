@@ -47,7 +47,7 @@ use hash_graph_store::{
     data_type::DataTypeStore,
     entity::{DiffEntityParams, EntityStore},
     entity_type::EntityTypeStore,
-    filter::{ParameterConversion, Selector},
+    filter::{ParameterConversion, Selector, protection::PropertyProtectionFilterConfig},
     pool::StorePool,
     property_type::PropertyTypeStore,
     subgraph::{
@@ -545,6 +545,7 @@ where
     pub query_logger: Option<QueryLogger>,
     pub api_config: ApiConfig,
     pub compiler: Arc<hashql::CompilerContext>,
+    pub filter_protection: Arc<PropertyProtectionFilterConfig<'static>>,
 }
 
 /// A [`Router`] that only serves the `OpenAPI` specification (JSON, and necessary subschemas) for
@@ -593,7 +594,8 @@ where
         .layer(Extension(dependencies.embedding_client))
         .layer(Extension(dependencies.domain_regex))
         .layer(Extension(dependencies.api_config))
-        .layer(Extension(dependencies.compiler));
+        .layer(Extension(dependencies.compiler))
+        .layer(Extension(dependencies.filter_protection));
 
     if let Some(query_logger) = dependencies.query_logger {
         router = router.layer(Extension(query_logger));
