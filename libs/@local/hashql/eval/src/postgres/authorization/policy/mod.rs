@@ -157,6 +157,13 @@ fn convert_entity_resource_filter<A: Allocator + Clone>(
 ///
 /// Non-entity resource types (entity types, property types, data types, meta)
 /// produce `FALSE` since they cannot match entity rows.
+///
+/// All referenced columns (`entity_uuid`, `web_id`, `provenance`,
+/// `base_urls`) are NOT NULL in the schema, so the generated
+/// predicates are two-valued. If nullable columns were ever
+/// referenced, forbid negation (`NOT expr`) would need
+/// `expr IS NOT TRUE` to remain fail-closed under SQL
+/// three-valued logic.
 fn convert_resource_constraint<A: Allocator + Clone>(
     unit: &mut PolicyTranslationUnit<'_, A>,
     constraint: &ResourceConstraint,

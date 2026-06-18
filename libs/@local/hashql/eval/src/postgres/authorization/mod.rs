@@ -95,6 +95,20 @@ fn find_from_by_alias<'from, 'id>(
     }
 }
 
+/// Patch layer that grafts actor-specific authorization onto a compiled query.
+///
+/// Adds two kinds of runtime conditions:
+///
+/// - **Policy admission**: permit/forbid conditions appended to WHERE.
+/// - **Property masking**: CASE WHEN expressions grafted into the `entity_editions` LATERAL
+///   subquery, stripping protected property keys from `properties` and `property_metadata`.
+///
+/// This layer must be the innermost in the [`PreparedQueryPatch`] pipeline.
+/// It locates the `entity_editions` LATERAL by the alias assigned during
+/// compilation. If an outer layer were to introduce its own `entity_editions`,
+/// the graft would patch the wrong node and masking would be bypassed.
+///
+/// [`PreparedQueryPatch`]: super::PreparedQueryPatch
 pub struct AuthorizationPatch<'policy, 'path> {
     policy: &'policy PolicyComponents,
     properties: &'policy PropertyProtectionFilterConfig<'path>,
