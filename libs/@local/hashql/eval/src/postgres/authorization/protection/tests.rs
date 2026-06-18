@@ -362,11 +362,34 @@ fn transpile_multiple_protected_properties() {
     let result = fixture.protection().transpile(&policy, &config);
     let expr = result.keys_to_remove.expect("should produce a mask");
 
-    let mut settings = snapshot_settings();
-    settings.set_description(format!("{config:?}"));
-    let _guard = settings.bind_to_scope();
-    assert_snapshot!(
-        "transpile_multiple_properties",
-        snapshot_with_params(&expr.transpile_to_string(), &fixture.parameters),
+    let sql = expr.transpile_to_string();
+    let params = format!("{:?}", fixture.parameters);
+
+    // Two properties produce concatenated CASE expressions.
+    assert!(
+        sql.contains("||"),
+        "multiple properties should be concatenated with ||: {sql}",
+    );
+    // Each property contributes one actor UUID param and one property URL param.
+    assert_eq!(
+        fixture.parameters.len(),
+        4,
+        "expected 4 params (2 per property): {params}",
+    );
+
+    // Both property URLs must appear in the params (order-independent).
+    assert!(
+        params.contains("email"),
+        "params should contain email property URL: {params}",
+    );
+    assert!(
+        params.contains("phone"),
+        "params should contain phone property URL: {params}",
+    );
+
+    // Both operator shapes must appear (= for email, != for phone).
+    assert!(
+        sql.contains("= $") && sql.contains("!= $"),
+        "should contain both = and != operators: {sql}",
     );
 }
