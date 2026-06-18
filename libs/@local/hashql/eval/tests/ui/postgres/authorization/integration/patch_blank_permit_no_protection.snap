@@ -2,7 +2,8 @@
 source: libs/@local/hashql/eval/src/postgres/authorization/tests.rs
 expression: report
 ---
-MIR:
+===================================== MIR ======================================
+
 fn {graph::read::filter@4294967040}(%0: (), %1: Entity) -> Boolean {
     let %2: Boolean
 
@@ -12,7 +13,8 @@ fn {graph::read::filter@4294967040}(%0: (), %1: Entity) -> Boolean {
         return %2
     }
 }
-SQL:
+===================================== SQL ======================================
+
 SELECT
     ("continuation_0_0"."row")."block" AS "continuation_0_0_block",
     ("continuation_0_0"."row")."locals" AS "continuation_0_0_locals",
@@ -33,9 +35,11 @@ WHERE
     AND ("continuation_0_0"."row")."filter" IS NOT FALSE
     AND TRUE
 
-Compiled parameters:
+============================= Compiled Parameters ==============================
+
 $1: TemporalAxis(Transaction)
 $2: TemporalAxis(Decision)
 $3: Input(flag)
-Auxiliary parameters:
+============================= Auxiliary Parameters =============================
+
 AuxiliaryParameters { initial_offset: 3, parameters: [] }

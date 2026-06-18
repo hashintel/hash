@@ -227,6 +227,11 @@ fn transpile_empty_config_returns_none() {
     let config = PropertyProtectionFilterConfig::new();
     let result = fixture.protection().transpile(&policy, &config);
     assert!(result.keys_to_remove.is_none());
+    assert_eq!(
+        fixture.parameters.len(),
+        0,
+        "empty config should not allocate parameters",
+    );
 }
 
 #[test]
@@ -263,6 +268,11 @@ fn transpile_instance_admin_returns_none() {
         admin_result.keys_to_remove.is_none(),
         "instance admin should bypass protection",
     );
+    assert_eq!(
+        fixture.parameters.len(),
+        0,
+        "instance admin bypass should not allocate parameters",
+    );
 
     let normal_result = fixture.protection().transpile(&normal_policy, &config);
     assert!(
@@ -287,6 +297,76 @@ fn transpile_hash_default_config() {
     let _guard = settings.bind_to_scope();
     assert_snapshot!(
         "transpile_hash_default",
+        snapshot_with_params(&expr.transpile_to_string(), &fixture.parameters),
+    );
+}
+
+#[test]
+fn lower_filter_any_disjunction() {
+    let mut fixture = Fixture::new();
+    let filter = PropertyFilter::Any(vec![
+        PropertyFilter::Equal(
+            PropertyFilterExpression::Path {
+                path: PropertyFilterEntityQueryPath::Uuid,
+            },
+            PropertyFilterExpression::ActorId,
+        ),
+        PropertyFilter::In(
+            PropertyFilterExpression::Parameter {
+                parameter: Parameter::Text(Cow::Borrowed(
+                    "https://hash.ai/@h/types/entity-type/user/",
+                )),
+            },
+            PropertyFilterExpressionList::Path {
+                path: PropertyFilterEntityQueryPath::TypeBaseUrls,
+            },
+        ),
+    ]);
+    let expr = lower_filter(&mut fixture.protection(), &filter);
+
+    let mut settings = snapshot_settings();
+    settings.set_description(format!("{filter:?}"));
+    let _guard = settings.bind_to_scope();
+    assert_snapshot!(
+        "lower_filter_any_disjunction",
+        snapshot_with_params(&expr.transpile_to_string(), &fixture.parameters),
+    );
+}
+
+#[test]
+fn transpile_multiple_protected_properties() {
+    let mut fixture = Fixture::new();
+    let actor = Some(type_system::principal::actor::ActorId::User(
+        type_system::principal::actor::UserId::new(ACTOR_UUID),
+    ));
+    let policy = policy_components(actor, vec![]);
+    let mut config = PropertyProtectionFilterConfig::new();
+    config.protect_property(
+        base_url("https://hash.ai/@h/types/property-type/email/"),
+        PropertyFilter::Equal(
+            PropertyFilterExpression::Path {
+                path: PropertyFilterEntityQueryPath::Uuid,
+            },
+            PropertyFilterExpression::ActorId,
+        ),
+    );
+    config.protect_property(
+        base_url("https://hash.ai/@h/types/property-type/phone/"),
+        PropertyFilter::NotEqual(
+            PropertyFilterExpression::Path {
+                path: PropertyFilterEntityQueryPath::Uuid,
+            },
+            PropertyFilterExpression::ActorId,
+        ),
+    );
+    let result = fixture.protection().transpile(&policy, &config);
+    let expr = result.keys_to_remove.expect("should produce a mask");
+
+    let mut settings = snapshot_settings();
+    settings.set_description(format!("{config:?}"));
+    let _guard = settings.bind_to_scope();
+    assert_snapshot!(
+        "transpile_multiple_properties",
         snapshot_with_params(&expr.transpile_to_string(), &fixture.parameters),
     );
 }

@@ -28,9 +28,12 @@ use hash_graph_authorization::policies::{
         },
     },
 };
-use hash_graph_store::filter::protection::{
-    PropertyFilter, PropertyFilterEntityQueryPath, PropertyFilterExpression,
-    PropertyProtectionFilterConfig,
+use hash_graph_store::filter::{
+    Parameter,
+    protection::{
+        PropertyFilter, PropertyFilterEntityQueryPath, PropertyFilterExpression,
+        PropertyFilterExpressionList, PropertyProtectionFilterConfig,
+    },
 };
 use hashql_core::{
     heap::Heap, module::std_lib::graph::types::knowledge::entity as entity_types, symbol::sym,
@@ -455,15 +458,15 @@ fn compile_and_patch<'heap>(
     let auxiliary_params = format!("{:?}", prepared_query.auxiliary_parameters);
 
     let mut output = String::new();
-    writeln!(output, "MIR:").expect("write to String");
+    writeln!(output, "{:=^80}\n", " MIR ").expect("write to String");
     write!(output, "{body}").expect("write to String");
-    writeln!(output, "\nSQL:").expect("write to String");
+    writeln!(output, "\n{:=^80}\n", " SQL ").expect("write to String");
     write!(output, "{sql}").expect("write to String");
     if !compiled_params.is_empty() {
-        writeln!(output, "\nCompiled parameters:").expect("write to String");
+        writeln!(output, "\n{:=^80}\n", " Compiled Parameters ").expect("write to String");
         write!(output, "{compiled_params}").expect("write to String");
     }
-    writeln!(output, "\nAuxiliary parameters:").expect("write to String");
+    writeln!(output, "\n{:=^80}\n", " Auxiliary Parameters ").expect("write to String");
     write!(output, "{auxiliary_params}").expect("write to String");
     output
 }
@@ -655,4 +658,56 @@ fn patch_instance_admin_bypasses_protection() {
     let settings = snapshot_settings();
     let _guard = settings.bind_to_scope();
     assert_snapshot!("patch_instance_admin_bypasses_protection", report);
+}
+
+/// Protection filter that references `TypeBaseUrls`, requiring the
+/// `entity_is_of_type_ids` auxiliary join to be in scope inside the
+/// `entity_editions` LATERAL mask expression.
+#[test]
+fn patch_protection_with_type_base_urls() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Bool {
+        decl env: (), vertex: (|r#type| entity_types::types::entity(r#type, r#type.unknown(), None)),
+             field_val: ?, input_val: ?, result: Bool;
+        @proj v_props = vertex.properties: ?,
+              v_name = v_props.name: ?;
+
+        bb0() {
+            field_val = load v_name;
+            input_val = input.load! "expected";
+            result = bin.== field_val input_val;
+            return result;
+        }
+    });
+
+    let compilation = CompilationFixture::new(&heap, env, body);
+
+    let actor = Some(ActorId::User(UserId::new(ACTOR_UUID)));
+    let policy = policy_components(actor, vec![permit(|| None)]);
+
+    // Protection uses TypeBaseUrls path, which demands entity_is_of_type_ids join.
+    let mut properties = PropertyProtectionFilterConfig::new();
+    properties.protect_property(
+        BaseUrl::new("https://hash.ai/@h/types/property-type/email/".to_owned())
+            .expect("valid base URL"),
+        PropertyFilter::In(
+            PropertyFilterExpression::Parameter {
+                parameter: Parameter::Text(alloc::borrow::Cow::Borrowed(
+                    "https://hash.ai/@h/types/entity-type/user/",
+                )),
+            },
+            PropertyFilterExpressionList::Path {
+                path: PropertyFilterEntityQueryPath::TypeBaseUrls,
+            },
+        ),
+    );
+
+    let report = compile_and_patch(&compilation, &heap, &policy, &properties);
+
+    let settings = snapshot_settings();
+    let _guard = settings.bind_to_scope();
+    assert_snapshot!("patch_protection_with_type_base_urls", report);
 }

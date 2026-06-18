@@ -276,6 +276,12 @@ impl<A: Allocator> AuxiliaryParameters<A> {
 
         self.parameters.len() + self.initial_offset
     }
+
+    /// Returns the number of auxiliary parameters allocated.
+    #[cfg(test)]
+    pub(crate) fn len(&self) -> usize {
+        self.parameters.len()
+    }
 }
 
 #[cfg(test)]

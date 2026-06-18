@@ -36,8 +36,8 @@ CROSS JOIN LATERAL (
             - (
                 CASE
                     WHEN
-                        "entity_temporal_metadata_0_0_0"."entity_uuid" = $9
-                        THEN ARRAY[$10]::text []
+                        $5 = ANY("entity_is_of_type_ids_0_0_2"."base_urls")
+                        THEN ARRAY[$6]::text []
                     ELSE ARRAY[]::text []
                 END
             )
@@ -50,8 +50,8 @@ CROSS JOIN LATERAL (
             - (
                 CASE
                     WHEN
-                        "entity_temporal_metadata_0_0_0"."entity_uuid" = $9
-                        THEN ARRAY[$10]::text []
+                        $5 = ANY("entity_is_of_type_ids_0_0_2"."base_urls")
+                        THEN ARRAY[$6]::text []
                     ELSE ARRAY[]::text []
                 END
             )
@@ -82,20 +82,7 @@ WHERE
     "entity_temporal_metadata_0_0_0"."transaction_time" && ($1::tstzrange)
     AND "entity_temporal_metadata_0_0_0"."decision_time" && ($2::tstzrange)
     AND ("continuation_0_0"."row")."filter" IS NOT FALSE
-    AND (
-        (
-            ("entity_temporal_metadata_0_0_0"."entity_uuid" = $5)
-            OR ("entity_temporal_metadata_0_0_0"."web_id" = $6)
-        )
-    )
-    AND (
-        NOT (
-            (
-                ARRAY_POSITIONS("entity_is_of_type_ids_0_0_2"."base_urls", $7)
-                && ARRAY_POSITIONS("entity_is_of_type_ids_0_0_2"."versions", $8)
-            )
-        )
-    )
+    AND TRUE
 
 ============================= Compiled Parameters ==============================
 
@@ -105,4 +92,4 @@ $3: Symbol(name)
 $4: Input(expected)
 ============================= Auxiliary Parameters =============================
 
-AuxiliaryParameters { initial_offset: 4, parameters: [EntityUuid(11111111-1111-1111-1111-111111111111), WebId(ActorGroupEntityUuid(EntityUuid(33333333-3333-3333-3333-333333333333))), "https://hash.ai/@h/types/entity-type/restricted/", OntologyTypeVersion { major: 1, pre_release: None }, ActorEntityUuid(EntityUuid(aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa)), "https://hash.ai/@h/types/property-type/email/"] }
+AuxiliaryParameters { initial_offset: 4, parameters: ["https://hash.ai/@h/types/entity-type/user/", "https://hash.ai/@h/types/property-type/email/"] }
