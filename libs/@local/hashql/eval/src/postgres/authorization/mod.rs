@@ -100,6 +100,16 @@ pub struct AuthorizationPatch<'policy, 'path> {
     properties: &'policy PropertyProtectionFilterConfig<'path>,
 }
 
+impl<'policy, 'path> AuthorizationPatch<'policy, 'path> {
+    #[must_use]
+    pub const fn new(
+        policy: &'policy PolicyComponents,
+        properties: &'policy PropertyProtectionFilterConfig<'path>,
+    ) -> Self {
+        Self { policy, properties }
+    }
+}
+
 impl<A: Allocator + Clone, S: Allocator> PatchPreparedQueryLayer<A, S>
     for AuthorizationPatch<'_, '_>
 {

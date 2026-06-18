@@ -3,8 +3,8 @@
 //! Returns pre-configured policies without requiring a database connection.
 
 use alloc::alloc::Global;
-use core::future;
-use std::collections::HashSet;
+use core::{fmt::Write as _, future};
+use std::{collections::HashSet, path::PathBuf};
 
 use error_stack::Report;
 use hash_graph_authorization::policies::{
@@ -28,8 +28,22 @@ use hash_graph_authorization::policies::{
         },
     },
 };
+use hash_graph_store::filter::protection::{
+    PropertyFilter, PropertyFilterEntityQueryPath, PropertyFilterExpression,
+    PropertyProtectionFilterConfig,
+};
+use hashql_core::{
+    heap::Heap, module::std_lib::graph::types::knowledge::entity as entity_types, symbol::sym,
+    r#type::environment::Environment,
+};
+use hashql_mir::{
+    body::{basic_block::BasicBlockId, local::Local, terminator::GraphReadBody},
+    builder::body,
+    intern::Interner,
+};
+use insta::{Settings, assert_snapshot};
 use type_system::{
-    knowledge::entity::id::EntityEditionId,
+    knowledge::entity::id::{EntityEditionId, EntityUuid},
     ontology::{BaseUrl, VersionedUrl, id::OntologyTypeVersion},
     principal::{
         actor::{ActorEntityUuid, ActorId, MachineId, UserId},
@@ -40,10 +54,14 @@ use type_system::{
 use uuid::Uuid;
 
 use super::{policy::PolicyTranslationUnit, protection::ProtectionTranslationUnit};
-use crate::postgres::{
-    Parameters,
-    parameters::AuxiliaryParameters,
-    projections::{AuxiliaryProjections, Projections},
+use crate::{
+    context::CodeGenerationContext,
+    postgres::{
+        AuthorizationPatch, Parameters, PostgresCompiler, PreparedQueryPatch,
+        parameters::AuxiliaryParameters,
+        projections::{AuxiliaryProjections, Projections},
+        tests::{CompilationFixture, format_body, lint_sql},
+    },
 };
 
 pub(crate) struct Fixture {
@@ -384,4 +402,257 @@ pub(crate) fn make_url(base: &str, version: u32) -> VersionedUrl {
             pre_release: None,
         },
     }
+}
+
+fn compile_and_patch<'heap>(
+    fixture: &CompilationFixture<'heap>,
+    heap: &'heap Heap,
+    policy: &hash_graph_authorization::policies::PolicyComponents,
+    properties: &PropertyProtectionFilterConfig<'_>,
+) -> String {
+    let mut scratch = hashql_core::heap::Scratch::new();
+    let def = fixture.def();
+
+    let mut context = CodeGenerationContext::new_in(
+        &fixture.env,
+        &fixture.interner,
+        &fixture.bodies,
+        &fixture.execution,
+        heap,
+        &mut scratch,
+    );
+
+    let mut filters = hashql_core::heap::Vec::new_in(heap);
+    filters.push(GraphReadBody::Filter(def, Local::ENV));
+
+    let read = hashql_mir::body::terminator::GraphRead {
+        head: hashql_mir::body::terminator::GraphReadHead::Entity {
+            axis: hashql_mir::body::operand::Operand::Place(hashql_mir::body::place::Place::local(
+                Local::ENV,
+            )),
+        },
+        body: filters,
+        tail: hashql_mir::body::terminator::GraphReadTail::Collect,
+        target: BasicBlockId::START,
+    };
+
+    let mut prepared_query = {
+        let mut compiler = PostgresCompiler::new_in(&mut context, &mut scratch);
+        compiler.compile_graph_read(&read)
+    };
+
+    assert!(
+        context.diagnostics.is_empty(),
+        "unexpected diagnostics from compilation",
+    );
+
+    let mut patch = PreparedQueryPatch::new().layer(AuthorizationPatch::new(policy, properties));
+    patch.apply(&mut prepared_query, Global);
+
+    let body = format_body(fixture, heap);
+    let sql = lint_sql(&prepared_query.transpile().to_string());
+    let compiled_params = format!("{}", prepared_query.parameters);
+    let auxiliary_params = format!("{:?}", prepared_query.auxiliary_parameters);
+
+    let mut output = String::new();
+    writeln!(output, "MIR:").expect("write to String");
+    write!(output, "{body}").expect("write to String");
+    writeln!(output, "\nSQL:").expect("write to String");
+    write!(output, "{sql}").expect("write to String");
+    if !compiled_params.is_empty() {
+        writeln!(output, "\nCompiled parameters:").expect("write to String");
+        write!(output, "{compiled_params}").expect("write to String");
+    }
+    writeln!(output, "\nAuxiliary parameters:").expect("write to String");
+    write!(output, "{auxiliary_params}").expect("write to String");
+    output
+}
+
+fn snapshot_settings() -> Settings {
+    let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    let mut settings = Settings::clone_current();
+    settings.set_snapshot_path(manifest_dir.join("tests/ui/postgres/authorization/integration"));
+    settings.set_prepend_module_to_snapshot(false);
+    settings
+}
+
+/// Compiles a property-accessing filter, then applies authorization with
+/// constrained permits, forbids, and property protection masking.
+#[test]
+fn patch_with_policy_and_protection() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Bool {
+        decl env: (), vertex: (|r#type| entity_types::types::entity(r#type, r#type.unknown(), None)),
+             field_val: ?, input_val: ?, result: Bool;
+        @proj v_props = vertex.properties: ?,
+              v_name = v_props.name: ?;
+
+        bb0() {
+            field_val = load v_name;
+            input_val = input.load! "expected";
+            result = bin.== field_val input_val;
+            return result;
+        }
+    });
+
+    let compilation = CompilationFixture::new(&heap, env, body);
+
+    let actor = Some(ActorId::User(UserId::new(ACTOR_UUID)));
+    let policy = policy_components(
+        actor,
+        vec![
+            permit(|| {
+                Some(
+                        hash_graph_authorization::policies::resource::ResourceConstraint::Entity(
+                            hash_graph_authorization::policies::resource::EntityResourceConstraint::Exact {
+                                id: EntityUuid::new(ENTITY_UUID_1),
+                            },
+                        ),
+                    )
+            }),
+            permit(|| {
+                Some(
+                    hash_graph_authorization::policies::resource::ResourceConstraint::Web {
+                        web_id: WebId::new(WEB_UUID_1),
+                    },
+                )
+            }),
+            forbid(|| {
+                Some(
+                        hash_graph_authorization::policies::resource::ResourceConstraint::Entity(
+                            hash_graph_authorization::policies::resource::EntityResourceConstraint::Any {
+                                filter: hash_graph_authorization::policies::resource::EntityResourceFilter::IsOfType {
+                                    entity_type: make_url(
+                                        "https://hash.ai/@h/types/entity-type/restricted/",
+                                        1,
+                                    ),
+                                },
+                            },
+                        ),
+                    )
+            }),
+        ],
+    );
+
+    let mut properties = PropertyProtectionFilterConfig::new();
+    properties.protect_property(
+        BaseUrl::new("https://hash.ai/@h/types/property-type/email/".to_owned())
+            .expect("valid base URL"),
+        PropertyFilter::Equal(
+            PropertyFilterExpression::Path {
+                path: PropertyFilterEntityQueryPath::Uuid,
+            },
+            PropertyFilterExpression::ActorId,
+        ),
+    );
+
+    let report = compile_and_patch(&compilation, &heap, &policy, &properties);
+
+    let settings = snapshot_settings();
+    let _guard = settings.bind_to_scope();
+    assert_snapshot!("patch_with_policy_and_protection", report);
+}
+
+/// Blank permit with no protection produces minimal changes:
+/// WHERE gets TRUE, no property masking, no auxiliary joins.
+#[test]
+fn patch_blank_permit_no_protection() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Bool {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?],
+             result: Bool;
+
+        bb0() {
+            result = input.load! "flag";
+            return result;
+        }
+    });
+
+    let compilation = CompilationFixture::new(&heap, env, body);
+
+    let actor = Some(ActorId::User(UserId::new(ACTOR_UUID)));
+    let policy = policy_components(actor, vec![permit(|| None)]);
+    let properties = PropertyProtectionFilterConfig::new();
+
+    let report = compile_and_patch(&compilation, &heap, &policy, &properties);
+
+    let settings = snapshot_settings();
+    let _guard = settings.bind_to_scope();
+    assert_snapshot!("patch_blank_permit_no_protection", report);
+}
+
+/// Blank forbid produces FALSE in WHERE regardless of other policies.
+/// Protection masking still applies as defense-in-depth.
+#[test]
+fn patch_blank_forbid_denies_all() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Bool {
+        decl env: (), vertex: (|r#type| entity_types::types::entity(r#type, r#type.unknown(), None)),
+             field_val: ?, input_val: ?, result: Bool;
+        @proj v_props = vertex.properties: ?,
+              v_name = v_props.name: ?;
+
+        bb0() {
+            field_val = load v_name;
+            input_val = input.load! "expected";
+            result = bin.== field_val input_val;
+            return result;
+        }
+    });
+
+    let compilation = CompilationFixture::new(&heap, env, body);
+
+    let actor = Some(ActorId::User(UserId::new(ACTOR_UUID)));
+    let policy = policy_components(actor, vec![forbid(|| None)]);
+    let properties = PropertyProtectionFilterConfig::hash_default();
+
+    let report = compile_and_patch(&compilation, &heap, &policy, &properties);
+
+    let settings = snapshot_settings();
+    let _guard = settings.bind_to_scope();
+    assert_snapshot!("patch_blank_forbid_denies_all", report);
+}
+
+/// Instance admin bypasses property protection entirely, even with
+/// a non-empty protection config.
+#[test]
+fn patch_instance_admin_bypasses_protection() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Bool {
+        decl env: (), vertex: (|r#type| entity_types::types::entity(r#type, r#type.unknown(), None)),
+             field_val: ?, input_val: ?, result: Bool;
+        @proj v_props = vertex.properties: ?,
+              v_name = v_props.name: ?;
+
+        bb0() {
+            field_val = load v_name;
+            input_val = input.load! "expected";
+            result = bin.== field_val input_val;
+            return result;
+        }
+    });
+
+    let compilation = CompilationFixture::new(&heap, env, body);
+
+    let actor = Some(ActorId::User(UserId::new(ACTOR_UUID)));
+    let policy = policy_components_admin(actor, vec![permit(|| None)]);
+    let properties = PropertyProtectionFilterConfig::hash_default();
+
+    let report = compile_and_patch(&compilation, &heap, &policy, &properties);
+
+    let settings = snapshot_settings();
+    let _guard = settings.bind_to_scope();
+    assert_snapshot!("patch_instance_admin_bypasses_protection", report);
 }

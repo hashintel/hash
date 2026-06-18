@@ -1,0 +1,41 @@
+---
+source: libs/@local/hashql/eval/src/postgres/authorization/tests.rs
+expression: report
+---
+MIR:
+fn {graph::read::filter@4294967040}(%0: (), %1: Entity) -> Boolean {
+    let %2: Boolean
+
+    bb0(): {
+        %2 = input LOAD flag
+
+        return %2
+    }
+}
+SQL:
+SELECT
+    ("continuation_0_0"."row")."block" AS "continuation_0_0_block",
+    ("continuation_0_0"."row")."locals" AS "continuation_0_0_locals",
+    ("continuation_0_0"."row")."values" AS "continuation_0_0_values"
+FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+CROSS JOIN LATERAL
+    (
+        SELECT
+            (
+                ROW(
+                    COALESCE(((($3::jsonb))::boolean), FALSE), NULL, NULL, NULL
+                )::continuation
+            ) AS "row"
+    ) AS "continuation_0_0"
+WHERE
+    "entity_temporal_metadata_0_0_0"."transaction_time" && ($1::tstzrange)
+    AND "entity_temporal_metadata_0_0_0"."decision_time" && ($2::tstzrange)
+    AND ("continuation_0_0"."row")."filter" IS NOT FALSE
+    AND TRUE
+
+Compiled parameters:
+$1: TemporalAxis(Transaction)
+$2: TemporalAxis(Decision)
+$3: Input(flag)
+Auxiliary parameters:
+AuxiliaryParameters { initial_offset: 3, parameters: [] }

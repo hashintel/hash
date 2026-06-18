@@ -16,90 +16,27 @@ use hashql_core::{
     heap::{Heap, Scratch},
     id::Id as _,
     module::std_lib::graph::types::knowledge::entity as entity_types,
-    pretty::Formatter,
     symbol::sym,
-    r#type::{TypeBuilder, TypeFormatter, TypeFormatterOptions, TypeId, environment::Environment},
+    r#type::{TypeBuilder, TypeId, environment::Environment},
 };
-use hashql_diagnostics::DiagnosticIssues;
 use hashql_hir::node::operation::InputOp;
 use hashql_mir::{
     body::{Body, Source, basic_block::BasicBlockId, local::Local, terminator::GraphReadBody},
     builder::{BodyBuilder, body},
-    context::MirContext,
-    def::{DefId, DefIdVec},
+    def::DefId,
     intern::Interner,
-    pass::{
-        GlobalAnalysisPass as _,
-        analysis::SizeEstimationAnalysis,
-        execution::{ExecutionAnalysis, ExecutionAnalysisResidual, IslandKind, TargetId},
-    },
-    pretty::TextFormatOptions,
+    pass::execution::{IslandKind, TargetId},
 };
 use insta::{Settings, assert_snapshot};
-use sqruff_lib::core::{config::FluffConfig, linter::core::Linter};
-use sqruff_lib_core::dialects::init::DialectKind;
 
 use crate::{
     context::CodeGenerationContext,
-    postgres::{DatabaseContext, PostgresCompiler, filter::GraphReadFilterCompiler},
+    postgres::{
+        DatabaseContext, PostgresCompiler,
+        filter::GraphReadFilterCompiler,
+        tests::{CompilationFixture, format_body, lint_sql},
+    },
 };
-
-/// Runs the full execution analysis pipeline on a single `body!`-constructed filter body
-/// and returns everything needed for compilation.
-struct Fixture<'heap> {
-    env: Environment<'heap>,
-    interner: crate::intern::Interner<'heap>,
-    bodies: DefIdVec<Body<'heap>, &'heap Heap>,
-    execution: DefIdVec<Option<ExecutionAnalysisResidual<&'heap Heap>>, &'heap Heap>,
-}
-
-impl<'heap> Fixture<'heap> {
-    fn new(heap: &'heap Heap, env: Environment<'heap>, body: Body<'heap>) -> Self {
-        assert!(
-            matches!(body.source, Source::GraphReadFilter(_)),
-            "these tests require GraphReadFilter bodies",
-        );
-
-        let interner = Interner::new(heap);
-        let mut scratch = Scratch::new();
-
-        let mut bodies = DefIdVec::new_in(heap);
-        bodies.push(body);
-
-        let mut mir_context = MirContext {
-            heap,
-            env: &env,
-            interner: &interner,
-            diagnostics: DiagnosticIssues::new(),
-        };
-
-        let mut size_analysis = SizeEstimationAnalysis::new_in(&scratch);
-        size_analysis.run(&mut mir_context, &bodies);
-        let footprints = size_analysis.finish();
-
-        let analysis = ExecutionAnalysis {
-            footprints: &footprints,
-            scratch: &mut scratch,
-        };
-        let execution = analysis.run_all_in(&mut mir_context, &mut bodies, heap);
-
-        assert!(
-            mir_context.diagnostics.is_empty(),
-            "execution analysis produced diagnostics: this likely means the body is malformed",
-        );
-
-        Self {
-            env,
-            interner: interner.into(),
-            bodies,
-            execution,
-        }
-    }
-
-    fn def(&self) -> DefId {
-        self.bodies.iter().next().expect("fixture has one body").id
-    }
-}
 
 struct FilterIslandReport {
     entry_block: BasicBlockId,
@@ -130,27 +67,10 @@ impl core::fmt::Display for FilterReport {
     }
 }
 
-fn format_body<'heap>(fixture: &Fixture<'heap>, heap: &'heap Heap) -> String {
-    let formatter = Formatter::new(heap);
-    let mut type_formatter =
-        TypeFormatter::new(&formatter, &fixture.env, TypeFormatterOptions::terse());
-
-    let mut text_format = TextFormatOptions {
-        writer: Vec::<u8>::new(),
-        indent: 4,
-        sources: (),
-        types: &mut type_formatter,
-        annotations: (),
-    }
-    .build();
-
-    let body = &fixture.bodies[fixture.def()];
-    text_format.format_body(body).expect("formatting failed");
-
-    String::from_utf8(text_format.writer).expect("valid UTF-8")
-}
-
-fn compile_filter_islands<'heap>(fixture: &Fixture<'heap>, heap: &'heap Heap) -> FilterReport {
+fn compile_filter_islands<'heap>(
+    fixture: &CompilationFixture<'heap>,
+    heap: &'heap Heap,
+) -> FilterReport {
     let mut scratch = Scratch::new();
     let def = fixture.def();
 
@@ -182,12 +102,6 @@ fn compile_filter_islands<'heap>(fixture: &Fixture<'heap>, heap: &'heap Heap) ->
 
     let mut island_reports = Vec::new();
 
-    let mut linter_config = FluffConfig::default();
-    linter_config
-        .override_dialect(DialectKind::Postgres)
-        .expect("dialect should be loaded");
-    let linter = Linter::new(linter_config, None, None, false).expect("linter should be created");
-
     #[expect(clippy::string_slice, reason = "Known to be valid codepoints")]
     for (island_id, entry_block) in postgres_islands {
         let island = &residual.islands[island_id];
@@ -205,11 +119,9 @@ fn compile_filter_islands<'heap>(fixture: &Fixture<'heap>, heap: &'heap Heap) ->
 
         let sql = expression.transpile_to_string();
 
-        let linted = linter
-            .lint_string(&format!("SELECT {sql}"), None, true)
-            .expect("should be valid SQL");
-
-        let fixed = linted.fix_string();
+        // Wrap in SELECT so sqruff can parse the expression, then strip the
+        // prefix and re-indent.
+        let fixed = lint_sql(&format!("SELECT {sql}"));
         let fixed: String = fixed[7..]
             .lines()
             .map(|line| &line[4..])
@@ -268,7 +180,10 @@ impl core::fmt::Display for QueryReport {
     }
 }
 
-fn compile_full_query<'heap>(fixture: &Fixture<'heap>, heap: &'heap Heap) -> QueryReport {
+fn compile_full_query<'heap>(
+    fixture: &CompilationFixture<'heap>,
+    heap: &'heap Heap,
+) -> QueryReport {
     let mut scratch = Scratch::new();
     let def = fixture.def();
 
@@ -305,22 +220,11 @@ fn compile_full_query<'heap>(fixture: &Fixture<'heap>, heap: &'heap Heap) -> Que
         "unexpected diagnostics from full compilation",
     );
 
-    let mut linter_config = FluffConfig::default();
-    linter_config
-        .override_dialect(DialectKind::Postgres)
-        .expect("dialect should be loaded");
-    let linter = Linter::new(linter_config, None, None, false).expect("linter should be created");
-
-    let sql = prepared_query.transpile().to_string();
-    let linted = linter
-        .lint_string(&sql, None, true)
-        .expect("should be valid SQL");
-
     let parameters = format!("{}", prepared_query.parameters);
 
     QueryReport {
         body: format_body(fixture, heap),
-        sql: linted.fix_string(),
+        sql: lint_sql(&prepared_query.transpile().to_string()),
         parameters,
     }
 }
@@ -360,7 +264,7 @@ fn diamond_cfg_merge() {
         }
     });
 
-    let fixture = Fixture::new(&heap, env, body);
+    let fixture = CompilationFixture::new(&heap, env, body);
     let report = compile_filter_islands(&fixture, &heap);
 
     let settings = snapshot_settings();
@@ -390,7 +294,7 @@ fn switch_int_many_branches() {
         bb5() { return true; }
     });
 
-    let fixture = Fixture::new(&heap, env, body);
+    let fixture = CompilationFixture::new(&heap, env, body);
     let report = compile_filter_islands(&fixture, &heap);
 
     let settings = snapshot_settings();
@@ -422,7 +326,7 @@ fn straight_line_goto_chain() {
         }
     });
 
-    let fixture = Fixture::new(&heap, env, body);
+    let fixture = CompilationFixture::new(&heap, env, body);
     let report = compile_filter_islands(&fixture, &heap);
 
     let settings = snapshot_settings();
@@ -467,7 +371,7 @@ fn island_exit_goto() {
         }
     });
 
-    let fixture = Fixture::new(&heap, env, body);
+    let fixture = CompilationFixture::new(&heap, env, body);
     let report = compile_filter_islands(&fixture, &heap);
 
     let settings = snapshot_settings();
@@ -509,7 +413,7 @@ fn island_exit_with_live_out() {
         }
     });
 
-    let fixture = Fixture::new(&heap, env, body);
+    let fixture = CompilationFixture::new(&heap, env, body);
     let report = compile_filter_islands(&fixture, &heap);
 
     let settings = snapshot_settings();
@@ -556,7 +460,7 @@ fn island_exit_switch_int() {
         }
     });
 
-    let fixture = Fixture::new(&heap, env, body);
+    let fixture = CompilationFixture::new(&heap, env, body);
     let report = compile_filter_islands(&fixture, &heap);
 
     let settings = snapshot_settings();
@@ -598,7 +502,7 @@ fn island_exit_empty_arrays() {
         }
     });
 
-    let fixture = Fixture::new(&heap, env, body);
+    let fixture = CompilationFixture::new(&heap, env, body);
     let report = compile_filter_islands(&fixture, &heap);
 
     let settings = snapshot_settings();
@@ -631,7 +535,7 @@ fn data_island_provides_without_lateral() {
         }
     });
 
-    let fixture = Fixture::new(&heap, env, body);
+    let fixture = CompilationFixture::new(&heap, env, body);
 
     // No Postgres exec islands should exist — only a Data island.
     let filter_report = compile_filter_islands(&fixture, &heap);
@@ -684,7 +588,7 @@ fn provides_drives_select_and_joins() {
         }
     });
 
-    let fixture = Fixture::new(&heap, env, body);
+    let fixture = CompilationFixture::new(&heap, env, body);
     let report = compile_full_query(&fixture, &heap);
 
     let settings = snapshot_settings();
@@ -714,7 +618,7 @@ fn property_field_equality() {
         }
     });
 
-    let fixture = Fixture::new(&heap, env, body);
+    let fixture = CompilationFixture::new(&heap, env, body);
     let report = compile_filter_islands(&fixture, &heap);
 
     let settings = snapshot_settings();
@@ -745,7 +649,7 @@ fn nested_property_access() {
         }
     });
 
-    let fixture = Fixture::new(&heap, env, body);
+    let fixture = CompilationFixture::new(&heap, env, body);
     let report = compile_filter_islands(&fixture, &heap);
 
     let settings = snapshot_settings();
@@ -776,7 +680,7 @@ fn left_entity_filter() {
         }
     });
 
-    let fixture = Fixture::new(&heap, env, body);
+    let fixture = CompilationFixture::new(&heap, env, body);
     let report = compile_filter_islands(&fixture, &heap);
 
     let settings = snapshot_settings();
@@ -804,7 +708,7 @@ fn field_index_projection() {
         }
     });
 
-    let fixture = Fixture::new(&heap, env, body);
+    let fixture = CompilationFixture::new(&heap, env, body);
     let report = compile_filter_islands(&fixture, &heap);
 
     let settings = snapshot_settings();
@@ -832,7 +736,7 @@ fn field_by_name_projection() {
         }
     });
 
-    let fixture = Fixture::new(&heap, env, body);
+    let fixture = CompilationFixture::new(&heap, env, body);
     let report = compile_filter_islands(&fixture, &heap);
 
     let settings = snapshot_settings();
@@ -884,7 +788,7 @@ fn dynamic_index_projection() {
     body.source = Source::GraphReadFilter(hashql_hir::node::HirId::PLACEHOLDER);
     body.id = DefId::new(0);
 
-    let fixture = Fixture::new(&heap, env, body);
+    let fixture = CompilationFixture::new(&heap, env, body);
     let report = compile_filter_islands(&fixture, &heap);
 
     let settings = snapshot_settings();
@@ -910,7 +814,7 @@ fn unary_neg() {
         }
     });
 
-    let fixture = Fixture::new(&heap, env, body);
+    let fixture = CompilationFixture::new(&heap, env, body);
     let report = compile_filter_islands(&fixture, &heap);
 
     let settings = snapshot_settings();
@@ -936,7 +840,7 @@ fn unary_not() {
         }
     });
 
-    let fixture = Fixture::new(&heap, env, body);
+    let fixture = CompilationFixture::new(&heap, env, body);
     let report = compile_filter_islands(&fixture, &heap);
 
     let settings = snapshot_settings();
@@ -963,7 +867,7 @@ fn binary_sub_numeric_cast() {
         }
     });
 
-    let fixture = Fixture::new(&heap, env, body);
+    let fixture = CompilationFixture::new(&heap, env, body);
     let report = compile_filter_islands(&fixture, &heap);
 
     let settings = snapshot_settings();
@@ -989,7 +893,7 @@ fn unary_bitnot() {
         }
     });
 
-    let fixture = Fixture::new(&heap, env, body);
+    let fixture = CompilationFixture::new(&heap, env, body);
     let report = compile_filter_islands(&fixture, &heap);
 
     let settings = snapshot_settings();
@@ -1026,7 +930,7 @@ fn temporal_decision_time_interval() {
         }
     });
 
-    let fixture = Fixture::new(&heap, env, body);
+    let fixture = CompilationFixture::new(&heap, env, body);
     let report = compile_full_query(&fixture, &heap);
 
     let settings = snapshot_settings();
@@ -1053,7 +957,7 @@ fn binary_bitand_bigint_cast() {
         }
     });
 
-    let fixture = Fixture::new(&heap, env, body);
+    let fixture = CompilationFixture::new(&heap, env, body);
     let report = compile_filter_islands(&fixture, &heap);
 
     let settings = snapshot_settings();
@@ -1080,7 +984,7 @@ fn binary_bitand_boolean_and() {
         }
     });
 
-    let fixture = Fixture::new(&heap, env, body);
+    let fixture = CompilationFixture::new(&heap, env, body);
     let report = compile_filter_islands(&fixture, &heap);
 
     let settings = snapshot_settings();
@@ -1107,7 +1011,7 @@ fn binary_bitor_bigint_cast() {
         }
     });
 
-    let fixture = Fixture::new(&heap, env, body);
+    let fixture = CompilationFixture::new(&heap, env, body);
     let report = compile_filter_islands(&fixture, &heap);
 
     let settings = snapshot_settings();
@@ -1134,7 +1038,7 @@ fn binary_bitor_boolean_or() {
         }
     });
 
-    let fixture = Fixture::new(&heap, env, body);
+    let fixture = CompilationFixture::new(&heap, env, body);
     let report = compile_filter_islands(&fixture, &heap);
 
     let settings = snapshot_settings();

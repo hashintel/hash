@@ -1,4 +1,4 @@
-use alloc::borrow::Cow;
+use alloc::{alloc::Global, borrow::Cow};
 use std::path::PathBuf;
 
 use hash_graph_postgres_store::store::postgres::query::Transpile as _;
@@ -13,9 +13,14 @@ use insta::{Settings, assert_snapshot};
 use type_system::ontology::BaseUrl;
 
 use super::{lower_filter, lower_property_filter, resolve_expression, resolve_path};
-use crate::postgres::authorization::tests::{
-    ACTOR_UUID, Fixture, policy_components, policy_components_admin,
+use crate::postgres::{
+    authorization::tests::{ACTOR_UUID, Fixture, policy_components, policy_components_admin},
+    parameters::AuxiliaryParameters,
 };
+
+fn snapshot_with_params(sql: &str, parameters: &AuxiliaryParameters<Global>) -> String {
+    format!("{sql}\n\nparameters: {parameters:?}")
+}
 
 fn base_url(url: &str) -> BaseUrl {
     BaseUrl::new(url.to_owned()).expect("valid base URL")
@@ -40,7 +45,10 @@ fn resolve_path_uuid() {
     let mut settings = snapshot_settings();
     settings.set_description(format!("{:?}", PropertyFilterEntityQueryPath::Uuid));
     let _guard = settings.bind_to_scope();
-    assert_snapshot!("resolve_path_uuid", expr.transpile_to_string());
+    assert_snapshot!(
+        "resolve_path_uuid",
+        snapshot_with_params(&expr.transpile_to_string(), &fixture.parameters),
+    );
 }
 
 #[test]
@@ -54,7 +62,10 @@ fn resolve_path_type_base_urls() {
     let mut settings = snapshot_settings();
     settings.set_description(format!("{:?}", PropertyFilterEntityQueryPath::TypeBaseUrls));
     let _guard = settings.bind_to_scope();
-    assert_snapshot!("resolve_path_type_base_urls", expr.transpile_to_string());
+    assert_snapshot!(
+        "resolve_path_type_base_urls",
+        snapshot_with_params(&expr.transpile_to_string(), &fixture.parameters),
+    );
 }
 
 #[test]
@@ -68,7 +79,10 @@ fn resolve_expression_text_parameter() {
     let mut settings = snapshot_settings();
     settings.set_description(format!("{param:?}"));
     let _guard = settings.bind_to_scope();
-    assert_snapshot!("resolve_expression_text", expr.transpile_to_string());
+    assert_snapshot!(
+        "resolve_expression_text",
+        snapshot_with_params(&expr.transpile_to_string(), &fixture.parameters),
+    );
 }
 
 #[test]
@@ -85,7 +99,10 @@ fn resolve_expression_actor_id() {
         fixture.protection().actor_id
     ));
     let _guard = settings.bind_to_scope();
-    assert_snapshot!("resolve_expression_actor_id", expr.transpile_to_string());
+    assert_snapshot!(
+        "resolve_expression_actor_id",
+        snapshot_with_params(&expr.transpile_to_string(), &fixture.parameters),
+    );
 }
 
 #[test]
@@ -102,7 +119,10 @@ fn lower_filter_equal() {
     let mut settings = snapshot_settings();
     settings.set_description(format!("{filter:?}"));
     let _guard = settings.bind_to_scope();
-    assert_snapshot!("lower_filter_equal", expr.transpile_to_string());
+    assert_snapshot!(
+        "lower_filter_equal",
+        snapshot_with_params(&expr.transpile_to_string(), &fixture.parameters),
+    );
 }
 
 #[test]
@@ -119,7 +139,10 @@ fn lower_filter_not_equal() {
     let mut settings = snapshot_settings();
     settings.set_description(format!("{filter:?}"));
     let _guard = settings.bind_to_scope();
-    assert_snapshot!("lower_filter_not_equal", expr.transpile_to_string());
+    assert_snapshot!(
+        "lower_filter_not_equal",
+        snapshot_with_params(&expr.transpile_to_string(), &fixture.parameters),
+    );
 }
 
 #[test]
@@ -138,7 +161,10 @@ fn lower_filter_in() {
     let mut settings = snapshot_settings();
     settings.set_description(format!("{filter:?}"));
     let _guard = settings.bind_to_scope();
-    assert_snapshot!("lower_filter_in", expr.transpile_to_string());
+    assert_snapshot!(
+        "lower_filter_in",
+        snapshot_with_params(&expr.transpile_to_string(), &fixture.parameters),
+    );
 }
 
 #[test]
@@ -167,7 +193,10 @@ fn lower_filter_nested_all() {
     let mut settings = snapshot_settings();
     settings.set_description(format!("{filter:?}"));
     let _guard = settings.bind_to_scope();
-    assert_snapshot!("lower_filter_nested_all", expr.transpile_to_string());
+    assert_snapshot!(
+        "lower_filter_nested_all",
+        snapshot_with_params(&expr.transpile_to_string(), &fixture.parameters),
+    );
 }
 
 #[test]
@@ -187,7 +216,7 @@ fn lower_property_filter_case_when() {
     let _guard = settings.bind_to_scope();
     assert_snapshot!(
         "lower_property_filter_case_when",
-        expr.transpile_to_string()
+        snapshot_with_params(&expr.transpile_to_string(), &fixture.parameters),
     );
 }
 
@@ -256,5 +285,8 @@ fn transpile_hash_default_config() {
     let mut settings = snapshot_settings();
     settings.set_description(format!("{config:?}"));
     let _guard = settings.bind_to_scope();
-    assert_snapshot!("transpile_hash_default", expr.transpile_to_string());
+    assert_snapshot!(
+        "transpile_hash_default",
+        snapshot_with_params(&expr.transpile_to_string(), &fixture.parameters),
+    );
 }

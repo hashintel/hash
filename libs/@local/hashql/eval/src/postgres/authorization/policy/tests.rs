@@ -24,9 +24,12 @@ use super::{
     convert_created_by_principal, convert_entity_resource_filter, convert_is_of_base_type,
     convert_is_of_type, convert_resource_constraint, optimize,
 };
-use crate::postgres::authorization::tests::{
-    ACTOR_UUID, ENTITY_UUID_1, ENTITY_UUID_2, Fixture, WEB_UUID_1, forbid, make_url, permit,
-    policy_components,
+use crate::postgres::{
+    authorization::tests::{
+        ACTOR_UUID, ENTITY_UUID_1, ENTITY_UUID_2, Fixture, WEB_UUID_1, forbid, make_url, permit,
+        policy_components,
+    },
+    parameters::AuxiliaryParameters,
 };
 
 fn snapshot_settings() -> Settings {
@@ -35,6 +38,10 @@ fn snapshot_settings() -> Settings {
     settings.set_snapshot_path(manifest_dir.join("tests/ui/postgres/authorization/policy"));
     settings.set_prepend_module_to_snapshot(false);
     settings
+}
+
+fn snapshot_with_params(sql: &str, parameters: &AuxiliaryParameters<Global>) -> String {
+    format!("{sql}\n\nparameters: {parameters:?}")
 }
 
 #[test]
@@ -47,7 +54,10 @@ fn is_of_type_overlap() {
     let mut settings = snapshot_settings();
     settings.set_description(description);
     let _guard = settings.bind_to_scope();
-    assert_snapshot!("is_of_type_overlap", expr.transpile_to_string());
+    assert_snapshot!(
+        "is_of_type_overlap",
+        snapshot_with_params(&expr.transpile_to_string(), &fixture.parameters),
+    );
 }
 
 #[test]
@@ -61,7 +71,10 @@ fn is_of_base_type_any() {
     let mut settings = snapshot_settings();
     settings.set_description(description);
     let _guard = settings.bind_to_scope();
-    assert_snapshot!("is_of_base_type_any", expr.transpile_to_string());
+    assert_snapshot!(
+        "is_of_base_type_any",
+        snapshot_with_params(&expr.transpile_to_string(), &fixture.parameters),
+    );
 }
 
 #[test]
@@ -77,7 +90,7 @@ fn created_by_principal_with_actor() {
     let _guard = settings.bind_to_scope();
     assert_snapshot!(
         "created_by_principal_with_actor",
-        expr.transpile_to_string()
+        snapshot_with_params(&expr.transpile_to_string(), &fixture.parameters),
     );
 }
 
@@ -92,7 +105,10 @@ fn created_by_principal_anonymous() {
         fixture.policy_anon().actor_id
     ));
     let _guard = settings.bind_to_scope();
-    assert_snapshot!("created_by_principal_anonymous", expr.transpile_to_string());
+    assert_snapshot!(
+        "created_by_principal_anonymous",
+        snapshot_with_params(&expr.transpile_to_string(), &fixture.parameters),
+    );
 }
 
 #[test]
@@ -106,7 +122,10 @@ fn constraint_exact_entity() {
     let mut settings = snapshot_settings();
     settings.set_description(format!("{constraint:?}"));
     let _guard = settings.bind_to_scope();
-    assert_snapshot!("constraint_exact_entity", expr.transpile_to_string());
+    assert_snapshot!(
+        "constraint_exact_entity",
+        snapshot_with_params(&expr.transpile_to_string(), &fixture.parameters),
+    );
 }
 
 #[test]
@@ -120,7 +139,10 @@ fn constraint_web() {
     let mut settings = snapshot_settings();
     settings.set_description(format!("{constraint:?}"));
     let _guard = settings.bind_to_scope();
-    assert_snapshot!("constraint_web", expr.transpile_to_string());
+    assert_snapshot!(
+        "constraint_web",
+        snapshot_with_params(&expr.transpile_to_string(), &fixture.parameters),
+    );
 }
 
 #[test]
@@ -138,7 +160,7 @@ fn constraint_any_with_type_filter() {
     let _guard = settings.bind_to_scope();
     assert_snapshot!(
         "constraint_any_with_type_filter",
-        expr.transpile_to_string()
+        snapshot_with_params(&expr.transpile_to_string(), &fixture.parameters),
     );
 }
 
@@ -154,7 +176,10 @@ fn constraint_web_with_created_by() {
     let mut settings = snapshot_settings();
     settings.set_description(format!("{constraint:?}"));
     let _guard = settings.bind_to_scope();
-    assert_snapshot!("constraint_web_with_created_by", expr.transpile_to_string());
+    assert_snapshot!(
+        "constraint_web_with_created_by",
+        snapshot_with_params(&expr.transpile_to_string(), &fixture.parameters),
+    );
 }
 
 #[test]
@@ -184,7 +209,10 @@ fn filter_all_conjunction() {
     let mut settings = snapshot_settings();
     settings.set_description(format!("{filter:?}"));
     let _guard = settings.bind_to_scope();
-    assert_snapshot!("filter_all_conjunction", expr.transpile_to_string());
+    assert_snapshot!(
+        "filter_all_conjunction",
+        snapshot_with_params(&expr.transpile_to_string(), &fixture.parameters),
+    );
 }
 
 #[test]
@@ -205,7 +233,10 @@ fn filter_any_disjunction() {
     let mut settings = snapshot_settings();
     settings.set_description(format!("{filter:?}"));
     let _guard = settings.bind_to_scope();
-    assert_snapshot!("filter_any_disjunction", expr.transpile_to_string());
+    assert_snapshot!(
+        "filter_any_disjunction",
+        snapshot_with_params(&expr.transpile_to_string(), &fixture.parameters),
+    );
 }
 
 #[test]
@@ -219,13 +250,15 @@ fn filter_not_negation() {
     let mut settings = snapshot_settings();
     settings.set_description(format!("{filter:?}"));
     let _guard = settings.bind_to_scope();
-    assert_snapshot!("filter_not_negation", expr.transpile_to_string());
+    assert_snapshot!(
+        "filter_not_negation",
+        snapshot_with_params(&expr.transpile_to_string(), &fixture.parameters),
+    );
 }
 
 #[test]
 fn optimize_single_entity_uuid() {
     let mut fixture = Fixture::new();
-    let mut unit = fixture.policy();
     let mut permits = None;
     let data = OptimizationData {
         permitted_entity_uuids: vec![EntityUuid::new(ENTITY_UUID_1)],
@@ -234,20 +267,22 @@ fn optimize_single_entity_uuid() {
         permitted_data_type_uuids: vec![],
         permitted_web_ids: vec![],
     };
-    optimize(&mut unit, &mut permits, &data);
+    optimize(&mut fixture.policy(), &mut permits, &data);
     let expr = permits.expect("should have a permit expression");
     assert_eq!(expr.len(), 1);
 
     let mut settings = snapshot_settings();
     settings.set_description(format!("{data:?}"));
     let _guard = settings.bind_to_scope();
-    assert_snapshot!("optimize_single_entity", expr[0].transpile_to_string());
+    assert_snapshot!(
+        "optimize_single_entity",
+        snapshot_with_params(&expr[0].transpile_to_string(), &fixture.parameters),
+    );
 }
 
 #[test]
 fn optimize_multiple_entity_uuids() {
     let mut fixture = Fixture::new();
-    let mut unit = fixture.policy();
     let mut permits = None;
     let data = OptimizationData {
         permitted_entity_uuids: vec![
@@ -259,20 +294,22 @@ fn optimize_multiple_entity_uuids() {
         permitted_data_type_uuids: vec![],
         permitted_web_ids: vec![],
     };
-    optimize(&mut unit, &mut permits, &data);
+    optimize(&mut fixture.policy(), &mut permits, &data);
     let expr = permits.expect("should have a permit expression");
     assert_eq!(expr.len(), 1);
 
     let mut settings = snapshot_settings();
     settings.set_description(format!("{data:?}"));
     let _guard = settings.bind_to_scope();
-    assert_snapshot!("optimize_multiple_entities", expr[0].transpile_to_string());
+    assert_snapshot!(
+        "optimize_multiple_entities",
+        snapshot_with_params(&expr[0].transpile_to_string(), &fixture.parameters),
+    );
 }
 
 #[test]
 fn optimize_single_web_id() {
     let mut fixture = Fixture::new();
-    let mut unit = fixture.policy();
     let mut permits = None;
     let data = OptimizationData {
         permitted_entity_uuids: vec![],
@@ -281,14 +318,17 @@ fn optimize_single_web_id() {
         permitted_data_type_uuids: vec![],
         permitted_web_ids: vec![WebId::new(WEB_UUID_1)],
     };
-    optimize(&mut unit, &mut permits, &data);
+    optimize(&mut fixture.policy(), &mut permits, &data);
     let expr = permits.expect("should have a permit expression");
     assert_eq!(expr.len(), 1);
 
     let mut settings = snapshot_settings();
     settings.set_description(format!("{data:?}"));
     let _guard = settings.bind_to_scope();
-    assert_snapshot!("optimize_single_web", expr[0].transpile_to_string());
+    assert_snapshot!(
+        "optimize_single_web",
+        snapshot_with_params(&expr[0].transpile_to_string(), &fixture.parameters),
+    );
 }
 
 #[test]
@@ -352,7 +392,7 @@ fn algebra_blank_permit_with_forbids() {
     let _guard = settings.bind_to_scope();
     assert_snapshot!(
         "algebra_blank_permit_with_forbids",
-        result.condition.transpile_to_string()
+        snapshot_with_params(&result.condition.transpile_to_string(), &fixture.parameters),
     );
 }
 
@@ -410,7 +450,7 @@ fn algebra_constrained_permits_only() {
     let _guard = settings.bind_to_scope();
     assert_snapshot!(
         "algebra_constrained_permits_only",
-        result.condition.transpile_to_string(),
+        snapshot_with_params(&result.condition.transpile_to_string(), &fixture.parameters),
     );
 }
 
@@ -448,7 +488,7 @@ fn algebra_permits_and_forbids() {
     let _guard = settings.bind_to_scope();
     assert_snapshot!(
         "algebra_permits_and_forbids",
-        result.condition.transpile_to_string(),
+        snapshot_with_params(&result.condition.transpile_to_string(), &fixture.parameters),
     );
 }
 

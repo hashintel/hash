@@ -44,7 +44,7 @@ pub struct HCons<H, T> {
     tail: T,
 }
 
-struct HNil;
+pub struct HNil;
 
 pub struct PatchContext<'ctx, A: Allocator> {
     pub projections: AuxiliaryProjections,

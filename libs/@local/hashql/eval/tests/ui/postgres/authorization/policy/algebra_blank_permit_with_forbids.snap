@@ -1,6 +1,8 @@
 ---
 source: libs/@local/hashql/eval/src/postgres/authorization/policy/tests.rs
 description: "[ResolvedPolicy { original_policy_id: PolicyId(bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb), effect: Permit, actions: [ViewEntity], resource: None }, ResolvedPolicy { original_policy_id: PolicyId(cccccccc-cccc-cccc-cccc-cccccccccccc), effect: Forbid, actions: [ViewEntity], resource: Some(Web { web_id: WebId(ActorGroupEntityUuid(EntityUuid(33333333-3333-3333-3333-333333333333))) }) }]"
-expression: result.condition.transpile_to_string()
+expression: "snapshot_with_params(&result.condition.transpile_to_string(),\n&fixture.parameters)"
 ---
 NOT(("entity_temporal_metadata_0_0_0"."web_id" = $1))
+
+parameters: AuxiliaryParameters { initial_offset: 0, parameters: [WebId(ActorGroupEntityUuid(EntityUuid(33333333-3333-3333-3333-333333333333)))] }

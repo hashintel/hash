@@ -1,6 +1,8 @@
 ---
 source: libs/@local/hashql/eval/src/postgres/authorization/protection/tests.rs
 description: "Equal(Path { path: Uuid }, ActorId)"
-expression: expr.transpile_to_string()
+expression: "snapshot_with_params(&expr.transpile_to_string(), &fixture.parameters)"
 ---
 "entity_temporal_metadata_0_0_0"."entity_uuid" = $1
+
+parameters: AuxiliaryParameters { initial_offset: 0, parameters: [ActorEntityUuid(EntityUuid(aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa))] }
