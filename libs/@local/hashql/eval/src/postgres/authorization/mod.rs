@@ -19,7 +19,10 @@ use self::{
     policy::{PolicyTranslation, PolicyTranslationUnit},
     protection::ProtectionTranslationUnit,
 };
-use super::{PatchPreparedQueryLayer, prepared::PatchContext};
+use super::{
+    PatchPreparedQueryLayer,
+    prepared::{PatchContext, PatchPreparedQuery},
+};
 
 mod policy;
 mod protection;
@@ -128,13 +131,13 @@ impl<A: Allocator + Clone, S: Allocator> PatchPreparedQueryLayer<A, S>
     for AuthorizationPatch<'_, '_>
 {
     fn patch_query<N>(
-        &mut self,
+        &self,
         context: &mut PatchContext<'_, A>,
         query: &mut super::PreparedQuery<'_, A>,
         scratch: S,
-        next: &mut N,
+        next: &N,
     ) where
-        N: super::prepared::PatchPreparedQuery<A, S>,
+        N: PatchPreparedQuery<A, S>,
     {
         let mut policy = PolicyTranslationUnit {
             projections: &mut context.projections,

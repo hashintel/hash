@@ -26,8 +26,8 @@ use hash_graph_store::{
     filter::{
         Filter, FilterExpression, JsonPath, Parameter, PathToken,
         protection::{
-            PropertyFilter, PropertyFilterExpression, PropertyFilterExpressionList,
-            PropertyProtectionFilterConfig,
+            PropertyFilter, PropertyFilterEntityQueryPath, PropertyFilterExpression,
+            PropertyFilterExpressionList, PropertyProtectionFilterConfig,
         },
     },
     query::{NullOrdering, Ordering},
@@ -1422,16 +1422,12 @@ fn multi_property_config() -> PropertyProtectionFilterConfig<'static> {
                     parameter: Parameter::Text(Cow::Borrowed(USER_ENTITY_TYPE_BASE_URL)),
                 },
                 PropertyFilterExpressionList::Path {
-                    path: EntityQueryPath::EntityTypeEdge {
-                        edge_kind: SharedEdgeKind::IsOfType,
-                        path: EntityTypeQueryPath::BaseUrl,
-                        inheritance_depth: None,
-                    },
+                    path: PropertyFilterEntityQueryPath::TypeBaseUrls,
                 },
             ),
             PropertyFilter::NotEqual(
                 PropertyFilterExpression::Path {
-                    path: EntityQueryPath::Uuid,
+                    path: PropertyFilterEntityQueryPath::Uuid,
                 },
                 PropertyFilterExpression::ActorId,
             ),
@@ -2050,16 +2046,12 @@ fn multi_type_config() -> PropertyProtectionFilterConfig<'static> {
                     parameter: Parameter::Text(Cow::Borrowed(USER_ENTITY_TYPE_BASE_URL)),
                 },
                 PropertyFilterExpressionList::Path {
-                    path: EntityQueryPath::EntityTypeEdge {
-                        edge_kind: SharedEdgeKind::IsOfType,
-                        path: EntityTypeQueryPath::BaseUrl,
-                        inheritance_depth: None,
-                    },
+                    path: PropertyFilterEntityQueryPath::TypeBaseUrls,
                 },
             ),
             PropertyFilter::NotEqual(
                 PropertyFilterExpression::Path {
-                    path: EntityQueryPath::Uuid,
+                    path: PropertyFilterEntityQueryPath::Uuid,
                 },
                 PropertyFilterExpression::ActorId,
             ),
@@ -2073,16 +2065,12 @@ fn multi_type_config() -> PropertyProtectionFilterConfig<'static> {
                     parameter: Parameter::Text(Cow::Borrowed(SECRET_ENTITY_TYPE_BASE_URL)),
                 },
                 PropertyFilterExpressionList::Path {
-                    path: EntityQueryPath::EntityTypeEdge {
-                        edge_kind: SharedEdgeKind::IsOfType,
-                        path: EntityTypeQueryPath::BaseUrl,
-                        inheritance_depth: None,
-                    },
+                    path: PropertyFilterEntityQueryPath::TypeBaseUrls,
                 },
             ),
             PropertyFilter::NotEqual(
                 PropertyFilterExpression::Path {
-                    path: EntityQueryPath::Uuid,
+                    path: PropertyFilterEntityQueryPath::Uuid,
                 },
                 PropertyFilterExpression::ActorId,
             ),

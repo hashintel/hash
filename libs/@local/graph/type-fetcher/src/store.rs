@@ -176,6 +176,15 @@ pub struct FetchingStore<S, A> {
     connection_info: Option<TypeFetcherConnectionInfo<A>>,
 }
 
+impl<S, T, A> AsRef<T> for FetchingStore<S, A>
+where
+    S: AsRef<T>,
+{
+    fn as_ref(&self) -> &T {
+        self.store.as_ref()
+    }
+}
+
 impl<S, A> PrincipalStore for FetchingStore<S, A>
 where
     S: PrincipalStore + Send + Sync,

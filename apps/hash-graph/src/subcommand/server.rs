@@ -32,7 +32,7 @@ use multiaddr::{Multiaddr, Protocol};
 use regex::Regex;
 use reqwest::{Client, Url};
 use tokio::{io, net::TcpListener, signal, time::timeout};
-use tokio_postgres::NoTls;
+use tokio_postgres::{Client as PostgresClient, NoTls};
 use tokio_util::{codec::FramedWrite, sync::CancellationToken};
 use type_system::ontology::json_schema::DomainValidator;
 
@@ -383,7 +383,6 @@ where
 /// Starts the main graph API server (REST + optional RPC).
 async fn start_server<S>(
     pool: S,
-    postgres: PostgresStorePool,
     compiler: Arc<CompilerContext>,
     config: ServerConfig,
     query_logger: Option<QueryLogger>,
@@ -391,7 +390,7 @@ async fn start_server<S>(
 ) -> Result<(), Report<GraphError>>
 where
     S: StorePool + Send + Sync + 'static,
-    for<'p> S::Store<'p>: RestApiStore + PrincipalStore + PolicyStore,
+    for<'p> S::Store<'p>: RestApiStore + PrincipalStore + PolicyStore + AsRef<PostgresClient>,
 {
     let store = Arc::new(pool);
     let temporal_client = create_temporal_client(&config.temporal)
@@ -414,7 +413,6 @@ where
 
     let router = rest_api_router(RestRouterDependencies {
         store,
-        postgres,
         temporal_client,
         domain_regex: DomainValidator::new(config.allowed_url_domain),
         query_logger,
@@ -478,8 +476,6 @@ pub async fn server(mut args: ServerArgs) -> Result<(), Report<GraphError>> {
 
     let lifecycle = ServerLifecycle::new();
 
-    let postgres = pool.clone();
-
     if args.embed_admin {
         start_admin_server(pool.clone(), args.admin, &lifecycle);
     }
@@ -521,16 +517,7 @@ pub async fn server(mut args: ServerArgs) -> Result<(), Report<GraphError>> {
         args.config.compiler.compiler_exec_pool_size.get(),
     ));
 
-    if let Err(error) = start_server(
-        pool,
-        postgres,
-        compiler,
-        args.config,
-        query_logger,
-        &lifecycle,
-    )
-    .await
-    {
+    if let Err(error) = start_server(pool, compiler, args.config, query_logger, &lifecycle).await {
         lifecycle.shutdown_and_wait().await;
         return Err(error);
     }
