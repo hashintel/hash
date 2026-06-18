@@ -1,6 +1,8 @@
 ---
 source: libs/@local/hashql/eval/src/postgres/authorization/policy/tests.rs
 description: "OptimizationData { permitted_entity_uuids: [], permitted_entity_type_uuids: [], permitted_property_type_uuids: [], permitted_data_type_uuids: [], permitted_web_ids: [WebId(ActorGroupEntityUuid(EntityUuid(33333333-3333-3333-3333-333333333333)))] }"
-expression: "expr[0].transpile_to_string()"
+expression: "snapshot_with_params(&expr[0].transpile_to_string(), &fixture.parameters)"
 ---
 "entity_temporal_metadata_0_0_0"."web_id" = $1
+
+parameters: AuxiliaryParameters { initial_offset: 0, parameters: [WebId(ActorGroupEntityUuid(EntityUuid(33333333-3333-3333-3333-333333333333)))] }

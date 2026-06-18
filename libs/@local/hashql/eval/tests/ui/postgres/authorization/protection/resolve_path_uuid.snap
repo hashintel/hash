@@ -1,6 +1,8 @@
 ---
 source: libs/@local/hashql/eval/src/postgres/authorization/protection/tests.rs
 description: Uuid
-expression: expr.transpile_to_string()
+expression: "snapshot_with_params(&expr.transpile_to_string(), &fixture.parameters)"
 ---
 "entity_temporal_metadata_0_0_0"."entity_uuid"
+
+parameters: AuxiliaryParameters { initial_offset: 0, parameters: [] }

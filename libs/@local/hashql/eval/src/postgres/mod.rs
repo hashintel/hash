@@ -77,6 +77,8 @@ mod filter;
 mod parameters;
 mod prepared;
 mod projections;
+#[cfg(test)]
+pub(crate) mod tests;
 mod traverse;
 mod types;
 
