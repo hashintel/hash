@@ -3,7 +3,7 @@ use core::ops::Range;
 
 use axum::response::{Html, IntoResponse as _};
 use error_stack::Report;
-use hash_graph_authorization::policies::store::error::ContextCreationError;
+use hash_graph_authorization::policies::store::error::{ContextCreationError, DetermineActorError};
 use hashql_ast::error::AstDiagnosticCategory;
 use hashql_core::span::{SpanId, SpanTable};
 use hashql_diagnostics::{
@@ -101,7 +101,17 @@ pub(crate) fn authorization_context_diagnostic(
             actor_not_found(report, root_span, actor_id)
         }
         ContextCreationError::DetermineActor { actor_id } => {
-            actor_not_found(report, root_span, actor_id)
+            // DetermineActor wraps either ActorNotFound or StoreError.
+            // Only report "does not exist" when the actor was actually looked up
+            // and not found; a store error during lookup is infrastructure.
+            if report
+                .downcast_ref::<DetermineActorError>()
+                .is_some_and(|inner| matches!(inner, DetermineActorError::StoreError))
+            {
+                authorization_context_failed(report, root_span)
+            } else {
+                actor_not_found(report, root_span, actor_id)
+            }
         }
         ContextCreationError::BuildPrincipalContext { .. }
         | ContextCreationError::BuildEntityTypeContext { .. }

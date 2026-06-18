@@ -13,7 +13,7 @@
 //!
 //! The tests below verify each case from the truth tables in the protection module.
 
-use alloc::borrow::Cow;
+use alloc::{borrow::Cow, sync::Arc};
 use std::collections::HashSet;
 
 use hash_graph_postgres_store::store::PostgresStoreSettings;
@@ -1410,7 +1410,7 @@ fn phone_filter(phone: &str) -> Filter<'static, type_system::knowledge::entity::
 /// Creates a `FilterProtectionConfig` that protects both email AND phone for User.
 ///
 /// Excludes User entities when filtering by email or phone, UNLESS the actor is that User.
-fn multi_property_config() -> PropertyProtectionFilterConfig<'static> {
+fn multi_property_config() -> Arc<PropertyProtectionFilterConfig<'static>> {
     let email_url = BaseUrl::new(EMAIL_PROPERTY_BASE_URL.to_owned()).expect("valid email base URL");
     let phone_url = BaseUrl::new(PHONE_PROPERTY_BASE_URL.to_owned()).expect("valid phone base URL");
 
@@ -1437,7 +1437,7 @@ fn multi_property_config() -> PropertyProtectionFilterConfig<'static> {
     let mut config = PropertyProtectionFilterConfig::new();
     config.protect_property(email_url, user_protection());
     config.protect_property(phone_url, user_protection());
-    config
+    Arc::new(config)
 }
 
 /// Seeds the database with multi-property protection config.
@@ -2032,7 +2032,7 @@ fn secret_code_filter(
 /// Creates a `FilterProtectionConfig` for multi-type testing:
 /// - email protected for `User` (unless actor is that `User`)
 /// - `secret_code` protected for `SecretEntity` (unless actor is that `SecretEntity`)
-fn multi_type_config() -> PropertyProtectionFilterConfig<'static> {
+fn multi_type_config() -> Arc<PropertyProtectionFilterConfig<'static>> {
     let email_url = BaseUrl::new(EMAIL_PROPERTY_BASE_URL.to_owned()).expect("valid email base URL");
     let secret_code_url =
         BaseUrl::new(SECRET_CODE_PROPERTY_BASE_URL.to_owned()).expect("valid secret_code base URL");
@@ -2076,7 +2076,8 @@ fn multi_type_config() -> PropertyProtectionFilterConfig<'static> {
             ),
         ]),
     );
-    config
+
+    Arc::new(config)
 }
 
 /// Seeds the database with multi-type protection config.

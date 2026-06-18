@@ -81,6 +81,7 @@ struct ExecutionContext<S> {
     temporal: Option<Arc<TemporalClient>>,
     actor_id: ActorEntityUuid,
     store: Arc<S>,
+    filter_protection: Arc<PropertyProtectionFilterConfig<'static>>,
 }
 
 /// Controls the response format for a HashQL query.
@@ -139,9 +140,9 @@ where
         .map_err(|report| error::authorization_context_diagnostic(&report, compilation.root_span))
         .into_status()
         .with_diagnostics(advisories)?;
-    let property = PropertyProtectionFilterConfig::hash_default();
+    let property = &*exec.filter_protection;
 
-    let patch = AuthorizationPatch::new(&policy_components, &property);
+    let patch = AuthorizationPatch::new(&policy_components, property);
 
     // TODO: in the future when we cache queries, this will have to clone them, but because this is
     // oneshot, we can just ignore that for now.
@@ -262,11 +263,13 @@ pub(crate) struct HashQlRequest {
         (status = 500, description = "Internal compiler or database error"),
     )
 )]
+#[expect(clippy::too_many_arguments, reason = "axum handler extractors")]
 pub(crate) async fn query_hashql<S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     Extension(store_pool): Extension<Arc<S>>,
     Extension(compiler): Extension<Arc<CompilerContext>>,
     Extension(temporal): Extension<Option<Arc<TemporalClient>>>,
+    Extension(filter_protection): Extension<Arc<PropertyProtectionFilterConfig<'static>>>,
     InteractiveHeader(interactive): InteractiveHeader,
     JsonCompatHeader(json_compat): JsonCompatHeader,
     Json(request): Json<HashQlRequest>,
@@ -281,6 +284,7 @@ where
         temporal,
         actor_id,
         store: store_pool,
+        filter_protection,
     };
 
     let options = CompilationOutputOptions {

@@ -93,7 +93,7 @@ pub struct PostgresStoreSettings {
     ///
     /// When set, filters on protected properties will automatically exclude
     /// specified entity types to prevent enumeration attacks.
-    pub filter_protection: PropertyProtectionFilterConfig<'static>,
+    pub filter_protection: Arc<PropertyProtectionFilterConfig<'static>>,
 }
 
 impl Default for PostgresStoreSettings {
@@ -101,7 +101,7 @@ impl Default for PostgresStoreSettings {
         Self {
             validate_links: true,
             skip_embedding_creation: false,
-            filter_protection: PropertyProtectionFilterConfig::hash_default(),
+            filter_protection: Arc::new(PropertyProtectionFilterConfig::hash_default()),
         }
     }
 }
