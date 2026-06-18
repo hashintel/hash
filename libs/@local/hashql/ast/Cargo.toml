@@ -17,7 +17,6 @@ hashql-diagnostics = { workspace = true, public = true }
 
 # Private third-party dependencies
 simple-mermaid = { workspace = true }
-tracing        = { workspace = true }
 
 [dev-dependencies]
 hashql-compiletest = { workspace = true }
