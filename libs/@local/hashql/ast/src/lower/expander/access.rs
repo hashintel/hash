@@ -3,7 +3,7 @@ use core::mem;
 use hashql_core::{
     heap::BumpAllocator,
     span::SpanId,
-    symbol::{Ident, IdentKind},
+    symbol::{Ident, IdentKind, sym},
     value::Primitive,
 };
 
@@ -78,12 +78,16 @@ fn lower_access_impl<'heap, S>(
 where
     S: BumpAllocator,
 {
-    let Some(field) = argument_to_field(expander, field) else {
-        return Expr::dummy();
-    };
+    // `argument_to_field` will add a diagnostic directly, therefore unlike the other expanders we
+    // just create the synthetic dummy
+    let field = argument_to_field(expander, field).unwrap_or_else(|| Ident::synthetic(sym::dummy));
 
     let mut value = mem::replace(&mut value.value, Expr::dummy());
     expander.visit(&mut value);
+
+    if field.value == sym::dummy {
+        return Expr::dummy();
+    }
 
     Expr {
         id: NodeId::PLACEHOLDER,
