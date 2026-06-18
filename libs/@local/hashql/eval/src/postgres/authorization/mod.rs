@@ -174,6 +174,9 @@ impl<A: Allocator + Clone, S: Allocator> PatchPreparedQueryLayer<A, S>
             );
         };
 
+        #[cfg(debug_assertions)]
+        let mut grafted_columns = 0_u32;
+
         for column in &mut statement.selects {
             let SelectExpression::Expression {
                 expression,
@@ -191,9 +194,21 @@ impl<A: Allocator + Clone, S: Allocator> PatchPreparedQueryLayer<A, S>
                 let base = mem::replace(expression, Expression::Parameter(0));
 
                 // Group the result of the subtraction so that subsequent operators bind to the
-                // result, and not to one of it's parts.
+                // result, and not to one of its parts.
                 *expression = Expression::subtract(base, keys_to_remove.clone()).grouped();
+
+                if cfg!(debug_assertions) {
+                    grafted_columns += 1;
+                }
             }
+        }
+
+        if cfg!(debug_assertions) {
+            debug_assert_eq!(
+                grafted_columns, 2,
+                "entity_editions LATERAL must contain both `properties` and `property_metadata` \
+                 projections for masking; found {grafted_columns}",
+            );
         }
     }
 }

@@ -332,6 +332,30 @@ fn optimize_single_web_id() {
 }
 
 #[test]
+fn optimize_multiple_web_ids() {
+    let mut fixture = Fixture::new();
+    let mut permits = None;
+    let data = OptimizationData {
+        permitted_entity_uuids: vec![],
+        permitted_entity_type_uuids: vec![],
+        permitted_property_type_uuids: vec![],
+        permitted_data_type_uuids: vec![],
+        permitted_web_ids: vec![WebId::new(WEB_UUID_1), WebId::new(ENTITY_UUID_2)],
+    };
+    optimize(&mut fixture.policy(), &mut permits, &data);
+    let expr = permits.expect("should have a permit expression");
+    assert_eq!(expr.len(), 1);
+
+    let mut settings = snapshot_settings();
+    settings.set_description(format!("{data:?}"));
+    let _guard = settings.bind_to_scope();
+    assert_snapshot!(
+        "optimize_multiple_webs",
+        snapshot_with_params(&expr[0].transpile_to_string(), &fixture.parameters),
+    );
+}
+
+#[test]
 fn optimize_empty_is_noop() {
     let mut fixture = Fixture::new();
     let mut unit = fixture.policy();
@@ -345,6 +369,22 @@ fn optimize_empty_is_noop() {
 }
 
 #[test]
+fn filter_empty_all_is_true() {
+    let mut fixture = Fixture::new();
+    let filter = EntityResourceFilter::All { filters: vec![] };
+    let expr = convert_entity_resource_filter(&mut fixture.policy(), &filter);
+    assert_eq!(expr.transpile_to_string(), "TRUE");
+}
+
+#[test]
+fn filter_empty_any_is_false() {
+    let mut fixture = Fixture::new();
+    let filter = EntityResourceFilter::Any { filters: vec![] };
+    let expr = convert_entity_resource_filter(&mut fixture.policy(), &filter);
+    assert_eq!(expr.transpile_to_string(), "FALSE");
+}
+
+#[test]
 fn algebra_blank_forbid_denies_all() {
     let mut fixture = Fixture::new();
     let actor = Some(ActorId::User(UserId::new(ACTOR_UUID)));
@@ -353,6 +393,19 @@ fn algebra_blank_forbid_denies_all() {
         .policy()
         .transpile(VertexType::Entity, &policy, Global);
     assert_eq!(result.condition.transpile_to_string(), "FALSE");
+    assert_eq!(
+        fixture.parameters.len(),
+        0,
+        "blank forbid should not allocate parameters",
+    );
+    assert!(
+        fixture.projections.entity_ids.is_none(),
+        "blank forbid should not register entity_ids",
+    );
+    assert!(
+        fixture.projections.entity_is_of_type_ids.is_none(),
+        "blank forbid should not register entity_is_of_type_ids",
+    );
 }
 
 #[test]
@@ -415,6 +468,15 @@ fn algebra_no_permits_denies_all() {
         result.condition.transpile_to_string(),
         "FALSE",
         "forbids without permits should deny all",
+    );
+    assert_eq!(
+        fixture.parameters.len(),
+        0,
+        "no-permit early return should not allocate forbid parameters",
+    );
+    assert!(
+        fixture.projections.entity_ids.is_none(),
+        "no-permit early return should not register joins",
     );
 }
 
