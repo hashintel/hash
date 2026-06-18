@@ -282,6 +282,10 @@ impl<A: Allocator> AuxiliaryParameters<A> {
     pub(crate) fn len(&self) -> usize {
         self.parameters.len()
     }
+
+    pub(crate) fn iter(&self) -> impl ExactSizeIterator<Item = &(dyn ToSql + Sync)> {
+        self.parameters.iter().map(|param| &**param)
+    }
 }
 
 #[cfg(test)]

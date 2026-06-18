@@ -38,9 +38,74 @@ X-Authenticated-User-Actor-Id: {{system_machine_id}}
   client.global.set("user_id", response.body.userId);
 %}
 
+### HashQL: missing auth header returns 400
+POST http://127.0.0.1:4000/hashql
+Content-Type: application/json
+
+{
+  "query": ["#literal", 1],
+  "inputs": []
+}
+
+> {%
+  client.test("status", function() {
+    client.assert(response.status === 400, "Expected 400 for missing auth header");
+  });
+  client.test("mentions header", function() {
+    client.assert(response.body.includes("X-Authenticated-User-Actor-Id"),
+      "Expected response to mention missing header name");
+  });
+%}
+
+### HashQL: invalid actor returns 400 with diagnostic
+POST http://127.0.0.1:4000/hashql
+Content-Type: application/json
+X-Authenticated-User-Actor-Id: ffffffff-ffff-ffff-ffff-ffffffffffff
+
+{
+  "query": ["let", "axes",
+    ["::graph::temporal::PinnedTransactionTimeTemporalAxes",
+      {"#struct": {
+        "pinned": ["::graph::temporal::TransactionTime",
+          ["::graph::temporal::Timestamp", {"#literal": 4102444800000}]
+        ],
+        "variable": ["::graph::temporal::DecisionTime",
+          ["::graph::temporal::Interval", {"#struct": {
+            "start": ["::graph::temporal::UnboundedTemporalBound"],
+            "end": ["::graph::temporal::ExclusiveTemporalBound",
+              ["::graph::temporal::Timestamp", {"#literal": 4102444800000}]
+            ]
+          }}]
+        ]
+      }}
+    ],
+    ["::graph::tail::collect",
+      ["::graph::body::filter",
+        ["::graph::head::entities", "axes"],
+        ["fn", {"#tuple": []}, {"#struct": {"vertex": "_"}}, "_",
+          {"#literal": false}
+        ]
+      ]
+    ]
+  ],
+  "inputs": []
+}
+
+> {%
+  client.test("status", function() {
+    client.assert(response.status === 400, "Expected 400 for invalid actor");
+  });
+  client.test("has diagnostic", function() {
+    client.assert(response.body.primary !== undefined, "Expected primary diagnostic");
+    client.assert(response.body.primary.labels.labels[0].message.includes("does not exist"),
+      "Expected diagnostic to mention actor does not exist");
+  });
+%}
+
 ### HashQL: filter-false returns empty list
 POST http://127.0.0.1:4000/hashql
 Content-Type: application/json
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
   "query": ["let", "axes",
@@ -86,6 +151,7 @@ Content-Type: application/json
 ### HashQL: parse error returns 400 with diagnostics
 POST http://127.0.0.1:4000/hashql
 Content-Type: application/json
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
   "query": {"not": "a valid query"},
@@ -105,6 +171,7 @@ Content-Type: application/json
 ### HashQL: missing inputs field returns 400
 POST http://127.0.0.1:4000/hashql
 Content-Type: application/json
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
   "query": {"#literal": 1}
@@ -124,6 +191,7 @@ Content-Type: application/json
 ### HashQL: json-compat wraps result in envelope with advisories
 POST http://127.0.0.1:4000/hashql
 Content-Type: application/json
+X-Authenticated-User-Actor-Id: {{user_id}}
 Json-Compat: true
 
 {
@@ -170,6 +238,7 @@ Json-Compat: true
 ### HashQL: interactive header returns HTML on error
 POST http://127.0.0.1:4000/hashql
 Content-Type: application/json
+X-Authenticated-User-Actor-Id: {{user_id}}
 Interactive: true
 
 {
