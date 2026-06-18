@@ -1,6 +1,9 @@
 //@ run: pass
 //@ description: Test that inference in argument position works correctly
-["use", "::core::math", "*",
+[
+  "use",
+  "::core::math",
+  "*",
   [
     [
       "fn",
