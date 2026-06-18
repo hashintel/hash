@@ -39,19 +39,39 @@ impl<A: Allocator> PreparedQuery<'_, A> {
     }
 }
 
+/// Cons cell for the patch layer list.
+///
+/// Layers are pushed via [`PreparedQueryPatch::layer`] and execute
+/// outermost-first: the last layer added runs first and receives the
+/// rest of the list as its `next` continuation.
 pub struct HCons<H, T> {
     head: H,
     tail: T,
 }
 
+/// Terminal element of the patch layer list.
+///
+/// When reached, materializes all auxiliary joins registered during
+/// the preceding layers by calling
+/// [`AuxiliaryProjections::build_joins`].
 pub struct HNil;
 
+/// Shared mutable context threaded through every patch layer.
+///
+/// Layers register projection demands (auxiliary joins) here; `HNil`
+/// materializes them into the query's FROM clause at the end of the
+/// chain.
 pub struct PatchContext<'ctx, A: Allocator> {
     pub projections: AuxiliaryProjections,
     pub alloc: A,
     _marker: PhantomData<&'ctx ()>,
 }
 
+/// A composed patch chain that can be applied to a [`PreparedQuery`].
+///
+/// Implemented by [`HNil`] (which materializes joins) and by
+/// [`HCons`] (which delegates to its head layer, passing the tail
+/// as the `next` continuation).
 pub trait PatchPreparedQuery<A: Allocator, S: Allocator> {
     fn patch_query(
         &mut self,
@@ -61,6 +81,17 @@ pub trait PatchPreparedQuery<A: Allocator, S: Allocator> {
     );
 }
 
+/// A single patch layer in the continuation-passing pipeline.
+///
+/// Each layer receives a `next` continuation and must call
+/// `next.patch_query()` exactly once. Work done before that call
+/// can register projection demands and modify the WHERE clause;
+/// work done after can inspect and rewrite the materialized FROM
+/// tree.
+///
+/// Skipping the `next` call prevents join materialization and
+/// blocks all inner layers. Calling it more than once duplicates
+/// joins and conditions.
 pub trait PatchPreparedQueryLayer<A: Allocator, S: Allocator> {
     fn patch_query<N>(
         &mut self,
@@ -106,6 +137,17 @@ where
     }
 }
 
+/// Builder for a [`PatchPreparedQueryLayer`] pipeline.
+///
+/// Layers are added with [`layer`](Self::layer) and execute outermost-first:
+/// the last layer added runs first. The pipeline terminates at [`HNil`],
+/// which materializes all auxiliary joins accumulated by the layers.
+///
+/// ```text
+/// PreparedQueryPatch::new()       // HNil (join materialization)
+///     .layer(authorization)       // runs first, calls next for joins
+///     .apply(&mut query, scratch);
+/// ```
 pub struct PreparedQueryPatch<T> {
     patches: T,
 }
@@ -118,6 +160,9 @@ impl PreparedQueryPatch<HNil> {
 }
 
 impl<T> PreparedQueryPatch<T> {
+    /// Wraps the current pipeline with an additional outer layer.
+    ///
+    /// The new layer executes before all previously added layers.
     pub fn layer<T2>(self, other: T2) -> PreparedQueryPatch<HCons<T2, T>> {
         PreparedQueryPatch {
             patches: HCons {
@@ -127,8 +172,13 @@ impl<T> PreparedQueryPatch<T> {
         }
     }
 
+    /// Runs the full patch pipeline against `query`.
+    ///
+    /// Constructs [`AuxiliaryProjections`] from the query's compiled
+    /// projections, then invokes the layer chain. The terminal [`HNil`]
+    /// materializes all registered auxiliary joins into the FROM clause.
     pub fn apply<A: Allocator + Clone, S: Allocator>(
-        &mut self,
+        mut self,
         query: &mut PreparedQuery<A>,
         scratch: S,
     ) where

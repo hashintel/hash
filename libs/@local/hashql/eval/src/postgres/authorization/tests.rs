@@ -449,7 +449,7 @@ fn compile_and_patch<'heap>(
         "unexpected diagnostics from compilation",
     );
 
-    let mut patch = PreparedQueryPatch::new().layer(AuthorizationPatch::new(policy, properties));
+    let patch = PreparedQueryPatch::new().layer(AuthorizationPatch::new(policy, properties));
     patch.apply(&mut prepared_query, Global);
 
     let body = format_body(fixture, heap);
