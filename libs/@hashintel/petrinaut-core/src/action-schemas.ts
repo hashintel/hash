@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import {
+  arcEndpointSchema,
   arcDirectionSchema,
   colorElementSchema,
   colorSchema,
@@ -14,7 +15,6 @@ import {
   positionSchema,
   subnetSchema,
   transitionSchema,
-  wireSchema,
 } from "./schemas/entity-schemas";
 import { metricSchema as simulationMetricSchema } from "./schemas/metric-schema";
 import { scenarioSchema as simulationScenarioSchema } from "./schemas/scenario-schema";
@@ -22,6 +22,7 @@ import { scenarioSchema as simulationScenarioSchema } from "./schemas/scenario-s
 import type { SelectionItem } from "./types/selection";
 
 export {
+  arcEndpointSchema,
   arcDirectionSchema,
   colorElementSchema,
   colorSchema,
@@ -34,7 +35,6 @@ export {
   positionSchema,
   subnetSchema,
   transitionSchema,
-  wireSchema,
 } from "./schemas/entity-schemas";
 export {
   metricSchema as simulationMetricSchema,
@@ -143,12 +143,83 @@ const targetSubnetIdSchema = idSchema.nullable().optional().meta({
     "Optional ID of the subnet to mutate. Omit or pass null to mutate the root net.",
 });
 
+const arcEndpointInputFields = {
+  placeId: idSchema.optional().meta({
+    description:
+      "Legacy shorthand for a normal place endpoint in the same net as the transition.",
+  }),
+  endpoint: arcEndpointSchema.optional().meta({
+    description:
+      'Arc endpoint. Use `kind: "componentPort"` to connect the transition to a port on a subnet instance.',
+  }),
+};
+
+const assertSingleArcEndpointInput = (ctx: {
+  value: { placeId?: string; endpoint?: unknown };
+  issues: {
+    push(issue: {
+      code: "custom";
+      path: string[];
+      message: string;
+      input: unknown;
+    }): void;
+  };
+}) => {
+  const { placeId, endpoint } = ctx.value;
+  if ((placeId === undefined) === (endpoint === undefined)) {
+    ctx.issues.push({
+      code: "custom",
+      path: ["endpoint"],
+      message: "Provide exactly one of `placeId` or `endpoint`.",
+      input: ctx.value,
+    });
+  }
+};
+
+const assertArcEndpointReplacementInput = (ctx: {
+  value: {
+    oldPlaceId?: string;
+    newPlaceId?: string;
+    oldEndpoint?: unknown;
+    newEndpoint?: unknown;
+  };
+  issues: {
+    push(issue: {
+      code: "custom";
+      path: string[];
+      message: string;
+      input: unknown;
+    }): void;
+  };
+}) => {
+  const hasOldPlace = ctx.value.oldPlaceId !== undefined;
+  const hasOldEndpoint = ctx.value.oldEndpoint !== undefined;
+  const hasNewPlace = ctx.value.newPlaceId !== undefined;
+  const hasNewEndpoint = ctx.value.newEndpoint !== undefined;
+
+  if (hasOldPlace === hasOldEndpoint) {
+    ctx.issues.push({
+      code: "custom",
+      path: ["oldEndpoint"],
+      message: "Provide exactly one of `oldPlaceId` or `oldEndpoint`.",
+      input: ctx.value,
+    });
+  }
+  if (hasNewPlace === hasNewEndpoint) {
+    ctx.issues.push({
+      code: "custom",
+      path: ["newEndpoint"],
+      message: "Provide exactly one of `newPlaceId` or `newEndpoint`.",
+      input: ctx.value,
+    });
+  }
+};
+
 export const itemTypeAndIdSchema = z
   .discriminatedUnion("type", [
     z.strictObject({ type: z.literal("place"), id: idSchema }),
     z.strictObject({ type: z.literal("transition"), id: idSchema }),
     z.strictObject({ type: z.literal("arc"), id: idSchema }),
-    z.strictObject({ type: z.literal("wire"), id: idSchema }),
     z.strictObject({ type: z.literal("componentInstance"), id: idSchema }),
     z.strictObject({ type: z.literal("type"), id: idSchema }),
     z.strictObject({ type: z.literal("differentialEquation"), id: idSchema }),
@@ -212,7 +283,7 @@ export const mutationActionInputSchemas = {
     .strictObject({
       transitionId: idSchema,
       arcDirection: arcDirectionSchema,
-      placeId: idSchema,
+      ...arcEndpointInputFields,
       weight: z.number().positive().meta({
         description: "Token multiplicity for the arc.",
       }),
@@ -222,6 +293,7 @@ export const mutationActionInputSchemas = {
       }),
       targetSubnetId: targetSubnetIdSchema,
     })
+    .check(assertSingleArcEndpointInput)
     .check((ctx) => {
       const input = ctx.value;
       if (input.arcDirection === "output" && input.type !== undefined) {
@@ -239,44 +311,54 @@ export const mutationActionInputSchemas = {
     .strictObject({
       transitionId: idSchema,
       arcDirection: arcDirectionSchema,
-      placeId: idSchema,
+      ...arcEndpointInputFields,
       targetSubnetId: targetSubnetIdSchema,
     })
+    .check(assertSingleArcEndpointInput)
     .meta({ description: "Remove an input or output arc from a transition." }),
   updateArcWeight: z
     .strictObject({
       transitionId: idSchema,
       arcDirection: arcDirectionSchema,
-      placeId: idSchema,
+      ...arcEndpointInputFields,
       weight: z.number().positive().meta({
         description: "Replacement token multiplicity for the arc.",
       }),
       targetSubnetId: targetSubnetIdSchema,
     })
+    .check(assertSingleArcEndpointInput)
     .meta({ description: "Update the token weight on an existing arc." }),
   updateArcType: z
     .strictObject({
       transitionId: idSchema,
-      placeId: idSchema,
+      ...arcEndpointInputFields,
       type: inputArcSchema.shape.type.meta({
         description: "Replacement input arc type.",
       }),
       targetSubnetId: targetSubnetIdSchema,
     })
+    .check(assertSingleArcEndpointInput)
     .meta({ description: "Update an existing input arc's type." }),
   updateArcPlace: z
     .strictObject({
       transitionId: idSchema,
       arcDirection: arcDirectionSchema,
-      oldPlaceId: idSchema.meta({
+      oldPlaceId: idSchema.optional().meta({
         description: "Current place ID used by the arc.",
       }),
-      newPlaceId: idSchema.meta({
+      oldEndpoint: arcEndpointSchema.optional().meta({
+        description: "Current endpoint used by the arc.",
+      }),
+      newPlaceId: idSchema.optional().meta({
         description: "Replacement place ID for the arc.",
+      }),
+      newEndpoint: arcEndpointSchema.optional().meta({
+        description: "Replacement endpoint for the arc.",
       }),
       targetSubnetId: targetSubnetIdSchema,
     })
-    .meta({ description: "Update the place endpoint on an existing arc." }),
+    .check(assertArcEndpointReplacementInput)
+    .meta({ description: "Update the endpoint on an existing arc." }),
   addType: colorSchema.extend({ targetSubnetId: targetSubnetIdSchema }).meta({
     description: "Add a coloured-token type.",
   }),
@@ -398,7 +480,7 @@ export const mutationActionInputSchemas = {
     .meta({ description: "Remove a simulation metric." }),
   addSubnet: subnetSchema.meta({
     description:
-      "Add a reusable subnet definition. Mark subnet places with `isPort: true` to expose them for component wiring.",
+      "Add a reusable subnet definition. Mark subnet places with `isPort: true` to expose them as component ports.",
   }),
   updateSubnet: z
     .strictObject({
@@ -406,12 +488,10 @@ export const mutationActionInputSchemas = {
       update: subnetUpdateSchema,
     })
     .meta({ description: "Update fields on an existing subnet." }),
-  removeSubnet: z
-    .strictObject({ subnetId: idSchema })
-    .meta({
-      description:
-        "Remove a subnet definition and component instances that reference it.",
-    }),
+  removeSubnet: z.strictObject({ subnetId: idSchema }).meta({
+    description:
+      "Remove a subnet definition and component instances that reference it.",
+  }),
   addComponentInstance: componentInstanceSchema
     .extend({ targetSubnetId: targetSubnetIdSchema })
     .meta({
@@ -440,26 +520,6 @@ export const mutationActionInputSchemas = {
       targetSubnetId: targetSubnetIdSchema,
     })
     .meta({ description: "Remove a component instance." }),
-  addComponentInstanceWire: z
-    .strictObject({
-      instanceId: idSchema,
-      wire: wireSchema,
-      targetSubnetId: targetSubnetIdSchema,
-    })
-    .meta({
-      description:
-        "Add a wire that merges a parent-net place with a port place inside a component instance.",
-    }),
-  removeComponentInstanceWire: z
-    .strictObject({
-      instanceId: idSchema,
-      wire: wireSchema,
-      targetSubnetId: targetSubnetIdSchema,
-    })
-    .meta({
-      description:
-        "Remove a wire between a parent-net place and a component port place.",
-    }),
   deleteItemsByIds: z
     .strictObject({
       items: z.array(itemTypeAndIdSchema).meta({
@@ -492,7 +552,6 @@ export type ScenarioInput = z.infer<typeof simulationScenarioSchema>;
 export type MetricInput = z.infer<typeof simulationMetricSchema>;
 export type ComponentInstanceInput = z.infer<typeof componentInstanceSchema>;
 export type SubnetInput = z.infer<typeof subnetSchema>;
-export type WireInput = z.infer<typeof wireSchema>;
 export type NodePositionCommitInput = z.infer<typeof nodePositionCommitSchema>;
 
 export type MutationActionName = keyof typeof mutationActionInputSchemas;

@@ -47,26 +47,49 @@ export const hospitalNetworkSDCPN: {
         id: "transition__admit",
         name: "Admit",
         inputArcs: [{ placeId: "place__er", weight: 1, type: "standard" }],
+        outputArcs: [
+          {
+            endpoint: {
+              kind: "componentPort",
+              componentInstanceId: "instance__er_triage",
+              portPlaceId: "place__waiting",
+            },
+            weight: 1,
+          },
+        ],
+        lambdaType: "stochastic",
+        lambdaCode:
+          "export default Lambda((tokens, parameters) => parameters.admission_rate)",
+        transitionKernelCode: "export default TransitionKernel(() => ({}));",
+        x: -10 * GRID_SIZE,
+        y: 5 * GRID_SIZE,
+      },
+      {
+        id: "transition__move_to_ward",
+        name: "MoveToWard",
+        inputArcs: [
+          {
+            endpoint: {
+              kind: "componentPort",
+              componentInstanceId: "instance__er_triage",
+              portPlaceId: "place__treated",
+            },
+            weight: 1,
+            type: "standard",
+          },
+        ],
         outputArcs: [{ placeId: "place__ward", weight: 1 }],
         lambdaType: "stochastic",
         lambdaCode:
           "export default Lambda((tokens, parameters) => parameters.admission_rate)",
-        transitionKernelCode: [
-          "export default TransitionKernel(() => {",
-          "  return {",
-          "    HospitalWard: [{}],",
-          "  };",
-          "});",
-        ].join("\n"),
-        x: -10 * GRID_SIZE,
+        transitionKernelCode: "export default TransitionKernel(() => ({}));",
+        x: 0,
         y: 5 * GRID_SIZE,
       },
       {
         id: "transition__discharge",
         name: "Discharge",
-        inputArcs: [
-          { placeId: "place__ward", weight: 1, type: "standard" },
-        ],
+        inputArcs: [{ placeId: "place__ward", weight: 1, type: "standard" }],
         outputArcs: [{ placeId: "place__discharged", weight: 1 }],
         lambdaType: "stochastic",
         lambdaCode:
@@ -109,16 +132,6 @@ export const hospitalNetworkSDCPN: {
           param__triage_rate: "5",
           param__treatment_rate: "3",
         },
-        wiring: [
-          {
-            externalPlaceId: "place__er",
-            internalPlaceId: "place__waiting",
-          },
-          {
-            externalPlaceId: "place__ward",
-            internalPlaceId: "place__treated",
-          },
-        ],
         x: -10 * GRID_SIZE,
         y: 20 * GRID_SIZE,
       },

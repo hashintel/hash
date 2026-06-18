@@ -8,8 +8,9 @@ import { useIsReadOnly } from "../state/use-is-read-only";
 
 import type { PetrinautMutations } from "@hashintel/petrinaut-core";
 
-type PetrinautMutationInput<Name extends keyof PetrinautMutations> =
-  Parameters<PetrinautMutations[Name]>[0];
+type PetrinautMutationInput<Name extends keyof PetrinautMutations> = Parameters<
+  PetrinautMutations[Name]
+>[0];
 
 /**
  * React-facing bundle of atomic SDCPN mutations.
@@ -119,10 +120,6 @@ export function usePetrinautMutations(): PetrinautMutations {
       "updateComponentInstancePosition",
     ),
     removeComponentInstance: withReadonlyGuard("removeComponentInstance"),
-    addComponentInstanceWire: withReadonlyGuard("addComponentInstanceWire"),
-    removeComponentInstanceWire: withReadonlyGuard(
-      "removeComponentInstanceWire",
-    ),
     deleteItemsByIds: withReadonlyGuard("deleteItemsByIds"),
     commitNodePositions: withReadonlyGuard("commitNodePositions"),
   };

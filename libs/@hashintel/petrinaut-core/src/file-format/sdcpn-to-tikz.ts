@@ -1,3 +1,5 @@
+import { getArcEndpointPlaceId } from "../arc-endpoints";
+
 import type { SDCPN } from "../types/sdcpn";
 
 /**
@@ -160,7 +162,8 @@ export function sdcpnToTikZ(sdcpn: SDCPN, title: string): string {
     const tId = transitionIdMap.get(transition.id)!;
 
     for (const arc of transition.inputArcs) {
-      const pId = placeIdMap.get(arc.placeId);
+      const placeId = getArcEndpointPlaceId(arc);
+      const pId = placeId ? placeIdMap.get(placeId) : null;
       if (!pId) {
         continue;
       }
@@ -172,7 +175,8 @@ export function sdcpnToTikZ(sdcpn: SDCPN, title: string): string {
     }
 
     for (const arc of transition.outputArcs) {
-      const pId = placeIdMap.get(arc.placeId);
+      const placeId = getArcEndpointPlaceId(arc);
+      const pId = placeId ? placeIdMap.get(placeId) : null;
       if (!pId) {
         continue;
       }

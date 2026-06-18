@@ -130,7 +130,6 @@ export {
   setNetTitleToolName,
   subnetSchema,
   transitionSchema,
-  wireSchema,
 } from "./ai";
 export type {
   PetrinautAiCommandToolInput,
@@ -280,11 +279,20 @@ export {
   type ArcIdPrefix,
 } from "./arc-id";
 export {
-  generateWireId,
-  parseWireId,
-  WIRE_ID_PREFIX,
-  WIRE_ID_SEPARATOR,
-} from "./wire-id";
+  arcEndpointsEqual,
+  arcMatchesEndpoint,
+  arcReferencesComponentInstance,
+  arcReferencesPlace,
+  componentPortArcEndpoint,
+  createArcEndpointReference,
+  getArcEndpoint,
+  getArcEndpointKey,
+  getArcEndpointNodeId,
+  getArcEndpointPlaceId,
+  getComponentPortEndpointSubnet,
+  parseArcEndpointKey,
+  placeArcEndpoint,
+} from "./arc-endpoints";
 export { GRID_SIZE } from "./grid-size";
 export {
   type DefaultParameterValues,

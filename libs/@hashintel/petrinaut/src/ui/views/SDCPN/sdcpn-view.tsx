@@ -13,7 +13,6 @@ import { v4 as generateUuid } from "uuid";
 import { css } from "@hashintel/ds-helpers/css";
 import {
   DEFAULT_TRANSITION_KERNEL_CODE,
-  WIRE_ID_PREFIX,
   generateDefaultLambdaCode,
 } from "@hashintel/petrinaut-core";
 
@@ -33,7 +32,6 @@ import { MiniMap } from "./components/mini-map";
 import { PlaceNode } from "./components/place-node";
 import { TransitionNode } from "./components/transition-node";
 import { ViewportControls } from "./components/viewport-controls";
-import { WireEdge } from "./components/wire-edge";
 import { useApplyNodeChanges } from "./hooks/use-apply-node-changes";
 import { useRecenterOnPanelOpen } from "./hooks/use-recenter-on-panel-open";
 import { useSdcpnToReactFlow } from "./hooks/use-sdcpn-to-react-flow";
@@ -58,7 +56,6 @@ const CLASSIC_NODE_TYPES = {
 
 const REACTFLOW_EDGE_TYPES = {
   default: Arc,
-  wire: WireEdge,
 };
 
 const ZOOM_PADDING = 0.4;
@@ -102,13 +99,8 @@ export const SDCPNView: React.FC<{
 
   // SDCPN store
   const { petriNetId, petriNetDefinition } = use(SDCPNContext);
-  const {
-    addPlace,
-    addTransition,
-    addArc,
-    addComponentInstance,
-    addComponentInstanceWire,
-  } = usePetrinautMutations();
+  const { addPlace, addTransition, addArc, addComponentInstance } =
+    usePetrinautMutations();
 
   const {
     editionMode,
@@ -202,14 +194,14 @@ export const SDCPNView: React.FC<{
       return true;
     }
     if (
-      sourceNode.type === "place" &&
+      sourceNode.type === "transition" &&
       targetNode.type === "componentInstance"
     ) {
       return connection.targetHandle?.startsWith("port-in-") ?? false;
     }
     if (
       sourceNode.type === "componentInstance" &&
-      targetNode.type === "place"
+      targetNode.type === "transition"
     ) {
       return connection.sourceHandle?.startsWith("port-out-") ?? false;
     }
@@ -251,28 +243,34 @@ export const SDCPNView: React.FC<{
         weight: 1,
       });
     } else if (
-      sourceNode.type === "place" &&
+      sourceNode.type === "transition" &&
       targetNode.type === "componentInstance" &&
       connection.targetHandle?.startsWith("port-in-")
     ) {
-      addComponentInstanceWire({
-        instanceId: target,
-        wire: {
-          externalPlaceId: source,
-          internalPlaceId: connection.targetHandle.slice("port-in-".length),
+      addArc({
+        transitionId: source,
+        arcDirection: "output",
+        endpoint: {
+          kind: "componentPort",
+          componentInstanceId: target,
+          portPlaceId: connection.targetHandle.slice("port-in-".length),
         },
+        weight: 1,
       });
     } else if (
       sourceNode.type === "componentInstance" &&
-      targetNode.type === "place" &&
+      targetNode.type === "transition" &&
       connection.sourceHandle?.startsWith("port-out-")
     ) {
-      addComponentInstanceWire({
-        instanceId: source,
-        wire: {
-          externalPlaceId: target,
-          internalPlaceId: connection.sourceHandle.slice("port-out-".length),
+      addArc({
+        transitionId: target,
+        arcDirection: "input",
+        endpoint: {
+          kind: "componentPort",
+          componentInstanceId: source,
+          portPlaceId: connection.sourceHandle.slice("port-out-".length),
         },
+        weight: 1,
       });
     }
   }
@@ -330,7 +328,7 @@ export const SDCPNView: React.FC<{
   // because we want edges selectable only by click, not by drag-to-select.
   function onEdgeClick(_event: React.MouseEvent, edge: { id: string }) {
     selectItem({
-      type: edge.id.startsWith(WIRE_ID_PREFIX) ? "wire" : "arc",
+      type: "arc",
       id: edge.id,
     });
   }
@@ -353,7 +351,7 @@ export const SDCPNView: React.FC<{
 
   function onEdgeMouseEnter(_event: React.MouseEvent, edge: { id: string }) {
     setHoveredItem({
-      type: edge.id.startsWith(WIRE_ID_PREFIX) ? "wire" : "arc",
+      type: "arc",
       id: edge.id,
     });
   }
@@ -391,7 +389,6 @@ export const SDCPNView: React.FC<{
         name: subnet?.name ?? "Component",
         subnetId: componentSubnetId,
         parameterValues: {},
-        wiring: [],
         x: position.x,
         y: position.y,
       });

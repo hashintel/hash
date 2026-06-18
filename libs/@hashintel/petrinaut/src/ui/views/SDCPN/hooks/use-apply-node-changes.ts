@@ -89,7 +89,6 @@ export function useApplyNodeChanges() {
             item.type !== "place" &&
             item.type !== "transition" &&
             item.type !== "arc" &&
-            item.type !== "wire" &&
             item.type !== "componentInstance",
         );
 
@@ -105,7 +104,7 @@ export function useApplyNodeChanges() {
               const itemType = getItemType(change.id);
               // Skip edges — they are only selectable via direct click
               // (onEdgeClick), not via drag-to-select box selection.
-              if (itemType && itemType !== "arc" && itemType !== "wire") {
+              if (itemType && itemType !== "arc") {
                 base.set(change.id, { type: itemType, id: change.id });
                 changed = true;
               }

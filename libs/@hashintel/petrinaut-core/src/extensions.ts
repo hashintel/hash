@@ -1,3 +1,5 @@
+import { getArcEndpointPlaceId } from "./arc-endpoints";
+
 import type { SDCPN } from "./types/sdcpn";
 
 export const PETRINAUT_EXTENSION_NAMES = [
@@ -103,7 +105,10 @@ export const hasTypedNonInhibitorInputPlace = (
     if (arc.type === "inhibitor") {
       return false;
     }
-    const place = sdcpn.places.find((item) => item.id === arc.placeId);
+    const placeId = getArcEndpointPlaceId(arc);
+    const place = placeId
+      ? sdcpn.places.find((item) => item.id === placeId)
+      : null;
     return place?.colorId != null;
   });
 
@@ -112,7 +117,10 @@ const hasTypedOutputPlace = (
   sdcpn: SDCPN,
 ): boolean =>
   transition.outputArcs.some((arc) => {
-    const place = sdcpn.places.find((item) => item.id === arc.placeId);
+    const placeId = getArcEndpointPlaceId(arc);
+    const place = placeId
+      ? sdcpn.places.find((item) => item.id === placeId)
+      : null;
     return place?.colorId != null;
   });
 
@@ -323,7 +331,6 @@ const cloneComponentInstances = (
   componentInstances?.map((instance) => ({
     ...instance,
     parameterValues: { ...instance.parameterValues },
-    wiring: instance.wiring.map((wire) => ({ ...wire })),
   }));
 
 const cloneSubnet = (

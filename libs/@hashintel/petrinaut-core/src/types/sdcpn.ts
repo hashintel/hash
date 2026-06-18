@@ -2,14 +2,37 @@ export type ID = string;
 
 export type InputArcType = "standard" | "inhibitor" | "read";
 
-export type InputArc = {
-  placeId: string;
+export type PlaceArcEndpoint = {
+  kind: "place";
+  placeId: ID;
+};
+
+export type ComponentPortArcEndpoint = {
+  kind: "componentPort";
+  /** ID of the component instance in the net containing the transition. */
+  componentInstanceId: ID;
+  /** ID of a port place inside the component instance's referenced subnet. */
+  portPlaceId: ID;
+};
+
+export type ArcEndpoint = PlaceArcEndpoint | ComponentPortArcEndpoint;
+
+type ArcEndpointReference = {
+  /**
+   * Legacy shorthand for a normal place endpoint. New code should prefer
+   * `endpoint: { kind: "place", placeId }`, but this remains supported for
+   * existing files and examples.
+   */
+  placeId?: ID;
+  endpoint?: ArcEndpoint;
+};
+
+export type InputArc = ArcEndpointReference & {
   weight: number;
   type: InputArcType;
 };
 
-export type OutputArc = {
-  placeId: string;
+export type OutputArc = ArcEndpointReference & {
   weight: number;
 };
 
@@ -133,16 +156,6 @@ export type Metric = {
 };
 
 /**
- * A wire merges a parent-net place with a port place inside an instantiated subnet.
- */
-export type Wire = {
-  /** ID of a place in the parent net containing the component instance. */
-  externalPlaceId: ID;
-  /** ID of a port place inside the referenced subnet. */
-  internalPlaceId: ID;
-};
-
-/**
  * An instance of a subnet placed inside another net.
  */
 export type ComponentInstance = {
@@ -156,8 +169,6 @@ export type ComponentInstance = {
    * Keys are parameter IDs from the referenced subnet; values are expressions.
    */
   parameterValues: Record<ID, string>;
-  /** Connections between parent-net places and port places inside the subnet. */
-  wiring: Wire[];
   // UI positioning
   x: number;
   y: number;

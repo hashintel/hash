@@ -1,3 +1,4 @@
+import { getArcEndpointPlaceId } from "../../arc-endpoints";
 import {
   DEFAULT_PETRINAUT_EXTENSIONS,
   getEffectiveTransitionLambdaType,
@@ -153,7 +154,8 @@ export function generateVirtualFiles(
       if (arc.type === "inhibitor") {
         continue;
       }
-      const place = placeById.get(arc.placeId);
+      const placeId = getArcEndpointPlaceId(arc);
+      const place = placeId ? placeById.get(placeId) : undefined;
       if (!extensions.colors || !place?.colorId) {
         continue;
       }
@@ -182,7 +184,8 @@ export function generateVirtualFiles(
     const outputTypeProperties: string[] = [];
 
     for (const arc of transition.outputArcs) {
-      const place = placeById.get(arc.placeId);
+      const placeId = getArcEndpointPlaceId(arc);
+      const place = placeId ? placeById.get(placeId) : undefined;
       if (!extensions.colors || !place?.colorId) {
         continue;
       }

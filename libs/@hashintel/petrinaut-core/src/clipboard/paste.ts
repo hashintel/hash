@@ -1,5 +1,6 @@
 import { v4 as generateUuid } from "uuid";
 
+import { getArcEndpointPlaceId } from "../arc-endpoints";
 import { deduplicateName } from "./deduplicate-name";
 
 import type { SDCPN, Subnet } from "../types/sdcpn";
@@ -152,17 +153,29 @@ export function pastePayloadIntoSDCPN(
       x: transition.x + PASTE_OFFSET,
       y: transition.y + PASTE_OFFSET,
       inputArcs: transition.inputArcs
-        .filter((arc) => idMap.has(arc.placeId))
-        .map((arc) => ({
-          ...arc,
-          placeId: idMap.get(arc.placeId)!,
-        })),
+        .map((arc) => {
+          const placeId = getArcEndpointPlaceId(arc);
+          const { endpoint: _endpoint, placeId: _placeId, ...rest } = arc;
+          return placeId && idMap.has(placeId)
+            ? {
+                ...rest,
+                placeId: idMap.get(placeId)!,
+              }
+            : null;
+        })
+        .filter((arc): arc is NonNullable<typeof arc> => arc !== null),
       outputArcs: transition.outputArcs
-        .filter((arc) => idMap.has(arc.placeId))
-        .map((arc) => ({
-          ...arc,
-          placeId: idMap.get(arc.placeId)!,
-        })),
+        .map((arc) => {
+          const placeId = getArcEndpointPlaceId(arc);
+          const { endpoint: _endpoint, placeId: _placeId, ...rest } = arc;
+          return placeId && idMap.has(placeId)
+            ? {
+                ...rest,
+                placeId: idMap.get(placeId)!,
+              }
+            : null;
+        })
+        .filter((arc): arc is NonNullable<typeof arc> => arc !== null),
     });
     newItemIds.push({ type: "transition", id: newId });
   }

@@ -157,6 +157,7 @@ export const PropertiesPanel: React.FC = () => {
           <ArcProperties
             arcId={item.id}
             petriNetDefinition={petriNetDefinition}
+            fullSdcpn={fullSdcpn}
             updateArcWeight={updateArcWeight}
             updateArcType={updateArcType}
             removeArc={removeArc}
@@ -232,8 +233,7 @@ export const PropertiesPanel: React.FC = () => {
         if (instanceData) {
           const subnet =
             (fullSdcpn.subnets ?? []).find(
-              (subnetCandidate) =>
-                subnetCandidate.id === instanceData.subnetId,
+              (subnetCandidate) => subnetCandidate.id === instanceData.subnetId,
             ) ?? null;
           content = (
             <ComponentInstanceProperties
@@ -245,10 +245,6 @@ export const PropertiesPanel: React.FC = () => {
         }
         break;
       }
-
-      case "wire":
-        content = null;
-        break;
     }
   } else if (panelTarget.kind === "multi") {
     content = (

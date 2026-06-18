@@ -288,9 +288,7 @@ describe("applyAutoLayout", () => {
             {
               id: "transition-1",
               name: "Move",
-              inputArcs: [
-                { placeId: "place-1", weight: 1, type: "standard" },
-              ],
+              inputArcs: [{ placeId: "place-1", weight: 1, type: "standard" }],
               outputArcs: [{ placeId: "place-2", weight: 1 }],
               lambdaType: "predicate",
               lambdaCode: "export default Lambda(() => true);",
@@ -314,11 +312,9 @@ describe("applyAutoLayout", () => {
     expect(commitCount).toBeGreaterThan(0);
     expect(instance.definition.get().places).toEqual([]);
     expect(
-      instance
-        .definition
+      instance.definition
         .get()
-        .subnets?.[0]
-        ?.places.some((place) => place.x !== 0 || place.y !== 0),
+        .subnets?.[0]?.places.some((place) => place.x !== 0 || place.y !== 0),
     ).toBe(true);
   });
 });

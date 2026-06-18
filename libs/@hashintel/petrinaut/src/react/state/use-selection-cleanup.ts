@@ -2,7 +2,8 @@ import { use, useEffect } from "react";
 
 import {
   generateArcId,
-  generateWireId,
+  getArcEndpoint,
+  getArcEndpointKey,
   type SelectionMap,
 } from "@hashintel/petrinaut-core";
 
@@ -33,15 +34,20 @@ export function useSelectionCleanup() {
     for (const transition of activeNet.transitions) {
       validIds.add(transition.id);
       for (const inputArc of transition.inputArcs) {
+        const endpoint = getArcEndpoint(inputArc);
         validIds.add(
-          generateArcId({ inputId: inputArc.placeId, outputId: transition.id }),
+          generateArcId({
+            inputId: getArcEndpointKey(endpoint),
+            outputId: transition.id,
+          }),
         );
       }
       for (const outputArc of transition.outputArcs) {
+        const endpoint = getArcEndpoint(outputArc);
         validIds.add(
           generateArcId({
             inputId: transition.id,
-            outputId: outputArc.placeId,
+            outputId: getArcEndpointKey(endpoint),
           }),
         );
       }
@@ -63,9 +69,6 @@ export function useSelectionCleanup() {
     }
     for (const instance of activeNet.componentInstances) {
       validIds.add(instance.id);
-      for (const wire of instance.wiring) {
-        validIds.add(generateWireId({ instanceId: instance.id, ...wire }));
-      }
     }
 
     // Check if any selected ID is stale

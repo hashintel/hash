@@ -123,6 +123,44 @@ describe("Petrinaut core actions", () => {
   test("updates arc endpoints granularly", () => {
     const instance = createInstance({
       ...emptySDCPN,
+      places: [
+        {
+          id: "place-1",
+          name: "Input",
+          colorId: null,
+          dynamicsEnabled: false,
+          differentialEquationId: null,
+          x: 0,
+          y: 0,
+        },
+        {
+          id: "place-2",
+          name: "Output",
+          colorId: null,
+          dynamicsEnabled: false,
+          differentialEquationId: null,
+          x: 100,
+          y: 0,
+        },
+        {
+          id: "place-3",
+          name: "NewInput",
+          colorId: null,
+          dynamicsEnabled: false,
+          differentialEquationId: null,
+          x: 0,
+          y: 100,
+        },
+        {
+          id: "place-4",
+          name: "NewOutput",
+          colorId: null,
+          dynamicsEnabled: false,
+          differentialEquationId: null,
+          x: 100,
+          y: 100,
+        },
+      ],
       transitions: [
         {
           id: "transition-1",
@@ -160,6 +198,35 @@ describe("Petrinaut core actions", () => {
   test("adds and updates read input arcs", () => {
     const instance = createInstance({
       ...emptySDCPN,
+      places: [
+        {
+          id: "place-1",
+          name: "Input",
+          colorId: null,
+          dynamicsEnabled: false,
+          differentialEquationId: null,
+          x: 0,
+          y: 0,
+        },
+        {
+          id: "place-2",
+          name: "Output",
+          colorId: null,
+          dynamicsEnabled: false,
+          differentialEquationId: null,
+          x: 100,
+          y: 0,
+        },
+        {
+          id: "place-3",
+          name: "RejectedOutput",
+          colorId: null,
+          dynamicsEnabled: false,
+          differentialEquationId: null,
+          x: 200,
+          y: 0,
+        },
+      ],
       transitions: [
         {
           id: "transition-1",
@@ -212,6 +279,138 @@ describe("Petrinaut core actions", () => {
     expect(instance.definition.get().transitions[0]).toMatchObject({
       inputArcs: [{ placeId: "place-1", weight: 2, type: "read" }],
       outputArcs: [{ placeId: "place-2", weight: 3 }],
+    });
+  });
+
+  test("adds, validates, and cleans up component-port arcs", () => {
+    const instance = createInstance({
+      ...emptySDCPN,
+      transitions: [
+        {
+          id: "transition-1",
+          name: "Move",
+          inputArcs: [],
+          outputArcs: [],
+          lambdaType: "predicate",
+          lambdaCode: "export default Lambda(() => true);",
+          transitionKernelCode: "",
+          x: 50,
+          y: 0,
+        },
+      ],
+      componentInstances: [
+        {
+          id: "instance-1",
+          name: "Reusable instance",
+          subnetId: "subnet-1",
+          parameterValues: {},
+          x: 100,
+          y: 100,
+        },
+      ],
+      subnets: [
+        {
+          id: "subnet-1",
+          name: "Reusable subnet",
+          places: [
+            {
+              id: "place-input-port",
+              name: "InputPort",
+              colorId: null,
+              dynamicsEnabled: false,
+              differentialEquationId: null,
+              isPort: true,
+              x: 0,
+              y: 0,
+            },
+            {
+              id: "place-output-port",
+              name: "OutputPort",
+              colorId: null,
+              dynamicsEnabled: false,
+              differentialEquationId: null,
+              isPort: true,
+              x: 100,
+              y: 0,
+            },
+            {
+              id: "place-internal",
+              name: "Internal",
+              colorId: null,
+              dynamicsEnabled: false,
+              differentialEquationId: null,
+              x: 200,
+              y: 0,
+            },
+          ],
+          transitions: [],
+          types: [],
+          differentialEquations: [],
+          parameters: [],
+          componentInstances: [],
+        },
+      ],
+    });
+
+    const inputEndpoint = {
+      kind: "componentPort" as const,
+      componentInstanceId: "instance-1",
+      portPlaceId: "place-output-port",
+    };
+    const outputEndpoint = {
+      kind: "componentPort" as const,
+      componentInstanceId: "instance-1",
+      portPlaceId: "place-input-port",
+    };
+
+    instance.mutations.addArc({
+      transitionId: "transition-1",
+      arcDirection: "output",
+      endpoint: outputEndpoint,
+      weight: 2,
+    });
+    instance.mutations.addArc({
+      transitionId: "transition-1",
+      arcDirection: "input",
+      endpoint: inputEndpoint,
+      weight: 1,
+      type: "read",
+    });
+
+    expect(instance.definition.get().transitions[0]).toMatchObject({
+      inputArcs: [{ endpoint: inputEndpoint, weight: 1, type: "read" }],
+      outputArcs: [{ endpoint: outputEndpoint, weight: 2 }],
+    });
+
+    expect(() =>
+      instance.mutations.addArc({
+        transitionId: "transition-1",
+        arcDirection: "output",
+        endpoint: {
+          kind: "componentPort",
+          componentInstanceId: "instance-1",
+          portPlaceId: "place-internal",
+        },
+        weight: 1,
+      }),
+    ).toThrow("only places marked `isPort` can be used as component ports");
+
+    instance.mutations.removePlace({
+      targetSubnetId: "subnet-1",
+      placeId: "place-input-port",
+    });
+
+    expect(instance.definition.get().transitions[0]).toMatchObject({
+      inputArcs: [{ endpoint: inputEndpoint, weight: 1, type: "read" }],
+      outputArcs: [],
+    });
+
+    instance.mutations.removeComponentInstance({ instanceId: "instance-1" });
+
+    expect(instance.definition.get().componentInstances).toEqual([]);
+    expect(instance.definition.get().transitions[0]).toMatchObject({
+      inputArcs: [],
+      outputArcs: [],
     });
   });
 
@@ -815,100 +1014,5 @@ describe("Petrinaut core actions", () => {
         y: 0,
       },
     ]);
-  });
-
-  test("adds component instances and validates wires against subnet ports", () => {
-    const instance = createInstance({
-      ...emptySDCPN,
-      places: [
-        {
-          id: "place-root",
-          name: "Input",
-          colorId: null,
-          dynamicsEnabled: false,
-          differentialEquationId: null,
-          x: 0,
-          y: 0,
-        },
-      ],
-      subnets: [
-        {
-          id: "subnet-1",
-          name: "Reusable subnet",
-          places: [
-            {
-              id: "place-port",
-              name: "Port",
-              colorId: null,
-              dynamicsEnabled: false,
-              differentialEquationId: null,
-              isPort: true,
-              x: 0,
-              y: 0,
-            },
-            {
-              id: "place-internal",
-              name: "Internal",
-              colorId: null,
-              dynamicsEnabled: false,
-              differentialEquationId: null,
-              x: 100,
-              y: 0,
-            },
-          ],
-          transitions: [],
-          types: [],
-          differentialEquations: [],
-          parameters: [],
-          componentInstances: [],
-        },
-      ],
-    });
-
-    instance.mutations.addComponentInstance({
-      id: "instance-1",
-      name: "Reusable instance",
-      subnetId: "subnet-1",
-      parameterValues: {},
-      wiring: [],
-      x: 100,
-      y: 100,
-    });
-    instance.mutations.addComponentInstanceWire({
-      instanceId: "instance-1",
-      wire: {
-        externalPlaceId: "place-root",
-        internalPlaceId: "place-port",
-      },
-    });
-
-    expect(instance.definition.get().componentInstances?.[0]?.wiring).toEqual([
-      {
-        externalPlaceId: "place-root",
-        internalPlaceId: "place-port",
-      },
-    ]);
-
-    expect(() =>
-      instance.mutations.addComponentInstanceWire({
-        instanceId: "instance-1",
-        wire: {
-          externalPlaceId: "place-root",
-          internalPlaceId: "place-internal",
-        },
-      }),
-    ).toThrow("only places marked `isPort` can be wired");
-
-    instance.mutations.removeComponentInstanceWire({
-      instanceId: "instance-1",
-      wire: {
-        externalPlaceId: "place-root",
-        internalPlaceId: "place-port",
-      },
-    });
-
-    expect(instance.definition.get().componentInstances?.[0]?.wiring).toEqual(
-      [],
-    );
   });
 });

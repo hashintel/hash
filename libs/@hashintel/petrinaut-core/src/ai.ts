@@ -14,6 +14,7 @@ import { typedKeys } from "./lib/typed-entries";
 import type { Petrinaut } from "./instance";
 
 export {
+  arcEndpointSchema,
   colorSchema,
   componentInstanceSchema,
   differentialEquationSchema,
@@ -24,7 +25,6 @@ export {
   scenarioSchema,
   subnetSchema,
   transitionSchema,
-  wireSchema,
 } from "./action-schemas";
 export type {
   MutationActionInput as PetrinautAiMutationToolInput,

@@ -2,7 +2,10 @@ import { use } from "react";
 
 import { Button, Icon, Menu, Tooltip } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
-import { generateDefaultTransitionKernelCode } from "@hashintel/petrinaut-core";
+import {
+  generateDefaultTransitionKernelCode,
+  getArcEndpointPlaceId,
+} from "@hashintel/petrinaut-core";
 
 import { EditorContext } from "../../../../../../../../react/state/editor-context";
 import { UI_MESSAGES } from "../../../../../../../constants/ui-messages";
@@ -52,7 +55,10 @@ const ResultsHeaderAction: React.FC = () => {
           onClick: () => {
             const inputs = transition.inputArcs
               .map((arc) => {
-                const place = places.find((p) => p.id === arc.placeId);
+                const placeId = getArcEndpointPlaceId(arc);
+                const place = placeId
+                  ? places.find((p) => p.id === placeId)
+                  : null;
                 if (!place || !place.colorId) {
                   return null;
                 }
@@ -70,7 +76,10 @@ const ResultsHeaderAction: React.FC = () => {
 
             const outputs = transition.outputArcs
               .map((arc) => {
-                const place = places.find((p) => p.id === arc.placeId);
+                const placeId = getArcEndpointPlaceId(arc);
+                const place = placeId
+                  ? places.find((p) => p.id === placeId)
+                  : null;
                 if (!place || !place.colorId) {
                   return null;
                 }

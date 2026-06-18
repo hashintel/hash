@@ -25,7 +25,6 @@ const canvasSelections = (selection: SelectionMap) =>
   Array.from(selection.entries()).filter(
     ([_, s]) =>
       s.type === "arc" ||
-      s.type === "wire" ||
       s.type === "place" ||
       s.type === "transition" ||
       s.type === "componentInstance",
@@ -296,7 +295,6 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
   const selectedConnections = getNodeConnections(
     activeNet.transitions,
     new Set(selection.keys()),
-    activeNet.componentInstances,
   );
 
   const isSelectedConnection = (id: string) => selectedConnections.has(id);
@@ -310,7 +308,6 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
   const hoveredConnections = getNodeConnections(
     activeNet.transitions,
     new Set(hoveredItem ? [hoveredItem.id] : []),
-    activeNet.componentInstances,
   );
 
   const isHoveredConnection = (id: string) => hoveredConnections.has(id);

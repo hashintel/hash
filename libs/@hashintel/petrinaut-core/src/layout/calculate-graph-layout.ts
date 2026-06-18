@@ -1,5 +1,7 @@
 import ELK from "elkjs";
 
+import { getArcEndpoint, getArcEndpointNodeId } from "../arc-endpoints";
+
 import type { SDCPN } from "../types/sdcpn";
 import type { ElkNode } from "elkjs";
 
@@ -90,28 +92,22 @@ export const calculateGraphLayout = async (
   for (const transition of sdcpn.transitions) {
     // Input arcs: place -> transition
     for (const inputArc of transition.inputArcs) {
+      const endpoint = getArcEndpoint(inputArc);
+      const sourceId = getArcEndpointNodeId(endpoint);
       elkEdges.push({
-        id: `arc__${inputArc.placeId}-${transition.id}`,
-        sources: [inputArc.placeId],
+        id: `arc__${sourceId}-${transition.id}`,
+        sources: [sourceId],
         targets: [transition.id],
       });
     }
     // Output arcs: transition -> place
     for (const outputArc of transition.outputArcs) {
+      const endpoint = getArcEndpoint(outputArc);
+      const targetId = getArcEndpointNodeId(endpoint);
       elkEdges.push({
-        id: `arc__${transition.id}-${outputArc.placeId}`,
+        id: `arc__${transition.id}-${targetId}`,
         sources: [transition.id],
-        targets: [outputArc.placeId],
-      });
-    }
-  }
-
-  for (const instance of componentInstances) {
-    for (const wire of instance.wiring) {
-      elkEdges.push({
-        id: `wire__${wire.externalPlaceId}-${instance.id}-${wire.internalPlaceId}`,
-        sources: [wire.externalPlaceId],
-        targets: [instance.id],
+        targets: [targetId],
       });
     }
   }

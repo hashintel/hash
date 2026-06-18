@@ -59,10 +59,7 @@ const PlaceMainContent: React.FC = () => {
   const { place, types, isReadOnly, updatePlace } = usePlacePropertiesContext();
   const { selectItem } = use(EditorContext);
 
-  const {
-    getItemType,
-    extensions,
-  } = use(SDCPNContext);
+  const { getItemType, extensions } = use(SDCPNContext);
   const {
     activeNet: { differentialEquations, types: availableTypes },
   } = use(ActiveNetContext);
@@ -342,7 +339,7 @@ const PlaceMainContent: React.FC = () => {
         )}
         <Section
           title="Component port"
-          tooltip="Exposes this place as a wireable port when its subnet is instantiated as a component."
+          tooltip="Exposes this place as an arc endpoint when its subnet is instantiated as a component."
           renderHeaderLeading={() => (
             <Checkbox
               checked={!!place.isPort}
@@ -358,8 +355,8 @@ const PlaceMainContent: React.FC = () => {
         >
           <div className={hintTextStyle}>
             {place.isPort
-              ? "Component instances can wire parent places to this subnet place."
-              : "Enable this for subnet boundary places that should be wireable from a component instance."}
+              ? "Transitions in the parent net can connect arcs to this subnet place through a component instance."
+              : "Enable this for subnet boundary places that should be available as component instance arc endpoints."}
           </div>
         </Section>
         <Section

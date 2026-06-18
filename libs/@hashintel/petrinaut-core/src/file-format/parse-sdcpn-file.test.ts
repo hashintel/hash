@@ -79,7 +79,7 @@ describe("parseSDCPNFile", () => {
       expect(result.sdcpn.transitions[0]?.inputArcs[0]?.type).toBe("read");
     });
 
-    it("parses subnets and component instance wiring", () => {
+    it("parses subnets and component instances", () => {
       const result = parseSDCPNFile({
         version: 1,
         meta: { generator: "Petrinaut" },
@@ -90,12 +90,6 @@ describe("parseSDCPNFile", () => {
             name: "Reusable instance",
             subnetId: "subnet-1",
             parameterValues: {},
-            wiring: [
-              {
-                externalPlaceId: "p1",
-                internalPlaceId: "subnet-place-1",
-              },
-            ],
             x: 500,
             y: 600,
           },
@@ -126,13 +120,77 @@ describe("parseSDCPNFile", () => {
 
       expect(result.ok).toBe(true);
       if (!result.ok) return;
-      expect(result.sdcpn.componentInstances?.[0]?.wiring).toEqual([
-        {
-          externalPlaceId: "p1",
-          internalPlaceId: "subnet-place-1",
-        },
-      ]);
+      expect(result.sdcpn.componentInstances?.[0]).toMatchObject({
+        id: "instance-1",
+        subnetId: "subnet-1",
+      });
       expect(result.sdcpn.subnets?.[0]?.places[0]?.isPort).toBe(true);
+    });
+
+    it("preserves component-port arc endpoints during import", () => {
+      const result = parseSDCPNFile({
+        version: 1,
+        meta: { generator: "Petrinaut" },
+        ...minimalSDCPN,
+        transitions: [
+          {
+            ...minimalTransition,
+            outputArcs: [
+              {
+                endpoint: {
+                  kind: "componentPort",
+                  componentInstanceId: "instance-1",
+                  portPlaceId: "subnet-place-1",
+                },
+                weight: 1,
+              },
+            ],
+          },
+        ],
+        componentInstances: [
+          {
+            id: "instance-1",
+            name: "Reusable instance",
+            subnetId: "subnet-1",
+            parameterValues: {},
+            x: 500,
+            y: 600,
+          },
+        ],
+        subnets: [
+          {
+            id: "subnet-1",
+            name: "Reusable subnet",
+            places: [
+              {
+                id: "subnet-place-1",
+                name: "Port",
+                colorId: null,
+                dynamicsEnabled: false,
+                differentialEquationId: null,
+                isPort: true,
+                x: 0,
+                y: 0,
+              },
+            ],
+            transitions: [],
+            types: [],
+            differentialEquations: [],
+            parameters: [],
+          },
+        ],
+      });
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.sdcpn.transitions[0]?.outputArcs[0]).toEqual({
+        endpoint: {
+          kind: "componentPort",
+          componentInstanceId: "instance-1",
+          portPlaceId: "subnet-place-1",
+        },
+        weight: 1,
+      });
     });
 
     it("preserves relaxed scenario and metric import defaults", () => {
@@ -245,7 +303,6 @@ describe("parseSDCPNFile", () => {
             name: "Reusable instance",
             subnetId: "subnet-1",
             parameterValues: {},
-            wiring: [],
             x: undefined,
             y: undefined,
           },

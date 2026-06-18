@@ -3,7 +3,6 @@ import { use, type ReactNode } from "react";
 import {
   ARC_ID_PREFIX,
   isSelectionTypeAvailableForExtensions,
-  WIRE_ID_PREFIX,
 } from "@hashintel/petrinaut-core";
 
 import { NetManagementContext } from "./net-management-context";
@@ -46,10 +45,6 @@ export const SDCPNProvider: React.FC<{ children: ReactNode }> = ({
         allNets.some((net) => net.types.some((type) => type.id === id))
       ) {
         return "type";
-      }
-
-      if (id.startsWith(WIRE_ID_PREFIX)) {
-        return "wire";
       }
 
       if (

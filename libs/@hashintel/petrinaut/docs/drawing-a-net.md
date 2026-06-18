@@ -71,6 +71,17 @@ Petri nets are bipartite: you cannot connect a place to another place or a trans
 
 ![drawing-arc](https://github.com/user-attachments/assets/ac688560-bba8-44fe-a6f8-c7ff320474a4)
 
+## Component ports
+
+Subnets can expose selected places as ports. Open the subnet, select a boundary place, and enable **Component port** in the place properties panel.
+
+When you instantiate that subnet as a component, each port appears as a handle on the component instance:
+
+- Drag from a transition to a component port to create an output arc into that port.
+- Drag from a component port to a transition to create an input arc from that port.
+
+Port arcs behave like ordinary transition arcs: they have weights, input arcs can be Standard, Read, or Inhibitor, and simulation treats the port as the corresponding place inside that component instance.
+
 ## Arc weight
 
 Select an arc to open its properties. Set the **weight** to control how many tokens are required and consumed (standard input), required without being consumed (read input), blocked by (inhibitor input), or produced (output) per firing.

@@ -23,16 +23,7 @@ export type ArcData = {
 
 export type ArcEdgeType = Edge<ArcData>;
 
-export type ArcType = Omit<ArcEdgeType, "style">;
-
-export type WireData = {
-  externalPlaceId: string;
-  internalPlaceId: string;
-};
-
-export type WireEdgeType = Edge<WireData>;
-
-export type WireType = WireEdgeType;
+export type ArcType = ArcEdgeType;
 
 export type PlaceNodeData = {
   label: string;
@@ -90,7 +81,7 @@ export type NodeType =
   | PlaceNodeType
   | ComponentInstanceNodeType;
 
-export type EdgeType = ArcType | WireType;
+export type EdgeType = ArcType;
 
 /**
  * Object containing the nodes and edges for the ReactFlow instance.
@@ -105,5 +96,5 @@ export type PetrinautReactFlowDefinitionObject = {
  */
 export type PetrinautReactFlowInstance = ReactFlowInstance<
   NodeType,
-  ArcEdgeType | WireEdgeType
+  ArcEdgeType
 >;

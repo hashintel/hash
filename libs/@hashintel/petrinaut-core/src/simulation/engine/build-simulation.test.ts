@@ -290,6 +290,167 @@ describe("buildSimulation", () => {
     expect(simulation.parameterValues).toEqual({});
   });
 
+  it("flattens component-port arcs to the instantiated subnet port places", () => {
+    const simulation = buildSimulation({
+      sdcpn: {
+        types: [],
+        differentialEquations: [],
+        parameters: [],
+        places: [
+          {
+            id: "root-input",
+            name: "RootInput",
+            colorId: null,
+            dynamicsEnabled: false,
+            differentialEquationId: null,
+            x: 0,
+            y: 0,
+          },
+        ],
+        transitions: [
+          {
+            id: "send",
+            name: "Send",
+            inputArcs: [{ placeId: "root-input", weight: 1, type: "standard" }],
+            outputArcs: [
+              {
+                endpoint: {
+                  kind: "componentPort",
+                  componentInstanceId: "processor-1",
+                  portPlaceId: "port-in",
+                },
+                weight: 1,
+              },
+            ],
+            lambdaType: "predicate",
+            lambdaCode: "",
+            transitionKernelCode: "",
+            x: 0,
+            y: 0,
+          },
+          {
+            id: "receive",
+            name: "Receive",
+            inputArcs: [
+              {
+                endpoint: {
+                  kind: "componentPort",
+                  componentInstanceId: "processor-1",
+                  portPlaceId: "port-out",
+                },
+                weight: 1,
+                type: "standard",
+              },
+            ],
+            outputArcs: [],
+            lambdaType: "predicate",
+            lambdaCode: "",
+            transitionKernelCode: "",
+            x: 200,
+            y: 0,
+          },
+        ],
+        componentInstances: [
+          {
+            id: "processor-1",
+            name: "Processor 1",
+            subnetId: "processor-subnet",
+            parameterValues: {},
+            x: 100,
+            y: 0,
+          },
+        ],
+        subnets: [
+          {
+            id: "processor-subnet",
+            name: "Processor",
+            places: [
+              {
+                id: "port-in",
+                name: "Port In",
+                colorId: null,
+                dynamicsEnabled: false,
+                differentialEquationId: null,
+                isPort: true,
+                x: 0,
+                y: 0,
+              },
+              {
+                id: "port-out",
+                name: "Port Out",
+                colorId: null,
+                dynamicsEnabled: false,
+                differentialEquationId: null,
+                isPort: true,
+                x: 100,
+                y: 0,
+              },
+            ],
+            transitions: [
+              {
+                id: "process",
+                name: "Process",
+                inputArcs: [
+                  { placeId: "port-in", weight: 1, type: "standard" },
+                ],
+                outputArcs: [{ placeId: "port-out", weight: 1 }],
+                lambdaType: "predicate",
+                lambdaCode: "",
+                transitionKernelCode: "",
+                x: 50,
+                y: 0,
+              },
+            ],
+            types: [],
+            differentialEquations: [],
+            parameters: [],
+            componentInstances: [],
+          },
+        ],
+      },
+      initialMarking: { "root-input": 2 },
+      parameterValues: {},
+      seed: 42,
+      dt: 0.1,
+      maxTime: null,
+    });
+    const frame = materializeEngineFrame(
+      simulation.frameLayout,
+      simulation.frames[0]!,
+    );
+
+    expect([...simulation.places.keys()].sort()).toEqual([
+      "processor-1::port-in",
+      "processor-1::port-out",
+      "root-input",
+    ]);
+    expect([...simulation.transitions.keys()].sort()).toEqual([
+      "processor-1::process",
+      "receive",
+      "send",
+    ]);
+    expect(simulation.compiledTransitions.get("send")?.outputPlaces).toEqual([
+      {
+        placeId: "processor-1::port-in",
+        placeName: "Processor_1_Port_In",
+        weight: 1,
+        elementNames: null,
+      },
+    ]);
+    expect(simulation.compiledTransitions.get("receive")?.inputPlaces).toEqual([
+      {
+        placeId: "processor-1::port-out",
+        placeName: "Processor_1_Port_Out",
+        weight: 1,
+        arcType: "standard",
+        elementNames: null,
+      },
+    ]);
+    expect(frame.places["root-input"]?.count).toBe(2);
+    expect(frame.places["processor-1::port-in"]?.count).toBe(0);
+    expect(frame.places["processor-1::port-out"]?.count).toBe(0);
+  });
+
   it("builds a simulation with a single place and initial tokens", () => {
     const input: SimulationInput = {
       sdcpn: {

@@ -1,10 +1,9 @@
-import { Icon } from "@hashintel/ds-components";
+import { Icon, TextInput, Tooltip } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { Input } from "../../../../../../components/input";
+import { useIsReadOnly } from "../../../../../../../react/state/use-is-read-only";
 import { Section, SectionList } from "../../../../../../components/section";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
-import { useIsReadOnly } from "../../../../../../../react/state/use-is-read-only";
 import { useComponentInstancePropertiesContext } from "../context";
 
 import type { SubView } from "../../../../../../components/sub-view/types";
@@ -30,21 +29,24 @@ const ComponentInstanceMainContent: React.FC = () => {
   const { instance, subnet, subnetParameters, updateComponentInstance } =
     useComponentInstancePropertiesContext();
   const isDisabled = useIsReadOnly();
+  const readOnlyTooltip = isDisabled ? UI_MESSAGES.READ_ONLY_MODE : undefined;
 
   return (
     <SectionList>
       <Section title="Name">
-        <Input
-          value={instance.name}
-          onChange={(event) =>
-            updateComponentInstance({
-              instanceId: instance.id,
-              update: { name: event.target.value },
-            })
-          }
-          disabled={isDisabled}
-          tooltip={isDisabled ? UI_MESSAGES.READ_ONLY_MODE : undefined}
-        />
+        <Tooltip content={readOnlyTooltip ?? ""} disableTooltip={!isDisabled}>
+          <TextInput
+            value={instance.name}
+            size="sm"
+            onChange={(name) =>
+              updateComponentInstance({
+                instanceId: instance.id,
+                update: { name },
+              })
+            }
+            disabled={isDisabled}
+          />
+        </Tooltip>
       </Section>
 
       <Section title="Subnet">
@@ -62,24 +64,29 @@ const ComponentInstanceMainContent: React.FC = () => {
                 title={param.name}
                 tooltip={`Variable: ${param.variableName} (${param.type})`}
               >
-                <Input
-                  value={
-                    instance.parameterValues[param.id] ?? param.defaultValue
-                  }
-                  onChange={(event) =>
-                    updateComponentInstance({
-                      instanceId: instance.id,
-                      update: {
-                        parameterValues: {
-                          ...instance.parameterValues,
-                          [param.id]: event.target.value,
+                <Tooltip
+                  content={readOnlyTooltip ?? ""}
+                  disableTooltip={!isDisabled}
+                >
+                  <TextInput
+                    value={
+                      instance.parameterValues[param.id] ?? param.defaultValue
+                    }
+                    size="sm"
+                    onChange={(value) =>
+                      updateComponentInstance({
+                        instanceId: instance.id,
+                        update: {
+                          parameterValues: {
+                            ...instance.parameterValues,
+                            [param.id]: value,
+                          },
                         },
-                      },
-                    })
-                  }
-                  disabled={isDisabled}
-                  tooltip={isDisabled ? UI_MESSAGES.READ_ONLY_MODE : undefined}
-                />
+                      })
+                    }
+                    disabled={isDisabled}
+                  />
+                </Tooltip>
                 <div className={paramVarNameStyle}>{param.variableName}</div>
               </Section>
             ))}

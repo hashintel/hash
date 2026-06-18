@@ -10,7 +10,6 @@ import {
   parameterSchema as currentParameterSchema,
   placeSchema as currentPlaceSchema,
   transitionSchema as currentTransitionSchema,
-  wireSchema as currentWireSchema,
 } from "../schemas/entity-schemas";
 import { metricSchema as currentMetricSchema } from "../schemas/metric-schema";
 import {
@@ -111,16 +110,11 @@ const metricSchema = z.object({
   code: z.string().default(""),
 });
 
-const wireSchema = z.object({
-  ...currentWireSchema.shape,
-});
-
 const componentInstanceSchema = z.object({
   ...currentComponentInstanceSchema.shape,
   id: z.string(),
   name: z.string(),
   parameterValues: z.record(z.string(), z.string()).default({}),
-  wiring: z.array(wireSchema).default([]),
   x: z.number().optional(),
   y: z.number().optional(),
 });

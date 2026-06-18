@@ -5,15 +5,16 @@ import { entityNameSchema } from "../validation/entity-name";
 import { variableNameSchema } from "../validation/variable-name";
 
 import type {
+  ArcEndpoint,
   Color,
   ComponentInstance,
   DifferentialEquation,
   InputArc,
+  OutputArc,
   Parameter,
   Place,
   Subnet,
   Transition,
-  Wire,
 } from "../types/sdcpn";
 
 export const idSchema = z.string().min(1).meta({
@@ -47,10 +48,62 @@ export const nodePositionCommitSchema = z
     description: "A pending canvas-position update for one node.",
   });
 
+export const arcEndpointSchema = z
+  .discriminatedUnion("kind", [
+    z.strictObject({
+      kind: z.literal("place"),
+      placeId: idSchema.meta({
+        description: "ID of a place in the same net as the transition.",
+      }),
+    }),
+    z.strictObject({
+      kind: z.literal("componentPort"),
+      componentInstanceId: idSchema.meta({
+        description:
+          "ID of a component instance in the same net as the transition.",
+      }),
+      portPlaceId: idSchema.meta({
+        description:
+          "ID of a place marked `isPort: true` in the component instance's referenced subnet.",
+      }),
+    }),
+  ])
+  .meta({
+    description:
+      "Arc endpoint. Normal arcs reference a place in the same net; component-port arcs reference a port place on a subnet instance.",
+  }) satisfies z.ZodType<ArcEndpoint>;
+
+const assertSingleArcEndpoint = (ctx: {
+  value: { placeId?: string; endpoint?: ArcEndpoint };
+  issues: {
+    push(issue: {
+      code: "custom";
+      path: string[];
+      message: string;
+      input: unknown;
+    }): void;
+  };
+}) => {
+  const { placeId, endpoint } = ctx.value;
+  if ((placeId === undefined) === (endpoint === undefined)) {
+    ctx.issues.push({
+      code: "custom",
+      path: ["endpoint"],
+      message: "Provide exactly one of `placeId` or `endpoint`.",
+      input: ctx.value,
+    });
+  }
+};
+
 export const inputArcSchema = z
   .strictObject({
-    placeId: idSchema.meta({
-      description: "ID of the input place connected to the transition.",
+    placeId: idSchema.optional().meta({
+      description:
+        "Legacy shorthand for a normal input place endpoint. Prefer `endpoint` for new data.",
+    }),
+    endpoint: arcEndpointSchema.optional().meta({
+      description:
+        'Input endpoint. Use `kind: "componentPort"` to consume/read/inhibit tokens from a component instance port.',
     }),
     weight: z.number().positive().meta({
       description:
@@ -61,22 +114,29 @@ export const inputArcSchema = z
         "Standard arcs consume tokens from the input place; read arcs require and expose tokens to the lambda/kernel but do NOT consume them; inhibitor arcs prevent firing when the source place has at least the weight indicated and are NOT present in the lambda or kernel `input`.",
     }),
   })
+  .check(assertSingleArcEndpoint)
   .meta({
-    description: "Input arc from a place into a transition.",
+    description: "Input arc from a place or component port into a transition.",
   }) satisfies z.ZodType<InputArc>;
 
 export const outputArcSchema = z
   .strictObject({
-    placeId: idSchema.meta({
-      description: "ID of the output place connected from the transition.",
+    placeId: idSchema.optional().meta({
+      description:
+        "Legacy shorthand for a normal output place endpoint. Prefer `endpoint` for new data.",
+    }),
+    endpoint: arcEndpointSchema.optional().meta({
+      description:
+        'Output endpoint. Use `kind: "componentPort"` to produce tokens into a component instance port.',
     }),
     weight: z.number().positive().meta({
       description: "Number of tokens produced into the output place.",
     }),
   })
+  .check(assertSingleArcEndpoint)
   .meta({
-    description: "Output arc from a transition into a place.",
-  });
+    description: "Output arc from a transition into a place or component port.",
+  }) satisfies z.ZodType<OutputArc>;
 
 export const arcDirectionSchema = z.enum(["input", "output"]).meta({
   description:
@@ -279,22 +339,6 @@ export const parameterSchema = z
       "A net-level parameter available to executable SDCPN code and scenarios.",
   }) satisfies z.ZodType<Parameter>;
 
-export const wireSchema = z
-  .strictObject({
-    externalPlaceId: idSchema.meta({
-      description:
-        "ID of a place in the parent net containing the component instance.",
-    }),
-    internalPlaceId: idSchema.meta({
-      description:
-        "ID of a port place inside the component instance's referenced subnet.",
-    }),
-  })
-  .meta({
-    description:
-      "A wire that merges a parent-net place with a port place inside an instantiated subnet.",
-  }) satisfies z.ZodType<Wire>;
-
 export const componentInstanceSchema = z
   .strictObject({
     id: idSchema,
@@ -308,10 +352,6 @@ export const componentInstanceSchema = z
       description:
         "Per-instance parameter values keyed by parameter ID from the referenced subnet.",
     }),
-    wiring: z.array(wireSchema).meta({
-      description:
-        "Connections that merge parent-net places with port places inside the referenced subnet.",
-    }),
     x: z.number().meta({
       description: "Horizontal canvas position.",
     }),
@@ -321,7 +361,7 @@ export const componentInstanceSchema = z
   })
   .meta({
     description:
-      "A placed instance of a subnet, including parameter values and parent-to-port wiring.",
+      "A placed instance of a subnet. Parent nets connect to exposed subnet ports with transition arcs.",
   }) satisfies z.ZodType<ComponentInstance>;
 
 export const subnetSchema = z
@@ -359,6 +399,5 @@ export type TransitionSchema = typeof transitionSchema;
 export type ColorSchema = typeof colorSchema;
 export type DifferentialEquationSchema = typeof differentialEquationSchema;
 export type ParameterSchema = typeof parameterSchema;
-export type WireSchema = typeof wireSchema;
 export type ComponentInstanceSchema = typeof componentInstanceSchema;
 export type SubnetSchema = typeof subnetSchema;
