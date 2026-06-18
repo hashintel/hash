@@ -453,26 +453,42 @@ fn algebra_permits_and_forbids() {
 }
 
 #[test]
-fn algebra_blank_forbid_resets_projections() {
+fn algebra_blank_forbid_preserves_prior_projections() {
     let mut fixture = Fixture::new();
     let actor = Some(ActorId::User(UserId::new(ACTOR_UUID)));
-    let policy = policy_components(
+
+    // First transpile registers entity_ids via CreatedByPrincipal.
+    let first_policy = policy_components(
         actor,
-        vec![
-            permit(|| {
-                Some(ResourceConstraint::Entity(EntityResourceConstraint::Any {
-                    filter: EntityResourceFilter::CreatedByPrincipal,
-                }))
-            }),
-            forbid(|| None),
-        ],
+        vec![permit(|| {
+            Some(ResourceConstraint::Entity(EntityResourceConstraint::Any {
+                filter: EntityResourceFilter::CreatedByPrincipal,
+            }))
+        })],
     );
-    let result = fixture
+    let first_result = fixture
         .policy()
-        .transpile(VertexType::Entity, &policy, Global);
-    assert_eq!(result.condition.transpile_to_string(), "FALSE");
+        .transpile(VertexType::Entity, &first_policy, Global);
+    assert_ne!(
+        first_result.condition.transpile_to_string(),
+        "FALSE",
+        "first transpile should produce a real condition",
+    );
     assert!(
-        fixture.projections.entity_ids.is_none(),
-        "blank forbid should reset auxiliary projections",
+        fixture.projections.entity_ids.is_some(),
+        "CreatedByPrincipal should register entity_ids",
+    );
+    let entity_ids_alias = fixture.projections.entity_ids;
+
+    // Second transpile with blank forbid should deny all but preserve
+    // the entity_ids projection registered by the first call.
+    let second_policy = policy_components(actor, vec![forbid(|| None)]);
+    let second_result = fixture
+        .policy()
+        .transpile(VertexType::Entity, &second_policy, Global);
+    assert_eq!(second_result.condition.transpile_to_string(), "FALSE");
+    assert_eq!(
+        fixture.projections.entity_ids, entity_ids_alias,
+        "blank forbid should preserve pre-existing projections",
     );
 }

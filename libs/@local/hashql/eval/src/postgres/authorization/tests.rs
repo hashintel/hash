@@ -125,8 +125,13 @@ where
     fn resolve_policies_for_actor(
         &self,
         _: AuthenticatedActor,
-        _: ResolvePoliciesParams<'_>,
+        params: ResolvePoliciesParams<'_>,
     ) -> impl Future<Output = Result<Vec<ResolvedPolicy>, Report<GetPoliciesError>>> {
+        assert!(
+            params.actions.contains(&ActionName::ViewEntity),
+            "MockStore expects ViewEntity action",
+        );
+
         future::ready(Ok(self.policies.iter().map(|policy| (policy)()).collect()))
     }
 
@@ -261,16 +266,29 @@ where
 
     fn determine_actor(
         &self,
-        _: ActorEntityUuid,
+        actor_entity_uuid: ActorEntityUuid,
     ) -> impl Future<Output = Result<Option<ActorId>, Report<DetermineActorError>>> {
+        let expected = self
+            .actor_id
+            .map_or_else(ActorEntityUuid::public_actor, ActorEntityUuid::from);
+        assert_eq!(
+            actor_entity_uuid, expected,
+            "MockStore received unexpected actor UUID",
+        );
+
         future::ready(Ok(self.actor_id))
     }
 
     fn build_principal_context(
         &self,
-        _: ActorId,
+        actor_id: ActorId,
         context_builder: &mut ContextBuilder,
     ) -> impl Future<Output = Result<(), Report<BuildPrincipalContextError>>> {
+        assert_eq!(
+            Some(actor_id),
+            self.actor_id,
+            "MockStore received unexpected actor in build_principal_context",
+        );
         if self.is_instance_admin {
             use type_system::principal::actor_group::{ActorGroup, Team};
 
@@ -312,11 +330,14 @@ pub(crate) fn policy_components(
     .expect("mock store should not fail")
 }
 
+const PERMIT_POLICY_UUID: Uuid = Uuid::from_u128(0xBBBB_BBBB_BBBB_BBBB_BBBB_BBBB_BBBB_BBBB);
+const FORBID_POLICY_UUID: Uuid = Uuid::from_u128(0xCCCC_CCCC_CCCC_CCCC_CCCC_CCCC_CCCC_CCCC);
+
 pub(crate) fn permit<'resource>(
     resource: impl Fn() -> Option<ResourceConstraint> + Send + Sync + 'resource,
 ) -> Box<dyn Fn() -> ResolvedPolicy + Send + Sync + 'resource> {
     Box::new(move || ResolvedPolicy {
-        original_policy_id: PolicyId::new(Uuid::new_v4()),
+        original_policy_id: PolicyId::new(PERMIT_POLICY_UUID),
         effect: Effect::Permit,
         actions: vec![ActionName::ViewEntity],
         resource: (resource)(),
@@ -327,7 +348,7 @@ pub(crate) fn forbid<'resource>(
     resource: impl Fn() -> Option<ResourceConstraint> + Send + Sync + 'resource,
 ) -> Box<dyn Fn() -> ResolvedPolicy + Send + Sync + 'resource> {
     Box::new(move || ResolvedPolicy {
-        original_policy_id: PolicyId::new(Uuid::new_v4()),
+        original_policy_id: PolicyId::new(FORBID_POLICY_UUID),
         effect: Effect::Forbid,
         actions: vec![ActionName::ViewEntity],
         resource: (resource)(),

@@ -1,6 +1,6 @@
 ---
 source: libs/@local/hashql/eval/src/postgres/authorization/policy/tests.rs
-description: "[ResolvedPolicy { original_policy_id: PolicyId(f35ab935-b770-4319-a81a-4cbd1d67bbd1), effect: Permit, actions: [ViewEntity], resource: Some(Entity(Exact { id: EntityUuid(11111111-1111-1111-1111-111111111111) })) }, ResolvedPolicy { original_policy_id: PolicyId(38ad2813-8eac-48c5-a2bd-af2ede9e9065), effect: Permit, actions: [ViewEntity], resource: Some(Web { web_id: WebId(ActorGroupEntityUuid(EntityUuid(33333333-3333-3333-3333-333333333333))) }) }]"
+description: "[ResolvedPolicy { original_policy_id: PolicyId(bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb), effect: Permit, actions: [ViewEntity], resource: Some(Entity(Exact { id: EntityUuid(11111111-1111-1111-1111-111111111111) })) }, ResolvedPolicy { original_policy_id: PolicyId(bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb), effect: Permit, actions: [ViewEntity], resource: Some(Web { web_id: WebId(ActorGroupEntityUuid(EntityUuid(33333333-3333-3333-3333-333333333333))) }) }]"
 expression: result.condition.transpile_to_string()
 ---
 (("entity_temporal_metadata_0_0_0"."entity_uuid" = $1) OR ("entity_temporal_metadata_0_0_0"."web_id" = $2))
