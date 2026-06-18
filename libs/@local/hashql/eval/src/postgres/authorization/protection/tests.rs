@@ -142,7 +142,7 @@ fn lower_filter_in() {
 }
 
 #[test]
-fn lower_filter_nested_all_any() {
+fn lower_filter_nested_all() {
     let mut fixture = Fixture::new();
     let filter = PropertyFilter::All(vec![
         PropertyFilter::In(
@@ -206,7 +206,18 @@ fn transpile_instance_admin_returns_none() {
     let actor = Some(type_system::principal::actor::ActorId::User(
         type_system::principal::actor::UserId::new(ACTOR_UUID),
     ));
-    let policy = policy_components_admin(actor, vec![]);
+    let admin_policy = policy_components_admin(actor, vec![]);
+    let normal_policy = policy_components(actor, vec![]);
+
+    assert!(
+        admin_policy.is_instance_admin(),
+        "admin policy should be instance admin",
+    );
+    assert!(
+        !normal_policy.is_instance_admin(),
+        "normal policy should not be instance admin",
+    );
+
     let mut config = PropertyProtectionFilterConfig::new();
     config.protect_property(
         base_url("https://hash.ai/@h/types/property-type/email/"),
@@ -217,8 +228,18 @@ fn transpile_instance_admin_returns_none() {
             PropertyFilterExpression::ActorId,
         ),
     );
-    let result = fixture.protection().transpile(&policy, &config);
-    assert!(result.keys_to_remove.is_none());
+
+    let admin_result = fixture.protection().transpile(&admin_policy, &config);
+    assert!(
+        admin_result.keys_to_remove.is_none(),
+        "instance admin should bypass protection",
+    );
+
+    let normal_result = fixture.protection().transpile(&normal_policy, &config);
+    assert!(
+        normal_result.keys_to_remove.is_some(),
+        "non-admin should produce a mask",
+    );
 }
 
 #[test]

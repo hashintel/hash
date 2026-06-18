@@ -1,6 +1,6 @@
 ---
 source: libs/@local/hashql/eval/src/postgres/authorization/policy/tests.rs
-description: "[ResolvedPolicy { original_policy_id: PolicyId(d0ff6345-c5c5-4576-83c6-6694ffe32332), effect: Permit, actions: [ViewEntity], resource: None }, ResolvedPolicy { original_policy_id: PolicyId(412a7e0d-6bc3-478b-86eb-18e0ff70ef14), effect: Forbid, actions: [ViewEntity], resource: Some(Web { web_id: WebId(ActorGroupEntityUuid(EntityUuid(33333333-3333-3333-3333-333333333333))) }) }]"
+description: "[ResolvedPolicy { original_policy_id: PolicyId(bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb), effect: Permit, actions: [ViewEntity], resource: None }, ResolvedPolicy { original_policy_id: PolicyId(cccccccc-cccc-cccc-cccc-cccccccccccc), effect: Forbid, actions: [ViewEntity], resource: Some(Web { web_id: WebId(ActorGroupEntityUuid(EntityUuid(33333333-3333-3333-3333-333333333333))) }) }]"
 expression: result.condition.transpile_to_string()
 ---
 NOT(("entity_temporal_metadata_0_0_0"."web_id" = $1))
