@@ -11,6 +11,7 @@ use hashql_mir::{
     def::{DefId, DefIdSlice},
     pass::execution::VertexType,
 };
+use postgres_types::ToSql;
 
 use super::{
     ColumnDescriptor, Parameters,
@@ -36,6 +37,12 @@ pub struct PreparedQuery<'heap, A: Allocator> {
 impl<A: Allocator> PreparedQuery<'_, A> {
     pub fn transpile(&self) -> impl Display {
         core::fmt::from_fn(|fmt| self.statement.transpile(fmt))
+    }
+
+    pub fn auxiliary_parameters(
+        &self,
+    ) -> impl IntoIterator<Item = &(dyn ToSql + Sync), IntoIter: ExactSizeIterator> {
+        self.auxiliary_parameters.iter()
     }
 }
 
