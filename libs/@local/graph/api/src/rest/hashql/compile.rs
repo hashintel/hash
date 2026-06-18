@@ -17,34 +17,14 @@ use hashql_mir::{
     body::Body,
     def::{DefId, DefIdVec},
     error::MirDiagnosticCategory,
-    pass::{LowerConfig, execution::ExecutionAnalysisResidual},
-    visit::Visitor,
+    pass::{
+        LowerConfig,
+        execution::{ExecutionAnalysisResidual, VertexType},
+    },
 };
 use hashql_syntax_jexpr::span::Span;
 
 use super::error::HashQlDiagnosticCategory;
-
-struct FindActions<'heap> {
-    actions: heap::Vec<'heap, ActionName>,
-}
-
-impl<'heap> hashql_mir::visit::Visitor<'heap> for FindActions<'heap> {
-    type Result = Result<(), !>;
-
-    fn visit_graph_read_head(
-        &mut self,
-        _: hashql_mir::body::terminator::GraphReadLocation,
-        head: &hashql_mir::body::terminator::GraphReadHead<'heap>,
-    ) -> Self::Result {
-        match head {
-            hashql_mir::body::terminator::GraphReadHead::Entity { axis: _ } => {
-                self.actions.push(ActionName::ViewEntity);
-            }
-        }
-
-        Ok(())
-    }
-}
 
 pub(crate) struct CodeCompilationArtifact<'heap> {
     pub assignment: DefIdVec<Option<ExecutionAnalysisResidual<&'heap Heap>>, &'heap Heap>,
@@ -164,17 +144,6 @@ impl<'heap> Compilation<'heap> {
         .map_category(HashQlDiagnosticCategory::Mir)
         .with_diagnostics(advisories)?;
 
-        let mut actions = FindActions {
-            actions: heap::Vec::new_in(heap),
-        };
-        for body in &bodies {
-            Ok(()) = actions.visit_body(body)
-        }
-
-        let permissions = CodeExecutionPermissions {
-            actions: actions.actions,
-        };
-
         // Plan the execution
         let Success {
             value: execution,
@@ -197,6 +166,16 @@ impl<'heap> Compilation<'heap> {
         let mut postgres = PostgresCompiler::new_in(&mut context, &mut *scratch);
         let queries = postgres.compile();
         scratch.reset();
+
+        let mut actions = heap::Vec::new_in(heap);
+        for query in queries.iter() {
+            let action = match query.vertex_type {
+                VertexType::Entity => ActionName::ViewEntity,
+            };
+            actions.push(action);
+        }
+
+        let permissions = CodeExecutionPermissions { actions };
 
         context
             .diagnostics

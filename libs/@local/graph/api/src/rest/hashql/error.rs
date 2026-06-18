@@ -2,10 +2,12 @@ use alloc::borrow::Cow;
 use core::ops::Range;
 
 use axum::response::{Html, IntoResponse as _};
+use error_stack::Report;
+use hash_graph_authorization::policies::store::error::ContextCreationError;
 use hashql_ast::error::AstDiagnosticCategory;
 use hashql_core::span::{SpanId, SpanTable};
 use hashql_diagnostics::{
-    DiagnosticCategory, Failure, Sources, Status, Success,
+    Diagnostic, DiagnosticCategory, Failure, Label, Message, Sources, Status, Success,
     category::{TerminalDiagnosticCategory, canonical_category_id},
     diagnostic::render::{Format, RenderOptions},
     severity::Critical,
@@ -64,6 +66,112 @@ impl DiagnosticCategory for HashQlDiagnosticCategory {
             Self::Eval(eval) => Some(eval),
             Self::Infrastructure => Some(&INFRASTRUCTURE_CATEGORY),
         }
+    }
+}
+
+pub(crate) fn store_acquire_diagnostic(
+    report: &Report<impl core::error::Error>,
+    root_span: SpanId,
+) -> Diagnostic<HashQlDiagnosticCategory, SpanId, Critical> {
+    let mut diagnostic =
+        Diagnostic::new(HashQlDiagnosticCategory::Infrastructure, Critical::BUG).primary(
+            Label::new(root_span, "failed to acquire database connection"),
+        );
+
+    diagnostic.add_message(Message::note(
+        "the query compiled successfully but the server could not open a database connection to \
+         execute it",
+    ));
+
+    log_report(
+        &mut diagnostic,
+        report,
+        "failed to acquire database connection",
+    );
+
+    diagnostic
+}
+
+pub(crate) fn authorization_context_diagnostic(
+    report: &Report<ContextCreationError>,
+    root_span: SpanId,
+) -> Diagnostic<HashQlDiagnosticCategory, SpanId, Critical> {
+    match report.current_context() {
+        ContextCreationError::ActorNotFound { actor_id } => {
+            actor_not_found(report, root_span, actor_id)
+        }
+        ContextCreationError::DetermineActor { actor_id } => {
+            actor_not_found(report, root_span, actor_id)
+        }
+        ContextCreationError::BuildPrincipalContext { .. }
+        | ContextCreationError::BuildEntityTypeContext { .. }
+        | ContextCreationError::BuildPropertyTypeContext { .. }
+        | ContextCreationError::BuildDataTypeContext { .. }
+        | ContextCreationError::BuildEntityContext { .. }
+        | ContextCreationError::ResolveActorPolicies { .. }
+        | ContextCreationError::CreatePolicySet
+        | ContextCreationError::CreatePolicyContext
+        | ContextCreationError::StoreError => authorization_context_failed(report, root_span),
+    }
+}
+
+fn actor_not_found(
+    report: &Report<ContextCreationError>,
+    root_span: SpanId,
+    actor_id: &impl core::fmt::Display,
+) -> Diagnostic<HashQlDiagnosticCategory, SpanId, Critical> {
+    let mut diagnostic =
+        Diagnostic::new(HashQlDiagnosticCategory::Infrastructure, Critical::ERROR).primary(
+            Label::new(root_span, format!("actor `{actor_id}` does not exist")),
+        );
+
+    diagnostic.add_message(Message::note(
+        "every request must be authenticated with a valid actor ID; the provided ID does not \
+         correspond to any known user or machine",
+    ));
+
+    log_report(&mut diagnostic, report, "actor not found");
+
+    diagnostic
+}
+
+fn authorization_context_failed(
+    report: &Report<ContextCreationError>,
+    root_span: SpanId,
+) -> Diagnostic<HashQlDiagnosticCategory, SpanId, Critical> {
+    let mut diagnostic =
+        Diagnostic::new(HashQlDiagnosticCategory::Infrastructure, Critical::BUG).primary(
+            Label::new(root_span, "failed to build authorization context"),
+        );
+
+    diagnostic.add_message(Message::note(format!(
+        "the authorization system reported: {}",
+        report.current_context()
+    )));
+
+    diagnostic.add_message(Message::help(
+        "the query compiled successfully but the server could not resolve the policies needed to \
+         authorize execution",
+    ));
+
+    log_report(
+        &mut diagnostic,
+        report,
+        "failed to build authorization context",
+    );
+
+    diagnostic
+}
+
+fn log_report(
+    diagnostic: &mut Diagnostic<HashQlDiagnosticCategory, SpanId, Critical>,
+    report: &Report<impl core::error::Error>,
+    log_message: &str,
+) {
+    if cfg!(debug_assertions) {
+        diagnostic.add_message(Message::note(format!("{report:?}")));
+    } else {
+        tracing::error!(?report, "{log_message}");
     }
 }
 

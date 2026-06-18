@@ -74,11 +74,27 @@ pub struct PatchContext<'ctx, A: Allocator> {
 /// as the `next` continuation).
 pub trait PatchPreparedQuery<A: Allocator, S: Allocator> {
     fn patch_query(
-        &mut self,
+        &self,
         context: &mut PatchContext<'_, A>,
         query: &mut PreparedQuery<'_, A>,
         scratch: S,
     );
+}
+
+impl<T, A, S> PatchPreparedQuery<A, S> for &T
+where
+    A: Allocator,
+    S: Allocator,
+    T: PatchPreparedQuery<A, S>,
+{
+    fn patch_query(
+        &self,
+        context: &mut PatchContext<'_, A>,
+        query: &mut PreparedQuery<'_, A>,
+        scratch: S,
+    ) {
+        T::patch_query(self, context, query, scratch);
+    }
 }
 
 /// A single patch layer in the continuation-passing pipeline.
@@ -94,18 +110,37 @@ pub trait PatchPreparedQuery<A: Allocator, S: Allocator> {
 /// joins and conditions.
 pub trait PatchPreparedQueryLayer<A: Allocator, S: Allocator> {
     fn patch_query<N>(
-        &mut self,
+        &self,
         context: &mut PatchContext<'_, A>,
         query: &mut PreparedQuery<'_, A>,
         scratch: S,
-        next: &mut N,
+        next: &N,
     ) where
         N: PatchPreparedQuery<A, S>;
 }
 
+impl<T, A, S> PatchPreparedQueryLayer<A, S> for &T
+where
+    A: Allocator,
+    S: Allocator,
+    T: PatchPreparedQueryLayer<A, S>,
+{
+    fn patch_query<N>(
+        &self,
+        context: &mut PatchContext<'_, A>,
+        query: &mut PreparedQuery<'_, A>,
+        scratch: S,
+        next: &N,
+    ) where
+        N: PatchPreparedQuery<A, S>,
+    {
+        T::patch_query(self, context, query, scratch, next);
+    }
+}
+
 impl<A: Allocator, S: Allocator> PatchPreparedQuery<A, S> for HNil {
     fn patch_query(
-        &mut self,
+        &self,
         context: &mut PatchContext<'_, A>,
         query: &mut PreparedQuery<'_, A>,
         _: S,
@@ -126,7 +161,7 @@ where
     T: PatchPreparedQuery<A, S>,
 {
     fn patch_query(
-        &mut self,
+        &self,
         context: &mut PatchContext<'_, A>,
         query: &mut PreparedQuery<'_, A>,
         scratch: S,
@@ -177,11 +212,8 @@ impl<T> PreparedQueryPatch<T> {
     /// Constructs [`AuxiliaryProjections`] from the query's compiled
     /// projections, then invokes the layer chain. The terminal [`HNil`]
     /// materializes all registered auxiliary joins into the FROM clause.
-    pub fn apply<A: Allocator + Clone, S: Allocator>(
-        mut self,
-        query: &mut PreparedQuery<A>,
-        scratch: S,
-    ) where
+    pub fn apply<A: Allocator + Clone, S: Allocator>(self, query: &mut PreparedQuery<A>, scratch: S)
+    where
         T: PatchPreparedQuery<A, S>,
     {
         let alloc = query.columns.allocator().clone();
@@ -226,5 +258,13 @@ impl<'heap, A: Allocator> PreparedQueries<'heap, A> {
             .iter()
             .find(|(id, _)| *id == block)
             .map(|(_, query)| query)
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = &PreparedQuery<'heap, A>> {
+        self.queries.iter().map(|(_, query)| query)
+    }
+
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut PreparedQuery<'heap, A>> {
+        self.queries.iter_mut().map(|(_, query)| query)
     }
 }
