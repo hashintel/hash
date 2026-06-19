@@ -6,6 +6,7 @@ use hashql_core::{
     span::SpanId,
     r#type::{TypeId, builder::IntoSymbol},
 };
+use hashql_hir::node::HirId;
 
 use super::{base::BaseBuilder, basic_block::BasicBlockBuilder};
 use crate::{
@@ -126,7 +127,7 @@ impl<'env, 'heap> BodyBuilder<'env, 'heap> {
             id: DefId::MAX,
             span: SpanId::SYNTHETIC,
             return_type: return_ty,
-            source: Source::Intrinsic(DefId::MAX),
+            source: Source::Closure(HirId::PLACEHOLDER, None),
             local_decls: self.local_decls,
             basic_blocks: BasicBlocks::new(self.blocks),
             args,
