@@ -1,10 +1,9 @@
+use core::alloc::Allocator;
+
 pub mod actor_group;
 
 use crate::{
-    module::{
-        StandardLibrary,
-        std_lib::{ModuleDef, StandardLibraryModule},
-    },
+    module::std_lib::{ModuleCache, ModuleDef, StandardLibraryContext, StandardLibraryModule},
     symbol::{Symbol, sym},
 };
 
@@ -19,7 +18,10 @@ impl<'heap> StandardLibraryModule<'heap> for Principal {
         sym::principal
     }
 
-    fn define(_: &mut StandardLibrary<'_, 'heap>) -> ModuleDef<'heap> {
-        ModuleDef::new()
+    fn define<S: Allocator + Clone>(
+        context: &mut StandardLibraryContext<'_, 'heap, S>,
+        _: &mut ModuleCache<'heap, S>,
+    ) -> ModuleDef<'heap, S> {
+        ModuleDef::new_in(context.alloc.clone())
     }
 }

@@ -1,4 +1,6 @@
-use super::{ItemDef, ModuleDef, StandardLibrary, StandardLibraryModule};
+use core::alloc::Allocator;
+
+use super::{ItemDef, ModuleCache, ModuleDef, StandardLibraryContext, StandardLibraryModule};
 use crate::{
     module::{item::IntrinsicValueItem, locals::TypeDef},
     symbol::{Symbol, sym},
@@ -14,8 +16,8 @@ pub(in crate::module::std_lib) mod result;
 pub mod url;
 pub mod uuid;
 
-pub(in crate::module::std_lib) fn func<'heap>(
-    def: &mut ModuleDef<'heap>,
+pub(in crate::module::std_lib) fn func<'heap, S: Allocator>(
+    def: &mut ModuleDef<'heap, S>,
 
     path: Symbol<'heap>,
     names: impl IntoIterator<Item = Symbol<'heap>>,
@@ -46,7 +48,10 @@ impl<'heap> StandardLibraryModule<'heap> for Core {
         sym::core
     }
 
-    fn define(_: &mut StandardLibrary<'_, 'heap>) -> ModuleDef<'heap> {
-        ModuleDef::new()
+    fn define<S: Allocator + Clone>(
+        context: &mut StandardLibraryContext<'_, 'heap, S>,
+        _: &mut ModuleCache<'heap, S>,
+    ) -> ModuleDef<'heap, S> {
+        ModuleDef::new_in(context.alloc.clone())
     }
 }

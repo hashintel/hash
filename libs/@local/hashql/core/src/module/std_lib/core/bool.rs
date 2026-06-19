@@ -1,8 +1,10 @@
+use core::alloc::Allocator;
+
 use super::func;
 use crate::{
     module::{
         locals::TypeDef,
-        std_lib::{ModuleDef, StandardLibrary, StandardLibraryModule, decl},
+        std_lib::{ModuleCache, ModuleDef, StandardLibraryContext, StandardLibraryModule, decl},
     },
     symbol::{Symbol, sym},
 };
@@ -19,26 +21,29 @@ impl<'heap> StandardLibraryModule<'heap> for Bool {
     }
 
     #[expect(non_snake_case)]
-    fn define(lib: &mut StandardLibrary<'_, 'heap>) -> ModuleDef<'heap> {
-        let mut def = ModuleDef::new();
+    fn define<S: Allocator + Clone>(
+        context: &mut StandardLibraryContext<'_, 'heap, S>,
+        _: &mut ModuleCache<'heap, S>,
+    ) -> ModuleDef<'heap, S> {
+        let mut def = ModuleDef::new_in(context.alloc.clone());
 
-        let Boolean = lib.ty.boolean();
+        let Boolean = context.ty.boolean();
 
         let items = [
             (
                 sym::path::core::bool::not,
                 &[sym::not, sym::symbol::exclamation],
-                decl!(lib; <>(value: Boolean) -> Boolean),
+                decl!(context; <>(value: Boolean) -> Boolean),
             ),
             (
                 sym::path::core::bool::and,
                 &[sym::and, sym::symbol::ampamp],
-                decl!(lib; <>(lhs: Boolean, rhs: Boolean) -> Boolean),
+                decl!(context; <>(lhs: Boolean, rhs: Boolean) -> Boolean),
             ),
             (
                 sym::path::core::bool::or,
                 &[sym::or, sym::symbol::pipepipe],
-                decl!(lib; <>(lhs: Boolean, rhs: Boolean) -> Boolean),
+                decl!(context; <>(lhs: Boolean, rhs: Boolean) -> Boolean),
             ),
         ];
 

@@ -1,5 +1,9 @@
+use core::alloc::Allocator;
+
 use crate::{
-    module::std_lib::{ItemDef, ModuleDef, StandardLibrary, StandardLibraryModule},
+    module::std_lib::{
+        ItemDef, ModuleCache, ModuleDef, StandardLibraryContext, StandardLibraryModule,
+    },
     symbol::{Symbol, sym},
 };
 
@@ -14,22 +18,27 @@ impl<'heap> StandardLibraryModule<'heap> for Json {
         sym::json
     }
 
-    fn define(lib: &mut StandardLibrary<'_, 'heap>) -> ModuleDef<'heap> {
-        let mut def = ModuleDef::new();
+    fn define<S: Allocator + Clone>(
+        context: &mut StandardLibraryContext<'_, 'heap, S>,
+        _: &mut ModuleCache<'heap, S>,
+    ) -> ModuleDef<'heap, S> {
+        let mut def = ModuleDef::new_in(context.alloc.clone());
 
         // type JsonPathSegment = String | Integer;
         // Note: The type should be Natural instead, but this requires refinement types
-        let json_path_segment_ty = lib.ty.union([lib.ty.string(), lib.ty.integer()]);
+        let json_path_segment_ty = context
+            .ty
+            .union([context.ty.string(), context.ty.integer()]);
         def.push(
             sym::JsonPathSegment,
-            ItemDef::r#type(lib.ty.env, json_path_segment_ty, &[]),
+            ItemDef::r#type(context.ty.env, json_path_segment_ty, &[]),
         );
 
         // type JsonPath = JsonPathSegment[];
-        let json_path_ty = lib.ty.list(json_path_segment_ty);
+        let json_path_ty = context.ty.list(json_path_segment_ty);
         def.push(
             sym::JsonPath,
-            ItemDef::r#type(lib.ty.env, json_path_ty, &[]),
+            ItemDef::r#type(context.ty.env, json_path_ty, &[]),
         );
 
         def

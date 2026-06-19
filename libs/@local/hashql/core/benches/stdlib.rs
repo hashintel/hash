@@ -39,7 +39,7 @@ fn stdlib_construction(criterion: &mut Criterion<impl Measurement>) {
                 Environment::new(heap)
             },
             |environment| {
-                black_box(ModuleRegistry::new(&environment));
+                black_box(ModuleRegistry::new_in(&environment, environment.heap));
             },
             BatchSize::PerIteration,
         );

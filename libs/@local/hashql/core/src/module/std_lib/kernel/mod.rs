@@ -1,7 +1,9 @@
+use core::alloc::Allocator;
+
 pub(in crate::module::std_lib) mod special_form;
 pub(in crate::module::std_lib) mod r#type;
 
-use super::{ModuleDef, StandardLibrary, StandardLibraryModule};
+use super::{ModuleCache, ModuleDef, StandardLibraryContext, StandardLibraryModule};
 use crate::symbol::{Symbol, sym};
 
 pub(in crate::module::std_lib) struct Kernel;
@@ -13,7 +15,10 @@ impl<'heap> StandardLibraryModule<'heap> for Kernel {
         sym::kernel
     }
 
-    fn define(_: &mut StandardLibrary<'_, 'heap>) -> ModuleDef<'heap> {
-        ModuleDef::new()
+    fn define<S: Allocator + Clone>(
+        context: &mut StandardLibraryContext<'_, 'heap, S>,
+        _: &mut ModuleCache<'heap, S>,
+    ) -> ModuleDef<'heap, S> {
+        ModuleDef::new_in(context.alloc.clone())
     }
 }
