@@ -1,4 +1,4 @@
-import { useQuery } from "@apollo/client";
+import { type ApolloError, useQuery } from "@apollo/client";
 import { useCallback, useMemo, useRef, useState } from "react";
 
 import { getRoots } from "@blockprotocol/graph/stdlib";
@@ -83,25 +83,123 @@ const mergeRecordOfRecords = <T>(
   return result;
 };
 
-const mergeSubgraphs = (pages: LinkPage[]): LinksSubgraph | undefined => {
-  const [first, ...rest] = pages;
+/**
+ * Merge a single later page's subgraph into an already-merged subgraph,
+ * adding its vertices/edges without dropping those already accumulated.
+ */
+const mergeSubgraphInto = (
+  merged: LinksSubgraph,
+  page: LinkPage,
+): LinksSubgraph => {
+  const vertices = mergeRecordOfRecords(
+    merged.vertices as Record<string, Record<string, unknown>>,
+    page.subgraph.vertices as Record<string, Record<string, unknown>>,
+  ) as LinksSubgraph["vertices"];
+
+  const edges = mergeRecordOfRecords(
+    merged.edges as Record<string, Record<string, unknown>>,
+    page.subgraph.edges as Record<string, Record<string, unknown>>,
+  ) as LinksSubgraph["edges"];
+
+  return { ...merged, vertices, edges };
+};
+
+const mergeDefinitionsInto = (
+  merged: ClosedMultiEntityTypesDefinitions | undefined,
+  page: LinkPage,
+): ClosedMultiEntityTypesDefinitions | undefined => {
+  if (!page.definitions) {
+    return merged;
+  }
+  if (!merged) {
+    return page.definitions;
+  }
+  return {
+    dataTypes: { ...merged.dataTypes, ...page.definitions.dataTypes },
+    entityTypes: { ...merged.entityTypes, ...page.definitions.entityTypes },
+    propertyTypes: {
+      ...merged.propertyTypes,
+      ...page.definitions.propertyTypes,
+    },
+  };
+};
+
+/**
+ * The running, incrementally-built accumulation of every page loaded so far.
+ */
+type Accumulated = {
+  linkEntities: HashLinkEntity[];
+  /** Dedup set keyed on `recordId.entityId`, so appends stay O(page size). */
+  seenLinkIds: Set<EntityId>;
+  subgraph: LinksSubgraph;
+  typesMap: ClosedMultiEntityTypesRootMap;
+  definitions?: ClosedMultiEntityTypesDefinitions;
+  count?: number;
+  nextCursor: EntityQueryCursor | null;
+  /**
+   * Whether the query is exhausted. `true` once a page returns fewer rows than
+   * the requested page size (so a non-null cursor pointing past the last match
+   * does not keep `hasMore` true and trigger an empty fetch).
+   */
+  exhausted: boolean;
+};
+
+/**
+ * Fold a single freshly-loaded page into the running accumulation. The
+ * `linkEntities`/`seenLinkIds`/`typesMap` collections are extended in place so
+ * that loading page `k` costs O(page size) rather than O(total pages loaded so
+ * far); a new top-level object is returned to carry the updated scalar fields.
+ */
+const appendPage = (accumulated: Accumulated, page: LinkPage): Accumulated => {
+  for (const linkEntity of page.linkEntities) {
+    const linkEntityId = linkEntity.metadata.recordId.entityId;
+    if (!accumulated.seenLinkIds.has(linkEntityId)) {
+      accumulated.seenLinkIds.add(linkEntityId);
+      accumulated.linkEntities.push(linkEntity);
+    }
+  }
+
+  Object.assign(accumulated.typesMap, page.typesMap);
+
+  /**
+   * Treat the result as exhausted when the page returned fewer rows than the
+   * requested page size (including zero), regardless of whether the API still
+   * handed back a non-null cursor.
+   */
+  const exhausted = page.linkEntities.length < linksTablePageSize;
+
+  return {
+    ...accumulated,
+    definitions: mergeDefinitionsInto(accumulated.definitions, page),
+    subgraph: mergeSubgraphInto(accumulated.subgraph, page),
+    count: page.count,
+    exhausted,
+    nextCursor: exhausted ? null : page.nextCursor,
+  };
+};
+
+const accumulatePages = (pages: LinkPage[]): Accumulated | undefined => {
+  const [first] = pages;
   if (!first) {
     return undefined;
   }
 
-  return rest.reduce<LinksSubgraph>((merged, page) => {
-    const vertices = mergeRecordOfRecords(
-      merged.vertices as Record<string, Record<string, unknown>>,
-      page.subgraph.vertices as Record<string, Record<string, unknown>>,
-    ) as LinksSubgraph["vertices"];
+  let accumulated: Accumulated = {
+    linkEntities: [],
+    seenLinkIds: new Set<EntityId>(),
+    subgraph: first.subgraph,
+    typesMap: {},
+    definitions: undefined,
+    count: undefined,
+    nextCursor: null,
+    exhausted: false,
+  };
 
-    const edges = mergeRecordOfRecords(
-      merged.edges as Record<string, Record<string, unknown>>,
-      page.subgraph.edges as Record<string, Record<string, unknown>>,
-    ) as LinksSubgraph["edges"];
+  for (const page of pages) {
+    accumulated = appendPage(accumulated, page);
+  }
 
-    return { ...merged, vertices, edges };
-  }, first.subgraph);
+  return accumulated;
 };
 
 /**
@@ -134,6 +232,8 @@ export const useEntityLinks = ({
 }): {
   /** Whether the first page is still loading. */
   initialLoading: boolean;
+  /** Any error from the underlying query, for the caller to surface. */
+  error?: ApolloError;
   /** Whether a subsequent page is being fetched. */
   loadingMore: boolean;
   /** Fetch the next page (no-op if there are no more pages). */
@@ -185,7 +285,7 @@ export const useEntityLinks = ({
   const filterEndpoint =
     direction === "outgoing" ? "leftEntity" : "rightEntity";
 
-  const { loading } = useQuery<
+  const { loading, error } = useQuery<
     QueryEntitySubgraphQuery,
     QueryEntitySubgraphQueryVariables
   >(queryEntitySubgraphQuery, {
@@ -207,6 +307,23 @@ export const useEntityLinks = ({
                 { parameter: webId },
               ],
             },
+            /**
+             * When viewing a specific draft, scope the matched endpoint to that
+             * draft. The path is rooted on the link entity, so this resolves
+             * the *endpoint* entity's own draftId (mirroring
+             * `generateEntityIdFilter`); without it a draft would match links
+             * across its live version and all sibling drafts.
+             */
+            ...(draftId
+              ? [
+                  {
+                    equal: [
+                      { path: [filterEndpoint, "draftId"] },
+                      { parameter: draftId },
+                    ],
+                  },
+                ]
+              : []),
             ...(direction === "incoming"
               ? [
                   ignoreNoisySystemTypesFilter,
@@ -274,57 +391,53 @@ export const useEntityLinks = ({
     },
   });
 
+  /**
+   * Incrementally accumulate pages. The previously-processed `pages` array and
+   * its resulting accumulation are cached in a ref; when `pages` grows by
+   * append-only (the common infinite-scroll case) only the new pages are folded
+   * in, keeping each `loadMore` O(page size) rather than O(total pages). A
+   * reset (`[page]`) or an in-place page replacement (cache-then-network for the
+   * same cursor) rebuilds from scratch, which is rare and bounded.
+   */
+  const accumulationCache = useRef<{
+    pages: LinkPage[];
+    result: Accumulated | undefined;
+  }>({ pages: [], result: undefined });
+
   const accumulated = useMemo(() => {
+    const cached = accumulationCache.current;
+
+    const isAppendOnlyExtension =
+      cached.result !== undefined &&
+      pages.length > cached.pages.length &&
+      cached.pages.every((page, index) => pages[index] === page);
+
+    let result: Accumulated | undefined;
     if (pages.length === 0) {
+      result = undefined;
+    } else if (isAppendOnlyExtension) {
+      result = cached.result;
+      for (let index = cached.pages.length; index < pages.length; index++) {
+        result = appendPage(result!, pages[index]!);
+      }
+    } else {
+      result = accumulatePages(pages);
+    }
+
+    accumulationCache.current = { pages, result };
+
+    if (!result) {
       return undefined;
     }
 
-    const seenLinkIds = new Set<EntityId>();
-    const linkEntities: HashLinkEntity[] = [];
-    for (const page of pages) {
-      for (const linkEntity of page.linkEntities) {
-        const linkEntityId = linkEntity.metadata.recordId.entityId;
-        if (!seenLinkIds.has(linkEntityId)) {
-          seenLinkIds.add(linkEntityId);
-          linkEntities.push(linkEntity);
-        }
-      }
-    }
-
-    const typesMap: ClosedMultiEntityTypesRootMap = {};
-    let definitions: ClosedMultiEntityTypesDefinitions | undefined;
-    for (const page of pages) {
-      Object.assign(typesMap, page.typesMap);
-      if (page.definitions) {
-        definitions = definitions
-          ? {
-              dataTypes: {
-                ...definitions.dataTypes,
-                ...page.definitions.dataTypes,
-              },
-              entityTypes: {
-                ...definitions.entityTypes,
-                ...page.definitions.entityTypes,
-              },
-              propertyTypes: {
-                ...definitions.propertyTypes,
-                ...page.definitions.propertyTypes,
-              },
-            }
-          : page.definitions;
-      }
-    }
-
-    const lastPage = pages[pages.length - 1]!;
-
-    return {
-      linkEntities,
-      subgraph: mergeSubgraphs(pages),
-      typesMap,
-      definitions,
-      count: lastPage.count,
-      nextCursor: lastPage.nextCursor,
-    };
+    /**
+     * Return a fresh top-level object (and a fresh `linkEntities` array) so
+     * that consumers depending on referential identity recompute when a page
+     * is appended. The expensive O(n) work (dedup, subgraph/type merging) has
+     * already been done incrementally above; this only copies the array of
+     * entity references.
+     */
+    return { ...result, linkEntities: [...result.linkEntities] };
   }, [pages]);
 
   const loadMore = useCallback(() => {
@@ -335,6 +448,7 @@ export const useEntityLinks = ({
 
   return {
     initialLoading: loading && pages.length === 0,
+    error,
     loadingMore: loading && cursor !== undefined,
     loadMore,
     hasMore: !!accumulated?.nextCursor,

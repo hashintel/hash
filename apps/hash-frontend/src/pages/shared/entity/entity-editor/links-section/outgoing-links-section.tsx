@@ -7,7 +7,12 @@ import {
   getOutgoingLinksForEntity,
   getRightEntityForLinkEntity,
 } from "@blockprotocol/graph/stdlib";
-import { Chip, FontAwesomeIcon, IconButton } from "@hashintel/design-system";
+import {
+  Callout,
+  Chip,
+  FontAwesomeIcon,
+  IconButton,
+} from "@hashintel/design-system";
 
 import { Grid } from "../../../../../components/grid/grid";
 import { createRenderChipCell } from "../../../chip-cell";
@@ -121,6 +126,7 @@ export const OutgoingLinksSection = ({
     loadMore,
     hasMore,
     count: fetchedCount,
+    error,
     linkEntities,
     subgraph: fetchedSubgraph,
     linkAndDestinationEntitiesClosedMultiEntityTypesMap: fetchedTypesMap,
@@ -131,6 +137,57 @@ export const OutgoingLinksSection = ({
     skip: !selfFetchLinks,
     sortingPaths,
   });
+
+  /**
+   * The links/targets passed to the readonly table. In the self-fetch path the
+   * source/target entities come from the merged multi-page subgraph; in the
+   * editor path they come from the editor subgraph. Memoised so the new array
+   * identity does not defeat the `memo()`-wrapped table on every parent render.
+   */
+  const outgoingLinksAndTargets = useMemo<LinkEntityAndRightEntity[]>(() => {
+    if (selfFetchLinks) {
+      if (!linkEntities || !fetchedSubgraph) {
+        return [];
+      }
+
+      return linkEntities
+        .map((linkEntity) => {
+          let rightEntity: LinkEntityAndRightEntity["rightEntity"];
+          try {
+            rightEntity =
+              getRightEntityForLinkEntity(
+                fetchedSubgraph,
+                linkEntity.metadata.recordId.entityId,
+              ) ?? [];
+          } catch {
+            /**
+             * `getRightEntityForLinkEntity` throws if no target revision overlaps
+             * the resolved instant of the merged multi-page subgraph; treat that
+             * as a missing endpoint so the link is filtered out below rather than
+             * crashing the table.
+             */
+            rightEntity = [];
+          }
+
+          return { linkEntity: [linkEntity], rightEntity };
+        })
+        .filter(
+          /**
+           * Drop links whose target entity is missing, so no row with an empty
+           * endpoint reaches the table (which would throw when building rows).
+           */
+          (outgoingLinkAndTarget) => !!outgoingLinkAndTarget.rightEntity[0],
+        );
+    }
+
+    return getOutgoingLinkAndTargetEntities(
+      editorSubgraph,
+      entity.metadata.recordId.entityId,
+      entity.metadata.temporalVersioning[
+        editorSubgraph.temporalAxes.resolved.variable.axis
+      ],
+    );
+  }, [selfFetchLinks, linkEntities, fetchedSubgraph, editorSubgraph, entity]);
 
   const rows = useRows({
     closedMultiEntityType,
@@ -175,6 +232,22 @@ export const OutgoingLinksSection = ({
       return direction === "asc" ? comparison : -comparison;
     });
   }, []);
+
+  if (selfFetchLinks && error) {
+    /**
+     * In the self-fetch path the query errors are surfaced here (the editor
+     * path's errors are handled by the parent query). Without this, a failed
+     * query would fall through to the empty state, making it look like the
+     * entity simply has no links.
+     */
+    return (
+      <SectionWrapper title="Outgoing Links">
+        <Callout type="error">
+          Could not load outgoing links. Please try again later.
+        </Callout>
+      </SectionWrapper>
+    );
+  }
 
   if (
     selfFetchLinks &&
@@ -226,24 +299,6 @@ export const OutgoingLinksSection = ({
     return null;
   }
 
-  let outgoingLinksAndTargets: LinkEntityAndRightEntity[] | null = null;
-  outgoingLinksAndTargets = selfFetchLinks
-    ? linkEntities!.map((linkEntity) => ({
-        linkEntity: [linkEntity],
-        rightEntity:
-          getRightEntityForLinkEntity(
-            entitySubgraph,
-            linkEntity.metadata.recordId.entityId,
-          ) ?? [],
-      }))
-    : getOutgoingLinkAndTargetEntities(
-        entitySubgraph,
-        entity.metadata.recordId.entityId,
-        entity.metadata.temporalVersioning[
-          entitySubgraph.temporalAxes.resolved.variable.axis
-        ],
-      );
-
   return (
     <SectionWrapper
       title="Outgoing Links"
@@ -288,7 +343,7 @@ export const OutgoingLinksSection = ({
             sortRows={sortRows}
           />
         </Paper>
-      ) : outgoingLinksAndTargets?.length ? (
+      ) : outgoingLinksAndTargets.length ? (
         <OutgoingLinksTable
           closedMultiEntityTypesDefinitions={closedMultiEntityTypesDefinitions}
           closedMultiEntityTypesMap={closedMultiEntityTypesMap}

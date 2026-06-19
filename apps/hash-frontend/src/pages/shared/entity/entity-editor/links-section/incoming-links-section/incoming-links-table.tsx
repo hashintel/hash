@@ -3,7 +3,7 @@ import {
   memo,
   type ReactElement,
   type RefObject,
-  useLayoutEffect,
+  useCallback,
   useMemo,
   useRef,
   useState,
@@ -66,6 +66,7 @@ import type {
   ClosedMultiEntityTypesDefinitions,
   ClosedMultiEntityTypesRootMap,
 } from "@local/hash-graph-sdk/ontology";
+import type { ListRange } from "react-virtuoso";
 
 export type IncomingLinksFieldId =
   | "linkedFrom"
@@ -342,17 +343,6 @@ export const IncomingLinksTable = memo(
      */
     const sort = controlledSort ?? internalSort;
     const setSort = controlledSetSort ?? setInternalSort;
-
-    const outputContainerRef = useRef<HTMLDivElement>(null);
-    const [outputContainerHeight, setOutputContainerHeight] = useState(400);
-    useLayoutEffect(() => {
-      if (
-        outputContainerRef.current &&
-        outputContainerRef.current.clientHeight !== outputContainerHeight
-      ) {
-        setOutputContainerHeight(outputContainerRef.current.clientHeight);
-      }
-    }, [outputContainerHeight]);
 
     const {
       filterDefinitions,
@@ -749,13 +739,43 @@ export const IncomingLinksTable = memo(
     }, [filterValues, customColumns, serverSideSorting]);
 
     /**
-     * Whether scrolling to the bottom may trigger a load of the next page. It is
-     * disarmed as soon as a load is triggered and only re-armed when the user
-     * starts scrolling again – so a single scroll to the bottom loads at most
-     * one page, and the user must scroll again to load more (rather than the
-     * table looping while the scroll position stays at the bottom).
+     * Whether scrolling to the bottom may trigger a load of the next page. It
+     * starts disarmed so that the initial range-change callback Virtuoso fires
+     * on mount (which reports the rendered range including overscan, and would
+     * otherwise auto-load page 2 with no user scroll when the first page fits in
+     * the viewport) cannot trigger a load. It is armed only once the user
+     * actually scrolls, disarmed again as soon as a load is triggered, and
+     * re-armed when the user starts scrolling again – so a single scroll to the
+     * bottom loads at most one page, and the user must scroll again to load more
+     * (rather than the table looping while the scroll position stays at the
+     * bottom).
      */
-    const canLoadMoreRef = useRef(true);
+    const canLoadMoreRef = useRef(false);
+
+    const handleIsScrolling = useCallback((isScrolling: boolean) => {
+      if (isScrolling) {
+        canLoadMoreRef.current = true;
+      }
+    }, []);
+
+    const handleRangeChange = useMemo(
+      () =>
+        onEndReached
+          ? ({ endIndex }: ListRange) => {
+              // Load the next page once the loaded rows scroll into view,
+              // before the placeholder rows are reached.
+              if (
+                canLoadMoreRef.current &&
+                !loadingMore &&
+                endIndex >= rows.length - 1
+              ) {
+                canLoadMoreRef.current = false;
+                onEndReached();
+              }
+            }
+          : undefined,
+      [loadingMore, onEndReached, rows.length],
+    );
 
     return (
       <Box sx={{ height }}>
@@ -767,27 +787,8 @@ export const IncomingLinksTable = memo(
           fixedItemHeight={linksTableRowHeight}
           followOutput={false}
           loadingMore={loadingMore}
-          onIsScrolling={(isScrolling) => {
-            if (isScrolling) {
-              canLoadMoreRef.current = true;
-            }
-          }}
-          onRangeChange={
-            onEndReached
-              ? ({ endIndex }) => {
-                  // Load the next page once the loaded rows scroll into view,
-                  // before the placeholder rows are reached.
-                  if (
-                    canLoadMoreRef.current &&
-                    !loadingMore &&
-                    endIndex >= rows.length - 1
-                  ) {
-                    canLoadMoreRef.current = false;
-                    onEndReached();
-                  }
-                }
-              : undefined
-          }
+          onIsScrolling={handleIsScrolling}
+          onRangeChange={handleRangeChange}
           setFilterValues={serverSideSorting ? undefined : setFilterValues}
           rows={rows}
           sort={sort}

@@ -405,6 +405,24 @@ export const Entity = ({
     [draftEntitySubgraph],
   );
 
+  /**
+   * Whether the user can edit the entity's links.
+   *
+   * This is the signal that drives `includeLinkDataInQuery` (see its
+   * `onCompleted` above): when the user has `update` permission we fetch the
+   * link data inline so the editor can show the inline link-editing grid.
+   *
+   * It is deliberately decoupled from `isReadOnly` below, which additionally
+   * folds in display-only readonly reasons (fullscreen, archived). An editable
+   * entity viewed readonly-for-display must NOT also self-fetch its links, or it
+   * would both double-fetch and lose the inline link-editing grid.
+   */
+  const canEditLinks =
+    !draftLocalEntity &&
+    !proposedEntitySubgraph &&
+    !!queryEntitySubgraphData?.queryEntitySubgraph.entityPermissions?.[entityId]
+      ?.update;
+
   const isReadOnly =
     /**
      * @todo H-3398 fix Glide grid editor overlays when body isn't fullscreened.
@@ -413,10 +431,20 @@ export const Entity = ({
     !!document.fullscreenElement ||
     !!draftEntity?.metadata.archived ||
     !!proposedEntitySubgraph ||
-    (!draftLocalEntity &&
-      !queryEntitySubgraphData?.queryEntitySubgraph.entityPermissions?.[
-        entityId
-      ]?.update);
+    (!draftLocalEntity && !canEditLinks);
+
+  /**
+   * Self-fetch links from within the link tables only when the user genuinely
+   * cannot edit links (no `update` permission), never merely because the view
+   * is readonly-for-display (fullscreen/archived). This is the exact complement
+   * of `includeLinkDataInQuery`'s permission gate, so the main query and the
+   * link tables can never both fetch the link data.
+   *
+   * While permission is still loading (`canEditLinks` false, but
+   * `includeLinkDataInQuery` also still false) the link tables self-fetch, which
+   * is the safe path that avoids double-fetching.
+   */
+  const selfFetchLinks = !canEditLinks && !proposedEntitySubgraph;
 
   const entityFromDb = useMemo(
     () => (dataFromDb ? getRoots(dataFromDb.entitySubgraph)[0] : null),
@@ -590,7 +618,7 @@ export const Entity = ({
       {isQueryEntity && shouldShowQueryEditor ? (
         <QueryEditor
           {...draftEntityTypesDetails}
-          selfFetchLinks={isReadOnly && !proposedEntitySubgraph}
+          selfFetchLinks={selfFetchLinks}
           draftLinksToCreate={draftLinksToCreate}
           draftLinksToArchive={draftLinksToArchive}
           entityLabel={entityLabel}
@@ -715,7 +743,7 @@ export const Entity = ({
             <EntityEditor
               defaultOutgoingLinkFilters={defaultOutgoingLinkFilters}
               {...draftEntityTypesDetails}
-              selfFetchLinks={isReadOnly && !proposedEntitySubgraph}
+              selfFetchLinks={selfFetchLinks}
               draftLinksToCreate={draftLinksToCreate}
               draftLinksToArchive={draftLinksToArchive}
               entityLabel={entityLabel}

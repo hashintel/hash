@@ -5,7 +5,7 @@ import {
   getIncomingLinkAndSourceEntities,
   getLeftEntityForLinkEntity,
 } from "@blockprotocol/graph/stdlib";
-import { Chip } from "@hashintel/design-system";
+import { Callout, Chip } from "@hashintel/design-system";
 import { noisySystemTypeIds } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
@@ -98,6 +98,7 @@ export const IncomingLinksSection = ({
     loadMore,
     hasMore,
     count: fetchedCount,
+    error,
     linkEntities,
     subgraph: fetchedSubgraph,
     linkAndDestinationEntitiesClosedMultiEntityTypesMap: fetchedTypesMap,
@@ -108,6 +109,95 @@ export const IncomingLinksSection = ({
     skip: !selfFetchLinks,
     sortingPaths,
   });
+
+  /**
+   * The links/sources passed to the readonly table. In the self-fetch path the
+   * source entities come from the merged multi-page subgraph; in the editor path
+   * they come from the editor subgraph. Memoised so the new array identity does
+   * not defeat the `memo()`-wrapped table on every parent render.
+   */
+  const incomingLinksAndSources = useMemo<LinkEntityAndLeftEntity[]>(() => {
+    if (selfFetchLinks) {
+      if (!linkEntities || !fetchedSubgraph) {
+        return [];
+      }
+
+      return linkEntities
+        .map((linkEntity) => {
+          let leftEntity: LinkEntityAndLeftEntity["leftEntity"];
+          try {
+            leftEntity =
+              getLeftEntityForLinkEntity(
+                fetchedSubgraph,
+                linkEntity.metadata.recordId.entityId,
+              ) ?? [];
+          } catch {
+            /**
+             * `getLeftEntityForLinkEntity` throws if no source revision overlaps
+             * the resolved instant of the merged multi-page subgraph; treat that
+             * as a missing endpoint so the link is filtered out below rather than
+             * crashing the table.
+             */
+            leftEntity = [];
+          }
+
+          return { linkEntity: [linkEntity], leftEntity };
+        })
+        .filter(
+          /**
+           * Drop links whose source entity is missing, mirroring the guard the
+           * editor path applies, so no row with an empty endpoint reaches the
+           * table (which would throw when building rows).
+           */
+          (incomingLinkAndSource) => !!incomingLinkAndSource.leftEntity[0],
+        );
+    }
+
+    return getIncomingLinkAndSourceEntities(
+      editorSubgraph,
+      entity.metadata.recordId.entityId,
+      entity.metadata.temporalVersioning[
+        editorSubgraph.temporalAxes.resolved.variable.axis
+      ],
+    ).filter((incomingLinkAndSource) => {
+      return (
+        incomingLinkAndSource.linkEntity[0] &&
+        !draftLinksToArchive.includes(
+          incomingLinkAndSource.linkEntity[0].entityId,
+        ) &&
+        !incomingLinkAndSource.linkEntity[0].metadata.entityTypeIds.some(
+          (typeId) => noisySystemTypeIds.includes(typeId as NoisySystemTypeId),
+        ) &&
+        incomingLinkAndSource.leftEntity[0] &&
+        !incomingLinkAndSource.leftEntity[0].metadata.entityTypeIds.includes(
+          systemEntityTypes.claim.entityTypeId,
+        )
+      );
+    });
+  }, [
+    selfFetchLinks,
+    linkEntities,
+    fetchedSubgraph,
+    editorSubgraph,
+    entity,
+    draftLinksToArchive,
+  ]);
+
+  if (selfFetchLinks && error) {
+    /**
+     * In the self-fetch path the query errors are surfaced here (the editor
+     * path's errors are handled by the parent query). Without this, a failed
+     * query would fall through to the empty state, making it look like the
+     * entity simply has no links.
+     */
+    return (
+      <SectionWrapper title="Incoming Links">
+        <Callout type="error">
+          Could not load incoming links. Please try again later.
+        </Callout>
+      </SectionWrapper>
+    );
+  }
 
   if (
     selfFetchLinks &&
@@ -129,38 +219,6 @@ export const IncomingLinksSection = ({
   const closedMultiEntityTypesDefinitions = selfFetchLinks
     ? fetchedDefinitions!
     : editorDefinitions;
-
-  const incomingLinksAndSources: LinkEntityAndLeftEntity[] = selfFetchLinks
-    ? linkEntities!.map((linkEntity) => ({
-        linkEntity: [linkEntity],
-        leftEntity:
-          getLeftEntityForLinkEntity(
-            entitySubgraph,
-            linkEntity.metadata.recordId.entityId,
-          ) ?? [],
-      }))
-    : getIncomingLinkAndSourceEntities(
-        entitySubgraph,
-        entity.metadata.recordId.entityId,
-        entity.metadata.temporalVersioning[
-          entitySubgraph.temporalAxes.resolved.variable.axis
-        ],
-      ).filter((incomingLinkAndSource) => {
-        return (
-          incomingLinkAndSource.linkEntity[0] &&
-          !draftLinksToArchive.includes(
-            incomingLinkAndSource.linkEntity[0].entityId,
-          ) &&
-          !incomingLinkAndSource.linkEntity[0].metadata.entityTypeIds.some(
-            (typeId) =>
-              noisySystemTypeIds.includes(typeId as NoisySystemTypeId),
-          ) &&
-          incomingLinkAndSource.leftEntity[0] &&
-          !incomingLinkAndSource.leftEntity[0].metadata.entityTypeIds.includes(
-            systemEntityTypes.claim.entityTypeId,
-          )
-        );
-      });
 
   const linkCount = selfFetchLinks
     ? (fetchedCount ?? incomingLinksAndSources.length)
