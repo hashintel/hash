@@ -508,8 +508,14 @@ export const Entity = ({
    * While permission is still loading (`canEditLinks` false, but
    * `includeLinkDataInQuery` also still false) the link tables self-fetch, which
    * is the safe path that avoids double-fetching.
+   *
+   * A local draft is excluded: it is editable but not yet persisted, so there
+   * are no stored links to paginate. Its links live in the in-memory draft and
+   * must be shown in the editable Glide link-editing grid, not the readonly
+   * paginated table path.
    */
-  const selfFetchLinks = !canEditLinks && !proposedEntitySubgraph;
+  const selfFetchLinks =
+    !canEditLinks && !proposedEntitySubgraph && !draftLocalEntity;
 
   const entityFromDb = useMemo(
     () => (dataFromDb ? getRoots(dataFromDb.entitySubgraph)[0] : null),
