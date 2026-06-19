@@ -1,7 +1,6 @@
 #![expect(clippy::significant_drop_tightening)]
 
-use core::hint::black_box;
-use std::time::Duration;
+use core::{hint::black_box, time::Duration};
 
 use codspeed_criterion_compat::{
     BatchSize, Criterion, criterion_group, criterion_main, measurement::Measurement,

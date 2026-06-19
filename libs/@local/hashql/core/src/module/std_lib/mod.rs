@@ -2,16 +2,19 @@ pub mod core;
 pub mod graph;
 mod kernel;
 
-use ::core::{iter, num::NonZero};
+use std::alloc::Allocator;
+
+use ::core::{iter, mem::MaybeUninit, num::NonZero};
 
 use super::{ModuleId, ModuleRegistry, item::IntrinsicItem, locals::TypeDef};
 use crate::{
     collections::SmallVec,
+    id::{Id, bit_vec::DenseBitSet},
     module::{
         PartialModule,
         item::{ConstructorItem, Item, ItemKind},
     },
-    symbol::Symbol,
+    symbol::{Symbol, sym::newtype},
     r#type::{
         TypeBuilder, TypeId,
         environment::{Environment, instantiate::InstantiateEnvironment},
@@ -73,12 +76,11 @@ impl<'heap> ModuleEntry<'heap> {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-struct ModuleDef<'heap>(SmallVec<ModuleEntry<'heap>>);
+struct ModuleDef<'heap, S: Allocator>(Vec<ModuleEntry<'heap>, S>);
 
-impl<'heap> ModuleDef<'heap> {
-    const fn new() -> Self {
-        Self(SmallVec::new())
+impl<'heap, S: Allocator> ModuleDef<'heap, S> {
+    const fn new_in(alloc: S) -> Self {
+        Self(Vec::new_in(alloc))
     }
 
     fn push(&mut self, name: Symbol<'heap>, def: ItemDef<'heap>) -> usize {
@@ -136,11 +138,95 @@ impl<'heap> ModuleDef<'heap> {
     }
 }
 
-pub(super) struct StandardLibrary<'env, 'heap> {
+hashql_macros::define_id! {
+    #[id(crate = crate)]
+    struct CacheId(u8 is 0..=u8::MAX)
+}
+
+struct ModuleCache<'heap, S: Allocator> {
+    entries: Option<Box<[MaybeUninit<ModuleDef<'heap, S>>], S>>,
+    occupied: DenseBitSet<CacheId>,
+}
+
+#[expect(unsafe_code)]
+impl<'heap, S: Allocator> ModuleCache<'heap, S> {
+    fn new(length: usize, alloc: S) -> Self {
+        Self {
+            entries: Some(Box::new_uninit_slice_in(length, alloc)),
+            occupied: DenseBitSet::new_empty(length),
+        }
+    }
+
+    fn take(&mut self) -> Option<Box<[ModuleDef<'heap, S>], S>> {
+        let Some(entries) = self.entries.take() else {
+            panic!("cache has not been initialized")
+        };
+
+        if self.occupied.count() != entries.len() {
+            self.entries = Some(entries);
+            return None;
+        }
+
+        // SAFETY: we know the entry is initialized because we checked `occupied` above
+        Some(unsafe { entries.assume_init() })
+    }
+
+    fn insert(&mut self, id: CacheId, module: ModuleDef<'heap, S>) -> bool {
+        let Some(entries) = &mut self.entries else {
+            panic!("cache has not been initialized")
+        };
+
+        if self.occupied.contains(id) {
+            return false;
+        }
+
+        entries[id.as_usize()].write(module);
+
+        // We only insert AFTER the entry has been initialized because otherwise we could drop a
+        // value on panic that hasn't been initialized.
+        self.occupied.insert(id);
+        true
+    }
+
+    fn get(&self, id: CacheId) -> Option<&ModuleDef<'heap, S>> {
+        let Some(entries) = &self.entries else {
+            return None;
+        };
+
+        if !self.occupied.contains(id) {
+            return None;
+        }
+
+        // SAFETY: we know the entry is initialized because we checked `occupied` above
+        Some(unsafe { entries[id.as_usize()].assume_init_ref() })
+    }
+}
+
+#[expect(unsafe_code)]
+impl<'heap, S: Allocator> Drop for ModuleCache<'heap, S> {
+    fn drop(&mut self) {
+        let Some(mut entries) = self.entries.take() else {
+            // entries have already been taken from the cache
+            return;
+        };
+
+        if self.occupied.count() == entries.len() {
+            // SAFETY: all the elements have been initialized
+            unsafe { entries.assume_init_drop() };
+        } else {
+            for index in &self.occupied {
+                // SAFETY: the element has been initialized by the cache
+                unsafe { entries[index.as_usize()].assume_init_drop() };
+            }
+        }
+    }
+}
+
+pub(super) struct StandardLibrary<'env, 'heap, S: Allocator> {
     instantiate: InstantiateEnvironment<'env, 'heap>,
     registry: &'env ModuleRegistry<'heap>,
     ty: TypeBuilder<'env, 'heap>,
-    modules: SmallVec<(::core::any::TypeId, ModuleDef<'heap>)>,
+    modules: ModuleCache<'heap, S>,
 }
 
 impl<'env, 'heap> StandardLibrary<'env, 'heap> {
