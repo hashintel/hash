@@ -30,6 +30,7 @@ use crate::{
         },
     },
     def::{DefId, DefIdSlice},
+    intrinsic::Intrinsic,
 };
 
 const fn source_keyword(source: Source<'_>) -> &'static str {
@@ -485,8 +486,8 @@ where
             Source::Closure(id, binder) => named_symbol("closure", id, binder),
             Source::GraphReadFilter(id) => named_symbol("graph::read::filter", id, None),
             Source::Thunk(id, binder) => named_symbol("thunk", id, binder),
-            Source::Intrinsic(def_id) => {
-                write!(self.line_buffer, "{{intrinsic#{def_id}}}")
+            Source::Intrinsic(Intrinsic { id, .. }) => {
+                write!(self.line_buffer, "{{intrinsic#{id}}}")
             }
         }
     }
