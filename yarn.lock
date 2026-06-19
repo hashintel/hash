@@ -385,7 +385,7 @@ __metadata:
     "@aws-sdk/credential-providers": "npm:3.1055.0"
     "@blockprotocol/graph": "workspace:*"
     "@blockprotocol/type-system": "workspace:*"
-    "@google-cloud/storage": "npm:7.19.0"
+    "@google-cloud/storage": "npm:7.21.0"
     "@google/genai": "npm:2.6.0"
     "@llamaindex/readers": "npm:3.1.21"
     "@local/advanced-types": "workspace:*"
@@ -503,7 +503,7 @@ __metadata:
     "@ory/kratos-client": "npm:25.4.0"
     "@rudderstack/rudder-sdk-node": "npm:3.0.8"
     "@sentry/node": "npm:10.54.0"
-    "@snowplow/node-tracker": "npm:4.6.8"
+    "@snowplow/node-tracker": "npm:4.8.2"
     "@temporalio/client": "npm:1.12.1"
     "@temporalio/proto": "npm:1.12.1"
     "@types/app-root-path": "npm:3.1.0"
@@ -5729,9 +5729,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@google-cloud/storage@npm:7.19.0":
-  version: 7.19.0
-  resolution: "@google-cloud/storage@npm:7.19.0"
+"@google-cloud/storage@npm:7.21.0":
+  version: 7.21.0
+  resolution: "@google-cloud/storage@npm:7.21.0"
   dependencies:
     "@google-cloud/paginator": "npm:^5.0.0"
     "@google-cloud/projectify": "npm:^4.0.0"
@@ -5747,8 +5747,7 @@ __metadata:
     p-limit: "npm:^3.0.1"
     retry-request: "npm:^7.0.0"
     teeny-request: "npm:^9.0.0"
-    uuid: "npm:^8.0.0"
-  checksum: 10c0/2951e4a0b3c2f90c28917a9b313a981722a9e5648ca2b6d04f384f816e9107e1637b00c32c5e71ed8d25c7e1840898b616f015b29c2cc1d8d8a22c8630778d8c
+  checksum: 10c0/07cffff2467575a56594ceb6534253d1dd653de2f093fb5c4e5efa52586351afdcecca3d95ea9617a243b3cbf2cae0cfc7f5448473fad8ba8f7425a291c76cb2
   languageName: node
   linkType: hard
 
@@ -14790,23 +14789,23 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@snowplow/node-tracker@npm:4.6.8":
-  version: 4.6.8
-  resolution: "@snowplow/node-tracker@npm:4.6.8"
+"@snowplow/node-tracker@npm:4.8.2":
+  version: 4.8.2
+  resolution: "@snowplow/node-tracker@npm:4.8.2"
   dependencies:
-    "@snowplow/tracker-core": "npm:4.6.8"
+    "@snowplow/tracker-core": "npm:4.8.2"
     tslib: "npm:^2.3.1"
-  checksum: 10c0/3488e1251ede9c432fee561814eaf93f9afcf0c7e0bf4ca05e33b51a41a033e850926cf6f0d0f8a876d7ba179b055de7a1fe572f8d56d7667260aa2e4be0d995
+  checksum: 10c0/8a7538ce8f4b0cfd2b2a2c8e8dd6a6a5c69273ac698a4a8a387ec2bb4f623b2e2f6b0e983bd69ba85bb92ef3c7987ce87b3dd6066620a311f01973a079da7950
   languageName: node
   linkType: hard
 
-"@snowplow/tracker-core@npm:4.6.8":
-  version: 4.6.8
-  resolution: "@snowplow/tracker-core@npm:4.6.8"
+"@snowplow/tracker-core@npm:4.8.2":
+  version: 4.8.2
+  resolution: "@snowplow/tracker-core@npm:4.8.2"
   dependencies:
     tslib: "npm:^2.3.1"
     uuid: "npm:^10.0.0"
-  checksum: 10c0/7f5248a37a5fedf4f7b1c25c08ac564c2d956d31ce68ee78de4844ecd39c2e009f4851ad34f4ed1da98f19b17064c709d1da5ce6fa73ec260cc5e6c3d04132ef
+  checksum: 10c0/2d77d04d8aaef85685459a663b4d82e9f6e27ae99e4a6b7c442afd2b97aa8688b2bcb6c646f00e681d6d2c848fe819c5e841e173d7ec1b48ace7b3427917d922
   languageName: node
   linkType: hard
 
@@ -41368,7 +41367,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"uuid@npm:^8.0.0, uuid@npm:^8.3.0, uuid@npm:^8.3.2":
+"uuid@npm:^8.3.0, uuid@npm:^8.3.2":
   version: 8.3.2
   resolution: "uuid@npm:8.3.2"
   bin:

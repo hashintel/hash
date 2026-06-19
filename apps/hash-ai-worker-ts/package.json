@@ -48,7 +48,7 @@
     "@aws-sdk/credential-providers": "3.1055.0",
     "@blockprotocol/graph": "workspace:*",
     "@blockprotocol/type-system": "workspace:*",
-    "@google-cloud/storage": "7.19.0",
+    "@google-cloud/storage": "7.21.0",
     "@google/genai": "2.6.0",
     "@llamaindex/readers": "3.1.21",
     "@local/advanced-types": "workspace:*",
