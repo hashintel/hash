@@ -25,7 +25,6 @@ use crate::{
     collections::{FastHashMap, fast_hash_map_in},
     heap::{BumpAllocator as _, Heap},
     id::{HasId, Id as _, IdSlice, IdVec, bit_vec::DenseBitSet, newtype},
-    intern::{Decompose, InternSet, Interned},
     symbol::Symbol,
     r#type::environment::Environment,
 };
@@ -40,8 +39,8 @@ impl ModuleId {
 }
 
 pub struct PartialModuleRegistry<'heap, S: Allocator> {
+    heap: &'heap Heap,
     modules: IdVec<ModuleId, Option<Module<'heap>>, S>,
-    items: InternSet<'heap, [Item<'heap>]>,
 
     root: FastHashMap<Symbol<'heap>, ModuleId, &'heap Heap>,
 }
@@ -49,8 +48,8 @@ pub struct PartialModuleRegistry<'heap, S: Allocator> {
 impl<'heap, S: Allocator> PartialModuleRegistry<'heap, S> {
     pub fn new_in(heap: &'heap Heap, scratch: S) -> Self {
         Self {
+            heap,
             modules: IdVec::new_in(scratch),
-            items: InternSet::new(heap),
             root: fast_hash_map_in(heap),
         }
     }
@@ -87,11 +86,6 @@ impl<'heap, S: Allocator> PartialModuleRegistry<'heap, S> {
 
         let value = self.modules.insert(module.id, module);
         debug_assert!(value.is_none());
-    }
-
-    /// Interns a slice of items into the registry.
-    pub fn intern_items(&self, items: &[Item<'heap>]) -> Interned<'heap, [Item<'heap>]> {
-        self.items.intern_slice(items)
     }
 
     /// Register a new module in the root namespace.
@@ -363,7 +357,7 @@ pub struct Module<'heap> {
     pub parent: ModuleId,
     pub depth: NonZero<u32>,
 
-    pub items: Interned<'heap, [Item<'heap>]>,
+    pub items: &'heap [Item<'heap>],
 }
 
 impl<'heap> Module<'heap> {
@@ -385,28 +379,6 @@ impl<'heap> Module<'heap> {
         }
 
         similarities
-    }
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct PartialModule<'heap> {
-    name: Symbol<'heap>,
-    parent: ModuleId,
-    depth: NonZero<u32>,
-    items: Interned<'heap, [Item<'heap>]>,
-}
-
-impl<'heap> Decompose<'heap> for Module<'heap> {
-    type Partial = PartialModule<'heap>;
-
-    fn from_parts(id: Self::Id, partial: Interned<'heap, Self::Partial>) -> Self {
-        Self {
-            id,
-            name: partial.name,
-            parent: partial.parent,
-            depth: partial.depth,
-            items: partial.items,
-        }
     }
 }
 

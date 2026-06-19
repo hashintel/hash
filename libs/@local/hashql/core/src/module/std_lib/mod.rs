@@ -6,6 +6,7 @@ use ::core::{alloc::Allocator, iter, mem, mem::MaybeUninit, num::NonZero};
 
 use super::{Module, ModuleId, PartialModuleRegistry, item::IntrinsicItem, locals::TypeDef};
 use crate::{
+    heap::BumpAllocator as _,
     id::{Id as _, bit_vec::FiniteBitSet},
     module::item::{ConstructorItem, Item, ItemKind},
     symbol::Symbol,
@@ -249,66 +250,76 @@ impl<'heap, S: Allocator> ModuleCache<'heap, S> {
         T: StandardLibraryModule<'heap>,
         S: Clone,
     {
-        let module = context.registry.provision_module();
-        let emitted = self.request::<T>(context).emitted_len;
-
-        let mut output =
-            Vec::with_capacity_in(emitted + T::Children::LENGTH, context.alloc.clone());
-
-        T::Children::names()
-            .into_iter()
-            .zip(T::Children::modules(
-                context,
-                self,
-                depth.saturating_add(1),
-                module,
-            ))
-            .map(|(name, child)| Item {
-                module,
-                name,
-                kind: ItemKind::Module(child),
-            })
-            .collect_into(&mut output);
+        let id = context.registry.provision_module();
 
         let def = self.request::<T>(context);
 
+        let heap = context.registry.heap;
+        let output = heap.allocate_slice_uninit(def.emitted_len + T::Children::LENGTH);
+
+        let mut cursor = 0;
         for &ModuleEntry { name, def } in &def.entries {
             match def {
                 ItemDef::Intrinsic(intrinsic) => {
-                    output.push(Item {
-                        module,
+                    output[cursor].write(Item {
+                        module: id,
                         name,
                         kind: ItemKind::Intrinsic(intrinsic),
                     });
+                    cursor += 1;
                 }
                 ItemDef::Type(typedef) => {
-                    output.push(Item {
-                        module,
+                    output[cursor].write(Item {
+                        module: id,
                         name,
                         kind: ItemKind::Type(typedef),
                     });
+                    cursor += 1;
                 }
                 ItemDef::Newtype(typedef) => {
-                    output.push(Item {
-                        module,
+                    output[cursor].write(Item {
+                        module: id,
                         name,
                         kind: ItemKind::Constructor(ConstructorItem { r#type: typedef }),
                     });
-                    output.push(Item {
-                        module,
+                    cursor += 1;
+
+                    output[cursor].write(Item {
+                        module: id,
                         name,
                         kind: ItemKind::Type(typedef),
                     });
+                    cursor += 1;
                 }
             }
         }
 
+        let remaining = &mut output[cursor..];
+        let (_, remaining) = remaining.write_iter(
+            T::Children::names()
+                .into_iter()
+                .zip(T::Children::modules(
+                    context,
+                    self,
+                    depth.saturating_add(1),
+                    id,
+                ))
+                .map(|(name, child)| Item {
+                    module: id,
+                    name,
+                    kind: ItemKind::Module(child),
+                }),
+        );
+
+        assert!(remaining.is_empty());
+
         let module = Module {
-            id: module,
+            id,
             name: T::name(),
             parent,
             depth,
-            items: context.registry.intern_items(&output),
+            // SAFETY: assertion ensures that the output buffer is fully initialized before reading.
+            items: unsafe { output.assume_init_ref() },
         };
 
         context.registry.insert_module(module);
