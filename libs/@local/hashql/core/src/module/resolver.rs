@@ -892,7 +892,7 @@ mod test {
 
         let mut builder = ModuleRegistry::builder(&env);
         builder.insert_root_module(heap.intern_symbol("empty_module"), |_| &[]);
-        let registry = builder.finish(&heap);
+        let registry = builder.finish();
 
         let resolver = Resolver {
             registry: &registry,

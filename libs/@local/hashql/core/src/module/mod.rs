@@ -137,13 +137,13 @@ impl<'heap, S: Allocator> PartialModuleRegistry<'heap, S> {
     ///
     /// [`insert_module`]: Self::insert_module
     #[expect(unsafe_code)]
-    pub fn finish(self, heap: &'heap Heap) -> ModuleRegistry<'heap> {
+    pub fn finish(self) -> ModuleRegistry<'heap> {
         assert!(
             self.modules.iter().all(Option::is_some),
             "all modules must be inserted to be able to finish the registry"
         );
 
-        let modules = heap.allocate_slice_uninit(self.modules.len());
+        let modules = self.heap.allocate_slice_uninit(self.modules.len());
         for (dst, src) in modules.iter_mut().zip(self.modules.iter()) {
             // SAFETY: We have just verified above that all modules are Some
             unsafe {
@@ -156,7 +156,7 @@ impl<'heap, S: Allocator> PartialModuleRegistry<'heap, S> {
         let modules = unsafe { modules.assume_init_ref() };
 
         ModuleRegistry {
-            heap,
+            heap: self.heap,
             modules: IdSlice::from_raw(modules),
             root: self.root,
         }
@@ -194,7 +194,7 @@ impl<'heap> ModuleRegistry<'heap> {
         let mut std = StandardLibrary::new(env, &mut partial, scratch);
         std.register();
 
-        partial.finish(env.heap)
+        partial.finish()
     }
 
     /// Looks up a root-level module by name.
@@ -322,10 +322,6 @@ impl<'heap> ModuleRegistry<'heap> {
     /// This method requires allocation for the traversal state:
     /// - A vector for the module exploration stack
     /// - A hash set for tracking visited modules
-    ///
-    /// # Panics
-    ///
-    /// This function will panic if the internal `RwLock` is poisoned.
     #[must_use]
     pub fn search_by_name(
         &self,
