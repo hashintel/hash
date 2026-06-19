@@ -689,7 +689,7 @@ mod tests {
                 })),
             }])
         });
-        let registry = builder.finish(&heap);
+        let registry = builder.finish();
 
         let mut namespace = ModuleNamespace::new(&registry);
         namespace.import_prelude();
@@ -959,7 +959,7 @@ mod tests {
                 })),
             }])
         });
-        let registry = builder.finish(&heap);
+        let registry = builder.finish();
 
         let mut namespace = ModuleNamespace::new(&registry);
         namespace.import_prelude();
