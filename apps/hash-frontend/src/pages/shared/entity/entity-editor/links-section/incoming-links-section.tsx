@@ -205,7 +205,6 @@ export const IncomingLinksSection = ({
           setSort={selfFetchLinks ? setSort : undefined}
           slideContainerRef={slideContainerRef}
           sort={selfFetchLinks ? sort : undefined}
-          totalLinkCount={selfFetchLinks ? fetchedCount : undefined}
         />
       ) : (
         <LinksSectionEmptyState direction="Incoming" />

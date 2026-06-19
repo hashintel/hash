@@ -32,7 +32,7 @@ import type {
 /**
  * The number of links fetched per page for the readonly link tables.
  */
-export const linksTablePageSize = 200;
+export const linksTablePageSize = 100;
 
 type LinksSubgraph = Subgraph<EntityRootType<HashEntity>>;
 
