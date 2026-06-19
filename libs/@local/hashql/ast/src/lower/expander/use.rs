@@ -155,7 +155,7 @@ where
 
     if let Some(UseKind::Named(bindings)) = &mut imports {
         let diagnostics = &mut expander.diagnostics;
-        expander.scratch.scoped(|scratch| {
+        expander.scratch.scoped_mut(|scratch| {
             let mut seen = fast_hash_map_with_capacity_in(bindings.len(), scratch);
 
             bindings.retain(|binding| {
