@@ -299,8 +299,13 @@ impl BumpAllocator for Heap {
     type Scoped<'scope> = AllocatorScope<'scope>;
 
     #[inline]
-    fn scoped<T>(&mut self, func: impl FnOnce(Self::Scoped<'_>) -> T) -> T {
-        self.inner.scoped(func)
+    fn scoped_mut<T>(&mut self, func: impl FnOnce(&mut Self::Scoped<'_>) -> T) -> T {
+        self.inner.scoped_mut(func)
+    }
+
+    #[inline]
+    fn scoped_ref<T>(&self, func: impl FnOnce(&mut Self::Scoped<'_>) -> T) -> T {
+        self.inner.scoped_ref(func)
     }
 
     #[inline]
