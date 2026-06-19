@@ -722,8 +722,7 @@ export const OutgoingLinksTable = memo(
       () =>
         onEndReached
           ? ({ endIndex }: ListRange) => {
-              // Load the next page once the loaded rows scroll into view,
-              // before the placeholder rows are reached.
+              // Load the next page once the loaded rows scroll into view
               if (
                 canLoadMoreRef.current &&
                 !loadingMore &&
@@ -762,7 +761,6 @@ export const OutgoingLinksTable = memo(
           createRowContent={createRowContent}
           filterDefinitions={serverSideSorting ? undefined : filterDefinitions}
           filterValues={serverSideSorting ? undefined : filterValues}
-          fixedItemHeight={linksTableRowHeight}
           followOutput={false}
           loadingMore={loadingMore}
           onIsScrolling={handleIsScrolling}
