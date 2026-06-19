@@ -289,6 +289,27 @@ export const Entity = ({
   });
   draftStateRef.current = { isDirty, draftLinksToCreate, draftLinksToArchive };
 
+  /**
+   * When `entityId` changes without the component unmounting (e.g. navigating
+   * between entities within a slide), the per-entity load state above must be
+   * reset so the new entity goes through the same first-load flow: fetch
+   * link-less, then upgrade `includeLinkDataInQuery` based on its own
+   * permissions. Without this, a previously-loaded readonly entity would leave
+   * `includeLinkDataInQuery` false while `selfFetchLinks` is also false for the
+   * new (editable) entity, so its links would never load.
+   *
+   * We adjust the state during render (rather than in an effect) so the query
+   * below reads the reset `includeLinkDataInQuery` immediately, instead of
+   * firing once with the stale value.
+   */
+  const previousEntityIdRef = useRef(entityId);
+  if (previousEntityIdRef.current !== entityId) {
+    previousEntityIdRef.current = entityId;
+    hasCompletedInitialLoadRef.current = false;
+    awaitingLinkDataUpgradeRef.current = false;
+    setIncludeLinkDataInQuery(false);
+  }
+
   const { data: queryEntitySubgraphData, refetch } = useQuery<
     QueryEntitySubgraphQuery,
     QueryEntitySubgraphQueryVariables
