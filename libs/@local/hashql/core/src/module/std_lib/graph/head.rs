@@ -24,7 +24,6 @@ impl<'heap> StandardLibraryModule<'heap> for Head {
 
     fn define(lib: &mut StandardLibrary<'_, 'heap>) -> ModuleDef<'heap> {
         let mut def = ModuleDef::new();
-        let heap = lib.heap;
 
         let query_temporal_axes_ty = lib
             .manifest::<std_lib::graph::temporal::Temporal>()
@@ -32,12 +31,12 @@ impl<'heap> StandardLibraryModule<'heap> for Head {
 
         let mut graph_ty = lib
             .manifest::<std_lib::graph::Graph>()
-            .expect_type(heap.intern_symbol("Graph"));
+            .expect_type(sym::Graph);
         graph_ty.instantiate(&mut lib.instantiate);
 
         let mut entity = lib
             .manifest::<std_lib::graph::types::knowledge::entity::Entity>()
-            .expect_newtype(heap.intern_symbol("Entity"));
+            .expect_newtype(sym::Entity);
         entity.instantiate(&mut lib.instantiate);
 
         // ::graph::head::entities(axis: TimeAxis) -> Graph<Entity<?>>;

@@ -7,7 +7,6 @@ use ::core::{iter, num::NonZero};
 use super::{ModuleId, ModuleRegistry, item::IntrinsicItem, locals::TypeDef};
 use crate::{
     collections::SmallVec,
-    heap::Heap,
     module::{
         PartialModule,
         item::{ConstructorItem, Item, ItemKind},
@@ -138,7 +137,6 @@ impl<'heap> ModuleDef<'heap> {
 }
 
 pub(super) struct StandardLibrary<'env, 'heap> {
-    heap: &'heap Heap,
     instantiate: InstantiateEnvironment<'env, 'heap>,
     registry: &'env ModuleRegistry<'heap>,
     ty: TypeBuilder<'env, 'heap>,
@@ -151,7 +149,6 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
         registry: &'env ModuleRegistry<'heap>,
     ) -> Self {
         Self {
-            heap: environment.heap,
             instantiate: InstantiateEnvironment::new(environment),
             registry,
             ty: TypeBuilder::synthetic(environment),

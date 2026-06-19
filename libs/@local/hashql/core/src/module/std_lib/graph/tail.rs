@@ -20,11 +20,10 @@ impl<'heap> StandardLibraryModule<'heap> for Tail {
 
     fn define(lib: &mut StandardLibrary<'_, 'heap>) -> ModuleDef<'heap> {
         let mut def = ModuleDef::new();
-        let heap = lib.heap;
 
         let graph = lib.manifest::<std_lib::graph::Graph>();
 
-        let mut graph_ty = graph.expect_type(heap.intern_symbol("Graph"));
+        let mut graph_ty = graph.expect_type(sym::Graph);
         graph_ty.instantiate(&mut lib.instantiate);
 
         // `collect<T>(graph: Graph<T>) -> List<T>;`
