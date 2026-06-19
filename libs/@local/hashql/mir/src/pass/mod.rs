@@ -43,6 +43,8 @@ use crate::{
 
 pub mod analysis;
 pub mod execution;
+#[cfg(test)]
+mod tests;
 pub mod transform;
 
 /// Extracts the simple type name from a fully qualified type path.
@@ -575,27 +577,4 @@ pub fn place<'heap>(
 
     let issues = mem::take(&mut context.diagnostics);
     issues.into_status(residual)
-}
-
-#[cfg(test)]
-mod tests {
-    use super::Changed;
-
-    #[test]
-    fn changed_bitor() {
-        for (lhs, rhs, expected) in [
-            (Changed::No, Changed::No, Changed::No),
-            (Changed::No, Changed::Yes, Changed::Yes),
-            (Changed::No, Changed::Unknown, Changed::Unknown),
-            (Changed::Yes, Changed::No, Changed::Yes),
-            (Changed::Yes, Changed::Yes, Changed::Yes),
-            (Changed::Yes, Changed::Unknown, Changed::Yes),
-            (Changed::Unknown, Changed::No, Changed::Unknown),
-            (Changed::Unknown, Changed::Yes, Changed::Yes),
-            (Changed::Unknown, Changed::Unknown, Changed::Unknown),
-        ] {
-            let result = lhs | rhs;
-            assert_eq!(result, expected);
-        }
-    }
 }

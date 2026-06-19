@@ -17,7 +17,7 @@ use self::{
     basic_blocks::BasicBlocks,
     local::{LocalDecl, LocalVec},
 };
-use crate::{def::DefId, intrinsic::IntrinsicId};
+use crate::{def::DefId, intrinsic::Intrinsic};
 
 pub mod basic_block;
 pub mod basic_blocks;
@@ -76,7 +76,7 @@ pub enum Source<'heap> {
     ///
     /// The body of an intrinsic function is typically empty, as the intrinsic
     /// operation is handled directly by the compiler or runtime.
-    Intrinsic(IntrinsicId),
+    Intrinsic(Intrinsic),
 
     /// A filter closure for graph read operations.
     ///
