@@ -49,11 +49,15 @@ export const useRows = ({
   setDraftLinksToArchive,
   setDraftLinksToCreate,
 }: UseRowsParams) => {
-  const markLinkEntityToArchive = createMarkLinkEntityToArchive({
-    draftLinksToCreate,
-    setDraftLinksToCreate,
-    setDraftLinksToArchive,
-  });
+  const markLinkEntityToArchive = useMemo(
+    () =>
+      createMarkLinkEntityToArchive({
+        draftLinksToCreate,
+        setDraftLinksToCreate,
+        setDraftLinksToArchive,
+      }),
+    [draftLinksToCreate, setDraftLinksToCreate, setDraftLinksToArchive],
+  );
 
   const { isSpecialEntityTypeLookup } = useEntityTypesContextRequired();
 
