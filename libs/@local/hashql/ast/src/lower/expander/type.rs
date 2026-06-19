@@ -49,7 +49,7 @@ where
                     hashql_core::module::item::ItemKind::Intrinsic(IntrinsicItem::Type(type_intrinsic)),
             },
         has_arguments: _, // We don't care here, intrinsics never have arguments
-    }) = expander.with_universe(hashql_core::module::Universe::Type, |expander| {
+    }) = expander.with_universe(Universe::Type, |expander| {
         expander.visit(&mut call.function)
     })
     else {
@@ -68,7 +68,11 @@ where
     };
 
     let mut types = Vec::with_capacity_in(call.arguments.len(), expander.heap);
-    for argument in call.arguments {
+    for mut argument in call.arguments {
+        expander.with_universe(Universe::Type, |expander| {
+            expander.visit(&mut argument.value)
+        });
+
         types.push(lower_expr_to_type(expander, argument.value));
     }
 
@@ -389,9 +393,8 @@ where
             }
         },
         |expander, constraints| {
-            let item = expander.with_universe(hashql_core::module::Universe::Type, |expander| {
-                expander.visit(&mut value)
-            });
+            let item =
+                expander.with_universe(Universe::Type, |expander| expander.visit(&mut value));
 
             if let Some(CurrentItem {
                 item:

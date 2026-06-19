@@ -1,0 +1,29 @@
+Expr#4294967040@32
+  ExprKind (Type)
+    TypeExpr#4294967040@32 (name: Foo)
+      Type#4294967040@29
+        TypeKind (Union)
+          UnionType#4294967040@29
+            Type#4294967040@15
+              TypeKind (Path)
+                Path#4294967040@15 (rooted: true)
+                  PathSegment#4294967040@14 (name: kernel)
+                  PathSegment#4294967040@14 (name: type)
+                  PathSegment#4294967040@14 (name: Integer)
+            Type#4294967040@28
+              TypeKind (Union)
+                UnionType#4294967040@28
+                  Type#4294967040@23
+                    TypeKind (Path)
+                      Path#4294967040@23 (rooted: true)
+                        PathSegment#4294967040@22 (name: kernel)
+                        PathSegment#4294967040@22 (name: type)
+                        PathSegment#4294967040@22 (name: String)
+                  Type#4294967040@27
+                    TypeKind (Path)
+                      Path#4294967040@27 (rooted: true)
+                        PathSegment#4294967040@26 (name: kernel)
+                        PathSegment#4294967040@26 (name: type)
+                        PathSegment#4294967040@26 (name: Never)
+      Expr#4294967040@31
+        ExprKind (Underscore)
