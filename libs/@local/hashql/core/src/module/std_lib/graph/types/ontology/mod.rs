@@ -1,7 +1,8 @@
+use core::alloc::Allocator;
+
 use crate::{
-    module::{
-        StandardLibrary,
-        std_lib::{self, ItemDef, ModuleDef, StandardLibraryModule},
+    module::std_lib::{
+        self, ItemDef, ModuleCache, ModuleDef, StandardLibraryContext, StandardLibraryModule,
     },
     symbol::{Symbol, sym},
 };
@@ -69,30 +70,38 @@ impl<'heap> StandardLibraryModule<'heap> for Ontology {
         sym::ontology
     }
 
-    fn define(lib: &mut StandardLibrary<'_, 'heap>) -> ModuleDef<'heap> {
-        let mut def = ModuleDef::new();
+    fn define<S: Allocator + Clone>(
+        context: &mut StandardLibraryContext<'_, 'heap, S>,
+        cache: &mut ModuleCache<'heap, S>,
+    ) -> ModuleDef<'heap, S> {
+        let mut def = ModuleDef::new_in(context.alloc.clone());
 
         // newtype OntologyTypeVersion = String;
-        let ontology_type_version_ty = types::ontology_type_version(&lib.ty);
+        let ontology_type_version_ty = types::ontology_type_version(&context.ty);
         def.push(
             sym::OntologyTypeVersion,
-            ItemDef::newtype(lib.ty.env, ontology_type_version_ty, &[]),
+            ItemDef::newtype(context.ty.env, ontology_type_version_ty, &[]),
         );
 
-        let url_ty = lib
-            .manifest::<std_lib::core::url::Url>()
+        let url_ty = cache
+            .request::<std_lib::core::url::Url>(context)
             .expect_newtype(sym::Url)
             .id;
 
         // TODO: consider making this constructor private via intrinsic (requires VM)
         // newtype BaseUrl = Url;
-        let base_url_ty =
-            types::base_url(&lib.ty, Some(types::BaseUrlDependencies { url: url_ty }));
-        def.push(sym::BaseUrl, ItemDef::newtype(lib.ty.env, base_url_ty, &[]));
+        let base_url_ty = types::base_url(
+            &context.ty,
+            Some(types::BaseUrlDependencies { url: url_ty }),
+        );
+        def.push(
+            sym::BaseUrl,
+            ItemDef::newtype(context.ty.env, base_url_ty, &[]),
+        );
 
         // newtype VersionedUrl = (base_url: BaseUrl, version: OntologyTypeVersion);
         let versioned_url_ty = types::versioned_url(
-            &lib.ty,
+            &context.ty,
             Some(types::VersionedUrlDependencies {
                 base_url: base_url_ty,
                 ontology_type_version: ontology_type_version_ty,
@@ -100,7 +109,7 @@ impl<'heap> StandardLibraryModule<'heap> for Ontology {
         );
         def.push(
             sym::VersionedUrl,
-            ItemDef::newtype(lib.ty.env, versioned_url_ty, &[]),
+            ItemDef::newtype(context.ty.env, versioned_url_ty, &[]),
         );
 
         def

@@ -1,7 +1,9 @@
+use core::alloc::Allocator;
+
 use crate::{
-    module::{
-        StandardLibrary,
-        std_lib::{self, ItemDef, ModuleDef, StandardLibraryModule, core::option::types::option},
+    module::std_lib::{
+        self, ItemDef, ModuleCache, ModuleDef, StandardLibraryContext, StandardLibraryModule,
+        core::option::types::option,
     },
     symbol::{Symbol, sym},
 };
@@ -20,36 +22,41 @@ impl<'heap> StandardLibraryModule<'heap> for EntityType {
         sym::entity_type
     }
 
-    fn define(lib: &mut StandardLibrary<'_, 'heap>) -> ModuleDef<'heap> {
-        let mut def = ModuleDef::new();
+    fn define<S: Allocator + Clone>(
+        context: &mut StandardLibraryContext<'_, 'heap, S>,
+        cache: &mut ModuleCache<'heap, S>,
+    ) -> ModuleDef<'heap, S> {
+        let mut def = ModuleDef::new_in(context.alloc.clone());
 
         // newtype EntityTypeMetadata = (web_id: Option<WebId>)
-        let web_id = lib
-            .manifest::<std_lib::graph::types::principal::actor_group::web::Web>()
+        let web_id = cache
+            .request::<std_lib::graph::types::principal::actor_group::web::Web>(context)
             .expect_newtype(sym::WebId);
-        let entity_type_metadata_ty = lib.ty.opaque(
+        let entity_type_metadata_ty = context.ty.opaque(
             sym::path::graph::types::ontology::entity_type::EntityTypeMetadata,
-            lib.ty.r#struct([(sym::web_id, option(&lib.ty, web_id.id))]),
+            context
+                .ty
+                .r#struct([(sym::web_id, option(&context.ty, web_id.id))]),
         );
         def.push(
             sym::EntityTypeMetadata,
-            ItemDef::newtype(lib.ty.env, entity_type_metadata_ty, &[]),
+            ItemDef::newtype(context.ty.env, entity_type_metadata_ty, &[]),
         );
 
         // newtype EntityType = (id: VersionedUrl, metadata: EntityTypeMetadata)
-        let versioned_url = lib
-            .manifest::<std_lib::graph::types::ontology::Ontology>()
+        let versioned_url = cache
+            .request::<std_lib::graph::types::ontology::Ontology>(context)
             .expect_newtype(sym::VersionedUrl);
-        let entity_id_ty = lib.ty.opaque(
+        let entity_id_ty = context.ty.opaque(
             sym::path::graph::types::ontology::entity_type::EntityType,
-            lib.ty.r#struct([
+            context.ty.r#struct([
                 (sym::id, versioned_url.id),
                 (sym::metadata, entity_type_metadata_ty),
             ]),
         );
         def.push(
             sym::EntityType,
-            ItemDef::newtype(lib.ty.env, entity_id_ty, &[]),
+            ItemDef::newtype(context.ty.env, entity_id_ty, &[]),
         );
 
         def

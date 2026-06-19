@@ -1,8 +1,10 @@
+use core::alloc::Allocator;
+
 use crate::{
     module::{
         item::IntrinsicValueItem,
         locals::TypeDef,
-        std_lib::{ItemDef, ModuleDef, StandardLibrary, StandardLibraryModule},
+        std_lib::{ItemDef, ModuleCache, ModuleDef, StandardLibraryContext, StandardLibraryModule},
     },
     symbol::{Symbol, sym},
 };
@@ -10,9 +12,9 @@ use crate::{
 pub(in crate::module::std_lib) struct SpecialForm;
 
 impl SpecialForm {
-    fn make<'heap>(
-        lib: &StandardLibrary<'_, 'heap>,
-        def: &mut ModuleDef<'heap>,
+    fn make<'heap, S: Allocator>(
+        context: &StandardLibraryContext<'_, 'heap, S>,
+        def: &mut ModuleDef<'heap, S>,
 
         path: Symbol<'heap>,
         names: impl IntoIterator<Item = Symbol<'heap>>,
@@ -20,8 +22,8 @@ impl SpecialForm {
         let value = IntrinsicValueItem {
             name: path,
             r#type: TypeDef {
-                id: lib.ty.never(),
-                arguments: lib.ty.env.intern_generic_argument_references(&[]),
+                id: context.ty.never(),
+                arguments: context.ty.env.intern_generic_argument_references(&[]),
             },
         };
 
@@ -36,25 +38,28 @@ impl<'heap> StandardLibraryModule<'heap> for SpecialForm {
         sym::special_form
     }
 
-    fn define(lib: &mut StandardLibrary<'_, 'heap>) -> ModuleDef<'heap> {
-        let mut def = ModuleDef::new();
+    fn define<S: Allocator + Clone>(
+        context: &mut StandardLibraryContext<'_, 'heap, S>,
+        _: &mut ModuleCache<'heap, S>,
+    ) -> ModuleDef<'heap, S> {
+        let mut def = ModuleDef::new_in(context.alloc.clone());
 
-        Self::make(lib, &mut def, sym::path::r#if, [sym::r#if]);
-        Self::make(lib, &mut def, sym::path::r#as, [sym::r#as]);
-        Self::make(lib, &mut def, sym::path::r#let, [sym::r#let]);
-        Self::make(lib, &mut def, sym::path::r#type, [sym::r#type]);
-        Self::make(lib, &mut def, sym::path::newtype, [sym::newtype]);
-        Self::make(lib, &mut def, sym::path::r#use, [sym::r#use]);
-        Self::make(lib, &mut def, sym::path::r#fn, [sym::r#fn]);
-        Self::make(lib, &mut def, sym::path::input, [sym::input]);
+        Self::make(context, &mut def, sym::path::r#if, [sym::r#if]);
+        Self::make(context, &mut def, sym::path::r#as, [sym::r#as]);
+        Self::make(context, &mut def, sym::path::r#let, [sym::r#let]);
+        Self::make(context, &mut def, sym::path::r#type, [sym::r#type]);
+        Self::make(context, &mut def, sym::path::newtype, [sym::newtype]);
+        Self::make(context, &mut def, sym::path::r#use, [sym::r#use]);
+        Self::make(context, &mut def, sym::path::r#fn, [sym::r#fn]);
+        Self::make(context, &mut def, sym::path::input, [sym::input]);
         Self::make(
-            lib,
+            context,
             &mut def,
             sym::path::access,
             [sym::access, sym::symbol::dot],
         );
         Self::make(
-            lib,
+            context,
             &mut def,
             sym::path::index,
             [sym::index, sym::symbol::brackets],

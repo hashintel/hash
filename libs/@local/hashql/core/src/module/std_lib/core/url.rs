@@ -1,5 +1,9 @@
+use core::alloc::Allocator;
+
 use crate::{
-    module::std_lib::{ItemDef, ModuleDef, StandardLibrary, StandardLibraryModule},
+    module::std_lib::{
+        ItemDef, ModuleCache, ModuleDef, StandardLibraryContext, StandardLibraryModule,
+    },
     symbol::{Symbol, sym},
 };
 
@@ -25,13 +29,16 @@ impl<'heap> StandardLibraryModule<'heap> for Url {
         sym::url
     }
 
-    fn define(lib: &mut StandardLibrary<'_, 'heap>) -> ModuleDef<'heap> {
-        let mut def = ModuleDef::new();
+    fn define<S: Allocator + Clone>(
+        context: &mut StandardLibraryContext<'_, 'heap, S>,
+        _: &mut ModuleCache<'heap, S>,
+    ) -> ModuleDef<'heap, S> {
+        let mut def = ModuleDef::new_in(context.alloc.clone());
 
         // TODO: consider making this constructor private via intrinsic (requires VM)
         // newtype Url = String;
-        let url_ty = types::url(&lib.ty);
-        def.push(sym::Url, ItemDef::newtype(lib.ty.env, url_ty, &[]));
+        let url_ty = types::url(&context.ty);
+        def.push(sym::Url, ItemDef::newtype(context.ty.env, url_ty, &[]));
 
         def
     }

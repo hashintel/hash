@@ -13,7 +13,10 @@ pub mod std_lib;
 pub mod universe;
 
 use core::{num::NonZero, slice};
-use std::sync::RwLock;
+use std::{
+    alloc::{Allocator, Global},
+    sync::RwLock,
+};
 
 use self::{
     error::{ResolutionError, ResolutionSuggestion},
@@ -73,7 +76,16 @@ impl<'heap> ModuleRegistry<'heap> {
     pub fn new(env: &Environment<'heap>) -> Self {
         let this = Self::empty(env.heap);
 
-        let mut std = StandardLibrary::new(env, &this);
+        let mut std = StandardLibrary::new(env, &this, Global);
+        std.register();
+
+        this
+    }
+
+    pub fn new_in<S: Allocator + Clone>(env: &Environment<'heap>, alloc: S) -> Self {
+        let this = Self::empty(env.heap);
+
+        let mut std = StandardLibrary::new(env, &this, alloc);
         std.register();
 
         this
