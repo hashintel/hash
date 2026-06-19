@@ -1,7 +1,10 @@
 import { produce } from "immer";
 import { useEffect, useMemo, useState } from "react";
 
-import { createJsonDocHandle } from "@hashintel/petrinaut-core";
+import {
+  createJsonDocHandle,
+  type PetrinautHandleCapabilities,
+} from "@hashintel/petrinaut-core";
 import {
   DefaultChatTransport,
   Petrinaut,
@@ -64,8 +67,16 @@ const createLocalStorageNetRecord = (params: {
   };
 };
 
+const DEMO_CAPABILITIES = {
+  disabledExtensions: ["subnets"],
+} satisfies PetrinautHandleCapabilities;
+
 const createHandle = (net: SDCPNInLocalStorage): PetrinautDocHandle =>
-  createJsonDocHandle({ id: net.id, initial: net.sdcpn });
+  createJsonDocHandle({
+    id: net.id,
+    initial: net.sdcpn,
+    capabilities: DEMO_CAPABILITIES,
+  });
 
 const petrinautAiChatTransport: PetrinautAiChatTransport =
   new DefaultChatTransport({

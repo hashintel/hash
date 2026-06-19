@@ -1,6 +1,9 @@
 import { useMemo, useState, useEffect } from "react";
 
-import { sirModel } from "@hashintel/petrinaut-core/examples";
+import {
+  sirModel,
+  hospitalNetworkSDCPN,
+} from "@hashintel/petrinaut-core/examples";
 
 import {
   createJsonDocHandle,
@@ -93,6 +96,14 @@ const colouredDynamicsCapabilities = {
 
 const stochasticTimingCapabilities = {
   disabledExtensions: ["colors", "dynamics", "parameters"],
+} satisfies PetrinautHandleCapabilities;
+
+const subnetsWithColorsCapabilities = {
+  disabledExtensions: [],
+} satisfies PetrinautHandleCapabilities;
+
+const subnetsWithoutColorsCapabilities = {
+  disabledExtensions: ["colors", "dynamics"],
 } satisfies PetrinautHandleCapabilities;
 
 const colouredTokenFlowNet: SDCPN = {
@@ -438,6 +449,28 @@ export const StochasticTimingOnly: Story = {
       capabilities={stochasticTimingCapabilities}
       initial={stochasticTimingNet}
       initialTitle="Stochastic timing"
+    />
+  ),
+};
+
+export const SubnetsWithColors: Story = {
+  name: "Subnets — with colours",
+  render: () => (
+    <HandleSpikeRender
+      capabilities={subnetsWithColorsCapabilities}
+      initial={hospitalNetworkSDCPN.petriNetDefinition}
+      initialTitle={hospitalNetworkSDCPN.title}
+    />
+  ),
+};
+
+export const SubnetsWithoutColors: Story = {
+  name: "Subnets — without colours",
+  render: () => (
+    <HandleSpikeRender
+      capabilities={subnetsWithoutColorsCapabilities}
+      initial={hospitalNetworkSDCPN.petriNetDefinition}
+      initialTitle={hospitalNetworkSDCPN.title}
     />
   ),
 };

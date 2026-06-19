@@ -7,6 +7,7 @@ export const PETRINAUT_EXTENSION_NAMES = [
   "stochasticity",
   "dynamics",
   "parameters",
+  "subnets",
 ] as const;
 
 export type PetrinautExtension = (typeof PETRINAUT_EXTENSION_NAMES)[number];
@@ -39,6 +40,7 @@ export const DEFAULT_PETRINAUT_EXTENSIONS: PetrinautExtensionSettings = {
   stochasticity: true,
   dynamics: true,
   parameters: true,
+  subnets: true,
 };
 
 export const resolvePetrinautHandleCapabilities = (
@@ -64,6 +66,7 @@ export const resolvePetrinautHandleCapabilities = (
       stochasticity: !disabled.has("stochasticity"),
       dynamics: !disabled.has("colors") && !disabled.has("dynamics"),
       parameters: !disabled.has("parameters"),
+      subnets: !disabled.has("subnets"),
     },
   };
 };
@@ -188,6 +191,9 @@ export const isSelectionTypeAvailableForExtensions = (
   }
   if (type === "parameter") {
     return extensions.parameters;
+  }
+  if (type === "componentInstance") {
+    return extensions.subnets;
   }
   return true;
 };
@@ -401,5 +407,11 @@ export const sanitizeSDCPNForExtensions = (
   };
 
   stripDisabledExtensionData(next, extensions);
+
+  if (!extensions.subnets) {
+    next.subnets = undefined;
+    next.componentInstances = undefined;
+  }
+
   return next;
 };

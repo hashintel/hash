@@ -14,6 +14,7 @@ const allEnabled: PetrinautExtensionSettings = {
   stochasticity: true,
   dynamics: true,
   parameters: true,
+  subnets: true,
 };
 
 const createSDCPN = (
@@ -139,6 +140,7 @@ describe("transition logic availability", () => {
         stochasticity: false,
         dynamics: false,
         parameters: true,
+        subnets: true,
       },
     );
 
@@ -184,6 +186,7 @@ describe("transition logic availability", () => {
       stochasticity: false,
       dynamics: false,
       parameters: false,
+      subnets: true,
     });
 
     expect(sanitized.places[0]!.colorId).toBeNull();

@@ -178,6 +178,7 @@ export const ToolbarModes: React.FC<ToolbarModesProps> = ({
   const isReadOnly = useIsReadOnly();
   const { activeSubnetId } = use(ActiveNetContext);
   const isRootNet = activeSubnetId === null;
+  const { extensions } = use(SDCPNContext);
 
   return (
     <>
@@ -218,7 +219,9 @@ export const ToolbarModes: React.FC<ToolbarModesProps> = ({
           >
             <Icon name="squarePlus" />
           </ToolbarButton>
-          {isRootNet && <ComponentDropdown editionMode={editionMode} />}
+          {isRootNet && extensions.subnets && (
+            <ComponentDropdown editionMode={editionMode} />
+          )}
         </>
       )}
     </>

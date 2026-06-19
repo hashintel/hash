@@ -124,6 +124,9 @@ export const LeftSideBar: React.FC = () => {
         if (subView.id === "parameters-list") {
           return extensions.parameters;
         }
+        if (subView.id === "nets-list") {
+          return extensions.subnets;
+        }
         return true;
       });
 

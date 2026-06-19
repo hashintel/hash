@@ -352,6 +352,7 @@ describe("checkSDCPN", () => {
         stochasticity: false,
         dynamics: true,
         parameters: true,
+        subnets: true,
       });
 
       expect(result.isValid).toBe(true);
@@ -380,6 +381,7 @@ describe("checkSDCPN", () => {
         stochasticity: false,
         dynamics: true,
         parameters: true,
+        subnets: true,
       });
 
       expect(result.isValid).toBe(false);
@@ -443,6 +445,7 @@ describe("checkSDCPN", () => {
         stochasticity: false,
         dynamics: true,
         parameters: true,
+        subnets: true,
       });
 
       expect(result.isValid).toBe(true);
@@ -473,6 +476,7 @@ describe("checkSDCPN", () => {
         stochasticity: false,
         dynamics: true,
         parameters: true,
+        subnets: true,
       });
 
       expect(result.isValid).toBe(false);
