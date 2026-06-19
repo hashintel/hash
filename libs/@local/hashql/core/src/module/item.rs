@@ -87,7 +87,7 @@ impl<'heap> Item<'heap> {
                 return None;
             }
 
-            let module = registry.modules.index(next);
+            let module = registry.modules[next];
             next = module.parent;
 
             Some(module)
@@ -95,6 +95,7 @@ impl<'heap> Item<'heap> {
     }
 
     // TODO: deprecate
+    #[must_use]
     pub fn absolute_path(
         &self,
         registry: &ModuleRegistry<'heap>,
@@ -108,6 +109,7 @@ impl<'heap> Item<'heap> {
             .chain(iter::once(self.name))
     }
 
+    #[must_use]
     pub fn absolute_path_rev(
         &self,
         registry: &ModuleRegistry<'heap>,

@@ -4,13 +4,10 @@ mod kernel;
 
 use ::core::{alloc::Allocator, iter, mem, mem::MaybeUninit, num::NonZero};
 
-use super::{ModuleId, ModuleRegistry, item::IntrinsicItem, locals::TypeDef};
+use super::{Module, ModuleId, PartialModuleRegistry, item::IntrinsicItem, locals::TypeDef};
 use crate::{
     id::{Id as _, bit_vec::FiniteBitSet},
-    module::{
-        PartialModule,
-        item::{ConstructorItem, Item, ItemKind},
-    },
+    module::item::{ConstructorItem, Item, ItemKind},
     symbol::Symbol,
     r#type::{
         TypeBuilder, TypeId,
@@ -147,7 +144,7 @@ impl<'heap, S: Allocator> ModuleDef<'heap, S> {
     }
 }
 
-impl<'heap> ItemDef<'heap> {
+impl ItemDef<'_> {
     /// Returns the number of items emitted when building this definition.
     ///
     /// `Newtype` emits both a constructor and a type; other variants emit one item.
@@ -199,7 +196,7 @@ enum CacheId {
 
 struct StandardLibraryContext<'env, 'heap, S: Allocator> {
     pub instantiate: InstantiateEnvironment<'env, 'heap>,
-    pub registry: &'env ModuleRegistry<'heap>,
+    pub registry: &'env mut PartialModuleRegistry<'heap, S>,
     pub ty: TypeBuilder<'env, 'heap>,
     pub alloc: S,
 }
@@ -215,10 +212,10 @@ struct ModuleCache<'heap, S: Allocator> {
 
 #[expect(unsafe_code)]
 impl<'heap, S: Allocator> ModuleCache<'heap, S> {
-    fn new_in(count: usize, alloc: S) -> Self {
+    fn new_in(count: u32, alloc: S) -> Self {
         Self {
-            entries: Box::new_uninit_slice_in(count, alloc),
-            occupied: FiniteBitSet::new_empty(count as u32),
+            entries: Box::new_uninit_slice_in(count as usize, alloc),
+            occupied: FiniteBitSet::new_empty(count),
         }
     }
 
@@ -252,63 +249,70 @@ impl<'heap, S: Allocator> ModuleCache<'heap, S> {
         T: StandardLibraryModule<'heap>,
         S: Clone,
     {
-        context.registry.intern_module(|id| {
-            let def = self.request::<T>(context);
-            let mut output =
-                Vec::with_capacity_in(def.emitted_len + T::Children::LENGTH, context.alloc.clone());
-            let module = id.value();
+        let module = context.registry.provision_module();
+        let emitted = self.request::<T>(context).emitted_len;
 
-            for &ModuleEntry { name, def } in &def.entries {
-                match def {
-                    ItemDef::Intrinsic(intrinsic) => {
-                        output.push(Item {
-                            module,
-                            name,
-                            kind: ItemKind::Intrinsic(intrinsic),
-                        });
-                    }
-                    ItemDef::Type(typedef) => {
-                        output.push(Item {
-                            module,
-                            name,
-                            kind: ItemKind::Type(typedef),
-                        });
-                    }
-                    ItemDef::Newtype(typedef) => {
-                        output.push(Item {
-                            module,
-                            name,
-                            kind: ItemKind::Constructor(ConstructorItem { r#type: typedef }),
-                        });
-                        output.push(Item {
-                            module,
-                            name,
-                            kind: ItemKind::Type(typedef),
-                        });
-                    }
+        let mut output =
+            Vec::with_capacity_in(emitted + T::Children::LENGTH, context.alloc.clone());
+
+        T::Children::names()
+            .into_iter()
+            .zip(T::Children::modules(
+                context,
+                self,
+                depth.saturating_add(1),
+                module,
+            ))
+            .map(|(name, child)| Item {
+                module,
+                name,
+                kind: ItemKind::Module(child),
+            })
+            .collect_into(&mut output);
+
+        let def = self.request::<T>(context);
+
+        for &ModuleEntry { name, def } in &def.entries {
+            match def {
+                ItemDef::Intrinsic(intrinsic) => {
+                    output.push(Item {
+                        module,
+                        name,
+                        kind: ItemKind::Intrinsic(intrinsic),
+                    });
+                }
+                ItemDef::Type(typedef) => {
+                    output.push(Item {
+                        module,
+                        name,
+                        kind: ItemKind::Type(typedef),
+                    });
+                }
+                ItemDef::Newtype(typedef) => {
+                    output.push(Item {
+                        module,
+                        name,
+                        kind: ItemKind::Constructor(ConstructorItem { r#type: typedef }),
+                    });
+                    output.push(Item {
+                        module,
+                        name,
+                        kind: ItemKind::Type(typedef),
+                    });
                 }
             }
+        }
 
-            // create all the child modules
-            let children_names = T::Children::names();
-            let children_modules =
-                T::Children::modules(context, self, depth.saturating_add(1), module);
+        let module = Module {
+            id: module,
+            name: T::name(),
+            parent,
+            depth,
+            items: context.registry.intern_items(&output),
+        };
 
-            for (name, child) in children_names.into_iter().zip(children_modules) {
-                output.push(Item {
-                    module,
-                    name,
-                    kind: ItemKind::Module(child),
-                });
-            }
-
-            PartialModule {
-                name: T::name(),
-                parent,
-                depth,
-                items: context.registry.intern_items(&output),
-            }
-        })
+        context.registry.insert_module(module);
+        module.id
     }
 }
 
@@ -331,7 +335,7 @@ pub(super) struct StandardLibrary<'env, 'heap, S: Allocator> {
 impl<'env, 'heap, S: Allocator> StandardLibrary<'env, 'heap, S> {
     pub(super) fn new(
         environment: &'env Environment<'heap>,
-        registry: &'env ModuleRegistry<'heap>,
+        registry: &'env mut PartialModuleRegistry<'heap, S>,
         alloc: S,
     ) -> Self {
         Self {
@@ -344,6 +348,10 @@ impl<'env, 'heap, S: Allocator> StandardLibrary<'env, 'heap, S> {
         }
     }
 
+    #[expect(
+        clippy::cast_possible_truncation,
+        reason = "module count is less than u32::MAX"
+    )]
     pub(super) fn register(&mut self)
     where
         S: Clone,
@@ -359,11 +367,19 @@ impl<'env, 'heap, S: Allocator> StandardLibrary<'env, 'heap, S> {
         );
 
         let alloc = self.context.alloc.clone();
-        let registry = self.context.registry;
 
-        let mut cache = ModuleCache::new_in(MODULE_COUNT, alloc);
-        for module in Root::modules(&mut self.context, &mut cache, ONE, ModuleId::ROOT) {
-            registry.register(module);
+        let mut cache = ModuleCache::new_in(MODULE_COUNT as u32, alloc);
+
+        let mut output = [ModuleId::ROOT; Root::LENGTH];
+        for (module, output) in Root::modules(&mut self.context, &mut cache, ONE, ModuleId::ROOT)
+            .into_iter()
+            .zip(&mut output)
+        {
+            *output = module;
+        }
+
+        for module in output {
+            self.context.registry.register(module);
         }
     }
 }
