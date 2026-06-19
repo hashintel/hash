@@ -4,7 +4,9 @@ use super::func;
 use crate::{
     module::{
         locals::TypeDef,
-        std_lib::{ModuleCache, ModuleDef, StandardLibraryContext, StandardLibraryModule, decl},
+        std_lib::{
+            CacheId, ModuleCache, ModuleDef, StandardLibraryContext, StandardLibraryModule, decl,
+        },
     },
     symbol::{Symbol, sym},
 };
@@ -15,6 +17,8 @@ pub(in crate::module::std_lib) struct Math {
 
 impl<'heap> StandardLibraryModule<'heap> for Math {
     type Children = ();
+
+    const CACHE_ID: CacheId = CacheId::CoreMath;
 
     fn name() -> Symbol<'heap> {
         sym::math

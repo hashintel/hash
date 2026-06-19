@@ -2,7 +2,8 @@ use core::alloc::Allocator;
 
 use crate::{
     module::std_lib::{
-        self, ItemDef, ModuleCache, ModuleDef, StandardLibraryContext, StandardLibraryModule,
+        self, CacheId, ItemDef, ModuleCache, ModuleDef, StandardLibraryContext,
+        StandardLibraryModule,
     },
     symbol::{Symbol, sym},
 };
@@ -39,6 +40,8 @@ pub(in crate::module::std_lib) struct Web {
 
 impl<'heap> StandardLibraryModule<'heap> for Web {
     type Children = ();
+
+    const CACHE_ID: CacheId = CacheId::GraphTypesPrincipalActorGroupWeb;
 
     fn name() -> Symbol<'heap> {
         sym::web

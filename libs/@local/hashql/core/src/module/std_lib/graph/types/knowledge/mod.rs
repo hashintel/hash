@@ -3,7 +3,9 @@ use core::alloc::Allocator;
 pub mod entity;
 
 use crate::{
-    module::std_lib::{ModuleCache, ModuleDef, StandardLibraryContext, StandardLibraryModule},
+    module::std_lib::{
+        CacheId, ModuleCache, ModuleDef, StandardLibraryContext, StandardLibraryModule,
+    },
     symbol::{Symbol, sym},
 };
 
@@ -11,6 +13,8 @@ pub(in crate::module::std_lib) struct Knowledge;
 
 impl<'heap> StandardLibraryModule<'heap> for Knowledge {
     type Children = (self::entity::Entity,);
+
+    const CACHE_ID: CacheId = CacheId::GraphTypesKnowledge;
 
     fn name() -> Symbol<'heap> {
         sym::knowledge

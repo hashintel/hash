@@ -2,7 +2,7 @@ use core::alloc::Allocator;
 
 use crate::{
     module::std_lib::{
-        ItemDef, ModuleCache, ModuleDef, StandardLibraryContext, StandardLibraryModule,
+        CacheId, ItemDef, ModuleCache, ModuleDef, StandardLibraryContext, StandardLibraryModule,
     },
     symbol::{Symbol, sym},
 };
@@ -29,6 +29,8 @@ pub(in crate::module::std_lib) struct Option {
 
 impl<'heap> StandardLibraryModule<'heap> for Option {
     type Children = ();
+
+    const CACHE_ID: CacheId = CacheId::CoreOption;
 
     fn name() -> Symbol<'heap> {
         sym::option

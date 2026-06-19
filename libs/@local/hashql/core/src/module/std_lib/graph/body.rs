@@ -4,7 +4,7 @@ use crate::{
     module::{
         locals::TypeDef,
         std_lib::{
-            self, ModuleCache, ModuleDef, StandardLibraryContext, StandardLibraryModule,
+            self, CacheId, ModuleCache, ModuleDef, StandardLibraryContext, StandardLibraryModule,
             core::func, decl,
         },
     },
@@ -17,6 +17,8 @@ pub(in crate::module::std_lib) struct Body {
 
 impl<'heap> StandardLibraryModule<'heap> for Body {
     type Children = ();
+
+    const CACHE_ID: CacheId = CacheId::GraphBody;
 
     fn name() -> Symbol<'heap> {
         sym::body

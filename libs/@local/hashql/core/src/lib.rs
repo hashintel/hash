@@ -39,7 +39,6 @@
     sync_nonpoison,
     try_trait_v2,
     variant_count,
-    maybe_uninit_fill
 )]
 
 extern crate alloc;

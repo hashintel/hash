@@ -2,11 +2,11 @@ pub mod core;
 pub mod graph;
 mod kernel;
 
-use ::core::{alloc::Allocator, any, iter, mem::MaybeUninit, num::NonZero};
+use ::core::{alloc::Allocator, iter, mem, mem::MaybeUninit, num::NonZero};
 
 use super::{ModuleId, ModuleRegistry, item::IntrinsicItem, locals::TypeDef};
 use crate::{
-    id::{Id as _, bit_vec::DenseBitSet},
+    id::{Id as _, bit_vec::FiniteBitSet},
     module::{
         PartialModule,
         item::{ConstructorItem, Item, ItemKind},
@@ -73,16 +73,27 @@ impl<'heap> ModuleEntry<'heap> {
     }
 }
 
-struct ModuleDef<'heap, S: Allocator>(Vec<ModuleEntry<'heap>, S>);
+struct ModuleDef<'heap, S: Allocator> {
+    entries: Vec<ModuleEntry<'heap>, S>,
+    /// The number of items that will be emitted when this module is built.
+    ///
+    /// This differs from `entries.len()` because `Newtype` entries emit two items (a constructor
+    /// and a type), while other entries emit one.
+    emitted_len: usize,
+}
 
 impl<'heap, S: Allocator> ModuleDef<'heap, S> {
     fn new_in(alloc: S) -> Self {
-        Self(Vec::with_capacity_in(16, alloc))
+        Self {
+            entries: Vec::with_capacity_in(16, alloc),
+            emitted_len: 0,
+        }
     }
 
     fn push(&mut self, name: Symbol<'heap>, def: ItemDef<'heap>) -> usize {
-        let index = self.0.len();
-        self.0.push(ModuleEntry::new(name, def));
+        let index = self.entries.len();
+        self.emitted_len += def.emitted_len();
+        self.entries.push(ModuleEntry::new(name, def));
         index
     }
 
@@ -94,7 +105,7 @@ impl<'heap, S: Allocator> ModuleDef<'heap, S> {
     ) {
         let names = names.into_iter();
 
-        self.0.reserve(names.size_hint().0);
+        self.entries.reserve(names.size_hint().0);
 
         for name in names {
             self.push(name, def);
@@ -102,15 +113,16 @@ impl<'heap, S: Allocator> ModuleDef<'heap, S> {
     }
 
     fn alias(&mut self, index: usize, alias: Symbol<'heap>) -> usize {
-        let item = self.0[index].alias(alias);
+        let item = self.entries[index].alias(alias);
+        self.emitted_len += item.def.emitted_len();
 
-        let index = self.0.len();
-        self.0.push(item);
+        let index = self.entries.len();
+        self.entries.push(item);
         index
     }
 
     fn find(&self, name: Symbol<'heap>) -> Option<ModuleEntry<'heap>> {
-        self.0.iter().find(|item| item.name == name).copied()
+        self.entries.iter().find(|item| item.name == name).copied()
     }
 
     #[track_caller]
@@ -135,9 +147,54 @@ impl<'heap, S: Allocator> ModuleDef<'heap, S> {
     }
 }
 
-hashql_macros::define_id! {
-    #[id(crate = crate)]
-    struct CacheId(u8 is 0..=u8::MAX)
+impl<'heap> ItemDef<'heap> {
+    /// Returns the number of items emitted when building this definition.
+    ///
+    /// `Newtype` emits both a constructor and a type; other variants emit one item.
+    const fn emitted_len(self) -> usize {
+        match self {
+            Self::Newtype(_) => 2,
+            Self::Type(_) | Self::Intrinsic(_) => 1,
+        }
+    }
+}
+
+/// Index into the `ModuleCache` entries array.
+///
+/// Variants are listed in preorder traversal of the module tree (parent before children, left
+/// before right). Adding a new stdlib module requires adding a variant here in the correct
+/// position.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, hashql_macros::Id)]
+#[id(const, crate = crate)]
+enum CacheId {
+    Core,
+    CoreBits,
+    CoreBool,
+    CoreCmp,
+    CoreJson,
+    CoreMath,
+    CoreOption,
+    CoreResult,
+    CoreUrl,
+    CoreUuid,
+    Kernel,
+    KernelSpecialForm,
+    KernelType,
+    Graph,
+    GraphTemporal,
+    GraphHead,
+    GraphBody,
+    GraphTail,
+    GraphEntity,
+    GraphTmp,
+    GraphTypes,
+    GraphTypesKnowledge,
+    GraphTypesKnowledgeEntity,
+    GraphTypesOntology,
+    GraphTypesOntologyEntityType,
+    GraphTypesPrincipal,
+    GraphTypesPrincipalActorGroup,
+    GraphTypesPrincipalActorGroupWeb,
 }
 
 struct StandardLibraryContext<'env, 'heap, S: Allocator> {
@@ -149,54 +206,20 @@ struct StandardLibraryContext<'env, 'heap, S: Allocator> {
 
 struct ModuleCache<'heap, S: Allocator> {
     entries: Box<[MaybeUninit<ModuleDef<'heap, S>>], S>,
-    lookup: Box<[any::TypeId], S>,
-
-    occupied: DenseBitSet<CacheId>,
+    /// Tracks which cache entries have been initialized.
+    ///
+    /// Bit `i` is set when `entries[i]` has been written. The stdlib has fewer than 64 modules, so
+    /// a `u64`-backed `FiniteBitSet` suffices.
+    occupied: FiniteBitSet<CacheId, u64>,
 }
 
 #[expect(unsafe_code)]
 impl<'heap, S: Allocator> ModuleCache<'heap, S> {
-    fn new_in(lookup: Box<[any::TypeId], S>, alloc: S) -> Self
-    where
-        S: Clone,
-    {
-        let length = lookup.len();
-
+    fn new_in(count: usize, alloc: S) -> Self {
         Self {
-            entries: Box::new_uninit_slice_in(length, alloc),
-            lookup,
-            occupied: DenseBitSet::new_empty(length),
+            entries: Box::new_uninit_slice_in(count, alloc),
+            occupied: FiniteBitSet::new_empty(count as u32),
         }
-    }
-
-    fn type_to_cache_id<T: ?Sized + 'static>(&self) -> CacheId {
-        self.lookup
-            .iter()
-            .position(|&id| id == any::TypeId::of::<T>())
-            .map_or_else(
-                || unreachable!("type not registered in lookup table"),
-                CacheId::from_usize,
-            )
-    }
-
-    fn insert_unique(
-        &mut self,
-        id: CacheId,
-        module: ModuleDef<'heap, S>,
-    ) -> &mut ModuleDef<'heap, S> {
-        assert!(!self.occupied.contains(id), "cache entry already occupied");
-
-        let value = self.entries[id.as_usize()].write(module);
-
-        // We only insert AFTER the entry has been initialized because otherwise we could drop a
-        // value on panic that hasn't been initialized.
-        self.occupied.insert(id);
-
-        value
-    }
-
-    fn contains(&self, id: CacheId) -> bool {
-        self.occupied.contains(id)
     }
 
     fn request<T: StandardLibraryModule<'heap>>(
@@ -206,15 +229,17 @@ impl<'heap, S: Allocator> ModuleCache<'heap, S> {
     where
         S: Clone,
     {
-        let id = self.type_to_cache_id::<T>();
+        let id = T::CACHE_ID;
 
-        if self.contains(id) {
-            // SAFETY: contains ensures that the entry is initialized
+        if self.occupied.contains(id) {
+            // SAFETY: the bit is set only after the entry has been initialized.
             return unsafe { self.entries[id.as_usize()].assume_init_ref() };
         }
 
         let module = T::define(context, self);
-        self.insert_unique(id, module)
+        let value = self.entries[id.as_usize()].write(module);
+        self.occupied.insert(id);
+        value
     }
 
     fn build<T>(
@@ -228,39 +253,52 @@ impl<'heap, S: Allocator> ModuleCache<'heap, S> {
         S: Clone,
     {
         context.registry.intern_module(|id| {
-            let items = &self.request::<T>(context).0;
+            let def = self.request::<T>(context);
             let mut output =
-                Vec::with_capacity_in(items.len() + T::Children::LENGTH, context.alloc.clone());
+                Vec::with_capacity_in(def.emitted_len + T::Children::LENGTH, context.alloc.clone());
+            let module = id.value();
 
-            for &ModuleEntry { name, def: kind } in items {
-                let items = match kind {
-                    ItemDef::Intrinsic(intrinsic) => [Some(ItemKind::Intrinsic(intrinsic)), None],
-                    ItemDef::Type(def) => [Some(ItemKind::Type(def)), None],
-                    ItemDef::Newtype(def) => [
-                        Some(ItemKind::Constructor(ConstructorItem { r#type: def })),
-                        Some(ItemKind::Type(def)),
-                    ],
-                };
-
-                for kind in items.into_iter().flatten() {
-                    output.push(Item {
-                        module: id.value(),
-                        name,
-                        kind,
-                    });
+            for &ModuleEntry { name, def } in &def.entries {
+                match def {
+                    ItemDef::Intrinsic(intrinsic) => {
+                        output.push(Item {
+                            module,
+                            name,
+                            kind: ItemKind::Intrinsic(intrinsic),
+                        });
+                    }
+                    ItemDef::Type(typedef) => {
+                        output.push(Item {
+                            module,
+                            name,
+                            kind: ItemKind::Type(typedef),
+                        });
+                    }
+                    ItemDef::Newtype(typedef) => {
+                        output.push(Item {
+                            module,
+                            name,
+                            kind: ItemKind::Constructor(ConstructorItem { r#type: typedef }),
+                        });
+                        output.push(Item {
+                            module,
+                            name,
+                            kind: ItemKind::Type(typedef),
+                        });
+                    }
                 }
             }
 
             // create all the child modules
             let children_names = T::Children::names();
             let children_modules =
-                T::Children::modules(context, self, depth.saturating_add(1), id.value());
+                T::Children::modules(context, self, depth.saturating_add(1), module);
 
-            for (name, module) in children_names.into_iter().zip(children_modules) {
+            for (name, child) in children_names.into_iter().zip(children_modules) {
                 output.push(Item {
-                    module: id.value(),
+                    module,
                     name,
-                    kind: ItemKind::Module(module),
+                    kind: ItemKind::Module(child),
                 });
             }
 
@@ -277,17 +315,10 @@ impl<'heap, S: Allocator> ModuleCache<'heap, S> {
 #[expect(unsafe_code)]
 impl<S: Allocator> Drop for ModuleCache<'_, S> {
     fn drop(&mut self) {
-        if self.occupied.count() == self.entries.len() {
-            // SAFETY: all the elements have been initialized
+        for index in &self.occupied {
+            // SAFETY: the bit is set only after the entry has been initialized.
             unsafe {
-                self.entries.assume_init_drop();
-            }
-        } else {
-            for index in &self.occupied {
-                // SAFETY: the element has been initialized by the cache
-                unsafe {
-                    self.entries[index.as_usize()].assume_init_drop();
-                }
+                self.entries[index.as_usize()].assume_init_drop();
             }
         }
     }
@@ -313,30 +344,24 @@ impl<'env, 'heap, S: Allocator> StandardLibrary<'env, 'heap, S> {
         }
     }
 
-    #[expect(unsafe_code)]
     pub(super) fn register(&mut self)
     where
         S: Clone,
     {
         type Root = (self::core::Core, self::kernel::Kernel, self::graph::Graph);
         const ONE: NonZero<u32> = NonZero::new(1).unwrap();
+        const MODULE_COUNT: usize = mem::variant_count::<CacheId>();
+
+        debug_assert_eq!(
+            Root::ITEMS,
+            MODULE_COUNT,
+            "CacheId variant count does not match module tree size",
+        );
 
         let alloc = self.context.alloc.clone();
         let registry = self.context.registry;
 
-        let count = Root::ITEMS;
-
-        let mut lookup = Box::new_uninit_slice_in(count, alloc.clone());
-        lookup.write_filled(any::TypeId::of::<!>());
-        // SAFETY: We have just written `count` elements to `lookup`, so it is initialized.
-        let mut lookup = unsafe { lookup.assume_init() };
-
-        let mut cursor = 0;
-
-        Root::register(&mut cursor, &mut lookup);
-        debug_assert_eq!(cursor, count);
-
-        let mut cache = ModuleCache::new_in(lookup, alloc);
+        let mut cache = ModuleCache::new_in(MODULE_COUNT, alloc);
         for module in Root::modules(&mut self.context, &mut cache, ONE, ModuleId::ROOT) {
             registry.register(module);
         }
@@ -348,8 +373,6 @@ trait Submodules<'heap> {
     const ITEMS: usize;
 
     fn names() -> impl IntoIterator<Item = Symbol<'heap>>;
-
-    fn register(cursor: &mut usize, items: &mut [any::TypeId]);
 
     fn modules<S: Allocator + Clone>(
         context: &mut StandardLibraryContext<'_, 'heap, S>,
@@ -366,8 +389,6 @@ impl<'heap> Submodules<'heap> for () {
     fn names() -> impl IntoIterator<Item = Symbol<'heap>> {
         iter::empty()
     }
-
-    fn register(_: &mut usize, _: &mut [any::TypeId]) {}
 
     fn modules<S: Allocator + Clone>(
         _: &mut StandardLibraryContext<'_, 'heap, S>,
@@ -400,15 +421,6 @@ macro_rules! impl_submodules {
             const LENGTH: usize = ${count($item)};
             const ITEMS: usize = ${count($item)} $(+ <$item::Children as Submodules<'heap>>::ITEMS)*;
 
-            fn register(cursor: &mut usize, items: &mut [any::TypeId]) {
-                $(
-                    items[*cursor] = any::TypeId::of::<$item>();
-                    *cursor += 1;
-
-                    <$item::Children as Submodules<'heap>>::register(cursor, items);
-                )*
-            }
-
             fn names() -> impl IntoIterator<Item = Symbol<'heap>> {
                 $(let $item = $item::name();)*
 
@@ -432,6 +444,12 @@ macro_rules! impl_submodules {
 impl_submodules!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P);
 
 trait StandardLibraryModule<'heap>: 'static {
+    /// Unique index for this module in the `ModuleCache` entries array.
+    ///
+    /// Assigned in preorder traversal of the module tree (parent before children, left before
+    /// right). IDs must be unique across all stdlib modules and less than 64.
+    const CACHE_ID: CacheId;
+
     type Children: Submodules<'heap>;
 
     fn name() -> Symbol<'heap>;
@@ -475,7 +493,11 @@ macro_rules! decl {
 
         TypeDef {
             id: closure,
-            arguments: $lib.ty.env.intern_generic_argument_references(&[$(${concat($generic, _ref)}),*]),
+            arguments: if ${count($generic)} > 0 {
+                $lib.ty.env.intern_generic_argument_references(&[$(${concat($generic, _ref)}),*])
+            } else {
+                crate::intern::Interned::empty()
+            },
         }
     }};
 }

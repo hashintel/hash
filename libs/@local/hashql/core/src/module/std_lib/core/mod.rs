@@ -1,6 +1,8 @@
 use core::alloc::Allocator;
 
-use super::{ItemDef, ModuleCache, ModuleDef, StandardLibraryContext, StandardLibraryModule};
+use super::{
+    CacheId, ItemDef, ModuleCache, ModuleDef, StandardLibraryContext, StandardLibraryModule,
+};
 use crate::{
     module::{item::IntrinsicValueItem, locals::TypeDef},
     symbol::{Symbol, sym},
@@ -43,6 +45,8 @@ impl<'heap> StandardLibraryModule<'heap> for Core {
         self::url::Url,
         self::uuid::Uuid,
     );
+
+    const CACHE_ID: CacheId = CacheId::Core;
 
     fn name() -> Symbol<'heap> {
         sym::core

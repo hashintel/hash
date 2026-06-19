@@ -2,7 +2,9 @@ use core::alloc::Allocator;
 
 // This is in a separate module, to facilitate: https://linear.app/hash/issue/H-4735/hashql-convert-rust-types-into-hashql-types
 use crate::{
-    module::std_lib::{ModuleCache, ModuleDef, StandardLibraryContext, StandardLibraryModule},
+    module::std_lib::{
+        CacheId, ModuleCache, ModuleDef, StandardLibraryContext, StandardLibraryModule,
+    },
     symbol::{Symbol, sym},
 };
 
@@ -20,6 +22,8 @@ impl<'heap> StandardLibraryModule<'heap> for Types {
         self::ontology::Ontology,
         self::principal::Principal,
     );
+
+    const CACHE_ID: CacheId = CacheId::GraphTypes;
 
     fn name() -> Symbol<'heap> {
         sym::types
