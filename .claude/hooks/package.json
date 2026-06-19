@@ -14,7 +14,7 @@
     "test:unit:bless": "vitest run -u"
   },
   "dependencies": {
-    "natural": "8.1.0"
+    "natural": "8.1.1"
   },
   "devDependencies": {
     "@local/eslint": "workspace:*",
