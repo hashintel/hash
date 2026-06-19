@@ -65,7 +65,20 @@ import type {
 } from "@local/hash-graph-sdk/ontology";
 import type { ReactElement, RefObject } from "react";
 
-type OutgoingLinksFieldId = "linkTypes" | "linkedTo" | "linkedToTypes" | "link";
+export type OutgoingLinksFieldId =
+  | "linkTypes"
+  | "linkedTo"
+  | "linkedToTypes"
+  | "link";
+
+/**
+ * The columns that can be sorted server-side. Sorting paths are applied to the
+ * query's root (the link entities), and the graph API only exposes `label` and
+ * `typeTitle` as sortable tokens (it cannot traverse to the target entity), so
+ * only the link entity's label (`link`) and type title (`linkTypes`) are
+ * available. When sorting is server-side the other columns are not sortable.
+ */
+const serverSortableFieldIds: OutgoingLinksFieldId[] = ["linkTypes", "link"];
 
 export type OutgoingLinksFilterValues =
   VirtualizedTableFilterValuesByFieldId<OutgoingLinksFieldId>;
@@ -260,6 +273,18 @@ type OutgoingLinksTableProps = {
   onEntityClick: (entityId: EntityId) => void;
   onTypeClick: (kind: "dataType" | "entityType", itemId: VersionedUrl) => void;
   outgoingLinksAndTargets: LinkEntityAndRightEntity[];
+  /**
+   * When `true`, the table is backed by a paginated server-side query:
+   * - Sorting is applied by the query (the rows are already ordered), so the
+   *   table does not re-sort locally and only exposes the columns the graph API
+   *   can sort by. `sort`/`setSort` must be provided (controlled) so the parent
+   *   can re-query when the sort changes.
+   * - Filtering is disabled entirely, because client-side filters would only
+   *   ever see the currently loaded pages.
+   */
+  serverSideSorting?: boolean;
+  sort?: VirtualizedTableSort<OutgoingLinksFieldId>;
+  setSort?: (sort: VirtualizedTableSort<OutgoingLinksFieldId>) => void;
   slideContainerRef?: RefObject<HTMLDivElement | null>;
 };
 
@@ -275,14 +300,24 @@ export const OutgoingLinksTable = memo(
     onEntityClick,
     onTypeClick,
     outgoingLinksAndTargets,
+    serverSideSorting = false,
+    sort: controlledSort,
+    setSort: controlledSetSort,
     slideContainerRef,
   }: OutgoingLinksTableProps) => {
-    const [sort, setSort] = useState<
+    const [internalSort, setInternalSort] = useState<
       VirtualizedTableSort<OutgoingLinksFieldId>
     >({
       fieldId: "linkedTo",
       direction: "asc",
     });
+
+    /**
+     * When sorting server-side the sort is controlled by the parent (so it can
+     * re-query); otherwise it is local state.
+     */
+    const sort = controlledSort ?? internalSort;
+    const setSort = controlledSetSort ?? setInternalSort;
 
     const outputContainerRef = useRef<HTMLDivElement>(null);
     const [outputContainerHeight, setOutputContainerHeight] = useState(400);
@@ -542,114 +577,119 @@ export const OutgoingLinksTable = memo(
       filterDefinitions,
     });
 
-    const rows = useMemo(
-      () =>
-        unsortedRows
-          .filter((row) => {
-            for (const [fieldId, currentValue] of typedEntries(filterValues)) {
-              switch (fieldId) {
-                case "linkTypes": {
-                  if (
-                    !isValueIncludedInFilter({
-                      currentValue,
-                      valueToCheck: row.data.linkEntity.metadata.entityTypeIds,
-                    })
-                  ) {
-                    return false;
-                  }
-                  break;
-                }
-                case "linkedTo": {
-                  if (
-                    !isValueIncludedInFilter({
-                      currentValue,
-                      valueToCheck:
-                        row.data.targetEntity.metadata.recordId.entityId,
-                    })
-                  ) {
-                    return false;
-                  }
-                  break;
-                }
-                case "linkedToTypes": {
-                  if (
-                    !isValueIncludedInFilter({
-                      currentValue,
-                      valueToCheck:
-                        row.data.targetEntity.metadata.entityTypeIds,
-                    })
-                  ) {
-                    return false;
-                  }
-                  break;
-                }
-                case "link": {
-                  if (
-                    !isValueIncludedInFilter({
-                      currentValue,
-                      valueToCheck:
-                        row.data.linkEntity.metadata.recordId.entityId,
-                    })
-                  ) {
-                    return false;
-                  }
-                  break;
-                }
-              }
-            }
+    const rows = useMemo(() => {
+      if (serverSideSorting) {
+        /**
+         * In self-fetch mode the rows are a server-ordered, paginated page:
+         * sorting is applied by the query and filtering is disabled entirely
+         * (client-side filtering would only ever see the loaded pages), so the
+         * rows are used as-is.
+         */
+        return unsortedRows;
+      }
 
-            return true;
-          })
-          .sort((a, b) => {
-            const field = sort.fieldId;
-            const direction = sort.direction === "asc" ? 1 : -1;
-
-            switch (field) {
-              case "linkTypes": {
-                return (
-                  a.data.linkEntityTypes[0]!.title.localeCompare(
-                    b.data.linkEntityTypes[0]!.title,
-                  ) * direction
-                );
+      const filteredRows = unsortedRows.filter((row) => {
+        for (const [fieldId, currentValue] of typedEntries(filterValues)) {
+          switch (fieldId) {
+            case "linkTypes": {
+              if (
+                !isValueIncludedInFilter({
+                  currentValue,
+                  valueToCheck: row.data.linkEntity.metadata.entityTypeIds,
+                })
+              ) {
+                return false;
               }
-              case "linkedToTypes": {
-                return (
-                  a.data.targetEntityTypes[0]!.title.localeCompare(
-                    b.data.targetEntityTypes[0]!.title,
-                  ) * direction
-                );
-              }
-              case "linkedTo": {
-                return (
-                  a.data.targetEntityLabel.localeCompare(
-                    b.data.targetEntityLabel,
-                  ) * direction
-                );
-              }
-              case "link": {
-                return (
-                  a.data.linkEntityLabel.localeCompare(b.data.linkEntityLabel) *
-                  direction
-                );
-              }
-              default: {
-                const customFieldA = a.data.customFields[field];
-                const customFieldB = b.data.customFields[field];
-                if (
-                  typeof customFieldA === "number" &&
-                  typeof customFieldB === "number"
-                ) {
-                  return (customFieldA - customFieldB) * direction;
-                }
-                return (
-                  String(customFieldA).localeCompare(String(customFieldB)) *
-                  direction
-                );
-              }
+              break;
             }
-          }),
-      [filterValues, sort, unsortedRows],
-    );
+            case "linkedTo": {
+              if (
+                !isValueIncludedInFilter({
+                  currentValue,
+                  valueToCheck:
+                    row.data.targetEntity.metadata.recordId.entityId,
+                })
+              ) {
+                return false;
+              }
+              break;
+            }
+            case "linkedToTypes": {
+              if (
+                !isValueIncludedInFilter({
+                  currentValue,
+                  valueToCheck: row.data.targetEntity.metadata.entityTypeIds,
+                })
+              ) {
+                return false;
+              }
+              break;
+            }
+            case "link": {
+              if (
+                !isValueIncludedInFilter({
+                  currentValue,
+                  valueToCheck: row.data.linkEntity.metadata.recordId.entityId,
+                })
+              ) {
+                return false;
+              }
+              break;
+            }
+          }
+        }
+
+        return true;
+      });
+
+      return filteredRows.sort((a, b) => {
+        const field = sort.fieldId;
+        const direction = sort.direction === "asc" ? 1 : -1;
+
+        switch (field) {
+          case "linkTypes": {
+            return (
+              a.data.linkEntityTypes[0]!.title.localeCompare(
+                b.data.linkEntityTypes[0]!.title,
+              ) * direction
+            );
+          }
+          case "linkedToTypes": {
+            return (
+              a.data.targetEntityTypes[0]!.title.localeCompare(
+                b.data.targetEntityTypes[0]!.title,
+              ) * direction
+            );
+          }
+          case "linkedTo": {
+            return (
+              a.data.targetEntityLabel.localeCompare(b.data.targetEntityLabel) *
+              direction
+            );
+          }
+          case "link": {
+            return (
+              a.data.linkEntityLabel.localeCompare(b.data.linkEntityLabel) *
+              direction
+            );
+          }
+          default: {
+            const customFieldA = a.data.customFields[field];
+            const customFieldB = b.data.customFields[field];
+            if (
+              typeof customFieldA === "number" &&
+              typeof customFieldB === "number"
+            ) {
+              return (customFieldA - customFieldB) * direction;
+            }
+            return (
+              String(customFieldA).localeCompare(String(customFieldB)) *
+              direction
+            );
+          }
+        }
+      });
+    }, [filterValues, serverSideSorting, sort, unsortedRows]);
 
     const columns = useMemo(() => {
       const applicableCustomColumns = customColumns?.filter(
@@ -658,8 +698,21 @@ export const OutgoingLinksTable = memo(
           filterValues.linkTypes.has(column.appliesToEntityTypeId),
       );
 
-      return createColumns(applicableCustomColumns ?? []);
-    }, [filterValues, customColumns]);
+      const createdColumns = createColumns(applicableCustomColumns ?? []);
+
+      if (!serverSideSorting) {
+        return createdColumns;
+      }
+
+      /**
+       * When sorting is server-side, only the columns the graph API can sort by
+       * are sortable.
+       */
+      return createdColumns.map((column) => ({
+        ...column,
+        sortable: serverSortableFieldIds.includes(column.id),
+      }));
+    }, [filterValues, customColumns, serverSideSorting]);
 
     const height = Math.min(
       maxLinksTableHeight,
@@ -684,11 +737,11 @@ export const OutgoingLinksTable = memo(
         <VirtualizedTable
           columns={columns}
           createRowContent={createRowContent}
-          filterDefinitions={filterDefinitions}
-          filterValues={filterValues}
+          filterDefinitions={serverSideSorting ? undefined : filterDefinitions}
+          filterValues={serverSideSorting ? undefined : filterValues}
           loadingMore={loadingMore}
           onEndReached={onEndReached}
-          setFilterValues={setFilterValues}
+          setFilterValues={serverSideSorting ? undefined : setFilterValues}
           rows={rows}
           sort={sort}
           setSort={setSort}

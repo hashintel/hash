@@ -1,5 +1,5 @@
 import { useQuery } from "@apollo/client";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 
 import { getRoots } from "@blockprotocol/graph/stdlib";
 import { type EntityId, splitEntityId } from "@blockprotocol/type-system";
@@ -19,7 +19,10 @@ import type {
   QueryEntitySubgraphQueryVariables,
 } from "../../../../../graphql/api-types.gen";
 import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
-import type { EntityQueryCursor } from "@local/hash-graph-client";
+import type {
+  EntityQueryCursor,
+  EntityQuerySortingRecord,
+} from "@local/hash-graph-client";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import type {
   ClosedMultiEntityTypesDefinitions,
@@ -49,6 +52,17 @@ type LinkPage = {
 };
 
 const initialCursorKey = "__initial__";
+
+/**
+ * Appended to any caller-provided sorting so that pagination is deterministic
+ * (the `uuid` is unique, breaking ties when sorting by a non-unique field such
+ * as a label or type title).
+ */
+const uuidSortingPath: EntityQuerySortingRecord = {
+  path: ["uuid"],
+  ordering: "ascending",
+  nulls: "last",
+};
 
 const cursorKeyFor = (cursor: EntityQueryCursor | undefined) =>
   cursor ? JSON.stringify(cursor) : initialCursorKey;
@@ -106,10 +120,17 @@ export const useEntityLinks = ({
   direction,
   entityId,
   skip = false,
+  sortingPaths,
 }: {
   direction: "outgoing" | "incoming";
   entityId: EntityId;
   skip?: boolean;
+  /**
+   * How to sort the links server-side. A `uuid` tiebreaker is always appended
+   * so that pagination remains stable. Changing this resets pagination (the
+   * accumulated pages and their cursors are no longer valid).
+   */
+  sortingPaths?: EntityQuerySortingRecord[];
 }): {
   /** Whether the first page is still loading. */
   initialLoading: boolean;
@@ -136,13 +157,26 @@ export const useEntityLinks = ({
   const [pages, setPages] = useState<LinkPage[]>([]);
 
   /**
-   * Reset accumulated pages when the entity or direction changes (the query
-   * identity, and therefore the cursors, are no longer valid).
+   * Reset accumulated pages when the entity, direction or sort changes (the
+   * query identity, and therefore the cursors, are no longer valid).
+   *
+   * Done during render rather than in an effect so that the stale cursor is
+   * never sent alongside the new query (which would either error or produce a
+   * page that does not belong to the new ordering).
    */
-  useEffect(() => {
-    setCursor(undefined);
-    setPages([]);
-  }, [entityId, direction]);
+  const resetKey = `${entityId}:${direction}:${JSON.stringify(
+    sortingPaths ?? null,
+  )}`;
+  const previousResetKey = useRef(resetKey);
+  if (previousResetKey.current !== resetKey) {
+    previousResetKey.current = resetKey;
+    if (cursor !== undefined) {
+      setCursor(undefined);
+    }
+    if (pages.length > 0) {
+      setPages([]);
+    }
+  }
 
   /**
    * The endpoint of the link that is the entity being viewed: its left/source
@@ -191,9 +225,7 @@ export const useEntityLinks = ({
         cursor,
         limit: linksTablePageSize,
         includeCount: true,
-        sortingPaths: [
-          { path: ["uuid"], ordering: "ascending", nulls: "last" },
-        ],
+        sortingPaths: [...(sortingPaths ?? []), uuidSortingPath],
         temporalAxes: currentTimeInstantTemporalAxes,
         traversalPaths: [
           { edges: [{ kind: "has-right-entity", direction: "outgoing" }] },

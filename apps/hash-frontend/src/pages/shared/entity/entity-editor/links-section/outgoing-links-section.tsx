@@ -1,6 +1,6 @@
 import { faMagnifyingGlass } from "@fortawesome/free-solid-svg-icons";
 import { Box, CircularProgress, Paper, Stack } from "@mui/material";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 import {
   getOutgoingLinkAndTargetEntities,
@@ -23,13 +23,16 @@ import { useRows } from "./outgoing-links-section/use-rows";
 import { useEntityLinks } from "./use-entity-links";
 
 import type { SortGridRows } from "../../../../../components/grid/grid";
+import type { VirtualizedTableSort } from "../../../virtualized-table/header/sort";
 import type { EntityEditorProps } from "../../entity-editor";
+import type { OutgoingLinksFieldId } from "./outgoing-links-section/readonly-outgoing-links-table";
 import type {
   LinkColumn,
   LinkColumnKey,
   LinkRow,
 } from "./outgoing-links-section/types";
 import type { LinkEntityAndRightEntity } from "@blockprotocol/graph";
+import type { EntityQuerySortingRecord } from "@local/hash-graph-client";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 
 type OutgoingLinksSectionProps = Pick<
@@ -76,6 +79,37 @@ export const OutgoingLinksSection = ({
   const [showSearch, setShowSearch] = useState(false);
 
   /**
+   * When links are fetched here (paginated), sorting is applied server-side, so
+   * the sort state lives here in order to drive the query. The default mirrors
+   * what the API can sort the link entities by – only their own label and type
+   * title are available (the API cannot sort by the target entity), so we
+   * default to the link entity's label.
+   */
+  const [sort, setSort] = useState<VirtualizedTableSort<OutgoingLinksFieldId>>({
+    fieldId: "link",
+    direction: "asc",
+  });
+
+  /**
+   * Translate the table sort into graph-query sorting paths, which apply to the
+   * query's root (the link entities). Only `link` (the link entity label) and
+   * `linkTypes` (its type title) are sortable server-side.
+   */
+  const sortingPaths = useMemo<EntityQuerySortingRecord[] | undefined>(() => {
+    if (!selfFetchLinks) {
+      return undefined;
+    }
+
+    return [
+      {
+        path: sort.fieldId === "linkTypes" ? ["typeTitle"] : ["label"],
+        ordering: sort.direction === "asc" ? "ascending" : "descending",
+        nulls: "last",
+      },
+    ];
+  }, [selfFetchLinks, sort]);
+
+  /**
    * When the entity is readonly we fetch the link data here (paginated), so it
    * does not need to be part of the main entity query. When editable, the link
    * data is part of the editor subgraph (so adding/removing/saving is
@@ -95,6 +129,7 @@ export const OutgoingLinksSection = ({
     direction: "outgoing",
     entityId: entity.metadata.recordId.entityId,
     skip: !selfFetchLinks,
+    sortingPaths,
   });
 
   const rows = useRows({
@@ -117,8 +152,8 @@ export const OutgoingLinksSection = ({
 
   const sortRows = useCallback<
     SortGridRows<LinkRow, LinkColumn, LinkColumnKey>
-  >((unsortedRows, sort) => {
-    const { columnKey, direction } = sort;
+  >((unsortedRows, gridSort) => {
+    const { columnKey, direction } = gridSort;
 
     return unsortedRows.toSorted((a, b) => {
       let firstString = "";
@@ -265,7 +300,10 @@ export const OutgoingLinksSection = ({
           onEntityClick={onEntityClick}
           onTypeClick={onTypeClick}
           outgoingLinksAndTargets={outgoingLinksAndTargets}
+          serverSideSorting={selfFetchLinks}
+          setSort={selfFetchLinks ? setSort : undefined}
           slideContainerRef={slideContainerRef}
+          sort={selfFetchLinks ? sort : undefined}
         />
       ) : (
         <LinksSectionEmptyState direction="Outgoing" />

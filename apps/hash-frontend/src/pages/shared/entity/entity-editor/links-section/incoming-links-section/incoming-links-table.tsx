@@ -67,7 +67,26 @@ import type {
   ClosedMultiEntityTypesRootMap,
 } from "@local/hash-graph-sdk/ontology";
 
-type FieldId = "linkedFrom" | "linkTypes" | "linkedFromTypes" | "link";
+export type IncomingLinksFieldId =
+  | "linkedFrom"
+  | "linkTypes"
+  | "linkedFromTypes"
+  | "link";
+
+type FieldId = IncomingLinksFieldId;
+
+/**
+ * The columns that can be sorted server-side. Sorting paths are applied to the
+ * query's root (the link entities), and the graph API only exposes `label` and
+ * `typeTitle` as sortable tokens (it cannot traverse to the source entity).
+ *
+ * Only the link entity's label (`link`) is included: the API cannot sort by the
+ * source entity (`linkedFrom`/`linkedFromTypes`), and although it can sort by
+ * the link's `typeTitle`, the "Link type" column displays the *inverse* title,
+ * so a `typeTitle` sort would not match what is shown. When sorting is
+ * server-side the other columns are therefore not sortable.
+ */
+const serverSortableFieldIds: FieldId[] = ["link"];
 
 const staticColumns: VirtualizedTableColumn<FieldId>[] = [
   {
@@ -295,6 +314,18 @@ type IncomingLinksTableProps = {
   onEndReached?: () => void;
   onEntityClick: (entityId: EntityId) => void;
   onTypeClick: (kind: "dataType" | "entityType", itemId: VersionedUrl) => void;
+  /**
+   * When `true`, the table is backed by a paginated server-side query:
+   * - Sorting is applied by the query (the rows are already ordered), so the
+   *   table does not re-sort locally and only exposes the columns the graph API
+   *   can sort by. `sort`/`setSort` must be provided (controlled) so the parent
+   *   can re-query when the sort changes.
+   * - Filtering is disabled entirely, because client-side filters would only
+   *   ever see the currently loaded pages.
+   */
+  serverSideSorting?: boolean;
+  sort?: VirtualizedTableSort<FieldId>;
+  setSort?: (sort: VirtualizedTableSort<FieldId>) => void;
   slideContainerRef?: RefObject<HTMLDivElement | null>;
   /**
    * The total number of links matching the query, including those not yet
@@ -318,13 +349,25 @@ export const IncomingLinksTable = memo(
     onEndReached,
     onEntityClick,
     onTypeClick,
+    serverSideSorting = false,
+    sort: controlledSort,
+    setSort: controlledSetSort,
     slideContainerRef,
     totalLinkCount,
   }: IncomingLinksTableProps) => {
-    const [sort, setSort] = useState<VirtualizedTableSort<FieldId>>({
+    const [internalSort, setInternalSort] = useState<
+      VirtualizedTableSort<FieldId>
+    >({
       fieldId: "linkedFrom",
       direction: "asc",
     });
+
+    /**
+     * When sorting server-side the sort is controlled by the parent (so it can
+     * re-query); otherwise it is local state.
+     */
+    const sort = controlledSort ?? internalSort;
+    const setSort = controlledSetSort ?? setInternalSort;
 
     const outputContainerRef = useRef<HTMLDivElement>(null);
     const [outputContainerHeight, setOutputContainerHeight] = useState(400);
@@ -581,120 +624,127 @@ export const IncomingLinksTable = memo(
       filterDefinitions,
     });
 
-    const rows = useMemo(
-      () =>
-        unsortedRows
-          .filter((row) => {
-            for (const [fieldId, currentValue] of typedEntries(filterValues)) {
-              switch (fieldId) {
-                case "linkTypes": {
-                  if (
-                    !isValueIncludedInFilter({
-                      currentValue,
-                      valueToCheck: row.data.linkEntity.metadata.entityTypeIds,
-                    })
-                  ) {
-                    return false;
-                  }
-                  break;
-                }
-                case "linkedFrom": {
-                  if (
-                    !isValueIncludedInFilter({
-                      currentValue,
-                      valueToCheck:
-                        row.data.sourceEntity.metadata.recordId.entityId,
-                    })
-                  ) {
-                    return false;
-                  }
-                  break;
-                }
-                case "linkedFromTypes": {
-                  if (
-                    !isValueIncludedInFilter({
-                      currentValue,
-                      valueToCheck:
-                        row.data.sourceEntity.metadata.entityTypeIds,
-                    })
-                  ) {
-                    return false;
-                  }
-                  break;
-                }
-                case "link": {
-                  if (
-                    !isValueIncludedInFilter({
-                      currentValue,
-                      valueToCheck:
-                        row.data.linkEntity.metadata.recordId.entityId,
-                    })
-                  ) {
-                    return false;
-                  }
-                  break;
-                }
-              }
-            }
+    const rows = useMemo(() => {
+      if (serverSideSorting) {
+        /**
+         * In self-fetch mode the rows are a server-ordered, paginated page:
+         * sorting is applied by the query and filtering is disabled entirely
+         * (client-side filtering would only ever see the loaded pages), so the
+         * rows are used as-is.
+         */
+        return unsortedRows;
+      }
 
-            return true;
-          })
-          .sort((a, b) => {
-            const field = sort.fieldId;
-            const direction = sort.direction === "asc" ? 1 : -1;
-
-            switch (field) {
+      return unsortedRows
+        .filter((row) => {
+          for (const [fieldId, currentValue] of typedEntries(filterValues)) {
+            switch (fieldId) {
               case "linkTypes": {
-                const aValue =
-                  /* eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- we don't want an empty string */
-                  a.data.linkEntityTypes[0]!.inverse?.title ||
-                  a.data.linkEntityTypes[0]!.title;
-
-                const bValue =
-                  /* eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- we don't want an empty string */
-                  b.data.linkEntityTypes[0]!.inverse?.title ||
-                  b.data.linkEntityTypes[0]!.title;
-
-                return aValue.localeCompare(bValue) * direction;
-              }
-              case "linkedFromTypes": {
-                return (
-                  a.data.sourceEntityTypes[0]!.title.localeCompare(
-                    b.data.sourceEntityTypes[0]!.title,
-                  ) * direction
-                );
+                if (
+                  !isValueIncludedInFilter({
+                    currentValue,
+                    valueToCheck: row.data.linkEntity.metadata.entityTypeIds,
+                  })
+                ) {
+                  return false;
+                }
+                break;
               }
               case "linkedFrom": {
-                return (
-                  a.data.sourceEntityLabel.localeCompare(
-                    b.data.sourceEntityLabel,
-                  ) * direction
-                );
+                if (
+                  !isValueIncludedInFilter({
+                    currentValue,
+                    valueToCheck:
+                      row.data.sourceEntity.metadata.recordId.entityId,
+                  })
+                ) {
+                  return false;
+                }
+                break;
+              }
+              case "linkedFromTypes": {
+                if (
+                  !isValueIncludedInFilter({
+                    currentValue,
+                    valueToCheck: row.data.sourceEntity.metadata.entityTypeIds,
+                  })
+                ) {
+                  return false;
+                }
+                break;
               }
               case "link": {
-                return (
-                  a.data.linkEntityLabel.localeCompare(b.data.linkEntityLabel) *
-                  direction
-                );
-              }
-              default: {
-                const customFieldA = a.data.customFields[field];
-                const customFieldB = b.data.customFields[field];
                 if (
-                  typeof customFieldA === "number" &&
-                  typeof customFieldB === "number"
+                  !isValueIncludedInFilter({
+                    currentValue,
+                    valueToCheck:
+                      row.data.linkEntity.metadata.recordId.entityId,
+                  })
                 ) {
-                  return (customFieldA - customFieldB) * direction;
+                  return false;
                 }
-                return (
-                  String(customFieldA).localeCompare(String(customFieldB)) *
-                  direction
-                );
+                break;
               }
             }
-          }),
-      [filterValues, sort, unsortedRows],
-    );
+          }
+
+          return true;
+        })
+        .sort((a, b) => {
+          const field = sort.fieldId;
+          const direction = sort.direction === "asc" ? 1 : -1;
+
+          switch (field) {
+            case "linkTypes": {
+              const aValue =
+                /* eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- we don't want an empty string */
+                a.data.linkEntityTypes[0]!.inverse?.title ||
+                a.data.linkEntityTypes[0]!.title;
+
+              const bValue =
+                /* eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- we don't want an empty string */
+                b.data.linkEntityTypes[0]!.inverse?.title ||
+                b.data.linkEntityTypes[0]!.title;
+
+              return aValue.localeCompare(bValue) * direction;
+            }
+            case "linkedFromTypes": {
+              return (
+                a.data.sourceEntityTypes[0]!.title.localeCompare(
+                  b.data.sourceEntityTypes[0]!.title,
+                ) * direction
+              );
+            }
+            case "linkedFrom": {
+              return (
+                a.data.sourceEntityLabel.localeCompare(
+                  b.data.sourceEntityLabel,
+                ) * direction
+              );
+            }
+            case "link": {
+              return (
+                a.data.linkEntityLabel.localeCompare(b.data.linkEntityLabel) *
+                direction
+              );
+            }
+            default: {
+              const customFieldA = a.data.customFields[field];
+              const customFieldB = b.data.customFields[field];
+              if (
+                typeof customFieldA === "number" &&
+                typeof customFieldB === "number"
+              ) {
+                return (customFieldA - customFieldB) * direction;
+              }
+              return (
+                String(customFieldA).localeCompare(String(customFieldB)) *
+                direction
+              );
+            }
+          }
+        });
+    }, [filterValues, serverSideSorting, sort, unsortedRows]);
 
     /**
      * Pad the scroll content with placeholder rows for not-yet-loaded links, so
@@ -745,8 +795,21 @@ export const IncomingLinksTable = memo(
           filterValues.linkTypes.has(column.appliesToEntityTypeId),
       );
 
-      return createColumns(applicableCustomColumns ?? []);
-    }, [filterValues, customColumns]);
+      const createdColumns = createColumns(applicableCustomColumns ?? []);
+
+      if (!serverSideSorting) {
+        return createdColumns;
+      }
+
+      /**
+       * When sorting is server-side, only the columns the graph API can sort by
+       * are sortable.
+       */
+      return createdColumns.map((column) => ({
+        ...column,
+        sortable: serverSortableFieldIds.includes(column.id),
+      }));
+    }, [filterValues, customColumns, serverSideSorting]);
 
     /**
      * Whether scrolling to the bottom may trigger a load of the next page. It is
@@ -762,8 +825,8 @@ export const IncomingLinksTable = memo(
         <VirtualizedTable
           columns={columns}
           createRowContent={createRowContent}
-          filterDefinitions={filterDefinitions}
-          filterValues={filterValues}
+          filterDefinitions={serverSideSorting ? undefined : filterDefinitions}
+          filterValues={serverSideSorting ? undefined : filterValues}
           fixedItemHeight={linksTableRowHeight}
           followOutput={false}
           loadingMore={loadingMore}
@@ -788,7 +851,7 @@ export const IncomingLinksTable = memo(
                 }
               : undefined
           }
-          setFilterValues={setFilterValues}
+          setFilterValues={serverSideSorting ? undefined : setFilterValues}
           rows={paddedRows}
           sort={sort}
           setSort={setSort}
