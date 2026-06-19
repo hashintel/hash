@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from "@apollo/client";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { getRoots } from "@blockprotocol/graph/stdlib";
 import { mustHaveAtLeastOne, splitEntityId } from "@blockprotocol/type-system";
@@ -267,6 +267,28 @@ export const Entity = ({
    */
   const [includeLinkDataInQuery, setIncludeLinkDataInQuery] = useState(false);
 
+  /**
+   * Tracks whether the first query response has been processed, and whether the
+   * next response will be the automatic link-data upgrade refetch (triggered by
+   * flipping `includeLinkDataInQuery` to true). These let `onCompleted` avoid
+   * resetting draft state on the upgrade refetch when the editor is already
+   * interactive, while still resetting on genuine reloads.
+   */
+  const hasCompletedInitialLoadRef = useRef(false);
+  const awaitingLinkDataUpgradeRef = useRef(false);
+
+  /**
+   * Mirror of the current draft-edit state. The query's `onCompleted` closure
+   * would otherwise capture stale values, so we read the latest state from here
+   * to decide whether the user has unsaved changes worth preserving.
+   */
+  const draftStateRef = useRef({
+    isDirty,
+    draftLinksToCreate,
+    draftLinksToArchive,
+  });
+  draftStateRef.current = { isDirty, draftLinksToCreate, draftLinksToArchive };
+
   const { data: queryEntitySubgraphData, refetch } = useQuery<
     QueryEntitySubgraphQuery,
     QueryEntitySubgraphQueryVariables
@@ -298,13 +320,12 @@ export const Entity = ({
         returnedEntity.metadata.entityTypeIds,
       );
 
-      setDraftEntityTypesDetails({
-        linkAndDestinationEntitiesClosedMultiEntityTypesMap:
-          closedMultiEntityTypes,
-        closedMultiEntityType,
-        closedMultiEntityTypesDefinitions: definitions,
-      });
-
+      /**
+       * Always refresh the database snapshot. It is the source of truth used for
+       * diffing unsaved changes and as the reset target, so it must reflect the
+       * latest response (e.g. the link data added by the upgrade refetch), even
+       * when we preserve the draft below.
+       */
       setDataFromDb({
         entitySubgraph: subgraph,
         closedMultiEntityType,
@@ -313,15 +334,59 @@ export const Entity = ({
           closedMultiEntityTypes,
       });
 
-      setDraftEntitySubgraph(subgraph);
+      const isInitialLoad = !hasCompletedInitialLoadRef.current;
+      hasCompletedInitialLoadRef.current = true;
 
-      setIsDirty(false);
-      setDraftLinksToCreate([]);
-      setDraftLinksToArchive([]);
+      /**
+       * The first (link-less) response flips `includeLinkDataInQuery` to true for
+       * editable entities, which triggers an automatic refetch that adds the link
+       * data. That refetch's completion must NOT wipe out draft edits the user may
+       * already have started in the (interactive) editor.
+       *
+       * Genuine reloads (initial load, post-save/unarchive `refetch`) are not
+       * link-data upgrades, so they still reset the draft to match the database.
+       */
+      const isLinkDataUpgrade = awaitingLinkDataUpgradeRef.current;
+      awaitingLinkDataUpgradeRef.current = false;
 
-      setIncludeLinkDataInQuery(
-        !!data.queryEntitySubgraph.entityPermissions?.[entityId]?.update,
-      );
+      const {
+        isDirty: draftIsDirty,
+        draftLinksToCreate: pendingLinksToCreate,
+        draftLinksToArchive: pendingLinksToArchive,
+      } = draftStateRef.current;
+
+      const userHasUnsavedChanges =
+        draftIsDirty ||
+        pendingLinksToCreate.length > 0 ||
+        pendingLinksToArchive.length > 0;
+
+      if (!isLinkDataUpgrade || !userHasUnsavedChanges) {
+        setDraftEntityTypesDetails({
+          linkAndDestinationEntitiesClosedMultiEntityTypesMap:
+            closedMultiEntityTypes,
+          closedMultiEntityType,
+          closedMultiEntityTypesDefinitions: definitions,
+        });
+
+        setDraftEntitySubgraph(subgraph);
+
+        setIsDirty(false);
+        setDraftLinksToCreate([]);
+        setDraftLinksToArchive([]);
+      }
+
+      if (isInitialLoad) {
+        const canUpdate =
+          !!data.queryEntitySubgraph.entityPermissions?.[entityId]?.update;
+
+        /**
+         * For editable entities this flips the query variables, triggering the
+         * link-data upgrade refetch handled above. For readonly entities it stays
+         * false and the link tables self-fetch instead.
+         */
+        awaitingLinkDataUpgradeRef.current = canUpdate;
+        setIncludeLinkDataInQuery(canUpdate);
+      }
 
       setLoading(false);
     },
