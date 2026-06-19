@@ -2567,6 +2567,15 @@
         "operationId": "query_hashql",
         "parameters": [
           {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ActorEntityUuid"
+            }
+          },
+          {
             "name": "Interactive",
             "in": "header",
             "description": "When true, error responses are rendered as HTML instead of JSON",
