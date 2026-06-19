@@ -41,6 +41,8 @@ const devUsers: readonly SeededUser[] = [
     email: "bob@example.com",
     shortname: "bob01",
     displayName: "Bob",
+    // Bob exercises the supply-chain views without the full feature set.
+    enabledFeatureFlags: ["supplyChain"],
   },
 ] as const;
 

@@ -1,4 +1,4 @@
-import { faHome } from "@fortawesome/free-solid-svg-icons";
+import { faHome, faTruckFast } from "@fortawesome/free-solid-svg-icons";
 import { Box, Collapse, Drawer } from "@mui/material";
 import { useRouter } from "next/router";
 import {
@@ -195,6 +195,17 @@ export const PageSidebar: FunctionComponent = () => {
             },
           ]
         : []),
+      ...(enabledFeatureFlags.supplyChain
+        ? [
+            {
+              title: "Supply Chain",
+              path: "/supply-chain",
+              icon: <FontAwesomeIcon icon={faTruckFast} />,
+              activeIfPathMatches: /^\/supply-chain(\/|$)/,
+              tooltipTitle: "",
+            },
+          ]
+        : []),
     ];
   }, [
     preferences.sidebarSections.entities.variant,
@@ -204,6 +215,7 @@ export const PageSidebar: FunctionComponent = () => {
     numberOfUnreadNotifications,
     pendingInvites.length,
     enabledFeatureFlags.notes,
+    enabledFeatureFlags.supplyChain,
   ]);
 
   return (

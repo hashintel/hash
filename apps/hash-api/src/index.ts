@@ -86,6 +86,7 @@ import {
   port,
 } from "./lib/env-config";
 import { logger } from "./logger";
+import { setupQueryHandler } from "./query";
 import { seedOrgsAndUsers } from "./seed-data";
 import {
   setupFileDownloadProxyHandler,
@@ -746,6 +747,8 @@ const main = async () => {
   });
 
   setupFileDownloadProxyHandler(app, keyv);
+
+  setupQueryHandler(app, keyv);
 
   setupBlockProtocolExternalServiceMethodProxy(app);
 
