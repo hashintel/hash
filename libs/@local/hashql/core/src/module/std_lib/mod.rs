@@ -76,8 +76,8 @@ impl<'heap> ModuleEntry<'heap> {
 struct ModuleDef<'heap, S: Allocator>(Vec<ModuleEntry<'heap>, S>);
 
 impl<'heap, S: Allocator> ModuleDef<'heap, S> {
-    const fn new_in(alloc: S) -> Self {
-        Self(Vec::new_in(alloc))
+    fn new_in(alloc: S) -> Self {
+        Self(Vec::with_capacity_in(16, alloc))
     }
 
     fn push(&mut self, name: Symbol<'heap>, def: ItemDef<'heap>) -> usize {
