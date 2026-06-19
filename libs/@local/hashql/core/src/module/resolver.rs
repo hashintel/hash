@@ -200,7 +200,7 @@ impl<'heap> Resolver<'_, 'heap> {
             });
         };
 
-        let module = self.registry.modules.index(module);
+        let module = self.registry.modules[module];
 
         if module.items.is_empty() {
             return Err(ResolutionError::ModuleEmpty { depth });
@@ -261,7 +261,7 @@ impl<'heap> Resolver<'_, 'heap> {
                 });
             };
 
-            module = self.registry.modules.index(next);
+            module = self.registry.modules[next];
         };
 
         match self.options.mode {
@@ -291,7 +291,7 @@ impl<'heap> Resolver<'_, 'heap> {
             return Err(ResolutionError::PackageNotFound {
                 depth: 0,
                 name,
-                suggestions: self.suggest(|| self.registry.suggestions()),
+                suggestions: self.suggest(|| self.registry.suggestions().collect()),
             });
         };
 
@@ -444,7 +444,7 @@ impl<'heap> Resolver<'_, 'heap> {
             });
         };
 
-        let module = self.registry.modules.index(module);
+        let module = self.registry.modules[module];
 
         if module.items.is_empty() {
             return Err(ResolutionError::ModuleEmpty { depth: 0 });
@@ -503,7 +503,7 @@ impl<'heap> Resolver<'_, 'heap> {
                 });
             };
 
-            let module = self.registry.modules.index(module);
+            let module = self.registry.modules[module];
             return self.resolve_impl(query, module);
         }
 
@@ -892,7 +892,7 @@ mod test {
         let registry = ModuleRegistry::new(&env);
 
         // Create an empty module and register it
-        let empty_module_id = registry.intern_module(|_| {
+        let empty_module_id = registry.insert_module(|_| {
             PartialModule {
                 name: heap.intern_symbol("empty_module"),
                 parent: ModuleId::ROOT,

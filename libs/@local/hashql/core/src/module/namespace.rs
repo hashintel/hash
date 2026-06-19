@@ -312,13 +312,9 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
     }
 
     fn import_modules(&mut self) {
-        let root = self
-            .registry
-            .root
-            .read()
-            .expect("should be able to lock registry");
+        let root = &self.registry.root;
 
-        for (&name, &module) in &*root {
+        for (&name, &module) in root {
             self.imports.push(Import {
                 name,
                 item: ImportReference::Item(Item {
@@ -688,7 +684,7 @@ mod tests {
         let mut namespace = ModuleNamespace::new(&registry);
         namespace.import_prelude();
 
-        let module = registry.intern_module(|id| PartialModule {
+        let module = registry.insert_module(|id| PartialModule {
             parent: ModuleId::ROOT,
             depth: const { NonZero::new(1).unwrap() },
             name: heap.intern_symbol("foo"),
@@ -981,7 +977,7 @@ mod tests {
             panic!("expected intrinsic value item");
         };
 
-        let custom_module = registry.intern_module(|id| PartialModule {
+        let custom_module = registry.insert_module(|id| PartialModule {
             parent: ModuleId::ROOT,
             depth: const { NonZero::new(1).unwrap() },
             name: heap.intern_symbol("custom"),
