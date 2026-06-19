@@ -76,9 +76,9 @@ pub struct PatchContext<'ctx, A: Allocator> {
 
 /// A composed patch chain that can be applied to a [`PreparedQuery`].
 ///
-/// Implemented by [`HNil`] (which materializes joins) and by
-/// [`HCons`] (which delegates to its head layer, passing the tail
-/// as the `next` continuation).
+/// The terminal element materializes all auxiliary joins; composite
+/// elements delegate to their head layer, passing the remaining
+/// chain as the `next` continuation.
 pub trait PatchPreparedQuery<A: Allocator, S: Allocator> {
     fn patch_query(
         &self,
@@ -182,11 +182,11 @@ where
 /// Builder for a [`PatchPreparedQueryLayer`] pipeline.
 ///
 /// Layers are added with [`layer`](Self::layer) and execute outermost-first:
-/// the last layer added runs first. The pipeline terminates at [`HNil`],
-/// which materializes all auxiliary joins accumulated by the layers.
+/// the last layer added runs first. The pipeline terminates by
+/// materializing all auxiliary joins accumulated by the layers.
 ///
 /// ```text
-/// PreparedQueryPatch::new()       // HNil (join materialization)
+/// PreparedQueryPatch::new()
 ///     .layer(authorization)       // runs first, calls next for joins
 ///     .apply(&mut query, scratch);
 /// ```
@@ -216,9 +216,8 @@ impl<T> PreparedQueryPatch<T> {
 
     /// Runs the full patch pipeline against `query`.
     ///
-    /// Constructs [`AuxiliaryProjections`] from the query's compiled
-    /// projections, then invokes the layer chain. The terminal [`HNil`]
-    /// materializes all registered auxiliary joins into the FROM clause.
+    /// May modify the query's statement and add auxiliary parameters
+    /// accessible through [`PreparedQuery::auxiliary_parameters`].
     pub fn apply<A: Allocator + Clone, S: Allocator>(self, query: &mut PreparedQuery<A>, scratch: S)
     where
         T: PatchPreparedQuery<A, S>,
