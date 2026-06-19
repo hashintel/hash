@@ -64,3 +64,7 @@ harness = false
 [[bench]]
 name    = "bit_matrix"
 harness = false
+
+[[bench]]
+name    = "stdlib"
+harness = false
