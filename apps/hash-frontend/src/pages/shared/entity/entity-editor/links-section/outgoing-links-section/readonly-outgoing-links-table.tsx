@@ -33,6 +33,7 @@ import {
   linksTableRowHeight,
   maxLinksTableHeight,
 } from "../shared/table-styling";
+import { linksTablePageSize } from "../use-entity-links";
 
 import type {
   CreateVirtualizedRowContentFn,
@@ -714,6 +715,15 @@ export const OutgoingLinksTable = memo(
       }));
     }, [filterValues, customColumns, serverSideSorting]);
 
+    /**
+     * Whether scrolling to the bottom may trigger a load of the next page. It is
+     * disarmed as soon as a load is triggered and only re-armed when the user
+     * starts scrolling again – so a single scroll to the bottom loads at most
+     * one page, and the user must scroll again to load more (rather than the
+     * table looping while the scroll position stays at the bottom).
+     */
+    const canLoadMoreRef = useRef(true);
+
     const height = Math.min(
       maxLinksTableHeight,
       rows.length * linksTableRowHeight + virtualizedTableHeaderHeight + 2,
@@ -739,12 +749,35 @@ export const OutgoingLinksTable = memo(
           createRowContent={createRowContent}
           filterDefinitions={serverSideSorting ? undefined : filterDefinitions}
           filterValues={serverSideSorting ? undefined : filterValues}
+          fixedItemHeight={linksTableRowHeight}
+          followOutput={false}
           loadingMore={loadingMore}
-          onEndReached={onEndReached}
+          onIsScrolling={(isScrolling) => {
+            if (isScrolling) {
+              canLoadMoreRef.current = true;
+            }
+          }}
+          onRangeChange={
+            onEndReached
+              ? ({ endIndex }) => {
+                  // Load the next page once the loaded rows scroll into view,
+                  // before the placeholder rows are reached.
+                  if (
+                    canLoadMoreRef.current &&
+                    !loadingMore &&
+                    endIndex >= rows.length - 1
+                  ) {
+                    canLoadMoreRef.current = false;
+                    onEndReached();
+                  }
+                }
+              : undefined
+          }
           setFilterValues={serverSideSorting ? undefined : setFilterValues}
           rows={rows}
           sort={sort}
           setSort={setSort}
+          increaseViewportBy={linksTablePageSize}
         />
       </Box>
     );

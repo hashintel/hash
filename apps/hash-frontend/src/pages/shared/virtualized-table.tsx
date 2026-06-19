@@ -165,6 +165,7 @@ type VirtualizedTableProps<
    */
   fixedItemHeight?: number;
   rows: VirtualizedTableRow<D>[];
+  increaseViewportBy?: number;
 } & TableSortProps<S> &
   Partial<TableFilterProps<FilteredIds>>;
 
@@ -193,6 +194,7 @@ export const VirtualizedTable = <
   setFilterValues,
   sort,
   setSort,
+  increaseViewportBy,
 }: VirtualizedTableProps<D, Sort, Id, Metadata, FilteredIds>) => {
   const fixedHeaderContent = useCallback(
     () =>
@@ -258,7 +260,7 @@ export const VirtualizedTable = <
         fixedFooterContent={fixedFooterContent}
         fixedHeaderContent={fixedHeaderContent}
         followOutput={followOutput}
-        increaseViewportBy={50}
+        increaseViewportBy={increaseViewportBy ?? 50}
         itemContent={createRowContent}
         overscan={{ main: 200, reverse: 200 }}
         style={heightStyle}

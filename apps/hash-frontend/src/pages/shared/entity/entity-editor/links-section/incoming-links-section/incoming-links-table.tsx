@@ -279,28 +279,10 @@ const TableRow = memo(({ row }: { row: IncomingLinkRow }) => {
   );
 });
 
-/**
- * A placeholder row standing in for a link that is part of the total count but
- * has not yet been fetched. These pad the scroll content out to the total link
- * count so the scrollbar reflects the full set, not just the loaded rows.
- */
-type PlaceholderRow = { placeholder: true };
-
-type IncomingLinkRowOrPlaceholder = IncomingLinkRow | PlaceholderRow;
-
 const createRowContent: CreateVirtualizedRowContentFn<
-  IncomingLinkRowOrPlaceholder,
+  IncomingLinkRow,
   FieldId
-> = (_index, row, { columns }) =>
-  "placeholder" in row.data ? (
-    <>
-      {columns.map((column) => (
-        <TableCell key={column.id} sx={linksTableCellSx} />
-      ))}
-    </>
-  ) : (
-    <TableRow row={row.data} />
-  );
+> = (_index, row) => <TableRow row={row.data} />;
 
 type IncomingLinksTableProps = {
   closedMultiEntityTypesDefinitions: ClosedMultiEntityTypesDefinitions;
@@ -327,13 +309,6 @@ type IncomingLinksTableProps = {
   sort?: VirtualizedTableSort<FieldId>;
   setSort?: (sort: VirtualizedTableSort<FieldId>) => void;
   slideContainerRef?: RefObject<HTMLDivElement | null>;
-  /**
-   * The total number of links matching the query, including those not yet
-   * loaded. When greater than the number of loaded links, the scroll content is
-   * padded with up to one page of placeholder rows so the scrollbar extends
-   * slightly past the loaded rows to indicate there is more to load.
-   */
-  totalLinkCount?: number;
 };
 
 export const IncomingLinksTable = memo(
@@ -353,7 +328,6 @@ export const IncomingLinksTable = memo(
     sort: controlledSort,
     setSort: controlledSetSort,
     slideContainerRef,
-    totalLinkCount,
   }: IncomingLinksTableProps) => {
     const [internalSort, setInternalSort] = useState<
       VirtualizedTableSort<FieldId>
@@ -746,46 +720,9 @@ export const IncomingLinksTable = memo(
         });
     }, [filterValues, serverSideSorting, sort, unsortedRows]);
 
-    /**
-     * Pad the scroll content with placeholder rows for not-yet-loaded links, so
-     * the scrollbar extends a little beyond the loaded rows to indicate there is
-     * more to load. These fill in as further pages load while scrolling (see
-     * `onRangeChange` below).
-     *
-     * The padding is capped at a single page rather than the full remaining
-     * total: because the query only supports sequential (cursor) pagination, we
-     * can't load an arbitrary middle window, so we don't allow scrolling far
-     * past the loaded rows.
-     */
-    const placeholderCount =
-      totalLinkCount === undefined
-        ? 0
-        : Math.min(
-            linksTablePageSize,
-            Math.max(0, totalLinkCount - incomingLinksAndSources.length),
-          );
-
-    const paddedRows = useMemo<
-      VirtualizedTableRow<IncomingLinkRowOrPlaceholder>[]
-    >(
-      () =>
-        placeholderCount === 0
-          ? rows
-          : [
-              ...rows,
-              ...Array.from({ length: placeholderCount }, (_, index) => ({
-                id: `placeholder-${index}`,
-                data: { placeholder: true } as const,
-              })),
-            ],
-      [placeholderCount, rows],
-    );
-
     const height = Math.min(
       maxLinksTableHeight,
-      paddedRows.length * linksTableRowHeight +
-        virtualizedTableHeaderHeight +
-        2,
+      rows.length * linksTableRowHeight + virtualizedTableHeaderHeight + 2,
     );
 
     const columns = useMemo(() => {
@@ -852,9 +789,10 @@ export const IncomingLinksTable = memo(
               : undefined
           }
           setFilterValues={serverSideSorting ? undefined : setFilterValues}
-          rows={paddedRows}
+          rows={rows}
           sort={sort}
           setSort={setSort}
+          increaseViewportBy={linksTablePageSize}
         />
       </Box>
     );
