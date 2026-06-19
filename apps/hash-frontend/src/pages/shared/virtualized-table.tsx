@@ -209,7 +209,11 @@ export const VirtualizedTable = <
       <tr>
         <td
           colSpan={columns?.length ?? 1}
-          style={{ padding: "8px 14px", textAlign: "center" }}
+          style={{
+            padding: "8px 14px",
+            textAlign: "center",
+            background: "linear-gradient(to top, #ffffff, transparent)",
+          }}
         >
           <CircularProgress size={16} />
         </td>
