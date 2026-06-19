@@ -76,6 +76,7 @@ pub struct Item<'heap> {
 }
 
 impl<'heap> Item<'heap> {
+    #[must_use]
     pub fn ancestors(
         &self,
         registry: &ModuleRegistry<'heap>,
