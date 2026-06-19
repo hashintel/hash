@@ -1,4 +1,5 @@
 import { Box, CircularProgress, Stack } from "@mui/material";
+import { useMemo, useState } from "react";
 
 import {
   getIncomingLinkAndSourceEntities,
@@ -13,8 +14,11 @@ import { LinksSectionEmptyState } from "../../shared/links-section-empty-state";
 import { IncomingLinksTable } from "./incoming-links-section/incoming-links-table";
 import { useEntityLinks } from "./use-entity-links";
 
+import type { VirtualizedTableSort } from "../../../virtualized-table/header/sort";
 import type { EntityEditorProps } from "../../entity-editor";
+import type { IncomingLinksFieldId } from "./incoming-links-section/incoming-links-table";
 import type { LinkEntityAndLeftEntity } from "@blockprotocol/graph";
+import type { EntityQuerySortingRecord } from "@local/hash-graph-client";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { NoisySystemTypeId } from "@local/hash-isomorphic-utils/graph-queries";
 
@@ -50,6 +54,38 @@ export const IncomingLinksSection = ({
   slideContainerRef,
 }: IncomingLinksSectionProps) => {
   /**
+   * When links are fetched here (paginated), sorting is applied server-side, so
+   * the sort state lives here in order to drive the query. The graph API can
+   * only sort the link entities by their own label (the API cannot sort by the
+   * source entity, and the link type column shows the inverse title which the
+   * API cannot sort by), so we default to – and only support – the link
+   * entity's label.
+   */
+  const [sort, setSort] = useState<VirtualizedTableSort<IncomingLinksFieldId>>({
+    fieldId: "link",
+    direction: "asc",
+  });
+
+  /**
+   * Translate the table sort into graph-query sorting paths, which apply to the
+   * query's root (the link entities). Only `link` (the link entity label) is
+   * sortable server-side.
+   */
+  const sortingPaths = useMemo<EntityQuerySortingRecord[] | undefined>(() => {
+    if (!selfFetchLinks) {
+      return undefined;
+    }
+
+    return [
+      {
+        path: ["label"],
+        ordering: sort.direction === "asc" ? "ascending" : "descending",
+        nulls: "last",
+      },
+    ];
+  }, [selfFetchLinks, sort.direction]);
+
+  /**
    * When the entity is readonly we fetch the link data here (paginated), so it
    * does not need to be part of the main entity query. When editable, the link
    * data is part of the editor subgraph and is not paginated. The noisy-type /
@@ -70,6 +106,7 @@ export const IncomingLinksSection = ({
     direction: "incoming",
     entityId: entity.metadata.recordId.entityId,
     skip: !selfFetchLinks,
+    sortingPaths,
   });
 
   if (
@@ -164,7 +201,10 @@ export const IncomingLinksSection = ({
           onEndReached={selfFetchLinks && hasMore ? loadMore : undefined}
           onEntityClick={onEntityClick}
           onTypeClick={onTypeClick}
+          serverSideSorting={selfFetchLinks}
+          setSort={selfFetchLinks ? setSort : undefined}
           slideContainerRef={slideContainerRef}
+          sort={selfFetchLinks ? sort : undefined}
           totalLinkCount={selfFetchLinks ? fetchedCount : undefined}
         />
       ) : (
