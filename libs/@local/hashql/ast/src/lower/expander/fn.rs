@@ -146,7 +146,7 @@ where
 
     {
         let diagnostics = &mut expander.diagnostics;
-        expander.scratch.scoped(|scratch| {
+        expander.scratch.scoped_mut(|scratch| {
             let mut seen = fast_hash_map_with_capacity_in(generics.params.len(), scratch);
 
             generics.params.retain(|param| {
@@ -207,7 +207,7 @@ where
 
     {
         let diagnostics = &mut expander.diagnostics;
-        expander.scratch.scoped(|scratch| {
+        expander.scratch.scoped_mut(|scratch| {
             let mut seen = fast_hash_map_with_capacity_in(params.len(), scratch);
 
             params.retain(|param| {

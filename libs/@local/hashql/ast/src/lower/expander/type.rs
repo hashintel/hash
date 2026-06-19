@@ -311,7 +311,7 @@ where
     {
         // Generic constraints _may_ be recursive. To allow for that we must put the name of the
         // ident into view before we do anything
-        let constraints = expander.scratch.scoped(|scratch| {
+        let constraints = expander.scratch.scoped_mut(|scratch| {
             path_arguments_to_constraints_unvalidated(
                 expander.heap,
                 scratch,
