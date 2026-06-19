@@ -319,6 +319,10 @@ export const Entity = ({
       setDraftLinksToCreate([]);
       setDraftLinksToArchive([]);
 
+      setIncludeLinkDataInQuery(
+        !!data.queryEntitySubgraph.entityPermissions?.[entityId]?.update,
+      );
+
       setLoading(false);
     },
     variables: {
@@ -586,7 +590,7 @@ export const Entity = ({
       {isQueryEntity && shouldShowQueryEditor ? (
         <QueryEditor
           {...draftEntityTypesDetails}
-          selfFetchLinks={true}
+          selfFetchLinks={isReadOnly && !proposedEntitySubgraph}
           draftLinksToCreate={draftLinksToCreate}
           draftLinksToArchive={draftLinksToArchive}
           entityLabel={entityLabel}
@@ -711,7 +715,7 @@ export const Entity = ({
             <EntityEditor
               defaultOutgoingLinkFilters={defaultOutgoingLinkFilters}
               {...draftEntityTypesDetails}
-              selfFetchLinks={true}
+              selfFetchLinks={isReadOnly && !proposedEntitySubgraph}
               draftLinksToCreate={draftLinksToCreate}
               draftLinksToArchive={draftLinksToArchive}
               entityLabel={entityLabel}
