@@ -2,7 +2,7 @@ use core::alloc::Allocator;
 
 use crate::{
     module::std_lib::{
-        ItemDef, ModuleCache, ModuleDef, StandardLibraryContext, StandardLibraryModule,
+        CacheId, ItemDef, ModuleCache, ModuleDef, StandardLibraryContext, StandardLibraryModule,
     },
     symbol::{Symbol, sym},
 };
@@ -29,6 +29,8 @@ impl<'heap> StandardLibraryModule<'heap> for Graph {
         self::tmp::Tmp,
         self::types::Types,
     );
+
+    const CACHE_ID: CacheId = CacheId::Graph;
 
     fn name() -> Symbol<'heap> {
         sym::graph

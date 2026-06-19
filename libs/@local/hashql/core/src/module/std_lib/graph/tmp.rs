@@ -1,10 +1,12 @@
 use core::alloc::Allocator;
 
 use crate::{
+    intern::Interned,
     module::{
         locals::TypeDef,
         std_lib::{
-            self, ModuleCache, ModuleDef, StandardLibraryContext, StandardLibraryModule, core::func,
+            self, CacheId, ModuleCache, ModuleDef, StandardLibraryContext, StandardLibraryModule,
+            core::func,
         },
     },
     symbol::{Symbol, sym},
@@ -17,6 +19,8 @@ pub(in crate::module::std_lib) struct Tmp {
 
 impl<'heap> StandardLibraryModule<'heap> for Tmp {
     type Children = ();
+
+    const CACHE_ID: CacheId = CacheId::GraphTmp;
 
     fn name() -> Symbol<'heap> {
         sym::tmp
@@ -41,7 +45,7 @@ impl<'heap> StandardLibraryModule<'heap> for Tmp {
                 id: context
                     .ty
                     .closure([] as [TypeId; 0], query_temporal_axes_ty.id),
-                arguments: context.ty.env.intern_generic_argument_references(&[]),
+                arguments: Interned::empty(),
             },
         );
 

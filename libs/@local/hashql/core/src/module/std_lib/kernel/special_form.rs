@@ -1,10 +1,13 @@
 use core::alloc::Allocator;
 
 use crate::{
+    intern::Interned,
     module::{
         item::IntrinsicValueItem,
         locals::TypeDef,
-        std_lib::{ItemDef, ModuleCache, ModuleDef, StandardLibraryContext, StandardLibraryModule},
+        std_lib::{
+            CacheId, ItemDef, ModuleCache, ModuleDef, StandardLibraryContext, StandardLibraryModule,
+        },
     },
     symbol::{Symbol, sym},
 };
@@ -23,7 +26,7 @@ impl SpecialForm {
             name: path,
             r#type: TypeDef {
                 id: context.ty.never(),
-                arguments: context.ty.env.intern_generic_argument_references(&[]),
+                arguments: Interned::empty(),
             },
         };
 
@@ -33,6 +36,8 @@ impl SpecialForm {
 
 impl<'heap> StandardLibraryModule<'heap> for SpecialForm {
     type Children = ();
+
+    const CACHE_ID: CacheId = CacheId::KernelSpecialForm;
 
     fn name() -> Symbol<'heap> {
         sym::special_form

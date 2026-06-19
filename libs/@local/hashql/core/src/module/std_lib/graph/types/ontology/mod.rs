@@ -2,7 +2,8 @@ use core::alloc::Allocator;
 
 use crate::{
     module::std_lib::{
-        self, ItemDef, ModuleCache, ModuleDef, StandardLibraryContext, StandardLibraryModule,
+        self, CacheId, ItemDef, ModuleCache, ModuleDef, StandardLibraryContext,
+        StandardLibraryModule,
     },
     symbol::{Symbol, sym},
 };
@@ -65,6 +66,8 @@ pub(in crate::module::std_lib) struct Ontology {
 
 impl<'heap> StandardLibraryModule<'heap> for Ontology {
     type Children = (self::entity_type::EntityType,);
+
+    const CACHE_ID: CacheId = CacheId::GraphTypesOntology;
 
     fn name() -> Symbol<'heap> {
         sym::ontology

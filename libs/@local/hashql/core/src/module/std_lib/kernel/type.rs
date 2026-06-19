@@ -3,7 +3,9 @@ use core::alloc::Allocator;
 use crate::{
     module::{
         item::IntrinsicTypeItem,
-        std_lib::{ItemDef, ModuleCache, ModuleDef, StandardLibraryContext, StandardLibraryModule},
+        std_lib::{
+            CacheId, ItemDef, ModuleCache, ModuleDef, StandardLibraryContext, StandardLibraryModule,
+        },
     },
     symbol::{Symbol, sym},
     r#type::TypeId,
@@ -35,6 +37,8 @@ impl Type {
 
 impl<'heap> StandardLibraryModule<'heap> for Type {
     type Children = ();
+
+    const CACHE_ID: CacheId = CacheId::KernelType;
 
     fn name() -> Symbol<'heap> {
         sym::r#type

@@ -2,8 +2,8 @@ use core::alloc::Allocator;
 
 use crate::{
     module::std_lib::{
-        self, ItemDef, ModuleCache, ModuleDef, StandardLibraryContext, StandardLibraryModule,
-        core::option::types::option,
+        self, CacheId, ItemDef, ModuleCache, ModuleDef, StandardLibraryContext,
+        StandardLibraryModule, core::option::types::option,
     },
     symbol::{Symbol, sym},
 };
@@ -17,6 +17,8 @@ pub(in crate::module::std_lib) struct EntityType {
 
 impl<'heap> StandardLibraryModule<'heap> for EntityType {
     type Children = ();
+
+    const CACHE_ID: CacheId = CacheId::GraphTypesOntologyEntityType;
 
     fn name() -> Symbol<'heap> {
         sym::entity_type

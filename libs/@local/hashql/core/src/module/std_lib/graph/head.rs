@@ -4,7 +4,7 @@ use crate::{
     module::{
         locals::TypeDef,
         std_lib::{
-            self, ModuleCache, ModuleDef, StandardLibraryContext, StandardLibraryModule,
+            self, CacheId, ModuleCache, ModuleDef, StandardLibraryContext, StandardLibraryModule,
             core::func, decl,
         },
     },
@@ -21,6 +21,8 @@ pub(in crate::module::std_lib) struct Head {
 
 impl<'heap> StandardLibraryModule<'heap> for Head {
     type Children = ();
+
+    const CACHE_ID: CacheId = CacheId::GraphHead;
 
     fn name() -> Symbol<'heap> {
         sym::head

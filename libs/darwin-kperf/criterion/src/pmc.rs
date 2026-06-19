@@ -145,6 +145,9 @@ impl Drop for HardwareCounter {
         // drop order is field declaration order), and we are the sole owner.
         // No ThreadSampler will be running after this point.
         let _result = unsafe { SAMPLER.release() };
+
+        // The sampler can now be acquired again.
+        SAMPLER_ACQUIRED.store(false, Ordering::SeqCst);
     }
 }
 
