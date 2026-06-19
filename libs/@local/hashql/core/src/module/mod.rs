@@ -38,6 +38,23 @@ impl ModuleId {
     pub const ROOT: Self = Self::MAX;
 }
 
+/// A builder for constructing a [`ModuleRegistry`].
+///
+/// Collects module definitions during construction (e.g. stdlib registration) and produces
+/// an immutable [`ModuleRegistry`] via [`finish`].
+///
+/// The typical construction sequence is:
+/// 1. Create with [`new_in`]
+/// 2. Provision module IDs with [`provision_module`]
+/// 3. Insert fully built modules with [`insert_module`]
+/// 4. Register root-level modules with [`register`]
+/// 5. Finalize into a [`ModuleRegistry`] with [`finish`]
+///
+/// [`new_in`]: Self::new_in
+/// [`provision_module`]: Self::provision_module
+/// [`insert_module`]: Self::insert_module
+/// [`register`]: Self::register
+/// [`finish`]: Self::finish
 pub struct PartialModuleRegistry<'heap, S: Allocator> {
     heap: &'heap Heap,
     modules: IdVec<ModuleId, Option<Module<'heap>>, S>,
@@ -54,16 +71,22 @@ impl<'heap, S: Allocator> PartialModuleRegistry<'heap, S> {
         }
     }
 
+    /// Reserves a fresh [`ModuleId`] that can be referenced by child items before the
+    /// module itself is inserted.
     pub fn provision_module(&mut self) -> ModuleId {
         self.modules.push(None)
     }
 
-    /// Interns a new module into the registry.
+    /// Inserts a fully constructed module into the registry.
+    ///
+    /// The module's `id` must have been previously obtained from [`provision_module`].
     ///
     /// # Panics
     ///
-    /// In debug builds, this function will panic if any item in the module has a parent
-    /// that doesn't match the module ID.
+    /// In debug builds, panics if any item in the module references a different module ID
+    /// than the one being inserted, or if child module metadata is inconsistent.
+    ///
+    /// [`provision_module`]: Self::provision_module
     pub fn insert_module(&mut self, module: Module<'heap>) {
         #[cfg(debug_assertions)]
         {
@@ -88,11 +111,13 @@ impl<'heap, S: Allocator> PartialModuleRegistry<'heap, S> {
         debug_assert!(value.is_none());
     }
 
-    /// Register a new module in the root namespace.
+    /// Registers a module in the root namespace, making it accessible by name.
     ///
     /// # Panics
     ///
-    /// This function will panic if the internal `RwLock` is poisoned.
+    /// Panics if the module has not been inserted via [`insert_module`].
+    ///
+    /// [`insert_module`]: Self::insert_module
     pub fn register(&mut self, module: ModuleId) {
         let module = self
             .modules
@@ -104,6 +129,13 @@ impl<'heap, S: Allocator> PartialModuleRegistry<'heap, S> {
         self.root.insert(module.name, module.id);
     }
 
+    /// Finalizes the builder into an immutable [`ModuleRegistry`].
+    ///
+    /// # Panics
+    ///
+    /// Panics if any provisioned module ID was never populated via [`insert_module`].
+    ///
+    /// [`insert_module`]: Self::insert_module
     #[expect(unsafe_code)]
     pub fn finish(self, heap: &'heap Heap) -> ModuleRegistry<'heap> {
         assert!(
@@ -146,6 +178,16 @@ pub struct ModuleRegistry<'heap> {
 }
 
 impl<'heap> ModuleRegistry<'heap> {
+    /// Creates a new module registry with the standard library pre-loaded.
+    ///
+    /// This initializes the registry with all the standard modules and items
+    /// defined in the standard library, using the global allocator for scratch space.
+    pub fn new(env: &Environment<'heap>) -> Self {
+        Self::new_in(env, alloc::alloc::Global)
+    }
+
+    /// Creates a new module registry with the standard library pre-loaded, using `scratch`
+    /// for temporary allocations during construction.
     pub fn new_in<S: Allocator + Clone>(env: &Environment<'heap>, scratch: S) -> Self {
         let mut partial = PartialModuleRegistry::new_in(env.heap, scratch.clone());
 
@@ -155,11 +197,7 @@ impl<'heap> ModuleRegistry<'heap> {
         partial.finish(env.heap)
     }
 
-    /// Find an item by name in the root namespace.
-    ///
-    /// # Panics
-    ///
-    /// This function will panic if the internal `RwLock` is poisoned.
+    /// Looks up a root-level module by name.
     #[must_use]
     pub fn find_by_name(&self, name: Symbol<'heap>) -> Option<Module<'heap>> {
         let id = self.root.get(&name).copied()?;
@@ -387,5 +425,51 @@ impl HasId for Module<'_> {
 
     fn id(&self) -> Self::Id {
         self.id
+    }
+}
+
+#[cfg(test)]
+impl<'heap> ModuleRegistry<'heap> {
+    /// Creates a partially built registry with the stdlib loaded.
+    ///
+    /// Returns a `PartialModuleRegistry` that can be further customized (e.g. by inserting
+    /// test modules) before calling [`PartialModuleRegistry::finish`].
+    pub(crate) fn builder(
+        env: &Environment<'heap>,
+    ) -> PartialModuleRegistry<'heap, alloc::alloc::Global> {
+        use alloc::alloc::Global;
+
+        let mut partial = PartialModuleRegistry::new_in(env.heap, Global);
+
+        let mut std = StandardLibrary::new(env, &mut partial, Global);
+        std.register();
+
+        partial
+    }
+}
+
+#[cfg(test)]
+impl<'heap, S: Allocator> PartialModuleRegistry<'heap, S> {
+    /// Inserts a root-level module with the given name and items.
+    ///
+    /// This is a test helper that provisions a module ID, passes it to the `items` closure
+    /// so items can reference their owning module, then inserts and registers the module.
+    pub(crate) fn insert_root_module(
+        &mut self,
+        name: Symbol<'heap>,
+        items: impl FnOnce(ModuleId) -> &'heap [Item<'heap>],
+    ) -> ModuleId {
+        let id = self.provision_module();
+
+        self.insert_module(Module {
+            id,
+            name,
+            parent: ModuleId::ROOT,
+            depth: const { NonZero::new(1).unwrap() },
+            items: items(id),
+        });
+        self.register(id);
+
+        id
     }
 }
