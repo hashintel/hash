@@ -130,40 +130,11 @@ type VirtualizedTableProps<
   columns?: VirtualizedTableColumn<Id, M>[];
   fixedColumns?: number;
   EmptyPlaceholder?: () => ReactElement;
-  /**
-   * Called when the user scrolls to the end of the loaded rows, for fetching
-   * the next page of data.
-   */
   onEndReached?: () => void;
-  /**
-   * Called when the visible row range changes. Useful for triggering paged
-   * loading before the very end of the data is reached (e.g. when the scroll
-   * content is padded with placeholder rows up to a known total count).
-   */
   onRangeChange?: (range: ListRange) => void;
-  /**
-   * Called when the user starts (`true`) or stops (`false`) scrolling. Useful
-   * for gating paged loading to deliberate user scrolls.
-   */
   onIsScrolling?: (isScrolling: boolean) => void;
-  /**
-   * Auto-scroll behaviour when new rows are appended to the end. Defaults to
-   * `"smooth"`. Set to `false` for paged tables, where appending a page should
-   * not pull the viewport down to the new bottom.
-   */
   followOutput?: FollowOutput;
-  /**
-   * Whether a further page is currently being fetched – shows a loading
-   * indicator at the foot of the table.
-   */
   loadingMore?: boolean;
-  /**
-   * When all rows are the same known height, set this so virtuoso uses it
-   * directly instead of measuring each row. This avoids the scroll position
-   * recalculating (and jumping) when placeholder rows are swapped for loaded
-   * data of a slightly different measured height.
-   */
-  fixedItemHeight?: number;
   rows: VirtualizedTableRow<D>[];
   increaseViewportBy?: number;
 } & TableSortProps<S> &
@@ -187,7 +158,6 @@ export const VirtualizedTable = <
   onIsScrolling,
   followOutput = "smooth",
   loadingMore,
-  fixedItemHeight,
   rows,
   filterDefinitions,
   filterValues,
@@ -256,7 +226,6 @@ export const VirtualizedTable = <
         endReached={onEndReached}
         rangeChanged={onRangeChange}
         isScrolling={onIsScrolling}
-        fixedItemHeight={fixedItemHeight}
         fixedFooterContent={fixedFooterContent}
         fixedHeaderContent={fixedHeaderContent}
         followOutput={followOutput}
