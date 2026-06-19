@@ -22,34 +22,33 @@ impl<'heap> StandardLibraryModule<'heap> for EntityType {
 
     fn define(lib: &mut StandardLibrary<'_, 'heap>) -> ModuleDef<'heap> {
         let mut def = ModuleDef::new();
-        let heap = lib.heap;
 
         // newtype EntityTypeMetadata = (web_id: Option<WebId>)
         let web_id = lib
             .manifest::<std_lib::graph::types::principal::actor_group::web::Web>()
-            .expect_newtype(heap.intern_symbol("WebId"));
+            .expect_newtype(sym::WebId);
         let entity_type_metadata_ty = lib.ty.opaque(
-            "::graph::types::ontology::entity_type::EntityTypeMetadata",
-            lib.ty.r#struct([("web_id", option(&lib.ty, web_id.id))]),
+            sym::path::graph::types::ontology::entity_type::EntityTypeMetadata,
+            lib.ty.r#struct([(sym::web_id, option(&lib.ty, web_id.id))]),
         );
         def.push(
-            heap.intern_symbol("EntityTypeMetadata"),
+            sym::EntityTypeMetadata,
             ItemDef::newtype(lib.ty.env, entity_type_metadata_ty, &[]),
         );
 
         // newtype EntityType = (id: VersionedUrl, metadata: EntityTypeMetadata)
         let versioned_url = lib
             .manifest::<std_lib::graph::types::ontology::Ontology>()
-            .expect_newtype(heap.intern_symbol("VersionedUrl"));
+            .expect_newtype(sym::VersionedUrl);
         let entity_id_ty = lib.ty.opaque(
-            "::graph::types::ontology::entity_type::EntityType",
+            sym::path::graph::types::ontology::entity_type::EntityType,
             lib.ty.r#struct([
-                ("id", versioned_url.id),
-                ("metadata", entity_type_metadata_ty),
+                (sym::id, versioned_url.id),
+                (sym::metadata, entity_type_metadata_ty),
             ]),
         );
         def.push(
-            heap.intern_symbol("EntityType"),
+            sym::EntityType,
             ItemDef::newtype(lib.ty.env, entity_id_ty, &[]),
         );
 

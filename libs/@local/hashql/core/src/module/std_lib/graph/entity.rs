@@ -27,20 +27,19 @@ impl<'heap> StandardLibraryModule<'heap> for Entity {
 
     fn define(lib: &mut StandardLibrary<'_, 'heap>) -> ModuleDef<'heap> {
         let mut def = ModuleDef::new();
-        let heap = lib.heap;
 
         let mut entity_ty = lib
             .manifest::<std_lib::graph::types::knowledge::entity::Entity>()
-            .expect_newtype(heap.intern_symbol("Entity"));
+            .expect_newtype(sym::Entity);
         entity_ty.instantiate(&mut lib.instantiate);
 
         let versioned_url_ty = lib
             .manifest::<std_lib::graph::types::ontology::Ontology>()
-            .expect_newtype(heap.intern_symbol("VersionedUrl"));
+            .expect_newtype(sym::VersionedUrl);
 
         let json_path_ty = lib
             .manifest::<std_lib::core::json::Json>()
-            .expect_type(heap.intern_symbol("JsonPath"));
+            .expect_type(sym::JsonPath);
 
         // `is_of_type<T>(entity: Entity<T>, depth: Integer, type: VersionedUrl) -> Boolean`
         // see: https://linear.app/hash/issue/H-4741/hashql-support-for-type-guards
