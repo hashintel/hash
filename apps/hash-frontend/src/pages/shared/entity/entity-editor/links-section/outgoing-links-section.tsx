@@ -192,24 +192,22 @@ export const OutgoingLinksSection = ({
   }
 
   let outgoingLinksAndTargets: LinkEntityAndRightEntity[] | null = null;
-  if (readonly) {
-    outgoingLinksAndTargets = selfFetchLinks
-      ? linkEntities!.map((linkEntity) => ({
-          linkEntity: [linkEntity],
-          rightEntity:
-            getRightEntityForLinkEntity(
-              entitySubgraph,
-              linkEntity.metadata.recordId.entityId,
-            ) ?? [],
-        }))
-      : getOutgoingLinkAndTargetEntities(
-          entitySubgraph,
-          entity.metadata.recordId.entityId,
-          entity.metadata.temporalVersioning[
-            entitySubgraph.temporalAxes.resolved.variable.axis
-          ],
-        );
-  }
+  outgoingLinksAndTargets = selfFetchLinks
+    ? linkEntities!.map((linkEntity) => ({
+        linkEntity: [linkEntity],
+        rightEntity:
+          getRightEntityForLinkEntity(
+            entitySubgraph,
+            linkEntity.metadata.recordId.entityId,
+          ) ?? [],
+      }))
+    : getOutgoingLinkAndTargetEntities(
+        entitySubgraph,
+        entity.metadata.recordId.entityId,
+        entity.metadata.temporalVersioning[
+          entitySubgraph.temporalAxes.resolved.variable.axis
+        ],
+      );
 
   return (
     <SectionWrapper
@@ -235,7 +233,7 @@ export const OutgoingLinksSection = ({
         </Stack>
       }
     >
-      {rows.length && !readonly ? (
+      {rows.length && !readonly && !selfFetchLinks ? (
         <Paper sx={{ overflow: "hidden" }}>
           <Grid
             columns={linkGridColumns}
