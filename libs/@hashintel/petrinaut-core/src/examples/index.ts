@@ -1,6 +1,11 @@
+export { airportTerminalsSDCPN } from "./airport-terminals";
 export { productionMachines } from "./production-with-machine-failure";
 export { deploymentPipelineSDCPN } from "./deployment-pipeline";
 export { hospitalNetworkSDCPN } from "./hospital-network";
+export { manufacturingPipelineSDCPN } from "./manufacturing-pipeline";
 export { probabilisticSatellitesSDCPN } from "./satellites-launcher";
+export { retailSupplyChainSDCPN } from "./retail-supply-chain";
 export { sirModel } from "./sir-model";
 export { supplyChainWithDisruption } from "./supply-chain-with-disruption";
+export { taskWorkerPoolSDCPN } from "./task-worker-pool";
+export { powerGenerationGridSDCPN } from "./power-generation-grid";

@@ -4,12 +4,17 @@ import { type MenuItem } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import { calculateGraphLayout, type SDCPN } from "@hashintel/petrinaut-core";
 import {
+  airportTerminalsSDCPN,
   deploymentPipelineSDCPN,
   hospitalNetworkSDCPN,
+  manufacturingPipelineSDCPN,
+  powerGenerationGridSDCPN,
   probabilisticSatellitesSDCPN,
   productionMachines,
+  retailSupplyChainSDCPN,
   sirModel,
   supplyChainWithDisruption,
+  taskWorkerPoolSDCPN,
 } from "@hashintel/petrinaut-core/examples";
 
 import { usePetrinautCommands } from "../../../react";
@@ -114,6 +119,7 @@ export const EditorView = ({
   // Get data from sdcpn-store
   const {
     createNewNet,
+    extensions,
     existingNets,
     loadPetriNet,
     petriNetDefinition,
@@ -326,52 +332,114 @@ export const EditorView = ({
             text: "Load example",
             subItems: [
               {
-                id: "load-example-supply-chain-stochastic",
-                text: "Supply Chain with Disruption",
-                onClick: () => {
-                  createNewNet(supplyChainWithDisruption);
-                  clearSelection();
-                },
+                id: "group-getting-started",
+                label: "Getting started",
+                items: [
+                  {
+                    id: "load-example-sir-model",
+                    text: "SIR Model",
+                    onClick: () => {
+                      createNewNet(sirModel);
+                      clearSelection();
+                    },
+                  },
+                ],
               },
               {
-                id: "load-example-probabilistic-satellites",
-                text: "Probabilistic Satellite Launcher",
-                onClick: () => {
-                  createNewNet(probabilisticSatellitesSDCPN);
-                  clearSelection();
-                },
+                id: "group-stochastic",
+                label: "Stochastic",
+                items: [
+                  {
+                    id: "load-example-deployment-pipeline",
+                    text: "Deployment Pipeline",
+                    onClick: () => {
+                      createNewNet(deploymentPipelineSDCPN);
+                      clearSelection();
+                    },
+                  },
+                  {
+                    id: "load-example-production-machines",
+                    text: "Production with Machine Failure",
+                    onClick: () => {
+                      createNewNet(productionMachines);
+                      clearSelection();
+                    },
+                  },
+                  {
+                    id: "load-example-supply-chain-stochastic",
+                    text: "Supply Chain with Disruption",
+                    onClick: () => {
+                      createNewNet(supplyChainWithDisruption);
+                      clearSelection();
+                    },
+                  },
+                  {
+                    id: "load-example-probabilistic-satellites",
+                    text: "Probabilistic Satellite Launcher",
+                    onClick: () => {
+                      createNewNet(probabilisticSatellitesSDCPN);
+                      clearSelection();
+                    },
+                  },
+                ],
               },
               {
-                id: "load-example-production-machines",
-                text: "Production with Machine Failure",
-                onClick: () => {
-                  createNewNet(productionMachines);
-                  clearSelection();
-                },
-              },
-              {
-                id: "load-example-sir-model",
-                text: "SIR Model",
-                onClick: () => {
-                  createNewNet(sirModel);
-                  clearSelection();
-                },
-              },
-              {
-                id: "load-example-deployment-pipeline",
-                text: "Deployment Pipeline",
-                onClick: () => {
-                  createNewNet(deploymentPipelineSDCPN);
-                  clearSelection();
-                },
-              },
-              {
-                id: "load-example-hospital-network",
-                text: "Hospital Network with Subnet",
-                onClick: () => {
-                  createNewNet(hospitalNetworkSDCPN);
-                  clearSelection();
-                },
+                id: "group-subnets",
+                label: "Subnets",
+                items: [
+                  {
+                    id: "load-example-hospital-network",
+                    text: "Hospital Network",
+                    onClick: () => {
+                      createNewNet(hospitalNetworkSDCPN);
+                      clearSelection();
+                    },
+                  },
+                  ...(extensions.subnets
+                    ? [
+                        {
+                          id: "load-example-manufacturing-pipeline",
+                          text: "Manufacturing Pipeline",
+                          onClick: () => {
+                            createNewNet(manufacturingPipelineSDCPN);
+                            clearSelection();
+                          },
+                        },
+                        {
+                          id: "load-example-task-worker-pool",
+                          text: "Task Worker Pool",
+                          onClick: () => {
+                            createNewNet(taskWorkerPoolSDCPN);
+                            clearSelection();
+                          },
+                        },
+                        {
+                          id: "load-example-airport-terminals",
+                          text: "Airport Terminals",
+                          onClick: () => {
+                            createNewNet(airportTerminalsSDCPN);
+                            clearSelection();
+                          },
+                        },
+                        {
+                          id: "load-example-retail-supply-chain",
+                          text: "Retail Supply Chain",
+                          onClick: () => {
+                            createNewNet(retailSupplyChainSDCPN);
+                            clearSelection();
+                          },
+                        },
+                        {
+                          id: "load-example-power-generation-grid",
+                          text: "Power Generation Grid",
+                          onClick: () => {
+                            createNewNet(powerGenerationGridSDCPN);
+                            clearSelection();
+                          },
+                        },
+                      ]
+                    : []),
+                ],
               },
             ],
           },
