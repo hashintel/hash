@@ -68,7 +68,11 @@ export const createCheckpoint = async (
 
   const temporalClient = await getTemporalClient();
 
-  const { workflowId, runId } = Context.current().info.workflowExecution;
+  const { workflowId, runId } = Context.current().info.workflowExecution ?? {};
+
+  if (!workflowId) {
+    return;
+  }
 
   const handle = temporalClient.workflow.getHandle(workflowId, runId);
 
@@ -81,7 +85,11 @@ export const createCheckpoint = async (
 };
 
 export const getCheckpoint = async () => {
-  const { workflowId } = Context.current().info.workflowExecution;
+  const { workflowId } = Context.current().info.workflowExecution ?? {};
+
+  if (!workflowId) {
+    return;
+  }
 
   const temporalClient = await getTemporalClient();
   const handle = temporalClient.workflow.getHandle(workflowId);
