@@ -175,9 +175,6 @@ export const ArrayEditor: ValueCellEditorComponent = ({
         value,
       ];
 
-      // Cast to the non-draft `PropertyRow` to avoid immer's `Draft<T>`
-      // recursively expanding the deeply-recursive `PropertyMetadata` type,
-      // which trips TS2589 ("Type instantiation is excessively deep").
       (draftCell.data.propertyRow as PropertyRow).valueMetadata =
         propertyMetadata;
     });
@@ -203,7 +200,6 @@ export const ArrayEditor: ValueCellEditorComponent = ({
         .filter((_, index) => indexToRemove !== index)
         .map(({ value }) => value);
 
-      // See the note in `addItem` re: the `PropertyRow` cast (TS2589).
       (draftCell.data.propertyRow as PropertyRow).valueMetadata =
         propertyMetadata;
     });
@@ -244,7 +240,6 @@ export const ArrayEditor: ValueCellEditorComponent = ({
 
       const newMetadata = arrayMove(valueMetadata.value, oldIndex, newIndex);
 
-      // See the note in `addItem` re: the `PropertyRow` cast (TS2589).
       (draftCell.data.propertyRow as PropertyRow).valueMetadata = {
         ...valueMetadata,
         value: newMetadata,

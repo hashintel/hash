@@ -146,9 +146,6 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
       });
 
       const newCell = produce(cell, (draftCell) => {
-        // Cast to the non-draft `PropertyRow` to avoid immer's `Draft<T>`
-        // recursively expanding the deeply-recursive `PropertyMetadata` type,
-        // which trips TS2589 ("Type instantiation is excessively deep").
         (draftCell.data.propertyRow as PropertyRow).valueMetadata =
           propertyMetadata;
       });
