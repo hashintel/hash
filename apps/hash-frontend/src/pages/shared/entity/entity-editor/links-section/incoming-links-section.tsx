@@ -97,7 +97,7 @@ export const IncomingLinksSection = ({
     loadingMore,
     loadMore,
     hasMore,
-    count: fetchedCount,
+    count: totalCount,
     error,
     linkEntities,
     subgraph: fetchedSubgraph,
@@ -221,7 +221,7 @@ export const IncomingLinksSection = ({
     : editorDefinitions;
 
   const linkCount = readonly
-    ? (fetchedCount ?? incomingLinksAndSources.length)
+    ? (totalCount ?? incomingLinksAndSources.length)
     : incomingLinksAndSources.length;
 
   if (linkCount === 0 && isLinkEntity) {

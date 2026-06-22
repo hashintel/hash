@@ -123,7 +123,7 @@ export const OutgoingLinksSection = ({
     loadingMore,
     loadMore,
     hasMore,
-    count: fetchedCount,
+    count: totalCount,
     error,
     linkEntities,
     subgraph: fetchedSubgraph,
@@ -285,7 +285,7 @@ export const OutgoingLinksSection = ({
       );
 
   const linkCount = readonly
-    ? (fetchedCount ?? linkEntities!.length)
+    ? (totalCount ?? linkEntities!.length)
     : outgoingLinks!.length;
 
   if (linkCount === 0 && isLinkEntity) {
