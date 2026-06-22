@@ -48,6 +48,7 @@ pub(crate) fn entity_property_access_body<'heap>(
         r#type: entity(&builder, builder.unknown(), None),
         name: Some(sym::entity),
     });
+    // TODO: we have a json path for exactly this
     local_decls.push(LocalDecl {
         span,
         r#type: builder.list(builder.union([builder.string(), builder.integer()])),
