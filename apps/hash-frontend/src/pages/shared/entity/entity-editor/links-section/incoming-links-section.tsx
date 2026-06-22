@@ -1,11 +1,12 @@
 import { Box, CircularProgress, Stack } from "@mui/material";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import {
   getIncomingLinkAndSourceEntities,
   getLeftEntityForLinkEntity,
 } from "@blockprotocol/graph/stdlib";
 import { Callout, Chip } from "@hashintel/design-system";
+import { getClosedMultiEntityTypeFromMap } from "@local/hash-graph-sdk/entity";
 import { noisySystemTypeIds } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
@@ -13,11 +14,13 @@ import { SectionWrapper } from "../../../section-wrapper";
 import { LinksSectionEmptyState } from "../../shared/links-section-empty-state";
 import { IncomingLinksTable } from "./incoming-links-section/incoming-links-table";
 import { useEntityLinks } from "./use-entity-links";
+import { useLinkTypeFilter } from "./use-link-type-filter";
 
 import type { VirtualizedTableSort } from "../../../virtualized-table/header/sort";
 import type { EntityEditorProps } from "../../entity-editor";
 import type { IncomingLinksFieldId } from "./incoming-links-section/incoming-links-table";
 import type { LinkEntityAndLeftEntity } from "@blockprotocol/graph";
+import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { NoisySystemTypeId } from "@local/hash-isomorphic-utils/graph-queries";
 
@@ -66,6 +69,22 @@ export const IncomingLinksSection = ({
   });
 
   /**
+   * The link table can be filtered by link type in both cases. The filter state
+   * and options live here so the selection can be passed to the table's header
+   * and applied: server-side (`filterTypeIds` → the paginated query) when
+   * readonly, and client-side (filtering the editor links below) when editable.
+   * `filterTypeIds` derives only from this hook's state, so feeding it into
+   * `useEntityLinks` below does not create a render cycle.
+   */
+  const {
+    captureLinkTypeOptions,
+    filterDefinitions,
+    filterValues,
+    setFilterValues,
+    filterTypeIds,
+  } = useLinkTypeFilter();
+
+  /**
    * When the entity is readonly we fetch the link data here (paginated), so it
    * does not need to be part of the main entity query. When editable, the link
    * data is part of the editor subgraph and is not paginated. The noisy-type /
@@ -83,9 +102,12 @@ export const IncomingLinksSection = ({
     subgraph: fetchedSubgraph,
     linkAndDestinationEntitiesClosedMultiEntityTypesMap: fetchedTypesMap,
     closedMultiEntityTypesDefinitions: fetchedDefinitions,
+    typeIds,
+    typeTitles,
   } = useEntityLinks({
     direction: "incoming",
     entityId: entity.metadata.recordId.entityId,
+    filterTypeIds,
     skip: !readonly,
   });
 
@@ -162,6 +184,78 @@ export const IncomingLinksSection = ({
     draftLinksToArchive,
   ]);
 
+  /**
+   * In the editable case there is no server breakdown, so the filter options are
+   * derived from the (unfiltered) editor links here. Counting per link entity
+   * type mirrors the server aggregate; the title is the type's forward title, as
+   * in the readonly case.
+   */
+  const editableLinkTypeBreakdown = useMemo(() => {
+    if (readonly || !editorTypesMap) {
+      return undefined;
+    }
+
+    const typeIdCounts: Record<VersionedUrl, number> = {};
+    const linkTypeTitles: Record<VersionedUrl, string> = {};
+
+    for (const { linkEntity } of incomingLinksAndSources) {
+      const link = linkEntity[0];
+      if (!link) {
+        continue;
+      }
+
+      let closedType;
+      try {
+        closedType = getClosedMultiEntityTypeFromMap(
+          editorTypesMap,
+          link.metadata.entityTypeIds,
+        );
+      } catch {
+        continue;
+      }
+
+      for (const type of closedType.allOf) {
+        typeIdCounts[type.$id] = (typeIdCounts[type.$id] ?? 0) + 1;
+        linkTypeTitles[type.$id] ??= type.title;
+      }
+    }
+
+    return { typeIds: typeIdCounts, typeTitles: linkTypeTitles };
+  }, [readonly, editorTypesMap, incomingLinksAndSources]);
+
+  useEffect(() => {
+    captureLinkTypeOptions(
+      readonly ? typeIds : editableLinkTypeBreakdown?.typeIds,
+      readonly ? typeTitles : editableLinkTypeBreakdown?.typeTitles,
+    );
+  }, [
+    readonly,
+    captureLinkTypeOptions,
+    typeIds,
+    typeTitles,
+    editableLinkTypeBreakdown,
+  ]);
+
+  /**
+   * The rows shown in the table. In the readonly case the fetched links are
+   * already filtered server-side; in the editable case the full editor links are
+   * filtered here by the selected link types (`filterTypeIds` is `undefined`
+   * while every type is selected, so an untouched filter shows everything).
+   */
+  const displayedIncomingLinksAndSources = useMemo(() => {
+    if (readonly || !filterTypeIds) {
+      return incomingLinksAndSources;
+    }
+
+    const selectedTypeIds = new Set<string>(filterTypeIds);
+
+    return incomingLinksAndSources.filter(({ linkEntity }) =>
+      linkEntity[0]?.metadata.entityTypeIds.some((typeId) =>
+        selectedTypeIds.has(typeId),
+      ),
+    );
+  }, [readonly, filterTypeIds, incomingLinksAndSources]);
+
   if (readonly && error) {
     /**
      * In the self-fetch path the query errors are surfaced here (the editor
@@ -232,12 +326,15 @@ export const IncomingLinksSection = ({
           customEntityLinksColumns={customEntityLinksColumns}
           entityLabel={entityLabel}
           entitySubgraph={entitySubgraph}
-          incomingLinksAndSources={incomingLinksAndSources}
+          filterDefinitions={filterDefinitions}
+          filterValues={filterValues}
+          incomingLinksAndSources={displayedIncomingLinksAndSources}
           loadingMore={readonly ? loadingMore : undefined}
           onEndReached={readonly && hasMore ? loadMore : undefined}
           onEntityClick={onEntityClick}
           onTypeClick={onTypeClick}
           readonly={readonly}
+          setFilterValues={setFilterValues}
           setSort={setSort}
           slideContainerRef={slideContainerRef}
           sort={sort}

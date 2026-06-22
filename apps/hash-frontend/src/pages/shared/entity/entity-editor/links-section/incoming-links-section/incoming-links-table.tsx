@@ -41,6 +41,10 @@ import type {
 import type { VirtualizedTableSort } from "../../../../virtualized-table/header/sort";
 import type { CustomEntityLinksColumn } from "../../shared/types";
 import type {
+  LinkTypeFilterDefinitions,
+  LinkTypeFilterValues,
+} from "../use-link-type-filter";
+import type {
   EntityRootType,
   LinkEntityAndLeftEntity,
   Subgraph,
@@ -286,6 +290,14 @@ type IncomingLinksTableProps = {
   customEntityLinksColumns?: CustomEntityLinksColumn[];
   entityLabel: string;
   entitySubgraph: Subgraph<EntityRootType<HashEntity>>;
+  /**
+   * The link-type filter, applied server-side. Present only in the readonly /
+   * paginated case (see {@link readonly}); `undefined` while the breakdown that
+   * populates the options has not yet loaded.
+   */
+  filterDefinitions?: LinkTypeFilterDefinitions;
+  filterValues?: LinkTypeFilterValues;
+  setFilterValues?: (filterValues: LinkTypeFilterValues) => void;
   incomingLinksAndSources: LinkEntityAndLeftEntity[];
   loadingMore?: boolean;
   onEndReached?: () => void;
@@ -315,6 +327,9 @@ export const IncomingLinksTable = memo(
     customEntityLinksColumns: customColumns,
     entityLabel,
     entitySubgraph,
+    filterDefinitions,
+    filterValues,
+    setFilterValues,
     incomingLinksAndSources,
     loadingMore,
     onEndReached,
@@ -622,6 +637,9 @@ export const IncomingLinksTable = memo(
         <VirtualizedTable
           columns={columns}
           createRowContent={createRowContent}
+          filterDefinitions={filterDefinitions}
+          filterValues={filterValues}
+          setFilterValues={setFilterValues}
           followOutput={false}
           loadingMore={loadingMore}
           onIsScrolling={handleIsScrolling}

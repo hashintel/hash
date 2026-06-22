@@ -1,7 +1,11 @@
 import { type ApolloError, useQuery } from "@apollo/client";
 
 import { getRoots } from "@blockprotocol/graph/stdlib";
-import { type EntityId, splitEntityId } from "@blockprotocol/type-system";
+import {
+  type EntityId,
+  splitEntityId,
+  type VersionedUrl,
+} from "@blockprotocol/type-system";
 import {
   deserializeQueryEntitySubgraphResponse,
   HashLinkEntity,
@@ -50,6 +54,16 @@ type LinkPage = {
   subgraph: LinksSubgraph;
   typesMap: ClosedMultiEntityTypesRootMap;
   definitions?: ClosedMultiEntityTypesDefinitions;
+  /**
+   * The count of matching links by their link entity type id, and the title of
+   * each such type. These are aggregated server-side over the *full* matching
+   * set (not just this page), so they describe every link type that can be
+   * filtered by. They reflect whatever filter is applied to the query, so the
+   * caller captures them from the unfiltered load to use as stable filter
+   * options.
+   */
+  typeIds?: Record<VersionedUrl, number>;
+  typeTitles?: Record<VersionedUrl, string>;
 };
 
 /**
@@ -130,6 +144,8 @@ type Accumulated = {
   subgraph: LinksSubgraph;
   typesMap: ClosedMultiEntityTypesRootMap;
   definitions?: ClosedMultiEntityTypesDefinitions;
+  typeIds?: Record<VersionedUrl, number>;
+  typeTitles?: Record<VersionedUrl, string>;
   count?: number;
   nextCursor: EntityQueryCursor | null;
   /**
@@ -168,6 +184,12 @@ const appendPage = (accumulated: Accumulated, page: LinkPage): Accumulated => {
     ...accumulated,
     definitions: mergeDefinitionsInto(accumulated.definitions, page),
     subgraph: mergeSubgraphInto(accumulated.subgraph, page),
+    /**
+     * The type breakdown is a full-set aggregate returned identically on every
+     * page, so the latest page's value replaces (rather than extends) it.
+     */
+    typeIds: page.typeIds ?? accumulated.typeIds,
+    typeTitles: page.typeTitles ?? accumulated.typeTitles,
     count: page.count,
     exhausted,
     nextCursor: exhausted ? null : page.nextCursor,
@@ -184,6 +206,8 @@ const seedAccumulated = (firstPage: LinkPage): Accumulated => ({
   subgraph: firstPage.subgraph,
   typesMap: {},
   definitions: undefined,
+  typeIds: undefined,
+  typeTitles: undefined,
   count: undefined,
   nextCursor: null,
   exhausted: false,
@@ -216,11 +240,19 @@ const finalizeAccumulated = (accumulated: Accumulated): Accumulated => ({
 export const useEntityLinks = ({
   direction,
   entityId,
+  filterTypeIds,
   skip = false,
   sortingPaths,
 }: {
   direction: "outgoing" | "incoming";
   entityId: EntityId;
+  /**
+   * If set, restrict the matched links to those whose link entity type is one
+   * of the given type ids. Applied server-side, so both the returned links and
+   * the `count` reflect the filter. Changing this resets pagination (the
+   * accumulated pages and their cursors are no longer valid).
+   */
+  filterTypeIds?: VersionedUrl[];
   skip?: boolean;
   /**
    * How to sort the links server-side. A `uuid` tiebreaker is always appended
@@ -247,6 +279,10 @@ export const useEntityLinks = ({
   subgraph?: LinksSubgraph;
   linkAndDestinationEntitiesClosedMultiEntityTypesMap?: ClosedMultiEntityTypesRootMap;
   closedMultiEntityTypesDefinitions?: ClosedMultiEntityTypesDefinitions;
+  /** The count of matching links by their link entity type id. */
+  typeIds?: Record<VersionedUrl, number>;
+  /** The title of each link entity type present in {@link typeIds}. */
+  typeTitles?: Record<VersionedUrl, string>;
 } => {
   const [webId, entityUuid, draftId] = splitEntityId(entityId);
 
@@ -266,7 +302,7 @@ export const useEntityLinks = ({
   } = useAccumulatedCursorPagination<EntityQueryCursor, LinkPage, Accumulated>({
     resetKey: `${entityId}:${direction}:${JSON.stringify(
       sortingPaths ?? null,
-    )}`,
+    )}:${JSON.stringify(filterTypeIds ?? null)}`,
     seed: seedAccumulated,
     appendPage,
     finalize: finalizeAccumulated,
@@ -331,6 +367,23 @@ export const useEntityLinks = ({
                   },
                 ]
               : []),
+            /**
+             * Restrict the matched link entities to the selected link types.
+             * The path is rooted on the link entity, so `["type",
+             * "versionedUrl"]` matches the link entity's own type.
+             */
+            ...(filterTypeIds && filterTypeIds.length > 0
+              ? [
+                  {
+                    any: filterTypeIds.map((versionedUrl) => ({
+                      equal: [
+                        { path: ["type", "versionedUrl"] },
+                        { parameter: versionedUrl },
+                      ],
+                    })),
+                  },
+                ]
+              : []),
           ],
         },
         cursor,
@@ -345,6 +398,13 @@ export const useEntityLinks = ({
         includeDrafts: !!draftId,
         includeEntityTypes: "resolvedWithDataTypeChildren",
         includePermissions: false,
+        /**
+         * Return the breakdown of matching links by link entity type id, and
+         * the title of each type, so the caller can offer them as filter
+         * options (see {@link filterTypeIds}).
+         */
+        includeTypeIds: true,
+        includeTypeTitles: true,
       },
     },
     onCompleted: (data) => {
@@ -362,6 +422,8 @@ export const useEntityLinks = ({
         subgraph: response.subgraph,
         typesMap: data.queryEntitySubgraph.closedMultiEntityTypes ?? {},
         definitions: data.queryEntitySubgraph.definitions ?? undefined,
+        typeIds: data.queryEntitySubgraph.typeIds ?? undefined,
+        typeTitles: data.queryEntitySubgraph.typeTitles ?? undefined,
       });
     },
   });
@@ -377,5 +439,7 @@ export const useEntityLinks = ({
     subgraph: accumulated?.subgraph,
     linkAndDestinationEntitiesClosedMultiEntityTypesMap: accumulated?.typesMap,
     closedMultiEntityTypesDefinitions: accumulated?.definitions,
+    typeIds: accumulated?.typeIds,
+    typeTitles: accumulated?.typeTitles,
   };
 };
