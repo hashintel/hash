@@ -35,7 +35,7 @@ fn convert_is_of_type<A: Allocator + Clone>(
     unit: &mut PolicyTranslationUnit<'_, A>,
     url: VersionedUrl,
 ) -> Expression {
-    let table = unit.projections.entity_is_of_type_ids();
+    let table = unit.projections.entity_edition_cache();
 
     let base_url_index = unit.parameters.push(url.base_url);
     let version_index = unit.parameters.push(url.version);
@@ -45,7 +45,7 @@ fn convert_is_of_type<A: Allocator + Clone>(
         hash_graph_postgres_store::store::postgres::query::Function::ArrayPositions(
             Box::new(Expression::ColumnReference(ColumnReference {
                 correlation: Some(table.clone()),
-                name: Column::EntityIsOfTypeIds(table::EntityIsOfTypeIds::BaseUrls).into(),
+                name: Column::EntityEditionCache(table::EntityEditionCache::BaseUrls).into(),
             })),
             Box::new(Expression::Parameter(base_url_index)),
         ),
@@ -56,7 +56,7 @@ fn convert_is_of_type<A: Allocator + Clone>(
         hash_graph_postgres_store::store::postgres::query::Function::ArrayPositions(
             Box::new(Expression::ColumnReference(ColumnReference {
                 correlation: Some(table),
-                name: Column::EntityIsOfTypeIds(table::EntityIsOfTypeIds::Versions).into(),
+                name: Column::EntityEditionCache(table::EntityEditionCache::Versions).into(),
             })),
             Box::new(Expression::Parameter(version_index)),
         ),
@@ -86,8 +86,8 @@ fn convert_is_of_base_type<A: Allocator + Clone>(
         op: BinaryOperator::In,
         left: Box::new(Expression::Parameter(base_url_index)),
         right: Box::new(Expression::ColumnReference(ColumnReference {
-            correlation: Some(unit.projections.entity_is_of_type_ids()),
-            name: Column::EntityIsOfTypeIds(table::EntityIsOfTypeIds::BaseUrls).into(),
+            correlation: Some(unit.projections.entity_edition_cache()),
+            name: Column::EntityEditionCache(table::EntityEditionCache::BaseUrls).into(),
         })),
     })
 }

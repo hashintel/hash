@@ -1,11 +1,11 @@
 ---
 source: libs/@local/hashql/eval/src/postgres/projections.rs
-description: "AuxiliaryProjections { index: 2, base: Projections { index: 1, base_alias: Alias { condition_index: 0, chain_depth: 0, number: 0 }, entity_editions: None, entity_ids: None, entity_type_ids: None, left: None, right: None }, entity_ids: None, entity_is_of_type_ids: Some(Alias { condition_index: 0, chain_depth: 0, number: 1 }) }, 2 continuation laterals"
+description: "AuxiliaryProjections { index: 2, base: Projections { index: 1, base_alias: Alias { condition_index: 0, chain_depth: 0, number: 0 }, entity_editions: None, entity_ids: None, entity_type_ids: None, left: None, right: None }, entity_ids: None, entity_edition_cache: Some(Alias { condition_index: 0, chain_depth: 0, number: 1 }) }, 2 continuation laterals"
 expression: result.transpile_to_string()
 ---
 "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
-INNER JOIN "entity_is_of_type_ids" AS "entity_is_of_type_ids_0_0_1"
-  ON "entity_is_of_type_ids_0_0_1"."entity_edition_id" = "entity_temporal_metadata_0_0_0"."entity_edition_id"
+INNER JOIN "entity_edition_cache" AS "entity_edition_cache_0_0_1"
+  ON "entity_edition_cache_0_0_1"."entity_edition_id" = "entity_temporal_metadata_0_0_0"."entity_edition_id"
 CROSS JOIN LATERAL (SELECT 
 FROM "entity_temporal_metadata" AS "continuation_1") AS "continuation_1"
 CROSS JOIN LATERAL (SELECT 

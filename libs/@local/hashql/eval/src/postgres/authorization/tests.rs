@@ -661,7 +661,7 @@ fn patch_instance_admin_bypasses_protection() {
 }
 
 /// Protection filter that references `TypeBaseUrls`, requiring the
-/// `entity_is_of_type_ids` auxiliary join to be in scope inside the
+/// `entity_edition_cache` auxiliary join to be in scope inside the
 /// `entity_editions` LATERAL mask expression.
 #[test]
 fn patch_protection_with_type_base_urls() {
@@ -688,7 +688,7 @@ fn patch_protection_with_type_base_urls() {
     let actor = Some(ActorId::User(UserId::new(ACTOR_UUID)));
     let policy = policy_components(actor, vec![permit(|| None)]);
 
-    // Protection uses TypeBaseUrls path, which demands entity_is_of_type_ids join.
+    // Protection uses TypeBaseUrls path, which demands entity_edition_cache join.
     let mut properties = PropertyProtectionFilterConfig::new();
     properties.protect_property(
         BaseUrl::new("https://hash.ai/@h/types/property-type/email/".to_owned())

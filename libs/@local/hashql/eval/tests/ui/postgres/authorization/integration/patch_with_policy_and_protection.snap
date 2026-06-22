@@ -24,9 +24,9 @@ SELECT
     ("continuation_0_0"."row")."locals" AS "continuation_0_0_locals",
     ("continuation_0_0"."row")."values" AS "continuation_0_0_values"
 FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
-INNER JOIN "entity_is_of_type_ids" AS "entity_is_of_type_ids_0_0_2"
+INNER JOIN "entity_edition_cache" AS "entity_edition_cache_0_0_2"
     ON
-        "entity_is_of_type_ids_0_0_2"."entity_edition_id"
+        "entity_edition_cache_0_0_2"."entity_edition_id"
         = "entity_temporal_metadata_0_0_0"."entity_edition_id"
 CROSS JOIN LATERAL (
     SELECT
@@ -91,8 +91,8 @@ WHERE
     AND (
         NOT (
             (
-                ARRAY_POSITIONS("entity_is_of_type_ids_0_0_2"."base_urls", $7)
-                && ARRAY_POSITIONS("entity_is_of_type_ids_0_0_2"."versions", $8)
+                ARRAY_POSITIONS("entity_edition_cache_0_0_2"."base_urls", $7)
+                && ARRAY_POSITIONS("entity_edition_cache_0_0_2"."versions", $8)
             )
         )
     )
