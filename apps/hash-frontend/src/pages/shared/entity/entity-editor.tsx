@@ -97,13 +97,6 @@ export interface EntityEditorProps extends DraftLinkState {
    */
   readonly: boolean;
   /**
-   * Whether the incoming/outgoing link tables should fetch their own link data
-   * rather than reading it from `entitySubgraph`. Set when the entity is a
-   * readonly, database-persisted entity (its link data is not included in the
-   * main entity query in that case). See `entity.tsx`.
-   */
-  selfFetchLinks: boolean;
-  /**
    * A function to call when the entity is updated
    */
   onEntityUpdated: ((entity: HashEntity) => void) | null;
@@ -132,7 +125,6 @@ export const EntityEditor = (props: EntityEditorProps) => {
     onEntityClick,
     onTypeClick,
     readonly,
-    selfFetchLinks,
     setDraftLinksToArchive,
     setDraftLinksToCreate,
     slideContainerRef,
@@ -204,7 +196,6 @@ export const EntityEditor = (props: EntityEditorProps) => {
               onEntityClick={onEntityClick}
               onTypeClick={onTypeClick}
               readonly={readonly}
-              selfFetchLinks={selfFetchLinks}
               setDraftLinksToArchive={setDraftLinksToArchive}
               setDraftLinksToCreate={setDraftLinksToCreate}
               slideContainerRef={slideContainerRef}
@@ -226,7 +217,7 @@ export const EntityEditor = (props: EntityEditorProps) => {
               }
               onEntityClick={onEntityClick}
               onTypeClick={onTypeClick}
-              selfFetchLinks={selfFetchLinks}
+              readonly={readonly}
               slideContainerRef={slideContainerRef}
             />
           </Stack>

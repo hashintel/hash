@@ -52,11 +52,10 @@ type OutgoingLinksSectionProps = Pick<
   | "linkAndDestinationEntitiesClosedMultiEntityTypesMap"
   | "onEntityClick"
   | "onTypeClick"
-  | "readonly"
-  | "selfFetchLinks"
   | "setDraftLinksToArchive"
   | "setDraftLinksToCreate"
   | "slideContainerRef"
+  | "readonly"
 > & {
   entity: HashEntity;
   isLinkEntity: boolean;
@@ -75,10 +74,9 @@ export const OutgoingLinksSection = ({
   linkAndDestinationEntitiesClosedMultiEntityTypesMap: editorTypesMap,
   onEntityClick,
   onTypeClick,
-  readonly,
-  selfFetchLinks,
   setDraftLinksToArchive,
   setDraftLinksToCreate,
+  readonly,
   slideContainerRef,
 }: OutgoingLinksSectionProps) => {
   const [showSearch, setShowSearch] = useState(false);
@@ -101,7 +99,7 @@ export const OutgoingLinksSection = ({
    * `linkTypes` (its type title) are sortable server-side.
    */
   const sortingPaths = useMemo<EntityQuerySortingRecord[] | undefined>(() => {
-    if (!selfFetchLinks) {
+    if (!readonly) {
       return undefined;
     }
 
@@ -112,7 +110,7 @@ export const OutgoingLinksSection = ({
         nulls: "last",
       },
     ];
-  }, [selfFetchLinks, sort]);
+  }, [readonly, sort]);
 
   /**
    * When the entity is readonly we fetch the link data here (paginated), so it
@@ -134,7 +132,7 @@ export const OutgoingLinksSection = ({
   } = useEntityLinks({
     direction: "outgoing",
     entityId: entity.metadata.recordId.entityId,
-    skip: !selfFetchLinks,
+    skip: !readonly,
     sortingPaths,
   });
 
@@ -145,7 +143,7 @@ export const OutgoingLinksSection = ({
    * identity does not defeat the `memo()`-wrapped table on every parent render.
    */
   const outgoingLinksAndTargets = useMemo<LinkEntityAndRightEntity[]>(() => {
-    if (selfFetchLinks) {
+    if (readonly) {
       if (!linkEntities || !fetchedSubgraph) {
         return [];
       }
@@ -187,7 +185,7 @@ export const OutgoingLinksSection = ({
         editorSubgraph.temporalAxes.resolved.variable.axis
       ],
     );
-  }, [selfFetchLinks, linkEntities, fetchedSubgraph, editorSubgraph, entity]);
+  }, [readonly, linkEntities, fetchedSubgraph, editorSubgraph, entity]);
 
   const rows = useRows({
     closedMultiEntityType,
@@ -233,7 +231,7 @@ export const OutgoingLinksSection = ({
     });
   }, []);
 
-  if (selfFetchLinks && error) {
+  if (readonly && error) {
     /**
      * In the self-fetch path the query errors are surfaced here (the editor
      * path's errors are handled by the parent query). Without this, a failed
@@ -250,7 +248,7 @@ export const OutgoingLinksSection = ({
   }
 
   if (
-    selfFetchLinks &&
+    readonly &&
     (initialLoading || !linkEntities || !fetchedSubgraph || !fetchedDefinitions)
   ) {
     return (
@@ -262,11 +260,11 @@ export const OutgoingLinksSection = ({
     );
   }
 
-  const entitySubgraph = selfFetchLinks ? fetchedSubgraph! : editorSubgraph;
-  const closedMultiEntityTypesMap = selfFetchLinks
+  const entitySubgraph = readonly ? fetchedSubgraph! : editorSubgraph;
+  const closedMultiEntityTypesMap = readonly
     ? (fetchedTypesMap ?? null)
     : editorTypesMap;
-  const closedMultiEntityTypesDefinitions = selfFetchLinks
+  const closedMultiEntityTypesDefinitions = readonly
     ? fetchedDefinitions!
     : editorDefinitions;
 
@@ -274,7 +272,7 @@ export const OutgoingLinksSection = ({
    * When paginated, the link count comes from the query; otherwise it is the
    * number of outgoing links in the editor subgraph (minus any draft removals).
    */
-  const outgoingLinks = selfFetchLinks
+  const outgoingLinks = readonly
     ? null
     : getOutgoingLinksForEntity(
         entitySubgraph,
@@ -286,7 +284,7 @@ export const OutgoingLinksSection = ({
         (outgoingLink) => !draftLinksToArchive.includes(outgoingLink.entityId),
       );
 
-  const linkCount = selfFetchLinks
+  const linkCount = readonly
     ? (fetchedCount ?? linkEntities!.length)
     : outgoingLinks!.length;
 
@@ -323,7 +321,7 @@ export const OutgoingLinksSection = ({
         </Stack>
       }
     >
-      {rows.length && !readonly && !selfFetchLinks ? (
+      {rows.length && !readonly ? (
         <Paper sx={{ overflow: "hidden" }}>
           <Grid
             columns={linkGridColumns}
@@ -350,15 +348,14 @@ export const OutgoingLinksSection = ({
           customEntityLinksColumns={customEntityLinksColumns}
           defaultOutgoingLinkFilters={defaultOutgoingLinkFilters}
           entitySubgraph={entitySubgraph}
-          loadingMore={selfFetchLinks ? loadingMore : undefined}
-          onEndReached={selfFetchLinks && hasMore ? loadMore : undefined}
+          loadingMore={readonly ? loadingMore : undefined}
+          onEndReached={readonly && hasMore ? loadMore : undefined}
           onEntityClick={onEntityClick}
           onTypeClick={onTypeClick}
           outgoingLinksAndTargets={outgoingLinksAndTargets}
-          serverSideSorting={selfFetchLinks}
-          setSort={selfFetchLinks ? setSort : undefined}
+          setSort={setSort}
           slideContainerRef={slideContainerRef}
-          sort={selfFetchLinks ? sort : undefined}
+          sort={sort}
         />
       ) : (
         <LinksSectionEmptyState direction="Outgoing" />

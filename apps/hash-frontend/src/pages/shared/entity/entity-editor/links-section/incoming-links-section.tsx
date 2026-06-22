@@ -32,8 +32,8 @@ type IncomingLinksSectionProps = Pick<
   | "linkAndDestinationEntitiesClosedMultiEntityTypesMap"
   | "onEntityClick"
   | "onTypeClick"
-  | "selfFetchLinks"
   | "slideContainerRef"
+  | "readonly"
 > & {
   entity: HashEntity;
   isLinkEntity: boolean;
@@ -50,7 +50,7 @@ export const IncomingLinksSection = ({
   linkAndDestinationEntitiesClosedMultiEntityTypesMap: editorTypesMap,
   onEntityClick,
   onTypeClick,
-  selfFetchLinks,
+  readonly,
   slideContainerRef,
 }: IncomingLinksSectionProps) => {
   /**
@@ -72,7 +72,7 @@ export const IncomingLinksSection = ({
    * sortable server-side.
    */
   const sortingPaths = useMemo<EntityQuerySortingRecord[] | undefined>(() => {
-    if (!selfFetchLinks) {
+    if (!readonly) {
       return undefined;
     }
 
@@ -83,7 +83,7 @@ export const IncomingLinksSection = ({
         nulls: "last",
       },
     ];
-  }, [selfFetchLinks, sort.direction]);
+  }, [readonly, sort.direction]);
 
   /**
    * When the entity is readonly we fetch the link data here (paginated), so it
@@ -106,7 +106,7 @@ export const IncomingLinksSection = ({
   } = useEntityLinks({
     direction: "incoming",
     entityId: entity.metadata.recordId.entityId,
-    skip: !selfFetchLinks,
+    skip: !readonly,
     sortingPaths,
   });
 
@@ -117,7 +117,7 @@ export const IncomingLinksSection = ({
    * not defeat the `memo()`-wrapped table on every parent render.
    */
   const incomingLinksAndSources = useMemo<LinkEntityAndLeftEntity[]>(() => {
-    if (selfFetchLinks) {
+    if (readonly) {
       if (!linkEntities || !fetchedSubgraph) {
         return [];
       }
@@ -175,7 +175,7 @@ export const IncomingLinksSection = ({
       );
     });
   }, [
-    selfFetchLinks,
+    readonly,
     linkEntities,
     fetchedSubgraph,
     editorSubgraph,
@@ -183,7 +183,7 @@ export const IncomingLinksSection = ({
     draftLinksToArchive,
   ]);
 
-  if (selfFetchLinks && error) {
+  if (readonly && error) {
     /**
      * In the self-fetch path the query errors are surfaced here (the editor
      * path's errors are handled by the parent query). Without this, a failed
@@ -200,7 +200,7 @@ export const IncomingLinksSection = ({
   }
 
   if (
-    selfFetchLinks &&
+    readonly &&
     (initialLoading || !linkEntities || !fetchedSubgraph || !fetchedDefinitions)
   ) {
     return (
@@ -212,15 +212,15 @@ export const IncomingLinksSection = ({
     );
   }
 
-  const entitySubgraph = selfFetchLinks ? fetchedSubgraph! : editorSubgraph;
-  const closedMultiEntityTypesMap = selfFetchLinks
+  const entitySubgraph = readonly ? fetchedSubgraph! : editorSubgraph;
+  const closedMultiEntityTypesMap = readonly
     ? (fetchedTypesMap ?? null)
     : editorTypesMap;
-  const closedMultiEntityTypesDefinitions = selfFetchLinks
+  const closedMultiEntityTypesDefinitions = readonly
     ? fetchedDefinitions!
     : editorDefinitions;
 
-  const linkCount = selfFetchLinks
+  const linkCount = readonly
     ? (fetchedCount ?? incomingLinksAndSources.length)
     : incomingLinksAndSources.length;
 
@@ -251,18 +251,16 @@ export const IncomingLinksSection = ({
           closedMultiEntityTypesDefinitions={closedMultiEntityTypesDefinitions}
           closedMultiEntityTypesMap={closedMultiEntityTypesMap}
           customEntityLinksColumns={customEntityLinksColumns}
-          draftLinksToArchive={draftLinksToArchive}
           entityLabel={entityLabel}
           entitySubgraph={entitySubgraph}
           incomingLinksAndSources={incomingLinksAndSources}
-          loadingMore={selfFetchLinks ? loadingMore : undefined}
-          onEndReached={selfFetchLinks && hasMore ? loadMore : undefined}
+          loadingMore={readonly ? loadingMore : undefined}
+          onEndReached={readonly && hasMore ? loadMore : undefined}
           onEntityClick={onEntityClick}
           onTypeClick={onTypeClick}
-          serverSideSorting={selfFetchLinks}
-          setSort={selfFetchLinks ? setSort : undefined}
+          setSort={setSort}
           slideContainerRef={slideContainerRef}
-          sort={selfFetchLinks ? sort : undefined}
+          sort={sort}
         />
       ) : (
         <LinksSectionEmptyState direction="Incoming" />

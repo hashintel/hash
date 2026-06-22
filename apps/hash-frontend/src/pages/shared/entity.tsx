@@ -266,49 +266,7 @@ export const Entity = ({
    * link data included.
    */
   const [includeLinkDataInQuery, setIncludeLinkDataInQuery] = useState(false);
-
-  /**
-   * Tracks whether the first query response has been processed, and whether the
-   * next response will be the automatic link-data upgrade refetch (triggered by
-   * flipping `includeLinkDataInQuery` to true). These let `onCompleted` avoid
-   * resetting draft state on the upgrade refetch when the editor is already
-   * interactive, while still resetting on genuine reloads.
-   */
   const hasCompletedInitialLoadRef = useRef(false);
-  const awaitingLinkDataUpgradeRef = useRef(false);
-
-  /**
-   * Mirror of the current draft-edit state. The query's `onCompleted` closure
-   * would otherwise capture stale values, so we read the latest state from here
-   * to decide whether the user has unsaved changes worth preserving.
-   */
-  const draftStateRef = useRef({
-    isDirty,
-    draftLinksToCreate,
-    draftLinksToArchive,
-  });
-  draftStateRef.current = { isDirty, draftLinksToCreate, draftLinksToArchive };
-
-  /**
-   * When `entityId` changes without the component unmounting (e.g. navigating
-   * between entities within a slide), the per-entity load state above must be
-   * reset so the new entity goes through the same first-load flow: fetch
-   * link-less, then upgrade `includeLinkDataInQuery` based on its own
-   * permissions. Without this, a previously-loaded readonly entity would leave
-   * `includeLinkDataInQuery` false while `selfFetchLinks` is also false for the
-   * new (editable) entity, so its links would never load.
-   *
-   * We adjust the state during render (rather than in an effect) so the query
-   * below reads the reset `includeLinkDataInQuery` immediately, instead of
-   * firing once with the stale value.
-   */
-  const previousEntityIdRef = useRef(entityId);
-  if (previousEntityIdRef.current !== entityId) {
-    previousEntityIdRef.current = entityId;
-    hasCompletedInitialLoadRef.current = false;
-    awaitingLinkDataUpgradeRef.current = false;
-    setIncludeLinkDataInQuery(false);
-  }
 
   const { data: queryEntitySubgraphData, refetch } = useQuery<
     QueryEntitySubgraphQuery,
@@ -341,12 +299,13 @@ export const Entity = ({
         returnedEntity.metadata.entityTypeIds,
       );
 
-      /**
-       * Always refresh the database snapshot. It is the source of truth used for
-       * diffing unsaved changes and as the reset target, so it must reflect the
-       * latest response (e.g. the link data added by the upgrade refetch), even
-       * when we preserve the draft below.
-       */
+      setDraftEntityTypesDetails({
+        linkAndDestinationEntitiesClosedMultiEntityTypesMap:
+          closedMultiEntityTypes,
+        closedMultiEntityType,
+        closedMultiEntityTypesDefinitions: definitions,
+      });
+
       setDataFromDb({
         entitySubgraph: subgraph,
         closedMultiEntityType,
@@ -358,43 +317,11 @@ export const Entity = ({
       const isInitialLoad = !hasCompletedInitialLoadRef.current;
       hasCompletedInitialLoadRef.current = true;
 
-      /**
-       * The first (link-less) response flips `includeLinkDataInQuery` to true for
-       * editable entities, which triggers an automatic refetch that adds the link
-       * data. That refetch's completion must NOT wipe out draft edits the user may
-       * already have started in the (interactive) editor.
-       *
-       * Genuine reloads (initial load, post-save/unarchive `refetch`) are not
-       * link-data upgrades, so they still reset the draft to match the database.
-       */
-      const isLinkDataUpgrade = awaitingLinkDataUpgradeRef.current;
-      awaitingLinkDataUpgradeRef.current = false;
+      setDraftEntitySubgraph(subgraph);
 
-      const {
-        isDirty: draftIsDirty,
-        draftLinksToCreate: pendingLinksToCreate,
-        draftLinksToArchive: pendingLinksToArchive,
-      } = draftStateRef.current;
-
-      const userHasUnsavedChanges =
-        draftIsDirty ||
-        pendingLinksToCreate.length > 0 ||
-        pendingLinksToArchive.length > 0;
-
-      if (!isLinkDataUpgrade || !userHasUnsavedChanges) {
-        setDraftEntityTypesDetails({
-          linkAndDestinationEntitiesClosedMultiEntityTypesMap:
-            closedMultiEntityTypes,
-          closedMultiEntityType,
-          closedMultiEntityTypesDefinitions: definitions,
-        });
-
-        setDraftEntitySubgraph(subgraph);
-
-        setIsDirty(false);
-        setDraftLinksToCreate([]);
-        setDraftLinksToArchive([]);
-      }
+      setIsDirty(false);
+      setDraftLinksToCreate([]);
+      setDraftLinksToArchive([]);
 
       if (isInitialLoad) {
         const canUpdate =
@@ -405,7 +332,6 @@ export const Entity = ({
          * link-data upgrade refetch handled above. For readonly entities it stays
          * false and the link tables self-fetch instead.
          */
-        awaitingLinkDataUpgradeRef.current = canUpdate;
         setIncludeLinkDataInQuery(canUpdate);
       }
 
@@ -491,24 +417,6 @@ export const Entity = ({
     [draftEntitySubgraph],
   );
 
-  /**
-   * Whether the user can edit the entity's links.
-   *
-   * This is the signal that drives `includeLinkDataInQuery` (see its
-   * `onCompleted` above): when the user has `update` permission we fetch the
-   * link data inline so the editor can show the inline link-editing grid.
-   *
-   * It is deliberately decoupled from `isReadOnly` below, which additionally
-   * folds in display-only readonly reasons (fullscreen, archived). An editable
-   * entity viewed readonly-for-display must NOT also self-fetch its links, or it
-   * would both double-fetch and lose the inline link-editing grid.
-   */
-  const canEditLinks =
-    !draftLocalEntity &&
-    !proposedEntitySubgraph &&
-    !!queryEntitySubgraphData?.queryEntitySubgraph.entityPermissions?.[entityId]
-      ?.update;
-
   const isReadOnly =
     /**
      * @todo H-3398 fix Glide grid editor overlays when body isn't fullscreened.
@@ -517,26 +425,10 @@ export const Entity = ({
     !!document.fullscreenElement ||
     !!draftEntity?.metadata.archived ||
     !!proposedEntitySubgraph ||
-    (!draftLocalEntity && !canEditLinks);
-
-  /**
-   * Self-fetch links from within the link tables only when the user genuinely
-   * cannot edit links (no `update` permission), never merely because the view
-   * is readonly-for-display (fullscreen/archived). This is the exact complement
-   * of `includeLinkDataInQuery`'s permission gate, so the main query and the
-   * link tables can never both fetch the link data.
-   *
-   * While permission is still loading (`canEditLinks` false, but
-   * `includeLinkDataInQuery` also still false) the link tables self-fetch, which
-   * is the safe path that avoids double-fetching.
-   *
-   * A local draft is excluded: it is editable but not yet persisted, so there
-   * are no stored links to paginate. Its links live in the in-memory draft and
-   * must be shown in the editable Glide link-editing grid, not the readonly
-   * paginated table path.
-   */
-  const selfFetchLinks =
-    !canEditLinks && !proposedEntitySubgraph && !draftLocalEntity;
+    (!draftLocalEntity &&
+      !queryEntitySubgraphData?.queryEntitySubgraph.entityPermissions?.[
+        entityId
+      ]?.update);
 
   const entityFromDb = useMemo(
     () => (dataFromDb ? getRoots(dataFromDb.entitySubgraph)[0] : null),
@@ -710,7 +602,6 @@ export const Entity = ({
       {isQueryEntity && shouldShowQueryEditor ? (
         <QueryEditor
           {...draftEntityTypesDetails}
-          selfFetchLinks={selfFetchLinks}
           draftLinksToCreate={draftLinksToCreate}
           draftLinksToArchive={draftLinksToArchive}
           entityLabel={entityLabel}
@@ -835,7 +726,6 @@ export const Entity = ({
             <EntityEditor
               defaultOutgoingLinkFilters={defaultOutgoingLinkFilters}
               {...draftEntityTypesDetails}
-              selfFetchLinks={selfFetchLinks}
               draftLinksToCreate={draftLinksToCreate}
               draftLinksToArchive={draftLinksToArchive}
               entityLabel={entityLabel}
