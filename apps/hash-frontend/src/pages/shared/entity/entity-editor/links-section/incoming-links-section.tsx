@@ -18,7 +18,6 @@ import type { VirtualizedTableSort } from "../../../virtualized-table/header/sor
 import type { EntityEditorProps } from "../../entity-editor";
 import type { IncomingLinksFieldId } from "./incoming-links-section/incoming-links-table";
 import type { LinkEntityAndLeftEntity } from "@blockprotocol/graph";
-import type { EntityQuerySortingRecord } from "@local/hash-graph-client";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { NoisySystemTypeId } from "@local/hash-isomorphic-utils/graph-queries";
 
@@ -54,38 +53,17 @@ export const IncomingLinksSection = ({
   slideContainerRef,
 }: IncomingLinksSectionProps) => {
   /**
-   * The sort state lives here so that, in the readonly case, it can drive the
-   * paginated query (sorting is applied server-side). The graph API can only
-   * sort the link entities by their own label (it cannot sort by the source
-   * entity, and the link type column shows the inverse title which the API
-   * cannot sort by), so server-side we default to – and only support – the link
-   * entity's label. When editable, the full set of links is present and the
-   * table sorts client-side instead (across all columns), still driven by this
-   * state.
+   * The table sort state. Incoming links have no server-sortable column (see
+   * `serverSortableFieldIds` in the table – the API can't reach the source
+   * entity, and its `label` sort uses the empty label property rather than the
+   * client-generated label shown), so this only drives client-side sorting in
+   * the editable case. In the readonly/paginated case the rows keep their
+   * server (uuid) order and no column is sortable.
    */
   const [sort, setSort] = useState<VirtualizedTableSort<IncomingLinksFieldId>>({
     fieldId: "link",
     direction: "asc",
   });
-
-  /**
-   * Translate the table sort into graph-query sorting paths, which apply to the
-   * query's root (the link entities). Only `link` (the link entity label) is
-   * sortable server-side.
-   */
-  const sortingPaths = useMemo<EntityQuerySortingRecord[] | undefined>(() => {
-    if (!readonly) {
-      return undefined;
-    }
-
-    return [
-      {
-        path: ["label"],
-        ordering: sort.direction === "asc" ? "ascending" : "descending",
-        nulls: "last",
-      },
-    ];
-  }, [readonly, sort.direction]);
 
   /**
    * When the entity is readonly we fetch the link data here (paginated), so it
@@ -109,7 +87,6 @@ export const IncomingLinksSection = ({
     direction: "incoming",
     entityId: entity.metadata.recordId.entityId,
     skip: !readonly,
-    sortingPaths,
   });
 
   /**

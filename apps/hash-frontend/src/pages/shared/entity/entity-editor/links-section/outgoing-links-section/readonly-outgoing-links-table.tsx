@@ -60,13 +60,19 @@ export type OutgoingLinksFieldId =
   | "link";
 
 /**
- * The columns that can be sorted server-side. Sorting paths are applied to the
- * query's root (the link entities), and the graph API only exposes `label` and
- * `typeTitle` as sortable tokens (it cannot traverse to the target entity), so
- * only the link entity's label (`link`) and type title (`linkTypes`) are
- * available. All other columns are not sortable.
+ * The columns that can be sorted server-side (applied to the query's root, the
+ * link entities). Only the link type title (`linkTypes`) can be:
+ * - the API cannot traverse to the target entity, so `linkedTo` /
+ *   `linkedToTypes` are out;
+ * - the "Link" column shows a client-generated label (see `generateEntityLabel`),
+ *   but the API's `label` token sorts by the entity's label *property*, which is
+ *   empty for typical link entities — so every row ties and only the `uuid`
+ *   tiebreaker orders them (flipping the direction does nothing, and the order
+ *   does not match the displayed label).
+ *
+ * The "Link" column is therefore sortable only client-side (the editable case).
  */
-const serverSortableFieldIds: OutgoingLinksFieldId[] = ["linkTypes", "link"];
+const serverSortableFieldIds: OutgoingLinksFieldId[] = ["linkTypes"];
 
 export type OutgoingLinksFilterValues =
   VirtualizedTableFilterValuesByFieldId<OutgoingLinksFieldId>;
