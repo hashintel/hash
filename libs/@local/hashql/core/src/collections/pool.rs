@@ -43,7 +43,8 @@
 //! assert_eq!(vec2.len(), 0);
 //! ```
 
-use std::alloc::{Allocator, Global};
+use alloc::alloc::Global;
+use core::alloc::Allocator;
 
 use crate::id::{Id, bit_vec::MixedBitSet};
 

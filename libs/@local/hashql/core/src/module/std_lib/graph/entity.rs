@@ -5,8 +5,7 @@ use crate::{
         locals::TypeDef,
         std_lib::{
             self, CacheId, ModuleCache, ModuleDef, StandardLibraryContext, StandardLibraryModule,
-            core::{func, option::types::option},
-            decl,
+            core::func, decl,
         },
     },
     symbol::{Symbol, sym},
@@ -70,7 +69,7 @@ impl<'heap> StandardLibraryModule<'heap> for Entity {
         let decl = decl!(context;
             <T>(entity: context.ty.apply([(entity_ty.arguments[0].id, T)], entity_ty.id),
                 path: json_path_ty.id
-            ) -> option(&context.ty, context.ty.unknown())
+            ) -> context.ty.unknown()
         );
 
         func(
