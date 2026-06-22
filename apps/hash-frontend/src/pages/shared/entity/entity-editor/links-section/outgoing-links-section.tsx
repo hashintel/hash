@@ -377,41 +377,49 @@ export const OutgoingLinksSection = ({
         </Stack>
       }
     >
-      {rows.length && !readonly ? (
-        <Paper sx={{ overflow: "hidden" }}>
-          <Grid
-            columns={linkGridColumns}
-            createGetCellContent={createGetCellContent}
-            customRenderers={[
-              renderLinkCell,
-              renderLinkedWithCell,
-              renderSummaryChipCell,
-              createRenderChipCell(),
-            ]}
-            dataLoading={false}
-            height={rows.length > 10 ? 500 : undefined}
-            rows={rows}
-            onSearchClose={() => setShowSearch(false)}
-            showSearch={showSearch}
-            sortableColumns={["linkTitle", "linkedWith", "expectedEntityTypes"]}
-            sortRows={sortRows}
-          />
-        </Paper>
-      ) : outgoingLinksAndTargets.length ? (
+      {!readonly ? (
+        rows.length > 0 ? (
+          <Paper sx={{ overflow: "hidden" }}>
+            <Grid
+              columns={linkGridColumns}
+              createGetCellContent={createGetCellContent}
+              customRenderers={[
+                renderLinkCell,
+                renderLinkedWithCell,
+                renderSummaryChipCell,
+                createRenderChipCell(),
+              ]}
+              dataLoading={false}
+              height={rows.length > 10 ? 500 : undefined}
+              rows={rows}
+              onSearchClose={() => setShowSearch(false)}
+              showSearch={showSearch}
+              sortableColumns={[
+                "linkTitle",
+                "linkedWith",
+                "expectedEntityTypes",
+              ]}
+              sortRows={sortRows}
+            />
+          </Paper>
+        ) : (
+          <LinksSectionEmptyState direction="Outgoing" />
+        )
+      ) : linkCount > 0 || filterTypeIds !== undefined ? (
         <OutgoingLinksTable
           closedMultiEntityTypesDefinitions={closedMultiEntityTypesDefinitions}
           closedMultiEntityTypesMap={closedMultiEntityTypesMap}
           customEntityLinksColumns={customEntityLinksColumns}
           defaultOutgoingLinkFilters={defaultOutgoingLinkFilters}
           entitySubgraph={entitySubgraph}
-          filterDefinitions={readonly ? filterDefinitions : undefined}
-          filterValues={readonly ? filterValues : undefined}
-          loadingMore={readonly ? loadingMore : undefined}
-          onEndReached={readonly && hasMore ? loadMore : undefined}
+          filterDefinitions={filterDefinitions}
+          filterValues={filterValues}
+          loadingMore={loadingMore}
+          onEndReached={hasMore ? loadMore : undefined}
           onEntityClick={onEntityClick}
           onTypeClick={onTypeClick}
           outgoingLinksAndTargets={outgoingLinksAndTargets}
-          setFilterValues={readonly ? setFilterValues : undefined}
+          setFilterValues={setFilterValues}
           setSort={setSort}
           slideContainerRef={slideContainerRef}
           sort={sort}
