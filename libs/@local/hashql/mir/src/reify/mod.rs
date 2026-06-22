@@ -44,6 +44,7 @@ use self::{
     error::{
         expected_anf_thunk, expected_anf_variable, external_modules_unsupported, local_not_thunk,
     },
+    synthetic::Synthetics,
     types::unwrap_closure_type,
 };
 use crate::{
@@ -106,6 +107,9 @@ impl<S: Allocator> Thunks<S> {
 struct CrossCompileState<'heap, S: Allocator> {
     /// Mapping of variable IDs to their thunk definitions.
     thunks: Thunks<S>,
+
+    /// Synthetic bodies that have been generated during reification.
+    synthetics: Synthetics<S>,
 
     /// Collection of diagnostics encountered during reification.
     diagnostics: ReifyDiagnosticIssues,
@@ -507,6 +511,7 @@ pub fn from_hir<'heap, A: Allocator, S: Allocator + Clone>(
     };
     let mut state = CrossCompileState {
         thunks,
+        synthetics: Synthetics::new_in(context.scratch.clone()),
         ctor: FastHashMap::default(),
         diagnostics: ReifyDiagnosticIssues::new(),
         var_pool: MixedBitSetPool::with_recycler_in(

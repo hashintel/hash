@@ -2,6 +2,7 @@ use core::alloc::Allocator;
 
 use hashql_core::{
     id::{Id as _, IdVec},
+    span::Spanned,
     symbol::sym,
     r#type::{TypeBuilder, Typed, builder},
     value::Primitive,
@@ -17,6 +18,7 @@ use hashql_hir::node::{
         BinaryOperation, InputOperation, Operation, TypeConstructor, TypeOperation, UnaryOperation,
     },
     thunk::Thunk,
+    variable::Variable,
 };
 
 use super::{
@@ -200,6 +202,10 @@ impl<'mir, 'heap, A: Allocator, S: Allocator> Reifier<'_, 'mir, '_, '_, 'heap, A
         function: Node<'heap>,
         call_arguments: &[CallArgument<'heap>],
     ) -> RValue<'heap> {
+        if let Some(value) = self.rvalue_call_thin_specialize(function, call_arguments) {
+            return value;
+        }
+
         let mut arguments = IdVec::with_capacity_in(call_arguments.len(), self.context.mir.heap);
 
         for CallArgument { span: _, value } in call_arguments {
@@ -212,6 +218,57 @@ impl<'mir, 'heap, A: Allocator, S: Allocator> Reifier<'_, 'mir, '_, '_, 'heap, A
             function: self.operand(function),
             arguments,
         })
+    }
+
+    /// Attempts to beta-reduce a thin call to a qualified intrinsic into a closure aggregate.
+    ///
+    /// The thunking phase wraps every qualified variable in `Call(Thin, Qualified(...), [])`.
+    /// When the target is a known intrinsic, this produces the closure aggregate directly
+    /// instead of going through a thunk body that later passes would eliminate.
+    ///
+    /// Returns [`None`] if the call has arguments, the target is not a qualified variable,
+    /// or the path is not a known intrinsic.
+    fn rvalue_call_thin_specialize(
+        &mut self,
+        function: Node<'heap>,
+        call_arguments: &[CallArgument<'heap>],
+    ) -> Option<RValue<'heap>> {
+        if !call_arguments.is_empty() {
+            return None;
+        }
+
+        let NodeKind::Variable(Variable::Qualified(variable)) = function.kind else {
+            return None;
+        };
+
+        let diagnostics = self.state.diagnostics.critical();
+
+        let Some(synthetic) = self.state.synthetics.find_or_insert(
+            self.context,
+            &mut self.state.diagnostics,
+            Spanned {
+                span: function.span,
+                value: function.id,
+            },
+            variable.path,
+        ) else {
+            // A diagnostic was already emitted (e.g. non-first-classable intrinsic).
+            // Return a bogus value to prevent the fallback from emitting a duplicate.
+            if diagnostics != self.state.diagnostics.critical() {
+                return Some(RValue::Load(Operand::Constant(Constant::Unit)));
+            }
+
+            return None;
+        };
+
+        let mut operands = IdVec::with_capacity_in(2, self.context.mir.heap);
+        operands.push(Operand::Constant(Constant::FnPtr(synthetic.body)));
+        operands.push(Operand::Constant(Constant::Unit));
+
+        Some(RValue::Aggregate(Aggregate {
+            kind: AggregateKind::Closure,
+            operands,
+        }))
     }
 
     fn rvalue_call_fat(

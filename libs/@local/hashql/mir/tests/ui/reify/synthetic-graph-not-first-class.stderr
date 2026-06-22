@@ -1,0 +1,7 @@
+error[reify::unsupported-feature]: Unsupported Feature
+   ╭▸ 
+13 │   ["id", "::graph::head::entities"]
+   │           ━━━━━━━━━━━━━━━━━━━━━━━ `::graph::head::entities` cannot be used as a value
+   │
+   ├ note: `::graph::head::entities` is a syntactic form that is only valid at a call site
+   ╰ help: call this intrinsic directly instead of passing it as an argument
