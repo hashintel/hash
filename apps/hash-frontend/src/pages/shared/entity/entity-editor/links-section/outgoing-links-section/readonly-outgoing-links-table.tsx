@@ -17,8 +17,6 @@ import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-p
 import { ClickableCellChip } from "../../../../clickable-cell-chip";
 import { VirtualizedTable } from "../../../../virtualized-table";
 import { virtualizedTableHeaderHeight } from "../../../../virtualized-table/header";
-import { isValueIncludedInFilter } from "../../../../virtualized-table/header/filter";
-import { useVirtualizedTableFilterState } from "../../../../virtualized-table/use-filter-state";
 import { PropertiesTooltip } from "../shared/properties-tooltip";
 import {
   linksTableCellSx,
@@ -33,12 +31,7 @@ import type {
   VirtualizedTableColumn,
   VirtualizedTableRow,
 } from "../../../../virtualized-table";
-import type {
-  VirtualizedTableFilterDefinition,
-  VirtualizedTableFilterDefinitionsByFieldId,
-  VirtualizedTableFilterValue,
-  VirtualizedTableFilterValuesByFieldId,
-} from "../../../../virtualized-table/header/filter";
+import type { VirtualizedTableFilterValuesByFieldId } from "../../../../virtualized-table/header/filter";
 import type { VirtualizedTableSort } from "../../../../virtualized-table/header/sort";
 import type { CustomEntityLinksColumn } from "../../shared/types";
 import type {
@@ -71,7 +64,7 @@ export type OutgoingLinksFieldId =
  * query's root (the link entities), and the graph API only exposes `label` and
  * `typeTitle` as sortable tokens (it cannot traverse to the target entity), so
  * only the link entity's label (`link`) and type title (`linkTypes`) are
- * available. When sorting is server-side the other columns are not sortable.
+ * available. All other columns are not sortable.
  */
 const serverSortableFieldIds: OutgoingLinksFieldId[] = ["linkTypes", "link"];
 
@@ -269,17 +262,13 @@ type OutgoingLinksTableProps = {
   onTypeClick: (kind: "dataType" | "entityType", itemId: VersionedUrl) => void;
   outgoingLinksAndTargets: LinkEntityAndRightEntity[];
   /**
-   * When `true`, the table is backed by a paginated server-side query:
-   * - Sorting is applied by the query (the rows are already ordered), so the
-   *   table does not re-sort locally and only exposes the columns the graph API
-   *   can sort by. `sort`/`setSort` must be provided (controlled) so the parent
-   *   can re-query when the sort changes.
-   * - Filtering is disabled entirely, because client-side filters would only
-   *   ever see the currently loaded pages.
+   * The table is backed by a paginated server-side query: the rows are a
+   * server-ordered page, sorting is applied by the query (so the table only
+   * exposes the columns the graph API can sort by, and `sort`/`setSort` drive a
+   * re-query when the sort changes), and filtering is applied server-side too.
    */
-  serverSideSorting?: boolean;
-  sort?: VirtualizedTableSort<OutgoingLinksFieldId>;
-  setSort?: (sort: VirtualizedTableSort<OutgoingLinksFieldId>) => void;
+  sort: VirtualizedTableSort<OutgoingLinksFieldId>;
+  setSort: (sort: VirtualizedTableSort<OutgoingLinksFieldId>) => void;
   slideContainerRef?: RefObject<HTMLDivElement | null>;
 };
 
@@ -295,62 +284,24 @@ export const OutgoingLinksTable = memo(
     onEntityClick,
     onTypeClick,
     outgoingLinksAndTargets,
-    serverSideSorting = false,
-    sort: controlledSort,
-    setSort: controlledSetSort,
+    sort,
+    setSort,
     slideContainerRef,
   }: OutgoingLinksTableProps) => {
-    const [internalSort, setInternalSort] = useState<
-      VirtualizedTableSort<OutgoingLinksFieldId>
-    >({
-      fieldId: "linkedTo",
-      direction: "asc",
-    });
-
-    /**
-     * When sorting server-side the sort is controlled by the parent (so it can
-     * re-query); otherwise it is local state.
-     */
-    const sort = controlledSort ?? internalSort;
-    const setSort = controlledSetSort ?? setInternalSort;
-
     const {
-      filterDefinitions,
-      initialFilterValues,
-      unsortedRows,
+      rows,
+      presentLinkEntityTypeIds,
     }: {
-      filterDefinitions: VirtualizedTableFilterDefinitionsByFieldId<OutgoingLinksFieldId>;
-      initialFilterValues: VirtualizedTableFilterValuesByFieldId<OutgoingLinksFieldId>;
-      unsortedRows: VirtualizedTableRow<OutgoingLinkRow>[];
+      rows: VirtualizedTableRow<OutgoingLinkRow>[];
+      presentLinkEntityTypeIds: Set<VersionedUrl>;
     } = useMemo(() => {
       const rowData: VirtualizedTableRow<OutgoingLinkRow>[] = [];
 
-      const filterDefs = {
-        linkTypes: {
-          header: "Type",
-          initialValue: new Set<string>(),
-          options: {} as VirtualizedTableFilterDefinition["options"],
-          type: "checkboxes",
-        },
-        linkedTo: {
-          header: "Name",
-          initialValue: new Set<string>(),
-          options: {} as VirtualizedTableFilterDefinition["options"],
-          type: "checkboxes",
-        },
-        linkedToTypes: {
-          header: "Type",
-          initialValue: new Set<string>(),
-          options: {} as VirtualizedTableFilterDefinition["options"],
-          type: "checkboxes",
-        },
-        link: {
-          header: "Name",
-          initialValue: new Set<string>(),
-          options: {} as VirtualizedTableFilterDefinition["options"],
-          type: "checkboxes",
-        },
-      } as const satisfies VirtualizedTableFilterDefinitionsByFieldId<OutgoingLinksFieldId>;
+      /**
+       * The set of link entity type ids present across the loaded rows, used to
+       * decide which custom columns apply.
+       */
+      const linkEntityTypeIds = new Set<VersionedUrl>();
 
       for (const {
         rightEntity: rightEntityRevisions,
@@ -391,16 +342,7 @@ export const OutgoingLinksTable = memo(
         );
 
         for (const linkType of linkEntityClosedMultiType.allOf) {
-          const linkEntityTypeId = linkType.$id;
-
-          filterDefs.linkTypes.options[linkEntityTypeId] ??= {
-            label: linkType.title,
-            count: 0,
-            value: linkEntityTypeId,
-          };
-
-          filterDefs.linkTypes.options[linkEntityTypeId].count++;
-          filterDefs.linkTypes.initialValue.add(linkEntityTypeId);
+          linkEntityTypeIds.add(linkType.$id);
         }
 
         const rightEntity = rightEntityRevisions[0];
@@ -420,39 +362,6 @@ export const OutgoingLinksTable = memo(
               closedMultiEntityTypesRootMap: closedMultiEntityTypesMap,
             })
           : generateEntityLabel(rightEntityClosedMultiType, rightEntity);
-
-        filterDefs.linkedTo.options[rightEntity.metadata.recordId.entityId] ??=
-          {
-            label: rightEntityLabel,
-            count: 0,
-            value: rightEntity.metadata.recordId.entityId,
-          };
-        filterDefs.linkedTo.options[rightEntity.metadata.recordId.entityId]!
-          .count++;
-        filterDefs.linkedTo.initialValue.add(
-          rightEntity.metadata.recordId.entityId,
-        );
-
-        for (const rightType of rightEntityClosedMultiType.allOf) {
-          const rightEntityTypeId = rightType.$id;
-
-          filterDefs.linkedToTypes.options[rightEntityTypeId] ??= {
-            label: rightType.title,
-            count: 0,
-            value: rightEntityTypeId,
-          };
-
-          filterDefs.linkedToTypes.options[rightEntityTypeId].count++;
-          filterDefs.linkedToTypes.initialValue.add(rightEntityTypeId);
-        }
-
-        filterDefs.link.options[linkEntity.metadata.recordId.entityId] ??= {
-          label: linkEntityLabel,
-          count: 0,
-          value: linkEntity.metadata.recordId.entityId,
-        };
-        filterDefs.link.options[linkEntity.metadata.recordId.entityId]!.count++;
-        filterDefs.link.initialValue.add(linkEntity.metadata.recordId.entityId);
 
         const linkEntityProperties: OutgoingLinkRow["linkEntityProperties"] =
           {};
@@ -522,17 +431,8 @@ export const OutgoingLinksTable = memo(
       }
 
       return {
-        filterDefinitions: filterDefs,
-        initialFilterValues: Object.fromEntries(
-          typedEntries(filterDefs).map(
-            ([columnId, filterDef]) =>
-              [columnId, filterDef.initialValue] satisfies [
-                OutgoingLinksFieldId,
-                VirtualizedTableFilterValue,
-              ],
-          ),
-        ) as OutgoingLinksFilterValues,
-        unsortedRows: rowData,
+        rows: rowData,
+        presentLinkEntityTypeIds: linkEntityTypeIds,
       };
     }, [
       closedMultiEntityTypesMap,
@@ -553,150 +453,22 @@ export const OutgoingLinksTable = memo(
       setTimeout(() => setHighlightOutgoingLinks(false), 5_000);
     }, []);
 
-    const [filterValues, setFilterValues] = useVirtualizedTableFilterState({
-      defaultFilterValues: {
-        ...initialFilterValues,
-        ...(defaultOutgoingLinkFilters ?? {}),
-      },
-      filterDefinitions,
-    });
-
-    const rows = useMemo(() => {
-      if (serverSideSorting) {
-        /**
-         * In self-fetch mode the rows are a server-ordered, paginated page:
-         * sorting is applied by the query and filtering is disabled entirely
-         * (client-side filtering would only ever see the loaded pages), so the
-         * rows are used as-is.
-         */
-        return unsortedRows;
-      }
-
-      const filteredRows = unsortedRows.filter((row) => {
-        for (const [fieldId, currentValue] of typedEntries(filterValues)) {
-          switch (fieldId) {
-            case "linkTypes": {
-              if (
-                !isValueIncludedInFilter({
-                  currentValue,
-                  valueToCheck: row.data.linkEntity.metadata.entityTypeIds,
-                })
-              ) {
-                return false;
-              }
-              break;
-            }
-            case "linkedTo": {
-              if (
-                !isValueIncludedInFilter({
-                  currentValue,
-                  valueToCheck:
-                    row.data.targetEntity.metadata.recordId.entityId,
-                })
-              ) {
-                return false;
-              }
-              break;
-            }
-            case "linkedToTypes": {
-              if (
-                !isValueIncludedInFilter({
-                  currentValue,
-                  valueToCheck: row.data.targetEntity.metadata.entityTypeIds,
-                })
-              ) {
-                return false;
-              }
-              break;
-            }
-            case "link": {
-              if (
-                !isValueIncludedInFilter({
-                  currentValue,
-                  valueToCheck: row.data.linkEntity.metadata.recordId.entityId,
-                })
-              ) {
-                return false;
-              }
-              break;
-            }
-          }
-        }
-
-        return true;
-      });
-
-      return filteredRows.sort((a, b) => {
-        const field = sort.fieldId;
-        const direction = sort.direction === "asc" ? 1 : -1;
-
-        switch (field) {
-          case "linkTypes": {
-            return (
-              a.data.linkEntityTypes[0]!.title.localeCompare(
-                b.data.linkEntityTypes[0]!.title,
-              ) * direction
-            );
-          }
-          case "linkedToTypes": {
-            return (
-              a.data.targetEntityTypes[0]!.title.localeCompare(
-                b.data.targetEntityTypes[0]!.title,
-              ) * direction
-            );
-          }
-          case "linkedTo": {
-            return (
-              a.data.targetEntityLabel.localeCompare(b.data.targetEntityLabel) *
-              direction
-            );
-          }
-          case "link": {
-            return (
-              a.data.linkEntityLabel.localeCompare(b.data.linkEntityLabel) *
-              direction
-            );
-          }
-          default: {
-            const customFieldA = a.data.customFields[field];
-            const customFieldB = b.data.customFields[field];
-            if (
-              typeof customFieldA === "number" &&
-              typeof customFieldB === "number"
-            ) {
-              return (customFieldA - customFieldB) * direction;
-            }
-            return (
-              String(customFieldA).localeCompare(String(customFieldB)) *
-              direction
-            );
-          }
-        }
-      });
-    }, [filterValues, serverSideSorting, sort, unsortedRows]);
-
     const columns = useMemo(() => {
-      const applicableCustomColumns = customColumns?.filter(
-        (column) =>
-          typeof filterValues.linkTypes === "object" &&
-          filterValues.linkTypes.has(column.appliesToEntityTypeId),
+      const applicableCustomColumns = customColumns?.filter((column) =>
+        presentLinkEntityTypeIds.has(column.appliesToEntityTypeId),
       );
 
       const createdColumns = createColumns(applicableCustomColumns ?? []);
 
-      if (!serverSideSorting) {
-        return createdColumns;
-      }
-
       /**
-       * When sorting is server-side, only the columns the graph API can sort by
-       * are sortable.
+       * Sorting is applied server-side, so only the columns the graph API can
+       * sort by are sortable.
        */
       return createdColumns.map((column) => ({
         ...column,
         sortable: serverSortableFieldIds.includes(column.id),
       }));
-    }, [filterValues, customColumns, serverSideSorting]);
+    }, [customColumns, presentLinkEntityTypeIds]);
 
     /**
      * Whether scrolling to the bottom may trigger a load of the next page. It
@@ -759,13 +531,10 @@ export const OutgoingLinksTable = memo(
         <VirtualizedTable
           columns={columns}
           createRowContent={createRowContent}
-          filterDefinitions={serverSideSorting ? undefined : filterDefinitions}
-          filterValues={serverSideSorting ? undefined : filterValues}
           followOutput={false}
           loadingMore={loadingMore}
           onIsScrolling={handleIsScrolling}
           onRangeChange={handleRangeChange}
-          setFilterValues={serverSideSorting ? undefined : setFilterValues}
           rows={rows}
           sort={sort}
           setSort={setSort}
