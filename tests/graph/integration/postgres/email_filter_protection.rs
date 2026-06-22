@@ -26,6 +26,7 @@ use hash_graph_store::{
         CountEntitiesParams, CreateEntityParams, EntityQueryPath, EntityQuerySorting,
         EntityQuerySortingRecord, EntityStore as _, QueryEntitiesParams, QueryEntitySubgraphParams,
     },
+    entity_type::EntityTypeQueryPath,
     filter::{
         Filter, FilterExpression, JsonPath, Parameter, PathToken,
         protection::{
@@ -35,7 +36,10 @@ use hash_graph_store::{
     },
     query::{NullOrdering, Ordering},
     subgraph::{
-        edges::{EdgeDirection, EntityTraversalEdge, EntityTraversalPath, GraphResolveDepths},
+        edges::{
+            EdgeDirection, EntityTraversalEdge, EntityTraversalPath, GraphResolveDepths,
+            SharedEdgeKind,
+        },
         temporal_axes::{
             PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved,
             VariableTemporalAxisUnresolved,
@@ -1424,7 +1428,11 @@ fn multi_property_config() -> PropertyProtectionFilterConfig<'static> {
                     parameter: Parameter::Text(Cow::Borrowed(USER_ENTITY_TYPE_BASE_URL)),
                 },
                 PropertyFilterExpressionList::Path {
-                    path: EntityQueryPath::TypeBaseUrls,
+                    path: EntityQueryPath::EntityTypeEdge {
+                        edge_kind: SharedEdgeKind::IsOfType,
+                        path: EntityTypeQueryPath::BaseUrl,
+                        inheritance_depth: None,
+                    },
                 },
             ),
             PropertyFilter::NotEqual(
@@ -2046,7 +2054,11 @@ fn multi_type_config() -> PropertyProtectionFilterConfig<'static> {
                     parameter: Parameter::Text(Cow::Borrowed(USER_ENTITY_TYPE_BASE_URL)),
                 },
                 PropertyFilterExpressionList::Path {
-                    path: EntityQueryPath::TypeBaseUrls,
+                    path: EntityQueryPath::EntityTypeEdge {
+                        edge_kind: SharedEdgeKind::IsOfType,
+                        path: EntityTypeQueryPath::BaseUrl,
+                        inheritance_depth: None,
+                    },
                 },
             ),
             PropertyFilter::NotEqual(
@@ -2065,7 +2077,11 @@ fn multi_type_config() -> PropertyProtectionFilterConfig<'static> {
                     parameter: Parameter::Text(Cow::Borrowed(SECRET_ENTITY_TYPE_BASE_URL)),
                 },
                 PropertyFilterExpressionList::Path {
-                    path: EntityQueryPath::TypeBaseUrls,
+                    path: EntityQueryPath::EntityTypeEdge {
+                        edge_kind: SharedEdgeKind::IsOfType,
+                        path: EntityTypeQueryPath::BaseUrl,
+                        inheritance_depth: None,
+                    },
                 },
             ),
             PropertyFilter::NotEqual(

@@ -507,6 +507,15 @@ impl Expression {
     }
 
     #[must_use]
+    pub fn array_contains(lhs: Self, rhs: Self) -> Self {
+        Self::Binary(BinaryExpression {
+            op: BinaryOperator::ArrayContains,
+            left: Box::new(lhs),
+            right: Box::new(rhs),
+        })
+    }
+
+    #[must_use]
     pub fn cosine_distance(lhs: Self, rhs: Self) -> Self {
         Self::Binary(BinaryExpression {
             op: BinaryOperator::CosineDistance,

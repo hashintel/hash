@@ -101,31 +101,13 @@ pub enum EntityQueryPath<'p> {
     /// [`EntityMetadata`]: type_system::knowledge::entity::EntityMetadata
     /// [`EntityTemporalMetadata`]: type_system::knowledge::entity::metadata::EntityTemporalMetadata
     TransactionTime,
-    /// The list of [`EntityType`]s' [`BaseUrl`]s belonging to the [`Entity`].
-    ///
-    /// It's currently not possible to query for the list of types directly. Use [`EntityTypeEdge`]
-    /// instead.
-    ///
-    /// [`Entity`]: type_system::knowledge::Entity
-    /// [`BaseUrl`]: type_system::ontology::BaseUrl
-    /// [`EntityType`]: type_system::ontology::entity_type::EntityType
-    /// [`EntityTypeEdge`]: Self::EntityTypeEdge
-    TypeBaseUrls,
-    /// The list of [`EntityType`]s' versions belonging to the [`Entity`].
-    ///
-    /// It's currently not possible to query for the list of types directly. Use [`EntityTypeEdge`]
-    /// instead.
-    ///
-    /// [`Entity`]: type_system::knowledge::Entity
-    /// [`EntityType`]: type_system::ontology::entity_type::EntityType
-    /// [`EntityTypeEdge`]: Self::EntityTypeEdge
-    TypeVersionedUrls,
     /// The number of direct (non-inherited) types of the [`Entity`].
     ///
-    /// The type arrays in the edition cache list direct types first, so this is the length
-    /// of the direct-type prefix.
+    /// Type lists selected via [`EntityTypeEdge`] (without an inheritance depth) order
+    /// direct types first, so this is the length of the direct-type prefix.
     ///
     /// [`Entity`]: type_system::knowledge::Entity
+    /// [`EntityTypeEdge`]: Self::EntityTypeEdge
     DirectTypeCount,
     /// The confidence value for the [`Entity`].
     ///
@@ -491,8 +473,6 @@ impl fmt::Display for EntityQueryPath<'_> {
             Self::EditionId => fmt.write_str("editionId"),
             Self::DecisionTime => fmt.write_str("decisionTime"),
             Self::TransactionTime => fmt.write_str("transactionTime"),
-            Self::TypeBaseUrls => fmt.write_str("typeBaseUrls"),
-            Self::TypeVersionedUrls => fmt.write_str("typeVersionedUrls"),
             Self::DirectTypeCount => fmt.write_str("directTypeCount"),
             Self::Archived => fmt.write_str("archived"),
             Self::Properties(Some(property)) => write!(fmt, "properties.{property}"),
@@ -551,9 +531,6 @@ impl QueryPath for EntityQueryPath<'_> {
         match self {
             Self::EditionId | Self::Uuid | Self::WebId | Self::DraftId => ParameterType::Uuid,
             Self::DecisionTime | Self::TransactionTime => ParameterType::TimeInterval,
-            Self::TypeBaseUrls | Self::TypeVersionedUrls => {
-                ParameterType::Vector(Box::new(ParameterType::VersionedUrl))
-            }
             Self::DirectTypeCount => ParameterType::Integer,
             Self::Properties(_)
             | Self::Label { .. }
@@ -909,8 +886,6 @@ impl<'de: 'p, 'p> EntityQueryPath<'p> {
             Self::EditionId => EntityQueryPath::EditionId,
             Self::DecisionTime => EntityQueryPath::DecisionTime,
             Self::TransactionTime => EntityQueryPath::TransactionTime,
-            Self::TypeBaseUrls => EntityQueryPath::TypeBaseUrls,
-            Self::TypeVersionedUrls => EntityQueryPath::TypeVersionedUrls,
             Self::DirectTypeCount => EntityQueryPath::DirectTypeCount,
             Self::Archived => EntityQueryPath::Archived,
             Self::EntityTypeEdge {

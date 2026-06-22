@@ -51,6 +51,8 @@ pub enum BinaryOperator {
     // --- Domain-specific ---
     /// `<lhs> @> <rhs>::TIMESTAMPTZ`
     TimeIntervalContainsTimestamp,
+    /// `<lhs> @> <rhs>`
+    ArrayContains,
     /// `<lhs> && <rhs>`
     Overlap,
     /// `<lhs> <=> <rhs>`
@@ -76,7 +78,7 @@ impl BinaryOperator {
             Self::BitwiseOr => " | ",
             Self::JsonAccess => " -> ",
             Self::JsonAccessAsText => " ->> ",
-            Self::TimeIntervalContainsTimestamp => " @> ",
+            Self::TimeIntervalContainsTimestamp | Self::ArrayContains => " @> ",
             Self::Overlap => " && ",
             Self::CosineDistance => " <=> ",
         };
@@ -102,6 +104,7 @@ impl BinaryOperator {
             | Self::BitwiseOr
             | Self::JsonAccess
             | Self::JsonAccessAsText
+            | Self::ArrayContains
             | Self::Overlap
             | Self::CosineDistance => Ok(()),
         }
