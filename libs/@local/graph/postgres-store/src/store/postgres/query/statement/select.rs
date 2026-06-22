@@ -126,7 +126,7 @@ mod tests {
 
     use crate::store::postgres::query::{
         Distinctness, PostgresRecord, SelectCompiler, SelectExpression, SelectStatement,
-        Transpile as _, test_helper::trim_whitespace,
+        Transpile as _, compile::SelectCompilerError, test_helper::trim_whitespace,
     };
 
     #[track_caller]
@@ -1483,6 +1483,42 @@ mod tests {
                 &"https://example.com/@example-org/types/entity-type/address/v/1",
                 &"https://example.com/@example-org/types/entity-type/location/v/1",
             ],
+        );
+    }
+
+    #[test]
+    fn filter_entity_by_type_starts_with_rejected() {
+        let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+        let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes), false);
+
+        // String operations have no scalar to operate on once the path resolves to the
+        // materialized `base_urls` array, so they must be rejected at compile time rather
+        // than emit invalid SQL.
+        let filter = Filter::<Entity>::StartsWith(
+            FilterExpression::Path {
+                path: EntityQueryPath::EntityTypeEdge {
+                    edge_kind: SharedEdgeKind::IsOfType,
+                    path: EntityTypeQueryPath::BaseUrl,
+                    inheritance_depth: None,
+                },
+            },
+            FilterExpression::Parameter {
+                parameter: Parameter::Text(Cow::Borrowed(
+                    "https://example.com/@example-org/types/entity-type/",
+                )),
+                convert: None,
+            },
+        );
+
+        let error = compiler
+            .add_filter(&filter)
+            .expect_err("string operation on a cached array path should be rejected");
+        assert!(
+            matches!(
+                error.current_context(),
+                SelectCompilerError::UnsupportedTextArrayOperation
+            ),
+            "unexpected error: {error:?}"
         );
     }
 
