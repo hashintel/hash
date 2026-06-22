@@ -63,7 +63,7 @@ interface EntityProps {
   /**
    * The default outgoing link filters to apply to the links tables in the entity editor
    */
-  defaultOutgoingLinkFilters?: EntityEditorProps["defaultOutgoingLinkFilters"];
+  initialOutgoingLinksFilter?: EntityEditorProps["initialOutgoingLinksFilter"];
 
   /**
    * To be provided if this is a new entity which hasn't yet been created in the database,
@@ -140,7 +140,7 @@ interface EntityProps {
 }
 
 export const Entity = ({
-  defaultOutgoingLinkFilters,
+  initialOutgoingLinksFilter,
   draftLocalEntity,
   entityId,
   isInSlide,
@@ -724,7 +724,7 @@ export const Entity = ({
           />
           <EntityEditorContainer isInSlide={isInSlide}>
             <EntityEditor
-              defaultOutgoingLinkFilters={defaultOutgoingLinkFilters}
+              initialOutgoingLinksFilter={initialOutgoingLinksFilter}
               {...draftEntityTypesDetails}
               draftLinksToCreate={draftLinksToCreate}
               draftLinksToArchive={draftLinksToArchive}

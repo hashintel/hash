@@ -1,33 +1,26 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 
 /**
- * Sentinel for the cursor part of the first page's key, which has no
- * originating cursor.
- *
- * Pages are keyed by the cursor that produced them so that a page is replaced
- * (rather than duplicated) if its query resolves more than once - e.g. a cache
- * hit followed by a network response for the same cursor.
+ * Sentinel cursor part for the first page, which has no originating cursor.
+ * Pages are keyed by their cursor so a page is replaced (not duplicated) if its
+ * query resolves twice - e.g. a cache hit then a network response.
  */
 export const initialCursorKey = "__initial__";
 
 /**
- * Separator between the generation prefix and the cursor part of a page key
- * (see {@link cursorKeyFor}). A page key is `${generation} ${cursorPart}`;
- * the generation is always a leading integer, so the cursor part is everything
- * after the first separator (the cursor's JSON may itself contain the
- * separator, hence "first").
+ * Separator between a page key's generation prefix and cursor part. A key is
+ * `${generation} ${cursorPart}`; the generation is a leading integer, so the
+ * cursor part is everything after the *first* separator (the cursor's JSON may
+ * contain the separator too).
  */
 const generationSeparator = " ";
 
 /**
- * A stable string key identifying both the cursor that produced a page *and*
- * the query generation it was fetched under.
- *
- * The generation prefix is what makes a late page from a superseded query
- * recognisable as stale: across query identities the cursor part of the first
- * page is always {@link initialCursorKey}, so without the generation a late
- * completion of the previous query could not be told apart from the new query's
- * first page.
+ * A stable key identifying both the cursor that produced a page and the query
+ * generation it was fetched under. The generation is what marks a late page
+ * from a superseded query as stale: every query's first page shares
+ * {@link initialCursorKey}, so without it a late completion of the old query
+ * couldn't be told from the new query's first page.
  */
 export const cursorKeyFor = <Cursor>(
   generation: number,
@@ -37,10 +30,7 @@ export const cursorKeyFor = <Cursor>(
     cursor === undefined ? initialCursorKey : JSON.stringify(cursor)
   }`;
 
-/**
- * Split a page key produced by {@link cursorKeyFor} back into its generation
- * and cursor part.
- */
+/** Split a {@link cursorKeyFor} key back into its generation and cursor part. */
 const parseCursorKey = (
   cursorKey: string,
 ): { generation: number; cursorPart: string } => {
@@ -52,29 +42,22 @@ const parseCursorKey = (
 };
 
 /**
- * Drives cursor-based pagination where each loaded page is folded into a
- * running accumulation, exposing a `loadMore` to advance the cursor.
+ * Drives cursor-based pagination, folding each loaded page into a running
+ * accumulation and exposing `loadMore` to advance the cursor.
  *
- * The hook is agnostic to what a "page" or its accumulation contains: callers
- * supply
- * - `seed`, building the empty accumulator from the first page, and
- * - `appendPage`, folding one page into the accumulator (which must expose the
- *   `nextCursor` to advance to, or `null` when exhausted).
+ * Callers supply `seed` (build the empty accumulator from the first page) and
+ * `appendPage` (fold one page in; it must expose `nextCursor`, or `null` when
+ * exhausted). Both, and `finalize`, must be referentially stable, as the
+ * accumulation only recomputes when `pages` changes.
  *
- * The fold is incremental: as long as `pages` grows by append (the common
- * infinite-scroll case) only the newly-added pages are folded in, so loading
- * page `k` costs O(page size) rather than O(total pages loaded so far). A reset
- * or an in-place page replacement (cache-then-network for the same cursor)
- * rebuilds from scratch, which is rare and bounded.
+ * The fold is incremental: while `pages` grows by append (infinite scroll) only
+ * the new pages are folded in, so loading page `k` costs O(page size). A reset
+ * or in-place page replacement rebuilds from scratch (rare and bounded).
  *
- * `seed`, `appendPage` and `finalize` must be referentially stable (e.g.
- * module-level constants or memoised), as the accumulation only recomputes when
- * `pages` changes.
- *
- * The caller is responsible for issuing the query for the current `cursor` and
- * calling `addPage` with the result, stamping the page with the `cursorKey`
- * this hook returns (it encodes both the cursor and the current generation, so
- * a late completion of a superseded query is dropped rather than applied).
+ * The caller issues the query for the current `cursor` and calls `addPage` with
+ * the result, stamping it with the `cursorKey` this hook returns (it encodes
+ * the cursor and generation, so a late completion of a superseded query is
+ * dropped).
  */
 export const useAccumulatedCursorPagination = <
   Cursor,
@@ -87,10 +70,9 @@ export const useAccumulatedCursorPagination = <
   finalize,
 }: {
   /**
-   * When this changes, accumulated pages and the cursor are discarded (the
-   * query identity, and therefore the cursors, are no longer valid). Done
-   * during render rather than in an effect so that the stale cursor is never
-   * sent alongside the new query.
+   * When this changes, the accumulated pages and cursor are discarded
+   * Done during render rather than in an effect, so the stale cursor
+   * is never sent with the new query.
    */
   resetKey: string;
   /** Build the empty accumulator from the first page. */
@@ -98,15 +80,15 @@ export const useAccumulatedCursorPagination = <
   /** Fold one page into the running accumulation. */
   appendPage: (accumulated: Accumulated, page: Page) => Accumulated;
   /**
-   * Optional transform applied to the accumulation before it is returned, e.g.
-   * to hand out fresh references for collections that `appendPage` mutates in
-   * place. Runs only when the accumulation recomputes.
+   * Optional transform applied before the accumulation is returned, e.g. to
+   * hand out fresh references for collections `appendPage` mutates in place.
+   * Runs only when the accumulation recomputes.
    */
   finalize?: (accumulated: Accumulated) => Accumulated;
 }): {
   /** The cursor for the page to fetch next, to feed into the query. */
   cursor: Cursor | undefined;
-  /** The key for the current cursor, to stamp onto the page passed to `addPage`. */
+  /** Key for the current cursor, to stamp onto the page passed to `addPage`. */
   cursorKey: string;
   /** How many pages have been loaded so far. */
   pageCount: number;
@@ -124,22 +106,16 @@ export const useAccumulatedCursorPagination = <
 
   /**
    * Bumped whenever the query identity changes, so pages carry the generation
-   * they were fetched under. Held in a ref (not state) because it must be
-   * readable both at render time (to stamp the current `cursorKey`) and inside
-   * the stable `addPage` callback (to reject pages from a superseded query)
-   * without re-creating that callback.
+   * they were fetched under.
    */
   const generationRef = useRef(0);
 
   const previousResetKey = useRef(resetKey);
   if (previousResetKey.current !== resetKey) {
     previousResetKey.current = resetKey;
-    /**
-     * Advance the generation before discarding the stale cursor/pages, so the
-     * query issued for the new identity stamps its pages with the new
-     * generation and a late completion of the previous query (which captured
-     * the old generation) is dropped by `addPage` rather than replacing them.
-     */
+    // Advance the generation before discarding the stale cursor/pages, so the
+    // new query stamps its pages with the new generation and a late completion
+    // of the previous query is dropped by `addPage`.
     generationRef.current += 1;
     if (cursor !== undefined) {
       setCursor(undefined);
@@ -152,13 +128,7 @@ export const useAccumulatedCursorPagination = <
   const addPage = useCallback((page: Page) => {
     const { generation, cursorPart } = parseCursorKey(page.cursorKey);
 
-    /**
-     * Ignore pages from a superseded query identity. Their first page shares
-     * the `initialCursorKey` cursor part with the current query's first page,
-     * so without this guard a late completion of the previous query would hit
-     * the "first page - replace" branch below and clobber the freshly-reset
-     * pages with stale rows.
-     */
+    // Ignore pages from a superseded query.
     if (generation !== generationRef.current) {
       return;
     }
@@ -184,9 +154,8 @@ export const useAccumulatedCursorPagination = <
   }, []);
 
   /**
-   * The previously-processed `pages` array and its resulting accumulation are
-   * cached here so that an append-only growth of `pages` only folds in the new
-   * pages (see the hook docs).
+   * The last-processed `pages` and its accumulation, cached so an append-only
+   * growth of `pages` only folds in the new pages (see the hook docs).
    */
   const accumulationCache = useRef<{
     pages: Page[];
