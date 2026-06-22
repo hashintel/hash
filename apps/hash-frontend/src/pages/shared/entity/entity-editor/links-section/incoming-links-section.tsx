@@ -319,7 +319,7 @@ export const IncomingLinksSection = ({
         </Stack>
       }
     >
-      {incomingLinksAndSources.length ? (
+      {linkCount > 0 || (readonly && filterTypeIds !== undefined) ? (
         <IncomingLinksTable
           closedMultiEntityTypesDefinitions={closedMultiEntityTypesDefinitions}
           closedMultiEntityTypesMap={closedMultiEntityTypesMap}
