@@ -7,13 +7,17 @@
 //!
 //! # Reduction Targets
 //!
-//! The pass identifies and reduces two kinds of functions:
+//! The pass identifies and reduces three kinds of functions:
 //!
 //! - **Trivial thunks**: Single-basic-block functions with only trivial statements (`Load`,
 //!   `Aggregate`, `Nop`) that immediately return a value. These are fully inlined.
 //!
 //! - **Forwarding closures**: Single-basic-block functions where a trivial prelude leads to a
 //!   single call whose result is returned. The wrapper is eliminated, exposing the inner call.
+//!
+//! - **Trivial closures**: Single-basic-block functions where a trivial prelude leads to a single
+//!   non-call operation (`Binary`, `Unary`, `Aggregate`, `Input`, `Load`) whose result is returned.
+//!   Covers synthesized intrinsic wrappers and user closures that are a single expression.
 //!
 //! # Algorithm
 //!

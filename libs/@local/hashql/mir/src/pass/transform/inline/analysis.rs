@@ -272,7 +272,7 @@ impl<'ctx, 'heap, A: Allocator> BodyAnalysis<'ctx, 'heap, A> {
     /// 3. Cost by visiting all rvalues and terminators.
     pub(crate) fn run(&mut self, body: &Body<'heap>) {
         let inline = match body.source {
-            Source::Ctor(_) => InlineDirective::Always,
+            Source::Ctor(_) | Source::Synthetic(_) => InlineDirective::Always,
             Source::Closure(_, _) | Source::Thunk(_, _) => InlineDirective::Heuristic,
             Source::Intrinsic(_) | Source::GraphReadFilter(_) => InlineDirective::Never,
         };

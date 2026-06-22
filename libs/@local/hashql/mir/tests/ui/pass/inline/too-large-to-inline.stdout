@@ -84,7 +84,7 @@ fn {closure#7}(%0: ()) -> Boolean {
     let %1: Boolean
 
     bb0(): {
-        %1 = apply ({closure#5} as FnPtr) ()
+        %1 = input LOAD v
 
         return %1
     }
@@ -104,7 +104,7 @@ thunk caller:0() -> () -> Boolean {
     let %0: Boolean
 
     bb0(): {
-        %0 = apply ({closure#5} as FnPtr) ()
+        %0 = input LOAD v
 
         return %0
     }
@@ -136,7 +136,7 @@ fn {closure#7}(%0: ()) -> Boolean {
     let %1: Boolean
 
     bb0(): {
-        %1 = apply ({closure#5} as FnPtr) ()
+        %1 = input LOAD v
 
         return %1
     }
@@ -156,7 +156,7 @@ thunk caller:0() -> () -> Boolean {
     let %0: Boolean
 
     bb0(): {
-        %0 = apply ({closure#5} as FnPtr) ()
+        %0 = input LOAD v
 
         return %0
     }
