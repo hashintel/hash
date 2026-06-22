@@ -60,6 +60,15 @@ struct PathSelection {
     ordering: Option<(Ordering, Option<NullOrdering>)>,
 }
 
+/// The boolean connective of a [`Filter`] group.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum FilterGroup {
+    /// Members are AND-combined.
+    All,
+    /// Members are OR-combined.
+    Any,
+}
+
 type TableHook<'p, 'q, T> = fn(&mut SelectCompiler<'p, 'q, T>, Alias) -> Vec<Expression>;
 type ColumnHook<'p, 'q, T> = fn(&mut SelectCompiler<'p, 'q, T>, Expression) -> Expression;
 
@@ -431,8 +440,12 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
         }
 
         Ok(match filter {
-            Filter::All(filters) => Expression::all(self.compile_filter_group(filters, true)?),
-            Filter::Any(filters) => Expression::any(self.compile_filter_group(filters, false)?),
+            Filter::All(filters) => {
+                Expression::all(self.compile_filter_group(filters, FilterGroup::All)?)
+            }
+            Filter::Any(filters) => {
+                Expression::any(self.compile_filter_group(filters, FilterGroup::Any)?)
+            }
             Filter::Not(filter) => self.compile_filter(filter)?.not(),
             Filter::Equal(lhs, rhs) => Expression::equal(
                 self.compile_filter_expression(lhs).0,
@@ -811,7 +824,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
         column: ColumnReference<'static>,
         parameters: &[&'p Parameter<'f>],
         equals: bool,
-        conjunction: bool,
+        group: FilterGroup,
     ) -> Expression
     where
         R::QueryPath<'f>: PostgresQueryPath,
@@ -824,17 +837,16 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                 .collect(),
             element_type: PostgresType::Text,
         });
-        // For a single value `@>` and `&&` coincide; normalize to the containment form.
-        let conjunction = if parameters.len() == 1 {
-            equals
-        } else {
-            conjunction
-        };
-        match (equals, conjunction) {
-            (true, true) => Expression::array_contains(column_reference, array),
-            (true, false) => Expression::overlap(column_reference, array),
-            (false, true) => Expression::overlap(column_reference, array).not(),
-            (false, false) => Expression::array_contains(column_reference, array).not(),
+        // For a single value `@>` and `&&` coincide, so the group connective is irrelevant.
+        if parameters.len() == 1 {
+            let contains = Expression::array_contains(column_reference, array);
+            return if equals { contains } else { contains.not() };
+        }
+        match (group, equals) {
+            (FilterGroup::All, true) => Expression::array_contains(column_reference, array),
+            (FilterGroup::All, false) => Expression::overlap(column_reference, array).not(),
+            (FilterGroup::Any, true) => Expression::overlap(column_reference, array),
+            (FilterGroup::Any, false) => Expression::array_contains(column_reference, array).not(),
         }
     }
 
@@ -847,7 +859,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
     fn compile_filter_group<'f: 'q>(
         &mut self,
         filters: &'p [Filter<'f, R>],
-        conjunction: bool,
+        group: FilterGroup,
     ) -> Result<Vec<Expression>, Report<SelectCompilerError>>
     where
         R::QueryPath<'f>: PostgresQueryPath,
@@ -858,19 +870,19 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
             parameters: Vec<&'c Parameter<'p>>,
         }
 
-        let mut groups: Vec<ArrayPredicateGroup<'p, 'f>> = Vec::new();
+        let mut bundles: Vec<ArrayPredicateGroup<'p, 'f>> = Vec::new();
         let mut expressions = Vec::new();
         for filter in filters {
             if let Some((array_path, parameter, equals)) = Self::cached_array_equality(filter) {
                 let alias = self.add_join_statements(array_path);
                 let column = array_path.terminating_column().0.aliased(alias);
-                if let Some(group) = groups
+                if let Some(bundle) = bundles
                     .iter_mut()
-                    .find(|group| group.column == column && group.equals == equals)
+                    .find(|bundle| bundle.column == column && bundle.equals == equals)
                 {
-                    group.parameters.push(parameter);
+                    bundle.parameters.push(parameter);
                 } else {
-                    groups.push(ArrayPredicateGroup {
+                    bundles.push(ArrayPredicateGroup {
                         column,
                         equals,
                         parameters: vec![parameter],
@@ -880,12 +892,12 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                 expressions.push(self.compile_filter(filter)?);
             }
         }
-        for group in &groups {
+        for bundle in &bundles {
             expressions.push(self.compile_cached_array_predicate(
-                group.column.clone(),
-                &group.parameters,
-                group.equals,
-                conjunction,
+                bundle.column.clone(),
+                &bundle.parameters,
+                bundle.equals,
+                group,
             ));
         }
         Ok(expressions)
@@ -973,7 +985,13 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
         if let Some((array_path, parameter, equals)) = Self::cached_array_equality(filter) {
             let alias = self.add_join_statements(array_path);
             let column = array_path.terminating_column().0.aliased(alias);
-            return Some(self.compile_cached_array_predicate(column, &[parameter], equals, true));
+            // A lone filter has a single parameter, so the group connective is irrelevant.
+            return Some(self.compile_cached_array_predicate(
+                column,
+                &[parameter],
+                equals,
+                FilterGroup::All,
+            ));
         }
 
         match filter {
