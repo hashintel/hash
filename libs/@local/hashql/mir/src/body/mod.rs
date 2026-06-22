@@ -78,6 +78,16 @@ pub enum Source<'heap> {
     /// operation is handled directly by the compiler or runtime.
     Intrinsic(Intrinsic),
 
+    /// A compiler-synthesized wrapper that makes a non-first-class operation callable as a
+    /// closure value.
+    ///
+    /// The [`Symbol`] identifies the canonical path of the wrapped operation
+    /// (e.g. `::core::math::add`). The body takes the operation's parameters (with a unit
+    /// environment as the first argument per the fat closure ABI) and performs the operation.
+    ///
+    /// Synthetic bodies are always inlined and participate in administrative reduction.
+    Synthetic(Symbol<'heap>),
+
     /// A filter closure for graph read operations.
     ///
     /// This variant represents MIR generated from a closure expression used to

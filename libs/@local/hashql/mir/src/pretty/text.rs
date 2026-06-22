@@ -39,7 +39,8 @@ const fn source_keyword(source: Source<'_>) -> &'static str {
         Source::Ctor(_)
         | Source::Closure(..)
         | Source::GraphReadFilter(..)
-        | Source::Intrinsic(_) => "fn",
+        | Source::Intrinsic(_)
+        | Source::Synthetic(_) => "fn",
     }
 }
 
@@ -488,6 +489,9 @@ where
             Source::Thunk(id, binder) => named_symbol("thunk", id, binder),
             Source::Intrinsic(Intrinsic { id, .. }) => {
                 write!(self.line_buffer, "{{intrinsic#{id}}}")
+            }
+            Source::Synthetic(symbol) => {
+                write!(self.line_buffer, "{{synthetic#{symbol}}}")
             }
         }
     }

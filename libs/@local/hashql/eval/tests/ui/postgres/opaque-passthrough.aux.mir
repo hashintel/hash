@@ -39,14 +39,14 @@ thunk {thunk#3}() -> (String) -> ::core::uuid::Uuid {
 }
 
 thunk {thunk#4}() -> ::core::uuid::Uuid {
-    let %0: ::core::uuid::Uuid
-    let %1: String
+    let %0: String
+    let %1: ::core::uuid::Uuid
 
     bb0(): {
-        %1 = input LOAD id
-        %0 = opaque(::core::uuid::Uuid, %1)
+        %0 = input LOAD id
+        %1 = opaque(::core::uuid::Uuid, %0)
 
-        return %0
+        return %1
     }
 }
 
@@ -72,13 +72,13 @@ thunk {thunk#5}() -> (::core::uuid::Uuid) -> ::graph::types::knowledge::entity::
 
 thunk {thunk#6}() -> ::graph::types::knowledge::entity::EntityUuid {
     let %0: ::graph::types::knowledge::entity::EntityUuid
-    let %1: ::core::uuid::Uuid
-    let %2: String
+    let %1: String
+    let %2: ::core::uuid::Uuid
 
     bb0(): {
-        %2 = input LOAD id
-        %1 = opaque(::core::uuid::Uuid, %2)
-        %0 = opaque(::graph::types::knowledge::entity::EntityUuid, %1)
+        %1 = input LOAD id
+        %2 = opaque(::core::uuid::Uuid, %1)
+        %0 = opaque(::graph::types::knowledge::entity::EntityUuid, %2)
 
         return %0
     }
@@ -87,13 +87,13 @@ thunk {thunk#6}() -> ::graph::types::knowledge::entity::EntityUuid {
 fn {graph::read::filter@7}(%0: (), %1: ::graph::types::knowledge::entity::Entity) -> Boolean {
     let %2: Boolean
     let %3: ::graph::types::knowledge::entity::EntityUuid
-    let %4: ::core::uuid::Uuid
-    let %5: String
+    let %4: String
+    let %5: ::core::uuid::Uuid
 
     bb0(): {                                                                    // postgres
-        %5 = input LOAD id
-        %4 = opaque(::core::uuid::Uuid, %5)
-        %3 = opaque(::graph::types::knowledge::entity::EntityUuid, %4)
+        %4 = input LOAD id
+        %5 = opaque(::core::uuid::Uuid, %4)
+        %3 = opaque(::graph::types::knowledge::entity::EntityUuid, %5)
         %2 = %1.metadata.record_id.entity_id.entity_uuid == %3
 
         return %2

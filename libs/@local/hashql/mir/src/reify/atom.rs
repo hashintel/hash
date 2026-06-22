@@ -6,7 +6,7 @@ use hashql_hir::node::{
     access::{Access, FieldAccess, IndexAccess},
     data::Data,
     kind::NodeKind,
-    variable::{QualifiedVariable, Variable},
+    variable::Variable,
 };
 
 use super::{
@@ -152,11 +152,6 @@ impl<'heap, A: Allocator, S: Allocator> Reifier<'_, '_, '_, '_, 'heap, A, S> {
                 .projections
                 .intern_slice(&projections),
         }
-    }
-
-    fn qualified_path(&mut self, QualifiedVariable { path, arguments }: QualifiedVariable<'heap>) {
-        // For the path, we simply match against the tree of values that are supported
-        todo!()
     }
 
     pub(super) fn operand(&mut self, node: Node<'heap>) -> Operand<'heap> {
