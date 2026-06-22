@@ -38,6 +38,7 @@ import type {
   LinkRow,
 } from "./outgoing-links-section/types";
 import type { LinkEntityAndRightEntity } from "@blockprotocol/graph";
+import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { EntityQuerySortingRecord } from "@local/hash-graph-client";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 
@@ -118,6 +119,34 @@ export const OutgoingLinksSection = ({
   }, [readonly, sort.fieldId, sort.direction]);
 
   /**
+   * When arriving from a clicked graph edge (or anywhere else that supplies
+   * `defaultOutgoingLinkFilters`), pre-select the edge's link type so the table
+   * opens narrowed to it. Server-side (the readonly path this table uses) this
+   * drives a filtered re-fetch via `filterTypeIds`; client-side it would filter
+   * the in-memory links, like a manual link-type selection.
+   *
+   * Only the link type is honoured: the graph query is rooted on the link
+   * entities and cannot traverse to the target, so the filter's `linkedTo`
+   * (which target the edge points at) cannot be applied server-side.
+   *
+   * Reduced to an order-independent key first so the seed Set's identity is
+   * stable across renders (otherwise it would reconcile the filter every render).
+   */
+  const defaultLinkTypesKey =
+    defaultOutgoingLinkFilters?.linkTypes &&
+    typeof defaultOutgoingLinkFilters.linkTypes !== "string"
+      ? Array.from(defaultOutgoingLinkFilters.linkTypes).sort().join(",")
+      : null;
+
+  const defaultSelectedLinkTypeIds = useMemo<Set<VersionedUrl> | undefined>(
+    () =>
+      defaultLinkTypesKey
+        ? new Set(defaultLinkTypesKey.split(",") as VersionedUrl[])
+        : undefined,
+    [defaultLinkTypesKey],
+  );
+
+  /**
    * The readonly link table can be filtered by link type. The filter state and
    * options live here so the selection can drive the paginated query
    * (`filterTypeIds`) and be passed to the table's header. `filterTypeIds`
@@ -130,7 +159,7 @@ export const OutgoingLinksSection = ({
     filterValues,
     setFilterValues,
     filterTypeIds,
-  } = useLinkTypeFilter();
+  } = useLinkTypeFilter({ defaultSelectedLinkTypeIds });
 
   /**
    * When the entity is readonly we fetch the link data here (paginated), so it

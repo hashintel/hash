@@ -45,7 +45,25 @@ export type LinkTypeFilterValues =
  * "match nothing" (distinct from the `undefined` "match everything"). Any other
  * value is the explicit set of selected type ids.
  */
-export const useLinkTypeFilter = () => {
+export const useLinkTypeFilter = ({
+  defaultSelectedLinkTypeIds,
+}: {
+  /**
+   * Link entity type ids to pre-select when the table first opens, with every
+   * other type deselected – e.g. when arriving from a clicked graph edge whose
+   * link type should be focused. Any ids not present in the loaded breakdown are
+   * ignored, and if none are present the filter falls back to "all selected" (a
+   * no-op) rather than matching nothing.
+   *
+   * Because this seeds the same filter state as a manual selection, it drives
+   * both modes automatically: server-side (readonly) the derived
+   * {@link filterTypeIds} re-fetches the links narrowed to these types;
+   * client-side (editable) the caller filters the in-memory links by the same
+   * value. Pass a referentially stable Set, since changing it reconciles the
+   * filter state.
+   */
+  defaultSelectedLinkTypeIds?: Set<VersionedUrl>;
+} = {}) => {
   const [capturedOptions, setCapturedOptions] = useState<{
     typeIds: Record<VersionedUrl, number>;
     typeTitles: Record<VersionedUrl, string>;
@@ -117,8 +135,26 @@ export const useLinkTypeFilter = () => {
       return null;
     }
 
+    if (defaultSelectedLinkTypeIds) {
+      /**
+       * Narrow the default selection to the requested types, keeping only those
+       * actually present in the breakdown. If none are present we fall back to
+       * selecting everything, so an unmatched seed leaves the filter a no-op
+       * rather than hiding every link.
+       */
+      const selected = new Set<string>(
+        [...defaultSelectedLinkTypeIds].filter((id) =>
+          optionData.allTypeIds.has(id),
+        ),
+      );
+
+      if (selected.size > 0) {
+        return { linkTypes: selected };
+      }
+    }
+
     return { linkTypes: optionData.allTypeIds };
-  }, [optionData]);
+  }, [optionData, defaultSelectedLinkTypeIds]);
 
   const [filterValues, setFilterValues] = useVirtualizedTableFilterState({
     defaultFilterValues,
