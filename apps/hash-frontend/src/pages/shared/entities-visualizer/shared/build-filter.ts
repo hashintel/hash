@@ -146,10 +146,7 @@ export const buildEntitiesFilter = ({
     clauses.push(typeClause);
   }
 
-  const userPickedSpecificTypes =
-    !isTypePinned && filterState.type.selectedTypeIds !== null;
-
-  if (!isTypePinned && !userPickedSpecificTypes) {
+  if (!isTypePinned) {
     clauses.push(ignoreNoisySystemTypesFilter);
   }
 
