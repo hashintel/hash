@@ -1,5 +1,4 @@
 import { type ApolloError, useQuery } from "@apollo/client";
-import { useCallback, useMemo, useRef, useState } from "react";
 
 import { getRoots } from "@blockprotocol/graph/stdlib";
 import { type EntityId, splitEntityId } from "@blockprotocol/type-system";
@@ -13,6 +12,8 @@ import {
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { queryEntitySubgraphQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+
+import { useAccumulatedCursorPagination } from "./use-accumulated-cursor-pagination";
 
 import type {
   QueryEntitySubgraphQuery,
@@ -51,8 +52,6 @@ type LinkPage = {
   definitions?: ClosedMultiEntityTypesDefinitions;
 };
 
-const initialCursorKey = "__initial__";
-
 /**
  * Appended to any caller-provided sorting so that pagination is deterministic
  * (the `uuid` is unique, breaking ties when sorting by a non-unique field such
@@ -63,9 +62,6 @@ const uuidSortingPath: EntityQuerySortingRecord = {
   ordering: "ascending",
   nulls: "last",
 };
-
-const cursorKeyFor = (cursor: EntityQueryCursor | undefined) =>
-  cursor ? JSON.stringify(cursor) : initialCursorKey;
 
 /**
  * Shallow-merge two `{ [baseId]: { [revisionId]: value } }` records (the shape
@@ -178,29 +174,32 @@ const appendPage = (accumulated: Accumulated, page: LinkPage): Accumulated => {
   };
 };
 
-const accumulatePages = (pages: LinkPage[]): Accumulated | undefined => {
-  const [first] = pages;
-  if (!first) {
-    return undefined;
-  }
+/**
+ * The empty accumulation, seeded with the first page's subgraph as the base to
+ * merge subsequent pages into.
+ */
+const seedAccumulated = (firstPage: LinkPage): Accumulated => ({
+  linkEntities: [],
+  seenLinkIds: new Set<EntityId>(),
+  subgraph: firstPage.subgraph,
+  typesMap: {},
+  definitions: undefined,
+  count: undefined,
+  nextCursor: null,
+  exhausted: false,
+});
 
-  let accumulated: Accumulated = {
-    linkEntities: [],
-    seenLinkIds: new Set<EntityId>(),
-    subgraph: first.subgraph,
-    typesMap: {},
-    definitions: undefined,
-    count: undefined,
-    nextCursor: null,
-    exhausted: false,
-  };
-
-  for (const page of pages) {
-    accumulated = appendPage(accumulated, page);
-  }
-
-  return accumulated;
-};
+/**
+ * Return a fresh top-level object (and a fresh `linkEntities` array) so that
+ * consumers depending on referential identity recompute when a page is
+ * appended. The expensive O(n) work (dedup, subgraph/type merging) is done
+ * incrementally by {@link appendPage}, which mutates `linkEntities` in place;
+ * this only copies the array of entity references.
+ */
+const finalizeAccumulated = (accumulated: Accumulated): Accumulated => ({
+  ...accumulated,
+  linkEntities: [...accumulated.linkEntities],
+});
 
 /**
  * Fetches an entity's incoming or outgoing links a page at a time, for display
@@ -251,32 +250,27 @@ export const useEntityLinks = ({
 } => {
   const [webId, entityUuid, draftId] = splitEntityId(entityId);
 
-  const [cursor, setCursor] = useState<EntityQueryCursor | undefined>(
-    undefined,
-  );
-  const [pages, setPages] = useState<LinkPage[]>([]);
-
   /**
-   * Reset accumulated pages when the entity, direction or sort changes (the
-   * query identity, and therefore the cursors, are no longer valid).
-   *
-   * Done during render rather than in an effect so that the stale cursor is
-   * never sent alongside the new query (which would either error or produce a
-   * page that does not belong to the new ordering).
+   * Accumulate pages across `loadMore` calls. Changing the entity, direction or
+   * sort resets the accumulation (the query identity, and therefore the
+   * cursors, are no longer valid).
    */
-  const resetKey = `${entityId}:${direction}:${JSON.stringify(
-    sortingPaths ?? null,
-  )}`;
-  const previousResetKey = useRef(resetKey);
-  if (previousResetKey.current !== resetKey) {
-    previousResetKey.current = resetKey;
-    if (cursor !== undefined) {
-      setCursor(undefined);
-    }
-    if (pages.length > 0) {
-      setPages([]);
-    }
-  }
+  const {
+    cursor,
+    cursorKey,
+    pageCount,
+    addPage,
+    accumulated,
+    loadMore,
+    hasMore,
+  } = useAccumulatedCursorPagination<EntityQueryCursor, LinkPage, Accumulated>({
+    resetKey: `${entityId}:${direction}:${JSON.stringify(
+      sortingPaths ?? null,
+    )}`,
+    seed: seedAccumulated,
+    appendPage,
+    finalize: finalizeAccumulated,
+  });
 
   /**
    * The endpoint of the link that is the entity being viewed: its left/source
@@ -358,8 +352,8 @@ export const useEntityLinks = ({
         data.queryEntitySubgraph,
       );
 
-      const page: LinkPage = {
-        cursorKey: cursorKeyFor(cursor),
+      addPage({
+        cursorKey,
         count: data.queryEntitySubgraph.count ?? undefined,
         linkEntities: getRoots(response.subgraph).map(
           (rootEntity) => new HashLinkEntity(rootEntity),
@@ -368,90 +362,16 @@ export const useEntityLinks = ({
         subgraph: response.subgraph,
         typesMap: data.queryEntitySubgraph.closedMultiEntityTypes ?? {},
         definitions: data.queryEntitySubgraph.definitions ?? undefined,
-      };
-
-      setPages((previousPages) => {
-        if (!cursor) {
-          // First page – replace any accumulated pages.
-          return [page];
-        }
-
-        const existingIndex = previousPages.findIndex(
-          (previousPage) => previousPage.cursorKey === page.cursorKey,
-        );
-
-        if (existingIndex !== -1) {
-          const next = [...previousPages];
-          next[existingIndex] = page;
-          return next;
-        }
-
-        return [...previousPages, page];
       });
     },
   });
 
-  /**
-   * Incrementally accumulate pages. The previously-processed `pages` array and
-   * its resulting accumulation are cached in a ref; when `pages` grows by
-   * append-only (the common infinite-scroll case) only the new pages are folded
-   * in, keeping each `loadMore` O(page size) rather than O(total pages). A
-   * reset (`[page]`) or an in-place page replacement (cache-then-network for the
-   * same cursor) rebuilds from scratch, which is rare and bounded.
-   */
-  const accumulationCache = useRef<{
-    pages: LinkPage[];
-    result: Accumulated | undefined;
-  }>({ pages: [], result: undefined });
-
-  const accumulated = useMemo(() => {
-    const cached = accumulationCache.current;
-
-    const isAppendOnlyExtension =
-      cached.result !== undefined &&
-      pages.length > cached.pages.length &&
-      cached.pages.every((page, index) => pages[index] === page);
-
-    let result: Accumulated | undefined;
-    if (pages.length === 0) {
-      result = undefined;
-    } else if (isAppendOnlyExtension) {
-      result = cached.result;
-      for (let index = cached.pages.length; index < pages.length; index++) {
-        result = appendPage(result!, pages[index]!);
-      }
-    } else {
-      result = accumulatePages(pages);
-    }
-
-    accumulationCache.current = { pages, result };
-
-    if (!result) {
-      return undefined;
-    }
-
-    /**
-     * Return a fresh top-level object (and a fresh `linkEntities` array) so
-     * that consumers depending on referential identity recompute when a page
-     * is appended. The expensive O(n) work (dedup, subgraph/type merging) has
-     * already been done incrementally above; this only copies the array of
-     * entity references.
-     */
-    return { ...result, linkEntities: [...result.linkEntities] };
-  }, [pages]);
-
-  const loadMore = useCallback(() => {
-    if (accumulated?.nextCursor) {
-      setCursor(accumulated.nextCursor);
-    }
-  }, [accumulated?.nextCursor]);
-
   return {
-    initialLoading: loading && pages.length === 0,
+    initialLoading: loading && pageCount === 0,
     error,
     loadingMore: loading && cursor !== undefined,
     loadMore,
-    hasMore: !!accumulated?.nextCursor,
+    hasMore,
     count: accumulated?.count,
     linkEntities: accumulated?.linkEntities,
     subgraph: accumulated?.subgraph,
