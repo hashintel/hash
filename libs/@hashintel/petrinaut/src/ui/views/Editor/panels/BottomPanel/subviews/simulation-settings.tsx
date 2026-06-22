@@ -1,6 +1,12 @@
 import { use, useState } from "react";
 
-import { Button, Icon, NumberInput, Select } from "@hashintel/ds-components";
+import {
+  Button,
+  Icon,
+  NumberInput,
+  Select,
+  Toggle,
+} from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { SimulationContext } from "../../../../../../react/simulation/context";
@@ -8,7 +14,6 @@ import { EditorContext } from "../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { InfoIconTooltip } from "../../../../../components/info-icon-tooltip";
 import { Slider } from "../../../../../components/slider";
-import { Switch } from "../../../../../components/switch";
 import { CreateScenarioDrawer } from "../../SimulateView/scenarios/create-scenario-drawer";
 import { ViewScenarioDrawer } from "../../SimulateView/scenarios/view-scenario-drawer";
 
@@ -303,12 +308,13 @@ const SimulationSettingsContent: React.FC = () => {
                     </div>
                   </div>
                   {param.type === "boolean" && selectedScenario ? (
-                    <Switch
-                      checked={
+                    <Toggle
+                      size="xs"
+                      value={
                         (scenarioParameterValues[param.variableName] ??
                           param.defaultValue) !== "0"
                       }
-                      onCheckedChange={(checked) =>
+                      onChange={(checked) =>
                         setScenarioParameterValue(
                           param.variableName,
                           checked ? "1" : "0",
