@@ -63,19 +63,6 @@ export type OutgoingLinksFieldId =
   | "linkedToTypes"
   | "link";
 
-/**
- * The columns that can be sorted server-side (applied to the query's root, the
- * link entities). Only the link type title (`linkTypes`) can be:
- * - the API cannot traverse to the target entity, so `linkedTo` /
- *   `linkedToTypes` are out;
- * - the "Link" column shows a client-generated label (see `generateEntityLabel`),
- *   but the API's `label` token sorts by the entity's label *property*, which is
- *   empty for typical link entities — so every row ties and only the `uuid`
- *   tiebreaker orders them (flipping the direction does nothing, and the order
- *   does not match the displayed label).
- *
- * The "Link" column is therefore sortable only client-side (the editable case).
- */
 const serverSortableFieldIds: OutgoingLinksFieldId[] = ["linkTypes"];
 
 export type OutgoingLinksFilterValues =
@@ -266,10 +253,6 @@ type OutgoingLinksTableProps = {
   customEntityLinksColumns?: CustomEntityLinksColumn[];
   defaultOutgoingLinkFilters?: Partial<OutgoingLinksFilterValues>;
   entitySubgraph: Subgraph<EntityRootType<HashEntity>>;
-  /**
-   * The link-type filter, applied server-side; `undefined` while the breakdown
-   * that populates the options has not yet loaded.
-   */
   filterDefinitions?: LinkTypeFilterDefinitions;
   filterValues?: LinkTypeFilterValues;
   setFilterValues?: (filterValues: LinkTypeFilterValues) => void;
@@ -278,12 +261,6 @@ type OutgoingLinksTableProps = {
   onEntityClick: (entityId: EntityId) => void;
   onTypeClick: (kind: "dataType" | "entityType", itemId: VersionedUrl) => void;
   outgoingLinksAndTargets: LinkEntityAndRightEntity[];
-  /**
-   * The table is backed by a paginated server-side query: the rows are a
-   * server-ordered page, sorting is applied by the query (so the table only
-   * exposes the columns the graph API can sort by, and `sort`/`setSort` drive a
-   * re-query when the sort changes), and filtering is applied server-side too.
-   */
   sort: VirtualizedTableSort<OutgoingLinksFieldId>;
   setSort: (sort: VirtualizedTableSort<OutgoingLinksFieldId>) => void;
   slideContainerRef?: RefObject<HTMLDivElement | null>;
@@ -480,10 +457,6 @@ export const OutgoingLinksTable = memo(
 
       const createdColumns = createColumns(applicableCustomColumns ?? []);
 
-      /**
-       * Sorting is applied server-side, so only the columns the graph API can
-       * sort by are sortable.
-       */
       return createdColumns.map((column) => ({
         ...column,
         sortable: serverSortableFieldIds.includes(column.id),
