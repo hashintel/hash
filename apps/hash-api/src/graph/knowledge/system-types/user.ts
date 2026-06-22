@@ -82,16 +82,6 @@ export type User = {
   shortname?: string;
 };
 
-function assertFeatureFlags(
-  uncheckedFeatureFlags: EnabledFeatureFlagsPropertyValue,
-): asserts uncheckedFeatureFlags is FeatureFlag[] {
-  for (const maybeFlag of uncheckedFeatureFlags) {
-    if (!featureFlags.includes(maybeFlag as FeatureFlag)) {
-      throw new Error(`Invalid feature flag: ${maybeFlag}`);
-    }
-  }
-}
-
 function isUserEntity(entity: HashEntity): entity is HashEntity<UserEntity> {
   return entity.metadata.entityTypeIds.some(
     (entityTypeId) =>
@@ -191,8 +181,6 @@ export const getUserFromEntity: PureGraphFunction<
   const isAccountSignupComplete = !!shortname && !!displayName;
 
   const enabledFeatureFlags = maybeFeatureFlags ?? [];
-
-  assertFeatureFlags(enabledFeatureFlags);
 
   return {
     accountId: extractWebIdFromEntityId(

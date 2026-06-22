@@ -11,17 +11,17 @@ import { WebFilterPill } from "./web-filter-pill";
 import type { EntitiesFilterState } from "../shared/filter-state";
 import type {
   FilterableProperty,
-  FilterValueKind,
+  FilterMetadataForProperty,
   PropertyFilter,
 } from "../shared/property-filters/property-filter";
 import type { AvailableType } from "../shared/use-available-types";
-import type { BaseUrl, WebId } from "@blockprotocol/type-system";
+import type { WebId } from "@blockprotocol/type-system";
 import type { FunctionComponent } from "react";
 
 type FilterRibbonProps = {
   availableTypes: AvailableType[];
   availableTypesLoading: boolean;
-  filterableProperties: FilterableProperty[];
+  filterableProperties: FilterMetadataForProperty[];
   propertiesLoading: boolean;
   filterState: EntitiesFilterState;
   internalWebIds: WebId[];
@@ -61,11 +61,9 @@ export const FilterRibbon: FunctionComponent<FilterRibbonProps> = ({
       propertyFilters: updater(prev.propertyFilters),
     }));
 
-  const handleAddPropertyFilter = (property: {
-    baseUrl: BaseUrl;
-    title: string;
-    kind: FilterValueKind;
-  }) => {
+  const handleAddPropertyFilter = (
+    property: Pick<FilterableProperty, "baseUrl" | "title" | "kind">,
+  ) => {
     setDraftPropertyFilter({
       id: generatePropertyFilterId(),
       baseUrl: property.baseUrl,
@@ -127,7 +125,6 @@ export const FilterRibbon: FunctionComponent<FilterRibbonProps> = ({
           filter={propertyFilter}
           mode="edit"
           autoOpen={false}
-          onAutoOpenHandled={() => {}}
           onCommit={(committed) =>
             handleCommitPropertyFilter(propertyFilter.id, committed)
           }
@@ -140,7 +137,6 @@ export const FilterRibbon: FunctionComponent<FilterRibbonProps> = ({
           filter={draftPropertyFilter}
           mode="add"
           autoOpen
-          onAutoOpenHandled={() => {}}
           onCommit={handleCommitDraftPropertyFilter}
           onRemove={() => setDraftPropertyFilter(null)}
         />

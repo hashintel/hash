@@ -63,16 +63,20 @@ export type PropertyFilterDisabledReason =
   | "list"
   | "nested";
 
-export type FilterableProperty =
-  | {
-      baseUrl: BaseUrl;
-      title: string;
-      kind: FilterValueKind;
-      filterable: true;
-    }
-  | {
-      baseUrl: BaseUrl;
-      title: string;
-      filterable: false;
-      disabledReason: PropertyFilterDisabledReason;
-    };
+export type FilterableProperty = {
+  baseUrl: BaseUrl;
+  title: string;
+  kind: FilterValueKind;
+  filterable: true;
+};
+
+export type NonFilterableProperty = {
+  baseUrl: BaseUrl;
+  title: string;
+  filterable: false;
+  disabledReason: PropertyFilterDisabledReason;
+};
+
+export type FilterMetadataForProperty =
+  | FilterableProperty
+  | NonFilterableProperty;

@@ -45,7 +45,6 @@ type PropertyFilterPillProps = {
   mode: "add" | "edit";
   /** Whether to open the editor automatically (just-added draft). */
   autoOpen: boolean;
-  onAutoOpenHandled: () => void;
   onCommit: (filter: PropertyFilter) => void;
   onRemove: () => void;
 };
@@ -54,7 +53,6 @@ export const PropertyFilterPill: FunctionComponent<PropertyFilterPillProps> = ({
   filter,
   mode,
   autoOpen,
-  onAutoOpenHandled,
   onCommit,
   onRemove,
 }) => {
@@ -83,7 +81,6 @@ export const PropertyFilterPill: FunctionComponent<PropertyFilterPillProps> = ({
   useEffect(() => {
     if (autoOpen && anchorRef.current) {
       popupState.open(anchorRef.current);
-      onAutoOpenHandled();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only react to autoOpen flipping on
   }, [autoOpen]);

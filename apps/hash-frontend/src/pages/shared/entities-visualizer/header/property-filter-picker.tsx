@@ -10,7 +10,7 @@ import {
 import { MenuItem } from "../../../../shared/ui";
 
 import type {
-  FilterableProperty,
+  FilterMetadataForProperty,
   FilterValueKind,
   PropertyFilterDisabledReason,
 } from "../shared/property-filters/property-filter";
@@ -31,7 +31,7 @@ type SelectableProperty = {
 };
 
 type PropertyFilterPickerProps = {
-  properties: FilterableProperty[];
+  properties: FilterMetadataForProperty[];
   loading: boolean;
   onBack: () => void;
   onSelect: (property: SelectableProperty) => void;

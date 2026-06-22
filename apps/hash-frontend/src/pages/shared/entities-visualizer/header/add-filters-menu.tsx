@@ -15,21 +15,18 @@ import { PropertyFilterPicker } from "./property-filter-picker";
 
 import type {
   FilterableProperty,
-  FilterValueKind,
+  FilterMetadataForProperty,
 } from "../shared/property-filters/property-filter";
-import type { BaseUrl } from "@blockprotocol/type-system";
 import type { FunctionComponent } from "react";
 
 type AddFiltersMenuProps = {
   canAddIncludeArchived: boolean;
   onAddIncludeArchived: () => void;
-  filterableProperties: FilterableProperty[];
+  filterableProperties: FilterMetadataForProperty[];
   propertiesLoading: boolean;
-  onAddPropertyFilter: (property: {
-    baseUrl: BaseUrl;
-    title: string;
-    kind: FilterValueKind;
-  }) => void;
+  onAddPropertyFilter: (
+    property: Pick<FilterableProperty, "baseUrl" | "title" | "kind">,
+  ) => void;
 };
 
 export const AddFiltersMenu: FunctionComponent<AddFiltersMenuProps> = ({

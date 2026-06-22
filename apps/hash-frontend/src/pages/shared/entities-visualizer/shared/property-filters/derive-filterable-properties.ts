@@ -1,7 +1,10 @@
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import { getMergedDataTypeSchema } from "@local/hash-isomorphic-utils/data-types";
 
-import type { FilterableProperty, FilterValueKind } from "./property-filter";
+import type {
+  FilterMetadataForProperty,
+  FilterValueKind,
+} from "./property-filter";
 import type {
   BaseUrl,
   ClosedMultiEntityType,
@@ -27,7 +30,7 @@ const resolveValueKind = (type: string): FilterValueKind | null => {
 
 /**
  * Classifies a single property (as it appears on one entity type) into a
- * {@link FilterableProperty}, or `null` if it should be omitted from the picker
+ * {@link FilterMetadataForProperty}, or `null` if it should be omitted from the picker
  * (a supported-but-unfilterable kind like `null`, or a missing definition).
  */
 const classifyProperty = ({
@@ -38,7 +41,7 @@ const classifyProperty = ({
   baseUrl: BaseUrl;
   propertySchema: ValueOrArray<PropertyTypeReference>;
   definitions: ClosedMultiEntityTypesDefinitions;
-}): FilterableProperty | null => {
+}): FilterMetadataForProperty | null => {
   // A property used as a list on the entity type can't be filtered yet.
   const isListAtEntityLevel = "items" in propertySchema;
 
@@ -55,10 +58,10 @@ const classifyProperty = ({
 
   const disabled = (
     disabledReason: Extract<
-      FilterableProperty,
+      FilterMetadataForProperty,
       { filterable: false }
     >["disabledReason"],
-  ): FilterableProperty => ({
+  ): FilterMetadataForProperty => ({
     baseUrl,
     title,
     filterable: false,
@@ -133,7 +136,7 @@ const classifyProperty = ({
  * - that data type resolves to a `number`, `string`, or `boolean` kind.
  *
  * Properties that fail the gate are still returned, but annotated with a
- * {@link FilterableProperty.disabledReason} so the picker can list them disabled
+ * {@link FilterMetadataForProperty.disabledReason} so the picker can list them disabled
  * with a reason-specific tooltip.
  *
  * When the same property base URL appears across several entity types in
@@ -149,8 +152,8 @@ export const deriveFilterableProperties = ({
 }: {
   closedMultiEntityTypes: ClosedMultiEntityType[];
   definitions: ClosedMultiEntityTypesDefinitions;
-}): FilterableProperty[] => {
-  const byBaseUrl = new Map<BaseUrl, FilterableProperty>();
+}): FilterMetadataForProperty[] => {
+  const byBaseUrl = new Map<BaseUrl, FilterMetadataForProperty>();
 
   for (const closedMultiEntityType of closedMultiEntityTypes) {
     for (const [baseUrl, propertySchema] of typedEntries(
