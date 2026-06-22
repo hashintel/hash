@@ -371,8 +371,14 @@ export const useEntityLinks = ({
              * Restrict the matched link entities to the selected link types.
              * The path is rooted on the link entity, so `["type",
              * "versionedUrl"]` matches the link entity's own type.
+             *
+             * `undefined` means no filter (every type is selected, the
+             * default), so the clause is omitted. An empty array means every
+             * type has been deselected, which must match *nothing* rather than
+             * everything – an empty `any` resolves to a `FALSE` filter, which
+             * is exactly that, so the clause is still added.
              */
-            ...(filterTypeIds && filterTypeIds.length > 0
+            ...(filterTypeIds
               ? [
                   {
                     any: filterTypeIds.map((versionedUrl) => ({

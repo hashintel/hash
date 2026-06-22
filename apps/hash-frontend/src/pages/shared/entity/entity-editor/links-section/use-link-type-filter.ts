@@ -40,7 +40,10 @@ export type LinkTypeFilterValues =
  * captured options and the user's selection), so the readonly caller can pass it
  * into {@link useEntityLinks} without creating a render cycle, and the editable
  * caller can apply it client-side. It is `undefined` while every type is
- * selected (the default), so an untouched filter is a no-op.
+ * selected (the default), so an untouched filter is a no-op; it is the empty
+ * array once every type has been *deselected*, which both callers treat as
+ * "match nothing" (distinct from the `undefined` "match everything"). Any other
+ * value is the explicit set of selected type ids.
  */
 export const useLinkTypeFilter = () => {
   const [capturedOptions, setCapturedOptions] = useState<{
