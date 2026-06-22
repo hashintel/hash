@@ -1,0 +1,14 @@
+//@ run: pass
+//@ description: Intrinsic passed as a value to a higher-order function evaluates correctly
+[
+  "let",
+  "apply",
+  [
+    "fn",
+    { "#tuple": [] },
+    { "#struct": { "a": "Integer", "b": "Integer", "f": "_" } },
+    "_",
+    ["f", "a", "b"]
+  ],
+  ["apply", { "#literal": 2 }, { "#literal": 3 }, "<="]
+]

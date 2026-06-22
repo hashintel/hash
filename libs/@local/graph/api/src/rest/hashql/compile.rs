@@ -130,6 +130,7 @@ impl<'heap> Compilation<'heap> {
                 HashQlDiagnosticCategory::Mir(MirDiagnosticCategory::Reify(category))
             })
             .with_diagnostics(advisories)?;
+        scratch.reset();
 
         // Lower the MIR
         let Success {

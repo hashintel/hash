@@ -1,6 +1,6 @@
 use core::alloc::Allocator;
 
-use hashql_core::{id::Id as _, r#type::kind::TypeKind, value::Primitive};
+use hashql_core::{id::Id as _, span::Spanned, r#type::kind::TypeKind, value::Primitive};
 use hashql_hir::{
     node::{
         Node,
@@ -23,6 +23,7 @@ use crate::{
         operand::Operand,
         place::{FieldIndex, Place, Projection, ProjectionKind},
     },
+    def::DefId,
     interpret::value::{Int, TryFromPrimitiveError},
     reify::{
         error::{field_index_too_large, local_variable_unmapped},
@@ -157,16 +158,42 @@ impl<'heap, A: Allocator, S: Allocator> Reifier<'_, '_, '_, '_, 'heap, A, S> {
         }
     }
 
-    pub(super) fn qualified_variable(&mut self, path: QualifiedPath<'heap>, requires_thunk: bool) {
-        todo!()
+    pub(super) fn operand_qualified_variable(
+        &mut self,
+        node: Node<'heap>,
+        path: QualifiedPath<'heap>,
+    ) -> Option<DefId> {
+        let synthetic = self.state.synthetics.find_or_insert(
+            self.context,
+            &mut self.state.diagnostics,
+            Spanned {
+                span: node.span,
+                value: node.id,
+            },
+            path,
+        )?;
+
+        // The value is called as a thunk, and therefore must be generated as such
+        let thunk = synthetic.thunk(self.context.bodies, self.context.mir.heap);
+        Some(thunk)
     }
 
     pub(super) fn operand(&mut self, node: Node<'heap>) -> Operand<'heap> {
         match node.kind {
-            NodeKind::Variable(Variable::Qualified(_)) => {
-                self.state
-                    .diagnostics
-                    .push(external_modules_unsupported(node.span).generalize());
+            NodeKind::Variable(Variable::Qualified(variable)) => {
+                let diagnostics = self.state.diagnostics.critical();
+
+                if let Some(thunk) = self.operand_qualified_variable(node, variable.path) {
+                    return Operand::Constant(Constant::FnPtr(thunk));
+                }
+
+                // The variable used is not a qualified variable, and therefore we must issue a
+                // diagnostic.
+                if diagnostics == self.state.diagnostics.critical() {
+                    self.state
+                        .diagnostics
+                        .push(external_modules_unsupported(node.span).generalize());
+                }
 
                 // Return a bogus value so that lowering can continue
                 // In the future this would be a simple FnPtr
