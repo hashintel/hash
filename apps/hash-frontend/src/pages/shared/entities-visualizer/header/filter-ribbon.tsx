@@ -6,7 +6,7 @@ import { AddFiltersMenu } from "./add-filters-menu";
 import { IncludeArchivedPill } from "./include-archived-pill";
 import { PropertyFilterPill } from "./property-filter-pill";
 import { TypeFilterPill } from "./type-filter-pill";
-import { WebFilterPill } from "./web-filter-pill";
+import { type InternalWeb, WebFilterPill } from "./web-filter-pill";
 
 import type { EntitiesFilterState } from "../shared/filter-state";
 import type {
@@ -15,7 +15,6 @@ import type {
   PropertyFilter,
 } from "../shared/property-filters/property-filter";
 import type { AvailableType } from "../shared/use-available-types";
-import type { WebId } from "@blockprotocol/type-system";
 import type { FunctionComponent } from "react";
 
 type FilterRibbonProps = {
@@ -24,7 +23,7 @@ type FilterRibbonProps = {
   filterableProperties: FilterMetadataForProperty[];
   propertiesLoading: boolean;
   filterState: EntitiesFilterState;
-  internalWebIds: WebId[];
+  internalWebs: InternalWeb[];
   isTypePinned: boolean;
   setFilterState: (
     updater: (prev: EntitiesFilterState) => EntitiesFilterState,
@@ -43,7 +42,7 @@ export const FilterRibbon: FunctionComponent<FilterRibbonProps> = ({
   filterableProperties,
   propertiesLoading,
   filterState,
-  internalWebIds,
+  internalWebs,
   isTypePinned,
   setFilterState,
 }) => {
@@ -100,7 +99,7 @@ export const FilterRibbon: FunctionComponent<FilterRibbonProps> = ({
       }}
     >
       <WebFilterPill
-        internalWebIds={internalWebIds}
+        internalWebs={internalWebs}
         webState={filterState.web}
         setWebState={(updater) =>
           setFilterState((prev) => ({ ...prev, web: updater(prev.web) }))

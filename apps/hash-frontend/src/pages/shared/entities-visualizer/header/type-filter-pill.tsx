@@ -51,13 +51,13 @@ const buildLabel = ({
   allAvailableIds: VersionedUrl[];
 }): string => {
   if (isAllSelected({ selectedTypeIds, allAvailableIds })) {
-    return "Any";
+    return "any";
   }
 
   const count = selectedTypeIds?.size ?? 0;
 
   if (count === 0) {
-    return "None";
+    return "none";
   }
 
   if (count === 1) {
@@ -66,7 +66,7 @@ const buildLabel = ({
     return match?.title ?? "1 type";
   }
 
-  return `${count} types`;
+  return `one of ${count}`;
 };
 
 type TypeFilterMenuItemProps = {

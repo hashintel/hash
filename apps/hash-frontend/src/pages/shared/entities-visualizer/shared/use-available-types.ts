@@ -21,16 +21,21 @@ export type AvailableType = {
 
 export const useAvailableTypes = ({
   filterState,
-  internalWebIds,
+  internalWebs,
   entityTypeBaseUrl,
   entityTypeIds,
 }: {
   filterState: EntitiesFilterState;
-  internalWebIds: WebId[];
+  internalWebs: { webId: WebId }[];
   entityTypeBaseUrl?: BaseUrl;
   entityTypeIds?: VersionedUrl[];
 }): { types: AvailableType[]; loading: boolean } => {
   const skip = !!entityTypeBaseUrl || !!entityTypeIds?.length;
+
+  const internalWebIds = useMemo(
+    () => internalWebs.map(({ webId }) => webId),
+    [internalWebs],
+  );
 
   const filter = useMemo(
     () =>

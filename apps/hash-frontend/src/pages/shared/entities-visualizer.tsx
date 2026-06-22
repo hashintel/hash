@@ -152,23 +152,35 @@ export const EntitiesVisualizer: FunctionComponent<{
 
   const { authenticatedUser } = useAuthenticatedUser();
 
-  const internalWebIds = useMemoCompare(
+  const internalWebs = useMemoCompare(
     () => {
       return [
-        authenticatedUser.accountId as WebId,
-        ...authenticatedUser.memberOf.map(({ org }) => org.webId),
+        {
+          webId: authenticatedUser.accountId as WebId,
+          name: `@${authenticatedUser.shortname}`,
+        },
+        ...authenticatedUser.memberOf.map(({ org }) => ({
+          webId: org.webId,
+          name: `@${org.shortname}`,
+        })),
       ];
     },
     [authenticatedUser],
     (oldValue, newValue) => {
-      const oldSet = new Set(oldValue);
-      const newSet = new Set(newValue);
-      return oldSet.size === newSet.size && oldSet.isSubsetOf(newSet);
+      return (
+        oldValue.length === newValue.length &&
+        oldValue.every((oldWeb) =>
+          newValue.some(
+            (newWeb) =>
+              oldWeb.webId === newWeb.webId && oldWeb.name === newWeb.name,
+          ),
+        )
+      );
     },
   );
 
   const [filterState, _setFilterState] = useState<EntitiesFilterState>(() =>
-    createDefaultFilterState(internalWebIds),
+    createDefaultFilterState(internalWebs.map(({ webId }) => webId)),
   );
 
   const [cursor, setCursor] = useState<EntityQueryCursor>();
@@ -254,7 +266,7 @@ export const EntitiesVisualizer: FunctionComponent<{
     entityTypeIds: entityTypeId ? [entityTypeId] : undefined,
     filterState,
     hideColumns,
-    internalWebIds,
+    internalWebs,
     limit: view === "Graph" ? undefined : 500,
     sort: graphSort,
     view,
@@ -489,7 +501,7 @@ export const EntitiesVisualizer: FunctionComponent<{
   const { types: availableTypes, loading: availableTypesLoading } =
     useAvailableTypes({
       filterState,
-      internalWebIds,
+      internalWebs,
       entityTypeBaseUrl,
       entityTypeIds: entityTypeId ? [entityTypeId] : undefined,
     });
@@ -533,7 +545,7 @@ export const EntitiesVisualizer: FunctionComponent<{
                 dataLoading && filterableProperties.length === 0
               }
               filterState={filterState}
-              internalWebIds={internalWebIds}
+              internalWebs={internalWebs}
               isTypePinned={isTypePinned}
               setFilterState={(updater) => setFilterState(updater)}
             />

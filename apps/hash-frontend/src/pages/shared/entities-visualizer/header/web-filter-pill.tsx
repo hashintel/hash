@@ -4,7 +4,6 @@ import { useCallback, useMemo } from "react";
 
 import { MenuCheckboxItem } from "@hashintel/design-system";
 
-import { useGetOwnerForEntity } from "../../../../components/hooks/use-get-owner-for-entity";
 import { HouseRegularIcon } from "../../../../shared/icons/house-regular-icon";
 import { FilterPill } from "./filter-pill";
 
@@ -12,8 +11,13 @@ import type { EntitiesFilterState } from "../shared/filter-state";
 import type { WebId } from "@blockprotocol/type-system";
 import type { FunctionComponent } from "react";
 
+export type InternalWeb = {
+  webId: WebId;
+  name: string;
+};
+
 type WebFilterPillProps = {
-  internalWebIds: WebId[];
+  internalWebs: InternalWeb[];
   webState: EntitiesFilterState["web"];
   setWebState: (
     updater: (prev: EntitiesFilterState["web"]) => EntitiesFilterState["web"],
@@ -21,41 +25,51 @@ type WebFilterPillProps = {
 };
 
 const buildLabel = ({
-  internalWebIds,
+  internalWebs,
   selectedInternalWebIds,
   includeOtherWebs,
 }: {
-  internalWebIds: WebId[];
+  internalWebs: InternalWeb[];
   selectedInternalWebIds: Set<WebId>;
   includeOtherWebs: boolean;
 }): string => {
-  const selectedCount = internalWebIds.filter((id) =>
-    selectedInternalWebIds.has(id),
-  ).length;
-  const totalCount = internalWebIds.length;
+  const selectedWebs = internalWebs.filter(({ webId }) =>
+    selectedInternalWebIds.has(webId),
+  );
+  const selectedCount = selectedWebs.length;
+  const totalCount = internalWebs.length;
   const allSelected = selectedCount === totalCount;
+  const selectedWebName =
+    selectedCount === 1 ? selectedWebs[0]!.name : undefined;
 
   if (includeOtherWebs) {
     if (allSelected) {
-      return "Any web";
+      return "any";
     }
     if (selectedCount === 0) {
-      return "Other webs";
+      return "not yours";
+    }
+    if (selectedWebName) {
+      return `other + ${selectedWebName}`;
     }
     return `Other webs + ${selectedCount} own`;
   }
 
   if (allSelected) {
-    return totalCount === 1 ? "Your web" : "Your webs";
+    return totalCount === 1 ? (selectedWebName ?? "yours") : "one of yours";
   }
+
   if (selectedCount === 0) {
-    return "No webs";
+    return "none";
+  }
+  if (selectedWebName) {
+    return selectedWebName;
   }
   return `${selectedCount} of ${totalCount} webs`;
 };
 
 export const WebFilterPill: FunctionComponent<WebFilterPillProps> = ({
-  internalWebIds,
+  internalWebs,
   webState,
   setWebState,
 }) => {
@@ -64,18 +78,13 @@ export const WebFilterPill: FunctionComponent<WebFilterPillProps> = ({
     popupId: "entities-visualizer-web-filter-pill",
   });
 
-  const getOwnerForEntity = useGetOwnerForEntity();
-
   const webItems = useMemo(
     () =>
-      internalWebIds.map((webId) => {
-        const { shortname } = getOwnerForEntity({ webId });
-        return {
-          webId,
-          label: shortname ? `@${shortname}` : webId,
-        };
-      }),
-    [internalWebIds, getOwnerForEntity],
+      internalWebs.map(({ webId, name }) => ({
+        webId,
+        label: name,
+      })),
+    [internalWebs],
   );
 
   const toggleInternalWeb = useCallback(
@@ -101,14 +110,16 @@ export const WebFilterPill: FunctionComponent<WebFilterPillProps> = ({
   }, [setWebState]);
 
   const label = buildLabel({
-    internalWebIds,
+    internalWebs,
     selectedInternalWebIds: webState.selectedInternalWebIds,
     includeOtherWebs: webState.includeOtherWebs,
   });
 
   const allInternalSelected =
-    webState.selectedInternalWebIds.size === internalWebIds.length &&
-    internalWebIds.every((id) => webState.selectedInternalWebIds.has(id));
+    webState.selectedInternalWebIds.size === internalWebs.length &&
+    internalWebs.every(({ webId }) =>
+      webState.selectedInternalWebIds.has(webId),
+    );
 
   const isActive = !allInternalSelected || webState.includeOtherWebs;
 

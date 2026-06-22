@@ -68,7 +68,7 @@ export const useEntitiesVisualizerData = (params: {
   entityTypeIds?: VersionedUrl[];
   filterState: EntitiesFilterState;
   hideColumns?: (keyof EntitiesTableRow)[];
-  internalWebIds: WebId[];
+  internalWebs: { webId: WebId }[];
   limit?: number;
   sort?: EntityQuerySortingRecord;
   view: VisualizerView;
@@ -80,7 +80,7 @@ export const useEntitiesVisualizerData = (params: {
     entityTypeIds,
     filterState,
     hideColumns,
-    internalWebIds,
+    internalWebs,
     limit,
     sort,
     view,
@@ -90,6 +90,11 @@ export const useEntitiesVisualizerData = (params: {
     hideColumns,
     hideArchivedColumn: !filterState.includeArchived,
   });
+
+  const internalWebIds = useMemo(
+    () => internalWebs.map(({ webId }) => webId),
+    [internalWebs],
+  );
 
   const variables = useMemo<QueryEntitySubgraphQueryVariables>(
     () => ({
