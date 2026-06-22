@@ -70,24 +70,7 @@ export type IncomingLinksFieldId =
 
 type FieldId = IncomingLinksFieldId;
 
-/**
- * The columns that can be sorted server-side (applied to the query's root, the
- * link entities). None can be:
- * - the API cannot traverse to the source entity, so `linkedFrom` /
- *   `linkedFromTypes` are out;
- * - the "Link type" column displays the *inverse* title, which the `typeTitle`
- *   token does not match;
- * - the "Link" column shows a client-generated label (see `generateEntityLabel`),
- *   but the API's `label` token sorts by the entity's label *property*, which is
- *   empty for typical link entities — so every row ties and only the `uuid`
- *   tiebreaker orders them (flipping the direction does nothing, and the order
- *   does not match the displayed label).
- *
- * Every column is therefore sortable only client-side (the editable case); in
- * the readonly/paginated case the rows keep their server (uuid) order.
- */
 const serverSortableFieldIds: FieldId[] = [];
-
 const staticColumns: VirtualizedTableColumn<FieldId>[] = [
   {
     label: "Linked from",
@@ -290,11 +273,6 @@ type IncomingLinksTableProps = {
   customEntityLinksColumns?: CustomEntityLinksColumn[];
   entityLabel: string;
   entitySubgraph: Subgraph<EntityRootType<HashEntity>>;
-  /**
-   * The link-type filter, applied server-side. Present only in the readonly /
-   * paginated case (see {@link readonly}); `undefined` while the breakdown that
-   * populates the options has not yet loaded.
-   */
   filterDefinitions?: LinkTypeFilterDefinitions;
   filterValues?: LinkTypeFilterValues;
   setFilterValues?: (filterValues: LinkTypeFilterValues) => void;
@@ -303,17 +281,6 @@ type IncomingLinksTableProps = {
   onEndReached?: () => void;
   onEntityClick: (entityId: EntityId) => void;
   onTypeClick: (kind: "dataType" | "entityType", itemId: VersionedUrl) => void;
-  /**
-   * When `true`, the table is backed by a paginated server-side query: the rows
-   * are a server-ordered page, sorting is applied by the query (so the table
-   * only exposes the columns the graph API can sort by, and `sort`/`setSort`
-   * drive a re-query when the sort changes), and filtering is applied
-   * server-side too.
-   *
-   * When `false` (the editable case), the full set of links is already present,
-   * so sorting is applied client-side instead: every column is sortable and the
-   * rows are re-ordered locally as `sort` changes.
-   */
   readonly: boolean;
   sort: VirtualizedTableSort<FieldId>;
   setSort: (sort: VirtualizedTableSort<FieldId>) => void;
@@ -570,17 +537,11 @@ export const IncomingLinksTable = memo(
       const createdColumns = createColumns(applicableCustomColumns ?? []);
 
       if (!readonly) {
-        /**
-         * Sorting is applied client-side, so each column keeps its own
-         * `sortable` flag.
-         */
+        // Sorting is applied client-side, so each column keeps its own `sortable` flag.
         return createdColumns;
       }
 
-      /**
-       * Sorting is applied server-side, so only the columns the graph API can
-       * sort by are sortable.
-       */
+      // Sorting is applied server-side, so only the columns the graph API can sort by are sortable.
       return createdColumns.map((column) => ({
         ...column,
         sortable: serverSortableFieldIds.includes(column.id),

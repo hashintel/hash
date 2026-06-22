@@ -83,27 +83,11 @@ export const OutgoingLinksSection = ({
 }: OutgoingLinksSectionProps) => {
   const [showSearch, setShowSearch] = useState(false);
 
-  /**
-   * The sort state lives here so that, in the readonly case, it can drive the
-   * paginated query (sorting is applied server-side). The only column the API
-   * can sort the link entities by is their type title (it cannot sort by the
-   * target entity, and its `label` sort uses the empty label property rather
-   * than the client-generated label shown in the "Link" column), so we default
-   * to – and server-side only support – the link type. When editable, the full
-   * set of links is present and the table sorts client-side instead (across all
-   * columns), still driven by this state.
-   */
   const [sort, setSort] = useState<VirtualizedTableSort<OutgoingLinksFieldId>>({
     fieldId: "linkTypes",
     direction: "asc",
   });
 
-  /**
-   * Translate the table sort into graph-query sorting paths, which apply to the
-   * query's root (the link entities). Only `linkTypes` (the link's type title)
-   * is sortable server-side; for any other column we apply no server sort (the
-   * query's uuid tiebreaker still gives a stable, paginatable order).
-   */
   const sortingPaths = useMemo<EntityQuerySortingRecord[] | undefined>(() => {
     if (!readonly || sort.fieldId !== "linkTypes") {
       return undefined;
@@ -146,13 +130,6 @@ export const OutgoingLinksSection = ({
     [defaultLinkTypesKey],
   );
 
-  /**
-   * The readonly link table can be filtered by link type. The filter state and
-   * options live here so the selection can drive the paginated query
-   * (`filterTypeIds`) and be passed to the table's header. `filterTypeIds`
-   * derives only from this hook's state, so feeding it into `useEntityLinks`
-   * below does not create a render cycle with the breakdown the query returns.
-   */
   const {
     captureLinkTypeOptions,
     filterDefinitions,
@@ -214,22 +191,15 @@ export const OutgoingLinksSection = ({
                 linkEntity.metadata.recordId.entityId,
               ) ?? [];
           } catch {
-            /**
-             * `getRightEntityForLinkEntity` throws if no target revision overlaps
-             * the resolved instant of the merged multi-page subgraph; treat that
-             * as a missing endpoint so the link is filtered out below rather than
-             * crashing the table.
-             */
+            // `getRightEntityForLinkEntity` throws if no target revision overlaps
+            // the resolved instant of the merged multi-page subgraph
             rightEntity = [];
           }
 
           return { linkEntity: [linkEntity], rightEntity };
         })
         .filter(
-          /**
-           * Drop links whose target entity is missing, so no row with an empty
-           * endpoint reaches the table (which would throw when building rows).
-           */
+          // Drop links whose source entity is missing, mirroring the guard the editor path applies
           (outgoingLinkAndTarget) => !!outgoingLinkAndTarget.rightEntity[0],
         );
     }
@@ -288,12 +258,6 @@ export const OutgoingLinksSection = ({
   }, []);
 
   if (readonly && error) {
-    /**
-     * In the self-fetch path the query errors are surfaced here (the editor
-     * path's errors are handled by the parent query). Without this, a failed
-     * query would fall through to the empty state, making it look like the
-     * entity simply has no links.
-     */
     return (
       <SectionWrapper title="Outgoing Links">
         <Callout type="error">

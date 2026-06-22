@@ -55,27 +55,11 @@ export const IncomingLinksSection = ({
   readonly,
   slideContainerRef,
 }: IncomingLinksSectionProps) => {
-  /**
-   * The table sort state. Incoming links have no server-sortable column (see
-   * `serverSortableFieldIds` in the table – the API can't reach the source
-   * entity, and its `label` sort uses the empty label property rather than the
-   * client-generated label shown), so this only drives client-side sorting in
-   * the editable case. In the readonly/paginated case the rows keep their
-   * server (uuid) order and no column is sortable.
-   */
   const [sort, setSort] = useState<VirtualizedTableSort<IncomingLinksFieldId>>({
     fieldId: "link",
     direction: "asc",
   });
 
-  /**
-   * The link table can be filtered by link type in both cases. The filter state
-   * and options live here so the selection can be passed to the table's header
-   * and applied: server-side (`filterTypeIds` → the paginated query) when
-   * readonly, and client-side (filtering the editor links below) when editable.
-   * `filterTypeIds` derives only from this hook's state, so feeding it into
-   * `useEntityLinks` below does not create a render cycle.
-   */
   const {
     captureLinkTypeOptions,
     filterDefinitions,
@@ -133,23 +117,15 @@ export const IncomingLinksSection = ({
                 linkEntity.metadata.recordId.entityId,
               ) ?? [];
           } catch {
-            /**
-             * `getLeftEntityForLinkEntity` throws if no source revision overlaps
-             * the resolved instant of the merged multi-page subgraph; treat that
-             * as a missing endpoint so the link is filtered out below rather than
-             * crashing the table.
-             */
+            // `getLeftEntityForLinkEntity` throws if no source revision overlaps
+            // the resolved instant of the merged multi-page subgraph
             leftEntity = [];
           }
 
           return { linkEntity: [linkEntity], leftEntity };
         })
         .filter(
-          /**
-           * Drop links whose source entity is missing, mirroring the guard the
-           * editor path applies, so no row with an empty endpoint reaches the
-           * table (which would throw when building rows).
-           */
+          // Drop links whose source entity is missing, mirroring the guard the editor path applies
           (incomingLinkAndSource) => !!incomingLinkAndSource.leftEntity[0],
         );
     }
@@ -184,12 +160,7 @@ export const IncomingLinksSection = ({
     draftLinksToArchive,
   ]);
 
-  /**
-   * In the editable case there is no server breakdown, so the filter options are
-   * derived from the (unfiltered) editor links here. Counting per link entity
-   * type mirrors the server aggregate; the title is the type's forward title, as
-   * in the readonly case.
-   */
+  // In the editable case the filter options are derived from the (unfiltered) editor links here.
   const editableLinkTypeBreakdown = useMemo(() => {
     if (readonly || !editorTypesMap) {
       return undefined;
@@ -239,8 +210,7 @@ export const IncomingLinksSection = ({
   /**
    * The rows shown in the table. In the readonly case the fetched links are
    * already filtered server-side; in the editable case the full editor links are
-   * filtered here by the selected link types (`filterTypeIds` is `undefined`
-   * while every type is selected, so an untouched filter shows everything).
+   * filtered here by the selected link types
    */
   const displayedIncomingLinksAndSources = useMemo(() => {
     if (readonly || !filterTypeIds) {
@@ -257,12 +227,6 @@ export const IncomingLinksSection = ({
   }, [readonly, filterTypeIds, incomingLinksAndSources]);
 
   if (readonly && error) {
-    /**
-     * In the self-fetch path the query errors are surfaced here (the editor
-     * path's errors are handled by the parent query). Without this, a failed
-     * query would fall through to the empty state, making it look like the
-     * entity simply has no links.
-     */
     return (
       <SectionWrapper title="Incoming Links">
         <Callout type="error">
