@@ -1,6 +1,7 @@
 mod delete;
 mod query;
 mod read;
+mod summary;
 use alloc::borrow::Cow;
 use core::{borrow::Borrow as _, mem};
 use std::collections::{HashMap, HashSet};
@@ -91,9 +92,9 @@ use crate::store::{
     AsClient, PostgresStore,
     error::{EntityDoesNotExist, RaceConditionOnUpdate},
     postgres::{
-        ResponseCountMap, TraversalContext,
+        TraversalContext,
         crud::{QueryIndices, TypedRow},
-        knowledge::entity::read::EntityEdgeTraversalData,
+        knowledge::entity::{read::EntityEdgeTraversalData, summary::EntitySummaryQuery},
         query::{
             Distinctness, InsertStatementBuilder, PostgresRecord as _, PostgresSorting as _,
             SelectCompiler, Table,
@@ -527,32 +528,11 @@ where
             .change_context(QueryError)?;
 
         let (count, web_ids, created_by_ids, edition_created_by_ids, type_ids, type_titles) =
-            if params.include_count
-                || params.include_web_ids
-                || params.include_created_by_ids
-                || params.include_edition_created_by_ids
-                || params.include_type_ids
-            {
-                let web_id_idx = compiler.add_selection_path(&EntityQueryPath::WebId);
-                let entity_uuid_idx = compiler.add_selection_path(&EntityQueryPath::Uuid);
-                let draft_id_idx = compiler.add_selection_path(&EntityQueryPath::DraftId);
-                let provenance_idx = params
-                    .include_created_by_ids
-                    .then(|| compiler.add_selection_path(&EntityQueryPath::Provenance(None)));
-                let edition_provenance_idx = params.include_edition_created_by_ids.then(|| {
-                    compiler.add_selection_path(&EntityQueryPath::EditionProvenance(None))
-                });
-                let type_ids_idx =
-                    (params.include_type_ids || params.include_type_titles).then(|| {
-                        (
-                            compiler.add_selection_path(&EntityQueryPath::TypeVersionedUrls),
-                            compiler.add_selection_path(&EntityQueryPath::DirectTypeCount),
-                        )
-                    });
-
+            if let Some(summary_query) = EntitySummaryQuery::new(&mut compiler, params) {
                 let (statement, parameters) = compiler.compile();
+                let statement = summary_query.statement(&statement);
 
-                let entities = self
+                let rows = self
                     .as_client()
                     .query_raw(&statement, parameters.iter().copied())
                     .instrument(tracing::info_span!(
@@ -564,70 +544,16 @@ where
                     ))
                     .await
                     .change_context(QueryError)?
-                    .map_ok(move |row| {
-                        (
-                            EntityId {
-                                web_id: row.get(web_id_idx),
-                                entity_uuid: row.get(entity_uuid_idx),
-                                draft_id: row.get(draft_id_idx),
-                            },
-                            row,
-                        )
-                    })
-                    .try_collect::<HashMap<_, _>>()
-                    .instrument(tracing::trace_span!("collect_entity_metadata"))
+                    .try_collect::<Vec<_>>()
+                    .instrument(tracing::trace_span!("collect_entity_summaries"))
                     .await
                     .change_context(QueryError)?;
 
-                let mut web_ids = params.include_web_ids.then(ResponseCountMap::default);
-                let mut created_by_ids = params
-                    .include_created_by_ids
-                    .then(ResponseCountMap::default);
-                let mut edition_created_by_ids = params
-                    .include_edition_created_by_ids
-                    .then(ResponseCountMap::default);
-                let mut type_ids = (params.include_type_ids || params.include_type_titles)
-                    .then(ResponseCountMap::default);
-
-                let count = entities
-                    .into_iter()
-                    .inspect(|(entity_id, row)| {
-                        if let Some(web_ids) = &mut web_ids {
-                            web_ids.extend_one(entity_id.web_id);
-                        }
-
-                        if let Some((created_by_ids, provenance_idx)) =
-                            created_by_ids.as_mut().zip(provenance_idx)
-                        {
-                            let provenance: InferredEntityProvenance = row.get(provenance_idx);
-                            created_by_ids.extend_one(provenance.created_by_id);
-                        }
-
-                        if let Some((edition_created_by_ids, provenance_idx)) =
-                            edition_created_by_ids.as_mut().zip(edition_provenance_idx)
-                        {
-                            let provenance: EntityEditionProvenance = row.get(provenance_idx);
-                            edition_created_by_ids.extend_one(provenance.created_by_id);
-                        }
-
-                        if let Some((type_ids, (versioned_urls_idx, direct_count_idx))) =
-                            type_ids.as_mut().zip(type_ids_idx)
-                        {
-                            let direct_type_count =
-                                usize::try_from(row.get::<_, i32>(direct_count_idx))
-                                    .expect("direct type count should be non-negative");
-                            type_ids.extend(
-                                row.get::<_, Vec<VersionedUrl>>(versioned_urls_idx)
-                                    .into_iter()
-                                    .take(direct_type_count),
-                            );
-                        }
-                    })
-                    .count();
-                let type_ids = type_ids.map(HashMap::from);
+                let summaries = summary_query.decode(rows)?;
 
                 let type_titles = if params.include_type_titles {
-                    let type_uuids = type_ids
+                    let type_uuids = summaries
+                        .type_ids
                         .as_ref()
                         .expect("type ids should be present")
                         .keys()
@@ -689,11 +615,11 @@ where
                 };
 
                 (
-                    params.include_count.then_some(count),
-                    web_ids.map(HashMap::from),
-                    created_by_ids.map(HashMap::from),
-                    edition_created_by_ids.map(HashMap::from),
-                    type_ids.filter(|_| params.include_type_ids),
+                    summaries.count,
+                    summaries.web_ids,
+                    summaries.created_by_ids,
+                    summaries.edition_created_by_ids,
+                    summaries.type_ids.filter(|_| params.include_type_ids),
                     type_titles,
                 )
             } else {

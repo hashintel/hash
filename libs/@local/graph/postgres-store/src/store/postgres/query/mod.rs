@@ -196,7 +196,7 @@ where
 }
 
 #[cfg(test)]
-mod test_helper {
+pub(crate) mod test_helper {
     use hash_graph_store::data_type::DataTypeQueryPath;
 
     use crate::store::postgres::query::{
