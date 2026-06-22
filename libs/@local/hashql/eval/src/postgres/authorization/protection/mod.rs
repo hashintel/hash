@@ -32,11 +32,11 @@ fn resolve_path<A: Allocator>(
             correlation: Some(unit.projections.temporal_metadata()),
             name: Column::EntityTemporalMetadata(table::EntityTemporalMetadata::EntityUuid).into(),
         }),
-        // eit.base_urls
+        // eec.base_urls
         PropertyFilterEntityQueryPath::TypeBaseUrls => {
             Expression::ColumnReference(ColumnReference {
-                correlation: Some(unit.projections.entity_is_of_type_ids()),
-                name: Column::EntityIsOfTypeIds(table::EntityIsOfTypeIds::BaseUrls).into(),
+                correlation: Some(unit.projections.entity_edition_cache()),
+                name: Column::EntityEditionCache(table::EntityEditionCache::BaseUrls).into(),
             })
         }
     }

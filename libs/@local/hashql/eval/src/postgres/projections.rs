@@ -513,7 +513,7 @@ pub struct AuxiliaryProjections {
     base: Projections,
 
     pub entity_ids: Option<Alias>,
-    pub entity_is_of_type_ids: Option<Alias>,
+    pub entity_edition_cache: Option<Alias>,
 }
 
 impl AuxiliaryProjections {
@@ -522,7 +522,7 @@ impl AuxiliaryProjections {
             index: base.index,
             base: base.snapshot(),
             entity_ids: None,
-            entity_is_of_type_ids: None,
+            entity_edition_cache: None,
         }
     }
 
@@ -574,18 +574,18 @@ impl AuxiliaryProjections {
     ///
     /// Always allocates a fresh join; the base projections' type aggregate
     /// is a scoped LATERAL subquery and cannot be reused.
-    pub(crate) fn entity_is_of_type_ids(&mut self) -> TableReference<'static> {
-        let alias = if let Some(alias) = self.entity_is_of_type_ids {
+    pub(crate) fn entity_edition_cache(&mut self) -> TableReference<'static> {
+        let alias = if let Some(alias) = self.entity_edition_cache {
             alias
         } else {
             let alias = self.next_alias();
-            self.entity_is_of_type_ids = Some(alias);
+            self.entity_edition_cache = Some(alias);
             alias
         };
 
         TableReference {
             schema: None,
-            name: TableName::from(Table::EntityIsOfTypeIds),
+            name: TableName::from(Table::EntityEditionCache),
             alias: Some(alias),
         }
     }
@@ -615,7 +615,7 @@ impl AuxiliaryProjections {
             tablesample: None,
         };
 
-        if self.entity_ids.is_none() && self.entity_is_of_type_ids.is_none() {
+        if self.entity_ids.is_none() && self.entity_edition_cache.is_none() {
             return from;
         }
 
@@ -633,18 +633,18 @@ impl AuxiliaryProjections {
             core = self.base.build_entity_ids(core, alias);
         }
 
-        if let Some(alias) = self.entity_is_of_type_ids {
+        if let Some(alias) = self.entity_edition_cache {
             let fk = ForeignKeyReference::Single {
                 on: Column::EntityTemporalMetadata(table::EntityTemporalMetadata::EditionId),
-                join: Column::EntityIsOfTypeIds(table::EntityIsOfTypeIds::EntityEditionId),
+                join: Column::EntityEditionCache(table::EntityEditionCache::EntityEditionId),
                 join_type: JoinType::Inner,
             };
 
             core = core
                 .join(
                     JoinType::Inner,
-                    FromItem::table(Table::EntityIsOfTypeIds)
-                        .alias(Table::EntityIsOfTypeIds.aliased(alias)),
+                    FromItem::table(Table::EntityEditionCache)
+                        .alias(Table::EntityEditionCache.aliased(alias)),
                 )
                 .on(fk.conditions(self.base.base_alias, alias))
                 .build();
@@ -793,7 +793,7 @@ mod tests {
     fn build_joins_inserts_before_laterals() {
         let base = Projections::new();
         let mut aux = AuxiliaryProjections::new(&base);
-        aux.entity_is_of_type_ids();
+        aux.entity_edition_cache();
 
         let core = FromItem::table(Table::EntityTemporalMetadata)
             .alias(TableReference {
@@ -823,7 +823,7 @@ mod tests {
         let base = Projections::new();
         let mut aux = AuxiliaryProjections::new(&base);
         aux.entity_ids();
-        aux.entity_is_of_type_ids();
+        aux.entity_edition_cache();
 
         let from = FromItem::table(Table::EntityTemporalMetadata)
             .alias(TableReference {

@@ -149,7 +149,7 @@ impl<A: Allocator + Clone, S: Allocator> PatchPreparedQueryLayer<A, S>
         query.statement.where_expression.add_condition(condition);
 
         // Lower protection BEFORE join materialization so its join demands
-        // (e.g. entity_is_of_type_ids for TypeBaseUrls) are registered.
+        // (e.g. entity_edition_cache for TypeBaseUrls) are registered.
         // The resulting mask expression is grafted AFTER joins are built.
         let entity_edition_alias = context.projections.entity_edition_alias();
 

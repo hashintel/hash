@@ -403,8 +403,8 @@ fn algebra_blank_forbid_denies_all() {
         "blank forbid should not register entity_ids",
     );
     assert!(
-        fixture.projections.entity_is_of_type_ids.is_none(),
-        "blank forbid should not register entity_is_of_type_ids",
+        fixture.projections.entity_edition_cache.is_none(),
+        "blank forbid should not register entity_edition_cache",
     );
 }
 
