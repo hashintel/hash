@@ -62,26 +62,32 @@ const workflowSource: WorkflowSource =
         kind: "path",
         workflowsPath: require.resolve("./workflows"),
         bundlerOptions: {
-          webpackConfigHook: (webpackConfig) => ({
-            ...webpackConfig,
-            resolve: {
-              ...webpackConfig.resolve,
-              plugins: [
-                ...((webpackConfig.plugins as [] | undefined) ?? []),
-                /**
-                 * We run TypeScript directly in development, so the 'paths' in
-                 * the base tsconfig.json need to be honoured to override the
-                 * 'exports' in local dependencies' package.jsons (which point
-                 * at transpiled JavaScript). This plugin converts the 'paths'
-                 * to webpack 'alias'.
-                 */
-                new TsconfigPathsPlugin({
-                  configFile:
-                    "../../libs/@local/tsconfig/legacy-base-tsconfig-to-refactor.json",
-                }),
-              ],
-            },
-          }),
+          webpackConfigHook: (webpackConfig) => {
+            type ResolvePlugin = NonNullable<
+              NonNullable<typeof webpackConfig.resolve>["plugins"]
+            >[number];
+
+            return {
+              ...webpackConfig,
+              resolve: {
+                ...webpackConfig.resolve,
+                plugins: [
+                  ...(webpackConfig.resolve?.plugins ?? []),
+                  /**
+                   * We run TypeScript directly in development, so the 'paths' in
+                   * the base tsconfig.json need to be honoured to override the
+                   * 'exports' in local dependencies' package.jsons (which point
+                   * at transpiled JavaScript). This plugin converts the 'paths'
+                   * to webpack 'alias'.
+                   */
+                  new TsconfigPathsPlugin({
+                    configFile:
+                      "../../libs/@local/tsconfig/legacy-base-tsconfig-to-refactor.json",
+                  }) as ResolvePlugin,
+                ],
+              },
+            };
+          },
         },
       };
 
