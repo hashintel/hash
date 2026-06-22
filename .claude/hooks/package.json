@@ -10,8 +10,8 @@
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
     "run:skill": "tsx skill-activation-prompt.ts",
-    "test:unit": "vitest run",
-    "test:unit:bless": "vitest run -u"
+    "test:unit": "DOTENV_CONFIG_QUIET=true vitest run",
+    "test:unit:bless": "DOTENV_CONFIG_QUIET=true vitest run -u"
   },
   "dependencies": {
     "natural": "8.1.1"
