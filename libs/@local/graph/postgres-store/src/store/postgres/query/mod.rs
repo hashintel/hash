@@ -129,7 +129,16 @@ impl<'s> QueryRecordDecode for EntityQuerySorting<'s> {
 
     fn decode(row: &Row, indices: &Self::Indices) -> Self::Output {
         EntityQueryCursor {
-            values: indices.iter().map(|i| row.get(i)).collect(),
+            values: indices
+                .iter()
+                .map(|i| {
+                    // Sort keys can be NULL (e.g. the label of an unlabeled entity);
+                    // `Json(Null)` is the sentinel `compile` turns into the `IS NULL`
+                    // cursor continuation.
+                    row.get::<_, Option<CursorField>>(i)
+                        .unwrap_or(CursorField::Json(PropertyValue::Null))
+                })
+                .collect(),
         }
     }
 }

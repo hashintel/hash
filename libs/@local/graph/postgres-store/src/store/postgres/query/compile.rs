@@ -523,16 +523,12 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                             | Table::DataTypeConversionAggregation
                             | Table::PropertyTypes
                             | Table::EntityTypes
-                            | Table::FirstTitleForEntity
-                            | Table::LastTitleForEntity
-                            | Table::FirstLabelForEntity
-                            | Table::LastLabelForEntity
+                            | Table::EntityEditionCache
                             | Table::EntityIds
                             | Table::EntityDrafts
                             | Table::EntityTemporalMetadata
                             | Table::EntityEditions
                             | Table::EntityIsOfType
-                            | Table::EntityIsOfTypeIds
                             | Table::EntityHasLeftEntity
                             | Table::EntityHasRightEntity
                             | Table::EntityEdge
@@ -583,16 +579,12 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                             | Table::DataTypeConversionAggregation
                             | Table::PropertyTypes
                             | Table::EntityTypes
-                            | Table::FirstTitleForEntity
-                            | Table::LastTitleForEntity
-                            | Table::FirstLabelForEntity
-                            | Table::LastLabelForEntity
+                            | Table::EntityEditionCache
                             | Table::EntityIds
                             | Table::EntityDrafts
                             | Table::EntityTemporalMetadata
                             | Table::EntityEditions
                             | Table::EntityIsOfType
-                            | Table::EntityIsOfTypeIds
                             | Table::EntityHasLeftEntity
                             | Table::EntityHasRightEntity
                             | Table::EntityEdge
@@ -884,6 +876,10 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                     PathToken::Field(Cow::Borrowed(field)),
                 ))
             }
+            Some(JsonField::ArrayElement(index)) => Expression::ArrayElement {
+                expr: Box::new(column_expression),
+                index,
+            },
             Some(JsonField::Label { inheritance_depth }) => {
                 if let Some(label_path) =
                     <R as QueryRecord>::QueryPath::label_property_path(inheritance_depth)
@@ -967,11 +963,13 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
         match expression {
             FilterExpression::Path { path } => {
                 let (column, json_field) = path.terminating_column();
-                let parameter_type = if let Some(JsonField::StaticText(_)) = json_field {
-                    ParameterType::Text
-                } else {
-                    column.parameter_type()
-                };
+                let parameter_type =
+                    if let Some(JsonField::StaticText(_) | JsonField::ArrayElement(_)) = json_field
+                    {
+                        ParameterType::Text
+                    } else {
+                        column.parameter_type()
+                    };
                 (self.compile_path_column(path), parameter_type)
             }
             FilterExpression::Parameter { parameter, convert } => {
@@ -994,11 +992,13 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
         match expression {
             FilterExpressionList::Path { path } => {
                 let (column, json_field) = path.terminating_column();
-                let parameter_type = if let Some(JsonField::StaticText(_)) = json_field {
-                    ParameterType::Text
-                } else {
-                    column.parameter_type()
-                };
+                let parameter_type =
+                    if let Some(JsonField::StaticText(_) | JsonField::ArrayElement(_)) = json_field
+                    {
+                        ParameterType::Text
+                    } else {
+                        column.parameter_type()
+                    };
                 (self.compile_path_column(path), parameter_type)
             }
             FilterExpressionList::ParameterList { parameters } => {

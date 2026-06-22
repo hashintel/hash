@@ -81,7 +81,7 @@ use type_system::{
         entity_type::{
             ClosedEntityType, ClosedMultiEntityType, EntityTypeUuid, EntityTypeWithMetadata,
         },
-        id::{BaseUrl, OntologyTypeUuid, OntologyTypeVersion, VersionedUrl},
+        id::{OntologyTypeUuid, VersionedUrl},
     },
     principal::{actor::ActorEntityUuid, actor_group::WebId},
 };
@@ -545,8 +545,8 @@ where
                 let type_ids_idx =
                     (params.include_type_ids || params.include_type_titles).then(|| {
                         (
-                            compiler.add_selection_path(&EntityQueryPath::TypeBaseUrls),
-                            compiler.add_selection_path(&EntityQueryPath::TypeVersions),
+                            compiler.add_selection_path(&EntityQueryPath::TypeVersionedUrls),
+                            compiler.add_selection_path(&EntityQueryPath::DirectTypeCount),
                         )
                     });
 
@@ -610,16 +610,16 @@ where
                             edition_created_by_ids.extend_one(provenance.created_by_id);
                         }
 
-                        if let Some((type_ids, (base_urls_idx, versions_idx))) =
+                        if let Some((type_ids, (versioned_urls_idx, direct_count_idx))) =
                             type_ids.as_mut().zip(type_ids_idx)
                         {
-                            let base_urls: Vec<BaseUrl> = row.get(base_urls_idx);
-                            let versions: Vec<OntologyTypeVersion> = row.get(versions_idx);
+                            let direct_type_count =
+                                usize::try_from(row.get::<_, i32>(direct_count_idx))
+                                    .expect("direct type count should be non-negative");
                             type_ids.extend(
-                                base_urls
+                                row.get::<_, Vec<VersionedUrl>>(versioned_urls_idx)
                                     .into_iter()
-                                    .zip(versions)
-                                    .map(|(base_url, version)| VersionedUrl { base_url, version }),
+                                    .take(direct_type_count),
                             );
                         }
                     })
@@ -1222,6 +1222,21 @@ where
                     WHERE entity_edition_id = ANY($1)
                     GROUP BY entity_edition_id, target_entity_type_ontology_id;
                 ",
+                &[&entity_edition_ids],
+            )
+            .instrument(tracing::info_span!(
+                "INSERT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
+            .await
+            .change_context(InsertionError)?;
+
+        transaction
+            .as_client()
+            .query(
+                &insert_entity_edition_cache_statement(true),
                 &[&entity_edition_ids],
             )
             .instrument(tracing::info_span!(
@@ -2486,8 +2501,22 @@ where
                       JOIN entity_type_inherits_from
                         ON entity_type_ontology_id = source_entity_type_ontology_id
                      GROUP BY entity_edition_id, target_entity_type_ontology_id;
+
+                    DELETE FROM entity_edition_cache;
                 ",
             )
+            .instrument(tracing::info_span!(
+                "INSERT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
+            .await
+            .change_context(UpdateError)?;
+
+        transaction
+            .as_client()
+            .query(&insert_entity_edition_cache_statement(false), &[])
             .instrument(tracing::info_span!(
                 "INSERT",
                 otel.kind = "client",
@@ -2594,6 +2623,108 @@ struct LockedEntityEdition {
     transaction_time: LeftClosedTemporalInterval<TransactionTime>,
 }
 
+/// Builds the statement populating `entity_edition_cache` by aggregating the editions'
+/// `entity_is_of_type` rows joined to the referenced types.
+///
+/// The write paths pass `scoped` to restrict it to the just-written editions
+/// (`$1: UUID[]`), `reindex_entity_cache` runs it unscoped over all editions. Must run
+/// after the editions' `entity_is_of_type` rows (including the inherited ones) have been
+/// written.
+fn insert_entity_edition_cache_statement(scoped: bool) -> String {
+    let types_scope = if scoped {
+        "WHERE entity_is_of_type.entity_edition_id = ANY($1)"
+    } else {
+        ""
+    };
+    let labels_scope = if scoped {
+        "AND entity_is_of_type.entity_edition_id = ANY($1)"
+    } else {
+        ""
+    };
+    format!(
+        "
+    INSERT INTO entity_edition_cache (
+        entity_edition_id,
+        direct_types,
+        labels,
+        type_titles,
+        base_urls,
+        versions,
+        versioned_urls
+    )
+    SELECT types.entity_edition_id,
+           types.direct_types,
+           labels.labels,
+           types.type_titles,
+           types.base_urls,
+           types.versions,
+           types.versioned_urls
+      FROM (
+          SELECT entity_is_of_type.entity_edition_id,
+                 count(*) FILTER (
+                     WHERE entity_is_of_type.inheritance_depth = 0
+                 ) AS direct_types,
+                 array_agg(entity_types.schema ->> 'title'
+                     ORDER BY entity_is_of_type.inheritance_depth,
+                              entity_types.schema ->> 'title', ontology_ids.base_url,
+                              ontology_ids.version DESC
+                 ) AS type_titles,
+                 array_agg(ontology_ids.base_url
+                     ORDER BY entity_is_of_type.inheritance_depth,
+                              entity_types.schema ->> 'title', ontology_ids.base_url,
+                              ontology_ids.version DESC
+                 ) AS base_urls,
+                 array_agg(ontology_ids.version
+                     ORDER BY entity_is_of_type.inheritance_depth,
+                              entity_types.schema ->> 'title', ontology_ids.base_url,
+                              ontology_ids.version DESC
+                 ) AS versions,
+                 array_agg(ontology_ids.base_url || 'v/' || ontology_ids.version
+                     ORDER BY entity_is_of_type.inheritance_depth,
+                              entity_types.schema ->> 'title', ontology_ids.base_url,
+                              ontology_ids.version DESC
+                 ) AS versioned_urls
+            FROM entity_is_of_type
+            JOIN ontology_ids
+              ON entity_is_of_type.entity_type_ontology_id = ontology_ids.ontology_id
+            JOIN entity_types
+              ON ontology_ids.ontology_id = entity_types.ontology_id
+           {types_scope}
+           GROUP BY entity_is_of_type.entity_edition_id
+      ) AS types
+      LEFT JOIN (
+          SELECT entity_is_of_type.entity_edition_id,
+                 array_agg(label_value.label
+                     ORDER BY entity_types.schema ->> 'title', ontology_ids.base_url,
+                              ontology_ids.version DESC, label_value.ordinality
+                 ) FILTER (WHERE label_value.label IS NOT NULL) AS labels
+            FROM entity_is_of_type
+            JOIN ontology_ids
+              ON entity_is_of_type.entity_type_ontology_id = ontology_ids.ontology_id
+            JOIN entity_types
+              ON ontology_ids.ontology_id = entity_types.ontology_id
+            JOIN entity_editions
+              ON entity_is_of_type.entity_edition_id = entity_editions.entity_edition_id
+           CROSS JOIN LATERAL (
+               SELECT jsonb_extract_path(
+                          entity_editions.properties, label_path.path
+                      ) #>> '{{}}' AS label,
+                      label_path.ordinality
+                 FROM jsonb_array_elements_text(
+                          jsonb_path_query_array(
+                              entity_types.closed_schema, '$.allOf[*].labelProperty'
+                          )
+                      ) WITH ORDINALITY AS label_path (path, ordinality)
+           ) AS label_value
+           WHERE entity_is_of_type.inheritance_depth = 0
+             {labels_scope}
+           GROUP BY entity_is_of_type.entity_edition_id
+      ) AS labels
+        ON types.entity_edition_id = labels.entity_edition_id;
+"
+    )
+}
+
 impl PostgresStore<tokio_postgres::Transaction<'_>> {
     #[tracing::instrument(level = "info", skip_all)]
     async fn insert_entity_edition(
@@ -2669,6 +2800,21 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                      GROUP BY entity_edition_id, target_entity_type_ontology_id;
                 ",
                 &[&edition_id],
+            )
+            .instrument(tracing::info_span!(
+                "INSERT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
+            .await
+            .change_context(InsertionError)?;
+
+        let edition_ids = [edition_id];
+        self.as_client()
+            .query(
+                &insert_entity_edition_cache_statement(true),
+                &[&edition_ids.as_slice()],
             )
             .instrument(tracing::info_span!(
                 "INSERT",
@@ -3141,5 +3287,21 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             decision_time: row.get(0),
             transaction_time: row.get(1),
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::insert_entity_edition_cache_statement;
+
+    #[test]
+    fn cache_statement_scoping() {
+        let scoped = insert_entity_edition_cache_statement(true);
+        let unscoped = insert_entity_edition_cache_statement(false);
+
+        assert_eq!(scoped.matches("= ANY($1)").count(), 2);
+        assert_eq!(unscoped.matches("= ANY($1)").count(), 0);
+        // the jsonb text-extraction operator must survive the `format!` brace escaping
+        assert!(scoped.contains("#>> '{}'"));
     }
 }

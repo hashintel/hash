@@ -9,9 +9,9 @@ use hash_graph_store::{
 use crate::store::postgres::query::{
     PostgresQueryPath,
     table::{
-        Column, EntityEditions, EntityEmbeddings, EntityHasLeftEntity, EntityHasRightEntity,
-        EntityIds, EntityIsOfTypeIds, EntityTemporalMetadata, JsonField, LabelForEntity,
-        ReferenceTable, Relation, TypeTitleForEntity,
+        Column, EntityEditionCache, EntityEditions, EntityEmbeddings, EntityHasLeftEntity,
+        EntityHasRightEntity, EntityIds, EntityTemporalMetadata, JsonField, ReferenceTable,
+        Relation,
     },
 };
 
@@ -40,7 +40,9 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
             | Self::PropertyMetadata(_) => {
                 vec![Relation::EntityEditions]
             }
-            Self::TypeBaseUrls | Self::TypeVersions => vec![Relation::EntityIsOfTypes],
+            Self::TypeBaseUrls | Self::TypeVersionedUrls | Self::DirectTypeCount => {
+                vec![Relation::EntityEditionCache]
+            }
             Self::EntityTypeEdge {
                 edge_kind: SharedEdgeKind::IsOfType,
                 path,
@@ -87,10 +89,7 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
             })
             .chain(path.relations())
             .collect(),
-            Self::FirstTypeTitle => vec![Relation::FirstTitleForEntity],
-            Self::LastTypeTitle => vec![Relation::LastTitleForEntity],
-            Self::FirstLabel => vec![Relation::FirstLabelForEntity],
-            Self::LastLabel => vec![Relation::LastLabelForEntity],
+            Self::FirstTypeTitle | Self::FirstLabel => vec![Relation::EntityEditionCache],
         }
     }
 
@@ -123,8 +122,18 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
             ),
             Self::Archived => (Column::EntityEditions(EntityEditions::Archived), None),
             Self::Embedding => (Column::EntityEmbeddings(EntityEmbeddings::Embedding), None),
-            Self::TypeBaseUrls => (Column::EntityIsOfTypeIds(EntityIsOfTypeIds::BaseUrls), None),
-            Self::TypeVersions => (Column::EntityIsOfTypeIds(EntityIsOfTypeIds::Versions), None),
+            Self::TypeBaseUrls => (
+                Column::EntityEditionCache(EntityEditionCache::BaseUrls),
+                None,
+            ),
+            Self::TypeVersionedUrls => (
+                Column::EntityEditionCache(EntityEditionCache::VersionedUrls),
+                None,
+            ),
+            Self::DirectTypeCount => (
+                Column::EntityEditionCache(EntityEditionCache::DirectTypes),
+                None,
+            ),
             Self::EntityTypeEdge { path, .. } => path.terminating_column(),
             Self::EntityEdge {
                 edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
@@ -198,10 +207,14 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
                 Column::EntityHasRightEntity(EntityHasRightEntity::Provenance),
                 None,
             ),
-            Self::FirstTypeTitle => (Column::FirstTitleForEntity(TypeTitleForEntity::Title), None),
-            Self::LastTypeTitle => (Column::LastTitleForEntity(TypeTitleForEntity::Title), None),
-            Self::FirstLabel => (Column::FirstLabelForEntity(LabelForEntity::Label), None),
-            Self::LastLabel => (Column::LastLabelForEntity(LabelForEntity::Label), None),
+            Self::FirstTypeTitle => (
+                Column::EntityEditionCache(EntityEditionCache::TypeTitles),
+                Some(JsonField::ArrayElement(1)),
+            ),
+            Self::FirstLabel => (
+                Column::EntityEditionCache(EntityEditionCache::Labels),
+                Some(JsonField::ArrayElement(1)),
+            ),
         }
     }
 

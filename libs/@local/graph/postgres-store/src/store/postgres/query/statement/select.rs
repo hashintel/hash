@@ -1288,6 +1288,41 @@ mod tests {
     }
 
     #[test]
+    fn sort_by_label_and_type_title() {
+        let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+        let pinned_timestamp = temporal_axes.pinned_timestamp();
+        let mut compiler = SelectCompiler::<Entity>::new(Some(&temporal_axes), true);
+        compiler.add_distinct_selection_with_ordering(
+            &EntityQueryPath::FirstLabel,
+            Distinctness::Distinct,
+            Some((Ordering::Ascending, Some(NullOrdering::Last))),
+        );
+        compiler.add_distinct_selection_with_ordering(
+            &EntityQueryPath::FirstTypeTitle,
+            Distinctness::Distinct,
+            Some((Ordering::Descending, Some(NullOrdering::Last))),
+        );
+
+        test_compilation(
+            &compiler,
+            r#"
+            SELECT
+                DISTINCT ON(("entity_edition_cache_0_1_0"."labels")[1], ("entity_edition_cache_0_1_0"."type_titles")[1])
+                ("entity_edition_cache_0_1_0"."labels")[1],
+                ("entity_edition_cache_0_1_0"."type_titles")[1]
+            FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+            INNER JOIN "entity_edition_cache" AS "entity_edition_cache_0_1_0"
+              ON "entity_edition_cache_0_1_0"."entity_edition_id" = "entity_temporal_metadata_0_0_0"."entity_edition_id"
+            WHERE "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
+              AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
+            ORDER BY ("entity_edition_cache_0_1_0"."labels")[1] ASC NULLS LAST,
+                     ("entity_edition_cache_0_1_0"."type_titles")[1] DESC NULLS LAST
+            "#,
+            &[&pinned_timestamp, &temporal_axes.variable_interval()],
+        );
+    }
+
+    #[test]
     fn transpile_offset() {
         let statement = SelectStatement::builder()
             .selects(vec![SelectExpression::Asterisk(None)])
@@ -1400,7 +1435,7 @@ mod tests {
                 &compiler,
                 r#"
                 SELECT ("entity_editions_0_1_0"."properties" - (CASE WHEN
-                    ($1 = ANY("entity_is_of_type_ids_0_1_0"."base_urls"))
+                    ($1 = ANY("entity_edition_cache_0_1_0"."base_urls"))
                     AND ("entity_temporal_metadata_0_0_0"."entity_uuid" != $2)
                     THEN ARRAY[$3]::text[]
                     ELSE ARRAY[]::text[] END))
@@ -1408,8 +1443,8 @@ mod tests {
                 INNER JOIN "entity_editions" AS "entity_editions_0_1_0"
                     ON "entity_editions_0_1_0"."entity_edition_id" =
                         "entity_temporal_metadata_0_0_0"."entity_edition_id"
-                INNER JOIN "entity_is_of_type_ids" AS "entity_is_of_type_ids_0_1_0"
-                    ON "entity_is_of_type_ids_0_1_0"."entity_edition_id" =
+                INNER JOIN "entity_edition_cache" AS "entity_edition_cache_0_1_0"
+                    ON "entity_edition_cache_0_1_0"."entity_edition_id" =
                         "entity_temporal_metadata_0_0_0"."entity_edition_id"
                 WHERE "entity_temporal_metadata_0_0_0"."draft_id" IS NULL
                 "#,
