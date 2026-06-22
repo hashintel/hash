@@ -2,6 +2,7 @@ mod atom;
 mod current;
 mod error;
 mod rvalue;
+mod synthetic;
 mod terminator;
 mod transform;
 mod types;

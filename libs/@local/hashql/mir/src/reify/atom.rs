@@ -1,12 +1,15 @@
 use core::alloc::Allocator;
 
 use hashql_core::{id::Id as _, r#type::kind::TypeKind, value::Primitive};
-use hashql_hir::node::{
-    Node,
-    access::{Access, FieldAccess, IndexAccess},
-    data::Data,
-    kind::NodeKind,
-    variable::Variable,
+use hashql_hir::{
+    node::{
+        Node,
+        access::{Access, FieldAccess, IndexAccess},
+        data::Data,
+        kind::NodeKind,
+        variable::Variable,
+    },
+    path::QualifiedPath,
 };
 
 use super::{
@@ -152,6 +155,10 @@ impl<'heap, A: Allocator, S: Allocator> Reifier<'_, '_, '_, '_, 'heap, A, S> {
                 .projections
                 .intern_slice(&projections),
         }
+    }
+
+    pub(super) fn qualified_variable(&mut self, path: QualifiedPath<'heap>, requires_thunk: bool) {
+        todo!()
     }
 
     pub(super) fn operand(&mut self, node: Node<'heap>) -> Operand<'heap> {
