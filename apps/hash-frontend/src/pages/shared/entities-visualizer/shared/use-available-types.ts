@@ -32,21 +32,18 @@ export const useAvailableTypes = ({
 }): { types: AvailableType[]; loading: boolean } => {
   const skip = !!entityTypeBaseUrl || !!entityTypeIds?.length;
 
-  const filterStateWithoutType = useMemo<EntitiesFilterState>(
-    () => ({
-      ...filterState,
-      type: { selectedTypeIds: null },
-    }),
-    [filterState],
-  );
-
   const filter = useMemo(
     () =>
       buildEntitiesFilter({
-        filterState: filterStateWithoutType,
+        filterState: {
+          web: filterState.web,
+          type: { selectedTypeIds: null },
+          includeArchived: filterState.includeArchived,
+          propertyFilters: [],
+        },
         internalWebIds,
       }),
-    [filterStateWithoutType, internalWebIds],
+    [filterState, internalWebIds],
   );
 
   const { data, loading } = useQuery<
