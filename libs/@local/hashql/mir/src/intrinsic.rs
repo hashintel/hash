@@ -1,22 +1,4 @@
-use hashql_core::{
-    id::{Id, IdVec},
-    intern::Interned,
-    module::std_lib::{core::json, graph::types::knowledge::entity::types::entity},
-    span::SpanId,
-    symbol::sym,
-    r#type::{TypeBuilder, environment::Environment},
-};
-
-use crate::{
-    body::{
-        Body, Source,
-        basic_block::{BasicBlock, BasicBlockVec},
-        basic_blocks::BasicBlocks,
-        local::LocalDecl,
-        terminator::{Terminator, TerminatorKind},
-    },
-    def::DefId,
-};
+use hashql_core::id::Id;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Id)]
 #[repr(u8)]
