@@ -54,12 +54,14 @@ export const IncomingLinksSection = ({
   slideContainerRef,
 }: IncomingLinksSectionProps) => {
   /**
-   * When links are fetched here (paginated), sorting is applied server-side, so
-   * the sort state lives here in order to drive the query. The graph API can
-   * only sort the link entities by their own label (the API cannot sort by the
-   * source entity, and the link type column shows the inverse title which the
-   * API cannot sort by), so we default to – and only support – the link
-   * entity's label.
+   * The sort state lives here so that, in the readonly case, it can drive the
+   * paginated query (sorting is applied server-side). The graph API can only
+   * sort the link entities by their own label (it cannot sort by the source
+   * entity, and the link type column shows the inverse title which the API
+   * cannot sort by), so server-side we default to – and only support – the link
+   * entity's label. When editable, the full set of links is present and the
+   * table sorts client-side instead (across all columns), still driven by this
+   * state.
    */
   const [sort, setSort] = useState<VirtualizedTableSort<IncomingLinksFieldId>>({
     fieldId: "link",
@@ -258,6 +260,7 @@ export const IncomingLinksSection = ({
           onEndReached={readonly && hasMore ? loadMore : undefined}
           onEntityClick={onEntityClick}
           onTypeClick={onTypeClick}
+          readonly={readonly}
           setSort={setSort}
           slideContainerRef={slideContainerRef}
           sort={sort}
