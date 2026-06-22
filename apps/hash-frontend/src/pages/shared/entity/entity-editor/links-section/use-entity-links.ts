@@ -34,18 +34,15 @@ import type {
   ClosedMultiEntityTypesRootMap,
 } from "@local/hash-graph-sdk/ontology";
 
-/**
- * The number of links fetched per page for the readonly link tables.
- */
+/** Links fetched per page for the readonly link tables. */
 export const linksTablePageSize = 100;
 
 type LinksSubgraph = Subgraph<EntityRootType<HashEntity>>;
 
 type LinkPage = {
   /**
-   * A key identifying which cursor produced this page, so that a page is
-   * replaced (rather than duplicated) if its query completes more than once
-   * (e.g. a cache hit followed by a network response).
+   * Key for the cursor that produced this page, so a page is replaced (not
+   * duplicated) if its query completes twice (e.g. cache hit then network).
    */
   cursorKey: string;
   count?: number;
@@ -55,21 +52,20 @@ type LinkPage = {
   typesMap: ClosedMultiEntityTypesRootMap;
   definitions?: ClosedMultiEntityTypesDefinitions;
   /**
-   * The count of matching links by their link entity type id, and the title of
-   * each such type. These are aggregated server-side over the *full* matching
-   * set (not just this page), so they describe every link type that can be
-   * filtered by. They reflect whatever filter is applied to the query, so the
-   * caller captures them from the unfiltered load to use as stable filter
-   * options.
+   * Count of matching links by link entity type id.
+   * Aggregated server-side over the *full* matching set (not just this page),
    */
   typeIds?: Record<VersionedUrl, number>;
+  /**
+   * list of titles for each entity type id
+   * Aggregated server-side over the *full* matching set (not just this page),
+   */
   typeTitles?: Record<VersionedUrl, string>;
 };
 
 /**
- * Appended to any caller-provided sorting so that pagination is deterministic
- * (the `uuid` is unique, breaking ties when sorting by a non-unique field such
- * as a label or type title).
+ * Appended to any caller sorting so pagination is deterministic: the unique
+ * `uuid` breaks ties when sorting by a non-unique field (label, type title).
  */
 const uuidSortingPath: EntityQuerySortingRecord = {
   path: ["uuid"],
@@ -78,9 +74,9 @@ const uuidSortingPath: EntityQuerySortingRecord = {
 };
 
 /**
- * Shallow-merge two `{ [baseId]: { [revisionId]: value } }` records (the shape
- * of a subgraph's `vertices` and `edges`), so that revisions from later pages
- * are added without dropping those from earlier pages.
+ * Shallow-merge two `{ [baseId]: { [revisionId]: value } }` records (a
+ * subgraph's `vertices`/`edges` shape), adding later pages' revisions without
+ * dropping earlier ones.
  */
 const mergeRecordOfRecords = <T>(
   a: Record<string, Record<string, T>>,
@@ -93,10 +89,7 @@ const mergeRecordOfRecords = <T>(
   return result;
 };
 
-/**
- * Merge a single later page's subgraph into an already-merged subgraph,
- * adding its vertices/edges without dropping those already accumulated.
- */
+/** Merge a later page's subgraph into the accumulated one. */
 const mergeSubgraphInto = (
   merged: LinksSubgraph,
   page: LinkPage,
@@ -134,9 +127,7 @@ const mergeDefinitionsInto = (
   };
 };
 
-/**
- * The running, incrementally-built accumulation of every page loaded so far.
- */
+/** The running, incrementally-built accumulation of every page loaded so far. */
 type Accumulated = {
   linkEntities: HashLinkEntity[];
   /** Dedup set keyed on `recordId.entityId`, so appends stay O(page size). */
@@ -149,19 +140,13 @@ type Accumulated = {
   count?: number;
   nextCursor: EntityQueryCursor | null;
   /**
-   * Whether the query is exhausted. `true` once a page returns fewer rows than
-   * the requested page size (so a non-null cursor pointing past the last match
-   * does not keep `hasMore` true and trigger an empty fetch).
+   * `true` once a page returns fewer rows than the page size, so a non-null
+   * cursor past the last match can't keep `hasMore` true and trigger an empty
+   * fetch.
    */
   exhausted: boolean;
 };
 
-/**
- * Fold a single freshly-loaded page into the running accumulation. The
- * `linkEntities`/`seenLinkIds`/`typesMap` collections are extended in place so
- * that loading page `k` costs O(page size) rather than O(total pages loaded so
- * far); a new top-level object is returned to carry the updated scalar fields.
- */
 const appendPage = (accumulated: Accumulated, page: LinkPage): Accumulated => {
   for (const linkEntity of page.linkEntities) {
     const linkEntityId = linkEntity.metadata.recordId.entityId;
@@ -173,21 +158,16 @@ const appendPage = (accumulated: Accumulated, page: LinkPage): Accumulated => {
 
   Object.assign(accumulated.typesMap, page.typesMap);
 
-  /**
-   * Treat the result as exhausted when the page returned fewer rows than the
-   * requested page size (including zero), regardless of whether the API still
-   * handed back a non-null cursor.
-   */
+  // Exhausted once a page returns fewer rows than the page size (incl. zero),
+  // even if the API still handed back a non-null cursor.
   const exhausted = page.linkEntities.length < linksTablePageSize;
 
   return {
     ...accumulated,
     definitions: mergeDefinitionsInto(accumulated.definitions, page),
     subgraph: mergeSubgraphInto(accumulated.subgraph, page),
-    /**
-     * The type breakdown is a full-set aggregate returned identically on every
-     * page, so the latest page's value replaces (rather than extends) it.
-     */
+    // A full-set aggregate returned identically on every page, so the latest
+    // page's value replaces (rather than extends) it.
     typeIds: page.typeIds ?? accumulated.typeIds,
     typeTitles: page.typeTitles ?? accumulated.typeTitles,
     count: page.count,
@@ -196,10 +176,7 @@ const appendPage = (accumulated: Accumulated, page: LinkPage): Accumulated => {
   };
 };
 
-/**
- * The empty accumulation, seeded with the first page's subgraph as the base to
- * merge subsequent pages into.
- */
+/** The empty accumulation, seeded with the first page's subgraph to merge into. */
 const seedAccumulated = (firstPage: LinkPage): Accumulated => ({
   linkEntities: [],
   seenLinkIds: new Set<EntityId>(),
@@ -213,29 +190,17 @@ const seedAccumulated = (firstPage: LinkPage): Accumulated => ({
   exhausted: false,
 });
 
-/**
- * Return a fresh top-level object (and a fresh `linkEntities` array) so that
- * consumers depending on referential identity recompute when a page is
- * appended. The expensive O(n) work (dedup, subgraph/type merging) is done
- * incrementally by {@link appendPage}, which mutates `linkEntities` in place;
- * this only copies the array of entity references.
- */
 const finalizeAccumulated = (accumulated: Accumulated): Accumulated => ({
   ...accumulated,
   linkEntities: [...accumulated.linkEntities],
 });
 
 /**
- * Fetches an entity's incoming or outgoing links a page at a time, for display
- * in the readonly link tables.
+ * Fetches an entity's incoming or outgoing links a page at a time, for the
+ * readonly link tables.
  *
- * The query is rooted on the *link entities* (filtered by the endpoint that is
- * the entity being viewed) rather than on the entity itself, so that `limit` /
- * `cursor` / `includeCount` paginate the links. Each page is accumulated, and
- * `loadMore` fetches the next page.
- *
- * This is only used when the link data is readonly; when the entity is editable
- * the links are part of the editor subgraph and are not paginated.
+ * Only used for readonly link data; when editable, links come from the editor
+ * subgraph and are not paginated.
  */
 export const useEntityLinks = ({
   direction,
@@ -246,19 +211,10 @@ export const useEntityLinks = ({
 }: {
   direction: "outgoing" | "incoming";
   entityId: EntityId;
-  /**
-   * If set, restrict the matched links to those whose link entity type is one
-   * of the given type ids. Applied server-side, so both the returned links and
-   * the `count` reflect the filter. Changing this resets pagination (the
-   * accumulated pages and their cursors are no longer valid).
-   */
+  // If set, restrict matched links to these link entity type ids. Applied server-side
   filterTypeIds?: VersionedUrl[];
   skip?: boolean;
-  /**
-   * How to sort the links server-side. A `uuid` tiebreaker is always appended
-   * so that pagination remains stable. Changing this resets pagination (the
-   * accumulated pages and their cursors are no longer valid).
-   */
+  // How to sort the links server-side; a `uuid` tiebreaker is always appended to keep pagination stable.
   sortingPaths?: EntityQuerySortingRecord[];
 }): {
   /** Whether the first page is still loading. */
@@ -286,11 +242,6 @@ export const useEntityLinks = ({
 } => {
   const [webId, entityUuid, draftId] = splitEntityId(entityId);
 
-  /**
-   * Accumulate pages across `loadMore` calls. Changing the entity, direction or
-   * sort resets the accumulation (the query identity, and therefore the
-   * cursors, are no longer valid).
-   */
   const {
     cursor,
     cursorKey,
@@ -309,8 +260,8 @@ export const useEntityLinks = ({
   });
 
   /**
-   * The endpoint of the link that is the entity being viewed: its left/source
-   * entity for outgoing links, its right/target entity for incoming links.
+   * The link endpoint that is the viewed entity: left/source for outgoing
+   * links, right/target for incoming.
    */
   const filterEndpoint =
     direction === "outgoing" ? "leftEntity" : "rightEntity";
@@ -338,11 +289,9 @@ export const useEntityLinks = ({
               ],
             },
             /**
-             * When viewing a specific draft, scope the matched endpoint to that
-             * draft. The path is rooted on the link entity, so this resolves
-             * the *endpoint* entity's own draftId (mirroring
-             * `generateEntityIdFilter`); without it a draft would match links
-             * across its live version and all sibling drafts.
+             * When viewing a specific draft, scope the endpoint to that draft
+             * (mirroring `generateEntityIdFilter`); without it a draft would
+             * match links across its live version and all sibling drafts.
              */
             ...(draftId
               ? [
@@ -368,15 +317,11 @@ export const useEntityLinks = ({
                 ]
               : []),
             /**
-             * Restrict the matched link entities to the selected link types.
-             * The path is rooted on the link entity, so `["type",
-             * "versionedUrl"]` matches the link entity's own type.
-             *
-             * `undefined` means no filter (every type is selected, the
-             * default), so the clause is omitted. An empty array means every
-             * type has been deselected, which must match *nothing* rather than
-             * everything – an empty `any` resolves to a `FALSE` filter, which
-             * is exactly that, so the clause is still added.
+             * Restrict matched links to the selected link types. `undefined`
+             * means no filter (every type selected, the default), so the clause
+             * is omitted. An empty array means every type deselected, which must
+             * match *nothing* - an empty `any` resolves to a `FALSE` filter, so
+             * the clause is still added.
              */
             ...(filterTypeIds
               ? [
@@ -404,11 +349,8 @@ export const useEntityLinks = ({
         includeDrafts: !!draftId,
         includeEntityTypes: "resolvedWithDataTypeChildren",
         includePermissions: false,
-        /**
-         * Return the breakdown of matching links by link entity type id, and
-         * the title of each type, so the caller can offer them as filter
-         * options (see {@link filterTypeIds}).
-         */
+        // Return the per-type breakdown and titles so the caller can offer
+        // them as filter options (see {@link filterTypeIds}).
         includeTypeIds: true,
         includeTypeTitles: true,
       },

@@ -11,10 +11,7 @@ import type {
 } from "../../../virtualized-table/header/filter";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 
-/**
- * The single column the readonly link tables can filter on: the link entity's
- * own type. Both the incoming and outgoing tables expose it under this id.
- */
+/** The one column the link tables filter on: the link entity's own type. */
 type LinkTypeFilterFieldId = "linkTypes";
 
 export type LinkTypeFilterDefinitions =
@@ -25,43 +22,15 @@ export type LinkTypeFilterValues =
 
 /**
  * Derives the link-type filter shared by the incoming and outgoing link tables,
- * in both the readonly (server-paginated) and editable (client-side) cases.
+ * for both the readonly (server-paginated) and editable (client-side) cases.
  *
- * The filter options come from the unfiltered link-type breakdown (`typeIds` /
- * `typeTitles`) the caller supplies via {@link captureLinkTypeOptions}: the
- * server aggregate from {@link useEntityLinks} in the readonly case, or a
- * breakdown computed from the editor subgraph's links in the editable case. The
- * breakdown is captured once – on the first, necessarily unfiltered, load – and
- * never recaptured, so the options (and their counts) stay stable as the user
- * narrows the selection (in the readonly case the server breakdown itself
- * shrinks to the selected subset once filtered).
- *
- * The returned `filterTypeIds` derives purely from this hook's own state (the
- * captured options and the user's selection), so the readonly caller can pass it
- * into {@link useEntityLinks} without creating a render cycle, and the editable
- * caller can apply it client-side. It is `undefined` while every type is
- * selected (the default), so an untouched filter is a no-op; it is the empty
- * array once every type has been *deselected*, which both callers treat as
- * "match nothing" (distinct from the `undefined` "match everything"). Any other
- * value is the explicit set of selected type ids.
+ * The returned `filterTypeIds` is `undefined` while every type is selected ("match everything",
+ * the default no-op), an empty array once every type is deselected ("match
+ * nothing"), or otherwise the explicit set of selected type ids.
  */
 export const useLinkTypeFilter = ({
   defaultSelectedLinkTypeIds,
 }: {
-  /**
-   * Link entity type ids to pre-select when the table first opens, with every
-   * other type deselected – e.g. when arriving from a clicked graph edge whose
-   * link type should be focused. Any ids not present in the loaded breakdown are
-   * ignored, and if none are present the filter falls back to "all selected" (a
-   * no-op) rather than matching nothing.
-   *
-   * Because this seeds the same filter state as a manual selection, it drives
-   * both modes automatically: server-side (readonly) the derived
-   * {@link filterTypeIds} re-fetches the links narrowed to these types;
-   * client-side (editable) the caller filters the in-memory links by the same
-   * value. Pass a referentially stable Set, since changing it reconciles the
-   * filter state.
-   */
   defaultSelectedLinkTypeIds?: Set<VersionedUrl>;
 } = {}) => {
   const [capturedOptions, setCapturedOptions] = useState<{
@@ -70,11 +39,9 @@ export const useLinkTypeFilter = ({
   } | null>(null);
 
   /**
-   * Record the unfiltered link-type breakdown the first time it is seen. The
-   * functional update makes this idempotent and one-shot, so later (filtered, or
-   * draft-edited) breakdowns do not overwrite the stable option list. The caller
-   * decides which breakdown to pass, and passes `undefined` when there is none
-   * to offer (e.g. an editable outgoing table, which is not filtered here).
+   * Record the link-type breakdown the first time it is seen; the functional
+   * update keeps it one-shot, so later (filtered) breakdowns don't overwrite the
+   * stable option list. The caller passes `undefined` when it has none to offer.
    */
   const captureLinkTypeOptions = useCallback(
     (
@@ -90,12 +57,6 @@ export const useLinkTypeFilter = ({
     [],
   );
 
-  /**
-   * The filter options and the full set of type ids they cover. The set is kept
-   * separately (rather than read back off the definition, whose `initialValue`
-   * widens to the filter union) so it can be reused for both the default value
-   * and the "is anything deselected" check below.
-   */
   const optionData = useMemo(() => {
     if (!capturedOptions) {
       return null;
@@ -136,12 +97,8 @@ export const useLinkTypeFilter = ({
     }
 
     if (defaultSelectedLinkTypeIds) {
-      /**
-       * Narrow the default selection to the requested types, keeping only those
-       * actually present in the breakdown. If none are present we fall back to
-       * selecting everything, so an unmatched seed leaves the filter a no-op
-       * rather than hiding every link.
-       */
+      // Keep only requested types present in the breakdown; if none match,
+      // fall through to selecting everything (a no-op) rather than hiding all.
       const selected = new Set<string>(
         [...defaultSelectedLinkTypeIds].filter((id) =>
           optionData.allTypeIds.has(id),
@@ -169,10 +126,8 @@ export const useLinkTypeFilter = ({
       return undefined;
     }
 
-    /**
-     * No type filter is applied while every option is selected (the default);
-     * only once the user deselects at least one type do we constrain the query.
-     */
+    // No filter while every option is selected (the default); only a
+    // deselection constrains the query.
     if (allTypeIds.difference(selected).size === 0) {
       return undefined;
     }
