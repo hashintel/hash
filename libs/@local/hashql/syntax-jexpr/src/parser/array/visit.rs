@@ -1,5 +1,5 @@
 use hashql_core::span::SpanId;
-use hashql_diagnostics::Diagnostic;
+use hashql_diagnostics::{Diagnostic, severity::Critical};
 use text_size::TextRange;
 
 use crate::{
@@ -38,8 +38,8 @@ pub(crate) fn visit_array<'arena, 'source, 'spans, C>(
     token: Token<'source>,
     mut on_item: impl FnMut(
         &mut ParserState<'arena, 'source, 'spans>,
-    ) -> Result<(), Diagnostic<C, SpanId>>,
-) -> Result<TextRange, Diagnostic<C, SpanId>>
+    ) -> Result<(), Diagnostic<C, SpanId, Critical>>,
+) -> Result<TextRange, Diagnostic<C, SpanId, Critical>>
 where
     C: From<ArrayDiagnosticCategory>,
 {

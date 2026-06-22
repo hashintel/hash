@@ -114,9 +114,9 @@ fn meet_same_name_different_repr() {
 
     let mut lattice_env = LatticeEnvironment::new(&env);
 
-    // Meeting should result in an opaque type with the same name but representation
-    // that is the meet of the two representations (just Number in this case)
-    assert_equiv!(env, a.meet(b, &mut lattice_env), []);
+    // Meeting covariantly: meet(Number, Number|String) = Number,
+    // so the result is MyType<Number> (which is `a`).
+    assert_equiv!(env, a.meet(b, &mut lattice_env), [a.id]);
 }
 
 #[test]
@@ -180,8 +180,8 @@ fn is_subtype_of() {
 
     let mut analysis_env = AnalysisEnvironment::new(&env);
 
-    // a should not be a subtype of b (invariant)
-    assert!(!a.is_subtype_of(b, &mut analysis_env));
+    // a should be a subtype of b (Number <: Number|String, covariant)
+    assert!(a.is_subtype_of(b, &mut analysis_env));
 
     // b should not be a subtype of a (Number|String is not a subtype of Number)
     assert!(!b.is_subtype_of(a, &mut analysis_env));
@@ -307,6 +307,24 @@ fn lattice_laws() {
 }
 
 #[test]
+fn is_not_top() {
+    let heap = Heap::new();
+    let env = Environment::new(&heap);
+    let mut analysis_env = AnalysisEnvironment::new(&env);
+
+    // An opaque wrapping Unknown is NOT the global top. It is only the top of
+    // its own fiber. Reporting true would cause `T | W<Unknown>` to collapse
+    // to `Unknown`, destroying nominal separation between opaque families.
+    let unknown = instantiate(&env, TypeKind::Unknown);
+    opaque!(env, opaque_unknown, "W", unknown);
+    assert!(!opaque_unknown.is_top(&mut analysis_env));
+
+    // Sanity: raw Unknown IS top
+    let raw_unknown = env.r#type(unknown);
+    assert!(raw_unknown.is_top(&mut analysis_env));
+}
+
+#[test]
 fn is_concrete() {
     let heap = Heap::new();
     let env = Environment::new(&heap);
@@ -350,14 +368,14 @@ fn collect_constraints_same_name() {
     // Collect constraints between the two opaque types
     number_opaque.collect_constraints(infer_opaque, &mut inference_env);
 
-    // Since opaque types are invariant, we should get an equality constraint
-    // rather than just an upper or lower bound
+    // Since opaque types are covariant, we get a lower bound constraint:
+    // the concrete type constrains the inference variable from below.
     let constraints = inference_env.take_constraints();
     assert_eq!(
         constraints,
-        [Constraint::Equals {
+        [Constraint::LowerBound {
             variable: Variable::synthetic(VariableKind::Hole(hole)),
-            r#type: number
+            bound: number
         }]
     );
 }
@@ -408,13 +426,14 @@ fn collect_constraints_nested() {
     // Collect constraints between the two nested opaque types
     outer_a.collect_constraints(outer_b, &mut inference_env);
 
-    // Due to invariance through the chain, we should get an equality constraint
+    // Due to covariance through the chain, we get an upper bound constraint:
+    // the hole is in the subtype position, so the concrete type is an upper bound.
     let constraints = inference_env.take_constraints();
     assert_eq!(
         constraints,
-        [Constraint::Equals {
+        [Constraint::UpperBound {
             variable: Variable::synthetic(VariableKind::Hole(hole)),
-            r#type: number
+            bound: number
         }]
     );
 }
@@ -483,17 +502,17 @@ fn collect_constraints_generic_params() {
     // Collect constraints between the two opaque types with generic parameters
     inference_env.collect_constraints(Variance::Covariant, opaque_a, opaque_b);
 
-    // Due to invariance, we should get an equality constraint between the generic parameters
+    // Due to covariance, we get an ordering constraint between the generic parameters
     let constraints = inference_env.take_constraints();
     assert_eq!(constraints.len(), 1);
     assert_eq!(
         constraints[0],
-        Constraint::Unify {
-            lhs: Variable {
+        Constraint::Ordering {
+            lower: Variable {
                 span: SpanId::SYNTHETIC,
                 kind: VariableKind::Generic(arg1)
             },
-            rhs: Variable {
+            upper: Variable {
                 span: SpanId::SYNTHETIC,
                 kind: VariableKind::Generic(arg2)
             }
@@ -522,17 +541,17 @@ fn collect_constraints_multiple_infer_vars() {
     // Collect constraints between the two opaque types
     opaque_a.collect_constraints(opaque_b, &mut inference_env);
 
-    // Due to invariance, we should get an equality constraint between the inference variables
+    // Due to covariance, we get an ordering constraint between the inference variables
     let constraints = inference_env.take_constraints();
     assert_eq!(constraints.len(), 1);
     assert_eq!(
         constraints[0],
-        Constraint::Unify {
-            lhs: Variable {
+        Constraint::Ordering {
+            lower: Variable {
                 span: SpanId::SYNTHETIC,
                 kind: VariableKind::Hole(hole_var1)
             },
-            rhs: Variable {
+            upper: Variable {
                 span: SpanId::SYNTHETIC,
                 kind: VariableKind::Hole(hole_var2)
             }
@@ -560,18 +579,18 @@ fn collect_constraints_infer_and_generic_var() {
     // Collect constraints between the two opaque types
     opaque_a.collect_constraints(opaque_b, &mut inference_env);
 
-    // Due to invariance, we should get an equality constraint between the inference variable
+    // Due to covariance, we get an ordering constraint between the inference variable
     // and the generic variable
     let constraints = inference_env.take_constraints();
     assert_eq!(constraints.len(), 1);
     assert_eq!(
         constraints[0],
-        Constraint::Unify {
-            lhs: Variable {
+        Constraint::Ordering {
+            lower: Variable {
                 span: SpanId::SYNTHETIC,
                 kind: VariableKind::Hole(hole_var1)
             },
-            rhs: Variable {
+            upper: Variable {
                 span: SpanId::SYNTHETIC,
                 kind: VariableKind::Generic(arg)
             }

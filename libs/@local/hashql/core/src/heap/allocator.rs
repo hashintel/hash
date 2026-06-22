@@ -42,8 +42,15 @@ impl BumpAllocator for Allocator {
     type Scoped<'scope> = AllocatorScope<'scope>;
 
     #[inline]
-    fn scoped<T>(&mut self, func: impl FnOnce(Self::Scoped<'_>) -> T) -> T {
-        self.0.scoped(|scope| func(AllocatorScope(scope)))
+    fn scoped_mut<T>(&mut self, func: impl FnOnce(&mut Self::Scoped<'_>) -> T) -> T {
+        self.0.scoped(|scope| func(AllocatorScope::new(scope)))
+    }
+
+    #[inline]
+    fn scoped_ref<T>(&self, func: impl FnOnce(&mut Self::Scoped<'_>) -> T) -> T {
+        self.0
+            .claim()
+            .scoped(|scope| func(AllocatorScope::new(scope)))
     }
 
     #[inline]
@@ -159,19 +166,31 @@ unsafe impl alloc::Allocator for Allocator {
     }
 }
 
-#[expect(
-    clippy::field_scoped_visibility_modifiers,
-    reason = "constructed by sibling allocator types in scoped callbacks"
-)]
-pub struct AllocatorScope<'scope>(pub(super) BumpScope<'scope>);
+#[repr(transparent)]
+pub struct AllocatorScope<'scope>(BumpScope<'scope>);
+
+impl<'scope> AllocatorScope<'scope> {
+    fn new<'this>(scope: &'this mut BumpScope<'scope>) -> &'this mut Self {
+        // SAFETY: `AllocatorScope` is `#[repr(transparent)]` over `BumpScope<'scope>`,
+        // so they share the same memory layout.
+        unsafe { &mut *(&raw mut *scope).cast::<Self>() }
+    }
+}
 
 impl BumpAllocator for AllocatorScope<'_> {
     type Checkpoint = Checkpoint;
     type Scoped<'scope> = AllocatorScope<'scope>;
 
     #[inline]
-    fn scoped<T>(&mut self, func: impl FnOnce(Self::Scoped<'_>) -> T) -> T {
-        self.0.scoped(|scope| func(AllocatorScope(scope)))
+    fn scoped_mut<T>(&mut self, func: impl FnOnce(&mut Self::Scoped<'_>) -> T) -> T {
+        self.0.scoped(|scope| func(AllocatorScope::new(scope)))
+    }
+
+    #[inline]
+    fn scoped_ref<T>(&self, func: impl FnOnce(&mut Self::Scoped<'_>) -> T) -> T {
+        self.0
+            .claim()
+            .scoped(|scope| func(AllocatorScope::new(scope)))
     }
 
     #[inline]

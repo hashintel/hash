@@ -1,11 +1,15 @@
 use alloc::borrow::Cow;
 
 use hashql_core::span::SpanId;
-use hashql_diagnostics::{Diagnostic, category::DiagnosticCategory};
+use hashql_diagnostics::{
+    Diagnostic,
+    category::DiagnosticCategory,
+    severity::{Critical, SeverityKind},
+};
 
 use crate::parser::error::ParserDiagnosticCategory;
 
-pub type JExprDiagnostic = Diagnostic<JExprDiagnosticCategory, SpanId>;
+pub type JExprDiagnostic<K = Critical> = Diagnostic<JExprDiagnosticCategory, SpanId, K>;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum JExprDiagnosticCategory {
@@ -29,7 +33,7 @@ impl DiagnosticCategory for JExprDiagnosticCategory {
 }
 
 /// Extension trait for changing diagnostic categories in results.
-pub(crate) trait ResultExt {
+pub(crate) trait ResultExt<K> {
     type Ok;
     type DiagnosticCategory;
     type Span;
@@ -38,10 +42,15 @@ pub(crate) trait ResultExt {
     fn change_category<C>(
         self,
         category: impl FnOnce(Self::DiagnosticCategory) -> C,
-    ) -> Result<Self::Ok, Diagnostic<C, Self::Span>>;
+    ) -> Result<Self::Ok, Diagnostic<C, Self::Span, K>>
+    where
+        K: SeverityKind;
 }
 
-impl<T, C, S> ResultExt for Result<T, Diagnostic<C, S>> {
+impl<T, C, S, K> ResultExt<K> for Result<T, Diagnostic<C, S, K>>
+where
+    K: SeverityKind,
+{
     type DiagnosticCategory = C;
     type Ok = T;
     type Span = S;
@@ -49,7 +58,7 @@ impl<T, C, S> ResultExt for Result<T, Diagnostic<C, S>> {
     fn change_category<D>(
         self,
         category: impl FnOnce(Self::DiagnosticCategory) -> D,
-    ) -> Result<T, Diagnostic<D, Self::Span>> {
+    ) -> Result<T, Diagnostic<D, Self::Span, K>> {
         self.map_err(|diagnostic| diagnostic.map_category(category))
     }
 }

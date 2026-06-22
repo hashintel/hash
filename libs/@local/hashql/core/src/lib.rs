@@ -26,17 +26,19 @@
     const_range,
     const_trait_impl,
     extend_one,
+    extern_types,
     get_disjoint_mut_helpers,
+    get_mut_unchecked,
     iter_intersperse,
     iter_map_windows,
     iter_next_chunk,
+    nonpoison_mutex,
     slice_partition_dedup,
     slice_swap_unchecked,
     step_trait,
+    sync_nonpoison,
     try_trait_v2,
-    variant_count,
-    get_mut_unchecked,
-    extern_types
+    variant_count
 )]
 
 extern crate alloc;

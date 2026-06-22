@@ -4,6 +4,7 @@ use hashql_diagnostics::source::{SourceId, SourceSpan};
 use text_size::{TextRange, TextSize};
 
 use super::{Span, SpanAncestors, SpanAncestorsMut, SpanId, SpanResolutionMode};
+use crate::id::{Id as _, bit_vec::DenseBitSet};
 
 #[derive(Debug)]
 struct SpanEntry<S> {
@@ -244,7 +245,7 @@ impl<S> SpanTable<S> {
             return false;
         }
 
-        let index = span.id() as usize;
+        let index = span.id().as_usize();
 
         let Some(element) = self.spans.get_mut(index) else {
             return false;
@@ -265,8 +266,7 @@ impl<S> SpanTable<S> {
             return None;
         }
 
-        let index = span.id() as usize;
-
+        let index = span.id().as_usize();
         self.spans.get(index)
     }
 
@@ -487,33 +487,13 @@ impl<S> SpanTable<S> {
         self.absolute_impl(span, 0)
     }
 
-    /// Computes all ancestor spans for a given span in linearized order.
+    /// Returns an iterator over the given span and all of its ancestors.
     ///
-    /// Returns a flattened list of all spans that are ancestors of the given span,
-    /// traversing the entire ancestor tree and removing duplicates. The result
-    /// includes both direct ancestors and ancestors-of-ancestors.
-    ///
-    /// # Returns
-    ///
-    /// A [`Vec<SpanId>`] containing all unique ancestor spans. The order is
-    /// determined by the traversal algorithm and may not be hierarchical.
-    ///
-    /// # Algorithm
-    ///
-    /// Uses a depth-first search with a stack to traverse the ancestor tree:
-    /// 1. Start with the given span
-    /// 2. For each span, add its direct ancestors to the result and stack
-    /// 3. Continue until all ancestors are processed
-    /// 4. Duplicates are automatically filtered during traversal
-    ///
-    /// # Performance
-    ///
-    /// Time complexity is O(n) where n is the total number of unique ancestors.
-    /// Space complexity is also O(n) for the result vector and traversal stack.
+    /// The first element yielded is `span` itself, followed by its transitive
+    /// ancestors. Each [`SpanId`] appears at most once. Spans that cannot be
+    /// resolved in this table are skipped.
     ///
     /// # Examples
-    ///
-    /// Simple hierarchy:
     ///
     /// ```rust
     /// use hashql_core::span::{SpanAncestors, SpanTable, TextRange};
@@ -541,14 +521,15 @@ impl<S> SpanTable<S> {
     /// };
     /// let child_id = table.insert(child, SpanAncestors::union(&[parent_id]));
     ///
-    /// let ancestors = table.ancestors(child_id);
-    /// // Result contains both parent_id and grandparent_id
-    /// assert_eq!(ancestors.len(), 2);
+    /// let ancestors: Vec<_> = table.ancestors(child_id).into_iter().collect();
+    /// // First element is the span itself, followed by its ancestors
+    /// assert_eq!(ancestors[0], child_id);
     /// assert!(ancestors.contains(&parent_id));
     /// assert!(ancestors.contains(&grandparent_id));
+    /// assert_eq!(ancestors.len(), 3);
     /// ```
     ///
-    /// Complex hierarchy with multiple branches:
+    /// Diamond-shaped hierarchy with shared ancestors:
     ///
     /// ```rust
     /// use hashql_core::span::{SpanAncestors, SpanTable, TextRange};
@@ -560,7 +541,6 @@ impl<S> SpanTable<S> {
     /// # }
     /// let mut table = SpanTable::new(SourceId::new_unchecked(0));
     ///
-    /// // Create diamond-shaped hierarchy
     /// let root = MySpan {
     ///     range: TextRange::new(0.into(), 100.into()),
     /// };
@@ -581,36 +561,32 @@ impl<S> SpanTable<S> {
     /// };
     /// let merge_id = table.insert(merge, SpanAncestors::union(&[left_id, right_id]));
     ///
-    /// let ancestors = table.ancestors(merge_id);
-    /// // Result contains all unique ancestors: left_id, right_id, root_id
-    /// assert_eq!(ancestors.len(), 3);
+    /// let ancestors: Vec<_> = table.ancestors(merge_id).into_iter().collect();
+    /// // Contains merge_id, left_id, right_id, and root_id (deduplicated)
+    /// assert_eq!(ancestors.len(), 4);
+    /// assert_eq!(ancestors[0], merge_id);
     /// ```
     #[must_use]
-    pub fn ancestors(&self, span: SpanId) -> Vec<SpanId> {
-        let mut ancestors = Vec::new();
+    pub fn ancestors(&self, span: SpanId) -> impl IntoIterator<Item = SpanId> {
         let mut stack = vec![span];
+        let mut visited = DenseBitSet::new_empty(self.spans.len());
 
-        while let Some(current) = stack.pop() {
-            let Some(entry) = self.get_entry(current) else {
-                continue;
-            };
+        core::iter::from_fn(move || {
+            loop {
+                let span = stack.pop()?;
+                let Some(entry) = self.get_entry(span) else {
+                    continue;
+                };
 
-            let direct_ancestors = &self.ancestors[entry.ancestors.clone()];
-
-            if direct_ancestors.is_empty() {
-                continue;
-            }
-
-            for &ancestor in direct_ancestors {
-                if ancestors.contains(&ancestor) {
+                if !visited.insert(span.id()) {
                     continue;
                 }
 
-                ancestors.push(ancestor);
-                stack.push(ancestor);
-            }
-        }
+                let ancestors = &self.ancestors[entry.ancestors.clone()];
+                stack.extend(ancestors);
 
-        ancestors
+                return Some(span);
+            }
+        })
     }
 }

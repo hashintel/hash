@@ -905,24 +905,19 @@ impl<'p> Filter<'p, Entity> {
 
     #[must_use]
     pub fn for_entity_by_type_id(entity_type_id: &'p VersionedUrl) -> Self {
-        Filter::All(vec![
-            Self::for_entity_by_base_type_id(&entity_type_id.base_url),
-            Filter::Equal(
-                FilterExpression::Path {
-                    path: EntityQueryPath::EntityTypeEdge {
-                        edge_kind: SharedEdgeKind::IsOfType,
-                        path: EntityTypeQueryPath::Version,
-                        inheritance_depth: None,
-                    },
+        Filter::Equal(
+            FilterExpression::Path {
+                path: EntityQueryPath::EntityTypeEdge {
+                    edge_kind: SharedEdgeKind::IsOfType,
+                    path: EntityTypeQueryPath::VersionedUrl,
+                    inheritance_depth: None,
                 },
-                FilterExpression::Parameter {
-                    parameter: Parameter::OntologyTypeVersion(Cow::Borrowed(
-                        &entity_type_id.version,
-                    )),
-                    convert: None,
-                },
-            ),
-        ])
+            },
+            FilterExpression::Parameter {
+                parameter: Parameter::Text(Cow::Owned(entity_type_id.to_string())),
+                convert: None,
+            },
+        )
     }
 
     #[must_use]

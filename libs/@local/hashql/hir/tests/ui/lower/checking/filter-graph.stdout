@@ -30,7 +30,7 @@
                     entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
                     web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
                 ),
-                left_entity_provenance: ?,
+                left_entity_provenance: ::graph::types::knowledge::entity::PropertyProvenance(?),
                 right_entity_confidence: ::core::option::None(Null)
                 | ::core::option::Some(::graph::types::knowledge::entity::Confidence(Number)),
                 right_entity_id: ::graph::types::knowledge::entity::EntityId(
@@ -39,7 +39,7 @@
                     entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
                     web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
                 ),
-                right_entity_provenance: ?
+                right_entity_provenance: ::graph::types::knowledge::entity::PropertyProvenance(?)
             )),
             metadata: ::graph::types::knowledge::entity::EntityMetadata(
                 archived: Boolean,
@@ -49,10 +49,10 @@
                     base_url: ::graph::types::ontology::BaseUrl(::core::url::Url(String)),
                     version: ::graph::ontology::OntologyTypeVersion(String)
                 )>,
-                properties: ?,
+                properties: ::graph::types::knowledge::entity::PropertyObjectMetadata(?),
                 provenance: ::graph::types::knowledge::entity::EntityProvenance(
-                    edition: ?,
-                    inferred: ?
+                    edition: ::graph::types::knowledge::entity::EntityEditionProvenance(?),
+                    inferred: ::graph::types::knowledge::entity::InferredEntityProvenance(?)
                 ),
                 record_id: ::graph::types::knowledge::entity::RecordId(
                     edition_id: ::graph::types::knowledge::entity::EntityEditionId(::core::uuid::Uuid(String)),
@@ -106,7 +106,7 @@
 │                      entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
 │                      web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
 │                  ),
-│                  left_entity_provenance: ?,
+│                  left_entity_provenance: ::graph::types::knowledge::entity::PropertyProvenance(?),
 │                  right_entity_confidence: ::core::option::None(Null)
 │                  | ::core::option::Some(::graph::types::knowledge::entity::Confidence(Number)),
 │                  right_entity_id: ::graph::types::knowledge::entity::EntityId(
@@ -115,7 +115,7 @@
 │                      entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
 │                      web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
 │                  ),
-│                  right_entity_provenance: ?
+│                  right_entity_provenance: ::graph::types::knowledge::entity::PropertyProvenance(?)
 │              )),
 │              metadata: ::graph::types::knowledge::entity::EntityMetadata(
 │                  archived: Boolean,
@@ -125,10 +125,10 @@
 │                      base_url: ::graph::types::ontology::BaseUrl(::core::url::Url(String)),
 │                      version: ::graph::ontology::OntologyTypeVersion(String)
 │                  )>,
-│                  properties: ?,
+│                  properties: ::graph::types::knowledge::entity::PropertyObjectMetadata(?),
 │                  provenance: ::graph::types::knowledge::entity::EntityProvenance(
-│                      edition: ?,
-│                      inferred: ?
+│                      edition: ::graph::types::knowledge::entity::EntityEditionProvenance(?),
+│                      inferred: ::graph::types::knowledge::entity::InferredEntityProvenance(?)
 │                  ),
 │                  record_id: ::graph::types::knowledge::entity::RecordId(
 │                      edition_id: ::graph::types::knowledge::entity::EntityEditionId(::core::uuid::Uuid(String)),
@@ -177,7 +177,7 @@
                    entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
                    web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
                ),
-               left_entity_provenance: ?,
+               left_entity_provenance: ::graph::types::knowledge::entity::PropertyProvenance(?),
                right_entity_confidence: ::core::option::None(Null)
                | ::core::option::Some(::graph::types::knowledge::entity::Confidence(Number)),
                right_entity_id: ::graph::types::knowledge::entity::EntityId(
@@ -186,7 +186,7 @@
                    entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
                    web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
                ),
-               right_entity_provenance: ?
+               right_entity_provenance: ::graph::types::knowledge::entity::PropertyProvenance(?)
            )),
            metadata: ::graph::types::knowledge::entity::EntityMetadata(
                archived: Boolean,
@@ -196,10 +196,10 @@
                    base_url: ::graph::types::ontology::BaseUrl(::core::url::Url(String)),
                    version: ::graph::ontology::OntologyTypeVersion(String)
                )>,
-               properties: ?,
+               properties: ::graph::types::knowledge::entity::PropertyObjectMetadata(?),
                provenance: ::graph::types::knowledge::entity::EntityProvenance(
-                   edition: ?,
-                   inferred: ?
+                   edition: ::graph::types::knowledge::entity::EntityEditionProvenance(?),
+                   inferred: ::graph::types::knowledge::entity::InferredEntityProvenance(?)
                ),
                record_id: ::graph::types::knowledge::entity::RecordId(
                    edition_id: ::graph::types::knowledge::entity::EntityEditionId(::core::uuid::Uuid(String)),
@@ -244,7 +244,7 @@
                        entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
                        web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
                    ),
-                   left_entity_provenance: ?,
+                   left_entity_provenance: ::graph::types::knowledge::entity::PropertyProvenance(?),
                    right_entity_confidence: ::core::option::None(Null)
                    | ::core::option::Some(::graph::types::knowledge::entity::Confidence(Number)),
                    right_entity_id: ::graph::types::knowledge::entity::EntityId(
@@ -253,7 +253,7 @@
                        entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
                        web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
                    ),
-                   right_entity_provenance: ?
+                   right_entity_provenance: ::graph::types::knowledge::entity::PropertyProvenance(?)
                )),
                metadata: ::graph::types::knowledge::entity::EntityMetadata(
                    archived: Boolean,
@@ -263,10 +263,10 @@
                        base_url: ::graph::types::ontology::BaseUrl(::core::url::Url(String)),
                        version: ::graph::ontology::OntologyTypeVersion(String)
                    )>,
-                   properties: ?,
+                   properties: ::graph::types::knowledge::entity::PropertyObjectMetadata(?),
                    provenance: ::graph::types::knowledge::entity::EntityProvenance(
-                       edition: ?,
-                       inferred: ?
+                       edition: ::graph::types::knowledge::entity::EntityEditionProvenance(?),
+                       inferred: ::graph::types::knowledge::entity::InferredEntityProvenance(?)
                    ),
                    record_id: ::graph::types::knowledge::entity::RecordId(
                        edition_id: ::graph::types::knowledge::entity::EntityEditionId(::core::uuid::Uuid(String)),
@@ -308,7 +308,7 @@
                        entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
                        web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
                    ),
-                   left_entity_provenance: ?,
+                   left_entity_provenance: ::graph::types::knowledge::entity::PropertyProvenance(?),
                    right_entity_confidence: ::core::option::None(Null)
                    | ::core::option::Some(::graph::types::knowledge::entity::Confidence(Number)),
                    right_entity_id: ::graph::types::knowledge::entity::EntityId(
@@ -317,7 +317,7 @@
                        entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
                        web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
                    ),
-                   right_entity_provenance: ?
+                   right_entity_provenance: ::graph::types::knowledge::entity::PropertyProvenance(?)
                )),
                metadata: ::graph::types::knowledge::entity::EntityMetadata(
                    archived: Boolean,
@@ -327,10 +327,10 @@
                        base_url: ::graph::types::ontology::BaseUrl(::core::url::Url(String)),
                        version: ::graph::ontology::OntologyTypeVersion(String)
                    )>,
-                   properties: ?,
+                   properties: ::graph::types::knowledge::entity::PropertyObjectMetadata(?),
                    provenance: ::graph::types::knowledge::entity::EntityProvenance(
-                       edition: ?,
-                       inferred: ?
+                       edition: ::graph::types::knowledge::entity::EntityEditionProvenance(?),
+                       inferred: ::graph::types::knowledge::entity::InferredEntityProvenance(?)
                    ),
                    record_id: ::graph::types::knowledge::entity::RecordId(
                        edition_id: ::graph::types::knowledge::entity::EntityEditionId(::core::uuid::Uuid(String)),
@@ -373,7 +373,7 @@
                        entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
                        web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
                    ),
-                   left_entity_provenance: ?,
+                   left_entity_provenance: ::graph::types::knowledge::entity::PropertyProvenance(?),
                    right_entity_confidence: ::core::option::None(Null)
                    | ::core::option::Some(::graph::types::knowledge::entity::Confidence(Number)),
                    right_entity_id: ::graph::types::knowledge::entity::EntityId(
@@ -382,7 +382,7 @@
                        entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
                        web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
                    ),
-                   right_entity_provenance: ?
+                   right_entity_provenance: ::graph::types::knowledge::entity::PropertyProvenance(?)
                )),
                metadata: ::graph::types::knowledge::entity::EntityMetadata(
                    archived: Boolean,
@@ -392,10 +392,10 @@
                        base_url: ::graph::types::ontology::BaseUrl(::core::url::Url(String)),
                        version: ::graph::ontology::OntologyTypeVersion(String)
                    )>,
-                   properties: ?,
+                   properties: ::graph::types::knowledge::entity::PropertyObjectMetadata(?),
                    provenance: ::graph::types::knowledge::entity::EntityProvenance(
-                       edition: ?,
-                       inferred: ?
+                       edition: ::graph::types::knowledge::entity::EntityEditionProvenance(?),
+                       inferred: ::graph::types::knowledge::entity::InferredEntityProvenance(?)
                    ),
                    record_id: ::graph::types::knowledge::entity::RecordId(
                        edition_id: ::graph::types::knowledge::entity::EntityEditionId(::core::uuid::Uuid(String)),
@@ -439,7 +439,7 @@
                    entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
                    web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
                ),
-               left_entity_provenance: ?,
+               left_entity_provenance: ::graph::types::knowledge::entity::PropertyProvenance(?),
                right_entity_confidence: ::core::option::None(Null)
                | ::core::option::Some(::graph::types::knowledge::entity::Confidence(Number)),
                right_entity_id: ::graph::types::knowledge::entity::EntityId(
@@ -448,7 +448,7 @@
                    entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
                    web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
                ),
-               right_entity_provenance: ?
+               right_entity_provenance: ::graph::types::knowledge::entity::PropertyProvenance(?)
            )),
            metadata: ::graph::types::knowledge::entity::EntityMetadata(
                archived: Boolean,
@@ -458,10 +458,10 @@
                    base_url: ::graph::types::ontology::BaseUrl(::core::url::Url(String)),
                    version: ::graph::ontology::OntologyTypeVersion(String)
                )>,
-               properties: ?,
+               properties: ::graph::types::knowledge::entity::PropertyObjectMetadata(?),
                provenance: ::graph::types::knowledge::entity::EntityProvenance(
-                   edition: ?,
-                   inferred: ?
+                   edition: ::graph::types::knowledge::entity::EntityEditionProvenance(?),
+                   inferred: ::graph::types::knowledge::entity::InferredEntityProvenance(?)
                ),
                record_id: ::graph::types::knowledge::entity::RecordId(
                    edition_id: ::graph::types::knowledge::entity::EntityEditionId(::core::uuid::Uuid(String)),
@@ -527,7 +527,7 @@
                        entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
                        web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
                    ),
-                   left_entity_provenance: ?,
+                   left_entity_provenance: ::graph::types::knowledge::entity::PropertyProvenance(?),
                    right_entity_confidence: ::core::option::None(Null)
                    | ::core::option::Some(::graph::types::knowledge::entity::Confidence(Number)),
                    right_entity_id: ::graph::types::knowledge::entity::EntityId(
@@ -536,7 +536,7 @@
                        entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
                        web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
                    ),
-                   right_entity_provenance: ?
+                   right_entity_provenance: ::graph::types::knowledge::entity::PropertyProvenance(?)
                )),
                metadata: ::graph::types::knowledge::entity::EntityMetadata(
                    archived: Boolean,
@@ -546,10 +546,10 @@
                        base_url: ::graph::types::ontology::BaseUrl(::core::url::Url(String)),
                        version: ::graph::ontology::OntologyTypeVersion(String)
                    )>,
-                   properties: ?,
+                   properties: ::graph::types::knowledge::entity::PropertyObjectMetadata(?),
                    provenance: ::graph::types::knowledge::entity::EntityProvenance(
-                       edition: ?,
-                       inferred: ?
+                       edition: ::graph::types::knowledge::entity::EntityEditionProvenance(?),
+                       inferred: ::graph::types::knowledge::entity::InferredEntityProvenance(?)
                    ),
                    record_id: ::graph::types::knowledge::entity::RecordId(
                        edition_id: ::graph::types::knowledge::entity::EntityEditionId(::core::uuid::Uuid(String)),
@@ -637,7 +637,7 @@
 │                  entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
 │                  web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
 │              ),
-│              left_entity_provenance: ?,
+│              left_entity_provenance: ::graph::types::knowledge::entity::PropertyProvenance(?),
 │              right_entity_confidence: ::core::option::None(Null)
 │              | ::core::option::Some(::graph::types::knowledge::entity::Confidence(Number)),
 │              right_entity_id: ::graph::types::knowledge::entity::EntityId(
@@ -646,7 +646,7 @@
 │                  entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
 │                  web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
 │              ),
-│              right_entity_provenance: ?
+│              right_entity_provenance: ::graph::types::knowledge::entity::PropertyProvenance(?)
 │          )),
 │          metadata: ::graph::types::knowledge::entity::EntityMetadata(
 │              archived: Boolean,
@@ -656,10 +656,10 @@
 │                  base_url: ::graph::types::ontology::BaseUrl(::core::url::Url(String)),
 │                  version: ::graph::ontology::OntologyTypeVersion(String)
 │              )>,
-│              properties: ?,
+│              properties: ::graph::types::knowledge::entity::PropertyObjectMetadata(?),
 │              provenance: ::graph::types::knowledge::entity::EntityProvenance(
-│                  edition: ?,
-│                  inferred: ?
+│                  edition: ::graph::types::knowledge::entity::EntityEditionProvenance(?),
+│                  inferred: ::graph::types::knowledge::entity::InferredEntityProvenance(?)
 │              ),
 │              record_id: ::graph::types::knowledge::entity::RecordId(
 │                  edition_id: ::graph::types::knowledge::entity::EntityEditionId(::core::uuid::Uuid(String)),
@@ -707,7 +707,7 @@
                    entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
                    web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
                ),
-               left_entity_provenance: ?,
+               left_entity_provenance: ::graph::types::knowledge::entity::PropertyProvenance(?),
                right_entity_confidence: ::core::option::None(Null)
                | ::core::option::Some(::graph::types::knowledge::entity::Confidence(Number)),
                right_entity_id: ::graph::types::knowledge::entity::EntityId(
@@ -716,7 +716,7 @@
                    entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
                    web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
                ),
-               right_entity_provenance: ?
+               right_entity_provenance: ::graph::types::knowledge::entity::PropertyProvenance(?)
            )),
            metadata: ::graph::types::knowledge::entity::EntityMetadata(
                archived: Boolean,
@@ -726,10 +726,10 @@
                    base_url: ::graph::types::ontology::BaseUrl(::core::url::Url(String)),
                    version: ::graph::ontology::OntologyTypeVersion(String)
                )>,
-               properties: ?,
+               properties: ::graph::types::knowledge::entity::PropertyObjectMetadata(?),
                provenance: ::graph::types::knowledge::entity::EntityProvenance(
-                   edition: ?,
-                   inferred: ?
+                   edition: ::graph::types::knowledge::entity::EntityEditionProvenance(?),
+                   inferred: ::graph::types::knowledge::entity::InferredEntityProvenance(?)
                ),
                record_id: ::graph::types::knowledge::entity::RecordId(
                    edition_id: ::graph::types::knowledge::entity::EntityEditionId(::core::uuid::Uuid(String)),
@@ -802,10 +802,10 @@
            base_url: ::graph::types::ontology::BaseUrl(::core::url::Url(String)),
            version: ::graph::ontology::OntologyTypeVersion(String)
        )>,
-       properties: ?,
+       properties: ::graph::types::knowledge::entity::PropertyObjectMetadata(?),
        provenance: ::graph::types::knowledge::entity::EntityProvenance(
-           edition: ?,
-           inferred: ?
+           edition: ::graph::types::knowledge::entity::EntityEditionProvenance(?),
+           inferred: ::graph::types::knowledge::entity::InferredEntityProvenance(?)
        ),
        record_id: ::graph::types::knowledge::entity::RecordId(
            edition_id: ::graph::types::knowledge::entity::EntityEditionId(::core::uuid::Uuid(String)),
@@ -843,7 +843,7 @@
                entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
                web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
            ),
-           left_entity_provenance: ?,
+           left_entity_provenance: ::graph::types::knowledge::entity::PropertyProvenance(?),
            right_entity_confidence: ::core::option::None(Null)
            | ::core::option::Some(::graph::types::knowledge::entity::Confidence(Number)),
            right_entity_id: ::graph::types::knowledge::entity::EntityId(
@@ -852,7 +852,7 @@
                entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
                web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
            ),
-           right_entity_provenance: ?
+           right_entity_provenance: ::graph::types::knowledge::entity::PropertyProvenance(?)
        )),
        metadata: ::graph::types::knowledge::entity::EntityMetadata(
            archived: Boolean,
@@ -862,10 +862,10 @@
                base_url: ::graph::types::ontology::BaseUrl(::core::url::Url(String)),
                version: ::graph::ontology::OntologyTypeVersion(String)
            )>,
-           properties: ?,
+           properties: ::graph::types::knowledge::entity::PropertyObjectMetadata(?),
            provenance: ::graph::types::knowledge::entity::EntityProvenance(
-               edition: ?,
-               inferred: ?
+               edition: ::graph::types::knowledge::entity::EntityEditionProvenance(?),
+               inferred: ::graph::types::knowledge::entity::InferredEntityProvenance(?)
            ),
            record_id: ::graph::types::knowledge::entity::RecordId(
                edition_id: ::graph::types::knowledge::entity::EntityEditionId(::core::uuid::Uuid(String)),

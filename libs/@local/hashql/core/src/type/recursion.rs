@@ -58,6 +58,7 @@ pub struct RecursionBoundary<'heap, A: Allocator = Global> {
 }
 
 impl Default for RecursionBoundary<'_> {
+    #[inline]
     fn default() -> Self {
         Self::new()
     }

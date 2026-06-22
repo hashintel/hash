@@ -1,6 +1,7 @@
 use hash_graph_store::{
     entity::EntityQueryPath,
-    subgraph::edges::{EdgeDirection, KnowledgeGraphEdgeKind},
+    entity_type::EntityTypeQueryPath,
+    subgraph::edges::{EdgeDirection, KnowledgeGraphEdgeKind, SharedEdgeKind},
 };
 use serde::Deserialize as _;
 use tokio_postgres::Row;
@@ -14,7 +15,7 @@ use type_system::{
         },
         property::metadata::PropertyObjectMetadata,
     },
-    ontology::id::{BaseUrl, OntologyTypeVersion, VersionedUrl},
+    ontology::id::VersionedUrl,
 };
 
 use crate::store::postgres::{
@@ -30,8 +31,8 @@ pub struct EntityRecordRowIndices {
     pub decision_time: usize,
 
     pub edition_id: usize,
-    pub type_base_urls_id: usize,
-    pub type_versions_id: usize,
+    pub type_versioned_urls_id: usize,
+    pub direct_type_count_id: usize,
 
     pub properties: usize,
 
@@ -162,12 +163,15 @@ impl QueryRecordDecode for Entity {
                     decision_time: row.get(indices.decision_time),
                     transaction_time: row.get(indices.transaction_time),
                 },
-                entity_type_ids: row
-                    .get::<_, Vec<BaseUrl>>(indices.type_base_urls_id)
-                    .into_iter()
-                    .zip(row.get::<_, Vec<OntologyTypeVersion>>(indices.type_versions_id))
-                    .map(|(base_url, version)| VersionedUrl { base_url, version })
-                    .collect(),
+                entity_type_ids: {
+                    let direct_type_count =
+                        usize::try_from(row.get::<_, i32>(indices.direct_type_count_id))
+                            .expect("direct type count should be non-negative");
+                    row.get::<_, Vec<VersionedUrl>>(indices.type_versioned_urls_id)
+                        .into_iter()
+                        .take(direct_type_count)
+                        .collect()
+                },
                 provenance: EntityProvenance {
                     inferred: row.get(indices.provenance),
                     edition: row.get(indices.edition_provenance),
@@ -224,8 +228,12 @@ impl PostgresRecord for Entity {
             ),
 
             edition_id: compiler.add_selection_path(&EntityQueryPath::EditionId),
-            type_base_urls_id: compiler.add_selection_path(&EntityQueryPath::TypeBaseUrls),
-            type_versions_id: compiler.add_selection_path(&EntityQueryPath::TypeVersions),
+            type_versioned_urls_id: compiler.add_selection_path(&EntityQueryPath::EntityTypeEdge {
+                edge_kind: SharedEdgeKind::IsOfType,
+                path: EntityTypeQueryPath::VersionedUrl,
+                inheritance_depth: None,
+            }),
+            direct_type_count_id: compiler.add_selection_path(&EntityQueryPath::DirectTypeCount),
 
             properties: compiler.add_selection_path(&EntityQueryPath::Properties(None)),
 

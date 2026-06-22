@@ -33,16 +33,16 @@ pub struct Scratch {
 
 impl Scratch {
     /// Creates a new scratch allocator.
-    #[must_use]
     #[inline]
+    #[must_use]
     pub fn new() -> Self {
         Self {
             inner: Allocator::new(),
         }
     }
 
-    #[must_use]
     #[inline]
+    #[must_use]
     pub fn with_capacity(capacity: usize) -> Self {
         Self {
             inner: Allocator::with_capacity(capacity),
@@ -51,6 +51,7 @@ impl Scratch {
 }
 
 impl Default for Scratch {
+    #[inline]
     fn default() -> Self {
         Self::new()
     }
@@ -61,8 +62,13 @@ impl BumpAllocator for Scratch {
     type Scoped<'scope> = AllocatorScope<'scope>;
 
     #[inline]
-    fn scoped<T>(&mut self, func: impl FnOnce(Self::Scoped<'_>) -> T) -> T {
-        self.inner.scoped(func)
+    fn scoped_mut<T>(&mut self, func: impl FnOnce(&mut Self::Scoped<'_>) -> T) -> T {
+        self.inner.scoped_mut(func)
+    }
+
+    #[inline]
+    fn scoped_ref<T>(&self, func: impl FnOnce(&mut Self::Scoped<'_>) -> T) -> T {
+        self.inner.scoped_ref(func)
     }
 
     #[inline]

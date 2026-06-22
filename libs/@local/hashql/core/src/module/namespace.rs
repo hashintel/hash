@@ -60,6 +60,7 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
         }
     }
 
+    #[inline]
     #[must_use]
     pub const fn registry(&self) -> &'env ModuleRegistry<'heap> {
         self.registry

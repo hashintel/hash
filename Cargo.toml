@@ -58,10 +58,10 @@ version = "0.0.0"
 
 [workspace.dependencies]
 # Workspace members
-darwin-kperf.path                   = "libs/darwin-kperf"
-darwin-kperf-criterion.path         = "libs/darwin-kperf/criterion"
-darwin-kperf-events.path            = "libs/darwin-kperf/events"
-darwin-kperf-sys.path               = "libs/darwin-kperf/sys"
+darwin-kperf                        = { path = "libs/darwin-kperf", version = "0.1.1" }
+darwin-kperf-criterion              = { path = "libs/darwin-kperf/criterion", version = "0.1.1" }
+darwin-kperf-events                 = { path = "libs/darwin-kperf/events", version = "0.1.1" }
+darwin-kperf-sys                    = { path = "libs/darwin-kperf/sys", version = "0.1.1" }
 error-stack                         = { path = "./libs/error-stack", default-features = false }
 harpc-client.path                   = "libs/@local/harpc/client/rust"
 harpc-codec.path                    = "libs/@local/harpc/codec"
@@ -118,7 +118,7 @@ base16ct                           = { version = "1.0.0", default-features = fal
 bitvec                             = { version = "1.0.1", default-features = false }
 bon                                = { version = "3.8.1", default-features = false, features = ["implied-bounds"] }
 bstr                               = { version = "1.12.1" }
-bump-scope                         = { version = "1.5.1", default-features = false, features = ["alloc", "nightly-clone-to-uninit", "panic-on-alloc", "std"] }
+bump-scope                         = { version = "2.0.0", default-features = false, features = ["alloc", "nightly-clone-to-uninit", "panic-on-alloc", "std"] }
 bytes                              = { version = "1.10.1" }
 bytes-utils                        = { version = "0.1.4", default-features = false }
 camino                             = { version = "1.1.12", default-features = false }

@@ -14,6 +14,7 @@ import {
   EntityTypeIcon,
   LinkTypeIcon,
 } from "@hashintel/design-system";
+import { TextMark } from "@hashintel/ds-components";
 import { useEntityTypeFormContext } from "@hashintel/type-editor";
 
 import { EditEmojiIconButton } from "../../../../shared/edit-emoji-icon-button";
@@ -105,9 +106,10 @@ export const EntityTypeHeader = ({
           direction="row"
           alignItems="center"
           justifyContent="space-between"
+          mb={3}
         >
-          <Stack direction="row" alignItems="center" gap={5}>
-            <Stack direction="row" alignItems="flex-start" mt={1} mb={3}>
+          <Stack direction="row" alignItems="center" gap={5} minWidth={0}>
+            <Stack direction="row" alignItems="flex-start" mt={1} minWidth={0}>
               {entityTypeNameSize !== null && (
                 <Controller
                   control={control}
@@ -158,14 +160,14 @@ export const EntityTypeHeader = ({
                         }
                         sx={{
                           position: "relative",
-                          top: entityTypeNameSize.lineHeight / 2 - 22,
+                          top: entityTypeNameSize.lineHeight / 2 - 25,
                         }}
                       />
                     );
                   }}
                 />
               )}
-              <Box sx={{ position: "relative", ml: 2.5 }}>
+              <Box sx={{ ml: 2.5, minWidth: 0 }}>
                 <Tooltip
                   placement="top-start"
                   componentsProps={{
@@ -195,39 +197,37 @@ export const EntityTypeHeader = ({
                     variant="h1"
                     fontWeight="bold"
                     ref={entityTypeNameTextRef}
-                    sx={{
-                      lineHeight: 1.2,
-                    }}
+                    sx={{ overflow: "hidden", textOverflow: "ellipsis" }}
                   >
                     {entityTypeSchema.title}
+                    {isInSlide && (
+                      <TextMark>
+                        <Link
+                          href={
+                            generateLinkParameters(entityTypeSchema.$id).href
+                          }
+                          sx={{ ml: 2.5 }}
+                          target="_blank"
+                        >
+                          <ArrowUpRightFromSquareRegularIcon
+                            sx={{
+                              fill: ({ palette }) => palette.blue[50],
+                              fontSize: 24,
+                              verticalAlign: "middle",
+                              // Nudge the icon up slightly relative to the
+                              // text, without affecting line-box layout
+                              position: "relative",
+                              top: -8,
+                              "&:hover": {
+                                fill: ({ palette }) => palette.blue[60],
+                              },
+                            }}
+                          />
+                        </Link>
+                      </TextMark>
+                    )}
                   </Typography>
                 </Tooltip>
-                {isInSlide && entityTypeNameSize !== null && (
-                  <Link
-                    href={generateLinkParameters(entityTypeSchema.$id).href}
-                    sx={{
-                      position: "absolute",
-                      left: entityTypeNameSize.lastLineWidth + 20,
-                      /**
-                       * The vertical center of the text plus offset half the icon size
-                       */
-                      top:
-                        entityTypeNameSize.lastLineTop +
-                        (entityTypeNameSize.lineHeight / 2 - 12),
-                    }}
-                    target="_blank"
-                  >
-                    <ArrowUpRightFromSquareRegularIcon
-                      sx={{
-                        fill: ({ palette }) => palette.blue[50],
-                        fontSize: 24,
-                        "&:hover": {
-                          fill: ({ palette }) => palette.blue[70],
-                        },
-                      }}
-                    />
-                  </Link>
-                )}
               </Box>
             </Stack>
             <Stack
@@ -236,7 +236,7 @@ export const EntityTypeHeader = ({
               gap={1.5}
               sx={{ position: "relative", top: 5 }}
             >
-              <EntityTypePlural isLinkType={isLink} readonly={isReadonly} />
+              <EntityTypePlural readonly={isReadonly} />
               {isLink && <EntityTypeInverse readonly={isReadonly} />}
             </Stack>
           </Stack>
@@ -245,6 +245,8 @@ export const EntityTypeHeader = ({
               onClick={() => setShowExtendTypeModal(true)}
               variant="secondary"
               size="small"
+              // Don't let the button get squeezed by long header content
+              sx={{ flexShrink: 0, ml: 2 }}
             >
               Extend <ArrowUpRightIcon sx={{ fontSize: 16, ml: 1.5 }} />
             </Button>

@@ -7,14 +7,10 @@ import { AltTitleGroup } from "./shared/alt-title-group";
 import type { EntityTypeEditorFormData } from "@hashintel/type-editor";
 
 interface EntityTypePluralProps {
-  isLinkType: boolean;
   readonly?: boolean;
 }
 
-export const EntityTypePlural = ({
-  isLinkType,
-  readonly,
-}: EntityTypePluralProps) => {
+export const EntityTypePlural = ({ readonly }: EntityTypePluralProps) => {
   const { control } = useFormContext<EntityTypeEditorFormData>();
 
   const pluralController = useController({
@@ -29,7 +25,7 @@ export const EntityTypePlural = ({
   }
 
   return (
-    <AltTitleGroup direction={isLinkType ? "column" : "row"} label="plural">
+    <AltTitleGroup direction="column" label="plural">
       <EditableField
         {...props}
         inputRef={ref}

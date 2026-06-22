@@ -220,6 +220,7 @@ struct VariableConstraintSatisfiability {
 }
 
 impl Default for VariableConstraintSatisfiability {
+    #[inline]
     fn default() -> Self {
         Self { upper: true }
     }

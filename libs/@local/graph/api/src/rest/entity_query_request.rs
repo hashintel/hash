@@ -51,7 +51,6 @@ use hashql_diagnostics::{
     DiagnosticIssues, Failure, Severity, Status, StatusExt as _, Success,
     category::{DiagnosticCategory, canonical_category_id},
     diagnostic::render::{Format, RenderOptions},
-    severity::Critical,
     source::{DiagnosticSpan, Source, SourceId, Sources},
 };
 use hashql_eval::{
@@ -340,19 +339,7 @@ impl<'q> EntityQuery<'q> {
         let mut ast = parser
             .parse_expr(query.get().as_bytes())
             .map_err(|diagnostic| {
-                Failure::new(
-                    diagnostic
-                        .map_category(HashQLDiagnosticCategory::JExpr)
-                        .map_severity(|severity| {
-                            Critical::try_new(severity).unwrap_or_else(|| {
-                                tracing::error!(
-                                    ?severity,
-                                    "JExpr returned an error of non-critical severity"
-                                );
-                                Critical::ERROR
-                            })
-                        }),
-                )
+                Failure::new(diagnostic.map_category(HashQLDiagnosticCategory::JExpr))
             })?;
 
         let mut env = Environment::new(heap);

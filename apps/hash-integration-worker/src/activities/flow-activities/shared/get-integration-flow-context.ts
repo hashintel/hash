@@ -50,7 +50,17 @@ export async function getFlowContext(params?: {
   graphApiClient?: GraphApi;
 }): Promise<BaseFlowContext | FlowContextWithEntity> {
   const activityContext = Context.current();
-  const { workflowId, runId } = activityContext.info.workflowExecution;
+  const { workflowId, runId } = activityContext.info.workflowExecution ?? {};
+
+  if (!workflowId) {
+    throw new Error(
+      "No workflowId associated with the current workflow execution",
+    );
+  }
+
+  if (!runId) {
+    throw new Error("No runId associated with the current workflow execution");
+  }
 
   const temporalClient = await getTemporalClient();
   const cache = await getFlowContextCache();
