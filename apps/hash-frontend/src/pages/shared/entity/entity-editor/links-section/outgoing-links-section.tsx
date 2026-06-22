@@ -1,6 +1,6 @@
 import { faMagnifyingGlass } from "@fortawesome/free-solid-svg-icons";
 import { Box, CircularProgress, Paper, Stack } from "@mui/material";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
   getOutgoingLinkAndTargetEntities,
@@ -26,6 +26,7 @@ import { OutgoingLinksTable } from "./outgoing-links-section/readonly-outgoing-l
 import { useCreateGetCellContent } from "./outgoing-links-section/use-create-get-cell-content";
 import { useRows } from "./outgoing-links-section/use-rows";
 import { useEntityLinks } from "./use-entity-links";
+import { useLinkTypeFilter } from "./use-link-type-filter";
 
 import type { SortGridRows } from "../../../../../components/grid/grid";
 import type { VirtualizedTableSort } from "../../../virtualized-table/header/sort";
@@ -117,6 +118,21 @@ export const OutgoingLinksSection = ({
   }, [readonly, sort.fieldId, sort.direction]);
 
   /**
+   * The readonly link table can be filtered by link type. The filter state and
+   * options live here so the selection can drive the paginated query
+   * (`filterTypeIds`) and be passed to the table's header. `filterTypeIds`
+   * derives only from this hook's state, so feeding it into `useEntityLinks`
+   * below does not create a render cycle with the breakdown the query returns.
+   */
+  const {
+    captureLinkTypeOptions,
+    filterDefinitions,
+    filterValues,
+    setFilterValues,
+    filterTypeIds,
+  } = useLinkTypeFilter();
+
+  /**
    * When the entity is readonly we fetch the link data here (paginated), so it
    * does not need to be part of the main entity query. When editable, the link
    * data is part of the editor subgraph (so adding/removing/saving is
@@ -133,12 +149,19 @@ export const OutgoingLinksSection = ({
     subgraph: fetchedSubgraph,
     linkAndDestinationEntitiesClosedMultiEntityTypesMap: fetchedTypesMap,
     closedMultiEntityTypesDefinitions: fetchedDefinitions,
+    typeIds,
+    typeTitles,
   } = useEntityLinks({
     direction: "outgoing",
     entityId: entity.metadata.recordId.entityId,
+    filterTypeIds,
     skip: !readonly,
     sortingPaths,
   });
+
+  useEffect(() => {
+    captureLinkTypeOptions(typeIds, typeTitles);
+  }, [captureLinkTypeOptions, typeIds, typeTitles]);
 
   /**
    * The links/targets passed to the readonly table. In the self-fetch path the
@@ -352,11 +375,14 @@ export const OutgoingLinksSection = ({
           customEntityLinksColumns={customEntityLinksColumns}
           defaultOutgoingLinkFilters={defaultOutgoingLinkFilters}
           entitySubgraph={entitySubgraph}
+          filterDefinitions={readonly ? filterDefinitions : undefined}
+          filterValues={readonly ? filterValues : undefined}
           loadingMore={readonly ? loadingMore : undefined}
           onEndReached={readonly && hasMore ? loadMore : undefined}
           onEntityClick={onEntityClick}
           onTypeClick={onTypeClick}
           outgoingLinksAndTargets={outgoingLinksAndTargets}
+          setFilterValues={readonly ? setFilterValues : undefined}
           setSort={setSort}
           slideContainerRef={slideContainerRef}
           sort={sort}
