@@ -12,10 +12,12 @@ import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-id
 
 import { useEntityTypesContextRequired } from "../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { HEADER_HEIGHT } from "../../shared/layout/layout-with-header/page-header";
+import { usePropertyTypes } from "../../shared/property-types-context";
 import { tableContentSx } from "../../shared/table-content";
 import { BulkActionsDropdown } from "../../shared/table-header/bulk-actions-dropdown";
 import { useMemoCompare } from "../../shared/use-memo-compare";
 import { useAuthenticatedUser } from "./auth-info-context";
+import { useDataTypesContext } from "./data-types-context";
 import {
   EntitiesTable,
   toolbarHeight,
@@ -268,6 +270,7 @@ export const EntitiesVisualizer: FunctionComponent<{
     entities,
     closedMultiEntityTypes: closedMultiEntityTypesRootMap,
     subgraph,
+    typeIds,
     webIds,
   } = visualizerData;
 
@@ -294,17 +297,34 @@ export const EntitiesVisualizer: FunctionComponent<{
     return relevantTypes;
   }, [entities, definitions, closedMultiEntityTypesRootMap]);
 
+  const { dataTypes } = useDataTypesContext();
+  const { propertyTypes } = usePropertyTypes({ includeArchived: true });
+  const { entityTypes, entityTypeParentIds, isSpecialEntityTypeLookup } =
+    useEntityTypesContextRequired();
+
   /**
-   * The properties offered in the property-filter picker, derived from the same
-   * closed-entity-type / definitions data that builds the visible columns.
+   * The properties offered in the property-filter picker, derived from all
+   * entity types matching the current result set, including their parents.
    */
   const filterableProperties = useMemo(() => {
-    if (!definitions) {
+    if (
+      !dataTypes ||
+      !entityTypes ||
+      !entityTypeParentIds ||
+      !propertyTypes ||
+      !typeIds
+    ) {
       return [];
     }
 
-    return deriveFilterableProperties({ closedMultiEntityTypes, definitions });
-  }, [closedMultiEntityTypes, definitions]);
+    return deriveFilterableProperties({
+      dataTypes,
+      entityTypeIds: Object.keys(typeIds) as VersionedUrl[],
+      entityTypeParentIds,
+      entityTypes,
+      propertyTypes,
+    });
+  }, [dataTypes, entityTypeParentIds, entityTypes, propertyTypes, typeIds]);
 
   const activeConversions = useMemo(() => {
     return activeConversionsWithoutTitle
@@ -348,8 +368,6 @@ export const EntitiesVisualizer: FunctionComponent<{
   }, [entitiesData]);
 
   const totalResultCount = totalCountFromEntityRequest ?? null;
-
-  const { isSpecialEntityTypeLookup } = useEntityTypesContextRequired();
 
   const isDisplayingFilesOnly = useMemo(
     () =>

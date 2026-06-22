@@ -1,5 +1,4 @@
 import { typedEntries } from "@local/advanced-types/typed-entries";
-import { getMergedDataTypeSchema } from "@local/hash-isomorphic-utils/data-types";
 
 import type {
   FilterMetadataForProperty,
@@ -7,11 +6,13 @@ import type {
 } from "./property-filter";
 import type {
   BaseUrl,
-  ClosedMultiEntityType,
+  DataTypeWithMetadata,
+  EntityTypeWithMetadata,
+  PropertyTypeWithMetadata,
   PropertyTypeReference,
   ValueOrArray,
+  VersionedUrl,
 } from "@blockprotocol/type-system";
-import type { ClosedMultiEntityTypesDefinitions } from "@local/hash-graph-sdk/ontology";
 
 /**
  * Maps the resolved data type's primitive `type` to a filterable value kind, or
@@ -28,6 +29,71 @@ const resolveValueKind = (type: string): FilterValueKind | null => {
   }
 };
 
+const resolveDataTypeValueKind = ({
+  dataTypeId,
+  dataTypes,
+  seenDataTypeIds = new Set(),
+}: {
+  dataTypeId: VersionedUrl;
+  dataTypes: Record<VersionedUrl, DataTypeWithMetadata>;
+  seenDataTypeIds?: Set<VersionedUrl>;
+}): FilterValueKind | "multiple-data-types" | null => {
+  if (seenDataTypeIds.has(dataTypeId)) {
+    return null;
+  }
+
+  const dataType = dataTypes[dataTypeId];
+
+  if (!dataType) {
+    return null;
+  }
+
+  seenDataTypeIds.add(dataTypeId);
+
+  if ("anyOf" in dataType.schema) {
+    // The data type permits more than one set of constraints.
+    if (dataType.schema.anyOf.length !== 1) {
+      return "multiple-data-types";
+    }
+
+    return resolveValueKind(dataType.schema.anyOf[0].type);
+  }
+
+  const ownKind =
+    "type" in dataType.schema ? resolveValueKind(dataType.schema.type) : null;
+
+  if (ownKind) {
+    return ownKind;
+  }
+
+  let inheritedKind: FilterValueKind | null = null;
+
+  for (const parentTypeId of dataType.schema.allOf?.map(({ $ref }) => $ref) ??
+    []) {
+    const parentKind = resolveDataTypeValueKind({
+      dataTypeId: parentTypeId,
+      dataTypes,
+      seenDataTypeIds,
+    });
+
+    if (parentKind === "multiple-data-types") {
+      return parentKind;
+    }
+
+    if (!parentKind) {
+      continue;
+    }
+
+    if (inheritedKind && inheritedKind !== parentKind) {
+      return "multiple-data-types";
+    }
+
+    inheritedKind = parentKind;
+  }
+
+  return inheritedKind;
+};
+
 /**
  * Classifies a single property (as it appears on one entity type) into a
  * {@link FilterMetadataForProperty}, or `null` if it should be omitted from the picker
@@ -36,11 +102,13 @@ const resolveValueKind = (type: string): FilterValueKind | null => {
 const classifyProperty = ({
   baseUrl,
   propertySchema,
-  definitions,
+  dataTypes,
+  propertyTypes,
 }: {
   baseUrl: BaseUrl;
   propertySchema: ValueOrArray<PropertyTypeReference>;
-  definitions: ClosedMultiEntityTypesDefinitions;
+  dataTypes: Record<VersionedUrl, DataTypeWithMetadata>;
+  propertyTypes: Record<VersionedUrl, PropertyTypeWithMetadata>;
 }): FilterMetadataForProperty | null => {
   // A property used as a list on the entity type can't be filtered yet.
   const isListAtEntityLevel = "items" in propertySchema;
@@ -48,7 +116,7 @@ const classifyProperty = ({
   const propertyTypeId =
     "$ref" in propertySchema ? propertySchema.$ref : propertySchema.items.$ref;
 
-  const propertyType = definitions.propertyTypes[propertyTypeId];
+  const propertyType = propertyTypes[propertyTypeId]?.schema;
 
   if (!propertyType) {
     return null;
@@ -85,30 +153,12 @@ const classifyProperty = ({
     return disabled(valueDefinition.type === "object" ? "nested" : "list");
   }
 
-  const dataType = definitions.dataTypes[valueDefinition.$ref];
+  const kind = resolveDataTypeValueKind({
+    dataTypeId: valueDefinition.$ref,
+    dataTypes,
+  });
 
-  if (!dataType) {
-    return null;
-  }
-
-  let kind: FilterValueKind | null;
-  try {
-    const mergedSchema = getMergedDataTypeSchema(dataType.schema);
-
-    if ("anyOf" in mergedSchema) {
-      // The data type permits more than one set of constraints.
-      if (mergedSchema.anyOf.length !== 1) {
-        return disabled("multiple-data-types");
-      }
-
-      kind = resolveValueKind(mergedSchema.anyOf[0]!.type);
-    } else {
-      kind = resolveValueKind(mergedSchema.type);
-    }
-  } catch {
-    // The data type has a shape `getMergedDataTypeSchema` can't reduce to a
-    // single set of constraints (e.g. mixed primitives) – treat it as a
-    // multiple-data-types case.
+  if (kind === "multiple-data-types") {
     return disabled("multiple-data-types");
   }
 
@@ -123,9 +173,9 @@ const classifyProperty = ({
 };
 
 /**
- * Derives the list of properties offered in the property-filter picker from the
- * same closed-entity-type / definitions data that builds the visible table
- * columns ("filter on the columns you see").
+ * Derives the list of properties offered in the property-filter picker from all
+ * entity types in the result set, not just the entity types present on the
+ * currently returned page.
  *
  * A property is **filterable** only if all of the following hold:
  * - it is not used as a list/array on the entity type;
@@ -147,39 +197,62 @@ const classifyProperty = ({
  * Pure function – authored so it can be unit-tested in isolation.
  */
 export const deriveFilterableProperties = ({
-  closedMultiEntityTypes,
-  definitions,
+  dataTypes,
+  entityTypeIds,
+  entityTypeParentIds,
+  entityTypes,
+  propertyTypes,
 }: {
-  closedMultiEntityTypes: ClosedMultiEntityType[];
-  definitions: ClosedMultiEntityTypesDefinitions;
+  dataTypes: Record<VersionedUrl, DataTypeWithMetadata>;
+  entityTypeIds: VersionedUrl[];
+  entityTypeParentIds: Record<VersionedUrl, VersionedUrl[]>;
+  entityTypes: EntityTypeWithMetadata[];
+  propertyTypes: Record<VersionedUrl, PropertyTypeWithMetadata>;
 }): FilterMetadataForProperty[] => {
   const byBaseUrl = new Map<BaseUrl, FilterMetadataForProperty>();
+  const entityTypesById = new Map(
+    entityTypes.map((entityType) => [entityType.schema.$id, entityType]),
+  );
 
-  for (const closedMultiEntityType of closedMultiEntityTypes) {
-    for (const [baseUrl, propertySchema] of typedEntries(
-      closedMultiEntityType.properties,
-    )) {
-      const existing = byBaseUrl.get(baseUrl);
+  for (const entityTypeId of entityTypeIds) {
+    const entityTypeAndParentIds = [
+      entityTypeId,
+      ...(entityTypeParentIds[entityTypeId] ?? []),
+    ];
 
-      // Once a property is known to be filterable, nothing can downgrade it.
-      if (existing?.filterable) {
+    for (const entityTypeOrParentId of entityTypeAndParentIds) {
+      const entityTypeOrParent = entityTypesById.get(entityTypeOrParentId);
+
+      if (!entityTypeOrParent) {
         continue;
       }
 
-      const classified = classifyProperty({
-        baseUrl,
-        propertySchema,
-        definitions,
-      });
+      for (const [baseUrl, propertySchema] of typedEntries(
+        entityTypeOrParent.schema.properties,
+      )) {
+        const existing = byBaseUrl.get(baseUrl);
 
-      if (!classified) {
-        continue;
-      }
+        // Once a property is known to be filterable, nothing can downgrade it.
+        if (existing?.filterable) {
+          continue;
+        }
 
-      // Prefer a filterable interpretation; otherwise keep the first-seen
-      // disabled reason.
-      if (!existing || classified.filterable) {
-        byBaseUrl.set(baseUrl, classified);
+        const classified = classifyProperty({
+          baseUrl,
+          dataTypes,
+          propertySchema,
+          propertyTypes,
+        });
+
+        if (!classified) {
+          continue;
+        }
+
+        // Prefer a filterable interpretation; otherwise keep the first-seen
+        // disabled reason.
+        if (!existing || classified.filterable) {
+          byBaseUrl.set(baseUrl, classified);
+        }
       }
     }
   }

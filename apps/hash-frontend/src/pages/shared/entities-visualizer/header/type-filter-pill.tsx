@@ -51,13 +51,13 @@ const buildLabel = ({
   allAvailableIds: VersionedUrl[];
 }): string => {
   if (isAllSelected({ selectedTypeIds, allAvailableIds })) {
-    return "All types";
+    return "Any";
   }
 
   const count = selectedTypeIds?.size ?? 0;
 
   if (count === 0) {
-    return "No types";
+    return "None";
   }
 
   if (count === 1) {
