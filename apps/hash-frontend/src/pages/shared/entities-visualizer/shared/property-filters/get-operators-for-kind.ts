@@ -147,7 +147,15 @@ export const getOperatorsForKind = (
 /** The default operator for a kind (the first in its catalog). */
 export const getDefaultOperatorForKind = (
   kind: FilterValueKind,
-): PropertyFilterOperator => operatorsByKind[kind][0]!.operator;
+): PropertyFilterOperator => {
+  const operator = operatorsByKind[kind][0]?.operator;
+
+  if (!operator) {
+    throw new Error(`No operator found for kind ${kind}`);
+  }
+
+  return operator;
+};
 
 /** Look up a single operator descriptor for a kind, if it exists. */
 export const getOperatorDescriptor = (

@@ -1,3 +1,5 @@
+import * as Sentry from "@sentry/nextjs";
+
 import { typedEntries } from "@local/advanced-types/typed-entries";
 
 import type {
@@ -45,6 +47,11 @@ const resolveDataTypeValueKind = ({
   const dataType = dataTypes[dataTypeId];
 
   if (!dataType) {
+    Sentry.captureException(
+      new Error(
+        `Data type not found for ${dataTypeId} when resolving value kind`,
+      ),
+    );
     return null;
   }
 
@@ -193,8 +200,6 @@ const classifyProperty = ({
  * different shapes (e.g. a list on one type, a single value on another), the
  * **filterable** interpretation wins, so the user can still filter on the column
  * they see. Among unfilterable interpretations the first encountered wins.
- *
- * Pure function – authored so it can be unit-tested in isolation.
  */
 export const deriveFilterableProperties = ({
   dataTypes,

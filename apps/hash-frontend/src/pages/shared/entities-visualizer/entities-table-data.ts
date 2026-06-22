@@ -135,10 +135,7 @@ export type EntitiesTableData = {
    * same query result the rows were generated from.
    *
    * Bundling the pool with the rows guarantees that anything drawing a row's
-   * value can always resolve its data type: the two can never come from
-   * different query results (which previously caused `formatValue` to throw
-   * when a refetch narrowed the result set – e.g. a property filter matching
-   * nothing – before the rows had been regenerated).
+   * value can always resolve its data type.
    */
   dataTypeDefinitions: ClosedMultiEntityTypesDefinitions["dataTypes"];
   entityTypesWithMultipleVersionsPresent: Set<VersionedUrl>;

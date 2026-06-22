@@ -101,8 +101,6 @@ export const buildPropertyFilterClause = (
       return { startsWith: [{ path }, { parameter }] };
     case "endsWith":
       return { endsWith: [{ path }, { parameter }] };
-    default:
-      return null;
   }
 };
 

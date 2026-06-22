@@ -1,6 +1,7 @@
 import { useQuery } from "@apollo/client";
 import { GridCellKind } from "@glideapps/glide-data-grid";
 import { Box, Stack, useTheme } from "@mui/material";
+import * as Sentry from "@sentry/nextjs";
 import { useRouter } from "next/router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
@@ -15,7 +16,6 @@ import { formatNumber } from "@local/hash-isomorphic-utils/format-number";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 
 import { Grid } from "../../../components/grid/grid";
-import { blankCell } from "../../../components/grid/utils";
 import { useGetOwnerForEntity } from "../../../components/hooks/use-get-owner-for-entity";
 import { findDataTypeConversionTargetsQuery } from "../../../graphql/queries/ontology/data-type.queries";
 import { generateCsvFile as buildCsvFile } from "../../../shared/table-header/generate-csv-file";
@@ -345,12 +345,12 @@ export const EntitiesTable: FunctionComponent<
         | CustomCell => {
         const columnId = columns[colIndex]?.id;
 
-        const notFoundCell: TextCell = {
+        const blankCell: TextCell = {
           kind: GridCellKind.Text,
           allowOverlay: false,
           readonly: true,
-          displayData: String("Not Found"),
-          data: "Not Found",
+          displayData: "",
+          data: "",
         };
 
         if (columnId) {
@@ -362,7 +362,7 @@ export const EntitiesTable: FunctionComponent<
              * for a row that has just been filtered out, so we handle
              * this by briefly not displaying anything in the cell.
              */
-            return notFoundCell;
+            return blankCell;
           }
 
           if (isBaseUrl(columnId)) {
@@ -401,12 +401,17 @@ export const EntitiesTable: FunctionComponent<
                * bundled into `tableData` this should not happen in normal flow,
                * but it still guards against a genuinely inconsistent response.
                */
-              const someDataTypeUnresolved = getReferencedDataTypeIds(
+              const unresolvedDataTypeId = getReferencedDataTypeIds(
                 propertyMetadata,
-              ).some((dataTypeId) => !dataTypeDefinitions[dataTypeId]);
+              ).find((dataTypeId) => !dataTypeDefinitions[dataTypeId]);
 
-              if (someDataTypeUnresolved) {
-                return notFoundCell;
+              if (unresolvedDataTypeId) {
+                Sentry.captureException(
+                  new Error(
+                    `Data type not found for ${unresolvedDataTypeId} when rendering value`,
+                  ),
+                );
+                return blankCell;
               }
 
               return {

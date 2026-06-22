@@ -11,9 +11,7 @@ export type EntitiesFilterState = {
   };
   includeArchived: boolean;
   /**
-   * Per-property value filters (e.g. `Age > 13`). Each is translated into a
-   * graph filter clause and ANDed with the web / type / archived filters – see
-   * {@link buildPropertyFilterClause} and {@link buildEntitiesFilter}.
+   * Per-property value filters (e.g. `Age > 13`).
    */
   propertyFilters: PropertyFilter[];
 };
