@@ -66,10 +66,7 @@ import type { OrgMembership } from "./org-membership";
 import type { EntityId, EntityUuid, UserId } from "@blockprotocol/type-system";
 import type { Filter } from "@local/hash-graph-client";
 import type { PendingOrgInvitation } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
-import type {
-  EnabledFeatureFlagsPropertyValue,
-  User as UserEntity,
-} from "@local/hash-isomorphic-utils/system-types/user";
+import type { User as UserEntity } from "@local/hash-isomorphic-utils/system-types/user";
 
 export type User = {
   accountId: UserId;
@@ -180,7 +177,10 @@ export const getUserFromEntity: PureGraphFunction<
 
   const isAccountSignupComplete = !!shortname && !!displayName;
 
-  const enabledFeatureFlags = maybeFeatureFlags ?? [];
+  const enabledFeatureFlags =
+    maybeFeatureFlags?.filter((flag): flag is FeatureFlag =>
+      featureFlags.includes(flag as FeatureFlag),
+    ) ?? [];
 
   return {
     accountId: extractWebIdFromEntityId(
