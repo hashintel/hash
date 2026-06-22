@@ -1,7 +1,7 @@
 use hashql_core::{
     id::{Id, IdVec},
     intern::Interned,
-    module::std_lib::graph::types::knowledge::entity::types::entity,
+    module::std_lib::{core::json, graph::types::knowledge::entity::types::entity},
     span::SpanId,
     symbol::sym,
     r#type::{TypeBuilder, environment::Environment},
@@ -37,21 +37,21 @@ pub(crate) fn entity_property_access_body<'heap>(
     span: SpanId,
 ) -> Body<'heap> {
     // Intrinsic body for property access, we **cannot** mock this specific intrinsic, because it's
-    // semantics are - while expressible - compile-time. We cannot index into a struct at run-time
-    // from a runtime-defined value. We just can't. Meaning that indeed we must mock this specific
-    // intrinsic on all backends that support it.
+    // semantics are - while expressible - compile-time only. We cannot index into a struct at
+    // run-time from a runtime-defined value, without sacrifing correctness guarantees the MIR
+    // relies on. Meaning that indeed we must mock this specific intrinsic on all backends that
+    // support it.
     let builder = TypeBuilder::spanned(span, env);
 
-    let mut local_decls = IdVec::with_capacity_in(1, env.heap);
+    let mut local_decls = IdVec::with_capacity_in(2, env.heap);
     local_decls.push(LocalDecl {
         span,
         r#type: entity(&builder, builder.unknown(), None),
         name: Some(sym::entity),
     });
-    // TODO: we have a json path for exactly this
     local_decls.push(LocalDecl {
         span,
-        r#type: builder.list(builder.union([builder.string(), builder.integer()])),
+        r#type: json::types::json_path(&builder, None),
         name: Some(sym::pointer),
     });
 
