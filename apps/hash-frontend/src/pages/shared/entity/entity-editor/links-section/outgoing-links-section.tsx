@@ -82,35 +82,39 @@ export const OutgoingLinksSection = ({
   const [showSearch, setShowSearch] = useState(false);
 
   /**
-   * When links are fetched here (paginated), sorting is applied server-side, so
-   * the sort state lives here in order to drive the query. The default mirrors
-   * what the API can sort the link entities by – only their own label and type
-   * title are available (the API cannot sort by the target entity), so we
-   * default to the link entity's label.
+   * The sort state lives here so that, in the readonly case, it can drive the
+   * paginated query (sorting is applied server-side). The only column the API
+   * can sort the link entities by is their type title (it cannot sort by the
+   * target entity, and its `label` sort uses the empty label property rather
+   * than the client-generated label shown in the "Link" column), so we default
+   * to – and server-side only support – the link type. When editable, the full
+   * set of links is present and the table sorts client-side instead (across all
+   * columns), still driven by this state.
    */
   const [sort, setSort] = useState<VirtualizedTableSort<OutgoingLinksFieldId>>({
-    fieldId: "link",
+    fieldId: "linkTypes",
     direction: "asc",
   });
 
   /**
    * Translate the table sort into graph-query sorting paths, which apply to the
-   * query's root (the link entities). Only `link` (the link entity label) and
-   * `linkTypes` (its type title) are sortable server-side.
+   * query's root (the link entities). Only `linkTypes` (the link's type title)
+   * is sortable server-side; for any other column we apply no server sort (the
+   * query's uuid tiebreaker still gives a stable, paginatable order).
    */
   const sortingPaths = useMemo<EntityQuerySortingRecord[] | undefined>(() => {
-    if (!readonly) {
+    if (!readonly || sort.fieldId !== "linkTypes") {
       return undefined;
     }
 
     return [
       {
-        path: sort.fieldId === "linkTypes" ? ["typeTitle"] : ["label"],
+        path: ["typeTitle"],
         ordering: sort.direction === "asc" ? "ascending" : "descending",
         nulls: "last",
       },
     ];
-  }, [readonly, sort]);
+  }, [readonly, sort.fieldId, sort.direction]);
 
   /**
    * When the entity is readonly we fetch the link data here (paginated), so it
