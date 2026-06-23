@@ -113,6 +113,8 @@ export const ViewportSettingsDialog: React.FC<ViewportSettingsDialogProps> = ({
     setPartialSelection,
     useEntitiesTreeView,
     setUseEntitiesTreeView,
+    enableNetComponents,
+    setEnableNetComponents,
   } = use(UserSettingsContext);
 
   if (!open) {
@@ -198,6 +200,19 @@ export const ViewportSettingsDialog: React.FC<ViewportSettingsDialogProps> = ({
           <Switch
             checked={useEntitiesTreeView}
             onCheckedChange={setUseEntitiesTreeView}
+          />
+        </SettingRow>
+        <SettingRow
+          label={
+            <>
+              Net Components <span className={badgeStyle}>Experimental</span>
+            </>
+          }
+          description="Enable subnet definitions and component instances for hierarchical net composition"
+        >
+          <Switch
+            checked={enableNetComponents}
+            onCheckedChange={setEnableNetComponents}
           />
         </SettingRow>
       </Dialog.Body>

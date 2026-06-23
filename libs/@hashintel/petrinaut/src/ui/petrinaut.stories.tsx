@@ -1,9 +1,6 @@
 import { useMemo, useState, useEffect } from "react";
 
-import {
-  sirModel,
-  hospitalNetworkSDCPN,
-} from "@hashintel/petrinaut-core/examples";
+import { sirModel } from "@hashintel/petrinaut-core/examples";
 
 import {
   createJsonDocHandle,
@@ -458,8 +455,8 @@ export const SubnetsWithColors: Story = {
   render: () => (
     <HandleSpikeRender
       capabilities={subnetsWithColorsCapabilities}
-      initial={hospitalNetworkSDCPN.petriNetDefinition}
-      initialTitle={hospitalNetworkSDCPN.title}
+      initial={sirModel.petriNetDefinition}
+      initialTitle={sirModel.title}
     />
   ),
 };
@@ -469,8 +466,8 @@ export const SubnetsWithoutColors: Story = {
   render: () => (
     <HandleSpikeRender
       capabilities={subnetsWithoutColorsCapabilities}
-      initial={hospitalNetworkSDCPN.petriNetDefinition}
-      initialTitle={hospitalNetworkSDCPN.title}
+      initial={sirModel.petriNetDefinition}
+      initialTitle={sirModel.title}
     />
   ),
 };

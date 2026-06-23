@@ -107,7 +107,8 @@ export const LeftSideBar: React.FC = () => {
   } = use(EditorContext);
   const { extensions } = use(SDCPNContext);
 
-  const { keepPanelsMounted, useEntitiesTreeView } = use(UserSettingsContext);
+  const { keepPanelsMounted, useEntitiesTreeView, enableNetComponents } =
+    use(UserSettingsContext);
 
   // The sidebar is visible when explicitly opened OR when search is active
   const isVisible = isOpen || isSearchOpen;
@@ -125,7 +126,7 @@ export const LeftSideBar: React.FC = () => {
           return extensions.parameters;
         }
         if (subView.id === "nets-list") {
-          return extensions.subnets;
+          return extensions.subnets && enableNetComponents;
         }
         return true;
       });

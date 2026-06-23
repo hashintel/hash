@@ -4,17 +4,11 @@ import { type MenuItem } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import { calculateGraphLayout, type SDCPN } from "@hashintel/petrinaut-core";
 import {
-  airportTerminalsSDCPN,
   deploymentPipelineSDCPN,
-  hospitalNetworkSDCPN,
-  manufacturingPipelineSDCPN,
-  powerGenerationGridSDCPN,
   probabilisticSatellitesSDCPN,
   productionMachines,
-  retailSupplyChainSDCPN,
   sirModel,
   supplyChainWithDisruption,
-  taskWorkerPoolSDCPN,
 } from "@hashintel/petrinaut-core/examples";
 
 import { usePetrinautCommands } from "../../../react";
@@ -381,64 +375,6 @@ export const EditorView = ({
                       clearSelection();
                     },
                   },
-                ],
-              },
-              {
-                id: "group-subnets",
-                label: "Subnets",
-                items: [
-                  {
-                    id: "load-example-hospital-network",
-                    text: "Hospital Network",
-                    onClick: () => {
-                      createNewNet(hospitalNetworkSDCPN);
-                      clearSelection();
-                    },
-                  },
-                  ...(extensions.subnets
-                    ? [
-                        {
-                          id: "load-example-manufacturing-pipeline",
-                          text: "Manufacturing Pipeline",
-                          onClick: () => {
-                            createNewNet(manufacturingPipelineSDCPN);
-                            clearSelection();
-                          },
-                        },
-                        {
-                          id: "load-example-task-worker-pool",
-                          text: "Task Worker Pool",
-                          onClick: () => {
-                            createNewNet(taskWorkerPoolSDCPN);
-                            clearSelection();
-                          },
-                        },
-                        {
-                          id: "load-example-airport-terminals",
-                          text: "Airport Terminals",
-                          onClick: () => {
-                            createNewNet(airportTerminalsSDCPN);
-                            clearSelection();
-                          },
-                        },
-                        {
-                          id: "load-example-retail-supply-chain",
-                          text: "Retail Supply Chain",
-                          onClick: () => {
-                            createNewNet(retailSupplyChainSDCPN);
-                            clearSelection();
-                          },
-                        },
-                        {
-                          id: "load-example-power-generation-grid",
-                          text: "Power Generation Grid",
-                          onClick: () => {
-                            createNewNet(powerGenerationGridSDCPN);
-                            clearSelection();
-                          },
-                        },
-                      ]
-                    : []),
                 ],
               },
             ],
