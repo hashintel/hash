@@ -32,8 +32,22 @@ export const getArcPlaceNameOverrideKey = ({
 
 const scopeSeparator = "::";
 
-const scopedId = (path: readonly ID[], id: ID): ID =>
-  path.length === 0 ? id : [...path, id].join(scopeSeparator);
+const assertScopableId = (id: ID): void => {
+  if (id.includes(scopeSeparator)) {
+    throw new Error(
+      `SDCPN IDs used with component instances must not contain the scope separator \`${scopeSeparator}\`: \`${id}\`.`,
+    );
+  }
+};
+
+const scopedId = (path: readonly ID[], id: ID): ID => {
+  for (const part of path) {
+    assertScopableId(part);
+  }
+  assertScopableId(id);
+
+  return path.length === 0 ? id : [...path, id].join(scopeSeparator);
+};
 
 const codeIdentifier = (value: string): string => {
   const cleaned = value.replace(/[^A-Za-z0-9_$]/g, "_");
@@ -81,14 +95,48 @@ type MutableFlatSDCPN = SDCPN & {
   componentInstances: ComponentInstance[];
 };
 
+type FlatIdSets = {
+  places: Set<ID>;
+  transitions: Set<ID>;
+  types: Set<ID>;
+  differentialEquations: Set<ID>;
+  parameters: Set<ID>;
+};
+
 type FlattenContext = {
   source: SDCPN;
   target: MutableFlatSDCPN;
   parametersEnabled: boolean;
+  flatIds: FlatIdSets;
   transitionParameterValues: Map<ID, ParameterValues>;
   placeParameterValues: Map<ID, ParameterValues>;
   arcPlaceNameOverrides: Map<string, string>;
 };
+
+const assertUniqueFlatId = ({
+  ctx,
+  kind,
+  id,
+}: {
+  ctx: FlattenContext;
+  kind: keyof FlatIdSets;
+  id: ID;
+}): void => {
+  const ids = ctx.flatIds[kind];
+  if (ids.has(id)) {
+    throw new Error(
+      `Flattening component instances produced duplicate ${kind} ID \`${id}\`.`,
+    );
+  }
+  ids.add(id);
+};
+
+const netHasComponentPortArcs = (net: SDCPN | Subnet): boolean =>
+  net.transitions.some((transition) =>
+    [...transition.inputArcs, ...transition.outputArcs].some(
+      (arc) => getArcEndpoint(arc).kind === "componentPort",
+    ),
+  );
 
 const resolveComponentPortEndpoint = ({
   ctx,
@@ -107,15 +155,28 @@ const resolveComponentPortEndpoint = ({
     (candidate) => candidate.id === endpoint.componentInstanceId,
   );
   if (!instance) {
-    return null;
+    throw new Error(
+      `Arc references component instance ID \`${endpoint.componentInstanceId}\` which does not exist in the containing net.`,
+    );
   }
 
   const subnet = ctx.source.subnets?.find(({ id }) => id === instance.subnetId);
-  const port = subnet?.places.find(
-    (place) => place.id === endpoint.portPlaceId && place.isPort,
-  );
-  if (!subnet || !port) {
-    return null;
+  if (!subnet) {
+    throw new Error(
+      `Arc references component instance \`${instance.name}\`, but its subnet ID \`${instance.subnetId}\` does not exist.`,
+    );
+  }
+
+  const port = subnet.places.find((place) => place.id === endpoint.portPlaceId);
+  if (!port) {
+    throw new Error(
+      `Arc references subnet port place ID \`${endpoint.portPlaceId}\` which does not exist in subnet \`${subnet.name}\`.`,
+    );
+  }
+  if (!port.isPort) {
+    throw new Error(
+      `Arc references subnet place \`${port.name}\`, but only places marked \`isPort\` can be used as component ports.`,
+    );
   }
 
   const placeId = scopedId([...path, instance.id], endpoint.portPlaceId);
@@ -213,11 +274,13 @@ const flattenNet = ({
   ctx,
   net,
   path,
+  activeSubnetIds,
   parameterValues,
 }: {
   ctx: FlattenContext;
   net: SDCPN | Subnet;
   path: readonly ID[];
+  activeSubnetIds: readonly ID[];
   parameterValues: ParameterValues;
 }): void => {
   const typeIdMap = new Map<ID, ID>();
@@ -226,6 +289,7 @@ const flattenNet = ({
 
   for (const type of net.types) {
     const id = scopedId(path, type.id);
+    assertUniqueFlatId({ ctx, kind: "types", id });
     typeIdMap.set(type.id, id);
     ctx.target.types.push({
       ...type,
@@ -236,6 +300,7 @@ const flattenNet = ({
 
   for (const equation of net.differentialEquations) {
     const id = scopedId(path, equation.id);
+    assertUniqueFlatId({ ctx, kind: "differentialEquations", id });
     equationIdMap.set(equation.id, id);
     ctx.target.differentialEquations.push({
       ...equation,
@@ -248,11 +313,13 @@ const flattenNet = ({
 
   for (const parameter of net.parameters) {
     const id = scopedId(path, parameter.id);
+    assertUniqueFlatId({ ctx, kind: "parameters", id });
     ctx.target.parameters.push({ ...parameter, id });
   }
 
   for (const place of net.places) {
     const id = scopedId(path, place.id);
+    assertUniqueFlatId({ ctx, kind: "places", id });
     placeIdMap.set(place.id, id);
     ctx.placeParameterValues.set(id, parameterValues);
     ctx.target.places.push({
@@ -267,6 +334,7 @@ const flattenNet = ({
 
   for (const transition of net.transitions) {
     const id = scopedId(path, transition.id);
+    assertUniqueFlatId({ ctx, kind: "transitions", id });
     ctx.transitionParameterValues.set(id, parameterValues);
 
     const cloneBase: Omit<Transition, "inputArcs" | "outputArcs"> = {
@@ -308,12 +376,23 @@ const flattenNet = ({
       ({ id }) => id === instance.subnetId,
     );
     if (!subnet) {
-      continue;
+      throw new Error(
+        `Component instance \`${instance.name}\` references subnet ID \`${instance.subnetId}\` which does not exist.`,
+      );
+    }
+    if (activeSubnetIds.includes(instance.subnetId)) {
+      throw new Error(
+        `Component subnet cycle detected: ${[
+          ...activeSubnetIds,
+          instance.subnetId,
+        ].join(" -> ")}.`,
+      );
     }
     flattenNet({
       ctx,
       net: subnet,
       path: [...path, instance.id],
+      activeSubnetIds: [...activeSubnetIds, instance.subnetId],
       parameterValues: ctx.parametersEnabled
         ? deriveInstanceParameterValues(
             subnet.parameters,
@@ -335,7 +414,12 @@ export const flattenComponentInstancesForSimulation = ({
   rootParameterValues: ParameterValues;
   parametersEnabled: boolean;
 }): FlattenedSimulationDefinition => {
-  if ((sdcpn.componentInstances ?? []).length === 0) {
+  const hasRootComponentPortArcs = netHasComponentPortArcs(sdcpn);
+
+  if (
+    (sdcpn.componentInstances ?? []).length === 0 &&
+    !hasRootComponentPortArcs
+  ) {
     let hasNestedInstances = false;
     for (const subnet of sdcpn.subnets ?? []) {
       if ((subnet.componentInstances ?? []).length > 0) {
@@ -378,6 +462,13 @@ export const flattenComponentInstancesForSimulation = ({
     source: sdcpn,
     target,
     parametersEnabled,
+    flatIds: {
+      places: new Set(),
+      transitions: new Set(),
+      types: new Set(),
+      differentialEquations: new Set(),
+      parameters: new Set(),
+    },
     transitionParameterValues: new Map(),
     placeParameterValues: new Map(),
     arcPlaceNameOverrides: new Map(),
@@ -387,6 +478,7 @@ export const flattenComponentInstancesForSimulation = ({
     ctx,
     net: sdcpn,
     path: [],
+    activeSubnetIds: [],
     parameterValues: rootParameterValues,
   });
 
