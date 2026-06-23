@@ -382,7 +382,7 @@ macro_rules! body {
         $crate::body::Source::Ctor($name)
     };
     (@source intrinsic) => {
-        $crate::body::Source::Intrinsic($crate::def::DefId::PLACEHOLDER)
+        $crate::body::Source::Intrinsic($crate::intrinsic::Intrinsic { id: $crate::intrinsic::IntrinsicId::EntityPropertyAccess, optimize: true })
     };
     (@source [synthetic $name:expr]) => {
         $crate::body::Source::Synthetic($name)
