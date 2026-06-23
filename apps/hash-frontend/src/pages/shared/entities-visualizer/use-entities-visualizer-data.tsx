@@ -128,25 +128,18 @@ export const useEntitiesVisualizerData = (params: {
     [conversions, cursor, filter, limit, sort, view],
   );
 
-  // The total count is computed by a dedicated `summarizeEntities` query so it
-  // doesn't block the entity/subgraph fetch above.
-  const summarizeVariables = useMemo<SummarizeEntitiesQueryVariables>(
-    () => ({
+  const { data: summaryData } = useQuery<
+    SummarizeEntitiesQuery,
+    SummarizeEntitiesQueryVariables
+  >(summarizeEntitiesQuery, {
+    variables: {
       request: {
         filter,
         temporalAxes: currentTimeInstantTemporalAxes,
         includeDrafts: false,
         includeCount: true,
       },
-    }),
-    [filter],
-  );
-
-  const { data: summaryData } = useQuery<
-    SummarizeEntitiesQuery,
-    SummarizeEntitiesQueryVariables
-  >(summarizeEntitiesQuery, {
-    variables: summarizeVariables,
+    },
   });
 
   const { data, loading, refetch } = useQuery<
