@@ -18,10 +18,9 @@ import type { AvailableType } from "../shared/use-available-types";
 import type { FunctionComponent } from "react";
 
 type FilterRibbonProps = {
-  availableTypes: AvailableType[];
+  availableEntityTypes: AvailableType[];
   availableTypesLoading: boolean;
-  filterableProperties: FilterMetadataForProperty[];
-  propertiesLoading: boolean;
+  propertyFilterMetadata: FilterMetadataForProperty[];
   filterState: EntitiesFilterState;
   internalWebs: InternalWeb[];
   isTypePinned: boolean;
@@ -37,10 +36,9 @@ const generatePropertyFilterId = () => {
 };
 
 export const FilterRibbon: FunctionComponent<FilterRibbonProps> = ({
-  availableTypes,
+  availableEntityTypes,
   availableTypesLoading,
-  filterableProperties,
-  propertiesLoading,
+  propertyFilterMetadata,
   filterState,
   internalWebs,
   isTypePinned,
@@ -107,7 +105,7 @@ export const FilterRibbon: FunctionComponent<FilterRibbonProps> = ({
       />
       {!isTypePinned && (
         <TypeFilterPill
-          availableTypes={availableTypes}
+          availableTypes={availableEntityTypes}
           loading={availableTypesLoading}
           typeState={filterState.type}
           setTypeState={(updater) =>
@@ -143,8 +141,8 @@ export const FilterRibbon: FunctionComponent<FilterRibbonProps> = ({
       <AddFiltersMenu
         canAddIncludeArchived={!filterState.includeArchived}
         onAddIncludeArchived={() => setIncludeArchived(true)}
-        filterableProperties={filterableProperties}
-        propertiesLoading={propertiesLoading}
+        filterableProperties={propertyFilterMetadata}
+        propertiesLoading={availableTypesLoading}
         onAddPropertyFilter={handleAddPropertyFilter}
       />
     </Box>

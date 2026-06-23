@@ -12,12 +12,10 @@ import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-id
 
 import { useEntityTypesContextRequired } from "../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { HEADER_HEIGHT } from "../../shared/layout/layout-with-header/page-header";
-import { usePropertyTypes } from "../../shared/property-types-context";
 import { tableContentSx } from "../../shared/table-content";
 import { BulkActionsDropdown } from "../../shared/table-header/bulk-actions-dropdown";
 import { useMemoCompare } from "../../shared/use-memo-compare";
 import { useAuthenticatedUser } from "./auth-info-context";
-import { useDataTypesContext } from "./data-types-context";
 import {
   EntitiesTable,
   toolbarHeight,
@@ -30,8 +28,7 @@ import {
   visualizerHeaderHeight,
 } from "./entities-visualizer/header";
 import { createDefaultFilterState } from "./entities-visualizer/shared/filter-state";
-import { deriveFilterableProperties } from "./entities-visualizer/shared/property-filters/derive-filterable-properties";
-import { useAvailableTypes } from "./entities-visualizer/shared/use-available-types";
+import { useAvailableTypesAndCount } from "./entities-visualizer/shared/use-available-types";
 import { useEntitiesVisualizerData } from "./entities-visualizer/use-entities-visualizer-data";
 import { EntityGraphVisualizer } from "./entity-graph-visualizer";
 import { useSlideStack } from "./slide-stack";
@@ -151,6 +148,8 @@ export const EntitiesVisualizer: FunctionComponent<{
   const theme = useTheme();
 
   const { authenticatedUser } = useAuthenticatedUser();
+
+  const { isSpecialEntityTypeLookup } = useEntityTypesContextRequired();
 
   const internalWebs = useMemoCompare(
     () => {
@@ -276,14 +275,11 @@ export const EntitiesVisualizer: FunctionComponent<{
   const [visualizerData, setVisualizerData] = useState(entitiesData);
 
   const {
-    count: totalCountFromEntityRequest,
     cursor: nextCursor,
     definitions,
     entities,
     closedMultiEntityTypes: closedMultiEntityTypesRootMap,
     subgraph,
-    typeIds,
-    webIds,
   } = visualizerData;
 
   const closedMultiEntityTypes = useMemo(() => {
@@ -308,35 +304,6 @@ export const EntitiesVisualizer: FunctionComponent<{
 
     return relevantTypes;
   }, [entities, definitions, closedMultiEntityTypesRootMap]);
-
-  const { dataTypes } = useDataTypesContext();
-  const { propertyTypes } = usePropertyTypes({ includeArchived: true });
-  const { entityTypes, entityTypeParentIds, isSpecialEntityTypeLookup } =
-    useEntityTypesContextRequired();
-
-  /**
-   * The properties offered in the property-filter picker, derived from all
-   * entity types matching the current result set, including their parents.
-   */
-  const filterableProperties = useMemo(() => {
-    if (
-      !dataTypes ||
-      !entityTypes ||
-      !entityTypeParentIds ||
-      !propertyTypes ||
-      !typeIds
-    ) {
-      return [];
-    }
-
-    return deriveFilterableProperties({
-      dataTypes,
-      entityTypeIds: Object.keys(typeIds) as VersionedUrl[],
-      entityTypeParentIds,
-      entityTypes,
-      propertyTypes,
-    });
-  }, [dataTypes, entityTypeParentIds, entityTypes, propertyTypes, typeIds]);
 
   const activeConversions = useMemo(() => {
     return activeConversionsWithoutTitle
@@ -379,7 +346,17 @@ export const EntitiesVisualizer: FunctionComponent<{
     }
   }, [entitiesData]);
 
-  const totalResultCount = totalCountFromEntityRequest ?? null;
+  const {
+    availableEntityTypes,
+    count: totalResultCount,
+    propertyFilterData,
+    loading: availableTypesLoading,
+  } = useAvailableTypesAndCount({
+    filterState,
+    internalWebs,
+    entityTypeBaseUrl,
+    entityTypeIds: entityTypeId ? [entityTypeId] : undefined,
+  });
 
   const isDisplayingFilesOnly = useMemo(
     () =>
@@ -500,14 +477,6 @@ export const EntitiesVisualizer: FunctionComponent<{
 
   const isTypePinned = !!entityTypeBaseUrl || !!entityTypeId;
 
-  const { types: availableTypes, loading: availableTypesLoading } =
-    useAvailableTypes({
-      filterState,
-      internalWebs,
-      entityTypeBaseUrl,
-      entityTypeIds: entityTypeId ? [entityTypeId] : undefined,
-    });
-
   const selectedEntities = useMemo(() => {
     if (view !== "Table" || selectedTableRows.length === 0 || !entities) {
       return [];
@@ -540,12 +509,9 @@ export const EntitiesVisualizer: FunctionComponent<{
             />
           ) : (
             <FilterRibbon
-              availableTypes={availableTypes}
+              availableEntityTypes={availableEntityTypes}
               availableTypesLoading={availableTypesLoading}
-              filterableProperties={filterableProperties}
-              propertiesLoading={
-                dataLoading && filterableProperties.length === 0
-              }
+              propertyFilterMetadata={propertyFilterData}
               filterState={filterState}
               internalWebs={internalWebs}
               isTypePinned={isTypePinned}
@@ -627,7 +593,6 @@ export const EntitiesVisualizer: FunctionComponent<{
           subgraph={subgraph}
           tableData={visualizerData.tableData}
           totalResultCount={totalResultCount}
-          webIds={webIds}
         />
       )}
     </Box>

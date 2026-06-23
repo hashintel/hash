@@ -37,13 +37,7 @@ import type {
 export type EntitiesVisualizerData = Partial<
   Pick<
     QueryEntitySubgraphQuery["queryEntitySubgraph"],
-    | "closedMultiEntityTypes"
-    | "count"
-    | "definitions"
-    | "cursor"
-    | "typeIds"
-    | "typeTitles"
-    | "webIds"
+    "closedMultiEntityTypes" | "definitions" | "cursor"
   >
 > & {
   entities?: HashEntity[];
@@ -102,10 +96,6 @@ export const useEntitiesVisualizerData = (params: {
         conversions,
         cursor,
         limit,
-        includeCount: true,
-        includeTypeIds: true,
-        includeTypeTitles: true,
-        includeWebIds: true,
         filter: buildEntitiesFilter({
           filterState,
           internalWebIds,

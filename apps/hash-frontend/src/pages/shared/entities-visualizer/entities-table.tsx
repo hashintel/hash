@@ -97,7 +97,7 @@ const emptyTableData: EntitiesTableData = {
 };
 
 export const EntitiesTable: FunctionComponent<
-  Pick<EntitiesVisualizerData, "subgraph" | "webIds"> & {
+  Pick<EntitiesVisualizerData, "subgraph"> & {
     activeConversions: {
       [columnBaseUrl: BaseUrl]: {
         dataTypeId: VersionedUrl;
@@ -153,7 +153,6 @@ export const EntitiesTable: FunctionComponent<
   sort,
   tableData,
   totalResultCount,
-  webIds,
 }) => {
   const router = useRouter();
 
@@ -196,19 +195,20 @@ export const EntitiesTable: FunctionComponent<
     }, [actors]);
 
   const webNameByWebId = useMemo(() => {
-    if (!webIds) {
+    if (!rows.length) {
       return {};
     }
 
     const webNameByOwner: Record<WebId, string> = {};
 
-    for (const webId of typedKeys(webIds)) {
+    const webIds = rows.map((row) => row.webId);
+    for (const webId of webIds) {
       const owner = getOwnerForEntity({ webId });
       webNameByOwner[webId] = owner.shortname;
     }
 
     return webNameByOwner;
-  }, [getOwnerForEntity, webIds]);
+  }, [getOwnerForEntity, rows]);
 
   const visibleDataTypeIds = useMemoCompare(
     () => {

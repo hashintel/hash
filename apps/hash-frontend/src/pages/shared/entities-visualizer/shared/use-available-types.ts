@@ -4,13 +4,18 @@ import { useMemo } from "react";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 
 import { queryEntitySubgraphQuery } from "../../../../graphql/queries/knowledge/entity.queries";
+import { useEntityTypesContextRequired } from "../../../../shared/entity-types-context/hooks/use-entity-types-context-required";
+import { usePropertyTypes } from "../../../../shared/property-types-context";
+import { useDataTypesContext } from "../../data-types-context";
 import { buildEntitiesFilter } from "./build-filter";
+import { deriveFilterableProperties } from "./property-filters/derive-filterable-properties";
 
 import type {
   QueryEntitySubgraphQuery,
   QueryEntitySubgraphQueryVariables,
 } from "../../../../graphql/api-types.gen";
 import type { EntitiesFilterState } from "./filter-state";
+import type { FilterMetadataForProperty } from "./property-filters/property-filter";
 import type { BaseUrl, VersionedUrl, WebId } from "@blockprotocol/type-system";
 
 export type AvailableType = {
@@ -19,7 +24,7 @@ export type AvailableType = {
   count: number;
 };
 
-export const useAvailableTypes = ({
+export const useAvailableTypesAndCount = ({
   filterState,
   internalWebs,
   entityTypeBaseUrl,
@@ -29,13 +34,17 @@ export const useAvailableTypes = ({
   internalWebs: { webId: WebId }[];
   entityTypeBaseUrl?: BaseUrl;
   entityTypeIds?: VersionedUrl[];
-}): { types: AvailableType[]; loading: boolean } => {
-  const skip = !!entityTypeBaseUrl || !!entityTypeIds?.length;
+}): {
+  count: number | null;
+  availableEntityTypes: AvailableType[];
+  propertyFilterData: FilterMetadataForProperty[];
+  loading: boolean;
+} => {
+  const { entityTypes, entityTypeParentIds } = useEntityTypesContextRequired();
+  const { dataTypes } = useDataTypesContext();
+  const { propertyTypes } = usePropertyTypes();
 
-  const internalWebIds = useMemo(
-    () => internalWebs.map(({ webId }) => webId),
-    [internalWebs],
-  );
+  const skip = !!entityTypeBaseUrl || !!entityTypeIds?.length;
 
   const filter = useMemo(
     () =>
@@ -46,9 +55,9 @@ export const useAvailableTypes = ({
           includeArchived: filterState.includeArchived,
           propertyFilters: [],
         },
-        internalWebIds,
+        internalWebIds: internalWebs.map(({ webId }) => webId),
       }),
-    [filterState, internalWebIds],
+    [filterState, internalWebs],
   );
 
   const { data, loading } = useQuery<
@@ -71,13 +80,18 @@ export const useAvailableTypes = ({
     },
   });
 
-  const types = useMemo<AvailableType[]>(() => {
+  const { availableEntityTypes, propertyFilterData } = useMemo<{
+    availableEntityTypes: AvailableType[];
+    propertyFilterData: FilterMetadataForProperty[];
+  }>(() => {
     if (skip || !data) {
-      return [];
+      return { availableEntityTypes: [], propertyFilterData: [] };
     }
+
     const typeIds = data.queryEntitySubgraph.typeIds ?? {};
     const typeTitles = data.queryEntitySubgraph.typeTitles ?? {};
-    return Object.entries(typeIds)
+
+    const availableTypes = Object.entries(typeIds)
       .map(([entityTypeId, count]) => {
         const versionedUrl = entityTypeId as VersionedUrl;
         return {
@@ -87,7 +101,33 @@ export const useAvailableTypes = ({
         };
       })
       .sort((a, b) => a.title.localeCompare(b.title));
-  }, [data, skip]);
 
-  return { types, loading: skip ? false : loading };
+    if (!dataTypes || !entityTypes || !entityTypeParentIds || !propertyTypes) {
+      return { availableEntityTypes: availableTypes, propertyFilterData: [] };
+    }
+
+    /**
+     * The properties offered in the property-filter picker, derived from all
+     * entity types matching the current result set, including their parents.
+     */
+    const availableProperties = deriveFilterableProperties({
+      dataTypes,
+      entityTypeIds: Object.keys(typeIds) as VersionedUrl[],
+      entityTypeParentIds,
+      entityTypes,
+      propertyTypes,
+    });
+
+    return {
+      availableEntityTypes: availableTypes,
+      propertyFilterData: availableProperties,
+    };
+  }, [data, dataTypes, entityTypeParentIds, entityTypes, propertyTypes, skip]);
+
+  return {
+    count: data?.queryEntitySubgraph.count ?? null,
+    availableEntityTypes,
+    propertyFilterData,
+    loading: skip ? false : loading,
+  };
 };
