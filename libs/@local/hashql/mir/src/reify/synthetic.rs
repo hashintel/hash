@@ -33,7 +33,7 @@ use crate::{
     reify::unwrap_closure_type,
 };
 
-/// Constructs a `&'static [Symbol<'static>]` path from `::` separated segments.
+/// Constructs a `&'static [ConstantSymbol]` path from `::` separated segments.
 ///
 /// Each segment maps to the corresponding `sym::` constant.
 ///
@@ -315,7 +315,7 @@ impl<'syn, A: Allocator, S: Allocator> SyntheticBuilder<'syn, '_, '_, '_, '_, '_
     }
 
     fn build_binary(&mut self, name: ConstantSymbol, op: BinOp) -> (TypeId, DefId) {
-        let closure_type_id = self
+        let mut closure_type_id = self
             .context
             .hir
             .map
@@ -325,6 +325,7 @@ impl<'syn, A: Allocator, S: Allocator> SyntheticBuilder<'syn, '_, '_, '_, '_, '_
         // Thunking wraps the qualified variable type as `() -> ClosureType`.
         // If we see a no-arg closure, unwrap its return type to get the actual signature.
         let closure_type = if closure_type.params.is_empty() {
+            closure_type_id = closure_type.returns;
             unwrap_closure_type(closure_type.returns, self.context.mir.env)
         } else {
             closure_type
@@ -416,7 +417,7 @@ impl<'syn, A: Allocator, S: Allocator> SyntheticBuilder<'syn, '_, '_, '_, '_, '_
     }
 
     fn build_unary(&mut self, name: ConstantSymbol, op: UnOp) -> (TypeId, DefId) {
-        let closure_type_id = self
+        let mut closure_type_id = self
             .context
             .hir
             .map
@@ -426,6 +427,7 @@ impl<'syn, A: Allocator, S: Allocator> SyntheticBuilder<'syn, '_, '_, '_, '_, '_
         // Thunking wraps the qualified variable type as `() -> ClosureType`.
         // If we see a no-arg closure, unwrap its return type to get the actual signature.
         let closure_type = if closure_type.params.is_empty() {
+            closure_type_id = closure_type.returns;
             unwrap_closure_type(closure_type.returns, self.context.mir.env)
         } else {
             closure_type
