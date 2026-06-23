@@ -7,6 +7,7 @@ import { ActiveNetContext } from "../../../../../react/state/active-net-context"
 import { EditorContext } from "../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
 import { useIsReadOnly } from "../../../../../react/state/use-is-read-only";
+import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
 import { ToolbarButton } from "./toolbar-button";
 import { ToolbarDivider } from "./toolbar-divider";
 
@@ -179,6 +180,7 @@ export const ToolbarModes: React.FC<ToolbarModesProps> = ({
   const { activeSubnetId } = use(ActiveNetContext);
   const isRootNet = activeSubnetId === null;
   const { extensions } = use(SDCPNContext);
+  const { enableNetComponents } = use(UserSettingsContext);
 
   return (
     <>
@@ -219,7 +221,7 @@ export const ToolbarModes: React.FC<ToolbarModesProps> = ({
           >
             <Icon name="squarePlus" />
           </ToolbarButton>
-          {isRootNet && extensions.subnets && (
+          {isRootNet && extensions.subnets && enableNetComponents && (
             <ComponentDropdown editionMode={editionMode} />
           )}
         </>

@@ -326,56 +326,44 @@ export const EditorView = ({
             text: "Load example",
             subItems: [
               {
-                id: "group-getting-started",
-                label: "Getting started",
-                items: [
-                  {
-                    id: "load-example-sir-model",
-                    text: "SIR Model",
-                    onClick: () => {
-                      createNewNet(sirModel);
-                      clearSelection();
-                    },
-                  },
-                ],
+                id: "load-example-sir-model",
+                text: "SIR Model",
+                onClick: () => {
+                  createNewNet(sirModel);
+                  clearSelection();
+                },
               },
               {
-                id: "group-stochastic",
-                label: "Stochastic",
-                items: [
-                  {
-                    id: "load-example-deployment-pipeline",
-                    text: "Deployment Pipeline",
-                    onClick: () => {
-                      createNewNet(deploymentPipelineSDCPN);
-                      clearSelection();
-                    },
-                  },
-                  {
-                    id: "load-example-production-machines",
-                    text: "Production with Machine Failure",
-                    onClick: () => {
-                      createNewNet(productionMachines);
-                      clearSelection();
-                    },
-                  },
-                  {
-                    id: "load-example-supply-chain-stochastic",
-                    text: "Supply Chain with Disruption",
-                    onClick: () => {
-                      createNewNet(supplyChainWithDisruption);
-                      clearSelection();
-                    },
-                  },
-                  {
-                    id: "load-example-probabilistic-satellites",
-                    text: "Probabilistic Satellite Launcher",
-                    onClick: () => {
-                      createNewNet(probabilisticSatellitesSDCPN);
-                      clearSelection();
-                    },
-                  },
-                ],
+                id: "load-example-deployment-pipeline",
+                text: "Deployment Pipeline",
+                onClick: () => {
+                  createNewNet(deploymentPipelineSDCPN);
+                  clearSelection();
+                },
+              },
+              {
+                id: "load-example-production-machines",
+                text: "Production with Machine Failure",
+                onClick: () => {
+                  createNewNet(productionMachines);
+                  clearSelection();
+                },
+              },
+              {
+                id: "load-example-supply-chain-stochastic",
+                text: "Supply Chain with Disruption",
+                onClick: () => {
+                  createNewNet(supplyChainWithDisruption);
+                  clearSelection();
+                },
+              },
+              {
+                id: "load-example-probabilistic-satellites",
+                text: "Probabilistic Satellite Launcher",
+                onClick: () => {
+                  createNewNet(probabilisticSatellitesSDCPN);
+                  clearSelection();
+                },
               },
             ],
           },
