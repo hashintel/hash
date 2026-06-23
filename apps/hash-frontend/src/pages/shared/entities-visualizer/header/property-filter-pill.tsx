@@ -116,12 +116,12 @@ export const PropertyFilterPill: FunctionComponent<PropertyFilterPillProps> = ({
     }
   };
 
-  // Closed-pill display reflects the committed filter (not the unsaved buffer).
+  // Closed-pill display reflects only committed filters
   const descriptor = getOperatorDescriptor(filter.kind, filter.operator);
   const requiresValue = descriptor?.requiresValue ?? false;
   const connector = descriptor?.pillConnector ?? "";
 
-  const active = isPropertyFilterActive(filter);
+  const active = mode === "edit" && isPropertyFilterActive(filter);
 
   const displayValue = filter.value ?? "";
 
