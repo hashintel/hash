@@ -1,15 +1,15 @@
+import { getArcEndpoint } from "../../arc-endpoints";
 import {
+  createArcPlaceResolver,
   DEFAULT_PETRINAUT_EXTENSIONS,
   getEffectiveTransitionLambdaType,
+  getTransitionLogicAvailability,
   type PetrinautExtensionSettings,
 } from "../../extensions";
 import { getItemFilePath } from "./file-paths";
-import {
-  createArcPlaceResolver,
-  getTransitionCodeAvailability,
-} from "./transition-code-availability";
 
 import type { SDCPN, ScenarioParameter } from "../../types/sdcpn";
+import type { InputArc, OutputArc } from "../../types/sdcpn";
 import type { VirtualFile } from "./create-language-service-host";
 
 /**
@@ -26,6 +26,47 @@ function sanitizeColorId(colorId: string): string {
  */
 function toTsType(type: "real" | "integer" | "boolean" | "ratio"): string {
   return type === "boolean" ? "boolean" : "number";
+}
+
+/**
+ * Scope separator for component instance place names
+ */
+const SCOPE_SEPARATOR = "::";
+
+/**
+ * Gets the display name for a place referenced by an arc, using scoped names for component ports.
+ * For component port arcs: returns "InstanceName::PlaceName"
+ * For regular place arcs: returns the place name as-is
+ */
+function getPlaceDisplayNameForArc(
+  arc: InputArc | OutputArc,
+  sdcpn: SDCPN,
+): string {
+  const endpoint = getArcEndpoint(arc);
+
+  if (endpoint.kind === "place") {
+    // Regular place arc - use the place name directly
+    const place = sdcpn.places.find((p) => p.id === endpoint.placeId);
+    return place?.name ?? endpoint.placeId;
+  }
+
+  // Component port arc - use scoped name format
+  const instance = sdcpn.componentInstances?.find(
+    (i) => i.id === endpoint.componentInstanceId,
+  );
+  const subnet = instance
+    ? sdcpn.subnets?.find((s) => s.id === instance.subnetId)
+    : undefined;
+  const portPlace = subnet?.places.find(
+    (p) => p.id === endpoint.portPlaceId && p.isPort,
+  );
+
+  if (instance && portPlace) {
+    return `${instance.name}${SCOPE_SEPARATOR}${portPlace.name}`;
+  }
+
+  // Fallback to place ID if we can't resolve the place
+  return endpoint.componentInstanceId + SCOPE_SEPARATOR + endpoint.portPlaceId;
 }
 
 /**
@@ -63,7 +104,9 @@ export function generateVirtualFiles(
     : [];
   // Deduplicate by ID (last definition wins if the same ID appears in multiple subnets).
   const colorById = new Map(allColors.map((color) => [color.id, color]));
-  const resolveArcPlace = createArcPlaceResolver(sdcpn);
+  const resolveArcPlace = createArcPlaceResolver(sdcpn, sdcpn, {
+    componentPortsEnabled: extensions.subnets,
+  });
 
   // Generate parameters type definition
   const parametersProperties = (extensions.parameters ? sdcpn.parameters : [])
@@ -133,11 +176,11 @@ export function generateVirtualFiles(
 
   // Generate files for each transition
   for (const transition of sdcpn.transitions) {
-    const availability = getTransitionCodeAvailability({
+    const availability = getTransitionLogicAvailability(
       transition,
       sdcpn,
       extensions,
-    });
+    );
 
     const parametersDefsPath = getItemFilePath("parameters-defs");
     const lambdaDefsPath = getItemFilePath("transition-lambda-defs", {
@@ -186,7 +229,8 @@ export function generateVirtualFiles(
       const tokenTuple = Array.from({ length: arc.weight })
         .fill(`Color_${sanitizedColorId}`)
         .join(", ");
-      inputTypeProperties.push(`  "${place.name}": [${tokenTuple}];`);
+      const placeDisplayName = getPlaceDisplayNameForArc(arc, sdcpn);
+      inputTypeProperties.push(`  "${placeDisplayName}": [${tokenTuple}];`);
     }
 
     // Build output type: { [placeName]: [Token, Token, ...] } based on output arcs.
@@ -222,7 +266,8 @@ export function generateVirtualFiles(
             : `Color_${sanitizedColorId}`,
         )
         .join(", ");
-      outputTypeProperties.push(`  "${place.name}": [${tokenTuple}];`);
+      const placeDisplayName = getPlaceDisplayNameForArc(arc, sdcpn);
+      outputTypeProperties.push(`  "${placeDisplayName}": [${tokenTuple}];`);
     }
 
     const allImports = [...inputTypeImports, ...outputTypeImports];

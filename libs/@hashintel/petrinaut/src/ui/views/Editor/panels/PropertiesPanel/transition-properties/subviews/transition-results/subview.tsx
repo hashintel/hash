@@ -4,7 +4,7 @@ import { Button, Icon, Menu, Tooltip } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import {
   generateDefaultTransitionKernelCode,
-  getArcEndpointPlaceId,
+  getArcEndpoint,
 } from "@hashintel/petrinaut-core";
 
 import { EditorContext } from "../../../../../../../../react/state/editor-context";
@@ -14,6 +14,13 @@ import { getDocumentUri } from "../../../../../../../monaco/editor-paths";
 import { useTransitionPropertiesContext } from "../../context";
 
 import type { SubView } from "../../../../../../../components/sub-view/types";
+import type {
+  Color,
+  InputArc,
+  OutputArc,
+  Place,
+  SDCPN,
+} from "@hashintel/petrinaut-core";
 
 const aiMenuItemStyle = css({
   display: "flex",
@@ -28,8 +35,45 @@ const contentStyle = css({
   minHeight: "[0]",
 });
 
+const getTypeById = ({ sdcpn, types }: { sdcpn: SDCPN; types: Color[] }) =>
+  new Map(
+    [
+      ...sdcpn.types,
+      ...(sdcpn.subnets ?? []).flatMap((subnet) => subnet.types),
+      ...types,
+    ].map((type) => [type.id, type]),
+  );
+
+const createTransitionArcPlaceResolver = (
+  sdcpn: SDCPN,
+  net: { places: Place[]; componentInstances?: SDCPN["componentInstances"] },
+): ((arc: InputArc | OutputArc) => Place | undefined) => {
+  const placeById = new Map(net.places.map((place) => [place.id, place]));
+  const subnetById = new Map(
+    (sdcpn.subnets ?? []).map((subnet) => [subnet.id, subnet]),
+  );
+  const instanceById = new Map(
+    (net.componentInstances ?? []).map((instance) => [instance.id, instance]),
+  );
+
+  return (arc) => {
+    const endpoint = getArcEndpoint(arc);
+
+    if (endpoint.kind === "place") {
+      return placeById.get(endpoint.placeId);
+    }
+
+    const instance = instanceById.get(endpoint.componentInstanceId);
+    const subnet = instance ? subnetById.get(instance.subnetId) : undefined;
+
+    return subnet?.places.find(
+      (place) => place.id === endpoint.portPlaceId && place.isPort,
+    );
+  };
+};
+
 const ResultsHeaderAction: React.FC = () => {
-  const { logicAvailability, transition, places, types, updateTransition } =
+  const { logicAvailability, transition, sdcpn, net, types, updateTransition } =
     useTransitionPropertiesContext();
   const { globalMode } = use(EditorContext);
 
@@ -53,19 +97,24 @@ const ResultsHeaderAction: React.FC = () => {
           id: "load-default",
           text: "Load default template",
           onClick: () => {
+            const resolveArcPlace = createTransitionArcPlaceResolver(
+              sdcpn,
+              net,
+            );
+            const typeById = getTypeById({ sdcpn, types });
+
             const inputs = transition.inputArcs
+              .filter((arc) => arc.type !== "inhibitor")
               .map((arc) => {
-                const placeId = getArcEndpointPlaceId(arc);
-                const place = placeId
-                  ? places.find((p) => p.id === placeId)
-                  : null;
-                if (!place || !place.colorId) {
+                const place = resolveArcPlace(arc);
+                const type = place?.colorId
+                  ? typeById.get(place.colorId)
+                  : undefined;
+
+                if (!place || !type) {
                   return null;
                 }
-                const type = types.find((t) => t.id === place.colorId);
-                if (!type) {
-                  return null;
-                }
+
                 return {
                   placeName: place.name,
                   type,
@@ -76,17 +125,15 @@ const ResultsHeaderAction: React.FC = () => {
 
             const outputs = transition.outputArcs
               .map((arc) => {
-                const placeId = getArcEndpointPlaceId(arc);
-                const place = placeId
-                  ? places.find((p) => p.id === placeId)
-                  : null;
-                if (!place || !place.colorId) {
+                const place = resolveArcPlace(arc);
+                const type = place?.colorId
+                  ? typeById.get(place.colorId)
+                  : undefined;
+
+                if (!place || !type) {
                   return null;
                 }
-                const type = types.find((t) => t.id === place.colorId);
-                if (!type) {
-                  return null;
-                }
+
                 return {
                   placeName: place.name,
                   type,
@@ -141,9 +188,13 @@ const TransitionResultsContent: React.FC = () => {
         value={transition.transitionKernelCode || ""}
         height="100%"
         onChange={(value) => {
+          if (value === undefined) {
+            return;
+          }
+
           updateTransition({
             transitionId: transition.id,
-            update: { transitionKernelCode: value ?? "" },
+            update: { transitionKernelCode: value },
           });
         }}
         options={{ readOnly: isReadOnly }}

@@ -226,7 +226,7 @@ describe("flattenComponentInstancesForSimulation", () => {
           placeId: "worker::port-in",
         }),
       ),
-    ).toBe("Worker_Port_In");
+    ).toBe("Worker::Port In");
   });
 
   it("flattens multiple instances of the same subnet with distinct parameter values", () => {

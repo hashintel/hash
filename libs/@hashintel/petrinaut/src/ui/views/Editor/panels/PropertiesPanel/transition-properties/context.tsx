@@ -4,12 +4,20 @@ import type { PetrinautMutations } from "../../../../../../react";
 import type {
   Color,
   Place,
+  SDCPN,
   Transition,
   TransitionLogicAvailability,
 } from "@hashintel/petrinaut-core";
 
+export type TransitionLogicNet = {
+  places: Place[];
+  componentInstances?: SDCPN["componentInstances"];
+};
+
 interface TransitionPropertiesContextValue {
   transition: Transition;
+  sdcpn: SDCPN;
+  net: TransitionLogicNet;
   places: Place[];
   types: Color[];
   logicAvailability: TransitionLogicAvailability;
@@ -36,6 +44,8 @@ export const useTransitionPropertiesContext =
 
 interface TransitionPropertiesProviderProps {
   transition: Transition;
+  sdcpn: SDCPN;
+  net: TransitionLogicNet;
   places: Place[];
   types: Color[];
   logicAvailability: TransitionLogicAvailability;
@@ -51,6 +61,8 @@ export const TransitionPropertiesProvider: React.FC<
   TransitionPropertiesProviderProps
 > = ({
   transition,
+  sdcpn,
+  net,
   places,
   types,
   logicAvailability,
@@ -65,6 +77,8 @@ export const TransitionPropertiesProvider: React.FC<
     <TransitionPropertiesContext
       value={{
         transition,
+        sdcpn,
+        net,
         places,
         types,
         logicAvailability,

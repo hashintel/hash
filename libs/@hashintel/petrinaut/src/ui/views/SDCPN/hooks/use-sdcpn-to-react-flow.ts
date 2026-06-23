@@ -87,8 +87,9 @@ export function useSdcpnToReactFlow(): PetrinautReactFlowDefinitionObject {
     const draggingState = draggingStateByNodeId[transition.id];
     const logicAvailability = getTransitionLogicAvailability(
       transition,
-      petriNetDefinition,
+      fullSdcpn,
       extensions,
+      petriNetDefinition,
     );
 
     nodes.push({

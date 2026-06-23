@@ -437,7 +437,7 @@ describe("buildSimulation", () => {
     expect(simulation.compiledTransitions.get("send")?.outputPlaces).toEqual([
       {
         placeId: "processor-1::port-in",
-        placeName: "Processor_1_Port_In",
+        placeName: "Processor 1::Port In",
         weight: 1,
         elementNames: null,
       },
@@ -445,7 +445,7 @@ describe("buildSimulation", () => {
     expect(simulation.compiledTransitions.get("receive")?.inputPlaces).toEqual([
       {
         placeId: "processor-1::port-out",
-        placeName: "Processor_1_Port_Out",
+        placeName: "Processor 1::Port Out",
         weight: 1,
         arcType: "standard",
         elementNames: null,

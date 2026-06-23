@@ -411,7 +411,7 @@ describe("checkSDCPN", () => {
               ],
               outputArcs: [],
               lambdaCode: `export default Lambda((input) => {
-                return input.PortIn[0].missing > 0;
+                return input["Instance 1::PortIn"][0].missing > 0;
               });`,
             },
           ],
@@ -793,7 +793,7 @@ describe("checkSDCPN", () => {
                 },
               ],
               transitionKernelCode: `export default TransitionKernel(() => {
-                return { PortOut: [{ x: "not a number" }] };
+                return { "Instance 1::PortOut": [{ x: "not a number" }] };
               });`,
             },
           ],

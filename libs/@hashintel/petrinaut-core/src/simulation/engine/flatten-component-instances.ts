@@ -57,13 +57,13 @@ const codeIdentifier = (value: string): string => {
   return `_${cleaned}`;
 };
 
-const endpointPlaceName = ({
+const scopedPortPlaceName = ({
   instance,
   portName,
 }: {
   instance: ComponentInstance;
   portName: string;
-}): string => codeIdentifier(`${instance.name}_${portName}`);
+}): string => `${instance.name}${scopeSeparator}${portName}`;
 
 const coerceParameterValue = (
   parameter: Parameter,
@@ -185,7 +185,7 @@ const resolveComponentPortEndpoint = ({
       transitionId: mappedTransitionId,
       placeId,
     }),
-    endpointPlaceName({ instance, portName: port.name }),
+    scopedPortPlaceName({ instance, portName: port.name }),
   );
   return placeId;
 };

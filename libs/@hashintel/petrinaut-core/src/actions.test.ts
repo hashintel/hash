@@ -282,6 +282,200 @@ describe("Petrinaut core actions", () => {
     });
   });
 
+  test("loads default transition kernel code when adding a typed output arc", () => {
+    const instance = createInstance({
+      ...emptySDCPN,
+      types: [
+        {
+          id: "type-1",
+          name: "Particle",
+          iconSlug: "circle",
+          displayColor: "#34a0fa",
+          elements: [{ elementId: "element-1", name: "Mass", type: "real" }],
+        },
+      ],
+      places: [
+        {
+          id: "place-1",
+          name: "Output",
+          colorId: "type-1",
+          dynamicsEnabled: false,
+          differentialEquationId: null,
+          x: 100,
+          y: 0,
+        },
+      ],
+      transitions: [
+        {
+          id: "transition-1",
+          name: "Move",
+          inputArcs: [],
+          outputArcs: [],
+          lambdaType: "predicate",
+          lambdaCode: "",
+          transitionKernelCode: "",
+          x: 50,
+          y: 0,
+        },
+      ],
+    });
+
+    instance.mutations.addArc({
+      transitionId: "transition-1",
+      arcDirection: "output",
+      placeId: "place-1",
+      weight: 2,
+    });
+
+    const transitionKernelCode =
+      instance.definition.get().transitions[0]!.transitionKernelCode;
+
+    expect(transitionKernelCode).toContain("export default TransitionKernel");
+    expect(transitionKernelCode).toContain("Output: [");
+    expect(transitionKernelCode.match(/Mass: 0/g)).toHaveLength(2);
+  });
+
+  test("loads default transition kernel code for typed component-port outputs", () => {
+    const instance = createInstance({
+      ...emptySDCPN,
+      transitions: [
+        {
+          id: "transition-1",
+          name: "Move",
+          inputArcs: [],
+          outputArcs: [],
+          lambdaType: "predicate",
+          lambdaCode: "",
+          transitionKernelCode: "",
+          x: 50,
+          y: 0,
+        },
+      ],
+      componentInstances: [
+        {
+          id: "instance-1",
+          name: "Reusable instance",
+          subnetId: "subnet-1",
+          parameterValues: {},
+          x: 100,
+          y: 100,
+        },
+      ],
+      subnets: [
+        {
+          id: "subnet-1",
+          name: "Reusable subnet",
+          places: [
+            {
+              id: "place-output-port",
+              name: "PortOutput",
+              colorId: "type-1",
+              dynamicsEnabled: false,
+              differentialEquationId: null,
+              isPort: true,
+              x: 100,
+              y: 0,
+            },
+          ],
+          transitions: [],
+          types: [
+            {
+              id: "type-1",
+              name: "Particle",
+              iconSlug: "circle",
+              displayColor: "#34a0fa",
+              elements: [
+                { elementId: "element-1", name: "Mass", type: "real" },
+              ],
+            },
+          ],
+          differentialEquations: [],
+          parameters: [],
+          componentInstances: [],
+        },
+      ],
+    });
+
+    instance.mutations.addArc({
+      transitionId: "transition-1",
+      arcDirection: "output",
+      endpoint: {
+        kind: "componentPort",
+        componentInstanceId: "instance-1",
+        portPlaceId: "place-output-port",
+      },
+      weight: 1,
+    });
+
+    const transitionKernelCode =
+      instance.definition.get().transitions[0]!.transitionKernelCode;
+
+    expect(transitionKernelCode).toContain("export default TransitionKernel");
+    expect(transitionKernelCode).toContain("PortOutput: [");
+    expect(transitionKernelCode).toContain("Mass: 0");
+  });
+
+  test("does not replace existing transition kernel code when adding a typed output arc", () => {
+    const existingKernelCode =
+      "export default TransitionKernel(() => ({ Output: [{ Mass: 42 }] }));";
+    const instance = createInstance({
+      ...emptySDCPN,
+      types: [
+        {
+          id: "type-1",
+          name: "Particle",
+          iconSlug: "circle",
+          displayColor: "#34a0fa",
+          elements: [{ elementId: "element-1", name: "Mass", type: "real" }],
+        },
+      ],
+      places: [
+        {
+          id: "place-1",
+          name: "Output",
+          colorId: "type-1",
+          dynamicsEnabled: false,
+          differentialEquationId: null,
+          x: 100,
+          y: 0,
+        },
+        {
+          id: "place-2",
+          name: "OtherOutput",
+          colorId: "type-1",
+          dynamicsEnabled: false,
+          differentialEquationId: null,
+          x: 200,
+          y: 0,
+        },
+      ],
+      transitions: [
+        {
+          id: "transition-1",
+          name: "Move",
+          inputArcs: [],
+          outputArcs: [{ placeId: "place-1", weight: 1 }],
+          lambdaType: "predicate",
+          lambdaCode: "",
+          transitionKernelCode: existingKernelCode,
+          x: 50,
+          y: 0,
+        },
+      ],
+    });
+
+    instance.mutations.addArc({
+      transitionId: "transition-1",
+      arcDirection: "output",
+      placeId: "place-2",
+      weight: 1,
+    });
+
+    expect(instance.definition.get().transitions[0]).toMatchObject({
+      transitionKernelCode: existingKernelCode,
+    });
+  });
+
   test("adds, validates, and cleans up component-port arcs", () => {
     const instance = createInstance({
       ...emptySDCPN,

@@ -303,6 +303,7 @@ const TransitionPanelStory = () => {
     <PanelFrame>
       <TransitionProperties
         transition={transition}
+        net={{ places: PLACES, componentInstances: [] }}
         places={PLACES}
         types={TYPES}
         updateTransition={updateTransition}
@@ -333,6 +334,7 @@ const TransitionEmptyPanelStory = () => {
     <PanelFrame>
       <TransitionProperties
         transition={transition}
+        net={{ places: PLACES, componentInstances: [] }}
         places={PLACES}
         types={TYPES}
         updateTransition={updateTransition}

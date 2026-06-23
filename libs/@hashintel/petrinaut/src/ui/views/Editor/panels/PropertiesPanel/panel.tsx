@@ -140,6 +140,7 @@ export const PropertiesPanel: React.FC = () => {
           content = (
             <TransitionProperties
               transition={transitionData}
+              net={petriNetDefinition}
               places={petriNetDefinition.places}
               types={extensions.colors ? petriNetDefinition.types : []}
               onArcWeightUpdate={updateArcWeight}

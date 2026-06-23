@@ -51,6 +51,7 @@ export type { ReadableStore } from "./store";
 export {
   DEFAULT_PETRINAUT_EXTENSIONS,
   PETRINAUT_EXTENSION_NAMES,
+  createArcPlaceResolver,
   getEffectiveTransitionLambdaType,
   getTransitionLogicAvailability,
   hasTypedNonInhibitorInputPlace,

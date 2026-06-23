@@ -22,8 +22,11 @@ import {
   placeArcEndpoint,
 } from "./arc-endpoints";
 import { generateArcId } from "./arc-id";
+import { generateDefaultTransitionKernelCode } from "./default-codes";
 import {
   DEFAULT_PETRINAUT_EXTENSIONS,
+  createArcPlaceResolver,
+  getTransitionLogicAvailability,
   sanitizePlaceForExtensions,
   sanitizeTransitionForExtensions,
   stripDisabledExtensionData,
@@ -32,6 +35,7 @@ import {
 
 import type {
   ArcEndpoint,
+  Color,
   ComponentInstance,
   InputArc,
   OutputArc,
@@ -64,11 +68,73 @@ type MutableNet = Pick<
   componentInstances?: ComponentInstance[];
 };
 
+type TransitionTemplateArc = {
+  placeName: string;
+  type: Color;
+  weight: number;
+};
+
 const splitTargetSubnetId = <Input extends TargetableInput>(
   input: Input,
 ): [targetSubnetId: string | null, payload: Omit<Input, "targetSubnetId">] => {
   const { targetSubnetId = null, ...payload } = input;
   return [targetSubnetId, payload];
+};
+
+const getTypeById = (sdcpn: SDCPN, net: MutableNet): Map<string, Color> =>
+  new Map(
+    [
+      ...sdcpn.types,
+      ...(sdcpn.subnets ?? []).flatMap((subnet) => subnet.types),
+      ...net.types,
+    ].map((type) => [type.id, type]),
+  );
+
+const getTransitionTemplateArcs = ({
+  transition,
+  sdcpn,
+  net,
+  extensions,
+}: {
+  transition: SDCPN["transitions"][number];
+  sdcpn: SDCPN;
+  net: MutableNet;
+  extensions: PetrinautExtensionSettings;
+}): {
+  inputs: TransitionTemplateArc[];
+  outputs: TransitionTemplateArc[];
+} => {
+  const resolveArcPlace = createArcPlaceResolver(sdcpn, net, {
+    componentPortsEnabled: extensions.subnets,
+  });
+  const typeById = getTypeById(sdcpn, net);
+
+  const toTemplateArc = (
+    arc: InputArc | OutputArc,
+  ): TransitionTemplateArc | null => {
+    const place = resolveArcPlace(arc);
+    const type = place?.colorId ? typeById.get(place.colorId) : undefined;
+
+    if (!place || !type) {
+      return null;
+    }
+
+    return {
+      placeName: place.name,
+      type,
+      weight: arc.weight,
+    };
+  };
+
+  return {
+    inputs: transition.inputArcs
+      .filter((arc) => arc.type !== "inhibitor")
+      .map(toTemplateArc)
+      .filter((arc): arc is TransitionTemplateArc => arc !== null),
+    outputs: transition.outputArcs
+      .map(toTemplateArc)
+      .filter((arc): arc is TransitionTemplateArc => arc !== null),
+  };
 };
 
 const resolveTargetNet = (
@@ -362,29 +428,41 @@ export function createPetrinautActions(
   const sanitizeTransition = (
     transition: SDCPN["transitions"][number],
     net: MutableNet,
+    sdcpn: SDCPN,
+    sanitizeOptions: { loadDefaultKernelWhenEmpty?: boolean } = {},
   ): void => {
-    const transitionContext: SDCPN = {
-      places: net.places,
-      transitions: net.transitions,
-      types: net.types,
-      differentialEquations: net.differentialEquations,
-      parameters: net.parameters,
-      componentInstances: net.componentInstances,
-    };
     Object.assign(
       transition,
-      sanitizeTransitionForExtensions(
-        transition,
-        transitionContext,
-        extensions,
-      ),
+      sanitizeTransitionForExtensions(transition, sdcpn, extensions, net),
     );
+
+    if (
+      sanitizeOptions.loadDefaultKernelWhenEmpty &&
+      transition.transitionKernelCode.trim() === "" &&
+      getTransitionLogicAvailability(transition, sdcpn, extensions, net)
+        .transitionKernel
+    ) {
+      const { inputs, outputs } = getTransitionTemplateArcs({
+        transition,
+        sdcpn,
+        net,
+        extensions,
+      });
+      Object.assign(transition, {
+        transitionKernelCode: generateDefaultTransitionKernelCode(
+          inputs,
+          outputs,
+        ),
+      });
+    }
   };
 
   const sanitizeAllTransitions = (sdcpn: SDCPN): void => {
     for (const net of getAllMutableNets(sdcpn)) {
       for (const transition of net.transitions) {
-        sanitizeTransition(transition, net);
+        sanitizeTransition(transition, net, sdcpn, {
+          loadDefaultKernelWhenEmpty: true,
+        });
       }
     }
   };
@@ -471,7 +549,9 @@ export function createPetrinautActions(
       const parsedTransition = transitionSchema.parse(transition);
       mutateWithExtensionGuards((sdcpn) => {
         const net = resolveTargetNet(sdcpn, targetSubnetId);
-        sanitizeTransition(parsedTransition, net);
+        sanitizeTransition(parsedTransition, net, sdcpn, {
+          loadDefaultKernelWhenEmpty: true,
+        });
         net.transitions.push(parsedTransition);
       });
     },
@@ -482,7 +562,7 @@ export function createPetrinautActions(
         for (const transition of net.transitions) {
           if (transition.id === parsed.transitionId) {
             Object.assign(transition, parsed.update);
-            sanitizeTransition(transition, net);
+            sanitizeTransition(transition, net, sdcpn);
             transitionSchema.parse(transition);
             break;
           }
@@ -549,7 +629,9 @@ export function createPetrinautActions(
                 weight: parsed.weight,
               });
             }
-            sanitizeTransition(transition, net);
+            sanitizeTransition(transition, net, sdcpn, {
+              loadDefaultKernelWhenEmpty: true,
+            });
             break;
           }
         }
@@ -572,7 +654,7 @@ export function createPetrinautActions(
                 break;
               }
             }
-            sanitizeTransition(transition, net);
+            sanitizeTransition(transition, net, sdcpn);
             break;
           }
         }
@@ -613,7 +695,9 @@ export function createPetrinautActions(
                 break;
               }
             }
-            sanitizeTransition(transition, net);
+            sanitizeTransition(transition, net, sdcpn, {
+              loadDefaultKernelWhenEmpty: true,
+            });
             break;
           }
         }
@@ -638,7 +722,9 @@ export function createPetrinautActions(
                 break;
               }
             }
-            sanitizeTransition(transition, net);
+            sanitizeTransition(transition, net, sdcpn, {
+              loadDefaultKernelWhenEmpty: true,
+            });
             break;
           }
         }

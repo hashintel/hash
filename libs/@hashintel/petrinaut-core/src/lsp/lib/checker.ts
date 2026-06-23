@@ -1,9 +1,9 @@
 import {
   DEFAULT_PETRINAUT_EXTENSIONS,
+  getTransitionLogicAvailability,
   type PetrinautExtensionSettings,
 } from "../../extensions";
 import { getItemFilePath } from "./file-paths";
-import { getTransitionCodeAvailability } from "./transition-code-availability";
 
 import type { SDCPN } from "../../types/sdcpn";
 import type { SDCPNLanguageServer } from "./create-sdcpn-language-service";
@@ -66,11 +66,11 @@ export function checkSDCPN(
 
   // Check all functions in transitions (both lambda and kernel)
   for (const transition of sdcpn.transitions) {
-    const availability = getTransitionCodeAvailability({
+    const availability = getTransitionLogicAvailability(
       transition,
       sdcpn,
       extensions,
-    });
+    );
 
     if (availability.lambda) {
       // Check Lambda code
