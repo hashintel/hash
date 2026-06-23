@@ -1,11 +1,13 @@
-import { getArcEndpointPlaceId } from "../../arc-endpoints";
 import {
   DEFAULT_PETRINAUT_EXTENSIONS,
   getEffectiveTransitionLambdaType,
-  getTransitionLogicAvailability,
   type PetrinautExtensionSettings,
 } from "../../extensions";
 import { getItemFilePath } from "./file-paths";
+import {
+  createArcPlaceResolver,
+  getTransitionCodeAvailability,
+} from "./transition-code-availability";
 
 import type { SDCPN, ScenarioParameter } from "../../types/sdcpn";
 import type { VirtualFile } from "./create-language-service-host";
@@ -50,11 +52,18 @@ export function generateVirtualFiles(
       : "",
   });
 
-  // Build lookup maps for places and types
-  const placeById = new Map(sdcpn.places.map((place) => [place.id, place]));
-  const colorById = new Map(
-    (extensions.colors ? sdcpn.types : []).map((color) => [color.id, color]),
-  );
+  // Build lookup maps for places and types.
+  // Colors are collected from the root net AND all subnets so that port places
+  // whose colorId references a subnet-local type are still resolvable.
+  const allColors = extensions.colors
+    ? [
+        ...sdcpn.types,
+        ...(sdcpn.subnets ?? []).flatMap((subnet) => subnet.types),
+      ]
+    : [];
+  // Deduplicate by ID (last definition wins if the same ID appears in multiple subnets).
+  const colorById = new Map(allColors.map((color) => [color.id, color]));
+  const resolveArcPlace = createArcPlaceResolver(sdcpn);
 
   // Generate parameters type definition
   const parametersProperties = (extensions.parameters ? sdcpn.parameters : [])
@@ -65,8 +74,8 @@ export function generateVirtualFiles(
     content: `export type Parameters = {\n${parametersProperties}\n};`,
   });
 
-  // Generate type definitions for each color
-  for (const color of extensions.colors ? sdcpn.types : []) {
+  // Generate type definitions for each color (root + all subnets, deduplicated)
+  for (const color of colorById.values()) {
     const sanitizedColorId = sanitizeColorId(color.id);
     const properties = color.elements
       .map((el) => `  ${el.name}: ${toTsType(el.type)};`)
@@ -124,11 +133,12 @@ export function generateVirtualFiles(
 
   // Generate files for each transition
   for (const transition of sdcpn.transitions) {
-    const availability = getTransitionLogicAvailability(
+    const availability = getTransitionCodeAvailability({
       transition,
       sdcpn,
       extensions,
-    );
+    });
+
     const parametersDefsPath = getItemFilePath("parameters-defs");
     const lambdaDefsPath = getItemFilePath("transition-lambda-defs", {
       transitionId: transition.id,
@@ -143,7 +153,8 @@ export function generateVirtualFiles(
       transitionId: transition.id,
     });
 
-    // Build input type: { [placeName]: [Token, Token, ...] } based on input arcs
+    // Build input type: { [placeName]: [Token, Token, ...] } based on input arcs.
+    // resolveArcPlace handles both regular place arcs and componentPort arcs.
     const inputTypeImports: string[] = [];
     const inputTypeProperties: string[] = [];
 
@@ -154,8 +165,7 @@ export function generateVirtualFiles(
       if (arc.type === "inhibitor") {
         continue;
       }
-      const placeId = getArcEndpointPlaceId(arc);
-      const place = placeId ? placeById.get(placeId) : undefined;
+      const place = resolveArcPlace(arc);
       if (!extensions.colors || !place?.colorId) {
         continue;
       }
@@ -179,13 +189,12 @@ export function generateVirtualFiles(
       inputTypeProperties.push(`  "${place.name}": [${tokenTuple}];`);
     }
 
-    // Build output type: { [placeName]: [Token, Token, ...] } based on output arcs
+    // Build output type: { [placeName]: [Token, Token, ...] } based on output arcs.
     const outputTypeImports: string[] = [];
     const outputTypeProperties: string[] = [];
 
     for (const arc of transition.outputArcs) {
-      const placeId = getArcEndpointPlaceId(arc);
-      const place = placeId ? placeById.get(placeId) : undefined;
+      const place = resolveArcPlace(arc);
       if (!extensions.colors || !place?.colorId) {
         continue;
       }
