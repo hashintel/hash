@@ -1,22 +1,15 @@
-import { useQuery } from "@apollo/client";
 import { useClickOutside, useDebouncedState, useHotkeys } from "@mantine/hooks";
 import { Box, useMediaQuery, useTheme } from "@mui/material";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { IconButton } from "@hashintel/design-system";
-import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 
-import { queryEntityTypesQuery } from "../../../graphql/queries/ontology/entity-type.queries";
 import { SearchIcon } from "../../icons";
 import { Button } from "../../ui";
 import { SearchInput } from "./search-bar/search-input";
 import { SearchResults } from "./search-bar/search-results";
 import { useSearchBarEntities } from "./search-bar/use-search-bar-entities";
 
-import type {
-  QueryEntityTypesQuery,
-  QueryEntityTypesQueryVariables,
-} from "../../../graphql/api-types.gen";
 import type { Filter } from "@local/hash-graph-client";
 import type { SxProps, Theme } from "@mui/material";
 import type { FunctionComponent } from "react";
@@ -111,8 +104,9 @@ export const SearchBar: FunctionComponent = () => {
 
   const {
     entities: entityResults,
+    entityTypes: entityTypeResults,
     subgraph: entitySubgraph,
-    initialLoading: entitiesLoading,
+    initialLoading,
     loadingMore,
     loadMore,
     hasMore,
@@ -122,31 +116,11 @@ export const SearchBar: FunctionComponent = () => {
     skip: !submittedQuery,
   });
 
-  const { data: entityTypeResultData, loading: entityTypesLoading } = useQuery<
-    QueryEntityTypesQuery,
-    QueryEntityTypesQueryVariables
-  >(queryEntityTypesQuery, {
-    variables: {
-      request: {
-        filter: queryFilter,
-        temporalAxes: currentTimeInstantTemporalAxes,
-      },
-    },
-    skip: !submittedQuery,
-  });
-
-  const entityTypeResults =
-    (entityTypeResultData &&
-      entityTypeResultData.queryEntityTypes.entityTypes) ??
-    [];
-
   useHotkeys([["Escape", () => setResultListVisible(false)]]);
 
   const boxRef = useClickOutside<HTMLDivElement>(() =>
     setResultListVisible(false),
   );
-
-  const isLoading = entityTypesLoading || entitiesLoading;
 
   return (
     <Box
@@ -203,8 +177,8 @@ export const SearchBar: FunctionComponent = () => {
         visible={isResultListVisible}
         displayedQuery={displayedQuery}
         submittedQuery={submittedQuery}
-        loading={isLoading}
-        entityTypes={entityTypeResults.map((entityType) => entityType.schema)}
+        loading={initialLoading}
+        entityTypes={entityTypeResults}
         entities={entityResults}
         entitySubgraph={entitySubgraph}
         hasMore={hasMore}

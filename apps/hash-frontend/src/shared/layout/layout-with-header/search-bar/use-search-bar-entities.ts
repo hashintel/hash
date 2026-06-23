@@ -1,18 +1,26 @@
 import { useQuery } from "@apollo/client";
+import { useCallback } from "react";
 
 import { getRoots } from "@blockprotocol/graph/stdlib";
 import { deserializeSubgraph } from "@local/hash-graph-sdk/subgraph";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 
 import { queryEntitySubgraphQuery } from "../../../../graphql/queries/knowledge/entity.queries";
+import { queryEntityTypesQuery } from "../../../../graphql/queries/ontology/entity-type.queries";
 import { useAccumulatedCursorPagination } from "../../../../pages/shared/entity/entity-editor/links-section/use-accumulated-cursor-pagination";
 
 import type {
   QueryEntitySubgraphQuery,
   QueryEntitySubgraphQueryVariables,
+  QueryEntityTypesQuery,
+  QueryEntityTypesQueryVariables,
 } from "../../../../graphql/api-types.gen";
 import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
-import type { EntityId } from "@blockprotocol/type-system";
+import type {
+  EntityId,
+  EntityType,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 import type {
   EntityQueryCursor,
   EntityQuerySortingRecord,
@@ -20,8 +28,8 @@ import type {
 } from "@local/hash-graph-client";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 
-/** Entities fetched per page for the search bar's result list. */
-export const searchBarEntitiesPageSize = 100;
+/** Entities and entity types fetched per page for the search bar's result list. */
+export const searchBarPageSize = 100;
 
 type SearchSubgraph = Subgraph<EntityRootType<HashEntity>>;
 
@@ -36,6 +44,8 @@ const uuidSortingPath: EntityQuerySortingRecord = {
   nulls: "last",
 };
 
+// --- Entities --------------------------------------------------------------
+
 type EntitySearchPage = {
   /**
    * Key for the cursor that produced this page, so a page is replaced (not
@@ -47,8 +57,8 @@ type EntitySearchPage = {
   subgraph: SearchSubgraph;
 };
 
-/** The running, incrementally-built accumulation of every page loaded so far. */
-type Accumulated = {
+/** The running, incrementally-built accumulation of every entity page loaded. */
+type EntityAccumulated = {
   entities: HashEntity[];
   /** Dedup set keyed on `recordId.entityId`, so appends stay O(page size). */
   seenEntityIds: Set<EntityId>;
@@ -99,10 +109,10 @@ const mergeSubgraphInto = (
   return { ...merged, vertices, edges };
 };
 
-const appendPage = (
-  accumulated: Accumulated,
+const appendEntityPage = (
+  accumulated: EntityAccumulated,
   page: EntitySearchPage,
-): Accumulated => {
+): EntityAccumulated => {
   for (const entity of page.entities) {
     const entityId = entity.metadata.recordId.entityId;
     if (!accumulated.seenEntityIds.has(entityId)) {
@@ -113,7 +123,7 @@ const appendPage = (
 
   // Exhausted once a page returns fewer rows than the page size (incl. zero),
   // even if the API still handed back a non-null cursor.
-  const exhausted = page.entities.length < searchBarEntitiesPageSize;
+  const exhausted = page.entities.length < searchBarPageSize;
 
   return {
     ...accumulated,
@@ -123,8 +133,9 @@ const appendPage = (
   };
 };
 
-/** The empty accumulation, seeded with the first page's subgraph to merge into. */
-const seedAccumulated = (firstPage: EntitySearchPage): Accumulated => ({
+const seedEntityAccumulated = (
+  firstPage: EntitySearchPage,
+): EntityAccumulated => ({
   entities: [],
   seenEntityIds: new Set<EntityId>(),
   subgraph: firstPage.subgraph,
@@ -132,14 +143,71 @@ const seedAccumulated = (firstPage: EntitySearchPage): Accumulated => ({
   exhausted: false,
 });
 
-const finalizeAccumulated = (accumulated: Accumulated): Accumulated => ({
+const finalizeEntityAccumulated = (
+  accumulated: EntityAccumulated,
+): EntityAccumulated => ({
   ...accumulated,
   entities: [...accumulated.entities],
 });
 
+// --- Entity types ----------------------------------------------------------
+
+type EntityTypePage = {
+  cursorKey: string;
+  entityTypes: EntityType[];
+  nextCursor: VersionedUrl | null;
+};
+
+type EntityTypeAccumulated = {
+  entityTypes: EntityType[];
+  /** Dedup set keyed on the type's versioned URL. */
+  seenEntityTypeIds: Set<VersionedUrl>;
+  nextCursor: VersionedUrl | null;
+  exhausted: boolean;
+};
+
+const appendEntityTypePage = (
+  accumulated: EntityTypeAccumulated,
+  page: EntityTypePage,
+): EntityTypeAccumulated => {
+  for (const entityType of page.entityTypes) {
+    if (!accumulated.seenEntityTypeIds.has(entityType.$id)) {
+      accumulated.seenEntityTypeIds.add(entityType.$id);
+      accumulated.entityTypes.push(entityType);
+    }
+  }
+
+  const exhausted = page.entityTypes.length < searchBarPageSize;
+
+  return {
+    ...accumulated,
+    exhausted,
+    nextCursor: exhausted ? null : page.nextCursor,
+  };
+};
+
+const seedEntityTypeAccumulated = (): EntityTypeAccumulated => ({
+  entityTypes: [],
+  seenEntityTypeIds: new Set<VersionedUrl>(),
+  nextCursor: null,
+  exhausted: false,
+});
+
+const finalizeEntityTypeAccumulated = (
+  accumulated: EntityTypeAccumulated,
+): EntityTypeAccumulated => ({
+  ...accumulated,
+  entityTypes: [...accumulated.entityTypes],
+});
+
 /**
- * Fetches entities matching the search bar's semantic-distance filter a page at
- * a time, accumulating the loaded pages for the result list's infinite scroll.
+ * Fetches the search bar's results a page at a time, paginating across both
+ * entities and entity types under a single `loadMore`/`hasMore`.
+ *
+ * Entities are loaded first; only once every matching entity has been loaded
+ * (a page returned fewer than {@link searchBarPageSize} rows) does it start
+ * loading entity types. This keeps the more relevant entity matches at the top
+ * of the list and avoids querying for types until the entities are exhausted.
  */
 export const useSearchBarEntities = ({
   filter,
@@ -152,36 +220,37 @@ export const useSearchBarEntities = ({
   skip: boolean;
 }): {
   entities: HashEntity[];
+  entityTypes: EntityType[];
   subgraph?: SearchSubgraph;
-  /** Whether the first page is still loading. */
+  /** Whether the first page of entities is still loading. */
   initialLoading: boolean;
-  /** Whether a subsequent page is being fetched. */
+  /** Whether a subsequent page (of entities or entity types) is being fetched. */
   loadingMore: boolean;
-  /** Fetch the next page (no-op if there are no more pages). */
+  /** Fetch the next page (no-op if there are no more pages of either kind). */
   loadMore: () => void;
-  /** Whether there are more pages to fetch. */
+  /** Whether there are more pages (of either kind) to fetch. */
   hasMore: boolean;
 } => {
   const {
-    cursor,
-    cursorKey,
-    pageCount,
-    addPage,
-    accumulated,
-    loadMore,
-    hasMore,
+    cursor: entityCursor,
+    cursorKey: entityCursorKey,
+    pageCount: entityPageCount,
+    addPage: addEntityPage,
+    accumulated: entityAccumulated,
+    loadMore: loadMoreEntities,
+    hasMore: hasMoreEntities,
   } = useAccumulatedCursorPagination<
     EntityQueryCursor,
     EntitySearchPage,
-    Accumulated
+    EntityAccumulated
   >({
     resetKey,
-    seed: seedAccumulated,
-    appendPage,
-    finalize: finalizeAccumulated,
+    seed: seedEntityAccumulated,
+    appendPage: appendEntityPage,
+    finalize: finalizeEntityAccumulated,
   });
 
-  const { loading } = useQuery<
+  const { loading: entitiesLoading } = useQuery<
     QueryEntitySubgraphQuery,
     QueryEntitySubgraphQueryVariables
   >(queryEntitySubgraphQuery, {
@@ -198,8 +267,8 @@ export const useSearchBarEntities = ({
         traversalPaths: [],
         includeDrafts: false,
         includePermissions: false,
-        cursor,
-        limit: searchBarEntitiesPageSize,
+        cursor: entityCursor,
+        limit: searchBarPageSize,
         sortingPaths: [uuidSortingPath],
       },
     },
@@ -208,8 +277,8 @@ export const useSearchBarEntities = ({
         data.queryEntitySubgraph.subgraph,
       );
 
-      addPage({
-        cursorKey,
+      addEntityPage({
+        cursorKey: entityCursorKey,
         entities: getRoots(subgraph),
         nextCursor: data.queryEntitySubgraph.cursor ?? null,
         subgraph,
@@ -217,12 +286,74 @@ export const useSearchBarEntities = ({
     },
   });
 
+  /**
+   * Entities are exhausted once at least one page has loaded and there is no
+   * further cursor. Gating the entity-type query on this means types are only
+   * fetched after every entity match has been loaded.
+   */
+  const entitiesExhausted = entityPageCount > 0 && !hasMoreEntities;
+
+  const {
+    cursor: entityTypeCursor,
+    cursorKey: entityTypeCursorKey,
+    addPage: addEntityTypePage,
+    accumulated: entityTypeAccumulated,
+    loadMore: loadMoreEntityTypes,
+    hasMore: hasMoreEntityTypes,
+  } = useAccumulatedCursorPagination<
+    VersionedUrl,
+    EntityTypePage,
+    EntityTypeAccumulated
+  >({
+    resetKey,
+    seed: seedEntityTypeAccumulated,
+    appendPage: appendEntityTypePage,
+    finalize: finalizeEntityTypeAccumulated,
+  });
+
+  const { loading: entityTypesLoading } = useQuery<
+    QueryEntityTypesQuery,
+    QueryEntityTypesQueryVariables
+  >(queryEntityTypesQuery, {
+    fetchPolicy: "cache-and-network",
+    skip: skip || !entitiesExhausted,
+    variables: {
+      request: {
+        filter,
+        temporalAxes: currentTimeInstantTemporalAxes,
+        after: entityTypeCursor,
+        limit: searchBarPageSize,
+      },
+    },
+    onCompleted: (data) => {
+      addEntityTypePage({
+        cursorKey: entityTypeCursorKey,
+        entityTypes: data.queryEntityTypes.entityTypes.map(
+          (entityType) => entityType.schema,
+        ),
+        nextCursor: data.queryEntityTypes.cursor ?? null,
+      });
+    },
+  });
+
+  const loadMore = useCallback(() => {
+    if (hasMoreEntities) {
+      loadMoreEntities();
+    } else {
+      loadMoreEntityTypes();
+    }
+  }, [hasMoreEntities, loadMoreEntities, loadMoreEntityTypes]);
+
   return {
-    entities: accumulated?.entities ?? [],
-    subgraph: accumulated?.subgraph,
-    initialLoading: loading && pageCount === 0,
-    loadingMore: loading && cursor !== undefined,
+    entities: entityAccumulated?.entities ?? [],
+    entityTypes: entityTypeAccumulated?.entityTypes ?? [],
+    subgraph: entityAccumulated?.subgraph,
+    initialLoading: entitiesLoading && entityPageCount === 0,
+    // A subsequent entity page (the cursor has advanced) or any entity-type
+    // page (which only ever loads after the entities are shown) is "more".
+    loadingMore:
+      (entitiesLoading && entityCursor !== undefined) || entityTypesLoading,
     loadMore,
-    hasMore,
+    hasMore: hasMoreEntities || hasMoreEntityTypes,
   };
 };

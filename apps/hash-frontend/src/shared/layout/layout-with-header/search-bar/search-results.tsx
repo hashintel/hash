@@ -310,11 +310,14 @@ export const SearchResults: FunctionComponent<{
     );
   }
 
+  // Entities first, then entity types: entities are paginated first, and
+  // entity types only load once the entities are exhausted, so this matches
+  // the order in which results are fetched and appended to the list.
   const combinedResults: SearchResult[] = [
+    ...entities.map((entity): SearchResult => ({ kind: "entity", entity })),
     ...entityTypes.map(
       (entityType): SearchResult => ({ kind: "entityType", entityType }),
     ),
-    ...entities.map((entity): SearchResult => ({ kind: "entity", entity })),
   ];
 
   if (!combinedResults.length) {
