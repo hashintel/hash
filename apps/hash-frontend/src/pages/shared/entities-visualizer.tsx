@@ -28,7 +28,7 @@ import {
   visualizerHeaderHeight,
 } from "./entities-visualizer/header";
 import { createDefaultFilterState } from "./entities-visualizer/shared/filter-state";
-import { useAvailableTypesAndCount } from "./entities-visualizer/shared/use-available-types";
+import { useAvailableTypes } from "./entities-visualizer/shared/use-available-types";
 import { useEntitiesVisualizerData } from "./entities-visualizer/use-entities-visualizer-data";
 import { EntityGraphVisualizer } from "./entity-graph-visualizer";
 import { useSlideStack } from "./slide-stack";
@@ -346,17 +346,88 @@ export const EntitiesVisualizer: FunctionComponent<{
     }
   }, [entitiesData]);
 
+  const isTypePinned = !!entityTypeBaseUrl || !!entityTypeId;
+
   const {
     availableEntityTypes,
-    count: totalResultCount,
     propertyFilterData,
     loading: availableTypesLoading,
-  } = useAvailableTypesAndCount({
+  } = useAvailableTypes({
     filterState,
     internalWebs,
     entityTypeBaseUrl,
     entityTypeIds: entityTypeId ? [entityTypeId] : undefined,
   });
+
+  useEffect(() => {
+    if (availableTypesLoading) {
+      return;
+    }
+
+    let nextSelectedTypeIds = filterState.type.selectedTypeIds;
+
+    if (!isTypePinned && filterState.type.selectedTypeIds) {
+      const availableEntityTypeIds = new Set(
+        availableEntityTypes.map(
+          ({ entityTypeId: availableEntityTypeId }) => availableEntityTypeId,
+        ),
+      );
+
+      const retainedSelectedTypeIds = [
+        ...filterState.type.selectedTypeIds,
+      ].filter((selectedTypeId) => availableEntityTypeIds.has(selectedTypeId));
+
+      if (
+        retainedSelectedTypeIds.length !== filterState.type.selectedTypeIds.size
+      ) {
+        nextSelectedTypeIds =
+          retainedSelectedTypeIds.length === 0
+            ? null
+            : new Set(retainedSelectedTypeIds);
+      }
+    }
+
+    let nextPropertyFilters = filterState.propertyFilters;
+    if (filterState.propertyFilters.length) {
+      const filterablePropertyKindsByBaseUrl = new Map(
+        propertyFilterData
+          .filter((property) => property.filterable)
+          .map((property) => [property.baseUrl, property.kind]),
+      );
+
+      nextPropertyFilters = filterState.propertyFilters.filter(
+        ({ baseUrl, kind }) =>
+          filterablePropertyKindsByBaseUrl.get(baseUrl) === kind,
+      );
+    }
+
+    const typeFilterChanged =
+      nextSelectedTypeIds !== filterState.type.selectedTypeIds;
+    const propertyFiltersChanged =
+      nextPropertyFilters.length !== filterState.propertyFilters.length;
+
+    if (!typeFilterChanged && !propertyFiltersChanged) {
+      return;
+    }
+
+    setFilterState((prev) => ({
+      ...prev,
+      type: typeFilterChanged
+        ? { selectedTypeIds: nextSelectedTypeIds }
+        : prev.type,
+      propertyFilters: propertyFiltersChanged
+        ? nextPropertyFilters
+        : prev.propertyFilters,
+    }));
+  }, [
+    availableEntityTypes,
+    availableTypesLoading,
+    filterState.propertyFilters,
+    filterState.type.selectedTypeIds,
+    isTypePinned,
+    propertyFilterData,
+    setFilterState,
+  ]);
 
   const isDisplayingFilesOnly = useMemo(
     () =>
@@ -475,8 +546,6 @@ export const EntitiesVisualizer: FunctionComponent<{
     setCursor(nextCursor ?? undefined);
   }, [nextCursor]);
 
-  const isTypePinned = !!entityTypeBaseUrl || !!entityTypeId;
-
   const selectedEntities = useMemo(() => {
     if (view !== "Table" || selectedTableRows.length === 0 || !entities) {
       return [];
@@ -497,6 +566,8 @@ export const EntitiesVisualizer: FunctionComponent<{
   }, [entitiesData]);
 
   const showLoading = !subgraph || !closedMultiEntityTypesRootMap;
+
+  const { totalResultCount } = visualizerData;
 
   return (
     <Box>

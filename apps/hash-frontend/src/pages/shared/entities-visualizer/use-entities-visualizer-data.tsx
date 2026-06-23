@@ -9,13 +9,18 @@ import {
 } from "@local/hash-graph-sdk/entity";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 
-import { queryEntitySubgraphQuery } from "../../../graphql/queries/knowledge/entity.queries";
+import {
+  countEntitiesQuery,
+  queryEntitySubgraphQuery,
+} from "../../../graphql/queries/knowledge/entity.queries";
 import { apolloClient } from "../../../lib/apollo-client";
 import { buildEntitiesFilter } from "./shared/build-filter";
 import { traversalPathsForView } from "./shared/traversal-paths";
 import { useEntitiesTableData } from "./use-entities-table-data";
 
 import type {
+  CountEntitiesQuery,
+  CountEntitiesQueryVariables,
   QueryEntitySubgraphQuery,
   QueryEntitySubgraphQueryVariables,
 } from "../../../graphql/api-types.gen";
@@ -41,7 +46,6 @@ export type EntitiesVisualizerData = Partial<
   >
 > & {
   entities?: HashEntity[];
-
   hadCachedContent: boolean;
   loading: boolean;
   /**
@@ -52,6 +56,7 @@ export type EntitiesVisualizerData = Partial<
   refetch: () => Promise<ApolloQueryResult<QueryEntitySubgraphQuery>>;
   subgraph?: Subgraph<EntityRootType<HashEntity>>;
   tableData: EntitiesTableData | null;
+  totalResultCount: number | null;
   updateTableData: UpdateTableDataFn;
 };
 
@@ -90,18 +95,24 @@ export const useEntitiesVisualizerData = (params: {
     [internalWebs],
   );
 
+  const filter = useMemo(
+    () =>
+      buildEntitiesFilter({
+        filterState,
+        internalWebIds,
+        pinnedEntityTypeBaseUrl: entityTypeBaseUrl,
+        pinnedEntityTypeIds: entityTypeIds,
+      }),
+    [filterState, internalWebIds, entityTypeBaseUrl, entityTypeIds],
+  );
+
   const variables = useMemo<QueryEntitySubgraphQueryVariables>(
     () => ({
       request: {
         conversions,
         cursor,
         limit,
-        filter: buildEntitiesFilter({
-          filterState,
-          internalWebIds,
-          pinnedEntityTypeBaseUrl: entityTypeBaseUrl,
-          pinnedEntityTypeIds: entityTypeIds,
-        }),
+        filter,
         traversalPaths: traversalPathsForView(view),
         sortingPaths: sort ? [sort] : undefined,
         /**
@@ -114,18 +125,21 @@ export const useEntitiesVisualizerData = (params: {
         includePermissions: false,
       },
     }),
-    [
-      conversions,
-      cursor,
-      entityTypeBaseUrl,
-      entityTypeIds,
-      filterState,
-      internalWebIds,
-      limit,
-      sort,
-      view,
-    ],
+    [conversions, cursor, filter, limit, sort, view],
   );
+
+  const { data: countData } = useQuery<
+    CountEntitiesQuery,
+    CountEntitiesQueryVariables
+  >(countEntitiesQuery, {
+    variables: {
+      request: {
+        filter,
+        temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts: false,
+      },
+    },
+  });
 
   const { data, loading, refetch } = useQuery<
     QueryEntitySubgraphQuery,
@@ -189,10 +203,12 @@ export const useEntitiesVisualizerData = (params: {
       refetch,
       subgraph,
       tableData,
+      totalResultCount: countData?.countEntities ?? null,
       updateTableData,
     }),
     [
       data?.queryEntitySubgraph,
+      countData?.countEntities,
       entities,
       hadCachedContent,
       loading,

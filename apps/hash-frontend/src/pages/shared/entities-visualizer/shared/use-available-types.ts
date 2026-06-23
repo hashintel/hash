@@ -24,7 +24,7 @@ export type AvailableType = {
   count: number;
 };
 
-export const useAvailableTypesAndCount = ({
+export const useAvailableTypes = ({
   filterState,
   internalWebs,
   entityTypeBaseUrl,
@@ -35,7 +35,6 @@ export const useAvailableTypesAndCount = ({
   entityTypeBaseUrl?: BaseUrl;
   entityTypeIds?: VersionedUrl[];
 }): {
-  count: number | null;
   availableEntityTypes: AvailableType[];
   propertyFilterData: FilterMetadataForProperty[];
   loading: boolean;
@@ -106,13 +105,20 @@ export const useAvailableTypesAndCount = ({
       return { availableEntityTypes: availableTypes, propertyFilterData: [] };
     }
 
+    const availableEntityTypeIds = Object.keys(typeIds) as VersionedUrl[];
+    const selectedAvailableEntityTypeIds = filterState.type.selectedTypeIds
+      ? [...filterState.type.selectedTypeIds].filter((typeId) =>
+          availableEntityTypeIds.includes(typeId),
+        )
+      : availableEntityTypeIds;
+
     /**
-     * The properties offered in the property-filter picker, derived from all
-     * entity types matching the current result set, including their parents.
+     * The properties offered in the property-filter picker, derived from the
+     * selected entity types matching the current result set, including parents.
      */
     const availableProperties = deriveFilterableProperties({
       dataTypes,
-      entityTypeIds: Object.keys(typeIds) as VersionedUrl[],
+      entityTypeIds: selectedAvailableEntityTypeIds,
       entityTypeParentIds,
       entityTypes,
       propertyTypes,
@@ -122,12 +128,22 @@ export const useAvailableTypesAndCount = ({
       availableEntityTypes: availableTypes,
       propertyFilterData: availableProperties,
     };
-  }, [data, dataTypes, entityTypeParentIds, entityTypes, propertyTypes, skip]);
+  }, [
+    data,
+    dataTypes,
+    entityTypeParentIds,
+    entityTypes,
+    filterState.type.selectedTypeIds,
+    propertyTypes,
+    skip,
+  ]);
+
+  const propertyFilterDataLoading =
+    !dataTypes || !entityTypes || !entityTypeParentIds || !propertyTypes;
 
   return {
-    count: data?.queryEntitySubgraph.count ?? null,
     availableEntityTypes,
     propertyFilterData,
-    loading: skip ? false : loading,
+    loading: skip ? false : loading || propertyFilterDataLoading,
   };
 };
