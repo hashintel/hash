@@ -342,8 +342,9 @@ export const parameterSchema = z
 export const componentInstanceSchema = z
   .strictObject({
     id: idSchema,
-    name: displayNameSchema.meta({
-      description: "Human-readable component instance name.",
+    name: entityNameSchema.meta({
+      description:
+        "PascalCase name for the component instance (e.g. MainProcessor, Ward2). Used as a code-level identifier.",
     }),
     subnetId: idSchema.meta({
       description: "ID of the subnet definition this component instantiates.",

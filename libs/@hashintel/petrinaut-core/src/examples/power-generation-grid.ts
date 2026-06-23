@@ -401,7 +401,7 @@ export const powerGenerationGridSDCPN: {
     componentInstances: [
       {
         id: "inst__coal",
-        name: "Coal Plant",
+        name: "CoalPlant",
         subnetId: "subnet__plant",
         parameterValues: {
           plant__combustion_rate: "8",
@@ -413,7 +413,7 @@ export const powerGenerationGridSDCPN: {
       },
       {
         id: "inst__gas",
-        name: "Natural Gas Plant",
+        name: "NaturalGasPlant",
         subnetId: "subnet__plant",
         parameterValues: {
           plant__combustion_rate: "4",
@@ -425,7 +425,7 @@ export const powerGenerationGridSDCPN: {
       },
       {
         id: "inst__peaker",
-        name: "Peaker Plant",
+        name: "PeakerPlant",
         subnetId: "subnet__plant",
         parameterValues: {
           plant__combustion_rate: "1",

@@ -1,4 +1,4 @@
-import { use } from "react";
+import { use, useEffect, useRef, useState } from "react";
 import { v4 as generateUuid } from "uuid";
 
 import { Button, Icon } from "@hashintel/ds-components";
@@ -35,6 +35,7 @@ const itemStyle = cva({
     transition: "[background-color 100ms ease-out]",
     _hover: {
       backgroundColor: "neutral.bg.surface.hover",
+      "& [data-delete]": { opacity: "[1]" },
     },
   },
   variants: {
@@ -56,6 +57,33 @@ const iconStyle = css({
   alignItems: "center",
   justifyContent: "center",
   color: "neutral.s70",
+});
+
+const nameStyle = css({
+  flex: "1",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+  minWidth: "0",
+});
+
+const renameInputStyle = css({
+  flex: "1",
+  minWidth: "0",
+  fontSize: "sm",
+  fontWeight: "medium",
+  background: "[transparent]",
+  border: "none",
+  outline: "none",
+  color: "[inherit]",
+  padding: "0",
+  width: "full",
+});
+
+const deleteButtonStyle = css({
+  flexShrink: 0,
+  opacity: "[0]",
+  transition: "[opacity 100ms ease-out]",
 });
 
 const NetsHeaderAction: React.FC = () => {
@@ -96,10 +124,42 @@ const NetsListContent: React.FC = () => {
   } = use(SDCPNContext);
   const { activeSubnetId, setActiveSubnetId } = use(ActiveNetContext);
   const { clearSelection } = use(EditorContext);
+  const { updateSubnet, removeSubnet } = usePetrinautMutations();
+  const isReadOnly = useIsReadOnly();
+
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (editingId !== null) {
+      inputRef.current?.focus();
+      inputRef.current?.select();
+    }
+  }, [editingId]);
 
   const handleSelect = (subnetId: string | null) => {
     setActiveSubnetId(subnetId);
     clearSelection();
+  };
+
+  const startEditing = (subnetId: string, currentName: string) => {
+    if (isReadOnly) return;
+    setEditingId(subnetId);
+    setEditingName(currentName);
+  };
+
+  const commitRename = () => {
+    if (editingId === null) return;
+    const trimmed = editingName.trim();
+    if (trimmed) {
+      updateSubnet({ subnetId: editingId, update: { name: trimmed } });
+    }
+    setEditingId(null);
+  };
+
+  const cancelRename = () => {
+    setEditingId(null);
   };
 
   return (
@@ -125,7 +185,12 @@ const NetsListContent: React.FC = () => {
         <div
           key={subnet.id}
           className={itemStyle({ active: activeSubnetId === subnet.id })}
-          onClick={() => handleSelect(subnet.id)}
+          onClick={() => {
+            if (editingId !== subnet.id) {
+              handleSelect(subnet.id);
+            }
+          }}
+          onDoubleClick={() => startEditing(subnet.id, subnet.name)}
           onKeyDown={(event) => {
             if (event.key === "Enter" || event.key === " ") {
               handleSelect(subnet.id);
@@ -138,7 +203,48 @@ const NetsListContent: React.FC = () => {
           <span className={iconStyle}>
             <Icon name="diagramNested" size="xs" />
           </span>
-          {subnet.name}
+          {editingId === subnet.id ? (
+            <input
+              ref={inputRef}
+              className={renameInputStyle}
+              value={editingName}
+              onChange={(e) => setEditingName(e.target.value)}
+              onBlur={commitRename}
+              onKeyDown={(e) => {
+                e.stopPropagation();
+                if (e.key === "Enter") commitRename();
+                if (e.key === "Escape") cancelRename();
+              }}
+              onClick={(e) => e.stopPropagation()}
+            />
+          ) : (
+            <span className={nameStyle}>{subnet.name}</span>
+          )}
+          {editingId !== subnet.id && (
+            <span
+              data-delete
+              className={deleteButtonStyle}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <Button
+                aria-label="Delete subnet"
+                size="xs"
+                variant="ghost"
+                tone="error"
+                iconName="trash"
+                disabled={isReadOnly}
+                tooltip={
+                  isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : "Delete subnet"
+                }
+                onClick={() => {
+                  if (activeSubnetId === subnet.id) {
+                    setActiveSubnetId(null);
+                  }
+                  removeSubnet({ subnetId: subnet.id });
+                }}
+              />
+            </span>
+          )}
         </div>
       ))}
     </div>

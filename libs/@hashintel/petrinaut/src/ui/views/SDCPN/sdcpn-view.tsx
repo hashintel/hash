@@ -42,6 +42,38 @@ import type { ViewportAction } from "../../types/viewport-action";
 import type { PetrinautReactFlowInstance } from "./reactflow-types";
 import type { Connection } from "@xyflow/react";
 
+/**
+ * Converts a free-form subnet display name to a valid PascalCase instance name.
+ * Splits on non-alphanumeric boundaries, capitalises each letter-starting word,
+ * and appends a trailing numeric suffix if present.
+ * "Hospital Ward" → "HospitalWard", "Subnet 1" → "Subnet1", "Coal Plant" → "CoalPlant"
+ * Falls back to "Instance" when the result would not satisfy PascalCase.
+ */
+const toInstanceName = (subnetName: string): string => {
+  const words = subnetName
+    .trim()
+    .split(/[^a-zA-Z0-9]+/)
+    .filter(Boolean);
+
+  const letterParts: string[] = [];
+  let trailingNumber = "";
+
+  for (const word of words) {
+    if (/^\d+$/.test(word)) {
+      trailingNumber = word;
+    } else {
+      const letters = word.replace(/[^a-zA-Z]/g, "");
+      if (letters) {
+        trailingNumber = "";
+        letterParts.push(letters[0]!.toUpperCase() + letters.slice(1));
+      }
+    }
+  }
+
+  const result = letterParts.join("") + trailingNumber;
+  return /^[A-Z][a-zA-Z]*\d*$/.test(result) ? result : "Instance";
+};
+
 const COMPACT_NODE_TYPES = {
   place: PlaceNode,
   transition: TransitionNode,
@@ -386,7 +418,7 @@ export const SDCPNView: React.FC<{
 
       addComponentInstance({
         id,
-        name: subnet?.name ?? "Component",
+        name: subnet ? toInstanceName(subnet.name) : "Instance",
         subnetId: componentSubnetId,
         parameterValues: {},
         x: position.x,
