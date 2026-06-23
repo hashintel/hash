@@ -200,9 +200,16 @@ impl ToSchema<'_> for BaseUrl {
             "BaseUrl",
             openapi::schema::ObjectBuilder::new()
                 .schema_type(openapi::SchemaType::String)
+                .title(Some("Base URL"))
+                .description(Some(
+                    "The base URL of a Block Protocol ontology type (the $id of the schema, \
+                     without the versioned suffix). It should be a valid URL, with a trailing \
+                     slash.",
+                ))
                 .format(Some(openapi::SchemaFormat::KnownFormat(
                     openapi::KnownFormat::Uri,
                 )))
+                .max_length(Some(2048))
                 .into(),
         )
     }
@@ -652,9 +659,15 @@ impl ToSchema<'_> for VersionedUrl {
             "VersionedUrl",
             openapi::schema::ObjectBuilder::new()
                 .schema_type(openapi::SchemaType::String)
+                .title(Some("Versioned URL"))
+                .description(Some(
+                    "The versioned URL of a Block Protocol ontology type (the $id of the schema). \
+                     It should be of the form `${baseUrl}v/${versionNumber}`",
+                ))
                 .format(Some(openapi::SchemaFormat::KnownFormat(
                     openapi::KnownFormat::Uri,
                 )))
+                .max_length(Some(2048))
                 .into(),
         )
     }

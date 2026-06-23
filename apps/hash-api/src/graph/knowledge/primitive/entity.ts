@@ -19,6 +19,7 @@ import {
   HashLinkEntity,
   queryEntities,
   queryEntitySubgraph,
+  summarizeEntities,
 } from "@local/hash-graph-sdk/entity";
 import { getActorGroupRole } from "@local/hash-graph-sdk/principal/actor-group";
 import {
@@ -58,7 +59,6 @@ import type {
 import type { Subtype } from "@local/advanced-types/subtype";
 import type {
   AllFilter,
-  CountEntitiesParams,
   DiffEntityResult,
   Filter,
   HasPermissionForEntitiesParams,
@@ -159,12 +159,6 @@ export const createEntity = async <
 
   return entity;
 };
-
-export const countEntities: ImpureGraphFunction<
-  CountEntitiesParams,
-  Promise<number>
-> = async ({ graphApi }, { actorId }, params) =>
-  graphApi.countEntities(actorId, params).then(({ data }) => data);
 
 type GetLatestEntityByIdFunction<
   Properties extends TypeIdsAndPropertiesForEntity =
@@ -315,12 +309,13 @@ export const canUserReadEntity: ImpureGraphFunction<
     });
   }
 
-  const count = await countEntities(context, authentication, {
+  const { count } = await summarizeEntities(context, authentication, {
     filter: {
       all: allFilter,
     },
     temporalAxes: currentTimeInstantTemporalAxes,
     includeDrafts: !!draftId || includeDrafts,
+    includeCount: true,
   });
 
   if (count === 0) {

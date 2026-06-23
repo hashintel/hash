@@ -3,7 +3,7 @@ import {
   ignoreNoisySystemTypesFilter,
 } from "@local/hash-isomorphic-utils/graph-queries";
 
-import type { QueryEntitiesQueryVariables } from "../graphql/api-types.gen";
+import type { SummarizeEntitiesQueryVariables } from "../graphql/api-types.gen";
 import type { WebId } from "@blockprotocol/type-system";
 
 /**
@@ -14,17 +14,13 @@ export const generateSidebarEntitiesQueryVariables = ({
   webId,
 }: {
   webId: WebId;
-}): QueryEntitiesQueryVariables => {
+}): SummarizeEntitiesQueryVariables => {
   return {
     request: {
       /**
-       * We only make this request to get the count of entities by typeId to filter types in the sidebar,
-       * to only those for which the active workspace has at least one entity.
-       *
-       * We don't actually need a single entity but the Graph rejects requests with a limit of 0.
-       * We currently can't use countEntities as it just returns a total number, with no count by typeId.
+       * We only request the per-typeId counts, to filter the sidebar types to those for
+       * which the active workspace has at least one entity.
        */
-      limit: 1,
       includeTypeIds: true,
       filter: {
         all: [
@@ -39,7 +35,6 @@ export const generateSidebarEntitiesQueryVariables = ({
       },
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts: false,
-      includePermissions: false,
     },
   };
 };

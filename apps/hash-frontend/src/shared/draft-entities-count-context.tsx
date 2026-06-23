@@ -3,13 +3,13 @@ import { createContext, useContext, useMemo } from "react";
 
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 
-import { countEntitiesQuery } from "../graphql/queries/knowledge/entity.queries";
+import { summarizeEntitiesQuery } from "../graphql/queries/knowledge/entity.queries";
 import { useAuthInfo } from "../pages/shared/auth-info-context";
 import { usePollInterval } from "./use-poll-interval";
 
 import type {
-  CountEntitiesQuery,
-  CountEntitiesQueryVariables,
+  SummarizeEntitiesQuery,
+  SummarizeEntitiesQueryVariables,
 } from "../graphql/api-types.gen";
 import type { FunctionComponent, PropsWithChildren } from "react";
 
@@ -43,8 +43,8 @@ export const DraftEntitiesCountContextProvider: FunctionComponent<
     data: draftEntitiesData,
     refetch,
     loading,
-  } = useQuery<CountEntitiesQuery, CountEntitiesQueryVariables>(
-    countEntitiesQuery,
+  } = useQuery<SummarizeEntitiesQuery, SummarizeEntitiesQueryVariables>(
+    summarizeEntitiesQuery,
     {
       variables: {
         request: {
@@ -72,7 +72,7 @@ export const DraftEntitiesCountContextProvider: FunctionComponent<
 
   const value = useMemo<DraftEntitiesCountContextValue>(
     () => ({
-      count: draftEntitiesData?.countEntities ?? undefined,
+      count: draftEntitiesData?.summarizeEntities.count ?? undefined,
       loading,
       refetch: async () => {
         await refetch();

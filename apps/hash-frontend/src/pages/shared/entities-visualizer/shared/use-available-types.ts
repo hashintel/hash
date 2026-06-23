@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { extractBaseUrl } from "@blockprotocol/type-system";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 
-import { queryEntitySubgraphQuery } from "../../../../graphql/queries/knowledge/entity.queries";
+import { summarizeEntitiesQuery } from "../../../../graphql/queries/knowledge/entity.queries";
 import { useEntityTypesContextRequired } from "../../../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { usePropertyTypes } from "../../../../shared/property-types-context";
 import { useDataTypesContext } from "../../data-types-context";
@@ -12,8 +12,8 @@ import { buildEntitiesFilter } from "./build-filter";
 import { deriveFilterableProperties } from "./property-filters/derive-filterable-properties";
 
 import type {
-  QueryEntitySubgraphQuery,
-  QueryEntitySubgraphQueryVariables,
+  SummarizeEntitiesQuery,
+  SummarizeEntitiesQueryVariables,
 } from "../../../../graphql/api-types.gen";
 import type { EntitiesFilterState } from "./filter-state";
 import type { FilterMetadataForProperty } from "./property-filters/property-filter";
@@ -78,21 +78,18 @@ export const useAvailableTypes = ({
   );
 
   const { data, loading } = useQuery<
-    QueryEntitySubgraphQuery,
-    QueryEntitySubgraphQueryVariables
-  >(queryEntitySubgraphQuery, {
+    SummarizeEntitiesQuery,
+    SummarizeEntitiesQueryVariables
+  >(summarizeEntitiesQuery, {
     skip: !shouldFetchAvailableTypes,
     fetchPolicy: "cache-and-network",
     variables: {
       request: {
-        limit: 1,
         filter,
         includeTypeIds: true,
         includeTypeTitles: true,
         temporalAxes: currentTimeInstantTemporalAxes,
         includeDrafts: false,
-        includePermissions: false,
-        traversalPaths: [],
       },
     },
   });
@@ -105,8 +102,8 @@ export const useAvailableTypes = ({
       return { availableEntityTypes: [], propertyFilterData: [] };
     }
 
-    const typeIds = data?.queryEntitySubgraph.typeIds ?? {};
-    const typeTitles = data?.queryEntitySubgraph.typeTitles ?? {};
+    const typeIds = data?.summarizeEntities.typeIds ?? {};
+    const typeTitles = data?.summarizeEntities.typeTitles ?? {};
 
     const availableTypes = Object.entries(typeIds)
       .map(([entityTypeId, count]) => {

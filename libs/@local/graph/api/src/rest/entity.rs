@@ -10,15 +10,15 @@ use hash_graph_postgres_store::store::error::{EntityDoesNotExist, RaceConditionO
 use hash_graph_store::{
     self,
     entity::{
-        ClosedMultiEntityTypeMap, CountEntitiesParams, CreateEntityParams, DiffEntityParams,
-        DiffEntityResult, EntityPermissions, EntityQueryCursor, EntityQuerySortingRecord,
-        EntityQuerySortingToken, EntityQueryToken, EntityStore, EntityTypesError,
-        EntityValidationReport, EntityValidationType, HasPermissionForEntitiesParams,
-        LinkDataStateError, LinkDataValidationReport, LinkError, LinkTargetError,
-        LinkValidationReport, LinkedEntityError, MetadataValidationReport, PatchEntityParams,
+        ClosedMultiEntityTypeMap, CreateEntityParams, DiffEntityParams, DiffEntityResult,
+        EntityPermissions, EntityQueryCursor, EntityQuerySortingRecord, EntityQuerySortingToken,
+        EntityQueryToken, EntityStore, EntityTypesError, EntityValidationReport,
+        EntityValidationType, HasPermissionForEntitiesParams, LinkDataStateError,
+        LinkDataValidationReport, LinkError, LinkTargetError, LinkValidationReport,
+        LinkedEntityError, MetadataValidationReport, PatchEntityParams,
         PropertyMetadataValidationReport, QueryConversion, QueryEntitiesResponse,
-        UnexpectedEntityType, UpdateEntityEmbeddingsParams, ValidateEntityComponents,
-        ValidateEntityParams,
+        SummarizeEntitiesParams, SummarizeEntitiesResponse, UnexpectedEntityType,
+        UpdateEntityEmbeddingsParams, ValidateEntityComponents, ValidateEntityParams,
     },
     entity_type::EntityTypeResolveDefinitions,
     pool::StorePool,
@@ -67,10 +67,7 @@ use type_system::{
         value::{ValueMetadata, metadata::ValueProvenance},
     },
     ontology::VersionedUrl,
-    principal::{
-        actor::{ActorEntityUuid, ActorType},
-        actor_group::WebId,
-    },
+    principal::actor::ActorType,
     provenance::{Location, OriginProvenance, SourceProvenance, SourceType},
 };
 use utoipa::{OpenApi, ToSchema};
@@ -95,7 +92,7 @@ use crate::rest::{
         has_permission_for_entities,
         query_entities,
         query_entity_subgraph,
-        count_entities,
+        summarize_entities,
         patch_entity,
         update_entity_embeddings,
         diff_entity,
@@ -108,7 +105,8 @@ use crate::rest::{
             PropertyArrayWithMetadata,
             PropertyObjectWithMetadata,
             ValidateEntityParams,
-            CountEntitiesParams,
+            SummarizeEntitiesParams,
+            SummarizeEntitiesResponse,
             EntityValidationType,
             ValidateEntityComponents,
             Embedding,
@@ -231,7 +229,7 @@ impl EntityResource {
                     Router::new()
                         .route("/", post(query_entities::<S>))
                         .route("/subgraph", post(query_entity_subgraph::<S>))
-                        .route("/count", post(count_entities::<S>)),
+                        .route("/summarize", post(summarize_entities::<S>)),
                 ),
         )
     }
@@ -490,28 +488,10 @@ struct QueryEntitySubgraphResponse<'r> {
     cursor: Option<EntityQueryCursor<'r>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[schema(nullable = false)]
-    count: Option<usize>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[schema(nullable = false)]
     closed_multi_entity_types: Option<HashMap<VersionedUrl, ClosedMultiEntityTypeMap>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[schema(nullable = false)]
     definitions: Option<EntityTypeResolveDefinitions>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[schema(nullable = false)]
-    web_ids: Option<HashMap<WebId, usize>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[schema(nullable = false)]
-    created_by_ids: Option<HashMap<ActorEntityUuid, usize>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[schema(nullable = false)]
-    edition_created_by_ids: Option<HashMap<ActorEntityUuid, usize>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[schema(nullable = false)]
-    type_ids: Option<HashMap<VersionedUrl, usize>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[schema(nullable = false)]
-    type_titles: Option<HashMap<VersionedUrl, String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[schema(nullable = false)]
     entity_permissions: Option<HashMap<EntityId, EntityPermissions>>,
@@ -590,14 +570,8 @@ where
             Json(QueryEntitySubgraphResponse {
                 subgraph: response.subgraph.into(),
                 cursor: response.cursor.map(EntityQueryCursor::into_owned),
-                count: response.count,
                 closed_multi_entity_types: response.closed_multi_entity_types,
                 definitions: response.definitions,
-                web_ids: response.web_ids,
-                created_by_ids: response.created_by_ids,
-                edition_created_by_ids: response.edition_created_by_ids,
-                type_ids: response.type_ids,
-                type_titles: response.type_titles,
                 entity_permissions: response.entity_permissions,
             })
         })
@@ -610,8 +584,8 @@ where
 
 #[utoipa::path(
     post,
-    path = "/entities/query/count",
-    request_body = CountEntitiesParams,
+    path = "/entities/query/summarize",
+    request_body = SummarizeEntitiesParams,
     tag = "Entity",
     params(
         ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
@@ -621,24 +595,24 @@ where
         (
             status = 200,
             content_type = "application/json",
-            body = usize,
+            body = SummarizeEntitiesResponse,
         ),
         (status = 422, content_type = "text/plain", description = "Provided query is invalid"),
         (status = 500, description = "Store error occurred"),
     )
 )]
-async fn count_entities<S>(
+async fn summarize_entities<S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     mut query_logger: Option<Extension<QueryLogger>>,
     Json(request): Json<serde_json::Value>,
-) -> Result<Json<usize>, BoxedResponse>
+) -> Result<Json<SummarizeEntitiesResponse>, BoxedResponse>
 where
     S: StorePool + Send + Sync,
 {
     if let Some(query_logger) = &mut query_logger {
-        query_logger.capture(actor_id, OpenApiQuery::CountEntities(&request));
+        query_logger.capture(actor_id, OpenApiQuery::SummarizeEntities(&request));
     }
 
     let store = store_pool
@@ -647,9 +621,9 @@ where
         .map_err(report_to_response)?;
 
     let response = store
-        .count_entities(
+        .summarize_entities(
             actor_id,
-            CountEntitiesParams::deserialize(&request)
+            SummarizeEntitiesParams::deserialize(&request)
                 .map_err(Report::from)
                 .map_err(report_to_response)?,
         )

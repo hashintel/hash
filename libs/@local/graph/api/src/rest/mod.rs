@@ -329,7 +329,7 @@ pub enum OpenApiQuery<'a> {
     GetClosedMultiEntityTypes(&'a JsonValue),
     GetEntityTypeSubgraph(&'a JsonValue),
     GetEntities(&'a RawJsonValue),
-    CountEntities(&'a JsonValue),
+    SummarizeEntities(&'a JsonValue),
     GetEntitySubgraph(&'a JsonValue),
     ValidateEntity(&'a JsonValue),
     DiffEntity(&'a DiffEntityParams),

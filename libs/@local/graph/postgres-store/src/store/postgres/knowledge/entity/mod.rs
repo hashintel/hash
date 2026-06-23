@@ -17,12 +17,12 @@ use hash_graph_authorization::policies::{
 };
 use hash_graph_store::{
     entity::{
-        CountEntitiesParams, CreateEntityParams, DeleteEntitiesParams, DeletionSummary,
-        EmptyEntityTypes, EntityPermissions, EntityQueryCursor, EntityQueryPath,
-        EntityQuerySorting, EntityStore, EntityTypeRetrieval, EntityTypesError,
-        EntityValidationReport, EntityValidationType, HasPermissionForEntitiesParams,
-        PatchEntityParams, QueryConversion, QueryEntitiesParams, QueryEntitiesResponse,
-        QueryEntitySubgraphParams, QueryEntitySubgraphResponse, UpdateEntityEmbeddingsParams,
+        CreateEntityParams, DeleteEntitiesParams, DeletionSummary, EmptyEntityTypes,
+        EntityPermissions, EntityQueryCursor, EntityQueryPath, EntityQuerySorting, EntityStore,
+        EntityTypeRetrieval, EntityTypesError, EntityValidationReport, EntityValidationType,
+        HasPermissionForEntitiesParams, PatchEntityParams, QueryConversion, QueryEntitiesParams,
+        QueryEntitiesResponse, QueryEntitySubgraphParams, QueryEntitySubgraphResponse,
+        SummarizeEntitiesParams, SummarizeEntitiesResponse, UpdateEntityEmbeddingsParams,
         ValidateEntityComponents, ValidateEntityParams,
     },
     entity_type::{EntityTypeQueryPath, EntityTypeStore as _, IncludeEntityTypeOption},
@@ -527,105 +527,6 @@ where
             .add_filter(filter_to_use)
             .change_context(QueryError)?;
 
-        let (count, web_ids, created_by_ids, edition_created_by_ids, type_ids, type_titles) =
-            if let Some(summary_query) = EntitySummaryQuery::new(&mut compiler, params) {
-                let (statement, parameters) = compiler.compile();
-                let statement = summary_query.statement(&statement);
-
-                let rows = self
-                    .as_client()
-                    .query_raw(&statement, parameters.iter().copied())
-                    .instrument(tracing::info_span!(
-                        "SELECT",
-                        otel.kind = "client",
-                        db.system = "postgresql",
-                        peer.service = "Postgres",
-                        db.query.text = statement,
-                    ))
-                    .await
-                    .change_context(QueryError)?
-                    .try_collect::<Vec<_>>()
-                    .instrument(tracing::trace_span!("collect_entity_summaries"))
-                    .await
-                    .change_context(QueryError)?;
-
-                let summaries = summary_query.decode(rows)?;
-
-                let type_titles = if params.include_type_titles {
-                    let type_uuids = summaries
-                        .type_ids
-                        .as_ref()
-                        .expect("type ids should be present")
-                        .keys()
-                        .map(EntityTypeUuid::from_url)
-                        .collect::<Vec<_>>();
-
-                    let mut type_compiler = SelectCompiler::<EntityTypeWithMetadata>::new(
-                        Some(temporal_axes),
-                        params.include_drafts,
-                    );
-                    let base_url_idx =
-                        type_compiler.add_selection_path(&EntityTypeQueryPath::BaseUrl);
-                    let version_idx =
-                        type_compiler.add_selection_path(&EntityTypeQueryPath::Version);
-                    let title_idx = type_compiler.add_selection_path(&EntityTypeQueryPath::Title);
-
-                    let filter = Filter::In(
-                        FilterExpression::Path {
-                            path: EntityTypeQueryPath::OntologyId,
-                        },
-                        FilterExpressionList::ParameterList {
-                            parameters: ParameterList::EntityTypeIds(&type_uuids),
-                        },
-                    );
-                    type_compiler
-                        .add_filter(&filter)
-                        .change_context(QueryError)?;
-
-                    let (statement, parameters) = type_compiler.compile();
-
-                    Some(
-                        self.as_client()
-                            .query_raw(&statement, parameters.iter().copied())
-                            .instrument(tracing::info_span!(
-                                "SELECT",
-                                otel.kind = "client",
-                                db.system = "postgresql",
-                                peer.service = "Postgres",
-                                db.query.text = statement,
-                            ))
-                            .await
-                            .change_context(QueryError)?
-                            .map_ok(|row| {
-                                (
-                                    VersionedUrl {
-                                        base_url: row.get(base_url_idx),
-                                        version: row.get(version_idx),
-                                    },
-                                    row.get::<_, String>(title_idx),
-                                )
-                            })
-                            .try_collect::<HashMap<_, _>>()
-                            .instrument(tracing::trace_span!("collect_entity_types"))
-                            .await
-                            .change_context(QueryError)?,
-                    )
-                } else {
-                    None
-                };
-
-                (
-                    summaries.count,
-                    summaries.web_ids,
-                    summaries.created_by_ids,
-                    summaries.edition_created_by_ids,
-                    summaries.type_ids.filter(|_| params.include_type_ids),
-                    type_titles,
-                )
-            } else {
-                (None, None, None, None, None, None)
-            };
-
         compiler.set_limit(params.limit);
 
         let cursor_parameters = params.sorting.encode().change_context(QueryError)?;
@@ -730,12 +631,6 @@ where
             },
             entities,
             cursor,
-            count,
-            web_ids,
-            created_by_ids,
-            edition_created_by_ids,
-            type_ids,
-            type_titles,
             // Populated later
             permissions: None,
         })
@@ -1420,14 +1315,8 @@ where
         let QueryEntitiesResponse {
             entities: root_entities,
             cursor,
-            count,
             closed_multi_entity_types: _,
             definitions: _,
-            web_ids,
-            created_by_ids,
-            edition_created_by_ids,
-            type_ids,
-            type_titles,
             permissions,
         } = self
             .query_entities_impl(&request, &temporal_axes, &policy_components)
@@ -1571,12 +1460,6 @@ where
                     None | Some(IncludeEntityTypeOption::Closed) => None,
                 },
                 cursor,
-                count,
-                web_ids,
-                created_by_ids,
-                edition_created_by_ids,
-                type_ids,
-                type_titles,
                 entity_permissions: if request.include_permissions {
                     debug_assert!(permissions.is_none(), "Should not be populated yet");
 
@@ -1618,11 +1501,13 @@ where
         .await
     }
 
-    async fn count_entities(
+    #[tracing::instrument(level = "info", skip_all)]
+    #[expect(clippy::too_many_lines)]
+    async fn summarize_entities(
         &self,
         actor_id: ActorEntityUuid,
-        mut params: CountEntitiesParams<'_>,
-    ) -> Result<usize, Report<QueryError>> {
+        mut params: SummarizeEntitiesParams<'_>,
+    ) -> Result<SummarizeEntitiesResponse, Report<QueryError>> {
         let policy_components = PolicyComponents::builder(self)
             .with_actor(actor_id)
             .with_action(ActionName::ViewEntity, MergePolicies::Yes)
@@ -1644,14 +1529,14 @@ where
         );
 
         // Apply filter protection when configured - protects sensitive properties (e.g., email)
-        // from enumeration attacks in count queries.
+        // from enumeration attacks in summarize_entities queries.
         let should_apply_protection =
             !self.settings.filter_protection.is_empty() && !policy_components.is_instance_admin();
 
         let protected_filter;
         let filter_to_use = if should_apply_protection {
             // Transform filter to protect against email filtering on Users
-            // Note: count_entities has no sorting, so only filter protection applies
+            // Note: summarize_entities has no sorting, so only filter protection applies
             protected_filter = transform_filter(
                 params.filter.clone(),
                 &self.settings.filter_protection,
@@ -1672,14 +1557,13 @@ where
             .add_filter(filter_to_use)
             .change_context(QueryError)?;
 
-        compiler.add_distinct_selection_with_ordering(
-            &EntityQueryPath::EditionId,
-            Distinctness::Distinct,
-            None,
-        );
-
+        let Some(summary_query) = EntitySummaryQuery::new(&mut compiler, &params) else {
+            return Ok(SummarizeEntitiesResponse::default());
+        };
         let (statement, parameters) = compiler.compile();
-        Ok(self
+        let statement = summary_query.statement(&statement);
+
+        let rows = self
             .as_client()
             .query_raw(&statement, parameters.iter().copied())
             .instrument(tracing::info_span!(
@@ -1691,8 +1575,82 @@ where
             ))
             .await
             .change_context(QueryError)?
-            .count()
-            .await)
+            .try_collect::<Vec<_>>()
+            .instrument(tracing::trace_span!("collect_entity_summaries"))
+            .await
+            .change_context(QueryError)?;
+
+        let summaries = summary_query.decode(rows)?;
+
+        let type_titles = if params.include_type_titles {
+            let type_uuids = summaries
+                .type_ids
+                .as_ref()
+                .expect("type ids should be present")
+                .keys()
+                .map(EntityTypeUuid::from_url)
+                .collect::<Vec<_>>();
+
+            let mut type_compiler = SelectCompiler::<EntityTypeWithMetadata>::new(
+                Some(&temporal_axes),
+                params.include_drafts,
+            );
+            let base_url_idx = type_compiler.add_selection_path(&EntityTypeQueryPath::BaseUrl);
+            let version_idx = type_compiler.add_selection_path(&EntityTypeQueryPath::Version);
+            let title_idx = type_compiler.add_selection_path(&EntityTypeQueryPath::Title);
+
+            let filter = Filter::In(
+                FilterExpression::Path {
+                    path: EntityTypeQueryPath::OntologyId,
+                },
+                FilterExpressionList::ParameterList {
+                    parameters: ParameterList::EntityTypeIds(&type_uuids),
+                },
+            );
+            type_compiler
+                .add_filter(&filter)
+                .change_context(QueryError)?;
+
+            let (statement, parameters) = type_compiler.compile();
+
+            Some(
+                self.as_client()
+                    .query_raw(&statement, parameters.iter().copied())
+                    .instrument(tracing::info_span!(
+                        "SELECT",
+                        otel.kind = "client",
+                        db.system = "postgresql",
+                        peer.service = "Postgres",
+                        db.query.text = statement,
+                    ))
+                    .await
+                    .change_context(QueryError)?
+                    .map_ok(|row| {
+                        (
+                            VersionedUrl {
+                                base_url: row.get(base_url_idx),
+                                version: row.get(version_idx),
+                            },
+                            row.get::<_, String>(title_idx),
+                        )
+                    })
+                    .try_collect::<HashMap<_, _>>()
+                    .instrument(tracing::trace_span!("collect_entity_types"))
+                    .await
+                    .change_context(QueryError)?,
+            )
+        } else {
+            None
+        };
+
+        Ok(SummarizeEntitiesResponse {
+            count: summaries.count,
+            web_ids: summaries.web_ids,
+            created_by_ids: summaries.created_by_ids,
+            edition_created_by_ids: summaries.edition_created_by_ids,
+            type_ids: summaries.type_ids.filter(|_| params.include_type_ids),
+            type_titles,
+        })
     }
 
     async fn get_entity_by_id(

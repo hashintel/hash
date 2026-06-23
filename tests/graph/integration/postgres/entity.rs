@@ -2,8 +2,8 @@ use std::collections::HashSet;
 
 use hash_graph_store::{
     entity::{
-        CountEntitiesParams, CreateEntityParams, EntityQuerySorting, EntityStore as _,
-        PatchEntityParams, QueryEntitiesParams,
+        CreateEntityParams, EntityQuerySorting, EntityStore as _, PatchEntityParams,
+        QueryEntitiesParams, SummarizeEntitiesParams,
     },
     filter::Filter,
     subgraph::temporal_axes::{
@@ -105,14 +105,8 @@ async fn insert() {
             },
             limit: 1000,
             conversions: Vec::new(),
-            include_count: true,
             include_entity_types: None,
             include_drafts: false,
-            include_web_ids: false,
-            include_created_by_ids: false,
-            include_edition_created_by_ids: false,
-            include_type_ids: false,
-            include_type_titles: false,
             include_permissions: false,
         },
     ))
@@ -187,14 +181,8 @@ async fn query() {
             },
             limit: 1000,
             conversions: Vec::new(),
-            include_count: true,
             include_entity_types: None,
             include_drafts: false,
-            include_web_ids: false,
-            include_created_by_ids: false,
-            include_edition_created_by_ids: false,
-            include_type_ids: false,
-            include_type_titles: false,
             include_permissions: false,
         },
     ))
@@ -286,9 +274,9 @@ async fn update() {
         .expect("could not update entity");
 
     let num_entities = api
-        .count_entities(
+        .summarize_entities(
             api.account_id,
-            CountEntitiesParams {
+            SummarizeEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(v2_entity.metadata.record_id.entity_id),
                 temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                     pinned: PinnedTemporalAxisUnresolved::new(None),
@@ -298,10 +286,18 @@ async fn update() {
                     ),
                 },
                 include_drafts: false,
+                include_count: true,
+                include_web_ids: false,
+                include_created_by_ids: false,
+                include_edition_created_by_ids: false,
+                include_type_ids: false,
+                include_type_titles: false,
             },
         )
         .await
-        .expect("could not count entities");
+        .expect("could not count entities")
+        .count
+        .unwrap_or(0);
     assert_eq!(num_entities, 2);
 
     let entities = Box::pin(api.query_entities(
@@ -318,14 +314,8 @@ async fn update() {
             },
             limit: 1000,
             conversions: Vec::new(),
-            include_count: false,
             include_entity_types: None,
             include_drafts: false,
-            include_web_ids: false,
-            include_created_by_ids: false,
-            include_edition_created_by_ids: false,
-            include_type_ids: false,
-            include_type_titles: false,
             include_permissions: false,
         },
     ))
@@ -357,20 +347,14 @@ async fn update() {
             },
             limit: 1000,
             conversions: Vec::new(),
-            include_count: true,
             include_entity_types: None,
             include_drafts: false,
-            include_web_ids: false,
-            include_created_by_ids: false,
-            include_edition_created_by_ids: false,
-            include_type_ids: false,
-            include_type_titles: false,
             include_permissions: false,
         },
     ))
     .await
     .expect("could not get entities");
-    assert_eq!(response_v1.count, Some(1));
+    assert_eq!(response_v1.entities.len(), 1);
     let entity_v1 = response_v1.entities.pop().expect("no entity found");
     assert_eq!(entity_v1.properties.properties(), page_v1.properties());
 
@@ -393,20 +377,40 @@ async fn update() {
             },
             limit: 1000,
             conversions: Vec::new(),
-            include_count: true,
             include_entity_types: None,
             include_drafts: false,
-            include_web_ids: false,
-            include_created_by_ids: false,
-            include_edition_created_by_ids: false,
-            include_type_ids: false,
-            include_type_titles: false,
             include_permissions: false,
         },
     ))
     .await
     .expect("could not get entities");
-    assert_eq!(response_v2.count, Some(1));
+
+    let num_entities = api
+        .summarize_entities(
+            api.account_id,
+            SummarizeEntitiesParams {
+                filter: Filter::for_entity_by_entity_id(v2_entity.metadata.record_id.entity_id),
+                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                    pinned: PinnedTemporalAxisUnresolved::new(None),
+                    variable: VariableTemporalAxisUnresolved::new(
+                        Some(TemporalBound::Unbounded),
+                        None,
+                    ),
+                },
+                include_drafts: false,
+                include_count: true,
+                include_web_ids: false,
+                include_created_by_ids: false,
+                include_edition_created_by_ids: false,
+                include_type_ids: false,
+                include_type_titles: false,
+            },
+        )
+        .await
+        .expect("could not count entities")
+        .count
+        .unwrap_or(0);
+    assert_eq!(num_entities, 1);
     let entity_v2 = response_v2.entities.pop().expect("no entity found");
     assert_eq!(entity_v2.properties.properties(), page_v2.properties());
 }

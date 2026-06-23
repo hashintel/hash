@@ -4,7 +4,7 @@ use std::collections::{HashMap, HashSet};
 use hash_graph_store::{
     entity::{
         CreateEntityParams, EntityQuerySorting, EntityStore as _, PatchEntityParams,
-        QueryEntitiesParams,
+        QueryEntitiesParams, SummarizeEntitiesParams,
     },
     error::InsertionError,
     filter::Filter,
@@ -155,14 +155,8 @@ async fn initial_person() {
             },
             limit: 1000,
             conversions: Vec::new(),
-            include_count: true,
             include_entity_types: None,
             include_drafts: false,
-            include_web_ids: false,
-            include_created_by_ids: false,
-            include_edition_created_by_ids: false,
-            include_type_ids: false,
-            include_type_titles: false,
             include_permissions: false,
         },
     ))
@@ -220,14 +214,8 @@ async fn initial_person() {
             },
             limit: 1000,
             conversions: Vec::new(),
-            include_count: true,
             include_entity_types: None,
             include_drafts: false,
-            include_web_ids: false,
-            include_created_by_ids: false,
-            include_edition_created_by_ids: false,
-            include_type_ids: false,
-            include_type_titles: false,
             include_permissions: false,
         },
     ))
@@ -249,14 +237,8 @@ async fn initial_person() {
             },
             limit: 1000,
             conversions: Vec::new(),
-            include_count: true,
             include_entity_types: None,
             include_drafts: false,
-            include_web_ids: false,
-            include_created_by_ids: false,
-            include_edition_created_by_ids: false,
-            include_type_ids: false,
-            include_type_titles: false,
             include_permissions: false,
         },
     ))
@@ -332,14 +314,8 @@ async fn create_multi() {
             },
             limit: 1000,
             conversions: Vec::new(),
-            include_count: true,
             include_entity_types: None,
             include_drafts: false,
-            include_web_ids: false,
-            include_created_by_ids: false,
-            include_edition_created_by_ids: false,
-            include_type_ids: false,
-            include_type_titles: false,
             include_permissions: false,
         },
     ))
@@ -361,14 +337,8 @@ async fn create_multi() {
             },
             limit: 1000,
             conversions: Vec::new(),
-            include_count: true,
             include_entity_types: None,
             include_drafts: false,
-            include_web_ids: false,
-            include_created_by_ids: false,
-            include_edition_created_by_ids: false,
-            include_type_ids: false,
-            include_type_titles: false,
             include_permissions: false,
         },
     ))
@@ -421,14 +391,8 @@ async fn create_multi() {
             },
             limit: 1000,
             conversions: Vec::new(),
-            include_count: true,
             include_entity_types: None,
             include_drafts: false,
-            include_web_ids: false,
-            include_created_by_ids: false,
-            include_edition_created_by_ids: false,
-            include_type_ids: false,
-            include_type_titles: false,
             include_permissions: false,
         },
     ))
@@ -493,35 +457,26 @@ async fn summary_aggregations() {
     .await
     .expect("could not create entity");
 
-    let response = Box::pin(api.query_entities(
+    let response = Box::pin(api.summarize_entities(
         api.account_id,
-        QueryEntitiesParams {
+        SummarizeEntitiesParams {
             filter: Filter::for_entity_by_type_id(&person_entity_type_id()),
             temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                 pinned: PinnedTemporalAxisUnresolved::new(None),
                 variable: VariableTemporalAxisUnresolved::new(None, None),
             },
-            sorting: EntityQuerySorting {
-                paths: Vec::new(),
-                cursor: None,
-            },
-            limit: 1000,
-            conversions: Vec::new(),
             include_count: true,
-            include_entity_types: None,
             include_drafts: false,
             include_web_ids: true,
             include_created_by_ids: true,
             include_edition_created_by_ids: true,
             include_type_ids: true,
             include_type_titles: true,
-            include_permissions: false,
         },
     ))
     .await
     .expect("could not get entities");
 
-    assert_eq!(response.entities.len(), 2);
     assert_eq!(response.count, Some(2));
     assert_eq!(
         response.web_ids,
@@ -550,29 +505,21 @@ async fn summary_aggregations() {
         ]))
     );
 
-    let titles_only = Box::pin(api.query_entities(
+    let titles_only = Box::pin(api.summarize_entities(
         api.account_id,
-        QueryEntitiesParams {
+        SummarizeEntitiesParams {
             filter: Filter::for_entity_by_type_id(&person_entity_type_id()),
             temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                 pinned: PinnedTemporalAxisUnresolved::new(None),
                 variable: VariableTemporalAxisUnresolved::new(None, None),
             },
-            sorting: EntityQuerySorting {
-                paths: Vec::new(),
-                cursor: None,
-            },
-            limit: 1000,
-            conversions: Vec::new(),
             include_count: false,
-            include_entity_types: None,
             include_drafts: false,
             include_web_ids: false,
             include_created_by_ids: false,
             include_edition_created_by_ids: false,
             include_type_ids: false,
             include_type_titles: true,
-            include_permissions: false,
         },
     ))
     .await

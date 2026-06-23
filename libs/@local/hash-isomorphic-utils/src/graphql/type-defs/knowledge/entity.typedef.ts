@@ -3,7 +3,8 @@ import { gql } from "graphql-tag";
 export const entityTypedef = gql`
   scalar ClosedMultiEntityTypesRootMap
   scalar ClosedMultiEntityTypesDefinitions
-  scalar CountEntitiesParams
+  scalar SummarizeEntitiesParams
+  scalar SummarizeEntitiesResponse
   scalar CreatedByIdsMap
   scalar EntityId
   scalar EntityMetadata
@@ -109,7 +110,9 @@ export const entityTypedef = gql`
   }
 
   extend type Query {
-    countEntities(request: CountEntitiesParams!): Int!
+    summarizeEntities(
+      request: SummarizeEntitiesParams!
+    ): SummarizeEntitiesResponse!
 
     queryEntities(request: QueryEntitiesRequest!): QueryEntitiesResponse!
 

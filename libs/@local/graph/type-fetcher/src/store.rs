@@ -35,10 +35,11 @@ use hash_graph_store::{
         UnarchiveDataTypeParams, UpdateDataTypeEmbeddingParams, UpdateDataTypesParams,
     },
     entity::{
-        CountEntitiesParams, CreateEntityParams, DeleteEntitiesParams, DeletionSummary,
-        EntityStore, EntityValidationReport, HasPermissionForEntitiesParams, PatchEntityParams,
+        CreateEntityParams, DeleteEntitiesParams, DeletionSummary, EntityStore,
+        EntityValidationReport, HasPermissionForEntitiesParams, PatchEntityParams,
         QueryEntitiesParams, QueryEntitiesResponse, QueryEntitySubgraphParams,
-        QueryEntitySubgraphResponse, UpdateEntityEmbeddingsParams, ValidateEntityParams,
+        QueryEntitySubgraphResponse, SummarizeEntitiesParams, SummarizeEntitiesResponse,
+        UpdateEntityEmbeddingsParams, ValidateEntityParams,
     },
     entity_type::{
         ArchiveEntityTypeParams, CommonQueryEntityTypesParams, CountEntityTypesParams,
@@ -1662,12 +1663,12 @@ where
             .await
     }
 
-    async fn count_entities(
+    async fn summarize_entities(
         &self,
         actor_id: ActorEntityUuid,
-        params: CountEntitiesParams<'_>,
-    ) -> Result<usize, Report<QueryError>> {
-        self.store.count_entities(actor_id, params).await
+        params: SummarizeEntitiesParams<'_>,
+    ) -> Result<SummarizeEntitiesResponse, Report<QueryError>> {
+        self.store.summarize_entities(actor_id, params).await
     }
 
     async fn patch_entity(

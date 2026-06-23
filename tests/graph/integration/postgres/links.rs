@@ -3,8 +3,8 @@ use std::collections::HashSet;
 
 use hash_graph_store::{
     entity::{
-        CountEntitiesParams, CreateEntityParams, EntityQueryPath, EntityQuerySorting,
-        EntityStore as _, PatchEntityParams, QueryEntitiesParams,
+        CreateEntityParams, EntityQueryPath, EntityQuerySorting, EntityStore as _,
+        PatchEntityParams, QueryEntitiesParams, SummarizeEntitiesParams,
     },
     entity_type::EntityTypeQueryPath,
     filter::{Filter, FilterExpression, Parameter},
@@ -238,14 +238,8 @@ async fn insert() {
             },
             limit: 1000,
             conversions: Vec::new(),
-            include_count: true,
             include_entity_types: None,
             include_drafts: false,
-            include_web_ids: false,
-            include_created_by_ids: false,
-            include_edition_created_by_ids: false,
-            include_type_ids: false,
-            include_type_titles: false,
             include_permissions: false,
         },
     ))
@@ -496,14 +490,8 @@ async fn get_entity_links() {
             },
             limit: 1000,
             conversions: Vec::new(),
-            include_count: false,
             include_entity_types: None,
             include_drafts: false,
-            include_web_ids: false,
-            include_created_by_ids: false,
-            include_edition_created_by_ids: false,
-            include_type_ids: false,
-            include_type_titles: false,
             include_permissions: false,
         },
     ))
@@ -677,9 +665,9 @@ async fn remove_link() {
         .expect("could not create link");
 
     let has_link = api
-        .count_entities(
+        .summarize_entities(
             api.account_id,
-            CountEntitiesParams {
+            SummarizeEntitiesParams {
                 filter: Filter::All(vec![
                     Filter::Equal(
                         FilterExpression::Path {
@@ -711,10 +699,18 @@ async fn remove_link() {
                     variable: VariableTemporalAxisUnresolved::new(None, None),
                 },
                 include_drafts: false,
+                include_count: true,
+                include_web_ids: false,
+                include_created_by_ids: false,
+                include_edition_created_by_ids: false,
+                include_type_ids: false,
+                include_type_titles: false,
             },
         )
         .await
         .expect("could not count entities")
+        .count
+        .unwrap_or(0)
         > 0;
     assert!(has_link);
 
@@ -739,9 +735,9 @@ async fn remove_link() {
     .expect("could not remove link");
 
     let has_link = api
-        .count_entities(
+        .summarize_entities(
             api.account_id,
-            CountEntitiesParams {
+            SummarizeEntitiesParams {
                 filter: Filter::All(vec![
                     Filter::Equal(
                         FilterExpression::Path {
@@ -773,10 +769,18 @@ async fn remove_link() {
                     variable: VariableTemporalAxisUnresolved::new(None, None),
                 },
                 include_drafts: false,
+                include_count: true,
+                include_web_ids: false,
+                include_created_by_ids: false,
+                include_edition_created_by_ids: false,
+                include_type_ids: false,
+                include_type_titles: false,
             },
         )
         .await
         .expect("could not count entities")
+        .count
+        .unwrap_or(0)
         > 0;
     assert!(!has_link);
 }

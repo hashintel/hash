@@ -8,7 +8,7 @@ use std::collections::HashMap;
 
 use error_stack::{Report, ResultExt as _};
 use hash_graph_store::{
-    entity::{EntityQueryPath, QueryEntitiesParams},
+    entity::{EntityQueryPath, SummarizeEntitiesParams},
     entity_type::EntityTypeQueryPath,
     error::QueryError,
     subgraph::edges::SharedEdgeKind,
@@ -90,7 +90,7 @@ impl EntitySummaryQuery {
     /// and a limit would truncate the aggregates.
     pub(crate) fn new(
         compiler: &mut SelectCompiler<'_, '_, Entity>,
-        params: &QueryEntitiesParams<'_>,
+        params: &SummarizeEntitiesParams<'_>,
     ) -> Option<Self> {
         if !(params.include_count
             || params.include_web_ids

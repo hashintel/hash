@@ -10,8 +10,8 @@ import {
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 
 import {
-  countEntitiesQuery,
   queryEntitySubgraphQuery,
+  summarizeEntitiesQuery,
 } from "../../../graphql/queries/knowledge/entity.queries";
 import { apolloClient } from "../../../lib/apollo-client";
 import { buildEntitiesFilter } from "./shared/build-filter";
@@ -19,10 +19,10 @@ import { traversalPathsForView } from "./shared/traversal-paths";
 import { useEntitiesTableData } from "./use-entities-table-data";
 
 import type {
-  CountEntitiesQuery,
-  CountEntitiesQueryVariables,
   QueryEntitySubgraphQuery,
   QueryEntitySubgraphQueryVariables,
+  SummarizeEntitiesQuery,
+  SummarizeEntitiesQueryVariables,
 } from "../../../graphql/api-types.gen";
 import type { VisualizerView } from "../visualizer-views";
 import type {
@@ -128,17 +128,25 @@ export const useEntitiesVisualizerData = (params: {
     [conversions, cursor, filter, limit, sort, view],
   );
 
-  const { data: countData } = useQuery<
-    CountEntitiesQuery,
-    CountEntitiesQueryVariables
-  >(countEntitiesQuery, {
-    variables: {
+  // The total count is computed by a dedicated `summarizeEntities` query so it
+  // doesn't block the entity/subgraph fetch above.
+  const summarizeVariables = useMemo<SummarizeEntitiesQueryVariables>(
+    () => ({
       request: {
         filter,
         temporalAxes: currentTimeInstantTemporalAxes,
         includeDrafts: false,
+        includeCount: true,
       },
-    },
+    }),
+    [filter],
+  );
+
+  const { data: summaryData } = useQuery<
+    SummarizeEntitiesQuery,
+    SummarizeEntitiesQueryVariables
+  >(summarizeEntitiesQuery, {
+    variables: summarizeVariables,
   });
 
   const { data, loading, refetch } = useQuery<
@@ -203,12 +211,12 @@ export const useEntitiesVisualizerData = (params: {
       refetch,
       subgraph,
       tableData,
-      totalResultCount: countData?.countEntities ?? null,
+      totalResultCount: summaryData?.summarizeEntities.count ?? null,
       updateTableData,
     }),
     [
       data?.queryEntitySubgraph,
-      countData?.countEntities,
+      summaryData?.summarizeEntities,
       entities,
       hadCachedContent,
       loading,
