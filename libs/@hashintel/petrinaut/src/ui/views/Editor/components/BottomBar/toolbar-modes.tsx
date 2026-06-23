@@ -221,7 +221,7 @@ export const ToolbarModes: React.FC<ToolbarModesProps> = ({
           >
             <Icon name="squarePlus" />
           </ToolbarButton>
-          {isRootNet && extensions.subnets && enableNetComponents && (
+          {isRootNet && enableNetComponents && (
             <ComponentDropdown editionMode={editionMode} />
           )}
         </>

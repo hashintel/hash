@@ -46,7 +46,7 @@ export const DEFAULT_PETRINAUT_EXTENSIONS: PetrinautExtensionSettings = {
   stochasticity: true,
   dynamics: true,
   parameters: true,
-  subnets: true,
+  subnets: false,
 };
 
 export const resolvePetrinautHandleCapabilities = (

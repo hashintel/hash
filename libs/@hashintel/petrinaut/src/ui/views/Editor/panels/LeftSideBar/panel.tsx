@@ -113,23 +113,23 @@ export const LeftSideBar: React.FC = () => {
   // The sidebar is visible when explicitly opened OR when search is active
   const isVisible = isOpen || isSearchOpen;
 
-  const sidebarSubViews = useEntitiesTreeView
-    ? LEFT_SIDEBAR_TREE_SUBVIEWS
-    : LEFT_SIDEBAR_SUBVIEWS.filter((subView) => {
-        if (subView.id === "token-types-list") {
-          return extensions.colors;
-        }
-        if (subView.id === "differential-equations-list") {
-          return extensions.colors && extensions.dynamics;
-        }
-        if (subView.id === "parameters-list") {
-          return extensions.parameters;
-        }
-        if (subView.id === "nets-list") {
-          return extensions.subnets && enableNetComponents;
-        }
-        return true;
-      });
+  const sidebarSubViews = (
+    useEntitiesTreeView ? LEFT_SIDEBAR_TREE_SUBVIEWS : LEFT_SIDEBAR_SUBVIEWS
+  ).filter((subView) => {
+    if (subView.id === "token-types-list") {
+      return extensions.colors;
+    }
+    if (subView.id === "differential-equations-list") {
+      return extensions.colors && extensions.dynamics;
+    }
+    if (subView.id === "parameters-list") {
+      return extensions.parameters;
+    }
+    if (subView.id === "nets-list") {
+      return enableNetComponents;
+    }
+    return true;
+  });
 
   const searchSubViews = useMemo(() => [searchSubView], []);
 
