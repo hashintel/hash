@@ -1,6 +1,7 @@
 import { useQuery } from "@apollo/client";
 import { useMemo } from "react";
 
+import { extractBaseUrl } from "@blockprotocol/type-system";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 
 import { queryEntitySubgraphQuery } from "../../../../graphql/queries/knowledge/entity.queries";
@@ -43,7 +44,22 @@ export const useAvailableTypes = ({
   const { dataTypes } = useDataTypesContext();
   const { propertyTypes } = usePropertyTypes();
 
-  const skip = !!entityTypeBaseUrl || !!entityTypeIds?.length;
+  const isTypePinned = !!entityTypeBaseUrl || !!entityTypeIds?.length;
+  const shouldFetchAvailableTypes = !isTypePinned;
+
+  const pinnedEntityTypeIds = useMemo<VersionedUrl[] | null>(() => {
+    if (entityTypeIds?.length) {
+      return entityTypeIds;
+    }
+
+    if (entityTypeBaseUrl && entityTypes) {
+      return entityTypes
+        .filter(({ schema }) => extractBaseUrl(schema.$id) === entityTypeBaseUrl)
+        .map(({ schema }) => schema.$id);
+    }
+
+    return null;
+  }, [entityTypeBaseUrl, entityTypeIds, entityTypes]);
 
   const filter = useMemo(
     () =>
@@ -63,7 +79,7 @@ export const useAvailableTypes = ({
     QueryEntitySubgraphQuery,
     QueryEntitySubgraphQueryVariables
   >(queryEntitySubgraphQuery, {
-    skip,
+    skip: !shouldFetchAvailableTypes,
     fetchPolicy: "cache-and-network",
     variables: {
       request: {
@@ -83,12 +99,12 @@ export const useAvailableTypes = ({
     availableEntityTypes: AvailableType[];
     propertyFilterData: FilterMetadataForProperty[];
   }>(() => {
-    if (skip || !data) {
+    if (shouldFetchAvailableTypes && !data) {
       return { availableEntityTypes: [], propertyFilterData: [] };
     }
 
-    const typeIds = data.queryEntitySubgraph.typeIds ?? {};
-    const typeTitles = data.queryEntitySubgraph.typeTitles ?? {};
+    const typeIds = data?.queryEntitySubgraph.typeIds ?? {};
+    const typeTitles = data?.queryEntitySubgraph.typeTitles ?? {};
 
     const availableTypes = Object.entries(typeIds)
       .map(([entityTypeId, count]) => {
@@ -105,11 +121,15 @@ export const useAvailableTypes = ({
       return { availableEntityTypes: availableTypes, propertyFilterData: [] };
     }
 
-    const availableEntityTypeIds = Object.keys(typeIds) as VersionedUrl[];
-    const selectedAvailableEntityTypeIds = filterState.type.selectedTypeIds
-      ? [...filterState.type.selectedTypeIds].filter((typeId) =>
-          availableEntityTypeIds.includes(typeId),
-        )
+    const availableEntityTypeIds = shouldFetchAvailableTypes
+      ? (Object.keys(typeIds) as VersionedUrl[])
+      : (pinnedEntityTypeIds ?? []);
+    const selectedAvailableEntityTypeIds = shouldFetchAvailableTypes
+      ? filterState.type.selectedTypeIds
+        ? [...filterState.type.selectedTypeIds].filter((typeId) =>
+            availableEntityTypeIds.includes(typeId),
+          )
+        : availableEntityTypeIds
       : availableEntityTypeIds;
 
     /**
@@ -133,9 +153,10 @@ export const useAvailableTypes = ({
     dataTypes,
     entityTypeParentIds,
     entityTypes,
+    pinnedEntityTypeIds,
     filterState.type.selectedTypeIds,
     propertyTypes,
-    skip,
+    shouldFetchAvailableTypes,
   ]);
 
   const propertyFilterDataLoading =
@@ -144,6 +165,8 @@ export const useAvailableTypes = ({
   return {
     availableEntityTypes,
     propertyFilterData,
-    loading: skip ? false : loading || propertyFilterDataLoading,
+    loading: shouldFetchAvailableTypes
+      ? loading || propertyFilterDataLoading
+      : propertyFilterDataLoading,
   };
 };
