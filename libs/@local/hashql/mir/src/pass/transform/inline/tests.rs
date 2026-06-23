@@ -27,6 +27,7 @@ use crate::{
     context::MirContext,
     def::{DefId, DefIdSlice, DefIdVec},
     intern::Interner,
+    intrinsic::{Intrinsic, IntrinsicId},
     pass::{
         Changed, GlobalTransformPass as _, OwnedGlobalTransformState,
         analysis::{CallGraph, CallSite},
@@ -542,7 +543,7 @@ fn analysis_directives_by_source() {
 
     let mut intrinsic_body = closure_body.clone();
     intrinsic_body.id = DefId::new(2);
-    intrinsic_body.source = Source::Closure(HirId::PLACEHOLDER, None);
+    intrinsic_body.source = Source::Intrinsic(Intrinsic::new(IntrinsicId::EntityPropertyAccess));
 
     // Fix closure_body id to be 0
     closure_body.id = DefId::new(0);

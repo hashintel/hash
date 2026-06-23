@@ -71,11 +71,11 @@ pub enum Source<'heap> {
     /// A compiler intrinsic function.
     ///
     /// This variant represents MIR generated for built-in operations that have
-    /// special compiler support or runtime behavior. The [`DefId`] identifies the intrinsic
-    /// definition.
+    /// special compiler support or runtime behavior. Intrinsics may define a fallback
+    /// implementation inside of their body.
     ///
-    /// The body of an intrinsic function is typically empty, as the intrinsic
-    /// operation is handled directly by the compiler or runtime.
+    /// Intrinsics are never inlined, but are still optimized, except in the case of explicit
+    /// opt-out.
     Intrinsic(Intrinsic),
 
     /// A compiler-synthesized wrapper that makes a non-first-class operation callable as a
