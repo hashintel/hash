@@ -48,7 +48,10 @@ export const parseArcEndpointKey = (key: string): ArcEndpoint | null => {
   }
   if (key.startsWith("componentPort:")) {
     const rest = key.slice("componentPort:".length);
-    const [componentInstanceId, portPlaceId] = rest.split(":");
+    const sep = rest.indexOf(":");
+    if (sep === -1) return null;
+    const componentInstanceId = rest.slice(0, sep);
+    const portPlaceId = rest.slice(sep + 1);
     return componentInstanceId && portPlaceId
       ? componentPortArcEndpoint({ componentInstanceId, portPlaceId })
       : null;
