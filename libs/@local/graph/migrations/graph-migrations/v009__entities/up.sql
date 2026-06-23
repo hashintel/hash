@@ -86,6 +86,13 @@ CREATE TABLE entity_is_of_type (
     PRIMARY KEY (entity_edition_id, entity_type_ontology_id)
 );
 
+-- The primary key leads with `entity_edition_id` (the "edition -> types" direction used by
+-- cache builds), so type-filtered lookups cannot use it and fall back to a full scan. This
+-- index leads with the type to make those lookups index-driven, with `entity_edition_id`
+-- trailing to cover the join back to editions.
+CREATE INDEX entity_is_of_type_type_lookup
+ON entity_is_of_type (entity_type_ontology_id, entity_edition_id);
+
 CREATE TYPE entity_edge_kind AS ENUM ('has-left-entity', 'has-right-entity');
 CREATE TYPE edge_direction AS ENUM ('outgoing', 'incoming');
 
