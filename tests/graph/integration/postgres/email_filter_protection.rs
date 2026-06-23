@@ -22,7 +22,6 @@ use hash_graph_store::{
         CreateEntityParams, EntityQueryPath, EntityQuerySorting, EntityQuerySortingRecord,
         EntityStore as _, QueryEntitiesParams, QueryEntitySubgraphParams, SummarizeEntitiesParams,
     },
-    entity_type::EntityTypeQueryPath,
     filter::{
         Filter, FilterExpression, JsonPath, Parameter, PathToken,
         protection::{
@@ -32,7 +31,7 @@ use hash_graph_store::{
     },
     query::{NullOrdering, Ordering},
     subgraph::{
-        edges::{
+        edges::{EdgeDirection, EntityTraversalEdge, EntityTraversalPath, GraphResolveDepths},
             EdgeDirection, EntityTraversalEdge, EntityTraversalPath, GraphResolveDepths,
             SharedEdgeKind,
         },
