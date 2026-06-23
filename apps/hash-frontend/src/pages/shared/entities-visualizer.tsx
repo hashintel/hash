@@ -466,13 +466,15 @@ export const EntitiesVisualizer: FunctionComponent<{
     return () => observer.disconnect();
   }, []);
 
-  const tableHeight = `min(600px, calc(100vh - ${
+  const availableHeight = `calc(100vh - ${
     contentTop != null
       ? `${contentTop}px - ${theme.spacing(5)}`
       : `(${
           HEADER_HEIGHT + TOP_CONTEXT_BAR_HEIGHT + 230 + visualizerHeaderHeight
-        }px + ${theme.spacing(5)} + ${theme.spacing(5)})`
-  }))`;
+        }px + ${theme.spacing(5)} + ${theme.spacing(5)}`
+  })`;
+
+  const tableHeight = `min(${availableHeight}, 1000px)`;
 
   const isPrimaryEntity = useCallback(
     (entity: { metadata: Pick<HashEntity["metadata"], "entityTypeIds"> }) =>
@@ -590,7 +592,7 @@ export const EntitiesVisualizer: FunctionComponent<{
           </Box>
         </Stack>
       ) : view === "Graph" ? (
-        <Box height={tableHeight} sx={tableContentSx}>
+        <Box height={availableHeight} sx={tableContentSx}>
           <EntityGraphVisualizer
             closedMultiEntityTypesRootMap={closedMultiEntityTypesRootMap}
             entities={entities}
