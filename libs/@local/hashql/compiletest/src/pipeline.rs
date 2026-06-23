@@ -17,7 +17,7 @@
 //! individual crate APIs.
 
 use hashql_core::{
-    heap::{Heap, Scratch},
+    heap::{Heap, ResetAllocator as _, Scratch},
     module::ModuleRegistry,
     span::{SpanId, SpanTable},
     r#type::environment::Environment,
@@ -188,6 +188,7 @@ impl<'heap> Pipeline<'heap> {
         };
 
         let entry = tri!(hashql_mir::reify::from_hir(node, &mut reify_context));
+        self.scratch.reset();
 
         // drain the context, because we're going to re-create it
         self.diagnostics.extend(
