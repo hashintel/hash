@@ -1,6 +1,8 @@
 import { ignoreNoisySystemTypesFilter } from "@local/hash-isomorphic-utils/graph-queries";
 
-import type { EntitiesFilterState } from "./types";
+import { buildPropertyFilterClause } from "./property-filters/build-property-filter-clause";
+
+import type { EntitiesFilterState } from "./filter-state";
 import type { BaseUrl, VersionedUrl, WebId } from "@blockprotocol/type-system";
 import type { Filter } from "@local/hash-graph-client";
 
@@ -144,11 +146,17 @@ export const buildEntitiesFilter = ({
     clauses.push(typeClause);
   }
 
-  const userPickedSpecificTypes =
-    !isTypePinned && filterState.type.selectedTypeIds !== null;
-
-  if (!isTypePinned && !userPickedSpecificTypes) {
+  if (!isTypePinned) {
     clauses.push(ignoreNoisySystemTypesFilter);
+  }
+
+  for (const propertyFilter of filterState.propertyFilters) {
+    const propertyClause = buildPropertyFilterClause(propertyFilter);
+
+    // An incomplete or invalid filter contributes no clause (it is inert).
+    if (propertyClause) {
+      clauses.push(propertyClause);
+    }
   }
 
   return { all: clauses };

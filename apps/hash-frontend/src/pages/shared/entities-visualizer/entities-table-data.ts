@@ -10,7 +10,6 @@ import type {
   WebId,
 } from "@blockprotocol/type-system";
 import type { SizedGridColumn } from "@glideapps/glide-data-grid";
-import type { EntityQueryCursor } from "@local/hash-graph-client/api";
 import type {
   SerializedEntity,
   SerializedSubgraph,
@@ -97,13 +96,6 @@ export type GenerateEntitiesTableDataParams = {
   hideArchivedColumn?: boolean;
 };
 
-export type SourceOrTargetFilterData = {
-  [entityId: string]: {
-    count: number;
-    label: string;
-  };
-};
-
 export type EntityTypeTableFilterData = {
   entityTypeId: VersionedUrl;
   title: string;
@@ -116,13 +108,6 @@ export type WebTableFilterData = {
   shortname: string;
 };
 
-export type EntitiesTableFilterDataFromVisibleRows = {
-  noSourceCount: number;
-  noTargetCount: number;
-  sources: SourceOrTargetFilterData;
-  targets: SourceOrTargetFilterData;
-};
-
 export type VisibleDataTypeIdsByPropertyBaseUrl = Record<
   BaseUrl,
   Set<ClosedDataTypeDefinition>
@@ -130,8 +115,15 @@ export type VisibleDataTypeIdsByPropertyBaseUrl = Record<
 
 export type EntitiesTableData = {
   columns: EntitiesTableColumn[];
+  /**
+   * The data type definitions referenced by {@link rows}, captured from the
+   * same query result the rows were generated from.
+   *
+   * Bundling the pool with the rows guarantees that anything drawing a row's
+   * value can always resolve its data type.
+   */
+  dataTypeDefinitions: ClosedMultiEntityTypesDefinitions["dataTypes"];
   entityTypesWithMultipleVersionsPresent: Set<VersionedUrl>;
-  visibleRowsFilterData: EntitiesTableFilterDataFromVisibleRows;
   rows: EntitiesTableRow[];
   visibleDataTypeIdsByPropertyBaseUrl: VisibleDataTypeIdsByPropertyBaseUrl;
 };
@@ -141,7 +133,7 @@ export type UpdateTableDataFn = (
     EntitiesVisualizerData,
     "definitions" | "entities" | "subgraph"
   > & {
-    appliedPaginationCursor: EntityQueryCursor | null;
+    appendRows: boolean;
     closedMultiEntityTypesRootMap: ClosedMultiEntityTypesRootMap;
   },
 ) => void;

@@ -20,7 +20,7 @@ import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-
 import { includesPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 
-import { gridHeaderBaseFont } from "../../../../../components/grid/grid";
+import { gridHeaderBaseFont } from "../../../../components/grid/grid";
 
 import type {
   EntitiesTableColumn,
@@ -30,7 +30,7 @@ import type {
   EntitiesTableRowPropertyCell,
   GenerateEntitiesTableDataParams,
   VisibleDataTypeIdsByPropertyBaseUrl,
-} from "../../types";
+} from "../entities-table-data";
 import type { BaseUrl, VersionedUrl } from "@blockprotocol/type-system";
 import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 
@@ -112,19 +112,6 @@ export const generateTableDataFromRows = (
 
   let noSource = 0;
   let noTarget = 0;
-
-  const sourcesByEntityId: {
-    [entityId: string]: {
-      count: number;
-      label: string;
-    };
-  } = {};
-  const targetsByEntityId: {
-    [entityId: string]: {
-      count: number;
-      label: string;
-    };
-  } = {};
 
   const dataTypesByProperty: VisibleDataTypeIdsByPropertyBaseUrl = {};
 
@@ -296,12 +283,6 @@ export const generateTableDataFromRows = (
         isLink: !!source?.linkData,
       };
 
-      sourcesByEntityId[sourceEntity.entityId] ??= {
-        count: 0,
-        label: sourceEntity.label,
-      };
-      sourcesByEntityId[sourceEntity.entityId]!.count++;
-
       const targetClosedMultiEntityType = target
         ? getClosedMultiEntityTypeFromMap(
             closedMultiEntityTypesRootMap,
@@ -330,12 +311,6 @@ export const generateTableDataFromRows = (
         icon: targetDisplayFields?.icon,
         isLink: !!target?.linkData,
       };
-
-      targetsByEntityId[targetEntity.entityId] ??= {
-        count: 0,
-        label: targetEntity.label,
-      };
-      targetsByEntityId[targetEntity.entityId]!.count++;
     } else {
       noSource += 1;
       noTarget += 1;
@@ -449,14 +424,9 @@ export const generateTableDataFromRows = (
 
   return {
     columns,
+    dataTypeDefinitions: definitions.dataTypes,
     rows,
     entityTypesWithMultipleVersionsPresent: entityTypesWithMultipleVersions,
     visibleDataTypeIdsByPropertyBaseUrl: dataTypesByProperty,
-    visibleRowsFilterData: {
-      noSourceCount: noSource,
-      noTargetCount: noTarget,
-      sources: sourcesByEntityId,
-      targets: targetsByEntityId,
-    },
   };
 };

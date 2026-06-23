@@ -5,16 +5,16 @@ import { extractBaseUrl } from "@blockprotocol/type-system";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 
-import { useEntityTypesContextRequired } from "../../../../../shared/entity-types-context/hooks/use-entity-types-context-required";
-import { FileAudioLightIcon } from "../../../../../shared/icons/file-audio-light-icon";
-import { FileExcelLightIcon } from "../../../../../shared/icons/file-excel-light-icon";
-import { FileImageLightIcon } from "../../../../../shared/icons/file-image-light";
-import { FileLightIcon } from "../../../../../shared/icons/file-light-icon";
-import { FilePdfLightIcon } from "../../../../../shared/icons/file-pdf-light-icon";
-import { FilePowerpointLightIcon } from "../../../../../shared/icons/file-powerpoint-light-icon";
-import { FileVideoLightIcon } from "../../../../../shared/icons/file-video-light-icon";
-import { FileWordLightIcon } from "../../../../../shared/icons/file-word-light-icon";
-import { getImageUrlFromEntityProperties } from "../../../get-file-properties";
+import { useEntityTypesContextRequired } from "../../../../shared/entity-types-context/hooks/use-entity-types-context-required";
+import { FileAudioLightIcon } from "../../../../shared/icons/file-audio-light-icon";
+import { FileExcelLightIcon } from "../../../../shared/icons/file-excel-light-icon";
+import { FileImageLightIcon } from "../../../../shared/icons/file-image-light";
+import { FileLightIcon } from "../../../../shared/icons/file-light-icon";
+import { FilePdfLightIcon } from "../../../../shared/icons/file-pdf-light-icon";
+import { FilePowerpointLightIcon } from "../../../../shared/icons/file-powerpoint-light-icon";
+import { FileVideoLightIcon } from "../../../../shared/icons/file-video-light-icon";
+import { FileWordLightIcon } from "../../../../shared/icons/file-word-light-icon";
+import { getImageUrlFromEntityProperties } from "../../get-file-properties";
 import { GridViewItemWrapper } from "./grid-view-item-wrapper";
 
 import type { BaseUrl, EntityId } from "@blockprotocol/type-system";

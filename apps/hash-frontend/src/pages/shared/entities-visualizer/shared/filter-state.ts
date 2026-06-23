@@ -1,3 +1,4 @@
+import type { PropertyFilter } from "./property-filters/property-filter";
 import type { VersionedUrl, WebId } from "@blockprotocol/type-system";
 
 export type EntitiesFilterState = {
@@ -9,6 +10,10 @@ export type EntitiesFilterState = {
     selectedTypeIds: Set<VersionedUrl> | null;
   };
   includeArchived: boolean;
+  /**
+   * Per-property value filters (e.g. `Age > 13`).
+   */
+  propertyFilters: PropertyFilter[];
 };
 
 export const createDefaultFilterState = (
@@ -20,4 +25,5 @@ export const createDefaultFilterState = (
   },
   type: { selectedTypeIds: null },
   includeArchived: false,
+  propertyFilters: [],
 });
