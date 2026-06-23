@@ -144,7 +144,7 @@ export const useEntitiesVisualizerData = (params: {
       const newEntities = getRoots(newSubgraph);
 
       updateTableData({
-        appliedPaginationCursor: cursor ?? null,
+        appendRows: !!cursor,
         closedMultiEntityTypesRootMap:
           completedData.queryEntitySubgraph.closedMultiEntityTypes ?? {},
         definitions: completedData.queryEntitySubgraph.definitions,

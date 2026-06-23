@@ -113,19 +113,6 @@ export const generateTableDataFromRows = (
   let noSource = 0;
   let noTarget = 0;
 
-  const sourcesByEntityId: {
-    [entityId: string]: {
-      count: number;
-      label: string;
-    };
-  } = {};
-  const targetsByEntityId: {
-    [entityId: string]: {
-      count: number;
-      label: string;
-    };
-  } = {};
-
   const dataTypesByProperty: VisibleDataTypeIdsByPropertyBaseUrl = {};
 
   const propertyColumnsMap = new Map<string, EntitiesTableColumn>();
@@ -296,12 +283,6 @@ export const generateTableDataFromRows = (
         isLink: !!source?.linkData,
       };
 
-      sourcesByEntityId[sourceEntity.entityId] ??= {
-        count: 0,
-        label: sourceEntity.label,
-      };
-      sourcesByEntityId[sourceEntity.entityId]!.count++;
-
       const targetClosedMultiEntityType = target
         ? getClosedMultiEntityTypeFromMap(
             closedMultiEntityTypesRootMap,
@@ -330,12 +311,6 @@ export const generateTableDataFromRows = (
         icon: targetDisplayFields?.icon,
         isLink: !!target?.linkData,
       };
-
-      targetsByEntityId[targetEntity.entityId] ??= {
-        count: 0,
-        label: targetEntity.label,
-      };
-      targetsByEntityId[targetEntity.entityId]!.count++;
     } else {
       noSource += 1;
       noTarget += 1;
@@ -453,11 +428,5 @@ export const generateTableDataFromRows = (
     rows,
     entityTypesWithMultipleVersionsPresent: entityTypesWithMultipleVersions,
     visibleDataTypeIdsByPropertyBaseUrl: dataTypesByProperty,
-    visibleRowsFilterData: {
-      noSourceCount: noSource,
-      noTargetCount: noTarget,
-      sources: sourcesByEntityId,
-      targets: targetsByEntityId,
-    },
   };
 };

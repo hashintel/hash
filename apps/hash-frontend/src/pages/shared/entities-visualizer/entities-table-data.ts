@@ -10,7 +10,6 @@ import type {
   WebId,
 } from "@blockprotocol/type-system";
 import type { SizedGridColumn } from "@glideapps/glide-data-grid";
-import type { EntityQueryCursor } from "@local/hash-graph-client/api";
 import type {
   SerializedEntity,
   SerializedSubgraph,
@@ -97,13 +96,6 @@ export type GenerateEntitiesTableDataParams = {
   hideArchivedColumn?: boolean;
 };
 
-export type SourceOrTargetFilterData = {
-  [entityId: string]: {
-    count: number;
-    label: string;
-  };
-};
-
 export type EntityTypeTableFilterData = {
   entityTypeId: VersionedUrl;
   title: string;
@@ -114,13 +106,6 @@ export type WebTableFilterData = {
   webId: WebId;
   count: number;
   shortname: string;
-};
-
-export type EntitiesTableFilterDataFromVisibleRows = {
-  noSourceCount: number;
-  noTargetCount: number;
-  sources: SourceOrTargetFilterData;
-  targets: SourceOrTargetFilterData;
 };
 
 export type VisibleDataTypeIdsByPropertyBaseUrl = Record<
@@ -139,7 +124,6 @@ export type EntitiesTableData = {
    */
   dataTypeDefinitions: ClosedMultiEntityTypesDefinitions["dataTypes"];
   entityTypesWithMultipleVersionsPresent: Set<VersionedUrl>;
-  visibleRowsFilterData: EntitiesTableFilterDataFromVisibleRows;
   rows: EntitiesTableRow[];
   visibleDataTypeIdsByPropertyBaseUrl: VisibleDataTypeIdsByPropertyBaseUrl;
 };
@@ -149,7 +133,7 @@ export type UpdateTableDataFn = (
     EntitiesVisualizerData,
     "definitions" | "entities" | "subgraph"
   > & {
-    appliedPaginationCursor: EntityQueryCursor | null;
+    appendRows: boolean;
     closedMultiEntityTypesRootMap: ClosedMultiEntityTypesRootMap;
   },
 ) => void;

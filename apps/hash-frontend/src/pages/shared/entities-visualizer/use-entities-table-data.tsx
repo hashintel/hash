@@ -10,12 +10,10 @@ import type {
   EntitiesTableColumn,
   EntitiesTableData,
   EntitiesTableRow,
-  SourceOrTargetFilterData,
   UpdateTableDataFn,
   VisibleDataTypeIdsByPropertyBaseUrl,
 } from "./entities-table-data";
 import type { EntitiesVisualizerData } from "./use-entities-visualizer-data";
-import type { EntityQueryCursor } from "@local/hash-graph-client/api";
 import type { ClosedMultiEntityTypesRootMap } from "@local/hash-graph-sdk/ontology";
 
 export const useEntitiesTableData = ({
@@ -32,13 +30,13 @@ export const useEntitiesTableData = ({
 
   const updateTableData = useCallback(
     ({
-      appliedPaginationCursor,
+      appendRows,
       closedMultiEntityTypesRootMap,
       definitions,
       entities,
       subgraph,
     }: Pick<EntitiesVisualizerData, "definitions" | "entities" | "subgraph"> & {
-      appliedPaginationCursor: EntityQueryCursor | null;
+      appendRows: boolean;
       closedMultiEntityTypesRootMap: ClosedMultiEntityTypesRootMap;
     }) => {
       if (!definitions) {
@@ -63,16 +61,11 @@ export const useEntitiesTableData = ({
       });
 
       setTableData((currentTableData) => {
-        if (appliedPaginationCursor && currentTableData) {
+        if (appendRows && currentTableData) {
           /**
-           * When paginating, we need to combine the following with previous results:
-           * 1. Visible data types
-           * 2. Entity types with multiple versions present
-           * 3. The table data itself (rows)
-           * 4. Filters which are affected by specific rows (sources and targets)
-           *
-           * Note that the remaining filters, e.g. webIds, createdByActors, etc, are from the whole result set,
-           * not built up from visible rows, and can be reset directly from each API response.
+           * When paginating, append rows and merge the per-row metadata needed
+           * to render the accumulated table. Filter state and available filter
+           * options are derived from the whole result set, not from visible rows here.
            */
 
           const combinedVisibleDataTypeIdsByPropertyBaseUrl: VisibleDataTypeIdsByPropertyBaseUrl =
@@ -106,37 +99,6 @@ export const useEntitiesTableData = ({
             addedColumnIds.add(column.id);
 
             combinedColumns.push(column);
-          }
-
-          const combinedSourcesFilter: SourceOrTargetFilterData =
-            resultFromRows.visibleRowsFilterData.sources;
-          for (const [entityId, { count, label }] of typedEntries(
-            currentTableData.visibleRowsFilterData.sources,
-          )) {
-            if (combinedSourcesFilter[entityId]) {
-              combinedSourcesFilter[entityId].count += count;
-            } else {
-              combinedSourcesFilter[entityId] = {
-                count,
-                label,
-              };
-            }
-          }
-
-          const combinedTargetsFilter: SourceOrTargetFilterData =
-            resultFromRows.visibleRowsFilterData.targets;
-
-          for (const [entityId, { count, label }] of typedEntries(
-            currentTableData.visibleRowsFilterData.targets,
-          )) {
-            if (combinedTargetsFilter[entityId]) {
-              combinedTargetsFilter[entityId].count += count;
-            } else {
-              combinedTargetsFilter[entityId] = {
-                count,
-                label,
-              };
-            }
           }
 
           return {
@@ -177,25 +139,13 @@ export const useEntitiesTableData = ({
               combinedEntityTypesWithMultipleVersionsPresent,
             visibleDataTypeIdsByPropertyBaseUrl:
               combinedVisibleDataTypeIdsByPropertyBaseUrl,
-            visibleRowsFilterData: {
-              ...resultFromRows.visibleRowsFilterData,
-              sources: combinedSourcesFilter,
-              targets: combinedTargetsFilter,
-              noSourceCount:
-                resultFromRows.visibleRowsFilterData.noSourceCount +
-                currentTableData.visibleRowsFilterData.noSourceCount,
-              noTargetCount:
-                resultFromRows.visibleRowsFilterData.noTargetCount +
-                currentTableData.visibleRowsFilterData.noTargetCount,
-            },
           };
         }
 
-        // this is the first page (no cursor), so we can just return the result without combining
+        // This is the first page, so return the result without combining.
         return {
           ...resultFromRows,
           columns: resultFromRows.columns,
-          visibleRowsFilterData: resultFromRows.visibleRowsFilterData,
           rows: resultFromRows.rows,
         };
       });

@@ -87,12 +87,6 @@ const emptyTableData: EntitiesTableData = {
   dataTypeDefinitions: {},
   rows: [],
   entityTypesWithMultipleVersionsPresent: new Set(),
-  visibleRowsFilterData: {
-    noSourceCount: 0,
-    noTargetCount: 0,
-    sources: {},
-    targets: {},
-  },
   visibleDataTypeIdsByPropertyBaseUrl: {},
 };
 
