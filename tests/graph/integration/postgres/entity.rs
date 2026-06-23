@@ -297,7 +297,7 @@ async fn update() {
         .await
         .expect("could not count entities")
         .count
-        .unwrap_or(0);
+        .expect("summarize_entities should include `count` when `include_count` is true");
     assert_eq!(num_entities, 2);
 
     let entities = Box::pin(api.query_entities(
@@ -437,7 +437,7 @@ async fn update() {
         .await
         .expect("could not count entities")
         .count
-        .unwrap_or(0);
+        .expect("summarize_entities should include `count` when `include_count` is true");
     assert_eq!(num_entities, 2);
     let entity_v2 = response_v2.entities.pop().expect("no entity found");
     assert_eq!(entity_v2.properties.properties(), page_v2.properties());

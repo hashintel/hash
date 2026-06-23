@@ -418,7 +418,7 @@ impl DatabaseApi<'_> {
         .await
         .expect("count failed")
         .count
-        .unwrap_or(0)
+        .expect("summarize_entities should include `count` when `include_count` is true")
     }
 }
 

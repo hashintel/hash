@@ -326,7 +326,7 @@ pub(crate) async fn count_entities(
         .await
         .expect("could not count entities")
         .count
-        .unwrap_or(0)
+        .expect("summarize_entities should include `count` when `include_count` is true")
 }
 
 pub(crate) async fn create_person(

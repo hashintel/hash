@@ -710,7 +710,7 @@ async fn remove_link() {
         .await
         .expect("could not count entities")
         .count
-        .unwrap_or(0)
+        .expect("summarize_entities should include `count` when `include_count` is true")
         > 0;
     assert!(has_link);
 
@@ -780,7 +780,7 @@ async fn remove_link() {
         .await
         .expect("could not count entities")
         .count
-        .unwrap_or(0)
+        .expect("summarize_entities should include `count` when `include_count` is true")
         > 0;
     assert!(!has_link);
 }
