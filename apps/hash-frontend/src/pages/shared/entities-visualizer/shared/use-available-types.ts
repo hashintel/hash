@@ -54,7 +54,9 @@ export const useAvailableTypes = ({
 
     if (entityTypeBaseUrl && entityTypes) {
       return entityTypes
-        .filter(({ schema }) => extractBaseUrl(schema.$id) === entityTypeBaseUrl)
+        .filter(
+          ({ schema }) => extractBaseUrl(schema.$id) === entityTypeBaseUrl,
+        )
         .map(({ schema }) => schema.$id);
     }
 
