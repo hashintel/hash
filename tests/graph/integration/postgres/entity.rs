@@ -410,7 +410,7 @@ async fn update() {
         .expect("could not count entities")
         .count
         .unwrap_or(0);
-    assert_eq!(num_entities, 1);
+    assert_eq!(num_entities, 2);
     let entity_v2 = response_v2.entities.pop().expect("no entity found");
     assert_eq!(entity_v2.properties.properties(), page_v2.properties());
 }

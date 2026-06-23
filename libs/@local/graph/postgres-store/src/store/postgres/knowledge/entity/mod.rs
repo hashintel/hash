@@ -25,7 +25,7 @@ use hash_graph_store::{
         SummarizeEntitiesParams, SummarizeEntitiesResponse, UpdateEntityEmbeddingsParams,
         ValidateEntityComponents, ValidateEntityParams,
     },
-    entity_type::{EntityTypeQueryPath, EntityTypeStore as _, IncludeEntityTypeOption},
+    entity_type::{EntityTypeStore as _, IncludeEntityTypeOption},
     error::{CheckPermissionError, DeletionError, InsertionError, QueryError, UpdateError},
     filter::{
         Filter, FilterExpression, FilterExpressionList, Parameter, ParameterList,
@@ -79,9 +79,7 @@ use type_system::{
     ontology::{
         InheritanceDepth,
         data_type::schema::DataTypeReference,
-        entity_type::{
-            ClosedEntityType, ClosedMultiEntityType, EntityTypeUuid, EntityTypeWithMetadata,
-        },
+        entity_type::{ClosedEntityType, ClosedMultiEntityType, EntityTypeUuid},
         id::{OntologyTypeUuid, VersionedUrl},
     },
     principal::{actor::ActorEntityUuid, actor_group::WebId},
@@ -1582,74 +1580,13 @@ where
 
         let summaries = summary_query.decode(rows)?;
 
-        let type_titles = if params.include_type_titles {
-            let type_uuids = summaries
-                .type_ids
-                .as_ref()
-                .expect("type ids should be present")
-                .keys()
-                .map(EntityTypeUuid::from_url)
-                .collect::<Vec<_>>();
-
-            let mut type_compiler = SelectCompiler::<EntityTypeWithMetadata>::new(
-                Some(&temporal_axes),
-                params.include_drafts,
-            );
-            let base_url_idx = type_compiler.add_selection_path(&EntityTypeQueryPath::BaseUrl);
-            let version_idx = type_compiler.add_selection_path(&EntityTypeQueryPath::Version);
-            let title_idx = type_compiler.add_selection_path(&EntityTypeQueryPath::Title);
-
-            let filter = Filter::In(
-                FilterExpression::Path {
-                    path: EntityTypeQueryPath::OntologyId,
-                },
-                FilterExpressionList::ParameterList {
-                    parameters: ParameterList::EntityTypeIds(&type_uuids),
-                },
-            );
-            type_compiler
-                .add_filter(&filter)
-                .change_context(QueryError)?;
-
-            let (statement, parameters) = type_compiler.compile();
-
-            Some(
-                self.as_client()
-                    .query_raw(&statement, parameters.iter().copied())
-                    .instrument(tracing::info_span!(
-                        "SELECT",
-                        otel.kind = "client",
-                        db.system = "postgresql",
-                        peer.service = "Postgres",
-                        db.query.text = statement,
-                    ))
-                    .await
-                    .change_context(QueryError)?
-                    .map_ok(|row| {
-                        (
-                            VersionedUrl {
-                                base_url: row.get(base_url_idx),
-                                version: row.get(version_idx),
-                            },
-                            row.get::<_, String>(title_idx),
-                        )
-                    })
-                    .try_collect::<HashMap<_, _>>()
-                    .instrument(tracing::trace_span!("collect_entity_types"))
-                    .await
-                    .change_context(QueryError)?,
-            )
-        } else {
-            None
-        };
-
         Ok(SummarizeEntitiesResponse {
             count: summaries.count,
             web_ids: summaries.web_ids,
             created_by_ids: summaries.created_by_ids,
             edition_created_by_ids: summaries.edition_created_by_ids,
             type_ids: summaries.type_ids.filter(|_| params.include_type_ids),
-            type_titles,
+            type_titles: summaries.type_titles.filter(|_| params.include_type_titles),
         })
     }
 

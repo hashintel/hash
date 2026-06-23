@@ -62,6 +62,7 @@ export const DraftEntitiesCountContextProvider: FunctionComponent<
           },
           temporalAxes: currentTimeInstantTemporalAxes,
           includeDrafts: true,
+          includeCount: true,
         },
       },
       pollInterval,

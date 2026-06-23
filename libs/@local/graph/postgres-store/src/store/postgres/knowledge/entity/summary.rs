@@ -25,8 +25,8 @@ use crate::store::postgres::query::SelectCompiler;
 
 /// Aggregated `include_*` summaries of an entity query.
 ///
-/// Each map is only populated when the corresponding flag was requested; `type_ids` is
-/// also populated for `include_type_titles` since the title lookup is keyed by it.
+/// Each map is populated only when its flag was requested. `type_ids` and `type_titles`
+/// share one aggregate branch, so both are populated whenever either flag is set.
 #[derive(Debug, Default)]
 pub(crate) struct EntitySummaries {
     pub count: Option<usize>,
@@ -34,6 +34,7 @@ pub(crate) struct EntitySummaries {
     pub created_by_ids: Option<HashMap<ActorEntityUuid, usize>>,
     pub edition_created_by_ids: Option<HashMap<ActorEntityUuid, usize>>,
     pub type_ids: Option<HashMap<VersionedUrl, usize>>,
+    pub type_titles: Option<HashMap<VersionedUrl, String>>,
 }
 
 /// Discriminant tagging which `UNION ALL` branch produced a result row.
@@ -71,14 +72,22 @@ impl Dimension {
 /// required selections, [`Self::statement`] wraps the compiled query, [`Self::decode`]
 /// turns the result rows into [`EntitySummaries`].
 pub(crate) struct EntitySummaryQuery {
+    edition_id_column: usize,
     web_id_column: usize,
-    entity_uuid_column: usize,
-    draft_id_column: usize,
     provenance_column: Option<usize>,
     edition_provenance_column: Option<usize>,
-    type_columns: Option<(usize, usize)>,
+    type_columns: Option<TypeColumns>,
     include_count: bool,
     include_web_ids: bool,
+}
+
+/// Column indices for the edition cache's parallel type arrays, selected together when
+/// `include_type_ids` or `include_type_titles` is requested.
+#[derive(Debug, Clone, Copy)]
+struct TypeColumns {
+    versioned_urls: usize,
+    direct_types: usize,
+    type_titles: usize,
 }
 
 impl EntitySummaryQuery {
@@ -103,9 +112,8 @@ impl EntitySummaryQuery {
         }
 
         Some(Self {
+            edition_id_column: compiler.add_selection_path(&EntityQueryPath::EditionId),
             web_id_column: compiler.add_selection_path(&EntityQueryPath::WebId),
-            entity_uuid_column: compiler.add_selection_path(&EntityQueryPath::Uuid),
-            draft_id_column: compiler.add_selection_path(&EntityQueryPath::DraftId),
             provenance_column: params
                 .include_created_by_ids
                 .then(|| compiler.add_selection_path(&EntityQueryPath::Provenance(None))),
@@ -113,14 +121,19 @@ impl EntitySummaryQuery {
                 .include_edition_created_by_ids
                 .then(|| compiler.add_selection_path(&EntityQueryPath::EditionProvenance(None))),
             type_columns: (params.include_type_ids || params.include_type_titles).then(|| {
-                (
-                    compiler.add_selection_path(&EntityQueryPath::EntityTypeEdge {
+                TypeColumns {
+                    versioned_urls: compiler.add_selection_path(&EntityQueryPath::EntityTypeEdge {
                         edge_kind: SharedEdgeKind::IsOfType,
                         path: EntityTypeQueryPath::VersionedUrl,
                         inheritance_depth: None,
                     }),
-                    compiler.add_selection_path(&EntityQueryPath::DirectTypeCount),
-                )
+                    direct_types: compiler.add_selection_path(&EntityQueryPath::DirectTypeCount),
+                    type_titles: compiler.add_selection_path(&EntityQueryPath::EntityTypeEdge {
+                        edge_kind: SharedEdgeKind::IsOfType,
+                        path: EntityTypeQueryPath::Title,
+                        inheritance_depth: None,
+                    }),
+                }
             }),
             include_count: params.include_count,
             include_web_ids: params.include_web_ids,
@@ -129,31 +142,19 @@ impl EntitySummaryQuery {
 
     /// Wraps the compiled selection into the aggregate statement.
     ///
-    /// The inner selection may emit duplicate rows through filter joins and multiple
-    /// matching editions; deduplication happens over the entity identity. Edition-scoped
-    /// columns (edition provenance, type arrays) are not functionally dependent on it, so
-    /// their presence requires `DISTINCT ON` picking one arbitrary edition per entity;
-    /// otherwise a plain (hashable) `DISTINCT` suffices.
+    /// Filter joins can emit duplicate rows for the same edition, so the `hits` CTE
+    /// deduplicates over `edition_id` rather than the entity identity. This keeps the
+    /// aggregates driven by the temporal axis: a point-in-time query matches one edition
+    /// per entity, an unbounded query matches every edition.
     pub(crate) fn statement(&self, statement: &str) -> String {
         let aliases = (0..self.column_count())
             .map(|index| format!("c{index}"))
             .collect::<Vec<_>>()
             .join(", ");
 
-        let distinct = if self.edition_provenance_column.is_some() || self.type_columns.is_some() {
-            format!(
-                "DISTINCT ON (c{}, c{}, c{})",
-                self.web_id_column, self.entity_uuid_column, self.draft_id_column
-            )
-        } else {
-            "DISTINCT".to_owned()
-        };
+        let distinct = format!("DISTINCT ON (c{})", self.edition_id_column);
 
-        let mut hit_columns = vec![
-            format!("c{} AS web_id", self.web_id_column),
-            format!("c{} AS entity_uuid", self.entity_uuid_column),
-            format!("c{} AS draft_id", self.draft_id_column),
-        ];
+        let mut hit_columns = vec![format!("c{} AS web_id", self.web_id_column)];
         if let Some(column) = self.provenance_column {
             hit_columns.push(format!("(c{column} ->> 'createdById')::uuid AS created_by"));
         }
@@ -162,9 +163,10 @@ impl EntitySummaryQuery {
                 "(c{column} ->> 'createdById')::uuid AS edition_created_by"
             ));
         }
-        if let Some((versioned_urls_column, direct_types_column)) = self.type_columns {
-            hit_columns.push(format!("c{versioned_urls_column} AS versioned_urls"));
-            hit_columns.push(format!("c{direct_types_column} AS direct_types"));
+        if let Some(columns) = self.type_columns {
+            hit_columns.push(format!("c{} AS versioned_urls", columns.versioned_urls));
+            hit_columns.push(format!("c{} AS direct_types", columns.direct_types));
+            hit_columns.push(format!("c{} AS type_titles", columns.type_titles));
         }
         let hit_columns = hit_columns.join(", ");
 
@@ -172,34 +174,36 @@ impl EntitySummaryQuery {
         if self.include_count {
             branches.push(format!(
                 "SELECT {}::int4 AS dimension, NULL::uuid AS dimension_id, NULL::text AS \
-                 dimension_type, count(*) AS matches FROM hits",
+                 dimension_type, count(*) AS matches, NULL::text AS dimension_title FROM hits",
                 Dimension::Count as i32
             ));
         }
         if self.include_web_ids {
             branches.push(format!(
-                "SELECT {}::int4, web_id, NULL::text, count(*) FROM hits GROUP BY web_id",
+                "SELECT {}::int4, web_id, NULL::text, count(*), NULL::text FROM hits GROUP BY \
+                 web_id",
                 Dimension::WebIds as i32
             ));
         }
         if self.provenance_column.is_some() {
             branches.push(format!(
-                "SELECT {}::int4, created_by, NULL::text, count(*) FROM hits GROUP BY created_by",
+                "SELECT {}::int4, created_by, NULL::text, count(*), NULL::text FROM hits GROUP BY \
+                 created_by",
                 Dimension::CreatedByIds as i32
             ));
         }
         if self.edition_provenance_column.is_some() {
             branches.push(format!(
-                "SELECT {}::int4, edition_created_by, NULL::text, count(*) FROM hits GROUP BY \
-                 edition_created_by",
+                "SELECT {}::int4, edition_created_by, NULL::text, count(*), NULL::text FROM hits \
+                 GROUP BY edition_created_by",
                 Dimension::EditionCreatedByIds as i32
             ));
         }
         if self.type_columns.is_some() {
             branches.push(format!(
-                "SELECT {}::int4, NULL::uuid, type_id.type_id, count(*) FROM hits CROSS JOIN \
-                 LATERAL unnest(versioned_urls[1:direct_types]) AS type_id (type_id) GROUP BY \
-                 type_id.type_id",
+                "SELECT {}::int4, NULL::uuid, t.type_id, count(*), min(t.title) FROM hits CROSS \
+                 JOIN LATERAL unnest(versioned_urls[1:direct_types], type_titles[1:direct_types]) \
+                 AS t (type_id, title) GROUP BY t.type_id",
                 Dimension::TypeIds as i32
             ));
         }
@@ -224,6 +228,7 @@ impl EntitySummaryQuery {
             created_by_ids: self.provenance_column.is_some().then(HashMap::new),
             edition_created_by_ids: self.edition_provenance_column.is_some().then(HashMap::new),
             type_ids: self.type_columns.is_some().then(HashMap::new),
+            type_titles: self.type_columns.is_some().then(HashMap::new),
         };
 
         for row in rows {
@@ -261,11 +266,16 @@ impl EntitySummaryQuery {
                     }
                 }
                 Some(Dimension::TypeIds) => {
+                    let type_id = row
+                        .try_get::<_, VersionedUrl>(2)
+                        .change_context(QueryError)?;
                     if let Some(type_ids) = &mut summaries.type_ids {
-                        type_ids.insert(
-                            row.try_get::<_, VersionedUrl>(2)
-                                .change_context(QueryError)?,
-                            matches,
+                        type_ids.insert(type_id.clone(), matches);
+                    }
+                    if let Some(type_titles) = &mut summaries.type_titles {
+                        type_titles.insert(
+                            type_id,
+                            row.try_get::<_, String>(4).change_context(QueryError)?,
                         );
                     }
                 }
@@ -281,13 +291,13 @@ impl EntitySummaryQuery {
 
     fn column_count(&self) -> usize {
         [
+            Some(self.edition_id_column),
             Some(self.web_id_column),
-            Some(self.entity_uuid_column),
-            Some(self.draft_id_column),
             self.provenance_column,
             self.edition_provenance_column,
-            self.type_columns.map(|(versioned_urls, _)| versioned_urls),
-            self.type_columns.map(|(_, direct_types)| direct_types),
+            self.type_columns.map(|columns| columns.versioned_urls),
+            self.type_columns.map(|columns| columns.direct_types),
+            self.type_columns.map(|columns| columns.type_titles),
         ]
         .into_iter()
         .flatten()
@@ -299,7 +309,7 @@ impl EntitySummaryQuery {
 
 #[cfg(test)]
 mod tests {
-    use super::{Dimension, EntitySummaryQuery};
+    use super::{Dimension, EntitySummaryQuery, TypeColumns};
     use crate::store::postgres::query::test_helper::trim_whitespace;
 
     #[test]
@@ -322,12 +332,15 @@ mod tests {
     #[test]
     fn statement_all_dimensions() {
         let summary_query = EntitySummaryQuery {
-            web_id_column: 0,
-            entity_uuid_column: 1,
-            draft_id_column: 2,
-            provenance_column: Some(3),
-            edition_provenance_column: Some(4),
-            type_columns: Some((5, 6)),
+            edition_id_column: 0,
+            web_id_column: 1,
+            provenance_column: Some(2),
+            edition_provenance_column: Some(3),
+            type_columns: Some(TypeColumns {
+                versioned_urls: 4,
+                direct_types: 5,
+                type_titles: 6,
+            }),
             include_count: true,
             include_web_ids: true,
         };
@@ -335,28 +348,30 @@ mod tests {
         pretty_assertions::assert_eq!(
             trim_whitespace(&summary_query.statement("SELECT 1")),
             trim_whitespace(
-                "WITH hits AS (SELECT DISTINCT ON (c0, c1, c2)
-                    c0 AS web_id,
-                    c1 AS entity_uuid,
-                    c2 AS draft_id,
-                    (c3 ->> 'createdById')::uuid AS created_by,
-                    (c4 ->> 'createdById')::uuid AS edition_created_by,
-                    c5 AS versioned_urls,
-                    c6 AS direct_types
+                "WITH hits AS (SELECT DISTINCT ON (c0)
+                    c1 AS web_id,
+                    (c2 ->> 'createdById')::uuid AS created_by,
+                    (c3 ->> 'createdById')::uuid AS edition_created_by,
+                    c4 AS versioned_urls,
+                    c5 AS direct_types,
+                    c6 AS type_titles
                  FROM (SELECT 1) AS raw (c0, c1, c2, c3, c4, c5, c6))
                  SELECT 0::int4 AS dimension, NULL::uuid AS dimension_id,
-                        NULL::text AS dimension_type, count(*) AS matches FROM hits
+                        NULL::text AS dimension_type, count(*) AS matches,
+                        NULL::text AS dimension_title FROM hits
                  UNION ALL
-                 SELECT 1::int4, web_id, NULL::text, count(*) FROM hits GROUP BY web_id
+                 SELECT 1::int4, web_id, NULL::text, count(*), NULL::text FROM hits GROUP BY web_id
                  UNION ALL
-                 SELECT 2::int4, created_by, NULL::text, count(*) FROM hits GROUP BY created_by
+                 SELECT 2::int4, created_by, NULL::text, count(*), NULL::text FROM hits
+                  GROUP BY created_by
                  UNION ALL
-                 SELECT 3::int4, edition_created_by, NULL::text, count(*) FROM hits
+                 SELECT 3::int4, edition_created_by, NULL::text, count(*), NULL::text FROM hits
                   GROUP BY edition_created_by
                  UNION ALL
-                 SELECT 4::int4, NULL::uuid, type_id.type_id, count(*) FROM hits
-                  CROSS JOIN LATERAL unnest(versioned_urls[1:direct_types]) AS type_id (type_id)
-                  GROUP BY type_id.type_id"
+                 SELECT 4::int4, NULL::uuid, t.type_id, count(*), min(t.title) FROM hits
+                  CROSS JOIN LATERAL unnest(versioned_urls[1:direct_types],
+                  type_titles[1:direct_types]) AS t (type_id, title)
+                  GROUP BY t.type_id"
             ),
         );
     }
@@ -364,9 +379,8 @@ mod tests {
     #[test]
     fn statement_count_only() {
         let summary_query = EntitySummaryQuery {
-            web_id_column: 0,
-            entity_uuid_column: 1,
-            draft_id_column: 2,
+            edition_id_column: 0,
+            web_id_column: 1,
             provenance_column: None,
             edition_provenance_column: None,
             type_columns: None,
@@ -377,13 +391,12 @@ mod tests {
         pretty_assertions::assert_eq!(
             trim_whitespace(&summary_query.statement("SELECT 1")),
             trim_whitespace(
-                "WITH hits AS (SELECT DISTINCT
-                    c0 AS web_id,
-                    c1 AS entity_uuid,
-                    c2 AS draft_id
-                 FROM (SELECT 1) AS raw (c0, c1, c2))
+                "WITH hits AS (SELECT DISTINCT ON (c0)
+                    c1 AS web_id
+                 FROM (SELECT 1) AS raw (c0, c1))
                  SELECT 0::int4 AS dimension, NULL::uuid AS dimension_id,
-                        NULL::text AS dimension_type, count(*) AS matches FROM hits"
+                        NULL::text AS dimension_type, count(*) AS matches,
+                        NULL::text AS dimension_title FROM hits"
             ),
         );
     }
