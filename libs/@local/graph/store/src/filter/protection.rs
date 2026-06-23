@@ -568,7 +568,7 @@ use crate::{
 pub enum PropertyFilterEntityQueryPath {
     /// The entity's UUID (`entity_temporal_metadata.entity_uuid`).
     Uuid,
-    /// The base URLs of the entity's type(s) (`entity_is_of_type_ids.base_urls`).
+    /// The base URLs of the entity's type(s) (`entity_edition_cache.base_urls`).
     TypeBaseUrls,
 }
 
