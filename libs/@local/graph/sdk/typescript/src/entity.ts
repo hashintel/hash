@@ -305,7 +305,6 @@ export type SummarizeEntitiesResponse = DistributiveOmit<
   SummarizeEntitiesResponseGraphApi,
   "webIds" | "createdByIds" | "editionCreatedByIds" | "typeIds" | "typeTitles"
 > & {
-  definitions?: EntityTypeResolveDefinitions;
   webIds?: Record<WebId, number>;
   createdByIds?: Record<ActorEntityUuid, number>;
   editionCreatedByIds?: Record<ActorEntityUuid, number>;

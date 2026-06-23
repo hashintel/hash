@@ -80,7 +80,7 @@ export const Waitlisted = () => {
       },
       fetchPolicy: "cache-and-network",
       onCompleted: (data) => {
-        if (data.summarizeEntities.count! > 0) {
+        if ((data.summarizeEntities.count ?? 0) > 0) {
           setEarlyAccessFormState("submitted");
         }
       },

@@ -385,6 +385,34 @@ async fn update() {
     .await
     .expect("could not get entities");
 
+    // Pinned to a single point in decision time, only one edition matches, so the count is
+    // per entity (contrast with the unbounded query below, which counts every edition).
+    let point_in_time_count = api
+        .summarize_entities(
+            api.account_id,
+            SummarizeEntitiesParams {
+                filter: Filter::for_entity_by_entity_id(v2_entity.metadata.record_id.entity_id),
+                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                    pinned: PinnedTemporalAxisUnresolved::new(None),
+                    variable: VariableTemporalAxisUnresolved::new(
+                        Some(TemporalBound::Inclusive(entity_v2_timestamp)),
+                        Some(LimitedTemporalBound::Inclusive(entity_v2_timestamp)),
+                    ),
+                },
+                include_drafts: false,
+                include_count: true,
+                include_web_ids: false,
+                include_created_by_ids: false,
+                include_edition_created_by_ids: false,
+                include_type_ids: false,
+                include_type_titles: false,
+            },
+        )
+        .await
+        .expect("could not count entities")
+        .count;
+    assert_eq!(point_in_time_count, Some(1));
+
     let num_entities = api
         .summarize_entities(
             api.account_id,

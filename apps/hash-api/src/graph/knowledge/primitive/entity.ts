@@ -318,7 +318,9 @@ export const canUserReadEntity: ImpureGraphFunction<
     includeCount: true,
   });
 
-  if (count === 0) {
+  // Deny on a missing/zero count rather than failing open: a permission gate must not
+  // grant access when the count is absent (`count` is typed optional on the response).
+  if (!count) {
     throw new Error(
       `Entity with entityId ${entityId} doesn't exist or cannot be accessed by requesting user.`,
     );

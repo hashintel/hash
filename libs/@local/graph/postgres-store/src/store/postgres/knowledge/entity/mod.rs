@@ -1500,7 +1500,6 @@ where
     }
 
     #[tracing::instrument(level = "info", skip_all)]
-    #[expect(clippy::too_many_lines)]
     async fn summarize_entities(
         &self,
         actor_id: ActorEntityUuid,

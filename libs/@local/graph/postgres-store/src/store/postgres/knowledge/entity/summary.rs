@@ -40,8 +40,8 @@ pub(crate) struct EntitySummaries {
 /// Discriminant tagging which `UNION ALL` branch produced a result row.
 ///
 /// The aggregate statement returns one row set with a fixed layout — `(dimension,
-/// dimension_id, dimension_type, matches)` — and this discriminant in column 0 routes
-/// each row to the matching [`EntitySummaries`] field during decoding.
+/// dimension_id, dimension_type, matches, dimension_title)` — and this discriminant in
+/// column 0 routes each row to the matching [`EntitySummaries`] field during decoding.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(i32)]
 enum Dimension {
@@ -223,7 +223,7 @@ impl EntitySummaryQuery {
     /// `NULL` actor ID produced by an edition with malformed provenance.
     pub(crate) fn decode(&self, rows: Vec<Row>) -> Result<EntitySummaries, Report<QueryError>> {
         let mut summaries = EntitySummaries {
-            count: None,
+            count: self.include_count.then_some(0),
             web_ids: self.include_web_ids.then(HashMap::new),
             created_by_ids: self.provenance_column.is_some().then(HashMap::new),
             edition_created_by_ids: self.edition_provenance_column.is_some().then(HashMap::new),
@@ -272,11 +272,12 @@ impl EntitySummaryQuery {
                     if let Some(type_ids) = &mut summaries.type_ids {
                         type_ids.insert(type_id.clone(), matches);
                     }
-                    if let Some(type_titles) = &mut summaries.type_titles {
-                        type_titles.insert(
-                            type_id,
-                            row.try_get::<_, String>(4).change_context(QueryError)?,
-                        );
+                    if let Some(type_titles) = &mut summaries.type_titles
+                        && let Some(title) = row
+                            .try_get::<_, Option<String>>(4)
+                            .change_context(QueryError)?
+                    {
+                        type_titles.insert(type_id, title);
                     }
                 }
                 None => {
