@@ -333,6 +333,20 @@ export const Entity = ({
          * false and the link tables self-fetch instead.
          */
         setIncludeLinkDataInQuery(canUpdate);
+
+        if (canUpdate) {
+          /**
+           * The entity is editable, so its link tables read from the editor
+           * subgraph – but this first response was fetched without link data,
+           * because we didn't know the user's permissions until it returned.
+           * Rather than dropping the loading state now (which would render the
+           * editor with empty link tables) and then changing the tables once the
+           * link-data refetch lands, we keep showing the loading state until that
+           * refetch completes – at which point this `onCompleted` runs again with
+           * `isInitialLoad` false and falls through to `setLoading(false)`.
+           */
+          return;
+        }
       }
 
       setLoading(false);
