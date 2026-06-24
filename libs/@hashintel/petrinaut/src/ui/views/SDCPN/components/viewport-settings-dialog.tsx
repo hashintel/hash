@@ -216,9 +216,10 @@ export const ViewportSettingsDialog: React.FC<ViewportSettingsDialogProps> = ({
             }
             description="Enable subnet definitions and component instances for hierarchical net composition"
           >
-            <Switch
-              checked={enableNetComponents}
-              onCheckedChange={setEnableNetComponents}
+            <Toggle
+              value={enableNetComponents}
+              onChange={setEnableNetComponents}
+              size="sm"
             />
           </SettingRow>
         )}
