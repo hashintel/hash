@@ -34,8 +34,8 @@ export class SentryActivityInboundInterceptor implements ActivityInboundCallsInt
             extra: {
               activityId: this.context.info.activityId,
               isLocal: this.context.info.isLocal,
-              workflowId: this.context.info.workflowExecution.workflowId,
-              runId: this.context.info.workflowExecution.runId,
+              workflowId: this.context.info.workflowExecution?.workflowId,
+              runId: this.context.info.workflowExecution?.runId,
               attempt: this.context.info.attempt,
               scheduledTimestamp: this.context.info.scheduledTimestampMs,
               scheduleToCloseTimeout:

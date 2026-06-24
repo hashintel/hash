@@ -8,8 +8,8 @@ import { formatNumber } from "@local/hash-isomorphic-utils/format-number";
 import { AsteriskLightIcon } from "../../../../shared/icons/asterisk-light-icon";
 import { FilterPill } from "./filter-pill";
 
-import type { EntitiesFilterState } from "../data/types";
-import type { AvailableType } from "../data/use-available-types";
+import type { EntitiesFilterState } from "../shared/filter-state";
+import type { AvailableType } from "../shared/use-available-types";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { FunctionComponent } from "react";
 
@@ -51,13 +51,13 @@ const buildLabel = ({
   allAvailableIds: VersionedUrl[];
 }): string => {
   if (isAllSelected({ selectedTypeIds, allAvailableIds })) {
-    return "All types";
+    return "any";
   }
 
   const count = selectedTypeIds?.size ?? 0;
 
   if (count === 0) {
-    return "No types";
+    return "none";
   }
 
   if (count === 1) {
@@ -66,7 +66,7 @@ const buildLabel = ({
     return match?.title ?? "1 type";
   }
 
-  return `${count} types`;
+  return `one of ${count}`;
 };
 
 type TypeFilterMenuItemProps = {

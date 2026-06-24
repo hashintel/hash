@@ -104,7 +104,12 @@ const runPythonCode = async (code: string, contextToUpload: string | null) => {
   const sandbox = await CodeInterpreter.create();
 
   if (contextToUpload) {
-    const requestId = Context.current().info.workflowExecution.workflowId;
+    const requestId = Context.current().info.workflowExecution?.workflowId;
+
+    if (!requestId) {
+      throw new Error("Attempt to upload file to sandbox without a workflowId");
+    }
+
     await sandbox.uploadFile(Buffer.from(contextToUpload), requestId);
   }
 
@@ -510,7 +515,11 @@ export const answerQuestionAction: AiFlowActionActivity<
   }
 
   if (contextToUpload) {
-    const requestId = Context.current().info.workflowExecution.workflowId;
+    const requestId = Context.current().info.workflowExecution?.workflowId;
+
+    if (!requestId) {
+      throw new Error("Attempt to upload file to sandbox without a workflowId");
+    }
 
     const sandbox = await Sandbox.create({ template: "base" });
     contextFilePath = await sandbox.uploadFile(
