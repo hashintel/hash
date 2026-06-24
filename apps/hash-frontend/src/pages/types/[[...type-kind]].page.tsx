@@ -12,6 +12,7 @@ import { PlusRegularIcon } from "../../shared/icons/plus-regular";
 import { getLayoutWithSidebar } from "../../shared/layout";
 import { usePropertyTypes } from "../../shared/property-types-context";
 import { CreateButton } from "../shared/create-button";
+import { largePageMaxWidthCss } from "../shared/page-width";
 import { TopContextBar } from "../shared/top-context-bar";
 import { TypesTable } from "../shared/types-table";
 import {
@@ -49,8 +50,6 @@ export const getServerSideProps: GetServerSideProps<
 
   return { props: { currentTab } };
 };
-
-const contentMaxWidth = 1000;
 
 const TypesPage: NextPageWithLayout<TypesPageProps> = ({ currentTab }) => {
   const { latestEntityTypes } = useLatestEntityTypesOptional({
@@ -155,41 +154,38 @@ const TypesPage: NextPageWithLayout<TypesPageProps> = ({ currentTab }) => {
     ],
   );
 
-  const maxWidth = { lg: `max(${contentMaxWidth}, "70%")` } as const;
-
   return (
     <>
       <NextSeo title="Types" />
       <TopContextBar
         defaultCrumbIcon={null}
-        crumbs={[
-          {
-            title: "Types",
-            href: "/types",
-            id: "types",
-          },
-          ...(currentTab !== "all"
+        crumbs={
+          currentTab !== "all"
             ? [
+                {
+                  title: "Types",
+                  href: "/types",
+                  id: "types",
+                },
                 {
                   title: tabTitles[currentTab],
                   href: `/types/${currentTab}`,
                   id: currentTab,
                 },
               ]
-            : []),
-        ]}
+            : []
+        }
         scrollToTop={() => {}}
       />
       <Box
         sx={{
           borderBottom: 1,
           borderColor: ({ palette }) => palette.gray[20],
-          pt: 3.75,
           backgroundColor: ({ palette }) => palette.common.white,
         }}
       >
-        <Container sx={{ maxWidth }}>
-          <Typography variant="h1" fontWeight="bold" my={3}>
+        <Container sx={largePageMaxWidthCss}>
+          <Typography variant="h1" fontWeight="bold" py={3}>
             <Box display="inline-flex">
               <FilesLightIcon
                 sx={({ palette }) => ({
@@ -223,7 +219,7 @@ const TypesPage: NextPageWithLayout<TypesPageProps> = ({ currentTab }) => {
           </Stack>
         </Container>
       </Box>
-      <Container sx={{ paddingTop: 5, maxWidth }}>
+      <Container sx={{ paddingTop: 5, ...largePageMaxWidthCss }}>
         <TypesTable kind={currentTab} types={currentTypes} />
       </Container>
     </>

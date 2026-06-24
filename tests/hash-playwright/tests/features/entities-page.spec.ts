@@ -30,7 +30,7 @@ test("user can visit a page listing entities of a type", async ({ page }) => {
   });
 
   /**
-   * @todo FE-837 – Documents not visible due to feature flagging. Seed more entities of other types and update this.
+   * @todo FE-837 – Documents are feature flagged. Seed more entities of other types and update this.
    */
-  await expect(page.getByText(/^([0-9]\d*) (entities)$/)).toBeVisible();
+  await expect(page.getByText(/^([1-9]\d*) (entities)$/)).toBeVisible();
 });

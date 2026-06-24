@@ -4,14 +4,11 @@ import {
   getIncomingLinkAndSourceEntities,
   getOutgoingLinksForEntity,
 } from "@blockprotocol/graph/stdlib";
-import { noisySystemTypeIds } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import { useEntityEditor } from "./entity-editor-context";
 import { IncomingLinksSection } from "./links-section/incoming-links-section";
 import { OutgoingLinksSection } from "./links-section/outgoing-links-section";
-
-import type { NoisySystemTypeId } from "@local/hash-isomorphic-utils/graph-queries";
 
 export const LinksSection = ({ isLinkEntity }: { isLinkEntity: boolean }) => {
   const { draftLinksToArchive, entity, entitySubgraph } = useEntityEditor();
@@ -37,9 +34,6 @@ export const LinksSection = ({ isLinkEntity }: { isLinkEntity: boolean }) => {
       incomingLinkAndSource.linkEntity[0] &&
       !draftLinksToArchive.includes(
         incomingLinkAndSource.linkEntity[0].entityId,
-      ) &&
-      !incomingLinkAndSource.linkEntity[0].metadata.entityTypeIds.some(
-        (typeId) => noisySystemTypeIds.includes(typeId as NoisySystemTypeId),
       ) &&
       incomingLinkAndSource.leftEntity[0] &&
       !incomingLinkAndSource.leftEntity[0].metadata.entityTypeIds.includes(

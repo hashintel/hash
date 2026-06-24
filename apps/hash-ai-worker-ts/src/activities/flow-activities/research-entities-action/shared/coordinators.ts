@@ -181,7 +181,11 @@ export const stopWorkers = async (
 ) => {
   const temporalClient = await getTemporalClient();
 
-  const { workflowId, runId } = Context.current().info.workflowExecution;
+  const { workflowId, runId } = Context.current().info.workflowExecution ?? {};
+
+  if (!workflowId) {
+    return;
+  }
 
   const handle = temporalClient.workflow.getHandle(workflowId, runId);
 

@@ -12,11 +12,49 @@ import {
 } from "@local/hash-isomorphic-utils/data-types";
 
 import type { JsonValue } from "@blockprotocol/core";
-import type { PropertyMetadata } from "@blockprotocol/type-system";
+import type {
+  PropertyMetadata,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 import type {
   ClosedDataTypeDefinition,
   ClosedMultiEntityTypesDefinitions,
 } from "@local/hash-graph-sdk/ontology";
+
+/**
+ * The data type ids that {@link formatValue} will need to resolve from the data
+ * type pool in order to render the given metadata. Object-valued entries are
+ * rendered as raw JSON and contribute no data type id, and nested array items
+ * are collected recursively.
+ *
+ * Exposed so callers can cheaply check, without invoking (and risking a throw
+ * from) `formatValue`, whether every data type a value depends on is present in
+ * the pool they hold – e.g. to render a placeholder instead of crashing when
+ * rows and data type definitions transiently disagree across a refetch.
+ */
+export const getReferencedDataTypeIds = (
+  valueMetadata: PropertyMetadata,
+): VersionedUrl[] => {
+  const dataTypeIds: VersionedUrl[] = [];
+
+  const collect = (metadata: PropertyMetadata): void => {
+    if (isArrayMetadata(metadata)) {
+      for (const itemMetadata of metadata.value) {
+        collect(itemMetadata);
+      }
+      return;
+    }
+
+    // Object metadata is rendered as JSON and needs no data type.
+    if (isValueMetadata(metadata) && metadata.metadata.dataTypeId) {
+      dataTypeIds.push(metadata.metadata.dataTypeId);
+    }
+  };
+
+  collect(valueMetadata);
+
+  return dataTypeIds;
+};
 
 export const formatValue = (
   value: unknown,
