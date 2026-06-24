@@ -49,7 +49,7 @@ const scopedId = (path: readonly ID[], id: ID): ID => {
   return path.length === 0 ? id : [...path, id].join(scopeSeparator);
 };
 
-const codeIdentifier = (value: string): string => {
+const _codeIdentifier = (value: string): string => {
   const cleaned = value.replace(/[^A-Za-z0-9_$]/g, "_");
   if (/^[A-Za-z_$]/.test(cleaned)) {
     return cleaned;

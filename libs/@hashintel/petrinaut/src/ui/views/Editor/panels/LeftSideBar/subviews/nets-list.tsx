@@ -221,11 +221,7 @@ const NetsListContent: React.FC = () => {
             <span className={nameStyle}>{subnet.name}</span>
           )}
           {editingId !== subnet.id && (
-            <span
-              data-delete
-              className={deleteButtonStyle}
-              onClick={(e) => e.stopPropagation()}
-            >
+            <span role="none" data-delete className={deleteButtonStyle}>
               <Button
                 aria-label="Delete subnet"
                 size="xs"
@@ -236,7 +232,8 @@ const NetsListContent: React.FC = () => {
                 tooltip={
                   isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : "Delete subnet"
                 }
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation();
                   if (activeSubnetId === subnet.id) {
                     setActiveSubnetId(null);
                   }

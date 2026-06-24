@@ -113,7 +113,6 @@ export const EditorView = ({
   // Get data from sdcpn-store
   const {
     createNewNet,
-    extensions,
     existingNets,
     loadPetriNet,
     petriNetDefinition,

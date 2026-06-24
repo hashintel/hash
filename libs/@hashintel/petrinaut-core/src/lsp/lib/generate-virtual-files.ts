@@ -8,8 +8,12 @@ import {
 } from "../../extensions";
 import { getItemFilePath } from "./file-paths";
 
-import type { SDCPN, ScenarioParameter } from "../../types/sdcpn";
-import type { InputArc, OutputArc } from "../../types/sdcpn";
+import type {
+  InputArc,
+  OutputArc,
+  SDCPN,
+  ScenarioParameter,
+} from "../../types/sdcpn";
 import type { VirtualFile } from "./create-language-service-host";
 
 /**
