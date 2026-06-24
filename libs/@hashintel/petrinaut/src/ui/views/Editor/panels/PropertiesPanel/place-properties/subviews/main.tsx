@@ -6,6 +6,7 @@ import {
   Icon,
   Select,
   TextInput,
+  Toggle,
   Tooltip,
 } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
@@ -16,7 +17,6 @@ import { ActiveNetContext } from "../../../../../../../react/state/active-net-co
 import { EditorContext } from "../../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../../react/state/sdcpn-context";
 import { Section, SectionList } from "../../../../../../components/section";
-import { Switch } from "../../../../../../components/switch";
 import { PlaceIcon } from "../../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
 import { useDraftField } from "../../../../../../hooks/use-draft-field";
@@ -233,46 +233,55 @@ const PlaceMainContent: React.FC = () => {
           <Section
             title="Dynamics"
             tooltip="Token data can dynamically change over time when tokens remain in a place, governed by a differential equation."
-            renderHeaderAction={() => (
-              <Switch
-                checked={!!place.colorId && place.dynamicsEnabled}
-                disabled={
-                  isReadOnly ||
-                  place.colorId === null ||
-                  availableDiffEqs.length === 0
-                }
-                tooltip={
-                  isReadOnly
-                    ? UI_MESSAGES.READ_ONLY_MODE
-                    : place.colorId === null
-                      ? UI_MESSAGES.DYNAMICS_REQUIRES_TYPE
-                      : availableDiffEqs.length === 0
-                        ? "Create a differential equation for this type first"
-                        : undefined
-                }
-                onCheckedChange={(checked) => {
-                  const update: {
-                    dynamicsEnabled: boolean;
-                    differentialEquationId?: string | null;
-                  } = { dynamicsEnabled: checked };
+            renderHeaderAction={() => {
+              const dynamicsTooltip = isReadOnly
+                ? UI_MESSAGES.READ_ONLY_MODE
+                : place.colorId === null
+                  ? UI_MESSAGES.DYNAMICS_REQUIRES_TYPE
+                  : availableDiffEqs.length === 0
+                    ? "Create a differential equation for this type first"
+                    : undefined;
 
-                  if (checked) {
-                    // Auto-select first available diff eq if none selected or previous no longer exists
-                    const currentIsValid = availableDiffEqs.some(
-                      (eq) => eq.id === place.differentialEquationId,
-                    );
-                    if (!currentIsValid && availableDiffEqs.length > 0) {
-                      update.differentialEquationId = availableDiffEqs[0]!.id;
+              return (
+                <Tooltip
+                  content={dynamicsTooltip}
+                  disableTooltip={!dynamicsTooltip}
+                >
+                  <Toggle
+                    size="sm"
+                    tone="success"
+                    value={!!place.colorId && place.dynamicsEnabled}
+                    disabled={
+                      isReadOnly ||
+                      place.colorId === null ||
+                      availableDiffEqs.length === 0
                     }
-                  }
+                    onChange={(checked) => {
+                      const update: {
+                        dynamicsEnabled: boolean;
+                        differentialEquationId?: string | null;
+                      } = { dynamicsEnabled: checked };
 
-                  updatePlace({
-                    placeId: place.id,
-                    update,
-                  });
-                }}
-              />
-            )}
+                      if (checked) {
+                        // Auto-select first available diff eq if none selected or previous no longer exists
+                        const currentIsValid = availableDiffEqs.some(
+                          (eq) => eq.id === place.differentialEquationId,
+                        );
+                        if (!currentIsValid && availableDiffEqs.length > 0) {
+                          update.differentialEquationId =
+                            availableDiffEqs[0]!.id;
+                        }
+                      }
+
+                      updatePlace({
+                        placeId: place.id,
+                        update,
+                      });
+                    }}
+                  />
+                </Tooltip>
+              );
+            }}
           >
             {place.colorId === null ? (
               <div className={hintTextStyle}>
