@@ -22,11 +22,10 @@ export const styles = sva({
       flexShrink: "0",
       width: "var(--toggle-width)",
       height: "var(--toggle-height)",
-      padding: "var(--toggle-padding)",
+      padding: "[calc(var(--toggle-padding) + 1px)]",
       borderRadius: "full",
-      border: "[1px solid]",
-      borderColor: "black.a15",
-      boxShadow: "[inset 0 2px 4px rgba(0, 0, 0, 0.05)]",
+      boxShadow:
+        "[inset 0 2px 4px rgba(0, 0, 0, 0.05), inset 0 0 0 1px var(--colors-black-a10)]",
       outlineColor: "black.a40",
       transition:
         "[background-color 0.15s ease, outline 0.15s ease, box-shadow 0.15s ease]",
@@ -87,7 +86,11 @@ export const styles = sva({
           "--toggle-width": "[24px]",
           "--toggle-height": "[14px]",
           "--toggle-padding": "[2px]",
-          "--toggle-thumb-size": "[10px]",
+          "--toggle-thumb-size": "[9px]",
+        },
+        thumb: {
+          boxShadow:
+            "[0 0.5px 2.5px 0 rgba(0, 0, 0, 0.1), 0 0.5px 1.5px -1px rgba(0, 0, 0, 0.1)]",
         },
         label: { fontSize: "[12px]" },
       },
@@ -96,9 +99,13 @@ export const styles = sva({
           "--toggle-width": "[28px]",
           "--toggle-height": "[16px]",
           "--toggle-padding": "[2px]",
-          "--toggle-thumb-size": "[12px]",
+          "--toggle-thumb-size": "[11px]",
         },
         label: { fontSize: "[12px]" },
+        thumb: {
+          boxShadow:
+            "[0 0.5px 2.5px 0 rgba(0, 0, 0, 0.1), 0 0.5px 1.5px -1px rgba(0, 0, 0, 0.1)]",
+        },
       },
       sm: {
         control: {
@@ -200,7 +207,8 @@ export const styles = sva({
     invalid: {
       true: {
         control: {
-          borderColor: "red.s70",
+          boxShadow:
+            "[0 0 0 1px var(--colors-red-s70), inset 0 2px 4px rgba(0, 0, 0, 0.05)]",
           "&::after": {
             content: '""',
             position: "absolute",
