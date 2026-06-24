@@ -8,7 +8,7 @@ import { SortControl } from "./sort-control";
 
 import type { GridSort } from "../../../../components/grid/grid";
 import type { GenerateCsvFileFunction } from "../../../../shared/table-header/export-to-csv-button";
-import type { SortableEntitiesTableColumnKey } from "../types";
+import type { SortableEntitiesTableColumnKey } from "../entities-table-data";
 import type { BaseUrl } from "@blockprotocol/type-system";
 import type { SizedGridColumn } from "@glideapps/glide-data-grid";
 import type { FunctionComponent } from "react";

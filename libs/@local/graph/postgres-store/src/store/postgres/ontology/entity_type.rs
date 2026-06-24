@@ -9,7 +9,7 @@ use hash_graph_authorization::policies::{
     action::ActionName, principal::actor::AuthenticatedActor,
 };
 use hash_graph_store::{
-    entity::ClosedMultiEntityTypeMap,
+    entity::{ClosedMultiEntityTypeMap, EntityStore},
     entity_type::{
         ArchiveEntityTypeParams, ClosedDataTypeDefinition, CommonQueryEntityTypesParams,
         CountEntityTypesParams, CreateEntityTypeParams, EntityTypeQueryPath,
@@ -1873,7 +1873,7 @@ where
     #[tracing::instrument(level = "info", skip(self))]
     async fn reindex_entity_type_cache(&mut self) -> Result<(), Report<UpdateError>> {
         tracing::info!("Reindexing entity type cache");
-        let transaction = self.transaction().await.change_context(UpdateError)?;
+        let mut transaction = self.transaction().await.change_context(UpdateError)?;
 
         // We remove the data from the reference tables first
         transaction
@@ -1949,6 +1949,11 @@ where
                 .await
                 .change_context(UpdateError)?;
         }
+
+        // The entity edition cache derives type titles, labels (via `closed_schema`), and
+        // the inherited type entries from the data rebuilt above, so it has to be rebuilt
+        // as well — otherwise it silently keeps serving the pre-reindex schemas.
+        EntityStore::reindex_entity_cache(&mut transaction).await?;
 
         transaction.commit().await.change_context(UpdateError)?;
 

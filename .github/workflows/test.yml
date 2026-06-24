@@ -39,7 +39,7 @@ jobs:
       unit-tests: ${{ steps.packages.outputs.unit-tests }}
       integration-tests: ${{ steps.packages.outputs.integration-tests }}
       system-tests: ${{ steps.packages.outputs.system-tests }}
-      publish: ${{ steps.packages.outputs.publish }}
+      publish-rust: ${{ steps.packages.outputs.publish-rust }}
     steps:
       - name: Checkout source code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -65,7 +65,6 @@ jobs:
             | jq --compact-output '.data.affectedPackages.items | [(.[] | select(.name != "//"))] | { name: [.[].name], include: . }')
 
           PUBLISH_PACKAGES=[]
-          PUBLISH_INCLUDES=[]
           while IFS= read -r file; do
             if [[ -n "$file" ]]; then
               PACKAGE_NAME=$(yq '.package.name' -p toml -oy "$file")
@@ -92,17 +91,13 @@ jobs:
                 continue
               fi
 
-              DIR=$(dirname "$file")
-
               PUBLISH_PACKAGES=$(echo "$PUBLISH_PACKAGES" | jq -c --arg package "$PACKAGE_NAME" '. += [$package]')
-              PUBLISH_INCLUDES=$(echo "$PUBLISH_INCLUDES" | jq -c --arg package "$PACKAGE_NAME" --arg directory "$DIR" '. += [{name: $package, path: $directory}]')
             fi
           done <<< "$(find . -name 'Cargo.toml' -type f | sed 's|\./||')"
-          PUBLISH_PACKAGES=$(jq -c -n --argjson packages "$PUBLISH_PACKAGES" --argjson includes "$PUBLISH_INCLUDES" '{name: $packages, include: $includes}')
 
           echo "unit-tests=$UNIT_TEST_PACKAGES" | tee -a $GITHUB_OUTPUT
           echo "integration-tests=$INTEGRATION_TEST_PACKAGES" | tee -a $GITHUB_OUTPUT
-          echo "publish=$PUBLISH_PACKAGES" | tee -a $GITHUB_OUTPUT
+          echo "publish-rust=$PUBLISH_PACKAGES" | tee -a $GITHUB_OUTPUT
 
   unit-tests:
     name: Unit
@@ -334,13 +329,10 @@ jobs:
             var/api
             var/logs
 
-  publish:
-    name: Publish
+  publish-rust:
+    name: Publish (Rust)
     needs: [setup]
-    strategy:
-      fail-fast: false
-      matrix: ${{ fromJSON(needs.setup.outputs.publish) }}
-    if: needs.setup.outputs.publish != '{"name":[],"include":[]}'
+    if: needs.setup.outputs.publish-rust != '[]'
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout source code
@@ -349,11 +341,13 @@ jobs:
       - name: Clean up disk
         uses: ./.github/actions/clean-up-disk
 
-      - name: Find publish jobs to run
-        id: publish
+      - name: Build package flags
+        id: flags
+        env:
+          PUBLISH_PACKAGES: ${{ needs.setup.outputs.publish-rust }}
         run: |
-          HAS_RUST=$([[ -f "${{ matrix.path }}/Cargo.toml" || ${{ matrix.path }} = "apps/hash-graph" ]] && echo 'true' || echo 'false')
-          echo "has-rust=$HAS_RUST" | tee -a $GITHUB_OUTPUT
+          PACKAGES=$(echo "$PUBLISH_PACKAGES" | jq -r '.[]' | while read -r pkg; do echo -n "-p $pkg "; done)
+          echo "packages=$PACKAGES" | tee -a $GITHUB_OUTPUT
 
       - name: Login
         run: |
@@ -361,18 +355,16 @@ jobs:
           cargo login "${{ secrets.CARGO_REGISTRY_TOKEN }}"
 
       - name: Publish (dry run)
-        if: always() && steps.publish.outputs.has-rust == 'true' && github.event_name == 'pull_request' || github.event_name == 'merge_group'
-        working-directory: ${{ matrix.path }}
-        run: cargo publish --all-features --dry-run --no-verify
+        if: github.event_name == 'pull_request' || github.event_name == 'merge_group'
+        run: cargo publish --all-features --dry-run --no-verify ${{ steps.flags.outputs.packages }}
 
       - name: Publish
-        if: always() && steps.publish.outputs.has-rust == 'true' && github.event_name == 'push' && github.ref == 'refs/heads/main'
-        working-directory: ${{ matrix.path }}
-        run: cargo publish --all-features --no-verify
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: cargo publish --all-features --no-verify ${{ steps.flags.outputs.packages }}
 
   passed:
     name: Tests passed
-    needs: [setup, unit-tests, integration-tests, publish, optimize-ci]
+    needs: [setup, unit-tests, integration-tests, publish-rust, optimize-ci]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -388,7 +380,7 @@ jobs:
           [[ ${{ needs.integration-tests.result }} =~ success|skipped ]]
       - name: Check publish results
         run: |
-          [[ ${{ needs.publish.result }} =~ success|skipped ]]
+          [[ ${{ needs.publish-rust.result }} =~ success|skipped ]]
 
       - name: Notify Slack on failure
         uses: rtCamp/action-slack-notify@c58b60ee33df2229ed2d2eed86eeaf7e6c527c5a

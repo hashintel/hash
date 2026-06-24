@@ -337,6 +337,13 @@ pub enum Expression {
         expr: Box<Self>,
         field: ColumnName<'static>,
     },
+    /// 1-based array subscript access.
+    ///
+    /// Transpiles to `(<expr>)[<index>]` in PostgreSQL.
+    ArrayElement {
+        expr: Box<Self>,
+        index: usize,
+    },
     /// Row expansion - expands a composite type into its constituent columns.
     ///
     /// Transpiles to `(expression).*` in PostgreSQL, which is used to expand
@@ -494,6 +501,15 @@ impl Expression {
     pub fn overlap(lhs: Self, rhs: Self) -> Self {
         Self::Binary(BinaryExpression {
             op: BinaryOperator::Overlap,
+            left: Box::new(lhs),
+            right: Box::new(rhs),
+        })
+    }
+
+    #[must_use]
+    pub fn array_contains(lhs: Self, rhs: Self) -> Self {
+        Self::Binary(BinaryExpression {
+            op: BinaryOperator::ArrayContains,
             left: Box::new(lhs),
             right: Box::new(rhs),
         })
@@ -659,6 +675,11 @@ impl Transpile for Expression {
                 expr.transpile(fmt)?;
                 fmt.write_str(").")?;
                 field.transpile(fmt)
+            }
+            Self::ArrayElement { expr, index } => {
+                fmt.write_char('(')?;
+                expr.transpile(fmt)?;
+                write!(fmt, ")[{index}]")
             }
             Self::ColumnReference(column) => column.transpile(fmt),
             Self::Parameter(index) => write!(fmt, "${index}"),

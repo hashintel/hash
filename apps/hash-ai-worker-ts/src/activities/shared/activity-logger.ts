@@ -36,7 +36,10 @@ const log = (
     runId: "no-context",
   };
   try {
-    workflowExecution = Context.current().info.workflowExecution;
+    workflowExecution = Context.current().info.workflowExecution ?? {
+      workflowId: "no-context",
+      runId: "no-context",
+    };
   } catch {
     // no Temporal context — placeholders above are used
   }
