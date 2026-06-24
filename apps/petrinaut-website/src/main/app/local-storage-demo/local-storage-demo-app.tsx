@@ -68,7 +68,7 @@ const createLocalStorageNetRecord = (params: {
 };
 
 const DEMO_CAPABILITIES = {
-  disabledExtensions: ["subnets"],
+  disabledExtensions: [],
 } satisfies PetrinautHandleCapabilities;
 
 const createHandle = (net: SDCPNInLocalStorage): PetrinautDocHandle =>
