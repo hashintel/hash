@@ -555,7 +555,9 @@ use type_system::{
 
 use crate::{
     entity::EntityQueryPath,
+    entity_type::EntityTypeQueryPath,
     filter::{Filter, FilterExpression, JsonPath, Parameter, PathToken},
+    subgraph::edges::SharedEdgeKind,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -640,7 +642,11 @@ impl<'p> PropertyProtectionFilterConfig<'p> {
                         )),
                     },
                     PropertyFilterExpressionList::Path {
-                        path: EntityQueryPath::TypeBaseUrls,
+                        path: EntityQueryPath::EntityTypeEdge {
+                            edge_kind: SharedEdgeKind::IsOfType,
+                            path: EntityTypeQueryPath::BaseUrl,
+                            inheritance_depth: None,
+                        },
                     },
                 ),
                 PropertyFilter::NotEqual(
@@ -845,9 +851,7 @@ fn collect_from_path<'f, 'p, I: Extend<&'f PropertyFilter<'p>>>(
             collect_from_json_path(json_path.as_ref(), config, excluded);
         }
         EntityQueryPath::EntityEdge { path, .. } => collect_from_path(path, config, excluded),
-        EntityQueryPath::Label { .. }
-        | EntityQueryPath::FirstLabel
-        | EntityQueryPath::LastLabel => {
+        EntityQueryPath::Label { .. } | EntityQueryPath::FirstLabel => {
             // TODO(BE-313): check if label_property is protected
         }
         EntityQueryPath::Embedding => {
@@ -859,8 +863,7 @@ fn collect_from_path<'f, 'p, I: Extend<&'f PropertyFilter<'p>>>(
         | EntityQueryPath::EditionId
         | EntityQueryPath::DecisionTime
         | EntityQueryPath::TransactionTime
-        | EntityQueryPath::TypeBaseUrls
-        | EntityQueryPath::TypeVersions
+        | EntityQueryPath::DirectTypeCount
         | EntityQueryPath::EntityConfidence
         | EntityQueryPath::LeftEntityConfidence
         | EntityQueryPath::LeftEntityProvenance
@@ -874,8 +877,7 @@ fn collect_from_path<'f, 'p, I: Extend<&'f PropertyFilter<'p>>>(
         }
         | EntityQueryPath::Provenance(_)
         | EntityQueryPath::EditionProvenance(_)
-        | EntityQueryPath::FirstTypeTitle
-        | EntityQueryPath::LastTypeTitle => {}
+        | EntityQueryPath::FirstTypeTitle => {}
     }
 }
 
@@ -1416,7 +1418,7 @@ mod tests {
 
         use super::*;
 
-        /// Creates `User IN TypeBaseUrls` filter (entity has User type).
+        /// Creates a `User IN type base URLs` filter (entity has User type).
         fn type_is_user() -> Filter<'static, Entity> {
             Filter::In(
                 FilterExpression::Parameter {
@@ -1424,7 +1426,11 @@ mod tests {
                     convert: None,
                 },
                 FilterExpressionList::Path {
-                    path: EntityQueryPath::TypeBaseUrls,
+                    path: EntityQueryPath::EntityTypeEdge {
+                        edge_kind: SharedEdgeKind::IsOfType,
+                        path: EntityTypeQueryPath::BaseUrl,
+                        inheritance_depth: None,
+                    },
                 },
             )
         }

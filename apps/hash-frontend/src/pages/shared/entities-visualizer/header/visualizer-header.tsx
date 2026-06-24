@@ -17,7 +17,7 @@ export const VisualizerHeader: FunctionComponent<VisualizerHeaderProps> = ({
     <Box
       sx={{
         display: "flex",
-        alignItems: "center",
+        alignItems: "flex-start",
         justifyContent: "space-between",
         background: ({ palette }) => palette.gray[20],
         borderWidth: 1,

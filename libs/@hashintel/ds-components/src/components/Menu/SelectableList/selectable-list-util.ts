@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 
+import { type Tone } from "../../../util/form-shared";
 import { type IconName } from "../../Icon/icon";
 
 import type { UseMenuContext } from "@ark-ui/react/menu";
@@ -13,7 +14,7 @@ type ItemBase = {
 
   indent?: number;
   disabled?: boolean;
-  tone?: "neutral" | "brand" | "error";
+  tone?: Tone;
   selectedStyle?: "tick" | "checkbox" | "highlight";
 
   /**

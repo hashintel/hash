@@ -87,6 +87,7 @@ vi.mock("@temporalio/activity", async (importOriginal) => {
                 dummyFlowEntity.properties[
                   "https://hash.ai/@h/types/property-type/workflow-id/"
                 ],
+              runId: "test-run-id",
             },
             activityId: "test-activity-id",
           },

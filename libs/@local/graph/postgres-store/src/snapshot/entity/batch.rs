@@ -435,6 +435,15 @@ where
             .await
             .change_context(InsertionError)?;
 
+        // The cache derives `labels` from `entity_editions.properties`, so the normalized
+        // values written above would otherwise leave stale label entries behind.
+        if !edition_ids_updates.is_empty() {
+            postgres_client
+                .reindex_entity_cache()
+                .await
+                .change_context(InsertionError)?;
+        }
+
         Ok(())
     }
 }

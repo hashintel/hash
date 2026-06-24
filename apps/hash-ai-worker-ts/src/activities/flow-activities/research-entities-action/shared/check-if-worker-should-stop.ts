@@ -43,7 +43,13 @@ export const checkIfWorkerShouldStop = async (
     };
   }
 
-  const { workflowId } = Context.current().info.workflowExecution;
+  const { workflowId } = Context.current().info.workflowExecution ?? {};
+
+  if (!workflowId) {
+    return {
+      shouldStop: false,
+    };
+  }
 
   const temporalClient = await getTemporalClient();
   const handle = temporalClient.workflow.getHandle(workflowId);

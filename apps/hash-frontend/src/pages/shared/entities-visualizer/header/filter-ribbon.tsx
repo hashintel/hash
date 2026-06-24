@@ -1,80 +1,103 @@
 import { Box } from "@mui/material";
+import { useState } from "react";
 
-import { createDefaultFilterState } from "../data/types";
+import { getDefaultOperatorForKind } from "../shared/property-filters/get-operators-for-kind";
 import { AddFiltersMenu } from "./add-filters-menu";
-import { ClearFiltersButton } from "./clear-filters-button";
 import { IncludeArchivedPill } from "./include-archived-pill";
+import { PropertyFilterPill } from "./property-filter-pill";
 import { TypeFilterPill } from "./type-filter-pill";
-import { WebFilterPill } from "./web-filter-pill";
+import { type InternalWeb, WebFilterPill } from "./web-filter-pill";
 
-import type { EntitiesFilterState } from "../data/types";
-import type { AvailableType } from "../data/use-available-types";
-import type { WebId } from "@blockprotocol/type-system";
+import type { EntitiesFilterState } from "../shared/filter-state";
+import type {
+  FilterableProperty,
+  FilterMetadataForProperty,
+  PropertyFilter,
+} from "../shared/property-filters/property-filter";
+import type { AvailableType } from "../shared/use-available-types";
 import type { FunctionComponent } from "react";
 
 type FilterRibbonProps = {
-  availableTypes: AvailableType[];
+  availableEntityTypes: AvailableType[];
   availableTypesLoading: boolean;
+  propertyFilterMetadata: FilterMetadataForProperty[];
   filterState: EntitiesFilterState;
-  internalWebIds: WebId[];
+  internalWebs: InternalWeb[];
   isTypePinned: boolean;
   setFilterState: (
     updater: (prev: EntitiesFilterState) => EntitiesFilterState,
   ) => void;
 };
 
-const isWebFilterDefault = (
-  web: EntitiesFilterState["web"],
-  internalWebIds: WebId[],
-) => {
-  if (web.includeOtherWebs) {
-    return false;
-  }
-
-  return internalWebIds.every((id) => web.selectedInternalWebIds.has(id));
-};
-
-const isTypeFilterDefault = (
-  type: EntitiesFilterState["type"],
-  availableTypes: AvailableType[],
-) => {
-  if (type.selectedTypeIds === null) {
-    return true;
-  }
-
-  return availableTypes.every(({ entityTypeId }) =>
-    type.selectedTypeIds!.has(entityTypeId),
-  );
+let propertyFilterIdCounter = 0;
+const generatePropertyFilterId = () => {
+  propertyFilterIdCounter += 1;
+  return `property-filter-${propertyFilterIdCounter}`;
 };
 
 export const FilterRibbon: FunctionComponent<FilterRibbonProps> = ({
-  availableTypes,
+  availableEntityTypes,
   availableTypesLoading,
+  propertyFilterMetadata,
   filterState,
-  internalWebIds,
+  internalWebs,
   isTypePinned,
   setFilterState,
 }) => {
+  const [draftPropertyFilter, setDraftPropertyFilter] =
+    useState<PropertyFilter | null>(null);
+
   const setIncludeArchived = (includeArchived: boolean) =>
     setFilterState((prev) => ({ ...prev, includeArchived }));
 
-  const webIsDefault = isWebFilterDefault(filterState.web, internalWebIds);
-  const typeIsDefault =
-    isTypePinned || isTypeFilterDefault(filterState.type, availableTypes);
-  const archivedIsDefault = !filterState.includeArchived;
+  const setPropertyFilters = (
+    updater: (prev: PropertyFilter[]) => PropertyFilter[],
+  ) =>
+    setFilterState((prev) => ({
+      ...prev,
+      propertyFilters: updater(prev.propertyFilters),
+    }));
 
-  const filtersAreDefault = webIsDefault && typeIsDefault && archivedIsDefault;
-
-  const handleClear = () => {
-    setFilterState(() => createDefaultFilterState(internalWebIds));
+  const handleAddPropertyFilter = (
+    property: Pick<FilterableProperty, "baseUrl" | "title" | "kind">,
+  ) => {
+    setDraftPropertyFilter({
+      id: generatePropertyFilterId(),
+      baseUrl: property.baseUrl,
+      title: property.title,
+      kind: property.kind,
+      operator: getDefaultOperatorForKind(property.kind),
+    });
   };
 
-  const allExtraFiltersEnabled = filterState.includeArchived;
+  const handleCommitDraftPropertyFilter = (committed: PropertyFilter) => {
+    setPropertyFilters((prev) => [...prev, committed]);
+    setDraftPropertyFilter(null);
+  };
+
+  const handleCommitPropertyFilter = (id: string, committed: PropertyFilter) =>
+    setPropertyFilters((prev) =>
+      prev.map((propertyFilter) =>
+        propertyFilter.id === id ? committed : propertyFilter,
+      ),
+    );
+
+  const handleRemovePropertyFilter = (id: string) =>
+    setPropertyFilters((prev) =>
+      prev.filter((propertyFilter) => propertyFilter.id !== id),
+    );
 
   return (
-    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+    <Box
+      sx={{
+        display: "flex",
+        alignItems: "center",
+        gap: 1,
+        flexWrap: "wrap",
+      }}
+    >
       <WebFilterPill
-        internalWebIds={internalWebIds}
+        internalWebs={internalWebs}
         webState={filterState.web}
         setWebState={(updater) =>
           setFilterState((prev) => ({ ...prev, web: updater(prev.web) }))
@@ -82,7 +105,7 @@ export const FilterRibbon: FunctionComponent<FilterRibbonProps> = ({
       />
       {!isTypePinned && (
         <TypeFilterPill
-          availableTypes={availableTypes}
+          availableTypes={availableEntityTypes}
           loading={availableTypesLoading}
           typeState={filterState.type}
           setTypeState={(updater) =>
@@ -93,10 +116,35 @@ export const FilterRibbon: FunctionComponent<FilterRibbonProps> = ({
       {filterState.includeArchived && (
         <IncludeArchivedPill onRemove={() => setIncludeArchived(false)} />
       )}
-      {!allExtraFiltersEnabled && (
-        <AddFiltersMenu onAddIncludeArchived={() => setIncludeArchived(true)} />
+      {filterState.propertyFilters.map((propertyFilter) => (
+        <PropertyFilterPill
+          key={propertyFilter.id}
+          filter={propertyFilter}
+          mode="edit"
+          autoOpen={false}
+          onCommit={(committed) =>
+            handleCommitPropertyFilter(propertyFilter.id, committed)
+          }
+          onRemove={() => handleRemovePropertyFilter(propertyFilter.id)}
+        />
+      ))}
+      {draftPropertyFilter && (
+        <PropertyFilterPill
+          key={draftPropertyFilter.id}
+          filter={draftPropertyFilter}
+          mode="add"
+          autoOpen
+          onCommit={handleCommitDraftPropertyFilter}
+          onRemove={() => setDraftPropertyFilter(null)}
+        />
       )}
-      {!filtersAreDefault && <ClearFiltersButton onClear={handleClear} />}
+      <AddFiltersMenu
+        canAddIncludeArchived={!filterState.includeArchived}
+        onAddIncludeArchived={() => setIncludeArchived(true)}
+        filterableProperties={propertyFilterMetadata}
+        propertiesLoading={availableTypesLoading}
+        onAddPropertyFilter={handleAddPropertyFilter}
+      />
     </Box>
   );
 };

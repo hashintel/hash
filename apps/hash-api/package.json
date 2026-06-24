@@ -9,6 +9,7 @@
     "build:docker": "docker buildx build --tag hash-api --file docker/Dockerfile ../../ --load",
     "codegen": "rimraf './src/**/*.gen.*'; graphql-codegen --config codegen.config.ts",
     "dev": "NODE_ENV=development NODE_OPTIONS=--max-old-space-size=2048 tsx watch --clear-screen=false --import ./src/instrument.mjs ./src/index.ts",
+    "dev:seed-crm-data": "NODE_ENV=development tsx ./src/seed-data/seed-crm-data.ts",
     "fix:eslint": "eslint --fix .",
     "generate-hash-gpt-schema": "tsx ./src/ai/gpt/generate-hashgpt-schema.ts",
     "generate-ontology-type-ids": "tsx ./src/generate-ontology-type-ids.ts; oxfmt --write --ignore-path /dev/null ../../libs/@local/hash-isomorphic-utils/src/ontology-type-ids.ts",
@@ -64,9 +65,9 @@
     "@ory/kratos-client": "25.4.0",
     "@rudderstack/rudder-sdk-node": "3.0.8",
     "@sentry/node": "10.54.0",
-    "@snowplow/node-tracker": "4.6.8",
-    "@temporalio/client": "1.12.1",
-    "@temporalio/proto": "1.12.1",
+    "@snowplow/node-tracker": "4.8.2",
+    "@temporalio/client": "1.18.1",
+    "@temporalio/proto": "1.18.1",
     "@types/ws": "8.18.1",
     "agentkeepalive": "4.6.0",
     "app-root-path": "3.1.0",
@@ -107,9 +108,10 @@
     "ts-json-schema-generator": "1.5.1",
     "tsx": "4.20.6",
     "typescript": "5.9.3",
-    "ws": "8.20.1"
+    "ws": "8.21.0"
   },
   "devDependencies": {
+    "@faker-js/faker": "10.4.0",
     "@graphql-codegen/cli": "^6.2.1",
     "@graphql-codegen/introspection": "5.0.1",
     "@graphql-codegen/typescript": "5.0.9",
