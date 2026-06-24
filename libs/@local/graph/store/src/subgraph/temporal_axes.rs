@@ -247,16 +247,34 @@ pub enum QueryTemporalAxesUnresolved {
     },
 }
 
-impl Default for QueryTemporalAxesUnresolved {
-    fn default() -> Self {
+impl QueryTemporalAxesUnresolved {
+    /// Axes that match every entity, regardless of its temporal state.
+    ///
+    /// Pins the transaction time at the resolution timestamp and leaves the decision time
+    /// unbounded up to that timestamp, so the query reaches all entities — live, archived, and
+    /// every past decision-time version. Use this for "erase everything" / `resetGraph`-style
+    /// operations that must also find archived entities.
+    #[must_use]
+    pub fn all() -> Self {
         Self::DecisionTime {
             pinned: PinnedTemporalAxisUnresolved::new(None),
             variable: VariableTemporalAxisUnresolved::new(Some(TemporalBound::Unbounded), None),
         }
     }
-}
 
-impl QueryTemporalAxesUnresolved {
+    /// Axes that match only currently-live entities.
+    ///
+    /// Pins both the transaction and decision time at the resolution timestamp, so archived and
+    /// other non-current entities are excluded. This is the conventional "current snapshot" query
+    /// used by most reads.
+    #[must_use]
+    pub fn live_only() -> Self {
+        Self::DecisionTime {
+            pinned: PinnedTemporalAxisUnresolved::new(None),
+            variable: VariableTemporalAxisUnresolved::new(None, None),
+        }
+    }
+
     /// Resolves temporal axes using the provided timestamp.
     ///
     /// Converts unresolved temporal axes into concrete temporal axes by resolving unset values

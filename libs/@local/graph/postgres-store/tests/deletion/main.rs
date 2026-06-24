@@ -27,7 +27,6 @@ use hash_graph_store::{
         PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
     },
 };
-use hash_graph_temporal_versioning::TemporalBound;
 use hash_graph_test_data::{data_type, entity, entity_type, property_type};
 use tokio_postgres::Transaction;
 use type_system::{
@@ -307,13 +306,7 @@ pub(crate) async fn count_entity(
             api.account_id,
             CountEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(entity_id),
-                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                    pinned: PinnedTemporalAxisUnresolved::new(None),
-                    variable: VariableTemporalAxisUnresolved::new(
-                        Some(TemporalBound::Unbounded),
-                        None,
-                    ),
-                },
+                temporal_axes: QueryTemporalAxesUnresolved::all(),
                 include_drafts,
             },
         )
@@ -532,7 +525,9 @@ pub(crate) async fn has_archived_provenance(
 
 /// Temporal axes that pin both axes at "now" — finds only live entities.
 ///
-/// Equivalent to the old `decision_time: None` behavior.
+/// Equivalent to the old `decision_time: None` behavior. Deliberately pins on the
+/// *transaction-time* axis (unlike [`QueryTemporalAxesUnresolved::live_only`], which varies the
+/// decision-time axis) to reproduce that historical behavior; both find the same live entities.
 pub(crate) fn live_only_axes() -> QueryTemporalAxesUnresolved {
     QueryTemporalAxesUnresolved::TransactionTime {
         pinned: PinnedTemporalAxisUnresolved::new(None),
@@ -579,10 +574,7 @@ pub(crate) async fn raw_count_archived_temporal_rows(
 /// This finds all entities regardless of their temporal state: live, archived, or any past
 /// decision time. Used by `resetGraph` and tests that need to find archived entities.
 pub(crate) fn find_all_axes() -> QueryTemporalAxesUnresolved {
-    QueryTemporalAxesUnresolved::DecisionTime {
-        pinned: PinnedTemporalAxisUnresolved::new(None),
-        variable: VariableTemporalAxisUnresolved::new(Some(TemporalBound::Unbounded), None),
-    }
+    QueryTemporalAxesUnresolved::all()
 }
 
 pub(crate) async fn raw_entity_ids_exists(
