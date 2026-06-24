@@ -252,8 +252,9 @@ impl QueryTemporalAxesUnresolved {
     ///
     /// Pins the transaction time at the resolution timestamp and leaves the decision time
     /// unbounded up to that timestamp, so the query reaches all entities — live, archived, and
-    /// every past decision-time version. Use this for "erase everything" / `resetGraph`-style
-    /// operations that must also find archived entities.
+    /// every past decision-time version. Use this for any read that must include archived and
+    /// past entities rather than only the currently-live ones (e.g. history-aware queries, or
+    /// erase-all / `resetGraph` operations).
     #[must_use]
     pub fn all() -> Self {
         Self::DecisionTime {
