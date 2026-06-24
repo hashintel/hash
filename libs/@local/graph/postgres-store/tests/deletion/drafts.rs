@@ -6,6 +6,7 @@ use hash_graph_store::{
         LinkDeletionBehavior, PatchEntityParams,
     },
     filter::Filter,
+    subgraph::temporal_axes::QueryTemporalAxesUnresolved,
 };
 use type_system::knowledge::entity::EntityId;
 
@@ -49,7 +50,7 @@ async fn draft_only_entity_promoted_to_full_delete() {
                 scope: DeletionScope::Purge {
                     link_behavior: LinkDeletionBehavior::Ignore,
                 },
-                temporal_axes: crate::live_only_axes(),
+                temporal_axes: QueryTemporalAxesUnresolved::live_only(),
                 decision_time: None,
             },
         )
@@ -127,7 +128,7 @@ async fn draft_of_published_entity_preserves_published() {
                 scope: DeletionScope::Purge {
                     link_behavior: LinkDeletionBehavior::Ignore,
                 },
-                temporal_axes: crate::live_only_axes(),
+                temporal_axes: QueryTemporalAxesUnresolved::live_only(),
                 decision_time: None,
             },
         )
@@ -196,7 +197,7 @@ async fn include_drafts_false_skips_drafts() {
                 scope: DeletionScope::Purge {
                     link_behavior: LinkDeletionBehavior::Ignore,
                 },
-                temporal_axes: crate::live_only_axes(),
+                temporal_axes: QueryTemporalAxesUnresolved::live_only(),
                 decision_time: None,
             },
         )
@@ -297,7 +298,7 @@ async fn partial_draft_match_not_promoted() {
                 scope: DeletionScope::Purge {
                     link_behavior: LinkDeletionBehavior::Ignore,
                 },
-                temporal_axes: crate::live_only_axes(),
+                temporal_axes: QueryTemporalAxesUnresolved::live_only(),
                 decision_time: None,
             },
         )
@@ -379,7 +380,7 @@ async fn published_and_draft_matched_becomes_full_delete() {
                 scope: DeletionScope::Purge {
                     link_behavior: LinkDeletionBehavior::Ignore,
                 },
-                temporal_axes: crate::live_only_axes(),
+                temporal_axes: QueryTemporalAxesUnresolved::live_only(),
                 decision_time: None,
             },
         )
@@ -458,7 +459,7 @@ async fn mixed_full_and_draft_targets() {
                 scope: DeletionScope::Purge {
                     link_behavior: LinkDeletionBehavior::Ignore,
                 },
-                temporal_axes: crate::live_only_axes(),
+                temporal_axes: QueryTemporalAxesUnresolved::live_only(),
                 decision_time: None,
             },
         )
@@ -543,7 +544,7 @@ async fn empty_target_guards() {
                 scope: DeletionScope::Purge {
                     link_behavior: LinkDeletionBehavior::Error,
                 },
-                temporal_axes: crate::live_only_axes(),
+                temporal_axes: QueryTemporalAxesUnresolved::live_only(),
                 decision_time: None,
             },
         )
@@ -629,7 +630,7 @@ async fn draft_link_entity_edge_survives() {
                 scope: DeletionScope::Purge {
                     link_behavior: LinkDeletionBehavior::Ignore,
                 },
-                temporal_axes: crate::live_only_axes(),
+                temporal_axes: QueryTemporalAxesUnresolved::live_only(),
                 decision_time: None,
             },
         )
@@ -662,7 +663,7 @@ async fn draft_link_entity_edge_survives() {
                 scope: DeletionScope::Purge {
                     link_behavior: LinkDeletionBehavior::Ignore,
                 },
-                temporal_axes: crate::live_only_axes(),
+                temporal_axes: QueryTemporalAxesUnresolved::live_only(),
                 decision_time: None,
             },
         )
@@ -766,7 +767,7 @@ async fn summary_counts_draft_ids_not_entities() {
                 scope: DeletionScope::Purge {
                     link_behavior: LinkDeletionBehavior::Ignore,
                 },
-                temporal_axes: crate::live_only_axes(),
+                temporal_axes: QueryTemporalAxesUnresolved::live_only(),
                 decision_time: None,
             },
         )

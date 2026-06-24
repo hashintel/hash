@@ -125,6 +125,29 @@ pub enum Value<'heap, A: Allocator = Global> {
 impl<'heap, A: Allocator> Value<'heap, A> {
     const UNIT: Self = Self::Unit;
 
+    /// Returns a displayable representation of this value's runtime type.
+    ///
+    /// Primitives produce their type name (`"Integer"`, `"String"`),
+    /// aggregates include their structure (`"(x: Integer, y: String)"`
+    /// for structs, `"(Integer, String)"` for tuples), and opaques
+    /// include their wrapper name (`"UserId(Integer)"`).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hashql_mir::interpret::value::Value;
+    /// # #![feature(allocator_api)]
+    /// # extern crate alloc;
+    /// # use alloc::alloc::Global;
+    ///
+    /// assert_eq!(Value::<'_, Global>::Unit.type_name().to_string(), "()");
+    /// assert_eq!(
+    ///     Value::<'_, Global>::Integer(42.into())
+    ///         .type_name()
+    ///         .to_string(),
+    ///     "Integer"
+    /// );
+    /// ```
     pub fn type_name(&self) -> ValueTypeName<'_, 'heap, A> {
         ValueTypeName::from(self)
     }
@@ -146,13 +169,45 @@ impl<'heap, A: Allocator> Value<'heap, A> {
 
     /// Indexes into this value using another value as the index.
     ///
-    /// For lists, the index must be an integer. For dicts, any value can be used as a key.
+    /// For lists, the index must be an integer (supports negative indexing).
+    /// For dicts, any value can be used as a key.
     /// Returns [`Value::Unit`] if the index is not found.
     ///
     /// # Errors
     ///
     /// Returns an error if this value is not subscriptable (not a list or dict),
     /// or if the index type is invalid for the collection type.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # #![feature(allocator_api)]
+    /// # extern crate alloc;
+    /// # use alloc::alloc::Global;
+    /// use hashql_mir::interpret::value::{Dict, Int, List, Value};
+    ///
+    /// // List subscript with integer index
+    /// let mut list: List<'_, Global> = List::new();
+    /// list.push_back(Value::Integer(10.into()));
+    /// let list_val = Value::List(list);
+    ///
+    /// let result = list_val.subscript::<()>(&Value::Integer(0.into())).unwrap();
+    /// assert_eq!(result, &Value::Integer(10.into()));
+    ///
+    /// // Dict subscript with any key type
+    /// let mut dict: Dict<'_, Global> = Dict::new();
+    /// dict.insert(Value::Integer(1.into()), Value::Integer(100.into()));
+    /// let dict_val = Value::Dict(dict);
+    ///
+    /// let result = dict_val.subscript::<()>(&Value::Integer(1.into())).unwrap();
+    /// assert_eq!(result, &Value::Integer(100.into()));
+    ///
+    /// // Missing key returns Unit
+    /// let result = dict_val
+    ///     .subscript::<()>(&Value::Integer(99.into()))
+    ///     .unwrap();
+    /// assert_eq!(result, &Value::Unit);
+    /// ```
     #[inline]
     pub fn subscript<'this, 'index, E>(
         &'this self,
@@ -226,11 +281,31 @@ impl<'heap, A: Allocator> Value<'heap, A> {
 
     /// Projects a field from this value by index.
     ///
-    /// Works on structs and tuples.
+    /// Works on structs, tuples, and opaques (projects through the wrapper).
     ///
     /// # Errors
     ///
     /// Returns an error if this value is not projectable or the field index is invalid.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hashql_mir::{
+    ///     body::place::FieldIndex,
+    ///     interpret::value::{Tuple, Value},
+    /// };
+    /// # extern crate alloc;
+    /// # use alloc::rc::Rc;
+    ///
+    /// let values: Rc<[Value]> = Rc::from(vec![Value::Integer(10.into()), Value::Integer(20.into())]);
+    /// let tuple = Value::Tuple(Tuple::new(values).unwrap());
+    ///
+    /// let field = tuple.project::<()>(FieldIndex::new(1)).unwrap();
+    /// assert_eq!(field, &Value::Integer(20.into()));
+    ///
+    /// // Out-of-bounds index returns an error
+    /// assert!(tuple.project::<()>(FieldIndex::new(5)).is_err());
+    /// ```
     #[inline]
     pub fn project<'this, E>(
         &'this self,
@@ -308,11 +383,37 @@ impl<'heap, A: Allocator> Value<'heap, A> {
 
     /// Projects a field from this value by name.
     ///
-    /// Only works on structs.
+    /// Only works on structs and opaques (projects through the wrapper).
     ///
     /// # Errors
     ///
     /// Returns an error if this value is not a struct or the field name is not found.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # #![feature(allocator_api)]
+    /// # extern crate alloc;
+    /// # use alloc::alloc::Global;
+    /// # use hashql_core::heap::Heap;
+    /// # use hashql_mir::intern::Interner;
+    /// use hashql_mir::interpret::value::{StructBuilder, Value};
+    ///
+    /// let heap = Heap::new();
+    /// let interner = Interner::new(&heap);
+    ///
+    /// let mut builder = StructBuilder::<'_, Global, 1>::new();
+    /// let name = heap.intern_symbol("x");
+    /// builder.push(name, Value::Integer(42.into()));
+    /// let s = Value::Struct(builder.finish(&interner.symbols, Global));
+    ///
+    /// let field = s.project_by_name::<()>(name).unwrap();
+    /// assert_eq!(field, &Value::Integer(42.into()));
+    ///
+    /// // Unknown field returns an error
+    /// let unknown = heap.intern_symbol("z");
+    /// assert!(s.project_by_name::<()>(unknown).is_err());
+    /// ```
     pub fn project_by_name<'this, E>(
         &'this self,
         index: Symbol<'heap>,

@@ -95,10 +95,7 @@ async fn insert() {
         api.account_id,
         QueryEntitiesParams {
             filter: Filter::for_entity_by_entity_id(entity.metadata.record_id.entity_id),
-            temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                pinned: PinnedTemporalAxisUnresolved::new(None),
-                variable: VariableTemporalAxisUnresolved::new(Some(TemporalBound::Unbounded), None),
-            },
+            temporal_axes: QueryTemporalAxesUnresolved::all(),
             sorting: EntityQuerySorting {
                 paths: Vec::new(),
                 cursor: None,
@@ -171,10 +168,7 @@ async fn query() {
         api.account_id,
         QueryEntitiesParams {
             filter: Filter::for_entity_by_entity_id(entity.metadata.record_id.entity_id),
-            temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                pinned: PinnedTemporalAxisUnresolved::new(None),
-                variable: VariableTemporalAxisUnresolved::new(Some(TemporalBound::Unbounded), None),
-            },
+            temporal_axes: QueryTemporalAxesUnresolved::all(),
             sorting: EntityQuerySorting {
                 paths: Vec::new(),
                 cursor: None,
@@ -278,13 +272,7 @@ async fn update() {
             api.account_id,
             SummarizeEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(v2_entity.metadata.record_id.entity_id),
-                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                    pinned: PinnedTemporalAxisUnresolved::new(None),
-                    variable: VariableTemporalAxisUnresolved::new(
-                        Some(TemporalBound::Unbounded),
-                        None,
-                    ),
-                },
+                temporal_axes: QueryTemporalAxesUnresolved::all(),
                 include_drafts: false,
                 include_count: true,
                 include_web_ids: false,
@@ -304,10 +292,7 @@ async fn update() {
         api.account_id,
         QueryEntitiesParams {
             filter: Filter::for_entity_by_entity_id(v2_entity.metadata.record_id.entity_id),
-            temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                pinned: PinnedTemporalAxisUnresolved::new(None),
-                variable: VariableTemporalAxisUnresolved::new(None, None),
-            },
+            temporal_axes: QueryTemporalAxesUnresolved::live_only(),
             sorting: EntityQuerySorting {
                 paths: Vec::new(),
                 cursor: None,

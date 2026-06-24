@@ -36,11 +36,11 @@ use hashql_hir::{
     },
 };
 
+pub use self::error::{ReifyDiagnostic, ReifyDiagnosticCategory, ReifyDiagnosticIssues};
 use self::{
     current::CurrentBlock,
     error::{
-        ReifyDiagnosticCategory, ReifyDiagnosticIssues, expected_anf_thunk, expected_anf_variable,
-        external_modules_unsupported, local_not_thunk,
+        expected_anf_thunk, expected_anf_variable, external_modules_unsupported, local_not_thunk,
     },
     types::unwrap_closure_type,
 };

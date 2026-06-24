@@ -27,7 +27,6 @@ use hash_graph_store::{
         PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
     },
 };
-use hash_graph_temporal_versioning::TemporalBound;
 use hash_graph_test_data::{data_type, entity, entity_type, property_type};
 use tokio_postgres::Transaction;
 use type_system::{
@@ -307,13 +306,7 @@ pub(crate) async fn count_entities(
             api.account_id,
             SummarizeEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(entity_id),
-                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                    pinned: PinnedTemporalAxisUnresolved::new(None),
-                    variable: VariableTemporalAxisUnresolved::new(
-                        Some(TemporalBound::Unbounded),
-                        None,
-                    ),
-                },
+                temporal_axes: QueryTemporalAxesUnresolved::all(),
                 include_drafts,
                 include_count: true,
                 include_web_ids: false,
@@ -538,16 +531,6 @@ pub(crate) async fn has_archived_provenance(
         .get(0)
 }
 
-/// Temporal axes that pin both axes at "now" — finds only live entities.
-///
-/// Equivalent to the old `decision_time: None` behavior.
-pub(crate) fn live_only_axes() -> QueryTemporalAxesUnresolved {
-    QueryTemporalAxesUnresolved::TransactionTime {
-        pinned: PinnedTemporalAxisUnresolved::new(None),
-        variable: VariableTemporalAxisUnresolved::new(None, None),
-    }
-}
-
 /// Temporal axes that pin `decision_time` at a specific past timestamp.
 pub(crate) fn axes_at_decision_time(
     dt: hash_graph_temporal_versioning::Timestamp<hash_graph_temporal_versioning::DecisionTime>,
@@ -579,18 +562,6 @@ pub(crate) async fn raw_count_archived_temporal_rows(
         .await
         .expect("raw_count_archived_temporal_rows query failed")
         .get(0)
-}
-
-/// Returns the "find everything" temporal axes — unbounded decision time, transaction time at
-/// now.
-///
-/// This finds all entities regardless of their temporal state: live, archived, or any past
-/// decision time. Used by `resetGraph` and tests that need to find archived entities.
-pub(crate) fn find_all_axes() -> QueryTemporalAxesUnresolved {
-    QueryTemporalAxesUnresolved::DecisionTime {
-        pinned: PinnedTemporalAxisUnresolved::new(None),
-        variable: VariableTemporalAxisUnresolved::new(Some(TemporalBound::Unbounded), None),
-    }
 }
 
 pub(crate) async fn raw_entity_ids_exists(

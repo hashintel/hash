@@ -13,11 +13,8 @@ use hash_graph_store::{
     entity::{CreateEntityParams, EntityStore as _},
     filter::Filter,
     query::ConflictBehavior,
-    subgraph::temporal_axes::{
-        PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
-    },
+    subgraph::temporal_axes::QueryTemporalAxesUnresolved,
 };
-use hash_graph_temporal_versioning::TemporalBound;
 use time::OffsetDateTime;
 use type_system::{
     knowledge::{
@@ -106,13 +103,7 @@ async fn query() {
             api.account_id,
             QueryDataTypesParams {
                 filter: Filter::for_versioned_url(&list_v1.id),
-                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                    pinned: PinnedTemporalAxisUnresolved::new(None),
-                    variable: VariableTemporalAxisUnresolved::new(
-                        Some(TemporalBound::Unbounded),
-                        None,
-                    ),
-                },
+                temporal_axes: QueryTemporalAxesUnresolved::all(),
                 after: None,
                 limit: None,
                 include_count: false,
@@ -136,10 +127,7 @@ async fn inheritance() {
     fn create_params(filter: Filter<DataTypeWithMetadata>) -> QueryDataTypesParams {
         QueryDataTypesParams {
             filter,
-            temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                pinned: PinnedTemporalAxisUnresolved::new(None),
-                variable: VariableTemporalAxisUnresolved::new(Some(TemporalBound::Unbounded), None),
-            },
+            temporal_axes: QueryTemporalAxesUnresolved::all(),
             after: None,
             limit: None,
             include_count: false,
@@ -482,13 +470,7 @@ async fn update() {
             api.account_id,
             QueryDataTypesParams {
                 filter: Filter::for_versioned_url(&object_dt_v1.id),
-                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                    pinned: PinnedTemporalAxisUnresolved::new(None),
-                    variable: VariableTemporalAxisUnresolved::new(
-                        Some(TemporalBound::Unbounded),
-                        None,
-                    ),
-                },
+                temporal_axes: QueryTemporalAxesUnresolved::all(),
                 after: None,
                 limit: None,
                 include_count: false,
@@ -505,13 +487,7 @@ async fn update() {
             api.account_id,
             QueryDataTypesParams {
                 filter: Filter::for_versioned_url(&object_dt_v2.id),
-                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                    pinned: PinnedTemporalAxisUnresolved::new(None),
-                    variable: VariableTemporalAxisUnresolved::new(
-                        Some(TemporalBound::Unbounded),
-                        None,
-                    ),
-                },
+                temporal_axes: QueryTemporalAxesUnresolved::all(),
                 after: None,
                 limit: None,
                 include_count: false,

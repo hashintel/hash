@@ -137,7 +137,7 @@ mod tests {
     #[test]
     #[expect(clippy::too_many_lines)]
     fn transpile_where_expression() {
-        let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+        let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
         let mut compiler = SelectCompiler::<DataTypeWithMetadata>::new(Some(&temporal_axes), false);
         let mut where_clause = WhereExpression::default();
         assert_eq!(where_clause.transpile_to_string(), "");

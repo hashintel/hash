@@ -9,13 +9,9 @@ use hash_graph_store::{
     filter::{Filter, FilterExpression, JsonPath, Parameter, PathToken},
     subgraph::{
         edges::{EdgeDirection, KnowledgeGraphEdgeKind, SubgraphTraversalParams},
-        temporal_axes::{
-            PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved,
-            VariableTemporalAxisUnresolved,
-        },
+        temporal_axes::QueryTemporalAxesUnresolved,
     },
 };
-use hash_graph_temporal_versioning::TemporalBound;
 use rand::{prelude::IteratorRandom as _, rng};
 use tokio::runtime::Runtime;
 use type_system::{knowledge::entity::id::EntityUuid, principal::actor::ActorEntityUuid};
@@ -51,10 +47,7 @@ pub fn bench_get_entity_by_id(
                                 convert: None,
                             },
                         ),
-                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                            pinned: PinnedTemporalAxisUnresolved::new(None),
-                            variable: VariableTemporalAxisUnresolved::new(None, None),
-                        },
+                        temporal_axes: QueryTemporalAxesUnresolved::live_only(),
                         sorting: EntityQuerySorting {
                             paths: Vec::new(),
                             cursor: None,
@@ -103,13 +96,7 @@ pub fn bench_query_entities_by_property(
                     QueryEntitySubgraphParams::from_parts(
                         QueryEntitiesParams {
                             filter,
-                            temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                                pinned: PinnedTemporalAxisUnresolved::new(None),
-                                variable: VariableTemporalAxisUnresolved::new(
-                                    Some(TemporalBound::Unbounded),
-                                    None,
-                                ),
-                            },
+                            temporal_axes: QueryTemporalAxesUnresolved::all(),
                             sorting: EntityQuerySorting {
                                 paths: Vec::new(),
                                 cursor: None,
@@ -163,13 +150,7 @@ pub fn bench_get_link_by_target_by_property(
                     QueryEntitySubgraphParams::from_parts(
                         QueryEntitiesParams {
                             filter,
-                            temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                                pinned: PinnedTemporalAxisUnresolved::new(None),
-                                variable: VariableTemporalAxisUnresolved::new(
-                                    Some(TemporalBound::Unbounded),
-                                    None,
-                                ),
-                            },
+                            temporal_axes: QueryTemporalAxesUnresolved::all(),
                             sorting: EntityQuerySorting {
                                 paths: Vec::new(),
                                 cursor: None,

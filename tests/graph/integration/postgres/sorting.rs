@@ -9,13 +9,7 @@ use hash_graph_store::{
     },
     filter::{Filter, JsonPath, PathToken},
     query::{NullOrdering, Ordering},
-    subgraph::{
-        identifier::GraphElementVertexId,
-        temporal_axes::{
-            PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved,
-            VariableTemporalAxisUnresolved,
-        },
-    },
+    subgraph::{identifier::GraphElementVertexId, temporal_axes::QueryTemporalAxesUnresolved},
 };
 use hash_graph_test_data::{data_type, entity, entity_type, property_type};
 use pretty_assertions::assert_eq;
@@ -77,10 +71,7 @@ async fn test_root_sorting(
                 traversal_paths: Vec::new(),
                 request: QueryEntitiesParams {
                     filter: Filter::All(Vec::new()),
-                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                        pinned: PinnedTemporalAxisUnresolved::new(None),
-                        variable: VariableTemporalAxisUnresolved::new(None, None),
-                    },
+                    temporal_axes: QueryTemporalAxesUnresolved::live_only(),
                     sorting: EntityQuerySorting {
                         paths: sorting_paths.clone(),
                         cursor: Option::take(&mut cursor),

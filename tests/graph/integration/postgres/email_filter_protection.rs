@@ -36,13 +36,9 @@ use hash_graph_store::{
             EdgeDirection, EntityTraversalEdge, EntityTraversalPath, GraphResolveDepths,
             SharedEdgeKind,
         },
-        temporal_axes::{
-            PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved,
-            VariableTemporalAxisUnresolved,
-        },
+        temporal_axes::QueryTemporalAxesUnresolved,
     },
 };
-use hash_graph_temporal_versioning::TemporalBound;
 use hash_graph_test_data::{data_type, entity_type};
 use type_system::{
     knowledge::{
@@ -209,10 +205,7 @@ fn shortname_filter(shortname: &str) -> Filter<'static, type_system::knowledge::
 
 /// Helper to get standard temporal axes for queries.
 fn standard_temporal_axes() -> QueryTemporalAxesUnresolved {
-    QueryTemporalAxesUnresolved::DecisionTime {
-        pinned: PinnedTemporalAxisUnresolved::new(None),
-        variable: VariableTemporalAxisUnresolved::new(Some(TemporalBound::Unbounded), None),
-    }
+    QueryTemporalAxesUnresolved::all()
 }
 
 /// Seeds the database with User and Invitation entity types (with email and shortname properties).

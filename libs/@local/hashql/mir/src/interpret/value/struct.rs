@@ -9,20 +9,54 @@ use core::{
     ptr,
 };
 
-use hashql_core::{algorithms::co_sort, id::Id as _, intern::Interned, symbol::Symbol};
+use hashql_core::{
+    algorithms::co_sort,
+    id::Id as _,
+    intern::{InternSet, Interned},
+    symbol::Symbol,
+};
 
 use super::Value;
-use crate::{body::place::FieldIndex, intern::Interner};
+use crate::body::place::FieldIndex;
 
 /// A named-field struct value.
 ///
-/// Contains field names (interned symbols) and their corresponding values.
-/// Field order is preserved and significant for comparison.
+/// Contains field names (interned [`Symbol`]s) and their corresponding values.
+/// Fields are sorted by symbol and accessed by name or positional index.
+///
+/// [`StructBuilder`] is the ergonomic way to construct structs, as it
+/// handles sorting and interning automatically.
 ///
 /// # Invariants
 ///
 /// - `fields.len() == values.len()`
 /// - Field names should be unique (not enforced at construction)
+///
+/// # Examples
+///
+/// ```
+/// # #![feature(allocator_api)]
+/// # extern crate alloc;
+/// use alloc::alloc::Global;
+///
+/// use hashql_mir::interpret::value::{Struct, StructBuilder, Value};
+/// # use hashql_core::heap::Heap;
+/// # use hashql_mir::intern::Interner;
+///
+/// let heap = Heap::new();
+/// let interner = Interner::new(&heap);
+///
+/// let mut builder = StructBuilder::<'_, Global, 2>::new();
+/// builder.push(heap.intern_symbol("x"), Value::Integer(1.into()));
+/// builder.push(heap.intern_symbol("y"), Value::Integer(2.into()));
+/// let s = builder.finish(&interner.symbols, Global);
+///
+/// assert_eq!(s.len(), 2);
+/// assert_eq!(
+///     s.get_by_name(heap.intern_symbol("x")),
+///     Some(&Value::Integer(1.into())),
+/// );
+/// ```
 #[derive(Debug, Clone)]
 pub struct Struct<'heap, A: Allocator> {
     fields: Interned<'heap, [Symbol<'heap>]>,
@@ -32,8 +66,17 @@ pub struct Struct<'heap, A: Allocator> {
 impl<'heap, A: Allocator> Struct<'heap, A> {
     /// Creates a new struct without checking invariants.
     ///
-    /// The caller must ensure that `fields` and `values` have the same length.
-    pub fn new_unchecked(
+    /// # Safety
+    ///
+    /// The caller must ensure that:
+    /// - `fields` and `values` have the same length
+    /// - `fields` is sorted by [`Symbol`] ordering
+    #[expect(
+        unsafe_code,
+        reason = "callers must uphold the sorted-fields invariant"
+    )]
+    #[inline]
+    pub unsafe fn new_unchecked(
         fields: Interned<'heap, [Symbol<'heap>]>,
         values: Rc<[Value<'heap, A>], A>,
     ) -> Self {
@@ -45,7 +88,11 @@ impl<'heap, A: Allocator> Struct<'heap, A> {
 
     /// Creates a new struct from field names and values.
     ///
-    /// Returns [`None`] if `fields` and `values` have different lengths.
+    /// Returns [`None`] if `fields` and `values` have different lengths,
+    /// or if `fields` is not sorted.
+    ///
+    /// Prefer [`StructBuilder`] for constructing structs, as it handles
+    /// sorting fields correctly.
     #[must_use]
     pub fn new(
         fields: Interned<'heap, [Symbol<'heap>]>,
@@ -53,34 +100,145 @@ impl<'heap, A: Allocator> Struct<'heap, A> {
     ) -> Option<Self> {
         let values = values.into();
 
-        (fields.len() == values.len()).then(|| Self::new_unchecked(fields, values))
+        if fields.len() != values.len() || !fields.is_sorted() {
+            return None;
+        }
+
+        // SAFETY: we just verified length equality and sort order.
+        #[expect(unsafe_code, reason = "invariants checked above")]
+        Some(unsafe { Self::new_unchecked(fields, values) })
     }
 
     /// Returns the field names.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # #![feature(allocator_api)]
+    /// # extern crate alloc;
+    /// # use alloc::alloc::Global;
+    /// # use hashql_core::heap::Heap;
+    /// # use hashql_mir::intern::Interner;
+    /// use hashql_mir::interpret::value::{StructBuilder, Value};
+    ///
+    /// # let heap = Heap::new();
+    /// # let interner = Interner::new(&heap);
+    /// let mut builder = StructBuilder::<'_, Global, 2>::new();
+    /// builder.push(heap.intern_symbol("a"), Value::Unit);
+    /// builder.push(heap.intern_symbol("b"), Value::Unit);
+    /// let s = builder.finish(&interner.symbols, Global);
+    ///
+    /// let names: Vec<_> = s.fields().iter().map(|sym| sym.as_str()).collect();
+    /// assert_eq!(names, vec!["a", "b"]);
+    /// ```
+    #[inline]
     #[must_use]
     pub const fn fields(&self) -> &Interned<'heap, [Symbol<'heap>]> {
         &self.fields
     }
 
     /// Returns the field values.
+    ///
+    /// Values are in the same order as [`fields`](Self::fields).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # #![feature(allocator_api)]
+    /// # extern crate alloc;
+    /// # use alloc::alloc::Global;
+    /// # use hashql_core::heap::Heap;
+    /// # use hashql_mir::intern::Interner;
+    /// use hashql_mir::interpret::value::{StructBuilder, Value};
+    ///
+    /// # let heap = Heap::new();
+    /// # let interner = Interner::new(&heap);
+    /// let mut builder = StructBuilder::<'_, Global, 1>::new();
+    /// builder.push(heap.intern_symbol("x"), Value::Integer(5.into()));
+    /// let s = builder.finish(&interner.symbols, Global);
+    ///
+    /// assert_eq!(s.values(), &[Value::Integer(5.into())]);
+    /// ```
+    #[inline]
     #[must_use]
     pub fn values(&self) -> &[Value<'heap, A>] {
         &self.values
     }
 
     /// Returns the number of fields.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # #![feature(allocator_api)]
+    /// # extern crate alloc;
+    /// # use alloc::alloc::Global;
+    /// # use hashql_core::heap::Heap;
+    /// # use hashql_mir::intern::Interner;
+    /// use hashql_mir::interpret::value::{StructBuilder, Value};
+    ///
+    /// # let heap = Heap::new();
+    /// # let interner = Interner::new(&heap);
+    /// let mut builder = StructBuilder::<'_, Global, 2>::new();
+    /// builder.push(heap.intern_symbol("a"), Value::Unit);
+    /// builder.push(heap.intern_symbol("b"), Value::Unit);
+    /// let s = builder.finish(&interner.symbols, Global);
+    ///
+    /// assert_eq!(s.len(), 2);
+    /// ```
+    #[inline]
     #[must_use]
     pub fn len(&self) -> usize {
         self.fields.len()
     }
 
     /// Returns `true` if the struct has no fields.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # #![feature(allocator_api)]
+    /// # extern crate alloc;
+    /// # use alloc::alloc::Global;
+    /// # use hashql_core::heap::Heap;
+    /// # use hashql_mir::intern::Interner;
+    /// use hashql_mir::interpret::value::{StructBuilder, Value};
+    ///
+    /// # let heap = Heap::new();
+    /// # let interner = Interner::new(&heap);
+    /// let builder = StructBuilder::<'_, Global, 0>::new();
+    /// let s = builder.finish(&interner.symbols, Global);
+    /// assert!(s.is_empty());
+    /// ```
+    #[inline]
     #[must_use]
     pub fn is_empty(&self) -> bool {
         self.fields.is_empty()
     }
 
     /// Returns the value for the given `field` name.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # #![feature(allocator_api)]
+    /// # extern crate alloc;
+    /// # use alloc::alloc::Global;
+    /// # use hashql_core::heap::Heap;
+    /// # use hashql_mir::intern::Interner;
+    /// use hashql_mir::interpret::value::{StructBuilder, Value};
+    ///
+    /// # let heap = Heap::new();
+    /// # let interner = Interner::new(&heap);
+    /// let name = heap.intern_symbol("age");
+    /// let mut builder = StructBuilder::<'_, Global, 1>::new();
+    /// builder.push(name, Value::Integer(30.into()));
+    /// let s = builder.finish(&interner.symbols, Global);
+    ///
+    /// assert_eq!(s.get_by_name(name), Some(&Value::Integer(30.into())));
+    /// assert_eq!(s.get_by_name(heap.intern_symbol("missing")), None);
+    /// ```
+    #[inline]
     #[must_use]
     pub fn get_by_name(&self, field: Symbol<'heap>) -> Option<&Value<'heap, A>> {
         self.fields
@@ -90,6 +248,27 @@ impl<'heap, A: Allocator> Struct<'heap, A> {
     }
 
     /// Returns a mutable reference to the value for the given `field` name.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # #![feature(allocator_api)]
+    /// # extern crate alloc;
+    /// # use alloc::alloc::Global;
+    /// # use hashql_core::heap::Heap;
+    /// # use hashql_mir::intern::Interner;
+    /// use hashql_mir::interpret::value::{StructBuilder, Value};
+    ///
+    /// # let heap = Heap::new();
+    /// # let interner = Interner::new(&heap);
+    /// let name = heap.intern_symbol("count");
+    /// let mut builder = StructBuilder::<'_, Global, 1>::new();
+    /// builder.push(name, Value::Integer(0.into()));
+    /// let mut s = builder.finish(&interner.symbols, Global);
+    ///
+    /// *s.get_by_name_mut(name).unwrap() = Value::Integer(10.into());
+    /// assert_eq!(s.get_by_name(name), Some(&Value::Integer(10.into())));
+    /// ```
     #[must_use]
     pub fn get_by_name_mut(&mut self, field: Symbol<'heap>) -> Option<&mut Value<'heap, A>>
     where
@@ -103,12 +282,73 @@ impl<'heap, A: Allocator> Struct<'heap, A> {
     }
 
     /// Returns a reference to the value at the given field `index`.
+    ///
+    /// Fields are sorted by symbol, so the positional index depends on
+    /// the sort order of the field names.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # #![feature(allocator_api)]
+    /// # extern crate alloc;
+    /// # use alloc::alloc::Global;
+    /// # use hashql_core::heap::Heap;
+    /// # use hashql_mir::intern::Interner;
+    /// use hashql_mir::{
+    ///     body::place::FieldIndex,
+    ///     interpret::value::{StructBuilder, Value},
+    /// };
+    ///
+    /// # let heap = Heap::new();
+    /// # let interner = Interner::new(&heap);
+    /// let mut builder = StructBuilder::<'_, Global, 2>::new();
+    /// builder.push(heap.intern_symbol("b"), Value::Integer(2.into()));
+    /// builder.push(heap.intern_symbol("a"), Value::Integer(1.into()));
+    /// let s = builder.finish(&interner.symbols, Global);
+    ///
+    /// // After sorting: "a" is at index 0, "b" is at index 1
+    /// assert_eq!(
+    ///     s.get_by_index(FieldIndex::new(0)),
+    ///     Some(&Value::Integer(1.into()))
+    /// );
+    /// assert_eq!(
+    ///     s.get_by_index(FieldIndex::new(1)),
+    ///     Some(&Value::Integer(2.into()))
+    /// );
+    /// ```
+    #[inline]
     #[must_use]
     pub fn get_by_index(&self, index: FieldIndex) -> Option<&Value<'heap, A>> {
         self.values.get(index.as_usize())
     }
 
     /// Returns a mutable reference to the value at the given field `index`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # #![feature(allocator_api)]
+    /// # extern crate alloc;
+    /// # use alloc::alloc::Global;
+    /// # use hashql_core::heap::Heap;
+    /// # use hashql_mir::intern::Interner;
+    /// use hashql_mir::{
+    ///     body::place::FieldIndex,
+    ///     interpret::value::{StructBuilder, Value},
+    /// };
+    ///
+    /// # let heap = Heap::new();
+    /// # let interner = Interner::new(&heap);
+    /// let mut builder = StructBuilder::<'_, Global, 1>::new();
+    /// builder.push(heap.intern_symbol("x"), Value::Integer(0.into()));
+    /// let mut s = builder.finish(&interner.symbols, Global);
+    ///
+    /// *s.get_by_index_mut(FieldIndex::new(0)).unwrap() = Value::Integer(99.into());
+    /// assert_eq!(
+    ///     s.get_by_index(FieldIndex::new(0)),
+    ///     Some(&Value::Integer(99.into()))
+    /// );
+    /// ```
     pub fn get_by_index_mut(&mut self, index: FieldIndex) -> Option<&mut Value<'heap, A>>
     where
         A: Clone,
@@ -118,6 +358,27 @@ impl<'heap, A: Allocator> Struct<'heap, A> {
     }
 
     /// Returns an iterator over (field name, value) pairs.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # #![feature(allocator_api)]
+    /// # extern crate alloc;
+    /// # use alloc::alloc::Global;
+    /// # use hashql_core::heap::Heap;
+    /// # use hashql_mir::intern::Interner;
+    /// use hashql_mir::interpret::value::{StructBuilder, Value};
+    ///
+    /// # let heap = Heap::new();
+    /// # let interner = Interner::new(&heap);
+    /// let mut builder = StructBuilder::<'_, Global, 2>::new();
+    /// builder.push(heap.intern_symbol("x"), Value::Integer(1.into()));
+    /// builder.push(heap.intern_symbol("y"), Value::Integer(2.into()));
+    /// let s = builder.finish(&interner.symbols, Global);
+    ///
+    /// let names: Vec<_> = s.iter().map(|(name, _)| name.as_str().to_owned()).collect();
+    /// assert_eq!(names, vec!["x", "y"]);
+    /// ```
     pub fn iter(&self) -> StructIter<'_, 'heap, A> {
         StructIter {
             fields: self.fields.iter().copied(),
@@ -222,6 +483,20 @@ pub struct StructBuilder<'heap, A: Allocator, const N: usize> {
 #[expect(unsafe_code)]
 impl<'heap, A: Allocator, const N: usize> StructBuilder<'heap, A, N> {
     /// Creates an empty builder with capacity for `N` fields.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # #![feature(allocator_api)]
+    /// # extern crate alloc;
+    /// # use alloc::alloc::Global;
+    /// use hashql_mir::interpret::value::StructBuilder;
+    ///
+    /// let builder = StructBuilder::<'_, Global, 3>::new();
+    /// assert!(builder.is_empty());
+    /// assert_eq!(builder.len(), 0);
+    /// ```
+    #[inline]
     #[must_use]
     pub const fn new() -> Self {
         Self {
@@ -246,12 +521,14 @@ impl<'heap, A: Allocator, const N: usize> StructBuilder<'heap, A, N> {
     }
 
     /// Returns the number of fields pushed so far.
+    #[inline]
     #[must_use]
     pub const fn len(&self) -> usize {
         self.initialized
     }
 
     /// Returns `true` if no fields have been pushed.
+    #[inline]
     #[must_use]
     pub const fn is_empty(&self) -> bool {
         self.initialized == 0
@@ -278,6 +555,23 @@ impl<'heap, A: Allocator, const N: usize> StructBuilder<'heap, A, N> {
     ///
     /// - If the builder is full (`initialized == N`)
     /// - If `field` has already been pushed
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # #![feature(allocator_api)]
+    /// # extern crate alloc;
+    /// # use alloc::alloc::Global;
+    /// # use hashql_core::heap::Heap;
+    /// use hashql_mir::interpret::value::{StructBuilder, Value};
+    ///
+    /// # let heap = Heap::new();
+    /// let mut builder = StructBuilder::<'_, Global, 2>::new();
+    /// builder.push(heap.intern_symbol("x"), Value::Integer(1.into()));
+    /// builder.push(heap.intern_symbol("y"), Value::Integer(2.into()));
+    ///
+    /// assert_eq!(builder.len(), 2);
+    /// ```
     pub fn push(&mut self, field: Symbol<'heap>, value: Value<'heap, A>) {
         assert_ne!(self.initialized, N, "struct is full");
         assert!(!self.fields().contains(&field), "field already exists");
@@ -289,7 +583,42 @@ impl<'heap, A: Allocator, const N: usize> StructBuilder<'heap, A, N> {
     }
 
     /// Consumes the builder and produces a [`Struct`].
-    pub fn finish(mut self, interner: &Interner<'heap>, alloc: A) -> Struct<'heap, A> {
+    ///
+    /// Fields are sorted by symbol before interning, so the resulting
+    /// struct's field order may differ from the push order.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # #![feature(allocator_api)]
+    /// # extern crate alloc;
+    /// # use alloc::alloc::Global;
+    /// # use hashql_core::heap::Heap;
+    /// # use hashql_mir::intern::Interner;
+    /// use hashql_mir::interpret::value::{StructBuilder, Value};
+    ///
+    /// let heap = Heap::new();
+    /// let interner = Interner::new(&heap);
+    ///
+    /// let mut builder = StructBuilder::<'_, Global, 2>::new();
+    /// builder.push(heap.intern_symbol("b"), Value::Integer(2.into()));
+    /// builder.push(heap.intern_symbol("a"), Value::Integer(1.into()));
+    /// let s = builder.finish(&interner.symbols, Global);
+    ///
+    /// // Fields are sorted: "a" comes first
+    /// let names: Vec<_> = s.fields().iter().map(|sym| sym.as_str()).collect();
+    /// assert_eq!(names, vec!["a", "b"]);
+    /// // Values follow their fields
+    /// assert_eq!(
+    ///     s.values(),
+    ///     &[Value::Integer(1.into()), Value::Integer(2.into())]
+    /// );
+    /// ```
+    pub fn finish(
+        mut self,
+        symbols: &InternSet<'heap, [Symbol<'heap>]>,
+        alloc: A,
+    ) -> Struct<'heap, A> {
         // SAFETY: `fields[..initialized]` is fully initialized by invariant.
         let fields_mut = unsafe { self.fields[..self.initialized].assume_init_mut() };
         // SAFETY: `values[..initialized]` is fully initialized by invariant.
@@ -300,7 +629,7 @@ impl<'heap, A: Allocator, const N: usize> StructBuilder<'heap, A, N> {
         // initialization invariant is preserved even if it were to unwind.
         co_sort(fields_mut, values_mut);
 
-        let fields = interner.symbols.intern_slice(self.fields());
+        let fields = symbols.intern_slice(self.fields());
 
         // Allocate an uninitialized Rc slice for the values.
         //
@@ -362,7 +691,10 @@ mod tests {
     use hashql_core::heap::Heap;
 
     use super::*;
-    use crate::interpret::value::{Int, Str, Value};
+    use crate::{
+        intern::Interner,
+        interpret::value::{Int, Str, Value},
+    };
 
     fn int(value: i128) -> Value<'static> {
         Value::Integer(Int::from(value))
@@ -385,7 +717,7 @@ mod tests {
         builder.push(sym_b, int(2));
         builder.push(sym_a, int(1));
 
-        let result = builder.finish(&interner, Global);
+        let result = builder.finish(&interner.symbols, Global);
 
         // Fields should be sorted: a before b.
         assert_eq!(result.fields().len(), 2);
@@ -399,7 +731,7 @@ mod tests {
         let interner = Interner::new(&heap);
 
         let builder = StructBuilder::<'_, Global, 0>::new();
-        let result = builder.finish(&interner, Global);
+        let result = builder.finish(&interner.symbols, Global);
 
         assert!(result.is_empty());
         assert_eq!(result.len(), 0);
@@ -415,7 +747,7 @@ mod tests {
         let mut builder = StructBuilder::<'_, Global, 1>::new();
         builder.push(sym, int(42));
 
-        let result = builder.finish(&interner, Global);
+        let result = builder.finish(&interner.symbols, Global);
 
         assert_eq!(result.len(), 1);
         assert_eq!(result.get_by_name(sym), Some(&int(42)));
@@ -470,7 +802,7 @@ mod tests {
         builder.push(sym_b, string("beta"));
 
         // finish moves values into Rc; builder Drop must not re-drop them.
-        let result = builder.finish(&interner, Global);
+        let result = builder.finish(&interner.symbols, Global);
 
         assert_eq!(result.len(), 2);
         // Verify values survived the move.
@@ -497,7 +829,7 @@ mod tests {
         builder.push(sym_a, string("alpha"));
         builder.push(sym_b, string("bravo"));
 
-        let result = builder.finish(&interner, Global);
+        let result = builder.finish(&interner.symbols, Global);
 
         // After sorting: a, b, c.
         let pairs: Vec<_> = result.iter().collect();

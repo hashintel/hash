@@ -10,13 +10,9 @@ use hash_graph_store::{
     filter::{Filter, FilterExpression, Parameter},
     subgraph::{
         edges::{EdgeDirection, KnowledgeGraphEdgeKind, SharedEdgeKind},
-        temporal_axes::{
-            PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved,
-            VariableTemporalAxisUnresolved,
-        },
+        temporal_axes::QueryTemporalAxesUnresolved,
     },
 };
-use hash_graph_temporal_versioning::TemporalBound;
 use hash_graph_test_data::{data_type, entity, entity_type, property_type};
 use type_system::{
     knowledge::{
@@ -228,10 +224,7 @@ async fn insert() {
                     },
                 ),
             ]),
-            temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                pinned: PinnedTemporalAxisUnresolved::new(None),
-                variable: VariableTemporalAxisUnresolved::new(Some(TemporalBound::Unbounded), None),
-            },
+            temporal_axes: QueryTemporalAxesUnresolved::all(),
             sorting: EntityQuerySorting {
                 paths: Vec::new(),
                 cursor: None,
@@ -480,10 +473,7 @@ async fn get_entity_links() {
                     convert: None,
                 },
             ),
-            temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                pinned: PinnedTemporalAxisUnresolved::new(None),
-                variable: VariableTemporalAxisUnresolved::new(None, None),
-            },
+            temporal_axes: QueryTemporalAxesUnresolved::live_only(),
             sorting: EntityQuerySorting {
                 paths: Vec::new(),
                 cursor: None,
@@ -694,10 +684,7 @@ async fn remove_link() {
                         },
                     ),
                 ]),
-                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                    pinned: PinnedTemporalAxisUnresolved::new(None),
-                    variable: VariableTemporalAxisUnresolved::new(None, None),
-                },
+                temporal_axes: QueryTemporalAxesUnresolved::live_only(),
                 include_drafts: false,
                 include_count: true,
                 include_web_ids: false,
@@ -764,10 +751,7 @@ async fn remove_link() {
                         },
                     ),
                 ]),
-                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                    pinned: PinnedTemporalAxisUnresolved::new(None),
-                    variable: VariableTemporalAxisUnresolved::new(None, None),
-                },
+                temporal_axes: QueryTemporalAxesUnresolved::live_only(),
                 include_drafts: false,
                 include_count: true,
                 include_web_ids: false,

@@ -94,6 +94,7 @@ impl Inputs<'_> {
 }
 
 impl Default for Inputs<'_> {
+    #[inline]
     fn default() -> Self {
         Self::new()
     }

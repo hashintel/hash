@@ -112,7 +112,7 @@ impl QueryEntitiesByUserStage {
                 actor_uuid,
                 QueryEntitiesParams {
                     filter: Filter::All(Vec::new()),
-                    temporal_axes: QueryTemporalAxesUnresolved::default(),
+                    temporal_axes: QueryTemporalAxesUnresolved::all(),
                     sorting: EntityQuerySorting {
                         cursor: None,
                         paths: Vec::new(),
