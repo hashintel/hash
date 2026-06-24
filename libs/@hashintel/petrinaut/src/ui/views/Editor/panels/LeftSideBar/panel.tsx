@@ -126,7 +126,7 @@ export const LeftSideBar: React.FC = () => {
       return extensions.parameters;
     }
     if (subView.id === "nets-list") {
-      return enableNetComponents;
+      return extensions.subnets && enableNetComponents;
     }
     return true;
   });

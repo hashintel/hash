@@ -19,30 +19,32 @@ import { typesListSubView } from "../views/Editor/panels/LeftSideBar/subviews/ty
 
 import type { SubView } from "../components/sub-view/types";
 
-export const LEFT_SIDEBAR_SUBVIEWS: SubView[] = [
+export const LEFT_SIDEBAR_SUBVIEWS = [
   nodesListSubView,
   typesListSubView,
   differentialEquationsListSubView,
   parametersListSubView,
   netsListSubView,
-];
+] as const satisfies SubView[];
 
-export const LEFT_SIDEBAR_TREE_SUBVIEWS: SubView[] = [
+export const LEFT_SIDEBAR_TREE_SUBVIEWS = [
   entitiesTreeSubView,
   netsListSubView,
-];
+] as const satisfies SubView[];
 
 // Base subviews always visible in the bottom panel
-export const BOTTOM_PANEL_SUBVIEWS: SubView[] = [
+export const BOTTOM_PANEL_SUBVIEWS = [
   diagnosticsSubView,
   simulationSettingsSubView,
-];
+] as const satisfies SubView[];
 
 // Bottom panel subviews visible in Actual mode.
-export const ACTUAL_BOTTOM_PANEL_SUBVIEWS: SubView[] = [
+export const ACTUAL_BOTTOM_PANEL_SUBVIEWS = [
   actualTimelineSubView,
   actualEventsSubView,
-];
+] as const satisfies SubView[];
 
 // Subviews only visible when simulation is running/paused
-export const SIMULATION_ONLY_SUBVIEWS: SubView[] = [simulationTimelineSubView];
+export const SIMULATION_ONLY_SUBVIEWS = [
+  simulationTimelineSubView,
+] as const satisfies SubView[];

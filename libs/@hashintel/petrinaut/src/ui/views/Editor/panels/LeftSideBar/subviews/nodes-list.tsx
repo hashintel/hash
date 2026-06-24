@@ -7,8 +7,6 @@ import {
 } from "../../../../../constants/entity-icons";
 import { createFilterableListSubView } from "./filterable-list-sub-view";
 
-import type { SubView } from "../../../../../components/sub-view/types";
-
 interface NodeItem {
   id: string;
   name: string;
@@ -18,7 +16,7 @@ interface NodeItem {
 /**
  * SubView definition for Nodes list.
  */
-export const nodesListSubView: SubView = createFilterableListSubView<NodeItem>({
+export const nodesListSubView = createFilterableListSubView<NodeItem>({
   id: "nodes-list",
   title: "Nodes",
   tooltip:

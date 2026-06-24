@@ -3,6 +3,7 @@ import { use } from "react";
 import { Button, Dialog, Select } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
+import { SDCPNContext } from "../../../../react/state/sdcpn-context";
 import { UserSettingsContext } from "../../../../react/state/user-settings-context";
 import { Switch } from "../../../components/switch";
 
@@ -116,6 +117,7 @@ export const ViewportSettingsDialog: React.FC<ViewportSettingsDialogProps> = ({
     enableNetComponents,
     setEnableNetComponents,
   } = use(UserSettingsContext);
+  const { extensions } = use(SDCPNContext);
 
   if (!open) {
     return null;
@@ -202,19 +204,21 @@ export const ViewportSettingsDialog: React.FC<ViewportSettingsDialogProps> = ({
             onCheckedChange={setUseEntitiesTreeView}
           />
         </SettingRow>
-        <SettingRow
-          label={
-            <>
-              Net Components <span className={badgeStyle}>Experimental</span>
-            </>
-          }
-          description="Enable subnet definitions and component instances for hierarchical net composition"
-        >
-          <Switch
-            checked={enableNetComponents}
-            onCheckedChange={setEnableNetComponents}
-          />
-        </SettingRow>
+        {extensions.subnets && (
+          <SettingRow
+            label={
+              <>
+                Net Components <span className={badgeStyle}>Experimental</span>
+              </>
+            }
+            description="Enable subnet definitions and component instances for hierarchical net composition"
+          >
+            <Switch
+              checked={enableNetComponents}
+              onCheckedChange={setEnableNetComponents}
+            />
+          </SettingRow>
+        )}
       </Dialog.Body>
       <Dialog.Footer
         actions={
