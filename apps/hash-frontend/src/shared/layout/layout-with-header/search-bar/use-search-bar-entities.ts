@@ -178,7 +178,6 @@ export const useSearchBarEntities = ({
     useAccumulatedCursorPagination<SearchAccumulated, SearchPage>({
       resetKey,
       initial: initialSearchAccumulated,
-      getNextPage: getNextSearchPage,
     });
 
   const { loading: entitiesLoading } = useQuery<
@@ -213,8 +212,7 @@ export const useSearchBarEntities = ({
       const newEntities = getRoots(subgraph);
 
       // Exhausted once a page returns fewer rows than the page size (incl. zero),
-      // even if the API still handed back a non-null cursor. Cleared on the
-      // normalized page so `getNextPage` stops paginating.
+      // even if the API still handed back a non-null cursor.
       const exhausted = newEntities.length < searchBarPageSize;
 
       appendPage((prevAccumulated) => {
@@ -228,7 +226,17 @@ export const useSearchBarEntities = ({
             entities.push(entity);
           }
         }
-        // console.log(page?.cursor, data.queryEntitySubgraph.cursor ?? null)
+
+        // The page that just completed, normalized so `getNextSearchPage` can
+        // derive the request that follows it (the next entity page, or none).
+        const completedPage: SearchPage = exhausted
+          ? { kind: "entityType", cursor: undefined, nextCursor: null }
+          : {
+              kind: "entity",
+              cursor: page?.kind === "entity" ? page.cursor : undefined,
+              nextCursor: data.queryEntitySubgraph.cursor ?? null,
+            };
+        const nextPage = getNextSearchPage(completedPage);
 
         return {
           accumulated: {
@@ -239,17 +247,7 @@ export const useSearchBarEntities = ({
               ? mergeSubgraphInto(prevAccumulated.subgraph, subgraph)
               : subgraph,
           },
-          page: exhausted
-            ? {
-                kind: "entityType",
-                cursor: undefined,
-                nextCursor: null,
-              }
-            : {
-                kind: "entity",
-                cursor: page?.kind === "entity" ? page.cursor : undefined,
-                nextCursor: data.queryEntitySubgraph.cursor ?? null,
-              },
+          getNextPage: nextPage === false ? false : () => nextPage,
         };
       });
     },
@@ -277,8 +275,7 @@ export const useSearchBarEntities = ({
       );
 
       // Exhausted once a page returns fewer rows than the page size (incl. zero),
-      // even if the API still handed back a non-null cursor. Cleared on the
-      // normalized page so `getNextPage` stops paginating.
+      // even if the API still handed back a non-null cursor.
       const exhausted = newEntityTypes.length < searchBarPageSize;
 
       appendPage((prevAccumulated) => {
@@ -291,19 +288,22 @@ export const useSearchBarEntities = ({
           }
         }
 
+        // The page that just completed, normalized so `getNextSearchPage` can
+        // derive the request that follows it (the next entity-type page, or none).
+        const completedPage: SearchPage = {
+          kind: "entityType",
+          cursor: page?.kind === "entityType" ? page.cursor : undefined,
+          nextCursor: exhausted ? null : (data.queryEntityTypes.cursor ?? null),
+        };
+        const nextPage = getNextSearchPage(completedPage);
+
         return {
           accumulated: {
             ...prevAccumulated,
             entityTypes,
             seenEntityTypeIds,
           },
-          page: {
-            kind: "entityType",
-            cursor: page?.kind === "entityType" ? page.cursor : undefined,
-            nextCursor: exhausted
-              ? null
-              : (data.queryEntityTypes.cursor ?? null),
-          },
+          getNextPage: nextPage === false ? false : () => nextPage,
         };
       });
     },

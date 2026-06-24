@@ -38,10 +38,6 @@ import type {
 export const linksTablePageSize = 100;
 
 type LinksSubgraph = Subgraph<EntityRootType<HashEntity>>;
-type LinkPage = {
-  cursor: EntityQueryCursor | undefined;
-  nextCursor: EntityQueryCursor | null;
-};
 
 /**
  * Appended to any caller sorting so pagination is deterministic: the unique
@@ -133,10 +129,6 @@ const initialAccumulated: Accumulated = {
   count: undefined,
 };
 
-/** Advance to the next page, or stop once a page has cleared its `nextCursor`. */
-const getNextPage = (page: LinkPage): LinkPage | false =>
-  page.nextCursor === null ? false : { ...page, cursor: page.nextCursor };
-
 /**
  * Fetches an entity's incoming or outgoing links a page at a time, for the
  * readonly link tables.
@@ -185,12 +177,14 @@ export const useEntityLinks = ({
   const [webId, entityUuid, draftId] = splitEntityId(entityId);
 
   const { page, appendPage, accumulated, loadMore, hasMore } =
-    useAccumulatedCursorPagination<Accumulated, LinkPage>({
+    useAccumulatedCursorPagination<
+      Accumulated,
+      { cursor: EntityQueryCursor | undefined }
+    >({
       resetKey: `${entityId}:${direction}:${JSON.stringify(
         sortingPaths ?? null,
       )}:${JSON.stringify(filterTypeIds ?? null)}`,
       initial: initialAccumulated,
-      getNextPage,
     });
 
   /**
@@ -310,9 +304,12 @@ export const useEntityLinks = ({
         }
 
         // Exhausted once a page returns fewer rows than the page size (incl. zero),
-        // even if the API still handed back a non-null cursor. Cleared on the
-        // normalized page so `getNextPage` stops paginating.
+        // even if the API still handed back a non-null cursor; `getNextPage` is
+        // then `false` so pagination stops.
         const exhausted = newLinkEntities.length < linksTablePageSize;
+        const nextCursor = exhausted
+          ? null
+          : (data.queryEntitySubgraph.cursor ?? null);
 
         return {
           accumulated: {
@@ -337,12 +334,8 @@ export const useEntityLinks = ({
               data.queryEntitySubgraph.typeTitles ?? prevAccumulated.typeTitles,
             count: data.queryEntitySubgraph.count ?? undefined,
           },
-          page: {
-            cursor: page?.cursor,
-            nextCursor: exhausted
-              ? null
-              : (data.queryEntitySubgraph.cursor ?? null),
-          },
+          getNextPage:
+            nextCursor === null ? false : () => ({ cursor: nextCursor }),
         };
       });
     },

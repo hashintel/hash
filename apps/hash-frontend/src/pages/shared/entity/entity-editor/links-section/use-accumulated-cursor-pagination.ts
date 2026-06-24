@@ -2,8 +2,8 @@ import { useCallback, useRef, useState } from "react";
 
 /**
  * Sentinel key for the first page, which is requested with no cursor. Pages are
- * keyed by their cursor so a re-completion of the same query (cache then
- * network) is recognised, and a stale completion of a superseded query dropped.
+ * keyed by their cursor so the position a completion would advance to can be
+ * compared against the request currently in flight.
  */
 const initialCursorKey = "__initial__";
 
@@ -11,11 +11,16 @@ const initialCursorKey = "__initial__";
 const cursorKeyOf = (cursor: unknown): string =>
   cursor === undefined ? initialCursorKey : JSON.stringify(cursor);
 
-/** The fold passed to `appendPage`: merge one loaded page into the running accumulation. */
-type AppendFold<T, Page> = (
-  prevAccumulated: T,
-  prevPage: Page | undefined,
-) => { accumulated: T; page: Page };
+/**
+ * The fold passed to `appendPage`: merge one loaded page into the running
+ * accumulation, and report how to fetch the page after it — a `getNextPage`
+ * thunk producing the next request, or `false` when the loaded page was the
+ * last.
+ */
+type AppendFold<T, Page> = (prevAccumulated: T) => {
+  accumulated: T;
+  getNextPage: (() => Page) | false;
+};
 
 /**
  * Drives cursor-based pagination, folding each loaded page into a running
@@ -24,8 +29,10 @@ type AppendFold<T, Page> = (
  * The caller issues the query for the current `page` request (reading the
  * cursor to send from it) and, from the query's completion handler, calls
  * `appendPage` with a fold that merges the freshly-loaded page into the running
- * accumulation. The fold must be idempotent in the page it adds (e.g. dedupe by id)
- * so a cache-then-network double completion folds the same page in twice without duplicating its rows.
+ * accumulation and returns a `getNextPage` thunk for the page after it (or
+ * `false` when there are no more). The fold must be idempotent in the page it
+ * adds (e.g. dedupe by id) so a cache-then-network double completion folds the
+ * same page in twice without duplicating its rows.
  */
 export const useAccumulatedCursorPagination = <
   T,
@@ -33,14 +40,11 @@ export const useAccumulatedCursorPagination = <
 >({
   resetKey,
   initial,
-  getNextPage,
 }: {
   /** When this changes, the accumulation and current request are discarded. */
   resetKey: string;
   /** The empty accumulation that the first (and every) page is folded into. Must be referentially stable */
   initial: T;
-  /** Derive the request for the next page from a normalized page, or `false` when there are no more pages. Must be referentially stable */
-  getNextPage: (prevPage: Page) => Page | false;
 }): {
   /** The current page or `undefined` for the first page (which is fetched with no cursor). */
   page: Page | undefined;
@@ -48,7 +52,8 @@ export const useAccumulatedCursorPagination = <
   accumulated: T | undefined;
   /**
    * Record a freshly-loaded page (call from the query's completion handler),
-   * passing a fold that merges it into the running accumulation.
+   * passing a fold that merges it into the running accumulation and reports how
+   * to fetch the next page.
    */
   appendPage: (fold: AppendFold<T, Page>) => void;
   /** Advance to the next page (no-op if there are no more pages). */
@@ -57,10 +62,15 @@ export const useAccumulatedCursorPagination = <
   hasMore: boolean;
 } => {
   const [page, setPage] = useState<Page | undefined>(undefined);
-  const [{ accumulated, lastPage }, setAccumulation] = useState<{
+  const [{ accumulated, getNextPage }, setAccumulation] = useState<{
     accumulated: T | undefined;
-    lastPage: Page | undefined;
-  }>({ accumulated: undefined, lastPage: undefined });
+    /**
+     * How to fetch the page after the last folded one: a thunk while more
+     * remain, `false` once the last page has been folded, `undefined` before
+     * any page has.
+     */
+    getNextPage: (() => Page) | false | undefined;
+  }>({ accumulated: undefined, getNextPage: undefined });
 
   const previousResetKey = useRef(resetKey);
   if (previousResetKey.current !== resetKey) {
@@ -70,8 +80,8 @@ export const useAccumulatedCursorPagination = <
     if (page !== undefined) {
       setPage(undefined);
     }
-    if (accumulated !== undefined || lastPage !== undefined) {
-      setAccumulation({ accumulated: undefined, lastPage: undefined });
+    if (accumulated !== undefined || getNextPage !== undefined) {
+      setAccumulation({ accumulated: undefined, getNextPage: undefined });
     }
   }
 
@@ -83,49 +93,45 @@ export const useAccumulatedCursorPagination = <
   requestRef.current = page;
   const initialRef = useRef(initial);
   initialRef.current = initial;
-  const getNextPageRef = useRef(getNextPage);
-  getNextPageRef.current = getNextPage;
 
   const appendPage = useCallback((fold: AppendFold<T, Page>) => {
     setAccumulation((previous) => {
-      const folded = fold(
-        previous.accumulated ?? initialRef.current,
-        previous.lastPage,
-      );
-      const key = cursorKeyOf(folded.page.cursor);
+      const folded = fold(previous.accumulated ?? initialRef.current);
 
-      // Accept the page only if it is the one currently being requested, or a
-      // re-completion of the last loaded page (cache then network). A cursor
-      // matching neither is a late completion of a superseded query, so the
-      // already-folded `previous` is kept unchanged.
-      const isActiveRequest = key === cursorKeyOf(requestRef.current?.cursor);
-      const isReCompletion =
-        previous.lastPage !== undefined &&
-        key === cursorKeyOf(previous.lastPage.cursor);
-      if (!isActiveRequest && !isReCompletion) {
+      // `getNextPage` reports the page to fetch after the one that just
+      // completed. If that next page is the request already in flight, this is
+      // a late re-completion of the page before it (the cursor has since
+      // advanced), so the already-folded `previous` is kept to avoid regressing
+      // the cursor. Otherwise it is the active request's own completion (incl. a
+      // cache-then-network re-completion of it, which the idempotent fold
+      // absorbs), so accept it and record where to advance to next.
+      if (
+        folded.getNextPage !== false &&
+        cursorKeyOf(folded.getNextPage().cursor) ===
+          cursorKeyOf(requestRef.current?.cursor)
+      ) {
         return previous;
       }
 
-      return { accumulated: folded.accumulated, lastPage: folded.page };
+      return {
+        accumulated: folded.accumulated,
+        getNextPage: folded.getNextPage,
+      };
     });
   }, []);
 
-  const lastPageRef = useRef<Page | undefined>(lastPage);
-  lastPageRef.current = lastPage;
+  const getNextPageRef = useRef(getNextPage);
+  getNextPageRef.current = getNextPage;
 
   const loadMore = useCallback(() => {
-    const last = lastPageRef.current;
-    if (last === undefined) {
+    const next = getNextPageRef.current;
+    if (next === undefined || next === false) {
       return;
     }
-    const next = getNextPageRef.current(last);
-    if (next !== false) {
-      setPage(next);
-    }
+    setPage(next());
   }, []);
 
-  const hasMore =
-    lastPage !== undefined && getNextPageRef.current(lastPage) !== false;
+  const hasMore = getNextPage !== undefined && getNextPage !== false;
 
   return {
     page,
