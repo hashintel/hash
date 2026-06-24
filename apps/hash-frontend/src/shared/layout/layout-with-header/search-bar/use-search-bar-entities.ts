@@ -29,7 +29,7 @@ import type {
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 
 /** Entities and entity types fetched per page for the search bar's result list. */
-export const searchBarPageSize = 100;
+export const searchBarPageSize = 10;
 
 type SearchSubgraph = Subgraph<EntityRootType<HashEntity>>;
 
@@ -52,6 +52,7 @@ type EntitySearchPage = {
    * duplicated) if its query completes twice (e.g. cache hit then network).
    */
   cursorKey: string;
+  count?: number;
   entities: HashEntity[];
   nextCursor: EntityQueryCursor | null;
   subgraph: SearchSubgraph;
@@ -64,6 +65,7 @@ type EntityAccumulated = {
   seenEntityIds: Set<EntityId>;
   subgraph: SearchSubgraph;
   nextCursor: EntityQueryCursor | null;
+  count?: number;
   /**
    * `true` once a page returns fewer rows than the page size, so a non-null
    * cursor past the last match can't keep `hasMore` true and trigger an empty
@@ -129,6 +131,7 @@ const appendEntityPage = (
     ...accumulated,
     subgraph: mergeSubgraphInto(accumulated.subgraph, page),
     exhausted,
+    count: page.count,
     nextCursor: exhausted ? null : page.nextCursor,
   };
 };
@@ -154,6 +157,7 @@ const finalizeEntityAccumulated = (
 
 type EntityTypePage = {
   cursorKey: string;
+  count?: number;
   entityTypes: EntityType[];
   nextCursor: VersionedUrl | null;
 };
@@ -164,6 +168,7 @@ type EntityTypeAccumulated = {
   seenEntityTypeIds: Set<VersionedUrl>;
   nextCursor: VersionedUrl | null;
   exhausted: boolean;
+  count?: number;
 };
 
 const appendEntityTypePage = (
@@ -182,6 +187,7 @@ const appendEntityTypePage = (
   return {
     ...accumulated,
     exhausted,
+    count: page.count,
     nextCursor: exhausted ? null : page.nextCursor,
   };
 };
@@ -267,6 +273,7 @@ export const useSearchBarEntities = ({
         traversalPaths: [],
         includeDrafts: false,
         includePermissions: false,
+        includeCount: true,
         cursor: entityCursor,
         limit: searchBarPageSize,
         sortingPaths: [uuidSortingPath],
@@ -279,6 +286,7 @@ export const useSearchBarEntities = ({
 
       addEntityPage({
         cursorKey: entityCursorKey,
+        count: data.queryEntitySubgraph.count ?? undefined,
         entities: getRoots(subgraph),
         nextCursor: data.queryEntitySubgraph.cursor ?? null,
         subgraph,
@@ -323,10 +331,12 @@ export const useSearchBarEntities = ({
         temporalAxes: currentTimeInstantTemporalAxes,
         after: entityTypeCursor,
         limit: searchBarPageSize,
+        includeCount: true,
       },
     },
     onCompleted: (data) => {
       addEntityTypePage({
+        count: data.queryEntityTypes.count ?? undefined,
         cursorKey: entityTypeCursorKey,
         entityTypes: data.queryEntityTypes.entityTypes.map(
           (entityType) => entityType.schema,
