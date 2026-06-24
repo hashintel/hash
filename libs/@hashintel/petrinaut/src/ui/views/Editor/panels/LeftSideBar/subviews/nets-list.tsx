@@ -199,6 +199,7 @@ const NetsListContent: React.FC = () => {
           onDoubleClick={() => startEditing(subnet.id, subnet.name)}
           onKeyDown={(event) => {
             if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
               handleSelect(subnet.id);
             }
           }}
