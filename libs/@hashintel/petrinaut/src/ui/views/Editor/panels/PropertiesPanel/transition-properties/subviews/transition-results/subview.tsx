@@ -47,7 +47,9 @@ const getTypeById = ({ sdcpn, types }: { sdcpn: SDCPN; types: Color[] }) =>
 const createTransitionArcPlaceResolver = (
   sdcpn: SDCPN,
   net: { places: Place[]; componentInstances?: SDCPN["componentInstances"] },
-): ((arc: InputArc | OutputArc) => Place | undefined) => {
+): ((
+  arc: InputArc | OutputArc,
+) => { place: Place; placeName: string } | undefined) => {
   const placeById = new Map(net.places.map((place) => [place.id, place]));
   const subnetById = new Map(
     (sdcpn.subnets ?? []).map((subnet) => [subnet.id, subnet]),
@@ -60,15 +62,18 @@ const createTransitionArcPlaceResolver = (
     const endpoint = getArcEndpoint(arc);
 
     if (endpoint.kind === "place") {
-      return placeById.get(endpoint.placeId);
+      const place = placeById.get(endpoint.placeId);
+      return place ? { place, placeName: place.name } : undefined;
     }
 
     const instance = instanceById.get(endpoint.componentInstanceId);
     const subnet = instance ? subnetById.get(instance.subnetId) : undefined;
-
-    return subnet?.places.find(
-      (place) => place.id === endpoint.portPlaceId && place.isPort,
+    const place = subnet?.places.find(
+      (p) => p.id === endpoint.portPlaceId && p.isPort,
     );
+
+    if (!instance || !place) return undefined;
+    return { place, placeName: `${instance.name}::${place.name}` };
   };
 };
 
@@ -106,17 +111,17 @@ const ResultsHeaderAction: React.FC = () => {
             const inputs = transition.inputArcs
               .filter((arc) => arc.type !== "inhibitor")
               .map((arc) => {
-                const place = resolveArcPlace(arc);
-                const type = place?.colorId
-                  ? typeById.get(place.colorId)
+                const resolved = resolveArcPlace(arc);
+                const type = resolved?.place.colorId
+                  ? typeById.get(resolved.place.colorId)
                   : undefined;
 
-                if (!place || !type) {
+                if (!resolved || !type) {
                   return null;
                 }
 
                 return {
-                  placeName: place.name,
+                  placeName: resolved.placeName,
                   type,
                   weight: arc.weight,
                 };
@@ -125,17 +130,17 @@ const ResultsHeaderAction: React.FC = () => {
 
             const outputs = transition.outputArcs
               .map((arc) => {
-                const place = resolveArcPlace(arc);
-                const type = place?.colorId
-                  ? typeById.get(place.colorId)
+                const resolved = resolveArcPlace(arc);
+                const type = resolved?.place.colorId
+                  ? typeById.get(resolved.place.colorId)
                   : undefined;
 
-                if (!place || !type) {
+                if (!resolved || !type) {
                   return null;
                 }
 
                 return {
-                  placeName: place.name,
+                  placeName: resolved.placeName,
                   type,
                   weight: arc.weight,
                 };
