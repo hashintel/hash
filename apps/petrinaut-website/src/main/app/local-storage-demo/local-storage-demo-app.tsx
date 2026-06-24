@@ -3,7 +3,10 @@ import { useEffect, useMemo, useState } from "react";
 
 import {
   createJsonDocHandle,
+  type MinimalNetMetadata,
+  type PetrinautDocHandle,
   type PetrinautHandleCapabilities,
+  type SDCPN,
 } from "@hashintel/petrinaut-core";
 import {
   DefaultChatTransport,
@@ -20,12 +23,6 @@ import {
   useLocalStorageSDCPNs,
 } from "./use-local-storage-sdcpns";
 import { walkthroughSteps } from "./walkthrough/walkthrough-steps";
-
-import type {
-  MinimalNetMetadata,
-  PetrinautDocHandle,
-  SDCPN,
-} from "@hashintel/petrinaut-core";
 
 const isEmptySDCPN = (sdcpn: SDCPN) =>
   sdcpn.places.length === 0 &&
