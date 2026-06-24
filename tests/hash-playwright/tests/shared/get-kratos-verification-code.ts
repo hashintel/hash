@@ -1,3 +1,4 @@
+import { normalizeEmail } from "@local/hash-isomorphic-utils/normalize";
 import { sleep } from "@local/hash-isomorphic-utils/sleep";
 
 type MailslurperMailAddress = {
@@ -85,12 +86,12 @@ const pollForKratosCode = async ({
   const timestampBufferMs = 5_000;
   // Match recipients case-insensitively: a user may sign up with an uppercased
   // address while Kratos delivers the email to the lowercased one.
-  const normalizedTarget = emailAddress.toLowerCase();
+  const normalizedTarget = normalizeEmail(emailAddress);
   const isSentToTarget = (
     addresses: MailslurperMailItem["toAddresses"],
   ): boolean =>
     extractToAddresses(addresses).some(
-      (address) => address.toLowerCase() === normalizedTarget,
+      (address) => normalizeEmail(address) === normalizedTarget,
     );
   let elapsed = 0;
   let lastError: unknown;

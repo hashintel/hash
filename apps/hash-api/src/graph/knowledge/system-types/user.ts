@@ -172,11 +172,18 @@ export const getUserFromEntity: PureGraphFunction<
 
   const {
     displayName,
-    email: emails,
+    email,
     enabledFeatureFlags: maybeFeatureFlags,
     kratosIdentityId,
     shortname,
   } = simplifyProperties(entity.properties);
+
+  // `email` is typed as a required property, but property-level permission
+  // masking can drop it at runtime for non-owners (see `getUser`'s Kratos
+  // back-fill). Model that nullability, then canonicalise so every `User` built
+  // from an entity compares case-insensitively regardless of signup casing.
+  const emails =
+    (email as [string, ...string[]] | undefined)?.map(normalizeEmail) ?? [];
 
   const isAccountSignupComplete = !!shortname && !!displayName;
 
@@ -190,11 +197,7 @@ export const getUserFromEntity: PureGraphFunction<
       entity.metadata.recordId.entityId,
     ) as UserId,
     displayName,
-    // Canonicalise at the single point every `User` is built from an entity, so
-    // case-insensitive comparisons hold regardless of the casing stored at
-    // signup.
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- the non-nullable type lies; property-level masking drops `email` at runtime
-    emails: emails?.map(normalizeEmail) as typeof emails,
+    emails,
     enabledFeatureFlags,
     entity,
     isAccountSignupComplete,
