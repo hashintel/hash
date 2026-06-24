@@ -22,7 +22,17 @@ export const requestExternalInput = async <
 ): Promise<ExternalInputResponseSignal<Request["type"]>> => {
   temporalClient = temporalClient ?? (await createTemporalClient());
 
-  const { workflowId, runId } = Context.current().info.workflowExecution;
+  const { workflowId, runId } = Context.current().info.workflowExecution ?? {};
+
+  if (!workflowId) {
+    throw new Error(
+      "No workflowId associated with the current workflow execution",
+    );
+  }
+
+  if (!runId) {
+    throw new Error("No runId associated with the current workflow execution");
+  }
 
   const handle = temporalClient.workflow.getHandle(workflowId, runId);
 

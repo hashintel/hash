@@ -21,6 +21,34 @@ CREATE TABLE entity_editions (
     confidence DOUBLE PRECISION
 );
 
+-- Denormalized per-edition cache of the sorting/filtering aggregates, rebuildable at
+-- any time via `reindex_entity_cache`. The four type-derived arrays are positionally
+-- aligned and cover ALL inheritance depths (type containment checks match supertypes),
+-- ordered by (inheritance depth, title, base URL, version DESC) — the direct types form
+-- the prefix of length `direct_types`, and `[1]` is the canonically first direct type.
+-- `versions` carries the numeric versions for consumers needing base URL and version
+-- separately (e.g. HashQL).
+-- `labels` is resolved per direct type (label inheritance lives in each type's
+-- `closed_schema.allOf`), ordered by (title, base URL, version DESC); `labels[1]` is
+-- the display/sort label, NULL when the entity has none. Descending sorts reuse the
+-- same element — no min/max flip.
+CREATE TABLE entity_edition_cache (
+    entity_edition_id UUID PRIMARY KEY REFERENCES entity_editions ON DELETE CASCADE,
+    direct_types INT NOT NULL,
+    labels TEXT [],
+    type_titles TEXT [] NOT NULL,
+    base_urls TEXT [] NOT NULL,
+    versions BIGINT [] NOT NULL,
+    versioned_urls TEXT [] NOT NULL
+);
+
+-- Type filters arrive as containment checks (`@>`); labels/titles are only sorted or
+-- projected, never filtered, so they carry no index.
+CREATE INDEX entity_edition_cache_base_urls ON entity_edition_cache USING gin (base_urls);
+CREATE INDEX entity_edition_cache_versioned_urls ON entity_edition_cache USING gin (
+    versioned_urls
+);
+
 CREATE TABLE entity_temporal_metadata (
     web_id UUID NOT NULL,
     entity_uuid UUID NOT NULL,
@@ -58,15 +86,12 @@ CREATE TABLE entity_is_of_type (
     PRIMARY KEY (entity_edition_id, entity_type_ontology_id)
 );
 
-CREATE VIEW entity_is_of_type_ids AS
-SELECT
-    entity_is_of_type.entity_edition_id,
-    array_agg(ontology_ids.base_url) AS base_urls,
-    array_agg(ontology_ids.version) AS versions
-FROM entity_is_of_type
-INNER JOIN ontology_ids ON entity_is_of_type.entity_type_ontology_id = ontology_ids.ontology_id
-WHERE entity_is_of_type.inheritance_depth = 0
-GROUP BY entity_is_of_type.entity_edition_id;
+-- The primary key leads with `entity_edition_id` (the "edition -> types" direction used by
+-- cache builds), so type-filtered lookups cannot use it and fall back to a full scan. This
+-- index leads with the type to make those lookups index-driven, with `entity_edition_id`
+-- trailing to cover the join back to editions.
+CREATE INDEX entity_is_of_type_type_lookup
+ON entity_is_of_type (entity_type_ontology_id, entity_edition_id);
 
 CREATE TYPE entity_edge_kind AS ENUM ('has-left-entity', 'has-right-entity');
 CREATE TYPE edge_direction AS ENUM ('outgoing', 'incoming');
@@ -126,75 +151,3 @@ CREATE TABLE entity_embeddings (
 
 CREATE UNIQUE INDEX entity_embeddings_idx
 ON entity_embeddings (web_id, entity_uuid, property) NULLS NOT DISTINCT;
-
-
-CREATE VIEW type_title_for_entity AS
-SELECT
-    entity_temporal_metadata.entity_edition_id,
-    entity_types.schema ->> 'title' AS title
-FROM entity_temporal_metadata
-INNER JOIN entity_is_of_type
-    ON entity_temporal_metadata.entity_edition_id = entity_is_of_type.entity_edition_id
-INNER JOIN ontology_temporal_metadata
-    ON entity_is_of_type.entity_type_ontology_id = ontology_temporal_metadata.ontology_id
-INNER JOIN entity_types
-    ON ontology_temporal_metadata.ontology_id = entity_types.ontology_id
-WHERE ontology_temporal_metadata.transaction_time @> now()
-    AND entity_is_of_type.inheritance_depth = 0;
-
-CREATE VIEW first_type_title_for_entity AS
-SELECT
-    type_title_for_entity.entity_edition_id,
-    min(type_title_for_entity.title) AS title
-FROM type_title_for_entity
-GROUP BY type_title_for_entity.entity_edition_id;
-
-CREATE VIEW last_type_title_for_entity AS
-SELECT
-    type_title_for_entity.entity_edition_id,
-    max(type_title_for_entity.title) AS title
-FROM type_title_for_entity
-GROUP BY type_title_for_entity.entity_edition_id;
-
-
-CREATE VIEW label_for_entity AS
-SELECT
-    entity_editions.entity_edition_id,
-    jsonb_extract_path(
-        entity_editions.properties,
-        jsonb_array_elements_text(
-            jsonb_path_query_array(
-                entity_types.closed_schema,
-                '$.allOf[*].labelProperty'
-            )
-        )
-    ) AS label_property
-FROM entity_editions
-INNER JOIN entity_is_of_type
-    ON entity_editions.entity_edition_id = entity_is_of_type.entity_edition_id
-INNER JOIN ontology_temporal_metadata
-    ON entity_is_of_type.entity_type_ontology_id = ontology_temporal_metadata.ontology_id
-INNER JOIN entity_types
-    ON ontology_temporal_metadata.ontology_id = entity_types.ontology_id
-WHERE ontology_temporal_metadata.transaction_time @> now()
-    AND entity_is_of_type.inheritance_depth = 0;
-
-CREATE VIEW first_label_for_entity AS
-SELECT
-    label_for_entity.entity_edition_id,
-    (array_agg(
-        label_for_entity.label_property
-        ORDER BY label_for_entity.label_property ASC
-    ))[1] AS label_property
-FROM label_for_entity
-GROUP BY label_for_entity.entity_edition_id;
-
-CREATE VIEW last_label_for_entity AS
-SELECT
-    label_for_entity.entity_edition_id,
-    (array_agg(
-        label_for_entity.label_property
-        ORDER BY label_for_entity.label_property DESC
-    ))[1] AS label_property
-FROM label_for_entity
-GROUP BY label_for_entity.entity_edition_id;
