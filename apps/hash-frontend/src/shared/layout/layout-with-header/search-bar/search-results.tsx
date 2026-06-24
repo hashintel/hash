@@ -24,10 +24,6 @@ import type {
   ReactNode,
 } from "react";
 
-/**
- * The maximum height of the results dropdown. Below this the list grows to fit
- * its content; above it the virtualized list scrolls.
- */
 const resultListMaxHeight = 240; // 15rem
 
 /**
@@ -44,10 +40,11 @@ const ResultListContainer: FunctionComponent<{
       top: !isMobile ? "calc(100% + 1px)" : "unset",
       zIndex: 10_000,
       width: "100%",
-      overflow: "hidden",
+      overflow: "auto",
       border: `1px solid ${theme.palette.gray[20]}`,
       borderRadius: "0.5rem",
       boxShadow: theme.shadows[1],
+      backgroundColor: theme.palette.gray[10],
     })}
   >
     {children}
@@ -169,46 +166,20 @@ const EntityTypeResult: FunctionComponent<{
   );
 };
 
-type ResultListContext = {
-  entitySubgraph: Subgraph<EntityRootType<HashEntity>>;
-  loadingMore: boolean;
-  onSelect: () => void;
-};
-
-const renderSearchResult = (
-  _index: number,
-  result: SearchResult,
-  { entitySubgraph, onSelect }: ResultListContext,
-): ReactNode =>
-  result.kind === "entityType" ? (
-    <EntityTypeResult entityType={result.entityType} onClick={onSelect} />
-  ) : (
-    <EntityResult
-      entity={result.entity}
-      subgraph={entitySubgraph}
-      onClick={onSelect}
-    />
-  );
-
-/** Spinner shown beneath the rows while the next page is being fetched. */
-const ResultListFooter: FunctionComponent<{ context?: ResultListContext }> = ({
-  context,
-}) =>
-  context?.loadingMore ? (
-    <Box
-      sx={(theme) => ({
-        display: "flex",
-        justifyContent: "center",
-        padding: 1,
-        backgroundColor: theme.palette.gray[10],
-      })}
-    >
-      <CircularProgress size={16} />
-    </Box>
-  ) : null;
+const LoadingMore: FunctionComponent = () => (
+  <Box
+    sx={(theme) => ({
+      display: "flex",
+      justifyContent: "center",
+      padding: 1,
+      backgroundColor: theme.palette.gray[10],
+    })}
+  >
+    <CircularProgress size={16} />
+  </Box>
+);
 
 const ResultList: FunctionComponent<{
-  isMobile: boolean;
   results: SearchResult[];
   entitySubgraph: Subgraph<EntityRootType<HashEntity>>;
   hasMore: boolean;
@@ -216,7 +187,6 @@ const ResultList: FunctionComponent<{
   onLoadMore: () => void;
   onSelect: () => void;
 }> = ({
-  isMobile,
   results,
   entitySubgraph,
   hasMore,
@@ -224,16 +194,20 @@ const ResultList: FunctionComponent<{
   onLoadMore,
   onSelect,
 }) => {
-  /**
-   * Track the total height of the rendered rows so the list can size itself to
-   * its content, capped at {@link resultListMaxHeight}. Initialised to the max
-   * height so Virtuoso has a viewport to measure against on first paint.
-   */
   const [listHeight, setListHeight] = useState(resultListMaxHeight);
 
-  const context = useMemo<ResultListContext>(
-    () => ({ entitySubgraph, loadingMore, onSelect }),
-    [entitySubgraph, loadingMore, onSelect],
+  const itemContent = useCallback(
+    (_index: number, result: SearchResult) =>
+      result.kind === "entityType" ? (
+        <EntityTypeResult entityType={result.entityType} onClick={onSelect} />
+      ) : (
+        <EntityResult
+          entity={result.entity}
+          subgraph={entitySubgraph}
+          onClick={onSelect}
+        />
+      ),
+    [entitySubgraph, onSelect],
   );
 
   const handleEndReached = useCallback(() => {
@@ -243,31 +217,23 @@ const ResultList: FunctionComponent<{
   }, [hasMore, loadingMore, onLoadMore]);
 
   return (
-    <ResultListContainer isMobile={isMobile}>
-      <Virtuoso<SearchResult, ResultListContext>
-        data={results}
-        context={context}
-        totalListHeightChanged={setListHeight}
-        style={{ height: Math.min(listHeight, resultListMaxHeight) }}
-        components={{ Footer: ResultListFooter, List: VirtuosoList }}
-        endReached={handleEndReached}
-        increaseViewportBy={resultListMaxHeight}
-        itemContent={renderSearchResult}
-      />
-    </ResultListContainer>
+    <Virtuoso<SearchResult>
+      data={results}
+      totalListHeightChanged={setListHeight}
+      style={{ height: Math.min(listHeight, resultListMaxHeight) }}
+      components={{
+        List: VirtuosoList,
+        ...(loadingMore ? { Footer: LoadingMore } : {}),
+      }}
+      endReached={handleEndReached}
+      increaseViewportBy={50}
+      itemContent={itemContent}
+    />
   );
 };
 
-/**
- * The dropdown of search results shown beneath the search input: the loading
- * and empty states, and the virtualized, infinitely-scrolling result list.
- */
 export const SearchResults: FunctionComponent<{
   isMobile: boolean;
-  /** Whether the dropdown should be shown. */
-  visible: boolean;
-  /** The query text currently shown in the input. */
-  displayedQuery: string;
   /** The debounced query the current results correspond to. */
   submittedQuery: string;
   /** Whether the first page of results is still loading. */
@@ -282,8 +248,6 @@ export const SearchResults: FunctionComponent<{
   onClose: () => void;
 }> = ({
   isMobile,
-  visible,
-  displayedQuery,
   submittedQuery,
   loading,
   entityTypes,
@@ -294,25 +258,16 @@ export const SearchResults: FunctionComponent<{
   onLoadMore,
   onClose,
 }) => {
-  // Don't show anything until the debounced query has caught up with the input,
-  // so results for a stale query aren't flashed.
-  if (!visible || !displayedQuery || submittedQuery !== displayedQuery) {
-    return null;
-  }
-
   if (loading) {
     return (
       <ResultListContainer isMobile={isMobile}>
         <ResultItem sx={{ display: "block" }}>
-          Loading results for&nbsp;<b>{submittedQuery}</b>.
+          Loading results for&nbsp;<b>{submittedQuery}</b>
         </ResultItem>
       </ResultListContainer>
     );
   }
 
-  // Entities first, then entity types: entities are paginated first, and
-  // entity types only load once the entities are exhausted, so this matches
-  // the order in which results are fetched and appended to the list.
   const combinedResults: SearchResult[] = [
     ...entities.map((entity): SearchResult => ({ kind: "entity", entity })),
     ...entityTypes.map(
@@ -331,14 +286,15 @@ export const SearchResults: FunctionComponent<{
   }
 
   return (
-    <ResultList
-      isMobile={isMobile}
-      results={combinedResults}
-      entitySubgraph={entitySubgraph!}
-      hasMore={hasMore}
-      loadingMore={loadingMore}
-      onLoadMore={onLoadMore}
-      onSelect={onClose}
-    />
+    <ResultListContainer isMobile={isMobile}>
+      <ResultList
+        results={combinedResults}
+        entitySubgraph={entitySubgraph!}
+        hasMore={hasMore}
+        loadingMore={loadingMore}
+        onLoadMore={onLoadMore}
+        onSelect={onClose}
+      />
+    </ResultListContainer>
   );
 };

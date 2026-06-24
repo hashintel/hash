@@ -172,20 +172,20 @@ export const SearchBar: FunctionComponent = () => {
         </Box>
       )}
 
-      <SearchResults
-        isMobile={isMobile}
-        visible={isResultListVisible}
-        displayedQuery={displayedQuery}
-        submittedQuery={submittedQuery}
-        loading={initialLoading}
-        entityTypes={entityTypeResults}
-        entities={entityResults}
-        entitySubgraph={entitySubgraph}
-        hasMore={hasMore}
-        loadingMore={loadingMore}
-        onLoadMore={loadMore}
-        onClose={() => setResultListVisible(false)}
-      />
+      {isResultListVisible && !!displayedQuery && (
+        <SearchResults
+          isMobile={isMobile}
+          submittedQuery={submittedQuery}
+          loading={initialLoading || submittedQuery !== displayedQuery}
+          entityTypes={entityTypeResults}
+          entities={entityResults}
+          entitySubgraph={entitySubgraph}
+          hasMore={hasMore}
+          loadingMore={loadingMore}
+          onLoadMore={loadMore}
+          onClose={() => setResultListVisible(false)}
+        />
+      )}
     </Box>
   );
 };
