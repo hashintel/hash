@@ -5,11 +5,11 @@ import { useCallback, useRef, useState } from "react";
  * keyed by their cursor so the position a completion would advance to can be
  * compared against the request currently in flight.
  */
-const initialCursorKey = "__initial__";
+const initialPageKey = "__initial__";
 
-/** A stable string key identifying the cursor a page was fetched with. */
-const cursorKeyOf = (cursor: unknown): string =>
-  cursor === undefined ? initialCursorKey : JSON.stringify(cursor);
+/** A stable string key identifying a page by its full request shape. */
+const pageKeyOf = (page: unknown): string =>
+  page === undefined ? initialPageKey : JSON.stringify(page);
 
 /**
  * The fold passed to `appendPage`: merge one loaded page into the running
@@ -69,8 +69,8 @@ export const useAccumulatedCursorPagination = <
   /**
    * The render's `resetKey`, also read by `appendPage` to tell a completion for
    * the current search/filter from one of a query issued under an earlier
-   * `resetKey` — which the cursor check alone cannot catch, as both first pages
-   * share a `cursor` of `undefined`.
+   * `resetKey` — which the page-identity check alone cannot catch, as the first
+   * request under either `resetKey` is the same (`undefined`) page.
    */
   const resetKeyRef = useRef(resetKey);
   if (resetKeyRef.current !== resetKey) {
@@ -106,16 +106,17 @@ export const useAccumulatedCursorPagination = <
 
         // `getNextPage` reports the page to fetch after the one that just
         // completed. If that next page is the request already in flight, this is
-        // a late re-completion of the page before it (the cursor has since
-        // advanced), so the already-folded `previous` is kept to avoid
-        // regressing the cursor. Otherwise it is the active request's own
-        // completion (incl. a cache-then-network re-completion of it, which the
-        // idempotent fold absorbs), so accept it and record where to advance to
-        // next.
+        // a late re-completion of the page before it (the request has since
+        // advanced past it), so the already-folded `previous` is kept to avoid
+        // regressing to an earlier page. Otherwise it is the active request's
+        // own completion (incl. a cache-then-network re-completion of it, which
+        // the idempotent fold absorbs), so accept it and record where to advance
+        // to next. The comparison is on the page's full identity, not just its
+        // cursor, so the first page of a later section (cursor `undefined`) is
+        // not mistaken for the in-flight first request (also cursor `undefined`).
         if (
           folded.getNextPage !== false &&
-          cursorKeyOf(folded.getNextPage().cursor) ===
-            cursorKeyOf(requestRef.current?.cursor)
+          pageKeyOf(folded.getNextPage()) === pageKeyOf(requestRef.current)
         ) {
           return previous;
         }

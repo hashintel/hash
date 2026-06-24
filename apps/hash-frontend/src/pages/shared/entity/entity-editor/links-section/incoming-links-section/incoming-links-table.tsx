@@ -31,7 +31,6 @@ import {
   linksTableRowHeight,
   maxLinksTableHeight,
 } from "../shared/table-styling";
-import { linksTablePageSize } from "../use-entity-links";
 
 import type {
   CreateVirtualizedRowContentFn,
@@ -608,7 +607,6 @@ export const IncomingLinksTable = memo(
           rows={sortedRows}
           sort={sort}
           setSort={setSort}
-          increaseViewportBy={linksTablePageSize}
         />
       </Box>
     );
