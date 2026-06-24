@@ -157,7 +157,7 @@ mod tests {
 
     #[test]
     fn asterisk() {
-        let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+        let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
         test_compilation(
             &SelectCompiler::<DataTypeWithMetadata>::with_asterisk(Some(&temporal_axes), false),
             r#"SELECT * FROM "ontology_temporal_metadata" AS "ontology_temporal_metadata_0_0_0""#,
@@ -167,7 +167,7 @@ mod tests {
 
     #[test]
     fn simple_expression() {
-        let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+        let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
         let pinned_timestamp = temporal_axes.pinned_timestamp();
         let mut compiler =
             SelectCompiler::<DataTypeWithMetadata>::with_asterisk(Some(&temporal_axes), false);
@@ -203,7 +203,7 @@ mod tests {
 
     #[test]
     fn limited_temporal() {
-        let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+        let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
         let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes), false);
         let filter = Filter::Equal(
             FilterExpression::Path {
@@ -260,7 +260,7 @@ mod tests {
 
     #[test]
     fn specific_version() {
-        let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+        let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
         let pinned_timestamp = temporal_axes.pinned_timestamp();
         let mut compiler =
             SelectCompiler::<DataTypeWithMetadata>::with_asterisk(Some(&temporal_axes), false);
@@ -309,7 +309,7 @@ mod tests {
 
     #[test]
     fn latest_version() {
-        let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+        let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
         let pinned_timestamp = temporal_axes.pinned_timestamp();
         let mut compiler =
             SelectCompiler::<DataTypeWithMetadata>::with_asterisk(Some(&temporal_axes), false);
@@ -343,7 +343,7 @@ mod tests {
 
     #[test]
     fn not_latest_version() {
-        let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+        let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
         let pinned_timestamp = temporal_axes.pinned_timestamp();
         let mut compiler =
             SelectCompiler::<DataTypeWithMetadata>::with_asterisk(Some(&temporal_axes), false);
@@ -377,7 +377,7 @@ mod tests {
 
     #[test]
     fn property_type_by_referenced_data_types() {
-        let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+        let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
         let pinned_timestamp = temporal_axes.pinned_timestamp();
         let mut compiler =
             SelectCompiler::<PropertyTypeWithMetadata>::with_asterisk(Some(&temporal_axes), false);
@@ -479,7 +479,7 @@ mod tests {
 
     #[test]
     fn property_type_by_referenced_property_types() {
-        let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+        let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
         let pinned_timestamp = temporal_axes.pinned_timestamp();
         let mut compiler =
             SelectCompiler::<PropertyTypeWithMetadata>::with_asterisk(Some(&temporal_axes), false);
@@ -520,7 +520,7 @@ mod tests {
 
     #[test]
     fn entity_type_by_referenced_property_types() {
-        let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+        let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
         let pinned_timestamp = temporal_axes.pinned_timestamp();
         let mut compiler =
             SelectCompiler::<EntityTypeWithMetadata>::with_asterisk(Some(&temporal_axes), false);
@@ -562,7 +562,7 @@ mod tests {
 
     #[test]
     fn entity_type_by_referenced_link_types() {
-        let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+        let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
         let pinned_timestamp = temporal_axes.pinned_timestamp();
         let mut compiler =
             SelectCompiler::<EntityTypeWithMetadata>::with_asterisk(Some(&temporal_axes), false);
@@ -617,7 +617,7 @@ mod tests {
 
     #[test]
     fn entity_type_by_inheritance() {
-        let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+        let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
         let pinned_timestamp = temporal_axes.pinned_timestamp();
         let mut compiler =
             SelectCompiler::<EntityTypeWithMetadata>::with_asterisk(Some(&temporal_axes), false);
@@ -665,7 +665,7 @@ mod tests {
 
     #[test]
     fn entity_simple_query() {
-        let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+        let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
         let pinned_timestamp = temporal_axes.pinned_timestamp();
         let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes), false);
 
@@ -700,7 +700,7 @@ mod tests {
 
     #[test]
     fn entity_with_manual_selection() {
-        let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+        let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
         let pinned_timestamp = temporal_axes.pinned_timestamp();
         let mut compiler = SelectCompiler::<Entity>::new(Some(&temporal_axes), true);
         compiler.add_distinct_selection_with_ordering(
@@ -753,7 +753,7 @@ mod tests {
 
     #[test]
     fn entity_property_query() {
-        let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+        let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
         let pinned_timestamp = temporal_axes.pinned_timestamp();
         let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes), false);
         let json_path = JsonPath::from_path_tokens(vec![PathToken::Field(Cow::Borrowed(
@@ -794,7 +794,7 @@ mod tests {
 
     #[test]
     fn entity_property_null_query() {
-        let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+        let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
         let pinned_timestamp = temporal_axes.pinned_timestamp();
         let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes), false);
         let json_path = JsonPath::from_path_tokens(vec![PathToken::Field(Cow::Borrowed(
@@ -828,7 +828,7 @@ mod tests {
 
     #[test]
     fn entity_outgoing_link_query() {
-        let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+        let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
         let pinned_timestamp = temporal_axes.pinned_timestamp();
         let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes), false);
 
@@ -889,7 +889,7 @@ mod tests {
 
     #[test]
     fn entity_incoming_link_query() {
-        let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+        let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
         let pinned_timestamp = temporal_axes.pinned_timestamp();
         let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes), false);
 
@@ -950,7 +950,7 @@ mod tests {
 
     #[test]
     fn link_entity_left_right_id() {
-        let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+        let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
         let pinned_timestamp = temporal_axes.pinned_timestamp();
         let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes), false);
 
@@ -1043,7 +1043,7 @@ mod tests {
     #[test]
     #[expect(clippy::similar_names)]
     fn two_linked_entities() {
-        let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+        let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
         let pinned_timestamp = temporal_axes.pinned_timestamp();
 
         let entity_a_uuid = Uuid::new_v4();
@@ -1143,7 +1143,7 @@ mod tests {
 
     #[test]
     fn filter_left_and_right() {
-        let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+        let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
         let pinned_timestamp = temporal_axes.pinned_timestamp();
         let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes), false);
 
@@ -1245,7 +1245,7 @@ mod tests {
 
     #[test]
     fn filter_entity_by_type_versioned_url() {
-        let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+        let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
         let pinned_timestamp = temporal_axes.pinned_timestamp();
         let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes), false);
 
@@ -1278,7 +1278,7 @@ mod tests {
 
     #[test]
     fn filter_entity_by_any_type_versioned_url() {
-        let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+        let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
         let pinned_timestamp = temporal_axes.pinned_timestamp();
         let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes), false);
 
@@ -1319,7 +1319,7 @@ mod tests {
 
     #[test]
     fn filter_entity_by_all_type_versioned_url() {
-        let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+        let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
         let pinned_timestamp = temporal_axes.pinned_timestamp();
         let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes), false);
 
@@ -1360,7 +1360,7 @@ mod tests {
 
     #[test]
     fn filter_entity_own_and_linked_type_stay_separate() {
-        let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+        let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
         let pinned_timestamp = temporal_axes.pinned_timestamp();
         let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes), false);
 
@@ -1440,7 +1440,7 @@ mod tests {
 
     #[test]
     fn filter_entity_by_no_type_versioned_url() {
-        let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+        let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
         let pinned_timestamp = temporal_axes.pinned_timestamp();
         let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes), false);
 
@@ -1488,7 +1488,7 @@ mod tests {
 
     #[test]
     fn filter_entity_by_type_starts_with_rejected() {
-        let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+        let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
         let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes), false);
 
         // String operations have no scalar to operate on once the path resolves to the
@@ -1524,7 +1524,7 @@ mod tests {
 
     #[test]
     fn filter_entity_by_type_versioned_url_not_equal() {
-        let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+        let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
         let pinned_timestamp = temporal_axes.pinned_timestamp();
         let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes), false);
 
@@ -1567,7 +1567,7 @@ mod tests {
 
     #[test]
     fn filter_entity_by_type_base_url() {
-        let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+        let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
         let pinned_timestamp = temporal_axes.pinned_timestamp();
         let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes), false);
 
@@ -1645,7 +1645,7 @@ mod tests {
 
     #[test]
     fn sort_by_label_and_type_title() {
-        let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+        let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
         let pinned_timestamp = temporal_axes.pinned_timestamp();
         let mut compiler = SelectCompiler::<Entity>::new(Some(&temporal_axes), true);
         compiler.add_distinct_selection_with_ordering(
@@ -1714,7 +1714,7 @@ mod tests {
                 },
             };
 
-            let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+            let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
             let pinned_timestamp = temporal_axes.pinned_timestamp();
             let mut compiler =
                 SelectCompiler::<DataTypeWithMetadata>::with_asterisk(Some(&temporal_axes), false);
@@ -1744,7 +1744,7 @@ mod tests {
                 draft_id: None,
             };
 
-            let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+            let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
             let pinned_timestamp = temporal_axes.pinned_timestamp();
             let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes), false);
 

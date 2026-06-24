@@ -8,6 +8,7 @@ use hash_graph_store::{
     },
     error::DeletionError,
     filter::Filter,
+    subgraph::temporal_axes::QueryTemporalAxesUnresolved,
 };
 use hash_graph_temporal_versioning::{
     DecisionTime, TemporalTagged as _, Timestamp, TransactionTime,
@@ -46,7 +47,7 @@ async fn decision_time_exceeds_transaction_time() {
             api.account_id.into(),
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(entity_id),
-                temporal_axes: crate::live_only_axes(),
+                temporal_axes: QueryTemporalAxesUnresolved::live_only(),
                 include_drafts: false,
                 scope: DeletionScope::Purge {
                     link_behavior: LinkDeletionBehavior::Ignore,
@@ -158,7 +159,7 @@ async fn decision_time_defaults_to_transaction_time() {
             api.account_id.into(),
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(entity_id),
-                temporal_axes: crate::live_only_axes(),
+                temporal_axes: QueryTemporalAxesUnresolved::live_only(),
                 include_drafts: false,
                 scope: DeletionScope::Purge {
                     link_behavior: LinkDeletionBehavior::Ignore,

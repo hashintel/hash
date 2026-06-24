@@ -8,9 +8,7 @@ use hash_graph_store::{
     },
     error::InsertionError,
     filter::Filter,
-    subgraph::temporal_axes::{
-        PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
-    },
+    subgraph::temporal_axes::QueryTemporalAxesUnresolved,
 };
 use hash_graph_test_data::{data_type, entity, entity_type, property_type};
 use pretty_assertions::assert_eq;
@@ -145,10 +143,7 @@ async fn initial_person() {
         api.account_id,
         QueryEntitiesParams {
             filter: Filter::for_entity_by_type_id(&person_entity_type_id()),
-            temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                pinned: PinnedTemporalAxisUnresolved::new(None),
-                variable: VariableTemporalAxisUnresolved::new(None, None),
-            },
+            temporal_axes: QueryTemporalAxesUnresolved::live_only(),
             sorting: EntityQuerySorting {
                 paths: Vec::new(),
                 cursor: None,
@@ -210,10 +205,7 @@ async fn initial_person() {
         api.account_id,
         QueryEntitiesParams {
             filter: Filter::for_entity_by_type_id(&person_entity_type_id()),
-            temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                pinned: PinnedTemporalAxisUnresolved::new(None),
-                variable: VariableTemporalAxisUnresolved::new(None, None),
-            },
+            temporal_axes: QueryTemporalAxesUnresolved::live_only(),
             sorting: EntityQuerySorting {
                 paths: Vec::new(),
                 cursor: None,
@@ -239,10 +231,7 @@ async fn initial_person() {
         api.account_id,
         QueryEntitiesParams {
             filter: Filter::for_entity_by_type_id(&person_entity_type_id()),
-            temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                pinned: PinnedTemporalAxisUnresolved::new(None),
-                variable: VariableTemporalAxisUnresolved::new(None, None),
-            },
+            temporal_axes: QueryTemporalAxesUnresolved::live_only(),
             sorting: EntityQuerySorting {
                 paths: Vec::new(),
                 cursor: None,
@@ -322,10 +311,7 @@ async fn create_multi() {
         api.account_id,
         QueryEntitiesParams {
             filter: Filter::for_entity_by_type_id(&person_entity_type_id()),
-            temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                pinned: PinnedTemporalAxisUnresolved::new(None),
-                variable: VariableTemporalAxisUnresolved::new(None, None),
-            },
+            temporal_axes: QueryTemporalAxesUnresolved::live_only(),
             sorting: EntityQuerySorting {
                 paths: Vec::new(),
                 cursor: None,
@@ -351,10 +337,7 @@ async fn create_multi() {
         api.account_id,
         QueryEntitiesParams {
             filter: Filter::for_entity_by_type_id(&person_entity_type_id()),
-            temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                pinned: PinnedTemporalAxisUnresolved::new(None),
-                variable: VariableTemporalAxisUnresolved::new(None, None),
-            },
+            temporal_axes: QueryTemporalAxesUnresolved::live_only(),
             sorting: EntityQuerySorting {
                 paths: Vec::new(),
                 cursor: None,
@@ -411,10 +394,7 @@ async fn create_multi() {
         api.account_id,
         QueryEntitiesParams {
             filter: Filter::for_entity_by_type_id(&person_entity_type_id()),
-            temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                pinned: PinnedTemporalAxisUnresolved::new(None),
-                variable: VariableTemporalAxisUnresolved::new(None, None),
-            },
+            temporal_axes: QueryTemporalAxesUnresolved::live_only(),
             sorting: EntityQuerySorting {
                 paths: Vec::new(),
                 cursor: None,
@@ -497,10 +477,7 @@ async fn summary_aggregations() {
         api.account_id,
         QueryEntitiesParams {
             filter: Filter::for_entity_by_type_id(&person_entity_type_id()),
-            temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                pinned: PinnedTemporalAxisUnresolved::new(None),
-                variable: VariableTemporalAxisUnresolved::new(None, None),
-            },
+            temporal_axes: QueryTemporalAxesUnresolved::live_only(),
             sorting: EntityQuerySorting {
                 paths: Vec::new(),
                 cursor: None,
@@ -554,10 +531,7 @@ async fn summary_aggregations() {
         api.account_id,
         QueryEntitiesParams {
             filter: Filter::for_entity_by_type_id(&person_entity_type_id()),
-            temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                pinned: PinnedTemporalAxisUnresolved::new(None),
-                variable: VariableTemporalAxisUnresolved::new(None, None),
-            },
+            temporal_axes: QueryTemporalAxesUnresolved::live_only(),
             sorting: EntityQuerySorting {
                 paths: Vec::new(),
                 cursor: None,

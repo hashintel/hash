@@ -58,10 +58,7 @@ use hash_graph_store::{
         UnarchivePropertyTypeParams, UpdatePropertyTypeEmbeddingParams, UpdatePropertyTypesParams,
     },
     query::{ConflictBehavior, QueryResult, Read, ReadPaginated, Sorting},
-    subgraph::temporal_axes::{
-        PinnedTemporalAxisUnresolved, QueryTemporalAxes, QueryTemporalAxesUnresolved,
-        VariableTemporalAxisUnresolved,
-    },
+    subgraph::temporal_axes::{QueryTemporalAxes, QueryTemporalAxesUnresolved},
 };
 use hash_graph_temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
 use hash_graph_types::ontology::{
@@ -461,10 +458,7 @@ where
                     actor_id,
                     QueryDataTypesParams {
                         filter: Filter::for_versioned_url(url),
-                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                            pinned: PinnedTemporalAxisUnresolved::new(None),
-                            variable: VariableTemporalAxisUnresolved::new(None, None),
-                        },
+                        temporal_axes: QueryTemporalAxesUnresolved::live_only(),
                         after: None,
                         limit: None,
                         include_count: false,
@@ -478,10 +472,7 @@ where
                     actor_id,
                     QueryPropertyTypesParams {
                         filter: Filter::for_versioned_url(url),
-                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                            pinned: PinnedTemporalAxisUnresolved::new(None),
-                            variable: VariableTemporalAxisUnresolved::new(None, None),
-                        },
+                        temporal_axes: QueryTemporalAxesUnresolved::live_only(),
                         after: None,
                         limit: None,
                         include_count: false,
@@ -496,10 +487,7 @@ where
                     QueryEntityTypesParams {
                         request: CommonQueryEntityTypesParams {
                             filter: Filter::for_versioned_url(url),
-                            temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                                pinned: PinnedTemporalAxisUnresolved::new(None),
-                                variable: VariableTemporalAxisUnresolved::new(None, None),
-                            },
+                            temporal_axes: QueryTemporalAxesUnresolved::live_only(),
                             after: None,
                             limit: None,
                             include_count: false,

@@ -6,12 +6,8 @@ use error_stack::{Report, ResultExt as _, ensure};
 use futures::TryStreamExt as _;
 use hash_graph_authorization::policies::{PolicyComponents, action::ActionName};
 use hash_graph_store::{
-    error::QueryError,
-    filter::Filter,
-    query::Read as _,
-    subgraph::temporal_axes::{
-        PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
-    },
+    error::QueryError, filter::Filter, query::Read as _,
+    subgraph::temporal_axes::QueryTemporalAxesUnresolved,
 };
 use hash_graph_types::ontology::{DataTypeLookup, OntologyTypeProvider};
 use hash_graph_validation::EntityProvider;
@@ -161,13 +157,7 @@ where
                 .store
                 .read_one(
                     &filters,
-                    Some(
-                        &QueryTemporalAxesUnresolved::DecisionTime {
-                            pinned: PinnedTemporalAxisUnresolved::new(None),
-                            variable: VariableTemporalAxisUnresolved::new(None, None),
-                        }
-                        .resolve(),
-                    ),
+                    Some(&QueryTemporalAxesUnresolved::live_only().resolve()),
                     false,
                 )
                 .await;
@@ -216,13 +206,7 @@ where
             .store
             .read_one(
                 &filters,
-                Some(
-                    &QueryTemporalAxesUnresolved::DecisionTime {
-                        pinned: PinnedTemporalAxisUnresolved::new(None),
-                        variable: VariableTemporalAxisUnresolved::new(None, None),
-                    }
-                    .resolve(),
-                ),
+                Some(&QueryTemporalAxesUnresolved::live_only().resolve()),
                 false,
             )
             .await?;
@@ -405,13 +389,7 @@ where
             .store
             .read(
                 &filters,
-                Some(
-                    &QueryTemporalAxesUnresolved::DecisionTime {
-                        pinned: PinnedTemporalAxisUnresolved::new(None),
-                        variable: VariableTemporalAxisUnresolved::new(None, None),
-                    }
-                    .resolve(),
-                ),
+                Some(&QueryTemporalAxesUnresolved::live_only().resolve()),
                 false,
             )
             .await
@@ -498,13 +476,7 @@ where
             .store
             .read_closed_schemas(
                 &filters,
-                Some(
-                    &QueryTemporalAxesUnresolved::DecisionTime {
-                        pinned: PinnedTemporalAxisUnresolved::new(None),
-                        variable: VariableTemporalAxisUnresolved::new(None, None),
-                    }
-                    .resolve(),
-                ),
+                Some(&QueryTemporalAxesUnresolved::live_only().resolve()),
             )
             .await
             .change_context(QueryError)?
@@ -634,13 +606,7 @@ where
             .store
             .read_one(
                 &filters,
-                Some(
-                    &QueryTemporalAxesUnresolved::DecisionTime {
-                        pinned: PinnedTemporalAxisUnresolved::new(None),
-                        variable: VariableTemporalAxisUnresolved::new(None, None),
-                    }
-                    .resolve(),
-                ),
+                Some(&QueryTemporalAxesUnresolved::live_only().resolve()),
                 entity_id.draft_id.is_some(),
             )
             .await?;

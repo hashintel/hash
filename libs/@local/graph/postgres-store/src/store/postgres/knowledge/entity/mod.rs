@@ -685,10 +685,7 @@ where
                         entities
                             .iter()
                             .map(|entity| entity.metadata.entity_type_ids.clone()),
-                        QueryTemporalAxesUnresolved::DecisionTime {
-                            pinned: PinnedTemporalAxisUnresolved::new(None),
-                            variable: VariableTemporalAxisUnresolved::new(None, None),
-                        },
+                        QueryTemporalAxesUnresolved::live_only(),
                         None,
                     )
                     .await?
@@ -1527,10 +1524,7 @@ where
                                 .entities
                                 .values()
                                 .map(|entity| entity.metadata.entity_type_ids.clone()),
-                            QueryTemporalAxesUnresolved::DecisionTime {
-                                pinned: PinnedTemporalAxisUnresolved::new(None),
-                                variable: VariableTemporalAxisUnresolved::new(None, None),
-                            },
+                            QueryTemporalAxesUnresolved::live_only(),
                             None,
                         )
                         .await?
