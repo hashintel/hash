@@ -1,5 +1,4 @@
 import { useQuery } from "@apollo/client";
-import { useCallback } from "react";
 
 import { getRoots } from "@blockprotocol/graph/stdlib";
 import { deserializeSubgraph } from "@local/hash-graph-sdk/subgraph";
@@ -44,29 +43,36 @@ const uuidSortingPath: EntityQuerySortingRecord = {
   nulls: "last",
 };
 
-// --- Entities --------------------------------------------------------------
-
-type EntitySearchPage = {
-  /**
-   * The cursor this page was fetched with (`undefined` for the first page), so
-   * a page is replaced (not duplicated) if its query completes twice (e.g.
-   * cache hit then network) and a stale completion can be told apart.
-   */
+/**
+ * The search paginates across two phases under a single cursor: every matching
+ * entity first, then the entity types. A page is tagged with the phase it
+ * belongs to (`kind`) so one query/fold/cursor-advance can be picked per page,
+ * and carries the `cursor` it was fetched with so a re-completion of the same
+ * query (cache then network) replaces rather than duplicates it.
+ */
+type EntityPage = {
+  kind: "entity";
   cursor: EntityQueryCursor | undefined;
-  count?: number;
-  entities: HashEntity[];
   nextCursor: EntityQueryCursor | null;
-  subgraph: SearchSubgraph;
 };
 
-/** The running, incrementally-built accumulation of every entity page loaded. */
-type EntityAccumulated = {
+type EntityTypePage = {
+  kind: "entityType";
+  cursor: VersionedUrl | undefined;
+  nextCursor: VersionedUrl | null;
+};
+
+type SearchPage = EntityPage | EntityTypePage;
+
+type SearchAccumulated = {
   entities: HashEntity[];
   /** Dedup set keyed on `recordId.entityId`, so appends stay O(page size). */
   seenEntityIds: Set<EntityId>;
-  /** `undefined` until the first page supplies the subgraph to merge into. */
+  /** `undefined` until the first entity page supplies the subgraph to merge into. */
   subgraph: SearchSubgraph | undefined;
-  count?: number;
+  entityTypes: EntityType[];
+  /** Dedup set keyed on the type's versioned URL. */
+  seenEntityTypeIds: Set<VersionedUrl>;
 };
 
 /**
@@ -91,122 +97,51 @@ const mergeRecordOfRecords = <T>(
  */
 const mergeSubgraphInto = (
   merged: SearchSubgraph,
-  page: EntitySearchPage,
+  incoming: SearchSubgraph,
 ): SearchSubgraph => {
   const vertices = mergeRecordOfRecords(
     merged.vertices as Record<string, Record<string, unknown>>,
-    page.subgraph.vertices as Record<string, Record<string, unknown>>,
+    incoming.vertices as Record<string, Record<string, unknown>>,
   ) as SearchSubgraph["vertices"];
 
   const edges = mergeRecordOfRecords(
     merged.edges as Record<string, Record<string, unknown>>,
-    page.subgraph.edges as Record<string, Record<string, unknown>>,
+    incoming.edges as Record<string, Record<string, unknown>>,
   ) as SearchSubgraph["edges"];
 
   return { ...merged, vertices, edges };
 };
 
-const appendEntityPage = (
-  prevAccumulated: EntityAccumulated,
-  page: EntitySearchPage,
-): { accumulated: EntityAccumulated; page: EntitySearchPage } => {
-  const entities = [...prevAccumulated.entities];
-  const seenEntityIds = new Set(prevAccumulated.seenEntityIds);
-  for (const entity of page.entities) {
-    const entityId = entity.metadata.recordId.entityId;
-    if (!seenEntityIds.has(entityId)) {
-      seenEntityIds.add(entityId);
-      entities.push(entity);
-    }
-  }
-
-  // Exhausted once a page returns fewer rows than the page size (incl. zero),
-  // even if the API still handed back a non-null cursor. Cleared on the
-  // normalized page so `getNextPage` stops paginating.
-  const exhausted = page.entities.length < searchBarPageSize;
-
-  return {
-    accumulated: {
-      entities,
-      seenEntityIds,
-      subgraph: prevAccumulated.subgraph
-        ? mergeSubgraphInto(prevAccumulated.subgraph, page)
-        : page.subgraph,
-      count: page.count,
-    },
-    page: { ...page, nextCursor: exhausted ? null : page.nextCursor },
-  };
-};
-
-/** The empty accumulation; the first page supplies the subgraph to merge into. */
-const initialEntityAccumulated: EntityAccumulated = {
+/** The empty accumulation; the first entity page supplies the subgraph to merge into. */
+const initialSearchAccumulated: SearchAccumulated = {
   entities: [],
   seenEntityIds: new Set<EntityId>(),
   subgraph: undefined,
-};
-
-/** Advance to the next page, or stop once a page has cleared its `nextCursor`. */
-const getNextEntityPage = (page: EntitySearchPage): EntitySearchPage | false =>
-  page.nextCursor === null ? false : { ...page, cursor: page.nextCursor };
-
-// --- Entity types ----------------------------------------------------------
-
-type EntityTypePage = {
-  /**
-   * The cursor this page was fetched with (`undefined` for the first page), so
-   * a page is replaced (not duplicated) if its query completes twice (e.g.
-   * cache hit then network) and a stale completion can be told apart.
-   */
-  cursor: VersionedUrl | undefined;
-  count?: number;
-  entityTypes: EntityType[];
-  nextCursor: VersionedUrl | null;
-};
-
-type EntityTypeAccumulated = {
-  entityTypes: EntityType[];
-  /** Dedup set keyed on the type's versioned URL. */
-  seenEntityTypeIds: Set<VersionedUrl>;
-  count?: number;
-};
-
-const appendEntityTypePage = (
-  prevAccumulated: EntityTypeAccumulated,
-  page: EntityTypePage,
-): { accumulated: EntityTypeAccumulated; page: EntityTypePage } => {
-  const entityTypes = [...prevAccumulated.entityTypes];
-  const seenEntityTypeIds = new Set(prevAccumulated.seenEntityTypeIds);
-  for (const entityType of page.entityTypes) {
-    if (!seenEntityTypeIds.has(entityType.$id)) {
-      seenEntityTypeIds.add(entityType.$id);
-      entityTypes.push(entityType);
-    }
-  }
-
-  // Exhausted once a page returns fewer rows than the page size (incl. zero),
-  // even if the API still handed back a non-null cursor. Cleared on the
-  // normalized page so `getNextPage` stops paginating.
-  const exhausted = page.entityTypes.length < searchBarPageSize;
-
-  return {
-    accumulated: {
-      entityTypes,
-      seenEntityTypeIds,
-      count: page.count,
-    },
-    page: { ...page, nextCursor: exhausted ? null : page.nextCursor },
-  };
-};
-
-/** The empty entity-type accumulation. */
-const initialEntityTypeAccumulated: EntityTypeAccumulated = {
   entityTypes: [],
   seenEntityTypeIds: new Set<VersionedUrl>(),
 };
 
-/** Advance to the next page, or stop once a page has cleared its `nextCursor`. */
-const getNextEntityTypePage = (page: EntityTypePage): EntityTypePage | false =>
-  page.nextCursor === null ? false : { ...page, cursor: page.nextCursor };
+/**
+ * Advance the cursor within a phase, cross over from entities to entity types
+ * once the entities are exhausted, or stop once the entity types are too.
+ */
+const getNextSearchPage = (page: SearchPage): SearchPage | false => {
+  if (page.kind === "entity") {
+    if (page.nextCursor !== null) {
+      return { ...page, cursor: page.nextCursor };
+    }
+    // Entities exhausted: begin the entity-type phase from its first page.
+    return {
+      kind: "entityType",
+      cursor: undefined,
+      nextCursor: null,
+    };
+  }
+
+  return page.nextCursor !== null
+    ? { ...page, cursor: page.nextCursor }
+    : false;
+};
 
 /**
  * Fetches the search bar's results a page at a time, paginating across both
@@ -239,24 +174,21 @@ export const useSearchBarEntities = ({
   /** Whether there are more pages (of either kind) to fetch. */
   hasMore: boolean;
 } => {
-  const {
-    page: entityPage,
-    appendPage: addEntityPage,
-    accumulated: entityAccumulated,
-    loadMore: loadMoreEntities,
-    hasMore: hasMoreEntities,
-  } = useAccumulatedCursorPagination<EntityAccumulated, EntitySearchPage>({
-    resetKey,
-    initial: initialEntityAccumulated,
-    getNextPage: getNextEntityPage,
-  });
+  const { page, accumulated, appendPage, loadMore, hasMore } =
+    useAccumulatedCursorPagination<SearchAccumulated, SearchPage>({
+      resetKey,
+      initial: initialSearchAccumulated,
+      getNextPage: getNextSearchPage,
+    });
 
   const { loading: entitiesLoading } = useQuery<
     QueryEntitySubgraphQuery,
     QueryEntitySubgraphQueryVariables
   >(queryEntitySubgraphQuery, {
     fetchPolicy: "cache-and-network",
-    skip,
+    // The first page (`page` undefined) and every entity page is fetched here;
+    // skip once the cursor has crossed over to the entity-type phase.
+    skip: skip || page?.kind === "entityType",
     variables: {
       request: {
         filter,
@@ -269,7 +201,7 @@ export const useSearchBarEntities = ({
         includeDrafts: false,
         includePermissions: false,
         includeCount: true,
-        cursor: entityPage?.cursor,
+        cursor: page?.kind === "entity" ? page.cursor : undefined,
         limit: searchBarPageSize,
         sortingPaths: [uuidSortingPath],
       },
@@ -278,38 +210,49 @@ export const useSearchBarEntities = ({
       const subgraph = deserializeSubgraph<EntityRootType<HashEntity>>(
         data.queryEntitySubgraph.subgraph,
       );
+      const newEntities = getRoots(subgraph);
 
-      const loadedPage: EntitySearchPage = {
-        cursor: entityPage?.cursor,
-        count: data.queryEntitySubgraph.count ?? undefined,
-        entities: getRoots(subgraph),
-        nextCursor: data.queryEntitySubgraph.cursor ?? null,
-        subgraph,
-      };
+      // Exhausted once a page returns fewer rows than the page size (incl. zero),
+      // even if the API still handed back a non-null cursor. Cleared on the
+      // normalized page so `getNextPage` stops paginating.
+      const exhausted = newEntities.length < searchBarPageSize;
 
-      addEntityPage((prevAccumulated) =>
-        appendEntityPage(prevAccumulated, loadedPage),
-      );
+      appendPage((prevAccumulated) => {
+        const entities = [...prevAccumulated.entities];
+
+        const seenEntityIds = new Set(prevAccumulated.seenEntityIds);
+        for (const entity of newEntities) {
+          const entityId = entity.metadata.recordId.entityId;
+          if (!seenEntityIds.has(entityId)) {
+            seenEntityIds.add(entityId);
+            entities.push(entity);
+          }
+        }
+        // console.log(page?.cursor, data.queryEntitySubgraph.cursor ?? null)
+
+        return {
+          accumulated: {
+            ...prevAccumulated,
+            entities,
+            seenEntityIds,
+            subgraph: prevAccumulated.subgraph
+              ? mergeSubgraphInto(prevAccumulated.subgraph, subgraph)
+              : subgraph,
+          },
+          page: exhausted
+            ? {
+                kind: "entityType",
+                cursor: undefined,
+                nextCursor: null,
+              }
+            : {
+                kind: "entity",
+                cursor: page?.kind === "entity" ? page.cursor : undefined,
+                nextCursor: data.queryEntitySubgraph.cursor ?? null,
+              },
+        };
+      });
     },
-  });
-
-  /**
-   * Entities are exhausted once at least one page has loaded and there is no
-   * further cursor. Gating the entity-type query on this means types are only
-   * fetched after every entity match has been loaded.
-   */
-  const entitiesExhausted = entityAccumulated !== undefined && !hasMoreEntities;
-
-  const {
-    page: entityTypePage,
-    appendPage: addEntityTypePage,
-    accumulated: entityTypeAccumulated,
-    loadMore: loadMoreEntityTypes,
-    hasMore: hasMoreEntityTypes,
-  } = useAccumulatedCursorPagination<EntityTypeAccumulated, EntityTypePage>({
-    resetKey,
-    initial: initialEntityTypeAccumulated,
-    getNextPage: getNextEntityTypePage,
   });
 
   const { loading: entityTypesLoading } = useQuery<
@@ -317,51 +260,66 @@ export const useSearchBarEntities = ({
     QueryEntityTypesQueryVariables
   >(queryEntityTypesQuery, {
     fetchPolicy: "cache-and-network",
-    skip: skip || !entitiesExhausted,
+    // Only fires once the cursor has crossed over to the entity-type phase.
+    skip: skip || page?.kind !== "entityType",
     variables: {
       request: {
         filter,
         temporalAxes: currentTimeInstantTemporalAxes,
-        after: entityTypePage?.cursor,
+        after: page?.kind === "entityType" ? page.cursor : undefined,
         limit: searchBarPageSize,
         includeCount: true,
       },
     },
     onCompleted: (data) => {
-      const loadedPage: EntityTypePage = {
-        count: data.queryEntityTypes.count ?? undefined,
-        cursor: entityTypePage?.cursor,
-        entityTypes: data.queryEntityTypes.entityTypes.map(
-          (entityType) => entityType.schema,
-        ),
-        nextCursor: data.queryEntityTypes.cursor ?? null,
-      };
-
-      addEntityTypePage((prevAccumulated) =>
-        appendEntityTypePage(prevAccumulated, loadedPage),
+      const newEntityTypes = data.queryEntityTypes.entityTypes.map(
+        (entityType) => entityType.schema,
       );
+
+      // Exhausted once a page returns fewer rows than the page size (incl. zero),
+      // even if the API still handed back a non-null cursor. Cleared on the
+      // normalized page so `getNextPage` stops paginating.
+      const exhausted = newEntityTypes.length < searchBarPageSize;
+
+      appendPage((prevAccumulated) => {
+        const entityTypes = [...prevAccumulated.entityTypes];
+        const seenEntityTypeIds = new Set(prevAccumulated.seenEntityTypeIds);
+        for (const entityType of newEntityTypes) {
+          if (!seenEntityTypeIds.has(entityType.$id)) {
+            seenEntityTypeIds.add(entityType.$id);
+            entityTypes.push(entityType);
+          }
+        }
+
+        return {
+          accumulated: {
+            ...prevAccumulated,
+            entityTypes,
+            seenEntityTypeIds,
+          },
+          page: {
+            kind: "entityType",
+            cursor: page?.kind === "entityType" ? page.cursor : undefined,
+            nextCursor: exhausted
+              ? null
+              : (data.queryEntityTypes.cursor ?? null),
+          },
+        };
+      });
     },
   });
 
-  const loadMore = useCallback(() => {
-    if (hasMoreEntities) {
-      loadMoreEntities();
-    } else {
-      loadMoreEntityTypes();
-    }
-  }, [hasMoreEntities, loadMoreEntities, loadMoreEntityTypes]);
-
   return {
-    entities: entityAccumulated?.entities ?? [],
-    entityTypes: entityTypeAccumulated?.entityTypes ?? [],
-    subgraph: entityAccumulated?.subgraph,
-    initialLoading: entitiesLoading && entityAccumulated === undefined,
-    // A subsequent entity page (the request has advanced past the first) or any
+    entities: accumulated?.entities ?? [],
+    entityTypes: accumulated?.entityTypes ?? [],
+    subgraph: accumulated?.subgraph,
+    initialLoading: entitiesLoading && accumulated === undefined,
+    // A subsequent entity page (the cursor has advanced past the first) or any
     // entity-type page (which only ever loads after the entities are shown) is
     // "more".
     loadingMore:
-      (entitiesLoading && entityPage !== undefined) || entityTypesLoading,
+      (entitiesLoading && page?.kind === "entity") || entityTypesLoading,
     loadMore,
-    hasMore: hasMoreEntities || hasMoreEntityTypes,
+    hasMore,
   };
 };
