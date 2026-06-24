@@ -29,7 +29,11 @@ const isEmptySDCPN = (sdcpn: SDCPN) =>
   sdcpn.transitions.length === 0 &&
   sdcpn.types.length === 0 &&
   sdcpn.parameters.length === 0 &&
-  sdcpn.differentialEquations.length === 0;
+  sdcpn.differentialEquations.length === 0 &&
+  (sdcpn.subnets ?? []).length === 0 &&
+  (sdcpn.componentInstances ?? []).length === 0 &&
+  (sdcpn.scenarios ?? []).length === 0 &&
+  (sdcpn.metrics ?? []).length === 0;
 
 const emptySDCPN: SDCPN = {
   places: [],
