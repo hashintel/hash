@@ -323,7 +323,11 @@ impl<'ctx, 'heap, A: Allocator> Locals<'ctx, 'heap, A> {
 
         // SAFETY: We have just filled the slice with values, and no errors have occurred.
         let values = unsafe { values.assume_init() };
-        Ok(Value::Struct(Struct::new_unchecked(fields, values)))
+        // SAFETY: `fields` comes from `AggregateKind::Struct`, where MIR construction
+        // guarantees sorted field order. `values` has the same length by construction.
+        Ok(Value::Struct(unsafe {
+            Struct::new_unchecked(fields, values)
+        }))
     }
 
     /// Constructs an aggregate value (tuple, struct, list, dict, opaque, closure).

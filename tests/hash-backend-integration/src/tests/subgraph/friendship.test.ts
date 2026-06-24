@@ -130,7 +130,7 @@ const friendshipFilter: DistributiveField<
   QueryEntitySubgraphRequest,
   "filter"
 > = {
-  startsWith: [
+  equal: [
     {
       path: ["type", "baseUrl"],
     },

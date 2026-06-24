@@ -14,7 +14,7 @@ use hashql_diagnostics::{
     Diagnostic, Label,
     category::{DiagnosticCategory, TerminalDiagnosticCategory},
     diagnostic::Message,
-    severity::Severity,
+    severity::Critical,
 };
 
 use super::value::{Int, Ptr, Value, ValueTypeName};
@@ -26,26 +26,8 @@ use crate::body::{
 
 /// Type alias for interpreter diagnostics.
 ///
-/// The default severity kind is [`Severity`], which allows any severity level.
-pub type InterpretDiagnostic<K = Severity> = Diagnostic<InterpretDiagnosticCategory, SpanId, K>;
-
-/// Diagnostic subcategory for errors that occur while fulfilling a suspension.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct SuspensionDiagnosticCategory(pub &'static TerminalDiagnosticCategory);
-
-impl DiagnosticCategory for SuspensionDiagnosticCategory {
-    fn id(&self) -> Cow<'_, str> {
-        Cow::Borrowed("suspension")
-    }
-
-    fn name(&self) -> Cow<'_, str> {
-        Cow::Borrowed("Suspension")
-    }
-
-    fn subcategory(&self) -> Option<&dyn DiagnosticCategory> {
-        Some(self.0)
-    }
-}
+/// The default severity kind is [`Critical`].
+pub type InterpretDiagnostic<K = Critical> = Diagnostic<InterpretDiagnosticCategory, SpanId, K>;
 
 // Terminal categories for ICEs
 const LOCAL_ACCESS: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
@@ -105,8 +87,6 @@ pub enum InterpretDiagnosticCategory {
     RuntimeLimit,
     /// Required input not provided.
     InputResolution,
-    /// Error from fulfilling a suspension (e.g. database query failure).
-    Suspension(SuspensionDiagnosticCategory),
 }
 
 impl DiagnosticCategory for InterpretDiagnosticCategory {
@@ -127,7 +107,6 @@ impl DiagnosticCategory for InterpretDiagnosticCategory {
             Self::BoundsCheck => Some(&BOUNDS_CHECK),
             Self::RuntimeLimit => Some(&RUNTIME_LIMIT),
             Self::InputResolution => Some(&INPUT_RESOLUTION),
-            Self::Suspension(category) => Some(category),
         }
     }
 }
@@ -383,20 +362,49 @@ pub enum RuntimeError<'heap, E, A: Allocator> {
 }
 
 impl<E, A: Allocator> RuntimeError<'_, E, A> {
-    /// Converts this runtime error into a diagnostic using the provided callstack.
+    /// Converts this runtime error into an [`InterpretDiagnostic`] using the
+    /// provided callstack.
     ///
     /// The callstack provides span information for error localization. The first
     /// frame's span is used as the primary label, and subsequent frames are added
     /// as secondary labels to show the call trace.
-    pub fn into_diagnostic(
+    ///
+    /// `on_suspension` converts the suspension payload `E` into a diagnostic.
+    /// When `E = !` (no suspension possible), the closure is never invoked.
+    ///
+    /// For callers that need a different output category (e.g. an orchestrator
+    /// wrapping interpreter errors), use [`into_diagnostic_with`](Self::into_diagnostic_with).
+    pub fn into_diagnostic<K>(
         self,
         callstack: impl IntoIterator<Item = SpanId>,
-        on_suspension: impl FnOnce(E) -> InterpretDiagnostic,
-    ) -> InterpretDiagnostic {
+        on_suspension: impl FnOnce(E) -> InterpretDiagnostic<K>,
+    ) -> InterpretDiagnostic<K>
+    where
+        Critical: Into<K>,
+    {
+        self.into_diagnostic_with(callstack, on_suspension, core::convert::identity)
+    }
+
+    /// Converts this runtime error into a diagnostic, lifting the category
+    /// through `map_category`.
+    ///
+    /// Like [`into_diagnostic`](Self::into_diagnostic), but allows the caller
+    /// to embed [`InterpretDiagnosticCategory`] inside a broader category
+    /// hierarchy. The `on_suspension` closure produces a diagnostic with the
+    /// same output category `C`.
+    pub fn into_diagnostic_with<C, K>(
+        self,
+        callstack: impl IntoIterator<Item = SpanId>,
+        on_suspension: impl FnOnce(E) -> Diagnostic<C, SpanId, K>,
+        on_otherwise: impl FnOnce(InterpretDiagnosticCategory) -> C,
+    ) -> Diagnostic<C, SpanId, K>
+    where
+        Critical: Into<K>,
+    {
         let mut spans = callstack.into_iter();
         let primary_span = spans.next().unwrap_or(SpanId::SYNTHETIC);
 
-        let mut diagnostic = self.make_diagnostic(primary_span, on_suspension);
+        let mut diagnostic = self.make_diagnostic(primary_span, on_suspension, on_otherwise);
 
         // Add callstack frames as secondary labels
         for span in spans {
@@ -406,39 +414,85 @@ impl<E, A: Allocator> RuntimeError<'_, E, A> {
         diagnostic
     }
 
-    fn make_diagnostic(
+    fn make_diagnostic<C, K>(
         self,
         span: SpanId,
-        on_suspension: impl FnOnce(E) -> InterpretDiagnostic,
-    ) -> InterpretDiagnostic {
+        on_suspension: impl FnOnce(E) -> Diagnostic<C, SpanId, K>,
+        on_otherwise: impl FnOnce(InterpretDiagnosticCategory) -> C,
+    ) -> Diagnostic<C, SpanId, K>
+    where
+        Critical: Into<K>,
+    {
         match self {
-            Self::UninitializedLocal { local, decl } => uninitialized_local(span, local, decl),
-            Self::InvalidIndexType { base, index } => invalid_index_type(span, &base, &index),
-            Self::InvalidSubscriptType { base } => invalid_subscript_type(span, &base),
-            Self::InvalidProjectionType { base } => invalid_projection_type(span, &base),
+            Self::UninitializedLocal { local, decl } => uninitialized_local(span, local, decl)
+                .map_category(on_otherwise)
+                .map_severity(Into::into),
+            Self::InvalidIndexType { base, index } => invalid_index_type(span, &base, &index)
+                .map_category(on_otherwise)
+                .map_severity(Into::into),
+            Self::InvalidSubscriptType { base } => invalid_subscript_type(span, &base)
+                .map_category(on_otherwise)
+                .map_severity(Into::into),
+            Self::InvalidProjectionType { base } => invalid_projection_type(span, &base)
+                .map_category(on_otherwise)
+                .map_severity(Into::into),
             Self::InvalidProjectionByNameType { base } => {
                 invalid_projection_by_name_type(span, &base)
+                    .map_category(on_otherwise)
+                    .map_severity(Into::into)
             }
-            Self::UnknownField { base, field } => unknown_field(span, &base, field),
-            Self::UnknownFieldByName { base, field } => unknown_field_by_name(span, &base, field),
+            Self::UnknownField { base, field } => unknown_field(span, &base, field)
+                .map_category(on_otherwise)
+                .map_severity(Into::into),
+            Self::UnknownFieldByName { base, field } => unknown_field_by_name(span, &base, field)
+                .map_category(on_otherwise)
+                .map_severity(Into::into),
             Self::StructFieldLengthMismatch { values, fields } => {
                 struct_field_length_mismatch(span, values, fields)
+                    .map_category(on_otherwise)
+                    .map_severity(Into::into)
             }
-            Self::InvalidDiscriminantType { r#type } => invalid_discriminant_type(span, &r#type),
-            Self::InvalidDiscriminant { value } => invalid_discriminant(span, value),
-            Self::UnreachableReached => unreachable_reached(span),
-            Self::BinaryTypeMismatch(mismatch) => binary_type_mismatch(span, *mismatch),
-            Self::UnaryTypeMismatch(mismatch) => unary_type_mismatch(span, *mismatch),
-            Self::ApplyNonPointer { r#type } => apply_non_pointer(span, &r#type),
-            Self::CallstackEmpty => callstack_empty(span),
-            Self::OutOfRange { length, index } => out_of_range(span, length, index),
-            Self::InputNotFound { name } => input_not_found(span, name),
-            Self::RecursionLimitExceeded { limit } => recursion_limit_exceeded(span, limit),
-            Self::IntegerOverflow { operation } => integer_overflow(span, operation),
+            Self::InvalidDiscriminantType { r#type } => invalid_discriminant_type(span, &r#type)
+                .map_category(on_otherwise)
+                .map_severity(Into::into),
+            Self::InvalidDiscriminant { value } => invalid_discriminant(span, value)
+                .map_category(on_otherwise)
+                .map_severity(Into::into),
+            Self::UnreachableReached => unreachable_reached(span)
+                .map_category(on_otherwise)
+                .map_severity(Into::into),
+            Self::BinaryTypeMismatch(mismatch) => binary_type_mismatch(span, *mismatch)
+                .map_category(on_otherwise)
+                .map_severity(Into::into),
+            Self::UnaryTypeMismatch(mismatch) => unary_type_mismatch(span, *mismatch)
+                .map_category(on_otherwise)
+                .map_severity(Into::into),
+            Self::ApplyNonPointer { r#type } => apply_non_pointer(span, &r#type)
+                .map_category(on_otherwise)
+                .map_severity(Into::into),
+            Self::CallstackEmpty => callstack_empty(span)
+                .map_category(on_otherwise)
+                .map_severity(Into::into),
+            Self::OutOfRange { length, index } => out_of_range(span, length, index)
+                .map_category(on_otherwise)
+                .map_severity(Into::into),
+            Self::InputNotFound { name } => input_not_found(span, name)
+                .map_category(on_otherwise)
+                .map_severity(Into::into),
+            Self::RecursionLimitExceeded { limit } => recursion_limit_exceeded(span, limit)
+                .map_category(on_otherwise)
+                .map_severity(Into::into),
+            Self::IntegerOverflow { operation } => integer_overflow(span, operation)
+                .map_category(on_otherwise)
+                .map_severity(Into::into),
             Self::UnexpectedValueType { expected, actual } => {
                 unexpected_value_type(span, &expected, &actual)
+                    .map_category(on_otherwise)
+                    .map_severity(Into::into)
             }
-            Self::InvalidConstructor { name } => invalid_constructor(span, name),
+            Self::InvalidConstructor { name } => invalid_constructor(span, name)
+                .map_category(on_otherwise)
+                .map_severity(Into::into),
             Self::Suspension(suspension) => on_suspension(suspension),
         }
     }
@@ -505,7 +559,7 @@ fn uninitialized_local(span: SpanId, local: Local, decl: LocalDecl) -> Interpret
     });
 
     let mut diagnostic =
-        Diagnostic::new(InterpretDiagnosticCategory::LocalAccess, Severity::Bug).primary(
+        Diagnostic::new(InterpretDiagnosticCategory::LocalAccess, Critical::BUG).primary(
             Label::new(span, format!("local `{name}` used before initialization")),
         );
 
@@ -524,7 +578,7 @@ fn uninitialized_local(span: SpanId, local: Local, decl: LocalDecl) -> Interpret
 
 fn invalid_index_type(span: SpanId, base: &TypeName, index: &TypeName) -> InterpretDiagnostic {
     let mut diagnostic =
-        Diagnostic::new(InterpretDiagnosticCategory::TypeInvariant, Severity::Bug).primary(
+        Diagnostic::new(InterpretDiagnosticCategory::TypeInvariant, Critical::BUG).primary(
             Label::new(span, format!("cannot index `{base}` with `{index}`")),
         );
 
@@ -536,7 +590,7 @@ fn invalid_index_type(span: SpanId, base: &TypeName, index: &TypeName) -> Interp
 }
 
 fn invalid_subscript_type(span: SpanId, base: &TypeName) -> InterpretDiagnostic {
-    let mut diagnostic = Diagnostic::new(InterpretDiagnosticCategory::TypeInvariant, Severity::Bug)
+    let mut diagnostic = Diagnostic::new(InterpretDiagnosticCategory::TypeInvariant, Critical::BUG)
         .primary(Label::new(span, format!("cannot subscript `{base}`")));
 
     diagnostic.add_message(Message::help(
@@ -548,7 +602,7 @@ fn invalid_subscript_type(span: SpanId, base: &TypeName) -> InterpretDiagnostic 
 
 fn invalid_projection_type(span: SpanId, base: &TypeName) -> InterpretDiagnostic {
     let mut diagnostic =
-        Diagnostic::new(InterpretDiagnosticCategory::TypeInvariant, Severity::Bug).primary(
+        Diagnostic::new(InterpretDiagnosticCategory::TypeInvariant, Critical::BUG).primary(
             Label::new(span, format!("cannot project field from `{base}`")),
         );
 
@@ -561,7 +615,7 @@ fn invalid_projection_type(span: SpanId, base: &TypeName) -> InterpretDiagnostic
 
 fn invalid_projection_by_name_type(span: SpanId, base: &TypeName) -> InterpretDiagnostic {
     let mut diagnostic =
-        Diagnostic::new(InterpretDiagnosticCategory::TypeInvariant, Severity::Bug).primary(
+        Diagnostic::new(InterpretDiagnosticCategory::TypeInvariant, Critical::BUG).primary(
             Label::new(span, format!("cannot project named field from `{base}`")),
         );
 
@@ -573,7 +627,7 @@ fn invalid_projection_by_name_type(span: SpanId, base: &TypeName) -> InterpretDi
 }
 
 fn unknown_field(span: SpanId, base: &TypeName, field: FieldIndex) -> InterpretDiagnostic {
-    let mut diagnostic = Diagnostic::new(InterpretDiagnosticCategory::TypeInvariant, Severity::Bug)
+    let mut diagnostic = Diagnostic::new(InterpretDiagnosticCategory::TypeInvariant, Critical::BUG)
         .primary(Label::new(
             span,
             format!("field index {field} does not exist on `{base}`"),
@@ -588,7 +642,7 @@ fn unknown_field(span: SpanId, base: &TypeName, field: FieldIndex) -> InterpretD
 
 fn unknown_field_by_name(span: SpanId, base: &TypeName, field: Symbol) -> InterpretDiagnostic {
     let mut diagnostic =
-        Diagnostic::new(InterpretDiagnosticCategory::TypeInvariant, Severity::Bug).primary(
+        Diagnostic::new(InterpretDiagnosticCategory::TypeInvariant, Critical::BUG).primary(
             Label::new(span, format!("field `{field}` does not exist on `{base}`")),
         );
 
@@ -600,7 +654,7 @@ fn unknown_field_by_name(span: SpanId, base: &TypeName, field: Symbol) -> Interp
 }
 
 fn invalid_discriminant_type(span: SpanId, r#type: &TypeName) -> InterpretDiagnostic {
-    let mut diagnostic = Diagnostic::new(InterpretDiagnosticCategory::TypeInvariant, Severity::Bug)
+    let mut diagnostic = Diagnostic::new(InterpretDiagnosticCategory::TypeInvariant, Critical::BUG)
         .primary(Label::new(
             span,
             format!("switch discriminant has type `{type}`, expected `Integer`"),
@@ -623,7 +677,7 @@ fn binary_type_mismatch<A: Allocator>(
         rhs,
     }: BinaryTypeMismatch<A>,
 ) -> InterpretDiagnostic {
-    let mut diagnostic = Diagnostic::new(InterpretDiagnosticCategory::TypeInvariant, Severity::Bug)
+    let mut diagnostic = Diagnostic::new(InterpretDiagnosticCategory::TypeInvariant, Critical::BUG)
         .primary(Label::new(
             span,
             format!(
@@ -653,7 +707,7 @@ fn unary_type_mismatch<A: Allocator>(
         value,
     }: UnaryTypeMismatch<A>,
 ) -> InterpretDiagnostic {
-    let mut diagnostic = Diagnostic::new(InterpretDiagnosticCategory::TypeInvariant, Severity::Bug)
+    let mut diagnostic = Diagnostic::new(InterpretDiagnosticCategory::TypeInvariant, Critical::BUG)
         .primary(Label::new(
             span,
             format!("cannot apply `{}` to `{}`", op.as_str(), value.type_name()),
@@ -670,7 +724,7 @@ fn unary_type_mismatch<A: Allocator>(
 
 fn apply_non_pointer(span: SpanId, r#type: &TypeName) -> InterpretDiagnostic {
     let mut diagnostic =
-        Diagnostic::new(InterpretDiagnosticCategory::TypeInvariant, Severity::Bug).primary(
+        Diagnostic::new(InterpretDiagnosticCategory::TypeInvariant, Critical::BUG).primary(
             Label::new(span, format!("cannot call `{type}` as a function")),
         );
 
@@ -687,7 +741,7 @@ fn unexpected_value_type(
     actual: &TypeName,
 ) -> InterpretDiagnostic {
     let mut diagnostic =
-        Diagnostic::new(InterpretDiagnosticCategory::TypeInvariant, Severity::Bug).primary(
+        Diagnostic::new(InterpretDiagnosticCategory::TypeInvariant, Critical::BUG).primary(
             Label::new(span, format!("expected `{expected}`, found `{actual}`")),
         );
 
@@ -700,7 +754,7 @@ fn unexpected_value_type(
 
 fn invalid_constructor(span: SpanId, name: Symbol) -> InterpretDiagnostic {
     let mut diagnostic =
-        Diagnostic::new(InterpretDiagnosticCategory::TypeInvariant, Severity::Bug).primary(
+        Diagnostic::new(InterpretDiagnosticCategory::TypeInvariant, Critical::BUG).primary(
             Label::new(span, format!("unrecognized opaque constructor `{name}`")),
         );
 
@@ -718,7 +772,7 @@ fn invalid_constructor(span: SpanId, name: Symbol) -> InterpretDiagnostic {
 fn struct_field_length_mismatch(span: SpanId, values: usize, fields: usize) -> InterpretDiagnostic {
     let mut diagnostic = Diagnostic::new(
         InterpretDiagnosticCategory::StructuralInvariant,
-        Severity::Bug,
+        Critical::BUG,
     )
     .primary(Label::new(
         span,
@@ -737,7 +791,7 @@ fn struct_field_length_mismatch(span: SpanId, values: usize, fields: usize) -> I
 // =============================================================================
 
 fn invalid_discriminant(span: SpanId, value: Int) -> InterpretDiagnostic {
-    let mut diagnostic = Diagnostic::new(InterpretDiagnosticCategory::ControlFlow, Severity::Bug)
+    let mut diagnostic = Diagnostic::new(InterpretDiagnosticCategory::ControlFlow, Critical::BUG)
         .primary(Label::new(
             span,
             format!("switch discriminant `{value}` has no matching branch"),
@@ -751,7 +805,7 @@ fn invalid_discriminant(span: SpanId, value: Int) -> InterpretDiagnostic {
 }
 
 fn unreachable_reached(span: SpanId) -> InterpretDiagnostic {
-    let mut diagnostic = Diagnostic::new(InterpretDiagnosticCategory::ControlFlow, Severity::Bug)
+    let mut diagnostic = Diagnostic::new(InterpretDiagnosticCategory::ControlFlow, Critical::BUG)
         .primary(Label::new(span, "reached unreachable code"));
 
     diagnostic.add_message(Message::help(
@@ -763,7 +817,7 @@ fn unreachable_reached(span: SpanId) -> InterpretDiagnostic {
 
 #[coverage(off)]
 fn callstack_empty(span: SpanId) -> InterpretDiagnostic {
-    let mut diagnostic = Diagnostic::new(InterpretDiagnosticCategory::ControlFlow, Severity::Bug)
+    let mut diagnostic = Diagnostic::new(InterpretDiagnosticCategory::ControlFlow, Critical::BUG)
         .primary(Label::new(span, "attempted to step with empty callstack"));
 
     diagnostic.add_message(Message::help(
@@ -778,7 +832,7 @@ fn callstack_empty(span: SpanId) -> InterpretDiagnostic {
 // =============================================================================
 
 fn out_of_range(span: SpanId, length: usize, index: Int) -> InterpretDiagnostic {
-    let mut diagnostic = Diagnostic::new(InterpretDiagnosticCategory::BoundsCheck, Severity::Error)
+    let mut diagnostic = Diagnostic::new(InterpretDiagnosticCategory::BoundsCheck, Critical::ERROR)
         .primary(Label::new(
             span,
             format!("index `{index}` is out of bounds for length {length}"),
@@ -796,7 +850,7 @@ fn out_of_range(span: SpanId, length: usize, index: Int) -> InterpretDiagnostic 
 fn input_not_found(span: SpanId, name: Symbol) -> InterpretDiagnostic {
     let mut diagnostic = Diagnostic::new(
         InterpretDiagnosticCategory::InputResolution,
-        Severity::Error,
+        Critical::ERROR,
     )
     .primary(Label::new(span, format!("input `{name}` not found")));
 
@@ -811,7 +865,7 @@ fn input_not_found(span: SpanId, name: Symbol) -> InterpretDiagnostic {
 
 fn recursion_limit_exceeded(span: SpanId, limit: usize) -> InterpretDiagnostic {
     let mut diagnostic =
-        Diagnostic::new(InterpretDiagnosticCategory::RuntimeLimit, Severity::Error).primary(
+        Diagnostic::new(InterpretDiagnosticCategory::RuntimeLimit, Critical::ERROR).primary(
             Label::new(span, format!("recursion limit of {limit} exceeded")),
         );
 
@@ -824,7 +878,7 @@ fn recursion_limit_exceeded(span: SpanId, limit: usize) -> InterpretDiagnostic {
 
 fn integer_overflow(span: SpanId, operation: &str) -> InterpretDiagnostic {
     let mut diagnostic =
-        Diagnostic::new(InterpretDiagnosticCategory::RuntimeLimit, Severity::Error).primary(
+        Diagnostic::new(InterpretDiagnosticCategory::RuntimeLimit, Critical::ERROR).primary(
             Label::new(
                 span,
                 format!("integer {operation} produced a result outside the supported range"),

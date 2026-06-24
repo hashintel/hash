@@ -6,6 +6,7 @@ use hash_graph_store::{
         LinkDeletionBehavior, PatchEntityParams, UpdateEntityEmbeddingsParams,
     },
     filter::Filter,
+    subgraph::temporal_axes::QueryTemporalAxesUnresolved,
 };
 use hash_graph_temporal_versioning::{TemporalTagged as _, Timestamp, TransactionTime};
 use hash_graph_types::{Embedding, knowledge::entity::EntityEmbedding};
@@ -33,7 +34,7 @@ fn purge_params(
 ) -> DeleteEntitiesParams<'static> {
     DeleteEntitiesParams {
         filter,
-        temporal_axes: crate::live_only_axes(),
+        temporal_axes: QueryTemporalAxesUnresolved::live_only(),
         include_drafts: false,
         scope: DeletionScope::Purge {
             link_behavior: LinkDeletionBehavior::Ignore,
@@ -88,7 +89,7 @@ async fn published_entity() {
                 scope: DeletionScope::Purge {
                     link_behavior: LinkDeletionBehavior::Ignore,
                 },
-                temporal_axes: crate::live_only_axes(),
+                temporal_axes: QueryTemporalAxesUnresolved::live_only(),
                 decision_time: None,
             },
         )
@@ -181,7 +182,7 @@ async fn published_entity_with_history() {
                 scope: DeletionScope::Purge {
                     link_behavior: LinkDeletionBehavior::Ignore,
                 },
-                temporal_axes: crate::live_only_axes(),
+                temporal_axes: QueryTemporalAxesUnresolved::live_only(),
                 decision_time: None,
             },
         )
@@ -231,7 +232,7 @@ async fn no_match_is_noop() {
                 scope: DeletionScope::Purge {
                     link_behavior: LinkDeletionBehavior::Ignore,
                 },
-                temporal_axes: crate::live_only_axes(),
+                temporal_axes: QueryTemporalAxesUnresolved::live_only(),
                 decision_time: None,
             },
         )
@@ -274,7 +275,7 @@ async fn include_drafts_irrelevant_for_published() {
                 scope: DeletionScope::Purge {
                     link_behavior: LinkDeletionBehavior::Ignore,
                 },
-                temporal_axes: crate::live_only_axes(),
+                temporal_axes: QueryTemporalAxesUnresolved::live_only(),
                 decision_time: None,
             },
         )
@@ -291,7 +292,7 @@ async fn include_drafts_irrelevant_for_published() {
                 scope: DeletionScope::Purge {
                     link_behavior: LinkDeletionBehavior::Ignore,
                 },
-                temporal_axes: crate::live_only_axes(),
+                temporal_axes: QueryTemporalAxesUnresolved::live_only(),
                 decision_time: None,
             },
         )
@@ -333,7 +334,7 @@ async fn purge_error_succeeds_without_incoming_links() {
                 scope: DeletionScope::Purge {
                     link_behavior: LinkDeletionBehavior::Error,
                 },
-                temporal_axes: crate::live_only_axes(),
+                temporal_axes: QueryTemporalAxesUnresolved::live_only(),
                 decision_time: None,
             },
         )
@@ -637,7 +638,7 @@ async fn batch_with_mixed_entity_states() {
                 scope: DeletionScope::Purge {
                     link_behavior: LinkDeletionBehavior::Ignore,
                 },
-                temporal_axes: crate::live_only_axes(),
+                temporal_axes: QueryTemporalAxesUnresolved::live_only(),
                 decision_time: None,
             },
         )
@@ -968,7 +969,7 @@ async fn filter_by_entity_type() {
                 scope: DeletionScope::Purge {
                     link_behavior: LinkDeletionBehavior::Ignore,
                 },
-                temporal_axes: crate::live_only_axes(),
+                temporal_axes: QueryTemporalAxesUnresolved::live_only(),
                 decision_time: None,
             },
         )
@@ -1112,7 +1113,7 @@ async fn erase_after_purge_is_noop() {
                 filter: Filter::for_entity_by_entity_id(entity_id),
                 include_drafts: false,
                 scope: DeletionScope::Erase,
-                temporal_axes: crate::live_only_axes(),
+                temporal_axes: QueryTemporalAxesUnresolved::live_only(),
                 decision_time: None,
             },
         )

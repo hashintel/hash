@@ -89,7 +89,7 @@ impl<'ctx, 'heap, A: Allocator> EvalContext<'ctx, 'heap, A> {
             };
 
             #[expect(unsafe_code)]
-            let exit_states = scratch.scoped(|scoped| {
+            let exit_states = scratch.scoped_mut(|scoped| {
                 let analysis = TraversalLivenessAnalysis { vertex };
                 let DataflowResults {
                     analysis: _,

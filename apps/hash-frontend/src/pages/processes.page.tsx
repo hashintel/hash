@@ -15,7 +15,11 @@ import { CreateButton } from "./shared/create-button";
 
 import type { NextPageWithLayout } from "../shared/layout";
 
-const contentMaxWidth = 1000;
+const maxWidthCss = {
+  "@media (min-width: 1200px)": {
+    maxWidth: 1400,
+  },
+};
 
 const SectionHeading = ({ children }: { children: React.ReactNode }) => (
   <Typography
@@ -44,8 +48,6 @@ const ProcessesPage: NextPageWithLayout = () => {
     [persistedNets],
   );
 
-  const maxWidth = { lg: `max(${contentMaxWidth}px, 70%)` } as const;
-
   return (
     <>
       <NextSeo title="Processes" />
@@ -58,7 +60,7 @@ const ProcessesPage: NextPageWithLayout = () => {
           pb: 0,
         })}
       >
-        <Container sx={{ maxWidth }}>
+        <Container sx={maxWidthCss}>
           <Typography
             variant="h1"
             fontWeight="bold"
@@ -86,7 +88,13 @@ const ProcessesPage: NextPageWithLayout = () => {
           </Stack>
         </Container>
       </Box>
-      <Container sx={{ paddingTop: 5, paddingBottom: 8, maxWidth }}>
+      <Container
+        sx={{
+          paddingTop: 5,
+          paddingBottom: 8,
+          ...maxWidthCss,
+        }}
+      >
         <Box mb={5}>
           {sortedNets.length === 0 ? (
             !loading && (
@@ -110,6 +118,7 @@ const ProcessesPage: NextPageWithLayout = () => {
                   xs: "1fr",
                   sm: "repeat(2, 1fr)",
                   md: "repeat(3, 1fr)",
+                  lg: "repeat(4, 1fr)",
                 },
               }}
             >
@@ -135,6 +144,7 @@ const ProcessesPage: NextPageWithLayout = () => {
                 xs: "1fr",
                 sm: "repeat(2, 1fr)",
                 md: "repeat(3, 1fr)",
+                lg: "repeat(4, 1fr)",
               },
             }}
           >

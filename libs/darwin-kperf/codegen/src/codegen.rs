@@ -237,7 +237,8 @@ fn generate_lib(unified: &[UnifiedEvent], chips: &[ChipDatabase]) -> TokenStream
             clippy::too_many_lines,
             clippy::unnecessary_wraps,
             clippy::decimal_literal_representation,
-            clippy::unseparated_literal_suffix
+            clippy::unseparated_literal_suffix,
+            clippy::doc_markdown
         )]
 
         #mod_decls

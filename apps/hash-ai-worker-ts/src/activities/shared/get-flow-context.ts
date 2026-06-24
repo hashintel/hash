@@ -137,7 +137,17 @@ type FlowContext = {
 export const getFlowContext = async (): Promise<FlowContext> => {
   const activityContext = Context.current();
 
-  const { workflowId, runId } = activityContext.info.workflowExecution;
+  const { workflowId, runId } = activityContext.info.workflowExecution ?? {};
+
+  if (!workflowId) {
+    throw new Error(
+      "No workflowId associated with the current workflow execution",
+    );
+  }
+
+  if (!runId) {
+    throw new Error("No runId associated with the current workflow execution");
+  }
 
   const { createEntitiesAsDraft, dataSources, userAuthentication, webId } =
     await getAiWorkflowParams({

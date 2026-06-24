@@ -1,0 +1,419 @@
+════ Initial MIR ═══════════════════════════════════════════════════════════════
+
+fn {ctor#::main::A:0}(%0: ()) -> ::main::A:0 {
+    let %1: ::main::A:0
+
+    bb0(): {
+        %1 = opaque(::main::A:0, ())
+
+        return %1
+    }
+}
+
+thunk {thunk#2}() -> () -> ::main::A:0 {
+    let %0: () -> ::main::A:0
+
+    bb0(): {
+        %0 = closure(({ctor#::main::A:0} as FnPtr), ())
+
+        return %0
+    }
+}
+
+thunk {thunk#3}() -> ::main::A:0 {
+    let %0: () -> ::main::A:0
+    let %1: ::main::A:0
+
+    bb0(): {
+        %0 = apply ({thunk#2} as FnPtr)
+        %1 = apply %0.0 %0.1
+
+        return %1
+    }
+}
+
+thunk {thunk#4}() -> () -> ::main::A:0 {
+    let %0: () -> ::main::A:0
+
+    bb0(): {
+        %0 = ({ctor#::main::A:0} as FnPtr)
+
+        return %0
+    }
+}
+
+thunk {thunk#5}() -> ::main::A:0 {
+    let %0: () -> ::main::A:0
+    let %1: ::main::A:0
+
+    bb0(): {
+        %0 = apply ({thunk#4} as FnPtr)
+        %1 = apply %0.0 %0.1
+
+        return %1
+    }
+}
+
+thunk {thunk#6}() -> (x: ::main::A:0, y: ::main::A:0) {
+    let %0: ::main::A:0
+    let %1: ::main::A:0
+    let %2: (x: ::main::A:0, y: ::main::A:0)
+
+    bb0(): {
+        %0 = apply ({thunk#3} as FnPtr)
+        %1 = apply ({thunk#5} as FnPtr)
+        %2 = (x: %0, y: %1)
+
+        return %2
+    }
+}
+
+fn {ctor#::main::Outer:0}(%0: (), %1: (x: ::main::A:0, y: ::main::A:0)) -> ::main::Outer:0 {
+    let %2: ::main::Outer:0
+
+    bb0(): {
+        %2 = opaque(::main::Outer:0, %1)
+
+        return %2
+    }
+}
+
+thunk {thunk#7}() -> ((x: ::main::A:0, y: ::main::A:0)) -> ::main::Outer:0 {
+    let %0: ((x: ::main::A:0, y: ::main::A:0)) -> ::main::Outer:0
+
+    bb0(): {
+        %0 = closure(({ctor#::main::Outer:0} as FnPtr), ())
+
+        return %0
+    }
+}
+
+*thunk {thunk#8}() -> ::main::Outer:0 {
+    let %0: (x: ::main::A:0, y: ::main::A:0)
+    let %1: ((x: ::main::A:0, y: ::main::A:0)) -> ::main::Outer:0
+    let %2: ::main::Outer:0
+
+    bb0(): {
+        %0 = apply ({thunk#6} as FnPtr)
+        %1 = apply ({thunk#7} as FnPtr)
+        %2 = apply %1.0 %1.1 %0
+
+        return %2
+    }
+}
+
+════ Pre-inlining MIR ══════════════════════════════════════════════════════════
+
+fn {ctor#::main::A:0}(%0: ()) -> ::main::A:0 {
+    let %1: ::main::A:0
+
+    bb0(): {
+        %1 = opaque(::main::A:0, ())
+
+        return %1
+    }
+}
+
+thunk {thunk#2}() -> () -> ::main::A:0 {
+    let %0: () -> ::main::A:0
+
+    bb0(): {
+        %0 = closure(({ctor#::main::A:0} as FnPtr), ())
+
+        return %0
+    }
+}
+
+thunk {thunk#3}() -> ::main::A:0 {
+    let %0: ::main::A:0
+
+    bb0(): {
+        %0 = opaque(::main::A:0, ())
+
+        return %0
+    }
+}
+
+thunk {thunk#4}() -> () -> ::main::A:0 {
+    bb0(): {
+        return ({ctor#::main::A:0} as FnPtr)
+    }
+}
+
+thunk {thunk#5}() -> ::main::A:0 {
+    let %0: () -> ::main::A:0
+    let %1: ::main::A:0
+
+    bb0(): {
+        %0 = ({ctor#::main::A:0} as FnPtr)
+        %1 = apply %0.0 %0.1
+
+        return %1
+    }
+}
+
+thunk {thunk#6}() -> (x: ::main::A:0, y: ::main::A:0) {
+    let %0: (x: ::main::A:0, y: ::main::A:0)
+    let %1: ::main::A:0
+    let %2: () -> ::main::A:0
+    let %3: ::main::A:0
+
+    bb0(): {
+        %1 = opaque(::main::A:0, ())
+        %2 = ({ctor#::main::A:0} as FnPtr)
+        %3 = apply %2.0 %2.1
+        %0 = (x: %1, y: %3)
+
+        return %0
+    }
+}
+
+fn {ctor#::main::Outer:0}(%0: (), %1: (x: ::main::A:0, y: ::main::A:0)) -> ::main::Outer:0 {
+    let %2: ::main::Outer:0
+
+    bb0(): {
+        %2 = opaque(::main::Outer:0, %1)
+
+        return %2
+    }
+}
+
+thunk {thunk#7}() -> ((x: ::main::A:0, y: ::main::A:0)) -> ::main::Outer:0 {
+    let %0: ((x: ::main::A:0, y: ::main::A:0)) -> ::main::Outer:0
+
+    bb0(): {
+        %0 = closure(({ctor#::main::Outer:0} as FnPtr), ())
+
+        return %0
+    }
+}
+
+*thunk {thunk#8}() -> ::main::Outer:0 {
+    let %0: (x: ::main::A:0, y: ::main::A:0)
+    let %1: ::main::Outer:0
+
+    bb0(): {
+        %0 = apply ({thunk#6} as FnPtr)
+        %1 = opaque(::main::Outer:0, %0)
+
+        return %1
+    }
+}
+
+════ Inlined MIR ═══════════════════════════════════════════════════════════════
+
+fn {ctor#::main::A:0}(%0: ()) -> ::main::A:0 {
+    let %1: ::main::A:0
+
+    bb0(): {
+        %1 = opaque(::main::A:0, ())
+
+        return %1
+    }
+}
+
+thunk {thunk#2}() -> () -> ::main::A:0 {
+    let %0: () -> ::main::A:0
+
+    bb0(): {
+        %0 = closure(({ctor#::main::A:0} as FnPtr), ())
+
+        return %0
+    }
+}
+
+thunk {thunk#3}() -> ::main::A:0 {
+    let %0: ::main::A:0
+
+    bb0(): {
+        %0 = opaque(::main::A:0, ())
+
+        return %0
+    }
+}
+
+thunk {thunk#4}() -> () -> ::main::A:0 {
+    bb0(): {
+        return ({ctor#::main::A:0} as FnPtr)
+    }
+}
+
+thunk {thunk#5}() -> ::main::A:0 {
+    let %0: () -> ::main::A:0
+    let %1: ::main::A:0
+
+    bb0(): {
+        %0 = ({ctor#::main::A:0} as FnPtr)
+        %1 = apply %0.0 %0.1
+
+        return %1
+    }
+}
+
+thunk {thunk#6}() -> (x: ::main::A:0, y: ::main::A:0) {
+    let %0: (x: ::main::A:0, y: ::main::A:0)
+    let %1: ::main::A:0
+    let %2: () -> ::main::A:0
+    let %3: ::main::A:0
+
+    bb0(): {
+        %1 = opaque(::main::A:0, ())
+        %2 = ({ctor#::main::A:0} as FnPtr)
+        %3 = apply %2.0 %2.1
+        %0 = (x: %1, y: %3)
+
+        return %0
+    }
+}
+
+fn {ctor#::main::Outer:0}(%0: (), %1: (x: ::main::A:0, y: ::main::A:0)) -> ::main::Outer:0 {
+    let %2: ::main::Outer:0
+
+    bb0(): {
+        %2 = opaque(::main::Outer:0, %1)
+
+        return %2
+    }
+}
+
+thunk {thunk#7}() -> ((x: ::main::A:0, y: ::main::A:0)) -> ::main::Outer:0 {
+    let %0: ((x: ::main::A:0, y: ::main::A:0)) -> ::main::Outer:0
+
+    bb0(): {
+        %0 = closure(({ctor#::main::Outer:0} as FnPtr), ())
+
+        return %0
+    }
+}
+
+*thunk {thunk#8}() -> ::main::Outer:0 {
+    let %0: (x: ::main::A:0, y: ::main::A:0)
+    let %1: ::main::Outer:0
+    let %2: (x: ::main::A:0, y: ::main::A:0)
+    let %3: ::main::A:0
+    let %4: () -> ::main::A:0
+    let %5: ::main::A:0
+
+    bb0(): {
+        goto -> bb2()
+    }
+
+    bb1(%0): {
+        %1 = opaque(::main::Outer:0, %0)
+
+        return %1
+    }
+
+    bb2(): {
+        %3 = opaque(::main::A:0, ())
+        %4 = ({ctor#::main::A:0} as FnPtr)
+        %5 = apply %4.0 %4.1
+        %2 = (x: %3, y: %5)
+
+        goto -> bb1(%2)
+    }
+}
+
+════ Post Inline MIR ═══════════════════════════════════════════════════════════
+
+fn {ctor#::main::A:0}(%0: ()) -> ::main::A:0 {
+    let %1: ::main::A:0
+
+    bb0(): {
+        %1 = opaque(::main::A:0, ())
+
+        return %1
+    }
+}
+
+thunk {thunk#2}() -> () -> ::main::A:0 {
+    let %0: () -> ::main::A:0
+
+    bb0(): {
+        %0 = closure(({ctor#::main::A:0} as FnPtr), ())
+
+        return %0
+    }
+}
+
+thunk {thunk#3}() -> ::main::A:0 {
+    let %0: ::main::A:0
+
+    bb0(): {
+        %0 = opaque(::main::A:0, ())
+
+        return %0
+    }
+}
+
+thunk {thunk#4}() -> () -> ::main::A:0 {
+    bb0(): {
+        return ({ctor#::main::A:0} as FnPtr)
+    }
+}
+
+thunk {thunk#5}() -> ::main::A:0 {
+    let %0: () -> ::main::A:0
+    let %1: ::main::A:0
+
+    bb0(): {
+        %0 = ({ctor#::main::A:0} as FnPtr)
+        %1 = apply %0.0 %0.1
+
+        return %1
+    }
+}
+
+thunk {thunk#6}() -> (x: ::main::A:0, y: ::main::A:0) {
+    let %0: (x: ::main::A:0, y: ::main::A:0)
+    let %1: ::main::A:0
+    let %2: () -> ::main::A:0
+    let %3: ::main::A:0
+
+    bb0(): {
+        %1 = opaque(::main::A:0, ())
+        %2 = ({ctor#::main::A:0} as FnPtr)
+        %3 = apply %2.0 %2.1
+        %0 = (x: %1, y: %3)
+
+        return %0
+    }
+}
+
+fn {ctor#::main::Outer:0}(%0: (), %1: (x: ::main::A:0, y: ::main::A:0)) -> ::main::Outer:0 {
+    let %2: ::main::Outer:0
+
+    bb0(): {
+        %2 = opaque(::main::Outer:0, %1)
+
+        return %2
+    }
+}
+
+thunk {thunk#7}() -> ((x: ::main::A:0, y: ::main::A:0)) -> ::main::Outer:0 {
+    let %0: ((x: ::main::A:0, y: ::main::A:0)) -> ::main::Outer:0
+
+    bb0(): {
+        %0 = closure(({ctor#::main::Outer:0} as FnPtr), ())
+
+        return %0
+    }
+}
+
+*thunk {thunk#8}() -> ::main::Outer:0 {
+    let %0: ::main::Outer:0
+    let %1: (x: ::main::A:0, y: ::main::A:0)
+    let %2: ::main::A:0
+    let %3: () -> ::main::A:0
+    let %4: ::main::A:0
+
+    bb0(): {
+        %2 = opaque(::main::A:0, ())
+        %3 = ({ctor#::main::A:0} as FnPtr)
+        %4 = apply %3.0 %3.1
+        %1 = (x: %2, y: %4)
+        %0 = opaque(::main::Outer:0, %1)
+
+        return %0
+    }
+}

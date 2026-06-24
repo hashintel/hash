@@ -8,9 +8,8 @@ use hashql_diagnostics::{
     severity::{Critical, Severity},
 };
 
-pub(crate) type ReifyDiagnostic<K = Severity> = Diagnostic<ReifyDiagnosticCategory, SpanId, K>;
-pub(crate) type ReifyDiagnosticIssues<K = Severity> =
-    DiagnosticIssues<ReifyDiagnosticCategory, SpanId, K>;
+pub type ReifyDiagnostic<K = Severity> = Diagnostic<ReifyDiagnosticCategory, SpanId, K>;
+pub type ReifyDiagnosticIssues<K = Severity> = DiagnosticIssues<ReifyDiagnosticCategory, SpanId, K>;
 
 // Terminal categories for user-facing errors
 const UNSUPPORTED_FEATURE: TerminalDiagnosticCategory = TerminalDiagnosticCategory {

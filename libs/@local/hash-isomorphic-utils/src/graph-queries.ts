@@ -287,31 +287,35 @@ export const mapGqlSubgraphFieldsFragmentToSubgraph = <
 ) => deserializeSubgraph<RootType>(subgraph);
 
 export const notificationTypesToIgnore = [
-  systemEntityTypes.notification.entityTypeId,
+  systemEntityTypes.notification.entityTypeBaseUrl,
 ];
 
 export const usageRecordTypesToIgnore = [
-  systemEntityTypes.usageRecord.entityTypeId,
-  systemLinkEntityTypes.recordsUsageOf.linkEntityTypeId,
-  systemLinkEntityTypes.created.linkEntityTypeId,
-  systemLinkEntityTypes.updated.linkEntityTypeId,
-  systemLinkEntityTypes.incurredIn.linkEntityTypeId,
+  systemEntityTypes.usageRecord.entityTypeBaseUrl,
+  systemLinkEntityTypes.recordsUsageOf.linkEntityTypeBaseUrl,
+  systemLinkEntityTypes.created.linkEntityTypeBaseUrl,
+  systemLinkEntityTypes.updated.linkEntityTypeBaseUrl,
+  systemLinkEntityTypes.incurredIn.linkEntityTypeBaseUrl,
 ];
 
 const pageTypesToIgnore = [
-  systemLinkEntityTypes.occurredInEntity.linkEntityTypeId,
+  systemLinkEntityTypes.occurredInEntity.linkEntityTypeBaseUrl,
 ];
 
-export const noisySystemTypeIds = [
+export const noisySystemBaseUrls = [
   ...notificationTypesToIgnore,
   ...usageRecordTypesToIgnore,
   ...pageTypesToIgnore,
+  systemEntityTypes.user.entityTypeBaseUrl,
+  systemEntityTypes.machine.entityTypeBaseUrl,
+  systemEntityTypes.organization.entityTypeBaseUrl,
+  systemLinkEntityTypes.isMemberOf.linkEntityTypeBaseUrl,
 ] as const;
 
-export type NoisySystemTypeId = (typeof noisySystemTypeIds)[number];
+export type NoisySystemTypeBaseUrl = (typeof noisySystemBaseUrls)[number];
 
 export const ignoreNoisySystemTypesFilter: Filter = {
-  all: noisySystemTypeIds.map((versionedUrl) => ({
-    notEqual: [{ path: ["type", "versionedUrl"] }, { parameter: versionedUrl }],
+  all: noisySystemBaseUrls.map((baseUrl) => ({
+    notEqual: [{ path: ["type", "baseUrl"] }, { parameter: baseUrl }],
   })),
 };

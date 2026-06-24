@@ -95,6 +95,7 @@ impl Transpile for SelectStatement {
 #[cfg(test)]
 mod tests {
     use alloc::borrow::Cow;
+    use core::str::FromStr as _;
 
     use hash_codec::numeric::Real;
     use hash_graph_store::{
@@ -118,13 +119,14 @@ mod tests {
         knowledge::Entity,
         ontology::{
             BaseUrl, DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata,
+            VersionedUrl,
         },
     };
     use uuid::Uuid;
 
     use crate::store::postgres::query::{
         Distinctness, PostgresRecord, SelectCompiler, SelectExpression, SelectStatement,
-        Transpile as _, test_helper::trim_whitespace,
+        Transpile as _, compile::SelectCompilerError, test_helper::trim_whitespace,
     };
 
     #[track_caller]
@@ -155,7 +157,7 @@ mod tests {
 
     #[test]
     fn asterisk() {
-        let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+        let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
         test_compilation(
             &SelectCompiler::<DataTypeWithMetadata>::with_asterisk(Some(&temporal_axes), false),
             r#"SELECT * FROM "ontology_temporal_metadata" AS "ontology_temporal_metadata_0_0_0""#,
@@ -165,7 +167,7 @@ mod tests {
 
     #[test]
     fn simple_expression() {
-        let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+        let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
         let pinned_timestamp = temporal_axes.pinned_timestamp();
         let mut compiler =
             SelectCompiler::<DataTypeWithMetadata>::with_asterisk(Some(&temporal_axes), false);
@@ -201,7 +203,7 @@ mod tests {
 
     #[test]
     fn limited_temporal() {
-        let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+        let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
         let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes), false);
         let filter = Filter::Equal(
             FilterExpression::Path {
@@ -258,7 +260,7 @@ mod tests {
 
     #[test]
     fn specific_version() {
-        let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+        let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
         let pinned_timestamp = temporal_axes.pinned_timestamp();
         let mut compiler =
             SelectCompiler::<DataTypeWithMetadata>::with_asterisk(Some(&temporal_axes), false);
@@ -307,7 +309,7 @@ mod tests {
 
     #[test]
     fn latest_version() {
-        let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+        let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
         let pinned_timestamp = temporal_axes.pinned_timestamp();
         let mut compiler =
             SelectCompiler::<DataTypeWithMetadata>::with_asterisk(Some(&temporal_axes), false);
@@ -341,7 +343,7 @@ mod tests {
 
     #[test]
     fn not_latest_version() {
-        let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+        let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
         let pinned_timestamp = temporal_axes.pinned_timestamp();
         let mut compiler =
             SelectCompiler::<DataTypeWithMetadata>::with_asterisk(Some(&temporal_axes), false);
@@ -375,7 +377,7 @@ mod tests {
 
     #[test]
     fn property_type_by_referenced_data_types() {
-        let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+        let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
         let pinned_timestamp = temporal_axes.pinned_timestamp();
         let mut compiler =
             SelectCompiler::<PropertyTypeWithMetadata>::with_asterisk(Some(&temporal_axes), false);
@@ -477,7 +479,7 @@ mod tests {
 
     #[test]
     fn property_type_by_referenced_property_types() {
-        let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+        let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
         let pinned_timestamp = temporal_axes.pinned_timestamp();
         let mut compiler =
             SelectCompiler::<PropertyTypeWithMetadata>::with_asterisk(Some(&temporal_axes), false);
@@ -518,7 +520,7 @@ mod tests {
 
     #[test]
     fn entity_type_by_referenced_property_types() {
-        let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+        let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
         let pinned_timestamp = temporal_axes.pinned_timestamp();
         let mut compiler =
             SelectCompiler::<EntityTypeWithMetadata>::with_asterisk(Some(&temporal_axes), false);
@@ -560,7 +562,7 @@ mod tests {
 
     #[test]
     fn entity_type_by_referenced_link_types() {
-        let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+        let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
         let pinned_timestamp = temporal_axes.pinned_timestamp();
         let mut compiler =
             SelectCompiler::<EntityTypeWithMetadata>::with_asterisk(Some(&temporal_axes), false);
@@ -615,7 +617,7 @@ mod tests {
 
     #[test]
     fn entity_type_by_inheritance() {
-        let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+        let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
         let pinned_timestamp = temporal_axes.pinned_timestamp();
         let mut compiler =
             SelectCompiler::<EntityTypeWithMetadata>::with_asterisk(Some(&temporal_axes), false);
@@ -663,7 +665,7 @@ mod tests {
 
     #[test]
     fn entity_simple_query() {
-        let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+        let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
         let pinned_timestamp = temporal_axes.pinned_timestamp();
         let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes), false);
 
@@ -698,7 +700,7 @@ mod tests {
 
     #[test]
     fn entity_with_manual_selection() {
-        let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+        let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
         let pinned_timestamp = temporal_axes.pinned_timestamp();
         let mut compiler = SelectCompiler::<Entity>::new(Some(&temporal_axes), true);
         compiler.add_distinct_selection_with_ordering(
@@ -751,7 +753,7 @@ mod tests {
 
     #[test]
     fn entity_property_query() {
-        let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+        let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
         let pinned_timestamp = temporal_axes.pinned_timestamp();
         let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes), false);
         let json_path = JsonPath::from_path_tokens(vec![PathToken::Field(Cow::Borrowed(
@@ -792,7 +794,7 @@ mod tests {
 
     #[test]
     fn entity_property_null_query() {
-        let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+        let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
         let pinned_timestamp = temporal_axes.pinned_timestamp();
         let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes), false);
         let json_path = JsonPath::from_path_tokens(vec![PathToken::Field(Cow::Borrowed(
@@ -826,7 +828,7 @@ mod tests {
 
     #[test]
     fn entity_outgoing_link_query() {
-        let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+        let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
         let pinned_timestamp = temporal_axes.pinned_timestamp();
         let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes), false);
 
@@ -887,7 +889,7 @@ mod tests {
 
     #[test]
     fn entity_incoming_link_query() {
-        let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+        let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
         let pinned_timestamp = temporal_axes.pinned_timestamp();
         let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes), false);
 
@@ -948,7 +950,7 @@ mod tests {
 
     #[test]
     fn link_entity_left_right_id() {
-        let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+        let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
         let pinned_timestamp = temporal_axes.pinned_timestamp();
         let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes), false);
 
@@ -1041,7 +1043,7 @@ mod tests {
     #[test]
     #[expect(clippy::similar_names)]
     fn two_linked_entities() {
-        let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+        let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
         let pinned_timestamp = temporal_axes.pinned_timestamp();
 
         let entity_a_uuid = Uuid::new_v4();
@@ -1141,7 +1143,7 @@ mod tests {
 
     #[test]
     fn filter_left_and_right() {
-        let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+        let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
         let pinned_timestamp = temporal_axes.pinned_timestamp();
         let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes), false);
 
@@ -1242,6 +1244,360 @@ mod tests {
     }
 
     #[test]
+    fn filter_entity_by_type_versioned_url() {
+        let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
+        let pinned_timestamp = temporal_axes.pinned_timestamp();
+        let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes), false);
+
+        let url = VersionedUrl::from_str(
+            "https://example.com/@example-org/types/entity-type/address/v/1",
+        )
+        .expect("should parse versioned url");
+        let filter = Filter::for_entity_by_type_id(&url);
+        compiler.add_filter(&filter).expect("Failed to add filter");
+
+        test_compilation(
+            &compiler,
+            r#"
+                SELECT *
+                FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+                INNER JOIN "entity_edition_cache" AS "entity_edition_cache_0_1_0"
+                  ON "entity_edition_cache_0_1_0"."entity_edition_id" = "entity_temporal_metadata_0_0_0"."entity_edition_id"
+                WHERE "entity_temporal_metadata_0_0_0"."draft_id" IS NULL
+                  AND "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
+                  AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
+                  AND "entity_edition_cache_0_1_0"."versioned_urls" @> ARRAY[$3]::text[]
+                "#,
+            &[
+                &pinned_timestamp,
+                &temporal_axes.variable_interval(),
+                &"https://example.com/@example-org/types/entity-type/address/v/1",
+            ],
+        );
+    }
+
+    #[test]
+    fn filter_entity_by_any_type_versioned_url() {
+        let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
+        let pinned_timestamp = temporal_axes.pinned_timestamp();
+        let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes), false);
+
+        let url_a = VersionedUrl::from_str(
+            "https://example.com/@example-org/types/entity-type/address/v/1",
+        )
+        .expect("should parse versioned url");
+        let url_b = VersionedUrl::from_str(
+            "https://example.com/@example-org/types/entity-type/location/v/1",
+        )
+        .expect("should parse versioned url");
+        let filter = Filter::Any(vec![
+            Filter::for_entity_by_type_id(&url_a),
+            Filter::for_entity_by_type_id(&url_b),
+        ]);
+        compiler.add_filter(&filter).expect("Failed to add filter");
+
+        test_compilation(
+            &compiler,
+            r#"
+                SELECT *
+                FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+                INNER JOIN "entity_edition_cache" AS "entity_edition_cache_0_1_0"
+                    ON "entity_edition_cache_0_1_0"."entity_edition_id" = "entity_temporal_metadata_0_0_0"."entity_edition_id"
+                WHERE "entity_temporal_metadata_0_0_0"."draft_id" IS NULL
+                    AND "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
+                    AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
+                    AND ("entity_edition_cache_0_1_0"."versioned_urls" && ARRAY[$3, $4]::text[])
+                "#,
+            &[
+                &pinned_timestamp,
+                &temporal_axes.variable_interval(),
+                &"https://example.com/@example-org/types/entity-type/address/v/1",
+                &"https://example.com/@example-org/types/entity-type/location/v/1",
+            ],
+        );
+    }
+
+    #[test]
+    fn filter_entity_by_all_type_versioned_url() {
+        let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
+        let pinned_timestamp = temporal_axes.pinned_timestamp();
+        let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes), false);
+
+        let url_a = VersionedUrl::from_str(
+            "https://example.com/@example-org/types/entity-type/address/v/1",
+        )
+        .expect("should parse versioned url");
+        let url_b = VersionedUrl::from_str(
+            "https://example.com/@example-org/types/entity-type/location/v/1",
+        )
+        .expect("should parse versioned url");
+        let filter = Filter::All(vec![
+            Filter::for_entity_by_type_id(&url_a),
+            Filter::for_entity_by_type_id(&url_b),
+        ]);
+        compiler.add_filter(&filter).expect("Failed to add filter");
+
+        test_compilation(
+            &compiler,
+            r#"
+                SELECT *
+                FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+                INNER JOIN "entity_edition_cache" AS "entity_edition_cache_0_1_0"
+                    ON "entity_edition_cache_0_1_0"."entity_edition_id" = "entity_temporal_metadata_0_0_0"."entity_edition_id"
+                WHERE "entity_temporal_metadata_0_0_0"."draft_id" IS NULL
+                    AND "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
+                    AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
+                    AND ("entity_edition_cache_0_1_0"."versioned_urls" @> ARRAY[$3, $4]::text[])
+                "#,
+            &[
+                &pinned_timestamp,
+                &temporal_axes.variable_interval(),
+                &"https://example.com/@example-org/types/entity-type/address/v/1",
+                &"https://example.com/@example-org/types/entity-type/location/v/1",
+            ],
+        );
+    }
+
+    #[test]
+    fn filter_entity_own_and_linked_type_stay_separate() {
+        let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
+        let pinned_timestamp = temporal_axes.pinned_timestamp();
+        let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes), false);
+
+        // Both paths terminate in `entity_edition_cache.versioned_urls`, but through
+        // different join chains — bundling them would test the linked entity's type
+        // against the entity's own type array.
+        let filter = Filter::All(vec![
+            Filter::<Entity>::Equal(
+                FilterExpression::Path {
+                    path: EntityQueryPath::EntityTypeEdge {
+                        edge_kind: SharedEdgeKind::IsOfType,
+                        path: EntityTypeQueryPath::VersionedUrl,
+                        inheritance_depth: None,
+                    },
+                },
+                FilterExpression::Parameter {
+                    parameter: Parameter::Text(Cow::Borrowed(
+                        "https://example.com/@example-org/types/entity-type/page/v/1",
+                    )),
+                    convert: None,
+                },
+            ),
+            Filter::<Entity>::Equal(
+                FilterExpression::Path {
+                    path: EntityQueryPath::EntityEdge {
+                        edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
+                        path: Box::new(EntityQueryPath::EntityTypeEdge {
+                            edge_kind: SharedEdgeKind::IsOfType,
+                            path: EntityTypeQueryPath::VersionedUrl,
+                            inheritance_depth: None,
+                        }),
+                        direction: EdgeDirection::Outgoing,
+                    },
+                },
+                FilterExpression::Parameter {
+                    parameter: Parameter::Text(Cow::Borrowed(
+                        "https://example.com/@example-org/types/entity-type/user/v/1",
+                    )),
+                    convert: None,
+                },
+            ),
+        ]);
+        compiler.add_filter(&filter).expect("Failed to add filter");
+
+        test_compilation(
+            &compiler,
+            r#"
+                SELECT *
+                FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+                INNER JOIN "entity_edition_cache" AS "entity_edition_cache_0_1_0"
+                    ON "entity_edition_cache_0_1_0"."entity_edition_id" = "entity_temporal_metadata_0_0_0"."entity_edition_id"
+                LEFT OUTER JOIN "entity_has_right_entity" AS "entity_has_right_entity_0_1_0"
+                    ON "entity_has_right_entity_0_1_0"."web_id" = "entity_temporal_metadata_0_0_0"."web_id"
+                   AND "entity_has_right_entity_0_1_0"."entity_uuid" = "entity_temporal_metadata_0_0_0"."entity_uuid"
+                LEFT OUTER JOIN "entity_temporal_metadata" AS "entity_temporal_metadata_0_2_0"
+                    ON "entity_temporal_metadata_0_2_0"."web_id" = "entity_has_right_entity_0_1_0"."right_web_id"
+                   AND "entity_temporal_metadata_0_2_0"."entity_uuid" = "entity_has_right_entity_0_1_0"."right_entity_uuid"
+                   AND "entity_temporal_metadata_0_2_0"."draft_id" IS NULL
+                   AND "entity_temporal_metadata_0_2_0"."transaction_time" @> $1::TIMESTAMPTZ
+                   AND "entity_temporal_metadata_0_2_0"."decision_time" && $2
+                LEFT OUTER JOIN "entity_edition_cache" AS "entity_edition_cache_0_3_0"
+                    ON "entity_edition_cache_0_3_0"."entity_edition_id" = "entity_temporal_metadata_0_2_0"."entity_edition_id"
+                WHERE "entity_temporal_metadata_0_0_0"."draft_id" IS NULL
+                    AND "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
+                    AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
+                    AND ("entity_edition_cache_0_1_0"."versioned_urls" @> ARRAY[$3]::text[])
+                    AND ("entity_edition_cache_0_3_0"."versioned_urls" @> ARRAY[$4]::text[])
+                "#,
+            &[
+                &pinned_timestamp,
+                &temporal_axes.variable_interval(),
+                &"https://example.com/@example-org/types/entity-type/page/v/1",
+                &"https://example.com/@example-org/types/entity-type/user/v/1",
+            ],
+        );
+    }
+
+    #[test]
+    fn filter_entity_by_no_type_versioned_url() {
+        let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
+        let pinned_timestamp = temporal_axes.pinned_timestamp();
+        let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes), false);
+
+        let exclusion = |url: &'static str| {
+            Filter::<Entity>::NotEqual(
+                FilterExpression::Path {
+                    path: EntityQueryPath::EntityTypeEdge {
+                        edge_kind: SharedEdgeKind::IsOfType,
+                        path: EntityTypeQueryPath::VersionedUrl,
+                        inheritance_depth: None,
+                    },
+                },
+                FilterExpression::Parameter {
+                    parameter: Parameter::Text(Cow::Borrowed(url)),
+                    convert: None,
+                },
+            )
+        };
+        let filter = Filter::All(vec![
+            exclusion("https://example.com/@example-org/types/entity-type/address/v/1"),
+            exclusion("https://example.com/@example-org/types/entity-type/location/v/1"),
+        ]);
+        compiler.add_filter(&filter).expect("Failed to add filter");
+
+        test_compilation(
+            &compiler,
+            r#"
+                SELECT *
+                FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+                INNER JOIN "entity_edition_cache" AS "entity_edition_cache_0_1_0"
+                    ON "entity_edition_cache_0_1_0"."entity_edition_id" = "entity_temporal_metadata_0_0_0"."entity_edition_id"
+                WHERE "entity_temporal_metadata_0_0_0"."draft_id" IS NULL
+                    AND "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
+                    AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
+                    AND (NOT("entity_edition_cache_0_1_0"."versioned_urls" && ARRAY[$3, $4]::text[]))
+                "#,
+            &[
+                &pinned_timestamp,
+                &temporal_axes.variable_interval(),
+                &"https://example.com/@example-org/types/entity-type/address/v/1",
+                &"https://example.com/@example-org/types/entity-type/location/v/1",
+            ],
+        );
+    }
+
+    #[test]
+    fn filter_entity_by_type_starts_with_rejected() {
+        let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
+        let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes), false);
+
+        // String operations have no scalar to operate on once the path resolves to the
+        // materialized `base_urls` array, so they must be rejected at compile time rather
+        // than emit invalid SQL.
+        let filter = Filter::<Entity>::StartsWith(
+            FilterExpression::Path {
+                path: EntityQueryPath::EntityTypeEdge {
+                    edge_kind: SharedEdgeKind::IsOfType,
+                    path: EntityTypeQueryPath::BaseUrl,
+                    inheritance_depth: None,
+                },
+            },
+            FilterExpression::Parameter {
+                parameter: Parameter::Text(Cow::Borrowed(
+                    "https://example.com/@example-org/types/entity-type/",
+                )),
+                convert: None,
+            },
+        );
+
+        let error = compiler
+            .add_filter(&filter)
+            .expect_err("string operation on a cached array path should be rejected");
+        assert!(
+            matches!(
+                error.current_context(),
+                SelectCompilerError::UnsupportedTextArrayOperation
+            ),
+            "unexpected error: {error:?}"
+        );
+    }
+
+    #[test]
+    fn filter_entity_by_type_versioned_url_not_equal() {
+        let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
+        let pinned_timestamp = temporal_axes.pinned_timestamp();
+        let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes), false);
+
+        let filter = Filter::<Entity>::NotEqual(
+            FilterExpression::Path {
+                path: EntityQueryPath::EntityTypeEdge {
+                    edge_kind: SharedEdgeKind::IsOfType,
+                    path: EntityTypeQueryPath::VersionedUrl,
+                    inheritance_depth: None,
+                },
+            },
+            FilterExpression::Parameter {
+                parameter: Parameter::Text(Cow::Borrowed(
+                    "https://example.com/@example-org/types/entity-type/address/v/1",
+                )),
+                convert: None,
+            },
+        );
+        compiler.add_filter(&filter).expect("Failed to add filter");
+
+        test_compilation(
+            &compiler,
+            r#"
+            SELECT *
+            FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+            INNER JOIN "entity_edition_cache" AS "entity_edition_cache_0_1_0"
+              ON "entity_edition_cache_0_1_0"."entity_edition_id" = "entity_temporal_metadata_0_0_0"."entity_edition_id"
+            WHERE "entity_temporal_metadata_0_0_0"."draft_id" IS NULL
+              AND "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
+              AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
+              AND NOT("entity_edition_cache_0_1_0"."versioned_urls" @> ARRAY[$3]::text[])
+            "#,
+            &[
+                &pinned_timestamp,
+                &temporal_axes.variable_interval(),
+                &"https://example.com/@example-org/types/entity-type/address/v/1",
+            ],
+        );
+    }
+
+    #[test]
+    fn filter_entity_by_type_base_url() {
+        let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
+        let pinned_timestamp = temporal_axes.pinned_timestamp();
+        let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes), false);
+
+        let base_url =
+            BaseUrl::new("https://example.com/@example-org/types/entity-type/address/".to_owned())
+                .expect("should parse base url");
+        let filter = Filter::for_entity_by_base_type_id(&base_url);
+        compiler.add_filter(&filter).expect("Failed to add filter");
+
+        test_compilation(
+            &compiler,
+            r#"
+            SELECT *
+            FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+            INNER JOIN "entity_edition_cache" AS "entity_edition_cache_0_1_0"
+              ON "entity_edition_cache_0_1_0"."entity_edition_id" = "entity_temporal_metadata_0_0_0"."entity_edition_id"
+            WHERE "entity_temporal_metadata_0_0_0"."draft_id" IS NULL
+              AND "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
+              AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
+              AND "entity_edition_cache_0_1_0"."base_urls" @> ARRAY[$3]::text[]
+            "#,
+            &[
+                &pinned_timestamp,
+                &temporal_axes.variable_interval(),
+                &"https://example.com/@example-org/types/entity-type/address/",
+            ],
+        );
+    }
+
+    #[test]
     fn filter_embedding_distance() {
         let mut compiler = SelectCompiler::<Entity>::with_asterisk(None, false);
 
@@ -1288,6 +1644,41 @@ mod tests {
     }
 
     #[test]
+    fn sort_by_label_and_type_title() {
+        let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
+        let pinned_timestamp = temporal_axes.pinned_timestamp();
+        let mut compiler = SelectCompiler::<Entity>::new(Some(&temporal_axes), true);
+        compiler.add_distinct_selection_with_ordering(
+            &EntityQueryPath::FirstLabel,
+            Distinctness::Distinct,
+            Some((Ordering::Ascending, Some(NullOrdering::Last))),
+        );
+        compiler.add_distinct_selection_with_ordering(
+            &EntityQueryPath::FirstTypeTitle,
+            Distinctness::Distinct,
+            Some((Ordering::Descending, Some(NullOrdering::Last))),
+        );
+
+        test_compilation(
+            &compiler,
+            r#"
+            SELECT
+                DISTINCT ON(("entity_edition_cache_0_1_0"."labels")[1], ("entity_edition_cache_0_1_0"."type_titles")[1])
+                ("entity_edition_cache_0_1_0"."labels")[1],
+                ("entity_edition_cache_0_1_0"."type_titles")[1]
+            FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+            INNER JOIN "entity_edition_cache" AS "entity_edition_cache_0_1_0"
+              ON "entity_edition_cache_0_1_0"."entity_edition_id" = "entity_temporal_metadata_0_0_0"."entity_edition_id"
+            WHERE "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
+              AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
+            ORDER BY ("entity_edition_cache_0_1_0"."labels")[1] ASC NULLS LAST,
+                     ("entity_edition_cache_0_1_0"."type_titles")[1] DESC NULLS LAST
+            "#,
+            &[&pinned_timestamp, &temporal_axes.variable_interval()],
+        );
+    }
+
+    #[test]
     fn transpile_offset() {
         let statement = SelectStatement::builder()
             .selects(vec![SelectExpression::Asterisk(None)])
@@ -1323,7 +1714,7 @@ mod tests {
                 },
             };
 
-            let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+            let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
             let pinned_timestamp = temporal_axes.pinned_timestamp();
             let mut compiler =
                 SelectCompiler::<DataTypeWithMetadata>::with_asterisk(Some(&temporal_axes), false);
@@ -1353,7 +1744,7 @@ mod tests {
                 draft_id: None,
             };
 
-            let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+            let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
             let pinned_timestamp = temporal_axes.pinned_timestamp();
             let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes), false);
 
@@ -1390,7 +1781,7 @@ mod tests {
 
             let mut compiler = SelectCompiler::<Entity>::new(None, false);
 
-            // with_property_masking automatically adds the TypeBaseUrls join
+            // with_property_masking automatically adds the entity_edition_cache join
             let property_filter = config.to_property_protection_filter(None);
             compiler.with_property_masking(&property_filter);
 
@@ -1400,22 +1791,22 @@ mod tests {
                 &compiler,
                 r#"
                 SELECT ("entity_editions_0_1_0"."properties" - (CASE WHEN
-                    ($1 = ANY("entity_is_of_type_ids_0_1_0"."base_urls"))
-                    AND ("entity_temporal_metadata_0_0_0"."entity_uuid" != $2)
+                    ("entity_temporal_metadata_0_0_0"."entity_uuid" != $1)
+                    AND ("entity_edition_cache_0_1_0"."base_urls" @> ARRAY[$2]::text[])
                     THEN ARRAY[$3]::text[]
                     ELSE ARRAY[]::text[] END))
                 FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
                 INNER JOIN "entity_editions" AS "entity_editions_0_1_0"
                     ON "entity_editions_0_1_0"."entity_edition_id" =
                         "entity_temporal_metadata_0_0_0"."entity_edition_id"
-                INNER JOIN "entity_is_of_type_ids" AS "entity_is_of_type_ids_0_1_0"
-                    ON "entity_is_of_type_ids_0_1_0"."entity_edition_id" =
+                INNER JOIN "entity_edition_cache" AS "entity_edition_cache_0_1_0"
+                    ON "entity_edition_cache_0_1_0"."entity_edition_id" =
                         "entity_temporal_metadata_0_0_0"."entity_edition_id"
                 WHERE "entity_temporal_metadata_0_0_0"."draft_id" IS NULL
                 "#,
                 &[
-                    &"https://hash.ai/@h/types/entity-type/user/",
                     &Uuid::nil(),
+                    &"https://hash.ai/@h/types/entity-type/user/",
                     &"https://hash.ai/@h/types/property-type/email/",
                 ],
             );

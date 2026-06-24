@@ -35,6 +35,7 @@ export { Slider, type SliderProps } from "./components/Slider/slider";
 export { Switch, type SwitchProps } from "./components/Switch/switch";
 export { TextInput } from "./components/TextInput/text-input";
 export { TextMark } from "./components/TextMark/text-mark";
+export { Toggle, type ToggleProps } from "./components/Toggle/toggle";
 export { Tooltip } from "./components/Tooltip/tooltip";
 export {
   PortalContainerContext,

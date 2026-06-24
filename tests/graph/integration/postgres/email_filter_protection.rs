@@ -26,6 +26,7 @@ use hash_graph_store::{
         CountEntitiesParams, CreateEntityParams, EntityQueryPath, EntityQuerySorting,
         EntityQuerySortingRecord, EntityStore as _, QueryEntitiesParams, QueryEntitySubgraphParams,
     },
+    entity_type::EntityTypeQueryPath,
     filter::{
         Filter, FilterExpression, JsonPath, Parameter, PathToken,
         protection::{
@@ -35,14 +36,13 @@ use hash_graph_store::{
     },
     query::{NullOrdering, Ordering},
     subgraph::{
-        edges::{EdgeDirection, EntityTraversalEdge, EntityTraversalPath, GraphResolveDepths},
-        temporal_axes::{
-            PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved,
-            VariableTemporalAxisUnresolved,
+        edges::{
+            EdgeDirection, EntityTraversalEdge, EntityTraversalPath, GraphResolveDepths,
+            SharedEdgeKind,
         },
+        temporal_axes::QueryTemporalAxesUnresolved,
     },
 };
-use hash_graph_temporal_versioning::TemporalBound;
 use hash_graph_test_data::{data_type, entity_type};
 use type_system::{
     knowledge::{
@@ -209,10 +209,7 @@ fn shortname_filter(shortname: &str) -> Filter<'static, type_system::knowledge::
 
 /// Helper to get standard temporal axes for queries.
 fn standard_temporal_axes() -> QueryTemporalAxesUnresolved {
-    QueryTemporalAxesUnresolved::DecisionTime {
-        pinned: PinnedTemporalAxisUnresolved::new(None),
-        variable: VariableTemporalAxisUnresolved::new(Some(TemporalBound::Unbounded), None),
-    }
+    QueryTemporalAxesUnresolved::all()
 }
 
 /// Seeds the database with User and Invitation entity types (with email and shortname properties).
@@ -1424,7 +1421,11 @@ fn multi_property_config() -> PropertyProtectionFilterConfig<'static> {
                     parameter: Parameter::Text(Cow::Borrowed(USER_ENTITY_TYPE_BASE_URL)),
                 },
                 PropertyFilterExpressionList::Path {
-                    path: EntityQueryPath::TypeBaseUrls,
+                    path: EntityQueryPath::EntityTypeEdge {
+                        edge_kind: SharedEdgeKind::IsOfType,
+                        path: EntityTypeQueryPath::BaseUrl,
+                        inheritance_depth: None,
+                    },
                 },
             ),
             PropertyFilter::NotEqual(
@@ -2046,7 +2047,11 @@ fn multi_type_config() -> PropertyProtectionFilterConfig<'static> {
                     parameter: Parameter::Text(Cow::Borrowed(USER_ENTITY_TYPE_BASE_URL)),
                 },
                 PropertyFilterExpressionList::Path {
-                    path: EntityQueryPath::TypeBaseUrls,
+                    path: EntityQueryPath::EntityTypeEdge {
+                        edge_kind: SharedEdgeKind::IsOfType,
+                        path: EntityTypeQueryPath::BaseUrl,
+                        inheritance_depth: None,
+                    },
                 },
             ),
             PropertyFilter::NotEqual(
@@ -2065,7 +2070,11 @@ fn multi_type_config() -> PropertyProtectionFilterConfig<'static> {
                     parameter: Parameter::Text(Cow::Borrowed(SECRET_ENTITY_TYPE_BASE_URL)),
                 },
                 PropertyFilterExpressionList::Path {
-                    path: EntityQueryPath::TypeBaseUrls,
+                    path: EntityQueryPath::EntityTypeEdge {
+                        edge_kind: SharedEdgeKind::IsOfType,
+                        path: EntityTypeQueryPath::BaseUrl,
+                        inheritance_depth: None,
+                    },
                 },
             ),
             PropertyFilter::NotEqual(
