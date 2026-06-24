@@ -8,10 +8,6 @@ import type { EntityId } from "@blockprotocol/type-system";
  * Create a function that marks a link entity for archival: if the link is an
  * as-yet-uncreated draft it is removed from the draft-create list, otherwise it
  * is added to the draft-archive list.
- *
- * This was previously a hook that read the draft link state from
- * `useEntityEditor`; it is now a plain factory so that the draft state can be
- * passed in as props/row data instead of via context.
  */
 export const createMarkLinkEntityToArchive =
   ({
