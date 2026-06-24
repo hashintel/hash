@@ -294,6 +294,7 @@ pub struct RuntimeConfig {
 }
 
 impl Default for RuntimeConfig {
+    #[inline]
     fn default() -> Self {
         Self {
             recursion_limit: 1024,

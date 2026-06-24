@@ -53,6 +53,8 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
                     operands.push(self.operand(field.value));
                 }
 
+                debug_assert!(field_names.is_sorted());
+
                 RValue::Aggregate(Aggregate {
                     kind: AggregateKind::Struct {
                         fields: self.context.mir.interner.symbols.intern_slice(&field_names),

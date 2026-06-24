@@ -243,7 +243,7 @@ impl<'heap, A: Allocator> PartialEncodings<'heap, A> {
         let mut builder: StructBuilder<'heap, A, 1> = StructBuilder::new();
         self.vectors.finish_in(&mut builder, sym::vectors);
 
-        let value = Value::Struct(builder.finish(interner, alloc.clone()));
+        let value = Value::Struct(builder.finish(&interner.symbols, alloc.clone()));
         Value::Opaque(Opaque::new(
             sym::path::EntityEncodings,
             Rc::new_in(value, alloc),
@@ -286,7 +286,7 @@ impl<'heap, A: Allocator> PartialLinkEntityId<'heap, A> {
             )),
         );
 
-        let inner = Value::Struct(builder.finish(interner, alloc.clone()));
+        let inner = Value::Struct(builder.finish(&interner.symbols, alloc.clone()));
         Value::Opaque(Opaque::new(sym::path::EntityId, Rc::new_in(inner, alloc)))
     }
 }
@@ -315,7 +315,7 @@ impl<'heap, A: Allocator> PartialProvenance<'heap, A> {
         self.inferred.finish_in(&mut builder, sym::inferred);
         self.edition.finish_in(&mut builder, sym::edition);
 
-        let value = Value::Struct(builder.finish(interner, alloc.clone()));
+        let value = Value::Struct(builder.finish(&interner.symbols, alloc.clone()));
 
         Value::Opaque(Opaque::new(
             sym::path::EntityProvenance,
@@ -350,7 +350,7 @@ impl<'heap, A: Allocator> PartialTemporalVersioning<'heap, A> {
         self.transaction_time
             .finish_in(&mut builder, sym::transaction_time);
 
-        let value = Value::Struct(builder.finish(interner, alloc.clone()));
+        let value = Value::Struct(builder.finish(&interner.symbols, alloc.clone()));
         Value::Opaque(Opaque::new(
             sym::path::TemporalMetadata,
             Rc::new_in(value, alloc),
@@ -390,7 +390,7 @@ impl<'heap, A: Allocator> PartialEntityId<'heap, A> {
         self.draft_id
             .finish_in(&mut builder, sym::draft_id, alloc.clone());
 
-        let value = Value::Struct(builder.finish(interner, alloc.clone()));
+        let value = Value::Struct(builder.finish(&interner.symbols, alloc.clone()));
         Value::Opaque(Opaque::new(sym::path::EntityId, Rc::new_in(value, alloc)))
     }
 }
@@ -425,7 +425,7 @@ impl<'heap, A: Allocator> PartialRecordId<'heap, A> {
             .finish_in(&mut builder, sym::entity_id);
         self.edition_id.finish_in(&mut builder, sym::edition_id);
 
-        let value = Value::Struct(builder.finish(interner, alloc.clone()));
+        let value = Value::Struct(builder.finish(&interner.symbols, alloc.clone()));
         Value::Opaque(Opaque::new(sym::path::RecordId, Rc::new_in(value, alloc)))
     }
 }
@@ -483,7 +483,7 @@ impl<'heap, A: Allocator> PartialLinkData<'heap, A> {
         self.right_entity_provenance
             .finish_in(&mut builder, sym::right_entity_provenance);
 
-        let value = Value::Struct(builder.finish(interner, alloc.clone()));
+        let value = Value::Struct(builder.finish(&interner.symbols, alloc.clone()));
         Value::Opaque(Opaque::new(sym::path::LinkData, Rc::new_in(value, alloc)))
     }
 
@@ -561,7 +561,7 @@ impl<'heap, A: Allocator> PartialMetadata<'heap, A> {
         self.property_metadata
             .finish_in(&mut builder, sym::property_metadata);
 
-        let value = Value::Struct(builder.finish(interner, alloc.clone()));
+        let value = Value::Struct(builder.finish(&interner.symbols, alloc.clone()));
         Value::Opaque(Opaque::new(
             sym::path::EntityMetadata,
             Rc::new_in(value, alloc),
@@ -618,7 +618,7 @@ impl<'heap, A: Allocator> PartialEntity<'heap, A> {
             .map(|partial| partial.finish_in(interner, alloc.clone()))
             .finish_in(&mut builder, sym::encodings);
 
-        let value = Value::Struct(builder.finish(interner, alloc.clone()));
+        let value = Value::Struct(builder.finish(&interner.symbols, alloc.clone()));
         Value::Opaque(Opaque::new(sym::path::Entity, Rc::new_in(value, alloc)))
     }
 
