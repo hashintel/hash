@@ -236,24 +236,11 @@ export type QueryEntitiesResponse<
     TypeIdsAndPropertiesForEntity,
 > = DistributiveOmit<
   QueryEntitiesResponseGraphApi,
-  | "entities"
-  | "closedMultiEntityTypes"
-  | "definitions"
-  | "webIds"
-  | "createdByIds"
-  | "editionCreatedByIds"
-  | "typeIds"
-  | "typeTitles"
-  | "permissions"
+  "entities" | "closedMultiEntityTypes" | "definitions" | "permissions"
 > & {
   entities: HashEntity<PropertyMap>[];
   closedMultiEntityTypes?: Record<VersionedUrl, ClosedMultiEntityTypeMap>;
   definitions?: EntityTypeResolveDefinitions;
-  webIds?: Record<WebId, number>;
-  createdByIds?: Record<ActorEntityUuid, number>;
-  editionCreatedByIds?: Record<ActorEntityUuid, number>;
-  typeIds?: Record<VersionedUrl, number>;
-  typeTitles?: Record<VersionedUrl, string>;
   permissions?: EntityPermissionsMap;
 };
 
@@ -281,23 +268,11 @@ export type QueryEntitySubgraphResponse<
     TypeIdsAndPropertiesForEntity,
 > = DistributiveOmit<
   QueryEntitySubgraphResponseGraphApi,
-  | "subgraph"
-  | "closedMultiEntityTypes"
-  | "definitions"
-  | "webIds"
-  | "createdByIds"
-  | "editionCreatedByIds"
-  | "typeIds"
-  | "typeTitles"
+  "subgraph" | "closedMultiEntityTypes" | "definitions"
 > & {
   subgraph: Subgraph<EntityRootType<HashEntity<PropertyMap>>, HashEntity>;
   closedMultiEntityTypes?: Record<VersionedUrl, ClosedMultiEntityTypeMap>;
   definitions?: EntityTypeResolveDefinitions;
-  webIds?: Record<WebId, number>;
-  createdByIds?: Record<ActorEntityUuid, number>;
-  editionCreatedByIds?: Record<ActorEntityUuid, number>;
-  typeIds?: Record<VersionedUrl, number>;
-  typeTitles?: Record<VersionedUrl, string>;
   entityPermissions?: EntityPermissionsMap;
 };
 
