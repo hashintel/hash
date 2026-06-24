@@ -83,6 +83,15 @@ const pollForKratosCode = async ({
   const maxWaitMs = 10_000;
   const pollIntervalMs = 250;
   const timestampBufferMs = 5_000;
+  // Match recipients case-insensitively: a user may sign up with an uppercased
+  // address while Kratos delivers the email to the lowercased one.
+  const normalizedTarget = emailAddress.toLowerCase();
+  const isSentToTarget = (
+    addresses: MailslurperMailItem["toAddresses"],
+  ): boolean =>
+    extractToAddresses(addresses).some(
+      (address) => address.toLowerCase() === normalizedTarget,
+    );
   let elapsed = 0;
   let lastError: unknown;
   let lastMailItems: MailslurperMailItem[] | undefined;
@@ -110,7 +119,7 @@ const pollForKratosCode = async ({
 
             return (
               subjectFilter(mailItem.subject) &&
-              extractToAddresses(mailItem.toAddresses).includes(emailAddress) &&
+              isSentToTarget(mailItem.toAddresses) &&
               (!afterTimestamp ||
                 (typeof sentTimestamp === "number" &&
                   sentTimestamp >= afterTimestamp - timestampBufferMs))
@@ -143,7 +152,7 @@ const pollForKratosCode = async ({
 
   const allItems = lastMailItems ?? [];
   const toTargetAddress = allItems.filter((item) =>
-    extractToAddresses(item.toAddresses).includes(emailAddress),
+    isSentToTarget(item.toAddresses),
   );
   const matchingSubject = toTargetAddress.filter((item) =>
     subjectFilter(item.subject),

@@ -24,6 +24,7 @@ import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
 } from "@local/hash-isomorphic-utils/graph-queries";
+import { normalizeEmail } from "@local/hash-isomorphic-utils/normalize";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
@@ -140,9 +141,11 @@ export const checkEmailVerificationAndUsageStatus = async (
   | { status: "verified"; kratosIdentityId: string }
   | { status: "not-verified"; kratosIdentityId: string }
 > => {
+  const normalizedEmail = normalizeEmail(email);
+
   try {
     const { data: identities } = await kratosIdentityApi.listIdentities({
-      credentialsIdentifier: email,
+      credentialsIdentifier: normalizedEmail,
     });
 
     if (identities.length === 0) {
@@ -150,7 +153,7 @@ export const checkEmailVerificationAndUsageStatus = async (
     }
 
     const verifiedEmails = getVerifiedEmailsFromKratosIdentity(identities[0]!);
-    if (verifiedEmails.includes(email)) {
+    if (verifiedEmails.includes(normalizedEmail)) {
       return { status: "verified", kratosIdentityId: identities[0]!.id };
     } else {
       return { status: "not-verified", kratosIdentityId: identities[0]!.id };
@@ -187,7 +190,11 @@ export const getUserFromEntity: PureGraphFunction<
       entity.metadata.recordId.entityId,
     ) as UserId,
     displayName,
-    emails,
+    // Canonicalise at the single point every `User` is built from an entity, so
+    // case-insensitive comparisons hold regardless of the casing stored at
+    // signup.
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- the non-nullable type lies; property-level masking drops `email` at runtime
+    emails: emails?.map(normalizeEmail) as typeof emails,
     enabledFeatureFlags,
     entity,
     isAccountSignupComplete,
