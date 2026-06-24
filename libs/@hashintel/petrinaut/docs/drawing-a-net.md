@@ -73,7 +73,9 @@ Petri nets are bipartite: you cannot connect a place to another place or a trans
 
 ## Component ports
 
-Subnets can expose selected places as ports. Open the subnet, select a boundary place, and enable **Component port** in the place properties panel.
+Subnets can expose selected places as ports. If you don't see subnet or component controls, enable **Settings → Net Components** first.
+
+Open the subnet, select a boundary place, and enable **Component port** in the place properties panel.
 
 When you instantiate that subnet as a component, each port appears as a handle on the component instance:
 
