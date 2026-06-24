@@ -1,10 +1,9 @@
+import { versionedUrlFromComponents } from "@blockprotocol/type-system";
 import {
   blockProtocolDataTypes,
   blockProtocolEntityTypes,
   blockProtocolPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-
-import { versionedUrlFromComponents } from "@blockprotocol/type-system";
 
 import { activeCurrencies } from "../currencies";
 import {
@@ -16,16 +15,18 @@ import {
   getCurrentHashPropertyTypeId,
 } from "../util";
 
-import type { BaseUrl, Conversions, VersionedUrl } from "@blockprotocol/type-system";
-
 import type { MigrationFunction } from "../types";
+import type {
+  BaseUrl,
+  Conversions,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 
 const migrate: MigrationFunction = async ({
   context,
   authentication,
   migrationState,
 }) => {
-
   const dateDataTypeId = getCurrentHashDataTypeId({
     dataTypeKey: "date",
     migrationState,
@@ -38,13 +39,20 @@ const migrate: MigrationFunction = async ({
     dataTypeKey: "percentage",
     migrationState,
   });
-  const integerDataTypeId = getCurrentHashDataTypeId({
-    dataTypeKey: "integer",
-    migrationState,
-  });
   const lengthValues = (
-    ["meters", "centimeters", "millimeters", "kilometers", "feet", "inches", "yards", "miles"] as const
-  ).map((dataTypeKey) => ({ dataTypeId: getCurrentHashDataTypeId({ dataTypeKey, migrationState }) }));
+    [
+      "meters",
+      "centimeters",
+      "millimeters",
+      "kilometers",
+      "feet",
+      "inches",
+      "yards",
+      "miles",
+    ] as const
+  ).map((dataTypeKey) => ({
+    dataTypeId: getCurrentHashDataTypeId({ dataTypeKey, migrationState }),
+  }));
   const currencyValues = activeCurrencies.map(({ code }) => {
     const baseUrl = generateSystemTypeBaseUrl({
       kind: "data-type",
@@ -179,7 +187,10 @@ const migrate: MigrationFunction = async ({
     { dataTypeId: poundsDataType.schema.$id },
   ];
 
-  const convTo = (canonicalBaseUrl: BaseUrl, factor: number): Record<BaseUrl, Conversions> => ({
+  const convTo = (
+    canonicalBaseUrl: BaseUrl,
+    factor: number,
+  ): Record<BaseUrl, Conversions> => ({
     [canonicalBaseUrl]: {
       from: { expression: ["/", "self", { const: factor, type: "number" }] },
       to: { expression: ["*", "self", { const: factor, type: "number" }] },
@@ -204,55 +215,171 @@ const migrate: MigrationFunction = async ({
     "Volume",
     "A measure of the three-dimensional space occupied by something.",
   );
-  const litresDataType = await createSystemDataTypeIfNotExists(context, authentication, {
-    dataTypeDefinition: {
-      allOf: [{ $ref: volumeDataType.schema.$id }],
-      title: "Litres",
-      description: "A metric unit of volume equal to one cubic decimetre.",
-      label: { right: "L" },
-      type: "number",
+  const litresDataType = await createSystemDataTypeIfNotExists(
+    context,
+    authentication,
+    {
+      dataTypeDefinition: {
+        allOf: [{ $ref: volumeDataType.schema.$id }],
+        title: "Litres",
+        description: "A metric unit of volume equal to one cubic decimetre.",
+        label: { right: "L" },
+        type: "number",
+      },
+      conversions: {},
+      migrationState,
+      webShortname: "h",
     },
-    conversions: {},
-    migrationState,
-    webShortname: "h",
-  });
-  const millilitresDataType = await createSystemDataTypeIfNotExists(context, authentication, {
-    dataTypeDefinition: {
-      allOf: [{ $ref: volumeDataType.schema.$id }],
-      title: "Millilitres",
-      description: "A metric unit of volume equal to one thousandth of a litre.",
-      label: { right: "mL" },
-      type: "number",
+  );
+  const millilitresDataType = await createSystemDataTypeIfNotExists(
+    context,
+    authentication,
+    {
+      dataTypeDefinition: {
+        allOf: [{ $ref: volumeDataType.schema.$id }],
+        title: "Millilitres",
+        description:
+          "A metric unit of volume equal to one thousandth of a litre.",
+        label: { right: "mL" },
+        type: "number",
+      },
+      conversions: convTo(litresDataType.metadata.recordId.baseUrl, 0.001),
+      migrationState,
+      webShortname: "h",
     },
-    conversions: convTo(litresDataType.metadata.recordId.baseUrl, 0.001),
-    migrationState,
-    webShortname: "h",
-  });
-  const cubicMetresDataType = await createSystemDataTypeIfNotExists(context, authentication, {
-    dataTypeDefinition: {
-      allOf: [{ $ref: volumeDataType.schema.$id }],
-      title: "Cubic Metres",
-      description: "A metric unit of volume equal to 1000 litres.",
-      label: { right: "m³" },
-      type: "number",
+  );
+  const cubicMetresDataType = await createSystemDataTypeIfNotExists(
+    context,
+    authentication,
+    {
+      dataTypeDefinition: {
+        allOf: [{ $ref: volumeDataType.schema.$id }],
+        title: "Cubic Metres",
+        description: "A metric unit of volume equal to 1000 litres.",
+        label: { right: "m³" },
+        type: "number",
+      },
+      conversions: convTo(litresDataType.metadata.recordId.baseUrl, 1000),
+      migrationState,
+      webShortname: "h",
     },
-    conversions: convTo(litresDataType.metadata.recordId.baseUrl, 1000),
-    migrationState,
-    webShortname: "h",
-  });
+  );
 
-  const unitDataType = await createSystemDataTypeIfNotExists(context, authentication, {
-    dataTypeDefinition: {
-      allOf: [{ $ref: blockProtocolDataTypes.number.dataTypeId }],
-      title: "Unit",
-      description:
-        "A dimensionless quantity: a count of discrete items, or an amount whose unit of measure has no dedicated data type.",
-      type: "number",
+  const areaDataType = await abstractMeasure(
+    "Area",
+    "A measure of the extent of a two-dimensional surface.",
+  );
+  const squareMetresDataType = await createSystemDataTypeIfNotExists(
+    context,
+    authentication,
+    {
+      dataTypeDefinition: {
+        allOf: [{ $ref: areaDataType.schema.$id }],
+        title: "Square Metres",
+        description:
+          "A metric unit of area equal to a square one metre on each side.",
+        label: { right: "m²" },
+        type: "number",
+      },
+      conversions: {},
+      migrationState,
+      webShortname: "h",
     },
-    conversions: {},
-    migrationState,
-    webShortname: "h",
-  });
+  );
+  const squareCentimetresDataType = await createSystemDataTypeIfNotExists(
+    context,
+    authentication,
+    {
+      dataTypeDefinition: {
+        allOf: [{ $ref: areaDataType.schema.$id }],
+        title: "Square Centimetres",
+        description:
+          "A metric unit of area equal to one ten-thousandth of a square metre.",
+        label: { right: "cm²" },
+        type: "number",
+      },
+      conversions: convTo(
+        squareMetresDataType.metadata.recordId.baseUrl,
+        0.0001,
+      ),
+      migrationState,
+      webShortname: "h",
+    },
+  );
+  const squareFeetDataType = await createSystemDataTypeIfNotExists(
+    context,
+    authentication,
+    {
+      dataTypeDefinition: {
+        allOf: [{ $ref: areaDataType.schema.$id }],
+        title: "Square Feet",
+        description:
+          "An imperial unit of area equal to a square one foot on each side.",
+        label: { right: "ft²" },
+        type: "number",
+      },
+      conversions: convTo(
+        squareMetresDataType.metadata.recordId.baseUrl,
+        0.09290304,
+      ),
+      migrationState,
+      webShortname: "h",
+    },
+  );
+
+  const durationDataType = await abstractMeasure(
+    "Duration",
+    "A measure of elapsed time.",
+  );
+  const hoursDataType = await createSystemDataTypeIfNotExists(
+    context,
+    authentication,
+    {
+      dataTypeDefinition: {
+        allOf: [{ $ref: durationDataType.schema.$id }],
+        title: "Hours",
+        description: "A unit of time equal to 60 minutes.",
+        label: { right: "h" },
+        type: "number",
+      },
+      conversions: {},
+      migrationState,
+      webShortname: "h",
+    },
+  );
+  const daysDataType = await createSystemDataTypeIfNotExists(
+    context,
+    authentication,
+    {
+      dataTypeDefinition: {
+        allOf: [{ $ref: durationDataType.schema.$id }],
+        title: "Days",
+        description: "A unit of time equal to 24 hours.",
+        label: { right: "d" },
+        type: "number",
+      },
+      conversions: convTo(hoursDataType.metadata.recordId.baseUrl, 24),
+      migrationState,
+      webShortname: "h",
+    },
+  );
+
+  const unitDataType = await createSystemDataTypeIfNotExists(
+    context,
+    authentication,
+    {
+      dataTypeDefinition: {
+        allOf: [{ $ref: blockProtocolDataTypes.number.dataTypeId }],
+        title: "Unit",
+        description:
+          "A dimensionless quantity: a count of discrete items, or an amount whose unit of measure has no dedicated data type.",
+        type: "number",
+      },
+      conversions: {},
+      migrationState,
+      webShortname: "h",
+    },
+  );
 
   const quantityUnitValues = [
     ...massValues,
@@ -260,6 +387,11 @@ const migrate: MigrationFunction = async ({
     { dataTypeId: millilitresDataType.schema.$id },
     { dataTypeId: cubicMetresDataType.schema.$id },
     ...lengthValues,
+    { dataTypeId: squareMetresDataType.schema.$id },
+    { dataTypeId: squareCentimetresDataType.schema.$id },
+    { dataTypeId: squareFeetDataType.schema.$id },
+    { dataTypeId: hoursDataType.schema.$id },
+    { dataTypeId: daysDataType.schema.$id },
     { dataTypeId: unitDataType.schema.$id },
   ];
 
@@ -300,36 +432,6 @@ const migrate: MigrationFunction = async ({
       webShortname: "h",
     });
 
-  const grossWeightPropertyType = await createSystemPropertyTypeIfNotExists(
-    context,
-    authentication,
-    {
-      propertyTypeDefinition: {
-        title: "Gross Weight",
-        description:
-          "The total weight of an object including its packaging or container.",
-        possibleValues: massValues,
-      },
-      migrationState,
-      webShortname: "h",
-    },
-  );
-
-  const netWeightPropertyType = await createSystemPropertyTypeIfNotExists(
-    context,
-    authentication,
-    {
-      propertyTypeDefinition: {
-        title: "Net Weight",
-        description:
-          "The weight of an object excluding its packaging or container.",
-        possibleValues: massValues,
-      },
-      migrationState,
-      webShortname: "h",
-    },
-  );
-
   const postalCodePropertyType = await text(
     "Postal Code",
     "A code used by postal services to identify a geographic area for sorting and delivery of mail.",
@@ -354,14 +456,22 @@ const migrate: MigrationFunction = async ({
 
   const quantity = (title: string, description: string) =>
     createSystemPropertyTypeIfNotExists(context, authentication, {
-      propertyTypeDefinition: { title, description, possibleValues: quantityUnitValues },
+      propertyTypeDefinition: {
+        title,
+        description,
+        possibleValues: quantityUnitValues,
+      },
       migrationState,
       webShortname: "h",
     });
 
   const currency = (title: string, description: string) =>
     createSystemPropertyTypeIfNotExists(context, authentication, {
-      propertyTypeDefinition: { title, description, possibleValues: currencyValues },
+      propertyTypeDefinition: {
+        title,
+        description,
+        possibleValues: currencyValues,
+      },
       migrationState,
       webShortname: "h",
     });
@@ -408,11 +518,6 @@ const migrate: MigrationFunction = async ({
     "Customer Reference",
     "A reference provided by the customer, such as their own purchase order number.",
   );
-  const referenceNumberPropertyType = await text(
-    "Reference Number",
-    "An external reference number associated with a document.",
-  );
-
   const salesOrganizationPropertyType = await text(
     "Sales Organization",
     "The organizational unit responsible for selling goods or services.",
@@ -434,10 +539,6 @@ const migrate: MigrationFunction = async ({
     "Product Group",
     "A grouping of products for reporting or pricing.",
   );
-  const itemCategoryGroupPropertyType = await text(
-    "Item Category Group",
-    "A grouping used to classify products for sales and pricing logic.",
-  );
   const industryPropertyType = await text(
     "Industry",
     "An industry classification.",
@@ -451,10 +552,6 @@ const migrate: MigrationFunction = async ({
     "Storage Location",
     "A location within a facility where goods are stored.",
   );
-  const storageBinPropertyType = await text(
-    "Storage Bin",
-    "A specific bin or position within a storage location.",
-  );
   const batchNumberPropertyType = await text(
     "Batch Number",
     "A batch or lot identifier used for tracking goods.",
@@ -462,10 +559,6 @@ const migrate: MigrationFunction = async ({
   const movementTypePropertyType = await text(
     "Movement Type",
     "The type of a goods movement, such as a goods receipt, goods issue, or transfer.",
-  );
-  const movementCategoryPropertyType = await text(
-    "Movement Category",
-    "A broad category of goods movement.",
   );
   const debitCreditIndicatorPropertyType = await text(
     "Debit/Credit Indicator",
@@ -513,10 +606,6 @@ const migrate: MigrationFunction = async ({
     "Valuation Type",
     "The type or class of valuation, such as legal or group valuation.",
   );
-  const valuationCategoryPropertyType = await text(
-    "Valuation Category",
-    "Indicates the split-valuation category of an item.",
-  );
 
   const netValuePropertyType = await currency(
     "Net Value",
@@ -530,20 +619,7 @@ const migrate: MigrationFunction = async ({
     "Moving Average Price",
     "The current moving-average per-unit price of an item.",
   );
-  const stockValuePropertyType = await currency(
-    "Stock Value",
-    "The total monetary value of stock on hand.",
-  );
-  const futurePricePropertyType = await currency(
-    "Future Price",
-    "A validated future price of an item.",
-  );
 
-  const postingPeriodPropertyType = await withDataType(
-    "Posting Period",
-    "An accounting period within a fiscal year.",
-    integerDataTypeId,
-  );
   const fiscalYearPropertyType = await withDataType(
     "Fiscal Year",
     "The fiscal year to which data applies.",
@@ -590,10 +666,6 @@ const migrate: MigrationFunction = async ({
     "Posting Date",
     "The date on which a transaction was posted.",
   );
-  const documentDatePropertyType = await date(
-    "Document Date",
-    "The date shown on a document.",
-  );
   const scheduledStartDatePropertyType = await date(
     "Scheduled Start Date",
     "The date on which an activity is scheduled to start.",
@@ -601,14 +673,6 @@ const migrate: MigrationFunction = async ({
   const actualFinishDatePropertyType = await date(
     "Actual Finish Date",
     "The date on which an activity actually finished.",
-  );
-  const lastPriceChangeDatePropertyType = await date(
-    "Last Price Change Date",
-    "The date on which a price was last changed.",
-  );
-  const futurePriceDatePropertyType = await date(
-    "Future Price Date",
-    "The date on which a future price takes effect.",
   );
   const actualDepartureDatePropertyType = await date(
     "Actual Departure Date",
@@ -666,6 +730,22 @@ const migrate: MigrationFunction = async ({
   const maximumLotSizePropertyType = await quantity(
     "Maximum Lot Size",
     "The maximum lot size allowed when planning orders.",
+  );
+  const minimumLotSizePropertyType = await quantity(
+    "Minimum Lot Size",
+    "The minimum lot size allowed when planning orders.",
+  );
+  const procurementTypePropertyType = await text(
+    "Procurement Type",
+    "How an item is procured, such as in-house production or external procurement.",
+  );
+  const mrpControllerPropertyType = await text(
+    "MRP Controller",
+    "The planner responsible for material requirements planning of an item at a location.",
+  );
+  const lotSizeProcedurePropertyType = await text(
+    "Lot Size Procedure",
+    "The procedure used to determine order lot sizes when planning replenishment.",
   );
 
   const link = (title: string, inverseTitle: string, description: string) =>
@@ -823,20 +903,15 @@ const migrate: MigrationFunction = async ({
         title: "Material",
         titlePlural: "Materials",
         description:
-          "A good or material that can be produced, stored, sold, or procured — including raw materials, intermediates, and finished goods.",
+          "A good or material: a raw material, intermediate, or finished good.",
         labelProperty: blockProtocolPropertyTypes.name.propertyTypeBaseUrl,
         properties: [
           { propertyType: blockProtocolPropertyTypes.name.propertyTypeId },
-          {
-            propertyType: blockProtocolPropertyTypes.description.propertyTypeId,
-          },
           { propertyType: identifierPropertyType },
           { propertyType: productTypePropertyType },
           { propertyType: productGroupPropertyType },
-          { propertyType: itemCategoryGroupPropertyType },
-          { propertyType: grossWeightPropertyType },
-          { propertyType: netWeightPropertyType },
           { propertyType: unitOfMeasurePropertyType },
+          { propertyType: statusPropertyTypeId },
           { propertyType: languagePropertyType },
         ],
       },
@@ -858,10 +933,11 @@ const migrate: MigrationFunction = async ({
         properties: [
           { propertyType: blockProtocolPropertyTypes.name.propertyTypeId },
           { propertyType: identifierPropertyType },
+          { propertyType: streetAddressPropertyType },
           { propertyType: cityPropertyTypeId },
+          { propertyType: regionPropertyType },
+          { propertyType: postalCodePropertyType },
           { propertyType: countryPropertyType },
-          { propertyType: storageLocationPropertyType },
-          { propertyType: storageBinPropertyType },
         ],
       },
       migrationState,
@@ -1093,10 +1169,6 @@ const migrate: MigrationFunction = async ({
             linkEntityType: hasLineItemLink,
             destinationEntityTypes: [deliveryItemEntityType.schema.$id],
           },
-          {
-            linkEntityType: fulfillsLink,
-            destinationEntityTypes: [salesOrderEntityType.schema.$id],
-          },
         ],
       },
       migrationState,
@@ -1184,8 +1256,10 @@ const migrate: MigrationFunction = async ({
     },
   );
 
-  const productionOrderItemEntityType =
-    await createSystemEntityTypeIfNotExists(context, authentication, {
+  const productionOrderItemEntityType = await createSystemEntityTypeIfNotExists(
+    context,
+    authentication,
+    {
       entityTypeDefinition: {
         title: "Production Order Item",
         titlePlural: "Production Order Items",
@@ -1207,7 +1281,8 @@ const migrate: MigrationFunction = async ({
       },
       migrationState,
       webShortname: "h",
-    });
+    },
+  );
 
   const productionOrderEntityType = await createSystemEntityTypeIfNotExists(
     context,
@@ -1253,13 +1328,11 @@ const migrate: MigrationFunction = async ({
           { propertyType: identifierPropertyType },
           { propertyType: fiscalYearPropertyType },
           { propertyType: movementTypePropertyType },
-          { propertyType: movementCategoryPropertyType },
           { propertyType: batchNumberPropertyType },
           { propertyType: postingDatePropertyType },
-          { propertyType: documentDatePropertyType },
-          { propertyType: referenceNumberPropertyType },
           { propertyType: movementQuantityPropertyType },
           { propertyType: debitCreditIndicatorPropertyType },
+          { propertyType: storageLocationPropertyType },
         ],
         outgoingLinks: [
           {
@@ -1305,26 +1378,17 @@ const migrate: MigrationFunction = async ({
         title: "Cost / Valuation",
         titlePlural: "Cost / Valuations",
         description:
-          "The cost and valuation of a material's stock — valuation prices, controls, and sourcing standard cost.",
+          "How a material is valued and costed: valuation prices and controls, plus sourcing standard cost.",
         properties: [
           { propertyType: sitePropertyType },
           { propertyType: standardCostPropertyType },
           { propertyType: valuationClassPropertyType },
           { propertyType: valuationAreaPropertyType },
           { propertyType: valuationTypePropertyType },
-          { propertyType: valuationCategoryPropertyType },
           { propertyType: priceControlIndicatorPropertyType },
           { propertyType: standardPricePropertyType },
           { propertyType: movingAveragePricePropertyType },
-          { propertyType: stockValuePropertyType },
-          { propertyType: futurePricePropertyType },
           { propertyType: priceUnitPropertyType },
-          { propertyType: currencyCodePropertyType },
-          { propertyType: stockQuantityPropertyType },
-          { propertyType: postingPeriodPropertyType },
-          { propertyType: fiscalYearPropertyType },
-          { propertyType: lastPriceChangeDatePropertyType },
-          { propertyType: futurePriceDatePropertyType },
         ],
         outgoingLinks: [
           {
@@ -1339,8 +1403,10 @@ const migrate: MigrationFunction = async ({
     },
   );
 
-  const _materialLocationEntityType =
-    await createSystemEntityTypeIfNotExists(context, authentication, {
+  const _materialLocationEntityType = await createSystemEntityTypeIfNotExists(
+    context,
+    authentication,
+    {
       entityTypeDefinition: {
         title: "Material Location",
         titlePlural: "Material Locations",
@@ -1348,8 +1414,12 @@ const migrate: MigrationFunction = async ({
           "A material at a specific facility, with its plant-level planning parameters such as safety stock and lead times.",
         properties: [
           { propertyType: planningMethodPropertyType },
+          { propertyType: procurementTypePropertyType },
+          { propertyType: mrpControllerPropertyType },
+          { propertyType: lotSizeProcedurePropertyType },
           { propertyType: statusPropertyTypeId },
           { propertyType: safetyStockPropertyType },
+          { propertyType: minimumLotSizePropertyType },
           { propertyType: maximumLotSizePropertyType },
           { propertyType: plannedDeliveryTimePropertyType },
           { propertyType: goodsReceiptProcessingTimePropertyType },
@@ -1370,7 +1440,8 @@ const migrate: MigrationFunction = async ({
       },
       migrationState,
       webShortname: "h",
-    });
+    },
+  );
 
   const _materialReservationEntityType =
     await createSystemEntityTypeIfNotExists(context, authentication, {
