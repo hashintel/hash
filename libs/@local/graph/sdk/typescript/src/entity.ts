@@ -1533,17 +1533,6 @@ export const queryEntities = async <
             response.definitions,
           )
         : undefined,
-      webIds: response.webIds as Record<WebId, number> | undefined,
-      createdByIds: response.createdByIds as
-        | Record<ActorEntityUuid, number>
-        | undefined,
-      editionCreatedByIds: response.editionCreatedByIds as
-        | Record<ActorEntityUuid, number>
-        | undefined,
-      typeIds: response.typeIds as Record<VersionedUrl, number> | undefined,
-      typeTitles: response.typeTitles as
-        | Record<VersionedUrl, string>
-        | undefined,
       permissions: response.permissions as EntityPermissionsMap | undefined,
     }));
 };
