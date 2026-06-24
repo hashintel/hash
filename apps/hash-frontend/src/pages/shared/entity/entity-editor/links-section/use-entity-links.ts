@@ -176,14 +176,16 @@ export const useEntityLinks = ({
 } => {
   const [webId, entityUuid, draftId] = splitEntityId(entityId);
 
+  const resetKey = `${entityId}:${direction}:${JSON.stringify(
+    sortingPaths ?? null,
+  )}:${JSON.stringify(filterTypeIds ?? null)}`;
+
   const { page, appendPage, accumulated, loadMore, hasMore } =
     useAccumulatedCursorPagination<
       Accumulated,
       { cursor: EntityQueryCursor | undefined }
     >({
-      resetKey: `${entityId}:${direction}:${JSON.stringify(
-        sortingPaths ?? null,
-      )}:${JSON.stringify(filterTypeIds ?? null)}`,
+      resetKey,
       initial: initialAccumulated,
     });
 
@@ -292,7 +294,7 @@ export const useEntityLinks = ({
         (rootEntity) => new HashLinkEntity(rootEntity),
       );
 
-      appendPage((prevAccumulated) => {
+      appendPage(resetKey, (prevAccumulated) => {
         const linkEntities = [...prevAccumulated.linkEntities];
         const seenLinkIds = new Set(prevAccumulated.seenLinkIds);
         for (const linkEntity of newLinkEntities) {

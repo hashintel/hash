@@ -28,7 +28,7 @@ import type {
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 
 /** Entities and entity types fetched per page for the search bar's result list. */
-export const searchBarPageSize = 10;
+export const searchBarPageSize = 100;
 
 type SearchSubgraph = Subgraph<EntityRootType<HashEntity>>;
 
@@ -53,13 +53,11 @@ const uuidSortingPath: EntityQuerySortingRecord = {
 type EntityPage = {
   kind: "entity";
   cursor: EntityQueryCursor | undefined;
-  nextCursor: EntityQueryCursor | null;
 };
 
 type EntityTypePage = {
   kind: "entityType";
   cursor: VersionedUrl | undefined;
-  nextCursor: VersionedUrl | null;
 };
 
 type SearchPage = EntityPage | EntityTypePage;
@@ -122,28 +120,6 @@ const initialSearchAccumulated: SearchAccumulated = {
 };
 
 /**
- * Advance the cursor within a phase, cross over from entities to entity types
- * once the entities are exhausted, or stop once the entity types are too.
- */
-const getNextSearchPage = (page: SearchPage): SearchPage | false => {
-  if (page.kind === "entity") {
-    if (page.nextCursor !== null) {
-      return { ...page, cursor: page.nextCursor };
-    }
-    // Entities exhausted: begin the entity-type phase from its first page.
-    return {
-      kind: "entityType",
-      cursor: undefined,
-      nextCursor: null,
-    };
-  }
-
-  return page.nextCursor !== null
-    ? { ...page, cursor: page.nextCursor }
-    : false;
-};
-
-/**
  * Fetches the search bar's results a page at a time, paginating across both
  * entities and entity types under a single `loadMore`/`hasMore`.
  *
@@ -199,7 +175,6 @@ export const useSearchBarEntities = ({
         traversalPaths: [],
         includeDrafts: false,
         includePermissions: false,
-        includeCount: true,
         cursor: page?.kind === "entity" ? page.cursor : undefined,
         limit: searchBarPageSize,
         sortingPaths: [uuidSortingPath],
@@ -213,9 +188,11 @@ export const useSearchBarEntities = ({
 
       // Exhausted once a page returns fewer rows than the page size (incl. zero),
       // even if the API still handed back a non-null cursor.
-      const exhausted = newEntities.length < searchBarPageSize;
+      const exhausted =
+        newEntities.length < searchBarPageSize ||
+        !data.queryEntitySubgraph.cursor;
 
-      appendPage((prevAccumulated) => {
+      appendPage(resetKey, (prevAccumulated) => {
         const entities = [...prevAccumulated.entities];
 
         const seenEntityIds = new Set(prevAccumulated.seenEntityIds);
@@ -229,14 +206,12 @@ export const useSearchBarEntities = ({
 
         // The page that just completed, normalized so `getNextSearchPage` can
         // derive the request that follows it (the next entity page, or none).
-        const completedPage: SearchPage = exhausted
-          ? { kind: "entityType", cursor: undefined, nextCursor: null }
+        const nextPage: SearchPage = exhausted
+          ? { kind: "entityType", cursor: undefined }
           : {
               kind: "entity",
-              cursor: page?.kind === "entity" ? page.cursor : undefined,
-              nextCursor: data.queryEntitySubgraph.cursor ?? null,
+              cursor: data.queryEntitySubgraph.cursor ?? undefined,
             };
-        const nextPage = getNextSearchPage(completedPage);
 
         return {
           accumulated: {
@@ -247,7 +222,7 @@ export const useSearchBarEntities = ({
               ? mergeSubgraphInto(prevAccumulated.subgraph, subgraph)
               : subgraph,
           },
-          getNextPage: nextPage === false ? false : () => nextPage,
+          getNextPage: () => nextPage,
         };
       });
     },
@@ -266,7 +241,6 @@ export const useSearchBarEntities = ({
         temporalAxes: currentTimeInstantTemporalAxes,
         after: page?.kind === "entityType" ? page.cursor : undefined,
         limit: searchBarPageSize,
-        includeCount: true,
       },
     },
     onCompleted: (data) => {
@@ -277,8 +251,11 @@ export const useSearchBarEntities = ({
       // Exhausted once a page returns fewer rows than the page size (incl. zero),
       // even if the API still handed back a non-null cursor.
       const exhausted = newEntityTypes.length < searchBarPageSize;
+      const nextCursor = exhausted
+        ? null
+        : (data.queryEntityTypes.cursor ?? null);
 
-      appendPage((prevAccumulated) => {
+      appendPage(resetKey, (prevAccumulated) => {
         const entityTypes = [...prevAccumulated.entityTypes];
         const seenEntityTypeIds = new Set(prevAccumulated.seenEntityTypeIds);
         for (const entityType of newEntityTypes) {
@@ -288,22 +265,16 @@ export const useSearchBarEntities = ({
           }
         }
 
-        // The page that just completed, normalized so `getNextSearchPage` can
-        // derive the request that follows it (the next entity-type page, or none).
-        const completedPage: SearchPage = {
-          kind: "entityType",
-          cursor: page?.kind === "entityType" ? page.cursor : undefined,
-          nextCursor: exhausted ? null : (data.queryEntityTypes.cursor ?? null),
-        };
-        const nextPage = getNextSearchPage(completedPage);
-
         return {
           accumulated: {
             ...prevAccumulated,
             entityTypes,
             seenEntityTypeIds,
           },
-          getNextPage: nextPage === false ? false : () => nextPage,
+          getNextPage:
+            nextCursor === null
+              ? false
+              : () => ({ kind: "entityType", cursor: nextCursor }),
         };
       });
     },
