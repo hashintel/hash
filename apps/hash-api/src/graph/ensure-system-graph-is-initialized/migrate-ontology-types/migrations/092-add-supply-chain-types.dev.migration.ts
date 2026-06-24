@@ -1,10 +1,9 @@
+import { versionedUrlFromComponents } from "@blockprotocol/type-system";
 import {
   blockProtocolDataTypes,
   blockProtocolEntityTypes,
   blockProtocolPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-
-import { versionedUrlFromComponents } from "@blockprotocol/type-system";
 
 import { activeCurrencies } from "../currencies";
 import {
@@ -16,16 +15,18 @@ import {
   getCurrentHashPropertyTypeId,
 } from "../util";
 
-import type { BaseUrl, Conversions, VersionedUrl } from "@blockprotocol/type-system";
-
 import type { MigrationFunction } from "../types";
+import type {
+  BaseUrl,
+  Conversions,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 
 const migrate: MigrationFunction = async ({
   context,
   authentication,
   migrationState,
 }) => {
-
   const dateDataTypeId = getCurrentHashDataTypeId({
     dataTypeKey: "date",
     migrationState,
@@ -43,8 +44,19 @@ const migrate: MigrationFunction = async ({
     migrationState,
   });
   const lengthValues = (
-    ["meters", "centimeters", "millimeters", "kilometers", "feet", "inches", "yards", "miles"] as const
-  ).map((dataTypeKey) => ({ dataTypeId: getCurrentHashDataTypeId({ dataTypeKey, migrationState }) }));
+    [
+      "meters",
+      "centimeters",
+      "millimeters",
+      "kilometers",
+      "feet",
+      "inches",
+      "yards",
+      "miles",
+    ] as const
+  ).map((dataTypeKey) => ({
+    dataTypeId: getCurrentHashDataTypeId({ dataTypeKey, migrationState }),
+  }));
   const currencyValues = activeCurrencies.map(({ code }) => {
     const baseUrl = generateSystemTypeBaseUrl({
       kind: "data-type",
@@ -179,7 +191,10 @@ const migrate: MigrationFunction = async ({
     { dataTypeId: poundsDataType.schema.$id },
   ];
 
-  const convTo = (canonicalBaseUrl: BaseUrl, factor: number): Record<BaseUrl, Conversions> => ({
+  const convTo = (
+    canonicalBaseUrl: BaseUrl,
+    factor: number,
+  ): Record<BaseUrl, Conversions> => ({
     [canonicalBaseUrl]: {
       from: { expression: ["/", "self", { const: factor, type: "number" }] },
       to: { expression: ["*", "self", { const: factor, type: "number" }] },
@@ -204,55 +219,72 @@ const migrate: MigrationFunction = async ({
     "Volume",
     "A measure of the three-dimensional space occupied by something.",
   );
-  const litresDataType = await createSystemDataTypeIfNotExists(context, authentication, {
-    dataTypeDefinition: {
-      allOf: [{ $ref: volumeDataType.schema.$id }],
-      title: "Litres",
-      description: "A metric unit of volume equal to one cubic decimetre.",
-      label: { right: "L" },
-      type: "number",
+  const litresDataType = await createSystemDataTypeIfNotExists(
+    context,
+    authentication,
+    {
+      dataTypeDefinition: {
+        allOf: [{ $ref: volumeDataType.schema.$id }],
+        title: "Litres",
+        description: "A metric unit of volume equal to one cubic decimetre.",
+        label: { right: "L" },
+        type: "number",
+      },
+      conversions: {},
+      migrationState,
+      webShortname: "h",
     },
-    conversions: {},
-    migrationState,
-    webShortname: "h",
-  });
-  const millilitresDataType = await createSystemDataTypeIfNotExists(context, authentication, {
-    dataTypeDefinition: {
-      allOf: [{ $ref: volumeDataType.schema.$id }],
-      title: "Millilitres",
-      description: "A metric unit of volume equal to one thousandth of a litre.",
-      label: { right: "mL" },
-      type: "number",
+  );
+  const millilitresDataType = await createSystemDataTypeIfNotExists(
+    context,
+    authentication,
+    {
+      dataTypeDefinition: {
+        allOf: [{ $ref: volumeDataType.schema.$id }],
+        title: "Millilitres",
+        description:
+          "A metric unit of volume equal to one thousandth of a litre.",
+        label: { right: "mL" },
+        type: "number",
+      },
+      conversions: convTo(litresDataType.metadata.recordId.baseUrl, 0.001),
+      migrationState,
+      webShortname: "h",
     },
-    conversions: convTo(litresDataType.metadata.recordId.baseUrl, 0.001),
-    migrationState,
-    webShortname: "h",
-  });
-  const cubicMetresDataType = await createSystemDataTypeIfNotExists(context, authentication, {
-    dataTypeDefinition: {
-      allOf: [{ $ref: volumeDataType.schema.$id }],
-      title: "Cubic Metres",
-      description: "A metric unit of volume equal to 1000 litres.",
-      label: { right: "m³" },
-      type: "number",
+  );
+  const cubicMetresDataType = await createSystemDataTypeIfNotExists(
+    context,
+    authentication,
+    {
+      dataTypeDefinition: {
+        allOf: [{ $ref: volumeDataType.schema.$id }],
+        title: "Cubic Metres",
+        description: "A metric unit of volume equal to 1000 litres.",
+        label: { right: "m³" },
+        type: "number",
+      },
+      conversions: convTo(litresDataType.metadata.recordId.baseUrl, 1000),
+      migrationState,
+      webShortname: "h",
     },
-    conversions: convTo(litresDataType.metadata.recordId.baseUrl, 1000),
-    migrationState,
-    webShortname: "h",
-  });
+  );
 
-  const unitDataType = await createSystemDataTypeIfNotExists(context, authentication, {
-    dataTypeDefinition: {
-      allOf: [{ $ref: blockProtocolDataTypes.number.dataTypeId }],
-      title: "Unit",
-      description:
-        "A dimensionless quantity: a count of discrete items, or an amount whose unit of measure has no dedicated data type.",
-      type: "number",
+  const unitDataType = await createSystemDataTypeIfNotExists(
+    context,
+    authentication,
+    {
+      dataTypeDefinition: {
+        allOf: [{ $ref: blockProtocolDataTypes.number.dataTypeId }],
+        title: "Unit",
+        description:
+          "A dimensionless quantity: a count of discrete items, or an amount whose unit of measure has no dedicated data type.",
+        type: "number",
+      },
+      conversions: {},
+      migrationState,
+      webShortname: "h",
     },
-    conversions: {},
-    migrationState,
-    webShortname: "h",
-  });
+  );
 
   const quantityUnitValues = [
     ...massValues,
@@ -354,14 +386,22 @@ const migrate: MigrationFunction = async ({
 
   const quantity = (title: string, description: string) =>
     createSystemPropertyTypeIfNotExists(context, authentication, {
-      propertyTypeDefinition: { title, description, possibleValues: quantityUnitValues },
+      propertyTypeDefinition: {
+        title,
+        description,
+        possibleValues: quantityUnitValues,
+      },
       migrationState,
       webShortname: "h",
     });
 
   const currency = (title: string, description: string) =>
     createSystemPropertyTypeIfNotExists(context, authentication, {
-      propertyTypeDefinition: { title, description, possibleValues: currencyValues },
+      propertyTypeDefinition: {
+        title,
+        description,
+        possibleValues: currencyValues,
+      },
       migrationState,
       webShortname: "h",
     });
@@ -1184,8 +1224,10 @@ const migrate: MigrationFunction = async ({
     },
   );
 
-  const productionOrderItemEntityType =
-    await createSystemEntityTypeIfNotExists(context, authentication, {
+  const productionOrderItemEntityType = await createSystemEntityTypeIfNotExists(
+    context,
+    authentication,
+    {
       entityTypeDefinition: {
         title: "Production Order Item",
         titlePlural: "Production Order Items",
@@ -1207,7 +1249,8 @@ const migrate: MigrationFunction = async ({
       },
       migrationState,
       webShortname: "h",
-    });
+    },
+  );
 
   const productionOrderEntityType = await createSystemEntityTypeIfNotExists(
     context,
@@ -1339,8 +1382,10 @@ const migrate: MigrationFunction = async ({
     },
   );
 
-  const _materialLocationEntityType =
-    await createSystemEntityTypeIfNotExists(context, authentication, {
+  const _materialLocationEntityType = await createSystemEntityTypeIfNotExists(
+    context,
+    authentication,
+    {
       entityTypeDefinition: {
         title: "Material Location",
         titlePlural: "Material Locations",
@@ -1370,7 +1415,8 @@ const migrate: MigrationFunction = async ({
       },
       migrationState,
       webShortname: "h",
-    });
+    },
+  );
 
   const _materialReservationEntityType =
     await createSystemEntityTypeIfNotExists(context, authentication, {
