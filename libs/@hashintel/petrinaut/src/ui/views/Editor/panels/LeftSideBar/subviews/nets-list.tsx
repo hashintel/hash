@@ -130,6 +130,7 @@ const NetsListContent: React.FC = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+  const cancellingRef = useRef(false);
 
   useEffect(() => {
     if (editingId !== null) {
@@ -150,6 +151,10 @@ const NetsListContent: React.FC = () => {
   };
 
   const commitRename = () => {
+    if (cancellingRef.current) {
+      cancellingRef.current = false;
+      return;
+    }
     if (editingId === null) return;
     const trimmed = editingName.trim();
     if (trimmed) {
@@ -159,6 +164,7 @@ const NetsListContent: React.FC = () => {
   };
 
   const cancelRename = () => {
+    cancellingRef.current = true;
     setEditingId(null);
   };
 

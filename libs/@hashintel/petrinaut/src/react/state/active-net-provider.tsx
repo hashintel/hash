@@ -1,4 +1,4 @@
-import { use, useState, type ReactNode } from "react";
+import { use, useEffect, useState, type ReactNode } from "react";
 
 import { ActiveNetContext } from "./active-net-context";
 import { SDCPNContext } from "./sdcpn-context";
@@ -10,8 +10,12 @@ import { SDCPNContext } from "./sdcpn-context";
 export const ActiveNetProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
-  const { petriNetDefinition } = use(SDCPNContext);
+  const { petriNetId, petriNetDefinition } = use(SDCPNContext);
   const [activeSubnetId, setActiveSubnetId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setActiveSubnetId(null);
+  }, [petriNetId]);
 
   const subnet =
     activeSubnetId !== null
