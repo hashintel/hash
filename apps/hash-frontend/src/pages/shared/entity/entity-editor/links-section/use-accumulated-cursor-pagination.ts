@@ -1,220 +1,152 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 
 /**
- * Sentinel cursor part for the first page, which has no originating cursor.
- * Pages are keyed by their cursor so a page is replaced (not duplicated) if its
- * query resolves twice - e.g. a cache hit then a network response.
+ * Sentinel key for the first page, which is requested with no cursor. Pages are
+ * keyed by their cursor so the position a completion would advance to can be
+ * compared against the request currently in flight.
  */
-export const initialCursorKey = "__initial__";
+const initialCursorKey = "__initial__";
+
+/** A stable string key identifying the cursor a page was fetched with. */
+const cursorKeyOf = (cursor: unknown): string =>
+  cursor === undefined ? initialCursorKey : JSON.stringify(cursor);
 
 /**
- * Separator between a page key's generation prefix and cursor part. A key is
- * `${generation} ${cursorPart}`; the generation is a leading integer, so the
- * cursor part is everything after the *first* separator (the cursor's JSON may
- * contain the separator too).
+ * The fold passed to `appendPage`: merge one loaded page into the running
+ * accumulation, and report how to fetch the page after it — a `getNextPage`
+ * thunk producing the next request, or `false` when the loaded page was the
+ * last.
  */
-const generationSeparator = " ";
-
-/**
- * A stable key identifying both the cursor that produced a page and the query
- * generation it was fetched under. The generation is what marks a late page
- * from a superseded query as stale: every query's first page shares
- * {@link initialCursorKey}, so without it a late completion of the old query
- * couldn't be told from the new query's first page.
- */
-export const cursorKeyFor = <Cursor>(
-  generation: number,
-  cursor: Cursor | undefined,
-): string =>
-  `${generation}${generationSeparator}${
-    cursor === undefined ? initialCursorKey : JSON.stringify(cursor)
-  }`;
-
-/** Split a {@link cursorKeyFor} key back into its generation and cursor part. */
-const parseCursorKey = (
-  cursorKey: string,
-): { generation: number; cursorPart: string } => {
-  const separatorIndex = cursorKey.indexOf(generationSeparator);
-  return {
-    generation: Number(cursorKey.slice(0, separatorIndex)),
-    cursorPart: cursorKey.slice(separatorIndex + 1),
-  };
+type AppendFold<T, Page> = (prevAccumulated: T) => {
+  accumulated: T;
+  getNextPage: (() => Page) | false;
 };
 
 /**
  * Drives cursor-based pagination, folding each loaded page into a running
- * accumulation and exposing `loadMore` to advance the cursor.
+ * accumulation and exposing `loadMore` to advance to the next page.
  *
- * Callers supply `seed` (build the empty accumulator from the first page) and
- * `appendPage` (fold one page in; it must expose `nextCursor`, or `null` when
- * exhausted). Both, and `finalize`, must be referentially stable, as the
- * accumulation only recomputes when `pages` changes.
- *
- * The fold is incremental: while `pages` grows by append (infinite scroll) only
- * the new pages are folded in, so loading page `k` costs O(page size). A reset
- * or in-place page replacement rebuilds from scratch (rare and bounded).
- *
- * The caller issues the query for the current `cursor` and calls `addPage` with
- * the result, stamping it with the `cursorKey` this hook returns (it encodes
- * the cursor and generation, so a late completion of a superseded query is
- * dropped).
+ * The caller issues the query for the current `page` request (reading the
+ * cursor to send from it) and, from the query's completion handler, calls
+ * `appendPage` with a fold that merges the freshly-loaded page into the running
+ * accumulation and returns a `getNextPage` thunk for the page after it (or
+ * `false` when there are no more). The fold must be idempotent in the page it
+ * adds (e.g. dedupe by id) so a cache-then-network double completion folds the
+ * same page in twice without duplicating its rows.
  */
 export const useAccumulatedCursorPagination = <
-  Cursor,
-  Page extends { cursorKey: string },
-  Accumulated extends { nextCursor: Cursor | null },
+  T,
+  Page extends { cursor: unknown } = { cursor: string; nextCursor: string },
 >({
   resetKey,
-  seed,
-  appendPage,
-  finalize,
+  initial,
 }: {
-  /**
-   * When this changes, the accumulated pages and cursor are discarded
-   * Done during render rather than in an effect, so the stale cursor
-   * is never sent with the new query.
-   */
+  /** Identifies the current search/filter. When it changes, the accumulation and current request are discarded; */
   resetKey: string;
-  /** Build the empty accumulator from the first page. */
-  seed: (firstPage: Page) => Accumulated;
-  /** Fold one page into the running accumulation. */
-  appendPage: (accumulated: Accumulated, page: Page) => Accumulated;
-  /**
-   * Optional transform applied before the accumulation is returned, e.g. to
-   * hand out fresh references for collections `appendPage` mutates in place.
-   * Runs only when the accumulation recomputes.
-   */
-  finalize?: (accumulated: Accumulated) => Accumulated;
+  /** The empty accumulation that the first (and every) page is folded into. Must be referentially stable */
+  initial: T;
 }): {
-  /** The cursor for the page to fetch next, to feed into the query. */
-  cursor: Cursor | undefined;
-  /** Key for the current cursor, to stamp onto the page passed to `addPage`. */
-  cursorKey: string;
-  /** How many pages have been loaded so far. */
-  pageCount: number;
-  /** Record a freshly-loaded page (call from the query's completion handler). */
-  addPage: (page: Page) => void;
+  /** The current page or `undefined` for the first page (which is fetched with no cursor). */
+  page: Page | undefined;
   /** The accumulation of every page loaded so far, or `undefined` if none. */
-  accumulated: Accumulated | undefined;
-  /** Advance the cursor to the next page (no-op if there are no more pages). */
+  accumulated: T | undefined;
+  /**
+   * Record a freshly-loaded page (call from the query's completion handler),
+   * pass the `resetKey` that was current when the query was issued
+   */
+  appendPage: (resetKey: string, fold: AppendFold<T, Page>) => void;
+  /** Advance to the next page (no-op if there are no more pages). */
   loadMore: () => void;
   /** Whether there are more pages to fetch. */
   hasMore: boolean;
 } => {
-  const [cursor, setCursor] = useState<Cursor | undefined>(undefined);
-  const [pages, setPages] = useState<Page[]>([]);
+  const [page, setPage] = useState<Page | undefined>(undefined);
+  const [{ accumulated, getNextPage }, setAccumulation] = useState<{
+    accumulated: T | undefined;
+    getNextPage: (() => Page) | false | undefined;
+  }>({ accumulated: undefined, getNextPage: undefined });
 
   /**
-   * Bumped whenever the query identity changes, so pages carry the generation
-   * they were fetched under.
+   * The render's `resetKey`, also read by `appendPage` to tell a completion for
+   * the current search/filter from one of a query issued under an earlier
+   * `resetKey` — which the cursor check alone cannot catch, as both first pages
+   * share a `cursor` of `undefined`.
    */
-  const generationRef = useRef(0);
-
-  const previousResetKey = useRef(resetKey);
-  if (previousResetKey.current !== resetKey) {
-    previousResetKey.current = resetKey;
-    // Advance the generation before discarding the stale cursor/pages, so the
-    // new query stamps its pages with the new generation and a late completion
-    // of the previous query is dropped by `addPage`.
-    generationRef.current += 1;
-    if (cursor !== undefined) {
-      setCursor(undefined);
+  const resetKeyRef = useRef(resetKey);
+  if (resetKeyRef.current !== resetKey) {
+    resetKeyRef.current = resetKey;
+    // Discard the stale request and accumulation during render, so the new
+    // query is never issued with the old cursor.
+    if (page !== undefined) {
+      setPage(undefined);
     }
-    if (pages.length > 0) {
-      setPages([]);
+    if (accumulated !== undefined || getNextPage !== undefined) {
+      setAccumulation({ accumulated: undefined, getNextPage: undefined });
     }
   }
 
-  const addPage = useCallback((page: Page) => {
-    const { generation, cursorPart } = parseCursorKey(page.cursorKey);
-
-    // Ignore pages from a superseded query.
-    if (generation !== generationRef.current) {
-      return;
-    }
-
-    setPages((previousPages) => {
-      if (cursorPart === initialCursorKey) {
-        // First page - replace any accumulated pages.
-        return [page];
-      }
-
-      const existingIndex = previousPages.findIndex(
-        (previousPage) => previousPage.cursorKey === page.cursorKey,
-      );
-
-      if (existingIndex !== -1) {
-        const next = [...previousPages];
-        next[existingIndex] = page;
-        return next;
-      }
-
-      return [...previousPages, page];
-    });
-  }, []);
-
   /**
-   * The last-processed `pages` and its accumulation, cached so an append-only
-   * growth of `pages` only folds in the new pages (see the hook docs).
+   * The request currently being fetched, read by `appendPage` to tell a page
+   * for the active query from a stale completion of a superseded one.
    */
-  const accumulationCache = useRef<{
-    pages: Page[];
-    result: Accumulated | undefined;
-  }>({ pages: [], result: undefined });
+  const requestRef = useRef<Page | undefined>(page);
+  requestRef.current = page;
+  const initialRef = useRef(initial);
+  initialRef.current = initial;
 
-  const seedRef = useRef(seed);
-  seedRef.current = seed;
-  const appendPageRef = useRef(appendPage);
-  appendPageRef.current = appendPage;
-  const finalizeRef = useRef(finalize);
-  finalizeRef.current = finalize;
-
-  const accumulated = useMemo<Accumulated | undefined>(() => {
-    const cached = accumulationCache.current;
-
-    const isAppendOnlyExtension =
-      cached.result !== undefined &&
-      pages.length > cached.pages.length &&
-      cached.pages.every((page, index) => pages[index] === page);
-
-    let result: Accumulated | undefined;
-    if (pages.length === 0) {
-      result = undefined;
-    } else if (isAppendOnlyExtension) {
-      result = cached.result;
-      for (let index = cached.pages.length; index < pages.length; index++) {
-        result = appendPageRef.current(result!, pages[index]!);
+  const appendPage = useCallback(
+    (requestResetKey: string, fold: AppendFold<T, Page>) => {
+      // Drop a completion of a query issued under an earlier `resetKey`.
+      if (requestResetKey !== resetKeyRef.current) {
+        return;
       }
-    } else {
-      result = pages.reduce(
-        (accumulator, page) => appendPageRef.current(accumulator, page),
-        seedRef.current(pages[0]!),
-      );
-    }
 
-    // Cache the raw (pre-`finalize`) result so later appends build on it.
-    accumulationCache.current = { pages, result };
+      setAccumulation((previous) => {
+        const folded = fold(previous.accumulated ?? initialRef.current);
 
-    if (result === undefined) {
-      return undefined;
-    }
+        // `getNextPage` reports the page to fetch after the one that just
+        // completed. If that next page is the request already in flight, this is
+        // a late re-completion of the page before it (the cursor has since
+        // advanced), so the already-folded `previous` is kept to avoid
+        // regressing the cursor. Otherwise it is the active request's own
+        // completion (incl. a cache-then-network re-completion of it, which the
+        // idempotent fold absorbs), so accept it and record where to advance to
+        // next.
+        if (
+          folded.getNextPage !== false &&
+          cursorKeyOf(folded.getNextPage().cursor) ===
+            cursorKeyOf(requestRef.current?.cursor)
+        ) {
+          return previous;
+        }
 
-    return finalizeRef.current ? finalizeRef.current(result) : result;
-  }, [pages]);
+        return {
+          accumulated: folded.accumulated,
+          getNextPage: folded.getNextPage,
+        };
+      });
+    },
+    [],
+  );
+
+  const getNextPageRef = useRef(getNextPage);
+  getNextPageRef.current = getNextPage;
 
   const loadMore = useCallback(() => {
-    if (accumulated?.nextCursor) {
-      setCursor(accumulated.nextCursor);
+    const next = getNextPageRef.current;
+    if (next === undefined || next === false) {
+      return;
     }
-  }, [accumulated?.nextCursor]);
+    setPage(next());
+  }, []);
+
+  const hasMore = getNextPage !== undefined && getNextPage !== false;
 
   return {
-    cursor,
-    cursorKey: cursorKeyFor(generationRef.current, cursor),
-    pageCount: pages.length,
-    addPage,
+    page,
     accumulated,
+    appendPage,
     loadMore,
-    hasMore: !!accumulated?.nextCursor,
+    hasMore,
   };
 };

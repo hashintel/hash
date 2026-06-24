@@ -265,6 +265,7 @@ export const SearchBar: FunctionComponent = () => {
         traversalPaths: [],
         includeDrafts: false,
         includePermissions: false,
+        limit: 100,
       },
     },
     skip: !submittedQuery,
@@ -278,6 +279,7 @@ export const SearchBar: FunctionComponent = () => {
       request: {
         filter: queryFilter,
         temporalAxes: currentTimeInstantTemporalAxes,
+        limit: 100,
       },
     },
     skip: !submittedQuery,

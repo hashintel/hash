@@ -39,30 +39,6 @@ export const linksTablePageSize = 100;
 
 type LinksSubgraph = Subgraph<EntityRootType<HashEntity>>;
 
-type LinkPage = {
-  /**
-   * Key for the cursor that produced this page, so a page is replaced (not
-   * duplicated) if its query completes twice (e.g. cache hit then network).
-   */
-  cursorKey: string;
-  count?: number;
-  linkEntities: HashLinkEntity[];
-  nextCursor: EntityQueryCursor | null;
-  subgraph: LinksSubgraph;
-  typesMap: ClosedMultiEntityTypesRootMap;
-  definitions?: ClosedMultiEntityTypesDefinitions;
-  /**
-   * Count of matching links by link entity type id.
-   * Aggregated server-side over the *full* matching set (not just this page),
-   */
-  typeIds?: Record<VersionedUrl, number>;
-  /**
-   * list of titles for each entity type id
-   * Aggregated server-side over the *full* matching set (not just this page),
-   */
-  typeTitles?: Record<VersionedUrl, string>;
-};
-
 /**
  * Appended to any caller sorting so pagination is deterministic: the unique
  * `uuid` breaks ties when sorting by a non-unique field (label, type title).
@@ -92,16 +68,16 @@ const mergeRecordOfRecords = <T>(
 /** Merge a later page's subgraph into the accumulated one. */
 const mergeSubgraphInto = (
   merged: LinksSubgraph,
-  page: LinkPage,
+  subgraph: LinksSubgraph,
 ): LinksSubgraph => {
   const vertices = mergeRecordOfRecords(
     merged.vertices as Record<string, Record<string, unknown>>,
-    page.subgraph.vertices as Record<string, Record<string, unknown>>,
+    subgraph.vertices as Record<string, Record<string, unknown>>,
   ) as LinksSubgraph["vertices"];
 
   const edges = mergeRecordOfRecords(
     merged.edges as Record<string, Record<string, unknown>>,
-    page.subgraph.edges as Record<string, Record<string, unknown>>,
+    subgraph.edges as Record<string, Record<string, unknown>>,
   ) as LinksSubgraph["edges"];
 
   return { ...merged, vertices, edges };
@@ -109,20 +85,20 @@ const mergeSubgraphInto = (
 
 const mergeDefinitionsInto = (
   merged: ClosedMultiEntityTypesDefinitions | undefined,
-  page: LinkPage,
+  definitions?: ClosedMultiEntityTypesDefinitions,
 ): ClosedMultiEntityTypesDefinitions | undefined => {
-  if (!page.definitions) {
+  if (!definitions) {
     return merged;
   }
   if (!merged) {
-    return page.definitions;
+    return definitions;
   }
   return {
-    dataTypes: { ...merged.dataTypes, ...page.definitions.dataTypes },
-    entityTypes: { ...merged.entityTypes, ...page.definitions.entityTypes },
+    dataTypes: { ...merged.dataTypes, ...definitions.dataTypes },
+    entityTypes: { ...merged.entityTypes, ...definitions.entityTypes },
     propertyTypes: {
       ...merged.propertyTypes,
-      ...page.definitions.propertyTypes,
+      ...definitions.propertyTypes,
     },
   };
 };
@@ -132,68 +108,26 @@ type Accumulated = {
   linkEntities: HashLinkEntity[];
   /** Dedup set keyed on `recordId.entityId`, so appends stay O(page size). */
   seenLinkIds: Set<EntityId>;
-  subgraph: LinksSubgraph;
+  /** `undefined` until the first page supplies the subgraph to merge into. */
+  subgraph: LinksSubgraph | undefined;
   typesMap: ClosedMultiEntityTypesRootMap;
   definitions?: ClosedMultiEntityTypesDefinitions;
   typeIds?: Record<VersionedUrl, number>;
   typeTitles?: Record<VersionedUrl, string>;
   count?: number;
-  nextCursor: EntityQueryCursor | null;
-  /**
-   * `true` once a page returns fewer rows than the page size, so a non-null
-   * cursor past the last match can't keep `hasMore` true and trigger an empty
-   * fetch.
-   */
-  exhausted: boolean;
 };
 
-const appendPage = (accumulated: Accumulated, page: LinkPage): Accumulated => {
-  for (const linkEntity of page.linkEntities) {
-    const linkEntityId = linkEntity.metadata.recordId.entityId;
-    if (!accumulated.seenLinkIds.has(linkEntityId)) {
-      accumulated.seenLinkIds.add(linkEntityId);
-      accumulated.linkEntities.push(linkEntity);
-    }
-  }
-
-  Object.assign(accumulated.typesMap, page.typesMap);
-
-  // Exhausted once a page returns fewer rows than the page size (incl. zero),
-  // even if the API still handed back a non-null cursor.
-  const exhausted = page.linkEntities.length < linksTablePageSize;
-
-  return {
-    ...accumulated,
-    definitions: mergeDefinitionsInto(accumulated.definitions, page),
-    subgraph: mergeSubgraphInto(accumulated.subgraph, page),
-    // A full-set aggregate returned identically on every page, so the latest
-    // page's value replaces (rather than extends) it.
-    typeIds: page.typeIds ?? accumulated.typeIds,
-    typeTitles: page.typeTitles ?? accumulated.typeTitles,
-    count: page.count,
-    exhausted,
-    nextCursor: exhausted ? null : page.nextCursor,
-  };
-};
-
-/** The empty accumulation, seeded with the first page's subgraph to merge into. */
-const seedAccumulated = (firstPage: LinkPage): Accumulated => ({
+/** The empty accumulation; the first page supplies the subgraph to merge into. */
+const initialAccumulated: Accumulated = {
   linkEntities: [],
   seenLinkIds: new Set<EntityId>(),
-  subgraph: firstPage.subgraph,
+  subgraph: undefined,
   typesMap: {},
   definitions: undefined,
   typeIds: undefined,
   typeTitles: undefined,
   count: undefined,
-  nextCursor: null,
-  exhausted: false,
-});
-
-const finalizeAccumulated = (accumulated: Accumulated): Accumulated => ({
-  ...accumulated,
-  linkEntities: [...accumulated.linkEntities],
-});
+};
 
 /**
  * Fetches an entity's incoming or outgoing links a page at a time, for the
@@ -242,22 +176,18 @@ export const useEntityLinks = ({
 } => {
   const [webId, entityUuid, draftId] = splitEntityId(entityId);
 
-  const {
-    cursor,
-    cursorKey,
-    pageCount,
-    addPage,
-    accumulated,
-    loadMore,
-    hasMore,
-  } = useAccumulatedCursorPagination<EntityQueryCursor, LinkPage, Accumulated>({
-    resetKey: `${entityId}:${direction}:${JSON.stringify(
-      sortingPaths ?? null,
-    )}:${JSON.stringify(filterTypeIds ?? null)}`,
-    seed: seedAccumulated,
-    appendPage,
-    finalize: finalizeAccumulated,
-  });
+  const resetKey = `${entityId}:${direction}:${JSON.stringify(
+    sortingPaths ?? null,
+  )}:${JSON.stringify(filterTypeIds ?? null)}`;
+
+  const { page, appendPage, accumulated, loadMore, hasMore } =
+    useAccumulatedCursorPagination<
+      Accumulated,
+      { cursor: EntityQueryCursor | undefined }
+    >({
+      resetKey,
+      initial: initialAccumulated,
+    });
 
   /**
    * The link endpoint that is the viewed entity: left/source for outgoing
@@ -337,7 +267,7 @@ export const useEntityLinks = ({
               : []),
           ],
         },
-        cursor,
+        cursor: page?.cursor,
         limit: linksTablePageSize,
         includeCount: true,
         sortingPaths: [...(sortingPaths ?? []), uuidSortingPath],
@@ -360,26 +290,63 @@ export const useEntityLinks = ({
         data.queryEntitySubgraph,
       );
 
-      addPage({
-        cursorKey,
-        count: data.queryEntitySubgraph.count ?? undefined,
-        linkEntities: getRoots(response.subgraph).map(
-          (rootEntity) => new HashLinkEntity(rootEntity),
-        ),
-        nextCursor: data.queryEntitySubgraph.cursor ?? null,
-        subgraph: response.subgraph,
-        typesMap: data.queryEntitySubgraph.closedMultiEntityTypes ?? {},
-        definitions: data.queryEntitySubgraph.definitions ?? undefined,
-        typeIds: data.queryEntitySubgraph.typeIds ?? undefined,
-        typeTitles: data.queryEntitySubgraph.typeTitles ?? undefined,
+      const newLinkEntities = getRoots(response.subgraph).map(
+        (rootEntity) => new HashLinkEntity(rootEntity),
+      );
+
+      appendPage(resetKey, (prevAccumulated) => {
+        const linkEntities = [...prevAccumulated.linkEntities];
+        const seenLinkIds = new Set(prevAccumulated.seenLinkIds);
+        for (const linkEntity of newLinkEntities) {
+          const linkEntityId = linkEntity.metadata.recordId.entityId;
+          if (!seenLinkIds.has(linkEntityId)) {
+            seenLinkIds.add(linkEntityId);
+            linkEntities.push(linkEntity);
+          }
+        }
+
+        // Exhausted once a page returns fewer rows than the page size (incl. zero),
+        // even if the API still handed back a non-null cursor; `getNextPage` is
+        // then `false` so pagination stops.
+        const exhausted = newLinkEntities.length < linksTablePageSize;
+        const nextCursor = exhausted
+          ? null
+          : (data.queryEntitySubgraph.cursor ?? null);
+
+        return {
+          accumulated: {
+            linkEntities,
+            seenLinkIds,
+            subgraph: prevAccumulated.subgraph
+              ? mergeSubgraphInto(prevAccumulated.subgraph, response.subgraph)
+              : response.subgraph,
+            typesMap: {
+              ...prevAccumulated.typesMap,
+              ...(data.queryEntitySubgraph.closedMultiEntityTypes ?? {}),
+            },
+            definitions: mergeDefinitionsInto(
+              prevAccumulated.definitions,
+              data.queryEntitySubgraph.definitions ?? undefined,
+            ),
+            // A full-set aggregate returned identically on every page, so the latest
+            // page's value replaces (rather than extends) it.
+            typeIds:
+              data.queryEntitySubgraph.typeIds ?? prevAccumulated.typeIds,
+            typeTitles:
+              data.queryEntitySubgraph.typeTitles ?? prevAccumulated.typeTitles,
+            count: data.queryEntitySubgraph.count ?? undefined,
+          },
+          getNextPage:
+            nextCursor === null ? false : () => ({ cursor: nextCursor }),
+        };
       });
     },
   });
 
   return {
-    initialLoading: loading && pageCount === 0,
     error,
-    loadingMore: loading && cursor !== undefined,
+    initialLoading: loading && accumulated === undefined,
+    loadingMore: loading && page !== undefined,
     loadMore,
     hasMore,
     count: accumulated?.count,
