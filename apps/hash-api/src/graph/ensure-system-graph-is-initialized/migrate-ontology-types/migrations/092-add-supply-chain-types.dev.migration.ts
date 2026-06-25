@@ -268,6 +268,26 @@ const migrate: MigrationFunction = async ({
       webShortname: "h",
     },
   );
+  const cubicFeetDataType = await createSystemDataTypeIfNotExists(
+    context,
+    authentication,
+    {
+      dataTypeDefinition: {
+        allOf: [{ $ref: volumeDataType.schema.$id }],
+        title: "Cubic Feet",
+        description:
+          "An imperial unit of volume equal to approximately 28.317 litres.",
+        label: { right: "ft³" },
+        type: "number",
+      },
+      conversions: convTo(
+        litresDataType.metadata.recordId.baseUrl,
+        28.316846592,
+      ),
+      migrationState,
+      webShortname: "h",
+    },
+  );
 
   const areaDataType = await abstractMeasure(
     "Area",
@@ -390,6 +410,7 @@ const migrate: MigrationFunction = async ({
     { dataTypeId: litresDataType.schema.$id },
     { dataTypeId: millilitresDataType.schema.$id },
     { dataTypeId: cubicMetresDataType.schema.$id },
+    { dataTypeId: cubicFeetDataType.schema.$id },
     ...lengthValues,
     { dataTypeId: squareMetresDataType.schema.$id },
     { dataTypeId: squareCentimetresDataType.schema.$id },
