@@ -92,7 +92,10 @@ use crate::store::{
     postgres::{
         TraversalContext,
         crud::{QueryIndices, TypedRow},
-        knowledge::entity::{read::EntityEdgeTraversalData, summary::EntitySummaryQuery},
+        knowledge::entity::{
+            read::EntityEdgeTraversalData,
+            summary::{Deduplication, EntitySummaryQuery},
+        },
         query::{
             Distinctness, InsertStatementBuilder, PostgresRecord as _, PostgresSorting as _,
             SelectCompiler, Table,
@@ -1552,7 +1555,24 @@ where
             return Ok(SummarizeEntitiesResponse::default());
         };
         let (statement, parameters) = compiler.compile();
-        let statement = summary_query.statement(&statement);
+
+        // The `hits` CTE only needs to deduplicate editions when the query can emit more than
+        // one row per edition: either a fan-out (to-many) filter join, or a range variable
+        // temporal axis matching the same edition across several decision-time slices. A
+        // collapsed point interval (`[t, t]`) matches at most one slice per entity, so when no
+        // to-many join was added the dedup can be dropped, unlocking a parallel aggregate.
+        let variable_interval = temporal_axes.variable_interval();
+        let temporal_axis_is_point = matches!(
+            (variable_interval.start(), variable_interval.end()),
+            (TemporalBound::Inclusive(start), LimitedTemporalBound::Inclusive(end))
+                if start == end
+        );
+        let dedup = if compiler.has_to_many_join() || !temporal_axis_is_point {
+            Deduplication::Required
+        } else {
+            Deduplication::Skip
+        };
+        let statement = summary_query.statement(&statement, dedup);
 
         let rows = self
             .as_client()
