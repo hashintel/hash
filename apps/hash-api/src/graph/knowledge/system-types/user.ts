@@ -182,8 +182,7 @@ export const getUserFromEntity: PureGraphFunction<
   // masking can drop it at runtime for non-owners (see `getUser`'s Kratos
   // back-fill). Model that nullability, then canonicalise so every `User` built
   // from an entity compares case-insensitively regardless of signup casing.
-  const emails =
-    (email as typeof email | undefined)?.map(normalizeEmail) ?? [];
+  const emails = (email as typeof email | undefined)?.map(normalizeEmail) ?? [];
 
   const isAccountSignupComplete = !!shortname && !!displayName;
 
