@@ -27,24 +27,6 @@ export const includesPageEntityTypeId = (entityTypeIds: VersionedUrl[]) =>
     pageEntityTypeIds.includes(entityTypeId),
   );
 
-/**
- * A structural query filter to match against any of the system-defined Page types.
- */
-export const pageEntityTypeFilter = {
-  /**
-   * We specify each of these page types individually rather than Page, which they both inherit from,
-   * because checking against types involving inheritance is currently slow.
-   */
-  any: pageEntityTypeIds.map((entityTypeId) => ({
-    equal: [
-      { path: ["type", "versionedUrl"] },
-      {
-        parameter: entityTypeId,
-      },
-    ],
-  })),
-};
-
 export const contentLinkEntityTypeIds: VersionedUrl[] = [
   systemLinkEntityTypes.hasIndexedContent.linkEntityTypeId,
   systemLinkEntityTypes.hasSpatiallyPositionedContent.linkEntityTypeId,

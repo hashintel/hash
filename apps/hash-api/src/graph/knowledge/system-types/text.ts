@@ -6,10 +6,7 @@ import {
   systemEntityTypes,
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import {
-  contentLinkTypeFilter,
-  pageEntityTypeFilter,
-} from "@local/hash-isomorphic-utils/page-entity-type-ids";
+import { contentLinkTypeFilter } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 
 import { getLatestEntityById } from "../primitive/entity";
@@ -185,7 +182,14 @@ export const getPageAndBlockByText: ImpureGraphFunction<
   const pageEntities = await queryEntities(context, authentication, {
     filter: {
       all: [
-        pageEntityTypeFilter,
+        {
+          equal: [
+            { path: ["type", "baseUrl"] },
+            {
+              parameter: systemEntityTypes.page.entityTypeBaseUrl,
+            },
+          ],
+        },
         {
           any: matchingContainsLinks.map(({ metadata }) => ({
             equal: [
