@@ -423,7 +423,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
         )
     }
 
-    /// Whether any relation joined so far can fan out the base rows (see [`Relation::is_to_many`]).
+    /// Whether any relation joined so far can fan out the base rows.
     ///
     /// `false` guarantees the compiled query emits at most one row per base row, so a downstream
     /// deduplication can be safely skipped. Reflects all filters and selections added before
