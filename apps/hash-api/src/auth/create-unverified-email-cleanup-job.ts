@@ -1,8 +1,5 @@
 import { queryEntities } from "@local/hash-graph-sdk/entity";
-import {
-  currentTimeInstantTemporalAxes,
-  generateVersionedUrlMatchingFilter,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import { getUserFromEntity } from "../graph/knowledge/system-types/user";
@@ -122,12 +119,12 @@ export const createUnverifiedEmailCleanupJob = ({
       {
         filter: {
           all: [
-            generateVersionedUrlMatchingFilter(
-              systemEntityTypes.user.entityTypeId,
-              {
-                ignoreParents: true,
-              },
-            ),
+            {
+              equal: [
+                { path: ["type", "baseUrl"] },
+                { parameter: systemEntityTypes.user.entityTypeBaseUrl },
+              ],
+            },
             {
               equal: [{ path: ["archived"] }, { parameter: false }],
             },

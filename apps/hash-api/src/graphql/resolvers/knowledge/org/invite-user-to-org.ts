@@ -12,10 +12,7 @@ import {
 } from "@local/hash-graph-sdk/entity";
 import { getActorGroupRole } from "@local/hash-graph-sdk/principal/actor-group";
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
-import {
-  currentTimeInstantTemporalAxes,
-  generateVersionedUrlMatchingFilter,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   blockProtocolDataTypes,
   systemDataTypes,
@@ -107,11 +104,19 @@ const generateExistingInvitationFilter = (
 ) => {
   const filter = {
     all: [
-      generateVersionedUrlMatchingFilter(
-        invitation.type === "email"
-          ? systemEntityTypes.invitationViaEmail.entityTypeId
-          : systemEntityTypes.invitationViaShortname.entityTypeId,
-      ),
+      {
+        equal: [
+          {
+            path: ["type", "baseUrl"],
+          },
+          {
+            parameter:
+              invitation.type === "email"
+                ? systemEntityTypes.invitationViaEmail.entityTypeBaseUrl
+                : systemEntityTypes.invitationViaShortname.entityTypeBaseUrl,
+          },
+        ],
+      },
       {
         equal: [
           {

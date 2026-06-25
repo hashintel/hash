@@ -1,4 +1,3 @@
-import { generateVersionedUrlMatchingFilter } from "./graph-queries.js";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
@@ -35,12 +34,15 @@ export const pageEntityTypeFilter = {
   /**
    * We specify each of these page types individually rather than Page, which they both inherit from,
    * because checking against types involving inheritance is currently slow.
-   * Once H-392 is implemented we can replace it with a single check against 'page', and remove ignoreParents
-   * @todo update this once H-392 is implemented
    */
-  any: pageEntityTypeIds.map((entityTypeId) =>
-    generateVersionedUrlMatchingFilter(entityTypeId, { ignoreParents: true }),
-  ),
+  any: pageEntityTypeIds.map((entityTypeId) => ({
+    equal: [
+      { path: ["type", "versionedUrl"] },
+      {
+        parameter: entityTypeId,
+      },
+    ],
+  })),
 };
 
 export const contentLinkEntityTypeIds: VersionedUrl[] = [
@@ -55,7 +57,12 @@ export const isContentLinkEntityTypeId = (entityTypeId: VersionedUrl) =>
  * Generate a structural query filter for the types which link a block in a Block Collection to its content.
  */
 export const contentLinkTypeFilter = {
-  any: contentLinkEntityTypeIds.map((entityTypeId) =>
-    generateVersionedUrlMatchingFilter(entityTypeId, { ignoreParents: true }),
-  ),
+  any: contentLinkEntityTypeIds.map((entityTypeId) => ({
+    equal: [
+      { path: ["type", "versionedUrl"] },
+      {
+        parameter: entityTypeId,
+      },
+    ],
+  })),
 };

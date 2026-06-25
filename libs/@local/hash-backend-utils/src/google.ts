@@ -1,10 +1,7 @@
 import { google } from "googleapis";
 
 import { type HashEntity, queryEntities } from "@local/hash-graph-sdk/entity";
-import {
-  currentTimeInstantTemporalAxes,
-  generateVersionedUrlMatchingFilter,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { googleEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import { getSecretEntitiesForIntegration } from "./user-secret.js";
@@ -59,10 +56,16 @@ export const getGoogleAccountById = async ({
             equal: [{ path: ["webId"] }, { parameter: userAccountId }],
           },
           { equal: [{ path: ["archived"] }, { parameter: false }] },
-          generateVersionedUrlMatchingFilter(
-            googleEntityTypes.account.entityTypeId,
-            { ignoreParents: true },
-          ),
+          {
+            equal: [
+              {
+                path: ["type", "baseUrl"],
+              },
+              {
+                parameter: googleEntityTypes.account.entityTypeBaseUrl,
+              },
+            ],
+          },
           {
             equal: [
               {

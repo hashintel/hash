@@ -1,10 +1,7 @@
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
 import { type HashEntity, queryEntities } from "@local/hash-graph-sdk/entity";
-import {
-  currentTimeInstantTemporalAxes,
-  generateVersionedUrlMatchingFilter,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
@@ -107,10 +104,16 @@ export const getPageAndBlockByText: ImpureGraphFunction<
     queryEntities(context, authentication, {
       filter: {
         all: [
-          generateVersionedUrlMatchingFilter(
-            systemLinkEntityTypes.hasData.linkEntityTypeId,
-            { ignoreParents: true },
-          ),
+          {
+            equal: [
+              {
+                path: ["type", "baseUrl"],
+              },
+              {
+                parameter: systemLinkEntityTypes.hasData.linkEntityTypeBaseUrl,
+              },
+            ],
+          },
           {
             equal: [
               { path: ["rightEntity", "uuid"] },
@@ -126,10 +129,16 @@ export const getPageAndBlockByText: ImpureGraphFunction<
     queryEntities(context, authentication, {
       filter: {
         all: [
-          generateVersionedUrlMatchingFilter(
-            systemLinkEntityTypes.hasData.linkEntityTypeId,
-            { ignoreParents: true },
-          ),
+          {
+            equal: [
+              {
+                path: ["type", "baseUrl"],
+              },
+              {
+                parameter: systemLinkEntityTypes.hasData.linkEntityTypeBaseUrl,
+              },
+            ],
+          },
           {
             equal: [
               {
@@ -232,20 +241,28 @@ export const getCommentByText: ImpureGraphFunction<
   const matchingHasTextLinks = await queryEntities(context, authentication, {
     filter: {
       all: [
-        generateVersionedUrlMatchingFilter(
-          systemLinkEntityTypes.hasText.linkEntityTypeId,
-          { ignoreParents: true },
-        ),
+        {
+          equal: [
+            {
+              path: ["type", "baseUrl"],
+            },
+            {
+              parameter: systemLinkEntityTypes.hasText.linkEntityTypeBaseUrl,
+            },
+          ],
+        },
         {
           equal: [
             { path: ["rightEntity", "uuid"] },
             { parameter: textEntityUuid },
           ],
         },
-        generateVersionedUrlMatchingFilter(
-          systemEntityTypes.comment.entityTypeId,
-          { ignoreParents: true, pathPrefix: ["leftEntity"] },
-        ),
+        {
+          equal: [
+            { path: ["leftEntity", "type", "baseUrl"] },
+            { parameter: systemEntityTypes.comment.entityTypeBaseUrl },
+          ],
+        },
       ],
     },
     temporalAxes: currentTimeInstantTemporalAxes,

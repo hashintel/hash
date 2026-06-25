@@ -6,10 +6,7 @@ import {
   type HashEntity,
   type SerializedQueryEntitiesResponse,
 } from "@local/hash-graph-sdk/entity";
-import {
-  currentTimeInstantTemporalAxes,
-  generateVersionedUrlMatchingFilter,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { googleEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import { queryEntitiesQuery } from "../../../../../graphql/queries/knowledge/entity.queries";
@@ -38,10 +35,12 @@ export const useGoogleAccounts = (): UseGoogleAccountsResult => {
       request: {
         filter: {
           all: [
-            generateVersionedUrlMatchingFilter(
-              googleEntityTypes.account.entityTypeId,
-              { ignoreParents: true },
-            ),
+            {
+              equal: [
+                { path: ["type", "baseUrl"] },
+                { parameter: googleEntityTypes.account.entityTypeBaseUrl },
+              ],
+            },
             {
               equal: [
                 { path: ["webId"] },

@@ -570,19 +570,9 @@ pub enum LinkDeletionBehavior {
 /// # use hash_graph_store::entity::DeleteEntitiesParams;
 /// let json = serde_json::json!({
 ///     "filter": {
-///         "all": [
-///             {
-///                 "equal": [
-///                     { "path": ["type(inheritanceDepth = 0)", "baseUrl"] },
-///                     { "parameter": "https://hash.ai/@hash/types/entity-type/user/" }
-///                 ]
-///             },
-///             {
-///                 "equal": [
-///                     { "path": ["type(inheritanceDepth = 0)", "version"] },
-///                     { "parameter": 1 }
-///                 ]
-///             }
+///         "equal": [
+///             { "path": ["type", "versionedUrl"] },
+///             { "parameter": "https://hash.ai/@hash/types/entity-type/user/v/1" }
 ///         ]
 ///     },
 ///     "temporalAxes": {
