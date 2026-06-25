@@ -21,6 +21,7 @@ import {
   featureFlags,
 } from "@local/hash-isomorphic-utils/feature-flags";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
+import { normalizeEmail } from "@local/hash-isomorphic-utils/normalize";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
@@ -137,9 +138,11 @@ export const checkEmailVerificationAndUsageStatus = async (
   | { status: "verified"; kratosIdentityId: string }
   | { status: "not-verified"; kratosIdentityId: string }
 > => {
+  const normalizedEmail = normalizeEmail(email);
+
   try {
     const { data: identities } = await kratosIdentityApi.listIdentities({
-      credentialsIdentifier: email,
+      credentialsIdentifier: normalizedEmail,
     });
 
     if (identities.length === 0) {
@@ -147,7 +150,7 @@ export const checkEmailVerificationAndUsageStatus = async (
     }
 
     const verifiedEmails = getVerifiedEmailsFromKratosIdentity(identities[0]!);
-    if (verifiedEmails.includes(email)) {
+    if (verifiedEmails.includes(normalizedEmail)) {
       return { status: "verified", kratosIdentityId: identities[0]!.id };
     } else {
       return { status: "not-verified", kratosIdentityId: identities[0]!.id };
@@ -166,11 +169,17 @@ export const getUserFromEntity: PureGraphFunction<
 
   const {
     displayName,
-    email: emails,
+    email,
     enabledFeatureFlags: maybeFeatureFlags,
     kratosIdentityId,
     shortname,
   } = simplifyProperties(entity.properties);
+
+  // `email` is typed as a required property, but property-level permission
+  // masking can drop it at runtime for non-owners (see `getUser`'s Kratos
+  // back-fill). Model that nullability, then canonicalise so every `User` built
+  // from an entity compares case-insensitively regardless of signup casing.
+  const emails = (email as typeof email | undefined)?.map(normalizeEmail) ?? [];
 
   const isAccountSignupComplete = !!shortname && !!displayName;
 

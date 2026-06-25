@@ -13,6 +13,7 @@ import {
 import { getActorGroupRole } from "@local/hash-graph-sdk/principal/actor-group";
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
+import { normalizeEmail } from "@local/hash-isomorphic-utils/normalize";
 import {
   blockProtocolDataTypes,
   systemDataTypes,
@@ -178,7 +179,7 @@ export const inviteUserToOrgResolver: ResolverFn<
   let existingUserToInvite: User | null = null;
 
   const userEmail = unnormalisedUserEmail
-    ? unnormalisedUserEmail.trim().toLowerCase()
+    ? normalizeEmail(unnormalisedUserEmail)
     : null;
 
   if (userEmail) {
