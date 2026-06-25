@@ -8,7 +8,7 @@ import { publicUserAccountId } from "@local/hash-backend-utils/public-user-accou
 import { createUser, getUser } from "../graph/knowledge/system-types/user";
 import { systemAccountId } from "../graph/system-account";
 import { hydraAdmin } from "./ory-hydra";
-import { isUserEmailVerified, kratosFrontendApi } from "./ory-kratos";
+import { kratosFrontendApi } from "./ory-kratos";
 
 import type { ImpureGraphContext } from "../graph/context-types";
 import type { User } from "../graph/knowledge/system-types/user";
@@ -122,7 +122,6 @@ export const getUserAndSession = async ({
   logger: Logger;
   sessionToken?: string;
 }): Promise<{
-  primaryEmailVerified?: boolean;
   session?: Session;
   user?: User;
 }> => {
@@ -158,13 +157,6 @@ export const getUserAndSession = async ({
 
     const { id: kratosIdentityId, traits } = identity as KratosUserIdentity;
 
-    const primaryEmailAddress = traits.emails[0];
-
-    const primaryEmailVerified =
-      identity.verifiable_addresses?.find(
-        ({ value }) => value === primaryEmailAddress,
-      )?.verified === true;
-
     let user = await getUser(context, authentication, {
       kratosIdentityId,
       emails: traits.emails,
@@ -191,7 +183,7 @@ export const getUserAndSession = async ({
       }
     }
 
-    return { primaryEmailVerified, session: kratosSession, user };
+    return { session: kratosSession, user };
   }
 
   return {};
@@ -226,9 +218,6 @@ export const createAuthMiddleware = (params: {
           },
         );
         if (user) {
-          req.primaryEmailVerified = await isUserEmailVerified(
-            user.kratosIdentityId,
-          );
           req.user = user;
           next();
           return;
@@ -236,14 +225,13 @@ export const createAuthMiddleware = (params: {
       }
     }
 
-    const { primaryEmailVerified, session, user } = await getUserAndSession({
+    const { session, user } = await getUserAndSession({
       context,
       cookie: req.header("cookie"),
       logger,
       sessionToken: accessOrSessionToken,
     });
     if (session) {
-      req.primaryEmailVerified = primaryEmailVerified;
       req.session = session;
       req.user = user;
     }
