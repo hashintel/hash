@@ -267,6 +267,8 @@ export const Entity = ({
    */
   const [includeLinkDataInQuery, setIncludeLinkDataInQuery] = useState(false);
   const hasCompletedInitialLoadRef = useRef(false);
+  const [hasRootLinkDataBeenResolved, setHasRootLinkDataBeenResolved] =
+    useState(false);
 
   const { data: queryEntitySubgraphData, refetch } = useQuery<
     QueryEntitySubgraphQuery,
@@ -323,30 +325,22 @@ export const Entity = ({
       setDraftLinksToCreate([]);
       setDraftLinksToArchive([]);
 
-      if (isInitialLoad) {
-        const canUpdate =
-          !!data.queryEntitySubgraph.entityPermissions?.[entityId]?.update;
+      const canUpdate =
+        !!data.queryEntitySubgraph.entityPermissions?.[entityId]?.update;
 
+      if (isInitialLoad) {
         /**
          * For editable entities this flips the query variables, triggering the
          * link-data upgrade refetch handled above. For readonly entities it stays
          * false and the link tables self-fetch instead.
          */
         setIncludeLinkDataInQuery(canUpdate);
-
-        if (canUpdate) {
-          /**
-           * The entity is editable, so its link tables read from the editor
-           * subgraph – but this first response was fetched without link data,
-           * because we didn't know the user's permissions until it returned.
-           * Rather than dropping the loading state now (which would render the
-           * editor with empty link tables) and then changing the tables once the
-           * link-data refetch lands, we keep showing the loading state until that
-           * refetch completes – at which point this `onCompleted` runs again with
-           * `isInitialLoad` false and falls through to `setLoading(false)`.
-           */
-          return;
-        }
+      } else if (canUpdate) {
+        /**
+         * If this is _not_ the initial load, and the entity is editable,
+         * this is the result of a subsequent fetch with the link traversal included.
+         */
+        setHasRootLinkDataBeenResolved(true);
       }
 
       setLoading(false);
@@ -630,6 +624,7 @@ export const Entity = ({
                 JSON.stringify(entityFromDb?.metadata.entityTypeIds.toSorted()),
             );
           }}
+          hasRootLinkDataBeenResolved={hasRootLinkDataBeenResolved}
           isDirty={isDirty}
           isInSlide={isInSlide}
           onEntityClick={(clickedEntityId) =>
@@ -756,6 +751,7 @@ export const Entity = ({
                     ),
                 );
               }}
+              hasRootLinkDataBeenResolved={hasRootLinkDataBeenResolved}
               isDirty={isDirty}
               onEntityClick={(clickedEntityId) =>
                 pushToSlideStack({

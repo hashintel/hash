@@ -51,6 +51,7 @@ type OutgoingLinksSectionProps = Pick<
   | "draftLinksToArchive"
   | "draftLinksToCreate"
   | "entitySubgraph"
+  | "hasRootLinkDataBeenResolved"
   | "linkAndDestinationEntitiesClosedMultiEntityTypesMap"
   | "onEntityClick"
   | "onTypeClick"
@@ -73,6 +74,7 @@ export const OutgoingLinksSection = ({
   entity,
   entitySubgraph: editorSubgraph,
   isLinkEntity,
+  hasRootLinkDataBeenResolved,
   linkAndDestinationEntitiesClosedMultiEntityTypesMap: editorTypesMap,
   onEntityClick,
   onTypeClick,
@@ -268,8 +270,12 @@ export const OutgoingLinksSection = ({
   }
 
   if (
-    readonly &&
-    (initialLoading || !linkEntities || !fetchedSubgraph || !fetchedDefinitions)
+    (!readonly && !hasRootLinkDataBeenResolved) ||
+    (readonly &&
+      (initialLoading ||
+        !linkEntities ||
+        !fetchedSubgraph ||
+        !fetchedDefinitions))
   ) {
     return (
       <SectionWrapper title="Outgoing Links">

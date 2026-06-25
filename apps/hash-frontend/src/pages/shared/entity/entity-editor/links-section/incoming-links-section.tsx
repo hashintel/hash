@@ -29,6 +29,7 @@ type IncomingLinksSectionProps = Pick<
   | "draftLinksToArchive"
   | "entityLabel"
   | "entitySubgraph"
+  | "hasRootLinkDataBeenResolved"
   | "linkAndDestinationEntitiesClosedMultiEntityTypesMap"
   | "onEntityClick"
   | "onTypeClick"
@@ -47,6 +48,7 @@ export const IncomingLinksSection = ({
   entityLabel,
   entitySubgraph: editorSubgraph,
   isLinkEntity,
+  hasRootLinkDataBeenResolved,
   linkAndDestinationEntitiesClosedMultiEntityTypesMap: editorTypesMap,
   onEntityClick,
   onTypeClick,
@@ -230,8 +232,12 @@ export const IncomingLinksSection = ({
   }
 
   if (
-    readonly &&
-    (initialLoading || !linkEntities || !fetchedSubgraph || !fetchedDefinitions)
+    (!readonly && !hasRootLinkDataBeenResolved) ||
+    (readonly &&
+      (initialLoading ||
+        !linkEntities ||
+        !fetchedSubgraph ||
+        !fetchedDefinitions))
   ) {
     return (
       <SectionWrapper title="Incoming Links">

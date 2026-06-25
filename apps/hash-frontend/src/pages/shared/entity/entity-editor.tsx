@@ -57,6 +57,10 @@ export interface EntityEditorProps extends DraftLinkState {
    */
   isDirty: boolean;
   /**
+   * When the component is not in readonly, whether the link data (if any) is now included in the subgraph.
+   */
+  hasRootLinkDataBeenResolved: boolean;
+  /**
    * The label of the entity being edited
    */
   entityLabel: string;
@@ -121,6 +125,7 @@ export const EntityEditor = (props: EntityEditorProps) => {
     draftLinksToCreate,
     entityLabel,
     entitySubgraph,
+    hasRootLinkDataBeenResolved,
     linkAndDestinationEntitiesClosedMultiEntityTypesMap,
     onEntityClick,
     onTypeClick,
@@ -193,6 +198,7 @@ export const EntityEditor = (props: EntityEditorProps) => {
               linkAndDestinationEntitiesClosedMultiEntityTypesMap={
                 linkAndDestinationEntitiesClosedMultiEntityTypesMap
               }
+              hasRootLinkDataBeenResolved={hasRootLinkDataBeenResolved}
               onEntityClick={onEntityClick}
               onTypeClick={onTypeClick}
               readonly={readonly}
@@ -211,6 +217,7 @@ export const EntityEditor = (props: EntityEditorProps) => {
               entityLabel={entityLabel}
               entitySubgraph={entitySubgraph}
               isLinkEntity={isLinkEntity}
+              hasRootLinkDataBeenResolved={hasRootLinkDataBeenResolved}
               key={`incoming-${entity.metadata.recordId.editionId}`}
               linkAndDestinationEntitiesClosedMultiEntityTypesMap={
                 linkAndDestinationEntitiesClosedMultiEntityTypesMap
