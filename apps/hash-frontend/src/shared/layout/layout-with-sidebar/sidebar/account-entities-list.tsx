@@ -15,7 +15,7 @@ import { blockProtocolHubOrigin } from "@local/hash-isomorphic-utils/blocks-cons
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import { useUpdateAuthenticatedUser } from "../../../../components/hooks/use-update-authenticated-user";
-import { queryEntitiesQuery } from "../../../../graphql/queries/knowledge/entity.queries";
+import { summarizeEntitiesQuery } from "../../../../graphql/queries/knowledge/entity.queries";
 import { hiddenEntityTypeIds } from "../../../../pages/shared/hidden-types";
 import { useActiveWorkspace } from "../../../../pages/shared/workspace-context";
 import { useLatestEntityTypesOptional } from "../../../entity-types-context/hooks";
@@ -32,8 +32,8 @@ import { SortActionsDropdown } from "./shared/sort-actions-dropdown";
 import { ViewAllLink } from "./shared/view-all-link";
 
 import type {
-  QueryEntitiesQuery,
-  QueryEntitiesQueryVariables,
+  SummarizeEntitiesQuery,
+  SummarizeEntitiesQueryVariables,
 } from "../../../../graphql/api-types.gen";
 import type { SortType } from "./shared/sort-actions-dropdown";
 import type { FunctionComponent } from "react";
@@ -85,9 +85,9 @@ export const AccountEntitiesList: FunctionComponent<
   } = useLatestEntityTypesOptional();
 
   const { data: userEntitiesData, loading: userEntitiesLoading } = useQuery<
-    QueryEntitiesQuery,
-    QueryEntitiesQueryVariables
-  >(queryEntitiesQuery, {
+    SummarizeEntitiesQuery,
+    SummarizeEntitiesQueryVariables
+  >(summarizeEntitiesQuery, {
     variables: generateSidebarEntitiesQueryVariables({
       webId,
     }),
@@ -112,9 +112,9 @@ export const AccountEntitiesList: FunctionComponent<
         (root) =>
           ((isOwnedOntologyElementMetadata(root.metadata) &&
             root.metadata.webId === webId) ||
-            Object.keys(userEntitiesData?.queryEntities.typeIds ?? {}).includes(
-              root.schema.$id,
-            )) &&
+            Object.keys(
+              userEntitiesData?.summarizeEntities.typeIds ?? {},
+            ).includes(root.schema.$id)) &&
           // Filter out external types from blockprotocol.org, except the Address type.
           (!root.schema.$id.startsWith(blockProtocolHubOrigin) ||
             root.schema.$id.includes("/address/")) &&

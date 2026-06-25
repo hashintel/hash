@@ -4,7 +4,8 @@ import {
   splitEntityId,
 } from "@blockprotocol/type-system";
 import { typedKeys } from "@local/advanced-types/typed-entries";
-import { queryEntities } from "@local/hash-graph-sdk/entity";
+import { rewriteSemanticFilter } from "@local/hash-graph-sdk/embeddings";
+import { queryEntities, summarizeEntities } from "@local/hash-graph-sdk/entity";
 import { flowRunsQueryMaxLimit } from "@local/hash-isomorphic-utils/flows/types";
 import {
   currentTimeInstantTemporalAxes,
@@ -191,36 +192,42 @@ export async function getFlowRuns({
     flowRunsQueryMaxLimit,
   );
 
-  const queryResult = await queryEntities<FlowRunEntity>(
+  const filter = {
+    all: [
+      generateVersionedUrlMatchingFilter(
+        systemEntityTypes.flowRun.entityTypeId,
+        { ignoreParents: true },
+      ),
+      ...(filters.flowDefinitionIds
+        ? [
+            {
+              any: filters.flowDefinitionIds.map((flowDefinitionId) => ({
+                equal: [
+                  {
+                    path: [
+                      "properties",
+                      systemPropertyTypes.flowDefinitionId.propertyTypeBaseUrl,
+                    ],
+                  },
+                  { parameter: flowDefinitionId },
+                ],
+              })),
+            },
+          ]
+        : []),
+    ],
+  };
+
+  // `queryEntities` and `summarizeEntities` both rewrite semantic (embedding) filters
+  // internally; resolve it once here so the embedding lookup isn't run twice for the two
+  // concurrent requests (and so the shared filter isn't mutated under them).
+  await rewriteSemanticFilter(filter, temporalClient);
+
+  const entityQuery = queryEntities<FlowRunEntity>(
     { graphApi: graphApiClient },
     authentication,
     {
-      filter: {
-        all: [
-          generateVersionedUrlMatchingFilter(
-            systemEntityTypes.flowRun.entityTypeId,
-            { ignoreParents: true },
-          ),
-          ...(filters.flowDefinitionIds
-            ? [
-                {
-                  any: filters.flowDefinitionIds.map((flowDefinitionId) => ({
-                    equal: [
-                      {
-                        path: [
-                          "properties",
-                          systemPropertyTypes.flowDefinitionId
-                            .propertyTypeBaseUrl,
-                        ],
-                      },
-                      { parameter: flowDefinitionId },
-                    ],
-                  })),
-                },
-              ]
-            : []),
-        ],
-      },
+      filter,
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts: false,
       includePermissions: false,
@@ -228,9 +235,24 @@ export async function getFlowRuns({
       ...(filters.cursor
         ? { cursor: JSON.parse(filters.cursor) as object[] }
         : {}),
+    },
+  );
+
+  const summaryQuery = summarizeEntities(
+    { graphApi: graphApiClient },
+    authentication,
+    {
+      filter,
+      temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts: false,
       includeCount: true,
     },
   );
+
+  const [queryResult, summaryResult] = await Promise.all([
+    entityQuery,
+    summaryQuery,
+  ]);
 
   const temporalWorkflowIdToFlowDetails: Record<string, MinimalFlowMetadata> =
     {};
@@ -261,7 +283,7 @@ export async function getFlowRuns({
   const nextCursor = queryResult.cursor
     ? JSON.stringify(queryResult.cursor)
     : null;
-  const totalCount = queryResult.count ?? 0;
+  const totalCount = summaryResult.count ?? 0;
 
   if (!temporalWorkflowIds.length) {
     return { flowRuns: [], totalCount, nextCursor };

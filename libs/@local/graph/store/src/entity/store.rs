@@ -189,7 +189,6 @@ pub struct QueryConversion<'a> {
 }
 
 #[derive(Debug)]
-#[expect(clippy::struct_excessive_bools, reason = "Parameter struct")]
 pub struct QueryEntitiesParams<'a> {
     pub filter: Filter<'a, Entity>,
     pub temporal_axes: QueryTemporalAxesUnresolved,
@@ -197,13 +196,7 @@ pub struct QueryEntitiesParams<'a> {
     pub conversions: Vec<QueryConversion<'a>>,
     pub limit: usize,
     pub include_drafts: bool,
-    pub include_count: bool,
     pub include_entity_types: Option<IncludeEntityTypeOption>,
-    pub include_web_ids: bool,
-    pub include_created_by_ids: bool,
-    pub include_edition_created_by_ids: bool,
-    pub include_type_ids: bool,
-    pub include_type_titles: bool,
     pub include_permissions: bool,
 }
 
@@ -261,28 +254,10 @@ pub struct QueryEntitiesResponse<'r> {
     pub cursor: Option<EntityQueryCursor<'r>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
-    pub count: Option<usize>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub closed_multi_entity_types: Option<HashMap<VersionedUrl, ClosedMultiEntityTypeMap>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub definitions: Option<EntityTypeResolveDefinitions>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
-    pub web_ids: Option<HashMap<WebId, usize>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
-    pub created_by_ids: Option<HashMap<ActorEntityUuid, usize>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
-    pub edition_created_by_ids: Option<HashMap<ActorEntityUuid, usize>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
-    pub type_ids: Option<HashMap<VersionedUrl, usize>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
-    pub type_titles: Option<HashMap<VersionedUrl, String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub permissions: Option<HashMap<EntityId, EntityPermissions>>,
@@ -413,25 +388,56 @@ impl<'a> QueryEntitySubgraphParams<'a> {
 pub struct QueryEntitySubgraphResponse<'r> {
     pub subgraph: Subgraph,
     pub cursor: Option<EntityQueryCursor<'r>>,
-    pub count: Option<usize>,
     pub closed_multi_entity_types: Option<HashMap<VersionedUrl, ClosedMultiEntityTypeMap>>,
     pub definitions: Option<EntityTypeResolveDefinitions>,
-    pub web_ids: Option<HashMap<WebId, usize>>,
-    pub created_by_ids: Option<HashMap<ActorEntityUuid, usize>>,
-    pub edition_created_by_ids: Option<HashMap<ActorEntityUuid, usize>>,
-    pub type_ids: Option<HashMap<VersionedUrl, usize>>,
-    pub type_titles: Option<HashMap<VersionedUrl, String>>,
     pub entity_permissions: Option<HashMap<EntityId, EntityPermissions>>,
 }
 
 #[derive(Debug, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct CountEntitiesParams<'a> {
+#[expect(clippy::struct_excessive_bools, reason = "Parameter struct")]
+pub struct SummarizeEntitiesParams<'a> {
     #[serde(borrow)]
     pub filter: Filter<'a, Entity>,
     pub temporal_axes: QueryTemporalAxesUnresolved,
     pub include_drafts: bool,
+    #[serde(default)]
+    pub include_count: bool,
+    #[serde(default)]
+    pub include_web_ids: bool,
+    #[serde(default)]
+    pub include_created_by_ids: bool,
+    #[serde(default)]
+    pub include_edition_created_by_ids: bool,
+    #[serde(default)]
+    pub include_type_ids: bool,
+    #[serde(default)]
+    pub include_type_titles: bool,
+}
+
+#[derive(Debug, Default, Serialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase")]
+pub struct SummarizeEntitiesResponse {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
+    pub count: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
+    pub web_ids: Option<HashMap<WebId, usize>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
+    pub created_by_ids: Option<HashMap<ActorEntityUuid, usize>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
+    pub edition_created_by_ids: Option<HashMap<ActorEntityUuid, usize>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
+    pub type_ids: Option<HashMap<VersionedUrl, usize>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
+    pub type_titles: Option<HashMap<VersionedUrl, String>>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -725,18 +731,18 @@ pub trait EntityStore {
         params: QueryEntitySubgraphParams<'_>,
     ) -> impl Future<Output = Result<QueryEntitySubgraphResponse<'static>, Report<QueryError>>> + Send;
 
-    /// Count the number of entities that would be returned in [`query_entities`].
+    /// Summarizes the entities that would be returned in [`query_entities`].
     ///
     /// # Errors
     ///
     /// - if the request to the database fails
     ///
     /// [`query_entities`]: Self::query_entities
-    fn count_entities(
+    fn summarize_entities(
         &self,
         actor_id: ActorEntityUuid,
-        params: CountEntitiesParams<'_>,
-    ) -> impl Future<Output = Result<usize, Report<QueryError>>> + Send;
+        params: SummarizeEntitiesParams<'_>,
+    ) -> impl Future<Output = Result<SummarizeEntitiesResponse, Report<QueryError>>> + Send;
 
     fn get_entity_by_id(
         &self,

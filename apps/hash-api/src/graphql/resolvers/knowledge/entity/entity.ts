@@ -9,6 +9,7 @@ import {
   queryEntitySubgraph,
   serializeQueryEntitiesResponse,
   serializeQueryEntitySubgraphResponse,
+  summarizeEntities,
 } from "@local/hash-graph-sdk/entity";
 import {
   createPolicy,
@@ -19,7 +20,6 @@ import {
 import {
   canUserReadEntity,
   checkEntityPermission,
-  countEntities,
   createEntityWithLinks,
   getLatestEntityById,
   updateEntity,
@@ -42,7 +42,7 @@ import type {
   MutationUpdateEntitiesArgs,
   MutationUpdateEntityArgs,
   Query,
-  QueryCountEntitiesArgs,
+  QuerySummarizeEntitiesArgs,
   QueryIsEntityPublicArgs,
   QueryQueryEntitiesArgs,
   QueryQueryEntitySubgraphArgs,
@@ -105,13 +105,13 @@ export const createEntityResolver: ResolverFn<
   return entity;
 };
 
-export const countEntitiesResolver: ResolverFn<
-  Query["countEntities"],
+export const summarizeEntitiesResolver: ResolverFn<
+  Query["summarizeEntities"],
   Record<string, never>,
   GraphQLContext,
-  QueryCountEntitiesArgs
+  QuerySummarizeEntitiesArgs
 > = async (_, { request }, graphQLContext) =>
-  countEntities(
+  summarizeEntities(
     graphQLContextToImpureGraphContext(graphQLContext),
     graphQLContext.authentication,
     request,

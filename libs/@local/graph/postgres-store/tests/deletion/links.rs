@@ -12,7 +12,7 @@ use hash_graph_store::{
 };
 
 use crate::{
-    DatabaseTestWrapper, alice, bob, count_entity, create_link, create_person,
+    DatabaseTestWrapper, alice, bob, count_entities, create_link, create_person,
     get_deletion_provenance, has_any_live_temporal_row, has_archived_provenance, is_entity_live,
     provenance, raw_count, raw_count_archived_temporal_rows, raw_count_entity_edge,
     raw_count_entity_edge_any, raw_entity_ids_exists, seed,
@@ -58,7 +58,7 @@ async fn purge_error_rejects_with_incoming_links() {
     );
 
     // Entity B must be completely intact after the error (transaction rolled back)
-    assert!(count_entity(&api, id_b, false).await >= 1);
+    assert!(count_entities(&api, id_b, false).await >= 1);
     assert!(raw_entity_ids_exists(&api, id_b.web_id, id_b.entity_uuid).await);
     assert!(
         get_deletion_provenance(&api, id_b.web_id, id_b.entity_uuid)
@@ -162,7 +162,7 @@ async fn erase_rejects_with_incoming_links() {
     );
 
     // Entity B must be completely intact after the error (transaction rolled back)
-    assert!(count_entity(&api, id_b, false).await >= 1);
+    assert!(count_entities(&api, id_b, false).await >= 1);
     assert!(raw_entity_ids_exists(&api, id_b.web_id, id_b.entity_uuid).await);
     assert!(
         get_deletion_provenance(&api, id_b.web_id, id_b.entity_uuid)
@@ -382,7 +382,7 @@ async fn draft_deletion_skips_link_check() {
     );
 
     // Published B still exists
-    assert!(count_entity(&api, id_b, false).await >= 1);
+    assert!(count_entities(&api, id_b, false).await >= 1);
 
     // Link L→B still valid
     assert!(raw_count_entity_edge_any(&api, id_link.web_id, id_link.entity_uuid).await > 0);

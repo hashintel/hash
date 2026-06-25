@@ -156,10 +156,6 @@ fn generate_sorting_paths(
 ///
 /// See <https://github.com/serde-rs/json/issues/497> and <https://github.com/serde-rs/serde/issues/1183> for more details.
 #[derive(Debug, Clone, Deserialize)]
-#[expect(
-    clippy::struct_excessive_bools,
-    reason = "Parameter struct deserialized from JSON"
-)]
 #[serde(rename_all = "camelCase")]
 struct FlatQueryEntitiesRequestData<'q, 's, 'p> {
     // `QueryEntitiesQuery::Filter`
@@ -180,19 +176,7 @@ struct FlatQueryEntitiesRequestData<'q, 's, 'p> {
     #[serde(borrow)]
     cursor: Option<EntityQueryCursor<'s>>,
     #[serde(default)]
-    include_count: bool,
-    #[serde(default)]
     include_entity_types: Option<IncludeEntityTypeOption>,
-    #[serde(default)]
-    include_web_ids: bool,
-    #[serde(default)]
-    include_created_by_ids: bool,
-    #[serde(default)]
-    include_edition_created_by_ids: bool,
-    #[serde(default)]
-    include_type_ids: bool,
-    #[serde(default)]
-    include_type_titles: bool,
     include_permissions: bool,
 
     traversal_paths: Option<Vec<TraversalPath>>,
@@ -478,10 +462,6 @@ impl core::error::Error for EntityQueryOptionsError {}
 
 #[derive(Debug, Clone, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-#[expect(
-    clippy::struct_excessive_bools,
-    reason = "Parameter struct deserialized from JSON"
-)]
 pub struct EntityQueryOptions<'s, 'p> {
     pub temporal_axes: QueryTemporalAxesUnresolved,
     pub include_drafts: bool,
@@ -493,19 +473,7 @@ pub struct EntityQueryOptions<'s, 'p> {
     #[serde(borrow)]
     pub cursor: Option<EntityQueryCursor<'s>>,
     #[serde(default)]
-    pub include_count: bool,
-    #[serde(default)]
     pub include_entity_types: Option<IncludeEntityTypeOption>,
-    #[serde(default)]
-    pub include_web_ids: bool,
-    #[serde(default)]
-    pub include_created_by_ids: bool,
-    #[serde(default)]
-    pub include_edition_created_by_ids: bool,
-    #[serde(default)]
-    pub include_type_ids: bool,
-    #[serde(default)]
-    pub include_type_titles: bool,
     pub include_permissions: bool,
 }
 
@@ -522,13 +490,7 @@ impl<'q, 's, 'p> TryFrom<FlatQueryEntitiesRequestData<'q, 's, 'p>> for EntityQue
             conversions,
             sorting_paths,
             cursor,
-            include_count,
             include_entity_types,
-            include_web_ids,
-            include_created_by_ids,
-            include_edition_created_by_ids,
-            include_type_ids,
-            include_type_titles,
             include_permissions,
             graph_resolve_depths,
             traversal_paths,
@@ -561,13 +523,7 @@ impl<'q, 's, 'p> TryFrom<FlatQueryEntitiesRequestData<'q, 's, 'p>> for EntityQue
             conversions,
             sorting_paths,
             cursor,
-            include_count,
             include_entity_types,
-            include_web_ids,
-            include_created_by_ids,
-            include_edition_created_by_ids,
-            include_type_ids,
-            include_type_titles,
             include_permissions,
         })
     }
@@ -597,14 +553,8 @@ impl<'p> EntityQueryOptions<'_, 'p> {
             limit,
             conversions: self.conversions,
             include_drafts: self.include_drafts,
-            include_count: self.include_count,
             include_entity_types: self.include_entity_types,
             temporal_axes: self.temporal_axes,
-            include_web_ids: self.include_web_ids,
-            include_created_by_ids: self.include_created_by_ids,
-            include_edition_created_by_ids: self.include_edition_created_by_ids,
-            include_type_ids: self.include_type_ids,
-            include_type_titles: self.include_type_titles,
             include_permissions: self.include_permissions,
         })
     }
