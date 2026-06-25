@@ -43,10 +43,11 @@ use hash_graph_store::{
         UnarchiveDataTypeParams, UpdateDataTypeEmbeddingParams, UpdateDataTypesParams,
     },
     entity::{
-        CountEntitiesParams, CreateEntityParams, DeleteEntitiesParams, DeletionSummary,
-        EntityStore, EntityValidationReport, HasPermissionForEntitiesParams, PatchEntityParams,
+        CreateEntityParams, DeleteEntitiesParams, DeletionSummary, EntityStore,
+        EntityValidationReport, HasPermissionForEntitiesParams, PatchEntityParams,
         QueryEntitiesParams, QueryEntitiesResponse, QueryEntitySubgraphParams,
-        QueryEntitySubgraphResponse, UpdateEntityEmbeddingsParams, ValidateEntityParams,
+        QueryEntitySubgraphResponse, SummarizeEntitiesParams, SummarizeEntitiesResponse,
+        UpdateEntityEmbeddingsParams, ValidateEntityParams,
     },
     entity_type::{
         ArchiveEntityTypeParams, CountEntityTypesParams, CreateEntityTypeParams, EntityTypeStore,
@@ -763,82 +764,25 @@ impl EntityStore for DatabaseApi<'_> {
     async fn query_entities(
         &self,
         actor_id: ActorEntityUuid,
-        mut params: QueryEntitiesParams<'_>,
+        params: QueryEntitiesParams<'_>,
     ) -> Result<QueryEntitiesResponse<'static>, Report<QueryError>> {
-        let include_count = params.include_count;
-        let is_first_page = params.sorting.cursor.is_none();
-        let limit = params.limit;
-        params.include_count = true;
-
-        let count = self
-            .count_entities(
-                actor_id,
-                CountEntitiesParams {
-                    filter: params.filter.clone(),
-                    temporal_axes: params.temporal_axes,
-                    include_drafts: params.include_drafts,
-                },
-            )
-            .await?;
-
-        let mut response = self.store.query_entities(actor_id, params).await?;
-
-        // We can ensure that `count_entities` and `get_entity` return the same count;
-        assert_eq!(response.count, Some(count));
-        // if this is the first page and the limit is large enough, all entities should be returned
-        if is_first_page && count <= limit {
-            assert_eq!(count, response.entities.len());
-        }
-
-        if !include_count {
-            response.count = None;
-        }
-        Ok(response)
+        self.store.query_entities(actor_id, params).await
     }
 
     async fn query_entity_subgraph(
         &self,
         actor_id: ActorEntityUuid,
-        mut params: QueryEntitySubgraphParams<'_>,
+        params: QueryEntitySubgraphParams<'_>,
     ) -> Result<QueryEntitySubgraphResponse<'static>, Report<QueryError>> {
-        let request = params.request_mut();
-
-        let include_count = request.include_count;
-        let is_first_page = request.sorting.cursor.is_none();
-        let limit = request.limit;
-        request.include_count = true;
-
-        let count = self
-            .count_entities(
-                actor_id,
-                CountEntitiesParams {
-                    filter: request.filter.clone(),
-                    temporal_axes: request.temporal_axes,
-                    include_drafts: request.include_drafts,
-                },
-            )
-            .await?;
-        let mut response = self.store.query_entity_subgraph(actor_id, params).await?;
-
-        // We can ensure that `count_entities` and `get_entity` return the same count;
-        assert_eq!(response.count, Some(count));
-        // if this is the first page and the limit is large enough, all entities should be returned
-        if is_first_page && count <= limit {
-            assert_eq!(count, response.subgraph.roots.len());
-        }
-
-        if !include_count {
-            response.count = None;
-        }
-        Ok(response)
+        self.store.query_entity_subgraph(actor_id, params).await
     }
 
-    async fn count_entities(
+    async fn summarize_entities(
         &self,
         actor_id: ActorEntityUuid,
-        params: CountEntitiesParams<'_>,
-    ) -> Result<usize, Report<QueryError>> {
-        self.store.count_entities(actor_id, params).await
+        params: SummarizeEntitiesParams<'_>,
+    ) -> Result<SummarizeEntitiesResponse, Report<QueryError>> {
+        self.store.summarize_entities(actor_id, params).await
     }
 
     async fn get_entity_by_id(

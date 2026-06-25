@@ -43,7 +43,10 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
             Self::DirectTypeCount
             | Self::EntityTypeEdge {
                 edge_kind: SharedEdgeKind::IsOfType,
-                path: EntityTypeQueryPath::BaseUrl | EntityTypeQueryPath::VersionedUrl,
+                path:
+                    EntityTypeQueryPath::BaseUrl
+                    | EntityTypeQueryPath::VersionedUrl
+                    | EntityTypeQueryPath::Title,
                 inheritance_depth: None,
             } => {
                 vec![Relation::EntityEditionCache]
@@ -141,6 +144,14 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
                 inheritance_depth: None,
             } => (
                 Column::EntityEditionCache(EntityEditionCache::VersionedUrls),
+                None,
+            ),
+            Self::EntityTypeEdge {
+                edge_kind: SharedEdgeKind::IsOfType,
+                path: EntityTypeQueryPath::Title,
+                inheritance_depth: None,
+            } => (
+                Column::EntityEditionCache(EntityEditionCache::TypeTitles),
                 None,
             ),
             Self::DirectTypeCount => (

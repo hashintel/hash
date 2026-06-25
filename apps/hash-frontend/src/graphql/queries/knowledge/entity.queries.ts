@@ -31,9 +31,9 @@ export const queryEntitySubgraphQuery = gql`
   }
 `;
 
-export const countEntitiesQuery = gql`
-  query countEntities($request: CountEntitiesParams!) {
-    countEntities(request: $request)
+export const summarizeEntitiesQuery = gql`
+  query summarizeEntities($request: SummarizeEntitiesParams!) {
+    summarizeEntities(request: $request)
   }
 `;
 

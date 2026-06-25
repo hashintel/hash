@@ -37,7 +37,7 @@ import {
   addEntityViewerResolver,
   archiveEntitiesResolver,
   archiveEntityResolver,
-  countEntitiesResolver,
+  summarizeEntitiesResolver,
   createEntityResolver,
   isEntityPublicResolver,
   queryEntitiesResolver,
@@ -157,7 +157,7 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
         "`getEntityAuthorizationRelationships` is not implemented",
       );
     }),
-    countEntities: loggedInAndSignedUpMiddleware(countEntitiesResolver),
+    summarizeEntities: loggedInAndSignedUpMiddleware(summarizeEntitiesResolver),
     queryEntities: loggedInAndSignedUpMiddleware(queryEntitiesResolver),
     queryEntitySubgraph: loggedInAndSignedUpMiddleware(
       queryEntitySubgraphResolver,

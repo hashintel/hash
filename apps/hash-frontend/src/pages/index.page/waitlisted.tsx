@@ -15,7 +15,7 @@ import {
 import { isSelfHostedInstance } from "@local/hash-isomorphic-utils/instance";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
-import { countEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
+import { summarizeEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
 import {
   getWaitlistPositionQuery,
   submitEarlyAccessFormMutation,
@@ -30,8 +30,8 @@ import { UsesCard } from "./shared/uses-card";
 import { EarlyAccessFormModal } from "./waitlisted/early-access-modal";
 
 import type {
-  CountEntitiesQuery,
-  CountEntitiesQueryVariables,
+  SummarizeEntitiesQuery,
+  SummarizeEntitiesQueryVariables,
   GetWaitlistPositionQuery,
   SubmitEarlyAccessFormMutation,
   SubmitEarlyAccessFormMutationVariables,
@@ -65,8 +65,8 @@ export const Waitlisted = () => {
     "closed" | "open" | "submitted"
   >("closed");
 
-  useQuery<CountEntitiesQuery, CountEntitiesQueryVariables>(
-    countEntitiesQuery,
+  useQuery<SummarizeEntitiesQuery, SummarizeEntitiesQueryVariables>(
+    summarizeEntitiesQuery,
     {
       variables: {
         request: {
@@ -75,11 +75,12 @@ export const Waitlisted = () => {
           ),
           includeDrafts: false,
           temporalAxes: currentTimeInstantTemporalAxes,
+          includeCount: true,
         },
       },
       fetchPolicy: "cache-and-network",
       onCompleted: (data) => {
-        if (data.countEntities > 0) {
+        if ((data.summarizeEntities.count ?? 0) > 0) {
           setEarlyAccessFormState("submitted");
         }
       },
