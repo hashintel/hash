@@ -1,4 +1,5 @@
 import { type ApolloError, useQuery } from "@apollo/client";
+import { useMemo } from "react";
 
 import { getRoots } from "@blockprotocol/graph/stdlib";
 import {
@@ -17,16 +18,20 @@ import {
 import { queryEntitySubgraphQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
+import { summarizeEntitiesQuery } from "../../../../../graphql/queries/knowledge/entity.queries";
 import { useAccumulatedCursorPagination } from "./use-accumulated-cursor-pagination";
 
 import type {
   QueryEntitySubgraphQuery,
   QueryEntitySubgraphQueryVariables,
+  SummarizeEntitiesQuery,
+  SummarizeEntitiesQueryVariables,
 } from "../../../../../graphql/api-types.gen";
 import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
 import type {
   EntityQueryCursor,
   EntityQuerySortingRecord,
+  Filter,
 } from "@local/hash-graph-client";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import type {
@@ -112,9 +117,6 @@ type Accumulated = {
   subgraph: LinksSubgraph | undefined;
   typesMap: ClosedMultiEntityTypesRootMap;
   definitions?: ClosedMultiEntityTypesDefinitions;
-  typeIds?: Record<VersionedUrl, number>;
-  typeTitles?: Record<VersionedUrl, string>;
-  count?: number;
 };
 
 /** The empty accumulation; the first page supplies the subgraph to merge into. */
@@ -124,9 +126,6 @@ const initialAccumulated: Accumulated = {
   subgraph: undefined,
   typesMap: {},
   definitions: undefined,
-  typeIds: undefined,
-  typeTitles: undefined,
-  count: undefined,
 };
 
 /**
@@ -196,6 +195,86 @@ export const useEntityLinks = ({
   const filterEndpoint =
     direction === "outgoing" ? "leftEntity" : "rightEntity";
 
+  /**
+   * The filter clauses common to every query: scope to the viewed entity (and
+   * draft) via the relevant link endpoint, and (for incoming links) exclude
+   * noisy system types and claims. This deliberately omits any
+   * {@link filterTypeIds} clause.
+   */
+  const baseFilterClauses = useMemo<Filter[]>(() => {
+    const clauses: Filter[] = [
+      {
+        equal: [{ path: [filterEndpoint, "uuid"] }, { parameter: entityUuid }],
+      },
+      {
+        equal: [{ path: [filterEndpoint, "webId"] }, { parameter: webId }],
+      },
+    ];
+
+    /**
+     * When viewing a specific draft, scope the endpoint to that draft
+     * (mirroring `generateEntityIdFilter`); without it a draft would match
+     * links across its live version and all sibling drafts.
+     */
+    if (draftId) {
+      clauses.push({
+        equal: [{ path: [filterEndpoint, "draftId"] }, { parameter: draftId }],
+      });
+    }
+
+    if (direction === "incoming") {
+      clauses.push(ignoreNoisySystemTypesFilter, {
+        notEqual: [
+          { path: ["leftEntity", "type", "versionedUrl"] },
+          { parameter: systemEntityTypes.claim.entityTypeId },
+        ],
+      });
+    }
+
+    return clauses;
+  }, [direction, draftId, entityUuid, filterEndpoint, webId]);
+
+  /**
+   * Restrict matched links to the selected link types. `undefined` means no
+   * filter (every type selected, the default), so the clause is omitted. An
+   * empty array means every type deselected, which must match *nothing* - an
+   * empty `any` resolves to a `FALSE` filter, so the clause is still added.
+   */
+  const typeFilterClause = useMemo<Filter | null>(() => {
+    if (!filterTypeIds) {
+      return null;
+    }
+
+    return {
+      any: filterTypeIds.map((versionedUrl) => ({
+        equal: [
+          { path: ["type", "versionedUrl"] },
+          { parameter: versionedUrl },
+        ],
+      })),
+    };
+  }, [filterTypeIds]);
+
+  /** The full filter for the matched links, including any type filter. */
+  const filter = useMemo<Filter>(
+    () => ({
+      all: typeFilterClause
+        ? [...baseFilterClauses, typeFilterClause]
+        : baseFilterClauses,
+    }),
+    [baseFilterClauses, typeFilterClause],
+  );
+
+  /**
+   * The same filter without any type filter, used to offer the type filter
+   * options: we want the types present in the result set *before* the user
+   * narrows by type.
+   */
+  const filterWithoutTypeFilter = useMemo<Filter>(
+    () => ({ all: baseFilterClauses }),
+    [baseFilterClauses],
+  );
+
   const { loading, error } = useQuery<
     QueryEntitySubgraphQuery,
     QueryEntitySubgraphQueryVariables
@@ -204,72 +283,9 @@ export const useEntityLinks = ({
     skip,
     variables: {
       request: {
-        filter: {
-          all: [
-            {
-              equal: [
-                { path: [filterEndpoint, "uuid"] },
-                { parameter: entityUuid },
-              ],
-            },
-            {
-              equal: [
-                { path: [filterEndpoint, "webId"] },
-                { parameter: webId },
-              ],
-            },
-            /**
-             * When viewing a specific draft, scope the endpoint to that draft
-             * (mirroring `generateEntityIdFilter`); without it a draft would
-             * match links across its live version and all sibling drafts.
-             */
-            ...(draftId
-              ? [
-                  {
-                    equal: [
-                      { path: [filterEndpoint, "draftId"] },
-                      { parameter: draftId },
-                    ],
-                  },
-                ]
-              : []),
-            ...(direction === "incoming"
-              ? [
-                  ignoreNoisySystemTypesFilter,
-                  {
-                    notEqual: [
-                      { path: ["leftEntity", "type", "versionedUrl"] },
-                      {
-                        parameter: systemEntityTypes.claim.entityTypeId,
-                      },
-                    ],
-                  },
-                ]
-              : []),
-            /**
-             * Restrict matched links to the selected link types. `undefined`
-             * means no filter (every type selected, the default), so the clause
-             * is omitted. An empty array means every type deselected, which must
-             * match *nothing* - an empty `any` resolves to a `FALSE` filter, so
-             * the clause is still added.
-             */
-            ...(filterTypeIds
-              ? [
-                  {
-                    any: filterTypeIds.map((versionedUrl) => ({
-                      equal: [
-                        { path: ["type", "versionedUrl"] },
-                        { parameter: versionedUrl },
-                      ],
-                    })),
-                  },
-                ]
-              : []),
-          ],
-        },
+        filter,
         cursor: page?.cursor,
         limit: linksTablePageSize,
-        includeCount: true,
         sortingPaths: [...(sortingPaths ?? []), uuidSortingPath],
         temporalAxes: currentTimeInstantTemporalAxes,
         traversalPaths: [
@@ -279,10 +295,6 @@ export const useEntityLinks = ({
         includeDrafts: !!draftId,
         includeEntityTypes: "resolvedWithDataTypeChildren",
         includePermissions: false,
-        // Return the per-type breakdown and titles so the caller can offer
-        // them as filter options (see {@link filterTypeIds}).
-        includeTypeIds: true,
-        includeTypeTitles: true,
       },
     },
     onCompleted: (data) => {
@@ -328,18 +340,54 @@ export const useEntityLinks = ({
               prevAccumulated.definitions,
               data.queryEntitySubgraph.definitions ?? undefined,
             ),
-            // A full-set aggregate returned identically on every page, so the latest
-            // page's value replaces (rather than extends) it.
-            typeIds:
-              data.queryEntitySubgraph.typeIds ?? prevAccumulated.typeIds,
-            typeTitles:
-              data.queryEntitySubgraph.typeTitles ?? prevAccumulated.typeTitles,
-            count: data.queryEntitySubgraph.count ?? undefined,
           },
           getNextPage:
             nextCursor === null ? false : () => ({ cursor: nextCursor }),
         };
       });
+    },
+  });
+
+  /**
+   * The total number of matching links. Fetched separately from the paginated
+   * query above so it reflects the *full* matching set (with the type filter
+   * applied), not just the current page.
+   */
+  const { data: countData } = useQuery<
+    SummarizeEntitiesQuery,
+    SummarizeEntitiesQueryVariables
+  >(summarizeEntitiesQuery, {
+    fetchPolicy: "cache-and-network",
+    skip,
+    variables: {
+      request: {
+        filter,
+        temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts: !!draftId,
+        includeCount: true,
+      },
+    },
+  });
+
+  /**
+   * The per-type breakdown and titles offered as type filter options. Fetched
+   * with the type filter omitted, so the caller can always offer every type
+   * present in the (otherwise) matching set, even once a subset is selected.
+   */
+  const { data: typesData } = useQuery<
+    SummarizeEntitiesQuery,
+    SummarizeEntitiesQueryVariables
+  >(summarizeEntitiesQuery, {
+    fetchPolicy: "cache-and-network",
+    skip,
+    variables: {
+      request: {
+        filter: filterWithoutTypeFilter,
+        temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts: !!draftId,
+        includeTypeIds: true,
+        includeTypeTitles: true,
+      },
     },
   });
 
@@ -349,12 +397,12 @@ export const useEntityLinks = ({
     loadingMore: loading && page !== undefined,
     loadMore,
     hasMore,
-    count: accumulated?.count,
+    count: countData?.summarizeEntities.count ?? undefined,
     linkEntities: accumulated?.linkEntities,
     subgraph: accumulated?.subgraph,
     linkAndDestinationEntitiesClosedMultiEntityTypesMap: accumulated?.typesMap,
     closedMultiEntityTypesDefinitions: accumulated?.definitions,
-    typeIds: accumulated?.typeIds,
-    typeTitles: accumulated?.typeTitles,
+    typeIds: typesData?.summarizeEntities.typeIds ?? undefined,
+    typeTitles: typesData?.summarizeEntities.typeTitles ?? undefined,
   };
 };
