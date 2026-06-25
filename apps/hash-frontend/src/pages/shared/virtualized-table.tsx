@@ -231,9 +231,9 @@ export const VirtualizedTable = <
         fixedFooterContent={fixedFooterContent}
         fixedHeaderContent={fixedHeaderContent}
         followOutput={followOutput}
-        increaseViewportBy={200}
+        increaseViewportBy={2000}
         itemContent={createRowContent}
-        overscan={{ main: 200, reverse: 200 }}
+        overscan={{ main: 1000, reverse: 1000 }}
         style={heightStyle}
       />
     </Box>
