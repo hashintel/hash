@@ -435,8 +435,9 @@ mod tests {
             include_web_ids: false,
         };
 
-        // With `Deduplication::Skip` the `DISTINCT ON` is dropped, so the planner can run a
-        // fully parallel partial aggregate. The raw row still includes `c0` (edition_id), but the aggregation doesn’t reference it.
+        // With `Deduplication::Skip` the `DISTINCT ON` is dropped, so the planner can run a fully
+        // parallel partial aggregate. The raw row still includes `c0` (edition_id), but the
+        // aggregation doesn’t reference it.
         pretty_assertions::assert_eq!(
             trim_whitespace(&summary_query.statement("SELECT 1", Deduplication::Skip)),
             trim_whitespace(
