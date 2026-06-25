@@ -183,7 +183,7 @@ export const getUserFromEntity: PureGraphFunction<
   // back-fill). Model that nullability, then canonicalise so every `User` built
   // from an entity compares case-insensitively regardless of signup casing.
   const emails =
-    (email as [string, ...string[]] | undefined)?.map(normalizeEmail) ?? [];
+(email as typeof email | undefined)?.map(normalizeEmail) ?? [];
 
   const isAccountSignupComplete = !!shortname && !!displayName;
 
