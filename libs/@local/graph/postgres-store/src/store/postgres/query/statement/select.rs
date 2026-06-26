@@ -888,6 +888,57 @@ mod tests {
     }
 
     #[test]
+    fn has_to_many_join_flag() {
+        let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
+
+        // A type-URL filter resolves to the edition cache (to-one join) — no fan-out.
+        let mut to_one = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes), false);
+        let to_one_filter = Filter::Equal(
+            FilterExpression::Path {
+                path: EntityQueryPath::EntityTypeEdge {
+                    edge_kind: SharedEdgeKind::IsOfType,
+                    path: EntityTypeQueryPath::VersionedUrl,
+                    inheritance_depth: None,
+                },
+            },
+            FilterExpression::Parameter {
+                parameter: Parameter::Text(Cow::Borrowed("https://example.com/v/1")),
+                convert: None,
+            },
+        );
+        to_one
+            .add_filter(&to_one_filter)
+            .expect("Failed to add filter");
+        assert!(
+            !to_one.has_to_many_join(),
+            "type-URL filter hits the edition cache (to-one) and must not require dedup"
+        );
+
+        // An incoming link traversal fans out — must require dedup.
+        let mut to_many = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes), false);
+        let to_many_filter = Filter::Equal(
+            FilterExpression::Path {
+                path: EntityQueryPath::EntityEdge {
+                    edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
+                    path: Box::new(EntityQueryPath::EditionId),
+                    direction: EdgeDirection::Incoming,
+                },
+            },
+            FilterExpression::Parameter {
+                parameter: Parameter::Uuid(Uuid::nil()),
+                convert: None,
+            },
+        );
+        to_many
+            .add_filter(&to_many_filter)
+            .expect("Failed to add filter");
+        assert!(
+            to_many.has_to_many_join(),
+            "incoming link traversal fans out and must require dedup"
+        );
+    }
+
+    #[test]
     fn entity_incoming_link_query() {
         let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
         let pinned_timestamp = temporal_axes.pinned_timestamp();

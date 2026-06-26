@@ -7,10 +7,7 @@ import { typedKeys } from "@local/advanced-types/typed-entries";
 import { rewriteSemanticFilter } from "@local/hash-graph-sdk/embeddings";
 import { queryEntities, summarizeEntities } from "@local/hash-graph-sdk/entity";
 import { flowRunsQueryMaxLimit } from "@local/hash-isomorphic-utils/flows/types";
-import {
-  currentTimeInstantTemporalAxes,
-  generateVersionedUrlMatchingFilter,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   systemEntityTypes,
   systemPropertyTypes,
@@ -194,10 +191,16 @@ export async function getFlowRuns({
 
   const filter = {
     all: [
-      generateVersionedUrlMatchingFilter(
-        systemEntityTypes.flowRun.entityTypeId,
-        { ignoreParents: true },
-      ),
+      {
+        equal: [
+          {
+            path: ["type", "baseUrl"],
+          },
+          {
+            parameter: systemEntityTypes.flowRun.entityTypeBaseUrl,
+          },
+        ],
+      },
       ...(filters.flowDefinitionIds
         ? [
             {

@@ -8,10 +8,7 @@ import {
   type HashEntity,
   queryEntities,
 } from "@local/hash-graph-sdk/entity";
-import {
-  currentTimeInstantTemporalAxes,
-  generateVersionedUrlMatchingFilter,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
@@ -287,10 +284,12 @@ export const getBlockCollectionByBlock: ImpureGraphFunction<
             { parameter: blockEntityUuid },
           ],
         },
-        generateVersionedUrlMatchingFilter(
-          systemEntityTypes.blockCollection.entityTypeId,
-          { ignoreParents: false, pathPrefix: ["leftEntity"] },
-        ),
+        {
+          equal: [
+            { path: ["leftEntity", "type", "baseUrl"] },
+            { parameter: systemEntityTypes.blockCollection.entityTypeBaseUrl },
+          ],
+        },
       ],
     },
     temporalAxes: currentTimeInstantTemporalAxes,

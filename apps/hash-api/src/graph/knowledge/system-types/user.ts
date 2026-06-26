@@ -20,10 +20,7 @@ import {
   type FeatureFlag,
   featureFlags,
 } from "@local/hash-isomorphic-utils/feature-flags";
-import {
-  currentTimeInstantTemporalAxes,
-  generateVersionedUrlMatchingFilter,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { normalizeEmail } from "@local/hash-isomorphic-utils/normalize";
 import {
   systemEntityTypes,
@@ -282,12 +279,14 @@ export const getUser: ImpureGraphFunction<
     } = await queryEntities<UserEntity>(context, authentication, {
       filter: {
         all: [
-          generateVersionedUrlMatchingFilter(
-            systemEntityTypes.user.entityTypeId,
-            {
-              ignoreParents: true,
-            },
-          ),
+          {
+            equal: [
+              { path: ["type", "baseUrl"] },
+              {
+                parameter: systemEntityTypes.user.entityTypeBaseUrl,
+              },
+            ],
+          },
           queryFilter,
         ],
       },
@@ -651,9 +650,14 @@ export const getUserPendingInvitations: ImpureGraphFunction<
       temporalAxes: currentTimeInstantTemporalAxes,
       filter: {
         all: [
-          generateVersionedUrlMatchingFilter(
-            systemEntityTypes.invitation.entityTypeId,
-          ),
+          {
+            equal: [
+              { path: ["type", "baseUrl"] },
+              {
+                parameter: systemEntityTypes.invitation.entityTypeBaseUrl,
+              },
+            ],
+          },
           {
             equal: [
               {

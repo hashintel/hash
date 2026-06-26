@@ -65,6 +65,20 @@ impl Dimension {
     }
 }
 
+/// Whether the `hits` CTE must deduplicate editions before aggregating.
+///
+/// The compiled query can emit more than one row per edition when a fan-out (to-many) filter
+/// join was added, or when a range variable temporal axis matches the same edition across
+/// several decision-time slices. Skipping the dedup when either applies would over-count.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum Deduplication {
+    /// Deduplicate over `edition_id` via `DISTINCT ON` — duplicates are possible.
+    Required,
+    /// Skip the dedup — the query emits at most one row per edition, so the `DISTINCT ON` sort
+    /// barrier can be dropped to let the planner run a fully parallel partial aggregate.
+    Skip,
+}
+
 /// Compiles and decodes the summary aggregation for one entity query.
 ///
 /// Created via [`Self::new`] *before* limit/sorting are added to the compiler, so the
@@ -142,17 +156,19 @@ impl EntitySummaryQuery {
 
     /// Wraps the compiled selection into the aggregate statement.
     ///
-    /// Filter joins can emit duplicate rows for the same edition, so the `hits` CTE
-    /// deduplicates over `edition_id` rather than the entity identity. This keeps the
-    /// aggregates driven by the temporal axis: a point-in-time query matches one edition
-    /// per entity, an unbounded query matches every edition.
-    pub(crate) fn statement(&self, statement: &str) -> String {
+    /// See [`Deduplication`] for when the `hits` CTE deduplicates over `edition_id`
+    /// ([`Deduplication::Required`]) versus skips the `DISTINCT ON` to allow a fully parallel
+    /// partial aggregate ([`Deduplication::Skip`]).
+    pub(crate) fn statement(&self, statement: &str, dedup: Deduplication) -> String {
         let aliases = (0..self.column_count())
             .map(|index| format!("c{index}"))
             .collect::<Vec<_>>()
             .join(", ");
 
-        let distinct = format!("DISTINCT ON (c{})", self.edition_id_column);
+        let distinct = match dedup {
+            Deduplication::Required => format!("DISTINCT ON (c{})", self.edition_id_column),
+            Deduplication::Skip => String::new(),
+        };
 
         let mut hit_columns = vec![format!("c{} AS web_id", self.web_id_column)];
         if let Some(column) = self.provenance_column {
@@ -201,16 +217,17 @@ impl EntitySummaryQuery {
         }
         if self.type_columns.is_some() {
             branches.push(format!(
-                "SELECT {}::int4, NULL::uuid, t.type_id, count(*), min(t.title) FROM hits CROSS \
-                 JOIN LATERAL unnest(versioned_urls[1:direct_types], type_titles[1:direct_types]) \
-                 AS t (type_id, title) GROUP BY t.type_id",
+                "SELECT {}::int4, NULL::uuid, t.type_id, count(*), min(t.title) FROM (SELECT \
+                 unnest(versioned_urls[1:direct_types]) AS type_id, \
+                 unnest(type_titles[1:direct_types]) AS title FROM hits) AS t GROUP BY t.type_id",
                 Dimension::TypeIds as i32
             ));
         }
 
         format!(
-            "WITH hits AS (SELECT {distinct} {hit_columns} FROM ({statement}) AS raw ({aliases})) \
-             {}",
+            "WITH hits AS (SELECT {distinct} {hit_columns} FROM (
+            {statement}
+            ) AS raw ({aliases})) {}",
             branches.join(" UNION ALL ")
         )
     }
@@ -310,7 +327,7 @@ impl EntitySummaryQuery {
 
 #[cfg(test)]
 mod tests {
-    use super::{Dimension, EntitySummaryQuery, TypeColumns};
+    use super::{Deduplication, Dimension, EntitySummaryQuery, TypeColumns};
     use crate::store::postgres::query::test_helper::trim_whitespace;
 
     #[test]
@@ -347,7 +364,7 @@ mod tests {
         };
 
         pretty_assertions::assert_eq!(
-            trim_whitespace(&summary_query.statement("SELECT 1")),
+            trim_whitespace(&summary_query.statement("SELECT 1", Deduplication::Required)),
             trim_whitespace(
                 "WITH hits AS (SELECT DISTINCT ON (c0)
                     c1 AS web_id,
@@ -356,7 +373,7 @@ mod tests {
                     c4 AS versioned_urls,
                     c5 AS direct_types,
                     c6 AS type_titles
-                 FROM (SELECT 1) AS raw (c0, c1, c2, c3, c4, c5, c6))
+                 FROM ( SELECT 1 ) AS raw (c0, c1, c2, c3, c4, c5, c6))
                  SELECT 0::int4 AS dimension, NULL::uuid AS dimension_id,
                         NULL::text AS dimension_type, count(*) AS matches,
                         NULL::text AS dimension_title FROM hits
@@ -369,9 +386,9 @@ mod tests {
                  SELECT 3::int4, edition_created_by, NULL::text, count(*), NULL::text FROM hits
                   GROUP BY edition_created_by
                  UNION ALL
-                 SELECT 4::int4, NULL::uuid, t.type_id, count(*), min(t.title) FROM hits
-                  CROSS JOIN LATERAL unnest(versioned_urls[1:direct_types],
-                  type_titles[1:direct_types]) AS t (type_id, title)
+                 SELECT 4::int4, NULL::uuid, t.type_id, count(*), min(t.title) FROM (SELECT
+                  unnest(versioned_urls[1:direct_types]) AS type_id,
+                  unnest(type_titles[1:direct_types]) AS title FROM hits) AS t
                   GROUP BY t.type_id"
             ),
         );
@@ -390,14 +407,50 @@ mod tests {
         };
 
         pretty_assertions::assert_eq!(
-            trim_whitespace(&summary_query.statement("SELECT 1")),
+            trim_whitespace(&summary_query.statement("SELECT 1", Deduplication::Required)),
             trim_whitespace(
                 "WITH hits AS (SELECT DISTINCT ON (c0)
                     c1 AS web_id
-                 FROM (SELECT 1) AS raw (c0, c1))
+                 FROM ( SELECT 1 ) AS raw (c0, c1))
                  SELECT 0::int4 AS dimension, NULL::uuid AS dimension_id,
                         NULL::text AS dimension_type, count(*) AS matches,
                         NULL::text AS dimension_title FROM hits"
+            ),
+        );
+    }
+
+    #[test]
+    fn statement_skips_dedup() {
+        let summary_query = EntitySummaryQuery {
+            edition_id_column: 0,
+            web_id_column: 1,
+            provenance_column: None,
+            edition_provenance_column: None,
+            type_columns: Some(TypeColumns {
+                versioned_urls: 2,
+                direct_types: 3,
+                type_titles: 4,
+            }),
+            include_count: false,
+            include_web_ids: false,
+        };
+
+        // With `Deduplication::Skip` the `DISTINCT ON` is dropped, so the planner can run a fully
+        // parallel partial aggregate. The raw row still includes `c0` (edition_id), but the
+        // aggregation doesn’t reference it.
+        pretty_assertions::assert_eq!(
+            trim_whitespace(&summary_query.statement("SELECT 1", Deduplication::Skip)),
+            trim_whitespace(
+                "WITH hits AS (SELECT
+                    c1 AS web_id,
+                    c2 AS versioned_urls,
+                    c3 AS direct_types,
+                    c4 AS type_titles
+                 FROM ( SELECT 1 ) AS raw (c0, c1, c2, c3, c4))
+                 SELECT 4::int4, NULL::uuid, t.type_id, count(*), min(t.title) FROM (SELECT
+                  unnest(versioned_urls[1:direct_types]) AS type_id,
+                  unnest(type_titles[1:direct_types]) AS title FROM hits) AS t
+                  GROUP BY t.type_id"
             ),
         );
     }

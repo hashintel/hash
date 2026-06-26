@@ -1,8 +1,5 @@
 import { type HashEntity, queryEntities } from "@local/hash-graph-sdk/entity";
-import {
-  currentTimeInstantTemporalAxes,
-  generateVersionedUrlMatchingFilter,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import type { ActorEntityUuid, EntityUuid } from "@blockprotocol/type-system";
@@ -27,10 +24,14 @@ export const getFlowRunEntityById = async (params: {
           {
             equal: [{ path: ["uuid"] }, { parameter: flowRunId }],
           },
-          generateVersionedUrlMatchingFilter(
-            systemEntityTypes.flowRun.entityTypeId,
-            { ignoreParents: true },
-          ),
+          {
+            equal: [
+              { path: ["type", "baseUrl"] },
+              {
+                parameter: systemEntityTypes.flowRun.entityTypeBaseUrl,
+              },
+            ],
+          },
         ],
       },
       temporalAxes: currentTimeInstantTemporalAxes,

@@ -14,10 +14,7 @@ import {
   deserializeQueryEntitySubgraphResponse,
   type HashEntity,
 } from "@local/hash-graph-sdk/entity";
-import {
-  currentTimeInstantTemporalAxes,
-  generateVersionedUrlMatchingFilter,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import { BlockLoadedProvider } from "../blocks/on-block-loaded";
@@ -54,10 +51,12 @@ const NotesPage: NextPageWithLayout = () => {
       request: {
         filter: {
           all: [
-            generateVersionedUrlMatchingFilter(
-              systemEntityTypes.note.entityTypeId,
-              { ignoreParents: true },
-            ),
+            {
+              equal: [
+                { path: ["type", "baseUrl"] },
+                { parameter: systemEntityTypes.note.entityTypeBaseUrl },
+              ],
+            },
             {
               equal: [
                 { path: ["webId"] },

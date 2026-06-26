@@ -5,7 +5,6 @@ import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { deserializeQueryEntitiesResponse } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
-  generateVersionedUrlMatchingFilter,
   pageOrNotificationNotArchivedFilter,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { queryEntitiesQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
@@ -104,10 +103,14 @@ export const NotificationCountContextProvider: FunctionComponent<
                   { parameter: authenticatedUser?.accountId },
                 ],
               },
-              generateVersionedUrlMatchingFilter(
-                systemEntityTypes.notification.entityTypeId,
-                { ignoreParents: false },
-              ),
+              {
+                equal: [
+                  { path: ["type", "baseUrl"] },
+                  {
+                    parameter: systemEntityTypes.notification.entityTypeBaseUrl,
+                  },
+                ],
+              },
               pageOrNotificationNotArchivedFilter,
             ],
           },
@@ -155,10 +158,16 @@ export const NotificationCountContextProvider: FunctionComponent<
                     { parameter: authenticatedUser?.accountId },
                   ],
                 },
-                generateVersionedUrlMatchingFilter(
-                  systemEntityTypes.notification.entityTypeId,
-                  { ignoreParents: false },
-                ),
+
+                {
+                  equal: [
+                    { path: ["type", "baseUrl"] },
+                    {
+                      parameter:
+                        systemEntityTypes.notification.entityTypeBaseUrl,
+                    },
+                  ],
+                },
                 {
                   equal: [
                     { path: ["outgoingLinks", "rightEntity", "uuid"] },
