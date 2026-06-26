@@ -10,14 +10,12 @@ import { useActiveWorkspace } from "../../shared/workspace-context";
 import type { ReactElement, ReactNode } from "react";
 
 /**
- * Layout shared by every `/supply-chain/*` page. Mounts the ported
- * value-chain-timing `AppShell` inside hash's sidebar chrome, scoped to the
- * active web — the gateway transport calls `/api/analysis` for that `webId`.
+ * Layout shared by every `/supply-chain/*` page.
  *
  * The subtree is wrapped in `.hash-ds-root` so the ds-components Panda tokens
  * resolve, and that element is supplied as the `PortalContainerContext` so ds
  * and Ark overlays (dialogs, tooltips, selects) portal *inside* the token
- * scope rather than at `document.body` (mirrors the standalone tool's `_app`).
+ * scope rather than at `document.body`.
  *
  * `AppShell` is keyed by the active web so switching workspace remounts it and
  * reloads the product/site registry for the new scope.

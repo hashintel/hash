@@ -7,11 +7,7 @@ import {
 import type { WebId } from "@blockprotocol/type-system";
 
 /**
- * Data-access layer for the supply-chain (value-chain-timing) views, ported
- * from the standalone SPA's `shared/data.ts`. Where the SPA fetched static JSON
- * from `/data/...`, these go through the auth-gated analysis gateway, scoped to
- * a `webId`. View-layer payload types (graph, step detail, site summary) are
- * supplied by the caller as type parameters during the component migration.
+ * Data-access layer for the supply-chain views.
  */
 
 /** A product as listed in `products.json`. */
