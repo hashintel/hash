@@ -549,8 +549,7 @@ impl QueryPath for EntityQueryPath<'_> {
                 ParameterType::Decimal
             }
             Self::Embedding => ParameterType::Vector(Box::new(ParameterType::Decimal)),
-            Self::Archived => ParameterType::Boolean,
-            Self::ReadOnly => ParameterType::Boolean,
+            Self::Archived | Self::ReadOnly => ParameterType::Boolean,
             Self::EntityTypeEdge { path, .. } => path.expected_type(),
             Self::EntityEdge { path, .. } => path.expected_type(),
             Self::FirstTypeTitle | Self::FirstLabel => ParameterType::Text,
