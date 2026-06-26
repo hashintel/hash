@@ -285,6 +285,7 @@ impl DatabaseApi<'_> {
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
                     sources: Vec::new(),
                 },
+                read_only: false,
             },
         )
         .await
@@ -319,6 +320,7 @@ impl DatabaseApi<'_> {
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
                     sources: Vec::new(),
                 },
+                read_only: false,
             },
         )
         .await
@@ -364,6 +366,7 @@ impl DatabaseApi<'_> {
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
                     sources: Vec::new(),
                 },
+                read_only: false,
             },
         )
         .await
@@ -1494,6 +1497,7 @@ impl DatabaseApi<'_> {
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
                     sources: Vec::new(),
                 },
+                read_only: false,
             },
         )
         .await
@@ -1533,6 +1537,7 @@ impl DatabaseApi<'_> {
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
                     sources: Vec::new(),
                 },
+                read_only: false,
             },
         )
         .await
@@ -2136,6 +2141,7 @@ impl DatabaseApi<'_> {
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
                     sources: Vec::new(),
                 },
+                read_only: false,
             },
         )
         .await
@@ -2175,6 +2181,7 @@ impl DatabaseApi<'_> {
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
                     sources: Vec::new(),
                 },
+                read_only: false,
             },
         )
         .await
@@ -2582,6 +2589,7 @@ impl DatabaseApi<'_> {
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
                     sources: Vec::new(),
                 },
+                read_only: false,
             },
         )
         .await
@@ -3063,6 +3071,7 @@ async fn subgraph_traversal_masks_linked_user_email() {
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
                     sources: Vec::new(),
                 },
+                read_only: false,
             },
         )
         .await
@@ -3092,6 +3101,7 @@ async fn subgraph_traversal_masks_linked_user_email() {
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
                     sources: Vec::new(),
                 },
+                read_only: false,
             },
         )
         .await
@@ -3123,6 +3133,7 @@ async fn subgraph_traversal_masks_linked_user_email() {
                 origin: OriginProvenance::from_empty_type(OriginType::Api),
                 sources: Vec::new(),
             },
+            read_only: false,
         },
     )
     .await

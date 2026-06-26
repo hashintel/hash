@@ -105,6 +105,7 @@ async fn properties_add() {
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
                     sources: Vec::new(),
                 },
+                read_only: false,
             },
         )
         .await
@@ -216,6 +217,7 @@ async fn properties_remove() {
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
                     sources: Vec::new(),
                 },
+                read_only: false,
             },
         )
         .await
@@ -294,6 +296,7 @@ async fn properties_replace() {
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
                     sources: Vec::new(),
                 },
+                read_only: false,
             },
         )
         .await
@@ -387,6 +390,7 @@ async fn type_ids() {
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
                     sources: Vec::new(),
                 },
+                read_only: false,
             },
         )
         .await

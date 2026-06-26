@@ -968,6 +968,15 @@ impl<'p> Filter<'p, Entity> {
                     convert: None,
                 },
             ),
+            EntityResourceFilter::IsReadOnly => Self::Equal(
+                FilterExpression::Path {
+                    path: EntityQueryPath::ReadOnly,
+                },
+                FilterExpression::Parameter {
+                    parameter: Parameter::Boolean(true),
+                    convert: None,
+                },
+            ),
             EntityResourceFilter::IsOfType { entity_type } => {
                 Self::for_entity_by_type_id(entity_type)
             }

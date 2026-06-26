@@ -152,6 +152,11 @@ pub enum EntityQueryPath<'p> {
     ///
     /// [`Entity`]: type_system::knowledge::Entity
     Archived,
+    /// Whether this [`Entity`] is read-only. Has no query token, only used by authorization
+    /// filters.
+    ///
+    /// [`Entity`]: type_system::knowledge::Entity
+    ReadOnly,
     /// An edge from this [`Entity`] to it's [`EntityType`] using a [`SharedEdgeKind`].
     ///
     /// The corresponding reversed edge is [`EntityTypeQueryPath::EntityEdge`].
@@ -475,6 +480,7 @@ impl fmt::Display for EntityQueryPath<'_> {
             Self::TransactionTime => fmt.write_str("transactionTime"),
             Self::DirectTypeCount => fmt.write_str("directTypeCount"),
             Self::Archived => fmt.write_str("archived"),
+            Self::ReadOnly => fmt.write_str("readOnly"),
             Self::Properties(Some(property)) => write!(fmt, "properties.{property}"),
             Self::Properties(None) => fmt.write_str("properties"),
             Self::Provenance(Some(path)) => write!(fmt, "provenance.{path}"),
@@ -544,6 +550,7 @@ impl QueryPath for EntityQueryPath<'_> {
             }
             Self::Embedding => ParameterType::Vector(Box::new(ParameterType::Decimal)),
             Self::Archived => ParameterType::Boolean,
+            Self::ReadOnly => ParameterType::Boolean,
             Self::EntityTypeEdge { path, .. } => path.expected_type(),
             Self::EntityEdge { path, .. } => path.expected_type(),
             Self::FirstTypeTitle | Self::FirstLabel => ParameterType::Text,
@@ -888,6 +895,7 @@ impl<'de: 'p, 'p> EntityQueryPath<'p> {
             Self::TransactionTime => EntityQueryPath::TransactionTime,
             Self::DirectTypeCount => EntityQueryPath::DirectTypeCount,
             Self::Archived => EntityQueryPath::Archived,
+            Self::ReadOnly => EntityQueryPath::ReadOnly,
             Self::EntityTypeEdge {
                 path,
                 edge_kind,

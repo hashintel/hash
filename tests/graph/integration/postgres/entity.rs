@@ -86,6 +86,7 @@ async fn insert() {
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
                     sources: Vec::new(),
                 },
+                read_only: false,
             },
         )
         .await
@@ -159,6 +160,7 @@ async fn query() {
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
                     sources: Vec::new(),
                 },
+                read_only: false,
             },
         )
         .await
@@ -234,6 +236,7 @@ async fn update() {
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
                     sources: Vec::new(),
                 },
+                read_only: false,
             },
         )
         .await
@@ -426,4 +429,104 @@ async fn update() {
     assert_eq!(num_entities, 2);
     let entity_v2 = response_v2.entities.pop().expect("no entity found");
     assert_eq!(entity_v2.properties.properties(), page_v2.properties());
+}
+
+#[tokio::test]
+async fn read_only_entity_cannot_be_modified_by_user() {
+    let person: PropertyObject =
+        serde_json::from_str(entity::PERSON_ALICE_V1).expect("could not parse entity");
+
+    let mut database = DatabaseTestWrapper::new().await;
+    let mut api = database
+        .seed(
+            [
+                data_type::VALUE_V1,
+                data_type::TEXT_V1,
+                data_type::NUMBER_V1,
+            ],
+            [
+                property_type::NAME_V1,
+                property_type::AGE_V1,
+                property_type::FAVORITE_SONG_V1,
+                property_type::FAVORITE_FILM_V1,
+                property_type::HOBBY_V1,
+                property_type::INTERESTS_V1,
+            ],
+            [
+                entity_type::LINK_V1,
+                entity_type::link::FRIEND_OF_V1,
+                entity_type::link::ACQUAINTANCE_OF_V1,
+                entity_type::PERSON_V1,
+            ],
+        )
+        .await
+        .expect("could not seed database");
+
+    let person_type = VersionedUrl {
+        base_url: BaseUrl::new(
+            "https://blockprotocol.org/@alice/types/entity-type/person/".to_owned(),
+        )
+        .expect("couldn't construct Base URL"),
+        version: OntologyTypeVersion {
+            major: 1,
+            pre_release: None,
+        },
+    };
+
+    // Read-only entity, as if seeded by a one-way integration. Creating it is allowed.
+    let entity = api
+        .create_entity(
+            api.account_id,
+            CreateEntityParams {
+                web_id: WebId::new(api.account_id),
+                entity_uuid: None,
+                decision_time: None,
+                entity_type_ids: HashSet::from([person_type]),
+                properties: PropertyObjectWithMetadata::from_parts(person, None)
+                    .expect("could not create property with metadata object"),
+                confidence: None,
+                link_data: None,
+                draft: false,
+                policies: Vec::new(),
+                provenance: ProvidedEntityEditionProvenance {
+                    actor_type: ActorType::User,
+                    origin: OriginProvenance::from_empty_type(OriginType::Api),
+                    sources: Vec::new(),
+                },
+                read_only: true,
+            },
+        )
+        .await
+        .expect("could not create entity");
+
+    assert!(
+        entity.metadata.read_only,
+        "entity created with `read_only: true` should be marked read-only"
+    );
+
+    // A user must not be able to modify it (the `forbid-user-modify-readonly-entity` policy).
+    let result = api
+        .patch_entity(
+            api.account_id,
+            PatchEntityParams {
+                entity_id: entity.metadata.record_id.entity_id,
+                decision_time: None,
+                entity_type_ids: HashSet::new(),
+                properties: Vec::new(),
+                draft: None,
+                archived: Some(true),
+                confidence: None,
+                provenance: ProvidedEntityEditionProvenance {
+                    actor_type: ActorType::User,
+                    origin: OriginProvenance::from_empty_type(OriginType::Api),
+                    sources: Vec::new(),
+                },
+            },
+        )
+        .await;
+
+    assert!(
+        result.is_err(),
+        "a user actor must not be able to modify a read-only entity"
+    );
 }

@@ -3873,6 +3873,10 @@
           "provenance": {
             "$ref": "#/components/schemas/ProvidedEntityEditionProvenance"
           },
+          "readOnly": {
+            "type": "boolean",
+            "description": "Marks the entity as read-only, forbidding user actors from updating or archiving it.\n\nSet once at creation (e.g. by an integration performing a one-way sync); recorded in the\nentity-level [`InferredEntityProvenance`] and preserved across editions.\n\n[`InferredEntityProvenance`]: type_system::knowledge::entity::InferredEntityProvenance"
+          },
           "webId": {
             "$ref": "#/components/schemas/WebId"
           }
@@ -4537,6 +4541,10 @@
           },
           "provenance": {
             "$ref": "#/components/schemas/EntityProvenance"
+          },
+          "readOnly": {
+            "type": "boolean",
+            "description": "Whether this entity is read-only and must not be modified by user actors."
           },
           "recordId": {
             "$ref": "#/components/schemas/EntityRecordId"
