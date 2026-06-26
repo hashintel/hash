@@ -12,7 +12,6 @@ import {
   createSystemPropertyTypeIfNotExists,
   generateSystemTypeBaseUrl,
   getCurrentHashDataTypeId,
-  getCurrentHashPropertyTypeId,
 } from "../util";
 
 import type { MigrationFunction } from "../types";
@@ -69,14 +68,35 @@ const migrate: MigrationFunction = async ({
     }
     return { dataTypeId: versionedUrlFromComponents(baseUrl, version) };
   });
-  const cityPropertyTypeId = getCurrentHashPropertyTypeId({
-    propertyTypeKey: "city",
-    migrationState,
-  });
-  const statusPropertyTypeId = getCurrentHashPropertyTypeId({
-    propertyTypeKey: "status",
-    migrationState,
-  });
+  // Shared system property types; created here so this migration stays self-contained.
+  const cityPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "City",
+        description: "The city where something is located, occurred, etc.",
+        possibleValues: [{ primitiveDataType: "text" }],
+      },
+      migrationState,
+      webShortname: "h",
+    },
+  );
+  const cityPropertyTypeId = cityPropertyType.schema.$id;
+  const statusPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Status",
+        description: "The status of something.",
+        possibleValues: [{ primitiveDataType: "text" }],
+      },
+      migrationState,
+      webShortname: "h",
+    },
+  );
+  const statusPropertyTypeId = statusPropertyType.schema.$id;
 
   const massDataType = await createSystemDataTypeIfNotExists(
     context,
@@ -542,11 +562,11 @@ const migrate: MigrationFunction = async ({
   );
   const itemNumberPropertyType = await text(
     "Item Number",
-    "The position of a line item within a document.",
+    "The position of a line item.",
   );
   const scheduleLineNumberPropertyType = await text(
     "Schedule Line Number",
-    "The number identifying a delivery schedule line within a document item.",
+    "The number identifying a schedule line.",
   );
 
   const salesDocumentTypePropertyType = await text(
@@ -563,15 +583,15 @@ const migrate: MigrationFunction = async ({
   );
   const deliveryTypePropertyType = await text(
     "Delivery Type",
-    "The category of a delivery document.",
+    "The category of a delivery.",
   );
   const lineItemCategoryPropertyType = await text(
     "Line Item Category",
-    "The category of a document line item, determining how it behaves.",
+    "The category of a line item, determining how it behaves.",
   );
   const rejectionReasonPropertyType = await text(
     "Rejection Reason",
-    "The reason a document item was rejected.",
+    "The reason something was rejected.",
   );
   const currencyCodePropertyType = await text(
     "Currency Code",
@@ -583,20 +603,16 @@ const migrate: MigrationFunction = async ({
   );
   const referenceNumberPropertyType = await text(
     "Reference Number",
-    "An external reference number associated with a document.",
+    "An external reference number.",
   );
   const materialDocumentNumberPropertyType = await text(
     "Material Document Number",
     "A number identifying a material document.",
   );
 
-  /**
-   * @todo maybe we don't need distinct item numbers
-   */
   const materialDocumentItemPropertyType = await text(
-    /** Should this just be "Item Number"? */
-    "Material Document Item",
-    "An item number within document.",
+    "Material Document Item Number",
+    "An item number within a document.",
   );
   const purchaseOrderNumberPropertyType = await text(
     "Purchase Order Number",
@@ -604,7 +620,7 @@ const migrate: MigrationFunction = async ({
   );
   const purchaseOrderItemNumberPropertyType = await text(
     "Purchase Order Item Number",
-    "The item number within a purchase order.",
+    "The purchase order item number.",
   );
   const productionOrderNumberPropertyType = await text(
     "Production Order Number",
@@ -612,15 +628,15 @@ const migrate: MigrationFunction = async ({
   );
   const deliveryNumberPropertyType = await text(
     "Delivery Number",
-    "The delivery document number.",
+    "The delivery number.",
   );
   const deliveryItemNumberPropertyType = await text(
     "Delivery Item Number",
-    "The item number within a delivery document.",
+    "The item number for a delivery.",
   );
   const shipmentNumberPropertyType = await text(
     "Shipment Number",
-    "The shipment or transport document number.",
+    "The shipment or transport number.",
   );
   const vendorNumberPropertyType = await text(
     "Vendor Number",
@@ -715,7 +731,7 @@ const migrate: MigrationFunction = async ({
   );
   const incotermsPropertyType = await text(
     "Incoterms",
-    "The Incoterms rule and location for a sales or delivery document.",
+    "The Incoterms rule and location for a sales or delivery.",
   );
   const batchNumberPropertyType = await text(
     "Batch Number",
@@ -834,7 +850,7 @@ const migrate: MigrationFunction = async ({
 
   const netValuePropertyType = await currency(
     "Net Value",
-    "The net monetary value of a document or item.",
+    "The net monetary value of something.",
   );
   const standardPricePropertyType = await currency(
     "Standard Price",
