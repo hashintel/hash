@@ -26,12 +26,6 @@ const SupplyChainShell = ({ children }: { children: ReactNode }) => {
 
   return (
     <PortalContainerContext.Provider value={rootRef}>
-      {/*
-        Bound the ds scope to the viewport height below hash's global header so
-        the ported AppShell (which fills this box with `height:100%`) can scroll
-        its content pane internally instead of overflowing the page. This is the
-        host-side counterpart to the standalone tool's `100dvh` `.vct-root`.
-      */}
       <div
         ref={rootRef}
         className="hash-ds-root"
