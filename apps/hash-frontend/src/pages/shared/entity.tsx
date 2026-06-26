@@ -267,8 +267,15 @@ export const Entity = ({
    */
   const [includeLinkDataInQuery, setIncludeLinkDataInQuery] = useState(false);
   const hasCompletedInitialLoadRef = useRef(false);
+  /**
+   * We put the links tables in a loading state until we've:
+   * 1. Decided whether we need to fetch links at this root component, and
+   * 2. If so, have fetched them.
+   *
+   * If we have a draft or proposed entity subgraph, we know we won't be fetching links.
+   */
   const [hasRootLinkDataBeenResolved, setHasRootLinkDataBeenResolved] =
-    useState(false);
+    useState<boolean>(!!(draftLocalEntity ?? proposedEntitySubgraph));
 
   const { data: queryEntitySubgraphData, refetch } = useQuery<
     QueryEntitySubgraphQuery,
