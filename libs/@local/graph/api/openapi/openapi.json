@@ -3875,7 +3875,7 @@
           },
           "readOnly": {
             "type": "boolean",
-            "description": "Marks the entity as read-only, forbidding user actors from updating or archiving it.\n\nSet once at creation (e.g. by an integration performing a one-way sync); recorded in the\nentity-level [`InferredEntityProvenance`] and preserved across editions.\n\n[`InferredEntityProvenance`]: type_system::knowledge::entity::InferredEntityProvenance"
+            "description": "Marks the entity read-only, blocking later updates and archival by user actors.\n\nSet once at creation, e.g. by a one-way integration sync."
           },
           "webId": {
             "$ref": "#/components/schemas/WebId"
