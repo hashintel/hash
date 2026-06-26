@@ -28,23 +28,29 @@ use type_system::{
 
 use crate::{DatabaseApi, DatabaseTestWrapper};
 
-/// Replaces the `name` property of `entity_id`, acting as `actor`.
-async fn update_name(
+/// A modification to attempt against an entity. Both variants are covered by the read-only forbid
+/// (`UpdateEntity` and `ArchiveEntity` respectively).
+enum Modification<'a> {
+    /// Replace the `name` property with a new value (an `UpdateEntity`).
+    SetName {
+        property: &'a BaseUrl,
+        value: &'a str,
+    },
+    /// Archive the entity (an `ArchiveEntity`).
+    Archive,
+}
+
+async fn modify(
     api: &mut DatabaseApi<'_>,
     entity_id: EntityId,
     actor: ActorEntityUuid,
     actor_type: ActorType,
-    name: &BaseUrl,
-    value: &str,
+    modification: Modification<'_>,
 ) -> Result<Entity, Report<UpdateError>> {
-    api.patch_entity(
-        actor,
-        PatchEntityParams {
-            entity_id,
-            decision_time: None,
-            entity_type_ids: HashSet::new(),
-            properties: vec![PropertyPatchOperation::Replace {
-                path: once(PropertyPathElement::from(name.clone())).collect(),
+    let (properties, archived) = match modification {
+        Modification::SetName { property, value } => (
+            vec![PropertyPatchOperation::Replace {
+                path: once(PropertyPathElement::from(property.clone())).collect(),
                 property: PropertyWithMetadata::Value(PropertyValueWithMetadata {
                     value: PropertyValue::String(value.to_owned()),
                     metadata: ValueMetadata {
@@ -56,8 +62,20 @@ async fn update_name(
                     },
                 }),
             }],
+            None,
+        ),
+        Modification::Archive => (Vec::new(), Some(true)),
+    };
+
+    api.patch_entity(
+        actor,
+        PatchEntityParams {
+            entity_id,
+            decision_time: None,
+            entity_type_ids: HashSet::new(),
+            properties,
             draft: None,
-            archived: None,
+            archived,
             confidence: None,
             provenance: ProvidedEntityEditionProvenance {
                 actor_type,
@@ -67,6 +85,18 @@ async fn update_name(
         },
     )
     .await
+}
+
+/// Asserts that a read-only modification was denied with a `PermissionDenied` (403) status.
+fn assert_denied(result: Result<Entity, Report<UpdateError>>, label: &str, action: &str) {
+    let Err(error) = result else {
+        panic!("{label} actor must not {action} a read-only entity, but it was allowed");
+    };
+    assert_eq!(
+        error.request_ref::<StatusCode>().next(),
+        Some(&StatusCode::PermissionDenied),
+        "{label} actor's {action} should be denied with PermissionDenied (403)",
+    );
 }
 
 /// Read-only entities (e.g. seeded by a one-way integration) may only be modified by machine
@@ -190,33 +220,73 @@ async fn read_only_modification_matrix() {
         ("machine", machine, ActorType::Machine),
         ("ai", ai, ActorType::Ai),
     ] {
-        update_name(&mut api, writable_entity, actor, actor_type, &name, label)
-            .await
-            .unwrap_or_else(|error| {
-                panic!("{label} actor should modify a writable entity: {error}")
-            });
+        modify(
+            &mut api,
+            writable_entity,
+            actor,
+            actor_type,
+            Modification::SetName {
+                property: &name,
+                value: label,
+            },
+        )
+        .await
+        .unwrap_or_else(|error| panic!("{label} actor should modify a writable entity: {error}"));
     }
 
-    // Read-only entities may only be modified by machine actors. The user and AI actors updated
-    // the writable entity above, so they hold `UpdateEntity`; the only difference here is the
-    // `read_only` flag, so a failure can only come from the read-only forbid.
-    update_name(
+    // Read-only entities may only be modified by machine actors. The user and AI actors modified
+    // the writable entity above, so they hold the permits — a denial here can only be the forbid,
+    // which covers both `UpdateEntity` and `ArchiveEntity`.
+    for (label, actor, actor_type) in [("user", user, ActorType::User), ("ai", ai, ActorType::Ai)] {
+        assert_denied(
+            modify(
+                &mut api,
+                read_only_entity,
+                actor,
+                actor_type,
+                Modification::SetName {
+                    property: &name,
+                    value: label,
+                },
+            )
+            .await,
+            label,
+            "update",
+        );
+        assert_denied(
+            modify(
+                &mut api,
+                read_only_entity,
+                actor,
+                actor_type,
+                Modification::Archive,
+            )
+            .await,
+            label,
+            "archive",
+        );
+    }
+
+    // The machine-allowed cases run last, as archiving changes the entity's state.
+    modify(
         &mut api,
         read_only_entity,
         machine,
         ActorType::Machine,
-        &name,
-        "machine",
+        Modification::SetName {
+            property: &name,
+            value: "machine",
+        },
     )
     .await
-    .expect("machine actors should modify read-only entities");
-    for (label, actor, actor_type) in [("user", user, ActorType::User), ("ai", ai, ActorType::Ai)] {
-        let error = update_name(&mut api, read_only_entity, actor, actor_type, &name, label)
-            .await
-            .expect_err(&format!("{label} actor must not modify a read-only entity"));
-        assert_eq!(
-            error.request_ref::<StatusCode>().next(),
-            Some(&StatusCode::PermissionDenied)
-        );
-    }
+    .expect("machine actors should update read-only entities");
+    modify(
+        &mut api,
+        read_only_entity,
+        machine,
+        ActorType::Machine,
+        Modification::Archive,
+    )
+    .await
+    .expect("machine actors should archive read-only entities");
 }
