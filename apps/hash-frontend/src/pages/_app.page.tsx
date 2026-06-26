@@ -20,6 +20,7 @@ import { getRoots } from "@blockprotocol/graph/stdlib";
 import { createEmotionCache, theme } from "@hashintel/design-system/theme";
 import { featureFlags } from "@local/hash-isomorphic-utils/feature-flags";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
+import { normalizeEmail } from "@local/hash-isomorphic-utils/normalize";
 
 import { getHashInstanceSettings } from "../graphql/queries/knowledge/hash-instance.queries";
 import { hasAccessToHashQuery, meQuery } from "../graphql/queries/user.queries";
@@ -290,9 +291,11 @@ const getPrimaryEmailVerificationStatus = async (cookie?: string) =>
         return false;
       }
 
+      const normalizedPrimaryEmail = normalizeEmail(primaryEmailAddress);
+
       return (
         identity.verifiable_addresses?.find(
-          ({ value }) => value === primaryEmailAddress,
+          ({ value }) => normalizeEmail(value) === normalizedPrimaryEmail,
         )?.verified === true
       );
     })

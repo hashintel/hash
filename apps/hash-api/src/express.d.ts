@@ -9,7 +9,6 @@ declare global {
       context: ImpureGraphContext<true, true> & {
         vaultClient?: VaultClient;
       };
-      primaryEmailVerified: boolean | undefined;
       session: Session | undefined;
       user: User | undefined;
     }
