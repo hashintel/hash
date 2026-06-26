@@ -548,12 +548,16 @@ fn global_archive_entity_policies() -> impl Iterator<Item = PolicyCreationParams
 }
 
 fn global_readonly_forbid_policies() -> impl Iterator<Item = PolicyCreationParams> {
-    iter::once(PolicyCreationParams {
-        name: Some("forbid-user-modify-readonly-entity".to_owned()),
+    // Machines (e.g. the seeding integration) stay unrestricted.
+    [
+        ("forbid-user-modify-readonly-entity", ActorType::User),
+        ("forbid-ai-modify-readonly-entity", ActorType::Ai),
+    ]
+    .into_iter()
+    .map(|(name, actor_type)| PolicyCreationParams {
+        name: Some(name.to_owned()),
         effect: Effect::Forbid,
-        principal: Some(PrincipalConstraint::ActorType {
-            actor_type: ActorType::User,
-        }),
+        principal: Some(PrincipalConstraint::ActorType { actor_type }),
         actions: vec![ActionName::UpdateEntity, ActionName::ArchiveEntity],
         resource: Some(ResourceConstraint::Entity(EntityResourceConstraint::Any {
             filter: EntityResourceFilter::IsReadOnly,
