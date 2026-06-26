@@ -12,7 +12,7 @@ import type { ReactElement, ReactNode } from "react";
 /**
  * Layout shared by every `/supply-chain/*` page. Mounts the ported
  * value-chain-timing `AppShell` inside hash's sidebar chrome, scoped to the
- * active web — the gateway transport queries `/api/query` for that `webId`.
+ * active web — the gateway transport calls `/api/analysis` for that `webId`.
  *
  * The subtree is wrapped in `.hash-ds-root` so the ds-components Panda tokens
  * resolve, and that element is supplied as the `PortalContainerContext` so ds

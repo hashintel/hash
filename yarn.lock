@@ -503,7 +503,6 @@ __metadata:
     "@ory/kratos-client": "npm:25.4.0"
     "@rudderstack/rudder-sdk-node": "npm:3.0.8"
     "@sentry/node": "npm:10.54.0"
-    "@snowplow/node-tracker": "npm:4.8.2"
     "@temporalio/client": "npm:1.18.1"
     "@temporalio/proto": "npm:1.18.1"
     "@types/app-root-path": "npm:3.1.0"
@@ -14753,26 +14752,6 @@ __metadata:
   dependencies:
     tslib: "npm:^2.6.2"
   checksum: 10c0/f8a8bfcc0e241457636884e778e261d45d8a3aaad533775111170cac36ac666275b59ec6d86d3d5b8d470ff4b864202d2a1a188b3c0e0ed0c86a0b693acf1ecf
-  languageName: node
-  linkType: hard
-
-"@snowplow/node-tracker@npm:4.8.2":
-  version: 4.8.2
-  resolution: "@snowplow/node-tracker@npm:4.8.2"
-  dependencies:
-    "@snowplow/tracker-core": "npm:4.8.2"
-    tslib: "npm:^2.3.1"
-  checksum: 10c0/8a7538ce8f4b0cfd2b2a2c8e8dd6a6a5c69273ac698a4a8a387ec2bb4f623b2e2f6b0e983bd69ba85bb92ef3c7987ce87b3dd6066620a311f01973a079da7950
-  languageName: node
-  linkType: hard
-
-"@snowplow/tracker-core@npm:4.8.2":
-  version: 4.8.2
-  resolution: "@snowplow/tracker-core@npm:4.8.2"
-  dependencies:
-    tslib: "npm:^2.3.1"
-    uuid: "npm:^10.0.0"
-  checksum: 10c0/2d77d04d8aaef85685459a663b4d82e9f6e27ae99e4a6b7c442afd2b97aa8688b2bcb6c646f00e681d6d2c848fe819c5e841e173d7ec1b48ace7b3427917d922
   languageName: node
   linkType: hard
 
@@ -41405,15 +41384,6 @@ __metadata:
   bin:
     uuid: dist-node/bin/uuid
   checksum: 10c0/a57ae7794c45005c1a9208989196c5baf79a7679c30f43c1bee9033a2c4d113a2cea216fa6fcc9663b08b0d55635df1a7c6eb7e7f3d21c3e50688c698fa39a50
-  languageName: node
-  linkType: hard
-
-"uuid@npm:^10.0.0":
-  version: 10.0.0
-  resolution: "uuid@npm:10.0.0"
-  bin:
-    uuid: dist/bin/uuid
-  checksum: 10c0/eab18c27fe4ab9fb9709a5d5f40119b45f2ec8314f8d4cf12ce27e4c6f4ffa4a6321dc7db6c515068fa373c075b49691ba969f0010bf37f44c37ca40cd6bf7fe
   languageName: node
   linkType: hard
 

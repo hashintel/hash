@@ -1,25 +1,25 @@
 /**
- * Errors thrown while resolving a named query. The gateway maps each to an
+ * Errors thrown while resolving a named analysis. The gateway maps each to an
  * appropriate per-result status (the batch request itself still returns 200).
  */
 
-/** Invalid or missing arguments for a query (maps to `error`, client fault). */
-export class QueryArgError extends Error {
+/** Invalid or missing arguments for an analysis (maps to `error`, client fault). */
+export class AnalysisArgError extends Error {
   public readonly code = "INVALID_ARGS";
 
   constructor(message: string) {
     super(message);
-    this.name = "QueryArgError";
+    this.name = "AnalysisArgError";
   }
 }
 
 /** A requested entity/artifact does not exist in the resolved dataset. */
-export class QueryNotFoundError extends Error {
+export class AnalysisNotFoundError extends Error {
   public readonly code = "NOT_FOUND";
 
   constructor(message: string) {
     super(message);
-    this.name = "QueryNotFoundError";
+    this.name = "AnalysisNotFoundError";
   }
 }
 

@@ -36,6 +36,7 @@ import { SidebarContextProvider } from "../shared/layout/layout-with-sidebar/sid
 import { NotificationCountContextProvider } from "../shared/notification-count-context";
 import { PropertyTypesContextProvider } from "../shared/property-types-context";
 import { RoutePageInfoProvider } from "../shared/routing";
+import { trackPageView } from "../shared/telemetry-client";
 import { ErrorFallback } from "./_app.page/error-fallback";
 import { reportIframeReactError } from "./processes/shared/iframe-error-reporter";
 import { redirectInGetInitialProps } from "./shared/_app.util";
@@ -141,6 +142,26 @@ const App: FunctionComponent<AppProps> = ({
   useEffect(() => {
     setSentryUser({ authenticatedUser });
   }, [authenticatedUser]);
+
+  useEffect(() => {
+    if (!router.isReady) {
+      return undefined;
+    }
+
+    // Initial view (fires once the router is ready); subsequent views come from
+    // `routeChangeComplete`. `router.asPath` is intentionally omitted from the
+    // deps so we don't double-count navigations.
+    trackPageView(router.asPath);
+
+    const handleRouteChange = (url: string) => {
+      trackPageView(url);
+    };
+    router.events.on("routeChangeComplete", handleRouteChange);
+    return () => {
+      router.events.off("routeChangeComplete", handleRouteChange);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [router.isReady, router.events]);
 
   // App UI often depends on [shortname] and other query params. However,
   // router.query is empty during server-side rendering for pages that don’t use

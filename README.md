@@ -294,12 +294,9 @@ The Postgres information for the graph query layer is configured through:
 - `HASH_REDIS_HOST` (default: `localhost`)
 - `HASH_REDIS_PORT` (default: `6379`)
 
-#### Snowplow telemetry
+#### Rudderstack telemetry
 
-- `HASH_TELEMETRY_ENABLED`: whether Snowplow is used or not. `true` or `false`. (default: `false`)
-- `HASH_TELEMETRY_HTTPS`: set to "1" to connect to the Snowplow over an HTTPS connection. `true` or `false`. (default: `false`)
-- `HASH_TELEMETRY_DESTINATION`: the hostname of the Snowplow tracker endpoint to connect to. (required)
-- `HASH_TELEMETRY_APP_ID`: ID used to differentiate application by. Can be any string. (default: `hash-workspace-app`)
+- `HASH_API_RUDDERSTACK_KEY`: Rudderstack write key for product analytics. Leave blank to disable telemetry. The `environment` label on events is derived from `ENVIRONMENT`. (optional)
 
 #### Others
 

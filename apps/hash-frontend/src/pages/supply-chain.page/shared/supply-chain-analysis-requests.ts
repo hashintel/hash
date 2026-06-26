@@ -1,16 +1,16 @@
 import {
+  fetchAnalysisArtifact,
+  fetchAnalysisArtifacts,
   fetchArtifactJson,
-  fetchQueryArtifact,
-  fetchQueryArtifacts,
-} from "./query-client";
+} from "../../../shared/analysis-client";
 
 import type { WebId } from "@blockprotocol/type-system";
 
 /**
  * Data-access layer for the supply-chain (value-chain-timing) views, ported
  * from the standalone SPA's `shared/data.ts`. Where the SPA fetched static JSON
- * from `/data/...`, these go through the auth-gated query gateway, scoped to a
- * `webId`. View-layer payload types (graph, step detail, site summary) are
+ * from `/data/...`, these go through the auth-gated analysis gateway, scoped to
+ * a `webId`. View-layer payload types (graph, step detail, site summary) are
  * supplied by the caller as type parameters during the component migration.
  */
 
@@ -28,25 +28,25 @@ export interface SiteRef {
 }
 
 export const fetchProducts = (webId: WebId): Promise<SupplyChainProduct[]> =>
-  fetchQueryArtifact<SupplyChainProduct[]>({
-    query: "listProducts",
-    webIds: [webId],
+  fetchAnalysisArtifact<SupplyChainProduct[]>({
+    analysis: "listProducts",
+    webId,
   });
 
 export const fetchSites = (webId: WebId): Promise<SiteRef[]> =>
-  fetchQueryArtifact<SiteRef[]>({
-    query: "listSites",
-    webIds: [webId],
+  fetchAnalysisArtifact<SiteRef[]>({
+    analysis: "listSites",
+    webId,
   }).catch(() => []);
 
 export const fetchGraph = <Graph = unknown>(
   webId: WebId,
   productId: string,
 ): Promise<Graph> =>
-  fetchQueryArtifact<Graph>({
-    query: "productGraph",
+  fetchAnalysisArtifact<Graph>({
+    analysis: "productGraph",
     args: { productId },
-    webIds: [webId],
+    webId,
   });
 
 export const fetchStepDetail = <StepDetail = unknown>(
@@ -54,10 +54,10 @@ export const fetchStepDetail = <StepDetail = unknown>(
   productId: string,
   stepId: string,
 ): Promise<StepDetail> =>
-  fetchQueryArtifact<StepDetail>({
-    query: "stepDetail",
+  fetchAnalysisArtifact<StepDetail>({
+    analysis: "stepDetail",
     args: { productId, stepId },
-    webIds: [webId],
+    webId,
   });
 
 export const fetchSiteSummary = async <SiteSummary = unknown>(
@@ -65,10 +65,10 @@ export const fetchSiteSummary = async <SiteSummary = unknown>(
   siteId: string,
 ): Promise<SiteSummary | null> => {
   try {
-    return await fetchQueryArtifact<SiteSummary>({
-      query: "siteSummary",
+    return await fetchAnalysisArtifact<SiteSummary>({
+      analysis: "siteSummary",
       args: { siteId },
-      webIds: [webId],
+      webId,
     });
   } catch {
     return null;
@@ -76,7 +76,7 @@ export const fetchSiteSummary = async <SiteSummary = unknown>(
 };
 
 /**
- * Site-wide supplier performance. The query resolves two artifacts –
+ * Site-wide supplier performance. The analysis resolves two artifacts –
  * `performance` (aggregates) and `lines` (raw schedule lines for client-side
  * time-window recompute). We re-attach `lines` onto the performance payload to
  * match the SPA's `SiteSupplierPerformance` shape. Missing lines are tolerated.
@@ -88,9 +88,9 @@ export const fetchSupplierPerformance = async <
   webId: WebId,
 ): Promise<Performance | null> => {
   try {
-    const artifacts = await fetchQueryArtifacts({
-      query: "supplierPerformance",
-      webIds: [webId],
+    const artifacts = await fetchAnalysisArtifacts({
+      analysis: "supplierPerformance",
+      webId,
     });
 
     const perfRef = artifacts.performance;

@@ -1,14 +1,14 @@
-import { QueryNotFoundError } from "../shared/errors";
+import { AnalysisNotFoundError } from "../shared/errors";
 import { requireSlugArg } from "../shared/storage-key";
 import { resolveDataset } from "./supply-chain/dataset";
 
-import type { NamedQuery } from "../shared/query-registry";
+import type { NamedAnalysis } from "../shared/analysis-registry";
 
 /**
- * Named queries backing the value-chain-timing views. Every query is scoped to
+ * Named analyses backing the supply chain views. Every analysis is scoped to
  * a single web (the dataset owner) and resolves to one or more JSON artifacts.
  *
- * Storage layout (under `supply-chain/{webId}/{version}/`):
+ * Storage layout (under `{webId}/supply-chain/{version}/`):
  *   products.json
  *   sites.json
  *   {productId}/graph.json
@@ -18,7 +18,7 @@ import type { NamedQuery } from "../shared/query-registry";
  *   site/{siteId}/summary.json
  */
 
-const listProducts: NamedQuery = {
+const listProducts: NamedAnalysis = {
   name: "listProducts",
   resolve: async (ctx) => {
     const { base } = await resolveDataset(ctx);
@@ -29,7 +29,7 @@ const listProducts: NamedQuery = {
   },
 };
 
-const listSites: NamedQuery = {
+const listSites: NamedAnalysis = {
   name: "listSites",
   resolve: async (ctx) => {
     const { base } = await resolveDataset(ctx);
@@ -40,14 +40,14 @@ const listSites: NamedQuery = {
   },
 };
 
-const productGraph: NamedQuery = {
+const productGraph: NamedAnalysis = {
   name: "productGraph",
   resolve: async (ctx) => {
     const productId = requireSlugArg(ctx.args, "productId");
     const { base, manifest } = await resolveDataset(ctx);
 
     if (!manifest.products.includes(productId)) {
-      throw new QueryNotFoundError(`Unknown product "${productId}"`);
+      throw new AnalysisNotFoundError(`Unknown product "${productId}"`);
     }
 
     return {
@@ -57,7 +57,7 @@ const productGraph: NamedQuery = {
   },
 };
 
-const stepDetail: NamedQuery = {
+const stepDetail: NamedAnalysis = {
   name: "stepDetail",
   resolve: async (ctx) => {
     const productId = requireSlugArg(ctx.args, "productId");
@@ -65,10 +65,10 @@ const stepDetail: NamedQuery = {
     const { base, manifest } = await resolveDataset(ctx);
 
     if (!manifest.products.includes(productId)) {
-      throw new QueryNotFoundError(`Unknown product "${productId}"`);
+      throw new AnalysisNotFoundError(`Unknown product "${productId}"`);
     }
     if (!(manifest.steps[productId] ?? []).includes(stepId)) {
-      throw new QueryNotFoundError(
+      throw new AnalysisNotFoundError(
         `Unknown step "${stepId}" for product "${productId}"`,
       );
     }
@@ -82,7 +82,7 @@ const stepDetail: NamedQuery = {
   },
 };
 
-const supplierPerformance: NamedQuery = {
+const supplierPerformance: NamedAnalysis = {
   name: "supplierPerformance",
   resolve: async (ctx) => {
     const { base } = await resolveDataset(ctx);
@@ -99,14 +99,14 @@ const supplierPerformance: NamedQuery = {
   },
 };
 
-const siteSummary: NamedQuery = {
+const siteSummary: NamedAnalysis = {
   name: "siteSummary",
   resolve: async (ctx) => {
     const siteId = requireSlugArg(ctx.args, "siteId");
     const { base, manifest } = await resolveDataset(ctx);
 
     if (!manifest.sites.includes(siteId)) {
-      throw new QueryNotFoundError(`Unknown site "${siteId}"`);
+      throw new AnalysisNotFoundError(`Unknown site "${siteId}"`);
     }
 
     return {
@@ -118,7 +118,7 @@ const siteSummary: NamedQuery = {
   },
 };
 
-export const supplyChainQueries: readonly NamedQuery[] = [
+export const supplyChainAnalyses: readonly NamedAnalysis[] = [
   listProducts,
   listSites,
   productGraph,

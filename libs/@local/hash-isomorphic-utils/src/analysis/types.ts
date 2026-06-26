@@ -1,32 +1,33 @@
 import type { WebId } from "@blockprotocol/type-system";
 
 /**
- * Wire types for the generic query gateway (`POST /api/query`).
+ * Wire types for the generic analysis gateway (`POST /api/analysis`).
  *
- * The gateway resolves *named queries* (registered server-side) to one or more
+ * The gateway resolves *named analyses* (registered server-side) to one or more
  * stored artifacts and returns short-lived URLs the client fetches directly
  * from storage. The same contract supports a future live-compute path: a result
  * may come back as `computing` rather than `ready` without any client change.
  */
 
-/** A single named-query invocation within a batch request. */
-export interface QueryInvocation {
+/** A single named-analysis invocation within a batch request. */
+export interface AnalysisInvocation {
   /** Caller-chosen id used to correlate this invocation with its result. */
   id: string;
-  /** Registered query name, e.g. `"productGraph"`. */
-  query: string;
-  /** Query-specific arguments; validated server-side against the query. */
+  /** Registered analysis name, e.g. `"productGraph"`. */
+  analysis: string;
+  /** Analysis-specific arguments; validated server-side against the analysis. */
   args?: Record<string, unknown>;
   /**
-   * Web(s) the query is scoped to. The authenticated actor must hold a role in
-   * every listed web, otherwise the whole invocation is rejected.
+   * Web the analysis is scoped to. The authenticated actor must hold a role in
+   * this web, otherwise the invocation is rejected. Batch multiple invocations
+   * to target several webs in one request.
    */
-  webIds: WebId[];
+  webId: WebId;
 }
 
-/** Request body for `POST /api/query`. */
-export interface QueryRequest {
-  requests: QueryInvocation[];
+/** Request body for `POST /api/analysis`. */
+export interface AnalysisRequest {
+  requests: AnalysisInvocation[];
 }
 
 /** A resolved artifact the client can fetch directly from storage. */
@@ -43,13 +44,13 @@ export interface ArtifactRef {
   expiresAt?: string;
 }
 
-export type QueryResultStatus = "ready" | "computing" | "error";
+export type AnalysisResultStatus = "ready" | "computing" | "error";
 
-/** The result of a single {@link QueryInvocation}. */
-export interface QueryResult {
+/** The result of a single {@link AnalysisInvocation}. */
+export interface AnalysisResult {
   /** Echoes the invocation `id`. */
   id: string;
-  status: QueryResultStatus;
+  status: AnalysisResultStatus;
   /** Present when `status === "ready"`. */
   artifacts?: ArtifactRef[];
   /** Present when `status === "computing"`: hint for the client poll interval. */
@@ -58,7 +59,7 @@ export interface QueryResult {
   error?: string;
 }
 
-/** Response body for `POST /api/query`. */
-export interface QueryResponse {
-  results: QueryResult[];
+/** Response body for `POST /api/analysis`. */
+export interface AnalysisResponse {
+  results: AnalysisResult[];
 }

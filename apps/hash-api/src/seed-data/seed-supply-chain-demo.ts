@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { webScopedKey } from "../analysis/shared/storage-key";
 import { getOrgByShortname } from "../graph/knowledge/system-types/org";
 import { systemAccountId } from "../graph/system-account";
 
@@ -9,7 +10,7 @@ import type { ImpureGraphContext } from "../graph/context-types";
 import type { Logger } from "@local/hash-backend-utils/logger";
 
 /**
- * Vendored, web-agnostic demo dataset for the supply-chain (value-chain-timing) views.
+ * Vendored, web-agnostic demo dataset for the supply-chain views.
  */
 const DEMO_DATA_DIR = path.join(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -50,7 +51,7 @@ const readVendoredDatasetVersion = (): string | null => {
 
 /**
  * Upload the vendored supply-chain demo dataset into the `@example-org` web's
- * storage namespace so the query gateway can serve it to seeded users.
+ * storage namespace so the analysis gateway can serve it to seeded users.
  *
  * Safe to call on every boot:
  * - no-ops in environments without the example org (e.g. production) or without
@@ -92,7 +93,7 @@ export const seedSupplyChainDemo = async (params: {
   }
 
   const { webId } = org;
-  const currentKey = `${STORAGE_NAMESPACE}/${webId}/current.json`;
+  const currentKey = webScopedKey(webId, STORAGE_NAMESPACE, "current.json");
   const vendoredVersion = readVendoredDatasetVersion();
 
   // Idempotency: if this web already has the vendored version seeded, skip the
@@ -122,7 +123,7 @@ export const seedSupplyChainDemo = async (params: {
       .relative(DEMO_DATA_DIR, absPath)
       .split(path.sep)
       .join("/");
-    const key = `${STORAGE_NAMESPACE}/${webId}/${relKey}`;
+    const key = webScopedKey(webId, STORAGE_NAMESPACE, relKey);
 
     const body = await fs.promises.readFile(absPath);
     await uploadProvider.uploadDirect({

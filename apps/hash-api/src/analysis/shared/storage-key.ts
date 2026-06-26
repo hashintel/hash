@@ -1,4 +1,22 @@
-import { QueryArgError } from "./errors";
+import { AnalysisArgError } from "./errors";
+
+import type { WebId } from "@blockprotocol/type-system";
+
+/**
+ * Build a storage key for a web-scoped artifact, with the `webId` as the first
+ * path segment followed by a namespace and any further parts.
+ *
+ * Putting the web id first makes it a tenant-isolation prefix: the analysis
+ * gateway authorises a resolved key by an exact segment-0 match (see
+ * `resolve-analysis.ts`), and storage policies/lifecycle rules can be scoped to
+ * a `{webId}/` prefix. All artifact keys MUST be built through this helper so
+ * that invariant holds.
+ */
+export const webScopedKey = (
+  webId: WebId,
+  namespace: string,
+  ...parts: string[]
+): string => [webId, namespace, ...parts].join("/");
 
 /**
  * Slugs are the only values interpolated into storage keys from client input.
@@ -11,8 +29,8 @@ export const isValidSlug = (value: unknown): value is string =>
   typeof value === "string" && SLUG_PATTERN.test(value);
 
 /**
- * Read a required slug argument, throwing {@link QueryArgError} if it is missing
- * or fails validation.
+ * Read a required slug argument, throwing {@link AnalysisArgError} if it is
+ * missing or fails validation.
  */
 export const requireSlugArg = (
   args: Record<string, unknown>,
@@ -20,7 +38,7 @@ export const requireSlugArg = (
 ): string => {
   const value = args[key];
   if (!isValidSlug(value)) {
-    throw new QueryArgError(
+    throw new AnalysisArgError(
       `Argument "${key}" must be a slug matching ${SLUG_PATTERN.source}`,
     );
   }

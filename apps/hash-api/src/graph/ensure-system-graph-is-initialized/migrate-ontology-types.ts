@@ -7,7 +7,7 @@ import { NotFoundError } from "@local/hash-backend-utils/error";
 import { getHashInstance } from "@local/hash-backend-utils/hash-instance";
 import { systemPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
-import { isProdEnv } from "../../lib/env-config";
+import { isDevEnv } from "../../lib/env-config";
 import { systemAccountId } from "../system-account";
 
 import type { ImpureGraphContext } from "../context-types";
@@ -137,7 +137,7 @@ export const migrateOntologyTypes = async (params: {
        * If the migration file is marked with `.dev.migration.ts`, it
        * should only be seeded in non-production environments.
        */
-      if (isProdEnv && migrationFileName.endsWith(".dev.migration.ts")) {
+      if (!isDevEnv && migrationFileName.endsWith(".dev.migration.ts")) {
         params.logger.debug(`Skipping dev migration ${migrationFileName}`);
         continue;
       }

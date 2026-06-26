@@ -1,6 +1,7 @@
 import { DatasetUnavailableError } from "../../shared/errors";
+import { webScopedKey } from "../../shared/storage-key";
 
-import type { QueryResolutionContext } from "../../shared/query-registry";
+import type { AnalysisResolutionContext } from "../../shared/analysis-registry";
 import type { WebId } from "@blockprotocol/type-system";
 
 /** Top-level storage namespace for all supply-chain analysis artifacts. */
@@ -18,7 +19,7 @@ export interface DatasetPointer {
 /**
  * Manifest enumerating every valid id in a published dataset. Used both to
  * validate client-supplied ids (so only known artifacts are resolvable) and to
- * answer list-style queries' membership checks.
+ * answer list-style analyses' membership checks.
  */
 export interface SupplyChainManifest {
   datasetVersion: string;
@@ -29,10 +30,10 @@ export interface SupplyChainManifest {
 }
 
 export const datasetPointerKey = (webId: WebId): string =>
-  `${SUPPLY_CHAIN_NAMESPACE}/${webId}/current.json`;
+  webScopedKey(webId, SUPPLY_CHAIN_NAMESPACE, "current.json");
 
 export const datasetBaseKey = (webId: WebId, version: string): string =>
-  `${SUPPLY_CHAIN_NAMESPACE}/${webId}/${version}`;
+  webScopedKey(webId, SUPPLY_CHAIN_NAMESPACE, version);
 
 export const manifestKey = (webId: WebId, version: string): string =>
   `${datasetBaseKey(webId, version)}/manifest.json`;
@@ -50,7 +51,7 @@ const parseJson = <T>(buffer: Buffer, what: string): T => {
  * {@link DatasetUnavailableError} if the web has no published dataset.
  */
 export const resolveDataset = async (
-  ctx: QueryResolutionContext,
+  ctx: AnalysisResolutionContext,
 ): Promise<{
   version: string;
   base: string;

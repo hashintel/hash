@@ -12,21 +12,24 @@ vi.mock("@local/hash-graph-sdk/principal/actor-group", () => ({
   getActorGroupRole: vi.fn(),
 }));
 
-vi.mock("../logger", () => ({
+vi.mock("../../logger", () => ({
   logger: { warn: vi.fn(), error: vi.fn(), info: vi.fn() },
 }));
 
 import { getActorGroupRole } from "@local/hash-graph-sdk/principal/actor-group";
 
-import { supplyChainQueries } from "./queries/supply-chain";
-import { resolveInvocation } from "./resolve-query";
-import { clearQueryRegistry, registerQueries } from "./shared/query-registry";
+import { supplyChainAnalyses } from "../analyses/supply-chain";
+import {
+  clearAnalysisRegistry,
+  registerAnalyses,
+} from "../shared/analysis-registry";
+import { resolveInvocation } from "./resolve-analysis";
 
-import type { GraphApi } from "../graph/context-types";
+import type { GraphApi } from "../../graph/context-types";
 
 const mockedGetRole = vi.mocked(getActorGroupRole);
 
-const WEB_ID = "web-test" as WebId;
+const WEB_ID = "00000000-0000-4000-8000-000000000001" as WebId;
 const ACTOR_ID = "actor-test" as ActorEntityUuid;
 const VERSION = "2026-06-15";
 
@@ -38,10 +41,10 @@ const manifest = {
 };
 
 const storedFiles: Record<string, string> = {
-  [`supply-chain/${WEB_ID}/current.json`]: JSON.stringify({
+  [`${WEB_ID}/supply-chain/current.json`]: JSON.stringify({
     datasetVersion: VERSION,
   }),
-  [`supply-chain/${WEB_ID}/${VERSION}/manifest.json`]: JSON.stringify(manifest),
+  [`${WEB_ID}/supply-chain/${VERSION}/manifest.json`]: JSON.stringify(manifest),
 };
 
 const uploadProvider = {
@@ -62,22 +65,22 @@ const cache = {
 } as unknown as Keyv;
 
 const resolve = (
-  query: string,
+  analysis: string,
   args: Record<string, unknown> = {},
-  webIds: WebId[] = [WEB_ID],
+  webId: WebId = WEB_ID,
 ) =>
   resolveInvocation({
-    invocation: { id: "test", query, args, webIds },
+    invocation: { id: "test", analysis, args, webId },
     actorId: ACTOR_ID,
     graphApi: {} as GraphApi,
     uploadProvider,
     cache,
   });
 
-describe("resolveInvocation (supply-chain queries)", () => {
+describe("resolveInvocation (supply-chain analyses)", () => {
   beforeEach(() => {
-    clearQueryRegistry();
-    registerQueries(supplyChainQueries);
+    clearAnalysisRegistry();
+    registerAnalyses(supplyChainAnalyses);
     mockedGetRole.mockReset();
     mockedGetRole.mockResolvedValue("member" as RoleName);
   });
@@ -93,6 +96,7 @@ describe("resolveInvocation (supply-chain queries)", () => {
     expect(result.artifacts![0]!.url).toContain(
       `${VERSION}/democat-x100-extr/graph.json`,
     );
+    expect(result.artifacts![0]!.expiresAt).toBeDefined();
   });
 
   it("resolves stepDetail when the step is in the manifest", async () => {
@@ -138,15 +142,69 @@ describe("resolveInvocation (supply-chain queries)", () => {
     expect(result.error).toMatch(/access/i);
   });
 
-  it("errors for an unknown query name", async () => {
-    const result = await resolve("noSuchQuery");
+  it("errors for an unknown analysis name", async () => {
+    const result = await resolve("noSuchAnalysis");
     expect(result.status).toBe("error");
-    expect(result.error).toMatch(/unknown query/i);
+    expect(result.error).toMatch(/unknown analysis/i);
   });
 
   it("errors when no webId is supplied", async () => {
-    const result = await resolve("listProducts", {}, []);
+    const result = await resolveInvocation({
+      invocation: {
+        id: "test",
+        analysis: "listProducts",
+        webId: undefined as unknown as WebId,
+      },
+      actorId: ACTOR_ID,
+      graphApi: {} as GraphApi,
+      uploadProvider,
+      cache,
+    });
     expect(result.status).toBe("error");
     expect(result.error).toMatch(/webId/i);
+  });
+
+  it("rejects a non-UUID webId before authorising", async () => {
+    const result = await resolve("listProducts", {}, "not-a-uuid" as WebId);
+    expect(result.status).toBe("error");
+    expect(result.error).toMatch(/webId/i);
+    expect(mockedGetRole).not.toHaveBeenCalled();
+  });
+
+  it("rejects non-object args", async () => {
+    const result = await resolveInvocation({
+      invocation: {
+        id: "test",
+        analysis: "listProducts",
+        args: [] as unknown as Record<string, unknown>,
+        webId: WEB_ID,
+      },
+      actorId: ACTOR_ID,
+      graphApi: {} as GraphApi,
+      uploadProvider,
+      cache,
+    });
+    expect(result.status).toBe("error");
+    expect(result.error).toMatch(/args must be an object/i);
+  });
+
+  it("refuses to presign an artifact key outside the authorised web", async () => {
+    const otherWebId = "00000000-0000-4000-8000-000000000002";
+    clearAnalysisRegistry();
+    registerAnalyses([
+      {
+        name: "escaping",
+        resolve: async () => ({
+          status: "ready",
+          artifacts: [
+            { name: "leak", key: `${otherWebId}/supply-chain/secret.json` },
+          ],
+        }),
+      },
+    ]);
+
+    const result = await resolve("escaping");
+    expect(result.status).toBe("error");
+    expect(result.error).toMatch(/internal error/i);
   });
 });

@@ -1,10 +1,10 @@
 import { useRouter } from "next/router";
 import { useEffect } from "react";
 
-import { useRegistry } from "../../vct/supply-chain/shared/registry-context";
-import { getSupplyChainLayout } from "./shared/supply-chain-layout";
+import { useRegistry } from "./supply-chain.page/shared/registry-contextry-context";
+import { getSupplyChainLayout } from "./supply-chain.page/shared/supply-chain-layoutupply-chain-layout";
 
-import type { NextPageWithLayout } from "../../shared/layout";
+import type { NextPageWithLayout } from "../shared/layout";
 
 /** Supply-chain landing: send to the first product. */
 const SupplyChainIndexPage: NextPageWithLayout = () => {

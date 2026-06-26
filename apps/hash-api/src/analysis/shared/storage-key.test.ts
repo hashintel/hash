@@ -1,7 +1,28 @@
 import { describe, expect, it } from "vitest";
 
-import { QueryArgError } from "./errors";
-import { isValidSlug, optionalSlugArg, requireSlugArg } from "./storage-key";
+import { AnalysisArgError } from "./errors";
+import {
+  isValidSlug,
+  optionalSlugArg,
+  requireSlugArg,
+  webScopedKey,
+} from "./storage-key";
+
+import type { WebId } from "@blockprotocol/type-system";
+
+describe("webScopedKey", () => {
+  const webId = "00000000-0000-4000-8000-000000000001" as WebId;
+
+  it("puts the webId as the first path segment", () => {
+    const key = webScopedKey(webId, "supply-chain", "2026-06-15", "graph.json");
+    expect(key).toBe(`${webId}/supply-chain/2026-06-15/graph.json`);
+    expect(key.split("/")[0]).toBe(webId);
+  });
+
+  it("works with just a namespace", () => {
+    expect(webScopedKey(webId, "supply-chain")).toBe(`${webId}/supply-chain`);
+  });
+});
 
 describe("isValidSlug", () => {
   it("accepts typical product/site/step ids", () => {
@@ -51,11 +72,11 @@ describe("requireSlugArg", () => {
     ).toBe("democat-x100-extr");
   });
 
-  it("throws QueryArgError for an invalid or missing slug", () => {
+  it("throws AnalysisArgError for an invalid or missing slug", () => {
     expect(() => requireSlugArg({ productId: "../x" }, "productId")).toThrow(
-      QueryArgError,
+      AnalysisArgError,
     );
-    expect(() => requireSlugArg({}, "productId")).toThrow(QueryArgError);
+    expect(() => requireSlugArg({}, "productId")).toThrow(AnalysisArgError);
   });
 });
 
@@ -70,7 +91,7 @@ describe("optionalSlugArg", () => {
       "demo-plant",
     );
     expect(() => optionalSlugArg({ siteId: "a/b" }, "siteId")).toThrow(
-      QueryArgError,
+      AnalysisArgError,
     );
   });
 });
