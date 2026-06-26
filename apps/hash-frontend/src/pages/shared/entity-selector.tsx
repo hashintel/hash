@@ -14,10 +14,7 @@ import {
   getDisplayFieldsForClosedEntityType,
 } from "@local/hash-graph-sdk/entity";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
-import {
-  currentTimeInstantTemporalAxes,
-  generateVersionedUrlMatchingFilter,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 
 import { queryEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
 
@@ -74,11 +71,12 @@ export const EntitySelector = <Multiple extends boolean>({
           !expectedEntityTypes || expectedEntityTypes.length === 0
             ? { all: [] }
             : {
-                any: expectedEntityTypes.map(({ $id }) =>
-                  generateVersionedUrlMatchingFilter($id, {
-                    ignoreParents: false,
-                  }),
-                ),
+                any: expectedEntityTypes.map(({ $id }) => ({
+                  equal: [
+                    { path: ["type", "versionedUrl"] },
+                    { parameter: $id },
+                  ],
+                })),
               },
         temporalAxes: currentTimeInstantTemporalAxes,
         includeDrafts,

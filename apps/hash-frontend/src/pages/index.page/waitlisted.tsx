@@ -8,10 +8,7 @@ import {
   CheckIcon,
   ChromeIcon,
 } from "@hashintel/design-system";
-import {
-  currentTimeInstantTemporalAxes,
-  generateVersionedUrlMatchingFilter,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { isSelfHostedInstance } from "@local/hash-isomorphic-utils/instance";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
@@ -70,9 +67,14 @@ export const Waitlisted = () => {
     {
       variables: {
         request: {
-          filter: generateVersionedUrlMatchingFilter(
-            systemEntityTypes.prospectiveUser.entityTypeId,
-          ),
+          filter: {
+            equal: [
+              { path: ["type", "baseUrl"] },
+              {
+                parameter: systemEntityTypes.prospectiveUser.entityTypeBaseUrl,
+              },
+            ],
+          },
           includeDrafts: false,
           temporalAxes: currentTimeInstantTemporalAxes,
           includeCount: true,

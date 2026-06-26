@@ -51,6 +51,7 @@ pub struct CompilerArtifacts<'p> {
     required_tables: HashSet<TableReference<'p>>,
     table_info: TableInfo<'p>,
     cursor_disallowed_reason: Option<&'static str>,
+    has_to_many_join: bool,
 }
 
 struct PathSelection {
@@ -144,6 +145,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                     variable_interval_index: None,
                 },
                 cursor_disallowed_reason: None,
+                has_to_many_join: false,
             },
             temporal_axes,
             table_hooks,
@@ -419,6 +421,16 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
             self.statement.transpile_to_string(),
             &self.artifacts.parameters,
         )
+    }
+
+    /// Whether any relation joined so far can fan out the base rows.
+    ///
+    /// `false` guarantees the compiled query emits at most one row per base row, so a downstream
+    /// deduplication can be safely skipped. Reflects all filters and selections added before
+    /// the call.
+    #[must_use]
+    pub const fn has_to_many_join(&self) -> bool {
+        self.artifacts.has_to_many_join
     }
 
     /// Compiles a [`Filter`] to an [`Expression`].
@@ -1292,6 +1304,9 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
 
         let mut is_outer_join_chain = false;
         for relation in path.relations() {
+            if relation.is_to_many() {
+                self.artifacts.has_to_many_join = true;
+            }
             for foreign_key_reference in relation.joins() {
                 let join_type = if is_outer_join_chain {
                     JoinType::LeftOuter

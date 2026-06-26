@@ -9,7 +9,6 @@ import { queryEntityTypeSubgraph } from "@local/hash-graph-sdk/entity-type";
 import {
   almostFullOntologyResolveDepths,
   currentTimeInstantTemporalAxes,
-  generateVersionedUrlMatchingFilter,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { deduplicateSources } from "@local/hash-isomorphic-utils/provenance";
 
@@ -122,9 +121,14 @@ export const findExistingEntity = async ({
       ],
     },
     {
-      any: proposedEntity.entityTypeIds.map((entityTypeId) =>
-        generateVersionedUrlMatchingFilter(entityTypeId),
-      ),
+      any: proposedEntity.entityTypeIds.map((entityTypeId) => ({
+        equal: [
+          { path: ["type", "versionedUrl"] },
+          {
+            parameter: entityTypeId,
+          },
+        ],
+      })),
     },
   ] satisfies AllFilter["all"];
 

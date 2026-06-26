@@ -1,9 +1,6 @@
 import { queryEntities } from "@local/hash-graph-sdk/entity";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
-import {
-  currentTimeInstantTemporalAxes,
-  generateVersionedUrlMatchingFilter,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import { getFlowContext } from "../shared/get-flow-context.js";
@@ -91,10 +88,14 @@ export const researchEntitiesAction: AiFlowActionActivity<
         temporalAxes: currentTimeInstantTemporalAxes,
         filter: {
           all: [
-            generateVersionedUrlMatchingFilter(
-              systemEntityTypes.claim.entityTypeId,
-              { ignoreParents: true },
-            ),
+            {
+              equal: [
+                { path: ["type", "baseUrl"] },
+                {
+                  parameter: systemEntityTypes.claim.entityTypeBaseUrl,
+                },
+              ],
+            },
             {
               equal: [
                 {

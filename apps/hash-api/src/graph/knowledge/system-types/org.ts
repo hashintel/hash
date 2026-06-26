@@ -308,7 +308,7 @@ export const getOrgByShortname: ImpureGraphFunction<
       all: [
         {
           equal: [
-            { path: ["type(inheritanceDepth = 0)", "baseUrl"] },
+            { path: ["type", "baseUrl"] },
             { parameter: systemEntityTypes.organization.entityTypeBaseUrl },
           ],
         },

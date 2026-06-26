@@ -1,18 +1,12 @@
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
 import { type HashEntity, queryEntities } from "@local/hash-graph-sdk/entity";
-import {
-  currentTimeInstantTemporalAxes,
-  generateVersionedUrlMatchingFilter,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import {
-  contentLinkTypeFilter,
-  pageEntityTypeFilter,
-} from "@local/hash-isomorphic-utils/page-entity-type-ids";
+import { contentLinkTypeFilter } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 
 import { getLatestEntityById } from "../primitive/entity";
@@ -107,10 +101,16 @@ export const getPageAndBlockByText: ImpureGraphFunction<
     queryEntities(context, authentication, {
       filter: {
         all: [
-          generateVersionedUrlMatchingFilter(
-            systemLinkEntityTypes.hasData.linkEntityTypeId,
-            { ignoreParents: true },
-          ),
+          {
+            equal: [
+              {
+                path: ["type", "baseUrl"],
+              },
+              {
+                parameter: systemLinkEntityTypes.hasData.linkEntityTypeBaseUrl,
+              },
+            ],
+          },
           {
             equal: [
               { path: ["rightEntity", "uuid"] },
@@ -126,10 +126,16 @@ export const getPageAndBlockByText: ImpureGraphFunction<
     queryEntities(context, authentication, {
       filter: {
         all: [
-          generateVersionedUrlMatchingFilter(
-            systemLinkEntityTypes.hasData.linkEntityTypeId,
-            { ignoreParents: true },
-          ),
+          {
+            equal: [
+              {
+                path: ["type", "baseUrl"],
+              },
+              {
+                parameter: systemLinkEntityTypes.hasData.linkEntityTypeBaseUrl,
+              },
+            ],
+          },
           {
             equal: [
               {
@@ -176,7 +182,14 @@ export const getPageAndBlockByText: ImpureGraphFunction<
   const pageEntities = await queryEntities(context, authentication, {
     filter: {
       all: [
-        pageEntityTypeFilter,
+        {
+          equal: [
+            { path: ["type", "baseUrl"] },
+            {
+              parameter: systemEntityTypes.page.entityTypeBaseUrl,
+            },
+          ],
+        },
         {
           any: matchingContainsLinks.map(({ metadata }) => ({
             equal: [
@@ -232,20 +245,28 @@ export const getCommentByText: ImpureGraphFunction<
   const matchingHasTextLinks = await queryEntities(context, authentication, {
     filter: {
       all: [
-        generateVersionedUrlMatchingFilter(
-          systemLinkEntityTypes.hasText.linkEntityTypeId,
-          { ignoreParents: true },
-        ),
+        {
+          equal: [
+            {
+              path: ["type", "baseUrl"],
+            },
+            {
+              parameter: systemLinkEntityTypes.hasText.linkEntityTypeBaseUrl,
+            },
+          ],
+        },
         {
           equal: [
             { path: ["rightEntity", "uuid"] },
             { parameter: textEntityUuid },
           ],
         },
-        generateVersionedUrlMatchingFilter(
-          systemEntityTypes.comment.entityTypeId,
-          { ignoreParents: true, pathPrefix: ["leftEntity"] },
-        ),
+        {
+          equal: [
+            { path: ["leftEntity", "type", "baseUrl"] },
+            { parameter: systemEntityTypes.comment.entityTypeBaseUrl },
+          ],
+        },
       ],
     },
     temporalAxes: currentTimeInstantTemporalAxes,

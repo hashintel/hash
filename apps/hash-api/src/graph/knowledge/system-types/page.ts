@@ -16,7 +16,6 @@ import {
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import {
   includesPageEntityTypeId,
-  pageEntityTypeFilter,
   pageEntityTypeIds,
 } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
@@ -278,7 +277,14 @@ export const getAllPagesInWorkspace: ImpureGraphFunction<
   const { entities: pageEntities } = await queryEntities(ctx, authentication, {
     filter: {
       all: [
-        pageEntityTypeFilter,
+        {
+          equal: [
+            { path: ["type", "baseUrl"] },
+            {
+              parameter: systemEntityTypes.page.entityTypeBaseUrl,
+            },
+          ],
+        },
         {
           equal: [{ path: ["webId"] }, { parameter: webId }],
         },
