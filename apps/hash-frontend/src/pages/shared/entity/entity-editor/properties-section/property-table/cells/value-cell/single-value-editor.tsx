@@ -23,6 +23,7 @@ import type {
   FindDataTypeConversionTargetsQuery,
   FindDataTypeConversionTargetsQueryVariables,
 } from "../../../../../../../../graphql/api-types.gen";
+import type { PropertyRow } from "../../types";
 import type { ValueCell, ValueCellEditorComponent } from "./types";
 import type {
   ClosedDataType,
@@ -145,7 +146,8 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
       });
 
       const newCell = produce(cell, (draftCell) => {
-        draftCell.data.propertyRow.valueMetadata = propertyMetadata;
+        (draftCell.data.propertyRow as PropertyRow).valueMetadata =
+          propertyMetadata;
       });
 
       onChange(newCell);
