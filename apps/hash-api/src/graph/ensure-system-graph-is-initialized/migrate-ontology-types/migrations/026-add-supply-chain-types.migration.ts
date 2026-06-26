@@ -12,6 +12,7 @@ import {
   createSystemPropertyTypeIfNotExists,
   generateSystemTypeBaseUrl,
   getCurrentHashDataTypeId,
+  getCurrentHashSystemEntityTypeId,
 } from "../util";
 
 import type { MigrationFunction } from "../types";
@@ -68,7 +69,6 @@ const migrate: MigrationFunction = async ({
     }
     return { dataTypeId: versionedUrlFromComponents(baseUrl, version) };
   });
-  // Shared system property types; created here so this migration stays self-contained.
   const cityPropertyType = await createSystemPropertyTypeIfNotExists(
     context,
     authentication,
@@ -97,6 +97,10 @@ const migrate: MigrationFunction = async ({
     },
   );
   const statusPropertyTypeId = statusPropertyType.schema.$id;
+  const personEntityTypeId = getCurrentHashSystemEntityTypeId({
+    entityTypeKey: "person",
+    migrationState,
+  });
 
   const massDataType = await createSystemDataTypeIfNotExists(
     context,
@@ -556,10 +560,6 @@ const migrate: MigrationFunction = async ({
     "The base quantity an item is defined in, such as for a bill of materials.",
   );
 
-  const identifierPropertyType = await text(
-    "Identifier",
-    "A unique identifier for a record in its source system.",
-  );
   const itemNumberPropertyType = await text(
     "Item Number",
     "The position of a line item.",
@@ -571,15 +571,15 @@ const migrate: MigrationFunction = async ({
 
   const salesDocumentTypePropertyType = await text(
     "Sales Document Type",
-    "The sales document type, such as an order, return, or quotation.",
+    "The category of sales document, such as an order, return, or quotation.",
   );
   const purchasingDocumentTypePropertyType = await text(
     "Purchasing Document Type",
-    "The purchasing document type, such as a standard purchase order or scheduling agreement.",
+    "The category of purchasing document, such as a standard purchase order or scheduling agreement.",
   );
   const productionOrderTypePropertyType = await text(
     "Production Order Type",
-    "The production order type.",
+    "The category of production order, such as a standard or process order.",
   );
   const deliveryTypePropertyType = await text(
     "Delivery Type",
@@ -601,9 +601,9 @@ const migrate: MigrationFunction = async ({
     "Customer Reference",
     "A reference provided by the customer, such as their own purchase order number.",
   );
-  const referenceNumberPropertyType = await text(
-    "Reference Number",
-    "An external reference number.",
+  const referenceDocumentNumberPropertyType = await text(
+    "Reference Document Number",
+    "The number of the document a goods movement references, such as the delivery it was received against or the document it reverses.",
   );
   const materialDocumentNumberPropertyType = await text(
     "Material Document Number",
@@ -637,6 +637,18 @@ const migrate: MigrationFunction = async ({
   const shipmentNumberPropertyType = await text(
     "Shipment Number",
     "The shipment or transport number.",
+  );
+  const shipmentItemNumberPropertyType = await text(
+    "Shipment Item Number",
+    "The item number of a line within a shipment.",
+  );
+  const salesOrderNumberPropertyType = await text(
+    "Sales Order Number",
+    "The sales order number.",
+  );
+  const companyNumberPropertyType = await text(
+    "Company Number",
+    "The account or registration number of a company.",
   );
   const vendorNumberPropertyType = await text(
     "Vendor Number",
@@ -686,7 +698,7 @@ const migrate: MigrationFunction = async ({
   );
   const procurementTypePropertyType = await text(
     "Procurement Type",
-    "The procurement type for a material, such as in-house production or external procurement.",
+    "How a material is procured, such as in-house production or external procurement.",
   );
   const mrpTypePropertyType = await text(
     "MRP Type",
@@ -767,7 +779,7 @@ const migrate: MigrationFunction = async ({
   );
   const bomCategoryPropertyType = await text(
     "BOM Category",
-    "The BOM category, such as material BOM.",
+    "The kind of bill of materials, such as a material BOM.",
   );
   const bomStatusPropertyType = await text(
     "BOM Status",
@@ -1162,14 +1174,8 @@ const migrate: MigrationFunction = async ({
   const postedAgainstLink = await link(
     "Posted Against",
     "Has Posting",
-    "Something against which something is posted.",
+    "Something a posting or movement is recorded against, such as the order or document it fulfils.",
     "/icons/types/clipboard-check.svg",
-  );
-  const referencesLink = await link(
-    "References",
-    "Referenced By",
-    "Something referenced by something.",
-    "/icons/types/file-lines.svg",
   );
 
   const companyEntityType = await createSystemEntityTypeIfNotExists(
@@ -1191,7 +1197,7 @@ const migrate: MigrationFunction = async ({
           {
             propertyType: blockProtocolPropertyTypes.description.propertyTypeId,
           },
-          { propertyType: identifierPropertyType },
+          { propertyType: companyNumberPropertyType },
         ],
       },
       migrationState,
@@ -1204,11 +1210,12 @@ const migrate: MigrationFunction = async ({
     authentication,
     {
       entityTypeDefinition: {
-        allOf: [companyEntityType.schema.$id],
+        allOf: [companyEntityType.schema.$id, personEntityTypeId],
         title: "Customer",
         titlePlural: "Customers",
         icon: "/icons/types/user-tag.svg",
-        description: "A company that purchases goods or services.",
+        description:
+          "An organisation or individual that purchases goods or services.",
         properties: [
           { propertyType: customerNumberPropertyType },
           { propertyType: streetAddressPropertyType },
@@ -1257,10 +1264,6 @@ const migrate: MigrationFunction = async ({
           {
             propertyType: blockProtocolPropertyTypes.description.propertyTypeId,
           },
-          /**
-           * @todo replace identifier where we have added specific properties
-           */
-          { propertyType: identifierPropertyType },
           { propertyType: materialNumberPropertyType },
           { propertyType: materialTypePropertyType },
           { propertyType: materialGroupPropertyType },
@@ -1293,7 +1296,6 @@ const migrate: MigrationFunction = async ({
         labelProperty: blockProtocolPropertyTypes.name.propertyTypeBaseUrl,
         properties: [
           { propertyType: blockProtocolPropertyTypes.name.propertyTypeId },
-          { propertyType: identifierPropertyType },
           { propertyType: siteCodePropertyType },
           { propertyType: siteTypePropertyType },
           { propertyType: shippingPointPropertyType },
@@ -1389,9 +1391,8 @@ const migrate: MigrationFunction = async ({
         icon: "/icons/types/list-tree.svg",
         description:
           "A structured list of the components required to produce a material.",
-        labelProperty: identifierPropertyType.metadata.recordId.baseUrl,
+        labelProperty: bomNumberPropertyType.metadata.recordId.baseUrl,
         properties: [
-          { propertyType: identifierPropertyType },
           { propertyType: bomNumberPropertyType },
           { propertyType: alternativeBomPropertyType },
           { propertyType: bomCategoryPropertyType },
@@ -1461,9 +1462,9 @@ const migrate: MigrationFunction = async ({
         icon: "/icons/types/file-invoice-dollar.svg",
         description:
           "A commitment by a customer to purchase goods or services on agreed terms.",
-        labelProperty: identifierPropertyType.metadata.recordId.baseUrl,
+        labelProperty: salesOrderNumberPropertyType.metadata.recordId.baseUrl,
         properties: [
-          { propertyType: identifierPropertyType },
+          { propertyType: salesOrderNumberPropertyType },
           { propertyType: salesDocumentTypePropertyType },
           { propertyType: salesOrganizationPropertyType },
           { propertyType: distributionChannelPropertyType },
@@ -1541,9 +1542,8 @@ const migrate: MigrationFunction = async ({
         icon: "/icons/types/truck.svg",
         description:
           "A logistics execution document for delivering goods against a sales order or transfer requirement.",
-        labelProperty: identifierPropertyType.metadata.recordId.baseUrl,
+        labelProperty: deliveryNumberPropertyType.metadata.recordId.baseUrl,
         properties: [
-          { propertyType: identifierPropertyType },
           { propertyType: deliveryNumberPropertyType },
           { propertyType: deliveryTypePropertyType },
           { propertyType: routePropertyType },
@@ -1642,9 +1642,9 @@ const migrate: MigrationFunction = async ({
         icon: "/icons/types/file-invoice.svg",
         description:
           "A commitment to purchase goods or services from a vendor on agreed terms.",
-        labelProperty: identifierPropertyType.metadata.recordId.baseUrl,
+        labelProperty:
+          purchaseOrderNumberPropertyType.metadata.recordId.baseUrl,
         properties: [
-          { propertyType: identifierPropertyType },
           { propertyType: purchaseOrderNumberPropertyType },
           { propertyType: purchasingDocumentTypePropertyType },
           { propertyType: purchasingOrganizationPropertyType },
@@ -1709,9 +1709,9 @@ const migrate: MigrationFunction = async ({
         titlePlural: "Production Orders",
         icon: "/icons/types/industry.svg",
         description: "An order to manufacture a material.",
-        labelProperty: identifierPropertyType.metadata.recordId.baseUrl,
+        labelProperty:
+          productionOrderNumberPropertyType.metadata.recordId.baseUrl,
         properties: [
-          { propertyType: identifierPropertyType },
           { propertyType: productionOrderNumberPropertyType },
           { propertyType: productionOrderTypePropertyType },
           { propertyType: alternativeBomPropertyType },
@@ -1747,9 +1747,9 @@ const migrate: MigrationFunction = async ({
         icon: "/icons/types/arrows-rotate.svg",
         description:
           "A record of activity related to a material, for example movement, production or consumption.",
-        labelProperty: identifierPropertyType.metadata.recordId.baseUrl,
+        labelProperty:
+          materialDocumentNumberPropertyType.metadata.recordId.baseUrl,
         properties: [
-          { propertyType: identifierPropertyType },
           { propertyType: materialDocumentNumberPropertyType },
           { propertyType: fiscalYearPropertyType },
           { propertyType: materialDocumentItemPropertyType },
@@ -1759,7 +1759,7 @@ const migrate: MigrationFunction = async ({
           { propertyType: stockTypePropertyType },
           { propertyType: postingDatePropertyType },
           { propertyType: documentDatePropertyType },
-          { propertyType: referenceNumberPropertyType },
+          { propertyType: referenceDocumentNumberPropertyType },
           { propertyType: movementQuantityPropertyType },
           { propertyType: unitOfMeasurePropertyType },
           { propertyType: storageLocationPropertyType },
@@ -1787,14 +1787,6 @@ const migrate: MigrationFunction = async ({
           },
           {
             linkEntityType: postedAgainstLink,
-            destinationEntityTypes: [
-              purchaseOrderItemEntityType.schema.$id,
-              productionOrderEntityType.schema.$id,
-              deliveryItemEntityType.schema.$id,
-            ],
-          },
-          {
-            linkEntityType: referencesLink,
             destinationEntityTypes: [
               purchaseOrderItemEntityType.schema.$id,
               productionOrderEntityType.schema.$id,
@@ -1959,9 +1951,9 @@ const migrate: MigrationFunction = async ({
         icon: "/icons/types/boxes-packing.svg",
         description:
           "A line within a shipment, linking it to a delivery being transported.",
-        labelProperty: identifierPropertyType.metadata.recordId.baseUrl,
+        labelProperty: shipmentItemNumberPropertyType.metadata.recordId.baseUrl,
         properties: [
-          { propertyType: identifierPropertyType },
+          { propertyType: shipmentItemNumberPropertyType },
           { propertyType: deliveryNumberPropertyType },
         ],
         outgoingLinks: [
@@ -1986,9 +1978,8 @@ const migrate: MigrationFunction = async ({
         icon: "/icons/types/truck-container.svg",
         description:
           "The transport of goods, potentially grouping several deliveries.",
-        labelProperty: identifierPropertyType.metadata.recordId.baseUrl,
+        labelProperty: shipmentNumberPropertyType.metadata.recordId.baseUrl,
         properties: [
-          { propertyType: identifierPropertyType },
           { propertyType: shipmentNumberPropertyType },
           { propertyType: routePropertyType },
           { propertyType: actualDepartureDatePropertyType },
