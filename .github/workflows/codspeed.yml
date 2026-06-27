@@ -74,7 +74,7 @@ jobs:
         run: turbo run build:codspeed --filter=${{ matrix.name }}
 
       - name: Run the benchmark
-        uses: CodSpeedHQ/action@346a2d8a8d9d38909abd0bc3d23f773110f076ad # v4.4.1
+        uses: CodSpeedHQ/action@c145068895e045cc725ee76fcd2307624b65c3af # v4.17.5
         with:
           mode: simulation
           run: turbo run test:codspeed --filter=${{ matrix.name }}
