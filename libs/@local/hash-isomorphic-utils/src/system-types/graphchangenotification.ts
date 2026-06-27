@@ -30,6 +30,8 @@ import type {
   ReadAtPropertyValueWithMetadata,
   TextDataType,
   TextDataTypeWithMetadata,
+  ValueDataType,
+  ValueDataTypeWithMetadata,
 } from "./shared.js";
 import type { Entity, ObjectMetadata } from "@blockprotocol/type-system";
 
@@ -61,6 +63,8 @@ export type {
   ReadAtPropertyValueWithMetadata,
   TextDataType,
   TextDataTypeWithMetadata,
+  ValueDataType,
+  ValueDataTypeWithMetadata,
 };
 
 /**

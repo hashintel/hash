@@ -15,6 +15,12 @@ import type {
   AuthoredByPropertiesWithMetadata,
   CalendarYearDataType,
   CalendarYearDataTypeWithMetadata,
+  DOIDataType,
+  DOIDataTypeWithMetadata,
+  DOILinkPropertyValue,
+  DOILinkPropertyValueWithMetadata,
+  DOIPropertyValue,
+  DOIPropertyValueWithMetadata,
   DateDataType,
   DateDataTypeWithMetadata,
   DescriptionPropertyValue,
@@ -25,12 +31,6 @@ import type {
   DocOutgoingLinksByLinkEntityTypeId,
   DocProperties,
   DocPropertiesWithMetadata,
-  DOIDataType,
-  DOIDataTypeWithMetadata,
-  DOILinkPropertyValue,
-  DOILinkPropertyValueWithMetadata,
-  DOIPropertyValue,
-  DOIPropertyValueWithMetadata,
   EmailDataType,
   EmailDataTypeWithMetadata,
   EmailPropertyValue,
@@ -65,6 +65,8 @@ import type {
   PersonPropertiesWithMetadata,
   PublicationYearPropertyValue,
   PublicationYearPropertyValueWithMetadata,
+  StatusPropertyValue,
+  StatusPropertyValueWithMetadata,
   SummaryPropertyValue,
   SummaryPropertyValueWithMetadata,
   TextDataType,
@@ -73,6 +75,8 @@ import type {
   TitlePropertyValueWithMetadata,
   URIDataType,
   URIDataTypeWithMetadata,
+  ValueDataType,
+  ValueDataTypeWithMetadata,
 } from "./shared.js";
 import type {
   ArrayMetadata,
@@ -144,6 +148,8 @@ export type {
   PersonPropertiesWithMetadata,
   PublicationYearPropertyValue,
   PublicationYearPropertyValueWithMetadata,
+  StatusPropertyValue,
+  StatusPropertyValueWithMetadata,
   SummaryPropertyValue,
   SummaryPropertyValueWithMetadata,
   TextDataType,
@@ -152,6 +158,8 @@ export type {
   TitlePropertyValueWithMetadata,
   URIDataType,
   URIDataTypeWithMetadata,
+  ValueDataType,
+  ValueDataTypeWithMetadata,
 };
 
 /**
@@ -252,7 +260,7 @@ export type HasContactPropertiesWithMetadata = LinkPropertiesWithMetadata & {
 /**
  * The unique id for a study registered with the ISRCTN Registry.
  */
-export type ISRCTNDataType = TextDataType;
+export type ISRCTNDataType = TextDataType & string;
 
 export type ISRCTNDataTypeWithMetadata = {
   value: ISRCTNDataType;
@@ -321,7 +329,7 @@ export type MedicalConditionPropertyValueWithMetadata =
 /**
  * National Clinical Trial (NCT) Identifier Number, which is a unique identifier assigned to each clinical trial registered with ClinicalTrials.gov.
  */
-export type NCTIDDataType = TextDataType;
+export type NCTIDDataType = TextDataType & string;
 
 export type NCTIDDataTypeWithMetadata = {
   value: NCTIDDataType;
@@ -387,13 +395,6 @@ export type SponsoredByPropertiesWithMetadata = LinkPropertiesWithMetadata & {
   metadata?: ObjectMetadata;
   value: {};
 };
-
-/**
- * The status of something.
- */
-export type StatusPropertyValue = TextDataType;
-
-export type StatusPropertyValueWithMetadata = TextDataTypeWithMetadata;
 
 /**
  * A specific treatment group in a clinical trial. Each arm represents a unique intervention strategy or control group, allowing researchers to compare outcomes between different approaches.
@@ -541,7 +542,7 @@ export type TimeFramePropertyValueWithMetadata = TextDataTypeWithMetadata;
 /**
  * The distinct stage of a clinical trial, categorizing the study's primary goals and level of testing. Phase 0 involves very limited human testing, Phase 1 tests safety, dosage, and administration, Phase 2 tests effectiveness, Phase 3 confirms benefits, and Phase 4 studies long-term effects.
  */
-export type TrialPhaseDataType = TextDataType;
+export type TrialPhaseDataType = TextDataType & string;
 
 export type TrialPhaseDataTypeWithMetadata = {
   value: TrialPhaseDataType;

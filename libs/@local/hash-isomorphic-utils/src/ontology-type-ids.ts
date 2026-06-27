@@ -1,21 +1,10 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
-import type { BaseUrl } from "@blockprotocol/type-system";
+import type { VersionedUrl, BaseUrl } from "@blockprotocol/type-system";
 
 export const systemEntityTypes = {
   academicPaper: {
     entityTypeId: "https://hash.ai/@h/types/entity-type/academic-paper/v/1",
     entityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/academic-paper/" as BaseUrl,
-  },
-  account: {
-    entityTypeId: "https://hash.ai/@h/types/entity-type/crm-account/v/1",
-    entityTypeBaseUrl:
-      "https://hash.ai/@h/types/entity-type/crm-account/" as BaseUrl,
-  },
-  activity: {
-    entityTypeId: "https://hash.ai/@h/types/entity-type/crm-activity/v/1",
-    entityTypeBaseUrl:
-      "https://hash.ai/@h/types/entity-type/crm-activity/" as BaseUrl,
   },
   actor: {
     entityTypeId: "https://hash.ai/@h/types/entity-type/actor/v/2",
@@ -70,16 +59,6 @@ export const systemEntityTypes = {
     entityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/browser-plugin-settings/" as BaseUrl,
   },
-  call: {
-    entityTypeId: "https://hash.ai/@h/types/entity-type/crm-call/v/1",
-    entityTypeBaseUrl:
-      "https://hash.ai/@h/types/entity-type/crm-call/" as BaseUrl,
-  },
-  campaign: {
-    entityTypeId: "https://hash.ai/@h/types/entity-type/crm-campaign/v/1",
-    entityTypeBaseUrl:
-      "https://hash.ai/@h/types/entity-type/crm-campaign/" as BaseUrl,
-  },
   canvas: {
     entityTypeId: "https://hash.ai/@h/types/entity-type/canvas/v/1",
     entityTypeBaseUrl:
@@ -105,25 +84,10 @@ export const systemEntityTypes = {
     entityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/company/" as BaseUrl,
   },
-  contact: {
-    entityTypeId: "https://hash.ai/@h/types/entity-type/crm-contact/v/1",
-    entityTypeBaseUrl:
-      "https://hash.ai/@h/types/entity-type/crm-contact/" as BaseUrl,
-  },
-  crmPerson: {
-    entityTypeId: "https://hash.ai/@h/types/entity-type/crm-crm-person/v/1",
-    entityTypeBaseUrl:
-      "https://hash.ai/@h/types/entity-type/crm-crm-person/" as BaseUrl,
-  },
   customer: {
     entityTypeId: "https://hash.ai/@h/types/entity-type/customer/v/1",
     entityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/customer/" as BaseUrl,
-  },
-  deal: {
-    entityTypeId: "https://hash.ai/@h/types/entity-type/crm-deal/v/1",
-    entityTypeBaseUrl:
-      "https://hash.ai/@h/types/entity-type/crm-deal/" as BaseUrl,
   },
   delivery: {
     entityTypeId: "https://hash.ai/@h/types/entity-type/delivery/v/1",
@@ -153,11 +117,6 @@ export const systemEntityTypes = {
     entityTypeId: "https://hash.ai/@h/types/entity-type/docx-document/v/1",
     entityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/docx-document/" as BaseUrl,
-  },
-  email: {
-    entityTypeId: "https://hash.ai/@h/types/entity-type/crm-email/v/1",
-    entityTypeBaseUrl:
-      "https://hash.ai/@h/types/entity-type/crm-email/" as BaseUrl,
   },
   facebookAccount: {
     entityTypeId: "https://hash.ai/@h/types/entity-type/facebook-account/v/1",
@@ -241,11 +200,6 @@ export const systemEntityTypes = {
     entityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/invitation-via-shortname/" as BaseUrl,
   },
-  lead: {
-    entityTypeId: "https://hash.ai/@h/types/entity-type/crm-lead/v/1",
-    entityTypeBaseUrl:
-      "https://hash.ai/@h/types/entity-type/crm-lead/" as BaseUrl,
-  },
   linearIntegration: {
     entityTypeId: "https://hash.ai/@h/types/entity-type/linear-integration/v/9",
     entityTypeBaseUrl:
@@ -282,11 +236,6 @@ export const systemEntityTypes = {
     entityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/material-valuation/" as BaseUrl,
   },
-  meeting: {
-    entityTypeId: "https://hash.ai/@h/types/entity-type/crm-meeting/v/1",
-    entityTypeBaseUrl:
-      "https://hash.ai/@h/types/entity-type/crm-meeting/" as BaseUrl,
-  },
   mentionNotification: {
     entityTypeId:
       "https://hash.ai/@h/types/entity-type/mention-notification/v/7",
@@ -301,6 +250,12 @@ export const systemEntityTypes = {
     entityTypeId: "https://hash.ai/@h/types/entity-type/notification/v/1",
     entityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/notification/" as BaseUrl,
+  },
+  opportunityStatusUpdate: {
+    entityTypeId:
+      "https://hash.ai/@h/types/entity-type/opportunity-status-update/v/1",
+    entityTypeBaseUrl:
+      "https://hash.ai/@h/types/entity-type/opportunity-status-update/" as BaseUrl,
   },
   organization: {
     entityTypeId: "https://hash.ai/@h/types/entity-type/organization/v/3",
@@ -326,11 +281,6 @@ export const systemEntityTypes = {
     entityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/petri-net/" as BaseUrl,
   },
-  pipelineStage: {
-    entityTypeId: "https://hash.ai/@h/types/entity-type/crm-pipeline-stage/v/1",
-    entityTypeBaseUrl:
-      "https://hash.ai/@h/types/entity-type/crm-pipeline-stage/" as BaseUrl,
-  },
   pptxPresentation: {
     entityTypeId: "https://hash.ai/@h/types/entity-type/pptx-presentation/v/1",
     entityTypeBaseUrl:
@@ -340,11 +290,6 @@ export const systemEntityTypes = {
     entityTypeId: "https://hash.ai/@h/types/entity-type/presentation-file/v/1",
     entityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/presentation-file/" as BaseUrl,
-  },
-  product: {
-    entityTypeId: "https://hash.ai/@h/types/entity-type/crm-product/v/1",
-    entityTypeBaseUrl:
-      "https://hash.ai/@h/types/entity-type/crm-product/" as BaseUrl,
   },
   productionOrder: {
     entityTypeId: "https://hash.ai/@h/types/entity-type/production-order/v/1",
@@ -394,11 +339,6 @@ export const systemEntityTypes = {
     entityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/sales-order-item/" as BaseUrl,
   },
-  salesRep: {
-    entityTypeId: "https://hash.ai/@h/types/entity-type/crm-sales-rep/v/1",
-    entityTypeBaseUrl:
-      "https://hash.ai/@h/types/entity-type/crm-sales-rep/" as BaseUrl,
-  },
   serviceAccount: {
     entityTypeId: "https://hash.ai/@h/types/entity-type/service-account/v/1",
     entityTypeBaseUrl:
@@ -438,22 +378,11 @@ export const systemEntityTypes = {
     entityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/study-record/" as BaseUrl,
   },
-  supplyChainStatusReport: {
-    entityTypeId:
-      "https://hash.ai/@h/types/entity-type/supply-chain-status-report/v/1",
-    entityTypeBaseUrl:
-      "https://hash.ai/@h/types/entity-type/supply-chain-status-report/" as BaseUrl,
-  },
   supplyChainUserPreferences: {
     entityTypeId:
       "https://hash.ai/@h/types/entity-type/supply-chain-user-preferences/v/1",
     entityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/supply-chain-user-preferences/" as BaseUrl,
-  },
-  task: {
-    entityTypeId: "https://hash.ai/@h/types/entity-type/crm-task/v/1",
-    entityTypeBaseUrl:
-      "https://hash.ai/@h/types/entity-type/crm-task/" as BaseUrl,
   },
   text: {
     entityTypeId: "https://hash.ai/@h/types/entity-type/text/v/1",
@@ -511,11 +440,6 @@ export const systemLinkEntityTypes = {
     linkEntityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/associated-with-account/" as BaseUrl,
   },
-  atStage: {
-    linkEntityTypeId: "https://hash.ai/@h/types/entity-type/crm-at-stage/v/1",
-    linkEntityTypeBaseUrl:
-      "https://hash.ai/@h/types/entity-type/crm-at-stage/" as BaseUrl,
-  },
   authoredBy: {
     linkEntityTypeId: "https://hash.ai/@h/types/entity-type/authored-by/v/1",
     linkEntityTypeBaseUrl:
@@ -540,12 +464,6 @@ export const systemLinkEntityTypes = {
     linkEntityTypeId: "https://hash.ai/@h/types/entity-type/departs-from/v/1",
     linkEntityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/departs-from/" as BaseUrl,
-  },
-  forAccount: {
-    linkEntityTypeId:
-      "https://hash.ai/@h/types/entity-type/crm-for-account/v/1",
-    linkEntityTypeBaseUrl:
-      "https://hash.ai/@h/types/entity-type/crm-for-account/" as BaseUrl,
   },
   fulfills: {
     linkEntityTypeId: "https://hash.ai/@h/types/entity-type/fulfills/v/1",
@@ -620,12 +538,6 @@ export const systemLinkEntityTypes = {
     linkEntityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/has-parent/" as BaseUrl,
   },
-  hasPrimaryContact: {
-    linkEntityTypeId:
-      "https://hash.ai/@h/types/entity-type/crm-has-primary-contact/v/1",
-    linkEntityTypeBaseUrl:
-      "https://hash.ai/@h/types/entity-type/crm-has-primary-contact/" as BaseUrl,
-  },
   hasServiceAccount: {
     linkEntityTypeId:
       "https://hash.ai/@h/types/entity-type/has-service-account/v/1",
@@ -653,12 +565,6 @@ export const systemLinkEntityTypes = {
     linkEntityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/has-vendor/" as BaseUrl,
   },
-  includesProduct: {
-    linkEntityTypeId:
-      "https://hash.ai/@h/types/entity-type/crm-includes-product/v/1",
-    linkEntityTypeBaseUrl:
-      "https://hash.ai/@h/types/entity-type/crm-includes-product/" as BaseUrl,
-  },
   incurredIn: {
     linkEntityTypeId: "https://hash.ai/@h/types/entity-type/incurred-in/v/1",
     linkEntityTypeBaseUrl:
@@ -670,12 +576,6 @@ export const systemLinkEntityTypes = {
     linkEntityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/investigated-by/" as BaseUrl,
   },
-  involvesContact: {
-    linkEntityTypeId:
-      "https://hash.ai/@h/types/entity-type/crm-involves-contact/v/1",
-    linkEntityTypeBaseUrl:
-      "https://hash.ai/@h/types/entity-type/crm-involves-contact/" as BaseUrl,
-  },
   isMemberOf: {
     linkEntityTypeId: "https://hash.ai/@h/types/entity-type/is-member-of/v/1",
     linkEntityTypeBaseUrl:
@@ -685,11 +585,6 @@ export const systemLinkEntityTypes = {
     linkEntityTypeId: "https://hash.ai/@h/types/entity-type/located-at/v/1",
     linkEntityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/located-at/" as BaseUrl,
-  },
-  memberOf: {
-    linkEntityTypeId: "https://hash.ai/@h/types/entity-type/crm-member-of/v/1",
-    linkEntityTypeBaseUrl:
-      "https://hash.ai/@h/types/entity-type/crm-member-of/" as BaseUrl,
   },
   moves: {
     linkEntityTypeId: "https://hash.ai/@h/types/entity-type/moves/v/1",
@@ -730,17 +625,6 @@ export const systemLinkEntityTypes = {
     linkEntityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/operated-by/" as BaseUrl,
   },
-  ownedBy: {
-    linkEntityTypeId: "https://hash.ai/@h/types/entity-type/crm-owned-by/v/1",
-    linkEntityTypeBaseUrl:
-      "https://hash.ai/@h/types/entity-type/crm-owned-by/" as BaseUrl,
-  },
-  parentAccount: {
-    linkEntityTypeId:
-      "https://hash.ai/@h/types/entity-type/crm-parent-account/v/1",
-    linkEntityTypeBaseUrl:
-      "https://hash.ai/@h/types/entity-type/crm-parent-account/" as BaseUrl,
-  },
   postedAgainst: {
     linkEntityTypeId: "https://hash.ai/@h/types/entity-type/posted-against/v/1",
     linkEntityTypeBaseUrl:
@@ -767,26 +651,11 @@ export const systemLinkEntityTypes = {
     linkEntityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/records-usage-of/" as BaseUrl,
   },
-  references: {
-    linkEntityTypeId: "https://hash.ai/@h/types/entity-type/references/v/1",
-    linkEntityTypeBaseUrl:
-      "https://hash.ai/@h/types/entity-type/references/" as BaseUrl,
-  },
-  relatedTo: {
-    linkEntityTypeId: "https://hash.ai/@h/types/entity-type/crm-related-to/v/1",
-    linkEntityTypeBaseUrl:
-      "https://hash.ai/@h/types/entity-type/crm-related-to/" as BaseUrl,
-  },
   repliedToComment: {
     linkEntityTypeId:
       "https://hash.ai/@h/types/entity-type/replied-to-comment/v/1",
     linkEntityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/replied-to-comment/" as BaseUrl,
-  },
-  reportsTo: {
-    linkEntityTypeId: "https://hash.ai/@h/types/entity-type/crm-reports-to/v/1",
-    linkEntityTypeBaseUrl:
-      "https://hash.ai/@h/types/entity-type/crm-reports-to/" as BaseUrl,
   },
   scheduledBy: {
     linkEntityTypeId: "https://hash.ai/@h/types/entity-type/scheduled-by/v/1",
@@ -847,11 +716,6 @@ export const systemLinkEntityTypes = {
     linkEntityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/uses-user-secret/" as BaseUrl,
   },
-  worksAt: {
-    linkEntityTypeId: "https://hash.ai/@h/types/entity-type/crm-works-at/v/1",
-    linkEntityTypeBaseUrl:
-      "https://hash.ai/@h/types/entity-type/crm-works-at/" as BaseUrl,
-  },
   yields: {
     linkEntityTypeId: "https://hash.ai/@h/types/entity-type/yields/v/1",
     linkEntityTypeBaseUrl:
@@ -863,12 +727,6 @@ export const systemLinkEntityTypes = {
 >;
 
 export const systemPropertyTypes = {
-  activityDate: {
-    propertyTypeId:
-      "https://hash.ai/@h/types/property-type/crm-activity-date/v/1",
-    propertyTypeBaseUrl:
-      "https://hash.ai/@h/types/property-type/crm-activity-date/" as BaseUrl,
-  },
   actualArrivalDate: {
     propertyTypeId:
       "https://hash.ai/@h/types/property-type/actual-arrival-date/v/1",
@@ -947,11 +805,6 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/actual-study-start-date/" as BaseUrl,
   },
-  address: {
-    propertyTypeId: "https://hash.ai/@h/types/property-type/crm-address/v/1",
-    propertyTypeBaseUrl:
-      "https://hash.ai/@h/types/property-type/crm-address/" as BaseUrl,
-  },
   alternativeBom: {
     propertyTypeId:
       "https://hash.ai/@h/types/property-type/alternative-bom/v/1",
@@ -962,17 +815,6 @@ export const systemPropertyTypes = {
     propertyTypeId: "https://hash.ai/@h/types/property-type/altitude/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/altitude/" as BaseUrl,
-  },
-  amount: {
-    propertyTypeId: "https://hash.ai/@h/types/property-type/crm-amount/v/1",
-    propertyTypeBaseUrl:
-      "https://hash.ai/@h/types/property-type/crm-amount/" as BaseUrl,
-  },
-  annualRevenue: {
-    propertyTypeId:
-      "https://hash.ai/@h/types/property-type/crm-annual-revenue/v/1",
-    propertyTypeBaseUrl:
-      "https://hash.ai/@h/types/property-type/crm-annual-revenue/" as BaseUrl,
   },
   applicationPreferences: {
     propertyTypeId:
@@ -1016,11 +858,6 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/batch-number/" as BaseUrl,
   },
-  body: {
-    propertyTypeId: "https://hash.ai/@h/types/property-type/crm-body/v/1",
-    propertyTypeBaseUrl:
-      "https://hash.ai/@h/types/property-type/crm-body/" as BaseUrl,
-  },
   bomCategory: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/bom-category/v/1",
     propertyTypeBaseUrl:
@@ -1042,48 +879,20 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/browser-plugin-tab/" as BaseUrl,
   },
-  budget: {
-    propertyTypeId: "https://hash.ai/@h/types/property-type/crm-budget/v/1",
-    propertyTypeBaseUrl:
-      "https://hash.ai/@h/types/property-type/crm-budget/" as BaseUrl,
-  },
-  callOutcome: {
-    propertyTypeId:
-      "https://hash.ai/@h/types/property-type/crm-call-outcome/v/1",
-    propertyTypeBaseUrl:
-      "https://hash.ai/@h/types/property-type/crm-call-outcome/" as BaseUrl,
-  },
-  campaignType: {
-    propertyTypeId:
-      "https://hash.ai/@h/types/property-type/crm-campaign-type/v/1",
-    propertyTypeBaseUrl:
-      "https://hash.ai/@h/types/property-type/crm-campaign-type/" as BaseUrl,
-  },
   city: {
-    propertyTypeId: "https://hash.ai/@h/types/property-type/crm-city/v/1",
+    propertyTypeId: "https://hash.ai/@h/types/property-type/city/v/1",
     propertyTypeBaseUrl:
-      "https://hash.ai/@h/types/property-type/crm-city/" as BaseUrl,
-  },
-  closeDate: {
-    propertyTypeId: "https://hash.ai/@h/types/property-type/crm-close-date/v/1",
-    propertyTypeBaseUrl:
-      "https://hash.ai/@h/types/property-type/crm-close-date/" as BaseUrl,
+      "https://hash.ai/@h/types/property-type/city/" as BaseUrl,
   },
   codeshare: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/codeshare/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/codeshare/" as BaseUrl,
   },
-  companyName: {
-    propertyTypeId:
-      "https://hash.ai/@h/types/property-type/crm-company-name/v/1",
+  companyNumber: {
+    propertyTypeId: "https://hash.ai/@h/types/property-type/company-number/v/1",
     propertyTypeBaseUrl:
-      "https://hash.ai/@h/types/property-type/crm-company-name/" as BaseUrl,
-  },
-  completed: {
-    propertyTypeId: "https://hash.ai/@h/types/property-type/crm-completed/v/1",
-    propertyTypeBaseUrl:
-      "https://hash.ai/@h/types/property-type/crm-completed/" as BaseUrl,
+      "https://hash.ai/@h/types/property-type/company-number/" as BaseUrl,
   },
   componentId: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/component-id/v/1",
@@ -1102,16 +911,10 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/connection-source-name/" as BaseUrl,
   },
-  contactRole: {
-    propertyTypeId:
-      "https://hash.ai/@h/types/property-type/crm-contact-role/v/1",
-    propertyTypeBaseUrl:
-      "https://hash.ai/@h/types/property-type/crm-contact-role/" as BaseUrl,
-  },
   country: {
-    propertyTypeId: "https://hash.ai/@h/types/property-type/crm-country/v/1",
+    propertyTypeId: "https://hash.ai/@h/types/property-type/country/v/1",
     propertyTypeBaseUrl:
-      "https://hash.ai/@h/types/property-type/crm-country/" as BaseUrl,
+      "https://hash.ai/@h/types/property-type/country/" as BaseUrl,
   },
   creationDate: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/creation-date/v/1",
@@ -1157,23 +960,11 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/data-sources/" as BaseUrl,
   },
-  dealDescription: {
-    propertyTypeId:
-      "https://hash.ai/@h/types/property-type/crm-deal-description/v/1",
-    propertyTypeBaseUrl:
-      "https://hash.ai/@h/types/property-type/crm-deal-description/" as BaseUrl,
-  },
   "debit/creditIndicator": {
     propertyTypeId:
       "https://hash.ai/@h/types/property-type/debit-credit-indicator/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/debit-credit-indicator/" as BaseUrl,
-  },
-  defaultProbability: {
-    propertyTypeId:
-      "https://hash.ai/@h/types/property-type/crm-default-probability/v/1",
-    propertyTypeBaseUrl:
-      "https://hash.ai/@h/types/property-type/crm-default-probability/" as BaseUrl,
   },
   definitionObject: {
     propertyTypeId:
@@ -1221,20 +1012,10 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/delivery-type/" as BaseUrl,
   },
-  department: {
-    propertyTypeId: "https://hash.ai/@h/types/property-type/crm-department/v/1",
-    propertyTypeBaseUrl:
-      "https://hash.ai/@h/types/property-type/crm-department/" as BaseUrl,
-  },
   direction: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/direction/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/direction/" as BaseUrl,
-  },
-  discount: {
-    propertyTypeId: "https://hash.ai/@h/types/property-type/crm-discount/v/1",
-    propertyTypeBaseUrl:
-      "https://hash.ai/@h/types/property-type/crm-discount/" as BaseUrl,
   },
   distributionChannel: {
     propertyTypeId:
@@ -1246,12 +1027,6 @@ export const systemPropertyTypes = {
     propertyTypeId: "https://hash.ai/@h/types/property-type/division/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/division/" as BaseUrl,
-  },
-  doNotContact: {
-    propertyTypeId:
-      "https://hash.ai/@h/types/property-type/crm-do-not-contact/v/1",
-    propertyTypeBaseUrl:
-      "https://hash.ai/@h/types/property-type/crm-do-not-contact/" as BaseUrl,
   },
   documentDate: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/document-date/v/1",
@@ -1273,38 +1048,10 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/draft-note/" as BaseUrl,
   },
-  dueDate: {
-    propertyTypeId: "https://hash.ai/@h/types/property-type/crm-due-date/v/1",
-    propertyTypeBaseUrl:
-      "https://hash.ai/@h/types/property-type/crm-due-date/" as BaseUrl,
-  },
-  duration: {
-    propertyTypeId: "https://hash.ai/@h/types/property-type/crm-duration/v/1",
-    propertyTypeBaseUrl:
-      "https://hash.ai/@h/types/property-type/crm-duration/" as BaseUrl,
-  },
   email: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/email/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/email/" as BaseUrl,
-  },
-  emailAddress: {
-    propertyTypeId:
-      "https://hash.ai/@h/types/property-type/crm-email-address/v/1",
-    propertyTypeBaseUrl:
-      "https://hash.ai/@h/types/property-type/crm-email-address/" as BaseUrl,
-  },
-  emailSubject: {
-    propertyTypeId:
-      "https://hash.ai/@h/types/property-type/crm-email-subject/v/1",
-    propertyTypeBaseUrl:
-      "https://hash.ai/@h/types/property-type/crm-email-subject/" as BaseUrl,
-  },
-  employeeCount: {
-    propertyTypeId:
-      "https://hash.ai/@h/types/property-type/crm-employee-count/v/1",
-    propertyTypeBaseUrl:
-      "https://hash.ai/@h/types/property-type/crm-employee-count/" as BaseUrl,
   },
   enabledFeatureFlags: {
     propertyTypeId:
@@ -1353,12 +1100,6 @@ export const systemPropertyTypes = {
       "https://hash.ai/@h/types/property-type/estimated-study-start-date/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/estimated-study-start-date/" as BaseUrl,
-  },
-  estimatedValue: {
-    propertyTypeId:
-      "https://hash.ai/@h/types/property-type/crm-estimated-value/v/1",
-    propertyTypeBaseUrl:
-      "https://hash.ai/@h/types/property-type/crm-estimated-value/" as BaseUrl,
   },
   exclusionCriteria: {
     propertyTypeId:
@@ -1485,18 +1226,6 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/flow-type/" as BaseUrl,
   },
-  forecastCategory: {
-    propertyTypeId:
-      "https://hash.ai/@h/types/property-type/crm-forecast-category/v/1",
-    propertyTypeBaseUrl:
-      "https://hash.ai/@h/types/property-type/crm-forecast-category/" as BaseUrl,
-  },
-  foundedDate: {
-    propertyTypeId:
-      "https://hash.ai/@h/types/property-type/crm-founded-date/v/1",
-    propertyTypeBaseUrl:
-      "https://hash.ai/@h/types/property-type/crm-founded-date/" as BaseUrl,
-  },
   fractionalIndex: {
     propertyTypeId:
       "https://hash.ai/@h/types/property-type/fractional-index/v/1",
@@ -1553,11 +1282,6 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/height-in-pixels/" as BaseUrl,
   },
-  hireDate: {
-    propertyTypeId: "https://hash.ai/@h/types/property-type/crm-hire-date/v/1",
-    propertyTypeBaseUrl:
-      "https://hash.ai/@h/types/property-type/crm-hire-date/" as BaseUrl,
-  },
   iataCode: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/iata-code/v/1",
     propertyTypeBaseUrl:
@@ -1572,11 +1296,6 @@ export const systemPropertyTypes = {
     propertyTypeId: "https://hash.ai/@h/types/property-type/icon/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/icon/" as BaseUrl,
-  },
-  identifier: {
-    propertyTypeId: "https://hash.ai/@h/types/property-type/identifier/v/1",
-    propertyTypeBaseUrl:
-      "https://hash.ai/@h/types/property-type/identifier/" as BaseUrl,
   },
   "in-houseProductionTime": {
     propertyTypeId:
@@ -1627,25 +1346,10 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/intervention/" as BaseUrl,
   },
-  isActive: {
-    propertyTypeId: "https://hash.ai/@h/types/property-type/crm-is-active/v/1",
-    propertyTypeBaseUrl:
-      "https://hash.ai/@h/types/property-type/crm-is-active/" as BaseUrl,
-  },
-  isClosed: {
-    propertyTypeId: "https://hash.ai/@h/types/property-type/crm-is-closed/v/1",
-    propertyTypeBaseUrl:
-      "https://hash.ai/@h/types/property-type/crm-is-closed/" as BaseUrl,
-  },
   isOnGround: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/is-on-ground/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/is-on-ground/" as BaseUrl,
-  },
-  isWon: {
-    propertyTypeId: "https://hash.ai/@h/types/property-type/crm-is-won/v/1",
-    propertyTypeBaseUrl:
-      "https://hash.ai/@h/types/property-type/crm-is-won/" as BaseUrl,
   },
   isbn: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/isbn/v/1",
@@ -1673,17 +1377,6 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/item-number/" as BaseUrl,
   },
-  jobTitle: {
-    propertyTypeId: "https://hash.ai/@h/types/property-type/crm-job-title/v/1",
-    propertyTypeBaseUrl:
-      "https://hash.ai/@h/types/property-type/crm-job-title/" as BaseUrl,
-  },
-  joinedDate: {
-    propertyTypeId:
-      "https://hash.ai/@h/types/property-type/crm-joined-date/v/1",
-    propertyTypeBaseUrl:
-      "https://hash.ai/@h/types/property-type/crm-joined-date/" as BaseUrl,
-  },
   kratosIdentityId: {
     propertyTypeId:
       "https://hash.ai/@h/types/property-type/kratos-identity-id/v/1",
@@ -1701,12 +1394,6 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/last-change-date/" as BaseUrl,
   },
-  lastContacted: {
-    propertyTypeId:
-      "https://hash.ai/@h/types/property-type/crm-last-contacted/v/1",
-    propertyTypeBaseUrl:
-      "https://hash.ai/@h/types/property-type/crm-last-contacted/" as BaseUrl,
-  },
   lastPriceChangeDate: {
     propertyTypeId:
       "https://hash.ai/@h/types/property-type/last-price-change-date/v/1",
@@ -1717,23 +1404,6 @@ export const systemPropertyTypes = {
     propertyTypeId: "https://hash.ai/@h/types/property-type/latitude/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/latitude/" as BaseUrl,
-  },
-  leadScore: {
-    propertyTypeId: "https://hash.ai/@h/types/property-type/crm-lead-score/v/1",
-    propertyTypeBaseUrl:
-      "https://hash.ai/@h/types/property-type/crm-lead-score/" as BaseUrl,
-  },
-  leadSource: {
-    propertyTypeId:
-      "https://hash.ai/@h/types/property-type/crm-lead-source/v/1",
-    propertyTypeBaseUrl:
-      "https://hash.ai/@h/types/property-type/crm-lead-source/" as BaseUrl,
-  },
-  leadStatus: {
-    propertyTypeId:
-      "https://hash.ai/@h/types/property-type/crm-lead-status/v/1",
-    propertyTypeBaseUrl:
-      "https://hash.ai/@h/types/property-type/crm-lead-status/" as BaseUrl,
   },
   legIndicator: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/leg-indicator/v/1",
@@ -1755,11 +1425,6 @@ export const systemPropertyTypes = {
     propertyTypeId: "https://hash.ai/@h/types/property-type/linear-team-id/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/linear-team-id/" as BaseUrl,
-  },
-  listPrice: {
-    propertyTypeId: "https://hash.ai/@h/types/property-type/crm-list-price/v/1",
-    propertyTypeBaseUrl:
-      "https://hash.ai/@h/types/property-type/crm-list-price/" as BaseUrl,
   },
   location: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/location/v/1",
@@ -1828,24 +1493,6 @@ export const systemPropertyTypes = {
       "https://hash.ai/@h/types/property-type/medical-condition/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/medical-condition/" as BaseUrl,
-  },
-  meetingEnd: {
-    propertyTypeId:
-      "https://hash.ai/@h/types/property-type/crm-meeting-end/v/1",
-    propertyTypeBaseUrl:
-      "https://hash.ai/@h/types/property-type/crm-meeting-end/" as BaseUrl,
-  },
-  meetingStart: {
-    propertyTypeId:
-      "https://hash.ai/@h/types/property-type/crm-meeting-start/v/1",
-    propertyTypeBaseUrl:
-      "https://hash.ai/@h/types/property-type/crm-meeting-start/" as BaseUrl,
-  },
-  memberStatus: {
-    propertyTypeId:
-      "https://hash.ai/@h/types/property-type/crm-member-status/v/1",
-    propertyTypeBaseUrl:
-      "https://hash.ai/@h/types/property-type/crm-member-status/" as BaseUrl,
   },
   methodology: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/methodology/v/1",
@@ -2008,12 +1655,6 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/paused-at/" as BaseUrl,
   },
-  phoneNumber: {
-    propertyTypeId:
-      "https://hash.ai/@h/types/property-type/crm-phone-number/v/1",
-    propertyTypeBaseUrl:
-      "https://hash.ai/@h/types/property-type/crm-phone-number/" as BaseUrl,
-  },
   pickingDate: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/picking-date/v/1",
     propertyTypeBaseUrl:
@@ -2092,17 +1733,6 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/price-unit/" as BaseUrl,
   },
-  priority: {
-    propertyTypeId: "https://hash.ai/@h/types/property-type/crm-priority/v/1",
-    propertyTypeBaseUrl:
-      "https://hash.ai/@h/types/property-type/crm-priority/" as BaseUrl,
-  },
-  probability: {
-    propertyTypeId:
-      "https://hash.ai/@h/types/property-type/crm-probability/v/1",
-    propertyTypeBaseUrl:
-      "https://hash.ai/@h/types/property-type/crm-probability/" as BaseUrl,
-  },
   procurementType: {
     propertyTypeId:
       "https://hash.ai/@h/types/property-type/procurement-type/v/1",
@@ -2168,26 +1798,21 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/purchasing-organization/" as BaseUrl,
   },
-  quantity: {
-    propertyTypeId: "https://hash.ai/@h/types/property-type/crm-quantity/v/1",
-    propertyTypeBaseUrl:
-      "https://hash.ai/@h/types/property-type/crm-quantity/" as BaseUrl,
-  },
-  quota: {
-    propertyTypeId: "https://hash.ai/@h/types/property-type/crm-quota/v/1",
-    propertyTypeBaseUrl:
-      "https://hash.ai/@h/types/property-type/crm-quota/" as BaseUrl,
-  },
   readAt: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/read-at/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/read-at/" as BaseUrl,
   },
-  referenceNumber: {
-    propertyTypeId:
-      "https://hash.ai/@h/types/property-type/reference-number/v/1",
+  readItem: {
+    propertyTypeId: "https://hash.ai/@h/types/property-type/read-item/v/1",
     propertyTypeBaseUrl:
-      "https://hash.ai/@h/types/property-type/reference-number/" as BaseUrl,
+      "https://hash.ai/@h/types/property-type/read-item/" as BaseUrl,
+  },
+  referenceDocumentNumber: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/reference-document-number/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/reference-document-number/" as BaseUrl,
   },
   region: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/region/v/1",
@@ -2270,6 +1895,12 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/sales-document-type/" as BaseUrl,
   },
+  salesOrderNumber: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/sales-order-number/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/sales-order-number/" as BaseUrl,
+  },
   salesOrganization: {
     propertyTypeId:
       "https://hash.ai/@h/types/property-type/sales-organization/v/1",
@@ -2347,6 +1978,11 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/scheduled-start-date/" as BaseUrl,
   },
+  scopeKey: {
+    propertyTypeId: "https://hash.ai/@h/types/property-type/scope-key/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/scope-key/" as BaseUrl,
+  },
   scrapPercentage: {
     propertyTypeId:
       "https://hash.ai/@h/types/property-type/scrap-percentage/v/1",
@@ -2363,6 +1999,12 @@ export const systemPropertyTypes = {
       "https://hash.ai/@h/types/property-type/service-unit-cost/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/service-unit-cost/" as BaseUrl,
+  },
+  shipmentItemNumber: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/shipment-item-number/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/shipment-item-number/" as BaseUrl,
   },
   shipmentNumber: {
     propertyTypeId:
@@ -2395,17 +2037,6 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/site-type/" as BaseUrl,
   },
-  sku: {
-    propertyTypeId: "https://hash.ai/@h/types/property-type/crm-sku/v/1",
-    propertyTypeBaseUrl:
-      "https://hash.ai/@h/types/property-type/crm-sku/" as BaseUrl,
-  },
-  stageOrder: {
-    propertyTypeId:
-      "https://hash.ai/@h/types/property-type/crm-stage-order/v/1",
-    propertyTypeBaseUrl:
-      "https://hash.ai/@h/types/property-type/crm-stage-order/" as BaseUrl,
-  },
   standardCost: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/standard-cost/v/1",
     propertyTypeBaseUrl:
@@ -2415,17 +2046,6 @@ export const systemPropertyTypes = {
     propertyTypeId: "https://hash.ai/@h/types/property-type/standard-price/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/standard-price/" as BaseUrl,
-  },
-  startDate: {
-    propertyTypeId: "https://hash.ai/@h/types/property-type/crm-start-date/v/1",
-    propertyTypeBaseUrl:
-      "https://hash.ai/@h/types/property-type/crm-start-date/" as BaseUrl,
-  },
-  stateOrRegion: {
-    propertyTypeId:
-      "https://hash.ai/@h/types/property-type/crm-state-or-region/v/1",
-    propertyTypeBaseUrl:
-      "https://hash.ai/@h/types/property-type/crm-state-or-region/" as BaseUrl,
   },
   "statistics-relevantDeliveryDate": {
     propertyTypeId:
@@ -2500,88 +2120,17 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/summary/" as BaseUrl,
   },
-  supplyChainOpportunityKind: {
-    propertyTypeId:
-      "https://hash.ai/@h/types/property-type/supply-chain-opportunity-kind/v/1",
-    propertyTypeBaseUrl:
-      "https://hash.ai/@h/types/property-type/supply-chain-opportunity-kind/" as BaseUrl,
-  },
-  supplyChainOpportunityType: {
-    propertyTypeId:
-      "https://hash.ai/@h/types/property-type/supply-chain-opportunity-type/v/1",
-    propertyTypeBaseUrl:
-      "https://hash.ai/@h/types/property-type/supply-chain-opportunity-type/" as BaseUrl,
-  },
-  supplyChainPreferencesUserId: {
-    propertyTypeId:
-      "https://hash.ai/@h/types/property-type/supply-chain-preferences-user-id/v/1",
-    propertyTypeBaseUrl:
-      "https://hash.ai/@h/types/property-type/supply-chain-preferences-user-id/" as BaseUrl,
-  },
-  supplyChainPreferencesWebId: {
-    propertyTypeId:
-      "https://hash.ai/@h/types/property-type/supply-chain-preferences-web-id/v/1",
-    propertyTypeBaseUrl:
-      "https://hash.ai/@h/types/property-type/supply-chain-preferences-web-id/" as BaseUrl,
-  },
-  supplyChainProductId: {
-    propertyTypeId:
-      "https://hash.ai/@h/types/property-type/supply-chain-product-id/v/1",
-    propertyTypeBaseUrl:
-      "https://hash.ai/@h/types/property-type/supply-chain-product-id/" as BaseUrl,
-  },
-  supplyChainReadMarkers: {
-    propertyTypeId:
-      "https://hash.ai/@h/types/property-type/supply-chain-read-markers/v/1",
-    propertyTypeBaseUrl:
-      "https://hash.ai/@h/types/property-type/supply-chain-read-markers/" as BaseUrl,
-  },
-  supplyChainScopeKey: {
-    propertyTypeId:
-      "https://hash.ai/@h/types/property-type/supply-chain-scope-key/v/1",
-    propertyTypeBaseUrl:
-      "https://hash.ai/@h/types/property-type/supply-chain-scope-key/" as BaseUrl,
-  },
-  supplyChainSiteId: {
-    propertyTypeId:
-      "https://hash.ai/@h/types/property-type/supply-chain-site-id/v/1",
-    propertyTypeBaseUrl:
-      "https://hash.ai/@h/types/property-type/supply-chain-site-id/" as BaseUrl,
-  },
   supplyChainStatusCategory: {
     propertyTypeId:
       "https://hash.ai/@h/types/property-type/supply-chain-status-category/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/supply-chain-status-category/" as BaseUrl,
   },
-  supplyChainStatusReportAuthorId: {
-    propertyTypeId:
-      "https://hash.ai/@h/types/property-type/supply-chain-status-report-author-id/v/1",
-    propertyTypeBaseUrl:
-      "https://hash.ai/@h/types/property-type/supply-chain-status-report-author-id/" as BaseUrl,
-  },
-  supplyChainStatusReportCreatedAt: {
-    propertyTypeId:
-      "https://hash.ai/@h/types/property-type/supply-chain-status-report-created-at/v/1",
-    propertyTypeBaseUrl:
-      "https://hash.ai/@h/types/property-type/supply-chain-status-report-created-at/" as BaseUrl,
-  },
   supplyChainStatusText: {
     propertyTypeId:
       "https://hash.ai/@h/types/property-type/supply-chain-status-text/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/supply-chain-status-text/" as BaseUrl,
-  },
-  supplyChainStepId: {
-    propertyTypeId:
-      "https://hash.ai/@h/types/property-type/supply-chain-step-id/v/1",
-    propertyTypeBaseUrl:
-      "https://hash.ai/@h/types/property-type/supply-chain-step-id/" as BaseUrl,
-  },
-  tag: {
-    propertyTypeId: "https://hash.ai/@h/types/property-type/crm-tag/v/1",
-    propertyTypeBaseUrl:
-      "https://hash.ai/@h/types/property-type/crm-tag/" as BaseUrl,
   },
   terminal: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/terminal/v/1",
@@ -2635,11 +2184,6 @@ export const systemPropertyTypes = {
       "https://hash.ai/@h/types/property-type/unit-of-measure/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/unit-of-measure/" as BaseUrl,
-  },
-  unitPrice: {
-    propertyTypeId: "https://hash.ai/@h/types/property-type/crm-unit-price/v/1",
-    propertyTypeBaseUrl:
-      "https://hash.ai/@h/types/property-type/crm-unit-price/" as BaseUrl,
   },
   uploadCompletedAt: {
     propertyTypeId:
@@ -2707,11 +2251,6 @@ export const systemPropertyTypes = {
     propertyTypeId: "https://hash.ai/@h/types/property-type/vertical-speed/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/vertical-speed/" as BaseUrl,
-  },
-  website: {
-    propertyTypeId: "https://hash.ai/@h/types/property-type/crm-website/v/1",
-    propertyTypeBaseUrl:
-      "https://hash.ai/@h/types/property-type/crm-website/" as BaseUrl,
   },
   websiteUrl: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/website-url/v/1",
@@ -3135,7 +2674,7 @@ export const systemDataTypes = {
     dataTypeId: "https://hash.ai/@h/types/data-type/eur/v/1",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/eur/" as BaseUrl,
     title: "EUR",
-    description: "An amount denominated in Euros.",
+    description: "An amount denominated in Euro (ISO 4217 EUR).",
   },
   feet: {
     dataTypeId: "https://hash.ai/@h/types/data-type/feet/v/1",
@@ -3190,7 +2729,7 @@ export const systemDataTypes = {
     dataTypeId: "https://hash.ai/@h/types/data-type/gbp/v/1",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/gbp/" as BaseUrl,
     title: "GBP",
-    description: "An amount denominated in British pounds sterling.",
+    description: "An amount denominated in Pound Sterling (ISO 4217 GBP).",
   },
   gel: {
     dataTypeId: "https://hash.ai/@h/types/data-type/gel/v/1",
@@ -3816,6 +3355,14 @@ export const systemDataTypes = {
     title: "OMR",
     description: "An amount denominated in Rial Omani (ISO 4217 OMR).",
   },
+  opportunityStatusCategory: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/opportunity-status-category/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/opportunity-status-category/" as BaseUrl,
+    title: "Opportunity Status Category",
+    description: "The category of a status update left against an opportunity.",
+  },
   pab: {
     dataTypeId: "https://hash.ai/@h/types/data-type/pab/v/1",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/pab/" as BaseUrl,
@@ -4161,7 +3708,7 @@ export const systemDataTypes = {
     dataTypeId: "https://hash.ai/@h/types/data-type/usd/v/1",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/usd/" as BaseUrl,
     title: "USD",
-    description: "An amount denominated in US Dollars.",
+    description: "An amount denominated in US Dollar (ISO 4217 USD).",
   },
   uyu: {
     dataTypeId: "https://hash.ai/@h/types/data-type/uyu/v/1",

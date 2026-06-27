@@ -8,6 +8,7 @@ import {
   StatusActionButton,
   NeutralActionButton,
 } from "../../shared/action-buttons";
+import { statusKey } from "./opportunities";
 import { ProductTags } from "./shared/product-tags";
 import * as threshold from "./shared/table-styles";
 
@@ -372,7 +373,9 @@ export const OpportunitiesTable = ({
   >(() => new Set());
   const visibleOpportunities = useMemo(() => {
     return opportunities.filter(
-      (opportunity) => showRead || !statuses[opportunity.id]?.read,
+      (opportunity) =>
+        showRead ||
+        !statuses[statusKey(opportunity.siteId, opportunity.node)]?.read,
     );
   }, [opportunities, showRead, statuses]);
   const grouped = useMemo(() => {
@@ -395,7 +398,8 @@ export const OpportunitiesTable = ({
     });
   };
   const unreadCount = opportunities.filter(
-    (observation) => !statuses[observation.id]?.read,
+    (opportunity) =>
+      !statuses[statusKey(opportunity.siteId, opportunity.node)]?.read,
   ).length;
   const visibleCount = grouped.reduce(
     (sum, section) => sum + section.opportunities.length,
@@ -468,7 +472,8 @@ export const OpportunitiesTable = ({
                 <OpportunityColGroup />
                 <tbody className={threshold.tbodyDivide}>
                   {section.opportunities.map((opportunity) => {
-                    const status = statuses[opportunity.id];
+                    const key = statusKey(opportunity.siteId, opportunity.node);
+                    const status = statuses[key];
                     return (
                       <tr
                         key={opportunity.id}
@@ -565,9 +570,9 @@ export const OpportunitiesTable = ({
                               onClick={(event) => {
                                 event.stopPropagation();
                                 if (status?.read) {
-                                  onMarkUnread(opportunity.id);
+                                  onMarkUnread(key);
                                 } else {
-                                  onMarkRead(opportunity.id);
+                                  onMarkRead(key);
                                 }
                               }}
                             >

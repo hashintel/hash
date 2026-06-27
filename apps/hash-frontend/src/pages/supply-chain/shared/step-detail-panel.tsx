@@ -4,11 +4,7 @@ import { Button, Icon } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { Link } from "../../../shared/ui/link";
-import {
-  STATUS_OPTIONS,
-  type StatusEntry,
-  type StatusOption,
-} from "../app-shell/site/opportunities";
+import { type StatusEntry } from "../app-shell/site/opportunities";
 import {
   BriefLink,
   DocsIconButton,
@@ -273,13 +269,6 @@ interface StepDetailPanelProps {
   onStatus?: () => void;
 }
 
-function statusCategoryLabel(category: StatusOption): string {
-  return (
-    STATUS_OPTIONS.find((option) => option.value === category)?.label ??
-    "Status"
-  );
-}
-
 function formatStatusDate(iso: string): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) {
@@ -299,7 +288,7 @@ function statusEntryText(entry: StatusEntry): string {
   if (text) {
     return text;
   }
-  return entry.category === "investigation_started" ? "(no comment)" : "";
+  return entry.category === "Investigation started" ? "(no comment)" : "";
 }
 export const StepDetailPanel = ({
   productId,
@@ -895,9 +884,7 @@ export const StepDetailPanel = ({
                   className={statusItem}
                 >
                   <div className={statusMeta}>
-                    <span className={statusCategory}>
-                      {statusCategoryLabel(entry.category)}
-                    </span>
+                    <span className={statusCategory}>{entry.category}</span>
                     <span className={statusDot}>·</span>
                     <span>{entry.user}</span>
                     <span className={statusDot}>·</span>

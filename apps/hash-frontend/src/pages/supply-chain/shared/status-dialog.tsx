@@ -120,7 +120,7 @@ const primaryButton = css({
   _hover: { bg: "fg.muted", color: "bgSolid.min" },
 });
 
-const DEFAULT_STATUS: StatusOption = "investigation_started";
+const DEFAULT_STATUS: StatusOption = "Investigation started";
 
 export interface StatusDialogProps {
   /** Subtitle shown under the heading (e.g. the step / opportunity title). */
@@ -209,15 +209,15 @@ export const StatusDialog = ({ title, onClose, onSave }: StatusDialogProps) => {
         <div className={body}>
           <div className={radioStack}>
             {STATUS_OPTIONS.map((option) => (
-              <label key={option.value} className={radioLabel}>
+              <label key={option} className={radioLabel}>
                 <input
                   type="radio"
                   name="status-category"
-                  value={option.value}
-                  checked={category === option.value}
-                  onChange={() => selectCategory(option.value)}
+                  value={option}
+                  checked={category === option}
+                  onChange={() => selectCategory(option)}
                 />
-                {option.label}
+                {option}
               </label>
             ))}
           </div>

@@ -24,6 +24,8 @@ import type {
   TriggerDefinitionIDPropertyValueWithMetadata,
   TriggerDefinitionPropertyValue,
   TriggerDefinitionPropertyValueWithMetadata,
+  ValueDataType,
+  ValueDataTypeWithMetadata,
 } from "./shared.js";
 
 export type {
@@ -48,4 +50,6 @@ export type {
   TriggerDefinitionIDPropertyValueWithMetadata,
   TriggerDefinitionPropertyValue,
   TriggerDefinitionPropertyValueWithMetadata,
+  ValueDataType,
+  ValueDataTypeWithMetadata,
 };

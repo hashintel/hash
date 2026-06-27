@@ -31,7 +31,6 @@ import {
   trackSupplyChainInteraction,
   trackSupplyChainStatusReportCreated,
 } from "../../shared/telemetry";
-import { normalizeStatusOption } from "./opportunities";
 
 import type {
   CreateEntityMutation,
@@ -176,12 +175,11 @@ const parseStatusReports = (entities: Entity[]): StatusStore => {
           entity,
           supplyChainPropertyBaseUrls.statusReportCreatedAt,
         ) ?? new Date().toISOString(),
-      category: normalizeStatusOption(
-        getPropertyValue<string>(
+      category:
+        getPropertyValue<StatusOption>(
           entity,
           supplyChainPropertyBaseUrls.statusCategory,
-        ),
-      ),
+        ) ?? "Investigation started",
       text:
         getPropertyValue<string>(
           entity,

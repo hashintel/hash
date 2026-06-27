@@ -1,9 +1,13 @@
-import { blockProtocolPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import {
+  blockProtocolDataTypes,
+  blockProtocolPropertyTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import {
+  createSystemDataTypeIfNotExists,
   createSystemEntityTypeIfNotExists,
   createSystemPropertyTypeIfNotExists,
-  getCurrentHashDataTypeId,
+  getCurrentHashPropertyTypeId,
 } from "../util";
 
 import type { MigrationFunction } from "../types";
@@ -13,94 +17,39 @@ const migrate: MigrationFunction = async ({
   authentication,
   migrationState,
 }) => {
-  const datetimeDataTypeId = getCurrentHashDataTypeId({
-    dataTypeKey: "datetime",
-    migrationState,
-  });
-
-  const productIdPropertyType = await createSystemPropertyTypeIfNotExists(
-    context,
-    authentication,
-    {
-      propertyTypeDefinition: {
-        title: "Supply Chain Product ID",
-        description: "The identifier of a product in a supply-chain dataset.",
-        possibleValues: [{ primitiveDataType: "text" }],
-      },
-      migrationState,
-      webShortname: "h",
-    },
-  );
-
-  const siteIdPropertyType = await createSystemPropertyTypeIfNotExists(
-    context,
-    authentication,
-    {
-      propertyTypeDefinition: {
-        title: "Supply Chain Site ID",
-        description: "The identifier of a site in a supply-chain dataset.",
-        possibleValues: [{ primitiveDataType: "text" }],
-      },
-      migrationState,
-      webShortname: "h",
-    },
-  );
-
-  const stepIdPropertyType = await createSystemPropertyTypeIfNotExists(
-    context,
-    authentication,
-    {
-      propertyTypeDefinition: {
-        title: "Supply Chain Step ID",
-        description:
-          "The identifier of a product step in a supply-chain dataset.",
-        possibleValues: [{ primitiveDataType: "text" }],
-      },
-      migrationState,
-      webShortname: "h",
-    },
-  );
-
-  const opportunityTypePropertyType = await createSystemPropertyTypeIfNotExists(
-    context,
-    authentication,
-    {
-      propertyTypeDefinition: {
-        title: "Supply Chain Opportunity Type",
-        description:
-          "The broad type of a supply-chain opportunity, such as dwell or planning.",
-        possibleValues: [{ primitiveDataType: "text" }],
-      },
-      migrationState,
-      webShortname: "h",
-    },
-  );
-
-  const opportunityKindPropertyType = await createSystemPropertyTypeIfNotExists(
-    context,
-    authentication,
-    {
-      propertyTypeDefinition: {
-        title: "Supply Chain Opportunity Kind",
-        description:
-          "The specific kind of supply-chain opportunity a status or preference refers to.",
-        possibleValues: [{ primitiveDataType: "text" }],
-      },
-      migrationState,
-      webShortname: "h",
-    },
-  );
-
   const scopeKeyPropertyType = await createSystemPropertyTypeIfNotExists(
     context,
     authentication,
     {
       propertyTypeDefinition: {
-        title: "Supply Chain Scope Key",
-        description:
-          "A stable key identifying a supply-chain product step or opportunity scope.",
+        title: "Scope Key",
+        description: "A stable key identifying something within a scope.",
         possibleValues: [{ primitiveDataType: "text" }],
       },
+      migrationState,
+      webShortname: "h",
+    },
+  );
+
+  const statusCategoryDataType = await createSystemDataTypeIfNotExists(
+    context,
+    authentication,
+    {
+      dataTypeDefinition: {
+        allOf: [{ $ref: blockProtocolDataTypes.text.dataTypeId }],
+        title: "Opportunity Status Category",
+        description:
+          "The category of a status update left against an opportunity.",
+        enum: [
+          "Investigation started",
+          "Investigation update",
+          "Investigation concluded",
+          "Rejected (infeasible)",
+          "Rejected (data issue)",
+        ],
+        type: "string",
+      },
+      conversions: {},
       migrationState,
       webShortname: "h",
     },
@@ -113,7 +62,7 @@ const migrate: MigrationFunction = async ({
       propertyTypeDefinition: {
         title: "Supply Chain Status Category",
         description: "The category assigned to a supply-chain status report.",
-        possibleValues: [{ primitiveDataType: "text" }],
+        possibleValues: [{ dataTypeId: statusCategoryDataType.schema.$id }],
       },
       migrationState,
       webShortname: "h",
@@ -134,14 +83,13 @@ const migrate: MigrationFunction = async ({
     },
   );
 
-  const authorIdPropertyType = await createSystemPropertyTypeIfNotExists(
+  const readItemPropertyType = await createSystemPropertyTypeIfNotExists(
     context,
     authentication,
     {
       propertyTypeDefinition: {
-        title: "Supply Chain Status Report Author ID",
-        description:
-          "The identifier of the user who created a supply-chain status report.",
+        title: "Read Item",
+        description: "An item which has been read by someone or something.",
         possibleValues: [{ primitiveDataType: "text" }],
       },
       migrationState,
@@ -149,81 +97,23 @@ const migrate: MigrationFunction = async ({
     },
   );
 
-  const createdAtPropertyType = await createSystemPropertyTypeIfNotExists(
-    context,
-    authentication,
-    {
-      propertyTypeDefinition: {
-        title: "Supply Chain Status Report Created At",
-        description:
-          "The date and time at which a supply-chain status report was created.",
-        possibleValues: [{ dataTypeId: datetimeDataTypeId }],
-      },
-      migrationState,
-      webShortname: "h",
-    },
-  );
-
-  const readMarkersPropertyType = await createSystemPropertyTypeIfNotExists(
-    context,
-    authentication,
-    {
-      propertyTypeDefinition: {
-        title: "Supply Chain Read Markers",
-        description:
-          "The supply-chain opportunity scopes a user has marked as read.",
-        possibleValues: [{ primitiveDataType: "object", array: true }],
-      },
-      migrationState,
-      webShortname: "h",
-    },
-  );
-
-  const preferencesUserIdPropertyType =
-    await createSystemPropertyTypeIfNotExists(context, authentication, {
-      propertyTypeDefinition: {
-        title: "Supply Chain Preferences User ID",
-        description:
-          "The identifier of the user whose supply-chain preferences are stored.",
-        possibleValues: [{ primitiveDataType: "text" }],
-      },
-      migrationState,
-      webShortname: "h",
-    });
-
-  const preferencesWebIdPropertyType =
-    await createSystemPropertyTypeIfNotExists(context, authentication, {
-      propertyTypeDefinition: {
-        title: "Supply Chain Preferences Web ID",
-        description:
-          "The identifier of the web the supply-chain preferences apply to.",
-        possibleValues: [{ primitiveDataType: "text" }],
-      },
-      migrationState,
-      webShortname: "h",
-    });
+  const siteCodePropertyTypeId = getCurrentHashPropertyTypeId({
+    propertyTypeKey: "siteCode",
+    migrationState,
+  });
 
   await createSystemEntityTypeIfNotExists(context, authentication, {
     entityTypeDefinition: {
-      title: "Supply Chain Status Report",
-      titlePlural: "Supply Chain Status Reports",
+      title: "Opportunity Status Update",
+      titlePlural: "Opportunity Status Updates",
       description:
-        "An authored status update for a supply-chain product step or opportunity.",
+        "A status update for an opportunity for change or improvement.",
       labelProperty: scopeKeyPropertyType.metadata.recordId.baseUrl,
       properties: [
         { propertyType: scopeKeyPropertyType.schema.$id, required: true },
-        { propertyType: productIdPropertyType.schema.$id, required: true },
-        { propertyType: siteIdPropertyType.schema.$id, required: true },
-        { propertyType: stepIdPropertyType.schema.$id, required: true },
-        {
-          propertyType: opportunityTypePropertyType.schema.$id,
-          required: true,
-        },
-        { propertyType: opportunityKindPropertyType.schema.$id },
+        { propertyType: siteCodePropertyTypeId, required: true },
         { propertyType: statusCategoryPropertyType.schema.$id, required: true },
         { propertyType: statusTextPropertyType.schema.$id },
-        { propertyType: authorIdPropertyType.schema.$id, required: true },
-        { propertyType: createdAtPropertyType.schema.$id, required: true },
       ],
     },
     migrationState,
@@ -238,19 +128,7 @@ const migrate: MigrationFunction = async ({
         "User-scoped preferences for supply-chain views in a HASH web.",
       labelProperty: blockProtocolPropertyTypes.name.propertyTypeBaseUrl,
       properties: [
-        {
-          propertyType: blockProtocolPropertyTypes.name.propertyTypeId,
-          required: true,
-        },
-        {
-          propertyType: preferencesUserIdPropertyType.schema.$id,
-          required: true,
-        },
-        {
-          propertyType: preferencesWebIdPropertyType.schema.$id,
-          required: true,
-        },
-        { propertyType: readMarkersPropertyType.schema.$id },
+        { propertyType: readItemPropertyType.schema.$id, array: true },
       ],
     },
     migrationState,

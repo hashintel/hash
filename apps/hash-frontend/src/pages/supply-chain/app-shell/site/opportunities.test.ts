@@ -1,10 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  buildSiteOpportunities,
-  normalizeStatusOption,
-  statusCommentRequired,
-} from "./opportunities";
+import { buildSiteOpportunities, statusCommentRequired } from "./opportunities";
 
 import type { StepStats } from "../../shared/types";
 import type { DwellRow, PlanningRow } from "./shared/row-types";
@@ -175,24 +171,11 @@ describe("buildSiteOpportunities", () => {
 });
 
 describe("status helpers", () => {
-  it("maps previous category aliases to status categories", () => {
-    expect(normalizeStatusOption("investigating")).toBe(
-      "investigation_started",
-    );
-    expect(normalizeStatusOption("concluded")).toBe("investigation_concluded");
-    expect(normalizeStatusOption("not_feasible")).toBe("rejected_infeasible");
-    expect(normalizeStatusOption("data_issue")).toBe("rejected_data_issue");
-    expect(normalizeStatusOption("investigation_update")).toBe(
-      "investigation_update",
-    );
-    expect(normalizeStatusOption("unknown")).toBe("investigation_started");
-  });
-
   it("requires comments except for investigation started", () => {
-    expect(statusCommentRequired("investigation_started")).toBe(false);
-    expect(statusCommentRequired("investigation_update")).toBe(true);
-    expect(statusCommentRequired("investigation_concluded")).toBe(true);
-    expect(statusCommentRequired("rejected_infeasible")).toBe(true);
-    expect(statusCommentRequired("rejected_data_issue")).toBe(true);
+    expect(statusCommentRequired("Investigation started")).toBe(false);
+    expect(statusCommentRequired("Investigation update")).toBe(true);
+    expect(statusCommentRequired("Investigation concluded")).toBe(true);
+    expect(statusCommentRequired("Rejected (infeasible)")).toBe(true);
+    expect(statusCommentRequired("Rejected (data issue)")).toBe(true);
   });
 });

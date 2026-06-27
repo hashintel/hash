@@ -9,13 +9,6 @@ import type { DwellRow, PlanningRow } from "./shared/row-types";
 
 export type OpportunityKind = "dwell_cost" | "planning_over" | "planning_under";
 
-export type StatusOption =
-  | "investigation_started"
-  | "investigation_update"
-  | "investigation_concluded"
-  | "rejected_infeasible"
-  | "rejected_data_issue";
-
 export interface OpportunityStatus {
   read: boolean;
   readAt?: string;
@@ -97,35 +90,18 @@ const DWELL_DAYS_CUTOFF = 7;
 // floor) for a dwell-cost opportunity: below this the saving isn't worth surfacing.
 const DWELL_MIN_PERIOD_COST = 5000;
 const PLANNING_RATIO_THRESHOLD = 0.1;
-export const STATUS_OPTIONS: Array<{ value: StatusOption; label: string }> = [
-  { value: "investigation_started", label: "Investigation started" },
-  { value: "investigation_update", label: "Investigation update" },
-  { value: "investigation_concluded", label: "Investigation concluded" },
-  { value: "rejected_infeasible", label: "Rejected (infeasible)" },
-  { value: "rejected_data_issue", label: "Rejected (data issue)" },
-];
+export const STATUS_OPTIONS = [
+  "Investigation started",
+  "Investigation update",
+  "Investigation concluded",
+  "Rejected (infeasible)",
+  "Rejected (data issue)",
+] as const;
 
-export function normalizeStatusOption(value: unknown): StatusOption {
-  if (value === "investigating") {
-    return "investigation_started";
-  }
-  if (value === "concluded") {
-    return "investigation_concluded";
-  }
-  if (value === "not_feasible") {
-    return "rejected_infeasible";
-  }
-  if (value === "data_issue") {
-    return "rejected_data_issue";
-  }
-  if (STATUS_OPTIONS.some((option) => option.value === value)) {
-    return value as StatusOption;
-  }
-  return "investigation_started";
-}
+export type StatusOption = (typeof STATUS_OPTIONS)[number];
 
 export function statusCommentRequired(category: StatusOption): boolean {
-  return category !== "investigation_started";
+  return category !== "Investigation started";
 }
 
 function opportunityId(

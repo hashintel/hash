@@ -191,7 +191,7 @@ const kratosProxyReadRateLimiter = rateLimit({
  */
 const graphqlRateLimiter = rateLimit({
   windowMs: process.env.NODE_ENV === "test" ? 10 : 1000 * 60, // 1 minute
-  limit: (req) => (req.user ? 300 : 60),
+  limit: (req) => (req.user ? 1_000 : 60_000),
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: (req) => {
