@@ -78,7 +78,7 @@ export const DWELL_TYPES: StepType[] = [
 ];
 
 export function getCategoryForType(type: StepType): Category | undefined {
-  return CATEGORIES.find((column) => column.types.includes(type));
+  return CATEGORIES.find((category) => category.types.includes(type));
 }
 
 export function getCategoryColor(type: StepType): string {

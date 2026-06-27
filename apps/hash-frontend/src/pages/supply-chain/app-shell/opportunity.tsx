@@ -1439,7 +1439,7 @@ const StepTypeNextSteps = ({
     { title: "SCM", items: nextSteps.scm },
     { title: "Operational Excellence", items: nextSteps.opex },
     { title: "Planning", items: nextSteps.planning },
-  ].filter((right) => right.items.length > 0);
+  ].filter((bucket) => bucket.items.length > 0);
   if (buckets.length === 0) {
     return (
       <p className={nextStepsEmpty}>

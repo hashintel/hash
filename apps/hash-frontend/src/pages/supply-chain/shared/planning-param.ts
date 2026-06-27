@@ -7,7 +7,7 @@
  *   - Production            → goods-receipt processing time (days)
  *   - Upstream production   → in-house production time (days)
  *
- * `plan_note` on the graph node is set by generate_data.py only when the
+ * `plan_note` on the graph node is set by the analysis pipeline only when the
  * planned time is not the default planned delivery time.
  */
 

@@ -259,9 +259,9 @@ export const AnalysisSettingsPanel = ({
             }
             aria-label="Procurement lead-time basis"
           >
-            {PROCUREMENT_BASES.map((right) => (
-              <option key={right} value={right}>
-                {PROCUREMENT_BASIS_LABELS[right]}
+            {PROCUREMENT_BASES.map((basisOption) => (
+              <option key={basisOption} value={basisOption}>
+                {PROCUREMENT_BASIS_LABELS[basisOption]}
               </option>
             ))}
           </select>

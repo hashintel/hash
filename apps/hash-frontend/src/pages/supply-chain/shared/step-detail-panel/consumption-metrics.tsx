@@ -198,7 +198,7 @@ export const ConsumptionMetricsRow = ({
     ? "Median in-range variance vs plan"
     : "Weighted consumption vs plan";
   const selectedComponentData = selectedComponent
-    ? components.find((column) => column.material === selectedComponent)
+    ? components.find((component) => component.material === selectedComponent)
     : null;
   const reconciliationEvents =
     selectedComponentData?.n_reconciliation_events ?? 0;
@@ -206,8 +206,8 @@ export const ConsumptionMetricsRow = ({
 
   const offBomMaterials = new Set(
     components
-      .filter((column) => column.in_current_bom === false)
-      .map((column) => column.material),
+      .filter((component) => component.in_current_bom === false)
+      .map((component) => component.material),
   );
 
   const nOrders = aggregate?.n_orders ?? 0;
@@ -368,19 +368,19 @@ export const ConsumptionMetricsRow = ({
           >
             All components
           </button>
-          {components.map((column) => {
-            const isOffBom = offBomMaterials.has(column.material);
+          {components.map((component) => {
+            const isOffBom = offBomMaterials.has(component.material);
             return (
               <button
-                key={column.material}
+                key={component.material}
                 type="button"
-                onClick={() => onSelectComponent(column.material)}
+                onClick={() => onSelectComponent(component.material)}
                 title={
                   isOffBom ? "Consumed outside the current BOM" : undefined
                 }
                 className={cx(
                   pillIcon,
-                  selectedComponent === column.material
+                  selectedComponent === component.material
                     ? pillActive
                     : pillInactive,
                 )}
@@ -389,13 +389,13 @@ export const ConsumptionMetricsRow = ({
                   <span
                     className={cx(
                       dot,
-                      selectedComponent === column.material
+                      selectedComponent === component.material
                         ? dotActive
                         : dotInactive,
                     )}
                   />
                 )}
-                {column.name}
+                {component.name}
               </button>
             );
           })}

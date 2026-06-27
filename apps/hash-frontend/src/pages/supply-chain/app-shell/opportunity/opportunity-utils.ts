@@ -425,9 +425,9 @@ function toNumberOrNull(
 }
 
 function pickFirstKey(keys: Set<string>, candidates: string[]): string | null {
-  for (const column of candidates) {
-    if (keys.has(column)) {
-      return column;
+  for (const candidate of candidates) {
+    if (keys.has(candidate)) {
+      return candidate;
     }
   }
   return null;

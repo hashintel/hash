@@ -32,22 +32,20 @@ export interface SiteRef {
 let activeWebId: WebId | null = null;
 
 /**
- * Configure the workspace web whose published analysis artifacts back the
- * supply-chain views. All data reads go through HASH's analysis gateway.
- */
-
-/**
- * Site-wide supplier performance. Cached for the session; missing optional
- * artifacts resolve to `null`, so the cache holds at most one resolved promise.
- */
-
-/**
  * Session cache for `fetchSiteData`, keyed by web + site + product set. A
  * rejected promise is evicted so a later mount can retry.
  */
 const siteDataCache = new Map<string, Promise<SiteData>>();
+/**
+ * Site-wide supplier performance. Cached for the session; missing optional
+ * artifacts resolve to `null`, so the cache holds at most one resolved promise.
+ */
 let supplierPerformanceCache: Promise<SiteSupplierPerformance | null> | null =
   null;
+/**
+ * Configure the workspace web whose published analysis artifacts back the
+ * supply-chain views. All data reads go through HASH's analysis gateway.
+ */
 export function configureDataSource({
   scope,
 }: {

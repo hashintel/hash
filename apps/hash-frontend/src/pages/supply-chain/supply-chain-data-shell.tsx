@@ -41,6 +41,7 @@ import { useSearchParams } from "./shared/use-search-params";
 
 import type { TimeRange } from "./shared/time-range";
 import type { Product } from "./shared/types";
+import type { WebId } from "@blockprotocol/type-system";
 
 const screenBg = css({
   display: "flex",
@@ -140,7 +141,7 @@ export const SupplyChainDataShell = ({
 }: {
   children: ReactNode;
   /** Data scope for the HASH analysis gateway. */
-  scope?: string;
+  scope?: WebId;
 }) => {
   const [mounted, setMounted] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);

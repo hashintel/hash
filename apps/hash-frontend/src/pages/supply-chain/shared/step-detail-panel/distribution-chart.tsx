@@ -186,9 +186,9 @@ export const DistributionChart = ({
   const rv = refValue ?? 0;
   const refIdx = hasRef
     ? bins.findIndex(
-        (right) =>
-          rv >= right.rangeStart &&
-          (right.isLast ? rv <= right.rangeEnd : rv < right.rangeEnd),
+        (bin) =>
+          rv >= bin.rangeStart &&
+          (bin.isLast ? rv <= bin.rangeEnd : rv < bin.rangeEnd),
       )
     : -1;
 
@@ -294,9 +294,9 @@ export const DistributionChart = ({
             <ReferenceLine
               x={
                 bins.find(
-                  (right) =>
-                    rv >= right.rangeStart &&
-                    (right.isLast ? rv <= right.rangeEnd : rv < right.rangeEnd),
+                  (bin) =>
+                    rv >= bin.rangeStart &&
+                    (bin.isLast ? rv <= bin.rangeEnd : rv < bin.rangeEnd),
                 )?.label
               }
               stroke={chartTheme.reference}

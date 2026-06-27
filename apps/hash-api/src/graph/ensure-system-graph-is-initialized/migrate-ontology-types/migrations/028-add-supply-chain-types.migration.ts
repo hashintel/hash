@@ -126,7 +126,6 @@ const migrate: MigrationFunction = async ({
       titlePlural: "Supply Chain User Preferences",
       description:
         "User-scoped preferences for supply-chain views in a HASH web.",
-      labelProperty: blockProtocolPropertyTypes.name.propertyTypeBaseUrl,
       properties: [
         { propertyType: readItemPropertyType.schema.$id, array: true },
       ],

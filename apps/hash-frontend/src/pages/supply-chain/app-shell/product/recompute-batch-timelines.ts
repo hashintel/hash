@@ -23,7 +23,7 @@ function segStats(
   excludeOutliers: boolean,
 ): BatchTimelineSegment | null {
   let vals = batches
-    .map((right) => right[key])
+    .map((batch) => batch[key])
     .filter(
       (value): value is number => value != null && value >= 0 && value <= 730,
     );
@@ -42,7 +42,7 @@ function segStats(
     }
   }
   vals.sort((left, right) => left - right);
-  const mean = vals.reduce((step, value) => step + value, 0) / vals.length;
+  const mean = vals.reduce((sum, value) => sum + value, 0) / vals.length;
   const midpoint = Math.floor(vals.length / 2);
   const upper = vals[midpoint];
   if (upper === undefined) {
@@ -115,8 +115,8 @@ export function recomputeBatchTimelines(
   }
 
   const tracedCount = filteredBatches.filter(
-    (right) =>
-      right.earliest_gr_date != null || right.earliest_production_start != null,
+    (batch) =>
+      batch.earliest_gr_date != null || batch.earliest_production_start != null,
   ).length;
 
   // Per-route breakdown
@@ -126,16 +126,16 @@ export function recomputeBatchTimelines(
   > = {};
   const coverageByRoute: Record<string, { traced: number; total: number }> = {};
   const byRoute = new Map<string, BatchRow[]>();
-  for (const right of filteredBatches) {
-    const row = right.route;
+  for (const batch of filteredBatches) {
+    const row = batch.route;
     if (!row) {
       continue;
     }
     const existing = byRoute.get(row);
     if (existing) {
-      existing.push(right);
+      existing.push(batch);
     } else {
-      byRoute.set(row, [right]);
+      byRoute.set(row, [batch]);
     }
   }
   for (const [route, rows] of byRoute) {
@@ -152,9 +152,9 @@ export function recomputeBatchTimelines(
     perRoute[route] = { label: origRoute?.label ?? route, segments: routeSegs };
     coverageByRoute[route] = {
       traced: rows.filter(
-        (right) =>
-          right.earliest_gr_date != null ||
-          right.earliest_production_start != null,
+        (batch) =>
+          batch.earliest_gr_date != null ||
+          batch.earliest_production_start != null,
       ).length,
       total: rows.length,
     };

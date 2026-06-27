@@ -279,7 +279,7 @@ export const BriefHistogram = ({ values }: { values: number[] }) => {
   if (bins.length === 0) {
     return null;
   }
-  const maxCount = Math.max(...bins.map((right) => right.count), 1);
+  const maxCount = Math.max(...bins.map((bin) => bin.count), 1);
   const firstBin = bins[0];
   const lastBin = bins[bins.length - 1];
   if (!firstBin || !lastBin) {

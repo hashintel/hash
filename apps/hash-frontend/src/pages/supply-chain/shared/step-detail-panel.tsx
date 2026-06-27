@@ -355,7 +355,7 @@ export const StepDetailPanel = ({
     if (dimension === "consumption" && filteredStep.consumption_data) {
       if (selectedComponent) {
         const comp = filteredStep.consumption_data.components.find(
-          (column) => column.material === selectedComponent,
+          (component) => component.material === selectedComponent,
         );
         return comp?.observations ?? null;
       }
@@ -432,7 +432,7 @@ export const StepDetailPanel = ({
     if (dimension === "consumption" && filteredStep.consumption_data) {
       if (selectedComponent) {
         const comp = filteredStep.consumption_data.components.find(
-          (column) => column.material === selectedComponent,
+          (component) => component.material === selectedComponent,
         );
         return comp?.stats ?? null;
       }
@@ -450,7 +450,7 @@ export const StepDetailPanel = ({
     if (dimension === "consumption" && step.consumption_data) {
       if (selectedComponent) {
         const comp = step.consumption_data.components.find(
-          (column) => column.material === selectedComponent,
+          (component) => component.material === selectedComponent,
         );
         return comp?.observations ?? [];
       }
@@ -470,7 +470,7 @@ export const StepDetailPanel = ({
       return null;
     }
     const comp = filteredStep.consumption_data.components.find(
-      (column) => column.material === selectedComponent,
+      (component) => component.material === selectedComponent,
     );
     return comp?.n_reconciliation_events ?? null;
   }, [dimension, filteredStep, selectedComponent]);
@@ -487,7 +487,7 @@ export const StepDetailPanel = ({
     } else if (dimension === "consumption" && step.consumption_data) {
       if (selectedComponent) {
         const comp = step.consumption_data.components.find(
-          (column) => column.material === selectedComponent,
+          (component) => component.material === selectedComponent,
         );
         dr = comp?.detail_rows ?? null;
       } else {
@@ -530,7 +530,7 @@ export const StepDetailPanel = ({
     if (dimension === "consumption") {
       if (selectedComponent) {
         const comp = filteredStep.consumption_data?.components.find(
-          (column) => column.material === selectedComponent,
+          (component) => component.material === selectedComponent,
         );
         const token = filenameToken(comp?.name ?? selectedComponent);
         return {

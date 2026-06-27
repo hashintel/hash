@@ -150,12 +150,14 @@ export function capCheckpointsFor(lever: LeverDefinition): CapCheckpoint[] {
 
   return checkpoints
     .map(
-      (column): CapCheckpoint => ({
-        ...column,
-        capDays: Math.max(0, column.capDays),
+      (checkpoint): CapCheckpoint => ({
+        ...checkpoint,
+        capDays: Math.max(0, checkpoint.capDays),
       }),
     )
-    .filter((column) => column.key === "zero" || column.capDays > 0);
+    .filter(
+      (checkpoint) => checkpoint.key === "zero" || checkpoint.capDays > 0,
+    );
 }
 
 export function defaultCapDays(lever: LeverDefinition): number {
@@ -294,7 +296,7 @@ export function selectTopLevers(
   const activeSegments = opts.activeSegments;
 
   const routeBatches = routeCode
-    ? batches.filter((right) => right.route === routeCode)
+    ? batches.filter((batch) => batch.route === routeCode)
     : batches;
 
   // Track which steps the active route actually touches, so we don't
@@ -302,8 +304,8 @@ export function selectTopLevers(
   // post-production map. (E.g. an intermediate that only exists on the
   // direct-shipping route should not show up when a hub route is selected.)
   const knownStepIds = new Set<string>();
-  for (const right of routeBatches) {
-    const sc = right.step_contributions;
+  for (const batch of routeBatches) {
+    const sc = batch.step_contributions;
     if (!sc) {
       continue;
     }
@@ -438,9 +440,9 @@ export function formatNextBottleneck(
   if (!chains || chains.length === 0) {
     return null;
   }
-  const stripped = chains.map((column) => ({
-    label: stripChainLabelPrefix(column.label),
-    share: column.share,
+  const stripped = chains.map((chain) => ({
+    label: stripChainLabelPrefix(chain.label),
+    share: chain.share,
   }));
   const first = stripped[0];
   if (!first) {
@@ -540,7 +542,7 @@ function mean(values: number[]): number | null {
   if (values.length === 0) {
     return null;
   }
-  return values.reduce((step, value) => step + value, 0) / values.length;
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
 }
 
 function median(sortedAsc: number[]): number | null {
@@ -657,7 +659,7 @@ function buildStages(
     }
     return activeSegments && !activeSegments.has(stage.segment) ? 0 : value;
   });
-  const total = values.reduce((step, value) => step + value, 0);
+  const total = values.reduce((sum, value) => sum + value, 0);
   return STAGE_DEFS.map((def, index) => {
     const value = values[index];
     if (value === undefined) {
@@ -694,7 +696,7 @@ export function aggregateSimulation(
   const isActive = (step: SegmentId) =>
     !activeSegments || activeSegments.has(step);
   const routeBatches = routeCode
-    ? batches.filter((right) => right.route === routeCode)
+    ? batches.filter((batch) => batch.route === routeCode)
     : batches;
 
   // When outliers are excluded, trim each segment with the same Tukey 1.5x IQR
@@ -714,12 +716,12 @@ export function aggregateSimulation(
   };
   const fences = excludeOutliers
     ? {
-        procToPS: segFence((right) => right.seg_proc_to_prodstart),
+        procToPS: segFence((batch) => batch.seg_proc_to_prodstart),
         prodStartToFinish: segFence(
-          (right) => right.seg_prodstart_to_prodfinish,
+          (batch) => batch.seg_prodstart_to_prodfinish,
         ),
-        prodFinishToQa: segFence((right) => right.seg_prodfinish_to_qa),
-        qaToCustomer: segFence((right) => right.seg_qa_to_customer),
+        prodFinishToQa: segFence((batch) => batch.seg_prodfinish_to_qa),
+        qaToCustomer: segFence((batch) => batch.seg_qa_to_customer),
       }
     : null;
   const within = (
@@ -753,8 +755,8 @@ export function aggregateSimulation(
   // the data avoids hardcoding.
   let fgProdId: string | null = null;
   let qaHoldId: string | null = null;
-  for (const right of routeBatches) {
-    const sc = right.step_contributions;
+  for (const batch of routeBatches) {
+    const sc = batch.step_contributions;
     if (!sc) {
       continue;
     }
@@ -789,18 +791,18 @@ export function aggregateSimulation(
   const inRange = (value: number | undefined | null): value is number =>
     value != null && value >= 0 && value <= 730;
 
-  for (const right of routeBatches) {
-    const sc = right.step_contributions;
+  for (const batch of routeBatches) {
+    const sc = batch.step_contributions;
     if (!sc) {
       continue;
     }
 
     const sim = simulateBatch(sc, anchors, activeCaps);
 
-    const procToPSRaw = right.seg_proc_to_prodstart;
-    const prodStartToFinishRaw = right.seg_prodstart_to_prodfinish;
-    const prodFinishToQaRaw = right.seg_prodfinish_to_qa;
-    const qaToCustomerRaw = right.seg_qa_to_customer;
+    const procToPSRaw = batch.seg_proc_to_prodstart;
+    const prodStartToFinishRaw = batch.seg_prodstart_to_prodfinish;
+    const prodFinishToQaRaw = batch.seg_prodfinish_to_qa;
+    const qaToCustomerRaw = batch.seg_qa_to_customer;
 
     const fgProdReduction = Math.max(
       0,
@@ -918,7 +920,7 @@ export function aggregateSimulation(
     pctReduction,
     batchesAffected,
     batchesTotal: routeBatches.filter(
-      (right) => right.step_contributions != null,
+      (batch) => batch.step_contributions != null,
     ).length,
     costSavingPeriod,
     costSavingAnnualised,

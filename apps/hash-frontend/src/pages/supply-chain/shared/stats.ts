@@ -6,12 +6,12 @@ export function round(value: number): number {
 }
 
 /** Percentile of a pre-sorted array via linear interpolation. */
-export function percentileOf(sorted: number[], product: number): number {
+export function percentileOf(sorted: number[], percentileRank: number): number {
   if (sorted.length === 0) {
     throw new Error("Cannot compute a percentile of an empty series");
   }
   const count = sorted.length;
-  const idx = (product / 100) * (count - 1);
+  const idx = (percentileRank / 100) * (count - 1);
   const lo = Math.floor(idx);
   const hi = Math.ceil(idx);
   const low = sorted[lo];

@@ -75,7 +75,7 @@ export const TimeSeriesChart = ({
       let month: MonthlyBucket[];
       if (selectedComponent) {
         const comp = step.consumption_data.components.find(
-          (column) => column.material === selectedComponent,
+          (component) => component.material === selectedComponent,
         );
         month = comp?.monthly ?? [];
       } else {

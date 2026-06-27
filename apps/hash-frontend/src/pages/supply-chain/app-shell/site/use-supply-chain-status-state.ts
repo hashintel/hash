@@ -4,33 +4,32 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   deserializeQueryEntitiesResponse,
   HashEntity,
+  type SerializedQueryEntitiesResponse,
 } from "@local/hash-graph-sdk/entity";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import {
-  currentTimeInstantTemporalAxes,
-  generateVersionedUrlMatchingFilter,
-} from "@local/hash-isomorphic-utils/graph-queries";
-import { blockProtocolPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+  blockProtocolDataTypes,
+  systemDataTypes,
+  systemEntityTypes,
+  systemPropertyTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import {
   createEntityMutation,
   queryEntitiesQuery,
   updateEntityMutation,
 } from "../../../../graphql/queries/knowledge/entity.queries";
+import { useActors } from "../../../../shared/use-actors";
 import { useAuthInfo } from "../../../shared/auth-info-context";
+import { isDwellType } from "../../shared/categories";
 import { useScope } from "../../shared/scope-context";
-import {
-  datetimeDataTypeId,
-  objectDataTypeId,
-  supplyChainPropertyBaseUrls,
-  supplyChainStatusReportEntityTypeId,
-  supplyChainUserPreferencesEntityTypeId,
-  textDataTypeId,
-} from "../../shared/status-graph-types";
 import {
   trackSupplyChainError,
   trackSupplyChainInteraction,
   trackSupplyChainStatusReportCreated,
 } from "../../shared/telemetry";
+import { statusKey, STATUS_OPTIONS } from "./opportunities";
+import { applyReadOps, buildStatuses, type ReadOp } from "./read-state";
 
 import type {
   CreateEntityMutation,
@@ -40,49 +39,87 @@ import type {
   UpdateEntityMutation,
   UpdateEntityMutationVariables,
 } from "../../../../graphql/api-types.gen";
+import type { SiteNode } from "../../shared/types";
 import type {
   OpportunityStatusActions,
   OpportunityStatuses,
+  StatusEntry,
   StatusOption,
   StatusStore,
 } from "./opportunities";
 import type {
+  ActorEntityUuid,
   BaseUrl,
-  Entity,
   EntityId,
+  PropertyObjectWithMetadata,
   WebId,
 } from "@blockprotocol/type-system";
+import type {
+  OpportunityStatusUpdate,
+  OpportunityStatusUpdatePropertiesWithMetadata,
+} from "@local/hash-isomorphic-utils/system-types/opportunitystatusupdate";
+import type {
+  SupplyChainUserPreferences,
+  SupplyChainUserPreferencesPropertiesWithMetadata,
+} from "@local/hash-isomorphic-utils/system-types/supplychainuserpreferences";
 
-type ReadMarker = {
+/** A status report parsed from the graph before its author is resolved. */
+interface RawStatusReport {
   key: string;
-  readAt: string;
-};
+  /** ISO timestamp from the entity's creation edition. */
+  at: string;
+  category: StatusOption;
+  text: string;
+  /** Author resolved server-side from edition provenance. */
+  authorId: ActorEntityUuid;
+}
 
-const textProperty = (value: string) => ({
+const scopeKeyBaseUrl = systemPropertyTypes.scopeKey.propertyTypeBaseUrl;
+const siteCodeBaseUrl = systemPropertyTypes.siteCode.propertyTypeBaseUrl;
+const statusCategoryBaseUrl =
+  systemPropertyTypes.supplyChainStatusCategory.propertyTypeBaseUrl;
+const statusTextBaseUrl =
+  systemPropertyTypes.supplyChainStatusText.propertyTypeBaseUrl;
+const readItemBaseUrl = systemPropertyTypes.readItem.propertyTypeBaseUrl;
+
+const textValueWithMetadata = (value: string) => ({
   value,
-  metadata: { dataTypeId: textDataTypeId },
+  metadata: { dataTypeId: blockProtocolDataTypes.text.dataTypeId },
 });
 
-const datetimeProperty = (value: string) => ({
+const categoryValueWithMetadata = (value: StatusOption) => ({
   value,
-  metadata: { dataTypeId: datetimeDataTypeId },
+  metadata: {
+    dataTypeId: systemDataTypes.opportunityStatusCategory.dataTypeId,
+  },
 });
 
-const objectArrayProperty = (value: ReadMarker[]) => ({
-  value,
-  metadata: { dataTypeId: objectDataTypeId },
+const readItemArrayWithMetadata = (keys: string[]) => ({
+  value: keys.map((key) => textValueWithMetadata(key)),
 });
 
-const getPropertyValue = <T>(
-  entity: Entity,
+const getStringProperty = (
+  entity: HashEntity,
   propertyBaseUrl: BaseUrl,
-): T | undefined => {
-  const raw = entity.properties[propertyBaseUrl] as unknown;
-  if (raw && typeof raw === "object" && "value" in raw) {
-    return (raw as { value: T }).value;
-  }
-  return raw as T | undefined;
+): string | undefined => {
+  const raw = entity.properties[propertyBaseUrl];
+  return typeof raw === "string" ? raw : undefined;
 };
+
+const getStringArrayProperty = (
+  entity: HashEntity,
+  propertyBaseUrl: BaseUrl,
+): string[] => {
+  const raw = entity.properties[propertyBaseUrl];
+  return Array.isArray(raw)
+    ? raw.flatMap((value) => (typeof value === "string" ? [value] : []))
+    : [];
+};
+
+const toStatusOption = (value: string | undefined): StatusOption =>
+  value && (STATUS_OPTIONS as readonly string[]).includes(value)
+    ? (value as StatusOption)
+    : "Investigation started";
 
 const statusReportQuery = ({
   siteId,
@@ -94,12 +131,18 @@ const statusReportQuery = ({
   filter: {
     all: [
       { equal: [{ path: ["webId"] }, { parameter: webId }] },
-      generateVersionedUrlMatchingFilter(supplyChainStatusReportEntityTypeId, {
-        ignoreParents: false,
-      }),
       {
         equal: [
-          { path: ["properties", supplyChainPropertyBaseUrls.siteId] },
+          { path: ["type", "baseUrl"] },
+          {
+            parameter:
+              systemEntityTypes.opportunityStatusUpdate.entityTypeBaseUrl,
+          },
+        ],
+      },
+      {
+        equal: [
+          { path: ["properties", siteCodeBaseUrl] },
           { parameter: siteId },
         ],
       },
@@ -114,32 +157,25 @@ const preferencesQuery = ({
   userId,
   webId,
 }: {
-  userId: string;
+  userId: ActorEntityUuid;
   webId: WebId;
 }) => ({
   filter: {
     all: [
       { equal: [{ path: ["webId"] }, { parameter: webId }] },
-      generateVersionedUrlMatchingFilter(
-        supplyChainUserPreferencesEntityTypeId,
-        {
-          ignoreParents: false,
-        },
-      ),
       {
         equal: [
+          { path: ["type", "baseUrl"] },
           {
-            path: ["properties", supplyChainPropertyBaseUrls.preferencesUserId],
+            parameter:
+              systemEntityTypes.supplyChainUserPreferences.entityTypeBaseUrl,
           },
-          { parameter: userId },
         ],
       },
       {
         equal: [
-          {
-            path: ["properties", supplyChainPropertyBaseUrls.preferencesWebId],
-          },
-          { parameter: webId },
+          { path: ["editionProvenance", "createdById"] },
+          { parameter: userId },
         ],
       },
     ],
@@ -149,64 +185,27 @@ const preferencesQuery = ({
   includePermissions: false,
 });
 
-const buildStatuses = (readMarkers: ReadMarker[]): OpportunityStatuses =>
-  Object.fromEntries(
-    readMarkers.map((marker) => [
-      marker.key,
-      { read: true, readAt: marker.readAt },
-    ]),
-  );
-
-const parseStatusReports = (entities: Entity[]): StatusStore => {
-  const store: StatusStore = {};
+const parseStatusReports = (entities: HashEntity[]): RawStatusReport[] => {
+  const reports: RawStatusReport[] = [];
 
   for (const entity of entities) {
-    const key = getPropertyValue<string>(
-      entity,
-      supplyChainPropertyBaseUrls.scopeKey,
-    );
+    const key = getStringProperty(entity, scopeKeyBaseUrl);
     if (!key) {
       continue;
     }
 
-    const entry = {
-      at:
-        getPropertyValue<string>(
-          entity,
-          supplyChainPropertyBaseUrls.statusReportCreatedAt,
-        ) ?? new Date().toISOString(),
-      category:
-        getPropertyValue<StatusOption>(
-          entity,
-          supplyChainPropertyBaseUrls.statusCategory,
-        ) ?? "Investigation started",
-      text:
-        getPropertyValue<string>(
-          entity,
-          supplyChainPropertyBaseUrls.statusText,
-        ) ?? "",
-      user:
-        getPropertyValue<string>(
-          entity,
-          supplyChainPropertyBaseUrls.statusReportAuthorId,
-        ) ?? "Unknown user",
-    };
-
-    store[key] = [...(store[key] ?? []), entry];
+    reports.push({
+      key,
+      at: entity.metadata.provenance.createdAtDecisionTime,
+      category: toStatusOption(
+        getStringProperty(entity, statusCategoryBaseUrl),
+      ),
+      text: getStringProperty(entity, statusTextBaseUrl) ?? "",
+      authorId: entity.metadata.provenance.edition.createdById,
+    });
   }
 
-  for (const entries of Object.values(store)) {
-    entries.sort((left, right) => left.at.localeCompare(right.at));
-  }
-
-  return store;
-};
-
-const parseStatusKey = (key: string) => {
-  const [siteId = "", opportunityType = "", nodeKey = ""] = key.split("::");
-  const [stepId = "", productIds = ""] = nodeKey.split("-");
-  const [productId = ""] = productIds.split(",");
-  return { opportunityType, productId, siteId, stepId };
+  return reports;
 };
 
 export const useSupplyChainStatusState = (
@@ -216,16 +215,17 @@ export const useSupplyChainStatusState = (
   statusHistory: StatusStore;
   statuses: OpportunityStatuses;
 } => {
-  const scope = useScope() as WebId;
+  const scope = useScope();
   const { authenticatedUser } = useAuthInfo();
   const userId = authenticatedUser?.accountId;
-  const userLabel =
-    authenticatedUser?.displayName ?? authenticatedUser?.shortname ?? userId;
 
-  const [statusHistory, setStatusHistory] = useState<StatusStore>({});
-  const [readMarkers, setReadMarkers] = useState<ReadMarker[]>([]);
+  const [statusReports, setStatusReports] = useState<RawStatusReport[]>([]);
+  const [readKeys, setReadKeys] = useState<string[]>([]);
   const [preferencesEntityId, setPreferencesEntityId] =
     useState<EntityId | null>(null);
+  // Read/unread operations the user has made locally but that may not yet be
+  // reflected in confirmed server state; drained by `flushReadKeys`.
+  const pendingReadOpsRef = useRef(new Map<string, ReadOp>());
   const writeQueueRef = useRef(Promise.resolve());
 
   const [queryEntities] = useLazyQuery<
@@ -241,9 +241,35 @@ export const useSupplyChainStatusState = (
     UpdateEntityMutationVariables
   >(updateEntityMutation);
 
+  const authorIds = useMemo(
+    () => [...new Set(statusReports.map((report) => report.authorId))],
+    [statusReports],
+  );
+  const { actors } = useActors({ accountIds: authorIds });
+
+  const statusHistory = useMemo<StatusStore>(() => {
+    const namesById = new Map(
+      (actors ?? []).map((actor) => [actor.accountId, actor.displayName]),
+    );
+    const store: StatusStore = {};
+    for (const report of statusReports) {
+      const entry: StatusEntry = {
+        at: report.at,
+        category: report.category,
+        text: report.text,
+        user: namesById.get(report.authorId) ?? "Unknown user",
+      };
+      store[report.key] = [...(store[report.key] ?? []), entry];
+    }
+    for (const entries of Object.values(store)) {
+      entries.sort((left, right) => left.at.localeCompare(right.at));
+    }
+    return store;
+  }, [actors, statusReports]);
+
   const loadStatusReports = useCallback(async () => {
     if (!siteId) {
-      setStatusHistory({});
+      setStatusReports([]);
       return;
     }
 
@@ -251,44 +277,50 @@ export const useSupplyChainStatusState = (
       variables: { request: statusReportQuery({ siteId, webId: scope }) },
     });
 
-    setStatusHistory(
+    setStatusReports(
       data?.queryEntities
         ? parseStatusReports(
-            deserializeQueryEntitiesResponse(data.queryEntities).entities,
+            deserializeQueryEntitiesResponse(
+              data.queryEntities as SerializedQueryEntitiesResponse<OpportunityStatusUpdate>,
+            ).entities,
           )
-        : {},
+        : [],
     );
   }, [queryEntities, scope, siteId]);
 
-  const loadPreferences = useCallback(async () => {
+  /** Fetch the user's preferences entity (if any) along with its read keys. */
+  const fetchPreferences = useCallback(async (): Promise<{
+    entityId: EntityId | null;
+    readKeys: string[];
+  }> => {
     if (!userId) {
-      setPreferencesEntityId(null);
-      setReadMarkers([]);
-      return;
+      return { entityId: null, readKeys: [] };
     }
 
     const { data } = await queryEntities({
-      variables: {
-        request: preferencesQuery({ userId, webId: scope }),
-      },
+      variables: { request: preferencesQuery({ userId, webId: scope }) },
     });
 
     const preferencesEntity = data?.queryEntities
-      ? deserializeQueryEntitiesResponse(data.queryEntities).entities[0]
+      ? deserializeQueryEntitiesResponse(
+          data.queryEntities as SerializedQueryEntitiesResponse<SupplyChainUserPreferences>,
+        ).entities[0]
       : undefined;
 
-    setPreferencesEntityId(
-      preferencesEntity?.metadata.recordId.entityId ?? null,
-    );
-    setReadMarkers(
-      preferencesEntity
-        ? (getPropertyValue<ReadMarker[]>(
-            preferencesEntity,
-            supplyChainPropertyBaseUrls.readMarkers,
-          ) ?? [])
+    return {
+      entityId: preferencesEntity?.metadata.recordId.entityId ?? null,
+      readKeys: preferencesEntity
+        ? getStringArrayProperty(preferencesEntity, readItemBaseUrl)
         : [],
-    );
+    };
   }, [queryEntities, scope, userId]);
+
+  const loadPreferences = useCallback(async () => {
+    const { entityId, readKeys: serverReadKeys } = await fetchPreferences();
+    setPreferencesEntityId(entityId);
+    // Preserve any local operations that haven't been confirmed server-side.
+    setReadKeys(applyReadOps(serverReadKeys, pendingReadOpsRef.current));
+  }, [fetchPreferences]);
 
   useEffect(() => {
     void loadStatusReports();
@@ -306,18 +338,21 @@ export const useSupplyChainStatusState = (
       throw new Error("Cannot save supply-chain preferences without a user.");
     }
 
+    // The entity type defines only `read-item`; start with an empty list.
+    const properties = {
+      value: {
+        "https://hash.ai/@h/types/property-type/read-item/":
+          readItemArrayWithMetadata([]),
+      },
+    } satisfies SupplyChainUserPreferencesPropertiesWithMetadata as PropertyObjectWithMetadata;
+
     const { data } = await createEntity({
       variables: {
-        entityTypeIds: [supplyChainUserPreferencesEntityTypeId],
+        entityTypeIds: [
+          systemEntityTypes.supplyChainUserPreferences.entityTypeId,
+        ],
         webId: scope,
-        properties: {
-          [blockProtocolPropertyTypes.name.propertyTypeBaseUrl]: textProperty(
-            `Supply-chain preferences for ${userId}`,
-          ),
-          [supplyChainPropertyBaseUrls.preferencesUserId]: textProperty(userId),
-          [supplyChainPropertyBaseUrls.preferencesWebId]: textProperty(scope),
-          [supplyChainPropertyBaseUrls.readMarkers]: objectArrayProperty([]),
-        } as unknown as CreateEntityMutationVariables["properties"],
+        properties,
       },
     });
 
@@ -331,12 +366,27 @@ export const useSupplyChainStatusState = (
     return entityId;
   }, [createEntity, preferencesEntityId, scope, userId]);
 
-  const persistReadMarkers = useCallback(
-    (nextMarkers: ReadMarker[]) => {
-      writeQueueRef.current = writeQueueRef.current
-        .catch(() => undefined)
-        .then(async () => {
+  // Drain pending read/unread operations onto the server with read-before-write
+  // merge semantics: refetch the current keys, apply the pending ops, write the
+  // merged list, and retry once on failure. Serialized via `writeQueueRef` so
+  // rapid toggles coalesce into ordered writes.
+  const flushReadKeys = useCallback(() => {
+    if (!userId) {
+      return;
+    }
+    writeQueueRef.current = writeQueueRef.current
+      .catch(() => undefined)
+      .then(async () => {
+        if (pendingReadOpsRef.current.size === 0) {
+          return;
+        }
+        const ops = new Map(pendingReadOpsRef.current);
+        pendingReadOpsRef.current.clear();
+
+        const runAttempt = async () => {
           const entityId = await ensurePreferencesEntity();
+          const { readKeys: serverReadKeys } = await fetchPreferences();
+          const nextKeys = applyReadOps(serverReadKeys, ops);
           await updateEntity({
             variables: {
               entityUpdate: {
@@ -344,36 +394,61 @@ export const useSupplyChainStatusState = (
                 propertyPatches: [
                   {
                     op: "add",
-                    path: [supplyChainPropertyBaseUrls.readMarkers],
-                    property: objectArrayProperty(nextMarkers),
+                    path: [readItemBaseUrl],
+                    property: readItemArrayWithMetadata(nextKeys),
                   },
                 ],
               },
             },
           });
-        });
-    },
-    [ensurePreferencesEntity, updateEntity],
-  );
+        };
+
+        try {
+          await runAttempt();
+        } catch {
+          try {
+            await runAttempt();
+          } catch (error) {
+            // Re-queue the failed ops so a later flush retries them, then
+            // resync local state from the server.
+            for (const [key, op] of ops) {
+              if (!pendingReadOpsRef.current.has(key)) {
+                pendingReadOpsRef.current.set(key, op);
+              }
+            }
+            trackSupplyChainError({
+              interaction: "read_markers_persist_failed",
+              siteId,
+              source: "opportunities_table",
+            });
+            void loadPreferences();
+            throw error;
+          }
+        }
+      });
+  }, [
+    ensurePreferencesEntity,
+    fetchPreferences,
+    loadPreferences,
+    siteId,
+    updateEntity,
+    userId,
+  ]);
 
   const onMarkRead = useCallback(
     (key: string) => {
-      const readAt = new Date().toISOString();
       trackSupplyChainInteraction({
         interaction: "opportunity_marked_read",
         siteId,
         source: "opportunities_table",
       });
-      setReadMarkers((currentMarkers) => {
-        const nextMarkers = [
-          ...currentMarkers.filter((marker) => marker.key !== key),
-          { key, readAt },
-        ];
-        persistReadMarkers(nextMarkers);
-        return nextMarkers;
-      });
+      pendingReadOpsRef.current.set(key, "add");
+      setReadKeys((current) =>
+        current.includes(key) ? current : [...current, key],
+      );
+      flushReadKeys();
     },
-    [persistReadMarkers, siteId],
+    [flushReadKeys, siteId],
   );
 
   const onMarkUnread = useCallback(
@@ -383,89 +458,85 @@ export const useSupplyChainStatusState = (
         siteId,
         source: "opportunities_table",
       });
-      setReadMarkers((currentMarkers) => {
-        const nextMarkers = currentMarkers.filter(
-          (marker) => marker.key !== key,
-        );
-        persistReadMarkers(nextMarkers);
-        return nextMarkers;
-      });
+      pendingReadOpsRef.current.set(key, "remove");
+      setReadKeys((current) => current.filter((entry) => entry !== key));
+      flushReadKeys();
     },
-    [persistReadMarkers, siteId],
+    [flushReadKeys, siteId],
   );
 
   const onSaveStatus = useCallback(
-    (key: string, status: { category: StatusOption; text: string }) => {
+    (node: SiteNode, status: { category: StatusOption; text: string }) => {
       if (!userId) {
         return;
       }
 
-      const createdAt = new Date().toISOString();
-      const parsedKey = parseStatusKey(key);
+      const key = statusKey(siteId, node);
+      const opportunityType = isDwellType(node.type) ? "dwell" : "planning";
       trackSupplyChainStatusReportCreated({
-        opportunityType: parsedKey.opportunityType,
-        productId: parsedKey.productId,
-        siteId: parsedKey.siteId || siteId,
+        opportunityType,
+        productId: node.products[0]?.id ?? "",
+        siteId,
         source: "status_dialog",
-        stepId: parsedKey.stepId,
+        stepId: node.id,
       });
-      const entry = {
-        at: createdAt,
-        category: status.category,
-        text: status.text,
-        user: userLabel ?? userId,
-      };
 
-      setStatusHistory((currentHistory) => ({
-        ...currentHistory,
-        [key]: [...(currentHistory[key] ?? []), entry],
-      }));
+      // Optimistic: attribute to the current user; on reload the author is
+      // re-derived from the entity's edition provenance.
+      setStatusReports((current) => [
+        ...current,
+        {
+          key,
+          at: new Date().toISOString(),
+          category: status.category,
+          text: status.text,
+          authorId: userId,
+        },
+      ]);
+
+      const properties = {
+        value: {
+          "https://hash.ai/@h/types/property-type/scope-key/":
+            textValueWithMetadata(key),
+          "https://hash.ai/@h/types/property-type/site-code/":
+            textValueWithMetadata(siteId),
+          "https://hash.ai/@h/types/property-type/supply-chain-status-category/":
+            categoryValueWithMetadata(status.category),
+          ...(status.text
+            ? {
+                "https://hash.ai/@h/types/property-type/supply-chain-status-text/":
+                  textValueWithMetadata(status.text),
+              }
+            : {}),
+        },
+      } satisfies OpportunityStatusUpdatePropertiesWithMetadata as PropertyObjectWithMetadata;
 
       void createEntity({
         variables: {
-          entityTypeIds: [supplyChainStatusReportEntityTypeId],
+          entityTypeIds: [
+            systemEntityTypes.opportunityStatusUpdate.entityTypeId,
+          ],
           webId: scope,
-          properties: {
-            [supplyChainPropertyBaseUrls.scopeKey]: textProperty(key),
-            [supplyChainPropertyBaseUrls.productId]: textProperty(
-              parsedKey.productId,
-            ),
-            [supplyChainPropertyBaseUrls.siteId]: textProperty(
-              parsedKey.siteId || siteId,
-            ),
-            [supplyChainPropertyBaseUrls.stepId]: textProperty(
-              parsedKey.stepId,
-            ),
-            [supplyChainPropertyBaseUrls.opportunityType]: textProperty(
-              parsedKey.opportunityType,
-            ),
-            [supplyChainPropertyBaseUrls.statusCategory]: textProperty(
-              status.category,
-            ),
-            [supplyChainPropertyBaseUrls.statusText]: textProperty(status.text),
-            [supplyChainPropertyBaseUrls.statusReportAuthorId]: textProperty(
-              userLabel ?? userId,
-            ),
-            [supplyChainPropertyBaseUrls.statusReportCreatedAt]:
-              datetimeProperty(createdAt),
-          } as unknown as CreateEntityMutationVariables["properties"],
+          properties,
         },
-      }).catch(() => {
-        trackSupplyChainError({
-          interaction: "status_report_create_failed",
-          opportunityType: parsedKey.opportunityType,
-          productId: parsedKey.productId,
-          siteId: parsedKey.siteId || siteId,
-          source: "status_dialog",
-          stepId: parsedKey.stepId,
+      })
+        .then(() => loadStatusReports())
+        .catch(() => {
+          trackSupplyChainError({
+            interaction: "status_report_create_failed",
+            opportunityType,
+            productId: node.products[0]?.id ?? "",
+            siteId,
+            source: "status_dialog",
+            stepId: node.id,
+          });
+          void loadStatusReports();
         });
-        void loadStatusReports();
-      });
     },
-    [createEntity, loadStatusReports, scope, siteId, userId, userLabel],
+    [createEntity, loadStatusReports, scope, siteId, userId],
   );
 
-  const statuses = useMemo(() => buildStatuses(readMarkers), [readMarkers]);
+  const statuses = useMemo(() => buildStatuses(readKeys), [readKeys]);
 
   return {
     actions: {

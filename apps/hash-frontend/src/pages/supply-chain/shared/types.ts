@@ -552,9 +552,8 @@ export interface VendorOtifStats {
 
 /**
  * One measurable delivery-schedule line — the atomic unit the supplier-OTIF UI
- * windowed-aggregates over. Emitted by `generate_data.py` (and the demo
- * augment script) so the client can recompute metrics for any time window
- * without a fresh extract.
+ * windowed-aggregates over. Emitted by the analysis pipeline so the client can
+ * recompute metrics for any time window without a fresh extract.
  */
 export interface SupplierLine {
   vendor_id: string | null;

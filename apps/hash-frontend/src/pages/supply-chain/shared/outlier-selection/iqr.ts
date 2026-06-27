@@ -8,12 +8,12 @@ export interface IqrFences {
   upper: number;
 }
 
-function percentile(sorted: number[], product: number): number {
+function percentile(sorted: number[], percentileRank: number): number {
   if (sorted.length === 0) {
     throw new Error("Cannot compute a percentile of an empty series");
   }
   const count = sorted.length;
-  const idx = (product / 100) * (count - 1);
+  const idx = (percentileRank / 100) * (count - 1);
   const lo = Math.floor(idx);
   const hi = Math.ceil(idx);
   const low = sorted[lo];
@@ -34,7 +34,7 @@ function percentile(sorted: number[], product: number): number {
  */
 export function computeIqrFences(
   values: number[],
-  key = IQR_K,
+  multiplier = IQR_K,
 ): IqrFences | null {
   if (values.length < 4) {
     return null;
@@ -43,7 +43,7 @@ export function computeIqrFences(
   const q1 = percentile(sorted, 25);
   const q3 = percentile(sorted, 75);
   const iqr = q3 - q1;
-  return { lower: q1 - key * iqr, upper: q3 + key * iqr };
+  return { lower: q1 - multiplier * iqr, upper: q3 + multiplier * iqr };
 }
 
 /**

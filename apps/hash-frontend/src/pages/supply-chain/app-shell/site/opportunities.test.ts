@@ -1,9 +1,16 @@
 import { describe, expect, it } from "vitest";
 
-import { buildSiteOpportunities, statusCommentRequired } from "./opportunities";
+import {
+  buildSiteOpportunities,
+  statusCommentRequired,
+  statusKey,
+  STATUS_OPTIONS,
+} from "./opportunities";
 
 import type { StepStats } from "../../shared/types";
+import type { StatusOption } from "./opportunities";
 import type { DwellRow, PlanningRow } from "./shared/row-types";
+import type { OpportunityStatusCategoryDataType } from "@local/hash-isomorphic-utils/system-types/opportunitystatusupdate";
 
 const zeroStats: StepStats = {
   n: 0,
@@ -177,5 +184,60 @@ describe("status helpers", () => {
     expect(statusCommentRequired("Investigation concluded")).toBe(true);
     expect(statusCommentRequired("Rejected (infeasible)")).toBe(true);
     expect(statusCommentRequired("Rejected (data issue)")).toBe(true);
+  });
+
+  it("keeps STATUS_OPTIONS in sync with the generated data-type enum", () => {
+    // Compile-time guarantee that the UI option union and the generated
+    // ontology enum are identical in both directions.
+    type AssertEqual<A, B> = [A] extends [B]
+      ? [B] extends [A]
+        ? true
+        : never
+      : never;
+    const _optionsMatchDataType: AssertEqual<
+      StatusOption,
+      OpportunityStatusCategoryDataType
+    > = true;
+    expect(_optionsMatchDataType).toBe(true);
+
+    expect([...STATUS_OPTIONS]).toEqual([
+      "Investigation started",
+      "Investigation update",
+      "Investigation concluded",
+      "Rejected (infeasible)",
+      "Rejected (data issue)",
+    ]);
+  });
+});
+
+describe("statusKey", () => {
+  it("is stable for the same site + node regardless of unrelated stats", () => {
+    const node = dwell({ id: "step-1", stats: stats({ n: 5, median: 3 }) });
+    const sameNodeDifferentStats = dwell({
+      id: "step-1",
+      stats: stats({ n: 999, median: 100, p95: 200 }),
+      periodCost: 123456,
+    });
+
+    expect(statusKey("site-a", node)).toBe(
+      statusKey("site-a", sameNodeDifferentStats),
+    );
+  });
+
+  it("does not embed the time range (unlike the opportunity id)", () => {
+    const node = dwell({ id: "step-1" });
+    const key = statusKey("site-a", node);
+
+    expect(key).toBe("site-a::dwell::step-1-p1");
+    for (const range of ["3m", "6m", "12m", "24m"]) {
+      expect(key).not.toContain(range);
+    }
+  });
+
+  it("distinguishes dwell and planning nodes", () => {
+    expect(statusKey("site-a", dwell({ id: "x" }))).toContain("::dwell::");
+    expect(statusKey("site-a", planning({ id: "x" }))).toContain(
+      "::planning::",
+    );
   });
 });

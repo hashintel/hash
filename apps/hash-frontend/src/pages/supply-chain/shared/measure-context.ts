@@ -80,9 +80,9 @@ export function statOf(values: number[], measure: BaseMeasure): number | null {
     return values.reduce((left, right) => left + right, 0) / values.length;
   }
   const sorted = [...values].sort((left, right) => left - right);
-  const product = measurePercentile(measure);
-  if (product != null) {
-    return percentileOf(sorted, product);
+  const percentileRank = measurePercentile(measure);
+  if (percentileRank != null) {
+    return percentileOf(sorted, percentileRank);
   }
   return percentileOf(sorted, 50);
 }

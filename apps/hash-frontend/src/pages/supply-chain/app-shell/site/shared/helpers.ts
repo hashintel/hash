@@ -22,7 +22,7 @@ import type {
 
 // ── Category filter param helpers ─────────────────────────────────────────
 
-export const ALL_CATEGORY_KEYS = CATEGORIES.map((column) => column.key);
+export const ALL_CATEGORY_KEYS = CATEGORIES.map((category) => category.key);
 
 export function parseCategoryParam(value: string | null): Set<string> {
   if (!value) {

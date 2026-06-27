@@ -11,16 +11,15 @@ export type OpportunityKind = "dwell_cost" | "planning_over" | "planning_under";
 
 export interface OpportunityStatus {
   read: boolean;
-  readAt?: string;
 }
 
 export type OpportunityStatuses = Record<string, OpportunityStatus>;
 
 /** A single status update left against a step/node. */
 export interface StatusEntry {
-  /** ISO timestamp the status was saved. */
+  /** ISO timestamp the status was saved (from the entity's creation edition). */
   at: string;
-  /** Author (dummy in this SPA; populated for real later). */
+  /** Author display name, resolved server-side from edition provenance. */
   user: string;
   category: StatusOption;
   text: string;
@@ -33,7 +32,7 @@ export interface OpportunityStatusActions {
   onMarkRead: (id: string) => void;
   onMarkUnread: (id: string) => void;
   onSaveStatus: (
-    key: string,
+    node: SiteNode,
     status: { category: StatusOption; text: string },
   ) => void;
 }

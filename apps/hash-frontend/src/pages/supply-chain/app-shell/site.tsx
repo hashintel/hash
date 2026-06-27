@@ -638,10 +638,7 @@ export const SiteOverview = ({
           title={statusTarget.title}
           onClose={() => setStatusTarget(null)}
           onSave={(entry) => {
-            opportunityStatusActions.onSaveStatus(
-              statusKey(siteSlug, statusTarget.node),
-              entry,
-            );
+            opportunityStatusActions.onSaveStatus(statusTarget.node, entry);
             setStatusTarget(null);
           }}
         />

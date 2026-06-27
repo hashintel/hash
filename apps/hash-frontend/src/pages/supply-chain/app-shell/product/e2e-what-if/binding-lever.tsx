@@ -160,10 +160,11 @@ export const BindingLever = ({
 
   const checkpoints = capCheckpointsFor(lever);
   const selectedCheckpoint = !activeCap
-    ? checkpoints.find((column) => column.key === "max")
+    ? checkpoints.find((checkpoint) => checkpoint.key === "max")
     : checkpoints.find(
-        (column) =>
-          column.key !== "max" && Math.abs(column.capDays - selectedCap) < 0.5,
+        (checkpoint) =>
+          checkpoint.key !== "max" &&
+          Math.abs(checkpoint.capDays - selectedCap) < 0.5,
       );
 
   return (
@@ -199,8 +200,8 @@ export const BindingLever = ({
                 // visible text is the compact confident/mixed form.
                 const tooltip = lever.nextBottleneckChains
                   ?.map(
-                    (column) =>
-                      `${column.label} (${Math.round(column.share * 100)}%)`,
+                    (chain) =>
+                      `${chain.label} (${Math.round(chain.share * 100)}%)`,
                   )
                   .join(" / ");
                 return (

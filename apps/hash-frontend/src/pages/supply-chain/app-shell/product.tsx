@@ -379,8 +379,8 @@ export const Overview = ({
     }
     const cutoff = cutoffForRange(timeRange);
     const filteredBatches = cutoff
-      ? bt.batches.filter((right) => {
-          const endDate = right.delivery_date;
+      ? bt.batches.filter((batch) => {
+          const endDate = batch.delivery_date;
           return endDate != null && endDate.slice(0, 7) >= cutoff;
         })
       : bt.batches;
