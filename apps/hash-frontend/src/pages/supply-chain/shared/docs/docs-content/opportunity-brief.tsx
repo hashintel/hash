@@ -1,0 +1,105 @@
+import { Lead, P, H4, Term, UL, LI, Note, CrossRef } from "../docs-primitives";
+
+import type { DocSectionDef } from "../docs-types";
+
+export const opportunityBriefSection: DocSectionDef = {
+  id: "opportunity-brief",
+  title: "Opportunity brief",
+  entries: [
+    {
+      id: "opportunity-brief",
+      title: "Opportunity brief",
+      render: () => (
+        <>
+          <Lead>
+            Opportunity briefs are printable investigation reports opened from
+            the site opportunities table or the step detail panel. They turn one
+            flagged step into a structured evidence pack.
+          </Lead>
+          <P>
+            There are two brief types: dwell cost reduction and planning
+            parameter calibration. Both use the same filtered step evidence,
+            time range, outlier setting and cost assumptions that are active in
+            the app.
+          </P>
+
+          <H4>Brief types</H4>
+          <UL>
+            <LI>
+              <Term>Dwell cost reduction</Term> briefs focus on inventory
+              carrying cost. They show current period cost, annualised cost,
+              scenario savings and the operational evidence behind the wait.
+            </LI>
+            <LI>
+              <Term>Planning calibration</Term> briefs focus on whether the
+              planning parameter still matches observed timing. They compare
+              current plan, P95, median, mean and the share of batches exceeding
+              plan.
+            </LI>
+          </UL>
+
+          <H4>Report sections</H4>
+          <UL>
+            <LI>
+              <Term>Executive summary</Term> explains why the opportunity fired
+              and summarises the prize or calibration decision.
+            </LI>
+            <LI>
+              <Term>Opportunity diagnosis</Term> lists the main diagnostic
+              statements and confidence notes for the evidence.
+            </LI>
+            <LI>
+              <Term>Potential impact or calibration options</Term> shows
+              dwell-reduction scenarios or planning service-level options.
+            </LI>
+            <LI>
+              <Term>End-to-end leverage</Term> appears on dwell briefs when the
+              step can be connected to traceable batch pipelines. It estimates
+              whether reducing the wait would move finished good end-to-end
+              timing.
+            </LI>
+            <LI>
+              <Term>First-use dwell</Term> appears when the brief can identify
+              how early materials were ordered or intermediates were produced
+              before first downstream use.
+            </LI>
+            <LI>
+              <Term>Supplier OTIF</Term> and <Term>Yield and consumption</Term>{" "}
+              appear when supplier or production side evidence is available for
+              the step.
+            </LI>
+            <LI>
+              <Term>Distribution and evidence</Term> contains the box plot,
+              histogram, monthly trend, statistics, evidence-quality flags and
+              largest contributing records.
+            </LI>
+            <LI>
+              <Term>Recommended next steps</Term> gives investigation checks and
+              step-type-specific prompts for follow-up.
+            </LI>
+          </UL>
+
+          <H4>Evidence exports and print</H4>
+          <P>
+            Use Evidence CSV to export the records behind the brief and Print /
+            Save as PDF to share the report. Before acting on the
+            recommendation, validate the source rows, affected batches,
+            materials and months in the operational system.
+          </P>
+          <Note>
+            A brief is an investigation aid, not an automatic process
+            prescription. Savings assume carrying cost scales with kg-days, and
+            planning recommendations still need business review for
+            service-level tolerance. See{" "}
+            <CrossRef
+              to={{ section: "site-overview", sub: "overview-opportunities" }}
+            >
+              Overview &amp; opportunities
+            </CrossRef>{" "}
+            for how opportunities are selected.
+          </Note>
+        </>
+      ),
+    },
+  ],
+};

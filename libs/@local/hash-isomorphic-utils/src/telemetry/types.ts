@@ -21,9 +21,10 @@ export type TelemetryEnvironment = "development" | "staging" | "production";
  * against it and the type stays in sync.
  */
 export const frontendTrackEventNames = [
-  "supply_chain_product_viewed",
-  "supply_chain_site_viewed",
-  "supply_chain_opportunity_opened",
+  "supply_chain_viewed",
+  "supply_chain_interaction",
+  "supply_chain_status_report_created",
+  "supply_chain_error",
 ] as const;
 
 export type FrontendTrackEventName = (typeof frontendTrackEventNames)[number];

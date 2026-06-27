@@ -27,8 +27,6 @@ export default defineConfig({
    */
   include: [
     require.resolve("@hashintel/ds-components/panda.buildinfo.json"),
-    /** @todo these will move */
-    "./src/vct/**/*.{ts,tsx}",
     "./src/pages/supply-chain/**/*.{ts,tsx}",
   ],
 

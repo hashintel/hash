@@ -156,6 +156,17 @@ export const PageSidebar: FunctionComponent = () => {
         icon: <ChartNetworkRegularIcon sx={{ fontSize: 16 }} />,
         activeIfPathMatches: /^\/processes(\/|$)/,
       },
+      ...(enabledFeatureFlags.supplyChain
+        ? [
+            {
+              title: "Supply Chain",
+              path: "/supply-chain",
+              icon: <FontAwesomeIcon icon={faTruckFast} />,
+              activeIfPathMatches: /^\/supply-chain(\/|$)/,
+              tooltipTitle: "",
+            },
+          ]
+        : []),
       {
         title: "Inbox",
         path: shouldInboxLinkToActions
@@ -191,17 +202,6 @@ export const PageSidebar: FunctionComponent = () => {
               title: "Notes",
               path: "/notes",
               icon: <NoteIcon sx={{ fontSize: 16 }} />,
-              tooltipTitle: "",
-            },
-          ]
-        : []),
-      ...(enabledFeatureFlags.supplyChain
-        ? [
-            {
-              title: "Supply Chain",
-              path: "/supply-chain",
-              icon: <FontAwesomeIcon icon={faTruckFast} />,
-              activeIfPathMatches: /^\/supply-chain(\/|$)/,
               tooltipTitle: "",
             },
           ]

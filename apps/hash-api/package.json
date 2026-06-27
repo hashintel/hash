@@ -12,7 +12,7 @@
     "dev:seed-crm-data": "NODE_ENV=development tsx ./src/seed-data/seed-crm-data.ts",
     "fix:eslint": "eslint --fix .",
     "generate-hash-gpt-schema": "tsx ./src/ai/gpt/generate-hashgpt-schema.ts",
-    "generate-ontology-type-ids": "tsx ./src/generate-ontology-type-ids.ts; oxfmt --write --ignore-path /dev/null ../../libs/@local/hash-isomorphic-utils/src/ontology-type-ids.ts",
+    "generate-ontology-type-ids": "tsx ./src/generate-ontology-type-ids.ts; cd ../../libs/@local/hash-isomorphic-utils && oxfmt --write --ignore-path /dev/null src/ontology-type-ids.ts",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
     "setup:admin": "NODE_ENV=production OTEL_SERVICE_NAME=\"Setup Admin\" tsx --import ./src/instrument.mjs ./src/setup-admin.ts",

@@ -15,13 +15,13 @@ describe("parseTelemetryEvent", () => {
     expect(
       parseTelemetryEvent({
         type: "track",
-        name: "supply_chain_product_viewed",
-        properties: { productId: "abc" },
+        name: "supply_chain_interaction",
+        properties: { interaction: "product_step_selected", productId: "abc" },
       }),
     ).toEqual({
       type: "track",
-      name: "supply_chain_product_viewed",
-      properties: { productId: "abc" },
+      name: "supply_chain_interaction",
+      properties: { interaction: "product_step_selected", productId: "abc" },
     });
   });
 

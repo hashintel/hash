@@ -335,10 +335,9 @@ const featureFlagHiddenPathnames: Record<FeatureFlag, string[]> = {
   ai: ["/goals"],
   supplyChain: [
     "/supply-chain",
-    "/supply-chain/methodology",
-    "/supply-chain/product/[productId]",
-    "/supply-chain/site/[siteId]",
-    "/supply-chain/site/[siteId]/opportunity/[opportunityType]/[productId]/[stepId]",
+    "/supply-chain/product/[product-id]",
+    "/supply-chain/site/[site-id]",
+    "/supply-chain/site/[site-id]/opportunity/[opportunity-type]/[product-id]/[step-id]",
   ],
 };
 
