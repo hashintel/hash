@@ -135,6 +135,7 @@ pub enum Filter<'p, R: QueryRecord> {
     GreaterOrEqual(FilterExpression<'p, R>, FilterExpression<'p, R>),
     Less(FilterExpression<'p, R>, FilterExpression<'p, R>),
     LessOrEqual(FilterExpression<'p, R>, FilterExpression<'p, R>),
+    #[serde(skip)]
     CosineDistance(
         FilterExpression<'p, R>,
         FilterExpression<'p, R>,

@@ -366,6 +366,31 @@ pub(crate) fn resolve_limit(
     }
 }
 
+/// The requested maximum semantic distance is invalid.
+#[derive(Debug, Copy, Clone, PartialEq, derive_more::Display)]
+#[display("The maximum semantic distance ({distance}) must be within the range [0, 2].")]
+pub struct InvalidSemanticDistanceError {
+    pub distance: f64,
+}
+
+impl Error for InvalidSemanticDistanceError {}
+
+/// Validates a maximum semantic distance for embedding search.
+///
+/// Cosine distance lies in `[0, 2]`, so any value outside that range is rejected.
+///
+/// # Errors
+///
+/// Returns [`InvalidSemanticDistanceError`] if the distance is outside `[0, 2]` or not finite.
+pub(crate) fn validate_maximum_semantic_distance(
+    distance: f64,
+) -> Result<(), Report<InvalidSemanticDistanceError>> {
+    if !(0.0..=2.0).contains(&distance) {
+        return Err(Report::new(InvalidSemanticDistanceError { distance }));
+    }
+    Ok(())
+}
+
 /// Server-side configuration for the REST API, shared across handlers via an [`Extension`].
 #[derive(Debug, Clone, Copy)]
 #[cfg_attr(feature = "clap", derive(clap::Parser))]
@@ -814,18 +839,6 @@ impl Modify for FilterSchemaAddon {
                                         .max_items(Some(2)),
                                 )
                                 .required("notEqual"),
-                        )
-                        .item(
-                            ObjectBuilder::new()
-                                .title(Some("CosineDistanceFilter"))
-                                .property(
-                                    "cosineDistance",
-                                    ArrayBuilder::new()
-                                        .items(Ref::from_schema_name("FilterExpression"))
-                                        .min_items(Some(3))
-                                        .max_items(Some(3)),
-                                )
-                                .required("cosineDistance"),
                         )
                         .item(
                             ObjectBuilder::new()

@@ -2,6 +2,7 @@ import {
   getClosedMultiEntityTypes,
   queryEntityTypes,
   queryEntityTypeSubgraph,
+  searchEntityTypes,
   serializeQueryEntityTypeSubgraphResponse,
 } from "@local/hash-graph-sdk/entity-type";
 
@@ -25,6 +26,7 @@ import type {
   QueryGetClosedMultiEntityTypesArgs,
   QueryQueryEntityTypesArgs,
   QueryQueryEntityTypeSubgraphArgs,
+  QuerySearchEntityTypesArgs,
   ResolverFn,
 } from "../../api-types.gen";
 import type { GraphQLContext, LoggedInGraphQLContext } from "../../context";
@@ -37,6 +39,7 @@ import type { UserPermissionsOnEntityType } from "@local/hash-graph-sdk/authoriz
 import type {
   GetClosedMultiEntityTypesResponse,
   QueryEntityTypesResponse,
+  SearchEntityTypesResponse,
   SerializedQueryEntityTypeSubgraphResponse,
 } from "@local/hash-graph-sdk/entity-type";
 
@@ -67,6 +70,18 @@ export const queryEntityTypesResolver: ResolverFn<
 > = async (_, { request }, graphQLContext) =>
   queryEntityTypes(
     graphQLContextToImpureGraphContext(graphQLContext).graphApi,
+    graphQLContext.authentication,
+    request,
+  );
+
+export const searchEntityTypesResolver: ResolverFn<
+  Promise<SearchEntityTypesResponse>,
+  Record<string, never>,
+  GraphQLContext,
+  QuerySearchEntityTypesArgs
+> = async (_, { request }, graphQLContext) =>
+  searchEntityTypes(
+    graphQLContextToImpureGraphContext(graphQLContext),
     graphQLContext.authentication,
     request,
   );

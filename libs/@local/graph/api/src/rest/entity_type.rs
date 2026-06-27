@@ -21,14 +21,14 @@ use hash_graph_store::{
         GetClosedMultiEntityTypesParams, GetClosedMultiEntityTypesResponse,
         HasPermissionForEntityTypesParams, IncludeEntityTypeOption,
         IncludeResolvedEntityTypeOption, QueryEntityTypeSubgraphParams, QueryEntityTypesParams,
-        QueryEntityTypesResponse, UnarchiveEntityTypeParams, UpdateEntityTypeEmbeddingParams,
-        UpdateEntityTypesParams,
+        QueryEntityTypesResponse, SearchEntityTypesParams, SearchEntityTypesResponse,
+        UnarchiveEntityTypeParams, UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
     },
     pool::StorePool,
     query::ConflictBehavior,
 };
 use hash_graph_type_defs::error::{ErrorInfo, Status, StatusPayloadInfo};
-use hash_graph_types::ontology::EntityTypeEmbedding;
+use hash_graph_types::{Embedding, ontology::EntityTypeEmbedding};
 use hash_map::HashMap;
 use hash_temporal_client::TemporalClient;
 use serde::{Deserialize, Serialize};
@@ -52,6 +52,7 @@ use crate::rest::{
     resolve_limit,
     status::{report_to_response, status_to_response},
     utoipa_typedef::{ListOrValue, MaybeListOfEntityType, subgraph::Subgraph},
+    validate_maximum_semantic_distance,
 };
 
 #[derive(OpenApi)]
@@ -63,6 +64,7 @@ use crate::rest::{
         load_external_entity_type,
         query_entity_types,
         query_entity_type_subgraph,
+        search_entity_types,
         get_closed_multi_entity_types,
         update_entity_type,
         update_entity_types,
@@ -84,6 +86,8 @@ use crate::rest::{
             QueryEntityTypesParams,
             CommonQueryEntityTypesParams,
             QueryEntityTypesResponse,
+            SearchEntityTypesRequest,
+            SearchEntityTypesResponse,
             GetClosedMultiEntityTypesParams,
             IncludeEntityTypeOption,
             GetClosedMultiEntityTypesResponse,
@@ -118,6 +122,7 @@ impl EntityTypeResource {
                 )
                 .route("/bulk", put(update_entity_types::<S>))
                 .route("/permissions", post(has_permission_for_entity_types::<S>))
+                .route("/search", post(search_entity_types::<S>))
                 .nest(
                     "/query",
                     Router::new()
@@ -509,6 +514,7 @@ where
     // and better error reporting.
     let mut params = QueryEntityTypesParams::deserialize(&request)
         .map_err(Report::from)
+        .attach(hash_status::StatusCode::InvalidArgument)
         .map_err(report_to_response)?;
 
     params.request.limit = Some(
@@ -531,6 +537,71 @@ where
         query_logger.send().await.map_err(report_to_response)?;
     }
     response
+}
+
+/// Request body for the entity type embedding search endpoint.
+#[derive(Debug, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct SearchEntityTypesRequest {
+    pub embedding: Embedding<'static>,
+    pub maximum_semantic_distance: f64,
+    pub limit: Option<usize>,
+}
+
+#[utoipa::path(
+    post,
+    path = "/entity-types/search",
+    request_body = SearchEntityTypesRequest,
+    tag = "EntityType",
+    params(
+        ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
+    ),
+    responses(
+        (
+            status = 200,
+            content_type = "application/json",
+            body = SearchEntityTypesResponse,
+            description = "Entity types ordered by ascending cosine distance to the query embedding.",
+        ),
+        (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
+        (status = 500, description = "Store error occurred"),
+    )
+)]
+async fn search_entity_types<S>(
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    store_pool: Extension<Arc<S>>,
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
+    Extension(api_config): Extension<ApiConfig>,
+    Json(request): Json<SearchEntityTypesRequest>,
+) -> Result<Json<SearchEntityTypesResponse>, BoxedResponse>
+where
+    S: StorePool + Send + Sync,
+{
+    validate_maximum_semantic_distance(request.maximum_semantic_distance)
+        .attach(hash_status::StatusCode::InvalidArgument)
+        .map_err(report_to_response)?;
+
+    let limit = resolve_limit(request.limit, api_config.query_ontology_limit)
+        .attach(hash_status::StatusCode::InvalidArgument)
+        .map_err(report_to_response)?;
+
+    let store = store_pool
+        .acquire(temporal_client.0)
+        .await
+        .map_err(report_to_response)?;
+
+    store
+        .search_entity_types(
+            actor_id,
+            SearchEntityTypesParams {
+                embedding: request.embedding,
+                maximum_semantic_distance: request.maximum_semantic_distance,
+                limit,
+            },
+        )
+        .await
+        .map(Json)
+        .map_err(report_to_response)
 }
 
 #[utoipa::path(
@@ -576,6 +647,7 @@ where
     // and better error reporting.
     let params = GetClosedMultiEntityTypesParams::deserialize(&request)
         .map_err(Report::from)
+        .attach(hash_status::StatusCode::InvalidArgument)
         .map_err(report_to_response)?;
 
     let response = store
@@ -648,6 +720,7 @@ where
 
     let mut params = QueryEntityTypeSubgraphParams::deserialize(&request)
         .map_err(Report::from)
+        .attach(hash_status::StatusCode::InvalidArgument)
         .map_err(report_to_response)?;
     params
         .validate()

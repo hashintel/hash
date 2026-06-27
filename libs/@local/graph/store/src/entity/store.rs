@@ -9,7 +9,7 @@ use hash_graph_authorization::policies::{
     principal::{PrincipalConstraint, actor::AuthenticatedActor},
 };
 use hash_graph_temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
-use hash_graph_types::knowledge::entity::EntityEmbedding;
+use hash_graph_types::{Embedding, knowledge::entity::EntityEmbedding};
 use serde::{Deserialize, Serialize};
 use type_system::{
     knowledge::{
@@ -198,6 +198,44 @@ pub struct QueryEntitiesParams<'a> {
     pub include_drafts: bool,
     pub include_entity_types: Option<IncludeEntityTypeOption>,
     pub include_permissions: bool,
+}
+
+/// Parameters for [`EntityStore::search_entities`].
+///
+/// Results are ordered by ascending cosine distance to [`embedding`](Self::embedding). The query
+/// always runs against the current time and excludes archived entities.
+#[derive(Debug)]
+pub struct SearchEntitiesParams {
+    pub embedding: Embedding<'static>,
+    /// Upper bound on the cosine distance for a result to be included.
+    pub maximum_semantic_distance: f64,
+    pub limit: usize,
+    /// When `true`, the response includes the closed multi-entity types of the results.
+    pub include_entity_types: bool,
+    pub filter: SearchEntitiesFilter,
+}
+
+/// Scope constraints for [`EntityStore::search_entities`].
+///
+/// Empty lists impose no restriction.
+#[derive(Debug, Default, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase", deny_unknown_fields, default)]
+pub struct SearchEntitiesFilter {
+    pub entity_type_ids: Vec<VersionedUrl>,
+    pub web_ids: Vec<WebId>,
+    pub include_drafts: bool,
+}
+
+/// Response for [`EntityStore::search_entities`].
+#[derive(Debug, Serialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase")]
+pub struct SearchEntitiesResponse {
+    pub entities: Vec<Entity>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
+    pub closed_multi_entity_types: Option<HashMap<VersionedUrl, ClosedMultiEntityTypeMap>>,
 }
 
 /// A recursive map structure representing a hierarchical combination of entity types.
@@ -709,6 +747,17 @@ pub trait EntityStore {
         actor_id: ActorEntityUuid,
         params: QueryEntitiesParams<'_>,
     ) -> impl Future<Output = Result<QueryEntitiesResponse<'static>, Report<QueryError>>> + Send;
+
+    /// Searches for entities by embedding similarity, ordered by ascending cosine distance.
+    ///
+    /// # Errors
+    ///
+    /// - if the requested [`Entities`][Entity] cannot be retrieved
+    fn search_entities(
+        &self,
+        actor_id: ActorEntityUuid,
+        params: SearchEntitiesParams,
+    ) -> impl Future<Output = Result<SearchEntitiesResponse, Report<QueryError>>> + Send;
 
     /// Get the [`Subgraph`]s specified by the [`QueryEntitySubgraphParams`].
     ///

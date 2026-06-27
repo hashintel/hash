@@ -4,7 +4,6 @@ import {
   splitEntityId,
 } from "@blockprotocol/type-system";
 import { typedKeys } from "@local/advanced-types/typed-entries";
-import { rewriteSemanticFilter } from "@local/hash-graph-sdk/embeddings";
 import { queryEntities, summarizeEntities } from "@local/hash-graph-sdk/entity";
 import { flowRunsQueryMaxLimit } from "@local/hash-isomorphic-utils/flows/types";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
@@ -220,11 +219,6 @@ export async function getFlowRuns({
         : []),
     ],
   };
-
-  // `queryEntities` and `summarizeEntities` both rewrite semantic (embedding) filters
-  // internally; resolve it once here so the embedding lookup isn't run twice for the two
-  // concurrent requests (and so the shared filter isn't mutated under them).
-  await rewriteSemanticFilter(filter, temporalClient);
 
   const entityQuery = queryEntities<FlowRunEntity>(
     { graphApi: graphApiClient },

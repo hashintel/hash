@@ -1,5 +1,3 @@
-import { Predicate } from "effect";
-
 import {
   extractBaseUrl,
   isArrayMetadata,
@@ -9,7 +7,7 @@ import {
 } from "@blockprotocol/type-system";
 import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
 
-import { rewriteSemanticFilter } from "./embeddings.js";
+import { calculateEmbedding } from "./embeddings.js";
 import {
   mapGraphApiClosedMultiEntityTypeMapToClosedMultiEntityTypeMap,
   mapGraphApiEntityTypeResolveDefinitionsToEntityTypeResolveDefinitions,
@@ -101,6 +99,10 @@ import type {
   ValidateEntityParams,
   SummarizeEntitiesParams,
   SummarizeEntitiesResponse as SummarizeEntitiesResponseGraphApi,
+  SearchEntitiesRequest as SearchEntitiesRequestGraphApi,
+  SearchEntitiesFilter as SearchEntitiesFilterGraphApi,
+  SearchEntitiesResponse as SearchEntitiesResponseGraphApi,
+  Embedding,
 } from "@local/hash-graph-client";
 import type {
   CreateEntityPolicyParams,
@@ -229,6 +231,16 @@ export type QueryEntitiesRequest = DistributiveOmit<
   conversions?: ConversionRequest[];
 };
 
+export type SearchEntitiesRequest = DistributiveOmit<
+  SearchEntitiesRequestGraphApi,
+  "embedding" | "filter"
+> & {
+  filter?: Omit<SearchEntitiesFilterGraphApi, "entityTypeIds" | "webIds"> & {
+    entityTypeIds?: VersionedUrl[];
+    webIds?: WebId[];
+  };
+} & ExclusiveUnion<{ embedding: Embedding } | { semanticString: string }>;
+
 export type EntityPermissionsMap = Record<EntityId, EntityPermissions>;
 
 export type QueryEntitiesResponse<
@@ -249,6 +261,27 @@ export type SerializedQueryEntitiesResponse<
     TypeIdsAndPropertiesForEntity,
 > = DistributiveReplaceProperties<
   QueryEntitiesResponse<PropertyMap>,
+  {
+    entities: SerializedEntity<PropertyMap>[];
+  }
+>;
+
+export type SearchEntitiesResponse<
+  PropertyMap extends TypeIdsAndPropertiesForEntity =
+    TypeIdsAndPropertiesForEntity,
+> = DistributiveOmit<
+  SearchEntitiesResponseGraphApi,
+  "entities" | "closedMultiEntityTypes"
+> & {
+  entities: HashEntity<PropertyMap>[];
+  closedMultiEntityTypes?: Record<VersionedUrl, ClosedMultiEntityTypeMap>;
+};
+
+export type SerializedSearchEntitiesResponse<
+  PropertyMap extends TypeIdsAndPropertiesForEntity =
+    TypeIdsAndPropertiesForEntity,
+> = DistributiveReplaceProperties<
+  SearchEntitiesResponse<PropertyMap>,
   {
     entities: SerializedEntity<PropertyMap>[];
   }
@@ -303,15 +336,10 @@ export const queryEntitySubgraph = async <
   PropertyMap extends TypeIdsAndPropertiesForEntity =
     TypeIdsAndPropertiesForEntity,
 >(
-  context: { graphApi: GraphApi; temporalClient?: TemporalClient },
+  context: { graphApi: GraphApi },
   authentication: AuthenticationContext,
   params: QueryEntitySubgraphRequest,
 ): Promise<QueryEntitySubgraphResponse<PropertyMap>> => {
-  if (Predicate.hasProperty(params, "filter")) {
-    // TODO: https://linear.app/hash/issue/BE-108/consider-moving-semantic-filter-rewriting-to-the-graph
-    await rewriteSemanticFilter(params.filter, context.temporalClient);
-  }
-
   return await context.graphApi
     .queryEntitySubgraph(authentication.actorId, params)
     .then(({ data }) => {
@@ -1478,22 +1506,17 @@ export class HashLinkEntity<
     return super.linkData!;
   }
 }
+
 export const queryEntities = async <
   PropertyMap extends TypeIdsAndPropertiesForEntity =
     TypeIdsAndPropertiesForEntity,
 >(
   context: {
     graphApi: GraphApi;
-    temporalClient?: TemporalClient;
   },
   authentication: AuthenticationContext,
   params: QueryEntitiesRequest,
 ): Promise<QueryEntitiesResponse<PropertyMap>> => {
-  if (Predicate.hasProperty(params, "filter")) {
-    // TODO: https://linear.app/hash/issue/BE-108/consider-moving-semantic-filter-rewriting-to-the-graph
-    await rewriteSemanticFilter(params.filter, context.temporalClient);
-  }
-
   return context.graphApi
     .queryEntities(authentication.actorId, params)
     .then(({ data: response }) => ({
@@ -1513,19 +1536,48 @@ export const queryEntities = async <
     }));
 };
 
-export const summarizeEntities = async (
+export const searchEntities = async (
   context: {
     graphApi: GraphApi;
     temporalClient?: TemporalClient;
   },
   authentication: AuthenticationContext,
-  params: SummarizeEntitiesParams,
-): Promise<SummarizeEntitiesResponse> => {
-  if (Predicate.hasProperty(params, "filter")) {
-    // TODO: https://linear.app/hash/issue/BE-108/consider-moving-semantic-filter-rewriting-to-the-graph
-    await rewriteSemanticFilter(params.filter, context.temporalClient);
+  params: SearchEntitiesRequest,
+): Promise<SearchEntitiesResponse> => {
+  // TODO(BE-622): Move to the graph
+  if (params.semanticString !== undefined) {
+    if (!context.temporalClient) {
+      throw new Error("Cannot query semantic string without temporal client");
+    }
+    const { semanticString, ...rest } = params;
+    const embedding = await calculateEmbedding(
+      semanticString,
+      context.temporalClient,
+    );
+    // eslint-disable-next-line no-param-reassign
+    params = { ...rest, embedding };
   }
 
+  return context.graphApi
+    .searchEntities(authentication.actorId, params)
+    .then(({ data: response }) => ({
+      ...response,
+      entities: response.entities.map((entity) => new HashEntity(entity)),
+      closedMultiEntityTypes: response.closedMultiEntityTypes
+        ? mapGraphApiClosedMultiEntityTypeMapToClosedMultiEntityTypeMap(
+            response.closedMultiEntityTypes,
+          )
+        : undefined,
+    }));
+};
+
+export const summarizeEntities = async (
+  context: {
+    graphApi: GraphApi;
+  },
+  authentication: AuthenticationContext,
+  params: SummarizeEntitiesParams,
+): Promise<SummarizeEntitiesResponse> => {
   return context.graphApi
     .summarizeEntities(authentication.actorId, params)
     .then(({ data: response }) => ({
@@ -1560,6 +1612,26 @@ export const deserializeQueryEntitiesResponse = <
 >(
   response: SerializedQueryEntitiesResponse<PropertyMap>,
 ): QueryEntitiesResponse<PropertyMap> => ({
+  ...response,
+  entities: response.entities.map((entity) => new HashEntity(entity)),
+});
+
+export const serializeSearchEntitiesResponse = <
+  PropertyMap extends TypeIdsAndPropertiesForEntity =
+    TypeIdsAndPropertiesForEntity,
+>(
+  response: SearchEntitiesResponse<PropertyMap>,
+): SerializedSearchEntitiesResponse<PropertyMap> => ({
+  ...response,
+  entities: response.entities.map((entity) => entity.toJSON()),
+});
+
+export const deserializeSearchEntitiesResponse = <
+  PropertyMap extends TypeIdsAndPropertiesForEntity =
+    TypeIdsAndPropertiesForEntity,
+>(
+  response: SerializedSearchEntitiesResponse<PropertyMap>,
+): SearchEntitiesResponse<PropertyMap> => ({
   ...response,
   entities: response.entities.map((entity) => new HashEntity(entity)),
 });

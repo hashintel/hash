@@ -3,6 +3,8 @@ import { gql } from "graphql-tag";
 export const entityTypeTypedef = gql`
   scalar QueryEntityTypesParams
   scalar QueryEntityTypesResponse
+  scalar SearchEntityTypesRequest
+  scalar SearchEntityTypesResponse
   scalar QueryEntityTypeSubgraphParams
   scalar QueryEntityTypeSubgraphResponse
   scalar GetClosedMultiEntityTypesParams
@@ -18,6 +20,10 @@ export const entityTypeTypedef = gql`
     queryEntityTypes(
       request: QueryEntityTypesParams!
     ): QueryEntityTypesResponse!
+
+    searchEntityTypes(
+      request: SearchEntityTypesRequest!
+    ): SearchEntityTypesResponse!
 
     queryEntityTypeSubgraph(
       request: QueryEntityTypeSubgraphParams!

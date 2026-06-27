@@ -17,8 +17,9 @@ use hash_graph_store::{
         LinkDataValidationReport, LinkError, LinkTargetError, LinkValidationReport,
         LinkedEntityError, MetadataValidationReport, PatchEntityParams,
         PropertyMetadataValidationReport, QueryConversion, QueryEntitiesResponse,
-        SummarizeEntitiesParams, SummarizeEntitiesResponse, UnexpectedEntityType,
-        UpdateEntityEmbeddingsParams, ValidateEntityComponents, ValidateEntityParams,
+        SearchEntitiesFilter, SearchEntitiesResponse, SummarizeEntitiesParams,
+        SummarizeEntitiesResponse, UnexpectedEntityType, UpdateEntityEmbeddingsParams,
+        ValidateEntityComponents, ValidateEntityParams,
     },
     entity_type::EntityTypeResolveDefinitions,
     pool::StorePool,
@@ -74,6 +75,7 @@ use utoipa::{OpenApi, ToSchema};
 
 pub use crate::rest::entity_query_request::{
     EntityQuery, EntityQueryOptions, QueryEntitiesRequest, QueryEntitySubgraphRequest,
+    SearchEntitiesRequest,
 };
 use crate::rest::{
     ApiConfig, AuthenticatedUserHeader, InteractiveHeader, OpenApiQuery, QueryLogger,
@@ -81,6 +83,7 @@ use crate::rest::{
     json::Json,
     status::{BoxedResponse, report_to_response},
     utoipa_typedef::subgraph::Subgraph,
+    validate_maximum_semantic_distance,
 };
 
 #[derive(OpenApi)]
@@ -92,6 +95,7 @@ use crate::rest::{
         has_permission_for_entities,
         query_entities,
         query_entity_subgraph,
+        search_entities,
         summarize_entities,
         patch_entity,
         update_entity_embeddings,
@@ -122,6 +126,9 @@ use crate::rest::{
             EntityQueryOptions,
             QueryEntitiesRequest,
             QueryEntitySubgraphRequest,
+            SearchEntitiesRequest,
+            SearchEntitiesFilter,
+            SearchEntitiesResponse,
             EntityQueryCursor,
             Ordering,
             NullOrdering,
@@ -224,6 +231,7 @@ impl EntityResource {
                 .route("/validate", post(validate_entity::<S>))
                 .route("/embeddings", post(update_entity_embeddings::<S>))
                 .route("/permissions", post(has_permission_for_entities::<S>))
+                .route("/search", post(search_entities::<S>))
                 .nest(
                     "/query",
                     Router::new()
@@ -446,6 +454,7 @@ where
 
     let request = QueryEntitiesRequest::deserialize(&*request)
         .map_err(Report::from)
+        .attach(hash_status::StatusCode::InvalidArgument)
         .map_err(report_to_response)?;
 
     let (query, options) = request.into_parts();
@@ -478,6 +487,56 @@ where
         query_logger.send().await.map_err(report_to_response)?;
     }
     response
+}
+
+#[utoipa::path(
+    post,
+    path = "/entities/search",
+    request_body = SearchEntitiesRequest,
+    tag = "Entity",
+    params(
+        ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
+    ),
+    responses(
+        (
+            status = 200,
+            content_type = "application/json",
+            body = SearchEntitiesResponse,
+            description = "Entities ordered by ascending cosine distance to the query embedding.",
+        ),
+        (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
+        (status = 500, description = "Store error occurred"),
+    )
+)]
+async fn search_entities<S>(
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    store_pool: Extension<Arc<S>>,
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
+    Extension(api_config): Extension<ApiConfig>,
+    Json(request): Json<SearchEntitiesRequest>,
+) -> Result<Json<SearchEntitiesResponse>, BoxedResponse>
+where
+    S: StorePool + Send + Sync,
+{
+    validate_maximum_semantic_distance(request.maximum_semantic_distance)
+        .attach(hash_status::StatusCode::InvalidArgument)
+        .map_err(report_to_response)?;
+
+    let store = store_pool
+        .acquire(temporal_client.0)
+        .await
+        .map_err(report_to_response)?;
+
+    let params = request
+        .into_params(api_config)
+        .attach(hash_status::StatusCode::InvalidArgument)
+        .map_err(report_to_response)?;
+
+    store
+        .search_entities(actor_id, params)
+        .await
+        .map(Json)
+        .map_err(report_to_response)
 }
 
 #[derive(Serialize, ToSchema)]
@@ -542,6 +601,7 @@ where
 
     let request = QueryEntitySubgraphRequest::deserialize(&request)
         .map_err(Report::from)
+        .attach(hash_status::StatusCode::InvalidArgument)
         .map_err(report_to_response)?;
     let (query, options, traversal) = request.into_parts();
 
@@ -625,6 +685,7 @@ where
             actor_id,
             SummarizeEntitiesParams::deserialize(&request)
                 .map_err(Report::from)
+                .attach(hash_status::StatusCode::InvalidArgument)
                 .map_err(report_to_response)?,
         )
         .await

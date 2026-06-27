@@ -25,7 +25,8 @@ use error_stack::Report;
 use hash_graph_store::{
     entity::{
         EntityQueryCursor, EntityQueryPath, EntityQuerySorting, EntityQuerySortingRecord,
-        QueryConversion, QueryEntitiesParams, QueryEntitySubgraphParams,
+        QueryConversion, QueryEntitiesParams, QueryEntitySubgraphParams, SearchEntitiesFilter,
+        SearchEntitiesParams,
     },
     entity_type::IncludeEntityTypeOption,
     filter::Filter,
@@ -39,6 +40,7 @@ use hash_graph_store::{
         temporal_axes::QueryTemporalAxesUnresolved,
     },
 };
+use hash_graph_types::Embedding;
 use hashql_ast::error::AstDiagnosticCategory;
 use hashql_core::{
     collections::fast_hash_map_with_capacity,
@@ -588,6 +590,38 @@ impl<'p> EntityQueryOptions<'_, 'p> {
                 request: self.into_params(filter, config)?,
             }),
         }
+    }
+}
+
+/// Request body for the entity embedding search endpoint.
+#[derive(Debug, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct SearchEntitiesRequest {
+    pub embedding: Embedding<'static>,
+    pub maximum_semantic_distance: f64,
+    pub limit: Option<usize>,
+    #[serde(default)]
+    pub include_entity_types: bool,
+    #[serde(default)]
+    pub filter: SearchEntitiesFilter,
+}
+
+impl SearchEntitiesRequest {
+    /// # Errors
+    ///
+    /// Returns [`LimitExceededError`] if the requested limit exceeds the configured maximum in
+    /// [`ApiConfig::query_entity_limit`].
+    pub fn into_params(
+        self,
+        config: ApiConfig,
+    ) -> Result<SearchEntitiesParams, Report<LimitExceededError>> {
+        Ok(SearchEntitiesParams {
+            embedding: self.embedding,
+            maximum_semantic_distance: self.maximum_semantic_distance,
+            limit: resolve_limit(self.limit, config.query_entity_limit)?,
+            include_entity_types: self.include_entity_types,
+            filter: self.filter,
+        })
     }
 }
 
