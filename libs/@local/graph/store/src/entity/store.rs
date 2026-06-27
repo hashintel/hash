@@ -162,6 +162,11 @@ pub struct CreateEntityParams {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub policies: Vec<CreateEntityPolicyParams>,
     pub provenance: ProvidedEntityEditionProvenance,
+    /// Marks the entity read-only, blocking later updates and archival by user actors.
+    ///
+    /// Set once at creation, e.g. by a one-way integration sync.
+    #[serde(default)]
+    pub read_only: bool,
 }
 
 #[derive(Debug, Deserialize)]

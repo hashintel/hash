@@ -52,6 +52,7 @@ pub struct EntityRecordRowIndices {
     pub right_entity_provenance: usize,
 
     pub archived: usize,
+    pub read_only: usize,
 }
 
 pub struct EntityRecordPaths<'q> {
@@ -179,6 +180,7 @@ impl QueryRecordDecode for Entity {
                 confidence: row.get(indices.entity_confidence),
                 properties: property_metadata,
                 archived: row.get(indices.archived),
+                read_only: row.get(indices.read_only),
             },
         }
     }
@@ -259,6 +261,7 @@ impl PostgresRecord for Entity {
                 .add_selection_path(&EntityQueryPath::RightEntityProvenance),
 
             archived: compiler.add_selection_path(&EntityQueryPath::Archived),
+            read_only: compiler.add_selection_path(&EntityQueryPath::ReadOnly),
         }
     }
 }

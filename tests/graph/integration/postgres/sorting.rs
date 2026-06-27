@@ -202,6 +202,7 @@ async fn insert(database: &mut DatabaseTestWrapper) -> DatabaseApi<'_> {
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
                     sources: Vec::new(),
                 },
+                read_only: false,
             },
         )
         .await

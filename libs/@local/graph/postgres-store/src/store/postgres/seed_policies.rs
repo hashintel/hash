@@ -547,6 +547,24 @@ fn global_archive_entity_policies() -> impl Iterator<Item = PolicyCreationParams
     })
 }
 
+fn global_readonly_forbid_policies() -> impl Iterator<Item = PolicyCreationParams> {
+    // Machines (e.g. the seeding integration) stay unrestricted.
+    [
+        ("forbid-user-modify-readonly-entity", ActorType::User),
+        ("forbid-ai-modify-readonly-entity", ActorType::Ai),
+    ]
+    .into_iter()
+    .map(|(name, actor_type)| PolicyCreationParams {
+        name: Some(name.to_owned()),
+        effect: Effect::Forbid,
+        principal: Some(PrincipalConstraint::ActorType { actor_type }),
+        actions: vec![ActionName::UpdateEntity, ActionName::ArchiveEntity],
+        resource: Some(ResourceConstraint::Entity(EntityResourceConstraint::Any {
+            filter: EntityResourceFilter::IsReadOnly,
+        })),
+    })
+}
+
 pub(crate) fn global_policies() -> impl Iterator<Item = PolicyCreationParams> {
     global_meta_policies()
         .chain(global_instantiate_policies())
@@ -554,6 +572,7 @@ pub(crate) fn global_policies() -> impl Iterator<Item = PolicyCreationParams> {
         .chain(global_view_ontology_policies())
         .chain(global_update_entity_policies())
         .chain(global_archive_entity_policies())
+        .chain(global_readonly_forbid_policies())
 }
 
 fn web_meta_admin_policies(role: &WebRole) -> impl Iterator<Item = PolicyCreationParams> {

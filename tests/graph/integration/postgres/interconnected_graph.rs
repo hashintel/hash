@@ -74,6 +74,7 @@ async fn insert() {
             origin: OriginProvenance::from_empty_type(OriginType::Api),
             sources: Vec::new(),
         },
+        read_only: false,
     };
 
     let bob_id = EntityUuid::new(Uuid::new_v4());
@@ -99,6 +100,7 @@ async fn insert() {
             origin: OriginProvenance::from_empty_type(OriginType::Api),
             sources: Vec::new(),
         },
+        read_only: false,
     };
 
     let friendship_entity = CreateEntityParams {
@@ -135,6 +137,7 @@ async fn insert() {
             origin: OriginProvenance::from_empty_type(OriginType::Api),
             sources: Vec::new(),
         },
+        read_only: false,
     };
 
     let entities = api

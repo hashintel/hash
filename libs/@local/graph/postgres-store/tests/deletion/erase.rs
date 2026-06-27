@@ -311,6 +311,7 @@ async fn entity_reuse_after_erase() {
                 draft: false,
                 policies: Vec::new(),
                 provenance: provenance(),
+                read_only: false,
             },
         )
         .await
