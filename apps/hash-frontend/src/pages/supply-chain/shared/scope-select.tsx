@@ -3,6 +3,7 @@ import { useCallback } from "react";
 
 import { useRegistry } from "./registry-context";
 import { SearchableSelect } from "./searchable-select";
+import { trackSupplyChainInteraction } from "./telemetry";
 
 /**
  * Product/site picker rendered as the page title (display-sized dropdown). Reads
@@ -24,6 +25,10 @@ export const ScopeSelect = ({
 
   const handleScopeChange = useCallback(
     (val: string) => {
+      trackSupplyChainInteraction({
+        interaction: "scope_picker_changed",
+        source: "scope_select",
+      });
       if (val.startsWith("site:")) {
         void router.push(`/supply-chain/site/${val.replace("site:", "")}`);
       } else {

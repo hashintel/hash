@@ -3,6 +3,7 @@ import { useMemo } from "react";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { formatNumber } from "../../shared/cost";
+import { trackSupplyChainInteraction } from "../../shared/telemetry";
 import { colorForOtif, sortSupplierRows } from "./shared/helpers";
 import { SortHeader } from "./shared/sort-header";
 import * as threshold from "./shared/table-styles";
@@ -50,6 +51,10 @@ export const SupplierTable = ({
 }) => {
   const sorted = useMemo(() => sortSupplierRows(rows, sort), [rows, sort]);
   const toggleSort = (key: SortKey) => {
+    trackSupplyChainInteraction({
+      interaction: "table_sort_changed",
+      source: "supplier_table",
+    });
     if (sort.key === key) {
       onSort({ key, dir: sort.dir === "desc" ? "asc" : "desc" });
     } else {

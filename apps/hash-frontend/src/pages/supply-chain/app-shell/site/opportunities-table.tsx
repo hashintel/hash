@@ -8,10 +8,12 @@ import {
   StatusActionButton,
   NeutralActionButton,
 } from "../../shared/action-buttons";
-import { statusKey } from "./opportunities";
+import { deriveStatusActionState, statusKey } from "../../shared/status";
+import { trackSupplyChainInteraction } from "../../shared/telemetry";
 import { ProductTags } from "./shared/product-tags";
 import * as threshold from "./shared/table-styles";
 
+import type { StatusStore } from "../../shared/status";
 import type { SiteNode } from "../../shared/types";
 import type {
   OpportunityKind,
@@ -234,6 +236,7 @@ const OPPORTUNITY_SECTIONS: OpportunitySection[] = [
 interface OpportunitiesTableProps {
   opportunities: SiteOpportunity[];
   statuses: OpportunityStatuses;
+  statusHistory?: StatusStore;
   onRowClick: (node: SiteNode) => void;
   onMarkRead: (id: string) => void;
   onMarkUnread: (id: string) => void;
@@ -362,6 +365,7 @@ const ReadIcon = () => {
 export const OpportunitiesTable = ({
   opportunities,
   statuses,
+  statusHistory = {},
   onRowClick,
   onMarkRead,
   onMarkUnread,
@@ -387,6 +391,11 @@ export const OpportunitiesTable = ({
     }));
   }, [visibleOpportunities]);
   const toggleSection = (section: OpportunityKind) => {
+    trackSupplyChainInteraction({
+      interaction: "opportunity_section_toggled",
+      opportunityKind: section,
+      source: "opportunities_table",
+    });
     setCollapsedSections((prev) => {
       const next = new Set(prev);
       if (next.has(section)) {
@@ -426,7 +435,15 @@ export const OpportunitiesTable = ({
             <input
               type="checkbox"
               checked={showRead}
-              onChange={(event) => setShowRead(event.target.checked)}
+              onChange={(event) => {
+                trackSupplyChainInteraction({
+                  interaction: event.target.checked
+                    ? "show_read_enabled"
+                    : "show_read_disabled",
+                  source: "opportunities_table",
+                });
+                setShowRead(event.target.checked);
+              }}
             />
             Show read
           </label>
@@ -550,10 +567,22 @@ export const OpportunitiesTable = ({
                             {opportunity.briefHref && (
                               <BriefLink
                                 href={opportunity.briefHref}
-                                onClick={(event) => event.stopPropagation()}
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  trackSupplyChainInteraction({
+                                    interaction: "brief_link_clicked",
+                                    opportunityKind: opportunity.kind,
+                                    siteId: opportunity.siteId,
+                                    source: "opportunities_table",
+                                    stepId: opportunity.stepId,
+                                  });
+                                }}
                               />
                             )}
                             <StatusActionButton
+                              state={deriveStatusActionState(
+                                statusHistory[key],
+                              )}
                               onClick={(event) => {
                                 event.stopPropagation();
                                 onStatus(opportunity.node, opportunity.title);

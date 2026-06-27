@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { fetchSiteDataCached } from "./data";
 import { deduplicateNodes } from "./site-aggregation";
@@ -28,12 +28,24 @@ export function useSiteNodes(
   const [siteData, setSiteData] = useState<SiteData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const productsRef = useRef(products);
+  const productKey = products.map((product) => product.id).join(",");
+
+  useEffect(() => {
+    productsRef.current = products;
+  }, [products]);
 
   useEffect(() => {
     let cancelled = false;
+    if (!siteId) {
+      setSiteData(null);
+      setLoading(false);
+      setError(null);
+      return;
+    }
     setLoading(true);
     setError(null);
-    fetchSiteDataCached(siteId, products)
+    fetchSiteDataCached(siteId, productsRef.current)
       .then((data) => {
         if (!cancelled) {
           setSiteData(data);
@@ -52,7 +64,7 @@ export function useSiteNodes(
     return () => {
       cancelled = true;
     };
-  }, [siteId, products]);
+  }, [siteId, productKey]);
 
   const nodes = useMemo(
     () => (siteData ? deduplicateNodes(siteData) : []),

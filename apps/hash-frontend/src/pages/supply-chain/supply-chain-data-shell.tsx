@@ -118,7 +118,7 @@ function normaliseDefaultStorageCost(value: number | null | undefined): number {
 
 function normaliseCurrency(value: string | null | undefined): string {
   const currency = value?.trim().toUpperCase();
-  return currency ?? DEFAULT_CURRENCY;
+  return currency == null || currency === "" ? DEFAULT_CURRENCY : currency;
 }
 
 function normaliseMeasure(value: string | null): BaseMeasure {

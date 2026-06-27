@@ -8,7 +8,8 @@ import {
   STATUS_OPTIONS,
   statusCommentRequired,
   type StatusOption,
-} from "../app-shell/site/opportunities";
+} from "./status";
+import { trackSupplyChainInteraction } from "./telemetry";
 
 // `popover` sits above the slide-over (`modal`), so the dialog appears over an
 // open step detail panel rather than behind it.
@@ -155,11 +156,22 @@ export const StatusDialog = ({ title, onClose, onSave }: StatusDialogProps) => {
     }
     textareaRef.current?.focus();
   };
+  const handleCancel = () => {
+    trackSupplyChainInteraction({
+      interaction: "status_dialog_cancelled",
+      source: "status_dialog",
+    });
+    onClose();
+  };
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const trimmedText = text.trim();
     if (statusCommentRequired(category) && trimmedText.length === 0) {
+      trackSupplyChainInteraction({
+        interaction: "status_dialog_validation_failed",
+        source: "status_dialog",
+      });
       setError("Add a comment for this status.");
       textareaRef.current?.focus();
       return;
@@ -173,12 +185,12 @@ export const StatusDialog = ({ title, onClose, onSave }: StatusDialogProps) => {
       role="presentation"
       onClick={(event) => {
         if (event.target === event.currentTarget) {
-          onClose();
+          handleCancel();
         }
       }}
       onKeyDown={(event) => {
         if (event.key === "Escape") {
-          onClose();
+          handleCancel();
         }
       }}
     >
@@ -201,7 +213,7 @@ export const StatusDialog = ({ title, onClose, onSave }: StatusDialogProps) => {
             type="button"
             className={button}
             aria-label="Close status"
-            onClick={onClose}
+            onClick={handleCancel}
           >
             x
           </button>
@@ -252,7 +264,7 @@ export const StatusDialog = ({ title, onClose, onSave }: StatusDialogProps) => {
           <button
             type="button"
             className={cx(button, cancelOrder)}
-            onClick={onClose}
+            onClick={handleCancel}
           >
             Cancel
           </button>

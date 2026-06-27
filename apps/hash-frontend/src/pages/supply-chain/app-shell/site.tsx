@@ -12,6 +12,7 @@ import {
 import { LoadingState, ErrorState } from "../shared/load-state";
 import { ScopeSelect } from "../shared/scope-select";
 import { StatChip } from "../shared/stat-chip";
+import { statusKey } from "../shared/status";
 import { StatusDialog } from "../shared/status-dialog";
 import { StepDetailPanel } from "../shared/step-detail-panel";
 import { trackSupplyChainInteraction } from "../shared/telemetry";
@@ -26,8 +27,6 @@ import {
   type OpportunityStatusActions,
   type OpportunityStatuses,
   type OpportunityKind,
-  statusKey,
-  type StatusStore,
 } from "./site/opportunities";
 import { OpportunitiesTable } from "./site/opportunities-table";
 import { PlanningTable } from "./site/planning-table";
@@ -43,6 +42,7 @@ import { TrendTable } from "./site/trend-table";
 import { useSiteOverviewRows } from "./site/use-site-overview-rows";
 import { VendorDetailPanel } from "./site/vendor-detail-panel";
 
+import type { StatusStore } from "../shared/status";
 import type { Product, SiteNode } from "../shared/types";
 import type {
   Tab,
@@ -391,8 +391,14 @@ export const SiteOverview = ({
     [buildBriefHref, siteId],
   );
   const handlePanelClose = useCallback(() => {
+    trackSupplyChainInteraction({
+      interaction: "step_detail_panel_closed",
+      siteId,
+      source: "site_overview",
+      stepId: selectedStep?.stepId ?? "",
+    });
     setSelectedStep(null);
-  }, []);
+  }, [selectedStep?.stepId, siteId]);
   if (loading) {
     return <LoadingState message="Loading site data..." className={loadingH} />;
   }
@@ -468,6 +474,7 @@ export const SiteOverview = ({
         <OpportunitiesTable
           opportunities={opportunities}
           statuses={opportunityStatuses}
+          statusHistory={opportunityStatusHistory}
           onRowClick={handleStepClick}
           onMarkRead={opportunityStatusActions.onMarkRead}
           onMarkUnread={opportunityStatusActions.onMarkUnread}
@@ -566,6 +573,7 @@ export const SiteOverview = ({
               onSort={setDwellSort}
               onRowClick={handleStepClick}
               briefHref={(node) => buildBriefHref("dwell", node)}
+              statusHistory={opportunityStatusHistory}
               onStatus={openStatus}
               timeRange={timeRange}
               currency={siteCurrency}
@@ -578,6 +586,7 @@ export const SiteOverview = ({
               onSort={setPlanSort}
               onRowClick={handleStepClick}
               briefHref={(node) => buildBriefHref("planning", node)}
+              statusHistory={opportunityStatusHistory}
               onStatus={openStatus}
             />
           )}
@@ -587,6 +596,7 @@ export const SiteOverview = ({
               sort={trendSort}
               onSort={setTrendSort}
               onRowClick={handleStepClick}
+              statusHistory={opportunityStatusHistory}
               onStatus={openStatus}
             />
           )}

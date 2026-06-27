@@ -35,6 +35,9 @@ const ProductPage: NextPageWithLayout = () => {
   const selectedStepId = searchParams.get("step") ?? null;
   const setSelectedStepId = useCallback(
     (stepId: string | null) => {
+      if (stepId === selectedStepId) {
+        return;
+      }
       setSearchParams(
         (prev) => {
           const next = new URLSearchParams(prev);
@@ -48,7 +51,7 @@ const ProductPage: NextPageWithLayout = () => {
         { replace: true },
       );
     },
-    [setSearchParams],
+    [selectedStepId, setSearchParams],
   );
 
   useEffect(() => {

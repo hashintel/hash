@@ -2,6 +2,7 @@ import { useRouter } from "next/router";
 import { useEffect } from "react";
 
 import { OpportunityBrief } from "../../../../../app-shell/opportunity";
+import { LoadingState, ErrorState } from "../../../../../shared/load-state";
 import { useRegistry } from "../../../../../shared/registry-context";
 import { getSupplyChainLayout } from "../../../../../shared/supply-chain-layout";
 import { trackSupplyChainViewed } from "../../../../../shared/telemetry";
@@ -14,14 +15,14 @@ const normaliseOpportunityType = (value: string | undefined): OpportunityType =>
 
 const OpportunityPage: NextPageWithLayout = () => {
   const router = useRouter();
-  const { products, sites } = useRegistry();
+  const { products } = useRegistry();
   const query = router.query as {
     "site-id"?: string;
     "opportunity-type"?: string;
     "product-id"?: string;
     "step-id"?: string;
   };
-  const siteId = query["site-id"] ?? sites[0]?.slug ?? "";
+  const siteId = query["site-id"] ?? "";
   const productId = query["product-id"] ?? "";
   const stepId = query["step-id"] ?? "";
   const opportunityType = normaliseOpportunityType(query["opportunity-type"]);
@@ -41,6 +42,14 @@ const OpportunityPage: NextPageWithLayout = () => {
       stepId,
     });
   }, [opportunityType, productId, siteId, stepId]);
+
+  if (!router.isReady) {
+    return <LoadingState message="Loading opportunity brief..." />;
+  }
+
+  if (!siteId || !productId || !stepId) {
+    return <ErrorState message="Opportunity route is missing required IDs." />;
+  }
 
   return (
     <OpportunityBrief

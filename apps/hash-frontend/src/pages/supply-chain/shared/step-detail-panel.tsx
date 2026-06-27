@@ -4,7 +4,6 @@ import { Button, Icon } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { Link } from "../../../shared/ui/link";
-import { type StatusEntry } from "../app-shell/site/opportunities";
 import {
   BriefLink,
   DocsIconButton,
@@ -25,6 +24,7 @@ import {
   applyProcurementBasisToStep,
 } from "./range-filter";
 import { SlideOver, SlideOverClose } from "./slide-over";
+import { deriveStatusActionState, type StatusEntry } from "./status";
 import { ConsumptionMetricsRow } from "./step-detail-panel/consumption-metrics";
 import {
   DataTableSection,
@@ -244,6 +244,35 @@ function getDetailDateKey(
     rows,
     dimension === "timing" ? step.ref_date_col : null,
   );
+}
+
+function detailRowsFromObservations(
+  observations: Observation[],
+): DetailRows | null {
+  if (observations.length === 0) {
+    return null;
+  }
+  return {
+    columns: [
+      {
+        key: "date",
+        source_field: "date",
+        source_table: null,
+        label: "Date",
+      },
+      {
+        key: "value",
+        source_field: "value",
+        source_table: null,
+        label: "Observed days",
+        unit: "d",
+      },
+    ],
+    rows: observations.map((observation) => ({
+      date: observation.date,
+      value: observation.value,
+    })),
+  };
 }
 
 export interface SiteContext {
@@ -496,11 +525,14 @@ export const StepDetailPanel = ({
     } else {
       dr = step.detail_rows ?? null;
     }
+    if (!dr && dimension === "timing") {
+      dr = detailRowsFromObservations((basisStep ?? step).observations);
+    }
     if (!dr) {
       return null;
     }
     return { detailRows: dr, dateKey: getDetailDateKey(step, dr, dimension) };
-  }, [step, dimension, selectedComponent]);
+  }, [step, basisStep, dimension, selectedComponent]);
   const dataTableTitle = useMemo(() => {
     if (!step?.label) {
       return undefined;
@@ -554,6 +586,10 @@ export const StepDetailPanel = ({
       filename: `${filteredStep.id}_timing_data.csv`,
     };
   }, [filteredStep, dimension, selectedComponent]);
+  const statusActionState = useMemo(
+    () => deriveStatusActionState(statusEntries),
+    [statusEntries],
+  );
   return (
     <SlideOver onClose={onClose} label={step?.label ?? "Step detail"}>
       {/* Header */}
@@ -604,7 +640,12 @@ export const StepDetailPanel = ({
               <h2 className={titleStyles}>{step?.label ?? "Loading..."}</h2>
               <div className={titleActions}>
                 {briefHref && <BriefLink href={briefHref} />}
-                {onStatus && <StatusActionButton onClick={onStatus} />}
+                {onStatus && (
+                  <StatusActionButton
+                    onClick={onStatus}
+                    state={statusActionState}
+                  />
+                )}
                 {filteredStep &&
                   activeDetailData &&
                   activeDetailData.detailRows.rows.length > 0 && (

@@ -7,8 +7,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
  * Keeps the existing call sites (`const [params, setParams] = useSearchParams()`)
  * unchanged during the framework swap. View-state lives in the query string and
  * updates route with `shallow: true`, so changing a param never re-runs the
- * page's data fetching — matching the SPA's previous behaviour where the router
- * did not remount on a search-param change.
+ * page's data fetching. No-op writes are ignored so repeated effects or clicks
+ * do not enqueue redundant shallow route updates.
  */
 type NextInit =
   | URLSearchParams
@@ -47,6 +47,9 @@ export function useSearchParams(): [URLSearchParams, SetURLSearchParams] {
         return;
       }
       const qs = resolved.toString();
+      if (qs === optimisticQueryString) {
+        return;
+      }
       const url = qs ? `${path}?${qs}` : path;
       setOptimisticQueryString(qs);
       const navigate = navigateOpts?.replace ? router.replace : router.push;

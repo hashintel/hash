@@ -8,6 +8,7 @@ import {
 } from "./action-button-styles";
 import { StatusIcon } from "./status-dialog";
 
+import type { StatusActionState } from "./status";
 import type { MouseEventHandler, ReactNode } from "react";
 
 // ── Square "?" docs button (identical in the main header + slide-over) ──────
@@ -28,6 +29,24 @@ const docsButton = css({
   _hover: { color: "fg.heading", bg: "bg.subtle" },
 });
 const docsButtonActive = css({ color: "fg.heading", bg: "bg.subtle" });
+const statusSuccess = css({
+  borderColor: "status.success.bd.subtle",
+  bg: "status.success.bg.subtle",
+  color: "status.success.fg.body",
+  _hover: {
+    borderColor: "status.success.bd.strong",
+    color: "status.success.fg.body",
+  },
+});
+const statusDanger = css({
+  borderColor: "status.error.bd.subtle",
+  bg: "status.error.bg.subtle",
+  color: "status.error.fg.body",
+  _hover: {
+    borderColor: "status.error.bd.strong",
+    color: "status.error.fg.body",
+  },
+});
 
 export const DocsIconButton = ({
   onClick,
@@ -108,17 +127,23 @@ export const NeutralActionButton = ({
 export const StatusActionButton = ({
   onClick,
   className,
+  state = { label: "To action", tone: "neutral" },
 }: {
   onClick: MouseEventHandler<HTMLButtonElement>;
   className?: string;
+  state?: StatusActionState;
 }) => {
   return (
     <NeutralActionButton
       onClick={onClick}
       icon={<StatusIcon />}
-      className={className}
+      className={cx(
+        state.tone === "success" && statusSuccess,
+        state.tone === "danger" && statusDanger,
+        className,
+      )}
     >
-      Status
+      {state.label}
     </NeutralActionButton>
   );
 };

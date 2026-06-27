@@ -33,5 +33,18 @@ export const applyReadOps = (
   return [...keys];
 };
 
+/** Merge read keys from duplicate preference entities without reordering. */
+export const mergeReadKeySets = (
+  keySets: Iterable<readonly string[]>,
+): string[] => {
+  const keys = new Set<string>();
+  for (const keySet of keySets) {
+    for (const key of keySet) {
+      keys.add(key);
+    }
+  }
+  return [...keys];
+};
+
 export const buildStatuses = (readKeys: string[]): OpportunityStatuses =>
   Object.fromEntries(readKeys.map((key) => [key, { read: true }]));

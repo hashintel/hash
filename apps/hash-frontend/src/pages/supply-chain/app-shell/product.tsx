@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState, useMemo } from "react";
 import { Tooltip } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
-import { DWELL_TYPES } from "../shared/categories";
+import { DWELL_TYPES, isDwellType } from "../shared/categories";
 import {
   useCostParams,
   useOutlierSetting,
@@ -21,6 +21,8 @@ import { filterGraphNodeByDateRange } from "../shared/range-filter";
 import { ScopeSelect } from "../shared/scope-select";
 import { SegmentedControl } from "../shared/segmented-control";
 import { StatChip } from "../shared/stat-chip";
+import { statusKey } from "../shared/status";
+import { StatusDialog } from "../shared/status-dialog";
 import { StepDetailPanel } from "../shared/step-detail-panel";
 import { trackSupplyChainInteraction } from "../shared/telemetry";
 import { cutoffForRange, timeRangeLongLabel } from "../shared/time-range";
@@ -33,8 +35,9 @@ import { recomputeBatchTimelines } from "./product/recompute-batch-timelines";
 import { PipelineHeader } from "./product/shared/pipeline-header";
 import { PipelineWaterfall } from "./product/shared/pipeline-waterfall";
 import { ALL_SEGMENTS, type SegmentId } from "./product/whatif";
+import { useSupplyChainStatusState } from "./site/use-supply-chain-status-state";
 
-import type { GraphData, GraphNode } from "../shared/types";
+import type { GraphData, GraphNode, SiteNode } from "../shared/types";
 
 type ViewMode = "category" | "canvas";
 
@@ -261,6 +264,7 @@ export const Overview = ({
   const { basis: procurementBasis } = useProcurementBasis();
   const [searchParams, setSearchParams] = useSearchParams();
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [statusTarget, setStatusTarget] = useState<SiteNode | null>(null);
   const pipelineExpanded = searchParams.get("pipeline") === "expanded";
   useEffect(() => {
     setAnalysisSettings(graph.analysis_settings);
@@ -362,8 +366,14 @@ export const Overview = ({
     [onStepSelect, productId, viewMode],
   );
   const handlePanelClose = useCallback(() => {
+    trackSupplyChainInteraction({
+      interaction: "step_detail_panel_closed",
+      productId,
+      source: "product_page",
+      stepId: selectedStepId ?? "",
+    });
     onStepSelect(null);
-  }, [onStepSelect]);
+  }, [onStepSelect, productId, selectedStepId]);
   const filteredGraph = useMemo((): GraphData => {
     const filteredNodes = graph.nodes.map((count) =>
       filterGraphNodeByDateRange(
@@ -434,6 +444,28 @@ export const Overview = ({
     }
     return best ?? currency;
   }, [graph.nodes, currency]);
+  const selectedNode = useMemo((): SiteNode | null => {
+    const node = selectedStepId
+      ? graph.nodes.find((candidate) => candidate.id === selectedStepId)
+      : undefined;
+    return node
+      ? {
+          ...node,
+          products: [{ id: productId, name: graph.product_name }],
+        }
+      : null;
+  }, [graph.nodes, graph.product_name, productId, selectedStepId]);
+  const selectedSiteId = selectedNode?.plant ?? "";
+  const opportunityStatusStore = useSupplyChainStatusState(selectedSiteId);
+  const selectedStatusKey = selectedNode
+    ? statusKey(selectedSiteId, selectedNode)
+    : null;
+  const selectedBriefHref =
+    selectedNode && selectedSiteId
+      ? `/supply-chain/site/${selectedSiteId}/opportunity/${
+          isDwellType(selectedNode.type) ? "dwell" : "planning"
+        }/${productId}/${selectedNode.id}?range=${timeRange}`
+      : undefined;
   return (
     <div className={rootStyle}>
       {/* Header bar */}
@@ -600,11 +632,40 @@ export const Overview = ({
 
       {selectedStepId && (
         <StepDetailPanel
-          key={selectedStepId}
           productId={productId}
           stepId={selectedStepId}
           onClose={handlePanelClose}
           productName={graph.product_name}
+          briefHref={selectedBriefHref}
+          statusEntries={
+            selectedStatusKey
+              ? (opportunityStatusStore.statusHistory[selectedStatusKey] ?? [])
+              : []
+          }
+          onStatus={
+            selectedNode
+              ? () => {
+                  trackSupplyChainInteraction({
+                    interaction: "status_dialog_opened",
+                    productId,
+                    source: "product_page",
+                    stepId: selectedNode.id,
+                  });
+                  setStatusTarget(selectedNode);
+                }
+              : undefined
+          }
+        />
+      )}
+      {statusTarget && (
+        <StatusDialog
+          key={`${statusTarget.plant}-${statusTarget.id}`}
+          title={statusTarget.label}
+          onClose={() => setStatusTarget(null)}
+          onSave={(entry) => {
+            opportunityStatusStore.actions.onSaveStatus(statusTarget, entry);
+            setStatusTarget(null);
+          }}
         />
       )}
     </div>

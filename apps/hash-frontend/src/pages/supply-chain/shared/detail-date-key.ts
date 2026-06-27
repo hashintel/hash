@@ -28,6 +28,7 @@ export const DETAIL_DATE_KEY_PREFERENCE = [
   "sched_start",
   "posting_date",
   "start",
+  "date",
 ];
 
 /**

@@ -67,6 +67,21 @@ describe("fetchSupplierPerformance", () => {
     });
   });
 
+  it("re-attaches companion lines when the performance payload has an empty lines array", async () => {
+    fetchAnalysisArtifactsMock.mockResolvedValue({
+      performance: { ref: "perf" },
+      lines: { ref: "lines" },
+    });
+    fetchArtifactJsonMock
+      .mockResolvedValueOnce({ totals: 1, lines: [] })
+      .mockResolvedValueOnce({ lines: [{ id: "l1" }] });
+
+    await expect(fetchSupplierPerformance(webId("w"))).resolves.toEqual({
+      totals: 1,
+      lines: [{ id: "l1" }],
+    });
+  });
+
   it("tolerates a missing companion lines file", async () => {
     fetchAnalysisArtifactsMock.mockResolvedValue({
       performance: { ref: "perf" },

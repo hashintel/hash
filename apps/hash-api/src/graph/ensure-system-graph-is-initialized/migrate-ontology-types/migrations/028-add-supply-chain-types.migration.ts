@@ -1,7 +1,4 @@
-import {
-  blockProtocolDataTypes,
-  blockProtocolPropertyTypes,
-} from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { blockProtocolDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import {
   createSystemDataTypeIfNotExists,
@@ -102,6 +99,9 @@ const migrate: MigrationFunction = async ({
     migrationState,
   });
 
+  // The frontend records opportunity status through the generic GraphQL entity
+  // path, so this intentionally remains a reusable opportunity status type
+  // rather than a supply-chain-only status report helper.
   await createSystemEntityTypeIfNotExists(context, authentication, {
     entityTypeDefinition: {
       title: "Opportunity Status Update",

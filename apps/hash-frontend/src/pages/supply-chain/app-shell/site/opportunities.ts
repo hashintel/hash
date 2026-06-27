@@ -1,8 +1,8 @@
-import { isDwellType } from "../../shared/categories";
 import { formatCost, formatNumber } from "../../shared/cost";
+import { siteNodeKey } from "../../shared/site-node-key";
 import { LOW_SAMPLE_N } from "./shared/row-types";
-import { siteNodeKey } from "./shared/site-node-key";
 
+import type { StatusOption } from "../../shared/status";
 import type { TimeRange } from "../../shared/time-range";
 import type { SiteNode } from "../../shared/types";
 import type { DwellRow, PlanningRow } from "./shared/row-types";
@@ -15,19 +15,6 @@ export interface OpportunityStatus {
 
 export type OpportunityStatuses = Record<string, OpportunityStatus>;
 
-/** A single status update left against a step/node. */
-export interface StatusEntry {
-  /** ISO timestamp the status was saved (from the entity's creation edition). */
-  at: string;
-  /** Author display name, resolved server-side from edition provenance. */
-  user: string;
-  category: StatusOption;
-  text: string;
-}
-
-/** Status history keyed by {@link statusKey} (step/node + opportunity type). */
-export type StatusStore = Record<string, StatusEntry[]>;
-
 export interface OpportunityStatusActions {
   onMarkRead: (id: string) => void;
   onMarkUnread: (id: string) => void;
@@ -35,18 +22,6 @@ export interface OpportunityStatusActions {
     node: SiteNode,
     status: { category: StatusOption; text: string },
   ) => void;
-}
-
-/**
- * Stable key for status aggregation: site + opportunity type (dwell vs
- * planning, derived from the node) + node identity. A node has a single type,
- * so this aggregates all status history for that step regardless of which
- * opportunity (dwell / planning / trend) the status was left from, and is independent of
- * the time range / measure (unlike the opportunity id).
- */
-export function statusKey(siteId: string, node: SiteNode): string {
-  const type = isDwellType(node.type) ? "dwell" : "planning";
-  return [siteId, type, siteNodeKey(node)].join("::");
 }
 
 export interface SiteOpportunity {
@@ -89,19 +64,6 @@ const DWELL_DAYS_CUTOFF = 7;
 // floor) for a dwell-cost opportunity: below this the saving isn't worth surfacing.
 const DWELL_MIN_PERIOD_COST = 5000;
 const PLANNING_RATIO_THRESHOLD = 0.1;
-export const STATUS_OPTIONS = [
-  "Investigation started",
-  "Investigation update",
-  "Investigation concluded",
-  "Rejected (infeasible)",
-  "Rejected (data issue)",
-] as const;
-
-export type StatusOption = (typeof STATUS_OPTIONS)[number];
-
-export function statusCommentRequired(category: StatusOption): boolean {
-  return category !== "Investigation started";
-}
 
 function opportunityId(
   siteId: string,

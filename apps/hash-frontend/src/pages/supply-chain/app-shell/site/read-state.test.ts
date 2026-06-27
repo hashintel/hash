@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { applyReadOps, buildStatuses, coalesceReadOps } from "./read-state";
+import {
+  applyReadOps,
+  buildStatuses,
+  coalesceReadOps,
+  mergeReadKeySets,
+} from "./read-state";
 
 import type { ReadOp } from "./read-state";
 
@@ -74,5 +79,16 @@ describe("buildStatuses", () => {
 
   it("returns an empty map for no keys", () => {
     expect(buildStatuses([])).toEqual({});
+  });
+});
+
+describe("mergeReadKeySets", () => {
+  it("merges duplicate preference entity read keys", () => {
+    expect(
+      mergeReadKeySets([
+        ["a", "b"],
+        ["b", "c"],
+      ]),
+    ).toEqual(["a", "b", "c"]);
   });
 });

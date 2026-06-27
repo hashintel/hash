@@ -74,9 +74,20 @@ product display labels, raw analysis values, or client-specific data.
 ### Interactions
 
 - `docs_opened`
+- `scope_picker_changed`
 - `status_dialog_opened`
+- `status_dialog_cancelled`
+- `status_dialog_validation_failed`
 - `site_step_selected`
+- `step_detail_panel_closed`
 - `site_tab_changed`
+- `table_sort_changed`
+- `show_read_enabled`
+- `show_read_disabled`
+- `opportunity_section_toggled`
+- `brief_link_clicked`
+- `data_table_opened`
+- `csv_exported`
 - `product_step_selected`
 - `product_view_mode_changed`
 - `opportunity_marked_read`
@@ -124,8 +135,7 @@ operation and only non-sensitive IDs as context.
 
 ## Known Telemetry Gaps
 
-- Track the "show read" opportunity toggle.
-- Track brief-link clicks.
 - Add the selected tab value to `site_tab_changed`.
-- Track scope picker changes.
-- Track table filtering and sorting once those interactions are stable.
+- Track category filter, low-sample toggle, docs topic changes, pipeline control
+  changes, and richer what-if interactions once those payloads can stay
+  non-sensitive.

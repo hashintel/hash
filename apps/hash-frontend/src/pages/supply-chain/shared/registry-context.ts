@@ -5,7 +5,7 @@ import type { Product } from "./types";
 
 /**
  * The product + site registry, loaded once by `SupplyChainDataShell` and shared with every
- * page via context. Mirrors the SPA's single `AppLayout` bootstrap (products and
+ * page via context. Mirrors the app shell bootstrap (products and
  * sites were fetched once at app start) now that each route is its own page.
  */
 export interface Registry {

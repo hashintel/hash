@@ -96,7 +96,10 @@ export const fetchSupplierPerformance = async <
     }
     const performance = await fetchArtifactJson<Performance>(perfRef);
 
-    if (!performance.lines && artifacts.lines) {
+    if (
+      (!performance.lines || performance.lines.length === 0) &&
+      artifacts.lines
+    ) {
       try {
         const companion = await fetchArtifactJson<{ lines?: Line[] }>(
           artifacts.lines,

@@ -8,6 +8,7 @@ import { HEADER_HEIGHT } from "../../../shared/layout/layout-with-header/page-he
 import { useAuthInfo } from "../../shared/auth-info-context";
 import { useActiveWorkspace } from "../../shared/workspace-context";
 import { SupplyChainDataShell } from "../supply-chain-data-shell";
+import { LoadingState } from "./load-state";
 import { resolveSupplyChainDataWebId } from "./supply-chain-analysis-requests";
 
 import type { WebId } from "@blockprotocol/type-system";
@@ -35,7 +36,8 @@ const emptyState = css({
  */
 const SupplyChainShell = ({ children }: { children: ReactNode }) => {
   const rootRef = useRef<HTMLDivElement | null>(null);
-  const { activeWorkspaceWebId } = useActiveWorkspace();
+  const { activeWorkspace, activeWorkspaceWebId, updateActiveWorkspaceWebId } =
+    useActiveWorkspace();
   const { authenticatedUser } = useAuthInfo();
   const [dataWebId, setDataWebId] = useState<WebId | null>();
 
@@ -44,12 +46,23 @@ const SupplyChainShell = ({ children }: { children: ReactNode }) => {
       return activeWorkspaceWebId ? [activeWorkspaceWebId] : [];
     }
 
+    const orgWebIds = authenticatedUser.memberOf.map(({ org }) => org.webId);
+    const personalWebId = authenticatedUser.accountId as WebId;
+
     return [
-      activeWorkspaceWebId,
-      ...authenticatedUser.memberOf.map(({ org }) => org.webId),
-      authenticatedUser.accountId as WebId,
-    ].filter((webId): webId is WebId => !!webId);
-  }, [activeWorkspaceWebId, authenticatedUser]);
+      ...(activeWorkspace?.kind === "user" && activeWorkspaceWebId
+        ? [activeWorkspaceWebId]
+        : []),
+      ...(activeWorkspace?.kind === "org" && activeWorkspaceWebId
+        ? [activeWorkspaceWebId]
+        : []),
+      ...orgWebIds,
+      personalWebId,
+    ].filter(
+      (webId, index, webIds): webId is WebId =>
+        !!webId && webIds.indexOf(webId) === index,
+    );
+  }, [activeWorkspace, activeWorkspaceWebId, authenticatedUser]);
 
   useEffect(() => {
     let cancelled = false;
@@ -60,6 +73,18 @@ const SupplyChainShell = ({ children }: { children: ReactNode }) => {
       .then((resolvedWebId) => {
         if (!cancelled) {
           setDataWebId(resolvedWebId);
+          const resolvedOrg = resolvedWebId
+            ? authenticatedUser?.memberOf.find(
+                ({ org }) => org.webId === resolvedWebId,
+              )
+            : undefined;
+          if (
+            resolvedOrg &&
+            resolvedWebId !== activeWorkspaceWebId &&
+            activeWorkspace?.kind !== "user"
+          ) {
+            updateActiveWorkspaceWebId(resolvedOrg.org.webId);
+          }
         }
       })
       .catch(() => {
@@ -71,7 +96,13 @@ const SupplyChainShell = ({ children }: { children: ReactNode }) => {
     return () => {
       cancelled = true;
     };
-  }, [candidateWebIds]);
+  }, [
+    activeWorkspace,
+    activeWorkspaceWebId,
+    authenticatedUser,
+    candidateWebIds,
+    updateActiveWorkspaceWebId,
+  ]);
 
   return (
     <PortalContainerContext.Provider value={rootRef}>
@@ -83,7 +114,12 @@ const SupplyChainShell = ({ children }: { children: ReactNode }) => {
           overflow: "hidden",
         }}
       >
-        {dataWebId === undefined ? null : dataWebId ? (
+        {dataWebId === undefined ? (
+          <LoadingState
+            className={emptyState}
+            message="Resolving supply-chain workspace..."
+          />
+        ) : dataWebId ? (
           <SupplyChainDataShell key={dataWebId} scope={dataWebId}>
             {children}
           </SupplyChainDataShell>

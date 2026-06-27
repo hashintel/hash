@@ -25,6 +25,7 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 import { formatNumber, getUserLocale } from "../cost";
 import { buildCsvContent, downloadCsv } from "../export-utils";
 import { periodCutoffs } from "../period-trends";
+import { trackSupplyChainInteraction } from "../telemetry";
 
 import type { TimeRange } from "../time-range";
 import type { DetailRows, DetailColumn } from "../types";
@@ -191,6 +192,7 @@ const headerBaseline = css({
 // Neutral/white trigger so the "Data" button matches the Status button in the
 // slide-over header (Brief is the only coloured one).
 const triggerButton = css({
+  h: "7",
   borderColor: "bd.subtle",
   bg: "bgSolid.min",
   color: "fg.muted",
@@ -452,10 +454,15 @@ export const DataTableSection = forwardRef<
     );
     const openWithFilters = useCallback(
       (filters: DataTableFilters = defaultFilters) => {
+        trackSupplyChainInteraction({
+          interaction: "data_table_opened",
+          source: "step_detail_panel",
+          stepId,
+        });
         applyFilters(filters);
         setOpen(true);
       },
-      [applyFilters, defaultFilters],
+      [applyFilters, defaultFilters, stepId],
     );
     useImperativeHandle(ref, () => ({ openWithFilters }), [openWithFilters]);
     const columns = useMemo<ColumnDef<Record<string, unknown>>[]>(() => {
@@ -555,6 +562,11 @@ export const DataTableSection = forwardRef<
       return null;
     }
     const handleExport = () => {
+      trackSupplyChainInteraction({
+        interaction: "csv_exported",
+        source: "step_detail_data_table",
+        stepId,
+      });
       const rows = filteredRows.map(
         (row) => row.original as Record<string, string | number | null>,
       );

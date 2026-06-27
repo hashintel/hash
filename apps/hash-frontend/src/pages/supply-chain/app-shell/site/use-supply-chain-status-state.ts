@@ -23,13 +23,18 @@ import { useActors } from "../../../../shared/use-actors";
 import { useAuthInfo } from "../../../shared/auth-info-context";
 import { isDwellType } from "../../shared/categories";
 import { useScope } from "../../shared/scope-context";
+import { STATUS_OPTIONS, statusKey } from "../../shared/status";
 import {
   trackSupplyChainError,
   trackSupplyChainInteraction,
   trackSupplyChainStatusReportCreated,
 } from "../../shared/telemetry";
-import { statusKey, STATUS_OPTIONS } from "./opportunities";
-import { applyReadOps, buildStatuses, type ReadOp } from "./read-state";
+import {
+  applyReadOps,
+  buildStatuses,
+  mergeReadKeySets,
+  type ReadOp,
+} from "./read-state";
 
 import type {
   CreateEntityMutation,
@@ -39,13 +44,15 @@ import type {
   UpdateEntityMutation,
   UpdateEntityMutationVariables,
 } from "../../../../graphql/api-types.gen";
+import type {
+  StatusEntry,
+  StatusOption,
+  StatusStore,
+} from "../../shared/status";
 import type { SiteNode } from "../../shared/types";
 import type {
   OpportunityStatusActions,
   OpportunityStatuses,
-  StatusEntry,
-  StatusOption,
-  StatusStore,
 } from "./opportunities";
 import type {
   ActorEntityUuid,
@@ -82,6 +89,10 @@ const statusTextBaseUrl =
   systemPropertyTypes.supplyChainStatusText.propertyTypeBaseUrl;
 const readItemBaseUrl = systemPropertyTypes.readItem.propertyTypeBaseUrl;
 
+// Status reports and read markers intentionally use the generic generated
+// system types plus the shared GraphQL entity mutations. There is no
+// supply-chain-specific backend helper for this accepted model.
+
 const textValueWithMetadata = (value: string) => ({
   value,
   metadata: { dataTypeId: blockProtocolDataTypes.text.dataTypeId },
@@ -97,6 +108,11 @@ const categoryValueWithMetadata = (value: StatusOption) => ({
 const readItemArrayWithMetadata = (keys: string[]) => ({
   value: keys.map((key) => textValueWithMetadata(key)),
 });
+
+const byCreatedAt = (left: HashEntity, right: HashEntity) =>
+  left.metadata.provenance.createdAtDecisionTime.localeCompare(
+    right.metadata.provenance.createdAtDecisionTime,
+  );
 
 const getStringProperty = (
   entity: HashEntity,
@@ -301,17 +317,20 @@ export const useSupplyChainStatusState = (
       variables: { request: preferencesQuery({ userId, webId: scope }) },
     });
 
-    const preferencesEntity = data?.queryEntities
+    const preferencesEntities = data?.queryEntities
       ? deserializeQueryEntitiesResponse(
           data.queryEntities as SerializedQueryEntitiesResponse<SupplyChainUserPreferences>,
-        ).entities[0]
-      : undefined;
+        ).entities
+      : [];
+    const [preferencesEntity] = [...preferencesEntities].sort(byCreatedAt);
 
     return {
       entityId: preferencesEntity?.metadata.recordId.entityId ?? null,
-      readKeys: preferencesEntity
-        ? getStringArrayProperty(preferencesEntity, readItemBaseUrl)
-        : [],
+      readKeys: mergeReadKeySets(
+        preferencesEntities.map((entity) =>
+          getStringArrayProperty(entity, readItemBaseUrl),
+        ),
+      ),
     };
   }, [queryEntities, scope, userId]);
 

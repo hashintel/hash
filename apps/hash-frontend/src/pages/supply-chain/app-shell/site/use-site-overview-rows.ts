@@ -20,6 +20,7 @@ import {
   countBadPlanningParams,
   computeNodePeriodCost,
 } from "../../shared/site-aggregation";
+import { siteNodeKey } from "../../shared/site-node-key";
 import { recomputeSitePerformance } from "../../shared/supplier-otif";
 import { useTimeRange } from "../../shared/time-range-context";
 import { useSiteNodes } from "../../shared/use-site-nodes";
@@ -30,7 +31,6 @@ import {
   sortPlanningRows,
   aggregateMonthlyCarryCost,
 } from "./shared/helpers";
-import { siteNodeKey } from "./shared/site-node-key";
 
 import type {
   Product,
@@ -49,6 +49,12 @@ interface SiteOverviewRowsInput {
   planSort: { key: SortKey; dir: SortDir };
   supplierMode: SupplierMode;
   supplierPerformanceEnabled: boolean;
+}
+
+function supplierLeaderboardMin(
+  overall: SiteSupplierPerformance["overall"] | null | undefined,
+): number {
+  return overall?.min_lines_for_leaderboard ?? 3;
 }
 
 /**
@@ -254,7 +260,7 @@ export function useSiteOverviewRows({
     if (!windowedSupplier) {
       return [] as VendorOtifStats[];
     }
-    const min = windowedSupplier.overall.min_lines_for_leaderboard;
+    const min = supplierLeaderboardMin(windowedSupplier.overall);
     return windowedSupplier.vendors.filter((value) => value.n_lines >= min);
   }, [windowedSupplier]);
 

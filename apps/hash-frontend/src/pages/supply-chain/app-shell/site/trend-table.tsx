@@ -6,6 +6,9 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 import { StatusActionButton } from "../../shared/action-buttons";
 import { getCategoryColor } from "../../shared/categories";
 import { formatNumber } from "../../shared/cost";
+import { siteNodeKey } from "../../shared/site-node-key";
+import { deriveStatusActionState, statusKey } from "../../shared/status";
+import { trackSupplyChainInteraction } from "../../shared/telemetry";
 import { trendToneFor } from "../../shared/trend-tone";
 import { LowSampleBadge } from "./shared/low-sample-badge";
 import { ProductTags } from "./shared/product-tags";
@@ -15,10 +18,10 @@ import {
   type SortKey,
   type TrendRow,
 } from "./shared/row-types";
-import { siteNodeKey } from "./shared/site-node-key";
 import { SortHeader } from "./shared/sort-header";
 import * as threshold from "./shared/table-styles";
 
+import type { StatusStore } from "../../shared/status";
 import type { SiteNode } from "../../shared/types";
 
 const prevValue = css({ color: "fg.subtle" });
@@ -141,16 +144,23 @@ export const TrendTable = ({
   sort,
   onSort,
   onRowClick,
+  statusHistory = {},
   onStatus,
 }: {
   rows: TrendRow[];
   sort: { key: SortKey; dir: SortDir };
   onSort: (s: { key: SortKey; dir: SortDir }) => void;
   onRowClick: (node: SiteNode) => void;
+  statusHistory?: StatusStore;
   onStatus: (node: SiteNode, title: string) => void;
 }) => {
   const sortedRows = useMemo(() => sortTrendRows(rows, sort), [rows, sort]);
   const toggleSort = (key: SortKey) => {
+    trackSupplyChainInteraction({
+      interaction: "table_sort_changed",
+      siteId: rows[0]?.plant ?? "",
+      source: "trend_table",
+    });
     if (sort.key === key) {
       onSort({ key, dir: sort.dir === "desc" ? "asc" : "desc" });
     } else {
@@ -252,6 +262,9 @@ export const TrendTable = ({
               </td>
               <td className={cx(threshold.td, threshold.tdRight)}>
                 <StatusActionButton
+                  state={deriveStatusActionState(
+                    statusHistory[statusKey(row.plant, row)],
+                  )}
                   onClick={(event) => {
                     event.stopPropagation();
                     onStatus(row, row.label);

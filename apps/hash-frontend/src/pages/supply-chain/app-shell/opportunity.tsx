@@ -1547,6 +1547,10 @@ export const OpportunityBrief = ({
   // plant's top dwell costs"). Failures degrade silently; the banner just omits
   // the rank.
   useEffect(() => {
+    if (!siteId) {
+      setRollups(null);
+      return;
+    }
     let cancelled = false;
     fetchSiteSummary(siteId)
       .then((summary) => {
@@ -1565,6 +1569,9 @@ export const OpportunityBrief = ({
   }, [siteId]); // Once the shared site nodes resolve, resolve the brief's node and fetch its
   // step detail. The node lookup reuses the hook's memoised dedup.
   useEffect(() => {
+    if (!siteId || !productId || !stepId) {
+      return;
+    }
     if (nodesLoading) {
       return;
     }
@@ -1588,7 +1595,7 @@ export const OpportunityBrief = ({
     return () => {
       cancelled = true;
     };
-  }, [nodes, nodesLoading, productId, stepId]);
+  }, [nodes, nodesLoading, productId, siteId, stepId]);
   const error = siteError ?? stepError;
   const siteNode = useMemo((): SiteNode | null => {
     const node = findBriefNode(nodes, stepId, productId);

@@ -1,14 +1,14 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  buildSiteOpportunities,
+  STATUS_OPTIONS,
   statusCommentRequired,
   statusKey,
-  STATUS_OPTIONS,
-} from "./opportunities";
+} from "../../shared/status";
+import { buildSiteOpportunities } from "./opportunities";
 
+import type { StatusOption } from "../../shared/status";
 import type { StepStats } from "../../shared/types";
-import type { StatusOption } from "./opportunities";
 import type { DwellRow, PlanningRow } from "./shared/row-types";
 import type { OpportunityStatusCategoryDataType } from "@local/hash-isomorphic-utils/system-types/opportunitystatusupdate";
 
