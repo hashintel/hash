@@ -108,8 +108,10 @@ const SigninPage: NextPageWithLayout = () => {
       );
     }
 
-    return redirectPath;
-  }, [router]);
+    return redirectPath
+      ? `${redirectPath}${redirectUrl.search}${redirectUrl.hash}`
+      : undefined;
+  }, [router.query.return_to]);
 
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
@@ -155,6 +157,7 @@ const SigninPage: NextPageWithLayout = () => {
       .createBrowserLoginFlow({
         refresh: Boolean(refresh),
         aal: aal ? String(aal) : undefined,
+        returnTo,
         loginChallenge:
           typeof loginChallenge === "string" ? loginChallenge : undefined,
       })
@@ -165,6 +168,7 @@ const SigninPage: NextPageWithLayout = () => {
     loginChallenge,
     router,
     router.isReady,
+    returnTo,
     aal,
     refresh,
     flow,
@@ -299,7 +303,17 @@ const SigninPage: NextPageWithLayout = () => {
     void router
       // On submission, add the flow ID to the URL but do not navigate. This prevents the user losing
       // their data when they reload the page.
-      .push(`/signin?flow=${flow.id}`, undefined, { shallow: true })
+      .push(
+        {
+          pathname: "/signin",
+          query: {
+            ...(returnTo ? { return_to: returnTo } : {}),
+            flow: flow.id,
+          },
+        },
+        undefined,
+        { shallow: true },
+      )
       .then(() =>
         oryKratosClient
           .updateLoginFlow({
@@ -372,7 +386,7 @@ const SigninPage: NextPageWithLayout = () => {
       headerEndAdornment={
         <SignupButton
           endIcon={<ArrowRightToBracketRegularIcon />}
-          href="/signup"
+          href={returnTo?.startsWith("/signup") ? returnTo : "/signup"}
           disabled={!userSelfRegistrationIsEnabled}
         >
           Sign up

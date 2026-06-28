@@ -1,7 +1,7 @@
 import { useLazyQuery, useMutation, useQuery } from "@apollo/client";
 import { Grid, styled } from "@mui/material";
 import { useRouter } from "next/router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { ArrowUpRightRegularIcon } from "@hashintel/design-system";
 
@@ -91,7 +91,10 @@ const SignupPage: NextPageWithLayout = () => {
     }
   }, [userHasVerifiedEmail, userHasAccessToHashData, fetchHasAccess]);
 
-  const { invitationId } = router.query;
+  const invitationId =
+    typeof router.query.invitationId === "string"
+      ? router.query.invitationId
+      : undefined;
 
   const [showInvitationStep, setShowInvitationStep] = useState(true);
 
@@ -119,31 +122,134 @@ const SignupPage: NextPageWithLayout = () => {
 
   const invitation = invitationData?.getPendingInvitationByEntityId;
 
+  const [acceptingInvitation, setAcceptingInvitation] = useState(false);
+  const acceptingInvitationEntityIdRef = useRef<EntityId | undefined>(
+    undefined,
+  );
+
   const [updateAuthenticatedUser, { loading: updateUserLoading }] =
     useUpdateAuthenticatedUser();
 
   const [errorMessage, setErrorMessage] = useState<string>();
 
+  const acceptInvitationOnce = useCallback(
+    async ({
+      invitationEntityId,
+      alreadyReserved = false,
+    }: {
+      invitationEntityId: EntityId;
+      alreadyReserved?: boolean;
+    }) => {
+      if (
+        !alreadyReserved &&
+        acceptingInvitationEntityIdRef.current === invitationEntityId
+      ) {
+        return;
+      }
+
+      acceptingInvitationEntityIdRef.current = invitationEntityId;
+      setAcceptingInvitation(true);
+
+      try {
+        await acceptInvitation({
+          variables: {
+            orgInvitationEntityId: invitationEntityId,
+          },
+        });
+      } catch (error) {
+        acceptingInvitationEntityIdRef.current = undefined;
+        setAcceptingInvitation(false);
+        throw error;
+      }
+    },
+    [acceptInvitation],
+  );
+
+  useEffect(() => {
+    if (
+      !router.isReady ||
+      !authenticatedUser?.accountSignupComplete ||
+      !invitation ||
+      acceptingInvitationEntityIdRef.current === invitation.invitationEntityId
+    ) {
+      return;
+    }
+
+    void acceptInvitationOnce({
+      invitationEntityId: invitation.invitationEntityId,
+    })
+      .then(async () => {
+        await refetchAuthenticatedUser();
+        void router.replace("/");
+      })
+      .catch(() => {
+        setErrorMessage("Could not accept the invitation. Please try again.");
+        setAcceptingInvitation(false);
+      });
+  }, [
+    acceptInvitationOnce,
+    authenticatedUser?.accountSignupComplete,
+    invitation,
+    refetchAuthenticatedUser,
+    router,
+  ]);
+
+  useEffect(() => {
+    if (
+      router.isReady &&
+      authenticatedUser?.accountSignupComplete &&
+      invitationId &&
+      !invitationLoading &&
+      !invitation &&
+      !acceptingInvitation
+    ) {
+      void router.replace("/");
+    }
+  }, [
+    acceptingInvitation,
+    authenticatedUser?.accountSignupComplete,
+    invitation,
+    invitationId,
+    invitationLoading,
+    router,
+  ]);
+
   const handleAccountSetupSubmit = useCallback(
     async (params: AccountSetupFormData) => {
       const { shortname, displayName } = params;
 
+      const reservedInvitationEntityId = invitation?.invitationEntityId;
+      if (reservedInvitationEntityId) {
+        acceptingInvitationEntityIdRef.current = reservedInvitationEntityId;
+        setAcceptingInvitation(true);
+      }
+
       const { errors } = await updateAuthenticatedUser({
         shortname,
         displayName,
+      }).catch((error) => {
+        if (reservedInvitationEntityId) {
+          acceptingInvitationEntityIdRef.current = undefined;
+          setAcceptingInvitation(false);
+        }
+
+        throw error;
       });
 
       if (errors && errors.length > 0) {
         const { message } = parseGraphQLError([...errors]);
         setErrorMessage(message);
+        if (reservedInvitationEntityId) {
+          acceptingInvitationEntityIdRef.current = undefined;
+          setAcceptingInvitation(false);
+        }
         return;
       }
 
-      if (invitation) {
-        await acceptInvitation({
-          variables: {
-            orgInvitationEntityId: invitation.invitationEntityId,
-          },
+      if (reservedInvitationEntityId) {
+        await acceptInvitationOnce({
+          invitationEntityId: reservedInvitationEntityId,
+          alreadyReserved: true,
         });
       }
 
@@ -152,7 +258,7 @@ const SignupPage: NextPageWithLayout = () => {
       void router.push("/");
     },
     [
-      acceptInvitation,
+      acceptInvitationOnce,
       invitation,
       refetchAuthenticatedUser,
       updateAuthenticatedUser,

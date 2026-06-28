@@ -42,17 +42,22 @@ export const SignupRegistrationForm: FunctionComponent = () => {
   // information about the form we need to render (e.g. username + password)
   const [flow, setFlow] = useState<RegistrationFlow>();
 
-  const { email: emailFromQuery, ...restOfQuery } = router.query;
+  const {
+    email: emailFromQuery,
+    flow: flowId,
+    return_to: returnTo,
+    ...queryToPreserve
+  } = router.query;
 
   const initialEmail = typeof emailFromQuery === "string" ? emailFromQuery : "";
 
   useEffect(() => {
     if (emailFromQuery) {
-      void router.push({ query: restOfQuery }, undefined, {
+      void router.push({ query: queryToPreserve }, undefined, {
         shallow: true,
       });
     }
-  }, [emailFromQuery, restOfQuery, router]);
+  }, [emailFromQuery, queryToPreserve, router]);
 
   const [email, setEmail] = useState<string>(initialEmail);
   const [password, setPassword] = useState<string>("");
@@ -72,9 +77,6 @@ export const SignupRegistrationForm: FunctionComponent = () => {
    */
   const handleFlowErrorRef = useRef(handleFlowError);
   handleFlowErrorRef.current = handleFlowError;
-
-  // Get ?flow=... from the URL
-  const { flow: flowId, return_to: returnTo } = router.query;
 
   // In this effect we either initiate a new registration flow, or we fetch an existing registration flow.
   useEffect(() => {
@@ -121,7 +123,7 @@ export const SignupRegistrationForm: FunctionComponent = () => {
       .push(
         {
           query: {
-            ...restOfQuery,
+            ...queryToPreserve,
             flow: flow.id,
           },
         },
@@ -159,7 +161,10 @@ export const SignupRegistrationForm: FunctionComponent = () => {
             await router.replace(
               {
                 pathname: "/signup",
-                query: verificationFlowId ? { verificationFlowId } : undefined,
+                query: {
+                  ...queryToPreserve,
+                  ...(verificationFlowId ? { verificationFlowId } : {}),
+                },
               },
               undefined,
               { shallow: true },
