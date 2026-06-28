@@ -43,7 +43,7 @@ export const GraphDataLoader = memo(({ edges, nodes }: GraphLoaderProps) => {
       }
 
       const hasUrlImage =
-        !!node.icon?.startsWith("http") ||
+        !!node.icon?.startsWith("http://") ||
         !!node.icon?.startsWith("https://") ||
         node.icon?.startsWith("/");
 
