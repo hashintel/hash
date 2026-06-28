@@ -25,7 +25,7 @@ use type_system::{
 use crate::{
     entity::ClosedMultiEntityTypeMap,
     error::{CheckPermissionError, InsertionError, QueryError, UpdateError},
-    filter::Filter,
+    filter::{Filter, SemanticDistance},
     query::ConflictBehavior,
     subgraph::{
         Subgraph,
@@ -240,7 +240,7 @@ pub struct QueryEntityTypesParams<'p> {
 pub struct SearchEntityTypesParams {
     pub embedding: Embedding<'static>,
     /// Upper bound on the cosine distance for a result to be included.
-    pub maximum_semantic_distance: f64,
+    pub maximum_semantic_distance: SemanticDistance,
     pub limit: usize,
 }
 

@@ -37,7 +37,7 @@ use crate::{
     entity::{EntityQueryCursor, EntityQuerySorting, EntityValidationReport},
     entity_type::{EntityTypeResolveDefinitions, IncludeEntityTypeOption},
     error::{CheckPermissionError, DeletionError, InsertionError, QueryError, UpdateError},
-    filter::Filter,
+    filter::{Filter, SemanticDistance},
     subgraph::{
         Subgraph,
         edges::{
@@ -208,7 +208,7 @@ pub struct QueryEntitiesParams<'a> {
 pub struct SearchEntitiesParams {
     pub embedding: Embedding<'static>,
     /// Upper bound on the cosine distance for a result to be included.
-    pub maximum_semantic_distance: f64,
+    pub maximum_semantic_distance: SemanticDistance,
     pub limit: usize,
     /// When `true`, the response includes the closed multi-entity types of the results.
     pub include_entity_types: bool,

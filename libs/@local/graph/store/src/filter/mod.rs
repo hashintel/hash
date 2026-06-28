@@ -1,6 +1,7 @@
 mod parameter;
 mod path;
 pub mod protection;
+mod semantic_distance;
 
 use alloc::borrow::Cow;
 use core::{borrow::Borrow as _, fmt, hash::Hash};
@@ -39,6 +40,7 @@ pub use self::{
         FilterExpressionList, Parameter, ParameterConversionError, ParameterList, ParameterType,
     },
     path::{JsonPath, PathToken},
+    semantic_distance::{InvalidSemanticDistanceError, SemanticDistance},
 };
 use crate::{
     data_type::DataTypeQueryPath,

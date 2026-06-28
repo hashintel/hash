@@ -1308,7 +1308,7 @@ where
         //   `MIN(<=>) GROUP BY` defeats it). The returned entities can also be trimmed to the
         //   fields the search bar and inference actually use, but the query is the bottleneck.
         let maximum_distance =
-            Real::try_from(maximum_semantic_distance).change_context(QueryError)?;
+            Real::try_from(maximum_semantic_distance.into_inner()).change_context(QueryError)?;
 
         // The search always runs against the current time and never returns archived entities.
         let mut filters = vec![

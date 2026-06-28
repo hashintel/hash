@@ -83,7 +83,6 @@ use crate::rest::{
     json::Json,
     status::{BoxedResponse, report_to_response},
     utoipa_typedef::subgraph::Subgraph,
-    validate_maximum_semantic_distance,
 };
 
 #[derive(OpenApi)]
@@ -518,10 +517,6 @@ async fn search_entities<S>(
 where
     S: StorePool + Send + Sync,
 {
-    validate_maximum_semantic_distance(request.maximum_semantic_distance)
-        .attach(hash_status::StatusCode::InvalidArgument)
-        .map_err(report_to_response)?;
-
     let store = store_pool
         .acquire(temporal_client.0)
         .await

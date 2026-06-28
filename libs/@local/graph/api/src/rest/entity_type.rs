@@ -24,6 +24,7 @@ use hash_graph_store::{
         QueryEntityTypesResponse, SearchEntityTypesParams, SearchEntityTypesResponse,
         UnarchiveEntityTypeParams, UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
     },
+    filter::SemanticDistance,
     pool::StorePool,
     query::ConflictBehavior,
 };
@@ -48,11 +49,11 @@ use utoipa::{OpenApi, ToSchema};
 use super::status::BoxedResponse;
 use crate::rest::{
     ApiConfig, AuthenticatedUserHeader, OpenApiQuery, QueryLogger, RestApiStore,
+    SearchRequestError,
     json::Json,
     resolve_limit,
     status::{report_to_response, status_to_response},
     utoipa_typedef::{ListOrValue, MaybeListOfEntityType, subgraph::Subgraph},
-    validate_maximum_semantic_distance,
 };
 
 #[derive(OpenApi)]
@@ -548,6 +549,34 @@ pub struct SearchEntityTypesRequest {
     pub limit: Option<usize>,
 }
 
+impl SearchEntityTypesRequest {
+    /// Converts this request into the search parameters for the entity type embedding search
+    /// endpoint.
+    ///
+    /// # Errors
+    ///
+    /// - [`InvalidSemanticDistance`] if the maximum semantic distance is invalid.
+    /// - [`LimitExceeded`] if the requested limit exceeds the configured  maximum in
+    ///   [`ApiConfig::query_ontology_limit`].
+    ///
+    /// [`InvalidSemanticDistance`]: SearchRequestError::InvalidSemanticDistance
+    /// [`LimitExceeded`]: SearchRequestError::LimitExceeded
+    pub fn into_params(
+        self,
+        config: ApiConfig,
+    ) -> Result<SearchEntityTypesParams, Report<SearchRequestError>> {
+        Ok(SearchEntityTypesParams {
+            embedding: self.embedding,
+            maximum_semantic_distance: SemanticDistance::try_from(self.maximum_semantic_distance)
+                .change_context(
+                SearchRequestError::InvalidSemanticDistance,
+            )?,
+            limit: resolve_limit(self.limit, config.query_ontology_limit)
+                .change_context(SearchRequestError::LimitExceeded)?,
+        })
+    }
+}
+
 #[utoipa::path(
     post,
     path = "/entity-types/search",
@@ -577,11 +606,8 @@ async fn search_entity_types<S>(
 where
     S: StorePool + Send + Sync,
 {
-    validate_maximum_semantic_distance(request.maximum_semantic_distance)
-        .attach(hash_status::StatusCode::InvalidArgument)
-        .map_err(report_to_response)?;
-
-    let limit = resolve_limit(request.limit, api_config.query_ontology_limit)
+    let params = request
+        .into_params(api_config)
         .attach(hash_status::StatusCode::InvalidArgument)
         .map_err(report_to_response)?;
 
@@ -591,14 +617,7 @@ where
         .map_err(report_to_response)?;
 
     store
-        .search_entity_types(
-            actor_id,
-            SearchEntityTypesParams {
-                embedding: request.embedding,
-                maximum_semantic_distance: request.maximum_semantic_distance,
-                limit,
-            },
-        )
+        .search_entity_types(actor_id, params)
         .await
         .map(Json)
         .map_err(report_to_response)

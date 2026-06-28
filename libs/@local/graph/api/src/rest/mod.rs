@@ -366,30 +366,16 @@ pub(crate) fn resolve_limit(
     }
 }
 
-/// The requested maximum semantic distance is invalid.
-#[derive(Debug, Copy, Clone, PartialEq, derive_more::Display)]
-#[display("The maximum semantic distance ({distance}) must be within the range [0, 2].")]
-pub struct InvalidSemanticDistanceError {
-    pub distance: f64,
+/// A search request could not be converted into store parameters.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, derive_more::Display)]
+pub enum SearchRequestError {
+    #[display("The requested limit is invalid.")]
+    LimitExceeded,
+    #[display("The requested maximum semantic distance is invalid.")]
+    InvalidSemanticDistance,
 }
 
-impl Error for InvalidSemanticDistanceError {}
-
-/// Validates a maximum semantic distance for embedding search.
-///
-/// Cosine distance lies in `[0, 2]`, so any value outside that range is rejected.
-///
-/// # Errors
-///
-/// Returns [`InvalidSemanticDistanceError`] if the distance is outside `[0, 2]` or not finite.
-pub(crate) fn validate_maximum_semantic_distance(
-    distance: f64,
-) -> Result<(), Report<InvalidSemanticDistanceError>> {
-    if !(0.0..=2.0).contains(&distance) {
-        return Err(Report::new(InvalidSemanticDistanceError { distance }));
-    }
-    Ok(())
-}
+impl Error for SearchRequestError {}
 
 /// Server-side configuration for the REST API, shared across handlers via an [`Extension`].
 #[derive(Debug, Clone, Copy)]

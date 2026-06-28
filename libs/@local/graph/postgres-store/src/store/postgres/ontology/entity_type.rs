@@ -1216,7 +1216,7 @@ where
         //   needs an ANN-friendly query shape to be usable (the current `MIN(<=>) GROUP BY`
         //   defeats it).
         let maximum_distance =
-            Real::try_from(maximum_semantic_distance).change_context(QueryError)?;
+            Real::try_from(maximum_semantic_distance.into_inner()).change_context(QueryError)?;
 
         let filter = Filter::CosineDistance(
             FilterExpression::Path {

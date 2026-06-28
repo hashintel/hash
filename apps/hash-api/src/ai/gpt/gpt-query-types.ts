@@ -54,9 +54,9 @@ export const gptQueryTypes: RequestHandler<
 
   const { webUuids } = req.body;
 
-  // TODO(BE-624): semantic search is disabled here. The `cosineDistance` filter was removed
-  // because it is no longer supported on the generic filter — migrate this endpoint to the
-  // dedicated `searchEntityTypes` endpoint to restore it.
+  // TODO(BE-624): semantic search is disabled here, so the `query` field is currently accepted but
+  // ignored. The `cosineDistance` filter was removed because it is no longer supported on the
+  // generic filter — migrate this endpoint to the dedicated `searchEntityTypes` endpoint to restore it.
   const queryResponse: GptQueryTypesResponseBody =
     await queryEntityTypeSubgraph(
       req.context.graphApi,
