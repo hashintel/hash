@@ -265,6 +265,7 @@ async fn create_entity(
                 draft,
                 policies: Vec::new(),
                 provenance: entity_provenance(),
+                read_only: false,
             },
         )
         .await
@@ -365,6 +366,7 @@ async fn seed_data(
                 draft: false,
                 policies: Vec::new(),
                 provenance: entity_provenance(),
+                read_only: false,
             },
         )
         .await

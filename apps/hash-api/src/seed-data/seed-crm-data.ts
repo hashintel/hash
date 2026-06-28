@@ -1282,6 +1282,13 @@ const seedCrmData = async () => {
       }),
   );
 
+  // Open stages ramp up linearly; closed stages take their literal win
+  // probability (Closed Won = certain win, Closed Lost = no chance) rather
+  // than continuing the linear scale, which would otherwise mislabel
+  // "Closed Lost" as a 100% win.
+  const openStageCount = stageNames.filter(
+    (name) => !name.startsWith("Closed"),
+  ).length;
   const stages = await batchMap([...stageNames], (name, index) =>
     makeEntity(stageType.schema.$id, {
       [nameBaseUrl]: value(dt.text, name),
@@ -1289,7 +1296,11 @@ const seedCrmData = async () => {
       [stageOrderProp.metadata.recordId.baseUrl]: value(dt.number, index + 1),
       [defaultProbabilityProp.metadata.recordId.baseUrl]: value(
         dt.percentage,
-        Math.round((index / (stageNames.length - 1)) * 100),
+        name === "Closed Won"
+          ? 100
+          : name === "Closed Lost"
+            ? 0
+            : Math.round((index / (openStageCount - 1)) * 90),
       ),
       [isClosedProp.metadata.recordId.baseUrl]: value(
         dt.boolean,

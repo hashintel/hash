@@ -71,6 +71,7 @@ async fn published_entity() {
                 draft: false,
                 policies: Vec::new(),
                 provenance: provenance(),
+                read_only: false,
             },
         )
         .await
@@ -134,6 +135,7 @@ async fn published_entity_with_history() {
                 draft: false,
                 policies: Vec::new(),
                 provenance: provenance(),
+                read_only: false,
             },
         )
         .await
@@ -697,6 +699,7 @@ async fn cross_web_batch() {
                 draft: false,
                 policies: Vec::new(),
                 provenance: provenance(),
+                read_only: false,
             },
         )
         .await

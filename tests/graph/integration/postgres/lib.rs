@@ -17,6 +17,7 @@ mod multi_type;
 mod partial_updates;
 mod property_metadata;
 mod property_type;
+mod read_only;
 mod sorting;
 
 use std::collections::{HashMap, HashSet};
@@ -34,7 +35,9 @@ use hash_graph_postgres_store::{
     },
 };
 use hash_graph_store::{
-    account::{AccountStore as _, CreateUserActorParams},
+    account::{
+        AccountStore as _, CreateAiActorParams, CreateMachineActorParams, CreateUserActorParams,
+    },
     data_type::{
         ArchiveDataTypeParams, CountDataTypesParams, CreateDataTypeParams, DataTypeStore,
         FindDataTypeConversionTargetsParams, FindDataTypeConversionTargetsResponse,
@@ -81,7 +84,11 @@ use type_system::{
         property_type::{PropertyType, PropertyTypeMetadata},
         provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
     },
-    principal::actor::{ActorEntityUuid, ActorType},
+    principal::{
+        actor::{ActorEntityUuid, ActorType, AiId, MachineId},
+        actor_group::WebId,
+        role::RoleName,
+    },
     provenance::{OriginProvenance, OriginType},
 };
 
@@ -93,6 +100,46 @@ pub struct DatabaseTestWrapper {
 pub struct DatabaseApi<'pool> {
     store: PostgresStore<Transaction<'pool>>,
     account_id: ActorEntityUuid,
+}
+
+impl DatabaseApi<'_> {
+    pub async fn create_machine(&mut self, identifier: &str) -> MachineId {
+        self.store
+            .create_machine_actor(
+                self.account_id,
+                CreateMachineActorParams {
+                    identifier: identifier.to_owned(),
+                },
+            )
+            .await
+            .expect("could not create machine actor")
+    }
+
+    pub async fn create_ai(&mut self, identifier: &str) -> AiId {
+        self.store
+            .create_ai_actor(
+                self.account_id,
+                CreateAiActorParams {
+                    identifier: identifier.to_owned(),
+                },
+            )
+            .await
+            .expect("could not create AI actor")
+    }
+
+    /// Assigns `actor` as an administrator of `web_id`, granting it the web's `UpdateEntity`
+    /// rights.
+    pub async fn assign_web_administrator(&mut self, actor: ActorEntityUuid, web_id: WebId) {
+        self.store
+            .assign_role(
+                self.account_id,
+                actor,
+                web_id.into(),
+                RoleName::Administrator,
+            )
+            .await
+            .expect("could not assign web administrator role");
+    }
 }
 
 pub fn init_logging() {

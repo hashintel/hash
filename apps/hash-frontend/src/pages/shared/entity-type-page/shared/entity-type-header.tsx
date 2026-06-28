@@ -11,6 +11,7 @@ import {
 import {
   ArrowUpRightFromSquareRegularIcon,
   ArrowUpRightIcon,
+  EntityOrTypeIcon,
   EntityTypeIcon,
   LinkTypeIcon,
 } from "@hashintel/design-system";
@@ -115,32 +116,37 @@ export const EntityTypeHeader = ({
                   control={control}
                   name="icon"
                   render={({ field }) => {
-                    const iconImgUrl = field.value?.startsWith("/")
-                      ? new URL(field.value, window.location.origin).href
-                      : field.value;
+                    const iconValue = field.value;
 
                     /**
                      * @todo allow uploading new SVG icons
                      */
-                    if (iconImgUrl?.startsWith("http")) {
+                    if (
+                      typeof iconValue === "string" &&
+                      (iconValue.startsWith("http") ||
+                        iconValue.startsWith("/"))
+                    ) {
                       return (
                         <Box
-                          sx={({ palette }) => ({
-                            backgroundColor: palette.gray[50],
-                            webkitMask: `url(${iconImgUrl}) no-repeat center / contain`,
-                            mask: `url(${iconImgUrl}) no-repeat center / contain`,
-                            width: 40,
-                            height: 40,
+                          sx={{
                             position: "relative",
                             top: entityTypeNameSize.lineHeight / 2 - 20,
-                          })}
-                        />
+                          }}
+                        >
+                          <EntityOrTypeIcon
+                            entity={null}
+                            icon={iconValue}
+                            isLink={isLink}
+                            fontSize={40}
+                            fill={({ palette }) => palette.gray[50]}
+                          />
+                        </Box>
                       );
                     }
 
                     return (
                       <EditEmojiIconButton
-                        icon={field.value}
+                        icon={iconValue}
                         disabled={isReadonly}
                         onChange={(updatedIcon) => field.onChange(updatedIcon)}
                         defaultIcon={

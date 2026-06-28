@@ -97,6 +97,8 @@ export type EntityResourceFilter = {
 	entityType: BaseUrl;
 } | {
 	type: "createdByPrincipal";
+} | {
+	type: "isReadOnly";
 };
 export type EntityTypeId = string;
 export type EntityTypeResourceConstraint = {

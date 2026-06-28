@@ -3969,6 +3969,10 @@
           "provenance": {
             "$ref": "#/components/schemas/ProvidedEntityEditionProvenance"
           },
+          "readOnly": {
+            "type": "boolean",
+            "description": "Marks the entity read-only, blocking later updates and archival by user actors.\n\nSet once at creation, e.g. by a one-way integration sync."
+          },
           "webId": {
             "$ref": "#/components/schemas/WebId"
           }
@@ -4633,6 +4637,10 @@
           },
           "provenance": {
             "$ref": "#/components/schemas/EntityProvenance"
+          },
+          "readOnly": {
+            "type": "boolean",
+            "description": "Whether this entity is read-only and must not be modified by user actors."
           },
           "recordId": {
             "$ref": "#/components/schemas/EntityRecordId"

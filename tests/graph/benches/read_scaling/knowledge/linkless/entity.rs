@@ -131,6 +131,7 @@ async fn seed_db(
                         origin: OriginProvenance::from_empty_type(OriginType::Api),
                         sources: Vec::new(),
                     },
+                    read_only: false,
                 },
                 total,
             )

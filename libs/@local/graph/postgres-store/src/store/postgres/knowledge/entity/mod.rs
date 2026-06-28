@@ -871,6 +871,7 @@ where
                 web_id: entity_id.web_id,
                 entity_uuid: entity_id.entity_uuid,
                 provenance: entity_provenance.inferred.clone(),
+                read_only: params.read_only,
             });
             if let Some(draft_id) = entity_id.draft_id {
                 entity_draft_rows.push(EntityDraftRow {
@@ -975,6 +976,7 @@ where
                     temporal_versioning,
                     entity_type_ids: params.entity_type_ids,
                     archived: false,
+                    read_only: params.read_only,
                     provenance: entity_provenance,
                     confidence: params.confidence,
                     properties: property_metadata,
@@ -2057,6 +2059,7 @@ where
                     entity_type_ids,
                     provenance: previous_entity.metadata.provenance,
                     archived,
+                    read_only: previous_entity.metadata.read_only,
                     confidence: previous_entity.metadata.confidence,
                     properties: property_metadata,
                 },
@@ -2211,6 +2214,7 @@ where
             confidence: params.confidence,
             properties: property_metadata,
             archived,
+            read_only: previous_entity.metadata.read_only,
         };
         let entities = [Entity {
             properties,

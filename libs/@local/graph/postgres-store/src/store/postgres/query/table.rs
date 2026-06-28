@@ -791,6 +791,7 @@ pub enum EntityIds {
     WebId,
     EntityUuid,
     Provenance,
+    ReadOnly,
 }
 
 impl DatabaseColumn for EntityIds {
@@ -798,6 +799,7 @@ impl DatabaseColumn for EntityIds {
         match self {
             Self::WebId | Self::EntityUuid => ParameterType::Uuid,
             Self::Provenance => ParameterType::Any,
+            Self::ReadOnly => ParameterType::Boolean,
         }
     }
 
@@ -810,6 +812,7 @@ impl DatabaseColumn for EntityIds {
             Self::WebId => "web_id",
             Self::EntityUuid => "entity_uuid",
             Self::Provenance => "provenance",
+            Self::ReadOnly => "read_only",
         }
     }
 }

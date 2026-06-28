@@ -519,6 +519,7 @@ mod tests {
                     BaseUrl::new("https://hash.ai/@hash/types/entity-type/actor/".to_owned())?,
                 ]),
                 created_by: user.id.into(),
+                read_only: false,
             };
             let resource_id = ResourceId::Entity(user_entity.id.entity_uuid);
             let mut context = ContextBuilder::default();
