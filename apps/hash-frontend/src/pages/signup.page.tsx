@@ -225,17 +225,24 @@ const SignupPage: NextPageWithLayout = () => {
         setAcceptingInvitation(true);
       }
 
-      const { errors } = await updateAuthenticatedUser({
+      const updateAccountResult = await updateAuthenticatedUser({
         shortname,
         displayName,
-      }).catch((error) => {
+      }).catch(() => {
         if (reservedInvitationEntityId) {
           acceptingInvitationEntityIdRef.current = undefined;
           setAcceptingInvitation(false);
         }
 
-        throw error;
+        setErrorMessage("Could not update your account. Please try again.");
+        return undefined;
       });
+
+      if (!updateAccountResult) {
+        return;
+      }
+
+      const { errors } = updateAccountResult;
 
       if (errors && errors.length > 0) {
         const { message } = parseGraphQLError([...errors]);
@@ -248,10 +255,24 @@ const SignupPage: NextPageWithLayout = () => {
       }
 
       if (reservedInvitationEntityId) {
-        await acceptInvitationOnce({
+        const acceptedInvitation = await acceptInvitationOnce({
           invitationEntityId: reservedInvitationEntityId,
           alreadyReserved: true,
-        });
+        })
+          .then(() => true)
+          .catch(() => {
+            acceptingInvitationEntityIdRef.current = undefined;
+            setAcceptingInvitation(false);
+            setErrorMessage(
+              "Could not accept the invitation. Please try again.",
+            );
+
+            return false;
+          });
+
+        if (!acceptedInvitation) {
+          return;
+        }
       }
 
       await refetchAuthenticatedUser();
@@ -305,7 +326,7 @@ const SignupPage: NextPageWithLayout = () => {
               userHasAccessToHashData?.hasAccessToHash ? (
                 <AccountSetupForm
                   onSubmit={handleAccountSetupSubmit}
-                  loading={updateUserLoading}
+                  loading={updateUserLoading || acceptingInvitation}
                   errorMessage={errorMessage}
                 />
               ) : null

@@ -49,6 +49,37 @@ const SignupButton = styled((props: ButtonProps) => (
   },
 }));
 
+const getSafeReturnToPath = (returnTo: string | undefined) => {
+  if (!returnTo) {
+    return undefined;
+  }
+
+  const redirectUrl = new URL(returnTo, frontendUrl);
+  const redirectPath = redirectUrl.pathname;
+
+  if (redirectUrl.origin !== frontendUrl) {
+    /**
+     * This isn't strictly necessary since we're only going to take the pathname,
+     * but useful to have the error reported
+     */
+    throw new Error(
+      `Someone tried to pass an external URL as a redirect: ${returnTo}`,
+    );
+  }
+
+  if (redirectPath.includes("\\") || redirectPath.includes("//")) {
+    /**
+     * next/router will error if these are included in the URL, but this makes
+     * the error more useful
+     */
+    throw new Error(
+      `Someone tried to pass a malformed URL as a redirect: ${returnTo}`,
+    );
+  }
+
+  return `${redirectPath}${redirectUrl.search}${redirectUrl.hash}`;
+};
+
 const SigninPage: NextPageWithLayout = () => {
   // Get ?flow=... from the URL
   const router = useRouter();
@@ -74,43 +105,7 @@ const SigninPage: NextPageWithLayout = () => {
       return undefined;
     }
 
-    const possiblyMaliciousRedirect =
-      typeof router.query.return_to === "string"
-        ? router.query.return_to
-        : undefined;
-
-    const redirectUrl = possiblyMaliciousRedirect
-      ? new URL(possiblyMaliciousRedirect, frontendUrl)
-      : undefined;
-
-    const redirectPath = redirectUrl?.pathname;
-
-    if (redirectUrl && redirectUrl.origin !== frontendUrl) {
-      /**
-       * This isn't strictly necessary since we're only going to take the pathname,
-       * but useful to have the error reported
-       */
-      throw new Error(
-        `Someone tried to pass an external URL as a redirect: ${possiblyMaliciousRedirect}`,
-      );
-    }
-
-    if (
-      redirectPath &&
-      (redirectPath.includes("\\") || redirectPath.includes("//"))
-    ) {
-      /**
-       * next/router will error if these are included in the URL, but this makes
-       * the error more useful
-       */
-      throw new Error(
-        `Someone tried to pass a malformed URL as a redirect: ${possiblyMaliciousRedirect}`,
-      );
-    }
-
-    return redirectPath
-      ? `${redirectPath}${redirectUrl.search}${redirectUrl.hash}`
-      : undefined;
+    return getSafeReturnToPath(router.query.return_to);
   }, [router.query.return_to]);
 
   const [email, setEmail] = useState<string>("");
@@ -253,7 +248,9 @@ const SigninPage: NextPageWithLayout = () => {
     }
 
     updateActiveWorkspaceWebId(authenticatedUser.accountId as WebId);
-    void router.push(returnTo ?? activeFlow.return_to ?? "/");
+    void router.push(
+      returnTo ?? getSafeReturnToPath(activeFlow.return_to) ?? "/",
+    );
   };
 
   const handleSubmit: FormEventHandler<HTMLFormElement> = (event) => {
