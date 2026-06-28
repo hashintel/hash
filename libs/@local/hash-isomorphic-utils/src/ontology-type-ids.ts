@@ -581,6 +581,11 @@ export const systemLinkEntityTypes = {
     linkEntityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/is-member-of/" as BaseUrl,
   },
+  landsAt: {
+    linkEntityTypeId: "https://hash.ai/@h/types/entity-type/lands-at/v/1",
+    linkEntityTypeBaseUrl:
+      "https://hash.ai/@h/types/entity-type/lands-at/" as BaseUrl,
+  },
   locatedAt: {
     linkEntityTypeId: "https://hash.ai/@h/types/entity-type/located-at/v/1",
     linkEntityTypeBaseUrl:
@@ -677,6 +682,11 @@ export const systemLinkEntityTypes = {
       "https://hash.ai/@h/types/entity-type/sync-linear-data-with/v/1",
     linkEntityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/sync-linear-data-with/" as BaseUrl,
+  },
+  takesOffFrom: {
+    linkEntityTypeId: "https://hash.ai/@h/types/entity-type/takes-off-from/v/1",
+    linkEntityTypeBaseUrl:
+      "https://hash.ai/@h/types/entity-type/takes-off-from/" as BaseUrl,
   },
   transports: {
     linkEntityTypeId: "https://hash.ai/@h/types/entity-type/transports/v/1",

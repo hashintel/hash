@@ -382,29 +382,6 @@ export type AreaDataTypeMetadata = {
 };
 
 /**
- * Something at which something arrives.
- */
-export type ArrivesAt = {
-  entityTypeIds: ["https://hash.ai/@h/types/entity-type/arrives-at/v/1"];
-  properties: ArrivesAtProperties;
-  propertiesWithMetadata: ArrivesAtPropertiesWithMetadata;
-};
-
-export type ArrivesAtOutgoingLinkAndTarget = never;
-
-export type ArrivesAtOutgoingLinksByLinkEntityTypeId = {};
-
-/**
- * Something at which something arrives.
- */
-export type ArrivesAtProperties = LinkProperties & {};
-
-export type ArrivesAtPropertiesWithMetadata = LinkPropertiesWithMetadata & {
-  metadata?: ObjectMetadata;
-  value: {};
-};
-
-/**
  * What or whom something was authored by.
  */
 export type AuthoredBy = {
@@ -1171,28 +1148,7 @@ export type ComponentIdPropertyValueWithMetadata = TextDataTypeWithMetadata;
 export type ComponentQuantityPropertyValue = KilogramsDataType;
 
 export type ComponentQuantityPropertyValueWithMetadata =
-  | KilogramsDataTypeWithMetadata
-  | GramsDataTypeWithMetadata
-  | MetricTonnesDataTypeWithMetadata
-  | PoundsDataTypeWithMetadata
-  | LitresDataTypeWithMetadata
-  | MillilitresDataTypeWithMetadata
-  | CubicMetresDataTypeWithMetadata
-  | CubicFeetDataTypeWithMetadata
-  | MetersDataTypeWithMetadata
-  | CentimetersDataTypeWithMetadata
-  | MillimetersDataTypeWithMetadata
-  | KilometersDataTypeWithMetadata
-  | FeetDataTypeWithMetadata
-  | InchesDataTypeWithMetadata
-  | YardsDataTypeWithMetadata
-  | MilesDataTypeWithMetadata
-  | SquareMetresDataTypeWithMetadata
-  | SquareCentimetresDataTypeWithMetadata
-  | SquareFeetDataTypeWithMetadata
-  | HoursDataTypeWithMetadata
-  | DaysDataTypeWithMetadata
-  | UnitDataTypeWithMetadata;
+  KilogramsDataTypeWithMetadata;
 
 /**
  * The name of the connection source.
@@ -1284,8 +1240,8 @@ export type CustomerOutgoingLinksByLinkEntityTypeId = {};
 /**
  * An organisation or individual that purchases goods or services.
  */
-export type CustomerProperties = CompanyProperties &
-  PersonProperties & {
+export type CustomerProperties = PersonProperties &
+  CompanyProperties & {
     "https://hash.ai/@h/types/property-type/city/"?: CityPropertyValue;
     "https://hash.ai/@h/types/property-type/country/"?: CountryPropertyValue;
     "https://hash.ai/@h/types/property-type/customer-number/"?: CustomerNumberPropertyValue;
@@ -1295,8 +1251,8 @@ export type CustomerProperties = CompanyProperties &
     "https://hash.ai/@h/types/property-type/street-address/"?: StreetAddressPropertyValue;
   };
 
-export type CustomerPropertiesWithMetadata = CompanyPropertiesWithMetadata &
-  PersonPropertiesWithMetadata & {
+export type CustomerPropertiesWithMetadata = PersonPropertiesWithMetadata &
+  CompanyPropertiesWithMetadata & {
     metadata?: ObjectMetadata;
     value: {
       "https://hash.ai/@h/types/property-type/city/"?: CityPropertyValueWithMetadata;
@@ -1487,28 +1443,7 @@ export type DeletionIndicatorPropertyValueWithMetadata =
 export type DeliveredQuantityPropertyValue = KilogramsDataType;
 
 export type DeliveredQuantityPropertyValueWithMetadata =
-  | KilogramsDataTypeWithMetadata
-  | GramsDataTypeWithMetadata
-  | MetricTonnesDataTypeWithMetadata
-  | PoundsDataTypeWithMetadata
-  | LitresDataTypeWithMetadata
-  | MillilitresDataTypeWithMetadata
-  | CubicMetresDataTypeWithMetadata
-  | CubicFeetDataTypeWithMetadata
-  | MetersDataTypeWithMetadata
-  | CentimetersDataTypeWithMetadata
-  | MillimetersDataTypeWithMetadata
-  | KilometersDataTypeWithMetadata
-  | FeetDataTypeWithMetadata
-  | InchesDataTypeWithMetadata
-  | YardsDataTypeWithMetadata
-  | MilesDataTypeWithMetadata
-  | SquareMetresDataTypeWithMetadata
-  | SquareCentimetresDataTypeWithMetadata
-  | SquareFeetDataTypeWithMetadata
-  | HoursDataTypeWithMetadata
-  | DaysDataTypeWithMetadata
-  | UnitDataTypeWithMetadata;
+  KilogramsDataTypeWithMetadata;
 
 /**
  * Something delivered by something.
@@ -1683,29 +1618,6 @@ export type DeliveryPropertiesWithMetadata = {
 export type DeliveryTypePropertyValue = TextDataType;
 
 export type DeliveryTypePropertyValueWithMetadata = TextDataTypeWithMetadata;
-
-/**
- * Something from which something departs.
- */
-export type DepartsFrom = {
-  entityTypeIds: ["https://hash.ai/@h/types/entity-type/departs-from/v/1"];
-  properties: DepartsFromProperties;
-  propertiesWithMetadata: DepartsFromPropertiesWithMetadata;
-};
-
-export type DepartsFromOutgoingLinkAndTarget = never;
-
-export type DepartsFromOutgoingLinksByLinkEntityTypeId = {};
-
-/**
- * Something from which something departs.
- */
-export type DepartsFromProperties = LinkProperties & {};
-
-export type DepartsFromPropertiesWithMetadata = LinkPropertiesWithMetadata & {
-  metadata?: ObjectMetadata;
-  value: {};
-};
 
 /**
  * A piece of text that tells you about something or someone. This can include explaining what they look like, what its purpose is for, what they’re like, etc.
@@ -4610,28 +4522,7 @@ export type OrderDatePropertyValueWithMetadata = DateDataTypeWithMetadata;
 export type OrderQuantityPropertyValue = KilogramsDataType;
 
 export type OrderQuantityPropertyValueWithMetadata =
-  | KilogramsDataTypeWithMetadata
-  | GramsDataTypeWithMetadata
-  | MetricTonnesDataTypeWithMetadata
-  | PoundsDataTypeWithMetadata
-  | LitresDataTypeWithMetadata
-  | MillilitresDataTypeWithMetadata
-  | CubicMetresDataTypeWithMetadata
-  | CubicFeetDataTypeWithMetadata
-  | MetersDataTypeWithMetadata
-  | CentimetersDataTypeWithMetadata
-  | MillimetersDataTypeWithMetadata
-  | KilometersDataTypeWithMetadata
-  | FeetDataTypeWithMetadata
-  | InchesDataTypeWithMetadata
-  | YardsDataTypeWithMetadata
-  | MilesDataTypeWithMetadata
-  | SquareMetresDataTypeWithMetadata
-  | SquareCentimetresDataTypeWithMetadata
-  | SquareFeetDataTypeWithMetadata
-  | HoursDataTypeWithMetadata
-  | DaysDataTypeWithMetadata
-  | UnitDataTypeWithMetadata;
+  KilogramsDataTypeWithMetadata;
 
 /**
  * An organization. Organizations are root-level objects that contain user accounts and teams.
@@ -5263,28 +5154,7 @@ export type ProductionOrderYieldsLink = {
 export type ProductionQuantityPropertyValue = KilogramsDataType;
 
 export type ProductionQuantityPropertyValueWithMetadata =
-  | KilogramsDataTypeWithMetadata
-  | GramsDataTypeWithMetadata
-  | MetricTonnesDataTypeWithMetadata
-  | PoundsDataTypeWithMetadata
-  | LitresDataTypeWithMetadata
-  | MillilitresDataTypeWithMetadata
-  | CubicMetresDataTypeWithMetadata
-  | CubicFeetDataTypeWithMetadata
-  | MetersDataTypeWithMetadata
-  | CentimetersDataTypeWithMetadata
-  | MillimetersDataTypeWithMetadata
-  | KilometersDataTypeWithMetadata
-  | FeetDataTypeWithMetadata
-  | InchesDataTypeWithMetadata
-  | YardsDataTypeWithMetadata
-  | MilesDataTypeWithMetadata
-  | SquareMetresDataTypeWithMetadata
-  | SquareCentimetresDataTypeWithMetadata
-  | SquareFeetDataTypeWithMetadata
-  | HoursDataTypeWithMetadata
-  | DaysDataTypeWithMetadata
-  | UnitDataTypeWithMetadata;
+  KilogramsDataTypeWithMetadata;
 
 /**
  * A biography for display on someone or something's profile.

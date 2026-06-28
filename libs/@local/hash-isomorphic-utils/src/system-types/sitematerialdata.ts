@@ -298,53 +298,10 @@ export type {
 /**
  * The fixed lot size used when planning orders.
  */
-export type FixedLotSizePropertyValue =
-  | KilogramsDataType
-  | GramsDataType
-  | MetricTonnesDataType
-  | PoundsDataType
-  | LitresDataType
-  | MillilitresDataType
-  | CubicMetresDataType
-  | CubicFeetDataType
-  | MetersDataType
-  | CentimetersDataType
-  | MillimetersDataType
-  | KilometersDataType
-  | FeetDataType
-  | InchesDataType
-  | YardsDataType
-  | MilesDataType
-  | SquareMetresDataType
-  | SquareCentimetresDataType
-  | SquareFeetDataType
-  | HoursDataType
-  | DaysDataType
-  | UnitDataType;
+export type FixedLotSizePropertyValue = KilogramsDataType;
 
 export type FixedLotSizePropertyValueWithMetadata =
-  | KilogramsDataTypeWithMetadata
-  | GramsDataTypeWithMetadata
-  | MetricTonnesDataTypeWithMetadata
-  | PoundsDataTypeWithMetadata
-  | LitresDataTypeWithMetadata
-  | MillilitresDataTypeWithMetadata
-  | CubicMetresDataTypeWithMetadata
-  | CubicFeetDataTypeWithMetadata
-  | MetersDataTypeWithMetadata
-  | CentimetersDataTypeWithMetadata
-  | MillimetersDataTypeWithMetadata
-  | KilometersDataTypeWithMetadata
-  | FeetDataTypeWithMetadata
-  | InchesDataTypeWithMetadata
-  | YardsDataTypeWithMetadata
-  | MilesDataTypeWithMetadata
-  | SquareMetresDataTypeWithMetadata
-  | SquareCentimetresDataTypeWithMetadata
-  | SquareFeetDataTypeWithMetadata
-  | HoursDataTypeWithMetadata
-  | DaysDataTypeWithMetadata
-  | UnitDataTypeWithMetadata;
+  KilogramsDataTypeWithMetadata;
 
 /**
  * The time required to process a goods receipt, in days.
@@ -380,29 +337,7 @@ export type MRPTypePropertyValueWithMetadata = TextDataTypeWithMetadata;
 /**
  * The maximum lot size allowed when planning orders.
  */
-export type MaximumLotSizePropertyValue =
-  | KilogramsDataType
-  | GramsDataType
-  | MetricTonnesDataType
-  | PoundsDataType
-  | LitresDataType
-  | MillilitresDataType
-  | CubicMetresDataType
-  | CubicFeetDataType
-  | MetersDataType
-  | CentimetersDataType
-  | MillimetersDataType
-  | KilometersDataType
-  | FeetDataType
-  | InchesDataType
-  | YardsDataType
-  | MilesDataType
-  | SquareMetresDataType
-  | SquareCentimetresDataType
-  | SquareFeetDataType
-  | HoursDataType
-  | DaysDataType
-  | UnitDataType;
+export type MaximumLotSizePropertyValue = KilogramsDataType;
 
 export type MaximumLotSizePropertyValueWithMetadata =
   | KilogramsDataTypeWithMetadata
@@ -431,29 +366,7 @@ export type MaximumLotSizePropertyValueWithMetadata =
 /**
  * The minimum lot size allowed when planning orders.
  */
-export type MinimumLotSizePropertyValue =
-  | KilogramsDataType
-  | GramsDataType
-  | MetricTonnesDataType
-  | PoundsDataType
-  | LitresDataType
-  | MillilitresDataType
-  | CubicMetresDataType
-  | CubicFeetDataType
-  | MetersDataType
-  | CentimetersDataType
-  | MillimetersDataType
-  | KilometersDataType
-  | FeetDataType
-  | InchesDataType
-  | YardsDataType
-  | MilesDataType
-  | SquareMetresDataType
-  | SquareCentimetresDataType
-  | SquareFeetDataType
-  | HoursDataType
-  | DaysDataType
-  | UnitDataType;
+export type MinimumLotSizePropertyValue = KilogramsDataType;
 
 export type MinimumLotSizePropertyValueWithMetadata =
   | KilogramsDataTypeWithMetadata
@@ -497,29 +410,7 @@ export type PlanningMethodPropertyValueWithMetadata = TextDataTypeWithMetadata;
 /**
  * The stock level that triggers replenishment planning.
  */
-export type ReorderPointPropertyValue =
-  | KilogramsDataType
-  | GramsDataType
-  | MetricTonnesDataType
-  | PoundsDataType
-  | LitresDataType
-  | MillilitresDataType
-  | CubicMetresDataType
-  | CubicFeetDataType
-  | MetersDataType
-  | CentimetersDataType
-  | MillimetersDataType
-  | KilometersDataType
-  | FeetDataType
-  | InchesDataType
-  | YardsDataType
-  | MilesDataType
-  | SquareMetresDataType
-  | SquareCentimetresDataType
-  | SquareFeetDataType
-  | HoursDataType
-  | DaysDataType
-  | UnitDataType;
+export type ReorderPointPropertyValue = KilogramsDataType;
 
 export type ReorderPointPropertyValueWithMetadata =
   | KilogramsDataTypeWithMetadata
@@ -548,29 +439,7 @@ export type ReorderPointPropertyValueWithMetadata =
 /**
  * The quantity increment to which planned procurement or production is rounded.
  */
-export type RoundingValuePropertyValue =
-  | KilogramsDataType
-  | GramsDataType
-  | MetricTonnesDataType
-  | PoundsDataType
-  | LitresDataType
-  | MillilitresDataType
-  | CubicMetresDataType
-  | CubicFeetDataType
-  | MetersDataType
-  | CentimetersDataType
-  | MillimetersDataType
-  | KilometersDataType
-  | FeetDataType
-  | InchesDataType
-  | YardsDataType
-  | MilesDataType
-  | SquareMetresDataType
-  | SquareCentimetresDataType
-  | SquareFeetDataType
-  | HoursDataType
-  | DaysDataType
-  | UnitDataType;
+export type RoundingValuePropertyValue = KilogramsDataType;
 
 export type RoundingValuePropertyValueWithMetadata =
   | KilogramsDataTypeWithMetadata
@@ -599,29 +468,7 @@ export type RoundingValuePropertyValueWithMetadata =
 /**
  * The safety stock level maintained for an item.
  */
-export type SafetyStockPropertyValue =
-  | KilogramsDataType
-  | GramsDataType
-  | MetricTonnesDataType
-  | PoundsDataType
-  | LitresDataType
-  | MillilitresDataType
-  | CubicMetresDataType
-  | CubicFeetDataType
-  | MetersDataType
-  | CentimetersDataType
-  | MillimetersDataType
-  | KilometersDataType
-  | FeetDataType
-  | InchesDataType
-  | YardsDataType
-  | MilesDataType
-  | SquareMetresDataType
-  | SquareCentimetresDataType
-  | SquareFeetDataType
-  | HoursDataType
-  | DaysDataType
-  | UnitDataType;
+export type SafetyStockPropertyValue = KilogramsDataType;
 
 export type SafetyStockPropertyValueWithMetadata =
   | KilogramsDataTypeWithMetadata

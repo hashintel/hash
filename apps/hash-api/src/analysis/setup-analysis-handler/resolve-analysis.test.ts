@@ -41,10 +41,11 @@ const manifest = {
 };
 
 const storedFiles: Record<string, string> = {
-  [`${WEB_ID}/supply-chain/current.json`]: JSON.stringify({
+  [`analysis/${WEB_ID}/supply-chain/current.json`]: JSON.stringify({
     datasetVersion: VERSION,
   }),
-  [`${WEB_ID}/supply-chain/${VERSION}/manifest.json`]: JSON.stringify(manifest),
+  [`analysis/${WEB_ID}/supply-chain/${VERSION}/manifest.json`]:
+    JSON.stringify(manifest),
 };
 
 const uploadProvider = {
@@ -197,13 +198,35 @@ describe("resolveInvocation (supply-chain analyses)", () => {
         resolve: async () => ({
           status: "ready",
           artifacts: [
-            { name: "leak", key: `${otherWebId}/supply-chain/secret.json` },
+            {
+              name: "leak",
+              key: `analysis/${otherWebId}/supply-chain/secret.json`,
+            },
           ],
         }),
       },
     ]);
 
     const result = await resolve("escaping");
+    expect(result.status).toBe("error");
+    expect(result.error).toMatch(/internal error/i);
+  });
+
+  it("refuses to presign an artifact key outside the analysis prefix", async () => {
+    clearAnalysisRegistry();
+    registerAnalyses([
+      {
+        name: "oldShape",
+        resolve: async () => ({
+          status: "ready",
+          artifacts: [
+            { name: "old-shape", key: `${WEB_ID}/supply-chain/secret.json` },
+          ],
+        }),
+      },
+    ]);
+
+    const result = await resolve("oldShape");
     expect(result.status).toBe("error");
     expect(result.error).toMatch(/internal error/i);
   });

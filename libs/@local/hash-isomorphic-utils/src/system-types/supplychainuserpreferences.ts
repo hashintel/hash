@@ -91,7 +91,7 @@ export type SupplyChainUserPreferencesPropertiesWithMetadata = {
 };
 
 /**
- * A period of elapsed time.
+ * A period of time.
  */
 export type TimePeriodPropertyValue = DurationDataType;
 

@@ -99,6 +99,9 @@ function computeNodeCost(
   );
 }
 
+const hasDwellType = (types: string[]) =>
+  types.some((threshold) => isDwellType(threshold as StepType));
+
 const SortButton = ({
   label,
   active,
@@ -164,7 +167,9 @@ export const CategoryView = ({
   const effectiveSortKeys = useMemo(() => {
     const keys: Record<string, { key: SortKey; dir: SortDir }> = {};
     for (const cat of grouped) {
-      keys[cat.key] = { key: "duration", dir: "desc" };
+      keys[cat.key] = hasDwellType(cat.types)
+        ? { key: "cost", dir: "desc" }
+        : { key: "duration", dir: "desc" };
     }
     for (const [key, value] of Object.entries(sortOverrides)) {
       if (value === null) {
@@ -208,8 +213,6 @@ export const CategoryView = ({
       return { ...prev, [catKey]: { key, dir: "desc" } };
     });
   };
-  const hasDwellType = (types: string[]) =>
-    types.some((threshold) => isDwellType(threshold as StepType));
   return (
     <div className={board}>
       {sortedGrouped.map((cat) => {

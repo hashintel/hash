@@ -83,10 +83,12 @@ export function useSearchParams(): [URLSearchParams, SetURLSearchParams] {
 
       const url = `${path}${qs ? `?${qs}` : ""}${window.location.hash}`;
       setOptimisticQueryString(qs);
+
       const updateHistory = navigateOpts?.replace
-        ? window.history.replaceState
-        : window.history.pushState;
-      updateHistory.call(window.history, window.history.state, "", url);
+        ? () => window.history.replaceState(window.history.state, "", url)
+        : () => window.history.pushState(window.history.state, "", url);
+
+      updateHistory();
       window.dispatchEvent(
         new CustomEvent(searchParamsChangeEvent, {
           detail: { queryString: qs },

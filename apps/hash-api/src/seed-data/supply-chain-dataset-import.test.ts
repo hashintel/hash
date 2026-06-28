@@ -111,9 +111,11 @@ describe("supply-chain dataset import", () => {
       steps: 1,
     });
     expect(uploads.at(-2)?.key).toBe(
-      `${webId}/supply-chain/local-test/manifest.json`,
+      `analysis/${webId}/supply-chain/local-test/manifest.json`,
     );
-    expect(uploads.at(-1)?.key).toBe(`${webId}/supply-chain/current.json`);
+    expect(uploads.at(-1)?.key).toBe(
+      `analysis/${webId}/supply-chain/current.json`,
+    );
     expect(JSON.parse(String(uploads.at(-1)?.body))).toEqual({
       datasetVersion: "local-test",
     });
@@ -143,7 +145,8 @@ describe("supply-chain dataset import", () => {
     await uploadSupplyChainDataset({ plan, uploadProvider, webId });
 
     const sitesUpload = uploads.find(
-      ({ key }) => key === `${webId}/supply-chain/local-test/sites.json`,
+      ({ key }) =>
+        key === `analysis/${webId}/supply-chain/local-test/sites.json`,
     );
     expect(JSON.parse(String(sitesUpload?.body))).toEqual([]);
   });

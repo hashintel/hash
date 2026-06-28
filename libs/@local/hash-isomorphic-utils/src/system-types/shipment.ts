@@ -32,11 +32,6 @@ import type {
   AffiliatedWithPropertiesWithMetadata,
   AreaDataType,
   AreaDataTypeWithMetadata,
-  ArrivesAt,
-  ArrivesAtOutgoingLinkAndTarget,
-  ArrivesAtOutgoingLinksByLinkEntityTypeId,
-  ArrivesAtProperties,
-  ArrivesAtPropertiesWithMetadata,
   BAMDataType,
   BAMDataTypeWithMetadata,
   BBDDataType,
@@ -167,11 +162,6 @@ import type {
   DeliveryPropertiesWithMetadata,
   DeliveryTypePropertyValue,
   DeliveryTypePropertyValueWithMetadata,
-  DepartsFrom,
-  DepartsFromOutgoingLinkAndTarget,
-  DepartsFromOutgoingLinksByLinkEntityTypeId,
-  DepartsFromProperties,
-  DepartsFromPropertiesWithMetadata,
   DescriptionPropertyValue,
   DescriptionPropertyValueWithMetadata,
   DistributionChannelPropertyValue,
@@ -658,11 +648,6 @@ export type {
   AOADataTypeWithMetadata,
   AreaDataType,
   AreaDataTypeWithMetadata,
-  ArrivesAt,
-  ArrivesAtOutgoingLinkAndTarget,
-  ArrivesAtOutgoingLinksByLinkEntityTypeId,
-  ArrivesAtProperties,
-  ArrivesAtPropertiesWithMetadata,
   ARSDataType,
   ARSDataTypeWithMetadata,
   AUDDataType,
@@ -793,11 +778,6 @@ export type {
   DeliveryPropertiesWithMetadata,
   DeliveryTypePropertyValue,
   DeliveryTypePropertyValueWithMetadata,
-  DepartsFrom,
-  DepartsFromOutgoingLinkAndTarget,
-  DepartsFromOutgoingLinksByLinkEntityTypeId,
-  DepartsFromProperties,
-  DepartsFromPropertiesWithMetadata,
   DescriptionPropertyValue,
   DescriptionPropertyValueWithMetadata,
   DistributionChannelPropertyValue,
@@ -1300,6 +1280,52 @@ export type ActualShipmentEndDatePropertyValue = DateDataType;
 
 export type ActualShipmentEndDatePropertyValueWithMetadata =
   DateDataTypeWithMetadata;
+
+/**
+ * Something at which something arrives.
+ */
+export type ArrivesAt = {
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/arrives-at/v/1"];
+  properties: ArrivesAtProperties;
+  propertiesWithMetadata: ArrivesAtPropertiesWithMetadata;
+};
+
+export type ArrivesAtOutgoingLinkAndTarget = never;
+
+export type ArrivesAtOutgoingLinksByLinkEntityTypeId = {};
+
+/**
+ * Something at which something arrives.
+ */
+export type ArrivesAtProperties = LinkProperties & {};
+
+export type ArrivesAtPropertiesWithMetadata = LinkPropertiesWithMetadata & {
+  metadata?: ObjectMetadata;
+  value: {};
+};
+
+/**
+ * Something from which something departs.
+ */
+export type DepartsFrom = {
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/departs-from/v/1"];
+  properties: DepartsFromProperties;
+  propertiesWithMetadata: DepartsFromPropertiesWithMetadata;
+};
+
+export type DepartsFromOutgoingLinkAndTarget = never;
+
+export type DepartsFromOutgoingLinksByLinkEntityTypeId = {};
+
+/**
+ * Something from which something departs.
+ */
+export type DepartsFromProperties = LinkProperties & {};
+
+export type DepartsFromPropertiesWithMetadata = LinkPropertiesWithMetadata & {
+  metadata?: ObjectMetadata;
+  value: {};
+};
 
 /**
  * An indicator describing a leg of a transport route.

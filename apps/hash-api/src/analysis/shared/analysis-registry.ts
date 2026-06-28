@@ -70,7 +70,7 @@ export const registerAnalyses = (analyses: readonly NamedAnalysis[]): void => {
   }
 };
 
-export const getAnalysis = (name: string): NamedAnalysis | undefined =>
+export const getAnalysisMetadata = (name: string): NamedAnalysis | undefined =>
   registry.get(name);
 
 /** Exposed for tests: clear all registered analyses. */

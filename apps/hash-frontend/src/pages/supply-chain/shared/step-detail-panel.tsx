@@ -27,10 +27,12 @@ import { LoadingState, ErrorState } from "./load-state";
 import { applyOutlierSelectionToStep } from "./outlier-selection";
 import { computePeriodDeltas } from "./period-trends";
 import { useProcurementBasis } from "./procurement-basis-context";
+import { scopeDwellStepToProduct } from "./product-dwell-scope";
 import {
   filterStepByDateRange,
   applyProcurementBasisToStep,
 } from "./range-filter";
+import { useRegistry } from "./registry-context";
 import { SlideOver, SlideOverClose } from "./slide-over";
 import { deriveStatusActionState, type StatusEntry } from "./status";
 import { ConsumptionMetricsRow } from "./step-detail-panel/consumption-metrics";
@@ -351,16 +353,30 @@ export const StepDetailPanel = ({
   const dataTableRef = useRef<DataTableSectionHandle>(null);
   const { excludeOutliers } = useOutlierSetting();
   const { basis: procurementBasis } = useProcurementBasis();
+  const { products } = useRegistry();
   const supplierPerformanceEnabled = useSupplierPerformanceEnabled();
   const { openDocs } = useDocs();
+  const selectedProduct = useMemo(
+    () => products.find((product) => product.id === productId) ?? null,
+    [products, productId],
+  );
   useEffect(() => {
     setLoading(true);
     setError(null);
     fetchStepDetail(productId, stepId)
-      .then(setStep)
+      .then((nextStep) => {
+        setStep(
+          productName
+            ? scopeDwellStepToProduct(nextStep, {
+                productMaterial: selectedProduct?.material,
+                productName,
+              })
+            : nextStep,
+        );
+      })
       .catch((event) => setError(event.message))
       .finally(() => setLoading(false));
-  }, [productId, stepId]);
+  }, [productId, productName, selectedProduct?.material, stepId]);
   const filteredStep = useMemo(() => {
     if (!step) {
       return null;

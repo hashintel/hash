@@ -1,9 +1,11 @@
 import { fetchArtifactJson } from "../../../shared/analysis-client";
+import { isDwellType } from "./categories";
 import {
   ensureGraphStats,
   ensureNodeStats,
   ensureStepStats,
 } from "./normalize-contract";
+import { scopeDwellNodeToProduct } from "./product-dwell-scope";
 import {
   fetchGraph as fetchAnalysisGraph,
   fetchProducts as fetchAnalysisProducts,
@@ -31,6 +33,7 @@ export interface SiteRef {
 }
 
 let activeWebId: WebId | null = null;
+let productsCache: Promise<Product[]> | null = null;
 
 /**
  * Session cache for `fetchSiteData`, keyed by web + site + product set. A
@@ -53,6 +56,7 @@ export function configureDataSource({
   scope: WebId | string;
 }): void {
   activeWebId = scope as WebId;
+  productsCache = null;
   supplierPerformanceCache = null;
   siteDataCache.clear();
 }
@@ -63,7 +67,10 @@ const getActiveWebId = (): WebId => {
   return activeWebId;
 };
 export function fetchProducts(): Promise<Product[]> {
-  return fetchAnalysisProducts(getActiveWebId()) as Promise<Product[]>;
+  productsCache =
+    productsCache ??
+    (fetchAnalysisProducts(getActiveWebId()) as Promise<Product[]>);
+  return productsCache;
 }
 /**
  * Site registry used to populate the scope picker and resolve display names.
@@ -75,10 +82,38 @@ export function fetchProducts(): Promise<Product[]> {
  * Load a product graph. With the v1 data contract the generator emits the
  * final node/segment shape, so the loader is a straight typed fetch with a
  * normalization pass for older optional fields.
- */ export function fetchGraph(productId: string): Promise<GraphData> {
-  return fetchAnalysisGraph<GraphData>(getActiveWebId(), productId).then(
-    ensureGraphStats,
+ */ export async function fetchGraph(productId: string): Promise<GraphData> {
+  const webId = getActiveWebId();
+  const graph = ensureGraphStats(
+    await fetchAnalysisGraph<GraphData>(webId, productId),
   );
+  const products = await fetchProducts();
+  const product = products.find((candidate) => candidate.id === productId);
+
+  if (!product) {
+    return graph;
+  }
+
+  const scopedNodes = await Promise.all(
+    graph.nodes.map(async (node) => {
+      if (!isDwellType(node.type)) {
+        return node;
+      }
+      try {
+        const step = ensureStepStats(
+          await fetchAnalysisStepDetail<StepDetail>(webId, productId, node.id),
+        );
+        return scopeDwellNodeToProduct(node, step, {
+          productMaterial: product.material,
+          productName: graph.product_name,
+        });
+      } catch {
+        return node;
+      }
+    }),
+  );
+
+  return { ...graph, nodes: scopedNodes };
 }
 export async function fetchAllGraphs(products: Product[]): Promise<SiteData> {
   const graphs = await Promise.all(

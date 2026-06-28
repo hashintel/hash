@@ -3,7 +3,12 @@ import { useMemo } from "react";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { isDwellType } from "../categories";
-import { useCostParams, formatCost, formatNumber } from "../cost";
+import {
+  useCostParams,
+  computePeriodCost,
+  formatCost,
+  formatNumber,
+} from "../cost";
 import { useBaseMeasure, selectStat, MEASURE_LABELS } from "../measure-context";
 import { type PeriodComparison, computeCostComparison } from "../period-trends";
 import { planSourceLabel } from "../planning-param";
@@ -161,6 +166,14 @@ export const KeyMetricsRow = ({
 
   const costDelta = costComparison.delta;
   const previousCost = costComparison.previousTotal;
+  const periodCost = showCost
+    ? computePeriodCost(
+        step.monthly,
+        step.cost?.unit_price,
+        waccRate,
+        storageCost,
+      )
+    : null;
 
   const planNote = step.plan_note;
   const planLabel = planNote ? planSourceLabel(planNote) : null;
@@ -235,7 +248,13 @@ export const KeyMetricsRow = ({
           <div className={cellPlain}>
             <div className={labelWide}>Period dwell cost</div>
             <div className={valueRowRel}>
-              <span className={cx(valueBase, valueStrong)}>–</span>
+              <span className={cx(valueBase, valueStrong)}>
+                {periodCost != null && periodCost > 0
+                  ? formatCost(periodCost, step.cost?.currency ?? null, {
+                      compact: true,
+                    })
+                  : "–"}
+              </span>
               {costDelta != null && (
                 <span className={absDelta}>
                   <DeltaWithTooltip

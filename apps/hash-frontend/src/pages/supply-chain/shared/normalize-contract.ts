@@ -214,6 +214,7 @@ function normalizeProcurementNode(node: GraphNode): GraphNode {
     };
   });
 }
+
 export function deriveTimingFromRecords(step: StepDetail): StepDetail;
 export function deriveTimingFromRecords(step: StepDetailWire): StepDetailWire;
 export function deriveTimingFromRecords(step: StepDetailWire): StepDetailWire {
@@ -297,6 +298,7 @@ export function ensureStepStats(step: StepDetailWire): StepDetail {
   const next: StepDetail = hasStats(base.stats)
     ? {
         ...base,
+        stats: base.stats,
         pct_exceeding_plan: pctExceeding(base.observations, base.plan),
       }
     : {

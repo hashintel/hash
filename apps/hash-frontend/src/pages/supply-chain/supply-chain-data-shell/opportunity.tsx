@@ -735,6 +735,7 @@ const BulletList = ({
     </ul>
   );
 };
+
 const Checklist = ({ title, items }: { title: string; items: string[] }) => {
   return (
     <div className={checklistCard}>
@@ -743,6 +744,7 @@ const Checklist = ({ title, items }: { title: string; items: string[] }) => {
     </div>
   );
 };
+
 const Callout = ({ title, body }: { title: string; body: string }) => {
   return (
     <div className={calloutCard}>
@@ -751,6 +753,7 @@ const Callout = ({ title, body }: { title: string; body: string }) => {
     </div>
   );
 };
+
 const StatTable = ({ rows }: { rows: Array<[string, React.ReactNode]> }) => {
   return (
     <div className={statTableWrap}>
@@ -782,6 +785,7 @@ function rankingText(ranking: BriefRanking): string {
   const plural = ranking.total === 1 ? noun : `${noun}s`;
   return `#${ranking.rank} of the plant's top ${ranking.total} ${plural}`;
 }
+
 const HeroBannerShell = ({
   prizeLabel,
   prize,
@@ -806,6 +810,7 @@ const HeroBannerShell = ({
     </div>
   );
 };
+
 const ConfidenceBadge = ({ label }: { label: "High" | "Limited" | "Low" }) => {
   const className = cx(
     triggerChip,
@@ -832,6 +837,7 @@ const ConfidenceBadge = ({ label }: { label: "High" | "Limited" | "Low" }) => {
   );
   return <span className={className}>Confidence: {label}</span>;
 };
+
 const DwellExecutiveSummary = ({
   brief,
   timeRange,
@@ -866,6 +872,7 @@ const DwellExecutiveSummary = ({
     </div>
   );
 };
+
 const PlanningExecutiveSummary = ({
   brief,
 }: {
@@ -907,6 +914,7 @@ const PlanningExecutiveSummary = ({
     </div>
   );
 };
+
 const DwellImpactSection = ({
   brief,
   currency,
@@ -1021,6 +1029,7 @@ const PlanningImpactTable = ({
     </div>
   );
 };
+
 const PlanningRecommendationSection = ({
   brief,
 }: {
@@ -1062,6 +1071,7 @@ const PlanningRecommendationSection = ({
     </BriefSection>
   );
 };
+
 const E2ELeverageSection = ({ brief }: { brief: DwellOpportunityBrief }) => {
   const lev = brief.e2eLeverage;
   if (!lev) {
@@ -1093,6 +1103,7 @@ const E2ELeverageSection = ({ brief }: { brief: DwellOpportunityBrief }) => {
     </BriefSection>
   );
 };
+
 const PerProductImpactSection = ({
   brief,
 }: {
@@ -1155,6 +1166,7 @@ const PerProductImpactSection = ({
     </BriefSection>
   );
 };
+
 const FirstUseDwellSection = ({
   firstUse,
   verb,
@@ -1193,6 +1205,7 @@ const FirstUseDwellSection = ({
     </BriefSection>
   );
 };
+
 const SupplierSection = ({ supplier }: { supplier: SupplierBriefSummary }) => {
   return (
     <BriefSection title="Supplier OTIF">
@@ -1251,6 +1264,7 @@ const SupplierSection = ({ supplier }: { supplier: SupplierBriefSummary }) => {
     </BriefSection>
   );
 };
+
 const ProductionInsightSection = ({
   insight,
 }: {
@@ -1268,6 +1282,7 @@ const ProductionInsightSection = ({
     </BriefSection>
   );
 };
+
 const TopEvidenceTable = ({ rows }: { rows: BriefEvidenceRow[] }) => {
   if (rows.length === 0) {
     return null;
@@ -1324,6 +1339,7 @@ interface BriefRanking {
   total: number;
   kind: "dwell" | "planning";
 }
+
 function computeBriefRanking(
   rollups: SiteSummaryRollups | null,
   stepId: string,
@@ -1345,6 +1361,7 @@ function computeBriefRanking(
     kind: isDwellBrief ? "dwell" : "planning",
   };
 }
+
 const HeroBanner = ({
   brief,
   ranking,
@@ -1397,6 +1414,7 @@ const HeroBanner = ({
     />
   );
 };
+
 const OpportunityTriggerCallout = ({
   brief,
 }: {
@@ -1417,6 +1435,7 @@ const OpportunityTriggerCallout = ({
     </div>
   );
 };
+
 const BriefGuidance = ({
   brief,
 }: {
@@ -1431,6 +1450,7 @@ const BriefGuidance = ({
     </div>
   );
 };
+
 const StepTypeNextSteps = ({
   nextSteps,
 }: {
@@ -1473,6 +1493,7 @@ function makeTrendChip(
   }
   return { pctChange: pctChange ?? null, previous };
 }
+
 function findBriefNode(
   nodes: SiteNode[],
   stepId: string,
@@ -1488,6 +1509,7 @@ function findBriefNode(
     null
   );
 }
+
 function filterDetailRows(
   rows: DetailRows,
   dateKey: string,
@@ -1499,6 +1521,7 @@ function filterDetailRows(
     return typeof value !== "string" || value.slice(0, 7) >= cutoff;
   });
 }
+
 const ConfidenceCallout = ({
   brief,
 }: {
@@ -1511,6 +1534,7 @@ const ConfidenceCallout = ({
     </div>
   );
 };
+
 function normaliseOpportunitySource(
   value: string | null,
 ): OpportunityBriefSourceKind {
@@ -1523,6 +1547,7 @@ function normaliseOpportunitySource(
   }
   return null;
 }
+
 export const OpportunityBrief = ({
   products,
   siteId,
@@ -1544,7 +1569,9 @@ export const OpportunityBrief = ({
   const [stepError, setStepError] = useState<string | null>(null);
   const [rollups, setRollups] = useState<SiteSummaryRollups | null>(null);
   const [searchParams] = useSearchParams();
-  const { openDocs } = useDocs(); // Site rollups power the prioritisation chip in the hero banner ("#N of the
+  const { openDocs } = useDocs();
+
+  // Site rollups power the prioritisation chip in the hero banner ("#N of the
   // plant's top dwell costs"). Failures degrade silently; the banner just omits
   // the rank.
   useEffect(() => {
@@ -1567,7 +1594,9 @@ export const OpportunityBrief = ({
     return () => {
       cancelled = true;
     };
-  }, [siteId]); // Once the shared site nodes resolve, resolve the brief's node and fetch its
+  }, [siteId]);
+
+  // Once the shared site nodes resolve, resolve the brief's node and fetch its
   // step detail. The node lookup reuses the hook's memoised dedup.
   useEffect(() => {
     if (!siteId || !productId || !stepId) {
@@ -1597,6 +1626,7 @@ export const OpportunityBrief = ({
       cancelled = true;
     };
   }, [nodes, nodesLoading, productId, siteId, stepId]);
+
   const error = siteError ?? stepError;
   const siteNode = useMemo((): SiteNode | null => {
     const node = findBriefNode(nodes, stepId, productId);
@@ -1612,7 +1642,9 @@ export const OpportunityBrief = ({
       ),
       products: node.products,
     };
-  }, [nodes, stepId, productId, timeRange, excludeOutliers, procurementBasis]); // Each consuming product's own (pre-dedup) node for this material/step, so the
+  }, [nodes, stepId, productId, timeRange, excludeOutliers, procurementBasis]);
+
+  // Each consuming product's own (pre-dedup) node for this material/step, so the
   // brief can report per-product BOM membership and E2E binding leverage that the
   // deduped site node alone cannot carry.
   const productNodes = useMemo((): ProductNodeRef[] => {
@@ -1782,6 +1814,7 @@ export const OpportunityBrief = ({
         timeRange,
       )
     : null;
+
   const minTrend = makeTrendChip(
     periodCmp.statDeltas.min,
     prevStats
@@ -1794,18 +1827,21 @@ export const OpportunityBrief = ({
       ? `${formatNumber(prevStats.median, { maximumFractionDigits: 1 })}d`
       : null,
   );
+
   const p95Trend = makeTrendChip(
     periodCmp.statDeltas.p95,
     prevStats
       ? `${formatNumber(prevStats.p95, { maximumFractionDigits: 1 })}d`
       : null,
   );
+
   const maxTrend = makeTrendChip(
     periodCmp.statDeltas.max,
     prevStats
       ? `${formatNumber(prevStats.max, { maximumFractionDigits: 1 })}d`
       : null,
   );
+
   const costTrend =
     isDwellBrief && costCmp
       ? makeTrendChip(
@@ -1817,11 +1853,13 @@ export const OpportunityBrief = ({
             : null,
         )
       : undefined;
+
   const backHrefSearchParams = new URLSearchParams();
   const range = searchParams.get("range");
   if (range) {
     backHrefSearchParams.set("range", range);
   }
+
   const backHrefQuery = backHrefSearchParams.toString();
   const siteOverviewHref = `/supply-chain/site/${siteId}${
     backHrefQuery ? `?${backHrefQuery}` : ""

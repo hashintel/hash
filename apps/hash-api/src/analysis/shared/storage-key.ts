@@ -3,20 +3,30 @@ import { AnalysisArgError } from "./errors";
 import type { WebId } from "@blockprotocol/type-system";
 
 /**
- * Build a storage key for a web-scoped artifact, with the `webId` as the first
- * path segment followed by a namespace and any further parts.
+ * Top-level storage prefix for all analysis artifacts.
+ */
+const ANALYSIS_STORAGE_PREFIX = "analysis";
+
+/**
+ * Build a storage key for a web-scoped artifact, with the analysis prefix first,
+ * then the `webId`, namespace, and any further parts.
  *
- * Putting the web id first makes it a tenant-isolation prefix: the analysis
- * gateway authorises a resolved key by an exact segment-0 match (see
- * `resolve-analysis.ts`), and storage policies/lifecycle rules can be scoped to
- * a `{webId}/` prefix. All artifact keys MUST be built through this helper so
- * that invariant holds.
+ * Keeping the web id in a fixed segment makes it a tenant-isolation prefix: the
+ * analysis gateway authorises a resolved key by an exact match on that segment
+ * (see `resolve-analysis.ts`), and storage policies/lifecycle rules can be
+ * scoped to an `analysis/{webId}/` prefix. All artifact keys MUST be built
+ * through this helper so that invariant holds.
  */
 export const webScopedKey = (
   webId: WebId,
   namespace: string,
   ...parts: string[]
-): string => [webId, namespace, ...parts].join("/");
+): string => [ANALYSIS_STORAGE_PREFIX, webId, namespace, ...parts].join("/");
+
+export const isWebScopedKeyForWeb = (key: string, webId: WebId): boolean => {
+  const [prefix, scopedWebId] = key.split("/");
+  return prefix === ANALYSIS_STORAGE_PREFIX && scopedWebId === webId;
+};
 
 /**
  * Slugs are the only values interpolated into storage keys from client input.

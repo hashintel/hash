@@ -530,101 +530,15 @@ export type MaterialReservationPropertiesWithMetadata = {
 /**
  * The quantity required.
  */
-export type RequirementQuantityPropertyValue =
-  | KilogramsDataType
-  | GramsDataType
-  | MetricTonnesDataType
-  | PoundsDataType
-  | LitresDataType
-  | MillilitresDataType
-  | CubicMetresDataType
-  | CubicFeetDataType
-  | MetersDataType
-  | CentimetersDataType
-  | MillimetersDataType
-  | KilometersDataType
-  | FeetDataType
-  | InchesDataType
-  | YardsDataType
-  | MilesDataType
-  | SquareMetresDataType
-  | SquareCentimetresDataType
-  | SquareFeetDataType
-  | HoursDataType
-  | DaysDataType
-  | UnitDataType;
+export type RequirementQuantityPropertyValue = KilogramsDataType;
 
 export type RequirementQuantityPropertyValueWithMetadata =
-  | KilogramsDataTypeWithMetadata
-  | GramsDataTypeWithMetadata
-  | MetricTonnesDataTypeWithMetadata
-  | PoundsDataTypeWithMetadata
-  | LitresDataTypeWithMetadata
-  | MillilitresDataTypeWithMetadata
-  | CubicMetresDataTypeWithMetadata
-  | CubicFeetDataTypeWithMetadata
-  | MetersDataTypeWithMetadata
-  | CentimetersDataTypeWithMetadata
-  | MillimetersDataTypeWithMetadata
-  | KilometersDataTypeWithMetadata
-  | FeetDataTypeWithMetadata
-  | InchesDataTypeWithMetadata
-  | YardsDataTypeWithMetadata
-  | MilesDataTypeWithMetadata
-  | SquareMetresDataTypeWithMetadata
-  | SquareCentimetresDataTypeWithMetadata
-  | SquareFeetDataTypeWithMetadata
-  | HoursDataTypeWithMetadata
-  | DaysDataTypeWithMetadata
-  | UnitDataTypeWithMetadata;
+  KilogramsDataTypeWithMetadata;
 
 /**
  * The quantity already withdrawn against a requirement.
  */
-export type WithdrawnQuantityPropertyValue =
-  | KilogramsDataType
-  | GramsDataType
-  | MetricTonnesDataType
-  | PoundsDataType
-  | LitresDataType
-  | MillilitresDataType
-  | CubicMetresDataType
-  | CubicFeetDataType
-  | MetersDataType
-  | CentimetersDataType
-  | MillimetersDataType
-  | KilometersDataType
-  | FeetDataType
-  | InchesDataType
-  | YardsDataType
-  | MilesDataType
-  | SquareMetresDataType
-  | SquareCentimetresDataType
-  | SquareFeetDataType
-  | HoursDataType
-  | DaysDataType
-  | UnitDataType;
+export type WithdrawnQuantityPropertyValue = KilogramsDataType;
 
 export type WithdrawnQuantityPropertyValueWithMetadata =
-  | KilogramsDataTypeWithMetadata
-  | GramsDataTypeWithMetadata
-  | MetricTonnesDataTypeWithMetadata
-  | PoundsDataTypeWithMetadata
-  | LitresDataTypeWithMetadata
-  | MillilitresDataTypeWithMetadata
-  | CubicMetresDataTypeWithMetadata
-  | CubicFeetDataTypeWithMetadata
-  | MetersDataTypeWithMetadata
-  | CentimetersDataTypeWithMetadata
-  | MillimetersDataTypeWithMetadata
-  | KilometersDataTypeWithMetadata
-  | FeetDataTypeWithMetadata
-  | InchesDataTypeWithMetadata
-  | YardsDataTypeWithMetadata
-  | MilesDataTypeWithMetadata
-  | SquareMetresDataTypeWithMetadata
-  | SquareCentimetresDataTypeWithMetadata
-  | SquareFeetDataTypeWithMetadata
-  | HoursDataTypeWithMetadata
-  | DaysDataTypeWithMetadata
-  | UnitDataTypeWithMetadata;
+  KilogramsDataTypeWithMetadata;

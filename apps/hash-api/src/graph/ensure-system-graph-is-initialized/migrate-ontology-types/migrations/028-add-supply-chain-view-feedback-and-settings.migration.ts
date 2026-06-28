@@ -106,7 +106,7 @@ const migrate: MigrationFunction = async ({
     {
       propertyTypeDefinition: {
         title: "Time Period",
-        description: "A period of time expressed as a number of months.",
+        description: "A period of time.",
         possibleValues: [{ dataTypeId: durationDataTypeId }],
       },
       migrationState,

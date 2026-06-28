@@ -215,6 +215,67 @@ describe("deduplicateNodes", () => {
 
     expect(deduplicateNodes(site)).toHaveLength(2);
   });
+
+  it("aggregates product-scoped raw-material dwell series at site level", () => {
+    const productA: Product = { id: "pa", name: "Product A", material: "FG-A" };
+    const productB: Product = { id: "pb", name: "Product B", material: "FG-B" };
+    const rawA = node({
+      id: "raw-a",
+      type: "raw_material_dwell",
+      material: "MAT-1",
+      plant: "PL-A",
+      stats: stats(1, 10),
+      cost: cost(100),
+      observations: [{ date: "2026-01-10", value: 10 }],
+      monthly: [kgDayMonth("2026-01", 1000)],
+    });
+    const rawB = node({
+      id: "raw-b",
+      type: "raw_material_dwell",
+      material: "MAT-1",
+      plant: "PL-A",
+      stats: stats(1, 30),
+      cost: cost(100),
+      observations: [{ date: "2026-01-20", value: 30 }],
+      monthly: [kgDayMonth("2026-01", 3000)],
+    });
+    const site: SiteData = {
+      graphs: [
+        {
+          product: productA,
+          graph: {
+            product_id: "pa",
+            product_name: "Product A",
+            nodes: [rawA],
+            edges: [],
+            pipeline_summary: {},
+          },
+        },
+        {
+          product: productB,
+          graph: {
+            product_id: "pb",
+            product_name: "Product B",
+            nodes: [rawB],
+            edges: [],
+            pipeline_summary: {},
+          },
+        },
+      ],
+    };
+
+    const result = deduplicateNodes(site);
+
+    expect(result).toHaveLength(1);
+    expect(result[0]?.stats).toMatchObject({ n: 2, mean: 20, median: 20 });
+    expect(result[0]?.monthly).toEqual([
+      { month: "2026-01", mean: 20, median: 20, n: 2, total_kg_days: 4000 },
+    ]);
+    expect(result[0]?.products.map((product) => product.id).sort()).toEqual([
+      "pa",
+      "pb",
+    ]);
+  });
 });
 
 describe("computeNodePeriodCost", () => {

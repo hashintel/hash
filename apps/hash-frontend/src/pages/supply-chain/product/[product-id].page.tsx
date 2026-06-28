@@ -3,7 +3,6 @@ import { useCallback, useEffect, useState } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 
-import { Overview } from "../app-shell/product";
 import { fetchGraph } from "../shared/data";
 import { ErrorState, LoadingState } from "../shared/load-state";
 import { getSupplyChainLayout } from "../shared/supply-chain-layout";
@@ -12,6 +11,7 @@ import {
   trackSupplyChainViewed,
 } from "../shared/telemetry";
 import { useSearchParams } from "../shared/use-search-params";
+import { Overview } from "../supply-chain-data-shell/product";
 
 import type { NextPageWithLayout } from "../../../shared/layout";
 import type { GraphData } from "../shared/types";

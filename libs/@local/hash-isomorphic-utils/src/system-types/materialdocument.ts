@@ -1354,53 +1354,9 @@ export type MovementCategoryPropertyValueWithMetadata =
 /**
  * The quantity recorded on a movement or document line.
  */
-export type MovementQuantityPropertyValue =
-  | KilogramsDataType
-  | GramsDataType
-  | MetricTonnesDataType
-  | PoundsDataType
-  | LitresDataType
-  | MillilitresDataType
-  | CubicMetresDataType
-  | CubicFeetDataType
-  | MetersDataType
-  | CentimetersDataType
-  | MillimetersDataType
-  | KilometersDataType
-  | FeetDataType
-  | InchesDataType
-  | YardsDataType
-  | MilesDataType
-  | SquareMetresDataType
-  | SquareCentimetresDataType
-  | SquareFeetDataType
-  | HoursDataType
-  | DaysDataType
-  | UnitDataType;
-
+export type MovementQuantityPropertyValue = KilogramsDataType;
 export type MovementQuantityPropertyValueWithMetadata =
-  | KilogramsDataTypeWithMetadata
-  | GramsDataTypeWithMetadata
-  | MetricTonnesDataTypeWithMetadata
-  | PoundsDataTypeWithMetadata
-  | LitresDataTypeWithMetadata
-  | MillilitresDataTypeWithMetadata
-  | CubicMetresDataTypeWithMetadata
-  | CubicFeetDataTypeWithMetadata
-  | MetersDataTypeWithMetadata
-  | CentimetersDataTypeWithMetadata
-  | MillimetersDataTypeWithMetadata
-  | KilometersDataTypeWithMetadata
-  | FeetDataTypeWithMetadata
-  | InchesDataTypeWithMetadata
-  | YardsDataTypeWithMetadata
-  | MilesDataTypeWithMetadata
-  | SquareMetresDataTypeWithMetadata
-  | SquareCentimetresDataTypeWithMetadata
-  | SquareFeetDataTypeWithMetadata
-  | HoursDataTypeWithMetadata
-  | DaysDataTypeWithMetadata
-  | UnitDataTypeWithMetadata;
+  KilogramsDataTypeWithMetadata;
 
 /**
  * The type of a goods movement, such as a goods receipt, goods issue, or transfer.

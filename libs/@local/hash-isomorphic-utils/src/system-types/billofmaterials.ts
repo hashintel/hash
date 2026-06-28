@@ -313,53 +313,10 @@ export type BOMStatusPropertyValueWithMetadata = TextDataTypeWithMetadata;
 /**
  * The base quantity an item is defined in, such as for a bill of materials.
  */
-export type BaseQuantityPropertyValue =
-  | KilogramsDataType
-  | GramsDataType
-  | MetricTonnesDataType
-  | PoundsDataType
-  | LitresDataType
-  | MillilitresDataType
-  | CubicMetresDataType
-  | CubicFeetDataType
-  | MetersDataType
-  | CentimetersDataType
-  | MillimetersDataType
-  | KilometersDataType
-  | FeetDataType
-  | InchesDataType
-  | YardsDataType
-  | MilesDataType
-  | SquareMetresDataType
-  | SquareCentimetresDataType
-  | SquareFeetDataType
-  | HoursDataType
-  | DaysDataType
-  | UnitDataType;
+export type BaseQuantityPropertyValue = KilogramsDataType;
 
 export type BaseQuantityPropertyValueWithMetadata =
-  | KilogramsDataTypeWithMetadata
-  | GramsDataTypeWithMetadata
-  | MetricTonnesDataTypeWithMetadata
-  | PoundsDataTypeWithMetadata
-  | LitresDataTypeWithMetadata
-  | MillilitresDataTypeWithMetadata
-  | CubicMetresDataTypeWithMetadata
-  | CubicFeetDataTypeWithMetadata
-  | MetersDataTypeWithMetadata
-  | CentimetersDataTypeWithMetadata
-  | MillimetersDataTypeWithMetadata
-  | KilometersDataTypeWithMetadata
-  | FeetDataTypeWithMetadata
-  | InchesDataTypeWithMetadata
-  | YardsDataTypeWithMetadata
-  | MilesDataTypeWithMetadata
-  | SquareMetresDataTypeWithMetadata
-  | SquareCentimetresDataTypeWithMetadata
-  | SquareFeetDataTypeWithMetadata
-  | HoursDataTypeWithMetadata
-  | DaysDataTypeWithMetadata
-  | UnitDataTypeWithMetadata;
+  KilogramsDataTypeWithMetadata;
 
 /**
  * A structured list of the components required to produce a material.

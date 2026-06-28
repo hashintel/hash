@@ -1,6 +1,7 @@
 import { DWELL_TYPES } from "./categories";
 import { computePeriodCost } from "./cost";
 import { type BaseMeasure, selectStat } from "./measure-context";
+import { computeStats } from "./stats";
 
 import type {
   MonthlyBucket,
@@ -63,6 +64,9 @@ function dwellSeriesFingerprint(node: GraphNode): string {
   ].join("~");
 }
 function dwellDedupKey(node: GraphNode, productId: string): string {
+  if (node.type === "raw_material_dwell" && node.material) {
+    return ["raw-dwell", node.plant, node.type, node.material].join("|");
+  }
   const series = dwellSeriesFingerprint(node);
   if (node.material) {
     return ["dwell", node.plant, node.type, node.material, series].join("|");
@@ -84,11 +88,73 @@ function dedupKey(node: GraphNode, productId: string): string {
   }
   return ["product", productId, node.id, node.plant, node.type].join("|");
 }
+function aggregateMonthlyBuckets(nodes: GraphNode[]): MonthlyBucket[] {
+  const observationsByMonth = new Map<string, number[]>();
+  const kgDaysByMonth = new Map<string, number>();
+
+  for (const node of nodes) {
+    for (const observation of node.observations ?? []) {
+      const month = observation.date.slice(0, 7);
+      const values = observationsByMonth.get(month);
+      if (values) {
+        values.push(observation.value);
+      } else {
+        observationsByMonth.set(month, [observation.value]);
+      }
+    }
+    for (const bucket of node.monthly ?? []) {
+      kgDaysByMonth.set(
+        bucket.month,
+        (kgDaysByMonth.get(bucket.month) ?? 0) + (bucket.total_kg_days ?? 0),
+      );
+    }
+  }
+
+  return [...new Set([...observationsByMonth.keys(), ...kgDaysByMonth.keys()])]
+    .sort()
+    .map((month) => {
+      const values = observationsByMonth.get(month) ?? [];
+      const stats = computeStats(values);
+      return {
+        month,
+        mean: values.length > 0 ? stats.mean : null,
+        median: values.length > 0 ? stats.median : null,
+        n: values.length > 0 ? stats.n : 0,
+        total_kg_days: kgDaysByMonth.get(month) ?? 0,
+      };
+    });
+}
+
+function aggregateRawMaterialDwellNodes(nodes: GraphNode[]): GraphNode {
+  const uniqueSeries = new Map<string, GraphNode>();
+  for (const node of nodes) {
+    uniqueSeries.set(dwellSeriesFingerprint(node), node);
+  }
+  const uniqueNodes = [...uniqueSeries.values()];
+  if (uniqueNodes.length === 1) {
+    return uniqueNodes[0]!;
+  }
+
+  const observations = uniqueNodes.flatMap((node) => node.observations ?? []);
+  const stats = computeStats(
+    observations.map((observation) => observation.value),
+  );
+  return {
+    ...uniqueNodes[0]!,
+    observations,
+    monthly: aggregateMonthlyBuckets(uniqueNodes),
+    stats,
+    pct_exceeding_plan: null,
+  };
+}
 
 export function deduplicateNodes(siteData: SiteData): SiteNode[] {
   const grouped = new Map<
     string,
-    { node: GraphNode; products: Array<{ id: string; name: string }> }
+    {
+      nodes: GraphNode[];
+      products: Array<{ id: string; name: string }>;
+    }
   >();
 
   for (const { product, graph } of siteData.graphs) {
@@ -96,22 +162,29 @@ export function deduplicateNodes(siteData: SiteData): SiteNode[] {
       const key = dedupKey(node, product.id);
       const existing = grouped.get(key);
       if (existing) {
+        existing.nodes.push(node);
         if (!existing.products.some((product2) => product2.id === product.id)) {
           existing.products.push({ id: product.id, name: product.name });
         }
       } else {
         grouped.set(key, {
-          node,
+          nodes: [node],
           products: [{ id: product.id, name: product.name }],
         });
       }
     }
   }
 
-  return Array.from(grouped.values()).map(({ node, products }) => ({
-    ...node,
-    products,
-  }));
+  return Array.from(grouped.values()).map(({ nodes, products }) => {
+    const node =
+      nodes[0]?.type === "raw_material_dwell"
+        ? aggregateRawMaterialDwellNodes(nodes)
+        : nodes[0]!;
+    return {
+      ...node,
+      products,
+    };
+  });
 }
 
 export function computeNodePeriodCost(

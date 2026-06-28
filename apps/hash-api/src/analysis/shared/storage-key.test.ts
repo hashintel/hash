@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { AnalysisArgError } from "./errors";
 import {
+  isWebScopedKeyForWeb,
   isValidSlug,
   optionalSlugArg,
   requireSlugArg,
@@ -13,14 +14,31 @@ import type { WebId } from "@blockprotocol/type-system";
 describe("webScopedKey", () => {
   const webId = "00000000-0000-4000-8000-000000000001" as WebId;
 
-  it("puts the webId as the first path segment", () => {
+  it("puts the webId after the analysis prefix", () => {
     const key = webScopedKey(webId, "supply-chain", "2026-06-15", "graph.json");
-    expect(key).toBe(`${webId}/supply-chain/2026-06-15/graph.json`);
-    expect(key.split("/")[0]).toBe(webId);
+    expect(key).toBe(`analysis/${webId}/supply-chain/2026-06-15/graph.json`);
+    expect(key.split("/")[0]).toBe("analysis");
+    expect(key.split("/")[1]).toBe(webId);
   });
 
   it("works with just a namespace", () => {
-    expect(webScopedKey(webId, "supply-chain")).toBe(`${webId}/supply-chain`);
+    expect(webScopedKey(webId, "supply-chain")).toBe(
+      `analysis/${webId}/supply-chain`,
+    );
+  });
+
+  it("checks both the analysis prefix and webId segment", () => {
+    const key = webScopedKey(webId, "supply-chain", "current.json");
+    expect(isWebScopedKeyForWeb(key, webId)).toBe(true);
+    expect(
+      isWebScopedKeyForWeb(`${webId}/supply-chain/current.json`, webId),
+    ).toBe(false);
+    expect(
+      isWebScopedKeyForWeb(
+        "analysis/00000000-0000-4000-8000-000000000002/supply-chain/current.json",
+        webId,
+      ),
+    ).toBe(false);
   });
 });
 

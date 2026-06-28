@@ -227,6 +227,22 @@ export const productOverviewSection: DocSectionDef = {
             and post-QA logistics, the simulator treats the steps as serial and
             subtracts the capped tail from the relevant segment.
           </P>
+          <H4>Baseline rollups</H4>
+          <P>
+            The solid waterfall bars come from the filtered batch timeline, not
+            from the cap simulation. When you change the time range, route or
+            outlier setting, the app recomputes each batch segment&apos;s mean,
+            median and quartiles from the remaining batches, then rebuilds the
+            route-level pipeline from those segment summaries.
+          </P>
+          <P>
+            The route&apos;s end-to-end mean and median use each batch&apos;s
+            own total duration when that value is available. Because those
+            totals are a separate per-batch distribution, they can differ
+            slightly from adding together the displayed segment means or
+            medians, especially when some segments are missing or outliers have
+            been excluded.
+          </P>
           <H4>Controls</H4>
           <UL>
             <LI>

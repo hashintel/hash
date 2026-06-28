@@ -1,7 +1,6 @@
 import { useRouter } from "next/router";
 import { useEffect } from "react";
 
-import { OpportunityBrief } from "../../../../../app-shell/opportunity";
 import { LoadingState, ErrorState } from "../../../../../shared/load-state";
 import { useRegistry } from "../../../../../shared/registry-context";
 import { getSupplyChainLayout } from "../../../../../shared/supply-chain-layout";
@@ -9,9 +8,10 @@ import {
   trackSupplyChainInteraction,
   trackSupplyChainViewed,
 } from "../../../../../shared/telemetry";
+import { OpportunityBrief } from "../../../../../supply-chain-data-shell/opportunity";
 
 import type { NextPageWithLayout } from "../../../../../../../shared/layout";
-import type { OpportunityType } from "../../../../../app-shell/opportunity/opportunity-utils";
+import type { OpportunityType } from "../../../../../supply-chain-data-shell/opportunity/opportunity-utils";
 
 const normaliseOpportunityType = (value: string | undefined): OpportunityType =>
   value === "planning" ? "planning" : "dwell";

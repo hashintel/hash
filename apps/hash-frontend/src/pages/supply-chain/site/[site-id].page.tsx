@@ -1,11 +1,11 @@
 import { useRouter } from "next/router";
 import { useEffect } from "react";
 
-import { SiteOverview } from "../app-shell/site";
-import { useSupplyChainStatusState } from "../app-shell/site/use-supply-chain-status-state";
 import { useRegistry } from "../shared/registry-context";
 import { getSupplyChainLayout } from "../shared/supply-chain-layout";
 import { trackSupplyChainViewed } from "../shared/telemetry";
+import { SiteOverview } from "../supply-chain-data-shell/site";
+import { useSupplyChainStatusState } from "../supply-chain-data-shell/site/use-supply-chain-status-state";
 
 import type { NextPageWithLayout } from "../../../shared/layout";
 

@@ -8,7 +8,7 @@ import type { NamedAnalysis } from "../shared/analysis-registry";
  * Named analyses backing the supply chain views. Every analysis is scoped to
  * a single web (the dataset owner) and resolves to one or more JSON artifacts.
  *
- * Storage layout (under `{webId}/supply-chain/{version}/`):
+ * Storage layout (under `analysis/{webId}/supply-chain/{version}/`):
  *   products.json
  *   sites.json
  *   {productId}/graph.json

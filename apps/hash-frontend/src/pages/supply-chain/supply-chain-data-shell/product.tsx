@@ -250,6 +250,7 @@ const PlanningParamLegend = () => {
     </Tooltip>
   );
 };
+
 export const Overview = ({
   graph,
   productId,
@@ -262,13 +263,17 @@ export const Overview = ({
     useCostParams();
   const { excludeOutliers } = useOutlierSetting();
   const { basis: procurementBasis } = useProcurementBasis();
+
   const [searchParams, setSearchParams] = useSearchParams();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [statusTarget, setStatusTarget] = useState<SiteNode | null>(null);
+
   const pipelineExpanded = searchParams.get("pipeline") === "expanded";
+
   useEffect(() => {
     setAnalysisSettings(graph.analysis_settings);
   }, [graph.analysis_settings, setAnalysisSettings]);
+
   const setPipelineExpanded = useCallback(
     (expanded: boolean) => {
       setSearchParams(
@@ -285,7 +290,9 @@ export const Overview = ({
       );
     },
     [setSearchParams],
-  ); // Segment toggle: which of the four pipeline segments are currently
+  );
+
+  // Segment toggle: which of the four pipeline segments are currently
   // included in the waterfall totals, KPI tiles, and lever list.
   // Persisted as ?segments=<comma-separated ids> when the user differs
   // from the default; absent param == procurement off, remaining segments on.
@@ -301,11 +308,13 @@ export const Overview = ({
       );
     return new Set(ids);
   }, [searchParams]);
+
   const setActiveSegments = useCallback(
     (next: Set<SegmentId>) => {
       setSearchParams(
         (prev) => {
-          const params = new URLSearchParams(prev); // Canonical order keeps the URL stable regardless of toggle
+          const params = new URLSearchParams(prev);
+          // Canonical order keeps the URL stable regardless of toggle
           // order. Drop the param entirely when the default selection is restored.
           const ordered = ALL_SEGMENTS.filter((id) => next.has(id));
           if (sameSegments(DEFAULT_ACTIVE_SEGMENTS, next)) {
@@ -320,6 +329,7 @@ export const Overview = ({
     },
     [setSearchParams],
   );
+
   const handleSegmentToggle = useCallback(
     (id: SegmentId) => {
       const next = new Set(activeSegments);
@@ -331,7 +341,9 @@ export const Overview = ({
       setActiveSegments(next);
     },
     [activeSegments, setActiveSegments],
-  ); // Pipeline route (e.g. shipping destination) is lifted here so the
+  );
+
+  // Pipeline route (e.g. shipping destination) is lifted here so the
   // selection survives collapse/expand of the simulator. Persisted as
   // ?route=<code> when set; omitted if no param is present and the
   // child renders a route picker for the first available route.
@@ -353,6 +365,7 @@ export const Overview = ({
     },
     [setSearchParams],
   );
+
   const handleStepClick = useCallback(
     (stepId: string) => {
       trackSupplyChainInteraction({
@@ -365,6 +378,7 @@ export const Overview = ({
     },
     [onStepSelect, productId, viewMode],
   );
+
   const handlePanelClose = useCallback(() => {
     trackSupplyChainInteraction({
       interaction: "step_detail_panel_closed",
@@ -374,6 +388,7 @@ export const Overview = ({
     });
     onStepSelect(null);
   }, [onStepSelect, productId, selectedStepId]);
+
   const filteredGraph = useMemo((): GraphData => {
     const filteredNodes = graph.nodes.map((count) =>
       filterGraphNodeByDateRange(
@@ -406,6 +421,7 @@ export const Overview = ({
       pipeline_summary: filteredBT.pipeline,
     };
   }, [graph, timeRange, excludeOutliers, procurementBasis]);
+
   const summaryStats = useMemo(() => {
     const bt = filteredGraph.batch_timelines;
     const totalSeg = bt?.segments?.total_days;
@@ -426,6 +442,7 @@ export const Overview = ({
       dwellCost: dwellCost > 0 ? dwellCost : null,
     };
   }, [filteredGraph, waccRate, storageCost]);
+
   const productCurrency = useMemo(() => {
     const counts = new Map<string, number>();
     for (const node of graph.nodes) {
@@ -444,6 +461,7 @@ export const Overview = ({
     }
     return best ?? currency;
   }, [graph.nodes, currency]);
+
   const selectedNode = useMemo((): SiteNode | null => {
     const node = selectedStepId
       ? graph.nodes.find((candidate) => candidate.id === selectedStepId)
@@ -455,6 +473,7 @@ export const Overview = ({
         }
       : null;
   }, [graph.nodes, graph.product_name, productId, selectedStepId]);
+
   const selectedSiteId = selectedNode?.plant ?? "";
   const opportunityStatusStore = useSupplyChainStatusState(selectedSiteId);
   const selectedStatusKey = selectedNode
@@ -466,11 +485,13 @@ export const Overview = ({
           isDwellType(selectedNode.type) ? "dwell" : "planning"
         }/${productId}/${selectedNode.id}?range=${timeRange}`
       : undefined;
+
   const statusTargetIsSelectedNode =
     selectedNode != null &&
     statusTarget != null &&
     statusTarget.id === selectedNode.id &&
     statusTarget.plant === selectedNode.plant;
+
   return (
     <div className={rootStyle}>
       {/* Header bar */}
@@ -661,7 +682,7 @@ export const Overview = ({
               : undefined
           }
           statusDialog={
-            statusTargetIsSelectedNode && statusTarget ? (
+            statusTargetIsSelectedNode ? (
               <StatusDialog
                 key={`${statusTarget.plant}-${statusTarget.id}`}
                 title={statusTarget.label}

@@ -12,6 +12,7 @@ const wrap = css({
   gap: "1",
   fontVariantNumeric: "tabular-nums",
 });
+
 // Rising lead time / cost is unfavourable, so up = red, down = green; an
 // identical period (rounds to 0%) is shown as a neutral grey equals glyph.
 const toneUp = css({ color: "status.error.fg.body" });
@@ -44,6 +45,7 @@ const EqualsIcon = () => {
     </svg>
   );
 };
+
 export const TrendIndicator = ({
   pctChange,
   children,

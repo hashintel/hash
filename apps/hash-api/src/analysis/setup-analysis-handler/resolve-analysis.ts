@@ -1,12 +1,13 @@
 import { getActorGroupRole } from "@local/hash-graph-sdk/principal/actor-group";
 
 import { logger } from "../../logger";
-import { getAnalysis } from "../shared/analysis-registry";
+import { getAnalysisMetadata } from "../shared/analysis-registry";
 import {
   AnalysisArgError,
   AnalysisNotFoundError,
   DatasetUnavailableError,
 } from "../shared/errors";
+import { isWebScopedKeyForWeb } from "../shared/storage-key";
 
 import type { GraphApi } from "../../graph/context-types";
 import type { ActorEntityUuid } from "@blockprotocol/type-system";
@@ -73,7 +74,7 @@ export const resolveInvocation = async ({
     return asResult({ status: "error", error: "Missing analysis name" });
   }
 
-  const analysis = getAnalysis(analysisName);
+  const analysis = getAnalysisMetadata(analysisName);
   if (!analysis) {
     return asResult({
       status: "error",
@@ -100,13 +101,13 @@ export const resolveInvocation = async ({
 
   /**
    * Every artifact key an analysis resolves to must live under the authorised
-   * web. Keys are built via `webScopedKey`, which puts the web id first, so an
-   * exact segment-0 match enforces that a (buggy or compromised) analysis cannot
-   * presign an object outside the caller's web. `resolve()` is otherwise
-   * free-form.
+   * web. Keys are built via `webScopedKey`, which puts the analysis prefix first
+   * and the web id second, so an exact prefix + web segment match enforces that
+   * a (buggy or compromised) analysis cannot presign an object outside the
+   * caller's web. `resolve()` is otherwise free-form.
    */
   const keyWithinAuthorisedWeb = (key: string): boolean =>
-    key.split("/")[0] === webId;
+    isWebScopedKeyForWeb(key, webId);
 
   try {
     const role = await getActorGroupRole(
@@ -153,7 +154,10 @@ export const resolveInvocation = async ({
       logger.error(
         `Analysis "${analysisName}" resolved an artifact key outside the authorised webs [key=${escapingRef.key}]`,
       );
-      return asResult({ status: "error", error: "Internal error" });
+      return asResult({
+        status: "error",
+        error: "Resolved analysis artifact key outside the authorised web",
+      });
     }
 
     const artifacts = await Promise.all(

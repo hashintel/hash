@@ -18,26 +18,20 @@ import type {
   AirportOutgoingLinksByLinkEntityTypeId,
   AirportProperties,
   AirportPropertiesWithMetadata,
-  ArrivesAt,
-  ArrivesAtOutgoingLinkAndTarget,
-  ArrivesAtOutgoingLinksByLinkEntityTypeId,
-  ArrivesAtProperties,
-  ArrivesAtPropertiesWithMetadata,
   BooleanDataType,
   BooleanDataTypeWithMetadata,
   CityPropertyValue,
   CityPropertyValueWithMetadata,
   DateDataType,
   DateDataTypeWithMetadata,
-  DepartsFrom,
-  DepartsFromOutgoingLinkAndTarget,
-  DepartsFromOutgoingLinksByLinkEntityTypeId,
-  DepartsFromProperties,
-  DepartsFromPropertiesWithMetadata,
+  DateTimeDataType,
+  DateTimeDataTypeWithMetadata,
   IATACodePropertyValue,
   IATACodePropertyValueWithMetadata,
   ICAOCodePropertyValue,
   ICAOCodePropertyValueWithMetadata,
+  IntegerDataType,
+  IntegerDataTypeWithMetadata,
   LengthDataType,
   LengthDataTypeWithMetadata,
   Link,
@@ -85,26 +79,20 @@ export type {
   AirportOutgoingLinksByLinkEntityTypeId,
   AirportProperties,
   AirportPropertiesWithMetadata,
-  ArrivesAt,
-  ArrivesAtOutgoingLinkAndTarget,
-  ArrivesAtOutgoingLinksByLinkEntityTypeId,
-  ArrivesAtProperties,
-  ArrivesAtPropertiesWithMetadata,
   BooleanDataType,
   BooleanDataTypeWithMetadata,
   CityPropertyValue,
   CityPropertyValueWithMetadata,
   DateDataType,
   DateDataTypeWithMetadata,
-  DepartsFrom,
-  DepartsFromOutgoingLinkAndTarget,
-  DepartsFromOutgoingLinksByLinkEntityTypeId,
-  DepartsFromProperties,
-  DepartsFromPropertiesWithMetadata,
+  DateTimeDataType,
+  DateTimeDataTypeWithMetadata,
   IATACodePropertyValue,
   IATACodePropertyValueWithMetadata,
   ICAOCodePropertyValue,
   ICAOCodePropertyValueWithMetadata,
+  IntegerDataType,
+  IntegerDataTypeWithMetadata,
   LengthDataType,
   LengthDataTypeWithMetadata,
   Link,
@@ -131,6 +119,22 @@ export type {
 };
 
 /**
+ * The actual date and time of gate departure (pushback) or arrival.
+ */
+export type ActualGateTimePropertyValue = DateTimeDataType;
+
+export type ActualGateTimePropertyValueWithMetadata =
+  DateTimeDataTypeWithMetadata;
+
+/**
+ * The actual date and time of runway departure (takeoff) or arrival (touchdown).
+ */
+export type ActualRunwayTimePropertyValue = DateTimeDataType;
+
+export type ActualRunwayTimePropertyValueWithMetadata =
+  DateTimeDataTypeWithMetadata;
+
+/**
  * The height of an object above a reference point, such as sea level or the ground.
  */
 export type AltitudePropertyValue = MetersDataType;
@@ -151,6 +155,13 @@ export type AngleDataTypeMetadata = {
   confidence?: Confidence;
   dataTypeId: "https://hash.ai/@h/types/data-type/angle/v/1";
 };
+
+/**
+ * The area or carousel number where passengers collect their checked luggage after a flight.
+ */
+export type BaggageClaimPropertyValue = TextDataType;
+
+export type BaggageClaimPropertyValueWithMetadata = TextDataTypeWithMetadata;
 
 /**
  * A codeshare flight number, where multiple airlines sell seats on the same flight under their own flight numbers.
@@ -184,11 +195,35 @@ export type DegreeDataTypeMetadata = {
 };
 
 /**
+ * The amount of delay in seconds for a scheduled event such as a flight departure or arrival.
+ */
+export type DelayInSecondsPropertyValue = IntegerDataType;
+
+export type DelayInSecondsPropertyValueWithMetadata =
+  IntegerDataTypeWithMetadata;
+
+/**
  * The heading or bearing of something, measured in degrees from true north.
  */
 export type DirectionPropertyValue = DegreeDataType;
 
 export type DirectionPropertyValueWithMetadata = DegreeDataTypeWithMetadata;
+
+/**
+ * The predicted date and time for gate departure (pushback) or arrival.
+ */
+export type EstimatedGateTimePropertyValue = DateTimeDataType;
+
+export type EstimatedGateTimePropertyValueWithMetadata =
+  DateTimeDataTypeWithMetadata;
+
+/**
+ * The predicted date and time for runway departure (takeoff) or arrival (touchdown).
+ */
+export type EstimatedRunwayTimePropertyValue = DateTimeDataType;
+
+export type EstimatedRunwayTimePropertyValueWithMetadata =
+  DateTimeDataTypeWithMetadata;
 
 /**
  * A unit of vertical speed commonly used in aviation to measure rate of climb or descent.
@@ -214,11 +249,6 @@ export type Flight = {
   propertiesWithMetadata: FlightPropertiesWithMetadata;
 };
 
-export type FlightArrivesAtLink = {
-  linkEntity: ArrivesAt;
-  rightEntity: Airport;
-};
-
 /**
  * The calendar date on which a flight is scheduled to operate.
  */
@@ -226,10 +256,7 @@ export type FlightDatePropertyValue = DateDataType;
 
 export type FlightDatePropertyValueWithMetadata = DateDataTypeWithMetadata;
 
-export type FlightDepartsFromLink = {
-  linkEntity: DepartsFrom;
-  rightEntity: Airport;
-};
+export type FlightLandsAtLink = { linkEntity: LandsAt; rightEntity: Airport };
 
 /**
  * A numeric or alphanumeric code identifying a specific scheduled airline service.
@@ -244,15 +271,15 @@ export type FlightOperatedByLink = {
 };
 
 export type FlightOutgoingLinkAndTarget =
-  | FlightArrivesAtLink
-  | FlightDepartsFromLink
+  | FlightLandsAtLink
   | FlightOperatedByLink
+  | FlightTakesOffFromLink
   | FlightUsesAircraftLink;
 
 export type FlightOutgoingLinksByLinkEntityTypeId = {
-  "https://hash.ai/@h/types/entity-type/arrives-at/v/1": FlightArrivesAtLink;
-  "https://hash.ai/@h/types/entity-type/departs-from/v/1": FlightDepartsFromLink;
+  "https://hash.ai/@h/types/entity-type/lands-at/v/1": FlightLandsAtLink;
   "https://hash.ai/@h/types/entity-type/operated-by/v/1": FlightOperatedByLink;
+  "https://hash.ai/@h/types/entity-type/takes-off-from/v/1": FlightTakesOffFromLink;
   "https://hash.ai/@h/types/entity-type/uses-aircraft/v/1": FlightUsesAircraftLink;
 };
 
@@ -328,6 +355,11 @@ export type FlightStatusPropertyValue = FlightStatusDataType;
 export type FlightStatusPropertyValueWithMetadata =
   FlightStatusDataTypeWithMetadata;
 
+export type FlightTakesOffFromLink = {
+  linkEntity: TakesOffFrom;
+  rightEntity: Airport;
+};
+
 /**
  * The category of flight operation.
  */
@@ -339,6 +371,13 @@ export type FlightUsesAircraftLink = {
   linkEntity: UsesAircraft;
   rightEntity: Aircraft;
 };
+
+/**
+ * The gate number or identifier at an airport terminal where passengers board or disembark.
+ */
+export type GatePropertyValue = TextDataType;
+
+export type GatePropertyValueWithMetadata = TextDataTypeWithMetadata;
 
 /**
  * The horizontal speed of an aircraft relative to the ground.
@@ -367,6 +406,53 @@ export type KnotsDataTypeMetadata = {
   provenance?: PropertyProvenance;
   confidence?: Confidence;
   dataTypeId: "https://hash.ai/@h/types/data-type/knots/v/1";
+};
+
+/**
+ * Indicates the airport at which a flight arrives, including arrival-specific details.
+ */
+export type LandsAt = {
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/lands-at/v/1"];
+  properties: LandsAtProperties;
+  propertiesWithMetadata: LandsAtPropertiesWithMetadata;
+};
+
+export type LandsAtOutgoingLinkAndTarget = never;
+
+export type LandsAtOutgoingLinksByLinkEntityTypeId = {};
+
+/**
+ * Indicates the airport at which a flight arrives, including arrival-specific details.
+ */
+export type LandsAtProperties = LinkProperties & {
+  "https://hash.ai/@h/types/property-type/actual-gate-time/"?: ActualGateTimePropertyValue;
+  "https://hash.ai/@h/types/property-type/actual-runway-time/"?: ActualRunwayTimePropertyValue;
+  "https://hash.ai/@h/types/property-type/baggage-claim/"?: BaggageClaimPropertyValue;
+  "https://hash.ai/@h/types/property-type/delay-in-seconds/"?: DelayInSecondsPropertyValue;
+  "https://hash.ai/@h/types/property-type/estimated-gate-time/"?: EstimatedGateTimePropertyValue;
+  "https://hash.ai/@h/types/property-type/estimated-runway-time/"?: EstimatedRunwayTimePropertyValue;
+  "https://hash.ai/@h/types/property-type/gate/"?: GatePropertyValue;
+  "https://hash.ai/@h/types/property-type/runway/"?: RunwayPropertyValue;
+  "https://hash.ai/@h/types/property-type/scheduled-gate-time/"?: ScheduledGateTimePropertyValue;
+  "https://hash.ai/@h/types/property-type/scheduled-runway-time/"?: ScheduledRunwayTimePropertyValue;
+  "https://hash.ai/@h/types/property-type/terminal/"?: TerminalPropertyValue;
+};
+
+export type LandsAtPropertiesWithMetadata = LinkPropertiesWithMetadata & {
+  metadata?: ObjectMetadata;
+  value: {
+    "https://hash.ai/@h/types/property-type/actual-gate-time/"?: ActualGateTimePropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/actual-runway-time/"?: ActualRunwayTimePropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/baggage-claim/"?: BaggageClaimPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/delay-in-seconds/"?: DelayInSecondsPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/estimated-gate-time/"?: EstimatedGateTimePropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/estimated-runway-time/"?: EstimatedRunwayTimePropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/gate/"?: GatePropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/runway/"?: RunwayPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/scheduled-gate-time/"?: ScheduledGateTimePropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/scheduled-runway-time/"?: ScheduledRunwayTimePropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/terminal/"?: TerminalPropertyValueWithMetadata;
+  };
 };
 
 /**
@@ -437,6 +523,29 @@ export type OperatedByPropertiesWithMetadata = LinkPropertiesWithMetadata & {
 };
 
 /**
+ * The runway identifier used for takeoff or landing.
+ */
+export type RunwayPropertyValue = TextDataType;
+
+export type RunwayPropertyValueWithMetadata = TextDataTypeWithMetadata;
+
+/**
+ * The originally planned date and time for gate departure (pushback) or arrival.
+ */
+export type ScheduledGateTimePropertyValue = DateTimeDataType;
+
+export type ScheduledGateTimePropertyValueWithMetadata =
+  DateTimeDataTypeWithMetadata;
+
+/**
+ * The originally planned date and time for runway departure (takeoff) or arrival (touchdown).
+ */
+export type ScheduledRunwayTimePropertyValue = DateTimeDataType;
+
+export type ScheduledRunwayTimePropertyValueWithMetadata =
+  DateTimeDataTypeWithMetadata;
+
+/**
  * A measure of the rate of movement or change in position over time.
  */
 export type SpeedDataType = NumberDataType;
@@ -450,6 +559,58 @@ export type SpeedDataTypeMetadata = {
   confidence?: Confidence;
   dataTypeId: "https://hash.ai/@h/types/data-type/speed/v/1";
 };
+
+/**
+ * Indicates the airport from which a flight departs, including departure-specific details.
+ */
+export type TakesOffFrom = {
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/takes-off-from/v/1"];
+  properties: TakesOffFromProperties;
+  propertiesWithMetadata: TakesOffFromPropertiesWithMetadata;
+};
+
+export type TakesOffFromOutgoingLinkAndTarget = never;
+
+export type TakesOffFromOutgoingLinksByLinkEntityTypeId = {};
+
+/**
+ * Indicates the airport from which a flight departs, including departure-specific details.
+ */
+export type TakesOffFromProperties = LinkProperties & {
+  "https://hash.ai/@h/types/property-type/actual-gate-time/"?: ActualGateTimePropertyValue;
+  "https://hash.ai/@h/types/property-type/actual-runway-time/"?: ActualRunwayTimePropertyValue;
+  "https://hash.ai/@h/types/property-type/delay-in-seconds/"?: DelayInSecondsPropertyValue;
+  "https://hash.ai/@h/types/property-type/estimated-gate-time/"?: EstimatedGateTimePropertyValue;
+  "https://hash.ai/@h/types/property-type/estimated-runway-time/"?: EstimatedRunwayTimePropertyValue;
+  "https://hash.ai/@h/types/property-type/gate/"?: GatePropertyValue;
+  "https://hash.ai/@h/types/property-type/runway/"?: RunwayPropertyValue;
+  "https://hash.ai/@h/types/property-type/scheduled-gate-time/"?: ScheduledGateTimePropertyValue;
+  "https://hash.ai/@h/types/property-type/scheduled-runway-time/"?: ScheduledRunwayTimePropertyValue;
+  "https://hash.ai/@h/types/property-type/terminal/"?: TerminalPropertyValue;
+};
+
+export type TakesOffFromPropertiesWithMetadata = LinkPropertiesWithMetadata & {
+  metadata?: ObjectMetadata;
+  value: {
+    "https://hash.ai/@h/types/property-type/actual-gate-time/"?: ActualGateTimePropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/actual-runway-time/"?: ActualRunwayTimePropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/delay-in-seconds/"?: DelayInSecondsPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/estimated-gate-time/"?: EstimatedGateTimePropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/estimated-runway-time/"?: EstimatedRunwayTimePropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/gate/"?: GatePropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/runway/"?: RunwayPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/scheduled-gate-time/"?: ScheduledGateTimePropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/scheduled-runway-time/"?: ScheduledRunwayTimePropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/terminal/"?: TerminalPropertyValueWithMetadata;
+  };
+};
+
+/**
+ * The terminal building or area at an airport where passengers check in, wait, and board flights.
+ */
+export type TerminalPropertyValue = TextDataType;
+
+export type TerminalPropertyValueWithMetadata = TextDataTypeWithMetadata;
 
 /**
  * Indicates the aircraft used to operate a flight.
