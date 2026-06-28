@@ -10,7 +10,9 @@ export const isDevEnv =
   process.env.NODE_ENV === "development" || !process.env.NODE_ENV;
 
 /** Whether the backend is running in the production environment. */
-export const isProdEnv = process.env.ENVIRONMENT === "production";
+export const isProdEnv =
+  process.env.ENVIRONMENT === "production" ||
+  (!process.env.ENVIRONMENT && process.env.NODE_ENV === "production");
 
 export const isStagingEnv = process.env.ENVIRONMENT === "staging";
 

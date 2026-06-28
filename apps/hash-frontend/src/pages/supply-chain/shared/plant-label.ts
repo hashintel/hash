@@ -24,9 +24,16 @@ export function shortPlantLabel(
   const codeU = code.toUpperCase();
 
   if (fullLabel) {
-    const name = fullLabel
-      // Drop a trailing "(CODE)" suffix the generator appended.
-      .replace(new RegExp(`\\s*\\(${codeU}\\)\\s*$`, "i"), "")
+    const labelWithoutTrailingWhitespace = fullLabel.trimEnd();
+    const codeSuffix = `(${codeU})`;
+    // Drop a trailing "(CODE)" suffix the generator appended.
+    const labelWithoutCodeSuffix = labelWithoutTrailingWhitespace
+      .toUpperCase()
+      .endsWith(codeSuffix)
+      ? labelWithoutTrailingWhitespace.slice(0, -codeSuffix.length).trimEnd()
+      : fullLabel;
+
+    const name = labelWithoutCodeSuffix
       .replace(BOILERPLATE, " ")
       .replace(/\s+([,.)])/g, "$1")
       .replace(/\s+/g, " ")
