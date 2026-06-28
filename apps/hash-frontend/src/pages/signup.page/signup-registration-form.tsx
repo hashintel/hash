@@ -46,18 +46,24 @@ export const SignupRegistrationForm: FunctionComponent = () => {
     email: emailFromQuery,
     flow: flowId,
     return_to: returnTo,
-    ...queryToPreserve
   } = router.query;
 
   const initialEmail = typeof emailFromQuery === "string" ? emailFromQuery : "";
 
   useEffect(() => {
-    if (emailFromQuery) {
-      void router.push({ query: queryToPreserve }, undefined, {
+    if (typeof emailFromQuery === "string") {
+      const {
+        email: _email,
+        flow: _flow,
+        return_to: _returnTo,
+        ...query
+      } = router.query;
+
+      void router.replace({ query }, undefined, {
         shallow: true,
       });
     }
-  }, [emailFromQuery, queryToPreserve, router]);
+  }, [emailFromQuery, router]);
 
   const [email, setEmail] = useState<string>(initialEmail);
   const [password, setPassword] = useState<string>("");
@@ -123,7 +129,9 @@ export const SignupRegistrationForm: FunctionComponent = () => {
       .push(
         {
           query: {
-            ...queryToPreserve,
+            ...router.query,
+            email: undefined,
+            return_to: undefined,
             flow: flow.id,
           },
         },
@@ -162,7 +170,10 @@ export const SignupRegistrationForm: FunctionComponent = () => {
               {
                 pathname: "/signup",
                 query: {
-                  ...queryToPreserve,
+                  ...router.query,
+                  email: undefined,
+                  flow: undefined,
+                  return_to: undefined,
                   ...(verificationFlowId ? { verificationFlowId } : {}),
                 },
               },
