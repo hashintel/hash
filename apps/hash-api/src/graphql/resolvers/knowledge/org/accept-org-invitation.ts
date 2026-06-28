@@ -35,7 +35,7 @@ import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { MutationAcceptOrgInvitationArgs } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 
 const inFlightInvitationAcceptances = new Map<
-  EntityId,
+  string,
   Promise<AcceptInvitationResult>
 >();
 
@@ -257,8 +257,10 @@ export const acceptOrgInvitationResolver: ResolverFn<
   LoggedInGraphQLContext,
   MutationAcceptOrgInvitationArgs
 > = async (_, { orgInvitationEntityId }, graphQLContext) => {
+  const inFlightAcceptanceKey = `${orgInvitationEntityId}:${graphQLContext.user.entity.metadata.recordId.entityId}`;
+
   const inFlightAcceptance = inFlightInvitationAcceptances.get(
-    orgInvitationEntityId,
+    inFlightAcceptanceKey,
   );
 
   if (inFlightAcceptance) {
@@ -269,10 +271,10 @@ export const acceptOrgInvitationResolver: ResolverFn<
     graphQLContext,
     orgInvitationEntityId,
   }).finally(() => {
-    inFlightInvitationAcceptances.delete(orgInvitationEntityId);
+    inFlightInvitationAcceptances.delete(inFlightAcceptanceKey);
   });
 
-  inFlightInvitationAcceptances.set(orgInvitationEntityId, acceptancePromise);
+  inFlightInvitationAcceptances.set(inFlightAcceptanceKey, acceptancePromise);
 
   return acceptancePromise;
 };

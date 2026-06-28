@@ -183,6 +183,7 @@ const SignupPage: NextPageWithLayout = () => {
         void router.replace("/");
       })
       .catch(() => {
+        acceptingInvitationEntityIdRef.current = undefined;
         setErrorMessage("Could not accept the invitation. Please try again.");
         setAcceptingInvitation(false);
       });
