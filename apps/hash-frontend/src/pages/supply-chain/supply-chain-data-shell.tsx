@@ -23,6 +23,7 @@ import {
 } from "./shared/data";
 import { DocsProvider } from "./shared/docs/docs-context";
 import { LoadingState } from "./shared/load-state";
+import { LowSampleContext } from "./shared/low-sample-context";
 import {
   BASE_MEASURES,
   MeasureContext,
@@ -38,6 +39,7 @@ import { LOCAL_SCOPE, ScopeContext } from "./shared/scope-context";
 import { trackSupplyChainInteraction } from "./shared/telemetry";
 import { TimeRangeContext } from "./shared/time-range-context";
 import { useSearchParams } from "./shared/use-search-params";
+import { useSupplyChainUserPreferences } from "./shared/use-supply-chain-user-preferences";
 
 import type { TimeRange } from "./shared/time-range";
 import type { Product } from "./shared/types";
@@ -78,11 +80,14 @@ const mainArea = css({
   flexDirection: "column",
 });
 
-function normaliseTimeRange(value: string | null): TimeRange {
+function normaliseTimeRange(
+  value: string | null,
+  fallback: TimeRange = "12m",
+): TimeRange {
   if (value === "3m" || value === "6m" || value === "12m") {
     return value;
   }
-  return "12m";
+  return fallback;
 }
 
 function normaliseWacc(value: string | null): number {
@@ -151,6 +156,11 @@ export const SupplyChainDataShell = ({
     useState(DEFAULT_STORAGE_COST);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const {
+    loading: userPreferencesLoading,
+    settings: userPreferenceSettings,
+    saveSettings: saveUserPreferenceSettings,
+  } = useSupplyChainUserPreferences();
 
   const [searchParams, setSearchParams] = useSearchParams();
   const waccRate = normaliseWacc(searchParams.get("wacc"));
@@ -158,12 +168,19 @@ export const SupplyChainDataShell = ({
     searchParams.get("storage"),
     defaultStorageCost,
   );
-  const excludeOutliers = searchParams.get("outliers") !== "include";
+  const excludeOutliers =
+    userPreferenceSettings.excludeOutliers ??
+    searchParams.get("outliers") !== "include";
   const measure = normaliseMeasure(searchParams.get("measure"));
   const procurementBasis = normaliseProcurementBasis(
     searchParams.get("procurement"),
   );
-  const timeRange = normaliseTimeRange(searchParams.get("range"));
+  const timeRange = normaliseTimeRange(
+    userPreferenceSettings.timeRange ?? searchParams.get("range"),
+  );
+  const excludeLowSamples =
+    userPreferenceSettings.excludeLowSamples ??
+    searchParams.get("lowSamples") === "exclude";
 
   const setQueryParam = useCallback(
     (key: string, value: string | null) => {
@@ -232,9 +249,20 @@ export const SupplyChainDataShell = ({
         interaction: exclude ? "outliers_excluded" : "outliers_included",
         source: "analysis_settings",
       });
-      setQueryParam("outliers", exclude ? null : "include");
+      saveUserPreferenceSettings({ excludeOutliers: exclude });
     },
-    [setQueryParam],
+    [saveUserPreferenceSettings],
+  );
+
+  const setExcludeLowSamples = useCallback(
+    (exclude: boolean) => {
+      trackSupplyChainInteraction({
+        interaction: exclude ? "low_samples_excluded" : "low_samples_included",
+        source: "analysis_settings",
+      });
+      saveUserPreferenceSettings({ excludeLowSamples: exclude });
+    },
+    [saveUserPreferenceSettings],
   );
 
   const setMeasure = useCallback(
@@ -265,9 +293,9 @@ export const SupplyChainDataShell = ({
         interaction: "time_range_changed",
         source: "analysis_settings",
       });
-      setQueryParam("range", range === "12m" ? null : range);
+      saveUserPreferenceSettings({ timeRange: range });
     },
-    [setQueryParam],
+    [saveUserPreferenceSettings],
   );
 
   useEffect(() => {
@@ -320,6 +348,10 @@ export const SupplyChainDataShell = ({
     () => ({ excludeOutliers, setExcludeOutliers }),
     [excludeOutliers, setExcludeOutliers],
   );
+  const lowSampleContextValue = useMemo(
+    () => ({ excludeLowSamples, setExcludeLowSamples }),
+    [excludeLowSamples, setExcludeLowSamples],
+  );
   const measureContextValue = useMemo(
     () => ({ measure, setMeasure }),
     [measure, setMeasure],
@@ -333,7 +365,7 @@ export const SupplyChainDataShell = ({
     [setTimeRange, timeRange],
   );
 
-  if (!mounted || loading) {
+  if (!mounted || loading || userPreferencesLoading) {
     return <LoadingState message="Loading..." className={screenBg} />;
   }
 
@@ -366,19 +398,21 @@ export const SupplyChainDataShell = ({
       <RegistryContext.Provider value={registryContextValue}>
         <CostParamsContext.Provider value={costContextValue}>
           <OutlierContext.Provider value={outlierContextValue}>
-            <MeasureContext.Provider value={measureContextValue}>
-              <ProcurementBasisContext.Provider
-                value={procurementBasisContextValue}
-              >
-                <TimeRangeContext.Provider value={timeRangeContextValue}>
-                  <DocsProvider>
-                    <div className={screenBg}>
-                      <main className={mainArea}>{children}</main>
-                    </div>
-                  </DocsProvider>
-                </TimeRangeContext.Provider>
-              </ProcurementBasisContext.Provider>
-            </MeasureContext.Provider>
+            <LowSampleContext.Provider value={lowSampleContextValue}>
+              <MeasureContext.Provider value={measureContextValue}>
+                <ProcurementBasisContext.Provider
+                  value={procurementBasisContextValue}
+                >
+                  <TimeRangeContext.Provider value={timeRangeContextValue}>
+                    <DocsProvider>
+                      <div className={screenBg}>
+                        <main className={mainArea}>{children}</main>
+                      </div>
+                    </DocsProvider>
+                  </TimeRangeContext.Provider>
+                </ProcurementBasisContext.Provider>
+              </MeasureContext.Provider>
+            </LowSampleContext.Provider>
           </OutlierContext.Provider>
         </CostParamsContext.Provider>
       </RegistryContext.Provider>

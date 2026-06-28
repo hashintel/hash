@@ -512,6 +512,19 @@ export interface StepDetail {
 }
 
 /**
+ * Raw step-detail payload from the analysis artifact store.
+ *
+ * The wire contract may omit timing fields that are derivable from
+ * `detail_rows` + `ref_date_col` + `value_col`. `ensureStepStats` normalizes
+ * this into a full `StepDetail` before React components consume it.
+ */
+export type StepDetailWire = Omit<
+  StepDetail,
+  "durations" | "observations" | "monthly" | "stats"
+> &
+  Partial<Pick<StepDetail, "durations" | "observations" | "monthly" | "stats">>;
+
+/**
  * Per-vendor OTIF record. Conditional-on-late means the metric is computed
  * across only the late deliveries (n_late) -- treat as "when this vendor is
  * late, how late?". The unconditional `mean_days_late_all` reads as

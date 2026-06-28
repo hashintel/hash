@@ -255,6 +255,9 @@ function formatCell(value: unknown): string {
   if (typeof value === "string" && isDateValue(value)) {
     return formatDate(value);
   }
+  if (typeof value === "string") {
+    return value;
+  }
   if (typeof value === "object") {
     return JSON.stringify(value);
   }
@@ -623,7 +626,7 @@ export const DataTableSection = forwardRef<
                     {hasActiveFilters
                       ? `${visibleRowCount} of ${totalRowCount}`
                       : totalRowCount}{" "}
-                    rows · {detailRows.columns.length} columns
+                    rows
                   </span>
                 </div>
                 <div className={modalHeaderRight}>

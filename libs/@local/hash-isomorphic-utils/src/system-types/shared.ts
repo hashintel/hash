@@ -13,7 +13,7 @@ import type {
 /**
  * An amount denominated in UAE Dirham (ISO 4217 AED).
  */
-export type AEDDataType = CurrencyDataType & number;
+export type AEDDataType = CurrencyDataType;
 
 export type AEDDataTypeWithMetadata = {
   value: AEDDataType;
@@ -28,7 +28,7 @@ export type AEDDataTypeMetadata = {
 /**
  * An amount denominated in Afghani (ISO 4217 AFN).
  */
-export type AFNDataType = CurrencyDataType & number;
+export type AFNDataType = CurrencyDataType;
 
 export type AFNDataTypeWithMetadata = {
   value: AFNDataType;
@@ -43,7 +43,7 @@ export type AFNDataTypeMetadata = {
 /**
  * An amount denominated in Lek (ISO 4217 ALL).
  */
-export type ALLDataType = CurrencyDataType & number;
+export type ALLDataType = CurrencyDataType;
 
 export type ALLDataTypeWithMetadata = {
   value: ALLDataType;
@@ -58,7 +58,7 @@ export type ALLDataTypeMetadata = {
 /**
  * An amount denominated in Armenian Dram (ISO 4217 AMD).
  */
-export type AMDDataType = CurrencyDataType & number;
+export type AMDDataType = CurrencyDataType;
 
 export type AMDDataTypeWithMetadata = {
   value: AMDDataType;
@@ -73,7 +73,7 @@ export type AMDDataTypeMetadata = {
 /**
  * An amount denominated in Netherlands Antillean Guilder (ISO 4217 ANG).
  */
-export type ANGDataType = CurrencyDataType & number;
+export type ANGDataType = CurrencyDataType;
 
 export type ANGDataTypeWithMetadata = {
   value: ANGDataType;
@@ -88,7 +88,7 @@ export type ANGDataTypeMetadata = {
 /**
  * An amount denominated in Kwanza (ISO 4217 AOA).
  */
-export type AOADataType = CurrencyDataType & number;
+export type AOADataType = CurrencyDataType;
 
 export type AOADataTypeWithMetadata = {
   value: AOADataType;
@@ -103,7 +103,7 @@ export type AOADataTypeMetadata = {
 /**
  * An amount denominated in Argentine Peso (ISO 4217 ARS).
  */
-export type ARSDataType = CurrencyDataType & number;
+export type ARSDataType = CurrencyDataType;
 
 export type ARSDataTypeWithMetadata = {
   value: ARSDataType;
@@ -118,7 +118,7 @@ export type ARSDataTypeMetadata = {
 /**
  * An amount denominated in Australian Dollar (ISO 4217 AUD).
  */
-export type AUDDataType = CurrencyDataType & number;
+export type AUDDataType = CurrencyDataType;
 
 export type AUDDataTypeWithMetadata = {
   value: AUDDataType;
@@ -133,7 +133,7 @@ export type AUDDataTypeMetadata = {
 /**
  * An amount denominated in Aruban Florin (ISO 4217 AWG).
  */
-export type AWGDataType = CurrencyDataType & number;
+export type AWGDataType = CurrencyDataType;
 
 export type AWGDataTypeWithMetadata = {
   value: AWGDataType;
@@ -148,7 +148,7 @@ export type AWGDataTypeMetadata = {
 /**
  * An amount denominated in Azerbaijan Manat (ISO 4217 AZN).
  */
-export type AZNDataType = CurrencyDataType & number;
+export type AZNDataType = CurrencyDataType;
 
 export type AZNDataTypeWithMetadata = {
   value: AZNDataType;
@@ -369,7 +369,7 @@ export type ArchivedPropertyValueWithMetadata = BooleanDataTypeWithMetadata;
 /**
  * A measure of the extent of a two-dimensional surface.
  */
-export type AreaDataType = NumberDataType & number;
+export type AreaDataType = NumberDataType;
 
 export type AreaDataTypeWithMetadata = {
   value: AreaDataType;
@@ -438,7 +438,7 @@ export type AutomaticInferenceConfigurationPropertyValueWithMetadata =
 /**
  * An amount denominated in Convertible Mark (ISO 4217 BAM).
  */
-export type BAMDataType = CurrencyDataType & number;
+export type BAMDataType = CurrencyDataType;
 
 export type BAMDataTypeWithMetadata = {
   value: BAMDataType;
@@ -453,7 +453,7 @@ export type BAMDataTypeMetadata = {
 /**
  * An amount denominated in Barbados Dollar (ISO 4217 BBD).
  */
-export type BBDDataType = CurrencyDataType & number;
+export type BBDDataType = CurrencyDataType;
 
 export type BBDDataTypeWithMetadata = {
   value: BBDDataType;
@@ -468,7 +468,7 @@ export type BBDDataTypeMetadata = {
 /**
  * An amount denominated in Taka (ISO 4217 BDT).
  */
-export type BDTDataType = CurrencyDataType & number;
+export type BDTDataType = CurrencyDataType;
 
 export type BDTDataTypeWithMetadata = {
   value: BDTDataType;
@@ -483,7 +483,7 @@ export type BDTDataTypeMetadata = {
 /**
  * An amount denominated in Bulgarian Lev (ISO 4217 BGN).
  */
-export type BGNDataType = CurrencyDataType & number;
+export type BGNDataType = CurrencyDataType;
 
 export type BGNDataTypeWithMetadata = {
   value: BGNDataType;
@@ -498,7 +498,7 @@ export type BGNDataTypeMetadata = {
 /**
  * An amount denominated in Bahraini Dinar (ISO 4217 BHD).
  */
-export type BHDDataType = CurrencyDataType & number;
+export type BHDDataType = CurrencyDataType;
 
 export type BHDDataTypeWithMetadata = {
   value: BHDDataType;
@@ -513,7 +513,7 @@ export type BHDDataTypeMetadata = {
 /**
  * An amount denominated in Burundi Franc (ISO 4217 BIF).
  */
-export type BIFDataType = CurrencyDataType & number;
+export type BIFDataType = CurrencyDataType;
 
 export type BIFDataTypeWithMetadata = {
   value: BIFDataType;
@@ -528,7 +528,7 @@ export type BIFDataTypeMetadata = {
 /**
  * An amount denominated in Bermudian Dollar (ISO 4217 BMD).
  */
-export type BMDDataType = CurrencyDataType & number;
+export type BMDDataType = CurrencyDataType;
 
 export type BMDDataTypeWithMetadata = {
   value: BMDDataType;
@@ -543,7 +543,7 @@ export type BMDDataTypeMetadata = {
 /**
  * An amount denominated in Brunei Dollar (ISO 4217 BND).
  */
-export type BNDDataType = CurrencyDataType & number;
+export type BNDDataType = CurrencyDataType;
 
 export type BNDDataTypeWithMetadata = {
   value: BNDDataType;
@@ -558,7 +558,7 @@ export type BNDDataTypeMetadata = {
 /**
  * An amount denominated in Boliviano (ISO 4217 BOB).
  */
-export type BOBDataType = CurrencyDataType & number;
+export type BOBDataType = CurrencyDataType;
 
 export type BOBDataTypeWithMetadata = {
   value: BOBDataType;
@@ -573,7 +573,7 @@ export type BOBDataTypeMetadata = {
 /**
  * An amount denominated in Brazilian Real (ISO 4217 BRL).
  */
-export type BRLDataType = CurrencyDataType & number;
+export type BRLDataType = CurrencyDataType;
 
 export type BRLDataTypeWithMetadata = {
   value: BRLDataType;
@@ -588,7 +588,7 @@ export type BRLDataTypeMetadata = {
 /**
  * An amount denominated in Bahamian Dollar (ISO 4217 BSD).
  */
-export type BSDDataType = CurrencyDataType & number;
+export type BSDDataType = CurrencyDataType;
 
 export type BSDDataTypeWithMetadata = {
   value: BSDDataType;
@@ -603,7 +603,7 @@ export type BSDDataTypeMetadata = {
 /**
  * An amount denominated in Ngultrum (ISO 4217 BTN).
  */
-export type BTNDataType = CurrencyDataType & number;
+export type BTNDataType = CurrencyDataType;
 
 export type BTNDataTypeWithMetadata = {
   value: BTNDataType;
@@ -618,7 +618,7 @@ export type BTNDataTypeMetadata = {
 /**
  * An amount denominated in Pula (ISO 4217 BWP).
  */
-export type BWPDataType = CurrencyDataType & number;
+export type BWPDataType = CurrencyDataType;
 
 export type BWPDataTypeWithMetadata = {
   value: BWPDataType;
@@ -633,7 +633,7 @@ export type BWPDataTypeMetadata = {
 /**
  * An amount denominated in Belarusian Ruble (ISO 4217 BYN).
  */
-export type BYNDataType = CurrencyDataType & number;
+export type BYNDataType = CurrencyDataType;
 
 export type BYNDataTypeWithMetadata = {
   value: BYNDataType;
@@ -648,7 +648,7 @@ export type BYNDataTypeMetadata = {
 /**
  * An amount denominated in Belize Dollar (ISO 4217 BZD).
  */
-export type BZDDataType = CurrencyDataType & number;
+export type BZDDataType = CurrencyDataType;
 
 export type BZDDataTypeWithMetadata = {
   value: BZDDataType;
@@ -815,7 +815,7 @@ export type BlockPropertiesWithMetadata = {
 /**
  * A True or False value
  */
-export type BooleanDataType = ValueDataType & boolean;
+export type BooleanDataType = boolean;
 
 export type BooleanDataTypeWithMetadata = {
   value: BooleanDataType;
@@ -873,7 +873,7 @@ export type BrowserPluginTabPropertyValueWithMetadata =
 /**
  * A unit of information equal to eight bits.
  */
-export type BytesDataType = InformationDataType & number;
+export type BytesDataType = InformationDataType;
 
 export type BytesDataTypeWithMetadata = {
   value: BytesDataType;
@@ -888,7 +888,7 @@ export type BytesDataTypeMetadata = {
 /**
  * An amount denominated in Canadian Dollar (ISO 4217 CAD).
  */
-export type CADDataType = CurrencyDataType & number;
+export type CADDataType = CurrencyDataType;
 
 export type CADDataTypeWithMetadata = {
   value: CADDataType;
@@ -903,7 +903,7 @@ export type CADDataTypeMetadata = {
 /**
  * An amount denominated in Congolese Franc (ISO 4217 CDF).
  */
-export type CDFDataType = CurrencyDataType & number;
+export type CDFDataType = CurrencyDataType;
 
 export type CDFDataTypeWithMetadata = {
   value: CDFDataType;
@@ -918,7 +918,7 @@ export type CDFDataTypeMetadata = {
 /**
  * An amount denominated in Swiss Franc (ISO 4217 CHF).
  */
-export type CHFDataType = CurrencyDataType & number;
+export type CHFDataType = CurrencyDataType;
 
 export type CHFDataTypeWithMetadata = {
   value: CHFDataType;
@@ -933,7 +933,7 @@ export type CHFDataTypeMetadata = {
 /**
  * An amount denominated in Chilean Peso (ISO 4217 CLP).
  */
-export type CLPDataType = CurrencyDataType & number;
+export type CLPDataType = CurrencyDataType;
 
 export type CLPDataTypeWithMetadata = {
   value: CLPDataType;
@@ -948,7 +948,7 @@ export type CLPDataTypeMetadata = {
 /**
  * An amount denominated in Yuan Renminbi (ISO 4217 CNY).
  */
-export type CNYDataType = CurrencyDataType & number;
+export type CNYDataType = CurrencyDataType;
 
 export type CNYDataTypeWithMetadata = {
   value: CNYDataType;
@@ -963,7 +963,7 @@ export type CNYDataTypeMetadata = {
 /**
  * An amount denominated in Colombian Peso (ISO 4217 COP).
  */
-export type COPDataType = CurrencyDataType & number;
+export type COPDataType = CurrencyDataType;
 
 export type COPDataTypeWithMetadata = {
   value: COPDataType;
@@ -978,7 +978,7 @@ export type COPDataTypeMetadata = {
 /**
  * An amount denominated in Costa Rican Colon (ISO 4217 CRC).
  */
-export type CRCDataType = CurrencyDataType & number;
+export type CRCDataType = CurrencyDataType;
 
 export type CRCDataTypeWithMetadata = {
   value: CRCDataType;
@@ -993,7 +993,7 @@ export type CRCDataTypeMetadata = {
 /**
  * An amount denominated in Cuban Peso (ISO 4217 CUP).
  */
-export type CUPDataType = CurrencyDataType & number;
+export type CUPDataType = CurrencyDataType;
 
 export type CUPDataTypeWithMetadata = {
   value: CUPDataType;
@@ -1008,7 +1008,7 @@ export type CUPDataTypeMetadata = {
 /**
  * An amount denominated in Cabo Verde Escudo (ISO 4217 CVE).
  */
-export type CVEDataType = CurrencyDataType & number;
+export type CVEDataType = CurrencyDataType;
 
 export type CVEDataTypeWithMetadata = {
   value: CVEDataType;
@@ -1023,7 +1023,7 @@ export type CVEDataTypeMetadata = {
 /**
  * An amount denominated in Czech Koruna (ISO 4217 CZK).
  */
-export type CZKDataType = CurrencyDataType & number;
+export type CZKDataType = CurrencyDataType;
 
 export type CZKDataTypeWithMetadata = {
   value: CZKDataType;
@@ -1038,7 +1038,7 @@ export type CZKDataTypeMetadata = {
 /**
  * A year in the Gregorian calendar.
  */
-export type CalendarYearDataType = IntegerDataType & number;
+export type CalendarYearDataType = IntegerDataType;
 
 export type CalendarYearDataTypeWithMetadata = {
   value: CalendarYearDataType;
@@ -1053,7 +1053,7 @@ export type CalendarYearDataTypeMetadata = {
 /**
  * A unit of length in the International System of Units (SI), equal to one hundredth of a meter.
  */
-export type CentimetersDataType = MetricLengthSIDataType & number;
+export type CentimetersDataType = MetricLengthSIDataType;
 
 export type CentimetersDataTypeWithMetadata = {
   value: CentimetersDataType;
@@ -1168,29 +1168,7 @@ export type ComponentIdPropertyValueWithMetadata = TextDataTypeWithMetadata;
 /**
  * The quantity of a component required by a bill of materials.
  */
-export type ComponentQuantityPropertyValue =
-  | KilogramsDataType
-  | GramsDataType
-  | MetricTonnesDataType
-  | PoundsDataType
-  | LitresDataType
-  | MillilitresDataType
-  | CubicMetresDataType
-  | CubicFeetDataType
-  | MetersDataType
-  | CentimetersDataType
-  | MillimetersDataType
-  | KilometersDataType
-  | FeetDataType
-  | InchesDataType
-  | YardsDataType
-  | MilesDataType
-  | SquareMetresDataType
-  | SquareCentimetresDataType
-  | SquareFeetDataType
-  | HoursDataType
-  | DaysDataType
-  | UnitDataType;
+export type ComponentQuantityPropertyValue = KilogramsDataType;
 
 export type ComponentQuantityPropertyValueWithMetadata =
   | KilogramsDataTypeWithMetadata
@@ -1234,7 +1212,7 @@ export type CountryPropertyValueWithMetadata = TextDataTypeWithMetadata;
 /**
  * An imperial unit of volume equal to approximately 28.317 litres.
  */
-export type CubicFeetDataType = VolumeDataType & number;
+export type CubicFeetDataType = VolumeDataType;
 
 export type CubicFeetDataTypeWithMetadata = {
   value: CubicFeetDataType;
@@ -1249,7 +1227,7 @@ export type CubicFeetDataTypeMetadata = {
 /**
  * A metric unit of volume equal to 1000 litres.
  */
-export type CubicMetresDataType = VolumeDataType & number;
+export type CubicMetresDataType = VolumeDataType;
 
 export type CubicMetresDataTypeWithMetadata = {
   value: CubicMetresDataType;
@@ -1271,7 +1249,7 @@ export type CurrencyCodePropertyValueWithMetadata = TextDataTypeWithMetadata;
 /**
  * A system of money in common use within a specific environment over time, especially for people in a nation state.
  */
-export type CurrencyDataType = NumberDataType & number;
+export type CurrencyDataType = NumberDataType;
 
 export type CurrencyDataTypeWithMetadata = {
   value: CurrencyDataType;
@@ -1306,8 +1284,8 @@ export type CustomerOutgoingLinksByLinkEntityTypeId = {};
 /**
  * An organisation or individual that purchases goods or services.
  */
-export type CustomerProperties = PersonProperties &
-  CompanyProperties & {
+export type CustomerProperties = CompanyProperties &
+  PersonProperties & {
     "https://hash.ai/@h/types/property-type/city/"?: CityPropertyValue;
     "https://hash.ai/@h/types/property-type/country/"?: CountryPropertyValue;
     "https://hash.ai/@h/types/property-type/customer-number/"?: CustomerNumberPropertyValue;
@@ -1317,8 +1295,8 @@ export type CustomerProperties = PersonProperties &
     "https://hash.ai/@h/types/property-type/street-address/"?: StreetAddressPropertyValue;
   };
 
-export type CustomerPropertiesWithMetadata = PersonPropertiesWithMetadata &
-  CompanyPropertiesWithMetadata & {
+export type CustomerPropertiesWithMetadata = CompanyPropertiesWithMetadata &
+  PersonPropertiesWithMetadata & {
     metadata?: ObjectMetadata;
     value: {
       "https://hash.ai/@h/types/property-type/city/"?: CityPropertyValueWithMetadata;
@@ -1342,7 +1320,7 @@ export type CustomerReferencePropertyValueWithMetadata =
 /**
  * An amount denominated in Djibouti Franc (ISO 4217 DJF).
  */
-export type DJFDataType = CurrencyDataType & number;
+export type DJFDataType = CurrencyDataType;
 
 export type DJFDataTypeWithMetadata = {
   value: DJFDataType;
@@ -1357,7 +1335,7 @@ export type DJFDataTypeMetadata = {
 /**
  * An amount denominated in Danish Krone (ISO 4217 DKK).
  */
-export type DKKDataType = CurrencyDataType & number;
+export type DKKDataType = CurrencyDataType;
 
 export type DKKDataTypeWithMetadata = {
   value: DKKDataType;
@@ -1372,7 +1350,7 @@ export type DKKDataTypeMetadata = {
 /**
  * A DOI (Digital Object Identifier), used to identify digital objects such as journal articles or datasets.
  */
-export type DOIDataType = TextDataType & string;
+export type DOIDataType = TextDataType;
 
 export type DOIDataTypeWithMetadata = {
   value: DOIDataType;
@@ -1401,7 +1379,7 @@ export type DOIPropertyValueWithMetadata = DOIDataTypeWithMetadata;
 /**
  * An amount denominated in Dominican Peso (ISO 4217 DOP).
  */
-export type DOPDataType = CurrencyDataType & number;
+export type DOPDataType = CurrencyDataType;
 
 export type DOPDataTypeWithMetadata = {
   value: DOPDataType;
@@ -1416,7 +1394,7 @@ export type DOPDataTypeMetadata = {
 /**
  * An amount denominated in Algerian Dinar (ISO 4217 DZD).
  */
-export type DZDDataType = CurrencyDataType & number;
+export type DZDDataType = CurrencyDataType;
 
 export type DZDDataTypeWithMetadata = {
   value: DZDDataType;
@@ -1438,7 +1416,7 @@ export type DataSourcesPropertyValueWithMetadata = ObjectDataTypeWithMetadata;
 /**
  * A reference to a particular day represented within a calendar system, formatted according to RFC 3339.
  */
-export type DateDataType = TextDataType & string;
+export type DateDataType = TextDataType;
 
 export type DateDataTypeWithMetadata = {
   value: DateDataType;
@@ -1453,7 +1431,7 @@ export type DateDataTypeMetadata = {
 /**
  * A reference to a particular date and time, formatted according to RFC 3339.
  */
-export type DateTimeDataType = TextDataType & string;
+export type DateTimeDataType = TextDataType;
 
 export type DateTimeDataTypeWithMetadata = {
   value: DateTimeDataType;
@@ -1468,7 +1446,7 @@ export type DateTimeDataTypeMetadata = {
 /**
  * A unit of time equal to 24 hours.
  */
-export type DaysDataType = DurationDataType & number;
+export type DaysDataType = DurationDataType;
 
 export type DaysDataTypeWithMetadata = {
   value: DaysDataType;
@@ -1506,29 +1484,7 @@ export type DeletionIndicatorPropertyValueWithMetadata =
 /**
  * The quantity actually delivered.
  */
-export type DeliveredQuantityPropertyValue =
-  | KilogramsDataType
-  | GramsDataType
-  | MetricTonnesDataType
-  | PoundsDataType
-  | LitresDataType
-  | MillilitresDataType
-  | CubicMetresDataType
-  | CubicFeetDataType
-  | MetersDataType
-  | CentimetersDataType
-  | MillimetersDataType
-  | KilometersDataType
-  | FeetDataType
-  | InchesDataType
-  | YardsDataType
-  | MilesDataType
-  | SquareMetresDataType
-  | SquareCentimetresDataType
-  | SquareFeetDataType
-  | HoursDataType
-  | DaysDataType
-  | UnitDataType;
+export type DeliveredQuantityPropertyValue = KilogramsDataType;
 
 export type DeliveredQuantityPropertyValueWithMetadata =
   | KilogramsDataTypeWithMetadata
@@ -1861,7 +1817,7 @@ export type DraftNotePropertyValueWithMetadata = TextDataTypeWithMetadata;
 /**
  * A measure of the length of time.
  */
-export type DurationDataType = NumberDataType & number;
+export type DurationDataType = NumberDataType;
 
 export type DurationDataTypeWithMetadata = {
   value: DurationDataType;
@@ -1876,7 +1832,7 @@ export type DurationDataTypeMetadata = {
 /**
  * An amount denominated in Egyptian Pound (ISO 4217 EGP).
  */
-export type EGPDataType = CurrencyDataType & number;
+export type EGPDataType = CurrencyDataType;
 
 export type EGPDataTypeWithMetadata = {
   value: EGPDataType;
@@ -1891,7 +1847,7 @@ export type EGPDataTypeMetadata = {
 /**
  * An amount denominated in Nakfa (ISO 4217 ERN).
  */
-export type ERNDataType = CurrencyDataType & number;
+export type ERNDataType = CurrencyDataType;
 
 export type ERNDataTypeWithMetadata = {
   value: ERNDataType;
@@ -1906,7 +1862,7 @@ export type ERNDataTypeMetadata = {
 /**
  * An amount denominated in Ethiopian Birr (ISO 4217 ETB).
  */
-export type ETBDataType = CurrencyDataType & number;
+export type ETBDataType = CurrencyDataType;
 
 export type ETBDataTypeWithMetadata = {
   value: ETBDataType;
@@ -1921,7 +1877,7 @@ export type ETBDataTypeMetadata = {
 /**
  * An amount denominated in Euro (ISO 4217 EUR).
  */
-export type EURDataType = CurrencyDataType & number;
+export type EURDataType = CurrencyDataType;
 
 export type EURDataTypeWithMetadata = {
   value: EURDataType;
@@ -1936,7 +1892,7 @@ export type EURDataTypeMetadata = {
 /**
  * An identifier for an email box to which messages are delivered.
  */
-export type EmailDataType = TextDataType & string;
+export type EmailDataType = TextDataType;
 
 export type EmailDataTypeWithMetadata = {
   value: EmailDataType;
@@ -1996,7 +1952,7 @@ export type ExplanationPropertyValueWithMetadata = TextDataTypeWithMetadata;
 /**
  * An amount denominated in Fiji Dollar (ISO 4217 FJD).
  */
-export type FJDDataType = CurrencyDataType & number;
+export type FJDDataType = CurrencyDataType;
 
 export type FJDDataTypeWithMetadata = {
   value: FJDDataType;
@@ -2011,7 +1967,7 @@ export type FJDDataTypeMetadata = {
 /**
  * An amount denominated in Falkland Islands Pound (ISO 4217 FKP).
  */
-export type FKPDataType = CurrencyDataType & number;
+export type FKPDataType = CurrencyDataType;
 
 export type FKPDataTypeWithMetadata = {
   value: FKPDataType;
@@ -2033,9 +1989,7 @@ export type FeatureNamePropertyValueWithMetadata = TextDataTypeWithMetadata;
 /**
  * An imperial unit of length. 3 feet equals 1 yard. Equivalent to 0.3048 meters in the International System of Units (SI).
  */
-export type FeetDataType = ImperialLengthUKDataType &
-  ImperialLengthUSDataType &
-  number;
+export type FeetDataType = ImperialLengthUKDataType;
 
 export type FeetDataTypeWithMetadata = {
   value: FeetDataType;
@@ -2398,7 +2352,7 @@ export type FulfillsPropertiesWithMetadata = LinkPropertiesWithMetadata & {
 /**
  * An amount denominated in Pound Sterling (ISO 4217 GBP).
  */
-export type GBPDataType = CurrencyDataType & number;
+export type GBPDataType = CurrencyDataType;
 
 export type GBPDataTypeWithMetadata = {
   value: GBPDataType;
@@ -2413,7 +2367,7 @@ export type GBPDataTypeMetadata = {
 /**
  * An amount denominated in Lari (ISO 4217 GEL).
  */
-export type GELDataType = CurrencyDataType & number;
+export type GELDataType = CurrencyDataType;
 
 export type GELDataTypeWithMetadata = {
   value: GELDataType;
@@ -2428,7 +2382,7 @@ export type GELDataTypeMetadata = {
 /**
  * An amount denominated in Ghana Cedi (ISO 4217 GHS).
  */
-export type GHSDataType = CurrencyDataType & number;
+export type GHSDataType = CurrencyDataType;
 
 export type GHSDataTypeWithMetadata = {
   value: GHSDataType;
@@ -2443,7 +2397,7 @@ export type GHSDataTypeMetadata = {
 /**
  * An amount denominated in Gibraltar Pound (ISO 4217 GIP).
  */
-export type GIPDataType = CurrencyDataType & number;
+export type GIPDataType = CurrencyDataType;
 
 export type GIPDataTypeWithMetadata = {
   value: GIPDataType;
@@ -2458,7 +2412,7 @@ export type GIPDataTypeMetadata = {
 /**
  * An amount denominated in Dalasi (ISO 4217 GMD).
  */
-export type GMDDataType = CurrencyDataType & number;
+export type GMDDataType = CurrencyDataType;
 
 export type GMDDataTypeWithMetadata = {
   value: GMDDataType;
@@ -2473,7 +2427,7 @@ export type GMDDataTypeMetadata = {
 /**
  * An amount denominated in Guinean Franc (ISO 4217 GNF).
  */
-export type GNFDataType = CurrencyDataType & number;
+export type GNFDataType = CurrencyDataType;
 
 export type GNFDataTypeWithMetadata = {
   value: GNFDataType;
@@ -2488,7 +2442,7 @@ export type GNFDataTypeMetadata = {
 /**
  * An amount denominated in Quetzal (ISO 4217 GTQ).
  */
-export type GTQDataType = CurrencyDataType & number;
+export type GTQDataType = CurrencyDataType;
 
 export type GTQDataTypeWithMetadata = {
   value: GTQDataType;
@@ -2503,7 +2457,7 @@ export type GTQDataTypeMetadata = {
 /**
  * An amount denominated in Guyana Dollar (ISO 4217 GYD).
  */
-export type GYDDataType = CurrencyDataType & number;
+export type GYDDataType = CurrencyDataType;
 
 export type GYDDataTypeWithMetadata = {
   value: GYDDataType;
@@ -2518,29 +2472,7 @@ export type GYDDataTypeMetadata = {
 /**
  * The quantity received against an order or schedule line.
  */
-export type GoodsReceiptQuantityPropertyValue =
-  | KilogramsDataType
-  | GramsDataType
-  | MetricTonnesDataType
-  | PoundsDataType
-  | LitresDataType
-  | MillilitresDataType
-  | CubicMetresDataType
-  | CubicFeetDataType
-  | MetersDataType
-  | CentimetersDataType
-  | MillimetersDataType
-  | KilometersDataType
-  | FeetDataType
-  | InchesDataType
-  | YardsDataType
-  | MilesDataType
-  | SquareMetresDataType
-  | SquareCentimetresDataType
-  | SquareFeetDataType
-  | HoursDataType
-  | DaysDataType
-  | UnitDataType;
+export type GoodsReceiptQuantityPropertyValue = KilogramsDataType;
 
 export type GoodsReceiptQuantityPropertyValueWithMetadata =
   | KilogramsDataTypeWithMetadata
@@ -2569,7 +2501,7 @@ export type GoodsReceiptQuantityPropertyValueWithMetadata =
 /**
  * A metric unit of mass equal to one thousandth of a kilogram.
  */
-export type GramsDataType = MassDataType & number;
+export type GramsDataType = MassDataType;
 
 export type GramsDataTypeWithMetadata = {
   value: GramsDataType;
@@ -2584,11 +2516,7 @@ export type GramsDataTypeMetadata = {
 /**
  * The total weight of an object including its packaging or container.
  */
-export type GrossWeightPropertyValue =
-  | KilogramsDataType
-  | GramsDataType
-  | MetricTonnesDataType
-  | PoundsDataType;
+export type GrossWeightPropertyValue = KilogramsDataType;
 
 export type GrossWeightPropertyValueWithMetadata =
   | KilogramsDataTypeWithMetadata
@@ -2599,7 +2527,7 @@ export type GrossWeightPropertyValueWithMetadata =
 /**
  * An amount denominated in Hong Kong Dollar (ISO 4217 HKD).
  */
-export type HKDDataType = CurrencyDataType & number;
+export type HKDDataType = CurrencyDataType;
 
 export type HKDDataTypeWithMetadata = {
   value: HKDDataType;
@@ -2614,7 +2542,7 @@ export type HKDDataTypeMetadata = {
 /**
  * An amount denominated in Lempira (ISO 4217 HNL).
  */
-export type HNLDataType = CurrencyDataType & number;
+export type HNLDataType = CurrencyDataType;
 
 export type HNLDataTypeWithMetadata = {
   value: HNLDataType;
@@ -2629,7 +2557,7 @@ export type HNLDataTypeMetadata = {
 /**
  * An amount denominated in Gourde (ISO 4217 HTG).
  */
-export type HTGDataType = CurrencyDataType & number;
+export type HTGDataType = CurrencyDataType;
 
 export type HTGDataTypeWithMetadata = {
   value: HTGDataType;
@@ -2644,7 +2572,7 @@ export type HTGDataTypeMetadata = {
 /**
  * An amount denominated in Forint (ISO 4217 HUF).
  */
-export type HUFDataType = CurrencyDataType & number;
+export type HUFDataType = CurrencyDataType;
 
 export type HUFDataTypeWithMetadata = {
   value: HUFDataType;
@@ -2971,7 +2899,7 @@ export type HasTextPropertiesWithMetadata = LinkPropertiesWithMetadata & {
 /**
  * A unit of time equal to 60 minutes.
  */
-export type HoursDataType = DurationDataType & number;
+export type HoursDataType = DurationDataType;
 
 export type HoursDataTypeWithMetadata = {
   value: HoursDataType;
@@ -3000,7 +2928,7 @@ export type ICAOCodePropertyValueWithMetadata = TextDataTypeWithMetadata;
 /**
  * An amount denominated in Rupiah (ISO 4217 IDR).
  */
-export type IDRDataType = CurrencyDataType & number;
+export type IDRDataType = CurrencyDataType;
 
 export type IDRDataTypeWithMetadata = {
   value: IDRDataType;
@@ -3015,7 +2943,7 @@ export type IDRDataTypeMetadata = {
 /**
  * An amount denominated in New Israeli Sheqel (ISO 4217 ILS).
  */
-export type ILSDataType = CurrencyDataType & number;
+export type ILSDataType = CurrencyDataType;
 
 export type ILSDataTypeWithMetadata = {
   value: ILSDataType;
@@ -3030,7 +2958,7 @@ export type ILSDataTypeMetadata = {
 /**
  * An amount denominated in Indian Rupee (ISO 4217 INR).
  */
-export type INRDataType = CurrencyDataType & number;
+export type INRDataType = CurrencyDataType;
 
 export type INRDataTypeWithMetadata = {
   value: INRDataType;
@@ -3045,7 +2973,7 @@ export type INRDataTypeMetadata = {
 /**
  * An amount denominated in Iraqi Dinar (ISO 4217 IQD).
  */
-export type IQDDataType = CurrencyDataType & number;
+export type IQDDataType = CurrencyDataType;
 
 export type IQDDataTypeWithMetadata = {
   value: IQDDataType;
@@ -3060,7 +2988,7 @@ export type IQDDataTypeMetadata = {
 /**
  * An amount denominated in Iranian Rial (ISO 4217 IRR).
  */
-export type IRRDataType = CurrencyDataType & number;
+export type IRRDataType = CurrencyDataType;
 
 export type IRRDataTypeWithMetadata = {
   value: IRRDataType;
@@ -3075,7 +3003,7 @@ export type IRRDataTypeMetadata = {
 /**
  * An amount denominated in Iceland Krona (ISO 4217 ISK).
  */
-export type ISKDataType = CurrencyDataType & number;
+export type ISKDataType = CurrencyDataType;
 
 export type ISKDataTypeWithMetadata = {
   value: ISKDataType;
@@ -3120,7 +3048,7 @@ export type ImageFilePropertiesWithMetadata = FilePropertiesWithMetadata & {
 /**
  * A measure of distance in the system of units defined in the British Weights and Measures Acts, in use alongside metric units in the UK and elsewhere.
  */
-export type ImperialLengthUKDataType = LengthDataType & number;
+export type ImperialLengthUKDataType = LengthDataType;
 
 export type ImperialLengthUKDataTypeWithMetadata = {
   value: ImperialLengthUKDataType;
@@ -3135,7 +3063,7 @@ export type ImperialLengthUKDataTypeMetadata = {
 /**
  * A measure of distance in the system of units commonly used in the United States, formally known as United States customary units.
  */
-export type ImperialLengthUSDataType = LengthDataType & number;
+export type ImperialLengthUSDataType = LengthDataType;
 
 export type ImperialLengthUSDataTypeWithMetadata = {
   value: ImperialLengthUSDataType;
@@ -3150,9 +3078,7 @@ export type ImperialLengthUSDataTypeMetadata = {
 /**
  * An imperial unit of length. 12 inches equals 1 foot. Equivalent to 0.0254 meters in the International System of Units (SI).
  */
-export type InchesDataType = ImperialLengthUKDataType &
-  ImperialLengthUSDataType &
-  number;
+export type InchesDataType = ImperialLengthUKDataType;
 
 export type InchesDataTypeWithMetadata = {
   value: InchesDataType;
@@ -3181,7 +3107,7 @@ export type IndustryPropertyValueWithMetadata = TextDataTypeWithMetadata;
 /**
  * A measure of information content.
  */
-export type InformationDataType = NumberDataType & number;
+export type InformationDataType = NumberDataType;
 
 export type InformationDataTypeWithMetadata = {
   value: InformationDataType;
@@ -3232,7 +3158,7 @@ export type InstitutionPropertiesWithMetadata = {
 /**
  * The number zero (0), a positive natural number (e.g. 1, 2, 3), or the negation of a positive natural number (e.g. -1, -2, -3).
  */
-export type IntegerDataType = NumberDataType & number;
+export type IntegerDataType = NumberDataType;
 
 export type IntegerDataTypeWithMetadata = {
   value: IntegerDataType;
@@ -3402,7 +3328,7 @@ export type ItemNumberPropertyValueWithMetadata = TextDataTypeWithMetadata;
 /**
  * An amount denominated in Jamaican Dollar (ISO 4217 JMD).
  */
-export type JMDDataType = CurrencyDataType & number;
+export type JMDDataType = CurrencyDataType;
 
 export type JMDDataTypeWithMetadata = {
   value: JMDDataType;
@@ -3417,7 +3343,7 @@ export type JMDDataTypeMetadata = {
 /**
  * An amount denominated in Jordanian Dinar (ISO 4217 JOD).
  */
-export type JODDataType = CurrencyDataType & number;
+export type JODDataType = CurrencyDataType;
 
 export type JODDataTypeWithMetadata = {
   value: JODDataType;
@@ -3432,7 +3358,7 @@ export type JODDataTypeMetadata = {
 /**
  * An amount denominated in Yen (ISO 4217 JPY).
  */
-export type JPYDataType = CurrencyDataType & number;
+export type JPYDataType = CurrencyDataType;
 
 export type JPYDataTypeWithMetadata = {
   value: JPYDataType;
@@ -3447,7 +3373,7 @@ export type JPYDataTypeMetadata = {
 /**
  * An amount denominated in Kenyan Shilling (ISO 4217 KES).
  */
-export type KESDataType = CurrencyDataType & number;
+export type KESDataType = CurrencyDataType;
 
 export type KESDataTypeWithMetadata = {
   value: KESDataType;
@@ -3462,7 +3388,7 @@ export type KESDataTypeMetadata = {
 /**
  * An amount denominated in Som (ISO 4217 KGS).
  */
-export type KGSDataType = CurrencyDataType & number;
+export type KGSDataType = CurrencyDataType;
 
 export type KGSDataTypeWithMetadata = {
   value: KGSDataType;
@@ -3477,7 +3403,7 @@ export type KGSDataTypeMetadata = {
 /**
  * An amount denominated in Riel (ISO 4217 KHR).
  */
-export type KHRDataType = CurrencyDataType & number;
+export type KHRDataType = CurrencyDataType;
 
 export type KHRDataTypeWithMetadata = {
   value: KHRDataType;
@@ -3492,7 +3418,7 @@ export type KHRDataTypeMetadata = {
 /**
  * An amount denominated in Comorian Franc (ISO 4217 KMF).
  */
-export type KMFDataType = CurrencyDataType & number;
+export type KMFDataType = CurrencyDataType;
 
 export type KMFDataTypeWithMetadata = {
   value: KMFDataType;
@@ -3507,7 +3433,7 @@ export type KMFDataTypeMetadata = {
 /**
  * An amount denominated in North Korean Won (ISO 4217 KPW).
  */
-export type KPWDataType = CurrencyDataType & number;
+export type KPWDataType = CurrencyDataType;
 
 export type KPWDataTypeWithMetadata = {
   value: KPWDataType;
@@ -3522,7 +3448,7 @@ export type KPWDataTypeMetadata = {
 /**
  * An amount denominated in Won (ISO 4217 KRW).
  */
-export type KRWDataType = CurrencyDataType & number;
+export type KRWDataType = CurrencyDataType;
 
 export type KRWDataTypeWithMetadata = {
   value: KRWDataType;
@@ -3537,7 +3463,7 @@ export type KRWDataTypeMetadata = {
 /**
  * An amount denominated in Kuwaiti Dinar (ISO 4217 KWD).
  */
-export type KWDDataType = CurrencyDataType & number;
+export type KWDDataType = CurrencyDataType;
 
 export type KWDDataTypeWithMetadata = {
   value: KWDDataType;
@@ -3552,7 +3478,7 @@ export type KWDDataTypeMetadata = {
 /**
  * An amount denominated in Cayman Islands Dollar (ISO 4217 KYD).
  */
-export type KYDDataType = CurrencyDataType & number;
+export type KYDDataType = CurrencyDataType;
 
 export type KYDDataTypeWithMetadata = {
   value: KYDDataType;
@@ -3567,7 +3493,7 @@ export type KYDDataTypeMetadata = {
 /**
  * An amount denominated in Tenge (ISO 4217 KZT).
  */
-export type KZTDataType = CurrencyDataType & number;
+export type KZTDataType = CurrencyDataType;
 
 export type KZTDataTypeWithMetadata = {
   value: KZTDataType;
@@ -3582,7 +3508,7 @@ export type KZTDataTypeMetadata = {
 /**
  * The SI base unit of mass, equal to 1000 grams.
  */
-export type KilogramsDataType = MassDataType & number;
+export type KilogramsDataType = MassDataType;
 
 export type KilogramsDataTypeWithMetadata = {
   value: KilogramsDataType;
@@ -3597,7 +3523,7 @@ export type KilogramsDataTypeMetadata = {
 /**
  * A unit of length in the International System of Units (SI), equal to one thousand meters.
  */
-export type KilometersDataType = MetricLengthSIDataType & number;
+export type KilometersDataType = MetricLengthSIDataType;
 
 export type KilometersDataTypeWithMetadata = {
   value: KilometersDataType;
@@ -3620,7 +3546,7 @@ export type KratosIdentityIdPropertyValueWithMetadata =
 /**
  * An amount denominated in Lao Kip (ISO 4217 LAK).
  */
-export type LAKDataType = CurrencyDataType & number;
+export type LAKDataType = CurrencyDataType;
 
 export type LAKDataTypeWithMetadata = {
   value: LAKDataType;
@@ -3635,7 +3561,7 @@ export type LAKDataTypeMetadata = {
 /**
  * An amount denominated in Lebanese Pound (ISO 4217 LBP).
  */
-export type LBPDataType = CurrencyDataType & number;
+export type LBPDataType = CurrencyDataType;
 
 export type LBPDataTypeWithMetadata = {
   value: LBPDataType;
@@ -3650,7 +3576,7 @@ export type LBPDataTypeMetadata = {
 /**
  * An amount denominated in Sri Lanka Rupee (ISO 4217 LKR).
  */
-export type LKRDataType = CurrencyDataType & number;
+export type LKRDataType = CurrencyDataType;
 
 export type LKRDataTypeWithMetadata = {
   value: LKRDataType;
@@ -3665,7 +3591,7 @@ export type LKRDataTypeMetadata = {
 /**
  * An amount denominated in Liberian Dollar (ISO 4217 LRD).
  */
-export type LRDDataType = CurrencyDataType & number;
+export type LRDDataType = CurrencyDataType;
 
 export type LRDDataTypeWithMetadata = {
   value: LRDDataType;
@@ -3680,7 +3606,7 @@ export type LRDDataTypeMetadata = {
 /**
  * An amount denominated in Loti (ISO 4217 LSL).
  */
-export type LSLDataType = CurrencyDataType & number;
+export type LSLDataType = CurrencyDataType;
 
 export type LSLDataTypeWithMetadata = {
   value: LSLDataType;
@@ -3695,7 +3621,7 @@ export type LSLDataTypeMetadata = {
 /**
  * An amount denominated in Libyan Dinar (ISO 4217 LYD).
  */
-export type LYDDataType = CurrencyDataType & number;
+export type LYDDataType = CurrencyDataType;
 
 export type LYDDataTypeWithMetadata = {
   value: LYDDataType;
@@ -3717,7 +3643,7 @@ export type LanguagePropertyValueWithMetadata = TextDataTypeWithMetadata;
 /**
  * A measure of distance.
  */
-export type LengthDataType = NumberDataType & number;
+export type LengthDataType = NumberDataType;
 
 export type LengthDataTypeWithMetadata = {
   value: LengthDataType;
@@ -3765,7 +3691,7 @@ export type LinkPropertiesWithMetadata = {
 /**
  * A metric unit of volume equal to one cubic decimetre.
  */
-export type LitresDataType = VolumeDataType & number;
+export type LitresDataType = VolumeDataType;
 
 export type LitresDataTypeWithMetadata = {
   value: LitresDataType;
@@ -3810,7 +3736,7 @@ export type LocationPropertyValueWithMetadata = TextDataTypeWithMetadata;
 /**
  * An amount denominated in Moroccan Dirham (ISO 4217 MAD).
  */
-export type MADDataType = CurrencyDataType & number;
+export type MADDataType = CurrencyDataType;
 
 export type MADDataTypeWithMetadata = {
   value: MADDataType;
@@ -3825,7 +3751,7 @@ export type MADDataTypeMetadata = {
 /**
  * An amount denominated in Moldovan Leu (ISO 4217 MDL).
  */
-export type MDLDataType = CurrencyDataType & number;
+export type MDLDataType = CurrencyDataType;
 
 export type MDLDataTypeWithMetadata = {
   value: MDLDataType;
@@ -3840,7 +3766,7 @@ export type MDLDataTypeMetadata = {
 /**
  * An amount denominated in Malagasy Ariary (ISO 4217 MGA).
  */
-export type MGADataType = CurrencyDataType & number;
+export type MGADataType = CurrencyDataType;
 
 export type MGADataTypeWithMetadata = {
   value: MGADataType;
@@ -3864,7 +3790,7 @@ export type MIMETypePropertyValueWithMetadata = TextDataTypeWithMetadata;
 /**
  * An amount denominated in Denar (ISO 4217 MKD).
  */
-export type MKDDataType = CurrencyDataType & number;
+export type MKDDataType = CurrencyDataType;
 
 export type MKDDataTypeWithMetadata = {
   value: MKDDataType;
@@ -3879,7 +3805,7 @@ export type MKDDataTypeMetadata = {
 /**
  * An amount denominated in Kyat (ISO 4217 MMK).
  */
-export type MMKDataType = CurrencyDataType & number;
+export type MMKDataType = CurrencyDataType;
 
 export type MMKDataTypeWithMetadata = {
   value: MMKDataType;
@@ -3894,7 +3820,7 @@ export type MMKDataTypeMetadata = {
 /**
  * An amount denominated in Tugrik (ISO 4217 MNT).
  */
-export type MNTDataType = CurrencyDataType & number;
+export type MNTDataType = CurrencyDataType;
 
 export type MNTDataTypeWithMetadata = {
   value: MNTDataType;
@@ -3909,7 +3835,7 @@ export type MNTDataTypeMetadata = {
 /**
  * An amount denominated in Pataca (ISO 4217 MOP).
  */
-export type MOPDataType = CurrencyDataType & number;
+export type MOPDataType = CurrencyDataType;
 
 export type MOPDataTypeWithMetadata = {
   value: MOPDataType;
@@ -3931,7 +3857,7 @@ export type MRPControllerPropertyValueWithMetadata = TextDataTypeWithMetadata;
 /**
  * An amount denominated in Ouguiya (ISO 4217 MRU).
  */
-export type MRUDataType = CurrencyDataType & number;
+export type MRUDataType = CurrencyDataType;
 
 export type MRUDataTypeWithMetadata = {
   value: MRUDataType;
@@ -3946,7 +3872,7 @@ export type MRUDataTypeMetadata = {
 /**
  * An amount denominated in Mauritius Rupee (ISO 4217 MUR).
  */
-export type MURDataType = CurrencyDataType & number;
+export type MURDataType = CurrencyDataType;
 
 export type MURDataTypeWithMetadata = {
   value: MURDataType;
@@ -3961,7 +3887,7 @@ export type MURDataTypeMetadata = {
 /**
  * An amount denominated in Rufiyaa (ISO 4217 MVR).
  */
-export type MVRDataType = CurrencyDataType & number;
+export type MVRDataType = CurrencyDataType;
 
 export type MVRDataTypeWithMetadata = {
   value: MVRDataType;
@@ -3976,7 +3902,7 @@ export type MVRDataTypeMetadata = {
 /**
  * An amount denominated in Malawi Kwacha (ISO 4217 MWK).
  */
-export type MWKDataType = CurrencyDataType & number;
+export type MWKDataType = CurrencyDataType;
 
 export type MWKDataTypeWithMetadata = {
   value: MWKDataType;
@@ -3991,7 +3917,7 @@ export type MWKDataTypeMetadata = {
 /**
  * An amount denominated in Mexican Peso (ISO 4217 MXN).
  */
-export type MXNDataType = CurrencyDataType & number;
+export type MXNDataType = CurrencyDataType;
 
 export type MXNDataTypeWithMetadata = {
   value: MXNDataType;
@@ -4006,7 +3932,7 @@ export type MXNDataTypeMetadata = {
 /**
  * An amount denominated in Malaysian Ringgit (ISO 4217 MYR).
  */
-export type MYRDataType = CurrencyDataType & number;
+export type MYRDataType = CurrencyDataType;
 
 export type MYRDataTypeWithMetadata = {
   value: MYRDataType;
@@ -4021,7 +3947,7 @@ export type MYRDataTypeMetadata = {
 /**
  * An amount denominated in Mozambique Metical (ISO 4217 MZN).
  */
-export type MZNDataType = CurrencyDataType & number;
+export type MZNDataType = CurrencyDataType;
 
 export type MZNDataTypeWithMetadata = {
   value: MZNDataType;
@@ -4044,7 +3970,7 @@ export type ManualInferenceConfigurationPropertyValueWithMetadata =
 /**
  * A measure of the amount of matter in an object.
  */
-export type MassDataType = NumberDataType & number;
+export type MassDataType = NumberDataType;
 
 export type MassDataTypeWithMetadata = {
   value: MassDataType;
@@ -4133,7 +4059,7 @@ export type MaterialTypePropertyValueWithMetadata = TextDataTypeWithMetadata;
 /**
  * The base unit of length in the International System of Units (SI).
  */
-export type MetersDataType = MetricLengthSIDataType & number;
+export type MetersDataType = MetricLengthSIDataType;
 
 export type MetersDataTypeWithMetadata = {
   value: MetersDataType;
@@ -4155,7 +4081,7 @@ export type MethodologyPropertyValueWithMetadata = TextDataTypeWithMetadata;
 /**
  * A measure of distance in the International System of Units (SI), the international standard for decimal-based measurements.
  */
-export type MetricLengthSIDataType = LengthDataType & number;
+export type MetricLengthSIDataType = LengthDataType;
 
 export type MetricLengthSIDataTypeWithMetadata = {
   value: MetricLengthSIDataType;
@@ -4170,7 +4096,7 @@ export type MetricLengthSIDataTypeMetadata = {
 /**
  * A metric unit of mass equal to 1000 kilograms.
  */
-export type MetricTonnesDataType = MassDataType & number;
+export type MetricTonnesDataType = MassDataType;
 
 export type MetricTonnesDataTypeWithMetadata = {
   value: MetricTonnesDataType;
@@ -4185,9 +4111,7 @@ export type MetricTonnesDataTypeMetadata = {
 /**
  * An imperial unit of length, equivalent to 1,609.344 meters in the International System of Units (SI).
  */
-export type MilesDataType = ImperialLengthUKDataType &
-  ImperialLengthUSDataType &
-  number;
+export type MilesDataType = ImperialLengthUKDataType;
 
 export type MilesDataTypeWithMetadata = {
   value: MilesDataType;
@@ -4202,7 +4126,7 @@ export type MilesDataTypeMetadata = {
 /**
  * A metric unit of volume equal to one thousandth of a litre.
  */
-export type MillilitresDataType = VolumeDataType & number;
+export type MillilitresDataType = VolumeDataType;
 
 export type MillilitresDataTypeWithMetadata = {
   value: MillilitresDataType;
@@ -4217,7 +4141,7 @@ export type MillilitresDataTypeMetadata = {
 /**
  * A unit of length in the International System of Units (SI), equal to one thousandth of a meter.
  */
-export type MillimetersDataType = MetricLengthSIDataType & number;
+export type MillimetersDataType = MetricLengthSIDataType;
 
 export type MillimetersDataTypeWithMetadata = {
   value: MillimetersDataType;
@@ -4232,7 +4156,7 @@ export type MillimetersDataTypeMetadata = {
 /**
  * A measure of the length of time in the International System of Units (SI), defined as exactly 1/1000 of a second.
  */
-export type MillisecondDataType = DurationDataType & number;
+export type MillisecondDataType = DurationDataType;
 
 export type MillisecondDataTypeWithMetadata = {
   value: MillisecondDataType;
@@ -4247,7 +4171,7 @@ export type MillisecondDataTypeMetadata = {
 /**
  * An amount denominated in Namibia Dollar (ISO 4217 NAD).
  */
-export type NADDataType = CurrencyDataType & number;
+export type NADDataType = CurrencyDataType;
 
 export type NADDataTypeWithMetadata = {
   value: NADDataType;
@@ -4262,7 +4186,7 @@ export type NADDataTypeMetadata = {
 /**
  * An amount denominated in Naira (ISO 4217 NGN).
  */
-export type NGNDataType = CurrencyDataType & number;
+export type NGNDataType = CurrencyDataType;
 
 export type NGNDataTypeWithMetadata = {
   value: NGNDataType;
@@ -4277,7 +4201,7 @@ export type NGNDataTypeMetadata = {
 /**
  * An amount denominated in Cordoba Oro (ISO 4217 NIO).
  */
-export type NIODataType = CurrencyDataType & number;
+export type NIODataType = CurrencyDataType;
 
 export type NIODataTypeWithMetadata = {
   value: NIODataType;
@@ -4292,7 +4216,7 @@ export type NIODataTypeMetadata = {
 /**
  * An amount denominated in Norwegian Krone (ISO 4217 NOK).
  */
-export type NOKDataType = CurrencyDataType & number;
+export type NOKDataType = CurrencyDataType;
 
 export type NOKDataTypeWithMetadata = {
   value: NOKDataType;
@@ -4307,7 +4231,7 @@ export type NOKDataTypeMetadata = {
 /**
  * An amount denominated in Nepalese Rupee (ISO 4217 NPR).
  */
-export type NPRDataType = CurrencyDataType & number;
+export type NPRDataType = CurrencyDataType;
 
 export type NPRDataTypeWithMetadata = {
   value: NPRDataType;
@@ -4322,7 +4246,7 @@ export type NPRDataTypeMetadata = {
 /**
  * An amount denominated in New Zealand Dollar (ISO 4217 NZD).
  */
-export type NZDDataType = CurrencyDataType & number;
+export type NZDDataType = CurrencyDataType;
 
 export type NZDDataTypeWithMetadata = {
   value: NZDDataType;
@@ -4344,163 +4268,7 @@ export type NamePropertyValueWithMetadata = TextDataTypeWithMetadata;
 /**
  * The net monetary value of something.
  */
-export type NetValuePropertyValue =
-  | AEDDataType
-  | AUDDataType
-  | BRLDataType
-  | CADDataType
-  | CHFDataType
-  | CNYDataType
-  | EURDataType
-  | GBPDataType
-  | IDRDataType
-  | JPYDataType
-  | KRWDataType
-  | KWDDataType
-  | MXNDataType
-  | OMRDataType
-  | PENDataType
-  | QARDataType
-  | RUBDataType
-  | SGDDataType
-  | UAHDataType
-  | USDDataType
-  | ZARDataType
-  | AFNDataType
-  | ALLDataType
-  | AMDDataType
-  | ANGDataType
-  | AOADataType
-  | ARSDataType
-  | AWGDataType
-  | AZNDataType
-  | BAMDataType
-  | BBDDataType
-  | BDTDataType
-  | BGNDataType
-  | BHDDataType
-  | BIFDataType
-  | BMDDataType
-  | BNDDataType
-  | BOBDataType
-  | BSDDataType
-  | BTNDataType
-  | BWPDataType
-  | BYNDataType
-  | BZDDataType
-  | CDFDataType
-  | CLPDataType
-  | COPDataType
-  | CRCDataType
-  | CUPDataType
-  | CVEDataType
-  | CZKDataType
-  | DJFDataType
-  | DKKDataType
-  | DOPDataType
-  | DZDDataType
-  | EGPDataType
-  | ERNDataType
-  | ETBDataType
-  | FJDDataType
-  | FKPDataType
-  | GELDataType
-  | GHSDataType
-  | GIPDataType
-  | GMDDataType
-  | GNFDataType
-  | GTQDataType
-  | GYDDataType
-  | HKDDataType
-  | HNLDataType
-  | HTGDataType
-  | HUFDataType
-  | ILSDataType
-  | INRDataType
-  | IQDDataType
-  | IRRDataType
-  | ISKDataType
-  | JMDDataType
-  | JODDataType
-  | KESDataType
-  | KGSDataType
-  | KHRDataType
-  | KMFDataType
-  | KPWDataType
-  | KYDDataType
-  | KZTDataType
-  | LAKDataType
-  | LBPDataType
-  | LKRDataType
-  | LRDDataType
-  | LSLDataType
-  | LYDDataType
-  | MADDataType
-  | MDLDataType
-  | MGADataType
-  | MKDDataType
-  | MMKDataType
-  | MNTDataType
-  | MOPDataType
-  | MRUDataType
-  | MURDataType
-  | MVRDataType
-  | MWKDataType
-  | MYRDataType
-  | MZNDataType
-  | NADDataType
-  | NGNDataType
-  | NIODataType
-  | NOKDataType
-  | NPRDataType
-  | NZDDataType
-  | PABDataType
-  | PGKDataType
-  | PHPDataType
-  | PKRDataType
-  | PLNDataType
-  | PYGDataType
-  | RONDataType
-  | RSDDataType
-  | RWFDataType
-  | SARDataType
-  | SBDDataType
-  | SCRDataType
-  | SDGDataType
-  | SEKDataType
-  | SHPDataType
-  | SLEDataType
-  | SOSDataType
-  | SRDDataType
-  | SSPDataType
-  | STNDataType
-  | SVCDataType
-  | SYPDataType
-  | SZLDataType
-  | THBDataType
-  | TJSDataType
-  | TMTDataType
-  | TNDDataType
-  | TOPDataType
-  | TRYDataType
-  | TTDDataType
-  | TWDDataType
-  | TZSDataType
-  | UGXDataType
-  | UYUDataType
-  | UZSDataType
-  | VESDataType
-  | VNDDataType
-  | VUVDataType
-  | WSTDataType
-  | XAFDataType
-  | XCDDataType
-  | XCGDataType
-  | XOFDataType
-  | XPFDataType
-  | YERDataType
-  | ZMWDataType
-  | ZWGDataType;
+export type NetValuePropertyValue = AEDDataType;
 
 export type NetValuePropertyValueWithMetadata =
   | AEDDataTypeWithMetadata
@@ -4663,11 +4431,7 @@ export type NetValuePropertyValueWithMetadata =
 /**
  * The weight of an object excluding its packaging or container.
  */
-export type NetWeightPropertyValue =
-  | KilogramsDataType
-  | GramsDataType
-  | MetricTonnesDataType
-  | PoundsDataType;
+export type NetWeightPropertyValue = KilogramsDataType;
 
 export type NetWeightPropertyValueWithMetadata =
   | KilogramsDataTypeWithMetadata
@@ -4707,7 +4471,7 @@ export type NotificationPropertiesWithMetadata = {
 /**
  * An arithmetical value (in the Real number system)
  */
-export type NumberDataType = ValueDataType & number;
+export type NumberDataType = number;
 
 export type NumberDataTypeWithMetadata = {
   value: NumberDataType;
@@ -4729,7 +4493,7 @@ export type NumberOfPagesPropertyValueWithMetadata = NumberDataTypeWithMetadata;
 /**
  * An amount denominated in Rial Omani (ISO 4217 OMR).
  */
-export type OMRDataType = CurrencyDataType & number;
+export type OMRDataType = CurrencyDataType;
 
 export type OMRDataTypeWithMetadata = {
   value: OMRDataType;
@@ -4744,7 +4508,7 @@ export type OMRDataTypeMetadata = {
 /**
  * An opaque, untyped JSON object
  */
-export type ObjectDataType = ValueDataType;
+export type ObjectDataType = {};
 
 export type ObjectDataTypeWithMetadata = {
   value: ObjectDataType;
@@ -4843,29 +4607,7 @@ export type OrderDatePropertyValueWithMetadata = DateDataTypeWithMetadata;
 /**
  * The quantity ordered.
  */
-export type OrderQuantityPropertyValue =
-  | KilogramsDataType
-  | GramsDataType
-  | MetricTonnesDataType
-  | PoundsDataType
-  | LitresDataType
-  | MillilitresDataType
-  | CubicMetresDataType
-  | CubicFeetDataType
-  | MetersDataType
-  | CentimetersDataType
-  | MillimetersDataType
-  | KilometersDataType
-  | FeetDataType
-  | InchesDataType
-  | YardsDataType
-  | MilesDataType
-  | SquareMetresDataType
-  | SquareCentimetresDataType
-  | SquareFeetDataType
-  | HoursDataType
-  | DaysDataType
-  | UnitDataType;
+export type OrderQuantityPropertyValue = KilogramsDataType;
 
 export type OrderQuantityPropertyValueWithMetadata =
   | KilogramsDataTypeWithMetadata
@@ -5048,7 +4790,7 @@ export type OutputsPropertyValueWithMetadata = {
 /**
  * An amount denominated in Balboa (ISO 4217 PAB).
  */
-export type PABDataType = CurrencyDataType & number;
+export type PABDataType = CurrencyDataType;
 
 export type PABDataTypeWithMetadata = {
   value: PABDataType;
@@ -5063,7 +4805,7 @@ export type PABDataTypeMetadata = {
 /**
  * An amount denominated in Sol (ISO 4217 PEN).
  */
-export type PENDataType = CurrencyDataType & number;
+export type PENDataType = CurrencyDataType;
 
 export type PENDataTypeWithMetadata = {
   value: PENDataType;
@@ -5078,7 +4820,7 @@ export type PENDataTypeMetadata = {
 /**
  * An amount denominated in Kina (ISO 4217 PGK).
  */
-export type PGKDataType = CurrencyDataType & number;
+export type PGKDataType = CurrencyDataType;
 
 export type PGKDataTypeWithMetadata = {
   value: PGKDataType;
@@ -5093,7 +4835,7 @@ export type PGKDataTypeMetadata = {
 /**
  * An amount denominated in Philippine Peso (ISO 4217 PHP).
  */
-export type PHPDataType = CurrencyDataType & number;
+export type PHPDataType = CurrencyDataType;
 
 export type PHPDataTypeWithMetadata = {
   value: PHPDataType;
@@ -5108,7 +4850,7 @@ export type PHPDataTypeMetadata = {
 /**
  * An amount denominated in Pakistan Rupee (ISO 4217 PKR).
  */
-export type PKRDataType = CurrencyDataType & number;
+export type PKRDataType = CurrencyDataType;
 
 export type PKRDataTypeWithMetadata = {
   value: PKRDataType;
@@ -5123,7 +4865,7 @@ export type PKRDataTypeMetadata = {
 /**
  * An amount denominated in Zloty (ISO 4217 PLN).
  */
-export type PLNDataType = CurrencyDataType & number;
+export type PLNDataType = CurrencyDataType;
 
 export type PLNDataTypeWithMetadata = {
   value: PLNDataType;
@@ -5138,7 +4880,7 @@ export type PLNDataTypeMetadata = {
 /**
  * An amount denominated in Guarani (ISO 4217 PYG).
  */
-export type PYGDataType = CurrencyDataType & number;
+export type PYGDataType = CurrencyDataType;
 
 export type PYGDataTypeWithMetadata = {
   value: PYGDataType;
@@ -5208,7 +4950,7 @@ export type PausedAtPropertyValueWithMetadata = DateTimeDataTypeWithMetadata;
 /**
  * A measure of the proportion of a whole.
  */
-export type PercentageDataType = NumberDataType & number;
+export type PercentageDataType = NumberDataType;
 
 export type PercentageDataTypeWithMetadata = {
   value: PercentageDataType;
@@ -5294,7 +5036,7 @@ export type PostalCodePropertyValueWithMetadata = TextDataTypeWithMetadata;
 /**
  * An imperial unit of mass equal to exactly 0.45359237 kilograms.
  */
-export type PoundsDataType = MassDataType & number;
+export type PoundsDataType = MassDataType;
 
 export type PoundsDataTypeWithMetadata = {
   value: PoundsDataType;
@@ -5518,29 +5260,7 @@ export type ProductionOrderYieldsLink = {
 /**
  * The quantity to be produced.
  */
-export type ProductionQuantityPropertyValue =
-  | KilogramsDataType
-  | GramsDataType
-  | MetricTonnesDataType
-  | PoundsDataType
-  | LitresDataType
-  | MillilitresDataType
-  | CubicMetresDataType
-  | CubicFeetDataType
-  | MetersDataType
-  | CentimetersDataType
-  | MillimetersDataType
-  | KilometersDataType
-  | FeetDataType
-  | InchesDataType
-  | YardsDataType
-  | MilesDataType
-  | SquareMetresDataType
-  | SquareCentimetresDataType
-  | SquareFeetDataType
-  | HoursDataType
-  | DaysDataType
-  | UnitDataType;
+export type ProductionQuantityPropertyValue = KilogramsDataType;
 
 export type ProductionQuantityPropertyValueWithMetadata =
   | KilogramsDataTypeWithMetadata
@@ -5735,7 +5455,7 @@ export type PurchasingOrganizationPropertyValueWithMetadata =
 /**
  * An amount denominated in Qatari Rial (ISO 4217 QAR).
  */
-export type QARDataType = CurrencyDataType & number;
+export type QARDataType = CurrencyDataType;
 
 export type QARDataTypeWithMetadata = {
   value: QARDataType;
@@ -5750,7 +5470,7 @@ export type QARDataTypeMetadata = {
 /**
  * An amount denominated in Romanian Leu (ISO 4217 RON).
  */
-export type RONDataType = CurrencyDataType & number;
+export type RONDataType = CurrencyDataType;
 
 export type RONDataTypeWithMetadata = {
   value: RONDataType;
@@ -5765,7 +5485,7 @@ export type RONDataTypeMetadata = {
 /**
  * An amount denominated in Serbian Dinar (ISO 4217 RSD).
  */
-export type RSDDataType = CurrencyDataType & number;
+export type RSDDataType = CurrencyDataType;
 
 export type RSDDataTypeWithMetadata = {
   value: RSDDataType;
@@ -5780,7 +5500,7 @@ export type RSDDataTypeMetadata = {
 /**
  * An amount denominated in Russian Ruble (ISO 4217 RUB).
  */
-export type RUBDataType = CurrencyDataType & number;
+export type RUBDataType = CurrencyDataType;
 
 export type RUBDataTypeWithMetadata = {
   value: RUBDataType;
@@ -5795,7 +5515,7 @@ export type RUBDataTypeMetadata = {
 /**
  * An amount denominated in Rwanda Franc (ISO 4217 RWF).
  */
-export type RWFDataType = CurrencyDataType & number;
+export type RWFDataType = CurrencyDataType;
 
 export type RWFDataTypeWithMetadata = {
   value: RWFDataType;
@@ -5868,7 +5588,7 @@ export type RoutePropertyValueWithMetadata = TextDataTypeWithMetadata;
 /**
  * An amount denominated in Saudi Riyal (ISO 4217 SAR).
  */
-export type SARDataType = CurrencyDataType & number;
+export type SARDataType = CurrencyDataType;
 
 export type SARDataTypeWithMetadata = {
   value: SARDataType;
@@ -5883,7 +5603,7 @@ export type SARDataTypeMetadata = {
 /**
  * An amount denominated in Solomon Islands Dollar (ISO 4217 SBD).
  */
-export type SBDDataType = CurrencyDataType & number;
+export type SBDDataType = CurrencyDataType;
 
 export type SBDDataTypeWithMetadata = {
   value: SBDDataType;
@@ -5898,7 +5618,7 @@ export type SBDDataTypeMetadata = {
 /**
  * An amount denominated in Seychelles Rupee (ISO 4217 SCR).
  */
-export type SCRDataType = CurrencyDataType & number;
+export type SCRDataType = CurrencyDataType;
 
 export type SCRDataTypeWithMetadata = {
   value: SCRDataType;
@@ -5913,7 +5633,7 @@ export type SCRDataTypeMetadata = {
 /**
  * An amount denominated in Sudanese Pound (ISO 4217 SDG).
  */
-export type SDGDataType = CurrencyDataType & number;
+export type SDGDataType = CurrencyDataType;
 
 export type SDGDataTypeWithMetadata = {
   value: SDGDataType;
@@ -5928,7 +5648,7 @@ export type SDGDataTypeMetadata = {
 /**
  * An amount denominated in Swedish Krona (ISO 4217 SEK).
  */
-export type SEKDataType = CurrencyDataType & number;
+export type SEKDataType = CurrencyDataType;
 
 export type SEKDataTypeWithMetadata = {
   value: SEKDataType;
@@ -5943,7 +5663,7 @@ export type SEKDataTypeMetadata = {
 /**
  * An amount denominated in Singapore Dollar (ISO 4217 SGD).
  */
-export type SGDDataType = CurrencyDataType & number;
+export type SGDDataType = CurrencyDataType;
 
 export type SGDDataTypeWithMetadata = {
   value: SGDDataType;
@@ -5958,7 +5678,7 @@ export type SGDDataTypeMetadata = {
 /**
  * An amount denominated in Saint Helena Pound (ISO 4217 SHP).
  */
-export type SHPDataType = CurrencyDataType & number;
+export type SHPDataType = CurrencyDataType;
 
 export type SHPDataTypeWithMetadata = {
   value: SHPDataType;
@@ -5973,7 +5693,7 @@ export type SHPDataTypeMetadata = {
 /**
  * An amount denominated in Leone (ISO 4217 SLE).
  */
-export type SLEDataType = CurrencyDataType & number;
+export type SLEDataType = CurrencyDataType;
 
 export type SLEDataTypeWithMetadata = {
   value: SLEDataType;
@@ -5988,7 +5708,7 @@ export type SLEDataTypeMetadata = {
 /**
  * An amount denominated in Somali Shilling (ISO 4217 SOS).
  */
-export type SOSDataType = CurrencyDataType & number;
+export type SOSDataType = CurrencyDataType;
 
 export type SOSDataTypeWithMetadata = {
   value: SOSDataType;
@@ -6003,7 +5723,7 @@ export type SOSDataTypeMetadata = {
 /**
  * An amount denominated in Surinam Dollar (ISO 4217 SRD).
  */
-export type SRDDataType = CurrencyDataType & number;
+export type SRDDataType = CurrencyDataType;
 
 export type SRDDataTypeWithMetadata = {
   value: SRDDataType;
@@ -6018,7 +5738,7 @@ export type SRDDataTypeMetadata = {
 /**
  * An amount denominated in South Sudanese Pound (ISO 4217 SSP).
  */
-export type SSPDataType = CurrencyDataType & number;
+export type SSPDataType = CurrencyDataType;
 
 export type SSPDataTypeWithMetadata = {
   value: SSPDataType;
@@ -6033,7 +5753,7 @@ export type SSPDataTypeMetadata = {
 /**
  * An amount denominated in Dobra (ISO 4217 STN).
  */
-export type STNDataType = CurrencyDataType & number;
+export type STNDataType = CurrencyDataType;
 
 export type STNDataTypeWithMetadata = {
   value: STNDataType;
@@ -6048,7 +5768,7 @@ export type STNDataTypeMetadata = {
 /**
  * An amount denominated in El Salvador Colon (ISO 4217 SVC).
  */
-export type SVCDataType = CurrencyDataType & number;
+export type SVCDataType = CurrencyDataType;
 
 export type SVCDataTypeWithMetadata = {
   value: SVCDataType;
@@ -6063,7 +5783,7 @@ export type SVCDataTypeMetadata = {
 /**
  * An amount denominated in Syrian Pound (ISO 4217 SYP).
  */
-export type SYPDataType = CurrencyDataType & number;
+export type SYPDataType = CurrencyDataType;
 
 export type SYPDataTypeWithMetadata = {
   value: SYPDataType;
@@ -6078,7 +5798,7 @@ export type SYPDataTypeMetadata = {
 /**
  * An amount denominated in Lilangeni (ISO 4217 SZL).
  */
-export type SZLDataType = CurrencyDataType & number;
+export type SZLDataType = CurrencyDataType;
 
 export type SZLDataTypeWithMetadata = {
   value: SZLDataType;
@@ -6355,29 +6075,7 @@ export type ScheduledFinishDatePropertyValueWithMetadata =
 /**
  * The quantity scheduled for delivery.
  */
-export type ScheduledQuantityPropertyValue =
-  | KilogramsDataType
-  | GramsDataType
-  | MetricTonnesDataType
-  | PoundsDataType
-  | LitresDataType
-  | MillilitresDataType
-  | CubicMetresDataType
-  | CubicFeetDataType
-  | MetersDataType
-  | CentimetersDataType
-  | MillimetersDataType
-  | KilometersDataType
-  | FeetDataType
-  | InchesDataType
-  | YardsDataType
-  | MilesDataType
-  | SquareMetresDataType
-  | SquareCentimetresDataType
-  | SquareFeetDataType
-  | HoursDataType
-  | DaysDataType
-  | UnitDataType;
+export type ScheduledQuantityPropertyValue = KilogramsDataType;
 
 export type ScheduledQuantityPropertyValueWithMetadata =
   | KilogramsDataTypeWithMetadata
@@ -6633,7 +6331,7 @@ export type SiteTypePropertyValueWithMetadata = TextDataTypeWithMetadata;
 /**
  * A metric unit of area equal to one ten-thousandth of a square metre.
  */
-export type SquareCentimetresDataType = AreaDataType & number;
+export type SquareCentimetresDataType = AreaDataType;
 
 export type SquareCentimetresDataTypeWithMetadata = {
   value: SquareCentimetresDataType;
@@ -6648,7 +6346,7 @@ export type SquareCentimetresDataTypeMetadata = {
 /**
  * An imperial unit of area equal to a square one foot on each side.
  */
-export type SquareFeetDataType = AreaDataType & number;
+export type SquareFeetDataType = AreaDataType;
 
 export type SquareFeetDataTypeWithMetadata = {
   value: SquareFeetDataType;
@@ -6663,7 +6361,7 @@ export type SquareFeetDataTypeMetadata = {
 /**
  * A metric unit of area equal to a square one metre on each side.
  */
-export type SquareMetresDataType = AreaDataType & number;
+export type SquareMetresDataType = AreaDataType;
 
 export type SquareMetresDataTypeWithMetadata = {
   value: SquareMetresDataType;
@@ -6713,29 +6411,7 @@ export type StepPropertyValueWithMetadata = {
 /**
  * The quantity of stock on hand.
  */
-export type StockQuantityPropertyValue =
-  | KilogramsDataType
-  | GramsDataType
-  | MetricTonnesDataType
-  | PoundsDataType
-  | LitresDataType
-  | MillilitresDataType
-  | CubicMetresDataType
-  | CubicFeetDataType
-  | MetersDataType
-  | CentimetersDataType
-  | MillimetersDataType
-  | KilometersDataType
-  | FeetDataType
-  | InchesDataType
-  | YardsDataType
-  | MilesDataType
-  | SquareMetresDataType
-  | SquareCentimetresDataType
-  | SquareFeetDataType
-  | HoursDataType
-  | DaysDataType
-  | UnitDataType;
+export type StockQuantityPropertyValue = KilogramsDataType;
 
 export type StockQuantityPropertyValueWithMetadata =
   | KilogramsDataTypeWithMetadata
@@ -6792,7 +6468,7 @@ export type SummaryPropertyValueWithMetadata = TextDataTypeWithMetadata;
 /**
  * An amount denominated in Baht (ISO 4217 THB).
  */
-export type THBDataType = CurrencyDataType & number;
+export type THBDataType = CurrencyDataType;
 
 export type THBDataTypeWithMetadata = {
   value: THBDataType;
@@ -6807,7 +6483,7 @@ export type THBDataTypeMetadata = {
 /**
  * An amount denominated in Somoni (ISO 4217 TJS).
  */
-export type TJSDataType = CurrencyDataType & number;
+export type TJSDataType = CurrencyDataType;
 
 export type TJSDataTypeWithMetadata = {
   value: TJSDataType;
@@ -6822,7 +6498,7 @@ export type TJSDataTypeMetadata = {
 /**
  * An amount denominated in Turkmenistan New Manat (ISO 4217 TMT).
  */
-export type TMTDataType = CurrencyDataType & number;
+export type TMTDataType = CurrencyDataType;
 
 export type TMTDataTypeWithMetadata = {
   value: TMTDataType;
@@ -6837,7 +6513,7 @@ export type TMTDataTypeMetadata = {
 /**
  * An amount denominated in Tunisian Dinar (ISO 4217 TND).
  */
-export type TNDDataType = CurrencyDataType & number;
+export type TNDDataType = CurrencyDataType;
 
 export type TNDDataTypeWithMetadata = {
   value: TNDDataType;
@@ -6852,7 +6528,7 @@ export type TNDDataTypeMetadata = {
 /**
  * An amount denominated in Pa'anga (ISO 4217 TOP).
  */
-export type TOPDataType = CurrencyDataType & number;
+export type TOPDataType = CurrencyDataType;
 
 export type TOPDataTypeWithMetadata = {
   value: TOPDataType;
@@ -6867,7 +6543,7 @@ export type TOPDataTypeMetadata = {
 /**
  * An amount denominated in Turkish Lira (ISO 4217 TRY).
  */
-export type TRYDataType = CurrencyDataType & number;
+export type TRYDataType = CurrencyDataType;
 
 export type TRYDataTypeWithMetadata = {
   value: TRYDataType;
@@ -6882,7 +6558,7 @@ export type TRYDataTypeMetadata = {
 /**
  * An amount denominated in Trinidad and Tobago Dollar (ISO 4217 TTD).
  */
-export type TTDDataType = CurrencyDataType & number;
+export type TTDDataType = CurrencyDataType;
 
 export type TTDDataTypeWithMetadata = {
   value: TTDDataType;
@@ -6897,7 +6573,7 @@ export type TTDDataTypeMetadata = {
 /**
  * An amount denominated in New Taiwan Dollar (ISO 4217 TWD).
  */
-export type TWDDataType = CurrencyDataType & number;
+export type TWDDataType = CurrencyDataType;
 
 export type TWDDataTypeWithMetadata = {
   value: TWDDataType;
@@ -6912,7 +6588,7 @@ export type TWDDataTypeMetadata = {
 /**
  * An amount denominated in Tanzanian Shilling (ISO 4217 TZS).
  */
-export type TZSDataType = CurrencyDataType & number;
+export type TZSDataType = CurrencyDataType;
 
 export type TZSDataTypeWithMetadata = {
   value: TZSDataType;
@@ -6936,7 +6612,7 @@ export type Text = {
 /**
  * An ordered sequence of characters
  */
-export type TextDataType = ValueDataType & string;
+export type TextDataType = string;
 
 export type TextDataTypeWithMetadata = {
   value: TextDataType;
@@ -7082,7 +6758,7 @@ export type TriggeredByUserPropertiesWithMetadata =
 /**
  * An amount denominated in Hryvnia (ISO 4217 UAH).
  */
-export type UAHDataType = CurrencyDataType & number;
+export type UAHDataType = CurrencyDataType;
 
 export type UAHDataTypeWithMetadata = {
   value: UAHDataType;
@@ -7097,7 +6773,7 @@ export type UAHDataTypeMetadata = {
 /**
  * An amount denominated in Uganda Shilling (ISO 4217 UGX).
  */
-export type UGXDataType = CurrencyDataType & number;
+export type UGXDataType = CurrencyDataType;
 
 export type UGXDataTypeWithMetadata = {
   value: UGXDataType;
@@ -7112,7 +6788,7 @@ export type UGXDataTypeMetadata = {
 /**
  * A unique identifier for a resource (e.g. a URL, or URN).
  */
-export type URIDataType = TextDataType & string;
+export type URIDataType = TextDataType;
 
 export type URIDataTypeWithMetadata = {
   value: URIDataType;
@@ -7127,7 +6803,7 @@ export type URIDataTypeMetadata = {
 /**
  * An amount denominated in US Dollar (ISO 4217 USD).
  */
-export type USDDataType = CurrencyDataType & number;
+export type USDDataType = CurrencyDataType;
 
 export type USDDataTypeWithMetadata = {
   value: USDDataType;
@@ -7142,7 +6818,7 @@ export type USDDataTypeMetadata = {
 /**
  * An amount denominated in Peso Uruguayo (ISO 4217 UYU).
  */
-export type UYUDataType = CurrencyDataType & number;
+export type UYUDataType = CurrencyDataType;
 
 export type UYUDataTypeWithMetadata = {
   value: UYUDataType;
@@ -7157,7 +6833,7 @@ export type UYUDataTypeMetadata = {
 /**
  * An amount denominated in Uzbekistan Sum (ISO 4217 UZS).
  */
-export type UZSDataType = CurrencyDataType & number;
+export type UZSDataType = CurrencyDataType;
 
 export type UZSDataTypeWithMetadata = {
   value: UZSDataType;
@@ -7172,7 +6848,7 @@ export type UZSDataTypeMetadata = {
 /**
  * A dimensionless quantity: a count of discrete items, or an amount whose unit of measure has no dedicated data type.
  */
-export type UnitDataType = NumberDataType & number;
+export type UnitDataType = NumberDataType;
 
 export type UnitDataTypeWithMetadata = {
   value: UnitDataType;
@@ -7378,7 +7054,7 @@ export type UsesPropertiesWithMetadata = LinkPropertiesWithMetadata & {
 /**
  * An amount denominated in Bolivar Soberano (ISO 4217 VES).
  */
-export type VESDataType = CurrencyDataType & number;
+export type VESDataType = CurrencyDataType;
 
 export type VESDataTypeWithMetadata = {
   value: VESDataType;
@@ -7393,7 +7069,7 @@ export type VESDataTypeMetadata = {
 /**
  * An amount denominated in Dong (ISO 4217 VND).
  */
-export type VNDDataType = CurrencyDataType & number;
+export type VNDDataType = CurrencyDataType;
 
 export type VNDDataTypeWithMetadata = {
   value: VNDDataType;
@@ -7408,7 +7084,7 @@ export type VNDDataTypeMetadata = {
 /**
  * An amount denominated in Vatu (ISO 4217 VUV).
  */
-export type VUVDataType = CurrencyDataType & number;
+export type VUVDataType = CurrencyDataType;
 
 export type VUVDataTypeWithMetadata = {
   value: VUVDataType;
@@ -7486,7 +7162,7 @@ export type VendorPropertiesWithMetadata = CompanyPropertiesWithMetadata & {
 /**
  * A measure of the three-dimensional space occupied by something.
  */
-export type VolumeDataType = NumberDataType & number;
+export type VolumeDataType = NumberDataType;
 
 export type VolumeDataTypeWithMetadata = {
   value: VolumeDataType;
@@ -7501,7 +7177,7 @@ export type VolumeDataTypeMetadata = {
 /**
  * An amount denominated in Tala (ISO 4217 WST).
  */
-export type WSTDataType = CurrencyDataType & number;
+export type WSTDataType = CurrencyDataType;
 
 export type WSTDataTypeWithMetadata = {
   value: WSTDataType;
@@ -7530,7 +7206,7 @@ export type WorkflowIDPropertyValueWithMetadata = TextDataTypeWithMetadata;
 /**
  * An amount denominated in CFA Franc BEAC (ISO 4217 XAF).
  */
-export type XAFDataType = CurrencyDataType & number;
+export type XAFDataType = CurrencyDataType;
 
 export type XAFDataTypeWithMetadata = {
   value: XAFDataType;
@@ -7545,7 +7221,7 @@ export type XAFDataTypeMetadata = {
 /**
  * An amount denominated in East Caribbean Dollar (ISO 4217 XCD).
  */
-export type XCDDataType = CurrencyDataType & number;
+export type XCDDataType = CurrencyDataType;
 
 export type XCDDataTypeWithMetadata = {
   value: XCDDataType;
@@ -7560,7 +7236,7 @@ export type XCDDataTypeMetadata = {
 /**
  * An amount denominated in Caribbean Guilder (ISO 4217 XCG).
  */
-export type XCGDataType = CurrencyDataType & number;
+export type XCGDataType = CurrencyDataType;
 
 export type XCGDataTypeWithMetadata = {
   value: XCGDataType;
@@ -7575,7 +7251,7 @@ export type XCGDataTypeMetadata = {
 /**
  * An amount denominated in CFA Franc BCEAO (ISO 4217 XOF).
  */
-export type XOFDataType = CurrencyDataType & number;
+export type XOFDataType = CurrencyDataType;
 
 export type XOFDataTypeWithMetadata = {
   value: XOFDataType;
@@ -7590,7 +7266,7 @@ export type XOFDataTypeMetadata = {
 /**
  * An amount denominated in CFP Franc (ISO 4217 XPF).
  */
-export type XPFDataType = CurrencyDataType & number;
+export type XPFDataType = CurrencyDataType;
 
 export type XPFDataTypeWithMetadata = {
   value: XPFDataType;
@@ -7605,7 +7281,7 @@ export type XPFDataTypeMetadata = {
 /**
  * An amount denominated in Yemeni Rial (ISO 4217 YER).
  */
-export type YERDataType = CurrencyDataType & number;
+export type YERDataType = CurrencyDataType;
 
 export type YERDataTypeWithMetadata = {
   value: YERDataType;
@@ -7620,9 +7296,7 @@ export type YERDataTypeMetadata = {
 /**
  * An imperial unit of length. 1,760 yards equals 1 mile. Equivalent to 0.9144 meters in the International System of Units (SI).
  */
-export type YardsDataType = ImperialLengthUKDataType &
-  ImperialLengthUSDataType &
-  number;
+export type YardsDataType = ImperialLengthUKDataType;
 
 export type YardsDataTypeWithMetadata = {
   value: YardsDataType;
@@ -7660,7 +7334,7 @@ export type YieldsPropertiesWithMetadata = LinkPropertiesWithMetadata & {
 /**
  * An amount denominated in Rand (ISO 4217 ZAR).
  */
-export type ZARDataType = CurrencyDataType & number;
+export type ZARDataType = CurrencyDataType;
 
 export type ZARDataTypeWithMetadata = {
   value: ZARDataType;
@@ -7675,7 +7349,7 @@ export type ZARDataTypeMetadata = {
 /**
  * An amount denominated in Zambian Kwacha (ISO 4217 ZMW).
  */
-export type ZMWDataType = CurrencyDataType & number;
+export type ZMWDataType = CurrencyDataType;
 
 export type ZMWDataTypeWithMetadata = {
   value: ZMWDataType;
@@ -7690,7 +7364,7 @@ export type ZMWDataTypeMetadata = {
 /**
  * An amount denominated in Zimbabwe Gold (ISO 4217 ZWG).
  */
-export type ZWGDataType = CurrencyDataType & number;
+export type ZWGDataType = CurrencyDataType;
 
 export type ZWGDataTypeWithMetadata = {
   value: ZWGDataType;

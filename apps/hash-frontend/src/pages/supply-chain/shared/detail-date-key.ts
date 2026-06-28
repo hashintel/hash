@@ -13,7 +13,7 @@ export const DETAIL_DATE_KEY_PREFERENCE = [
   "end",
   "prod_receipt_date",
   "production_receipt_date",
-  "qa_entry_date",
+  "qa_decision_date",
   "arrival_date",
   "qa_release_date",
   "outbound_date",

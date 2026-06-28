@@ -54,6 +54,7 @@ describe("supply-chain telemetry", () => {
       productId: "p1",
       siteId: "site-a",
       source: "status_dialog",
+      statusCategory: "Investigation started",
       stepId: "step-1",
     });
 
@@ -61,7 +62,12 @@ describe("supply-chain telemetry", () => {
     const properties = payload?.events[0]?.properties ?? {};
 
     expect(Object.keys(properties)).toEqual(
-      expect.arrayContaining(["opportunityType", "productId", "siteId"]),
+      expect.arrayContaining([
+        "opportunityType",
+        "productId",
+        "siteId",
+        "statusCategory",
+      ]),
     );
     for (const forbidden of ["text", "comment", "statusText", "category"]) {
       expect(properties).not.toHaveProperty(forbidden);

@@ -46,6 +46,14 @@ export type OpportunityStatusCategoryDataTypeMetadata = {
 };
 
 /**
+ * The category assigned to a status report.
+ */
+export type OpportunityStatusPropertyValue = OpportunityStatusCategoryDataType;
+
+export type OpportunityStatusPropertyValueWithMetadata =
+  OpportunityStatusCategoryDataTypeWithMetadata;
+
+/**
  * A status update for an opportunity for change or improvement.
  */
 export type OpportunityStatusUpdate = {
@@ -64,19 +72,19 @@ export type OpportunityStatusUpdateOutgoingLinksByLinkEntityTypeId = {};
  * A status update for an opportunity for change or improvement.
  */
 export type OpportunityStatusUpdateProperties = {
+  "https://hash.ai/@h/types/property-type/opportunity-status/": OpportunityStatusPropertyValue;
   "https://hash.ai/@h/types/property-type/scope-key/": ScopeKeyPropertyValue;
   "https://hash.ai/@h/types/property-type/site-code/": SiteCodePropertyValue;
-  "https://hash.ai/@h/types/property-type/supply-chain-status-category/": SupplyChainStatusCategoryPropertyValue;
-  "https://hash.ai/@h/types/property-type/supply-chain-status-text/"?: SupplyChainStatusTextPropertyValue;
+  "https://hash.ai/@h/types/property-type/status-update-text/"?: StatusUpdateTextPropertyValue;
 };
 
 export type OpportunityStatusUpdatePropertiesWithMetadata = {
   metadata?: ObjectMetadata;
   value: {
+    "https://hash.ai/@h/types/property-type/opportunity-status/": OpportunityStatusPropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/scope-key/": ScopeKeyPropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/site-code/": SiteCodePropertyValueWithMetadata;
-    "https://hash.ai/@h/types/property-type/supply-chain-status-category/": SupplyChainStatusCategoryPropertyValueWithMetadata;
-    "https://hash.ai/@h/types/property-type/supply-chain-status-text/"?: SupplyChainStatusTextPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/status-update-text/"?: StatusUpdateTextPropertyValueWithMetadata;
   };
 };
 
@@ -88,18 +96,9 @@ export type ScopeKeyPropertyValue = TextDataType;
 export type ScopeKeyPropertyValueWithMetadata = TextDataTypeWithMetadata;
 
 /**
- * The category assigned to a supply-chain status report.
+ * Text providing an update in the status of something.
  */
-export type SupplyChainStatusCategoryPropertyValue =
-  OpportunityStatusCategoryDataType;
+export type StatusUpdateTextPropertyValue = TextDataType;
 
-export type SupplyChainStatusCategoryPropertyValueWithMetadata =
-  OpportunityStatusCategoryDataTypeWithMetadata;
-
-/**
- * The text of a supply-chain status report.
- */
-export type SupplyChainStatusTextPropertyValue = TextDataType;
-
-export type SupplyChainStatusTextPropertyValueWithMetadata =
+export type StatusUpdateTextPropertyValueWithMetadata =
   TextDataTypeWithMetadata;

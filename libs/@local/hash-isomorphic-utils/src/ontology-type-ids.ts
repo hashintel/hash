@@ -1101,6 +1101,18 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/estimated-study-start-date/" as BaseUrl,
   },
+  excludeLowSamples: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/exclude-low-samples/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/exclude-low-samples/" as BaseUrl,
+  },
+  excludeOutliers: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/exclude-outliers/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/exclude-outliers/" as BaseUrl,
+  },
   exclusionCriteria: {
     propertyTypeId:
       "https://hash.ai/@h/types/property-type/exclusion-criteria/v/1",
@@ -1581,6 +1593,12 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/objective/" as BaseUrl,
   },
+  opportunityStatus: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/opportunity-status/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/opportunity-status/" as BaseUrl,
+  },
   orderDate: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/order-date/v/1",
     propertyTypeBaseUrl:
@@ -2058,6 +2076,12 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/status/" as BaseUrl,
   },
+  statusUpdateText: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/status-update-text/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/status-update-text/" as BaseUrl,
+  },
   step: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/step/v/1",
     propertyTypeBaseUrl:
@@ -2120,18 +2144,6 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/summary/" as BaseUrl,
   },
-  supplyChainStatusCategory: {
-    propertyTypeId:
-      "https://hash.ai/@h/types/property-type/supply-chain-status-category/v/1",
-    propertyTypeBaseUrl:
-      "https://hash.ai/@h/types/property-type/supply-chain-status-category/" as BaseUrl,
-  },
-  supplyChainStatusText: {
-    propertyTypeId:
-      "https://hash.ai/@h/types/property-type/supply-chain-status-text/v/1",
-    propertyTypeBaseUrl:
-      "https://hash.ai/@h/types/property-type/supply-chain-status-text/" as BaseUrl,
-  },
   terminal: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/terminal/v/1",
     propertyTypeBaseUrl:
@@ -2141,6 +2153,11 @@ export const systemPropertyTypes = {
     propertyTypeId: "https://hash.ai/@h/types/property-type/time-frame/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/time-frame/" as BaseUrl,
+  },
+  timePeriod: {
+    propertyTypeId: "https://hash.ai/@h/types/property-type/time-period/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/time-period/" as BaseUrl,
   },
   timezone: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/timezone/v/1",

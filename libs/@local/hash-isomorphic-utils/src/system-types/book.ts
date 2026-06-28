@@ -159,7 +159,7 @@ export type BookPropertiesWithMetadata = DocPropertiesWithMetadata & {
 /**
  * International Standard Book Number: a numeric commercial book identifier that is intended to be unique, issued by an affiliate of the International ISBN Agency.
  */
-export type ISBNDataType = TextDataType & string;
+export type ISBNDataType = TextDataType;
 
 export type ISBNDataTypeWithMetadata = {
   value: ISBNDataType;

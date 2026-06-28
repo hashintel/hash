@@ -260,7 +260,7 @@ export type HasContactPropertiesWithMetadata = LinkPropertiesWithMetadata & {
 /**
  * The unique id for a study registered with the ISRCTN Registry.
  */
-export type ISRCTNDataType = TextDataType & string;
+export type ISRCTNDataType = TextDataType;
 
 export type ISRCTNDataTypeWithMetadata = {
   value: ISRCTNDataType;
@@ -329,7 +329,7 @@ export type MedicalConditionPropertyValueWithMetadata =
 /**
  * National Clinical Trial (NCT) Identifier Number, which is a unique identifier assigned to each clinical trial registered with ClinicalTrials.gov.
  */
-export type NCTIDDataType = TextDataType & string;
+export type NCTIDDataType = TextDataType;
 
 export type NCTIDDataTypeWithMetadata = {
   value: NCTIDDataType;
@@ -542,7 +542,7 @@ export type TimeFramePropertyValueWithMetadata = TextDataTypeWithMetadata;
 /**
  * The distinct stage of a clinical trial, categorizing the study's primary goals and level of testing. Phase 0 involves very limited human testing, Phase 1 tests safety, dosage, and administration, Phase 2 tests effectiveness, Phase 3 confirms benefits, and Phase 4 studies long-term effects.
  */
-export type TrialPhaseDataType = TextDataType & string;
+export type TrialPhaseDataType = TextDataType;
 
 export type TrialPhaseDataTypeWithMetadata = {
   value: TrialPhaseDataType;

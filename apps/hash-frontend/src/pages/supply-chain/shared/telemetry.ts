@@ -10,6 +10,7 @@ type SupplyChainTelemetryProperties = {
   route?: string;
   siteId?: string;
   source?: string;
+  statusCategory?: string;
   stepId?: string;
 };
 

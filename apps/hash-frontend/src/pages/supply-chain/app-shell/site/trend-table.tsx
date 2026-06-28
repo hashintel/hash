@@ -6,6 +6,12 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 import { StatusActionButton } from "../../shared/action-buttons";
 import { getCategoryColor } from "../../shared/categories";
 import { formatNumber } from "../../shared/cost";
+import {
+  MEASURE_LABELS,
+  selectStat,
+  useBaseMeasure,
+  type BaseMeasure,
+} from "../../shared/measure-context";
 import { siteNodeKey } from "../../shared/site-node-key";
 import { deriveStatusActionState, statusKey } from "../../shared/status";
 import { trackSupplyChainInteraction } from "../../shared/telemetry";
@@ -45,13 +51,14 @@ const sampleTooltip = css({
 function sortTrendRows(
   rows: TrendRow[],
   sort: { key: SortKey; dir: SortDir },
+  measure: BaseMeasure,
 ): TrendRow[] {
   return [...rows].sort((left, right) => {
     let va = 0;
     let vb = 0;
     if (sort.key === "median") {
-      va = left.stats.median ?? 0;
-      vb = right.stats.median ?? 0;
+      va = selectStat(left.stats, measure) ?? 0;
+      vb = selectStat(right.stats, measure) ?? 0;
     } else if (sort.key === "trend") {
       va =
         left.trendPct ??
@@ -154,7 +161,12 @@ export const TrendTable = ({
   statusHistory?: StatusStore;
   onStatus: (node: SiteNode, title: string) => void;
 }) => {
-  const sortedRows = useMemo(() => sortTrendRows(rows, sort), [rows, sort]);
+  const { measure } = useBaseMeasure();
+  const measureLabel = MEASURE_LABELS[measure];
+  const sortedRows = useMemo(
+    () => sortTrendRows(rows, sort, measure),
+    [rows, sort, measure],
+  );
   const toggleSort = (key: SortKey) => {
     trackSupplyChainInteraction({
       interaction: "table_sort_changed",
@@ -186,13 +198,13 @@ export const TrendTable = ({
             <th className={threshold.th}>Products</th>
             <th className={threshold.thRight}>
               <SortHeader
-                label="Current median"
+                label={`Current ${measureLabel}`}
                 sortKey="median"
                 current={sort}
                 onToggle={toggleSort}
               />
             </th>
-            <th className={threshold.thRight}>Previous median</th>
+            <th className={threshold.thRight}>Previous {measureLabel}</th>
             <th className={threshold.thRight}>
               <SortHeader
                 label="Trend"
@@ -232,7 +244,10 @@ export const TrendTable = ({
                 <ProductTags products={row.products} />
               </td>
               <td className={cx(threshold.tdRight, threshold.valueStrong)}>
-                {formatNumber(row.stats.median, { maximumFractionDigits: 1 })}d
+                {formatNumber(selectStat(row.stats, measure), {
+                  maximumFractionDigits: 1,
+                })}
+                d
               </td>
               <td className={cx(threshold.tdRight, prevValue)}>
                 {row.previousValue != null

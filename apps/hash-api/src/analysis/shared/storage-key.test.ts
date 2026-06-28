@@ -32,6 +32,7 @@ describe("isValidSlug", () => {
       "prod_to_qa_pla",
       "90000300001",
       "raw_dwell_alpha_oxide",
+      "procurement_alumina_activated_fo_24a_sa=170_20",
     ]) {
       expect(isValidSlug(slug)).toBe(true);
     }

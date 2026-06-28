@@ -81,10 +81,10 @@ export const opportunityBriefSection: DocSectionDef = {
 
           <H4>Evidence exports and print</H4>
           <P>
-            Use Evidence CSV to export the records behind the brief and Print /
-            Save as PDF to share the report. Before acting on the
-            recommendation, validate the source rows, affected batches,
-            materials and months in the operational system.
+            Use <Term>Evidence CSV</Term> to export the records behind the brief
+            and <Term>Print / Save as PDF</Term> to share the report. Before
+            acting on the recommendation, validate the source rows, affected
+            batches, materials and months in the operational system.
           </P>
           <Note>
             A brief is an investigation aid, not an automatic process

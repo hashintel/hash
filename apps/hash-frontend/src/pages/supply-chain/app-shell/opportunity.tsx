@@ -26,6 +26,7 @@ import {
   filterStepByDateRange,
   applyProcurementBasisToStep,
 } from "../shared/range-filter";
+import { trackSupplyChainInteraction } from "../shared/telemetry";
 import {
   cutoffForRange,
   timeRangeLongLabel,
@@ -1707,18 +1708,39 @@ export const OpportunityBrief = ({
     return { detailRows: filteredStep.detail_rows, rows, dateKey };
   }, [filteredStep, timeRange]);
 
+  const briefTelemetryProperties = useMemo(
+    () => ({
+      opportunityType,
+      productId,
+      siteId,
+      source: "opportunity_brief",
+      stepId,
+    }),
+    [opportunityType, productId, siteId, stepId],
+  );
+
   const handleEvidenceDownload = useCallback(() => {
     if (!evidence || !filteredStep) {
       return;
     }
+    trackSupplyChainInteraction({
+      ...briefTelemetryProperties,
+      interaction: "opportunity_brief_data_downloaded",
+    });
     const csv = buildCsvContent(evidence.detailRows.columns, evidence.rows);
     downloadCsv(
       csv,
       `${filteredStep.id}_${opportunityType}_brief_evidence.csv`,
     );
-  }, [evidence, filteredStep, opportunityType]);
+  }, [briefTelemetryProperties, evidence, filteredStep, opportunityType]);
 
-  const handlePrint = useCallback(() => window.print(), []);
+  const handlePrint = useCallback(() => {
+    trackSupplyChainInteraction({
+      ...briefTelemetryProperties,
+      interaction: "opportunity_brief_print_clicked",
+    });
+    window.print();
+  }, [briefTelemetryProperties]);
 
   if (error) {
     return <ErrorState message={error} className={errorPad} />;

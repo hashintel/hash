@@ -5,7 +5,7 @@
   "title": "Query",
   "type": "object",
   "allOf": [],
-  "description": "",
+  "description": "A structured query for data, including e.g. the types of filters to be applied in order to produce the data.",
   "links": {},
   "properties": {
     "https://blockprotocol.org/@hash/types/property-type/query/": {

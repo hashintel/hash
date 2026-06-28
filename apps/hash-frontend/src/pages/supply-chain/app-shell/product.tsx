@@ -466,6 +466,11 @@ export const Overview = ({
           isDwellType(selectedNode.type) ? "dwell" : "planning"
         }/${productId}/${selectedNode.id}?range=${timeRange}`
       : undefined;
+  const statusTargetIsSelectedNode =
+    selectedNode != null &&
+    statusTarget != null &&
+    statusTarget.id === selectedNode.id &&
+    statusTarget.plant === selectedNode.plant;
   return (
     <div className={rootStyle}>
       {/* Header bar */}
@@ -655,9 +660,26 @@ export const Overview = ({
                 }
               : undefined
           }
+          statusDialog={
+            statusTargetIsSelectedNode && statusTarget ? (
+              <StatusDialog
+                key={`${statusTarget.plant}-${statusTarget.id}`}
+                title={statusTarget.label}
+                inline
+                onClose={() => setStatusTarget(null)}
+                onSave={(entry) => {
+                  opportunityStatusStore.actions.onSaveStatus(
+                    statusTarget,
+                    entry,
+                  );
+                  setStatusTarget(null);
+                }}
+              />
+            ) : undefined
+          }
         />
       )}
-      {statusTarget && (
+      {statusTarget && !statusTargetIsSelectedNode && (
         <StatusDialog
           key={`${statusTarget.plant}-${statusTarget.id}`}
           title={statusTarget.label}

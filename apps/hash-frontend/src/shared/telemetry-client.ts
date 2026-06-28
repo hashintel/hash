@@ -58,5 +58,7 @@ export const sendTelemetry = (
 
 /** Report a page view. */
 export const trackPageView = (path: string): void => {
-  sendTelemetry({ events: [{ type: "page", name: path }] });
+  sendTelemetry({
+    events: [{ type: "page", name: path, properties: { path } }],
+  });
 };

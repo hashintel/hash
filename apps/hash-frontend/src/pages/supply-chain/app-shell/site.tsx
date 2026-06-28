@@ -10,6 +10,7 @@ import {
   HeaderActionButtons,
 } from "../shared/header-actions";
 import { LoadingState, ErrorState } from "../shared/load-state";
+import { useLowSampleSetting } from "../shared/low-sample-context";
 import { ScopeSelect } from "../shared/scope-select";
 import { StatChip } from "../shared/stat-chip";
 import { statusKey } from "../shared/status";
@@ -202,24 +203,7 @@ export const SiteOverview = ({
   const [tab, setTab] = useState<Tab>("dwell");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
-  const excludeLowSamples = searchParams.get("lowSamples") === "exclude";
-  const setExcludeLowSamples = useCallback(
-    (exclude: boolean) => {
-      setSearchParams(
-        (prev) => {
-          const params = new URLSearchParams(prev);
-          if (exclude) {
-            params.set("lowSamples", "exclude");
-          } else {
-            params.delete("lowSamples");
-          }
-          return params;
-        },
-        { replace: true },
-      );
-    },
-    [setSearchParams],
-  );
+  const { excludeLowSamples, setExcludeLowSamples } = useLowSampleSetting();
   const selectedCategories = useMemo(
     () => parseCategoryParam(searchParams.get("cat")),
     [searchParams],
@@ -310,7 +294,6 @@ export const SiteOverview = ({
   const {
     loading,
     error,
-    filteredNodes,
     summaryStats,
     siteCurrency,
     monthlyCarryCost,
@@ -399,6 +382,14 @@ export const SiteOverview = ({
     });
     setSelectedStep(null);
   }, [selectedStep?.stepId, siteId]);
+  const statusTargetIsSelectedStep =
+    selectedStep != null &&
+    statusTarget != null &&
+    statusTarget.node.id === selectedStep.node.id &&
+    statusTarget.node.products[0]?.id === selectedStep.productId;
+  const selectedStepStatusTarget = statusTargetIsSelectedStep
+    ? statusTarget
+    : null;
   if (loading) {
     return <LoadingState message="Loading site data..." className={loadingH} />;
   }
@@ -429,10 +420,6 @@ export const SiteOverview = ({
                   isHighlight
                 />
               )}
-              <StatChip
-                value={String(filteredNodes.length)}
-                label="steps tracked"
-              />
             </div>
           </div>
           <div className={controlsRow}>
@@ -631,6 +618,23 @@ export const SiteOverview = ({
               ? selectedStep.siteContext.products[0]?.name
               : undefined
           }
+          statusDialog={
+            selectedStepStatusTarget ? (
+              <StatusDialog
+                key={`${statusKey(siteSlug, selectedStepStatusTarget.node)}-${selectedStepStatusTarget.title}`}
+                title={selectedStepStatusTarget.title}
+                inline
+                onClose={() => setStatusTarget(null)}
+                onSave={(entry) => {
+                  opportunityStatusActions.onSaveStatus(
+                    selectedStepStatusTarget.node,
+                    entry,
+                  );
+                  setStatusTarget(null);
+                }}
+              />
+            ) : undefined
+          }
         />
       )}
       {supplierPerformanceEnabled && selectedVendorId && (
@@ -642,7 +646,7 @@ export const SiteOverview = ({
           windowLabel={timeRangeLongLabel(timeRange)}
         />
       )}
-      {statusTarget && (
+      {statusTarget && !statusTargetIsSelectedStep && (
         <StatusDialog
           key={`${statusKey(siteSlug, statusTarget.node)}-${statusTarget.title}`}
           title={statusTarget.title}

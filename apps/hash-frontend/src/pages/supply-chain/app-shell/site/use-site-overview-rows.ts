@@ -280,14 +280,12 @@ export function useSiteOverviewRows({
   }, [supplierRows, supplierMode]);
 
   const trendRows = useMemo(() => {
-    // Trend opportunities are decoupled from the Measure dropdown: always use the
-    // fixed median so the Opportunities table doesn't reshuffle when Measure changes.
     return planningVisibleNodes
       .filter((count) => count.stats.n > 0)
       .map((count) => {
         const historical =
           historicalNodesByKey.get(siteNodeKey(count)) ?? count;
-        const trend = computeTimingTrend(historical, timeRange, "median");
+        const trend = computeTimingTrend(historical, timeRange, measure);
         return {
           ...count,
           trendPct: trend.pctChange,
@@ -303,6 +301,7 @@ export function useSiteOverviewRows({
     historicalNodesByKey,
     timeRange,
     excludeLowSamples,
+    measure,
   ]);
 
   return {

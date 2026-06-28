@@ -30,6 +30,14 @@ import {
   trackSupplyChainStatusReportCreated,
 } from "../../shared/telemetry";
 import {
+  byCreatedAt,
+  deserializeSupplyChainUserPreferences,
+  getStringArrayProperty,
+  readItemArrayWithMetadata,
+  readItemBaseUrl,
+  supplyChainUserPreferencesQuery,
+} from "../../shared/use-supply-chain-user-preferences";
+import {
   applyReadOps,
   buildStatuses,
   mergeReadKeySets,
@@ -65,10 +73,7 @@ import type {
   OpportunityStatusUpdate,
   OpportunityStatusUpdatePropertiesWithMetadata,
 } from "@local/hash-isomorphic-utils/system-types/opportunitystatusupdate";
-import type {
-  SupplyChainUserPreferences,
-  SupplyChainUserPreferencesPropertiesWithMetadata,
-} from "@local/hash-isomorphic-utils/system-types/supplychainuserpreferences";
+import type { SupplyChainUserPreferencesPropertiesWithMetadata } from "@local/hash-isomorphic-utils/system-types/supplychainuserpreferences";
 
 /** A status report parsed from the graph before its author is resolved. */
 interface RawStatusReport {
@@ -84,10 +89,9 @@ interface RawStatusReport {
 const scopeKeyBaseUrl = systemPropertyTypes.scopeKey.propertyTypeBaseUrl;
 const siteCodeBaseUrl = systemPropertyTypes.siteCode.propertyTypeBaseUrl;
 const statusCategoryBaseUrl =
-  systemPropertyTypes.supplyChainStatusCategory.propertyTypeBaseUrl;
+  systemPropertyTypes.opportunityStatus.propertyTypeBaseUrl;
 const statusTextBaseUrl =
-  systemPropertyTypes.supplyChainStatusText.propertyTypeBaseUrl;
-const readItemBaseUrl = systemPropertyTypes.readItem.propertyTypeBaseUrl;
+  systemPropertyTypes.statusUpdateText.propertyTypeBaseUrl;
 
 // Status reports and read markers intentionally use the generic generated
 // system types plus the shared GraphQL entity mutations. There is no
@@ -105,31 +109,12 @@ const categoryValueWithMetadata = (value: StatusOption) => ({
   },
 });
 
-const readItemArrayWithMetadata = (keys: string[]) => ({
-  value: keys.map((key) => textValueWithMetadata(key)),
-});
-
-const byCreatedAt = (left: HashEntity, right: HashEntity) =>
-  left.metadata.provenance.createdAtDecisionTime.localeCompare(
-    right.metadata.provenance.createdAtDecisionTime,
-  );
-
 const getStringProperty = (
   entity: HashEntity,
   propertyBaseUrl: BaseUrl,
 ): string | undefined => {
   const raw = entity.properties[propertyBaseUrl];
   return typeof raw === "string" ? raw : undefined;
-};
-
-const getStringArrayProperty = (
-  entity: HashEntity,
-  propertyBaseUrl: BaseUrl,
-): string[] => {
-  const raw = entity.properties[propertyBaseUrl];
-  return Array.isArray(raw)
-    ? raw.flatMap((value) => (typeof value === "string" ? [value] : []))
-    : [];
 };
 
 const toStatusOption = (value: string | undefined): StatusOption =>
@@ -160,38 +145,6 @@ const statusReportQuery = ({
         equal: [
           { path: ["properties", siteCodeBaseUrl] },
           { parameter: siteId },
-        ],
-      },
-    ],
-  },
-  temporalAxes: currentTimeInstantTemporalAxes,
-  includeDrafts: false,
-  includePermissions: false,
-});
-
-const preferencesQuery = ({
-  userId,
-  webId,
-}: {
-  userId: ActorEntityUuid;
-  webId: WebId;
-}) => ({
-  filter: {
-    all: [
-      { equal: [{ path: ["webId"] }, { parameter: webId }] },
-      {
-        equal: [
-          { path: ["type", "baseUrl"] },
-          {
-            parameter:
-              systemEntityTypes.supplyChainUserPreferences.entityTypeBaseUrl,
-          },
-        ],
-      },
-      {
-        equal: [
-          { path: ["editionProvenance", "createdById"] },
-          { parameter: userId },
         ],
       },
     ],
@@ -234,6 +187,7 @@ export const useSupplyChainStatusState = (
   const scope = useScope();
   const { authenticatedUser } = useAuthInfo();
   const userId = authenticatedUser?.accountId;
+  const userWebId = authenticatedUser?.accountId as WebId | undefined;
 
   const [statusReports, setStatusReports] = useState<RawStatusReport[]>([]);
   const [readKeys, setReadKeys] = useState<string[]>([]);
@@ -309,19 +263,19 @@ export const useSupplyChainStatusState = (
     entityId: EntityId | null;
     readKeys: string[];
   }> => {
-    if (!userId) {
+    if (!userWebId) {
       return { entityId: null, readKeys: [] };
     }
 
     const { data } = await queryEntities({
-      variables: { request: preferencesQuery({ userId, webId: scope }) },
+      variables: {
+        request: supplyChainUserPreferencesQuery({ webId: userWebId }),
+      },
     });
 
-    const preferencesEntities = data?.queryEntities
-      ? deserializeQueryEntitiesResponse(
-          data.queryEntities as SerializedQueryEntitiesResponse<SupplyChainUserPreferences>,
-        ).entities
-      : [];
+    const preferencesEntities = deserializeSupplyChainUserPreferences(
+      data?.queryEntities,
+    );
     const [preferencesEntity] = [...preferencesEntities].sort(byCreatedAt);
 
     return {
@@ -332,7 +286,7 @@ export const useSupplyChainStatusState = (
         ),
       ),
     };
-  }, [queryEntities, scope, userId]);
+  }, [queryEntities, userWebId]);
 
   const loadPreferences = useCallback(async () => {
     const { entityId, readKeys: serverReadKeys } = await fetchPreferences();
@@ -353,11 +307,10 @@ export const useSupplyChainStatusState = (
     if (preferencesEntityId) {
       return preferencesEntityId;
     }
-    if (!userId) {
+    if (!userWebId) {
       throw new Error("Cannot save supply-chain preferences without a user.");
     }
 
-    // The entity type defines only `read-item`; start with an empty list.
     const properties = {
       value: {
         "https://hash.ai/@h/types/property-type/read-item/":
@@ -370,7 +323,7 @@ export const useSupplyChainStatusState = (
         entityTypeIds: [
           systemEntityTypes.supplyChainUserPreferences.entityTypeId,
         ],
-        webId: scope,
+        webId: userWebId,
         properties,
       },
     });
@@ -383,7 +336,7 @@ export const useSupplyChainStatusState = (
     }
     setPreferencesEntityId(entityId);
     return entityId;
-  }, [createEntity, preferencesEntityId, scope, userId]);
+  }, [createEntity, preferencesEntityId, userWebId]);
 
   // Drain pending read/unread operations onto the server with read-before-write
   // merge semantics: refetch the current keys, apply the pending ops, write the
@@ -497,6 +450,7 @@ export const useSupplyChainStatusState = (
         productId: node.products[0]?.id ?? "",
         siteId,
         source: "status_dialog",
+        statusCategory: status.category,
         stepId: node.id,
       });
 
@@ -519,11 +473,11 @@ export const useSupplyChainStatusState = (
             textValueWithMetadata(key),
           "https://hash.ai/@h/types/property-type/site-code/":
             textValueWithMetadata(siteId),
-          "https://hash.ai/@h/types/property-type/supply-chain-status-category/":
+          "https://hash.ai/@h/types/property-type/opportunity-status/":
             categoryValueWithMetadata(status.category),
           ...(status.text
             ? {
-                "https://hash.ai/@h/types/property-type/supply-chain-status-text/":
+                "https://hash.ai/@h/types/property-type/status-update-text/":
                   textValueWithMetadata(status.text),
               }
             : {}),

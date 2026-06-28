@@ -14,7 +14,7 @@ export const stepDetailDoc: DocEntry = {
       </Lead>
       <P>
         It keeps the step&apos;s method explanation close by through the
-        &ldquo;About this step&rdquo; button, but the panel itself is about
+        <Term>About this step</Term> button, but the panel itself is about
         evidence: distributions, trends, records, status and related operational
         dimensions.
       </P>
@@ -72,8 +72,9 @@ export const stepDetailDoc: DocEntry = {
       <UL>
         <LI>
           <Term>Source records</Term> open from the table button in the header.
-          The table can be filtered by the active month and exported to CSV for
-          follow-up checks in another system.
+          Use <Term>Data</Term> to open the table. It can be filtered by the
+          active month and exported with <Term>Export CSV</Term> for follow-up
+          checks in another system.
         </LI>
         <LI>
           <Term>Time range</Term> buttons filter the panel independently while
@@ -95,9 +96,13 @@ export const stepDetailDoc: DocEntry = {
           investigation narrative.
         </LI>
         <LI>
-          <Term>Status</Term> lets you record investigation progress, updates,
-          conclusions or rejections. Status history is tied to the
-          step/opportunity and reappears when the same target is opened again.
+          The status action button is labelled <Term>To action</Term>,{" "}
+          <Term>Investigating</Term>, <Term>Investigated</Term> or{" "}
+          <Term>Rejected</Term> based on the latest saved update. It lets you
+          record investigation progress, updates, conclusions or rejections.
+          Status history is tied to the step/opportunity, reappears when the
+          same target is opened again, and is viewable by anyone with access to
+          the supply-chain data web.
         </LI>
       </UL>
 

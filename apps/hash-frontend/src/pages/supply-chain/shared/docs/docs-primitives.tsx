@@ -83,8 +83,8 @@ export const Anchor = ({
 };
 
 const lead = css({
-  textStyle: "base",
-  color: "fg.muted",
+  textStyle: "sm",
+  color: "fg.subtle",
   lineHeight: "relaxed",
   mb: "3",
 });

@@ -111,14 +111,20 @@ const normCaption = css({
 const bottomSection = css({ p: "2.5", borderBottomRadius: "[10px]" });
 const bottomRow = css({
   display: "flex",
-  alignItems: "center",
+  alignItems: "flex-start",
   justifyContent: "space-between",
+  gap: "1",
+  flexWrap: "wrap",
 });
 const badgeRow = css({
   display: "flex",
   alignItems: "center",
   gap: "1",
   flexWrap: "wrap",
+  flexGrow: "1",
+  flexShrink: "1",
+  flexBasis: "0",
+  minW: "0",
 });
 const badgeGapped = css({
   display: "inline-flex",
@@ -143,6 +149,20 @@ const badgeEven = css({
   px: "1.5",
   h: "4",
   lineHeight: "[11px]",
+});
+const costBadge = css({
+  display: "inline-flex",
+  alignItems: "center",
+  textStyle: "xs",
+  fontWeight: "medium",
+  fontFamily: "body",
+  borderRadius: "sm",
+  px: "1.5",
+  minW: "0",
+  minH: "4",
+  py: "0.5",
+  lineHeight: "[13px]",
+  whiteSpace: "normal",
 });
 const badgeGood = css({
   bg: "status.success.bg.subtle",
@@ -177,6 +197,7 @@ const countLabel = css({
   color: "fg.subtle",
   fontVariantNumeric: "tabular-nums",
   flexShrink: 0,
+  ml: "1",
   borderBottomWidth: "1px",
   borderBottomStyle: "dashed",
   borderColor: "[#c0c0c0]",
@@ -184,6 +205,7 @@ const countLabel = css({
   display: "inline-flex",
   alignItems: "center",
   gap: "1",
+  whiteSpace: "nowrap",
 });
 const noDataPad = css({ p: "2.5" });
 const noDataText = css({
@@ -597,7 +619,7 @@ export const StepCard = ({ node, onClick, timeRange }: StepCardProps) => {
               {isDwellType(node.type) &&
                 periodCost != null &&
                 periodCost > 0 && (
-                  <span className={cx(badgeEven, badgeWarn)}>
+                  <span className={cx(costBadge, badgeWarn)}>
                     {formatCost(periodCost, costCurrency, { compact: true })}{" "}
                     over {timeRange ?? "total"}
                   </span>

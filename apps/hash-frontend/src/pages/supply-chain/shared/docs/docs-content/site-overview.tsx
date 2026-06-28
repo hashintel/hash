@@ -17,8 +17,8 @@ export const siteOverviewSection: DocSectionDef = {
             regardless of which product they belong to.
           </Lead>
           <P>
-            Steps shared across products (such as a raw material used by several
-            finished goods) appear once, tagged with every product that uses
+            Steps shared across goods (such as a raw material or intermediate
+            used by several goods) appear once, tagged with every good that uses
             them, so their cost is not double-counted. Product-specific steps
             stay attributed to their product.
           </P>
@@ -37,37 +37,54 @@ export const siteOverviewSection: DocSectionDef = {
             <LI>
               <Term>Planning over / under</Term> &mdash; observed timing sitting
               above or below the planning parameter for the step. It appears
-              when P95 is at least 10% above or below plan.
+              when P95 is at least 10% above or below plan. To see comparisons
+              against other statistics (e.g. median), use the{" "}
+              <CrossRef to={{ section: "site-overview", sub: "planning-tab" }}>
+                {" "}
+                Planning parameters tab
+              </CrossRef>{" "}
+              further down the page.
             </LI>
           </UL>
           <P>
             Each row shows its impact, supporting evidence and a sample-size
-            confidence label, and can be marked read or unread and annotated
-            with status updates to track investigation status. Selecting a row
-            opens that step&apos;s detail.
+            confidence label. Selecting a row opens that step&apos;s detail; the
+            row actions include <Term>Brief</Term>, <Term>Mark read</Term>,{" "}
+            <Term>Mark unread</Term> and the investigation status action.
           </P>
           <H4>Investigation workflow</H4>
+          <UL>
+            <LI>
+              <Term>Mark read</Term> hides an opportunity from the default list
+              once it has been reviewed. <Term>Mark unread</Term> returns it to
+              the unread list.
+            </LI>
+            <LI>
+              <Term>Show read</Term> brings reviewed opportunities back into the
+              table.
+            </LI>
+            <LI>
+              Record any actions for the opportunity using the status action
+              button. It is labelled by the latest saved state:{" "}
+              <Term>To action</Term>, <Term>Investigating</Term>,{" "}
+              <Term>Investigated</Term> or <Term>Rejected</Term>. It records an
+              investigation start, update, conclusion, infeasible rejection or
+              data-issue rejection.
+            </LI>
+            <LI>
+              Status updates are keyed to the step/opportunity target, visible
+              again from the step detail panel, and viewable by anyone with
+              access to the supply-chain data web. Read/unread markers are a
+              personal preference.
+            </LI>
+          </UL>
           <P>
-            Mark read hides an opportunity from the default list once it has
-            been reviewed; Show read brings completed items back. The Status
-            action records investigation started, updates, conclusions,
-            infeasible rejections or data-issue rejections. Status history is
-            keyed to the step/opportunity target and is also visible from the
-            step detail panel.
-          </P>
-          <P>
-            The Brief action opens a printable{" "}
+            The <Term>Brief</Term> action opens a printable{" "}
             <CrossRef to={{ section: "opportunity-brief" }}>
               Opportunity brief
             </CrossRef>{" "}
             with the evidence, scenarios and recommended checks behind the row.
           </P>
-          <Note>
-            Dwell opportunity qualification uses median dwell and carrying cost;
-            planning opportunity qualification uses P95. These are fixed gates,
-            so changing the global Measure setting does not change which
-            opportunities appear.
-          </Note>
         </>
       ),
     },
@@ -107,6 +124,12 @@ export const siteOverviewSection: DocSectionDef = {
             surfaces the most expensive waits first. Rows open the step detail
             for the full distribution and cost breakdown.
           </P>
+          <P>
+            Dwell rows remain visible even when Exclude low samples is on,
+            because a small number of high-value waits can still explain real
+            carrying cost. Low-sample dwell rows are labelled so the statistic
+            is treated as directional.
+          </P>
         </>
       ),
     },
@@ -121,8 +144,13 @@ export const siteOverviewSection: DocSectionDef = {
           </Lead>
           <P>
             It surfaces where the plan and reality diverge most &mdash; both
-            steps running over plan and steps comfortably under it &mdash; as
-            candidates for planning recalibration.
+            steps running over plan and steps comfortably under it &mdash; by
+            comparing the selected measure from{" "}
+            <CrossRef to={{ section: "settings", sub: "measure" }}>
+              Settings &amp; controls
+            </CrossRef>{" "}
+            with the planning parameter. Use it to find candidates for planning
+            recalibration.
           </P>
         </>
       ),
@@ -133,8 +161,8 @@ export const siteOverviewSection: DocSectionDef = {
       render: () => (
         <>
           <Lead>
-            The Trend tab lists steps whose median lead time is moving up or
-            down versus the previous comparison period.
+            The Trend tab lists steps whose selected timing measure is moving up
+            or down versus the previous comparison period.
           </Lead>
           <P>
             Use it as a directional signal beside the dwell and planning tabs:
@@ -191,9 +219,10 @@ export const siteOverviewSection: DocSectionDef = {
               is omitted from the Planning parameters filter.
             </LI>
             <LI>
-              <Term>Exclude low samples</Term> &mdash; hide steps with fewer
-              than 10 observations, so rankings are not dominated by noisy
-              single-event steps.
+              <Term>Exclude low samples</Term> &mdash; hide Planning and Trend
+              rows with fewer than 10 observations, so rankings are not
+              dominated by noisy single-event steps. Dwell rows stay visible and
+              are labelled instead because carrying cost can still be material.
             </LI>
           </UL>
           <P>

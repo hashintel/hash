@@ -16,8 +16,7 @@ planning views, trend information, supplier performance when enabled, contextual
 docs, settings, step detail panels, and status reporting.
 
 Status reports are shared within the resolved data web. Read/unread state is
-user-specific and stored through a supply-chain preferences entity for the user
-and web, rather than as one graph entity per read marker.
+user-specific and stored through a supply-chain preferences entity for the user.
 
 ### Product Overview
 
@@ -31,8 +30,6 @@ view state.
 
 The opportunity brief route is
 `/supply-chain/site/[site-id]/opportunity/[opportunity-type]/[product-id]/[step-id]`.
-It gives focused context for a dwell or planning opportunity without changing
-the shared status/read state model.
 
 ## Telemetry
 
@@ -57,6 +54,7 @@ Supported properties:
 - `stepId`
 - `opportunityType`
 - `opportunityKind`
+- `statusCategory`
 
 Do not send status report free text, display names, customer names, site or
 product display labels, raw analysis values, or client-specific data.
@@ -85,6 +83,9 @@ product display labels, raw analysis values, or client-specific data.
 - `show_read_enabled`
 - `show_read_disabled`
 - `opportunity_section_toggled`
+- `opportunity_brief_opened`
+- `opportunity_brief_print_clicked`
+- `opportunity_brief_data_downloaded`
 - `brief_link_clicked`
 - `data_table_opened`
 - `csv_exported`
@@ -103,9 +104,156 @@ product display labels, raw analysis values, or client-specific data.
 ### Status Reports
 
 - Creating a status report sends `supply_chain_status_report_created` with
-  `siteId`, `productId`, `stepId`, `opportunityType`, and `source`.
+  `siteId`, `productId`, `stepId`, `opportunityType`, `statusCategory`, and
+  `source`.
 - Status report text is never sent.
 - User display names are never sent.
+
+## RudderStack Slack Event Templates
+
+RudderStack Slack event templates use Handlebars. Configure each entry with
+regex matching disabled unless noted otherwise. Optional property lines are
+wrapped in `#if` blocks because not every event has site, product, step, or
+opportunity context. Every event also receives shared server-stamped properties,
+including `environment`, `frontendDomain`, `shortname`, and `frontendProvided`.
+
+### `supply_chain_viewed`
+
+```handlebars
+:eyes:
+{{name}}
+viewed Supply Chain{{#if properties.route}}{{newline}}Route:
+  {{properties.route}}{{/if}}{{#if properties.source}}{{newline}}Source:
+  {{properties.source}}{{/if}}{{#if properties.siteId}}{{newline}}Site:
+  {{properties.siteId}}{{/if}}{{#if properties.productId}}{{newline}}Product:
+  {{properties.productId}}{{/if}}{{#if properties.stepId}}{{newline}}Step:
+  {{properties.stepId}}{{/if}}{{#if
+  properties.opportunityType
+}}{{newline}}Opportunity type: {{properties.opportunityType}}{{/if}}
+```
+
+### `supply_chain_interaction`
+
+```handlebars
+:point_right:
+{{name}}
+used Supply Chain{{#if properties.interaction}}{{newline}}Interaction:
+  {{properties.interaction}}{{/if}}{{#if properties.source}}{{newline}}Source:
+  {{properties.source}}{{/if}}{{#if properties.siteId}}{{newline}}Site:
+  {{properties.siteId}}{{/if}}{{#if properties.productId}}{{newline}}Product:
+  {{properties.productId}}{{/if}}{{#if properties.stepId}}{{newline}}Step:
+  {{properties.stepId}}{{/if}}{{#if
+  properties.opportunityType
+}}{{newline}}Opportunity type: {{properties.opportunityType}}{{/if}}{{#if
+  properties.opportunityKind
+}}{{newline}}Opportunity kind: {{properties.opportunityKind}}{{/if}}
+```
+
+Opportunity brief interactions currently covered by this template:
+
+- `opportunity_brief_opened`
+- `opportunity_brief_print_clicked`
+- `opportunity_brief_data_downloaded`
+
+### `supply_chain_status_report_created`
+
+```handlebars
+:memo:
+{{name}}
+created a Supply Chain status report{{#if
+  properties.statusCategory
+}}{{newline}}Status: {{properties.statusCategory}}{{/if}}{{#if
+  properties.source
+}}{{newline}}Source: {{properties.source}}{{/if}}{{#if
+  properties.siteId
+}}{{newline}}Site: {{properties.siteId}}{{/if}}{{#if
+  properties.productId
+}}{{newline}}Product: {{properties.productId}}{{/if}}{{#if
+  properties.stepId
+}}{{newline}}Step: {{properties.stepId}}{{/if}}{{#if
+  properties.opportunityType
+}}{{newline}}Opportunity type: {{properties.opportunityType}}{{/if}}
+```
+
+### `supply_chain_error`
+
+```handlebars
+:warning: Supply Chain handled error{{#if
+  properties.interaction
+}}{{newline}}Operation: {{properties.interaction}}{{/if}}{{#if
+  properties.source
+}}{{newline}}Source: {{properties.source}}{{/if}}{{#if
+  properties.route
+}}{{newline}}Route: {{properties.route}}{{/if}}{{#if
+  properties.siteId
+}}{{newline}}Site: {{properties.siteId}}{{/if}}{{#if
+  properties.productId
+}}{{newline}}Product: {{properties.productId}}{{/if}}{{#if
+  properties.stepId
+}}{{newline}}Step: {{properties.stepId}}{{/if}}{{#if
+  properties.opportunityType
+}}{{newline}}Opportunity type: {{properties.opportunityType}}{{/if}}
+```
+
+### Global Page Events
+
+Generic page views are already captured from the frontend app shell with
+RudderStack's Page API on initial load and on `routeChangeComplete`. The page
+name and `path` property are the Next.js `router.asPath` value.
+
+Configure this template with event name `page`:
+
+```handlebars
+:page_facing_up:
+{{name}}
+viewed a page{{#if properties.path}}{{newline}}Path:
+  {{properties.path}}{{/if}}{{#if
+  properties.environment
+}}{{newline}}Environment: {{properties.environment}}{{/if}}{{#if
+  properties.frontendDomain
+}}{{newline}}Frontend: {{properties.frontendDomain}}{{/if}}{{#if
+  properties.frontendProvided
+}}{{newline}}Source: frontend{{/if}}
+```
+
+### `analysis_run`
+
+`analysis_run` is server-only and cannot be emitted by the browser telemetry
+gateway. It is captured when the analysis API resolves a requested analysis.
+
+```handlebars
+:bar_chart:
+{{name}}
+ran an analysis{{#if properties.analysis}}{{newline}}Analysis:
+  {{properties.analysis}}{{/if}}{{#if properties.status}}{{newline}}Status:
+  {{properties.status}}{{/if}}{{#if
+  properties.artifactCount
+}}{{newline}}Artifacts: {{properties.artifactCount}}{{/if}}{{#if
+  properties.webId
+}}{{newline}}Web: {{properties.webId}}{{/if}}{{#if
+  properties.environment
+}}{{newline}}Environment: {{properties.environment}}{{/if}}{{#if
+  properties.shortname
+}}{{newline}}Shortname: {{properties.shortname}}{{/if}}
+```
+
+### `user_register`
+
+`user_register` is server-only and is captured from the Kratos registration
+hook after a HASH user is created. Only route this to Slack if the destination
+channel is approved for email addresses.
+
+```handlebars
+:bust_in_silhouette: New HASH user registered{{#if
+  properties.shortname
+}}{{newline}}User: {{properties.shortname}}{{/if}}{{#if
+  properties.email
+}}{{newline}}Email: {{properties.email}}{{/if}}{{#if
+  properties.environment
+}}{{newline}}Environment: {{properties.environment}}{{/if}}{{#if
+  properties.frontendDomain
+}}{{newline}}Frontend: {{properties.frontendDomain}}{{/if}}
+```
 
 ### Handled Errors
 

@@ -1,4 +1,11 @@
-import { useEffect, useState, useMemo, useCallback, useRef } from "react";
+import {
+  useEffect,
+  useState,
+  useMemo,
+  useCallback,
+  useRef,
+  type ReactNode,
+} from "react";
 
 import { Button, Icon } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
@@ -17,6 +24,7 @@ import { stepDocTarget } from "./docs/docs-content";
 import { useDocs } from "./docs/use-docs";
 import { useSupplierPerformanceEnabled } from "./feature-flags";
 import { LoadingState, ErrorState } from "./load-state";
+import { applyOutlierSelectionToStep } from "./outlier-selection";
 import { computePeriodDeltas } from "./period-trends";
 import { useProcurementBasis } from "./procurement-basis-context";
 import {
@@ -296,6 +304,8 @@ interface StepDetailPanelProps {
   statusEntries?: StatusEntry[];
   /** Opens the shared status dialog for this step. */
   onStatus?: () => void;
+  /** Inline modal content opened from inside the slide-over. */
+  statusDialog?: ReactNode;
 }
 
 function formatStatusDate(iso: string): string {
@@ -328,6 +338,7 @@ export const StepDetailPanel = ({
   briefHref,
   statusEntries = [],
   onStatus,
+  statusDialog,
 }: StepDetailPanelProps) => {
   const { timeRange, setTimeRange } = useTimeRange();
   const [step, setStep] = useState<StepDetailType | null>(null);
@@ -360,14 +371,21 @@ export const StepDetailPanel = ({
       excludeOutliers,
       procurementBasis,
     );
-  }, [step, timeRange, excludeOutliers, procurementBasis]); // Basis-selected (but unwindowed/unfiltered) step for period-comparison reads,
-  // so the "vs previous period" delta tracks the same series as the headline.
+  }, [step, timeRange, excludeOutliers, procurementBasis]);
   const basisStep = useMemo(() => {
     if (!step) {
       return null;
     }
     return applyProcurementBasisToStep(step, procurementBasis);
   }, [step, procurementBasis]);
+  // Basis-selected and outlier-selected, but unwindowed, so previous-period
+  // deltas track the same series as the displayed current stats.
+  const comparisonStep = useMemo(() => {
+    if (!basisStep) {
+      return null;
+    }
+    return applyOutlierSelectionToStep(basisStep, excludeOutliers);
+  }, [basisStep, excludeOutliers]);
   const windowedSupplierBlock = useMemo(() => {
     if (!step?.supplier_otif) {
       return null;
@@ -469,27 +487,27 @@ export const StepDetailPanel = ({
     }
     return filteredStep.stats;
   }, [filteredStep, dimension, selectedComponent]);
-  const unfilteredObservations = useMemo((): Observation[] => {
-    if (!step) {
+  const comparisonObservations = useMemo((): Observation[] => {
+    if (!comparisonStep) {
       return [];
     }
-    if (dimension === "yield" && step.yield_data) {
-      return step.yield_data.observations;
+    if (dimension === "yield" && comparisonStep.yield_data) {
+      return comparisonStep.yield_data.observations;
     }
-    if (dimension === "consumption" && step.consumption_data) {
+    if (dimension === "consumption" && comparisonStep.consumption_data) {
       if (selectedComponent) {
-        const comp = step.consumption_data.components.find(
+        const comp = comparisonStep.consumption_data.components.find(
           (component) => component.material === selectedComponent,
         );
         return comp?.observations ?? [];
       }
-      return step.consumption_data.aggregate.observations;
+      return comparisonStep.consumption_data.aggregate.observations;
     }
-    return (basisStep ?? step).observations;
-  }, [step, basisStep, dimension, selectedComponent]);
+    return comparisonStep.observations;
+  }, [comparisonStep, dimension, selectedComponent]);
   const periodComparison = useMemo(() => {
-    return computePeriodDeltas(unfilteredObservations, timeRange);
-  }, [unfilteredObservations, timeRange]);
+    return computePeriodDeltas(comparisonObservations, timeRange);
+  }, [comparisonObservations, timeRange]);
   const selectedComponentReconciliationCount = useMemo(() => {
     if (
       dimension !== "consumption" ||
@@ -938,6 +956,7 @@ export const StepDetailPanel = ({
           )}
         </div>
       )}
+      {statusDialog}
     </SlideOver>
   );
 };

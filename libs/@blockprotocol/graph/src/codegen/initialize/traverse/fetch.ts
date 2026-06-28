@@ -22,7 +22,7 @@ const PREDEFINED_TYPES_RELATIVE_PATH = path.join(
 );
 
 const BLOCK_PROTOCOL_TYPE_URL_REGEX =
-  /^https:\/\/blockprotocol\.org\/@blockprotocol\/types\/(data-type|property-type|entity-type)\/([^/]+)\/v\/(\d+)$/;
+  /^https:\/\/blockprotocol\.org\/(?:@blockprotocol|@hash)\/types\/(data-type|property-type|entity-type)\/([^/]+)\/v\/(\d+)$/;
 
 let cachedPredefinedTypesDir: string | null | undefined;
 

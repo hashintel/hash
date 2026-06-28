@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { deriveTimingFromRecords, ensureStepStats } from "./normalize-contract";
 
-import type { DetailRows, StepDetail } from "./types";
+import type { DetailRows, StepDetail, StepDetailWire } from "./types";
 
 const detailRows: DetailRows = {
   columns: [
@@ -58,6 +58,20 @@ function recordsOnlyStep(overrides: Partial<StepDetail> = {}): StepDetail {
   };
 }
 
+function recordsOnlyWireStep(
+  overrides: Partial<StepDetailWire> = {},
+): StepDetailWire {
+  const {
+    durations: _durations,
+    observations: _observations,
+    monthly: _monthly,
+    stats: _stats,
+    ...wireStep
+  } = recordsOnlyStep();
+
+  return { ...wireStep, ...overrides };
+}
+
 describe("deriveTimingFromRecords", () => {
   it("rehydrates observations/durations/monthly/stats from detail_rows", () => {
     const derived = deriveTimingFromRecords(recordsOnlyStep());
@@ -98,6 +112,18 @@ describe("deriveTimingFromRecords", () => {
     const out = ensureStepStats(recordsOnlyStep());
     expect(out.stats.n).toBe(3);
     expect(out.observations).toHaveLength(3);
+  });
+
+  it("accepts records-only wire payloads with omitted derived timing arrays", () => {
+    const out = ensureStepStats(recordsOnlyWireStep());
+
+    expect(out.durations).toEqual([10, 20, 30]);
+    expect(out.observations).toHaveLength(3);
+    expect(out.monthly.map((month) => month.month)).toEqual([
+      "2026-01",
+      "2026-02",
+    ]);
+    expect(out.stats.n).toBe(3);
   });
 
   it.each([

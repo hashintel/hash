@@ -128,6 +128,11 @@ export interface StatusDialogProps {
   title: string;
   onClose: () => void;
   onSave: (status: { category: StatusOption; text: string }) => void;
+  /**
+   * Render in-place instead of portaling to the layout root. Use when the dialog
+   * is opened from inside another modal, such as the step detail slide-over.
+   */
+  inline?: boolean;
 }
 
 /**
@@ -135,7 +140,12 @@ export interface StatusDialogProps {
  * The form resets on each target change so status edits never inherit a prior
  * category or comment.
  */
-export const StatusDialog = ({ title, onClose, onSave }: StatusDialogProps) => {
+export const StatusDialog = ({
+  title,
+  onClose,
+  onSave,
+  inline = false,
+}: StatusDialogProps) => {
   const [category, setCategory] = useState<StatusOption>(DEFAULT_STATUS);
   const [text, setText] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -146,7 +156,10 @@ export const StatusDialog = ({ title, onClose, onSave }: StatusDialogProps) => {
     setCategory(DEFAULT_STATUS);
     setText("");
     setError(null);
-    textareaRef.current?.focus();
+    const id = requestAnimationFrame(() => {
+      textareaRef.current?.focus({ preventScroll: true });
+    });
+    return () => cancelAnimationFrame(id);
   }, []);
 
   const selectCategory = (next: StatusOption) => {
@@ -274,7 +287,7 @@ export const StatusDialog = ({ title, onClose, onSave }: StatusDialogProps) => {
   );
 
   const container = portalRef?.current;
-  return container ? createPortal(dialog, container) : dialog;
+  return inline || !container ? dialog : createPortal(dialog, container);
 };
 
 /** Speech-bubble glyph used by Status action buttons. */

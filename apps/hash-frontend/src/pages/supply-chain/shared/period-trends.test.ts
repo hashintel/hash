@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { obs as fixtureObs, stepFrom } from "./observation-fixtures";
+import { applyOutlierSelectionToStep } from "./outlier-selection";
 import {
   computeCostComparison,
   computeCostTrend,
@@ -141,6 +143,25 @@ describe("period helpers anchored to a fixed clock", () => {
     expect(trend.direction).toBe("improving");
   });
 
+  it("computeTrend uses the selected base measure", () => {
+    const observations: Observation[] = [
+      obs("2025-07", 10),
+      obs("2025-08", 10),
+      obs("2025-09", 100),
+      obs("2026-01", 20),
+      obs("2026-02", 20),
+      obs("2026-03", 20),
+    ];
+
+    const medianTrend = computeTrend(observations, "6m", "median");
+    const meanTrend = computeTrend(observations, "6m", "mean");
+
+    expect(medianTrend.previousValue).toBe(10);
+    expect(meanTrend.previousValue).toBeCloseTo(40, 6);
+    expect(medianTrend.pctChange).toBeCloseTo(100, 6);
+    expect(meanTrend.pctChange).toBeCloseTo(-50, 6);
+  });
+
   it("computeTrend handles the 12m window", () => {
     const observations: Observation[] = [
       obs("2024-08", 100),
@@ -228,5 +249,27 @@ describe("period helpers anchored to a fixed clock", () => {
     expect(deltas.medianPctChange).toBeCloseTo(100, 6);
     expect(deltas.currentRange).not.toBeNull();
     expect(deltas.previousRange).not.toBeNull();
+  });
+
+  it("computePeriodDeltas can compare an outlier-filtered historical series", () => {
+    const step = stepFrom([
+      fixtureObs("2025-07", 10),
+      fixtureObs("2025-08", 10),
+      fixtureObs("2025-09", 1000),
+      fixtureObs("2025-10", 1000),
+      fixtureObs("2026-01", 20),
+      fixtureObs("2026-02", 20),
+      fixtureObs("2026-03", 20),
+      fixtureObs("2026-04", 20),
+    ]);
+    const selected = applyOutlierSelectionToStep(step, true);
+
+    const rawDeltas = computePeriodDeltas(step.observations, "6m");
+    const filteredDeltas = computePeriodDeltas(selected.observations, "6m");
+
+    expect(rawDeltas.previousStats?.median).toBe(505);
+    expect(rawDeltas.medianPctChange).toBeCloseTo(-96.039, 3);
+    expect(filteredDeltas.previousStats?.median).toBe(10);
+    expect(filteredDeltas.medianPctChange).toBeCloseTo(100, 6);
   });
 });

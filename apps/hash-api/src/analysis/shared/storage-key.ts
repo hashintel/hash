@@ -20,10 +20,10 @@ export const webScopedKey = (
 
 /**
  * Slugs are the only values interpolated into storage keys from client input.
- * Restricting them to `[a-z0-9_-]` (and a bounded length) prevents path
+ * Restricting them to a bounded set of non-separator characters prevents path
  * traversal and key-injection regardless of the underlying storage provider.
  */
-const SLUG_PATTERN = /^[a-zA-Z0-9_][a-zA-Z0-9_.-]{0,127}$/;
+const SLUG_PATTERN = /^[a-zA-Z0-9_][a-zA-Z0-9_.=-]{0,127}$/;
 
 export const isValidSlug = (value: unknown): value is string =>
   typeof value === "string" && SLUG_PATTERN.test(value);

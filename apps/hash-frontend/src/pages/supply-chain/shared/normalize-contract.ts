@@ -9,6 +9,7 @@ import type {
   GraphData,
   GraphNode,
   StepDetail,
+  StepDetailWire,
   Observation,
   StepStats,
   MonthlyBucket,
@@ -213,8 +214,11 @@ function normalizeProcurementNode(node: GraphNode): GraphNode {
     };
   });
 }
-export function deriveTimingFromRecords(step: StepDetail): StepDetail {
-  if (step.observations.length > 0) {
+export function deriveTimingFromRecords(step: StepDetail): StepDetail;
+export function deriveTimingFromRecords(step: StepDetailWire): StepDetailWire;
+export function deriveTimingFromRecords(step: StepDetailWire): StepDetailWire {
+  const existingObservations = step.observations ?? [];
+  if (existingObservations.length > 0) {
     return step;
   }
   const valueCol = step.value_col;
@@ -279,13 +283,15 @@ export function deriveTimingFromRecords(step: StepDetail): StepDetail {
  * `observations`/`durations`/`monthly`/`stats` so every downstream consumer can
  * keep reading them directly.
  */
-export function ensureStepStats(step: StepDetail): StepDetail {
+export function ensureStepStats(step: StepDetailWire): StepDetail {
   const derived = deriveTimingFromRecords(step);
-  const observations = derived.observations;
-  const base: StepDetail = {
+  const observations: Observation[] = derived.observations ?? [];
+  const durations: number[] =
+    derived.durations ?? observations.map((observation) => observation.value);
+  const base = {
     ...derived,
     observations,
-    durations: derived.durations,
+    durations,
     monthly: fillMonthlyTiming(derived.monthly, observations),
   };
   const next: StepDetail = hasStats(base.stats)

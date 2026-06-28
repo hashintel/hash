@@ -17,6 +17,7 @@ import type {
   Product,
   GraphData,
   StepDetail,
+  StepDetailWire,
   SiteData,
   SiteSupplierPerformance,
   SiteSummary,
@@ -104,7 +105,7 @@ export function fetchStepDetail(
   productId: string,
   stepId: string,
 ): Promise<StepDetail> {
-  return fetchAnalysisStepDetail<StepDetail>(
+  return fetchAnalysisStepDetail<StepDetailWire>(
     getActiveWebId(),
     productId,
     stepId,

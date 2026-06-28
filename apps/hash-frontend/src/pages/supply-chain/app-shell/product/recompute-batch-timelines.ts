@@ -164,8 +164,8 @@ export function recomputeBatchTimelines(
   const pipeline: Record<string, PipelineSummary> = {};
   for (const [routeCode, routeData] of Object.entries(perRoute)) {
     const stages = [];
-    let totalMean = 0;
-    let totalMedian = 0;
+    let stageMeanTotal = 0;
+    let stageMedianTotal = 0;
     for (const [segId, segLabel, segType] of SEG_DEFS) {
       const seg = routeData.segments[segId];
       if (!seg) {
@@ -179,19 +179,20 @@ export function recomputeBatchTimelines(
         median: seg.median,
         pct_of_total: 0,
       });
-      totalMean += seg.mean;
-      totalMedian += seg.median;
+      stageMeanTotal += seg.mean;
+      stageMedianTotal += seg.median;
     }
-    if (totalMean > 0) {
+    if (stageMeanTotal > 0) {
       for (const step of stages) {
-        step.pct_of_total = (step.mean / totalMean) * 100;
+        step.pct_of_total = (step.mean / stageMeanTotal) * 100;
       }
     }
+    const totalDays = routeData.segments.total_days;
     pipeline[routeCode] = {
       label: routeData.label,
       stages,
-      total_mean: totalMean,
-      total_median: totalMedian,
+      total_mean: totalDays?.mean ?? stageMeanTotal,
+      total_median: totalDays?.median ?? stageMedianTotal,
     };
   }
 

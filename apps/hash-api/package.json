@@ -9,6 +9,7 @@
     "build:docker": "docker buildx build --tag hash-api --file docker/Dockerfile ../../ --load",
     "codegen": "rimraf './src/**/*.gen.*'; graphql-codegen --config codegen.config.ts",
     "dev": "NODE_ENV=development NODE_OPTIONS=--max-old-space-size=2048 tsx watch --clear-screen=false --import ./src/instrument.mjs ./src/index.ts",
+    "dev:import-supply-chain-data": "NODE_ENV=development tsx ./src/seed-data/import-supply-chain-dataset.ts",
     "dev:seed-crm-data": "NODE_ENV=development tsx ./src/seed-data/seed-crm-data.ts",
     "fix:eslint": "eslint --fix .",
     "generate-hash-gpt-schema": "tsx ./src/ai/gpt/generate-hashgpt-schema.ts",

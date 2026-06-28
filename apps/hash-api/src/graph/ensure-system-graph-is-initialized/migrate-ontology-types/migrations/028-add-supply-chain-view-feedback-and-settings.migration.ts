@@ -4,6 +4,7 @@ import {
   createSystemDataTypeIfNotExists,
   createSystemEntityTypeIfNotExists,
   createSystemPropertyTypeIfNotExists,
+  getCurrentHashDataTypeId,
   getCurrentHashPropertyTypeId,
 } from "../util";
 
@@ -14,6 +15,11 @@ const migrate: MigrationFunction = async ({
   authentication,
   migrationState,
 }) => {
+  const durationDataTypeId = getCurrentHashDataTypeId({
+    dataTypeKey: "duration",
+    migrationState,
+  });
+
   const scopeKeyPropertyType = await createSystemPropertyTypeIfNotExists(
     context,
     authentication,
@@ -57,8 +63,8 @@ const migrate: MigrationFunction = async ({
     authentication,
     {
       propertyTypeDefinition: {
-        title: "Supply Chain Status Category",
-        description: "The category assigned to a supply-chain status report.",
+        title: "Opportunity Status",
+        description: "The category assigned to a status report.",
         possibleValues: [{ dataTypeId: statusCategoryDataType.schema.$id }],
       },
       migrationState,
@@ -71,8 +77,8 @@ const migrate: MigrationFunction = async ({
     authentication,
     {
       propertyTypeDefinition: {
-        title: "Supply Chain Status Text",
-        description: "The text of a supply-chain status report.",
+        title: "Status Update Text",
+        description: "Text providing an update in the status of something.",
         possibleValues: [{ primitiveDataType: "text" }],
       },
       migrationState,
@@ -93,6 +99,47 @@ const migrate: MigrationFunction = async ({
       webShortname: "h",
     },
   );
+
+  const timePeriodPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Time Period",
+        description: "A period of time expressed as a number of months.",
+        possibleValues: [{ dataTypeId: durationDataTypeId }],
+      },
+      migrationState,
+      webShortname: "h",
+    },
+  );
+
+  const excludeOutliersPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Exclude Outliers",
+        description:
+          "Whether outlying observations should be excluded from analysis or view.",
+        possibleValues: [{ primitiveDataType: "boolean" }],
+      },
+      migrationState,
+      webShortname: "h",
+    },
+  );
+
+  const excludeLowSamplesPropertyType =
+    await createSystemPropertyTypeIfNotExists(context, authentication, {
+      propertyTypeDefinition: {
+        title: "Exclude Low Samples",
+        description:
+          "Whether items with too few samples should be excluded from analysis or view.",
+        possibleValues: [{ primitiveDataType: "boolean" }],
+      },
+      migrationState,
+      webShortname: "h",
+    });
 
   const siteCodePropertyTypeId = getCurrentHashPropertyTypeId({
     propertyTypeKey: "siteCode",
@@ -128,6 +175,9 @@ const migrate: MigrationFunction = async ({
         "User-scoped preferences for supply-chain views in a HASH web.",
       properties: [
         { propertyType: readItemPropertyType.schema.$id, array: true },
+        { propertyType: timePeriodPropertyType.schema.$id },
+        { propertyType: excludeOutliersPropertyType.schema.$id },
+        { propertyType: excludeLowSamplesPropertyType.schema.$id },
       ],
     },
     migrationState,

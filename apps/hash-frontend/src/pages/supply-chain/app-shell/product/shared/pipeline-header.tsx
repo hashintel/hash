@@ -32,15 +32,40 @@ const row = css({
   justifyContent: "space-between",
   flexWrap: "wrap",
   gap: "2",
+  minW: "0",
 });
-const titleGroup = css({ display: "flex", alignItems: "center", gap: "3" });
+const titleGroup = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "3",
+  minW: "0",
+  flexGrow: "1",
+  flexShrink: "1",
+  flexBasis: "[18rem]",
+});
 const titleBase = css({ fontWeight: "medium", color: "fg.heading" });
 const titleLg = css({ textStyle: "lg" });
 const titleMd = css({ textStyle: "base" });
-const coverageText = css({ textStyle: "xs", color: "fg.subtle" });
-const controls = css({ display: "flex", alignItems: "center", gap: "2" });
-const selectWidth = css({ w: "[13rem]" });
-const selectWidthExpanded = css({ w: "[min(28rem,48vw)]" });
+const coverageText = css({
+  textStyle: "xs",
+  color: "fg.subtle",
+  minW: "0",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+});
+const controls = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "2",
+  minW: "0",
+  maxW: "full",
+});
+const selectWidth = css({ w: "[min(13rem,100%)]", minW: "0" });
+const selectWidthExpanded = css({
+  w: "[min(28rem,48vw,100%)]",
+  minW: "0",
+});
 const singleLabel = css({
   textStyle: "sm",
   fontWeight: "medium",
@@ -148,6 +173,7 @@ export const PipelineHeader = ({
               text: routeText(row2),
             }))}
             size="xs"
+            width="fitContent"
             className={expanded ? selectWidthExpanded : selectWidth}
             aria-label="Destination route"
           />
