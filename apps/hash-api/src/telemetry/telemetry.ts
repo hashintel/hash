@@ -13,7 +13,7 @@ import type { Request } from "express";
 
 const RUDDERSTACK_KEY = process.env.HASH_API_RUDDERSTACK_KEY;
 const RUDDERSTACK_DATA_PLANE_URL =
-  process.env.HASH_API_RUDDERSTACK_DATA_PLANE_URL;
+  "https://hashcruddtqbra.dataplane.eu.rudderstack.com";
 
 /** Server-only event names */
 export type ServerTelemetryEventName = "analysis_run" | "user_register";
