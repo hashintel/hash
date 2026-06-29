@@ -111,6 +111,7 @@ export const createEntityResolver: ResolverFn<
 
     entity = await createLinkEntity(context, authentication, {
       webId: webId ?? (user.accountId as WebId),
+      entityUuid,
       properties,
       linkData: {
         leftEntityId,
@@ -123,6 +124,7 @@ export const createEntityResolver: ResolverFn<
   } else {
     entity = await createEntityWithLinks(context, authentication, {
       webId: webId ?? (user.accountId as WebId),
+      entityUuid,
       entityTypeIds: mustHaveAtLeastOne(entityTypeIds),
       properties,
       linkedEntities: linkedEntities ?? undefined,
