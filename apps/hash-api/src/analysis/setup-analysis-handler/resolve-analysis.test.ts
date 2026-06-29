@@ -209,7 +209,9 @@ describe("resolveInvocation (supply-chain analyses)", () => {
 
     const result = await resolve("escaping");
     expect(result.status).toBe("error");
-    expect(result.error).toMatch(/internal error/i);
+    expect(result.error).toMatch(
+      /Resolved analysis artifact key outside the authorised web/i,
+    );
   });
 
   it("refuses to presign an artifact key outside the analysis prefix", async () => {
@@ -228,6 +230,8 @@ describe("resolveInvocation (supply-chain analyses)", () => {
 
     const result = await resolve("oldShape");
     expect(result.status).toBe("error");
-    expect(result.error).toMatch(/internal error/i);
+    expect(result.error).toMatch(
+      /Resolved analysis artifact key outside the authorised web/i,
+    );
   });
 });

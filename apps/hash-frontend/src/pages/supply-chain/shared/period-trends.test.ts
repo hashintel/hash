@@ -268,7 +268,7 @@ describe("period helpers anchored to a fixed clock", () => {
     const filteredDeltas = computePeriodDeltas(selected.observations, "6m");
 
     expect(rawDeltas.previousStats?.median).toBe(505);
-    expect(rawDeltas.medianPctChange).toBeCloseTo(-96.039, 3);
+    expect(rawDeltas.medianPctChange).toBeCloseTo(-96.03960396039604, 6);
     expect(filteredDeltas.previousStats?.median).toBe(10);
     expect(filteredDeltas.medianPctChange).toBeCloseTo(100, 6);
   });

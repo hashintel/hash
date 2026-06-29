@@ -1,4 +1,4 @@
-import { readFileSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -10,15 +10,40 @@ const seedRoot = fileURLToPath(
     import.meta.url,
   ),
 );
-const { datasetVersion } = JSON.parse(
-  readFileSync(path.join(seedRoot, "current.json"), "utf8"),
-) as { datasetVersion: string };
-const dataDir = path.join(seedRoot, datasetVersion);
+
+function readJsonFile<T>(filePath: string): T {
+  return JSON.parse(readFileSync(filePath, "utf8")) as T;
+}
+
+function activeDatasetVersion(): string {
+  const currentPath = path.join(seedRoot, "current.json");
+  if (existsSync(currentPath)) {
+    const { datasetVersion } = readJsonFile<{ datasetVersion: string }>(
+      currentPath,
+    );
+    return datasetVersion;
+  }
+
+  const versions = readdirSync(seedRoot, { withFileTypes: true })
+    .filter((directoryEntry) => directoryEntry.isDirectory())
+    .map((directoryEntry) => directoryEntry.name)
+    .filter((version) =>
+      existsSync(path.join(seedRoot, version, "manifest.json")),
+    )
+    .sort();
+
+  const latestVersion = versions.at(-1);
+  if (!latestVersion) {
+    throw new Error("No supply-chain demo dataset version was found");
+  }
+
+  return latestVersion;
+}
+
+const dataDir = path.join(seedRoot, activeDatasetVersion());
 
 function loadJson<T>(relativePath: string): T {
-  return JSON.parse(
-    readFileSync(path.join(dataDir, relativePath), "utf8"),
-  ) as T;
+  return readJsonFile<T>(path.join(dataDir, relativePath));
 }
 
 /**

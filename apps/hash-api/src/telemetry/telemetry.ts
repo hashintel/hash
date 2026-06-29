@@ -50,7 +50,7 @@ class TelemetryService {
 
   private getClient(): RudderAnalytics | null {
     if (this.client === undefined) {
-      if (!RUDDERSTACK_KEY || !RUDDERSTACK_DATA_PLANE_URL) {
+      if (!RUDDERSTACK_KEY) {
         this.client = null;
         return null;
       }
