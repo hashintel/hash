@@ -444,7 +444,9 @@ export const SupplyChainDataShell = ({
           <p className={errorTitle}>
             No supply chain data found in{" "}
             <strong>
-              {activeWorkspace?.shortname ? `@${activeWorkspace.shortname}` : "this web"}
+              {activeWorkspace?.shortname
+                ? `@${activeWorkspace.shortname}`
+                : "this web"}
             </strong>
           </p>
           <p className={subtleSm}>

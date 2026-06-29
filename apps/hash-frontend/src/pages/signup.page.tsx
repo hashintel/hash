@@ -146,15 +146,13 @@ const SignupPage: NextPageWithLayout = () => {
     skip: !invitationId,
   });
 
-  const {
-    data: pendingInvitationsData,
-    loading: pendingInvitationsLoading,
-  } = useQuery<
-    GetMyPendingInvitationsQuery,
-    GetMyPendingInvitationsQueryVariables
-  >(getMyPendingInvitationsQuery, {
-    skip: !!invitationId || !authenticatedUser || !userHasVerifiedEmail,
-  });
+  const { data: pendingInvitationsData, loading: pendingInvitationsLoading } =
+    useQuery<
+      GetMyPendingInvitationsQuery,
+      GetMyPendingInvitationsQueryVariables
+    >(getMyPendingInvitationsQuery, {
+      skip: !!invitationId || !authenticatedUser || !userHasVerifiedEmail,
+    });
 
   const [acceptInvitation] = useMutation<
     AcceptOrgInvitationMutation,
@@ -429,37 +427,37 @@ const SignupPage: NextPageWithLayout = () => {
             {loadingInvitation ? null : invitation &&
               showInvitationStep &&
               !authenticatedUser ? (
-                <AcceptOrgInvitation
-                  invitation={invitation}
-                  onAccept={() => setShowInvitationStep(false)}
-                />
-              ) : authenticatedUser ? (
-                userHasVerifiedEmail ? (
-                  userHasAccessToHashData?.hasAccessToHash ? (
-                    <AccountSetupForm
-                      onSubmit={handleAccountSetupSubmit}
-                      loading={updateUserLoading || acceptingInvitation}
-                      errorMessage={errorMessage}
-                    />
-                  ) : null
-                ) : (
-                  <VerifyEmailStep
-                    email={authenticatedUser.emails[0]?.address ?? ""}
-                    initialVerificationFlowId={verificationFlowId}
-                    onVerified={async () => {
-                      await refetchAuthenticatedUser();
-
-                      const { data } = await fetchHasAccess();
-
-                      if (!data?.hasAccessToHash) {
-                        void router.replace("/");
-                      }
-                    }}
+              <AcceptOrgInvitation
+                invitation={invitation}
+                onAccept={() => setShowInvitationStep(false)}
+              />
+            ) : authenticatedUser ? (
+              userHasVerifiedEmail ? (
+                userHasAccessToHashData?.hasAccessToHash ? (
+                  <AccountSetupForm
+                    onSubmit={handleAccountSetupSubmit}
+                    loading={updateUserLoading || acceptingInvitation}
+                    errorMessage={errorMessage}
                   />
-                )
+                ) : null
               ) : (
-                <SignupRegistrationForm />
-              )}
+                <VerifyEmailStep
+                  email={authenticatedUser.emails[0]?.address ?? ""}
+                  initialVerificationFlowId={verificationFlowId}
+                  onVerified={async () => {
+                    await refetchAuthenticatedUser();
+
+                    const { data } = await fetchHasAccess();
+
+                    if (!data?.hasAccessToHash) {
+                      void router.replace("/");
+                    }
+                  }}
+                />
+              )
+            ) : (
+              <SignupRegistrationForm />
+            )}
           </Grid>
           <Grid
             item

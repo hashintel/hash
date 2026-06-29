@@ -906,7 +906,9 @@ export const EntitiesTable: FunctionComponent<
                     component="span"
                     sx={{ color: ({ palette }) => palette.gray[50], ml: 0.5 }}
                   >
-                    {totalResultCount != null ? `- ${formatNumber(totalResultCount - rows.length)} remaining` : ""}
+                    {totalResultCount != null
+                      ? `- ${formatNumber(totalResultCount - rows.length)} remaining`
+                      : ""}
                   </Box>
                   <ArrowDownRegularIcon
                     sx={{
