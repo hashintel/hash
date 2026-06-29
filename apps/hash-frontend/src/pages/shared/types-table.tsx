@@ -473,6 +473,8 @@ export const TypesTable: FunctionComponent<{
     HEADER_HEIGHT + TOP_CONTEXT_BAR_HEIGHT + 170 + tableHeaderHeight
   }px + ${theme.spacing(5)}) - ${theme.spacing(5)})`;
 
+  const displayedRowCount = Math.max(filteredRows?.length ?? 1, 1);
+
   const currentlyDisplayedRowsRef = useRef<TypesTableRow[] | null>(null);
 
   const onTypeClick = useCallback(
@@ -549,7 +551,7 @@ export const TypesTable: FunctionComponent<{
                 ${maxTableHeight},
                 calc(
                   ${gridHeaderHeightWithBorder}px +
-                  (${filteredRows?.length ?? 1} * ${gridRowHeight}px) +
+                  (${displayedRowCount} * ${gridRowHeight}px) +
                   ${gridHorizontalScrollbarHeight}px
                 )
               )`}
