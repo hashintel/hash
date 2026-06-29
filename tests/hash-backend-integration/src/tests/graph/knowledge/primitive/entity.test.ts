@@ -49,6 +49,7 @@ import type { Org } from "@apps/hash-api/src/graph/knowledge/system-types/org";
 import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import type {
   EntityTypeWithMetadata,
+  EntityUuid,
   PropertyTypeWithMetadata,
   WebId,
 } from "@blockprotocol/type-system";
@@ -474,7 +475,7 @@ describe("Entity CRU", () => {
   });
 
   it("assigns distinct entity UUIDs when creating entity with linked new entities", async () => {
-    const rootEntityUuid = generateUuid();
+    const rootEntityUuid = generateUuid() as EntityUuid;
 
     const rootEntity = await createEntityWithLinks(
       graphContext,
