@@ -36,7 +36,7 @@ export const InheritedLinkRow = ({
   const linkSchema = linkTypes[$id]?.schema;
 
   if (!linkSchema) {
-    throw new Error(`Inherited property type ${$id} not found`);
+    throw new Error(`Inherited link type ${$id} not found`);
   }
 
   return (
