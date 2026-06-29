@@ -254,6 +254,7 @@ export const UserProfileInfoModalHeader: FunctionComponent<{
           sx={{ display: "none" }}
           accept="image/*"
         />
+        {/* @todo H-931: Make cover image appear on user profile page, uncomment handling */}
         {/* {userProfile.hasCoverImage ? (
           <>
             <AvatarButton
