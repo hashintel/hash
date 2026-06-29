@@ -443,7 +443,9 @@ export const SupplyChainDataShell = ({
         <div className={errorStack}>
           <p className={errorTitle}>
             No supply chain data found in{" "}
-            <strong>@{activeWorkspace?.shortname}</strong>
+            <strong>
+              {activeWorkspace?.shortname ? `@${activeWorkspace.shortname}` : "this web"}
+            </strong>
           </p>
           <p className={subtleSm}>
             Use the web switcher in the top left to switch to a different web.
