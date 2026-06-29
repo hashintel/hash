@@ -48,13 +48,13 @@ export const styles = sva({
   variants: {
     size: {
       xxs: {
-        root: { gap: "[6px]", fontSize: "[11px]", marginBlock: "[-1px]" },
-        control: { width: "[12px]", height: "[12px]", marginBlock: "[1px]" },
+        root: { gap: "[6px]", fontSize: "[11px]", marginBlock: "[-1.5px]" },
+        control: { width: "[12px]", height: "[12px]", marginBlock: "[1.5px]" },
         indicator: { width: "[9px]", height: "[9px]" },
       },
       xs: {
-        root: { gap: "[8px]", fontSize: "[12px]", marginBlock: "[-1px]" },
-        control: { width: "[14px]", height: "[14px]", marginBlock: "[1px]" },
+        root: { gap: "[8px]", fontSize: "[12px]", marginBlock: "[-1.5px]" },
+        control: { width: "[14px]", height: "[14px]", marginBlock: "[1.5px]" },
         indicator: { width: "[10px]", height: "[10px]" },
       },
       sm: {
@@ -68,8 +68,8 @@ export const styles = sva({
         indicator: { width: "[12px]", height: "[12px]" },
       },
       lg: {
-        root: { gap: "[12px]", fontSize: "[17px]", marginBlock: "[-1.5px]" },
-        control: { width: "[20px]", height: "[20px]", marginBlock: "[1.5px]" },
+        root: { gap: "[12px]", fontSize: "[17px]", marginBlock: "[-2px]" },
+        control: { width: "[20px]", height: "[20px]", marginBlock: "[2px]" },
         indicator: { width: "[14px]", height: "[14px]" },
       },
     },
