@@ -49,7 +49,7 @@ test("user can create entity type", async ({ page }) => {
   await page.click("[data-testid=entity-type-creation-form] button");
   await page.waitForURL(
     (url) =>
-      !!url.pathname.match(/^\/@bob01\/types\/entity-type\/testentity/) &&
+      !!url.pathname.match(/^\/@example-org\/types\/entity-type\/testentity/) &&
       url.searchParams.has("draft"),
   );
 

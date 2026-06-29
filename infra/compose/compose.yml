@@ -395,7 +395,7 @@ services:
       AWS_S3_UPLOADS_BUCKET: ${AWS_S3_UPLOADS_BUCKET:-dev-hash-bucket}
     entrypoint: |
       /bin/sh -c '
-      mc config host add myminio http://minio:9000 $$MINIO_ROOT_USER $$MINIO_ROOT_PASSWORD &&
+      mc alias set myminio http://minio:9000 $$MINIO_ROOT_USER $$MINIO_ROOT_PASSWORD &&
       echo "Creating bucket $$AWS_S3_UPLOADS_BUCKET" &&
       mc mb myminio/$$AWS_S3_UPLOADS_BUCKET --ignore-existing
       '

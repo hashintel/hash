@@ -14,6 +14,7 @@ import type {
   FileStorageProvider,
   GetFileEntityStorageKeyParams,
   GetFlowOutputStorageKeyParams,
+  PresignedDownloadByKeyRequest,
   PresignedDownloadRequest,
   PresignedStorageRequest,
   StorageType,
@@ -194,6 +195,27 @@ export class AwsS3StorageProvider implements FileStorageProvider {
 
     return (await getSignedUrl(client, command, {
       expiresIn: params.expiresInSeconds,
+    })) as Url;
+  }
+
+  async presignDownloadByKey({
+    key,
+    expiresInSeconds,
+  }: PresignedDownloadByKeyRequest): Promise<Url> {
+    const filename = key.split("/").pop() ?? key;
+    const mimeType = mime.lookup(filename) || "application/octet-stream";
+    const safeContentType = getSafeContentType(mimeType);
+
+    const command = new GetObjectCommand({
+      Bucket: this.bucket,
+      Key: key,
+      ...(safeContentType && {
+        ResponseContentType: safeContentType,
+      }),
+    });
+
+    return (await getSignedUrl(this.client, command, {
+      expiresIn: expiresInSeconds,
     })) as Url;
   }
 

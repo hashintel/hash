@@ -65,6 +65,7 @@ describe("File", () => {
         Promise.resolve(Buffer.from("mock-download-body")),
       ),
       presignDownload: vi.fn(() => Promise.resolve(downloadUrl)),
+      presignDownloadByKey: vi.fn(() => Promise.resolve(downloadUrl)),
       presignUpload: vi.fn(() =>
         Promise.resolve({
           fileStorageProperties: {

@@ -6,7 +6,9 @@ import {
 } from "../graph/knowledge/system-types/org";
 import { createOrgMembershipLinkEntity } from "../graph/knowledge/system-types/org-membership";
 import { joinOrg } from "../graph/knowledge/system-types/user";
+import { isDevEnv, isTestEnv } from "../lib/env-config";
 import { seedPages } from "./seed-pages";
+import { seedSupplyChainDemo } from "./seed-supply-chain-demo";
 import { ensureUsersAreSeeded } from "./seed-users";
 
 import type { ImpureGraphContext } from "../graph/context-types";
@@ -155,5 +157,11 @@ export const seedOrgsAndUsers = async (params: {
         `Seeded User with shortname = "${user.shortname}" now has seeded pages.`,
       );
     }
+  }
+
+  // Seed the precomputed supply-chain demo dataset into the example org's web
+  // (dev/test only – it no-ops where the example org or vendored data are absent).
+  if (isDevEnv || isTestEnv) {
+    await seedSupplyChainDemo({ logger, context });
   }
 };

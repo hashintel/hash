@@ -113,7 +113,7 @@ export type ExpiredAtPropertyValue = DateTimeDataType;
 export type ExpiredAtPropertyValueWithMetadata = DateTimeDataTypeWithMetadata;
 
 /**
- * undefined
+ * The most generic connection between two entities, defining a relationship from a source to a target. It serves as a parent type for more specific link entity types, enabling consistent and interoperable data relationships.
  */
 export type Link = {
   entityTypeIds: [
@@ -127,6 +127,9 @@ export type LinkOutgoingLinkAndTarget = never;
 
 export type LinkOutgoingLinksByLinkEntityTypeId = {};
 
+/**
+ * The most generic connection between two entities, defining a relationship from a source to a target. It serves as a parent type for more specific link entity types, enabling consistent and interoperable data relationships.
+ */
 export type LinkProperties = {};
 
 export type LinkPropertiesWithMetadata = {
@@ -203,6 +206,21 @@ export type UsesUserSecretPropertiesWithMetadata =
     metadata?: ObjectMetadata;
     value: {};
   };
+
+/**
+ * A piece of data that can be used to convey information about an attribute, quality or state of something.
+ */
+export type ValueDataType = null | boolean | number | string | unknown[] | {};
+
+export type ValueDataTypeWithMetadata = {
+  value: ValueDataType;
+  metadata: ValueDataTypeMetadata;
+};
+export type ValueDataTypeMetadata = {
+  provenance?: PropertyProvenance;
+  confidence?: Confidence;
+  dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/value/v/1";
+};
 
 /**
  * The path to a secret in Hashicorp Vault.

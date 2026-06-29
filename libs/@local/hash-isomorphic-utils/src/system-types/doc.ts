@@ -59,6 +59,8 @@ import type {
   TextDataTypeWithMetadata,
   TitlePropertyValue,
   TitlePropertyValueWithMetadata,
+  ValueDataType,
+  ValueDataTypeWithMetadata,
 } from "./shared.js";
 
 export type {
@@ -118,4 +120,6 @@ export type {
   TextDataTypeWithMetadata,
   TitlePropertyValue,
   TitlePropertyValueWithMetadata,
+  ValueDataType,
+  ValueDataTypeWithMetadata,
 };

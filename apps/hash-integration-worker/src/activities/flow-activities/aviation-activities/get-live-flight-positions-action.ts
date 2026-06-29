@@ -24,11 +24,11 @@ import {
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import {
-  type ArrivesAt,
-  type ArrivesAtProperties,
-  type DepartsFrom,
-  type DepartsFromProperties,
+  type LandsAtProperties,
+  type TakesOffFromProperties,
   type Flight,
+  type TakesOffFrom,
+  type LandsAt,
 } from "@local/hash-isomorphic-utils/system-types/flight";
 import { StatusCode } from "@local/status";
 
@@ -52,8 +52,8 @@ const TEN_MINUTES_MS = 10 * 60 * 1000;
  * 2. There is no confirmed arrival time, or confirmed arrival time was in the last 10 minutes
  */
 const shouldFetchLivePosition = (
-  departsFromProperties: DepartsFromProperties,
-  arrivesAtProperties: ArrivesAtProperties,
+  departsFromProperties: TakesOffFromProperties,
+  arrivesAtProperties: LandsAtProperties,
 ): boolean => {
   // Get departure time - prefer estimated, fall back to scheduled
   const actualDepartureTime =
@@ -209,16 +209,16 @@ export const createGetLiveFlightPositionsAction = ({
         );
 
         const departsFromLink = outgoingLinks.find(
-          (link): link is LinkEntity<DepartsFrom> =>
+          (link): link is LinkEntity<TakesOffFrom> =>
             link.metadata.entityTypeIds.includes(
-              systemLinkEntityTypes.departsFrom.linkEntityTypeId,
+              systemLinkEntityTypes.takesOffFrom.linkEntityTypeId,
             ),
         );
 
         const arrivesAtLink = outgoingLinks.find(
-          (link): link is LinkEntity<ArrivesAt> =>
+          (link): link is LinkEntity<LandsAt> =>
             link.metadata.entityTypeIds.includes(
-              systemLinkEntityTypes.arrivesAt.linkEntityTypeId,
+              systemLinkEntityTypes.landsAt.linkEntityTypeId,
             ),
         );
 

@@ -66,11 +66,15 @@ export const WorkspaceContextProvider: FunctionComponent<{
       if (localStorageInitialValue) {
         setActiveWorkspaceWebId(localStorageInitialValue as WebId);
       } else if (authenticatedUser) {
+        const defaultWorkspaceWebId =
+          authenticatedUser.memberOf[0]?.org.webId ??
+          (authenticatedUser.accountId as WebId);
+
         /**
-         * Initialize the `activeWorkspaceWebId` to the account ID of the
-         * currently authenticated user
+         * Initialize the `activeWorkspaceWebId` to the first organization the
+         * user belongs to, falling back to the user's account web.
          */
-        updateActiveWorkspaceWebId(authenticatedUser.accountId as WebId);
+        updateActiveWorkspaceWebId(defaultWorkspaceWebId);
       }
     }
   }, [activeWorkspaceWebId, updateActiveWorkspaceWebId, authenticatedUser]);
@@ -86,10 +90,13 @@ export const WorkspaceContextProvider: FunctionComponent<{
     /**
      * If there is an `activeWorkspaceWebId` and an `authenticatedUser`, but
      * `activeWorkspace` is not defined, reset `activeWorkspaceWebId` to the
-     * authenticated user's account ID
+     * default workspace.
      */
     if (activeWorkspaceWebId && authenticatedUser && !activeWorkspace) {
-      updateActiveWorkspaceWebId(authenticatedUser.accountId as WebId);
+      updateActiveWorkspaceWebId(
+        authenticatedUser.memberOf[0]?.org.webId ??
+          (authenticatedUser.accountId as WebId),
+      );
     }
 
     return {

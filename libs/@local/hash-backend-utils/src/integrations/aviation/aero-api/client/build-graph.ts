@@ -1,7 +1,7 @@
 import { mapAirline } from "./build-graph/airline.js";
 import { mapAirport } from "./build-graph/airport.js";
-import { mapArrivesAt } from "./build-graph/arrives-at.js";
-import { mapDepartsFrom } from "./build-graph/departs-from.js";
+import { mapLandsAt } from "./build-graph/arrives-at.js";
+import { mapTakesOffFrom } from "./build-graph/departs-from.js";
 import { mapFlight } from "./build-graph/flight.js";
 
 import type { AeroApiScheduledFlight } from "./types.js";
@@ -12,8 +12,8 @@ import type {
 } from "@blockprotocol/type-system";
 import type { CreateEntityParameters } from "@local/hash-graph-sdk/entity";
 import type {
-  ArrivesAt as HashArrivesAt,
-  DepartsFrom as HashDepartsFrom,
+  LandsAt as HashLandsAt,
+  TakesOffFrom as HashTakesOffFrom,
   Flight as HashFlight,
   OperatedBy as HashOperatedBy,
 } from "@local/hash-isomorphic-utils/system-types/flight";
@@ -78,8 +78,8 @@ export type FlightGraphResult = {
     originAirport?: AviationProposedEntity<HashAirport>;
     destinationAirport?: AviationProposedEntity<HashAirport>;
     airline?: AviationProposedEntity<HashAirline>;
-    departsFrom?: AviationProposedEntity<HashDepartsFrom>;
-    arrivesAt?: AviationProposedEntity<HashArrivesAt>;
+    departsFrom?: AviationProposedEntity<HashTakesOffFrom>;
+    arrivesAt?: AviationProposedEntity<HashLandsAt>;
     operatedBy?: AviationProposedEntity<HashOperatedBy>;
   };
 };
@@ -129,8 +129,8 @@ export const buildSingleFlightGraph = (
       };
       result.entities.originAirport = originAirport;
 
-      const departsFromMapping = mapDepartsFrom(flight, provenance);
-      const departsFromLink: AviationProposedEntity<HashDepartsFrom> = {
+      const departsFromMapping = mapTakesOffFrom(flight, provenance);
+      const departsFromLink: AviationProposedEntity<HashTakesOffFrom> = {
         localEntityId: `departsFrom:${flightEntity.localEntityId}:${originAirport.localEntityId}`,
         sourceEntityLocalId: flightEntity.localEntityId,
         targetEntityLocalId: originAirport.localEntityId,
@@ -151,8 +151,8 @@ export const buildSingleFlightGraph = (
       };
       result.entities.destinationAirport = destinationAirport;
 
-      const arrivesAtMapping = mapArrivesAt(flight, provenance);
-      const arrivesAtLink: AviationProposedEntity<HashArrivesAt> = {
+      const arrivesAtMapping = mapLandsAt(flight, provenance);
+      const arrivesAtLink: AviationProposedEntity<HashLandsAt> = {
         localEntityId: `arrivesAt:${flightEntity.localEntityId}:${destinationAirport.localEntityId}`,
         sourceEntityLocalId: flightEntity.localEntityId,
         targetEntityLocalId: destinationAirport.localEntityId,
