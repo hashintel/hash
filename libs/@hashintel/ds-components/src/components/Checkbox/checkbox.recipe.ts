@@ -32,9 +32,13 @@ export const styles = sva({
       borderRadius: "sm",
       border: "[1px solid var(--colors-neutral-a60)]",
       transition: "[background-color 0.07s ease, border-color 0.07s ease]",
+      "&[data-state='unchecked']": {
+        boxShadow: "[inset 0 1px 1px var(--colors-neutral-a30)]",
+      },
       "&[data-disabled]": {
         backgroundColor: "neutral.a20",
         borderColor: "neutral.a45",
+        boxShadow: "[none]",
       },
     },
     label: {
@@ -144,6 +148,9 @@ export const styles = sva({
         },
         control: {
           borderColor: "red.s70 !important",
+          "&[data-state='unchecked']": {
+            boxShadow: "[inset 0px 1px 1px var(--colors-red-a30)]",
+          },
         },
       },
       false: {},
