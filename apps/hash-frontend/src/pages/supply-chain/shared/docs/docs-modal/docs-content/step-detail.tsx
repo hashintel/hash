@@ -93,18 +93,11 @@ export const stepDetailDoc: DocEntry = {
         </LI>
       </UL>
 
-      <H4>Cost and supplier drill-down</H4>
+      <H4>Cost drill-down</H4>
       <P>
         Dwell steps with material cost data include a savings calculator that
-        estimates carrying-cost impact from reducing dwell days. Procurement
-        supplier views can drill from a vendor row into a vendor detail panel
-        with on-time trend and late-delivery examples.
+        estimates carrying-cost impact from reducing dwell days
       </P>
-      <Note>
-        Step detail evidence is still filtered by the selected product or site
-        context. A shared site step may show multiple products in the header;
-        use those links to jump to the product-specific view of the same step.
-      </Note>
     </>
   ),
 };

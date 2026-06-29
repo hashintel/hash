@@ -163,7 +163,7 @@ export const siteOverviewSection: DocSectionDef = {
           </P>
           <P>
             You can change the statistic to compare the parameter with in the
-            user
+            user{" "}
             <CrossRef to={{ section: "settings", sub: "measure" }}>
               Settings
             </CrossRef>{" "}

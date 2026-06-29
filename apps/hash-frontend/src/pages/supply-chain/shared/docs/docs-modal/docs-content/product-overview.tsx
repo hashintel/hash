@@ -72,7 +72,7 @@ export const productOverviewSection: DocSectionDef = {
             </LI>
             <LI>
               <Term>Logistics</Term> measures transit after release, either
-              direct to the customer or through a destination hub.
+              direct to the customer or to a hub destination.
             </LI>
           </UL>
           <H4>Reading a card</H4>
@@ -105,12 +105,11 @@ export const productOverviewSection: DocSectionDef = {
             <LI>
               <Term>R and C badges</Term> appear on production cards when yield
               or consumption data is available. R is receipt ratio versus order
-              quantity; C is material consumption variance versus expectation.
+              quantity; C is material consumption variance versus reservation.
             </LI>
             <LI>
               <Term>Event count</Term> shows how many observations feed the
-              card. A warning triangle means the sample is small, so the
-              statistic should be treated as directional.
+              card. A warning triangle means the sample is small.
             </LI>
           </UL>
         </>
@@ -169,13 +168,12 @@ export const productOverviewSection: DocSectionDef = {
             <LI>
               <Term>Procurement to production start</Term> covers the
               pre-production lead-in: bought inputs, raw-material availability
-              and any waiting before the finished-good campaign begins.
+              and any waiting before any production starts.
             </LI>
             <LI>
               <Term>Production start to production finish</Term> covers upstream
               production chains, intermediate waits and the final finished-good
-              campaign. Parallel upstream paths are represented by the path that
-              governs each batch&apos;s production-start timing.
+              campaign.
             </LI>
             <LI>
               <Term>Production finish to QA release</Term> is the quality hold
@@ -185,7 +183,7 @@ export const productOverviewSection: DocSectionDef = {
               <Term>QA release to customer</Term> covers post-QA dwell and
               transport to the route endpoint: customer arrival for direct
               external-customer shipments; hub dispatch for routes that go via a
-              hub unless a measured hub-to-customer transport end is available).
+              hub unless a measured hub-to-customer transport end is available.
             </LI>
           </UL>
           <P>
@@ -197,18 +195,15 @@ export const productOverviewSection: DocSectionDef = {
           </P>
           <P>
             Shipment step cards can count more than one delivery for the same
-            batch. The pipeline keeps one route per batch, so direct-shipment
-            observation counts may be higher than the number of batches shown on
-            the direct route.
+            batch. The pipeline keeps one route per batch, so observation counts
+            may be higher than the number of batches shown on the direct route.
           </P>
           <H4>Mean, median and segment toggles</H4>
           <P>
             The waterfall shows mean and median totals for the selected route.
             Segment chips in the legend can be switched off to focus the
             waterfall, KPIs and simulator on the remaining portion of the
-            journey. Procurement is off by default in the simulator view because
-            its detailed improvement math is handled in the step-level
-            procurement and dwell analyses.
+            journey. Procurement is off by default in the view.
           </P>
         </>
       ),
@@ -225,34 +220,31 @@ export const productOverviewSection: DocSectionDef = {
             it save?&rdquo;
           </Lead>
           <P>
-            The answer is not simple addition. Steps on parallel upstream paths
-            only help when they are on the path that actually governs the
-            campaign, and trimming a step past the point where another path
-            becomes limiting yields nothing further. Serial post-production
-            steps such as QA hold, transit and destination dwell reduce the
-            total directly when their long observations are capped.
+            Steps on parallel procurement and production paths only help when
+            they are the limiting factor, and trimming a step past the point
+            where another path becomes limiting yields nothing further. Serial
+            post-production steps such as QA hold, transit and destination dwell
+            reduce the total directly when their long observations are capped.
           </P>
           <H4>How this works</H4>
           <P>
             Each lever caps that step&apos;s batch durations at the selected
-            checkpoint: Max, P95, P75, median, P25 or Exclude. Durations below
-            the cap are unchanged; durations above it are clipped to the cap
-            before the KPIs and dashed simulated bars are recomputed.
+            checkpoint: Max (no change), P95 (cap to the time under which 95% of
+            observations fall), P75, median, P25 or Exclude (count as zero
+            time). Durations below the cap are unchanged; durations above it are
+            capped at the selected level.
           </P>
           <P>
             For upstream production chains, the simulator recomputes the full
-            set of paths for each batch and uses the longest remaining path as
-            the production-start driver. For finished-good production, QA hold
-            and post-QA logistics, the simulator treats the steps as serial and
-            subtracts the capped tail from the relevant segment.
+            set of paths for each batch and uses the longest remaining path. For
+            finished-good production, QA hold and post-QA logistics, the
+            simulator treats the steps as serial and subtracts the capped tail
+            from the relevant segment.
           </P>
-          <H4>Baseline rollups</H4>
           <P>
-            The solid waterfall bars come from the filtered batch timeline, not
-            from the cap simulation. When you change the time range, route or
-            outlier setting, the app recomputes each batch segment&apos;s mean,
-            median and quartiles from the remaining batches, then rebuilds the
-            route-level pipeline from those segment summaries.
+            When you change the time range, route or outlier setting, the app
+            recomputes each batch segment&apos;s mean, and median, then rebuilds
+            the pipeline.
           </P>
           <P>
             The route&apos;s end-to-end mean and median use each batch&apos;s
@@ -303,9 +295,9 @@ export const productOverviewSection: DocSectionDef = {
             .
           </P>
           <Note>
-            The simulator is a directional planning tool. It assumes capped
-            durations can be realised operationally, but it does not reschedule
-            campaigns, model plant capacity or change shipment cadence.
+            The simulator is a directional planning tool. It does not model
+            plant capacity or business rules, only indicates what the E2E
+            pipeline would be if steps could be brought down to specific levels.
           </Note>
         </>
       ),
