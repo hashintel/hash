@@ -4,6 +4,7 @@ use std::collections::{HashMap, HashSet};
 
 use error_stack::{Report, ResultExt as _};
 use futures::{StreamExt as _, TryStreamExt as _};
+use hash_codec::numeric::Real;
 use hash_graph_authorization::policies::{
     Authorized, MergePolicies, PolicyComponents, Request, RequestContext, ResourceId,
     action::ActionName, principal::actor::AuthenticatedActor,
@@ -17,10 +18,11 @@ use hash_graph_store::{
         HasPermissionForEntityTypesParams, IncludeEntityTypeOption,
         IncludeResolvedEntityTypeOption, QueryEntityTypeSubgraphParams,
         QueryEntityTypeSubgraphResponse, QueryEntityTypesParams, QueryEntityTypesResponse,
-        UnarchiveEntityTypeParams, UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
+        SearchEntityTypesParams, SearchEntityTypesResponse, UnarchiveEntityTypeParams,
+        UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
     },
     error::{CheckPermissionError, InsertionError, QueryError, UpdateError},
-    filter::{Filter, FilterExpression, FilterExpressionList, ParameterList},
+    filter::{Filter, FilterExpression, FilterExpressionList, Parameter, ParameterList},
     property_type::{
         PropertyTypeStore as _, QueryPropertyTypeSubgraphParams, QueryPropertyTypesParams,
     },
@@ -1196,6 +1198,62 @@ where
         }
 
         Ok(response)
+    }
+
+    #[tracing::instrument(level = "info", skip(self, params))]
+    async fn search_entity_types(
+        &self,
+        actor_id: ActorEntityUuid,
+        params: SearchEntityTypesParams,
+    ) -> Result<SearchEntityTypesResponse, Report<QueryError>> {
+        let SearchEntityTypesParams {
+            embedding,
+            maximum_semantic_distance,
+            limit,
+        } = params;
+
+        // TODO(BE-618): optimize the query — it scans embeddings without a vector index, which
+        //   needs an ANN-friendly query shape to be usable (the current `MIN(<=>) GROUP BY`
+        //   defeats it).
+        let maximum_distance =
+            Real::try_from(maximum_semantic_distance.into_inner()).change_context(QueryError)?;
+
+        let filter = Filter::CosineDistance(
+            FilterExpression::Path {
+                path: EntityTypeQueryPath::Embedding,
+            },
+            FilterExpression::Parameter {
+                parameter: Parameter::Vector(embedding),
+                convert: None,
+            },
+            FilterExpression::Parameter {
+                parameter: Parameter::Decimal(maximum_distance),
+                convert: None,
+            },
+        );
+
+        // The search always runs against the current time.
+        let response = self
+            .query_entity_types(
+                actor_id,
+                QueryEntityTypesParams {
+                    request: CommonQueryEntityTypesParams {
+                        filter,
+                        temporal_axes: QueryTemporalAxesUnresolved::live_only(),
+                        after: None,
+                        limit: Some(limit),
+                        include_count: false,
+                        include_web_ids: false,
+                        include_edition_created_by_ids: false,
+                    },
+                    include_entity_types: None,
+                },
+            )
+            .await?;
+
+        Ok(SearchEntityTypesResponse {
+            entity_types: response.entity_types,
+        })
     }
 
     #[tracing::instrument(

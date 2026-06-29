@@ -1837,6 +1837,54 @@
         }
       }
     },
+    "/entities/search": {
+      "post": {
+        "tags": [
+          "Graph",
+          "Entity"
+        ],
+        "operationId": "search_entities",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ActorEntityUuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SearchEntitiesRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Entities ordered by ascending cosine distance to the query embedding.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchEntitiesResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Provided request body is invalid"
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      }
+    },
     "/entities/validate": {
       "post": {
         "tags": [
@@ -2421,6 +2469,54 @@
           },
           "422": {
             "description": "Provided query is invalid"
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      }
+    },
+    "/entity-types/search": {
+      "post": {
+        "tags": [
+          "Graph",
+          "EntityType"
+        ],
+        "operationId": "search_entity_types",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ActorEntityUuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SearchEntityTypesRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Entity types ordered by ascending cosine distance to the query embedding.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchEntityTypesResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Provided request body is invalid"
           },
           "500": {
             "description": "Store error occurred"
@@ -5257,23 +5353,6 @@
                 },
                 "maxItems": 2,
                 "minItems": 2
-              }
-            }
-          },
-          {
-            "type": "object",
-            "title": "CosineDistanceFilter",
-            "required": [
-              "cosineDistance"
-            ],
-            "properties": {
-              "cosineDistance": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/FilterExpression"
-                },
-                "maxItems": 3,
-                "minItems": 3
               }
             }
           },
@@ -8690,6 +8769,119 @@
           "unassigned",
           "not-assigned"
         ]
+      },
+      "SearchEntitiesFilter": {
+        "type": "object",
+        "description": "Scope constraints for [`EntityStore::search_entities`].\n\nEmpty lists impose no restriction.",
+        "properties": {
+          "entityTypeIds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VersionedUrl"
+            },
+            "default": []
+          },
+          "includeDrafts": {
+            "type": "boolean",
+            "default": false
+          },
+          "webIds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WebId"
+            },
+            "default": []
+          }
+        },
+        "additionalProperties": false
+      },
+      "SearchEntitiesRequest": {
+        "type": "object",
+        "description": "Request body for the entity embedding search endpoint.",
+        "required": [
+          "embedding",
+          "maximumSemanticDistance"
+        ],
+        "properties": {
+          "embedding": {
+            "$ref": "#/components/schemas/Embedding"
+          },
+          "filter": {
+            "$ref": "#/components/schemas/SearchEntitiesFilter"
+          },
+          "includeEntityTypes": {
+            "type": "boolean"
+          },
+          "limit": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 0
+          },
+          "maximumSemanticDistance": {
+            "type": "number",
+            "format": "double"
+          }
+        },
+        "additionalProperties": false
+      },
+      "SearchEntitiesResponse": {
+        "type": "object",
+        "description": "Response for [`EntityStore::search_entities`].",
+        "required": [
+          "entities"
+        ],
+        "properties": {
+          "closedMultiEntityTypes": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/ClosedMultiEntityTypeMap"
+            }
+          },
+          "entities": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Entity"
+            }
+          }
+        }
+      },
+      "SearchEntityTypesRequest": {
+        "type": "object",
+        "description": "Request body for the entity type embedding search endpoint.",
+        "required": [
+          "embedding",
+          "maximumSemanticDistance"
+        ],
+        "properties": {
+          "embedding": {
+            "$ref": "#/components/schemas/Embedding"
+          },
+          "limit": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 0
+          },
+          "maximumSemanticDistance": {
+            "type": "number",
+            "format": "double"
+          }
+        },
+        "additionalProperties": false
+      },
+      "SearchEntityTypesResponse": {
+        "type": "object",
+        "description": "Response for [`EntityTypeStore::search_entity_types`].",
+        "required": [
+          "entityTypes"
+        ],
+        "properties": {
+          "entityTypes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EntityTypeWithMetadata"
+            }
+          }
+        }
       },
       "Selector": {
         "type": "string",

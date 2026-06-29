@@ -38,16 +38,17 @@ use hash_graph_store::{
         CreateEntityParams, DeleteEntitiesParams, DeletionSummary, EntityStore,
         EntityValidationReport, HasPermissionForEntitiesParams, PatchEntityParams,
         QueryEntitiesParams, QueryEntitiesResponse, QueryEntitySubgraphParams,
-        QueryEntitySubgraphResponse, SummarizeEntitiesParams, SummarizeEntitiesResponse,
-        UpdateEntityEmbeddingsParams, ValidateEntityParams,
+        QueryEntitySubgraphResponse, SearchEntitiesParams, SearchEntitiesResponse,
+        SummarizeEntitiesParams, SummarizeEntitiesResponse, UpdateEntityEmbeddingsParams,
+        ValidateEntityParams,
     },
     entity_type::{
         ArchiveEntityTypeParams, CommonQueryEntityTypesParams, CountEntityTypesParams,
         CreateEntityTypeParams, EntityTypeStore, GetClosedMultiEntityTypesResponse,
         HasPermissionForEntityTypesParams, IncludeResolvedEntityTypeOption,
         QueryEntityTypeSubgraphParams, QueryEntityTypeSubgraphResponse, QueryEntityTypesParams,
-        QueryEntityTypesResponse, UnarchiveEntityTypeParams, UpdateEntityTypeEmbeddingParams,
-        UpdateEntityTypesParams,
+        QueryEntityTypesResponse, SearchEntityTypesParams, SearchEntityTypesResponse,
+        UnarchiveEntityTypeParams, UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
     },
     error::{CheckPermissionError, DeletionError, InsertionError, QueryError, UpdateError},
     filter::{Filter, QueryRecord},
@@ -1473,6 +1474,14 @@ where
         self.store.query_entity_types(actor_id, params).await
     }
 
+    async fn search_entity_types(
+        &self,
+        actor_id: ActorEntityUuid,
+        params: SearchEntityTypesParams,
+    ) -> Result<SearchEntityTypesResponse, Report<QueryError>> {
+        self.store.search_entity_types(actor_id, params).await
+    }
+
     async fn get_closed_multi_entity_types<I, J>(
         &self,
         actor_id: ActorEntityUuid,
@@ -1629,6 +1638,14 @@ where
         params: QueryEntitiesParams<'_>,
     ) -> Result<QueryEntitiesResponse<'static>, Report<QueryError>> {
         self.store.query_entities(actor_id, params).await
+    }
+
+    async fn search_entities(
+        &self,
+        actor_id: ActorEntityUuid,
+        params: SearchEntitiesParams,
+    ) -> Result<SearchEntitiesResponse, Report<QueryError>> {
+        self.store.search_entities(actor_id, params).await
     }
 
     async fn query_entity_subgraph(

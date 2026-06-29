@@ -366,6 +366,17 @@ pub(crate) fn resolve_limit(
     }
 }
 
+/// A search request could not be converted into store parameters.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, derive_more::Display)]
+pub enum SearchRequestError {
+    #[display("The requested limit is invalid.")]
+    LimitExceeded,
+    #[display("The requested maximum semantic distance is invalid.")]
+    InvalidSemanticDistance,
+}
+
+impl Error for SearchRequestError {}
+
 /// Server-side configuration for the REST API, shared across handlers via an [`Extension`].
 #[derive(Debug, Clone, Copy)]
 #[cfg_attr(feature = "clap", derive(clap::Parser))]
@@ -814,18 +825,6 @@ impl Modify for FilterSchemaAddon {
                                         .max_items(Some(2)),
                                 )
                                 .required("notEqual"),
-                        )
-                        .item(
-                            ObjectBuilder::new()
-                                .title(Some("CosineDistanceFilter"))
-                                .property(
-                                    "cosineDistance",
-                                    ArrayBuilder::new()
-                                        .items(Ref::from_schema_name("FilterExpression"))
-                                        .min_items(Some(3))
-                                        .max_items(Some(3)),
-                                )
-                                .required("cosineDistance"),
                         )
                         .item(
                             ObjectBuilder::new()

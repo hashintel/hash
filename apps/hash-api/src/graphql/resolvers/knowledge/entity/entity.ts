@@ -7,8 +7,10 @@ import {
   HashEntity,
   queryEntities,
   queryEntitySubgraph,
+  searchEntities,
   serializeQueryEntitiesResponse,
   serializeQueryEntitySubgraphResponse,
+  serializeSearchEntitiesResponse,
   summarizeEntities,
 } from "@local/hash-graph-sdk/entity";
 import {
@@ -45,6 +47,7 @@ import type {
   QuerySummarizeEntitiesArgs,
   QueryIsEntityPublicArgs,
   QueryQueryEntitiesArgs,
+  QuerySearchEntitiesArgs,
   QueryQueryEntitySubgraphArgs,
   QueryValidateEntityArgs,
   ResolverFn,
@@ -128,6 +131,18 @@ export const queryEntitiesResolver: ResolverFn<
     graphQLContext.authentication,
     request,
   ).then(serializeQueryEntitiesResponse);
+
+export const searchEntitiesResolver: ResolverFn<
+  Query["searchEntities"],
+  Record<string, never>,
+  GraphQLContext,
+  QuerySearchEntitiesArgs
+> = async (_, { request }, graphQLContext) =>
+  searchEntities(
+    graphQLContextToImpureGraphContext(graphQLContext),
+    graphQLContext.authentication,
+    request,
+  ).then(serializeSearchEntitiesResponse);
 
 export const queryEntitySubgraphResolver: ResolverFn<
   Query["queryEntitySubgraph"],

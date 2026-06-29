@@ -25,7 +25,7 @@ use type_system::{
 use crate::{
     entity::ClosedMultiEntityTypeMap,
     error::{CheckPermissionError, InsertionError, QueryError, UpdateError},
-    filter::Filter,
+    filter::{Filter, SemanticDistance},
     query::ConflictBehavior,
     subgraph::{
         Subgraph,
@@ -230,6 +230,26 @@ pub struct QueryEntityTypesParams<'p> {
     pub request: CommonQueryEntityTypesParams<'p>,
     #[serde(default)]
     pub include_entity_types: Option<IncludeEntityTypeOption>,
+}
+
+/// Parameters for [`EntityTypeStore::search_entity_types`].
+///
+/// Results are ordered by ascending cosine distance to [`embedding`](Self::embedding). The query
+/// always runs against the current time.
+#[derive(Debug)]
+pub struct SearchEntityTypesParams {
+    pub embedding: Embedding<'static>,
+    /// Upper bound on the cosine distance for a result to be included.
+    pub maximum_semantic_distance: SemanticDistance,
+    pub limit: usize,
+}
+
+/// Response for [`EntityTypeStore::search_entity_types`].
+#[derive(Debug, Serialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase")]
+pub struct SearchEntityTypesResponse {
+    pub entity_types: Vec<EntityTypeWithMetadata>,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Deserialize)]
@@ -461,6 +481,17 @@ pub trait EntityTypeStore {
         actor_id: ActorEntityUuid,
         params: QueryEntityTypesParams<'_>,
     ) -> impl Future<Output = Result<QueryEntityTypesResponse, Report<QueryError>>> + Send;
+
+    /// Searches for entity types by embedding similarity, ordered by ascending cosine distance.
+    ///
+    /// # Errors
+    ///
+    /// - if the requested [`EntityType`]s cannot be retrieved
+    fn search_entity_types(
+        &self,
+        actor_id: ActorEntityUuid,
+        params: SearchEntityTypesParams,
+    ) -> impl Future<Output = Result<SearchEntityTypesResponse, Report<QueryError>>> + Send;
 
     /// Resolves and builds closed type hierarchies for multiple sets of entity types.
     ///

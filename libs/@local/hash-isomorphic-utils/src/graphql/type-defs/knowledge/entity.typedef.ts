@@ -14,6 +14,8 @@ export const entityTypedef = gql`
   scalar EntityValidationReport
   scalar QueryEntitiesRequest
   scalar QueryEntitiesResponse
+  scalar SearchEntitiesRequest
+  scalar SearchEntitiesResponse
   scalar QueryEntitySubgraphRequest
   scalar QueryEntitySubgraphResponse
   scalar TypeIdsAndPropertiesForEntity
@@ -115,6 +117,8 @@ export const entityTypedef = gql`
     ): SummarizeEntitiesResponse!
 
     queryEntities(request: QueryEntitiesRequest!): QueryEntitiesResponse!
+
+    searchEntities(request: SearchEntitiesRequest!): SearchEntitiesResponse!
 
     queryEntitySubgraph(
       request: QueryEntitySubgraphRequest!

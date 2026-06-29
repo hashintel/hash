@@ -21,14 +21,15 @@ use axum::{
     Json,
     response::{Html, IntoResponse as _},
 };
-use error_stack::Report;
+use error_stack::{Report, ResultExt as _};
 use hash_graph_store::{
     entity::{
         EntityQueryCursor, EntityQueryPath, EntityQuerySorting, EntityQuerySortingRecord,
-        QueryConversion, QueryEntitiesParams, QueryEntitySubgraphParams,
+        QueryConversion, QueryEntitiesParams, QueryEntitySubgraphParams, SearchEntitiesFilter,
+        SearchEntitiesParams,
     },
     entity_type::IncludeEntityTypeOption,
-    filter::Filter,
+    filter::{Filter, SemanticDistance},
     query::Ordering,
     subgraph::{
         edges::{
@@ -39,6 +40,7 @@ use hash_graph_store::{
         temporal_axes::QueryTemporalAxesUnresolved,
     },
 };
+use hash_graph_types::Embedding;
 use hashql_ast::error::AstDiagnosticCategory;
 use hashql_core::{
     collections::fast_hash_map_with_capacity,
@@ -65,7 +67,9 @@ use serde_json::value::RawValue as RawJsonValue;
 use type_system::knowledge::Entity;
 use utoipa::ToSchema;
 
-use super::{ApiConfig, LimitExceededError, resolve_limit, status::BoxedResponse};
+use super::{
+    ApiConfig, LimitExceededError, SearchRequestError, resolve_limit, status::BoxedResponse,
+};
 
 #[tracing::instrument(level = "info", skip_all)]
 fn generate_sorting_paths(
@@ -588,6 +592,45 @@ impl<'p> EntityQueryOptions<'_, 'p> {
                 request: self.into_params(filter, config)?,
             }),
         }
+    }
+}
+
+/// Request body for the entity embedding search endpoint.
+#[derive(Debug, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct SearchEntitiesRequest {
+    pub embedding: Embedding<'static>,
+    pub maximum_semantic_distance: f64,
+    pub limit: Option<usize>,
+    #[serde(default)]
+    pub include_entity_types: bool,
+    #[serde(default)]
+    pub filter: SearchEntitiesFilter,
+}
+
+impl SearchEntitiesRequest {
+    /// # Errors
+    ///
+    /// - [`InvalidSemanticDistance`] if the maximum semantic distance is invalid.
+    /// - [`LimitExceeded`] if the requested limit exceeds the configured maximum.
+    ///
+    /// [`InvalidSemanticDistance`]: [`SearchRequestError::InvalidSemanticDistance`]
+    /// [`LimitExceeded`]: [`SearchRequestError::LimitExceeded`]
+    pub fn into_params(
+        self,
+        config: ApiConfig,
+    ) -> Result<SearchEntitiesParams, Report<SearchRequestError>> {
+        Ok(SearchEntitiesParams {
+            embedding: self.embedding,
+            maximum_semantic_distance: SemanticDistance::try_from(self.maximum_semantic_distance)
+                .change_context(
+                SearchRequestError::InvalidSemanticDistance,
+            )?,
+            limit: resolve_limit(self.limit, config.query_entity_limit)
+                .change_context(SearchRequestError::LimitExceeded)?,
+            include_entity_types: self.include_entity_types,
+            filter: self.filter,
+        })
     }
 }
 
