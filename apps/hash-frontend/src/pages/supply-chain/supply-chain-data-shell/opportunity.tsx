@@ -63,6 +63,7 @@ import type {
   DetailRows,
   SiteSummaryRollups,
 } from "../shared/types";
+import type { RecommendedAction } from "./opportunity/recommendation-playbook";
 
 const SM = "@media (min-width: 640px)";
 
@@ -310,16 +311,6 @@ const grid2Mt = css({
   gap: "3",
   [SM]: { gridTemplateColumns: "[repeat(2,minmax(0,1fr))]" },
 });
-const nsGridBase = css({ display: "grid", gap: "3" });
-const nsCols1 = css({
-  [SM]: { gridTemplateColumns: "[repeat(1,minmax(0,1fr))]" },
-});
-const nsCols2 = css({
-  [SM]: { gridTemplateColumns: "[repeat(2,minmax(0,1fr))]" },
-});
-const nsCols3 = css({
-  [SM]: { gridTemplateColumns: "[repeat(3,minmax(0,1fr))]" },
-});
 const nextStepsEmpty = css({ textStyle: "sm", color: "fg.muted" });
 const sectionEl = css({
   borderTopWidth: "1px",
@@ -369,7 +360,6 @@ const checklistTitle = css({
   fontWeight: "semibold",
   color: "fg.heading",
 });
-const guidanceGrid = css({ mb: "4", display: "grid", gap: "3" });
 const calloutCard = css({ borderRadius: "lg", bg: "[#fafafa]", p: "3" });
 // Confidence Assessment: bordered like the executive-summary callout, with top
 // margin to separate it from the opportunity-diagnosis bullets above.
@@ -923,7 +913,7 @@ const DwellImpactSection = ({
   currency: string | null;
 }) => {
   return (
-    <BriefSection title="Potential Impact Range">
+    <BriefSection title="Modeled Impact Scenarios">
       <div className={impactWrap}>
         <table className={briefTable}>
           <thead className={impactThead}>
@@ -1036,7 +1026,7 @@ const PlanningRecommendationSection = ({
   brief: PlanningOpportunityBrief;
 }) => {
   return (
-    <BriefSection title="Planning Calibration Options">
+    <BriefSection title="Planning Reference Options">
       <div className={grid4}>
         {brief.serviceLevelOptions.map((option) => (
           <div key={option.label} className={optionCard}>
@@ -1052,19 +1042,19 @@ const PlanningRecommendationSection = ({
       <div className={grid2Mt}>
         <Callout
           title="Operational Excellence"
-          body="Use the median and P75 as performance references. If the process can shift toward these levels, planning assumptions can later be tightened with less service risk."
+          body="Use the median and P75 as performance references. If the process can reliably shift toward these levels, planning can revisit buffer with better evidence."
         />
 
         <Callout
           title={
             brief.calibrationDirection === "tighten"
-              ? "Tighten Conservative Plan"
-              : "Protect Service Level"
+              ? "Review Planning Buffer"
+              : "Review Service Protection"
           }
           body={
             brief.calibrationDirection === "tighten"
-              ? "P95 is below the current plan, so planning can test whether the assumption is conservative without increasing service risk."
-              : "Use P95 as the initial safe calibration candidate, then adjust based on the service level the business wants the parameter to protect."
+              ? "P95 is below the current plan, so the assumption may include extra buffer. Test any tighter value against the service level the business needs to protect."
+              : "Use P95 as an initial planning reference, then adjust based on the service level the business wants the parameter to protect."
           }
         />
       </div>
@@ -1382,11 +1372,12 @@ const HeroBanner = ({
           : "—";
     const prizeLabel =
       prize != null
-        ? "Estimated annualized saving"
-        : "Annualized carrying cost";
+        ? "Modeled annualized saving"
+        : "Annualized carrying-cost exposure";
     const action = moderate
-      ? `Cap recurring long dwell toward ${formatNumber(moderate.targetDays, { maximumFractionDigits: 1 })}d to release the bulk of this carrying cost.`
-      : "Investigate structural waiting time and handoffs to reduce carrying cost.";
+      ? `This saving assumes recurring long dwell can be reduced toward ${formatNumber(moderate.targetDays, { maximumFractionDigits: 1 })}d; validate the long-wait events and likely lever before treating it as recoverable.`
+      : "Investigate structural waiting time and handoffs to size the recoverable carrying-cost opportunity.";
+
     return (
       <HeroBannerShell
         prizeLabel={prizeLabel}
@@ -1403,11 +1394,13 @@ const HeroBanner = ({
       : "—";
   const action =
     brief.currentPlanDays != null && target != null
-      ? `${brief.calibrationDirection === "tighten" ? "Tighten" : "Re-set"} the plan from ${formatNumber(brief.currentPlanDays, { maximumFractionDigits: 1 })}d toward ${formatNumber(target, { maximumFractionDigits: 1 })}d at the service level the business wants to protect.`
+      ? brief.calibrationDirection === "tighten"
+        ? "Current plan is above the candidate reference. Review whether some buffer can be released while preserving the required service level."
+        : "Observed timing is above the current plan. Review whether the parameter needs more protection or whether the process driver should be addressed first."
       : "Calibrate the planning parameter once more observations are available.";
   return (
     <HeroBannerShell
-      prizeLabel="P95 calibration reference"
+      prizeLabel="Candidate planning reference"
       prize={prizeText}
       action={action}
       ranking={ranking}
@@ -1436,32 +1429,12 @@ const OpportunityTriggerCallout = ({
   );
 };
 
-const BriefGuidance = ({
-  brief,
+const RecommendedActionPlan = ({
+  actions,
 }: {
-  brief: DwellOpportunityBrief | PlanningOpportunityBrief;
+  actions: RecommendedAction[];
 }) => {
-  return (
-    <div className={guidanceGrid}>
-      <Checklist
-        title="First Evidence To Check"
-        items={brief.guidance.firstEvidence}
-      />
-    </div>
-  );
-};
-
-const StepTypeNextSteps = ({
-  nextSteps,
-}: {
-  nextSteps: { scm: string[]; opex: string[]; planning: string[] };
-}) => {
-  const buckets = [
-    { title: "SCM", items: nextSteps.scm },
-    { title: "Operational Excellence", items: nextSteps.opex },
-    { title: "Planning", items: nextSteps.planning },
-  ].filter((bucket) => bucket.items.length > 0);
-  if (buckets.length === 0) {
+  if (actions.length === 0) {
     return (
       <p className={nextStepsEmpty}>
         No step-type-specific recommendations are configured. Use the
@@ -1470,18 +1443,11 @@ const StepTypeNextSteps = ({
       </p>
     );
   }
-  const gridCols =
-    buckets.length === 1 ? nsCols1 : buckets.length === 2 ? nsCols2 : nsCols3;
   return (
-    <div className={cx(nsGridBase, gridCols)}>
-      {buckets.map((bucket) => (
-        <Checklist
-          key={bucket.title}
-          title={bucket.title}
-          items={bucket.items}
-        />
-      ))}
-    </div>
+    <Checklist
+      title="Recommended Investigation Plan"
+      items={actions.map((action) => action.text)}
+    />
   );
 };
 function makeTrendChip(
@@ -2192,9 +2158,8 @@ export const OpportunityBrief = ({
           )}
         </BriefSection>
 
-        <BriefSection title="Recommended Next Steps">
-          <BriefGuidance brief={brief} />
-          <StepTypeNextSteps nextSteps={brief.nextSteps} />
+        <BriefSection title="Recommended Investigation Plan">
+          <RecommendedActionPlan actions={brief.recommendedActions} />
         </BriefSection>
 
         <BriefSection title="Assumptions And Caveats">

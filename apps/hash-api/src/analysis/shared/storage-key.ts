@@ -24,8 +24,15 @@ export const webScopedKey = (
 ): string => [ANALYSIS_STORAGE_PREFIX, webId, namespace, ...parts].join("/");
 
 export const isWebScopedKeyForWeb = (key: string, webId: WebId): boolean => {
-  const [prefix, scopedWebId] = key.split("/");
-  return prefix === ANALYSIS_STORAGE_PREFIX && scopedWebId === webId;
+  const [prefix, scopedWebId, ...artifactParts] = key.split("/");
+  return (
+    prefix === ANALYSIS_STORAGE_PREFIX &&
+    scopedWebId === webId &&
+    artifactParts.length > 0 &&
+    artifactParts.every(
+      (part) => part.length > 0 && part !== "." && part !== "..",
+    )
+  );
 };
 
 /**

@@ -28,10 +28,9 @@ export { computeTrend };
 import {
   PLAYBOOKS,
   diagnosisFor,
-  firstEvidenceFor,
   shapeSignals,
-  type NextStepsChecklist,
   type PlaybookContext,
+  type RecommendedAction,
 } from "./recommendation-playbook";
 
 export type OpportunityType = "dwell" | "planning";
@@ -89,10 +88,6 @@ export interface OpportunityConfidence {
   label: "High" | "Limited" | "Low";
   caveats: string[];
   explanation: string;
-}
-
-export interface OpportunityBriefGuidance {
-  firstEvidence: string[];
 }
 
 /** End-to-end leverage of reducing this step, from the node's binding score. */
@@ -200,7 +195,6 @@ export interface DwellOpportunityBrief {
   stepType: StepType;
   opportunityTrigger: OpportunityTrigger;
   confidence: OpportunityConfidence;
-  guidance: OpportunityBriefGuidance;
   periodCost: number | null;
   annualizedCost: number | null;
   currency: string | null;
@@ -211,7 +205,7 @@ export interface DwellOpportunityBrief {
   distributionInsight: string | null;
   highestCostMonth: { month: string; cost: number; events: number } | null;
   recommendationSummary: string;
-  nextSteps: NextStepsChecklist;
+  recommendedActions: RecommendedAction[];
   e2eLeverage: E2ELeverage | null;
   perProductImpact: PerProductImpactRow[];
   recipeMembership: RecipeMembership[];
@@ -239,7 +233,6 @@ export interface PlanningOpportunityBrief {
   stepType: StepType;
   opportunityTrigger: OpportunityTrigger;
   confidence: OpportunityConfidence;
-  guidance: OpportunityBriefGuidance;
   currentPlanDays: number | null;
   p95Days: number | null;
   medianDays: number | null;
@@ -260,7 +253,7 @@ export interface PlanningOpportunityBrief {
   evidenceFlags: EvidenceFlag[];
   trend: OpportunityTrend;
   recommendationSummary: string;
-  nextSteps: NextStepsChecklist;
+  recommendedActions: RecommendedAction[];
   supplier: SupplierBriefSummary | null;
   topEvidence: BriefEvidenceRow[];
   provenance: string | null;
@@ -452,8 +445,8 @@ function buildFirstUseNote(
   const share = formatNumber(firstUseSharePct, { maximumFractionDigits: 0 });
   const lead =
     firstUseSharePct >= 60
-      ? `Most dwell is incurred before the lot is first touched: the first draw waits ${median}d (${share}% of the ${overall}d typical dwell), which points to ordering or scheduling consistently ahead of first need rather than to lot depletion.`
-      : `The first draw waits ${median}d (${share}% of the ${overall}d typical dwell); the remaining ~${structural}d reflects depletion of the received lot across later consumption events, which is harder to avoid with lot-based purchasing.`;
+      ? `Most dwell is incurred before the lot is first touched: the first draw waits ${median}d (${share}% of the ${overall}d average dwell), which points to ordering or scheduling consistently ahead of first need.`
+      : `The first draw waits ${median}d (${share}% of the ${overall}d typical dwell); the remaining ~${structural}d reflects depletion of the received lot across later consumption events.`;
   return `${lead} Pull the first-use wait down by ordering closer to first need, smaller/more frequent call-offs, or tighter delivery scheduling.`;
 }
 
@@ -595,7 +588,6 @@ function buildPlanningDiagnosis(
     p95DeviationPct: number | null;
     medianDeviationPct: number | null;
     meanDeviationPct: number | null;
-    confidence: OpportunityConfidence;
     p95Days: number | null;
   },
 ): string[] {
@@ -618,18 +610,15 @@ function buildPlanningDiagnosis(
     );
   } else if (p95Over) {
     lines.push(
-      `The planning parameter is below the observed high-percentile lead time: ${p95Text}, while ${medianText} and ${meanText}. Align the planning parameter only after validating whether recent performance is stable.`,
+      `The planning parameter is below the observed high-percentile lead time: ${p95Text}, while ${medianText} and ${meanText}. Align the planning parameter only after validating whether recent timing is stable.`,
     );
   } else {
     lines.push(
-      `The planning parameter is close to observed high-percentile timing: ${p95Text}, while ${medianText} and ${meanText}. Review whether the current assumption still matches the intended service level.`,
+      `The planning parameter is close to observed high-percentile timing: ${p95Text}, and ${medianText} and ${meanText}.`,
     );
   }
 
   lines.push(trendDiagnosis(trend, range, p95Over, p95Under));
-  lines.push(
-    `Confidence is ${context.confidence.label.toLowerCase()}: ${context.confidence.explanation}`,
-  );
   return lines;
 }
 
@@ -695,7 +684,7 @@ function buildDwellDistributionInsight(step: StepDetail): string | null {
     return null;
   }
   const spread = p95 - median;
-  return `P95 dwell is ${formatNumber(p95, { maximumFractionDigits: 1 })}d vs ${formatNumber(median, { maximumFractionDigits: 1 })}d median, so the longest 5% of events are at least ${formatNumber(spread, { maximumFractionDigits: 1 })}d above the typical case.`;
+  return `P95 dwell is ${formatNumber(p95, { maximumFractionDigits: 1 })}d vs ${formatNumber(median, { maximumFractionDigits: 1 })}d median, so the longest 5% of events are at least ${formatNumber(spread, { maximumFractionDigits: 1 })}d above the average case.`;
 }
 
 function buildDwellTrigger(
@@ -776,12 +765,6 @@ function buildConfidence(
     label: "High",
     caveats: [],
     explanation: `${formatNumber(step.stats.n)} observations are available and no major evidence caveats were detected.`,
-  };
-}
-
-function buildGuidance(stepType: StepType): OpportunityBriefGuidance {
-  return {
-    firstEvidence: firstEvidenceFor(stepType),
   };
 }
 
@@ -1278,7 +1261,8 @@ function buildCalibrationImpact(
     {
       label: "P95",
       days: step.stats.p95,
-      description: "High-percentile planning reference.",
+      description:
+        "High-percentile planning reference, with 95% of observations below this point.",
     },
   ];
 
@@ -1393,7 +1377,6 @@ export function buildDwellOpportunityBrief(
     stepType: step.type,
     opportunityTrigger: buildDwellTrigger(step, periodCost, range),
     confidence: buildConfidence(step, evidenceFlags),
-    guidance: buildGuidance(step.type),
     periodCost,
     annualizedCost:
       periodCost == null ? null : periodCost * (12 / rangeMonths(range)),
@@ -1413,7 +1396,7 @@ export function buildDwellOpportunityBrief(
       scenarios,
       playbookCtx,
     ),
-    nextSteps: PLAYBOOKS[step.type].nextSteps,
+    recommendedActions: PLAYBOOKS[step.type].recommendedActions,
 
     e2eLeverage: buildE2ELeverage(context.siteNode),
     perProductImpact: computePerProductImpact(step, range, assumptions),
@@ -1480,7 +1463,6 @@ export function buildPlanningOpportunityBrief(
     p95DeviationPct,
     medianDeviationPct,
     meanDeviationPct,
-    confidence,
     p95Days: p95PlanDays,
   });
   if (tailTrendNote) {
@@ -1492,7 +1474,6 @@ export function buildPlanningOpportunityBrief(
     stepType: step.type,
     opportunityTrigger: buildPlanningTrigger(step, p95DeviationPct),
     confidence,
-    guidance: buildGuidance(step.type),
     currentPlanDays,
     p95Days: step.stats.p95,
     medianDays: step.stats.median,
@@ -1502,7 +1483,7 @@ export function buildPlanningOpportunityBrief(
         label: "Median",
         days: step.stats.median,
         description:
-          "Typical performance; useful as an OpEx stretch reference, not a conservative planning parameter.",
+          "Typical performance; useful as an operational stretch reference, not a conservative planning parameter.",
       },
       {
         label: "P75",
@@ -1513,13 +1494,13 @@ export function buildPlanningOpportunityBrief(
         label: "P85",
         days: step.stats.p85,
         description:
-          "A more cautious planning option where some late events remain expected.",
+          "A planning option where some late events remain expected, with 85% of observations below this point.",
       },
       {
         label: "P95",
         days: step.stats.p95,
         description:
-          "High-percentile planning reference; not a guarantee that every event is covered.",
+          "High-percentile planning reference, with 95% of observations below this point.",
       },
     ],
 
@@ -1539,7 +1520,7 @@ export function buildPlanningOpportunityBrief(
       p95DeviationPct,
       playbookCtx,
     ),
-    nextSteps: PLAYBOOKS[step.type].nextSteps,
+    recommendedActions: PLAYBOOKS[step.type].recommendedActions,
 
     supplier: buildSupplierSummary(step, range),
     topEvidence: buildTopEvidence(step, range),

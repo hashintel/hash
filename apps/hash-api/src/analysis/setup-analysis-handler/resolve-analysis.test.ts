@@ -214,6 +214,51 @@ describe("resolveInvocation (supply-chain analyses)", () => {
     );
   });
 
+  it("refuses to presign artifact keys with path traversal segments", async () => {
+    const otherWebId = "00000000-0000-4000-8000-000000000002";
+    const presignDownloadByKey = vi.fn(async ({ key }: { key: string }) => {
+      return `https://signed.example/${key}`;
+    });
+
+    clearAnalysisRegistry();
+    registerAnalyses([
+      {
+        name: "traversing",
+        resolve: async () => ({
+          status: "ready",
+          artifacts: [
+            {
+              name: "leak",
+              key: `analysis/${WEB_ID}/../${otherWebId}/secret.json`,
+            },
+          ],
+        }),
+      },
+    ]);
+
+    const result = await resolveInvocation({
+      invocation: {
+        id: "test",
+        analysis: "traversing",
+        args: {},
+        webId: WEB_ID,
+      },
+      actorId: ACTOR_ID,
+      graphApi: {} as GraphApi,
+      uploadProvider: {
+        ...uploadProvider,
+        presignDownloadByKey,
+      } as unknown as FileStorageProvider,
+      cache,
+    });
+
+    expect(result.status).toBe("error");
+    expect(result.error).toMatch(
+      /Resolved analysis artifact key outside the authorised web/i,
+    );
+    expect(presignDownloadByKey).not.toHaveBeenCalled();
+  });
+
   it("refuses to presign an artifact key outside the analysis prefix", async () => {
     clearAnalysisRegistry();
     registerAnalyses([

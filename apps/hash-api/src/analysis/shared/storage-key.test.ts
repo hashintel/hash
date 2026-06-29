@@ -40,6 +40,17 @@ describe("webScopedKey", () => {
       ),
     ).toBe(false);
   });
+
+  it("rejects dot segments that could normalize outside the web scope", () => {
+    for (const key of [
+      `analysis/${webId}/../00000000-0000-4000-8000-000000000002/secret.json`,
+      `analysis/${webId}/supply-chain/../secret.json`,
+      `analysis/${webId}/./supply-chain/current.json`,
+      `analysis/${webId}//supply-chain/current.json`,
+    ]) {
+      expect(isWebScopedKeyForWeb(key, webId)).toBe(false);
+    }
+  });
 });
 
 describe("isValidSlug", () => {

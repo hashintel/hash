@@ -28,10 +28,9 @@ export interface PlaybookContext {
   plan: number | null;
 }
 
-export interface NextStepsChecklist {
-  scm: string[];
-  opex: string[];
-  planning: string[];
+export interface RecommendedAction {
+  text: string;
+  kind?: "evidence" | "process" | "policy" | "planning";
 }
 
 export interface StepTypePlaybook {
@@ -41,8 +40,8 @@ export interface StepTypePlaybook {
   dwellSummaryLead: (ctx: PlaybookContext) => string;
   /** Lead clause for the planning brief summary; gets combined with numeric target. */
   planningSummaryLead: (ctx: PlaybookContext) => string;
-  /** Three buckets of recommended next steps shown at the end of the brief. */
-  nextSteps: NextStepsChecklist;
+  /** Ordered investigation plan shown at the end of the brief. */
+  recommendedActions: RecommendedAction[];
 }
 
 /** Pick the most salient shape signal for a step. Mirrors the previous heuristic but is reusable. */
@@ -58,7 +57,7 @@ export function shapeSignals(
   if (median > 0 && p95 > median * 2) {
     signals.push("long_tail");
   }
-  if (median >= 3 && median > 0 && (p75 - p25) / median < 0.35) {
+  if (median >= 3 && (p75 - p25) / median < 0.35) {
     signals.push("tight_high_median");
   }
   if (trend.direction === "worsening") {
@@ -84,115 +83,135 @@ export const PLAYBOOKS: Record<StepType, StepTypePlaybook> = {
   procurement: {
     diagnosis: {
       long_tail:
-        "A handful of long-lead-time POs are pulling the tail out — most likely supplier OTIF issues or single-source disruptions rather than the typical lead time.",
+        "A handful of long-lead-time POs are pulling the tail out; check whether supplier performance, PO cadence, or disruption events explain the tail before treating it as the typical lead time.",
       tight_high_median:
-        "Lead times cluster tightly around a high median, which usually indicates a structural supplier lead time or MOQ-driven cadence rather than episodic delays.",
+        "Lead times cluster tightly around a high median, which is consistent with a structural supplier lead time or MOQ-driven cadence rather than random variation.",
       worsening:
-        "Procurement lead times are getting worse versus the previous period; check whether a specific supplier, lane, or material category is degrading.",
+        "Procurement lead times are getting worse versus the previous period; test whether supplier performance, lane mix, or purchasing cadence changed.",
       improving:
         "Procurement lead times are improving versus the previous period; confirm the gain is structural (new supplier, contract change) before locking in tighter planning assumptions.",
       mixed:
         "The opportunity is mixed: separate base lead time from supplier OTIF exceptions before recommending an action.",
     },
     dwellSummaryLead: () =>
-      "Investigate supplier OTIF, frame-contract MOQs, and whether dual-sourcing could shorten lead time",
+      "Investigate supplier OTIF, minimum order quantities, and procurement strategy.",
     planningSummaryLead: () =>
-      "Align planned delivery time with the supplier's actual delivery profile",
-    nextSteps: {
-      scm: [
-        "Pull supplier OTIF for the top contributors and check whether one or two suppliers explain the tail.",
-        "Review MOQ vs. lead time trade-offs: a smaller MOQ with more frequent deliveries could reduce dwell upstream.",
-        "Check whether frame contracts or VMI arrangements could shrink the planning buffer for high-volume materials.",
-      ],
-
-      opex: [
-        "Inspect receipt-to-warehouse posting delay (system posting date vs. physical receipt) — paperwork lag can inflate apparent lead time.",
-        "Confirm the material booking process at goods receipt is not adding avoidable days.",
-      ],
-
-      planning: [
-        "Compare observed lead time to the planned lead time and supplier-quoted lead time; identify gaps.",
-        "Validate whether the planning assumption protects the appropriate service level given variability.",
-      ],
-    },
+      "Align planned delivery time with the supplier's actual delivery profile.",
+    recommendedActions: [
+      {
+        kind: "evidence",
+        text: "Check the supplier and PO lines behind the longest observations.",
+      },
+      {
+        kind: "evidence",
+        text: "Compare observed lead time to the planned lead time and any supplier-quoted lead time.",
+      },
+      {
+        kind: "evidence",
+        text: "Pull supplier OTIF for the top contributors and check whether one or two suppliers explain the tail.",
+      },
+      {
+        kind: "process",
+        text: "Inspect receipt-to-warehouse posting delay (system posting date vs. physical receipt) to rule out paperwork lag.",
+      },
+      {
+        kind: "policy",
+        text: "Review MOQ, frame-contract, or VMI options where high-volume materials show repeatable lead-time pressure.",
+      },
+      {
+        kind: "planning",
+        text: "Validate whether the planning assumption protects the appropriate service level given observed variability.",
+      },
+    ],
   },
 
   raw_material_dwell: {
     diagnosis: {
       long_tail:
-        "A few batches sit for very long — likely safety-stock excess, expired quarantine holds, or call-offs that arrived ahead of plan.",
+        "A few batches sit for very long; check whether safety-stock excess, quarantine holds, expiry, or early call-offs explain the tail.",
       tight_high_median:
-        "Raw materials consistently sit for a similar period, suggesting safety-stock policy or supplier delivery cadence sets the floor — not random variability.",
+        "Raw materials consistently sit for a similar period, which is consistent with safety-stock policy or supplier delivery cadence setting the floor.",
       worsening:
         "Raw material dwell is rising versus the previous period; check whether replenishment cadence is out of sync with consumption.",
       improving:
         "Raw material dwell is improving; confirm it is not driven by stockouts before reducing safety days.",
       mixed:
-        "Separate chronic high-stock materials from episodic over-deliveries before deciding where to push.",
+        "The picture is mixed: separate chronic high-stock materials from episodic over-deliveries before deciding on action.",
     },
     dwellSummaryLead: (ctx) => DWELL_PLAN_LEAD(ctx, "raw-material dwell"),
     planningSummaryLead: () =>
-      "Calibrate MRP reorder point and safety days against actual consumption rate",
-    nextSteps: {
-      scm: [
-        "Review safety stock and reorder-point policy for the highest-dwell materials.",
-        "Check call-off cadence: are deliveries arriving in larger lots than consumption justifies?",
-        "Confirm supplier MOQ is not the constraint forcing oversized batches.",
-      ],
-
-      opex: [
-        "Check for quarantine holds or expiry-driven quarantine that inflate dwell on specific batches.",
-        "Review whether FEFO/FIFO is being followed at consumption.",
-      ],
-
-      planning: [
-        "Compare observed dwell to MRP horizon and safety days; identify materials where MRP is over-stocking.",
-        "Validate planned consumption rate against actual; mismatched rates over-inflate buffer.",
-      ],
-    },
+      "Calibrate MRP reorder point and safety days against actual consumption rate.",
+    recommendedActions: [
+      {
+        kind: "evidence",
+        text: "Inspect the oldest receipts and the consumption dates they eventually served.",
+      },
+      {
+        kind: "evidence",
+        text: "Check whether quarantine, expiry, or FEFO/FIFO practice explains the longest holds.",
+      },
+      {
+        kind: "policy",
+        text: "Review safety stock, reorder-point policy, and supplier MOQ for the highest-dwell materials.",
+      },
+      {
+        kind: "process",
+        text: "Check call-off cadence and whether deliveries arrive in larger lots than consumption justifies.",
+      },
+      {
+        kind: "planning",
+        text: "Compare observed dwell to the MRP horizon, safety days, and actual consumption rate.",
+      },
+    ],
   },
 
   intermediate_dwell: {
     diagnosis: {
       long_tail:
-        "Intermediate batches that wait far longer than typical usually point to batch-size mismatch — upstream is producing in larger lots than downstream can consume.",
+        "Some intermediate batches wait far longer than typical; check whether batch-size mismatch, campaign timing, or scheduling changes explain the tail.",
       tight_high_median:
-        "Intermediate dwell is consistent and elevated, which usually indicates a structural WIP buffer between two scheduling cadences.",
+        "Intermediate dwell is consistent and elevated, which is consistent with a structural buffer, sequencing issue, or workaround for production capacity constraints.",
       worsening:
         "Intermediate dwell is rising; check whether upstream production is running ahead of downstream demand or whether downstream sequencing has changed.",
       improving:
         "Intermediate dwell is improving; confirm whether sequencing changes or batch-size adjustments are sustainable.",
       mixed:
-        "Look at whether elevated dwell is concentrated in particular batches or production campaigns before recommending an action.",
+        "The picture is mixed: look at whether elevated dwell is concentrated in particular batches or production campaigns before recommending an action.",
     },
     dwellSummaryLead: (ctx) =>
       DWELL_PLAN_LEAD(ctx, "intermediate-stage WIP dwell"),
     planningSummaryLead: () =>
-      "Re-examine the planned WIP buffer between the upstream and downstream production steps",
-    nextSteps: {
-      scm: [
-        "Check whether scheduling rules force intermediate stocking above what the next step needs.",
-      ],
-
-      opex: [
-        "Compare upstream and downstream batch sizes — a mismatch is the most common cause of intermediate dwell.",
-        "Review production scheduling and sequencing: is the next step starved or waiting on equipment, not material?",
-        "Inspect equipment occupancy to confirm dwell is not a symptom of a downstream bottleneck.",
-      ],
-
-      planning: [
-        "Confirm the WIP buffer assumption in the production plan reflects actual upstream/downstream linkage.",
-        "Check whether changeovers or campaign sequencing imply a buffer that could be reduced.",
-      ],
-    },
+      "Re-examine the planned buffer between the upstream and downstream production steps",
+    recommendedActions: [
+      {
+        kind: "evidence",
+        text: "Compare upstream and downstream batch sizes for the affected intermediates.",
+      },
+      {
+        kind: "evidence",
+        text: "Check whether long waits cluster around specific campaigns, equipment, or scheduling rules.",
+      },
+      {
+        kind: "process",
+        text: "Review production sequencing to determine whether the next step is starved, equipment-bound, or waiting on material.",
+      },
+      {
+        kind: "process",
+        text: "Inspect equipment occupancy to test whether dwell is a symptom of a downstream bottleneck.",
+      },
+      {
+        kind: "planning",
+        text: "Confirm the WIP buffer assumption reflects actual upstream/downstream linkage and campaign constraints.",
+      },
+    ],
   },
 
   production: {
     diagnosis: {
       long_tail:
-        "A few orders take far longer than the typical campaign — most often driven by extended changeovers, equipment unavailability, or a few low-yield runs.",
+        "A few orders take far longer than the typical campaign; check whether extended changeovers, equipment unavailability, or low-yield runs explain those events.",
       tight_high_median:
-        "Production runs cluster around a high duration, suggesting the planned production time is the floor rather than random variation.",
+        "Production runs cluster around a high duration, which is consistent with planned production time or campaign structure setting the floor.",
       worsening:
         "Production duration is increasing; check changeovers, OEE, and whether a specific line or product mix is degrading.",
       improving:
@@ -203,30 +222,32 @@ export const PLAYBOOKS: Record<StepType, StepTypePlaybook> = {
     dwellSummaryLead: (ctx) => DWELL_PLAN_LEAD(ctx, "production duration"),
     planningSummaryLead: () =>
       "Re-calibrate the planned production time against actual run time",
-    nextSteps: {
-      scm: [
-        "Check whether material availability is causing the tail (raw material stockouts mid-run).",
-      ],
-
-      opex: [
-        "Inspect changeover patterns: are campaign sizes minimising changeovers?",
-        "Review cycle time and line utilisation; identify whether the bottleneck is consistent or shifting.",
-        "Check OEE for the production line and whether quality losses, breakdowns, or speed losses are dominant.",
-      ],
-
-      planning: [
-        "Compare actual run time to the planned production time.",
-        "Confirm planned versus actual yield — under-yield extends effective production duration per batch.",
-      ],
-    },
+    recommendedActions: [
+      {
+        kind: "evidence",
+        text: "Review orders with the longest normalized durations and their changeover context.",
+      },
+      {
+        kind: "evidence",
+        text: "Check OEE, downtime, speed-loss, quality-loss, and material-availability data for the relevant line.",
+      },
+      {
+        kind: "process",
+        text: "Inspect changeover patterns and campaign sizing to identify whether the bottleneck is consistent or shifting.",
+      },
+      {
+        kind: "planning",
+        text: "Compare actual duration and yield variance to the planned production time.",
+      },
+    ],
   },
 
   qa_hold: {
     diagnosis: {
       long_tail:
-        "A few batches sit in QA hold far longer than typical — typically driven by retests, off-spec investigations, or regulatory holds on specific materials.",
+        "A few batches sit in QA hold far longer than typical; check whether retests, off-spec investigations, method cycle time, or regulatory holds explain those events.",
       tight_high_median:
-        "QA hold time is consistent and elevated, suggesting standard analytical cycle time and lab batching, not exceptions, set the floor.",
+        "QA hold time is consistent and elevated, which is consistent with analytical cycle time or lab batching setting the floor.",
       worsening:
         "QA hold times are rising; check lab throughput, sample backlog, retest rate, and whether testing methods have changed.",
       improving:
@@ -237,30 +258,32 @@ export const PLAYBOOKS: Record<StepType, StepTypePlaybook> = {
     dwellSummaryLead: (ctx) => DWELL_PLAN_LEAD(ctx, "QA hold time"),
     planningSummaryLead: () =>
       "Update the planned QA lead time per material to reflect actual analytical cycle time",
-    nextSteps: {
-      scm: [
-        "Confirm whether customer release commitments accommodate the actual QA hold time.",
-      ],
-
-      opex: [
-        "Review lab throughput and whether analyses are batched in a way that delays release.",
-        "Check the retest rate by material — a high retest rate doubles or triples effective QA time.",
-        "Identify whether any regulatory or stability-test holds apply to specific batches.",
-      ],
-
-      planning: [
-        "Calibrate QA lead time per material against the observed P75/P95.",
-        "Confirm the planning parameter protects the appropriate service level given retest variability.",
-      ],
-    },
+    recommendedActions: [
+      {
+        kind: "evidence",
+        text: "Check batches with the longest release delays for retests, investigations, or specific test methods.",
+      },
+      {
+        kind: "evidence",
+        text: "Review lab queue, method cycle time, and retest rate for the material.",
+      },
+      {
+        kind: "process",
+        text: "Identify whether sample batching, throughput constraints, regulatory holds, or stability-test holds apply to specific batches.",
+      },
+      {
+        kind: "planning",
+        text: "Calibrate QA lead time per material against observed high-percentile timing and required release commitments.",
+      },
+    ],
   },
 
   post_qa_ship: {
     diagnosis: {
       long_tail:
-        "A few batches wait far longer to ship than typical — most often driven by container fill, customer call-off, or freight cadence on specific lanes.",
+        "A few batches wait far longer to ship than typical; check whether container fill, customer call-off, or freight cadence explains the lane-specific tail.",
       tight_high_median:
-        "Post-QA dwell is consistent and elevated, suggesting a structural shipping cadence (weekly container, full-truckload threshold) is the driver.",
+        "Post-QA dwell is consistent and elevated, which is consistent with a structural shipping cadence such as weekly containers or full-truckload thresholds.",
       worsening:
         "Post-QA dwell is rising; check container fill rules, freight booking lead time, and customer call-off behaviour.",
       improving:
@@ -271,31 +294,32 @@ export const PLAYBOOKS: Record<StepType, StepTypePlaybook> = {
     dwellSummaryLead: (ctx) => DWELL_PLAN_LEAD(ctx, "post-QA dwell"),
     planningSummaryLead: () =>
       "Update planned shipping lead time to reflect actual container-fill and booking cadence",
-    nextSteps: {
-      scm: [
-        "Review container fill strategy — is dwell intentional while building a full container?",
-        "Check freight cadence and customer call-off behaviour for the dominant lanes.",
-        "Confirm booking lead time at the forwarder allows for the observed dwell.",
-      ],
-
-      opex: [
-        "Inspect staging, label rework, and any physical handling after QA release.",
-        "Confirm the system goods-issue posting date matches physical gate-out — paperwork lag inflates apparent dwell.",
-      ],
-
-      planning: [
-        "Compare planned shipping lead time to observed median and P95.",
-        "Decide whether dwell reduction is a planning calibration issue or an operational change.",
-      ],
-    },
+    recommendedActions: [
+      {
+        kind: "evidence",
+        text: "Inspect batches with long QA-release-to-shipment gaps by customer or lane.",
+      },
+      {
+        kind: "evidence",
+        text: "Check freight cadence, customer call-off behaviour, container-fill rules, and forwarder booking lead time for the dominant lanes.",
+      },
+      {
+        kind: "process",
+        text: "Inspect staging, label rework, physical handling, and goods-issue posting lag after QA release.",
+      },
+      {
+        kind: "planning",
+        text: "Compare planned shipping lead time to observed median and P95 before deciding whether the lever is operational change or planning calibration.",
+      },
+    ],
   },
 
   transit: {
     diagnosis: {
       long_tail:
-        "A few shipments take far longer than typical — usually customs holds, demurrage, or a single problematic lane.",
+        "A few shipments take far longer than typical; check whether customs holds, demurrage, carrier performance, or a specific lane explains those events.",
       tight_high_median:
-        "Transit time is consistent and elevated, suggesting the lane structure (mode, route) — not exceptions — is the driver.",
+        "Transit time is consistent and elevated, which is consistent with lane structure, mode, or route setting the floor.",
       worsening:
         "Transit time is rising; check carrier performance, customs hold rate, and whether the lane mix has changed.",
       improving:
@@ -306,30 +330,36 @@ export const PLAYBOOKS: Record<StepType, StepTypePlaybook> = {
     dwellSummaryLead: (ctx) => DWELL_PLAN_LEAD(ctx, "transit time"),
     planningSummaryLead: () =>
       "Align planned transit time per lane with carrier-actual performance",
-    nextSteps: {
-      scm: [
-        "Pull carrier performance for the dominant lanes and check whether one or two carriers explain the tail.",
-        "Review the customs hold rate by lane; investigate causes for any lane with persistent holds.",
-        "Confirm incoterms and ownership of dwell time at customs — internal vs. customer-managed.",
-      ],
-
-      opex: [
-        "Inspect paperwork handoffs (booking, customs documentation) — internal delays add to transit time.",
-      ],
-
-      planning: [
-        "Calibrate planned transit time per lane against observed P75/P95.",
-        "Confirm the lane mix in the plan matches actual shipment routing.",
-      ],
-    },
+    recommendedActions: [
+      {
+        kind: "evidence",
+        text: "Break long transit observations down by lane, carrier, customs status, and port/terminal delays.",
+      },
+      {
+        kind: "evidence",
+        text: "Check whether the apparent trend is route mix or true carrier performance.",
+      },
+      {
+        kind: "process",
+        text: "Inspect booking and customs documentation handoffs for internal delays.",
+      },
+      {
+        kind: "policy",
+        text: "Confirm incoterms and ownership of dwell time at customs.",
+      },
+      {
+        kind: "planning",
+        text: "Calibrate planned transit time per lane against observed high-percentile timing and actual shipment routing.",
+      },
+    ],
   },
 
   destination_dwell: {
     diagnosis: {
       long_tail:
-        "A few hub stockholdings persist far longer than typical — usually slow-moving SKUs or customer pull that did not materialise.",
+        "A few hub stockholdings persist far longer than typical; check whether slow-moving SKUs, hub allocation, or customer pull that did not materialise explain the tail.",
       tight_high_median:
-        "Hub dwell is consistent and elevated, suggesting the hub stocking policy (days-of-cover) sets the floor, not exception events.",
+        "Hub dwell is consistent and elevated, which is consistent with hub stocking policy or days-of-cover setting the floor.",
       worsening:
         "Hub dwell is rising; check whether customer call-off is slowing or whether hub allocation has been over-provisioned.",
       improving:
@@ -340,23 +370,28 @@ export const PLAYBOOKS: Record<StepType, StepTypePlaybook> = {
     dwellSummaryLead: (ctx) => DWELL_PLAN_LEAD(ctx, "hub dwell"),
     planningSummaryLead: () =>
       "Align hub stocking days-of-cover with the actual customer call-off cadence",
-    nextSteps: {
-      scm: [
-        "Review hub allocation policy: are units pushed to the hub ahead of confirmed customer call-off?",
-        "Check whether route reassignment between hubs could clear slow-moving stock.",
-        "Confirm minimum stocking levels at the hub are aligned with current demand profile.",
-      ],
-
-      opex: [
-        "Inspect local repackaging or rework time at the hub.",
-        "Identify any SKUs whose hub dwell is dominated by aged stock.",
-      ],
-
-      planning: [
-        "Compare planned days-of-cover to observed P75 at the hub.",
-        "Validate whether the planning model treats hub stock as a service buffer or as a pull-driven inventory.",
-      ],
-    },
+    recommendedActions: [
+      {
+        kind: "evidence",
+        text: "Identify whether aged hub stock is concentrated in a few SKUs, customers, or allocation decisions.",
+      },
+      {
+        kind: "evidence",
+        text: "Compare hub allocation to actual customer call-off cadence.",
+      },
+      {
+        kind: "process",
+        text: "Inspect local repackaging, rework time, and route reassignment options at the hub.",
+      },
+      {
+        kind: "policy",
+        text: "Review whether minimum stocking levels remain aligned with the current demand profile.",
+      },
+      {
+        kind: "planning",
+        text: "Compare planned days-of-cover to observed hub dwell and validate whether the model treats hub stock as a service buffer or pull-driven inventory.",
+      },
+    ],
   },
 };
 
@@ -379,57 +414,4 @@ export function diagnosisFor(
     }
   }
   return out;
-}
-
-const FIRST_EVIDENCE_BY_STEP_TYPE: Record<StepType, string[]> = {
-  procurement: [
-    "Check the supplier and PO lines behind the longest observations.",
-    "Compare observed lead time to the planned lead time and any supplier-quoted lead time.",
-    "Look for one vendor, material, or purchasing cadence explaining the tail.",
-  ],
-
-  raw_material_dwell: [
-    "Inspect the oldest receipts and the consumption dates they eventually served.",
-    "Check safety-stock and reorder-point settings for the material.",
-    "Validate whether quarantine, expiry, or FEFO/FIFO practice explains long holds.",
-  ],
-
-  intermediate_dwell: [
-    "Compare upstream and downstream batch sizes for the affected intermediates.",
-    "Check whether long waits cluster around specific campaigns or equipment.",
-    "Validate whether downstream sequencing or capacity is the binding constraint.",
-  ],
-
-  production: [
-    "Review orders with the longest normalized durations and their changeover context.",
-    "Check OEE, downtime, and speed-loss data for the relevant line.",
-    "Compare actual duration to the planned production time and yield variance.",
-  ],
-
-  qa_hold: [
-    "Check batches with the longest release delays for retests or investigations.",
-    "Review lab queue and method cycle time for the material.",
-    "Confirm whether holds are regulatory/stability requirements or avoidable waits.",
-  ],
-
-  post_qa_ship: [
-    "Inspect batches with long QA-release-to-shipment gaps by customer or lane.",
-    "Check freight booking and container-fill rules for the dominant route.",
-    "Validate whether the system goods-issue posting date matches physical gate-out.",
-  ],
-
-  transit: [
-    "Break long transit observations down by lane, carrier, and customs status.",
-    "Check whether the apparent trend is route mix or true carrier performance.",
-    "Review documentation handoffs for customs or demurrage delays.",
-  ],
-
-  destination_dwell: [
-    "Identify whether aged hub stock is concentrated in a few SKUs or customers.",
-    "Compare hub allocation to actual customer call-off cadence.",
-    "Check whether stock was pushed ahead of confirmed demand.",
-  ],
-};
-export function firstEvidenceFor(stepType: StepType): string[] {
-  return FIRST_EVIDENCE_BY_STEP_TYPE[stepType];
 }

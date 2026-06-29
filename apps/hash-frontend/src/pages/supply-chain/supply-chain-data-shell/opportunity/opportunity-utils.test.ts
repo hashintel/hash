@@ -52,7 +52,7 @@ function step(overrides: Partial<StepDetail>): StepDetail {
 }
 
 describe("opportunity brief helpers", () => {
-  it("adds trigger, confidence, and evidence guidance to dwell briefs", () => {
+  it("adds trigger, confidence, and recommended actions to dwell briefs", () => {
     const brief = buildDwellOpportunityBrief(
       step({ type: "qa_hold" }),
       step({ type: "qa_hold" }),
@@ -66,7 +66,16 @@ describe("opportunity brief helpers", () => {
     expect(brief.opportunityTrigger.label).toBe("High dwell cost");
     expect(brief.opportunityTrigger.reason).toContain("carry cost");
     expect(brief.confidence.label).toBe("Limited");
-    expect(brief.guidance.firstEvidence[0]).toContain("longest release delays");
+    expect(brief.recommendedActions[0]?.text).toContain(
+      "longest release delays",
+    );
+    expect(brief.recommendedActions.map((action) => action.kind)).toEqual([
+      "evidence",
+      "evidence",
+      "process",
+      "planning",
+    ]);
+    expect(brief.diagnosis[0]).toContain("check whether retests");
     expect(
       brief.evidenceFlags.some((flag) => flag.label === "Wide distribution"),
     ).toBe(false);
@@ -133,6 +142,10 @@ describe("opportunity brief helpers", () => {
     expect(brief.calibrationDirection).toBe("increase");
     expect(brief.opportunityTrigger.primaryMetric).toContain("+50%");
     expect(brief.diagnosis[0]).toContain("below the observed high-percentile");
+    expect(brief.diagnosis.some((line) => line.includes("trend"))).toBe(true);
+    expect(brief.recommendedActions[0]?.text).toContain(
+      "longest normalized durations",
+    );
   });
 
   it("labels conservative planning candidates as tighten opportunities", () => {
