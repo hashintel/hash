@@ -17,6 +17,7 @@ import {
   createEntityType,
 } from "@apps/hash-api/src/graph/ontology/primitive/entity-type";
 import { createPropertyType } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
+import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import { Logger } from "@local/hash-backend-utils/logger";
 import {
@@ -25,6 +26,7 @@ import {
   queryEntities,
 } from "@local/hash-graph-sdk/entity";
 import { getClosedMultiEntityTypes } from "@local/hash-graph-sdk/entity-type";
+import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   blockProtocolDataTypes,
@@ -34,7 +36,6 @@ import {
   systemEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
-import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 
 import { resetGraph } from "../../../admin-server";
 import {
@@ -46,11 +47,10 @@ import {
 
 import type { Org } from "@apps/hash-api/src/graph/knowledge/system-types/org";
 import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
-import {
-  extractEntityUuidFromEntityId,
-  type EntityTypeWithMetadata,
-  type PropertyTypeWithMetadata,
-  type WebId,
+import type {
+  EntityTypeWithMetadata,
+  PropertyTypeWithMetadata,
+  WebId,
 } from "@blockprotocol/type-system";
 import type { HASHInstance } from "@local/hash-isomorphic-utils/system-types/hashinstance";
 import type { Machine } from "@local/hash-isomorphic-utils/system-types/machine";
