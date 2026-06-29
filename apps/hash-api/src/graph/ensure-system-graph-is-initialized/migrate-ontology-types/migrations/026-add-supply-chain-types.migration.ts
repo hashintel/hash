@@ -1260,7 +1260,10 @@ const migrate: MigrationFunction = async ({
           "A good or material that can be produced, stored, sold, or procured, including raw materials, intermediates, and finished goods.",
         labelProperty: blockProtocolPropertyTypes.name.propertyTypeBaseUrl,
         properties: [
-          { propertyType: blockProtocolPropertyTypes.name.propertyTypeId },
+          {
+            propertyType: blockProtocolPropertyTypes.name.propertyTypeId,
+            required: true,
+          },
           {
             propertyType: blockProtocolPropertyTypes.description.propertyTypeId,
           },
@@ -1293,10 +1296,10 @@ const migrate: MigrationFunction = async ({
         icon: "/icons/types/warehouse.svg",
         description:
           "A physical site, such as a plant, warehouse, or distribution hub, where goods are produced, stored, or shipped.",
-        labelProperty: blockProtocolPropertyTypes.name.propertyTypeBaseUrl,
+        labelProperty: siteCodePropertyType.metadata.recordId.baseUrl,
         properties: [
           { propertyType: blockProtocolPropertyTypes.name.propertyTypeId },
-          { propertyType: siteCodePropertyType },
+          { propertyType: siteCodePropertyType, required: true },
           { propertyType: siteTypePropertyType },
           { propertyType: shippingPointPropertyType },
           { propertyType: purchasingOrganizationPropertyType },
@@ -1332,7 +1335,7 @@ const migrate: MigrationFunction = async ({
           "A specific lot of a material, tracked through production, storage, and movement.",
         labelProperty: batchNumberPropertyType.metadata.recordId.baseUrl,
         properties: [
-          { propertyType: batchNumberPropertyType },
+          { propertyType: batchNumberPropertyType, required: true },
           { propertyType: expiryDatePropertyType },
           { propertyType: unitOfMeasurePropertyType },
           { propertyType: stockQuantityPropertyType },
@@ -1393,7 +1396,7 @@ const migrate: MigrationFunction = async ({
           "A structured list of the components required to produce a material.",
         labelProperty: bomNumberPropertyType.metadata.recordId.baseUrl,
         properties: [
-          { propertyType: bomNumberPropertyType },
+          { propertyType: bomNumberPropertyType, required: true },
           { propertyType: alternativeBomPropertyType },
           { propertyType: bomCategoryPropertyType },
           { propertyType: bomStatusPropertyType },
@@ -1464,7 +1467,7 @@ const migrate: MigrationFunction = async ({
           "A commitment by a customer to purchase goods or services on agreed terms.",
         labelProperty: salesOrderNumberPropertyType.metadata.recordId.baseUrl,
         properties: [
-          { propertyType: salesOrderNumberPropertyType },
+          { propertyType: salesOrderNumberPropertyType, required: true },
           { propertyType: salesDocumentTypePropertyType },
           { propertyType: salesOrganizationPropertyType },
           { propertyType: distributionChannelPropertyType },
@@ -1544,7 +1547,7 @@ const migrate: MigrationFunction = async ({
           "A logistics execution document for delivering goods against a sales order or transfer requirement.",
         labelProperty: deliveryNumberPropertyType.metadata.recordId.baseUrl,
         properties: [
-          { propertyType: deliveryNumberPropertyType },
+          { propertyType: deliveryNumberPropertyType, required: true },
           { propertyType: deliveryTypePropertyType },
           { propertyType: routePropertyType },
           { propertyType: shippingPointPropertyType },
@@ -1645,7 +1648,7 @@ const migrate: MigrationFunction = async ({
         labelProperty:
           purchaseOrderNumberPropertyType.metadata.recordId.baseUrl,
         properties: [
-          { propertyType: purchaseOrderNumberPropertyType },
+          { propertyType: purchaseOrderNumberPropertyType, required: true },
           { propertyType: purchasingDocumentTypePropertyType },
           { propertyType: purchasingOrganizationPropertyType },
           { propertyType: purchasingGroupPropertyType },
@@ -1712,7 +1715,7 @@ const migrate: MigrationFunction = async ({
         labelProperty:
           productionOrderNumberPropertyType.metadata.recordId.baseUrl,
         properties: [
-          { propertyType: productionOrderNumberPropertyType },
+          { propertyType: productionOrderNumberPropertyType, required: true },
           { propertyType: productionOrderTypePropertyType },
           { propertyType: alternativeBomPropertyType },
           { propertyType: releaseDatePropertyType },
@@ -1750,7 +1753,7 @@ const migrate: MigrationFunction = async ({
         labelProperty:
           materialDocumentNumberPropertyType.metadata.recordId.baseUrl,
         properties: [
-          { propertyType: materialDocumentNumberPropertyType },
+          { propertyType: materialDocumentNumberPropertyType, required: true },
           { propertyType: fiscalYearPropertyType },
           { propertyType: materialDocumentItemPropertyType },
           { propertyType: movementTypePropertyType },
@@ -1953,7 +1956,7 @@ const migrate: MigrationFunction = async ({
           "A line within a shipment, linking it to a delivery being transported.",
         labelProperty: shipmentItemNumberPropertyType.metadata.recordId.baseUrl,
         properties: [
-          { propertyType: shipmentItemNumberPropertyType },
+          { propertyType: shipmentItemNumberPropertyType, required: true },
           { propertyType: deliveryNumberPropertyType },
         ],
         outgoingLinks: [
@@ -1980,7 +1983,7 @@ const migrate: MigrationFunction = async ({
           "The transport of goods, potentially grouping several deliveries.",
         labelProperty: shipmentNumberPropertyType.metadata.recordId.baseUrl,
         properties: [
-          { propertyType: shipmentNumberPropertyType },
+          { propertyType: shipmentNumberPropertyType, required: true },
           { propertyType: routePropertyType },
           { propertyType: actualDepartureDatePropertyType },
           { propertyType: plannedArrivalDatePropertyType },

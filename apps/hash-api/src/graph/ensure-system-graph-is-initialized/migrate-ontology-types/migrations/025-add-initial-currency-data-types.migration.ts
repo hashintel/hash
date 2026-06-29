@@ -46,7 +46,7 @@ const migrate: MigrationFunction = async ({
         title: code,
         description: `An amount denominated in ${name} (ISO 4217 ${code}).`,
         type: "number",
-        ...(symbol ? { label: { left: symbol } } : {}),
+        label: symbol ? { left: symbol } : { right: code },
       },
       conversions: {},
       webShortname: "h",
