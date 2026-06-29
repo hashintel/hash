@@ -79,7 +79,9 @@ describe("opportunity brief helpers", () => {
     expect(
       brief.evidenceFlags.some((flag) => flag.label === "Wide distribution"),
     ).toBe(false);
-    expect(brief.distributionInsight).toContain("P95 dwell is");
+    expect(brief.distributionInsight).toContain(
+      "Estimated 95th-percentile dwell is",
+    );
   });
 
   it("builds ordered dwell cap scenarios from observed dwell values", () => {
