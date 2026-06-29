@@ -54,13 +54,14 @@ const getSafeReturnToPath = (returnTo: string | undefined) => {
     return undefined;
   }
 
-  const redirectUrl = new URL(returnTo, frontendUrl);
+  const frontendOrigin = new URL(frontendUrl).origin;
+  const redirectUrl = new URL(returnTo, frontendOrigin);
   const redirectPath = redirectUrl.pathname;
 
-  if (redirectUrl.origin !== frontendUrl) {
+  if (redirectUrl.origin !== frontendOrigin) {
     /**
-     * This isn't strictly necessary since we're only going to take the pathname,
-     * but useful to have the error reported
+     * This isn't strictly necessary since we're only going to take the path
+     * (including query/hash), but useful to have the error reported
      */
     throw new Error(
       `Someone tried to pass an external URL as a redirect: ${returnTo}`,
