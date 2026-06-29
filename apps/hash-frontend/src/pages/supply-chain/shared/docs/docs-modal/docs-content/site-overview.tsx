@@ -22,7 +22,7 @@ export const siteOverviewSection: DocSectionDef = {
         <>
           <Lead>
             The site view brings every product made at the plant into one
-            dashboard, so the highest-impact timing and cost issues surface
+            dashboard, so the highest-impact planning and cost issues surface
             regardless of which product they belong to.
           </Lead>
           <P>
@@ -41,13 +41,14 @@ export const siteOverviewSection: DocSectionDef = {
               <Term>Dwell cost</Term> &mdash; a dwell step carrying a material
               cost over the selected period. It appears when median dwell is at
               least 7 days and the selected-period carrying cost is at least
-              5,000 in the site currency.
+              5,000 in the local currency.
             </LI>
             <LI>
               <Term>Planning over / under</Term> &mdash; observed timing sitting
               above or below the planning parameter for the step. It appears
-              when P95 is at least 10% above or below plan. To see comparisons
-              against other statistics (e.g. median), use the{" "}
+              when 95% of observations (P95) are at least 10% above or below
+              plan. To see comparisons against other statistics (e.g. median),
+              use the{" "}
               <CrossRef to={{ section: "site-overview", sub: "planning-tab" }}>
                 {" "}
                 Planning parameters tab
@@ -57,21 +58,13 @@ export const siteOverviewSection: DocSectionDef = {
           </UL>
           <P>
             Each row shows its impact, supporting evidence and a sample-size
-            confidence label. Selecting a row opens that step&apos;s detail; the
-            row actions include <Term>Brief</Term>, <Term>Mark read</Term>,{" "}
-            <Term>Mark unread</Term> and the investigation status action.
+            confidence label. Clicking on a row opens that step&apos;s detail,
+            and the row actions at the end include <Term>Brief</Term>,{" "}
+            <Term>Mark read</Term>, <Term>Mark unread</Term> and the
+            investigation status action.
           </P>
           <H4>Investigation workflow</H4>
           <UL>
-            <LI>
-              <Term>Mark read</Term> hides an opportunity from the default list
-              once it has been reviewed. <Term>Mark unread</Term> returns it to
-              the unread list.
-            </LI>
-            <LI>
-              <Term>Show read</Term> brings reviewed opportunities back into the
-              table.
-            </LI>
             <LI>
               Record any actions for the opportunity using the status action
               button. It is labelled by the latest saved state:{" "}
@@ -81,10 +74,19 @@ export const siteOverviewSection: DocSectionDef = {
               data-issue rejection.
             </LI>
             <LI>
-              Status updates are keyed to the step/opportunity target, visible
-              again from the step detail panel, and viewable by anyone with
-              access to the supply-chain data web. Read/unread markers are a
-              personal preference.
+              All status updates for a given step are visible from the step
+              detail panel, and viewable by anyone with access to the
+              organisation.
+            </LI>
+            <LI>
+              <Term>Mark read</Term> hides an opportunity from the default list
+              once it has been reviewed. <Term>Mark unread</Term> returns it to
+              the unread list. This is a personal setting not shared among users
+              – you can mark items as read without affecting other users.
+            </LI>
+            <LI>
+              The <Term>Show read</Term> checkbox brings reviewed opportunities
+              back into the table.
             </LI>
           </UL>
           <P>
@@ -107,8 +109,7 @@ export const siteOverviewSection: DocSectionDef = {
             per calendar month, summed across every dwell step at the site.
           </Lead>
           <P>
-            It makes the seasonal shape of the carrying burden visible and is
-            recomputed live as the cost assumptions change. See{" "}
+            It depends on the configured cost of capital and storage rates. See{" "}
             <CrossRef to={{ section: "settings", sub: "wacc" }}>WACC</CrossRef>{" "}
             and{" "}
             <CrossRef to={{ section: "settings", sub: "storage" }}>
@@ -136,8 +137,7 @@ export const siteOverviewSection: DocSectionDef = {
           <P>
             Dwell rows remain visible even when Exclude low samples is on,
             because a small number of high-value waits can still explain real
-            carrying cost. Low-sample dwell rows are labelled so the statistic
-            is treated as directional.
+            carrying cost. Low-sample dwell rows are labelled.
           </P>
         </>
       ),
@@ -161,6 +161,14 @@ export const siteOverviewSection: DocSectionDef = {
             with the planning parameter. Use it to find candidates for planning
             recalibration.
           </P>
+          <P>
+            You can change the statistic to compare the parameter with in the
+            user
+            <CrossRef to={{ section: "settings", sub: "measure" }}>
+              Settings
+            </CrossRef>{" "}
+            menu.
+          </P>
         </>
       ),
     },
@@ -170,13 +178,15 @@ export const siteOverviewSection: DocSectionDef = {
       render: () => (
         <>
           <Lead>
-            The Trend tab lists steps whose selected timing measure is moving up
-            or down versus the previous comparison period.
+            The Trend tab lists steps whose selected measure is moving up or
+            down versus the previous comparison period (e.g. if 12 months is
+            selected from the user settings, it compares the last 12 months with
+            the previous 12 months)
           </Lead>
           <P>
             Use it as a directional signal beside the dwell and planning tabs:
             worsening rows can point to emerging delays, while improving rows
-            can confirm that recent changes are reducing observed timing.
+            can indicate improvements.
           </P>
         </>
       ),
@@ -216,22 +226,17 @@ export const siteOverviewSection: DocSectionDef = {
       title: "Site filters & controls",
       render: () => (
         <>
-          <Lead>
-            Two controls are specific to the site view and sit alongside the
-            lower detail tables or shared analysis settings.
-          </Lead>
+          <Lead>Two controls are specific to the site view.</Lead>
           <UL>
             <LI>
               <Term>Category filter</Term> &mdash; shown on the Planning
               parameters and Trend tabs to restrict those tables to chosen step
-              categories. It is hidden on the Dwell tab, and the Dwell category
-              is omitted from the Planning parameters filter.
+              categories.
             </LI>
             <LI>
               <Term>Exclude low samples</Term> &mdash; hide Planning and Trend
               rows with fewer than 10 observations, so rankings are not
-              dominated by noisy single-event steps. Dwell rows stay visible and
-              are labelled instead because carrying cost can still be material.
+              dominated by noisy single-event steps.
             </LI>
           </UL>
           <P>

@@ -54,24 +54,27 @@ export const settingsSection: DocSectionDef = {
             <SettingRow name="Procurement basis">
               Whether procurement lead time is measured to the{" "}
               <Term>first</Term> goods receipt or to the <Term>full</Term>{" "}
-              (final) receipt that completes the order. See the scope note
-              below.
+              (final) receipt that completes the order.
             </SettingRow>
           </Anchor>
           <Anchor id="time-range">
             <SettingRow name="Time range">
-              The 3m / 6m / 12m window. Each view filters by its own relevant
-              event date, so the same window can select slightly different
-              populations in different views.
+              What time period to include in the analysis. Averages will be
+              shown across the period, and trends will be shown comparing the
+              current period with the previous period. For example, if 12 months
+              is selected, averages shown will be across the last 12 months, and
+              trends will compare the last 12 months with the previous 12
+              months.
             </SettingRow>
           </Anchor>
           <Anchor id="outliers">
             <SettingRow name="Exclude outliers">
-              Drops values outside a Tukey 1.5x IQR fence. For each timing,
-              receipt-ratio or consumption series, the app computes Q1 and Q3,
-              calculates the interquartile range (IQR = Q3 - Q1), then excludes
-              points below Q1 - 1.5x IQR or above Q3 + 1.5x IQR. Statistics and
-              monthly timing are recomputed from the kept observations.
+              Excludes values falling significantly outside the normal
+              distribution. This is done by computing the interquartile range
+              (IQR), i.e. the values falling between 25% and 75% of
+              observations, and then excluding any values which are greater than
+              1.5x IQR above the third quartile or less than 1.5x IQR below the
+              first quartile (aka Tukey fences).
             </SettingRow>
           </Anchor>
 
@@ -79,28 +82,15 @@ export const settingsSection: DocSectionDef = {
           <UL>
             <LI>
               <Term>Procurement basis affects procurement steps only.</Term>{" "}
-              First vs full receipt changes the procurement lead-time series
-              wherever it appears, including the procurement rows that feed the
-              site planning table and opportunities. Every non-procurement step
-              type ignores it &mdash; their timings are not derived from
-              purchase-order receipts, so there is nothing for the basis to
-              switch between.
+              First vs full receipt changes the procurement lead-time analysis
+              wherever it appears.
             </LI>
             <LI>
-              <Term>Planning opportunities key off P95, not the measure.</Term>{" "}
-              The planning-deviation opportunities compare the P95 of observed
-              timing against the planning parameter, so they do not move when
-              the headline{" "}
-              <CrossRef to={{ section: "settings", sub: "measure" }}>
-                measure
-              </CrossRef>{" "}
-              is switched between median and mean.
-            </LI>
-            <LI>
-              <Term>Outlier fences are series-specific.</Term> Timing,
-              receipt-ratio, aggregate consumption and component consumption
-              each get their own IQR fence. Procurement&apos;s first-receipt and
-              full-receipt timing series are also filtered independently.
+              <Term>Planning opportunities</Term> in the site overview are
+              selected by parameters which are more than 10% above or below 95%
+              of observations (P95), not the selected measure. The full planning
+              parameter tab lower down on the site overview are affected by the
+              selected measure.
             </LI>
           </UL>
 

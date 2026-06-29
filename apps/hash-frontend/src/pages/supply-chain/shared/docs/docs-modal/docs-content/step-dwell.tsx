@@ -24,8 +24,7 @@ export const dwellDoc: DocEntry = {
         <Term>One observation per event.</Term> Dwell is measured at every
         individual consumption or movement event, not as a single average per
         batch. A batch drawn from stock across three production orders produces
-        three observations, each dated at its actual draw, so the timing
-        distribution and time filtering reflect real calendar activity.
+        three observations, each dated at its actual draw and quantity.
       </P>
 
       <H4>The four dwell spans</H4>
@@ -73,8 +72,8 @@ export const dwellDoc: DocEntry = {
         Every dwell point carries an inventory carrying-cost view: the quantity
         in stock multiplied by the days it is held, costed with a
         cost-of-capital rate and a physical storage rate. The cost is built from
-        a month-by-month balance so material consumed early in a month is not
-        charged for the rest of it. Both rates are adjustable &mdash; see{" "}
+        a daily balance so material consumed early in a month is not charged for
+        the rest of it. Both rates are adjustable &mdash; see{" "}
         <CrossRef to={{ section: "settings", sub: "wacc" }}>WACC</CrossRef> and{" "}
         <CrossRef to={{ section: "settings", sub: "storage" }}>
           storage cost

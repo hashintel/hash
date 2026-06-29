@@ -151,22 +151,18 @@ export const PageSidebar: FunctionComponent = () => {
       ...workersSection,
       ...toggleableLinks,
       {
+        title: "Supply Chain",
+        path: "/supply-chain",
+        icon: <FontAwesomeIcon icon={faTruckFast} />,
+        activeIfPathMatches: /^\/supply-chain(\/|$)/,
+        tooltipTitle: "",
+      },
+      {
         title: "Processes",
         path: "/processes",
         icon: <ChartNetworkRegularIcon sx={{ fontSize: 16 }} />,
         activeIfPathMatches: /^\/processes(\/|$)/,
       },
-      ...(enabledFeatureFlags.supplyChain
-        ? [
-            {
-              title: "Supply Chain",
-              path: "/supply-chain",
-              icon: <FontAwesomeIcon icon={faTruckFast} />,
-              activeIfPathMatches: /^\/supply-chain(\/|$)/,
-              tooltipTitle: "",
-            },
-          ]
-        : []),
       {
         title: "Inbox",
         path: shouldInboxLinkToActions
@@ -215,7 +211,6 @@ export const PageSidebar: FunctionComponent = () => {
     numberOfUnreadNotifications,
     pendingInvites.length,
     enabledFeatureFlags.notes,
-    enabledFeatureFlags.supplyChain,
   ]);
 
   return (

@@ -17,24 +17,12 @@ export const stepDetailDoc: DocEntry = {
   render: () => (
     <>
       <Lead>
-        The step detail panel is the main place to investigate a single
-        value-chain step after selecting a product card, canvas node, site table
-        row or opportunity.
+        The step detail panel provides a quick view of evidence for a single
+        step. It shows the step&apos;s duration distribution, monthly trend,
+        planning comparison and source records.
       </Lead>
-      <P>
-        It keeps the step&apos;s method explanation close by through the
-        <Term>About this step</Term> button, but the panel itself is about
-        evidence: distributions, trends, records, status and related operational
-        dimensions.
-      </P>
-
       <H4>Dimensions</H4>
       <UL>
-        <LI>
-          <Term>Timing</Term> is the default view. It shows the step&apos;s
-          duration distribution, monthly trend, planning comparison and source
-          records.
-        </LI>
         <LI>
           <Term>Receipt ratio</Term> appears on production steps when
           receipt/yield data is available. It compares received quantity with
@@ -42,13 +30,9 @@ export const stepDetailDoc: DocEntry = {
         </LI>
         <LI>
           <Term>Consumption</Term> appears when component consumption is
-          available. It shows aggregate variance and lets you inspect
-          component-level consumption against expectation.
-        </LI>
-        <LI>
-          <Term>Supplier</Term> appears on procurement steps when supplier
-          performance is enabled. It separates vendor execution against promised
-          dates from procurement lead time.
+          available. It compares actual consumption with material reservations.
+          It shows aggregate variance and lets you inspect component-level
+          consumption against expectation.
         </LI>
       </UL>
 
@@ -56,9 +40,7 @@ export const stepDetailDoc: DocEntry = {
       <UL>
         <LI>
           <Term>Statistics</Term> list the named measures directly: min, mean,
-          median, P75, P85, P95, max and sample count. These values stay
-          explicit even when the global Measure setting changes the headline
-          value elsewhere.
+          median, P75, P85, P95, max and sample count.
         </LI>
         <LI>
           <Term>Distribution</Term> shows the spread of observations for the
@@ -66,9 +48,8 @@ export const stepDetailDoc: DocEntry = {
           from broad shifts in the whole series.
         </LI>
         <LI>
-          <Term>Monthly trend</Term> shows how timing, cost, receipt ratio or
-          consumption has moved over time. Selecting a month filters the
-          evidence table to the records behind that point.
+          <Term>Monthly trend</Term> shows change over time. Selecting a month
+          filters the evidence table to the records behind that point.
         </LI>
         <LI>
           <Term>Planning comparison</Term> shows the planning parameter, the
@@ -79,26 +60,6 @@ export const stepDetailDoc: DocEntry = {
 
       <H4>Evidence and actions</H4>
       <UL>
-        <LI>
-          <Term>Source records</Term> open from the table button in the header.
-          Use <Term>Data</Term> to open the table. It can be filtered by the
-          active month and exported with <Term>Export CSV</Term> for follow-up
-          checks in another system.
-        </LI>
-        <LI>
-          <Term>Time range</Term> buttons filter the panel independently while
-          keeping it consistent with the same 3m / 6m / 12m windows used
-          elsewhere.
-        </LI>
-        <LI>
-          <Term>Outlier count</Term> appears in the header when the Exclude
-          outliers setting removes timing observations from the current step.
-          See{" "}
-          <CrossRef to={{ section: "settings", sub: "outliers" }}>
-            Exclude outliers
-          </CrossRef>
-          .
-        </LI>
         <LI>
           <Term>Brief</Term> opens a printable opportunity brief when the step
           is part of a site opportunity. The brief turns the evidence into an
@@ -112,6 +73,23 @@ export const stepDetailDoc: DocEntry = {
           Status history is tied to the step/opportunity, reappears when the
           same target is opened again, and is viewable by anyone with access to
           the supply-chain data web.
+        </LI>
+        <LI>
+          Use <Term>Data</Term> to open a table with the underlying records used
+          to compute analysis. It can be exported with <Term>Export CSV</Term>{" "}
+          for follow-up checks in another system.
+        </LI>
+        <LI>
+          <Term>Time range</Term> buttons (3m, 6m, 12) filter the panel.
+        </LI>
+        <LI>
+          <Term>Outlier count</Term> appears in the header when the Exclude
+          outliers setting removes timing observations from the current step.
+          See{" "}
+          <CrossRef to={{ section: "settings", sub: "outliers" }}>
+            Exclude outliers
+          </CrossRef>
+          .
         </LI>
       </UL>
 

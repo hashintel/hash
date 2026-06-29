@@ -9,7 +9,7 @@ export const transitDoc: DocEntry = {
     <>
       <Lead>
         Transit measures how long finished product takes to move from the
-        production plant to its next location on the way to the customer.
+        production plant to its next location.
       </Lead>
       <H4>Plant to hub</H4>
       <P>
@@ -21,10 +21,11 @@ export const transitDoc: DocEntry = {
       <P>
         For product shipped to an external customer rather than an internal
         destination, transit is measured from the goods issue shipment date to
-        the actual transport end date from transport documents. The customer
-        classification comes from the delivery&apos;s ship-to account, not from
-        the absence of a known hub receipt. Batches without an actual transport
-        end date are not included in this step.
+        the actual transport end date from transport documents.
+      </P>
+      <P>
+        Batches without an identifiable transport end date are excluded from the
+        analysis.
       </P>
     </>
   ),

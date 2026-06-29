@@ -36,14 +36,24 @@ export const productOverviewSection: DocSectionDef = {
             The product selector in the header switches between finished goods.
             The KPI chips below it show traceable end-to-end mean, traceable
             end-to-end median and total dwell carrying cost for the selected
-            time range when those values are available.
+            time range when those values are available. The end-to-end timings
+            are the average across all destinations. For pipeline timings for
+            specific destinations, see the{" "}
+            <CrossRef to={{ section: "product-overview", sub: "e2e-pipeline" }}>
+              end-to-end pipeline
+            </CrossRef>{" "}
+            view at the bottom of the screen.
           </P>
           <H4>Step categories</H4>
           <UL>
             <LI>
               <Term>Procurement</Term> measures purchase-order lead time for
               bought inputs, either to first receipt or full receipt depending
-              on the procurement-basis setting.
+              on the procurement-basis setting (see{" "}
+              <CrossRef to={{ section: "settings", sub: "procurement-basis" }}>
+                Settings
+              </CrossRef>
+              )
             </LI>
             <LI>
               <Term>Dwell</Term> measures waiting time between operational

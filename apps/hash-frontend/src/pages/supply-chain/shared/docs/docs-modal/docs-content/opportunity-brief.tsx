@@ -22,14 +22,13 @@ export const opportunityBriefSection: DocSectionDef = {
         <>
           <Lead>
             Opportunity briefs are printable investigation reports opened from
-            the site opportunities table or the step detail panel. They turn one
-            flagged step into a structured evidence pack.
+            the site opportunities table or the step detail panel, via a{" "}
+            <Term>Brief</Term> button. They turn one flagged step into a
+            structured evidence pack.
           </Lead>
           <P>
             There are two brief types: dwell cost reduction and planning
-            parameter calibration. Both use the same filtered step evidence,
-            time range, outlier setting and cost assumptions that are active in
-            the app.
+            parameter calibration.
           </P>
 
           <H4>Brief types</H4>
@@ -50,8 +49,8 @@ export const opportunityBriefSection: DocSectionDef = {
           <H4>Report sections</H4>
           <UL>
             <LI>
-              <Term>Executive summary</Term> explains why the opportunity fired
-              and summarises the prize or calibration decision.
+              <Term>Executive summary</Term> explains why the opportunity was
+              flagged and summarises the key information.
             </LI>
             <LI>
               <Term>Opportunity diagnosis</Term> lists the main diagnostic
@@ -68,14 +67,9 @@ export const opportunityBriefSection: DocSectionDef = {
               timing.
             </LI>
             <LI>
-              <Term>First-use dwell</Term> appears when the brief can identify
-              how early materials were ordered or intermediates were produced
-              before first downstream use.
-            </LI>
-            <LI>
-              <Term>Supplier OTIF</Term> and <Term>Yield and consumption</Term>{" "}
-              appear when supplier or production side evidence is available for
-              the step.
+              <Term>First-use dwell</Term> indicates how early materials were
+              ordered or intermediates were produced before first downstream
+              use.
             </LI>
             <LI>
               <Term>Distribution and evidence</Term> contains the box plot,
@@ -91,19 +85,14 @@ export const opportunityBriefSection: DocSectionDef = {
           <H4>Evidence exports and print</H4>
           <P>
             Use <Term>Evidence CSV</Term> to export the records behind the brief
-            and <Term>Print / Save as PDF</Term> to share the report. Before
-            acting on the recommendation, validate the source rows, affected
-            batches, materials and months in the operational system.
+            and <Term>Print / Save as PDF</Term> to share the report.
           </P>
           <Note>
-            A brief is an investigation aid, not an automatic process
-            prescription. Savings assume carrying cost scales with kg-days, and
-            planning recommendations still need business review for
-            service-level tolerance. See{" "}
+            See{" "}
             <CrossRef
               to={{ section: "site-overview", sub: "overview-opportunities" }}
             >
-              Overview &amp; opportunities
+              Opportunities
             </CrossRef>{" "}
             for how opportunities are selected.
           </Note>
