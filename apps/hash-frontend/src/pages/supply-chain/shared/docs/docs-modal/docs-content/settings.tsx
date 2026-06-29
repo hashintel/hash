@@ -8,9 +8,9 @@ import {
   Anchor,
   SettingRow,
   CrossRef,
-} from "../docs-primitives";
+} from "../../docs-primitives";
 
-import type { DocSectionDef } from "../docs-types";
+import type { DocSectionDef } from "../../docs-types";
 
 export const settingsSection: DocSectionDef = {
   id: "settings",

@@ -1,6 +1,6 @@
-import { Lead, P, H4, Term, Note, CrossRef } from "../docs-primitives";
+import { Lead, P, H4, Term, Note, CrossRef } from "../../docs-primitives";
 
-import type { DocEntry } from "../docs-types";
+import type { DocEntry } from "../../docs-types";
 
 export const procurementDoc: DocEntry = {
   id: "procurement",

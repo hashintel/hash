@@ -255,7 +255,7 @@ const OpportunityColGroup = () => {
   );
 };
 
-function sectionClass(kind: OpportunityKind): string | undefined {
+function sectionClass(kind: OpportunityKind): string {
   if (kind === "dwell_cost") {
     return dwellSection;
   }
@@ -263,7 +263,6 @@ function sectionClass(kind: OpportunityKind): string | undefined {
     return overSection;
   }
   return underSection;
-  return undefined;
 }
 
 const CaretIcon = ({ className }: { className?: string }) => {
@@ -287,7 +286,7 @@ const CaretIcon = ({ className }: { className?: string }) => {
   );
 };
 
-function pillClass(kind: OpportunityKind): string | undefined {
+function pillClass(kind: OpportunityKind): string {
   if (kind === "dwell_cost") {
     return pillDwell;
   }
@@ -295,7 +294,6 @@ function pillClass(kind: OpportunityKind): string | undefined {
     return pillBad;
   }
   return pillGood;
-  return undefined;
 }
 
 function sampleTooltip(opportunity: SiteOpportunity) {
@@ -315,13 +313,6 @@ function sampleClass(label: string): string {
     return sampleGood;
   }
   return sampleBad;
-}
-
-function sampleBadgeLabel(label: string): string {
-  if (label === "Low sample") {
-    return "low";
-  }
-  return label;
 }
 
 const UnreadIcon = () => {
@@ -558,7 +549,7 @@ export const OpportunitiesTable = ({
                                 sampleClass(opportunity.confidenceLabel),
                               )}
                             >
-                              {sampleBadgeLabel(opportunity.confidenceLabel)}
+                              {opportunity.confidenceLabel}
                             </span>
                           </Tooltip>
                         </td>

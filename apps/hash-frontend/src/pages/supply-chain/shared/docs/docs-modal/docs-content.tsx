@@ -9,8 +9,8 @@ import { productionDoc } from "./docs-content/step-production";
 import { qaDoc } from "./docs-content/step-qa";
 import { transitDoc } from "./docs-content/step-transit";
 
-import type { StepType } from "../types";
-import type { DocSectionDef, DocSectionId, DocTarget } from "./docs-types";
+import type { StepType } from "../../types";
+import type { DocSectionDef, DocSectionId, DocTarget } from "../docs-types";
 
 const stepsSection: DocSectionDef = {
   id: "steps",

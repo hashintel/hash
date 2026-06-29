@@ -5,7 +5,7 @@ import { Button, usePortalContainerRef } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { useSupplierPerformanceEnabled } from "../feature-flags";
-import { DOC_SECTIONS } from "./docs-content";
+import { DOC_SECTIONS } from "./docs-modal/docs-content";
 import { DocEntryBlock, DocsNavProvider } from "./docs-primitives";
 
 import type {

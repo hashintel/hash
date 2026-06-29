@@ -1,6 +1,15 @@
-import { Lead, P, H4, Term, UL, LI, Note, CrossRef } from "../docs-primitives";
+import {
+  Lead,
+  P,
+  H4,
+  Term,
+  UL,
+  LI,
+  Note,
+  CrossRef,
+} from "../../docs-primitives";
 
-import type { DocSectionDef } from "../docs-types";
+import type { DocSectionDef } from "../../docs-types";
 
 export const productOverviewSection: DocSectionDef = {
   id: "product-overview",

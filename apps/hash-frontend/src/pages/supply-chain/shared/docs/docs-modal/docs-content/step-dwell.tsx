@@ -6,9 +6,9 @@ import {
   SpanList,
   SpanItem,
   CrossRef,
-} from "../docs-primitives";
+} from "../../docs-primitives";
 
-import type { DocEntry } from "../docs-types";
+import type { DocEntry } from "../../docs-types";
 
 export const dwellDoc: DocEntry = {
   id: "dwell",

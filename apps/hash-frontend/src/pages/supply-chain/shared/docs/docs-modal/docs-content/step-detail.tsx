@@ -1,6 +1,15 @@
-import { Lead, P, H4, Term, UL, LI, Note, CrossRef } from "../docs-primitives";
+import {
+  Lead,
+  P,
+  H4,
+  Term,
+  UL,
+  LI,
+  Note,
+  CrossRef,
+} from "../../docs-primitives";
 
-import type { DocEntry } from "../docs-types";
+import type { DocEntry } from "../../docs-types";
 
 export const stepDetailDoc: DocEntry = {
   id: "step-detail",

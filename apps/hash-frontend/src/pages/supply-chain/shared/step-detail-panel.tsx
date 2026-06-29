@@ -20,7 +20,7 @@ import { isDwellType, isProductionType } from "./categories";
 import { useOutlierSetting } from "./cost";
 import { fetchStepDetail } from "./data";
 import { detailDateKeyFromColumns } from "./detail-date-key";
-import { stepDocTarget } from "./docs/docs-content";
+import { stepDocTarget } from "./docs/docs-modal/docs-content";
 import { useDocs } from "./docs/use-docs";
 import { useSupplierPerformanceEnabled } from "./feature-flags";
 import { LoadingState, ErrorState } from "./load-state";
