@@ -9,7 +9,7 @@ import {
   AnalysisSettingsPanel,
   HeaderActionButtons,
 } from "../shared/header-actions";
-import { LoadingState, ErrorState } from "../shared/load-state";
+import { ErrorState, SupplyChainAppSkeleton } from "../shared/load-state";
 import { useLowSampleSetting } from "../shared/low-sample-context";
 import { ScopeSelect } from "../shared/scope-select";
 import { StatChip } from "../shared/stat-chip";
@@ -52,7 +52,6 @@ import type {
   SupplierMode,
 } from "./site/shared/row-types";
 
-const loadingH = css({ h: "64" });
 const errorPad = css({ px: "6", py: "4" });
 // Fill the layout's main area (a flex column) and clamp our own height to it so
 // the content pane can scroll internally instead of overflowing the viewport.
@@ -406,7 +405,7 @@ export const SiteOverview = ({
     ? statusTarget
     : null;
   if (loading) {
-    return <LoadingState message="Loading site data..." className={loadingH} />;
+    return <SupplyChainAppSkeleton />;
   }
   if (error) {
     return <ErrorState message={error} className={errorPad} />;

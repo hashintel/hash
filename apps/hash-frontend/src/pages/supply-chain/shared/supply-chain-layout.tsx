@@ -1,24 +1,14 @@
 import { useRef } from "react";
 
 import { PortalContainerContext } from "@hashintel/ds-components";
-import { css } from "@hashintel/ds-helpers/css";
 
 import { getLayoutWithSidebar } from "../../../shared/layout";
 import { HEADER_HEIGHT } from "../../../shared/layout/layout-with-header/page-header";
 import { useActiveWorkspace } from "../../shared/workspace-context";
 import { SupplyChainDataShell } from "../supply-chain-data-shell";
-import { LoadingState } from "./load-state";
+import { SupplyChainAppSkeleton } from "./load-state";
 
 import type { ReactElement, ReactNode } from "react";
-
-const emptyState = css({
-  h: "full",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  color: "fg.subtle",
-  textStyle: "sm",
-});
 
 /**
  * Layout shared by every `/supply-chain/*` page.
@@ -46,7 +36,7 @@ const SupplyChainShell = ({ children }: { children: ReactNode }) => {
         }}
       >
         {activeWorkspaceWebId === undefined ? (
-          <LoadingState className={emptyState} message="Loading workspace..." />
+          <SupplyChainAppSkeleton />
         ) : (
           <SupplyChainDataShell
             key={activeWorkspaceWebId}

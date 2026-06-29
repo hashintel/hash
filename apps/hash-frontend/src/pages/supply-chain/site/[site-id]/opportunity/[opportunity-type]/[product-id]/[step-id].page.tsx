@@ -1,7 +1,10 @@
 import { useRouter } from "next/router";
 import { useEffect } from "react";
 
-import { LoadingState, ErrorState } from "../../../../../shared/load-state";
+import {
+  ErrorState,
+  SupplyChainAppSkeleton,
+} from "../../../../../shared/load-state";
 import { useRegistry } from "../../../../../shared/registry-context";
 import { getSupplyChainLayout } from "../../../../../shared/supply-chain-layout";
 import {
@@ -55,7 +58,7 @@ const OpportunityPage: NextPageWithLayout = () => {
   }, [opportunityType, productId, siteId, stepId]);
 
   if (!router.isReady) {
-    return <LoadingState message="Loading opportunity brief..." />;
+    return <SupplyChainAppSkeleton />;
   }
 
   if (!siteId || !productId || !stepId) {
