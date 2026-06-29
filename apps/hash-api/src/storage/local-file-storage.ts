@@ -48,7 +48,9 @@ export class LocalFileSystemStorageProvider implements FileStorageProvider {
     fileUploadPath,
     apiOrigin,
   }: LocalFileSystemStorageProviderConstructorArgs) {
-    this.fileUploadPath = path.join(appRoot.path, fileUploadPath);
+    this.fileUploadPath = path.isAbsolute(fileUploadPath)
+      ? fileUploadPath
+      : path.join(appRoot.path, fileUploadPath);
     this.apiOrigin = apiOrigin;
     if (!fs.existsSync(this.fileUploadPath)) {
       fs.mkdirSync(this.fileUploadPath, { recursive: true });
