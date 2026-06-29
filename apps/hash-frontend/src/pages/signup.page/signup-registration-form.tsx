@@ -52,12 +52,7 @@ export const SignupRegistrationForm: FunctionComponent = () => {
 
   useEffect(() => {
     if (typeof emailFromQuery === "string") {
-      const {
-        email: _email,
-        flow: _flow,
-        return_to: _returnTo,
-        ...query
-      } = router.query;
+      const { email: _email, ...query } = router.query;
 
       void router.replace({ query }, undefined, {
         shallow: true,
