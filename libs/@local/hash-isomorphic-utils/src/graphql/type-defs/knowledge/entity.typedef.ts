@@ -220,6 +220,10 @@ export const entityTypedef = gql`
       Whether the created entity should be a draft
       """
       draft: Boolean
+      """
+      Whether the created entity should be publicly visible
+      """
+      makePublic: Boolean = false
     ): Entity!
 
     """
