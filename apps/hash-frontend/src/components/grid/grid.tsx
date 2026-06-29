@@ -442,7 +442,9 @@ export const Grid = <
     });
   }, [columns, columnSizes]);
 
-  const emptyStateText = dataLoading ? "Loading..." : "No results found.";
+  const emptyStateText = dataLoading
+    ? "Loading..."
+    : "No results with the applied filters.";
 
   const getSkeletonCellContent = useCallback(
     ([colIndex]: Item): TextCell => ({
