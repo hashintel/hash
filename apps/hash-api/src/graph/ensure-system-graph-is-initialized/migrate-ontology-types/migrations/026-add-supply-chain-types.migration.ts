@@ -16,6 +16,7 @@ import {
 } from "../util";
 
 import type { MigrationFunction } from "../types";
+import type { EntityTypeDefinition } from "../util";
 import type {
   BaseUrl,
   Conversions,
@@ -753,17 +754,64 @@ const migrate: MigrationFunction = async ({
     "Movement Type",
     "The type of a goods movement, such as a goods receipt, goods issue, or transfer.",
   );
-  const movementCategoryPropertyType = await text(
-    "Movement Category",
-    "A broad category of goods movement.",
+  const movementCategoryDataType = await createSystemDataTypeIfNotExists(
+    context,
+    authentication,
+    {
+      dataTypeDefinition: {
+        allOf: [{ $ref: blockProtocolDataTypes.text.dataTypeId }],
+        title: "Movement Category",
+        description: "A broad category of goods movement.",
+        enum: ["Goods Receipt", "Goods Issue", "Transfer"],
+        type: "string",
+      },
+      conversions: {},
+      migrationState,
+      webShortname: "h",
+    },
+  );
+  const movementCategoryPropertyType =
+    await createSystemPropertyTypeIfNotExists(context, authentication, {
+      propertyTypeDefinition: {
+        title: "Movement Category",
+        description: "A broad category of goods movement.",
+        possibleValues: [{ dataTypeId: movementCategoryDataType.schema.$id }],
+      },
+      migrationState,
+      webShortname: "h",
+    });
+  const stockDirectionDataType = await createSystemDataTypeIfNotExists(
+    context,
+    authentication,
+    {
+      dataTypeDefinition: {
+        allOf: [{ $ref: blockProtocolDataTypes.text.dataTypeId }],
+        title: "Stock Direction",
+        description: "Whether stock is increased or decreased.",
+        enum: ["Increase", "Decrease"],
+        type: "string",
+      },
+      conversions: {},
+      migrationState,
+      webShortname: "h",
+    },
+  );
+  const stockDirectionPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Stock Direction",
+        description: "Whether stock is increased or decreased.",
+        possibleValues: [{ dataTypeId: stockDirectionDataType.schema.$id }],
+      },
+      migrationState,
+      webShortname: "h",
+    },
   );
   const stockTypePropertyType = await text(
     "Stock Type",
     "The stock category or inspection/blocking status for inventory.",
-  );
-  const debitCreditIndicatorPropertyType = await text(
-    "Debit/Credit Indicator",
-    "Indicates whether a posting is a debit or a credit.",
   );
   const legIndicatorPropertyType = await text(
     "Leg Indicator",
@@ -1039,7 +1087,19 @@ const migrate: MigrationFunction = async ({
   );
   const stockQuantityPropertyType = await quantity(
     "Stock Quantity",
-    "The quantity of stock on hand.",
+    "The quantity of stock on hand and available for use.",
+  );
+  const qualityInspectionStockPropertyType = await quantity(
+    "Quality Inspection Stock",
+    "The quantity of stock held for quality inspection.",
+  );
+  const restrictedUseStockPropertyType = await quantity(
+    "Restricted-Use Stock",
+    "The quantity of stock restricted from general use.",
+  );
+  const blockedStockPropertyType = await quantity(
+    "Blocked Stock",
+    "The quantity of stock blocked from use.",
   );
   const safetyStockPropertyType = await quantity(
     "Safety Stock",
@@ -1055,6 +1115,7 @@ const migrate: MigrationFunction = async ({
     inverseTitle: string,
     description: string,
     icon: string,
+    properties?: EntityTypeDefinition["properties"],
   ) =>
     createSystemEntityTypeIfNotExists(context, authentication, {
       entityTypeDefinition: {
@@ -1063,10 +1124,16 @@ const migrate: MigrationFunction = async ({
         icon,
         inverse: { title: inverseTitle },
         description,
+        ...(properties ? { properties } : {}),
       },
       migrationState,
       webShortname: "h",
     });
+
+  const expiryDatePropertyType = await date(
+    "Expiry Date",
+    "The date on which a batch's shelf life expires.",
+  );
 
   const hasLineItemLink = await link(
     "Has Line Item",
@@ -1133,6 +1200,20 @@ const migrate: MigrationFunction = async ({
     "Makes up",
     "The material that something is made up of.",
     "/icons/types/link.svg",
+    [{ propertyType: expiryDatePropertyType }],
+  );
+
+  const storedAtLink = await link(
+    "Stored At",
+    "Stores",
+    "A site where a batch is held in stock, with the quantities on hand by stock type.",
+    "/icons/types/box-location-dot.svg",
+    [
+      { propertyType: stockQuantityPropertyType },
+      { propertyType: qualityInspectionStockPropertyType },
+      { propertyType: restrictedUseStockPropertyType },
+      { propertyType: blockedStockPropertyType },
+    ],
   );
 
   const recordsLink = await link(
@@ -1318,11 +1399,6 @@ const migrate: MigrationFunction = async ({
     },
   );
 
-  const expiryDatePropertyType = await date(
-    "Expiry Date",
-    "The date on which a batch expires or is no longer usable.",
-  );
-
   const batchEntityType = await createSystemEntityTypeIfNotExists(
     context,
     authentication,
@@ -1334,17 +1410,15 @@ const migrate: MigrationFunction = async ({
         description:
           "A specific lot of a material, tracked through production, storage, and movement.",
         labelProperty: batchNumberPropertyType.metadata.recordId.baseUrl,
-        properties: [
-          { propertyType: batchNumberPropertyType, required: true },
-          { propertyType: expiryDatePropertyType },
-          { propertyType: unitOfMeasurePropertyType },
-          { propertyType: stockQuantityPropertyType },
-        ],
+        properties: [{ propertyType: batchNumberPropertyType, required: true }],
         outgoingLinks: [
           {
             linkEntityType: ofMaterialLink,
             destinationEntityTypes: [materialEntityType.schema.$id],
-            maxItems: 1,
+          },
+          {
+            linkEntityType: storedAtLink,
+            destinationEntityTypes: [siteEntityType.schema.$id],
           },
         ],
       },
@@ -1758,6 +1832,7 @@ const migrate: MigrationFunction = async ({
           { propertyType: materialDocumentItemPropertyType },
           { propertyType: movementTypePropertyType },
           { propertyType: movementCategoryPropertyType },
+          { propertyType: stockDirectionPropertyType },
           { propertyType: batchNumberPropertyType },
           { propertyType: stockTypePropertyType },
           { propertyType: postingDatePropertyType },
@@ -1766,7 +1841,6 @@ const migrate: MigrationFunction = async ({
           { propertyType: movementQuantityPropertyType },
           { propertyType: unitOfMeasurePropertyType },
           { propertyType: storageLocationPropertyType },
-          { propertyType: debitCreditIndicatorPropertyType },
           { propertyType: purchaseOrderNumberPropertyType },
           { propertyType: purchaseOrderItemNumberPropertyType },
           { propertyType: productionOrderNumberPropertyType },
@@ -1923,7 +1997,7 @@ const migrate: MigrationFunction = async ({
           { propertyType: requirementQuantityPropertyType },
           { propertyType: withdrawnQuantityPropertyType },
           { propertyType: unitOfMeasurePropertyType },
-          { propertyType: debitCreditIndicatorPropertyType },
+          { propertyType: stockDirectionPropertyType },
         ],
         outgoingLinks: [
           {
