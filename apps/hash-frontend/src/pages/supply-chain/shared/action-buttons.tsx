@@ -90,7 +90,6 @@ export const BriefLink = ({
       href={href}
       className={cx(briefLinkStyle, className)}
       target="_blank"
-      rel="noreferrer"
       onClick={onClick}
     >
       <Icon name="fileLines" size="xs" />

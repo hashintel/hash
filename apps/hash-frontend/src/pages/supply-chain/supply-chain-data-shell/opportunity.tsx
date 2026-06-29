@@ -14,7 +14,9 @@ import { fetchStepDetail, fetchSiteSummary } from "../shared/data";
 import { detailDateKeyFromColumns } from "../shared/detail-date-key";
 import { useDocs } from "../shared/docs/use-docs";
 import { buildCsvContent, downloadCsv } from "../shared/export-utils";
+import { useSupplierPerformanceEnabled } from "../shared/feature-flags";
 import { LoadingState, ErrorState } from "../shared/load-state";
+import { ensureNodeStats } from "../shared/normalize-contract";
 import { applyOutlierSelectionToStep } from "../shared/outlier-selection";
 import {
   computePeriodDeltas,
@@ -26,6 +28,7 @@ import {
   filterStepByDateRange,
   applyProcurementBasisToStep,
 } from "../shared/range-filter";
+import { deduplicateNodes } from "../shared/site-aggregation";
 import { trackSupplyChainInteraction } from "../shared/telemetry";
 import {
   cutoffForRange,
@@ -35,7 +38,6 @@ import {
 import { useTimeRange } from "../shared/time-range-context";
 import { TrendIndicator } from "../shared/trend-indicator";
 import { useSearchParams } from "../shared/use-search-params";
-import { useSiteNodes } from "../shared/use-site-nodes";
 import {
   BriefBoxPlot,
   BriefHistogram,
@@ -62,10 +64,13 @@ import type {
   StepDetail,
   DetailRows,
   SiteSummaryRollups,
+  SiteData,
+  SiteSummary,
 } from "../shared/types";
 import type { RecommendedAction } from "./opportunity/recommendation-playbook";
 
 const SM = "@media (min-width: 640px)";
+const PRINT = "@media print";
 
 const article = css({
   mx: "auto",
@@ -73,6 +78,13 @@ const article = css({
   px: "6",
   py: "8",
   color: "fg.heading",
+  [PRINT]: {
+    mx: "0",
+    maxW: "[none]",
+    px: "0",
+    py: "0",
+    w: "full",
+  },
 });
 const topBar = css({
   mb: "6",
@@ -135,6 +147,7 @@ const metricsSection = css({
   gap: "4",
   py: "5",
   [SM]: { gridTemplateColumns: "[repeat(3,minmax(0,1fr))]" },
+  [PRINT]: { gridTemplateColumns: "[repeat(2,minmax(0,1fr))]" },
 });
 const triggerCard = css({
   mb: "4",
@@ -190,18 +203,14 @@ const grid3Mt = css({
   display: "grid",
   gap: "3",
   [SM]: { gridTemplateColumns: "[repeat(3,minmax(0,1fr))]" },
+  [PRINT]: { gridTemplateColumns: "[repeat(2,minmax(0,1fr))]" },
 });
 const distGrid = css({
+  mt: "5",
+  mb: "6",
   display: "grid",
   gap: "3",
-  [SM]: { gridTemplateColumns: "[repeat(3,minmax(0,1fr))]" },
-});
-const evidenceBox = css({
-  borderRadius: "lg",
-  borderWidth: "1px",
-  borderStyle: "solid",
-  borderColor: "bd.subtle",
-  p: "3",
+  [SM]: { gridTemplateColumns: "[repeat(2,minmax(0,1fr))]" },
 });
 const evidenceHeading = css({
   mb: "2",
@@ -211,29 +220,6 @@ const evidenceHeading = css({
   letterSpacing: "[0.08em]",
   color: "fg.muted",
 });
-const evidenceStack = css({
-  display: "flex",
-  flexDirection: "column",
-  gap: "2",
-});
-const evidenceFlag = css({ borderRadius: "md", bg: "bg.subtle", p: "2" });
-const flagLabelWarn = css({
-  textStyle: "xs",
-  fontWeight: "semibold",
-  color: "status.warning.fg.body",
-});
-const flagLabelDefault = css({
-  textStyle: "xs",
-  fontWeight: "semibold",
-  color: "fg.muted",
-});
-const flagDetail = css({
-  mt: "0.5",
-  textStyle: "xs",
-  lineHeight: "[1.625]",
-  color: "fg.muted",
-});
-const evidenceEmpty = css({ textStyle: "sm", color: "fg.muted" });
 const impactWrap = css({
   overflowX: "auto",
   borderRadius: "lg",
@@ -311,6 +297,12 @@ const grid2Mt = css({
   gap: "3",
   [SM]: { gridTemplateColumns: "[repeat(2,minmax(0,1fr))]" },
 });
+const planningImpactStack = css({
+  mt: "4",
+  display: "flex",
+  flexDirection: "column",
+  gap: "2",
+});
 const nextStepsEmpty = css({ textStyle: "sm", color: "fg.muted" });
 const sectionEl = css({
   borderTopWidth: "1px",
@@ -346,7 +338,11 @@ const metricValue = css({
 const metricBad = css({ color: "status.error.fg.body" });
 const metricGood = css({ color: "status.success.fg.body" });
 const metricWarning = css({ color: "status.warning.fg.body" });
-const metricTrendWrap = css({ mt: "1.5", textStyle: "xs" });
+const metricTrendWrap = css({
+  mt: "1.5",
+  textStyle: "xs",
+  flexWrap: "wrap",
+});
 const metricTrendNote = css({ color: "fg.subtle" });
 const checklistCard = css({
   borderRadius: "lg",
@@ -354,11 +350,6 @@ const checklistCard = css({
   borderStyle: "solid",
   borderColor: "bd.subtle",
   p: "3",
-});
-const checklistTitle = css({
-  textStyle: "sm",
-  fontWeight: "semibold",
-  color: "fg.heading",
 });
 const calloutCard = css({ borderRadius: "lg", bg: "[#fafafa]", p: "3" });
 // Confidence Assessment: bordered like the executive-summary callout, with top
@@ -403,7 +394,8 @@ const statTdLabel = css({
   px: "3",
   py: "2",
   color: "fg.muted",
-  whiteSpace: "nowrap",
+  verticalAlign: "top",
+  w: "[42%]",
 });
 const statTdValue = css({
   px: "3",
@@ -412,7 +404,8 @@ const statTdValue = css({
   fontWeight: "medium",
   fontVariantNumeric: "tabular-nums",
   color: "fg.heading",
-  whiteSpace: "nowrap",
+  overflowWrap: "anywhere",
+  verticalAlign: "top",
 });
 const stackedValue = css({
   display: "inline-flex",
@@ -480,7 +473,7 @@ const provenanceText = css({
 });
 const subTableNote = css({ mt: "2", textStyle: "xs", color: "fg.muted" });
 const topEvidenceWrap = css({
-  mt: "4",
+  pt: "2",
   display: "flex",
   flexDirection: "column",
   gap: "2",
@@ -490,6 +483,7 @@ const chartsGrid = css({
   display: "grid",
   gap: "4",
   [SM]: { gridTemplateColumns: "[repeat(3,minmax(0,1fr))]" },
+  [PRINT]: { gridTemplateColumns: "[repeat(2,minmax(0,1fr))]" },
 });
 const metricCue = css({ fontSize: "[0.75em]" });
 const srOnly = css({
@@ -504,6 +498,7 @@ const srOnly = css({
   borderWidth: "0",
 });
 const heroBanner = css({
+  mt: "4",
   mb: "4",
   borderRadius: "lg",
   borderWidth: "1px",
@@ -726,10 +721,9 @@ const BulletList = ({
   );
 };
 
-const Checklist = ({ title, items }: { title: string; items: string[] }) => {
+const Checklist = ({ items }: { items: string[] }) => {
   return (
     <div className={checklistCard}>
-      <h3 className={checklistTitle}>{title}</h3>
       <BulletList items={items} className={checklistBulletMt} />
     </div>
   );
@@ -801,7 +795,7 @@ const HeroBannerShell = ({
   );
 };
 
-const ConfidenceBadge = ({ label }: { label: "High" | "Limited" | "Low" }) => {
+const ConfidenceBadge = ({ label }: { label: "High" | "Warning" | "Low" }) => {
   const className = cx(
     triggerChip,
     label === "High"
@@ -811,7 +805,7 @@ const ConfidenceBadge = ({ label }: { label: "High" | "Limited" | "Low" }) => {
           color: "status.success.fg.body",
           fontWeight: "semibold",
         })
-      : label === "Limited"
+      : label === "Warning"
         ? css({
             bg: "status.warning.bg.subtle",
             borderColor: "status.warning.bd.subtle",
@@ -975,7 +969,7 @@ const PlanningImpactTable = ({
     return null;
   }
   return (
-    <div className={grid2Mt}>
+    <div className={planningImpactStack}>
       <div className={impactWrap}>
         <table className={briefTable}>
           <thead className={impactThead}>
@@ -1014,7 +1008,8 @@ const PlanningImpactTable = ({
       <p className={subTableNote}>
         Buffer vs plan is the planning days released (positive) or added
         (negative) by adopting each target. Late-event risk is the share of
-        observed events that would still exceed the target.
+        filtered observations that would still exceed the target, using the
+        current outlier setting.
       </p>
     </div>
   );
@@ -1164,6 +1159,12 @@ const FirstUseDwellSection = ({
   firstUse: FirstUseDwellSummary;
   verb: "order" | "produce";
 }) => {
+  const firstUseSharePct = firstUse.firstUseSharePct;
+  const showShare =
+    firstUseSharePct != null &&
+    firstUse.overallMedianDays != null &&
+    firstUse.medianDays <= firstUse.overallMedianDays;
+
   return (
     <BriefSection title={`First-use dwell — how early do we ${verb}?`}>
       <div className={grid3Mt}>
@@ -1177,19 +1178,13 @@ const FirstUseDwellSection = ({
           value={`${formatNumber(firstUse.p95Days, { maximumFractionDigits: 1 })}d`}
         />
 
-        <MetricCard
-          label="Share of typical dwell"
-          value={
-            firstUse.firstUseSharePct == null
-              ? "-"
-              : `${formatNumber(firstUse.firstUseSharePct, { maximumFractionDigits: 0 })}%`
-          }
-          tone={
-            firstUse.firstUseSharePct != null && firstUse.firstUseSharePct >= 60
-              ? "warning"
-              : "neutral"
-          }
-        />
+        {showShare && (
+          <MetricCard
+            label="Share of typical dwell"
+            value={`${formatNumber(firstUseSharePct, { maximumFractionDigits: 0 })}%`}
+            tone={firstUseSharePct >= 60 ? "warning" : "neutral"}
+          />
+        )}
       </div>
       <p className={firstUseNote}>{firstUse.note}</p>
     </BriefSection>
@@ -1443,12 +1438,7 @@ const RecommendedActionPlan = ({
       </p>
     );
   }
-  return (
-    <Checklist
-      title="Recommended Investigation Plan"
-      items={actions.map((action) => action.text)}
-    />
-  );
+  return <Checklist items={actions.map((action) => action.text)} />;
 };
 function makeTrendChip(
   pctChange: number | null | undefined,
@@ -1474,6 +1464,36 @@ function findBriefNode(
     nodes.find((node) => node.id === stepId) ??
     null
   );
+}
+
+function siteDataFromSummary(
+  summary: SiteSummary,
+  products: Product[],
+): SiteData {
+  return {
+    analysis_settings: summary.analysis_settings ?? null,
+    graphs: summary.products.map((summaryProduct) => {
+      const product = products.find(
+        (candidate) => candidate.id === summaryProduct.id,
+      );
+
+      return {
+        product: {
+          id: summaryProduct.id,
+          name: summaryProduct.name,
+          material: product?.material ?? "",
+        },
+        graph: {
+          schema_version: summary.schema_version,
+          product_id: summaryProduct.id,
+          product_name: summaryProduct.name,
+          nodes: summaryProduct.nodes.map(ensureNodeStats),
+          edges: [],
+          pipeline_summary: {},
+        },
+      };
+    }),
+  };
 }
 
 function filterDetailRows(
@@ -1522,39 +1542,41 @@ export const OpportunityBrief = ({
   opportunityType,
 }: OpportunityBriefProps) => {
   const { timeRange } = useTimeRange();
-  const { waccRate, storageCost } = useCostParams();
+  const { setAnalysisSettings, waccRate, storageCost } = useCostParams();
   const { excludeOutliers } = useOutlierSetting();
   const { basis: procurementBasis } = useProcurementBasis();
-  const {
-    nodes,
-    siteData,
-    loading: nodesLoading,
-    error: siteError,
-  } = useSiteNodes(siteId, products);
+  const supplierPerformanceEnabled = useSupplierPerformanceEnabled();
+  const [siteSummary, setSiteSummary] = useState<SiteSummary | null>(null);
+  const [siteSummaryLoading, setSiteSummaryLoading] = useState(true);
   const [step, setStep] = useState<StepDetail | null>(null);
   const [stepError, setStepError] = useState<string | null>(null);
-  const [rollups, setRollups] = useState<SiteSummaryRollups | null>(null);
   const [searchParams] = useSearchParams();
   const { openDocs } = useDocs();
 
-  // Site rollups power the prioritisation chip in the hero banner ("#N of the
-  // plant's top dwell costs"). Failures degrade silently; the banner just omits
-  // the rank.
+  // The brief only needs the precomputed site summary for node context and
+  // ranking. Avoid the site overview fallback that loads every product graph.
   useEffect(() => {
     if (!siteId) {
-      setRollups(null);
+      setSiteSummary(null);
+      setSiteSummaryLoading(false);
       return;
     }
     let cancelled = false;
+    setSiteSummaryLoading(true);
     fetchSiteSummary(siteId)
       .then((summary) => {
         if (!cancelled) {
-          setRollups(summary?.rollups ?? null);
+          setSiteSummary(summary);
         }
       })
       .catch(() => {
         if (!cancelled) {
-          setRollups(null);
+          setSiteSummary(null);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setSiteSummaryLoading(false);
         }
       });
     return () => {
@@ -1562,13 +1584,32 @@ export const OpportunityBrief = ({
     };
   }, [siteId]);
 
+  const siteData = useMemo(
+    () =>
+      siteSummary && siteSummary.products.length > 0
+        ? siteDataFromSummary(siteSummary, products)
+        : null,
+    [products, siteSummary],
+  );
+
+  useEffect(() => {
+    setAnalysisSettings(siteSummary?.analysis_settings);
+  }, [setAnalysisSettings, siteSummary?.analysis_settings]);
+
+  const nodes = useMemo(
+    () => (siteData ? deduplicateNodes(siteData) : []),
+    [siteData],
+  );
+  const rollups: SiteSummaryRollups | null = siteSummary?.rollups ?? null;
+
   // Once the shared site nodes resolve, resolve the brief's node and fetch its
-  // step detail. The node lookup reuses the hook's memoised dedup.
+  // step detail. Shared steps use the first product carrying that deduped node;
+  // product-specific downstream steps keep the requested product.
   useEffect(() => {
     if (!siteId || !productId || !stepId) {
       return;
     }
-    if (nodesLoading) {
+    if (siteSummaryLoading) {
       return;
     }
     let cancelled = false;
@@ -1576,6 +1617,8 @@ export const OpportunityBrief = ({
     const detailProductId = node
       ? firstProductForNode(node, productId)
       : productId;
+    setStep(null);
+    setStepError(null);
     fetchStepDetail(detailProductId, stepId)
       .then((detail) => {
         if (!cancelled) {
@@ -1591,9 +1634,9 @@ export const OpportunityBrief = ({
     return () => {
       cancelled = true;
     };
-  }, [nodes, nodesLoading, productId, siteId, stepId]);
+  }, [nodes, productId, siteId, siteSummaryLoading, stepId]);
 
-  const error = siteError ?? stepError;
+  const error = stepError;
   const siteNode = useMemo((): SiteNode | null => {
     const node = findBriefNode(nodes, stepId, productId);
     if (!node) {
@@ -1744,7 +1787,7 @@ export const OpportunityBrief = ({
     return <ErrorState message={error} className={errorPad} />;
   }
 
-  if (nodesLoading || !step) {
+  if (siteSummaryLoading || !step) {
     return (
       <LoadingState
         message="Loading opportunity brief..."
@@ -1820,23 +1863,37 @@ export const OpportunityBrief = ({
         )
       : undefined;
 
-  const backHrefSearchParams = new URLSearchParams();
-  const range = searchParams.get("range");
-  if (range) {
-    backHrefSearchParams.set("range", range);
-  }
-
-  const backHrefQuery = backHrefSearchParams.toString();
-  const siteOverviewHref = `/supply-chain/site/${siteId}${
-    backHrefQuery ? `?${backHrefQuery}` : ""
-  }`;
-
   return (
     <div className={briefScrollArea}>
       <style>{`
+        @page {
+          margin: 14mm;
+        }
+
         @media print {
+          html,
+          body {
+            background: #fff !important;
+            height: auto !important;
+            overflow: visible !important;
+          }
+
           body * {
+            contain: none !important;
+            max-height: none !important;
+            overflow: visible !important;
+            transform: none !important;
             visibility: hidden;
+          }
+
+          body *:has(.opportunity-brief-print) {
+            margin: 0 !important;
+            max-width: none !important;
+            overflow: visible !important;
+            padding: 0 !important;
+            position: static !important;
+            transform: none !important;
+            width: auto !important;
           }
 
           .opportunity-brief-print,
@@ -1845,9 +1902,14 @@ export const OpportunityBrief = ({
           }
 
           .opportunity-brief-print {
-            position: absolute;
-            inset: 0;
-            width: 100%;
+            background: #fff;
+            box-sizing: border-box;
+            margin: 0 !important;
+            max-width: none !important;
+            padding: 0 !important;
+            position: absolute !important;
+            inset: 0 auto auto 0 !important;
+            width: 100% !important;
           }
 
           .no-print {
@@ -1858,15 +1920,6 @@ export const OpportunityBrief = ({
       <article className={cx("opportunity-brief-print", article)}>
         <div className={cx("no-print", topBar)}>
           <div className={topActions}>
-            <Button
-              href={siteOverviewHref}
-              variant="subtle"
-              tone="neutral"
-              size="sm"
-              iconName="arrowLeft"
-            >
-              Back to site overview
-            </Button>
             <DocsIconButton
               label="Open opportunity brief documentation"
               onClick={() => openDocs("opportunity-brief")}
@@ -2011,7 +2064,9 @@ export const OpportunityBrief = ({
           />
         )}
 
-        {brief.supplier && <SupplierSection supplier={brief.supplier} />}
+        {supplierPerformanceEnabled && brief.supplier && (
+          <SupplierSection supplier={brief.supplier} />
+        )}
 
         {brief.productionInsight && (
           <ProductionInsightSection insight={brief.productionInsight} />
@@ -2113,46 +2168,11 @@ export const OpportunityBrief = ({
                 ],
               ]}
             />
-
-            <div className={evidenceBox}>
-              <h3 className={evidenceHeading}>Evidence quality</h3>
-              {isDwellBrief && brief.distributionInsight && (
-                <p className={flagDetail}>{brief.distributionInsight}</p>
-              )}
-              {brief.clustering && (
-                <p className={flagDetail}>{brief.clustering}</p>
-              )}
-              {brief.evidenceFlags.length > 0 ? (
-                <div className={evidenceStack}>
-                  {brief.evidenceFlags.map((flag) => (
-                    <div
-                      key={`${flag.label}-${flag.detail}`}
-                      className={evidenceFlag}
-                    >
-                      <div
-                        className={
-                          flag.severity === "warning"
-                            ? flagLabelWarn
-                            : flagLabelDefault
-                        }
-                      >
-                        {flag.label}
-                      </div>
-                      <p className={flagDetail}>{flag.detail}</p>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className={evidenceEmpty}>
-                  No major evidence caveats were detected for this period.
-                </p>
-              )}
-            </div>
           </div>
           <TopEvidenceTable rows={brief.topEvidence} />
-          {brief.provenance && (
+          {/* {brief.provenance && (
             <p className={provenanceText}>Source: {brief.provenance}</p>
-          )}
+          )} */}
           {brief.normalizationNote && (
             <p className={provenanceText}>{brief.normalizationNote}</p>
           )}

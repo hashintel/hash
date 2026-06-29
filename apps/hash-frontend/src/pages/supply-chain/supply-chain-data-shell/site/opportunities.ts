@@ -94,6 +94,7 @@ function confidenceLabel(
   }
   return "Good sample";
 }
+
 function sampleLabel(currentN: number, previousN?: number | null): string {
   if (previousN == null || previousN <= 0) {
     return `Samples ${formatNumber(currentN)}`;

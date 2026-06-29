@@ -228,10 +228,52 @@ describe("statusKey", () => {
     const node = dwell({ id: "step-1" });
     const key = statusKey("site-a", node);
 
-    expect(key).toBe("site-a::dwell::step-1-p1");
+    expect(key).toBe("site-a::dwell::step-1");
     for (const range of ["3m", "6m", "12m", "24m"]) {
       expect(key).not.toContain(range);
     }
+  });
+
+  it("shares status keys for non-post-QA steps across products", () => {
+    const transit = dwell({
+      id: "transit",
+      type: "transit",
+      products: [{ id: "p1", name: "Product 1" }],
+    });
+    const destinationDwell = dwell({
+      id: "destination",
+      type: "destination_dwell",
+      products: [{ id: "p2", name: "Product 2" }],
+    });
+
+    expect(
+      statusKey(
+        "site-a",
+        dwell({
+          ...transit,
+          products: [{ id: "p2", name: "Product 2" }],
+        }),
+      ),
+    ).toBe(statusKey("site-a", transit));
+    expect(statusKey("site-a", destinationDwell)).toBe(
+      "site-a::dwell::destination",
+    );
+  });
+
+  it("disambiguates post-QA dwell status by product", () => {
+    const postQaDwell = dwell({
+      id: "post-qa",
+      type: "post_qa_ship",
+      products: [{ id: "p1", name: "Product 1" }],
+    });
+
+    expect(statusKey("site-a", postQaDwell)).toBe("site-a::dwell::post-qa-p1");
+    expect(
+      statusKey("site-a", {
+        ...postQaDwell,
+        products: [{ id: "p2", name: "Product 2" }],
+      }),
+    ).toBe("site-a::dwell::post-qa-p2");
   });
 
   it("distinguishes dwell and planning nodes", () => {

@@ -41,8 +41,8 @@ export const opportunityBriefSection: DocSectionDef = {
             <LI>
               <Term>Planning calibration</Term> briefs focus on whether the
               planning parameter still matches observed timing. They compare
-              current plan, P95, median, mean and the share of batches exceeding
-              plan.
+              current plan, estimated 95th-percentile timing, median, mean and
+              the share of batches exceeding plan.
             </LI>
           </UL>
 
@@ -73,8 +73,8 @@ export const opportunityBriefSection: DocSectionDef = {
             </LI>
             <LI>
               <Term>Distribution and evidence</Term> contains the box plot,
-              histogram, monthly trend, statistics, evidence-quality flags and
-              largest contributing records.
+              histogram, monthly trend, statistics, source notes and largest
+              contributing records.
             </LI>
             <LI>
               <Term>Recommended next steps</Term> gives investigation checks and

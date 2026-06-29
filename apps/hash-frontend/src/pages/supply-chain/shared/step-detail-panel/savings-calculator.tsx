@@ -23,6 +23,7 @@ import { chartTheme } from "../chart-theme";
 import {
   useCostParams,
   computeMonthlyCost,
+  computePeriodCost,
   formatCost,
   formatNumber,
 } from "../cost";
@@ -183,7 +184,14 @@ export const SavingsCalculator = ({
   );
   const totalEvents = monthlyCosts.reduce((acc, month) => acc + month.n, 0);
   const nMonths = monthlyCosts.length;
-  const periodSaving = 0;
+  const periodCost = computePeriodCost(
+    monthlyCosts,
+    unitPrice,
+    waccRate,
+    storageCost,
+  );
+  const periodSaving = periodCost * fraction;
+  const reducedPeriodCost = Math.max(0, periodCost - periodSaving);
   const windowMonths = timeRange === "3m" ? 3 : timeRange === "6m" ? 6 : 12;
   const annualisedSaving = periodSaving * (12 / windowMonths);
   const chartData = useMemo(() => {
@@ -259,7 +267,7 @@ export const SavingsCalculator = ({
           <OutputTile
             label="Reduced total cost"
             labelRight={timeRange ? `over ${timeRange}` : `${nMonths} months`}
-            value="–"
+            value={formatCost(reducedPeriodCost, currency, { compact: true })}
             chip={undefined}
           />
         </div>

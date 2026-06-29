@@ -85,7 +85,7 @@ export interface OpportunityTrigger {
 }
 
 export interface OpportunityConfidence {
-  label: "High" | "Limited" | "Low";
+  label: "High" | "Warning" | "Low";
   caveats: string[];
   explanation: string;
 }
@@ -264,6 +264,7 @@ export interface PlanningOpportunityBrief {
 }
 
 const LOW_SAMPLE_N = 10;
+const WARNING_SAMPLE_N = 30;
 const STALE_OBSERVATION_DAYS = 60;
 
 export function buildOpportunityBackLink(
@@ -288,11 +289,14 @@ export function buildOpportunityBackLink(
   return query ? `${path}?${query}` : path;
 }
 
+const PRODUCT_SPECIFIC_STEP_TYPES = new Set<StepType>(["post_qa_ship"]);
+
 export function firstProductForNode(
   node: SiteNode,
   requestedProductId?: string,
 ): string {
   if (
+    PRODUCT_SPECIFIC_STEP_TYPES.has(node.type) &&
     requestedProductId &&
     node.products.some((product) => product.id === requestedProductId)
   ) {
@@ -438,15 +442,18 @@ function buildFirstUseNote(
     structuralDays == null ||
     firstUseSharePct == null
   ) {
-    return `The first draw off a received batch waits ${median}d on average before it is consumed.`;
+    return `The first draw off a received batch has a median wait of ${median}d before it is consumed.`;
   }
   const overall = formatNumber(overallMedianDays, { maximumFractionDigits: 1 });
+  if (medianDays > overallMedianDays) {
+    return `The first draw off each batch has a median wait of ${median}d, above the ${overall}d event-level median dwell. This can happen when the event-level median is weighted by many later consumption rows from faster-turning batches, while first-use counts each batch once. Treat this as an early ordering or scheduling signal rather than a share of total dwell.`;
+  }
   const structural = formatNumber(structuralDays, { maximumFractionDigits: 1 });
   const share = formatNumber(firstUseSharePct, { maximumFractionDigits: 0 });
   const lead =
     firstUseSharePct >= 60
-      ? `Most dwell is incurred before the lot is first touched: the first draw waits ${median}d (${share}% of the ${overall}d average dwell), which points to ordering or scheduling consistently ahead of first need.`
-      : `The first draw waits ${median}d (${share}% of the ${overall}d typical dwell); the remaining ~${structural}d reflects depletion of the received lot across later consumption events.`;
+      ? `Most dwell is incurred before the lot is first touched: the first draw waits ${median}d (${share}% of the ${overall}d event-level median dwell), which points to ordering or scheduling consistently ahead of first need.`
+      : `The first draw waits ${median}d (${share}% of the ${overall}d event-level median dwell); the remaining ~${structural}d reflects depletion of the received lot across later consumption events.`;
   return `${lead} Pull the first-use wait down by ordering closer to first need, smaller/more frequent call-offs, or tighter delivery scheduling.`;
 }
 
@@ -640,7 +647,7 @@ function buildEvidenceFlags(
   }
   if ((step.excluded_pct ?? 0) > 20) {
     flags.push({
-      severity: "warning",
+      severity: "info",
       label: "Outlier-sensitive",
       detail: `${round1(step.excluded_pct ?? 0)}% of observations are excluded by the current outlier setting.`,
     });
@@ -668,7 +675,7 @@ function buildEvidenceFlags(
     );
     if (ageDays > STALE_OBSERVATION_DAYS) {
       flags.push({
-        severity: "info",
+        severity: "warning",
         label: "Stale recent data",
         detail: `Latest observation is ${ageDays} days old.`,
       });
@@ -684,7 +691,7 @@ function buildDwellDistributionInsight(step: StepDetail): string | null {
     return null;
   }
   const spread = p95 - median;
-  return `P95 dwell is ${formatNumber(p95, { maximumFractionDigits: 1 })}d vs ${formatNumber(median, { maximumFractionDigits: 1 })}d median, so the longest 5% of events are at least ${formatNumber(spread, { maximumFractionDigits: 1 })}d above the average case.`;
+  return `Estimated 95th-percentile dwell is ${formatNumber(p95, { maximumFractionDigits: 1 })}d vs ${formatNumber(median, { maximumFractionDigits: 1 })}d median, so the long tail is at least ${formatNumber(spread, { maximumFractionDigits: 1 })}d above the average case.`;
 }
 
 function buildDwellTrigger(
@@ -740,8 +747,10 @@ function buildConfidence(
   flags: EvidenceFlag[],
 ): OpportunityConfidence {
   const caveats = flags.map((flag) => `${flag.label}: ${flag.detail}`);
-  const hasWarning = flags.some((flag) => flag.severity === "warning");
-  if (step.stats.n < LOW_SAMPLE_N || hasWarning) {
+  const hasLowConfidenceWarning = flags.some(
+    (flag) => flag.severity === "warning" && flag.label !== "Stale recent data",
+  );
+  if (step.stats.n < LOW_SAMPLE_N || hasLowConfidenceWarning) {
     return {
       label: "Low",
       caveats,
@@ -751,20 +760,24 @@ function buildConfidence(
           : `Only ${formatNumber(step.stats.n)} observations are available in the selected period.`,
     };
   }
-  if (step.stats.n < LOW_SAMPLE_N * 2 || flags.length > 0) {
+  const hasWarning = flags.some((flag) => flag.severity === "warning");
+  if (step.stats.n < WARNING_SAMPLE_N || hasWarning) {
     return {
-      label: "Limited",
+      label: "Warning",
       caveats,
       explanation:
         caveats.length > 0
           ? caveats.join(" ")
-          : `${formatNumber(step.stats.n)} observations are available; validate the underlying rows before changing planning assumptions.`,
+          : `${formatNumber(step.stats.n)} retained observations are available; validate the underlying rows before changing planning assumptions.`,
     };
   }
   return {
     label: "High",
-    caveats: [],
-    explanation: `${formatNumber(step.stats.n)} observations are available and no major evidence caveats were detected.`,
+    caveats,
+    explanation:
+      caveats.length > 0
+        ? caveats.join(" ")
+        : `${formatNumber(step.stats.n)} retained observations are available and no major evidence caveats were detected.`,
   };
 }
 
@@ -1262,7 +1275,7 @@ function buildCalibrationImpact(
       label: "P95",
       days: step.stats.p95,
       description:
-        "High-percentile planning reference, with 95% of observations below this point.",
+        "Estimated 95th-percentile timing, used as a high-percentile planning reference.",
     },
   ];
 
@@ -1500,7 +1513,7 @@ export function buildPlanningOpportunityBrief(
         label: "P95",
         days: step.stats.p95,
         description:
-          "High-percentile planning reference, with 95% of observations below this point.",
+          "Estimated 95th-percentile timing, used as a high-percentile planning reference.",
       },
     ],
 

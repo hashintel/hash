@@ -376,7 +376,7 @@ export const SupplyChainDataShell = ({
           <p className={errorTitle}>Failed to load data</p>
           <p className={subtleSm}>{error}</p>
           <p className={subtleXs}>
-            Check that a supply-chain dataset is published for this workspace.
+            Check that a supply chain dataset is published for this workspace.
           </p>
         </div>
       </div>

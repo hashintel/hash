@@ -229,10 +229,10 @@ export const productOverviewSection: DocSectionDef = {
           <H4>How this works</H4>
           <P>
             Each lever caps that step&apos;s batch durations at the selected
-            checkpoint: Max (no change), P95 (cap to the time under which 95% of
-            observations fall), P75, median, P25 or Exclude (count as zero
-            time). Durations below the cap are unchanged; durations above it are
-            capped at the selected level.
+            checkpoint: Max (no change), P95 (estimated 95th-percentile timing),
+            P75, median, P25 or Exclude (count as zero time). Durations below
+            the cap are unchanged; durations above it are capped at the selected
+            level.
           </P>
           <P>
             For upstream production chains, the simulator recomputes the full

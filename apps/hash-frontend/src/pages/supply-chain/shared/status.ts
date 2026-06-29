@@ -1,5 +1,4 @@
 import { isDwellType } from "./categories";
-import { siteNodeKey } from "./site-node-key";
 
 import type { SiteNode } from "./types";
 
@@ -39,12 +38,18 @@ export function statusCommentRequired(category: StatusOption): boolean {
 
 /**
  * Stable key for status aggregation: site + opportunity type (dwell vs
- * planning, derived from the node) + node identity. It intentionally excludes
- * time range and measure so status history remains stable across filters.
+ * planning, derived from the node) + node identity. Product IDs are included
+ * only for post-QA dwell, where the same step ID needs product disambiguation.
+ * It intentionally excludes time range and measure so status history remains
+ * stable across filters.
  */
 export function statusKey(siteId: string, node: SiteNode): string {
   const type = isDwellType(node.type) ? "dwell" : "planning";
-  return [siteId, type, siteNodeKey(node)].join("::");
+  const nodeKey =
+    node.type === "post_qa_ship"
+      ? `${node.id}-${node.products.map((product) => product.id).join(",")}`
+      : node.id;
+  return [siteId, type, nodeKey].join("::");
 }
 
 export function deriveStatusActionState(

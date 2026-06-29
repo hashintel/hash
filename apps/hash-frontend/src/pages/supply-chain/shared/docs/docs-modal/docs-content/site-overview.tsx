@@ -46,9 +46,9 @@ export const siteOverviewSection: DocSectionDef = {
             <LI>
               <Term>Planning over / under</Term> &mdash; observed timing sitting
               above or below the planning parameter for the step. It appears
-              when 95% of observations (P95) are at least 10% above or below
-              plan. To see comparisons against other statistics (e.g. median),
-              use the{" "}
+              when estimated 95th-percentile timing is at least 10% above or
+              below plan. To see comparisons against other statistics (e.g.
+              median), use the{" "}
               <CrossRef to={{ section: "site-overview", sub: "planning-tab" }}>
                 {" "}
                 Planning parameters tab

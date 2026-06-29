@@ -1,13 +1,4 @@
-import {
-  Lead,
-  P,
-  H4,
-  Term,
-  UL,
-  LI,
-  Note,
-  CrossRef,
-} from "../../docs-primitives";
+import { Lead, P, H4, Term, UL, LI, CrossRef } from "../../docs-primitives";
 
 import type { DocEntry } from "../../docs-types";
 

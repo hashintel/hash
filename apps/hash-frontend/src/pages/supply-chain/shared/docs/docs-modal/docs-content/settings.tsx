@@ -87,10 +87,10 @@ export const settingsSection: DocSectionDef = {
             </LI>
             <LI>
               <Term>Planning opportunities</Term> in the site overview are
-              selected by parameters which are more than 10% above or below 95%
-              of observations (P95), not the selected measure. The full planning
-              parameter tab lower down on the site overview are affected by the
-              selected measure.
+              selected by parameters which are more than 10% above or below
+              estimated 95th-percentile timing, not the selected measure. The
+              full planning parameter tab lower down on the site overview are
+              affected by the selected measure.
             </LI>
           </UL>
 

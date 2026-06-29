@@ -65,7 +65,7 @@ describe("opportunity brief helpers", () => {
 
     expect(brief.opportunityTrigger.label).toBe("High dwell cost");
     expect(brief.opportunityTrigger.reason).toContain("carry cost");
-    expect(brief.confidence.label).toBe("Limited");
+    expect(brief.confidence.label).toBe("Warning");
     expect(brief.recommendedActions[0]?.text).toContain(
       "longest release delays",
     );
@@ -160,6 +160,24 @@ describe("opportunity brief helpers", () => {
     expect(brief.opportunityTrigger.label).toBe(
       "Conservative planning parameter",
     );
+  });
+
+  it("keeps high outlier exclusion as confidence context when retained observations are enough", () => {
+    const brief = buildDwellOpportunityBrief(
+      step({
+        excluded_pct: 35,
+        stats: { ...baseStats, n: 60 },
+        observations: [
+          { date: new Date().toISOString().slice(0, 10), value: 9 },
+        ],
+      }),
+      step({ observations: [] }),
+      "12m",
+      { waccRate: 0.1, storageCost: 0.336 },
+    );
+
+    expect(brief.confidence.label).toBe("High");
+    expect(brief.confidence.explanation).toContain("Outlier-sensitive");
   });
 });
 

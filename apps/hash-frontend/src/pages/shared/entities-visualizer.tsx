@@ -266,7 +266,7 @@ export const EntitiesVisualizer: FunctionComponent<{
     filterState,
     hideColumns,
     internalWebs,
-    limit: view === "Graph" ? undefined : 500,
+    limit: 500,
     sort: graphSort,
     view,
   });

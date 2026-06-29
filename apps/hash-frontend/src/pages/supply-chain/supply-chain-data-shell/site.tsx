@@ -171,6 +171,7 @@ function opportunityBriefHref(
   node: SiteNode,
   timeRange: TimeRange,
   catParam: string | null,
+  currentSearchParams: URLSearchParams,
   kind?: OpportunityKind,
 ): string {
   const productId = node.products[0]?.id ?? "";
@@ -180,6 +181,12 @@ function opportunityBriefHref(
   }
   if (kind) {
     params.set("op", kind);
+  }
+  for (const key of ["wacc", "storage"]) {
+    const value = currentSearchParams.get(key);
+    if (value) {
+      params.set(key, value);
+    }
   }
   return `/supply-chain/site/${siteSlug}/opportunity/${type}/${productId}/${node.id}?${params.toString()}`;
 }
@@ -325,8 +332,16 @@ export const SiteOverview = ({
   );
   const buildBriefHref = useCallback(
     (type: "dwell" | "planning", node: SiteNode, kind?: OpportunityKind) =>
-      opportunityBriefHref(siteSlug, type, node, timeRange, null, kind),
-    [siteSlug, timeRange],
+      opportunityBriefHref(
+        siteSlug,
+        type,
+        node,
+        timeRange,
+        null,
+        searchParams,
+        kind,
+      ),
+    [searchParams, siteSlug, timeRange],
   );
   const opportunities = useMemo(
     () =>

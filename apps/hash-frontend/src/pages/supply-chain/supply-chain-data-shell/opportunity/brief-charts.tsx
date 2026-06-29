@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 
-import { css } from "@hashintel/ds-helpers/css";
+import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { chartTheme } from "../../shared/chart-theme";
 import { formatNumber } from "../../shared/cost";
@@ -30,24 +30,8 @@ const axisRow = css({
 });
 const boxSvg = css({ width: "full", height: "[56px]" });
 const sparkSvg = css({ width: "full", height: "[40px]" });
-const histRow = css({
-  display: "flex",
-  alignItems: "flex-end",
-  gap: "[1px]",
-  h: "[64px]",
-});
-const histBarCell = css({
-  flex: "1",
-  h: "full",
-  display: "flex",
-  alignItems: "flex-end",
-});
-const histBar = css({
-  w: "full",
-  minH: "[1px]",
-  borderTopRadius: "sm",
-  bg: "status.info.bg.solid",
-});
+const histChartWrap = css({ px: "3" });
+const histSvg = css({ width: "full", height: "[64px]" });
 const legendRow = css({
   display: "flex",
   flexWrap: "wrap",
@@ -65,6 +49,10 @@ const legendSwatch = css({
   h: "2",
   w: "2",
   borderRadius: "full",
+  borderWidth: "1px",
+  borderStyle: "solid",
+  borderColor: "[currentColor]",
+  printColorAdjust: "exact",
 });
 
 function scale(value: number, min: number, max: number): number {
@@ -204,14 +192,20 @@ export const BriefBoxPlot = ({
         <span className={legendItem}>
           <span
             className={legendSwatch}
-            style={{ background: chartTheme.series.info }}
+            style={{
+              background: chartTheme.series.info,
+              borderColor: chartTheme.series.info,
+            }}
           />
           Median / IQR
         </span>
         <span className={legendItem}>
           <span
             className={legendSwatch}
-            style={{ background: chartTheme.series.warning }}
+            style={{
+              background: chartTheme.series.warning,
+              borderColor: chartTheme.series.warning,
+            }}
           />
           P95
         </span>
@@ -219,7 +213,10 @@ export const BriefBoxPlot = ({
           <span className={legendItem}>
             <span
               className={legendSwatch}
-              style={{ background: chartTheme.series.critical }}
+              style={{
+                background: chartTheme.series.critical,
+                borderColor: chartTheme.series.critical,
+              }}
             />
             Plan
           </span>
@@ -286,23 +283,38 @@ export const BriefHistogram = ({ values }: { values: number[] }) => {
     return null;
   }
 
+  const barGap = 1;
+  const barWidth = (100 - barGap * (bins.length - 1)) / bins.length;
+
   return (
-    <div className={chartWrap}>
+    <div className={cx(chartWrap, histChartWrap)}>
       <span className={chartTitle}>Histogram</span>
-      <div className={histRow}>
-        {bins.map((bin) => (
-          <div
-            key={bin.label}
-            className={histBarCell}
-            title={`${bin.label}d: ${bin.count}`}
-          >
-            <div
-              className={histBar}
-              style={{ height: `${(bin.count / maxCount) * 100}%` }}
-            />
-          </div>
-        ))}
-      </div>
+      <svg
+        className={histSvg}
+        viewBox="0 0 100 64"
+        preserveAspectRatio="none"
+        role="img"
+        aria-label="Histogram of observed durations"
+      >
+        {bins.map((bin, index) => {
+          const height =
+            bin.count === 0 ? 0 : Math.max(1, (bin.count / maxCount) * 64);
+          return (
+            <rect
+              key={bin.label}
+              x={index * (barWidth + barGap)}
+              y={64 - height}
+              width={barWidth}
+              height={height}
+              fill={chartTheme.series.info}
+              rx="1"
+              vectorEffect="non-scaling-stroke"
+            >
+              <title>{`${bin.label}d: ${bin.count}`}</title>
+            </rect>
+          );
+        })}
+      </svg>
       <div className={axisRow}>
         <span>
           {formatNumber(firstBin.start, { maximumFractionDigits: 1 })}d

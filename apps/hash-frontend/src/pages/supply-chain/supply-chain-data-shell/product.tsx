@@ -479,12 +479,22 @@ export const Overview = ({
   const selectedStatusKey = selectedNode
     ? statusKey(selectedSiteId, selectedNode)
     : null;
-  const selectedBriefHref =
-    selectedNode && selectedSiteId
-      ? `/supply-chain/site/${selectedSiteId}/opportunity/${
-          isDwellType(selectedNode.type) ? "dwell" : "planning"
-        }/${productId}/${selectedNode.id}?range=${timeRange}`
-      : undefined;
+  const selectedBriefHref = useMemo(() => {
+    if (!selectedNode || !selectedSiteId) {
+      return undefined;
+    }
+    const params = new URLSearchParams({ range: timeRange });
+    for (const key of ["wacc", "storage"]) {
+      const value = searchParams.get(key);
+      if (value) {
+        params.set(key, value);
+      }
+    }
+
+    return `/supply-chain/site/${selectedSiteId}/opportunity/${
+      isDwellType(selectedNode.type) ? "dwell" : "planning"
+    }/${productId}/${selectedNode.id}?${params.toString()}`;
+  }, [productId, searchParams, selectedNode, selectedSiteId, timeRange]);
 
   const statusTargetIsSelectedNode =
     selectedNode != null &&
