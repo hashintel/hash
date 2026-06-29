@@ -143,6 +143,9 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     /** Logged in users (who may not have completed signup) */
     me: loggedInMiddleware(meResolver),
     getWaitlistPosition: loggedInMiddleware(getWaitlistPositionResolver),
+    getMyPendingInvitations: loggedInMiddleware(
+      getMyPendingInvitationsResolver,
+    ),
 
     /** Logged in and signed up users */
     getBlockProtocolBlocks: loggedInAndSignedUpMiddleware(
@@ -166,10 +169,6 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     queryEntitySubgraph: loggedInAndSignedUpMiddleware(
       queryEntitySubgraphResolver,
     ),
-    getMyPendingInvitations: loggedInAndSignedUpMiddleware(
-      getMyPendingInvitationsResolver,
-    ),
-
     getLinearOrganization: loggedInAndSignedUpMiddleware(
       getLinearOrganizationResolver,
     ),
