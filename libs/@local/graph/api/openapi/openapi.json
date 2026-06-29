@@ -1876,7 +1876,7 @@
               }
             }
           },
-          "422": {
+          "400": {
             "description": "Provided request body is invalid"
           },
           "500": {
@@ -2515,7 +2515,7 @@
               }
             }
           },
-          "422": {
+          "400": {
             "description": "Provided request body is invalid"
           },
           "500": {

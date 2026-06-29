@@ -592,7 +592,7 @@ impl SearchEntityTypesRequest {
             body = SearchEntityTypesResponse,
             description = "Entity types ordered by ascending cosine distance to the query embedding.",
         ),
-        (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
+        (status = 400, content_type = "text/plain", description = "Provided request body is invalid"),
         (status = 500, description = "Store error occurred"),
     )
 )]
