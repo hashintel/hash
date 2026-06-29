@@ -1,9 +1,9 @@
 import { useLazyQuery, useMutation, useQuery } from "@apollo/client";
-import { Grid, styled } from "@mui/material";
+import { Grid, styled, Typography } from "@mui/material";
 import { useRouter } from "next/router";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { ArrowUpRightRegularIcon } from "@hashintel/design-system";
+import { AlertModal, ArrowUpRightRegularIcon } from "@hashintel/design-system";
 
 import { useUpdateAuthenticatedUser } from "../components/hooks/use-update-authenticated-user";
 import {
@@ -34,6 +34,30 @@ import type { NextPageWithLayout } from "../shared/layout";
 import type { ButtonProps } from "../shared/ui";
 import type { AccountSetupFormData } from "./signup.page/account-setup-form";
 import type { EntityId } from "@blockprotocol/type-system";
+
+type InvitationAcceptanceResult =
+  AcceptOrgInvitationMutation["acceptOrgInvitation"];
+
+const getInvitationAcceptanceFailureMessage = ({
+  result,
+  orgName,
+}: {
+  result: InvitationAcceptanceResult;
+  orgName?: string;
+}) => {
+  const orgDescription = orgName ? ` to join ${orgName}` : "";
+  const orgAdminDescription = orgName ? ` of ${orgName}` : "";
+
+  if (result.expired) {
+    return `The invitation${orgDescription} has expired. Please ask an admin${orgAdminDescription} to issue a new one.`;
+  }
+
+  if (result.notForUser) {
+    return `This invitation${orgDescription} is not for your account. Please ask an admin${orgAdminDescription} to issue a new invitation for the email address or username on your account.`;
+  }
+
+  return `The invitation${orgDescription} could not be accepted. Please ask an admin${orgAdminDescription} to issue a new one.`;
+};
 
 const LoginButton = styled((props: ButtonProps) => (
   <Button variant="secondary" size="small" {...props} />
@@ -131,6 +155,10 @@ const SignupPage: NextPageWithLayout = () => {
     useUpdateAuthenticatedUser();
 
   const [errorMessage, setErrorMessage] = useState<string>();
+  const [
+    invitationAcceptanceFailureMessage,
+    setInvitationAcceptanceFailureMessage,
+  ] = useState<string>();
 
   const acceptInvitationOnce = useCallback(
     async ({
@@ -139,23 +167,31 @@ const SignupPage: NextPageWithLayout = () => {
     }: {
       invitationEntityId: EntityId;
       alreadyReserved?: boolean;
-    }) => {
+    }): Promise<InvitationAcceptanceResult | undefined> => {
       if (
         !alreadyReserved &&
         acceptingInvitationEntityIdRef.current === invitationEntityId
       ) {
-        return;
+        return undefined;
       }
 
       acceptingInvitationEntityIdRef.current = invitationEntityId;
       setAcceptingInvitation(true);
 
       try {
-        await acceptInvitation({
+        const { data } = await acceptInvitation({
           variables: {
             orgInvitationEntityId: invitationEntityId,
           },
         });
+
+        const result = data?.acceptOrgInvitation;
+
+        if (!result) {
+          throw new Error("Invitation acceptance returned no result.");
+        }
+
+        return result;
       } catch (error) {
         acceptingInvitationEntityIdRef.current = undefined;
         setAcceptingInvitation(false);
@@ -178,9 +214,21 @@ const SignupPage: NextPageWithLayout = () => {
     void acceptInvitationOnce({
       invitationEntityId: invitation.invitationEntityId,
     })
-      .then(async () => {
-        await refetchAuthenticatedUser();
-        void router.replace("/");
+      .then(async (result) => {
+        if (result?.accepted || result?.alreadyAMember) {
+          await refetchAuthenticatedUser();
+          void router.replace("/");
+          return;
+        }
+
+        if (result) {
+          setInvitationAcceptanceFailureMessage(
+            getInvitationAcceptanceFailureMessage({
+              result,
+              orgName: invitation.org.displayName,
+            }),
+          );
+        }
       })
       .catch(() => {
         acceptingInvitationEntityIdRef.current = undefined;
@@ -255,11 +303,11 @@ const SignupPage: NextPageWithLayout = () => {
       }
 
       if (reservedInvitationEntityId) {
-        const acceptedInvitation = await acceptInvitationOnce({
+        const invitationAcceptanceResult = await acceptInvitationOnce({
           invitationEntityId: reservedInvitationEntityId,
           alreadyReserved: true,
         })
-          .then(() => true)
+          .then((result) => result)
           .catch(() => {
             acceptingInvitationEntityIdRef.current = undefined;
             setAcceptingInvitation(false);
@@ -267,10 +315,23 @@ const SignupPage: NextPageWithLayout = () => {
               "Could not accept the invitation. Please try again.",
             );
 
-            return false;
+            return undefined;
           });
 
-        if (!acceptedInvitation) {
+        if (!invitationAcceptanceResult) {
+          return;
+        }
+
+        if (
+          !invitationAcceptanceResult.accepted &&
+          !invitationAcceptanceResult.alreadyAMember
+        ) {
+          setInvitationAcceptanceFailureMessage(
+            getInvitationAcceptanceFailureMessage({
+              result: invitationAcceptanceResult,
+              orgName: invitation.org.displayName,
+            }),
+          );
           return;
         }
       }
@@ -294,91 +355,106 @@ const SignupPage: NextPageWithLayout = () => {
       : undefined;
 
   return (
-    <AuthLayout
-      sx={{
-        background: ({ palette }) => ({
-          xs: undefined,
-          md: `linear-gradient(
+    <>
+      {invitationAcceptanceFailureMessage ? (
+        <AlertModal
+          calloutMessage="Invitation could not be accepted"
+          close={() => {
+            setInvitationAcceptanceFailureMessage(undefined);
+            void router.replace("/");
+          }}
+          header="Invitation unavailable"
+          type="warning"
+        >
+          <Typography>{invitationAcceptanceFailureMessage}</Typography>
+        </AlertModal>
+      ) : null}
+      <AuthLayout
+        sx={{
+          background: ({ palette }) => ({
+            xs: undefined,
+            md: `linear-gradient(
             to right,
             ${palette.gray[10]} 0%,
             ${palette.gray[10]} ${distanceFromLeft},
             ${palette.gray[20]} ${distanceFromLeft},
             ${palette.gray[20]} 100%)`,
-        }),
-      }}
-      headerEndAdornment={
-        authenticatedUser ? null : (
-          <LoginButton href="/signin" endIcon={<ArrowUpRightRegularIcon />}>
-            Sign In
-          </LoginButton>
-        )
-      }
-    >
-      <Grid container columnSpacing={16}>
-        <Grid item xs={12} md={7}>
-          {invitationLoading ? null : invitation && showInvitationStep ? (
-            <AcceptOrgInvitation
-              invitation={invitation}
-              onAccept={() => setShowInvitationStep(false)}
-            />
-          ) : authenticatedUser ? (
-            userHasVerifiedEmail ? (
-              userHasAccessToHashData?.hasAccessToHash ? (
-                <AccountSetupForm
-                  onSubmit={handleAccountSetupSubmit}
-                  loading={updateUserLoading || acceptingInvitation}
-                  errorMessage={errorMessage}
-                />
-              ) : null
-            ) : (
-              <VerifyEmailStep
-                email={authenticatedUser.emails[0]?.address ?? ""}
-                initialVerificationFlowId={verificationFlowId}
-                onVerified={async () => {
-                  await refetchAuthenticatedUser();
-
-                  const { data } = await fetchHasAccess();
-
-                  if (!data?.hasAccessToHash) {
-                    void router.replace("/");
-                  }
-                }}
+          }),
+        }}
+        headerEndAdornment={
+          authenticatedUser ? null : (
+            <LoginButton href="/signin" endIcon={<ArrowUpRightRegularIcon />}>
+              Sign In
+            </LoginButton>
+          )
+        }
+      >
+        <Grid container columnSpacing={16}>
+          <Grid item xs={12} md={7}>
+            {invitationLoading ? null : invitation && showInvitationStep ? (
+              <AcceptOrgInvitation
+                invitation={invitation}
+                onAccept={() => setShowInvitationStep(false)}
               />
-            )
-          ) : (
-            <SignupRegistrationForm />
-          )}
+            ) : authenticatedUser ? (
+              userHasVerifiedEmail ? (
+                userHasAccessToHashData?.hasAccessToHash ? (
+                  <AccountSetupForm
+                    onSubmit={handleAccountSetupSubmit}
+                    loading={updateUserLoading || acceptingInvitation}
+                    errorMessage={errorMessage}
+                  />
+                ) : null
+              ) : (
+                <VerifyEmailStep
+                  email={authenticatedUser.emails[0]?.address ?? ""}
+                  initialVerificationFlowId={verificationFlowId}
+                  onVerified={async () => {
+                    await refetchAuthenticatedUser();
+
+                    const { data } = await fetchHasAccess();
+
+                    if (!data?.hasAccessToHash) {
+                      void router.replace("/");
+                    }
+                  }}
+                />
+              )
+            ) : (
+              <SignupRegistrationForm />
+            )}
+          </Grid>
+          <Grid
+            item
+            xs={12}
+            md={5}
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              paddingY: {
+                xs: 6,
+                md: 0,
+              },
+            }}
+          >
+            {authenticatedUser || invitation ? (
+              <SignupSteps
+                currentStep={
+                  invitation && !authenticatedUser
+                    ? "accept-invitation"
+                    : !userHasVerifiedEmail
+                      ? "verify-email"
+                      : "reserve-username"
+                }
+                withInvitation={!!invitation}
+              />
+            ) : (
+              <SignupRegistrationRightInfo />
+            )}
+          </Grid>
         </Grid>
-        <Grid
-          item
-          xs={12}
-          md={5}
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            paddingY: {
-              xs: 6,
-              md: 0,
-            },
-          }}
-        >
-          {authenticatedUser || invitation ? (
-            <SignupSteps
-              currentStep={
-                invitation && !authenticatedUser
-                  ? "accept-invitation"
-                  : !userHasVerifiedEmail
-                    ? "verify-email"
-                    : "reserve-username"
-              }
-              withInvitation={!!invitation}
-            />
-          ) : (
-            <SignupRegistrationRightInfo />
-          )}
-        </Grid>
-      </Grid>
-    </AuthLayout>
+      </AuthLayout>
+    </>
   );
 };
 
