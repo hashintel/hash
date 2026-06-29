@@ -8,7 +8,7 @@ export const styles = sva({
       width: "[fit-content]",
       gap: "[6px]",
       cursor: "pointer",
-      lineHeight: "[1]",
+      lineHeight: "[1.2]",
       "&[data-disabled]": {
         cursor: "unset",
         color: "neutral.s75",
@@ -48,28 +48,28 @@ export const styles = sva({
   variants: {
     size: {
       xxs: {
-        root: { gap: "[6px]", fontSize: "[11px]", marginBlock: "[-0.5px]" },
-        control: { width: "[12px]", height: "[12px]", marginBlock: "[0.5px]" },
+        root: { gap: "[6px]", fontSize: "[11px]", marginBlock: "[-1px]" },
+        control: { width: "[12px]", height: "[12px]", marginBlock: "[1px]" },
         indicator: { width: "[9px]", height: "[9px]" },
       },
       xs: {
-        root: { gap: "[8px]", fontSize: "[12px]", marginBlock: "[-0.5px]" },
-        control: { width: "[14px]", height: "[14px]", marginBlock: "[0.5px]" },
+        root: { gap: "[8px]", fontSize: "[12px]", marginBlock: "[-1px]" },
+        control: { width: "[14px]", height: "[14px]", marginBlock: "[1px]" },
         indicator: { width: "[10px]", height: "[10px]" },
       },
       sm: {
-        root: { gap: "[8px]", fontSize: "[13px]", marginBlock: "[-0.5px]" },
-        control: { width: "[15px]", height: "[15px]", marginBlock: "[0.5px]" },
+        root: { gap: "[8px]", fontSize: "[14px]", marginBlock: "[-1.5px]" },
+        control: { width: "[16px]", height: "[16px]", marginBlock: "[1.5px]" },
         indicator: { width: "[11px]", height: "[11px]" },
       },
       md: {
-        root: { gap: "[10px]", fontSize: "[14px]", marginBlock: "[-0.5px]" },
-        control: { width: "[16px]", height: "[16px]", marginBlock: "[0.5px]" },
+        root: { gap: "[10px]", fontSize: "[15px]", marginBlock: "[-2px]" },
+        control: { width: "[18px]", height: "[18px]", marginBlock: "[2px]" },
         indicator: { width: "[12px]", height: "[12px]" },
       },
       lg: {
-        root: { gap: "[10px]", fontSize: "[15px]" },
-        control: { width: "[18px]", height: "[18px]" },
+        root: { gap: "[10px]", fontSize: "[17px]", marginBlock: "[-1.5px]" },
+        control: { width: "[20px]", height: "[20px]", marginBlock: "[1.5px]" },
         indicator: { width: "[14px]", height: "[14px]" },
       },
     },

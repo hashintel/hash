@@ -351,6 +351,7 @@ const PlaceMainContent: React.FC = () => {
           tooltip="Pre-selects this place when creating a new scenario."
           renderHeaderLeading={() => (
             <Checkbox
+              size="sm"
               value={!!place.showAsInitialState}
               disabled={isReadOnly}
               onChange={(checked) => {
