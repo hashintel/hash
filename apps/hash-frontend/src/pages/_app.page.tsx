@@ -438,7 +438,10 @@ AppWithTypeSystemContextProvider.getInitialProps = async (appContext) => {
         location: "/",
       });
     }
-  } else if (redirectIfAuthenticatedPathnames.includes(pathname)) {
+  } else if (
+    redirectIfAuthenticatedPathnames.includes(pathname) &&
+    !(pathname === "/signup" && (asPath ?? "").includes("invitationId="))
+  ) {
     /**
      * If the user has completed signup and is on a page they shouldn't be on
      * (e.g. /signup), then redirect them to the home page.

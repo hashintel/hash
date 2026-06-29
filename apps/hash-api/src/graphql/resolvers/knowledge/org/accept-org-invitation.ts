@@ -1,4 +1,7 @@
-import { extractWebIdFromEntityId } from "@blockprotocol/type-system";
+import {
+  extractWebIdFromEntityId,
+  type EntityId,
+} from "@blockprotocol/type-system";
 import { getActorGroupRole } from "@local/hash-graph-sdk/principal/actor-group";
 import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import {
@@ -31,12 +34,18 @@ import type { LoggedInGraphQLContext } from "../../../context";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { MutationAcceptOrgInvitationArgs } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 
-export const acceptOrgInvitationResolver: ResolverFn<
-  Promise<AcceptInvitationResult>,
-  Record<string, never>,
-  LoggedInGraphQLContext,
-  MutationAcceptOrgInvitationArgs
-> = async (_, { orgInvitationEntityId }, graphQLContext) => {
+const inFlightInvitationAcceptances = new Map<
+  string,
+  Promise<AcceptInvitationResult>
+>();
+
+async function acceptOrgInvitation({
+  graphQLContext,
+  orgInvitationEntityId,
+}: {
+  graphQLContext: LoggedInGraphQLContext;
+  orgInvitationEntityId: EntityId;
+}): Promise<AcceptInvitationResult> {
   const { user } = graphQLContext;
 
   const context = graphQLContextToImpureGraphContext(graphQLContext);
@@ -199,6 +208,26 @@ export const acceptOrgInvitationResolver: ResolverFn<
     );
   }
 
+  const becameAMemberWhileAccepting = await isUserMemberOfOrg(
+    context,
+    graphQLContext.authentication,
+    {
+      userEntityId: user.entity.metadata.recordId.entityId,
+      orgEntityUuid: extractWebIdFromEntityId(invitation.entityId),
+    },
+  );
+
+  if (becameAMemberWhileAccepting) {
+    await archiveInvitation();
+
+    return {
+      accepted: false,
+      alreadyAMember: true,
+      expired: false,
+      notForUser: false,
+    };
+  }
+
   const membershipCreationAuthentication = {
     /**
      * We use the authority of the person who issued the invitation to create the membership link,
@@ -220,4 +249,32 @@ export const acceptOrgInvitationResolver: ResolverFn<
     expired: false,
     notForUser: false,
   };
+}
+
+export const acceptOrgInvitationResolver: ResolverFn<
+  Promise<AcceptInvitationResult>,
+  Record<string, never>,
+  LoggedInGraphQLContext,
+  MutationAcceptOrgInvitationArgs
+> = async (_, { orgInvitationEntityId }, graphQLContext) => {
+  const inFlightAcceptanceKey = `${orgInvitationEntityId}:${graphQLContext.user.entity.metadata.recordId.entityId}`;
+
+  const inFlightAcceptance = inFlightInvitationAcceptances.get(
+    inFlightAcceptanceKey,
+  );
+
+  if (inFlightAcceptance) {
+    return inFlightAcceptance;
+  }
+
+  const acceptancePromise = acceptOrgInvitation({
+    graphQLContext,
+    orgInvitationEntityId,
+  }).finally(() => {
+    inFlightInvitationAcceptances.delete(inFlightAcceptanceKey);
+  });
+
+  inFlightInvitationAcceptances.set(inFlightAcceptanceKey, acceptancePromise);
+
+  return acceptancePromise;
 };
