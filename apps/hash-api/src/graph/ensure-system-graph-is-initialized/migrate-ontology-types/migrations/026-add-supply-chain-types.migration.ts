@@ -12,7 +12,6 @@ import {
   createSystemPropertyTypeIfNotExists,
   generateSystemTypeBaseUrl,
   getCurrentHashDataTypeId,
-  getCurrentHashSystemEntityTypeId,
 } from "../util";
 
 import type { MigrationFunction } from "../types";
@@ -98,11 +97,6 @@ const migrate: MigrationFunction = async ({
     },
   );
   const statusPropertyTypeId = statusPropertyType.schema.$id;
-  const personEntityTypeId = getCurrentHashSystemEntityTypeId({
-    entityTypeKey: "person",
-    migrationState,
-  });
-
   const massDataType = await createSystemDataTypeIfNotExists(
     context,
     authentication,
@@ -1291,14 +1285,22 @@ const migrate: MigrationFunction = async ({
     authentication,
     {
       entityTypeDefinition: {
-        allOf: [companyEntityType.schema.$id, personEntityTypeId],
         title: "Customer",
         titlePlural: "Customers",
         icon: "/icons/types/user-tag.svg",
         description:
           "An organisation or individual that purchases goods or services.",
+        labelProperty: blockProtocolPropertyTypes.name.propertyTypeBaseUrl,
         properties: [
+          {
+            propertyType: blockProtocolPropertyTypes.name.propertyTypeId,
+            required: true,
+          },
+          {
+            propertyType: blockProtocolPropertyTypes.description.propertyTypeId,
+          },
           { propertyType: customerNumberPropertyType },
+          { propertyType: companyNumberPropertyType },
           { propertyType: streetAddressPropertyType },
           { propertyType: cityPropertyTypeId },
           { propertyType: regionPropertyType },
