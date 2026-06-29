@@ -160,6 +160,11 @@ const SignupPage: NextPageWithLayout = () => {
     setInvitationAcceptanceFailureMessage,
   ] = useState<string>();
 
+  const clearInvitationAcceptanceReservation = useCallback(() => {
+    acceptingInvitationEntityIdRef.current = undefined;
+    setAcceptingInvitation(false);
+  }, []);
+
   const acceptInvitationOnce = useCallback(
     async ({
       invitationEntityId,
@@ -193,12 +198,11 @@ const SignupPage: NextPageWithLayout = () => {
 
         return result;
       } catch (error) {
-        acceptingInvitationEntityIdRef.current = undefined;
-        setAcceptingInvitation(false);
+        clearInvitationAcceptanceReservation();
         throw error;
       }
     },
-    [acceptInvitation],
+    [acceptInvitation, clearInvitationAcceptanceReservation],
   );
 
   useEffect(() => {
@@ -222,6 +226,7 @@ const SignupPage: NextPageWithLayout = () => {
         }
 
         if (result) {
+          clearInvitationAcceptanceReservation();
           setInvitationAcceptanceFailureMessage(
             getInvitationAcceptanceFailureMessage({
               result,
@@ -231,13 +236,13 @@ const SignupPage: NextPageWithLayout = () => {
         }
       })
       .catch(() => {
-        acceptingInvitationEntityIdRef.current = undefined;
+        clearInvitationAcceptanceReservation();
         setErrorMessage("Could not accept the invitation. Please try again.");
-        setAcceptingInvitation(false);
       });
   }, [
     acceptInvitationOnce,
     authenticatedUser?.accountSignupComplete,
+    clearInvitationAcceptanceReservation,
     invitation,
     refetchAuthenticatedUser,
     router,
@@ -278,8 +283,7 @@ const SignupPage: NextPageWithLayout = () => {
         displayName,
       }).catch(() => {
         if (reservedInvitationEntityId) {
-          acceptingInvitationEntityIdRef.current = undefined;
-          setAcceptingInvitation(false);
+          clearInvitationAcceptanceReservation();
         }
 
         setErrorMessage("Could not update your account. Please try again.");
@@ -296,8 +300,7 @@ const SignupPage: NextPageWithLayout = () => {
         const { message } = parseGraphQLError([...errors]);
         setErrorMessage(message);
         if (reservedInvitationEntityId) {
-          acceptingInvitationEntityIdRef.current = undefined;
-          setAcceptingInvitation(false);
+          clearInvitationAcceptanceReservation();
         }
         return;
       }
@@ -309,8 +312,7 @@ const SignupPage: NextPageWithLayout = () => {
         })
           .then((result) => result)
           .catch(() => {
-            acceptingInvitationEntityIdRef.current = undefined;
-            setAcceptingInvitation(false);
+            clearInvitationAcceptanceReservation();
             setErrorMessage(
               "Could not accept the invitation. Please try again.",
             );
@@ -326,6 +328,7 @@ const SignupPage: NextPageWithLayout = () => {
           !invitationAcceptanceResult.accepted &&
           !invitationAcceptanceResult.alreadyAMember
         ) {
+          clearInvitationAcceptanceReservation();
           setInvitationAcceptanceFailureMessage(
             getInvitationAcceptanceFailureMessage({
               result: invitationAcceptanceResult,
@@ -342,6 +345,7 @@ const SignupPage: NextPageWithLayout = () => {
     },
     [
       acceptInvitationOnce,
+      clearInvitationAcceptanceReservation,
       invitation,
       refetchAuthenticatedUser,
       updateAuthenticatedUser,
