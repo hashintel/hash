@@ -34,6 +34,7 @@ import {
   systemEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
+import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 
 import { resetGraph } from "../../../admin-server";
 import {
@@ -45,10 +46,11 @@ import {
 
 import type { Org } from "@apps/hash-api/src/graph/knowledge/system-types/org";
 import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
-import type {
-  EntityTypeWithMetadata,
-  PropertyTypeWithMetadata,
-  WebId,
+import {
+  extractEntityUuidFromEntityId,
+  type EntityTypeWithMetadata,
+  type PropertyTypeWithMetadata,
+  type WebId,
 } from "@blockprotocol/type-system";
 import type { HASHInstance } from "@local/hash-isomorphic-utils/system-types/hashinstance";
 import type { Machine } from "@local/hash-isomorphic-utils/system-types/machine";
@@ -469,6 +471,92 @@ describe("Entity CRU", () => {
     expect(linkEntity.metadata.entityTypeIds).toContain(
       linkEntityTypeFriend.schema.$id,
     );
+  });
+
+  it("assigns distinct entity UUIDs when creating entity with linked new entities", async () => {
+    const rootEntityUuid = generateUuid();
+
+    const rootEntity = await createEntityWithLinks(
+      graphContext,
+      { actorId: testUser.accountId },
+      {
+        webId: testUser.accountId as WebId,
+        entityUuid: rootEntityUuid,
+        entityTypeIds: [entityType.schema.$id],
+        properties: {
+          value: {
+            [namePropertyType.metadata.recordId.baseUrl]: {
+              value: "Bob",
+              metadata: {
+                dataTypeId: blockProtocolDataTypes.text.dataTypeId,
+              },
+            },
+            [favoriteBookPropertyType.metadata.recordId.baseUrl]: {
+              value: "some text",
+              metadata: {
+                dataTypeId: blockProtocolDataTypes.text.dataTypeId,
+              },
+            },
+          },
+        },
+        linkedEntities: [
+          {
+            destinationAccountId: testUser.accountId,
+            linkEntityTypeId: linkEntityTypeFriend.schema.$id,
+            entity: {
+              entityTypeIds: [entityType.schema.$id],
+              entityProperties: {
+                value: {
+                  [namePropertyType.metadata.recordId.baseUrl]: {
+                    value: "Charlie",
+                    metadata: {
+                      dataTypeId: blockProtocolDataTypes.text.dataTypeId,
+                    },
+                  },
+                  [favoriteBookPropertyType.metadata.recordId.baseUrl]: {
+                    value: "another book",
+                    metadata: {
+                      dataTypeId: blockProtocolDataTypes.text.dataTypeId,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        ],
+      },
+    );
+
+    const linkEntity = (
+      await getEntityOutgoingLinks(
+        graphContext,
+        { actorId: testUser.accountId },
+        {
+          entityId: rootEntity.metadata.recordId.entityId,
+        },
+      )
+    )[0]!;
+
+    const linkedEntity = await getLinkEntityRightEntity(
+      graphContext,
+      { actorId: testUser.accountId },
+      { linkEntity },
+    );
+
+    const rootUuid = extractEntityUuidFromEntityId(
+      rootEntity.metadata.recordId.entityId,
+    );
+    const linkedUuid = extractEntityUuidFromEntityId(
+      linkedEntity.metadata.recordId.entityId,
+    );
+    const linkUuid = extractEntityUuidFromEntityId(
+      linkEntity.metadata.recordId.entityId,
+    );
+
+    expect(rootUuid).toEqual(rootEntityUuid);
+    expect(linkedUuid).not.toEqual(rootUuid);
+    expect(linkUuid).not.toEqual(rootUuid);
+    expect(linkUuid).not.toEqual(linkedUuid);
   });
 
   it("Cannot instantiate actor entity type", async () => {
