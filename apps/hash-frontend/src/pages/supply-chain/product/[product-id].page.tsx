@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { fetchGraph } from "../shared/data";
-import { ErrorState, LoadingState } from "../shared/load-state";
+import { ErrorState, SupplyChainAppSkeleton } from "../shared/load-state";
 import { getSupplyChainLayout } from "../shared/supply-chain-layout";
 import {
   trackSupplyChainError,
@@ -16,7 +16,6 @@ import { Overview } from "../supply-chain-data-shell/product";
 import type { NextPageWithLayout } from "../../../shared/layout";
 import type { GraphData } from "../shared/types";
 
-const loadingH = css({ h: "64" });
 const errorPad = css({ px: "6", py: "4" });
 
 const ProductPage: NextPageWithLayout = () => {
@@ -79,9 +78,7 @@ const ProductPage: NextPageWithLayout = () => {
   }, [productId]);
 
   if (loading) {
-    return (
-      <LoadingState message="Loading product data..." className={loadingH} />
-    );
+    return <SupplyChainAppSkeleton />;
   }
   if (error) {
     return <ErrorState message={error} className={errorPad} />;

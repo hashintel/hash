@@ -649,6 +649,7 @@ export const EntitiesVisualizer: FunctionComponent<{
           currentlyDisplayedColumnsRef={currentlyDisplayedColumnsRef}
           currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
           handleEntityClick={handleEntityClick}
+          hasMoreRowsAvailable={nextCursor != null}
           loading={dataLoading}
           isViewingOnlyPages={isViewingOnlyPages}
           maxHeight={`calc(${tableHeight} - ${toolbarHeight}px)`}

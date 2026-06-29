@@ -333,12 +333,7 @@ const featureFlagHiddenPathnames: Record<FeatureFlag, string[]> = {
   notes: ["/notes"],
   workers: ["/goals", "/flows", "/workers", "/agents"],
   ai: ["/goals"],
-  supplyChain: [
-    "/supply-chain",
-    "/supply-chain/product/[product-id]",
-    "/supply-chain/site/[site-id]",
-    "/supply-chain/site/[site-id]/opportunity/[opportunity-type]/[product-id]/[step-id]",
-  ],
+  supplyChain: [],
 };
 
 AppWithTypeSystemContextProvider.getInitialProps = async (appContext) => {

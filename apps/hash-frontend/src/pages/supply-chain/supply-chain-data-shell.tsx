@@ -8,6 +8,8 @@ import {
 
 import { css } from "@hashintel/ds-helpers/css";
 
+import { useAuthInfo } from "../shared/auth-info-context";
+import { useActiveWorkspace } from "../shared/workspace-context";
 import {
   CostParamsContext,
   DEFAULT_CURRENCY,
@@ -22,7 +24,7 @@ import {
   type SiteRef,
 } from "./shared/data";
 import { DocsProvider } from "./shared/docs/docs-context";
-import { LoadingState } from "./shared/load-state";
+import { SupplyChainAppSkeleton } from "./shared/load-state";
 import { LowSampleContext } from "./shared/low-sample-context";
 import {
   BASE_MEASURES,
@@ -52,23 +54,15 @@ const screenBg = css({
   minH: "0",
   bg: "bgSolid.min",
 });
-const centerScreen = css({
-  minH: "screen",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  bg: "bgSolid.min",
-});
+
 const errorStack = css({
-  textAlign: "center",
+  textAlign: "left",
   display: "flex",
   flexDirection: "column",
   gap: "3",
-  maxW: "md",
 });
-const errorTitle = css({ color: "status.error.fg.body", fontWeight: "medium" });
-const subtleSm = css({ textStyle: "sm", color: "fg.subtle" });
-const subtleXs = css({ textStyle: "xs", color: "fg.subtle" });
+const errorTitle = css({ fontWeight: "medium", textStyle: "lg" });
+const subtleSm = css({ color: "fg.subtle" });
 const emptyText = css({ color: "fg.subtle" });
 const mainArea = css({
   flex: "1",
@@ -79,6 +73,18 @@ const mainArea = css({
   display: "flex",
   flexDirection: "column",
 });
+
+const getOrderedWebIds = (webIds: (WebId | null | undefined)[]): WebId[] => {
+  const orderedWebIds: WebId[] = [];
+
+  for (const webId of webIds) {
+    if (webId && !orderedWebIds.includes(webId)) {
+      orderedWebIds.push(webId);
+    }
+  }
+
+  return orderedWebIds;
+};
 
 function normaliseTimeRange(
   value: string | null,
@@ -151,6 +157,7 @@ export const SupplyChainDataShell = ({
   const [mounted, setMounted] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
   const [sites, setSites] = useState<SiteRef[]>([]);
+  const [dataScope, setDataScope] = useState<WebId>(scope);
   const [defaultCurrency, setDefaultCurrency] = useState(DEFAULT_CURRENCY);
   const [defaultStorageCost, setDefaultStorageCost] =
     useState(DEFAULT_STORAGE_COST);
@@ -161,6 +168,19 @@ export const SupplyChainDataShell = ({
     settings: userPreferenceSettings,
     saveSettings: saveUserPreferenceSettings,
   } = useSupplyChainUserPreferences();
+
+  const { authenticatedUser } = useAuthInfo();
+  const { activeWorkspace } = useActiveWorkspace();
+
+  const candidateWebIds = useMemo(
+    () =>
+      getOrderedWebIds([
+        scope,
+        ...(authenticatedUser?.memberOf.map(({ org }) => org.webId) ?? []),
+        authenticatedUser?.accountId as WebId | undefined,
+      ]),
+    [authenticatedUser, scope],
+  );
 
   const [searchParams, setSearchParams] = useSearchParams();
   const waccRate = normaliseWacc(searchParams.get("wacc"));
@@ -303,25 +323,73 @@ export const SupplyChainDataShell = ({
   }, []);
 
   useEffect(() => {
-    configureDataSource({ scope });
-  }, [scope]);
+    let cancelled = false;
+    const isCancelled = () => cancelled;
 
-  useEffect(() => {
+    const loadRegistry = async () => {
+      let lastError: unknown = null;
+
+      for (const candidateWebId of candidateWebIds) {
+        if (isCancelled()) {
+          return;
+        }
+
+        configureDataSource({ scope: candidateWebId });
+
+        try {
+          const [candidateProducts, candidateSiteRefs] = await Promise.all([
+            fetchProducts(),
+            fetchSites(),
+          ]);
+
+          if (candidateProducts.length === 0) {
+            lastError = new Error("No supply chain products found.");
+            continue;
+          }
+
+          if (isCancelled()) {
+            return;
+          }
+
+          setDataScope(candidateWebId);
+          setProducts(candidateProducts);
+          setSites(candidateSiteRefs);
+          setLoading(false);
+          return;
+        } catch (caught) {
+          lastError = caught;
+        }
+      }
+
+      if (isCancelled()) {
+        return;
+      }
+
+      configureDataSource({ scope });
+      setDataScope(scope);
+      setProducts([]);
+      setSites([]);
+      setError(
+        lastError instanceof Error
+          ? lastError.message
+          : typeof lastError === "string"
+            ? lastError
+            : "No supply chain data found.",
+      );
+      setLoading(false);
+    };
+
     setLoading(true);
     setError(null);
-    Promise.all([fetchProducts(), fetchSites()])
-      .then(([prods, siteRefs]) => {
-        setProducts(prods);
-        setSites(siteRefs);
-      })
-      .catch((caught) => {
-        setError(caught instanceof Error ? caught.message : String(caught));
-      })
-      .finally(() => setLoading(false));
-  }, [scope]);
+    void loadRegistry();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [candidateWebIds, scope]);
 
   const demoActive = products.some((product) => product.id === "_demo");
-  const scopeContextValue = useMemo(() => ({ scope }), [scope]);
+  const scopeContextValue = useMemo(() => ({ scope: dataScope }), [dataScope]);
   const registryContextValue = useMemo(
     () => ({ products, sites, demoActive }),
     [demoActive, products, sites],
@@ -366,17 +434,23 @@ export const SupplyChainDataShell = ({
   );
 
   if (!mounted || loading || userPreferencesLoading) {
-    return <LoadingState message="Loading..." className={screenBg} />;
+    return <SupplyChainAppSkeleton className={screenBg} />;
   }
 
   if (error) {
     return (
-      <div className={centerScreen}>
+      <div style={{ marginTop: 30, marginLeft: 30 }}>
         <div className={errorStack}>
-          <p className={errorTitle}>Failed to load data</p>
-          <p className={subtleSm}>{error}</p>
-          <p className={subtleXs}>
-            Check that a supply chain dataset is published for this workspace.
+          <p className={errorTitle}>
+            No supply chain data found in{" "}
+            <strong>
+              {activeWorkspace?.shortname
+                ? `@${activeWorkspace.shortname}`
+                : "this web"}
+            </strong>
+          </p>
+          <p className={subtleSm}>
+            Use the web switcher in the top left to switch to a different web.
           </p>
         </div>
       </div>
@@ -385,9 +459,9 @@ export const SupplyChainDataShell = ({
 
   if (products.length === 0) {
     return (
-      <div className={centerScreen}>
+      <div style={{ marginTop: 30, marginLeft: 30 }}>
         <p className={emptyText}>
-          No supply-chain products are available in this workspace.
+          No supply chain products are available in this workspace.
         </p>
       </div>
     );

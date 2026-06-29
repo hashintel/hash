@@ -15,7 +15,7 @@ import { detailDateKeyFromColumns } from "../shared/detail-date-key";
 import { useDocs } from "../shared/docs/use-docs";
 import { buildCsvContent, downloadCsv } from "../shared/export-utils";
 import { useSupplierPerformanceEnabled } from "../shared/feature-flags";
-import { LoadingState, ErrorState } from "../shared/load-state";
+import { ErrorState, SupplyChainAppSkeleton } from "../shared/load-state";
 import { ensureNodeStats } from "../shared/normalize-contract";
 import { applyOutlierSelectionToStep } from "../shared/outlier-selection";
 import {
@@ -1788,12 +1788,7 @@ export const OpportunityBrief = ({
   }
 
   if (siteSummaryLoading || !step) {
-    return (
-      <LoadingState
-        message="Loading opportunity brief..."
-        className={errorPad}
-      />
-    );
+    return <SupplyChainAppSkeleton />;
   }
 
   if (!filteredStep || !historicalStep || !brief) {
