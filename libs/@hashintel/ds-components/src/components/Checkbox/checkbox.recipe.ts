@@ -68,7 +68,7 @@ export const styles = sva({
         indicator: { width: "[12px]", height: "[12px]" },
       },
       lg: {
-        root: { gap: "[10px]", fontSize: "[17px]", marginBlock: "[-1.5px]" },
+        root: { gap: "[12px]", fontSize: "[17px]", marginBlock: "[-1.5px]" },
         control: { width: "[20px]", height: "[20px]", marginBlock: "[1.5px]" },
         indicator: { width: "[14px]", height: "[14px]" },
       },
@@ -117,8 +117,8 @@ export const styles = sva({
       success: {
         control: {
           "&[data-state='checked'], &[data-state='indeterminate']": {
-            backgroundColor: "green.s80",
-            borderColor: "green.s80",
+            backgroundColor: "green.s85",
+            borderColor: "green.s85",
           },
           "&[data-disabled][data-state='checked'], &[data-disabled][data-state='indeterminate']":
             {
@@ -155,15 +155,15 @@ export const styles = sva({
       },
       false: {},
     },
-    labelDirection: {
-      right: {
+    labelPlacement: {
+      left: {
         root: { flexDirection: "row-reverse" },
       },
-      left: {},
+      right: {},
     },
     // Vertical alignment of the box against the label, relevant when the label
     // wraps over multiple lines: "top" aligns the box with the first line.
-    alignLabel: {
+    labelAlign: {
       top: {
         root: { alignItems: "flex-start" },
       },
@@ -176,7 +176,7 @@ export const styles = sva({
     size: "md",
     tone: "neutral",
     invalid: false,
-    labelDirection: "left",
-    alignLabel: "top",
+    labelPlacement: "right",
+    labelAlign: "top",
   },
 });

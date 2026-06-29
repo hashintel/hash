@@ -24,18 +24,18 @@ export const Checkbox = ({
   inputRef,
   autoFocus,
   indeterminate = false,
-  labelDirection = "left",
-  alignLabel = "top",
+  labelPlacement = "right",
+  labelAlign = "top",
   label,
   tone = "neutral",
   ...ariaProps
 }: {
   /** Render the box in the indeterminate ("partially checked") state */
   indeterminate?: boolean;
-  /** Render the label before the box rather than after it */
-  labelDirection?: "left" | "right";
+  /** Which side of the box the label is rendered on */
+  labelPlacement?: "left" | "right";
   /** Vertical alignment of the box against the label when it wraps over multiple lines */
-  alignLabel?: "top" | "center";
+  labelAlign?: "top" | "center";
   /** An optional label rendered alongside the box */
   label?: React.ReactNode;
   /** The tone applied when the checkbox is checked */
@@ -48,8 +48,8 @@ export const Checkbox = ({
     size,
     tone,
     invalid: !!invalid,
-    labelDirection,
-    alignLabel,
+    labelPlacement,
+    labelAlign,
   });
 
   return (
@@ -89,7 +89,7 @@ export const Checkbox = ({
           </svg>
         </BaseCheckbox.Indicator>
       </BaseCheckbox.Control>
-      {label !== undefined && (
+      {label && (
         <BaseCheckbox.Label className={classes.label}>
           {label}
         </BaseCheckbox.Label>

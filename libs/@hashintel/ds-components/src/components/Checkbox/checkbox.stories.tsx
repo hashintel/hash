@@ -15,7 +15,7 @@ const tones: NonNullable<CheckboxProps["tone"]>[] = [
   "success",
 ];
 
-const labelDirections: NonNullable<CheckboxProps["labelDirection"]>[] = [
+const labelPlacements: NonNullable<CheckboxProps["labelPlacement"]>[] = [
   "left",
   "right",
 ];
@@ -43,7 +43,7 @@ export default {
     disabled: { control: { type: "boolean" } },
     invalid: { control: { type: "boolean" } },
     indeterminate: { control: { type: "boolean" } },
-    labelDirection: { control: { type: "select", options: labelDirections } },
+    labelPlacement: { control: { type: "select", options: labelPlacements } },
     label: { control: { type: "text" } },
   },
   args: {
@@ -52,7 +52,7 @@ export default {
     disabled: false,
     invalid: false,
     indeterminate: false,
-    labelDirection: "left",
+    labelPlacement: "right",
   },
 } satisfies StoryDefault<CheckboxProps>;
 
@@ -96,8 +96,8 @@ const examples: Example[] = [
     withDisabled: true,
   },
   {
-    label: "labelDirection: right",
-    props: { label: "Accept terms", labelDirection: "right" },
+    label: "labelPlacement: left",
+    props: { label: "Accept terms", labelPlacement: "left" },
     defaultValue: true,
   },
   {
@@ -105,7 +105,7 @@ const examples: Example[] = [
     props: {
       label: "I agree to the terms of service and privacy policy",
       className: wrappingLabelClass,
-      alignLabel: "center",
+      labelAlign: "center",
     },
     defaultValue: true,
   },
