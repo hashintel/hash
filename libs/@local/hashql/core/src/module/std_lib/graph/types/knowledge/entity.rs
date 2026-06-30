@@ -1,7 +1,9 @@
+use core::alloc::Allocator;
+
 use crate::{
-    module::{
-        StandardLibrary,
-        std_lib::{self, ItemDef, ModuleDef, StandardLibraryModule},
+    module::std_lib::{
+        self, CacheId, ItemDef, ModuleCache, ModuleDef, StandardLibraryContext,
+        StandardLibraryModule,
     },
     symbol::{Symbol, sym},
 };
@@ -372,32 +374,37 @@ pub(in crate::module::std_lib) struct Entity {
 impl<'heap> StandardLibraryModule<'heap> for Entity {
     type Children = ();
 
+    const CACHE_ID: CacheId = CacheId::GraphTypesKnowledgeEntity;
+
     fn name() -> Symbol<'heap> {
         sym::entity
     }
 
     #[expect(clippy::too_many_lines)]
-    fn define(lib: &mut StandardLibrary<'_, 'heap>) -> ModuleDef<'heap> {
-        let mut def = ModuleDef::new();
+    fn define<S: Allocator + Clone>(
+        context: &mut StandardLibraryContext<'_, 'heap, S>,
+        cache: &mut ModuleCache<'heap, S>,
+    ) -> ModuleDef<'heap, S> {
+        let mut def = ModuleDef::new_in(context.alloc.clone());
 
-        let uuid_ty = lib
-            .manifest::<std_lib::core::uuid::Uuid>()
+        let uuid_ty = cache
+            .request::<std_lib::core::uuid::Uuid>(context)
             .expect_newtype(sym::Uuid)
             .id;
-        let web_id_ty = lib
-            .manifest::<std_lib::graph::types::principal::actor_group::web::Web>()
+        let web_id_ty = cache
+            .request::<std_lib::graph::types::principal::actor_group::web::Web>(context)
             .expect_newtype(sym::WebId)
             .id;
-        let versioned_url_ty = lib
-            .manifest::<std_lib::graph::types::ontology::Ontology>()
+        let versioned_url_ty = cache
+            .request::<std_lib::graph::types::ontology::Ontology>(context)
             .expect_newtype(sym::VersionedUrl)
             .id;
-        let left_closed_interval_ty = lib
-            .manifest::<std_lib::graph::temporal::Temporal>()
+        let left_closed_interval_ty = cache
+            .request::<std_lib::graph::temporal::Temporal>(context)
             .expect_type(sym::LeftClosedTemporalInterval)
             .id;
 
-        let ty = &lib.ty;
+        let ty = &context.ty;
 
         let entity_uuid_ty =
             types::entity_uuid(ty, Some(types::EntityUuidDependencies { uuid: uuid_ty }));
@@ -523,13 +530,13 @@ impl<'heap> StandardLibraryModule<'heap> for Entity {
         );
 
         // Entity<T>
-        let t_arg = lib.ty.fresh_argument(sym::T);
-        let t_ref = lib.ty.hydrate_argument(t_arg);
-        let t_param = lib.ty.param(t_arg);
-        let entity_ty = lib.ty.generic(
+        let t_arg = context.ty.fresh_argument(sym::T);
+        let t_ref = context.ty.hydrate_argument(t_arg);
+        let t_param = context.ty.param(t_arg);
+        let entity_ty = context.ty.generic(
             [t_arg],
             types::entity(
-                &lib.ty,
+                &context.ty,
                 t_param,
                 Some(types::EntityDependencies {
                     link_data: link_data_ty,
@@ -540,7 +547,7 @@ impl<'heap> StandardLibraryModule<'heap> for Entity {
         );
         def.push(
             sym::Entity,
-            ItemDef::newtype(lib.ty.env, entity_ty, &[t_ref]),
+            ItemDef::newtype(context.ty.env, entity_ty, &[t_ref]),
         );
 
         def

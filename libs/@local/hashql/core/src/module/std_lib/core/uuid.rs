@@ -1,5 +1,9 @@
+use core::alloc::Allocator;
+
 use crate::{
-    module::std_lib::{ItemDef, ModuleDef, StandardLibrary, StandardLibraryModule},
+    module::std_lib::{
+        CacheId, ItemDef, ModuleCache, ModuleDef, StandardLibraryContext, StandardLibraryModule,
+    },
     symbol::{Symbol, sym},
 };
 
@@ -21,16 +25,21 @@ pub(in crate::module::std_lib) struct Uuid {
 impl<'heap> StandardLibraryModule<'heap> for Uuid {
     type Children = ();
 
+    const CACHE_ID: CacheId = CacheId::CoreUuid;
+
     fn name() -> Symbol<'heap> {
         sym::uuid
     }
 
-    fn define(lib: &mut StandardLibrary<'_, 'heap>) -> ModuleDef<'heap> {
-        let mut def = ModuleDef::new();
+    fn define<S: Allocator + Clone>(
+        context: &mut StandardLibraryContext<'_, 'heap, S>,
+        _: &mut ModuleCache<'heap, S>,
+    ) -> ModuleDef<'heap, S> {
+        let mut def = ModuleDef::new_in(context.alloc.clone());
 
         // TODO: consider making this constructor private via intrinsic (requires VM)
         // newtype Uuid = String;
-        let uuid = ItemDef::newtype(lib.ty.env, types::uuid(&lib.ty), &[]);
+        let uuid = ItemDef::newtype(context.ty.env, types::uuid(&context.ty), &[]);
         def.push(sym::Uuid, uuid);
 
         def

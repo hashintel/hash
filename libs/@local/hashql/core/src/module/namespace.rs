@@ -53,6 +53,7 @@ pub struct ModuleNamespace<'env, 'heap> {
 
 impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
     /// Create a new module namespace.
+    #[must_use]
     pub fn new(registry: &'env ModuleRegistry<'heap>) -> Self {
         Self {
             registry,
@@ -312,13 +313,9 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
     }
 
     fn import_modules(&mut self) {
-        let root = self
-            .registry
-            .root
-            .read()
-            .expect("should be able to lock registry");
+        let root = &self.registry.root;
 
-        for (&name, &module) in &*root {
+        for (&name, &module) in root {
             self.imports.push(Import {
                 name,
                 item: ImportReference::Item(Item {
@@ -328,8 +325,6 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
                 }),
             });
         }
-
-        drop(root);
     }
 
     /// Imports all standard prelude items and all root modules.
@@ -480,13 +475,13 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
 #[cfg(test)]
 mod tests {
     #![coverage(off)]
-    use core::{assert_matches, num::NonZero};
+    use core::assert_matches;
 
     use super::ModuleNamespace;
     use crate::{
-        heap::Heap,
+        heap::{BumpAllocator as _, Heap},
         module::{
-            ModuleId, ModuleRegistry, PartialModule, Reference, Universe,
+            ModuleRegistry, Reference, Universe,
             error::ResolutionError,
             item::{IntrinsicItem, IntrinsicTypeItem, IntrinsicValueItem, Item, ItemKind},
             namespace::{ImportOptions, ResolutionMode, ResolveOptions},
@@ -683,25 +678,21 @@ mod tests {
     fn shadowed_import() {
         let heap = Heap::new();
         let environment = Environment::new(&heap);
-        let registry = ModuleRegistry::new(&environment);
 
-        let mut namespace = ModuleNamespace::new(&registry);
-        namespace.import_prelude();
-
-        let module = registry.intern_module(|id| PartialModule {
-            parent: ModuleId::ROOT,
-            depth: const { NonZero::new(1).unwrap() },
-            name: heap.intern_symbol("foo"),
-
-            items: registry.intern_items(&[Item {
-                module: id.value(),
+        let mut builder = ModuleRegistry::builder(&environment);
+        builder.insert_root_module(heap.intern_symbol("foo"), |id| {
+            heap.allocate_slice_copy(&[Item {
+                module: id,
                 name: heap.intern_symbol("bar"),
                 kind: ItemKind::Intrinsic(IntrinsicItem::Type(IntrinsicTypeItem {
                     name: heap.intern_symbol("::foo::bar"),
                 })),
-            }]),
+            }])
         });
-        registry.register(module);
+        let registry = builder.finish();
+
+        let mut namespace = ModuleNamespace::new(&registry);
+        namespace.import_prelude();
 
         let import = namespace
             .resolve_relative(
@@ -953,7 +944,22 @@ mod tests {
     fn alias_shadows_import() {
         let heap = Heap::new();
         let environment = Environment::new(&heap);
-        let registry = ModuleRegistry::new(&environment);
+
+        let mut builder = ModuleRegistry::builder(&environment);
+        let custom_module = builder.insert_root_module(heap.intern_symbol("custom"), |id| {
+            heap.allocate_slice_copy(&[Item {
+                module: id,
+                name: heap.intern_symbol("my_add"),
+                kind: ItemKind::Intrinsic(IntrinsicItem::Value(IntrinsicValueItem {
+                    name: heap.intern_symbol("::custom::my_add"),
+                    r#type: crate::module::locals::TypeDef {
+                        id: crate::r#type::builder::TypeBuilder::synthetic(&environment).never(),
+                        arguments: crate::intern::Interned::empty(),
+                    },
+                })),
+            }])
+        });
+        let registry = builder.finish();
 
         let mut namespace = ModuleNamespace::new(&registry);
         namespace.import_prelude();
@@ -972,36 +978,9 @@ mod tests {
 
         assert_eq!(original.name.as_str(), "add");
 
-        // Create a custom item and alias `+` to it
-        let ItemKind::Intrinsic(IntrinsicItem::Value(IntrinsicValueItem {
-            r#type: original_type,
-            ..
-        })) = original.kind
-        else {
-            panic!("expected intrinsic value item");
-        };
-
-        let custom_module = registry.intern_module(|id| PartialModule {
-            parent: ModuleId::ROOT,
-            depth: const { NonZero::new(1).unwrap() },
-            name: heap.intern_symbol("custom"),
-
-            items: registry.intern_items(&[Item {
-                module: id.value(),
-                name: heap.intern_symbol("my_add"),
-                kind: ItemKind::Intrinsic(IntrinsicItem::Value(IntrinsicValueItem {
-                    name: heap.intern_symbol("::custom::my_add"),
-                    r#type: original_type,
-                })),
-            }]),
-        });
-        registry.register(custom_module);
-
-        let custom_item = *registry
-            .modules
-            .index(custom_module)
+        let custom_item = *registry.modules[custom_module]
             .items
-            .into_iter()
+            .iter()
             .next()
             .expect("module should have one item");
 

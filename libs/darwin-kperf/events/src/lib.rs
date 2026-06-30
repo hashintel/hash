@@ -59,7 +59,7 @@ impl Cpu {
             b"a15" => Some(Self::M2),
             b"a16" | b"as1" | b"as2" | b"as3" => Some(Self::M3),
             b"as4" | b"as4-1" | b"as4-2" => Some(Self::M4),
-            b"as5" | b"as5-1" | b"as5-2" => Some(Self::M5),
+            b"as5" | b"as5-2" => Some(Self::M5),
             _ => None,
         }
     }
