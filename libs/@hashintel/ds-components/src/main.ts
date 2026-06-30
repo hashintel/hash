@@ -17,6 +17,7 @@ export type {
   ItemOrGroup,
 } from "./components/Menu/SelectableList/selectable-list";
 export { NumberInput } from "./components/NumberInput/number-input";
+export { Radio } from "./components/Radio/radio";
 export {
   RadioGroup,
   type RadioGroupOption,
