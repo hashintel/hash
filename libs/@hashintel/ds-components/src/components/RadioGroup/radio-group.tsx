@@ -8,45 +8,27 @@ import { styles } from "./radio-group.recipe";
 
 import type { SharedInputProps } from "../../util/form-shared";
 
-/** How the options are laid out within the group. */
-export type RadioGroupLayout = "block" | "inline" | "blockWithBorder";
-
-/**
- * A single selectable option. Accepts everything {@link Radio} does, except the
- * props the group controls on its behalf (`size`, `name`, selection state and
- * the id used to wire the label to the input).
- */
-export type RadioGroupOption<ValueType extends string = string> = Omit<
-  React.ComponentProps<typeof Radio>,
-  "size" | "onChange" | "value" | "name" | "autoFocus" | "htmlForId"
-> & {
-  /** The value reported to `onChange` when this option is selected */
-  value: ValueType;
-};
-
-export type RadioGroupProps<ValueType extends string = string> = {
+type RadioGroupProps<ValueType extends string = string> = {
   /** How the options are arranged (defaults to `block`) */
-  layout?: RadioGroupLayout;
+  layout?: "block" | "inline" | "blockWithBorder";
   /** The selectable options */
-  items: RadioGroupOption<ValueType>[];
-} & Omit<
-  SharedInputProps<HTMLInputElement, ValueType>,
-  "inputRef" | "invalid"
-> &
+  items: Array<
+    Omit<
+      React.ComponentProps<typeof Radio>,
+      | "size"
+      | "onChange"
+      | "value"
+      | "name"
+      | "autoFocus"
+      | "htmlForId"
+      | "invalid"
+      | "required"
+    > & { value: ValueType }
+  >;
+} & Omit<SharedInputProps<HTMLInputElement, NoInfer<ValueType>>, "inputRef"> &
   React.AriaAttributes;
 
-/**
- * A group of mutually-exclusive {@link Radio} options.
- *
- * Built on Ark UI's `RadioGroup` for the `radiogroup` semantics, orientation
- * and per-item state, while each option is rendered by composing the existing
- * `Radio` component via `asChild` on `RadioGroup.Item`.
- *
- * Selection is driven by the native radio inputs that `Radio` renders (they
- * share a `name`, so the browser handles single-selection and arrow-key
- * navigation) and is kept controlled through `value`/`onChange`.
- */
-export const RadioGroup = <ValueType extends string>({
+export const RadioGroup = <const ValueType extends string>({
   layout = "block",
   items,
   disabled,
@@ -60,6 +42,7 @@ export const RadioGroup = <ValueType extends string>({
   testId,
   size = "md",
   autoFocus,
+  invalid,
   name,
   ...ariaProps
 }: RadioGroupProps<ValueType>) => {
@@ -79,6 +62,33 @@ export const RadioGroup = <ValueType extends string>({
   const selectedIndex = items.findIndex((item) => item.value === value);
   const autoFocusIndex = selectedIndex === -1 ? 0 : selectedIndex;
 
+  // Focus events bubble, so moving between options would otherwise fire blur
+  // then focus on the group itself. These only report focus genuinely entering
+  // or leaving the group, i.e. when the related element is outside it.
+  const handleGroupFocus = (event: React.FocusEvent<HTMLDivElement>) => {
+    if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+      onFocus?.(event as unknown as React.FocusEvent<HTMLInputElement>);
+    }
+  };
+
+  const handleGroupBlur = (event: React.FocusEvent<HTMLDivElement>) => {
+    if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+      onBlur?.(event as unknown as React.FocusEvent<HTMLInputElement>);
+    }
+  };
+
+  // Pressing an option's label would otherwise blur the currently-focused
+  // option out to `<body>` (where `relatedTarget` is null) before `click`
+  // focuses the pressed option — surfacing as the group losing then regaining
+  // focus. Preventing the default press behaviour keeps the current option
+  // focused until `click` moves focus straight to the pressed option, so
+  // `relatedTarget` stays within the group and the transient never happens.
+  const handleGroupMouseDown = (event: React.MouseEvent<HTMLDivElement>) => {
+    if ((event.target as HTMLElement).closest("label")) {
+      event.preventDefault();
+    }
+  };
+
   return (
     <ArkRadioGroup.Root
       value={value}
@@ -91,11 +101,14 @@ export const RadioGroup = <ValueType extends string>({
       disabled={disabled}
       orientation={layout === "inline" ? "horizontal" : "vertical"}
       ids={{ itemHiddenInput: itemInputId }}
-      onFocus={onFocus}
-      onBlur={onBlur}
+      onMouseDown={handleGroupMouseDown}
+      onFocus={handleGroupFocus}
+      onBlur={handleGroupBlur}
       data-testid={testId}
       ref={ref as React.Ref<HTMLDivElement>}
       className={cx(styles({ layout }), className)}
+      required={required}
+      invalid={invalid}
       {...ariaProps}
     >
       {items.map((item, index) => {
@@ -118,9 +131,10 @@ export const RadioGroup = <ValueType extends string>({
               size={size}
               name={groupName}
               htmlForId={itemInputId(optionValue)}
-              required={required}
+              htmlValue={optionValue}
               disabled={itemIsDisabled}
               value={value === optionValue}
+              invalid={invalid && value === optionValue}
               onChange={(checked) => {
                 if (checked) {
                   onChange(optionValue);

@@ -176,7 +176,7 @@ export const styles = sva({
     },
     labelPlacement: {
       left: {
-        root: { flexDirection: "row-reverse" },
+        root: { flexDirection: "row-reverse", justifyContent: "space-between" },
       },
       right: {},
     },

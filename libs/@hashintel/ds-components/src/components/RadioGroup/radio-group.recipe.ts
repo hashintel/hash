@@ -6,28 +6,36 @@ export const styles = cva({
   },
   variants: {
     layout: {
-      // Vertical stack of options.
       block: {
         flexDirection: "column",
         alignItems: "flex-start",
         gap: "[12px]",
+        width: "[fit-content]",
+
+        "& > *": {
+          width: "[100%]",
+        },
       },
-      // Options flow along a row, wrapping when they run out of space.
       inline: {
-        flexDirection: "row",
         flexWrap: "wrap",
-        alignItems: "center",
+        alignItems: "flex-start",
         columnGap: "[20px]",
         rowGap: "[10px]",
       },
-      // Vertical stack wrapped in a bordered, padded container.
       blockWithBorder: {
         flexDirection: "column",
-        alignItems: "flex-start",
-        gap: "[14px]",
-        border: "[1px solid var(--colors-neutral-a45)]",
+        border: "[1px solid var(--colors-neutral-s45)]",
         borderRadius: "[8px]",
-        padding: "[16px]",
+
+        "& > *": {
+          padding: "[16px]",
+          borderBottom: "[1px solid var(--colors-neutral-s45)]",
+          width: "[100%]",
+        },
+
+        "& > *:last-child": {
+          borderBottom: "none",
+        },
       },
     },
   },

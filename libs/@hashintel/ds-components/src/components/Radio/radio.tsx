@@ -24,6 +24,7 @@ export const Radio = ({
   invalid,
   testId,
   htmlForId,
+  htmlValue,
   ref,
   inputRef,
   autoFocus,
@@ -41,6 +42,8 @@ export const Radio = ({
   labelAlign?: "top" | "center";
   /** The tone applied when the radio is selected */
   tone?: Exclude<Tone, "error"> | "success";
+  /** An optional value used for native form submissions */
+  htmlValue?: string;
 } & SharedInputProps<HTMLInputElement, boolean> &
   React.AriaAttributes) => {
   const generatedId = useId();
@@ -70,7 +73,7 @@ export const Radio = ({
         className={classes.input}
         id={inputId}
         name={name}
-        value={SELECTED_VALUE}
+        value={htmlValue ?? SELECTED_VALUE}
         checked={value}
         disabled={disabled}
         required={required}

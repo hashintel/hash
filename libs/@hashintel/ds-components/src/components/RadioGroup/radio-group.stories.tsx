@@ -5,10 +5,9 @@ import { css } from "@hashintel/ds-helpers/css";
 import { formInputSizes } from "../../util/form-shared";
 import { RadioGroup } from "./radio-group";
 
-import type { RadioGroupProps } from "./radio-group";
 import type { Story, StoryDefault } from "@ladle/react";
 
-type Props = RadioGroupProps;
+type Props = React.ComponentProps<typeof RadioGroup>;
 
 const layouts: NonNullable<Props["layout"]>[] = [
   "block",
@@ -21,6 +20,11 @@ const fruitItems = [
   { value: "banana", label: "Banana" },
   { value: "cherry", label: "Cherry" },
 ];
+
+const leftLabelItems = fruitItems.map((item) => ({
+  ...item,
+  labelPlacement: "left" as const,
+}));
 
 const ControlledRadioGroup = ({
   defaultValue = "apple",
@@ -78,6 +82,16 @@ export const Layouts: Story = () => (
         <ControlledRadioGroup layout={layout} />
       </div>
     ))}
+    <div>
+      <div className={headingClass}>layout=block, labelPlacement=left</div>
+      <ControlledRadioGroup layout="block" items={leftLabelItems} />
+    </div>
+    <div>
+      <div className={headingClass}>
+        layout=blockWithBorder, labelPlacement=left
+      </div>
+      <ControlledRadioGroup layout="blockWithBorder" items={leftLabelItems} />
+    </div>
   </div>
 );
 
