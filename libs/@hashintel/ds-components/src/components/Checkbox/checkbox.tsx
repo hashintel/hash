@@ -2,7 +2,6 @@ import { Checkbox as BaseCheckbox } from "@ark-ui/react/checkbox";
 
 import { cx } from "@hashintel/ds-helpers/css";
 
-import { useFieldId } from "../Form/field-id-context";
 import { styles } from "./checkbox.recipe";
 
 import type { SharedInputProps, Tone } from "../../util/form-shared";
@@ -42,8 +41,6 @@ export const Checkbox = ({
   indeterminate?: boolean;
 } & SharedInputProps<HTMLInputElement, boolean> &
   React.AriaAttributes) => {
-  const fieldIdFromContext = useFieldId();
-  const inputId = htmlForId ?? fieldIdFromContext ?? undefined;
   const classes = styles({
     size,
     tone,
@@ -60,7 +57,7 @@ export const Checkbox = ({
       disabled={disabled}
       invalid={invalid}
       required={required}
-      ids={inputId ? { hiddenInput: inputId } : undefined}
+      ids={htmlForId ? { hiddenInput: htmlForId } : undefined}
       data-testid={testId}
       ref={ref as React.Ref<HTMLLabelElement>}
       className={cx(classes.root, className)}

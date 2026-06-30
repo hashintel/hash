@@ -1,180 +1,124 @@
 import { useState } from "react";
 
-import { RadioGroup, type RadioGroupProps } from "./radio-group";
+import { css } from "@hashintel/ds-helpers/css";
 
+import { formInputSizes } from "../../util/form-shared";
+import { RadioGroup } from "./radio-group";
+
+import type { RadioGroupProps } from "./radio-group";
 import type { Story, StoryDefault } from "@ladle/react";
 
+type Props = RadioGroupProps;
+
+const layouts: NonNullable<Props["layout"]>[] = [
+  "block",
+  "inline",
+  "blockWithBorder",
+];
+
+const fruitItems = [
+  { value: "apple", label: "Apple" },
+  { value: "banana", label: "Banana" },
+  { value: "cherry", label: "Cherry" },
+];
+
+const ControlledRadioGroup = ({
+  defaultValue = "apple",
+  ...props
+}: Omit<Props, "value" | "onChange" | "items"> & {
+  defaultValue?: string;
+  items?: Props["items"];
+}) => {
+  const [value, setValue] = useState(defaultValue);
+  return (
+    <RadioGroup
+      {...props}
+      items={props.items ?? fruitItems}
+      value={value}
+      onChange={setValue}
+    />
+  );
+};
+
 export default {
-  title: "Legacy/RadioGroup",
+  title: "Components/RadioGroup",
   parameters: {
     layout: "centered",
   },
   argTypes: {
-    variant: {
-      control: { type: "radio" },
-      options: ["default", "card"],
-      description: "Visual style variant",
-    },
-    disabled: {
-      control: { type: "boolean" },
-      description: "Whether the radio group is disabled",
-    },
+    layout: { control: { type: "select", options: layouts } },
+    size: { control: { type: "select", options: formInputSizes } },
+    disabled: { control: { type: "boolean" } },
   },
   args: {
-    variant: "default",
+    layout: "block",
+    size: "md",
     disabled: false,
   },
-} satisfies StoryDefault<RadioGroupProps>;
+} satisfies StoryDefault<Props>;
 
-export const Default: Story<RadioGroupProps> = (args) => (
-  <RadioGroup {...args} />
+const headingClass = css({
+  fontSize: "[12px]",
+  fontWeight: "medium",
+  color: "neutral.s90",
+  marginBottom: "[8px]",
+});
+
+const sectionClass = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "[24px]",
+});
+
+export const Layouts: Story = () => (
+  <div className={sectionClass}>
+    {layouts.map((layout) => (
+      <div key={layout}>
+        <div className={headingClass}>layout={layout}</div>
+        <ControlledRadioGroup layout={layout} />
+      </div>
+    ))}
+  </div>
 );
-Default.args = {
-  variant: "default",
-  options: [
-    { value: "react", label: "React" },
-    { value: "vue", label: "Vue" },
-    { value: "svelte", label: "Svelte" },
-    { value: "solid", label: "Solid" },
-  ],
-  defaultValue: "react",
+
+Layouts.parameters = {
+  controls: { disable: true },
 };
 
-export const Card: Story<RadioGroupProps> = (args) => <RadioGroup {...args} />;
-Card.args = {
-  variant: "card",
-  options: [
-    {
-      value: "basic",
-      label: "Basic",
-      description: "For simple applications",
-      icon: (
-        <svg
-          width="16"
-          height="16"
-          viewBox="0 0 16 16"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <rect width="16" height="16" rx="2" fill="currentColor" />
-        </svg>
-      ),
-    },
-    {
-      value: "pro",
-      label: "Pro",
-      description: "For professional use",
-      icon: (
-        <svg
-          width="16"
-          height="16"
-          viewBox="0 0 16 16"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <circle cx="8" cy="8" r="8" fill="currentColor" />
-        </svg>
-      ),
-    },
-    {
-      value: "enterprise",
-      label: "Enterprise",
-      description: "For large organizations",
-      icon: (
-        <svg
-          width="16"
-          height="16"
-          viewBox="0 0 16 16"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path d="M8 0L16 8L8 16L0 8L8 0Z" fill="currentColor" />
-        </svg>
-      ),
-    },
-  ],
-  defaultValue: "basic",
-};
-
-export const Disabled: Story<RadioGroupProps> = (args) => (
-  <RadioGroup {...args} />
+export const Sizes: Story = () => (
+  <div className={sectionClass}>
+    {formInputSizes.map((size) => (
+      <div key={size}>
+        <div className={headingClass}>size={size}</div>
+        <ControlledRadioGroup layout="inline" size={size} />
+      </div>
+    ))}
+  </div>
 );
-Disabled.args = {
-  variant: "default",
-  options: [
-    { value: "option1", label: "Option 1" },
-    { value: "option2", label: "Option 2" },
-    { value: "option3", label: "Option 3" },
-  ],
-  disabled: true,
-  defaultValue: "option1",
+
+Sizes.parameters = {
+  controls: { disable: true },
 };
 
-export const DisabledOption: Story<RadioGroupProps> = (args) => (
-  <RadioGroup {...args} />
-);
-DisabledOption.args = {
-  variant: "default",
-  options: [
-    { value: "option1", label: "Option 1" },
-    { value: "option2", label: "Option 2 (Disabled)", disabled: true },
-    { value: "option3", label: "Option 3" },
-  ],
-  defaultValue: "option1",
-};
-
-export const Controlled: Story<RadioGroupProps> = (args) => {
-  const [value, setValue] = useState("react");
-
-  return (
+export const Disabled: Story = () => (
+  <div className={sectionClass}>
     <div>
-      <RadioGroup
-        {...args}
-        value={value}
-        onValueChange={(newValue) => setValue(newValue)}
-      />
-      <p style={{ marginTop: "1rem", fontSize: "14px", color: "#737373" }}>
-        Selected: {value}
-      </p>
+      <div className={headingClass}>whole group disabled</div>
+      <ControlledRadioGroup disabled />
     </div>
-  );
-};
-Controlled.args = {
-  variant: "default",
-  options: [
-    { value: "react", label: "React" },
-    { value: "vue", label: "Vue" },
-    { value: "svelte", label: "Svelte" },
-    { value: "solid", label: "Solid" },
-  ],
-};
-
-export const CardWithManyOptions: Story<RadioGroupProps> = (args) => (
-  <RadioGroup {...args} />
+    <div>
+      <div className={headingClass}>single option disabled</div>
+      <ControlledRadioGroup
+        items={[
+          { value: "apple", label: "Apple" },
+          { value: "banana", label: "Banana", disabled: true },
+          { value: "cherry", label: "Cherry" },
+        ]}
+      />
+    </div>
+  </div>
 );
-CardWithManyOptions.args = {
-  variant: "card",
-  options: [
-    {
-      value: "starter",
-      label: "Starter",
-      description: "Perfect for individuals",
-    },
-    {
-      value: "pro",
-      label: "Professional",
-      description: "For growing teams",
-    },
-    {
-      value: "business",
-      label: "Business",
-      description: "For larger organizations",
-    },
-    {
-      value: "enterprise",
-      label: "Enterprise",
-      description: "Custom solutions",
-    },
-  ],
-  defaultValue: "pro",
+
+Disabled.parameters = {
+  controls: { disable: true },
 };

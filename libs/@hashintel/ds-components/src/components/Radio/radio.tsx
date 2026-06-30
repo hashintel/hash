@@ -2,7 +2,6 @@ import { useId } from "react";
 
 import { cx } from "@hashintel/ds-helpers/css";
 
-import { useFieldId } from "../Form/field-id-context";
 import { styles } from "./radio.recipe";
 
 import type { SharedInputProps, Tone } from "../../util/form-shared";
@@ -44,11 +43,10 @@ export const Radio = ({
   tone?: Exclude<Tone, "error"> | "success";
 } & SharedInputProps<HTMLInputElement, boolean> &
   React.AriaAttributes) => {
-  const fieldIdFromContext = useFieldId();
   const generatedId = useId();
   // Always resolve to a concrete id so the label can be explicitly linked to
   // the input (an external `<FormField>` label takes precedence via context).
-  const inputId = htmlForId ?? fieldIdFromContext ?? generatedId;
+  const inputId = htmlForId ?? generatedId;
 
   const classes = styles({
     size,
