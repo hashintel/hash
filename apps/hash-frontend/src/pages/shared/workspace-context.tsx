@@ -79,14 +79,17 @@ export const WorkspaceContextProvider: FunctionComponent<{
     }
   }, [activeWorkspaceWebId, updateActiveWorkspaceWebId, authenticatedUser]);
 
-  const workspaceContextValue = useMemo<WorkspaceContextValue>(() => {
-    const activeWorkspace =
+  const activeWorkspace = useMemo(
+    () =>
       authenticatedUser && authenticatedUser.accountId === activeWorkspaceWebId
         ? authenticatedUser
         : authenticatedUser?.memberOf.find(
             ({ org: { webId } }) => webId === activeWorkspaceWebId,
-          )?.org;
+          )?.org,
+    [authenticatedUser, activeWorkspaceWebId],
+  );
 
+  useEffect(() => {
     /**
      * If there is an `activeWorkspaceWebId` and an `authenticatedUser`, but
      * `activeWorkspace` is not defined, reset `activeWorkspaceWebId` to the
@@ -98,7 +101,14 @@ export const WorkspaceContextProvider: FunctionComponent<{
           (authenticatedUser.accountId as WebId),
       );
     }
+  }, [
+    activeWorkspace,
+    activeWorkspaceWebId,
+    authenticatedUser,
+    updateActiveWorkspaceWebId,
+  ]);
 
+  const workspaceContextValue = useMemo<WorkspaceContextValue>(() => {
     return {
       activeWorkspace,
       activeWorkspaceWebId,
@@ -106,7 +116,7 @@ export const WorkspaceContextProvider: FunctionComponent<{
       refetchActiveWorkspace: () => refetch().then(() => undefined),
     };
   }, [
-    authenticatedUser,
+    activeWorkspace,
     activeWorkspaceWebId,
     updateActiveWorkspaceWebId,
     refetch,

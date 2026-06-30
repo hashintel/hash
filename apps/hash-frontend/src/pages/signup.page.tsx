@@ -242,7 +242,16 @@ const SignupPage: NextPageWithLayout = () => {
           refetchInvites();
           await refetchAuthenticatedUser();
           updateActiveWorkspaceWebId(invitation.org.webId);
-          void router.replace("/");
+          /**
+           * Hard navigation rather than `router.replace`: a client-side
+           * transition here can leave this component mounted on `/` (Next
+           * doesn't reliably re-resolve the route component on these
+           * `getInitialProps`-driven transitions). A full load guarantees a
+           * clean home render with fresh auth state.
+           *
+           * @todo sort out signup redirecting logic generally
+           */
+          window.location.assign("/");
           return;
         }
 
@@ -368,7 +377,16 @@ const SignupPage: NextPageWithLayout = () => {
         updateActiveWorkspaceWebId(invitation.org.webId);
       }
 
-      void router.push("/");
+      /**
+       * Hard navigation rather than `router.push`: a client-side transition
+       * here can leave this component mounted on `/` (Next doesn't reliably
+       * re-resolve the route component on these `getInitialProps`-driven
+       * transitions), stranding the user on a loading state. A full load
+       * guarantees a clean home render with fresh auth state.
+       *
+       * @todo sort out signup redirecting logic generally
+       */
+      window.location.assign("/");
     },
     [
       acceptInvitationOnce,
@@ -378,7 +396,6 @@ const SignupPage: NextPageWithLayout = () => {
       refetchAuthenticatedUser,
       updateAuthenticatedUser,
       updateActiveWorkspaceWebId,
-      router,
     ],
   );
 
