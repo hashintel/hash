@@ -11,6 +11,7 @@
     macro_metavar_expr_concat,
     never_type,
     const_trait_impl,
+    stmt_expr_attributes,
 
     // Library Features
     allocator_api,
