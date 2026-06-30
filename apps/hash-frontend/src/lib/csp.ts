@@ -4,7 +4,10 @@
  * @see https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP
  */
 
-import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
+import {
+  apiOrigin,
+  frontendUrl,
+} from "@local/hash-isomorphic-utils/environment";
 
 const buildDirectiveString = (directives: Record<string, string[]>): string =>
   Object.entries(directives)
@@ -102,24 +105,34 @@ export const buildCspHeader = (nonce: string): string => {
  * compiled with `new Function()` without endangering the parent HASH origin.
  *
  * Key differences vs the default CSP:
- * - `script-src` includes `'unsafe-eval'` so Babel + `new Function()` work.
- * - `connect-src` is `'self'`, but the sandbox's opaque origin makes that
- *   effectively no network reach.
- *   All persistence + AI requests deliberately round-trip through the
- *   host via postMessage instead. `'self'` (rather than `'none'`) is kept only
- *   so Next.js's dev-mode HMR probe doesn't spew CSP-violation noise inside the
- *   iframe; the real isolation is the opaque origin, not this directive.
- * - `frame-ancestors 'self'` — only HASH itself may embed this route.
+ * - `script-src` includes `'unsafe-eval'` so Babel + `new Function()` work,
+ *   and `'unsafe-inline'` (rather than a nonce) because this route is
+ *   statically generated, so the per-request middleware nonce can't be baked
+ *   into its inline framework scripts. Given `'unsafe-eval'` is already
+ *   granted and the isolation is the opaque-origin sandbox, `'unsafe-inline'`
+ *   adds no meaningful risk.
+ * - `connect-src` is `'self'` only — from the opaque-origin sandbox this is
+ *   effectively no network reach. All persistence + AI requests deliberately
+ *   round-trip through the host via postMessage instead.
+ * - `frame-ancestors` — only the HASH frontend may embed this route. Spelled
+ *   out via {@link frontendUrl} for the same opaque-origin reason as the asset
+ *   directives (`'self'` alone matches no ancestor here).
  * - `worker-src` allows `blob:` because Monaco / petrinaut spawn workers
  *   from blob URLs.
  */
-export const buildEmbedCspHeader = (nonce: string): string => {
+export const buildEmbedCspHeader = (): string => {
   const directives: Record<string, string[]> = {
     "default-src": ["'none'"],
 
     "script-src": [
+      // The embed's opaque origin makes `'self'` match nothing; reference the
+      // real origin so Next.js chunks load.
+      frontendUrl,
       "'self'",
-      `'nonce-${nonce}'`,
+      // The route is statically generated, so a per-request nonce can't be
+      // applied to its inline scripts; `'unsafe-inline'` is safe here because
+      // `'unsafe-eval'` is already granted and isolation is the sandbox.
+      "'unsafe-inline'",
       "'wasm-unsafe-eval'",
       // The whole point of the embed route: user-provided code is compiled
       // with `new Function()`, which requires `'unsafe-eval'`. Contained to
@@ -128,24 +141,25 @@ export const buildEmbedCspHeader = (nonce: string): string => {
     ],
 
     "style-src": [
+      frontendUrl,
       "'self'",
       // Required for Emotion/MUI CSS-in-JS inline style injection.
       "'unsafe-inline'",
     ],
 
-    "img-src": ["'self'", "data:", "blob:"],
+    "img-src": [frontendUrl, "'self'", "data:", "blob:"],
 
-    "font-src": ["'self'", "data:"],
+    "font-src": [frontendUrl, "'self'", "data:"],
 
     // Effectively no real reach from the opaque-origin sandbox — see the
     // `connect-src` note in this function's doc comment.
     "connect-src": ["'self'"],
 
-    "worker-src": ["'self'", "blob:"],
+    "worker-src": [frontendUrl, "'self'", "blob:"],
 
     "frame-src": ["'none'"],
 
-    "frame-ancestors": ["'self'"],
+    "frame-ancestors": [frontendUrl, "'self'"],
 
     "object-src": ["'none'"],
     "base-uri": ["'none'"],
