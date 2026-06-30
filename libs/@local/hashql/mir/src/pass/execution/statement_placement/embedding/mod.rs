@@ -153,7 +153,11 @@ impl<'heap, A: Allocator + Clone, S: Allocator> StatementPlacement<'heap, A>
 
         match body.source {
             Source::GraphReadFilter(_) => {}
-            Source::Ctor(_) | Source::Closure(..) | Source::Thunk(..) | Source::Intrinsic(_) => {
+            Source::Ctor(_)
+            | Source::Closure(..)
+            | Source::Thunk(..)
+            | Source::Intrinsic(_)
+            | Source::Synthetic(_) => {
                 return (statement_costs, terminator_costs);
             }
         }
@@ -169,7 +173,8 @@ impl<'heap, A: Allocator + Clone, S: Allocator> StatementPlacement<'heap, A>
                         Source::Ctor(_)
                         | Source::Closure(..)
                         | Source::Thunk(..)
-                        | Source::Intrinsic(_) => return,
+                        | Source::Intrinsic(_)
+                        | Source::Synthetic(_) => return,
                     }
 
                     debug_assert_eq!(body.args, 2);

@@ -60,7 +60,7 @@ thunk get_axis:0() -> () -> (::graph::temporal::PinnedTransactionTimeTemporalAxe
     let %0: ::graph::temporal::PinnedTransactionTimeTemporalAxes | ::graph::temporal::PinnedDecisionTimeTemporalAxes
 
     bb0(): {
-        %0 = apply ({closure#3} as FnPtr) ()
+        %0 = input LOAD axis
 
         return %0
     }
@@ -90,22 +90,10 @@ thunk get_axis:0() -> () -> (::graph::temporal::PinnedTransactionTimeTemporalAxe
 
 *thunk {thunk#2}() -> ::graph::temporal::PinnedTransactionTimeTemporalAxes | ::graph::temporal::PinnedDecisionTimeTemporalAxes {
     let %0: ::graph::temporal::PinnedTransactionTimeTemporalAxes | ::graph::temporal::PinnedDecisionTimeTemporalAxes
-    let %1: ()
-    let %2: ::graph::temporal::PinnedTransactionTimeTemporalAxes | ::graph::temporal::PinnedDecisionTimeTemporalAxes
 
     bb0(): {
-        %1 = ()
+        %0 = input LOAD axis
 
-        goto -> bb2()
-    }
-
-    bb1(%0): {
         return %0
-    }
-
-    bb2(): {
-        %2 = input LOAD axis
-
-        goto -> bb1(%2)
     }
 }

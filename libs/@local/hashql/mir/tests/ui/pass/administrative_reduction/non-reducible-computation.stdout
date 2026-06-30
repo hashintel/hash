@@ -62,12 +62,20 @@ thunk compute:0() -> (Integer, Integer) -> Boolean {
     let %1: Boolean
     let %2: (Integer, Integer) -> Boolean
     let %3: ()
+    let %4: ()
+    let %5: Integer
+    let %6: Integer
+    let %7: Boolean
 
     bb0(): {
         %3 = ()
         %2 = closure(({closure#5} as FnPtr), %3)
         %0 = %2
-        %1 = apply %0.0 %0.1 1 2
+        %4 = %0.1
+        %5 = 1
+        %6 = 2
+        %7 = %5 == %6
+        %1 = %7
 
         return %1
     }
