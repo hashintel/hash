@@ -104,6 +104,7 @@ impl DataDependencyAnalysis<'_> {
 }
 
 impl Default for DataDependencyAnalysis<'_> {
+    #[inline]
     fn default() -> Self {
         Self::new()
     }

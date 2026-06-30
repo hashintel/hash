@@ -122,7 +122,7 @@ impl Suite for EvalPostgres {
             &interner,
             &bodies,
             &analysis,
-            context.heap,
+            heap,
             &mut scratch,
         );
         scratch.reset();

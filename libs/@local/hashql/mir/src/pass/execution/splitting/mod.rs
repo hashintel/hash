@@ -401,6 +401,7 @@ impl<S: Allocator> BasicBlockSplitting<S> {
 }
 
 impl Default for BasicBlockSplitting<Global> {
+    #[inline]
     fn default() -> Self {
         Self::new()
     }
