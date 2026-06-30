@@ -44,7 +44,7 @@ hash-graph-type-defs           = { workspace = true }
 hash-graph-validation          = { workspace = true }
 hashql-ast                     = { workspace = true }
 hashql-diagnostics             = { workspace = true, features = ["serde", "render"] }
-hashql-eval                    = { workspace = true, features = ["graph"] }
+hashql-eval                    = { workspace = true }
 hashql-hir                     = { workspace = true }
 hashql-syntax-jexpr            = { workspace = true }
 type-system                    = { workspace = true, features = ["utoipa"] }

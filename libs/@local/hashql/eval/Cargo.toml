@@ -9,7 +9,6 @@ version.workspace = true
 [dependencies]
 # Public workspace dependencies
 hash-graph-postgres-store = { workspace = true, public = true }
-hash-graph-store          = { workspace = true, optional = true, public = true }
 hashql-diagnostics        = { workspace = true, public = true }
 hashql-hir                = { workspace = true, public = true }
 hashql-mir                = { workspace = true, public = true }
@@ -18,41 +17,36 @@ hashql-mir                = { workspace = true, public = true }
 
 # Private workspace dependencies
 hashql-core = { workspace = true }
-type-system = { workspace = true, optional = true }
 
 # Private third-party dependencies
-bytes.workspace             = true
-derive_more                 = { workspace = true, features = ["display"] }
-futures-lite                = "2.6.1"
-postgres-protocol.workspace = true
-postgres-types              = { workspace = true, features = ["uuid-1"] }
-serde                       = { workspace = true }
-serde_json                  = { workspace = true, features = ["raw_value"] }
-simple-mermaid              = { workspace = true }
-tokio.workspace             = true
-tokio-postgres.workspace    = true
-tokio-util                  = { workspace = true, features = ["rt"] }
-url.workspace               = true
-uuid.workspace              = true
+bytes             = { workspace = true }
+futures-lite      = { workspace = true }
+postgres-protocol = { workspace = true }
+postgres-types    = { workspace = true, features = ["uuid-1"] }
+serde             = { workspace = true }
+serde_json        = { workspace = true, features = ["raw_value"] }
+simple-mermaid    = { workspace = true }
+tokio-postgres    = { workspace = true }
+url               = { workspace = true }
+uuid              = { workspace = true }
 
 [dev-dependencies]
-error-stack.workspace          = true
-hash-graph-authorization       = { workspace = true }
-hash-graph-store.workspace     = true
-hash-graph-test-data.workspace = true
-hashql-compiletest             = { workspace = true }
-hashql-diagnostics             = { workspace = true, features = ["render"] }
-insta                          = { workspace = true }
-libtest-mimic                  = { workspace = true }
-regex                          = { workspace = true }
-similar-asserts                = { workspace = true }
-sqruff-lib                     = "0.37.3"
-sqruff-lib-core                = "0.37.3"
-testcontainers                 = { workspace = true, features = ["reusable-containers"] }
-testcontainers-modules         = { workspace = true, features = ["postgres"] }
-
-[features]
-graph = ["dep:hash-graph-store", "dep:type-system"]
+error-stack              = { workspace = true }
+hash-graph-authorization = { workspace = true }
+hash-graph-store         = { workspace = true }
+hash-graph-test-data     = { workspace = true }
+hashql-compiletest       = { workspace = true }
+hashql-diagnostics       = { workspace = true, features = ["render"] }
+insta                    = { workspace = true }
+libtest-mimic            = { workspace = true }
+regex                    = { workspace = true }
+similar-asserts          = { workspace = true }
+sqruff-lib               = { workspace = true }
+sqruff-lib-core          = { workspace = true }
+testcontainers           = { workspace = true, features = ["reusable-containers"] }
+testcontainers-modules   = { workspace = true, features = ["postgres"] }
+tokio                    = { workspace = true }
+type-system              = { workspace = true }
 
 [lints]
 workspace = true

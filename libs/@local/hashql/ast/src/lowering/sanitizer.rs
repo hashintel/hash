@@ -204,6 +204,7 @@ impl<'heap> Visitor<'heap> for Sanitizer {
 }
 
 impl Default for Sanitizer {
+    #[inline]
     fn default() -> Self {
         Self::new()
     }
