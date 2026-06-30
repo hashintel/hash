@@ -22,6 +22,7 @@ use axum::{
     response::{Html, IntoResponse as _},
 };
 use error_stack::{Report, ResultExt as _};
+use hash_graph_embeddings::OpenAiEmbeddingClient;
 use hash_graph_store::{
     entity::{
         EntityQueryCursor, EntityQueryPath, EntityQuerySorting, EntityQuerySortingRecord,
@@ -68,7 +69,8 @@ use type_system::knowledge::Entity;
 use utoipa::ToSchema;
 
 use super::{
-    ApiConfig, LimitExceededError, SearchRequestError, resolve_limit, status::BoxedResponse,
+    ApiConfig, LimitExceededError, SearchRequestError, resolve_limit, resolve_search_embedding,
+    status::BoxedResponse,
 };
 
 #[tracing::instrument(level = "info", skip_all)]
@@ -596,10 +598,18 @@ impl<'p> EntityQueryOptions<'_, 'p> {
 }
 
 /// Request body for the entity embedding search endpoint.
+///
+/// Exactly one of `embedding` or `semanticString` must be provided. `semanticString` is converted
+/// into an embedding by the server, which requires an embedding client to be configured.
 #[derive(Debug, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct SearchEntitiesRequest {
-    pub embedding: Embedding<'static>,
+    #[serde(default)]
+    #[schema(nullable = false)]
+    pub embedding: Option<Embedding<'static>>,
+    #[serde(default)]
+    #[schema(nullable = false)]
+    pub semantic_string: Option<String>,
     pub maximum_semantic_distance: f64,
     pub limit: Option<usize>,
     #[serde(default)]
@@ -609,25 +619,28 @@ pub struct SearchEntitiesRequest {
 }
 
 impl SearchEntitiesRequest {
+    /// Converts the request into [`SearchEntitiesParams`], resolving the query embedding.
+    ///
     /// # Errors
     ///
-    /// - [`InvalidSemanticDistance`] if the maximum semantic distance is invalid.
-    /// - [`LimitExceeded`] if the requested limit exceeds the configured maximum.
-    ///
-    /// [`InvalidSemanticDistance`]: [`SearchRequestError::InvalidSemanticDistance`]
-    /// [`LimitExceeded`]: [`SearchRequestError::LimitExceeded`]
-    pub fn into_params(
+    /// Returns a [`SearchRequestError`] if the query embedding cannot be resolved, the maximum
+    /// semantic distance is invalid, or the requested limit exceeds the configured maximum.
+    pub async fn into_params(
         self,
         config: ApiConfig,
+        embedding_client: Option<&OpenAiEmbeddingClient>,
     ) -> Result<SearchEntitiesParams, Report<SearchRequestError>> {
+        let embedding =
+            resolve_search_embedding(self.embedding, self.semantic_string, embedding_client)
+                .await?;
         Ok(SearchEntitiesParams {
-            embedding: self.embedding,
+            embedding,
             maximum_semantic_distance: SemanticDistance::try_from(self.maximum_semantic_distance)
-                .change_context(
-                SearchRequestError::InvalidSemanticDistance,
-            )?,
+                .change_context(SearchRequestError::InvalidSemanticDistance)
+                .attach(hash_status::StatusCode::InvalidArgument)?,
             limit: resolve_limit(self.limit, config.query_entity_limit)
-                .change_context(SearchRequestError::LimitExceeded)?,
+                .change_context(SearchRequestError::LimitExceeded)
+                .attach(hash_status::StatusCode::InvalidArgument)?,
             include_entity_types: self.include_entity_types,
             filter: self.filter,
         })

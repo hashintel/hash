@@ -735,6 +735,7 @@ __metadata:
     "@rust/hash-codec": "workspace:*"
     "@rust/hash-graph-api": "workspace:*"
     "@rust/hash-graph-authorization": "workspace:*"
+    "@rust/hash-graph-embeddings": "workspace:*"
     "@rust/hash-graph-postgres-store": "workspace:*"
     "@rust/hash-graph-store": "workspace:*"
     "@rust/hash-graph-type-fetcher": "workspace:*"
@@ -13067,6 +13068,7 @@ __metadata:
     "@rust/harpc-types": "workspace:*"
     "@rust/hash-codec": "workspace:*"
     "@rust/hash-graph-authorization": "workspace:*"
+    "@rust/hash-graph-embeddings": "workspace:*"
     "@rust/hash-graph-postgres-store": "workspace:*"
     "@rust/hash-graph-store": "workspace:*"
     "@rust/hash-graph-temporal-versioning": "workspace:*"
@@ -13114,6 +13116,15 @@ __metadata:
     "@rust/hash-graph-type-fetcher": "workspace:*"
     "@rust/hash-repo-chores": "workspace:*"
     "@rust/hash-telemetry": "workspace:*"
+  languageName: unknown
+  linkType: soft
+
+"@rust/hash-graph-embeddings@workspace:*, @rust/hash-graph-embeddings@workspace:libs/@local/graph/embeddings":
+  version: 0.0.0-use.local
+  resolution: "@rust/hash-graph-embeddings@workspace:libs/@local/graph/embeddings"
+  dependencies:
+    "@rust/error-stack": "workspace:*"
+    "@rust/hash-graph-types": "workspace:*"
   languageName: unknown
   linkType: soft
 

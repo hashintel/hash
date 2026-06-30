@@ -13,6 +13,7 @@ members = [
     "libs/@local/effect-dns/hickory",
     "libs/@local/graph/api",
     "libs/@local/graph/authorization",
+    "libs/@local/graph/embeddings",
     "libs/@local/graph/migrations",
     "libs/@local/graph/migrations-macros",
     "libs/@local/graph/postgres-store",
@@ -75,6 +76,7 @@ hash-codec.path                     = "libs/@local/codec"
 hash-codegen.path                   = "libs/@local/codegen"
 hash-graph-api.path                 = "libs/@local/graph/api"
 hash-graph-authorization.path       = "libs/@local/graph/authorization"
+hash-graph-embeddings.path          = "libs/@local/graph/embeddings"
 hash-graph-migrations.path          = "libs/@local/graph/migrations"
 hash-graph-migrations-macros.path   = "libs/@local/graph/migrations-macros"
 hash-graph-postgres-store.path      = "libs/@local/graph/postgres-store"
@@ -228,6 +230,7 @@ refinery                           = { version = "0.8.16", default-features = fa
 regex                              = { version = "1.11.2", default-features = false, features = ["perf", "unicode"] }
 reqwest                            = { version = "0.13.0", default-features = false, features = ["json", "rustls"] }
 reqwest-middleware                 = { version = "0.5.0", default-features = false }
+reqwest-retry                      = { version = "0.9.1", default-features = false }
 reqwest-tracing                    = { version = "0.7.0", default-features = false }
 roaring                            = { version = "0.11.2", default-features = false }
 rpds                               = { version = "1.1.2", default-features = false }
