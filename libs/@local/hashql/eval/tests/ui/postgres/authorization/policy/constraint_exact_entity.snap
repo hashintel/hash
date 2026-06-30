@@ -1,0 +1,8 @@
+---
+source: libs/@local/hashql/eval/src/postgres/authorization/policy/tests.rs
+description: "Entity(Exact { id: EntityUuid(11111111-1111-1111-1111-111111111111) })"
+expression: "snapshot_with_params(&expr.transpile_to_string(), &fixture.parameters)"
+---
+"entity_temporal_metadata_0_0_0"."entity_uuid" = $1
+
+parameters: AuxiliaryParameters { initial_offset: 0, parameters: [EntityUuid(11111111-1111-1111-1111-111111111111)] }

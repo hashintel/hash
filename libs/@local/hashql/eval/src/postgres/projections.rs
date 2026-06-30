@@ -2,12 +2,12 @@
 //!
 //! See [`Projections`] for the main entry point.
 
-use core::alloc::Allocator;
+use core::{alloc::Allocator, mem};
 
 use hash_graph_postgres_store::store::postgres::query::{
     self, Alias, Column, ColumnName, ColumnReference, ForeignKeyReference, FromItem, Identifier,
     JoinType, PostgresType, SelectExpression, SelectStatement, Table, TableName, TableReference,
-    table,
+    table::{self, DatabaseColumn as _},
 };
 use hashql_core::symbol::sym;
 
@@ -32,17 +32,18 @@ impl From<ComputedColumn> for ColumnName<'_> {
 ///
 /// Accessors like [`Self::entity_editions`] register that a table is needed and return a
 /// reference to it. The actual `FROM` tree is built once at the end via [`Self::build_from`].
+#[derive(Debug, Clone)]
 pub(crate) struct Projections {
     index: usize,
 
     /// Always present as the base table; everything joins through it.
-    base_alias: Alias,
+    pub base_alias: Alias,
 
-    entity_editions: Option<Alias>,
-    entity_ids: Option<Alias>,
-    entity_type_ids: Option<Alias>,
-    left: Option<Alias>,
-    right: Option<Alias>,
+    pub entity_editions: Option<Alias>,
+    pub entity_ids: Option<Alias>,
+    pub entity_type_ids: Option<Alias>,
+    pub left: Option<Alias>,
+    pub right: Option<Alias>,
 }
 
 impl Projections {
@@ -59,6 +60,10 @@ impl Projections {
             left: None,
             right: None,
         }
+    }
+
+    pub(crate) const fn snapshot(&self) -> Self {
+        Self { ..*self }
     }
 
     const fn next_alias(index: &mut usize) -> Alias {
@@ -167,11 +172,6 @@ impl Projections {
 
         let mut from = base;
 
-        // entity_editions ON edition_id (INNER)
-        if let Some(alias) = self.entity_editions {
-            from = self.build_entity_editions(from, alias);
-        }
-
         // entity_ids ON (web_id, entity_uuid) (INNER)
         if let Some(alias) = self.entity_ids {
             from = self.build_entity_ids(from, alias);
@@ -205,6 +205,11 @@ impl Projections {
             from = self.build_entity_has_right_entity(from, alias);
         }
 
+        // CROSS JOIN LATERAL entity_editions ON edition_id (INNER)
+        if let Some(alias) = self.entity_editions {
+            from = self.build_entity_editions(from, alias);
+        }
+
         // CROSS JOIN LATERALs for continuation subqueries (must come after
         // all regular joins since they may reference any of the joined tables)
         for lateral in laterals {
@@ -214,22 +219,98 @@ impl Projections {
         from
     }
 
-    fn build_entity_editions<'item>(&self, from: FromItem<'item>, alias: Alias) -> FromItem<'item> {
-        let fk = ForeignKeyReference::Single {
-            on: Column::EntityTemporalMetadata(table::EntityTemporalMetadata::EditionId),
-            join: Column::EntityEditions(table::EntityEditions::EditionId),
-            join_type: JoinType::Inner,
+    /// Builds `entity_editions` as a LATERAL subquery with explicit column projections.
+    ///
+    /// ```sql
+    /// CROSS JOIN LATERAL (
+    ///     SELECT ee.<col> AS <col>, ...
+    ///     FROM entity_editions AS ee
+    ///     WHERE ee.edition_id = base.edition_id
+    /// ) AS <alias>
+    /// ```
+    ///
+    /// The explicit projections let the authorization graft locate and replace
+    /// individual column expressions (e.g. applying a property mask to `properties`).
+    pub(crate) fn build_entity_editions<'item>(
+        &self,
+        from: FromItem<'item>,
+        alias: Alias,
+    ) -> FromItem<'item> {
+        let inner_ref = TableReference {
+            schema: None,
+            name: TableName::from("ee"),
+            alias: None,
         };
 
-        from.join(
-            JoinType::Inner,
-            FromItem::table(Table::EntityEditions).alias(Table::EntityEditions.aliased(alias)),
-        )
-        .on(fk.conditions(self.base_alias, alias))
-        .build()
+        // entity_editions AS ee
+        let inner_from = FromItem::table(Table::EntityEditions)
+            .alias(inner_ref.clone())
+            .build();
+
+        // ee.edition_id = base.edition_id
+        let correlation = query::Expression::equal(
+            query::Expression::ColumnReference(ColumnReference {
+                correlation: Some(inner_ref.clone()),
+                name: Column::EntityEditions(table::EntityEditions::EditionId).into(),
+            }),
+            query::Expression::ColumnReference(ColumnReference {
+                correlation: Some(self.temporal_metadata()),
+                name: Column::EntityTemporalMetadata(table::EntityTemporalMetadata::EditionId)
+                    .into(),
+            }),
+        );
+
+        // Project every column, `ee.[property] AS [property]`, this mirrors `*`, but makes each
+        // column available by name.
+        let selects = table::EntityEditions::ALL
+            .into_iter()
+            .map(|column| SelectExpression::Expression {
+                expression: query::Expression::ColumnReference(ColumnReference {
+                    correlation: Some(inner_ref.clone()),
+                    name: Column::EntityEditions(column).into(),
+                }),
+                alias: Some(column.as_str().into()),
+            })
+            .collect();
+
+        // WHERE ee.edition_id = base.edition_id
+        let r#where = query::WhereExpression {
+            conditions: vec![correlation],
+            cursor: Vec::new(),
+        };
+
+        // SELECT
+        //  ee.[property] AS [property],
+        //  ...
+        // FROM entity_editions as ee
+        // WHERE ee.edition_id = base.edition_id
+        let subquery = SelectStatement::builder()
+            .selects(selects)
+            .from(inner_from)
+            .where_expression(r#where)
+            .build();
+
+        // LATERAL (subquery) AS [alias]
+        let lateral = FromItem::Subquery {
+            lateral: true,
+            statement: Box::new(subquery),
+            alias: Some(TableReference {
+                schema: None,
+                name: TableName::from(Table::EntityEditions),
+                alias: Some(alias),
+            }),
+            column_alias: vec![],
+        };
+
+        // CROSS JOIN LATERAL (...)
+        from.cross_join(lateral)
     }
 
-    fn build_entity_ids<'item>(&self, from: FromItem<'item>, alias: Alias) -> FromItem<'item> {
+    pub(crate) fn build_entity_ids<'item>(
+        &self,
+        from: FromItem<'item>,
+        alias: Alias,
+    ) -> FromItem<'item> {
         let fk = ForeignKeyReference::Double {
             on: [
                 Column::EntityTemporalMetadata(table::EntityTemporalMetadata::WebId),
@@ -419,5 +500,347 @@ impl Projections {
         )
         .on(fk.conditions(self.base_alias, alias))
         .build()
+    }
+}
+
+/// Tracks joins that authorization conditions need.
+///
+/// Accessors reuse joins from the base [`Projections`] when available, falling
+/// back to fresh joins compiled by [`build_joins`](Self::build_joins).
+#[derive(Debug)]
+pub struct AuxiliaryProjections {
+    index: usize,
+    base: Projections,
+
+    pub entity_ids: Option<Alias>,
+    pub entity_edition_cache: Option<Alias>,
+}
+
+impl AuxiliaryProjections {
+    pub(crate) const fn new(base: &Projections) -> Self {
+        Self {
+            index: base.index,
+            base: base.snapshot(),
+            entity_ids: None,
+            entity_edition_cache: None,
+        }
+    }
+
+    const fn next_alias(&mut self) -> Alias {
+        let alias = Alias {
+            condition_index: 0,
+            chain_depth: 0,
+            number: self.index,
+        };
+        self.index += 1;
+        alias
+    }
+
+    pub(crate) const fn snapshot(&self) -> Self {
+        Self {
+            base: self.base.snapshot(),
+            ..*self
+        }
+    }
+
+    pub(crate) fn temporal_metadata(&self) -> TableReference<'static> {
+        self.base.temporal_metadata()
+    }
+
+    /// Entity-level provenance, joined on `(web_id, entity_uuid)`.
+    pub(crate) fn entity_ids(&mut self) -> TableReference<'static> {
+        let alias = if let Some(base_alias) = self.base.entity_ids {
+            base_alias
+        } else if let Some(alias) = self.entity_ids {
+            alias
+        } else {
+            let alias = self.next_alias();
+            self.entity_ids = Some(alias);
+            alias
+        };
+
+        TableReference {
+            schema: None,
+            name: TableName::from(Table::EntityIds),
+            alias: Some(alias),
+        }
+    }
+
+    pub(crate) const fn entity_edition_alias(&self) -> Option<Alias> {
+        self.base.entity_editions
+    }
+
+    /// Entity type assignments, joined on `entity_edition_id`.
+    ///
+    /// Always allocates a fresh join; the base projections' type aggregate
+    /// is a scoped LATERAL subquery and cannot be reused.
+    pub(crate) fn entity_edition_cache(&mut self) -> TableReference<'static> {
+        let alias = if let Some(alias) = self.entity_edition_cache {
+            alias
+        } else {
+            let alias = self.next_alias();
+            self.entity_edition_cache = Some(alias);
+            alias
+        };
+
+        TableReference {
+            schema: None,
+            name: TableName::from(Table::EntityEditionCache),
+            alias: Some(alias),
+        }
+    }
+
+    /// Appends authorization joins before the LATERAL subqueries.
+    ///
+    /// The compiled FROM tree ends with a chain of `CROSS JOIN LATERAL` nodes
+    /// (`entity_editions`, then continuations). Authorization joins must appear
+    /// before these so that the LATERAL subqueries can reference them.
+    ///
+    /// This traverses the right spine of `CrossJoin` nodes to find the
+    /// insertion point (the innermost non-LATERAL join tree), appends
+    /// authorization joins there, and reassembles the LATERAL chain on top.
+    pub(crate) fn build_joins(&self, mut from: FromItem<'static>) -> FromItem<'static> {
+        // This value has no semantic purpose, but is simply a value that we can construct in a
+        // constant environment and which is cheap. The value will never end up inside of the from
+        // clause, only when it panics, but all bets are off then anyway.
+        const SENTINEL: FromItem<'static> = FromItem::Table {
+            only: true,
+            table: TableReference {
+                schema: None,
+                name: TableName::from_table(table::Table::OntologyIds),
+                alias: None,
+            },
+            alias: None,
+            column_alias: Vec::new(),
+            tablesample: None,
+        };
+
+        if self.entity_ids.is_none() && self.entity_edition_cache.is_none() {
+            return from;
+        }
+
+        // Walk down the left spine of CrossJoin nodes to find the
+        // regular join tree underneath the LATERAL chain.
+        let mut inner = &mut from;
+        while let FromItem::CrossJoin { left, right: _ } = inner {
+            inner = left;
+        }
+
+        // Temporarily swap the core out so we can append joins to it.
+        let mut core = mem::replace(inner, SENTINEL);
+
+        if let Some(alias) = self.entity_ids {
+            core = self.base.build_entity_ids(core, alias);
+        }
+
+        if let Some(alias) = self.entity_edition_cache {
+            let fk = ForeignKeyReference::Single {
+                on: Column::EntityTemporalMetadata(table::EntityTemporalMetadata::EditionId),
+                join: Column::EntityEditionCache(table::EntityEditionCache::EntityEditionId),
+                join_type: JoinType::Inner,
+            };
+
+            core = core
+                .join(
+                    JoinType::Inner,
+                    FromItem::table(Table::EntityEditionCache)
+                        .alias(Table::EntityEditionCache.aliased(alias)),
+                )
+                .on(fk.conditions(self.base.base_alias, alias))
+                .build();
+        }
+
+        // Put the augmented core back; the LATERAL chain above is untouched.
+        *inner = core;
+
+        from
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use alloc::alloc::Global;
+    use std::path::PathBuf;
+
+    use hash_graph_postgres_store::store::postgres::query::{
+        FromItem, SelectStatement, Table, TableName, TableReference, Transpile as _,
+    };
+    use insta::{Settings, assert_snapshot};
+
+    use super::{AuxiliaryProjections, Projections};
+    use crate::postgres::Parameters;
+
+    fn snapshot_settings() -> Settings {
+        let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        let mut settings = Settings::clone_current();
+        settings
+            .set_snapshot_path(manifest_dir.join("tests/ui/postgres/authorization/projections"));
+        settings.set_prepend_module_to_snapshot(false);
+        settings
+    }
+
+    fn make_lateral(name: &'static str) -> FromItem<'static> {
+        FromItem::Subquery {
+            lateral: true,
+            statement: Box::new(
+                SelectStatement::builder()
+                    .selects(vec![])
+                    .from(
+                        FromItem::table(Table::EntityTemporalMetadata)
+                            .alias(TableReference {
+                                schema: None,
+                                name: TableName::from(name),
+                                alias: None,
+                            })
+                            .build(),
+                    )
+                    .build(),
+            ),
+            alias: Some(TableReference {
+                schema: None,
+                name: TableName::from(name),
+                alias: None,
+            }),
+            column_alias: vec![],
+        }
+    }
+
+    #[test]
+    fn build_from_base_only() {
+        let projections = Projections::new();
+        let mut parameters = Parameters::new_in(Global);
+        let from = projections.build_from(&mut parameters, Vec::new());
+
+        let mut settings = snapshot_settings();
+        settings.set_description(format!("{projections:?}"));
+        let _guard = settings.bind_to_scope();
+        assert_snapshot!("build_from_base_only", from.transpile_to_string());
+    }
+
+    #[test]
+    fn build_from_with_entity_editions() {
+        let mut projections = Projections::new();
+        projections.entity_editions();
+        let mut parameters = Parameters::new_in(Global);
+        let from = projections.build_from(&mut parameters, Vec::new());
+
+        let mut settings = snapshot_settings();
+        settings.set_description(format!("{projections:?}"));
+        let _guard = settings.bind_to_scope();
+        assert_snapshot!(
+            "build_from_with_entity_editions",
+            from.transpile_to_string()
+        );
+    }
+
+    #[test]
+    fn build_from_with_entity_ids_and_editions() {
+        let mut projections = Projections::new();
+        projections.entity_ids();
+        projections.entity_editions();
+        let mut parameters = Parameters::new_in(Global);
+        let from = projections.build_from(&mut parameters, Vec::new());
+
+        let mut settings = snapshot_settings();
+        settings.set_description(format!("{projections:?}"));
+        let _guard = settings.bind_to_scope();
+        assert_snapshot!(
+            "build_from_with_entity_ids_and_editions",
+            from.transpile_to_string(),
+        );
+    }
+
+    #[test]
+    fn build_from_editions_before_continuations() {
+        let mut projections = Projections::new();
+        projections.entity_editions();
+        let mut parameters = Parameters::new_in(Global);
+
+        let lateral = make_lateral("continuation_1");
+        let from = projections.build_from(&mut parameters, vec![lateral]);
+
+        let mut settings = snapshot_settings();
+        settings.set_description(format!("{projections:?}, 1 continuation lateral"));
+        let _guard = settings.bind_to_scope();
+        assert_snapshot!(
+            "build_from_editions_before_continuations",
+            from.transpile_to_string(),
+        );
+    }
+
+    #[test]
+    fn build_joins_no_laterals_no_auth() {
+        let base = Projections::new();
+        let aux = AuxiliaryProjections::new(&base);
+
+        let from = FromItem::table(Table::EntityTemporalMetadata)
+            .alias(TableReference {
+                schema: None,
+                name: TableName::from(Table::EntityTemporalMetadata),
+                alias: Some(base.base_alias),
+            })
+            .build();
+
+        let result = aux.build_joins(from.clone());
+        assert_eq!(
+            result.transpile_to_string(),
+            from.transpile_to_string(),
+            "no auth joins requested means FROM is unchanged",
+        );
+    }
+
+    #[test]
+    fn build_joins_inserts_before_laterals() {
+        let base = Projections::new();
+        let mut aux = AuxiliaryProjections::new(&base);
+        aux.entity_edition_cache();
+
+        let core = FromItem::table(Table::EntityTemporalMetadata)
+            .alias(TableReference {
+                schema: None,
+                name: TableName::from(Table::EntityTemporalMetadata),
+                alias: Some(base.base_alias),
+            })
+            .build();
+
+        let lateral_1 = make_lateral("continuation_1");
+        let lateral_2 = make_lateral("continuation_2");
+        let from = core.cross_join(lateral_1).cross_join(lateral_2);
+
+        let result = aux.build_joins(from);
+
+        let mut settings = snapshot_settings();
+        settings.set_description(format!("{aux:?}, 2 continuation laterals"));
+        let _guard = settings.bind_to_scope();
+        assert_snapshot!(
+            "build_joins_inserts_before_laterals",
+            result.transpile_to_string(),
+        );
+    }
+
+    #[test]
+    fn build_joins_no_laterals_with_auth() {
+        let base = Projections::new();
+        let mut aux = AuxiliaryProjections::new(&base);
+        aux.entity_ids();
+        aux.entity_edition_cache();
+
+        let from = FromItem::table(Table::EntityTemporalMetadata)
+            .alias(TableReference {
+                schema: None,
+                name: TableName::from(Table::EntityTemporalMetadata),
+                alias: Some(base.base_alias),
+            })
+            .build();
+
+        let result = aux.build_joins(from);
+
+        let mut settings = snapshot_settings();
+        settings.set_description(format!("{aux:?}"));
+        let _guard = settings.bind_to_scope();
+        assert_snapshot!(
+            "build_joins_no_laterals_with_auth",
+            result.transpile_to_string(),
+        );
     }
 }

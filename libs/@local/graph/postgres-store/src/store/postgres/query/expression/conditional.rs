@@ -54,6 +54,11 @@ pub enum Function {
     /// Transpiles to `(extract(epoch from <expr>) * 1000)::int8` in PostgreSQL.
     ExtractEpochMs(Box<Expression>),
     Unnest(Vec<Expression>),
+    /// Returns all subscript positions where the array element equals the given value.
+    ///
+    /// Transpiles to `array_positions(<array>, <value>)` in PostgreSQL.
+    /// Returns an integer array (e.g. `{1,3}`) or an empty array if no match.
+    ArrayPositions(Box<Expression>, Box<Expression>),
     Now,
 }
 
@@ -196,6 +201,13 @@ impl Transpile for Function {
 
                 fmt.write_char(')')
             }
+            Self::ArrayPositions(array, value) => {
+                fmt.write_str("array_positions(")?;
+                array.transpile(fmt)?;
+                fmt.write_str(", ")?;
+                value.transpile(fmt)?;
+                fmt.write_char(')')
+            }
             Self::JsonPathQueryFirst(target, path) => {
                 fmt.write_str("jsonb_path_query_first(")?;
                 target.transpile(fmt)?;
@@ -271,6 +283,7 @@ pub enum PostgresType {
     BigInt,
     Boolean,
     TimestampTzRange,
+    Uuid,
 }
 
 impl Transpile for PostgresType {
@@ -289,6 +302,7 @@ impl Transpile for PostgresType {
             Self::Int => fmt.write_str("int"),
             Self::BigInt => fmt.write_str("bigint"),
             Self::Boolean => fmt.write_str("boolean"),
+            Self::Uuid => fmt.write_str("uuid"),
             Self::TimestampTzRange => fmt.write_str("tstzrange"),
         }
     }

@@ -1,0 +1,11 @@
+---
+source: libs/@local/hashql/eval/src/postgres/projections.rs
+description: "AuxiliaryProjections { index: 3, base: Projections { index: 1, base_alias: Alias { condition_index: 0, chain_depth: 0, number: 0 }, entity_editions: None, entity_ids: None, entity_type_ids: None, left: None, right: None }, entity_ids: Some(Alias { condition_index: 0, chain_depth: 0, number: 1 }), entity_edition_cache: Some(Alias { condition_index: 0, chain_depth: 0, number: 2 }) }"
+expression: result.transpile_to_string()
+---
+"entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+INNER JOIN "entity_ids" AS "entity_ids_0_0_1"
+  ON "entity_ids_0_0_1"."web_id" = "entity_temporal_metadata_0_0_0"."web_id"
+ AND "entity_ids_0_0_1"."entity_uuid" = "entity_temporal_metadata_0_0_0"."entity_uuid"
+INNER JOIN "entity_edition_cache" AS "entity_edition_cache_0_0_2"
+  ON "entity_edition_cache_0_0_2"."entity_edition_id" = "entity_temporal_metadata_0_0_0"."entity_edition_id"

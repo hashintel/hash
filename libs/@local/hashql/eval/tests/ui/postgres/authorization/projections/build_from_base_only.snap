@@ -1,0 +1,6 @@
+---
+source: libs/@local/hashql/eval/src/postgres/projections.rs
+description: "Projections { index: 1, base_alias: Alias { condition_index: 0, chain_depth: 0, number: 0 }, entity_editions: None, entity_ids: None, entity_type_ids: None, left: None, right: None }"
+expression: from.transpile_to_string()
+---
+"entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"

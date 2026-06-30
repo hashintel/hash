@@ -32,7 +32,7 @@ use multiaddr::{Multiaddr, Protocol};
 use regex::Regex;
 use reqwest::{Client, Url};
 use tokio::{io, net::TcpListener, signal, time::timeout};
-use tokio_postgres::NoTls;
+use tokio_postgres::{Client as PostgresClient, NoTls};
 use tokio_util::{codec::FramedWrite, sync::CancellationToken};
 use type_system::ontology::json_schema::DomainValidator;
 
@@ -383,15 +383,15 @@ where
 /// Starts the main graph API server (REST + optional RPC).
 async fn start_server<S>(
     pool: S,
-    postgres: PostgresStorePool,
     compiler: Arc<CompilerContext>,
     config: ServerConfig,
     query_logger: Option<QueryLogger>,
+    filter_protection: Arc<PropertyProtectionFilterConfig<'static>>,
     lifecycle: &ServerLifecycle,
 ) -> Result<(), Report<GraphError>>
 where
     S: StorePool + Send + Sync + 'static,
-    for<'p> S::Store<'p>: RestApiStore + PrincipalStore + PolicyStore,
+    for<'p> S::Store<'p>: RestApiStore + PrincipalStore + PolicyStore + AsRef<PostgresClient>,
 {
     let store = Arc::new(pool);
     let temporal_client = create_temporal_client(&config.temporal)
@@ -414,12 +414,12 @@ where
 
     let router = rest_api_router(RestRouterDependencies {
         store,
-        postgres,
         temporal_client,
         domain_regex: DomainValidator::new(config.allowed_url_domain),
         query_logger,
         api_config: config.api_config,
         compiler,
+        filter_protection,
     });
     start_rest_server(router, config.http_address, lifecycle);
 
@@ -456,9 +456,9 @@ pub async fn server(mut args: ServerArgs) -> Result<(), Report<GraphError>> {
             validate_links: !args.config.skip_link_validation,
             skip_embedding_creation: args.config.skip_embedding_creation,
             filter_protection: if args.config.skip_filter_protection {
-                PropertyProtectionFilterConfig::new()
+                Arc::new(PropertyProtectionFilterConfig::new())
             } else {
-                PropertyProtectionFilterConfig::hash_default()
+                Arc::new(PropertyProtectionFilterConfig::hash_default())
             },
         },
     )
@@ -478,8 +478,6 @@ pub async fn server(mut args: ServerArgs) -> Result<(), Report<GraphError>> {
 
     let lifecycle = ServerLifecycle::new();
 
-    let postgres = pool.clone();
-
     if args.embed_admin {
         start_admin_server(pool.clone(), args.admin, &lifecycle);
     }
@@ -487,6 +485,8 @@ pub async fn server(mut args: ServerArgs) -> Result<(), Report<GraphError>> {
     if args.embed_type_fetcher {
         start_type_fetcher(args.type_fetcher.clone(), &lifecycle);
     }
+
+    let filter_protection = Arc::clone(&pool.settings.filter_protection);
 
     let pool = FetchingPool::new(
         pool,
@@ -523,10 +523,10 @@ pub async fn server(mut args: ServerArgs) -> Result<(), Report<GraphError>> {
 
     if let Err(error) = start_server(
         pool,
-        postgres,
         compiler,
         args.config,
         query_logger,
+        filter_protection,
         &lifecycle,
     )
     .await

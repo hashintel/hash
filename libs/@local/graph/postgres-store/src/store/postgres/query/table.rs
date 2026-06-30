@@ -2,6 +2,7 @@ use core::{
     fmt::{self, Debug, Formatter},
     hash::Hash,
     iter::{Chain, Once, once},
+    mem::MaybeUninit,
 };
 
 use hash_graph_store::{
@@ -1042,6 +1043,7 @@ impl DatabaseColumn for EntityEmbeddings {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[repr(u8)]
 pub enum EntityEditions {
     EditionId,
     Properties,
@@ -1049,6 +1051,27 @@ pub enum EntityEditions {
     Confidence,
     Provenance,
     PropertyMetadata,
+}
+
+impl EntityEditions {
+    #[expect(unsafe_code, clippy::cast_possible_truncation)]
+    pub const ALL: [Self; core::mem::variant_count::<Self>()] = {
+        let mut output = [MaybeUninit::uninit(); core::mem::variant_count::<Self>()];
+
+        let mut index = 0;
+        while index < core::mem::variant_count::<Self>() {
+            // SAFETY: `Self` is `repr(u8)` with contiguous discriminants starting at 0 (no explicit
+            // discriminant values). `index` ranges over `0..variant_count`, so every value is a
+            // valid discriminant.
+            let variant = unsafe { core::mem::transmute::<u8, Self>(index as u8) };
+
+            output[index].write(variant);
+            index += 1;
+        }
+
+        // SAFETY: We have initialized all variants in the loop above.
+        unsafe { MaybeUninit::array_assume_init(output) }
+    };
 }
 
 impl DatabaseColumn for EntityEditions {

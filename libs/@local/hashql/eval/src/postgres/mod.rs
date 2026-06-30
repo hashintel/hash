@@ -30,8 +30,8 @@
 use core::{alloc::Allocator, fmt::Display};
 
 use hash_graph_postgres_store::store::postgres::query::{
-    self, Column, Expression, Identifier, SelectExpression, SelectStatement, Transpile as _,
-    WhereExpression, table::EntityTemporalMetadata,
+    self, Column, Expression, Identifier, SelectExpression, SelectStatement, WhereExpression,
+    table::EntityTemporalMetadata,
 };
 use hashql_core::{
     debug_panic,
@@ -42,7 +42,6 @@ use hashql_core::{
 use hashql_mir::{
     body::{
         Body,
-        basic_block::BasicBlockId,
         local::Local,
         terminator::{GraphRead, GraphReadBody, GraphReadHead, TerminatorKind},
     },
@@ -56,21 +55,30 @@ use hashql_mir::{
     },
 };
 
-use self::{
-    continuation::ContinuationColumn, filter::GraphReadFilterCompiler, projections::Projections,
-    types::traverse_struct,
-};
 pub use self::{
+    authorization::AuthorizationPatch,
     continuation::ContinuationField,
     parameters::{Parameter, ParameterIndex, ParameterValue, Parameters, TemporalAxis},
+    prepared::{
+        PatchPreparedQuery, PatchPreparedQueryLayer, PreparedQueries, PreparedQuery,
+        PreparedQueryPatch,
+    },
+};
+use self::{
+    continuation::ContinuationColumn, filter::GraphReadFilterCompiler,
+    parameters::AuxiliaryParameters, projections::Projections, types::traverse_struct,
 };
 use crate::context::CodeGenerationContext;
 
+mod authorization;
 mod continuation;
 pub(crate) mod error;
 mod filter;
 mod parameters;
+mod prepared;
 mod projections;
+#[cfg(test)]
+pub(crate) mod tests;
 mod traverse;
 mod types;
 
@@ -188,50 +196,6 @@ impl Display for ColumnDescriptor {
     }
 }
 
-/// A fully-compiled SQL query ready for execution.
-///
-/// Contains the typed query AST ([`SelectStatement`]), the parameter catalog ([`Parameters`])
-/// for binding runtime values, and a column manifest ([`ColumnDescriptor`]s) that tells the
-/// bridge how to decode each result column.
-pub struct PreparedQuery<'heap, A: Allocator> {
-    pub vertex_type: VertexType,
-    pub parameters: Parameters<'heap, A>,
-    pub statement: SelectStatement,
-    pub columns: Vec<ColumnDescriptor, A>,
-}
-
-impl<A: Allocator> PreparedQuery<'_, A> {
-    pub fn transpile(&self) -> impl Display {
-        core::fmt::from_fn(|fmt| self.statement.transpile(fmt))
-    }
-}
-
-/// Registry of compiled SQL queries, indexed by definition and basic block.
-///
-/// The SQL lowering pass produces one [`PreparedQuery`] per [`GraphRead`]
-/// terminator in the MIR. This struct stores them contiguously in `queries`
-/// with `offsets` providing per-definition starting positions, so
-/// [`find`](Self::find) can locate the correct query for a given `(DefId,
-/// BasicBlockId)` pair.
-///
-/// [`GraphRead`]: hashql_mir::body::terminator::GraphRead
-pub struct PreparedQueries<'heap, A: Allocator> {
-    offsets: Box<DefIdSlice<usize>, A>,
-    queries: Vec<(BasicBlockId, PreparedQuery<'heap, A>), A>,
-}
-
-impl<'heap, A: Allocator> PreparedQueries<'heap, A> {
-    pub fn find(&self, body: DefId, block: BasicBlockId) -> Option<&PreparedQuery<'heap, A>> {
-        let start = self.offsets[body];
-        let end = self.offsets[body.plus(1)];
-
-        self.queries[start..end]
-            .iter()
-            .find(|(id, _)| *id == block)
-            .map(|(_, query)| query)
-    }
-}
-
 /// Compiles Postgres-targeted MIR islands into a single PostgreSQL `SELECT`.
 ///
 /// Created per evaluation and used to compile [`GraphRead`] terminators. Compilation emits
@@ -244,14 +208,6 @@ pub struct PostgresCompiler<'eval, 'ctx, 'heap, A: Allocator, S: Allocator> {
 
     alloc: A,
     scratch: S,
-
-    /// Pre-built expression to subtract protected property keys from JSONB columns.
-    ///
-    /// When present, `properties` and `property_metadata` `SELECT` expressions are
-    /// wrapped as `(column - mask)`. The caller builds this from the permission
-    /// system's protection rules; the compiler doesn't know about entity types
-    /// or actors.
-    property_mask: Option<Expression>,
 }
 
 impl<'eval, 'ctx, 'heap, A: Allocator, S: BumpAllocator>
@@ -267,19 +223,7 @@ impl<'eval, 'ctx, 'heap, A: Allocator, S: BumpAllocator>
             context,
             alloc,
             scratch,
-            property_mask: None,
         }
-    }
-
-    /// Sets an optional JSONB key mask applied to selected property columns.
-    ///
-    /// When set, `properties` and `property_metadata` selections are wrapped as
-    /// `(column - mask)` to strip protected keys from the output. The compiler itself does not
-    /// understand permissions; the caller is responsible for building the mask.
-    #[must_use]
-    pub fn with_property_mask(mut self, property_mask: Option<Expression>) -> Self {
-        self.property_mask = property_mask;
-        self
     }
 
     /// Joins the property types across all filter bodies into a single type.
@@ -400,7 +344,10 @@ impl<'eval, 'ctx, 'heap, A: Allocator, S: BumpAllocator>
         }
     }
 
-    fn compile_graph_read_entity(&mut self, read: &GraphRead<'heap>) -> PreparedQuery<'heap, A>
+    fn compile_graph_read_entity(
+        &mut self,
+        read: &GraphRead<'heap>,
+    ) -> prepared::PreparedQuery<'heap, A>
     where
         A: Clone,
     {
@@ -431,14 +378,7 @@ impl<'eval, 'ctx, 'heap, A: Allocator, S: BumpAllocator>
         for traversal_path in provides[VertexType::Entity].iter() {
             let TraversalPath::Entity(path) = traversal_path;
 
-            let mut expression = traverse::eval_entity_path(&mut db, path);
-
-            if matches!(path, EntityPath::Properties | EntityPath::PropertyMetadata)
-                && let Some(mask) = &self.property_mask
-            {
-                expression = Expression::grouped(Expression::subtract(expression, mask.clone()));
-            }
-
+            let expression = traverse::eval_entity_path(&mut db, path);
             let alias = Identifier::from(traversal_path.as_symbol().unwrap());
 
             let field_type = traversal_path
@@ -498,10 +438,13 @@ impl<'eval, 'ctx, 'heap, A: Allocator, S: BumpAllocator>
             .where_expression(db.where_expression)
             .build();
 
-        PreparedQuery {
+        let auxiliary_parameters = AuxiliaryParameters::new(&db.parameters, self.alloc.clone());
+        prepared::PreparedQuery {
             vertex_type: VertexType::Entity,
             parameters: db.parameters,
             statement: query,
+            projections: db.projections,
+            auxiliary_parameters,
             columns,
         }
     }
@@ -509,7 +452,10 @@ impl<'eval, 'ctx, 'heap, A: Allocator, S: BumpAllocator>
     /// Compiles a [`GraphRead`] into a [`PreparedQuery`].
     ///
     /// [`GraphRead`]: hashql_mir::body::terminator::GraphRead
-    pub fn compile_graph_read(&mut self, read: &'ctx GraphRead<'heap>) -> PreparedQuery<'heap, A>
+    pub fn compile_graph_read(
+        &mut self,
+        read: &'ctx GraphRead<'heap>,
+    ) -> prepared::PreparedQuery<'heap, A>
     where
         A: Clone,
     {
@@ -519,7 +465,7 @@ impl<'eval, 'ctx, 'heap, A: Allocator, S: BumpAllocator>
     }
 
     #[expect(unsafe_code)]
-    pub fn compile(&mut self) -> PreparedQueries<'heap, A>
+    pub fn compile(&mut self) -> prepared::PreparedQueries<'heap, A>
     where
         A: Clone,
     {
@@ -550,6 +496,6 @@ impl<'eval, 'ctx, 'heap, A: Allocator, S: BumpAllocator>
             offsets[body_id.plus(1)] = queries.len();
         }
 
-        PreparedQueries { offsets, queries }
+        prepared::PreparedQueries { offsets, queries }
     }
 }

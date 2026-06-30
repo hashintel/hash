@@ -38,13 +38,15 @@ use error_stack::{Report, ResultExt as _};
 use futures::{SinkExt as _, channel::mpsc::Sender};
 use hash_codec::numeric::Real;
 use hash_graph_authorization::policies::store::{PolicyStore, PrincipalStore};
-use hash_graph_postgres_store::store::{PostgresStorePool, error::VersionedUrlAlreadyExists};
+use hash_graph_postgres_store::store::{
+    error::VersionedUrlAlreadyExists, postgres::PostgresClient,
+};
 use hash_graph_store::{
     account::AccountStore,
     data_type::DataTypeStore,
     entity::{DiffEntityParams, EntityStore},
     entity_type::EntityTypeStore,
-    filter::{ParameterConversion, Selector},
+    filter::{ParameterConversion, Selector, protection::PropertyProtectionFilterConfig},
     pool::StorePool,
     property_type::PropertyTypeStore,
     subgraph::{
@@ -260,7 +262,7 @@ static STATIC_SCHEMAS: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/src/rest/json
 fn api_resources<S>() -> Vec<Router>
 where
     S: StorePool + Send + Sync + 'static,
-    for<'pool> S::Store<'pool>: RestApiStore + PrincipalStore + PolicyStore,
+    for<'pool> S::Store<'pool>: RestApiStore + PrincipalStore + PolicyStore + AsRef<PostgresClient>,
 {
     vec![
         data_type::DataTypeResource::routes::<S>(),
@@ -269,6 +271,7 @@ where
         entity::EntityResource::routes::<S>(),
         permissions::PermissionResource::routes::<S>(),
         principal::PrincipalResource::routes::<S>(),
+        hashql::HashQlResource::routes::<S>(),
     ]
 }
 
@@ -437,12 +440,12 @@ where
     S: StorePool + Send + Sync + 'static,
 {
     pub store: Arc<S>,
-    pub postgres: PostgresStorePool,
     pub temporal_client: Option<Arc<TemporalClient>>,
     pub domain_regex: DomainValidator,
     pub query_logger: Option<QueryLogger>,
     pub api_config: ApiConfig,
     pub compiler: Arc<hashql::CompilerContext>,
+    pub filter_protection: Arc<PropertyProtectionFilterConfig<'static>>,
 }
 
 /// A [`Router`] that only serves the `OpenAPI` specification (JSON, and necessary subschemas) for
@@ -464,13 +467,12 @@ pub fn openapi_only_router() -> Router {
 pub fn rest_api_router<S>(dependencies: RestRouterDependencies<S>) -> Router
 where
     S: StorePool + Send + Sync + 'static,
-    for<'p> S::Store<'p>: RestApiStore + PrincipalStore + PolicyStore,
+    for<'p> S::Store<'p>: RestApiStore + PrincipalStore + PolicyStore + AsRef<PostgresClient>,
 {
     // All api resources are merged together into a super-router.
     let merged_routes = api_resources::<S>()
         .into_iter()
         .fold(Router::new(), Router::merge)
-        .merge(hashql::HashQlResource::routes())
         .fallback(|| {
             tracing::error!("404: Not found");
             async { StatusCode::NOT_FOUND }
@@ -488,11 +490,11 @@ where
         )
         .layer(http_tracing_layer::HttpTracingLayer)
         .layer(Extension(dependencies.store))
-        .layer(Extension(Arc::new(dependencies.postgres)))
         .layer(Extension(dependencies.temporal_client))
         .layer(Extension(dependencies.domain_regex))
         .layer(Extension(dependencies.api_config))
-        .layer(Extension(dependencies.compiler));
+        .layer(Extension(dependencies.compiler))
+        .layer(Extension(dependencies.filter_protection));
 
     if let Some(query_logger) = dependencies.query_logger {
         router = router.layer(Extension(query_logger));
