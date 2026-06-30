@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Invoking `::kernel::types::intersection` should convert into a intersection type expression
+["::kernel::special_form::as", { "#literal": true }, ["&", "Integer", "Number"]]

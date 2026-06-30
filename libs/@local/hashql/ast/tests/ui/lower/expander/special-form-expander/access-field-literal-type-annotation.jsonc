@@ -1,0 +1,13 @@
+//@ run: fail
+//@ description: Field literal with type annotation should error
+[
+  "let",
+  "tuple",
+  { "#tuple": [{ "#literal": 1 }] },
+  [
+    "::kernel::special_form::access",
+    "tuple",
+    { "#literal": 0, "#type": "Integer" }
+    //~^ ERROR type annotations are not allowed on field index literals
+  ]
+]

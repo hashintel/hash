@@ -1,3 +1,0 @@
-//@ run: pass
-//@ description: as/2 should be converted to an AST node
-["::kernel::special_form::as", { "#literal": true }, "Int"]

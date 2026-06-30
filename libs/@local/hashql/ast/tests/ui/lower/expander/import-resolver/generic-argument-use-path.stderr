@@ -1,0 +1,6 @@
+error[expander::use-path-generic-arguments]: Generic arguments in use path
+  ╭▸ 
+3 │ ["use", "kernel::type<Integer>", { "#tuple": ["Union"] }, "_"]
+  │          ━━━━━━━━━━━━━━━━━━━━━ generic arguments are not allowed in `use` paths
+  │
+  ╰ help: remove the generic arguments; `use` imports modules and items, which do not take type parameters at the import site

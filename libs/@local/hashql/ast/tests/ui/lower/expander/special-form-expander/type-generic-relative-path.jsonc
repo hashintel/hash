@@ -1,0 +1,9 @@
+//@ run: fail
+//@ description: A relative path in generic position should be rejected
+[
+  "::kernel::special_form::type",
+  "Foo<foo::Bar>",
+  //~^ ERROR expected a simple type parameter
+  { "#struct": { "foo": "Integer" } },
+  "_"
+]

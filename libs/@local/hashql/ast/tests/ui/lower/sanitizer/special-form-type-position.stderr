@@ -1,0 +1,8 @@
+error[expander::item-not-found]: Item not found
+  ╭▸ 
+6 │   "::kernel::special_form::let",
+  │              ┬───────────  ━━━ cannot find type `let` in module `::kernel::special_form`
+  │              │
+  │              looked in this module
+  │
+  ╰ help: `let` exists as a value, not type

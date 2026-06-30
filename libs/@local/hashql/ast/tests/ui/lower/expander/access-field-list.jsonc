@@ -1,0 +1,8 @@
+//@ run: fail
+//@ description: field access with a list expression should error
+[
+  "::kernel::special_form::access",
+  { "#literal": "hello" },
+  { "#list": [{ "#literal": 1 }] }
+  //~^ ERROR expected a field name or integer index
+]

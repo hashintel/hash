@@ -1,0 +1,8 @@
+error[expander::duplicate-generic-constraint]: Duplicate generic constraint
+  ╭▸ 
+5 │   "Foo<T: Integer, T>",
+  │        ┬           ━ duplicate generic parameter `T`
+  │        │
+  │        `T` was first declared here
+  │
+  ╰ help: remove the duplicate declaration or use a different name

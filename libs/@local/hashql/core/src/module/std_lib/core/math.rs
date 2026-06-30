@@ -1,11 +1,10 @@
 use super::func;
 use crate::{
-    heap::Heap,
     module::{
         locals::TypeDef,
         std_lib::{ModuleDef, StandardLibrary, StandardLibraryModule, decl},
     },
-    symbol::Symbol,
+    symbol::{Symbol, sym},
 };
 
 pub(in crate::module::std_lib) struct Math {
@@ -15,11 +14,11 @@ pub(in crate::module::std_lib) struct Math {
 impl<'heap> StandardLibraryModule<'heap> for Math {
     type Children = ();
 
-    fn name(heap: &'heap Heap) -> Symbol<'heap> {
-        heap.intern_symbol("math")
+    fn name() -> Symbol<'heap> {
+        sym::math
     }
 
-    #[expect(clippy::non_ascii_literal, non_snake_case)]
+    #[expect(non_snake_case)]
     fn define(lib: &mut StandardLibrary<'_, 'heap>) -> ModuleDef<'heap> {
         let mut def = ModuleDef::new();
 
@@ -28,60 +27,64 @@ impl<'heap> StandardLibraryModule<'heap> for Math {
 
         let items = [
             (
-                "::core::math::add",
-                &["+"] as &[&'static str],
+                sym::path::core::math::add,
+                &[sym::add, sym::symbol::plus] as &[Symbol<'heap>],
                 decl!(lib; <T: Number, U: Number>(lhs: T, rhs: U) -> lib.ty.union([T, U])),
             ),
             (
-                "::core::math::sub",
-                &["-"],
+                sym::path::core::math::sub,
+                &[sym::sub, sym::symbol::minus],
                 decl!(lib; <T: Number, U: Number>(lhs: T, rhs: U) -> lib.ty.union([T, U])),
             ),
             (
-                "::core::math::mul",
-                &["*"],
+                sym::path::core::math::mul,
+                &[sym::mul, sym::symbol::asterisk],
                 decl!(lib; <T: Number, U: Number>(lhs: T, rhs: U) -> lib.ty.union([T, U])),
             ),
             (
-                "::core::math::div",
-                &["/"],
+                sym::path::core::math::div,
+                &[sym::div, sym::symbol::slash],
                 decl!(lib; <>(dividend: Number, divisor: Number) -> Number),
             ),
             (
-                "::core::math::rem",
-                &["%"],
+                sym::path::core::math::rem,
+                &[sym::rem, sym::symbol::percent],
                 decl!(lib; <>(dividend: Integer, divisor: Integer) -> Integer),
             ),
             (
-                "::core::math::mod",
-                &[],
+                sym::path::core::math::r#mod,
+                &[sym::r#mod],
                 decl!(lib; <>(value: Integer, modulus: Integer) -> Integer),
             ),
             (
-                "::core::math::pow",
-                &["**", "↑"],
+                sym::path::core::math::pow,
+                &[
+                    sym::pow,
+                    sym::symbol::asteriskasterisk,
+                    sym::symbol::upwards,
+                ],
                 // (cannot be `Integer` on return, as `exponent` can be a negative integer)
                 decl!(lib; <>(base: Number, exponent: Number) -> Number),
             ),
             (
-                "::core::math::sqrt",
-                &["√"],
+                sym::path::core::math::sqrt,
+                &[sym::sqrt, sym::symbol::sqrt],
                 decl!(lib; <>(value: Number) -> Number),
             ),
             (
-                "::core::math::cbrt",
-                &["∛"],
+                sym::path::core::math::cbrt,
+                &[sym::cbrt, sym::symbol::cbrt],
                 decl!(lib; <>(value: Number) -> Number),
             ),
             (
-                "::core::math::root",
-                &[], // cannot use `ⁿ√` because `ⁿ` is a letter, not a symbol
+                sym::path::core::math::root,
+                &[sym::root], // cannot use `ⁿ√` because `ⁿ` is a letter, not a symbol
                 decl!(lib; <>(value: Number, root: Number) -> Number),
             ),
         ];
 
         for (name, alias, r#type) in items {
-            func(lib, &mut def, name, alias, r#type);
+            func(&mut def, name, alias.iter().copied(), r#type);
         }
 
         def

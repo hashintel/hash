@@ -1,0 +1,4 @@
+//@ run: fail
+//@ description: Tests that importing a non-existent item produces an appropriate error with suggestions
+["use", "core::bits", { "#tuple": ["lshift"] }, "_"]
+//~^ ERROR cannot find item `lshift` in module `core::bits`

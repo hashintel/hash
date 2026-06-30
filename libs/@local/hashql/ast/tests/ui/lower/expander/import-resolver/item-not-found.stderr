@@ -1,0 +1,8 @@
+error[expander::item-not-found]: Item not found
+  ╭▸ 
+3 │ ["use", "core::bits", { "#tuple": ["lshift"] }, "_"]
+  │                ┬───                 ━━━━━━ cannot find item `lshift` in module `core::bits`
+  │                │
+  │                looked in this module
+  │
+  ╰ help: check the spelling and ensure the item is exported

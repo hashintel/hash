@@ -59,7 +59,7 @@ pub use self::{
     r#as::AsExpr, call::CallExpr, closure::ClosureExpr, dict::DictExpr, field::FieldExpr,
     r#if::IfExpr, index::IndexExpr, input::InputExpr, r#let::LetExpr, list::ListExpr,
     literal::LiteralExpr, newtype::NewTypeExpr, r#struct::StructExpr, tuple::TupleExpr,
-    r#type::TypeExpr, r#use::UseExpr,
+    r#type::TypeExpr,
 };
 use super::{id::NodeId, path::Path};
 
@@ -72,7 +72,7 @@ use super::{id::NodeId, path::Path};
 /// The examples below demonstrate the `JExpr` syntax (JSON-based frontend), as well as a fictional
 /// "documentation syntax" (used for readability) for each expression kind. Remember that these are
 /// just frontend representations - the AST itself is independent of any particular syntax.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug)]
 pub enum ExprKind<'heap> {
     /// A function call expression.
     ///
@@ -320,31 +320,6 @@ pub enum ExprKind<'heap> {
     /// ```
     NewType(NewTypeExpr<'heap>),
 
-    /// A module import expression (special form).
-    ///
-    /// Imports symbols from another module into the current scope. This is expanded
-    /// from a function call during AST transformation. HashQL supports selective
-    /// imports with optional renaming.
-    ///
-    /// # Examples
-    ///
-    /// ## J-Expr
-    ///
-    /// ```json
-    /// ["use", "path::to::module", {"#struct": {"item1": "_", "original": "renamed"}}, <body>]
-    /// ["use", "path::to::module", {"#tuple": ["item1", "original"]}, <body>]
-    /// ["use", "path::to::module", "*", <body>]
-    /// ```
-    ///
-    /// ## Documentation Format
-    ///
-    /// ```text
-    /// use path::to::module::{item1, original as renamed} in <body>
-    /// use path::to::module::{item1, original} in <body>
-    /// use path::to::module::* in <body>
-    /// ```
-    Use(UseExpr<'heap>),
-
     /// An input parameter declaration (special form).
     ///
     /// Declares an input parameter for a function or query. This is expanded
@@ -544,7 +519,7 @@ pub enum ExprKind<'heap> {
 /// Each expression has a unique identifier and a span that points to its
 /// location in the source code, which are crucial for error reporting,
 /// debugging, and tracking nodes through transformation phases.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug)]
 pub struct Expr<'heap> {
     pub id: NodeId,
     pub span: SpanId,

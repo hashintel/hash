@@ -1,0 +1,31 @@
+error[expander::invalid-expression-in-type-position]: Invalid expression in type position
+  ╭▸ 
+6 │   { "#literal": 1 },
+  │   ━━━━━━━━━━━━━━━━━ cannot use a literal value as a type
+  │
+  ├ help: replace this with a type path, tuple type, struct type, `_`, `(| ...)`, or `(& ...)`
+  ╰ note: valid type forms are: type paths like `String`, tuple types like `(Int, String)`, struct types like `(name: String)`, `_` for inference, unions `(| ...)`, and intersections `(& ...)`
+
+error[expander::unresolved-variable]: Unresolved variable
+  ╭▸ 
+8 │   "y",
+  │    ━ cannot find value `y` in this scope
+  │
+  ╰ note: this could be a typo, a name used outside its scope, or a missing declaration; if it is a function or type from another module, you may need to import it first
+help: a similar imported name exists
+  ╭╴
+8 -   "y",
+8 +   "↑",
+  ├╴
+8 -   "y",
+8 +   "√",
+  ├╴
+8 -   "y",
+8 +   "∛",
+  ├╴
+8 -   "y",
+8 +   "newtype",
+  ├╴
+8 -   "y",
+8 +   "type",
+  ╰╴

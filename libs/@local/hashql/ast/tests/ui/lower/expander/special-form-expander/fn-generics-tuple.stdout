@@ -1,0 +1,13 @@
+Expr#4294967040@20
+  ExprKind (Closure)
+    ClosureExpr#4294967040@20
+      ClosureSignature#4294967040@20
+        Generics#4294967040@12
+          GenericParam#4294967040@11 (name: T)
+        Type#4294967040@17
+          TypeKind (Infer)
+      Expr#4294967040@19
+        ExprKind (Literal)
+          LiteralExpr#4294967040@18
+            Primitive (Integer)
+              Integer (0)

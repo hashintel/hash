@@ -174,6 +174,26 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
         });
     }
 
+    /// Bind a name to an existing registry item in this namespace.
+    ///
+    /// Unlike [`local`](Self::local), which creates an opaque binding that
+    /// resolves to [`Reference::Binding`], an alias resolves to
+    /// [`Reference::Item`], preserving the item's identity. This means
+    /// further rebindings of the name still resolve to the original item.
+    ///
+    /// For example, after `use ::core::math::add in`, writing
+    /// `let foo = add` makes `foo` resolve to `::core::math::add` because
+    /// the alias preserves the item through the `let` binding.
+    ///
+    /// Like all namespace mutations, an alias can be undone by rolling back
+    /// to a [`Snapshot`] taken before the call.
+    pub fn alias(&mut self, name: Symbol<'heap>, item: Item<'heap>) {
+        self.imports.push(Import {
+            name,
+            item: ImportReference::Item(item),
+        });
+    }
+
     /// Return all the locals that have been registered so far.
     #[must_use]
     pub fn locals(&self, universe: Universe) -> FastHashSet<Symbol<'heap>> {
@@ -356,6 +376,11 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
 
         successful &= self.import_absolute_static("List", ["kernel", "type", "List"]);
         successful &= self.import_absolute_static("Dict", ["kernel", "type", "Dict"]);
+        successful &= self.import_absolute_static("Union", ["kernel", "type", "Union"]);
+        successful &= self.import_absolute_static("|", ["kernel", "type", "Union"]);
+        successful &=
+            self.import_absolute_static("Intersection", ["kernel", "type", "Intersection"]);
+        successful &= self.import_absolute_static("&", ["kernel", "type", "Intersection"]);
 
         successful &= self.import_absolute_static("Null", ["kernel", "type", "Null"]);
 
@@ -455,7 +480,7 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
 #[cfg(test)]
 mod tests {
     #![coverage(off)]
-    use core::assert_matches;
+    use core::{assert_matches, num::NonZero};
 
     use super::ModuleNamespace;
     use crate::{
@@ -495,9 +520,9 @@ mod tests {
         assert_matches!(
             item.kind,
             ItemKind::Intrinsic(IntrinsicItem::Value(IntrinsicValueItem {
-                name: "::core::math::add",
+                name,
                 r#type: _
-            }))
+            })) if name.as_str() == "::core::math::add"
         );
     }
 
@@ -524,11 +549,11 @@ mod tests {
         assert_eq!(item.name.as_str(), "Dict");
         assert_eq!(item.kind.universe(), Some(Universe::Type));
 
-        assert_eq!(
+        assert_matches!(
             item.kind,
             ItemKind::Intrinsic(IntrinsicItem::Type(IntrinsicTypeItem {
-                name: "::kernel::type::Dict",
-            }))
+                name,
+            })) if name.as_str() == "::kernel::type::Dict"
         );
     }
 
@@ -562,9 +587,9 @@ mod tests {
         assert_matches!(
             item.kind,
             ItemKind::Intrinsic(IntrinsicItem::Value(IntrinsicValueItem {
-                name: "::kernel::special_form::let",
+                name,
                 r#type: _
-            }))
+            })) if name.as_str() == "::kernel::special_form::let"
         );
     }
 
@@ -595,11 +620,11 @@ mod tests {
         assert_eq!(item.name.as_str(), "Dict");
         assert_eq!(item.kind.universe(), Some(Universe::Type));
 
-        assert_eq!(
+        assert_matches!(
             item.kind,
             ItemKind::Intrinsic(IntrinsicItem::Type(IntrinsicTypeItem {
-                name: "::kernel::type::Dict",
-            }))
+                name,
+            })) if name.as_str() == "::kernel::type::Dict"
         );
     }
 
@@ -646,10 +671,11 @@ mod tests {
 
         assert_matches!(
             item.kind,
-            ItemKind::Intrinsic(IntrinsicItem::Value(IntrinsicValueItem {
-                name: "::kernel::special_form::let",
+            ItemKind::Intrinsic(
+                IntrinsicItem::Value(IntrinsicValueItem {
+                name,
                 r#type: _
-            }))
+            })) if name.as_str() == "::kernel::special_form::let"
         );
     }
 
@@ -664,13 +690,14 @@ mod tests {
 
         let module = registry.intern_module(|id| PartialModule {
             parent: ModuleId::ROOT,
+            depth: const { NonZero::new(1).unwrap() },
             name: heap.intern_symbol("foo"),
 
             items: registry.intern_items(&[Item {
                 module: id.value(),
                 name: heap.intern_symbol("bar"),
                 kind: ItemKind::Intrinsic(IntrinsicItem::Type(IntrinsicTypeItem {
-                    name: "::foo::bar",
+                    name: heap.intern_symbol("::foo::bar"),
                 })),
             }]),
         });
@@ -690,11 +717,11 @@ mod tests {
         assert_eq!(import.name.as_str(), "Dict");
         assert_eq!(import.kind.universe(), Some(Universe::Type));
 
-        assert_eq!(
+        assert_matches!(
             import.kind,
             ItemKind::Intrinsic(IntrinsicItem::Type(IntrinsicTypeItem {
-                name: "::kernel::type::Dict",
-            }))
+                name,
+            })) if name.as_str() == "::kernel::type::Dict"
         );
 
         namespace
@@ -723,11 +750,11 @@ mod tests {
         assert_eq!(import.name.as_str(), "bar");
         assert_eq!(import.kind.universe(), Some(Universe::Type));
 
-        assert_eq!(
+        assert_matches!(
             import.kind,
             ItemKind::Intrinsic(IntrinsicItem::Type(IntrinsicTypeItem {
-                name: "::foo::bar"
-            }))
+                name,
+            })) if name.as_str() == "::foo::bar"
         );
     }
 
@@ -920,5 +947,171 @@ mod tests {
             .expect("should be able to resolve symbol");
 
         assert_matches!(item, Reference::Binding(_));
+    }
+
+    #[test]
+    fn alias_shadows_import() {
+        let heap = Heap::new();
+        let environment = Environment::new(&heap);
+        let registry = ModuleRegistry::new(&environment);
+
+        let mut namespace = ModuleNamespace::new(&registry);
+        namespace.import_prelude();
+
+        // `+` resolves to `::core::math::add` via the prelude
+        let original = namespace
+            .resolve_relative(
+                [heap.intern_symbol("+")],
+                ResolveOptions {
+                    universe: Universe::Value,
+                    mode: ResolutionMode::Relative,
+                },
+            )
+            .expect("prelude should have `+`")
+            .expect_item();
+
+        assert_eq!(original.name.as_str(), "add");
+
+        // Create a custom item and alias `+` to it
+        let ItemKind::Intrinsic(IntrinsicItem::Value(IntrinsicValueItem {
+            r#type: original_type,
+            ..
+        })) = original.kind
+        else {
+            panic!("expected intrinsic value item");
+        };
+
+        let custom_module = registry.intern_module(|id| PartialModule {
+            parent: ModuleId::ROOT,
+            depth: const { NonZero::new(1).unwrap() },
+            name: heap.intern_symbol("custom"),
+
+            items: registry.intern_items(&[Item {
+                module: id.value(),
+                name: heap.intern_symbol("my_add"),
+                kind: ItemKind::Intrinsic(IntrinsicItem::Value(IntrinsicValueItem {
+                    name: heap.intern_symbol("::custom::my_add"),
+                    r#type: original_type,
+                })),
+            }]),
+        });
+        registry.register(custom_module);
+
+        let custom_item = *registry
+            .modules
+            .index(custom_module)
+            .items
+            .into_iter()
+            .next()
+            .expect("module should have one item");
+
+        namespace.alias(heap.intern_symbol("+"), custom_item);
+
+        // `+` now resolves to the aliased item, not the prelude import
+        let aliased = namespace
+            .resolve_relative(
+                [heap.intern_symbol("+")],
+                ResolveOptions {
+                    universe: Universe::Value,
+                    mode: ResolutionMode::Relative,
+                },
+            )
+            .expect("alias should be resolvable")
+            .expect_item();
+
+        assert_eq!(aliased.name.as_str(), "my_add");
+        assert_matches!(
+            aliased.kind,
+            ItemKind::Intrinsic(IntrinsicItem::Value(IntrinsicValueItem {
+                name,
+                r#type: _
+            })) if name.as_str() == "::custom::my_add"
+        );
+    }
+
+    #[test]
+    fn alias_rollback() {
+        let heap = Heap::new();
+        let environment = Environment::new(&heap);
+        let registry = ModuleRegistry::new(&environment);
+
+        let mut namespace = ModuleNamespace::new(&registry);
+        namespace.import_prelude();
+
+        let original = namespace
+            .resolve_relative(
+                [heap.intern_symbol("+")],
+                ResolveOptions {
+                    universe: Universe::Value,
+                    mode: ResolutionMode::Relative,
+                },
+            )
+            .expect("prelude should have `+`")
+            .expect_item();
+
+        let snapshot = namespace.snapshot();
+
+        // Alias `+` to itself under a different name (simulating a `use` rebinding)
+        namespace.alias(heap.intern_symbol("+"), original);
+
+        // Still resolves (to the alias, which points to the same item)
+        let during = namespace
+            .resolve_relative(
+                [heap.intern_symbol("+")],
+                ResolveOptions {
+                    universe: Universe::Value,
+                    mode: ResolutionMode::Relative,
+                },
+            )
+            .expect("alias should be resolvable")
+            .expect_item();
+
+        assert_eq!(during.name.as_str(), "add");
+
+        namespace.rollback_to(snapshot);
+
+        // After rollback, `+` resolves through the original prelude import
+        let after = namespace
+            .resolve_relative(
+                [heap.intern_symbol("+")],
+                ResolveOptions {
+                    universe: Universe::Value,
+                    mode: ResolutionMode::Relative,
+                },
+            )
+            .expect("prelude import should still work after rollback")
+            .expect_item();
+
+        assert_eq!(after.name.as_str(), "add");
+    }
+
+    #[test]
+    fn alias_not_in_locals() {
+        let heap = Heap::new();
+        let environment = Environment::new(&heap);
+        let registry = ModuleRegistry::new(&environment);
+
+        let mut namespace = ModuleNamespace::new(&registry);
+        namespace.import_prelude();
+
+        let item = namespace
+            .resolve_relative(
+                [heap.intern_symbol("+")],
+                ResolveOptions {
+                    universe: Universe::Value,
+                    mode: ResolutionMode::Relative,
+                },
+            )
+            .expect("prelude should have `+`")
+            .expect_item();
+
+        namespace.alias(heap.intern_symbol("my_add"), item);
+
+        // An alias is not a local binding, so it should not appear in locals
+        assert!(
+            !namespace
+                .locals(Universe::Value)
+                .contains(&heap.intern_symbol("my_add"))
+        );
     }
 }

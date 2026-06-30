@@ -1,4 +1,0 @@
-//@ run: fail
-//@ description: index/1 should error out
-["::kernel::special_form::index", "x"]
-//~^ ERROR Add missing arguments

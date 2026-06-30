@@ -1,0 +1,9 @@
+//@ run: fail
+//@ description: generic arguments on type intrinsics (Union/Intersection) should error
+[
+  "::kernel::special_form::type",
+  "Foo",
+  ["::kernel::type::Union<Integer>", "String"],
+  //~^ ERROR `Union` does not accept generic arguments
+  { "#literal": 0 }
+]

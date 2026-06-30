@@ -1,0 +1,13 @@
+//@ run: fail
+//@ description: labeled arguments are not allowed in `fn`
+[
+  "::kernel::special_form::fn",
+  { "#tuple": ["T"] },
+  { "#struct": { "x": "Integer" } },
+  "Integer",
+  { "#literal": 0 },
+  {
+    ":extra": { "#literal": 0 }
+    //~^ ERROR labeled arguments are not allowed in `fn`
+  }
+]

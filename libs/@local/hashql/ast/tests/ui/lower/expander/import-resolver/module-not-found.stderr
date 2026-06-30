@@ -1,0 +1,9 @@
+error[expander::module-not-found]: Module not found
+  ╭▸ 
+3 │ ["use", "kernel::foo", { "#tuple": ["baz"] }, "_"]
+  │          ┬─────  ━━━ cannot find module `foo` in `kernel`
+  │          │
+  │          looked in this module
+  │
+  ├ help: check the module name and ensure it is exported from its parent
+  ╰ note: only exported sub-modules are reachable via `::`

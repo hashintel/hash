@@ -1,0 +1,6 @@
+error[expander::labeled-arguments-not-supported]: Labeled arguments not supported
+  ╭▸ 
+6 │     ":test": { "#literal": true }
+  │     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ labeled arguments are not allowed in `if`
+  │
+  ╰ help: pass the arguments positionally: `(if condition then)` or `(if condition then else)`

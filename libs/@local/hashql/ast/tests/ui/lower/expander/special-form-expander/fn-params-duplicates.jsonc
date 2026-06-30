@@ -1,0 +1,10 @@
+//@ run: fail
+//@ description: fn/4 tuple params should fail to compile
+[
+  "::kernel::special_form::fn",
+  { "#struct": {} },
+  { "#struct": { "a": "Integer", "a": "Integer" } },
+  //~^ ERROR duplicate parameter `a`
+  "_",
+  ["+", "a", { "#literal": 0 }]
+]

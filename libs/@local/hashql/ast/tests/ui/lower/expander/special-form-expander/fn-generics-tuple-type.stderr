@@ -1,0 +1,7 @@
+error[expander::fn-generics-type-annotation]: Type annotation on generic parameter list
+  ╭▸ 
+7 │     "#type": "Int"
+  │               ━━━ type annotation is not allowed on the generic parameter list
+  │
+  ├ help: remove the type annotation; the generic parameter list declares type variables, not a typed value
+  ╰ note: write `(fn (T, U) ...)` for unbounded generics or `(fn (T: bound, U: _) ...)` for bounded generics

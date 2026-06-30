@@ -1,0 +1,9 @@
+//@ run: fail
+//@ description: generic arguments on intrinsic special forms should error
+[
+  "::kernel::special_form::if<Integer>",
+  //~^ ERROR `if` does not accept generic arguments
+  { "#literal": true },
+  { "#literal": 1 },
+  { "#literal": 2 }
+]

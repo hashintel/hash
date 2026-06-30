@@ -1,0 +1,24 @@
+Expr#4294967040@20
+  ExprKind (As)
+    AsExpr#4294967040@20
+      Expr#4294967040@9
+        ExprKind (Literal)
+          LiteralExpr#4294967040@8
+            Primitive (True)
+      Type#4294967040@19
+        TypeKind (Tuple)
+          TupleType#4294967040@19
+            TupleField#4294967040@13
+              Type#4294967040@13
+                TypeKind (Path)
+                  Path#4294967040@13 (rooted: true)
+                    PathSegment#4294967040@12 (name: kernel)
+                    PathSegment#4294967040@12 (name: type)
+                    PathSegment#4294967040@12 (name: Integer)
+            TupleField#4294967040@17
+              Type#4294967040@17
+                TypeKind (Path)
+                  Path#4294967040@17 (rooted: true)
+                    PathSegment#4294967040@16 (name: kernel)
+                    PathSegment#4294967040@16 (name: type)
+                    PathSegment#4294967040@16 (name: String)

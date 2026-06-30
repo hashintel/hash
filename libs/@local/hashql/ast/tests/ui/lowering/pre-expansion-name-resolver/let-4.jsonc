@@ -1,3 +1,0 @@
-//@ run: pass
-//@ description: Test that `let/4` is resolved to `::kernel::special_form::let`
-["let", "a", "Int", "b", ["+", { "#literal": 2 }, { "#literal": 3 }]]

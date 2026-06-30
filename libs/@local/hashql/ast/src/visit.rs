@@ -78,7 +78,7 @@ use hashql_core::{span::SpanId, symbol::Ident};
 use crate::node::{
     expr::{
         CallExpr, ClosureExpr, DictExpr, Expr, ExprKind, FieldExpr, IfExpr, IndexExpr, InputExpr,
-        LetExpr, ListExpr, LiteralExpr, NewTypeExpr, StructExpr, TupleExpr, TypeExpr, UseExpr,
+        LetExpr, ListExpr, LiteralExpr, NewTypeExpr, StructExpr, TupleExpr, TypeExpr,
         r#as::AsExpr,
         call::{Argument, LabeledArgument},
         closure::{ClosureParam, ClosureSignature},
@@ -86,7 +86,6 @@ use crate::node::{
         list::ListElement,
         r#struct::StructEntry,
         tuple::TupleElement,
-        r#use::{Glob, UseBinding, UseKind},
     },
     generic::{GenericArgument, GenericConstraint, GenericParam, Generics},
     id::NodeId,
@@ -250,18 +249,6 @@ pub trait Visitor<'heap> {
         walk_newtype_expr(self, expr);
     }
 
-    fn visit_use_expr(&mut self, expr: &mut UseExpr<'heap>) {
-        walk_use_expr(self, expr);
-    }
-
-    fn visit_use_expr_binding(&mut self, binding: &mut UseBinding<'heap>) {
-        walk_use_expr_binding(self, binding);
-    }
-
-    fn visit_use_expr_glob(&mut self, glob: &mut Glob) {
-        walk_use_expr_glob(self, glob);
-    }
-
     fn visit_input_expr(&mut self, expr: &mut InputExpr<'heap>) {
         walk_input_expr(self, expr);
     }
@@ -423,7 +410,6 @@ pub fn walk_expr<'heap, T: Visitor<'heap> + ?Sized>(
         ExprKind::Let(let_expr) => visitor.visit_let_expr(let_expr),
         ExprKind::Type(type_expr) => visitor.visit_type_expr(type_expr),
         ExprKind::NewType(new_type_expr) => visitor.visit_newtype_expr(new_type_expr),
-        ExprKind::Use(use_expr) => visitor.visit_use_expr(use_expr),
         ExprKind::Input(input_expr) => visitor.visit_input_expr(input_expr),
         ExprKind::Closure(closure_expr) => visitor.visit_closure_expr(closure_expr),
         ExprKind::If(if_expr) => visitor.visit_if_expr(if_expr),
@@ -701,60 +687,6 @@ pub fn walk_newtype_expr<'heap, T: Visitor<'heap> + ?Sized>(
 
     visitor.visit_type(value);
     visitor.visit_expr(body);
-}
-
-pub fn walk_use_expr<'heap, T: Visitor<'heap> + ?Sized>(
-    visitor: &mut T,
-    UseExpr {
-        id,
-        span,
-        path,
-        kind,
-        body,
-    }: &mut UseExpr<'heap>,
-) {
-    visitor.visit_id(id);
-    visitor.visit_span(span);
-
-    visitor.visit_path(path);
-
-    match kind {
-        UseKind::Named(bindings) => {
-            for binding in bindings {
-                visitor.visit_use_expr_binding(binding);
-            }
-        }
-        UseKind::Glob(glob) => visitor.visit_use_expr_glob(glob),
-    }
-
-    visitor.visit_expr(body);
-}
-
-pub fn walk_use_expr_binding<'heap, T: Visitor<'heap> + ?Sized>(
-    visitor: &mut T,
-    UseBinding {
-        id,
-        span,
-        name,
-        alias,
-    }: &mut UseBinding<'heap>,
-) {
-    visitor.visit_id(id);
-    visitor.visit_span(span);
-
-    visitor.visit_ident(name);
-
-    if let Some(alias) = alias {
-        visitor.visit_ident(alias);
-    }
-}
-
-pub fn walk_use_expr_glob<'heap, T: Visitor<'heap> + ?Sized>(
-    visitor: &mut T,
-    Glob { id, span }: &mut Glob,
-) {
-    visitor.visit_id(id);
-    visitor.visit_span(span);
 }
 
 pub fn walk_input_expr<'heap, T: Visitor<'heap> + ?Sized>(

@@ -1,0 +1,18 @@
+//@ run: pass
+//@ description: Make sure that if we have an "onion" of bindings, the outer binding is preserved on exit
+[
+  "type",
+  "T",
+  "Number",
+  [
+    "*",
+    [
+      "fn",
+      { "#tuple": ["T", "U"] },
+      { "#struct": {} },
+      "_",
+      ["as", { "#literal": 0 }, "T"]
+    ],
+    ["as", { "#literal": 0 }, "T"]
+  ]
+]

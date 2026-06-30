@@ -1,0 +1,14 @@
+error[expander::invalid-argument-count]: Invalid argument count
+  ╭▸ 
+3 │ ┏ [
+4 │ ┃   "::kernel::special_form::index",
+5 │ ┃   "x",
+6 │ ┃   "y",
+7 │ ┃   "z"
+  │ ┃    ─ unexpected argument
+8 │ ┃   //~^ ERROR unexpected argument
+9 │ ┃ ]
+  │ ┗━┛ expected 2 arguments to `[]`, found 3
+  │
+  ├ help: use `([] collection index)`
+  ╰ note: the first argument is the collection and the second is the index

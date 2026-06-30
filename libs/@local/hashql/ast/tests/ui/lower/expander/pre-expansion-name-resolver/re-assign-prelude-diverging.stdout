@@ -1,0 +1,49 @@
+Expr#4294967040@43
+  ExprKind (If)
+    IfExpr#4294967040@43
+      Expr#4294967040@5
+        ExprKind (Literal)
+          LiteralExpr#4294967040@4
+            Primitive (True)
+      Expr#4294967040@27
+        ExprKind (Let)
+          LetExpr#4294967040@27 (name: let)
+            Expr#4294967040@17
+              ExprKind (Path)
+                Path#4294967040@17 (rooted: true)
+                  PathSegment#4294967040@16 (name: core)
+                  PathSegment#4294967040@16 (name: math)
+                  PathSegment#4294967040@16 (name: add)
+            Expr#4294967040@26
+              ExprKind (Call)
+                CallExpr#4294967040@26
+                  Expr#4294967040@21
+                    ExprKind (Path)
+                      Path#4294967040@21 (rooted: true)
+                        PathSegment#4294967040@20 (name: core)
+                        PathSegment#4294967040@20 (name: math)
+                        PathSegment#4294967040@20 (name: add)
+                  Argument#4294967040@23
+                    Expr#4294967040@23
+                      ExprKind (Literal)
+                        LiteralExpr#4294967040@22
+                          Primitive (Integer)
+                            Integer (1)
+                  Argument#4294967040@25
+                    Expr#4294967040@25
+                      ExprKind (Literal)
+                        LiteralExpr#4294967040@24
+                          Primitive (Integer)
+                            Integer (2)
+      Expr#4294967040@42
+        ExprKind (Let)
+          LetExpr#4294967040@42 (name: a)
+            Expr#4294967040@37
+              ExprKind (Literal)
+                LiteralExpr#4294967040@36
+                  Primitive (Integer)
+                    Integer (0)
+            Expr#4294967040@41
+              ExprKind (Path)
+                Path#4294967040@41 (rooted: false)
+                  PathSegment#4294967040@40 (name: a)

@@ -1,3 +1,0 @@
-//@ run: pass
-//@ description: paths with arguments should change
-["let", "a", { "#literal": 2 }, "a<T>"]

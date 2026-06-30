@@ -14,6 +14,8 @@ pub type FastHasher = foldhash::fast::RandomState;
 pub type FastHashMap<K, V, A = Global> = HashMap<K, V, FastHasher, A>;
 pub type FastHashMapEntry<'map, K, V, A = Global> =
     hashbrown::hash_map::Entry<'map, K, V, FastHasher, A>;
+pub type FastHashMapIntoIter<K, V, A = Global> = hashbrown::hash_map::IntoIter<K, V, A>;
+pub type FastHashMapIter<'map, K, V> = hashbrown::hash_map::Iter<'map, K, V>;
 pub type FastHashSet<T, A = Global> = HashSet<T, FastHasher, A>;
 pub type FastHashSetEntry<'map, T, A = Global> = hashbrown::hash_set::Entry<'map, T, FastHasher, A>;
 

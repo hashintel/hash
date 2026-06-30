@@ -7,12 +7,12 @@ use crate::node::{id::NodeId, r#type::Type};
 ///
 /// Represents a single value in a tuple, containing the expression that
 /// produces the element value.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug)]
 pub struct TupleElement<'heap> {
     pub id: NodeId,
     pub span: SpanId,
 
-    pub value: heap::Box<'heap, Expr<'heap>>,
+    pub value: Expr<'heap>,
 }
 
 /// A tuple expression in the HashQL Abstract Syntax Tree.
@@ -42,7 +42,7 @@ pub struct TupleElement<'heap> {
 /// ()
 /// (value1, value2, value3)
 /// ```
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug)]
 pub struct TupleExpr<'heap> {
     pub id: NodeId,
     pub span: SpanId,

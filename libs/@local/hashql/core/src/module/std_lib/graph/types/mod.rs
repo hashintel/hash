@@ -1,11 +1,10 @@
 // This is in a separate module, to facilitate: https://linear.app/hash/issue/H-4735/hashql-convert-rust-types-into-hashql-types
 use crate::{
-    heap::Heap,
     module::{
         StandardLibrary,
         std_lib::{ModuleDef, StandardLibraryModule},
     },
-    symbol::Symbol,
+    symbol::{Symbol, sym},
 };
 
 pub mod knowledge;
@@ -23,8 +22,8 @@ impl<'heap> StandardLibraryModule<'heap> for Types {
         self::principal::Principal,
     );
 
-    fn name(heap: &'heap Heap) -> Symbol<'heap> {
-        heap.intern_symbol("types")
+    fn name() -> Symbol<'heap> {
+        sym::types
     }
 
     fn define(_: &mut StandardLibrary<'_, 'heap>) -> ModuleDef<'heap> {

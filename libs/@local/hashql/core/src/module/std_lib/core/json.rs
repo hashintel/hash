@@ -1,7 +1,6 @@
 use crate::{
-    heap::Heap,
     module::std_lib::{ItemDef, ModuleDef, StandardLibrary, StandardLibraryModule},
-    symbol::Symbol,
+    symbol::{Symbol, sym},
 };
 
 pub(in crate::module::std_lib) struct Json {
@@ -11,8 +10,8 @@ pub(in crate::module::std_lib) struct Json {
 impl<'heap> StandardLibraryModule<'heap> for Json {
     type Children = ();
 
-    fn name(heap: &'heap Heap) -> Symbol<'heap> {
-        heap.intern_symbol("json")
+    fn name() -> Symbol<'heap> {
+        sym::json
     }
 
     fn define(lib: &mut StandardLibrary<'_, 'heap>) -> ModuleDef<'heap> {

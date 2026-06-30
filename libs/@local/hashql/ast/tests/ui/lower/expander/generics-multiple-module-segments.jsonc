@@ -1,0 +1,8 @@
+//@ run: fail
+//@ description: generic arguments on multiple module segments should all be reported
+[
+  "::kernel<Integer>::special_form<String>::if",
+  //~^ ERROR generic argument not allowed here
+  { "#literal": true },
+  { "#literal": 1 }
+]

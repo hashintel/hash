@@ -1,0 +1,6 @@
+error[expander::field-literal-type-annotation]: Field literal with type annotation
+   ╭▸ 
+10 │     { "#literal": 0, "#type": "Integer" }
+   │                                ━━━━━━━ type annotations are not allowed on field index literals
+   │
+   ╰ help: remove the type annotation and use a plain integer like `0`

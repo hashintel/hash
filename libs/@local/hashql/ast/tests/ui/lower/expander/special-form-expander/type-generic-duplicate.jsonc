@@ -1,0 +1,9 @@
+//@ run: fail
+//@ description: Duplicate generic constraints should be rejected
+[
+  "::kernel::special_form::type",
+  "Foo<T: Integer, T>",
+  //~^ ERROR duplicate generic parameter `T`
+  { "#struct": { "foo": "Integer" } },
+  "_"
+]

@@ -1,0 +1,8 @@
+//@ run: pass
+//@ description: Absolute paths should stay unchanged.
+[
+  "let",
+  "add",
+  { "#literal": 2 },
+  ["::core::math::add", { "#literal": 1 }, { "#literal": 3 }]
+]

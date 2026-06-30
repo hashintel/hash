@@ -1,0 +1,9 @@
+//@ run: fail
+//@ description: labeled arguments are not allowed in `input`
+[
+  "::kernel::special_form::input",
+  "x",
+  "Integer",
+  { ":extra": { "#literal": 0 } }
+  //~^ ERROR labeled arguments are not allowed in `input`
+]

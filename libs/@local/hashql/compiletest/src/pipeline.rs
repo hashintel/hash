@@ -153,11 +153,12 @@ impl<'heap> Pipeline<'heap> {
         bind_tri!(&mut self.diagnostics);
         let registry = ModuleRegistry::new(&self.env);
 
-        let types = tri!(hashql_ast::lowering::lower(
+        let types = tri!(hashql_ast::lower::lower(
             self.heap.intern_symbol("::main"),
             &mut expr,
             &self.env,
             &registry,
+            &mut self.scratch
         ));
 
         let hir_interner = hashql_hir::intern::Interner::new(self.heap);

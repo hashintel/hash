@@ -1,0 +1,10 @@
+//@ run: fail
+//@ description: any path that isn't an identifier should fail
+[
+  "::kernel::special_form::use",
+  "::core",
+  "::core::math::X",
+  //~^ ERROR expected `*`, a tuple of names, or a struct of aliases
+  "x"
+  //~^ ERROR cannot find value `x` in this scope
+]

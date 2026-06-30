@@ -1,0 +1,8 @@
+error[expander::duplicate-use-binding]: Duplicate use binding
+  ╭▸ 
+6 │   { "#tuple": ["add", "add"] },
+  │                 ┬──    ━━━ duplicate import binding `add`
+  │                 │
+  │                 `add` was first imported here
+  │
+  ╰ help: remove the duplicate or use an alias to import under a different name

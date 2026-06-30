@@ -1,11 +1,10 @@
 use super::func;
 use crate::{
-    heap::Heap,
     module::{
         locals::TypeDef,
         std_lib::{ModuleDef, StandardLibrary, StandardLibraryModule, decl},
     },
-    symbol::Symbol,
+    symbol::{Symbol, sym},
 };
 
 pub(in crate::module::std_lib) struct Cmp {
@@ -15,8 +14,8 @@ pub(in crate::module::std_lib) struct Cmp {
 impl<'heap> StandardLibraryModule<'heap> for Cmp {
     type Children = ();
 
-    fn name(heap: &'heap Heap) -> Symbol<'heap> {
-        heap.intern_symbol("cmp")
+    fn name() -> Symbol<'heap> {
+        sym::cmp
     }
 
     #[expect(non_snake_case)]
@@ -28,39 +27,39 @@ impl<'heap> StandardLibraryModule<'heap> for Cmp {
 
         let items = [
             (
-                "::core::cmp::gt",
-                &[">"],
+                sym::path::core::cmp::gt,
+                &[sym::gt, sym::symbol::gt],
                 decl!(lib; <>(lhs: Number, rhs: Number) -> Boolean),
             ),
             (
-                "::core::cmp::lt",
-                &["<"],
+                sym::path::core::cmp::lt,
+                &[sym::lt, sym::symbol::lt],
                 decl!(lib; <>(lhs: Number, rhs: Number) -> Boolean),
             ),
             (
-                "::core::cmp::gte",
-                &[">="],
+                sym::path::core::cmp::gte,
+                &[sym::gte, sym::symbol::gteq],
                 decl!(lib; <>(lhs: Number, rhs: Number) -> Boolean),
             ),
             (
-                "::core::cmp::lte",
-                &["<="],
+                sym::path::core::cmp::lte,
+                &[sym::lte, sym::symbol::lteq],
                 decl!(lib; <>(lhs: Number, rhs: Number) -> Boolean),
             ),
             (
-                "::core::cmp::eq",
-                &["=="],
+                sym::path::core::cmp::eq,
+                &[sym::eq, sym::symbol::eqeq],
                 decl!(lib; <T, U>(lhs: T, rhs: U) -> Boolean),
             ),
             (
-                "::core::cmp::ne",
-                &["!="],
+                sym::path::core::cmp::ne,
+                &[sym::ne, sym::symbol::excleq],
                 decl!(lib; <T, U>(lhs: T, rhs: U) -> Boolean),
             ),
         ];
 
         for (name, alias, r#type) in items {
-            func(lib, &mut def, name, alias, r#type);
+            func(&mut def, name, alias.iter().copied(), r#type);
         }
 
         def

@@ -1,0 +1,15 @@
+error[expander::invalid-argument-count]: Invalid argument count
+   ╭▸ 
+ 3 │ ┏ [
+ 4 │ ┃   "::kernel::special_form::let",
+ 5 │ ┃   "x",
+ 6 │ ┃   "Boolean",
+   ‡ ┃
+ 9 │ ┃   { "#literal": true }
+   │ ┃   ──────────────────── unexpected argument
+10 │ ┃   //~^ ERROR unexpected argument
+11 │ ┃ ]
+   │ ┗━┛ expected 3 or 4 arguments to `let`, found 5
+   │
+   ├ help: use `(let name value body)` or `(let name type value body)`
+   ╰ note: the arguments are, in order: the binding name, an optional type annotation, the bound value, and the body expression where the name is in scope

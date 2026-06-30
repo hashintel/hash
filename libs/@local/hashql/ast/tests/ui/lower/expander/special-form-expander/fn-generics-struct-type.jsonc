@@ -1,0 +1,13 @@
+//@ run: fail
+//@ description: fn/4 struct generics with type annotation should fail to compile
+[
+  "::kernel::special_form::fn",
+  {
+    "#struct": { "T": "Integer" },
+    "#type": "Integer"
+    //~^ ERROR type annotation is not allowed on the generic parameter list
+  },
+  { "#struct": {} },
+  "_",
+  { "#literal": 0 }
+]

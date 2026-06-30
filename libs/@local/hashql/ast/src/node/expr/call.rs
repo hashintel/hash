@@ -19,13 +19,13 @@ use crate::node::id::NodeId;
 /// For this function call, there are two `Argument` instances:
 /// - One for the expression `x`
 /// - One for the expression `+(y, 1)`
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug)]
 pub struct Argument<'heap> {
     // TODO: we might be able to remove these
     pub id: NodeId,
     pub span: SpanId,
 
-    pub value: heap::Box<'heap, Expr<'heap>>,
+    pub value: Expr<'heap>,
 }
 
 /// A labeled (named) argument passed to a function call.
@@ -46,7 +46,7 @@ pub struct Argument<'heap> {
 /// - One for the label `:x` with the value `1`
 /// - One for the label `:y` with the value `2`
 /// - One for the label `:z` with the value `3`
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug)]
 pub struct LabeledArgument<'heap> {
     pub id: NodeId,
     pub span: SpanId,
@@ -91,7 +91,7 @@ pub struct LabeledArgument<'heap> {
 /// let func = if condition then fn1 else fn2 in
 /// func(value)
 /// ```
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug)]
 pub struct CallExpr<'heap> {
     pub id: NodeId,
     pub span: SpanId,

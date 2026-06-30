@@ -1,0 +1,10 @@
+//@ run: fail
+//@ description: newtype/4 should error out
+[
+  "::kernel::special_form::newtype",
+  "x",
+  "Boolean",
+  ["+", { "#literal": true }, { "#literal": false }],
+  { "#literal": true }
+  //~^ ERROR unexpected argument
+]

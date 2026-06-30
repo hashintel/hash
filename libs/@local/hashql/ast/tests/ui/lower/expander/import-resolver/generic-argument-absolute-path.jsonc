@@ -1,0 +1,4 @@
+//@ run: fail
+//@ description: Tests that generic arguments in non-final segments of paths are rejected with appropriate error
+["::core::math<Integer>::add", { "#literal": 2 }, { "#literal": 3 }]
+//~^ ERROR generic argument not allowed here

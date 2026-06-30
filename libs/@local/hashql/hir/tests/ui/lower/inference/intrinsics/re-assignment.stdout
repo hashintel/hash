@@ -3,14 +3,14 @@
 let foo:0 = ::core::math::add,
     bar:0 = ::core::math::add
 in
-bar:0
+::core::math::add
 
 ════ HIR after type inference ══════════════════════════════════════════════════
 
 let foo:0 = ::core::math::add,
     bar:0 = ::core::math::add
 in
-bar:0
+::core::math::add
 
 ════ Intrinsics ════════════════════════════════════════════════════════════════
 
@@ -20,6 +20,6 @@ bar:0
 ┌─ ::core::math::add
 └→ ::core::math::add
 
-┌─ bar:0
+┌─ ::core::math::add
 └→ ::core::math::add
 

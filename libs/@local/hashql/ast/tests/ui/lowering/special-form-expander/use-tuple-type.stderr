@@ -1,7 +1,0 @@
-error[special-form-expander::invalid-use-import]: Invalid use import expression
-  ╭▸ 
-6 │   { "#tuple": ["::core::math::sub"], "#type": "Number" },
-  │                                                ━━━━━━ Remove this type annotation
-  │
-  ├ help: Use import expressions cannot have type annotations. Import expressions define which symbols to import, and do not have a meaningful type in this context.
-  ╰ note: Import expressions in the 'use' special form can only be a glob (*), a tuple of identifiers, or a struct of bindings, none of which should have type annotations.

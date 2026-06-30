@@ -1,4 +1,10 @@
-#![expect(non_upper_case_globals, non_snake_case, clippy::min_ident_chars)]
+#![expect(
+    non_upper_case_globals,
+    non_snake_case,
+    clippy::min_ident_chars,
+    clippy::non_ascii_literal,
+    unused_imports
+)]
 use super::Symbol;
 
 hashql_macros::define_symbols! {
@@ -18,7 +24,11 @@ hashql_macros::define_symbols! {
     bit_shl,
     bit_shr,
     bit_xor,
+    bits,
+    bool,
     Boolean,
+    cbrt,
+    cmp,
     collect,
     Confidence,
     confidence,
@@ -75,8 +85,8 @@ hashql_macros::define_symbols! {
     left_entity_provenance,
     left_entity_uuid,
     left_entity_web_id,
-    link_data,
     LeftClosedTemporalInterval,
+    link_data,
     LinkData,
     List,
     lt,
@@ -125,18 +135,23 @@ hashql_macros::define_symbols! {
     r#type: "type",
     r#use: "use",
     R,
-    RightBoundedTemporalInterval,
-    S,
     record_id,
     RecordId,
+    rem,
     Result,
     right_entity_confidence,
     right_entity_id,
     right_entity_provenance,
     right_entity_uuid,
     right_entity_web_id,
+    RightBoundedTemporalInterval,
+    root,
+    S,
+    shl,
+    shr,
     Some,
     special_form,
+    sqrt,
     start,
     String,
     sub,
@@ -165,6 +180,26 @@ hashql_macros::define_symbols! {
     VersionedUrl,
     web_id,
     WebId,
+    xor,
+    tail,
+    head,
+    entities,
+    is_of_type,
+    property,
+    body,
+    tmp,
+    decision_time_now,
+    graph,
+    types,
+    principal,
+    web,
+    actor_group,
+    ontology,
+    entity_type,
+    knowledge,
+    url,
+    result,
+    json,
     // [tidy] sort alphabetically end
 
     internal: {
@@ -174,10 +209,15 @@ hashql_macros::define_symbols! {
     symbol: {
         // [tidy] sort alphabetically start
         ampamp: "&&",
+        upwards: "↑",
+        sqrt: "√",
+        cbrt: "∛",
+        percent: "%",
         ampersand: "&",
         arrow: "->",
         arrow_head: "|>",
         asterisk: "*",
+        asteriskasterisk: "**",
         exclamation: "!",
         excleq: "!=",
         brackets: "[]",
@@ -221,10 +261,14 @@ hashql_macros::define_symbols! {
 
     path: {
         // [tidy] sort alphabetically start
+        access: "::kernel::special_form::access",
         ActorGroupEntityUuid: "::graph::types::principal::actor_group::ActorGroupEntityUuid",
         BaseUrl: "::graph::types::ontology::BaseUrl",
         Confidence: "::graph::types::knowledge::entity::Confidence",
         DecisionTime: "::graph::temporal::DecisionTime",
+        Dict: "::kernel::type::Dict",
+        Union: "::kernel::type::Union",
+        Intersection: "::kernel::type::Intersection",
         DraftId: "::graph::types::knowledge::entity::DraftId",
         Entity: "::graph::types::knowledge::entity::Entity",
         EntityEditionId: "::graph::types::knowledge::entity::EntityEditionId",
@@ -239,11 +283,15 @@ hashql_macros::define_symbols! {
         graph_head_entities: "::graph::head::entities",
         graph_tail_collect: "::graph::tail::collect",
         InclusiveTemporalBound: "::graph::temporal::InclusiveTemporalBound",
+        index: "::kernel::special_form::index",
         InferredEntityProvenance: "::graph::types::knowledge::entity::InferredEntityProvenance",
+        input: "::kernel::special_form::input",
         Interval: "::graph::temporal::Interval",
         LeftClosedTemporalInterval: "::graph::temporal::LeftClosedTemporalInterval",
         LinkData: "::graph::types::knowledge::entity::LinkData",
+        List: "::kernel::type::List",
         main: "::main",
+        newtype: "::kernel::special_form::newtype",
         None: "::core::option::None",
         OntologyTypeVersion: "::graph::ontology::OntologyTypeVersion",
         OpenTemporalBound: "::graph::temporal::OpenTemporalBound",
@@ -252,6 +300,12 @@ hashql_macros::define_symbols! {
         PinnedTransactionTimeTemporalAxes: "::graph::temporal::PinnedTransactionTimeTemporalAxes",
         PropertyObjectMetadata: "::graph::types::knowledge::entity::PropertyObjectMetadata",
         PropertyProvenance: "::graph::types::knowledge::entity::PropertyProvenance",
+        r#as: "::kernel::special_form::as",
+        r#fn: "::kernel::special_form::fn",
+        r#if: "::kernel::special_form::if",
+        r#let: "::kernel::special_form::let",
+        r#type: "::kernel::special_form::type",
+        r#use: "::kernel::special_form::use",
         RecordId: "::graph::types::knowledge::entity::RecordId",
         RightBoundedTemporalInterval: "::graph::temporal::RightBoundedTemporalInterval",
         Some: "::core::option::Some",
@@ -264,6 +318,50 @@ hashql_macros::define_symbols! {
         Uuid: "::core::uuid::Uuid",
         VersionedUrl: "::graph::types::ontology::VersionedUrl",
         WebId: "::graph::types::principal::actor_group::web::WebId",
+        core: {
+            bits: {
+                and: "::core::bits::and",
+                or: "::core::bits::or",
+                xor: "::core::bits::xor",
+                not: "::core::bits::not",
+                shl: "::core::bits::shl",
+                shr: "::core::bits::shr",
+            },
+            bool: {
+                not: "::core::bool::not",
+                and: "::core::bool::and",
+                or: "::core::bool::or",
+            },
+            cmp: {
+                gt: "::core::cmp::gt",
+                lt: "::core::cmp::lt",
+                gte: "::core::cmp::gte",
+                lte: "::core::cmp::lte",
+                eq: "::core::cmp::eq",
+                ne: "::core::cmp::ne",
+            },
+            math: {
+                add: "::core::math::add",
+                sub: "::core::math::sub",
+                mul: "::core::math::mul",
+                div: "::core::math::div",
+                rem: "::core::math::rem",
+                r#mod: "::core::math::mod",
+                pow: "::core::math::pow",
+                sqrt: "::core::math::sqrt",
+                cbrt: "::core::math::cbrt",
+                root: "::core::math::root",
+            }
+        },
+        graph: {
+            entity: {
+                is_of_type: "::graph::entity::is_of_type",
+                property: "::graph::entity::property",
+            },
+            tmp: {
+                decision_time_now: "::graph::tmp::decision_time_now",
+            }
+        }
         // [tidy] sort alphabetically end
     }
 }

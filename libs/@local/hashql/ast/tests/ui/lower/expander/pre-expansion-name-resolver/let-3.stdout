@@ -1,0 +1,29 @@
+Expr#4294967040@19
+  ExprKind (Let)
+    LetExpr#4294967040@19 (name: a)
+      Expr#4294967040@9
+        ExprKind (Literal)
+          LiteralExpr#4294967040@8
+            Primitive (Integer)
+              Integer (1)
+      Expr#4294967040@18
+        ExprKind (Call)
+          CallExpr#4294967040@18
+            Expr#4294967040@13
+              ExprKind (Path)
+                Path#4294967040@13 (rooted: true)
+                  PathSegment#4294967040@12 (name: core)
+                  PathSegment#4294967040@12 (name: math)
+                  PathSegment#4294967040@12 (name: add)
+            Argument#4294967040@15
+              Expr#4294967040@15
+                ExprKind (Literal)
+                  LiteralExpr#4294967040@14
+                    Primitive (Integer)
+                      Integer (2)
+            Argument#4294967040@17
+              Expr#4294967040@17
+                ExprKind (Literal)
+                  LiteralExpr#4294967040@16
+                    Primitive (Integer)
+                      Integer (3)

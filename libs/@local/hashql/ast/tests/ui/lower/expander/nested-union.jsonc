@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: nested unions should be expanded correctly
+["type", "Foo", ["|", "Integer", ["|", "String", "Never"]], "_"]

@@ -1,0 +1,9 @@
+//@ run: pass
+//@ description: test that generic parameters are mangled correctly
+[
+  "fn",
+  { "#tuple": ["T", "U"] },
+  { "#struct": {} },
+  "_",
+  ["as", ["as", { "#literal": 0 }, "T"], "U"]
+]

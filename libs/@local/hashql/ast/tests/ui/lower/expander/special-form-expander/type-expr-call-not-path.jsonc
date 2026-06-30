@@ -1,0 +1,13 @@
+//@ run: fail
+//@ description: calling something that isn't a path should result in a compile error
+[
+  "::kernel::special_form::as",
+  { "#literal": true },
+  [
+    ["+", { "#literal": 1 }, { "#literal": 2 }],
+    //~^ ERROR cannot find type `+` in this scope
+    //~| ERROR cannot use this as a type constructor
+    "Integer",
+    "Number"
+  ]
+]

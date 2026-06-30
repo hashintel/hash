@@ -236,7 +236,7 @@ cargo run -p hashql-compiletest suites --json
 ### Suite Categories
 
 - `parse/*` - Parsing tests (e.g., `parse/syntax-dump`)
-- `ast/lowering/*` - AST lowering phases
+- `ast/lower/*` - AST lowering phases
 - `hir/lower/*` - HIR lowering phases
 - `hir/reify` - HIR generation from AST
 - `mir/*` - MIR passes and generation

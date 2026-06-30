@@ -1,0 +1,4 @@
+//@ run: fail
+//@ description: if the first argument cannot be interpreted as an ident, do nothing
+["let", "a<T>", { "#literal": 0 }, { "#literal": 0 }]
+//~^ ERROR expected a simple identifier for the `let` binding name

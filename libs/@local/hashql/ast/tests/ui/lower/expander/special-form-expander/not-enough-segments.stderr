@@ -1,0 +1,8 @@
+error[expander::item-not-found]: Item not found
+  ╭▸ 
+4 │   "::kernel::special_form",
+  │      ┬─────  ━━━━━━━━━━━━ cannot find value `special_form` in module `::kernel`
+  │      │
+  │      looked in this module
+  │
+  ╰ help: `special_form` exists as a module, not value

@@ -1,0 +1,4 @@
+//@ run: fail
+//@ description: input binding name must be a simple identifier
+["::kernel::special_form::input", { "#literal": 1 }, "Integer"]
+//~^ ERROR expected a simple identifier for the `input` name

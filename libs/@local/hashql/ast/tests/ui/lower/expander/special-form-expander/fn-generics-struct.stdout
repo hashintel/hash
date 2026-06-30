@@ -1,0 +1,19 @@
+Expr#4294967040@23
+  ExprKind (Closure)
+    ClosureExpr#4294967040@23
+      ClosureSignature#4294967040@23
+        Generics#4294967040@15
+          GenericParam#4294967040@14 (name: T)
+            Type#4294967040@13
+              TypeKind (Path)
+                Path#4294967040@13 (rooted: true)
+                  PathSegment#4294967040@12 (name: kernel)
+                  PathSegment#4294967040@12 (name: type)
+                  PathSegment#4294967040@12 (name: Integer)
+        Type#4294967040@20
+          TypeKind (Infer)
+      Expr#4294967040@22
+        ExprKind (Literal)
+          LiteralExpr#4294967040@21
+            Primitive (Integer)
+              Integer (0)

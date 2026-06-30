@@ -1,0 +1,9 @@
+//@ run: fail
+//@ description: the use path must be a path expression, not a literal
+[
+  "::kernel::special_form::use",
+  { "#literal": 1 },
+  //~^ ERROR expected a module path
+  { "#tuple": ["add"] },
+  { "#literal": 0 }
+]

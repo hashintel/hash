@@ -8,7 +8,7 @@ use crate::node::{id::NodeId, r#type::Type};
 /// Represents a single key-value pair in a dictionary expression.
 /// Both the key and value are expressions that will be evaluated
 /// when the dictionary is created.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug)]
 pub struct DictEntry<'heap> {
     pub id: NodeId,
     pub span: SpanId,
@@ -38,7 +38,7 @@ pub struct DictEntry<'heap> {
 /// ```text
 /// {"key1": value1, "key2": value2}
 /// ```
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug)]
 pub struct DictExpr<'heap> {
     pub id: NodeId,
     pub span: SpanId,

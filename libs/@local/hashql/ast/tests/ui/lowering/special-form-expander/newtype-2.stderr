@@ -1,7 +1,0 @@
-error[special-form-expander::special-form-argument-length]: Incorrect number of arguments for special form
-  ╭▸ 
-3 │ ["::kernel::special_form::newtype", "x", "Integer"]
-  │ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Add missing arguments
-  │
-  ├ help: The newtype/3 form should look like: (newtype name type-expr body)
-  ╰ note: The newtype function has 1 variant: newtype/3

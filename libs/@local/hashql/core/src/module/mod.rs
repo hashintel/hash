@@ -12,7 +12,7 @@ mod resolver;
 pub mod std_lib;
 pub mod universe;
 
-use core::slice;
+use core::{num::NonZero, slice};
 use std::sync::RwLock;
 
 use self::{
@@ -98,11 +98,12 @@ impl<'heap> ModuleRegistry<'heap> {
                         assert_eq!(item.module, id.value());
 
                         // check for modules if the parent is also set *correctly* to our module
-                        if let ItemKind::Module(module) = item.kind {
-                            let module = self.modules.index(module);
+                        if let ItemKind::Module(child) = item.kind {
+                            let child = self.modules.index(child);
 
-                            assert_eq!(module.parent, id.value());
-                            assert_eq!(module.name, item.name);
+                            assert_eq!(child.parent, id.value());
+                            assert_eq!(child.depth.get(), module.depth.get() + 1);
+                            assert_eq!(child.name, item.name);
                         }
                     }
                 }
@@ -139,7 +140,7 @@ impl<'heap> ModuleRegistry<'heap> {
     /// # Panics
     ///
     /// This function will panic if the internal `RwLock` is poisoned.
-    fn find_by_name(&self, name: Symbol<'heap>) -> Option<Module<'heap>> {
+    pub fn find_by_name(&self, name: Symbol<'heap>) -> Option<Module<'heap>> {
         let root = self.root.read().expect("lock should not be poisoned");
 
         let id = root.get(&name).copied()?;
@@ -336,6 +337,16 @@ impl<'heap> ModuleRegistry<'heap> {
             None
         })
     }
+
+    pub fn module_depth(&self, id: ModuleId) -> u32 {
+        if id == ModuleId::ROOT {
+            return 0;
+        }
+
+        let module = self.modules.index(id);
+
+        module.depth.get()
+    }
 }
 
 /// A module in the HashQL language.
@@ -349,6 +360,7 @@ pub struct Module<'heap> {
     pub name: Symbol<'heap>,
 
     pub parent: ModuleId,
+    pub depth: NonZero<u32>,
 
     pub items: Interned<'heap, [Item<'heap>]>,
 }
@@ -379,6 +391,7 @@ impl<'heap> Module<'heap> {
 pub struct PartialModule<'heap> {
     name: Symbol<'heap>,
     parent: ModuleId,
+    depth: NonZero<u32>,
     items: Interned<'heap, [Item<'heap>]>,
 }
 
@@ -390,6 +403,7 @@ impl<'heap> Decompose<'heap> for Module<'heap> {
             id,
             name: partial.name,
             parent: partial.parent,
+            depth: partial.depth,
             items: partial.items,
         }
     }

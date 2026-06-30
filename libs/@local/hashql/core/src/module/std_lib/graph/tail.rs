@@ -1,11 +1,10 @@
 use crate::{
-    heap::Heap,
     module::{
         StandardLibrary,
         locals::TypeDef,
         std_lib::{self, ModuleDef, StandardLibraryModule, core::func, decl},
     },
-    symbol::Symbol,
+    symbol::{Symbol, sym},
 };
 
 pub(in crate::module::std_lib) struct Tail {
@@ -15,8 +14,8 @@ pub(in crate::module::std_lib) struct Tail {
 impl<'heap> StandardLibraryModule<'heap> for Tail {
     type Children = ();
 
-    fn name(heap: &'heap Heap) -> Symbol<'heap> {
-        heap.intern_symbol("tail")
+    fn name() -> Symbol<'heap> {
+        sym::tail
     }
 
     fn define(lib: &mut StandardLibrary<'_, 'heap>) -> ModuleDef<'heap> {
@@ -33,7 +32,12 @@ impl<'heap> StandardLibraryModule<'heap> for Tail {
             <T>(graph: lib.ty.apply([(graph_ty.arguments[0].id, T)], graph_ty.id)) -> lib.ty.list(T)
         );
 
-        func(lib, &mut def, "::graph::tail::collect", &[], decl);
+        func(
+            &mut def,
+            sym::path::graph_tail_collect,
+            [sym::collect],
+            decl,
+        );
 
         def
     }

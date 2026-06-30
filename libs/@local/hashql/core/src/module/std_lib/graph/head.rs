@@ -1,5 +1,4 @@
 use crate::{
-    heap::Heap,
     module::{
         StandardLibrary,
         locals::TypeDef,
@@ -19,8 +18,8 @@ pub(in crate::module::std_lib) struct Head {
 impl<'heap> StandardLibraryModule<'heap> for Head {
     type Children = ();
 
-    fn name(heap: &'heap Heap) -> Symbol<'heap> {
-        heap.intern_symbol("head")
+    fn name() -> Symbol<'heap> {
+        sym::head
     }
 
     fn define(lib: &mut StandardLibrary<'_, 'heap>) -> ModuleDef<'heap> {
@@ -51,10 +50,9 @@ impl<'heap> StandardLibraryModule<'heap> for Head {
             graph_ty.id,
         );
         func(
-            lib,
             &mut def,
-            "::graph::head::entities",
-            &[],
+            sym::path::graph_head_entities,
+            [sym::entities],
             decl!(lib; <>(axis: query_temporal_axes_ty.id) -> entities_returns),
         );
 

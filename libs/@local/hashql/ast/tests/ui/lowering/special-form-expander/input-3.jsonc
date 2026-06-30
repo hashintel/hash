@@ -1,3 +1,0 @@
-//@ run: pass
-//@ description: input/3 should compile
-["::kernel::special_form::input", "x", "Y", "z"]

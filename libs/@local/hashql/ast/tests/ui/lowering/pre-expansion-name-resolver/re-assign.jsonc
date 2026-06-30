@@ -1,8 +1,0 @@
-//@ run: pass
-//@ description: Given b = c; a = b; `a` should be replaced as `d`
-// prettier-ignore
-["let", "c", "d",
-["let", "b", "c",
-["let", "a", "b",
-  ["a", {"#literal": 1}, {"#literal": 3}]
-]]]

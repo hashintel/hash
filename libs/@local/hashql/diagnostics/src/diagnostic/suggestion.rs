@@ -168,6 +168,38 @@ impl<S> Suggestions<S> {
         }
     }
 
+    /// Collects patches from an iterator, returning [`None`] if the iterator is empty.
+    ///
+    /// Fallible counterpart to [`Suggestions::patch`] for dynamically computed patch sets.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hashql_diagnostics::{Patch, Suggestions};
+    ///
+    /// // Non-empty iterator produces Some
+    /// let suggestions = Suggestions::try_from_iter([Patch::new(10..15, "corrected")]);
+    /// assert!(suggestions.is_some());
+    ///
+    /// // Empty iterator produces None
+    /// let empty: Option<Suggestions<usize>> = Suggestions::try_from_iter(std::iter::empty());
+    /// assert!(empty.is_none());
+    /// ```
+    pub fn try_from_iter<I>(iter: I) -> Option<Self>
+    where
+        I: IntoIterator<Item = Patch<S>>,
+    {
+        let patches: Vec<_> = iter.into_iter().collect();
+        if patches.is_empty() {
+            return None;
+        }
+
+        Some(Self {
+            patches,
+            trailer: None,
+        })
+    }
+
     /// Adds an additional patch to this suggestions collection.
     ///
     /// # Examples
@@ -245,9 +277,9 @@ impl<S> Suggestions<S> {
                 .get(source_id)
                 .ok_or(RenderError::SourceNotFound(source_id))?;
 
-            let mut snippet = Snippet::source(&*source.content).path(source.path.as_deref());
-
             for patch in chunk {
+                let mut snippet = Snippet::source(&*source.content).path(source.path.as_deref());
+
                 let patch = patch.render(context).map_err(|error| match error {
                     RenderError::SpanNotFound(None, span) => {
                         RenderError::SpanNotFound(Some(source_id), span)
@@ -256,10 +288,10 @@ impl<S> Suggestions<S> {
                     | RenderError::SpanNotFound(Some(_), _)
                     | RenderError::ConcreteSourceNotFound => error,
                 })?;
-                snippet = snippet.patch(patch);
-            }
 
-            group = group.element(snippet);
+                snippet = snippet.patch(patch);
+                group = group.element(snippet);
+            }
         }
 
         if let Some(trailer) = self.trailer.as_deref() {

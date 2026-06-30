@@ -1,0 +1,8 @@
+Expr#4294967040@12
+  ExprKind (Field)
+    FieldExpr#4294967040@12 (field: 2)
+      Expr#4294967040@9
+        ExprKind (Literal)
+          LiteralExpr#4294967040@8
+            Primitive (Integer)
+              Integer (1)

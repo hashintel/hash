@@ -1,0 +1,28 @@
+Expr#4294967040@36
+  ExprKind (Let)
+    LetExpr#4294967040@36 (name: a)
+      Expr#4294967040@9
+        ExprKind (Literal)
+          LiteralExpr#4294967040@8
+            Primitive (Integer)
+              Integer (1)
+      Expr#4294967040@35
+        ExprKind (Let)
+          LetExpr#4294967040@35 (name: b)
+            Expr#4294967040@19
+              ExprKind (Literal)
+                LiteralExpr#4294967040@18
+                  Primitive (Integer)
+                    Integer (2)
+            Expr#4294967040@34
+              ExprKind (Let)
+                LetExpr#4294967040@34 (name: a)
+                  Expr#4294967040@29
+                    ExprKind (Literal)
+                      LiteralExpr#4294967040@28
+                        Primitive (Integer)
+                          Integer (3)
+                  Expr#4294967040@33
+                    ExprKind (Path)
+                      Path#4294967040@33 (rooted: false)
+                        PathSegment#4294967040@32 (name: a)

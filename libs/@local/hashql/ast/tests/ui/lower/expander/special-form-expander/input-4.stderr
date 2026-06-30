@@ -1,0 +1,15 @@
+error[expander::invalid-argument-count]: Invalid argument count
+   ╭▸ 
+ 3 │ ┏ [
+ 4 │ ┃   "::kernel::special_form::input",
+ 5 │ ┃   "x",
+ 6 │ ┃   "Y",
+ 7 │ ┃   "z",
+ 8 │ ┃   "w"
+   │ ┃    ─ unexpected argument
+ 9 │ ┃   //~^ ERROR unexpected argument
+10 │ ┃ ]
+   │ ┗━┛ expected 2 or 3 arguments to `input`, found 4
+   │
+   ├ help: use `(input name type)` or `(input name type default)`
+   ╰ note: the arguments are, in order: the input name, its type, and an optional default value

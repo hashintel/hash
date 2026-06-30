@@ -1,0 +1,13 @@
+Expr#4294967040@12
+  ExprKind (Index)
+    IndexExpr#4294967040@12
+      Expr#4294967040@9
+        ExprKind (Literal)
+          LiteralExpr#4294967040@8
+            Primitive (Integer)
+              Integer (1)
+      Expr#4294967040@11
+        ExprKind (Literal)
+          LiteralExpr#4294967040@10
+            Primitive (Integer)
+              Integer (2)

@@ -1,0 +1,7 @@
+error[expander::generic-arguments-in-module]: Generic arguments in module path
+  ╭▸ 
+3 │ ["::kernel::special_form<Integer>::if<String>"]
+  │                          ━━━━━━━ generic argument not allowed here
+  │
+  ├ help: move the generic arguments to the final segment of the path, or remove them
+  ╰ note: modules are not generic; only the final item in a path can be parameterized

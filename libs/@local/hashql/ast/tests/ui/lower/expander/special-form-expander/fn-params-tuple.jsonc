@@ -1,0 +1,10 @@
+//@ run: fail
+//@ description: fn/4 tuple params should fail to compile
+[
+  "::kernel::special_form::fn",
+  { "#struct": {} },
+  { "#tuple": [] },
+  //~^ ERROR expected a struct for function parameters
+  "_",
+  { "#literal": 0 }
+]

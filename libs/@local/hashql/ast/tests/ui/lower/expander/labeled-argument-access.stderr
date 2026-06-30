@@ -1,0 +1,6 @@
+error[expander::labeled-arguments-not-supported]: Labeled arguments not supported
+  ╭▸ 
+7 │   { ":extra": { "#literal": 0 } }
+  │     ━━━━━━━━━━━━━━━━━━━━━━━━━━━ labeled arguments are not allowed in `.`
+  │
+  ╰ help: pass the arguments positionally: `(. value field)`

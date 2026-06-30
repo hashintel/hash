@@ -2,7 +2,7 @@ use core::{fmt::Debug, iter};
 
 use super::{
     Module, ModuleId, ModuleRegistry, Universe,
-    error::{ResolutionError, ResolutionSuggestion},
+    error::{KindSet, ResolutionError, ResolutionSuggestion},
     import::Import,
     item::{Item, ItemKind},
     locals::LocalBinding,
@@ -97,6 +97,14 @@ impl<'heap> Resolver<'_, 'heap> {
         }
     }
 
+    fn found_kinds(&self, call: impl FnOnce() -> KindSet) -> KindSet {
+        if self.options.suggestions {
+            call()
+        } else {
+            KindSet::EMPTY
+        }
+    }
+
     fn resolve_single(
         &self,
         module: Module<'heap>,
@@ -111,9 +119,22 @@ impl<'heap> Resolver<'_, 'heap> {
             .find(|item| item.name == name && item.kind.universe() == Some(universe));
 
         let Some(item) = item else {
+            // Check what kinds the name actually exists as in this module.
+            let found = self.found_kinds(|| {
+                let mut found = KindSet::EMPTY;
+                for candidate in module.items {
+                    if candidate.name == name {
+                        found = found.union(KindSet::from_item_kind(&candidate.kind));
+                    }
+                }
+                found
+            });
+
             return Err(ResolutionError::ItemNotFound {
                 depth,
                 name,
+                expected: Some(universe),
+                found,
                 suggestions: self
                     .suggest(|| module.suggestions(|item| item.kind.universe() == Some(universe))),
             });
@@ -141,6 +162,8 @@ impl<'heap> Resolver<'_, 'heap> {
             return Err(ResolutionError::ItemNotFound {
                 depth,
                 name,
+                expected: None,
+                found: KindSet::EMPTY,
                 suggestions: self.suggest(|| module.suggestions(|_| true)),
             });
         }
@@ -287,9 +310,29 @@ impl<'heap> Resolver<'_, 'heap> {
             .find(|import| import.name == name && import.item.universe() == Some(universe));
 
         let Some(import) = import else {
+            // Check what kinds the name actually exists as in the imports.
+            let found = self.found_kinds(|| {
+                let mut found = KindSet::EMPTY;
+                for candidate in imports.iter().rev() {
+                    if candidate.name == name {
+                        match candidate.item.universe() {
+                            Some(universe) => {
+                                found = found.union(KindSet::from_universe(universe));
+                            }
+                            None => {
+                                found = found.union(KindSet::MODULE);
+                            }
+                        }
+                    }
+                }
+                found
+            });
+
             return Err(ResolutionError::ImportNotFound {
                 depth: 0,
                 name,
+                expected: Some(universe),
+                found,
                 suggestions: self.suggest(|| {
                     imports
                         .iter()
@@ -342,6 +385,8 @@ impl<'heap> Resolver<'_, 'heap> {
             return Err(ResolutionError::ImportNotFound {
                 depth: 0,
                 name,
+                expected: None,
+                found: KindSet::EMPTY,
                 suggestions: self.suggest(|| {
                     imports
                         .iter()
@@ -426,6 +471,18 @@ impl<'heap> Resolver<'_, 'heap> {
             let module = Self::find_module_from_imports(name, imports);
 
             let Some(module) = module else {
+                // Check if the name exists as a non-module import. If so,
+                // produce ModuleRequired ("X is a value, not a module")
+                // instead of ModuleNotFound ("cannot find module X").
+                let non_module = imports.iter().rev().find(|import| import.name == name);
+
+                if let Some(non_module) = non_module {
+                    return Err(ResolutionError::ModuleRequired {
+                        depth: 0,
+                        found: non_module.item.universe(),
+                    });
+                }
+
                 return Err(ResolutionError::ModuleNotFound {
                     depth: 0,
                     name,
@@ -469,7 +526,7 @@ impl<'heap> Resolver<'_, 'heap> {
 #[cfg(test)]
 mod test {
     #![coverage(off)]
-    use core::assert_matches;
+    use core::{assert_matches, num::NonZero};
 
     use super::{Reference, ResolutionError};
     use crate::{
@@ -575,7 +632,7 @@ mod test {
             ])
             .expect_err("Resolution should fail for non-existent item");
 
-        assert_matches!(error, ResolutionError::ItemNotFound { depth: 2, name: _, suggestions } if suggestions.is_empty());
+        assert_matches!(error, ResolutionError::ItemNotFound { depth: 2, name: _, expected: Some(Universe::Type), found: _, suggestions } if suggestions.is_empty());
     }
 
     #[test]
@@ -839,6 +896,7 @@ mod test {
             PartialModule {
                 name: heap.intern_symbol("empty_module"),
                 parent: ModuleId::ROOT,
+                depth: const { NonZero::new(1).unwrap() },
                 items: registry.intern_items(&[]), // No items
             }
         });

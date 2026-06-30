@@ -5,19 +5,19 @@ use crate::symbol::Symbol;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct IntrinsicValueItem<'heap> {
-    pub name: &'static str,
+    pub name: Symbol<'heap>,
     pub r#type: TypeDef<'heap>,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct IntrinsicTypeItem {
-    pub name: &'static str,
+pub struct IntrinsicTypeItem<'heap> {
+    pub name: Symbol<'heap>,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, derive_more::From)]
 pub enum IntrinsicItem<'heap> {
     Value(IntrinsicValueItem<'heap>),
-    Type(IntrinsicTypeItem),
+    Type(IntrinsicTypeItem<'heap>),
 }
 
 impl IntrinsicItem<'_> {
@@ -94,10 +94,11 @@ impl<'heap> Item<'heap> {
         })
     }
 
+    // TODO: deprecate
     pub fn absolute_path(
         &self,
         registry: &ModuleRegistry<'heap>,
-    ) -> impl Iterator<Item = Symbol<'heap>> {
+    ) -> impl IntoIterator<Item = Symbol<'heap>> {
         let mut modules: Vec<_> = self.ancestors(registry).into_iter().collect();
         modules.reverse();
 
@@ -105,5 +106,46 @@ impl<'heap> Item<'heap> {
             .into_iter()
             .map(|module| module.name)
             .chain(iter::once(self.name))
+    }
+
+    pub fn absolute_path_rev(
+        &self,
+        registry: &ModuleRegistry<'heap>,
+    ) -> impl ExactSizeIterator<Item = Symbol<'heap>> {
+        struct Iter<I> {
+            inner: I,
+            remaining: u32,
+        }
+
+        impl<I> Iterator for Iter<I>
+        where
+            I: Iterator,
+        {
+            type Item = I::Item;
+
+            fn next(&mut self) -> Option<Self::Item> {
+                let item = self.inner.next()?;
+                self.remaining -= 1;
+
+                Some(item)
+            }
+
+            fn size_hint(&self) -> (usize, Option<usize>) {
+                (self.remaining as usize, Some(self.remaining as usize))
+            }
+        }
+
+        impl<I> ExactSizeIterator for Iter<I> where I: Iterator {}
+
+        let depth = registry.module_depth(self.module);
+
+        Iter {
+            inner: iter::once(self.name).chain(
+                self.ancestors(registry)
+                    .into_iter()
+                    .map(|module| module.name),
+            ),
+            remaining: depth + 1,
+        }
     }
 }

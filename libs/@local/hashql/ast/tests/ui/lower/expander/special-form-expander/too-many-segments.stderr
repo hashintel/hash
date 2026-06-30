@@ -1,0 +1,9 @@
+error[expander::module-required]: Module required
+  ╭▸ 
+4 │   "::kernel::special_form::if::extra",
+  │                            ┯━  ───── cannot access items inside a non-module
+  │                            │
+  │                            `::kernel::special_form::if` is a value, not a module
+  │
+  ├ help: if you meant to access a field, use `.` instead of `::`
+  ╰ note: the `::` separator navigates into modules; values and types do not contain sub-items

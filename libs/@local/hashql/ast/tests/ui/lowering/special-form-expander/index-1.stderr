@@ -1,7 +1,0 @@
-error[special-form-expander::special-form-argument-length]: Incorrect number of arguments for special form
-  ╭▸ 
-3 │ ["::kernel::special_form::index", "x"]
-  │ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Add missing arguments
-  │
-  ├ help: The index/2 form should look like: ([] object index)
-  ╰ note: The index function has 1 variant: index/2

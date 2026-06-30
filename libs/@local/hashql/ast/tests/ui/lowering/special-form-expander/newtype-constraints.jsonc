@@ -1,3 +1,0 @@
-//@ run: pass
-//@ description: Constraints should be converted to an AST node
-["::kernel::special_form::newtype", "Foo<T, U: Bar>", "Integer", "_"]

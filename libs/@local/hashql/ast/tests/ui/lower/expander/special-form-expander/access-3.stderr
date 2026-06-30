@@ -1,0 +1,14 @@
+error[expander::invalid-argument-count]: Invalid argument count
+  ╭▸ 
+3 │ ┏ [
+4 │ ┃   "::kernel::special_form::access",
+5 │ ┃   "x",
+6 │ ┃   "y",
+7 │ ┃   "z"
+  │ ┃    ─ unexpected argument
+8 │ ┃   //~^ ERROR unexpected argument
+9 │ ┃ ]
+  │ ┗━┛ expected 2 arguments to `.`, found 3
+  │
+  ├ help: use `(. value field)`
+  ╰ note: the first argument is the value and the second is the field name or index

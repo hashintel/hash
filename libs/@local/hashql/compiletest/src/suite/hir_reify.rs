@@ -1,9 +1,9 @@
 use hashql_ast::{
-    lowering::{ExtractedTypes, lower},
+    lower::{ExtractedTypes, lower},
     node::expr::Expr,
 };
 use hashql_core::{
-    heap::Heap,
+    heap::{Heap, Scratch},
     module::ModuleRegistry,
     pretty::{Formatter, RenderOptions},
     r#type::environment::Environment,
@@ -24,11 +24,13 @@ pub(crate) fn hir_reify<'heap>(
     context: &mut HirContext<'_, 'heap>,
     diagnostics: &mut Vec<SuiteDiagnostic>,
 ) -> Result<(Node<'heap>, ExtractedTypes<'heap>), SuiteDiagnostic> {
+    let mut scratch = Scratch::new();
     let result = lower(
         heap.intern_symbol("::main"),
         &mut expr,
         environment,
         context.modules,
+        &mut scratch,
     );
     let types = process_status(diagnostics, result)?;
 

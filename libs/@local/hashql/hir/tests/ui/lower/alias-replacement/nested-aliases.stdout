@@ -2,7 +2,7 @@
 
 let x:0 = 42,
     y:0 = x:0,
-    z:0 = x:0
+    z:0 = y:0
 in
 ::core::math::add(z:0, x:0)
 

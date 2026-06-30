@@ -1,0 +1,15 @@
+error[expander::invalid-argument-count]: Invalid argument count
+   ╭▸ 
+ 3 │ ┏ [
+ 4 │ ┃   "::kernel::special_form::if",
+ 5 │ ┃   { "#literal": true },
+ 6 │ ┃   { "#literal": true },
+ 7 │ ┃   { "#literal": true },
+ 8 │ ┃   { "#literal": true }
+   │ ┃   ──────────────────── unexpected argument
+ 9 │ ┃   //~^ ERROR unexpected argument
+10 │ ┃ ]
+   │ ┗━┛ expected 2 or 3 arguments to `if`, found 4
+   │
+   ├ help: use `(if condition then)` or `(if condition then else)`
+   ╰ note: the arguments are, in order: the condition, the then branch, and an optional else branch

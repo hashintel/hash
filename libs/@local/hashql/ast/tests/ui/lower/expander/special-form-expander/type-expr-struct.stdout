@@ -1,0 +1,24 @@
+Expr#4294967040@26
+  ExprKind (As)
+    AsExpr#4294967040@26
+      Expr#4294967040@9
+        ExprKind (Literal)
+          LiteralExpr#4294967040@8
+            Primitive (True)
+      Type#4294967040@25
+        TypeKind (Struct)
+          StructType#4294967040@25
+            StructField#4294967040@16 (name: name)
+              Type#4294967040@15
+                TypeKind (Path)
+                  Path#4294967040@15 (rooted: true)
+                    PathSegment#4294967040@14 (name: kernel)
+                    PathSegment#4294967040@14 (name: type)
+                    PathSegment#4294967040@14 (name: String)
+            StructField#4294967040@23 (name: birthday)
+              Type#4294967040@22
+                TypeKind (Path)
+                  Path#4294967040@22 (rooted: true)
+                    PathSegment#4294967040@21 (name: kernel)
+                    PathSegment#4294967040@21 (name: type)
+                    PathSegment#4294967040@21 (name: Integer)

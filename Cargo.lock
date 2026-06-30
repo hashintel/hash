@@ -4075,15 +4075,10 @@ dependencies = [
 name = "hashql-ast"
 version = "0.0.0"
 dependencies = [
- "derive_more",
- "enum-iterator",
- "foldhash 0.2.0",
- "hashbrown 0.17.1",
  "hashql-compiletest",
  "hashql-core",
  "hashql-diagnostics",
  "simple-mermaid",
- "tracing",
 ]
 
 [[package]]
