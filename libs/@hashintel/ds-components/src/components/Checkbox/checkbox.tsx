@@ -30,16 +30,16 @@ export const Checkbox = ({
   tone = "neutral",
   ...ariaProps
 }: {
-  /** Render the box in the indeterminate ("partially checked") state */
-  indeterminate?: boolean;
+  /** An optional label rendered alongside the box */
+  label?: React.ReactNode;
   /** Which side of the box the label is rendered on */
   labelPlacement?: "left" | "right";
   /** Vertical alignment of the box against the label when it wraps over multiple lines */
   labelAlign?: "top" | "center";
-  /** An optional label rendered alongside the box */
-  label?: React.ReactNode;
   /** The tone applied when the checkbox is checked */
   tone?: Exclude<Tone, "error"> | "success";
+  /** Render the box in the indeterminate ("partially checked") state */
+  indeterminate?: boolean;
 } & SharedInputProps<HTMLInputElement, boolean> &
   React.AriaAttributes) => {
   const fieldIdFromContext = useFieldId();
