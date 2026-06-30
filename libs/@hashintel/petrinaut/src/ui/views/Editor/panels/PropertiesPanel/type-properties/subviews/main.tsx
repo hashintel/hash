@@ -37,7 +37,11 @@ const emptyDimensionsStyle = css({
 const dimensionsListStyle = css({
   display: "flex",
   flexDirection: "column",
-  gap: "1.5",
+  borderWidth: "[1px]",
+  borderStyle: "solid",
+  borderColor: "neutral.bd.subtle",
+  borderRadius: "md",
+  overflow: "hidden",
 });
 
 const dimensionRowStyle = cva({
@@ -47,30 +51,24 @@ const dimensionRowStyle = cva({
     gap: "1",
     padding: "1",
     paddingLeft: "2",
-    borderRadius: "md",
     transition: "[all 0.15s ease]",
   },
   variants: {
     isDragged: {
       true: {
         backgroundColor: "blue.bg.min",
-        borderWidth: "[1px]",
-        borderStyle: "solid",
-        borderColor: "neutral.bd.subtle",
       },
       false: {
         backgroundColor: "neutral.a20",
-        borderWidth: "[1px]",
-        borderStyle: "solid",
-        borderColor: "neutral.bd.subtle",
       },
     },
     isDragOver: {
       true: {
         backgroundColor: "blue.bg.min",
-        borderWidth: "[1px]",
-        borderStyle: "dashed",
-        borderColor: "blue.s50",
+        outlineWidth: "[1px]",
+        outlineStyle: "dashed",
+        outlineColor: "blue.s50",
+        outlineOffset: "[-1px]",
       },
       false: {},
     },
@@ -103,26 +101,40 @@ const dragHandleLineStyle = css({
   backgroundColor: "neutral.s105",
 });
 
-const indexChipStyle = css({
-  fontSize: "[11px]",
-  fontWeight: "medium",
-  fontVariantNumeric: "tabular-nums",
-  color: "neutral.s100",
-  width: "3",
+const dimensionFieldGroupStyle = css({
   display: "flex",
   alignItems: "center",
-  justifyContent: "center",
-  flexShrink: 0,
+  flex: "[1]",
+  minWidth: "[0]",
 });
 
 const dimensionNameInputStyle = css({
+  display: "flex",
   flex: "[1]",
   minWidth: "[0]",
+
+  "& input": {
+    fontFamily: "mono",
+  },
 });
 
 const dimensionTypeSelectStyle = css({
   width: "[96px]",
   flexShrink: 0,
+});
+
+const deleteDimensionButtonStyle = css({
+  color: "neutral.s90",
+
+  "&:not([aria-disabled=true]):is(:hover, :focus-visible)": {
+    background: "red.a25",
+    borderColor: "red.a70",
+    color: "red.s105",
+  },
+
+  "&:focus-visible": {
+    outlineColor: "red.a60",
+  },
 });
 
 type ElementNameInputState = Record<
@@ -349,7 +361,6 @@ const TypeMainContent: React.FC = () => {
             disabled={isDisabled}
             size="xs"
             variant="ghost"
-            tone="brand"
             aria-label="Add dimension"
             tooltip={isDisabled ? UI_MESSAGES.READ_ONLY_MODE : "Add dimension"}
             iconName="plus"
@@ -388,48 +399,49 @@ const TypeMainContent: React.FC = () => {
                   <div className={dragHandleLineStyle} />
                 </div>
 
-                {/* Index chip */}
-                <div className={indexChipStyle}>{index}</div>
+                <div className={dimensionFieldGroupStyle}>
+                  <Tooltip
+                    content={UI_MESSAGES.READ_ONLY_MODE}
+                    disableTooltip={!isDisabled}
+                    className={dimensionNameInputStyle}
+                  >
+                    <TextInput
+                      value={getElementNameInputValue(element)}
+                      size="sm"
+                      width="fullWidth"
+                      onChange={(name) => {
+                        handleUpdateElementName(element.elementId, name);
+                      }}
+                      onBlur={(event) => {
+                        handleBlurElementName(
+                          element.elementId,
+                          event.target.value,
+                        );
+                      }}
+                      disabled={isDisabled}
+                      placeholder="dimension_name"
+                      connectToRightInput
+                    />
+                  </Tooltip>
 
-                {/* Name input */}
-                <Tooltip
-                  content={UI_MESSAGES.READ_ONLY_MODE}
-                  disableTooltip={!isDisabled}
-                  className={dimensionNameInputStyle}
-                >
-                  <TextInput
-                    value={getElementNameInputValue(element)}
-                    size="sm"
-                    onChange={(name) => {
-                      handleUpdateElementName(element.elementId, name);
-                    }}
-                    onBlur={(event) => {
-                      handleBlurElementName(
-                        element.elementId,
-                        event.target.value,
-                      );
-                    }}
-                    disabled={isDisabled}
-                    placeholder="dimension_name"
-                  />
-                </Tooltip>
-
-                <Tooltip
-                  content={UI_MESSAGES.READ_ONLY_MODE}
-                  disableTooltip={!isDisabled}
-                >
-                  <Select
-                    required
-                    value={element.type}
-                    onChange={(value) => {
-                      handleUpdateElementType(element.elementId, value);
-                    }}
-                    items={typeOptions}
-                    disabled={isDisabled}
-                    size="xs"
-                    className={dimensionTypeSelectStyle}
-                  />
-                </Tooltip>
+                  <Tooltip
+                    content={UI_MESSAGES.READ_ONLY_MODE}
+                    disableTooltip={!isDisabled}
+                  >
+                    <Select
+                      required
+                      value={element.type}
+                      onChange={(value) => {
+                        handleUpdateElementType(element.elementId, value);
+                      }}
+                      items={typeOptions}
+                      disabled={isDisabled}
+                      size="sm"
+                      className={dimensionTypeSelectStyle}
+                      connectToLeftInput
+                    />
+                  </Tooltip>
+                </div>
 
                 {/* Delete button */}
                 <Button
@@ -439,7 +451,7 @@ const TypeMainContent: React.FC = () => {
                   disabled={isDisabled || type.elements.length === 1}
                   size="xxs"
                   variant="ghost"
-                  tone="error"
+                  className={deleteDimensionButtonStyle}
                   aria-label={`Delete dimension ${element.name}`}
                   tooltip={
                     isDisabled
