@@ -2,6 +2,7 @@ mod delete;
 mod query;
 mod read;
 mod summary;
+
 use alloc::borrow::Cow;
 use core::{borrow::Borrow as _, mem};
 use std::collections::{HashMap, HashSet};
@@ -17,18 +18,21 @@ use hash_graph_authorization::policies::{
     store::{PolicyCreationParams, PrincipalStore as _},
 };
 use hash_graph_store::{
+    embedding::dimension::Dimension,
     entity::{
-        CreateEntityParams, DeleteEntitiesParams, DeletionSummary, EmptyEntityTypes,
-        EntityPermissions, EntityQueryCursor, EntityQueryPath, EntityQuerySorting, EntityStore,
-        EntityTypeRetrieval, EntityTypesError, EntityValidationReport, EntityValidationType,
-        HasPermissionForEntitiesParams, PatchEntityParams, QueryConversion, QueryEntitiesParams,
-        QueryEntitiesResponse, QueryEntitySubgraphParams, QueryEntitySubgraphResponse,
-        SearchEntitiesFilter, SearchEntitiesParams, SearchEntitiesResponse,
-        SummarizeEntitiesParams, SummarizeEntitiesResponse, UpdateEntityEmbeddingsParams,
-        ValidateEntityComponents, ValidateEntityParams,
+        ClusterEntitiesParams, ClusterEntitiesResponse, CreateEntityParams, DeleteEntitiesParams,
+        DeletionSummary, EmptyEntityTypes, EntityCluster, EntityPermissions, EntityQueryCursor,
+        EntityQueryPath, EntityQuerySorting, EntityStore, EntityTypeRetrieval, EntityTypesError,
+        EntityValidationReport, EntityValidationType, HasPermissionForEntitiesParams,
+        PatchEntityParams, QueryConversion, QueryEntitiesParams, QueryEntitiesResponse,
+        QueryEntitySubgraphParams, QueryEntitySubgraphResponse, SummarizeEntitiesParams,
+        SummarizeEntitiesResponse, UpdateEntityEmbeddingsParams, ValidateEntityComponents,
+        ValidateEntityParams,
     },
     entity_type::{EntityTypeStore as _, IncludeEntityTypeOption},
-    error::{CheckPermissionError, DeletionError, InsertionError, QueryError, UpdateError},
+    error::{
+        CheckPermissionError, ClusterError, DeletionError, InsertionError, QueryError, UpdateError,
+    },
     filter::{
         Filter, FilterExpression, FilterExpressionList, Parameter, ParameterList,
         protection::transform_filter,
@@ -2548,6 +2552,175 @@ where
             .change_context(CheckPermissionError::StoreError)?;
 
         Ok(permitted_ids)
+    }
+
+    #[expect(clippy::too_many_lines)]
+    #[tracing::instrument(skip(self, params))]
+    async fn cluster_entities(
+        &self,
+        actor_id: ActorEntityUuid,
+        params: ClusterEntitiesParams,
+    ) -> Result<ClusterEntitiesResponse, Report<ClusterError>> {
+        // 3072 fits in u16; compile-time verified.
+        const {
+            assert!(Embedding::DIM <= u16::MAX as usize);
+        }
+        #[expect(
+            clippy::cast_possible_truncation,
+            reason = "guarded by the const assertion above"
+        )]
+        const STORED_DIM: u16 = Embedding::DIM as u16;
+
+        let dim = Dimension::new(params.dimension).ok_or_else(|| {
+            Report::new(ClusterError::InvalidDimension {
+                dimension: params.dimension,
+            })
+        })?;
+
+        if dim.get() > STORED_DIM {
+            return Err(Report::new(ClusterError::DimensionTooLarge {
+                dimension: dim.get(),
+                max: STORED_DIM,
+            }));
+        }
+        let truncated_dim = usize::from(dim.get());
+
+        // Filter to entities the actor is allowed to view.
+        let permitted = self
+            .has_permission_for_entities(
+                AuthenticatedActor::from(actor_id),
+                HasPermissionForEntitiesParams {
+                    action: ActionName::ViewEntity,
+                    entity_ids: Cow::Borrowed(&params.entity_ids),
+                    temporal_axes: QueryTemporalAxesUnresolved::TransactionTime {
+                        pinned: PinnedTemporalAxisUnresolved::new(None),
+                        variable: VariableTemporalAxisUnresolved::new(None, None),
+                    },
+                    include_drafts: false,
+                },
+            )
+            .await
+            .change_context(ClusterError::Store)?;
+
+        let permitted_ids: Vec<EntityId> = params
+            .entity_ids
+            .iter()
+            .filter(|&id| permitted.contains_key(id))
+            .copied()
+            .collect();
+
+        let entity_uuids: Vec<EntityUuid> = permitted_ids.iter().map(|id| id.entity_uuid).collect();
+        let web_ids: Vec<WebId> = permitted_ids.iter().map(|id| id.web_id).collect();
+
+        // Truncate server-side via `subvector` so postgres only sends
+        // `truncated_dim`-dimensional vectors over the wire.
+        let row_stream = self
+            .as_client()
+            .query_raw(
+                &format!(
+                    "SELECT
+                        e.web_id,
+                        e.entity_uuid,
+                        subvector(e.embedding, 1, {truncated_dim})::vector({truncated_dim}) AS \
+                     embedding
+                    FROM entity_embeddings e
+                    WHERE e.property IS NULL
+                      AND (e.web_id, e.entity_uuid) IN (SELECT unnest($1::uuid[]), \
+                     unnest($2::uuid[]))"
+                ),
+                [
+                    &web_ids as &(dyn ToSql + Sync),
+                    &entity_uuids as &(dyn ToSql + Sync),
+                ],
+            )
+            .instrument(tracing::info_span!(
+                "cluster_entities.embeddings",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
+            .await
+            .change_context(ClusterError::Store)?;
+
+        let mut row_stream = core::pin::pin!(row_stream);
+
+        let mut flat: Vec<f32> = Vec::with_capacity(permitted_ids.len() * truncated_dim);
+        let mut found_ids: Vec<EntityId> = Vec::with_capacity(permitted_ids.len());
+
+        while let Some(row) = row_stream
+            .try_next()
+            .await
+            .change_context(ClusterError::Store)?
+        {
+            let web_id: WebId = row.get(0);
+            let entity_uuid: EntityUuid = row.get(1);
+            let embedding: Embedding<'_> = row.get(2);
+
+            flat.extend(embedding.iter());
+
+            found_ids.push(EntityId {
+                web_id,
+                entity_uuid,
+                draft_id: None,
+            });
+        }
+
+        // Every requested entity not in a cluster goes into
+        // `missing_embeddings`, whether due to permissions or no embedding.
+        // Distinguishing the two would leak permission information.
+        let found_set: HashSet<(WebId, EntityUuid)> = found_ids
+            .iter()
+            .map(|id| (id.web_id, id.entity_uuid))
+            .collect();
+        let missing_embeddings: Vec<EntityId> = params
+            .entity_ids
+            .into_iter()
+            .filter(|id| !found_set.contains(&(id.web_id, id.entity_uuid)))
+            .collect();
+
+        if found_ids.is_empty() || params.cluster_count == 0 {
+            return Ok(ClusterEntitiesResponse {
+                clusters: Vec::new(),
+                missing_embeddings,
+            });
+        }
+
+        let config = hash_graph_store::embedding::clustering::Config::for_k_with_seed(
+            params.cluster_count,
+            params.seed.unwrap_or_else(|| {
+                std::time::SystemTime::UNIX_EPOCH
+                    .elapsed()
+                    .map_or(0, |elapsed| {
+                        #[expect(
+                            clippy::cast_possible_truncation,
+                            reason = "seed only needs entropy, truncation is fine"
+                        )]
+                        let seed = elapsed.as_nanos() as u64;
+                        seed
+                    })
+            }),
+        );
+
+        let result = hash_graph_store::embedding::clustering::cluster(&flat, dim, &config);
+
+        let mut groups: HashMap<u16, Vec<EntityId>> = HashMap::new();
+        for (index, id) in found_ids.iter().enumerate() {
+            groups.entry(result.label(index)).or_default().push(*id);
+        }
+
+        let clusters = groups
+            .into_iter()
+            .map(|(cluster_id, entity_ids)| EntityCluster {
+                cluster_id,
+                entity_ids,
+                centroid: result.centroid(cluster_id).to_vec(),
+            })
+            .collect();
+
+        Ok(ClusterEntitiesResponse {
+            clusters,
+            missing_embeddings,
+        })
     }
 }
 
