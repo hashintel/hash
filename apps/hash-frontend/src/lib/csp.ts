@@ -105,12 +105,12 @@ export const buildCspHeader = (nonce: string): string => {
  * compiled with `new Function()` without endangering the parent HASH origin.
  *
  * Key differences vs the default CSP:
- * - `script-src` includes `'unsafe-eval'` so Babel + `new Function()` work,
- *   and `'unsafe-inline'` (rather than a nonce) because this route is
- *   statically generated, so the per-request middleware nonce can't be baked
- *   into its inline framework scripts. Given `'unsafe-eval'` is already
- *   granted and the isolation is the opaque-origin sandbox, `'unsafe-inline'`
- *   adds no meaningful risk.
+ * - `script-src` includes `'unsafe-eval'` so Babel + `new Function()` work.
+ *   Unlike the rest of the app it uses `'unsafe-inline'` rather than a nonce:
+ *   the embed's security boundary is the opaque-origin sandbox, not its CSP —
+ *   it deliberately executes arbitrary user code via `'unsafe-eval'`, so
+ *   nonce-gating its inline framework scripts buys nothing here
+ *   (and a nonce would disable it: @see https://www.w3.org/TR/CSP3/#allow-all-inline).
  * - `connect-src` is `'self'` only — from the opaque-origin sandbox this is
  *   effectively no network reach. All persistence + AI requests deliberately
  *   round-trip through the host via postMessage instead.
@@ -129,9 +129,10 @@ export const buildEmbedCspHeader = (): string => {
       // real origin so Next.js chunks load.
       frontendUrl,
       "'self'",
-      // The route is statically generated, so a per-request nonce can't be
-      // applied to its inline scripts; `'unsafe-inline'` is safe here because
-      // `'unsafe-eval'` is already granted and isolation is the sandbox.
+      // Isolation here is the opaque-origin sandbox, not the CSP, and the
+      // route already runs arbitrary user code via `'unsafe-eval'`, so a
+      // script nonce adds nothing. `'unsafe-inline'` (with the nonce
+      // deliberately omitted, since a nonce would disable it).
       "'unsafe-inline'",
       "'wasm-unsafe-eval'",
       // The whole point of the embed route: user-provided code is compiled
