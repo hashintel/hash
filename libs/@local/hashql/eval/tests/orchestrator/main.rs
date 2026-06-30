@@ -108,7 +108,6 @@ fn run_jexpr_test(
     let heap = Heap::new();
     let mut pipeline = Pipeline::new(&heap);
 
-    // Lower first so the type environment is populated, then build inputs.
     let lowered = match execution::lower(&mut pipeline, &bytes) {
         Ok(lowered) => lowered,
         Err(diagnostic) => {
