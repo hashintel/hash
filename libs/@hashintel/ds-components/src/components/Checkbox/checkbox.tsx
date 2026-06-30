@@ -19,6 +19,7 @@ export const Checkbox = ({
   invalid,
   testId,
   htmlForId,
+  htmlValue,
   ref,
   inputRef,
   autoFocus,
@@ -39,6 +40,8 @@ export const Checkbox = ({
   tone?: Exclude<Tone, "error"> | "success";
   /** Render the box in the indeterminate ("partially checked") state */
   indeterminate?: boolean;
+  /** An optional value used for native form submissions */
+  htmlValue?: string;
 } & SharedInputProps<HTMLInputElement, boolean> &
   React.AriaAttributes) => {
   const classes = styles({
@@ -61,6 +64,7 @@ export const Checkbox = ({
       data-testid={testId}
       ref={ref as React.Ref<HTMLLabelElement>}
       className={cx(classes.root, className)}
+      value={htmlValue}
       {...ariaProps}
     >
       <BaseCheckbox.Control className={classes.control}>

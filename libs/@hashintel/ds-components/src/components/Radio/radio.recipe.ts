@@ -50,7 +50,7 @@ export const styles = sva({
         boxShadow: "[none]",
       },
       "label:not(:has(input:disabled)):hover input:not(:checked) ~ &": {
-        backgroundColor: "neutral.a20",
+        backgroundColor: "neutral.a25",
         borderColor: "neutral.a70",
       },
     },
@@ -118,10 +118,6 @@ export const styles = sva({
             backgroundColor: "neutral.s90",
             borderColor: "neutral.s90",
           },
-          "label:not(:has(input:disabled)):hover input:checked ~ &": {
-            backgroundColor: "neutral.s110",
-            borderColor: "neutral.s110",
-          },
         },
       },
       brand: {
@@ -134,10 +130,6 @@ export const styles = sva({
             backgroundColor: "blue.s55",
             borderColor: "blue.s55",
           },
-          "label:not(:has(input:disabled)):hover input:checked ~ &": {
-            backgroundColor: "blue.s75",
-            borderColor: "blue.s75",
-          },
         },
       },
       success: {
@@ -149,10 +141,6 @@ export const styles = sva({
           "input:checked:disabled ~ &": {
             backgroundColor: "green.s55",
             borderColor: "green.s55",
-          },
-          "label:not(:has(input:disabled)):hover input:checked ~ &": {
-            backgroundColor: "green.s70",
-            borderColor: "green.s70",
           },
         },
       },
