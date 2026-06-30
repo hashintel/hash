@@ -34,9 +34,7 @@ const Page: NextPageWithLayout = () => {
     !authenticatedUser?.accountSignupComplete && !!hasAccessToHash;
 
   /**
-   * Send users who have access but haven't finished signup to `/signup`. Run as
-   * an effect (not during render) so a stale client view can't spin in a
-   * `/` <-> `/signup` redirect loop.
+   * Send users who have access but haven't finished signup to `/signup`.
    */
   useEffect(() => {
     if (shouldCompleteSignup) {
