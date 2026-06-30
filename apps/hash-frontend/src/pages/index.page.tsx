@@ -1,7 +1,7 @@
 import { useQuery } from "@apollo/client";
 import { Stack } from "@mui/material";
 import { useRouter } from "next/router";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 
 import { hasAccessToHashQuery } from "../graphql/queries/user.queries";
 import { getLayoutWithSidebar } from "../shared/layout";
@@ -30,9 +30,22 @@ const Page: NextPageWithLayout = () => {
     }
   }, [authenticatedUser, hasAccessToHashResponse]);
 
+  const shouldCompleteSignup =
+    !authenticatedUser?.accountSignupComplete && !!hasAccessToHash;
+
+  /**
+   * Send users who have access but haven't finished signup to `/signup`. Run as
+   * an effect (not during render) so a stale client view can't spin in a
+   * `/` <-> `/signup` redirect loop.
+   */
+  useEffect(() => {
+    if (shouldCompleteSignup) {
+      void push("/signup");
+    }
+  }, [shouldCompleteSignup, push]);
+
   if (!authenticatedUser?.accountSignupComplete) {
     if (hasAccessToHash) {
-      void push("/signup");
       return null;
     }
 
