@@ -33,7 +33,12 @@ import type {
 import type { EntitiesFilterState } from "./shared/filter-state";
 import type { ApolloQueryResult } from "@apollo/client";
 import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
-import type { BaseUrl, VersionedUrl, WebId } from "@blockprotocol/type-system";
+import type {
+  BaseUrl,
+  EntityId,
+  VersionedUrl,
+  WebId,
+} from "@blockprotocol/type-system";
 import type {
   EntityQueryCursor,
   EntityQuerySortingRecord,
@@ -46,6 +51,8 @@ export type EntitiesVisualizerData = Partial<
   >
 > & {
   entities?: HashEntity[];
+  /** Graph view only: EntityIds of the query roots; the rest of `entities` are frontier nodes. */
+  rootEntityIds?: EntityId[];
   hadCachedContent: boolean;
   loading: boolean;
   /**
@@ -195,10 +202,24 @@ export const useEntitiesVisualizerData = (params: {
     [subgraph, view],
   );
 
+  /**
+   * The query ROOTS' EntityIds (Graph view only). In the Graph view `entities` is every fetched
+   * vertex; those not in this set are FRONTIER nodes -- link endpoints the graph renders
+   * greyed-out until expanded.
+   */
+  const rootEntityIds = useMemo(
+    () =>
+      subgraph && view === "Graph"
+        ? getRoots(subgraph).map((entity) => entity.metadata.recordId.entityId)
+        : undefined,
+    [subgraph, view],
+  );
+
   return useMemo(
     () => ({
       ...data?.queryEntitySubgraph,
       entities,
+      rootEntityIds,
       hadCachedContent,
       loading,
       refetch,
@@ -211,6 +232,7 @@ export const useEntitiesVisualizerData = (params: {
       data?.queryEntitySubgraph,
       summaryData?.summarizeEntities,
       entities,
+      rootEntityIds,
       hadCachedContent,
       loading,
       refetch,

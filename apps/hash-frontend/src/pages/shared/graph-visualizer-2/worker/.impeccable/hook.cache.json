@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "sessions": {
+    "8e52f36d-22df-4380-830f-8109a1e0fd71": {
+      "updatedAt": 1782671897211,
+      "files": {
+        "/Users/bmahmoud/projects/hash/hash/apps/hash-frontend/src/pages/shared/slide-stack/link-table-slide.tsx": {
+          "editCount": 6,
+          "findings": []
+        },
+        "/Users/bmahmoud/projects/hash/hash/apps/hash-frontend/src/pages/shared/graph-visualizer-2/render/scene.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/bmahmoud/projects/hash/hash/apps/hash-frontend/src/pages/shared/graph-visualizer-2/worker/core/graph-worker.ts": {
+          "editCount": 2,
+          "findings": []
+        }
+      }
+    }
+  }
+}

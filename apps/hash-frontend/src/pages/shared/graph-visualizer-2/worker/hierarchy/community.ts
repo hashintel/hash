@@ -1,0 +1,451 @@
+/**
+ * Community detection for sub-clustering large type-set clusters.
+ *
+ * Runs lazily when a cluster is about to open and is too large to
+ * show individual entities. Uses connected components first, then
+ * bounded label propagation for large components.
+ */
+import { ClusterId } from "../../ids";
+import { Column } from "../collections/column";
+import {
+  type CsrGraph,
+  buildInducedCsr,
+  connectedComponents,
+} from "../csr-graph";
+import { ClusterLabel, ClusterNode } from "./cluster-tree";
+
+import type { VizConfig } from "../../config";
+import type { EntityIdx } from "../../ids";
+import type { LinkStore } from "../stores/link-store";
+
+/* eslint-disable no-bitwise */
+function deterministicShuffle(indices: number[], seed: number): number[] {
+  const result = [...indices];
+  let state = seed * 2654435761;
+
+  for (let idx = result.length - 1; idx > 0; idx--) {
+    state = (state ^ (state << 13)) | 0;
+    state = (state ^ (state >>> 17)) | 0;
+    state = (state ^ (state << 5)) | 0;
+    const target = (state >>> 0) % (idx + 1);
+    const temp = result[idx]!;
+    result[idx] = result[target]!;
+    result[target] = temp;
+  }
+
+  return result;
+}
+/* eslint-enable no-bitwise */
+
+export function boundedLabelPropagation(
+  graph: CsrGraph,
+  component: number[],
+): Int32Array {
+  const nodeCount = graph.nodeIds.length;
+  const labels = new Int32Array(nodeCount);
+  const sizes = new Int32Array(nodeCount);
+
+  for (const localIdx of component) {
+    labels[localIdx] = localIdx;
+    sizes[localIdx] = 1;
+  }
+
+  const maxIterations = 20;
+  const alpha = 0.35;
+  const stabilityBias = 0.01;
+
+  for (let iteration = 0; iteration < maxIterations; iteration++) {
+    let changed = 0;
+    const order = deterministicShuffle(component, iteration);
+
+    for (const node of order) {
+      const current = labels[node]!;
+      const scores = new Map<number, number>();
+
+      for (
+        let edge = graph.offsets[node]!;
+        edge < graph.offsets[node + 1]!;
+        edge++
+      ) {
+        const neighbor = graph.neighbors[edge]!;
+        const label = labels[neighbor]!;
+        const weight = graph.weights[edge]!;
+        scores.set(label, (scores.get(label) ?? 0) + weight);
+      }
+
+      scores.set(current, (scores.get(current) ?? 0) + stabilityBias);
+
+      let bestLabel = current;
+      let bestScore = -Infinity;
+
+      for (const [label, rawScore] of scores) {
+        const sizePenalty = Math.max(1, sizes[label]!) ** alpha;
+        const score = rawScore / sizePenalty;
+        if (score > bestScore || (score === bestScore && label < bestLabel)) {
+          bestScore = score;
+          bestLabel = label;
+        }
+      }
+
+      if (bestLabel !== current) {
+        sizes[current]!--;
+        sizes[bestLabel]!++;
+        labels[node] = bestLabel;
+        changed++;
+      }
+    }
+
+    if (changed / component.length < 0.005) {
+      break;
+    }
+  }
+
+  return labels;
+}
+
+function labelsToCommunities(
+  labels: Int32Array,
+  component: number[],
+): number[][] {
+  const communities = new Map<number, number[]>();
+
+  for (const localIdx of component) {
+    const label = labels[localIdx]!;
+    let list = communities.get(label);
+    if (!list) {
+      list = [];
+      communities.set(label, list);
+    }
+    list.push(localIdx);
+  }
+
+  return [...communities.values()];
+}
+
+function normalizeCommunitySizes(
+  communities: number[][],
+  graph: CsrGraph,
+  config: VizConfig,
+): EntityIdx[][] {
+  const result: EntityIdx[][] = [];
+  const tiny: EntityIdx[] = [];
+
+  for (const community of communities) {
+    const entityIdxs = community.map((local) => graph.nodeIds.get(local));
+
+    if (entityIdxs.length < config.communityMinSize) {
+      for (const idx of entityIdxs) {
+        tiny.push(idx);
+      }
+    } else if (entityIdxs.length > config.communityMaxSize) {
+      for (
+        let start = 0;
+        start < entityIdxs.length;
+        start += config.communityMaxSize
+      ) {
+        result.push(entityIdxs.slice(start, start + config.communityMaxSize));
+      }
+    } else {
+      result.push(entityIdxs);
+    }
+  }
+
+  if (tiny.length > 0) {
+    result.push(tiny);
+  }
+
+  return result;
+}
+
+function topDegreeEntity(
+  members: EntityIdx[],
+  links: LinkStore,
+): EntityIdx | undefined {
+  let bestIdx: EntityIdx | undefined;
+  let bestDegree = 0;
+
+  for (const entityIdx of members) {
+    const degree = links.linksForEntity(entityIdx).length;
+    if (degree > bestDegree) {
+      bestDegree = degree;
+      bestIdx = entityIdx;
+    }
+  }
+
+  return bestIdx;
+}
+
+function collectLinkFeatures(
+  members: EntityIdx[],
+  links: LinkStore,
+): Map<string, number> {
+  const features = new Map<string, number>();
+  const memberSet = new Set(members);
+
+  for (const entityIdx of members) {
+    const endpoints = links.linksForEntity(entityIdx);
+    for (const endpoint of endpoints) {
+      const isInternal = memberSet.has(endpoint.otherIdx);
+      const prefix = isInternal ? "int" : "ext";
+      const key = `${prefix}:${endpoint.direction}:${endpoint.typeSetIdx}`;
+      features.set(key, (features.get(key) ?? 0) + 1);
+    }
+  }
+
+  return features;
+}
+
+function featureKeyToLabel(key: string): string {
+  const parts = key.split(":");
+  const scope = parts[0] === "int" ? "Internal" : "External";
+  const direction = parts[1] === "out" ? "outgoing" : "incoming";
+  return `${scope} ${direction} links`;
+}
+
+/**
+ * Label communities using overrepresented link features,
+ * scored with TF-IDF across sibling communities.
+ */
+function labelAllCommunities(
+  communityMembers: EntityIdx[][],
+  children: ClusterNode[],
+  links: LinkStore,
+): void {
+  if (communityMembers.length === 0) {
+    return;
+  }
+
+  const allFeatures: Map<string, number>[] = communityMembers.map((members) =>
+    collectLinkFeatures(members, links),
+  );
+
+  const df = new Map<string, number>();
+  for (const features of allFeatures) {
+    for (const key of features.keys()) {
+      df.set(key, (df.get(key) ?? 0) + 1);
+    }
+  }
+
+  const totalCommunities = communityMembers.length;
+
+  for (let idx = 0; idx < children.length; idx++) {
+    const features = allFeatures[idx]!;
+    const memberCount = communityMembers[idx]!.length;
+    const child = children[idx]!;
+
+    let bestKey: string | undefined;
+    let bestScore = -Infinity;
+    let bestCoverage = 0;
+
+    for (const [featureKey, count] of features) {
+      const coverage = count / memberCount;
+      if (coverage < 0.25) {
+        continue;
+      }
+
+      const docFreq = df.get(featureKey) ?? 1;
+      const idf = Math.log((totalCommunities + 1) / (docFreq + 1));
+      const score = coverage * idf;
+
+      if (score > bestScore) {
+        bestScore = score;
+        bestKey = featureKey;
+        bestCoverage = coverage;
+      }
+    }
+
+    if (bestKey) {
+      child.label = new ClusterLabel(
+        featureKeyToLabel(bestKey),
+        null,
+        bestCoverage,
+        bestCoverage < 0.5,
+      );
+    } else {
+      const hub = topDegreeEntity(communityMembers[idx]!, links);
+      child.label = hub
+        ? new ClusterLabel(`Around entity ${hub}`)
+        : new ClusterLabel(`Community ${idx + 1}`);
+    }
+  }
+}
+
+/* eslint-disable no-bitwise */
+function linkSignatureKey(
+  entityIdx: EntityIdx,
+  links: LinkStore,
+  maxBuckets: number,
+): string {
+  const endpoints = links.linksForEntity(entityIdx);
+  if (endpoints.length === 0) {
+    return "isolated";
+  }
+
+  const features = new Set<string>();
+  for (const endpoint of endpoints) {
+    features.add(`${endpoint.direction}:${endpoint.typeSetIdx}`);
+  }
+
+  const sorted = [...features].sort();
+  const key = sorted.join("|");
+
+  let hash = 0;
+  for (let idx = 0; idx < key.length; idx++) {
+    hash = ((hash << 5) - hash + key.charCodeAt(idx)) | 0;
+  }
+  return `sig:${(hash >>> 0) % maxBuckets}`;
+}
+/* eslint-enable no-bitwise */
+
+function columnFromIndices(
+  indices: ArrayLike<EntityIdx>,
+): Column<Int32Array, EntityIdx> {
+  const col = new Column<Int32Array, EntityIdx>(Int32Array, indices.length);
+  for (let idx = 0; idx < indices.length; idx++) {
+    col.push(indices[idx]!);
+  }
+  return col;
+}
+
+function coarseLinkSignatureBuckets(
+  cluster: ClusterNode,
+  entityIdxs: Column<Int32Array, EntityIdx>,
+  links: LinkStore,
+  config: VizConfig,
+): ClusterNode[] {
+  const buckets = new Map<string, EntityIdx[]>();
+
+  for (const entityIdx of entityIdxs) {
+    const key = linkSignatureKey(entityIdx, links, config.maxChildrenPerParent);
+
+    let bucket = buckets.get(key);
+    if (!bucket) {
+      bucket = [];
+      buckets.set(key, bucket);
+    }
+    bucket.push(entityIdx);
+  }
+
+  const normalized = [...buckets.values()];
+
+  const children: ClusterNode[] = normalized.map((memberIdxs, idx) => {
+    const members = columnFromIndices(memberIdxs);
+    const child = new ClusterNode(
+      ClusterId(`${cluster.id}:bucket:${idx}`),
+      "community",
+      { source: "direct", members },
+    );
+    child.count = memberIdxs.length;
+    child.label = new ClusterLabel(`Group ${idx + 1}`);
+    return child;
+  });
+
+  labelAllCommunities(normalized, children, links);
+
+  return children;
+}
+
+/**
+ * Last-resort partitioning when link-based community detection
+ * can't produce meaningful groups (e.g. 0 internal edges).
+ * Splits entities into roughly equal chunks. These are placeholders
+ * that embedding k-means can later replace with semantic groups.
+ */
+function deterministicPartition(
+  cluster: ClusterNode,
+  entityIdxs: Column<Int32Array, EntityIdx>,
+  config: VizConfig,
+): ClusterNode[] {
+  const targetSize = Math.floor(
+    config.entityRevealMax * config.embeddingTargetLeafFillRatio,
+  );
+  const kk = Math.max(
+    2,
+    Math.min(config.embeddingMaxK, Math.ceil(entityIdxs.length / targetSize)),
+  );
+
+  const children: ClusterNode[] = [];
+  for (let idx = 0; idx < kk; idx++) {
+    const start = Math.floor((idx * entityIdxs.length) / kk);
+    const end = Math.floor(((idx + 1) * entityIdxs.length) / kk);
+    const members = entityIdxs.slice(start, end);
+    const child = new ClusterNode(
+      ClusterId(`${cluster.id}:bucket:${idx}`),
+      "entity-bucket",
+      { source: "direct", members },
+    );
+    child.count = end - start;
+    child.label = new ClusterLabel(`Group ${idx + 1}`);
+    children.push(child);
+  }
+  return children;
+}
+
+/**
+ * Full sub-clustering pipeline for a single cluster.
+ * Returns child ClusterNodes, or empty array if the cluster
+ * is small enough to show entities directly.
+ *
+ * Cascade: community detection -> deterministic partition.
+ * Always returns >= 2 children for clusters above entityRevealMax.
+ */
+export function subclusterByLinks(
+  cluster: ClusterNode,
+  entityIdxs: Column<Int32Array, EntityIdx>,
+  links: LinkStore,
+  config: VizConfig,
+): ClusterNode[] {
+  if (entityIdxs.length <= config.entityRevealMax) {
+    return [];
+  }
+
+  if (entityIdxs.length > config.communityWorkerNodeCap) {
+    return coarseLinkSignatureBuckets(cluster, entityIdxs, links, config);
+  }
+
+  const csr = buildInducedCsr(entityIdxs, links);
+
+  // No internal edges: community detection can't work.
+  if (csr.neighbors.length === 0) {
+    return deterministicPartition(cluster, entityIdxs, config);
+  }
+
+  const components = connectedComponents(csr);
+  const rawCommunities: number[][] = [];
+
+  for (const component of components) {
+    if (component.length <= config.communityMaxSize) {
+      rawCommunities.push(component);
+      continue;
+    }
+
+    const labels = boundedLabelPropagation(csr, component);
+    const split = labelsToCommunities(labels, component);
+    for (const community of split) {
+      rawCommunities.push(community);
+    }
+  }
+
+  const normalized = normalizeCommunitySizes(rawCommunities, csr, config);
+
+  // Community detection produced too few groups.
+  if (normalized.length < 2) {
+    return deterministicPartition(cluster, entityIdxs, config);
+  }
+
+  const children: ClusterNode[] = normalized.map((memberIdxs, idx) => {
+    const members = columnFromIndices(memberIdxs);
+    const child = new ClusterNode(
+      ClusterId(`${cluster.id}:community:${idx}`),
+      "community",
+      { source: "direct", members },
+    );
+    child.count = memberIdxs.length;
+    child.label = new ClusterLabel(`Community ${idx + 1}`);
+    return child;
+  });
+
+  labelAllCommunities(normalized, children, links);
+
+  return children;
+}

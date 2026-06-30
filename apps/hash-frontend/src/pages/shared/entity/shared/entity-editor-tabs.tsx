@@ -7,7 +7,7 @@ import { Tabs } from "../../../../shared/ui/tabs";
 
 import type { PropsWithChildren } from "react";
 
-type EntityEditorTab = "overview" | "history";
+type EntityEditorTab = "overview" | "history" | "graph";
 
 const defaultTab: EntityEditorTab = "overview";
 
@@ -124,6 +124,20 @@ export const EntityEditorTabs = ({
           }
           label="History"
           active={tab === "history"}
+        />
+        <TabLink
+          value="graph"
+          href={getTabUrl("graph", entityPath)}
+          onClick={
+            isInSlide
+              ? (event) => {
+                  event.preventDefault();
+                  setTab("graph");
+                }
+              : undefined
+          }
+          label="Graph"
+          active={tab === "graph"}
         />
       </Tabs>
     </Box>

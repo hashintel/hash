@@ -6,6 +6,7 @@ import { getRoots } from "@blockprotocol/graph/stdlib";
 import { ClaimsSection } from "./entity-editor/claims-section";
 import { EntityEditorContextProvider } from "./entity-editor/entity-editor-context";
 import { FilePreviewSection } from "./entity-editor/file-preview-section";
+import { GraphSection } from "./entity-editor/graph-section";
 import { HistorySection } from "./entity-editor/history-section";
 import { LinkSection } from "./entity-editor/link-section";
 import { IncomingLinksSection } from "./entity-editor/links-section/incoming-links-section";
@@ -173,6 +174,8 @@ export const EntityEditor = (props: EntityEditorProps) => {
     <EntityEditorContextProvider {...props}>
       {tab === "history" ? (
         <HistorySection entityId={entity.metadata.recordId.entityId} />
+      ) : tab === "graph" ? (
+        <GraphSection entityId={entity.metadata.recordId.entityId} />
       ) : (
         <Box sx={{ display: "flex", flexDirection: "column", gap: 6.5 }}>
           {isLinkEntity ? <LinkSection /> : <TypesSection />}

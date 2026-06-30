@@ -7,6 +7,7 @@ import { SlideStackContext } from "./slide-stack/context";
 import { DataTypeSlide } from "./slide-stack/data-type-slide";
 import { EntitySlide } from "./slide-stack/entity-slide";
 import { EntityTypeSlide } from "./slide-stack/entity-type-slide";
+import { LinkTableSlide } from "./slide-stack/link-table-slide";
 import { SlideBackForwardCloseBar } from "./slide-stack/slide-back-forward-close-bar";
 
 import type { SlideItem } from "./slide-stack/types";
@@ -93,6 +94,9 @@ const StackSlide = ({
               removeItem={removeItem}
               replaceItem={replaceItem}
             />
+          )}
+          {item.kind === "linkTable" && (
+            <LinkTableSlide linkEntityIds={item.linkEntityIds} />
           )}
         </Box>
       </Box>

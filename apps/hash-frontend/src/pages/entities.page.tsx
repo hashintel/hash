@@ -346,6 +346,7 @@ const EntitiesPage: NextPageWithLayout = () => {
           entityTypeBaseUrl={entityTypeBaseUrl}
           entityTypeId={entityTypeId}
           hideColumns={entityTypeId ? ["entityTypes"] : []}
+          persistFilterStateInUrl
         />
       </Container>
     </>

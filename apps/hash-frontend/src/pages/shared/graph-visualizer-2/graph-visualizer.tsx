@@ -1,0 +1,137 @@
+/**
+ * Thin React shell: mounts a {@link Scene} over a container and keeps its interaction
+ * callbacks current. All rendering state and behavior live in Scene; React owns only
+ * the container and the loading overlay. The entity hover card is owned by the parent bridge.
+ */
+import { useEffect, useRef, useState } from "react";
+
+import { GraphControls } from "./components/graph-controls";
+import { GRAPH_CAMERA_ZOOM_STEP } from "./interactivity/graph-camera-commands";
+import { Scene } from "./render/scene";
+
+import type {
+  ClusterHover,
+  EntityHover,
+  EntityLabel,
+  EntitySelection,
+  HighwayHover,
+} from "./render/scene";
+import type { WorkerHandle } from "./render/worker-connection";
+import type { EntityId } from "@blockprotocol/type-system";
+import type { ReactElement } from "react";
+
+interface GraphVisualizerProps {
+  readonly handle: WorkerHandle;
+  readonly loadingComponent: ReactElement;
+  readonly onEntityHover?: (hover: EntityHover | null) => void;
+  readonly onHighwayHover?: (hover: HighwayHover | null) => void;
+  readonly onEntitySelect?: (selection: EntitySelection | null) => void;
+  /** Open the underlying link entities of an aggregated "highway" edge in a table. */
+  readonly onOpenLinkTable?: (linkEntityIds: readonly EntityId[]) => void;
+  /** Report a hovered wholly-frontier cluster bubble (to offer loading its entities), or null on leave. */
+  readonly onClusterHover?: (hover: ClusterHover | null) => void;
+  /**
+   * Resolve an entity's display label (its name) for the always-on graph labels. The Scene
+   * calls this only when it rebuilds the label set (zoom / structure change), never per frame.
+   */
+  readonly resolveEntityLabel?: (entityId: EntityId) => string | undefined;
+  /**
+   * Resolve an entity's type icon to an atlas key (emoji or image URL), or null for none. The
+   * Scene calls this only when it rebuilds the flat-tier icon set (structure change), never per frame.
+   */
+  readonly resolveEntityIcon?: (entityId: EntityId) => string | null;
+  /** Receive the always-on hub labels (with current on-screen positions) to overlay as HTML. */
+  readonly onEntityLabels?: (labels: readonly EntityLabel[]) => void;
+}
+
+export const GraphVisualizerV2 = ({
+  handle,
+  loadingComponent,
+  onEntityHover,
+  onHighwayHover,
+  onEntitySelect,
+  onOpenLinkTable,
+  onClusterHover,
+  resolveEntityLabel,
+  resolveEntityIcon,
+  onEntityLabels,
+}: GraphVisualizerProps) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const sceneRef = useRef<Scene | null>(null);
+  const [hasStructure, setHasStructure] = useState(false);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) {
+      return undefined;
+    }
+    const scene = new Scene(container, handle, {
+      onEntityHover,
+      onHighwayHover,
+      onEntitySelect,
+      onOpenLinkTable,
+      onClusterHover,
+      resolveEntityLabel,
+      resolveEntityIcon,
+      onEntityLabels,
+      onFirstStructure: () => setHasStructure(true),
+    });
+    sceneRef.current = scene;
+    return () => {
+      scene.dispose();
+      sceneRef.current = null;
+    };
+    // Only `handle` re-mounts the scene; callbacks are kept current below.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [handle]);
+
+  // Keep the scene's interaction callbacks current without re-mounting Deck.
+  useEffect(() => {
+    sceneRef.current?.setCallbacks({
+      onEntityHover,
+      onHighwayHover,
+      onEntitySelect,
+      onOpenLinkTable,
+      onClusterHover,
+      resolveEntityLabel,
+      resolveEntityIcon,
+      onEntityLabels,
+      onFirstStructure: () => setHasStructure(true),
+    });
+  });
+
+  return (
+    <div
+      style={{
+        position: "relative",
+        width: "100%",
+        height: "100%",
+        overflow: "hidden",
+      }}
+    >
+      <div
+        ref={containerRef}
+        style={{ position: "absolute", inset: 0, touchAction: "none" }}
+      />
+      {!hasStructure && (
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1,
+          }}
+        >
+          {loadingComponent}
+        </div>
+      )}
+      <GraphControls
+        onZoomIn={() => sceneRef.current?.zoomBy(GRAPH_CAMERA_ZOOM_STEP)}
+        onZoomOut={() => sceneRef.current?.zoomBy(-GRAPH_CAMERA_ZOOM_STEP)}
+        onFitView={() => sceneRef.current?.fitToContent()}
+      />
+    </div>
+  );
+};

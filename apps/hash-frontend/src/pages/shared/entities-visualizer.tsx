@@ -27,10 +27,12 @@ import {
   VisualizerHeader,
   visualizerHeaderHeight,
 } from "./entities-visualizer/header";
-import { createDefaultFilterState } from "./entities-visualizer/shared/filter-state";
+import { serializeFilterStateToQuery } from "./entities-visualizer/shared/filter-state-url";
 import { useAvailableTypes } from "./entities-visualizer/shared/use-available-types";
+import { useUrlSyncedFilterState } from "./entities-visualizer/shared/use-url-synced-filter-state";
 import { useEntitiesVisualizerData } from "./entities-visualizer/use-entities-visualizer-data";
-import { EntityGraphVisualizer } from "./entity-graph-visualizer";
+// import { EntityGraphVisualizer } from "./entity-graph-visualizer";
+import { EntityGraphVisualizerV2 } from "./graph-visualizer-2/entity-graph-visualizer";
 import { useSlideStack } from "./slide-stack";
 import { TableHeaderToggle } from "./table-header-toggle";
 import { TOP_CONTEXT_BAR_HEIGHT } from "./top-context-bar";
@@ -144,7 +146,19 @@ export const EntitiesVisualizer: FunctionComponent<{
    * Hide specific columns from the table
    */
   hideColumns?: (keyof EntitiesTableRow)[];
-}> = ({ entityTypeBaseUrl, entityTypeId, hideColumns }) => {
+  /**
+   * Persist the active filter state in the URL query string (hydrating from it
+   * on mount), so that refreshing, bookmarking, or sharing the page preserves
+   * the filters. Defaults to `false` for embedded usages (e.g. an entity type's
+   * entities tab) that should not take over the URL.
+   */
+  persistFilterStateInUrl?: boolean;
+}> = ({
+  entityTypeBaseUrl,
+  entityTypeId,
+  hideColumns,
+  persistFilterStateInUrl = false,
+}) => {
   const theme = useTheme();
 
   const { authenticatedUser } = useAuthenticatedUser();
@@ -178,8 +192,30 @@ export const EntitiesVisualizer: FunctionComponent<{
     },
   );
 
-  const [filterState, _setFilterState] = useState<EntitiesFilterState>(() =>
-    createDefaultFilterState(internalWebs.map(({ webId }) => webId)),
+  const isTypePinned = !!entityTypeBaseUrl || !!entityTypeId;
+
+  const [filterState, _setFilterState] = useUrlSyncedFilterState({
+    enabled: persistFilterStateInUrl,
+    internalWebs,
+    isTypePinned,
+  });
+
+  // Identity of the graph's data SOURCE: the type scoping plus the canonical (URL-grade) filter
+  // serialization. Pagination (cursor) and sort/conversions don't change which entities the graph
+  // shows, so they're excluded -- a change here means the entity set was REPLACED, not extended,
+  // which the graph visualizer uses to purge and re-ingest rather than append stale data.
+  const graphSourceKey = useMemo(
+    () =>
+      JSON.stringify({
+        entityTypeBaseUrl,
+        entityTypeId,
+        filter: serializeFilterStateToQuery({
+          filterState,
+          internalWebIds: internalWebs.map(({ webId }) => webId),
+          isTypePinned,
+        }),
+      }),
+    [entityTypeBaseUrl, entityTypeId, filterState, internalWebs, isTypePinned],
   );
 
   const [cursor, setCursor] = useState<EntityQueryCursor>();
@@ -202,19 +238,11 @@ export const EntitiesVisualizer: FunctionComponent<{
   );
 
   const setFilterState = useCallback(
-    (
-      newFilterStateOrUpdater:
-        | EntitiesFilterState
-        | ((prev: EntitiesFilterState) => EntitiesFilterState),
-    ) => {
-      _setFilterState((prev) =>
-        typeof newFilterStateOrUpdater === "function"
-          ? newFilterStateOrUpdater(prev)
-          : newFilterStateOrUpdater,
-      );
+    (newFilterStateOrUpdater: SetStateAction<EntitiesFilterState>) => {
+      _setFilterState(newFilterStateOrUpdater);
       setCursor(undefined);
     },
-    [setCursor],
+    [_setFilterState, setCursor],
   );
 
   const [view, _setView] = useState<VisualizerView>("Table");
@@ -278,6 +306,7 @@ export const EntitiesVisualizer: FunctionComponent<{
     cursor: nextCursor,
     definitions,
     entities,
+    rootEntityIds,
     closedMultiEntityTypes: closedMultiEntityTypesRootMap,
     subgraph,
   } = visualizerData;
@@ -345,8 +374,6 @@ export const EntitiesVisualizer: FunctionComponent<{
       setVisualizerData(entitiesData);
     }
   }, [entitiesData]);
-
-  const isTypePinned = !!entityTypeBaseUrl || !!entityTypeId;
 
   const {
     availableEntityTypes,
@@ -491,6 +518,17 @@ export const EntitiesVisualizer: FunctionComponent<{
     [pushToSlideStack],
   );
 
+  const handleOpenLinkTable = useCallback(
+    (linkEntityIds: readonly EntityId[]) => {
+      pushToSlideStack({
+        kind: "linkTable",
+        itemId: `linkTable:${linkEntityIds[0] ?? "empty"}:${linkEntityIds.length}`,
+        linkEntityIds: [...linkEntityIds],
+      });
+    },
+    [pushToSlideStack],
+  );
+
   const currentlyDisplayedColumnsRef = useRef<SizedGridColumn[] | null>(null);
   const currentlyDisplayedRowsRef = useRef<EntitiesTableRow[] | null>(null);
 
@@ -524,7 +562,7 @@ export const EntitiesVisualizer: FunctionComponent<{
 
   const tableHeight = `min(${availableHeight}, 1000px)`;
 
-  const isPrimaryEntity = useCallback(
+  const _isPrimaryEntity = useCallback(
     (entity: { metadata: Pick<HashEntity["metadata"], "entityTypeIds"> }) =>
       entityTypeBaseUrl
         ? entity.metadata.entityTypeIds.some(
@@ -630,14 +668,17 @@ export const EntitiesVisualizer: FunctionComponent<{
         </Stack>
       ) : view === "Graph" ? (
         <Box height={availableHeight} sx={tableContentSx}>
-          <EntityGraphVisualizer
-            closedMultiEntityTypesRootMap={closedMultiEntityTypesRootMap}
+          <EntityGraphVisualizerV2
             entities={entities}
+            rootEntityIds={rootEntityIds}
+            sourceKey={graphSourceKey}
+            closedMultiEntityTypesRootMap={closedMultiEntityTypesRootMap}
+            definitions={definitions}
             loadingComponent={
               <LoadingSpinner size={42} color={theme.palette.blue[60]} />
             }
-            isPrimaryEntity={isPrimaryEntity}
             onEntityClick={handleEntityClick}
+            onOpenLinkTable={handleOpenLinkTable}
           />
         </Box>
       ) : view === "Grid" ? (

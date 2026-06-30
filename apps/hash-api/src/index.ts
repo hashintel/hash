@@ -63,6 +63,7 @@ import { kratosPublicUrl } from "./auth/ory-kratos";
 import { setupBlockProtocolExternalServiceMethodProxy } from "./block-protocol-external-service-method-proxy";
 import { createEmailTransporter } from "./email/create-email-transporter";
 import { ensureSystemGraphIsInitialized } from "./graph/ensure-system-graph-is-initialized";
+import { clusterEntitiesHandler } from "./graph/knowledge/primitive/cluster-entities";
 import { ensureHashSystemAccountExists } from "./graph/system-account";
 import { createApolloServer } from "./graphql/create-apollo-server";
 import { otelSetup } from "./instrument.mjs";
@@ -850,6 +851,9 @@ const main = async () => {
     }
     next();
   });
+
+  // Entity clustering
+  app.post("/entities/embeddings/clusters", clusterEntitiesHandler);
 
   // Integrations
   app.get("/oauth/linear", authRouteRateLimiter, oAuthLinear);
