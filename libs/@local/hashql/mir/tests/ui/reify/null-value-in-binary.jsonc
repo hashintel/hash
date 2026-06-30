@@ -1,0 +1,12 @@
+//@ run: pass
+//@ description: null should be promoted to a unit constant
+[
+  "if",
+  { "#literal": true },
+  [
+    "let",
+    "foo",
+    { "#literal": null },
+    ["let", "bar", { "#literal": null }, ["==", "foo", "bar"]]
+  ]
+]
