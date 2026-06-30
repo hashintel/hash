@@ -128,16 +128,27 @@ const App: FunctionComponent<AppProps> = ({
     !!authenticatedUser && !emailVerificationStatusKnown && !aal2Required;
 
   /**
+   * A `redirectTo` that points at the page we're already on is a no-op we must
+   * ignore. `getInitialProps` re-runs on every navigation — including the
+   * same-URL `router.replace`s this effect performs — and `useRouter()` returns
+   * a fresh object each time, so honouring such a redirect spins forever in a
+   * `replace` -> `getInitialProps` -> `replace` loop (e.g. landing on `/` after
+   * accepting an org invite, where a stale `redirectTo: "/"` kept re-firing).
+   */
+  const pendingRedirect =
+    !!redirectTo && redirectTo !== router.asPath ? redirectTo : undefined;
+
+  /**
    * Handle client-side redirects that were determined in getInitialProps.
    * On the server these are HTTP 307s; on the client getInitialProps returns
    * a `redirectTo` prop instead, and this effect performs the navigation after
    * the current route transition completes (avoiding NProgress stalls).
    */
   useEffect(() => {
-    if (redirectTo) {
-      void router.replace(redirectTo);
+    if (pendingRedirect) {
+      void router.replace(pendingRedirect);
     }
-  }, [redirectTo, router]);
+  }, [pendingRedirect, router]);
 
   useEffect(() => {
     setSentryUser({ authenticatedUser });
@@ -167,8 +178,15 @@ const App: FunctionComponent<AppProps> = ({
   // router.query is empty during server-side rendering for pages that don’t use
   // getServerSideProps. By showing app skeleton on the server, we avoid UI
   // mismatches during rehydration and improve type-safety of param extraction.
-  // We also gate on `redirectTo` so the page doesn't flash before navigating.
-  if (ssr || !router.isReady || awaitingEmailVerificationStatus || redirectTo) {
+  // We also gate on a pending redirect so the page doesn't flash before
+  // navigating. A `redirectTo` matching the current path isn't pending (see
+  // `pendingRedirect`), so we render rather than stall on the loading state.
+  if (
+    ssr ||
+    !router.isReady ||
+    awaitingEmailVerificationStatus ||
+    pendingRedirect
+  ) {
     return <Suspense />; // Replace with app skeleton
   }
 
