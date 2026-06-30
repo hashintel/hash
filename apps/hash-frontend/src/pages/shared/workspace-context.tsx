@@ -79,12 +79,15 @@ export const WorkspaceContextProvider: FunctionComponent<{
     }
   }, [activeWorkspaceWebId, updateActiveWorkspaceWebId, authenticatedUser]);
 
-  const activeWorkspace =
-    authenticatedUser && authenticatedUser.accountId === activeWorkspaceWebId
-      ? authenticatedUser
-      : authenticatedUser?.memberOf.find(
-          ({ org: { webId } }) => webId === activeWorkspaceWebId,
-        )?.org;
+  const activeWorkspace = useMemo(
+    () =>
+      authenticatedUser && authenticatedUser.accountId === activeWorkspaceWebId
+        ? authenticatedUser
+        : authenticatedUser?.memberOf.find(
+            ({ org: { webId } }) => webId === activeWorkspaceWebId,
+          )?.org,
+    [authenticatedUser, activeWorkspaceWebId],
+  );
 
   useEffect(() => {
     /**
