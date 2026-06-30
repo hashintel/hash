@@ -36,6 +36,7 @@
     "@rust/hashql-diagnostics": "workspace:*",
     "@rust/hashql-eval": "workspace:*",
     "@rust/hashql-hir": "workspace:*",
+    "@rust/hashql-mir": "workspace:*",
     "@rust/hashql-syntax-jexpr": "workspace:*"
   }
 }

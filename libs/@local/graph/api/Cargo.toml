@@ -46,6 +46,7 @@ hashql-ast                     = { workspace = true }
 hashql-diagnostics             = { workspace = true, features = ["serde", "render"] }
 hashql-eval                    = { workspace = true }
 hashql-hir                     = { workspace = true }
+hashql-mir                     = { workspace = true }
 hashql-syntax-jexpr            = { workspace = true }
 type-system                    = { workspace = true, features = ["utoipa"] }
 

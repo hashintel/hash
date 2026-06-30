@@ -51,7 +51,7 @@ use hash_status::StatusCode;
 use hash_temporal_client::TemporalClient;
 use postgres_types::{Json, ToSql};
 use time::OffsetDateTime;
-use tokio_postgres::{GenericClient as _, error::SqlState};
+use tokio_postgres::{Client, GenericClient as _, error::SqlState};
 use tracing::Instrument as _;
 use type_system::{
     Valid,
@@ -110,6 +110,15 @@ pub struct PostgresStore<C> {
     client: C,
     pub temporal_client: Option<Arc<TemporalClient>>,
     pub settings: Arc<PostgresStoreSettings>,
+}
+
+impl<C> AsRef<Client> for PostgresStore<C>
+where
+    C: AsClient<Client = Client>,
+{
+    fn as_ref(&self) -> &Client {
+        self.client.as_client()
+    }
 }
 
 impl PostgresStore<tokio_postgres::Transaction<'_>> {

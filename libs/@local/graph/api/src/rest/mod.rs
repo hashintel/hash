@@ -16,6 +16,7 @@ pub mod admin;
 pub mod http_tracing_layer;
 pub mod jwt;
 
+pub mod hashql;
 mod json;
 mod utoipa_typedef;
 use alloc::{borrow::Cow, sync::Arc};
@@ -37,7 +38,7 @@ use error_stack::{Report, ResultExt as _};
 use futures::{SinkExt as _, channel::mpsc::Sender};
 use hash_codec::numeric::Real;
 use hash_graph_authorization::policies::store::{PolicyStore, PrincipalStore};
-use hash_graph_postgres_store::store::error::VersionedUrlAlreadyExists;
+use hash_graph_postgres_store::store::{PostgresStorePool, error::VersionedUrlAlreadyExists};
 use hash_graph_store::{
     account::AccountStore,
     data_type::DataTypeStore,
@@ -169,6 +170,35 @@ impl<S: Sync> FromRequestParts<S> for InteractiveHeader {
     }
 }
 
+pub struct JsonCompatHeader(pub bool);
+
+impl<S: Sync> FromRequestParts<S> for JsonCompatHeader {
+    type Rejection = (StatusCode, Cow<'static, str>);
+
+    fn from_request_parts(
+        parts: &mut Parts,
+        _state: &S,
+    ) -> impl Future<Output = Result<Self, Self::Rejection>> + Send {
+        let Some(value) = parts.headers.get("Json-Compat") else {
+            return core::future::ready(Ok(Self(false)));
+        };
+
+        let bytes = value.as_ref();
+        if bytes.eq_ignore_ascii_case(b"true") || bytes.eq_ignore_ascii_case(b"1") {
+            return core::future::ready(Ok(Self(true)));
+        }
+
+        if bytes.eq_ignore_ascii_case(b"false") || bytes.eq_ignore_ascii_case(b"0") {
+            return core::future::ready(Ok(Self(false)));
+        }
+
+        core::future::ready(Err((
+            StatusCode::BAD_REQUEST,
+            Cow::Borrowed("`Json-Compat` header must be either `true` (`1`) or `false` (`0`)"),
+        )))
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct PermissionResponse {
     pub has_permission: bool,
@@ -250,6 +280,7 @@ fn api_documentation() -> Vec<openapi::OpenApi> {
         entity::EntityResource::openapi(),
         permissions::PermissionResource::openapi(),
         principal::PrincipalResource::openapi(),
+        hashql::HashQlResource::openapi(),
     ]
 }
 
@@ -406,10 +437,12 @@ where
     S: StorePool + Send + Sync + 'static,
 {
     pub store: Arc<S>,
+    pub postgres: PostgresStorePool,
     pub temporal_client: Option<Arc<TemporalClient>>,
     pub domain_regex: DomainValidator,
     pub query_logger: Option<QueryLogger>,
     pub api_config: ApiConfig,
+    pub compiler: Arc<hashql::CompilerContext>,
 }
 
 /// A [`Router`] that only serves the `OpenAPI` specification (JSON, and necessary subschemas) for
@@ -437,6 +470,7 @@ where
     let merged_routes = api_resources::<S>()
         .into_iter()
         .fold(Router::new(), Router::merge)
+        .merge(hashql::HashQlResource::routes())
         .fallback(|| {
             tracing::error!("404: Not found");
             async { StatusCode::NOT_FOUND }
@@ -454,9 +488,11 @@ where
         )
         .layer(http_tracing_layer::HttpTracingLayer)
         .layer(Extension(dependencies.store))
+        .layer(Extension(Arc::new(dependencies.postgres)))
         .layer(Extension(dependencies.temporal_client))
         .layer(Extension(dependencies.domain_regex))
-        .layer(Extension(dependencies.api_config));
+        .layer(Extension(dependencies.api_config))
+        .layer(Extension(dependencies.compiler));
 
     if let Some(query_logger) = dependencies.query_logger {
         router = router.layer(Extension(query_logger));
