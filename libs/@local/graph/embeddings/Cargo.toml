@@ -23,6 +23,7 @@ reqwest-retry      = { workspace = true }
 reqwest-tracing    = { workspace = true }
 serde              = { workspace = true, features = ["derive"] }
 simple-mermaid     = { workspace = true }
+tracing            = { workspace = true }
 
 [lints]
 workspace = true

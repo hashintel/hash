@@ -164,8 +164,6 @@ impl EmbeddingGenerator for OpenAiEmbeddingClient {
 
         let status = response.status();
         if !status.is_success() {
-            // The body is only used for server-side diagnostics; distinguish a genuinely empty
-            // body from one we failed to read.
             let body = response
                 .text()
                 .await
@@ -181,9 +179,11 @@ impl EmbeddingGenerator for OpenAiEmbeddingClient {
             } else {
                 EmbeddingError::Response
             };
-            return Err(Report::new(context))
-                .attach(format!("status: {status}"))
-                .attach(format!("body: {body}"));
+            // Log the provider response server-side rather than attaching it to the returned
+            // `Report`: the API layer serializes error reports back to clients, so the body (which
+            // can echo request details) must not ride along on the error.
+            tracing::error!(%status, %body, "OpenAI embeddings request failed");
+            return Err(Report::new(context));
         }
 
         let mut response = response
