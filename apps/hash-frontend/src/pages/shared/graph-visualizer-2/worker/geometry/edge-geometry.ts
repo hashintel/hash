@@ -57,8 +57,6 @@ interface CubicCurve {
   readonly p3: readonly [number, number];
 }
 
-// Flat-array segment accumulator
-
 const FLOATS_PER_SEGMENT = 8;
 const BYTES_PER_COLOR = 4;
 /** Two clip circles per segment: `(cx, cy, signedRadius)` x 2 (one per end). */
@@ -314,8 +312,6 @@ function cubicBetweenWaypoints(
   };
 }
 
-// Container hierarchy analysis
-
 interface ContainerCrossing {
   readonly containerId: ClusterId;
   readonly circle: Circle;
@@ -392,8 +388,6 @@ export function containerBoundaryWaypoint(
     angle,
   };
 }
-
-// Merged type info for highways that combine multiple children's edges.
 
 /**
  * Direction of a highway/feeder lane, normalized so that "forward"
@@ -479,8 +473,6 @@ function mergeLanes(
   }));
 }
 
-// Recursive feeders: child -> intermediate containers -> outermost port
-
 interface FeederTypeInfo {
   count: number;
   color: Color;
@@ -528,8 +520,6 @@ function mergeFeederTypes(
   }
 }
 
-// Aggregate edge path building
-
 interface ClassifiedPair {
   readonly pairKey: PairKey;
   readonly edges: AggregatedVisualEdge[];
@@ -560,8 +550,6 @@ interface HighwayGroup {
   readonly targetChildren: HighwayGroupChild[];
 }
 
-// Main entry point
-
 export interface EdgeGeometryContext {
   readonly clusterTree: ClusterTree;
   readonly cutIndex: CutIndex;
@@ -576,8 +564,6 @@ export interface EdgeGeometryContext {
 const ROUTE_CLEARANCE_MUL = 1.15;
 /** Ignore obstacles this close (fraction of chord) to either endpoint. */
 const ROUTE_END_MARGIN = 0.08;
-
-// Bezier segment output (for BezierSDFLayer)
 
 /**
  * Compute raw cubic Bezier curves between consecutive waypoints.

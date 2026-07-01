@@ -10,7 +10,7 @@
  */
 import { HashEntity } from "@local/hash-graph-sdk/entity";
 
-import { mulberry32 } from "../../worker/random";
+import { mulberry32 } from "../../math/random";
 
 import type { FixtureEntityKind } from "./build-type-maps";
 import type {

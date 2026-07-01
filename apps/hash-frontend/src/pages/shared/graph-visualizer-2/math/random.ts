@@ -34,3 +34,27 @@ export function parkMillerRng(seed: number): () => number {
     return state / 2147483647;
   };
 }
+
+/**
+ * Fisher-Yates shuffle driven by an xorshift PRNG.
+ * Returns a new array; the input is not mutated.
+ */
+export function deterministicShuffle(
+  indices: number[],
+  seed: number,
+): number[] {
+  const result = [...indices];
+  let state = seed * 0x9e3779b9;
+
+  for (let idx = result.length - 1; idx > 0; idx--) {
+    state = (state ^ (state << 13)) | 0;
+    state = (state ^ (state >>> 17)) | 0;
+    state = (state ^ (state << 5)) | 0;
+    const target = (state >>> 0) % (idx + 1);
+    const temp = result[idx]!;
+    result[idx] = result[target]!;
+    result[target] = temp;
+  }
+
+  return result;
+}

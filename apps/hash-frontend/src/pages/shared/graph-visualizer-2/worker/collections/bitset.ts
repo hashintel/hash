@@ -4,8 +4,6 @@
 /**
  * Fixed-universe bit set backed by a Uint32Array.
  *
- * Used for type ancestor closures: each bit position corresponds to a
- * TypeIdx, and set membership means "this type is an ancestor."
  * Operations (or, and, intersectionCount, jaccard) are all O(words)
  * where words = ceil(universe / 32).
  */

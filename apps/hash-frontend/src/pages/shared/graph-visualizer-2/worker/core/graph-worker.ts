@@ -34,10 +34,10 @@ import {
 } from "../hierarchy/distinctive-cluster-label";
 import { LodState, computeVisibleCut } from "../hierarchy/lod";
 import { createClusterLayout } from "../layout/cluster-layout";
-import { createCommunityLayout } from "../layout/community-layout";
 import { createEntityLayout } from "../layout/entity-layout";
 import { createFlatLayout } from "../layout/flat-layout";
 import { sharedBufferAvailable } from "../layout/force-simulation";
+import { createStressLayout } from "../layout/stress-layout";
 import { optimizeTopLevel } from "../layout/top-level-layout";
 import { untangleLayout } from "../layout/untangle";
 import { EntityStore } from "../store/entity";
@@ -61,7 +61,13 @@ import type {
   RenderFlatGraph,
   StructureFrame,
 } from "../../frames";
-import type { EntityIndex, TypeSetId, TypeSetKey, VizMode } from "../../ids";
+import type {
+  EntityIndex,
+  LinkId,
+  TypeSetId,
+  TypeSetKey,
+  VizMode,
+} from "../../ids";
 import type { RepublishHandler } from "../buffers/growable-buffer";
 import type { Port } from "../geometry/bubble-ports";
 import type { EdgeFrame } from "../geometry/edge-aggregation";
@@ -148,12 +154,7 @@ const FLAT_SEED_NEIGHBOUR_OFFSET = 24;
 const FLAT_SEED_DISK_SCALE = 28;
 /** Flat-tier edge stroke width in world units (the layer scales it with zoom). */
 const FLAT_EDGE_WIDTH_WORLD = 1.2;
-/**
- * SharedArrayBuffer capacity for a flat (re)build, over-allocated past the live
- * count so the community-force tier can append streamed nodes into spare records
- * (warm FA2 absorb: bump count + version, one atomic sync, no buffer realloc /
- * re-send). Geometric headroom, so a rebuild only happens when a batch overflows it.
- */
+/** Over-allocate capacity so streamed nodes can append without reallocation. */
 function flatCapacityFor(count: number): number {
   return Math.max(count + 64, Math.ceil(count * 1.5));
 }
@@ -169,22 +170,16 @@ export class GraphWorker {
 
   readonly #types: TypeRegistry = new TypeRegistry();
   readonly #typeSets: TypeSetStore = new TypeSetStore();
-  /** Wired into the EntityStore's EntityIdx->EntityId join map: on the rare re-allocation
-   * (past its ceiling), re-send the buffer so the main thread swaps to it. The same
-   * message as the first publish; the map is read on demand, so "here is the current
-   * buffer" is all the main thread needs. */
+  /** Re-publishes the EntityIdx->EntityId join map buffer on reallocation. */
   readonly #republishEntityIdMap: RepublishHandler = (raw, capacity) => {
     this.#onLayoutMessage?.({ type: "ENTITY_ID_MAP", buffer: raw, capacity });
   };
 
-  /** Owns interning and the join map (it writes each EntityId the instant it assigns the
-   * EntityIdx, so the map is always current, no mirror pass). The worker just publishes
-   * the buffer to the main thread (once, plus the republish handler above). */
+  /** The join map is always current: each EntityId is written on intern. */
   readonly #entities: EntityStore = new EntityStore(this.#republishEntityIdMap);
-  /** Whether the first ENTITY_ID_MAP publish has gone out. */
   #entityIdMapPublished = false;
   readonly #links: LinkStore = new LinkStore();
-  /** Per-entity property features + property titles, used to NAME embedding clusters. */
+  /** Per-entity property features + property titles, used to name clusters. */
   readonly #properties: PropertyStore = new PropertyStore();
 
   readonly #clusterTree = new ClusterTree();
@@ -208,12 +203,9 @@ export class GraphWorker {
   readonly #untangled = new Set<ClusterId>();
 
   /**
-   * Last committed LOCAL positions of the root's top-level children, keyed by
-   * cluster id. Persisted across layout recreation AND hierarchy rebuilds (which
-   * recreate family nodes as fresh objects), so the top level keeps its
-   * arrangement when a cluster is added/removed instead of being re-solved from
-   * scratch. Read to warm-seed a recreated root layout and to anchor
-   * {@link optimizeTopLevel}; refreshed from the live layout on every commit.
+   * Last committed local positions of the root's top-level children. Persisted
+   * across layout recreation and hierarchy rebuilds so the top level keeps its
+   * arrangement when a cluster is added or removed.
    */
   readonly #topLevelPositions = new Map<ClusterId, { x: number; y: number }>();
 
@@ -226,12 +218,10 @@ export class GraphWorker {
    * later); everyone else dims. Empty = no highlight. Set via {@link setHighlight}. */
   #highlightedEntities = new Set<EntityIndex>();
 
-  /** Set when an expand flips an already-rendered frontier node to a root. The flat tier restyles
-   * every commit, but the hierarchical leaf path does not, so the worker re-applies styling after
-   * the commit when this is set (see {@link restyleIfRootsFlipped}). */
+  /** Set when an expand flips a rendered frontier node to a root; triggers a restyle. */
   #rootFlipPending = false;
   #mode: VizMode = "flat-force";
-  /** Count of loaded NODE entities (excludes interned links). See {@link nodeCount}. */
+  /** Loaded node entities (excludes interned links). */
   #nodeEntityCount = 0;
   /** True when the committed state is the hierarchical (cluster-tree) regime. */
   #hierarchicalActive = false;
@@ -240,12 +230,7 @@ export class GraphWorker {
   #flatRenderEdges: FlatRenderEdge[] = [];
   /** Interleaved SharedArrayBuffer backing the flat layout (positions + radii + colours). */
   #flatBuffer: FlatGraphBuffer | undefined;
-  /**
-   * Wired into every flat {@link FlatGraphBuffer}: when it outgrows its capacity it
-   * re-allocates (the buffer is non-resizable; its bytes are GPU-uploaded, and WebGL
-   * rejects views over a resizable buffer), so hand the main thread the new buffer to swap
-   * to + re-watch. Appends within capacity fire nothing (they fill spare records in place).
-   */
+  /** Re-publishes the flat layout buffer on reallocation. */
   readonly #republishFlatBuffer: RepublishHandler = (raw, capacity) => {
     this.#onLayoutMessage?.({
       type: "BUFFER_REPUBLISHED",
@@ -272,9 +257,8 @@ export class GraphWorker {
   /** Cached topology from the last structure commit; reused by position ticks. */
   #cutIndex: CutIndex | undefined;
   #edgeFrame: EdgeFrame | undefined;
-  /** Per-lane link-entity unions for the CURRENT structure, indexed by laneId. A merged
-   * highway's lanes all share one union (the whole ribbon's links); set by #buildHighwayLanes,
-   * read by highwayLinks on click. */
+  /** Per-lane link-entity unions, indexed by laneId. A merged highway's
+   * lanes share one union (the whole ribbon's links). */
   #highwayLaneUnions: EntityIndex[][] = [];
 
   // MessageChannel-based simulation scheduler.
@@ -397,11 +381,10 @@ export class GraphWorker {
   /**
    * One simulation step across all active layouts.
    *
-   * Entity layouts write their positions to a SharedArrayBuffer and notify the
-   * main thread directly (no message, no frame). Cluster layouts write back to
-   * their child circles; when any cluster moved, a PositionsFrame is emitted so
-   * the bubbles and the highways that follow them stay in sync. The expensive
-   * topology pipeline (cut, CutIndex, aggregation) is never touched here.
+   * Entity layouts stream positions via SharedArrayBuffer. Cluster layouts
+   * write back to child circles; when any cluster moved, a PositionsFrame is
+   * emitted. The topology pipeline (cut, CutIndex, aggregation) is not
+   * touched here.
    */
   #tickAllLayouts(): void {
     const tickStart = performance.now();
@@ -420,14 +403,11 @@ export class GraphWorker {
 
       if (kind === "entities") {
         if (changed && clusterId === FLAT_LAYOUT_ID) {
-          // Flat edges are worker-built beziers, so emit a frame when the layout
-          // moves so they track the shared-buffer-streamed dots. (Non-shared-buffer
-          // periodic sync of the interleaved flat buffer is deferred, see MANIFESTO.)
+          // Flat edges are worker-built beziers; emit a frame so they
+          // track the moved dots.
           flatMoved = true;
         } else if (changed && !sharedBufferAvailable) {
-          // Hierarchical entity layout, non-shared-buffer fallback: post position
-          // snapshots. With a SharedArrayBuffer the buffer is written in place and
-          // the main thread is woken via Atomics.
+          // Non-shared-buffer fallback: post position snapshots.
           const positions = new Float32Array(layout.nodes.length * 2);
           for (let idx = 0; idx < layout.nodes.length; idx++) {
             const node = layout.nodes[idx]!;
@@ -469,35 +449,23 @@ export class GraphWorker {
     const clustersJustSettled =
       clustersRunningBefore && !this.#anyClusterLayoutRunning();
     if (clusterMoved || clustersJustSettled) {
-      // Recompose world positions top-down first (authoritative, see
-      // #syncWorldPositions), so anchor re-aiming below reads correct,
-      // fully-propagated circles even through settled depth >= 2 layouts.
+      // Recompose world positions top-down so anchor re-aiming reads correct,
+      // fully-propagated circles through settled nested layouts.
       this.#syncWorldPositions();
       if (clusterMoved) {
-        // Re-aim opened sub-clusters' port anchors at their (moved) external
-        // neighbours, in place (no re-run, no structure emit). Everything
-        // positional (cluster positions, geometry, and entity fan-out exits +
-        // force targets) travels in the PositionsFrame; structure is re-emitted
-        // only on a real cut change (never per tick, that was the OOM).
+        // Re-aim opened sub-clusters' port anchors at their moved neighbours.
         this.#updateAnchorTracking();
       }
       this.#emitPositions();
     } else if (flatMoved) {
-      // Flat tier: no clusters, no world-sync, just refresh the edge beziers
-      // from the moved node positions (the dots themselves stream via the
-      // shared buffer).
       this.#emitPositions();
     }
 
-    // Keep ticking while any layout is running, including an entity layout just
-    // re-energised by a moved port target (it hasn't ticked this turn, so the
-    // old "did a layout tick?" check would wrongly stop the scheduler).
     if (!this.#anyLayoutRunning()) {
       this.#schedulerRunning = false;
     }
 
-    // Gated so a settled idle doesn't spam: only slow ticks (force step +
-    // port/Bezier refresh) are worth seeing.
+    // Only log slow ticks.
     const elapsed = performance.now() - tickStart;
     if (this.debug && elapsed > SLOW_TICK_WARNING_MS) {
       // eslint-disable-next-line no-console
@@ -512,11 +480,7 @@ export class GraphWorker {
     return this.#mode;
   }
 
-  /**
-   * Loaded NODE entities only. `EntityStore` interns links too (a link is an
-   * entity), so its `size` over-counts; the mode thresholds are defined on the
-   * non-link count (see `config`), so they must read this.
-   */
+  /** Node entity count (excludes link entities interned by the EntityStore). */
   get nodeCount(): number {
     return this.#nodeEntityCount;
   }
@@ -526,11 +490,9 @@ export class GraphWorker {
   }
 
   /**
-   * The ego of a selected node: for each neighbor (from the full link store, so cross-cluster
-   * and both tiers are covered), the representative currently on screen -- the entity itself
-   * when individually rendered (flat, or an open leaf), else the visible cluster it collapses
-   * into. Neighbors not in view are omitted. The main thread highlights dots + bubbles from
-   * this. O(degree); per selection, not per frame.
+   * The ego of a selected node: for each neighbor, the representative currently
+   * on screen (the entity itself when individually rendered, or the visible
+   * cluster it collapses into). Neighbors not in view are omitted.
    */
   ego(entityIdx: EntityIndex): EgoTarget[] {
     const cutIndex = this.#cutIndex;
@@ -566,10 +528,7 @@ export class GraphWorker {
     this.#properties.registerTitles(propertySchemas);
   }
 
-  /**
-   * Insert a node entity. Returns null if duplicate, otherwise
-   * the entity index and the group it was assigned to.
-   */
+  /** Insert a node entity. Returns undefined if duplicate. */
   insertNodeEntity(
     entity: IngestEntity,
   ): { entityIdx: EntityIndex; groupKey: TypeSetKey } | undefined {
@@ -658,7 +617,7 @@ export class GraphWorker {
         continue;
       }
 
-      // Snapshot count BEFORE insert so we can compute deltas.
+      // Snapshot count before insert so we can compute deltas.
       const group = this.#peekGroup(entity);
       if (group && !groupSnapshots.has(group.key)) {
         groupSnapshots.set(group.key, {
@@ -691,10 +650,7 @@ export class GraphWorker {
     return deltas;
   }
 
-  /**
-   * Peek at which group an entity would land in without inserting.
-   * Used to snapshot counts before insert.
-   */
+  /** Peek at which group an entity would land in without inserting. */
   #peekGroup(entity: IngestEntity): TypeSetGroup | undefined {
     if (this.#entities.lookup(entity.entityId) !== undefined) {
       return undefined; // Already inserted, skip.
@@ -761,12 +717,7 @@ export class GraphWorker {
     this.#cutIndex = undefined;
     this.#edgeFrame = undefined;
 
-    this.#clusterTree.rebuild(
-      this.#typeSets,
-      this.#types,
-      this.config,
-      this.nodeCount,
-    );
+    this.#clusterTree.rebuild(this.#typeSets, this.#types, this.config);
   }
 
   /**
@@ -779,7 +730,6 @@ export class GraphWorker {
       this.#typeSets,
       this.#types,
       this.config,
-      this.nodeCount,
     );
   }
 
@@ -792,10 +742,7 @@ export class GraphWorker {
     return this.#clusterTree.atomicSum();
   }
 
-  /**
-   * Record a new viewport and react. Pan/zoom that doesn't change the LOD cut is handled by
-   * Deck.gl projection on the main thread; only an actual cut change commits new structure.
-   */
+  /** Record a new viewport and commit if the LOD cut changed. */
   handleViewport(viewport: ViewportState): void {
     this.#viewport = viewport;
 
@@ -822,10 +769,7 @@ export class GraphWorker {
     }
   }
 
-  /**
-   * Pin a leaf cluster open (with its ancestors) regardless of zoom, until cleared with
-   * undefined -- the birds-eye view for a selection. Recomputes the cut if the pin changed.
-   */
+  /** Pin a leaf cluster open (with its ancestors) regardless of zoom. */
   pin(leafId: ClusterId | undefined): void {
     if (this.#pinnedLeaf === leafId) {
       return;
@@ -855,9 +799,8 @@ export class GraphWorker {
   }
 
   /**
-   * Set the highlighted entities (a selection's ego now, a path later): they keep full colour
-   * and everyone else dims, so the highlight pops. Empty restores full colour. Generic -- the
-   * worker just dims the complement; the main thread decides what the set is.
+   * Set the highlighted entities. They keep full colour while everyone else
+   * dims. Empty set restores full colour.
    */
   setHighlight(entityIdxs: readonly EntityIndex[]): void {
     this.#highlightedEntities = new Set(entityIdxs);
@@ -883,11 +826,7 @@ export class GraphWorker {
     this.#emitPositions();
   }
 
-  /**
-   * Re-style after an expand flipped an already-rendered frontier node to a root. The flat tier
-   * already restyled in {@link #commitFlat} (its `#writeFlatStyle` runs every commit); only the
-   * hierarchical tier, whose leaf colours are not rewritten for an unchanged leaf, needs this.
-   */
+  /** Re-style after an expand flipped a frontier node to a root. */
   restyleIfRootsFlipped(): void {
     if (!this.#rootFlipPending) {
       return;
@@ -899,12 +838,9 @@ export class GraphWorker {
   }
 
   /**
-   * Commit a new topology: compute the visible cut (the only place that may
-   * subdivide and that mutates LOD state), create/destroy layouts, recompute
-   * edge aggregation, and emit a StructureFrame plus an initial PositionsFrame.
-   *
-   * Heavy O(entities)/O(links) work lives here and runs only on real topology
-   * changes (ingest, cut change, embedding result), never on a position tick.
+   * Commit a new topology: compute the visible cut, create/destroy layouts,
+   * recompute edge aggregation, and emit a StructureFrame plus an initial
+   * PositionsFrame. Runs only on topology changes, never on a position tick.
    */
   commitStructure(opts?: {
     readonly deltas?: readonly IngestDelta[];
@@ -912,14 +848,10 @@ export class GraphWorker {
   }): void {
     this.recomputeMode();
 
-    // The EntityStore keeps the EntityIdx->EntityId join map's contents current on intern;
-    // the worker only has to hand the main thread the buffer to read, once.
     this.#publishEntityIdMapOnce();
 
-    // Flat tiers (flat-force / community-force) render the whole entity set as
-    // one individual-entity graph, no cluster tree (LAYOUT-MODES "Why three
-    // tiers"). flat-force and community-force are one regime; only crossing the
-    // hierarchical boundary tears the other regime's state down.
+    // Flat tiers render the whole entity set as one entity graph. Only
+    // crossing the hierarchical boundary tears the other regime's state down.
     if (this.#mode !== "hierarchical-lod") {
       if (this.#hierarchicalActive) {
         this.#tearDownHierarchical();
@@ -933,10 +865,8 @@ export class GraphWorker {
       this.#tearDownFlat();
     }
 
-    // Cluster-tree maintenance lives here, not in entry.ts, so a tree rebuild
-    // can never clear the flat layout out from under flat mode. Rebuild on the
-    // first build, when re-entering the hierarchical regime, or when types
-    // changed; otherwise apply the incremental ingest deltas.
+    // Rebuild the tree on first build, re-entry, or type changes;
+    // otherwise apply incremental deltas.
     if (opts?.rebuildTree || !this.#hierarchicalActive || !this.hasClusters) {
       this.rebuildClusters();
     } else if (opts?.deltas && opts.deltas.length > 0) {
@@ -1062,11 +992,8 @@ export class GraphWorker {
   }
 
   /**
-   * Commit the flat-tier frame: the whole entity set as one individual-entity
-   * graph (no cluster tree). Builds/updates the single flat layout (warm-seeded,
-   * so streamed nodes are absorbed without a reshuffle), then emits the per-node
-   * style payload. Positions stream via the shared buffer, so the paired positions
-   * frame is trivial (it exists only to land the deferred structureVersion bump).
+   * Commit the flat tier: the whole entity set as one individual-entity graph.
+   * Builds or warm-updates the flat layout, then emits per-node style.
    */
   #commitFlat(): void {
     const entityIdxs = this.#allNodeEntityIdxs();
@@ -1080,12 +1007,8 @@ export class GraphWorker {
       return;
     }
 
-    // Warm-absorb new nodes (community-force / FA2 only: additions, same engine,
-    // no removal), appending into the shared buffer's spare capacity when they fit,
-    // or swapping in a bigger shared buffer without losing solver state when they
-    // don't (both in #absorbFlatNodes). Else a full rebuild (first build, mode
-    // switch, the cola tier which can't absorb, or a removal). See MANIFESTO
-    // "True incremental".
+    // Community-force can warm-absorb additions without a full rebuild.
+    // Otherwise (first build, mode switch, removal) rebuild from scratch.
     const existing = this.#forceLayouts.get(FLAT_LAYOUT_ID);
     const priorBuffer = this.#flatBuffer;
     const modeChanged = this.#flatLayoutMode !== this.#mode;
@@ -1129,11 +1052,7 @@ export class GraphWorker {
     this.#scheduleFlatLouvainLinger();
   }
 
-  /**
-   * Emit the flat structure frame (count + Louvain membership for the BubbleSets)
-   * + its paired positions frame. Shared by the per-commit path and the trailing
-   * Louvain linger. (flat-force/cola has no `communities` -> undefined, no hulls.)
-   */
+  /** Emit the flat structure frame (count + Louvain membership) and positions. */
   #emitFlatFrame(layout: LayoutSimulation): void {
     this.#emitStructure([], {
       layoutId: FLAT_LAYOUT_ID,
@@ -1146,10 +1065,8 @@ export class GraphWorker {
   }
 
   /**
-   * After community-force ingests go quiet for {@link FLAT_LOUVAIN_LINGER_MS}, run
-   * one trailing Louvain so the BubbleSets reflect the final graph; the last batch
-   * may not have crossed the growth-fraction refresh threshold. Each commit resets
-   * the timer, so it fires only once the stream settles. Position-neutral.
+   * After ingests go quiet for {@link FLAT_LOUVAIN_LINGER_MS}, run one trailing
+   * Louvain so BubbleSets reflect the settled graph.
    */
   #scheduleFlatLouvainLinger(): void {
     if (this.#mode !== "community-force") {
@@ -1167,11 +1084,7 @@ export class GraphWorker {
     }, FLAT_LOUVAIN_LINGER_MS);
   }
 
-  /**
-   * All loaded node entities, sorted by index for a deterministic shared-buffer
-   * order. Link entities live in no type-set group, so iterating the groups yields
-   * exactly the nodes.
-   */
+  /** All loaded node entities, sorted by index. */
   #allNodeEntityIdxs(): EntityIndex[] {
     const result: EntityIndex[] = [];
     for (const group of this.#typeSets) {
@@ -1183,11 +1096,7 @@ export class GraphWorker {
     return result;
   }
 
-  /**
-   * Publish the join-map SharedArrayBuffer to the main thread the first time (later
-   * re-allocations re-publish via {@link #republishEntityIdMap}). The EntityStore keeps
-   * the buffer's contents current on intern, so this is purely "here is the buffer to read."
-   */
+  /** Publish the join-map SharedArrayBuffer to the main thread on first use. */
   #publishEntityIdMapOnce(): void {
     if (this.#entityIdMapPublished) {
       return;
@@ -1202,38 +1111,35 @@ export class GraphWorker {
   }
 
   /**
-   * (Re)build the flat layout over the given node set, warm-seeded from the
-   * current layout's positions so existing nodes don't move and a streamed node
-   * appears beside an already-placed neighbour (incremental absorb, LAYOUT-MODES
-   * "Incremental loading"). Replaces the shared buffer (LAYOUT_DESTROYED + LAYOUT_CREATED).
+   * (Re)build the flat layout over the given node set. Warm-seeded from the
+   * current layout's positions so existing nodes stay in place.
    */
   #rebuildFlatLayout(entityIdxs: readonly EntityIndex[]): void {
     const previous = this.#forceLayouts.get(FLAT_LAYOUT_ID);
-    const priorPositions = new Map<number, readonly [number, number]>();
+    const priorPositions = new Map<EntityIndex, readonly [number, number]>();
     if (previous) {
       for (const node of previous.nodes) {
-        priorPositions.set(Number(node.id), [node.x ?? 0, node.y ?? 0]);
+        priorPositions.set(Number(node.id) as EntityIndex, [
+          node.x ?? 0,
+          node.y ?? 0,
+        ]);
       }
     }
 
     const nodes = this.#seedFlatNodes(entityIdxs, priorPositions);
     const edges = this.#buildEntityEdges([...entityIdxs], nodes);
-    // One interleaved shared buffer for all per-node data; the layout writes
-    // positions into it, the worker writes radius/colour. Over-allocated past the
-    // live count so community-force can append streamed nodes in place (warm FA2
-    // absorb: bump count + version, no realloc); overflowing the headroom rebuilds here.
+    // One interleaved shared buffer for all per-node data. Over-allocated
+    // so community-force can append streamed nodes without reallocation.
     const buffer = new FlatGraphBuffer(
       flatCapacityFor(nodes.length),
       this.#republishFlatBuffer,
     );
     buffer.setCount(nodes.length);
-    // flat-force uses cola (best layout for small N); community-force uses the
-    // FA2 pipeline (Louvain -> SMACOF seed -> FA2) that scales past cola's O(N²).
-    // Both fill the same shared buffer, so everything downstream (style, edges,
-    // render) is identical; the tiers differ only in engine and (next) BubbleSets.
+    // flat-force uses cola; community-force uses FA2. Both fill the same
+    // shared buffer; downstream style/edges/render are identical.
     const layout =
       this.#mode === "community-force"
-        ? createCommunityLayout(nodes, edges, buffer, this.config.fa2)
+        ? createStressLayout(nodes, edges, buffer)
         : createFlatLayout(nodes, edges, buffer);
 
     if (previous) {
@@ -1260,60 +1166,50 @@ export class GraphWorker {
   }
 
   /**
-   * Warm-absorb newly-arrived nodes into the live community-force (FA2) layout:
-   * seed them against the layout's current positions (existing nodes echo where
-   * they are; new nodes land beside their placed neighbours), then hand the layout
-   * the new nodes + the full edge set. The shared buffer was over-allocated, so the
-   * appended records land in spare capacity and {@link #writeFlatStyle}'s count +
-   * version bump publishes them in one atomic sync: no buffer realloc, no
-   * LAYOUT_CREATED, no cold restart (the growable-shared-buffer win). community-force
-   * only; {@link #commitFlat} gates everything else to {@link #rebuildFlatLayout}.
+   * Absorb newly-arrived nodes into the live community-force layout without a
+   * full rebuild. New nodes are seeded beside placed neighbours; appended
+   * records land in the buffer's spare capacity.
    */
   #absorbFlatNodes(
     layout: LayoutSimulation,
     entityIdxs: readonly EntityIndex[],
   ): void {
-    const priorPositions = new Map<number, readonly [number, number]>();
+    const priorPositions = new Map<EntityIndex, readonly [number, number]>();
     for (const node of layout.nodes) {
-      priorPositions.set(Number(node.id), [node.x ?? 0, node.y ?? 0]);
+      priorPositions.set(Number(node.id) as EntityIndex, [
+        node.x ?? 0,
+        node.y ?? 0,
+      ]);
     }
     const seeded = this.#seedFlatNodes(entityIdxs, priorPositions);
     const currentIds = new Set(layout.nodeIds);
     const newNodes = seeded.filter((node) => !currentIds.has(node.id));
     const edges = this.#buildEntityEdges([...entityIdxs], seeded);
 
-    // Within capacity, appended records land in spare shared-buffer space: no realloc, no
-    // re-send (#writeFlatStyle's count + version bump publishes them in one atomic sync).
-    // Over it, ensureCapacity re-allocates a bigger buffer (the flat shared buffer is
-    // non-resizable for GPU upload, so it can't grow in place), copying the records across;
-    // the layout holds the same FlatGraphBuffer instance, so its warm FA2 state rides across
-    // (only the instance's raw is swapped under it), and #republishFlatBuffer hands the new
-    // buffer to the main thread. No cold restart either way.
+    // If the new count exceeds capacity, re-allocate (the flat shared buffer
+    // is non-resizable for GPU upload). The layout's warm state is preserved.
     if (this.#flatBuffer && entityIdxs.length > this.#flatBuffer.capacity) {
       this.#flatBuffer.ensureCapacity(flatCapacityFor(entityIdxs.length));
     }
 
     layout.absorb?.(newNodes, edges);
     this.#flatLinkCount = this.#links.count;
-    // absorb() re-energises the layout (status -> running), but the scheduler may
-    // have stopped when it last settled, so re-kick it, or the new nodes sit frozen
-    // at their seed (the "added but no more ticks, edges stay long" symptom).
+    // absorb() re-energises the layout, but the scheduler may have stopped
+    // when it last settled, so re-kick it.
     this.#ensureSchedulerRunning();
   }
 
   /**
-   * Seed positions for a flat (re)build: keep every already-placed node where it
-   * is; place a new node beside a placed neighbour (deterministic offset); and
-   * fall back to a phyllotaxis disk for nodes with no placed neighbour (cold
-   * start, or a new orphan). WebCola majorises from this warm seed, so the layout
-   * absorbs streamed nodes instead of reshuffling.
+   * Seed positions for a flat (re)build. Already-placed nodes keep their
+   * position; new nodes land beside a placed neighbour; orphans fall back
+   * to a phyllotaxis disk.
    */
   #seedFlatNodes(
     entityIdxs: readonly EntityIndex[],
-    priorPositions: ReadonlyMap<number, readonly [number, number]>,
+    priorPositions: ReadonlyMap<EntityIndex, readonly [number, number]>,
   ): ForceNode[] {
     const goldenAngle = Math.PI * (3 - Math.sqrt(5));
-    const placed = new Map<number, [number, number]>();
+    const placed = new Map<EntityIndex, [number, number]>();
     for (const idx of entityIdxs) {
       const prior = priorPositions.get(idx);
       if (prior) {
@@ -1330,7 +1226,7 @@ export class GraphWorker {
           continue;
         }
         for (const link of this.#links.linksFor(idx)) {
-          const neighbour = placed.get(link.otherId as number);
+          const neighbour = placed.get(link.otherId);
           if (neighbour) {
             const angle = idx * goldenAngle;
             placed.set(idx, [
@@ -1359,7 +1255,7 @@ export class GraphWorker {
 
     return entityIdxs.map((idx) => {
       const position = placed.get(idx)!;
-      const degree = this.#links.linksFor(idx).length;
+      const degree = this.#links.degreeOf(idx);
       return {
         id: String(idx),
         x: position[0],
@@ -1369,11 +1265,7 @@ export class GraphWorker {
     });
   }
 
-  /**
-   * Write per-node radius + colour into the interleaved shared buffer (one record
-   * per node), set the live count, and publish. Runs each commit, so a type change
-   * recolours in place without a structure round-trip.
-   */
+  /** Write per-node radius + colour into the interleaved shared buffer. */
   #writeFlatStyle(layout: LayoutSimulation, buffer: FlatGraphBuffer): void {
     const colorByGroup = new Map<TypeSetId, Color>();
     for (let idx = 0; idx < layout.nodes.length; idx++) {
@@ -1394,25 +1286,24 @@ export class GraphWorker {
   }
 
   /**
-   * Build the flat render edges (one per link, both endpoints in the node set):
-   * local node indices + the link's own type colour. Rebuilt each commit so
-   * colours track type changes; the per-tick geometry reads the two nodes'
-   * current positions for each.
+   * Build the flat render edges: local node indices + link-type colour
+   * for each link whose endpoints are both in the node set.
    */
   #buildFlatRenderEdges(layout: LayoutSimulation): FlatRenderEdge[] {
-    const localOf = new Map<number, number>();
+    const localOf = new Map<EntityIndex, number>();
     for (let idx = 0; idx < layout.nodeIds.length; idx++) {
-      localOf.set(Number(layout.nodeIds[idx]), idx);
+      localOf.set(Number(layout.nodeIds[idx]) as EntityIndex, idx);
     }
+
     const colorCache = new Map<TypeSetId, Color>();
-    const seenLinks = new Set<number>();
+    const seenLinks = new Set<LinkId>();
     const edges: FlatRenderEdge[] = [];
     for (const [entityIdx, sourceIdx] of localOf) {
-      for (const link of this.#links.linksFor(entityIdx as EntityIndex)) {
+      for (const link of this.#links.linksFor(entityIdx)) {
         if (seenLinks.has(link.linkId)) {
           continue;
         }
-        const targetIdx = localOf.get(link.otherId as number);
+        const targetIdx = localOf.get(link.otherId);
         if (targetIdx === undefined) {
           continue;
         }
@@ -1425,14 +1316,11 @@ export class GraphWorker {
         });
       }
     }
+
     return edges;
   }
 
-  /**
-   * Fill the sink with one straight cubic per flat render lane from the nodes'
-   * current positions, coloured by link type, width in world units. Runs each
-   * position tick so the edges track the dots as the layout settles.
-   */
+  /** Emit one straight cubic per flat render edge from current node positions. */
   #buildFlatEdgeBeziers(
     sink: BezierSegmentSink,
     arrowsOut: RenderEdgeArrow[],
@@ -1478,8 +1366,7 @@ export class GraphWorker {
       const edgeTy = ty - uy * edgeEndInset;
       const visibleDx = edgeTx - sx;
       const visibleDy = edgeTy - sy;
-      // An edge stays full only when BOTH endpoints are highlighted; otherwise it dims with
-      // the field. (No highlight active -> every edge is full.)
+      // An edge stays full only when both endpoints are highlighted.
       const highlighted = this.#highlightedEntities;
       const full =
         highlighted.size === 0 ||
@@ -1529,8 +1416,7 @@ export class GraphWorker {
     return this.#colorForTypeGroup(groupIdx, cache);
   }
 
-  /** Hierarchy-aware NODE colour for a type-set group, cached. Keys off the type's ROOT (a family
-   * shares a hue) -- see {@link colorForType}. */
+  /** Node colour for a type-set group, keyed off the type's root. */
   #colorForTypeGroup(groupIdx: TypeSetId, cache: Map<TypeSetId, Color>): Color {
     const cached = cache.get(groupIdx);
     if (cached) {
@@ -1545,9 +1431,8 @@ export class GraphWorker {
     return color;
   }
 
-  /** EDGE colour for a link's type-set group, cached. Keys off the link's primary DIRECT type's OWN
-   * slot, NOT its root -- every link type shares the `Link` root, so root-colouring collapses all
-   * edges to one hue (see {@link edgeColorForType}). */
+  /** Edge colour for a link's type-set group, keyed off the link's own type
+   * slot (not its root, since all link types share the `Link` root). */
   #edgeColorForTypeGroup(
     groupIdx: TypeSetId,
     cache: Map<TypeSetId, Color>,
@@ -1585,12 +1470,7 @@ export class GraphWorker {
     }
   }
 
-  /**
-   * Destroy all hierarchical layouts + reset the render/edge state (entering the
-   * flat regime). The cluster tree is left to be rebuilt fresh on the next
-   * hierarchical commit (it reads the always-current type sets), so flat mode
-   * spends no time clearing it.
-   */
+  /** Destroy all hierarchical layouts and reset render/edge state. */
   #tearDownHierarchical(): void {
     for (const [id, kind] of this.#layoutKind) {
       if (kind === "entities") {
@@ -1666,12 +1546,7 @@ export class GraphWorker {
     });
   }
 
-  /**
-   * Per-lane summaries for the rendered highways, indexed by `laneId` (a visual
-   * edge's index in the current edge frame, which is also the `id` on the lane's
-   * bezier segments). Individual (non-aggregate) edges fill their slot with a
-   * placeholder so the index stays aligned with `laneId`.
-   */
+  /** Per-lane summaries for the rendered highways, indexed by `laneId`. */
   #buildHighwayLanes(): HighwayLaneSummary[] {
     const placeholder: HighwayLaneSummary = {
       typeId: null,
@@ -1684,11 +1559,8 @@ export class GraphWorker {
       this.#highwayLaneUnions = [];
       return [];
     }
-    // A merged highway renders several aggregate lanes (different children/types) as ONE
-    // ribbon whose segments carry a single representative laneId. Group lanes by their
-    // highway-level endpoints -- the SAME analyzeHierarchy the renderer merges by -- so any
-    // segment of a ribbon resolves to the WHOLE ribbon's links + a combined summary. A direct
-    // (unmerged) lane is its own group, so it stays exact.
+    // Group lanes by highway-level endpoints so a merged highway's segments
+    // all resolve to the whole ribbon's links and a combined summary.
     const containerIds = this.#cutIndex?.containerIds ?? new Set<ClusterId>();
     const groups = new Map<string, number[]>();
     for (let idx = 0; idx < edges.length; idx++) {
@@ -1702,10 +1574,8 @@ export class GraphWorker {
         this.#clusterTree,
         containerIds,
       );
-      // A lane is single-type+direction. A merged highway collapses the SAME type+direction
-      // across several children into one ribbon, so the group key is (outer endpoints, type,
-      // direction) -- NOT endpoints alone, which would fold distinct single-type lanes together.
-      // A direct (unmerged) lane keys on its own visualKey (already per type+direction).
+      // Group key includes type+direction so distinct single-type lanes
+      // aren't folded together. Unmerged lanes key on their own visualKey.
       const outerSource =
         sourceContainers[sourceContainers.length - 1]?.containerId ??
         edge.source.id;
@@ -1737,7 +1607,7 @@ export class GraphWorker {
         if (!edge || edge.kind !== "aggregate") {
           continue;
         }
-        for (const entityIdx of edge.linkEntityIdxs) {
+        for (const entityIdx of edge.entities) {
           union.add(entityIdx);
         }
         count += edge.count;
@@ -1764,10 +1634,8 @@ export class GraphWorker {
   }
 
   /**
-   * The link entities a clicked highway represents: the UNION of every aggregate lane that
-   * merged into the same rendered ribbon as `laneId` (so a merged highway opens ALL its links,
-   * not just the representative lane's). Precomputed per structure by {@link #buildHighwayLanes};
-   * empty for an out-of-range / non-aggregate id.
+   * The link entities a clicked highway represents: the union of every
+   * aggregate lane merged into the same ribbon as `laneId`.
    */
   highwayLinks(laneId: number): EntityIndex[] {
     return laneId >= 0 && laneId < this.#highwayLaneUnions.length
@@ -1793,7 +1661,7 @@ export class GraphWorker {
         readonly sourceId: ClusterId;
         readonly targetId: ClusterId;
         totalCount: number;
-        readonly byType: Map<number, true>;
+        readonly byType: Set<TypeSetId>;
       }
     >();
 
@@ -1810,12 +1678,12 @@ export class GraphWorker {
       const { key, sourceId, targetId } = makePairKey(hwSourceId, hwTargetId);
       let highway = highwayPairs.get(key);
       if (!highway) {
-        highway = { sourceId, targetId, totalCount: 0, byType: new Map() };
+        highway = { sourceId, targetId, totalCount: 0, byType: new Set() };
         highwayPairs.set(key, highway);
       }
       highway.totalCount += pair.totalCount;
-      for (const typeIdx of pair.byType.keys()) {
-        highway.byType.set(typeIdx, true);
+      for (const typeSetId of pair.byType.keys()) {
+        highway.byType.add(typeSetId);
       }
     }
 
@@ -1827,10 +1695,7 @@ export class GraphWorker {
     );
   }
 
-  /**
-   * Emit a PositionsFrame: bounded cluster positions plus freshly-computed
-   * highway/feeder Bezier geometry for the current positions. No aggregation.
-   */
+  /** Emit a PositionsFrame with cluster positions and highway/feeder Bezier geometry. */
   #emitPositions(): void {
     // Authoritative: recompose the opened subtree's world circles before any
     // positional read, so a moved ancestor reaches its whole subtree (incl.
@@ -1924,11 +1789,7 @@ export class GraphWorker {
     };
   }
 
-  /**
-   * The frontier (non-root) members of a cluster, as EntityIdxs. Members come
-   * from a direct index column or, for a type-keyed cluster, the union of its
-   * type-set groups (see {@link ClusterNode.membership}).
-   */
+  /** The frontier (non-root) members of a cluster. */
   #frontierMembers(cluster: ClusterNode): EntityIndex[] {
     const frontier: EntityIndex[] = [];
     const { membership } = cluster;
@@ -1957,12 +1818,7 @@ export class GraphWorker {
     return frontier;
   }
 
-  /**
-   * Build per-leaf entity-edge topology for the structure frame: the internal
-   * entity-to-entity links (drawn from the shared buffer) plus the stable per-leaf
-   * style. Fan-out feeder endpoints are positional and ride the PositionsFrame instead
-   * (see {@link #buildEntityFanOut}), so this runs only on a cut change.
-   */
+  /** Build per-leaf entity-edge topology for the structure frame. */
   #buildEntityLayers(cutIndex: CutIndex): RenderEntityLayer[] {
     const layers: RenderEntityLayer[] = [];
 
@@ -1974,9 +1830,9 @@ export class GraphWorker {
         continue;
       }
 
-      const localOf = new Map<number, number>();
+      const localOf = new Map<EntityIndex, number>();
       for (let idx = 0; idx < layout.nodeIds.length; idx++) {
-        localOf.set(Number(layout.nodeIds[idx]), idx);
+        localOf.set(Number(layout.nodeIds[idx]) as EntityIndex, idx);
       }
 
       // Internal entity-to-entity links (both endpoints owned by this leaf).
@@ -2011,10 +1867,8 @@ export class GraphWorker {
     return layers;
   }
 
-  // Write each leaf node's colour into its interleaved entity buffer, so the dots render
-  // per-node colour. Every node gets the leaf's cluster colour; an active highlight dims the
-  // non-ego nodes. Called on leaf-buffer creation and on highlight change only -- NOT per
-  // commit (that re-uploaded every open leaf on each zoom LOD crossing: a pan/zoom stutter).
+  // Write per-node colour into the leaf's entity buffer. Runs on leaf creation
+  // and highlight changes, not per commit (avoiding pan/zoom stutter).
   #writeLeafColors(cluster: ClusterNode, layout: LayoutSimulation): void {
     if (!layout.setNodeColor) {
       return;
@@ -2038,23 +1892,17 @@ export class GraphWorker {
 
   /**
    * Fan-out feeder endpoints for the current positions (one entry per open
-   * leaf), and a refill of each leaf's port-attraction targets. Positional: it
-   * runs every position tick and rides the PositionsFrame, so the dots' exits
-   * (and the force pulling the dots toward them) track the ports as the macro
-   * layout settles, without re-emitting the structure. Per external owner, the
-   * exit is the leaf's own boundary point toward the highway port serving it, so
-   * the fan-out chains into the feeder -> highway.
+   * leaf), plus a refill of each leaf's port-attraction targets. The exit
+   * per external owner is the leaf's boundary point toward the highway port,
+   * chaining into the feeder.
    */
   #buildEntityFanOut(
     cutIndex: CutIndex,
     ports: PortPairs,
   ): RenderEntityFanOut[] {
     const result: RenderEntityFanOut[] = [];
-    // While the macro is still moving, the ports drift continuously, so keep every
-    // dot layout warm so the dots track that drift instead of lagging it. (The
-    // old ">0.5 since last refill" threshold silently dropped slow drift: many
-    // sub-threshold steps accumulated into a large offset that never re-settled,
-    // the depth >= 2 "port at the old position" the macro's slow tail produced.)
+    // While the macro is still moving, keep dot layouts warm so dots
+    // track the continuous port drift instead of lagging it.
     const clustersRunning = this.#anyClusterLayoutRunning();
 
     for (const leafId of cutIndex.entityModeIds) {
@@ -2064,9 +1912,9 @@ export class GraphWorker {
         continue;
       }
 
-      const localOf = new Map<number, number>();
+      const localOf = new Map<EntityIndex, number>();
       for (let idx = 0; idx < layout.nodeIds.length; idx++) {
-        localOf.set(Number(layout.nodeIds[idx]), idx);
+        localOf.set(Number(layout.nodeIds[idx]) as EntityIndex, idx);
       }
 
       const exitForOwner = new Map<
@@ -2092,15 +1940,10 @@ export class GraphWorker {
             : portsFor(ports, hwSourceId, hwTargetId);
         let exit: readonly [number, number] | null = null;
         if (hp) {
-          // Aim the exit at the feeder's first waypoint, not at the outermost
-          // port directly. The feeder leaves this leaf toward its nearest
-          // enclosing open container's boundary (in the direction of the
-          // outermost port hp.a), then hops outward. Those coincide only when the
-          // leaf sits directly in the outermost container (depth 1); with an
-          // intermediate container (depth >= 2) aiming straight at hp.a lands the
-          // fan-out a few position-dependent degrees off where the feeder
-          // actually leaves the bucket, the "4 vs 5 o'clock" drift. Share the
-          // exact waypoint fn the feeder uses so the two can never diverge.
+          // Aim at the feeder's first waypoint (the nearest enclosing
+          // container boundary toward the outermost port), not the port
+          // directly. At depth >= 2 these differ; sharing the waypoint
+          // function keeps fan-out and feeder aligned.
           let target: { readonly x: number; readonly y: number } = hp.a;
           let ancestor = cluster.parent;
           while (ancestor) {
@@ -2144,7 +1987,7 @@ export class GraphWorker {
         let sumY = 0;
         let exitCount = 0;
         for (const link of this.#links.linksFor(entityIdx)) {
-          const otherOwner = cutIndex.ownerOf(link.otherId as number);
+          const otherOwner = cutIndex.ownerOf(link.otherId);
           if (
             !otherOwner ||
             otherOwner === leafId ||
@@ -2161,9 +2004,8 @@ export class GraphWorker {
             exitCount += 1;
           }
         }
-        // Port-attraction target: the centroid of this entity's exits (NaN if it
-        // has no external connection). The entity layout's force reads this live,
-        // so the dots cluster near their ports instead of fanning across.
+        // Port-attraction target: centroid of this entity's exits
+        // (NaN = no external connection).
         if (portTargets) {
           const hasTarget = exitCount > 0;
           const nextX = hasTarget ? sumX / exitCount : Number.NaN;
@@ -2177,11 +2019,7 @@ export class GraphWorker {
         }
       }
 
-      // Re-energise the (possibly settled) entity sim so the dots reach their
-      // ports. While the macro moves, the targets drift every tick, so track it;
-      // a connectivity flip is a one-off structural change. A still-running sim
-      // is a no-op. Once the macro settles, the warm sim relaxes onto the now-
-      // fixed targets, so the dots end up at their ports, not lagging the tail.
+      // Re-energise the entity sim so dots reach their (possibly moved) ports.
       if (clustersRunning || connectivityChanged) {
         layout.resume();
       }
@@ -2193,11 +2031,9 @@ export class GraphWorker {
   }
 
   /**
-   * Ports as WebCola constraints. For each opened container, add a fixed anchor
-   * on its rim toward each external neighbour and link the children whose edges
-   * cross it, so the layout sorts children toward their real connections and
-   * feeders leave the container without crossing. Applied only while the layout
-   * is still running (a settled, reused layout is left alone, no re-settle).
+   * Ports as WebCola constraints. For each opened container, add a fixed
+   * anchor on its rim toward each external neighbour and link the connected
+   * children. Only applied to still-running layouts.
    */
   #applyPortConstraints(): void {
     const edgeFrame = this.#edgeFrame;
@@ -2297,12 +2133,7 @@ export class GraphWorker {
     }
   }
 
-  /**
-   * Re-aim opened sub-clusters' port anchors at their (now-moved) external
-   * neighbours, moving the fixed anchors in place: no re-run, no structure
-   * emit. Light (a few anchors per opened container). Called when the macro
-   * layout moves; a still-running sub-cluster's children follow.
-   */
+  /** Re-aim opened sub-clusters' port anchors at their moved external neighbours. */
   #updateAnchorTracking(): void {
     for (const [containerId, endpointIds] of this.#anchorEndpoints) {
       const layout = this.#forceLayouts.get(containerId);
@@ -2328,12 +2159,7 @@ export class GraphWorker {
     }
   }
 
-  /**
-   * Whether a reused cluster layout must be rebuilt: the child set changed, or a
-   * freshly-sized child now overlaps a neighbour at its frozen position (see
-   * {@link layoutNeedsRebuild}). The layout nodes carry the current positions;
-   * `child.circle.radius` is the radius just recomputed for this commit.
-   */
+  /** Whether a reused cluster layout must be rebuilt. See {@link layoutNeedsRebuild}. */
   #clusterLayoutStale(layout: LayoutSimulation, parent: ClusterNode): boolean {
     return layoutNeedsRebuild(
       layout.nodes.map((node) => ({
@@ -2360,12 +2186,8 @@ export class GraphWorker {
       this.#snapshotTopLevelPositions(layout);
     }
 
-    // Invalidate if the child set changed OR a freshly-sized child now overlaps
-    // a neighbour at its frozen position (a cluster that grew from 70 to 2000
-    // entities, say). Harmless growth with slack around it does NOT rebuild, so
-    // ordinary ingest doesn't re-churn the layout; only an actual overlap does,
-    // and recreating re-runs WebCola's hard non-overlap with the new radii,
-    // warm-seeded from the persisted positions for continuity.
+    // Invalidate when a freshly-sized child overlaps a neighbour at its
+    // frozen position; harmless growth with slack around it is kept.
     if (layout && this.#clusterLayoutStale(layout, parent)) {
       this.#forceLayouts.delete(key);
       this.#anchorEndpoints.delete(key);
@@ -2373,13 +2195,8 @@ export class GraphWorker {
     }
 
     if (!layout) {
-      // Child radii are assigned before this runs (family children by the
-      // bottom-up circle-packing pass (#assignRadii), subdivided type-set
-      // children by #layoutChildrenInParent), so a freshly-arrived child can no
-      // longer carry a zero/stale radius here. Top-level children re-seed from
-      // their persisted position when they have one (so a recreated layout, or a
-      // family node rebuilt as a fresh object, keeps its place); only genuinely
-      // new clusters fall back to the cluster-tree seed.
+      // Top-level children re-seed from their persisted position when
+      // available; genuinely new clusters fall back to the cluster-tree seed.
       const nodes: ForceNode[] = parent.children.map((child) => {
         const persisted =
           parent.kind === "root"
@@ -2452,12 +2269,7 @@ export class GraphWorker {
     }
   }
 
-  /**
-   * Record the root layout's current LOCAL node positions into
-   * {@link #topLevelPositions} (by cluster id) so the next recreation/rebuild
-   * can re-seed and anchor each existing cluster to where it is now. Cheap (a
-   * handful of top-level nodes); called on every commit and after the optimiser.
-   */
+  /** Snapshot the root layout's current local node positions for warm-seeding. */
   #snapshotTopLevelPositions(layout: LayoutSimulation): void {
     for (const node of layout.nodes) {
       this.#topLevelPositions.set(node.id as ClusterId, {
@@ -2467,13 +2279,7 @@ export class GraphWorker {
     }
   }
 
-  /**
-   * Authoritative world-position recomposition over the opened subtree. Replaces
-   * the old per-tick, clusterMoved-gated propagation: world circles are now
-   * recomposed before every positional read (tick and commit), so nested leaves
-   * never lag a moved ancestor and a commit issued while the macro is settled
-   * can't emit stale depth >= 2 positions. See {@link syncWorldPositions}.
-   */
+  /** Recompose world positions over the opened subtree. See {@link syncWorldPositions}. */
   #syncWorldPositions(): void {
     syncWorldPositions(
       this.#clusterTree.root,
@@ -2483,11 +2289,8 @@ export class GraphWorker {
   }
 
   /**
-   * The once-per-layout settle polish: the principled optimiser for the root,
-   * the untangle for sub-clusters. Idempotent via {@link #untangled}, and called
-   * from both the tick loop (settle transition) and {@link #ensureChildrenLayout}
-   * (a small layout that settled inside its warm-up would otherwise be skipped by
-   * the tick loop forever, so its polish would never run).
+   * Once-per-layout settle polish: the optimiser for the root, the untangle
+   * for sub-clusters. Idempotent via {@link #untangled}.
    */
   #polishSettledLayout(cluster: ClusterNode, layout: LayoutSimulation): void {
     if (this.#untangled.has(cluster.id)) {
@@ -2502,13 +2305,9 @@ export class GraphWorker {
   }
 
   /**
-   * The principled top-level pass (root only): replace the force-settled
-   * positions with the layout that minimises the drawn geometry (crossings +
-   * detours + edge length + non-overlap + neighbour spread), all on rim-to-rim
-   * (port) segments (see {@link optimizeTopLevel}). The top level is unconfined,
-   * size-disparate, and the overview everything else inherits, so it's solved
-   * directly rather than via stress + a crossings polish that fight each other.
-   * Runs once on settle, like the untangle.
+   * Top-level pass (root only): replace force-settled positions with the
+   * layout minimising crossings, detours, edge length, non-overlap, and
+   * neighbour spread on rim-to-rim segments. See {@link optimizeTopLevel}.
    */
   #optimizeTopLevelLayout(
     cluster: ClusterNode,
@@ -2569,10 +2368,8 @@ export class GraphWorker {
   }
 
   /**
-   * D1: polish a settled cluster layout once, minimising edge crossings and
-   * edges-through-bubbles while staying near the force-settled seed. Only for
-   * small layouts (<= {@link UNTANGLE_MAX_NODES}); larger ones keep the force
-   * result (a stress-majorization tier could slot in here later).
+   * Polish a settled cluster layout once, minimising edge crossings and
+   * edges-through-bubbles. Only for small layouts (<= {@link UNTANGLE_MAX_NODES}).
    */
   #untangleClusterLayout(cluster: ClusterNode, layout: LayoutSimulation): void {
     const edges = this.#clusterEdges.get(cluster.id);
@@ -2615,7 +2412,7 @@ export class GraphWorker {
       this.#onLayoutMessage?.({ type: "LAYOUT_DESTROYED", clusterId: key });
     }
 
-    const entityIdxs = this.#collectEntityIdxsForCluster(cluster);
+    const entityIdxs = [...this.#entityIndicesForCluster(cluster)];
     const parentR = cluster.circle.radius;
     const entityRadius = parentR * ENTITY_RADIUS_FRACTION;
 
@@ -2637,9 +2434,8 @@ export class GraphWorker {
 
     const edges = this.#buildEntityEdges(entityIdxs, nodes);
     // Live port-attraction targets (one (x,y) per entity, NaN = no external
-    // connection); #buildEntityLayers fills them and the layout's force reads
-    // them each tick, so dots track their ports instead of fanning to a stale
-    // baked exit.
+    // connection). The layout's force reads these each tick so dots track
+    // their ports.
     const portTargets = new Float32Array(entityIdxs.length * 2).fill(
       Number.NaN,
     );
@@ -2652,9 +2448,8 @@ export class GraphWorker {
     );
     this.#forceLayouts.set(key, layout);
     this.#layoutKind.set(key, "entities");
-    // Per-node colours are written once here (leaf-buffer creation) and again only on a
-    // highlight change (via #applyHighlight) -- never per commit, which would re-write +
-    // re-upload every open leaf's colours on each LOD threshold crossing while zooming.
+    // Per-node colours are written once here and again only on highlight
+    // changes, not per commit (avoiding re-upload stutter while zooming).
     this.#writeLeafColors(cluster, layout);
     this.#ensureSchedulerRunning();
 
@@ -2668,51 +2463,42 @@ export class GraphWorker {
     });
   }
 
-  #collectEntityIdxsForCluster(cluster: ClusterNode): EntityIndex[] {
+  *#entityIndicesForCluster(
+    cluster: ClusterNode,
+  ): Generator<EntityIndex, void, undefined> {
     if (cluster.membership.source === "direct") {
       const view = cluster.membership.members.subarray();
-      const result: EntityIndex[] = [];
-      for (const idx of view) {
-        result.push(idx);
-      }
-      return result;
+      yield* view;
+
+      return;
     }
 
-    const result: EntityIndex[] = [];
+    let hasEntities = false;
     for (const key of cluster.membership.keys) {
       const group = this.#typeSets.get(key);
       if (group) {
-        for (const idx of group.entities) {
-          result.push(idx);
-        }
+        yield* group.entities;
+        hasEntities ||= group.entities.length > 0;
       }
     }
 
-    // A family/rollup carries no keys of its own; its entities live in its
-    // children (e.g. Customer/Supplier inside the Company family). Recurse so
-    // those entities are attributed to it; otherwise links into the family
-    // (Delivery -> Customer) are dropped from the cluster-edge set, the optimiser
-    // never gets a Company <-> Delivery edge, and the family floats far from its
-    // true neighbour while the renderer still draws the (long) edge. Only when
-    // the node has no own entities: a subdivided type-set already covers all of
-    // its entities via its keys, so recursing into its partition would
-    // double-count.
-    if (result.length === 0) {
+    // A family/rollup carries no keys of its own; recurse into children so
+    // those entities are attributed to it (otherwise the optimiser misses
+    // edges through the family). Only when the node has no own entities:
+    // a subdivided type-set already covers its entities via its keys.
+    if (!hasEntities) {
       for (const child of cluster.children) {
-        for (const idx of this.#collectEntityIdxsForCluster(child)) {
-          result.push(idx);
-        }
+        yield* this.#entityIndicesForCluster(child);
       }
     }
-    return result;
   }
 
   #buildClusterEdges(children: readonly ClusterNode[]): ForceEdge[] {
     // Build entityIdx -> childId lookup once.
-    const entityToChild = new Map<number, string>();
-    const childEntityIdxs = new Map<string, EntityIndex[]>();
+    const entityToChild = new Map<EntityIndex, ClusterId>();
+    const childEntityIdxs = new Map<ClusterId, EntityIndex[]>();
     for (const child of children) {
-      const entityIdxs = this.#collectEntityIdxsForCluster(child);
+      const entityIdxs = [...this.#entityIndicesForCluster(child)];
       childEntityIdxs.set(child.id, entityIdxs);
       for (const entityIdx of entityIdxs) {
         entityToChild.set(entityIdx, child.id);
@@ -2754,8 +2540,8 @@ export class GraphWorker {
     entityIdxs: EntityIndex[],
     nodes: ForceNode[],
   ): ForceEdge[] {
-    const memberSet = new Set<number>(entityIdxs);
-    const idxToNodeId = new Map<number, string>();
+    const memberSet = new Set<EntityIndex>(entityIdxs);
+    const idxToNodeId = new Map<EntityIndex, string>();
     for (let idx = 0; idx < entityIdxs.length; idx++) {
       idxToNodeId.set(entityIdxs[idx]!, nodes[idx]!.id);
     }
@@ -2829,11 +2615,10 @@ export class GraphWorker {
       });
     }
 
-    // Name the grouping fallback (link-signature `community` + `entity-bucket` chunks) by the
-    // same distinctive-feature machinery, so groups carry a meaningful name BEFORE (or without)
-    // embeddings. Type-set children are excluded -- the type labeler already names those; random
-    // chunks self-filter (no feature is distinctive of a random slice, so they keep `Group n`).
-    // If embeddings later arrive they REPLACE these children and re-name via applyEmbeddingResult.
+    // Name fallback groups (community + entity-bucket) by distinctive features so
+    // they carry a meaningful name before (or without) embeddings. Type-set children
+    // are excluded (the type labeler names those). If embeddings arrive later they
+    // replace these children and re-name via applyEmbeddingResult.
     const fallbackGroups: ClusterMembers[] = [];
     for (const child of node.children) {
       if (
@@ -2919,17 +2704,11 @@ export class GraphWorker {
   }
 
   /**
-   * Schedule distinctive-feature naming over a freshly-created set of SIBLING child clusters --
-   * embedding (kmeans) groups OR the non-embedding grouping fallback (link-signature `community`
-   * buckets + `entity-bucket` chunks), which render with a `Group n`/`Similar group n`
-   * placeholder. Names from a UNIFIED feature space -- exact `property = value`, numeric/date
-   * ranges, and link/target-type ("what they link to") -- so groups distinguished by magnitude
-   * or by their edges get named, not just those with a distinctive categorical value. Deferred
-   * onto the job scheduler because the scan is O(members x features): the placeholder commit
-   * paints first, then the relabel + recommit lands once it completes. Both paths share this so
-   * they name identically; it deliberately does NOT touch the type-set (`distinctiveLabel`) or
-   * community (`labelAllCommunities`) labelers -- the namer only sets text where it finds a
-   * confident, distinctive signature, leaving every other group's label intact.
+   * Schedule distinctive-feature naming for sibling child clusters (embedding
+   * groups or fallback buckets). Names from a unified feature space: exact
+   * property values, numeric/date ranges, and link/target types. Deferred onto
+   * the job scheduler (O(members x features)); the placeholder commit paints
+   * first, then the relabel lands once the scan completes.
    */
   #scheduleDistinctiveFeatureNaming(groups: readonly ClusterMembers[]): void {
     if (groups.length === 0) {

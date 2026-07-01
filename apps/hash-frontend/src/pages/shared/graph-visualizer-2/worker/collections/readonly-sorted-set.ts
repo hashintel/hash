@@ -25,13 +25,7 @@ function binarySearch<T>(
   return -1;
 }
 
-/**
- * An immutable, deduplicated, sorted set of numbers.
- *
- * Constructed once with deduplication and sorting, then read-only.
- * Used for type-set keys: the canonical representation of an entity's
- * direct type indices.
- */
+/** Immutable, deduplicated, sorted set. Constructed once, then read-only. */
 export class ReadonlySortedSet<T> {
   readonly #items: readonly T[];
   readonly #compare: (lhs: T, rhs: T) => number;
@@ -66,7 +60,7 @@ export class ReadonlySortedSet<T> {
       if (comparison === 0) {
         lhsIdx++;
         rhsIdx++;
-      } else if (comparison < 0) {
+      } else if (comparison > 0) {
         rhsIdx++;
       } else {
         return false;

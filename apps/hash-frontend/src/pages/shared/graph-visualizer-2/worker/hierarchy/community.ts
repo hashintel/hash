@@ -1,11 +1,14 @@
 /**
  * Community detection for sub-clustering large type-set clusters.
  *
- * Runs lazily when a cluster is about to open and is too large to
- * show individual entities. Uses connected components first, then
- * bounded label propagation for large components.
+ * Runs lazily when a cluster is about to open and is too large to show
+ * individual entities. Connected components are extracted first; large
+ * components are further split by bounded label propagation.
  */
+
 import { ClusterId } from "../../ids";
+import { murmur3String } from "../../math/hash";
+import { deterministicShuffle } from "../../math/random";
 import { Column } from "../collections/column";
 import {
   type CsrGraph,
@@ -17,25 +20,6 @@ import { ClusterLabel, ClusterNode } from "./cluster-tree";
 import type { VizConfig } from "../../config";
 import type { EntityIndex } from "../../ids";
 import type { LinkStore } from "../store/link";
-
-/* eslint-disable no-bitwise */
-function deterministicShuffle(indices: number[], seed: number): number[] {
-  const result = [...indices];
-  let state = seed * 2654435761;
-
-  for (let idx = result.length - 1; idx > 0; idx--) {
-    state = (state ^ (state << 13)) | 0;
-    state = (state ^ (state >>> 17)) | 0;
-    state = (state ^ (state << 5)) | 0;
-    const target = (state >>> 0) % (idx + 1);
-    const temp = result[idx]!;
-    result[idx] = result[target]!;
-    result[target] = temp;
-  }
-
-  return result;
-}
-/* eslint-enable no-bitwise */
 
 export function boundedLabelPropagation(
   graph: CsrGraph,
@@ -165,7 +149,8 @@ function topDegreeEntity(
   let bestDegree = 0;
 
   for (const entityIdx of members) {
-    const degree = links.linksFor(entityIdx).length;
+    const degree = links.degreeOf(entityIdx);
+
     if (degree > bestDegree) {
       bestDegree = degree;
       bestIdx = entityIdx;
@@ -202,10 +187,7 @@ function featureKeyToLabel(key: string): string {
   return `${scope} ${direction} links`;
 }
 
-/**
- * Label communities using overrepresented link features,
- * scored with TF-IDF across sibling communities.
- */
+/** Label communities using overrepresented link features (TF-IDF across siblings). */
 function labelAllCommunities(
   communityMembers: EntityIndex[][],
   children: ClusterNode[],
@@ -270,32 +252,27 @@ function labelAllCommunities(
   }
 }
 
-/* eslint-disable no-bitwise */
 function linkSignatureKey(
   entityIdx: EntityIndex,
   links: LinkStore,
   maxBuckets: number,
 ): string {
-  const endpoints = links.linksFor(entityIdx);
-  if (endpoints.length === 0) {
+  const degree = links.degreeOf(entityIdx);
+  if (degree === 0) {
     return "isolated";
   }
 
   const features = new Set<string>();
-  for (const endpoint of endpoints) {
+  for (const endpoint of links.linksFor(entityIdx)) {
     features.add(`${endpoint.direction}:${endpoint.typeSetId}`);
   }
 
   const sorted = [...features].sort();
   const key = sorted.join("|");
 
-  let hash = 0;
-  for (let idx = 0; idx < key.length; idx++) {
-    hash = ((hash << 5) - hash + key.charCodeAt(idx)) | 0;
-  }
-  return `sig:${(hash >>> 0) % maxBuckets}`;
+  // eslint-disable-next-line no-bitwise
+  return `sig:${(murmur3String(key) >>> 0) % maxBuckets}`;
 }
-/* eslint-enable no-bitwise */
 
 function columnFromIndices(
   indices: ArrayLike<EntityIndex>,
@@ -346,10 +323,9 @@ function coarseLinkSignatureBuckets(
 }
 
 /**
- * Last-resort partitioning when link-based community detection
- * can't produce meaningful groups (e.g. 0 internal edges).
- * Splits entities into roughly equal chunks. These are placeholders
- * that embedding k-means can later replace with semantic groups.
+ * Last-resort partitioning when community detection can't produce
+ * meaningful groups (e.g. zero internal edges). Splits entities into
+ * roughly equal chunks that embedding k-means can later replace.
  */
 function deterministicPartition(
   cluster: ClusterNode,
@@ -382,12 +358,11 @@ function deterministicPartition(
 }
 
 /**
- * Full sub-clustering pipeline for a single cluster.
- * Returns child ClusterNodes, or empty array if the cluster
- * is small enough to show entities directly.
+ * Sub-cluster a single cluster into child nodes.
  *
- * Cascade: community detection -> deterministic partition.
- * Always returns >= 2 children for clusters above entityRevealMax.
+ * Returns an empty array if the cluster is small enough to show entities
+ * directly, otherwise >= 2 children. Falls through community detection
+ * to deterministic partition as a last resort.
  */
 export function subclusterByLinks(
   cluster: ClusterNode,

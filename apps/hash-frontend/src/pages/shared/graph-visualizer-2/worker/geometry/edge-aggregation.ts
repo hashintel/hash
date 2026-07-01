@@ -11,7 +11,7 @@
  *      aggregate / individual / hidden (no double counting).
  *   2. For every aggregate edge (A, B, type), its count equals
  *      the number of links whose endpoint visible owners are A and B
- *      with that TypeSetIdx.
+ *      with that TypeSetId.
  *   3. Visual keys are based on semantic identity (cluster pair + type),
  *      not array order.
  *   4. Even when rendering a collapsed edge, exact byType counts are kept.
@@ -24,15 +24,13 @@ import { edgeColorForType, primaryTypeOfSet } from "../entity-style";
 
 import type { VizConfig } from "../../config";
 import type { Color } from "../../frames";
-import type { ClusterId, EntityIndex, TypeSetId } from "../../ids";
+import type { ClusterId, EntityIndex, LinkId, TypeSetId } from "../../ids";
 import type { ClusterNode, ClusterTree } from "../hierarchy/cluster-tree";
 import type { LodItem } from "../hierarchy/lod";
 import type { LinkStore } from "../store/link";
 import type { TypeRegistry } from "../store/type-registry";
 import type { TypeSetGroup, TypeSetStore } from "../store/type-set";
 import type { VersionedUrl } from "@blockprotocol/type-system";
-
-// Color / width / label helpers
 
 export function widthForCount(count: number): number {
   return Math.max(1, Math.min(8, 1 + Math.log2(count + 1)));
@@ -54,14 +52,13 @@ export function typeLabelForGroup(
     }
   }
 
-  return titles.length > 0 ? titles.join(" \u00d7 ") : "Unknown";
+  return titles.length > 0 ? titles.join(" × ") : "Unknown";
 }
 
 /**
- * The single link type's VersionedUrl for a type-set group, or `null` if the group covers more
- * than one type (a rollup). A lane is single-type by definition, so its group has one direct type;
- * shipping its URL lets the main thread resolve the icon/title from the closed type schema it
- * already holds, without the worker shipping any rich type data.
+ * The single link type's VersionedUrl for a type-set group, or `null` if the
+ * group covers more than one type (a rollup). The main thread resolves the
+ * type's icon and title from the closed type schema it already holds.
  */
 export function typeUrlForGroup(
   group: TypeSetGroup | undefined,
@@ -70,26 +67,31 @@ export function typeUrlForGroup(
   if (!group) {
     return null;
   }
+
   let only: VersionedUrl | null = null;
   let seen = 0;
+
   for (const typeIdx of group.directTypeIds) {
     const url = types.getUrl(typeIdx);
     if (url === undefined) {
       continue;
     }
+
     seen += 1;
     if (seen > 1) {
       return null;
     }
+
     only = url;
   }
+
   return only;
 }
 
 /**
- * The reverse (target -> source) label for a type-set group: each type's inverse title ("Member
- * Of") in place of its forward title ("Has Member"), so a reverse lane reads correctly. Falls back
- * to the forward title for a type with no inverse.
+ * The reverse (target -> source) label for a type-set group. Each type's
+ * inverse title ("Member Of") replaces its forward title ("Has Member");
+ * falls back to the forward title for types with no inverse.
  */
 export function inverseLabelForGroup(
   group: TypeSetGroup | undefined,
@@ -102,6 +104,7 @@ export function inverseLabelForGroup(
   const titles: string[] = [];
   for (const typeIdx of group.directTypeIds) {
     const info = types.get(typeIdx);
+
     if (info) {
       titles.push(info.inverseTitle ?? info.title);
     }
@@ -109,8 +112,6 @@ export function inverseLabelForGroup(
 
   return titles.length > 0 ? titles.join(" × ") : "Unknown";
 }
-
-// Cut index
 
 function collectEntityOwnership(
   node: ClusterNode,
@@ -120,14 +121,14 @@ function collectEntityOwnership(
 ): void {
   if (node.membership.source === "direct") {
     for (const idx of node.membership.members.subarray()) {
-      result.set(idx as number, ownerId);
+      result.set(idx, ownerId);
     }
   } else {
     for (const key of node.membership.keys) {
       const group = typeSets.get(key);
       if (group) {
         for (const idx of group.entities) {
-          result.set(idx as number, ownerId);
+          result.set(idx, ownerId);
         }
       }
     }
@@ -144,15 +145,14 @@ function collectEntityOwnership(
 /**
  * Maps every entity to its owning cluster at the current LOD level.
  *
- * Built from all clusters in the tree (not viewport-filtered).
- * The viewport LOD cut determines which clusters are "open" (showing
- * children or entities). Off-screen clusters default to "cluster" mode.
- * Frustum culling is left to the presentation layer (Deck.gl).
+ * Built from all clusters in the tree (not viewport-filtered);
+ * off-screen clusters default to "cluster" mode. Frustum culling
+ * is left to Deck.gl.
  */
 export class CutIndex {
   readonly #entityModeIds: ReadonlySet<ClusterId>;
   readonly #containerIds: ReadonlySet<ClusterId>;
-  readonly #entityOwner: ReadonlyMap<number, ClusterId>;
+  readonly #entityOwner: ReadonlyMap<EntityIndex, ClusterId>;
 
   constructor(
     viewportCut: readonly LodItem[],
@@ -162,7 +162,7 @@ export class CutIndex {
     const blockIds = new Set<ClusterId>();
     const entityModeIds = new Set<ClusterId>();
     const containerIds = new Set<ClusterId>();
-    const entityOwner = new Map<number, ClusterId>();
+    const entityOwner = new Map<EntityIndex, ClusterId>();
 
     // Index viewport cut by cluster ID for mode lookup.
     const cutModes = new Map<ClusterId, LodItem["mode"]>();
@@ -187,17 +187,10 @@ export class CutIndex {
     this.#entityOwner = entityOwner;
   }
 
-  /** Clusters in "children" mode (showing sub-clusters). */
   get containerIds(): ReadonlySet<ClusterId> {
     return this.#containerIds;
   }
 
-  /**
-   * Recursively walk the cluster tree. "children" mode means
-   * the node is a container: recurse into children. Any other mode
-   * (or absent from cut) means this node is a block that owns
-   * all its entities.
-   */
   #walkTree(
     node: ClusterNode,
     cutModes: ReadonlyMap<ClusterId, LodItem["mode"]>,
@@ -255,7 +248,7 @@ export class CutIndex {
     return this.#entityOwner.size;
   }
 
-  ownerOf(entityIdx: number): ClusterId | undefined {
+  ownerOf(entityIdx: EntityIndex): ClusterId | undefined {
     return this.#entityOwner.get(entityIdx);
   }
 
@@ -267,13 +260,10 @@ export class CutIndex {
     return this.#entityModeIds;
   }
 
-  /** Iterate all (entityIdx, ownerId) pairs for incremental diffing. */
-  *entries(): IterableIterator<[number, ClusterId]> {
+  *entries(): IterableIterator<[EntityIndex, ClusterId]> {
     yield* this.#entityOwner;
   }
 }
-
-// Pair key
 
 const SEP = "\u001f";
 
@@ -291,43 +281,26 @@ export function makePairKey(
   return { key: PairKey(`${a}${SEP}${b}`), sourceId: a, targetId: b };
 }
 
-// Internal mutable aggregation types
-
 interface TypeAggregation {
   readonly typeSetId: TypeSetId;
-  /**
-   * Links flowing from the lower-sorted cluster ID to the higher one,
-   * matching PairKey's sort order.
-   */
-  forwardCount: number;
-  /** Links flowing in the opposite direction. */
-  reverseCount: number;
-  /**
-   * The link entities counted in `forwardCount`. Maintained in lockstep with
-   * the count (added on +1, removed on -1), so a clicked highway lane can
-   * resolve, on demand, to the exact set of links it aggregates.
-   */
-  readonly forwardLinks: Set<EntityIndex>;
-  /** The link entities counted in `reverseCount` (mirror of `forwardLinks`). */
-  readonly reverseLinks: Set<EntityIndex>;
+  readonly forward: Set<EntityIndex>;
+  readonly reverse: Set<EntityIndex>;
 }
 
 interface MutablePairAggregation {
   readonly sourceId: ClusterId;
   readonly targetId: ClusterId;
-  readonly byType: Map<number, TypeAggregation>;
+  readonly byType: Map<TypeSetId, TypeAggregation>;
   totalCount: number;
 }
 
 interface StoredIndividualEdge {
-  readonly linkId: number;
+  readonly linkId: LinkId;
   readonly ownerClusterId: ClusterId;
-  readonly leftEntityIdx: number;
-  readonly rightEntityIdx: number;
+  readonly leftEntityIndex: EntityIndex;
+  readonly rightEntityIndex: EntityIndex;
   readonly typeSetId: TypeSetId;
 }
-
-// Visual edge types (spec 6.2)
 
 interface ClusterEndpointRef {
   readonly kind: "cluster";
@@ -336,7 +309,7 @@ interface ClusterEndpointRef {
 
 interface EntityEndpointRef {
   readonly kind: "entity";
-  readonly entityIdx: number;
+  readonly entityIdx: EntityIndex;
   readonly ownerClusterId: ClusterId;
 }
 
@@ -381,7 +354,7 @@ export interface AggregatedVisualEdge {
    * forward links, a reverse lane the reverse, a collapsed/"both" lane the
    * union of both. Lets a clicked highway resolve to its underlying links.
    */
-  readonly linkEntityIdxs: readonly EntityIndex[];
+  readonly entities: Set<EntityIndex>;
 }
 
 export interface IndividualVisualEdge {
@@ -389,7 +362,7 @@ export interface IndividualVisualEdge {
   readonly visualKey: VisualEdgeKey;
   readonly source: EntityEndpointRef;
   readonly target: EntityEndpointRef;
-  readonly linkId: number;
+  readonly linkId: LinkId;
   readonly typeSetId: TypeSetId;
   readonly count: 1;
   readonly color: Color;
@@ -407,8 +380,6 @@ export interface EdgeFrame {
   readonly truncated: boolean;
 }
 
-// Pair explosion: convert raw aggregation into visual edges
-
 function explodePair(
   pairKey: PairKey,
   pair: MutablePairAggregation,
@@ -416,21 +387,25 @@ function explodePair(
   types: TypeRegistry,
   config: VizConfig,
 ): AggregatedVisualEdge[] {
-  const typeAggs = [...pair.byType.values()].sort(
+  const aggregations = [...pair.byType.values()].sort(
     (a, b) =>
-      b.forwardCount + b.reverseCount - (a.forwardCount + a.reverseCount) ||
-      (a.typeSetId as number) - (b.typeSetId as number),
+      b.forward.size + b.reverse.size - (a.forward.size + a.reverse.size) ||
+      a.typeSetId - b.typeSetId,
   );
 
   const source: ClusterEndpointRef = { kind: "cluster", id: pair.sourceId };
   const target: ClusterEndpointRef = { kind: "cluster", id: pair.targetId };
 
-  if (typeAggs.length > config.maxParallelEdgeTypes) {
+  if (aggregations.length > config.maxParallelEdgeTypes) {
     // A collapsed/"both" lane carries the union of both directions' links.
-    const collapsedLinks: EntityIndex[] = [];
-    for (const agg of typeAggs) {
-      collapsedLinks.push(...agg.forwardLinks, ...agg.reverseLinks);
+    let collapsedLinks: Set<EntityIndex> = new Set();
+
+    for (const aggregation of aggregations) {
+      collapsedLinks = collapsedLinks
+        .union(aggregation.forward)
+        .union(aggregation.reverse);
     }
+
     return [
       {
         kind: "aggregate",
@@ -444,13 +419,13 @@ function explodePair(
         collapsed: true,
         count: pair.totalCount,
         totalPairCount: pair.totalCount,
-        distinctTypeCount: typeAggs.length,
-        color: [...graphColors.collapsedEdge],
+        distinctTypeCount: aggregations.length,
+        color: graphColors.collapsedEdge,
         widthWorld: widthForCount(pair.totalCount),
-        typeLabel: `${typeAggs.length} link types`,
+        typeLabel: `${aggregations.length} link types`,
         // Assigned once the final visualEdges order is known (#buildFrame).
         laneId: -1,
-        linkEntityIdxs: collapsedLinks,
+        entities: collapsedLinks,
       },
     ];
   }
@@ -458,63 +433,66 @@ function explodePair(
   // A type with links in both directions becomes two separate lanes
   // (one per direction), each sized by its own count.
   const edges: AggregatedVisualEdge[] = [];
-  for (const agg of typeAggs) {
-    const group = typeSets.getById(agg.typeSetId);
+
+  for (const aggregate of aggregations) {
+    const group = typeSets.getById(aggregate.typeSetId);
+
     const typeLabel = typeLabelForGroup(group, types);
     const inverseLabel = inverseLabelForGroup(group, types);
     const typeId = typeUrlForGroup(group, types);
+
     const color = edgeColorForType(
       group ? primaryTypeOfSet(group.directTypeIds, types) : undefined,
       types,
     );
 
-    if (agg.forwardCount > 0) {
+    if (aggregate.forward.size > 0) {
       edges.push({
         kind: "aggregate",
         visualKey: VisualEdgeKey(
-          `agg:${pairKey}:${agg.typeSetId as number}:forward`,
+          `agg:${pairKey}:${aggregate.typeSetId as number}:forward`,
         ),
         source,
         target,
         pairKey,
-        typeSetId: agg.typeSetId,
+        typeSetId: aggregate.typeSetId,
         typeId,
         direction: "forward",
         collapsed: false,
-        count: agg.forwardCount,
+        count: aggregate.forward.size,
         totalPairCount: pair.totalCount,
-        distinctTypeCount: typeAggs.length,
+        distinctTypeCount: aggregations.length,
         color,
-        widthWorld: widthForCount(agg.forwardCount),
+        widthWorld: widthForCount(aggregate.forward.size),
         typeLabel,
         // Assigned once the final visualEdges order is known (#buildFrame).
         laneId: -1,
-        linkEntityIdxs: Array.from(agg.forwardLinks),
+        entities: structuredClone(aggregate.forward),
       });
     }
 
-    if (agg.reverseCount > 0) {
+    if (aggregate.reverse.size > 0) {
       edges.push({
         kind: "aggregate",
         visualKey: VisualEdgeKey(
-          `agg:${pairKey}:${agg.typeSetId as number}:reverse`,
+          `agg:${pairKey}:${aggregate.typeSetId as number}:reverse`,
         ),
         source,
         target,
         pairKey,
-        typeSetId: agg.typeSetId,
+        typeSetId: aggregate.typeSetId,
         typeId,
         direction: "reverse",
         collapsed: false,
-        count: agg.reverseCount,
+        count: aggregate.reverse.size,
         totalPairCount: pair.totalCount,
-        distinctTypeCount: typeAggs.length,
+        distinctTypeCount: aggregations.length,
         color,
-        widthWorld: widthForCount(agg.reverseCount),
+        widthWorld: widthForCount(aggregate.reverse.size),
         typeLabel: inverseLabel,
         // Assigned once the final visualEdges order is known (#buildFrame).
         laneId: -1,
-        linkEntityIdxs: Array.from(agg.reverseLinks),
+        entities: structuredClone(aggregate.reverse),
       });
     }
   }
@@ -522,15 +500,10 @@ function explodePair(
   return edges;
 }
 
-// Edge aggregator
-
 /**
- * Maintains edge aggregation state across frames. Supports
- * incremental updates: when the LOD cut changes, only links
- * whose visible owner changed are reclassified.
- *
- * Falls back to full recomputation when >35% of entities
- * changed owners, or on first run / after reset.
+ * Maintains edge aggregation state across frames. When the LOD cut changes,
+ * only links whose visible owner changed are reclassified; falls back to
+ * full recomputation when >35% of entities changed owners.
  */
 export class EdgeAggregator {
   readonly #pairs = new Map<string, MutablePairAggregation>();
@@ -545,10 +518,7 @@ export class EdgeAggregator {
     this.#previousCutIndex = undefined;
   }
 
-  /**
-   * Update aggregation for a new LOD cut. Uses incremental
-   * reclassification when possible, full recomputation otherwise.
-   */
+  /** Update aggregation for a new LOD cut. */
   update(
     cutIndex: CutIndex,
     linkStore: LinkStore,
@@ -579,26 +549,23 @@ export class EdgeAggregator {
     return this.#pairs;
   }
 
-  /**
-   * Classify a link and apply its contribution (sign = +1)
-   * or undo it (sign = -1).
-   */
+  /** Apply (sign = +1) or undo (sign = -1) a link's aggregation contribution. */
   #applyLink(
-    linkId: number,
-    leftIdx: number,
-    rightIdx: number,
+    linkId: LinkId,
+    leftIndex: EntityIndex | -1,
+    rightIndex: EntityIndex | -1,
     typeSetId: TypeSetId,
     linkEntityIdx: EntityIndex,
     cutIndex: CutIndex,
     sign: 1 | -1,
   ): void {
-    if (leftIdx === -1 || rightIdx === -1) {
+    if (leftIndex === -1 || rightIndex === -1) {
       this.#hiddenCount += sign;
       return;
     }
 
-    const leftOwner = cutIndex.ownerOf(leftIdx);
-    const rightOwner = cutIndex.ownerOf(rightIdx);
+    const leftOwner = cutIndex.ownerOf(leftIndex);
+    const rightOwner = cutIndex.ownerOf(rightIndex);
 
     if (!leftOwner || !rightOwner) {
       this.#hiddenCount += sign;
@@ -612,8 +579,8 @@ export class EdgeAggregator {
           this.#individuals.set(linkId, {
             linkId,
             ownerClusterId: leftOwner,
-            leftEntityIdx: leftIdx,
-            rightEntityIdx: rightIdx,
+            leftEntityIndex: leftIndex,
+            rightEntityIndex: rightIndex,
             typeSetId,
           });
         } else {
@@ -628,9 +595,7 @@ export class EdgeAggregator {
     // Different visible owners: aggregate.
     const { key, sourceId, targetId } = makePairKey(leftOwner, rightOwner);
 
-    // The link flows from leftOwner (source) to rightOwner (target).
-    // "forward" means that flow matches the PairKey sort order, i.e.
-    // the link's source owner is the lower-sorted cluster.
+    // "forward" = flow matches PairKey sort order (source is the lower-sorted cluster).
     const forward = leftOwner === sourceId;
 
     if (sign === 1) {
@@ -640,46 +605,49 @@ export class EdgeAggregator {
         this.#pairs.set(key, pair);
       }
 
-      let typeAgg = pair.byType.get(typeSetId as number);
-      if (!typeAgg) {
-        typeAgg = {
+      let aggregation = pair.byType.get(typeSetId);
+
+      if (!aggregation) {
+        aggregation = {
           typeSetId,
-          forwardCount: 0,
-          reverseCount: 0,
-          forwardLinks: new Set(),
-          reverseLinks: new Set(),
+          forward: new Set(),
+          reverse: new Set(),
         };
-        pair.byType.set(typeSetId as number, typeAgg);
+
+        pair.byType.set(typeSetId, aggregation);
       }
+
       if (forward) {
-        typeAgg.forwardCount++;
-        typeAgg.forwardLinks.add(linkEntityIdx);
+        aggregation.forward.add(linkEntityIdx);
       } else {
-        typeAgg.reverseCount++;
-        typeAgg.reverseLinks.add(linkEntityIdx);
+        aggregation.reverse.add(linkEntityIdx);
       }
-      pair.totalCount++;
-    } else {
-      const pair = this.#pairs.get(key);
-      if (pair) {
-        const typeAgg = pair.byType.get(typeSetId as number);
-        if (typeAgg) {
-          if (forward) {
-            typeAgg.forwardCount--;
-            typeAgg.forwardLinks.delete(linkEntityIdx);
-          } else {
-            typeAgg.reverseCount--;
-            typeAgg.reverseLinks.delete(linkEntityIdx);
-          }
-          if (typeAgg.forwardCount <= 0 && typeAgg.reverseCount <= 0) {
-            pair.byType.delete(typeSetId as number);
-          }
-        }
-        pair.totalCount--;
-        if (pair.totalCount <= 0) {
-          this.#pairs.delete(key);
-        }
+
+      pair.totalCount += 1;
+      return;
+    }
+
+    const pair = this.#pairs.get(key);
+    if (pair === undefined) {
+      return;
+    }
+
+    const aggregation = pair.byType.get(typeSetId);
+    if (aggregation) {
+      if (forward) {
+        aggregation.forward.delete(linkEntityIdx);
+      } else {
+        aggregation.reverse.delete(linkEntityIdx);
       }
+
+      if (aggregation.forward.size === 0 && aggregation.reverse.size === 0) {
+        pair.byType.delete(typeSetId);
+      }
+    }
+
+    pair.totalCount -= 1;
+    if (pair.totalCount <= 0) {
+      this.#pairs.delete(key);
     }
   }
 
@@ -688,13 +656,13 @@ export class EdgeAggregator {
     this.#individuals.clear();
     this.#hiddenCount = 0;
 
-    for (let i = 0; i < linkStore.count; i++) {
+    for (let link = 0; link < linkStore.count; link++) {
       this.#applyLink(
-        i,
-        linkStore.getLeft(i) as number,
-        linkStore.getRight(i) as number,
-        linkStore.getTypeSetId(i),
-        linkStore.getEntityIndex(i),
+        link as LinkId,
+        linkStore.getLeft(link),
+        linkStore.getRight(link),
+        linkStore.getTypeSetId(link),
+        linkStore.getEntityIndex(link),
         cutIndex,
         1,
       );
@@ -702,23 +670,23 @@ export class EdgeAggregator {
   }
 
   #incrementalUpdate(
-    changedEntities: Set<number>,
+    changedEntities: Set<EntityIndex>,
     newCutIndex: CutIndex,
     linkStore: LinkStore,
   ): void {
     const oldCutIndex = this.#previousCutIndex!;
-    const processedLinks = new Set<number>();
+    const processedLinks = new Set<LinkId>();
 
     for (const entityIdx of changedEntities) {
-      const links = linkStore.linksFor(entityIdx as EntityIndex);
-      for (const link of links) {
+      for (const link of linkStore.linksFor(entityIdx)) {
         if (processedLinks.has(link.linkId)) {
           continue;
         }
+
         processedLinks.add(link.linkId);
 
-        const leftIdx = linkStore.getLeft(link.linkId) as number;
-        const rightIdx = linkStore.getRight(link.linkId) as number;
+        const leftIdx = linkStore.getLeft(link.linkId);
+        const rightIdx = linkStore.getRight(link.linkId);
         const typeSetId = linkStore.getTypeSetId(link.linkId);
         const linkEntityIdx = linkStore.getEntityIndex(link.linkId);
 
@@ -732,6 +700,7 @@ export class EdgeAggregator {
           oldCutIndex,
           -1,
         );
+
         this.#applyLink(
           link.linkId,
           leftIdx,
@@ -745,8 +714,8 @@ export class EdgeAggregator {
     }
   }
 
-  #findChangedEntities(newCutIndex: CutIndex): Set<number> {
-    const changed = new Set<number>();
+  #findChangedEntities(newCutIndex: CutIndex): Set<EntityIndex> {
+    const changed = new Set<EntityIndex>();
     const oldCutIndex = this.#previousCutIndex!;
 
     // Entities whose owner changed or who left the view.
@@ -802,12 +771,12 @@ export class EdgeAggregator {
         visualKey: VisualEdgeKey(`link:${edge.linkId}`),
         source: {
           kind: "entity",
-          entityIdx: edge.leftEntityIdx,
+          entityIdx: edge.leftEntityIndex,
           ownerClusterId: edge.ownerClusterId,
         },
         target: {
           kind: "entity",
-          entityIdx: edge.rightEntityIdx,
+          entityIdx: edge.rightEntityIndex,
           ownerClusterId: edge.ownerClusterId,
         },
         linkId: edge.linkId,

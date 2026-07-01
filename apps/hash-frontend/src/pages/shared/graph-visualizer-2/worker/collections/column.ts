@@ -1,9 +1,3 @@
-/**
- * A typed array constructor that can create views over a SharedArrayBuffer.
- *
- * This is the type-level trick that makes Column generic: pass the constructor
- * as a value, and TypeScript infers the element type from it.
- */
 type BackingBuffer = SharedArrayBuffer | ArrayBuffer;
 
 const sharedBufferAvailable = typeof SharedArrayBuffer !== "undefined";
@@ -114,7 +108,7 @@ export class Column<A extends TypedArray, T extends number = number> {
 
   push(value: T): number {
     if (this.#length >= this.#view.length) {
-      this.#grow();
+      this.#grow(this.#length + 1);
     }
 
     const idx = this.#length;
@@ -159,6 +153,38 @@ export class Column<A extends TypedArray, T extends number = number> {
     return new ColumnView<A, T>(filled.subarray(start, end) as A);
   }
 
+  /**
+   * Remove the first occurrence of `value` by swapping it with the last
+   * element and shrinking by one. O(n) scan, O(1) removal. Returns true
+   * if the value was found.
+   */
+  swapRemove(value: T): boolean {
+    for (let i = 0; i < this.#length; i++) {
+      if (this.#view[i] === value) {
+        this.#length--;
+        if (i < this.#length) {
+          this.#view[i] = this.#view[this.#length]!;
+        }
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /** Append all elements from one or more columns. */
+  append(...columns: Column<A, T>[]): void {
+    let total = this.#length;
+    for (const column of columns) {
+      total += column.#length;
+    }
+
+    this.#ensureCapacity(total);
+    for (const column of columns) {
+      this.#view.set(column.#view.subarray(0, column.#length), this.#length);
+      this.#length += column.#length;
+    }
+  }
+
   /** Copy the filled portion (or a sub-range) into a new independent Column. */
   slice(start?: number, end?: number): Column<A, T> {
     const source = this.subarray(start, end);
@@ -169,8 +195,18 @@ export class Column<A extends TypedArray, T extends number = number> {
     return col;
   }
 
-  #grow(): void {
-    const newCapacity = Math.max(1, this.#view.length * 2);
+  #ensureCapacity(needed: number): void {
+    if (needed <= this.#view.length) {
+      return;
+    }
+    this.#grow(needed);
+  }
+
+  #grow(minCapacity: number): void {
+    let newCapacity = Math.max(1, this.#view.length * 2);
+    while (newCapacity < minCapacity) {
+      newCapacity *= 2;
+    }
     const newByteLength = newCapacity * this.#ctor.BYTES_PER_ELEMENT;
 
     if (

@@ -1,27 +1,23 @@
 /* eslint-disable id-length, no-param-reassign */
 /**
- * Bubble ports: dedicated boundary points where edges enter or exit
- * a cluster. For each pair of connected visible clusters, a port on
- * each cluster faces the other. All edges between the pair are routed
- * through these two ports, producing clean bundled paths.
+ * Bubble ports: dedicated boundary points where edges enter or exit a cluster.
  *
- * Port slotting ensures minimum angular separation between ports on
- * the same cluster. When too many neighbors lie in similar directions,
- * ports are merged into angular sectors.
- *
- * Hysteresis: port assignments are cached per (clusterId, neighbor set).
- * Ports only recompute when the set of connected neighbors changes.
+ * For each pair of connected visible clusters, a port on each cluster faces
+ * the other. Minimum angular separation is enforced; when too many neighbors
+ * lie in similar directions, ports merge into angular sectors. Port assignments
+ * are cached and only recompute when the connected neighbor set changes.
  */
+
 import type { VizConfig } from "../../config";
 import type { Circle } from "../../geometry";
 import type { ClusterId } from "../../ids";
 import type { ClusterTree } from "../hierarchy/cluster-tree";
-/** Minimal interface for pair data needed by port computation. */
+
 export interface PairInfo {
   readonly sourceId: ClusterId;
   readonly targetId: ClusterId;
   readonly totalCount: number;
-  readonly byType: ReadonlyMap<number, unknown>;
+  readonly byType: ReadonlySet<number>;
 }
 
 export interface Port {
@@ -48,8 +44,6 @@ interface RawPort {
   readonly edgeCount: number;
   readonly distinctTypes: number;
 }
-
-// Helpers (above callers)
 
 function makePort(
   clusterId: ClusterId,
@@ -78,11 +72,9 @@ function makePort(
 const MAX_PORT_ARC = Math.PI / 3;
 
 /**
- * Pool Adjacent Violators: the optimal monotone non-decreasing least-squares fit
- * of `desired`, in O(n). With the cumulative reserved-arc offsets folded out
- * (see {@link placePortsOnPerimeter}), placing ports at minimum total
- * displacement subject to "stay in cyclic order, keep a gap apart" is isotonic
- * regression, and PAVA solves it exactly.
+ * Pool Adjacent Violators (PAVA): optimal monotone non-decreasing least-squares
+ * fit of `desired`, in O(n). See {@link placePortsOnPerimeter} for how the
+ * isotonic regression maps to port placement.
  */
 function poolAdjacentViolators(desired: readonly number[]): number[] {
   const blocks: { sum: number; count: number }[] = [];
@@ -110,20 +102,13 @@ function poolAdjacentViolators(desired: readonly number[]): number[] {
 }
 
 /**
- * Place ports on the bubble's perimeter. Model: a port is a node constrained to
- * the circle, free to slide along it. Each wants its ideal angle, the perimeter
- * point nearest its target (straight toward the neighbor), which keeps the
- * leader short and stops the edge cutting back through the bubble. Ports reserve
- * an arc (proportional to lane count, so wider bundles get more room) and may
- * not overlap; we slide them the minimum total amount to satisfy that while
- * preserving their cyclic order, so leaders never cross.
+ * Place ports on the bubble's perimeter with minimum displacement, preserving
+ * cyclic order and enforcing arc-based non-overlap.
  *
- * Theory: fix the cyclic order (cut the rim at the pair with the most free
- * space) and fold out the cumulative reserved-arc offsets, then "minimise
- * sum(placed - ideal)² s.t. placed stays ordered, >= a gap apart" is exactly
- * isotonic regression, solved optimally by PAVA. It is the 1-D specialisation of
- * the separation-constraint solve (VPSC) WebCola runs for node non-overlap, the
- * same theory, applied to angles on the rim.
+ * Each port wants its ideal angle (straight toward its neighbor). Ports reserve
+ * an arc proportional to lane count and may not overlap. The cycle is cut at the
+ * pair with the most slack, then PAVA solves the resulting 1-D isotonic problem
+ * exactly.
  *
  * `ports` is pre-sorted ascending by ideal angle; mutates `port.angle`.
  */
@@ -205,10 +190,7 @@ function placePortsOnPerimeter(
   }
 }
 
-/**
- * Merge ports into angular sectors when there are too many for the
- * available screen space. Each neighbor maps to its sector's merged port.
- */
+/** Merge ports into angular sectors when there are too many for the rim. */
 function mergeByAngularSector(
   ports: readonly RawPort[],
   sectorCount: number,
@@ -275,10 +257,7 @@ function mergeByAngularSector(
   return result;
 }
 
-/**
- * Compute slotted ports for a single cluster, returning a map
- * from each neighbor cluster ID to the port serving it.
- */
+/** Compute slotted ports for a single cluster. */
 function slotPorts(
   clusterId: ClusterId,
   rawPorts: RawPort[],
@@ -292,16 +271,12 @@ function slotPorts(
   // Sort by angle for slotting.
   rawPorts.sort((a, b) => a.angle - b.angle);
 
-  // Zoom-independent slotting: a port's slot is a function of neighbor
-  // direction only, so ports never re-slot or reassign as the user pans/zooms
-  // (spec section 6.5.3 hysteresis). They recompute only when the neighbor set
-  // or cluster positions change, which the PortCache key captures.
+  // Slotting is zoom-independent: ports recompute only when neighbor set
+  // or cluster positions change, not on pan/zoom.
   const portCap = config.maxPortsPerCluster;
   const minSepAngle = (2 * Math.PI) / portCap;
 
   if (rawPorts.length <= portCap) {
-    // Slide ports to their minimum-displacement, non-overlapping, order-
-    // preserving positions on the rim (ideal = straight toward each neighbor).
     placePortsOnPerimeter(rawPorts, minSepAngle, MAX_PORT_ARC);
 
     const result = new Map<ClusterId, Port>();
@@ -333,16 +308,10 @@ function slotPorts(
   );
 }
 
-// Port hysteresis cache
-
 /**
- * Caches port assignments per cluster, keyed by a composite signature
- * that captures everything port positions depend on: the cluster's own
- * circle, each neighbor's center, the neighbor set, and zoom.
- *
- * Ports are reused only when none of those inputs changed, preserving
- * hysteresis without freezing ports at stale positions as the force
- * layout moves clusters.
+ * Caches port assignments per cluster, keyed by a signature of the
+ * cluster's circle, each neighbor's center, and the neighbor set.
+ * Ports reuse cached positions until an input changes.
  */
 export class PortCache {
   readonly #cache = new Map<
@@ -367,8 +336,6 @@ export class PortCache {
   }
 }
 
-// Top-level port computation
-
 interface NeighborInfo {
   readonly neighborId: ClusterId;
   readonly edgeCount: number;
@@ -390,13 +357,7 @@ function addNeighborInfo(
   list.push({ neighborId: to, edgeCount, distinctTypes });
 }
 
-/**
- * Compute ports for all connected cluster pairs. Returns a map
- * from pair key to { source port, target port }.
- *
- * Uses the PortCache for hysteresis: unchanged neighbor sets
- * reuse cached port positions.
- */
+/** Compute ports for all connected cluster pairs. */
 export function computeAllPorts(
   pairs: ReadonlyMap<string, PairInfo>,
   clusterTree: ClusterTree,
@@ -456,9 +417,6 @@ export function computeAllPorts(
     }
 
     sigParts.sort();
-    // No zoom in the key: slotting is zoom-independent, so a pan/zoom never
-    // invalidates ports. Positions stay in the key so ports follow the layout
-    // while it settles, then stay put once it freezes.
     const cacheKey = `${cluster.circle.x.toFixed(2)},${cluster.circle.y.toFixed(2)},${cluster.circle.radius.toFixed(2)}|${sigParts.join(
       ";",
     )}`;

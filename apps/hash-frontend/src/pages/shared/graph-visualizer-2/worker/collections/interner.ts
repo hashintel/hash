@@ -1,9 +1,6 @@
 /**
- * Bidirectional string interner.
- *
- * Assigns a stable integer index to each unique string value.
- * Used for entity IDs, type-set keys, and versioned URLs to avoid
- * storing millions of repeated string references.
+ * Bidirectional interner: assigns a stable integer index to each
+ * unique value, and supports reverse lookup by index.
  */
 export class Interner<In, Out extends number> {
   readonly #map: Map<In, Out>;

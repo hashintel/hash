@@ -5,10 +5,6 @@
  * Each node in the cut has a mode: render as bubble, show children,
  * or show individual entities. Hysteresis prevents flickering
  * at threshold boundaries.
- *
- * Transitions (spec 4.4) are not yet implemented: LOD changes
- * snap immediately rather than animating. Needs Deck.gl transition
- * support or manual interpolation on the main thread.
  */
 import { Bbox, screenRadius } from "../../geometry";
 
@@ -37,22 +33,25 @@ function setsEqual<T>(lhs: Set<T>, rhs: Set<T>): boolean {
   if (lhs.size !== rhs.size) {
     return false;
   }
+
   for (const item of lhs) {
     if (!rhs.has(item)) {
       return false;
     }
   }
+
   return true;
 }
 
 /**
  * Tracks the previous LOD decisions for hysteresis.
- * Open/close thresholds differ so clusters don't flicker at boundaries.
+ * Open/close thresholds differ so a cluster that just opened
+ * requires a smaller screen radius to close than it took to open.
  */
 export class LodState {
-  readonly #visibleIds = new Set<ClusterId>();
-  readonly #showingChildren = new Set<ClusterId>();
-  readonly #showingEntities = new Set<ClusterId>();
+  #visibleIds = new Set<ClusterId>();
+  #showingChildren = new Set<ClusterId>();
+  #showingEntities = new Set<ClusterId>();
 
   wasShowingChildren(clusterId: ClusterId): boolean {
     return this.#showingChildren.has(clusterId);
@@ -83,11 +82,7 @@ export class LodState {
     return { visible, children, entities };
   }
 
-  /**
-   * Non-destructive probe: would applying this cut change the committed
-   * open-state? Lets a caller decide whether a frame is needed without
-   * mutating hysteresis state.
-   */
+  /** Would applying this cut change the committed open-state? */
   wouldChange(items: readonly LodItem[]): boolean {
     const { visible, children, entities } = this.#partition(items);
     return (
@@ -99,6 +94,7 @@ export class LodState {
 
   /**
    * Commit a new visible cut. Returns true if the cut changed.
+   *
    * This is the single point where open-state is committed; call it
    * alongside force-layout creation/destruction so they never diverge.
    */
@@ -110,20 +106,9 @@ export class LodState {
       !setsEqual(children, this.#showingChildren) ||
       !setsEqual(entities, this.#showingEntities);
 
-    this.#visibleIds.clear();
-    for (const id of visible) {
-      this.#visibleIds.add(id);
-    }
-
-    this.#showingChildren.clear();
-    for (const id of children) {
-      this.#showingChildren.add(id);
-    }
-
-    this.#showingEntities.clear();
-    for (const id of entities) {
-      this.#showingEntities.add(id);
-    }
+    this.#visibleIds = visible;
+    this.#showingChildren = children;
+    this.#showingEntities = entities;
 
     return changed;
   }
@@ -133,8 +118,8 @@ export class LodState {
  * Compute the visible cut: which clusters to render and in what mode.
  *
  * Walks the cluster tree top-down, using screen-space radius to decide
- * whether to open each cluster. Uses a priority queue (largest screen
- * radius first) and respects render budgets.
+ * whether to open each cluster. Largest screen radius is processed first;
+ * render budgets cap the total cluster and entity count.
  */
 export function computeVisibleCut(
   tree: ClusterTree,
@@ -143,8 +128,8 @@ export function computeVisibleCut(
   lodState: LodState,
   config: VizConfig,
   trySubdivide?: (node: ClusterNode) => boolean,
-  /** Clusters forced open regardless of zoom/viewport/budget (a pinned selection's leaf +
-   * ancestors). Ancestors open to children; the pinned leaf opens to entities. */
+  /** Clusters forced open regardless of zoom, viewport, or budget.
+   * Ancestors open to children; the pinned leaf opens to entities. */
   pinnedOpen?: ReadonlySet<ClusterId>,
 ): LodItem[] {
   const root = tree.get(rootId);
@@ -161,8 +146,8 @@ export function computeVisibleCut(
     viewport.zoom,
   );
 
-  // Priority queue sorted by screen radius (largest first).
-  // Simple array + sort since cluster counts are bounded by maxRenderedClusters.
+  // Simple array sorted by screen radius (largest first).
+  // Cluster counts are bounded by maxRenderedClusters, so O(n²) splice is fine.
   const queue: ClusterNode[] = [];
 
   for (const child of root.children) {
@@ -180,23 +165,20 @@ export function computeVisibleCut(
   while (queue.length > 0) {
     const node = queue.shift()!;
 
-    // The cut is viewport-independent for inclusion: an off-screen cluster is
-    // not dropped. Frustum culling is Deck.gl's job at render time; dropping a
-    // panned-off cluster from the cut used to make it vanish from the obstacle
-    // list, so edges suddenly re-routed "as if it never existed", and it churned
-    // a re-commit on every pan. Whether a cluster opens is still viewport-gated
-    // (centerInView, with hysteresis so it doesn't snap shut when panned out).
+    // Every cluster stays in the cut regardless of viewport position. Frustum
+    // culling is Deck.gl's job; removing a panned-off cluster from the cut made
+    // it vanish from the obstacle list, re-routing edges on every pan.
+    //
+    // Whether a cluster *opens* is viewport-gated (centerInView below, with
+    // hysteresis so it doesn't snap shut when panned partially off-screen).
 
     const rPx = screenRadiusPx(node, viewport.zoom);
     let hasChildren = node.children.length > 0;
     const viewMin = Math.min(viewport.width, viewport.height);
 
-    // Only open clusters whose center is inside the viewport.
-    // Already-open clusters stay open using the close threshold
-    // even if panned partially off-screen.
     const centerInView = viewBbox.containsPoint(node.circle.x, node.circle.y);
 
-    // Hysteresis: thresholds as fraction of viewport min dimension.
+    // Hysteresis: open/close thresholds differ, as fraction of viewport min dimension.
     const wasOpen = lodState.wasShowingChildren(node.id);
     const openChildren = wasOpen
       ? rPx >= config.closeChildrenFraction * viewMin
@@ -207,11 +189,11 @@ export function computeVisibleCut(
       ? rPx >= config.closeEntitiesFraction * viewMin
       : centerInView && rPx >= config.openEntitiesFraction * viewMin;
 
-    // A pinned cluster (the selected node's leaf + ancestors) opens regardless of zoom,
-    // viewport, or budget -- it stays open until deselected (the birds-eye view).
+    // Pinned clusters (the selected node's leaf + ancestors) open regardless of
+    // zoom, viewport, or budget. They stay open until deselected.
     const pinned = pinnedOpen?.has(node.id) ?? false;
 
-    // Leaf cluster small enough to show entities?
+    // Leaf cluster small enough to reveal individual entities?
     if (
       !hasChildren &&
       node.count <= config.entityRevealMax &&
@@ -225,12 +207,11 @@ export function computeVisibleCut(
     }
 
     // Too large for entities and no children: try lazy subdivision.
-    // Only attempt when screen space warrants opening.
     if (!hasChildren && (openChildren || pinned) && trySubdivide?.(node)) {
       hasChildren = node.children.length > 0;
     }
 
-    // Has children and big enough to open?
+    // Big enough to open and has children to show?
     if (
       hasChildren &&
       (pinned ||
@@ -240,7 +221,6 @@ export function computeVisibleCut(
     ) {
       result.push({ clusterId: node.id, mode: "children" });
 
-      // Add children to the queue, maintaining sort order.
       for (const child of node.children) {
         const childRPx = screenRadiusPx(child, viewport.zoom);
         let insertIdx = 0;

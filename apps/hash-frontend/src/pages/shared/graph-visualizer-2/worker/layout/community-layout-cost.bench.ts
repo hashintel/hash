@@ -28,9 +28,9 @@ import louvain from "graphology-communities-louvain";
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { bench, describe } from "vitest";
 
+import { parkMillerRng } from "../../math/random";
 import { buildForceGraph } from "../bench-fixtures";
 import { FlatGraphBuffer } from "../buffers/position-buffer";
-import { parkMillerRng } from "../random";
 import { createCommunityLayout } from "./community-layout";
 import { SparseStressSeeder } from "./sparse-stress-seed";
 

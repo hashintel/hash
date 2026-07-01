@@ -1,18 +1,12 @@
 /* eslint-disable no-bitwise */
 /**
- * SharedArrayBuffer-backed position storage shared by every layout engine
- * (d3-force entity layouts and the WebCola cluster layout).
+ * SharedArrayBuffer-backed position storage.
  *
- * Layout: [version: int32 (4 bytes)] [x0, y0, x1, y1, ... : float32]
+ * Layout: `[version: int32] [x0, y0, x1, y1, ... : float32]`
  *
- * The worker fills {@link PositionBuffer.positions} and calls
- * {@link PositionBuffer.commit}; the version counter (bumped atomically and
- * notified) lets the main thread detect changes via Atomics.waitAsync and read
- * the same memory with zero copying. When SharedArrayBuffer is unavailable we
- * fall back to a plain ArrayBuffer whose contents are messaged across.
- *
- * The growable SharedArrayBuffer primitives ({@link makeGrowableBuffer}, grow-or-republish) live in
- * growable-buffer.ts; {@link FlatGraphBuffer} subclasses {@link GrowableBuffer} for them.
+ * The worker fills positions and calls {@link PositionBuffer.commit}; the
+ * version counter (atomic + notify) lets the main thread detect changes
+ * via `Atomics.waitAsync` with zero copying.
  */
 
 import {
@@ -53,19 +47,9 @@ export class PositionBuffer {
 }
 
 /**
- * Per-leaf entity-dot buffer: a 4-byte version header, then one INTERLEAVED record per node:
- *
- *   [version:i32]  then  count records of  { x:f32, y:f32, rgba:u8 x4 }   (12 bytes each)
- *
- * Positions stream from the force layout each tick ({@link setPosition}); the worker writes the
- * per-node colour once it knows it ({@link setColor}), so a selection focus-dim can mutate one
- * node's colour in place without a rebuild. The renderer reads BOTH straight off the buffer as
- * Deck binary attributes -- see {@link leafPositionAttribute} / {@link leafColorAttribute}.
- *
- * Distinct from the positions-only {@link PositionBuffer} (still used by the macro cluster
- * layout, which carries no colour) and from {@link FlatGraphBuffer} (one whole-graph,
- * growable, with radius + entityIdx too). A leaf's node set is fixed for the layout's life
- * (it is recreated wholesale on a count change), so this buffer is non-growable.
+ * Per-leaf entity-dot buffer: interleaved records of `{ x:f32, y:f32, rgba:u8x4 }`
+ * (12 bytes each) after a 4-byte version header. Non-growable; recreated on
+ * count change.
  */
 export const LEAF_HEADER_BYTES = 4;
 export const LEAF_RECORD_BYTES = 12;
@@ -161,20 +145,12 @@ export function leafColorAttribute(raw: SharedArrayBuffer | ArrayBuffer): {
 }
 
 /**
- * Interleaved layout of the flat-tier shared buffer. All per-node GPU data lives in one
- * buffer as a header plus fixed-size records:
+ * Flat-tier interleaved shared buffer. Header plus fixed-size records:
  *
- *   [version:i32][count:u32]  then  count records of
- *   { x:f32, y:f32, radius:f32, rgba:u8 x4, entityIdx:u32 }   (20 bytes each)
+ *   `[version:i32][count:u32]` then count records of
+ *   `{ x:f32, y:f32, radius:f32, rgba:u8x4, entityIdx:u32 }` (20 bytes each)
  *
- * `entityIdx` is the join key: it maps a rendered record back to its entity (the
- * main thread pairs it with the EntityIdx->EntityId map buffer, see entity-id-buffer.ts).
- *
- * Interleaving (one record per node) is what makes the buffer growable: appending
- * a node is "write one record at index `count`, bump `count`, one atomic sync",
- * no region shuffling. The renderer reads each field straight off this buffer via
- * stride/offset (the constants below), so there is never a gather or a copy.
- * (`version` must be the Int32Array view, Atomics.notify only accepts that.)
+ * `entityIdx` is the join key mapping a rendered record back to its entity.
  */
 export const FLAT_HEADER_BYTES = 8;
 export const FLAT_RECORD_BYTES = 20;
@@ -186,17 +162,9 @@ export const FLAT_ENTITYIDX_BYTE_OFFSET = 16;
 const FLAT_RECORD_SLOTS = FLAT_RECORD_BYTES / 4;
 
 /**
- * SharedArrayBuffer-backed, interleaved store for the flat-tier graph. The layout writes
- * positions each tick; the worker writes radius/colour/count on commit. Per-node
- * updates (a settling position, a degree-driven radius, an interaction highlight)
- * are written in place, never via a structure-frame round-trip.
- *
- * This buffer is uploaded to the GPU each frame (the renderer reads its records as
- * Deck.gl binary attributes), and WebGL rejects views over a resizable ArrayBuffer, so
- * it is non-resizable (`resizable: false`). `capacity` may exceed the live `count` so
- * streamed nodes append into spare records in place; outgrowing it goes through
- * {@link GrowableBuffer.ensureCapacity}'s re-allocate + re-publish path (a fresh, still
- * fixed, uploadable buffer), not an in-place `.grow`.
+ * Growable, interleaved store for the flat-tier graph. Non-resizable
+ * (GPU-uploaded); outgrowing capacity re-allocates via
+ * {@link GrowableBuffer.ensureCapacity}.
  */
 export class FlatGraphBuffer extends GrowableBuffer {
   /** `count` header slot. */
@@ -222,11 +190,7 @@ export class FlatGraphBuffer extends GrowableBuffer {
     this.bindRecordViews(this.raw);
   }
 
-  /**
-   * Re-point the field views at `raw`. Re-runs on every re-allocation (this buffer never
-   * grows in place, it is non-resizable for GPU upload). `#count` keeps its explicit
-   * length 1 (it is a single header slot).
-   */
+  /** Re-point field views at the (re-allocated) buffer. */
   protected override bindRecordViews(
     raw: SharedArrayBuffer | ArrayBuffer,
   ): void {

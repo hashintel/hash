@@ -1,18 +1,10 @@
 /**
- * Build a {@link FeatureSource} for {@link nameClustersByDistinctiveFeatures} over the worker's
- * stores. This is the seam where the distinctive-feature namer (a pure module) meets the
- * worker's by-value indexes:
+ * Adapts the worker's stores into a {@link FeatureSource} for
+ * {@link nameClustersByDistinctiveFeatures}.
  *
- *  - exact `(property = value)` features and raw numeric/date readings come from the
- *    {@link PropertyStore},
- *  - link/target-type features come from the {@link LinkStore}: for each link a member
- *    participates in, the PRIMARY type of the entity at the other end, resolved to its title
- *    via the type registry -- the answer to "what does this group link TO". The target's
- *    SUB-cluster would be a sharper signal, but those clusters don't exist yet at naming time;
- *    the target's type is the coarse proxy available now.
- *
- * Feature keys are namespaced strings (`p`/`lt`/`n` + NUL-separated fields) so the namer can
- * treat them as opaque while this module decodes them in {@link FeatureSource.describe}.
+ * Feature keys are namespaced strings (`p`/`lt`/`n` + NUL-separated fields);
+ * the namer treats them as opaque and this module decodes them in
+ * {@link FeatureSource.describe}.
  */
 import { primaryTypeOfSet } from "../entity-style";
 

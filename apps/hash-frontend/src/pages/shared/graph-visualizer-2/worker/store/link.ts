@@ -121,35 +121,38 @@ export class LinkStore {
     return this.#entity.get(linkId);
   }
 
+  degreeOf(entityIndex: EntityIndex): number {
+    return this.#adjacency.get(entityIndex)?.length ?? 0;
+  }
+
   /** All links touching an entity, with direction. O(degree). */
-  linksFor(entityIndex: EntityIndex): LinkEndpoint[] {
+  *linksFor(
+    entityIndex: EntityIndex,
+  ): Generator<LinkEndpoint, void, undefined> {
     const linkIds = this.#adjacency.get(entityIndex);
     if (!linkIds) {
-      return [];
+      return;
     }
 
-    const result: LinkEndpoint[] = [];
     for (const linkId of linkIds) {
       const left = this.#left.get(linkId);
       const right = this.#right.get(linkId);
 
       if (left === entityIndex && right !== -1) {
-        result.push({
+        yield {
           linkId,
           otherId: right,
           typeSetId: this.#type.get(linkId),
           direction: "out",
-        });
+        };
       } else if (right === entityIndex && left !== -1) {
-        result.push({
+        yield {
           linkId,
           otherId: left,
           typeSetId: this.#type.get(linkId),
           direction: "in",
-        });
+        };
       }
     }
-
-    return result;
   }
 }

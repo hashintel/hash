@@ -1,22 +1,16 @@
 /**
- * How strongly a top-level bubble resists moving during an incremental refine,
- * derived from where it sits on the user's screen.
+ * How strongly a top-level bubble resists moving during an incremental refine.
  *
- * Two ideas combine:
- * - CENTRALITY: pin what the user is looking at, let the rest reflow. The weight
- *   is ~1 at the viewport centre and decays (Gaussian) to {@link
- *   VIEWPORT_ANCHOR_FLOOR} once a bubble is roughly off-screen. The falloff
- *   radius is the viewport's visible half-diagonal in WORLD units, so it scales
- *   with zoom: zoomed in, only the few central bubbles are held; zoomed out,
- *   most of the graph is.
- * - ZOOM (screen-space stability): the inertia is penalised in WORLD units, but
- *   the user perceives SCREEN units, and `scale = 2**zoom` is screen px per world
- *   unit. So a wobble that's negligible in the world is magnified by `scale` when
- *   zoomed in — a bubble you've zoomed right into visibly drifts even though it
- *   barely moved. We amplify the on-screen pin by `scale` (clamped to ≥ 1× so
- *   zooming OUT keeps the baseline) to hold the focused bubble's SCREEN movement
- *   roughly constant across zoom. The amplification multiplies only the centrality
- *   term, so off-screen bubbles stay at the floor and remain free to reflow.
+ * Centrality: weight is ~1 at viewport centre, decaying (Gaussian) to
+ * {@link VIEWPORT_ANCHOR_FLOOR} once a bubble is roughly off-screen. The
+ * falloff radius is the visible half-diagonal in world units, so it scales
+ * with zoom.
+ *
+ * Zoom amplification: inertia is penalised in world units, but the user
+ * perceives screen units. A world-space wobble is magnified by `scale`
+ * when zoomed in. The on-screen pin is amplified by `scale` (clamped >= 1
+ * so zooming out keeps the baseline), applied only to the centrality term
+ * so off-screen bubbles remain free to reflow.
  */
 
 import type { ViewportState } from "../hierarchy/lod";

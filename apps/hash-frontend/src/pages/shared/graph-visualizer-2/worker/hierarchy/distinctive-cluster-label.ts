@@ -1,39 +1,26 @@
 /**
- * Name a set of sibling clusters by their distinctive shared FEATURES.
+ * Name a set of sibling clusters by their distinctive shared features.
  *
- * Some upstream step (kmeans over embeddings, or the grouping fallback) has already grouped
- * the entities; this finds a meaningful NAME for each group from the features its members
- * share but its siblings don't. It is the same coverage x idf scoring the type labeler uses
- * ({@link distinctiveLabel}), generalised over a UNIFIED feature space:
+ * Given clusters that are already grouped (by embeddings or a grouping fallback),
+ * this finds a meaningful label for each group from the features its members share
+ * but its siblings don't. Features come from three sources:
  *
  *  - exact `(property = value)` pairs (e.g. `Destination = "foo"`),
- *  - numeric/date RANGES (e.g. `Quantity 100–500`), bucketed per-subdivision from the live
- *    distribution of the siblings (so a group split off by magnitude gets a range name even
- *    though no single exact value is common to it), and
- *  - LINK target types (e.g. `→ Material`) -- what a group's members link TO, the only signal
- *    that distinguishes entities whose own properties are uniform (e.g. batches).
+ *  - numeric/date ranges (e.g. `Quantity 100–500`), bucketed per-subdivision from
+ *    the live distribution of the siblings, and
+ *  - link target types (e.g. `→ Material`).
  *
- * For every feature:
- *  - coverage = fraction of a cluster's members that carry it (it must be COMMON within the
- *    group), and
- *  - idf = inverse document frequency across the SIBLING clusters (it must be RARE across
- *    them -- "depending on its pre-clustering").
+ * Scoring is coverage * IDF: a feature must be common within the cluster (coverage
+ * >= {@link MIN_COVERAGE}) and rare across siblings (high IDF). Features are grouped
+ * by a dedup key so a compound label never repeats a dimension.
  *
- * So a feature every group shares scores ~0 and is ignored, while one characteristic of a
- * single group wins. Features are grouped by a dedup GROUP key (all values/ranges of one
- * property, and each link target, form a group) so a compound label never repeats a
- * dimension and an exact value and its range can't both appear.
+ * Collision breaking has two stages: first, extend colliding labels with the next
+ * most distinctive feature; then, when characteristic features are exhausted, separate
+ * on the feature where the groups most differ. Genuinely indistinguishable groups
+ * share a name.
  *
- * Collisions are broken in two stages. First, two groups landing on the same label are each
- * extended with their next-most-distinctive CHARACTERISTIC feature. When that is exhausted
- * because the groups genuinely share every >= MIN_COVERAGE feature, they are separated on the
- * feature where they MOST differ -- searched across ALL coverages, not just the dominant ones.
- * Only two truly indistinguishable groups stay sharing a name.
- *
- * The scan is bounded: a cluster with more than {@link MAX_SAMPLE_MEMBERS} members is named
- * from a deterministic, evenly-spread SAMPLE of that many, so naming cost stays flat on huge
- * clusters. The chosen parts render in a deterministic order and join onto separate lines, so
- * a multi-part label reads as a stable little table inside the bubble and never reorders.
+ * Cost is bounded: clusters above {@link MAX_SAMPLE_MEMBERS} are named from a
+ * deterministic, evenly-spread sample. Labels render in deterministic sort order.
  */
 import type { ClusterId, EntityIndex } from "../../ids";
 
@@ -42,17 +29,15 @@ export interface ClusterMembers {
   readonly memberIdxs: Int32Array;
 }
 
-/** What a feature renders to in a label, plus the group it dedups within and its sort key. */
 export interface FeatureDescriptor {
   /** Dedup group: at most one part per group appears in a compound label. */
   readonly group: string;
-  /** The fully-rendered label line, e.g. `Destination = "foo"`, `Quantity 100–500`, `→ Material`. */
+  /** Rendered label line, e.g. `Destination = "foo"`, `Quantity 100–500`, `→ Material`. */
   readonly text: string;
-  /** Stable key the parts of a label sort by (so a label never reshuffles its lines). */
+  /** Stable sort key so a multi-part label never reshuffles its lines. */
   readonly sortKey: string;
 }
 
-/** A raw numeric reading of one member, to be bucketed into a range per-subdivision. */
 export interface NumericReading {
   /** Stable per-property axis key; range buckets are computed per dimension. */
   readonly dimension: string;
@@ -60,7 +45,6 @@ export interface NumericReading {
   readonly value: number;
 }
 
-/** Title + kind of a numeric axis, for rendering its range buckets. */
 export interface NumericDimension {
   /** Dedup group, shared with the property's exact features so a property yields one part. */
   readonly group: string;
@@ -70,18 +54,17 @@ export interface NumericDimension {
 }
 
 /**
- * Supplies per-member features for naming. Implemented in the worker over its stores
- * ({@link createClusterFeatureSource}); mocked directly in tests. The namer treats every
- * key as opaque except numeric readings, whose range bucketing it owns.
+ * Supplies per-member features for naming. The namer treats every key as
+ * opaque except numeric readings, whose range bucketing it owns.
  */
 export interface FeatureSource {
   /** Stable feature keys for a member (exact property + link/target-type). */
   keysOf(member: EntityIndex): Iterable<string>;
-  /** Raw numeric/date readings for a member, for per-subdivision range bucketing. */
+  /** Raw numeric/date readings for a member. */
   numericsOf(member: EntityIndex): Iterable<NumericReading>;
-  /** Describe a key returned by {@link keysOf}, or undefined to ignore it. */
+  /** Describe a key returned by {@link keysOf}, or undefined to skip it. */
   describe(key: string): FeatureDescriptor | undefined;
-  /** Describe a numeric dimension (title + kind), or undefined to ignore it. */
+  /** Describe a numeric dimension, or undefined to skip it. */
   describeNumeric(dimension: string): NumericDimension | undefined;
 }
 
@@ -90,11 +73,11 @@ const MIN_COVERAGE = 0.6;
 /** Most parts joined into one compound label (collision breaking). */
 const MAX_LABEL_PARTS = 3;
 /**
- * A discriminative tie-break feature need only be reasonably common in its cluster (the
- * groups already share their dominant features, so the separator lives below MIN_COVERAGE).
+ * A discriminative tie-break feature need only be reasonably common (the groups
+ * already share their dominant features, so the separator lives below MIN_COVERAGE).
  */
 const DISCRIMINATOR_MIN_COVERAGE = 0.34;
-/** ...and it must actually separate: this much more prevalent here than in the colliding peers. */
+/** Minimum coverage gap between this cluster and the colliding peers. */
 const DISCRIMINATOR_MIN_GAP = 0.2;
 /** Discriminative passes to attempt once characteristic compounding is exhausted. */
 const MAX_DISCRIMINATOR_PASSES = 2;
@@ -102,17 +85,16 @@ const MAX_DISCRIMINATOR_PASSES = 2;
 /** Cap the members scanned per cluster; bigger clusters name from an even sample of this many. */
 const MAX_SAMPLE_MEMBERS = 5000;
 /**
- * A numeric axis needs at least this many DISTINCT values across the subdivision to be range
- * bucketed; below it the property is low-cardinality and its exact value features name it.
+ * A numeric axis needs at least this many distinct values across the subdivision
+ * to be range-bucketed; below that, exact value features name it instead.
  */
 const MIN_NUMERIC_DISTINCT = 8;
 
-/** Per-subdivision range buckets for one numeric axis. */
 interface NumericRange {
   readonly describe: NumericDimension;
   /** Strictly-increasing interior edges; bucket b spans [edges[b-1], edges[b]). */
   readonly edges: number[];
-  /** Observed [min, max] of the values that fall in each bucket (parallel to edges + 1). */
+  /** Observed [min, max] per bucket (parallel to `edges.length + 1`). */
   readonly bounds: { min: number; max: number }[];
 }
 
@@ -121,10 +103,7 @@ interface Candidate extends FeatureDescriptor {
   readonly score: number;
 }
 
-/**
- * A deterministic, evenly-spread sample of at most `max` members. Returns the input
- * unchanged when it already fits, so small clusters are scanned in full.
- */
+/** Deterministic, evenly-spread sample of at most `max` members. */
 function subsample(members: Int32Array, max: number): Int32Array {
   if (members.length <= max) {
     return members;
@@ -202,13 +181,11 @@ function rangeDescriptor(
 }
 
 /**
- * Per-axis range buckets for the whole subdivision. Bucket edges sit at the MIDPOINTS between
- * the clusters' median values (not at global quantiles): a group split off by magnitude
- * occupies a contiguous band, so a midpoint between its median and its neighbour's keeps that
- * whole band in ONE bucket -- where equal-frequency quantiles would slice the band in two and
- * leave its coverage below MIN_COVERAGE. Only high-cardinality axes are bucketed (low-cardinality
- * ones name fine by exact value), and only those with two or more distinct cluster medians (no
- * contrast, no point).
+ * Per-axis range buckets for the whole subdivision. Bucket edges sit at the
+ * midpoints between the clusters' median values: a group split off by magnitude
+ * occupies a contiguous band, so a midpoint keeps that whole band in one bucket.
+ * Equal-frequency quantiles would slice the band in two and leave coverage below
+ * {@link MIN_COVERAGE}.
  */
 function buildNumericRanges(
   samples: readonly Int32Array[],
@@ -284,9 +261,9 @@ function buildNumericRanges(
 }
 
 /**
- * Coverage of every feature in one cluster (fraction of sampled members carrying it),
- * registering each feature's descriptor as it is first seen. A member counts a feature once,
- * however many of its links/values produce it.
+ * Coverage of every feature in one cluster (fraction of sampled members carrying it).
+ * Descriptors are registered as features are first seen. Each member counts a feature
+ * at most once.
  */
 function clusterCoverage(
   sample: Int32Array,
@@ -342,8 +319,8 @@ function clusterCoverage(
 }
 
 /**
- * Rank a cluster's distinctive candidates: keep only the best-scoring feature PER GROUP (so a
- * compound label never repeats a property and reaches for a different one), distinctive first.
+ * Rank a cluster's distinctive candidates, keeping the best-scoring feature per
+ * dedup group so a compound label never repeats a dimension.
  */
 function rankCandidates(
   coverage: Map<string, number>,
@@ -400,9 +377,9 @@ function rankCandidates(
 }
 
 /**
- * The feature most over-represented in `here` versus the colliding `peers`, drawn from ALL
- * of this cluster's features (not just the >= MIN_COVERAGE ones), excluding groups already in
- * the label. Undefined when nothing separates them well enough.
+ * The feature most over-represented in `here` versus the colliding `peers`,
+ * excluding groups already used. Returns undefined when nothing separates
+ * them above {@link DISCRIMINATOR_MIN_GAP}.
  */
 function bestDiscriminator(
   here: Map<string, number>,
@@ -450,9 +427,8 @@ function bestDiscriminator(
 }
 
 /**
- * Render a label's parts to its display string: parts ordered deterministically by sort key
- * (then text) and placed one per line. The stable order means the same SET of parts always
- * renders to the same string, so collision detection is exact.
+ * Render parts to their display string: deterministic sort order, one per line.
+ * The stable ordering guarantees collision detection is exact.
  */
 function renderLabel(parts: readonly FeatureDescriptor[]): string {
   return [...parts]
@@ -466,9 +442,8 @@ function renderLabel(parts: readonly FeatureDescriptor[]): string {
 }
 
 /**
- * Turn ranked candidates into labels, extending colliding clusters until their labels
- * separate (characteristic compounding first, then a discriminative tie-break) or the
- * label-part budget is spent.
+ * Turn ranked candidates into labels, extending colliding clusters until they
+ * separate or the label-part budget is spent.
  */
 function resolveLabels(
   clusters: readonly ClusterMembers[],
@@ -483,7 +458,6 @@ function resolveLabels(
     (parts) => new Set(parts.map((part) => part.group)),
   );
 
-  // Indices of named clusters grouped by identical rendered label (size > 1 = a collision).
   const collisions = (): number[][] => {
     const byLabel = new Map<string, number[]>();
     for (let index = 0; index < clusters.length; index++) {
@@ -501,7 +475,7 @@ function resolveLabels(
     return [...byLabel.values()].filter((bucket) => bucket.length > 1);
   };
 
-  // Phase 1: lengthen colliding clusters with their next CHARACTERISTIC candidate.
+  // Phase 1: lengthen colliding clusters with their next characteristic candidate.
   for (let pass = 1; pass < MAX_LABEL_PARTS; pass++) {
     const groups = collisions();
     if (groups.length === 0) {
@@ -528,8 +502,8 @@ function resolveLabels(
     }
   }
 
-  // Phase 2: clusters that still collide share every characteristic feature -- separate them
-  // on the feature where they MOST differ. Genuinely identical groups find nothing and stay.
+  // Phase 2: clusters that still collide share every characteristic feature.
+  // Separate them on the feature where they most differ.
   for (let pass = 0; pass < MAX_DISCRIMINATOR_PASSES; pass++) {
     const groups = collisions();
     if (groups.length === 0) {
@@ -575,8 +549,8 @@ function resolveLabels(
 }
 
 /**
- * Distinctive label per cluster. Only clusters with a confident, distinctive signature appear
- * in the result; the rest keep their placeholder.
+ * Compute a distinctive label for each cluster. Clusters without a confident
+ * distinctive signature are omitted from the result and keep their placeholder.
  */
 export function nameClustersByDistinctiveFeatures(
   clusters: readonly ClusterMembers[],
@@ -584,22 +558,18 @@ export function nameClustersByDistinctiveFeatures(
 ): Map<ClusterId, string> {
   const clusterCount = clusters.length;
 
-  // Bound the scan: name big clusters from an even sample so cost stays flat.
   const samples = clusters.map((cluster) =>
     subsample(cluster.memberIdxs, MAX_SAMPLE_MEMBERS),
   );
 
-  // Numeric/date axes are bucketed from the whole subdivision's distribution first.
   const ranges = buildNumericRanges(samples, source);
 
-  // Per-cluster feature coverage (fraction of members sharing each feature), building the
-  // shared descriptor table as features are encountered.
   const descriptors = new Map<string, FeatureDescriptor>();
   const coverages = samples.map((sample) =>
     clusterCoverage(sample, source, ranges, descriptors),
   );
 
-  // Document frequency: how many clusters a feature is CHARACTERISTIC of (>= MIN_COVERAGE).
+  // Document frequency: how many clusters a feature covers at >= MIN_COVERAGE.
   const documentFrequency = new Map<string, number>();
   for (const coverage of coverages) {
     for (const [key, fraction] of coverage) {

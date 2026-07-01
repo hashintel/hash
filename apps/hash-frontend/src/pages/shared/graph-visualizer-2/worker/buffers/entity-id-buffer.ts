@@ -1,12 +1,7 @@
 /**
- * SharedArrayBuffer-backed `EntityIdx -> EntityId` map: the join key that lets the
- * main thread turn a rendered record back into its entity (for labels, icons, tooltips,
- * picking) without shuffling per-entity data through the worker.
- *
- * The worker is the sole writer (it owns interning); the main thread is a reader. It is
- * synchronized by the same atomic version bump as the position buffers, with no message,
- * no library, no bidirectional sync. The byte layout lives in {@link "../entity-id-codec"}
- * so the main-thread reader shares one decoder; this class is just the growable store.
+ * SharedArrayBuffer-backed `EntityIdx -> EntityId` map. The worker writes;
+ * the main thread reads via atomic version sync. Byte layout is defined
+ * in {@link "../entity-id-codec"}.
  */
 import {
   ENTITY_ID_BYTES,
@@ -18,8 +13,7 @@ import { GrowableBuffer, type RepublishHandler } from "./growable-buffer";
 
 import type { EntityId } from "@blockprotocol/type-system";
 
-/** Default growable ceiling (entities): reserves address space, commits as it grows.
- * A re-publish only fires past this. */
+/** Default growable ceiling (entities). Reserves address space, not committed memory. */
 const ENTITY_ID_MAX_CAPACITY = 262_144;
 
 export class EntityIdBuffer extends GrowableBuffer {
@@ -45,8 +39,7 @@ export class EntityIdBuffer extends GrowableBuffer {
     encodeEntityId(this.#bytes, entityIdx, entityId);
   }
 
-  /** Reconstruct the EntityId for an EntityIdx (exercised by the round-trip tests; the
-   * main thread decodes its received buffer with {@link decodeEntityId} directly). */
+  /** Reconstruct the EntityId for an EntityIdx. */
   readId(entityIdx: number): EntityId {
     return decodeEntityId(this.#bytes, entityIdx);
   }

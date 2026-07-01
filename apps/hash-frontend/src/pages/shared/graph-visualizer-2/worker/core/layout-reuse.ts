@@ -1,27 +1,21 @@
 /**
- * When a settled cluster layout may be REUSED versus rebuilt from scratch.
+ * Decides when a settled cluster layout must be rebuilt.
  *
- * A layout is keyed by its parent and reused across commits for stability (so
- * the arrangement doesn't churn on every ingest). But a reused layout keeps the
- * positions it was solved with, while child radii are recomputed every commit
- * (radius ~ sqrt(entity count)). So a child that grows can end up OVERLAPPING a
- * neighbour at its frozen position — and, since the child COUNT is unchanged, a
- * count-only reuse guard never notices and the overlap is drawn forever.
+ * Layouts are reused across commits for stability, but a reused layout keeps
+ * frozen positions while child radii grow with entity count. A child that
+ * grows can overlap a neighbour at its frozen position, and a count-only
+ * guard never notices.
  *
- * The trigger is the overlap ITSELF, not a proxy like "radius grew > X%":
- * - growth with slack around it (no overlap) does NOT rebuild → no churn;
- * - growth INTO a neighbour rebuilds → the overlap is re-solved;
- * - a shrink never rebuilds (it only frees space).
- * A percentage-of-radius threshold gets both wrong: it rebuilds harmless growth
- * (churn) yet misses growth that overlaps in a tightly-packed spot.
+ * The trigger is the overlap itself: growth with slack around it keeps the
+ * layout, growth into a neighbour rebuilds it, and a shrink never rebuilds
+ * (it only frees space). A radius-percentage threshold would rebuild
+ * harmless growth (churn) yet miss overlap in a tightly-packed spot.
  */
 
 /**
  * How far one bubble may penetrate another (as a fraction of the smaller
- * radius) before a rebuild is forced. A small dead-band: it stops a freshly
- * solved layout — which leaves a little padding between bubbles — from
- * rebuilding the instant a child nibbles into that padding, while still firing
- * on any real, visible overlap.
+ * radius) before a rebuild is forced. A small dead-band so freshly-solved
+ * padding doesn't trigger an immediate rebuild.
  */
 export const OVERLAP_REBUILD_TOLERANCE_FRAC = 0.05;
 
@@ -37,11 +31,8 @@ interface SizedNode {
 }
 
 /**
- * Whether a reused layout (`previous`, the live layout nodes with their current
- * positions) must be rebuilt to fit the `current` children (same ids, but
- * freshly-sized radii): the child set changed, or some child now overlaps a
- * neighbour by more than `toleranceFrac` of the smaller radius. Pure and
- * side-effect free so it can be unit-tested directly.
+ * Whether a reused layout must be rebuilt: the child set changed, or a child
+ * now overlaps a neighbour by more than `toleranceFrac` of the smaller radius.
  */
 export function layoutNeedsRebuild(
   previous: readonly PlacedNode[],

@@ -38,7 +38,7 @@ import {
 } from "graphology-layout-forceatlas2";
 import iterate from "graphology-layout-forceatlas2/iterate";
 
-import { parkMillerRng } from "../random";
+import { parkMillerRng } from "../../math/random";
 import { SparseStressSeeder } from "./sparse-stress-seed";
 
 import type { Fa2Tuning } from "../../config";

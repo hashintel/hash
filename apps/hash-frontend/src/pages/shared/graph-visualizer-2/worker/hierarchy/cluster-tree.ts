@@ -2,6 +2,7 @@
 import { MutableCircle } from "../../geometry";
 import { ClusterId } from "../../ids";
 import { hslToRgb } from "../../math/color";
+import { murmur3StringUnit } from "../../math/hash";
 import { graphColors } from "../../visual-style";
 import { Column } from "../collections/column";
 import { subclusterByLinks } from "./community";
@@ -13,15 +14,9 @@ import type { LinkStore } from "../store/link";
 import type { TypeRegistry } from "../store/type-registry";
 import type { TypeSetGroup, TypeSetStore } from "../store/type-set";
 
-/* eslint-disable no-bitwise */
 function stableHashToAngle(id: string): number {
-  let hash = 0;
-  for (let idx = 0; idx < id.length; idx++) {
-    hash = ((hash << 5) - hash + id.charCodeAt(idx)) | 0;
-  }
-  return ((hash >>> 0) / 0xffffffff) * 2 * Math.PI;
+  return murmur3StringUnit(id) * 2 * Math.PI;
 }
-/* eslint-enable no-bitwise */
 
 export class ClusterLabel {
   readonly text: string;
@@ -190,102 +185,11 @@ function stableSortNodes(nodes: ClusterNode[]): ClusterNode[] {
   );
 }
 
-function mostSimilarSibling(
-  target: ClusterNode,
-  siblings: ClusterNode[],
-): ClusterNode | undefined {
-  let best: ClusterNode | undefined;
-  let bestOverlap = 0;
-
-  for (const sibling of siblings) {
-    if (sibling.id === target.id || sibling.circle.isOrigin) {
-      continue;
-    }
-
-    let overlap = 0;
-    for (const [typeIdx, mass] of target.mass.closure) {
-      const siblingMass = sibling.mass.closure.get(typeIdx);
-      if (siblingMass !== undefined) {
-        overlap += Math.min(mass, siblingMass);
-      }
-    }
-
-    if (overlap > bestOverlap) {
-      bestOverlap = overlap;
-      best = sibling;
-    }
-  }
-
-  return best;
-}
-
-function clampChildrenToParent(
-  children: readonly ClusterNode[],
-  parent: ClusterNode,
-  padding: number,
-): void {
-  for (const child of children) {
-    const dx = child.circle.x - parent.circle.x;
-    const dy = child.circle.y - parent.circle.y;
-    const dist = Math.hypot(dx, dy);
-    const maxDist = parent.circle.radius - child.circle.radius - padding;
-
-    if (maxDist <= 0) {
-      // Child is too large to fit: center it.
-      child.circle.x = parent.circle.x;
-      child.circle.y = parent.circle.y;
-    } else if (dist > maxDist) {
-      const scale = maxDist / dist;
-      child.circle.x = parent.circle.x + dx * scale;
-      child.circle.y = parent.circle.y + dy * scale;
-    }
-  }
-}
-
-function resolveCollisions(
-  nodes: readonly ClusterNode[],
-  iterations: number,
-): void {
-  const padding = 4;
-
-  for (let iter = 0; iter < iterations; iter++) {
-    let anyOverlap = false;
-
-    for (let idx = 0; idx < nodes.length; idx++) {
-      const a = nodes[idx]!;
-      for (let jdx = idx + 1; jdx < nodes.length; jdx++) {
-        const b = nodes[jdx]!;
-
-        if (a.circle.pushApart(b.circle, padding)) {
-          anyOverlap = true;
-        } else if (
-          Math.hypot(b.circle.x - a.circle.x, b.circle.y - a.circle.y) <= 0.001
-        ) {
-          // Coincident: pushApart can't determine direction.
-          // Separate along a deterministic angle derived from IDs.
-          anyOverlap = true;
-          const angle = stableHashToAngle(`${a.id}${b.id}`);
-          a.circle.x -= Math.cos(angle) * 2;
-          a.circle.y -= Math.sin(angle) * 2;
-          b.circle.x += Math.cos(angle) * 2;
-          b.circle.y += Math.sin(angle) * 2;
-        }
-      }
-    }
-
-    if (!anyOverlap) {
-      break;
-    }
-  }
-}
-
-/** Count -> leaf radius: area proportional to count (the same sqrt(count)*k mapping at every level). */
+/** Area-proportional radius: sqrt(count) * k. */
 const RADIUS_PER_SQRT_COUNT = 5;
-/** Floor so the smallest leaves stay visible. */
 const LEAF_MIN_RADIUS = 8;
-/** Larger floor for top-level bubbles, so a singleton type stays clickable. */
+/** Larger floor so singleton-type top-level bubbles stay clickable. */
 const TOP_LEVEL_MIN_RADIUS = 15;
-/** Inter-child gap and rim margin used when sizing a container to fit. */
 const ENCLOSE_GAP = 2;
 const ENCLOSE_PADDING = 3;
 
@@ -610,8 +514,7 @@ export class ClusterTree {
     return sum;
   }
 
-  /** Human-readable dump of the whole tree, for debugging (label, count, kind,
-   * radius, child count, id), indented by depth. */
+  /** Human-readable dump of the whole tree, indented by depth. */
   debugDump(): string {
     const lines: string[] = [];
     const visit = (node: ClusterNode, depth: number): void => {
@@ -628,15 +531,11 @@ export class ClusterTree {
     return lines.join("\n");
   }
 
-  /**
-   * Full pipeline: classify, materialize, label, hierarchy, layout.
-   * Cold-start path used on the first ingest batch.
-   */
+  /** Full rebuild pipeline. Cold-start path for the first ingest batch. */
   rebuild(
     typeSets: TypeSetStore,
     types: TypeRegistry,
     config: VizConfig,
-    totalNodeCount: number,
   ): void {
     for (const group of typeSets) {
       group.recomputeClosure(types);
@@ -647,11 +546,11 @@ export class ClusterTree {
     this.#materializeClusters(typeSets);
     this.#computeLabels(types);
     this.#buildDisplayHierarchy(types, config);
-    this.#layoutTopLevel(totalNodeCount);
+    this.#layoutTopLevel();
   }
 
   /**
-   * Incremental path. Handles count growth, new groups,
+   * Incremental update. Handles count growth, new groups,
    * threshold promotion, and re-targeting of small groups.
    */
   updateIncrementally(
@@ -659,7 +558,6 @@ export class ClusterTree {
     typeSets: TypeSetStore,
     types: TypeRegistry,
     config: VizConfig,
-    totalNodeCount: number,
   ): void {
     const dirtyIds = new Set<ClusterId>();
     let needsHierarchyRebuild = false;
@@ -767,12 +665,11 @@ export class ClusterTree {
       this.#buildDisplayHierarchy(types, config);
     }
 
-    this.#stableLayout(totalNodeCount);
+    this.#stableLayout();
   }
 
   /**
-   * Lazy subdivision trigger. Synchronously runs community
-   * detection when a leaf cluster is too large for entity reveal.
+   * Synchronously subdivide a leaf cluster via community detection.
    * Returns true if children were created.
    */
   ensureSubclusters(
@@ -874,11 +771,8 @@ export class ClusterTree {
   }
 
   /**
-   * Replace a node's label text — used to drop a distinctive-feature name over the
-   * placeholder of an embedding group ("Similar group n", {@link applyEmbeddingResult}) or a
-   * grouping-fallback group ("Group n": link-signature `community` + `entity-bucket` chunks).
-   * None of those kinds are touched by `#computeLabels`/`#relabelDirty` (those are type-set
-   * only), so the new text survives subsequent commits.
+   * Replace a node's label text. Safe to call on embedding or community
+   * nodes: their labels are not overwritten by `#computeLabels`.
    */
   setLabelText(id: ClusterId, text: string): void {
     const node = this.#nodes.get(id);
@@ -1089,7 +983,6 @@ export class ClusterTree {
       node.count += source.count;
       node.mass.absorb(source.mass);
     }
-    // Without a label a rollup renders as a nameless "(count)" bubble.
     if (label) {
       node.label = label;
     }
@@ -1213,13 +1106,10 @@ export class ClusterTree {
   }
 
   /**
-   * Bottom-up circle-packing radii. A family rollup grows to enclose its
-   * (already-sized) children so two small siblings never overlap inside a
-   * container that was otherwise sized by its small aggregate count. Every other
-   * node is sized by entity count (area proportional to count). Subdivided type-sets are
-   * sized/packed top-down elsewhere (#layoutChildrenInParent) and so are left
-   * count-based here, drilling into one must not reflow the top level. The
-   * per-node radius is then read by the force layout and the renderer.
+   * Bottom-up circle-packing radii. Family rollups grow to enclose their
+   * children so small siblings never overlap inside a count-sized container.
+   * Subdivided type-sets are sized top-down in `#layoutChildrenInParent`
+   * and stay count-based here so drilling in doesn't reflow the top level.
    */
   #assignRadii(): void {
     for (const child of this.#root.children) {
@@ -1245,28 +1135,21 @@ export class ClusterTree {
     }
   }
 
-  #layoutTopLevel(totalCount: number): void {
+  #layoutTopLevel(): void {
     const children = this.#root.children;
     if (children.length === 0) {
       return;
     }
 
     this.#assignRadii();
-
-    const angleStep = (2 * Math.PI) / children.length;
-    const baseRadius = Math.max(100, Math.sqrt(totalCount) * 4);
 
     for (let idx = 0; idx < children.length; idx++) {
       const child = children[idx]!;
       child.circle.radius = Math.max(TOP_LEVEL_MIN_RADIUS, child.circle.radius);
-      child.circle.x = Math.cos(angleStep * idx) * baseRadius;
-      child.circle.y = Math.sin(angleStep * idx) * baseRadius;
     }
-
-    resolveCollisions(children, 80);
   }
 
-  #stableLayout(totalCount: number): void {
+  #stableLayout(): void {
     const children = this.#root.children;
     if (children.length === 0) {
       return;
@@ -1274,31 +1157,9 @@ export class ClusterTree {
 
     this.#assignRadii();
 
-    const baseRadius = Math.max(100, Math.sqrt(totalCount) * 4);
-
     for (const child of children) {
-      const isNew = child.circle.isOrigin;
       child.circle.radius = Math.max(TOP_LEVEL_MIN_RADIUS, child.circle.radius);
-
-      if (isNew) {
-        const sibling = mostSimilarSibling(child, children);
-        if (sibling) {
-          const angle = stableHashToAngle(child.id);
-          child.circle.x =
-            sibling.circle.x +
-            Math.cos(angle) * (sibling.circle.radius + child.circle.radius + 8);
-          child.circle.y =
-            sibling.circle.y +
-            Math.sin(angle) * (sibling.circle.radius + child.circle.radius + 8);
-        } else {
-          const angle = stableHashToAngle(child.id);
-          child.circle.x = Math.cos(angle) * baseRadius;
-          child.circle.y = Math.sin(angle) * baseRadius;
-        }
-      }
     }
-
-    resolveCollisions(children, 80);
   }
 
   #layoutChildrenInParent(parent: ClusterNode): void {
@@ -1308,36 +1169,13 @@ export class ClusterTree {
     }
 
     const totalCount = children.reduce((sum, child) => sum + child.count, 0);
-    const padding = 4;
 
-    // Size children proportional to their entity count.
-    // Reserve space so child + placement fits inside the parent.
     for (const child of children) {
       child.circle.radius = Math.max(
         8,
         parent.circle.radius * Math.sqrt(child.count / totalCount) * 0.6,
       );
     }
-
-    // Place on a ring inside the parent. The ring radius is chosen
-    // so that child circles don't immediately poke out.
-    const maxChildR = children.reduce(
-      (max, child) => Math.max(max, child.circle.radius),
-      0,
-    );
-    const availableRadius = parent.circle.radius - maxChildR - padding;
-    const innerRadius = Math.max(0, availableRadius * 0.65);
-
-    const angleStep = (2 * Math.PI) / children.length;
-    for (let idx = 0; idx < children.length; idx++) {
-      children[idx]!.circle.x =
-        parent.circle.x + Math.cos(angleStep * idx) * innerRadius;
-      children[idx]!.circle.y =
-        parent.circle.y + Math.sin(angleStep * idx) * innerRadius;
-    }
-
-    resolveCollisions(children, 80);
-    clampChildrenToParent(children, parent, padding);
   }
 
   #propagateCountsToRoot(dirtyIds: Set<ClusterId>): void {

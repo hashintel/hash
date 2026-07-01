@@ -2,9 +2,9 @@
 import { entityIdFromComponents } from "@blockprotocol/type-system";
 
 import { EntityIndex, TypeSetId } from "../ids";
+import { mulberry32 } from "../math/random";
 import { Column } from "./collections/column";
 import { radiusForDegree } from "./entity-style";
-import { mulberry32 } from "./random";
 import { LinkStore } from "./store/link";
 
 import type { ForceEdge, ForceNode } from "./layout/force-simulation";

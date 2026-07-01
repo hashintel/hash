@@ -1,25 +1,12 @@
 /**
- * Authoritative world-position composition for the opened cluster subtree.
+ * Recompose world positions for the opened cluster subtree.
  *
- * A nested cluster's world position is a pure function of the layout offsets
- * down its ancestor chain: `child.world = parent.world + child.localOffset`,
- * where `localOffset` is the child's position in the parent's (local-frame)
- * layout. The macro layout moves only the top-level clusters; everything deeper
- * inherits that movement through this composition.
+ * `child.world = parent.world + child.localOffset`. Must run even through
+ * settled layouts: the macro layout may have moved an intermediate container,
+ * and a settled child layout never re-publishes its world circles.
  *
- * Crucially this must run even through layouts that have already settled: at
- * depth >= 2, an intermediate container's own layout is fine (its children's
- * local offsets are stable) but its world position shifted because the macro
- * moved it, and a settled layout never ticks to re-publish its children's world
- * circles. So instead of relying on each layout to write its own children when
- * it happens to tick (which left depth >= 2 leaves, and the ports the entity dots
- * chase, frozen at the parent's old position), we recompose the whole opened
- * subtree top-down before any positional read.
- *
- * Top-down order matters: a parent's world circle is updated before we descend,
- * so each level reads an already-correct parent. Recursion stops where there is
- * no child cluster layout (closed clusters, entity leaves), so the cost is
- * bounded by the opened subtree, not the whole tree.
+ * Top-down order: a parent's world circle is updated before we descend.
+ * Cost is bounded by the opened subtree, not the whole tree.
  */
 import type { ClusterId } from "../../ids";
 import type { ClusterNode } from "../hierarchy/cluster-tree";

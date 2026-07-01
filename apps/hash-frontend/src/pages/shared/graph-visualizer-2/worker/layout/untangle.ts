@@ -32,7 +32,7 @@
  * `totalEnergy` (O(E² + E*N + N²)) is computed only once per restart, to pick
  * the winner.
  */
-import { mulberry32 } from "../random";
+import { mulberry32 } from "../../math/random";
 
 /** Mutated in place. Positions are in the layout's local frame (origin-centred). */
 export interface UntangleNode {

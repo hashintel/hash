@@ -34,7 +34,7 @@
  * are still placed freely, and the layout keeps self-healing crossings — it just
  * does so by small, legible adjustments instead of wholesale reshuffles.
  */
-import { mulberry32 } from "../random";
+import { mulberry32 } from "../../math/random";
 
 /** A node being laid out; `x`/`y` are mutated in place. */
 export interface LayoutNode {
