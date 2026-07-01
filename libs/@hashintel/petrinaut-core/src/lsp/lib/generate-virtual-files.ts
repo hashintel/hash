@@ -37,6 +37,13 @@ function toTsType(type: ColorElementType | "ratio"): string {
   return "number";
 }
 
+/**
+ * Dynamics derivatives only apply to continuous (real) attributes. Discrete
+ * elements are typed `?: never` rather than omitted: user code returns
+ * derivatives through `tokens.map(...)`, whose result is not a fresh object
+ * literal, so excess property checks would not reject extra keys — `never`
+ * rejects them in any assignment.
+ */
 function toDynamicsDerivativeType(color: Color): string {
   const properties = color.elements
     .map((element) =>

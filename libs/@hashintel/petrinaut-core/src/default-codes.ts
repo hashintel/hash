@@ -12,9 +12,6 @@ const defaultTokenAttributeSource = (
   }
 };
 
-const defaultDerivativeSource = (element: Color["elements"][number]): string =>
-  element.type === "real" ? "1" : "0";
-
 export function generateDefaultVisualizerCode(type: Color): string {
   return `// This function defines how to visualize the tokens in the place of type "${type.name}".
 // It receives the current tokens and parameters.
@@ -38,6 +35,16 @@ export default Visualization(({ tokens, parameters }) => {
 });`;
 
 export function generateDefaultDifferentialEquationCode(type: Color): string {
+  const realElements = type.elements.filter(
+    (element) => element.type === "real",
+  );
+  const derivativeSource =
+    realElements.length > 0
+      ? `{
+      ${realElements.map((el) => `${el.name}: 1`).join(",\n      ")}
+    }; // Example: all real-valued derivatives = 1`
+      : `{}; // This type has no real-valued attributes; discrete values are unchanged by dynamics`;
+
   return `// This function defines the differential equation for the place of type "${type.name}".
 // The function receives the current tokens in this place and the parameters.
 // It should return derivatives for real-valued token attributes in this place.
@@ -45,9 +52,7 @@ export default Dynamics((tokens, parameters) => {
   return tokens.map(({ ${type.elements.map((el) => el.name).join(", ")} }) => {
     // ...Do some computation with input token here if needed
 
-    return {
-      ${type.elements.map((el) => `${el.name}: ${defaultDerivativeSource(el)}`).join(",\n      ")}
-    }; // Example: real-valued derivatives = 1; discrete values are unchanged
+    return ${derivativeSource}
   });
 });`;
 }
