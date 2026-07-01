@@ -1,7 +1,7 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { describe, expect, it } from "vitest";
 
-import { ClusterId, EntityIdx } from "../../ids";
+import { ClusterId, EntityIndex } from "../../ids";
 import { nameClustersByDistinctiveFeatures } from "./distinctive-cluster-label";
 
 import type {
@@ -61,9 +61,9 @@ class FeatureModel {
     return dimension;
   }
 
-  addMember(spec: MemberSpec): EntityIdx {
+  addMember(spec: MemberSpec): EntityIndex {
     this.#members.push(spec);
-    return EntityIdx(this.#members.length - 1);
+    return EntityIndex(this.#members.length - 1);
   }
 
   source(): FeatureSource {
@@ -79,7 +79,7 @@ class FeatureModel {
   }
 }
 
-function cluster(id: string, members: readonly EntityIdx[]): ClusterMembers {
+function cluster(id: string, members: readonly EntityIndex[]): ClusterMembers {
   return { childId: ClusterId(id), memberIdxs: Int32Array.from(members) };
 }
 
@@ -179,7 +179,7 @@ describe("nameClustersByDistinctiveFeatures", () => {
     // A and B uniquely share Region = US (rare across the 5 siblings, so it is each one's TOP
     // feature -> they collide); Tier is more widely shared, so it can only break the tie once
     // compounded on top of Region.
-    const members = (keys: readonly string[]): EntityIdx[] =>
+    const members = (keys: readonly string[]): EntityIndex[] =>
       [0, 1, 2].map(() => model.addMember({ keys, numerics: [] }));
     const groupA = members([us, gold]);
     const groupB = members([us, silver]);

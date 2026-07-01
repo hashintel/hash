@@ -6,9 +6,9 @@ import {
   primaryTypeOfSet,
   radiusForDegree,
 } from "./entity-style";
-import { TypeRegistry } from "./stores/type-registry";
+import { TypeRegistry } from "./store/type-registry";
 
-import type { TypeIdx } from "../ids";
+import type { TypeId } from "../ids";
 import type { TypeSchemaEntry } from "./protocol";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 
@@ -40,10 +40,10 @@ function hueOf(color: readonly number[]): number {
 
 function buildRegistry(): {
   registry: TypeRegistry;
-  company: TypeIdx;
-  customer: TypeIdx;
-  supplier: TypeIdx;
-  person: TypeIdx;
+  company: TypeId;
+  customer: TypeId;
+  supplier: TypeId;
+  person: TypeId;
 } {
   const company = url("company");
   const customer = url("customer");

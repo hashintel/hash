@@ -13,8 +13,8 @@ import { murmur3StringUnit } from "../math/hash";
 import { graphColors } from "../visual-style";
 
 import type { Color } from "../frames";
-import type { TypeIdx } from "../ids";
-import type { TypeRegistry } from "./stores/type-registry";
+import type { TypeId } from "../ids";
+import type { TypeRegistry } from "./store/type-registry";
 
 /** Hue step between successive colour slots (degrees). */
 const GOLDEN_ANGLE_DEG = 137.508;
@@ -41,7 +41,7 @@ const EDGE_NEUTRAL: Color = [...graphColors.fallbackEntity];
 export const FRONTIER_COLOR: Color = [...graphColors.frontier];
 
 function slotHue(
-  typeIdx: TypeIdx | undefined,
+  typeIdx: TypeId | undefined,
   types: TypeRegistry,
 ): number | undefined {
   if (typeIdx === undefined) {
@@ -56,10 +56,10 @@ function slotHue(
  * by the smallest idx.
  */
 export function primaryTypeOfSet(
-  typeIdxs: Iterable<TypeIdx>,
+  typeIdxs: Iterable<TypeId>,
   types: TypeRegistry,
-): TypeIdx | undefined {
-  let best: TypeIdx | undefined;
+): TypeId | undefined {
+  let best: TypeId | undefined;
   let bestDepth = -1;
   for (const typeIdx of typeIdxs) {
     const depth = types.get(typeIdx)?.depth ?? 0;
@@ -77,7 +77,7 @@ export function primaryTypeOfSet(
 
 /** Colour for a type. Falls back to neutral grey when the type or its root is unknown. */
 export function colorForType(
-  typeIdx: TypeIdx | undefined,
+  typeIdx: TypeId | undefined,
   types: TypeRegistry,
 ): Color {
   if (typeIdx === undefined) {
@@ -87,7 +87,7 @@ export function colorForType(
   if (info === undefined) {
     return NEUTRAL;
   }
-  const hue = slotHue(info.rootIdxs[0], types);
+  const hue = slotHue(info.rootIds[0], types);
   if (hue === undefined) {
     return NEUTRAL;
   }
@@ -115,7 +115,7 @@ export function colorForType(
  * all link types share a single root.
  */
 export function edgeColorForType(
-  typeIdx: TypeIdx | undefined,
+  typeIdx: TypeId | undefined,
   types: TypeRegistry,
 ): Color {
   const hue = slotHue(typeIdx, types);

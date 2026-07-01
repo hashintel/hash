@@ -31,7 +31,7 @@ import { nodeGeometry, selectionOverlayLayers } from "./selection";
 import { leafTypeIconLayers, typeIconLayer } from "./type-icons";
 
 import type { PositionsFrame, StructureFrame } from "../frames";
-import type { ClusterId, EntityIdx } from "../ids";
+import type { ClusterId, EntityIndex } from "../ids";
 import type { EgoTarget } from "../worker/protocol";
 import type { PlacedCluster } from "./clusters";
 import type { Selection, SelectionGeometry } from "./selection";
@@ -368,7 +368,7 @@ export class Scene {
   #highlightVersion = 0;
   /** Highlighted entities (selection + visible ego), mirroring what was sent to the worker, so
    * the internal leaf-edge lines dim in step with the dots they connect. */
-  #highlightedEntities: ReadonlySet<EntityIdx> = new Set();
+  #highlightedEntities: ReadonlySet<EntityIndex> = new Set();
   #hoveredEntity: EntityId | null = null;
   /**
    * The hovered highway's lane + the hovered point in WORLD space. Kept so the summary card tracks
@@ -389,7 +389,7 @@ export class Scene {
   #selected: Selection | null = null;
   /** A selected link EDGE (the link's own EntityIdx): a pinned card + Open, no ring/dim (a link
    * isn't a node to focus). Tracked by re-finding its bezier each emit. Excludes #selected. */
-  #selectedLink: EntityIdx | null = null;
+  #selectedLink: EntityIndex | null = null;
   /** The selected node's ego (neighbors' visible representatives: dots and/or bubbles). */
   #egoTargets: EgoRef[] = [];
 
@@ -1082,7 +1082,7 @@ export class Scene {
   // The link's EntityIdx for a pick on a FLAT-tier edge (there beziers.ids carries the link's
   // EntityIdx). Null otherwise -- including the hierarchical tier, where the same channel carries
   // an aggregate laneId instead (see #pickedHighwayLaneId).
-  #pickedLinkEntityIdx(info: PickingInfo): EntityIdx | null {
+  #pickedLinkEntityIdx(info: PickingInfo): EntityIndex | null {
     if (
       info.layer?.id !== FLAT_EDGE_LAYER_ID ||
       info.index < 0 ||
@@ -1091,7 +1091,9 @@ export class Scene {
       return null;
     }
     const id = this.#handle.getPositions()?.beziers.ids[info.index];
-    return id === undefined || id === BEZIER_NO_LINK ? null : (id as EntityIdx);
+    return id === undefined || id === BEZIER_NO_LINK
+      ? null
+      : (id as EntityIndex);
   }
 
   // The aggregate lane id for a pick on a HIERARCHICAL-tier highway (there beziers.ids carries
@@ -1157,7 +1159,7 @@ export class Scene {
 
   // Select a link edge: a pinned card (with Open) that tracks the link's midpoint -- no
   // ring/dim/ego (a link isn't a node to focus). Clears any node selection first (un-dims).
-  #selectLink(linkEntityIdx: EntityIdx): void {
+  #selectLink(linkEntityIdx: EntityIndex): void {
     this.#select(null);
     this.#selectedLink = linkEntityIdx;
     this.#emitSelection();
@@ -1305,7 +1307,7 @@ export class Scene {
 
   // World midpoint of a selected link's edge, by re-locating its bezier segment (segment order
   // changes per tick, but the link's EntityIdx is stable). null if the link isn't rendered.
-  #linkMidpoint(linkEntityIdx: EntityIdx): { x: number; y: number } | null {
+  #linkMidpoint(linkEntityIdx: EntityIndex): { x: number; y: number } | null {
     const positions = this.#handle.getPositions();
     if (!positions) {
       return null;

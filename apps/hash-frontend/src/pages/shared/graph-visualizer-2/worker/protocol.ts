@@ -2,7 +2,7 @@
 
 import type { VizConfig } from "../config";
 import type { PositionsFrame, StructureFrame } from "../frames";
-import type { ClusterId, EntityIdx, VizMode } from "../ids";
+import type { ClusterId, EntityIndex, VizMode } from "../ids";
 import type {
   EntityId,
   LinkData,
@@ -84,7 +84,7 @@ export interface EmbeddingClusteringResultMessage {
  * itself when individually rendered, or the cluster bubble it is collapsed into.
  */
 export type EgoTarget =
-  | { readonly kind: "entity"; readonly entityIdx: EntityIdx }
+  | { readonly kind: "entity"; readonly entityIdx: EntityIndex }
   | { readonly kind: "cluster"; readonly clusterId: ClusterId };
 
 /**
@@ -96,7 +96,7 @@ export interface QueryEgoMessage {
   readonly type: "QUERY_EGO";
   readonly requestId: number;
   /** EntityIdx (join key) of the selected node. */
-  readonly entityIdx: EntityIdx;
+  readonly entityIdx: EntityIndex;
 }
 
 /**
@@ -115,7 +115,7 @@ export interface SetPinnedMessage {
  */
 export interface SetHighlightMessage {
   readonly type: "SET_HIGHLIGHT";
-  readonly entityIdxs: readonly EntityIdx[];
+  readonly entityIdxs: readonly EntityIndex[];
 }
 
 /**
@@ -264,7 +264,7 @@ export interface EgoResultMessage {
 export interface HighwayLinksResultMessage {
   readonly type: "HIGHWAY_LINKS_RESULT";
   readonly requestId: number;
-  readonly linkEntityIdxs: readonly EntityIdx[];
+  readonly linkEntityIdxs: readonly EntityIndex[];
 }
 
 export type WorkerToMainMessage =

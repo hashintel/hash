@@ -9,21 +9,24 @@ import { Branded as make } from "./brand";
  */
 import type { Branded } from "./brand";
 
-export type EntityIdx = Branded<number, "EntityIdx">;
-export const EntityIdx = make<EntityIdx>();
+export type EntityIndex = Branded<number, "EntityIndex">;
+export const EntityIndex = make<EntityIndex>();
 
-export type LinkIdx = Branded<number, "LinkIdx">;
-export const LinkIdx = make<LinkIdx>();
+export type LinkId = Branded<number, "LinkId">;
+export const LinkId = make<LinkId>();
 
-export type TypeIdx = Branded<number, "TypeIdx">;
-export const TypeIdx = make<TypeIdx>();
+export type TypeId = Branded<number, "TypeId">;
+export const TypeId = make<TypeId>();
 
 /** Sorted, comma-joined TypeIdx values. Canonical grouping key. */
 export type TypeSetKey = Branded<string, "TypeSetKey">;
 export const TypeSetKey = make<TypeSetKey>();
 
-export type TypeSetIdx = Branded<number, "TypeSetIdx">;
-export const TypeSetIdx = make<TypeSetIdx>();
+export type TypeSetId = Branded<number, "TypeSetId">;
+export const TypeSetId = make<TypeSetId>();
+
+export type LabelId = Branded<number, "LabelId">;
+export const LabelId = make<LabelId>();
 
 export type ClusterId = Branded<string, "ClusterId">;
 export const ClusterId = make<ClusterId>();

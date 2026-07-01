@@ -16,12 +16,12 @@
  */
 import { primaryTypeOfSet } from "../entity-style";
 
-import type { EntityIdx, TypeIdx } from "../../ids";
-import type { EntityStore } from "../stores/entity-store";
-import type { LinkStore } from "../stores/link-store";
-import type { PropertyStore } from "../stores/property-store";
-import type { TypeRegistry } from "../stores/type-registry";
-import type { TypeSetStore } from "../stores/type-set-store";
+import type { EntityIndex, TypeId } from "../../ids";
+import type { EntityStore } from "../store/entity";
+import type { LinkStore } from "../store/link";
+import type { PropertyStore } from "../store/property";
+import type { TypeRegistry } from "../store/type-registry";
+import type { TypeSetStore } from "../store/type-set";
 import type {
   FeatureDescriptor,
   FeatureSource,
@@ -46,28 +46,28 @@ export function createClusterFeatureSource(
   const { properties, links, entities, typeSets, types } = deps;
 
   /** The primary (most specific) type of the entity an endpoint points at, if known. */
-  const targetTypeIdx = (otherIdx: EntityIdx): TypeIdx | undefined => {
-    const groupIdx = entities.getTypeGroup(otherIdx);
+  const targetTypeIdx = (otherIdx: EntityIndex): TypeId | undefined => {
+    const groupIdx = entities.getTypeSet(otherIdx);
     if (groupIdx === -1) {
       return undefined;
     }
-    const group = typeSets.getByIdx(groupIdx);
+    const group = typeSets.getById(groupIdx);
     if (!group) {
       return undefined;
     }
-    return primaryTypeOfSet(group.directTypeIdxs, types);
+    return primaryTypeOfSet(group.directTypeIds, types);
   };
 
   return {
-    *keysOf(member: EntityIdx): Iterable<string> {
+    *keysOf(member: EntityIndex): Iterable<string> {
       const features = properties.featuresOf(member);
       if (features) {
         for (const featureIdx of features) {
           yield `p\u0000${featureIdx}`;
         }
       }
-      for (const link of links.linksForEntity(member)) {
-        const typeIdx = targetTypeIdx(link.otherIdx);
+      for (const link of links.linksFor(member)) {
+        const typeIdx = targetTypeIdx(link.otherId);
         if (typeIdx === undefined) {
           continue;
         }
@@ -75,7 +75,7 @@ export function createClusterFeatureSource(
       }
     },
 
-    *numericsOf(member: EntityIdx): Iterable<NumericReading> {
+    *numericsOf(member: EntityIndex): Iterable<NumericReading> {
       const keys = properties.numericKeysOf(member);
       const values = properties.numericValuesOf(member);
       if (!keys || !values) {
@@ -101,7 +101,7 @@ export function createClusterFeatureSource(
       }
       if (parts[0] === "lt") {
         const direction = parts[1];
-        const info = types.get(Number(parts[2]) as TypeIdx);
+        const info = types.get(Number(parts[2]) as TypeId);
         if (!info) {
           return undefined;
         }

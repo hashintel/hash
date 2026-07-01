@@ -2,12 +2,12 @@
 
 import { BitSet } from "./collections/bitset";
 
-import type { EntityIdx } from "../ids";
+import type { EntityIndex } from "../ids";
 import type { Column } from "./collections/column";
-import type { LinkStore } from "./stores/link-store";
+import type { LinkStore } from "./store/link";
 
 export interface CsrGraph {
-  readonly nodeIds: Column<Int32Array, EntityIdx>;
+  readonly nodeIds: Column<Int32Array, EntityIndex>;
   /** Maps local index -> offset into neighbors/weights. Length = nodeIds.length + 1. */
   readonly offsets: Int32Array;
   readonly neighbors: Int32Array;
@@ -20,10 +20,10 @@ export interface CsrGraph {
  * Links with an endpoint outside the set, or self-loops, are dropped.
  */
 export function buildInducedCsr(
-  entityIdxs: Column<Int32Array, EntityIdx>,
+  entityIdxs: Column<Int32Array, EntityIndex>,
   links: LinkStore,
 ): CsrGraph {
-  const localIndex = new Map<EntityIdx, number>();
+  const localIndex = new Map<EntityIndex, number>();
   for (let idx = 0; idx < entityIdxs.length; idx++) {
     localIndex.set(entityIdxs.get(idx), idx);
   }

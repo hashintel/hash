@@ -62,17 +62,18 @@ export function murmur3(key: Uint8Array, seed: number = 0): number {
 
   let k1 = 0;
 
-  switch (tail.length) {
-    case 3:
-      k1 ^= tail[2]! << 16; // fallthrough
-    case 2:
-      k1 ^= tail[1]! << 8; // fallthrough
-    case 1:
-      k1 ^= tail[0]! << 0;
-      k1 = mul32(k1, c1);
-      k1 = rotl32(k1, 15);
-      k1 = mul32(k1, c2);
-      h1 ^= k1;
+  if (tail.length >= 3) {
+    k1 ^= tail[2]! << 16;
+  }
+  if (tail.length >= 2) {
+    k1 ^= tail[1]! << 8;
+  }
+  if (tail.length >= 1) {
+    k1 ^= tail[0]! << 0;
+    k1 = mul32(k1, c1);
+    k1 = rotl32(k1, 15);
+    k1 = mul32(k1, c2);
+    h1 ^= k1;
   }
 
   // finalization

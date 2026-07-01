@@ -40,11 +40,11 @@ import { createFlatLayout } from "../layout/flat-layout";
 import { sharedBufferAvailable } from "../layout/force-simulation";
 import { optimizeTopLevel } from "../layout/top-level-layout";
 import { untangleLayout } from "../layout/untangle";
-import { EntityStore } from "../stores/entity-store";
-import { LinkStore } from "../stores/link-store";
-import { PropertyStore } from "../stores/property-store";
-import { TypeRegistry } from "../stores/type-registry";
-import { TypeSetStore } from "../stores/type-set-store";
+import { EntityStore } from "../store/entity";
+import { LinkStore } from "../store/link";
+import { PropertyStore } from "../store/property";
+import { TypeRegistry } from "../store/type-registry";
+import { TypeSetStore } from "../store/type-set";
 import { layoutNeedsRebuild } from "./layout-reuse";
 import { viewportAnchorWeight } from "./viewport-anchor";
 
@@ -61,7 +61,7 @@ import type {
   RenderFlatGraph,
   StructureFrame,
 } from "../../frames";
-import type { EntityIdx, TypeSetIdx, TypeSetKey, VizMode } from "../../ids";
+import type { EntityIndex, TypeSetId, TypeSetKey, VizMode } from "../../ids";
 import type { RepublishHandler } from "../buffers/growable-buffer";
 import type { Port } from "../geometry/bubble-ports";
 import type { EdgeFrame } from "../geometry/edge-aggregation";
@@ -87,7 +87,7 @@ import type {
   PropertySchemaEntry,
   TypeSchemaEntry,
 } from "../protocol";
-import type { TypeSetGroup } from "../stores/type-set-store";
+import type { TypeSetGroup } from "../store/type-set";
 import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
 
 /** Above this node count, skip the D1 untangle (force result stands). */
@@ -129,7 +129,7 @@ interface FlatRenderEdge {
   readonly targetIdx: number;
   readonly color: Color;
   /** The link's own EntityIdx, so a picked edge resolves to its link entity. */
-  readonly linkEntityIdx: EntityIdx;
+  readonly linkEntityIdx: EntityIndex;
 }
 
 const FAN_OUT_COLOR: Color = [...graphColors.fanOutEdge];
@@ -224,7 +224,7 @@ export class GraphWorker {
   #pinnedLeaf: ClusterId | undefined;
   /** Entities kept at full colour while a highlight is active (a selection's ego now, a path
    * later); everyone else dims. Empty = no highlight. Set via {@link setHighlight}. */
-  #highlightedEntities = new Set<EntityIdx>();
+  #highlightedEntities = new Set<EntityIndex>();
 
   /** Set when an expand flips an already-rendered frontier node to a root. The flat tier restyles
    * every commit, but the hierarchical leaf path does not, so the worker re-applies styling after
@@ -275,7 +275,7 @@ export class GraphWorker {
   /** Per-lane link-entity unions for the CURRENT structure, indexed by laneId. A merged
    * highway's lanes all share one union (the whole ribbon's links); set by #buildHighwayLanes,
    * read by highwayLinks on click. */
-  #highwayLaneUnions: EntityIdx[][] = [];
+  #highwayLaneUnions: EntityIndex[][] = [];
 
   // MessageChannel-based simulation scheduler.
   readonly #schedulerChannel = new MessageChannel();
@@ -532,11 +532,11 @@ export class GraphWorker {
    * into. Neighbors not in view are omitted. The main thread highlights dots + bubbles from
    * this. O(degree); per selection, not per frame.
    */
-  ego(entityIdx: EntityIdx): EgoTarget[] {
+  ego(entityIdx: EntityIndex): EgoTarget[] {
     const cutIndex = this.#cutIndex;
     const targets = new Map<string, EgoTarget>();
-    for (const link of this.#links.linksForEntity(entityIdx)) {
-      const neighbor = link.otherIdx;
+    for (const link of this.#links.linksFor(entityIdx)) {
+      const neighbor = link.otherId;
 
       if (!cutIndex) {
         // Flat tier: no cut -- every entity is an individually-rendered dot.
@@ -572,13 +572,13 @@ export class GraphWorker {
    */
   insertNodeEntity(
     entity: IngestEntity,
-  ): { entityIdx: EntityIdx; groupKey: TypeSetKey } | undefined {
-    const [created, entityIdx] = this.#entities.tryInsert(entity.entityId);
+  ): { entityIdx: EntityIndex; groupKey: TypeSetKey } | undefined {
+    const [created, entityIdx] = this.#entities.insert(entity.entityId);
     // Apply root-ness even for an already-interned entity: an expand re-sends a frontier node as a
     // root, and this is what flips it. A flip of an already-rendered node needs a restyle the
     // commit alone won't do in the hierarchical tier (see restyleIfRootsFlipped).
     if (entity.isRoot) {
-      const flippedExisting = this.#entities.setRoot(entityIdx) && !created;
+      const flippedExisting = this.#entities.insertRoot(entityIdx) && !created;
       if (flippedExisting) {
         this.#rootFlipPending = true;
       }
@@ -595,7 +595,7 @@ export class GraphWorker {
 
     const group = this.#typeSets.getOrCreate(directTypeIdxs, this.#types.size);
     group.addEntity(entityIdx);
-    this.#entities.setTypeGroup(entityIdx, group.idx);
+    this.#entities.setTypeSet(entityIdx, group.id);
     // Reduce the entity's properties to its interned features now, while ingesting, so a
     // later cluster-naming pass just tallies integers (see {@link PropertyStore}).
     this.#properties.ingest(entityIdx, entity.properties);
@@ -609,13 +609,13 @@ export class GraphWorker {
       return;
     }
 
-    const [created, linkEntityIdx] = this.#entities.tryInsert(entity.entityId);
+    const [created, linkEntityIdx] = this.#entities.insert(entity.entityId);
     if (!created) {
       return;
     }
 
-    const leftIdx = this.#entities.tryGet(entity.linkData.leftEntityId) ?? -1;
-    const rightIdx = this.#entities.tryGet(entity.linkData.rightEntityId) ?? -1;
+    const leftIdx = this.#entities.lookup(entity.linkData.leftEntityId) ?? -1;
+    const rightIdx = this.#entities.lookup(entity.linkData.rightEntityId) ?? -1;
 
     const linkTypeIdxs = new ReadonlySortedSet(
       entity.entityTypeIds.map((url) => this.#types.intern(url)),
@@ -626,18 +626,18 @@ export class GraphWorker {
       this.#types.size,
     );
 
-    const linkIdx = this.#links.insert(
+    const linkId = this.#links.insert(
       leftIdx,
       rightIdx,
-      linkGroup.idx,
+      linkGroup.id,
       linkEntityIdx,
     );
 
     if (leftIdx === -1) {
-      this.#links.addPending(entity.linkData.leftEntityId, linkIdx);
+      this.#links.addPending(entity.linkData.leftEntityId, linkId);
     }
     if (rightIdx === -1) {
-      this.#links.addPending(entity.linkData.rightEntityId, linkIdx);
+      this.#links.addPending(entity.linkData.rightEntityId, linkId);
     }
   }
 
@@ -696,7 +696,7 @@ export class GraphWorker {
    * Used to snapshot counts before insert.
    */
   #peekGroup(entity: IngestEntity): TypeSetGroup | undefined {
-    if (this.#entities.tryGet(entity.entityId) !== undefined) {
+    if (this.#entities.lookup(entity.entityId) !== undefined) {
       return undefined; // Already inserted, skip.
     }
 
@@ -859,7 +859,7 @@ export class GraphWorker {
    * and everyone else dims, so the highlight pops. Empty restores full colour. Generic -- the
    * worker just dims the complement; the main thread decides what the set is.
    */
-  setHighlight(entityIdxs: readonly EntityIdx[]): void {
+  setHighlight(entityIdxs: readonly EntityIndex[]): void {
     this.#highlightedEntities = new Set(entityIdxs);
     this.#applyHighlight();
   }
@@ -1172,10 +1172,10 @@ export class GraphWorker {
    * order. Link entities live in no type-set group, so iterating the groups yields
    * exactly the nodes.
    */
-  #allNodeEntityIdxs(): EntityIdx[] {
-    const result: EntityIdx[] = [];
+  #allNodeEntityIdxs(): EntityIndex[] {
+    const result: EntityIndex[] = [];
     for (const group of this.#typeSets) {
-      for (const idx of group.entityIdxs) {
+      for (const idx of group.entities) {
         result.push(idx);
       }
     }
@@ -1192,7 +1192,7 @@ export class GraphWorker {
     if (this.#entityIdMapPublished) {
       return;
     }
-    const map = this.#entities.entityIdMap;
+    const map = this.#entities.lookupBuffer;
     this.#onLayoutMessage?.({
       type: "ENTITY_ID_MAP",
       buffer: map.raw,
@@ -1207,7 +1207,7 @@ export class GraphWorker {
    * appears beside an already-placed neighbour (incremental absorb, LAYOUT-MODES
    * "Incremental loading"). Replaces the shared buffer (LAYOUT_DESTROYED + LAYOUT_CREATED).
    */
-  #rebuildFlatLayout(entityIdxs: readonly EntityIdx[]): void {
+  #rebuildFlatLayout(entityIdxs: readonly EntityIndex[]): void {
     const previous = this.#forceLayouts.get(FLAT_LAYOUT_ID);
     const priorPositions = new Map<number, readonly [number, number]>();
     if (previous) {
@@ -1271,7 +1271,7 @@ export class GraphWorker {
    */
   #absorbFlatNodes(
     layout: LayoutSimulation,
-    entityIdxs: readonly EntityIdx[],
+    entityIdxs: readonly EntityIndex[],
   ): void {
     const priorPositions = new Map<number, readonly [number, number]>();
     for (const node of layout.nodes) {
@@ -1309,7 +1309,7 @@ export class GraphWorker {
    * absorbs streamed nodes instead of reshuffling.
    */
   #seedFlatNodes(
-    entityIdxs: readonly EntityIdx[],
+    entityIdxs: readonly EntityIndex[],
     priorPositions: ReadonlyMap<number, readonly [number, number]>,
   ): ForceNode[] {
     const goldenAngle = Math.PI * (3 - Math.sqrt(5));
@@ -1329,8 +1329,8 @@ export class GraphWorker {
         if (placed.has(idx)) {
           continue;
         }
-        for (const link of this.#links.linksForEntity(idx)) {
-          const neighbour = placed.get(link.otherIdx as number);
+        for (const link of this.#links.linksFor(idx)) {
+          const neighbour = placed.get(link.otherId as number);
           if (neighbour) {
             const angle = idx * goldenAngle;
             placed.set(idx, [
@@ -1359,7 +1359,7 @@ export class GraphWorker {
 
     return entityIdxs.map((idx) => {
       const position = placed.get(idx)!;
-      const degree = this.#links.linksForEntity(idx).length;
+      const degree = this.#links.linksFor(idx).length;
       return {
         id: String(idx),
         x: position[0],
@@ -1375,10 +1375,10 @@ export class GraphWorker {
    * recolours in place without a structure round-trip.
    */
   #writeFlatStyle(layout: LayoutSimulation, buffer: FlatGraphBuffer): void {
-    const colorByGroup = new Map<TypeSetIdx, Color>();
+    const colorByGroup = new Map<TypeSetId, Color>();
     for (let idx = 0; idx < layout.nodes.length; idx++) {
       const node = layout.nodes[idx]!;
-      const entityIdx = Number(node.id) as EntityIdx;
+      const entityIdx = Number(node.id) as EntityIndex;
       buffer.setRadius(idx, node.radius);
       const base = this.#colorForEntity(entityIdx, colorByGroup);
       const dimmed =
@@ -1404,24 +1404,24 @@ export class GraphWorker {
     for (let idx = 0; idx < layout.nodeIds.length; idx++) {
       localOf.set(Number(layout.nodeIds[idx]), idx);
     }
-    const colorCache = new Map<TypeSetIdx, Color>();
+    const colorCache = new Map<TypeSetId, Color>();
     const seenLinks = new Set<number>();
     const edges: FlatRenderEdge[] = [];
     for (const [entityIdx, sourceIdx] of localOf) {
-      for (const link of this.#links.linksForEntity(entityIdx as EntityIdx)) {
-        if (seenLinks.has(link.linkIdx)) {
+      for (const link of this.#links.linksFor(entityIdx as EntityIndex)) {
+        if (seenLinks.has(link.linkId)) {
           continue;
         }
-        const targetIdx = localOf.get(link.otherIdx as number);
+        const targetIdx = localOf.get(link.otherId as number);
         if (targetIdx === undefined) {
           continue;
         }
-        seenLinks.add(link.linkIdx);
+        seenLinks.add(link.linkId);
         edges.push({
           sourceIdx: link.direction === "out" ? sourceIdx : targetIdx,
           targetIdx: link.direction === "out" ? targetIdx : sourceIdx,
-          color: this.#edgeColorForTypeGroup(link.typeSetIdx, colorCache),
-          linkEntityIdx: this.#links.getEntityIdx(link.linkIdx),
+          color: this.#edgeColorForTypeGroup(link.typeSetId, colorCache),
+          linkEntityIdx: this.#links.getEntityIndex(link.linkId),
         });
       }
     }
@@ -1483,8 +1483,8 @@ export class GraphWorker {
       const highlighted = this.#highlightedEntities;
       const full =
         highlighted.size === 0 ||
-        (highlighted.has(Number(source.id) as EntityIdx) &&
-          highlighted.has(Number(target.id) as EntityIdx));
+        (highlighted.has(Number(source.id) as EntityIndex) &&
+          highlighted.has(Number(target.id) as EntityIndex));
       const color = full ? edge.color : dimColor(edge.color);
       sink.push(
         {
@@ -1517,12 +1517,12 @@ export class GraphWorker {
   }
 
   /** Hierarchy-aware colour for an entity, cached per type-set group. */
-  #colorForEntity(entityIdx: EntityIdx, cache: Map<TypeSetIdx, Color>): Color {
+  #colorForEntity(entityIdx: EntityIndex, cache: Map<TypeSetId, Color>): Color {
     // A frontier node (fetched, not yet expanded) reads greyed-out, whatever its type.
     if (!this.#entities.isRoot(entityIdx)) {
       return FRONTIER_COLOR;
     }
-    const groupIdx = this.#entities.getTypeGroup(entityIdx);
+    const groupIdx = this.#entities.getTypeSet(entityIdx);
     if (groupIdx === -1) {
       return colorForType(undefined, this.#types);
     }
@@ -1531,17 +1531,14 @@ export class GraphWorker {
 
   /** Hierarchy-aware NODE colour for a type-set group, cached. Keys off the type's ROOT (a family
    * shares a hue) -- see {@link colorForType}. */
-  #colorForTypeGroup(
-    groupIdx: TypeSetIdx,
-    cache: Map<TypeSetIdx, Color>,
-  ): Color {
+  #colorForTypeGroup(groupIdx: TypeSetId, cache: Map<TypeSetId, Color>): Color {
     const cached = cache.get(groupIdx);
     if (cached) {
       return cached;
     }
-    const group = this.#typeSets.getByIdx(groupIdx);
+    const group = this.#typeSets.getById(groupIdx);
     const primary = group
-      ? primaryTypeOfSet(group.directTypeIdxs, this.#types)
+      ? primaryTypeOfSet(group.directTypeIds, this.#types)
       : undefined;
     const color = colorForType(primary, this.#types);
     cache.set(groupIdx, color);
@@ -1552,16 +1549,16 @@ export class GraphWorker {
    * slot, NOT its root -- every link type shares the `Link` root, so root-colouring collapses all
    * edges to one hue (see {@link edgeColorForType}). */
   #edgeColorForTypeGroup(
-    groupIdx: TypeSetIdx,
-    cache: Map<TypeSetIdx, Color>,
+    groupIdx: TypeSetId,
+    cache: Map<TypeSetId, Color>,
   ): Color {
     const cached = cache.get(groupIdx);
     if (cached) {
       return cached;
     }
-    const group = this.#typeSets.getByIdx(groupIdx);
+    const group = this.#typeSets.getById(groupIdx);
     const primary = group
-      ? primaryTypeOfSet(group.directTypeIdxs, this.#types)
+      ? primaryTypeOfSet(group.directTypeIds, this.#types)
       : undefined;
     const color = edgeColorForType(primary, this.#types);
     cache.set(groupIdx, color);
@@ -1718,7 +1715,7 @@ export class GraphWorker {
       const key =
         sourceContainers.length === 0 && targetContainers.length === 0
           ? (edge.visualKey as string)
-          : `hw:${outerSource}:${outerTarget}:${edge.typeSetIdx ?? "roll"}:${edge.direction}`;
+          : `hw:${outerSource}:${outerTarget}:${edge.typeSetId ?? "roll"}:${edge.direction}`;
       const list = groups.get(key);
       if (list) {
         list.push(idx);
@@ -1728,9 +1725,9 @@ export class GraphWorker {
     }
 
     const summaries: HighwayLaneSummary[] = edges.map(() => placeholder);
-    const unions: EntityIdx[][] = edges.map(() => []);
+    const unions: EntityIndex[][] = edges.map(() => []);
     for (const laneIdxs of groups.values()) {
-      const union = new Set<EntityIdx>();
+      const union = new Set<EntityIndex>();
       let typeId: VersionedUrl | null = null;
       let typeLabel = "";
       let direction: HighwayLaneSummary["direction"] = "both";
@@ -1772,7 +1769,7 @@ export class GraphWorker {
    * not just the representative lane's). Precomputed per structure by {@link #buildHighwayLanes};
    * empty for an out-of-range / non-aggregate id.
    */
-  highwayLinks(laneId: number): EntityIdx[] {
+  highwayLinks(laneId: number): EntityIndex[] {
     return laneId >= 0 && laneId < this.#highwayLaneUnions.length
       ? [...(this.#highwayLaneUnions[laneId] ?? [])]
       : [];
@@ -1908,6 +1905,7 @@ export class GraphWorker {
         : text.includes("\n")
           ? `${text}\n(${cluster.count})`
           : `${text} (${cluster.count})`;
+
     return {
       id: cluster.id,
       color: colorForCluster(cluster, this.#types),
@@ -1918,8 +1916,8 @@ export class GraphWorker {
       frontierCount: frontierIdxs.length,
       ...(allFrontier
         ? {
-            frontierEntityIds: frontierIdxs.map((idx) =>
-              this.#entities.getEntityId(idx),
+            frontierEntityIds: frontierIdxs.map(
+              (idx) => this.#entities.get(idx)!,
             ),
           }
         : {}),
@@ -1931,8 +1929,8 @@ export class GraphWorker {
    * from a direct index column or, for a type-keyed cluster, the union of its
    * type-set groups (see {@link ClusterNode.membership}).
    */
-  #frontierMembers(cluster: ClusterNode): EntityIdx[] {
-    const frontier: EntityIdx[] = [];
+  #frontierMembers(cluster: ClusterNode): EntityIndex[] {
+    const frontier: EntityIndex[] = [];
     const { membership } = cluster;
     if (membership.source === "groups") {
       for (const key of membership.keys) {
@@ -1940,7 +1938,7 @@ export class GraphWorker {
         if (!group) {
           continue;
         }
-        for (const entityIdx of group.entityIdxs) {
+        for (const entityIdx of group.entities) {
           if (!this.#entities.isRoot(entityIdx)) {
             frontier.push(entityIdx);
           }
@@ -2026,7 +2024,7 @@ export class GraphWorker {
     const highlighted = this.#highlightedEntities;
     const active = highlighted.size > 0;
     for (let idx = 0; idx < layout.nodeIds.length; idx++) {
-      const entityIdx = Number(layout.nodeIds[idx]) as EntityIdx;
+      const entityIdx = Number(layout.nodeIds[idx]) as EntityIndex;
       // A frontier node reads greyed-out, overriding the cluster colour and the focus dim.
       if (!this.#entities.isRoot(entityIdx)) {
         layout.setNodeColor(idx, FRONTIER_COLOR);
@@ -2139,14 +2137,14 @@ export class GraphWorker {
       let connectivityChanged = false;
       const fanOut: number[] = [];
       for (const node of layout.nodes) {
-        const entityIdx = Number(node.id) as EntityIdx;
+        const entityIdx = Number(node.id) as EntityIndex;
         const localIdx = localOf.get(entityIdx)!;
         const seenTargets = new Set<ClusterId>();
         let sumX = 0;
         let sumY = 0;
         let exitCount = 0;
-        for (const link of this.#links.linksForEntity(entityIdx)) {
-          const otherOwner = cutIndex.ownerOf(link.otherIdx as number);
+        for (const link of this.#links.linksFor(entityIdx)) {
+          const otherOwner = cutIndex.ownerOf(link.otherId as number);
           if (
             !otherOwner ||
             otherOwner === leafId ||
@@ -2670,21 +2668,21 @@ export class GraphWorker {
     });
   }
 
-  #collectEntityIdxsForCluster(cluster: ClusterNode): EntityIdx[] {
+  #collectEntityIdxsForCluster(cluster: ClusterNode): EntityIndex[] {
     if (cluster.membership.source === "direct") {
       const view = cluster.membership.members.subarray();
-      const result: EntityIdx[] = [];
+      const result: EntityIndex[] = [];
       for (const idx of view) {
         result.push(idx);
       }
       return result;
     }
 
-    const result: EntityIdx[] = [];
+    const result: EntityIndex[] = [];
     for (const key of cluster.membership.keys) {
       const group = this.#typeSets.get(key);
       if (group) {
-        for (const idx of group.entityIdxs) {
+        for (const idx of group.entities) {
           result.push(idx);
         }
       }
@@ -2712,7 +2710,7 @@ export class GraphWorker {
   #buildClusterEdges(children: readonly ClusterNode[]): ForceEdge[] {
     // Build entityIdx -> childId lookup once.
     const entityToChild = new Map<number, string>();
-    const childEntityIdxs = new Map<string, EntityIdx[]>();
+    const childEntityIdxs = new Map<string, EntityIndex[]>();
     for (const child of children) {
       const entityIdxs = this.#collectEntityIdxsForCluster(child);
       childEntityIdxs.set(child.id, entityIdxs);
@@ -2728,9 +2726,9 @@ export class GraphWorker {
     for (const child of children) {
       const entityIdxs = childEntityIdxs.get(child.id)!;
       for (const entityIdx of entityIdxs) {
-        const links = this.#links.linksForEntity(entityIdx);
+        const links = this.#links.linksFor(entityIdx);
         for (const link of links) {
-          const otherChildId = entityToChild.get(link.otherIdx);
+          const otherChildId = entityToChild.get(link.otherId);
           if (otherChildId === undefined || otherChildId === child.id) {
             continue;
           }
@@ -2752,7 +2750,10 @@ export class GraphWorker {
     return edges;
   }
 
-  #buildEntityEdges(entityIdxs: EntityIdx[], nodes: ForceNode[]): ForceEdge[] {
+  #buildEntityEdges(
+    entityIdxs: EntityIndex[],
+    nodes: ForceNode[],
+  ): ForceEdge[] {
     const memberSet = new Set<number>(entityIdxs);
     const idxToNodeId = new Map<number, string>();
     for (let idx = 0; idx < entityIdxs.length; idx++) {
@@ -2763,13 +2764,13 @@ export class GraphWorker {
     const seen = new Set<string>();
 
     for (const entityIdx of entityIdxs) {
-      const links = this.#links.linksForEntity(entityIdx);
+      const links = this.#links.linksFor(entityIdx);
       for (const link of links) {
-        if (!memberSet.has(link.otherIdx)) {
+        if (!memberSet.has(link.otherId)) {
           continue;
         }
         const sourceId = idxToNodeId.get(entityIdx)!;
-        const targetId = idxToNodeId.get(link.otherIdx)!;
+        const targetId = idxToNodeId.get(link.otherId)!;
         const pairKey =
           sourceId < targetId
             ? `${sourceId}|${targetId}`
@@ -2856,8 +2857,8 @@ export class GraphWorker {
       for (const key of node.membership.keys) {
         const group = this.#typeSets.get(key);
         if (group) {
-          for (const idx of group.entityIdxs) {
-            entityIds.push(this.#entities.getEntityId(idx));
+          for (const idx of group.entities) {
+            entityIds.push(this.#entities.get(idx)!);
           }
         }
       }
@@ -2867,7 +2868,7 @@ export class GraphWorker {
     const members = node.membership.members.subarray();
     const entityIds = Array.from<string>({ length: members.length });
     for (let idx = 0; idx < members.length; idx++) {
-      entityIds[idx] = this.#entities.getEntityId(members.get(idx));
+      entityIds[idx] = this.#entities.get(members.get(idx))!;
     }
 
     return entityIds;
@@ -2894,7 +2895,7 @@ export class GraphWorker {
     const assignments = clusters.map((embeddingCluster) => {
       const memberIdxs = new Int32Array(embeddingCluster.entityIds.length);
       for (let idx = 0; idx < embeddingCluster.entityIds.length; idx++) {
-        const entityIdx = this.#entities.tryGet(
+        const entityIdx = this.#entities.lookup(
           embeddingCluster.entityIds[idx]! as EntityId,
         );
         if (entityIdx !== undefined) {
@@ -2957,16 +2958,16 @@ export class GraphWorker {
 
   #resolvePendingLinks(
     entityId: IngestEntity["entityId"],
-    entityIdx: EntityIdx,
+    entityIdx: EntityIndex,
   ): void {
     const pending = this.#links.takePending(entityId);
     if (!pending) {
       return;
     }
 
-    for (const linkIdx of pending) {
-      this.#links.resolveEndpoint(linkIdx, "left", entityIdx);
-      this.#links.resolveEndpoint(linkIdx, "right", entityIdx);
+    for (const linkId of pending) {
+      this.#links.resolveEndpoint(linkId, "left", entityIdx);
+      this.#links.resolveEndpoint(linkId, "right", entityIdx);
     }
   }
 }

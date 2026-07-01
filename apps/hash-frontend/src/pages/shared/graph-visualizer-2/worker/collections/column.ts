@@ -134,6 +134,14 @@ export class Column<A extends TypedArray, T extends number = number> {
     return this.#view[idx]! as T;
   }
 
+  getOrDefault(idx: number): T {
+    if (idx < 0 || idx >= this.#length) {
+      return 0 as T;
+    }
+
+    return this.#view[idx]! as T;
+  }
+
   set(idx: number, value: T): void {
     if (idx < 0 || idx >= this.#length) {
       throw new RangeError(

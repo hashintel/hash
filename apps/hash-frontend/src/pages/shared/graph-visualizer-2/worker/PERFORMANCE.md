@@ -24,6 +24,11 @@ Headline findings:
   slack (`flatCapacityFor`) and `Column` doubles; both stay amortized O(N). A
   naïve grow‑to‑exact‑count path would be **~21× slower at 50k records**, so this
   is worth a regression test, not a fix.
+- **The hierarchical tier repeats the same "rebuild everything" pattern.** Every
+  commit reconstructs `CutIndex` entity ownership in O(N) (F9) and a viewport LOD
+  change computes the visible cut twice (F10); the 8k‑node no‑op commit (3.2 ms,
+  §2.5) is the benchmarked symptom, with the mechanism confirmed by subsystem
+  code review.
 
 ---
 
@@ -70,9 +75,12 @@ from anywhere; the `node …/vitest.mjs` form above is the portable one.)
   so treat absolute ms as order‑of‑magnitude. **The ratios (e.g. bulk vs
   streaming, once vs twice, presized vs grown) are stable** and are where the
   findings live.
-- The heavy layout settle benches and the fresh‑worker commit benches use a
-  fixed small iteration count (`iterations: 6`) rather than a time budget,
-  because a single settle can take seconds. Their RME is reported per row.
+- The heavy layout settle benches and the fresh‑worker bulk/streaming ingest
+  bench use a fixed small iteration count (`iterations: 6`, `warmupIterations: 1`)
+  rather than a time budget, because a single settle/build can take seconds; the
+  no‑op re‑commit benches run on Vitest’s default time budget (hundreds–thousands
+  of samples). RME is reported per row (the bulk ingest row is the noisiest at
+  ±30 %; everything else is ≤ ~15 %, most ≤ 3 %).
 - The `GraphWorker` runs its layout scheduler on `MessageChannel`s. A synchronous
   bench body never lets those macrotasks fire mid‑measurement, so scheduler ticks
   do not inflate individual samples; Vitest tears the process down at the end.
@@ -291,9 +299,8 @@ here from code review. A targeted bench should follow the fix.
 `layout/flat-layout.ts` builds a full N×N distance matrix
 (`Calculator(...).DistanceMatrix()` `:163`–`:169` + `Descent.createSquareMatrix`
 `:170`) and steps `Descent.rungeKutta()` (`:260`) — O(N²) per step. Measured
-0.41 s at 200 nodes (§2.4).
-This is expected and correctly gated by `flatLayoutMaxNodes: 200`; **no action**
-beyond keeping the cap.
+~0.38 s at 200 nodes (§2.4). This is expected and correctly gated by
+`flatLayoutMaxNodes: 200`; **no action** beyond keeping the cap.
 
 ### F8 — `makeGrowableBuffer(resizable:false)` ignores `maxByteLength` — **LOW**
 
@@ -305,6 +312,71 @@ The "double the ceiling" comment (`:158`) only helps _resizable_ buffers. This i
 currently fine because `flatCapacityFor` (`graph-worker.ts:157`) adds 1.5× slack
 so growth is amortized O(N) (§2.3), but the comment is misleading and the
 amortization silently depends on the caller always over‑allocating.
+
+### Additional findings from parallel subsystem exploration (code‑review)
+
+This investigation opened with four parallel subsystem deep‑dives (core/stores/
+buffers, layout, hierarchy/community, geometry). They confirmed the benchmarked
+findings above (F1–F8) and surfaced the following **hierarchical‑tier and
+per‑frame** issues that the benchmarks here reach only indirectly (via the 8k‑node
+no‑op commit in §2.5 and the FA2 settle in §2.4). Refs below were verified against
+`HEAD`; these are code‑review findings, not each independently benchmarked.
+
+#### F9 — `CutIndex` rebuilds entity→owner for the whole graph every hierarchical commit — **HIGH**
+
+`geometry/edge-aggregation.ts:152`–`188` (`CutIndex` ctor → `#walkTree`) builds an
+`entityOwner` map over every entity in every collapsed subtree, constructed fresh
+at `core/graph-worker.ts:1046` on **every** `commitStructure` with a viewport
+(ingest, LOD change, pin, post‑naming recommit). O(N entities + C clusters) per
+commit — the hierarchical analogue of F1 and the main component of the 8k‑node
+no‑op (§2.5). _Fix:_ keep a persistent entity→owner map; diff only opened/closed
+subtrees + newly‑ingested groups.
+
+#### F10 — `computeVisibleCut` runs twice per viewport LOD change — **MEDIUM**
+
+`handleViewport` computes the cut and probes `wouldChange` (`graph-worker.ts:810`),
+then `commitStructure` recomputes the identical cut (`:981`). _Fix:_ pass the
+precomputed cut into `commitStructure`, or cache it keyed by viewport + tree
+version.
+
+#### F11 — `buildInducedCsr` scans the entire link store, not the induced subgraph — **MEDIUM**
+
+`csr-graph.ts:36` iterates `linkIdx = 0 .. links.count` filtering by membership, so
+subdividing a small cluster still costs O(L*total). Synchronous on cluster open
+(`hierarchy/community.ts` `subclusterByLinks`). \_Fix:* build adjacency by walking
+the member set via `linksForEntity`/the adjacency index instead of all links.
+(Note: §2.2’s `buildInducedCsr` bench feeds a subset‑sized `LinkStore`, so it does
+_not_ expose this whole‑store scan — the cost only appears in the worker call path.)
+
+#### F12 — Per‑frame geometry amplifiers (extends F6) — **MEDIUM**
+
+Beyond F6’s ports/beziers/`Float32Array` rebuild: `BezierSegmentSink.snapshot()`
+(`geometry/edge-geometry.ts:223`–`232`) does five typed‑array `.slice()` copies
+every frame; `routeAround` (`edge-geometry.ts:1214`, up to 8 passes of
+`worstObstacleOnPath` `:1125` over all rendered bubbles) runs per direct pair + per
+highway group each tick; and `PortCache` misses on almost every moving tick because
+its key embeds quantized positions (`geometry/bubble-ports.ts:454`). _Fix:_
+double‑buffer/SAB the bezier payload; spatial‑index obstacles + cache routed
+polylines by quantized endpoints; split port _slotting_ (neighbor‑set) from port
+_position_ so the cache hits during motion.
+
+#### F13 — Community + distinctive‑feature labeling is synchronous on cluster open — **MEDIUM**
+
+`labelAllCommunities` and the TF‑IDF `collectLinkFeatures` (`hierarchy/community.ts`)
+run inline inside the `commitStructure` that opens a large leaf, and
+`nameClustersByDistinctiveFeatures` then triggers a _second_ full commit
+(`graph-worker.ts:2937`+) for a label‑only change. _Fix:_ defer labeling to the
+existing job channel and add a label‑only structure‑emit path that skips
+CutIndex/aggregation.
+
+Layout deep‑dive also confirmed two per‑tick costs worth tracking: FA2 settle
+detection scans all nodes every iteration (`layout/community-layout.ts`
+`#fa2IterStats`, HEAD `:521`–`:538`) and confined sub‑clusters run
+O(`CONFINE_PASSES=16` × N²) overlap relaxation per write (`layout/cluster-layout.ts:53`,
+`:333`–`:375`). It also noted the `forceEdgeAvoid` cost described in
+`MANIFESTO.md:355` no longer exists — overlap is handled by WebCola `avoidOverlaps`
+
+- `#fitWithin`, so that doc line is stale.
 
 ---
 
@@ -362,6 +434,26 @@ amortization silently depends on the caller always over‑allocating.
    over‑allocation, or have `ensureCapacity` itself apply geometric slack so
    amortization doesn’t depend on every caller remembering to.
 
+8. **Incremental `CutIndex` + cut caching for the hierarchical tier (F9, F10).**
+   _High impact, medium effort._ Maintain a persistent entity→owner map updated
+   only for opened/closed subtrees and newly‑ingested groups instead of rebuilding
+   it over all entities each commit; and pass the cut computed in `handleViewport`
+   into `commitStructure` (or cache it by viewport + tree version) so LOD changes
+   don’t recompute it twice. This is the hierarchical counterpart to fixes 1–2.
+
+9. **Induced‑subgraph CSR + deferred labeling on cluster open (F11, F13).**
+   _Medium impact, medium effort._ Build the induced adjacency by walking the
+   cluster’s member set (via the adjacency index) rather than scanning the whole
+   link store, and move `labelAllCommunities`/distinctive‑feature naming off the
+   synchronous open path onto the existing job channel, with a label‑only emit that
+   skips CutIndex/aggregation.
+
+10. **Per‑frame geometry caching (F12).** _Medium impact, medium effort._
+    Double‑buffer or SAB‑back the bezier payload to avoid `snapshot()`’s five copies
+    per frame; spatial‑index obstacles and cache routed polylines by quantized
+    endpoints; split port slotting from port position so `PortCache` hits during
+    motion. Add a targeted geometry bench once decoupled (see F6).
+
 ---
 
 ## 5. Tests to add
@@ -374,7 +466,7 @@ parentheses.
   rebuild the flat layout or re‑emit a structure frame with a new count. Concrete
   hooks: spy on `onStructureFrame`/`onLayoutMessage` and assert no
   `LAYOUT_CREATED`/`LAYOUT_DESTROYED`; assert the structure version is unchanged.
-  This is the direct guard for F1 and the 8 ms no‑op.
+  This is the direct guard for F1 and the ~8.5 ms no‑op.
 
 - **Streaming equals bulk in structural output** (`core/graph-worker.test.ts`).
   Ingesting a graph as one batch vs many batches must produce the same final
@@ -389,9 +481,9 @@ parentheses.
   cliff (§2.3, F8). Assert `capacity >= count` headroom holds after each grow.
 
 - **`linksForEntity` allocation callers use degree** (`stores/link-store.test.ts`
-  - call‑site tests). Add `degree()` and assert it equals
-    `linksForEntity().length` for representative graphs, so the non‑allocating path
-    can’t silently diverge (F4).
+  plus call‑site tests). Add `degree()` and assert it equals
+  `linksForEntity().length` for representative graphs, so the non‑allocating path
+  can’t silently diverge (F4).
 
 - **Type‑set is keyed once per ingested node** (`core/graph-worker.test.ts` or a
   `TypeSetStore` spy). Assert `getOrCreate` (or `ReadonlySortedSet` construction)
@@ -406,6 +498,20 @@ parentheses.
   (`core/graph-worker.test.ts`). Assert `#allNodeEntityIdxs()`’s output (via the
   emitted flat frame count) equals the number of ingested non‑link entities, so a
   future caching optimization of that method can’t drop or duplicate nodes.
+
+- **`CutIndex` diff equals full rebuild** (`geometry/edge-aggregation.test.ts`).
+  After fix 8, assert an incrementally‑maintained entity→owner map is byte‑for‑byte
+  equal to a from‑scratch `CutIndex` across a sequence of ingest + LOD‑open/close
+  operations — the correctness guard for F9.
+
+- **`computeVisibleCut` runs once per LOD change** (`core/graph-worker.test.ts`).
+  Spy/count `computeVisibleCut` calls across a viewport change that crosses a LOD
+  threshold and assert it is computed once, not twice (F10).
+
+- **Induced CSR is independent of total link count** (`csr-graph.test.ts` or
+  `hierarchy/community.test.ts`). Build the same small cluster inside stores with
+  very different _total_ link counts and assert `subclusterByLinks` work (edge
+  count / timing budget) tracks the induced edges, not `links.count` (F11).
 
 ---
 
@@ -448,9 +554,14 @@ buffer, and geometry benches finish in seconds.
 - **ESLint:** clean (`eslint --report-unused-disable-directives`, exit 0) for all
   seven files.
 - **TypeScript:** clean — `tsc --noEmit` reports **no** errors in the added files.
-  (The app has ~34 pre‑existing `tsc` errors in unrelated files — `supply-chain/*`,
-  `slide-stack`, `math/hash.ts`, missing `recharts`/`@tanstack/react-table` — none
-  touched here.)
-- No production code was changed; the only additions are the benchmark files and
-  `bench-fixtures.ts`. Pre‑existing local edits in `entry.ts`, `protocol.ts`,
-  `random.ts`, `random.test.ts` were left untouched.
+  (The app has 34 pre‑existing `tsc` errors in unrelated files, e.g. `supply-chain/*`
+  and modules with missing type declarations like `recharts` — none touched here.)
+- No production code was changed by this investigation; the only additions are
+  the seven benchmark/fixture files and this report. Pre‑existing local edits in
+  `entry.ts`, `protocol.ts`, `random.ts`, `random.test.ts` were left untouched.
+- **Line‑number baseline:** all `file:line` references are against committed
+  `HEAD`. Note that `layout/community-layout.ts` currently carries an _unrelated,
+  uncommitted_ profiler edit (an opt‑in `CommunityLayoutProfiler`, ~92 lines, not
+  authored here and left untouched) that shifts F2’s lines in the working tree
+  (`#rebuildMatrices` 251→310, `absorb` 359→424, `resolveEdges` 664→749). The
+  method names are the stable anchor.

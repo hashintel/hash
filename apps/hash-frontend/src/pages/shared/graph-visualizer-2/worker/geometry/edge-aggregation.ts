@@ -24,12 +24,12 @@ import { edgeColorForType, primaryTypeOfSet } from "../entity-style";
 
 import type { VizConfig } from "../../config";
 import type { Color } from "../../frames";
-import type { ClusterId, EntityIdx, TypeSetIdx } from "../../ids";
+import type { ClusterId, EntityIndex, TypeSetId } from "../../ids";
 import type { ClusterNode, ClusterTree } from "../hierarchy/cluster-tree";
 import type { LodItem } from "../hierarchy/lod";
-import type { LinkStore } from "../stores/link-store";
-import type { TypeRegistry } from "../stores/type-registry";
-import type { TypeSetGroup, TypeSetStore } from "../stores/type-set-store";
+import type { LinkStore } from "../store/link";
+import type { TypeRegistry } from "../store/type-registry";
+import type { TypeSetGroup, TypeSetStore } from "../store/type-set";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 
 // Color / width / label helpers
@@ -47,7 +47,7 @@ export function typeLabelForGroup(
   }
 
   const titles: string[] = [];
-  for (const typeIdx of group.directTypeIdxs) {
+  for (const typeIdx of group.directTypeIds) {
     const info = types.get(typeIdx);
     if (info) {
       titles.push(info.title);
@@ -72,7 +72,7 @@ export function typeUrlForGroup(
   }
   let only: VersionedUrl | null = null;
   let seen = 0;
-  for (const typeIdx of group.directTypeIdxs) {
+  for (const typeIdx of group.directTypeIds) {
     const url = types.getUrl(typeIdx);
     if (url === undefined) {
       continue;
@@ -100,7 +100,7 @@ export function inverseLabelForGroup(
   }
 
   const titles: string[] = [];
-  for (const typeIdx of group.directTypeIdxs) {
+  for (const typeIdx of group.directTypeIds) {
     const info = types.get(typeIdx);
     if (info) {
       titles.push(info.inverseTitle ?? info.title);
@@ -126,7 +126,7 @@ function collectEntityOwnership(
     for (const key of node.membership.keys) {
       const group = typeSets.get(key);
       if (group) {
-        for (const idx of group.entityIdxs) {
+        for (const idx of group.entities) {
           result.set(idx as number, ownerId);
         }
       }
@@ -294,7 +294,7 @@ export function makePairKey(
 // Internal mutable aggregation types
 
 interface TypeAggregation {
-  readonly typeSetIdx: TypeSetIdx;
+  readonly typeSetId: TypeSetId;
   /**
    * Links flowing from the lower-sorted cluster ID to the higher one,
    * matching PairKey's sort order.
@@ -307,9 +307,9 @@ interface TypeAggregation {
    * the count (added on +1, removed on -1), so a clicked highway lane can
    * resolve, on demand, to the exact set of links it aggregates.
    */
-  readonly forwardLinks: Set<EntityIdx>;
+  readonly forwardLinks: Set<EntityIndex>;
   /** The link entities counted in `reverseCount` (mirror of `forwardLinks`). */
-  readonly reverseLinks: Set<EntityIdx>;
+  readonly reverseLinks: Set<EntityIndex>;
 }
 
 interface MutablePairAggregation {
@@ -320,11 +320,11 @@ interface MutablePairAggregation {
 }
 
 interface StoredIndividualEdge {
-  readonly linkIdx: number;
+  readonly linkId: number;
   readonly ownerClusterId: ClusterId;
   readonly leftEntityIdx: number;
   readonly rightEntityIdx: number;
-  readonly typeSetIdx: TypeSetIdx;
+  readonly typeSetId: TypeSetId;
 }
 
 // Visual edge types (spec 6.2)
@@ -353,7 +353,7 @@ export interface AggregatedVisualEdge {
   readonly source: ClusterEndpointRef;
   readonly target: ClusterEndpointRef;
   readonly pairKey: PairKey;
-  readonly typeSetIdx: TypeSetIdx | undefined;
+  readonly typeSetId: TypeSetId | undefined;
   /**
    * The lane's single link type as a VersionedUrl, when it has exactly one (a lane is single-type
    * by definition). `null` for a multi-type rollup (`collapsed`). The main thread resolves the
@@ -381,7 +381,7 @@ export interface AggregatedVisualEdge {
    * forward links, a reverse lane the reverse, a collapsed/"both" lane the
    * union of both. Lets a clicked highway resolve to its underlying links.
    */
-  readonly linkEntityIdxs: readonly EntityIdx[];
+  readonly linkEntityIdxs: readonly EntityIndex[];
 }
 
 export interface IndividualVisualEdge {
@@ -389,8 +389,8 @@ export interface IndividualVisualEdge {
   readonly visualKey: VisualEdgeKey;
   readonly source: EntityEndpointRef;
   readonly target: EntityEndpointRef;
-  readonly linkIdx: number;
-  readonly typeSetIdx: TypeSetIdx;
+  readonly linkId: number;
+  readonly typeSetId: TypeSetId;
   readonly count: 1;
   readonly color: Color;
   readonly widthWorld: number;
@@ -419,7 +419,7 @@ function explodePair(
   const typeAggs = [...pair.byType.values()].sort(
     (a, b) =>
       b.forwardCount + b.reverseCount - (a.forwardCount + a.reverseCount) ||
-      (a.typeSetIdx as number) - (b.typeSetIdx as number),
+      (a.typeSetId as number) - (b.typeSetId as number),
   );
 
   const source: ClusterEndpointRef = { kind: "cluster", id: pair.sourceId };
@@ -427,7 +427,7 @@ function explodePair(
 
   if (typeAggs.length > config.maxParallelEdgeTypes) {
     // A collapsed/"both" lane carries the union of both directions' links.
-    const collapsedLinks: EntityIdx[] = [];
+    const collapsedLinks: EntityIndex[] = [];
     for (const agg of typeAggs) {
       collapsedLinks.push(...agg.forwardLinks, ...agg.reverseLinks);
     }
@@ -438,7 +438,7 @@ function explodePair(
         source,
         target,
         pairKey,
-        typeSetIdx: undefined,
+        typeSetId: undefined,
         typeId: null,
         direction: "both",
         collapsed: true,
@@ -459,12 +459,12 @@ function explodePair(
   // (one per direction), each sized by its own count.
   const edges: AggregatedVisualEdge[] = [];
   for (const agg of typeAggs) {
-    const group = typeSets.getByIdx(agg.typeSetIdx);
+    const group = typeSets.getById(agg.typeSetId);
     const typeLabel = typeLabelForGroup(group, types);
     const inverseLabel = inverseLabelForGroup(group, types);
     const typeId = typeUrlForGroup(group, types);
     const color = edgeColorForType(
-      group ? primaryTypeOfSet(group.directTypeIdxs, types) : undefined,
+      group ? primaryTypeOfSet(group.directTypeIds, types) : undefined,
       types,
     );
 
@@ -472,12 +472,12 @@ function explodePair(
       edges.push({
         kind: "aggregate",
         visualKey: VisualEdgeKey(
-          `agg:${pairKey}:${agg.typeSetIdx as number}:forward`,
+          `agg:${pairKey}:${agg.typeSetId as number}:forward`,
         ),
         source,
         target,
         pairKey,
-        typeSetIdx: agg.typeSetIdx,
+        typeSetId: agg.typeSetId,
         typeId,
         direction: "forward",
         collapsed: false,
@@ -497,12 +497,12 @@ function explodePair(
       edges.push({
         kind: "aggregate",
         visualKey: VisualEdgeKey(
-          `agg:${pairKey}:${agg.typeSetIdx as number}:reverse`,
+          `agg:${pairKey}:${agg.typeSetId as number}:reverse`,
         ),
         source,
         target,
         pairKey,
-        typeSetIdx: agg.typeSetIdx,
+        typeSetId: agg.typeSetId,
         typeId,
         direction: "reverse",
         collapsed: false,
@@ -584,11 +584,11 @@ export class EdgeAggregator {
    * or undo it (sign = -1).
    */
   #applyLink(
-    linkIdx: number,
+    linkId: number,
     leftIdx: number,
     rightIdx: number,
-    typeSetIdx: TypeSetIdx,
-    linkEntityIdx: EntityIdx,
+    typeSetId: TypeSetId,
+    linkEntityIdx: EntityIndex,
     cutIndex: CutIndex,
     sign: 1 | -1,
   ): void {
@@ -609,15 +609,15 @@ export class EdgeAggregator {
     if (leftOwner === rightOwner) {
       if (cutIndex.isEntityMode(leftOwner)) {
         if (sign === 1) {
-          this.#individuals.set(linkIdx, {
-            linkIdx,
+          this.#individuals.set(linkId, {
+            linkId,
             ownerClusterId: leftOwner,
             leftEntityIdx: leftIdx,
             rightEntityIdx: rightIdx,
-            typeSetIdx,
+            typeSetId,
           });
         } else {
-          this.#individuals.delete(linkIdx);
+          this.#individuals.delete(linkId);
         }
       } else {
         this.#hiddenCount += sign;
@@ -640,16 +640,16 @@ export class EdgeAggregator {
         this.#pairs.set(key, pair);
       }
 
-      let typeAgg = pair.byType.get(typeSetIdx as number);
+      let typeAgg = pair.byType.get(typeSetId as number);
       if (!typeAgg) {
         typeAgg = {
-          typeSetIdx,
+          typeSetId,
           forwardCount: 0,
           reverseCount: 0,
           forwardLinks: new Set(),
           reverseLinks: new Set(),
         };
-        pair.byType.set(typeSetIdx as number, typeAgg);
+        pair.byType.set(typeSetId as number, typeAgg);
       }
       if (forward) {
         typeAgg.forwardCount++;
@@ -662,7 +662,7 @@ export class EdgeAggregator {
     } else {
       const pair = this.#pairs.get(key);
       if (pair) {
-        const typeAgg = pair.byType.get(typeSetIdx as number);
+        const typeAgg = pair.byType.get(typeSetId as number);
         if (typeAgg) {
           if (forward) {
             typeAgg.forwardCount--;
@@ -672,7 +672,7 @@ export class EdgeAggregator {
             typeAgg.reverseLinks.delete(linkEntityIdx);
           }
           if (typeAgg.forwardCount <= 0 && typeAgg.reverseCount <= 0) {
-            pair.byType.delete(typeSetIdx as number);
+            pair.byType.delete(typeSetId as number);
           }
         }
         pair.totalCount--;
@@ -693,8 +693,8 @@ export class EdgeAggregator {
         i,
         linkStore.getLeft(i) as number,
         linkStore.getRight(i) as number,
-        linkStore.getTypeSetIdx(i),
-        linkStore.getEntityIdx(i),
+        linkStore.getTypeSetId(i),
+        linkStore.getEntityIndex(i),
         cutIndex,
         1,
       );
@@ -710,33 +710,33 @@ export class EdgeAggregator {
     const processedLinks = new Set<number>();
 
     for (const entityIdx of changedEntities) {
-      const links = linkStore.linksForEntity(entityIdx as EntityIdx);
+      const links = linkStore.linksFor(entityIdx as EntityIndex);
       for (const link of links) {
-        if (processedLinks.has(link.linkIdx)) {
+        if (processedLinks.has(link.linkId)) {
           continue;
         }
-        processedLinks.add(link.linkIdx);
+        processedLinks.add(link.linkId);
 
-        const leftIdx = linkStore.getLeft(link.linkIdx) as number;
-        const rightIdx = linkStore.getRight(link.linkIdx) as number;
-        const typeSetIdx = linkStore.getTypeSetIdx(link.linkIdx);
-        const linkEntityIdx = linkStore.getEntityIdx(link.linkIdx);
+        const leftIdx = linkStore.getLeft(link.linkId) as number;
+        const rightIdx = linkStore.getRight(link.linkId) as number;
+        const typeSetId = linkStore.getTypeSetId(link.linkId);
+        const linkEntityIdx = linkStore.getEntityIndex(link.linkId);
 
         // Undo old classification, apply new classification.
         this.#applyLink(
-          link.linkIdx,
+          link.linkId,
           leftIdx,
           rightIdx,
-          typeSetIdx,
+          typeSetId,
           linkEntityIdx,
           oldCutIndex,
           -1,
         );
         this.#applyLink(
-          link.linkIdx,
+          link.linkId,
           leftIdx,
           rightIdx,
-          typeSetIdx,
+          typeSetId,
           linkEntityIdx,
           newCutIndex,
           1,
@@ -796,10 +796,10 @@ export class EdgeAggregator {
 
     // Individual edges.
     for (const edge of this.#individuals.values()) {
-      const group = typeSets.getByIdx(edge.typeSetIdx);
+      const group = typeSets.getById(edge.typeSetId);
       visualEdges.push({
         kind: "individual",
-        visualKey: VisualEdgeKey(`link:${edge.linkIdx}`),
+        visualKey: VisualEdgeKey(`link:${edge.linkId}`),
         source: {
           kind: "entity",
           entityIdx: edge.leftEntityIdx,
@@ -810,11 +810,11 @@ export class EdgeAggregator {
           entityIdx: edge.rightEntityIdx,
           ownerClusterId: edge.ownerClusterId,
         },
-        linkIdx: edge.linkIdx,
-        typeSetIdx: edge.typeSetIdx,
+        linkId: edge.linkId,
+        typeSetId: edge.typeSetId,
         count: 1,
         color: edgeColorForType(
-          group ? primaryTypeOfSet(group.directTypeIdxs, types) : undefined,
+          group ? primaryTypeOfSet(group.directTypeIds, types) : undefined,
           types,
         ),
         widthWorld: 1,

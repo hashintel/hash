@@ -150,22 +150,24 @@ export abstract class GrowableBuffer {
    * copies the bytes across, re-binds the views, and re-publishes so the main thread
    * swaps to (and re-watches) the new buffer.
    */
-  ensureCapacity(capacity: number): void {
-    const needed = this.headerBytes + capacity * this.recordBytes;
-    if (growBuffer(this.raw, needed)) {
+  ensureCapacity(needed: number): void {
+    const neededBytes = this.headerBytes + needed * this.recordBytes;
+    if (growBuffer(this.raw, neededBytes)) {
       return;
     }
-    // Double the ceiling so a resizable re-allocation can keep growing in place after.
+    // Double current capacity or use the requested amount, whichever is larger.
+    const growTo = Math.max(needed, this.capacity * 2);
+    const growToBytes = this.headerBytes + growTo * this.recordBytes;
     const next = makeGrowableBuffer(
-      needed,
-      Math.max(needed, this.raw.byteLength * 2),
+      growToBytes,
+      Math.max(growToBytes, this.raw.byteLength * 2),
       this.#resizable,
     );
     new Uint8Array(next).set(new Uint8Array(this.raw));
     this.raw = next;
     this.#version = new Int32Array(this.raw, 0, 1);
     this.bindRecordViews(this.raw);
-    this.#republish(this.raw, capacity);
+    this.#republish(this.raw, growTo);
   }
 
   /** Bump + notify the version counter so the main thread re-reads the buffer. */

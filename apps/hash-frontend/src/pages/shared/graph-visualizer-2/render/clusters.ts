@@ -18,7 +18,7 @@ import {
 } from "../worker/buffers/position-buffer";
 
 import type { PositionsFrame, RenderCluster, StructureFrame } from "../frames";
-import type { ClusterId, EntityIdx } from "../ids";
+import type { ClusterId, EntityIndex } from "../ids";
 import type { ClusterReference } from "./worker-connection";
 import type { Layer } from "@deck.gl/core";
 
@@ -129,7 +129,7 @@ export function clusterEntityLayers(config: {
   readonly positionTick: number;
   /** Highlighted entities (selection + ego); a leaf line whose endpoints aren't all in here
    * dims, in step with the dots. Empty = no selection, every line full. */
-  readonly highlightedEntities: ReadonlySet<EntityIdx>;
+  readonly highlightedEntities: ReadonlySet<EntityIndex>;
 }): Layer[] {
   const { structure, positions, clusters, positionTick, highlightedEntities } =
     config;
@@ -138,7 +138,9 @@ export function clusterEntityLayers(config: {
   // SAME lookup the dots' colours use, so a line dims exactly when its endpoints' dots do.
   const nodeHighlighted = (ref: ClusterReference, local: number): boolean => {
     const id = ref.nodeIds[local];
-    return id !== undefined && highlightedEntities.has(Number(id) as EntityIdx);
+    return (
+      id !== undefined && highlightedEntities.has(Number(id) as EntityIndex)
+    );
   };
   const clusterPositions = positions.clusterPositions;
   // Fan-out feeder endpoints are POSITIONAL (they ride the positions frame, keyed by leaf

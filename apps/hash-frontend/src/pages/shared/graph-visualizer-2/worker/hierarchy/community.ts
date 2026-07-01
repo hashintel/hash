@@ -15,8 +15,8 @@ import {
 import { ClusterLabel, ClusterNode } from "./cluster-tree";
 
 import type { VizConfig } from "../../config";
-import type { EntityIdx } from "../../ids";
-import type { LinkStore } from "../stores/link-store";
+import type { EntityIndex } from "../../ids";
+import type { LinkStore } from "../store/link";
 
 /* eslint-disable no-bitwise */
 function deterministicShuffle(indices: number[], seed: number): number[] {
@@ -126,9 +126,9 @@ function normalizeCommunitySizes(
   communities: number[][],
   graph: CsrGraph,
   config: VizConfig,
-): EntityIdx[][] {
-  const result: EntityIdx[][] = [];
-  const tiny: EntityIdx[] = [];
+): EntityIndex[][] {
+  const result: EntityIndex[][] = [];
+  const tiny: EntityIndex[] = [];
 
   for (const community of communities) {
     const entityIdxs = community.map((local) => graph.nodeIds.get(local));
@@ -158,14 +158,14 @@ function normalizeCommunitySizes(
 }
 
 function topDegreeEntity(
-  members: EntityIdx[],
+  members: EntityIndex[],
   links: LinkStore,
-): EntityIdx | undefined {
-  let bestIdx: EntityIdx | undefined;
+): EntityIndex | undefined {
+  let bestIdx: EntityIndex | undefined;
   let bestDegree = 0;
 
   for (const entityIdx of members) {
-    const degree = links.linksForEntity(entityIdx).length;
+    const degree = links.linksFor(entityIdx).length;
     if (degree > bestDegree) {
       bestDegree = degree;
       bestIdx = entityIdx;
@@ -176,18 +176,18 @@ function topDegreeEntity(
 }
 
 function collectLinkFeatures(
-  members: EntityIdx[],
+  members: EntityIndex[],
   links: LinkStore,
 ): Map<string, number> {
   const features = new Map<string, number>();
   const memberSet = new Set(members);
 
   for (const entityIdx of members) {
-    const endpoints = links.linksForEntity(entityIdx);
+    const endpoints = links.linksFor(entityIdx);
     for (const endpoint of endpoints) {
-      const isInternal = memberSet.has(endpoint.otherIdx);
+      const isInternal = memberSet.has(endpoint.otherId);
       const prefix = isInternal ? "int" : "ext";
-      const key = `${prefix}:${endpoint.direction}:${endpoint.typeSetIdx}`;
+      const key = `${prefix}:${endpoint.direction}:${endpoint.typeSetId}`;
       features.set(key, (features.get(key) ?? 0) + 1);
     }
   }
@@ -207,7 +207,7 @@ function featureKeyToLabel(key: string): string {
  * scored with TF-IDF across sibling communities.
  */
 function labelAllCommunities(
-  communityMembers: EntityIdx[][],
+  communityMembers: EntityIndex[][],
   children: ClusterNode[],
   links: LinkStore,
 ): void {
@@ -272,18 +272,18 @@ function labelAllCommunities(
 
 /* eslint-disable no-bitwise */
 function linkSignatureKey(
-  entityIdx: EntityIdx,
+  entityIdx: EntityIndex,
   links: LinkStore,
   maxBuckets: number,
 ): string {
-  const endpoints = links.linksForEntity(entityIdx);
+  const endpoints = links.linksFor(entityIdx);
   if (endpoints.length === 0) {
     return "isolated";
   }
 
   const features = new Set<string>();
   for (const endpoint of endpoints) {
-    features.add(`${endpoint.direction}:${endpoint.typeSetIdx}`);
+    features.add(`${endpoint.direction}:${endpoint.typeSetId}`);
   }
 
   const sorted = [...features].sort();
@@ -298,9 +298,9 @@ function linkSignatureKey(
 /* eslint-enable no-bitwise */
 
 function columnFromIndices(
-  indices: ArrayLike<EntityIdx>,
-): Column<Int32Array, EntityIdx> {
-  const col = new Column<Int32Array, EntityIdx>(Int32Array, indices.length);
+  indices: ArrayLike<EntityIndex>,
+): Column<Int32Array, EntityIndex> {
+  const col = new Column<Int32Array, EntityIndex>(Int32Array, indices.length);
   for (let idx = 0; idx < indices.length; idx++) {
     col.push(indices[idx]!);
   }
@@ -309,11 +309,11 @@ function columnFromIndices(
 
 function coarseLinkSignatureBuckets(
   cluster: ClusterNode,
-  entityIdxs: Column<Int32Array, EntityIdx>,
+  entityIdxs: Column<Int32Array, EntityIndex>,
   links: LinkStore,
   config: VizConfig,
 ): ClusterNode[] {
-  const buckets = new Map<string, EntityIdx[]>();
+  const buckets = new Map<string, EntityIndex[]>();
 
   for (const entityIdx of entityIdxs) {
     const key = linkSignatureKey(entityIdx, links, config.maxChildrenPerParent);
@@ -353,7 +353,7 @@ function coarseLinkSignatureBuckets(
  */
 function deterministicPartition(
   cluster: ClusterNode,
-  entityIdxs: Column<Int32Array, EntityIdx>,
+  entityIdxs: Column<Int32Array, EntityIndex>,
   config: VizConfig,
 ): ClusterNode[] {
   const targetSize = Math.floor(
@@ -391,7 +391,7 @@ function deterministicPartition(
  */
 export function subclusterByLinks(
   cluster: ClusterNode,
-  entityIdxs: Column<Int32Array, EntityIdx>,
+  entityIdxs: Column<Int32Array, EntityIndex>,
   links: LinkStore,
   config: VizConfig,
 ): ClusterNode[] {

@@ -7,20 +7,19 @@
  */
 import { Interner } from "../collections/interner";
 
-import type { EntityIdx } from "../../ids";
+import type { EntityIndex } from "../../ids";
 import type { PropertySchemaEntry } from "../protocol";
 import type { PropertyObject } from "@blockprotocol/type-system";
 
 /** Interned index of a distinct `(baseUrl, formatted-value)` feature. */
-export type FeatureIdx = number;
+export type FeatureId = number;
 
 /** Interned index of a property base URL that carries numeric/date values. */
-export type NumericKeyIdx = number;
+export type NumericKeyId = number;
 
 /** Whether a numeric property reads as a plain number or an (epoch-ms) date. */
 export type NumericKind = "number" | "date";
 
-/** Cap a value's serialized length so a free-text property can't bloat the interner. */
 const MAX_VALUE_CHARS = 64;
 
 /** Strict ISO-8601 date/datetime. Rejects bare numbers and partial strings that `Date.parse` accepts. */
@@ -29,18 +28,15 @@ const ISO_DATE_RE =
 
 interface FeatureInfo {
   readonly baseUrl: string;
-  /** The value as it appears in a label: `"foo"`, `123`, `true`, `3 items`, `present`. */
   readonly display: string;
 }
 
-/** What a feature renders to in a label. */
 export interface FeatureLabel {
   readonly baseUrl: string;
   readonly title: string;
   readonly display: string;
 }
 
-/** A raw numeric reading: a plain number, or a date as epoch milliseconds. */
 interface NumericReading {
   readonly value: number;
   readonly kind: NumericKind;
@@ -60,8 +56,6 @@ function truncate(value: string): string {
  */
 function formatFeatureValue(value: unknown): string | undefined {
   if (typeof value === "string") {
-    // Collapse whitespace runs (and trim): folds fixed-width padding like "CNTM " into
-    // "CNTM" so padded/unpadded values share a feature, and keeps a value on one label line.
     const collapsed = value.replace(/\s+/gu, " ").trim();
     return collapsed.length === 0 ? undefined : `"${truncate(collapsed)}"`;
   }
@@ -109,24 +103,33 @@ function slugTitleFromBaseUrl(baseUrl: string): string {
 }
 
 export class PropertyStore {
-  readonly #features: Interner<string, FeatureIdx> = new Interner();
-  readonly #featureInfo: FeatureInfo[] = [];
-  /** Per-entity sorted, de-duplicated feature indices, indexed by EntityIdx (dense, additive). */
-  readonly #entityFeatures: (Int32Array | undefined)[] = [];
-  /** baseUrl -> human title, from {@link PropertySchemaEntry}. */
-  readonly #titles: Map<string, string> = new Map();
+  readonly #features: Interner<string, FeatureId>;
+  readonly #featureInfo: FeatureInfo[];
+  readonly #entityFeatures: (Int32Array | undefined)[];
+  readonly #titles: Map<string, string>;
 
-  /** baseUrl -> NumericKeyIdx, for properties that carry numeric/date values. */
-  readonly #numericKeys: Interner<string, NumericKeyIdx> = new Interner();
-  /** Parallel to the interner: per-key base URL and kind (number vs date). */
-  readonly #numericKeyBaseUrl: string[] = [];
-  readonly #numericKeyKind: NumericKind[] = [];
+  readonly #numericKeys: Interner<string, NumericKeyId>;
+  readonly #numericKeyBaseUrl: string[];
+  readonly #numericKeyKind: NumericKind[];
   // Raw (not interned): range bucketing depends on the live distribution of
   // a cluster's members, so values can't be pre-interned.
-  readonly #entityNumericKeys: (Int32Array | undefined)[] = [];
-  readonly #entityNumericValues: (Float64Array | undefined)[] = [];
+  readonly #entityNumericKeys: (Int32Array | undefined)[];
+  readonly #entityNumericValues: (Float64Array | undefined)[];
 
-  /** Register property display titles (additive; later batches add, never overwrite). */
+  constructor() {
+    this.#features = new Interner();
+    this.#featureInfo = [];
+    this.#entityFeatures = [];
+    this.#titles = new Map();
+
+    this.#numericKeys = new Interner();
+    this.#numericKeyBaseUrl = [];
+    this.#numericKeyKind = [];
+    this.#entityNumericKeys = [];
+    this.#entityNumericValues = [];
+  }
+
+  /** Register property display titles. Additive; later batches never overwrite. */
   registerTitles(entries: readonly PropertySchemaEntry[]): void {
     for (const { baseUrl, title } of entries) {
       if (title && !this.#titles.has(baseUrl)) {
@@ -135,7 +138,7 @@ export class PropertyStore {
     }
   }
 
-  /** Human title for a base URL: the registered property-type title, else a slug fallback. */
+  /** Human title for a base URL, falling back to a slug-derived title. */
   title(baseUrl: string): string {
     return this.#titles.get(baseUrl) ?? slugTitleFromBaseUrl(baseUrl);
   }
@@ -145,58 +148,58 @@ export class PropertyStore {
    *
    * No-op when the entity has no labelable property.
    */
-  ingest(entityIdx: EntityIdx, properties: PropertyObject | undefined): void {
+  ingest(index: EntityIndex, properties: PropertyObject | undefined): void {
     if (!properties) {
       return;
     }
 
-    const featureIdxs = new Set<FeatureIdx>();
-    const numericKeyIdxs: NumericKeyIdx[] = [];
+    const featureIds = new Set<FeatureId>();
+    const numericKeyIds: NumericKeyId[] = [];
     const numericValues: number[] = [];
 
     for (const [baseUrl, value] of Object.entries(properties)) {
       const display = formatFeatureValue(value);
       if (display !== undefined) {
-        const [created, featureIdx] = this.#features.tryIntern(
+        const [created, featureId] = this.#features.tryIntern(
           `${baseUrl}\u0000${display}`,
         );
         if (created) {
           this.#featureInfo.push({ baseUrl, display });
         }
-        featureIdxs.add(featureIdx);
+        featureIds.add(featureId);
       }
 
       const reading = numericReading(value);
       if (reading) {
-        const [created, keyIdx] = this.#numericKeys.tryIntern(baseUrl);
+        const [created, keyId] = this.#numericKeys.tryIntern(baseUrl);
         if (created) {
-          this.#numericKeyBaseUrl[keyIdx] = baseUrl;
-          this.#numericKeyKind[keyIdx] = reading.kind;
+          this.#numericKeyBaseUrl[keyId] = baseUrl;
+          this.#numericKeyKind[keyId] = reading.kind;
         }
-        numericKeyIdxs.push(keyIdx);
+        numericKeyIds.push(keyId);
         numericValues.push(reading.value);
       }
     }
 
-    if (featureIdxs.size > 0) {
-      this.#entityFeatures[entityIdx] = Int32Array.from(
-        [...featureIdxs].sort((left, right) => left - right),
+    if (featureIds.size > 0) {
+      this.#entityFeatures[index] = Int32Array.from(
+        [...featureIds].sort((left, right) => left - right),
       );
     }
-    if (numericKeyIdxs.length > 0) {
-      this.#entityNumericKeys[entityIdx] = Int32Array.from(numericKeyIdxs);
-      this.#entityNumericValues[entityIdx] = Float64Array.from(numericValues);
+    if (numericKeyIds.length > 0) {
+      this.#entityNumericKeys[index] = Int32Array.from(numericKeyIds);
+      this.#entityNumericValues[index] = Float64Array.from(numericValues);
     }
   }
 
   /** Sorted feature indices for an entity, or `undefined` if it has none. */
-  featuresOf(entityIdx: EntityIdx): Int32Array | undefined {
-    return this.#entityFeatures[entityIdx];
+  featuresOf(index: EntityIndex): Int32Array | undefined {
+    return this.#entityFeatures[index];
   }
 
   /** Resolve a feature index to its display label. */
-  describe(featureIdx: FeatureIdx): FeatureLabel | undefined {
-    const info = this.#featureInfo[featureIdx];
+  describe(featureId: FeatureId): FeatureLabel | undefined {
+    const info = this.#featureInfo[featureId];
     if (!info) {
       return undefined;
     }
@@ -208,20 +211,20 @@ export class PropertyStore {
   }
 
   /** Numeric property key indices, parallel to {@link numericValuesOf}. */
-  numericKeysOf(entityIdx: EntityIdx): Int32Array | undefined {
-    return this.#entityNumericKeys[entityIdx];
+  numericKeysOf(index: EntityIndex): Int32Array | undefined {
+    return this.#entityNumericKeys[index];
   }
 
   /** Raw numeric values (numbers, or dates as epoch ms). */
-  numericValuesOf(entityIdx: EntityIdx): Float64Array | undefined {
-    return this.#entityNumericValues[entityIdx];
+  numericValuesOf(index: EntityIndex): Float64Array | undefined {
+    return this.#entityNumericValues[index];
   }
 
-  numericBaseUrl(keyIdx: NumericKeyIdx): string | undefined {
-    return this.#numericKeyBaseUrl[keyIdx];
+  numericBaseUrl(keyId: NumericKeyId): string | undefined {
+    return this.#numericKeyBaseUrl[keyId];
   }
 
-  numericKind(keyIdx: NumericKeyIdx): NumericKind {
-    return this.#numericKeyKind[keyIdx] ?? "number";
+  numericKind(keyId: NumericKeyId): NumericKind {
+    return this.#numericKeyKind[keyId] ?? "number";
   }
 }

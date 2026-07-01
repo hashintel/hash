@@ -452,7 +452,7 @@ function mergeLanes(
 
   for (const child of children) {
     for (const edge of child.edges) {
-      const typeKey = (edge.typeSetIdx as number | undefined) ?? -1;
+      const typeKey = (edge.typeSetId as number | undefined) ?? -1;
       const direction = highwayDirection(edge, child.childId, side);
       const key = `${typeKey}:${direction}`;
       const existing = byLane.get(key);
@@ -907,7 +907,7 @@ function emitRecursiveBezierFeeders(
   for (const child of children) {
     const childTypes = new Map<string, FeederTypeInfo>();
     for (const edge of child.edges) {
-      const typeKey = (edge.typeSetIdx as number | undefined) ?? -1;
+      const typeKey = (edge.typeSetId as number | undefined) ?? -1;
       const direction = highwayDirection(edge, child.childId, side);
       const key = `${typeKey}:${direction}`;
       const existing = childTypes.get(key);

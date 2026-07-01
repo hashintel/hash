@@ -35,7 +35,7 @@
  * clusters. The chosen parts render in a deterministic order and join onto separate lines, so
  * a multi-part label reads as a stable little table inside the bubble and never reorders.
  */
-import type { ClusterId, EntityIdx } from "../../ids";
+import type { ClusterId, EntityIndex } from "../../ids";
 
 export interface ClusterMembers {
   readonly childId: ClusterId;
@@ -76,9 +76,9 @@ export interface NumericDimension {
  */
 export interface FeatureSource {
   /** Stable feature keys for a member (exact property + link/target-type). */
-  keysOf(member: EntityIdx): Iterable<string>;
+  keysOf(member: EntityIndex): Iterable<string>;
   /** Raw numeric/date readings for a member, for per-subdivision range bucketing. */
-  numericsOf(member: EntityIdx): Iterable<NumericReading>;
+  numericsOf(member: EntityIndex): Iterable<NumericReading>;
   /** Describe a key returned by {@link keysOf}, or undefined to ignore it. */
   describe(key: string): FeatureDescriptor | undefined;
   /** Describe a numeric dimension (title + kind), or undefined to ignore it. */
@@ -218,7 +218,7 @@ function buildNumericRanges(
   const valuesByAxis = new Map<string, number[][]>();
   for (let cluster = 0; cluster < samples.length; cluster++) {
     for (const member of samples[cluster]!) {
-      for (const reading of source.numericsOf(member as EntityIdx)) {
+      for (const reading of source.numericsOf(member as EntityIndex)) {
         let perCluster = valuesByAxis.get(reading.dimension);
         if (!perCluster) {
           perCluster = samples.map(() => []);
@@ -302,7 +302,7 @@ function clusterCoverage(
 
   for (const member of sample) {
     const seen = new Set<string>();
-    for (const key of source.keysOf(member as EntityIdx)) {
+    for (const key of source.keysOf(member as EntityIndex)) {
       if (seen.has(key)) {
         continue;
       }
@@ -317,7 +317,7 @@ function clusterCoverage(
       seen.add(key);
       counts.set(key, (counts.get(key) ?? 0) + 1);
     }
-    for (const reading of source.numericsOf(member as EntityIdx)) {
+    for (const reading of source.numericsOf(member as EntityIndex)) {
       const range = ranges.get(reading.dimension);
       if (!range) {
         continue;

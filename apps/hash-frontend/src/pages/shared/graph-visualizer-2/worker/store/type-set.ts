@@ -1,10 +1,17 @@
+/**
+ * Type-set grouping: entities that share the exact same set of direct
+ * entity types belong to one {@link TypeSetGroup}.
+ */
 import { ClusterId, TypeSetKey } from "../../ids";
 import { BitSet } from "../collections/bitset";
+import { Column } from "../collections/column";
 import { Interner } from "../collections/interner";
 
-import type { EntityIdx, TypeIdx, TypeSetIdx } from "../../ids";
+import type { EntityIndex, TypeId, TypeSetId } from "../../ids";
 import type { ReadonlySortedSet } from "../collections/readonly-sorted-set";
 import type { TypeRegistry } from "./type-registry";
+
+const INITIAL_CAPACITY = 256;
 
 /**
  * A group of entities that share the exact same set of direct entity types.
@@ -16,47 +23,48 @@ import type { TypeRegistry } from "./type-registry";
  */
 export class TypeSetGroup {
   readonly key: TypeSetKey;
-  readonly idx: TypeSetIdx;
-  readonly directTypeIdxs: ReadonlySortedSet<TypeIdx>;
+  readonly id: TypeSetId;
+  readonly directTypeIds: ReadonlySortedSet<TypeId>;
   /** Cluster ID used when this group is large enough to stand alone. */
   readonly standaloneClusterId: ClusterId;
 
-  #entityIdxs: EntityIdx[] = [];
+  readonly #entities: Column<Int32Array, EntityIndex>;
   /** Union of ancestor closures of all direct types. Used for merge-target lookup. */
-  #closure: BitSet<TypeIdx>;
+  #closure: BitSet<TypeId>;
   /** Incremented on entity add; used for change detection. */
   #version = 0;
   /**
    * The cluster that currently owns this group's entities:
-   * {@link standaloneClusterId} when standalone, or a merge target's ID when
-   * the group is too small.
+   * {@link standaloneClusterId} when standalone, or a merge target's ID
+   * when the group is too small.
    */
   #assignedClusterId: ClusterId;
   #isStandalone = false;
 
   constructor(
     key: TypeSetKey,
-    idx: TypeSetIdx,
-    directTypeIdxs: ReadonlySortedSet<TypeIdx>,
+    id: TypeSetId,
+    directTypeIds: ReadonlySortedSet<TypeId>,
     typeUniverseSize: number,
   ) {
     this.key = key;
-    this.idx = idx;
-    this.directTypeIdxs = directTypeIdxs;
+    this.id = id;
+    this.directTypeIds = directTypeIds;
     this.standaloneClusterId = ClusterId(`cluster:type:${key}`);
     this.#assignedClusterId = this.standaloneClusterId;
     this.#closure = BitSet.empty(typeUniverseSize);
+    this.#entities = new Column(Int32Array, INITIAL_CAPACITY);
   }
 
   get count(): number {
-    return this.#entityIdxs.length;
+    return this.#entities.length;
   }
 
-  get entityIdxs(): readonly EntityIdx[] {
-    return this.#entityIdxs;
+  get entities(): Column<Int32Array, EntityIndex> {
+    return this.#entities;
   }
 
-  get closure(): BitSet<TypeIdx> {
+  get closure(): BitSet<TypeId> {
     return this.#closure;
   }
 
@@ -80,17 +88,17 @@ export class TypeSetGroup {
     this.#isStandalone = value;
   }
 
-  addEntity(entityIdx: EntityIdx): void {
-    this.#entityIdxs.push(entityIdx);
+  addEntity(index: EntityIndex): void {
+    this.#entities.push(index);
     this.#version++;
   }
 
   /** Recompute the ancestor closure from the current type registry. */
   recomputeClosure(types: TypeRegistry): void {
-    let closure = BitSet.empty<TypeIdx>(types.size);
+    let closure = BitSet.empty<TypeId>(types.size);
 
-    for (const typeIdx of this.directTypeIdxs) {
-      const info = types.get(typeIdx);
+    for (const typeId of this.directTypeIds) {
+      const info = types.get(typeId);
       if (info) {
         closure = closure.or(info.ancestorClosure);
       }
@@ -100,13 +108,15 @@ export class TypeSetGroup {
   }
 }
 
-/**
- * Manages type-set groups: collections of entities that share
- * the same set of direct entity types.
- */
+/** Manages {@link TypeSetGroup}s, interning by their canonical type-set key. */
 export class TypeSetStore {
-  readonly #interner: Interner<TypeSetKey, TypeSetIdx> = new Interner();
-  readonly #groups: Map<TypeSetKey, TypeSetGroup> = new Map();
+  readonly #interner: Interner<TypeSetKey, TypeSetId>;
+  readonly #groups: Map<TypeSetKey, TypeSetGroup>;
+
+  constructor() {
+    this.#interner = new Interner();
+    this.#groups = new Map();
+  }
 
   get size(): number {
     return this.#groups.size;
@@ -116,23 +126,23 @@ export class TypeSetStore {
     return this.#groups.get(key);
   }
 
-  getByIdx(idx: TypeSetIdx): TypeSetGroup | undefined {
-    const key = this.#interner.getValue(idx);
+  getById(id: TypeSetId): TypeSetGroup | undefined {
+    const key = this.#interner.getValue(id);
     return this.#groups.get(key);
   }
 
   getOrCreate(
-    directTypeIdxs: ReadonlySortedSet<TypeIdx>,
+    directTypeIds: ReadonlySortedSet<TypeId>,
     typeUniverseSize: number,
   ): TypeSetGroup {
-    const key = TypeSetKey(directTypeIdxs.items.join(","));
+    const key = TypeSetKey(directTypeIds.items.join(","));
     const existing = this.#groups.get(key);
     if (existing) {
       return existing;
     }
 
-    const idx = this.#interner.intern(key);
-    const group = new TypeSetGroup(key, idx, directTypeIdxs, typeUniverseSize);
+    const id = this.#interner.intern(key);
+    const group = new TypeSetGroup(key, id, directTypeIds, typeUniverseSize);
     this.#groups.set(key, group);
 
     return group;

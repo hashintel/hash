@@ -4,17 +4,17 @@ import { describe, expect, it } from "vitest";
 import { Column } from "./collections/column";
 import { connectedComponents } from "./csr-graph";
 
-import type { EntityIdx } from "../ids";
+import type { EntityIndex } from "../ids";
 import type { CsrGraph } from "./csr-graph";
 
 /** Build a CsrGraph from an undirected adjacency list keyed by local index. */
 const csrFrom = (adjacency: number[][]): CsrGraph => {
-  const nodeIds = new Column<Int32Array, EntityIdx>(
+  const nodeIds = new Column<Int32Array, EntityIndex>(
     Int32Array,
     Math.max(1, adjacency.length),
   );
   for (let index = 0; index < adjacency.length; index++) {
-    nodeIds.push(index as EntityIdx);
+    nodeIds.push(index as EntityIndex);
   }
   const offsets = new Int32Array(adjacency.length + 1);
   const flat: number[] = [];

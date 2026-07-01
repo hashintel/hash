@@ -14,9 +14,6 @@ describe("TypeRegistry root resolution", () => {
     const customer = url("customer");
     const company = url("company");
 
-    // Customer is listed first, so processing its `allOfRefs` interns `company`
-    // as a bare ref — giving the parent a HIGHER idx than the child. The roots
-    // computation must not depend on that ordering.
     const schemas: TypeSchemaEntry[] = [
       { url: customer, title: "Customer", allOfRefs: [company] },
       { url: company, title: "Company", allOfRefs: [] },
@@ -25,12 +22,12 @@ describe("TypeRegistry root resolution", () => {
     const registry = new TypeRegistry();
     registry.registerAll(schemas);
 
-    const customerIdx = registry.intern(customer);
-    const companyIdx = registry.intern(company);
+    const customerId = registry.intern(customer);
+    const companyId = registry.intern(company);
 
-    expect(customerIdx).toBeLessThan(companyIdx);
-    expect(registry.get(companyIdx)?.rootIdxs).toEqual([companyIdx]);
-    expect(registry.get(customerIdx)?.rootIdxs).toEqual([companyIdx]);
+    expect(customerId).toBeLessThan(companyId);
+    expect(registry.get(companyId)?.rootIds).toEqual([companyId]);
+    expect(registry.get(customerId)?.rootIds).toEqual([companyId]);
   });
 
   it("resolves the SAME root for siblings so they bucket together", () => {
@@ -47,12 +44,12 @@ describe("TypeRegistry root resolution", () => {
     const registry = new TypeRegistry();
     registry.registerAll(schemas);
 
-    const companyIdx = registry.intern(company);
-    expect(registry.get(registry.intern(customer))?.rootIdxs).toEqual([
-      companyIdx,
+    const companyId = registry.intern(company);
+    expect(registry.get(registry.intern(customer))?.rootIds).toEqual([
+      companyId,
     ]);
-    expect(registry.get(registry.intern(supplier))?.rootIdxs).toEqual([
-      companyIdx,
+    expect(registry.get(registry.intern(supplier))?.rootIds).toEqual([
+      companyId,
     ]);
   });
 
@@ -61,8 +58,6 @@ describe("TypeRegistry root resolution", () => {
     const company = url("company");
     const actor = url("actor");
 
-    // Transitive over-approximation (child points at ALL ancestors) plus a
-    // deeper chain — the topmost parentless type must win.
     const schemas: TypeSchemaEntry[] = [
       { url: customer, title: "Customer", allOfRefs: [company, actor] },
       { url: company, title: "Company", allOfRefs: [actor] },
@@ -72,10 +67,8 @@ describe("TypeRegistry root resolution", () => {
     const registry = new TypeRegistry();
     registry.registerAll(schemas);
 
-    const actorIdx = registry.intern(actor);
-    expect(registry.get(registry.intern(customer))?.rootIdxs).toEqual([
-      actorIdx,
-    ]);
+    const actorId = registry.intern(actor);
+    expect(registry.get(registry.intern(customer))?.rootIds).toEqual([actorId]);
   });
 });
 
@@ -85,8 +78,6 @@ describe("TypeRegistry colour slots", () => {
     const supplier = url("supplier");
     const company = url("company");
 
-    // Arrival order (customer, supplier, company) differs from sorted order
-    // (company, customer, supplier) — the slot follows the SORT, not arrival.
     const registry = new TypeRegistry();
     registry.registerAll([
       { url: customer, title: "Customer", allOfRefs: [company] },
@@ -113,8 +104,6 @@ describe("TypeRegistry colour slots", () => {
       { url: actor, title: "Actor", allOfRefs: [] },
     ]);
 
-    // The first batch keeps its slot; the second is appended, sorted within
-    // itself (actor < person), so existing colours never shift on expansion.
     expect(registry.colorSlot(registry.intern(company))).toBe(companySlot);
     expect(registry.colorSlot(registry.intern(actor))).toBe(1);
     expect(registry.colorSlot(registry.intern(person))).toBe(2);

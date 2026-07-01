@@ -168,6 +168,45 @@ interface IndexEdge {
 
 type CommunityPhase = "seed" | "fa2" | "done";
 
+/**
+ * A single attributable pass of a cold layout run, for the {@link CommunityLayoutProfiler}
+ * cost deep-dive (worker/layout/community-layout-cost.md). `louvain*` and `matrixRebuild`/
+ * `resolveEdges` run at build; `seed*` during the seed phase; `fa2*` per FA2 iteration;
+ * `writePositions` after every stepped tick.
+ */
+export type CommunityLayoutPass =
+  | "louvainBuild"
+  | "louvainSolve"
+  | "resolveEdges"
+  | "matrixRebuild"
+  | "seedSetup"
+  | "seedSgd"
+  | "fa2Iterate"
+  | "fa2Stats"
+  | "fa2Settle"
+  | "fa2Scale"
+  | "writePositions";
+
+/**
+ * Opt-in instrumentation sink for the per-pass cost deep-dive. Production never supplies one:
+ * with no profiler every timing site is skipped (guarded on `#profiler`), so the layout runs
+ * exactly as before. The cost harness (community-layout-cost.bench.ts) supplies one to attribute
+ * wall-clock and call counts per {@link CommunityLayoutPass} across a full cold run. `add` is
+ * called once per pass occurrence, so the number of calls is also the pass's iteration count.
+ */
+export interface CommunityLayoutProfiler {
+  readonly add: (pass: CommunityLayoutPass, elapsedMs: number) => void;
+}
+
+/** Seeder phases that are the stress-SGD relaxation itself; everything else the seeder does
+ * (CSR build, weak components, pivot BFS, coordinate init, component packing) is setup. Used
+ * only to bucket seed-tick wall-clock into {@link CommunityLayoutPass} `seedSgd` vs `seedSetup`. */
+const SEED_SGD_PHASES: ReadonlySet<string> = new Set([
+  "stress-edges",
+  "stress-pivots",
+  "stress-flow",
+]);
+
 class CommunityLayout implements LayoutSimulation {
   readonly #nodes: ForceNode[];
   /** Stable reference: the buffer grows in place (`ensureCapacity` on the instance the
@@ -209,15 +248,19 @@ class CommunityLayout implements LayoutSimulation {
   #absorbedSinceLouvain = 0;
   /** Node count at the last Louvain refresh, base for the growth-fraction trigger. */
   #countAtLastLouvain = 0;
+  /** Opt-in per-pass cost profiler; undefined in production (all timing sites then skip). */
+  readonly #profiler: CommunityLayoutProfiler | undefined;
 
   constructor(
     nodes: ForceNode[],
     edges: ForceEdge[],
     buffer: FlatGraphBuffer,
     fa2Tuning?: Fa2Tuning,
+    profiler?: CommunityLayoutProfiler,
   ) {
     this.#nodes = nodes;
     this.#buffer = buffer;
+    this.#profiler = profiler;
     const count = nodes.length;
 
     for (const [index, node] of nodes.entries()) {
@@ -237,7 +280,23 @@ class CommunityLayout implements LayoutSimulation {
 
     this.#status = count > 0 ? "running" : "settled";
     this.#phase = count > 0 ? "seed" : "done";
+    const writeStart = this.#now();
     this.#writePositions();
+    this.#record("writePositions", writeStart);
+  }
+
+  /** `performance.now()` when profiling, else 0 (no clock read). Paired with {@link #record}
+   * so a disabled profiler adds only a branch per timing site, no allocation. */
+  #now(): number {
+    return this.#profiler === undefined ? 0 : performance.now();
+  }
+
+  /** Attribute `now - start` ms to `pass` when profiling; a no-op otherwise. */
+  #record(pass: CommunityLayoutPass, start: number): void {
+    const profiler = this.#profiler;
+    if (profiler !== undefined) {
+      profiler.add(pass, performance.now() - start);
+    }
   }
 
   /**
@@ -250,8 +309,11 @@ class CommunityLayout implements LayoutSimulation {
    */
   #rebuildMatrices(edges: ForceEdge[]): void {
     const count = this.#nodes.length;
+    const resolveStart = this.#now();
     this.#indexEdges = CommunityLayout.resolveEdges(edges, this.#idToIndex);
+    this.#record("resolveEdges", resolveStart);
 
+    const matrixStart = this.#now();
     const nodeMatrix = new Float32Array(count * PPN);
     for (let idx = 0; idx < count; idx++) {
       const node = this.#nodes[idx]!;
@@ -278,6 +340,7 @@ class CommunityLayout implements LayoutSimulation {
     this.#nodeMatrix = nodeMatrix;
     this.#edgeMatrix = edgeMatrix;
     this.#prevPositions = new Float32Array(count * 2);
+    this.#record("matrixRebuild", matrixStart);
   }
 
   get status(): ForceLayoutStatus {
@@ -323,7 +386,9 @@ class CommunityLayout implements LayoutSimulation {
     }
 
     if (stepped) {
+      const writeStart = this.#now();
       this.#writePositions();
+      this.#record("writePositions", writeStart);
     }
     if (this.#phase === "done") {
       this.#status = "settled";
@@ -412,16 +477,30 @@ class CommunityLayout implements LayoutSimulation {
   #advance(): void {
     switch (this.#phase) {
       case "seed": {
-        if (this.#seed!.tick({ maxWork: SEED_TICK_WORK }).done) {
+        const seed = this.#seed!;
+        // Classify the whole tick by the phase it starts in (setup vs SGD relaxation). A tick
+        // spans thousands of work units within one phase, so only the 1-2 boundary ticks bleed.
+        const seedPass = SEED_SGD_PHASES.has(seed.phase)
+          ? "seedSgd"
+          : "seedSetup";
+        const seedStart = this.#now();
+        const done = seed.tick({ maxWork: SEED_TICK_WORK }).done;
+        this.#record(seedPass, seedStart);
+        if (done) {
           this.#handOffSeedToFa2();
           this.#phase = "fa2";
         }
         break;
       }
       case "fa2": {
+        const iterStart = this.#now();
         iterate(this.#fa2Settings, this.#nodeMatrix, this.#edgeMatrix);
+        this.#record("fa2Iterate", iterStart);
         this.#fa2Steps += 1;
-        const converged = this.#afterFa2Iteration(this.#fa2IterStats());
+        const statsStart = this.#now();
+        const stats = this.#fa2IterStats();
+        this.#record("fa2Stats", statsStart);
+        const converged = this.#afterFa2Iteration(stats);
         if (converged || this.#fa2Steps >= FA2_MAX_ITERS) {
           this.#phase = "done";
         }
@@ -441,6 +520,7 @@ class CommunityLayout implements LayoutSimulation {
       return;
     }
 
+    const buildStart = this.#now();
     const graph = new UndirectedGraph<
       Record<string, never>,
       { weight: number }
@@ -457,12 +537,15 @@ class CommunityLayout implements LayoutSimulation {
         },
       );
     }
+    this.#record("louvainBuild", buildStart);
 
+    const solveStart = this.#now();
     const membership = louvain(graph, {
       getEdgeWeight: "weight",
       randomWalk: false,
       rng: parkMillerRng(1),
     });
+    this.#record("louvainSolve", solveStart);
     for (let idx = 0; idx < this.#nodes.length; idx++) {
       this.#communities[idx] = membership[this.#nodes[idx]!.id] ?? idx;
     }
@@ -550,8 +633,11 @@ class CommunityLayout implements LayoutSimulation {
    */
   #afterFa2Iteration(stats: Fa2IterStats): boolean {
     if (this.#fa2Steps === 1 || this.#fa2Steps % FA2_SCALE_REFRESH === 0) {
+      const scaleStart = this.#now();
       this.#fa2Scale = this.#estimateTypicalEdgeLength();
+      this.#record("fa2Scale", scaleStart);
     }
+    const settleStart = this.#now();
     const scale = Math.max(1e-6, this.#fa2Scale);
     const rmsRel = stats.rmsMove / scale;
     const maxRel = stats.maxMove / scale;
@@ -573,10 +659,11 @@ class CommunityLayout implements LayoutSimulation {
       this.#fa2MaxMoveEma < FA2_SETTLE_MAX_REL;
     this.#fa2SettledFor = settledNow ? this.#fa2SettledFor + 1 : 0;
 
-    return (
+    const converged =
       this.#fa2Steps >= FA2_MIN_ITERS &&
-      this.#fa2SettledFor >= FA2_SETTLE_STREAK
-    );
+      this.#fa2SettledFor >= FA2_SETTLE_STREAK;
+    this.#record("fa2Settle", settleStart);
+    return converged;
   }
 
   /** Reset the FA2 settle smoothing + streak (a warm absorb re-energises the layout). */
@@ -695,6 +782,7 @@ export function createCommunityLayout(
   edges: ForceEdge[],
   buffer: FlatGraphBuffer,
   fa2Tuning?: Fa2Tuning,
+  profiler?: CommunityLayoutProfiler,
 ): LayoutSimulation {
-  return new CommunityLayout(nodes, edges, buffer, fa2Tuning);
+  return new CommunityLayout(nodes, edges, buffer, fa2Tuning, profiler);
 }

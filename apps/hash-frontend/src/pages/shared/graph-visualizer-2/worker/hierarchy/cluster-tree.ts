@@ -8,10 +8,10 @@ import { subclusterByLinks } from "./community";
 
 import type { VizConfig } from "../../config";
 import type { Color } from "../../frames";
-import type { ClusterKind, EntityIdx, TypeIdx, TypeSetKey } from "../../ids";
-import type { LinkStore } from "../stores/link-store";
-import type { TypeRegistry } from "../stores/type-registry";
-import type { TypeSetGroup, TypeSetStore } from "../stores/type-set-store";
+import type { ClusterKind, EntityIndex, TypeId, TypeSetKey } from "../../ids";
+import type { LinkStore } from "../store/link";
+import type { TypeRegistry } from "../store/type-registry";
+import type { TypeSetGroup, TypeSetStore } from "../store/type-set";
 
 /* eslint-disable no-bitwise */
 function stableHashToAngle(id: string): number {
@@ -25,13 +25,13 @@ function stableHashToAngle(id: string): number {
 
 export class ClusterLabel {
   readonly text: string;
-  readonly primaryType: TypeIdx | null;
+  readonly primaryType: TypeId | null;
   readonly coverage: number;
   readonly isMixed: boolean;
 
   constructor(
     text?: string,
-    primaryType?: TypeIdx | null,
+    primaryType?: TypeId | null,
     coverage?: number,
     isMixed?: boolean,
   ) {
@@ -43,11 +43,11 @@ export class ClusterLabel {
 }
 
 export class ClusterMass {
-  readonly direct = new Map<TypeIdx, number>();
-  readonly closure = new Map<TypeIdx, number>();
+  readonly direct = new Map<TypeId, number>();
+  readonly closure = new Map<TypeId, number>();
 
   addGroup(group: TypeSetGroup): void {
-    for (const typeIdx of group.directTypeIdxs) {
+    for (const typeIdx of group.directTypeIds) {
       this.direct.set(typeIdx, (this.direct.get(typeIdx) ?? 0) + group.count);
     }
     for (const typeIdx of group.closure.members()) {
@@ -56,7 +56,7 @@ export class ClusterMass {
   }
 
   removeGroup(group: TypeSetGroup, entityCount: number): void {
-    for (const typeIdx of group.directTypeIdxs) {
+    for (const typeIdx of group.directTypeIds) {
       const prev = this.direct.get(typeIdx) ?? 0;
       this.direct.set(typeIdx, Math.max(0, prev - entityCount));
     }
@@ -67,7 +67,7 @@ export class ClusterMass {
   }
 
   incrementForGroup(group: TypeSetGroup, delta: number): void {
-    for (const typeIdx of group.directTypeIdxs) {
+    for (const typeIdx of group.directTypeIds) {
       this.direct.set(typeIdx, (this.direct.get(typeIdx) ?? 0) + delta);
     }
     for (const typeIdx of group.closure.members()) {
@@ -92,7 +92,7 @@ interface GroupMembership {
 
 interface DirectMembership {
   readonly source: "direct";
-  readonly members: Column<Int32Array, EntityIdx>;
+  readonly members: Column<Int32Array, EntityIndex>;
 }
 
 export type ClusterMembership = GroupMembership | DirectMembership;
@@ -317,8 +317,8 @@ export function enclosingRadius(radii: readonly number[], gap: number): number {
 function documentFrequency(
   clusters: readonly ClusterNode[],
   massKey: "direct" | "closure",
-): Map<TypeIdx, number> {
-  const df = new Map<TypeIdx, number>();
+): Map<TypeId, number> {
+  const df = new Map<TypeId, number>();
 
   for (const cluster of clusters) {
     for (const typeIdx of cluster.mass[massKey].keys()) {
@@ -331,13 +331,13 @@ function documentFrequency(
 
 function bestCandidate(
   cluster: ClusterNode,
-  mass: Map<TypeIdx, number>,
-  df: Map<TypeIdx, number>,
+  mass: Map<TypeId, number>,
+  df: Map<TypeId, number>,
   minCoverage: number,
   totalClusters: number,
   types: TypeRegistry,
-): { typeIdx: TypeIdx; coverage: number; score: number } | undefined {
-  let best: { typeIdx: TypeIdx; coverage: number; score: number } | undefined;
+): { typeIdx: TypeId; coverage: number; score: number } | undefined {
+  let best: { typeIdx: TypeId; coverage: number; score: number } | undefined;
 
   for (const [typeIdx, count] of mass) {
     const coverage = count / cluster.count;
@@ -365,8 +365,8 @@ function bestCandidate(
 
 function distinctiveLabel(
   cluster: ClusterNode,
-  directDf: Map<TypeIdx, number>,
-  closureDf: Map<TypeIdx, number>,
+  directDf: Map<TypeId, number>,
+  closureDf: Map<TypeId, number>,
   totalClusters: number,
   types: TypeRegistry,
 ): ClusterLabel {
@@ -407,7 +407,7 @@ function distinctiveLabel(
 
 function findMergeTarget(
   small: TypeSetGroup,
-  anchorIndex: Map<TypeIdx, TypeSetGroup[]>,
+  anchorIndex: Map<TypeId, TypeSetGroup[]>,
   config: VizConfig,
 ): ClusterId {
   const candidates = new Map<string, TypeSetGroup>();
@@ -428,9 +428,7 @@ function findMergeTarget(
 
   for (const anchor of candidates.values()) {
     const rawJaccard = small.closure.jaccard(anchor.closure);
-    const directSuperset = small.directTypeIdxs.isSubsetOf(
-      anchor.directTypeIdxs,
-    );
+    const directSuperset = small.directTypeIds.isSubsetOf(anchor.directTypeIds);
     const adjustedScore = rawJaccard + (directSuperset ? 0.1 : 0);
 
     if (
@@ -450,14 +448,12 @@ function findMergeTarget(
     return best.group.standaloneClusterId;
   }
 
-  const primaryType = small.directTypeIdxs.items[0] ?? 0;
+  const primaryType = small.directTypeIds.items[0] ?? 0;
   return ClusterId(`cluster:other:${primaryType}`);
 }
 
-function buildAnchorIndex(
-  typeSets: TypeSetStore,
-): Map<TypeIdx, TypeSetGroup[]> {
-  const index = new Map<TypeIdx, TypeSetGroup[]>();
+function buildAnchorIndex(typeSets: TypeSetStore): Map<TypeId, TypeSetGroup[]> {
+  const index = new Map<TypeId, TypeSetGroup[]>();
 
   for (const group of typeSets) {
     if (!group.isStandalone || group.count === 0) {
@@ -491,7 +487,7 @@ function clusterDepth(cluster: ClusterNode): number {
 }
 
 function inheritedPrimaryType(cluster: ClusterNode): {
-  typeIdx: TypeIdx | null;
+  typeIdx: TypeId | null;
   inherited: boolean;
 } {
   if (cluster.label.primaryType !== null) {
@@ -532,7 +528,7 @@ export function colorForCluster(
   }
 
   const info = types.get(primaryType);
-  const rootIdx = info?.rootIdxs[0] ?? primaryType;
+  const rootIdx = info?.rootIds[0] ?? primaryType;
   const slot = types.colorSlot(rootIdx);
   if (slot === undefined) {
     const alpha = depth > 0 ? 95 : 145;
@@ -854,12 +850,12 @@ export class ClusterTree {
     node.clearChildren();
 
     for (const { childId, count, memberIdxs } of childAssignments) {
-      const members = new Column<Int32Array, EntityIdx>(
+      const members = new Column<Int32Array, EntityIndex>(
         Int32Array,
         memberIdxs.length,
       );
       for (const idx of memberIdxs) {
-        members.push(idx as EntityIdx);
+        members.push(idx as EntityIndex);
       }
       const child = new ClusterNode(childId, "embedding", {
         source: "direct",
@@ -894,7 +890,7 @@ export class ClusterTree {
   #collectEntityIdxs(
     node: ClusterNode,
     typeSets: TypeSetStore,
-  ): Column<Int32Array, EntityIdx> {
+  ): Column<Int32Array, EntityIndex> {
     if (node.membership.source === "direct") {
       return node.membership.members;
     }
@@ -903,15 +899,15 @@ export class ClusterTree {
     for (const key of node.membership.keys) {
       const group = typeSets.get(key);
       if (group) {
-        total += group.entityIdxs.length;
+        total += group.entities.length;
       }
     }
 
-    const result = new Column<Int32Array, EntityIdx>(Int32Array, total);
+    const result = new Column<Int32Array, EntityIndex>(Int32Array, total);
     for (const key of node.membership.keys) {
       const group = typeSets.get(key);
       if (group) {
-        for (const idx of group.entityIdxs) {
+        for (const idx of group.entities) {
           result.push(idx);
         }
       }
@@ -979,7 +975,7 @@ export class ClusterTree {
       }
     }
 
-    const anchorIndex = new Map<TypeIdx, TypeSetGroup[]>();
+    const anchorIndex = new Map<TypeId, TypeSetGroup[]>();
     for (const anchor of anchors) {
       for (const typeIdx of anchor.closure.members()) {
         let list = anchorIndex.get(typeIdx);
@@ -1103,13 +1099,13 @@ export class ClusterTree {
   #bucketByPrimaryRoot(
     atomicNodes: readonly ClusterNode[],
     types: TypeRegistry,
-  ): Map<TypeIdx | undefined, ClusterNode[]> {
-    const buckets = new Map<TypeIdx | undefined, ClusterNode[]>();
+  ): Map<TypeId | undefined, ClusterNode[]> {
+    const buckets = new Map<TypeId | undefined, ClusterNode[]>();
 
     for (const node of atomicNodes) {
       const primaryType = node.label.primaryType;
       const rootIdx =
-        primaryType !== null ? types.get(primaryType)?.rootIdxs[0] : undefined;
+        primaryType !== null ? types.get(primaryType)?.rootIds[0] : undefined;
 
       let list = buckets.get(rootIdx);
       if (!list) {

@@ -1,11 +1,11 @@
 /** Deterministic synthetic-graph builders for benchmarks. */
 import { entityIdFromComponents } from "@blockprotocol/type-system";
 
-import { EntityIdx, TypeSetIdx } from "../ids";
+import { EntityIndex, TypeSetId } from "../ids";
 import { Column } from "./collections/column";
 import { radiusForDegree } from "./entity-style";
 import { mulberry32 } from "./random";
-import { LinkStore } from "./stores/link-store";
+import { LinkStore } from "./store/link";
 
 import type { ForceEdge, ForceNode } from "./layout/force-simulation";
 import type { IngestEntity, TypeSchemaEntry } from "./protocol";
@@ -184,27 +184,27 @@ export function buildForceGraph(shape: GraphShape): {
 
 /** Link store and entity index column. Entity indices are the contiguous range `[0, nodeCount)`. */
 export function buildCommunityInputs(shape: GraphShape): {
-  readonly entityIdxs: Column<Int32Array, EntityIdx>;
+  readonly entityIdxs: Column<Int32Array, EntityIndex>;
   readonly links: LinkStore;
 } {
-  const entityIdxs = new Column<Int32Array, EntityIdx>(
+  const entityIdxs = new Column<Int32Array, EntityIndex>(
     Int32Array,
     Math.max(1, shape.nodeCount),
   );
   for (let nodeIndex = 0; nodeIndex < shape.nodeCount; nodeIndex++) {
-    entityIdxs.push(EntityIdx(nodeIndex));
+    entityIdxs.push(EntityIndex(nodeIndex));
   }
 
   const links = new LinkStore();
   const pairs = buildEdgePairs(shape);
-  const linkTypeIdx = TypeSetIdx(0);
+  const linkTypeIdx = TypeSetId(0);
   for (let pairIndex = 0; pairIndex < pairs.length; pairIndex++) {
     const [left, right] = pairs[pairIndex]!;
     links.insert(
-      EntityIdx(left),
-      EntityIdx(right),
+      EntityIndex(left),
+      EntityIndex(right),
       linkTypeIdx,
-      EntityIdx(shape.nodeCount + pairIndex),
+      EntityIndex(shape.nodeCount + pairIndex),
     );
   }
 
