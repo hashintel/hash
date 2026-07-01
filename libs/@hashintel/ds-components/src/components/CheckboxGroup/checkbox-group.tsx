@@ -3,8 +3,11 @@ import { useId } from "react";
 
 import { cx } from "@hashintel/ds-helpers/css";
 
+import {
+  getGroupFocusProps,
+  styles,
+} from "../../util/radio-checkbox-group-shared";
 import { Checkbox } from "../Checkbox/checkbox";
-import { styles } from "./checkbox-group.recipe";
 
 import type { SharedInputProps } from "../../util/form-shared";
 
@@ -18,16 +21,15 @@ type CheckboxGroupProps<ValueType extends string = string> = {
       "size" | "onChange" | "value" | "name" | "autoFocus" | "htmlForId"
     > & { value: ValueType }
   >;
-} & Omit<
-  SharedInputProps<HTMLInputElement, NoInfer<ValueType>[]>,
-  "inputRef" | "invalid"
-> &
+  maxSelectable?: number;
+} & Omit<SharedInputProps<HTMLInputElement, NoInfer<ValueType>[]>, "inputRef"> &
   React.AriaAttributes;
 
 export const CheckboxGroup = <const ValueType extends string>({
   layout = "block",
   items,
   disabled,
+  invalid,
   className,
   value,
   onChange,
@@ -39,6 +41,7 @@ export const CheckboxGroup = <const ValueType extends string>({
   size = "md",
   autoFocus,
   name,
+  maxSelectable,
   ...ariaProps
 }: CheckboxGroupProps<ValueType>) => {
   // A stable, shared `name` groups the underlying inputs for form submission.
@@ -46,33 +49,9 @@ export const CheckboxGroup = <const ValueType extends string>({
   const groupName = name ?? generatedName;
 
   const selectedValues = new Set(value);
-
-  // Focus events bubble, so moving between options would otherwise fire blur
-  // then focus on the group itself. These only report focus genuinely entering
-  // or leaving the group, i.e. when the related element is outside it.
-  const handleGroupFocus = (event: React.FocusEvent<HTMLDivElement>) => {
-    if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
-      onFocus?.(event as unknown as React.FocusEvent<HTMLInputElement>);
-    }
-  };
-
-  const handleGroupBlur = (event: React.FocusEvent<HTMLDivElement>) => {
-    if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
-      onBlur?.(event as unknown as React.FocusEvent<HTMLInputElement>);
-    }
-  };
-
-  // Pressing an option's label would otherwise blur the currently-focused
-  // option out to `<body>` (where `relatedTarget` is null) before `click`
-  // focuses the pressed option — surfacing as the group losing then regaining
-  // focus. Preventing the default press behaviour keeps the current option
-  // focused until `click` moves focus straight to the pressed option, so
-  // `relatedTarget` stays within the group and the transient never happens.
-  const handleGroupMouseDown = (event: React.MouseEvent<HTMLDivElement>) => {
-    if ((event.target as HTMLElement).closest("label")) {
-      event.preventDefault();
-    }
-  };
+  const isRequired = !!required || items.some((item) => item.required);
+  const isInvalid = !!invalid || items.some((item) => item.invalid);
+  const hasSelection = items.some((item) => selectedValues.has(item.value));
 
   return (
     <ArkCheckboxGroup
@@ -80,22 +59,29 @@ export const CheckboxGroup = <const ValueType extends string>({
       disabled={disabled}
       // `aria-required` isn't part of the `group` role's ARIA contract, but is
       // the conventional signal that a selection is required for the group.
-      aria-required={required ? true : undefined}
+      aria-required={isRequired ? true : undefined}
+      invalid={isInvalid ? true : undefined}
       data-testid={testId}
       ref={ref as React.Ref<HTMLDivElement>}
+      maxSelectedValues={maxSelectable}
       className={cx(styles({ layout }), className)}
-      onMouseDown={handleGroupMouseDown}
-      onFocus={handleGroupFocus}
-      onBlur={handleGroupBlur}
+      {...getGroupFocusProps({ onFocus, onBlur })}
       {...ariaProps}
     >
       {items.map((item, index) => {
         const {
           value: optionValue,
           disabled: itemDisabled,
+          required: itemRequired,
           ...itemProps
         } = item;
         const itemIsDisabled = disabled === true || itemDisabled === true;
+        // Native checkboxes have no "at least one of the group" constraint, so when
+        // the group is required we mark every option `required` while nothing is
+        // selected. That makes the group invalid (blocking submission) until one box
+        // is checked, at which point none of them need to be required anymore.
+        const itemIsRequired =
+          itemRequired === true || (required === true && !hasSelection);
 
         return (
           <Checkbox
@@ -104,6 +90,7 @@ export const CheckboxGroup = <const ValueType extends string>({
             size={size}
             name={groupName}
             disabled={itemIsDisabled}
+            required={itemIsRequired}
             value={selectedValues.has(optionValue)}
             htmlValue={optionValue}
             onChange={(checked) => {
