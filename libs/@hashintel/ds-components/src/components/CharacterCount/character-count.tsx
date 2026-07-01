@@ -1,10 +1,14 @@
+import { cx } from "@hashintel/ds-helpers/css";
+
 import { styles } from "./character-count.recipe";
 
 export const CharacterCount = ({
+  className,
   charactersUsed,
   maxLength,
   takesHeight = false,
 }: {
+  className?: string;
   /** The number of characters currently entered */
   charactersUsed: number;
   /** The maximum number of characters allowed */
@@ -16,7 +20,7 @@ export const CharacterCount = ({
 
   return (
     <div
-      className={styles({ overLimit, takesHeight })}
+      className={cx(styles({ overLimit, takesHeight }), className)}
       // only announce to assistive tech once the user has exceeded the limit,
       // to avoid narrating the count on every keystroke
       aria-live={overLimit ? "polite" : "off"}
