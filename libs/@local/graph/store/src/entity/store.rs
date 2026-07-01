@@ -1,4 +1,5 @@
 use alloc::borrow::Cow;
+use core::num::NonZero;
 use std::collections::{HashMap, HashSet};
 
 use error_stack::Report;
@@ -36,7 +37,9 @@ use utoipa::{
 use crate::{
     entity::{EntityQueryCursor, EntityQuerySorting, EntityValidationReport},
     entity_type::{EntityTypeResolveDefinitions, IncludeEntityTypeOption},
-    error::{CheckPermissionError, DeletionError, InsertionError, QueryError, UpdateError},
+    error::{
+        CheckPermissionError, ClusterError, DeletionError, InsertionError, QueryError, UpdateError,
+    },
     filter::{Filter, SemanticDistance},
     subgraph::{
         Subgraph,
@@ -528,6 +531,56 @@ impl PatchEntityParams {
 #[derive(Debug, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ClusterEntitiesParams {
+    pub entity_ids: Vec<EntityId>,
+    /// Desired number of clusters. Clamped to the number of entities with
+    /// embeddings when that is smaller.
+    pub cluster_count: u16,
+    /// Embedding dimension after matryoshka truncation. Must be a positive
+    /// multiple of 8; values above 3072 are rejected. Defaults to 256.
+    #[serde(default = "ClusterEntitiesParams::default_dimension")]
+    #[cfg_attr(feature = "utoipa", schema(value_type = u16, minimum = 1, default = 256, example = 256))]
+    pub dimension: NonZero<u16>,
+
+    /// Seed for the random number generator used in clustering.
+    ///
+    /// If not provided, a random seed will be used.
+    pub seed: Option<u64>,
+}
+
+impl ClusterEntitiesParams {
+    const fn default_dimension() -> NonZero<u16> {
+        const { NonZero::new(256).unwrap() }
+    }
+}
+
+/// One cluster from a spherical k-means run over entity embeddings.
+#[derive(Debug, Serialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase")]
+pub struct EntityCluster {
+    /// Index in `0..cluster_count`.
+    pub cluster_id: u16,
+    pub entity_ids: Vec<EntityId>,
+    /// Unit-normalized centroid with length equal to the requested dimension.
+    pub centroid: Vec<f32>,
+}
+
+/// Result of [`EntityStore::cluster_entities`].
+#[derive(Debug, Serialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase")]
+pub struct ClusterEntitiesResponse {
+    /// One entry per non-empty cluster. Empty clusters (no points assigned)
+    /// are omitted.
+    pub clusters: Vec<EntityCluster>,
+    /// Entities from the request that had no stored embedding.
+    pub missing_embeddings: Vec<EntityId>,
+}
+
+#[derive(Debug, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct UpdateEntityEmbeddingsParams<'e> {
     pub entity_id: EntityId,
     pub embeddings: Vec<EntityEmbedding<'e>>,
@@ -911,6 +964,27 @@ pub trait EntityStore {
         actor_id: ActorEntityUuid,
         params: UpdateEntityEmbeddingsParams<'_>,
     ) -> impl Future<Output = Result<(), Report<UpdateError>>> + Send;
+
+    /// Groups entities by embedding similarity using spherical k-means.
+    ///
+    /// Each entity's combined embedding is truncated to the requested
+    /// dimension (matryoshka encoding) before clustering. The returned
+    /// centroids are unit-normalized and have the same dimension.
+    ///
+    /// Entities without a stored embedding are not clustered; they appear
+    /// in [`ClusterEntitiesResponse::missing_embeddings`].
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ClusterError::InvalidDimension`] if the dimension is not a
+    /// positive multiple of 8, [`ClusterError::DimensionTooLarge`] if it
+    /// exceeds the stored embedding width, or [`ClusterError::Store`] if the
+    /// embedding query fails.
+    fn cluster_entities(
+        &self,
+        actor_id: ActorEntityUuid,
+        params: ClusterEntitiesParams,
+    ) -> impl Future<Output = Result<ClusterEntitiesResponse, Report<ClusterError>>> + Send;
 
     /// Re-indexes the cache for entities.
     ///

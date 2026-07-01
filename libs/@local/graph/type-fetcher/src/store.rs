@@ -35,9 +35,9 @@ use hash_graph_store::{
         UnarchiveDataTypeParams, UpdateDataTypeEmbeddingParams, UpdateDataTypesParams,
     },
     entity::{
-        CreateEntityParams, DeleteEntitiesParams, DeletionSummary, EntityStore,
-        EntityValidationReport, HasPermissionForEntitiesParams, PatchEntityParams,
-        QueryEntitiesParams, QueryEntitiesResponse, QueryEntitySubgraphParams,
+        ClusterEntitiesParams, ClusterEntitiesResponse, CreateEntityParams, DeleteEntitiesParams,
+        DeletionSummary, EntityStore, EntityValidationReport, HasPermissionForEntitiesParams,
+        PatchEntityParams, QueryEntitiesParams, QueryEntitiesResponse, QueryEntitySubgraphParams,
         QueryEntitySubgraphResponse, SearchEntitiesParams, SearchEntitiesResponse,
         SummarizeEntitiesParams, SummarizeEntitiesResponse, UpdateEntityEmbeddingsParams,
         ValidateEntityParams,
@@ -50,7 +50,9 @@ use hash_graph_store::{
         QueryEntityTypesResponse, SearchEntityTypesParams, SearchEntityTypesResponse,
         UnarchiveEntityTypeParams, UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
     },
-    error::{CheckPermissionError, DeletionError, InsertionError, QueryError, UpdateError},
+    error::{
+        CheckPermissionError, ClusterError, DeletionError, InsertionError, QueryError, UpdateError,
+    },
     filter::{Filter, QueryRecord},
     pool::StorePool,
     property_type::{
@@ -1711,6 +1713,14 @@ where
         params: UpdateEntityEmbeddingsParams<'_>,
     ) -> Result<(), Report<UpdateError>> {
         self.store.update_entity_embeddings(actor_id, params).await
+    }
+
+    async fn cluster_entities(
+        &self,
+        actor_id: ActorEntityUuid,
+        params: ClusterEntitiesParams,
+    ) -> Result<ClusterEntitiesResponse, Report<ClusterError>> {
+        self.store.cluster_entities(actor_id, params).await
     }
 
     async fn reindex_entity_cache(&mut self) -> Result<(), Report<UpdateError>> {

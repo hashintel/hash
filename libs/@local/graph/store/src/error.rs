@@ -1,4 +1,4 @@
-use core::{error::Error, fmt};
+use core::{error::Error, fmt, num::NonZero};
 
 #[derive(Debug)]
 #[must_use]
@@ -68,3 +68,18 @@ pub enum CheckPermissionError {
 }
 
 impl Error for CheckPermissionError {}
+
+/// Failure to cluster entities by embedding similarity.
+#[derive(Debug, derive_more::Display)]
+#[display("Could not cluster entities: {_variant}")]
+#[must_use]
+pub enum ClusterError {
+    #[display("dimension {dimension} is not a positive multiple of 8")]
+    InvalidDimension { dimension: NonZero<u16> },
+    #[display("dimension {dimension} exceeds stored embedding dimension {max}")]
+    DimensionTooLarge { dimension: NonZero<u16>, max: u16 },
+    #[display("embedding query failed")]
+    Store,
+}
+
+impl Error for ClusterError {}

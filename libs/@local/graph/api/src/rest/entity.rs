@@ -10,16 +10,16 @@ use hash_graph_postgres_store::store::error::{EntityDoesNotExist, RaceConditionO
 use hash_graph_store::{
     self,
     entity::{
-        ClosedMultiEntityTypeMap, CreateEntityParams, DiffEntityParams, DiffEntityResult,
-        EntityPermissions, EntityQueryCursor, EntityQuerySortingRecord, EntityQuerySortingToken,
-        EntityQueryToken, EntityStore, EntityTypesError, EntityValidationReport,
-        EntityValidationType, HasPermissionForEntitiesParams, LinkDataStateError,
-        LinkDataValidationReport, LinkError, LinkTargetError, LinkValidationReport,
-        LinkedEntityError, MetadataValidationReport, PatchEntityParams,
-        PropertyMetadataValidationReport, QueryConversion, QueryEntitiesResponse,
-        SearchEntitiesFilter, SearchEntitiesResponse, SummarizeEntitiesParams,
-        SummarizeEntitiesResponse, UnexpectedEntityType, UpdateEntityEmbeddingsParams,
-        ValidateEntityComponents, ValidateEntityParams,
+        ClosedMultiEntityTypeMap, ClusterEntitiesParams, ClusterEntitiesResponse,
+        CreateEntityParams, DiffEntityParams, DiffEntityResult, EntityCluster, EntityPermissions,
+        EntityQueryCursor, EntityQuerySortingRecord, EntityQuerySortingToken, EntityQueryToken,
+        EntityStore, EntityTypesError, EntityValidationReport, EntityValidationType,
+        HasPermissionForEntitiesParams, LinkDataStateError, LinkDataValidationReport, LinkError,
+        LinkTargetError, LinkValidationReport, LinkedEntityError, MetadataValidationReport,
+        PatchEntityParams, PropertyMetadataValidationReport, QueryConversion,
+        QueryEntitiesResponse, SearchEntitiesFilter, SearchEntitiesResponse,
+        SummarizeEntitiesParams, SummarizeEntitiesResponse, UnexpectedEntityType,
+        UpdateEntityEmbeddingsParams, ValidateEntityComponents, ValidateEntityParams,
     },
     entity_type::EntityTypeResolveDefinitions,
     pool::StorePool,
@@ -98,6 +98,7 @@ use crate::rest::{
         summarize_entities,
         patch_entity,
         update_entity_embeddings,
+        cluster_entities,
         diff_entity,
     ),
     components(
@@ -115,6 +116,9 @@ use crate::rest::{
             Embedding,
             UpdateEntityEmbeddingsParams,
             EntityEmbedding,
+            ClusterEntitiesParams,
+            ClusterEntitiesResponse,
+            EntityCluster,
             EntityQueryToken,
 
             PatchEntityParams,
@@ -228,7 +232,12 @@ impl EntityResource {
                 .route("/bulk", post(create_entities::<S>))
                 .route("/diff", post(diff_entity::<S>))
                 .route("/validate", post(validate_entity::<S>))
-                .route("/embeddings", post(update_entity_embeddings::<S>))
+                .nest(
+                    "/embeddings",
+                    Router::new()
+                        .route("/", post(update_entity_embeddings::<S>))
+                        .route("/clusters", post(cluster_entities::<S>)),
+                )
                 .route("/permissions", post(has_permission_for_entities::<S>))
                 .route("/search", post(search_entities::<S>))
                 .nest(
@@ -778,6 +787,42 @@ where
         .update_entity_embeddings(actor_id, params)
         .await
         .map_err(report_to_response)
+}
+
+#[utoipa::path(
+    post,
+    path = "/entities/embeddings/clusters",
+    tag = "Entity",
+    params(
+        ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
+    ),
+    responses(
+        (status = 200, content_type = "application/json", description = "Clusters of entities by embedding similarity", body = ClusterEntitiesResponse),
+        (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
+
+        (status = 500, description = "Store error occurred"),
+    ),
+    request_body = ClusterEntitiesParams,
+)]
+async fn cluster_entities<S>(
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    store_pool: Extension<Arc<S>>,
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
+    Json(params): Json<ClusterEntitiesParams>,
+) -> Result<Json<ClusterEntitiesResponse>, BoxedResponse>
+where
+    S: StorePool + Send + Sync,
+{
+    let store = store_pool
+        .acquire(temporal_client.0)
+        .await
+        .map_err(report_to_response)?;
+
+    store
+        .cluster_entities(actor_id, params)
+        .await
+        .map_err(report_to_response)
+        .map(Json)
 }
 
 #[utoipa::path(
