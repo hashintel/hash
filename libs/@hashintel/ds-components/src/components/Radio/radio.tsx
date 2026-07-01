@@ -2,7 +2,6 @@ import { useId } from "react";
 
 import { cx } from "@hashintel/ds-helpers/css";
 
-import { useFieldId } from "../Form/field-id-context";
 import { styles } from "./radio.recipe";
 
 import type { SharedInputProps, Tone } from "../../util/form-shared";
@@ -25,6 +24,7 @@ export const Radio = ({
   invalid,
   testId,
   htmlForId,
+  htmlValue,
   ref,
   inputRef,
   autoFocus,
@@ -42,13 +42,14 @@ export const Radio = ({
   labelAlign?: "top" | "center";
   /** The tone applied when the radio is selected */
   tone?: Exclude<Tone, "error"> | "success";
+  /** An optional value used for native form submissions */
+  htmlValue?: string;
 } & SharedInputProps<HTMLInputElement, boolean> &
   React.AriaAttributes) => {
-  const fieldIdFromContext = useFieldId();
   const generatedId = useId();
   // Always resolve to a concrete id so the label can be explicitly linked to
   // the input (an external `<FormField>` label takes precedence via context).
-  const inputId = htmlForId ?? fieldIdFromContext ?? generatedId;
+  const inputId = htmlForId ?? generatedId;
 
   const classes = styles({
     size,
@@ -72,7 +73,7 @@ export const Radio = ({
         className={classes.input}
         id={inputId}
         name={name}
-        value={SELECTED_VALUE}
+        value={htmlValue ?? SELECTED_VALUE}
         checked={value}
         disabled={disabled}
         required={required}
