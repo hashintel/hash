@@ -12,17 +12,17 @@ Headline findings:
 - **A no‑op `commitStructure()` is not free.** In the flat/community tier every
   commit unconditionally re‑sorts all node indices, rescans topology with two
   throwaway `Set`s, re‑writes per‑node style for the whole graph, and rebuilds
-  every render edge — even when nothing changed. Measured **8.1 ms per no‑op
+  every render edge — even when nothing changed. Measured **8.4 ms per no‑op
   commit at 1,500 nodes** (`core/commit-rebuild.bench.ts`).
 - **Streaming ingest pays that cost per batch.** The same 2,000‑node /
-  5,000‑link graph costs **46.7 ms delivered as one batch+commit vs 1,018 ms
-  delivered as 100‑entity batches — a 21.8× penalty**.
+  5,000‑link graph costs **42.5 ms delivered as one batch+commit vs 1,043 ms
+  delivered as 100‑entity batches — a 24.5× penalty**.
 - **Community detection is dominated by `boundedLabelPropagation`**, which
   allocates a fresh `Map` per node per iteration (≤20 iterations): **111 ms for
-  a 20k‑node component**, ~400–600× the cost of the connected‑components pass.
+  a 20k‑node component**, ~400× the cost of the connected‑components pass.
 - **Buffers are handled well.** `FlatGraphBuffer` grows with 1.5× geometric
   slack (`flatCapacityFor`) and `Column` doubles; both stay amortized O(N). A
-  naïve grow‑to‑exact‑count path would be **18× slower at 50k records**, so this
+  naïve grow‑to‑exact‑count path would be **~21× slower at 50k records**, so this
   is worth a regression test, not a fix.
 
 ---
@@ -51,16 +51,16 @@ Benchmarks are Vitest `bench`/`describe` suites in colocated `*.bench.ts` files.
 
 **`vitest bench` works in this app unchanged** — no config edits were needed. The
 only wrinkle is that the `vitest` binary is hoisted to the monorepo root (the app
-has no `node_modules/.bin/vitest`), so it must be invoked by path. From the app
-directory:
+has no `node_modules/.bin/vitest`, and `yarn vitest` is not wired as a script), so
+it must be invoked by path. The reliable, verified form from the app directory:
 
 ```bash
 cd apps/hash-frontend
-../../node_modules/.bin/vitest bench --run <relative-path-to.bench.ts>
+node ../../node_modules/vitest/vitest.mjs bench --run <relative-path-to.bench.ts>
 ```
 
-(If your shell resolves the hoisted bin on `PATH`, `yarn vitest bench --run …`
-also works; the explicit path is the reliable form.)
+(The absolute path `<repo-root>/node_modules/.bin/vitest bench --run …` also works
+from anywhere; the `node …/vitest.mjs` form above is the portable one.)
 
 ### Measurement caveats
 
@@ -88,45 +88,46 @@ one full pass over the whole graph.
 
 | Case                                                 | small (1k/2k) | medium (5k/10k) | large (20k/40k) |
 | ---------------------------------------------------- | ------------- | --------------- | --------------- |
-| type‑set: `getOrCreate` **once**/node                | 0.088 ms      | 0.437 ms        | 1.70 ms         |
-| type‑set: `getOrCreate` **twice**/node (peek+insert) | 0.169 ms      | 0.846 ms        | 3.32 ms         |
-| `EntityStore.tryInsert`/node                         | 0.62 ms       | 3.50 ms         | 14.2 ms         |
-| build `LinkStore` + `linksForEntity` over all nodes  | 0.22 ms       | 1.64 ms         | 10.1 ms         |
+| type‑set: `getOrCreate` **once**/node                | 0.090 ms      | 0.488 ms        | 1.81 ms         |
+| type‑set: `getOrCreate` **twice**/node (peek+insert) | 0.175 ms      | 0.967 ms        | 3.64 ms         |
+| `EntityStore.tryInsert`/node                         | 0.62 ms       | 3.64 ms         | 14.7 ms         |
+| build `LinkStore` + `linksForEntity` over all nodes  | 0.22 ms       | 1.66 ms         | 8.63 ms         |
 
-The peek+insert row is a stable **~1.9× the once row** at every size — the
-`ingestBatch` code path really does key each node entity twice (see F4).
+The peek+insert row is a stable **~2.0× the once row** at every size (1.96×,
+1.98×, 2.01×) — the `ingestBatch` code path really does key each node entity
+twice (see F5).
 
 ### 2.2 Community detection — `hierarchy/community.bench.ts`
 
 | Stage                                         | 2k/6k    | 8k/24k   | 20k/60k |
 | --------------------------------------------- | -------- | -------- | ------- |
-| `buildInducedCsr`                             | 0.23 ms  | 1.52 ms  | 6.70 ms |
-| `connectedComponents`                         | 0.022 ms | 0.078 ms | 0.29 ms |
-| `boundedLabelPropagation` (largest component) | 10.1 ms  | 41.3 ms  | 111 ms  |
-| full pipeline (CSR + components + label prop) | 10.4 ms  | 47.3 ms  | 122 ms  |
+| `buildInducedCsr`                             | 0.17 ms  | 1.20 ms  | 3.62 ms |
+| `connectedComponents`                         | 0.023 ms | 0.090 ms | 0.28 ms |
+| `boundedLabelPropagation` (largest component) | 10.2 ms  | 44.0 ms  | 111 ms  |
+| full pipeline (CSR + components + label prop) | 10.3 ms  | 43.9 ms  | 121 ms  |
 
-`connectedComponents` is ~10–23× faster than the CSR build and ~400–600× faster
+`connectedComponents` is ~7–13× faster than the CSR build and ~400–490× faster
 than label propagation. **Label propagation is the whole cost** (see F3).
 
 ### 2.3 Buffer write + growth — `buffers/growable-buffer.bench.ts`
 
 Mean time to write / grow the whole buffer.
 
-| Flat‑tier buffer                     | 1k        | 10k             | 50k                 |
-| ------------------------------------ | --------- | --------------- | ------------------- |
-| presized: write all records + commit | 0.0024 ms | 0.026 ms        | 0.096 ms            |
-| geometric growth (1.5×, production)  | 0.0029 ms | 0.073 ms (2.8×) | 0.45 ms (4.7×)      |
-| fixed‑step growth (1024, naïve)      | 0.0024 ms | 0.109 ms (4.2×) | 1.75 ms (**18.3×**) |
+| Flat‑tier buffer                     | 1k        | 10k             | 50k               |
+| ------------------------------------ | --------- | --------------- | ----------------- |
+| presized: write all records + commit | 0.0024 ms | 0.029 ms        | 0.098 ms          |
+| geometric growth (1.5×, production)  | 0.0023 ms | 0.079 ms (2.7×) | 0.54 ms (5.5×)    |
+| fixed‑step growth (1024, naïve)      | 0.0026 ms | 0.091 ms (3.1×) | 2.06 ms (**21×**) |
 
-| Other                                                               | 1k        | 10k       | 50k      |
-| ------------------------------------------------------------------- | --------- | --------- | -------- |
-| `EntityPositionBuffer.setPosition`×N + commit (per‑tick leaf write) | 0.0015 ms | 0.0093 ms | 0.064 ms |
-| `Column<Float32Array>.push`×N (geometric)                           | 0.0013 ms | 0.024 ms  | 0.114 ms |
+| Other                                                               | 1k        | 10k      | 50k      |
+| ------------------------------------------------------------------- | --------- | -------- | -------- |
+| `EntityPositionBuffer.setPosition`×N + commit (per‑tick leaf write) | 0.0012 ms | 0.011 ms | 0.067 ms |
+| `Column<Float32Array>.push`×N (geometric)                           | 0.0014 ms | 0.024 ms | 0.125 ms |
 
 Production’s 1.5× geometric growth (`flatCapacityFor`) tracks the presized floor
-within ~5×; the naïve grow‑to‑exact‑count path is 18× worse at 50k because every
-step re‑allocates and memcpies the whole (non‑resizable, GPU‑uploaded) buffer.
-`Column` and the leaf position buffer scale linearly — no problem here.
+within ~5.5×; the naïve grow‑to‑exact‑count path is ~21× worse at 50k because
+every step re‑allocates and memcpies the whole (non‑resizable, GPU‑uploaded)
+buffer. `Column` and the leaf position buffer scale linearly — no problem here.
 
 ### 2.4 Layout settle — `layout/force-simulation.bench.ts`
 
@@ -135,16 +136,16 @@ across frames in production). Fixed 6 iterations per row.
 
 | flat‑force (cola `Descent`) | 50      | 120    | 200    |
 | --------------------------- | ------- | ------ | ------ |
-| build + settle              | 29.8 ms | 199 ms | 409 ms |
+| build + settle              | 29.3 ms | 189 ms | 377 ms |
 
 | community‑force (Louvain + sparse‑stress seed + FA2) | 500    | 1,500    | 3,000    |
 | ---------------------------------------------------- | ------ | -------- | -------- |
-| build only (Louvain + seed alloc + matrices)         | 2.1 ms | 6.2 ms   | 12.2 ms  |
-| build + settle                                       | 522 ms | 3,466 ms | 4,391 ms |
+| build only (Louvain + seed alloc + matrices)         | 1.8 ms | 5.1 ms   | 10.5 ms  |
+| build + settle                                       | 486 ms | 3,438 ms | 4,452 ms |
 
 Two takeaways: cola’s O(N²) `Descent` reaches ~0.4 s at 200 nodes, which is
 exactly why the flat‑force tier is capped at `flatLayoutMaxNodes: 200`. And the
-FA2 **settle dominates build by 250–560×** — construction is negligible; the
+FA2 **settle dominates build by ~270–680×** — construction is negligible; the
 iteration loop is the cost.
 
 ### 2.5 End‑to‑end commit / rebuild — `core/commit-rebuild.bench.ts`
@@ -153,27 +154,30 @@ Driven through the real `GraphWorker` exactly as `entry.ts` does.
 
 | No‑op re‑commit (`commitStructure()` with nothing changed) | mean        |
 | ---------------------------------------------------------- | ----------- |
-| flat‑force (150 nodes)                                     | 0.125 ms    |
-| community‑force (1,500 nodes)                              | **8.14 ms** |
-| hierarchical‑lod (8,000 nodes)                             | 2.91 ms     |
+| flat‑force (150 nodes)                                     | 0.13 ms     |
+| community‑force (1,500 nodes)                              | **8.45 ms** |
+| hierarchical‑lod (8,000 nodes)                             | 3.17 ms     |
 
 | Ingest 2,000 nodes / 5,000 links            | mean                 |
 | ------------------------------------------- | -------------------- |
-| bulk: 1 batch + 1 commit                    | 46.7 ms              |
-| streaming: 100‑entity batches + commit each | **1,018 ms (21.8×)** |
+| bulk: 1 batch + 1 commit                    | 42.5 ms              |
+| streaming: 100‑entity batches + commit each | **1,043 ms (24.5×)** |
 
-The community‑force no‑op (8 ms) is _more_ expensive than the hierarchical no‑op
-(2.9 ms) despite fewer nodes: the flat tiers touch every node and every link on
-each commit, while the hierarchical tier only recomputes the cut and the visible
-clusters. This is the clearest evidence of the missing incremental commit path.
+The community‑force no‑op (8.5 ms) is _more_ expensive than the hierarchical
+no‑op (3.2 ms) despite fewer nodes: the flat tiers touch every node and every
+link on each commit, while the hierarchical tier only recomputes the cut and the
+visible clusters. This is the clearest evidence of the missing incremental commit
+path. (The bulk row has high run‑to‑run variance, ±30 % RME, from GC on the big
+single allocation; the streaming row is stable at ±2 %, so the ~24× ratio is a
+floor, not an artifact.)
 
 ### 2.6 Edge aggregation keying — `geometry/edge-aggregation.bench.ts`
 
 | `makePairKey` over N pairs | 500      | 2,000    | 8,000    |
 | -------------------------- | -------- | -------- | -------- |
-| classify every pair        | 0.012 ms | 0.047 ms | 0.185 ms |
+| classify every pair        | 0.012 ms | 0.049 ms | 0.194 ms |
 
-At ~23 ns/pair and realistic cluster‑pair counts, **`makePairKey` is not a
+At ~24 ns/pair and realistic cluster‑pair counts, **`makePairKey` is not a
 bottleneck** — this bench exists to rule it out, and it does.
 
 ---
@@ -203,7 +207,7 @@ every commit**, regardless of whether anything changed:
   list, calling `this.#links.linksForEntity(...)` per node (`:1411`) — **O(N+E)
   plus per‑node array allocation every commit** (compounds with F4).
 
-**Evidence:** no‑op re‑commit = **8.14 ms at 1,500 nodes** (§2.5). None of this
+**Evidence:** no‑op re‑commit = **8.45 ms at 1,500 nodes** (§2.5). None of this
 work is needed when the graph is unchanged, and only the style write is needed
 for a type/highlight‑only change.
 
@@ -217,35 +221,38 @@ re‑derives FA2 settings, conditionally re‑runs Louvain, and resets the settl
 detector. `resolveEdges` (`:664`) rebuilds a `Map` keyed by a `` `${lo}:${hi}` ``
 string for every edge on every rebuild.
 
-**Evidence:** the same final graph costs **46.7 ms bulk vs 1,018 ms streamed
-(21.8×)** (§2.5). For K batches over N nodes this is ≈ O(K·N) instead of O(N).
+**Evidence:** the same final graph costs **42.5 ms bulk vs 1,043 ms streamed
+(24.5×)** (§2.5). For K batches over N nodes this is ≈ O(K·N) instead of O(N).
 
 ### F3 — `boundedLabelPropagation` allocates per node per iteration — **MEDIUM**
 
 `hierarchy/community.ts:63` allocates `const scores = new Map<number, number>()`
 **inside the per‑node loop**, run for up to 20 iterations (`:57`), and
-`deterministicShuffle` (`:23`) copies the component array (`[...indices]`) once
-per iteration. `csr-graph.ts` `buildInducedCsr` also builds an array‑of‑arrays
-adjacency with a `{ neighbor, weight }` object per half‑edge (`:31`, `:51`–`:52`)
-— 2·E temporary objects — before flattening to typed arrays.
+`deterministicShuffle` (`:22`) copies the component array (`[...indices]`, `:23`)
+once per iteration (`:59`). Secondary: `csr-graph.ts` `buildInducedCsr` builds an
+intermediate `number[][]` adjacency of N growable arrays (`:31`), does 2·E numeric
+`push`es (`:52`–`:53`), then a `reduce` scan (`:56`) before flattening into the
+typed `neighbors`/`weights` arrays (weights are uniform `1`, `:60`) — an extra
+O(N)+2·E of throwaway JS‑array allocation on top of the final CSR.
 
 **Evidence:** label propagation is **111 ms for a 20k component** and dominates
-the pipeline (§2.2). For a giant component this is hundreds of thousands of Map
-allocations.
+the pipeline — the CSR build is only 3.6 ms at that size (§2.2). For a giant
+component the Map churn is hundreds of thousands of allocations.
 
 ### F4 — `linksForEntity` allocates a fresh array + objects on every call — **MEDIUM**
 
 `stores/link-store.ts:134` `linksForEntity` returns a brand‑new `LinkEndpoint[]`
-with a fresh object literal per incident link on **every call**. Hot callers:
+with a fresh object literal per incident link on **every call**. It is called
+per‑entity from many paths — `graph-worker.ts:538`, `:1332`, `:1411`
+(`#buildFlatRenderEdges`, per node every commit — F1), `:2148`, `:2731`, `:2766`;
+`community.ts:186`, `:279`; `cluster-feature-source.ts:69`;
+`edge-aggregation.ts:713`. Two callers only want the **degree** yet still build
+the whole endpoint array to read `.length`: `community.ts:168` and
+`graph-worker.ts:1362`.
 
-- `#buildFlatRenderEdges` (`graph-worker.ts:1411`) — per node, every commit (F1).
-- `#seedFlatNodes`, `#buildEntityFanOut` in the worker.
-- `community.ts` `topDegreeEntity` (`:168`), `collectLinkFeatures` (`:186`),
-  `linkSignatureKey` (`:279`) — several of these only need the _degree_
-  (`.length`) yet allocate the full endpoint array.
-
-**Evidence:** part of the per‑commit O(N+E) cost and the community keying cost;
-degree‑only callers pay a full allocation for a number.
+**Evidence:** part of the per‑commit O(N+E) cost (§2.5) and the community keying
+cost (§2.1); the degree‑only callers allocate an array of objects to obtain a
+single number.
 
 ### F5 — Double type‑set keying per node during ingest — **MEDIUM**
 
@@ -257,7 +264,7 @@ builds the key with `directTypeIdxs.items.join(",")` (`type-set-store.ts:112`).
 The peek exists only to snapshot the group’s `count` before insert for delta
 computation, but it fully constructs (and, via `getOrCreate`, creates) the group.
 
-**Evidence:** peek+insert is a stable **~1.9×** the single‑keying cost (§2.1).
+**Evidence:** peek+insert is a stable **~2.0×** the single‑keying cost (§2.1).
 
 ### F6 — Per‑frame allocation in `#emitPositions` — **MEDIUM** (code review; not isolated‑benchmarked)
 
@@ -282,20 +289,22 @@ here from code review. A targeted bench should follow the fix.
 ### F7 — cola flat layout is O(N²) — **INFO** (validates the 200‑node cap)
 
 `layout/flat-layout.ts` builds a full N×N distance matrix
-(`Calculator(...).DistanceMatrix()` + `Descent.createSquareMatrix`, `:163`–`:173`)
-and runs `Descent.rungeKutta()` (O(N²)/step). Measured 0.41 s at 200 nodes (§2.4).
+(`Calculator(...).DistanceMatrix()` `:163`–`:169` + `Descent.createSquareMatrix`
+`:170`) and steps `Descent.rungeKutta()` (`:260`) — O(N²) per step. Measured
+0.41 s at 200 nodes (§2.4).
 This is expected and correctly gated by `flatLayoutMaxNodes: 200`; **no action**
 beyond keeping the cap.
 
 ### F8 — `makeGrowableBuffer(resizable:false)` ignores `maxByteLength` — **LOW**
 
-`buffers/growable-buffer.ts:40` returns a _fixed_ `SharedArrayBuffer` when
-`resizable === false`, so `FlatGraphBuffer` can never grow in place — every
-growth re‑allocates and memcpies. `ensureCapacity`’s "double the ceiling"
-comment (`:158`) only affects the ignored `maxByteLength` argument for such
-buffers. This is currently fine because `flatCapacityFor` (`graph-worker.ts:157`)
-adds 1.5× slack so growth is amortized O(N) (§2.3), but the comment is misleading
-and the amortization silently depends on the caller always over‑allocating.
+`buffers/growable-buffer.ts` `makeGrowableBuffer` returns a _plain, fixed_
+`SharedArrayBuffer` (no `maxByteLength`) when `resizable === false` (`:45`–`:49`),
+so `FlatGraphBuffer` can never grow in place — every growth in `ensureCapacity`
+(`:153`) re‑allocates and memcpies (the class doc says as much, `:103`–`:105`).
+The "double the ceiling" comment (`:158`) only helps _resizable_ buffers. This is
+currently fine because `flatCapacityFor` (`graph-worker.ts:157`) adds 1.5× slack
+so growth is amortized O(N) (§2.3), but the comment is misleading and the
+amortization silently depends on the caller always over‑allocating.
 
 ---
 
@@ -316,15 +325,16 @@ and the amortization silently depends on the caller always over‑allocating.
    `FLAT_LOUVAIN_LINGER_MS`). Apply the same idea to structure commits: during an
    ingest burst, coalesce multiple `INGEST_BATCH`es into a single
    `commitStructure` on a microtask/rAF boundary. Combined with fix 1 this
-   collapses the 21.8× streaming penalty toward the bulk cost.
+   collapses the 24.5× streaming penalty toward the bulk cost.
 
-3. **Make `boundedLabelPropagation` and `buildInducedCsr` allocation‑free in the
-   inner loop (F3).** _Medium impact, medium effort._ Reuse one scores buffer
-   (e.g. a `Float64Array` indexed by label plus a "touched labels" list to reset
-   in O(touched)), and shuffle in place (Fisher–Yates on a persistent array)
-   instead of `[...indices]` per iteration. In `buildInducedCsr`, count degrees
-   first then fill parallel `Int32Array`/`Float32Array` neighbour/weight arrays,
-   dropping the 2·E `{neighbor, weight}` object churn.
+3. **Make `boundedLabelPropagation` allocation‑free in the inner loop (F3).**
+   _Medium impact, medium effort._ Reuse one scores buffer (e.g. a `Float64Array`
+   indexed by label plus a "touched labels" list to reset in O(touched)), and
+   shuffle in place (Fisher–Yates on a persistent array) instead of `[...indices]`
+   per iteration. Secondary, lower value: `buildInducedCsr` can do a counting pass
+   to fill `offsets`, then a single pass writing straight into the `neighbors`
+   typed array, dropping the N intermediate `number[]` arrays and the `reduce`
+   scan.
 
 4. **Give `LinkStore` a non‑allocating degree + iteration API (F4).** _Medium
    impact, low effort._ Add `degree(entityIdx): number` (return the adjacency
@@ -375,7 +385,7 @@ parentheses.
 - **Buffer growth stays geometric / no per‑append realloc**
   (`buffers/position-buffer.test.ts`, `buffers/growable-buffer.test.ts`). Append
   many records into a small `FlatGraphBuffer` via `flatCapacityFor` and assert the
-  number of `republish` callbacks is O(log N), not O(N) — this guards the 18×
+  number of `republish` callbacks is O(log N), not O(N) — this guards the ~21×
   cliff (§2.3, F8). Assert `capacity >= count` headroom holds after each grow.
 
 - **`linksForEntity` allocation callers use degree** (`stores/link-store.test.ts`
@@ -417,7 +427,7 @@ Run one file:
 
 ```bash
 cd apps/hash-frontend
-../../node_modules/.bin/vitest bench --run \
+node ../../node_modules/vitest/vitest.mjs bench --run \
   src/pages/shared/graph-visualizer-2/worker/core/commit-rebuild.bench.ts
 ```
 
@@ -425,7 +435,7 @@ Run them all:
 
 ```bash
 cd apps/hash-frontend
-../../node_modules/.bin/vitest bench --run \
+node ../../node_modules/vitest/vitest.mjs bench --run \
   src/pages/shared/graph-visualizer-2/worker
 ```
 

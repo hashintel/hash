@@ -1,25 +1,9 @@
 /**
- * Per-entity property FEATURES for distinctive-feature cluster naming.
+ * Per-entity property features for cluster naming.
  *
- * The worker holds entity property VALUES (shipped on {@link IngestEntity}) but never
- * needs their full fidelity: naming a cluster only needs to know which entities SHARE a
- * given `(property, value)`. So each scalar property value is reduced to a "feature" -- a
- * `(baseUrl, formatted-value)` pair -- and interned to a small integer, exactly like the
- * entity/type interners elsewhere. An entity then stores just the sorted list of its
- * feature indices, and the namer ({@link nameClustersByDistinctiveFeatures}) tallies
- * those across a cluster's members.
- *
- * "Scalars-plus": strings/numbers/booleans become a value feature; arrays collapse to a
- * count summary and nested objects to a presence token (weaker signals, but they cost
- * almost nothing and occasionally disambiguate). Property display TITLES are registered
- * separately (from {@link PropertySchemaEntry}) so a label reads "Destination = ..." and
- * not a raw base URL.
- *
- * Numbers and ISO dates ADDITIONALLY keep their RAW value (per entity, keyed by an interned
- * property base URL) so the namer can bucket them into per-subdivision quantile RANGES
- * ("Quantity 100–500"). An exact value feature is still produced too, so a low-cardinality
- * number (a status `= 0`) keeps naming by its exact value while a high-cardinality one
- * (every quantity distinct, so no exact value is ever common) is named by its range instead.
+ * Each scalar property value is reduced to a `(baseUrl, formatted-value)` pair
+ * and interned. Numbers and ISO dates additionally keep their raw value for
+ * quantile range bucketing.
  */
 import { Interner } from "../collections/interner";
 
@@ -39,11 +23,7 @@ export type NumericKind = "number" | "date";
 /** Cap a value's serialized length so a free-text property can't bloat the interner. */
 const MAX_VALUE_CHARS = 64;
 
-/**
- * ISO-8601 date / datetime: `YYYY-MM-DD` with an optional time and zone. Deliberately
- * strict so a plain numeric string or arbitrary text is NOT mistaken for a date (a far
- * looser `Date.parse` would treat "1" or "May" as dates).
- */
+/** Strict ISO-8601 date/datetime. Rejects bare numbers and partial strings that `Date.parse` accepts. */
 const ISO_DATE_RE =
   /^\d{4}-\d{2}-\d{2}(?:[T ]\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:?\d{2})?)?$/u;
 
@@ -73,9 +53,10 @@ function truncate(value: string): string {
 }
 
 /**
- * Reduce a property value to its label display form, or undefined when it carries no
- * usable signal (empty string, empty array, null). Strings are quoted; numbers/booleans
- * are bare; arrays summarise to a count and nested objects to a presence token.
+ * Format a property value for display, or `undefined` when it carries no signal.
+ *
+ * Strings are quoted, numbers/booleans are bare, arrays become a count,
+ * nested objects become `"present"`.
  */
 function formatFeatureValue(value: unknown): string | undefined {
   if (typeof value === "string") {
@@ -99,9 +80,9 @@ function formatFeatureValue(value: unknown): string | undefined {
 }
 
 /**
- * The raw numeric value (for range bucketing) of a property value, or undefined when it is
- * not a finite number or an ISO date. Dates collapse to epoch milliseconds so numbers and
- * dates share one ordered axis.
+ * Numeric value of a property, or `undefined` when not a finite number or ISO date.
+ *
+ * Dates collapse to epoch milliseconds.
  */
 function numericReading(value: unknown): NumericReading | undefined {
   if (typeof value === "number") {
@@ -114,10 +95,7 @@ function numericReading(value: unknown): NumericReading | undefined {
   return undefined;
 }
 
-/**
- * Title-case the slug of a property-type base URL (".../property-type/<slug>/") as a
- * fallback when no registered title is available, so a label never shows a raw URL.
- */
+/** Title-case the slug from a property-type base URL as a fallback display title. */
 function slugTitleFromBaseUrl(baseUrl: string): string {
   const slug = /\/property-type\/(?<slug>[^/]+)\/?$/.exec(baseUrl)?.groups
     ?.slug;
@@ -143,12 +121,8 @@ export class PropertyStore {
   /** Parallel to the interner: per-key base URL and kind (number vs date). */
   readonly #numericKeyBaseUrl: string[] = [];
   readonly #numericKeyKind: NumericKind[] = [];
-  /**
-   * Per-entity raw numeric readings as two parallel arrays (key indices + values), indexed
-   * by EntityIdx. Kept RAW (not interned) precisely because the namer buckets them into
-   * ranges computed from the live distribution of a subdivision's siblings -- a value's
-   * meaning ("low" vs "high") is relative, so it cannot be pre-interned like an exact value.
-   */
+  // Raw (not interned): range bucketing depends on the live distribution of
+  // a cluster's members, so values can't be pre-interned.
   readonly #entityNumericKeys: (Int32Array | undefined)[] = [];
   readonly #entityNumericValues: (Float64Array | undefined)[] = [];
 
@@ -167,9 +141,9 @@ export class PropertyStore {
   }
 
   /**
-   * Reduce an entity's properties to its interned scalar features AND its raw numeric/date
-   * readings. No-op when the entity has no labelable property (a link, or only empty/complex
-   * values).
+   * Extract scalar features and numeric readings from an entity's properties.
+   *
+   * No-op when the entity has no labelable property.
    */
   ingest(entityIdx: EntityIdx, properties: PropertyObject | undefined): void {
     if (!properties) {
@@ -215,12 +189,12 @@ export class PropertyStore {
     }
   }
 
-  /** An entity's feature indices, or undefined if it has none. */
+  /** Sorted feature indices for an entity, or `undefined` if it has none. */
   featuresOf(entityIdx: EntityIdx): Int32Array | undefined {
     return this.#entityFeatures[entityIdx];
   }
 
-  /** The base URL, title, and display value a feature renders to in a label. */
+  /** Resolve a feature index to its display label. */
   describe(featureIdx: FeatureIdx): FeatureLabel | undefined {
     const info = this.#featureInfo[featureIdx];
     if (!info) {
@@ -233,22 +207,20 @@ export class PropertyStore {
     };
   }
 
-  /** An entity's numeric-property key indices (parallel to {@link numericValuesOf}). */
+  /** Numeric property key indices, parallel to {@link numericValuesOf}. */
   numericKeysOf(entityIdx: EntityIdx): Int32Array | undefined {
     return this.#entityNumericKeys[entityIdx];
   }
 
-  /** An entity's raw numeric values (numbers, or dates as epoch ms; date-keyed by kind). */
+  /** Raw numeric values (numbers, or dates as epoch ms). */
   numericValuesOf(entityIdx: EntityIdx): Float64Array | undefined {
     return this.#entityNumericValues[entityIdx];
   }
 
-  /** The base URL of a numeric property key, or undefined if unknown. */
   numericBaseUrl(keyIdx: NumericKeyIdx): string | undefined {
     return this.#numericKeyBaseUrl[keyIdx];
   }
 
-  /** Whether a numeric property key reads as a plain number or a date. */
   numericKind(keyIdx: NumericKeyIdx): NumericKind {
     return this.#numericKeyKind[keyIdx] ?? "number";
   }

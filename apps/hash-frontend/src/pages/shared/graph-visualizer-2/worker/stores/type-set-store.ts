@@ -6,15 +6,31 @@ import type { EntityIdx, TypeIdx, TypeSetIdx } from "../../ids";
 import type { ReadonlySortedSet } from "../collections/readonly-sorted-set";
 import type { TypeRegistry } from "./type-registry";
 
+/**
+ * A group of entities that share the exact same set of direct entity types.
+ *
+ * The cluster tree decides whether a group is large enough to be its own
+ * cluster ({@link isStandalone}) or should be merged into a type-ancestor
+ * cluster. {@link assignedClusterId} tracks which cluster currently owns
+ * this group's entities.
+ */
 export class TypeSetGroup {
   readonly key: TypeSetKey;
   readonly idx: TypeSetIdx;
   readonly directTypeIdxs: ReadonlySortedSet<TypeIdx>;
+  /** Cluster ID used when this group is large enough to stand alone. */
   readonly standaloneClusterId: ClusterId;
 
   #entityIdxs: EntityIdx[] = [];
+  /** Union of ancestor closures of all direct types. Used for merge-target lookup. */
   #closure: BitSet<TypeIdx>;
+  /** Incremented on entity add; used for change detection. */
   #version = 0;
+  /**
+   * The cluster that currently owns this group's entities:
+   * {@link standaloneClusterId} when standalone, or a merge target's ID when
+   * the group is too small.
+   */
   #assignedClusterId: ClusterId;
   #isStandalone = false;
 
@@ -69,7 +85,7 @@ export class TypeSetGroup {
     this.#version++;
   }
 
-  /** Recompute the closure from the type registry's ancestor closures. */
+  /** Recompute the ancestor closure from the current type registry. */
   recomputeClosure(types: TypeRegistry): void {
     let closure = BitSet.empty<TypeIdx>(types.size);
 

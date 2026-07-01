@@ -11,7 +11,7 @@ export interface TypeInfo {
   readonly idx: TypeIdx;
   readonly url: VersionedUrl;
   readonly title: string;
-  /** For a link type, its inverse (target -> source) title; used to label a reverse lane. */
+  /** For a link type, the inverse (target -> source) title. */
   readonly inverseTitle?: string;
   readonly icon?: string;
   readonly parentIdxs: readonly TypeIdx[];
@@ -28,11 +28,8 @@ export class TypeRegistry {
   readonly #interner: Interner<VersionedUrl, TypeIdx> = new Interner();
   readonly #types: (TypeInfo | undefined)[] = [];
   /**
-   * Stable colour slot per type, assigned sorted-by-base-URL within each
-   * registration batch and never reassigned (append-only). A type's colour is
-   * derived from its slot, so it is identical across reloads (the slot depends
-   * on the URL, not on arrival order) and unchanged when a later batch -- a new
-   * page or a frontier expansion -- registers more types.
+   * Stable colour slot per type. Sorted by base URL within each batch and
+   * append-only, so a type's colour is deterministic across reloads.
    */
   readonly #colorSlots: Map<TypeIdx, number> = new Map();
   #nextColorSlot = 0;
@@ -58,10 +55,8 @@ export class TypeRegistry {
   }
 
   /**
-   * Debug: one line per registered type, idx, title, resolved parents/roots.
-   * A parent that was interned (referenced via `allOf`) but never given a
-   * schema shows as `#<idx>(unreg)`, the signature of a missing ancestor type,
-   * which makes its descendants resolve to empty `rootIdxs`.
+   * One line per registered type. An interned parent without a schema
+   * shows as `#<idx>(unreg)`.
    */
   debugDump(): string {
     const name = (idx: TypeIdx): string =>
@@ -119,14 +114,6 @@ export class TypeRegistry {
     }
   }
 
-  /**
-   * Assign a stable colour slot to each newly-registered type. Sorting the
-   * batch by base URL makes the slot order deterministic regardless of the order
-   * types arrived in this session, so the same type gets the same slot -- and so
-   * the same colour -- on every reload. Slots are append-only: types from an
-   * earlier batch keep theirs, so a later page or frontier expansion never
-   * re-colours what is already on screen.
-   */
   #assignColorSlots(newlyRegistered: readonly TypeIdx[]): void {
     const sorted = [...newlyRegistered].sort((left, right) => {
       const leftUrl = extractBaseUrl(this.#types[left]!.url);

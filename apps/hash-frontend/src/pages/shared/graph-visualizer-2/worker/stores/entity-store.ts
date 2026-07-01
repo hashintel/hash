@@ -11,13 +11,10 @@ import type { EntityId } from "@blockprotocol/type-system";
 const INITIAL_CAPACITY = 4096;
 
 /**
- * Owns entity ID interning and per-entity columnar storage.
+ * Entity ID interning and per-entity columnar storage.
  *
- * Column indices are kept in sync with the interner: each new
- * entity gets a push on every column, so EntityIdx works as the
- * index into all of them. The {@link EntityIdBuffer} join map is just one more such
- * column, written the instant an EntityIdx is assigned, so it is always current with the
- * interner (no separate mirror/sync pass).
+ * Column indices are kept in sync with the interner: each new entity
+ * gets a push on every column, so EntityIdx indexes into all of them.
  */
 export class EntityStore {
   readonly #interner: Interner<EntityId, EntityIdx> = new Interner();
@@ -28,18 +25,10 @@ export class EntityStore {
 
   readonly #labelIdx: Column<Int32Array> = new Column(Int32Array, 4096);
 
-  /**
-   * Query ROOTS as one bit per {@link EntityIdx} (1 bit/entity, auto-growing). A set bit means the
-   * entity came back as a root of the current query; a clear bit means it is a FRONTIER node -- a
-   * fetched link endpoint that is not itself a root, rendered greyed-out until expanded. Add-only
-   * within a worker's life (roots only grow as the frontier expands; a fresh query rebuilds the
-   * worker, and with it this set).
-   */
+  /** Query roots. Add-only: roots only grow as the frontier expands. */
   readonly #roots: BitSet<EntityIdx> = BitSet.empty(INITIAL_CAPACITY);
 
-  /** EntityIdx→EntityId SharedArrayBuffer join map. The worker passes `republish` (fired
-   * only on the rare re-allocation) and publishes {@link entityIdMap} once; reads are on
-   * the main thread, on demand. */
+  /** EntityIdx to EntityId shared buffer. */
   readonly #entityIdMap: EntityIdBuffer;
 
   constructor(republish?: RepublishHandler) {
@@ -50,16 +39,11 @@ export class EntityStore {
     return this.#interner.size;
   }
 
-  /** The EntityIdx→EntityId join map SharedArrayBuffer (the worker publishes it to the main thread). */
   get entityIdMap(): EntityIdBuffer {
     return this.#entityIdMap;
   }
 
-  /**
-   * Try to insert an entity. If new, allocates column slots and records its EntityId in
-   * the join map (growing the map geometrically, like the columns, so per-insert writes
-   * amortise O(1), never a grow-by-one per entity).
-   */
+  /** Insert an entity if not already present. Returns whether it was newly created. */
   tryInsert(entityId: EntityId): [created: boolean, idx: EntityIdx] {
     const [created, idx] = this.#interner.tryIntern(entityId);
     if (created) {
@@ -96,15 +80,12 @@ export class EntityStore {
     this.#labelIdx.set(entityIdx, labelIdx);
   }
 
-  /** Whether this entity is a query ROOT (vs a fetched-but-unexpanded FRONTIER node). O(1). */
+  /** Whether this entity is a query root (vs frontier). */
   isRoot(entityIdx: EntityIdx): boolean {
     return this.#roots.has(entityIdx);
   }
 
-  /**
-   * Promote an entity to a root. Returns whether it FLIPPED (was a frontier node), so the caller
-   * can recolour just that one record rather than re-styling the whole tier.
-   */
+  /** Promote an entity to a root. Returns whether it flipped (was previously frontier). */
   setRoot(entityIdx: EntityIdx): boolean {
     if (this.#roots.has(entityIdx)) {
       return false;

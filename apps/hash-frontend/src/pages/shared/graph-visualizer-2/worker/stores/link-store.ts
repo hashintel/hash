@@ -12,10 +12,9 @@ export interface LinkEndpoint {
 }
 
 /**
- * Owns link storage: columnar arrays for left/right endpoints,
- * link type, and the link's own entity index. Also tracks pending
- * links whose endpoints haven't been ingested yet (for frontier
- * detection).
+ * Link storage: columnar arrays for endpoints, link type, and
+ * entity index. Tracks pending links whose endpoints haven't
+ * been ingested yet.
  */
 export class LinkStore {
   readonly #leftIdx: Column<Int32Array, EntityIdx | -1> = new Column(
@@ -122,7 +121,7 @@ export class LinkStore {
     return this.#typeIdx.get(linkIdx);
   }
 
-  /** The link's OWN entity index (a link is an entity), for resolving a picked edge. */
+  /** The link's own entity index (a link is itself an entity). */
   getEntityIdx(linkIdx: number): EntityIdx {
     return this.#entityIdIdx.get(linkIdx);
   }
