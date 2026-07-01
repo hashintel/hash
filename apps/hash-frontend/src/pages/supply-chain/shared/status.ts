@@ -1,4 +1,4 @@
-import { isDwellType } from "./categories";
+import { isDwellType, isProductSpecificType } from "./categories";
 
 import type { SiteNode } from "./types";
 
@@ -14,9 +14,9 @@ export type StatusOption = (typeof STATUS_OPTIONS)[number];
 
 /** A single status update left against a step/node. */
 export interface StatusEntry {
-  /** ISO timestamp the status was saved (from the entity's creation edition). */
+  /** ISO timestamp the status was first created (original decision time). */
   at: string;
-  /** Author display name, resolved server-side from edition provenance. */
+  /** Author display name, resolved from the status entity's original creator. */
   user: string;
   category: StatusOption;
   text: string;
@@ -38,17 +38,29 @@ export function statusCommentRequired(category: StatusOption): boolean {
 
 /**
  * Stable key for status aggregation: site + opportunity type (dwell vs
- * planning, derived from the node) + node identity. Product IDs are included
- * only for post-QA dwell, where the same step ID needs product disambiguation.
+ * planning, derived from the node) + node identity.
+ *
+ * Product IDs are appended only for product-specific step types (the
+ * finished-good leg from QA onward: `qa_hold`, `post_qa_ship`, `transit`,
+ * `destination_dwell`), whose `node.id` is *location*-scoped (plant/hub/lane)
+ * and so needs finished-good disambiguation -- these are deduplicated per
+ * finished good, so exactly one product is appended and the key stays stable.
+ *
+ * Every other step type keys on `node.id` alone because its subject is already
+ * in the id: procurement on the procured item (`procurement_<item>`), raw &
+ * intermediate dwell on the material dwelling (`*_dwell_<material>`), and
+ * production on the produced thing (`prod_duration_<good>`). These do not
+ * incorporate the (potentially many) products flowing through them, so the key
+ * stays stable as product membership changes.
+ *
  * It intentionally excludes time range and measure so status history remains
  * stable across filters.
  */
 export function statusKey(siteId: string, node: SiteNode): string {
   const type = isDwellType(node.type) ? "dwell" : "planning";
-  const nodeKey =
-    node.type === "post_qa_ship"
-      ? `${node.id}-${node.products.map((product) => product.id).join(",")}`
-      : node.id;
+  const nodeKey = isProductSpecificType(node.type)
+    ? `${node.id}-${node.products.map((product) => product.id).join(",")}`
+    : node.id;
   return [siteId, type, nodeKey].join("::");
 }
 

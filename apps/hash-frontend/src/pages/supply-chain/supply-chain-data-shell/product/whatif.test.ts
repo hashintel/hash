@@ -121,7 +121,7 @@ function baseNode(overrides: Partial<GraphNode>): GraphNode {
     label: "Post QA Ship",
     type: "post_qa_ship",
     material: null,
-    plant: "JPGB",
+    plant: "P1",
     stats: {
       n: 3,
       mean: 5.3,
