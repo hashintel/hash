@@ -37,12 +37,6 @@ pub struct Config {
 }
 
 impl Config {
-    /// Creates a configuration for `k` clusters, drawing the seed from `rng`.
-    #[must_use]
-    pub(crate) fn for_k(k: u16, mut rng: impl Rng) -> Self {
-        Self::for_k_with_seed(k, rng.random())
-    }
-
     /// Creates a configuration for `k` clusters with a fixed seed.
     ///
     /// Defaults: 30 max iterations, 5 restarts, 1e-4 convergence tolerance,
@@ -111,11 +105,6 @@ impl Clustering {
     #[must_use]
     pub fn label(&self, entity: usize) -> u16 {
         self.labels[entity]
-    }
-
-    /// Returns a mutable reference to the cluster label for point `entity`.
-    fn label_mut(&mut self, entity: usize) -> &mut u16 {
-        &mut self.labels[entity]
     }
 }
 

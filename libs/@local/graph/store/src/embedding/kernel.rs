@@ -1,3 +1,8 @@
+#![expect(
+    clippy::inline_always,
+    reason = "while usually discouraged, SIMD operations need to be inlined, as otherwise we \
+              spill SIMD registers, see the SIMD documentation."
+)]
 use core::simd::{Simd, f32x8, num::SimdFloat as _};
 
 /// Fused multiply-add when the target has native FMA, separate mul+add otherwise.
@@ -241,11 +246,7 @@ pub(crate) unsafe fn normalize(value: &mut [f32]) {
 /// # Safety
 /// * all six slices have length `d`
 /// * `d` is a multiple of 8
-#[expect(
-    clippy::inline_always,
-    reason = "micro-kernel must inline into nearest4 to keep accumulators in registers"
-)]
-#[inline(always)]
+#[inline(always)] // micro-kernel must inline nearest4 to keep accumulators in registers
 pub(crate) unsafe fn micro_4x2(
     p0: &[f32],
     p1: &[f32],
