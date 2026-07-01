@@ -1,5 +1,5 @@
 [tools]
-"cargo:clippy-sarif" = "0.6.5"
+"cargo:clippy-sarif" = "0.8.0"
 "cargo:sarif-fmt"    = "0.6.5"
 
 [env]
