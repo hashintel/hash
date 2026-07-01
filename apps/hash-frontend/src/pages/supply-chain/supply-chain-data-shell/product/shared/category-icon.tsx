@@ -19,6 +19,9 @@ export const CategoryIcon = ({
     viewBox: "0 0 14 14",
     fill: "none",
     className,
+    // Prevent flexbox from squeezing the icon when it sits next to long,
+    // wrapping label text (e.g. two-line step titles in cards).
+    style: { flexShrink: 0, minWidth: size, minHeight: size },
     "aria-hidden": true as const,
   };
 

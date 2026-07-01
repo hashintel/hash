@@ -6,6 +6,7 @@ import {
   SupplyChainAppSkeleton,
 } from "../../../../../shared/load-state";
 import { useRegistry } from "../../../../../shared/registry-context";
+import { normaliseSiteCode } from "../../../../../shared/site-code";
 import { getSupplyChainLayout } from "../../../../../shared/supply-chain-layout";
 import {
   trackSupplyChainInteraction,
@@ -28,7 +29,7 @@ const OpportunityPage: NextPageWithLayout = () => {
     "product-id"?: string;
     "step-id"?: string;
   };
-  const siteId = query["site-id"] ?? "";
+  const siteId = normaliseSiteCode(query["site-id"] ?? "");
   const productId = query["product-id"] ?? "";
   const stepId = query["step-id"] ?? "";
   const opportunityType = normaliseOpportunityType(query["opportunity-type"]);
