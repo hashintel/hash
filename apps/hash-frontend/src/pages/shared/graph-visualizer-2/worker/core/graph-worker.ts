@@ -706,6 +706,7 @@ export class GraphWorker {
         this.#onLayoutMessage?.({ type: "LAYOUT_DESTROYED", clusterId });
       }
     }
+
     this.#forceLayouts.clear();
     this.#layoutKind.clear();
     this.#entityPortTargets.clear();
@@ -847,7 +848,6 @@ export class GraphWorker {
     readonly rebuildTree?: boolean;
   }): void {
     this.recomputeMode();
-
     this.#publishEntityIdMapOnce();
 
     // Flat tiers render the whole entity set as one entity graph. Only
@@ -856,6 +856,7 @@ export class GraphWorker {
       if (this.#hierarchicalActive) {
         this.#tearDownHierarchical();
       }
+
       this.#hierarchicalActive = false;
       this.#commitFlat();
       return;
@@ -872,6 +873,7 @@ export class GraphWorker {
     } else if (opts?.deltas && opts.deltas.length > 0) {
       this.updateClusters(opts.deltas);
     }
+
     this.#hierarchicalActive = true;
 
     if (!this.hasClusters) {
@@ -1101,6 +1103,7 @@ export class GraphWorker {
     if (this.#entityIdMapPublished) {
       return;
     }
+
     const map = this.#entities.lookupBuffer;
     this.#onLayoutMessage?.({
       type: "ENTITY_ID_MAP",
@@ -1460,6 +1463,7 @@ export class GraphWorker {
         clusterId: FLAT_LAYOUT_ID,
       });
     }
+
     this.#flatBuffer = undefined;
     this.#flatRenderEdges = [];
     this.#flatLinkCount = -1;
@@ -1477,6 +1481,7 @@ export class GraphWorker {
         this.#onLayoutMessage?.({ type: "LAYOUT_DESTROYED", clusterId: id });
       }
     }
+
     this.#forceLayouts.clear();
     this.#layoutKind.clear();
     this.#entityPortTargets.clear();
