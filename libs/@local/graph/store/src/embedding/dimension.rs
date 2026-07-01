@@ -31,6 +31,12 @@ impl Dimension {
     pub const fn get(self) -> u16 {
         self.0.get()
     }
+
+    /// The raw dimension value as a [`NonZero<u16>`].
+    #[must_use]
+    pub const fn value(self) -> NonZero<u16> {
+        self.0
+    }
 }
 
 pub const D128: Dimension = Dimension(NonZero::new(128).unwrap());

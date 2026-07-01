@@ -1,4 +1,5 @@
 use alloc::borrow::Cow;
+use core::num::NonZero;
 use std::collections::{HashMap, HashSet};
 
 use error_stack::Report;
@@ -538,7 +539,7 @@ pub struct ClusterEntitiesParams {
     /// Embedding dimension after matryoshka truncation. Must be a positive
     /// multiple of 8; values above 3072 are rejected. Defaults to 256.
     #[serde(default = "ClusterEntitiesParams::default_dimension")]
-    pub dimension: u16,
+    pub dimension: NonZero<u16>,
 
     /// Seed for the random number generator used in clustering.
     ///
@@ -547,8 +548,8 @@ pub struct ClusterEntitiesParams {
 }
 
 impl ClusterEntitiesParams {
-    const fn default_dimension() -> u16 {
-        256
+    const fn default_dimension() -> NonZero<u16> {
+        const { NonZero::new(256).unwrap() }
     }
 }
 
