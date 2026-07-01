@@ -10,7 +10,7 @@ minimum_release_age                 = "5d"
 
 [tools]
 # Basic tools
-node        = { version = "22.21.1", postinstall = "corepack enable" }
+node        = { version = "24.17.0", postinstall = "corepack enable" }
 "npm:turbo" = "2.6.3"
 
 # Helper to install tools
