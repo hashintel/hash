@@ -1,6 +1,10 @@
 export { Avatar, type AvatarProps } from "./components/Avatar/avatar";
 export { Badge, type BadgeProps } from "./components/Badge/badge";
 export { Button, type ButtonProps } from "./components/Button/button";
+export {
+  CharacterCount,
+  type CharacterCountProps,
+} from "./components/CharacterCount/character-count";
 export { Checkbox } from "./components/Checkbox/checkbox";
 export { Dialog } from "./components/Dialog/dialog";
 export { Form } from "./components/Form/form";
