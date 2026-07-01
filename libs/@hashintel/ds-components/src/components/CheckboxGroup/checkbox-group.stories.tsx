@@ -162,3 +162,29 @@ export const Disabled: Story = () => (
 Disabled.parameters = {
   controls: { disable: true },
 };
+
+export const MaxSelectable: Story = () => (
+  <div className={sectionClass}>
+    <div>
+      <div className={headingClass}>maxSelectable=2</div>
+      <div className={subHeadingClass}>
+        Once two are selected, the remaining unchecked options are disabled
+        until one is unchecked.
+      </div>
+      <ControlledCheckboxGroup
+        maxSelectable={2}
+        defaultValue={[]}
+        items={[
+          { value: "apple", label: "Apple" },
+          { value: "banana", label: "Banana" },
+          { value: "cherry", label: "Cherry" },
+          { value: "date", label: "Date" },
+        ]}
+      />
+    </div>
+  </div>
+);
+
+MaxSelectable.parameters = {
+  controls: { disable: true },
+};

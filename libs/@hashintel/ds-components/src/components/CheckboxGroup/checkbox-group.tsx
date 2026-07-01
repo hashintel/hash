@@ -53,6 +53,9 @@ export const CheckboxGroup = <const ValueType extends string>({
   const isInvalid = !!invalid || items.some((item) => item.invalid);
   const hasSelection = items.some((item) => selectedValues.has(item.value));
 
+  const atSelectionCap =
+    maxSelectable !== undefined && selectedValues.size >= maxSelectable;
+
   return (
     <ArkCheckboxGroup
       name={groupName}
@@ -63,7 +66,6 @@ export const CheckboxGroup = <const ValueType extends string>({
       invalid={isInvalid ? true : undefined}
       data-testid={testId}
       ref={ref as React.Ref<HTMLDivElement>}
-      maxSelectedValues={maxSelectable}
       className={cx(styles({ layout, size }), className)}
       {...getGroupFocusProps({ onFocus, onBlur })}
       {...ariaProps}
@@ -75,7 +77,14 @@ export const CheckboxGroup = <const ValueType extends string>({
           required: itemRequired,
           ...itemProps
         } = item;
-        const itemIsDisabled = disabled === true || itemDisabled === true;
+        const isSelected = selectedValues.has(optionValue);
+        // If the cap is reached, unchecked options are disabled so they can't
+        // be selected; already-selected options stay enabled so they can be
+        // unchecked to free up a slot.
+        const itemIsDisabled =
+          disabled === true ||
+          itemDisabled === true ||
+          (atSelectionCap && !isSelected);
         // Native checkboxes have no "at least one of the group" constraint, so when
         // the group is required we mark every option `required` while nothing is
         // selected. That makes the group invalid (blocking submission) until one box
@@ -91,14 +100,19 @@ export const CheckboxGroup = <const ValueType extends string>({
             name={groupName}
             disabled={itemIsDisabled}
             required={itemIsRequired}
-            value={selectedValues.has(optionValue)}
+            value={isSelected}
             htmlValue={optionValue}
             onChange={(checked) => {
-              onChange(
-                checked
-                  ? [...value, optionValue]
-                  : value.filter((candidate) => candidate !== optionValue),
-              );
+              if (checked) {
+                if (isSelected || atSelectionCap) {
+                  return;
+                }
+                onChange([...value, optionValue]);
+              } else {
+                onChange(
+                  value.filter((candidate) => candidate !== optionValue),
+                );
+              }
             }}
             autoFocus={autoFocus && index === 0}
           />
