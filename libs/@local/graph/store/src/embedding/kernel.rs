@@ -7,8 +7,8 @@ use core::simd::{Simd, f32x8, num::SimdFloat as _};
 
 /// Fused multiply-add when the target has native FMA, separate mul+add otherwise.
 ///
-/// On aarch64, FMA is part of the base NEON instruction set (`fmla`).
-/// On x86_64, FMA requires the `fma` target feature (`vfmadd`); without it,
+/// On `aarch64`, FMA is part of the base NEON instruction set (`fmla`).
+/// On `x86_64`, FMA requires the `fma` target feature (`vfmadd`); without it,
 /// `StdFloat::mul_add` falls back to a per-lane `fmaf` libc call which
 /// destroys throughput. The non-FMA path uses a plain multiply and add
 /// (`vmulps` + `vaddps`) instead.
