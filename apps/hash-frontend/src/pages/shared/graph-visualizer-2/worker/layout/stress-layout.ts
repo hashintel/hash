@@ -13,11 +13,11 @@
  * stops once the layout stops moving rather than at a fixed horizon.
  *
  * The fused term is *soft*, so it reaches equilibrium with the stress pull and dense
- * hubs still leave residual overlaps. A final {@link VpscOverlapRemover} projection
- * ("Fast Node Overlap Removal", Dwyer et al.) therefore snaps the settled layout to a
- * guaranteed overlap-free configuration by the smallest displacement — readability wins
- * over the last of the edge-length fidelity. Because the soft term has already pre-spread
- * the nodes the projection moves them little.
+ * hubs still leave residual overlaps. An incremental {@link ForbidOverlapSolver} phase
+ * (FORBID — "Fast Overlap Removal By stochastic gradIent Descent", Giovannangeli et al.
+ * GD 2022) then removes the residue with the SAME SGD move as the stress phase, running
+ * a BOUNDED number of epochs per tick so no single tick freezes and the separation
+ * animates. It only reaches `done` once the layout is verifiably overlap-free.
  *
  * Pipeline:
  *   1. Louvain over the link graph → community id per node (for BubbleSets hulls),
@@ -25,18 +25,19 @@
  *   2. Sparse-stress SGD with the fused overlap term, to adaptive convergence (pivot
  *      terms carry the global structure, edge terms the local structure, the overlap
  *      term keeps same-community dots from piling up around hubs).
- *   3. A terminal VPSC overlap-removal projection (each node a square of half-extent
- *      `radius + overlapPadding/2`), guaranteeing zero disk overlap in the final layout.
- *      `overlapRemovalInterval` optionally also runs it every K epochs during phase 2.
+ *   3. An incremental FORBID overlap-removal phase (grid-detected overlaps pushed to
+ *      `r_i + r_j + overlapPadding`, a decaying anchor preserving the settled shape,
+ *      and a per-cluster scale-to-fit guarantee), chunked across ticks and guaranteeing
+ *      zero disk overlap in the final layout.
  *
  * Streaming `absorb` continues from the current positions (SGD is init-robust), so
- * new nodes settle in beside their neighbours without a cold restart, then re-projects.
+ * new nodes settle in beside their neighbours without a cold restart, then re-separates.
  */
 import { UndirectedGraph } from "graphology";
 import louvain from "graphology-communities-louvain";
 
 import { parkMillerRng } from "../../math/random";
-import { VpscOverlapRemover } from "./overlap-removal";
+import { ForbidOverlapSolver } from "./forbid";
 import { SparseStressSolver } from "./sparse-stress-solver";
 
 import type { FlatGraphBuffer } from "../buffers/position-buffer";
@@ -84,12 +85,6 @@ const CONVERGENCE_EPSILON = 3e-3;
  */
 const OVERLAP_WEIGHT = 4;
 
-/**
- * VPSC overlap-removal projection interval (SGD epochs). 0 = terminal-only;
- * positive K also projects every K epochs during the stress phase.
- */
-const OVERLAP_REMOVAL_INTERVAL = 0;
-
 /** Refresh Louvain once the layout grows by this fraction, so BubbleSets track it (matches FA2). */
 const LOUVAIN_REFRESH_GROWTH_FRACTION = 0.3;
 const LOUVAIN_REFRESH_MIN_NEW_NODES = 24;
@@ -117,8 +112,6 @@ export interface StressLayoutOptions {
   readonly overlapPadding?: number;
   /** Relaxation weight for the fused overlap term, relative to edge weight. Default 4. */
   readonly overlapWeight?: number;
-  /** VPSC overlap-removal projection interval (0 = terminal-only). */
-  readonly overlapRemovalInterval?: number;
 }
 
 class StressLayout implements LayoutSimulation {
@@ -139,22 +132,24 @@ class StressLayout implements LayoutSimulation {
   #status: ForceLayoutStatus;
   #phase: StressPhase;
 
-  /** Exact overlap-removal projector, reused across ticks/absorbs (it self-grows). */
-  #overlapRemover: VpscOverlapRemover | null = null;
-  /** Scratch square half-extents (`radius + overlapPadding/2`), reused across calls. */
-  #halfExtents = new Float32Array(0);
-  /** Last epoch at which the interleaved projection ran (reset per solve). */
-  #lastInterleaveEpoch = 0;
+  /** Incremental FORBID overlap remover, reused across ticks/absorbs (it self-grows). */
+  #forbid: ForbidOverlapSolver | null = null;
 
-  /** Cumulative wall time (ms) spent in the VPSC projection; a bench diagnostic. */
+  /** Cumulative wall time (ms) spent in FORBID steps; a bench/worker diagnostic. */
   overlapProjectionMs = 0;
-  /** Number of VPSC projection calls; a bench diagnostic. */
+  /** Number of FORBID epochs run; a bench/worker diagnostic. */
   overlapProjectionCalls = 0;
-  // TEMP probe fields
-  statOuter = 0;
-  statNumCon = 0;
-  statCleanup = 0;
-  statInner = 0;
+  /** Worst single FORBID step (ms) — the per-tick budget guard; a bench diagnostic. */
+  maxForbidStepMs = 0;
+  /** Overlapping pairs remaining at the last FORBID epoch; a worker diagnostic. */
+  forbidOverlaps = 0;
+  /** Per-cluster scale-to-fit expansions FORBID has applied; a bench diagnostic. */
+  forbidExpansions = 0;
+
+  /** Resolved (deduped) edge count; a worker/bench diagnostic. */
+  get edgeCount(): number {
+    return this.#indexEdges.length;
+  }
 
   #absorbedSinceLouvain = 0;
   #countAtLastLouvain = 0;
@@ -175,8 +170,6 @@ class StressLayout implements LayoutSimulation {
       convergenceEpsilon: options.convergenceEpsilon ?? CONVERGENCE_EPSILON,
       overlapPadding: options.overlapPadding ?? OVERLAP_PADDING,
       overlapWeight: options.overlapWeight ?? OVERLAP_WEIGHT,
-      overlapRemovalInterval:
-        options.overlapRemovalInterval ?? OVERLAP_REMOVAL_INTERVAL,
     };
 
     const count = nodes.length;
@@ -323,7 +316,6 @@ class StressLayout implements LayoutSimulation {
             true,
           )
         : null;
-    this.#lastInterleaveEpoch = 0;
     this.#phase = count > 0 ? "stress" : "done";
     this.#status = count > 0 ? "running" : "settled";
     this.#writePositions();
@@ -343,63 +335,69 @@ class StressLayout implements LayoutSimulation {
     return true;
   }
 
-  /** One unit of work: stress phase ticks the solver (with optional
-   *  interleaved projections), then a terminal overlap projection. */
+  /**
+   * One unit of work: the stress phase ticks the SGD solver; once it settles, the
+   * FORBID phase runs ONE bounded overlap-removal epoch per call (so a single tick
+   * never runs the whole projection — the fix for the multi-second frozen tick).
+   */
   #advance(): void {
     if (this.#phase === "stress") {
       const result = this.#solver!.tick({ maxWork: SEED_TICK_WORK });
-      const interval = this.#options.overlapRemovalInterval;
-      if (
-        interval > 0 &&
-        result.epoch >= this.#lastInterleaveEpoch + interval
-      ) {
-        this.#removeOverlaps();
-        this.#lastInterleaveEpoch = result.epoch;
-      }
       if (result.done) {
+        this.#beginForbid();
         this.#phase = "overlap";
       }
       return;
     }
     if (this.#phase === "overlap") {
-      this.#removeOverlaps();
-      this.#phase = "done";
+      this.#stepForbid();
     }
   }
 
   /**
-   * Project `#x`/`#y` to the nearest disk-overlap-free configuration via VPSC, modelling
-   * each node as a square of half-extent `radius + overlapPadding/2` — so separated square
-   * centres sit ≥ `r_i + r_j + overlapPadding` apart and no disks overlap. Reuses the
-   * projector (which self-grows) and the half-extent scratch across calls.
+   * Enter the FORBID phase: capture the settled layout as the shape reference and
+   * apply the coincidence jitter. Reuses the solver instance (it self-grows).
    */
-  #removeOverlaps(): void {
+  #beginForbid(): void {
     const count = this.#nodes.length;
     if (count <= 1) {
+      this.#phase = "done";
       return;
     }
-    this.#overlapRemover ??= new VpscOverlapRemover(count);
-    if (this.#halfExtents.length < count) {
-      this.#halfExtents = new Float32Array(count);
+    this.#forbid ??= new ForbidOverlapSolver(count);
+    this.#forbid.reset(this.#x, this.#y, this.#radii, count, {
+      margin: this.#options.overlapPadding,
+      seed: 1,
+    });
+    this.maxForbidStepMs = 0;
+  }
+
+  /**
+   * Run one bounded FORBID epoch over `#x`/`#y` (pushes grid-detected overlaps toward
+   * `r_i + r_j + overlapPadding`, decaying the shape anchor, per-cluster scale-to-fit
+   * on stall). Transitions to `done` once the layout is verifiably overlap-free.
+   */
+  #stepForbid(): void {
+    const forbid = this.#forbid;
+    if (!forbid) {
+      this.#phase = "done";
+      return;
     }
-    const halfPadding = this.#options.overlapPadding / 2;
-    for (let index = 0; index < count; index++) {
-      this.#halfExtents[index] = this.#radii[index]! + halfPadding;
-    }
-    const projectionStart = performance.now();
-    this.#overlapRemover.removeOverlaps(
-      this.#x,
-      this.#y,
-      this.#halfExtents,
-      this.#halfExtents,
-      count,
-    );
-    this.overlapProjectionMs += performance.now() - projectionStart;
+    const stepStart = performance.now();
+    const result = forbid.step();
+    const stepMs = performance.now() - stepStart;
+
+    this.overlapProjectionMs += stepMs;
     this.overlapProjectionCalls += 1;
-    this.statOuter = this.#overlapRemover.statOuter;
-    this.statNumCon = this.#overlapRemover.statMaxNumCon;
-    this.statCleanup = this.#overlapRemover.statCleanupRounds;
-    this.statInner = this.#overlapRemover.statSatisfyInner;
+    if (stepMs > this.maxForbidStepMs) {
+      this.maxForbidStepMs = stepMs;
+    }
+    this.forbidOverlaps = result.overlaps;
+    this.forbidExpansions = forbid.expansions;
+
+    if (result.done) {
+      this.#phase = "done";
+    }
   }
 
   #buildRadii(): Float32Array {

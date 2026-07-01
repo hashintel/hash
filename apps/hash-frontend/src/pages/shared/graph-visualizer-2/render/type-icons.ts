@@ -1,14 +1,7 @@
 /**
- * TYPE-ICON render: each entity's type icon drawn at its dot centre via a deck.gl `IconLayer`,
- * reading the SAME SAB the dots read (binary attributes, stride/offset onto the record fields) -- so
- * positions/sizes never drift from the dots and there is no gather. Icons come from {@link IconAtlas}
- * (a rasterised atlas of emoji + URL silhouettes); `names` maps a render index to its atlas key (or
- * null for none). {@link typeIconLayer} serves the flat tier (one whole-graph SAB, per-node radius);
- * {@link leafTypeIconLayers} serves the hierarchical tier (one layer per open leaf, uniform radius).
- *
- * SOFT LOD: the icon is sized as a fraction of the dot DIAMETER and fades in only once that dot has
- * enough screen presence. The only CPU zoom work is a coarse-bucket accessor refresh from Scene, not
- * per-pan churn.
+ * Type-icon render via `IconLayer`, reading the same SAB as the dots
+ * (binary attributes, stride/offset). Icons fade in once the dot has enough
+ * screen presence (soft LOD, coarse-bucket accessor refresh).
  */
 import { IconLayer } from "@deck.gl/layers";
 
@@ -30,10 +23,7 @@ import type { ClusterReference } from "./worker-connection";
 import type { Layer } from "@deck.gl/core";
 import type { Device } from "@luma.gl/core";
 
-/**
- * Icon diameter as a fraction of the dot DIAMETER, leaving a ring of the dot's type colour visible
- * around the icon as padding so the glyph reads as sitting INSIDE the dot, not covering it.
- */
+/** Icon diameter as a fraction of the dot diameter, leaving visible type-colour padding. */
 const ICON_TO_DOT_DIAMETER = 0.55;
 const ICON_MIN_SCREEN_DIAMETER = 18;
 const ICON_FADE_PX = 10;
@@ -171,11 +161,8 @@ interface LeafTypeIconLayersParams {
 }
 
 /**
- * Hierarchical-tier type icons: one {@link IconLayer} per open leaf, drawn over the leaf's entity
- * dots. Each leaf reads its own position SAB (local coords) offset to the leaf centre by the SAME
- * modelMatrix the dots use, so the icons track the dots exactly. A leaf's dots share ONE radius, so
- * the soft-LOD is all-or-nothing per leaf: below the screen-size bar the leaf's layer is skipped
- * entirely (cheaper than a per-dot fade that would never differ within a leaf).
+ * Hierarchical-tier type icons: one layer per open leaf. Each leaf shares one
+ * radius, so the soft-LOD is all-or-nothing per leaf (cheaper than a per-dot fade).
  */
 export function leafTypeIconLayers({
   structure,

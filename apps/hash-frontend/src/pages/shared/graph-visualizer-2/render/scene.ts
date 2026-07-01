@@ -272,10 +272,8 @@ export interface EntityLabel {
 }
 
 /**
- * The cached set of which flat-tier dots carry an always-on (hub) label, with the resolved text + entity.
- * Rebuilt ONLY on a zoom / structure change ({@link Scene["#rebuildEntityLabelData"]} -- the perf
- * rule); each frame the Scene projects each datum's LIVE SAB position and emits the on-screen ones
- * as {@link EntityLabel}s. `recordIndex` is the render index in the layout's SAB as it was scanned.
+ * Cached hub-label eligibility set. Rebuilt on zoom/structure change;
+ * each frame projects SAB positions and emits on-screen labels.
  */
 interface EntityLabelDatum {
   readonly layoutId: ClusterId;
@@ -340,32 +338,14 @@ export class Scene {
     viewStateZoom(INITIAL_VIEW_STATE),
   );
 
-  /**
-   * The always-on entity-label SET + resolved text. Rebuilt ONLY on a zoom or structure change
-   * (the perf rule -- never an O(n) scan or a label resolve on a pan / position frame); the
-   * TextLayer then reads each dot's LIVE position from the SAB per-datum on `#positionTick`.
-   */
+  /** Hub-label eligibility + resolved text. Rebuilt on zoom/structure change. */
   #entityLabelData: EntityLabelDatum[] = [];
-  /**
-   * Per-render-index type-icon atlas key (or null), for the flat tier, in the layout SAB's record
-   * order as it was last scanned. Rebuilt ONLY on a structure change / resolver change (the perf
-   * rule -- the only O(dots) icon-resolution scan), exactly like {@link #entityLabelData}; the
-   * IconLayer indexes it by render index. {@link #entityIconNamesVersion} bumps with it to drive
-   * the layer's getIcon trigger.
-   */
+  /** Flat-tier per-render-index icon atlas key. Rebuilt on structure/resolver change. */
   #entityIconNames: (string | null)[] = [];
-  /**
-   * Per open hierarchical leaf (keyed by `layoutId`), the per-local-index type-icon atlas key (or
-   * null), in the leaf SAB's record order. The hierarchical counterpart of {@link #entityIconNames};
-   * scanned in the same {@link Scene["#rebuildEntityIconData"]} pass and sharing its version.
-   */
+  /** Hierarchical per-leaf icon atlas keys. Shares version with {@link #entityIconNames}. */
   #leafIconNames = new Map<ClusterId, (string | null)[]>();
   #entityIconNamesVersion = 0;
-  /**
-   * The rasterised type-icon atlas (emoji + URL silhouettes) feeding the type-icon IconLayers (flat
-   * tier + per-leaf hierarchical). Async rasters bump its version + call back into
-   * {@link #refreshDataLayers} so a finished icon appears.
-   */
+  /** Rasterised type-icon atlas. Async rasters bump version and re-push layers. */
   readonly #iconAtlas: IconAtlas;
   /** The Deck GPU device, captured once it initialises; the atlas texture is built on it. */
   #device: Device | undefined;
@@ -737,10 +717,8 @@ export class Scene {
     } else if (labelColorBucketChanged) {
       this.#pushLayers();
     }
-    // HTML overlays (selection / highway / cluster cards + hub labels) are positioned by PROJECTED
-    // screen coords, so they must re-project on EVERY camera move -- pan included -- or they freeze
-    // in place while the canvas slides under them. Cheap: labels are rAF-coalesced and the cards
-    // update only a GPU transform (their bodies are memoized), so this is safe per drag frame.
+    // HTML overlays use projected screen coords, so they must re-project on
+    // every camera move (pan included) or they freeze under the sliding canvas.
     this.#emitSelection();
     this.#emitHighwayHover();
     this.#emitClusterHover();
@@ -1475,12 +1453,7 @@ export class Scene {
     );
   }
 
-  /**
-   * The live world position of a labelled dot, read from the SAB via the SAME byte math the
-   * selection ring uses ({@link nodeGeometry}). Called per-datum by {@link #emitEntityLabels};
-   * returns null for a transiently-missing record (the set is rebuilt next zoom / structure), so
-   * that label is simply skipped this frame.
-   */
+  /** Live world position of a labelled dot from the SAB. Null if the record is transiently missing. */
   #readLabelPosition(
     datum: EntityLabelDatum,
   ): readonly [number, number] | null {
@@ -1583,12 +1556,9 @@ export class Scene {
   }
 
   /**
-   * Recompute WHICH dots label + their text. PERF-CRITICAL: this is the only O(dots) scan and
-   * the only place {@link SceneCallbacks.resolveEntityLabel} runs, and it fires ONLY on a zoom
-   * or structure change -- NEVER on a pan or a position frame (those reuse the cached set and
-   * just re-read positions). A dot labels once its on-screen diameter clears {@link
-   * ENTITY_LABEL_MIN_SCREEN_DIAMETER}. Hierarchical leaves intentionally do not get always-on
-   * hub labels; the bubble and edge labels already carry that view's orientation.
+   * Recompute which dots label + their text. O(dots) scan; fires only on
+   * zoom/structure change (position frames reuse the cached set). A dot labels
+   * once its screen diameter clears {@link ENTITY_LABEL_MIN_SCREEN_DIAMETER}.
    */
   #rebuildEntityLabelData(): void {
     const resolveLabel = this.#callbacks.resolveEntityLabel;
@@ -1647,15 +1617,9 @@ export class Scene {
   }
 
   /**
-   * Recompute the per-render-index type-icon atlas KEYS for BOTH tiers (the flat whole-graph SAB
-   * into {@link #entityIconNames}, and each open leaf's SAB into {@link #leafIconNames}), and ensure
-   * those icons are rasterised. PERF-CRITICAL and gated EXACTLY like {@link #rebuildEntityLabelData}:
-   * this is the only O(dots) icon-resolution scan and the only place
-   * {@link SceneCallbacks.resolveEntityIcon} runs -- it fires ONLY on a structure / resolver change,
-   * NEVER on a pan or a position frame (those reuse the cached `names` and just re-read SAB
-   * positions). Every dot gets an entry (its key or null); soft-LOD sizing in the IconLayer hides
-   * small ones, so there is no zoom gate here (which is also why, unlike labels, a zoom change need
-   * not rebuild this).
+   * Recompute per-render-index icon atlas keys for both tiers and ensure they
+   * are rasterised. O(dots) scan; fires only on structure/resolver change.
+   * No zoom gate: the IconLayer's soft-LOD sizing handles small dots.
    */
   #rebuildEntityIconData(): void {
     const resolveIcon = this.#callbacks.resolveEntityIcon;

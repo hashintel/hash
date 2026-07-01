@@ -236,11 +236,11 @@ describe("createStressLayout", () => {
 
     expect(layout.isSettled).toBe(true);
     // The soft fused term alone leaves residual overlaps around the hub; the terminal
-    // VPSC projection must drive them to exactly zero.
+    // FORBID phase must drive them to exactly zero.
     expect(overlapCountOf(layout, 0)).toBe(0);
   });
 
-  it("also removes overlaps after a warm absorb (terminal projection re-runs)", () => {
+  it("also removes overlaps after a warm absorb (FORBID re-runs)", () => {
     const nodes = makeNodes(40);
     const edges: ForceEdge[] = [];
     for (let leaf = 1; leaf < 40; leaf++) {
@@ -264,8 +264,8 @@ describe("createStressLayout", () => {
     expect(overlapCountOf(layout, 0)).toBe(0);
   });
 
-  it("interleaved overlap removal also ends overlap-free", () => {
-    const count = 121;
+  it("settles a very dense hub (1 + 250 leaves) overlap-free", () => {
+    const count = 251;
     const nodes = makeNodes(count);
     const edges: ForceEdge[] = [];
     for (let leaf = 1; leaf < count; leaf++) {
@@ -275,7 +275,6 @@ describe("createStressLayout", () => {
       nodes,
       edges,
       new FlatGraphBuffer(nodes.length),
-      { overlapRemovalInterval: 10 },
     );
     settle(layout);
 

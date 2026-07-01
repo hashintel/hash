@@ -140,12 +140,6 @@ export class VpscOverlapRemover {
 
   #minLm = 0;
 
-  // TEMP perf diagnostics
-  statOuter = 0;
-  statCleanupRounds = 0;
-  statMaxNumCon = 0;
-  statSatisfyInner = 0;
-
   constructor(capacity: number) {
     this.#allocateNode(Math.max(1, capacity | 0));
     this.#allocateConstraints(Math.max(16, capacity | 0));
@@ -173,10 +167,6 @@ export class VpscOverlapRemover {
     this.#n = n;
     this.#ghalfW = halfW;
     this.#ghalfH = halfH;
-    this.statOuter = 0;
-    this.statCleanupRounds = 0;
-    this.statMaxNumCon = 0;
-    this.statSatisfyInner = 0;
     for (let i = 0; i < n; i++) {
       this.#gx[i] = x[i]!;
       this.#gy[i] = y[i]!;
@@ -224,7 +214,6 @@ export class VpscOverlapRemover {
       if (this.#detectResiduals() === 0) {
         return;
       }
-      this.statCleanupRounds += 1;
       this.#resolveAxis(true);
       this.#resolveAxis(false);
     }
@@ -762,10 +751,6 @@ export class VpscOverlapRemover {
       lastCost = cost;
       cost = this.#cost();
     }
-    this.statOuter += guard;
-    if (this.#numCon > this.statMaxNumCon) {
-      this.statMaxNumCon = this.#numCon;
-    }
   }
 
   #cost(): number {
@@ -782,7 +767,6 @@ export class VpscOverlapRemover {
     this.#splitBlocks();
     const maxInner = 8 * (this.#numCon + this.#n) + 64;
     let guard = 0;
-    this.statSatisfyInner += 1;
     while (guard++ < maxInner) {
       const v = this.#mostViolated();
       if (

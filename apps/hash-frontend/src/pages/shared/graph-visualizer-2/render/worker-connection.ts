@@ -45,12 +45,7 @@ export interface ClusterReference {
   /** `[x0, y0, x1, y1, ...]` in the leaf's LOCAL frame. Replaced on non-SAB fallback. */
   positions: Float32Array;
   readonly nodeIds: readonly string[];
-  /**
-   * Present when this is the flat-tier interleaved `FlatGraphBuffer` (positions +
-   * radii + colours in one buffer, capacity = this). The presentation reads the
-   * record fields straight off `versionView.buffer` via stride/offset; absent for
-   * a positions-only entity SAB.
-   */
+  /** Present for the flat-tier interleaved `FlatGraphBuffer`; absent for leaf SABs. */
   readonly flatCapacity?: number;
 }
 
@@ -83,38 +78,21 @@ export interface WorkerHandle {
   getPositions(): PositionsFrame | undefined;
   /** Open-leaf entity position SABs, keyed by leaf cluster id. */
   getClusters(): Map<ClusterId, ClusterReference>;
-  /**
-   * Subscribe to coalesced structure/position updates. Replays the current
-   * structure + position immediately so a late subscriber catches up. Returns an
-   * unsubscribe function.
-   */
+  /** Subscribe to updates. Replays current state immediately; returns unsubscribe. */
   subscribe(listener: WorkerListener): () => void;
-  /**
-   * Resolve a picked entity dot to its EntityId via the EntityIdx->EntityId map SAB. The
-   * flat tier reads the stable `entityIdx` off the (reorderable) record; a hierarchical
-   * leaf (fixed node set) takes it from the leaf's nodeIds. Undefined until the id-map and
-   * the layout's buffer both exist.
-   */
+  /** Resolve a picked entity dot to its EntityId via the id-map SAB. */
   resolveEntityId(
     layoutId: ClusterId,
     recordIndex: number,
   ): EntityId | undefined;
-  /** Decode an EntityIdx straight to its EntityId via the id-map SAB -- a picked edge already
-   * has the link's EntityIdx, so it skips the record read {@link resolveEntityId} does. */
+  /** Decode an EntityIdx to its EntityId via the id-map SAB. */
   entityIdToId(entityIdx: EntityIndex): EntityId | undefined;
-  /**
-   * The raw EntityIdx (join key) for a record -- the integer {@link resolveEntityId} decodes.
-   * Used to query a node's neighbors without re-deriving the buffer layout in the caller.
-   */
+  /** The raw EntityIdx (join key) for a record. */
   entityIdxAt(
     layoutId: ClusterId,
     recordIndex: number,
   ): EntityIndex | undefined;
-  /**
-   * Locate the wanted entityIdxs within a layout's buffer -> their current render indices, for
-   * placing highlight neighbors. A hierarchical leaf maps via its (fixed) nodeIds; the flat
-   * buffer reorders, so its live records are scanned.
-   */
+  /** Map wanted entityIdxs to their current render indices within a layout's buffer. */
   locateRecords(
     layoutId: ClusterId,
     wanted: ReadonlySet<EntityIndex>,

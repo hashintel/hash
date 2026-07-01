@@ -424,9 +424,41 @@ export class GraphWorker {
         continue;
       }
 
-      const changed = layout.tick(1);
-
       const kind = this.#layoutKind.get(clusterId);
+
+      const layoutTickStart = performance.now();
+      const changed = layout.tick(1);
+      const layoutTickMs = performance.now() - layoutTickStart;
+
+      // Per-tick instrumentation for the incremental overlap-removal (FORBID) phase:
+      // confirms on the user's actual graph that no single tick freezes and that the
+      // overlap count marches to zero. Debug-gated; the fields are duck-typed so this
+      // stays agnostic to which layout engine (stress vs FA2) is mounted.
+      if (this.debug && kind === "entities") {
+        const diag = layout as Partial<{
+          forbidOverlaps: number;
+          overlapProjectionCalls: number;
+          maxForbidStepMs: number;
+          forbidExpansions: number;
+          edgeCount: number;
+        }>;
+        if (
+          changed &&
+          typeof diag.overlapProjectionCalls === "number" &&
+          diag.overlapProjectionCalls > 0
+        ) {
+          // eslint-disable-next-line no-console
+          console.debug(
+            `[graph-worker][forbid] cluster=${clusterId} ` +
+              `n=${layout.nodes.length} edges=${diag.edgeCount ?? "?"} ` +
+              `tickMs=${layoutTickMs.toFixed(2)} ` +
+              `epochs=${diag.overlapProjectionCalls} ` +
+              `overlaps=${diag.forbidOverlaps ?? "?"} ` +
+              `expansions=${diag.forbidExpansions ?? 0} ` +
+              `maxStepMs=${(diag.maxForbidStepMs ?? 0).toFixed(2)}`,
+          );
+        }
+      }
 
       if (kind === "entities") {
         if (changed && clusterId === FLAT_LAYOUT_ID) {

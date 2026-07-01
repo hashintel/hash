@@ -1,26 +1,17 @@
 /**
- * Async, incrementally-built rasterised icon atlas for the flat-tier type-icon IconLayer.
+ * Incrementally-built rasterised icon atlas.
  *
- * A single 2D canvas is a grid of fixed-size cells; each unique icon key is rasterised ONCE
- * into a free cell and recorded in the mapping ({key -> {x, y, width, height}}). The IconLayer
- * samples cells from this canvas (uploaded to a GPU texture) by key. {@link version} bumps on
- * ANY change (a new cell, a finished async raster, a canvas grow) so the layer's getIcon
- * updateTrigger re-evaluates and a freshly-ready icon appears.
+ * A 2D canvas grid of fixed-size cells; each unique icon key is rasterised once.
+ * {@link version} bumps on any change (new cell, finished async raster, canvas grow).
  *
- * Icon formats mirror {@link "@hashintel/design-system".EntityOrTypeIcon}:
- *  - a URL (`http(s)://` or `/`) is a monochrome SVG drawn as a WHITE silhouette (recoloured
- *    via `source-in`), loaded ASYNCHRONOUSLY -- it is pending (not in the mapping, {@link has}
- *    false) until the image resolves, so the layer simply draws no icon for it meanwhile, then
- *    it appears on the version bump. A load error drops the key (it just never shows an icon).
- *  - any other short string is an emoji, drawn SYNCHRONOUSLY with `fillText`.
+ * Icon formats:
+ *  - URL (`http(s)://` or `/`): monochrome SVG drawn as a white silhouette
+ *    (recoloured via `source-in`), loaded asynchronously. Pending until resolved.
+ *  - Other string: emoji, drawn synchronously with `fillText`.
  *
- * The cells are pre-coloured (white silhouettes / full-colour emoji), so the layer draws with
- * `getColor: [255,255,255,255]`.
- *
- * The atlas also owns the GPU texture lifecycle: deck v9's `IconLayer.iconAtlas` wants a luma
- * `Texture` (it does NOT accept a canvas), and the texture must be built with the SAME device
- * the layer renders on, so {@link getTexture} lazily (re)builds it from the canvas keyed on
- * {@link version} -- the atlas knows precisely when its pixels changed.
+ * Cells are pre-coloured (white silhouettes / full-colour emoji). The atlas owns
+ * the GPU texture lifecycle: {@link getTexture} lazily rebuilds from the canvas
+ * when the version or device changes.
  */
 import type { Device, Texture } from "@luma.gl/core";
 
@@ -36,9 +27,8 @@ export interface AtlasCell {
 const CELL_SIZE = 64;
 
 /**
- * Cells per row. FIXED for the atlas's life so a slot's (col, row) -- and thus its mapping
- * rectangle -- never changes; growth only ADDS ROWS (a taller canvas), so the existing pixels copy
- * across with one `drawImage(previous, 0, 0)` and every recorded cell stays valid.
+ * Cells per row. Fixed for the atlas's life; growth only adds rows, so
+ * existing slots keep their (col, row) and pixels copy with one blit.
  */
 const COLUMNS = 8;
 
@@ -65,18 +55,14 @@ function resolveIconUrl(icon: string): string {
     : icon;
 }
 
-/**
- * One claimed cell. `cellIndex` is the stable row-major slot (assigned in claim order and never
- * reused), so a canvas grow recomputes every rectangle from these indices unambiguously. `ready`
- * flips true once the pixels are drawn; only ready cells are exposed in the deck `iconMapping`.
- */
+/** A claimed cell. `cellIndex` is a stable row-major slot (never reused). */
 interface AtlasEntry {
   readonly cellIndex: number;
   ready: boolean;
 }
 
 export class IconAtlas {
-  /** Bumped on ANY change (new cell, finished async raster, canvas grow). */
+  /** Bumped on any change (new cell, finished async raster, canvas grow). */
   #version = 0;
   /** The backing canvas; a grid of {@link CELL_SIZE} cells, uploaded to the GPU by the layer. */
   #canvas: HTMLCanvasElement;
@@ -118,12 +104,7 @@ export class IconAtlas {
     return this.#canvas;
   }
 
-  /**
-   * The atlas as a GPU texture on `device`, rebuilt from the canvas whenever {@link version} or
-   * the device changed since the last build (a grown canvas changes both the pixels and the
-   * texture dimensions). Returns the cached texture otherwise. The destroyed-on-rebuild old
-   * texture is fine: the IconLayer reads `iconAtlas` fresh each render via the version trigger.
-   */
+  /** GPU texture, rebuilt from the canvas when version or device changes. */
   getTexture(device: Device): Texture {
     if (
       this.#texture === undefined ||
@@ -143,8 +124,7 @@ export class IconAtlas {
     return this.#texture;
   }
 
-  /** The deck.gl `iconMapping`: every READY key -> its cell rectangle. Cached by version so the
-   * returned identity is stable between atlas changes. */
+  /** deck.gl `iconMapping` for ready keys. Cached by version (stable identity). */
   getMapping(): Record<string, AtlasCell> {
     if (this.#mapping !== undefined && this.#mappingVersion === this.#version) {
       return this.#mapping;
@@ -165,11 +145,7 @@ export class IconAtlas {
     return this.#entries.get(key)?.ready === true;
   }
 
-  /**
-   * Ensure each key is rasterised (or in flight). Emoji keys raster synchronously here; URL keys
-   * claim a cell, mark pending, and raster on image load. Already-claimed keys (ready OR pending)
-   * are skipped, so each unique icon is rasterised exactly once.
-   */
+  /** Ensure each key is rasterised (or in flight). Already-claimed keys are skipped. */
   ensureIcons(keys: readonly string[]): void {
     for (const key of keys) {
       if (key.length === 0 || this.#entries.has(key)) {
@@ -201,11 +177,7 @@ export class IconAtlas {
     return slot;
   }
 
-  /**
-   * Add rows: re-allocate a TALLER canvas (columns fixed) and copy the existing pixels with a
-   * single blit. Because columns are unchanged, every slot keeps its (col, row), so the recorded
-   * cell rectangles stay valid and only the canvas height -- and thus the texture -- grows.
-   */
+  /** Add rows: taller canvas, single blit copy, existing cell rectangles stay valid. */
   #grow(): void {
     const previous = this.#canvas;
     this.#rows += ROW_GROWTH;
@@ -267,11 +239,7 @@ export class IconAtlas {
     image.src = resolveIconUrl(key);
   }
 
-  /**
-   * Draw `image` fitted into `cell` (preserving aspect), then recolour the drawn pixels to a
-   * solid WHITE silhouette via `source-in` -- HASH URL icons are monochrome SVGs shown as masks,
-   * so only the alpha shape matters and the layer tints it via getColor.
-   */
+  /** Draw `image` fitted into `cell`, then recolour to a white silhouette via `source-in`. */
   #drawSilhouette(image: HTMLImageElement, cell: AtlasCell): void {
     const ctx = this.#ctx;
     ctx.save();

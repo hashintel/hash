@@ -182,6 +182,52 @@ export function buildForceGraph(shape: GraphShape): {
   return { nodes, edges };
 }
 
+/**
+ * A {@link buildForceGraph} cloud PLUS one super-hub with `hubLeaves` degree-1 leaves,
+ * initialised near-coincident with the hub. This reproduces the production pathology
+ * that froze the old terminal VPSC projection for seconds: a single hub's worth of
+ * leaves cannot be pulled apart by the stress phase's soft overlap term (it reaches
+ * equilibrium), so a tight near-coincident pile-up reaches the overlap-removal phase.
+ * The extra node/edge ids continue the cloud's index space.
+ */
+export function buildForceGraphWithCoincidentHub(
+  shape: GraphShape,
+  hubLeaves: number,
+): {
+  readonly nodes: ForceNode[];
+  readonly edges: ForceEdge[];
+} {
+  const { nodes, edges } = buildForceGraph(shape);
+  const random = mulberry32(shape.seed + 0x5bd1e995);
+  const hubIndex = shape.nodeCount;
+
+  nodes.push({
+    id: String(hubIndex),
+    x: 0,
+    y: 0,
+    radius: radiusForDegree(hubLeaves),
+  });
+  for (let leaf = 0; leaf < hubLeaves; leaf++) {
+    const leafIndex = hubIndex + 1 + leaf;
+    // ~40px from the shared centre, mutually overlapping — the real hub geometry.
+    const angle = random() * Math.PI * 2;
+    const distance = 40 * random();
+    nodes.push({
+      id: String(leafIndex),
+      x: Math.cos(angle) * distance,
+      y: Math.sin(angle) * distance,
+      radius: radiusForDegree(1),
+    });
+    edges.push({
+      source: String(hubIndex),
+      target: String(leafIndex),
+      weight: 1,
+    });
+  }
+
+  return { nodes, edges };
+}
+
 /** Link store and entity index column. Entity indices are the contiguous range `[0, nodeCount)`. */
 export function buildCommunityInputs(shape: GraphShape): {
   readonly entityIdxs: Column<Int32Array, EntityIndex>;
