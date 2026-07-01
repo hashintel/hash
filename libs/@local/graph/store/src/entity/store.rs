@@ -539,6 +539,7 @@ pub struct ClusterEntitiesParams {
     /// Embedding dimension after matryoshka truncation. Must be a positive
     /// multiple of 8; values above 3072 are rejected. Defaults to 256.
     #[serde(default = "ClusterEntitiesParams::default_dimension")]
+    #[cfg_attr(feature = "utoipa", schema(value_type = u16, minimum = 1, default = 256, example = 256))]
     pub dimension: NonZero<u16>,
 
     /// Seed for the random number generator used in clustering.
