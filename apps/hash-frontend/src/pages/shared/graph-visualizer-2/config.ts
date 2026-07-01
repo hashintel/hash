@@ -9,6 +9,22 @@ export interface Fa2Tuning {
   readonly strongGravityMode?: boolean;
 }
 
+/**
+ * Optional stress-solver force overrides for the community-force flat tier (the FORBID-backed
+ * sparse-stress layout). Each field, when set, REPLACES the StressLayout default weight; an
+ * unset field keeps the gentle default. All three push nodes OUTWARD and compose with FORBID's
+ * terminal zero-overlap pass, so raising them stays overlap-free but spreads the layout. Set a
+ * field to 0 to disable that term entirely.
+ */
+export interface StressTuning {
+  /** Pull each node toward its own Louvain community centroid (Noack cohesion). */
+  readonly communityCohesion?: number;
+  /** Repel community centroids apart, translating whole communities off the seam. */
+  readonly communitySeparation?: number;
+  /** FA2-style near-field repulsion scaled by degree, so hubs claim more space. */
+  readonly degreeRepulsion?: number;
+}
+
 export interface VizConfig {
   // Scale thresholds (non-link entity count).
   readonly flatLayoutMaxNodes: number;
@@ -62,6 +78,9 @@ export interface VizConfig {
 
   // Optional FA2 force overrides; unset keeps inferSettings' per-order values.
   readonly fa2?: Fa2Tuning;
+
+  // Optional stress-solver force overrides (community-force flat tier); unset keeps defaults.
+  readonly stress?: StressTuning;
 
   /** Enable noisy worker diagnostics. Intended for local profiling/debug only. */
   readonly debug?: boolean;

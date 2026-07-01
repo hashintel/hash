@@ -34,6 +34,10 @@ const DEFAULT_KNOBS: HarnessKnobs = {
   fa2ScalingRatio: 10,
   fa2LinLog: true,
   fa2StrongGravity: false,
+  // Stress baseline matching the StressLayout production defaults, so the initial view equals it.
+  stressCommunityCohesion: 0.02,
+  stressCommunitySeparation: 0.08,
+  stressDegreeRepulsion: 0.02,
   stream: false,
   chunkSize: 10,
   intervalMs: 150,
@@ -198,6 +202,9 @@ export const DevHarness = () => {
     knobs.fa2ScalingRatio,
     knobs.fa2LinLog,
     knobs.fa2StrongGravity,
+    knobs.stressCommunityCohesion,
+    knobs.stressCommunitySeparation,
+    knobs.stressDegreeRepulsion,
     knobs.stream,
   ].join(":");
 
@@ -212,12 +219,20 @@ export const DevHarness = () => {
         linLogMode: knobs.fa2LinLog,
         strongGravityMode: knobs.fa2StrongGravity,
       },
+      stress: {
+        communityCohesion: knobs.stressCommunityCohesion,
+        communitySeparation: knobs.stressCommunitySeparation,
+        degreeRepulsion: knobs.stressDegreeRepulsion,
+      },
     }),
     [
       knobs.fa2Gravity,
       knobs.fa2ScalingRatio,
       knobs.fa2LinLog,
       knobs.fa2StrongGravity,
+      knobs.stressCommunityCohesion,
+      knobs.stressCommunitySeparation,
+      knobs.stressDegreeRepulsion,
     ],
   );
 

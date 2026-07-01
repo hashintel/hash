@@ -1,3 +1,4 @@
+/* eslint-disable id-length -- community/centroid index math (k, c) mirrors the solver and reads best short; matches the sibling *.test.ts files. */
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { describe, expect, it } from "vitest";
 
@@ -14,6 +15,7 @@ import type {
   ForceNode,
   LayoutSimulation,
 } from "./force-simulation";
+import type { StressLayoutOptions } from "./stress-layout";
 
 function settle(layout: LayoutSimulation): void {
   for (let step = 0; step < 4000 && !layout.isSettled; step++) {
@@ -309,5 +311,175 @@ describe("createStressLayout", () => {
     const communities = layout.communities!;
     expect(communities).toHaveLength(36);
     expect(communities.every((community) => community >= 0)).toBe(true);
+  });
+});
+
+/** `k` cliques of `size` nodes each, chained by one bridge between consecutive cliques. */
+function cliqueChain(
+  k: number,
+  size: number,
+): { nodes: ForceNode[]; edges: ForceEdge[] } {
+  const nodes: ForceNode[] = [];
+  const edges: ForceEdge[] = [];
+  for (let clique = 0; clique < k; clique++) {
+    const base = clique * size;
+    for (let i = 0; i < size; i++) {
+      nodes.push({ id: String(base + i), x: base + i, y: clique, radius: 4 });
+      for (let j = i + 1; j < size; j++) {
+        edges.push({
+          source: String(base + i),
+          target: String(base + j),
+          weight: 1,
+        });
+      }
+    }
+    if (clique > 0) {
+      edges.push({
+        source: String((clique - 1) * size),
+        target: String(base),
+        weight: 1,
+      });
+    }
+  }
+  return { nodes, edges };
+}
+
+function layoutWith(
+  nodes: ForceNode[],
+  edges: ForceEdge[],
+  options: StressLayoutOptions,
+): LayoutSimulation {
+  // Clone nodes: StressLayout mutates node.x/y, so each layout must own its copies
+  // (otherwise two layouts sharing one array read each other's final positions).
+  return createStressLayout(
+    nodes.map((node) => ({ ...node })),
+    edges,
+    new FlatGraphBuffer(nodes.length),
+    options,
+  );
+}
+
+/** Mean inter-community centroid distance ÷ mean intra-community radius (higher = cleaner). */
+function interIntraRatioOf(layout: LayoutSimulation): number {
+  const communities = layout.communities!;
+  const dense = new Map<number, number>();
+  for (const raw of communities) {
+    if (!dense.has(raw)) {
+      dense.set(raw, dense.size);
+    }
+  }
+  const k = dense.size;
+  const sumX = new Float64Array(k);
+  const sumY = new Float64Array(k);
+  const count = new Int32Array(k);
+  const positions = positionsOf(layout);
+  for (const [index, raw] of communities.entries()) {
+    const c = dense.get(raw)!;
+    sumX[c]! += positions[index]![0];
+    sumY[c]! += positions[index]![1];
+    count[c]! += 1;
+  }
+  const cx = new Float64Array(k);
+  const cy = new Float64Array(k);
+  for (let c = 0; c < k; c++) {
+    cx[c] = sumX[c]! / Math.max(1, count[c]!);
+    cy[c] = sumY[c]! / Math.max(1, count[c]!);
+  }
+  let intra = 0;
+  for (const [index, raw] of communities.entries()) {
+    const c = dense.get(raw)!;
+    intra += Math.hypot(
+      positions[index]![0] - cx[c]!,
+      positions[index]![1] - cy[c]!,
+    );
+  }
+  intra /= Math.max(1, communities.length);
+  let inter = 0;
+  let pairs = 0;
+  for (let a = 0; a < k; a++) {
+    for (let b = a + 1; b < k; b++) {
+      inter += Math.hypot(cx[a]! - cx[b]!, cy[a]! - cy[b]!);
+      pairs += 1;
+    }
+  }
+  inter /= Math.max(1, pairs);
+  return inter / Math.max(1e-9, intra);
+}
+
+describe("createStressLayout — community + degree terms", () => {
+  it("is deterministic with the community + degree terms active", () => {
+    const { nodes, edges } = cliqueChain(3, 8);
+    const options: StressLayoutOptions = {
+      communityCohesion: 0.1,
+      communitySeparation: 0.4,
+      degreeRepulsion: 0.2,
+    };
+    const first = layoutWith(nodes, edges, options);
+    const second = layoutWith(nodes, edges, options);
+    settle(first);
+    settle(second);
+
+    const firstPositions = positionsOf(first);
+    const secondPositions = positionsOf(second);
+    for (let idx = 0; idx < firstPositions.length; idx++) {
+      expect(firstPositions[idx]![0]).toBeCloseTo(secondPositions[idx]![0], 2);
+      expect(firstPositions[idx]![1]).toBeCloseTo(secondPositions[idx]![1], 2);
+    }
+  });
+
+  it("community separation raises the inter/intra distance ratio (real Louvain)", () => {
+    const { nodes, edges } = cliqueChain(3, 8);
+    const off = layoutWith(nodes, edges, {
+      communityCohesion: 0,
+      communitySeparation: 0,
+      degreeRepulsion: 0,
+    });
+    const on = layoutWith(nodes, edges, {
+      communityCohesion: 0,
+      communitySeparation: 0.6,
+      degreeRepulsion: 0,
+    });
+    settle(off);
+    settle(on);
+
+    // Louvain finds the 3 cliques; separation must pull their centroids further apart
+    // relative to each community's own spread.
+    expect(new Set(on.communities).size).toBe(3);
+    expect(interIntraRatioOf(on)).toBeGreaterThan(interIntraRatioOf(off) * 1.1);
+  });
+
+  it("degree-scaled repulsion widens a high-degree hub's halo (real graph)", () => {
+    const count = 61;
+    const nodes = makeNodes(count);
+    const edges: ForceEdge[] = [];
+    for (let leaf = 1; leaf < count; leaf++) {
+      edges.push({ source: "0", target: String(leaf), weight: 1 });
+    }
+    const meanHubDistance = (layout: LayoutSimulation): number => {
+      const positions = positionsOf(layout);
+      let sum = 0;
+      for (let leaf = 1; leaf < count; leaf++) {
+        sum += distanceBetween(positions, 0, leaf);
+      }
+      return sum / (count - 1);
+    };
+
+    const off = layoutWith(nodes, edges, {
+      communityCohesion: 0,
+      communitySeparation: 0,
+      degreeRepulsion: 0,
+    });
+    const on = layoutWith(nodes, edges, {
+      communityCohesion: 0,
+      communitySeparation: 0,
+      degreeRepulsion: 0.4,
+    });
+    settle(off);
+    settle(on);
+
+    expect(meanHubDistance(on)).toBeGreaterThan(meanHubDistance(off));
+    // Both configurations must still be strictly overlap-free (FORBID guarantees it).
+    expect(overlapCountOf(on, 0)).toBe(0);
+    expect(overlapCountOf(off, 0)).toBe(0);
   });
 });

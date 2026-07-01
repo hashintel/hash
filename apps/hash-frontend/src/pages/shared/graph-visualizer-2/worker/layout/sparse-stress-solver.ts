@@ -62,6 +62,71 @@ const MAX_STORED_DIST = 0xfffe;
 const EPS = 1e-9;
 const TAU = Math.PI * 2;
 
+// --- Community + degree-repulsion term tuning (all annealed by the epoch eta) ---
+/** Max per-epoch fraction of the way a node is pulled toward its community centroid. */
+const COMMUNITY_COHESION_MAX_STEP = 0.08;
+/** Max per-epoch community centroid-separation translation, in ideal-edge units. */
+const COMMUNITY_SEPARATION_MAX_STEP = 0.5;
+/**
+ * Skip the O(C²) centroid-separation pass when there are more communities than this
+ * (e.g. an edgeless graph where every node is its own community ⇒ C = N). Cohesion,
+ * being O(N), still runs. Keeps the term strictly O(N + C²) with C bounded.
+ */
+const COMMUNITY_SEPARATION_MAX_COUNT = 512;
+/**
+ * Near-field degree-repulsion cutoff, in ideal-edge units (also the grid cell size).
+ * >1 so a hub can push its neighbours PAST their natural edge distance (~ideal) and
+ * actually claim extra space; the mass normalisation keeps low-degree pairs negligible
+ * so this stays a hub effect rather than a global blow-up.
+ */
+const DEGREE_REPULSION_RADIUS_FACTOR = 2;
+/** Max per-epoch fraction of the cutoff a degree-repelled node is pushed. */
+const DEGREE_REPULSION_MAX_STEP = 0.5;
+
+/**
+ * Hard floor on the overlap-separation strength, applied regardless of the SGD's eta.
+ * The fused overlap term is otherwise eta-scaled, so as the anneal decays to ~0 it stops
+ * pushing and the layout re-compacts around dense hubs — the first half of the "contract
+ * then expand" swing. Flooring keeps overlapping pairs pushed apart at full strength
+ * through convergence, so the layout reaches overlap-free in ONE monotonic motion rather
+ * than needing a separate terminal expansion phase (FORBID, now folded into this loop).
+ * 0.7 clears overlaps briskly without oscillating against the stress pull: a pair at the
+ * target gap gets zero push, so it cannot overshoot.
+ */
+const OVERLAP_HARD_STRENGTH = 0.7;
+/**
+ * Consecutive non-improving epochs (overlap count plateaued while the layout has
+ * otherwise settled) before a jammed cluster is scaled to fit. This is FORBID's scaling
+ * guarantee — a metastable dense packing always loosens under scaling — folded into the
+ * SGD loop and applied PER jammed cluster, so one dense hub inflates locally instead of
+ * blowing up the whole drawing.
+ */
+const OVERLAP_STALL_EPOCHS = 8;
+/**
+ * Minimum fractional drop in the overlap count that counts as "progress" and resets the
+ * stall counter. A dense hub whose leaves cannot fit at their edge distance clears a pair
+ * at a time under pairwise pushes — technically improving, but so slowly it would take
+ * hundreds of epochs. Treating a slow grind as a plateau hands it to the scale-to-fit,
+ * which loosens the whole jammed cluster at once (a handful of epochs instead of hundreds).
+ */
+const OVERLAP_STALL_IMPROVEMENT = 0.05;
+/**
+ * Extra epochs allowed past the eta-annealing horizon for pure separation (plus the
+ * scale-to-fit guarantee) to drive a pathological jam to exactly zero overlaps. Work is
+ * chunked across ticks, so a large cap never freezes a tick; it only bounds total
+ * settling time. Reaching it is the proven worst case, not the norm.
+ */
+const SEPARATION_MAX_EPOCHS = 2_000;
+/** Per-cluster scale-to-fit bounds (ported from FORBID): never a no-op, never explosive. */
+const OVERLAP_MIN_EXPAND_FACTOR = 1.1;
+const OVERLAP_MAX_EXPAND_FACTOR = 3;
+/**
+ * Target area utilisation when sizing a jammed cluster's expansion. Disks of side `2r+pad`
+ * tile at ~0.9 density; aiming below that leaves slack so one expansion clears the jam
+ * instead of nibbling at it over many rounds.
+ */
+const OVERLAP_PACKING_UTILISATION = 0.55;
+
 export interface SparseStressSolverInput {
   readonly n: number;
   readonly src: Uint32Array;
@@ -78,6 +143,15 @@ export interface SparseStressSolverInput {
    * overlap-as-stress; Gansner & Hu 2010). Omit (or pass zeros) for pure stress.
    */
   readonly radii?: Float32Array;
+
+  /**
+   * Optional per-node community id (e.g. Louvain). Ids may be arbitrary integers;
+   * they are densified internally. Only consulted when `communityCohesion` or
+   * `communitySeparation` is > 0, and drives the centroid-model community term
+   * (cohesion toward each node's own community centroid, separation between
+   * community centroids — a sparse realisation of Noack's LinLog energy model).
+   */
+  readonly communities?: Int32Array;
 }
 
 export interface DirectedFlowOptions {
@@ -155,6 +229,28 @@ export interface SparseStressSolverOptions {
 
   /** Edge relaxation weight. Default 1. */
   readonly edgeWeight?: number;
+
+  /**
+   * Community cohesion weight: pull each node gently toward its own community
+   * centroid every epoch (eta-scaled, capped). Requires `input.communities`.
+   * 0 (default) = exact no-op (the term is never evaluated).
+   */
+  readonly communityCohesion?: number;
+
+  /**
+   * Community separation weight: repel community centroids from each other
+   * (O(C²), C tiny) and translate each community rigidly away from the others.
+   * Requires `input.communities`. 0 (default) = exact no-op.
+   */
+  readonly communitySeparation?: number;
+
+  /**
+   * Degree-scaled repulsion weight: FA2-style near-field anti-gravity with force
+   * ∝ (deg_i+1)(deg_j+1), so high-degree hubs claim proportionally more space.
+   * Evaluated sparsely over a reused grid (near-field only). 0 (default) = exact
+   * no-op.
+   */
+  readonly degreeRepulsion?: number;
 
   /** Process at most this many pivots per epoch. Default: all pivots. */
   readonly pivotsPerEpoch?: number;
@@ -946,13 +1042,14 @@ const relaxPair = (
 const coincidentAngle = (i: number, j: number): number =>
   hash01((((i + 1) * 0x9e3779b1) ^ ((j + 1) * 0x85ebca6b)) >>> 0) * TAU;
 
-// Pack signed grid-cell coordinates into a single numeric map key. Coordinate
-// collisions (from very large layouts) only ever add extra candidates to a bucket
-// that the distance test then discards, so they never cause a missed overlap.
-const CELL_KEY_OFFSET = 1 << 15;
-const CELL_KEY_STRIDE = 1 << 16;
-const cellKey = (cx: number, cy: number): number =>
-  (cx + CELL_KEY_OFFSET) * CELL_KEY_STRIDE + (cy + CELL_KEY_OFFSET);
+/**
+ * 32-bit spatial-cell hash for the reused linked-list grids (degree-repulsion and the
+ * overlap resolver). Scrambles both coordinates so a power-of-two mask yields well-spread
+ * buckets; the exact-cell check at each call site discards any hash collisions, so they
+ * never cause a missed or spurious interaction.
+ */
+const cellHashU32 = (cx: number, cy: number): number =>
+  (Math.imul(cx, 0x9e3779b1) ^ Math.imul(cy, 0x85ebca6b)) >>> 0;
 
 /**
  * Exponential annealing schedule for stress SGD.
@@ -1730,6 +1827,61 @@ class StressPhase {
   readonly #overlapWeight: number;
   readonly #maxRadius: number;
 
+  // Community centroid term (Noack-style; only active when a weight > 0).
+  readonly #communityCohesion: number;
+  readonly #communitySeparation: number;
+  readonly #communityOf: Int32Array | undefined;
+  readonly #communityCount: number;
+  // Reused per-community scratch (length >= #communityCount): centroids + rigid
+  // separation displacement. Allocated once so no epoch allocates.
+  #comCentX: Float64Array = new Float64Array(0);
+  #comCentY: Float64Array = new Float64Array(0);
+  #comCount: Int32Array = new Int32Array(0);
+  #comDispX: Float64Array = new Float64Array(0);
+  #comDispY: Float64Array = new Float64Array(0);
+
+  // Degree-scaled near-field repulsion (FA2-style; only active when weight > 0).
+  readonly #degreeRepulsion: number;
+  readonly #degrees: Float32Array | undefined;
+  /** 1 / (maxDeg + 1): normalises pair mass so displacements stay bounded. */
+  readonly #degreeNormRecip: number;
+  // Reused linked-list grid for the degree-repulsion near-field pass.
+  #gridHead: Int32Array = new Int32Array(0);
+  #gridNext: Int32Array = new Int32Array(0);
+  #gridCellX: Int32Array = new Int32Array(0);
+  #gridCellY: Int32Array = new Int32Array(0);
+  #gridMask = 0;
+
+  // Integrated overlap resolution ("FORBID in the loop"): one reused linked-list grid
+  // at the overlap scale (cell = 2·maxRadius + overlapPadding), rebuilt once per epoch and
+  // shared by the fused overlap term AND the per-cluster scale-to-fit — so overlap
+  // resolution runs every epoch, converges monotonically, and never rebuilds twice. Only
+  // allocated when a fused overlap term is active (radii supplied).
+  #ovGridHead: Int32Array = new Int32Array(0);
+  #ovGridNext: Int32Array = new Int32Array(0);
+  #ovGridCellX: Int32Array = new Int32Array(0);
+  #ovGridCellY: Int32Array = new Int32Array(0);
+  #ovGridMask = 0;
+  /** Overlapping pairs at the last overlap pass (0 ⇒ the layout is overlap-free). */
+  #overlaps = 0;
+  /** Best (lowest) overlap count seen, for stall detection of a metastable jam. */
+  #overlapBest = Number.MAX_SAFE_INTEGER;
+  /** Consecutive settled+non-improving epochs; triggers scale-to-fit at the threshold. */
+  #overlapStall = 0;
+  /** Per-cluster scale-to-fit expansions applied this run (diagnostic). */
+  #expansions = 0;
+  /** Hard epoch cap: eta horizon plus the separation tail budget (radii runs only). */
+  readonly #separationCap: number;
+  // 1 for nodes that overlapped in the last pass (the jammed set the scale-to-fit unsticks).
+  #overlapFlag: Uint8Array = new Uint8Array(0);
+  // Union-find + per-cluster accumulators, used only on stall to size expansions.
+  #ufParent: Int32Array = new Int32Array(0);
+  #clusterX: Float64Array = new Float64Array(0);
+  #clusterY: Float64Array = new Float64Array(0);
+  #clusterSpreadSq: Float64Array = new Float64Array(0);
+  #clusterAreaSq: Float64Array = new Float64Array(0);
+  #clusterCount: Int32Array = new Int32Array(0);
+
   readonly #x: Float32Array;
   readonly #y: Float32Array;
 
@@ -1789,6 +1941,12 @@ class StressPhase {
       radii,
       overlapPadding,
       overlapWeight,
+      communityCohesion,
+      communitySeparation,
+      communityOf,
+      communityCount,
+      degreeRepulsion,
+      degrees,
     }: {
       readonly jitter: number;
       readonly idealEdgeLength: number;
@@ -1808,6 +1966,12 @@ class StressPhase {
       readonly radii: Float32Array | undefined;
       readonly overlapPadding: number;
       readonly overlapWeight: number;
+      readonly communityCohesion: number;
+      readonly communitySeparation: number;
+      readonly communityOf: Int32Array | undefined;
+      readonly communityCount: number;
+      readonly degreeRepulsion: number;
+      readonly degrees: Float32Array | undefined;
     },
   ) {
     this.#n = n;
@@ -1844,8 +2008,105 @@ class StressPhase {
     }
     this.#maxRadius = maxRadius;
 
+    // A fused overlap term now resolves overlaps continuously inside the SGD loop and
+    // guarantees an overlap-free result, so it may run a bounded separation tail past the
+    // eta horizon on a pathological jam. Pure-stress solves (no radii) keep the plain cap.
+    if (radii) {
+      this.#allocateOverlapGrid(n);
+    }
+    this.#separationCap = radii ? epochs + SEPARATION_MAX_EPOCHS : epochs;
+
+    this.#communityCohesion = communityCohesion;
+    this.#communitySeparation = communitySeparation;
+    this.#communityOf = communityOf;
+    this.#communityCount = communityCount;
+    if ((communityCohesion > 0 || communitySeparation > 0) && communityOf) {
+      const c = Math.max(1, communityCount);
+      this.#comCentX = new Float64Array(c);
+      this.#comCentY = new Float64Array(c);
+      this.#comCount = new Int32Array(c);
+      this.#comDispX = new Float64Array(c);
+      this.#comDispY = new Float64Array(c);
+    }
+
+    this.#degreeRepulsion = degreeRepulsion;
+    this.#degrees = degrees;
+    let maxMass = 1;
+    if (degreeRepulsion > 0 && degrees) {
+      for (let i = 0; i < n; i++) {
+        const mass = degrees[i]! + 1;
+        if (mass > maxMass) {
+          maxMass = mass;
+        }
+      }
+      this.#allocateGrid(n);
+    }
+    // Normalise pair mass by the largest single (maxDeg+1): a max-degree hub then
+    // repels even a leaf at ~unit strength while low-degree pairs are negligible,
+    // and a per-pair clamp keeps the (deg_i+1)(deg_j+1) law from ever blowing up.
+    this.#degreeNormRecip = 1 / maxMass;
+
     this.#prevX = new Float32Array(n);
     this.#prevY = new Float32Array(n);
+  }
+
+  /** Allocate the reused linked-list grid for the degree-repulsion near-field pass. */
+  #allocateGrid(n: number): void {
+    this.#gridNext = new Int32Array(n);
+    this.#gridCellX = new Int32Array(n);
+    this.#gridCellY = new Int32Array(n);
+    let tableSize = 1;
+    while (tableSize < n * 2) {
+      tableSize <<= 1;
+    }
+    this.#gridHead = new Int32Array(Math.max(2, tableSize));
+    this.#gridMask = this.#gridHead.length - 1;
+  }
+
+  /**
+   * Allocate the reused overlap-scale grid + the scale-to-fit scratch (union-find and
+   * per-cluster accumulators). Sized once; the epoch loop never allocates.
+   */
+  #allocateOverlapGrid(n: number): void {
+    this.#ovGridNext = new Int32Array(n);
+    this.#ovGridCellX = new Int32Array(n);
+    this.#ovGridCellY = new Int32Array(n);
+    let tableSize = 1;
+    while (tableSize < n * 2) {
+      tableSize <<= 1;
+    }
+    this.#ovGridHead = new Int32Array(Math.max(2, tableSize));
+    this.#ovGridMask = this.#ovGridHead.length - 1;
+
+    this.#overlapFlag = new Uint8Array(n);
+    this.#ufParent = new Int32Array(n);
+    this.#clusterX = new Float64Array(n);
+    this.#clusterY = new Float64Array(n);
+    this.#clusterSpreadSq = new Float64Array(n);
+    this.#clusterAreaSq = new Float64Array(n);
+    this.#clusterCount = new Int32Array(n);
+  }
+
+  /** Rebuild the reused overlap-scale linked-list grid from the current positions. */
+  #rebuildOverlapGrid(): void {
+    const n = this.#n;
+    const cell = Math.max(EPS, 2 * this.#maxRadius + this.#overlapPadding);
+    const invCell = 1 / cell;
+    const head = this.#ovGridHead;
+    const next = this.#ovGridNext;
+    const cellX = this.#ovGridCellX;
+    const cellY = this.#ovGridCellY;
+    const mask = this.#ovGridMask;
+    head.fill(-1);
+    for (let i = 0; i < n; i++) {
+      const cx = Math.floor(this.#x[i]! * invCell);
+      const cy = Math.floor(this.#y[i]! * invCell);
+      cellX[i] = cx;
+      cellY[i] = cy;
+      const slot = cellHashU32(cx, cy) & mask;
+      next[i] = head[slot]!;
+      head[slot] = i;
+    }
   }
 
   #prepareCoordinates(components: WeakComponents, pivots: Pivots): number {
@@ -2020,6 +2281,10 @@ class StressPhase {
 
   #prepareStressOrPack(pivots: Pivots) {
     this.#epoch = 0;
+    this.#overlaps = 0;
+    this.#overlapBest = Number.MAX_SAFE_INTEGER;
+    this.#overlapStall = 0;
+    this.#expansions = 0;
 
     if (this.#epochs <= 0) {
       this.#phase = "pack";
@@ -2209,28 +2474,73 @@ class StressPhase {
     }
 
     if (this.#edgeCursor >= m) {
-      // Fused proximity/overlap term: one eta-scaled pass at the end of every epoch.
-      // Because it uses the *current* epoch's eta and runs inside the SGD loop,
-      // overlap resolution and stress minimization anneal together and re-tighten
-      // each other. A terminal-only overlap pass (eta ~ 0, no edge tension left)
-      // wrecks edge fidelity, which is exactly what this avoids.
+      // Optional outward terms, applied coarse→fine before the overlap term so each one
+      // sees the previous one's result and the overlap pass has the last word on spacing.
+      // Community and degree are eta-scaled (anneal with the SGD) and no-ops at weight 0.
+      work += this.#relaxCommunities();
+      work += this.#relaxDegreeRepulsion();
+
+      // Fused proximity/overlap term, now the continuous overlap resolver: it runs every
+      // epoch with a hard separation floor, so overlaps clear WHILE the stress settles and
+      // the layout converges to overlap-free in one monotonic motion — no separate terminal
+      // expansion phase to fight. One shared grid rebuild feeds both this pass and the
+      // scale-to-fit guarantee below (so overlap resolution never rebuilds its grid twice).
+      let overlapFree = true;
       if (this.#radii) {
+        this.#rebuildOverlapGrid();
         work += this.#relaxOverlaps(components);
+        overlapFree = this.#overlaps === 0;
       }
 
       this.#epoch += 1;
 
-      // Adaptive stopping: once the farthest-moving node barely moves for a few
-      // epochs in a row, eta has annealed to near-0 and further epochs are no-ops,
-      // so we stop instead of grinding through a fixed horizon. `#minEpochs` guards
+      // Adaptive stopping: once the farthest-moving node barely moves for a few epochs in a
+      // row, eta has annealed to near-0 and further epochs are no-ops. `#minEpochs` guards
       // against the high-eta opening epochs tripping this early.
       const settled = this.#maxDisplacement() < this.#convergenceEpsilon;
       this.#settledStreak = settled ? this.#settledStreak + 1 : 0;
+
+      // Scale-to-fit guarantee (FORBID, folded in): if overlaps persist and stop improving,
+      // pairwise pushes have hit a metastable jam — scale the stuck cluster(s) about their
+      // centroid to loosen it. Only ever INCREASES local spread (never contracts), so it
+      // cannot reintroduce the contract→expand swing. Fires rarely, on a genuine plateau.
+      if (this.#radii && !overlapFree) {
+        // Reset the stall only on MEANINGFUL improvement: a slow pairwise grind (a hub
+        // ring creeping outward one pair per epoch) counts as a plateau, so it is handed
+        // to the scale-to-fit instead of taking hundreds of epochs to clear.
+        const improvement = this.#overlapBest - this.#overlaps;
+        if (this.#overlaps < this.#overlapBest) {
+          this.#overlapBest = this.#overlaps;
+        }
+        if (
+          improvement >= Math.max(1, this.#overlaps * OVERLAP_STALL_IMPROVEMENT)
+        ) {
+          this.#overlapStall = 0;
+        } else {
+          this.#overlapStall += 1;
+        }
+        if (
+          this.#epoch >= this.#minEpochs &&
+          this.#overlapStall >= OVERLAP_STALL_EPOCHS
+        ) {
+          this.#expandJammedClusters();
+          this.#expansions += 1;
+          this.#overlapStall = 0;
+          this.#overlapBest = Number.MAX_SAFE_INTEGER;
+        }
+      }
+
+      // Converge only once movement has settled AND the layout is verifiably overlap-free.
+      // Past the eta horizon (`#epochs`) eta is ~0, so continued epochs are pure separation
+      // + scale-to-fit (i.e. FORBID) that run until overlap-free, bounded by the chunked
+      // `#separationCap`. For pure-stress solves (no radii) `overlapFree` is always true and
+      // `#separationCap === #epochs`, so this is identical to the previous behaviour.
       const converged =
         this.#epoch >= this.#minEpochs &&
-        this.#settledStreak >= this.#convergenceStreak;
+        this.#settledStreak >= this.#convergenceStreak &&
+        overlapFree;
 
-      if (converged || this.#epoch >= this.#epochs) {
+      if (converged || this.#epoch >= this.#separationCap) {
         this.#phase = "pack";
       } else {
         this.#beginEpoch(pivots);
@@ -2260,88 +2570,319 @@ class StressPhase {
   }
 
   /**
-   * One pass of the fused proximity/overlap term (PRISM-style overlap-as-stress).
-   * For every same-component node pair whose disks currently overlap, apply a
-   * one-sided, eta-scaled stress relaxation toward the target gap `r_i + r_j + pad`.
-   * A uniform grid restricts the work to spatial neighbours, so the pass is O(n)
-   * for bounded local density. Deterministic: nodes are bucketed and scanned in
-   * index order and each unordered pair is visited once.
+   * Community centroid term — a sparse realisation of Noack's LinLog energy model
+   * (JGAA 2007). Each epoch: (1) compute per-community centroids in O(n) into reused
+   * scratch; (2) cohesion nudges every node toward its own community's centroid; (3)
+   * separation repels community centroids from one another (O(C²), C = community
+   * count) and translates each community rigidly apart. The O(C²) pass is skipped
+   * when C exceeds {@link COMMUNITY_SEPARATION_MAX_COUNT} (e.g. an edgeless graph
+   * where C = N), preserving the O(n + C²) bound. Both strengths are eta-scaled and
+   * capped so a community can neither collapse nor fly apart in a single epoch.
+   * Deterministic: nodes scanned in index order, communities in id order.
    */
-  #relaxOverlaps(components: WeakComponents): number {
-    const n = this.#n;
-    const radii = this.#radii;
-    if (!radii || n < 2) {
+  #relaxCommunities(): number {
+    const communityOf = this.#communityOf;
+    const communityCount = this.#communityCount;
+    const cohesion = this.#communityCohesion;
+    const separation = this.#communitySeparation;
+    if (!communityOf || communityCount <= 0) {
+      return 0;
+    }
+    if (cohesion <= 0 && separation <= 0) {
       return 0;
     }
 
+    const n = this.#n;
+    const x = this.#x;
+    const y = this.#y;
     const eta = this.#eta;
-    let mu = this.#overlapWeight * eta;
-    if (mu > 1) {
-      mu = 1;
+    const ideal = this.#idealEdgeLength;
+
+    const centX = this.#comCentX;
+    const centY = this.#comCentY;
+    const count = this.#comCount;
+    centX.fill(0, 0, communityCount);
+    centY.fill(0, 0, communityCount);
+    count.fill(0, 0, communityCount);
+    for (let i = 0; i < n; i++) {
+      const g = communityOf[i]!;
+      centX[g]! += x[i]!;
+      centY[g]! += y[i]!;
+      count[g]! += 1;
     }
-    if (mu <= 0) {
+    for (let g = 0; g < communityCount; g++) {
+      const members = count[g]!;
+      if (members > 0) {
+        centX[g]! /= members;
+        centY[g]! /= members;
+      }
+    }
+
+    // Separation: repel community centroids (O(C²)) into a rigid per-community
+    // translation. Skipped when there are too many communities to stay sub-quadratic.
+    const dispX = this.#comDispX;
+    const dispY = this.#comDispY;
+    const runSeparation =
+      separation > 0 && communityCount <= COMMUNITY_SEPARATION_MAX_COUNT;
+    if (runSeparation) {
+      dispX.fill(0, 0, communityCount);
+      dispY.fill(0, 0, communityCount);
+      let sepStep = separation * eta;
+      if (sepStep > COMMUNITY_SEPARATION_MAX_STEP) {
+        sepStep = COMMUNITY_SEPARATION_MAX_STEP;
+      }
+      const maxTranslate = COMMUNITY_SEPARATION_MAX_STEP * ideal;
+      for (let a = 0; a < communityCount; a++) {
+        if (count[a] === 0) {
+          continue;
+        }
+        for (let b = a + 1; b < communityCount; b++) {
+          if (count[b] === 0) {
+            continue;
+          }
+          let dx = centX[a]! - centX[b]!;
+          let dy = centY[a]! - centY[b]!;
+          const distSq = dx * dx + dy * dy + EPS;
+          const dist = Math.sqrt(distSq);
+          // LinLog-style centroid repulsion ∝ 1/dist, scaled to a length via ideal²
+          // and clamped so one epoch can only translate a community so far.
+          let mag = (sepStep * ideal * ideal) / dist;
+          if (mag > maxTranslate) {
+            mag = maxTranslate;
+          }
+          dx /= dist;
+          dy /= dist;
+          dispX[a]! += dx * mag;
+          dispY[a]! += dy * mag;
+          dispX[b]! -= dx * mag;
+          dispY[b]! -= dy * mag;
+        }
+      }
+    }
+
+    let cohStep = cohesion * eta;
+    if (cohStep > COMMUNITY_COHESION_MAX_STEP) {
+      cohStep = COMMUNITY_COHESION_MAX_STEP;
+    }
+    const applyCohesion = cohesion > 0 && cohStep > 0;
+    if (!applyCohesion && !runSeparation) {
+      return n;
+    }
+    for (let i = 0; i < n; i++) {
+      const g = communityOf[i]!;
+      if (applyCohesion) {
+        x[i]! += cohStep * (centX[g]! - x[i]!);
+        y[i]! += cohStep * (centY[g]! - y[i]!);
+      }
+      if (runSeparation) {
+        x[i]! += dispX[g]!;
+        y[i]! += dispY[g]!;
+      }
+    }
+    return n;
+  }
+
+  /**
+   * Degree-scaled near-field repulsion (FA2-style anti-gravity, force ∝
+   * (deg_i+1)(deg_j+1)). Only spatial neighbours within a near-field cutoff interact,
+   * found via the reused linked-list grid, so the pass is O(n + local pairs) with NO
+   * global O(n²) term and no per-epoch allocation. Pair mass is normalised by
+   * (maxDeg+1) and the per-pair push is clamped, so a max-degree hub clears a real
+   * halo while the law never blows up. A far-field term is deliberately omitted: the
+   * global scale is already governed by the stress + component-packing terms, and the
+   * visual goal (breathing room around hubs) is inherently local. Annealed by eta.
+   * Deterministic: nodes bucketed and scanned in index order; each pair visited once.
+   */
+  #relaxDegreeRepulsion(): number {
+    const degrees = this.#degrees;
+    const weight = this.#degreeRepulsion;
+    const n = this.#n;
+    if (!degrees || weight <= 0 || n < 2) {
+      return 0;
+    }
+    let strength = weight * this.#eta;
+    if (strength > DEGREE_REPULSION_MAX_STEP) {
+      strength = DEGREE_REPULSION_MAX_STEP;
+    }
+    if (strength <= 0) {
       return 0;
     }
 
     const x = this.#x;
     const y = this.#y;
-    const labels = components.labels;
-    const padding = this.#overlapPadding;
-    const cell = Math.max(EPS, 2 * this.#maxRadius + padding);
-    const invCell = 1 / cell;
+    const cutoff = Math.max(
+      EPS,
+      DEGREE_REPULSION_RADIUS_FACTOR * this.#idealEdgeLength,
+    );
+    const invCell = 1 / cutoff;
+    const cutoffSq = cutoff * cutoff;
+    const normRecip = this.#degreeNormRecip;
+    const maxPush = DEGREE_REPULSION_MAX_STEP * cutoff;
 
-    // Bucket nodes into grid cells (insertion = index order keeps this deterministic).
-    const cellOf = new Int32Array(n * 2);
-    const buckets = new Map<number, number[]>();
+    const head = this.#gridHead;
+    const next = this.#gridNext;
+    const cellX = this.#gridCellX;
+    const cellY = this.#gridCellY;
+    const mask = this.#gridMask;
+    head.fill(-1);
     for (let i = 0; i < n; i++) {
       const cx = Math.floor(x[i]! * invCell);
       const cy = Math.floor(y[i]! * invCell);
-      cellOf[i * 2] = cx;
-      cellOf[i * 2 + 1] = cy;
-      const key = cellKey(cx, cy);
-      const bucket = buckets.get(key);
-      if (bucket) {
-        bucket.push(i);
-      } else {
-        buckets.set(key, [i]);
-      }
+      cellX[i] = cx;
+      cellY[i] = cy;
+      const slot = cellHashU32(cx, cy) & mask;
+      next[i] = head[slot]!;
+      head[slot] = i;
     }
 
     let work = 0;
     for (let a = 0; a < n; a++) {
       const ax = x[a]!;
       const ay = y[a]!;
-      const ra = radii[a]!;
-      const la = labels[a]!;
-      const acx = cellOf[a * 2]!;
-      const acy = cellOf[a * 2 + 1]!;
+      const massA = degrees[a]! + 1;
+      const baseCellX = cellX[a]!;
+      const baseCellY = cellY[a]!;
 
       for (let ox = -1; ox <= 1; ox++) {
         for (let oy = -1; oy <= 1; oy++) {
-          const bucket = buckets.get(cellKey(acx + ox, acy + oy));
-          if (!bucket) {
-            continue;
-          }
-
-          for (let bi = 0; bi < bucket.length; bi++) {
-            const b = bucket[bi]!;
-            // Visit each unordered pair once and only separate within a component;
-            // cross-component spacing is handled later by component packing.
-            if (b <= a || labels[b]! !== la) {
+          const qx = baseCellX + ox;
+          const qy = baseCellY + oy;
+          let b = head[cellHashU32(qx, qy) & mask]!;
+          while (b !== -1) {
+            // Exact-cell filter dedupes hash collisions and, with `b <= a`, visits
+            // each unordered pair exactly once.
+            if (b <= a || cellX[b] !== qx || cellY[b] !== qy) {
+              b = next[b]!;
               continue;
             }
 
-            const target = ra + radii[b]! + padding;
-            let dx = x[b]! - ax;
-            let dy = y[b]! - ay;
-            let dist = Math.sqrt(dx * dx + dy * dy);
-
-            if (dist >= target) {
+            let dx = ax - x[b]!;
+            let dy = ay - y[b]!;
+            const distSq = dx * dx + dy * dy;
+            if (distSq >= cutoffSq) {
+              b = next[b]!;
               continue;
             }
 
             work += 1;
+            let dist = Math.sqrt(distSq);
+            if (dist < EPS) {
+              const angle = coincidentAngle(a, b);
+              dx = Math.cos(angle);
+              dy = Math.sin(angle);
+              dist = EPS;
+            } else {
+              dx /= dist;
+              dy /= dist;
+            }
 
+            const massNorm = massA * (degrees[b]! + 1) * normRecip;
+            let push = strength * massNorm * (cutoff - dist) * 0.5;
+            if (push > maxPush) {
+              push = maxPush;
+            }
+            const sx = dx * push;
+            const sy = dy * push;
+            x[a]! += sx;
+            y[a]! += sy;
+            x[b]! -= sx;
+            y[b]! -= sy;
+
+            b = next[b]!;
+          }
+        }
+      }
+    }
+    return work + n;
+  }
+
+  /**
+   * One pass of the fused proximity/overlap term (PRISM-style overlap-as-stress), now the
+   * continuous overlap resolver ("FORBID in the loop"). For every same-component pair whose
+   * disks currently overlap (found via the shared overlap-scale grid, already rebuilt this
+   * epoch), push both endpoints apart toward the target gap `r_i + r_j + pad`. The push
+   * strength is the eta-scaled proximity weight FLOORED at {@link OVERLAP_HARD_STRENGTH}:
+   * the annealed part preserves distance fidelity while eta is high, the floor guarantees
+   * overlaps keep separating at full strength as eta decays to ~0 — so the layout converges
+   * to overlap-free monotonically instead of re-compacting and needing a terminal expansion.
+   *
+   * Records the overlapping-pair count (`#overlaps`, drives the stop condition) and flags
+   * the jammed set (`#overlapFlag`, consumed by the scale-to-fit). O(n + local pairs) with
+   * no per-epoch allocation. Deterministic: nodes scanned in index order, each unordered
+   * pair visited once (the exact-cell + `b <= a` filter).
+   */
+  #relaxOverlaps(components: WeakComponents): number {
+    const n = this.#n;
+    const radii = this.#radii;
+    if (!radii || n < 2) {
+      this.#overlaps = 0;
+      return 0;
+    }
+
+    // Eta-scaled proximity strength, floored so overlaps are always cleared. A pair at or
+    // beyond the target gap contributes nothing, so the floor cannot cause overshoot.
+    let strength = this.#overlapWeight * this.#eta;
+    if (strength > 1) {
+      strength = 1;
+    }
+    if (strength < OVERLAP_HARD_STRENGTH) {
+      strength = OVERLAP_HARD_STRENGTH;
+    }
+
+    const x = this.#x;
+    const y = this.#y;
+    const labels = components.labels;
+    const padding = this.#overlapPadding;
+
+    const head = this.#ovGridHead;
+    const next = this.#ovGridNext;
+    const cellX = this.#ovGridCellX;
+    const cellY = this.#ovGridCellY;
+    const mask = this.#ovGridMask;
+    const flag = this.#overlapFlag;
+    flag.fill(0, 0, n);
+
+    let overlaps = 0;
+    let work = 0;
+    for (let a = 0; a < n; a++) {
+      const ra = radii[a]!;
+      const la = labels[a]!;
+      const baseCellX = cellX[a]!;
+      const baseCellY = cellY[a]!;
+
+      for (let ox = -1; ox <= 1; ox++) {
+        for (let oy = -1; oy <= 1; oy++) {
+          const qx = baseCellX + ox;
+          const qy = baseCellY + oy;
+          let b = head[cellHashU32(qx, qy) & mask]!;
+          while (b !== -1) {
+            // Exact-cell filter dedupes hash collisions and, with `b <= a`, visits each
+            // unordered pair once. Only separate within a component; cross-component
+            // spacing is handled by the terminal component packing (well-separated boxes).
+            if (
+              b <= a ||
+              cellX[b] !== qx ||
+              cellY[b] !== qy ||
+              labels[b]! !== la
+            ) {
+              b = next[b]!;
+              continue;
+            }
+
+            const target = ra + radii[b]! + padding;
+            let dx = x[b]! - x[a]!;
+            let dy = y[b]! - y[a]!;
+            const distSq = dx * dx + dy * dy;
+            if (distSq >= target * target) {
+              b = next[b]!;
+              continue;
+            }
+
+            overlaps += 1;
+            work += 1;
+            flag[a] = 1;
+            flag[b] = 1;
+            let dist = Math.sqrt(distSq);
             if (dist < EPS) {
               // Degenerate separation vector: pick a deterministic direction.
               const angle = coincidentAngle(a, b);
@@ -2353,20 +2894,168 @@ class StressPhase {
               dy /= dist;
             }
 
-            // One-sided relaxation: push both endpoints apart toward `target`.
-            const shift = mu * 0.5 * (target - dist);
+            const shift = strength * 0.5 * (target - dist);
             const sx = dx * shift;
             const sy = dy * shift;
             x[a]! -= sx;
             y[a]! -= sy;
             x[b]! += sx;
             y[b]! += sy;
+
+            b = next[b]!;
           }
         }
       }
     }
 
+    this.#overlaps = overlaps;
     return work + n;
+  }
+
+  /** Union-find root with path halving over the jammed set (scale-to-fit only). */
+  #find(i: number): number {
+    const parent = this.#ufParent;
+    let root = i;
+    while (parent[root] !== root) {
+      parent[root] = parent[parent[root]!]!;
+      root = parent[root]!;
+    }
+    return root;
+  }
+
+  /**
+   * FORBID's overlap-free guarantee, folded into the SGD loop and applied PER JAMMED
+   * CLUSTER with a scale-to-fit factor. A metastable dense packing (Gauss-Seidel pushes
+   * cancel, separation stalls) always loosens under scaling; scaling ONLY the stuck
+   * cluster — sized from its own area demand — clears the jam in one step while leaving
+   * the rest of the layout exactly where it is, so a dense hub inflates locally instead of
+   * blowing up the drawing. Reuses the shared grid (rebuilt here so the union reflects this
+   * epoch's moves) and the union-find scratch. Fires only on a stall, so it is rare.
+   */
+  #expandJammedClusters(): void {
+    const n = this.#n;
+    const radii = this.#radii;
+    if (!radii) {
+      return;
+    }
+    const flag = this.#overlapFlag;
+    const x = this.#x;
+    const y = this.#y;
+    const parent = this.#ufParent;
+    const margin = this.#overlapPadding;
+
+    for (let i = 0; i < n; i++) {
+      if (flag[i]) {
+        parent[i] = i;
+      }
+    }
+
+    this.#rebuildOverlapGrid();
+    const head = this.#ovGridHead;
+    const next = this.#ovGridNext;
+    const cellX = this.#ovGridCellX;
+    const cellY = this.#ovGridCellY;
+    const mask = this.#ovGridMask;
+
+    // Union mutually-overlapping flagged nodes into connected jam clusters.
+    for (let a = 0; a < n; a++) {
+      if (!flag[a]) {
+        continue;
+      }
+      const ra = radii[a]!;
+      const baseCellX = cellX[a]!;
+      const baseCellY = cellY[a]!;
+      for (let ox = -1; ox <= 1; ox++) {
+        for (let oy = -1; oy <= 1; oy++) {
+          const qx = baseCellX + ox;
+          const qy = baseCellY + oy;
+          let b = head[cellHashU32(qx, qy) & mask]!;
+          while (b !== -1) {
+            if (b <= a || cellX[b] !== qx || cellY[b] !== qy || !flag[b]) {
+              b = next[b]!;
+              continue;
+            }
+            const target = ra + radii[b]! + margin;
+            const dx = x[b]! - x[a]!;
+            const dy = y[b]! - y[a]!;
+            if (dx * dx + dy * dy < target * target) {
+              const ra2 = this.#find(a);
+              const rb2 = this.#find(b);
+              if (ra2 !== rb2) {
+                parent[ra2] = rb2;
+              }
+            }
+            b = next[b]!;
+          }
+        }
+      }
+    }
+
+    const clusterX = this.#clusterX;
+    const clusterY = this.#clusterY;
+    const clusterSpreadSq = this.#clusterSpreadSq;
+    const clusterAreaSq = this.#clusterAreaSq;
+    const clusterCount = this.#clusterCount;
+
+    for (let i = 0; i < n; i++) {
+      if (flag[i]) {
+        clusterX[i] = 0;
+        clusterY[i] = 0;
+        clusterSpreadSq[i] = 0;
+        clusterAreaSq[i] = 0;
+        clusterCount[i] = 0;
+      }
+    }
+    for (let i = 0; i < n; i++) {
+      if (flag[i]) {
+        const r = this.#find(i);
+        clusterX[r]! += x[i]!;
+        clusterY[r]! += y[i]!;
+        const side = 2 * radii[i]! + margin;
+        clusterAreaSq[r]! += side * side;
+        clusterCount[r]! += 1;
+      }
+    }
+    for (let i = 0; i < n; i++) {
+      if (flag[i] && this.#find(i) === i) {
+        const count = clusterCount[i]!;
+        clusterX[i]! /= count;
+        clusterY[i]! /= count;
+      }
+    }
+    for (let i = 0; i < n; i++) {
+      if (flag[i]) {
+        const r = this.#find(i);
+        const dx = x[i]! - clusterX[r]!;
+        const dy = y[i]! - clusterY[r]!;
+        clusterSpreadSq[r]! += dx * dx + dy * dy;
+      }
+    }
+
+    // Scale each jam cluster about its centroid by the ratio of the radius its disks demand
+    // to its current radius of gyration (clamped so no single step explodes).
+    for (let i = 0; i < n; i++) {
+      if (!flag[i]) {
+        continue;
+      }
+      const r = this.#find(i);
+      const count = clusterCount[r]!;
+      if (count < 2) {
+        continue;
+      }
+      const currentRadius = Math.sqrt((2 * clusterSpreadSq[r]!) / count);
+      const neededRadius = Math.sqrt(
+        clusterAreaSq[r]! / (Math.PI * OVERLAP_PACKING_UTILISATION),
+      );
+      let factor = neededRadius / Math.max(EPS, currentRadius);
+      if (factor < OVERLAP_MIN_EXPAND_FACTOR) {
+        factor = OVERLAP_MIN_EXPAND_FACTOR;
+      } else if (factor > OVERLAP_MAX_EXPAND_FACTOR) {
+        factor = OVERLAP_MAX_EXPAND_FACTOR;
+      }
+      x[i] = clusterX[r]! + (x[i]! - clusterX[r]!) * factor;
+      y[i] = clusterY[r]! + (y[i]! - clusterY[r]!) * factor;
+    }
   }
 
   #computePack(components: WeakComponents) {
@@ -2503,6 +3192,16 @@ class StressPhase {
     return this.#epochs;
   }
 
+  /** Overlapping pairs at the last overlap pass (0 once the layout is overlap-free). */
+  get overlaps() {
+    return this.#overlaps;
+  }
+
+  /** Per-cluster scale-to-fit expansions applied this run (diagnostic). */
+  get expansions() {
+    return this.#expansions;
+  }
+
   get currentPivotIndex() {
     return this.#pivotIndex;
   }
@@ -2607,6 +3306,59 @@ export class SparseStressSolver {
       "overlapWeight",
     );
 
+    const communityCohesion = assertNonNegative(
+      options.communityCohesion ?? 0,
+      "communityCohesion",
+    );
+    const communitySeparation = assertNonNegative(
+      options.communitySeparation ?? 0,
+      "communitySeparation",
+    );
+    const degreeRepulsion = assertNonNegative(
+      options.degreeRepulsion ?? 0,
+      "degreeRepulsion",
+    );
+
+    // Densify arbitrary community ids to a dense [0, C) range once (only when a
+    // community term is active and ids are supplied).
+    let communityOf: Int32Array | undefined;
+    let communityCount = 0;
+    if (
+      (communityCohesion > 0 || communitySeparation > 0) &&
+      input.communities &&
+      this.#n > 0
+    ) {
+      if (this.#validate && input.communities.length < this.#n) {
+        throw new Error("communities length must be >= n.");
+      }
+      communityOf = new Int32Array(this.#n);
+      const denseByRaw = new Map<number, number>();
+      for (let i = 0; i < this.#n; i++) {
+        const raw = input.communities[i]!;
+        let dense = denseByRaw.get(raw);
+        if (dense === undefined) {
+          dense = communityCount;
+          denseByRaw.set(raw, dense);
+          communityCount += 1;
+        }
+        communityOf[i] = dense;
+      }
+    }
+
+    // Precompute degrees once (O(E)) for the degree-scaled repulsion term.
+    let degrees: Float32Array | undefined;
+    if (degreeRepulsion > 0 && this.#n > 0) {
+      degrees = new Float32Array(this.#n);
+      for (let e = 0; e < this.#src.length; e++) {
+        const u = this.#src[e]!;
+        const v = this.#dst[e]!;
+        if (u !== v) {
+          degrees[u] = degrees[u]! + 1;
+          degrees[v] = degrees[v]! + 1;
+        }
+      }
+    }
+
     this.#stress = new StressPhase(this.#n, this.#x, this.#y, {
       jitter,
       idealEdgeLength,
@@ -2626,6 +3378,12 @@ export class SparseStressSolver {
       radii,
       overlapPadding,
       overlapWeight,
+      communityCohesion,
+      communitySeparation,
+      communityOf,
+      communityCount,
+      degreeRepulsion,
+      degrees,
     });
   }
 
@@ -3020,5 +3778,19 @@ export class SparseStressSolver {
 
   get phase(): SparseStressSolverPhase {
     return this.#phase;
+  }
+
+  /**
+   * Overlapping pairs remaining in the integrated overlap resolver (0 once the layout is
+   * verifiably overlap-free). A worker/bench diagnostic; also lets the driver confirm the
+   * zero-overlap guarantee held without a separate check.
+   */
+  get overlapsRemaining(): number {
+    return this.#stress.overlaps;
+  }
+
+  /** Per-cluster scale-to-fit expansions applied by the integrated resolver (diagnostic). */
+  get overlapExpansions(): number {
+    return this.#stress.expansions;
   }
 }

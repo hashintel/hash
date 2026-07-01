@@ -20,6 +20,10 @@ export interface HarnessKnobs {
   readonly fa2ScalingRatio: number;
   readonly fa2LinLog: boolean;
   readonly fa2StrongGravity: boolean;
+  // Stress-solver force tuning (community-force flat tier; all push OUTWARD, stay overlap-free).
+  readonly stressCommunityCohesion: number;
+  readonly stressCommunitySeparation: number;
+  readonly stressDegreeRepulsion: number;
   readonly stream: boolean;
   readonly chunkSize: number;
   readonly intervalMs: number;
@@ -219,6 +223,37 @@ export const ControlsPanel = memo(
                 }
               />
             </Stack>
+
+            <KnobSlider
+              label="Stress community cohesion"
+              value={knobs.stressCommunityCohesion}
+              min={0}
+              max={0.3}
+              step={0.01}
+              onChange={(stressCommunityCohesion) =>
+                set({ stressCommunityCohesion })
+              }
+            />
+            <KnobSlider
+              label="Stress community separation"
+              value={knobs.stressCommunitySeparation}
+              min={0}
+              max={0.8}
+              step={0.02}
+              onChange={(stressCommunitySeparation) =>
+                set({ stressCommunitySeparation })
+              }
+            />
+            <KnobSlider
+              label="Stress degree repulsion"
+              value={knobs.stressDegreeRepulsion}
+              min={0}
+              max={0.3}
+              step={0.01}
+              onChange={(stressDegreeRepulsion) =>
+                set({ stressDegreeRepulsion })
+              }
+            />
 
             <Stack
               direction="row"

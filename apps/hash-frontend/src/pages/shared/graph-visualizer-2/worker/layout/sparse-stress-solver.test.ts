@@ -78,6 +78,119 @@ const edgeStress = (
   return src.length > 0 ? Math.sqrt(sum / src.length) : 0;
 };
 
+/**
+ * `k` cliques of `size` nodes each, chained by a single bridge edge between
+ * consecutive cliques, plus a dense community id per node (= its clique index). A
+ * clean community-structured fixture for exercising the centroid term.
+ */
+const communityCliques = (
+  k: number,
+  size: number,
+): {
+  n: number;
+  src: Uint32Array;
+  dst: Uint32Array;
+  communities: Int32Array;
+} => {
+  const n = k * size;
+  const communities = new Int32Array(n);
+  const srcs: number[] = [];
+  const dsts: number[] = [];
+  for (let clique = 0; clique < k; clique++) {
+    const base = clique * size;
+    for (let i = 0; i < size; i++) {
+      communities[base + i] = clique;
+      for (let j = i + 1; j < size; j++) {
+        srcs.push(base + i);
+        dsts.push(base + j);
+      }
+    }
+    if (clique > 0) {
+      srcs.push((clique - 1) * size);
+      dsts.push(base);
+    }
+  }
+  return {
+    n,
+    src: Uint32Array.from(srcs),
+    dst: Uint32Array.from(dsts),
+    communities,
+  };
+};
+
+/**
+ * Ratio of mean inter-community centroid distance to mean intra-community radius
+ * (member-to-own-centroid distance). Higher ⇒ communities are more cleanly separated.
+ */
+const interIntraRatio = (
+  x: Float32Array,
+  y: Float32Array,
+  communities: Int32Array,
+  k: number,
+): number => {
+  const sumX = new Float64Array(k);
+  const sumY = new Float64Array(k);
+  const count = new Int32Array(k);
+  for (let i = 0; i < communities.length; i++) {
+    const c = communities[i]!;
+    sumX[c]! += x[i]!;
+    sumY[c]! += y[i]!;
+    count[c]! += 1;
+  }
+  const cx = new Float64Array(k);
+  const cy = new Float64Array(k);
+  for (let c = 0; c < k; c++) {
+    if (count[c]! > 0) {
+      cx[c] = sumX[c]! / count[c]!;
+      cy[c] = sumY[c]! / count[c]!;
+    }
+  }
+
+  let intraSum = 0;
+  for (let i = 0; i < communities.length; i++) {
+    const c = communities[i]!;
+    intraSum += Math.hypot(x[i]! - cx[c]!, y[i]! - cy[c]!);
+  }
+  const intra = intraSum / Math.max(1, communities.length);
+
+  let interSum = 0;
+  let pairs = 0;
+  for (let a = 0; a < k; a++) {
+    for (let b = a + 1; b < k; b++) {
+      interSum += Math.hypot(cx[a]! - cx[b]!, cy[a]! - cy[b]!);
+      pairs += 1;
+    }
+  }
+  const inter = interSum / Math.max(1, pairs);
+  return inter / Math.max(1e-9, intra);
+};
+
+/** Star hub 0 with `leaves` degree-1 leaves; returns the mean hub→leaf distance. */
+const starHub = (
+  leaves: number,
+): { n: number; src: Uint32Array; dst: Uint32Array } => {
+  const n = leaves + 1;
+  const src = new Uint32Array(leaves);
+  const dst = new Uint32Array(leaves);
+  for (let leaf = 0; leaf < leaves; leaf++) {
+    src[leaf] = 0;
+    dst[leaf] = leaf + 1;
+  }
+  return { n, src, dst };
+};
+
+const meanHubDistance = (
+  x: Float32Array,
+  y: Float32Array,
+  leaves: number,
+): number => {
+  let sum = 0;
+  for (let leaf = 1; leaf <= leaves; leaf++) {
+    sum += Math.hypot(x[leaf]! - x[0]!, y[leaf]! - y[0]!);
+  }
+  return sum / leaves;
+};
+
 describe("SparseStressSolver", () => {
   it("is deterministic for identical inputs (seeded SGD + fused overlap)", () => {
     const { n, src, dst } = doubleStar(20);
@@ -214,5 +327,114 @@ describe("SparseStressSolver", () => {
 
     expect(result.x[1]! - result.x[0]!).toBeCloseTo(10, 5);
     expect(result.y[1]! - result.y[0]!).toBeCloseTo(4, 5);
+  });
+});
+
+describe("SparseStressSolver — community + degree terms", () => {
+  it("weights of 0 are an exact no-op (bit-identical to the base solve)", () => {
+    const { n, src, dst, communities } = communityCliques(3, 6);
+    const radii = new Float32Array(n).fill(5);
+    const base: SparseStressSolverOptions = {
+      idealEdgeLength: 40,
+      maxEpochs: 40,
+    };
+
+    const without = new SparseStressSolver(
+      { n, src, dst, radii: radii.slice() },
+      base,
+    ).run();
+    // Supplying communities/degrees inputs AND zero weights must not perturb a bit:
+    // the zero-weight branches never run and degrees/communities are never built.
+    const withZeros = new SparseStressSolver(
+      { n, src, dst, radii: radii.slice(), communities },
+      {
+        ...base,
+        communityCohesion: 0,
+        communitySeparation: 0,
+        degreeRepulsion: 0,
+      },
+    ).run();
+
+    for (let i = 0; i < n; i++) {
+      expect(withZeros.x[i]).toBe(without.x[i]);
+      expect(withZeros.y[i]).toBe(without.y[i]);
+    }
+  });
+
+  it("is deterministic with the community + degree terms active", () => {
+    const { n, src, dst, communities } = communityCliques(3, 8);
+    const radii = new Float32Array(n).fill(5);
+    const options: SparseStressSolverOptions = {
+      idealEdgeLength: 40,
+      maxEpochs: 60,
+      communityCohesion: 0.1,
+      communitySeparation: 0.4,
+      degreeRepulsion: 0.2,
+    };
+
+    const first = new SparseStressSolver(
+      { n, src, dst, radii: radii.slice(), communities },
+      options,
+    ).run();
+    const second = new SparseStressSolver(
+      { n, src, dst, radii: radii.slice(), communities },
+      options,
+    ).run();
+
+    for (let i = 0; i < n; i++) {
+      expect(first.x[i]).toBe(second.x[i]);
+      expect(first.y[i]).toBe(second.y[i]);
+    }
+  });
+
+  it("community separation raises the inter/intra community distance ratio", () => {
+    const k = 3;
+    const { n, src, dst, communities } = communityCliques(k, 8);
+    const radii = new Float32Array(n).fill(5);
+    const base: SparseStressSolverOptions = {
+      idealEdgeLength: 40,
+      maxEpochs: 80,
+      // Isolate the effect: no cohesion/degree, and don't let component packing
+      // (one component here anyway) confound the centroid geometry.
+      packComponents: false,
+    };
+
+    const off = new SparseStressSolver(
+      { n, src, dst, radii: radii.slice(), communities },
+      base,
+    ).run();
+    const on = new SparseStressSolver(
+      { n, src, dst, radii: radii.slice(), communities },
+      { ...base, communitySeparation: 0.5 },
+    ).run();
+
+    finiteCoords(on.x, on.y);
+    const ratioOff = interIntraRatio(off.x, off.y, communities, k);
+    const ratioOn = interIntraRatio(on.x, on.y, communities, k);
+    expect(ratioOn).toBeGreaterThan(ratioOff * 1.1);
+  });
+
+  it("degree-scaled repulsion widens a high-degree hub's halo", () => {
+    const leaves = 40;
+    const { n, src, dst } = starHub(leaves);
+    const radii = new Float32Array(n).fill(5);
+    const base: SparseStressSolverOptions = {
+      idealEdgeLength: 40,
+      maxEpochs: 80,
+    };
+
+    const off = new SparseStressSolver(
+      { n, src, dst, radii: radii.slice() },
+      base,
+    ).run();
+    const on = new SparseStressSolver(
+      { n, src, dst, radii: radii.slice() },
+      { ...base, degreeRepulsion: 0.4 },
+    ).run();
+
+    finiteCoords(on.x, on.y);
+    expect(meanHubDistance(on.x, on.y, leaves)).toBeGreaterThan(
+      meanHubDistance(off.x, off.y, leaves),
+    );
   });
 });

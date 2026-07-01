@@ -1273,7 +1273,7 @@ export class GraphWorker {
     // shared buffer; downstream style/edges/render are identical.
     const layout =
       this.#mode === "community-force"
-        ? createStressLayout(nodes, edges, buffer)
+        ? createStressLayout(nodes, edges, buffer, this.config.stress)
         : createFlatLayout(nodes, edges, buffer);
 
     if (previous) {

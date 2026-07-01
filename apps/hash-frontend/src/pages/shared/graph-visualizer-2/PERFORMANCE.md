@@ -85,6 +85,19 @@ live profile/frame‑capture rather than changed blind. The applied set targets 
 **High** items (R2, R3) and the coordination/render‑loop **Medium**s (R6, R7, R8) with
 behaviour‑preserving changes.
 
+**Validation (in‑app, dev harness).** The applied build was measured on
+`/dev-graph-visualizer` with the WebGL texture calls (`texImage2D/3D`,
+`texSubImage2D/3D`) and a frame counter instrumented via CDP. Idle on a settled graph:
+**0** texture ops over ~3 min at ~60fps (confirms §0 and R3's idle behaviour). A full
+remount + FA2 settle: **0** texture _creates_ and 2 `texSubImage2D` total — i.e. no
+per‑frame texture reallocation, which is R3's intended shape. Frame rate held ~60fps
+throughout, including interaction. Conclusion: R3 is healthy and the render loop is not
+GPU‑texture‑bound at the tested scales. R1/R4 are CPU/JS‑side and only bite on much
+larger, cluster‑heavy graphs with many expanded leaves (a scenario not reproduced here);
+since nothing dropped frames, they are left **deferred as premature** — revisit only if a
+CPU profile on a large hierarchical graph shows `#buildDataLayers` / `clusterEntityLayers`
+dominating the frame.
+
 ---
 
 ## 2. Render loop

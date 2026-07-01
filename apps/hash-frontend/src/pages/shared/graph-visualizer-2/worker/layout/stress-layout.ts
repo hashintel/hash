@@ -12,32 +12,33 @@
  * fidelity and non-overlap converge jointly. The epoch count is adaptive — the solver
  * stops once the layout stops moving rather than at a fixed horizon.
  *
- * The fused term is *soft*, so it reaches equilibrium with the stress pull and dense
- * hubs still leave residual overlaps. An incremental {@link ForbidOverlapSolver} phase
- * (FORBID — "Fast Overlap Removal By stochastic gradIent Descent", Giovannangeli et al.
- * GD 2022) then removes the residue with the SAME SGD move as the stress phase, running
- * a BOUNDED number of epochs per tick so no single tick freezes and the separation
- * animates. It only reaches `done` once the layout is verifiably overlap-free.
+ * Overlap resolution is FUSED into that same SGD loop (FORBID — "Fast Overlap Removal By
+ * stochastic gradIent Descent", Giovannangeli et al. GD 2022 — folded into the solver):
+ * every epoch pushes grid-detected overlaps toward `r_i + r_j + overlapPadding` with a
+ * HARD separation floor (so it does not anneal away and let dense hubs re-compact), and a
+ * per-cluster scale-to-fit guarantee loosens any metastable jam. Because overlaps clear
+ * WHILE the stress settles — not as a separate terminal correction — the layout converges
+ * to overlap-free in ONE monotonic motion, eliminating the old "contract (stress) then
+ * expand (a separate overlap phase)" swing. The solver only reports `done` once movement
+ * has settled AND the layout is verifiably overlap-free.
  *
  * Pipeline:
  *   1. Louvain over the link graph → community id per node (for BubbleSets hulls),
  *      exactly as the FA2 engine does, so the community layer is unchanged.
- *   2. Sparse-stress SGD with the fused overlap term, to adaptive convergence (pivot
- *      terms carry the global structure, edge terms the local structure, the overlap
- *      term keeps same-community dots from piling up around hubs).
- *   3. An incremental FORBID overlap-removal phase (grid-detected overlaps pushed to
- *      `r_i + r_j + overlapPadding`, a decaying anchor preserving the settled shape,
- *      and a per-cluster scale-to-fit guarantee), chunked across ticks and guaranteeing
- *      zero disk overlap in the final layout.
+ *   2. Sparse-stress SGD to adaptive convergence, with the fused overlap term (hard floor
+ *      + scale-to-fit), the community-separation term, and degree-scaled repulsion all
+ *      applied inside each epoch: pivot terms carry the global structure, edge terms the
+ *      local structure, and the outward terms keep dots from piling up and clear overlaps
+ *      continuously. There is no separate terminal overlap phase.
  *
- * Streaming `absorb` continues from the current positions (SGD is init-robust), so
- * new nodes settle in beside their neighbours without a cold restart, then re-separates.
+ * Streaming `absorb` continues from the current positions (SGD is init-robust), so new
+ * nodes settle in beside their neighbours without a cold restart, again converging to
+ * overlap-free in one motion.
  */
 import { UndirectedGraph } from "graphology";
 import louvain from "graphology-communities-louvain";
 
 import { parkMillerRng } from "../../math/random";
-import { ForbidOverlapSolver } from "./forbid";
 import { SparseStressSolver } from "./sparse-stress-solver";
 
 import type { FlatGraphBuffer } from "../buffers/position-buffer";
@@ -85,6 +86,17 @@ const CONVERGENCE_EPSILON = 3e-3;
  */
 const OVERLAP_WEIGHT = 4;
 
+/**
+ * Gentle default weights for the community + degree terms (0 = exact no-op). Chosen
+ * conservative: enough to separate communities and give hubs breathing room without
+ * fighting the overlap term or FORBID, and safe to tune live from the debug surface.
+ * `communitySeparation` translates whole communities apart at the seam; `communityCohesion`
+ * tightens each one toward its centroid; `degreeRepulsion` clears a halo around hubs.
+ */
+const COMMUNITY_COHESION = 0.02;
+const COMMUNITY_SEPARATION = 0.08;
+const DEGREE_REPULSION = 0.02;
+
 /** Refresh Louvain once the layout grows by this fraction, so BubbleSets track it (matches FA2). */
 const LOUVAIN_REFRESH_GROWTH_FRACTION = 0.3;
 const LOUVAIN_REFRESH_MIN_NEW_NODES = 24;
@@ -96,7 +108,7 @@ interface IndexEdge {
   readonly weight: number;
 }
 
-type StressPhase = "stress" | "overlap" | "done";
+type StressPhase = "stress" | "done";
 
 export interface StressLayoutOptions {
   readonly idealEdgeLength?: number;
@@ -112,6 +124,12 @@ export interface StressLayoutOptions {
   readonly overlapPadding?: number;
   /** Relaxation weight for the fused overlap term, relative to edge weight. Default 4. */
   readonly overlapWeight?: number;
+  /** Community cohesion weight (pull nodes to their community centroid). Default 0.02; 0 = off. */
+  readonly communityCohesion?: number;
+  /** Community separation weight (repel community centroids apart). Default 0.08; 0 = off. */
+  readonly communitySeparation?: number;
+  /** Degree-scaled near-field repulsion weight (hubs claim more space). Default 0.02; 0 = off. */
+  readonly degreeRepulsion?: number;
 }
 
 class StressLayout implements LayoutSimulation {
@@ -132,18 +150,18 @@ class StressLayout implements LayoutSimulation {
   #status: ForceLayoutStatus;
   #phase: StressPhase;
 
-  /** Incremental FORBID overlap remover, reused across ticks/absorbs (it self-grows). */
-  #forbid: ForbidOverlapSolver | null = null;
-
-  /** Cumulative wall time (ms) spent in FORBID steps; a bench/worker diagnostic. */
+  // Overlap-resolution diagnostics (worker/bench). Overlap removal is now fused into the
+  // solver's SGD loop rather than a terminal phase, so these read the solver's integrated
+  // resolver each tick. Field names are kept for the worker's duck-typed debug log.
+  /** Cumulative wall time (ms) spent in solver ticks; a bench/worker diagnostic. */
   overlapProjectionMs = 0;
-  /** Number of FORBID epochs run; a bench/worker diagnostic. */
+  /** Solver epochs run so far (overlap resolution happens throughout); a diagnostic. */
   overlapProjectionCalls = 0;
-  /** Worst single FORBID step (ms) — the per-tick budget guard; a bench diagnostic. */
+  /** Worst single tick (ms) — the per-tick budget guard; a bench diagnostic. */
   maxForbidStepMs = 0;
-  /** Overlapping pairs remaining at the last FORBID epoch; a worker diagnostic. */
+  /** Overlapping pairs remaining in the integrated resolver (0 once done); a diagnostic. */
   forbidOverlaps = 0;
-  /** Per-cluster scale-to-fit expansions FORBID has applied; a bench diagnostic. */
+  /** Per-cluster scale-to-fit expansions the integrated resolver applied; a diagnostic. */
   forbidExpansions = 0;
 
   /** Resolved (deduped) edge count; a worker/bench diagnostic. */
@@ -170,6 +188,9 @@ class StressLayout implements LayoutSimulation {
       convergenceEpsilon: options.convergenceEpsilon ?? CONVERGENCE_EPSILON,
       overlapPadding: options.overlapPadding ?? OVERLAP_PADDING,
       overlapWeight: options.overlapWeight ?? OVERLAP_WEIGHT,
+      communityCohesion: options.communityCohesion ?? COMMUNITY_COHESION,
+      communitySeparation: options.communitySeparation ?? COMMUNITY_SEPARATION,
+      degreeRepulsion: options.degreeRepulsion ?? DEGREE_REPULSION,
     };
 
     const count = nodes.length;
@@ -246,6 +267,12 @@ class StressLayout implements LayoutSimulation {
     }
     if (this.#phase === "done") {
       this.#status = "settled";
+    }
+
+    const elapsed = performance.now() - startTime;
+    this.overlapProjectionMs += elapsed;
+    if (elapsed > this.maxForbidStepMs) {
+      this.maxForbidStepMs = elapsed;
     }
     return stepped;
   }
@@ -336,65 +363,21 @@ class StressLayout implements LayoutSimulation {
   }
 
   /**
-   * One unit of work: the stress phase ticks the SGD solver; once it settles, the
-   * FORBID phase runs ONE bounded overlap-removal epoch per call (so a single tick
-   * never runs the whole projection — the fix for the multi-second frozen tick).
+   * One unit of work: tick the SGD solver. Overlap resolution is fused into the solver's
+   * epoch loop (hard separation floor + per-cluster scale-to-fit), so the solver only
+   * reports `done` once the layout has settled AND is verifiably overlap-free — there is
+   * no separate terminal overlap phase. Mirrors the solver's overlap diagnostics out for
+   * the worker/bench.
    */
   #advance(): void {
-    if (this.#phase === "stress") {
-      const result = this.#solver!.tick({ maxWork: SEED_TICK_WORK });
-      if (result.done) {
-        this.#beginForbid();
-        this.#phase = "overlap";
-      }
+    if (this.#phase !== "stress") {
       return;
     }
-    if (this.#phase === "overlap") {
-      this.#stepForbid();
-    }
-  }
-
-  /**
-   * Enter the FORBID phase: capture the settled layout as the shape reference and
-   * apply the coincidence jitter. Reuses the solver instance (it self-grows).
-   */
-  #beginForbid(): void {
-    const count = this.#nodes.length;
-    if (count <= 1) {
-      this.#phase = "done";
-      return;
-    }
-    this.#forbid ??= new ForbidOverlapSolver(count);
-    this.#forbid.reset(this.#x, this.#y, this.#radii, count, {
-      margin: this.#options.overlapPadding,
-      seed: 1,
-    });
-    this.maxForbidStepMs = 0;
-  }
-
-  /**
-   * Run one bounded FORBID epoch over `#x`/`#y` (pushes grid-detected overlaps toward
-   * `r_i + r_j + overlapPadding`, decaying the shape anchor, per-cluster scale-to-fit
-   * on stall). Transitions to `done` once the layout is verifiably overlap-free.
-   */
-  #stepForbid(): void {
-    const forbid = this.#forbid;
-    if (!forbid) {
-      this.#phase = "done";
-      return;
-    }
-    const stepStart = performance.now();
-    const result = forbid.step();
-    const stepMs = performance.now() - stepStart;
-
-    this.overlapProjectionMs += stepMs;
-    this.overlapProjectionCalls += 1;
-    if (stepMs > this.maxForbidStepMs) {
-      this.maxForbidStepMs = stepMs;
-    }
-    this.forbidOverlaps = result.overlaps;
-    this.forbidExpansions = forbid.expansions;
-
+    const solver = this.#solver!;
+    const result = solver.tick({ maxWork: SEED_TICK_WORK });
+    this.overlapProjectionCalls = result.epoch;
+    this.forbidOverlaps = solver.overlapsRemaining;
+    this.forbidExpansions = solver.overlapExpansions;
     if (result.done) {
       this.#phase = "done";
     }
@@ -431,8 +414,30 @@ class StressLayout implements LayoutSimulation {
       dst[index] = edge.target;
     }
 
+    // Pass Louvain community ids to the solver only when a community term is active
+    // (avoids the densify pass otherwise). Ids may include -1 for nodes appended
+    // since the last Louvain refresh — the solver densifies them harmlessly.
+    const communityActive =
+      this.#options.communityCohesion > 0 ||
+      this.#options.communitySeparation > 0;
+    let communities: Int32Array | undefined;
+    if (communityActive) {
+      communities = new Int32Array(count);
+      for (let index = 0; index < count; index++) {
+        communities[index] = this.#communities[index] ?? -1;
+      }
+    }
+
     return new SparseStressSolver(
-      { n: count, src, dst, x: this.#x, y: this.#y, radii: this.#radii },
+      {
+        n: count,
+        src,
+        dst,
+        x: this.#x,
+        y: this.#y,
+        radii: this.#radii,
+        communities,
+      },
       {
         idealEdgeLength: this.#options.idealEdgeLength,
         randomSeed: 1,
@@ -442,6 +447,9 @@ class StressLayout implements LayoutSimulation {
         convergenceEpsilon: this.#options.convergenceEpsilon,
         overlapPadding: this.#options.overlapPadding,
         overlapWeight: this.#options.overlapWeight,
+        communityCohesion: this.#options.communityCohesion,
+        communitySeparation: this.#options.communitySeparation,
+        degreeRepulsion: this.#options.degreeRepulsion,
         keepInitialPositions: warm,
         packComponents: true,
         returnPivotDistances: false,
