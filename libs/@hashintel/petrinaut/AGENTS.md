@@ -45,3 +45,7 @@ yarn test:unit        # Unit tests (vitest)
 - Styles via Panda CSS (`css()`, `cva()` from `@hashintel/ds-helpers/css`)
 - No `@local/*` imports — this is a published package
 - Prefix unused parameters with `_`
+
+## Documentation
+
+When you change UI or behaviour, follow [Petrinaut documentation maintenance](./docs-maintenance.md) to keep the user-facing docs in sync.
