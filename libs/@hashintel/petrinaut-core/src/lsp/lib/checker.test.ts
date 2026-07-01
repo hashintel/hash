@@ -352,6 +352,7 @@ describe("checkSDCPN", () => {
         stochasticity: false,
         dynamics: true,
         parameters: true,
+        subnets: true,
       });
 
       expect(result.isValid).toBe(true);
@@ -380,6 +381,90 @@ describe("checkSDCPN", () => {
         stochasticity: false,
         dynamics: true,
         parameters: true,
+        subnets: true,
+      });
+
+      expect(result.isValid).toBe(false);
+      expect(result.itemDiagnostics[0]?.itemType).toBe("transition-lambda");
+      expect(result.itemDiagnostics[0]?.diagnostics[0]?.messageText).toContain(
+        "missing",
+      );
+    });
+
+    it("lints predicate Lambda code for colored component-port inputs", () => {
+      const sdcpn: SDCPN = {
+        ...createSDCPN({
+          transitions: [
+            {
+              id: "t1",
+              lambdaType: "predicate",
+              inputArcs: [
+                {
+                  endpoint: {
+                    kind: "componentPort",
+                    componentInstanceId: "instance-1",
+                    portPlaceId: "port-in",
+                  },
+                  weight: 1,
+                  type: "standard",
+                },
+              ],
+              outputArcs: [],
+              lambdaCode: `export default Lambda((input) => {
+                return input["Instance 1::PortIn"][0].missing > 0;
+              });`,
+            },
+          ],
+        }),
+        componentInstances: [
+          {
+            id: "instance-1",
+            name: "Instance 1",
+            subnetId: "subnet-1",
+            parameterValues: {},
+            x: 0,
+            y: 0,
+          },
+        ],
+        subnets: [
+          {
+            id: "subnet-1",
+            name: "Subnet 1",
+            types: [
+              {
+                id: "subnet-color",
+                name: "Subnet Color",
+                iconSlug: "circle",
+                displayColor: "#ff0000",
+                elements: [{ elementId: "x", name: "x", type: "real" }],
+              },
+            ],
+            places: [
+              {
+                id: "port-in",
+                name: "PortIn",
+                colorId: "subnet-color",
+                dynamicsEnabled: false,
+                differentialEquationId: null,
+                isPort: true,
+                x: 0,
+                y: 0,
+              },
+            ],
+            transitions: [],
+            differentialEquations: [],
+            parameters: [],
+            componentInstances: [],
+          },
+        ],
+      };
+
+      const result = check(sdcpn, {
+        colors: true,
+        stochasticity: false,
+        dynamics: true,
+        parameters: true,
+        subnets: true,
       });
 
       expect(result.isValid).toBe(false);
@@ -443,6 +528,7 @@ describe("checkSDCPN", () => {
         stochasticity: false,
         dynamics: true,
         parameters: true,
+        subnets: true,
       });
 
       expect(result.isValid).toBe(true);
@@ -473,6 +559,7 @@ describe("checkSDCPN", () => {
         stochasticity: false,
         dynamics: true,
         parameters: true,
+        subnets: true,
       });
 
       expect(result.isValid).toBe(false);
@@ -686,6 +773,85 @@ describe("checkSDCPN", () => {
       expect(result.itemDiagnostics[0]?.diagnostics[0]?.messageText).toContain(
         "nonExistentProperty",
       );
+    });
+
+    it("lints TransitionKernel code for colored component-port outputs", () => {
+      const sdcpn: SDCPN = {
+        ...createSDCPN({
+          transitions: [
+            {
+              id: "t1",
+              inputArcs: [],
+              outputArcs: [
+                {
+                  endpoint: {
+                    kind: "componentPort",
+                    componentInstanceId: "instance-1",
+                    portPlaceId: "port-out",
+                  },
+                  weight: 1,
+                },
+              ],
+              transitionKernelCode: `export default TransitionKernel(() => {
+                return { "Instance 1::PortOut": [{ x: "not a number" }] };
+              });`,
+            },
+          ],
+        }),
+        componentInstances: [
+          {
+            id: "instance-1",
+            name: "Instance 1",
+            subnetId: "subnet-1",
+            parameterValues: {},
+            x: 0,
+            y: 0,
+          },
+        ],
+        subnets: [
+          {
+            id: "subnet-1",
+            name: "Subnet 1",
+            types: [
+              {
+                id: "subnet-color",
+                name: "Subnet Color",
+                iconSlug: "circle",
+                displayColor: "#ff0000",
+                elements: [{ elementId: "x", name: "x", type: "real" }],
+              },
+            ],
+            places: [
+              {
+                id: "port-out",
+                name: "PortOut",
+                colorId: "subnet-color",
+                dynamicsEnabled: false,
+                differentialEquationId: null,
+                isPort: true,
+                x: 0,
+                y: 0,
+              },
+            ],
+            transitions: [],
+            differentialEquations: [],
+            parameters: [],
+            componentInstances: [],
+          },
+        ],
+      };
+
+      const result = check(sdcpn, {
+        colors: true,
+        stochasticity: false,
+        dynamics: true,
+        parameters: true,
+        subnets: true,
+      });
+
+      expect(result.isValid).toBe(false);
+      expect(result.itemDiagnostics[0]?.itemType).toBe("transition-kernel");
+      expect(result.itemDiagnostics[0]?.diagnostics).not.toHaveLength(0);
     });
   });
 

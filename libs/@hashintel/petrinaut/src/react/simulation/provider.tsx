@@ -182,7 +182,7 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
   const coreStatus = useStore(simulation?.status ?? EMPTY_STATUS_STORE);
   const frameSummary = useStore(simulation?.frames ?? EMPTY_FRAMES_STORE);
 
-  // When the simulation changes, wire up its events stream for errors and
+  // When the simulation changes, subscribe to its events stream for errors and
   // completion notifications.
   useEffect(() => {
     if (!simulation) {

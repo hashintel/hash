@@ -1,8 +1,18 @@
+import { use } from "react";
+
 import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
-import { validateDisplayName } from "@hashintel/petrinaut-core";
+import {
+  getArcEndpoint,
+  getArcEndpointKey,
+  getArcEndpointPlaceId,
+  type ArcEndpoint,
+  validateDisplayName,
+} from "@hashintel/petrinaut-core";
 
 import { usePetrinautMutations } from "../../../../../../../react";
+import { ActiveNetContext } from "../../../../../../../react/state/active-net-context";
+import { SDCPNContext } from "../../../../../../../react/state/sdcpn-context";
 import {
   ArcItem,
   ArcList,
@@ -32,6 +42,8 @@ const TransitionMainContent: React.FC = () => {
     updateArcPlace,
     removeArc,
   } = useTransitionPropertiesContext();
+  const { activeNet } = use(ActiveNetContext);
+  const { petriNetDefinition: fullSdcpn } = use(SDCPNContext);
 
   const toPlaceOption = (pl: (typeof places)[number]): PlaceOption => ({
     id: pl.id,
@@ -44,8 +56,9 @@ const TransitionMainContent: React.FC = () => {
   const getAvailableInputPlaces = (currentPlaceId: string): PlaceOption[] => {
     const usedIds = new Set(
       transition.inputArcs
-        .filter((arc) => arc.placeId !== currentPlaceId)
-        .map((arc) => arc.placeId),
+        .map((arc) => getArcEndpointPlaceId(arc))
+        .filter((placeId): placeId is string => placeId !== null)
+        .filter((placeId) => placeId !== currentPlaceId),
     );
     return places.filter((pl) => !usedIds.has(pl.id)).map(toPlaceOption);
   };
@@ -53,10 +66,51 @@ const TransitionMainContent: React.FC = () => {
   const getAvailableOutputPlaces = (currentPlaceId: string): PlaceOption[] => {
     const usedIds = new Set(
       transition.outputArcs
-        .filter((arc) => arc.placeId !== currentPlaceId)
-        .map((arc) => arc.placeId),
+        .map((arc) => getArcEndpointPlaceId(arc))
+        .filter((placeId): placeId is string => placeId !== null)
+        .filter((placeId) => placeId !== currentPlaceId),
     );
     return places.filter((pl) => !usedIds.has(pl.id)).map(toPlaceOption);
+  };
+
+  const endpointDetails = (
+    endpoint: ArcEndpoint,
+  ): { id: string; label: string; color?: string; placeId: string | null } => {
+    if (endpoint.kind === "place") {
+      const place = places.find(
+        (candidate) => candidate.id === endpoint.placeId,
+      );
+      const type = place?.colorId
+        ? types.find((candidate) => candidate.id === place.colorId)
+        : undefined;
+      return {
+        id: endpoint.placeId,
+        label: place?.name ?? endpoint.placeId,
+        color: type?.displayColor,
+        placeId: endpoint.placeId,
+      };
+    }
+
+    const instance = activeNet.componentInstances.find(
+      ({ id }) => id === endpoint.componentInstanceId,
+    );
+    const subnet = (fullSdcpn.subnets ?? []).find(
+      ({ id }) => id === instance?.subnetId,
+    );
+    const port = subnet?.places.find(
+      (place) => place.id === endpoint.portPlaceId,
+    );
+    const color = port?.colorId
+      ? subnet?.types.find((type) => type.id === port.colorId)?.displayColor
+      : undefined;
+    return {
+      id: getArcEndpointKey(endpoint),
+      label: `${instance?.name ?? "Unknown component"}.${
+        port?.name ?? "Unknown port"
+      }`,
+      color,
+      placeId: null,
+    };
   };
 
   const handleInputArcPlaceChange = (
@@ -80,22 +134,6 @@ const TransitionMainContent: React.FC = () => {
       arcDirection: "output",
       oldPlaceId,
       newPlaceId,
-    });
-  };
-
-  const handleDeleteInputArc = (placeId: string) => {
-    removeArc({
-      transitionId: transition.id,
-      arcDirection: "input",
-      placeId,
-    });
-  };
-
-  const handleDeleteOutputArc = (placeId: string) => {
-    removeArc({
-      transitionId: transition.id,
-      arcDirection: "output",
-      placeId,
     });
   };
 
@@ -125,25 +163,41 @@ const TransitionMainContent: React.FC = () => {
         ) : (
           <ArcList>
             {transition.inputArcs.map((arc) => {
+              const endpoint = getArcEndpoint(arc);
+              const details = endpointDetails(endpoint);
               return (
                 <ArcItem
-                  key={arc.placeId}
-                  placeId={arc.placeId}
+                  key={details.id}
+                  placeId={details.id}
+                  label={details.label}
+                  color={details.color}
                   weight={arc.weight}
                   disabled={isReadOnly}
-                  availablePlaces={getAvailableInputPlaces(arc.placeId)}
+                  availablePlaces={
+                    details.placeId
+                      ? getAvailableInputPlaces(details.placeId)
+                      : undefined
+                  }
                   onPlaceChange={(newPlaceId) =>
-                    handleInputArcPlaceChange(arc.placeId, newPlaceId)
+                    details.placeId
+                      ? handleInputArcPlaceChange(details.placeId, newPlaceId)
+                      : undefined
                   }
                   onWeightChange={(weight) => {
                     onArcWeightUpdate({
                       transitionId: transition.id,
                       arcDirection: "input",
-                      placeId: arc.placeId,
+                      endpoint,
                       weight,
                     });
                   }}
-                  onDelete={() => handleDeleteInputArc(arc.placeId)}
+                  onDelete={() =>
+                    removeArc({
+                      transitionId: transition.id,
+                      arcDirection: "input",
+                      endpoint,
+                    })
+                  }
                 />
               );
             })}
@@ -159,25 +213,41 @@ const TransitionMainContent: React.FC = () => {
         ) : (
           <ArcList>
             {transition.outputArcs.map((arc) => {
+              const endpoint = getArcEndpoint(arc);
+              const details = endpointDetails(endpoint);
               return (
                 <ArcItem
-                  key={arc.placeId}
-                  placeId={arc.placeId}
+                  key={details.id}
+                  placeId={details.id}
+                  label={details.label}
+                  color={details.color}
                   weight={arc.weight}
                   disabled={isReadOnly}
-                  availablePlaces={getAvailableOutputPlaces(arc.placeId)}
+                  availablePlaces={
+                    details.placeId
+                      ? getAvailableOutputPlaces(details.placeId)
+                      : undefined
+                  }
                   onPlaceChange={(newPlaceId) =>
-                    handleOutputArcPlaceChange(arc.placeId, newPlaceId)
+                    details.placeId
+                      ? handleOutputArcPlaceChange(details.placeId, newPlaceId)
+                      : undefined
                   }
                   onWeightChange={(weight) => {
                     onArcWeightUpdate({
                       transitionId: transition.id,
                       arcDirection: "output",
-                      placeId: arc.placeId,
+                      endpoint,
                       weight,
                     });
                   }}
-                  onDelete={() => handleDeleteOutputArc(arc.placeId)}
+                  onDelete={() =>
+                    removeArc({
+                      transitionId: transition.id,
+                      arcDirection: "output",
+                      endpoint,
+                    })
+                  }
                 />
               );
             })}

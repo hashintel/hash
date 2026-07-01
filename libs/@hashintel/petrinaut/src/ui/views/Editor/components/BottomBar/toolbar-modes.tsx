@@ -1,7 +1,13 @@
+import { use } from "react";
+
 import { Icon, Menu, type MenuItem } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 
+import { ActiveNetContext } from "../../../../../react/state/active-net-context";
+import { EditorContext } from "../../../../../react/state/editor-context";
+import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
 import { useIsReadOnly } from "../../../../../react/state/use-is-read-only";
+import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
 import { ToolbarButton } from "./toolbar-button";
 import { ToolbarDivider } from "./toolbar-divider";
 
@@ -108,6 +114,53 @@ const CursorModeDropdown: React.FC<{
   );
 };
 
+const ComponentDropdown: React.FC<{
+  editionMode: EditorEditionMode;
+}> = ({ editionMode }) => {
+  const {
+    petriNetDefinition: { subnets },
+  } = use(SDCPNContext);
+  const { componentSubnetId, setAddComponentMode } = use(EditorContext);
+
+  const items: MenuItem[] = (subnets ?? []).map((subnet) => ({
+    id: subnet.id,
+    icon: "cube",
+    text: subnet.name,
+    selected:
+      editionMode === "add-component" && componentSubnetId === subnet.id,
+    onClick: () => setAddComponentMode(subnet.id),
+  }));
+
+  if (items.length === 0) {
+    items.push({
+      id: "empty",
+      text: "No subnets defined",
+      disabled: true,
+      onClick: () => {},
+    });
+  }
+
+  const isActive =
+    editionMode === "add-component" && componentSubnetId !== null;
+
+  return (
+    <Menu
+      trigger={
+        <button
+          type="button"
+          className={cursorTriggerStyle({ isActive })}
+          aria-label="Add component"
+        >
+          <Icon name="cube" />
+          <Icon name="chevronDown" size="xs" className={dropdownArrowStyle} />
+        </button>
+      }
+      items={items}
+      position="top"
+    />
+  );
+};
+
 interface ToolbarModesProps {
   editionMode: EditorEditionMode;
   onEditionModeChange: (mode: EditorEditionMode) => void;
@@ -124,6 +177,10 @@ export const ToolbarModes: React.FC<ToolbarModesProps> = ({
   showEditTools = true,
 }) => {
   const isReadOnly = useIsReadOnly();
+  const { activeSubnetId } = use(ActiveNetContext);
+  const isRootNet = activeSubnetId === null;
+  const { extensions } = use(SDCPNContext);
+  const { enableNetComponents } = use(UserSettingsContext);
 
   return (
     <>
@@ -164,6 +221,9 @@ export const ToolbarModes: React.FC<ToolbarModesProps> = ({
           >
             <Icon name="squarePlus" />
           </ToolbarButton>
+          {isRootNet && extensions.subnets && enableNetComponents && (
+            <ComponentDropdown editionMode={editionMode} />
+          )}
         </>
       )}
     </>

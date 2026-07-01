@@ -17,7 +17,7 @@ import { calculateGraphLayout } from "./layout/calculate-graph-layout";
 import { layoutNodeDimensions } from "./layout/dimensions";
 
 import type { ClipboardPayload } from "./clipboard/types";
-import type { SDCPN } from "./types/sdcpn";
+import type { SDCPN, Subnet } from "./types/sdcpn";
 
 export type ApplyClipboardPasteResult = {
   newItemIds: Array<{ type: string; id: string }>;
@@ -46,6 +46,7 @@ export type CommandHelperFunctions = {
    */
   applyClipboardPaste: (input: {
     payload: ClipboardPayload;
+    targetSubnetId?: string | null;
   }) => ApplyClipboardPasteResult;
 
   /**
@@ -54,11 +55,29 @@ export type CommandHelperFunctions = {
    * when applicable (e.g. the AI dispatcher prompts via an interactive chat
    * widget when `askUserFirst: true`).
    */
-  applyAutoLayout: () => Promise<ApplyAutoLayoutResult>;
+  applyAutoLayout: (input?: {
+    targetSubnetId?: string | null;
+  }) => Promise<ApplyAutoLayoutResult>;
+};
+
+const resolveTargetNet = (
+  sdcpn: SDCPN,
+  targetSubnetId?: string | null,
+): SDCPN | Subnet => {
+  if (!targetSubnetId) {
+    return sdcpn;
+  }
+
+  const subnet = sdcpn.subnets?.find(({ id }) => id === targetSubnetId);
+  if (!subnet) {
+    throw new Error(`Subnet with ID \`${targetSubnetId}\` does not exist.`);
+  }
+
+  return subnet;
 };
 
 const validateNewlyPastedItems = (
-  sdcpn: SDCPN,
+  sdcpn: SDCPN | Subnet,
   newItemIds: Array<{ type: string; id: string }>,
 ): void => {
   const idsByType = new Map<string, Set<string>>();
@@ -124,32 +143,45 @@ export function createPetrinautCommands(
 ): CommandHelperFunctions {
   return {
     applyClipboardPaste(input) {
-      const { payload } =
+      const { payload, targetSubnetId } =
         commandActionInputSchemas.applyClipboardPaste.parse(input);
       let newItemIds: Array<{ type: string; id: string }> = [];
       mutate((sdcpn) => {
-        const result = pastePayloadIntoSDCPN(sdcpn, payload);
+        const targetNet = resolveTargetNet(sdcpn, targetSubnetId);
+        const result = pastePayloadIntoSDCPN(targetNet, payload);
         stripDisabledExtensionData(sdcpn, extensions);
         newItemIds = result.newItemIds.filter((item) =>
           isSelectionTypeAvailableForExtensions(item.type, extensions),
         );
-        validateNewlyPastedItems(sdcpn, newItemIds);
+        validateNewlyPastedItems(targetNet, newItemIds);
       });
       return { newItemIds };
     },
 
-    async applyAutoLayout() {
+    async applyAutoLayout(input) {
       const sdcpn = read();
+      const targetSubnetId = input?.targetSubnetId ?? null;
+      const targetNet = resolveTargetNet(sdcpn, targetSubnetId);
+      const componentInstances = targetNet.componentInstances ?? [];
 
-      if (sdcpn.places.length === 0 && sdcpn.transitions.length === 0) {
+      if (
+        targetNet.places.length === 0 &&
+        targetNet.transitions.length === 0 &&
+        componentInstances.length === 0
+      ) {
         return { commitCount: 0 };
       }
 
-      const positions = await calculateGraphLayout(sdcpn, layoutNodeDimensions);
+      const positions = await calculateGraphLayout(
+        targetNet,
+        layoutNodeDimensions,
+      );
 
       let commitCount = 0;
       mutate((draft) => {
-        for (const place of draft.places) {
+        const draftTargetNet = resolveTargetNet(draft, targetSubnetId);
+
+        for (const place of draftTargetNet.places) {
           const next = positions[place.id];
           if (next && (place.x !== next.x || place.y !== next.y)) {
             place.x = next.x;
@@ -157,11 +189,19 @@ export function createPetrinautCommands(
             commitCount += 1;
           }
         }
-        for (const transition of draft.transitions) {
+        for (const transition of draftTargetNet.transitions) {
           const next = positions[transition.id];
           if (next && (transition.x !== next.x || transition.y !== next.y)) {
             transition.x = next.x;
             transition.y = next.y;
+            commitCount += 1;
+          }
+        }
+        for (const instance of draftTargetNet.componentInstances ?? []) {
+          const next = positions[instance.id];
+          if (next && (instance.x !== next.x || instance.y !== next.y)) {
+            instance.x = next.x;
+            instance.y = next.y;
             commitCount += 1;
           }
         }

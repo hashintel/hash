@@ -1,10 +1,19 @@
-import type { SDCPN } from "./types/sdcpn";
+import { getArcEndpoint } from "./arc-endpoints";
+
+import type {
+  ComponentInstance,
+  InputArc,
+  OutputArc,
+  Place as SDCPNPlace,
+  SDCPN,
+} from "./types/sdcpn";
 
 export const PETRINAUT_EXTENSION_NAMES = [
   "colors",
   "stochasticity",
   "dynamics",
   "parameters",
+  "subnets",
 ] as const;
 
 export type PetrinautExtension = (typeof PETRINAUT_EXTENSION_NAMES)[number];
@@ -37,6 +46,7 @@ export const DEFAULT_PETRINAUT_EXTENSIONS: PetrinautExtensionSettings = {
   stochasticity: true,
   dynamics: true,
   parameters: true,
+  subnets: true,
 };
 
 export const resolvePetrinautHandleCapabilities = (
@@ -62,6 +72,7 @@ export const resolvePetrinautHandleCapabilities = (
       stochasticity: !disabled.has("stochasticity"),
       dynamics: !disabled.has("colors") && !disabled.has("dynamics"),
       parameters: !disabled.has("parameters"),
+      subnets: !disabled.has("subnets"),
     },
   };
 };
@@ -95,49 +106,115 @@ export type TransitionLogicAvailability = {
   transitionKernel: boolean;
 };
 
+type NetWithComponentInstances = {
+  places: SDCPNPlace[];
+  componentInstances?: ComponentInstance[];
+};
+
+type ArcPlaceResolverOptions = {
+  componentPortsEnabled?: boolean;
+};
+
+export const createArcPlaceResolver = (
+  sdcpn: SDCPN,
+  net: NetWithComponentInstances = sdcpn,
+  { componentPortsEnabled = true }: ArcPlaceResolverOptions = {},
+): ((arc: InputArc | OutputArc) => SDCPNPlace | undefined) => {
+  const placeById = new Map(net.places.map((place) => [place.id, place]));
+  const subnetById = new Map(
+    (sdcpn.subnets ?? []).map((subnet) => [subnet.id, subnet]),
+  );
+  const instanceById = new Map(
+    (net.componentInstances ?? []).map((instance) => [instance.id, instance]),
+  );
+
+  return (arc) => {
+    const endpoint = getArcEndpoint(arc);
+
+    if (endpoint.kind === "place") {
+      return placeById.get(endpoint.placeId);
+    }
+    if (!componentPortsEnabled) {
+      return undefined;
+    }
+
+    const instance = instanceById.get(endpoint.componentInstanceId);
+    const subnet = instance ? subnetById.get(instance.subnetId) : undefined;
+
+    return subnet?.places.find(
+      (place) => place.id === endpoint.portPlaceId && place.isPort,
+    );
+  };
+};
+
+const isComponentPortArc = (arc: InputArc | OutputArc): boolean =>
+  getArcEndpoint(arc).kind === "componentPort";
+
 export const hasTypedNonInhibitorInputPlace = (
   transition: SDCPN["transitions"][number],
   sdcpn: SDCPN,
-): boolean =>
-  transition.inputArcs.some((arc) => {
+  net: NetWithComponentInstances = sdcpn,
+  options?: ArcPlaceResolverOptions,
+): boolean => {
+  const resolveArcPlace = createArcPlaceResolver(sdcpn, net, options);
+
+  return transition.inputArcs.some((arc) => {
     if (arc.type === "inhibitor") {
       return false;
     }
-    const place = sdcpn.places.find((item) => item.id === arc.placeId);
-    return place?.colorId != null;
+
+    return resolveArcPlace(arc)?.colorId != null;
   });
+};
 
 const hasTypedOutputPlace = (
   transition: SDCPN["transitions"][number],
   sdcpn: SDCPN,
-): boolean =>
-  transition.outputArcs.some((arc) => {
-    const place = sdcpn.places.find((item) => item.id === arc.placeId);
-    return place?.colorId != null;
-  });
+  net: NetWithComponentInstances = sdcpn,
+  options?: ArcPlaceResolverOptions,
+): boolean => {
+  const resolveArcPlace = createArcPlaceResolver(sdcpn, net, options);
+
+  return transition.outputArcs.some(
+    (arc) => resolveArcPlace(arc)?.colorId != null,
+  );
+};
 
 export const isTransitionLambdaAvailable = (
   transition: SDCPN["transitions"][number],
   sdcpn: SDCPN,
   extensions: PetrinautExtensionSettings,
+  net: NetWithComponentInstances = sdcpn,
 ): boolean =>
   extensions.stochasticity ||
-  (extensions.colors && hasTypedNonInhibitorInputPlace(transition, sdcpn));
+  (extensions.colors &&
+    hasTypedNonInhibitorInputPlace(transition, sdcpn, net, {
+      componentPortsEnabled: extensions.subnets,
+    }));
 
 export const isTransitionKernelAvailable = (
   transition: SDCPN["transitions"][number],
   sdcpn: SDCPN,
   extensions: PetrinautExtensionSettings,
-): boolean => extensions.colors && hasTypedOutputPlace(transition, sdcpn);
+  net: NetWithComponentInstances = sdcpn,
+): boolean =>
+  extensions.colors &&
+  hasTypedOutputPlace(transition, sdcpn, net, {
+    componentPortsEnabled: extensions.subnets,
+  });
 
 export const getTransitionLogicAvailability = (
   transition: SDCPN["transitions"][number],
   sdcpn: SDCPN,
   extensions: PetrinautExtensionSettings,
+  net: NetWithComponentInstances = sdcpn,
 ): TransitionLogicAvailability => {
   const predicateLambda =
     extensions.stochasticity ||
-    (extensions.colors && hasTypedNonInhibitorInputPlace(transition, sdcpn));
+    (extensions.colors &&
+      hasTypedNonInhibitorInputPlace(transition, sdcpn, net, {
+        componentPortsEnabled: extensions.subnets,
+      }));
   const stochasticLambda = extensions.stochasticity;
 
   return {
@@ -148,6 +225,7 @@ export const getTransitionLogicAvailability = (
       transition,
       sdcpn,
       extensions,
+      net,
     ),
   };
 };
@@ -181,6 +259,9 @@ export const isSelectionTypeAvailableForExtensions = (
   if (type === "parameter") {
     return extensions.parameters;
   }
+  if (type === "componentInstance") {
+    return extensions.subnets;
+  }
   return true;
 };
 
@@ -211,11 +292,13 @@ export const sanitizeTransitionForExtensions = <
   transition: Transition,
   sdcpn: SDCPN,
   extensions: PetrinautExtensionSettings,
+  net: NetWithComponentInstances = sdcpn,
 ): Transition => {
   const availability = getTransitionLogicAvailability(
     transition,
     sdcpn,
     extensions,
+    net,
   );
   const lambdaType = getEffectiveTransitionLambdaType(transition, availability);
 
@@ -240,20 +323,61 @@ export const sanitizeTransitionForExtensions = <
   };
 };
 
+type SanitizableNet = Pick<
+  SDCPN,
+  "places" | "transitions" | "types" | "differentialEquations" | "parameters"
+> & {
+  componentInstances?: SDCPN["componentInstances"];
+};
+
+const stripDisabledExtensionDataFromNet = (
+  sdcpn: SDCPN,
+  net: SanitizableNet,
+  extensions: PetrinautExtensionSettings,
+): void => {
+  if (!extensions.colors) {
+    net.types.splice(0);
+  }
+
+  if (!canUseDynamics(extensions)) {
+    net.differentialEquations.splice(0);
+  }
+
+  if (!extensions.parameters) {
+    net.parameters.splice(0);
+  }
+
+  for (const place of net.places) {
+    Object.assign(place, sanitizePlaceForExtensions(place, extensions));
+    if (!extensions.colors) {
+      delete place.visualizerCode;
+    }
+  }
+
+  for (const transition of net.transitions) {
+    if (!extensions.subnets) {
+      transition.inputArcs = transition.inputArcs.filter(
+        (arc) => !isComponentPortArc(arc),
+      );
+      transition.outputArcs = transition.outputArcs.filter(
+        (arc) => !isComponentPortArc(arc),
+      );
+    }
+
+    Object.assign(
+      transition,
+      sanitizeTransitionForExtensions(transition, sdcpn, extensions, net),
+    );
+  }
+};
+
 export const stripDisabledExtensionData = (
   sdcpn: SDCPN,
   extensions: PetrinautExtensionSettings,
 ): void => {
-  if (!extensions.colors) {
-    sdcpn.types.splice(0);
-  }
-
-  if (!canUseDynamics(extensions)) {
-    sdcpn.differentialEquations.splice(0);
-  }
+  stripDisabledExtensionDataFromNet(sdcpn, sdcpn, extensions);
 
   if (!extensions.parameters) {
-    sdcpn.parameters.splice(0);
     for (const scenario of sdcpn.scenarios ?? []) {
       scenario.parameterOverrides = {};
     }
@@ -268,20 +392,40 @@ export const stripDisabledExtensionData = (
     }
   }
 
-  for (const place of sdcpn.places) {
-    Object.assign(place, sanitizePlaceForExtensions(place, extensions));
-    if (!extensions.colors) {
-      delete place.visualizerCode;
-    }
-  }
-
-  for (const transition of sdcpn.transitions) {
-    Object.assign(
-      transition,
-      sanitizeTransitionForExtensions(transition, sdcpn, extensions),
-    );
+  for (const subnet of sdcpn.subnets ?? []) {
+    stripDisabledExtensionDataFromNet(sdcpn, subnet, extensions);
   }
 };
+
+const cloneComponentInstances = (
+  componentInstances: SDCPN["componentInstances"],
+): SDCPN["componentInstances"] =>
+  componentInstances?.map((instance) => ({
+    ...instance,
+    parameterValues: { ...instance.parameterValues },
+  }));
+
+const cloneSubnet = (
+  subnet: NonNullable<SDCPN["subnets"]>[number],
+): NonNullable<SDCPN["subnets"]>[number] => ({
+  id: subnet.id,
+  name: subnet.name,
+  places: subnet.places.map((place) => ({ ...place })),
+  transitions: subnet.transitions.map((transition) => ({
+    ...transition,
+    inputArcs: transition.inputArcs.map((arc) => ({ ...arc })),
+    outputArcs: transition.outputArcs.map((arc) => ({ ...arc })),
+  })),
+  types: subnet.types.map((type) => ({
+    ...type,
+    elements: type.elements.map((element) => ({ ...element })),
+  })),
+  differentialEquations: subnet.differentialEquations.map((equation) => ({
+    ...equation,
+  })),
+  parameters: subnet.parameters.map((parameter) => ({ ...parameter })),
+  componentInstances: cloneComponentInstances(subnet.componentInstances),
+});
 
 export const sanitizeSDCPNForExtensions = (
   sdcpn: SDCPN,
@@ -324,8 +468,16 @@ export const sanitizeSDCPNForExtensions = (
             },
     })),
     metrics: sdcpn.metrics?.map((metric) => ({ ...metric })),
+    subnets: sdcpn.subnets?.map(cloneSubnet),
+    componentInstances: cloneComponentInstances(sdcpn.componentInstances),
   };
 
   stripDisabledExtensionData(next, extensions);
+
+  if (!extensions.subnets) {
+    next.subnets = undefined;
+    next.componentInstances = undefined;
+  }
+
   return next;
 };

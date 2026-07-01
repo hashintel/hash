@@ -1,7 +1,13 @@
 import { use, useEffect } from "react";
 
-import { generateArcId, type SelectionMap } from "@hashintel/petrinaut-core";
+import {
+  generateArcId,
+  getArcEndpoint,
+  getArcEndpointKey,
+  type SelectionMap,
+} from "@hashintel/petrinaut-core";
 
+import { ActiveNetContext } from "./active-net-context";
 import { EditorContext } from "./editor-context";
 import { SDCPNContext } from "./sdcpn-context";
 
@@ -9,7 +15,8 @@ import { SDCPNContext } from "./sdcpn-context";
  * Reactively removes stale IDs from the selection when items are deleted from the SDCPN.
  */
 export function useSelectionCleanup() {
-  const { extensions, petriNetDefinition } = use(SDCPNContext);
+  const { activeNet } = use(ActiveNetContext);
+  const { extensions } = use(SDCPNContext);
   const { selection, setSelection, hoveredItem, clearHoveredItem } =
     use(EditorContext);
 
@@ -21,39 +28,47 @@ export function useSelectionCleanup() {
     // Build the set of all valid IDs
     const validIds = new Set<string>();
 
-    for (const place of petriNetDefinition.places) {
+    for (const place of activeNet.places) {
       validIds.add(place.id);
     }
-    for (const transition of petriNetDefinition.transitions) {
+    for (const transition of activeNet.transitions) {
       validIds.add(transition.id);
       for (const inputArc of transition.inputArcs) {
+        const endpoint = getArcEndpoint(inputArc);
         validIds.add(
-          generateArcId({ inputId: inputArc.placeId, outputId: transition.id }),
+          generateArcId({
+            inputId: getArcEndpointKey(endpoint),
+            outputId: transition.id,
+          }),
         );
       }
       for (const outputArc of transition.outputArcs) {
+        const endpoint = getArcEndpoint(outputArc);
         validIds.add(
           generateArcId({
             inputId: transition.id,
-            outputId: outputArc.placeId,
+            outputId: getArcEndpointKey(endpoint),
           }),
         );
       }
     }
     if (extensions.colors) {
-      for (const type of petriNetDefinition.types) {
+      for (const type of activeNet.types) {
         validIds.add(type.id);
       }
     }
     if (extensions.colors && extensions.dynamics) {
-      for (const eq of petriNetDefinition.differentialEquations) {
+      for (const eq of activeNet.differentialEquations) {
         validIds.add(eq.id);
       }
     }
     if (extensions.parameters) {
-      for (const param of petriNetDefinition.parameters) {
+      for (const param of activeNet.parameters) {
         validIds.add(param.id);
       }
+    }
+    for (const instance of activeNet.componentInstances) {
+      validIds.add(instance.id);
     }
 
     // Check if any selected ID is stale
@@ -82,7 +97,7 @@ export function useSelectionCleanup() {
       clearHoveredItem();
     }
   }, [
-    petriNetDefinition,
+    activeNet,
     extensions,
     selection,
     setSelection,

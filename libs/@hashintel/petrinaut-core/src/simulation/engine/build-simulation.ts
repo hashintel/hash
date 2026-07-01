@@ -1,3 +1,4 @@
+import { getArcEndpointPlaceId } from "../../arc-endpoints";
 import { SDCPNItemError } from "../../errors";
 import {
   DEFAULT_PETRINAUT_EXTENSIONS,
@@ -17,6 +18,10 @@ import {
   createEngineFrameLayout,
   type EngineFrameSnapshot,
 } from "../frames/internal-frame";
+import {
+  flattenComponentInstancesForSimulation,
+  getArcPlaceNameOverrideKey,
+} from "./flatten-component-instances";
 
 import type {
   CompiledTransition,
@@ -263,7 +268,8 @@ function createTransitionKernelFn({
   parameterValues: ParameterValues;
 }): TransitionKernelFn {
   const hasTypedOutputPlace = transition.outputArcs.some((arc) => {
-    const place = placesMap.get(arc.placeId);
+    const placeId = getArcEndpointPlaceId(arc);
+    const place = placeId ? placesMap.get(placeId) : undefined;
     return Boolean(place?.colorId);
   });
 
@@ -309,12 +315,14 @@ function createCompiledTransition({
   transition,
   placesMap,
   typesMap,
+  arcPlaceNameOverrides,
   lambdaFn,
   transitionKernelFn,
 }: {
   transition: SimulationInput["sdcpn"]["transitions"][number];
   placesMap: ReadonlyMap<string, SimulationInput["sdcpn"]["places"][number]>;
   typesMap: ReadonlyMap<string, SimulationInput["sdcpn"]["types"][number]>;
+  arcPlaceNameOverrides: ReadonlyMap<string, string>;
   lambdaFn: LambdaFn;
   transitionKernelFn: TransitionKernelFn;
 }): CompiledTransition {
@@ -322,34 +330,58 @@ function createCompiledTransition({
     id: transition.id,
     name: transition.name,
     inputPlaces: transition.inputArcs.map((arc) => {
-      const place = placesMap.get(arc.placeId);
+      const placeId = getArcEndpointPlaceId(arc);
+      if (!placeId) {
+        throw new Error(
+          `Input component port endpoint leaked into transition ${transition.id} after simulation flattening`,
+        );
+      }
+      const place = placesMap.get(placeId);
       if (!place) {
         throw new Error(
-          `Input place with ID ${arc.placeId} referenced by transition ${transition.id} does not exist in SDCPN`,
+          `Input place referenced by transition ${transition.id} does not exist in SDCPN`,
         );
       }
 
       return {
-        placeId: arc.placeId,
-        placeName: place.name,
+        placeId,
+        placeName:
+          arcPlaceNameOverrides.get(
+            getArcPlaceNameOverrideKey({
+              transitionId: transition.id,
+              placeId,
+            }),
+          ) ?? place.name,
         weight: arc.weight,
         arcType: arc.type,
-        elementNames: getPlaceElementNames(arc.placeId, placesMap, typesMap),
+        elementNames: getPlaceElementNames(placeId, placesMap, typesMap),
       };
     }),
     outputPlaces: transition.outputArcs.map((arc) => {
-      const place = placesMap.get(arc.placeId);
+      const placeId = getArcEndpointPlaceId(arc);
+      if (!placeId) {
+        throw new Error(
+          `Output component port endpoint leaked into transition ${transition.id} after simulation flattening`,
+        );
+      }
+      const place = placesMap.get(placeId);
       if (!place) {
         throw new Error(
-          `Output place with ID ${arc.placeId} referenced by transition ${transition.id} does not exist in SDCPN`,
+          `Output place referenced by transition ${transition.id} does not exist in SDCPN`,
         );
       }
 
       return {
-        placeId: arc.placeId,
-        placeName: place.name,
+        placeId,
+        placeName:
+          arcPlaceNameOverrides.get(
+            getArcPlaceNameOverrideKey({
+              transitionId: transition.id,
+              placeId,
+            }),
+          ) ?? place.name,
         weight: arc.weight,
-        elementNames: getPlaceElementNames(arc.placeId, placesMap, typesMap),
+        elementNames: getPlaceElementNames(placeId, placesMap, typesMap),
       };
     }),
     lambdaFn,
@@ -379,14 +411,28 @@ function createCompiledTransition({
  */
 export function buildSimulation(input: SimulationInput): SimulationInstance {
   const {
-    initialMarking,
+    initialMarking: inputInitialMarking,
     parameterValues: inputParameterValues,
     seed,
     dt,
     maxTime,
   } = input;
   const extensions = input.extensions ?? DEFAULT_PETRINAUT_EXTENSIONS;
-  const sdcpn = sanitizeSDCPNForExtensions(input.sdcpn, extensions);
+  const sanitizedSdcpn = sanitizeSDCPNForExtensions(input.sdcpn, extensions);
+
+  const defaultParameterValues = deriveDefaultParameterValues(
+    sanitizedSdcpn.parameters,
+  );
+  const rootParameterValues = extensions.parameters
+    ? mergeParameterValues(inputParameterValues, defaultParameterValues)
+    : {};
+  const flattened = flattenComponentInstancesForSimulation({
+    sdcpn: sanitizedSdcpn,
+    initialMarking: inputInitialMarking,
+    rootParameterValues,
+    parametersEnabled: extensions.parameters,
+  });
+  const { sdcpn, initialMarking } = flattened;
 
   // Build maps for quick lookup
   const placesMap = new Map(sdcpn.places.map((place) => [place.id, place]));
@@ -397,10 +443,7 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
 
   // Build parameter values: merge input values with SDCPN defaults
   // Input values (from simulation store) take precedence over defaults
-  const defaultParameterValues = deriveDefaultParameterValues(sdcpn.parameters);
-  const parameterValues = extensions.parameters
-    ? mergeParameterValues(inputParameterValues, defaultParameterValues)
-    : {};
+  const parameterValues = rootParameterValues;
 
   // Validate that all places in initialMarking exist in SDCPN
   for (const placeId of Object.keys(initialMarking)) {
@@ -463,7 +506,8 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
         createDifferentialEquationFn({
           placeId: place.id,
           elementNames: type.elements.map((element) => element.name),
-          parameterValues,
+          parameterValues:
+            flattened.placeParameterValues.get(place.id) ?? parameterValues,
           userFn,
         }),
       );
@@ -486,17 +530,22 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
         transition,
         placesMap,
         typesMap,
+        arcPlaceNameOverrides: flattened.arcPlaceNameOverrides,
         lambdaFn: createLambdaFn({
           transition,
           sdcpn,
           extensions,
-          parameterValues,
+          parameterValues:
+            flattened.transitionParameterValues.get(transition.id) ??
+            parameterValues,
         }),
         transitionKernelFn: createTransitionKernelFn({
           transition,
           extensions,
           placesMap,
-          parameterValues,
+          parameterValues:
+            flattened.transitionParameterValues.get(transition.id) ??
+            parameterValues,
         }),
       }),
     );

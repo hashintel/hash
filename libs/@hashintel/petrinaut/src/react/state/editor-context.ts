@@ -14,7 +14,11 @@ export type DraggingStateByNodeId = Record<
 >;
 
 export type EditorGlobalMode = "edit" | "simulate" | "actual";
-type EditorEditionMode = "cursor" | "add-place" | "add-transition";
+type EditorEditionMode =
+  | "cursor"
+  | "add-place"
+  | "add-transition"
+  | "add-component";
 export type CursorMode = "select" | "pan";
 export type BottomPanelTab =
   | "diagnostics"
@@ -65,6 +69,7 @@ export type EditorState = {
   isBottomPanelOpen: boolean;
   bottomPanelHeight: number;
   activeBottomPanelTab: BottomPanelTab;
+  componentSubnetId: string | null;
   selection: SelectionMap;
   /** Whether any items are currently selected. */
   hasSelection: boolean;
@@ -111,6 +116,7 @@ export type EditorActions = {
   toggleBottomPanel: () => void;
   setBottomPanelHeight: (height: number) => void;
   setActiveBottomPanelTab: (tab: BottomPanelTab) => void;
+  setAddComponentMode: (subnetId: string) => void;
   /** Check whether a given ID is in the current selection. */
   isSelected: (id: string) => boolean;
   /** Check whether a node/edge is connected to any selected item via an arc. */
@@ -167,6 +173,7 @@ export const initialEditorState: EditorState = {
   isBottomPanelOpen: false,
   bottomPanelHeight: DEFAULT_BOTTOM_PANEL_HEIGHT,
   activeBottomPanelTab: "diagnostics",
+  componentSubnetId: null,
   selection: new Map(),
   hasSelection: false,
   hasCanvasSelection: false,
@@ -194,6 +201,7 @@ const DEFAULT_CONTEXT_VALUE: EditorContextValue = {
   toggleBottomPanel: () => {},
   setBottomPanelHeight: () => {},
   setActiveBottomPanelTab: () => {},
+  setAddComponentMode: () => {},
   isSelected: () => false,
   isSelectedConnection: () => false,
   isNotSelectedConnection: () => false,

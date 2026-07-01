@@ -234,6 +234,7 @@ export function FakeEditorProvider({
       simulateViewMode,
       setGlobalMode: () => {},
       setEditionMode: () => {},
+      setAddComponentMode: () => {},
       setCursorMode: () => {},
       setLeftSidebarOpen: () => {},
       setLeftSidebarWidth: () => {},

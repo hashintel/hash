@@ -9,7 +9,11 @@ import {
 } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import {
+  arcMatchesEndpoint,
   parseArcId,
+  parseArcEndpointKey,
+  placeArcEndpoint,
+  type ArcEndpoint,
   type InputArc,
   type SDCPN,
 } from "@hashintel/petrinaut-core";
@@ -41,7 +45,7 @@ const readOnlyFieldStyle = css({
 interface ArcPropertiesData {
   arcId: string;
   transitionId: string;
-  placeId: string;
+  endpoint: ArcEndpoint;
   arcDirection: "input" | "output";
   sourceName: string;
   targetName: string;
@@ -67,7 +71,7 @@ function useArcPropertiesContext() {
 const ArcMainContent: React.FC = () => {
   const {
     transitionId,
-    placeId,
+    endpoint,
     arcDirection,
     sourceName,
     targetName,
@@ -96,10 +100,10 @@ const ArcMainContent: React.FC = () => {
               required
               value={type}
               size="sm"
-              onChange={(nextType) => {
+              onChange={(nextType: InputArc["type"]) => {
                 updateArcType({
                   transitionId,
-                  placeId,
+                  endpoint,
                   type: nextType,
                 });
               }}
@@ -123,7 +127,7 @@ const ArcMainContent: React.FC = () => {
               updateArcWeight({
                 transitionId,
                 arcDirection,
-                placeId,
+                endpoint,
                 weight: nextWeight,
               });
             }
@@ -136,7 +140,7 @@ const ArcMainContent: React.FC = () => {
 };
 
 const DeleteArcAction: React.FC = () => {
-  const { transitionId, placeId, arcDirection, removeArc } =
+  const { transitionId, endpoint, arcDirection, removeArc } =
     useArcPropertiesContext();
   const { clearSelection } = use(EditorContext);
   const isReadOnly = useIsReadOnly();
@@ -149,7 +153,7 @@ const DeleteArcAction: React.FC = () => {
       tone="error"
       iconName="trash"
       onClick={() => {
-        removeArc({ transitionId, arcDirection, placeId });
+        removeArc({ transitionId, arcDirection, endpoint });
         clearSelection();
       }}
       disabled={isReadOnly}
@@ -173,6 +177,7 @@ const subViews: SubView[] = [arcMainContentSubView];
 interface ArcPropertiesProps {
   arcId: string;
   petriNetDefinition: SDCPN;
+  fullSdcpn: SDCPN;
   updateArcWeight: PetrinautMutations["updateArcWeight"];
   updateArcType: PetrinautMutations["updateArcType"];
   removeArc: PetrinautMutations["removeArc"];
@@ -181,6 +186,7 @@ interface ArcPropertiesProps {
 export const ArcProperties: React.FC<ArcPropertiesProps> = ({
   arcId,
   petriNetDefinition,
+  fullSdcpn,
   updateArcWeight,
   updateArcType,
   removeArc,
@@ -192,12 +198,40 @@ export const ArcProperties: React.FC<ArcPropertiesProps> = ({
 
   const { sourceId, targetId } = parsed;
 
-  const sourcePlace = petriNetDefinition.places.find(
-    (pl) => pl.id === sourceId,
-  );
-  const targetPlace = petriNetDefinition.places.find(
-    (pl) => pl.id === targetId,
-  );
+  const endpointFromId = (id: string): ArcEndpoint | null => {
+    const parsedEndpoint = parseArcEndpointKey(id);
+    if (parsedEndpoint) {
+      return parsedEndpoint;
+    }
+    return petriNetDefinition.places.some((place) => place.id === id)
+      ? placeArcEndpoint(id)
+      : null;
+  };
+
+  const endpointName = (endpoint: ArcEndpoint): string => {
+    if (endpoint.kind === "place") {
+      return (
+        petriNetDefinition.places.find((place) => place.id === endpoint.placeId)
+          ?.name ?? "Unknown place"
+      );
+    }
+
+    const instance = (petriNetDefinition.componentInstances ?? []).find(
+      ({ id }) => id === endpoint.componentInstanceId,
+    );
+    const subnet = (fullSdcpn.subnets ?? []).find(
+      ({ id }) => id === instance?.subnetId,
+    );
+    const port = subnet?.places.find(
+      (place) => place.id === endpoint.portPlaceId,
+    );
+    return `${instance?.name ?? "Unknown component"}.${
+      port?.name ?? "Unknown port"
+    }`;
+  };
+
+  const sourceEndpoint = endpointFromId(sourceId);
+  const targetEndpoint = endpointFromId(targetId);
   const sourceTransition = petriNetDefinition.transitions.find(
     (tr) => tr.id === sourceId,
   );
@@ -207,16 +241,16 @@ export const ArcProperties: React.FC<ArcPropertiesProps> = ({
 
   let data: ArcPropertiesData;
 
-  if (sourcePlace && targetTransition) {
-    const arc = targetTransition.inputArcs.find(
-      (ia) => ia.placeId === sourcePlace.id,
+  if (sourceEndpoint && targetTransition) {
+    const arc = targetTransition.inputArcs.find((ia) =>
+      arcMatchesEndpoint(ia, sourceEndpoint),
     );
     data = {
       arcId,
       transitionId: targetTransition.id,
-      placeId: sourcePlace.id,
+      endpoint: sourceEndpoint,
       arcDirection: "input",
-      sourceName: sourcePlace.name,
+      sourceName: endpointName(sourceEndpoint),
       targetName: targetTransition.name,
       weight: arc?.weight ?? 1,
       type: arc?.type ?? "standard",
@@ -224,17 +258,17 @@ export const ArcProperties: React.FC<ArcPropertiesProps> = ({
       updateArcType,
       removeArc,
     };
-  } else if (sourceTransition && targetPlace) {
-    const arc = sourceTransition.outputArcs.find(
-      (oa) => oa.placeId === targetPlace.id,
+  } else if (sourceTransition && targetEndpoint) {
+    const arc = sourceTransition.outputArcs.find((oa) =>
+      arcMatchesEndpoint(oa, targetEndpoint),
     );
     data = {
       arcId,
       transitionId: sourceTransition.id,
-      placeId: targetPlace.id,
+      endpoint: targetEndpoint,
       arcDirection: "output",
       sourceName: sourceTransition.name,
-      targetName: targetPlace.name,
+      targetName: endpointName(targetEndpoint),
       weight: arc?.weight ?? 1,
       type: "standard",
       updateArcWeight,

@@ -1,5 +1,7 @@
 import ELK from "elkjs";
 
+import { getArcEndpoint, getArcEndpointNodeId } from "../arc-endpoints";
+
 import type { SDCPN } from "../types/sdcpn";
 import type { ElkNode } from "elkjs";
 
@@ -29,6 +31,7 @@ export type NodePosition = {
 export type LayoutDimensions = {
   place: { width: number; height: number };
   transition: { width: number; height: number };
+  componentInstance?: { width: number; height: number };
 };
 
 /**
@@ -54,7 +57,13 @@ export const calculateGraphLayout = async (
   sdcpn: SDCPN,
   dimensions: LayoutDimensions,
 ): Promise<Record<string, NodePosition>> => {
-  if (sdcpn.places.length === 0) {
+  const componentInstances = sdcpn.componentInstances ?? [];
+
+  if (
+    sdcpn.places.length === 0 &&
+    sdcpn.transitions.length === 0 &&
+    componentInstances.length === 0
+  ) {
     return {};
   }
 
@@ -70,6 +79,12 @@ export const calculateGraphLayout = async (
       width: dimensions.transition.width,
       height: dimensions.transition.height,
     })),
+    ...componentInstances.map((instance) => ({
+      id: instance.id,
+      width: dimensions.componentInstance?.width ?? dimensions.transition.width,
+      height:
+        dimensions.componentInstance?.height ?? dimensions.transition.height,
+    })),
   ];
 
   // Build ELK edges from input and output arcs
@@ -77,18 +92,22 @@ export const calculateGraphLayout = async (
   for (const transition of sdcpn.transitions) {
     // Input arcs: place -> transition
     for (const inputArc of transition.inputArcs) {
+      const endpoint = getArcEndpoint(inputArc);
+      const sourceId = getArcEndpointNodeId(endpoint);
       elkEdges.push({
-        id: `arc__${inputArc.placeId}-${transition.id}`,
-        sources: [inputArc.placeId],
+        id: `arc__${sourceId}-${transition.id}`,
+        sources: [sourceId],
         targets: [transition.id],
       });
     }
     // Output arcs: transition -> place
     for (const outputArc of transition.outputArcs) {
+      const endpoint = getArcEndpoint(outputArc);
+      const targetId = getArcEndpointNodeId(endpoint);
       elkEdges.push({
-        id: `arc__${transition.id}-${outputArc.placeId}`,
+        id: `arc__${transition.id}-${targetId}`,
         sources: [transition.id],
-        targets: [outputArc.placeId],
+        targets: [targetId],
       });
     }
   }
@@ -103,6 +122,9 @@ export const calculateGraphLayout = async (
   const updatedElements = await elk.layout(graph);
 
   const placeIds = new Set(sdcpn.places.map((place) => place.id));
+  const componentInstanceIds = new Set(
+    componentInstances.map((instance) => instance.id),
+  );
 
   /**
    * ELK returns top-left positions, but the SDCPN store uses center
@@ -113,7 +135,9 @@ export const calculateGraphLayout = async (
     if (child.x !== undefined && child.y !== undefined) {
       const nodeDimensions = placeIds.has(child.id)
         ? dimensions.place
-        : dimensions.transition;
+        : componentInstanceIds.has(child.id)
+          ? (dimensions.componentInstance ?? dimensions.transition)
+          : dimensions.transition;
 
       positionsByNodeId[child.id] = {
         x: child.x + nodeDimensions.width / 2,

@@ -152,9 +152,13 @@ const TransitionFiringTimeContent: React.FC = () => {
         value={lambdaCode}
         height="100%"
         onChange={(value) => {
+          if (value === undefined) {
+            return;
+          }
+
           updateTransition({
             transitionId: transition.id,
-            update: { lambdaType, lambdaCode: value ?? "" },
+            update: { lambdaType, lambdaCode: value },
           });
         }}
         options={{ readOnly: isReadOnly }}

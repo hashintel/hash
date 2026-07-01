@@ -23,6 +23,7 @@ const SHAPE_SIZE = 90;
 const TRANSITION_WIDTH_RATIO = 1.5;
 const DEFAULT_PLACE_FILL = "#0F0F0F";
 const DEFAULT_TRANSITION_FILL = "#6b7280";
+const DEFAULT_COMPONENT_FILL = "#0f766e";
 const SELECTED_COLOR = "#3bb9f6";
 const SELECTED_STROKE_WIDTH = 12;
 
@@ -46,7 +47,9 @@ const MiniMapNode: React.FC<MiniMapNodeProps> = ({ id, x, y }) => {
       ? node.data.typeColor
         ? hexToHsl(node.data.typeColor).saturation(50).css(1)
         : DEFAULT_PLACE_FILL
-      : DEFAULT_TRANSITION_FILL;
+      : node.data.type === "componentInstance"
+        ? DEFAULT_COMPONENT_FILL
+        : DEFAULT_TRANSITION_FILL;
 
   const isSelected = node.selected;
 
@@ -56,6 +59,22 @@ const MiniMapNode: React.FC<MiniMapNodeProps> = ({ id, x, y }) => {
         cx={x + SHAPE_SIZE / 2}
         cy={y + SHAPE_SIZE / 2}
         r={SHAPE_SIZE / 2}
+        fill={isSelected ? SELECTED_COLOR : fill}
+        stroke={isSelected ? SELECTED_COLOR : "none"}
+        strokeWidth={isSelected ? SELECTED_STROKE_WIDTH : 0}
+        strokeOpacity={0.4}
+      />
+    );
+  }
+
+  if (node.data.type === "componentInstance") {
+    return (
+      <rect
+        x={x - SHAPE_SIZE}
+        y={y - SHAPE_SIZE / 2}
+        width={SHAPE_SIZE * TRANSITION_WIDTH_RATIO}
+        height={SHAPE_SIZE}
+        rx={12}
         fill={isSelected ? SELECTED_COLOR : fill}
         stroke={isSelected ? SELECTED_COLOR : "none"}
         strokeWidth={isSelected ? SELECTED_STROKE_WIDTH : 0}

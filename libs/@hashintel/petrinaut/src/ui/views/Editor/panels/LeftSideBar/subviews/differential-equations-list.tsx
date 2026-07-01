@@ -5,6 +5,7 @@ import { Button } from "@hashintel/ds-components";
 import { DEFAULT_DIFFERENTIAL_EQUATION_CODE } from "@hashintel/petrinaut-core";
 
 import { usePetrinautMutations } from "../../../../../../react/hooks/use-petrinaut-mutations";
+import { ActiveNetContext } from "../../../../../../react/state/active-net-context";
 import { EditorContext } from "../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { useIsReadOnly } from "../../../../../../react/state/use-is-read-only";
@@ -22,9 +23,9 @@ import type { SubView } from "../../../../../components/sub-view/types";
  */
 export const DifferentialEquationsSectionHeaderAction: React.FC = () => {
   const {
-    petriNetDefinition: { types, differentialEquations },
-    extensions,
-  } = use(SDCPNContext);
+    activeNet: { types, differentialEquations },
+  } = use(ActiveNetContext);
+  const { extensions } = use(SDCPNContext);
   const { addDifferentialEquation } = usePetrinautMutations();
   const { selectItem } = use(EditorContext);
 
@@ -51,7 +52,7 @@ export const DifferentialEquationsSectionHeaderAction: React.FC = () => {
         addDifferentialEquation({
           id,
           name,
-          colorId: types.length > 0 ? types[0]!.id : "",
+          colorId: types.length > 0 ? types[0]!.id : null,
           code: DEFAULT_DIFFERENTIAL_EQUATION_CODE,
         });
         selectItem({ type: "differentialEquation", id });
@@ -98,8 +99,8 @@ export const differentialEquationsListSubView: SubView =
     },
     useItems: () => {
       const {
-        petriNetDefinition: { differentialEquations },
-      } = use(SDCPNContext);
+        activeNet: { differentialEquations },
+      } = use(ActiveNetContext);
       return differentialEquations.map((eq) => ({
         ...eq,
         icon: DifferentialEquationIcon,
