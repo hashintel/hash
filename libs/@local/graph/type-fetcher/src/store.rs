@@ -38,7 +38,7 @@ use hash_graph_store::{
         ClusterEntitiesParams, ClusterEntitiesResponse, CreateEntityParams, DeleteEntitiesParams,
         DeletionSummary, EntityStore, EntityValidationReport, HasPermissionForEntitiesParams,
         PatchEntityParams, QueryEntitiesParams, QueryEntitiesResponse, QueryEntitySubgraphParams,
-        QueryEntitySubgraphResponse, SummarizeEntitiesParams, SummarizeEntitiesResponse,
+        QueryEntitySubgraphResponse, SearchEntitiesParams, SearchEntitiesResponse,
         SummarizeEntitiesParams, SummarizeEntitiesResponse, UpdateEntityEmbeddingsParams,
         ValidateEntityParams,
     },

@@ -29,6 +29,9 @@ bytes          = { workspace = true, optional = true }
 derive-where   = { workspace = true }
 derive_more    = { workspace = true, features = ["display", "error"] }
 futures        = { workspace = true }
+rand           = { workspace = true }
+rand_xoshiro   = { workspace = true }
+rayon          = { workspace = true }
 serde          = { workspace = true, features = ["derive"] }
 serde_json     = { workspace = true }
 simple-mermaid = { workspace = true }

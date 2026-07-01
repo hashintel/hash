@@ -3,7 +3,7 @@ mod query;
 mod read;
 mod summary;
 
-use alloc::borrow::Cow;
+use alloc::{borrow::Cow, collections::BTreeMap};
 use core::{borrow::Borrow as _, mem};
 use std::collections::{HashMap, HashSet};
 
@@ -25,7 +25,8 @@ use hash_graph_store::{
         EntityQueryPath, EntityQuerySorting, EntityStore, EntityTypeRetrieval, EntityTypesError,
         EntityValidationReport, EntityValidationType, HasPermissionForEntitiesParams,
         PatchEntityParams, QueryConversion, QueryEntitiesParams, QueryEntitiesResponse,
-        QueryEntitySubgraphParams, QueryEntitySubgraphResponse, SummarizeEntitiesParams,
+        QueryEntitySubgraphParams, QueryEntitySubgraphResponse, SearchEntitiesFilter,
+        SearchEntitiesParams, SearchEntitiesResponse, SummarizeEntitiesParams,
         SummarizeEntitiesResponse, UpdateEntityEmbeddingsParams, ValidateEntityComponents,
         ValidateEntityParams,
     },
@@ -2554,36 +2555,31 @@ where
         Ok(permitted_ids)
     }
 
-    #[expect(clippy::too_many_lines)]
+    #[expect(clippy::too_many_lines, clippy::cast_possible_truncation)]
     #[tracing::instrument(skip(self, params))]
     async fn cluster_entities(
         &self,
         actor_id: ActorEntityUuid,
         params: ClusterEntitiesParams,
     ) -> Result<ClusterEntitiesResponse, Report<ClusterError>> {
-        // 3072 fits in u16; compile-time verified.
-        const {
-            assert!(Embedding::DIM <= u16::MAX as usize);
-        }
-        #[expect(
-            clippy::cast_possible_truncation,
-            reason = "guarded by the const assertion above"
-        )]
+        const { assert!(Embedding::DIM <= u16::MAX as usize) };
         const STORED_DIM: u16 = Embedding::DIM as u16;
 
-        let dim = Dimension::new(params.dimension).ok_or_else(|| {
+        let dimension = Dimension::new(params.dimension.get()).ok_or_else(|| {
             Report::new(ClusterError::InvalidDimension {
                 dimension: params.dimension,
             })
+            .attach(StatusCode::InvalidArgument)
         })?;
 
-        if dim.get() > STORED_DIM {
+        if dimension.get() > STORED_DIM {
             return Err(Report::new(ClusterError::DimensionTooLarge {
-                dimension: dim.get(),
+                dimension: dimension.value(),
                 max: STORED_DIM,
-            }));
+            })
+            .attach(StatusCode::InvalidArgument));
         }
-        let truncated_dim = usize::from(dim.get());
+        let truncated_dim = usize::from(dimension.get());
 
         // Filter to entities the actor is allowed to view.
         let permitted = self
@@ -2701,9 +2697,9 @@ where
             }),
         );
 
-        let result = hash_graph_store::embedding::clustering::cluster(&flat, dim, &config);
+        let result = hash_graph_store::embedding::clustering::cluster(&flat, dimension, &config);
 
-        let mut groups: HashMap<u16, Vec<EntityId>> = HashMap::new();
+        let mut groups: BTreeMap<u16, Vec<EntityId>> = BTreeMap::new();
         for (index, id) in found_ids.iter().enumerate() {
             groups.entry(result.label(index)).or_default().push(*id);
         }

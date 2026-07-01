@@ -1,4 +1,4 @@
-use core::{error::Error, fmt};
+use core::{error::Error, fmt, num::NonZero};
 
 #[derive(Debug)]
 #[must_use]
@@ -75,9 +75,9 @@ impl Error for CheckPermissionError {}
 #[must_use]
 pub enum ClusterError {
     #[display("dimension {dimension} is not a positive multiple of 8")]
-    InvalidDimension { dimension: u16 },
+    InvalidDimension { dimension: NonZero<u16> },
     #[display("dimension {dimension} exceeds stored embedding dimension {max}")]
-    DimensionTooLarge { dimension: u16, max: u16 },
+    DimensionTooLarge { dimension: NonZero<u16>, max: u16 },
     #[display("embedding query failed")]
     Store,
 }
