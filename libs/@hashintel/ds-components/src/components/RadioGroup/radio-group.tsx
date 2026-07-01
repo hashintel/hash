@@ -79,7 +79,7 @@ export const RadioGroup = <const ValueType extends string>({
       ids={{ itemHiddenInput: itemInputId }}
       data-testid={testId}
       ref={ref as React.Ref<HTMLDivElement>}
-      className={cx(styles({ layout }), className)}
+      className={cx(styles({ layout, size }), className)}
       required={required}
       invalid={invalid}
       {...getGroupFocusProps({ onFocus, onBlur })}

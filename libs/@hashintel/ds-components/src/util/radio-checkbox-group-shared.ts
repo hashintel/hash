@@ -51,11 +51,53 @@ export const styles = cva({
     display: "flex",
   },
   variants: {
+    size: {
+      xxs: {
+        "--group-gap": "8px",
+        "--group-inline-gap": "14px",
+        "--group-padding-y": "8px",
+        "--group-padding-left": "12px",
+        "--group-padding-right": "12px",
+        "--group-radius": "6px",
+      },
+      xs: {
+        "--group-gap": "10px",
+        "--group-inline-gap": "16px",
+        "--group-padding-y": "10px",
+        "--group-padding-left": "15px",
+        "--group-padding-right": "18px",
+        "--group-radius": "6px",
+      },
+      sm: {
+        "--group-gap": "12px",
+        "--group-inline-gap": "18px",
+        "--group-padding-y": "11px",
+        "--group-padding-left": "17px",
+        "--group-padding-right": "22px",
+        "--group-radius": "8px",
+      },
+      md: {
+        "--group-gap": "14px",
+        "--group-inline-gap": "20px",
+        "--group-padding-y": "13px",
+        "--group-padding-left": "19px",
+        "--group-padding-right": "26px",
+        "--group-radius": "8px",
+      },
+      lg: {
+        "--group-gap": "16px",
+        "--group-inline-gap": "24px",
+        "--group-padding-y": "15px",
+        "--group-padding-left": "22px",
+        "--group-padding-right": "32px",
+        "--group-radius": "10px",
+      },
+    },
     layout: {
       block: {
         flexDirection: "column",
         alignItems: "flex-start",
-        gap: "[12px]",
+        gap: "[var(--group-gap)]",
         width: "[fit-content]",
 
         "& > *": {
@@ -65,27 +107,31 @@ export const styles = cva({
       inline: {
         flexWrap: "wrap",
         alignItems: "flex-start",
-        columnGap: "[20px]",
-        rowGap: "[10px]",
+        columnGap: "[var(--group-inline-gap)]",
+        rowGap: "[var(--group-gap)]",
       },
       blockWithBorder: {
         flexDirection: "column",
         border: "[1px solid var(--colors-neutral-s45)]",
-        borderRadius: "[8px]",
+        borderRadius: "[var(--group-radius)]",
 
         "& > *": {
-          padding: "[16px]",
-          borderBottom: "[1px solid var(--colors-neutral-s45)]",
+          paddingBlock: "[var(--group-padding-y)]",
+          paddingLeft: "[var(--group-padding-left)]",
+          paddingRight: "[var(--group-padding-right)]",
+          borderTop: "[1px solid var(--colors-neutral-s45)]",
           width: "[100%]",
+          marginBlock: "[0 !important]",
         },
 
-        "& > *:last-child": {
-          borderBottom: "none",
+        "& > *:first-child": {
+          borderTop: "none",
         },
       },
     },
   },
   defaultVariants: {
+    size: "md",
     layout: "block",
   },
 });

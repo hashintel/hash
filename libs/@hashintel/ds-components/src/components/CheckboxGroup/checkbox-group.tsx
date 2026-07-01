@@ -64,7 +64,7 @@ export const CheckboxGroup = <const ValueType extends string>({
       data-testid={testId}
       ref={ref as React.Ref<HTMLDivElement>}
       maxSelectedValues={maxSelectable}
-      className={cx(styles({ layout }), className)}
+      className={cx(styles({ layout, size }), className)}
       {...getGroupFocusProps({ onFocus, onBlur })}
       {...ariaProps}
     >

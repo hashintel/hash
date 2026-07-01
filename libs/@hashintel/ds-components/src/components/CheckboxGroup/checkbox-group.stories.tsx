@@ -10,9 +10,9 @@ import type { Story, StoryDefault } from "@ladle/react";
 type Props = React.ComponentProps<typeof CheckboxGroup>;
 
 const layouts: NonNullable<Props["layout"]>[] = [
+  "blockWithBorder",
   "block",
   "inline",
-  "blockWithBorder",
 ];
 
 const fruitItems = [
@@ -74,6 +74,19 @@ const sectionClass = css({
   gap: "[24px]",
 });
 
+const subHeadingClass = css({
+  fontSize: "[11px]",
+  color: "neutral.s70",
+  marginBottom: "[6px]",
+});
+
+const layoutRowClass = css({
+  display: "flex",
+  gap: "[40px]",
+  alignItems: "flex-start",
+  flexWrap: "wrap",
+});
+
 export const Layouts: Story = () => (
   <div className={sectionClass}>
     {layouts.map((layout) => (
@@ -86,10 +99,6 @@ export const Layouts: Story = () => (
       </div>
     ))}
     <div>
-      <div className={headingClass}>layout=block, labelPlacement=left</div>
-      <ControlledCheckboxGroup layout="block" items={leftLabelItems} />
-    </div>
-    <div>
       <div className={headingClass}>
         layout=blockWithBorder, labelPlacement=left
       </div>
@@ -97,6 +106,10 @@ export const Layouts: Story = () => (
         layout="blockWithBorder"
         items={leftLabelItems}
       />
+    </div>
+    <div>
+      <div className={headingClass}>layout=block, labelPlacement=left</div>
+      <ControlledCheckboxGroup layout="block" items={leftLabelItems} />
     </div>
   </div>
 );
@@ -110,7 +123,14 @@ export const Sizes: Story = () => (
     {formInputSizes.map((size) => (
       <div key={size}>
         <div className={headingClass}>size={size}</div>
-        <ControlledCheckboxGroup layout="inline" size={size} />
+        <div className={layoutRowClass}>
+          {layouts.map((layout) => (
+            <div key={layout}>
+              <div className={subHeadingClass}>{layout}</div>
+              <ControlledCheckboxGroup layout={layout} size={size} />
+            </div>
+          ))}
+        </div>
       </div>
     ))}
   </div>
