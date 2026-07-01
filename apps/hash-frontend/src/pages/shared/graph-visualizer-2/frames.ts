@@ -262,7 +262,7 @@ export interface RenderEdgeArrow {
  */
 export interface PositionsFrame {
   readonly version: number;
-  /** True once every macro layout has settled; the last frame of a sequence. */
+  /** True once every layout (cluster and entity/flat) has settled. */
   readonly settled: boolean;
   /** World positions, index-aligned with {@link StructureFrame.clusters}. */
   readonly clusterPositions: Float32Array;

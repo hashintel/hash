@@ -38,6 +38,12 @@ const ZERO_UPPERBOUND = -1e-10;
 const LAGRANGIAN_TOLERANCE = -1e-4;
 const COST_TOLERANCE = 1e-4;
 
+// Cap on scanline walk per side. Without this, a pile-up of k coincident
+// rectangles generates O(k²) constraints. The i->i+1 chain is always
+// preserved, so a capped run is still separated transitively; the residual
+// sweep handles any leftover.
+const MAX_SCAN_NEIGHBOURS = 8;
+
 /** Bijective-ish 32-bit hash for deterministic, well-spread treap priorities. */
 function hashU32(value: number): number {
   let x = value | 0;
@@ -56,14 +62,15 @@ export class VpscOverlapRemover {
   #n = 0;
   #numCon = 0;
 
-  // Rectangle inputs for the current pass (owned by the caller, mutated in place).
-  #gx: Float32Array = new Float32Array(0);
-  #gy: Float32Array = new Float32Array(0);
+  // Internal Float64 centres: Float32 rounding between passes makes abutting
+  // rectangles read as overlapping (error ≫ MIN_SEP), causing spurious constraints.
+  #gx = new Float64Array(0);
+  #gy = new Float64Array(0);
   #ghalfW: Float32Array = new Float32Array(0);
   #ghalfH: Float32Array = new Float32Array(0);
 
   // Which centre coordinate the scanline is ordered by this pass (x or y array).
-  #slCenter: Float32Array = new Float32Array(0);
+  #slCenter = new Float64Array(0);
 
   // Per-variable VPSC state.
   #desired = new Float64Array(0);
@@ -81,6 +88,7 @@ export class VpscOverlapRemover {
   #blockAlive = new Uint8Array(0);
   #blocksList = new Int32Array(0);
   #blocksLen = 0;
+  #blockSnapshot = new Int32Array(0);
   #freeBlocks = new Int32Array(0);
   #freeTop = 0;
 
@@ -123,11 +131,27 @@ export class VpscOverlapRemover {
   #eventOrder = new Int32Array(0);
   #eventPos = new Float64Array(0);
 
+  // Residual-overlap cleanup (pairs the two-pass misses at float boundaries).
+  #resLeft = new Int32Array(0);
+  #resRight = new Int32Array(0);
+  #resCapacity = 0;
+  #resCount = 0;
+  #active = new Int32Array(0);
+
   #minLm = 0;
+
+  // TEMP perf diagnostics
+  statOuter = 0;
+  statCleanupRounds = 0;
+  statMaxNumCon = 0;
+  statSatisfyInner = 0;
 
   constructor(capacity: number) {
     this.#allocateNode(Math.max(1, capacity | 0));
     this.#allocateConstraints(Math.max(16, capacity | 0));
+    this.#resCapacity = Math.max(16, capacity | 0);
+    this.#resLeft = new Int32Array(this.#resCapacity);
+    this.#resRight = new Int32Array(this.#resCapacity);
   }
 
   /**
@@ -147,13 +171,25 @@ export class VpscOverlapRemover {
     }
     this.#ensureNodeCapacity(n);
     this.#n = n;
-    this.#gx = x;
-    this.#gy = y;
     this.#ghalfW = halfW;
     this.#ghalfH = halfH;
+    this.statOuter = 0;
+    this.statCleanupRounds = 0;
+    this.statMaxNumCon = 0;
+    this.statSatisfyInner = 0;
+    for (let i = 0; i < n; i++) {
+      this.#gx[i] = x[i]!;
+      this.#gy[i] = y[i]!;
+    }
 
     this.#solveDimension(true);
     this.#solveDimension(false);
+    this.#cleanupResiduals();
+
+    for (let i = 0; i < n; i++) {
+      x[i] = this.#gx[i]!;
+      y[i] = this.#gy[i]!;
+    }
   }
 
   #solveDimension(isX: boolean): void {
@@ -173,9 +209,140 @@ export class VpscOverlapRemover {
     }
   }
 
-  // ---------------------------------------------------------------------------
-  // Scanline constraint generation
-  // ---------------------------------------------------------------------------
+  // The two-pass method's transitivity lemma can fail at float boundaries
+  // (a rectangle exactly abutting a neighbour after the x pass), leaving
+  // pairs overlapping in both axes. Enumerate residuals with a sweepline,
+  // force a direct separation constraint in the cheaper axis, re-solve;
+  // a few rounds drives the count to zero.
+
+  #cleanupResiduals(): void {
+    // Empirically the residual count drops to zero within one or two rounds
+    // (usually zero rounds — the two-pass alone is exact away from boundaries);
+    // the cap is a generous safety bound that is never approached in practice.
+    const maxRounds = 16;
+    for (let round = 0; round < maxRounds; round++) {
+      if (this.#detectResiduals() === 0) {
+        return;
+      }
+      this.statCleanupRounds += 1;
+      this.#resolveAxis(true);
+      this.#resolveAxis(false);
+    }
+  }
+
+  /** Enumerate pairs still overlapping in both axes into #resLeft/#resRight. */
+  #detectResiduals(): number {
+    const n = this.#n;
+    const events = this.#eventOrder;
+    for (let i = 0; i < n; i++) {
+      events[i] = i;
+    }
+    const lowX = (i: number) => this.#gx[i]! - this.#ghalfW[i]!;
+    events.subarray(0, n).sort((a, b) => {
+      const la = lowX(a);
+      const lb = lowX(b);
+      if (la < lb) {
+        return -1;
+      }
+      if (la > lb) {
+        return 1;
+      }
+      return a - b;
+    });
+
+    let count = 0;
+    let activeLen = 0;
+    const active = this.#active;
+    for (let e = 0; e < n; e++) {
+      const v = events[e]!;
+      const vLow = this.#gx[v]! - this.#ghalfW[v]!;
+      let write = 0;
+      for (let r = 0; r < activeLen; r++) {
+        const u = active[r]!;
+        if (this.#gx[u]! + this.#ghalfW[u]! <= vLow) {
+          continue;
+        }
+        active[write++] = u;
+        const penX =
+          this.#ghalfW[u]! +
+          this.#ghalfW[v]! -
+          Math.abs(this.#gx[u]! - this.#gx[v]!);
+        const penY =
+          this.#ghalfH[u]! +
+          this.#ghalfH[v]! -
+          Math.abs(this.#gy[u]! - this.#gy[v]!);
+        if (penX > MIN_SEP && penY > MIN_SEP) {
+          if (count + 1 > this.#resCapacity) {
+            this.#growResiduals(count + 1);
+          }
+          this.#resLeft[count] = u;
+          this.#resRight[count] = v;
+          count += 1;
+        }
+      }
+      activeLen = write;
+      active[activeLen++] = v;
+    }
+    this.#resCount = count;
+    return count;
+  }
+
+  /** Force-separate residual pairs in `isX`, re-solving with direct constraints. */
+  #resolveAxis(isX: boolean): void {
+    const coords = isX ? this.#gx : this.#gy;
+    this.#slCenter = coords;
+    this.#generateConstraints(isX);
+
+    const half = isX ? this.#ghalfW : this.#ghalfH;
+    let forced = 0;
+    for (let r = 0; r < this.#resCount; r++) {
+      const a = this.#resLeft[r]!;
+      const b = this.#resRight[r]!;
+      const penX =
+        this.#ghalfW[a]! +
+        this.#ghalfW[b]! -
+        Math.abs(this.#gx[a]! - this.#gx[b]!);
+      const penY =
+        this.#ghalfH[a]! +
+        this.#ghalfH[b]! -
+        Math.abs(this.#gy[a]! - this.#gy[b]!);
+      const cheaperIsX = penX <= penY;
+      if (cheaperIsX !== isX) {
+        continue;
+      }
+      const aBeforeB =
+        coords[a]! < coords[b]! || (coords[a]! === coords[b]! && a < b);
+      if (half[a]! + half[b]! + MIN_SEP > Math.abs(coords[a]! - coords[b]!)) {
+        this.#emitConstraint(aBeforeB ? a : b, aBeforeB ? b : a, isX);
+        forced += 1;
+      }
+    }
+    if (forced === 0) {
+      return;
+    }
+
+    this.#buildCsr();
+    const n = this.#n;
+    for (let i = 0; i < n; i++) {
+      this.#desired[i] = coords[i]!;
+    }
+    this.#initBlocks();
+    this.#solve();
+    for (let i = 0; i < n; i++) {
+      coords[i] = this.#blockPosn[this.#varBlock[i]!]! + this.#offset[i]!;
+    }
+  }
+
+  #growResiduals(needed: number): void {
+    const newCapacity = Math.max(needed, this.#resCapacity * 2);
+    const resLeft = new Int32Array(newCapacity);
+    const resRight = new Int32Array(newCapacity);
+    resLeft.set(this.#resLeft);
+    resRight.set(this.#resRight);
+    this.#resLeft = resLeft;
+    this.#resRight = resRight;
+    this.#resCapacity = newCapacity;
+  }
 
   #generateConstraints(isX: boolean): void {
     const n = this.#n;
@@ -287,23 +454,25 @@ export class VpscOverlapRemover {
   /** Constraints to every scanline neighbour whose cheaper resolution is in x. */
   #findXNeighbours(v: number): void {
     let u = this.#treapSuccessor(v);
+    let steps = 0;
     while (u !== -1) {
       const ox = this.#overlapX(u, v);
       if (ox <= 0 || ox <= this.#overlapY(u, v)) {
         this.#emitConstraint(v, u, true);
       }
-      if (ox <= 0) {
+      if (ox <= 0 || ++steps >= MAX_SCAN_NEIGHBOURS) {
         break;
       }
       u = this.#treapSuccessor(u);
     }
     u = this.#treapPredecessor(v);
+    steps = 0;
     while (u !== -1) {
       const ox = this.#overlapX(u, v);
       if (ox <= 0 || ox <= this.#overlapY(u, v)) {
         this.#emitConstraint(u, v, true);
       }
-      if (ox <= 0) {
+      if (ox <= 0 || ++steps >= MAX_SCAN_NEIGHBOURS) {
         break;
       }
       u = this.#treapPredecessor(u);
@@ -321,10 +490,6 @@ export class VpscOverlapRemover {
       this.#emitConstraint(pred, v, false);
     }
   }
-
-  // ---------------------------------------------------------------------------
-  // Scanline treap (ordered by (#slCenter, index), max-heap on hashed priority)
-  // ---------------------------------------------------------------------------
 
   #slLess(a: number, b: number): boolean {
     const ca = this.#slCenter[a]!;
@@ -368,9 +533,9 @@ export class VpscOverlapRemover {
     const priority = this.#slPriority;
     while (
       this.#slParent[v] !== -1 &&
-      priority[v]! > priority[this.#slParent[v]!]!
+      priority[v]! > priority[this.#slParent[v]]!
     ) {
-      const up = this.#slParent[v]!;
+      const up = this.#slParent[v];
       if (this.#slLeft[up] === v) {
         this.#rotateRight(up);
       } else {
@@ -477,10 +642,6 @@ export class VpscOverlapRemover {
     return parent;
   }
 
-  // ---------------------------------------------------------------------------
-  // CSR adjacency
-  // ---------------------------------------------------------------------------
-
   #buildCsr(): void {
     const n = this.#n;
     const numCon = this.#numCon;
@@ -512,10 +673,6 @@ export class VpscOverlapRemover {
       this.#inCons[cursor[this.#conRight[c]!]!++] = c;
     }
   }
-
-  // ---------------------------------------------------------------------------
-  // Block bookkeeping
-  // ---------------------------------------------------------------------------
 
   #initBlocks(): void {
     const n = this.#n;
@@ -588,20 +745,26 @@ export class VpscOverlapRemover {
     );
   }
 
-  // ---------------------------------------------------------------------------
-  // Solver (mirrors WebCola Solver.solve / satisfy / mostViolated + Blocks.split)
-  // ---------------------------------------------------------------------------
-
   #solve(): void {
     this.#satisfy();
     let cost = this.#cost();
     let lastCost = Number.MAX_VALUE;
     let guard = 0;
     const maxOuter = 4 * this.#n + 16;
-    while (Math.abs(lastCost - cost) > COST_TOLERANCE && guard++ < maxOuter) {
+    // Relative tolerance: absolute epsilon is scale-dependent and over-iterates
+    // at large layout scales. Feasibility (zero overlap) is guaranteed by each
+    // #satisfy(); the outer loop only refines toward min-displacement.
+    while (
+      lastCost - cost > COST_TOLERANCE * (1 + cost) &&
+      guard++ < maxOuter
+    ) {
       this.#satisfy();
       lastCost = cost;
       cost = this.#cost();
+    }
+    this.statOuter += guard;
+    if (this.#numCon > this.statMaxNumCon) {
+      this.statMaxNumCon = this.#numCon;
     }
   }
 
@@ -619,6 +782,7 @@ export class VpscOverlapRemover {
     this.#splitBlocks();
     const maxInner = 8 * (this.#numCon + this.#n) + 64;
     let guard = 0;
+    this.statSatisfyInner += 1;
     while (guard++ < maxInner) {
       const v = this.#mostViolated();
       if (
@@ -702,7 +866,7 @@ export class VpscOverlapRemover {
 
   #splitBlocks(): void {
     const snapshotLen = this.#blocksLen;
-    const snapshot = this.#stack;
+    const snapshot = this.#blockSnapshot;
     for (let i = 0; i < snapshotLen; i++) {
       snapshot[i] = this.#blocksList[i]!;
     }
@@ -730,6 +894,7 @@ export class VpscOverlapRemover {
   /** Rebuild the connected component of active constraints reachable from `start`. */
   #createSplitBlock(start: number): void {
     const b = this.#allocBlock();
+    this.#insertBlock(b);
     this.#blockHead[b] = -1;
     this.#blockCount[b] = 0;
     this.#blockSumDesired[b] = 0;
@@ -748,8 +913,8 @@ export class VpscOverlapRemover {
     }
 
     this.#blockPosn[b] =
-      (this.#blockSumDesired[b]! - this.#blockSumOffset[b]!) /
-      this.#blockCount[b]!;
+      (this.#blockSumDesired[b] - this.#blockSumOffset[b]) /
+      this.#blockCount[b];
   }
 
   #visitSplitNeighbours(
@@ -897,10 +1062,6 @@ export class VpscOverlapRemover {
     return minCon;
   }
 
-  // ---------------------------------------------------------------------------
-  // Allocation / growth
-  // ---------------------------------------------------------------------------
-
   #ensureNodeCapacity(n: number): void {
     if (n > this.#capacity) {
       this.#allocateNode(n);
@@ -924,6 +1085,7 @@ export class VpscOverlapRemover {
     this.#blockListIndex = new Int32Array(blockCapacity);
     this.#blockAlive = new Uint8Array(blockCapacity);
     this.#blocksList = new Int32Array(blockCapacity);
+    this.#blockSnapshot = new Int32Array(blockCapacity);
     this.#freeBlocks = new Int32Array(blockCapacity);
 
     this.#outOffsets = new Int32Array(capacity + 1);
@@ -948,6 +1110,10 @@ export class VpscOverlapRemover {
 
     this.#eventOrder = new Int32Array(2 * capacity);
     this.#eventPos = new Float64Array(2 * capacity);
+
+    this.#gx = new Float64Array(capacity);
+    this.#gy = new Float64Array(capacity);
+    this.#active = new Int32Array(capacity);
   }
 
   #allocateConstraints(conCapacity: number): void {

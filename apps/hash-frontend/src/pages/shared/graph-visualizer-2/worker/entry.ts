@@ -81,10 +81,18 @@ globalThis.onmessage = ({ data }: MessageEvent<MainToWorkerMessage>) => {
       }
 
       try {
-        worker.registerTypes(data.typeSchemas, data.propertySchemas);
-        // Types drive labels/colours; force a fresh hierarchical rebuild (a no-op
-        // for the flat tiers, which recompute colours from the registry anyway).
-        worker.commitStructure({ rebuildTree: true });
+        const { typesChanged } = worker.registerTypes(
+          data.typeSchemas,
+          data.propertySchemas,
+        );
+        // Only a genuinely new type changes grouping/colour, so only then does
+        // the tree need rebuilding. Identical re-registrations (the common case)
+        // and property-only additions do not: top-level re-layout as the graph
+        // grows is driven by ingest (see #clusterLayoutOutgrown), not by type
+        // registration, so skipping this no longer freezes the overview.
+        if (typesChanged) {
+          worker.commitStructure({ rebuildTree: true });
+        }
       } catch (err) {
         post({ type: "ERROR", message: String(err) });
       }

@@ -109,6 +109,8 @@ const ENTITY_LABEL_COLLISION_PADDING_PX = 4;
 const LABEL_ZOOM_BUCKETS_PER_UNIT = 4;
 /** Re-evaluate icon visibility/color only on coarse zoom buckets, not every wheel delta. */
 const ICON_ZOOM_BUCKETS_PER_UNIT = 8;
+/** Cluster/edge label layers rebuild only when zoom crosses this bucket. */
+const LABEL_COLOR_ZOOM_BUCKETS_PER_UNIT = 24;
 /** Worker-side edge/LOD geometry does not need every tiny wheel delta. */
 const WORKER_VIEWPORT_ZOOM_BUCKETS_PER_UNIT = 16;
 const WORKER_VIEWPORT_MAX_FPS = 20;
@@ -134,6 +136,10 @@ function labelZoomBucket(zoom: number): number {
 
 function iconZoomBucket(zoom: number): number {
   return Math.floor(zoom * ICON_ZOOM_BUCKETS_PER_UNIT);
+}
+
+function labelColorZoomBucket(zoom: number): number {
+  return Math.round(zoom * LABEL_COLOR_ZOOM_BUCKETS_PER_UNIT);
 }
 
 function workerViewportZoom(zoom: number): number {
@@ -330,6 +336,10 @@ export class Scene {
   #labelLayers: Layer[] = [];
   #labelZoomBucket = labelZoomBucket(viewStateZoom(INITIAL_VIEW_STATE));
   #iconZoomBucket = iconZoomBucket(viewStateZoom(INITIAL_VIEW_STATE));
+  #labelColorZoomBucket = labelColorZoomBucket(
+    viewStateZoom(INITIAL_VIEW_STATE),
+  );
+
   /**
    * The always-on entity-label SET + resolved text. Rebuilt ONLY on a zoom or structure change
    * (the perf rule -- never an O(n) scan or a label resolve on a pan / position frame); the
@@ -402,6 +412,8 @@ export class Scene {
   #hasLastViewport = false;
   #lastViewportSentAt = 0;
   #entityLabelsFrame: number | null = null;
+  /** Signature of the last hub-label set emitted to React; skips setState when unchanged. */
+  #lastEmittedLabelSignature = "";
   #isDragging = false;
   /** Persistent cluster-bubble set: rebuilt on structure, positions mutated in place. */
   #placed: PlacedCluster[] = [];
@@ -698,23 +710,23 @@ export class Scene {
 
   #applyViewState(viewState: ViewState): void {
     const nextZoom = viewStateZoom(viewState);
-    const zoomChanged = nextZoom !== viewStateZoom(this.#viewState);
     const nextLabelZoomBucket = labelZoomBucket(nextZoom);
     const labelEligibilityChanged =
       nextLabelZoomBucket !== this.#labelZoomBucket;
     const nextIconZoomBucket = iconZoomBucket(nextZoom);
     const iconEligibilityChanged = nextIconZoomBucket !== this.#iconZoomBucket;
+    const nextLabelColorZoomBucket = labelColorZoomBucket(nextZoom);
+    const labelColorBucketChanged =
+      nextLabelColorZoomBucket !== this.#labelColorZoomBucket;
     this.#viewState = viewState;
     this.#labelZoomBucket = nextLabelZoomBucket;
     this.#iconZoomBucket = nextIconZoomBucket;
+    this.#labelColorZoomBucket = nextLabelColorZoomBucket;
     this.#deck.setProps({ viewState });
     this.#scheduleViewport();
-    // Cluster/edge labels fade by zoom alpha, so their cheap layer props update on zoom. Entity
-    // label eligibility is the expensive O(dots) path and only changes on coarse zoom buckets.
-    // GPU layer reconciliation is the expensive path. Only ZOOM needs it (screen-size LOD changes
-    // which dots label + the label/edge layers); a pure pan reprojects the canvas via viewState, so
-    // skip the rebuild there.
-    if (zoomChanged) {
+    // Label layers rebuild on zoom bucket changes; a pure pan reprojects
+    // via viewState with no rebuild.
+    if (labelColorBucketChanged) {
       this.#rebuildLabels();
     }
     if (labelEligibilityChanged) {
@@ -722,7 +734,7 @@ export class Scene {
     }
     if (iconEligibilityChanged) {
       this.#refreshDataLayers();
-    } else if (zoomChanged) {
+    } else if (labelColorBucketChanged) {
       this.#pushLayers();
     }
     // HTML overlays (selection / highway / cluster cards + hub labels) are positioned by PROJECTED
@@ -1555,6 +1567,18 @@ export class Scene {
       occupied.push(rect);
       labels.push({ entityId: datum.entityId, text: datum.text, x: labelX, y });
     }
+    // Skip the React setState when the projected label set is unchanged
+    // (positions rounded to whole pixels so sub-pixel drift is invisible).
+    const signature = labels
+      .map(
+        (label) =>
+          `${label.entityId}|${Math.round(label.x)}|${Math.round(label.y)}|${label.text}`,
+      )
+      .join(";");
+    if (signature === this.#lastEmittedLabelSignature) {
+      return;
+    }
+    this.#lastEmittedLabelSignature = signature;
     onLabels(labels);
   }
 

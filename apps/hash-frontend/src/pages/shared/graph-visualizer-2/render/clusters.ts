@@ -1,10 +1,6 @@
 /**
- * The hierarchical-LOD render, split by update rate:
- *  - cluster bubbles: a persistent `placed` array (rebuilt on structure, positions mutated
- *    in place each settling frame) drawn by `clusterBubbleLayer` with `updateTriggers`, so a
- *    tick re-uploads only positions, never radius/colour;
- *  - per open leaf, its entity-incident edges (straight lines) and entity dots, read
- *    straight from the leaf SAB so lines and dots never tear.
+ * Hierarchical-LOD render: cluster bubbles (positions mutated in place,
+ * radius/colour stable) and per-leaf entity dots + edges from the leaf SAB.
  */
 import { LineLayer, ScatterplotLayer } from "@deck.gl/layers";
 
@@ -47,8 +43,7 @@ function containerFillColor(
   return [red, green, blue, out];
 }
 
-/** Build the bubble set from a structure frame, ordered deepest-container-first so leaf
- * bubbles land on top. */
+/** Build placed bubbles from a structure frame, deepest-container-first. */
 export function buildPlaced(
   structure: StructureFrame,
   positions: PositionsFrame,
@@ -64,8 +59,7 @@ export function buildPlaced(
   return placed;
 }
 
-/** Mutate the placed bubbles' positions in place (array identity preserved, so the bubble
- * layer's updateTrigger is what re-uploads them, leaving radius/colour untouched). */
+/** Mutate placed positions in place (array identity preserved for updateTrigger). */
 export function updatePlaced(
   placed: PlacedCluster[],
   positions: PositionsFrame,
@@ -77,14 +71,12 @@ export function updatePlaced(
   }
 }
 
-/** Cluster bubbles. `positionTick` drives the getPosition updateTrigger, so a settling
- * frame re-uploads only positions; radius regenerates only when `placed` is rebuilt (the
- * structure changed), and colour also when `highlightTick` changes (the focus dim). */
+/** Cluster bubble layer. Position re-uploads on tick; radius on structure change;
+ * colour on highlight change. */
 export function clusterBubbleLayer(
   placed: PlacedCluster[],
   positionTick: number,
-  /** While a highlight is active, the clusters to keep at full colour (the rest recede); null
-   * when nothing is selected. `highlightTick` drives the getFillColor updateTrigger. */
+  /** Clusters to keep at full colour during a highlight; null when no selection. */
   keepFull: ReadonlySet<ClusterId> | null,
   highlightTick: number,
 ): Layer {
@@ -119,8 +111,7 @@ export function clusterBubbleLayer(
   });
 }
 
-/** Per open leaf: its entity-incident edges (straight) and entity dots, drawn ON TOP of
- * the faint container bubble. */
+/** Per open leaf: entity-incident edges and entity dots. */
 export function clusterEntityLayers(config: {
   readonly structure: StructureFrame;
   readonly positions: PositionsFrame;

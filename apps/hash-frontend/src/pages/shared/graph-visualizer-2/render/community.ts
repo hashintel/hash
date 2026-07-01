@@ -4,19 +4,13 @@ import {
   FLAT_RECORD_BYTES,
 } from "../worker/buffers/position-buffer";
 /**
- * community-force "BubbleSets": one crisp metaball isocontour per Louvain community,
- * drawn behind the dots/edges. Pure layer builder — gathers each kept community's node
- * centres (from the same SAB the dots read) into the {@link BubbleSetSDFLayer}'s positions
- * texture; the shader sums + thresholds the field.
+ * Community-force metaball isocontours: one per Louvain community, drawn
+ * behind dots/edges. Gathers each kept community's node centres from the
+ * SAB into a positions texture; the SDF shader sums and thresholds the field.
  *
- * PERF TODO (only if this shows up in a profile): this re-gathers the grouped positions
- * texture and recomputes the bbox every frame (O(nodes)). The win is a STABLE per-community
- * index list ([offset, count] into an index buffer of SAB node indices), rebuilt only when
- * communities change (Louvain rerun), with the SDF shader reading SAB positions directly via
- * that index (stride-aware, since the SAB is interleaved); keep the bbox CPU from the index
- * lists (cheap O(nodes) min/max) or move it to a GPU reduction. NOTE: the naive "per-node
- * membership + -1, scan all nodes per pixel" is a REGRESSION (O(N)/pixel) — the index list is
- * the win. Last resort: move the grouping + bbox into the worker and ride the frame.
+ * The per-community index list is cached by `communities` array identity
+ * ({@link groupingCache}); a settling frame skips the regroup and only
+ * re-gathers moved node centres plus recomputes bounding boxes.
  */
 import { BubbleSetSDFLayer } from "./gpu/bubble-set-sdf-layer";
 
@@ -36,32 +30,34 @@ const MIN_COMMUNITY_SIZE = 4;
 const BUBBLE_TEX_WIDTH = 256;
 
 /**
- * Community "BubbleSets" for community-force: ONE crisp metaball isocontour per
- * Louvain community, coloured by community, drawn BEHIND the dots/edges. Builds
- * the per-community instances (bbox + colour + node range) and a positions texture
- * of the kept communities' node centres (gathered from the SAME SAB as the dots);
- * the layer's shader sums + thresholds the field. Only non-trivial communities are
- * promoted ({@link MIN_COMMUNITY_SIZE}). Absent in flat-force (no `communities`).
+ * Stable grouping for one Louvain result. Changes only when Louvain reruns;
+ * cached by array identity and reused across position frames while settling.
  */
-export function communityLayer(
-  graph: RenderFlatGraph,
-  clusters: Map<ClusterId, ClusterReference>,
-): Layer[] {
-  const membership = graph.communities;
-  if (!membership) {
-    return [];
-  }
-  const cluster = clusters.get(graph.layoutId);
-  if (!cluster) {
-    return [];
-  }
-  const floats = new Float32Array(cluster.versionView.buffer);
-  const headerFloats = FLAT_HEADER_BYTES / 4;
-  const recordFloats = FLAT_RECORD_BYTES / 4;
+interface CommunityGrouping {
+  /** Kept communities' node SAB indices, laid out community-by-community in gather order. */
+  readonly memberIndices: Int32Array;
+  /** Per kept community: `[offset, count]` into {@link memberIndices} / the positions texture. */
+  readonly ranges: Float32Array;
+  /** Per kept community RGBA (community id → colour). Constant for the grouping's life. */
+  readonly colors: Uint8Array;
+  readonly keptCount: number;
+  readonly texWidth: number;
+  readonly texHeight: number;
+  /** Node-centre texture data, refilled from the SAB each frame. */
+  readonly positions: Float32Array;
+  /** Bumped on each refill to trigger an in-place texture re-upload. */
+  version: number;
+}
 
-  // Group node indices by community; keep only the non-trivial ones.
+const groupingCache = new WeakMap<Int32Array, CommunityGrouping>();
+
+/** Build the stable grouping for a Louvain membership array, or null if no community is big enough. */
+function buildGrouping(
+  membership: Int32Array,
+  count: number,
+): CommunityGrouping | null {
   const byCommunity = new Map<number, number[]>();
-  for (let idx = 0; idx < graph.count; idx++) {
+  for (let idx = 0; idx < count; idx++) {
     const community = membership[idx] ?? -1;
     if (community < 0) {
       continue;
@@ -77,56 +73,109 @@ export function communityLayer(
     ([, members]) => members.length >= MIN_COMMUNITY_SIZE,
   );
   if (kept.length === 0) {
-    return [];
+    return null;
   }
 
-  // Per-community node centres → one grouped positions texture; per-community
-  // instances (bbox padded by the field radius so the kernel falloff fits, colour,
-  // and the [offset, count] range into the texture).
   const totalNodes = kept.reduce((sum, [, members]) => sum + members.length, 0);
   const texHeight = Math.max(1, Math.ceil(totalNodes / BUBBLE_TEX_WIDTH));
-  const positions = new Float32Array(BUBBLE_TEX_WIDTH * texHeight * 2);
-  const bounds = new Float32Array(kept.length * 4);
-  const colors = new Uint8Array(kept.length * 4);
+  const memberIndices = new Int32Array(totalNodes);
   const ranges = new Float32Array(kept.length * 2);
+  const colors = new Uint8Array(kept.length * 4);
 
   let offset = 0;
   for (let ci = 0; ci < kept.length; ci++) {
     const [community, members] = kept[ci]!;
-    const start = offset;
-    let minX = Infinity;
-    let minY = Infinity;
-    let maxX = -Infinity;
-    let maxY = -Infinity;
-    for (const idx of members) {
-      const posX = floats[headerFloats + idx * recordFloats] ?? 0;
-      const posY = floats[headerFloats + idx * recordFloats + 1] ?? 0;
-      positions[offset * 2] = posX;
-      positions[offset * 2 + 1] = posY;
-      minX = Math.min(minX, posX);
-      maxX = Math.max(maxX, posX);
-      minY = Math.min(minY, posY);
-      maxY = Math.max(maxY, posY);
-      offset += 1;
-    }
-    bounds[ci * 4] = minX - FLAT_BUBBLE_FIELD_RADIUS;
-    bounds[ci * 4 + 1] = minY - FLAT_BUBBLE_FIELD_RADIUS;
-    bounds[ci * 4 + 2] = maxX + FLAT_BUBBLE_FIELD_RADIUS;
-    bounds[ci * 4 + 3] = maxY + FLAT_BUBBLE_FIELD_RADIUS;
+    ranges[ci * 2] = offset;
+    ranges[ci * 2 + 1] = members.length;
     const [red, green, blue, alpha] = communityColorForId(community);
     colors[ci * 4] = red;
     colors[ci * 4 + 1] = green;
     colors[ci * 4 + 2] = blue;
     colors[ci * 4 + 3] = alpha;
-    ranges[ci * 2] = start;
-    ranges[ci * 2 + 1] = members.length;
+    for (const idx of members) {
+      memberIndices[offset] = idx;
+      offset += 1;
+    }
   }
+
+  return {
+    memberIndices,
+    ranges,
+    colors,
+    keptCount: kept.length,
+    texWidth: BUBBLE_TEX_WIDTH,
+    texHeight,
+    positions: new Float32Array(BUBBLE_TEX_WIDTH * texHeight * 2),
+    version: 0,
+  };
+}
+
+/**
+ * Build the community bubble-set layer for the current frame. The grouping
+ * topology is cached; only node centres and bounding boxes are refreshed.
+ */
+export function communityLayer(
+  graph: RenderFlatGraph,
+  clusters: Map<ClusterId, ClusterReference>,
+): Layer[] {
+  const membership = graph.communities;
+  if (!membership) {
+    return [];
+  }
+  const cluster = clusters.get(graph.layoutId);
+  if (!cluster) {
+    return [];
+  }
+
+  let grouping = groupingCache.get(membership);
+  if (grouping === undefined) {
+    const built = buildGrouping(membership, graph.count);
+    if (built === null) {
+      return [];
+    }
+    grouping = built;
+    groupingCache.set(membership, grouping);
+  }
+
+  const floats = new Float32Array(cluster.versionView.buffer);
+  const headerFloats = FLAT_HEADER_BYTES / 4;
+  const recordFloats = FLAT_RECORD_BYTES / 4;
+  const { memberIndices, ranges, colors, keptCount, positions } = grouping;
+
+  // Re-gather node centres + recompute bounding boxes. `bounds` is re-allocated
+  // (Deck re-uploads it); `positions` is refilled in place (version-driven upload).
+  const bounds = new Float32Array(keptCount * 4);
+  for (let ci = 0; ci < keptCount; ci++) {
+    const start = ranges[ci * 2]!;
+    const memberCount = ranges[ci * 2 + 1]!;
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+    for (let member = 0; member < memberCount; member++) {
+      const slot = start + member;
+      const idx = memberIndices[slot]!;
+      const posX = floats[headerFloats + idx * recordFloats] ?? 0;
+      const posY = floats[headerFloats + idx * recordFloats + 1] ?? 0;
+      positions[slot * 2] = posX;
+      positions[slot * 2 + 1] = posY;
+      minX = Math.min(minX, posX);
+      maxX = Math.max(maxX, posX);
+      minY = Math.min(minY, posY);
+      maxY = Math.max(maxY, posY);
+    }
+    bounds[ci * 4] = minX - FLAT_BUBBLE_FIELD_RADIUS;
+    bounds[ci * 4 + 1] = minY - FLAT_BUBBLE_FIELD_RADIUS;
+    bounds[ci * 4 + 2] = maxX + FLAT_BUBBLE_FIELD_RADIUS;
+    bounds[ci * 4 + 3] = maxY + FLAT_BUBBLE_FIELD_RADIUS;
+  }
+  grouping.version += 1;
 
   return [
     new BubbleSetSDFLayer({
       id: "flat-bubbles",
       data: {
-        length: kept.length,
+        length: keptCount,
         attributes: {
           getBounds: { value: bounds, size: 4 },
           getColor: { value: colors, size: 4 },
@@ -134,8 +183,9 @@ export function communityLayer(
         },
       },
       positions,
-      texWidth: BUBBLE_TEX_WIDTH,
-      texHeight,
+      positionsVersion: grouping.version,
+      texWidth: grouping.texWidth,
+      texHeight: grouping.texHeight,
       fieldRadius: FLAT_BUBBLE_FIELD_RADIUS,
       isoThreshold: 0.58,
       // A backdrop must not write depth, or its bounding quad stamps the depth buffer and the

@@ -1,9 +1,8 @@
 /**
- * Text labels, faded by on-screen size so they don't pop in/out at low zoom: cluster labels (by
- * bubble radius) and highway connection-count labels (by edge chord length) for the hierarchical
- * tier. `zoom` is the current view zoom (`2 ** zoom` = world->pixel scale).
+ * Cluster and highway edge labels, faded by on-screen size so they don't
+ * pop in/out at low zoom.
  *
- * PERF TODO: Use the collision extension instead to automtically cull overlapping labels.
+ * PERF TODO: Use the collision extension to automatically cull overlapping labels.
  */
 import { TextLayer } from "@deck.gl/layers";
 

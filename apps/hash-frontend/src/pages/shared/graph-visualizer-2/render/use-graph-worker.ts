@@ -1,9 +1,4 @@
-/**
- * Thin React lifecycle wrapper around {@link WorkerConnection}: creates the
- * connection on mount, surfaces the only two pieces of state the tree re-renders on
- * (`ready` for the ingest gate, `error`), and feeds it new type schemas. All per-frame
- * data flows through the connection's subscribe stream, never React state.
- */
+/** React lifecycle wrapper around {@link WorkerConnection}. */
 import { useEffect, useState } from "react";
 
 import { defaultVizConfig } from "../config";
@@ -17,11 +12,7 @@ interface UseGraphWorkerOptions {
   readonly config?: VizConfig;
   readonly typeSchemas: readonly TypeSchemaEntry[];
   readonly propertySchemas: readonly PropertySchemaEntry[];
-  /**
-   * Tears down and recreates the worker whenever this value changes. The worker's ingest is
-   * additive, so it has no way to retract entities; the caller changes this when the entity set is
-   * REPLACED (its data source changed), not merely extended, to start from a clean slate.
-   */
+  /** Changing this tears down and recreates the worker (clean-slate reset). */
   readonly resetKey?: string | number;
 }
 

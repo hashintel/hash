@@ -408,24 +408,40 @@ export const EntityGraphVisualizerV2 = memo(
     // image URL); a ReactElement icon (system-type override) or none -> null -> no atlas entry,
     // so that dot simply shows no icon. NOT gated on hubs: the IconLayer's soft-LOD sizing hides
     // icons on dots that are small on screen, so every entity is eligible.
+    // Icon resolution walks the type hierarchy; memo by type-set key so
+    // each distinct set resolves once. Cache resets when the root map changes.
+    const iconByTypeKey = useMemo(() => {
+      void closedMultiEntityTypesRootMap;
+      return new Map<string, string | null>();
+    }, [closedMultiEntityTypesRootMap]);
     const resolveEntityIcon = useCallback(
       (entityId: EntityId): string | null => {
         const entity = entityById.get(entityId);
         if (!entity || !closedMultiEntityTypesRootMap) {
           return null;
         }
+        const typeKey = [...entity.metadata.entityTypeIds]
+          .sort()
+          .join("\u0000");
+        const cached = iconByTypeKey.get(typeKey);
+        if (cached !== undefined) {
+          return cached;
+        }
+        let resolved: string | null;
         try {
           const closedType = getClosedMultiEntityTypeFromMap(
             closedMultiEntityTypesRootMap,
             entity.metadata.entityTypeIds,
           );
           const { icon } = getDisplayFieldsForClosedEntityType(closedType);
-          return typeof icon === "string" && icon.length > 0 ? icon : null;
+          resolved = typeof icon === "string" && icon.length > 0 ? icon : null;
         } catch {
-          return null;
+          resolved = null;
         }
+        iconByTypeKey.set(typeKey, resolved);
+        return resolved;
       },
-      [entityById, closedMultiEntityTypesRootMap],
+      [entityById, closedMultiEntityTypesRootMap, iconByTypeKey],
     );
 
     // Reset when the worker is torn down (ready goes false→true on first build OR a sourceKey

@@ -1,6 +1,6 @@
 /**
- * Hierarchical edges render as GPU SDF beziers. Flat edges reuse the same packed segment buffer,
- * but render as plain LineLayer segments because their control points are collinear.
+ * Edge rendering: hierarchical edges as GPU SDF beziers, flat edges as
+ * LineLayer segments (collinear control points).
  */
 import { LineLayer } from "@deck.gl/layers";
 

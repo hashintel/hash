@@ -14,11 +14,6 @@ interface EdgeArrowSplit {
   readonly endpoints: RenderEdgeArrow[];
 }
 
-const edgeArrowSplitCache = new WeakMap<
-  readonly RenderEdgeArrow[],
-  EdgeArrowSplit
->();
-
 function fadeAlpha(screenMetric: number, threshold: number, alpha: number) {
   const progress = Math.min(
     1,
@@ -37,11 +32,8 @@ function arrowAngleDegrees(arrow: RenderEdgeArrow): number {
 }
 
 function splitEdgeArrows(arrows: readonly RenderEdgeArrow[]): EdgeArrowSplit {
-  const cached = edgeArrowSplitCache.get(arrows);
-  if (cached) {
-    return cached;
-  }
-
+  // `positions.edgeArrows` is a fresh array every frame (the worker transfers it), so there is
+  // nothing stable to cache by; the partition is a couple of cheap pushes over a bounded list.
   const lanes: RenderEdgeArrow[] = [];
   const endpoints: RenderEdgeArrow[] = [];
   for (const arrow of arrows) {
@@ -51,10 +43,7 @@ function splitEdgeArrows(arrows: readonly RenderEdgeArrow[]): EdgeArrowSplit {
       endpoints.push(arrow);
     }
   }
-
-  const split = { lanes, endpoints };
-  edgeArrowSplitCache.set(arrows, split);
-  return split;
+  return { lanes, endpoints };
 }
 
 export function edgeArrowLayer(

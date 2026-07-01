@@ -32,6 +32,77 @@ Headline findings:
 
 ---
 
+## Status (updated)
+
+`commitStructure` is now **change‑aware** rather than unconditionally rebuilding
+every commit. Implemented in `core/graph-worker.ts`, guarded by
+`core/graph-worker.test.ts`:
+
+- **F1 — fixed.** The flat/community commit maintains the sorted node‑index list
+  incrementally (no per‑commit O(N log N) re‑sort), detects topology change from
+  monotonic node/link counts in O(1) (no dual‑`Set` scan), returns early on a
+  true no‑op, and separates a cheap restyle‑only path (type change / root flip)
+  from a full topology rebuild. **No‑op re‑commit: ~8.45 ms → ~25 ns** at 1,500
+  nodes (`commit-rebuild.bench.ts`).
+- **F10 — fixed.** `handleViewport` hands its already‑computed cut to
+  `commitStructure`, which reuses it instead of walking the tree a second time
+  (unless the commit itself mutated the tree).
+- **F13 — fixed.** The distinctive‑feature naming job re‑emits the current
+  topology with fresh labels (`#recommitLabelsOnly`) instead of forcing a second
+  full cut + aggregation rebuild.
+- **Hierarchical no‑op — fixed.** The hierarchical commit now classifies a no‑op
+  with a monotonic `#clusterEpoch` (bumped by every tree mutation: rebuild,
+  incremental update, lazy subdivision, embedding result) plus the link count and
+  an unchanged cut open‑state; when all match (and no root flip is pending) it
+  skips `CutIndex`, edge aggregation, entity layers, and both frame emits. A bare
+  no‑op re‑commit at 8,000 nodes is **~6.5 µs** (`commit-rebuild.bench.ts`), down
+  from ~3.2 ms. It doesn't reach the flat tier's ~26 ns because the guard sits
+  _after_ `computeVisibleCut`, so the cut is still recomputed — but that walk only
+  covers the _open_ part of the tree, so at a typical viewport it is itself only a
+  few µs. A pre‑cut short‑circuit (skip `computeVisibleCut` when epoch, link count,
+  viewport, pinned set, and cluster‑layout positions are all unchanged since the
+  last emit) could shave the residual, but it is a minor win. Making `CutIndex`
+  incremental for _real_ cut changes (F9) is still open.
+- **`pin()` guard — fixed.** Pinning/unpinning now mirrors `handleViewport`:
+  it recomputes the candidate cut with the new pin set and commits only when the
+  open‑state actually changes, so pinning a leaf the current zoom already opens is
+  no longer a full hierarchical rebuild.
+- **`REGISTER_TYPES` classification + ingest‑driven top‑level re‑layout — fixed.**
+  `registerTypes` reports whether a genuinely new type (or property title) was
+  added, and `entry.ts` commits `rebuildTree: true` only when a new type arrived;
+  an identical re‑registration — the common case — commits nothing. A first,
+  gating‑only attempt regressed the top level: the expansion flow
+  (`entity-graph-visualizer.tsx`) sends `registerTypes` then `ingestBatch`, and the
+  old code re‑arranged the top‑level clusters purely as a _side effect_ of the
+  registration's `rebuildTree` (which clears `#forceLayouts`). With the commit
+  gated off for known types, expanding into them left the overview frozen (proven
+  in `graph-worker.test.ts`). The fix makes top‑level re‑layout a first‑class
+  property of _ingest_: the root macro layout re‑warms when a top‑level cluster
+  grows past `GROWTH_RELAYOUT_TOLERANCE_FRAC` (`layoutOutgrown` /
+  `#clusterLayoutOutgrown`), complementing the overlap‑driven rebuild
+  (`layoutNeedsRebuild`). A growing hierarchy now visibly re‑arranges as data
+  streams in, while a trickle of new members and redundant type re‑registrations
+  both stay stable (no churn). The threshold is deliberately separate from the
+  overlap guard, which treats growth‑with‑slack as churn to avoid.
+- **Duplicate leaf maps — fixed.** The per‑leaf entity‑index → local‑slot map is
+  memoised on the layout object (`#leafLocalOf`), so `#buildEntityLayers`
+  (structure) and `#buildEntityFanOut` (positions) build it once per leaf per
+  topology and reuse it across position ticks, instead of rebuilding it twice per
+  emit.
+
+Still open (call‑frequency, not `commitStructure` internals): **F2** — `entry.ts`
+still issues one commit per `INGEST_BATCH`, so a streamed graph is ~24× a bulk
+load. Coalescing a streaming burst into a single commit (accumulating + merging
+deltas, deferred via a MessageChannel behind the queued batches) is the
+recommended next step. **F9** (incremental `CutIndex` for real cut changes) and
+the remaining medium items below are also unaddressed. The broader versioned
+invalidation the review sketches (per‑artifact dirty bits for highway lanes,
+ports, rendered‑cluster metadata, Bézier geometry) is a larger follow‑up; the
+guards above cover the true no‑op and the specific redundant recomputations
+called out, not per‑artifact caching on partial changes.
+
+---
+
 ## 1. Methodology
 
 ### Fixtures

@@ -2,7 +2,9 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  GROWTH_RELAYOUT_TOLERANCE_FRAC,
   layoutNeedsRebuild,
+  layoutOutgrown,
   OVERLAP_REBUILD_TOLERANCE_FRAC,
 } from "./layout-reuse";
 
@@ -89,5 +91,47 @@ describe("layoutNeedsRebuild", () => {
         ],
       ),
     ).toBe(true);
+  });
+});
+
+describe("layoutOutgrown", () => {
+  const buildTime = [
+    { id: "a", radius: 40 },
+    { id: "b", radius: 40 },
+  ] as const;
+
+  it("re-warms once a child grows past the threshold", () => {
+    const past = 40 * (1 + GROWTH_RELAYOUT_TOLERANCE_FRAC) + 1;
+    expect(
+      layoutOutgrown(buildTime, [
+        { id: "a", radius: past },
+        { id: "b", radius: 40 },
+      ]),
+    ).toBe(true);
+  });
+
+  it("keeps the layout while growth stays within the threshold", () => {
+    const within = 40 * (1 + GROWTH_RELAYOUT_TOLERANCE_FRAC) - 1;
+    expect(
+      layoutOutgrown(buildTime, [
+        { id: "a", radius: within },
+        { id: "b", radius: within },
+      ]),
+    ).toBe(false);
+  });
+
+  it("never re-warms on a shrink", () => {
+    expect(
+      layoutOutgrown(buildTime, [
+        { id: "a", radius: 10 },
+        { id: "b", radius: 5 },
+      ]),
+    ).toBe(false);
+  });
+
+  it("ignores ids not present when the layout was built", () => {
+    // A genuinely new cluster is layoutNeedsRebuild's job (count change), not
+    // this growth check — so an unknown id alone must not trigger a re-warm.
+    expect(layoutOutgrown(buildTime, [{ id: "z", radius: 9_999 }])).toBe(false);
   });
 });

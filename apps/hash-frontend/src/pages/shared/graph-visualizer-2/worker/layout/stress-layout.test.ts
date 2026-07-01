@@ -6,6 +6,7 @@ import {
   FLAT_RECORD_BYTES,
   FlatGraphBuffer,
 } from "../buffers/position-buffer";
+import { countOverlaps } from "./overlap-relax";
 import { createStressLayout } from "./stress-layout";
 
 import type {
@@ -22,6 +23,20 @@ function settle(layout: LayoutSimulation): void {
 
 function positionsOf(layout: LayoutSimulation): [number, number][] {
   return layout.nodes.map((node) => [node.x ?? 0, node.y ?? 0]);
+}
+
+/** Count disk-overlapping pairs in a settled layout (centres closer than r_i + r_j + padding). */
+function overlapCountOf(layout: LayoutSimulation, padding = 0): number {
+  const count = layout.nodes.length;
+  const x = new Float32Array(count);
+  const y = new Float32Array(count);
+  const radii = new Float32Array(count);
+  for (const [index, node] of layout.nodes.entries()) {
+    x[index] = node.x ?? 0;
+    y[index] = node.y ?? 0;
+    radii[index] = node.radius;
+  }
+  return countOverlaps({ x, y, radii, count, padding });
 }
 
 function makeNodes(count: number): ForceNode[] {
@@ -207,6 +222,65 @@ describe("createStressLayout", () => {
     const node4 = layout.nodes[4]!;
     expect(view[4 * slots]).toBeCloseTo(node4.x ?? 0, 3);
     expect(view[4 * slots + 1]).toBeCloseTo(node4.y ?? 0, 3);
+  });
+
+  it("settles a dense hub (1 + 120 leaves) with zero disk overlaps", () => {
+    const count = 121;
+    const nodes = makeNodes(count);
+    const edges: ForceEdge[] = [];
+    for (let leaf = 1; leaf < count; leaf++) {
+      edges.push({ source: "0", target: String(leaf), weight: 1 });
+    }
+    const layout = layoutOf(nodes, edges);
+    settle(layout);
+
+    expect(layout.isSettled).toBe(true);
+    // The soft fused term alone leaves residual overlaps around the hub; the terminal
+    // VPSC projection must drive them to exactly zero.
+    expect(overlapCountOf(layout, 0)).toBe(0);
+  });
+
+  it("also removes overlaps after a warm absorb (terminal projection re-runs)", () => {
+    const nodes = makeNodes(40);
+    const edges: ForceEdge[] = [];
+    for (let leaf = 1; leaf < 40; leaf++) {
+      edges.push({ source: "0", target: String(leaf), weight: 1 });
+    }
+    const layout = layoutOf(nodes, edges);
+    settle(layout);
+    expect(overlapCountOf(layout, 0)).toBe(0);
+
+    const newNodes: ForceNode[] = [];
+    const grownEdges: ForceEdge[] = [...edges];
+    for (let id = 40; id < 90; id++) {
+      newNodes.push({ id: String(id), x: 0, y: 0, radius: 4 });
+      grownEdges.push({ source: "0", target: String(id), weight: 1 });
+    }
+    layout.absorb!(newNodes, grownEdges);
+    settle(layout);
+
+    expect(layout.isSettled).toBe(true);
+    expect(layout.nodes.length).toBe(90);
+    expect(overlapCountOf(layout, 0)).toBe(0);
+  });
+
+  it("interleaved overlap removal also ends overlap-free", () => {
+    const count = 121;
+    const nodes = makeNodes(count);
+    const edges: ForceEdge[] = [];
+    for (let leaf = 1; leaf < count; leaf++) {
+      edges.push({ source: "0", target: String(leaf), weight: 1 });
+    }
+    const layout = createStressLayout(
+      nodes,
+      edges,
+      new FlatGraphBuffer(nodes.length),
+      { overlapRemovalInterval: 10 },
+    );
+    settle(layout);
+
+    expect(layout.isSettled).toBe(true);
+    expect(overlapCountOf(layout, 0)).toBe(0);
   });
 
   it("re-globalises (refreshes Louvain communities) after significant growth", () => {

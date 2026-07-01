@@ -155,6 +155,8 @@ interface BubbleSetSDFLayerProps extends LayerProps {
   readonly data: BinaryData;
   /** Node centres (world), grouped by community: `texWidth * texHeight` rg32f texels. */
   readonly positions: Float32Array;
+  /** Bumped when positions are refilled in place; drives a texture re-upload without reallocation. */
+  readonly positionsVersion?: number;
   readonly texWidth: number;
   readonly texHeight: number;
   /** Metaball field radius per node, in `common` (world) units. */
@@ -164,6 +166,7 @@ interface BubbleSetSDFLayerProps extends LayerProps {
 
 const defaultProps = {
   positions: { type: "object" as const, value: new Float32Array(0) },
+  positionsVersion: { type: "number" as const, value: 0 },
   texWidth: { type: "number" as const, value: 256 },
   texHeight: { type: "number" as const, value: 1 },
   fieldRadius: { type: "number" as const, value: 55 },
@@ -219,12 +222,19 @@ export class BubbleSetSDFLayer extends Layer<BubbleSetSDFLayerProps> {
       this.getAttributeManager()?.invalidateAll();
     }
 
-    if (
-      props.positions !== oldProps.positions ||
+    const state = this.state as BubbleLayerState;
+    const dimensionsChanged =
       props.texWidth !== oldProps.texWidth ||
-      props.texHeight !== oldProps.texHeight
+      props.texHeight !== oldProps.texHeight;
+    if (state.texture === undefined || dimensionsChanged) {
+      // First build or dimensions changed: (re)allocate the texture.
+      this._createTexture();
+    } else if (
+      props.positions !== oldProps.positions ||
+      props.positionsVersion !== oldProps.positionsVersion
     ) {
-      this._updateTexture();
+      // Same dimensions, moved centres: re-upload in place.
+      this._uploadTexture();
     }
   }
 
@@ -252,8 +262,8 @@ export class BubbleSetSDFLayer extends Layer<BubbleSetSDFLayerProps> {
     super.finalizeState(context);
   }
 
-  /** (Re)upload the per-community-grouped node positions as an rg32float texture. */
-  _updateTexture() {
+  /** Allocate the rg32float positions texture and upload the current node centres. */
+  _createTexture() {
     const state = this.state as BubbleLayerState;
     state.texture?.destroy();
     state.texture = this.context.device.createTexture({
@@ -262,6 +272,15 @@ export class BubbleSetSDFLayer extends Layer<BubbleSetSDFLayerProps> {
       height: this.props.texHeight,
       data: this.props.positions,
       sampler: { minFilter: "nearest", magFilter: "nearest" },
+    });
+  }
+
+  /** Re-upload moved node centres into the existing texture. */
+  _uploadTexture() {
+    const state = this.state as BubbleLayerState;
+    state.texture?.writeData(this.props.positions, {
+      width: this.props.texWidth,
+      height: this.props.texHeight,
     });
   }
 

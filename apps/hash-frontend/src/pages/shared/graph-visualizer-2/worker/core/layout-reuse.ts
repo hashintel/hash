@@ -73,3 +73,37 @@ export function layoutNeedsRebuild(
   }
   return false;
 }
+
+/**
+ * How much a child may grow (as a fraction of its build-time radius) before
+ * the layout is re-warmed. Separate from {@link layoutNeedsRebuild} (which
+ * fires on infeasible overlaps): this is a voluntary re-pack so growing
+ * clusters visibly re-arrange before any overlap occurs. The threshold
+ * prevents re-warming on every streaming batch.
+ *
+ * Radius grows as `sqrt(count)`, so 0.15 ≈ +32% members.
+ */
+export const GROWTH_RELAYOUT_TOLERANCE_FRAC = 0.15;
+
+/**
+ * Whether any child's radius has grown past `toleranceFrac` of the radius it had
+ * when the layout was built (`buildTime`). Ids only present on one side are
+ * ignored — {@link layoutNeedsRebuild} owns set-membership changes.
+ */
+export function layoutOutgrown(
+  buildTime: readonly SizedNode[],
+  current: readonly SizedNode[],
+  toleranceFrac: number = GROWTH_RELAYOUT_TOLERANCE_FRAC,
+): boolean {
+  const builtRadiusById = new Map<string, number>();
+  for (const node of buildTime) {
+    builtRadiusById.set(node.id, node.radius);
+  }
+  for (const child of current) {
+    const built = builtRadiusById.get(child.id);
+    if (built !== undefined && child.radius > built * (1 + toleranceFrac)) {
+      return true;
+    }
+  }
+  return false;
+}

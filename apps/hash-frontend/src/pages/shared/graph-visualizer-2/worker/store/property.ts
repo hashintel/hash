@@ -129,13 +129,16 @@ export class PropertyStore {
     this.#entityNumericValues = [];
   }
 
-  /** Register property display titles. Additive; later batches never overwrite. */
-  registerTitles(entries: readonly PropertySchemaEntry[]): void {
+  /** Register property display titles. Returns true if any new title was added. */
+  registerTitles(entries: readonly PropertySchemaEntry[]): boolean {
+    let added = false;
     for (const { baseUrl, title } of entries) {
       if (title && !this.#titles.has(baseUrl)) {
         this.#titles.set(baseUrl, title);
+        added = true;
       }
     }
+    return added;
   }
 
   /** Human title for a base URL, falling back to a slug-derived title. */

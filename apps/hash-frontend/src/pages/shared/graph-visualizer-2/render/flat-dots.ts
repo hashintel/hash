@@ -1,9 +1,6 @@
 /**
- * The flat-tier (flat-force / community-force) NODE render: every entity as one dot, read
- * STRAIGHT off the interleaved SAB (positions + radii + colours in one buffer). Fresh
- * typed-array views over the shared bytes each render (zero-copy, new identity so Deck
- * re-uploads) with stride/offset onto the record fields; positions are world coords
- * centred on the origin, so there is no transform. Edges are drawn by the bezier layer.
+ * Flat-tier entity dots: each node as a scatterplot dot, read directly from
+ * the interleaved SAB via stride/offset binary attributes (zero-copy).
  */
 import { ScatterplotLayer } from "@deck.gl/layers";
 
@@ -27,7 +24,7 @@ export function flatDotsLayer(
   if (!cluster) {
     return [];
   }
-  // Views over the WHOLE buffer; the stride/offset address each record field.
+  // Views over the whole buffer; stride/offset address each record field.
   const raw = cluster.versionView.buffer;
   const floats = new Float32Array(raw);
   const bytes = new Uint8Array(raw);

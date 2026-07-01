@@ -1,9 +1,6 @@
 /**
- * The selected entity dot: a ring drawn over it, tracked by the buffer + render index the
- * pick resolved to so its position is read LIVE from the same SAB the dots use. The ring
- * therefore rides a settling layout (via the position tick) and pan/zoom (it is world-space)
- * with no rebuild round-trip. The Scene owns the selection state + gestures; this module
- * owns the geometry read and the layer.
+ * Selection ring over a picked entity dot. Position is read live from the
+ * SAB so the ring rides a settling layout with no rebuild round-trip.
  */
 import { ScatterplotLayer } from "@deck.gl/layers";
 
@@ -43,9 +40,9 @@ export interface SelectionGeometry {
 }
 
 /**
- * The selected node's current world position + radius, or null if its layout/record is gone.
- * The flat buffer is interleaved world-space records; a hierarchical leaf is positions-only
- * and LOCAL to its leaf origin (added back here from the cluster positions frame).
+ * World position + radius of the selected node, or null if its layout is gone.
+ * Flat buffers store world-space records directly; hierarchical leaves are local
+ * to their leaf origin (offset added here from the cluster positions frame).
  */
 export function nodeGeometry(
   layoutId: ClusterId,
@@ -81,11 +78,7 @@ export function nodeGeometry(
   };
 }
 
-/**
- * A screen-space ring over each selected geometry. The anchor is in graph world space, but the
- * mark itself is pixel-sized UI so selection remains readable at every zoom without min/max clamps.
- * Never pickable -- it must not eat the dot it rings.
- */
+/** Screen-space ring at a world-space anchor. Not pickable (must not eat the dot it rings). */
 function ringLayer(
   id: string,
   data: readonly SelectionGeometry[],
@@ -114,11 +107,7 @@ function ringLayer(
   });
 }
 
-/**
- * A neutral ring on the selected node. World-space + `positionTick`-triggered so it tracks
- * settling + pan/zoom; one layer, empty data when nothing is selected so the layer set stays
- * stable. Ego neighbors are conveyed by the focus dim (un-dimmed dots + bubbles), not rings.
- */
+/** Selection ring layers. Empty data when nothing is selected (stable layer set). */
 export function selectionOverlayLayers(
   selected: SelectionGeometry | null,
   positionTick: number,

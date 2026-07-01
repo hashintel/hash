@@ -85,9 +85,10 @@ export class TypeRegistry {
 
   /**
    * Register type schemas. Two passes: first intern everything (so parent
-   * refs resolve), then build ancestor closures.
+   * refs resolve), then build ancestor closures. Returns whether any
+   * schema was newly registered.
    */
-  registerAll(schemas: readonly TypeSchemaEntry[]): void {
+  registerAll(schemas: readonly TypeSchemaEntry[]): boolean {
     const newlyRegistered: TypeId[] = [];
 
     for (const schema of schemas) {
@@ -119,6 +120,8 @@ export class TypeRegistry {
       this.#assignColorSlots(newlyRegistered);
       this.#computeClosures();
     }
+
+    return newlyRegistered.length > 0;
   }
 
   #assignColorSlots(newlyRegistered: readonly TypeId[]): void {

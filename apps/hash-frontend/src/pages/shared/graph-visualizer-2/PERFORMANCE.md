@@ -63,6 +63,28 @@ structure‑frame handler resolve icons per _type_ (not per _dot_) and only for
 added dots. Those two dominate main‑thread frame cost while a graph is streaming
 in or settling.
 
+### Implementation status
+
+| #   | Status            | Notes                                                                                                                                                                                                                                                                     |
+| --- | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| R1  | ⏳ Deferred       | Full layer persistence + per‑layout "moved" gating is a large re‑architecture that changes deck binary‑attribute re‑upload semantics; wants runtime profiling + visual QA. The concrete per‑frame _gather/alloc_ hotspots it names are addressed by R3 (community) below. |
+| R2  | ✅ Done           | `resolveEntityIcon` is memoised by the `entityTypeIds` key in the bridge, so thousands of per‑dot type‑hierarchy walks collapse to one per distinct type‑set. (Incremental "only scan added dots" not done — the memo already removes the dominant cost.)                 |
+| R3  | ✅ Done           | Community grouping is cached by the `communities` array identity; the positions texture is uploaded **in place** (`Texture.writeData`) and only re‑created when the kept‑community set / dimensions change.                                                               |
+| R4  | ⏳ Deferred       | Per‑leaf endpoint‑buffer reuse; needs the same deck re‑upload‑semantics care as R1 (risk of edge/dot tearing) and is best validated in‑app.                                                                                                                               |
+| R5  | ⏳ Deferred       | Bézier shader sample‑count / underlay‑fold is a visual‑quality trade‑off that must be compared on‑screen before shipping.                                                                                                                                                 |
+| R6  | ✅ Done           | Cluster/edge label rebuild + full layer re‑push is gated on a fine zoom **bucket** (`LABEL_COLOR_ZOOM_BUCKETS_PER_UNIT`) instead of every wheel delta; a pure sub‑bucket zoom now does no layer work.                                                                     |
+| R7  | ✅ Done           | `#emitEntityLabels` diffs the projected hub set (ids + rounded x/y + text) and skips the React `setState` when unchanged, so a settled graph stops re‑rendering the bridge subtree.                                                                                       |
+| R8  | ✅ Done           | `PositionsFrame.settled` now means "no layout (cluster **or** entity/flat) is running", and the worker emits exactly one final `settled: true` frame when the last layout settles.                                                                                        |
+| R9  | ⏳ Deferred       | Metaball spatial binning is a substantial shader rewrite needing GPU profiling + visual QA.                                                                                                                                                                               |
+| R10 | ⏳ Deferred       | Low value; secondary edge‑pick debounce.                                                                                                                                                                                                                                  |
+| R11 | ✅ Partial (R11a) | The misleading `edgeArrowLayer` split `WeakMap` (a guaranteed cache miss — the array is fresh each frame) is removed. The `characterSet:"auto"` and empty‑overlay points fold into the deferred R1/R6 persistence work.                                                   |
+
+The deferred items are either visual‑quality trade‑offs (R5, R9) or layer‑persistence
+re‑architectures (R1, R4) whose deck re‑upload semantics should be validated against a
+live profile/frame‑capture rather than changed blind. The applied set targets both
+**High** items (R2, R3) and the coordination/render‑loop **Medium**s (R6, R7, R8) with
+behaviour‑preserving changes.
+
 ---
 
 ## 2. Render loop

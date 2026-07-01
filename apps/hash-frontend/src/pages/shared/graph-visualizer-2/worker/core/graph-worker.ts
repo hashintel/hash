@@ -3,6 +3,7 @@ import { dimColor } from "../../dim-color";
 import { ClusterId } from "../../ids";
 import { graphColors } from "../../visual-style";
 import { FlatGraphBuffer } from "../buffers/position-buffer";
+import { Column } from "../collections/column";
 import { ReadonlySortedSet } from "../collections/readonly-sorted-set";
 import {
   colorForType,
@@ -45,7 +46,7 @@ import { LinkStore } from "../store/link";
 import { PropertyStore } from "../store/property";
 import { TypeRegistry } from "../store/type-registry";
 import { TypeSetStore } from "../store/type-set";
-import { layoutNeedsRebuild } from "./layout-reuse";
+import { layoutNeedsRebuild, layoutOutgrown } from "./layout-reuse";
 import { viewportAnchorWeight } from "./viewport-anchor";
 
 import type { VizConfig } from "../../config";
@@ -72,7 +73,7 @@ import type { RepublishHandler } from "../buffers/growable-buffer";
 import type { Port } from "../geometry/bubble-ports";
 import type { EdgeFrame } from "../geometry/edge-aggregation";
 import type { ClusterNode, IngestDelta } from "../hierarchy/cluster-tree";
-import type { ViewportState } from "../hierarchy/lod";
+import type { LodItem, ViewportState } from "../hierarchy/lod";
 import type {
   ForceEdge,
   ForceNode,
@@ -154,6 +155,8 @@ const FLAT_SEED_NEIGHBOUR_OFFSET = 24;
 const FLAT_SEED_DISK_SCALE = 28;
 /** Flat-tier edge stroke width in world units (the layer scales it with zoom). */
 const FLAT_EDGE_WIDTH_WORLD = 1.2;
+/** Initial capacity for the flat-tier node-index column (grows by doubling). */
+const FLAT_NODE_IDX_CAPACITY = 4096;
 /** Over-allocate capacity so streamed nodes can append without reallocation. */
 function flatCapacityFor(count: number): number {
   return Math.max(count + 64, Math.ceil(count * 1.5));
@@ -190,6 +193,15 @@ export class GraphWorker {
   readonly #bezierSink = new BezierSegmentSink();
   readonly #pendingEmbeddingRequests: EmbeddingClusteringNeededMessage[] = [];
   readonly #forceLayouts = new Map<ClusterId, LayoutSimulation>();
+  /**
+   * Entity-index to local-slot map per leaf layout. Keyed on the layout
+   * object so it invalidates automatically when the node set changes.
+   */
+  readonly #leafLocalCache = new WeakMap<
+    LayoutSimulation,
+    ReadonlyMap<EntityIndex, number>
+  >();
+
   /** Per entity-layout, the live port-attraction targets (shared with its force). */
   readonly #entityPortTargets = new Map<ClusterId, Float32Array>();
   /** Per opened container, the external endpoint ids its port anchors track. */
@@ -223,6 +235,15 @@ export class GraphWorker {
   #mode: VizMode = "flat-force";
   /** Loaded node entities (excludes interned links). */
   #nodeEntityCount = 0;
+  /**
+   * Node entity indices, always sorted ascending. Interner indices are
+   * monotonic, so appending on insert preserves the sort invariant.
+   */
+  readonly #nodeEntityIdxs = new Column<Int32Array, EntityIndex>(
+    Int32Array,
+    FLAT_NODE_IDX_CAPACITY,
+  );
+
   /** True when the committed state is the hierarchical (cluster-tree) regime. */
   #hierarchicalActive = false;
   /** Flat-tier render edges (one per link: local indices + link-type colour),
@@ -257,6 +278,11 @@ export class GraphWorker {
   /** Cached topology from the last structure commit; reused by position ticks. */
   #cutIndex: CutIndex | undefined;
   #edgeFrame: EdgeFrame | undefined;
+  /** Bumped on every cluster-tree mutation; compared against committed values to detect no-ops. */
+  #clusterEpoch = 0;
+  /** Epoch and link count as of the last emitted hierarchical structure frame. */
+  #committedClusterEpoch = -1;
+  #committedLinkCount = -1;
   /** Per-lane link-entity unions, indexed by laneId. A merged highway's
    * lanes share one union (the whole ribbon's links). */
   #highwayLaneUnions: EntityIndex[][] = [];
@@ -389,6 +415,7 @@ export class GraphWorker {
   #tickAllLayouts(): void {
     const tickStart = performance.now();
     const clustersRunningBefore = this.#anyClusterLayoutRunning();
+    const layoutsRunningBefore = this.#anyLayoutRunning();
     let clusterMoved = false;
     let flatMoved = false;
 
@@ -448,6 +475,10 @@ export class GraphWorker {
     // tick where the last cluster layout settles (so `settled` reaches main).
     const clustersJustSettled =
       clustersRunningBefore && !this.#anyClusterLayoutRunning();
+    // Emit one last frame when the final layout settles, so the renderer
+    // receives exactly one `settled: true` positions frame.
+    const layoutsJustSettled =
+      layoutsRunningBefore && !this.#anyLayoutRunning();
     if (clusterMoved || clustersJustSettled) {
       // Recompose world positions top-down so anchor re-aiming reads correct,
       // fully-propagated circles through settled nested layouts.
@@ -457,7 +488,7 @@ export class GraphWorker {
         this.#updateAnchorTracking();
       }
       this.#emitPositions();
-    } else if (flatMoved) {
+    } else if (flatMoved || layoutsJustSettled) {
       this.#emitPositions();
     }
 
@@ -520,12 +551,21 @@ export class GraphWorker {
     return [...targets.values()];
   }
 
+  /**
+   * Register type and property schemas. Returns what changed so the caller
+   * can decide whether a commit is needed.
+   */
   registerTypes(
     schemas: readonly TypeSchemaEntry[],
     propertySchemas: readonly PropertySchemaEntry[],
-  ): void {
-    this.#types.registerAll(schemas);
-    this.#properties.registerTitles(propertySchemas);
+  ): {
+    readonly typesChanged: boolean;
+    readonly propertyTitlesChanged: boolean;
+  } {
+    const typesChanged = this.#types.registerAll(schemas);
+    const propertyTitlesChanged =
+      this.#properties.registerTitles(propertySchemas);
+    return { typesChanged, propertyTitlesChanged };
   }
 
   /** Insert a node entity. Returns undefined if duplicate. */
@@ -546,6 +586,8 @@ export class GraphWorker {
       return undefined;
     }
     this.#nodeEntityCount += 1;
+    // Interner indices are monotonic, so this stays sorted (see #nodeEntityIdxs).
+    this.#nodeEntityIdxs.push(entityIdx);
 
     const directTypeIdxs = new ReadonlySortedSet(
       entity.entityTypeIds.map((url) => this.#types.intern(url)),
@@ -719,6 +761,7 @@ export class GraphWorker {
     this.#edgeFrame = undefined;
 
     this.#clusterTree.rebuild(this.#typeSets, this.#types, this.config);
+    this.#clusterEpoch += 1;
   }
 
   /**
@@ -732,6 +775,7 @@ export class GraphWorker {
       this.#types,
       this.config,
     );
+    this.#clusterEpoch += 1;
   }
 
   get hasClusters(): boolean {
@@ -766,7 +810,8 @@ export class GraphWorker {
     );
 
     if (this.#lodState.wouldChange(cut)) {
-      this.commitStructure();
+      // Reuse the just-computed cut instead of recomputing it.
+      this.commitStructure({ cut });
     }
   }
 
@@ -776,8 +821,27 @@ export class GraphWorker {
       return;
     }
     this.#pinnedLeaf = leafId;
-    if (this.#mode === "hierarchical-lod" && this.hasClusters) {
-      this.commitStructure();
+    if (this.#mode !== "hierarchical-lod" || !this.hasClusters) {
+      return;
+    }
+
+    // No viewport yet; the next commit will honour the pin.
+    if (!this.#viewport) {
+      return;
+    }
+
+    // Only commit when the pin actually changes the visible cut.
+    const cut = computeVisibleCut(
+      this.#clusterTree,
+      ROOT_ID,
+      this.#viewport,
+      this.#lodState,
+      this.config,
+      (node) => this.#trySubdivide(node),
+      this.#pinnedOpenSet(),
+    );
+    if (this.#lodState.wouldChange(cut)) {
+      this.commitStructure({ cut });
     }
   }
 
@@ -846,6 +910,8 @@ export class GraphWorker {
   commitStructure(opts?: {
     readonly deltas?: readonly IngestDelta[];
     readonly rebuildTree?: boolean;
+    /** Precomputed visible cut; ignored when the tree was mutated by this commit. */
+    readonly cut?: readonly LodItem[];
   }): void {
     this.recomputeMode();
     this.#publishEntityIdMapOnce();
@@ -858,7 +924,7 @@ export class GraphWorker {
       }
 
       this.#hierarchicalActive = false;
-      this.#commitFlat();
+      this.#commitFlat(opts);
       return;
     }
 
@@ -867,11 +933,15 @@ export class GraphWorker {
     }
 
     // Rebuild the tree on first build, re-entry, or type changes;
-    // otherwise apply incremental deltas.
+    // otherwise apply incremental deltas. Either mutates the tree, which
+    // invalidates any cut the caller precomputed against the old tree.
+    let treeMutated = false;
     if (opts?.rebuildTree || !this.#hierarchicalActive || !this.hasClusters) {
       this.rebuildClusters();
+      treeMutated = true;
     } else if (opts?.deltas && opts.deltas.length > 0) {
       this.updateClusters(opts.deltas);
+      treeMutated = true;
     }
 
     this.#hierarchicalActive = true;
@@ -910,15 +980,33 @@ export class GraphWorker {
       return;
     }
 
-    const cut = computeVisibleCut(
-      this.#clusterTree,
-      ROOT_ID,
-      this.#viewport,
-      this.#lodState,
-      this.config,
-      (node) => this.#trySubdivide(node),
-      this.#pinnedOpenSet(),
-    );
+    // Reuse the caller's precomputed cut when the tree wasn't mutated
+    // (a rebuild/incremental update invalidates it).
+    const cut =
+      opts?.cut && !treeMutated
+        ? opts.cut
+        : computeVisibleCut(
+            this.#clusterTree,
+            ROOT_ID,
+            this.#viewport,
+            this.#lodState,
+            this.config,
+            (node) => this.#trySubdivide(node),
+            this.#pinnedOpenSet(),
+          );
+
+    // No-op fast path: if tree, links, root status, and cut are all unchanged
+    // since the last emit, the derived state would be identical.
+    if (
+      this.#cutIndex !== undefined &&
+      this.#clusterEpoch === this.#committedClusterEpoch &&
+      this.#links.count === this.#committedLinkCount &&
+      !this.#rootFlipPending &&
+      !this.#lodState.wouldChange(cut)
+    ) {
+      return;
+    }
+
     this.#lodState.applyVisibleCut(cut);
 
     const openIds = new Set<ClusterId>();
@@ -991,16 +1079,23 @@ export class GraphWorker {
 
     this.#emitStructure(this.#buildEntityLayers(cutIndex));
     this.#emitPositions();
+
+    // Snapshot dependency versions for the no-op fast path.
+    this.#committedClusterEpoch = this.#clusterEpoch;
+    this.#committedLinkCount = this.#links.count;
   }
 
   /**
    * Commit the flat tier: the whole entity set as one individual-entity graph.
-   * Builds or warm-updates the flat layout, then emits per-node style.
+   *
+   * Detects topology changes via O(1) node/link count comparison (stores are
+   * add-only). Returns immediately when nothing changed. A colour-only change
+   * (type registration or root flip) restyles without rebuilding the layout.
    */
-  #commitFlat(): void {
-    const entityIdxs = this.#allNodeEntityIdxs();
+  #commitFlat(opts?: { readonly rebuildTree?: boolean }): void {
+    const nodeCount = this.#nodeEntityCount;
 
-    if (entityIdxs.length === 0) {
+    if (nodeCount === 0) {
       this.#tearDownFlat();
       this.#rendered = [];
       this.#renderedIndex.clear();
@@ -1009,32 +1104,45 @@ export class GraphWorker {
       return;
     }
 
-    // Community-force can warm-absorb additions without a full rebuild.
-    // Otherwise (first build, mode switch, removal) rebuild from scratch.
     const existing = this.#forceLayouts.get(FLAT_LAYOUT_ID);
-    const priorBuffer = this.#flatBuffer;
     const modeChanged = this.#flatLayoutMode !== this.#mode;
+    // Add-only stores: a count delta versus the live layout's built count (and
+    // versus the link count at that build) captures every topology change.
+    const builtNodeCount = existing?.nodes.length ?? -1;
+    const nodesChanged = nodeCount !== builtNodeCount;
+    const linksChanged = this.#links.count !== this.#flatLinkCount;
+    const structureChanged =
+      !existing || modeChanged || nodesChanged || linksChanged;
 
-    let topologyChanged = !existing;
-    let canAbsorb = false;
-    if (existing && priorBuffer) {
-      const idxSet = new Set<number>(entityIdxs);
-      const currentIds = new Set(existing.nodeIds);
-      const added = entityIdxs.some((idx) => !currentIds.has(String(idx)));
-      const removed = existing.nodeIds.some((id) => !idxSet.has(Number(id)));
-      topologyChanged =
-        added || removed || this.#links.count !== this.#flatLinkCount;
-      canAbsorb =
-        !modeChanged &&
-        !removed &&
-        this.#mode === "community-force" &&
-        typeof existing.absorb === "function";
+    // A type registration (rebuildTree) or a frontier->root flip recolours
+    // nodes without changing topology; restyle in place, no layout rebuild.
+    const styleDirty = opts?.rebuildTree === true || this.#rootFlipPending;
+
+    if (!structureChanged && !styleDirty) {
+      // Nothing changed: the layout keeps streaming positions via the
+      // scheduler, no frame or buffer write needed.
+      return;
     }
 
-    if (!existing || modeChanged || (topologyChanged && !canAbsorb)) {
-      this.#rebuildFlatLayout(entityIdxs);
-    } else if (topologyChanged) {
-      this.#absorbFlatNodes(existing, entityIdxs);
+    if (structureChanged) {
+      // Materialise the packed column into a plain array for the layout builders
+      // (they map/filter/spread it). Only reached on a real structural change --
+      // the no-op path above never allocates.
+      const entityIdxs = [...this.#nodeEntityIdxs];
+      // community-force (FA2) can warm-absorb additions in place; everything
+      // else (first build, mode switch, or a shrink -- impossible with add-only
+      // stores, handled defensively) rebuilds, warm-seeded from current spots.
+      const canAbsorb =
+        !!existing &&
+        !modeChanged &&
+        nodeCount >= builtNodeCount &&
+        this.#mode === "community-force" &&
+        typeof existing.absorb === "function";
+      if (canAbsorb) {
+        this.#absorbFlatNodes(existing, entityIdxs);
+      } else {
+        this.#rebuildFlatLayout(entityIdxs);
+      }
     }
 
     const layout = this.#forceLayouts.get(FLAT_LAYOUT_ID);
@@ -1045,13 +1153,16 @@ export class GraphWorker {
       return;
     }
 
-    // Per-node radius + colour straight into the shared buffer, and the per-link
-    // render edges for the bezier emission. Both refresh every commit so colours
-    // track a type change even when the layout itself was not rebuilt.
+    // Per-node radius + colour into the shared buffer, plus the per-link render
+    // edges for the bezier emission. Both run on any structural OR colour change
+    // (so colours track a type change even when the layout was reused), and are
+    // skipped on the no-op path above.
     this.#writeFlatStyle(layout, buffer);
     this.#flatRenderEdges = this.#buildFlatRenderEdges(layout);
     this.#emitFlatFrame(layout);
-    this.#scheduleFlatLouvainLinger();
+    if (structureChanged) {
+      this.#scheduleFlatLouvainLinger();
+    }
   }
 
   /** Emit the flat structure frame (count + Louvain membership) and positions. */
@@ -1084,18 +1195,6 @@ export class GraphWorker {
         this.#emitFlatFrame(layout);
       }
     }, FLAT_LOUVAIN_LINGER_MS);
-  }
-
-  /** All loaded node entities, sorted by index. */
-  #allNodeEntityIdxs(): EntityIndex[] {
-    const result: EntityIndex[] = [];
-    for (const group of this.#typeSets) {
-      for (const idx of group.entities) {
-        result.push(idx);
-      }
-    }
-    result.sort((lhs, rhs) => lhs - rhs);
-    return result;
   }
 
   /** Publish the join-map SharedArrayBuffer to the main thread on first use. */
@@ -1753,7 +1852,8 @@ export class GraphWorker {
     this.#positionVersion++;
     this.#onPositionsFrame?.({
       version: this.#positionVersion,
-      settled: !this.#anyClusterLayoutRunning(),
+      // True once every layout (cluster and entity/flat) has settled.
+      settled: !this.#anyLayoutRunning(),
       clusterPositions,
       beziers,
       edgeLabels,
@@ -1823,6 +1923,20 @@ export class GraphWorker {
     return frontier;
   }
 
+  /** Entity-index to local-slot map for a leaf, cached on the layout object. */
+  #leafLocalOf(layout: LayoutSimulation): ReadonlyMap<EntityIndex, number> {
+    const cached = this.#leafLocalCache.get(layout);
+    if (cached) {
+      return cached;
+    }
+    const localOf = new Map<EntityIndex, number>();
+    for (let idx = 0; idx < layout.nodeIds.length; idx++) {
+      localOf.set(Number(layout.nodeIds[idx]) as EntityIndex, idx);
+    }
+    this.#leafLocalCache.set(layout, localOf);
+    return localOf;
+  }
+
   /** Build per-leaf entity-edge topology for the structure frame. */
   #buildEntityLayers(cutIndex: CutIndex): RenderEntityLayer[] {
     const layers: RenderEntityLayer[] = [];
@@ -1835,10 +1949,7 @@ export class GraphWorker {
         continue;
       }
 
-      const localOf = new Map<EntityIndex, number>();
-      for (let idx = 0; idx < layout.nodeIds.length; idx++) {
-        localOf.set(Number(layout.nodeIds[idx]) as EntityIndex, idx);
-      }
+      const localOf = this.#leafLocalOf(layout);
 
       // Internal entity-to-entity links (both endpoints owned by this leaf).
       const internal: number[] = [];
@@ -1917,10 +2028,7 @@ export class GraphWorker {
         continue;
       }
 
-      const localOf = new Map<EntityIndex, number>();
-      for (let idx = 0; idx < layout.nodeIds.length; idx++) {
-        localOf.set(Number(layout.nodeIds[idx]) as EntityIndex, idx);
-      }
+      const localOf = this.#leafLocalOf(layout);
 
       const exitForOwner = new Map<
         ClusterId,
@@ -2179,6 +2287,25 @@ export class GraphWorker {
     );
   }
 
+  /**
+   * Whether a top-level cluster has grown enough since the macro layout was built
+   * to warrant re-warming it, so a growing hierarchy re-arranges even without an
+   * overlap. See {@link layoutOutgrown}. `layout.nodes[i].radius` is the radius the
+   * layout was built with; `child.circle.radius` is the current (grown) one.
+   */
+  #clusterLayoutOutgrown(
+    layout: LayoutSimulation,
+    parent: ClusterNode,
+  ): boolean {
+    return layoutOutgrown(
+      layout.nodes.map((node) => ({ id: node.id, radius: node.radius })),
+      parent.children.map((child) => ({
+        id: child.id,
+        radius: child.circle.radius,
+      })),
+    );
+  }
+
   #ensureChildrenLayout(parent: ClusterNode): void {
     const key = parent.id;
     let layout = this.#forceLayouts.get(key);
@@ -2191,9 +2318,16 @@ export class GraphWorker {
       this.#snapshotTopLevelPositions(layout);
     }
 
-    // Invalidate when a freshly-sized child overlaps a neighbour at its
-    // frozen position; harmless growth with slack around it is kept.
-    if (layout && this.#clusterLayoutStale(layout, parent)) {
+    // Invalidate when a freshly-sized child overlaps a neighbour at its frozen
+    // position (harmless growth with slack around it is kept), OR — top level
+    // only — when a cluster has grown enough since this layout was built to
+    // warrant a re-pack, so the hierarchy overview visibly re-arranges as it
+    // grows rather than only when growth finally forces an overlap.
+    if (
+      layout &&
+      (this.#clusterLayoutStale(layout, parent) ||
+        (parent.kind === "root" && this.#clusterLayoutOutgrown(layout, parent)))
+    ) {
       this.#forceLayouts.delete(key);
       this.#anchorEndpoints.delete(key);
       layout = undefined;
@@ -2588,6 +2722,7 @@ export class GraphWorker {
     if (!subdivided) {
       return false;
     }
+    this.#clusterEpoch += 1;
 
     // If children are entity-buckets (deterministic partition),
     // queue an embedding request to upgrade them.
@@ -2702,6 +2837,7 @@ export class GraphWorker {
     });
 
     this.#clusterTree.applyEmbeddingResult(clusterId, assignments);
+    this.#clusterEpoch += 1;
 
     // The children render immediately with their "Similar group n" placeholder (set in
     // ClusterTree.applyEmbeddingResult); the relabel lands later off the job scheduler.
@@ -2736,8 +2872,27 @@ export class GraphWorker {
       for (const [childId, label] of labels) {
         this.#clusterTree.setLabelText(childId, label);
       }
-      this.commitStructure();
+      // Labels don't affect the cut, so re-emit the current topology with the
+      // fresh labels rather than paying a full cut + aggregation rebuild.
+      this.#recommitLabelsOnly();
     });
+  }
+
+  /**
+   * Re-emit the structure frame with the current cluster labels, reusing the
+   * cached cut, {@link CutIndex}, and edge aggregation. Labels are read fresh
+   * from the tree in {@link #renderCluster}, so this shows updated names without
+   * recomputing topology. Falls back to a full commit if the cached topology is
+   * gone (mode switched, or nothing committed yet).
+   */
+  #recommitLabelsOnly(): void {
+    const cutIndex = this.#cutIndex;
+    if (this.#mode !== "hierarchical-lod" || !cutIndex || !this.#edgeFrame) {
+      this.commitStructure();
+      return;
+    }
+    this.#emitStructure(this.#buildEntityLayers(cutIndex));
+    this.#emitPositions();
   }
 
   #resolvePendingLinks(

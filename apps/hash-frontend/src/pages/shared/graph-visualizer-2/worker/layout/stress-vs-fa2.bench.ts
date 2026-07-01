@@ -194,18 +194,18 @@ function pad(text: string, width: number, alignRight = true): string {
   return alignRight ? text.padStart(width) : text.padEnd(width);
 }
 
+/** Cumulative VPSC projection time (ms), if this layout tracks it (stress engine only). */
+function projectionMsOf(layout: LayoutSimulation): number | undefined {
+  return (layout as { overlapProjectionMs?: number }).overlapProjectionMs;
+}
+
 function comparisonReport(caseShape: GraphShape): string {
   const { nodes, edges } = buildForceGraph(caseShape);
-  const columns = [8, 12, 12, 10, 10, 10];
+  const columns = [8, 12, 10, 12, 10, 10, 10];
   const row = (cells: readonly string[]): string =>
-    [
-      pad(cells[0]!, columns[0]!, false),
-      pad(cells[1]!, columns[1]!),
-      pad(cells[2]!, columns[2]!),
-      pad(cells[3]!, columns[3]!),
-      pad(cells[4]!, columns[4]!),
-      pad(cells[5]!, columns[5]!),
-    ].join("  ");
+    cells
+      .map((cell, index) => pad(cell, columns[index]!, index !== 0))
+      .join("  ");
 
   const lines: string[] = [];
   lines.push(
@@ -215,6 +215,7 @@ function comparisonReport(caseShape: GraphShape): string {
   const header = row([
     "engine",
     "wall ms",
+    "projMs",
     "edgeStress",
     "edgeCV",
     "overlaps",
@@ -228,10 +229,12 @@ function comparisonReport(caseShape: GraphShape): string {
     const runs = engine.name === "FA2" ? 2 : 3;
     const { minMs, layout } = solveMin(engine.make, nodes, edges, runs);
     const quality = measureQuality(layout.nodes, edges);
+    const projectionMs = projectionMsOf(layout);
     lines.push(
       row([
         engine.name,
         minMs.toFixed(1),
+        projectionMs === undefined ? "-" : projectionMs.toFixed(2),
         quality.edgeStress.toFixed(4),
         quality.edgeCv.toFixed(4),
         String(quality.overlaps),
