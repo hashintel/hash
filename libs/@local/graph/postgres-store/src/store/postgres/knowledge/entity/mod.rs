@@ -2697,7 +2697,11 @@ where
             }),
         );
 
-        let result = hash_graph_store::embedding::clustering::cluster(&flat, dimension, &config);
+        let result = tokio::task::spawn_blocking(move || {
+            hash_graph_store::embedding::clustering::cluster(&flat, dimension, &config)
+        })
+        .await
+        .change_context(ClusterError::Store)?;
 
         let mut groups: BTreeMap<u16, Vec<EntityId>> = BTreeMap::new();
         for (index, id) in found_ids.iter().enumerate() {
