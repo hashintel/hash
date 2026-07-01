@@ -54,7 +54,6 @@ async fn test_root_sorting(
         })
         .collect::<Vec<_>>();
     let mut cursor = None;
-    let expected_order = expected_order.into_iter().collect::<Vec<_>>();
 
     let mut found_entities = HashSet::new();
     let mut entities = Vec::new();
@@ -62,15 +61,9 @@ async fn test_root_sorting(
     loop {
         let QueryEntitySubgraphResponse {
             mut subgraph,
-            count,
             cursor: new_cursor,
             closed_multi_entity_types: _,
             definitions: _,
-            web_ids: _,
-            created_by_ids: _,
-            edition_created_by_ids: _,
-            type_ids: _,
-            type_titles: _,
             entity_permissions: _,
         } = Box::pin(api.query_entity_subgraph(
             api.account_id,
@@ -85,14 +78,8 @@ async fn test_root_sorting(
                     },
                     limit: chunk_size,
                     conversions: Vec::new(),
-                    include_count: true,
                     include_entity_types: None,
                     include_drafts: false,
-                    include_web_ids: false,
-                    include_created_by_ids: false,
-                    include_edition_created_by_ids: false,
-                    include_type_ids: false,
-                    include_type_titles: false,
                     include_permissions: false,
                 },
             },
@@ -111,7 +98,6 @@ async fn test_root_sorting(
                 | GraphElementVertexId::EntityType(_) => unreachable!(),
             })
             .collect::<Vec<_>>();
-        assert_eq!(count, Some(expected_order.len()));
         let num_entities = new_entities.len();
 
         for entity in new_entities {
@@ -216,6 +202,7 @@ async fn insert(database: &mut DatabaseTestWrapper) -> DatabaseApi<'_> {
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
                     sources: Vec::new(),
                 },
+                read_only: false,
             },
         )
         .await

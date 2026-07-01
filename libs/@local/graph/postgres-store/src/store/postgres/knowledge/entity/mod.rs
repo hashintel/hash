@@ -8,6 +8,7 @@ use std::collections::{HashMap, HashSet};
 
 use error_stack::{FutureExt as _, Report, ResultExt as _, TryReportStreamExt as _, ensure};
 use futures::{StreamExt as _, TryStreamExt as _, stream};
+use hash_codec::numeric::Real;
 use hash_graph_authorization::policies::{
     Authorized, MergePolicies, PolicyComponents, Request, RequestContext, ResourceId,
     action::ActionName,
@@ -17,15 +18,16 @@ use hash_graph_authorization::policies::{
 };
 use hash_graph_store::{
     entity::{
-        CountEntitiesParams, CreateEntityParams, DeleteEntitiesParams, DeletionSummary,
-        EmptyEntityTypes, EntityPermissions, EntityQueryCursor, EntityQueryPath,
-        EntityQuerySorting, EntityStore, EntityTypeRetrieval, EntityTypesError,
-        EntityValidationReport, EntityValidationType, HasPermissionForEntitiesParams,
-        PatchEntityParams, QueryConversion, QueryEntitiesParams, QueryEntitiesResponse,
-        QueryEntitySubgraphParams, QueryEntitySubgraphResponse, UpdateEntityEmbeddingsParams,
+        CreateEntityParams, DeleteEntitiesParams, DeletionSummary, EmptyEntityTypes,
+        EntityPermissions, EntityQueryCursor, EntityQueryPath, EntityQuerySorting, EntityStore,
+        EntityTypeRetrieval, EntityTypesError, EntityValidationReport, EntityValidationType,
+        HasPermissionForEntitiesParams, PatchEntityParams, QueryConversion, QueryEntitiesParams,
+        QueryEntitiesResponse, QueryEntitySubgraphParams, QueryEntitySubgraphResponse,
+        SearchEntitiesFilter, SearchEntitiesParams, SearchEntitiesResponse,
+        SummarizeEntitiesParams, SummarizeEntitiesResponse, UpdateEntityEmbeddingsParams,
         ValidateEntityComponents, ValidateEntityParams,
     },
-    entity_type::{EntityTypeQueryPath, EntityTypeStore as _, IncludeEntityTypeOption},
+    entity_type::{EntityTypeStore as _, IncludeEntityTypeOption},
     error::{CheckPermissionError, DeletionError, InsertionError, QueryError, UpdateError},
     filter::{
         Filter, FilterExpression, FilterExpressionList, Parameter, ParameterList,
@@ -79,9 +81,7 @@ use type_system::{
     ontology::{
         InheritanceDepth,
         data_type::schema::DataTypeReference,
-        entity_type::{
-            ClosedEntityType, ClosedMultiEntityType, EntityTypeUuid, EntityTypeWithMetadata,
-        },
+        entity_type::{ClosedEntityType, ClosedMultiEntityType, EntityTypeUuid},
         id::{OntologyTypeUuid, VersionedUrl},
     },
     principal::{actor::ActorEntityUuid, actor_group::WebId},
@@ -94,7 +94,10 @@ use crate::store::{
     postgres::{
         TraversalContext,
         crud::{QueryIndices, TypedRow},
-        knowledge::entity::{read::EntityEdgeTraversalData, summary::EntitySummaryQuery},
+        knowledge::entity::{
+            read::EntityEdgeTraversalData,
+            summary::{Deduplication, EntitySummaryQuery},
+        },
         query::{
             Distinctness, InsertStatementBuilder, PostgresRecord as _, PostgresSorting as _,
             SelectCompiler, Table,
@@ -527,105 +530,6 @@ where
             .add_filter(filter_to_use)
             .change_context(QueryError)?;
 
-        let (count, web_ids, created_by_ids, edition_created_by_ids, type_ids, type_titles) =
-            if let Some(summary_query) = EntitySummaryQuery::new(&mut compiler, params) {
-                let (statement, parameters) = compiler.compile();
-                let statement = summary_query.statement(&statement);
-
-                let rows = self
-                    .as_client()
-                    .query_raw(&statement, parameters.iter().copied())
-                    .instrument(tracing::info_span!(
-                        "SELECT",
-                        otel.kind = "client",
-                        db.system = "postgresql",
-                        peer.service = "Postgres",
-                        db.query.text = statement,
-                    ))
-                    .await
-                    .change_context(QueryError)?
-                    .try_collect::<Vec<_>>()
-                    .instrument(tracing::trace_span!("collect_entity_summaries"))
-                    .await
-                    .change_context(QueryError)?;
-
-                let summaries = summary_query.decode(rows)?;
-
-                let type_titles = if params.include_type_titles {
-                    let type_uuids = summaries
-                        .type_ids
-                        .as_ref()
-                        .expect("type ids should be present")
-                        .keys()
-                        .map(EntityTypeUuid::from_url)
-                        .collect::<Vec<_>>();
-
-                    let mut type_compiler = SelectCompiler::<EntityTypeWithMetadata>::new(
-                        Some(temporal_axes),
-                        params.include_drafts,
-                    );
-                    let base_url_idx =
-                        type_compiler.add_selection_path(&EntityTypeQueryPath::BaseUrl);
-                    let version_idx =
-                        type_compiler.add_selection_path(&EntityTypeQueryPath::Version);
-                    let title_idx = type_compiler.add_selection_path(&EntityTypeQueryPath::Title);
-
-                    let filter = Filter::In(
-                        FilterExpression::Path {
-                            path: EntityTypeQueryPath::OntologyId,
-                        },
-                        FilterExpressionList::ParameterList {
-                            parameters: ParameterList::EntityTypeIds(&type_uuids),
-                        },
-                    );
-                    type_compiler
-                        .add_filter(&filter)
-                        .change_context(QueryError)?;
-
-                    let (statement, parameters) = type_compiler.compile();
-
-                    Some(
-                        self.as_client()
-                            .query_raw(&statement, parameters.iter().copied())
-                            .instrument(tracing::info_span!(
-                                "SELECT",
-                                otel.kind = "client",
-                                db.system = "postgresql",
-                                peer.service = "Postgres",
-                                db.query.text = statement,
-                            ))
-                            .await
-                            .change_context(QueryError)?
-                            .map_ok(|row| {
-                                (
-                                    VersionedUrl {
-                                        base_url: row.get(base_url_idx),
-                                        version: row.get(version_idx),
-                                    },
-                                    row.get::<_, String>(title_idx),
-                                )
-                            })
-                            .try_collect::<HashMap<_, _>>()
-                            .instrument(tracing::trace_span!("collect_entity_types"))
-                            .await
-                            .change_context(QueryError)?,
-                    )
-                } else {
-                    None
-                };
-
-                (
-                    summaries.count,
-                    summaries.web_ids,
-                    summaries.created_by_ids,
-                    summaries.edition_created_by_ids,
-                    summaries.type_ids.filter(|_| params.include_type_ids),
-                    type_titles,
-                )
-            } else {
-                (None, None, None, None, None, None)
-            };
-
         compiler.set_limit(params.limit);
 
         let cursor_parameters = params.sorting.encode().change_context(QueryError)?;
@@ -727,12 +631,6 @@ where
             },
             entities,
             cursor,
-            count,
-            web_ids,
-            created_by_ids,
-            edition_created_by_ids,
-            type_ids,
-            type_titles,
             // Populated later
             permissions: None,
         })
@@ -973,6 +871,7 @@ where
                 web_id: entity_id.web_id,
                 entity_uuid: entity_id.entity_uuid,
                 provenance: entity_provenance.inferred.clone(),
+                read_only: params.read_only,
             });
             if let Some(draft_id) = entity_id.draft_id {
                 entity_draft_rows.push(EntityDraftRow {
@@ -1077,6 +976,7 @@ where
                     temporal_versioning,
                     entity_type_ids: params.entity_type_ids,
                     archived: false,
+                    read_only: params.read_only,
                     provenance: entity_provenance,
                     confidence: params.confidence,
                     properties: property_metadata,
@@ -1387,6 +1287,103 @@ where
     }
 
     #[tracing::instrument(level = "info", skip(self, params))]
+    async fn search_entities(
+        &self,
+        actor_id: ActorEntityUuid,
+        params: SearchEntitiesParams,
+    ) -> Result<SearchEntitiesResponse, Report<QueryError>> {
+        let SearchEntitiesParams {
+            embedding,
+            maximum_semantic_distance,
+            limit,
+            include_entity_types,
+            filter:
+                SearchEntitiesFilter {
+                    entity_type_ids,
+                    web_ids,
+                    include_drafts,
+                },
+        } = params;
+
+        // TODO(BE-618): optimize the query — it scans embeddings without a vector index. A
+        //   halfvec/HNSW index needs an ANN-friendly query shape to be usable (the current
+        //   `MIN(<=>) GROUP BY` defeats it). The returned entities can also be trimmed to the
+        //   fields the search bar and inference actually use, but the query is the bottleneck.
+        let maximum_distance =
+            Real::try_from(maximum_semantic_distance.into_inner()).change_context(QueryError)?;
+
+        // The search always runs against the current time and never returns archived entities.
+        let mut filters = vec![
+            Filter::CosineDistance(
+                FilterExpression::Path {
+                    path: EntityQueryPath::Embedding,
+                },
+                FilterExpression::Parameter {
+                    parameter: Parameter::Vector(embedding),
+                    convert: None,
+                },
+                FilterExpression::Parameter {
+                    parameter: Parameter::Decimal(maximum_distance),
+                    convert: None,
+                },
+            ),
+            Filter::Equal(
+                FilterExpression::Path {
+                    path: EntityQueryPath::Archived,
+                },
+                FilterExpression::Parameter {
+                    parameter: Parameter::Boolean(false),
+                    convert: None,
+                },
+            ),
+        ];
+
+        if !entity_type_ids.is_empty() {
+            filters.push(Filter::Any(
+                entity_type_ids
+                    .iter()
+                    .map(Filter::for_entity_by_type_id)
+                    .collect(),
+            ));
+        }
+        if !web_ids.is_empty() {
+            filters.push(Filter::In(
+                FilterExpression::Path {
+                    path: EntityQueryPath::WebId,
+                },
+                FilterExpressionList::ParameterList {
+                    parameters: ParameterList::WebIds(&web_ids),
+                },
+            ));
+        }
+
+        let response = self
+            .query_entities(
+                actor_id,
+                QueryEntitiesParams {
+                    filter: Filter::All(filters),
+                    temporal_axes: QueryTemporalAxesUnresolved::live_only(),
+                    sorting: EntityQuerySorting {
+                        paths: vec![],
+                        cursor: None,
+                    },
+                    conversions: Vec::new(),
+                    limit,
+                    include_drafts,
+                    include_entity_types: include_entity_types
+                        .then_some(IncludeEntityTypeOption::Closed),
+                    include_permissions: false,
+                },
+            )
+            .await?;
+
+        Ok(SearchEntitiesResponse {
+            entities: response.entities,
+            closed_multi_entity_types: response.closed_multi_entity_types,
+        })
+    }
+
+    #[tracing::instrument(level = "info", skip(self, params))]
     #[expect(clippy::too_many_lines)]
     async fn query_entity_subgraph(
         &self,
@@ -1417,14 +1414,8 @@ where
         let QueryEntitiesResponse {
             entities: root_entities,
             cursor,
-            count,
             closed_multi_entity_types: _,
             definitions: _,
-            web_ids,
-            created_by_ids,
-            edition_created_by_ids,
-            type_ids,
-            type_titles,
             permissions,
         } = self
             .query_entities_impl(&request, &temporal_axes, &policy_components)
@@ -1565,12 +1556,6 @@ where
                     None | Some(IncludeEntityTypeOption::Closed) => None,
                 },
                 cursor,
-                count,
-                web_ids,
-                created_by_ids,
-                edition_created_by_ids,
-                type_ids,
-                type_titles,
                 entity_permissions: if request.include_permissions {
                     debug_assert!(permissions.is_none(), "Should not be populated yet");
 
@@ -1612,11 +1597,12 @@ where
         .await
     }
 
-    async fn count_entities(
+    #[tracing::instrument(level = "info", skip_all)]
+    async fn summarize_entities(
         &self,
         actor_id: ActorEntityUuid,
-        mut params: CountEntitiesParams<'_>,
-    ) -> Result<usize, Report<QueryError>> {
+        mut params: SummarizeEntitiesParams<'_>,
+    ) -> Result<SummarizeEntitiesResponse, Report<QueryError>> {
         let policy_components = PolicyComponents::builder(self)
             .with_actor(actor_id)
             .with_action(ActionName::ViewEntity, MergePolicies::Yes)
@@ -1638,14 +1624,14 @@ where
         );
 
         // Apply filter protection when configured - protects sensitive properties (e.g., email)
-        // from enumeration attacks in count queries.
+        // from enumeration attacks in summarize_entities queries.
         let should_apply_protection =
             !self.settings.filter_protection.is_empty() && !policy_components.is_instance_admin();
 
         let protected_filter;
         let filter_to_use = if should_apply_protection {
             // Transform filter to protect against email filtering on Users
-            // Note: count_entities has no sorting, so only filter protection applies
+            // Note: summarize_entities has no sorting, so only filter protection applies
             protected_filter = transform_filter(
                 params.filter.clone(),
                 &self.settings.filter_protection,
@@ -1666,14 +1652,30 @@ where
             .add_filter(filter_to_use)
             .change_context(QueryError)?;
 
-        compiler.add_distinct_selection_with_ordering(
-            &EntityQueryPath::EditionId,
-            Distinctness::Distinct,
-            None,
-        );
-
+        let Some(summary_query) = EntitySummaryQuery::new(&mut compiler, &params) else {
+            return Ok(SummarizeEntitiesResponse::default());
+        };
         let (statement, parameters) = compiler.compile();
-        Ok(self
+
+        // The `hits` CTE only needs to deduplicate editions when the query can emit more than
+        // one row per edition: either a fan-out (to-many) filter join, or a range variable
+        // temporal axis matching the same edition across several decision-time slices. A
+        // collapsed point interval (`[t, t]`) matches at most one slice per entity, so when no
+        // to-many join was added the dedup can be dropped, unlocking a parallel aggregate.
+        let variable_interval = temporal_axes.variable_interval();
+        let temporal_axis_is_point = matches!(
+            (variable_interval.start(), variable_interval.end()),
+            (TemporalBound::Inclusive(start), LimitedTemporalBound::Inclusive(end))
+                if start == end
+        );
+        let dedup = if compiler.has_to_many_join() || !temporal_axis_is_point {
+            Deduplication::Required
+        } else {
+            Deduplication::Skip
+        };
+        let statement = summary_query.statement(&statement, dedup);
+
+        let rows = self
             .as_client()
             .query_raw(&statement, parameters.iter().copied())
             .instrument(tracing::info_span!(
@@ -1685,8 +1687,21 @@ where
             ))
             .await
             .change_context(QueryError)?
-            .count()
-            .await)
+            .try_collect::<Vec<_>>()
+            .instrument(tracing::trace_span!("collect_entity_summaries"))
+            .await
+            .change_context(QueryError)?;
+
+        let summaries = summary_query.decode(rows)?;
+
+        Ok(SummarizeEntitiesResponse {
+            count: summaries.count,
+            web_ids: summaries.web_ids,
+            created_by_ids: summaries.created_by_ids,
+            edition_created_by_ids: summaries.edition_created_by_ids,
+            type_ids: summaries.type_ids.filter(|_| params.include_type_ids),
+            type_titles: summaries.type_titles.filter(|_| params.include_type_titles),
+        })
     }
 
     async fn get_entity_by_id(
@@ -2044,6 +2059,7 @@ where
                     entity_type_ids,
                     provenance: previous_entity.metadata.provenance,
                     archived,
+                    read_only: previous_entity.metadata.read_only,
                     confidence: previous_entity.metadata.confidence,
                     properties: property_metadata,
                 },
@@ -2198,6 +2214,7 @@ where
             confidence: params.confidence,
             properties: property_metadata,
             archived,
+            read_only: previous_entity.metadata.read_only,
         };
         let entities = [Entity {
             properties,

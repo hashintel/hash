@@ -3,10 +3,10 @@
  */
 
 import type {
-  AllowedAuthServicePropertyValue,
-  AllowedAuthServicePropertyValueWithMetadata,
   AllowMembersToInvitePropertyValue,
   AllowMembersToInvitePropertyValueWithMetadata,
+  AllowedAuthServicePropertyValue,
+  AllowedAuthServicePropertyValueWithMetadata,
   ArchivedAtPropertyValue,
   ArchivedAtPropertyValueWithMetadata,
   BooleanDataType,
@@ -58,14 +58,16 @@ import type {
   TextDataTypeWithMetadata,
   TrialEndsAtPropertyValue,
   TrialEndsAtPropertyValueWithMetadata,
-  UpdatedAtPropertyValue,
-  UpdatedAtPropertyValueWithMetadata,
   URIDataType,
   URIDataTypeWithMetadata,
   URLKeyPropertyValue,
   URLKeyPropertyValueWithMetadata,
+  UpdatedAtPropertyValue,
+  UpdatedAtPropertyValueWithMetadata,
   UserCountPropertyValue,
   UserCountPropertyValueWithMetadata,
+  ValueDataType,
+  ValueDataTypeWithMetadata,
 } from "./shared.js";
 
 export type {
@@ -132,4 +134,6 @@ export type {
   URLKeyPropertyValueWithMetadata,
   UserCountPropertyValue,
   UserCountPropertyValueWithMetadata,
+  ValueDataType,
+  ValueDataTypeWithMetadata,
 };

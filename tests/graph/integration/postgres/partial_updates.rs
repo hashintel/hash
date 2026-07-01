@@ -105,6 +105,7 @@ async fn properties_add() {
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
                     sources: Vec::new(),
                 },
+                read_only: false,
             },
         )
         .await
@@ -169,14 +170,8 @@ async fn properties_add() {
             },
             limit: 1000,
             conversions: Vec::new(),
-            include_count: false,
             include_entity_types: None,
             include_drafts: false,
-            include_web_ids: false,
-            include_created_by_ids: false,
-            include_edition_created_by_ids: false,
-            include_type_ids: false,
-            include_type_titles: false,
             include_permissions: false,
         },
     ))
@@ -222,6 +217,7 @@ async fn properties_remove() {
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
                     sources: Vec::new(),
                 },
+                read_only: false,
             },
         )
         .await
@@ -261,14 +257,8 @@ async fn properties_remove() {
             },
             limit: 1000,
             conversions: Vec::new(),
-            include_count: false,
             include_entity_types: None,
             include_drafts: false,
-            include_web_ids: false,
-            include_created_by_ids: false,
-            include_edition_created_by_ids: false,
-            include_type_ids: false,
-            include_type_titles: false,
             include_permissions: false,
         },
     ))
@@ -306,6 +296,7 @@ async fn properties_replace() {
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
                     sources: Vec::new(),
                 },
+                read_only: false,
             },
         )
         .await
@@ -355,14 +346,8 @@ async fn properties_replace() {
             },
             limit: 1000,
             conversions: Vec::new(),
-            include_count: false,
             include_entity_types: None,
             include_drafts: false,
-            include_web_ids: false,
-            include_created_by_ids: false,
-            include_edition_created_by_ids: false,
-            include_type_ids: false,
-            include_type_titles: false,
             include_permissions: false,
         },
     ))
@@ -405,6 +390,7 @@ async fn type_ids() {
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
                     sources: Vec::new(),
                 },
+                read_only: false,
             },
         )
         .await
@@ -442,14 +428,8 @@ async fn type_ids() {
             },
             limit: 1000,
             conversions: Vec::new(),
-            include_count: false,
             include_entity_types: None,
             include_drafts: false,
-            include_web_ids: false,
-            include_created_by_ids: false,
-            include_edition_created_by_ids: false,
-            include_type_ids: false,
-            include_type_titles: false,
             include_permissions: false,
         },
     ))
@@ -497,14 +477,8 @@ async fn type_ids() {
             },
             limit: 1000,
             conversions: Vec::new(),
-            include_count: false,
             include_entity_types: None,
             include_drafts: false,
-            include_web_ids: false,
-            include_created_by_ids: false,
-            include_edition_created_by_ids: false,
-            include_type_ids: false,
-            include_type_titles: false,
             include_permissions: false,
         },
     ))
@@ -554,14 +528,8 @@ async fn type_ids() {
             },
             limit: 1000,
             conversions: Vec::new(),
-            include_count: false,
             include_entity_types: None,
             include_drafts: false,
-            include_web_ids: false,
-            include_created_by_ids: false,
-            include_edition_created_by_ids: false,
-            include_type_ids: false,
-            include_type_titles: false,
             include_permissions: false,
         },
     ))

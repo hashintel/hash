@@ -25,10 +25,7 @@ import {
   type HashEntity,
 } from "@local/hash-graph-sdk/entity";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
-import {
-  currentTimeInstantTemporalAxes,
-  generateVersionedUrlMatchingFilter,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
@@ -162,14 +159,21 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
                 ...authenticatedUser.memberOf.map(({ org: { webId } }) => ({
                   equal: [{ path: ["webId"] }, { parameter: webId }],
                 })),
-                generateVersionedUrlMatchingFilter(
-                  systemEntityTypes.user.entityTypeId,
-                  { ignoreParents: true },
-                ),
-                generateVersionedUrlMatchingFilter(
-                  systemEntityTypes.organization.entityTypeId,
-                  { ignoreParents: true },
-                ),
+                {
+                  equal: [
+                    { path: ["type", "baseUrl"] },
+                    { parameter: systemEntityTypes.user.entityTypeBaseUrl },
+                  ],
+                },
+                {
+                  equal: [
+                    { path: ["type", "baseUrl"] },
+                    {
+                      parameter:
+                        systemEntityTypes.organization.entityTypeBaseUrl,
+                    },
+                  ],
+                },
               ],
             },
             {

@@ -791,6 +791,7 @@ pub enum EntityIds {
     WebId,
     EntityUuid,
     Provenance,
+    ReadOnly,
 }
 
 impl DatabaseColumn for EntityIds {
@@ -798,6 +799,7 @@ impl DatabaseColumn for EntityIds {
         match self {
             Self::WebId | Self::EntityUuid => ParameterType::Uuid,
             Self::Provenance => ParameterType::Any,
+            Self::ReadOnly => ParameterType::Boolean,
         }
     }
 
@@ -810,6 +812,7 @@ impl DatabaseColumn for EntityIds {
             Self::WebId => "web_id",
             Self::EntityUuid => "entity_uuid",
             Self::Provenance => "provenance",
+            Self::ReadOnly => "read_only",
         }
     }
 }
@@ -1923,6 +1926,32 @@ impl Iterator for ForeignKeyJoin {
 }
 
 impl Relation {
+    /// Whether joining this relation can multiply the number of base rows (fan-out).
+    ///
+    /// Conservative: only relations that join on a unique/primary key — exactly one joined
+    /// row per base row — return `false`. Everything else (edge traversals via
+    /// [`Self::Reference`], link endpoints, embeddings) returns `true`. Adding a new relation
+    /// therefore defaults to `true` (needs dedup), which is the safe direction.
+    ///
+    /// Used to decide whether a downstream `DISTINCT` is required: a query whose joins are all
+    /// to-one cannot emit duplicate base rows, so the dedup can be skipped.
+    #[must_use]
+    pub const fn is_to_many(self) -> bool {
+        !matches!(
+            self,
+            Self::OntologyIds
+                | Self::OntologyOwnedMetadata
+                | Self::OntologyExternalMetadata
+                | Self::OntologyAdditionalMetadata
+                | Self::DataTypeIds
+                | Self::PropertyTypeIds
+                | Self::EntityTypeIds
+                | Self::EntityIds
+                | Self::EntityEditions
+                | Self::EntityEditionCache
+        )
+    }
+
     #[expect(clippy::too_many_lines)]
     #[must_use]
     pub fn joins(self) -> ForeignKeyJoin {

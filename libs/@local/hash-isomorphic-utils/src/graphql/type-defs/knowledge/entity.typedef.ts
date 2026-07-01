@@ -3,7 +3,8 @@ import { gql } from "graphql-tag";
 export const entityTypedef = gql`
   scalar ClosedMultiEntityTypesRootMap
   scalar ClosedMultiEntityTypesDefinitions
-  scalar CountEntitiesParams
+  scalar SummarizeEntitiesParams
+  scalar SummarizeEntitiesResponse
   scalar CreatedByIdsMap
   scalar EntityId
   scalar EntityMetadata
@@ -13,6 +14,8 @@ export const entityTypedef = gql`
   scalar EntityValidationReport
   scalar QueryEntitiesRequest
   scalar QueryEntitiesResponse
+  scalar SearchEntitiesRequest
+  scalar SearchEntitiesResponse
   scalar QueryEntitySubgraphRequest
   scalar QueryEntitySubgraphResponse
   scalar TypeIdsAndPropertiesForEntity
@@ -109,9 +112,13 @@ export const entityTypedef = gql`
   }
 
   extend type Query {
-    countEntities(request: CountEntitiesParams!): Int!
+    summarizeEntities(
+      request: SummarizeEntitiesParams!
+    ): SummarizeEntitiesResponse!
 
     queryEntities(request: QueryEntitiesRequest!): QueryEntitiesResponse!
+
+    searchEntities(request: SearchEntitiesRequest!): SearchEntitiesResponse!
 
     queryEntitySubgraph(
       request: QueryEntitySubgraphRequest!
@@ -213,6 +220,10 @@ export const entityTypedef = gql`
       Whether the created entity should be a draft
       """
       draft: Boolean
+      """
+      Whether the created entity should be publicly visible
+      """
+      makePublic: Boolean = false
     ): Entity!
 
     """

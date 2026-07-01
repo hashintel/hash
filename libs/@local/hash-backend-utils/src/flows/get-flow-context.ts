@@ -2,10 +2,7 @@ import { caching } from "cache-manager";
 import { backOff } from "exponential-backoff";
 
 import { queryEntities } from "@local/hash-graph-sdk/entity";
-import {
-  currentTimeInstantTemporalAxes,
-  generateVersionedUrlMatchingFilter,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   systemEntityTypes,
   systemPropertyTypes,
@@ -92,10 +89,16 @@ export const getFlowEntityInfo = async (params: {
                   { parameter: workflowId },
                 ],
               },
-              generateVersionedUrlMatchingFilter(
-                systemEntityTypes.flowRun.entityTypeId,
-                { ignoreParents: true },
-              ),
+              {
+                equal: [
+                  {
+                    path: ["type", "baseUrl"],
+                  },
+                  {
+                    parameter: systemEntityTypes.flowRun.entityTypeBaseUrl,
+                  },
+                ],
+              },
             ],
           },
           temporalAxes: currentTimeInstantTemporalAxes,

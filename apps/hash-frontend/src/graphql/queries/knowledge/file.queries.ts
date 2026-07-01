@@ -8,6 +8,7 @@ export const requestFileUpload = gql`
     $displayName: String
     $fileEntityCreationInput: FileEntityCreationInput
     $fileEntityUpdateInput: FileEntityUpdateInput
+    $makePublic: Boolean = false
   ) {
     requestFileUpload(
       size: $size
@@ -16,6 +17,7 @@ export const requestFileUpload = gql`
       displayName: $displayName
       fileEntityCreationInput: $fileEntityCreationInput
       fileEntityUpdateInput: $fileEntityUpdateInput
+      makePublic: $makePublic
     ) {
       presignedPut {
         url
@@ -32,6 +34,7 @@ export const createFileFromUrl = gql`
     $description: String
     $fileEntityCreationInput: FileEntityCreationInput
     $fileEntityUpdateInput: FileEntityUpdateInput
+    $makePublic: Boolean = false
   ) {
     createFileFromUrl(
       url: $url
@@ -39,6 +42,7 @@ export const createFileFromUrl = gql`
       description: $description
       fileEntityCreationInput: $fileEntityCreationInput
       fileEntityUpdateInput: $fileEntityUpdateInput
+      makePublic: $makePublic
     )
   }
 `;

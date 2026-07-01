@@ -2,19 +2,20 @@ import { GridCellKind } from "@glideapps/glide-data-grid";
 import { useTheme } from "@mui/material";
 import { useCallback } from "react";
 
-import { useEntityEditor } from "../../entity-editor-context";
 import { linkGridIndexes } from "./constants";
 
 import type { ChipCell } from "../../../../chip-cell";
+import type { EntityEditorProps } from "../../../entity-editor";
 import type { SummaryChipCell } from "../../shared/summary-chip-cell";
 import type { LinkCell } from "./cells/link-cell";
 import type { LinkedWithCell } from "./cells/linked-with-cell";
 import type { LinkRow } from "./types";
 import type { Item } from "@glideapps/glide-data-grid";
 
-export const useCreateGetCellContent = () => {
-  const { readonly, onTypeClick } = useEntityEditor();
-
+export const useCreateGetCellContent = ({
+  readonly,
+  onTypeClick,
+}: Pick<EntityEditorProps, "readonly" | "onTypeClick">) => {
   const theme = useTheme();
 
   const createGetCellContent = useCallback(

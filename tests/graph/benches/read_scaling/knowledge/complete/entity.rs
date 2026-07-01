@@ -149,6 +149,7 @@ async fn seed_db(
                         origin: OriginProvenance::from_empty_type(OriginType::Api),
                         sources: Vec::new(),
                     },
+                    read_only: false,
                 },
                 total,
             )
@@ -189,6 +190,7 @@ async fn seed_db(
                             origin: OriginProvenance::from_empty_type(OriginType::Api),
                             sources: Vec::new(),
                         },
+                        read_only: false,
                     })
                 })
                 .collect(),
@@ -249,14 +251,8 @@ pub fn bench_get_entity_by_id(
                                 },
                                 limit: 1000,
                                 conversions: Vec::new(),
-                                include_count: false,
                                 include_entity_types: None,
                                 include_drafts: false,
-                                include_web_ids: false,
-                                include_created_by_ids: false,
-                                include_edition_created_by_ids: false,
-                                include_type_ids: false,
-                                include_type_titles: false,
                                 include_permissions: false,
                             },
                             traversal_params,

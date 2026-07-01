@@ -1,4 +1,4 @@
-import { faHome } from "@fortawesome/free-solid-svg-icons";
+import { faHome, faTruckFast } from "@fortawesome/free-solid-svg-icons";
 import { Box, Collapse, Drawer } from "@mui/material";
 import { useRouter } from "next/router";
 import {
@@ -19,6 +19,7 @@ import { useHashInstance } from "../../../components/hooks/use-hash-instance";
 import { useEnabledFeatureFlags } from "../../../pages/shared/use-enabled-feature-flags";
 import { useActiveWorkspace } from "../../../pages/shared/workspace-context";
 import { useDraftEntitiesCount } from "../../draft-entities-count-context";
+import { getInboxHref } from "../../get-inbox-href";
 import { ArrowRightToLineIcon } from "../../icons";
 import { BoltLightIcon } from "../../icons/bolt-light-icon";
 import { ChartNetworkRegularIcon } from "../../icons/chart-network-regular-icon";
@@ -137,10 +138,6 @@ export const PageSidebar: FunctionComponent = () => {
     const numberOfPendingActions = draftEntitiesCount ?? 0;
     const unreadNotifications = numberOfUnreadNotifications ?? 0;
 
-    const shouldInboxLinkToActions =
-      numberOfPendingActions > 0 ||
-      (unreadNotifications === 0 && pendingInvites.length === 0);
-
     return [
       {
         title: "Home",
@@ -151,6 +148,13 @@ export const PageSidebar: FunctionComponent = () => {
       ...workersSection,
       ...toggleableLinks,
       {
+        title: "Supply Chain",
+        path: "/supply-chain",
+        icon: <FontAwesomeIcon icon={faTruckFast} />,
+        activeIfPathMatches: /^\/supply-chain(\/|$)/,
+        tooltipTitle: "",
+      },
+      {
         title: "Processes",
         path: "/processes",
         icon: <ChartNetworkRegularIcon sx={{ fontSize: 16 }} />,
@@ -158,11 +162,12 @@ export const PageSidebar: FunctionComponent = () => {
       },
       {
         title: "Inbox",
-        path: shouldInboxLinkToActions
-          ? "/actions"
-          : unreadNotifications > 0
-            ? "/notifications"
-            : "/invites",
+        path: getInboxHref({
+          fallbackHref: "/actions",
+          numberOfDraftEntityActions: numberOfPendingActions,
+          numberOfPendingInvites: pendingInvites.length,
+          numberOfUnreadNotifications: unreadNotifications,
+        }),
         icon: <InboxIcon sx={{ fontSize: 16 }} />,
         tooltipTitle: "",
         count:

@@ -48,6 +48,7 @@ impl ForwardRef {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub(crate) struct EntryBlock(pub BasicBlockId);
 impl From<EntryBlock> for BasicBlockId {
+    #[inline]
     fn from(entry: EntryBlock) -> Self {
         entry.0
     }
@@ -56,6 +57,7 @@ impl From<EntryBlock> for BasicBlockId {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub(crate) struct ExitBlock(pub BasicBlockId);
 impl From<ExitBlock> for BasicBlockId {
+    #[inline]
     fn from(exit: ExitBlock) -> Self {
         exit.0
     }

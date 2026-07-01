@@ -235,7 +235,9 @@ export const traverseAndCollateSchemas = async (
             withMetadata.$id,
           );
         } else {
-          throw new Error(`Unexpected type, was it malformed? URL: ${typeId}`);
+          throw new Error(
+            `Unexpected type, was it malformed? URL: ${typeId}. Fetched from: ${rewrittenTypeId}. Received: ${JSON.stringify(type)}`,
+          );
         }
       }),
     );

@@ -21,14 +21,15 @@ use axum::{
     Json,
     response::{Html, IntoResponse as _},
 };
-use error_stack::Report;
+use error_stack::{Report, ResultExt as _};
 use hash_graph_store::{
     entity::{
         EntityQueryCursor, EntityQueryPath, EntityQuerySorting, EntityQuerySortingRecord,
-        QueryConversion, QueryEntitiesParams, QueryEntitySubgraphParams,
+        QueryConversion, QueryEntitiesParams, QueryEntitySubgraphParams, SearchEntitiesFilter,
+        SearchEntitiesParams,
     },
     entity_type::IncludeEntityTypeOption,
-    filter::Filter,
+    filter::{Filter, SemanticDistance},
     query::Ordering,
     subgraph::{
         edges::{
@@ -39,6 +40,7 @@ use hash_graph_store::{
         temporal_axes::QueryTemporalAxesUnresolved,
     },
 };
+use hash_graph_types::Embedding;
 use hashql_ast::error::AstDiagnosticCategory;
 use hashql_core::{
     collections::fast_hash_map_with_capacity,
@@ -65,7 +67,9 @@ use serde_json::value::RawValue as RawJsonValue;
 use type_system::knowledge::Entity;
 use utoipa::ToSchema;
 
-use super::{ApiConfig, LimitExceededError, resolve_limit, status::BoxedResponse};
+use super::{
+    ApiConfig, LimitExceededError, SearchRequestError, resolve_limit, status::BoxedResponse,
+};
 
 #[tracing::instrument(level = "info", skip_all)]
 fn generate_sorting_paths(
@@ -156,10 +160,6 @@ fn generate_sorting_paths(
 ///
 /// See <https://github.com/serde-rs/json/issues/497> and <https://github.com/serde-rs/serde/issues/1183> for more details.
 #[derive(Debug, Clone, Deserialize)]
-#[expect(
-    clippy::struct_excessive_bools,
-    reason = "Parameter struct deserialized from JSON"
-)]
 #[serde(rename_all = "camelCase")]
 struct FlatQueryEntitiesRequestData<'q, 's, 'p> {
     // `QueryEntitiesQuery::Filter`
@@ -180,19 +180,7 @@ struct FlatQueryEntitiesRequestData<'q, 's, 'p> {
     #[serde(borrow)]
     cursor: Option<EntityQueryCursor<'s>>,
     #[serde(default)]
-    include_count: bool,
-    #[serde(default)]
     include_entity_types: Option<IncludeEntityTypeOption>,
-    #[serde(default)]
-    include_web_ids: bool,
-    #[serde(default)]
-    include_created_by_ids: bool,
-    #[serde(default)]
-    include_edition_created_by_ids: bool,
-    #[serde(default)]
-    include_type_ids: bool,
-    #[serde(default)]
-    include_type_titles: bool,
     include_permissions: bool,
 
     traversal_paths: Option<Vec<TraversalPath>>,
@@ -478,10 +466,6 @@ impl core::error::Error for EntityQueryOptionsError {}
 
 #[derive(Debug, Clone, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-#[expect(
-    clippy::struct_excessive_bools,
-    reason = "Parameter struct deserialized from JSON"
-)]
 pub struct EntityQueryOptions<'s, 'p> {
     pub temporal_axes: QueryTemporalAxesUnresolved,
     pub include_drafts: bool,
@@ -493,19 +477,7 @@ pub struct EntityQueryOptions<'s, 'p> {
     #[serde(borrow)]
     pub cursor: Option<EntityQueryCursor<'s>>,
     #[serde(default)]
-    pub include_count: bool,
-    #[serde(default)]
     pub include_entity_types: Option<IncludeEntityTypeOption>,
-    #[serde(default)]
-    pub include_web_ids: bool,
-    #[serde(default)]
-    pub include_created_by_ids: bool,
-    #[serde(default)]
-    pub include_edition_created_by_ids: bool,
-    #[serde(default)]
-    pub include_type_ids: bool,
-    #[serde(default)]
-    pub include_type_titles: bool,
     pub include_permissions: bool,
 }
 
@@ -522,13 +494,7 @@ impl<'q, 's, 'p> TryFrom<FlatQueryEntitiesRequestData<'q, 's, 'p>> for EntityQue
             conversions,
             sorting_paths,
             cursor,
-            include_count,
             include_entity_types,
-            include_web_ids,
-            include_created_by_ids,
-            include_edition_created_by_ids,
-            include_type_ids,
-            include_type_titles,
             include_permissions,
             graph_resolve_depths,
             traversal_paths,
@@ -561,13 +527,7 @@ impl<'q, 's, 'p> TryFrom<FlatQueryEntitiesRequestData<'q, 's, 'p>> for EntityQue
             conversions,
             sorting_paths,
             cursor,
-            include_count,
             include_entity_types,
-            include_web_ids,
-            include_created_by_ids,
-            include_edition_created_by_ids,
-            include_type_ids,
-            include_type_titles,
             include_permissions,
         })
     }
@@ -597,14 +557,8 @@ impl<'p> EntityQueryOptions<'_, 'p> {
             limit,
             conversions: self.conversions,
             include_drafts: self.include_drafts,
-            include_count: self.include_count,
             include_entity_types: self.include_entity_types,
             temporal_axes: self.temporal_axes,
-            include_web_ids: self.include_web_ids,
-            include_created_by_ids: self.include_created_by_ids,
-            include_edition_created_by_ids: self.include_edition_created_by_ids,
-            include_type_ids: self.include_type_ids,
-            include_type_titles: self.include_type_titles,
             include_permissions: self.include_permissions,
         })
     }
@@ -638,6 +592,45 @@ impl<'p> EntityQueryOptions<'_, 'p> {
                 request: self.into_params(filter, config)?,
             }),
         }
+    }
+}
+
+/// Request body for the entity embedding search endpoint.
+#[derive(Debug, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct SearchEntitiesRequest {
+    pub embedding: Embedding<'static>,
+    pub maximum_semantic_distance: f64,
+    pub limit: Option<usize>,
+    #[serde(default)]
+    pub include_entity_types: bool,
+    #[serde(default)]
+    pub filter: SearchEntitiesFilter,
+}
+
+impl SearchEntitiesRequest {
+    /// # Errors
+    ///
+    /// - [`InvalidSemanticDistance`] if the maximum semantic distance is invalid.
+    /// - [`LimitExceeded`] if the requested limit exceeds the configured maximum.
+    ///
+    /// [`InvalidSemanticDistance`]: [`SearchRequestError::InvalidSemanticDistance`]
+    /// [`LimitExceeded`]: [`SearchRequestError::LimitExceeded`]
+    pub fn into_params(
+        self,
+        config: ApiConfig,
+    ) -> Result<SearchEntitiesParams, Report<SearchRequestError>> {
+        Ok(SearchEntitiesParams {
+            embedding: self.embedding,
+            maximum_semantic_distance: SemanticDistance::try_from(self.maximum_semantic_distance)
+                .change_context(
+                SearchRequestError::InvalidSemanticDistance,
+            )?,
+            limit: resolve_limit(self.limit, config.query_entity_limit)
+                .change_context(SearchRequestError::LimitExceeded)?,
+            include_entity_types: self.include_entity_types,
+            filter: self.filter,
+        })
     }
 }
 

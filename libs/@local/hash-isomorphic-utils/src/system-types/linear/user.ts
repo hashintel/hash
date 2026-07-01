@@ -7,10 +7,10 @@ import type {
   ActivePropertyValueWithMetadata,
   AdminPropertyValue,
   AdminPropertyValueWithMetadata,
-  AllowedAuthServicePropertyValue,
-  AllowedAuthServicePropertyValueWithMetadata,
   AllowMembersToInvitePropertyValue,
   AllowMembersToInvitePropertyValueWithMetadata,
+  AllowedAuthServicePropertyValue,
+  AllowedAuthServicePropertyValueWithMetadata,
   ArchivedAtPropertyValue,
   ArchivedAtPropertyValueWithMetadata,
   AvatarURLPropertyValue,
@@ -104,12 +104,12 @@ import type {
   TimezonePropertyValueWithMetadata,
   TrialEndsAtPropertyValue,
   TrialEndsAtPropertyValueWithMetadata,
-  UpdatedAtPropertyValue,
-  UpdatedAtPropertyValueWithMetadata,
   URIDataType,
   URIDataTypeWithMetadata,
   URLKeyPropertyValue,
   URLKeyPropertyValueWithMetadata,
+  UpdatedAtPropertyValue,
+  UpdatedAtPropertyValueWithMetadata,
   User,
   UserBelongsToOrganizationLink,
   UserCountPropertyValue,
@@ -118,6 +118,8 @@ import type {
   UserOutgoingLinksByLinkEntityTypeId,
   UserProperties,
   UserPropertiesWithMetadata,
+  ValueDataType,
+  ValueDataTypeWithMetadata,
 } from "./shared.js";
 
 export type {
@@ -236,4 +238,6 @@ export type {
   UserOutgoingLinksByLinkEntityTypeId,
   UserProperties,
   UserPropertiesWithMetadata,
+  ValueDataType,
+  ValueDataTypeWithMetadata,
 };

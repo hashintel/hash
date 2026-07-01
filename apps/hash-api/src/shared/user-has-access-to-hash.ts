@@ -1,3 +1,5 @@
+import { normalizeEmail } from "@local/hash-isomorphic-utils/normalize";
+
 import {
   getUserPendingInvitations,
   type User,
@@ -25,7 +27,9 @@ if (process.env.USER_EMAIL_ALLOW_LIST) {
       );
     }
 
-    userEmailAllowList = uncheckedUserEmailAllowList;
+    // Normalise so the allowlist matches the canonical (lowercased) emails
+    // surfaced on `user.emails`, regardless of how an admin cased entries.
+    userEmailAllowList = uncheckedUserEmailAllowList.map(normalizeEmail);
   } catch (error) {
     if (error instanceof SyntaxError) {
       throw new Error(

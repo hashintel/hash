@@ -309,6 +309,7 @@ impl TraversalPathBitMap {
 }
 
 impl From<TraversalPathBitSet> for TraversalPathBitMap {
+    #[inline]
     fn from(value: TraversalPathBitSet) -> Self {
         let mut this = TraversalMapLattice.bottom();
         this[value.vertex()] = value;

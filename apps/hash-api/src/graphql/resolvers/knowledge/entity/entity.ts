@@ -7,19 +7,23 @@ import {
   HashEntity,
   queryEntities,
   queryEntitySubgraph,
+  searchEntities,
   serializeQueryEntitiesResponse,
   serializeQueryEntitySubgraphResponse,
+  serializeSearchEntitiesResponse,
+  summarizeEntities,
+  type CreateEntityParameters,
 } from "@local/hash-graph-sdk/entity";
 import {
   createPolicy,
   deletePolicyById,
   queryPolicies,
 } from "@local/hash-graph-sdk/policy";
+import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 
 import {
   canUserReadEntity,
   checkEntityPermission,
-  countEntities,
   createEntityWithLinks,
   getLatestEntityById,
   updateEntity,
@@ -42,15 +46,21 @@ import type {
   MutationUpdateEntitiesArgs,
   MutationUpdateEntityArgs,
   Query,
-  QueryCountEntitiesArgs,
+  QuerySummarizeEntitiesArgs,
   QueryIsEntityPublicArgs,
   QueryQueryEntitiesArgs,
+  QuerySearchEntitiesArgs,
   QueryQueryEntitySubgraphArgs,
   QueryValidateEntityArgs,
   ResolverFn,
 } from "../../../api-types.gen";
 import type { GraphQLContext, LoggedInGraphQLContext } from "../../../context";
-import type { Entity, EntityId, WebId } from "@blockprotocol/type-system";
+import type {
+  Entity,
+  EntityId,
+  EntityUuid,
+  WebId,
+} from "@blockprotocol/type-system";
 import type { EntityValidationReport } from "@local/hash-graph-sdk/validation";
 
 export const createEntityResolver: ResolverFn<
@@ -60,13 +70,33 @@ export const createEntityResolver: ResolverFn<
   MutationCreateEntityArgs
 > = async (
   _,
-  { webId, properties, entityTypeIds, linkedEntities, linkData, draft },
+  {
+    webId,
+    properties,
+    entityTypeIds,
+    linkedEntities,
+    linkData,
+    draft,
+    makePublic,
+  },
   graphQLContext,
 ) => {
   const { authentication, user } = graphQLContext;
   const context = graphQLContextToImpureGraphContext(graphQLContext);
 
   let entity: Entity;
+
+  const entityUuid = generateUuid() as EntityUuid;
+  const policies: CreateEntityParameters["policies"] = makePublic
+    ? [
+        {
+          name: `public-view-entity-${entityUuid}`,
+          effect: "permit",
+          actions: ["viewEntity"],
+          principal: null,
+        } as const,
+      ]
+    : undefined;
 
   if (linkData) {
     const { leftEntityId, rightEntityId } = linkData;
@@ -84,6 +114,7 @@ export const createEntityResolver: ResolverFn<
 
     entity = await createLinkEntity(context, authentication, {
       webId: webId ?? (user.accountId as WebId),
+      entityUuid,
       properties,
       linkData: {
         leftEntityId,
@@ -91,27 +122,30 @@ export const createEntityResolver: ResolverFn<
       },
       entityTypeIds: mustHaveAtLeastOne(entityTypeIds),
       draft: draft ?? undefined,
+      policies,
     });
   } else {
     entity = await createEntityWithLinks(context, authentication, {
       webId: webId ?? (user.accountId as WebId),
+      entityUuid,
       entityTypeIds: mustHaveAtLeastOne(entityTypeIds),
       properties,
       linkedEntities: linkedEntities ?? undefined,
       draft: draft ?? undefined,
+      policies,
     });
   }
 
   return entity;
 };
 
-export const countEntitiesResolver: ResolverFn<
-  Query["countEntities"],
+export const summarizeEntitiesResolver: ResolverFn<
+  Query["summarizeEntities"],
   Record<string, never>,
   GraphQLContext,
-  QueryCountEntitiesArgs
+  QuerySummarizeEntitiesArgs
 > = async (_, { request }, graphQLContext) =>
-  countEntities(
+  summarizeEntities(
     graphQLContextToImpureGraphContext(graphQLContext),
     graphQLContext.authentication,
     request,
@@ -128,6 +162,18 @@ export const queryEntitiesResolver: ResolverFn<
     graphQLContext.authentication,
     request,
   ).then(serializeQueryEntitiesResponse);
+
+export const searchEntitiesResolver: ResolverFn<
+  Query["searchEntities"],
+  Record<string, never>,
+  GraphQLContext,
+  QuerySearchEntitiesArgs
+> = async (_, { request }, graphQLContext) =>
+  searchEntities(
+    graphQLContextToImpureGraphContext(graphQLContext),
+    graphQLContext.authentication,
+    request,
+  ).then(serializeSearchEntitiesResponse);
 
 export const queryEntitySubgraphResolver: ResolverFn<
   Query["queryEntitySubgraph"],

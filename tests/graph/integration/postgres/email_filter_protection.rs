@@ -1,8 +1,4 @@
 #![expect(
-    clippy::large_futures,
-    reason = "Test verification futures are large due to filter complexity; acceptable for tests"
-)]
-#![expect(
     clippy::print_stderr,
     reason = "eprintln! used for debug output on test failures"
 )]
@@ -23,8 +19,8 @@ use std::collections::HashSet;
 use hash_graph_postgres_store::store::PostgresStoreSettings;
 use hash_graph_store::{
     entity::{
-        CountEntitiesParams, CreateEntityParams, EntityQueryPath, EntityQuerySorting,
-        EntityQuerySortingRecord, EntityStore as _, QueryEntitiesParams, QueryEntitySubgraphParams,
+        CreateEntityParams, EntityQueryPath, EntityQuerySorting, EntityQuerySortingRecord,
+        EntityStore as _, QueryEntitiesParams, QueryEntitySubgraphParams, SummarizeEntitiesParams,
     },
     entity_type::EntityTypeQueryPath,
     filter::{
@@ -289,6 +285,7 @@ impl DatabaseApi<'_> {
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
                     sources: Vec::new(),
                 },
+                read_only: false,
             },
         )
         .await
@@ -323,6 +320,7 @@ impl DatabaseApi<'_> {
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
                     sources: Vec::new(),
                 },
+                read_only: false,
             },
         )
         .await
@@ -368,6 +366,7 @@ impl DatabaseApi<'_> {
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
                     sources: Vec::new(),
                 },
+                read_only: false,
             },
         )
         .await
@@ -387,14 +386,8 @@ impl DatabaseApi<'_> {
                 sorting,
                 limit: 1000,
                 conversions: Vec::new(),
-                include_count: false,
                 include_entity_types: None,
                 include_drafts: false,
-                include_web_ids: false,
-                include_created_by_ids: false,
-                include_edition_created_by_ids: false,
-                include_type_ids: false,
-                include_type_titles: false,
                 include_permissions: false,
             },
         )
@@ -404,16 +397,24 @@ impl DatabaseApi<'_> {
     }
 
     async fn count(&self, filter: Filter<'_, Entity>) -> usize {
-        self.count_entities(
+        self.summarize_entities(
             self.account_id,
-            CountEntitiesParams {
+            SummarizeEntitiesParams {
                 filter,
                 temporal_axes: standard_temporal_axes(),
                 include_drafts: false,
+                include_count: true,
+                include_web_ids: false,
+                include_created_by_ids: false,
+                include_edition_created_by_ids: false,
+                include_type_ids: false,
+                include_type_titles: false,
             },
         )
         .await
         .expect("count failed")
+        .count
+        .expect("summarize_entities should include `count` when `include_count` is true")
     }
 }
 
@@ -1496,6 +1497,7 @@ impl DatabaseApi<'_> {
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
                     sources: Vec::new(),
                 },
+                read_only: false,
             },
         )
         .await
@@ -1535,6 +1537,7 @@ impl DatabaseApi<'_> {
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
                     sources: Vec::new(),
                 },
+                read_only: false,
             },
         )
         .await
@@ -2138,6 +2141,7 @@ impl DatabaseApi<'_> {
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
                     sources: Vec::new(),
                 },
+                read_only: false,
             },
         )
         .await
@@ -2177,6 +2181,7 @@ impl DatabaseApi<'_> {
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
                     sources: Vec::new(),
                 },
+                read_only: false,
             },
         )
         .await
@@ -2584,6 +2589,7 @@ impl DatabaseApi<'_> {
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
                     sources: Vec::new(),
                 },
+                read_only: false,
             },
         )
         .await
@@ -3065,6 +3071,7 @@ async fn subgraph_traversal_masks_linked_user_email() {
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
                     sources: Vec::new(),
                 },
+                read_only: false,
             },
         )
         .await
@@ -3094,6 +3101,7 @@ async fn subgraph_traversal_masks_linked_user_email() {
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
                     sources: Vec::new(),
                 },
+                read_only: false,
             },
         )
         .await
@@ -3125,6 +3133,7 @@ async fn subgraph_traversal_masks_linked_user_email() {
                 origin: OriginProvenance::from_empty_type(OriginType::Api),
                 sources: Vec::new(),
             },
+            read_only: false,
         },
     )
     .await
@@ -3168,14 +3177,8 @@ async fn subgraph_traversal_masks_linked_user_email() {
                     },
                     limit: 1000,
                     conversions: Vec::new(),
-                    include_count: false,
                     include_entity_types: None,
                     include_drafts: false,
-                    include_web_ids: false,
-                    include_created_by_ids: false,
-                    include_edition_created_by_ids: false,
-                    include_type_ids: false,
-                    include_type_titles: false,
                     include_permissions: false,
                 },
             },

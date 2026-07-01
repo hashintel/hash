@@ -1,6 +1,7 @@
 import { useTheme } from "@mui/material";
 import { useCallback, useMemo } from "react";
 
+import { extractBaseUrl } from "@blockprotocol/type-system";
 import { typedEntries, typedValues } from "@local/advanced-types/typed-entries";
 
 import { useEntityTypesContextRequired } from "../../shared/entity-types-context/hooks/use-entity-types-context-required";
@@ -15,12 +16,70 @@ import type {
 } from "./graph-visualizer";
 import type {
   DataTypeWithMetadata,
+  EntityType,
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
   VersionedUrl,
 } from "@blockprotocol/type-system";
 
 const anythingNodeId = "anything";
+
+const getSelfAndAncestorEntityTypes = (
+  entityType: EntityType,
+  entityTypesById: Record<VersionedUrl, EntityType>,
+): EntityType[] => {
+  const selfAndAncestors: EntityType[] = [];
+  const visited = new Set<VersionedUrl>();
+  const queue = [entityType];
+
+  for (const currentEntityType of queue) {
+    const entityTypeId = currentEntityType.$id;
+
+    if (visited.has(entityTypeId)) {
+      continue;
+    }
+
+    visited.add(entityTypeId);
+    selfAndAncestors.push(currentEntityType);
+
+    for (const { $ref } of currentEntityType.allOf ?? []) {
+      const parentEntityType = entityTypesById[$ref];
+
+      if (parentEntityType) {
+        queue.push(parentEntityType);
+      }
+    }
+  }
+
+  return selfAndAncestors;
+};
+
+const getInheritedLinks = (
+  selfAndAncestors: EntityType[],
+): NonNullable<EntityType["links"]> => {
+  const inheritedLinks: NonNullable<EntityType["links"]> = {};
+  const linkTypeBaseUrlsSeen = new Set<string>();
+
+  for (const entityType of selfAndAncestors) {
+    for (const [linkTypeId, linkSchema] of typedEntries(
+      entityType.links ?? {},
+    )) {
+      const linkTypeBaseUrl = extractBaseUrl(linkTypeId);
+
+      if (linkTypeBaseUrlsSeen.has(linkTypeBaseUrl)) {
+        continue;
+      }
+
+      inheritedLinks[linkTypeId] = linkSchema;
+      linkTypeBaseUrlsSeen.add(linkTypeBaseUrl);
+    }
+  }
+
+  return inheritedLinks;
+};
+
+const getInheritedIcon = (selfAndAncestors: EntityType[]) =>
+  selfAndAncestors.find(({ icon }) => !!icon)?.icon;
 
 const defaultConfig = {
   graphKey: "type-graph",
@@ -50,7 +109,8 @@ export const TypeGraphVisualizer = ({
 }) => {
   const { palette } = useTheme();
 
-  const { isSpecialEntityTypeLookup } = useEntityTypesContextRequired();
+  const { entityTypes, isSpecialEntityTypeLookup } =
+    useEntityTypesContextRequired();
 
   const { edges, nodes } = useMemo(() => {
     const edgesToAdd: GraphVizEdge[] = [];
@@ -82,6 +142,18 @@ export const TypeGraphVisualizer = ({
       }
     > = {};
 
+    const entityTypesById: Record<VersionedUrl, EntityType> = {};
+
+    for (const type of entityTypes ?? []) {
+      entityTypesById[type.schema.$id] = type.schema;
+    }
+
+    for (const type of types) {
+      if (type.schema.kind === "entityType") {
+        entityTypesById[type.schema.$id] = type.schema;
+      }
+    }
+
     for (const { schema } of types) {
       if (schema.kind !== "entityType") {
         /**
@@ -91,6 +163,10 @@ export const TypeGraphVisualizer = ({
       }
 
       const entityTypeId = schema.$id;
+      const selfAndAncestors = getSelfAndAncestorEntityTypes(
+        schema,
+        entityTypesById,
+      );
 
       const isLink = isSpecialEntityTypeLookup?.[entityTypeId]?.isLink;
       if (isLink) {
@@ -104,6 +180,7 @@ export const TypeGraphVisualizer = ({
       nodesToAdd.push({
         nodeId: entityTypeId,
         color: palette.blue[70],
+        icon: getInheritedIcon(selfAndAncestors),
         label: schema.title,
         size: 18,
       });
@@ -111,7 +188,7 @@ export const TypeGraphVisualizer = ({
       addedNodeIds.add(entityTypeId);
 
       for (const [linkTypeId, destinationSchema] of typedEntries(
-        schema.links ?? {},
+        getInheritedLinks(selfAndAncestors),
       )) {
         const destinationTypeIds =
           "oneOf" in destinationSchema.items
@@ -133,9 +210,7 @@ export const TypeGraphVisualizer = ({
         }`;
 
         if (!addedNodeIds.has(linkNodeId)) {
-          const linkSchema = types.find(
-            (type) => type.schema.$id === linkTypeId,
-          )?.schema;
+          const linkSchema = entityTypesById[linkTypeId];
 
           if (!linkSchema) {
             continue;
@@ -243,7 +318,7 @@ export const TypeGraphVisualizer = ({
       edges: edgesToAdd,
       nodes: nodesToAdd,
     };
-  }, [isSpecialEntityTypeLookup, palette, types]);
+  }, [entityTypes, isSpecialEntityTypeLookup, palette, types]);
 
   const onNodeClick = useCallback<
     NonNullable<GraphVisualizerProps<StaticNodeSizing>["onNodeSecondClick"]>

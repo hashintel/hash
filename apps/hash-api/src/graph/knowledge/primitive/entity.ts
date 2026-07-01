@@ -19,6 +19,7 @@ import {
   HashLinkEntity,
   queryEntities,
   queryEntitySubgraph,
+  summarizeEntities,
 } from "@local/hash-graph-sdk/entity";
 import { getActorGroupRole } from "@local/hash-graph-sdk/principal/actor-group";
 import {
@@ -58,7 +59,6 @@ import type {
 import type { Subtype } from "@local/advanced-types/subtype";
 import type {
   AllFilter,
-  CountEntitiesParams,
   DiffEntityResult,
   Filter,
   HasPermissionForEntitiesParams,
@@ -159,12 +159,6 @@ export const createEntity = async <
 
   return entity;
 };
-
-export const countEntities: ImpureGraphFunction<
-  CountEntitiesParams,
-  Promise<number>
-> = async ({ graphApi }, { actorId }, params) =>
-  graphApi.countEntities(actorId, params).then(({ data }) => data);
 
 type GetLatestEntityByIdFunction<
   Properties extends TypeIdsAndPropertiesForEntity =
@@ -315,15 +309,18 @@ export const canUserReadEntity: ImpureGraphFunction<
     });
   }
 
-  const count = await countEntities(context, authentication, {
+  const { count } = await summarizeEntities(context, authentication, {
     filter: {
       all: allFilter,
     },
     temporalAxes: currentTimeInstantTemporalAxes,
     includeDrafts: !!draftId || includeDrafts,
+    includeCount: true,
   });
 
-  if (count === 0) {
+  // Deny on a missing/zero count rather than failing open: a permission gate must not
+  // grant access when the count is absent (`count` is typed optional on the response).
+  if (!count) {
     throw new Error(
       `Entity with entityId ${entityId} doesn't exist or cannot be accessed by requesting user.`,
     );
@@ -341,7 +338,14 @@ export const createEntityWithLinks = async <
   ...args: Parameters<CreateEntityWithLinksFunction<Properties>>
 ): ReturnType<CreateEntityWithLinksFunction<Properties>> => {
   const [context, authentication, params] = args;
-  const { entityTypeIds, properties, linkedEntities, ...createParams } = params;
+  const {
+    entityTypeIds,
+    properties,
+    linkedEntities,
+    entityUuid,
+    policies,
+    ...createParams
+  } = params;
 
   const entitiesInTree = linkedTreeFlatten<
     EntityDefinition,
@@ -384,12 +388,15 @@ export const createEntityWithLinks = async <
        * draft entities, but would need changing if we change this. H-2430 which would introduce draft/live versions of
        * pages which may affect this.
        */
+      const isRootEntity = definition.parentIndex === -1;
+
       const entity = existingEntityId
         ? await getLatestEntityById<Properties>(context, authentication, {
             entityId: existingEntityId,
           })
         : await createEntity<Properties>(context, authentication, {
             ...createParams,
+            ...(isRootEntity ? { entityUuid, policies } : {}),
             properties: definition.entityProperties!,
             entityTypeIds:
               definition.entityTypeIds as Properties["entityTypeIds"],

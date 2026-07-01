@@ -20,6 +20,8 @@ import type {
   TextDataTypeWithMetadata,
   TimezonePropertyValue,
   TimezonePropertyValueWithMetadata,
+  ValueDataType,
+  ValueDataTypeWithMetadata,
 } from "./shared.js";
 
 export type {
@@ -40,4 +42,6 @@ export type {
   TextDataTypeWithMetadata,
   TimezonePropertyValue,
   TimezonePropertyValueWithMetadata,
+  ValueDataType,
+  ValueDataTypeWithMetadata,
 };

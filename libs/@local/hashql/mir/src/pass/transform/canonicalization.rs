@@ -26,6 +26,7 @@ pub struct CanonicalizationConfig {
 }
 
 impl Default for CanonicalizationConfig {
+    #[inline]
     fn default() -> Self {
         Self { max_iterations: 16 }
     }

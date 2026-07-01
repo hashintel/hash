@@ -132,6 +132,7 @@ impl<A: BumpAllocator> DeadStoreElimination<A> {
 }
 
 impl Default for DeadStoreElimination {
+    #[inline]
     fn default() -> Self {
         Self::new()
     }

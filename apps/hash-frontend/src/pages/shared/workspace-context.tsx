@@ -66,32 +66,49 @@ export const WorkspaceContextProvider: FunctionComponent<{
       if (localStorageInitialValue) {
         setActiveWorkspaceWebId(localStorageInitialValue as WebId);
       } else if (authenticatedUser) {
+        const defaultWorkspaceWebId =
+          authenticatedUser.memberOf[0]?.org.webId ??
+          (authenticatedUser.accountId as WebId);
+
         /**
-         * Initialize the `activeWorkspaceWebId` to the account ID of the
-         * currently authenticated user
+         * Initialize the `activeWorkspaceWebId` to the first organization the
+         * user belongs to, falling back to the user's account web.
          */
-        updateActiveWorkspaceWebId(authenticatedUser.accountId as WebId);
+        updateActiveWorkspaceWebId(defaultWorkspaceWebId);
       }
     }
   }, [activeWorkspaceWebId, updateActiveWorkspaceWebId, authenticatedUser]);
 
-  const workspaceContextValue = useMemo<WorkspaceContextValue>(() => {
-    const activeWorkspace =
+  const activeWorkspace = useMemo(
+    () =>
       authenticatedUser && authenticatedUser.accountId === activeWorkspaceWebId
         ? authenticatedUser
         : authenticatedUser?.memberOf.find(
             ({ org: { webId } }) => webId === activeWorkspaceWebId,
-          )?.org;
+          )?.org,
+    [authenticatedUser, activeWorkspaceWebId],
+  );
 
+  useEffect(() => {
     /**
      * If there is an `activeWorkspaceWebId` and an `authenticatedUser`, but
      * `activeWorkspace` is not defined, reset `activeWorkspaceWebId` to the
-     * authenticated user's account ID
+     * default workspace.
      */
     if (activeWorkspaceWebId && authenticatedUser && !activeWorkspace) {
-      updateActiveWorkspaceWebId(authenticatedUser.accountId as WebId);
+      updateActiveWorkspaceWebId(
+        authenticatedUser.memberOf[0]?.org.webId ??
+          (authenticatedUser.accountId as WebId),
+      );
     }
+  }, [
+    activeWorkspace,
+    activeWorkspaceWebId,
+    authenticatedUser,
+    updateActiveWorkspaceWebId,
+  ]);
 
+  const workspaceContextValue = useMemo<WorkspaceContextValue>(() => {
     return {
       activeWorkspace,
       activeWorkspaceWebId,
@@ -99,7 +116,7 @@ export const WorkspaceContextProvider: FunctionComponent<{
       refetchActiveWorkspace: () => refetch().then(() => undefined),
     };
   }, [
-    authenticatedUser,
+    activeWorkspace,
     activeWorkspaceWebId,
     updateActiveWorkspaceWebId,
     refetch,

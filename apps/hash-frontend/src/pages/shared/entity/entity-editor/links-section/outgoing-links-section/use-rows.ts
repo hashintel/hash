@@ -10,28 +10,54 @@ import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entit
 
 import { useEntityTypesContextRequired } from "../../../../../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { useFileUploads } from "../../../../../../shared/file-upload-context";
-import { useMarkLinkEntityToArchive } from "../../../shared/use-mark-link-entity-to-archive";
-import { useEntityEditor } from "../../entity-editor-context";
+import { createMarkLinkEntityToArchive } from "../../../shared/use-mark-link-entity-to-archive";
 
+import type { EntityEditorProps } from "../../../entity-editor";
 import type { LinkRow } from "./types";
 import type {
   PartialEntityType,
   VersionedUrl,
 } from "@blockprotocol/type-system";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 
-export const useRows = () => {
-  const {
-    closedMultiEntityType,
-    closedMultiEntityTypesDefinitions,
-    linkAndDestinationEntitiesClosedMultiEntityTypesMap,
-    entity,
-    entitySubgraph,
-    draftLinksToArchive,
-    draftLinksToCreate,
-    onEntityClick,
-  } = useEntityEditor();
+export type UseRowsParams = Pick<
+  EntityEditorProps,
+  | "closedMultiEntityType"
+  | "closedMultiEntityTypesDefinitions"
+  | "draftLinksToArchive"
+  | "draftLinksToCreate"
+  | "entitySubgraph"
+  | "linkAndDestinationEntitiesClosedMultiEntityTypesMap"
+  | "onEntityClick"
+  | "readonly"
+  | "setDraftLinksToArchive"
+  | "setDraftLinksToCreate"
+> & {
+  entity: HashEntity;
+};
 
-  const markLinkEntityToArchive = useMarkLinkEntityToArchive();
+export const useRows = ({
+  closedMultiEntityType,
+  closedMultiEntityTypesDefinitions,
+  draftLinksToArchive,
+  draftLinksToCreate,
+  entity,
+  entitySubgraph,
+  linkAndDestinationEntitiesClosedMultiEntityTypesMap,
+  onEntityClick,
+  readonly,
+  setDraftLinksToArchive,
+  setDraftLinksToCreate,
+}: UseRowsParams) => {
+  const markLinkEntityToArchive = useMemo(
+    () =>
+      createMarkLinkEntityToArchive({
+        draftLinksToCreate,
+        setDraftLinksToCreate,
+        setDraftLinksToArchive,
+      }),
+    [draftLinksToCreate, setDraftLinksToCreate, setDraftLinksToArchive],
+  );
 
   const { isSpecialEntityTypeLookup } = useEntityTypesContextRequired();
 
@@ -206,6 +232,10 @@ export const useRows = () => {
           isList: linkSchema.maxItems === undefined || linkSchema.maxItems > 1,
           expectedEntityTypes,
           entitySubgraph,
+          entity,
+          readonly,
+          draftLinksToCreate,
+          setDraftLinksToCreate,
           markLinkAsArchived: markLinkEntityToArchive,
           onEntityClick,
           retryErroredUpload,
@@ -217,8 +247,10 @@ export const useRows = () => {
     closedMultiEntityTypesDefinitions,
     entitySubgraph,
     entity,
+    readonly,
     draftLinksToArchive,
     draftLinksToCreate,
+    setDraftLinksToCreate,
     isSpecialEntityTypeLookup,
     linkAndDestinationEntitiesClosedMultiEntityTypesMap,
     markLinkEntityToArchive,

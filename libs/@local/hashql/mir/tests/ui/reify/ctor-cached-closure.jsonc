@@ -1,0 +1,15 @@
+//@ run: pass
+//@ description: Cached constructor references must produce closure aggregates, not bare FnPtrs.
+//@ description: Regression test: the second use of a constructor was previously emitted as a bare
+//@ description: FnPtr (cache hit path), while the calling convention expects a fat pointer (closure).
+[
+  "newtype",
+  "A",
+  "Null",
+  [
+    "newtype",
+    "Outer",
+    { "#struct": { "x": "A", "y": "A" } },
+    ["Outer", { "#struct": { "x": ["A"], "y": ["A"] } }]
+  ]
+]

@@ -36,7 +36,7 @@ export const QueryCount: FunctionComponent<QueryCountProps> = ({
       ) : count != null ? (
         `${formatNumber(count)} ${count === 1 ? "entity" : "entities"}`
       ) : (
-        "–"
+        ""
       )}
     </Box>
   );

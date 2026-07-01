@@ -23,9 +23,9 @@ use type_system::{
 use uuid::Uuid;
 
 use crate::{
-    DatabaseTestWrapper, alice, bob, count_entity, create_link, create_person, create_second_user,
-    get_deletion_provenance, get_inferred_provenance, person_type_id, provenance, raw_count,
-    raw_entity_ids_exists, seed,
+    DatabaseTestWrapper, alice, bob, count_entities, create_link, create_person,
+    create_second_user, get_deletion_provenance, get_inferred_provenance, person_type_id,
+    provenance, raw_count, raw_entity_ids_exists, seed,
 };
 
 /// Helper: purge with default settings (`include_drafts=false`, Ignore link behavior).
@@ -71,13 +71,14 @@ async fn published_entity() {
                 draft: false,
                 policies: Vec::new(),
                 provenance: provenance(),
+                read_only: false,
             },
         )
         .await
         .expect("could not create entity");
 
     let entity_id = entity.metadata.record_id.entity_id;
-    assert_eq!(count_entity(&api, entity_id, false).await, 1);
+    assert_eq!(count_entities(&api, entity_id, false).await, 1);
 
     let summary = api
         .store
@@ -104,7 +105,7 @@ async fn published_entity() {
             links_archived: 0,
         }
     );
-    assert_eq!(count_entity(&api, entity_id, false).await, 0);
+    assert_eq!(count_entities(&api, entity_id, false).await, 0);
 }
 
 /// Purges an entity that was updated, producing 2 temporal editions.
@@ -134,6 +135,7 @@ async fn published_entity_with_history() {
                 draft: false,
                 policies: Vec::new(),
                 provenance: provenance(),
+                read_only: false,
             },
         )
         .await
@@ -163,7 +165,7 @@ async fn published_entity_with_history() {
         .expect("could not update entity");
 
     // Unbounded temporal query shows both editions
-    assert_eq!(count_entity(&api, entity_id, false).await, 2);
+    assert_eq!(count_entities(&api, entity_id, false).await, 2);
 
     let web_id = entity_id.web_id;
     let entity_uuid = entity_id.entity_uuid;
@@ -198,7 +200,7 @@ async fn published_entity_with_history() {
         }
     );
     // All history gone — both via read path and raw table count
-    assert_eq!(count_entity(&api, entity_id, false).await, 0);
+    assert_eq!(count_entities(&api, entity_id, false).await, 0);
     assert_eq!(
         raw_count(&api, "entity_temporal_metadata", web_id, entity_uuid).await,
         0,
@@ -306,8 +308,8 @@ async fn include_drafts_irrelevant_for_published() {
     };
     assert_eq!(summary_a, expected);
     assert_eq!(summary_b, expected);
-    assert_eq!(count_entity(&api, id_a, false).await, 0);
-    assert_eq!(count_entity(&api, id_b, false).await, 0);
+    assert_eq!(count_entities(&api, id_a, false).await, 0);
+    assert_eq!(count_entities(&api, id_b, false).await, 0);
 }
 
 /// `Purge` with [`LinkDeletionBehavior::Error`] succeeds when no incoming links exist.
@@ -349,7 +351,7 @@ async fn purge_error_succeeds_without_incoming_links() {
             links_archived: 0,
         }
     );
-    assert_eq!(count_entity(&api, entity_id, false).await, 0);
+    assert_eq!(count_entities(&api, entity_id, false).await, 0);
     assert!(raw_entity_ids_exists(&api, entity_id.web_id, entity_id.entity_uuid).await);
 }
 
@@ -548,8 +550,8 @@ async fn multiple_entities_in_batch() {
             links_archived: 0,
         }
     );
-    assert_eq!(count_entity(&api, id_a, false).await, 0);
-    assert_eq!(count_entity(&api, id_b, false).await, 0);
+    assert_eq!(count_entities(&api, id_a, false).await, 0);
+    assert_eq!(count_entities(&api, id_b, false).await, 0);
 
     // Both tombstoned
     assert!(raw_entity_ids_exists(&api, id_a.web_id, id_a.entity_uuid).await);
@@ -588,8 +590,8 @@ async fn other_entity_unaffected() {
         }
     );
 
-    assert_eq!(count_entity(&api, id_a, false).await, 0);
-    assert_eq!(count_entity(&api, id_b, false).await, 1);
+    assert_eq!(count_entities(&api, id_a, false).await, 0);
+    assert_eq!(count_entities(&api, id_b, false).await, 1);
 
     // B's satellite data intact
     let web_b = id_b.web_id;
@@ -655,10 +657,10 @@ async fn batch_with_mixed_entity_states() {
         }
     );
 
-    assert_eq!(count_entity(&api, id_a, false).await, 0);
-    assert_eq!(count_entity(&api, id_b, false).await, 0);
-    assert_eq!(count_entity(&api, id_link, false).await, 0);
-    assert_eq!(count_entity(&api, id_draft, true).await, 0);
+    assert_eq!(count_entities(&api, id_a, false).await, 0);
+    assert_eq!(count_entities(&api, id_b, false).await, 0);
+    assert_eq!(count_entities(&api, id_link, false).await, 0);
+    assert_eq!(count_entities(&api, id_draft, true).await, 0);
 
     // All tombstoned
     assert!(raw_entity_ids_exists(&api, id_a.web_id, id_a.entity_uuid).await);
@@ -697,6 +699,7 @@ async fn cross_web_batch() {
                 draft: false,
                 policies: Vec::new(),
                 provenance: provenance(),
+                read_only: false,
             },
         )
         .await
@@ -733,8 +736,8 @@ async fn cross_web_batch() {
     assert!(raw_entity_ids_exists(&api, id_b.web_id, id_b.entity_uuid).await);
 
     // Satellite data gone for both (read path AND raw table)
-    assert_eq!(count_entity(&api, id_a, false).await, 0);
-    assert_eq!(count_entity(&api, id_b, false).await, 0);
+    assert_eq!(count_entities(&api, id_a, false).await, 0);
+    assert_eq!(count_entities(&api, id_b, false).await, 0);
     assert_eq!(
         raw_count(
             &api,
@@ -784,8 +787,8 @@ async fn query_after_purge_returns_empty() {
 
     // count_entity exercises the full read path (SelectCompiler → SQL)
     // If the tombstone caused a read error, this would panic instead of returning 0
-    assert_eq!(count_entity(&api, entity_id, false).await, 0);
-    assert_eq!(count_entity(&api, entity_id, true).await, 0);
+    assert_eq!(count_entities(&api, entity_id, false).await, 0);
+    assert_eq!(count_entities(&api, entity_id, true).await, 0);
 }
 
 /// Verifies provenance records the deleting actor, not the creating actor.
@@ -933,7 +936,7 @@ async fn large_batch() {
     );
 
     for id in &ids {
-        assert_eq!(count_entity(&api, *id, false).await, 0);
+        assert_eq!(count_entities(&api, *id, false).await, 0);
     }
 }
 
@@ -986,11 +989,11 @@ async fn filter_by_entity_type() {
     );
 
     // Both persons deleted
-    assert_eq!(count_entity(&api, id_a, false).await, 0);
-    assert_eq!(count_entity(&api, id_b, false).await, 0);
+    assert_eq!(count_entities(&api, id_a, false).await, 0);
+    assert_eq!(count_entities(&api, id_b, false).await, 0);
 
     // Link entity survives (different type)
-    assert!(count_entity(&api, id_link, false).await >= 1);
+    assert!(count_entities(&api, id_link, false).await >= 1);
 }
 
 /// Purges an entity that was previously archived.
@@ -1043,7 +1046,7 @@ async fn archived_entity() {
         }
     );
 
-    assert_eq!(count_entity(&api, entity_id, false).await, 0);
+    assert_eq!(count_entities(&api, entity_id, false).await, 0);
     assert!(raw_entity_ids_exists(&api, entity_id.web_id, entity_id.entity_uuid).await);
 }
 

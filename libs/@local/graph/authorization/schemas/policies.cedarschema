@@ -16,6 +16,7 @@ namespace HASH {
     entity_types: Set<EntityType>,
     entity_base_types: Set<String>,
     created_by: ActorId,
+    read_only: Bool,
   };
 
   entity EntityType in [Web] {

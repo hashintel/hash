@@ -42,17 +42,23 @@ export const SignupRegistrationForm: FunctionComponent = () => {
   // information about the form we need to render (e.g. username + password)
   const [flow, setFlow] = useState<RegistrationFlow>();
 
-  const { email: emailFromQuery, ...restOfQuery } = router.query;
+  const {
+    email: emailFromQuery,
+    flow: flowId,
+    return_to: returnTo,
+  } = router.query;
 
   const initialEmail = typeof emailFromQuery === "string" ? emailFromQuery : "";
 
   useEffect(() => {
-    if (emailFromQuery) {
-      void router.push({ query: restOfQuery }, undefined, {
+    if (typeof emailFromQuery === "string") {
+      const { email: _email, ...query } = router.query;
+
+      void router.replace({ query }, undefined, {
         shallow: true,
       });
     }
-  }, [emailFromQuery, restOfQuery, router]);
+  }, [emailFromQuery, router]);
 
   const [email, setEmail] = useState<string>(initialEmail);
   const [password, setPassword] = useState<string>("");
@@ -72,9 +78,6 @@ export const SignupRegistrationForm: FunctionComponent = () => {
    */
   const handleFlowErrorRef = useRef(handleFlowError);
   handleFlowErrorRef.current = handleFlowError;
-
-  // Get ?flow=... from the URL
-  const { flow: flowId, return_to: returnTo } = router.query;
 
   // In this effect we either initiate a new registration flow, or we fetch an existing registration flow.
   useEffect(() => {
@@ -121,7 +124,9 @@ export const SignupRegistrationForm: FunctionComponent = () => {
       .push(
         {
           query: {
-            ...restOfQuery,
+            ...router.query,
+            email: undefined,
+            return_to: undefined,
             flow: flow.id,
           },
         },
@@ -159,7 +164,13 @@ export const SignupRegistrationForm: FunctionComponent = () => {
             await router.replace(
               {
                 pathname: "/signup",
-                query: verificationFlowId ? { verificationFlowId } : undefined,
+                query: {
+                  ...router.query,
+                  email: undefined,
+                  flow: undefined,
+                  return_to: undefined,
+                  ...(verificationFlowId ? { verificationFlowId } : {}),
+                },
               },
               undefined,
               { shallow: true },
