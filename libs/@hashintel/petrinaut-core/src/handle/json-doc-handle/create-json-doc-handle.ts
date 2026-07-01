@@ -12,8 +12,10 @@ import {
   type PetrinautHandleCapabilities,
 } from "../../extensions";
 import { createReadableStore } from "../../store";
+import { normalizeSDCPN } from "../../types/sdcpn-input";
 
 import type { SDCPN } from "../../types/sdcpn";
+import type { SDCPNInput } from "../../types/sdcpn-input";
 import type {
   DocChangeEvent,
   DocHandleState,
@@ -50,7 +52,14 @@ const DEFAULT_HISTORY_LIMIT = 50;
 
 export type CreateJsonDocHandleOptions = {
   id?: DocumentId;
-  initial: SDCPN;
+  /**
+   * Initial document. Accepts a loose {@link SDCPNInput} — extension fields
+   * (`colorId`, `lambdaCode`, arc `type`/`weight`, the `types` /
+   * `parameters` / `differentialEquations` arrays, ...) may be omitted and are
+   * filled with plain-net defaults via {@link normalizeSDCPN}. A complete
+   * {@link SDCPN} is a valid input too.
+   */
+  initial: SDCPNInput;
   capabilities?: PetrinautHandleCapabilities;
   /**
    * Maximum number of history checkpoints retained. Older entries are dropped
@@ -82,7 +91,7 @@ export function createJsonDocHandle(
   const subscribers = new Set<(event: DocChangeEvent) => void>();
 
   let current: SDCPN = sanitizeSDCPNForExtensions(
-    opts.initial,
+    normalizeSDCPN(opts.initial),
     resolvedCapabilities.extensions,
   );
 
