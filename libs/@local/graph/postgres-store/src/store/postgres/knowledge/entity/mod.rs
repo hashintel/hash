@@ -2621,8 +2621,8 @@ where
                      embedding
                     FROM entity_embeddings e
                     WHERE e.property IS NULL
-                      AND (e.web_id, e.entity_uuid) IN (SELECT unnest($1::uuid[]), \
-                     unnest($2::uuid[]))"
+                      AND (e.web_id, e.entity_uuid) IN (SELECT * FROM unnest($1::uuid[], \
+                     $2::uuid[]))"
                 ),
                 [
                     &web_ids as &(dyn ToSql + Sync),
