@@ -1,10 +1,12 @@
+/* eslint-disable no-bitwise, no-param-reassign */
 /**
- * Thread-agnostic codec for the EntityIdx -> EntityId join map's byte layout. The worker
- * (buffers/entity-id-buffer.ts) writes it; the main thread reads it on demand. One module
- * owns the packing so both sides agree on the layout: per record,
- * `webId (16) | entityUuid (16) | draftId (16)`, each UUID packed to 16 bytes, with the
- * draftId slot all-zero when the entity is not a draft.
+ * Codec for the EntityIdx to EntityId shared buffer.
+ *
+ * Per-record layout: `webId (16) | entityUuid (16) | draftId (16)`,
+ * each UUID packed to 16 bytes. The draftId slot is all-zero when the
+ * entity is not a draft.
  */
+
 import {
   type DraftId,
   type EntityId,
@@ -14,38 +16,55 @@ import {
   splitEntityId,
 } from "@blockprotocol/type-system";
 
-/** Bytes per UUID (128 bits). */
 const UUID_BYTES = 16;
 /** Bytes per record: webId + entityUuid + draftId. */
 export const ENTITY_ID_BYTES = UUID_BYTES * 3;
-/** `version: int32`; also the byte offset where the records begin, so a reader builds a
- * records-region view with `new Uint8Array(raw, ID_HEADER_BYTES)`. */
+/** Byte offset where records begin (preceded by an int32 version counter). */
 export const ID_HEADER_BYTES = 4;
-/** The draftId slot when the entity is not a draft. */
-const ZERO_UUID = "00000000-0000-0000-0000-000000000000";
 
-/** Pack a hyphenated UUID string into 16 bytes at `offset` (in place, zero-alloc). */
+/** Char code to 4-bit nibble value. Valid for '0'-'9', 'A'-'F', 'a'-'f'. */
+// prettier-ignore
+const HEX_VAL = new Uint8Array([
+//  0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 0x00
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 0x10
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 0x20
+    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 0, 0, 0, 0, 0, // 0x30  '0'-'9'
+    0,10,11,12,13,14,15, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 0x40  'A'-'F'
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 0x50
+    0,10,11,12,13,14,15, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 0x60  'a'-'f'
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 0x70
+]);
+
+/** Byte value to two-char hex string. */
+const BYTE_HEX: readonly string[] = Array.from({ length: 256 }, (_, i) =>
+  i.toString(16).padStart(2, "0"),
+);
+
+const HYPHEN = 0x2d;
+
+/** Pack a hyphenated UUID string into 16 bytes at `offset` in place. */
 function writeUuid(target: Uint8Array, offset: number, uuid: string): void {
-  const hex = uuid.replace(/-/g, "");
+  let index = 0;
   for (let i = 0; i < UUID_BYTES; i++) {
-    // Writing into the caller's buffer is the point; a fresh array per UUID would be a
-    // perf nightmare.
-    // eslint-disable-next-line no-param-reassign
-    target[offset + i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16);
+    if (uuid.charCodeAt(index) === HYPHEN) {
+      index += 1;
+    }
+
+    target[offset + i] =
+      (HEX_VAL[uuid.charCodeAt(index)]! << 4) |
+      HEX_VAL[uuid.charCodeAt(index + 1)]!;
+    index += 2;
   }
 }
 
 /** Reconstruct a hyphenated UUID string from 16 bytes at `offset`. */
 function readUuid(source: Uint8Array, offset: number): string {
-  let hex = "";
-  for (let i = 0; i < UUID_BYTES; i++) {
-    hex += source[offset + i]!.toString(16).padStart(2, "0");
-  }
-  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+  const b = (i: number): string => BYTE_HEX[source[offset + i]!]!;
+  return `${b(0)}${b(1)}${b(2)}${b(3)}-${b(4)}${b(5)}-${b(6)}${b(7)}-${b(8)}${b(9)}-${b(10)}${b(11)}${b(12)}${b(13)}${b(14)}${b(15)}`;
 }
 
-/** Write the EntityId for `entityIdx` into a records-region view: its webId, entityUuid,
- * and draftId (or a zeroed draftId slot when the entity is not a draft). */
+/** Encode an {@link EntityId} at the given index. */
 export function encodeEntityId(
   bytes: Uint8Array,
   entityIdx: number,
@@ -55,16 +74,32 @@ export function encodeEntityId(
   const base = entityIdx * ENTITY_ID_BYTES;
   writeUuid(bytes, base, webId);
   writeUuid(bytes, base + UUID_BYTES, entityUuid);
-  writeUuid(bytes, base + UUID_BYTES * 2, draftId ?? ZERO_UUID);
+  const draftOffset = base + UUID_BYTES * 2;
+  if (draftId) {
+    writeUuid(bytes, draftOffset, draftId);
+  } else {
+    bytes.fill(0, draftOffset, draftOffset + UUID_BYTES);
+  }
 }
 
-/** Reconstruct the EntityId for `entityIdx` from a records-region view. */
+function isZeroSlot(bytes: Uint8Array, offset: number): boolean {
+  for (let i = 0; i < UUID_BYTES; i++) {
+    if (bytes[offset + i] !== 0) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/** Reconstruct the {@link EntityId} at the given index. */
 export function decodeEntityId(bytes: Uint8Array, entityIdx: number): EntityId {
   const base = entityIdx * ENTITY_ID_BYTES;
   const webId = readUuid(bytes, base) as WebId;
   const entityUuid = readUuid(bytes, base + UUID_BYTES) as EntityUuid;
-  const draftIdRaw = readUuid(bytes, base + UUID_BYTES * 2);
-  const draftId =
-    draftIdRaw === ZERO_UUID ? undefined : (draftIdRaw as DraftId);
+  const draftOffset = base + UUID_BYTES * 2;
+  const isDraft = !isZeroSlot(bytes, draftOffset);
+  const draftId = isDraft
+    ? (readUuid(bytes, draftOffset) as DraftId)
+    : undefined;
   return entityIdFromComponents(webId, entityUuid, draftId);
 }

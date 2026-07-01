@@ -1,3 +1,5 @@
+import { hslToRgb } from "./math/color";
+
 import type { Color } from "./frames";
 
 export const graphCanvasBackground = "#F7FAFC";
@@ -22,47 +24,6 @@ export const graphColors = {
   edgeLabelText: [55, 67, 79, 255],
   edgeLabelBackground: [255, 255, 255, 230],
 } as const satisfies Record<string, Color | readonly [number, number, number]>;
-
-/** Compact HSL to RGB conversion for deterministic graph palettes. */
-export function hslToRgb(
-  hue: number,
-  saturation: number,
-  lightness: number,
-): [number, number, number] {
-  const chroma = (1 - Math.abs(2 * lightness - 1)) * saturation;
-  const sextant = hue / 60;
-  const second = chroma * (1 - Math.abs((sextant % 2) - 1));
-  const match = lightness - chroma / 2;
-
-  let red = 0;
-  let green = 0;
-  let blue = 0;
-  if (sextant < 1) {
-    red = chroma;
-    green = second;
-  } else if (sextant < 2) {
-    red = second;
-    green = chroma;
-  } else if (sextant < 3) {
-    green = chroma;
-    blue = second;
-  } else if (sextant < 4) {
-    green = second;
-    blue = chroma;
-  } else if (sextant < 5) {
-    red = second;
-    blue = chroma;
-  } else {
-    red = chroma;
-    blue = second;
-  }
-
-  return [
-    Math.round((red + match) * 255),
-    Math.round((green + match) * 255),
-    Math.round((blue + match) * 255),
-  ];
-}
 
 export function colorWithAlpha(
   color: readonly [number, number, number],

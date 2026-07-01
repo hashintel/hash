@@ -1,92 +1,45 @@
 /**
- * Per-entity visual encoding for the individual-entity (flat) tiers: colour by
- * type and size by degree (see `LAYOUT-MODES.md` "Cross-cutting features").
+ * Per-entity visual style: colour by type hierarchy, size by degree.
  *
- * Colour is hierarchy-aware: the hue comes from the entity's root type and the
- * shade from how specific its actual type is (its depth in the `allOf` tree), so
- * the type tree reads at a glance (every Company-rooted entity is a shade of one
- * hue, a Customer a lighter shade than a bare Company) instead of N arbitrary
- * palette colours.
- *
- * Hue is keyed off a STABLE colour slot the type registry assigns each type
- * (sorted-batch by base URL, append-only), spread around the wheel by the golden
- * angle. The slot -- not an arrival-order intern index -- is what makes a type's
- * colour identical across reloads: it depends on the URL, not on the order types
- * stream in.
- *
- * Size is by degree, subtly: a hub reads as a slightly larger dot. The radius is
- * also the layout's non-overlap box, so hubs claim a little more room.
+ * Hue is assigned per root type via the golden angle. Lightness encodes
+ * depth in the `allOf` tree, so subtypes within the same family are
+ * distinguishable shades of one hue. A hash-based jitter separates
+ * siblings at the same depth.
  */
 import { extractBaseUrl } from "@blockprotocol/type-system";
 
-import { graphColors, hslToRgb } from "../visual-style";
+import { oklchToRgb } from "../math/color";
+import { murmur3StringUnit } from "../math/hash";
+import { graphColors } from "../visual-style";
 
 import type { Color } from "../frames";
 import type { TypeIdx } from "../ids";
 import type { TypeRegistry } from "./stores/type-registry";
 
-/** Hue step between successive colour slots (degrees); well-separated, stable. */
+/** Hue step between successive colour slots (degrees). */
 const GOLDEN_ANGLE_DEG = 137.508;
-const HUE_SATURATION = 0.62;
-/**
- * Lightness encodes the type's place in its root's family: a depth gradient
- * (deeper subtype -> lighter) plus a small per-type jitter so siblings at the
- * same depth (Customer vs Supplier under Company) stay distinguishable. The hue
- * is shared across the family, so the tree still reads at a glance.
- */
-const ROOT_LIGHTNESS = 0.42;
-const LIGHTNESS_PER_DEPTH = 0.045;
-const SIBLING_JITTER = 0.045;
-const MIN_LIGHTNESS = 0.32;
-const MAX_LIGHTNESS = 0.68;
+const NODE_CHROMA = 0.13;
+const ROOT_LIGHTNESS = 0.55;
+const LIGHTNESS_PER_DEPTH = 0.04;
+const SIBLING_JITTER = 0.035;
+const MIN_LIGHTNESS = 0.4;
+const MAX_LIGHTNESS = 0.78;
 const MAX_SHADE_DEPTH = 4;
 const DOT_ALPHA = 220;
 
-/** Base dot radius (world units) and the (subtle) per-degree growth factor. */
 const DOT_BASE_RADIUS = 4;
 const DOT_DEGREE_K = 0.35;
 
-/** Fallback for an entity whose type/root can't be resolved (untyped, unsent). */
 const NEUTRAL: Color = [...graphColors.fallbackEntity];
 
-/**
- * Edges share the nodes' stable slot hues but with lower saturation and mid
- * lightness, so a link reads as related to its type yet sits behind the dots.
- */
-const EDGE_SATURATION = 0.58;
-const EDGE_LIGHTNESS = 0.46;
+const EDGE_CHROMA = 0.09;
+const EDGE_LIGHTNESS = 0.58;
 const EDGE_ALPHA = 180;
 const EDGE_NEUTRAL: Color = [...graphColors.fallbackEntity];
 
-/**
- * Colour for a FRONTIER node: a fetched entity that is a link endpoint of a query root but not
- * itself a root. A cool, desaturated, semi-transparent grey so it reads as "ghosted -- click to
- * expand", receding behind the fully-coloured roots and staying distinct from both the type hues
- * and the focus dim.
- */
+/** Colour for a frontier node (fetched link endpoint, not itself a query root). */
 export const FRONTIER_COLOR: Color = [...graphColors.frontier];
 
-/**
- * Deterministic FNV-1a 32-bit hash of a string mapped to the unit interval
- * [0, 1). Stable across reloads and sessions, so a value derived from a type's
- * URL is identical every time, unlike an arrival-order intern index whose value
- * depends on the order types stream in.
- */
-/* eslint-disable no-bitwise */
-function hashUnit(value: string): number {
-  let hash = 0x811c9dc5;
-  for (let index = 0; index < value.length; index++) {
-    hash ^= value.charCodeAt(index);
-    hash = Math.imul(hash, 0x01000193);
-  }
-  return (hash >>> 0) / 0x100000000;
-}
-/* eslint-enable no-bitwise */
-
-/**
- * Golden-angle hue (degrees) for a type's stable colour slot, or undefined when
- * the type has no slot yet (its schema hasn't been registered).
- */
 function slotHue(
   typeIdx: TypeIdx | undefined,
   types: TypeRegistry,
@@ -99,9 +52,8 @@ function slotHue(
 }
 
 /**
- * The most specific type in a set: greatest `allOf` depth, ties broken by the
- * smallest idx (deterministic). This is the type whose shade/icon best
- * represents the entity (a `Customer`, not its `Company` ancestor).
+ * The most specific type in a set: greatest `allOf` depth, ties broken
+ * by the smallest idx.
  */
 export function primaryTypeOfSet(
   typeIdxs: Iterable<TypeIdx>,
@@ -123,11 +75,7 @@ export function primaryTypeOfSet(
   return best;
 }
 
-/**
- * Hierarchy-aware colour for a (primary) type: hue from its root's colour slot,
- * lightness shade from its depth. Falls back to a neutral grey when the type or
- * its root is unknown.
- */
+/** Colour for a type. Falls back to neutral grey when the type or its root is unknown. */
 export function colorForType(
   typeIdx: TypeIdx | undefined,
   types: TypeRegistry,
@@ -144,9 +92,10 @@ export function colorForType(
     return NEUTRAL;
   }
   const depth = Math.min(info.depth, MAX_SHADE_DEPTH);
-  // Per-type jitter from the type's own base URL: separates same-depth siblings
-  // within the shared family hue. Hash-based, so it is stable across reloads.
-  const fraction = hashUnit(extractBaseUrl(info.url));
+
+  // Hash-based jitter separates same-depth siblings within a family hue.
+  const fraction = murmur3StringUnit(extractBaseUrl(info.url));
+
   const jitter = (fraction - 0.5) * 2 * SIBLING_JITTER;
   const lightness = Math.min(
     MAX_LIGHTNESS,
@@ -155,16 +104,15 @@ export function colorForType(
       ROOT_LIGHTNESS + depth * LIGHTNESS_PER_DEPTH + jitter,
     ),
   );
-  const [red, green, blue] = hslToRgb(hue, HUE_SATURATION, lightness);
+  const [red, green, blue] = oklchToRgb(lightness, NODE_CHROMA, hue);
   return [red, green, blue, DOT_ALPHA];
 }
 
 /**
- * Stable colour for an edge of a given (primary link) type: golden-angle hue
- * from the LINK type's OWN colour slot. Link types all share the `Link` root, so
- * keying off the root would collapse every edge to one colour; the own-type slot
- * gives each link type a distinct hue, identical across reloads. Lower
- * saturation / mid lightness than nodes so edges sit behind them.
+ * Colour for an edge by its link type.
+ *
+ * Uses the link type's own colour slot rather than its root's, because
+ * all link types share a single root.
  */
 export function edgeColorForType(
   typeIdx: TypeIdx | undefined,
@@ -174,11 +122,11 @@ export function edgeColorForType(
   if (hue === undefined) {
     return EDGE_NEUTRAL;
   }
-  const [red, green, blue] = hslToRgb(hue, EDGE_SATURATION, EDGE_LIGHTNESS);
+  const [red, green, blue] = oklchToRgb(EDGE_LIGHTNESS, EDGE_CHROMA, hue);
   return [red, green, blue, EDGE_ALPHA];
 }
 
-/** Subtle by-degree dot radius in world units: r = base·(1 + ln(1+deg)·k). */
+/** By-degree dot radius in world units: `base * (1 + ln(1 + deg) * k)`. */
 export function radiusForDegree(degree: number): number {
   return DOT_BASE_RADIUS * (1 + Math.log(1 + degree) * DOT_DEGREE_K);
 }

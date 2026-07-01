@@ -1,8 +1,7 @@
-/**
- * Compressed sparse row (CSR) graph over a set of entities, plus the operations the
- * community sub-clustering needs (build from the link store, connected components). Pure:
- * it operates on the data passed in, holding no worker state.
- */
+/** Compressed sparse row (CSR) graph over a set of entities. */
+
+import { BitSet } from "./collections/bitset";
+
 import type { EntityIdx } from "../ids";
 import type { Column } from "./collections/column";
 import type { LinkStore } from "./stores/link-store";
@@ -16,8 +15,9 @@ export interface CsrGraph {
 }
 
 /**
- * Build a compressed sparse row graph from the link store, restricted to the given entity
- * set (links with an endpoint outside the set, or a self-loop, are dropped).
+ * Build a CSR graph restricted to the given entity set.
+ *
+ * Links with an endpoint outside the set, or self-loops, are dropped.
  */
 export function buildInducedCsr(
   entityIdxs: Column<Int32Array, EntityIdx>,
@@ -28,9 +28,10 @@ export function buildInducedCsr(
     localIndex.set(entityIdxs.get(idx), idx);
   }
 
-  const adjacency: { neighbor: number; weight: number }[][] = [
-    ...entityIdxs,
-  ].map(() => []);
+  const adjacency: number[][] = Array.from(
+    { length: entityIdxs.length },
+    () => [],
+  );
 
   for (let linkIdx = 0; linkIdx < links.count; linkIdx++) {
     const left = links.getLeft(linkIdx);
@@ -48,22 +49,22 @@ export function buildInducedCsr(
       continue;
     }
 
-    adjacency[leftLocal]!.push({ neighbor: rightLocal, weight: 1 });
-    adjacency[rightLocal]!.push({ neighbor: leftLocal, weight: 1 });
+    adjacency[leftLocal]!.push(rightLocal);
+    adjacency[rightLocal]!.push(leftLocal);
   }
 
   const totalEdges = adjacency.reduce((sum, adj) => sum + adj.length, 0);
   const offsets = new Int32Array(entityIdxs.length + 1);
   const neighbors = new Int32Array(totalEdges);
   const weights = new Float32Array(totalEdges);
+  weights.fill(1);
 
   let offset = 0;
   for (let idx = 0; idx < adjacency.length; idx++) {
     offsets[idx] = offset;
-    for (const edge of adjacency[idx]!) {
-      neighbors[offset] = edge.neighbor;
-      weights[offset] = edge.weight;
-      offset++;
+    for (const neighbor of adjacency[idx]!) {
+      neighbors[offset] = neighbor;
+      offset += 1;
     }
   }
   offsets[entityIdxs.length] = offset;
@@ -74,21 +75,21 @@ export function buildInducedCsr(
 /** Connected components of the graph, each a list of local node indices. */
 export function connectedComponents(graph: CsrGraph): number[][] {
   const nodeCount = graph.nodeIds.length;
-  const visited = new Uint8Array(nodeCount);
+  const visited = BitSet.empty(nodeCount);
   const components: number[][] = [];
-  const queue: number[] = [];
+  const stack: number[] = [];
 
   for (let start = 0; start < nodeCount; start++) {
-    if (visited[start]) {
+    if (visited.has(start)) {
       continue;
     }
 
     const component: number[] = [];
-    queue.push(start);
-    visited[start] = 1;
+    stack.push(start);
+    visited.add(start);
 
-    while (queue.length > 0) {
-      const node = queue.pop()!;
+    while (stack.length > 0) {
+      const node = stack.pop()!;
       component.push(node);
 
       for (
@@ -97,9 +98,9 @@ export function connectedComponents(graph: CsrGraph): number[][] {
         edge++
       ) {
         const neighbor = graph.neighbors[edge]!;
-        if (!visited[neighbor]) {
-          visited[neighbor] = 1;
-          queue.push(neighbor);
+        if (!visited.has(neighbor)) {
+          visited.add(neighbor);
+          stack.push(neighbor);
         }
       }
     }

@@ -1,4 +1,3 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
 import { describe, expect, it } from "vitest";
 
 import { entityIdFromComponents } from "@blockprotocol/type-system";

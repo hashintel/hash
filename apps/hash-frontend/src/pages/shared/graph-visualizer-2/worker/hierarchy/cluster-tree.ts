@@ -1,7 +1,8 @@
 /* eslint-disable no-param-reassign */
 import { MutableCircle } from "../../geometry";
 import { ClusterId } from "../../ids";
-import { graphColors, hslToRgb } from "../../visual-style";
+import { hslToRgb } from "../../math/color";
+import { graphColors } from "../../visual-style";
 import { Column } from "../collections/column";
 import { subclusterByLinks } from "./community";
 

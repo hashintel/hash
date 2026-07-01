@@ -1,14 +1,7 @@
+/** Web worker entry point. Dispatches messages to {@link GraphWorker}. */
+
 import { GraphWorker } from "./core/graph-worker";
 
-/**
- * Web worker entry point. Thin message dispatch to GraphWorker.
- *
- * The worker owns two emission channels, wired here to postMessage:
- *  - StructureFrame: rare (topology change), structured-clone with the small
- *    per-leaf edge-topology buffers transferred.
- *  - PositionsFrame: frequent while settling; its flat buffers are transferred
- *    (zero-copy) and held in a ref on the main thread, so nothing accumulates.
- */
 import type { PositionsFrame, StructureFrame } from "../frames";
 import type { MainToWorkerMessage, WorkerToMainMessage } from "./protocol";
 
@@ -73,6 +66,7 @@ globalThis.onmessage = ({ data }: MessageEvent<MainToWorkerMessage>) => {
         worker.onLayoutMessage = (msg) => post(msg);
         worker.onStructureFrame = (frame) => postStructure(frame);
         worker.onPositionsFrame = (frame) => postPositions(frame);
+
         post({ type: "READY" });
       } catch (err) {
         post({ type: "ERROR", message: String(err) });
@@ -106,8 +100,6 @@ globalThis.onmessage = ({ data }: MessageEvent<MainToWorkerMessage>) => {
       const t0 = performance.now();
       const deltas = worker.ingestBatch(data.entities);
       const tIngest = performance.now();
-      // The worker owns topology maintenance (cluster-tree vs flat layout),
-      // gated by mode, so a tree rebuild can't clear the flat layout.
       worker.commitStructure({ deltas });
       // Re-style if an expand flipped an already-rendered frontier node to a root (hierarchical
       // tier only; the flat tier already restyled in the commit).
@@ -187,6 +179,11 @@ globalThis.onmessage = ({ data }: MessageEvent<MainToWorkerMessage>) => {
         break;
       }
       worker.setHighlight(data.entityIdxs);
+      break;
+    }
+
+    default: {
+      const _: never = data;
       break;
     }
   }
