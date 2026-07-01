@@ -8,7 +8,6 @@ import {
   type EngineFrameSnapshot,
 } from "../frames/internal-frame";
 import { computePossibleTransition as computePossibleTransitionImpl } from "./compute-possible-transition";
-import { TokenValueCodec } from "./token-values";
 
 import type { Color, Place, Transition } from "../../types/sdcpn";
 import type {
@@ -188,7 +187,6 @@ function makeSimulation({
       transitionKernelFns,
     }),
     parameterValues: {},
-    tokenValueCodec: new TokenValueCodec(),
     dt: 0.1,
     maxTime: null,
     currentTime: 0,
@@ -448,7 +446,6 @@ describe("computePossibleTransition", () => {
   });
 
   it("decodes typed input tokens and encodes typed output tokens", () => {
-    const outputEntityId = "45f588b6-0538-4fc9-9207-1ddfd7f65b64";
     const typedColor: Color = {
       id: "typed",
       name: "Typed",
@@ -458,7 +455,6 @@ describe("computePossibleTransition", () => {
         { elementId: "amount", name: "amount", type: "real" },
         { elementId: "count", name: "count", type: "integer" },
         { elementId: "active", name: "active", type: "boolean" },
-        { elementId: "entityId", name: "entityId", type: "uuid" },
       ],
     };
     const transition = makeTransition({
@@ -492,7 +488,6 @@ describe("computePossibleTransition", () => {
                 amount: 2.5,
                 count: 3.6,
                 active: false,
-                entityId: outputEntityId,
               },
             ],
           }),
@@ -501,13 +496,13 @@ describe("computePossibleTransition", () => {
     });
     const frame = makeFrame({
       places: {
-        p1: { offset: 0, count: 1, dimensions: 4 },
-        p2: { offset: 4, count: 0, dimensions: 4 },
+        p1: { offset: 0, count: 1, dimensions: 3 },
+        p2: { offset: 3, count: 0, dimensions: 3 },
       },
       transitions: {
         t1: transitionState(),
       },
-      buffer: new Float64Array([1.25, 3, 1, 0]),
+      buffer: new Float64Array([1.25, 3, 1]),
     });
 
     const result = computePossibleTransition(frame, simulation, "t1", 42);
@@ -518,14 +513,12 @@ describe("computePossibleTransition", () => {
           amount: 1.25,
           count: 3,
           active: true,
-          entityId: "00000000-0000-0000-0000-000000000000",
         },
       ],
     });
     expect(result).toMatchObject({
       remove: { p1: new Set([0]) },
-      add: { p2: [[2.5, 4, 0, 1]] },
+      add: { p2: [[2.5, 4, 0]] },
     });
-    expect(simulation.tokenValueCodec.snapshot()).toEqual([outputEntityId]);
   });
 });

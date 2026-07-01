@@ -6,8 +6,6 @@ const defaultTokenAttributeSource = (
   switch (element.type) {
     case "boolean":
       return "false";
-    case "uuid":
-      return '"00000000-0000-0000-0000-000000000000"';
     case "integer":
     case "real":
       return "0";

@@ -18,7 +18,6 @@ import type {
 import type { InitialMarking } from "../api";
 import type { RuntimeDistribution } from "../authoring/user-code/distribution";
 import type { EngineFrame, EngineFrameLayout } from "../frames/internal-frame";
-import type { TokenValueCodec } from "./token-values";
 
 /**
  * Runtime parameter values used during simulation execution.
@@ -123,8 +122,6 @@ export type SimulationInstance = {
   compiledTransitions: Map<string, CompiledTransition>;
   /** Resolved parameter values for this simulation run */
   parameterValues: ParameterValues;
-  /** Encodes/decodes discrete token values stored in numeric frame buffers. */
-  tokenValueCodec: TokenValueCodec;
   /** Time step for simulation advancement */
   dt: number;
   /** Maximum simulation time (immutable). Null means no limit. */

@@ -144,9 +144,8 @@ type ElementNameInputState = Record<
 
 const typeOptions: SelectItem<ColorElementType>[] = [
   { value: "real", text: "Real" },
-  { value: "integer", text: "Int" },
-  { value: "boolean", text: "Bool" },
-  { value: "uuid", text: "UUID" },
+  { value: "integer", text: "Integer" },
+  { value: "boolean", text: "Boolean" },
 ];
 
 const slugifyToIdentifier = (input: string): string => {
@@ -354,7 +353,7 @@ const TypeMainContent: React.FC = () => {
 
       <Section
         title="Dimensions"
-        tooltip="A type is an ordered tuple of token attributes. Real attributes can be updated by dynamics; integer, boolean, and UUID attributes are discrete."
+        tooltip="A type is an ordered tuple of token attributes. Real attributes can be updated by dynamics; integer and boolean attributes are discrete."
         renderHeaderAction={() => (
           <Button
             onClick={handleAddElement}

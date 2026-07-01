@@ -25,7 +25,7 @@ import {
 import {
   coerceTokenRecord,
   decodeTokenRecord,
-  TokenValueCodec,
+  encodeTokenAttributeValue,
 } from "./token-values";
 
 import type { TokenRecord } from "../../types/sdcpn";
@@ -97,7 +97,6 @@ function packInitialPlaceMarking(
   place: SimulationInput["sdcpn"]["places"][0],
   sdcpn: SimulationInput["sdcpn"],
   value: SimulationInput["initialMarking"][string] | undefined,
-  tokenValueCodec: TokenValueCodec,
 ): PackedInitialPlaceMarking {
   const dimensions = getPlaceDimensions(place, sdcpn);
 
@@ -142,7 +141,7 @@ function packInitialPlaceMarking(
     );
     for (const element of type.elements) {
       values.push(
-        tokenValueCodec.encode(
+        encodeTokenAttributeValue(
           element,
           tokenRecord[element.name],
           `Initial marking token for place ${place.id}.${element.name}`,
@@ -159,14 +158,12 @@ function createDifferentialEquationFn({
   elementNames,
   elements,
   parameterValues,
-  tokenValueCodec,
   userFn,
 }: {
   placeId: string;
   elementNames: string[];
   elements: SimulationInput["sdcpn"]["types"][number]["elements"];
   parameterValues: ParameterValues;
-  tokenValueCodec: TokenValueCodec;
   userFn: UserDifferentialEquationFn;
 }): DifferentialEquationFn {
   const expectedDimensions = elementNames.length;
@@ -185,7 +182,6 @@ function createDifferentialEquationFn({
         decodeTokenRecord(
           elements,
           currentState.subarray(tokenStart, tokenStart + dimensions),
-          tokenValueCodec.snapshot(),
         ),
       );
     }
@@ -490,7 +486,6 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
     sdcpn.transitions.map((transition) => [transition.id, transition]),
   );
   const typesMap = new Map(sdcpn.types.map((type) => [type.id, type]));
-  const tokenValueCodec = new TokenValueCodec();
 
   // Build parameter values: merge input values with SDCPN defaults
   // Input values (from simulation store) take precedence over defaults
@@ -513,7 +508,6 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
         place,
         sdcpn,
         getInitialMarkingValue(initialMarking, place.id),
-        tokenValueCodec,
       ),
     );
   }
@@ -564,7 +558,6 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
           elements: type.elements,
           parameterValues:
             flattened.placeParameterValues.get(place.id) ?? parameterValues,
-          tokenValueCodec,
           userFn,
         }),
       );
@@ -659,7 +652,6 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
     differentialEquationFns,
     compiledTransitions,
     parameterValues,
-    tokenValueCodec,
     dt,
     maxTime,
     currentTime: 0,

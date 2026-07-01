@@ -1,7 +1,4 @@
-import {
-  decodeTokenAttributeValue,
-  type EncodedDiscreteValues,
-} from "../engine/token-values";
+import { decodeTokenAttributeValue } from "../engine/token-values";
 import {
   createEngineFrameLayout,
   readEngineFrame,
@@ -21,7 +18,6 @@ function createSimulationFrameReader(
   frame: EngineFrame,
   number: number,
   time: number,
-  discreteValues?: EncodedDiscreteValues,
 ): SimulationFrameReader {
   const frameView = readEngineFrame(layout, frame);
 
@@ -73,7 +69,6 @@ function createSimulationFrameReader(
           token[element.name] = decodeTokenAttributeValue(
             element,
             frameView.tokenValues[base + dimensionIndex] ?? 0,
-            discreteValues,
           );
         }
         tokens.push(token);
@@ -99,14 +94,9 @@ function createSimulationFrameReader(
 
 export function compileSimulationFrameReader(
   sdcpn: Pick<SDCPN, "places" | "transitions" | "types">,
-): (
-  frame: EngineFrame,
-  number: number,
-  time: number,
-  discreteValues?: EncodedDiscreteValues,
-) => SimulationFrameReader {
+): (frame: EngineFrame, number: number, time: number) => SimulationFrameReader {
   const layout = createEngineFrameLayout(sdcpn);
 
-  return (frame, number, time, discreteValues) =>
-    createSimulationFrameReader(layout, frame, number, time, discreteValues);
+  return (frame, number, time) =>
+    createSimulationFrameReader(layout, frame, number, time);
 }

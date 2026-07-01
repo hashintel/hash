@@ -6,11 +6,7 @@ import { idSchema } from "./entity-schemas";
 import type { Scenario } from "../types/sdcpn";
 
 const SNAKE_CASE_RE = /^[a-z][a-z0-9_]*$/;
-const tokenAttributeValueSchema = z.union([
-  z.number(),
-  z.boolean(),
-  z.string(),
-]);
+const tokenAttributeValueSchema = z.union([z.number(), z.boolean()]);
 
 export const scenarioParameterSchema = z
   .strictObject({
@@ -66,7 +62,7 @@ const initialStateSchema = z
           description: [
             "Function body (NOT a module — no `export default`, no wrapper) with `parameters` and `scenario` in scope.",
             "MUST `return` an object keyed by PLACE NAME (NOT place ID — note the asymmetry with per_place mode, which uses place IDs).",
-            "Per-place values: a number for uncoloured places (rounded and clamped to >= 0); `Array<{ [elementName]: number | boolean | string }>` for coloured places.",
+            "Per-place values: a number for uncoloured places (rounded and clamped to >= 0); `Array<{ [elementName]: number | boolean }>` for coloured places.",
             "Unknown place names in the returned object are silently dropped — typos produce an empty initial state with no error, so verify names exactly match.",
           ].join(" "),
         }),

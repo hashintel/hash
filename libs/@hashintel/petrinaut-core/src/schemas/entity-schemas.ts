@@ -159,9 +159,9 @@ export const colorElementSchema = z
         description:
           "Token attribute identifier used DIRECTLY in code. Lambdas, kernels, dynamics, visualizers, and metrics destructure tokens as `{ <name> }`, so this must be a valid JavaScript identifier (e.g. `machine_damage_ratio`, `x`, `velocity`). Spaces, hyphens, and leading digits will break user code that references the attribute; prefer lower_snake_case for consistency with parameter naming.",
       }),
-    type: z.enum(["real", "integer", "boolean", "uuid"]).meta({
+    type: z.enum(["real", "integer", "boolean"]).meta({
       description:
-        "`real` is continuous and may be updated by dynamics. `integer`, `boolean`, and `uuid` are discrete token attributes updated by transition kernels.",
+        "`real` is continuous and may be updated by dynamics. `integer` and `boolean` are discrete token attributes updated by transition kernels.",
     }),
   })
   .meta({
@@ -250,7 +250,7 @@ export const transitionSchema = z
         "Transition kernel code is meaningful only when colours are enabled and the transition has at least one coloured output place.",
         "`input` and `parameters` have the same shape as the transition's lambda.",
         "MUST return an object keyed by OUTPUT PLACE NAME with a tuple sized to that arc's weight. Coloured output places MUST be present; uncoloured output places MUST be omitted (they are auto-populated with empty tokens).",
-        "Token attribute values must match the output type: real/integer use numbers, boolean uses booleans, uuid uses UUID strings. When stochasticity is enabled, real/integer attributes may also use `Distribution.Gaussian(mean, sd)` / `Distribution.Uniform(min, max)` / `Distribution.Lognormal(mu, sigma)`; each distribution is sampled once per token, and chained `.map(fn)` calls on the same distribution share that single sample.",
+        "Token attribute values must match the output type: real/integer use numbers, boolean uses booleans. When stochasticity is enabled, real/integer attributes may also use `Distribution.Gaussian(mean, sd)` / `Distribution.Uniform(min, max)` / `Distribution.Lognormal(mu, sigma)`; each distribution is sampled once per token, and chained `.map(fn)` calls on the same distribution share that single sample.",
         "Leave empty when no coloured outputs exist.",
       ].join(" "),
     }),
@@ -305,7 +305,7 @@ export const differentialEquationSchema = z
         "Module: `export default Dynamics((tokens, parameters) => …)`.",
         "`tokens` is THIS place's current tokens only — NOT all places' tokens.",
         "MUST return an array of the SAME LENGTH where each entry provides real-valued derivatives (i.e. dx/dt, NOT the new value).",
-        "Integer, boolean, and uuid elements are discrete and remain unchanged by dynamics.",
+        "Integer and boolean elements are discrete and remain unchanged by dynamics.",
         "`parameters` is keyed by each parameter's `variableName` value (lower_snake_case, e.g. `parameters.damage_per_second`).",
       ].join(" "),
     }),

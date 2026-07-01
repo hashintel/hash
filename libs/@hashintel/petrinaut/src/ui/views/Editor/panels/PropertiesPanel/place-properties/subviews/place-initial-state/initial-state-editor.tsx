@@ -10,14 +10,10 @@ import type {
 } from "../../../../../../../components/spreadsheet";
 import type { Color, Place, TokenRecord } from "@hashintel/petrinaut-core";
 
-const DEFAULT_UUID = "00000000-0000-0000-0000-000000000000";
-
 const getDefaultValue = (column: SpreadsheetColumn): SpreadsheetCellValue => {
   switch (column.type) {
     case "boolean":
       return false;
-    case "uuid":
-      return DEFAULT_UUID;
     case "integer":
     case "real":
     default:

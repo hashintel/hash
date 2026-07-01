@@ -3,7 +3,10 @@ import { isDistribution } from "../authoring/user-code/distribution";
 import { enumerateWeightedMarkingIndicesGenerator } from "../engine/enumerate-weighted-markings";
 import { sampleDistribution } from "../engine/sample-distribution";
 import { nextRandom } from "../engine/seeded-rng";
-import { decodeTokenRecord } from "../engine/token-values";
+import {
+  decodeTokenRecord,
+  encodeTokenAttributeValue,
+} from "../engine/token-values";
 import { getPlaceIndex, getTransitionIndex } from "./layout";
 
 import type {
@@ -96,7 +99,6 @@ export function computeTransitionEffect(
         return decodeTokenRecord(
           elements,
           frame.tokenValues.subarray(tokenOffset, tokenOffset + dimensions),
-          run.simulation.tokenValueCodec.snapshot(),
         );
       });
     }
@@ -177,7 +179,7 @@ export function computeTransitionEffect(
             rawValue = sampled;
           }
           values.push(
-            run.simulation.tokenValueCodec.encode(
+            encodeTokenAttributeValue(
               element,
               rawValue,
               `Transition ${transition.id} output ${outputPlace.placeName}.${element.name}`,

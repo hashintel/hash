@@ -1,8 +1,8 @@
 export type ID = string;
 
-export type ColorElementType = "real" | "integer" | "boolean" | "uuid";
+export type ColorElementType = "real" | "integer" | "boolean";
 
-export type TokenAttributeValue = number | boolean | string;
+export type TokenAttributeValue = number | boolean;
 
 export type TokenRecord = Record<string, TokenAttributeValue>;
 

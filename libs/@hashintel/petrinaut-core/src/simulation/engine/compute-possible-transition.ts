@@ -4,7 +4,7 @@ import { materializeEngineFrame } from "../frames/internal-frame";
 import { enumerateWeightedMarkingIndicesGenerator } from "./enumerate-weighted-markings";
 import { sampleDistribution } from "./sample-distribution";
 import { nextRandom } from "./seeded-rng";
-import { decodeTokenRecord } from "./token-values";
+import { decodeTokenRecord, encodeTokenAttributeValue } from "./token-values";
 
 import type { ID } from "../../types/sdcpn";
 import type {
@@ -135,7 +135,6 @@ export function computePossibleTransition(
         return decodeTokenRecord(
           elements,
           snapshot.buffer.subarray(globalIndex, globalIndex + dimensions),
-          simulation.tokenValueCodec.snapshot(),
         );
       });
 
@@ -244,7 +243,7 @@ export function computePossibleTransition(
               raw = sampled;
             }
             values.push(
-              simulation.tokenValueCodec.encode(
+              encodeTokenAttributeValue(
                 element,
                 raw,
                 `Transition ${transition.id} output ${outputPlace.placeName}.${element.name}`,

@@ -5,10 +5,10 @@ import { css, cva } from "@hashintel/ds-helpers/css";
 export interface SpreadsheetColumn {
   id: string;
   name: string;
-  type?: "real" | "integer" | "boolean" | "uuid";
+  type?: "real" | "integer" | "boolean";
 }
 
-export type SpreadsheetCellValue = number | boolean | string;
+export type SpreadsheetCellValue = number | boolean;
 
 export interface SpreadsheetProps {
   columns: SpreadsheetColumn[];
@@ -190,16 +190,12 @@ const booleanCellStyle = css({
   margin: "0",
 });
 
-const DEFAULT_UUID = "00000000-0000-0000-0000-000000000000";
-
 const getDefaultCellValue = (
   column: SpreadsheetColumn | undefined,
 ): SpreadsheetCellValue => {
   switch (column?.type) {
     case "boolean":
       return false;
-    case "uuid":
-      return DEFAULT_UUID;
     case "integer":
     case "real":
     default:
@@ -219,8 +215,6 @@ const parseCellValue = (
       const normalized = rawValue.trim().toLowerCase();
       return normalized === "true" || normalized === "1";
     }
-    case "uuid":
-      return rawValue.trim() || DEFAULT_UUID;
     case "integer":
       return Math.round(Number.parseFloat(rawValue) || 0);
     case "real":
@@ -715,11 +709,7 @@ export const Spreadsheet: React.FC<SpreadsheetProps> = ({
                           ) : isEditing ? (
                             <input
                               ref={inputRef}
-                              type={
-                                columns[colIndex]?.type === "uuid"
-                                  ? "text"
-                                  : "number"
-                              }
+                              type="number"
                               step={
                                 columns[colIndex]?.type === "integer"
                                   ? 1

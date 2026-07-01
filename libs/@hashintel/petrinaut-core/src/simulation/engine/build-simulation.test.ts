@@ -7,9 +7,7 @@ import { buildSimulation } from "./build-simulation";
 import type { SimulationInput } from "./types";
 
 describe("buildSimulation", () => {
-  it("packs and decodes integer, boolean, and UUID token attributes", () => {
-    const entityId = "45F588B6-0538-4FC9-9207-1DDFD7F65B64";
-    const normalizedEntityId = entityId.toLowerCase();
+  it("packs and decodes integer and boolean token attributes", () => {
     const input: SimulationInput = {
       sdcpn: {
         types: [
@@ -22,7 +20,6 @@ describe("buildSimulation", () => {
               { elementId: "e1", name: "amount", type: "real" },
               { elementId: "e2", name: "count", type: "integer" },
               { elementId: "e3", name: "active", type: "boolean" },
-              { elementId: "e4", name: "entityId", type: "uuid" },
             ],
           },
         ],
@@ -47,7 +44,6 @@ describe("buildSimulation", () => {
             amount: 1.25,
             count: 2.7,
             active: true,
-            entityId,
           },
         ],
       },
@@ -64,17 +60,9 @@ describe("buildSimulation", () => {
       engineFrame,
     );
 
-    expect(frame.buffer).toEqual(new Float64Array([1.25, 3, 1, 1]));
-    expect(simulationInstance.tokenValueCodec.snapshot()).toEqual([
-      normalizedEntityId,
-    ]);
+    expect(frame.buffer).toEqual(new Float64Array([1.25, 3, 1]));
 
-    const reader = compileSimulationFrameReader(input.sdcpn)(
-      engineFrame,
-      0,
-      0,
-      simulationInstance.tokenValueCodec.snapshot(),
-    );
+    const reader = compileSimulationFrameReader(input.sdcpn)(engineFrame, 0, 0);
 
     expect(
       reader.getPlaceTokens(input.sdcpn.places[0]!, input.sdcpn.types[0]),
@@ -83,7 +71,6 @@ describe("buildSimulation", () => {
         amount: 1.25,
         count: 3,
         active: true,
-        entityId: normalizedEntityId,
       },
     ]);
   });

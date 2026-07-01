@@ -34,9 +34,6 @@ function toTsType(type: ColorElementType | "ratio"): string {
   if (type === "boolean") {
     return "boolean";
   }
-  if (type === "uuid") {
-    return "string";
-  }
   return "number";
 }
 
@@ -567,10 +564,10 @@ export function generateMetricSessionFiles(
         }
         tokensType = `Color_${sanitized}[]`;
       } else {
-        tokensType = "Record<string, number | boolean | string>[]";
+        tokensType = "Record<string, number | boolean>[]";
       }
     } else {
-      tokensType = "Record<string, number | boolean | string>[]";
+      tokensType = "Record<string, number | boolean>[]";
     }
     placeStateProperties.push(
       `  "${place.name}": { count: number; tokens: ${tokensType} };`,
@@ -580,7 +577,7 @@ export function generateMetricSessionFiles(
   const placesType =
     placeStateProperties.length > 0
       ? `{\n${placeStateProperties.join("\n")}\n}`
-      : "Record<string, { count: number; tokens: Record<string, number | boolean | string>[] }>";
+      : "Record<string, { count: number; tokens: Record<string, number | boolean>[] }>";
 
   // defs file (kept separate so updates only invalidate code on real changes)
   const defsPath = getItemFilePath("metric-session-defs", { sessionId });

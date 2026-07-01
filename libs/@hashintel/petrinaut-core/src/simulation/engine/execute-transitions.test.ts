@@ -9,7 +9,6 @@ import {
   type EngineFrameSnapshot,
 } from "../frames/internal-frame";
 import { executeTransitions as executeEngineTransitions } from "./execute-transitions";
-import { TokenValueCodec } from "./token-values";
 
 import type { Color, Place, Transition } from "../../types/sdcpn";
 import type {
@@ -199,7 +198,6 @@ function makeSimulation({
       transitionKernelFns,
     }),
     parameterValues: {},
-    tokenValueCodec: new TokenValueCodec(),
     dt: 0.1,
     maxTime: null,
     currentTime: 0,
