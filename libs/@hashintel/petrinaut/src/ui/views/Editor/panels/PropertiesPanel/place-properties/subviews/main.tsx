@@ -351,9 +351,9 @@ const PlaceMainContent: React.FC = () => {
           tooltip="Exposes this place as an arc endpoint when its subnet is instantiated as a component."
           renderHeaderLeading={() => (
             <Checkbox
-              checked={!!place.isPort}
+              value={!!place.isPort}
               disabled={isReadOnly}
-              onCheckedChange={(checked) => {
+              onChange={(checked) => {
                 updatePlace({
                   placeId: place.id,
                   update: { isPort: checked === true },
