@@ -45,6 +45,8 @@ export function statusCommentRequired(category: StatusOption): boolean {
  * `destination_dwell`), whose `node.id` is *location*-scoped (plant/hub/lane)
  * and so needs finished-good disambiguation -- these are deduplicated per
  * finished good, so exactly one product is appended and the key stays stable.
+ * The product ids are sorted before joining so the key stays deterministic even
+ * if that single-product invariant is ever relaxed to multiple products.
  *
  * Every other step type keys on `node.id` alone because its subject is already
  * in the id: procurement on the procured item (`procurement_<item>`), raw &
@@ -59,7 +61,10 @@ export function statusCommentRequired(category: StatusOption): boolean {
 export function statusKey(siteId: string, node: SiteNode): string {
   const type = isDwellType(node.type) ? "dwell" : "planning";
   const nodeKey = isProductSpecificType(node.type)
-    ? `${node.id}-${node.products.map((product) => product.id).join(",")}`
+    ? `${node.id}-${node.products
+        .map((product) => product.id)
+        .sort()
+        .join(",")}`
     : node.id;
   return [siteId, type, nodeKey].join("::");
 }
