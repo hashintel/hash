@@ -488,6 +488,36 @@ export const defaultVizConfig: VizConfig = {
 };
 
 /**
+ * Overwrite `target`'s values with `next`'s, preserving the identity of the
+ * root object and of every nested group object.
+ *
+ * The worker shares one {@link VizConfig} reference (and references to its
+ * nested groups, e.g. `config.topLevelPolish` held by the settle polisher)
+ * across its collaborators, so a live config update must mutate in place
+ * rather than replace objects. Fields absent from `next` keep their old
+ * values; a full `VizConfig` always carries every field.
+ */
+export function assignVizConfigInPlace(
+  target: VizConfig,
+  next: VizConfig,
+): void {
+  const targetRecord = target as unknown as Record<string, unknown>;
+  for (const [key, value] of Object.entries(next)) {
+    const current = targetRecord[key];
+    if (
+      value !== null &&
+      typeof value === "object" &&
+      current !== null &&
+      typeof current === "object"
+    ) {
+      Object.assign(current, value);
+    } else {
+      targetRecord[key] = value;
+    }
+  }
+}
+
+/**
  * Validates the hysteresis pairs (`flatLayoutMaxNodes`/`flatLayoutExitNodes`,
  * `communityColorMaxNodes`/`communityColorExitNodes`,
  * `closeChildrenFraction`/`openChildrenFraction`,

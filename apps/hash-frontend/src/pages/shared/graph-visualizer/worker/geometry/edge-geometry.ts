@@ -1189,7 +1189,20 @@ function worstObstacleOnPath(
   return worst;
 }
 
-/** Cap routing passes so a pathological cluster of obstacles can't loop. */
+/**
+ * Max detour waypoints inserted per routed highway before giving up.
+ * Termination guard, not a quality target: in a dense field each inserted
+ * waypoint can expose a new clip on a neighbouring bubble, so the pass loop
+ * has no structural exit of its own.
+ *
+ * @defaultValue 8. Settled layouts rarely need more than a few passes (the
+ * top-level optimiser penalises edge-through-bubble intrusions directly, so a
+ * typical highway detours around zero to two bubbles); cap-hits are mostly
+ * transient mid-animation frames that self-heal as bubbles spread apart.
+ * Raising it clears residual clips in denser fields at the cost of extra
+ * whole-path obstacle sweeps per routed edge per frame; lowering it saves that
+ * compute but returns more `capped` (still-clipping) routes.
+ */
 const ROUTE_MAX_PASSES = 8;
 /** A point counts as inside a bubble within this multiple of its radius. */
 const ROUTE_CONTAIN_TOLERANCE = 1.02;
@@ -1202,18 +1215,38 @@ function containsPoint(circle: Circle, pt: Position): boolean {
   );
 }
 
+/** A routed highway: the curve chain to draw plus the routing health flag. */
+interface RoutedHighway {
+  readonly curves: CubicCurve[];
+  /**
+   * True when {@link ROUTE_MAX_PASSES} was exhausted with an obstacle still
+   * clipping the path (the same convention as the majorization solver's
+   * `settleCapped`): the curves are drawable but may cross a bubble they
+   * should bend around.
+   */
+  readonly capped: boolean;
+}
+
 /**
  * Routes a highway from `source` to `target` that bends around every intervening
  * bubble (one waypoint per obstacle, on the shorter side), or the straight cubic
- * if nothing is in the way. Multi-pass: after inserting a detour we re-test the
- * whole polyline, so a waypoint that newly clips another bubble is itself routed
- * around, the path is clear of all (circle) obstacles when we stop. A bubble
- * that encloses an endpoint is exempt: the edge has to enter/leave it, so an
- * endpoint's own (highway-level) container and every ancestor enclosing it
- * (opened clusters included) are skipped, tested purely geometrically. Curves
- * bow gently off the polyline, so segment clearance closely approximates curve
- * clearance; residual clipping is only possible after `ROUTE_MAX_PASSES` in a
- * densely packed field.
+ * if nothing is in the way. Multi-pass: after inserting a detour the whole
+ * polyline is re-tested, so a waypoint that newly clips another bubble is itself
+ * routed around; unless `capped` reports otherwise, the returned path is clear
+ * of every (circle) obstacle. A bubble that encloses an endpoint is exempt: the
+ * edge has to enter/leave it, so an endpoint's own (highway-level) container and
+ * every ancestor enclosing it (opened clusters included) are skipped, tested
+ * purely geometrically. Curves bow gently off the polyline, so segment clearance
+ * closely approximates curve clearance.
+ *
+ * Best-effort under the pass cap: a field dense enough to exhaust
+ * {@link ROUTE_MAX_PASSES} (typically a mid-animation frame whose bubbles have
+ * not spread apart yet) returns the still-clipping path with `capped: true`
+ * instead of dropping the edge, because a missing highway misreads as a missing
+ * relationship while a residual clip only draws the edge across a bubble
+ * (rendered under the translucent bubble fill, it reads as passing behind it).
+ * The flag is the only signal of the degradation; the geometry itself does not
+ * distinguish a capped route.
  */
 function routeAround(
   source: Waypoint,
@@ -1222,9 +1255,12 @@ function routeAround(
   targetId: ClusterId,
   obstacles: readonly { readonly id: ClusterId; readonly circle: Circle }[],
   config: VizConfig,
-): CubicCurve[] {
+): RoutedHighway {
   if (obstacles.length === 0) {
-    return computeRawCurves(source, target, [], config);
+    return {
+      curves: computeRawCurves(source, target, [], config),
+      capped: false,
+    };
   }
 
   // A bubble is not an obstacle for an edge whose endpoint lives inside it (its
@@ -1240,22 +1276,26 @@ function routeAround(
   }
 
   // Build the avoidance polyline by repeatedly routing around the worst clip.
+  // A hit surviving the final pass means the cap was exhausted mid-fix; it
+  // latches into `capped` so the degraded route is distinguishable from a
+  // clean one.
   const path: Waypoint[] = [source, target];
-  for (let pass = 0; pass < ROUTE_MAX_PASSES; pass++) {
-    const hit = worstObstacleOnPath(path, exempt, obstacles);
-    if (!hit) {
-      break;
-    }
+  let residualHit = worstObstacleOnPath(path, exempt, obstacles);
+  for (let pass = 0; residualHit !== null && pass < ROUTE_MAX_PASSES; pass++) {
     // Waypoint beside the obstacle, on the side opposite its centre (shorter
     // detour), just past its clearance ring.
-    const side = hit.perp >= 0 ? -1 : 1;
-    const wpPerp = hit.perp + side * hit.clear;
-    path.splice(hit.segmentIndex + 1, 0, {
-      x: hit.footX + hit.nx * wpPerp,
-      y: hit.footY + hit.ny * wpPerp,
+    const side = residualHit.perp >= 0 ? -1 : 1;
+    const wpPerp = residualHit.perp + side * residualHit.clear;
+    path.splice(residualHit.segmentIndex + 1, 0, {
+      x: residualHit.footX + residualHit.nx * wpPerp,
+      y: residualHit.footY + residualHit.ny * wpPerp,
       angle: 0,
     });
+
+    residualHit = worstObstacleOnPath(path, exempt, obstacles);
   }
+
+  const capped = residualHit !== null;
 
   // Pull the polyline taut: drop any waypoint whose removal doesn't re-introduce
   // a clip. The greedy multi-pass can leave alternating-side waypoints that
@@ -1274,7 +1314,10 @@ function routeAround(
   }
 
   if (path.length === 2) {
-    return computeRawCurves(source, target, [], config);
+    return {
+      curves: computeRawCurves(source, target, [], config),
+      capped,
+    };
   }
 
   // Build smooth C1 cubics through the waypoints. The through-tangent at an
@@ -1314,7 +1357,7 @@ function routeAround(
       ),
     );
   }
-  return curves;
+  return { curves, capped };
 }
 
 /**
@@ -1364,6 +1407,8 @@ export function buildBezierSegments(
     classified.push({ pairKey, edges, sourceId, targetId, hierarchy });
   }
 
+  let cappedRouteCount = 0;
+
   for (const pair of classified) {
     if (
       pair.hierarchy.sourceContainers.length > 0 ||
@@ -1375,7 +1420,7 @@ export function buildBezierSegments(
     if (!ports) {
       continue;
     }
-    const curves = routeAround(
+    const route = routeAround(
       ports.a,
       ports.b,
       pair.sourceId,
@@ -1383,11 +1428,16 @@ export function buildBezierSegments(
       ctx.obstacles,
       config,
     );
+
+    if (route.capped) {
+      cappedRouteCount += 1;
+    }
+
     const directSrc = ctx.clusterTree.get(pair.sourceId)?.circle;
     const directTgt = ctx.clusterTree.get(pair.targetId)?.circle;
     emitCurveLanes(
       out,
-      curves,
+      route.curves,
       pair.edges,
       labelsOut,
       arrowsOut,
@@ -1512,7 +1562,7 @@ export function buildBezierSegments(
         config.portPaddingWorld,
       );
 
-    const curves = routeAround(
+    const route = routeAround(
       sourceWp,
       targetWp,
       group.highwaySourceId,
@@ -1520,9 +1570,14 @@ export function buildBezierSegments(
       ctx.obstacles,
       config,
     );
+
+    if (route.capped) {
+      cappedRouteCount += 1;
+    }
+
     emitCurveLanes(
       out,
-      curves,
+      route.curves,
       mergedLanes,
       labelsOut,
       arrowsOut,
@@ -1553,6 +1608,19 @@ export function buildBezierSegments(
       ctx.cutIndex.containerIds,
       config,
       groupLaneId,
+    );
+  }
+
+  // A capped route is drawn anyway and looks plausible (the edge reads as
+  // passing behind the bubble), so cap exhaustion is invisible in the frame
+  // itself; this is its only surface. Debug-gated because routing reruns
+  // every positions tick and transient caps during settle animation would
+  // spam a production console.
+  if (config.debug && cappedRouteCount > 0) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      `[graph-worker][edge-routing] ${cappedRouteCount} highway route(s) hit ` +
+        `ROUTE_MAX_PASSES; residual bubble clips possible this frame`,
     );
   }
 

@@ -9,7 +9,7 @@ import {
 } from "@local/hash-graph-sdk/entity";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 
-import { GraphVisualizer } from "./graph-visualizer";
+import { GraphVisualizer } from "./graph-visualizer/graph-visualizer";
 
 import type { EntityEditorProps } from "./entity/entity-editor";
 import type {
@@ -19,7 +19,7 @@ import type {
   GraphVizEdge,
   GraphVizFilters,
   GraphVizNode,
-} from "./graph-visualizer";
+} from "./graph-visualizer/graph-visualizer";
 import type {
   ClosedMultiEntityType,
   EntityId,

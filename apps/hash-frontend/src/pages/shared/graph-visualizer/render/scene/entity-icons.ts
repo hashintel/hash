@@ -14,14 +14,29 @@
  * entity forever; a full rescan happens only on a shrink (defensive; add-only
  * stores cannot shrink) or when the flat layout disappears (tier change).
  *
- * Cached KEYS are kept across resolver identity changes: an entity's icon is
- * a function of its (immutable) type set, and both streaming flows populate
- * the bridge's type context before the worker's structure frame returns, so
- * a prefix `null` is a genuine no-icon answer, not a not-yet-known one. (The
- * bridge recreates the resolver on every appended page; treating that as an
+ * Cached keys are kept across resolver identity changes: the bridge
+ * recreates the resolver on every appended page, and treating that as an
  * invalidation would re-trigger the full O(dots) rescan per batch this class
- * exists to avoid. The trade-off: an icon EDITED mid-session refreshes on the
- * next full rescan (tier change or remount), not the next frame.)
+ * exists to avoid. Both streaming flows land an entity and its type context
+ * in the bridge before the worker's structure frame for it returns, so a
+ * prefix `null` is a genuine no-icon answer, not a not-yet-known one.
+ *
+ * A cached key is the icon of the entity's type set as the bridge captured
+ * it when the record was first scanned. Type sets are editable in-product
+ * (clicking a dot opens the entity editor in the slide stack), but an edit
+ * does not reach an open graph: subgraph responses are unnormalized scalars
+ * Apollo cannot update in place, no graph host wires an entity edit to a
+ * refetch, and the worker pins type-derived grouping and dot colour at first
+ * ingest, ignoring re-sent entities. Icon staleness is that same snapshot
+ * contract, not an icon-specific carve-out; a full rescan (tier change or
+ * remount) re-resolves icons while colours never refresh, so a dot's icon is
+ * never staler than its colour. A bridge capture can still be replaced
+ * mid-session (a later frontier expansion re-fetching an expansion-held
+ * neighbour); hover cards and hub labels read the fresh copy on their next
+ * build while icon and colour keep ingest state. Rescanning icons on such a
+ * refresh would only desync them from colour, so showing type edits live is
+ * an upstream product decision (refetch plus worker restyle), not a cache
+ * policy here.
  *
  * Hierarchical leaves have no append-only guarantee (group re-targeting can
  * change a leaf's membership), so a leaf's cached array is reused only while
