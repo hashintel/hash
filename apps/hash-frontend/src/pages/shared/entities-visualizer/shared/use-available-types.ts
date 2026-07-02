@@ -63,18 +63,26 @@ export const useAvailableTypes = ({
     return null;
   }, [entityTypeBaseUrl, entityTypeIds, entityTypes]);
 
+  /**
+   * Only the web scope and archive toggle affect which types are AVAILABLE
+   * (type selections and property filters narrow within them), so depend on
+   * those two fields rather than the whole filter state -- other filter
+   * changes shouldn't refetch the summary.
+   */
+  const { web: webFilter, includeArchived } = filterState;
+
   const filter = useMemo(
     () =>
       buildEntitiesFilter({
         filterState: {
-          web: filterState.web,
+          web: webFilter,
           type: { selectedTypeIds: null },
-          includeArchived: filterState.includeArchived,
+          includeArchived,
           propertyFilters: [],
         },
         internalWebIds: internalWebs.map(({ webId }) => webId),
       }),
-    [filterState, internalWebs],
+    [webFilter, includeArchived, internalWebs],
   );
 
   const { data, loading } = useQuery<

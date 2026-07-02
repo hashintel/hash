@@ -1,3 +1,4 @@
+import type { Position } from "../../geometry";
 /**
  * The Scene's outward-facing contract: the hover/selection/label payloads it
  * reports and the callback set the host React component provides. Everything
@@ -6,21 +7,17 @@
 import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
 
 /** A hovered flat-tier entity: its id and the cursor position in container pixels. */
-export interface EntityHover {
+export interface EntityHover extends Position {
   readonly entityId: EntityId;
-  readonly x: number;
-  readonly y: number;
 }
 
 /** A hovered aggregated highway: a summary of the links it bundles, at the cursor. */
-export interface HighwayHover {
+export interface HighwayHover extends Position {
   /** The lane's single link type (for the main thread to resolve the icon); null for a rollup. */
   readonly typeId: VersionedUrl | null;
   readonly typeLabel: string;
   readonly count: number;
   readonly direction: "forward" | "reverse" | "both";
-  readonly x: number;
-  readonly y: number;
 }
 
 /**
@@ -28,12 +25,10 @@ export interface HighwayHover {
  * EntityIds plus the bubble's on-screen geometry, re-emitted as the camera moves / layout settles
  * so an action card can sit at its edge and offer to load it. Null on leave.
  */
-export interface ClusterHover {
+export interface ClusterHover extends Position {
   readonly count: number;
   readonly frontierEntityIds: readonly EntityId[];
-  /** Bubble centre in container pixels. */
-  readonly x: number;
-  readonly y: number;
+
   /** Bubble on-screen radius (px), so the card can sit just outside its edge. */
   readonly radiusPx: number;
 }
@@ -42,10 +37,8 @@ export interface ClusterHover {
  * The selected entity: its id and its on-screen position in container pixels, re-emitted as
  * the node settles and the camera moves so a pinned card can follow it.
  */
-export interface EntitySelection {
+export interface EntitySelection extends Position {
   readonly entityId: EntityId;
-  readonly x: number;
-  readonly y: number;
 }
 
 /**
@@ -54,11 +47,9 @@ export interface EntitySelection {
  * labels track the camera / settling layout; React renders them over the canvas (viewport-culled),
  * so they read in the hash-frontend design language rather than as GPU text.
  */
-export interface EntityLabel {
+export interface EntityLabel extends Position {
   readonly entityId: EntityId;
   readonly text: string;
-  readonly x: number;
-  readonly y: number;
 }
 
 export interface SceneCallbacks {

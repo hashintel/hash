@@ -22,6 +22,7 @@ import type { HarnessKnobs } from "./components/dev-harness-controls-panel";
 import type { VizConfig } from "./config";
 import type { GraphFixture } from "./dev-harness/generate-fixture";
 import type { Scene } from "./render/scene";
+import type { LayerKind } from "./render/scene/layer-kinds";
 import type { WorkerHandle } from "./render/worker-connection";
 import type { EntityId } from "@blockprotocol/type-system";
 
@@ -31,6 +32,11 @@ const RENDER_BENCH_DURATION_MS = 10_000;
 const RENDER_BENCH_SWEEP_INTERVAL_MS = 90;
 /** Per-step zoom amplitude of the sweep sinusoid. */
 const RENDER_BENCH_SWEEP_ZOOM_STEP = 0.12;
+/**
+ * Wait for the fit-to-content transition (240 ms) before a sweep capture
+ * starts, so the fit animation itself is not measured.
+ */
+const RENDER_BENCH_FIT_SETTLE_MS = 400;
 
 const DEFAULT_KNOBS: HarnessKnobs = {
   entityCount: 200,
@@ -214,54 +220,129 @@ export const DevHarness = () => {
   // deferred attribute regen), deck.fps/cpuTimePerFrame. Compare runs only at matching
   // zoom envelopes; settled vs under-load sweeps measure different things.
   const sceneRef = useRef<Scene | null>(null);
+  // GPU-cost bisection state: kinds currently hidden from every render pass.
+  // Kept in a ref too so a scene remount re-applies the selection.
+  const [hiddenLayerKinds, setHiddenLayerKinds] = useState<
+    readonly LayerKind[]
+  >([]);
+  const hiddenLayerKindsRef = useRef(hiddenLayerKinds);
   const handleSceneReady = useCallback((scene: Scene | null) => {
     sceneRef.current = scene;
+    scene?.setHiddenLayerKinds(hiddenLayerKindsRef.current);
+  }, []);
+  const handleToggleLayerKind = useCallback((kind: LayerKind) => {
+    setHiddenLayerKinds((current) => {
+      const next = current.includes(kind)
+        ? current.filter((hidden) => hidden !== kind)
+        : [...current, kind];
+      hiddenLayerKindsRef.current = next;
+      sceneRef.current?.setHiddenLayerKinds(next);
+      return next;
+    });
   }, []);
   const [renderBenchStatus, setRenderBenchStatus] = useState<string>();
-  const benchTimersRef = useRef<{ sweep?: number; stop?: number }>({});
+  const benchTimersRef = useRef<{
+    fit?: number;
+    sweep?: number;
+    stop?: number;
+  }>({});
   useEffect(
     () => () => {
+      window.clearTimeout(benchTimersRef.current.fit);
       window.clearInterval(benchTimersRef.current.sweep);
       window.clearTimeout(benchTimersRef.current.stop);
     },
     [],
   );
-  const handleRunRenderBench = useCallback(() => {
+  const runRenderBench = useCallback((sweep: boolean) => {
     const scene = sceneRef.current;
     if (!scene || scene.renderCapturing) {
       return;
     }
+    // Reports are compared across bisection runs, so each one is labelled
+    // with the layer kinds hidden while it was captured.
+    const hiddenLabel =
+      hiddenLayerKindsRef.current.length === 0
+        ? "all layers"
+        : `hidden: ${[...hiddenLayerKindsRef.current].sort().join("+")}`;
     setRenderBenchStatus(
-      `capturing ${RENDER_BENCH_DURATION_MS / 1000}s (zoom sweep)...`,
+      `capturing ${RENDER_BENCH_DURATION_MS / 1000}s (${sweep ? "zoom sweep" : "pinned camera"}, ${hiddenLabel})...`,
     );
-    scene.startRenderCapture();
-    const benchStart = performance.now();
-    benchTimersRef.current.sweep = window.setInterval(() => {
-      // Slow zoom oscillation: crosses LOD/label buckets both ways, exercising
-      // layer rebuilds the way interactive use does, but reproducibly.
-      const phase = (performance.now() - benchStart) / 700;
-      sceneRef.current?.zoomBy(Math.sin(phase) * RENDER_BENCH_SWEEP_ZOOM_STEP);
-    }, RENDER_BENCH_SWEEP_INTERVAL_MS);
-    benchTimersRef.current.stop = window.setTimeout(() => {
-      window.clearInterval(benchTimersRef.current.sweep);
+    const beginCapture = () => {
       const liveScene = sceneRef.current;
-      if (!liveScene) {
-        setRenderBenchStatus("scene remounted mid-capture; rerun");
+      if (!liveScene || liveScene.renderCapturing) {
         return;
       }
-      const report = liveScene.stopRenderCapture();
-      liveScene.fitToContent();
-      // eslint-disable-next-line no-console -- dev harness affordance (console-copyable)
-      console.log("render-bench report:", JSON.stringify(report, null, 2));
-      setRenderBenchStatus(
-        `fps ${report.deck.fps.toFixed(0)} | frame p95 ${report.frames.p95Ms.toFixed(1)}ms, ` +
-          `${report.frames.hitchCount} hitch${report.frames.hitchCount === 1 ? "" : "es"} (max ${report.frames.maxMs.toFixed(0)}ms) | ` +
-          `attrs ${report.deck.updateAttributesTime.toFixed(1)}ms/s | ` +
-          `rebuild p95 ${report.rebuild.p95Ms.toFixed(2)}ms (${report.rebuild.count}x) | ` +
-          `zoom ${report.camera.initialZoom.toFixed(1)} [${report.camera.minZoom.toFixed(1)}..${report.camera.maxZoom.toFixed(1)}]`,
+      liveScene.startRenderCapture();
+      const benchStart = performance.now();
+      if (sweep) {
+        benchTimersRef.current.sweep = window.setInterval(() => {
+          // Slow zoom oscillation: crosses LOD/label buckets both ways, exercising
+          // layer rebuilds the way interactive use does, but reproducibly.
+          const phase = (performance.now() - benchStart) / 700;
+          sceneRef.current?.zoomBy(
+            Math.sin(phase) * RENDER_BENCH_SWEEP_ZOOM_STEP,
+          );
+        }, RENDER_BENCH_SWEEP_INTERVAL_MS);
+      }
+      benchTimersRef.current.stop = window.setTimeout(() => {
+        window.clearInterval(benchTimersRef.current.sweep);
+        const stopScene = sceneRef.current;
+        if (!stopScene) {
+          setRenderBenchStatus("scene remounted mid-capture; rerun");
+          return;
+        }
+        const report = stopScene.stopRenderCapture();
+        if (sweep) {
+          // A pinned capture keeps the camera the user framed; only the sweep
+          // needs to restore the view it disturbed.
+          stopScene.fitToContent();
+        }
+        // eslint-disable-next-line no-console -- dev harness affordance (console-copyable)
+        console.log(
+          `render-bench report (${sweep ? "sweep" : "pinned"}, ${hiddenLabel}):`,
+          JSON.stringify(report, null, 2),
+        );
+        const gpuSummary = report.gpu.available
+          ? `gpu p95 ${report.gpu.p95Ms.toFixed(1)}ms max ${report.gpu.maxMs.toFixed(0)}ms (${report.gpu.samples}x)`
+          : "gpu n/a";
+        setRenderBenchStatus(
+          `${hiddenLabel} | fps ${report.deck.fps.toFixed(0)} | frame p95 ${report.frames.p95Ms.toFixed(1)}ms, ` +
+            `${report.frames.hitchCount} hitch${report.frames.hitchCount === 1 ? "" : "es"} (max ${report.frames.maxMs.toFixed(0)}ms) | ` +
+            `${gpuSummary} | ` +
+            `attrs ${report.deck.updateAttributesTime.toFixed(1)}ms/s | ` +
+            `rebuild p95 ${report.rebuild.p95Ms.toFixed(2)}ms (${report.rebuild.count}x) | ` +
+            `zoom ${report.camera.initialZoom.toFixed(1)} [${report.camera.minZoom.toFixed(1)}..${report.camera.maxZoom.toFixed(1)}]`,
+        );
+      }, RENDER_BENCH_DURATION_MS);
+    };
+    if (sweep) {
+      // Every sweep starts from fit-to-content (after its 240 ms transition
+      // settles), so the zoom envelope is deterministic and bisection runs
+      // (hide one kind, re-run) compare like with like. Without this the
+      // sweep starts wherever the previous run left the camera, and the
+      // envelope drift dominates the layer deltas. A pinned capture keeps
+      // the camera exactly as the user framed it.
+      scene.fitToContent();
+      benchTimersRef.current.fit = window.setTimeout(
+        beginCapture,
+        RENDER_BENCH_FIT_SETTLE_MS,
       );
-    }, RENDER_BENCH_DURATION_MS);
+    } else {
+      beginCapture();
+    }
   }, []);
+  const handleRunRenderBench = useCallback(
+    () => runRenderBench(true),
+    [runRenderBench],
+  );
+  // Pinned variant: no scripted camera. Zoom/frame the worst case first, then
+  // capture -- isolates fill-rate cost at that exact viewport from the
+  // rebuild/LOD churn a sweep adds (see PERFORMANCE.md section 7.1).
+  const handleRunRenderBenchPinned = useCallback(
+    () => runRenderBench(false),
+    [runRenderBench],
+  );
 
   // Frontier expand fetches against the live API; with synthetic ids that fetch no-ops (the dev
   // entities do not exist server-side), so clicking a frontier node simply logs and does nothing
@@ -323,6 +404,9 @@ export const DevHarness = () => {
         onRegenerate={handleRegenerate}
         onCaptureFixture={handleCaptureFixture}
         onRunRenderBench={handleRunRenderBench}
+        onRunRenderBenchPinned={handleRunRenderBenchPinned}
+        hiddenLayerKinds={hiddenLayerKinds}
+        onToggleLayerKind={handleToggleLayerKind}
         renderBenchStatus={renderBenchStatus}
         streamedCount={visibleEntities.length}
         totalCount={fixture.entities.length}

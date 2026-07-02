@@ -8,10 +8,11 @@ import {
   getDisplayFieldsForClosedEntityType,
 } from "@local/hash-graph-sdk/entity";
 
+import type { Position } from "../geometry";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { ClosedMultiEntityTypesRootMap } from "@local/hash-graph-sdk/ontology";
 
-interface HighwaySummaryCardProps {
+interface HighwaySummaryCardProps extends Position {
   /** The lane's single link type (a lane is single-type); null for a multi-type rollup. */
   readonly typeId: VersionedUrl | null;
   /** Fallback display label, used for a rollup (no single type to resolve from the schema). */
@@ -24,9 +25,6 @@ interface HighwaySummaryCardProps {
   readonly closedMultiEntityTypesRootMap:
     | ClosedMultiEntityTypesRootMap
     | undefined;
-  /** Cursor position in the container's local pixels. */
-  readonly x: number;
-  readonly y: number;
 }
 
 const rise = keyframes`

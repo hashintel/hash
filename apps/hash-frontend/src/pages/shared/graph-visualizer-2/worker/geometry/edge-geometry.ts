@@ -76,9 +76,7 @@ const EDGE_LABEL_VERTICAL_PADDING_EM = 0.46;
  * outer wall); `< 0` erases outside (a feeder ending on its container's inner
  * wall); `0` (or omitted) means no clip on that end.
  */
-export interface ClipCircle {
-  readonly x: number;
-  readonly y: number;
+export interface ClipCircle extends Position {
   readonly signedRadius: number;
 }
 
@@ -1187,10 +1185,7 @@ const ROUTE_MAX_PASSES = 8;
 const ROUTE_CONTAIN_TOLERANCE = 1.02;
 
 /** Is `pt` inside (or essentially on the edge of) the obstacle circle? */
-function containsPoint(
-  circle: Circle,
-  pt: { readonly x: number; readonly y: number },
-): boolean {
+function containsPoint(circle: Circle, pt: Position): boolean {
   return (
     Math.hypot(circle.x - pt.x, circle.y - pt.y) <=
     circle.radius * ROUTE_CONTAIN_TOLERANCE

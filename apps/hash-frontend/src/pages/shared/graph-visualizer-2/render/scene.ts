@@ -25,8 +25,10 @@ import { IconAtlas } from "./gpu/icon-atlas";
 import { clusterLabelLayer, edgeLabelLayer } from "./labels";
 import { SceneCamera } from "./scene/camera";
 import { EntityIcons } from "./scene/entity-icons";
+import { GpuFrameTimer } from "./scene/gpu-frame-timer";
 import { HubLabels } from "./scene/hub-labels";
 import { SceneInteractions } from "./scene/interactions";
+import { layerKindOf } from "./scene/layer-kinds";
 import { RenderMetricsProbe } from "./scene/render-metrics";
 import { ICON_ZOOM_BUCKETS_PER_UNIT } from "./scene/view-state";
 import { selectionOverlayLayers } from "./selection";
@@ -36,6 +38,7 @@ import type { PositionsFrame, StructureFrame } from "../frames";
 import type { PlacedCluster } from "./clusters";
 import type { SceneCallbacks } from "./scene/callbacks";
 import type { ZoomBucketChanges } from "./scene/camera";
+import type { LayerKind } from "./scene/layer-kinds";
 import type { RenderCaptureReport } from "./scene/render-metrics";
 import type { WorkerEvent, WorkerHandle } from "./worker-connection";
 import type { Layer } from "@deck.gl/core";
@@ -102,6 +105,15 @@ export class Scene {
   readonly #entityIcons: EntityIcons;
   /** Render-cost capture (dev harness benchmark); idle unless a capture is running. */
   readonly #renderMetrics = new RenderMetricsProbe();
+  /** Per-frame GPU draw time for the capture (idle outside one). */
+  readonly #gpuTimer = new GpuFrameTimer(
+    (submittedAtMs, durationMs) =>
+      this.#renderMetrics.recordGpuFrame(submittedAtMs, durationMs),
+    () => this.#renderMetrics.recordGpuDisjoint(),
+  );
+
+  /** Layer kinds hidden via {@link setHiddenLayerKinds} (GPU-cost bisection). */
+  #hiddenLayerKinds: ReadonlySet<LayerKind> = new Set();
   /** True while inside a timed rebuild, so nested rebuild paths count once. */
   #rebuildTimingActive = false;
 
@@ -164,6 +176,24 @@ export class Scene {
       _onMetrics: (metrics) => {
         this.#renderMetrics.sampleDeckMetrics(metrics);
       },
+      // GPU frame timing (capture-gated): bracket each redraw with a timer
+      // query; results arrive frames later via the timer's poll.
+      onBeforeRender: ({ gl }) => {
+        if (this.#renderMetrics.capturing) {
+          this.#gpuTimer.frameBegin(gl);
+          this.#renderMetrics.noteGpuAvailability(
+            this.#gpuTimer.available === true,
+          );
+        }
+      },
+      onAfterRender: () => {
+        this.#gpuTimer.frameEnd();
+      },
+      // Dev-harness bisection: drop whole layer kinds from every pass so a
+      // pinned-camera bench can attribute GPU fill cost layer by layer.
+      layerFilter: ({ layer }) =>
+        this.#hiddenLayerKinds.size === 0 ||
+        !this.#hiddenLayerKinds.has(layerKindOf(layer.id)),
       getCursor: ({ isDragging, isHovering }) => {
         if (isDragging) {
           return "grabbing";
@@ -207,7 +237,21 @@ export class Scene {
 
   /** End the capture started by {@link startRenderCapture} and summarise it. */
   stopRenderCapture(): RenderCaptureReport {
+    // Scoop whatever GPU queries have completed by now; the last frame or
+    // two may still be in flight and are deliberately dropped.
+    this.#gpuTimer.poll();
     return this.#renderMetrics.stop(this.#camera.zoom);
+  }
+
+  /**
+   * Hide whole layer kinds from every render/picking pass (dev harness
+   * GPU-cost bisection; see PERFORMANCE.md section 7.1).
+   */
+  setHiddenLayerKinds(kinds: readonly LayerKind[]): void {
+    this.#hiddenLayerKinds = new Set(kinds);
+    // The filter closure is stable; re-pushing the layers forces the redraw
+    // that re-evaluates it.
+    this.#pushLayers();
   }
 
   get renderCapturing(): boolean {

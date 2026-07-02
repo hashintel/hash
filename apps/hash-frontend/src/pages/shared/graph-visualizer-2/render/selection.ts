@@ -14,6 +14,7 @@ import {
 } from "../worker/buffers/position-buffer";
 
 import type { PositionsFrame, StructureFrame } from "../frames";
+import type { Position } from "../geometry";
 import type { ClusterId } from "../ids";
 import type { ClusterReference } from "./worker-connection";
 import type { EntityId } from "@blockprotocol/type-system";
@@ -33,9 +34,7 @@ export interface Selection {
 }
 
 /** World position + radius of a node, read live from its SAB / structure. */
-export interface SelectionGeometry {
-  readonly x: number;
-  readonly y: number;
+export interface SelectionGeometry extends Position {
   readonly radius: number;
 }
 

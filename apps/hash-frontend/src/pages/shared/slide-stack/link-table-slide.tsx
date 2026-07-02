@@ -5,13 +5,13 @@
  * It is given only the link entity ids and, like the entity slide, fetches its own
  * data: a subgraph containing each link entity plus its source and target endpoints.
  * It then feeds that into the same {@link EntitiesTable} used by the entities
- * visualizer (via {@link useEntitiesTableData}), so the table looks and behaves
- * exactly like the entities table users already know -- including the Source and
- * Target columns that link entities populate.
+ * visualizer, so the table looks and behaves exactly like the entities table users
+ * already know -- including the Source and Target columns that link entities
+ * populate.
  */
 import { useQuery } from "@apollo/client";
 import { Box, Container, Stack, Typography, useTheme } from "@mui/material";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 import { getRoots } from "@blockprotocol/graph/stdlib";
 import {
@@ -26,7 +26,7 @@ import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/gra
 import { queryEntitySubgraphQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
 
 import { EntitiesTable } from "../entities-visualizer/entities-table";
-import { useEntitiesTableData } from "../entities-visualizer/use-entities-table-data";
+import { generateTableDataFromRows } from "../entities-visualizer/shared/generate-table-data-from-rows";
 import { inSlideContainerStyles } from "../shared/slide-styles";
 import { useSlideStack } from "../slide-stack";
 
@@ -40,7 +40,6 @@ import type {
   SortableEntitiesTableColumnKey,
 } from "../entities-visualizer/entities-table-data";
 import type { Filter } from "@local/hash-graph-client";
-import type { ClosedMultiEntityTypesRootMap } from "@local/hash-graph-sdk/ontology";
 
 const buildLinkEntityFilter = (linkEntityIds: EntityId[]): Filter => {
   if (linkEntityIds.length === 0) {
@@ -113,45 +112,25 @@ export const LinkTableSlide = ({
     variables,
   });
 
-  const { tableData, updateTableData } = useEntitiesTableData({});
+  // The roots are exactly the requested link entities (the filter matches them);
+  // their source/target endpoints come in as non-root vertices via the traversal
+  // paths, so they resolve the Source/Target columns without becoming rows.
+  const tableData = useMemo(() => {
+    const response = data?.queryEntitySubgraph;
 
-  const deserialized = useMemo(() => {
-    if (!data?.queryEntitySubgraph) {
-      return undefined;
+    if (!response?.definitions) {
+      return null;
     }
 
-    const response = deserializeQueryEntitySubgraphResponse(
-      data.queryEntitySubgraph,
-    );
+    const { subgraph } = deserializeQueryEntitySubgraphResponse(response);
 
-    return {
-      subgraph: response.subgraph,
-      closedMultiEntityTypesRootMap: response.closedMultiEntityTypes as
-        | ClosedMultiEntityTypesRootMap
-        | undefined,
+    return generateTableDataFromRows({
+      closedMultiEntityTypesRootMap: response.closedMultiEntityTypes ?? {},
       definitions: response.definitions,
-    };
-  }, [data?.queryEntitySubgraph]);
-
-  const subgraph = deserialized?.subgraph;
-
-  useEffect(() => {
-    if (!deserialized) {
-      return;
-    }
-
-    // The roots are exactly the requested link entities (the filter matches them);
-    // their source/target endpoints come in as non-root vertices via the traversal
-    // paths, so they resolve the Source/Target columns without becoming rows.
-    updateTableData({
-      appendRows: false,
-      closedMultiEntityTypesRootMap:
-        deserialized.closedMultiEntityTypesRootMap ?? {},
-      definitions: deserialized.definitions,
-      entities: getRoots(deserialized.subgraph),
-      subgraph: deserialized.subgraph,
+      entities: getRoots(subgraph).map((entity) => entity.toJSON()),
+      subgraph: response.subgraph,
     });
-  }, [deserialized, updateTableData]);
+  }, [data?.queryEntitySubgraph]);
 
   const handleEntityClick = useCallback(
     (entityId: EntityId) => {
@@ -182,7 +161,6 @@ export const LinkTableSlide = ({
 
   const [selectedRows, setSelectedRows] = useState<EntitiesTableRow[]>([]);
 
-  const showLoading = loading && !tableData;
   const isEmpty = !loading && tableData !== null && tableData.rows.length === 0;
   const formattedLinkCount = linkEntityIds.length.toLocaleString();
 
@@ -260,7 +238,7 @@ export const LinkTableSlide = ({
             {error.message}
           </Typography>
         </Stack>
-      ) : showLoading || !subgraph ? (
+      ) : !tableData ? (
         <Stack
           sx={({ palette }) => ({
             alignItems: "center",
@@ -316,7 +294,7 @@ export const LinkTableSlide = ({
             sort={sort}
             setSort={setSort}
             tableData={tableData}
-            totalResultCount={tableData?.rows.length ?? null}
+            totalResultCount={tableData.rows.length}
           />
         </Box>
       )}

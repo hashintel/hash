@@ -7,6 +7,9 @@ import { Box, Slider, Stack, Switch, Typography } from "@mui/material";
 import { memo, useState } from "react";
 
 import { Button } from "../../../../shared/ui";
+import { TOGGLEABLE_LAYER_KINDS } from "../render/scene/layer-kinds";
+
+import type { LayerKind } from "../render/scene/layer-kinds";
 
 /** The full knob set the harness drives the generator with. */
 export interface HarnessKnobs {
@@ -40,6 +43,15 @@ interface ControlsPanelProps {
    * fixed window under a scripted zoom sweep (report JSON in the console).
    */
   readonly onRunRenderBench?: () => void;
+  /**
+   * As above but without the scripted camera: benches the CURRENT viewport
+   * as framed by the user, isolating fill-rate cost at one zoom.
+   */
+  readonly onRunRenderBenchPinned?: () => void;
+  /** Layer kinds currently hidden from every render pass (GPU-cost bisection). */
+  readonly hiddenLayerKinds?: readonly LayerKind[];
+  /** Toggle one layer kind's visibility. */
+  readonly onToggleLayerKind?: (kind: LayerKind) => void;
   /** Summary line of the last render bench (or its in-progress notice). */
   readonly renderBenchStatus?: string;
   /** Entities handed to the visualizer so far, shown against the total while streaming. */
@@ -89,6 +101,9 @@ export const ControlsPanel = memo(
     onRegenerate,
     onCaptureFixture,
     onRunRenderBench,
+    onRunRenderBenchPinned,
+    hiddenLayerKinds,
+    onToggleLayerKind,
     renderBenchStatus,
     streamedCount,
     totalCount,
@@ -269,6 +284,37 @@ export const ControlsPanel = memo(
               <Button variant="tertiary" size="xs" onClick={onRunRenderBench}>
                 Render bench (10s zoom sweep)
               </Button>
+            ) : null}
+            {onRunRenderBenchPinned ? (
+              <Button
+                variant="tertiary"
+                size="xs"
+                onClick={onRunRenderBenchPinned}
+              >
+                Render bench (10s, current camera)
+              </Button>
+            ) : null}
+            {onToggleLayerKind ? (
+              <Box>
+                <Typography sx={{ fontSize: 11, color: "gray.60", mb: 0.5 }}>
+                  Hide layers (GPU-cost bisection)
+                </Typography>
+                <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
+                  {TOGGLEABLE_LAYER_KINDS.map((kind) => {
+                    const hidden = hiddenLayerKinds?.includes(kind) ?? false;
+                    return (
+                      <Button
+                        key={kind}
+                        variant={hidden ? "primary" : "tertiary"}
+                        size="xs"
+                        onClick={() => onToggleLayerKind(kind)}
+                      >
+                        {kind}
+                      </Button>
+                    );
+                  })}
+                </Stack>
+              </Box>
             ) : null}
             {renderBenchStatus ? (
               <Typography sx={{ fontSize: 11, color: "gray.60" }}>

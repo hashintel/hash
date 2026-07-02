@@ -1,3 +1,4 @@
+import type { Position } from "./geometry";
 import type { ClusterId, VizMode } from "./ids";
 /**
  * Types the rendering layer owns: the payloads the worker sends to the main
@@ -224,9 +225,7 @@ export const BEZIER_NO_LINK = 0xffffffff;
  * Position moves with the layout, so it rides the positions frame. The main
  * thread culls these by on-screen chord length to avoid clutter.
  */
-export interface RenderEdgeLabel {
-  readonly x: number;
-  readonly y: number;
+export interface RenderEdgeLabel extends Position {
   readonly text: string;
   /** Degrees (kept upright): rotates the label to ride along its lane. */
   readonly angle: number;
@@ -242,10 +241,9 @@ export interface RenderEdgeLabel {
  * A directional arrowhead riding a rendered aggregate highway lane. The worker emits this beside
  * the Bezier geometry so the main thread does not need to scan edge topology or re-solve routes.
  */
-export interface RenderEdgeArrow {
+export interface RenderEdgeArrow extends Position {
   readonly kind: "lane" | "endpoint";
-  readonly x: number;
-  readonly y: number;
+
   /** World-space angle in radians, pointing in the link flow direction. */
   readonly angle: number;
   /** World/common size, derived from the lane width. */

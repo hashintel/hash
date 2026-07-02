@@ -77,7 +77,10 @@ geometry/ core/`; `index.ts` -> `core/graph-worker.ts`. `entry.ts`, `protocol.ts
 ### Candidate follow-ups (files still > 500 lines)
 
 - `render/worker-connection.ts` (683) -- frame decode vs connection lifecycle.
-- `entity-graph-visualizer.tsx` (861) -- React shell; hooks could split out.
+- ~~`entity-graph-visualizer.tsx` (861) -- React shell; hooks could split out.~~
+  DONE: split into `components/` modules (ingest-mapping, use-entity-ingest,
+  frontier-expansion-store + use-frontier-expansion, use-entity-display,
+  scene-overlay-store + scene-overlays); the shell is ~300 lines.
 - `worker/geometry/edge-geometry.ts` (1549), `worker/geometry/edge-aggregation.ts`
   (965), `worker/hierarchy/cluster-tree.ts` (1217),
   `worker/hierarchy/distinctive-cluster-label.ts` (587) -- the Phase B splits

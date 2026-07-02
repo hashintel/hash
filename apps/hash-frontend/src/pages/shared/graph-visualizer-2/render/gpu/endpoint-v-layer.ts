@@ -10,11 +10,10 @@ import { Layer, project32 } from "@deck.gl/core";
 import { Geometry, Model } from "@luma.gl/engine";
 
 import type { Color } from "../../frames";
+import type { Position } from "../../geometry";
 import type { LayerProps, UpdateParameters } from "@deck.gl/core";
 
-interface EndpointVDatum {
-  readonly x: number;
-  readonly y: number;
+interface EndpointVDatum extends Position {
   readonly angle: number;
   readonly size: number;
   readonly chord: number;

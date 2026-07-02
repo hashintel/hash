@@ -5,12 +5,12 @@ import { memo } from "react";
 import { Button } from "../../../../shared/ui/button";
 import { graphColors } from "../visual-style";
 
-interface FrontierClusterCardProps {
+import type { Position } from "../geometry";
+
+interface FrontierClusterCardProps extends Position {
   /** Number of unexpanded (frontier) entities the cluster holds. */
   readonly count: number;
-  /** Bubble centre in container pixels. */
-  readonly x: number;
-  readonly y: number;
+
   /** Bubble on-screen radius (px); the card sits just outside the right edge. */
   readonly radiusPx: number;
   /** A frontier fetch is already in flight, so the action is busy. */

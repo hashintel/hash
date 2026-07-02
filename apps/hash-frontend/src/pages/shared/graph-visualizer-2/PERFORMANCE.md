@@ -248,19 +248,22 @@ labels and the user scrubs zoom.
   }
 ```
 
-`onEntityLabels` is wired straight to a React `setState`
-(`entity-graph-visualizer.tsx:739`, `onEntityLabels={setEntityLabels}`).
+`onEntityLabels` feeds an overlay slice
+(`components/scene-overlay-store.ts`) that only the
+`EntityLabelsOverlay` leaf subscribes to, so the per‑frame update re‑renders that
+one leaf — not `EntityGraphVisualizerV2`'s subtree (cards, controls). The same
+holds for the per‑frame selection/highway/cluster card re‑positions (each is its
+own slice + leaf).
 
-**Why it hurts.** `setEntityLabels` runs every animation frame while a graph
-settles (and while panning/zooming when hubs are visible), re‑rendering the
-memoized `EntityGraphVisualizerV2` and its subtree (`EntityLabelOverlay`, cards,
-controls). It's rAF‑coalesced and the hub set is capped at `HUB_LABEL_MAX_COUNT =
-12` (`scene.ts:94`), so it's bounded — but it is a React reconciliation per frame
-during the busiest window, and it churns even when no hub actually moved on screen
-(a settled graph that is still emitting frames for one relaxing leaf).
+**Why it (still) hurts.** The leaf re‑render runs every animation frame while a
+graph settles (and while panning/zooming when hubs are visible). It's
+rAF‑coalesced and the hub set is capped at `HUB_LABEL_MAX_COUNT = 12`
+(`scene.ts:94`), so it's bounded — but it churns even when no hub actually moved
+on screen (a settled graph that is still emitting frames for one relaxing leaf).
 
-**Impact.** Medium on the flat tiers when zoomed in enough for hub labels to show;
-zero in hierarchical‑lod (that tier emits no always‑on entity labels).
+**Impact.** Low‑to‑medium on the flat tiers when zoomed in enough for hub labels
+to show (was Medium before the overlay‑slice split scoped the re‑render); zero in
+hierarchical‑lod (that tier emits no always‑on entity labels).
 
 **Fix.** Diff before emitting: skip `onEntityLabels` when the projected label set
 is unchanged from the last emit (same ids + same rounded x/y). Since positions are
@@ -308,9 +311,12 @@ layout and calls the React `resolveEntityIcon` resolver **per dot**:
     };
 ```
 
-`resolveIcon` is `resolveEntityIcon` from the bridge, which per call does
+`resolveIcon` is `resolveEntityIcon` from the bridge, which does
 `getClosedMultiEntityTypeFromMap(...)` + `getDisplayFieldsForClosedEntityType(...)`
-(`entity-graph-visualizer.tsx:411‑429`) — a type‑hierarchy walk, **per dot**.
+(`components/use-entity-display.ts`) — a type‑hierarchy walk,
+memoized per distinct type SET (`iconByTypeKey`), so repeat dots of an
+already‑seen type set are a map hit; the per‑dot cost that remains is the
+`resolveEntityId` + cache‑key build.
 
 Crucially, structure frames are **not** rare while streaming: `entry.ts` commits
 on every ingest batch, and `#commitFlat` always emits a structure frame:
@@ -321,9 +327,10 @@ on every ingest batch, and `#commitFlat` always emits a structure frame:
       worker.commitStructure({ deltas });
 ```
 
-The bridge streams `entities` as a growing tail (`entity-graph-visualizer.tsx:445‑460`),
-so a large result set that arrives in K batches produces ~K structure frames, each
-triggering a full O(dots) icon re‑resolution over the whole current graph.
+The bridge streams `entities` as a growing tail
+(`components/use-entity-ingest.ts`), so a large result set that
+arrives in K batches produces ~K structure frames, each triggering a full O(dots)
+icon re‑resolution over the whole current graph.
 
 **Why it hurts.** Icon identity is a function of an entity's **type**, not the
 entity — but the scan resolves it once per **dot**. For N dots arriving over K
@@ -760,7 +767,11 @@ How to run:
    drives a scripted zoom oscillation for 10 s (crossing label/LOD buckets both
    ways, so layer rebuilds happen the way interactive use causes them), then
    prints the `RenderCaptureReport` JSON to the console and a summary line
-   (fps | attrs ms/s | rebuild p95) in the panel.
+   (fps | frame p95/hitches | attrs ms/s | rebuild p95) in the panel.
+   **"Render bench (10s, current camera)"** is the same capture without the
+   scripted camera: frame the viewport you care about (e.g. the deep zoom-in
+   where the sweep hitches), then bench exactly that — no bucket crossings, no
+   rebuild churn, so what remains is the per-frame cost of that one view.
 3. Programmatic access (e.g. Playwright): the scene surfaces
    `startRenderCapture()` / `stopRenderCapture()` — the harness reaches it via
    the `onSceneReady` prop on `EntityGraphVisualizerV2`.
@@ -778,6 +789,44 @@ Reading the report:
   pipeline flush) ride under it — those are exactly the felt hiccups, and
   they only show here. The probe runs its own rAF loop during the capture,
   so it observes main-thread cadence even on ticks where Deck skips drawing.
+  `frames.worst` lists the biggest hitches individually with
+  capture-relative timestamps (`atMs` = when the long frame ended).
+- `longTasks` — the browser's `longtask` performance entries (main-thread
+  tasks > 50 ms) over the capture, with the worst listed individually
+  (`atMs` = task start). **This is the attribution signal**: a hitch in
+  `frames.worst` whose window contains a long task is main-thread JS
+  (GC, Deck attribute regeneration, a slow pack — profile to split those);
+  a hitch with no long task under it points off-thread (GPU/compositor
+  back-pressure, which DevTools' performance panel shows as rendering
+  waits). **Check `available` before reading the counts**: the API is
+  Chromium-only (Firefox/Safari never shipped it), and on those browsers
+  a zero count means nothing.
+- `gpu` — per-frame GPU **draw** time from `EXT_disjoint_timer_query_webgl2`
+  (`render/scene/gpu-frame-timer.ts` brackets each Deck redraw; results
+  arrive frames later and are matched back to their SUBMIT time, so
+  `gpu.worst[].atMs` lines up with `frames.worst`). It measures the GPU-side
+  execution of that frame's draw commands, not compositing/present — but
+  that is the fork that matters: a 90 ms frame with ~80 ms GPU draw time is
+  fragment load (attack fill); a 90 ms frame with ~2 ms GPU draw time is
+  pipeline/present or scheduling. `available: false` means the extension is
+  missing — guaranteed on Firefox/Safari (disabled post-Spectre, never
+  re-enabled), and platform-dependent on Chrome — or that nothing drew;
+  the layer bisection below works everywhere and is the fallback
+  attribution path. `disjointCount` > 0 means the GPU had context churn
+  mid-capture and some samples were discarded (rerun if large).
+
+**Layer bisection (works on every platform).** The harness's "Hide layers
+(GPU-cost bisection)" buttons drop whole layer kinds (dots / bubbles /
+edges / icons / labels) from every render and picking pass via a Deck
+`layerFilter` (`Scene.setHiddenLayerKinds`, kind mapping in
+`render/scene/layer-kinds.ts`). To attribute a fill-rate stall: frame the
+worst viewport (e.g. the deep zoom-in the sweep hitches at), run
+**"Render bench (10s, current camera)"** for the baseline, then re-run
+with one kind hidden at a time. The kind whose hiding collapses
+`frames.p95Ms`/`hitchCount` owns the cost. For per-draw detail beyond
+that, use a Spector.js frame capture (§7) or DevTools' Performance panel
+GPU track, which shows GPU-process busy spans without any extension.
+
 - `rebuild.p95Ms` / `maxMs` — the main-thread cost per layer rebuild
   (construction + labels + push).
 - `deck.updateAttributesTime` (ms per sample-second) — Deck's deferred
@@ -840,6 +889,107 @@ budget, and the trade that bought back the GPU. `updateAttributesTime`
 after-run; the `frames` interval stats (added right after this capture —
 both runs above predate them) exist to pin those down, since a 10 s mean
 fps cannot.
+
+**First frames-instrumented run** (same fixture, post-R9, sweep envelope
+[-0.73, +0.32], 2026-07-02): p50 16.7 ms (vsync-locked steady state),
+p95 25.6 ms, p99 50.2 ms, max 141.7 ms, **15 hitches** in 10 s; rebuild
+p95 3.5 ms / max 7.9 ms; deck fps 54.1, `updateAttributesTime` 21.8 ms/s.
+Reading: the felt hiccups are real and now measured — a healthy median
+punctured ~1.5×/s by multi-frame stalls. The rebuild max (7.9 ms) cannot
+account for a 142 ms frame, so the stalls stack elsewhere on the frame:
+the prime suspects are Deck's per-rebuild layer diff + attribute
+regeneration (R1) and GC from per-rebuild garbage, with texture growth
+events as occasional spikes. The run predates the `longTasks` section —
+the next capture attributes each hitch via `frames.worst` × `longTasks.worst`
+overlap before any fix is chosen.
+
+**Sweep-phase run** (same fixture, envelope [-0.42, +0.65] — crests notably
+deeper IN than the run above, 2026-07-02, **Firefox**): 23 hitches,
+p95 33.3 ms, p99 50.0 ms, max 91.4 ms, `longTasks.count` = 0. That zero
+initially read as "no main-thread JS during any hitch" — **retracted**:
+the run was captured on Firefox, which has never shipped the Long Tasks
+API, so the zero was vacuous (the report now carries
+`longTasks.available` to make that distinction impossible to miss). What
+the run DOES establish is the phase correlation: the sweep's zoom (the
+integral of the harness's sine rate) crests at t ≈ 2.2 s and ≈ 6.6 s, and
+every entry in `frames.worst` sits in those two deep-zoom windows (1550,
+2426, 2675 ms around the first crest; 6667, 6750 ms on the second) with
+none near the zoom-out trough at ≈ 4.4 s. The intervals also quantize to
+the display's 8.33 ms frame (50/58/75/91 ≈ 6/7/9/11 × 8.33). Both point
+at zoomed-IN fill (GPU back-pressure) as the leading hypothesis, but the
+JS-vs-GPU split is UNCONFIRMED until a Chromium re-run (long tasks +
+possibly timer queries) or a layer-bisected pinned capture says so.
+Either way R1 stays a throughput item (`updateAttributesTime` ≈ 22 ms/s),
+not the proven hitch cause.
+
+**Browser support for the attribution sections** (why the doc says
+"capture on Chromium when attributing"):
+
+| section                     | Chromium                        | Firefox                    | Safari |
+| --------------------------- | ------------------------------- | -------------------------- | ------ |
+| `frames` (rAF cadence)      | ✅                              | ✅                         | ✅     |
+| `longTasks`                 | ✅                              | ❌ (never shipped)         | ❌     |
+| `gpu` (WebGL timer queries) | ✅ desktop (platform-dependent) | ❌ (disabled post-Spectre) | ❌     |
+| layer bisection (harness)   | ✅                              | ✅                         | ✅     |
+
+Firefox's own profiler (profiler.firefox.com) remains useful there — its
+compositor/renderer tracks show WebRender frame cost — but the in-report
+attribution needs Chromium or the bisection buttons.
+
+**Chromium cross-check** (same fixture, same machine, 2026-07-02, two
+sweeps: shallow envelope [-1.02, +0.03] and deep envelope [-0.20, +0.84]):
+**zero hitches in both** — 600 intervals pinned at mean 16.67 ms with max
+17.7 ms, i.e. a vsync-locked 60 Hz cadence — and both attribution channels
+finally answered: `longTasks.available: true` with a now-meaningful
+count 0, and `gpu.available: true` with ~595 samples and no disjoints.
+The GPU numbers scale exactly as the fill story predicts: mean 5.3 ms /
+p95 6.6 ms / max 14.4 ms on the shallow envelope vs mean 9.0 ms /
+p95 10.6 ms / max 20.4 ms on the deep one — zoom-in ≈ doubles GPU frame
+cost. An early read blamed a 120 Hz presentation deadline on the Firefox
+side; the bisection round below disproved that — Firefox's rAF cadence
+here is ALSO ~60 Hz (p50 16.66 ms in every run), so both browsers work
+against the same 16.7 ms budget. The honest conclusion: the same
+workload that costs ~5–20 ms GPU-side in Chrome (ANGLE over Metal)
+stalls Firefox's WebGL path (GL over Metal) past its budget, with the
+misses landing on the display's 8.33 ms vsync grid (120 Hz panel). The
+hitching is a Firefox-pipeline-cost problem, not a deadline problem —
+so the fix target is reducing what Firefox finds expensive, and the
+in-Firefox bisection (frames stats work everywhere) is the instrument.
+One instrumentation wart from these runs, since fixed: the first
+capture's `gpu.worst` listed a sample at `atMs` ≈ -14116 — a query left
+in flight by an earlier session, delivered on this capture's first
+poll; `recordGpuFrame` now drops submissions that predate the capture.
+
+**Layer bisection, round 1** (Firefox, sweep bench, one kind hidden per
+run, 2026-07-02). Caveat that motivated a harness fix: each sweep
+started from wherever the previous run left the camera, so the five
+runs probed five different zoom envelopes and are NOT directly
+comparable (deeper envelope = more fill = more hitches on its own).
+The sweep bench now calls `fitToContent()` and waits out the transition
+before every capture, making envelopes deterministic; reports are also
+labelled with the hidden kinds. What survives the confound:
+
+| hidden  | envelope       | hitches | frame p95   | frame max |
+| ------- | -------------- | ------- | ----------- | --------- |
+| bubbles | [-0.87, +0.18] | 17      | 33.1 ms     | 66.5 ms   |
+| icons   | [-0.63, +0.41] | 17      | 33.3 ms     | 133.6 ms  |
+| labels  | [-0.40, +0.65] | **10**  | **25.1 ms** | 75 ms     |
+| edges   | [-0.36, +0.70] | 30      | 41.3 ms     | 141.7 ms  |
+| dots    | [-0.14, +0.91] | 22      | 33.3 ms     | 75 ms     |
+
+The one clean comparison is labels: its envelope [-0.40, +0.65] matches
+the all-layers baseline [-0.42, +0.65] (23 hitches, p95 33.3 ms) almost
+exactly, and hiding labels halved the hitch count and pulled p95 back
+to near-vsync. Edges at a similar envelope ([-0.36, +0.70], 30 hitches)
+did NOT help — edges are not the driver. Mechanism hypothesis for
+labels, to confirm on the deterministic sweep: Deck `TextLayer` with
+`characterSet: "auto"` (already flagged in R11) regenerates the font
+atlas and re-uploads the texture as zoom crosses label buckets, and
+texture uploads are exactly the kind of pipeline stall Firefox's GL
+path absorbs poorly — alongside the SDF glyph fill itself. Next
+protocol: deterministic sweep in Firefox, all-layers ×2 vs labels-hidden
+×2; if labels confirm, split fill from atlas churn (pin a fixed
+`characterSet` first — cheap — before touching glyph fill).
 
 R1 acceptance: under-load fps back above ~60 and `updateAttributesTime` at or
 below the settled figure, with the settled numbers not regressing. R5/R9

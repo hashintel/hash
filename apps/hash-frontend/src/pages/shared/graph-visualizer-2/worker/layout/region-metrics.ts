@@ -28,6 +28,8 @@
  * Hulls complement the disk metric rather than replace it.
  */
 
+import type { Position } from "../../geometry";
+
 /**
  * Communities below this member count cast no region (no visually meaningful
  * bubble). Shared by the metrics and the majorization engine's region floors so
@@ -41,10 +43,7 @@ export const REGION_MIN_COMMUNITY_SIZE = 8;
  */
 export const REGION_PACKING_UTILISATION = 0.55;
 
-interface Point {
-  readonly x: number;
-  readonly y: number;
-}
+type Point = Position;
 
 /** Andrew monotone-chain convex hull; returns CCW vertices (no repeated endpoint). */
 export function convexHull(points: readonly Point[]): Point[] {
@@ -158,9 +157,7 @@ function clipConvex(
   return output;
 }
 
-export interface RegionNode {
-  readonly x: number;
-  readonly y: number;
+export interface RegionNode extends Position {
   /** Drawn disk radius (feeds the community packing radius). */
   readonly radius: number;
   /** Community label; nodes sharing a label form one region. Negative = unassigned. */

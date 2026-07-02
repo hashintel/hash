@@ -11,6 +11,7 @@ import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entit
 
 import { Button } from "../../../../shared/ui/button";
 
+import type { Position } from "../geometry";
 import type {
   BaseUrl,
   ClosedMultiEntityType,
@@ -24,7 +25,7 @@ import type {
 /** How many salient properties the card shows before it gets noisy. */
 const MAX_PROPERTIES = 4;
 
-interface EntityHoverCardProps {
+interface EntityHoverCardProps extends Position {
   readonly entity: HashEntity;
   readonly closedMultiEntityTypesRootMap:
     | ClosedMultiEntityTypesRootMap
@@ -32,9 +33,6 @@ interface EntityHoverCardProps {
   readonly definitions: ClosedMultiEntityTypesDefinitions | undefined;
   /** Incident-link count (needs the full entity set, so the bridge resolves it). */
   readonly degree: number;
-  /** Cursor / node position in the container's local pixels. */
-  readonly x: number;
-  readonly y: number;
   /**
    * When set, the card is "pinned" (a selection, not a hover): it renders an Open action
    * that calls this. The card body stays click-through; only this button is interactive.

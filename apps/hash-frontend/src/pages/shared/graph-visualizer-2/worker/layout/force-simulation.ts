@@ -1,5 +1,6 @@
 import { EntityPositionBuffer } from "../buffers/position-buffer";
 
+import type { Position } from "../../geometry";
 /**
  * Shared mechanics for a SharedArrayBuffer-backed d3-force simulation:
  * position storage, time-budgeted ticking, settle detection, and circular
@@ -35,11 +36,10 @@ export type ForceLayoutStatus = "running" | "paused" | "settled";
  * connect through it are linked to it, so the layout sorts them toward their
  * real external connections (WebCola constraint, only the cluster layout
  * supports it).
+ *
+ * Position relative to the parent layout's local frame.
  */
-export interface PortAnchor {
-  /** Anchor position in the layout's local frame (on the parent rim). */
-  readonly x: number;
-  readonly y: number;
+export interface PortAnchor extends Position {
   /**
    * Children linked to this port: index into the layout's nodes + the pull
    * weight (proportional to the edge count to this port, so heavily-connected
@@ -94,9 +94,7 @@ export interface LayoutSimulation {
   /** Re-run with fixed external-port anchors (cluster layout only). */
   setPortAnchors?(anchors: readonly PortAnchor[]): void;
   /** Move existing port anchors in place (no re-run); children track them. */
-  updateAnchorPositions?(
-    positions: readonly { readonly x: number; readonly y: number }[],
-  ): void;
+  updateAnchorPositions?(positions: readonly Position[]): void;
 }
 
 /**

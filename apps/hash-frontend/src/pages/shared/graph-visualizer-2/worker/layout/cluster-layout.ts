@@ -30,6 +30,7 @@ import { Layout } from "webcola";
 
 import { PositionBuffer } from "../buffers/position-buffer";
 
+import type { Position } from "../../geometry";
 import type {
   ForceEdge,
   ForceLayoutStatus,
@@ -271,9 +272,7 @@ class ClusterLayout implements LayoutSimulation {
    * that has already settled won't move, which is acceptable: the macro and its
    * sub-clusters co-settle, which is when tracking matters.)
    */
-  updateAnchorPositions(
-    positions: readonly { readonly x: number; readonly y: number }[],
-  ): void {
+  updateAnchorPositions(positions: readonly Position[]): void {
     const childCount = this.#childColaNodes.length;
     for (let idx = 0; idx < positions.length; idx++) {
       const anchor = this.#colaNodes[childCount + idx] as

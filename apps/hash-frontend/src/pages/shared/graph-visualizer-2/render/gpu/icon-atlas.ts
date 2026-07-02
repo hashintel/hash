@@ -13,12 +13,12 @@
  * the GPU texture lifecycle: {@link getTexture} lazily rebuilds from the canvas
  * when the version or device changes.
  */
+
+import type { Position } from "../../geometry";
 import type { Device, Texture } from "@luma.gl/core";
 
 /** A rasterised icon's cell rectangle within the atlas canvas, in device pixels. */
-export interface AtlasCell {
-  readonly x: number;
-  readonly y: number;
+export interface AtlasCell extends Position {
   readonly width: number;
   readonly height: number;
 }

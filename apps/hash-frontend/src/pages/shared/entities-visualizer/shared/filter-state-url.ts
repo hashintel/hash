@@ -76,11 +76,12 @@ const getMultiValue = (value: string | string[] | undefined): string[] => {
 };
 
 /**
- * Derives a display title from a property type's base URL slug, used as a
- * fallback for filters restored from the URL (which omit the title to stay
- * compact). e.g. `…/property-type/unit-of-measure/` -> "Unit Of Measure".
+ * Derives a display title from a type's base URL slug, used as a fallback
+ * where the actual title isn't (yet) available -- e.g. for filters restored
+ * from the URL, which omit the title to stay compact.
+ * e.g. `…/property-type/unit-of-measure/` -> "Unit Of Measure".
  */
-const titleFromBaseUrl = (baseUrl: string): string => {
+export const titleFromBaseUrl = (baseUrl: string): string => {
   const segments = baseUrl.split("/").filter((segment) => segment.length > 0);
   const slug = segments[segments.length - 1] ?? baseUrl;
   return slug

@@ -16,6 +16,7 @@ import {
   planBubbleCorridors,
 } from "./bubble-corridors";
 
+import type { Position } from "../geometry";
 import type { CorridorPlan } from "./bubble-corridors";
 
 /** Matches the shader defaults in render/community.ts. */
@@ -26,9 +27,7 @@ const ISO_THRESHOLD = 0.58;
 const HEADER_FLOATS = 2;
 const RECORD_FLOATS = 5;
 
-interface WorldNode {
-  readonly x: number;
-  readonly y: number;
+interface WorldNode extends Position {
   readonly radius?: number;
   /** −1 = no community. */
   readonly community: number;

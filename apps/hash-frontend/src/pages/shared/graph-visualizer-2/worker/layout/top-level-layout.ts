@@ -34,7 +34,10 @@
  * are still placed freely, and the layout keeps self-healing crossings. It just
  * does so by small, legible adjustments instead of wholesale reshuffles.
  */
+
 import { mulberry32 } from "../../math/random";
+
+import type { Position } from "../../geometry";
 
 /** A node being laid out; `x`/`y` are mutated in place. */
 export interface LayoutNode {
@@ -44,9 +47,7 @@ export interface LayoutNode {
 }
 
 /** A node's previous position, used to anchor it during an incremental refine. */
-export interface Anchor {
-  readonly x: number;
-  readonly y: number;
+export interface Anchor extends Position {
   /**
    * Per-node multiplier on the inertia weight, in [0, 1]: 1 pins the node to its
    * previous position, 0 lets it move freely (defaults to 1). The caller sets it
@@ -476,7 +477,10 @@ export function optimizeTopLevel(
   // uniform translation we must not fight. The alignment is weighted, pinning
   // the frame to the heavily-anchored (central) nodes, so they keep their
   // on-screen position while low-weight nodes drift.
-  const anchors: (Anchor | null)[] = new Array<Anchor | null>(count).fill(null);
+  const anchors = Array.from<Anchor | null>({
+    length: count,
+  }).fill(null);
+
   if (anchored) {
     let anchorMeanX = 0;
     let anchorMeanY = 0;
