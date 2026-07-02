@@ -90,7 +90,8 @@ export const TextArea = ({
     // manual resizing conflicts with content-driven sizing, so disable it
     resize: autoResize ? "none" : resize,
     autoResize,
-    includeCharCountHeight,
+    includeCharCountHeight:
+      includeCharCountHeight && characterLimit !== undefined,
   });
 
   if (readonly) {
@@ -148,7 +149,7 @@ export const TextArea = ({
       {variant === "subtle" && (
         <div className={classes.subtleOverlay} aria-hidden="true" />
       )}
-      {characterLimit != null && (
+      {characterLimit !== undefined && (
         <CharacterCount
           className={classes.charCount}
           charactersUsed={(value ?? "").length}

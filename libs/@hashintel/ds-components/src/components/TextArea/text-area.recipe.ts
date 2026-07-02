@@ -1,6 +1,7 @@
 import { sva } from "@hashintel/ds-helpers/css";
 
 import { formSizes } from "../../util/form-size.recipe";
+import { formWidths } from "../../util/form-width.recipe";
 
 export const textAreaRecipe = sva({
   slots: [
@@ -13,6 +14,8 @@ export const textAreaRecipe = sva({
   ],
   base: {
     wrapper: {
+      // defines --form-min-width, referenced by `root`'s minWidth below
+      ...formWidths.base,
       width: "[100%]",
       position: "relative",
       isolation: "isolate",
@@ -24,6 +27,7 @@ export const textAreaRecipe = sva({
     root: {
       width: "[100%]",
       maxWidth: "[100%]",
+      minWidth: "var(--form-min-width)",
       position: "relative",
       anchorName: "[--textarea-root]",
       overflow: "hidden",
@@ -38,7 +42,7 @@ export const textAreaRecipe = sva({
       top: "[calc(anchor(--textarea-root top) - 1px)]",
       left: "[calc(anchor(--textarea-root left) - var(--base-input-padding-x))]",
       width:
-        "[calc(anchor-size(--textarea-root width) + var(--base-input-padding-x))]",
+        "[calc(anchor-size(--textarea-root width) + var(--base-input-padding-x) + 1px)]",
       height: "[calc(anchor-size(--textarea-root height) + 2px)]",
       zIndex: "[-1]",
       borderRadius: "var(--base-input-border-radius)",
@@ -73,6 +77,13 @@ export const textAreaRecipe = sva({
       // preserve the author's line breaks when the value is shown as text
       whiteSpace: "pre-wrap",
       wordBreak: "break-word",
+    },
+    charCount: {
+      // match the (resized) width of the box so the right-aligned counter stays
+      // flush with the field's right edge. anchor-size() is Chromium-only.
+      width: "[anchor-size(--textarea-root width)]",
+      position: "absolute",
+      paddingTop: "1",
     },
   },
   variants: {
@@ -151,7 +162,7 @@ export const textAreaRecipe = sva({
       lg: {
         wrapper: {
           ...formSizes.variants.sizes.lg,
-          "--base-input-border-radius": "radii.lg",
+          "--base-input-border-radius": "radii.xl",
           "--base-input-padding-x": "spacing.4",
         },
         readonly: { textStyle: formSizes.variants.sizes.lg.textStyle },
@@ -191,8 +202,8 @@ export const textAreaRecipe = sva({
       false: {},
     },
     includeCharCountHeight: {
-      true: { charCount: { marginTop: "1" } },
-      false: { charCount: { position: "relative", top: "1" } },
+      // a manual hack - could possibly fix this properly with some clever flex/grid positioning on the wrapper element
+      true: { wrapper: { paddingBottom: "[calc(var(--spacing-1) + 10px)]" } },
     },
   },
   compoundVariants: [
@@ -259,10 +270,6 @@ export const textAreaRecipe = sva({
         wrapper: {
           "--textarea-overlay-border-color": "var(--base-input-border-color)",
         },
-        subtleOverlay: {
-          width:
-            "[calc(anchor-size(--textarea-root width) + var(--base-input-padding-x) + 1px)]",
-        },
       },
     },
   ],
@@ -270,7 +277,7 @@ export const textAreaRecipe = sva({
     variant: "default",
     size: "md",
     align: "left",
-    resize: "vertical",
+    resize: "both",
     autoResize: false,
     includeCharCountHeight: false,
   },

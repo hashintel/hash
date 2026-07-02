@@ -30,7 +30,15 @@ const labelClass = css({
   color: "neutral.s80",
 });
 
+// subtle grey backdrop (matches the TextInput stories) so the transparent
+// `subtle` variant is visible
+const backdrop = {
+  background: "neutral.s10",
+  padding: "[24px]",
+} as const;
+
 const gridClass = css({
+  ...backdrop,
   display: "grid",
   gridTemplateColumns: "[max-content minmax(0, 320px)]",
   alignItems: "start",
@@ -40,6 +48,7 @@ const gridClass = css({
 });
 
 const statesGridClass = css({
+  ...backdrop,
   display: "grid",
   gridTemplateColumns: "[max-content minmax(0, 260px) minmax(0, 260px)]",
   alignItems: "start",
@@ -49,6 +58,7 @@ const statesGridClass = css({
 });
 
 const sizesGridClass = css({
+  ...backdrop,
   display: "grid",
   gridTemplateColumns:
     "[max-content minmax(0, 220px) minmax(0, 220px) minmax(0, 220px)]",
@@ -144,18 +154,39 @@ export const Resize: Story = () => (
   </div>
 );
 
-export const WithCharacterCount: Story = () => {
-  const [value, setValue] = useState("A short bio.");
-  return (
-    <div className={css({ maxWidth: "[420px]" })}>
-      <TextArea
-        value={value}
-        onChange={(val) => setValue(val)}
-        characterLimit={80}
-        includeCharCountHeight
-        rows={3}
-        placeholder="Tell us about yourself…"
-      />
-    </div>
-  );
-};
+export const WithCharacterCount: Story = () => (
+  <div
+    className={css({
+      ...backdrop,
+      display: "flex",
+      flexDirection: "column",
+      gap: "[24px]",
+      maxWidth: "[420px]",
+    })}
+  >
+    {(["default", "subtle"] as const).flatMap((variant) =>
+      ([true, false] as const).map((includeCharCountHeight) => (
+        <div
+          key={`${variant}-${includeCharCountHeight}`}
+          className={css({
+            display: "flex",
+            flexDirection: "column",
+            gap: "[8px]",
+          })}
+        >
+          <span className={labelClass}>
+            {variant} — includeCharCountHeight: {String(includeCharCountHeight)}
+          </span>
+          <Controlled
+            variant={variant}
+            includeCharCountHeight={includeCharCountHeight}
+            value="A short bio."
+            characterLimit={80}
+            rows={3}
+            placeholder="Tell us about yourself…"
+          />
+        </div>
+      )),
+    )}
+  </div>
+);
