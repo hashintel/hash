@@ -1,6 +1,8 @@
-import { css } from "@hashintel/ds-helpers/css";
+import { useState } from "react";
 
-import { f64BitPart, getFieldBits, getFieldHex } from "./physical-layout";
+import { css, cva } from "@hashintel/ds-helpers/css";
+
+import { f64BitPart } from "./physical-layout";
 
 import type { LayoutField, TokenLayout } from "./physical-layout";
 import type { TokenRecord } from "@hashintel/petrinaut-core";
@@ -23,6 +25,9 @@ const FIELD_HUES = [217, 27, 271, 162, 336, 195];
 const fieldColor = (fieldIndex: number, lightness: number): string =>
   `hsl(${FIELD_HUES[fieldIndex % FIELD_HUES.length]!} 75% ${lightness}%)`;
 
+const PADDING_BACKGROUND =
+  "repeating-linear-gradient(45deg, #f2f2f2, #f2f2f2 2px, #d8d8d8 2px, #d8d8d8 4px)";
+
 const bitLightness = (field: LayoutField, msbFirstIndex: number): number => {
   if (field.physical.kind !== "f64") {
     return 78;
@@ -37,28 +42,103 @@ const bitLightness = (field: LayoutField, msbFirstIndex: number): number => {
   }
 };
 
-// -- Styles ---------------------------------------------------------------
+// -- Group model ------------------------------------------------------------
+
+type BitCell = { value: number; lightness: number };
+
+type ByteRow = {
+  /** Absolute byte index within the token stride, e.g. `b12`. */
+  label: string;
+  bits: BitCell[];
+};
+
+type SlotGroup = {
+  key: string;
+  field: LayoutField | null; // null = padding
+  fieldIndex: number;
+  startByte: number;
+  rows: ByteRow[];
+};
+
+/**
+ * One group per field (and per padding range), each holding one row per byte
+ * (8 bits). `logical` order lists the most-significant byte first; `memory`
+ * order follows the buffer (little-endian: least-significant byte first).
+ */
+function buildSlotGroups(
+  layout: TokenLayout,
+  buffer: ArrayBuffer,
+  bitOrder: BitOrder,
+): SlotGroup[] {
+  const bytes = new Uint8Array(buffer);
+  const groups: SlotGroup[] = [];
+
+  for (const [fieldIndex, field] of layout.fields.entries()) {
+    const size = field.physical.byteSize;
+    const byteIndices = Array.from({ length: size }, (_, position) =>
+      bitOrder === "logical" ? size - 1 - position : position,
+    );
+    groups.push({
+      key: `field-${field.name}`,
+      field,
+      fieldIndex,
+      startByte: field.byteOffset,
+      rows: byteIndices.map((byteWithinField) => {
+        const byteIndex = field.byteOffset + byteWithinField;
+        const bits: BitCell[] = [];
+        for (let bit = 7; bit >= 0; bit--) {
+          // eslint-disable-next-line no-bitwise -- bit extraction is the point here
+          const value = ((bytes[byteIndex] ?? 0) >> bit) & 1;
+          const lsbFirstIndex = byteWithinField * 8 + bit;
+          const msbFirstIndex = size * 8 - 1 - lsbFirstIndex;
+          bits.push({ value, lightness: bitLightness(field, msbFirstIndex) });
+        }
+        return { label: `b${byteIndex}`, bits };
+      }),
+    });
+  }
+
+  for (const range of layout.paddingRanges) {
+    groups.push({
+      key: `padding-${range.start}`,
+      field: null,
+      fieldIndex: -1,
+      startByte: range.start,
+      rows: Array.from({ length: range.end - range.start }, (_, offset) => ({
+        label: `b${range.start + offset}`,
+        bits: Array.from({ length: 8 }, () => ({ value: 0, lightness: 0 })),
+      })),
+    });
+  }
+
+  return groups.sort((a, b) => a.startByte - b.startByte);
+}
+
+// -- Styles -------------------------------------------------------------------
 
 const containerStyle = css({
   display: "flex",
-  flexDirection: "column",
-  gap: "3",
+  gap: "4",
+  alignItems: "flex-start",
   fontSize: "xs",
 });
 
 const legendStyle = css({
   display: "flex",
-  flexWrap: "wrap",
-  rowGap: "1.5",
-  columnGap: "4",
-  alignItems: "center",
+  flexDirection: "column",
+  gap: "1.5",
+  width: "[170px]",
+  flexShrink: 0,
   color: "neutral.s100",
 });
 
 const legendChipStyle = css({
   display: "inline-flex",
   alignItems: "center",
-  gap: "1",
+  gap: "1.5",
+  cursor: "default",
+  fontFamily: "mono",
+
   "& i": {
     display: "inline-block",
     width: "3",
@@ -67,91 +147,113 @@ const legendChipStyle = css({
     borderWidth: "[1px]",
     borderStyle: "solid",
     borderColor: "[rgba(0,0,0,0.25)]",
+    flexShrink: 0,
   },
 });
 
-const fieldRowStyle = css({
+const legendNoteStyle = css({
+  color: "neutral.s90",
+  fontSize: "[10px]",
+  lineHeight: "[1.35]",
+});
+
+const gridStyle = css({
   display: "flex",
   flexDirection: "column",
   gap: "1",
+  flexShrink: 0,
 });
 
-const fieldHeaderStyle = css({
-  display: "flex",
-  flexWrap: "wrap",
-  alignItems: "baseline",
-  rowGap: "1",
-  columnGap: "3",
-  fontFamily: "mono",
-
-  "& b": {
-    fontSize: "sm",
+const groupStyle = cva({
+  base: {
+    display: "flex",
+    flexDirection: "column",
+    borderRadius: "xs",
+    outlineWidth: "[2px]",
+    outlineStyle: "solid",
+    outlineOffset: "[1px]",
+    transition: "[outline-color 0.1s ease]",
   },
-  "& span": {
-    color: "neutral.s90",
+  variants: {
+    isHighlighted: {
+      true: {},
+      false: { outlineColor: "[transparent]" },
+    },
   },
 });
 
-const byteGroupsStyle = css({
+const byteRowStyle = css({
   display: "flex",
-  flexWrap: "wrap",
-  gap: "1",
-});
-
-const byteStyle = css({
-  display: "flex",
-  flexDirection: "column",
   alignItems: "center",
-  gap: "0.5",
+  gap: "1.5",
+});
+
+const byteLabelStyle = css({
+  width: "[26px]",
+  textAlign: "right",
+  fontFamily: "mono",
+  fontSize: "[9px]",
+  color: "neutral.s80",
+  flexShrink: 0,
 });
 
 const bitRowStyle = css({
   display: "flex",
-  borderWidth: "[1px]",
-  borderStyle: "solid",
-  borderColor: "[rgba(0,0,0,0.35)]",
-  borderRadius: "xs",
   overflow: "hidden",
+
+  "& + &": {},
 });
 
 const bitStyle = css({
   width: "[13px]",
-  height: "[16px]",
+  height: "[13px]",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  fontSize: "[9px]",
+  fontSize: "[8px]",
   fontFamily: "mono",
-  color: "[rgba(0,0,0,0.75)]",
-
-  "& + &": {
-    borderLeftWidth: "[1px]",
-    borderLeftStyle: "solid",
-    borderLeftColor: "[rgba(0,0,0,0.12)]",
-  },
+  color: "[rgba(0,0,0,0.72)]",
+  borderWidth: "[0.5px]",
+  borderStyle: "solid",
+  borderColor: "[rgba(0,0,0,0.15)]",
 });
 
-const byteLabelStyle = css({
-  fontFamily: "mono",
-  fontSize: "[9px]",
-  color: "neutral.s80",
-});
-
-const roundTripStyle = css({
+const infoPanelStyle = css({
+  flex: "[1]",
+  minWidth: "[240px]",
+  position: "sticky",
+  top: "2",
+  display: "flex",
+  flexDirection: "column",
+  gap: "1",
   fontFamily: "mono",
   fontSize: "[11px]",
   color: "neutral.s100",
+  borderWidth: "[1px]",
+  borderStyle: "solid",
+  borderColor: "neutral.bd.subtle",
+  borderRadius: "md",
+  padding: "2.5",
+  minHeight: "[86px]",
+});
 
+const infoTitleStyle = css({
+  fontSize: "sm",
+  fontWeight: "semibold",
+});
+
+const infoHintStyle = css({
+  color: "neutral.s80",
+  fontFamily: "[inherit]",
+});
+
+const roundTripStyle = css({
   "& b": {
     color: "neutral.s110",
   },
 });
 
-const strideNoteStyle = css({
-  color: "neutral.s90",
-});
-
-// -- Helpers ----------------------------------------------------------------
+// -- Helpers --------------------------------------------------------------
 
 const formatValue = (value: unknown): string => {
   if (typeof value === "number") {
@@ -160,58 +262,27 @@ const formatValue = (value: unknown): string => {
   return value === undefined ? "undefined" : JSON.stringify(value);
 };
 
-type ByteCell = {
-  /** Absolute byte index within the token stride. */
-  byteIndex: number;
-  /** Bits to render left→right. */
-  bits: { value: number; lightness: number }[];
-  owner: { field: LayoutField; fieldIndex: number } | null;
-};
-
-/** Bytes in buffer order (memory view), each annotated with its owner. */
-function buildMemoryBytes(
-  layout: TokenLayout,
-  buffer: ArrayBuffer,
-): ByteCell[] {
-  const bytes = new Uint8Array(buffer);
-  const cells: ByteCell[] = [];
-  for (let byteIndex = 0; byteIndex < layout.strideBytes; byteIndex++) {
-    const fieldIndex = layout.fields.findIndex(
-      (field) =>
-        byteIndex >= field.byteOffset &&
-        byteIndex < field.byteOffset + field.physical.byteSize,
-    );
-    const field = fieldIndex >= 0 ? layout.fields[fieldIndex]! : null;
-    const bits = [];
-    for (let bit = 7; bit >= 0; bit--) {
-      // eslint-disable-next-line no-bitwise -- bit extraction is the point here
-      const value = ((bytes[byteIndex] ?? 0) >> bit) & 1;
-      let lightness = 78;
-      if (field) {
-        // Map this memory bit back to its MSB-first logical index so the
-        // IEEE-754 shading survives the little-endian byte order.
-        const byteWithinField = byteIndex - field.byteOffset;
-        const lsbFirstIndex = byteWithinField * 8 + bit;
-        const msbFirstIndex = field.physical.byteSize * 8 - 1 - lsbFirstIndex;
-        lightness = bitLightness(field, msbFirstIndex);
-      }
-      bits.push({ value, lightness });
-    }
-    cells.push({
-      byteIndex,
-      bits,
-      owner: field ? { field, fieldIndex } : null,
-    });
+const fieldHex = (buffer: ArrayBuffer, field: LayoutField): string => {
+  const bytes = new Uint8Array(
+    buffer,
+    field.byteOffset,
+    field.physical.byteSize,
+  );
+  let hex = "";
+  for (let byteIndex = bytes.length - 1; byteIndex >= 0; byteIndex--) {
+    hex += bytes[byteIndex]!.toString(16).padStart(2, "0");
   }
-  return cells;
-}
+  return `0x${hex}`;
+};
 
 // -- Component ----------------------------------------------------------------
 
 /**
- * Renders one encoded token as its raw bits. Built against the format-v2
- * abstraction (`TokenLayout`): any mix of field widths and padding renders,
- * not just uniform f64 slots.
+ * Renders one encoded token as a compact memory column: one byte (8 bits)
+ * per row, grouped by slot. Hovering a slot (or its legend chip) highlights
+ * the whole slot and reveals its details in the side panel. Built against
+ * the format-v2 abstraction (`TokenLayout`): any mix of field widths and
+ * padding renders, not just uniform f64 slots.
  */
 export const TokenMemoryView: React.FC<TokenMemoryViewProps> = ({
   layout,
@@ -221,140 +292,138 @@ export const TokenMemoryView: React.FC<TokenMemoryViewProps> = ({
   decoded,
   bitOrder,
 }) => {
+  const [hoveredKey, setHoveredKey] = useState<string | null>(null);
+
   if (layout.fields.length === 0) {
     return (
       <div className={containerStyle}>
-        <span className={strideNoteStyle}>
+        <span className={legendNoteStyle}>
           Add at least one dimension to see the encoded token.
         </span>
       </div>
     );
   }
 
+  const groups = buildSlotGroups(layout, buffer, bitOrder);
+  const hoveredGroup = groups.find((group) => group.key === hoveredKey) ?? null;
   const hasF64 = layout.fields.some((field) => field.physical.kind === "f64");
 
   return (
     <div className={containerStyle}>
+      {/* Left side: static legend */}
       <div className={legendStyle}>
         {layout.fields.map((field, fieldIndex) => (
-          <span key={field.name} className={legendChipStyle}>
+          <span
+            key={field.name}
+            className={legendChipStyle}
+            onMouseEnter={() => setHoveredKey(`field-${field.name}`)}
+            onMouseLeave={() => setHoveredKey(null)}
+          >
             <i style={{ background: fieldColor(fieldIndex, 70) }} />
             {field.name} · {field.physical.kind}
           </span>
         ))}
-        <span className={legendChipStyle}>
-          <i
-            style={{
-              background:
-                "repeating-linear-gradient(45deg, #eee, #eee 2px, #ccc 2px, #ccc 4px)",
-            }}
-          />
-          padding
+        {layout.paddingRanges.length > 0 ? (
+          <span className={legendChipStyle}>
+            <i style={{ background: PADDING_BACKGROUND }} />
+            padding
+          </span>
+        ) : null}
+        <span className={legendNoteStyle}>
+          sizeof(token) = {layout.strideBytes} B ({layout.mode})
         </span>
         {hasF64 ? (
-          <span className={strideNoteStyle}>
+          <span className={legendNoteStyle}>
             f64 shading: dark = sign · medium = exponent · light = mantissa
           </span>
         ) : null}
-        <span className={strideNoteStyle}>
-          sizeof(token) = {layout.strideBytes} B ({layout.mode})
+        <span className={legendNoteStyle}>
+          {bitOrder === "logical"
+            ? "rows: most-significant byte first"
+            : "rows: buffer order (little-endian)"}
         </span>
       </div>
 
-      {bitOrder === "logical" ? (
-        layout.fields.map((field, fieldIndex) => {
-          const bits = getFieldBits(buffer, field);
-          return (
-            <div key={field.name} className={fieldRowStyle}>
-              <div className={fieldHeaderStyle}>
-                <b style={{ color: fieldColor(fieldIndex, 35) }}>
-                  {field.name}
-                </b>
-                <span>
-                  {field.elementType} → {field.physical.kind} · offset{" "}
-                  {field.byteOffset} · {field.physical.byteSize} B ·{" "}
-                  {getFieldHex(buffer, field)}
-                </span>
-              </div>
-              <div className={byteGroupsStyle}>
-                {Array.from(
-                  { length: field.physical.byteSize },
-                  (_, groupIndex) => (
-                    <div key={groupIndex} className={byteStyle}>
-                      <div className={bitRowStyle}>
-                        {bits
-                          .slice(groupIndex * 8, groupIndex * 8 + 8)
-                          .map((bit, bitInGroup) => {
-                            const msbFirstIndex = groupIndex * 8 + bitInGroup;
-                            return (
-                              <span
-                                // eslint-disable-next-line react/no-array-index-key -- bits are purely positional
-                                key={bitInGroup}
-                                className={bitStyle}
-                                style={{
-                                  background: fieldColor(
-                                    fieldIndex,
-                                    bitLightness(field, msbFirstIndex),
-                                  ),
-                                }}
-                              >
-                                {bit}
-                              </span>
-                            );
-                          })}
-                      </div>
-                      <span className={byteLabelStyle}>
-                        bits {field.physical.byteSize * 8 - 1 - groupIndex * 8}–
-                        {field.physical.byteSize * 8 - 8 - groupIndex * 8}
-                      </span>
-                    </div>
-                  ),
-                )}
-              </div>
-              <div className={roundTripStyle}>
-                input {formatValue(input[field.name])} → stored{" "}
-                <b>{formatValue(stored[field.name])}</b> → reads back{" "}
-                <b>{formatValue(decoded[field.name])}</b>
-              </div>
-            </div>
-          );
-        })
-      ) : (
-        <div className={fieldRowStyle}>
-          <div className={fieldHeaderStyle}>
-            <b>buffer bytes 0–{layout.strideBytes - 1}</b>
-            <span>
-              little-endian memory order · bits shown 7→0 within each byte
-            </span>
-          </div>
-          <div className={byteGroupsStyle}>
-            {buildMemoryBytes(layout, buffer).map((cell) => (
-              <div key={cell.byteIndex} className={byteStyle}>
+      {/* Middle: the memory column, one byte per row */}
+      <div className={gridStyle}>
+        {groups.map((group) => (
+          <div
+            key={group.key}
+            className={groupStyle({ isHighlighted: hoveredKey === group.key })}
+            style={
+              hoveredKey === group.key
+                ? {
+                    outlineColor: group.field
+                      ? fieldColor(group.fieldIndex, 45)
+                      : "#999999",
+                  }
+                : undefined
+            }
+            onMouseEnter={() => setHoveredKey(group.key)}
+            onMouseLeave={() => setHoveredKey(null)}
+          >
+            {group.rows.map((row) => (
+              <div key={row.label} className={byteRowStyle}>
+                <span className={byteLabelStyle}>{row.label}</span>
                 <div className={bitRowStyle}>
-                  {cell.bits.map((bit, bitIndex) => (
+                  {row.bits.map((bit, bitIndex) => (
                     <span
                       // eslint-disable-next-line react/no-array-index-key -- bits are purely positional
                       key={bitIndex}
                       className={bitStyle}
                       style={{
-                        background: cell.owner
-                          ? fieldColor(cell.owner.fieldIndex, bit.lightness)
-                          : "repeating-linear-gradient(45deg, #eee, #eee 2px, #ccc 2px, #ccc 4px)",
+                        background: group.field
+                          ? fieldColor(group.fieldIndex, bit.lightness)
+                          : PADDING_BACKGROUND,
                       }}
                     >
-                      {bit.value}
+                      {group.field ? bit.value : ""}
                     </span>
                   ))}
                 </div>
-                <span className={byteLabelStyle}>
-                  b{cell.byteIndex}
-                  {cell.owner ? ` ${cell.owner.field.name}` : " pad"}
-                </span>
               </div>
             ))}
           </div>
-        </div>
-      )}
+        ))}
+      </div>
+
+      {/* Right side: details, only for the hovered slot */}
+      <div className={infoPanelStyle}>
+        {hoveredGroup === null ? (
+          <span className={infoHintStyle}>
+            Hover a slot (or a legend entry) for details.
+          </span>
+        ) : hoveredGroup.field === null ? (
+          <>
+            <span className={infoTitleStyle}>padding</span>
+            <span>
+              {hoveredGroup.rows.length} B — alignTo(…, 8) keeps consecutive
+              tokens 8-byte aligned
+            </span>
+          </>
+        ) : (
+          <>
+            <span
+              className={infoTitleStyle}
+              style={{ color: fieldColor(hoveredGroup.fieldIndex, 35) }}
+            >
+              {hoveredGroup.field.name}
+            </span>
+            <span>
+              {hoveredGroup.field.elementType} →{" "}
+              {hoveredGroup.field.physical.kind} · offset{" "}
+              {hoveredGroup.field.byteOffset} ·{" "}
+              {hoveredGroup.field.physical.byteSize} B
+            </span>
+            <span>{fieldHex(buffer, hoveredGroup.field)}</span>
+            <span className={roundTripStyle}>
+              input {formatValue(input[hoveredGroup.field.name])} → stored{" "}
+              <b>{formatValue(stored[hoveredGroup.field.name])}</b> → reads back{" "}
+              <b>{formatValue(decoded[hoveredGroup.field.name])}</b>
+            </span>
+          </>
+        )}
+      </div>
     </div>
   );
 };
