@@ -19,10 +19,25 @@
  *    foreign node (any node not in this community, measured against the
  *    node's actual dot radius via a uniform grid) is rerouted through the
  *    best intermediate member (min detour ≤ {@link CORRIDOR_DETOUR_CAP} ×
- *    direct, both halves clear, tie-break lowest slot). If no clear reroute
- *    exists the direct segment is kept but narrowed
- *    (× {@link CORRIDOR_NARROW_FACTOR}) so it reads as a thin thread rather
- *    than swallowing what it crosses.
+ *    direct, both halves clear, tie-break lowest slot).
+ *
+ * When every capped one-hop detour is blocked as well (foreign nodes wall off
+ * the clumps), the direct segment is kept at × {@link CORRIDOR_NARROW_FACTOR}
+ * width. The narrowed ribbon can still cross foreign nodes; that is an
+ * accepted limit, for three reasons. Dropping the segment would split the
+ * community into separate same-coloured hulls, which misreads as separate
+ * communities (connectivity is this module's contract). Clipping at the
+ * obstacle or routing multi-segment detours does not fit the data model:
+ * segment endpoints are member point-texel slots (that is how corridors
+ * track animation between replans), so a segment cannot end at an arbitrary
+ * clip point, and more than two segments per MST edge would overflow the
+ * capacity that both the segment storage and the shader's loop bound assume.
+ * And the crossing stays legible: the hull is a low-alpha backdrop drawn
+ * behind dots and edges, so a crossed foreign dot renders on top at full
+ * strength over a ribbon about one dot diameter wide, and reads as a dot in
+ * front of a thread rather than a dot annexed into the community, the same
+ * way dots read over ordinary straight edges (which do no obstacle avoidance
+ * at all).
  *
  * Corridors are deliberately thin ribbons ({@link CORRIDOR_FIELD_RADIUS} ≪ bubble `fieldRadius`):
  * connecting a spread community must not visually annex the space between its clumps;
@@ -40,7 +55,12 @@ import { BitSet } from "../worker/collections/bitset";
 /** Capsule kernel radius (world units) for full-width corridors. Visual ribbon
  * half-width at the default iso-threshold ≈ 0.49 × this. */
 export const CORRIDOR_FIELD_RADIUS = 22;
-/** Radius multiplier for corridors that could not clear foreign nodes. */
+/** Kernel-radius multiplier for corridors kept direct because no reroute
+ * cleared the obstacles. Sized so the narrowed ribbon is about one dot
+ * diameter wide at the default iso threshold: a crossed foreign dot reads as
+ * a dot in front of a thread, not a dot inside the community. Raising this
+ * toward 1 recreates that annexation misread; lowering it thins blocked
+ * corridors toward invisibility when zoomed out. */
 export const CORRIDOR_NARROW_FACTOR = 0.45;
 /** Extra clearance (world units) beyond corridor radius + foreign dot radius. */
 const CORRIDOR_CLEARANCE_PAD = 4;
@@ -329,6 +349,9 @@ export function planBubbleCorridors(plan: CorridorPlan): void {
           emit(parent, bestVia, CORRIDOR_FIELD_RADIUS);
           emit(bestVia, member, CORRIDOR_FIELD_RADIUS);
         } else {
+          // No clear detour: emit the direct segment narrowed. It can still
+          // cross foreign nodes; the header explains why that beats
+          // disconnecting the hull.
           emit(parent, member, CORRIDOR_FIELD_RADIUS * CORRIDOR_NARROW_FACTOR);
         }
       }

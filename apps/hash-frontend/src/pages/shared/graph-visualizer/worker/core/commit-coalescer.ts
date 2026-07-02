@@ -47,7 +47,8 @@ export const MAX_COALESCED_BATCHES = 8;
 /**
  * Flush when the oldest pending batch is older than this (checked at enqueue
  * time). A backstop for backlogs of few but slow-to-ingest batches, where the
- * batch-count cap would not trip; aligned with `FLAT_LOUVAIN_LINGER_MS`.
+ * batch-count cap would not trip; aligned with the default
+ * `stability.flatLouvainLingerMs`.
  */
 export const MAX_COALESCE_DELAY_MS = 100;
 
@@ -61,6 +62,10 @@ interface MutableDelta {
 export interface CommitCoalescerDependencies {
   /** Runs the actual commit (and any post-commit work, e.g. root-flip restyle). */
   readonly commit: (opts: CoalescedCommit) => void;
+  /** Batch-count flush cap. Defaults to {@link MAX_COALESCED_BATCHES}. */
+  readonly maxCoalescedBatches?: number;
+  /** Oldest-pending-batch age flush cap (ms). Defaults to {@link MAX_COALESCE_DELAY_MS}. */
+  readonly maxCoalesceDelayMs?: number;
   /** Injectable clock (tests). Defaults to `performance.now`. */
   readonly now?: () => number;
   /**
@@ -74,6 +79,8 @@ export interface CommitCoalescerDependencies {
 
 export class CommitCoalescer {
   readonly #commit: (opts: CoalescedCommit) => void;
+  readonly #maxCoalescedBatches: number;
+  readonly #maxCoalesceDelayMs: number;
   readonly #now: () => number;
   readonly #scheduleDrain: (fire: () => void) => void;
 
@@ -91,6 +98,10 @@ export class CommitCoalescer {
 
   constructor(dependencies: CommitCoalescerDependencies) {
     this.#commit = dependencies.commit;
+    this.#maxCoalescedBatches =
+      dependencies.maxCoalescedBatches ?? MAX_COALESCED_BATCHES;
+    this.#maxCoalesceDelayMs =
+      dependencies.maxCoalesceDelayMs ?? MAX_COALESCE_DELAY_MS;
     this.#now = dependencies.now ?? (() => performance.now());
     this.#scheduleDrain =
       dependencies.scheduleDrain ?? this.#defaultDrainScheduler();
@@ -160,8 +171,8 @@ export class CommitCoalescer {
     }
 
     if (
-      this.#pendingCount >= MAX_COALESCED_BATCHES ||
-      this.#now() - this.#pendingSince >= MAX_COALESCE_DELAY_MS
+      this.#pendingCount >= this.#maxCoalescedBatches ||
+      this.#now() - this.#pendingSince >= this.#maxCoalesceDelayMs
     ) {
       this.flush();
       return;

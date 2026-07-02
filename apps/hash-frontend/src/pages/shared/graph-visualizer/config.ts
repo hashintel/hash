@@ -1,26 +1,101 @@
 /**
- * Optional tuning overrides for the community-force flat tier's stress-majorization
- * engine (persistent-CG solves with circle-relaxation projection and a verified-clean
- * terminal settle). Each weight shapes stress targets (community-scaled edge lengths, hub halo bands,
- * and the community-region floor margin), not a force term.
- * An unset field keeps the gentle default; set a field to 0 to disable that shaping.
+ * Composition root for visualizer tuning. Each engine's tuning interface and
+ * defaults live with (or beside) the engine module; this file composes them
+ * into {@link VizConfig} / {@link defaultVizConfig} and re-exports the types
+ * so main-thread consumers (dev harness, visualizer wiring) have one import
+ * surface. Cross-module policy groups with no single owning engine
+ * ({@link LayoutStabilityConfig}, {@link IngestTuningConfig}) are defined
+ * here, importing module-owned defaults where they exist.
  */
-export interface StressTuning {
+import {
+  MAX_COALESCE_DELAY_MS,
+  MAX_COALESCED_BATCHES,
+} from "./worker/core/commit-coalescer";
+import {
+  FLAT_SEED_DISK_SCALE,
+  FLAT_SEED_NEIGHBOUR_OFFSET,
+} from "./worker/core/flat/flat-seed";
+import {
+  GROWTH_RELAYOUT_TOLERANCE_FRAC,
+  OVERLAP_REBUILD_TOLERANCE_FRAC,
+} from "./worker/core/hierarchical/layout-reuse";
+import { defaultEntityStyleConfig } from "./worker/entity-style";
+import { defaultClusterSizingConfig } from "./worker/hierarchy/cluster-sizing-config";
+import { defaultClusterForceConfig } from "./worker/layout/cluster-layout-config";
+import { defaultEntityForceConfig } from "./worker/layout/entity-layout-config";
+import { defaultFlatForceConfig } from "./worker/layout/flat-layout-config";
+import { defaultMajorizationConfig } from "./worker/layout/majorization-config";
+import { defaultTopLevelPolishConfig } from "./worker/layout/top-level-layout";
+import { defaultUntangleConfig } from "./worker/layout/untangle";
+
+import type { EntityStyleConfig } from "./worker/entity-style";
+import type { ClusterSizingConfig } from "./worker/hierarchy/cluster-sizing-config";
+import type { ClusterForceConfig } from "./worker/layout/cluster-layout-config";
+import type { EntityForceConfig } from "./worker/layout/entity-layout-config";
+import type { FlatForceConfig } from "./worker/layout/flat-layout-config";
+import type { MajorizationConfig } from "./worker/layout/majorization-config";
+import type { TopLevelPolishConfig } from "./worker/layout/top-level-layout";
+import type { UntangleConfig } from "./worker/layout/untangle";
+
+export type {
+  ClusterForceConfig,
+  ClusterSizingConfig,
+  EntityForceConfig,
+  EntityStyleConfig,
+  FlatForceConfig,
+  MajorizationConfig,
+  TopLevelPolishConfig,
+  UntangleConfig,
+};
+
+/** Layout reuse, seeding, and re-layout stability thresholds. */
+export interface LayoutStabilityConfig {
   /**
-   * Same-community attraction: deflate same-community stress targets ÷(1 + 2·w).
+   * How far one bubble may penetrate another (as a fraction of the smaller
+   * radius) before a settled layout is rebuilt.
+   *
+   * @defaultValue 0.05. A small dead-band so freshly-solved padding doesn't
+   * trigger an immediate rebuild.
    */
-  readonly communityCohesion?: number;
+  readonly overlapRebuildTolerance: number;
   /**
-   * Cross-community separation: inflate cross-community stress targets ×(1 + 2·w)
-   * and widen the community-region floor margin (the keep-out disk every non-member
-   * is held outside) by w·idealEdgeLength.
+   * How much a child may grow (as a fraction of its build-time radius) before
+   * the top-level layout is voluntarily re-warmed.
+   *
+   * @defaultValue 0.15 (~+32% members, since radius grows as sqrt(count)).
    */
-  readonly communitySeparation?: number;
+  readonly growthRelayoutTolerance: number;
+  /** Seed offset (world units) for a streamed node placed beside a placed neighbour. @defaultValue 24. */
+  readonly flatSeedNeighbourOffset: number;
+  /** Phyllotaxis disk scale (world units) for cold-start / orphan flat nodes. @defaultValue 28. */
+  readonly flatSeedDiskScale: number;
   /**
-   * Hub breathing room: how far a packed hub's children are pushed from its rim
-   * toward an explicit halo shell (band floor share min(1, 2·w)).
+   * After community-force ingests go quiet for this long (ms), run one trailing
+   * Louvain so BubbleSets reflect the settled graph.
+   *
+   * @defaultValue 100.
    */
-  readonly degreeRepulsion?: number;
+  readonly flatLouvainLingerMs: number;
+}
+
+/** Streaming-ingest commit coalescing and tick diagnostics. */
+export interface IngestTuningConfig {
+  /**
+   * Flush once this many ingest batches are pending, even mid-burst.
+   *
+   * @defaultValue 8. Bounds how much a sustained stream batches into one
+   * commit (progressive rendering).
+   */
+  readonly maxCoalescedBatches: number;
+  /**
+   * Flush when the oldest pending batch is older than this (ms, checked at
+   * enqueue time).
+   *
+   * @defaultValue 100.
+   */
+  readonly maxCoalesceDelayMs: number;
+  /** Debug-mode threshold (ms) above which a simulation tick logs a warning. @defaultValue 10. */
+  readonly slowTickWarningMs: number;
 }
 
 export interface VizConfig {
@@ -320,8 +395,26 @@ export interface VizConfig {
    */
   readonly curveSegments: number;
 
-  /** Optional majorization target-shaping overrides for the community-force flat tier. */
-  readonly stress?: StressTuning;
+  /** Stress-majorization engine tuning (community-force flat tier). */
+  readonly majorization: MajorizationConfig;
+  /** WebCola flat layout tuning (small-N flat-force tier). */
+  readonly flatForce: FlatForceConfig;
+  /** Top-level overview polish (crossing/detour optimiser) tuning. */
+  readonly topLevelPolish: TopLevelPolishConfig;
+  /** Sub-cluster untangle polish tuning. */
+  readonly untangle: UntangleConfig;
+  /** WebCola cluster (bubble) layout tuning. */
+  readonly clusterForce: ClusterForceConfig;
+  /** d3-force entity (dot) layout tuning. */
+  readonly entityForce: EntityForceConfig;
+  /** Cluster-bubble and entity-dot sizing. */
+  readonly clusterSizing: ClusterSizingConfig;
+  /** Entity dot/edge colour and size style. */
+  readonly entityStyle: EntityStyleConfig;
+  /** Layout reuse / seeding / re-layout stability thresholds. */
+  readonly stability: LayoutStabilityConfig;
+  /** Streaming-ingest coalescing and diagnostics. */
+  readonly ingest: IngestTuningConfig;
 
   /** Enable noisy worker diagnostics. Intended for local profiling/debug only. */
   readonly debug?: boolean;
@@ -369,6 +462,29 @@ export const defaultVizConfig: VizConfig = {
   parallelEdgeSpacingPx: 7,
   parallelEdgeCurvature: 1.6,
   curveSegments: 16,
+
+  majorization: defaultMajorizationConfig,
+  flatForce: defaultFlatForceConfig,
+  topLevelPolish: defaultTopLevelPolishConfig,
+  untangle: defaultUntangleConfig,
+  clusterForce: defaultClusterForceConfig,
+  entityForce: defaultEntityForceConfig,
+  clusterSizing: defaultClusterSizingConfig,
+  entityStyle: defaultEntityStyleConfig,
+
+  stability: {
+    overlapRebuildTolerance: OVERLAP_REBUILD_TOLERANCE_FRAC,
+    growthRelayoutTolerance: GROWTH_RELAYOUT_TOLERANCE_FRAC,
+    flatSeedNeighbourOffset: FLAT_SEED_NEIGHBOUR_OFFSET,
+    flatSeedDiskScale: FLAT_SEED_DISK_SCALE,
+    flatLouvainLingerMs: 100,
+  },
+
+  ingest: {
+    maxCoalescedBatches: MAX_COALESCED_BATCHES,
+    maxCoalesceDelayMs: MAX_COALESCE_DELAY_MS,
+    slowTickWarningMs: 10,
+  },
 };
 
 /**
@@ -419,5 +535,32 @@ export function validateConfig(config: VizConfig): void {
   assert(
     config.communityMinSize < config.communityMaxSize,
     "communityMinSize must be < communityMaxSize",
+  );
+  assert(
+    config.topLevelPolish.idealGapFraction >=
+      config.topLevelPolish.overlapPadFraction,
+    "topLevelPolish.idealGapFraction must be >= topLevelPolish.overlapPadFraction (stress and non-overlap would fight)",
+  );
+  assert(
+    config.flatForce.overlapMinIterations <=
+      config.flatForce.overlapMaxIterations,
+    "flatForce.overlapMinIterations must be <= flatForce.overlapMaxIterations",
+  );
+  assert(
+    config.entityStyle.hubLinkFadeStartDegree <
+      config.entityStyle.hubLinkFadeEndDegree,
+    "entityStyle.hubLinkFadeStartDegree must be < entityStyle.hubLinkFadeEndDegree",
+  );
+  assert(
+    config.entityStyle.minLightness <= config.entityStyle.maxLightness,
+    "entityStyle.minLightness must be <= entityStyle.maxLightness",
+  );
+  assert(
+    config.majorization.idealEdgeLength > 0,
+    "majorization.idealEdgeLength must be > 0",
+  );
+  assert(
+    config.clusterSizing.radiusPerSqrtCount > 0,
+    "clusterSizing.radiusPerSqrtCount must be > 0",
   );
 }

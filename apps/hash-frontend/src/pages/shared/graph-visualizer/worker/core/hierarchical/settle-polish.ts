@@ -16,17 +16,19 @@ import type { ClusterId } from "../../../ids";
 import type { ClusterNode } from "../../hierarchy/cluster-tree";
 import type { ViewportState } from "../../hierarchy/lod";
 import type { LayoutSimulation } from "../../layout/force-simulation";
-import type { Anchor, LayoutNode } from "../../layout/top-level-layout";
-import type { UntangleNode } from "../../layout/untangle";
-
-/** Above this node count, skip the D1 untangle (force result stands). */
-const UNTANGLE_MAX_NODES = 48;
-
-/** Above this top-level cluster count, skip the optimiser (keep WebCola's result). */
-const TOP_LEVEL_MAX_NODES = 32;
+import type {
+  Anchor,
+  LayoutNode,
+  TopLevelPolishConfig,
+} from "../../layout/top-level-layout";
+import type { UntangleConfig, UntangleNode } from "../../layout/untangle";
 
 export interface SettlePolisherDependencies {
   readonly viewport: () => ViewportState | undefined;
+  /** Top-level optimiser tuning, including its `maxNodes` skip gate. */
+  readonly topLevelPolish: TopLevelPolishConfig;
+  /** Sub-cluster untangle tuning, including its `maxNodes` skip gate. */
+  readonly untangle: UntangleConfig;
 }
 
 /** Write a children layout's local node positions back to child world circles. */
@@ -150,13 +152,14 @@ export class SettlePolisher {
     cluster: ClusterNode,
     layout: LayoutSimulation,
   ): void {
+    const tuning = this.#dependencies.topLevelPolish;
     const edges = this.#clusterEdges.get(cluster.id);
     const nodeList = layout.nodes;
     if (
       !edges ||
       edges.length === 0 ||
       nodeList.length < 3 ||
-      nodeList.length > TOP_LEVEL_MAX_NODES
+      nodeList.length > tuning.maxNodes
     ) {
       // Too small/large to optimise, but still record positions so a later
       // recreation re-seeds from the current layout, not a stale snapshot.
@@ -188,13 +191,17 @@ export class SettlePolisher {
             cluster.circle.x + previous.x,
             cluster.circle.y + previous.y,
             viewport,
+            tuning.viewportAnchorFloor,
           )
         : 1;
 
       return { x: previous.x, y: previous.y, weight };
     });
 
-    optimizeTopLevel(nodes, edges, murmur3String(cluster.id), { anchors });
+    optimizeTopLevel(nodes, edges, murmur3String(cluster.id), {
+      anchors,
+      tuning,
+    });
 
     for (let idx = 0; idx < nodeList.length; idx++) {
       nodeList[idx]!.x = nodes[idx]!.x;
@@ -209,12 +216,13 @@ export class SettlePolisher {
 
   /**
    * Polish a settled cluster layout once, minimising edge crossings and
-   * edges-through-bubbles. Only for small layouts (<= {@link UNTANGLE_MAX_NODES}).
+   * edges-through-bubbles. Only for small layouts (<= `untangle.maxNodes`).
    */
   #untangleClusterLayout(cluster: ClusterNode, layout: LayoutSimulation): void {
+    const tuning = this.#dependencies.untangle;
     const edges = this.#clusterEdges.get(cluster.id);
     const nodeList = layout.nodes;
-    if (!edges || nodeList.length < 3 || nodeList.length > UNTANGLE_MAX_NODES) {
+    if (!edges || nodeList.length < 3 || nodeList.length > tuning.maxNodes) {
       return;
     }
 
@@ -231,6 +239,7 @@ export class SettlePolisher {
           ? Number.POSITIVE_INFINITY
           : cluster.circle.radius,
       seed: murmur3String(cluster.id),
+      tuning,
     });
 
     for (let idx = 0; idx < nodeList.length; idx++) {

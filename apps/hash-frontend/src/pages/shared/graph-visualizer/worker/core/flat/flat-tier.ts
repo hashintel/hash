@@ -45,11 +45,6 @@ function flatCapacityFor(count: number): number {
   return Math.max(count + 64, Math.ceil(count * 1.5));
 }
 
-/** After community-force ingests go quiet for this long (ms), run one trailing
- * Louvain so the BubbleSets reflect the settled graph; the last batch may not
- * have crossed the growth-fraction refresh threshold. */
-const FLAT_LOUVAIN_LINGER_MS = 100;
-
 export interface FlatTierDependencies {
   readonly config: VizConfig;
   readonly layouts: LayoutRegistry;
@@ -293,8 +288,9 @@ export class FlatTierController {
   }
 
   /**
-   * After ingests go quiet for {@link FLAT_LOUVAIN_LINGER_MS}, run one trailing
-   * Louvain so BubbleSets reflect the settled graph.
+   * After ingests go quiet for `stability.flatLouvainLingerMs`, run one
+   * trailing Louvain so BubbleSets reflect the settled graph; the last batch
+   * may not have crossed the growth-fraction refresh threshold.
    */
   #scheduleLouvainLinger(): void {
     if (this.#dependencies.mode() !== "community-force") {
@@ -309,7 +305,7 @@ export class FlatTierController {
       if (layout?.refreshCommunities?.()) {
         this.#emitFrame(layout);
       }
-    }, FLAT_LOUVAIN_LINGER_MS);
+    }, this.#dependencies.config.stability.flatLouvainLingerMs);
   }
 
   /**
@@ -321,7 +317,12 @@ export class FlatTierController {
     const previous = layouts.get(FLAT_LAYOUT_ID);
     const priorPositions = this.#capturePriorPositions(previous);
 
-    const nodes = seedFlatNodes(entityIdxs, priorPositions, links);
+    const nodes = seedFlatNodes(
+      entityIdxs,
+      priorPositions,
+      links,
+      this.#seedTuning(),
+    );
     const edges = buildEntityEdges(entityIdxs, nodes, links);
 
     // One interleaved shared buffer for all per-node data. Over-allocated
@@ -337,8 +338,8 @@ export class FlatTierController {
     // same shared buffer; downstream style/edges/render are identical.
     const layout =
       this.#dependencies.mode() === "community-force"
-        ? createMajorizationLayout(nodes, edges, buffer, config.stress)
-        : createFlatLayout(nodes, edges, buffer);
+        ? createMajorizationLayout(nodes, edges, buffer, config.majorization)
+        : createFlatLayout(nodes, edges, buffer, config.flatForce);
 
     if (previous) {
       this.#dependencies.postLayoutMessage({
@@ -373,6 +374,7 @@ export class FlatTierController {
       entityIdxs,
       priorPositions,
       this.#dependencies.links,
+      this.#seedTuning(),
     );
 
     const newNodes = seeded.filter((_, position) => isNew[position]!);
@@ -393,6 +395,16 @@ export class FlatTierController {
     // absorb() re-energises the layout, but the scheduler may have stopped
     // when it last settled, so re-kick it.
     this.#dependencies.ensureSchedulerRunning();
+  }
+
+  /** Seeding geometry from the live config (see {@link seedFlatNodes}). */
+  #seedTuning(): { neighbourOffset: number; diskScale: number } {
+    const { stability } = this.#dependencies.config;
+
+    return {
+      neighbourOffset: stability.flatSeedNeighbourOffset,
+      diskScale: stability.flatSeedDiskScale,
+    };
   }
 
   /**

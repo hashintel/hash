@@ -15,10 +15,10 @@ import type { PortConstraintController } from "./hierarchical/port-constraints";
 import type { SettlePolisher } from "./hierarchical/settle-polish";
 import type { LayoutRegistry } from "./layout-registry";
 
-const SLOW_TICK_WARNING_MS = 10;
-
 export interface TickLoopDependencies {
   readonly debug: boolean;
+  /** Debug-mode threshold (ms) above which a full tick logs a warning. */
+  readonly slowTickWarningMs: number;
   readonly layouts: LayoutRegistry;
   readonly clusterTree: ClusterTree;
   readonly polisher: SettlePolisher;
@@ -142,7 +142,10 @@ export class TickLoop {
     }
 
     const elapsed = performance.now() - tickStart;
-    if (this.#dependencies.debug && elapsed > SLOW_TICK_WARNING_MS) {
+    if (
+      this.#dependencies.debug &&
+      elapsed > this.#dependencies.slowTickWarningMs
+    ) {
       // eslint-disable-next-line no-console
       console.warn(
         `[graph-worker][slow tick] ${elapsed.toFixed(1)}ms (${layouts.size} layouts)`,

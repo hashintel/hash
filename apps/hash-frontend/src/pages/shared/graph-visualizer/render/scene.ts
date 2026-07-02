@@ -249,44 +249,13 @@ export class Scene {
   }
 
   /**
-   * Frame the largest leaf bubble (by world radius) so it fills the padded
-   * viewport, falling back to fit-to-content when no bubbles exist (flat
-   * tier / empty graph). Data-derived, so repeated calls frame the same
-   * view: the render bench uses this to anchor its sweep on the graph's
-   * fill-heaviest region instead of whatever the camera last showed.
+   * Frame the graph's fill-heaviest bubble so the render bench can anchor
+   * its sweep on it (see SceneCamera.frameLargestBubble): the largest
+   * Louvain community on the flat tier, the largest leaf cluster bubble
+   * otherwise, fit-to-content when neither exists.
    */
   frameLargestBubble(): void {
-    const structure = this.#handle.getStructure();
-    const positions = this.#handle.getPositions();
-    if (!structure || !positions) {
-      this.#camera.fitToContent();
-      return;
-    }
-    let largestIndex = -1;
-    let largestRadius = 0;
-    for (const [index, cluster] of structure.clusters.entries()) {
-      // depth > 0 are opened containers (faint outlines); the fill cost
-      // lives in the leaf bubbles they contain.
-      if (cluster.depth === 0 && cluster.radius > largestRadius) {
-        largestRadius = cluster.radius;
-        largestIndex = index;
-      }
-    }
-    if (largestIndex === -1) {
-      this.#camera.fitToContent();
-      return;
-    }
-    const x = positions.clusterPositions[largestIndex * 2] ?? 0;
-    const y = positions.clusterPositions[largestIndex * 2 + 1] ?? 0;
-    this.#camera.fitToBounds(
-      {
-        minX: x - largestRadius,
-        minY: y - largestRadius,
-        maxX: x + largestRadius,
-        maxY: y + largestRadius,
-      },
-      48,
-    );
+    this.#camera.frameLargestBubble();
   }
 
   /** Begin a render-cost capture (deck stats + rebuild timings + zoom envelope). */

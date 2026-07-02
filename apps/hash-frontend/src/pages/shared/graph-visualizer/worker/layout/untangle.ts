@@ -18,7 +18,7 @@
  * whatever local minimum the seed fell into.
  *
  * Two correctness notes:
- * - Temperature is on the energy scale (a crossing costs `CROSS_WEIGHT`), so
+ * - Temperature is on the energy scale (a crossing costs `crossingWeight`), so
  *   `exp(-Δ/T)` actually accepts uphill moves early and this is real annealing,
  *   not greedy descent.
  * - Crossing minimisation is NP-hard, so "directly" means full-space search
@@ -53,39 +53,84 @@ export interface UntangleOptions {
    * iterations improve search quality at linear time cost.
    */
   readonly iterations?: number;
-  /** Independent annealing runs; the lowest-energy one wins. Defaults to 6. */
+  /**
+   * Independent annealing runs; the lowest-energy one wins. Defaults to
+   * {@link UntangleConfig.restarts}.
+   */
   readonly restarts?: number;
+  /** Tuning overrides; unset fields fall back to {@link defaultUntangleConfig}. */
+  readonly tuning?: Partial<UntangleConfig>;
 }
 
-// Crossings (and edges through bubbles) dominate the soft link-length /
-// compactness terms, so the 2-opt swaps and annealing prioritise removing them
-// over a slightly longer edge; crossing reduction is the goal here.
-const CROSS_WEIGHT = 20;
-const THROUGH_WEIGHT = 28;
-const OVERLAP_WEIGHT = 6;
-/** Pull linked clusters together: per unit an edge is longer than ideal. */
-const LINK_WEIGHT = 0.02;
-/** Ideal edge length as a multiple of the endpoints' combined radii. */
-const LINK_IDEAL_MUL = 1.5;
-/** Keep the layout compact: per unit a node sits from the origin. */
-const COMPACT_WEIGHT = 0.012;
-/** Keep an edge this far (x node radius) clear of a non-incident node. */
-const THROUGH_CLEARANCE = 1.15;
 /**
- * Initial annealing temperature, on the energy scale (~ a couple of crossings),
- * so uphill moves are genuinely accepted early. Cools to ~0 over the run.
+ * Tuning for the small-N sub-cluster untangle: this module's annealing/2-opt
+ * search plus the gate its caller applies
+ * ({@link "../core/hierarchical/settle-polish"} skips the untangle above
+ * `maxNodes`).
+ *
+ * Crossings (and edges through bubbles) dominate the soft link-length /
+ * compactness terms, so the 2-opt swaps and annealing prioritise removing them
+ * over a slightly longer edge; crossing reduction is the goal here.
  */
-const START_TEMP = 25;
-const DEFAULT_RESTARTS = 6;
-/**
- * Skip the 2-opt polish pass above this node count (default 24). Below the
- * cap, 2-opt removes crossings annealing cannot; above it, only annealing
- * runs, so crossings may remain. Tradeoff: 2-opt is O(passes·N²·|energy|) and
- * dominates runtime for larger N.
- */
-const TWO_OPT_MAX_NODES = 24;
-/** Cap on 2-opt passes; it converges in a few full pairwise sweeps. */
-const TWO_OPT_PASSES = 4;
+export interface UntangleConfig {
+  /**
+   * Above this node count, the caller skips the untangle entirely (the force
+   * result stands).
+   *
+   * @defaultValue 48.
+   */
+  readonly maxNodes: number;
+  /** Objective weight per edge crossing. @defaultValue 20. */
+  readonly crossingWeight: number;
+  /** Objective weight per edge-through-bubble violation. @defaultValue 28. */
+  readonly throughWeight: number;
+  /** Objective weight per unit of bubble overlap. @defaultValue 6. */
+  readonly overlapWeight: number;
+  /** Pull linked clusters together: weight per unit an edge exceeds its ideal. @defaultValue 0.02. */
+  readonly linkWeight: number;
+  /** Ideal edge length as a multiple of the endpoints' combined radii. @defaultValue 1.5. */
+  readonly linkIdealMultiplier: number;
+  /** Keep the layout compact: weight per unit a node sits from the origin. @defaultValue 0.012. */
+  readonly compactWeight: number;
+  /** Keep an edge this far (× node radius) clear of a non-incident node. @defaultValue 1.15. */
+  readonly throughClearance: number;
+  /**
+   * Initial annealing temperature, on the energy scale (~a couple of
+   * crossings), so uphill moves are genuinely accepted early. Cools to ~0 over
+   * the run.
+   *
+   * @defaultValue 25.
+   */
+  readonly startTemperature: number;
+  /** Independent annealing runs; the lowest-energy one wins. @defaultValue 6. */
+  readonly restarts: number;
+  /**
+   * Skip the 2-opt polish pass above this node count. Below the cap, 2-opt
+   * removes crossings annealing cannot; above it, only annealing runs, so
+   * crossings may remain. Tradeoff: 2-opt is O(passes·N²·|energy|) and
+   * dominates runtime for larger N.
+   *
+   * @defaultValue 24.
+   */
+  readonly twoOptMaxNodes: number;
+  /** Cap on 2-opt passes; it converges in a few full pairwise sweeps. @defaultValue 4. */
+  readonly twoOptPasses: number;
+}
+
+export const defaultUntangleConfig: UntangleConfig = {
+  maxNodes: 48,
+  crossingWeight: 20,
+  throughWeight: 28,
+  overlapWeight: 6,
+  linkWeight: 0.02,
+  linkIdealMultiplier: 1.5,
+  compactWeight: 0.012,
+  throughClearance: 1.15,
+  startTemperature: 25,
+  restarts: 6,
+  twoOptMaxNodes: 24,
+  twoOptPasses: 4,
+};
 
 /** Returns the signed area of triangle (a,b,c); sign indicates clockwise vs counter-clockwise turn at b. */
 function orient(
@@ -138,9 +183,13 @@ function pointSegmentDist2(
   return (px - qx) ** 2 + (py - qy) ** 2;
 }
 
-/** Target centre distance for a linked pair: (r_a + r_b) × LINK_IDEAL_MUL. */
-function idealLinkDist(a: UntangleNode, b: UntangleNode): number {
-  return (a.radius + b.radius) * LINK_IDEAL_MUL;
+/** Target centre distance for a linked pair: (r_a + r_b) × linkIdealMultiplier. */
+function idealLinkDist(
+  a: UntangleNode,
+  b: UntangleNode,
+  tuning: UntangleConfig,
+): number {
+  return (a.radius + b.radius) * tuning.linkIdealMultiplier;
 }
 
 /**
@@ -152,6 +201,7 @@ function nodeEnergy(
   nodes: readonly UntangleNode[],
   edges: readonly (readonly [number, number])[],
   incident: readonly number[],
+  tuning: UntangleConfig,
 ): number {
   const node = nodes[i]!;
   let energy = 0;
@@ -183,7 +233,7 @@ function nodeEnergy(
           nodes[d]!.y,
         )
       ) {
-        energy += CROSS_WEIGHT;
+        energy += tuning.crossingWeight;
       }
     }
   }
@@ -198,19 +248,19 @@ function nodeEnergy(
       if (k === a || k === b) {
         continue;
       }
-      const clear = nodes[k]!.radius * THROUGH_CLEARANCE;
+      const clear = nodes[k]!.radius * tuning.throughClearance;
       if (
         pointSegmentDist2(nodes[k]!.x, nodes[k]!.y, ax, ay, bx, by) <
         clear * clear
       ) {
-        energy += THROUGH_WEIGHT;
+        energy += tuning.throughWeight;
       }
     }
   }
 
   // Through-node penalty is symmetric: count edges piercing i's disk whether
   // or not i is an endpoint.
-  const clearI = node.radius * THROUGH_CLEARANCE;
+  const clearI = node.radius * tuning.throughClearance;
   for (let je = 0; je < edges.length; je++) {
     const [c, d] = edges[je]!;
     if (c === i || d === i) {
@@ -227,7 +277,7 @@ function nodeEnergy(
       ) <
       clearI * clearI
     ) {
-      energy += THROUGH_WEIGHT;
+      energy += tuning.throughWeight;
     }
   }
 
@@ -238,7 +288,7 @@ function nodeEnergy(
     const minDist = node.radius + nodes[k]!.radius;
     const dist = Math.hypot(node.x - nodes[k]!.x, node.y - nodes[k]!.y);
     if (dist < minDist) {
-      energy += OVERLAP_WEIGHT * (minDist - dist);
+      energy += tuning.overlapWeight * (minDist - dist);
     }
   }
 
@@ -246,15 +296,15 @@ function nodeEnergy(
     const [a, b] = edges[ie]!;
     const other = nodes[a === i ? b : a]!;
     const len = Math.hypot(node.x - other.x, node.y - other.y);
-    const ideal = idealLinkDist(node, other);
+    const ideal = idealLinkDist(node, other, tuning);
     if (len > ideal) {
-      energy += LINK_WEIGHT * (len - ideal);
+      energy += tuning.linkWeight * (len - ideal);
     }
   }
 
   // Compactness: a fixed geometric pull toward the disc centre (not an anchor to
   // any prior layout, it references the origin, not the seed positions).
-  energy += COMPACT_WEIGHT * Math.hypot(node.x, node.y);
+  energy += tuning.compactWeight * Math.hypot(node.x, node.y);
 
   return energy;
 }
@@ -263,6 +313,7 @@ function nodeEnergy(
 function totalEnergy(
   nodes: readonly UntangleNode[],
   edges: readonly (readonly [number, number])[],
+  tuning: UntangleConfig,
 ): number {
   let energy = 0;
 
@@ -290,7 +341,7 @@ function totalEnergy(
           nodes[d]!.y,
         )
       ) {
-        energy += CROSS_WEIGHT;
+        energy += tuning.crossingWeight;
       }
     }
   }
@@ -305,12 +356,12 @@ function totalEnergy(
       if (k === a || k === b) {
         continue;
       }
-      const clear = nodes[k]!.radius * THROUGH_CLEARANCE;
+      const clear = nodes[k]!.radius * tuning.throughClearance;
       if (
         pointSegmentDist2(nodes[k]!.x, nodes[k]!.y, ax, ay, bx, by) <
         clear * clear
       ) {
-        energy += THROUGH_WEIGHT;
+        energy += tuning.throughWeight;
       }
     }
   }
@@ -321,10 +372,10 @@ function totalEnergy(
       const minDist = node.radius + nodes[k]!.radius;
       const dist = Math.hypot(node.x - nodes[k]!.x, node.y - nodes[k]!.y);
       if (dist < minDist) {
-        energy += OVERLAP_WEIGHT * (minDist - dist);
+        energy += tuning.overlapWeight * (minDist - dist);
       }
     }
-    energy += COMPACT_WEIGHT * Math.hypot(node.x, node.y);
+    energy += tuning.compactWeight * Math.hypot(node.x, node.y);
   }
   for (let ie = 0; ie < edges.length; ie++) {
     const [a, b] = edges[ie]!;
@@ -332,9 +383,9 @@ function totalEnergy(
       nodes[a]!.x - nodes[b]!.x,
       nodes[a]!.y - nodes[b]!.y,
     );
-    const ideal = idealLinkDist(nodes[a]!, nodes[b]!);
+    const ideal = idealLinkDist(nodes[a]!, nodes[b]!, tuning);
     if (len > ideal) {
-      energy += LINK_WEIGHT * (len - ideal);
+      energy += tuning.linkWeight * (len - ideal);
     }
   }
 
@@ -362,6 +413,7 @@ function annealOnce(
   confinementRadius: number,
   rng: () => number,
   iterations: number,
+  tuning: UntangleConfig,
 ): void {
   const count = nodes.length;
 
@@ -373,12 +425,12 @@ function annealOnce(
 
   for (let iter = 0; iter < iterations; iter++) {
     const progress = iter / iterations;
-    const temperature = START_TEMP * (1 - progress) ** 2;
+    const temperature = tuning.startTemperature * (1 - progress) ** 2;
     const scale = startScale * (1 - progress);
     const i = Math.floor(rng() * count);
     const node = nodes[i]!;
 
-    const before = nodeEnergy(i, nodes, edges, incident[i]!);
+    const before = nodeEnergy(i, nodes, edges, incident[i]!, tuning);
     const oldX = node.x;
     const oldY = node.y;
 
@@ -388,7 +440,7 @@ function annealOnce(
     node.y += Math.sin(angle) * step;
     confine(node, confinementRadius);
 
-    const after = nodeEnergy(i, nodes, edges, incident[i]!);
+    const after = nodeEnergy(i, nodes, edges, incident[i]!, tuning);
     const delta = after - before;
 
     // Metropolis: reject uphill moves whose acceptance draw exceeds exp(-delta / temperature).
@@ -411,10 +463,11 @@ function annealOnce(
 function twoOptSwaps(
   nodes: UntangleNode[],
   edges: readonly (readonly [number, number])[],
+  tuning: UntangleConfig,
 ): void {
   const count = nodes.length;
-  let base = totalEnergy(nodes, edges);
-  for (let pass = 0; pass < TWO_OPT_PASSES; pass++) {
+  let base = totalEnergy(nodes, edges, tuning);
+  for (let pass = 0; pass < tuning.twoOptPasses; pass++) {
     let improved = false;
     for (let i = 0; i < count; i++) {
       for (let j = i + 1; j < count; j++) {
@@ -426,7 +479,7 @@ function twoOptSwaps(
         nodes[i]!.y = jy;
         nodes[j]!.x = ix;
         nodes[j]!.y = iy;
-        const energy = totalEnergy(nodes, edges);
+        const energy = totalEnergy(nodes, edges, tuning);
         if (energy < base - 1e-6) {
           base = energy;
           improved = true;
@@ -449,7 +502,7 @@ function twoOptSwaps(
  * graphs via multi-restart simulated annealing plus optional 2-opt polish.
  * Mutates node positions in place; no-op when N < 3 or there are no edges.
  * Warm-start positions seed restart 0 only. 2-opt runs only when
- * N ≤ TWO_OPT_MAX_NODES (default 24).
+ * N ≤ {@link UntangleConfig.twoOptMaxNodes} (default 24).
  */
 export function untangleLayout(
   nodes: UntangleNode[],
@@ -461,6 +514,10 @@ export function untangleLayout(
     return;
   }
 
+  const tuning: UntangleConfig = options.tuning
+    ? { ...defaultUntangleConfig, ...options.tuning }
+    : defaultUntangleConfig;
+
   const incident: number[][] = Array.from({ length: count }, () => []);
   for (let e = 0; e < edges.length; e++) {
     const [a, b] = edges[e]!;
@@ -468,7 +525,7 @@ export function untangleLayout(
     incident[b]!.push(e);
   }
 
-  const restarts = Math.max(1, options.restarts ?? DEFAULT_RESTARTS);
+  const restarts = Math.max(1, options.restarts ?? tuning.restarts);
   const iterations = options.iterations ?? Math.min(4000, count * 120);
   const rng = mulberry32(seed);
 
@@ -507,9 +564,17 @@ export function untangleLayout(
       confine(node, confinementRadius);
     }
 
-    annealOnce(nodes, edges, incident, confinementRadius, rng, iterations);
+    annealOnce(
+      nodes,
+      edges,
+      incident,
+      confinementRadius,
+      rng,
+      iterations,
+      tuning,
+    );
 
-    const energy = totalEnergy(nodes, edges);
+    const energy = totalEnergy(nodes, edges, tuning);
     if (energy < bestEnergy) {
       bestEnergy = energy;
       best = nodes.map((node) => ({ x: node.x, y: node.y }));
@@ -522,9 +587,9 @@ export function untangleLayout(
   }
 
   // 2-opt is the only step that can eliminate multi-edge crossing patterns;
-  // gated to N ≤ TWO_OPT_MAX_NODES (see constant), so above that cap the
-  // returned layout may still cross.
-  if (count <= TWO_OPT_MAX_NODES) {
-    twoOptSwaps(nodes, edges);
+  // gated to N ≤ twoOptMaxNodes, so above that cap the returned layout may
+  // still cross.
+  if (count <= tuning.twoOptMaxNodes) {
+    twoOptSwaps(nodes, edges, tuning);
   }
 }

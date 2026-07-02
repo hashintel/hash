@@ -16,13 +16,15 @@
 import type { ViewportState } from "../../hierarchy/lod";
 
 /** Off-screen bubbles keep this much anchor: they reflow but don't teleport while
- * the user isn't looking. Also the floor of {@link viewportAnchorWeight}. */
+ * the user isn't looking. Also the floor of {@link viewportAnchorWeight}.
+ * The live value comes from `topLevelPolish.viewportAnchorFloor`. */
 export const VIEWPORT_ANCHOR_FLOOR = 0.05;
 
 export function viewportAnchorWeight(
   worldX: number,
   worldY: number,
   viewport: ViewportState,
+  floor: number = VIEWPORT_ANCHOR_FLOOR,
 ): number {
   const scale = 2 ** viewport.zoom;
   const visibleRadius =
@@ -39,7 +41,5 @@ export function viewportAnchorWeight(
   // Amplify only the on-screen (high-falloff) term by the zoom, never below 1×.
   // Off-screen bubbles have falloff ≈ 0, so they stay at the floor at any zoom.
   const zoomStrength = Math.max(1, scale);
-  return (
-    VIEWPORT_ANCHOR_FLOOR + (1 - VIEWPORT_ANCHOR_FLOOR) * falloff * zoomStrength
-  );
+  return floor + (1 - floor) * falloff * zoomStrength;
 }

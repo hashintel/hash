@@ -97,12 +97,11 @@ export interface LayoutSimulation {
 }
 
 /**
- * Freeze a layout once its energy drops to here. A threshold of 0.01 freezes
- * before collision forces finish separating the last overlaps; 0.001 matches
- * d3's natural settle floor, letting the layout fully relax (the "nicer layout
- * when left alone" effect).
+ * Freeze a layout once its energy drops to here (see
+ * {@link "./entity-layout-config"} `settleAlpha` for the tuning rationale).
+ * Fallback when the caller doesn't pass a threshold.
  */
-const SETTLE_ALPHA = 0.001;
+const DEFAULT_SETTLE_ALPHA = 0.001;
 
 /**
  * Custom d3 force that confines nodes inside a circle. Runs as part of the
@@ -147,15 +146,18 @@ export class ForceSimulation implements LayoutSimulation {
   readonly #nodes: ForceNode[];
   readonly #confinementRadius: number | undefined;
   readonly #positionBuffer: EntityPositionBuffer;
+  readonly #settleAlpha: number;
   #status: ForceLayoutStatus;
 
   constructor(
     nodes: ForceNode[],
     simulation: Simulation<ForceNode, ForceEdge>,
     confinementRadius?: number,
+    settleAlpha: number = DEFAULT_SETTLE_ALPHA,
   ) {
     this.#nodes = nodes;
     this.#confinementRadius = confinementRadius;
+    this.#settleAlpha = settleAlpha;
     this.#status = "running";
     this.#positionBuffer = new EntityPositionBuffer(nodes.length);
     this.#writePositions();
@@ -193,9 +195,9 @@ export class ForceSimulation implements LayoutSimulation {
   }
 
   /**
-   * Advances the simulation until alpha falls below {@link SETTLE_ALPHA} or the
-   * `budgetMs` time budget elapses; returns whether any tick ran and positions
-   * were committed.
+   * Advances the simulation until alpha falls below the settle threshold or
+   * the `budgetMs` time budget elapses; returns whether any tick ran and
+   * positions were committed.
    */
   tick(budgetMs: number): boolean {
     if (this.#status === "settled") {
@@ -208,7 +210,7 @@ export class ForceSimulation implements LayoutSimulation {
 
     while (
       performance.now() - start < budgetMs &&
-      this.#simulation.alpha() > SETTLE_ALPHA
+      this.#simulation.alpha() > this.#settleAlpha
     ) {
       this.#simulation.tick();
       if (this.#confinementRadius !== undefined) {
@@ -221,7 +223,7 @@ export class ForceSimulation implements LayoutSimulation {
       this.#writePositions();
     }
 
-    if (this.#simulation.alpha() <= SETTLE_ALPHA) {
+    if (this.#simulation.alpha() <= this.#settleAlpha) {
       this.#status = "settled";
     }
 

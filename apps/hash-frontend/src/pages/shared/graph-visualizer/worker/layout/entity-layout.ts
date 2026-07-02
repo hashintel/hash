@@ -27,15 +27,12 @@ import {
   forceY,
 } from "d3-force";
 
+import { defaultEntityForceConfig } from "./entity-layout-config";
 import { ForceSimulation } from "./force-simulation";
 
+import type { EntityForceConfig } from "./entity-layout-config";
 import type { ForceEdge, ForceNode } from "./force-simulation";
 import type { Force } from "d3-force";
-
-/** Gentle pull toward the bubble center; collision does the real spacing. */
-const CENTER_STRENGTH = 0.05;
-/** Pull toward the external port target; blends with (does not erase) center. */
-const PORT_ATTRACTION_STRENGTH = 0.2;
 
 /**
  * Pull each entity toward its port target `(targets[2i], targets[2i+1])`, in the
@@ -78,12 +75,20 @@ export function createEntityLayout(
   edges: ForceEdge[],
   confinementRadius: number,
   portTargets?: Float32Array,
+  tuning: EntityForceConfig = defaultEntityForceConfig,
 ): ForceSimulation {
   const simulation = forceSimulation<ForceNode>(nodes)
-    .force("charge", forceManyBody<ForceNode>().strength(-1).distanceMax(50))
+    .force(
+      "charge",
+      forceManyBody<ForceNode>()
+        .strength(tuning.chargeStrength)
+        .distanceMax(tuning.chargeDistanceMax),
+    )
     .force(
       "collide",
-      forceCollide<ForceNode>((node) => node.radius + 1).iterations(4),
+      forceCollide<ForceNode>(
+        (node) => node.radius + tuning.collidePadding,
+      ).iterations(tuning.collideIterations),
     )
     .force(
       "link",
@@ -95,23 +100,30 @@ export function createEntityLayout(
           (edge) =>
             ((edge.source as ForceNode).radius +
               (edge.target as ForceNode).radius) *
-              2 +
-            10,
+              tuning.linkDistanceMultiplier +
+            tuning.linkDistancePadding,
         )
-        .strength((edge) => Math.min(1, 0.3 * edge.weight)),
+        .strength((edge) =>
+          Math.min(1, tuning.linkStrengthFactor * edge.weight),
+        ),
     )
-    .force("centerX", forceX<ForceNode>(0).strength(CENTER_STRENGTH))
-    .force("centerY", forceY<ForceNode>(0).strength(CENTER_STRENGTH))
-    .alphaDecay(0.015)
-    .velocityDecay(0.35)
+    .force("centerX", forceX<ForceNode>(0).strength(tuning.centerStrength))
+    .force("centerY", forceY<ForceNode>(0).strength(tuning.centerStrength))
+    .alphaDecay(tuning.alphaDecay)
+    .velocityDecay(tuning.velocityDecay)
     .stop();
 
   if (portTargets) {
     simulation.force(
       "port",
-      forcePortAttraction(portTargets, PORT_ATTRACTION_STRENGTH),
+      forcePortAttraction(portTargets, tuning.portAttractionStrength),
     );
   }
 
-  return new ForceSimulation(nodes, simulation, confinementRadius);
+  return new ForceSimulation(
+    nodes,
+    simulation,
+    confinementRadius,
+    tuning.settleAlpha,
+  );
 }

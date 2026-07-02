@@ -118,6 +118,100 @@ function contentBounds(handle: WorkerHandle): ViewBounds | null {
   return bounds;
 }
 
+/**
+ * World bounds of the largest rendered bubble, or null when none exists
+ * (before frames, or flat-force without communities).
+ *
+ * Flat tier: the biggest Louvain community by member count, its bounds
+ * gathered from the members' live SAB positions (padded by dot radius) --
+ * this is the "giant ball" the BubbleSet layer draws. Hierarchical tier:
+ * the largest leaf cluster bubble by world radius (depth > 0 are opened
+ * containers, faint outlines whose fill lives in their leaves).
+ */
+function largestBubbleBounds(handle: WorkerHandle): ViewBounds | null {
+  const positions = handle.getPositions();
+  const structure = handle.getStructure();
+  if (!positions || !structure) {
+    return null;
+  }
+
+  const flatGraph = structure.flatGraph;
+  if (flatGraph) {
+    const membership = flatGraph.communities;
+    if (!membership) {
+      return null;
+    }
+    const flat = handle.getClusters().get(flatGraph.layoutId);
+    if (!flat) {
+      return null;
+    }
+    const data = new DataView(flat.versionView.buffer);
+    const count = Math.min(data.getUint32(4, true), membership.length);
+
+    const memberCounts = new Map<number, number>();
+    let largestCommunity = -1;
+    let largestSize = 0;
+    for (let index = 0; index < count; index++) {
+      const community = membership[index] ?? -1;
+      if (community < 0) {
+        continue;
+      }
+      const size = (memberCounts.get(community) ?? 0) + 1;
+      memberCounts.set(community, size);
+      if (size > largestSize) {
+        largestSize = size;
+        largestCommunity = community;
+      }
+    }
+    if (largestCommunity < 0) {
+      return null;
+    }
+
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+    for (let index = 0; index < count; index++) {
+      if (membership[index] !== largestCommunity) {
+        continue;
+      }
+      const recordOffset = FLAT_HEADER_BYTES + index * FLAT_RECORD_BYTES;
+      const x = data.getFloat32(recordOffset, true);
+      const y = data.getFloat32(recordOffset + 4, true);
+      if (!Number.isFinite(x) || !Number.isFinite(y)) {
+        continue;
+      }
+      const radius = data.getFloat32(
+        recordOffset + FLAT_RADIUS_BYTE_OFFSET,
+        true,
+      );
+      minX = Math.min(minX, x - radius);
+      minY = Math.min(minY, y - radius);
+      maxX = Math.max(maxX, x + radius);
+      maxY = Math.max(maxY, y + radius);
+    }
+    return minX === Infinity ? null : { minX, minY, maxX, maxY };
+  }
+
+  let largest: ViewBounds | null = null;
+  let largestRadius = 0;
+  for (const [index, cluster] of structure.clusters.entries()) {
+    if (cluster.depth !== 0 || cluster.radius <= largestRadius) {
+      continue;
+    }
+    const x = positions.clusterPositions[index * 2] ?? 0;
+    const y = positions.clusterPositions[index * 2 + 1] ?? 0;
+    largestRadius = cluster.radius;
+    largest = {
+      minX: x - cluster.radius,
+      minY: y - cluster.radius,
+      maxX: x + cluster.radius,
+      maxY: y + cluster.radius,
+    };
+  }
+  return largest;
+}
+
 export interface SceneCameraDependencies {
   readonly container: HTMLDivElement;
   readonly handle: WorkerHandle;
@@ -188,6 +282,20 @@ export class SceneCamera {
     const bounds = contentBounds(this.#dependencies.handle);
     if (bounds) {
       this.fitToBounds(bounds, 72);
+    }
+  }
+
+  /**
+   * Frame the largest rendered bubble (Louvain community on the flat tier,
+   * leaf cluster otherwise) so it fills the padded viewport; fit-to-content
+   * when none exists. Data-derived, so repeated calls frame the same view.
+   */
+  frameLargestBubble(): void {
+    const bounds = largestBubbleBounds(this.#dependencies.handle);
+    if (bounds) {
+      this.fitToBounds(bounds, 48);
+    } else {
+      this.fitToContent();
     }
   }
 

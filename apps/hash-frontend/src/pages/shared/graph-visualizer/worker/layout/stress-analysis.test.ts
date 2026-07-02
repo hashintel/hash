@@ -2,10 +2,8 @@
  * Tests for the graph-analysis pipeline (CSR → weak components → pivot BFS rows →
  * PivotMDS init → component packing) that feeds the majorization engine.
  *
- * Covers analysis-stage behaviors: determinism, empty/tiny graph handling, warm
- * continuation from supplied positions. Solver-level gates (overlap-free settle,
- * warm absorb, Louvain refresh, degree repulsion) live in majorization-layout.test.ts
- * and majorization-layout.perf.test.ts.
+ * Covers analysis-stage behaviour only; solver settle/gate tests are elsewhere in
+ * the layout test suite.
  */
 import { describe, expect, it } from "vitest";
 
@@ -88,7 +86,7 @@ describe("StressAnalysis", () => {
     expect(endToEnd).toBeGreaterThan(adjacent * 5);
   });
 
-  it("exposes exact BFS rows for the pivots (what the term builder samples)", () => {
+  it("exposes exact BFS rows for each pivot", () => {
     const nodeCount = 40;
     const { src, dst } = pathGraph(nodeCount);
     const result = analyse(nodeCount, src, dst);

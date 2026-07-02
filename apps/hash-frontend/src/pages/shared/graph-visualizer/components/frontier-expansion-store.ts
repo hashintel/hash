@@ -68,6 +68,12 @@ export interface FrontierSnapshot {
    */
   readonly expandedById: ReadonlyMap<EntityId, EntityCardContext>;
   readonly progress: FrontierProgress;
+  /**
+   * User-facing message from the most recent expansion failure, cleared when the next
+   * expansion starts. Partial progress survives the failure: batches fetched before it
+   * remain expanded, and the unfetched ids return to the frontier for retry (see
+   * {@link FrontierExpansionStore.expand}).
+   */
   readonly error: string | undefined;
 }
 
@@ -127,10 +133,18 @@ export class FrontierExpansionStore {
   }
 
   /**
-   * Expand frontier nodes: fetch their neighbourhoods and hand them to the worker, whose
-   * additive ingest is the merge -- each expanded node flips to a root and un-greys; its
-   * endpoints become the next frontier. Ids already expanded or in flight are skipped, so
-   * each id expands at most once and repeat calls are no-ops.
+   * Expand frontier nodes: fetch their neighbourhoods in batches and hand each batch to
+   * the worker, whose additive ingest is the merge. Each expanded node flips to a root
+   * and un-greys; its endpoints become the next frontier. Ids already expanded or in
+   * flight are skipped, so each id expands at most once and repeat calls are no-ops.
+   *
+   * Batches commit independently, and a fetch failure mid-run rolls nothing back: the
+   * worker cannot retract batches it already merged. Ids ingested before the failure
+   * stay expanded, while the unfetched ids leave `inFlight` without joining
+   * `expandedRoots`, so they count as frontier again and a repeat call fetches only that
+   * remainder. The failure message is published as {@link FrontierSnapshot.error} and
+   * clears when the next expansion starts. Failures never reject the returned promise
+   * (they surface only through the snapshot), so callers can fire-and-forget.
    */
   readonly expand = async (entityIds: readonly EntityId[]): Promise<void> => {
     const { handle } = this;

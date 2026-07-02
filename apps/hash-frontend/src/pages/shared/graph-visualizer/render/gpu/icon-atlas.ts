@@ -6,7 +6,9 @@
  *
  * Icon formats:
  * - URL (`http(s)://` or `/`): monochrome SVG drawn as a white silhouette
- *   (recoloured via `source-in`), loaded asynchronously. Pending until resolved.
+ *   (recoloured via `source-in`), loaded asynchronously. Pending until
+ *   resolved; a failed load is terminal (the key stays not-ready and is never
+ *   retried for the atlas's lifetime).
  * - Other string: emoji, drawn synchronously with `fillText`.
  *
  * Cells are pre-coloured (white silhouettes / full-colour emoji). The atlas owns
@@ -55,7 +57,12 @@ function resolveIconUrl(icon: string): string {
     : icon;
 }
 
-/** A claimed cell. `cellIndex` is a stable row-major slot (never reused). */
+/**
+ * A claimed cell. `cellIndex` is a stable row-major slot (never reused).
+ * `ready` flips to true once the raster lands. A URL entry whose load failed
+ * keeps `ready` false forever: keeping the claim recorded is what stops
+ * {@link IconAtlas.ensureIcons} from retrying the key into a fresh slot.
+ */
 interface AtlasEntry {
   readonly cellIndex: number;
   ready: boolean;
@@ -71,7 +78,7 @@ export class IconAtlas {
   #rows = INITIAL_ROWS;
   /** Next free cell slot (row-major); never decreases, so slots are stable across grows. */
   #nextCell = 0;
-  /** Every claimed key (ready or pending) -> its stable slot + ready flag. */
+  /** Every claimed key (ready, in flight, or failed) -> its stable slot + ready flag. */
   readonly #entries = new Map<string, AtlasEntry>();
   /** Fired after an async raster finishes (so the Scene re-pushes the layers). */
   readonly #onUpdate: () => void;
@@ -140,12 +147,17 @@ export class IconAtlas {
     return mapping;
   }
 
-  /** Is `key` rasterised and ready to draw? A pending/unknown key is not. */
+  /** Is `key` rasterised and ready to draw? A pending, failed, or unknown key is not. */
   has(key: string): boolean {
     return this.#entries.get(key)?.ready === true;
   }
 
-  /** Ensure each key is rasterised (or in flight). Already-claimed keys are skipped. */
+  /**
+   * Ensure each key is rasterised or in flight. Claimed keys are skipped, so
+   * repeated calls with overlapping key sets are idempotent. That includes URL
+   * keys whose load failed: they stay claimed but never ready, and are never
+   * refetched or retried into a fresh slot.
+   */
   ensureIcons(keys: readonly string[]): void {
     for (const key of keys) {
       if (key.length === 0 || this.#entries.has(key)) {
@@ -237,11 +249,13 @@ export class IconAtlas {
       this.#version += 1;
       this.#onUpdate();
     };
-    image.onerror = () => {
-      // Drop it: the key stays not-ready, never enters the mapping, so the layer simply never
-      // shows an icon for it. (Its slot is spent -- a blank cell -- which is acceptable.)
-      this.#entries.delete(key);
-    };
+    // A failed load is terminal for the atlas's lifetime: the error event goes
+    // unhandled, so the entry stays claimed but never turns ready. The key then
+    // never enters the mapping (the layer draws no icon for it) and later
+    // `ensureIcons` calls keep skipping it. Retrying instead would claim a
+    // fresh slot per attempt (slots are never reused) and refetch a URL that
+    // most likely fails again on every icon rescan; the terminal failure costs
+    // one blank cell, once.
     image.src = resolveIconUrl(key);
   }
 

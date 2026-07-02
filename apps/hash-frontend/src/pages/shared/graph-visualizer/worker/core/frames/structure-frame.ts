@@ -4,7 +4,6 @@
  * Emitted on structure commits only, never on a position tick.
  */
 import { graphColors } from "../../../visual-style";
-import { ENTITY_RADIUS_FRACTION } from "../../entity-style";
 import { analyzeHierarchy } from "../../geometry/edge-geometry";
 import { colorForCluster } from "../../hierarchy/cluster-tree";
 import { frontierCount, frontierMembers } from "../cluster-membership";
@@ -170,7 +169,9 @@ export class StructureFrameEmitter {
         layoutId: leafId,
         leafClusterIndex: leafIndex,
         count: layout.nodeIds.length,
-        radius: cluster.circle.radius * ENTITY_RADIUS_FRACTION,
+        radius:
+          cluster.circle.radius *
+          this.#dependencies.config.clusterSizing.entityRadiusFraction,
         color: colorForCluster(cluster, types),
         internalEdges: Uint32Array.from(internal),
         fanOutColor: FAN_OUT_COLOR,

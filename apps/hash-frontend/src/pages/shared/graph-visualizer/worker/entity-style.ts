@@ -18,34 +18,92 @@ import type { TypeRegistry } from "./store/type-registry";
 
 /** Hue step between successive colour slots (degrees). */
 const GOLDEN_ANGLE_DEG = 137.508;
-const NODE_CHROMA = 0.13;
-const ROOT_LIGHTNESS = 0.55;
-const LIGHTNESS_PER_DEPTH = 0.04;
-const SIBLING_JITTER = 0.035;
-const MIN_LIGHTNESS = 0.4;
-const MAX_LIGHTNESS = 0.78;
-const MAX_SHADE_DEPTH = 4;
-const DOT_ALPHA = 220;
-
-const DOT_BASE_RADIUS = 4;
-const DOT_DEGREE_K = 0.35;
 
 const NEUTRAL: Color = [...graphColors.fallbackEntity];
-
-const EDGE_CHROMA = 0.09;
-const EDGE_LIGHTNESS = 0.58;
-const EDGE_ALPHA = 180;
 const EDGE_NEUTRAL: Color = [...graphColors.fallbackEntity];
 
 /** Colour for a frontier node (fetched link endpoint, not itself a query root). */
 export const FRONTIER_COLOR: Color = [...graphColors.frontier];
 
 /**
- * Entity-dot radius as a fraction of the parent bubble radius (currently
- * 0.02). Lower values keep dense leaves readable; higher values make
- * individual dots dominate the bubble.
+ * Visual style of entity dots and flat-tier edges (colour by type hierarchy,
+ * size by degree), including the hub-link fading applied by
+ * {@link "./core/flat/flat-edges"}.
  */
-export const ENTITY_RADIUS_FRACTION = 0.02;
+export interface EntityStyleConfig {
+  /** OKLCH chroma of entity dots. @defaultValue 0.13. */
+  readonly nodeChroma: number;
+  /** OKLCH lightness of a root type's dots. @defaultValue 0.55. */
+  readonly rootLightness: number;
+  /** Lightness added per `allOf` depth step, shading subtypes. @defaultValue 0.04. */
+  readonly lightnessPerDepth: number;
+  /** Hash-jitter half-range separating same-depth sibling types. @defaultValue 0.035. */
+  readonly siblingJitter: number;
+  /** Lightness clamp floor. @defaultValue 0.4. */
+  readonly minLightness: number;
+  /** Lightness clamp ceiling. @defaultValue 0.78. */
+  readonly maxLightness: number;
+  /** Depth beyond which shading stops darkening. @defaultValue 4. */
+  readonly maxShadeDepth: number;
+  /** Dot alpha (0-255). @defaultValue 220. */
+  readonly dotAlpha: number;
+  /** Base dot radius in world units. @defaultValue 4. */
+  readonly dotBaseRadius: number;
+  /** Degree factor: radius = base × (1 + ln(1 + degree) × this). @defaultValue 0.35. */
+  readonly dotDegreeScale: number;
+  /** OKLCH chroma of typed edges. @defaultValue 0.09. */
+  readonly edgeChroma: number;
+  /** OKLCH lightness of typed edges. @defaultValue 0.58. */
+  readonly edgeLightness: number;
+  /** Edge alpha (0-255). @defaultValue 180. */
+  readonly edgeAlpha: number;
+  /** Flat-tier edge stroke width in world units (the layer scales it with zoom). @defaultValue 1.2. */
+  readonly flatEdgeWidth: number;
+  /** Endpoint degree at which hub-link fading starts. @defaultValue 8. */
+  readonly hubLinkFadeStartDegree: number;
+  /** Endpoint degree at which hub-link fading saturates. @defaultValue 128. */
+  readonly hubLinkFadeEndDegree: number;
+  /** Alpha-scale floor for fully-faded hub links. @defaultValue 0.3. */
+  readonly hubLinkFadeMinScale: number;
+}
+
+export const defaultEntityStyleConfig: EntityStyleConfig = {
+  nodeChroma: 0.13,
+  rootLightness: 0.55,
+  lightnessPerDepth: 0.04,
+  siblingJitter: 0.035,
+  minLightness: 0.4,
+  maxLightness: 0.78,
+  maxShadeDepth: 4,
+  dotAlpha: 220,
+  dotBaseRadius: 4,
+  dotDegreeScale: 0.35,
+  edgeChroma: 0.09,
+  edgeLightness: 0.58,
+  edgeAlpha: 180,
+  flatEdgeWidth: 1.2,
+  hubLinkFadeStartDegree: 8,
+  hubLinkFadeEndDegree: 128,
+  hubLinkFadeMinScale: 0.3,
+};
+
+/**
+ * The active style, read by the colour/radius functions below. Module state
+ * rather than a threaded parameter because these run in per-node hot loops on
+ * both threads (worker commit passes, main-thread hub labels); each thread
+ * calls {@link configureEntityStyle} once at init with the live config.
+ */
+let style: EntityStyleConfig = defaultEntityStyleConfig;
+
+/** Install the live style on this thread (worker init / visualizer mount). */
+export function configureEntityStyle(config: EntityStyleConfig): void {
+  style = config;
+}
+
+/** The active {@link EntityStyleConfig} on this thread. */
+export function entityStyle(): EntityStyleConfig {
+  return style;
+}
 
 function slotHue(
   typeIdx: TypeId | undefined,
@@ -102,20 +160,20 @@ export function colorForType(
   if (hue === undefined) {
     return NEUTRAL;
   }
-  const depth = Math.min(info.depth, MAX_SHADE_DEPTH);
+  const depth = Math.min(info.depth, style.maxShadeDepth);
 
   const fraction = murmur3StringUnit(extractBaseUrl(info.url));
 
-  const jitter = (fraction - 0.5) * 2 * SIBLING_JITTER;
+  const jitter = (fraction - 0.5) * 2 * style.siblingJitter;
   const lightness = Math.min(
-    MAX_LIGHTNESS,
+    style.maxLightness,
     Math.max(
-      MIN_LIGHTNESS,
-      ROOT_LIGHTNESS + depth * LIGHTNESS_PER_DEPTH + jitter,
+      style.minLightness,
+      style.rootLightness + depth * style.lightnessPerDepth + jitter,
     ),
   );
-  const [red, green, blue] = oklchToRgb(lightness, NODE_CHROMA, hue);
-  return [red, green, blue, DOT_ALPHA];
+  const [red, green, blue] = oklchToRgb(lightness, style.nodeChroma, hue);
+  return [red, green, blue, style.dotAlpha];
 }
 
 /**
@@ -132,11 +190,17 @@ export function edgeColorForType(
   if (hue === undefined) {
     return EDGE_NEUTRAL;
   }
-  const [red, green, blue] = oklchToRgb(EDGE_LIGHTNESS, EDGE_CHROMA, hue);
-  return [red, green, blue, EDGE_ALPHA];
+  const [red, green, blue] = oklchToRgb(
+    style.edgeLightness,
+    style.edgeChroma,
+    hue,
+  );
+  return [red, green, blue, style.edgeAlpha];
 }
 
 /** By-degree dot radius in world units: `base * (1 + ln(1 + deg) * k)`. */
 export function radiusForDegree(degree: number): number {
-  return DOT_BASE_RADIUS * (1 + Math.log(1 + degree) * DOT_DEGREE_K);
+  return (
+    style.dotBaseRadius * (1 + Math.log(1 + degree) * style.dotDegreeScale)
+  );
 }

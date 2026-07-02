@@ -13,6 +13,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { LoadingSpinner } from "@hashintel/design-system";
 
+import { VizConfigPanel } from "./components/dev-harness-config-panel";
 import { ControlsPanel } from "./components/dev-harness-controls-panel";
 import { defaultVizConfig } from "./config";
 import { generateGraphFixture } from "./dev-harness/generate-fixture";
@@ -44,11 +45,6 @@ const DEFAULT_KNOBS: HarnessKnobs = {
   linkDensity: 1.2,
   rootFraction: 0.7,
   hubCount: 4,
-  // Target-shaping baseline matching the majorization engine's production defaults,
-  // so the initial view equals it.
-  stressCommunityCohesion: 0.02,
-  stressCommunitySeparation: 0.08,
-  stressDegreeRepulsion: 0.02,
   stream: false,
   chunkSize: 10,
   intervalMs: 150,
@@ -65,6 +61,16 @@ interface FeedState {
 export const DevHarness = () => {
   const [knobs, setKnobs] = useState<HarnessKnobs>(DEFAULT_KNOBS);
   const [seed, setSeed] = useState(1);
+
+  // The full worker config, driven by the config panel's knobs. The revision
+  // counter keys the visualizer: ingest is additive, so each applied config
+  // change remounts it (fresh worker, re-init with the new config, re-ingest).
+  const [layoutConfig, setLayoutConfig] = useState<VizConfig>(defaultVizConfig);
+  const [configRevision, setConfigRevision] = useState(0);
+  const handleApplyConfig = useCallback((next: VizConfig) => {
+    setLayoutConfig(next);
+    setConfigRevision((previous) => previous + 1);
+  }, []);
 
   // The fixture is regenerated only when a fixture-shaping knob (or seed) changes; the streaming
   // knobs (chunk size, interval) drive the feed, not the fixture.
@@ -315,13 +321,16 @@ export const DevHarness = () => {
       }, RENDER_BENCH_DURATION_MS);
     };
     if (sweep) {
-      // Every sweep starts from fit-to-content (after its 240 ms transition
-      // settles), so the zoom envelope is deterministic and bisection runs
-      // (hide one kind, re-run) compare like with like. Without this the
-      // sweep starts wherever the previous run left the camera, and the
-      // envelope drift dominates the layer deltas. A pinned capture keeps
-      // the camera exactly as the user framed it.
-      scene.fitToContent();
+      // Every sweep starts from the same data-derived anchor (after its
+      // 240 ms transition settles): the largest bubble, framed to fill the
+      // view. That keeps the zoom envelope deterministic -- bisection runs
+      // (hide one kind, re-run) compare like with like -- AND parks the
+      // sweep on the fill-heaviest region, so the zoom-in crest dives into
+      // the big bubble instead of whatever happened to sit at the viewport
+      // centre. (Fit-to-content alone was deterministic but zoomed into
+      // the graph's midpoint, missing an off-centre worst case.) A pinned
+      // capture keeps the camera exactly as the user framed it.
+      scene.frameLargestBubble();
       benchTimersRef.current.fit = window.setTimeout(
         beginCapture,
         RENDER_BENCH_FIT_SETTLE_MS,
@@ -358,10 +367,11 @@ export const DevHarness = () => {
     [],
   );
 
-  // Remount the visualizer (fresh worker, cleared graph) whenever the fixture identity or feed mode
-  // changes. Ingest is additive, so without a remount a regenerated fixture would pile its entities
-  // onto the previous graph instead of replacing it -- so the key must include every fixture-shaping
-  // knob, not just seed/stream (changing any of these sliders regenerates the fixture too).
+  // Remount the visualizer (fresh worker, cleared graph) whenever the fixture identity, feed mode,
+  // or applied config changes. Ingest is additive, so without a remount a regenerated fixture would
+  // pile its entities onto the previous graph instead of replacing it -- so the key must include
+  // every fixture-shaping knob, not just seed/stream (changing any of these sliders regenerates the
+  // fixture too).
   const visualizerKey = [
     seed,
     knobs.entityCount,
@@ -369,30 +379,9 @@ export const DevHarness = () => {
     knobs.linkDensity,
     knobs.rootFraction,
     knobs.hubCount,
-    knobs.stressCommunityCohesion,
-    knobs.stressCommunitySeparation,
-    knobs.stressDegreeRepulsion,
     knobs.stream,
+    configRevision,
   ].join(":");
-
-  // Default scale/cluster config plus the target-shaping overrides from the knobs. A change to
-  // any stress knob also changes the key above, so the worker remounts and re-inits with the
-  // new shaping weights.
-  const layoutConfig = useMemo<VizConfig>(
-    () => ({
-      ...defaultVizConfig,
-      stress: {
-        communityCohesion: knobs.stressCommunityCohesion,
-        communitySeparation: knobs.stressCommunitySeparation,
-        degreeRepulsion: knobs.stressDegreeRepulsion,
-      },
-    }),
-    [
-      knobs.stressCommunityCohesion,
-      knobs.stressCommunitySeparation,
-      knobs.stressDegreeRepulsion,
-    ],
-  );
 
   return (
     <Box sx={{ position: "relative", width: "100%", height: "100%" }}>
@@ -410,6 +399,7 @@ export const DevHarness = () => {
         totalCount={fixture.entities.length}
         seed={seed}
       />
+      <VizConfigPanel value={layoutConfig} onApply={handleApplyConfig} />
       <EntityGraphVisualizer
         key={visualizerKey}
         config={layoutConfig}

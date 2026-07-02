@@ -5,6 +5,7 @@ import { hslToRgb } from "../../math/color";
 import { murmur3StringUnit } from "../../math/hash";
 import { graphColors } from "../../visual-style";
 import { Column } from "../collections/column";
+import { defaultClusterSizingConfig } from "./cluster-sizing-config";
 import { subclusterByLinks } from "./community";
 
 import type { VizConfig } from "../../config";
@@ -13,6 +14,7 @@ import type { ClusterKind, EntityIndex, TypeId, TypeSetKey } from "../../ids";
 import type { LinkStore } from "../store/link";
 import type { TypeRegistry } from "../store/type-registry";
 import type { TypeSetGroup, TypeSetStore } from "../store/type-set";
+import type { ClusterSizingConfig } from "./cluster-sizing-config";
 
 function stableHashToAngle(id: string): number {
   return murmur3StringUnit(id) * 2 * Math.PI;
@@ -228,21 +230,6 @@ function stableSortNodes(nodes: ClusterNode[]): ClusterNode[] {
     (lhs, rhs) => rhs.count - lhs.count || lhs.id.localeCompare(rhs.id),
   );
 }
-
-/**
- * Leaf radius: `sqrt(count) * RADIUS_PER_SQRT_COUNT` (default 5). Higher
- * values enlarge all bubbles proportionally; lower values increase
- * overlap risk in force layout.
- */
-const RADIUS_PER_SQRT_COUNT = 5;
-/** Minimum leaf radius (default 8) regardless of count, so tiny clusters stay clickable. */
-const LEAF_MIN_RADIUS = 8;
-/** Larger floor so singleton-type top-level bubbles stay clickable. */
-const TOP_LEVEL_MIN_RADIUS = 15;
-/** Minimum gap (default 2) enforced between sibling circles in {@link enclosingRadius}. */
-const ENCLOSE_GAP = 2;
-/** Extra margin (default 3) added on top of the enclosing fit so force layout has room to settle children without clipping. */
-const ENCLOSE_PADDING = 3;
 
 /**
  * Radius of a circle that can hold children of the given radii without overlap,
@@ -546,8 +533,10 @@ export class ClusterTree {
   readonly #nodes = new Map<ClusterId, ClusterNode>();
   readonly #root: ClusterNode;
   readonly #subdivisionRequested = new Set<ClusterId>();
+  readonly #sizing: ClusterSizingConfig;
 
-  constructor() {
+  constructor(sizing: ClusterSizingConfig = defaultClusterSizingConfig) {
+    this.#sizing = sizing;
     this.#root = new ClusterNode(ClusterId("cluster:root"), "root", {
       source: "groups",
       keys: [],
@@ -1221,9 +1210,10 @@ export class ClusterTree {
   }
 
   #sizeNodeRadius(node: ClusterNode): void {
+    const sizing = this.#sizing;
     const countRadius = Math.max(
-      LEAF_MIN_RADIUS,
-      Math.sqrt(node.count) * RADIUS_PER_SQRT_COUNT,
+      sizing.leafMinRadius,
+      Math.sqrt(node.count) * sizing.radiusPerSqrtCount,
     );
 
     if (node.kind === "family" && node.children.length > 0) {
@@ -1231,7 +1221,8 @@ export class ClusterTree {
         this.#sizeNodeRadius(child);
       }
       const childRadii = node.children.map((child) => child.circle.radius);
-      const fit = enclosingRadius(childRadii, ENCLOSE_GAP) + ENCLOSE_PADDING;
+      const fit =
+        enclosingRadius(childRadii, sizing.encloseGap) + sizing.enclosePadding;
       node.circle.radius = Math.max(countRadius, fit);
     } else {
       node.circle.radius = countRadius;
@@ -1249,7 +1240,10 @@ export class ClusterTree {
     for (let idx = 0; idx < children.length; idx++) {
       // idx iterates 0..children.length-1.
       const child = children[idx]!;
-      child.circle.radius = Math.max(TOP_LEVEL_MIN_RADIUS, child.circle.radius);
+      child.circle.radius = Math.max(
+        this.#sizing.topLevelMinRadius,
+        child.circle.radius,
+      );
     }
   }
 
@@ -1262,7 +1256,10 @@ export class ClusterTree {
     this.#assignRadii();
 
     for (const child of children) {
-      child.circle.radius = Math.max(TOP_LEVEL_MIN_RADIUS, child.circle.radius);
+      child.circle.radius = Math.max(
+        this.#sizing.topLevelMinRadius,
+        child.circle.radius,
+      );
     }
   }
 
@@ -1275,11 +1272,11 @@ export class ClusterTree {
     const totalCount = children.reduce((sum, child) => sum + child.count, 0);
 
     for (const child of children) {
-      // Scale child radius by sqrt(count share) of parent, capped at
-      // LEAF_MIN_RADIUS (8); 0.6 leaves margin for force-layout gaps
+      // Scale child radius by sqrt(count share) of parent, floored at the
+      // minimum leaf radius; 0.6 leaves margin for force-layout gaps
       // inside the parent.
       child.circle.radius = Math.max(
-        8,
+        this.#sizing.leafMinRadius,
         parent.circle.radius * Math.sqrt(child.count / totalCount) * 0.6,
       );
     }

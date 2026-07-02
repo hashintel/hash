@@ -7,6 +7,7 @@
  */
 import { dimColor } from "../../../dim-color";
 import { entityIndexFromNodeId } from "../../../ids";
+import { entityStyle } from "../../entity-style";
 import { edgeColorForTypeGroup } from "./entity-colors";
 
 import type { Color, RenderEdgeArrow } from "../../../frames";
@@ -18,9 +19,6 @@ import type { TypeRegistry } from "../../store/type-registry";
 import type { TypeSetStore } from "../../store/type-set";
 import type { ColorCache } from "./entity-colors";
 
-/** Flat-tier edge stroke width in world units (the layer scales it with zoom). */
-export const FLAT_EDGE_WIDTH_WORLD = 1.2;
-
 /**
  * Degree-scaled link fading: a link incident to a high-degree hub draws fainter, so a
  * 150-leaf starburst reads as a soft halo instead of an opaque disk of strokes (every
@@ -28,23 +26,22 @@ export const FLAT_EDGE_WIDTH_WORLD = 1.2;
  * that hides both the hub and any through-traffic). The scale ramps down with the
  * LOG of the larger endpoint degree: links into ordinary nodes (degree below the
  * start) keep full alpha, and the ramp saturates at a floor so hub links stay
- * visible, just de-emphasised.
+ * visible, just de-emphasised. Thresholds come from the live
+ * {@link entityStyle} (`hubLinkFade*`).
  */
-const HUB_LINK_FADE_START_DEGREE = 8;
-const HUB_LINK_FADE_END_DEGREE = 128;
-const HUB_LINK_FADE_MIN_SCALE = 0.3;
-
-/** Alpha multiplier in [HUB_LINK_FADE_MIN_SCALE, 1] for a link whose larger endpoint has `degree`. */
 function hubLinkAlphaScale(degree: number): number {
-  if (degree <= HUB_LINK_FADE_START_DEGREE) {
+  const { hubLinkFadeStartDegree, hubLinkFadeEndDegree, hubLinkFadeMinScale } =
+    entityStyle();
+
+  if (degree <= hubLinkFadeStartDegree) {
     return 1;
   }
 
   const ramp =
-    Math.log(degree / HUB_LINK_FADE_START_DEGREE) /
-    Math.log(HUB_LINK_FADE_END_DEGREE / HUB_LINK_FADE_START_DEGREE);
+    Math.log(degree / hubLinkFadeStartDegree) /
+    Math.log(hubLinkFadeEndDegree / hubLinkFadeStartDegree);
 
-  return 1 - Math.min(1, ramp) * (1 - HUB_LINK_FADE_MIN_SCALE);
+  return 1 - Math.min(1, ramp) * (1 - hubLinkFadeMinScale);
 }
 
 /**
@@ -166,6 +163,7 @@ export class FlatEdgePipeline {
 
     const { nodes } = layout;
     const highlighted = this.#dependencies.highlightedEntities();
+    const edgeWidth = entityStyle().flatEdgeWidth;
 
     for (const edge of this.#renderEdges) {
       const source = nodes[edge.sourceIdx];
@@ -187,10 +185,10 @@ export class FlatEdgePipeline {
         continue;
       }
 
-      const startDistance = source.radius + FLAT_EDGE_WIDTH_WORLD;
-      const endDistance = target.radius + FLAT_EDGE_WIDTH_WORLD;
+      const startDistance = source.radius + edgeWidth;
+      const endDistance = target.radius + edgeWidth;
       const visibleChord = chord - startDistance - endDistance;
-      if (visibleChord <= FLAT_EDGE_WIDTH_WORLD) {
+      if (visibleChord <= edgeWidth) {
         continue;
       }
 
@@ -200,10 +198,7 @@ export class FlatEdgePipeline {
       const sy = ay + uy * startDistance;
       const tx = bx - ux * endDistance;
       const ty = by - uy * endDistance;
-      const edgeEndInset = Math.min(
-        FLAT_EDGE_WIDTH_WORLD * 0.9,
-        visibleChord * 0.35,
-      );
+      const edgeEndInset = Math.min(edgeWidth * 0.9, visibleChord * 0.35);
       const edgeTx = tx - ux * edgeEndInset;
       const edgeTy = ty - uy * edgeEndInset;
       const visibleDx = edgeTx - sx;
@@ -224,17 +219,14 @@ export class FlatEdgePipeline {
           p3: [edgeTx, edgeTy],
         },
         color,
-        FLAT_EDGE_WIDTH_WORLD,
+        edgeWidth,
         undefined,
         undefined,
         edge.linkEntityIdx,
       );
 
-      const arrowSize = FLAT_EDGE_WIDTH_WORLD;
-      const arrowInset = Math.min(
-        FLAT_EDGE_WIDTH_WORLD * 0.45,
-        visibleChord * 0.2,
-      );
+      const arrowSize = edgeWidth;
+      const arrowInset = Math.min(edgeWidth * 0.45, visibleChord * 0.2);
 
       arrowsOut.push({
         kind: "endpoint",

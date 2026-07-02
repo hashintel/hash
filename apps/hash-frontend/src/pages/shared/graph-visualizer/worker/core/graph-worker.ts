@@ -13,6 +13,7 @@
  * see alone.
  */
 import { validateConfig } from "../../config";
+import { configureEntityStyle } from "../entity-style";
 import { PortCache } from "../geometry/bubble-ports";
 import { EdgeAggregator } from "../geometry/edge-aggregation";
 import { syncWorldPositions } from "../geometry/world-positions";
@@ -74,7 +75,7 @@ export class GraphWorker {
   /** Per-entity property features + property titles, used to name clusters. */
   readonly #properties: PropertyStore = new PropertyStore();
 
-  readonly #clusterTree = new ClusterTree();
+  readonly #clusterTree: ClusterTree;
   readonly #portCache = new PortCache();
   readonly #edgeAggregator = new EdgeAggregator();
 
@@ -106,14 +107,8 @@ export class GraphWorker {
     typeSets: this.#typeSets,
   });
 
-  readonly #polisher = new SettlePolisher({
-    viewport: () => this.#viewport,
-  });
-
-  readonly #portConstraints = new PortConstraintController({
-    layouts: this.#layouts,
-    clusterTree: this.#clusterTree,
-  });
+  readonly #polisher: SettlePolisher;
+  readonly #portConstraints: PortConstraintController;
 
   readonly #structureEmitter: StructureFrameEmitter;
   readonly #positionsEmitter: PositionsFrameEmitter;
@@ -126,6 +121,22 @@ export class GraphWorker {
   constructor(config: VizConfig) {
     validateConfig(config);
     this.config = config;
+
+    // Colour/size style is module state (hot loops); install it before any
+    // commit pass runs.
+    configureEntityStyle(config.entityStyle);
+
+    this.#clusterTree = new ClusterTree(config.clusterSizing);
+    this.#portConstraints = new PortConstraintController({
+      layouts: this.#layouts,
+      clusterTree: this.#clusterTree,
+    });
+
+    this.#polisher = new SettlePolisher({
+      viewport: () => this.#viewport,
+      topLevelPolish: config.topLevelPolish,
+      untangle: config.untangle,
+    });
 
     this.#structureEmitter = new StructureFrameEmitter({
       config,
@@ -175,6 +186,7 @@ export class GraphWorker {
     });
 
     this.#layoutManager = new HierarchicalLayoutManager({
+      config,
       layouts: this.#layouts,
       view: this.#view,
       polisher: this.#polisher,
@@ -226,6 +238,7 @@ export class GraphWorker {
 
     this.#tickLoop = new TickLoop({
       debug: this.debug,
+      slowTickWarningMs: config.ingest.slowTickWarningMs,
       layouts: this.#layouts,
       clusterTree: this.#clusterTree,
       polisher: this.#polisher,

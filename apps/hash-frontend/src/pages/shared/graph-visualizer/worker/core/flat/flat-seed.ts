@@ -14,10 +14,16 @@ import type { ForceNode } from "../../layout/force-simulation";
 import type { LinkStore } from "../../store/link";
 
 /** Seed offset (world units) for a streamed node placed beside a placed neighbour. */
-const FLAT_SEED_NEIGHBOUR_OFFSET = 24;
+export const FLAT_SEED_NEIGHBOUR_OFFSET = 24;
 
 /** Phyllotaxis disk scale (world units) for cold-start / orphan flat nodes. */
-const FLAT_SEED_DISK_SCALE = 28;
+export const FLAT_SEED_DISK_SCALE = 28;
+
+/** Optional overrides for the seeding geometry (defaults above). */
+export interface FlatSeedTuning {
+  readonly neighbourOffset?: number;
+  readonly diskScale?: number;
+}
 
 /**
  * `placed` holds the prior positions on entry (see
@@ -28,7 +34,10 @@ export function seedFlatNodes(
   entityIdxs: readonly EntityIndex[],
   placed: PositionScratch<EntityIndex>,
   links: LinkStore,
+  tuning?: FlatSeedTuning,
 ): ForceNode[] {
+  const neighbourOffset = tuning?.neighbourOffset ?? FLAT_SEED_NEIGHBOUR_OFFSET;
+  const diskScale = tuning?.diskScale ?? FLAT_SEED_DISK_SCALE;
   const goldenAngle = Math.PI * (3 - Math.sqrt(5));
 
   // Repeat until no progress: each unplaced node with a placed neighbor
@@ -49,10 +58,8 @@ export function seedFlatNodes(
 
           placed.set(
             idx,
-            placed.x(link.otherId) +
-              Math.cos(angle) * FLAT_SEED_NEIGHBOUR_OFFSET,
-            placed.y(link.otherId) +
-              Math.sin(angle) * FLAT_SEED_NEIGHBOUR_OFFSET,
+            placed.x(link.otherId) + Math.cos(angle) * neighbourOffset,
+            placed.y(link.otherId) + Math.sin(angle) * neighbourOffset,
           );
 
           changed = true;
@@ -64,8 +71,7 @@ export function seedFlatNodes(
 
   // Remaining unplaced -> a phyllotaxis disk (even, deterministic fill).
   const unplaced = entityIdxs.filter((idx) => !placed.has(idx));
-  const fillRadius =
-    FLAT_SEED_DISK_SCALE * Math.sqrt(Math.max(1, unplaced.length));
+  const fillRadius = diskScale * Math.sqrt(Math.max(1, unplaced.length));
 
   for (let slot = 0; slot < unplaced.length; slot++) {
     const dist = fillRadius * Math.sqrt((slot + 0.5) / unplaced.length);

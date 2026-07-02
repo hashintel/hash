@@ -37,35 +37,16 @@ import {
   separateGraphs,
 } from "webcola";
 
+import { defaultFlatForceConfig } from "./flat-layout-config";
+
 import type { FlatGraphBuffer } from "../buffers/position-buffer";
+import type { FlatForceConfig } from "./flat-layout-config";
 import type {
   ForceEdge,
   ForceLayoutStatus,
   ForceNode,
   LayoutSimulation,
 } from "./force-simulation";
-
-/** Base ideal link length (world units); jaccardLinkLengths scales it by structure. */
-const IDEAL_LINK_LENGTH = 40;
-/** jaccardLinkLengths weighting: how strongly neighbourhood overlap warps lengths. */
-const JACCARD_WEIGHT = 1;
-/** Non-overlap padding around each dot, in world units. */
-const NODE_PAD = 3;
-/** Stress-convergence threshold for Phase A (cola's own default ratio test). */
-const CONVERGENCE_THRESHOLD = 0.01;
-/** Phase B (overlap): run a guaranteed base of iterations to get past VPSC's
- * early stress-neutral steps (where a convergence test trips immediately), then
- * switch to displacement-convergence (keep descending until the layout floors,
- * stable), bounded by a high safety cap. We're in the worker streaming through
- * the queue, so the extra iterations cost the UI nothing. */
-const OVERLAP_MIN_ITERS = 40;
-const OVERLAP_MAX_ITERS = 400;
-/** Phase A safety cap: bound the unconstrained stress phase like cola's run().
- * rungeKutta() returns displacement, which ->0 at settle, so the ratio test never
- * trips and the cap is what guarantees termination. */
-const STRESS_MAX_ITERS = 200;
-/** Fallback node size (world units) for the disconnected-component packing. */
-const PACK_NODE_SIZE = 16;
 
 /**
  * A node as cola's `Projection` / packing read it: positions (rebuilt into
@@ -105,15 +86,22 @@ class FlatLayout implements LayoutSimulation {
    */
   readonly #weights: number[][];
   readonly #buffer: FlatGraphBuffer;
+  readonly #tuning: FlatForceConfig;
   #status: ForceLayoutStatus;
   #phase: FlatPhase;
   #prevDisp = Number.MAX_VALUE;
   #stressSteps = 0;
   #overlapSteps = 0;
 
-  constructor(nodes: ForceNode[], edges: ForceEdge[], buffer: FlatGraphBuffer) {
+  constructor(
+    nodes: ForceNode[],
+    edges: ForceEdge[],
+    buffer: FlatGraphBuffer,
+    tuning: FlatForceConfig,
+  ) {
     this.#nodes = nodes;
     this.#buffer = buffer;
+    this.#tuning = tuning;
     const count = nodes.length;
 
     const idToIndex = new Map<string, number>();
@@ -125,8 +113,8 @@ class FlatLayout implements LayoutSimulation {
       index,
       x: node.x ?? 0,
       y: node.y ?? 0,
-      width: (node.radius + NODE_PAD) * 2,
-      height: (node.radius + NODE_PAD) * 2,
+      width: (node.radius + tuning.nodePadding) * 2,
+      height: (node.radius + tuning.nodePadding) * 2,
     }));
 
     const links: ColaLink[] = [];
@@ -161,14 +149,14 @@ class FlatLayout implements LayoutSimulation {
         lengthByLink.set(link, value);
       },
     };
-    jaccardLinkLengths(links, accessor, JACCARD_WEIGHT);
+    jaccardLinkLengths(links, accessor, tuning.jaccardWeight);
 
     const distances = new Calculator<ColaLink>(
       count,
       links,
       accessor.getSourceIndex,
       accessor.getTargetIndex,
-      (link) => IDEAL_LINK_LENGTH * (lengthByLink.get(link) ?? 1),
+      (link) => tuning.idealLinkLength * (lengthByLink.get(link) ?? 1),
     ).DistanceMatrix();
     const distanceMatrix = Descent.createSquareMatrix(
       count,
@@ -186,7 +174,7 @@ class FlatLayout implements LayoutSimulation {
     const xs = this.#colaNodes.map((node) => node.x);
     const ys = this.#colaNodes.map((node) => node.y);
     this.#descent = new Descent([xs, ys], distanceMatrix);
-    this.#descent.threshold = CONVERGENCE_THRESHOLD;
+    this.#descent.threshold = tuning.convergenceThreshold;
     // `descent.project` is null after construction, so Phase A is unconstrained
     // (computeNextPosition guards `if (this.project)`). Phase B sets the overlap
     // Projection. (cola's .d.ts mistypes `project` as non-nullable, hence no assign.)
@@ -219,7 +207,7 @@ class FlatLayout implements LayoutSimulation {
   }
 
   get alpha(): number {
-    return this.#phase === "done" ? 0 : CONVERGENCE_THRESHOLD;
+    return this.#phase === "done" ? 0 : this.#tuning.convergenceThreshold;
   }
 
   tick(budgetMs: number): boolean {
@@ -265,13 +253,16 @@ class FlatLayout implements LayoutSimulation {
         const converged =
           Number.isFinite(disp) &&
           disp > 0 &&
-          Math.abs(this.#prevDisp / disp - 1) < CONVERGENCE_THRESHOLD;
+          Math.abs(this.#prevDisp / disp - 1) <
+            this.#tuning.convergenceThreshold;
         this.#prevDisp = disp;
         if (
           converged ||
           disp === 0 ||
           !Number.isFinite(disp) ||
-          this.#stressSteps >= STRESS_MAX_ITERS
+          // rungeKutta() returns displacement, which ->0 at settle, so the
+          // ratio test never trips and the cap guarantees termination.
+          this.#stressSteps >= this.#tuning.stressMaxIterations
         ) {
           this.#phase = "pack";
         }
@@ -302,7 +293,7 @@ class FlatLayout implements LayoutSimulation {
       case "overlap": {
         const disp = this.#descent.rungeKutta();
         this.#overlapSteps += 1;
-        if (this.#overlapSteps <= OVERLAP_MIN_ITERS) {
+        if (this.#overlapSteps <= this.#tuning.overlapMinIterations) {
           // Guaranteed base: VPSC is stress-neutral at first, so a convergence
           // test would quit before overlap resolves. Run the base, then trust it.
           this.#prevDisp = disp;
@@ -314,12 +305,13 @@ class FlatLayout implements LayoutSimulation {
           disp === 0 ||
           (Number.isFinite(disp) &&
             disp > 0 &&
-            Math.abs(this.#prevDisp / disp - 1) < CONVERGENCE_THRESHOLD);
+            Math.abs(this.#prevDisp / disp - 1) <
+              this.#tuning.convergenceThreshold);
         this.#prevDisp = disp;
         if (
           converged ||
           !Number.isFinite(disp) ||
-          this.#overlapSteps >= OVERLAP_MAX_ITERS
+          this.#overlapSteps >= this.#tuning.overlapMaxIterations
         ) {
           this.#phase = "done";
         }
@@ -358,7 +350,7 @@ class FlatLayout implements LayoutSimulation {
     // as never: separateGraphs expects cola's Link<GraphNode> d.ts; object
     // endpoints carry .index at runtime.
     const graphs = separateGraphs(this.#colaNodes, this.#objectLinks as never);
-    applyPacking(graphs, width, height, PACK_NODE_SIZE, 1, true);
+    applyPacking(graphs, width, height, this.#tuning.packNodeSize, 1, true);
 
     for (let idx = 0; idx < this.#colaNodes.length; idx++) {
       const node = this.#colaNodes[idx]!;
@@ -402,6 +394,7 @@ export function createFlatLayout(
   nodes: ForceNode[],
   edges: ForceEdge[],
   buffer: FlatGraphBuffer,
+  tuning: FlatForceConfig = defaultFlatForceConfig,
 ): LayoutSimulation {
-  return new FlatLayout(nodes, edges, buffer);
+  return new FlatLayout(nodes, edges, buffer, tuning);
 }

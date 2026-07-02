@@ -90,6 +90,8 @@ globalThis.onmessage = ({ data }: MessageEvent<MainToWorkerMessage>) => {
         worker.onStructureFrame = (frame) => postStructure(frame);
         worker.onPositionsFrame = (frame) => postPositions(frame);
         commits = new CommitCoalescer({
+          maxCoalescedBatches: data.config.ingest.maxCoalescedBatches,
+          maxCoalesceDelayMs: data.config.ingest.maxCoalesceDelayMs,
           commit: ({ deltas, rebuildTree }) => {
             const t0 = performance.now();
             created.commitStructure({ deltas, rebuildTree });

@@ -89,6 +89,7 @@ import { UndirectedGraph } from "graphology";
 import louvain from "graphology-communities-louvain";
 
 import { parkMillerRng } from "../../math/random";
+import { defaultMajorizationConfig } from "./majorization-config";
 import { countOverlaps, overlapRelaxPass } from "./overlap-relax";
 import {
   REGION_MIN_COMMUNITY_SIZE,
@@ -103,16 +104,16 @@ import type {
   ForceNode,
   LayoutSimulation,
 } from "./force-simulation";
+import type { MajorizationConfig } from "./majorization-config";
 import type { StressAnalysisResult } from "./stress-analysis";
 
-/** Layout-space length for one graph hop. */
-const IDEAL_LINK_LENGTH = 60;
-/** Extra gap between node disks: collision floors and the projector's pair gap. */
-const OVERLAP_PADDING = 8;
-/** Default community/degree shaping weights (the harness slider defaults). */
-const COMMUNITY_COHESION = 0.02;
-const COMMUNITY_SEPARATION = 0.08;
-const DEGREE_REPULSION = 0.02;
+/**
+ * Engine defaults (ideal hop length, overlap padding, shaping weights,
+ * convergence budget) live in the sibling {@link "./majorization-config"}
+ * module; production passes the live {@link "../../config"} `majorization`
+ * group, tests/benches may omit options entirely.
+ */
+const DEFAULT_TUNING = defaultMajorizationConfig;
 
 /**
  * Slider-to-target-shaping gains. The three tuning weights shape targets:
@@ -220,27 +221,8 @@ const FLOOR_CEILING_SLACK = 1.5;
 const EDGE_BAND = 0.15;
 const PIVOT_BAND = 0.25;
 
-/** Pivot budget: ~all nodes as pivots for tiny graphs, capped so terms stay ~64·n. */
-const PIVOT_COUNT_CAP = 64;
-
-/**
- * CG budget per majorization iteration (each step costs one SpMV per open dimension).
- * The Laplacian is very sparse (pivot terms skip degree-≤1 endpoints), so a step is
- * tens of microseconds even at 5k; the budget is set high enough that CG effectively
- * converges on the majorant each iteration. Under-solving is not a saving: it leaves
- * low-degree nodes' rows unsolved, the next iteration restarts CG from scratch against
- * a fresh RHS, and the leftover disequilibrium re-appears every iteration as sustained
- * displacement that never crosses the convergence threshold.
- */
-const CG_STEPS_PER_ITERATION = 120;
 /** Relative tolerance (preconditioned residual norm²) at which a solve stops early. */
 const CG_RELATIVE_TOLERANCE = 0.01;
-
-/** Hard iteration cap: reaching it logs "capped" and settles rather than spinning. */
-const MAX_ITERATIONS = 150;
-/** Converged when max per-iteration displacement < ε · idealEdgeLength for `streak` iterations. */
-const CONVERGENCE_EPSILON = 8e-3;
-const CONVERGENCE_STREAK = 2;
 
 /**
  * Feasibility is delivered by iterated circle relaxation ({@link overlapRelaxPass};
@@ -348,35 +330,14 @@ const coincidentAngle = (i: number, j: number): number =>
     0x100000000) *
   TAU;
 
-export interface MajorizationLayoutOptions {
-  /**
-   * Target graph-edge length in layout space (px per hop). Default
-   * {@link IDEAL_LINK_LENGTH} (60). Lower values tighten the layout but raise
-   * packing infeasibility risk on dense hubs; higher values spread components and
-   * increase settle work.
-   */
-  readonly idealEdgeLength?: number;
-  /** Extra gap between node disks (floors + the projector's pair gap). Default 8. */
-  readonly overlapPadding?: number;
-  /** Community cohesion shaping weight (same-community targets deflate). Default 0.02. */
-  readonly communityCohesion?: number;
-  /** Community separation shaping weight (cross-community targets inflate). Default 0.08. */
-  readonly communitySeparation?: number;
-  /** Degree halo shaping weight (hub ring floors inflate). Default 0.02. */
-  readonly degreeRepulsion?: number;
-  /** Hard majorization-iteration cap (logs "capped" when reached). Default 150. */
-  readonly maxIterations?: number;
-  /** Convergence threshold: max displacement / idealEdgeLength. Default 8e-3. */
-  readonly convergenceEpsilon?: number;
-  /** Consecutive converged iterations required to settle. Default 2. */
-  readonly convergenceStreak?: number;
-  /** CG steps allowed per majorization iteration. Default 120. */
-  readonly cgStepsPerIteration?: number;
-  /** Pivot count cap (terms ≈ pivots·nodes). Default min(n, 64). */
-  readonly pivotCount?: number;
-}
+/**
+ * Per-call tuning overrides; unset fields fall back to
+ * {@link defaultMajorizationConfig}. See {@link "./majorization-config"} for
+ * per-field semantics.
+ */
+export type MajorizationLayoutOptions = Partial<MajorizationConfig>;
 
-type ResolvedOptions = Required<MajorizationLayoutOptions>;
+type ResolvedOptions = MajorizationConfig;
 
 /** Deduped undirected edge in index space with summed parallel weight. */
 interface IndexEdge {
@@ -1779,17 +1740,27 @@ class MajorizationLayout implements LayoutSimulation {
     this.#nodes = nodes;
     this.#buffer = buffer;
     this.#options = {
-      idealEdgeLength: options.idealEdgeLength ?? IDEAL_LINK_LENGTH,
-      overlapPadding: options.overlapPadding ?? OVERLAP_PADDING,
-      communityCohesion: options.communityCohesion ?? COMMUNITY_COHESION,
-      communitySeparation: options.communitySeparation ?? COMMUNITY_SEPARATION,
-      degreeRepulsion: options.degreeRepulsion ?? DEGREE_REPULSION,
-      maxIterations: options.maxIterations ?? MAX_ITERATIONS,
-      convergenceEpsilon: options.convergenceEpsilon ?? CONVERGENCE_EPSILON,
-      convergenceStreak: options.convergenceStreak ?? CONVERGENCE_STREAK,
+      idealEdgeLength:
+        options.idealEdgeLength ?? DEFAULT_TUNING.idealEdgeLength,
+      overlapPadding: options.overlapPadding ?? DEFAULT_TUNING.overlapPadding,
+      communityCohesion:
+        options.communityCohesion ?? DEFAULT_TUNING.communityCohesion,
+      communitySeparation:
+        options.communitySeparation ?? DEFAULT_TUNING.communitySeparation,
+      degreeRepulsion:
+        options.degreeRepulsion ?? DEFAULT_TUNING.degreeRepulsion,
+      maxIterations: options.maxIterations ?? DEFAULT_TUNING.maxIterations,
+      convergenceEpsilon:
+        options.convergenceEpsilon ?? DEFAULT_TUNING.convergenceEpsilon,
+      convergenceStreak:
+        options.convergenceStreak ?? DEFAULT_TUNING.convergenceStreak,
       cgStepsPerIteration:
-        options.cgStepsPerIteration ?? CG_STEPS_PER_ITERATION,
-      pivotCount: options.pivotCount ?? Math.min(nodes.length, PIVOT_COUNT_CAP),
+        options.cgStepsPerIteration ?? DEFAULT_TUNING.cgStepsPerIteration,
+      // The pivot budget never exceeds the node count (every node a pivot).
+      pivotCount: Math.min(
+        nodes.length,
+        options.pivotCount ?? DEFAULT_TUNING.pivotCount,
+      ),
     };
 
     const count = nodes.length;

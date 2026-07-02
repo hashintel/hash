@@ -31,9 +31,8 @@
 import type { Position } from "../../geometry";
 
 /**
- * Communities below this member count cast no region (no visually meaningful
- * bubble). Shared by the metrics and the majorization engine's region floors so
- * the gate measures exactly what the engine enforces.
+ * Minimum community size that casts a measurable region disk; smaller
+ * communities are excluded from overlap stats.
  */
 export const REGION_MIN_COMMUNITY_SIZE = 8;
 
@@ -98,7 +97,7 @@ export function pointInConvexHull(
   return true;
 }
 
-/** Shoelace area of a CCW polygon. */
+/** Returns the absolute area of a CCW polygon via the shoelace formula. */
 export function polygonArea(polygon: readonly Point[]): number {
   let doubled = 0;
   for (let i = 0; i < polygon.length; i++) {
@@ -118,6 +117,10 @@ function intersect(from: Point, to: Point, edgeA: Point, edgeB: Point): Point {
   const n1 = edgeA.x * edgeB.y - edgeA.y * edgeB.x;
   const n2 = from.x * to.y - from.y * to.x;
   const denom = dcX * dpY - dcY * dpX;
+  // Safe: denom is the 2×2 cross of the two edges' direction vectors, zero
+  // only when the subject and clip edges are parallel; Sutherland-Hodgman's
+  // convex-clip invariant excludes that case for the crossings this is
+  // called on.
   return {
     x: (n1 * dpX - n2 * dcX) / denom,
     y: (n1 * dpY - n2 * dcY) / denom,
@@ -170,7 +173,7 @@ export interface RegionOverlapStats {
    * packing disk (centroid-centred, packing radius).
    */
   readonly diskContainment: number;
-  /** Count behind {@link diskContainment} (for logging). */
+  /** Number of nodes counted in {@link diskContainment} (numerator before division). */
   readonly diskContainedNodes: number;
   /** Fraction of nodes strictly inside ≥ 1 foreign community's convex hull. */
   readonly hullContainment: number;
@@ -183,6 +186,11 @@ export interface RegionOverlapStats {
 /**
  * Region-overlap statistics over a settled layout. Deterministic; O(regions ·
  * (n + hull²)). Bench/test-scale cost only.
+ *
+ * @param overlapPadding - Layout units added to each member's radius before
+ * squaring for the packing-radius estimate. Default 8; raising it enlarges
+ * every community's disk and increases containment sensitivity (more
+ * borderline nodes get flagged as foreign-contained).
  */
 export function measureRegionOverlap(
   nodes: readonly RegionNode[],

@@ -15,6 +15,7 @@ import {
   FLAT_RECORD_BYTES,
 } from "../worker/buffers/position-buffer";
 import { decodeEntityId, ID_HEADER_BYTES } from "../worker/entity-id-codec";
+import { configureEntityStyle } from "../worker/entity-style";
 
 import type { VizConfig } from "../config";
 import type { PositionsFrame, StructureFrame } from "../frames";
@@ -170,6 +171,11 @@ export class WorkerConnection implements WorkerHandle {
   constructor({ config, onReady, onError }: WorkerConnectionConfig) {
     this.#onReady = onReady;
     this.#onError = onError;
+
+    // The worker installs the same style at INIT; this covers main-thread
+    // consumers (hub-label radii).
+    configureEntityStyle(config.entityStyle);
+
     this.#worker = new Worker(new URL("../worker/entry.ts", import.meta.url));
     this.#worker.onmessage = ({ data }: MessageEvent<WorkerToMainMessage>) =>
       this.#handleMessage(data);

@@ -30,8 +30,10 @@
 import { Layout } from "webcola";
 
 import { PositionBuffer } from "../buffers/position-buffer";
+import { defaultClusterForceConfig } from "./cluster-layout-config";
 
 import type { Position } from "../../geometry";
+import type { ClusterForceConfig } from "./cluster-layout-config";
 import type {
   ForceEdge,
   ForceLayoutStatus,
@@ -40,21 +42,6 @@ import type {
   PortAnchor,
 } from "./force-simulation";
 import type { InputNode, Link } from "webcola";
-
-/** Non-overlap padding around each bubble, as a fraction of the mean radius. */
-const ROOT_PAD_MUL = 0.35;
-const SUB_PAD_MUL = 0.05;
-/** Ideal link length as a multiple of the linked pair's combined radii. */
-const ROOT_SEP_MUL = 1.7;
-const SUB_SEP_MUL = 1.2;
-/** Safety cap on majorisation steps so a layout always settles. */
-const MAX_STEPS = 2000;
-/** WebCola alpha that kicks the descent into running after initialisation. */
-const START_ALPHA = 0.1;
-/** Overlap-relaxation passes when fitting a confined sub-cluster to its circle. */
-const CONFINE_PASSES = 16;
-/** Child->port-anchor link length, as a fraction of the parent radius. */
-const ANCHOR_LINK_FRAC = 0.6;
 
 /** Drives WebCola one majorisation step at a time under a time budget. */
 class SteppableLayout extends Layout {
@@ -75,6 +62,7 @@ class ClusterLayout implements LayoutSimulation {
   readonly #cola: SteppableLayout;
   readonly #buffer: PositionBuffer;
   readonly #confinementRadius: number | undefined;
+  readonly #tuning: ClusterForceConfig;
   /** Scratch for the re-centred (and, if confined, fitted) local positions. */
   readonly #posX: Float64Array;
   readonly #posY: Float64Array;
@@ -84,11 +72,13 @@ class ClusterLayout implements LayoutSimulation {
   constructor(
     nodes: ForceNode[],
     edges: ForceEdge[],
-    confinementRadius?: number,
+    confinementRadius: number | undefined,
+    tuning: ClusterForceConfig,
   ) {
     this.#nodes = nodes;
     this.#buffer = new PositionBuffer(nodes.length);
     this.#confinementRadius = confinementRadius;
+    this.#tuning = tuning;
     this.#posX = new Float64Array(nodes.length);
     this.#posY = new Float64Array(nodes.length);
     const isRoot = confinementRadius === undefined;
@@ -99,8 +89,12 @@ class ClusterLayout implements LayoutSimulation {
     }
     meanRadius = nodes.length > 0 ? meanRadius / nodes.length : 1;
 
-    const pad = (isRoot ? ROOT_PAD_MUL : SUB_PAD_MUL) * meanRadius;
-    const sepMul = isRoot ? ROOT_SEP_MUL : SUB_SEP_MUL;
+    const pad =
+      (isRoot ? tuning.rootPaddingMultiplier : tuning.subPaddingMultiplier) *
+      meanRadius;
+    const sepMul = isRoot
+      ? tuning.rootSeparationMultiplier
+      : tuning.subSeparationMultiplier;
 
     const idToIndex = new Map<string, number>();
     for (const [index, node] of nodes.entries()) {
@@ -148,7 +142,7 @@ class ClusterLayout implements LayoutSimulation {
     // Build the descent + distance matrix without iterating, then kick alpha so
     // our manual `tick`s drive the majorisation.
     this.#cola.start(0, 0, 0, 0, false, false);
-    this.#cola.alpha(START_ALPHA);
+    this.#cola.alpha(tuning.startAlpha);
 
     this.#status = "running";
     this.#writePositions();
@@ -191,7 +185,7 @@ class ClusterLayout implements LayoutSimulation {
       converged = this.#cola.runStep();
       this.#steps += 1;
       changed = true;
-      if (this.#steps >= MAX_STEPS) {
+      if (this.#steps >= this.#tuning.maxSteps) {
         converged = true;
       }
     }
@@ -214,7 +208,7 @@ class ClusterLayout implements LayoutSimulation {
   resume(): void {
     if (this.#status === "paused") {
       this.#status = "running";
-      this.#cola.alpha(START_ALPHA);
+      this.#cola.alpha(this.#tuning.startAlpha);
     }
   }
 
@@ -241,7 +235,8 @@ class ClusterLayout implements LayoutSimulation {
     this.#colaNodes = [...this.#childColaNodes, ...anchorNodes];
 
     const links: Link<number>[] = [...this.#childLinks];
-    const anchorLength = (this.#confinementRadius ?? 1) * ANCHOR_LINK_FRAC;
+    const anchorLength =
+      (this.#confinementRadius ?? 1) * this.#tuning.anchorLinkFraction;
     for (const [anchorOffset, anchor] of anchors.entries()) {
       const anchorIndex = childCount + anchorOffset;
       for (const child of anchor.children) {
@@ -261,7 +256,7 @@ class ClusterLayout implements LayoutSimulation {
       // our fixed rim anchors. The anchors + sibling links provide connectivity.
       .handleDisconnected(false)
       .start(0, 0, 0, 0, false, false);
-    this.#cola.alpha(START_ALPHA);
+    this.#cola.alpha(this.#tuning.startAlpha);
     this.#status = "running";
     this.#steps = 0;
     this.#writePositions();
@@ -351,7 +346,7 @@ class ClusterLayout implements LayoutSimulation {
     for (let idx = 0; idx < count; idx++) {
       clamp(idx);
     }
-    for (let pass = 0; pass < CONFINE_PASSES; pass++) {
+    for (let pass = 0; pass < this.#tuning.confinePasses; pass++) {
       let moved = false;
       for (let first = 0; first < count; first++) {
         for (let second = first + 1; second < count; second++) {
@@ -395,6 +390,7 @@ export function createClusterLayout(
   nodes: ForceNode[],
   edges: ForceEdge[],
   confinementRadius?: number,
+  tuning: ClusterForceConfig = defaultClusterForceConfig,
 ): LayoutSimulation {
-  return new ClusterLayout(nodes, edges, confinementRadius);
+  return new ClusterLayout(nodes, edges, confinementRadius, tuning);
 }

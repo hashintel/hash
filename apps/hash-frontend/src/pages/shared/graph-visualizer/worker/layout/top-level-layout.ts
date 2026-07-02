@@ -70,75 +70,146 @@ export interface OptimizeTopLevelOptions {
    * relaxation is what clears it); production never sets it.
    */
   readonly skipOverlapRelaxation?: boolean;
+  /**
+   * Tuning overrides; unset fields fall back to
+   * {@link defaultTopLevelPolishConfig}.
+   */
+  readonly tuning?: Partial<TopLevelPolishConfig>;
 }
 
 /**
- * Objective weights (fixed). Crossings, detours, and overlap dominate
- * legibility; stress (normalised, scale-free) and spread are gentle shaping
- * terms.
+ * Tuning for the top-level (hierarchy overview) polish: this module's
+ * annealing search plus the gates its callers apply
+ * ({@link "../core/hierarchical/settle-polish"} skips the optimiser above
+ * `maxNodes`; {@link "../core/hierarchical/viewport-anchor"} floors its anchor
+ * weight at `viewportAnchorFloor`).
  */
-const CROSS_WEIGHT = 30;
-const DETOUR_WEIGHT = 24;
-const OVERLAP_WEIGHT = 40;
-const STRESS_WEIGHT = 3;
-const SPREAD_WEIGHT = 2;
-/**
- * Ideal edge length = the endpoints' combined radii + a gap (a fraction of the
- * mean radius). Additive, not multiplicative: a multiplicative ideal makes any
- * edge touching a huge bubble "want" to be hundreds of px long (the big radius
- * dominates), so a connected small node gets flung far and the stress term still
- * reads it as near-ideal, connected nodes travel large distances for no
- * reason. An additive gap keeps the desired rim separation modest and uniform
- * regardless of bubble size, so connected nodes sit close. Must stay >= the
- * overlap pad ({@link OVERLAP_PAD_FRAC}) so stress and non-overlap don't fight.
- */
-const IDEAL_GAP_FRAC = 0.5;
-/** Non-overlap gap as a fraction of the mean radius. */
-const OVERLAP_PAD_FRAC = 0.3;
+export interface TopLevelPolishConfig {
+  /**
+   * Above this top-level cluster count, skip the optimiser (keep WebCola's
+   * result).
+   *
+   * @defaultValue 32. The objective is O(n²)-ish per evaluation, so raising it
+   * trades settle-time CPU for polish quality on big overviews.
+   */
+  readonly maxNodes: number;
+  /**
+   * Objective weight per edge crossing. Crossings, detours, and overlap
+   * dominate legibility; stress and spread are gentle shaping terms.
+   *
+   * @defaultValue 30.
+   */
+  readonly crossingWeight: number;
+  /** Objective weight per unit of edge-through-bubble intrusion. @defaultValue 24. */
+  readonly detourWeight: number;
+  /** Objective weight per unit of bubble overlap. @defaultValue 40. */
+  readonly overlapWeight: number;
+  /** Objective weight on normalised (scale-free) edge-length stress. @defaultValue 3. */
+  readonly stressWeight: number;
+  /** Objective weight on neighbour angular-spread pinching. @defaultValue 2. */
+  readonly spreadWeight: number;
+  /**
+   * Ideal rim-to-rim gap between linked bubbles, as a fraction of the mean
+   * radius. Additive, not multiplicative: a multiplicative ideal makes any edge
+   * touching a huge bubble "want" to be hundreds of px long, flinging connected
+   * small nodes far away.
+   *
+   * @defaultValue 0.5. Must stay >= {@link TopLevelPolishConfig.overlapPadFraction}
+   * so stress and non-overlap don't fight.
+   */
+  readonly idealGapFraction: number;
+  /** Non-overlap gap as a fraction of the mean radius. @defaultValue 0.3. */
+  readonly overlapPadFraction: number;
+  /** Initial annealing temperature for cold (unanchored) builds. @defaultValue 25. */
+  readonly startTemperature: number;
+  /** Per-step temperature multiplier. @defaultValue 0.9975. */
+  readonly cooling: number;
+  /** Annealing steps per restart. @defaultValue 1600. */
+  readonly steps: number;
+  /** Independent annealing restarts for cold builds; best result wins. @defaultValue 8. */
+  readonly restarts: number;
+  /** Fraction of cold-build moves that are position swaps (the rest jitter). @defaultValue 0.25. */
+  readonly swapProbability: number;
+  /**
+   * Inertia weight for the anchored (incremental-refine) search: each anchored
+   * node adds weight·(displacement / meanRadius)² to the objective, so existing
+   * bubbles keep their place.
+   *
+   * @defaultValue 12, calibrated against {@link TopLevelPolishConfig.crossingWeight}:
+   * a node won't travel ~2 mean-radii from its anchor unless doing so removes
+   * more than ~1.5 crossings.
+   */
+  readonly anchorWeight: number;
+  /** Annealing start temperature for anchored refines (local search). @defaultValue 6. */
+  readonly anchoredStartTemperature: number;
+  /** Restarts for anchored refines (one local pass, no global re-search). @defaultValue 1. */
+  readonly anchoredRestarts: number;
+  /**
+   * Swap probability during anchored refines. Rare: a swap relocates a node
+   * across the whole layout, the opposite of staying put.
+   *
+   * @defaultValue 0.05.
+   */
+  readonly anchoredSwapProbability: number;
+  /** Anchored move scale, as a multiple of the mean radius. @defaultValue 1.2. */
+  readonly anchoredMoveScale: number;
+  /**
+   * Iteration cap for the post-refine deterministic overlap relaxation (see
+   * {@link relaxOverlaps}); a pathological all-pinned growth case may retain a
+   * residual sliver when exhausted.
+   *
+   * @defaultValue 64.
+   */
+  readonly overlapRelaxIterations: number;
+  /**
+   * Relaxation mass of an un-anchored (new) bubble: very light, so it yields
+   * freely rather than shoving an anchored neighbour. Below the viewport floor.
+   *
+   * @defaultValue 0.01.
+   */
+  readonly freeNodeMass: number;
+  /**
+   * Anchor weight kept by off-screen bubbles during viewport-weighted refines:
+   * they reflow but don't teleport while the user isn't looking (see
+   * {@link "../core/hierarchical/viewport-anchor"}).
+   *
+   * @defaultValue 0.05.
+   */
+  readonly viewportAnchorFloor: number;
+}
 
-const START_TEMP = 25;
-const COOLING = 0.9975;
-const STEPS = 1600;
-const RESTARTS = 8;
-/** Fraction of moves that are position swaps (the rest are jitters). */
-const SWAP_PROB = 0.25;
+export const defaultTopLevelPolishConfig: TopLevelPolishConfig = {
+  maxNodes: 32,
+  crossingWeight: 30,
+  detourWeight: 24,
+  overlapWeight: 40,
+  stressWeight: 3,
+  spreadWeight: 2,
+  idealGapFraction: 0.5,
+  overlapPadFraction: 0.3,
+  startTemperature: 25,
+  cooling: 0.9975,
+  steps: 1600,
+  restarts: 8,
+  swapProbability: 0.25,
+  anchorWeight: 12,
+  anchoredStartTemperature: 6,
+  anchoredRestarts: 1,
+  anchoredSwapProbability: 0.05,
+  anchoredMoveScale: 1.2,
+  overlapRelaxIterations: 64,
+  freeNodeMass: 0.01,
+  viewportAnchorFloor: 0.05,
+};
 
-/**
- * Incremental-refine (anchored) search. When previous positions are supplied,
- * the search stays local so existing bubbles keep their place: an inertia term
- * adds {@link ANCHOR_WEIGHT}·(displacement / meanRadius)² per anchored node to
- * the objective, and the search takes small steps ({@link ANCHORED_MOVE_SCALE_MUL}
- * of the mean radius) with a single pass ({@link ANCHORED_RESTARTS}) and rare
- * swaps ({@link ANCHORED_SWAP_PROB}): a swap relocates a node across the whole
- * layout, the opposite of staying put). The weight is calibrated against
- * {@link CROSS_WEIGHT}: at weight 12 a node won't travel ~2 mean-radii from its
- * anchor unless doing so removes more than ~1.5 crossings, so the layout only
- * reshuffles when it genuinely helps. Cold builds (no anchors) keep the global
- * constants above.
- */
-const ANCHOR_WEIGHT = 12;
-const ANCHORED_START_TEMP = 6;
-const ANCHORED_RESTARTS = 1;
-const ANCHORED_SWAP_PROB = 0.05;
-const ANCHORED_MOVE_SCALE_MUL = 1.2;
-
-/**
- * Final non-overlap relaxation (anchored refine only). Inertia is quadratic and
- * the overlap penalty is linear, so for a large forced displacement (a bubble
- * that suddenly grew (e.g. 70 → 2000 entities, radius ~5×) whose neighbours are
- * all pinned near the viewport). The anchor wins and the grown bubble is left
- * overlapping. This deterministic push-apart runs after the search and drives
- * overlap toward zero, distributing the separation by anchor weight (as mass):
- * a pinned central bubble barely moves while lighter / off-screen neighbours
- * yield. Convergence is bounded by {@link OVERLAP_RELAX_ITERS} (see
- * {@link relaxOverlaps}), so a pathological all-pinned growth case may retain a
- * residual sliver if the budget is exhausted. A no-op when nothing overlaps, so
- * it never disturbs a stable layout.
- */
-const OVERLAP_RELAX_ITERS = 64;
-/** Relaxation mass of an un-anchored (new) bubble: very light, so it yields
- * freely rather than shoving an anchored neighbour. Below the viewport floor. */
-const FREE_NODE_MASS = 0.01;
+/** Resolve per-call overrides against the module defaults. */
+function resolveTuning(
+  tuning: Partial<TopLevelPolishConfig> | undefined,
+): TopLevelPolishConfig {
+  return tuning
+    ? { ...defaultTopLevelPolishConfig, ...tuning }
+    : defaultTopLevelPolishConfig;
+}
 
 /** The rim point of `node` in the direction of `(tx,ty)`, where an edge to that
  * neighbour attaches (its port, before any min-separation nudge). */
@@ -201,6 +272,7 @@ interface Problem {
 function buildProblem(
   nodes: readonly LayoutNode[],
   edges: readonly (readonly [number, number])[],
+  tuning: TopLevelPolishConfig,
 ): Problem {
   let meanRadius = 0;
   for (const node of nodes) {
@@ -210,7 +282,7 @@ function buildProblem(
 
   const adjacency: number[][] = nodes.map(() => []);
   const ideals: number[] = [];
-  const gap = meanRadius * IDEAL_GAP_FRAC;
+  const gap = meanRadius * tuning.idealGapFraction;
   // Edge endpoints are valid node indices: buildProblem is only called from
   // measureLayout/optimizeTopLevel on the same nodes array that defines
   // adjacency's length.
@@ -238,6 +310,7 @@ function computeTerms(
   nodes: readonly LayoutNode[],
   problem: Problem,
   terms: LayoutTerms,
+  tuning: TopLevelPolishConfig,
 ): void {
   const { edges, adjacency, ideals, meanRadius } = problem;
   const edgeCount = edges.length;
@@ -324,7 +397,8 @@ function computeTerms(
       const ni = nodes[i]!;
       const nj = nodes[j]!;
       const dist = Math.hypot(ni.x - nj.x, ni.y - nj.y);
-      const minDist = ni.radius + nj.radius + OVERLAP_PAD_FRAC * meanRadius;
+      const minDist =
+        ni.radius + nj.radius + tuning.overlapPadFraction * meanRadius;
       if (dist < minDist) {
         overlap += (minDist - dist) / meanRadius;
       }
@@ -361,13 +435,16 @@ function computeTerms(
   terms.spread = spread;
 }
 
-function weightedTotal(terms: LayoutTerms): number {
+function weightedTotal(
+  terms: LayoutTerms,
+  tuning: TopLevelPolishConfig,
+): number {
   return (
-    CROSS_WEIGHT * terms.crossings +
-    DETOUR_WEIGHT * terms.detour +
-    OVERLAP_WEIGHT * terms.overlap +
-    STRESS_WEIGHT * terms.stress +
-    SPREAD_WEIGHT * terms.spread
+    tuning.crossingWeight * terms.crossings +
+    tuning.detourWeight * terms.detour +
+    tuning.overlapWeight * terms.overlap +
+    tuning.stressWeight * terms.stress +
+    tuning.spreadWeight * terms.spread
   );
 }
 
@@ -383,8 +460,10 @@ export interface LayoutMeasure extends LayoutTerms {
 export function measureLayout(
   nodes: readonly LayoutNode[],
   edges: readonly (readonly [number, number])[],
+  tuning?: Partial<TopLevelPolishConfig>,
 ): LayoutMeasure {
-  const problem = buildProblem(nodes, edges);
+  const resolved = resolveTuning(tuning);
+  const problem = buildProblem(nodes, edges, resolved);
   const terms: LayoutTerms = {
     crossings: 0,
     detour: 0,
@@ -392,13 +471,13 @@ export function measureLayout(
     stress: 0,
     spread: 0,
   };
-  computeTerms(nodes, problem, terms);
-  return { ...terms, energy: weightedTotal(terms) };
+  computeTerms(nodes, problem, terms, resolved);
+  return { ...terms, energy: weightedTotal(terms, resolved) };
 }
 
 /**
  * Push overlapping nodes apart in place, stopping when no pair overlaps or
- * after {@link OVERLAP_RELAX_ITERS} passes, distributing each pair's
+ * after {@link TopLevelPolishConfig.overlapRelaxIterations} passes, distributing each pair's
  * separation by anchor weight as a mass: a node moves proportionally to the
  * other's mass, so a heavy (pinned, high-weight) bubble barely moves and a
  * light (off-screen or new) one yields. Uses the same minimum separation as the
@@ -410,10 +489,12 @@ export function relaxOverlaps(
   nodes: LayoutNode[],
   anchors: readonly (Anchor | null)[],
   meanRadius: number,
+  tuning?: Partial<TopLevelPolishConfig>,
 ): void {
-  const pad = OVERLAP_PAD_FRAC * meanRadius;
+  const resolved = resolveTuning(tuning);
+  const pad = resolved.overlapPadFraction * meanRadius;
   const count = nodes.length;
-  for (let iter = 0; iter < OVERLAP_RELAX_ITERS; iter++) {
+  for (let iter = 0; iter < resolved.overlapRelaxIterations; iter++) {
     let moved = false;
     for (let i = 0; i < count; i++) {
       const ni = nodes[i]!;
@@ -434,8 +515,8 @@ export function relaxOverlaps(
           dist = 1;
         }
         const penetration = minDist - dist;
-        const massI = anchors[i]?.weight ?? FREE_NODE_MASS;
-        const massJ = anchors[j]?.weight ?? FREE_NODE_MASS;
+        const massI = anchors[i]?.weight ?? resolved.freeNodeMass;
+        const massJ = anchors[j]?.weight ?? resolved.freeNodeMass;
         const total = massI + massJ;
         // Mass-weighted split so low-weight (off-screen) neighbours yield
         // before pinned, high-weight anchors.
@@ -474,7 +555,8 @@ export function optimizeTopLevel(
   if (count < 3 || edges.length === 0) {
     return;
   }
-  const problem = buildProblem(nodes, edges);
+  const tuning = resolveTuning(options?.tuning);
+  const problem = buildProblem(nodes, edges, tuning);
   const rng = mulberry32(seed);
   const terms: LayoutTerms = {
     crossings: 0,
@@ -548,12 +630,12 @@ export function optimizeTopLevel(
       const weight = anchor.weight ?? 1;
       sum += (weight * (dx * dx + dy * dy)) / (anchorScale * anchorScale);
     }
-    return ANCHOR_WEIGHT * sum;
+    return tuning.anchorWeight * sum;
   };
 
   const evalEnergy = (): number => {
-    computeTerms(nodes, problem, terms);
-    return weightedTotal(terms) + anchorEnergy();
+    computeTerms(nodes, problem, terms, tuning);
+    return weightedTotal(terms, tuning) + anchorEnergy();
   };
 
   // Cold-search jitter span scales with layout extent so moves stay
@@ -567,10 +649,16 @@ export function optimizeTopLevel(
   // Anchored: a local refine (small steps, one pass, rare swaps). Cold: the
   // full global search. `jitterBasis` also scales the restart kick, so an
   // anchored pass never throws a node across the layout.
-  const restarts = anchored ? ANCHORED_RESTARTS : RESTARTS;
-  const startTemp = anchored ? ANCHORED_START_TEMP : START_TEMP;
-  const swapProb = anchored ? ANCHORED_SWAP_PROB : SWAP_PROB;
-  const jitterBasis = anchored ? anchorScale * ANCHORED_MOVE_SCALE_MUL : extent;
+  const restarts = anchored ? tuning.anchoredRestarts : tuning.restarts;
+  const startTemp = anchored
+    ? tuning.anchoredStartTemperature
+    : tuning.startTemperature;
+  const swapProb = anchored
+    ? tuning.anchoredSwapProbability
+    : tuning.swapProbability;
+  const jitterBasis = anchored
+    ? anchorScale * tuning.anchoredMoveScale
+    : extent;
 
   const bestX = nodes.map((node) => node.x);
   const bestY = nodes.map((node) => node.y);
@@ -593,7 +681,7 @@ export function optimizeTopLevel(
     let current = evalEnergy();
     let temp = startTemp;
 
-    for (let step = 0; step < STEPS; step++) {
+    for (let step = 0; step < tuning.steps; step++) {
       if (rng() < swapProb) {
         // Swap two nodes' positions: the move that un-crosses a layout.
         const i = Math.floor(rng() * count);
@@ -639,7 +727,7 @@ export function optimizeTopLevel(
           nodes[i]!.y = oy;
         }
       }
-      temp *= COOLING;
+      temp *= tuning.cooling;
     }
 
     if (current < bestEnergy) {
@@ -664,6 +752,6 @@ export function optimizeTopLevel(
   // lighter/off-screen bubbles (see {@link relaxOverlaps} iteration budget).
   // (Cold builds resolve overlap during the global search.)
   if (anchored && options?.skipOverlapRelaxation !== true) {
-    relaxOverlaps(nodes, anchors, problem.meanRadius);
+    relaxOverlaps(nodes, anchors, problem.meanRadius, tuning);
   }
 }

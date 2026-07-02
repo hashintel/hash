@@ -11,18 +11,17 @@ import { TOGGLEABLE_LAYER_KINDS } from "../render/scene/layer-kinds";
 
 import type { LayerKind } from "../render/scene/layer-kinds";
 
-/** The full knob set the harness drives the generator with. */
+/**
+ * The full knob set the harness drives the generator with. Layout/worker
+ * tuning lives in the separate config panel
+ * ({@link "./dev-harness-config-panel"}), not here.
+ */
 export interface HarnessKnobs {
   readonly entityCount: number;
   readonly entityTypeCount: number;
   readonly linkDensity: number;
   readonly rootFraction: number;
   readonly hubCount: number;
-  // Majorization target-shaping tuning (community-force flat tier; all spread the
-  // layout outward and stay overlap-free).
-  readonly stressCommunityCohesion: number;
-  readonly stressCommunitySeparation: number;
-  readonly stressDegreeRepulsion: number;
   readonly stream: boolean;
   readonly chunkSize: number;
   readonly intervalMs: number;
@@ -198,37 +197,6 @@ export const ControlsPanel = memo(
               max={20}
               step={1}
               onChange={(hubCount) => set({ hubCount })}
-            />
-
-            <KnobSlider
-              label="Community cohesion"
-              value={knobs.stressCommunityCohesion}
-              min={0}
-              max={0.3}
-              step={0.01}
-              onChange={(stressCommunityCohesion) =>
-                set({ stressCommunityCohesion })
-              }
-            />
-            <KnobSlider
-              label="Community separation"
-              value={knobs.stressCommunitySeparation}
-              min={0}
-              max={0.8}
-              step={0.02}
-              onChange={(stressCommunitySeparation) =>
-                set({ stressCommunitySeparation })
-              }
-            />
-            <KnobSlider
-              label="Degree repulsion (hub halo)"
-              value={knobs.stressDegreeRepulsion}
-              min={0}
-              max={0.3}
-              step={0.01}
-              onChange={(stressDegreeRepulsion) =>
-                set({ stressDegreeRepulsion })
-              }
             />
 
             <Stack

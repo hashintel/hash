@@ -8,7 +8,6 @@
  * the cut and keeps every per-layout side table in sync.
  */
 import { nodeIdForEntityIndex } from "../../../ids";
-import { ENTITY_RADIUS_FRACTION } from "../../entity-style";
 import { createClusterLayout } from "../../layout/cluster-layout";
 import { createEntityLayout } from "../../layout/entity-layout";
 import { entityIndicesForCluster } from "../cluster-membership";
@@ -17,6 +16,7 @@ import { layoutNeedsRebuild, layoutOutgrown } from "./layout-reuse";
 import { writeLeafColors } from "./leaf-colors";
 import { membershipFingerprint } from "./membership-fingerprint";
 
+import type { VizConfig } from "../../../config";
 import type { ClusterId, EntityIndex } from "../../../ids";
 import type { ClusterNode } from "../../hierarchy/cluster-tree";
 import type {
@@ -34,6 +34,7 @@ import type { PortConstraintController } from "./port-constraints";
 import type { SettlePolisher } from "./settle-polish";
 
 export interface HierarchicalLayoutDependencies {
+  readonly config: VizConfig;
   readonly layouts: LayoutRegistry;
   readonly view: CommittedView;
   readonly polisher: SettlePolisher;
@@ -54,6 +55,7 @@ export interface HierarchicalLayoutDependencies {
 const clusterLayoutStale = (
   layout: LayoutSimulation,
   parent: ClusterNode,
+  toleranceFrac: number,
 ): boolean =>
   layoutNeedsRebuild(
     layout.nodes.map((node) => ({
@@ -65,6 +67,7 @@ const clusterLayoutStale = (
       id: child.id,
       radius: child.circle.radius,
     })),
+    toleranceFrac,
   );
 
 /**
@@ -76,6 +79,7 @@ const clusterLayoutStale = (
 const clusterLayoutOutgrown = (
   layout: LayoutSimulation,
   parent: ClusterNode,
+  toleranceFrac: number,
 ): boolean =>
   layoutOutgrown(
     layout.nodes.map((node) => ({ id: node.id, radius: node.radius })),
@@ -83,6 +87,7 @@ const clusterLayoutOutgrown = (
       id: child.id,
       radius: child.circle.radius,
     })),
+    toleranceFrac,
   );
 
 export class HierarchicalLayoutManager {
@@ -119,10 +124,17 @@ export class HierarchicalLayoutManager {
     // only, when a cluster has grown enough since this layout was built to
     // warrant a re-pack, so the hierarchy overview visibly re-arranges as it
     // grows rather than only when growth finally forces an overlap.
+    const { stability } = this.#dependencies.config;
+
     if (
       layout &&
-      (clusterLayoutStale(layout, parent) ||
-        (parent.kind === "root" && clusterLayoutOutgrown(layout, parent)))
+      (clusterLayoutStale(layout, parent, stability.overlapRebuildTolerance) ||
+        (parent.kind === "root" &&
+          clusterLayoutOutgrown(
+            layout,
+            parent,
+            stability.growthRelayoutTolerance,
+          )))
     ) {
       layouts.delete(key);
       portConstraints.deleteAnchors(key);
@@ -169,7 +181,12 @@ export class HierarchicalLayoutManager {
       // Root has no confinement; top-level clusters are free-floating.
       const confinement =
         parent.kind === "root" ? undefined : parent.circle.radius;
-      layout = createClusterLayout(nodes, edges, confinement);
+      layout = createClusterLayout(
+        nodes,
+        edges,
+        confinement,
+        this.#dependencies.config.clusterForce,
+      );
       // Warm up so the first frame isn't the raw ring seed.
       layout.tick(20);
       const childById = new Map(
@@ -222,7 +239,9 @@ export class HierarchicalLayoutManager {
 
     this.#entityLayoutFingerprints.set(key, fingerprint);
     const parentRadius = cluster.circle.radius;
-    const entityRadius = parentRadius * ENTITY_RADIUS_FRACTION;
+    const entityRadius =
+      parentRadius *
+      this.#dependencies.config.clusterSizing.entityRadiusFraction;
 
     // Deterministic phyllotaxis (sunflower) seeding: even, stable disk fill so
     // re-opening a cluster lands entities in the same place each time.
@@ -256,6 +275,7 @@ export class HierarchicalLayoutManager {
       edges,
       cluster.circle.radius,
       portTargets,
+      this.#dependencies.config.entityForce,
     );
     layouts.set(key, "entities", layout);
 
