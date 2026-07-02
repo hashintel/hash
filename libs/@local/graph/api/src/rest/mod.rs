@@ -38,6 +38,7 @@ use error_stack::{Report, ResultExt as _};
 use futures::{SinkExt as _, channel::mpsc::Sender};
 use hash_codec::numeric::Real;
 use hash_graph_authorization::policies::store::{PolicyStore, PrincipalStore};
+use hash_graph_embeddings::{EmbeddingError, EmbeddingGenerator as _, OpenAiEmbeddingClient};
 use hash_graph_postgres_store::store::error::VersionedUrlAlreadyExists;
 use hash_graph_store::{
     account::AccountStore,
@@ -67,6 +68,7 @@ use hash_graph_temporal_versioning::{
     OpenTemporalBound, RightBoundedTemporalInterval, TemporalBound, Timestamp, TransactionTime,
 };
 use hash_graph_type_fetcher::TypeFetcher;
+use hash_graph_types::Embedding;
 use hash_status::Status;
 use hash_temporal_client::TemporalClient;
 use include_dir::{Dir, include_dir};
@@ -369,13 +371,110 @@ pub(crate) fn resolve_limit(
 /// A search request could not be converted into store parameters.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, derive_more::Display)]
 pub enum SearchRequestError {
+    /// The requested `limit` exceeds the configured maximum.
     #[display("The requested limit is invalid.")]
     LimitExceeded,
+    /// The requested maximum semantic distance is outside the valid range.
     #[display("The requested maximum semantic distance is invalid.")]
     InvalidSemanticDistance,
+    /// Neither `embedding` nor `semanticString` was provided.
+    #[display("Neither an embedding nor a semantic string was provided.")]
+    MissingEmbeddingSource,
+    /// Both `embedding` and `semanticString` were provided.
+    #[display("Both an embedding and a semantic string were provided.")]
+    ConflictingEmbeddingSource,
+    /// The provided `embedding` does not have the expected number of dimensions.
+    #[display("The provided embedding has an invalid number of dimensions.")]
+    InvalidEmbeddingDimensions,
+    /// `semanticString` was provided but the server has no embedding client configured.
+    #[display("Semantic-string search is unavailable because no embedding client is configured.")]
+    EmbeddingClientUnavailable,
+    /// The embedding for the provided `semanticString` could not be generated.
+    #[display("The embedding for the semantic string could not be generated.")]
+    EmbeddingGenerationFailed,
 }
 
 impl Error for SearchRequestError {}
+
+/// Resolves the query embedding for a search request.
+///
+/// Exactly one of `embedding` or `semantic_string` must be provided. When `semantic_string` is
+/// given, it is converted into an embedding using `embedding_client`, which must be configured for
+/// the request to succeed.
+///
+/// # Errors
+///
+/// - [`MissingEmbeddingSource`] if neither `embedding` nor `semantic_string` is provided.
+/// - [`ConflictingEmbeddingSource`] if both are provided.
+/// - [`InvalidEmbeddingDimensions`] if a provided `embedding` has the wrong number of dimensions.
+/// - [`EmbeddingClientUnavailable`] if `semantic_string` is provided but no embedding client is
+///   configured.
+/// - [`EmbeddingGenerationFailed`] if the embedding client fails to generate an embedding.
+///
+/// [`MissingEmbeddingSource`]: SearchRequestError::MissingEmbeddingSource
+/// [`ConflictingEmbeddingSource`]: SearchRequestError::ConflictingEmbeddingSource
+/// [`InvalidEmbeddingDimensions`]: SearchRequestError::InvalidEmbeddingDimensions
+/// [`EmbeddingClientUnavailable`]: SearchRequestError::EmbeddingClientUnavailable
+/// [`EmbeddingGenerationFailed`]: SearchRequestError::EmbeddingGenerationFailed
+pub(crate) async fn resolve_search_embedding(
+    embedding: Option<Embedding<'static>>,
+    semantic_string: Option<String>,
+    embedding_client: Option<&OpenAiEmbeddingClient>,
+) -> Result<Embedding<'static>, Report<SearchRequestError>> {
+    match (embedding, semantic_string) {
+        (Some(embedding), None) => {
+            // Validate a caller-supplied embedding here: unlike the `semantic_string` path (where
+            // the client guarantees the dimensionality), a precomputed embedding would otherwise
+            // flow unchecked into the pgvector cosine-distance query and fail deep in the store.
+            if embedding.len() == Embedding::DIM {
+                Ok(embedding)
+            } else {
+                Err(Report::new(SearchRequestError::InvalidEmbeddingDimensions))
+                    .attach(hash_status::StatusCode::InvalidArgument)
+            }
+        }
+        (None, Some(semantic_string)) => {
+            let client = embedding_client
+                .ok_or_else(|| Report::new(SearchRequestError::EmbeddingClientUnavailable))
+                .attach(hash_status::StatusCode::Unavailable)?;
+            client
+                .create_embeddings(&[semantic_string.as_str()])
+                .await
+                .map_err(|report| {
+                    let status = embedding_error_status(report.current_context());
+                    report
+                        .change_context(SearchRequestError::EmbeddingGenerationFailed)
+                        .attach(status)
+                })?
+                .into_iter()
+                .next()
+                .ok_or_else(|| Report::new(SearchRequestError::EmbeddingGenerationFailed))
+                .attach(hash_status::StatusCode::Internal)
+        }
+        (Some(_), Some(_)) => Err(Report::new(SearchRequestError::ConflictingEmbeddingSource))
+            .attach(hash_status::StatusCode::InvalidArgument),
+        (None, None) => Err(Report::new(SearchRequestError::MissingEmbeddingSource))
+            .attach(hash_status::StatusCode::InvalidArgument),
+    }
+}
+
+/// Maps an [`EmbeddingError`] to the HTTP status the search endpoints should report, so that
+/// rate-limits and transient upstream outages are not flattened into an opaque `500`.
+const fn embedding_error_status(error: &EmbeddingError) -> hash_status::StatusCode {
+    match error {
+        // Server-side configuration or provider-contract problems the caller cannot act on.
+        EmbeddingError::Unauthorized
+        | EmbeddingError::Response
+        | EmbeddingError::UnexpectedCount
+        | EmbeddingError::UnexpectedDimensions => hash_status::StatusCode::Internal,
+        // Rate limits are transient and the caller should back off.
+        EmbeddingError::RateLimited => hash_status::StatusCode::ResourceExhausted,
+        // A transport failure or upstream outage is transient and retryable.
+        EmbeddingError::Request | EmbeddingError::ProviderUnavailable => {
+            hash_status::StatusCode::Unavailable
+        }
+    }
+}
 
 /// Server-side configuration for the REST API, shared across handlers via an [`Extension`].
 #[derive(Debug, Clone, Copy)]
@@ -408,6 +507,7 @@ where
 {
     pub store: Arc<S>,
     pub temporal_client: Option<Arc<TemporalClient>>,
+    pub embedding_client: Option<Arc<OpenAiEmbeddingClient>>,
     pub domain_regex: DomainValidator,
     pub query_logger: Option<QueryLogger>,
     pub api_config: ApiConfig,
@@ -456,6 +556,7 @@ where
         .layer(http_tracing_layer::HttpTracingLayer)
         .layer(Extension(dependencies.store))
         .layer(Extension(dependencies.temporal_client))
+        .layer(Extension(dependencies.embedding_client))
         .layer(Extension(dependencies.domain_regex))
         .layer(Extension(dependencies.api_config));
 

@@ -7,7 +7,6 @@ import {
 } from "@blockprotocol/type-system";
 import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
 
-import { calculateEmbedding } from "./embeddings.js";
 import {
   mapGraphApiClosedMultiEntityTypeMapToClosedMultiEntityTypeMap,
   mapGraphApiEntityTypeResolveDefinitionsToEntityTypeResolveDefinitions,
@@ -108,7 +107,6 @@ import type {
   CreateEntityPolicyParams,
   EntityPermissions,
 } from "@rust/hash-graph-store/types";
-import type { Client as TemporalClient } from "@temporalio/client";
 
 export type BrandedPropertyObject<T extends Record<string, PropertyValue>> =
   T & {
@@ -1539,26 +1537,11 @@ export const queryEntities = async <
 export const searchEntities = async (
   context: {
     graphApi: GraphApi;
-    temporalClient?: TemporalClient;
   },
   authentication: AuthenticationContext,
   params: SearchEntitiesRequest,
-): Promise<SearchEntitiesResponse> => {
-  // TODO(BE-622): Move to the graph
-  if (params.semanticString !== undefined) {
-    if (!context.temporalClient) {
-      throw new Error("Cannot query semantic string without temporal client");
-    }
-    const { semanticString, ...rest } = params;
-    const embedding = await calculateEmbedding(
-      semanticString,
-      context.temporalClient,
-    );
-    // eslint-disable-next-line no-param-reassign
-    params = { ...rest, embedding };
-  }
-
-  return context.graphApi
+): Promise<SearchEntitiesResponse> =>
+  context.graphApi
     .searchEntities(authentication.actorId, params)
     .then(({ data: response }) => ({
       ...response,
@@ -1569,7 +1552,6 @@ export const searchEntities = async (
           )
         : undefined,
     }));
-};
 
 export const summarizeEntities = async (
   context: {

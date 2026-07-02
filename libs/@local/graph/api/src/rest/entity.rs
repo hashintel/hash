@@ -6,6 +6,7 @@ use std::collections::HashMap;
 use axum::{Extension, Router, routing::post};
 use error_stack::{Report, ResultExt as _};
 use hash_graph_authorization::policies::principal::actor::AuthenticatedActor;
+use hash_graph_embeddings::OpenAiEmbeddingClient;
 use hash_graph_postgres_store::store::error::{EntityDoesNotExist, RaceConditionOnUpdate};
 use hash_graph_store::{
     self,
@@ -511,20 +512,21 @@ async fn search_entities<S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
+    embedding_client: Extension<Option<Arc<OpenAiEmbeddingClient>>>,
     Extension(api_config): Extension<ApiConfig>,
     Json(request): Json<SearchEntitiesRequest>,
 ) -> Result<Json<SearchEntitiesResponse>, BoxedResponse>
 where
     S: StorePool + Send + Sync,
 {
-    let store = store_pool
-        .acquire(temporal_client.0)
+    let params = request
+        .into_params(api_config, embedding_client.0.as_deref())
         .await
         .map_err(report_to_response)?;
 
-    let params = request
-        .into_params(api_config)
-        .attach(hash_status::StatusCode::InvalidArgument)
+    let store = store_pool
+        .acquire(temporal_client.0)
+        .await
         .map_err(report_to_response)?;
 
     store
