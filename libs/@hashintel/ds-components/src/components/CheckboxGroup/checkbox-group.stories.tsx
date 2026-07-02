@@ -3,11 +3,11 @@ import { useState } from "react";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { formInputSizes } from "../../util/form-shared";
-import { RadioGroup } from "./radio-group";
+import { CheckboxGroup } from "./checkbox-group";
 
 import type { Story, StoryDefault } from "@ladle/react";
 
-type Props = React.ComponentProps<typeof RadioGroup>;
+type Props = React.ComponentProps<typeof CheckboxGroup>;
 
 const layouts: NonNullable<Props["layout"]>[] = [
   "blockWithBorder",
@@ -26,16 +26,16 @@ const leftLabelItems = fruitItems.map((item) => ({
   labelPlacement: "left" as const,
 }));
 
-const ControlledRadioGroup = ({
-  defaultValue = "apple",
+const ControlledCheckboxGroup = ({
+  defaultValue = ["apple"],
   ...props
 }: Omit<Props, "value" | "onChange" | "items"> & {
-  defaultValue?: string;
+  defaultValue?: string[];
   items?: Props["items"];
 }) => {
   const [value, setValue] = useState(defaultValue);
   return (
-    <RadioGroup
+    <CheckboxGroup
       {...props}
       items={props.items ?? fruitItems}
       value={value}
@@ -45,7 +45,7 @@ const ControlledRadioGroup = ({
 };
 
 export default {
-  title: "Components/RadioGroup",
+  title: "Components/CheckboxGroup",
   parameters: {
     layout: "centered",
   },
@@ -92,18 +92,24 @@ export const Layouts: Story = () => (
     {layouts.map((layout) => (
       <div key={layout}>
         <div className={headingClass}>layout={layout}</div>
-        <ControlledRadioGroup layout={layout} />
+        <ControlledCheckboxGroup
+          layout={layout}
+          defaultValue={["apple", "cherry"]}
+        />
       </div>
     ))}
     <div>
       <div className={headingClass}>
         layout=blockWithBorder, labelPlacement=left
       </div>
-      <ControlledRadioGroup layout="blockWithBorder" items={leftLabelItems} />
+      <ControlledCheckboxGroup
+        layout="blockWithBorder"
+        items={leftLabelItems}
+      />
     </div>
     <div>
       <div className={headingClass}>layout=block, labelPlacement=left</div>
-      <ControlledRadioGroup layout="block" items={leftLabelItems} />
+      <ControlledCheckboxGroup layout="block" items={leftLabelItems} />
     </div>
   </div>
 );
@@ -121,7 +127,7 @@ export const Sizes: Story = () => (
           {layouts.map((layout) => (
             <div key={layout}>
               <div className={subHeadingClass}>{layout}</div>
-              <ControlledRadioGroup layout={layout} size={size} />
+              <ControlledCheckboxGroup layout={layout} size={size} />
             </div>
           ))}
         </div>
@@ -138,11 +144,11 @@ export const Disabled: Story = () => (
   <div className={sectionClass}>
     <div>
       <div className={headingClass}>whole group disabled</div>
-      <ControlledRadioGroup disabled />
+      <ControlledCheckboxGroup disabled defaultValue={["apple"]} />
     </div>
     <div>
       <div className={headingClass}>single option disabled</div>
-      <ControlledRadioGroup
+      <ControlledCheckboxGroup
         items={[
           { value: "apple", label: "Apple" },
           { value: "banana", label: "Banana", disabled: true },
@@ -154,5 +160,31 @@ export const Disabled: Story = () => (
 );
 
 Disabled.parameters = {
+  controls: { disable: true },
+};
+
+export const MaxSelectable: Story = () => (
+  <div className={sectionClass}>
+    <div>
+      <div className={headingClass}>maxSelectable=2</div>
+      <div className={subHeadingClass}>
+        Once two are selected, the remaining unchecked options are disabled
+        until one is unchecked.
+      </div>
+      <ControlledCheckboxGroup
+        maxSelectable={2}
+        defaultValue={[]}
+        items={[
+          { value: "apple", label: "Apple" },
+          { value: "banana", label: "Banana" },
+          { value: "cherry", label: "Cherry" },
+          { value: "date", label: "Date" },
+        ]}
+      />
+    </div>
+  </div>
+);
+
+MaxSelectable.parameters = {
   controls: { disable: true },
 };

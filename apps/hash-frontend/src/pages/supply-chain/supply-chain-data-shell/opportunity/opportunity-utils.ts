@@ -1,3 +1,4 @@
+import { isProductSpecificType } from "../../shared/categories";
 import {
   computeMonthlyCost,
   computePeriodCost,
@@ -289,14 +290,12 @@ export function buildOpportunityBackLink(
   return query ? `${path}?${query}` : path;
 }
 
-const PRODUCT_SPECIFIC_STEP_TYPES = new Set<StepType>(["post_qa_ship"]);
-
 export function firstProductForNode(
   node: SiteNode,
   requestedProductId?: string,
 ): string {
   if (
-    PRODUCT_SPECIFIC_STEP_TYPES.has(node.type) &&
+    isProductSpecificType(node.type) &&
     requestedProductId &&
     node.products.some((product) => product.id === requestedProductId)
   ) {

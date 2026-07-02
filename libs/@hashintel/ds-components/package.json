@@ -72,7 +72,7 @@
     "test:unit:watch": "yarn build:buildinfo && vitest --exclude tests/snapshots.spec.ts"
   },
   "dependencies": {
-    "@ark-ui/react": "5.26.2",
+    "@ark-ui/react": "5.37.2",
     "@hashintel/ds-helpers": "workspace:^",
     "@pandacss/dev": "1.11.1",
     "@pandacss/preset-panda": "1.11.1",
@@ -116,7 +116,7 @@
     "zod": "4.4.3"
   },
   "peerDependencies": {
-    "@ark-ui/react": "^5.26.2",
+    "@ark-ui/react": "^5.37.2",
     "@hashintel/ds-helpers": "workspace:^",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"

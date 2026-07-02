@@ -170,7 +170,7 @@ const parseStatusReports = (entities: HashEntity[]): RawStatusReport[] => {
         getStringProperty(entity, statusCategoryBaseUrl),
       ),
       text: getStringProperty(entity, statusTextBaseUrl) ?? "",
-      authorId: entity.metadata.provenance.edition.createdById,
+      authorId: entity.metadata.provenance.createdById,
     });
   }
 

@@ -99,3 +99,35 @@ export const PRODUCTION_TYPES: StepType[] = ["production"];
 export function isProductionType(type: StepType): boolean {
   return PRODUCTION_TYPES.includes(type);
 }
+
+/**
+ * Step types whose `node.id` is *location*-scoped (a plant, hub, or lane)
+ * rather than encoding the good/material that is the step's subject. For these,
+ * the relevant finished good must be appended to any stable identity/scope key,
+ * otherwise different finished goods sharing the same plant/hub/lane collide.
+ *
+ * Contrast with the location-agnostic steps, whose subject is already in
+ * `node.id` and so need no product: procurement (`procurement_<item>`), raw &
+ * intermediate dwell (`*_dwell_<material>`), and production
+ * (`prod_duration_<good>`).
+ *
+ * The location-scoped steps are the finished-good leg from QA onward:
+ * - `qa_hold` -> `prod_to_qa_pla` (plant)
+ * - `post_qa_ship` -> `post_qa_ship_pla` (plant)
+ * - `transit` -> `transit_pla_hub1` / `direct_ship_pla` (lane)
+ * - `destination_dwell` -> `dest_dwell_hub1` (hub)
+ *
+ * Each of these is deduplicated per finished good, so the node always carries a
+ * single product and appending it is stable (a new finished good spawns its own
+ * node/key rather than rekeying existing ones).
+ */
+export const PRODUCT_SPECIFIC_STEP_TYPES: StepType[] = [
+  "qa_hold",
+  "post_qa_ship",
+  "transit",
+  "destination_dwell",
+];
+
+export function isProductSpecificType(type: StepType): boolean {
+  return PRODUCT_SPECIFIC_STEP_TYPES.includes(type);
+}

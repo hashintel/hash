@@ -146,6 +146,7 @@ impl AppendEventLog {
 }
 
 impl Default for AppendEventLog {
+    #[inline]
     fn default() -> Self {
         Self::new()
     }

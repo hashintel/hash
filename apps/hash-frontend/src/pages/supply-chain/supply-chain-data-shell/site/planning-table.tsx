@@ -61,6 +61,7 @@ const PlanningSampleTooltip = ({
 };
 export const PlanningTable = ({
   rows,
+  siteId,
   sort,
   onSort,
   onRowClick,
@@ -69,6 +70,8 @@ export const PlanningTable = ({
   onStatus,
 }: {
   rows: PlanningRow[];
+  /** Route site slug; scopes status keys to the global store. */
+  siteId: string;
   sort: { key: SortKey; dir: SortDir };
   onSort: (s: { key: SortKey; dir: SortDir }) => void;
   onRowClick: (node: SiteNode) => void;
@@ -231,7 +234,7 @@ export const PlanningTable = ({
 
                     <StatusActionButton
                       state={deriveStatusActionState(
-                        statusHistory[statusKey(row.plant, row)],
+                        statusHistory[statusKey(siteId, row)],
                       )}
                       onClick={(event) => {
                         event.stopPropagation();

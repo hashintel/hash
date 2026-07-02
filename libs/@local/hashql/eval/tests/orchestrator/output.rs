@@ -1,4 +1,4 @@
-use alloc::alloc::Global;
+use core::alloc::Allocator;
 use std::{collections::HashMap, fs, path::Path, sync::LazyLock};
 
 use error_stack::{Report, ResultExt as _};
@@ -108,9 +108,9 @@ fn normalize(input: &str) -> String {
 ///
 /// Returns [`TestError::Serialization`] if the value cannot be serialized to
 /// JSON.
-pub(crate) fn render_success(
+pub(crate) fn render_success<A: Allocator>(
     source: &str,
-    value: &Value<'_, Global>,
+    value: &Value<'_, A>,
     events: &[Event],
     pipeline: &Pipeline<'_>,
 ) -> Result<String, Report<TestError>> {

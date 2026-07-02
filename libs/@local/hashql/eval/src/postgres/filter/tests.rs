@@ -40,7 +40,7 @@ use sqruff_lib::core::{config::FluffConfig, linter::core::Linter};
 use sqruff_lib_core::dialects::init::DialectKind;
 
 use crate::{
-    context::EvalContext,
+    context::CodeGenerationContext,
     postgres::{DatabaseContext, PostgresCompiler, filter::GraphReadFilterCompiler},
 };
 
@@ -48,6 +48,7 @@ use crate::{
 /// and returns everything needed for compilation.
 struct Fixture<'heap> {
     env: Environment<'heap>,
+    interner: crate::intern::Interner<'heap>,
     bodies: DefIdVec<Body<'heap>, &'heap Heap>,
     execution: DefIdVec<Option<ExecutionAnalysisResidual<&'heap Heap>>, &'heap Heap>,
 }
@@ -89,6 +90,7 @@ impl<'heap> Fixture<'heap> {
 
         Self {
             env,
+            interner: interner.into(),
             bodies,
             execution,
         }
@@ -151,11 +153,10 @@ fn format_body<'heap>(fixture: &Fixture<'heap>, heap: &'heap Heap) -> String {
 fn compile_filter_islands<'heap>(fixture: &Fixture<'heap>, heap: &'heap Heap) -> FilterReport {
     let mut scratch = Scratch::new();
     let def = fixture.def();
-    let interner = Interner::new(heap);
 
-    let context = EvalContext::new_in(
+    let context = CodeGenerationContext::new_in(
         &fixture.env,
-        &interner,
+        &fixture.interner,
         &fixture.bodies,
         &fixture.execution,
         heap,
@@ -278,11 +279,10 @@ fn compile_full_query_with_mask<'heap>(
 ) -> QueryReport {
     let mut scratch = Scratch::new();
     let def = fixture.def();
-    let interner = Interner::new(heap);
 
-    let mut context = EvalContext::new_in(
+    let mut context = CodeGenerationContext::new_in(
         &fixture.env,
-        &interner,
+        &fixture.interner,
         &fixture.bodies,
         &fixture.execution,
         heap,
