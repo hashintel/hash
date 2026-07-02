@@ -127,9 +127,8 @@ export class HierarchicalTier {
     );
     view.clusterEpoch += 1;
 
-    // Warm-seed positions are only useful for clusters that still exist;
-    // drop entries for ids the rebuilt tree no longer produces so the map
-    // doesn't grow monotonically across source evolutions.
+    // Drop warm-seed entries for cluster ids absent from the rebuilt tree so
+    // the map does not grow monotonically across source evolutions.
     polisher.pruneTopLevelPositions(
       (clusterId) => clusterTree.get(clusterId) !== undefined,
     );

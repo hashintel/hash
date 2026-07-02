@@ -10,20 +10,8 @@ import { BezierSDFLayer } from "./gpu/bezier-sdf-layer";
 import type { PositionsFrame, RenderBezierBuffers } from "../frames";
 import type { Layer } from "@deck.gl/core";
 
-const edgeUnderlayColors = new WeakMap<RenderBezierBuffers, Uint8Array>();
-
-function underlayColorAttribute(beziers: RenderBezierBuffers): Uint8Array {
-  const cached = edgeUnderlayColors.get(beziers);
-  if (cached) {
-    return cached;
-  }
-  const colors = new Uint8Array(beziers.segmentCount * 4);
-  for (let index = 0; index < beziers.segmentCount; index++) {
-    colors.set(graphColors.edgeUnderlay, index * 4);
-  }
-  edgeUnderlayColors.set(beziers, colors);
-  return colors;
-}
+/** Halo width as a multiple of the core stroke width. */
+const EDGE_HALO_WIDTH_FACTOR = 1.65;
 
 function bezierData(
   beziers: RenderBezierBuffers,
@@ -81,7 +69,6 @@ export function edgeLayer(positions: PositionsFrame, isFlat: boolean): Layer[] {
     depthCompare: "always",
   } as const;
 
-  const layers: Layer[] = [];
   if (isFlat) {
     return [
       new LineLayer({
@@ -95,18 +82,11 @@ export function edgeLayer(positions: PositionsFrame, isFlat: boolean): Layer[] {
     ];
   }
 
-  layers.push(
-    new BezierSDFLayer({
-      id: "edges-underlay",
-      data: bezierData(beziers, underlayColorAttribute(beziers)),
-      pickable: false,
-      boundsPaddingPixels: 10,
-      widthUnits: "common",
-      widthScale: widthScale * 1.65,
-      parameters,
-    }),
-  );
-  layers.push(
+  // Halo + core in one layer: the underlay used to be a second full
+  // BezierSDFLayer, which ran the per-fragment curve solve twice over
+  // overlapping (wider-padded) quads. The layer's haloWidthFactor folds the
+  // wide soft band into the same fragment evaluation.
+  return [
     new BezierSDFLayer({
       id: "hierarchical-edges",
       data: bezierData(beziers, beziers.colors),
@@ -114,8 +94,9 @@ export function edgeLayer(positions: PositionsFrame, isFlat: boolean): Layer[] {
       boundsPaddingPixels: 8,
       widthUnits: "common",
       widthScale,
+      haloWidthFactor: EDGE_HALO_WIDTH_FACTOR,
+      haloColor: graphColors.edgeUnderlay,
       parameters,
     }),
-  );
-  return layers;
+  ];
 }

@@ -65,25 +65,29 @@ in or settling.
 
 ### Implementation status
 
-| #   | Status            | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
-| --- | ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| R1  | ⏳ Deferred       | Full layer persistence + per‑layout "moved" gating is a large re‑architecture that changes deck binary‑attribute re‑upload semantics; wants runtime profiling + visual QA. The concrete per‑frame _gather/alloc_ hotspots it names are addressed by R3 (community) below.                                                                                                                                                                                                           |
-| R2  | ✅ Done           | `resolveEntityIcon` is memoised by the `entityTypeIds` key in the bridge, so thousands of per‑dot type‑hierarchy walks collapse to one per distinct type‑set. (Incremental "only scan added dots" not done — the memo already removes the dominant cost.)                                                                                                                                                                                                                           |
-| R3  | ✅ Done           | Community grouping is cached by the `communities` array identity; the positions texture is uploaded **in place** (`Texture.writeData`) and only re‑created when the kept‑community set / dimensions change. (The texture is now `rgba32float` and also carries the connectivity‑corridor endpoint pairs — `render/bubble-corridors.ts`; corridor MST/obstacle planning is movement‑gated, not per‑frame, and the per‑frame endpoint refresh rides the existing gather at µs scale.) |
-| R4  | ⏳ Deferred       | Per‑leaf endpoint‑buffer reuse; needs the same deck re‑upload‑semantics care as R1 (risk of edge/dot tearing) and is best validated in‑app.                                                                                                                                                                                                                                                                                                                                         |
-| R5  | ⏳ Deferred       | Bézier shader sample‑count / underlay‑fold is a visual‑quality trade‑off that must be compared on‑screen before shipping.                                                                                                                                                                                                                                                                                                                                                           |
-| R6  | ✅ Done           | Cluster/edge label rebuild + full layer re‑push is gated on a fine zoom **bucket** (`LABEL_COLOR_ZOOM_BUCKETS_PER_UNIT`) instead of every wheel delta; a pure sub‑bucket zoom now does no layer work.                                                                                                                                                                                                                                                                               |
-| R7  | ✅ Done           | `#emitEntityLabels` diffs the projected hub set (ids + rounded x/y + text) and skips the React `setState` when unchanged, so a settled graph stops re‑rendering the bridge subtree.                                                                                                                                                                                                                                                                                                 |
-| R8  | ✅ Done           | `PositionsFrame.settled` now means "no layout (cluster **or** entity/flat) is running", and the worker emits exactly one final `settled: true` frame when the last layout settles.                                                                                                                                                                                                                                                                                                  |
-| R9  | ⏳ Deferred       | Metaball spatial binning is a substantial shader rewrite needing GPU profiling + visual QA. (Note: the connectivity corridors add a second early‑exit per‑pixel loop over ≤ 2·(members−1) capsule segments; it shares any future binning fix.)                                                                                                                                                                                                                                      |
-| R10 | ⏳ Deferred       | Low value; secondary edge‑pick debounce.                                                                                                                                                                                                                                                                                                                                                                                                                                            |
-| R11 | ✅ Partial (R11a) | The misleading `edgeArrowLayer` split `WeakMap` (a guaranteed cache miss — the array is fresh each frame) is removed. The `characterSet:"auto"` and empty‑overlay points fold into the deferred R1/R6 persistence work.                                                                                                                                                                                                                                                             |
+| #   | Status            | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| --- | ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| R1  | ⏳ Deferred       | Full layer persistence + per‑layout "moved" gating is a large re‑architecture that changes deck binary‑attribute re‑upload semantics; wants runtime profiling + visual QA. The concrete per‑frame _gather/alloc_ hotspots it names are addressed by R3 (community) below.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| R2  | ✅ Done           | `resolveEntityIcon` is memoised by the `entityTypeIds` key in the bridge, so thousands of per‑dot type‑hierarchy walks collapse to one per distinct type‑set. (Incremental "only scan added dots" not done — the memo already removes the dominant cost.)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| R3  | ✅ Done           | Community grouping is cached by the `communities` array identity; the positions texture is uploaded **in place** (`Texture.writeData`) and only re‑created when its height grows (monotone under R9's binning, so occupancy jitter can't thrash it). The `rgba32float` texture now carries the per‑CELL kernel copies (points + connectivity‑corridor endpoint pairs — `render/bubble-grid.ts`); corridor MST/obstacle planning stays movement‑gated (`render/bubble-corridors.ts`), and endpoint positions track the live gather through the per‑frame pack.                                                                                                                                                                                                                                                                                                                                                                          |
+| R4  | ⏳ Deferred       | Per‑leaf endpoint‑buffer reuse; needs the same deck re‑upload‑semantics care as R1 (risk of edge/dot tearing) and is best validated in‑app.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| R5  | ✅ Done           | The underlay is FOLDED into the main `BezierSDFLayer` pass (`haloWidthFactor`/`haloColor` props; core composited over halo in one fragment evaluation), halving the curve solves and removing the second layer's overlapping quads. The solver itself dropped from 24 coarse samples + 5 Newton to 12 + 3. Picking still hit‑tests the core stroke only. Needs an on‑screen once‑over; the straight‑segment LOD option remains open if hierarchical views still lag.                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| R6  | ✅ Done           | Cluster/edge label rebuild + full layer re‑push is gated on a fine zoom **bucket** (`LABEL_COLOR_ZOOM_BUCKETS_PER_UNIT`) instead of every wheel delta; a pure sub‑bucket zoom now does no layer work.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| R7  | ✅ Done           | `#emitEntityLabels` diffs the projected hub set (ids + rounded x/y + text) and skips the React `setState` when unchanged, so a settled graph stops re‑rendering the bridge subtree.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| R8  | ✅ Done           | `PositionsFrame.settled` now means "no layout (cluster **or** entity/flat) is running", and the worker emits exactly one final `settled: true` frame when the last layout settles.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| R9  | ✅ Done           | Two stages. (1) The kernel sum is sqrt‑free (Wyvill needs only d²) and SATURATION‑EXITS once the field clears `isoThreshold + 1` — interior fragments stop after a few kernels. (2) **Spatial binning** (`render/bubble-grid.ts` + `bubble-grid-traversal.ts`): instances are now per occupied grid CELL (2 × fieldRadius), each carrying texel COPIES of exactly the kernels whose support reaches that cell (points via 2×2 rect‑disc spans; capsules via Amanatides–Woo spine walk + edge‑proximity ring‑1 dilation). Exterior/contour fragments — the population that dominates the zoomed‑OUT worst case, where the saturation exit can't help because proving "below iso" used to mean summing everything — now read only local kernels, and empty cells shade nothing. The field is provably identical (unit‑tested against the CPU oracle), the shader is unchanged, and same‑community cells are disjoint so blending is too. |
+| R10 | ⏳ Deferred       | Low value; secondary edge‑pick debounce.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| R11 | ✅ Partial (R11a) | The misleading `edgeArrowLayer` split `WeakMap` (a guaranteed cache miss — the array is fresh each frame) is removed. The `characterSet:"auto"` and empty‑overlay points fold into the deferred R1/R6 persistence work.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 
-The deferred items are either visual‑quality trade‑offs (R5, R9) or layer‑persistence
-re‑architectures (R1, R4) whose deck re‑upload semantics should be validated against a
-live profile/frame‑capture rather than changed blind. The applied set targets both
-**High** items (R2, R3) and the coordination/render‑loop **Medium**s (R6, R7, R8) with
-behaviour‑preserving changes.
+The remaining deferred items are layer‑persistence re‑architectures (R1, R4) whose
+deck re‑upload semantics should be validated against a live profile/frame‑capture
+rather than changed blind. The applied set targets both **High** items (R2, R3),
+the coordination/render‑loop **Medium**s (R6, R7, R8), and the fill‑rate
+**Medium**s (R5, R9) that the render bench exposed as the fps floor. If the
+zoomed‑out worst case is still fill‑bound after R9's binning, the next suspect is
+the flat tier's edge hairball itself (thousands of alpha‑blended `LineLayer`
+lines over the same central pixels), which none of the R‑items cover — that
+would be a new density/LOD work item.
 
 **Validation (in‑app, dev harness).** The applied build was measured on
 `/dev-graph-visualizer` with the WebGL texture calls (`texImage2D/3D`,
@@ -527,11 +531,11 @@ hierarchical tier while a leaf/macro is moving.
 For completeness: the flat dots (`flat-dots.ts`), the bézier edges (`edges.ts`),
 and cluster positions ride buffers that the worker **transfers** to the main
 thread each frame (`worker/entry.ts` `postPositions`), so a frame's buffers are
-consumed once and a new typed‑array view is unavoidable. `edges.ts` already caches
-the derived underlay color attribute by `WeakMap<RenderBezierBuffers, …>`
-(`edges.ts:13‑26`), which is the right move. The waste to attack is R1/R3/R4
-(rebuilding _layers_ and re‑gathering _derived_ data), not the transferred buffers
-themselves.
+consumed once and a new typed‑array view is unavoidable. (The derived underlay
+color attribute this note used to point at is gone entirely — the R5 fix folded
+the halo into the main layer as a uniform, so no per‑edge underlay colors exist.)
+The waste to attack is R1/R3/R4 (rebuilding _layers_ and re‑gathering _derived_
+data), not the transferred buffers themselves.
 
 ---
 
@@ -611,42 +615,41 @@ view with many highways this can dominate GPU frame time.
 
 ### R9 — Community metaball shader loops up to 256 nodes per pixel — **Medium** (community‑force)
 
-**Where.** `render/gpu/bubble-set-sdf-layer.ts` fragment shader sums a metaball
-kernel over the community's nodes, per pixel:
+**Where (historical).** `render/gpu/bubble-set-sdf-layer.ts` fragment shader
+summed a metaball kernel over ALL the community's nodes and corridor segments,
+per pixel, with one instanced quad per community covering its (padded) world
+bbox.
 
-```110:120:apps/hash-frontend/src/pages/shared/graph-visualizer-2/render/gpu/bubble-set-sdf-layer.ts
-void main(void) {
-  // Sum the finite-support metaball kernel over this community's node centres.
-  float field = 0.0;
-  for (int i = 0; i < ${MAX_NODES_PER_COMMUNITY}; i++) {
-    if (i >= vCount) {
-      break;
-    }
-    int idx = vOffset + i;
-    vec2 nodePos =
-      texelFetch(positionsTex, ivec2(idx % bubble.texWidth, idx / bubble.texWidth), 0).rg;
-    float d = distance(vWorldPos, nodePos) / bubble.fieldRadius;
-```
+**Why it hurt.** Every fragment in a community's quad looped over up to
+`MAX_NODES_PER_COMMUNITY = 256` texel fetches + distance computes. Big
+communities → big quads → millions of fragments each doing up to 256
+iterations, and communities' bboxes overlap → overdraw on top:
+`O(pixels × kernels_per_community)` per frame. Worst when zoomed out with
+several large overlapping communities filling the viewport, because
+exterior/contour fragments can only prove "below iso" by summing everything —
+no early exit can help them.
 
-**Why it hurts.** Each community is one instanced quad covering its (padded) world
-bbox; every fragment in that quad loops over up to `MAX_NODES_PER_COMMUNITY = 256`
-texel fetches + distance computes. Big communities → big quads → millions of
-fragments each doing up to 256 iterations, and communities' bboxes overlap →
-overdraw on top. This is `O(pixels × nodes_per_community)` per frame.
+**Fix (applied, two stages).**
 
-**Impact.** Medium; worst when zoomed out with several large overlapping
-communities filling the viewport.
-
-**Fix.**
-
-- **Bound the per‑pixel work spatially.** A coarse uniform grid / bin of each
-  community's nodes (built when membership changes) lets the shader fetch only the
-  handful of nodes near the fragment instead of all 256. Even a per‑community
-  spatial hash cuts the inner loop dramatically.
-- **Clamp quad size / tile large communities** so the padded bbox isn't shading
-  huge empty regions at threshold.
-- Combined with R3, the shader would read a stable index range + SAB positions, so
-  this becomes the only per‑frame community cost.
+- **Cheaper kernels + interior early‑out** (helps zoomed‑IN): the sum is
+  sqrt‑free — the Wyvill kernel `(1 − d²)²` needs only the squared distance —
+  and exits once the field clears `isoThreshold + 1`, where the smoothstep is
+  pinned at fully opaque regardless of further contributions.
+- **Spatial binning** (`render/bubble-grid.ts`, `render/bubble-grid-traversal.ts`;
+  helps zoomed‑OUT): instances are per occupied grid cell (edge =
+  `2 × fieldRadius`) instead of per community. The packer copies into each
+  cell's texel range exactly the kernels whose support can reach that cell —
+  points by a 2×2 rect–disc span test, capsules by an exact Amanatides–Woo
+  walk of the spine with edge‑proximity ring‑1 dilation. The fragment shader
+  is UNCHANGED (same `[offset, count]` ranges, same texel conventions): each
+  fragment now sums a handful of local kernels, and pixels in unoccupied
+  cells are never rasterised at all. Per‑cell fields are exactly the
+  community field (kernels have finite support), enforced by
+  `bubble-grid.test.ts` against the `evaluateBubbleField` CPU oracle; cells
+  of one community are disjoint rects, so alpha blending is unchanged too.
+  CPU cost is one linear binning pass per position frame over ≤ 256 members
+  - segments per community, reusing grow‑only scratch; the texture height is
+    monotone so occupancy jitter can't thrash texture re‑creation (R3).
 
 ---
 
@@ -723,9 +726,12 @@ None of this needs a build; it can be measured in the running app:
   community‑force frame and confirm a `texImage`/texture‑create per frame on the
   bubble layer; it should disappear after the R3 fix.
 - **Overdraw / fill (R5, R9):** Spector.js frame capture → inspect fragment counts
-  for `edges-underlay` + `hierarchical-edges` and `flat-bubbles`; or temporarily
-  shrink `boundsPaddingPixels` / the metaball loop bound and measure FPS delta when
-  zoomed in on a dense view.
+  for `hierarchical-edges` (halo folded in; the separate `edges-underlay` layer is
+  gone) and `flat-bubbles` (instances are per grid cell now, so the instance count
+  is the occupied-cell count, and total shaded area should hug the visible blobs
+  instead of whole community bboxes). The saturation exit targets the zoomed-IN
+  bench; the binning targets the zoomed-OUT worst case — compare both sweeps
+  (matching camera envelopes) before/after.
 - **`settled` (R8):** log `frame.settled` in `WorkerConnection.#handleMessage`
   `POSITIONS_FRAME`; today it's `true` on the first flat frame — that's the bug to
   confirm before wiring it to anything.

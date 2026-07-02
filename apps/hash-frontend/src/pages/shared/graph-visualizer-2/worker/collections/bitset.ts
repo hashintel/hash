@@ -2,7 +2,7 @@
 /* eslint-disable no-param-reassign */
 /* eslint-disable operator-assignment */
 /**
- * Fixed-universe bit set backed by a Uint32Array.
+ * Fixed-universe bit set over a Uint32Array word store.
  *
  * Operations (or, and, intersectionCount, jaccard) are all O(words)
  * where words = ceil(universe / 32).

@@ -126,7 +126,7 @@ export function clusterEntityLayers(config: {
     config;
   const dimActive = highlightedEntities.size > 0;
   // A leaf-local node is highlighted if its entityIdx (its nodeIds entry) is in the set -- the
-  // SAME lookup the dots' colours use, so a line dims exactly when its endpoints' dots do.
+  // same lookup the dots' colours use, so a line dims exactly when its endpoints' dots do.
   const nodeHighlighted = (ref: ClusterReference, local: number): boolean => {
     const id = ref.nodeIds[local];
     return (
@@ -134,7 +134,7 @@ export function clusterEntityLayers(config: {
     );
   };
   const clusterPositions = positions.clusterPositions;
-  // Fan-out feeder endpoints are POSITIONAL (they ride the positions frame, keyed by leaf
+  // Fan-out feeder endpoints are positional (they ride the positions frame, keyed by leaf
   // id), not the structure. Build a quick lookup for the loop.
   const fanOutByLeaf = new Map<ClusterId, Float32Array>();
   for (const entry of positions.entityFanOut) {
@@ -219,7 +219,7 @@ export function clusterEntityLayers(config: {
         dst[edge * 2] = leafNodeX(cluster.positions, right);
         dst[edge * 2 + 1] = leafNodeY(cluster.positions, right);
         if (colors) {
-          // Full only if BOTH endpoints are highlighted (a line bridging in/out of the ego
+          // Full only if both endpoints are highlighted (a line bridging in/out of the ego
           // recedes with the field), matching the flat tier's per-link rule.
           const full =
             nodeHighlighted(cluster, left) && nodeHighlighted(cluster, right);

@@ -95,7 +95,7 @@ function clipOutside(circle: Circle): ClipCircle {
 }
 
 /**
- * Append-only sink for cubic Bezier segments backed by flat typed arrays.
+ * Append-only sink for cubic Bezier segments in flat typed-array scratch.
  *
  * Instead of producing one segment object per curve (thousands of
  * short-lived objects + tuple arrays per frame), each segment is written

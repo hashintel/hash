@@ -1,29 +1,32 @@
 /**
- * Custom Deck.gl layer: renders community "BubbleSets" as CRISP metaball
- * isocontours — one smooth, hard-edged organic hull per Louvain community.
+ * Custom Deck.gl layer: renders community "BubbleSets" as crisp metaball
+ * isocontours; one smooth, hard-edged organic hull per Louvain community.
  *
- * Each INSTANCE is one community: a screen-space quad covering the community's
- * world bbox (+ field-radius padding). The fragment shader sums a finite-support
- * metaball kernel over THAT community's node centres — read from a positions
- * texture via `texelFetch`, using the per-instance [offset, count] range — and
- * THRESHOLDS the field (`smoothstep` with `fwidth` AA). The result is a single
- * smooth contour that merges nearby nodes and has a hard antialiased edge (no
- * muddy gradient overlap), coloured by community. Because each quad sums only its
- * OWN community's nodes, communities stay distinct in one pass — no offscreen FBO.
+ * Each instance is one occupied grid cell of one community (`2 * fieldRadius`
+ * cells, packed by `render/bubble-grid.ts`): a screen-space quad covering the
+ * cell's world rect. The fragment shader sums a finite-support metaball
+ * kernel over the kernels copied for that cell; read from a positions
+ * texture via `texelFetch`, using the per-instance [offset, count] range;
+ * and thresholds the field (`smoothstep` with `fwidth` AA). Because a cell's
+ * copies contain every kernel whose support reaches the cell, the per-cell
+ * sum equals the whole-community field, so the result is the same single
+ * smooth contour; but each fragment only pays for local kernels, and
+ * pixels in empty cells are never shaded at all (the R9 fill-rate fix).
+ * Cells of the same community are disjoint rects, so no double-blend.
  *
- * CONNECTIVITY (BubbleSets virtual edges): the field also sums thin CAPSULE
- * kernels over per-community corridor segments — texel PAIRS in the same
+ * Connectivity (BubbleSets virtual edges): the field also sums thin capsule
+ * kernels over corridor segments; endpoint texel pairs in the same
  * positions texture, addressed by the per-instance [segOffset, segCount]
  * range, each pair's first texel carrying the capsule radius in `.b`. The
  * corridors follow an MST over the community's members (planned CPU-side in
- * `render/bubble-corridors.ts`), so one community always renders as ONE
+ * `render/bubble-corridors.ts`), so one community always renders as one
  * connected contour instead of an island per spatial clump.
  *
- * Drawn BEHIND the dots/edges (community-force only). Node positions come from the
- * flat SAB (gathered per community into the texture by the presentation layer);
- * everything is in `common`/world units, so the contour scales with zoom. Only
- * non-trivial communities are bubbled (the caller's size threshold), so the count
- * is small and the per-pixel node loop stays cheap.
+ * Drawn behind the dots/edges (community-force only). Node positions come from
+ * the flat SAB (gathered + binned per cell by the presentation layer);
+ * everything is in `common`/world units, so the contour scales with zoom. The
+ * per-pixel kernel sum is sqrt-free and exits early once the field saturates
+ * the iso threshold, so interior fragments stop after a few kernels.
  */
 import { Layer, project32 } from "@deck.gl/core";
 import { Geometry, Model } from "@luma.gl/engine";
@@ -36,14 +39,17 @@ import type { ShaderModule } from "@luma.gl/shadertools";
  * Loop bound for the per-pixel node sum. Callers must not point an instance's
  * [offset, count] range at more nodes than this: the shader stops summing at
  * the bound, so the hull would silently ignore the excess. The presentation
- * layer downsamples larger communities to fit (see `render/community.ts`).
+ * layer downsamples larger communities to fit (see `render/community.ts`);
+ * a grid cell's copies are a subset of its community's members, so per-cell
+ * ranges inherit the bound.
  */
 export const MAX_NODES_PER_COMMUNITY = 256;
 
 /**
- * Loop bound for the per-pixel corridor sum. An MST over ≤ 256 members has
- * ≤ 255 edges; each may split into 2 segments when rerouted around foreign
- * nodes, so 512 covers the worst case.
+ * Loop bound for the per-pixel corridor sum. An MST over <= 256 members has
+ * <= 255 edges; each may split into 2 segments when rerouted around foreign
+ * nodes, so 512 covers the worst case (again a per-community bound that any
+ * per-cell subset inherits).
  */
 export const MAX_SEGMENTS_PER_COMMUNITY = 512;
 
@@ -52,7 +58,7 @@ interface BubbleUniformProps {
   fieldRadius: number;
   /** Field value of the isocontour (where the hard edge sits). */
   isoThreshold: number;
-  /** Width of the positions texture, for texelFetch index → (x, y). */
+  /** Width of the positions texture, for texelFetch index to (x, y). */
   texWidth: number;
 }
 
@@ -139,27 +145,39 @@ vec4 fetchTexel(int idx) {
 }
 
 void main(void) {
+  // The Wyvill kernel (1 - d^2)^2 only needs the squared distance, so the
+  // whole field sum runs without a single sqrt.
+  float invFieldRadiusSq = 1.0 / (bubble.fieldRadius * bubble.fieldRadius);
+  // Saturation exit: kernels only add, so once the field sits this far above
+  // the iso threshold the smoothstep below is pinned at 1 no matter what the
+  // remaining kernels contribute -- stop summing. Zoomed in, almost every
+  // covered fragment is deep interior (the camera is inside the hull), so
+  // this turns the dominant fragment population from ~(nodes + segments)
+  // texel fetches into a handful.
+  float saturation = bubble.isoThreshold + 1.0;
+
   // Sum the finite-support metaball kernel over this community's node centres.
   float field = 0.0;
   for (int i = 0; i < ${MAX_NODES_PER_COMMUNITY}; i++) {
-    if (i >= vCount) {
+    if (i >= vCount || field >= saturation) {
       break;
     }
-    float d = distance(vWorldPos, fetchTexel(vOffset + i).rg) / bubble.fieldRadius;
-    if (d < 1.0) {
+    vec2 toNode = vWorldPos - fetchTexel(vOffset + i).rg;
+    float dSq = dot(toNode, toNode) * invFieldRadiusSq;
+    if (dSq < 1.0) {
       // Wyvill-style kernel: 1 at the centre, 0 at the rim, C1-continuous so
       // overlapping fields merge into one smooth contour.
-      float base = 1.0 - d * d;
+      float base = 1.0 - dSq;
       field += base * base;
     }
   }
 
   // Add the corridor capsules (BubbleSets virtual edges): thin segment kernels
-  // along the community's MST, guaranteeing the contour is CONNECTED. Each
+  // along the community's MST, guaranteeing the contour is connected. Each
   // segment is an endpoint-pair of texels; the first texel's .b carries the
   // capsule radius (world units).
   for (int s = 0; s < ${MAX_SEGMENTS_PER_COMMUNITY}; s++) {
-    if (s >= vSegCount) {
+    if (s >= vSegCount || field >= saturation) {
       break;
     }
     vec4 endpointA = fetchTexel(vSegOffset + s * 2);
@@ -171,9 +189,10 @@ void main(void) {
     vec2 pa = vWorldPos - endpointA.rg;
     vec2 ba = endpointB - endpointA.rg;
     float h = clamp(dot(pa, ba) / max(dot(ba, ba), 1.0e-6), 0.0, 1.0);
-    float d = length(pa - ba * h) / radius;
-    if (d < 1.0) {
-      float base = 1.0 - d * d;
+    vec2 toSpine = pa - ba * h;
+    float dSq = dot(toSpine, toSpine) / (radius * radius);
+    if (dSq < 1.0) {
+      float base = 1.0 - dSq;
       field += base * base;
     }
   }
@@ -205,7 +224,7 @@ interface BinaryData {
 
 interface BubbleSetSDFLayerProps extends LayerProps {
   readonly data: BinaryData;
-  /** Node centres + corridor endpoint pairs (world), grouped by community:
+  /** Per-cell kernel copies (world) packed by `render/bubble-grid.ts`:
    * `texWidth * texHeight` rgba32f texels (`.rg` position, `.b` capsule radius
    * on a segment pair's first texel, unused on point texels). */
   readonly positions: Float32Array;
@@ -358,8 +377,8 @@ export class BubbleSetSDFLayer extends Layer<BubbleSetSDFLayerProps> {
         },
       }),
       isInstanced: true,
-      // A community hull is a pure BACKDROP -- drawn first, behind everything, never occluding.
-      // So it must NOT write depth: each instance fills its community's bounding QUAD and only the
+      // A community hull is a pure backdrop -- drawn first, behind everything, never occluding.
+      // It must not write depth: each instance fills its community's bounding quad and only the
       // metaball hull inside is opaque, so with depth-write on the whole (mostly transparent) quad
       // would stamp the depth buffer and the coplanar bezier edges drawn afterward would fail the
       // depth test across that rectangle and vanish. depthCompare "always" as nothing is behind it.

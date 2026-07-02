@@ -22,7 +22,7 @@ export class CommittedView {
   rendered: RenderedEntry[] = [];
   readonly renderedIndex = new Map<ClusterId, number>();
 
-  /** Cached topology from the last structure commit; reused by position ticks. */
+  /** Cached topology from the last structure commit; drives position-only ticks. */
   cutIndex: CutIndex | undefined;
   edgeFrame: EdgeFrame | undefined;
 

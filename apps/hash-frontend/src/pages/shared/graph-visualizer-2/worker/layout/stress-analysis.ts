@@ -1,9 +1,9 @@
 /*
- * Graph ANALYSIS passes for the stress-majorization engine: CSR adjacency, weak
+ * Graph analysis passes for the stress-majorization engine: CSR adjacency, weak
  * components, min-fill/max-min pivot selection with per-pivot BFS distance rows,
  * PivotMDS-style coordinate initialisation, and (cold builds only) disconnected-
  * component packing. This is exactly the pre-solve machinery majorization-layout.ts
- * consumes — it performs NO layout solving itself (the retired sparse-stress SGD
+ * consumes — it performs no layout solving itself (the retired sparse-stress SGD
  * engine that used to live around these passes was deleted when majorization was
  * promoted to the only community-tier engine).
  *
@@ -149,7 +149,7 @@ export interface StressAnalysisResult {
   readonly x: Float32Array;
   readonly y: Float32Array;
 
-  /** Pivot rows INCLUDING the per-pivot BFS distance matrix (k × n, Uint16). */
+  /** Pivot rows including the per-pivot BFS distance matrix (k × n, Uint16). */
   readonly pivots: Pivots;
 
   readonly components: WeakComponents;

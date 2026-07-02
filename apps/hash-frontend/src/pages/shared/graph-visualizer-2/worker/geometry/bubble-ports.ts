@@ -411,7 +411,7 @@ export function computeAllPorts(
         distinctTypes: info.distinctTypes,
       });
       // The signature covers everything slotPorts reads: neighbor positions
-      // (angles) AND per-neighbor lane counts (reserved arc widths). Counts
+      // (angles) and per-neighbor lane counts (reserved arc widths). Counts
       // change without movement when links stream in between two settled
       // clusters; a position-only key would keep serving stale arcs.
       sigParts.push(

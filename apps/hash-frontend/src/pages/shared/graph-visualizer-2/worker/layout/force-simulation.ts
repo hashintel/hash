@@ -71,11 +71,11 @@ export interface LayoutSimulation {
   pause(): void;
   resume(): void;
   /**
-   * Incrementally absorb newly-arrived nodes without a restart (community-force /
-   * FA2 only): append them (pre-seeded near their neighbours), rebuild edge
-   * topology from `edges` (the full current set), and keep iterating from current
-   * positions. cola can't (its Descent is a fixed N×N solve), so the flat-force
-   * tier omits this and rebuilds (warm-seeded) instead.
+   * Incrementally absorb newly-arrived nodes without a restart (community-force
+   * majorization engine only): append them (pre-seeded near their neighbours),
+   * rebuild edge topology from `edges` (the full current set), and keep iterating
+   * from current positions. cola can't (its Descent is a fixed N*N solve), so the
+   * flat-force tier omits this and rebuilds (warm-seeded) instead.
    */
   absorb?(newNodes: ForceNode[], edges: ForceEdge[]): void;
   /** Write a node's rgba colour into the buffer (entity-dot leaves carry per-node colour). */

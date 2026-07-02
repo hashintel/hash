@@ -1,6 +1,6 @@
 /**
- * The flat-tier layout: one stress-minimised embedding of the whole entity set,
- * used by `flat-force` and `community-force` (the individual-entity regime, see
+ * The flat-tier layout: one stress-minimised embedding of the whole entity set
+ * for `flat-force` and `community-force` (the individual-entity regime, see
  * `LAYOUT-MODES.md`). This is not the cluster (macro) layout: there are no
  * containers, no ports, every node is an individual entity.
  *

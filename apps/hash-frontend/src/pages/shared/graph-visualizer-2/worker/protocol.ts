@@ -130,7 +130,7 @@ export interface QueryHighwayLinksMessage {
 }
 
 /**
- * CAPTURE-LIVE-FIXTURE debug hook: serialize the CURRENT flat-tier layout graph
+ * capture-live-fixture debug hook: serialize the current flat-tier layout graph
  * (nodes with live positions/radii, deduped edges, Louvain communities) so a
  * production graph can be replayed as a deterministic bench/test fixture
  * (`forceGraphFromCapturedFixture` in bench-fixtures.ts). Every layout-engine
@@ -194,7 +194,7 @@ export interface EmbeddingClusteringNeededMessage {
 }
 
 /**
- * An open leaf's entity positions are now backed by this buffer.
+ * An open leaf's entity positions live in this shared buffer.
  *
  * Positions are local to the leaf center: `[version_i32, x0, y0, x1, y1, ...]`.
  */
@@ -243,7 +243,7 @@ export interface BufferRepublishedMessage {
 }
 
 /**
- * The EntityIdx to EntityId lookup table, backed by a shared buffer.
+ * EntityIdx to EntityId lookup table in a shared buffer.
  *
  * The worker is the sole writer. Sent on first publish and re-sent on
  * re-allocation; in-place growth needs no message.
@@ -301,7 +301,7 @@ export interface HighwayLinksResultMessage {
  * opaque node ids, edges reference them, `communities[i]` labels `nodes[i]`.
  */
 export interface CapturedLayoutFixture {
-  /** ISO capture timestamp (metadata only; not used by the replay loader). */
+  /** ISO capture timestamp (metadata only; replay ignores it). */
   readonly capturedAt: string;
   readonly nodes: readonly {
     readonly id: string;

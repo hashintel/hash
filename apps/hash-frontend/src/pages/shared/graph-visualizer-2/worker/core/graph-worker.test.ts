@@ -15,6 +15,7 @@ import {
   benchTypeSchemas,
   buildIngestEntities,
 } from "../bench-fixtures";
+import { CommitCoalescer, MAX_COALESCED_BATCHES } from "./commit-coalescer";
 import { GraphWorker } from "./graph-worker";
 
 import type { PositionsFrame, StructureFrame } from "../../frames";
@@ -232,6 +233,173 @@ describe("GraphWorker.commitStructure — streaming equals bulk", () => {
     expect(streamed.worker.mode).toBe(bulk.worker.mode);
     expect(streamed.lastFlatCount()).toBe(bulk.lastFlatCount());
     expect(streamed.lastFlatCount()).toBe(COMMUNITY_FORCE.nodeCount);
+  });
+});
+
+/**
+ * The coalesced streaming path (`entry.ts` routes per-batch commits through a
+ * {@link CommitCoalescer}): a burst must land in the same committed state as
+ * bulk while paying a BOUNDED number of commits, not one per batch.
+ */
+describe("GraphWorker.commitStructure — coalesced streaming", () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  interface StreamedHarness extends Harness {
+    /** Structure frames emitted while streaming (excludes the type-registration commit). */
+    readonly streamFrames: () => number;
+  }
+
+  /**
+   * Drive a harness the way `entry.ts` does: type registration and every
+   * batch's deltas ride the coalescer. The drain fires once after the first
+   * batch (a cold load's first queue cycle); the rest of the stream arrives
+   * as one saturated burst, so the batch-count cap paces the commits. The
+   * clock is frozen so the age cap cannot fire mid-loop on a slow machine.
+   */
+  function streamCoalesced(
+    batches: readonly (readonly IngestEntity[])[],
+  ): StreamedHarness {
+    const harness = newHarness();
+    let fireDrain: (() => void) | undefined;
+    const coalescer = new CommitCoalescer({
+      commit: ({ deltas, rebuildTree }) => {
+        harness.worker.commitStructure({ deltas, rebuildTree });
+        harness.worker.restyleIfRootsFlipped();
+      },
+      now: () => 0,
+      scheduleDrain: (fire) => {
+        fireDrain = fire;
+      },
+    });
+
+    harness.worker.registerTypes(
+      benchTypeSchemas(COMMUNITY_FORCE.typeCount),
+      [],
+    );
+    coalescer.enqueueRebuildTree();
+    const framesBeforeStream = harness.structure.mock.calls.length;
+
+    for (const [batchIndex, batch] of batches.entries()) {
+      coalescer.enqueueDeltas(harness.worker.ingestBatch(batch));
+      if (batchIndex === 0) {
+        fireDrain?.();
+      }
+    }
+    coalescer.flush();
+
+    return {
+      ...harness,
+      streamFrames: () =>
+        harness.structure.mock.calls.length - framesBeforeStream,
+    };
+  }
+
+  /** Relabel communities by first occurrence so equal partitions compare equal. */
+  function canonicalCommunities(communities: Int32Array | undefined): number[] {
+    const relabel = new Map<number, number>();
+    const result: number[] = [];
+    for (const label of communities ?? []) {
+      let canonical = relabel.get(label);
+      if (canonical === undefined) {
+        canonical = relabel.size;
+        relabel.set(label, canonical);
+      }
+      result.push(canonical);
+    }
+    return result;
+  }
+
+  /** The `communities` of the most recent flat structure frame. */
+  function lastCommunities(harness: Harness): Int32Array | undefined {
+    const calls = (harness.structure as ReturnType<typeof vi.fn>).mock.calls;
+    const last = calls[calls.length - 1]?.[0] as
+      | { flatGraph?: { communities?: Int32Array } }
+      | undefined;
+    return last?.flatGraph?.communities;
+  }
+
+  /**
+   * Re-batch the fixture the way real pages arrive: each batch carries nodes
+   * AND their links. (`buildIngestEntities` emits all nodes then all links;
+   * streaming THAT shape ends on link-only absorbs, which refresh no Louvain
+   * — nodes drive the refresh counters — so communities would lag the final
+   * links under bulk and streaming alike. Interleaving keeps the trailing
+   * refresh meaningful, which is what the communities assertion needs.)
+   */
+  function interleaveBatches(
+    entities: readonly IngestEntity[],
+    nodeCount: number,
+    batchCount: number,
+  ): IngestEntity[][] {
+    const nodes = entities.slice(0, nodeCount);
+    const links = entities.slice(nodeCount);
+    const batches: IngestEntity[][] = [];
+    for (let index = 0; index < batchCount; index++) {
+      batches.push([
+        ...nodes.slice(
+          Math.ceil((nodes.length * index) / batchCount),
+          Math.ceil((nodes.length * (index + 1)) / batchCount),
+        ),
+        ...links.slice(
+          Math.ceil((links.length * index) / batchCount),
+          Math.ceil((links.length * (index + 1)) / batchCount),
+        ),
+      ]);
+    }
+    return batches;
+  }
+
+  it("reaches the bulk committed state with a bounded commit count", () => {
+    const entities = buildIngestEntities(COMMUNITY_FORCE);
+    const batchCount = 20;
+    const batches = interleaveBatches(
+      entities,
+      COMMUNITY_FORCE.nodeCount,
+      batchCount,
+    );
+
+    const bulk = prime(COMMUNITY_FORCE);
+    const streamed = streamCoalesced(batches);
+
+    expect(streamed.worker.nodeCount).toBe(bulk.worker.nodeCount);
+    expect(streamed.worker.linkCount).toBe(bulk.worker.linkCount);
+    expect(streamed.worker.mode).toBe(bulk.worker.mode);
+    expect(streamed.lastFlatCount()).toBe(bulk.lastFlatCount());
+
+    // The whole point: commits/frames per stream stay bounded by the
+    // coalescing policy (first-drain + batch-count cap + final flush), far
+    // below one per batch — they must not grow linearly with batch count.
+    const expectedCeiling = 2 + Math.ceil(batchCount / MAX_COALESCED_BATCHES);
+    expect(streamed.streamFrames()).toBeLessThanOrEqual(expectedCeiling);
+    expect(streamed.streamFrames()).toBeLessThan(batchCount / 2);
+    // Layout rebuilds stay bounded too (initial build + the flat-force ->
+    // community-force crossing); the coalesced link-only tails absorb.
+    expect(streamed.layoutLifecycleCalls()).toBeLessThanOrEqual(4);
+
+    // After the trailing Louvain linger both sides describe the same final
+    // graph, so their community PARTITIONS must match.
+    vi.runOnlyPendingTimers();
+    expect(canonicalCommunities(lastCommunities(streamed))).toEqual(
+      canonicalCommunities(lastCommunities(bulk)),
+    );
+  });
+
+  it("is deterministic: two identical coalesced streams settle identical layouts", () => {
+    const entities = buildIngestEntities(COMMUNITY_FORCE);
+
+    const first = streamCoalesced(entities, 100);
+    const second = streamCoalesced(entities, 100);
+
+    const firstFixture = first.worker.captureLayoutFixture();
+    const secondFixture = second.worker.captureLayoutFixture();
+    expect(firstFixture).not.toBeNull();
+    expect(secondFixture?.nodes).toEqual(firstFixture?.nodes);
+    expect(secondFixture?.communities).toEqual(firstFixture?.communities);
   });
 });
 

@@ -143,8 +143,8 @@ export abstract class GrowableBuffer {
 
   /**
    * Re-create the record-field views over `raw`. Called by the subclass constructor
-   * (once, after super()) and again on every re-publish. Must not be called from
-   * {@link GrowableBuffer}'s own constructor: the subclass's fields aren't live yet.
+   * (once, after super()) and again on every re-publish. Subclass fields are not
+   * live during {@link GrowableBuffer}'s own constructor, so bind there must wait.
    */
   protected abstract bindRecordViews(
     raw: SharedArrayBuffer | ArrayBuffer,

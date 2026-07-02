@@ -125,7 +125,7 @@ describe("createMajorizationLayout", () => {
     expect(Math.abs(sumY / positions.length)).toBeLessThan(1);
   });
 
-  it("separates all disks (VPSC projection) rather than piling them", () => {
+  it("separates all disks (overlap projection) rather than piling them", () => {
     const nodes = makeNodes(12);
     const edges: ForceEdge[] = [
       { source: "0", target: "1", weight: 1 },

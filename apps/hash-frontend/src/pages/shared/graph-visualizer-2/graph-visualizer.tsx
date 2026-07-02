@@ -1,7 +1,7 @@
 /**
- * Thin React shell: mounts a {@link Scene} over a container and keeps its interaction
- * callbacks current. All rendering state and behavior live in Scene; React owns only
- * the container and the loading overlay. The entity hover card is owned by the parent bridge.
+ * React mount for {@link Scene}: owns the container and loading overlay while
+ * Scene holds all rendering state and behavior. The entity hover card is owned
+ * by the parent bridge.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -31,13 +31,13 @@ interface GraphVisualizerProps {
   /** Report a hovered wholly-frontier cluster bubble (to offer loading its entities), or null on leave. */
   readonly onClusterHover?: (hover: ClusterHover | null) => void;
   /**
-   * Resolve an entity's display label (its name) for the always-on graph labels. The Scene
-   * calls this only when it rebuilds the label set (zoom / structure change), never per frame.
+   * Resolve an entity's display label (its name) for always-on graph labels.
+   * Invoked when the label set is rebuilt (zoom / structure change), never per frame.
    */
   readonly resolveEntityLabel?: (entityId: EntityId) => string | undefined;
   /**
-   * Resolve an entity's type icon to an atlas key (emoji or image URL), or null for none. The
-   * Scene calls this only when it rebuilds the flat-tier icon set (structure change), never per frame.
+   * Resolve an entity's type icon to an atlas key (emoji or image URL), or null for none.
+   * Invoked when the flat-tier icon set is rebuilt (structure change), never per frame.
    */
   readonly resolveEntityIcon?: (entityId: EntityId) => string | null;
   /** Receive the always-on hub labels (with current on-screen positions) to overlay as HTML. */
@@ -73,9 +73,11 @@ export const GraphVisualizerV2 = ({
     if (!container) {
       return undefined;
     }
+
     // A new handle means a fresh worker with no committed structure yet: show
     // the loading overlay again until its first structure frame arrives.
     setHasStructure(false);
+
     const scene = new Scene(container, handle, {
       onEntityHover,
       onHighwayHover,
@@ -89,6 +91,7 @@ export const GraphVisualizerV2 = ({
     });
     sceneRef.current = scene;
     onSceneReady?.(scene);
+
     return () => {
       onSceneReady?.(null);
       scene.dispose();

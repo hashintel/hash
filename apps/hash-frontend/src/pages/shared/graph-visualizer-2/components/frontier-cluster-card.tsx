@@ -33,7 +33,7 @@ type FrontierClusterBodyProps = Pick<
 >;
 
 /**
- * The card's visual body, memoized on its content (NOT the bubble position), so the per-frame
+ * The card's visual body, memoized on its content (not the bubble position), so the per-frame
  * re-position of the wrapper never re-lays out this MUI tree. Echoes the grey frontier bubble with a
  * matching swatch and follows the same icon + title + stat discipline as the other graph cards.
  */

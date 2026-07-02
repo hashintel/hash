@@ -128,7 +128,7 @@ export class EmbeddingCoordinator {
     const assignments = clusters.map((embeddingCluster) => {
       // Compact unknown ids away. Leaving a slot at its Int32Array default of
       // 0 would silently claim entity index 0 as a member of every cluster
-      // containing an id the store has not (or no longer) interned.
+      // containing an id the store has not interned.
       const scratch = new Int32Array(embeddingCluster.entityIds.length);
       let matched = 0;
 

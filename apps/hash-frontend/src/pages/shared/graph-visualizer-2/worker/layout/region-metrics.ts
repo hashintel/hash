@@ -1,28 +1,28 @@
 /**
- * Community-REGION disjointness metrics for the layout engines' A/B benches and
+ * Community-region disjointness metrics for the layout engines' A/B benches and
  * gates.
  *
  * Zero disk overlaps does not imply visually separate community regions: a branch
  * of one community can fold deep into another community's fan without any pair of
  * disks intersecting (classic sparse-stress folding — unrelated cross-community
  * pairs carry no stress term, so nothing separates them). The bench's inter/intra
- * EDGE-LENGTH ratio cannot see this (it only measures edges, and the folded pairs
+ * edge-length ratio cannot see this (it only measures edges, and the folded pairs
  * share none), which is exactly how region interpenetration shipped while every
- * edge metric looked fine. These metrics measure the REGIONS themselves.
+ * edge metric looked fine. These metrics measure the regions themselves.
  *
- * PRIMARY metric: `diskContainment` — the fraction of nodes lying strictly inside
- * a FOREIGN community's disk, where community c's disk is centred on its member
- * centroid with the community's PACKING radius (the radius of the disk that holds
+ * Primary metric: `diskContainment` — the fraction of nodes lying strictly inside
+ * a foreign community's disk, where community c's disk is centred on its member
+ * centroid with the community's packing radius (the radius of the disk that holds
  * the members' drawn areas at the engines' shared utilisation). Chosen as primary
  * because it counts the user-visible artifact directly ("blue nodes deep inside
  * the green bubble's core"), it is engine-agnostic (positions + radii + a shared
  * partition; no per-engine anchor or force model), and it is robust to community
- * SHAPE: a stringy community has a small packing disk, so brushing past its tail
+ * shape: a stringy community has a small packing disk, so brushing past its tail
  * does not count, only intruding into a region's mass does.
  *
- * SECONDARY (reported, not gated): convex-hull `foreignContainment` and worst
+ * Secondary (reported, not gated): convex-hull `foreignContainment` and worst
  * pairwise hull intersection-over-min-area. Hulls also see boundary
- * interpenetration between region PERIMETERS, but they systematically overcount
+ * interpenetration between region perimeters, but they systematically overcount
  * for concave shapes — a crescent community's hull covers its bay, and everything
  * inside the bay counts as "contained" even when the drawn bubbles are disjoint —
  * so they complement the disk metric rather than replace it.
@@ -169,7 +169,7 @@ export interface RegionNode {
 
 export interface RegionOverlapStats {
   /**
-   * PRIMARY: fraction of ALL nodes lying strictly inside ≥ 1 foreign community's
+   * Primary: fraction of all nodes lying strictly inside ≥ 1 foreign community's
    * packing disk (centroid-centred, packing radius).
    */
   readonly diskContainment: number;

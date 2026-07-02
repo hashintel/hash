@@ -1,44 +1,44 @@
 /**
  * Corridor planning for the community BubbleSets: guarantees each rendered
- * community's metaball field is CONNECTED.
+ * community's metaball field is connected.
  *
  * The metaball kernel has finite support (`fieldRadius`), so a community whose
  * members sit in spatial clumps farther apart than the kernel reach renders as
  * disconnected bubble islands. The canonical fix is BubbleSets' (Collins et
- * al., 2009) VIRTUAL EDGES: add field energy along a spanning structure over
+ * al., 2009) virtual edges: add field energy along a spanning structure over
  * the member positions so the iso-contour connects. Adapted to this renderer,
- * each virtual edge is a CAPSULE (segment) kernel summed by the fragment
+ * each virtual edge is a capsule (segment) kernel summed by the fragment
  * shader alongside the point kernels; along the segment spine the kernel is 1,
  * which is above any sane iso-threshold, so the corridor is above-threshold
- * end to end and the union {member blobs} ∪ {MST corridors} is connected.
+ * end to end and the union {member blobs} + {MST corridors} is connected.
  *
  * Construction, per rendered community (all deterministic):
  *  1. Euclidean MST over the community's sampled member positions (Prim from
  *     slot 0; strict `<` keeps the lowest candidate slot on ties).
  *  2. Obstacle pass: an MST edge whose corridor passes within clearance of a
- *     FOREIGN node (any node not in this community, measured against the
+ *     foreign node (any node not in this community, measured against the
  *     node's actual dot radius via a uniform grid) is rerouted through the
- *     best intermediate member (min detour ≤ {@link CORRIDOR_DETOUR_CAP} ×
+ *     best intermediate member (min detour <= {@link CORRIDOR_DETOUR_CAP} *
  *     direct, both halves clear, tie-break lowest slot). If no clear reroute
- *     exists the direct segment is kept but NARROWED
- *     (× {@link CORRIDOR_NARROW_FACTOR}) so it reads as a thin thread rather
+ *     exists the direct segment is kept but narrowed
+ *     (* {@link CORRIDOR_NARROW_FACTOR}) so it reads as a thin thread rather
  *     than swallowing what it crosses.
  *
- * Corridors are deliberately THIN ribbons ({@link CORRIDOR_FIELD_RADIUS} ≪
+ * Corridors are deliberately thin ribbons ({@link CORRIDOR_FIELD_RADIUS} <<
  * bubble `fieldRadius`): connecting a spread community must not visually annex
- * the space between its clumps — that would undo the community-region
+ * the space between its clumps; that would undo the community-region
  * separation the layout engines enforce.
  *
  * Topology (which slots each segment joins, each segment's radius) is planned
- * here on the CPU — once when a grouping is built, then only when members
- * drift (movement-gated by the caller). Segment ENDPOINT positions are
+ * here on the CPU, once when a grouping is built, then only when members
+ * drift (movement-gated by the caller). Segment endpoint positions are
  * refreshed from the already-gathered point texels every frame by
  * `render/community.ts`, so corridors track the animation between replans at
  * zero planning cost.
  */
 
 /** Capsule kernel radius (world units) for full-width corridors. Visual ribbon
- * half-width at the default iso-threshold ≈ 0.49 × this. */
+ * half-width at the default iso-threshold ~ 0.49 * this. */
 export const CORRIDOR_FIELD_RADIUS = 22;
 /** Radius multiplier for corridors that could not clear foreign nodes. */
 export const CORRIDOR_NARROW_FACTOR = 0.45;
@@ -79,23 +79,23 @@ export interface CorridorPlanArgs {
   readonly floats: Float32Array;
   readonly headerFloats: number;
   readonly recordFloats: number;
-  /** Louvain membership per SAB node index (−1 / missing = no community). */
+  /** Louvain membership per SAB node index (-1 / missing = no community). */
   readonly membership: Int32Array;
   /** Live SAB node count (obstacle candidates are `0..nodeCount-1`). */
   readonly nodeCount: number;
 
   /** Outputs, pre-allocated by the caller (capacities fixed per grouping): */
-  /** Per segment `[slotA, slotB]` — absolute point-texel slots. */
+  /** Per segment `[slotA, slotB]`, absolute point-texel slots. */
   readonly segSlots: Int32Array;
   /** Per segment: capsule kernel radius (world units). */
   readonly segRadius: Float32Array;
-  /** Per kept community: live segment count (≤ its capacity). */
+  /** Per kept community: live segment count (<= its capacity). */
   readonly segCounts: Int32Array;
   /** Per kept community: first segment-storage index (segment units, fixed). */
   readonly segStorageOffsets: Int32Array;
 }
 
-/** Point → segment distance. */
+/** Point to segment distance. */
 function distanceToSegment(
   px: number,
   py: number,
@@ -115,7 +115,7 @@ function distanceToSegment(
 }
 
 /**
- * Foreign-node obstacle index: uniform grid over ALL live SAB nodes. Built
+ * Foreign-node obstacle index: uniform grid over all live SAB nodes. Built
  * once per plan call (plans are movement-gated, not per-frame, so the small
  * Map allocation here never rides the steady-state render loop).
  */
@@ -150,8 +150,8 @@ class ObstacleGrid {
   }
 
   /**
-   * True when no node OUTSIDE `communityId` sits within
-   * `clearance + itsDotRadius` of segment (ax,ay)→(bx,by).
+   * True when no node outside `communityId` sits within
+   * `clearance + itsDotRadius` of segment (ax,ay)->(bx,by).
    */
   segmentClear(
     ax: number,
@@ -201,7 +201,7 @@ class ObstacleGrid {
  * communities keep their previous plan (their storage regions are disjoint).
  */
 export function planBubbleCorridors(args: CorridorPlanArgs): void {
-  // Output arrays destructured to locals: the planner writes ELEMENTS of the
+  // Output arrays destructured to locals: the planner writes elements of the
   // caller-owned buffers, never reassigns the properties themselves.
   const { keptCount, ranges, pointTexels, replan, segSlots, segRadius } = args;
   const { segCounts, segStorageOffsets, communityIds } = args;
@@ -229,7 +229,7 @@ export function planBubbleCorridors(args: CorridorPlanArgs): void {
     let segCount = 0;
 
     if (memberCount >= 2 && memberCount <= PRIM_CAP) {
-      // --- 1. Euclidean MST (Prim, deterministic) over member texel coords.
+      // Euclidean MST (Prim, deterministic) over member texel coords.
       const coordAt = (member: number): readonly [number, number] => {
         const slot = (pointOffset + member) * 4;
         return [pointTexels[slot]!, pointTexels[slot + 1]!];
@@ -267,9 +267,9 @@ export function planBubbleCorridors(args: CorridorPlanArgs): void {
         }
       }
 
-      // --- 2. Obstacle pass per MST edge: clear → full; reroute → 2 × full;
-      //        otherwise narrow. Capacity is 2·(memberCount−1): every edge
-      //        emits at most two segments, so this can never overflow.
+      // Obstacle pass per MST edge: clear edges use full radius; reroutes use
+      // two full segments; blocked edges narrow. Capacity is 2 * (memberCount -
+      // 1) and never overflows because each edge emits at most two segments.
       const emit = (memberA: number, memberB: number, radius: number): void => {
         const seg = storageStart + segCount;
         segSlots[seg * 2] = pointOffset + memberA;

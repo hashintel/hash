@@ -31,44 +31,49 @@ export interface BezierSegmentDatum {
   readonly clipB?: readonly [number, number, number];
 }
 
-// Shader module for custom uniforms
-
 interface BezierUniformProps {
+  /** Halo (soft underlay band) colour, normalized 0..1 RGBA. */
+  uHaloColor: [number, number, number, number];
   uViewportSize: [number, number];
   uBoundsPaddingPixels: number;
   /** Width unit + scale, same mechanism as the core LineLayer. */
   widthUnits: number;
   widthScale: number;
+  /** Halo stroke width as a multiple of the core width; <= 1 disables the halo. */
+  uHaloWidthFactor: number;
 }
+
+// Declaration order matches `uniformTypes` and packs std140 without holes
+// (vec4, vec2, then scalars).
+const bezierUniformsGlsl = `\
+layout(std140) uniform bezierUniforms {
+  vec4 uHaloColor;
+  vec2 uViewportSize;
+  float uBoundsPaddingPixels;
+  float widthScale;
+  float uHaloWidthFactor;
+  highp int widthUnits;
+} bezier;
+`;
 
 const bezierUniforms = {
   name: "bezier",
-  vs: `\
-layout(std140) uniform bezierUniforms {
-  vec2 uViewportSize;
-  float uBoundsPaddingPixels;
-  float widthScale;
-  highp int widthUnits;
-} bezier;
-`,
-  fs: `\
-layout(std140) uniform bezierUniforms {
-  vec2 uViewportSize;
-  float uBoundsPaddingPixels;
-  float widthScale;
-  highp int widthUnits;
-} bezier;
-`,
+  vs: bezierUniformsGlsl,
+  fs: bezierUniformsGlsl,
   uniformTypes: {
+    uHaloColor: "vec4<f32>",
     uViewportSize: "vec2<f32>",
     uBoundsPaddingPixels: "f32",
     widthScale: "f32",
+    uHaloWidthFactor: "f32",
     widthUnits: "i32",
   },
   defaultUniforms: {
+    uHaloColor: [0, 0, 0, 0] as [number, number, number, number],
     uViewportSize: [1, 1] as [number, number],
     uBoundsPaddingPixels: 4,
     widthScale: 1,
+    uHaloWidthFactor: 0,
     widthUnits: UNIT.pixels,
   },
 } satisfies ShaderModule<BezierUniformProps>;
@@ -121,14 +126,16 @@ void main(void) {
   vec2 minP = min(min(p0, p1), min(p2, p3));
   vec2 maxP = max(max(p0, p1), max(p2, p3));
 
-  // Stroke width → pixels via Deck's unit conversion (pixels / common / meters). Readability is a
+  // Stroke width to pixels via Deck's unit conversion (pixels / common / meters). Readability is a
   // caller-owned design decision; this shader does not hide it behind min/max clamps.
   float widthPx = max(
     0.0,
     project_size_to_pixel(instanceWidths * bezier.widthScale, bezier.widthUnits)
   );
 
-  float pad = widthPx * 0.5 + bezier.uBoundsPaddingPixels;
+  // The quad must cover the widest band drawn: the halo when enabled.
+  float pad = widthPx * 0.5 * max(1.0, bezier.uHaloWidthFactor)
+    + bezier.uBoundsPaddingPixels;
   minP -= vec2(pad);
   maxP += vec2(pad);
 
@@ -146,7 +153,7 @@ void main(void) {
   // Each segment is one pickable instance; deck decodes this back to its index on hover.
   picking_setPickingColor(instancePickingColors);
 
-  // Clip circles → pixel space. Project the centre, and a point one world-radius
+  // Clip circles to pixel space. Project the centre, and a point one world-radius
   // away, so the pixel radius tracks the same projection the bubble uses. Keep
   // the radius SIGN (which side to erase); a zero radius means "no clip".
   vClipACenter = graphToPixel(instanceClipA.xy);
@@ -164,7 +171,10 @@ void main(void) {
 `;
 
 // Fragment shader: SDF distance to cubic Bezier.
-// Brute-force search (24 samples) + Newton refinement (5 iterations).
+// Brute-force search (12 samples) + Newton refinement (3 iterations).
+// Bump to 24/5 respectively if there are any artifacts visible.
+const SAMPLE_SIZE = 12;
+const NEWTON_ITERATIONS = 3;
 
 const fs = `\
 #version 300 es
@@ -206,12 +216,16 @@ vec2 cubicBezierDeriv2(vec2 a, vec2 b, vec2 c, vec2 d, float t) {
 }
 
 float distToCubicBezier(vec2 p, vec2 a, vec2 b, vec2 c, vec2 d) {
-  // Coarse search: 24 uniform samples.
+  // Coarse search: ${SAMPLE_SIZE} uniform samples. The edge control nets drawn here are
+  // near-straight (highway lanes with a mild bow), so the distance-to-t
+  // relation has no tight folds and a dozen seeds put Newton inside its
+  // convergence basin; more samples double the per-fragment ALU for no
+  // visible change in the stroke.
   float bestT = 0.0;
   float bestD2 = 1.0e30;
 
-  for (int i = 0; i <= 24; i++) {
-    float t = float(i) / 24.0;
+  for (int i = 0; i <= ${SAMPLE_SIZE}; i++) {
+    float t = float(i) / ${SAMPLE_SIZE}.0;
     vec2 q = cubicBezier(a, b, c, d, t);
     float d2 = dot(q - p, q - p);
     if (d2 < bestD2) {
@@ -220,9 +234,9 @@ float distToCubicBezier(vec2 p, vec2 a, vec2 b, vec2 c, vec2 d) {
     }
   }
 
-  // Newton refinement: 5 iterations.
+  // Newton refinement: ${NEWTON_ITERATIONS} iterations.
   float t = bestT;
-  for (int i = 0; i < 5; i++) {
+  for (int i = 0; i < ${NEWTON_ITERATIONS}; i++) {
     vec2 q = cubicBezier(a, b, c, d, t);
     vec2 d1 = cubicBezierDeriv(a, b, c, d, t);
     vec2 d2 = cubicBezierDeriv2(a, b, c, d, t);
@@ -241,7 +255,7 @@ float distToCubicBezier(vec2 p, vec2 a, vec2 b, vec2 c, vec2 d) {
 }
 
 // Clip one side via a circle, which is positioned at the centre with the radius specified.
-// A negative signedRadiusPx erases OUTSIDE (keep inside); positive erases INSIDE (keep outside);
+// A negative signedRadiusPx erases outside (keep inside); positive erases inside (keep outside);
 // ~0 means no clip. Returns a 0..1 alpha multiplier.
 float clipFactor(vec2 pixel, vec2 center, float signedRadiusPx) {
   float r = abs(signedRadiusPx);
@@ -259,18 +273,44 @@ void main(void) {
   float radius = vWidth * 0.5;
   float aa = max(fwidth(dist), 0.75);
 
-  float alpha = 1.0 - smoothstep(radius - aa, radius + aa, dist);
-  alpha *= clipFactor(vPixel, vClipACenter, vClipARadiusPx);
-  alpha *= clipFactor(vPixel, vClipBCenter, vClipBRadiusPx);
+  float coreCoverage = 1.0 - smoothstep(radius - aa, radius + aa, dist);
 
-  if (alpha <= 0.001) {
-    discard;
+  float clip = clipFactor(vPixel, vClipACenter, vClipARadiusPx)
+    * clipFactor(vPixel, vClipBCenter, vClipBRadiusPx);
+
+  // Picking must hit-test the core stroke only (the halo is a soft backdrop,
+  // not a target), matching the old separate non-pickable underlay layer.
+  if (bool(picking.isActive)) {
+    float pickAlpha = vColor.a * coreCoverage * clip;
+    if (pickAlpha <= 0.001) {
+      discard;
+    }
+    fragColor = picking_filterPickingColor(vec4(vColor.rgb, pickAlpha));
+    return;
   }
 
-  fragColor = vec4(vColor.rgb, vColor.a * alpha);
-  // The discard above already restricts picking to the curve's drawn pixels, so the picking
-  // pass hit-tests the actual stroke (not the instance's bounding quad).
-  fragColor = picking_filterPickingColor(fragColor);
+  // Optional halo: the wide soft band formerly drawn as a second full layer
+  // ("edges-underlay"). Same SDF evaluation, one extra smoothstep -- the
+  // stacked-layer look is reproduced by compositing core over halo here.
+  float coreAlpha = vColor.a * coreCoverage;
+  float haloAlpha = 0.0;
+  if (bezier.uHaloWidthFactor > 1.0) {
+    float haloRadius = radius * bezier.uHaloWidthFactor;
+    haloAlpha =
+      bezier.uHaloColor.a * (1.0 - smoothstep(haloRadius - aa, haloRadius + aa, dist));
+  }
+
+  float blendedAlpha = coreAlpha + haloAlpha * (1.0 - coreAlpha);
+  float outAlpha = blendedAlpha * clip;
+  if (outAlpha <= 0.001) {
+    discard;
+  }
+  // "Core over halo" resolved to one straight-alpha output: weight the core
+  // colour by its share of the blended alpha.
+  vec3 outColor =
+    mix(bezier.uHaloColor.rgb, vColor.rgb, coreAlpha / max(blendedAlpha, 1.0e-6));
+
+  fragColor = vec4(outColor, outAlpha);
 }
 `;
 
@@ -314,6 +354,15 @@ interface BezierSDFLayerProps<
   /** Width unit: `"pixels"` (default), `"common"` (world, scales with zoom), `"meters"`. */
   readonly widthUnits?: Unit;
   readonly widthScale?: number;
+  /**
+   * Halo stroke width as a multiple of the core width (> 1 enables it). The
+   * halo is the soft wide band once drawn as a separate underlay layer; folding
+   * it in here reuses the (expensive) per-fragment curve solve instead of
+   * running it twice over overlapping quads.
+   */
+  readonly haloWidthFactor?: number;
+  /** Halo RGBA, 0-255 like other layer colours. Only drawn when {@link haloWidthFactor} > 1. */
+  readonly haloColor?: readonly [number, number, number, number];
 }
 
 const DEFAULT_COLOR: readonly [number, number, number, number] = [
@@ -356,6 +405,8 @@ const defaultProps = {
   boundsPaddingPixels: 4,
   widthUnits: "pixels" as const,
   widthScale: 1,
+  haloWidthFactor: 0,
+  haloColor: [0, 0, 0, 0] as readonly [number, number, number, number],
 };
 
 export class BezierSDFLayer extends Layer<BezierSDFLayerProps> {
@@ -433,13 +484,21 @@ export class BezierSDFLayer extends Layer<BezierSDFLayerProps> {
   draw() {
     const model = (this.state as { model: Model }).model;
     const { viewport, renderPass } = this.context;
+    const haloColor = this.props.haloColor ?? [0, 0, 0, 0];
 
     model.shaderInputs.setProps({
       bezier: {
+        uHaloColor: [
+          haloColor[0] / 255,
+          haloColor[1] / 255,
+          haloColor[2] / 255,
+          haloColor[3] / 255,
+        ] as [number, number, number, number],
         uViewportSize: [viewport.width, viewport.height] as [number, number],
         uBoundsPaddingPixels: this.props.boundsPaddingPixels ?? 4,
         widthUnits: UNIT[this.props.widthUnits ?? "pixels"],
         widthScale: this.props.widthScale ?? 1,
+        uHaloWidthFactor: this.props.haloWidthFactor ?? 0,
       },
     });
 

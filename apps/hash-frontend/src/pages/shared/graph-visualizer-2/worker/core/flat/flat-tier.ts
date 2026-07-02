@@ -221,7 +221,7 @@ export class FlatTierController {
   }
 
   /**
-   * CAPTURE-LIVE-FIXTURE debug hook: serialize the live flat-tier layout (node
+   * capture-live-fixture debug hook: serialize the live flat-tier layout (node
    * positions/radii, deduped edges rebuilt from the link store exactly as the
    * layout received them, Louvain communities) for replay via
    * `forceGraphFromCapturedFixture` in bench-fixtures.ts. Null when no flat

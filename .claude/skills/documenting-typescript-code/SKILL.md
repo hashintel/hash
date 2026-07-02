@@ -190,6 +190,9 @@ Code that coordinates across threads (workers, `SharedArrayBuffer`, `Atomics`) d
 ### Comment hygiene
 
 - No ASCII banners or decorative separators.
+- No ALL-CAPS emphasis in prose (keep legitimate acronyms such as `SAB`, `LOD`, `GPU`).
+- Section labels and inline emphasis use sentence case; domain terms may use backticks (e.g. `packing-bound`).
+- Debug hook and flag names in comments use kebab-case to match the code.
 - No commented-out code. Delete it; git remembers.
 - No caller narration ("Used by Scene to…"). Describe what the code provides.
 - No composition narration ("wraps a Foo", "this is a thin wrapper around"). State the semantic purpose.
@@ -239,6 +242,6 @@ Before finalizing documentation or a comment pass:
 - Casts, non-null assertions, and index arithmetic carry invariant justifications.
 - Config knobs state default + tradeoff.
 - Inline comments explain why, are affirmative and present-tense, and sit at the point of surprise.
-- No banners, no commented-out code, no history narration, no caller narration.
+- No banners, no commented-out code, no history narration, no caller narration, no ALL-CAPS emphasis in prose.
 - Concurrency protocols are documented where the coordination happens.
 - Every `{@link}` resolves; plain backticks are not used for type references.

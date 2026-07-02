@@ -43,7 +43,7 @@ export interface ClusterReference {
   readonly clusterId: ClusterId;
   /** Int32 version counter at byte 0; written + Atomics.notify'd by the worker. */
   readonly versionView: Int32Array;
-  /** `[x0, y0, x1, y1, ...]` in the leaf's LOCAL frame. Replaced on non-SAB fallback. */
+  /** `[x0, y0, x1, y1, ...]` in the leaf's local frame. Replaced on non-SAB fallback. */
   positions: Float32Array;
   readonly nodeIds: readonly string[];
   /** Present for the flat-tier interleaved `FlatGraphBuffer`; absent for leaf SABs. */
@@ -103,7 +103,7 @@ export interface WorkerHandle {
   /** Ask the worker for the link entities aggregated by a highway lane (its `laneId`). */
   queryHighwayLinks(laneId: number): Promise<readonly EntityIndex[]>;
   /**
-   * CAPTURE-LIVE-FIXTURE debug hook: serialize the live flat-tier layout graph
+   * capture-live-fixture debug hook: serialize the live flat-tier layout graph
    * for replay as a bench/test fixture. Null when no flat layout is live.
    */
   captureLayoutFixture(): Promise<CapturedLayoutFixture | null>;
@@ -232,7 +232,7 @@ export class WorkerConnection implements WorkerHandle {
         : decodeEntityId(mapBytes, Number(entityIdx));
     }
 
-    // Flat-tier FlatGraphBuffer: records reorder as entities stream, so read the CURRENT
+    // Flat-tier FlatGraphBuffer: records reorder as entities stream, so read the current
     // entityIdx join key off the record itself, then decode it.
     const records = new Uint32Array(cluster.versionView.buffer);
     const slot =

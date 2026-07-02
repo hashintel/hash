@@ -1,6 +1,6 @@
 /**
- * Dense index -> (x, y) scratch map backed by two Float64Arrays (one per
- * coordinate plane).
+ * Dense index to (x, y) scratch map: two Float64Arrays, one per coordinate
+ * plane.
  *
  * Replaces `Map<index, [x, y]>` in seeding passes that run per layout
  * (re)build: flat buffers instead of a Map plus one tuple allocation per

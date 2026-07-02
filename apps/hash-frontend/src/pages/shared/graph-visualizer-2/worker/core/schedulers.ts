@@ -39,7 +39,7 @@ export class TickScheduler {
     }
   }
 
-  /** Called from inside the tick callback once every layout has settled. */
+  /** Idempotent: stops scheduling further ticks once every layout has settled. */
   stop(): void {
     this.#running = false;
   }

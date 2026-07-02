@@ -74,7 +74,7 @@ export class SceneInteractions {
 
   /** The selected entity dot: ring + camera focus + pinned card. Set on click. */
   #selected: Selection | null = null;
-  /** A selected link EDGE (the link's own EntityIdx): a pinned card + Open, no ring/dim (a link
+  /** A selected link edge (the link's own EntityIdx): a pinned card + Open, no ring/dim (a link
    * isn't a node to focus). Tracked by re-finding its bezier each emit. Excludes #selected. */
   #selectedLink: EntityIndex | null = null;
   /** The selected node's ego (neighbors' visible representatives: dots and/or bubbles). */
@@ -221,7 +221,7 @@ export class SceneInteractions {
     // Edges render under the bubbles but still win a hover over them (#edgePickFor).
     const edgeInfo = this.#edgePickFor(info);
     if (edgeInfo) {
-      // Flat edge: a link IS an entity, so show the same card for the link entity.
+      // Flat edge: a link is an entity, so show the same card for the link entity.
       const linkEntityIdx = pickedLinkEntityIdx(
         this.#dependencies.handle,
         edgeInfo,
@@ -257,12 +257,12 @@ export class SceneInteractions {
   }
 
   /**
-   * Push the selected node's current SCREEN position to React so the pinned card tracks it
+   * Push the selected node's current screen position to React so the pinned card tracks it
    * through settle + pan/zoom; emit null only when nothing is selected (a transient missing
    * geometry keeps the last position rather than flickering the card off).
    */
   emitSelection(): void {
-    // The pinned card tracks a selected NODE (its dot) or a selected LINK (its edge midpoint).
+    // The pinned card tracks a selected node (its dot) or a selected link (its edge midpoint).
     let world: { x: number; y: number } | null = null;
     let entityId: EntityId | undefined;
     if (this.#selected !== null) {
@@ -317,7 +317,7 @@ export class SceneInteractions {
       return;
     }
 
-    // Bump the version, THEN capture it as THIS query's -- the order is load-bearing: capturing
+    // Bump the version, then capture it as this query's -- the order is load-bearing: capturing
     // before the bump leaves it one behind, so the guard below would drop even this query's own
     // result. A later query (re-select / structure re-query) bumps again, so a stale in-flight
     // result sees currentVersion !== #highlightVersion and drops; only the most recent applies.
@@ -354,7 +354,7 @@ export class SceneInteractions {
   }
 
   /**
-   * The edge pick for a cursor, decoupled from render order. Edges render UNDER the cluster bubbles
+   * The edge pick for a cursor, decoupled from render order. Edges render under the cluster bubbles
    * (for the depth-opacity look) but must still win a click/hover over a bubble. If the topmost pick
    * is already an edge, use it; if it's a bubble, an edge may sit under it, so query the pickable
    * edge layers directly -- deck renders only those layers to the pick buffer, ignoring the bubble
@@ -393,8 +393,8 @@ export class SceneInteractions {
     this.#egoTargets = [];
     this.#highlightedEntities = new Set();
 
-    // We force an early resolve here, so that when we re-render we don't flash the highlight off.
-    // Because we immediately requery the `egoResolved` will be set to false momentarily.
+    // Bump highlightTick with highlightVersion so the dim overlay stays stable
+    // through the in-flight ego re-query (avoids a one-frame undim flash).
     this.#highlightVersion += 1;
     this.#highlightTick = this.#highlightVersion;
 
@@ -468,7 +468,8 @@ export class SceneInteractions {
   }
 
   #isEgoResolved(): boolean {
-    // We always _first_ increment the highlight version, once we have the result, we flush said version to the tick. Therefore if they are the same, we know the result is fresh.
+    // highlightVersion bumps on each ego query; highlightTick catches up when
+    // the async result lands. Equality means the dim set matches the selection.
     return this.#highlightVersion === this.#highlightTick;
   }
 }

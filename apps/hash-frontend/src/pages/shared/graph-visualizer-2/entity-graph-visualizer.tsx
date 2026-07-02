@@ -57,7 +57,7 @@ import type { ReactElement } from "react";
 interface EntityGraphVisualizerV2Props {
   readonly entities?: HashEntity[];
   /**
-   * EntityIds of the query ROOTS. Any entity in `entities` not in this set is a FRONTIER node -- a
+   * EntityIds of the query roots. Any entity in `entities` not in this set is a frontier node -- a
    * fetched link endpoint rendered greyed-out until expanded. Omit to treat every entity as a root
    * (no frontier).
    */
@@ -65,7 +65,7 @@ interface EntityGraphVisualizerV2Props {
   readonly closedMultiEntityTypesRootMap?: ClosedMultiEntityTypesRootMap;
   // The full type-definition map (every referenced type, including inherited
   // ancestors, with titles). Required so the worker learns about parent types
-  // that no entity uses directly — see {@link extractTypeSchemas}.
+  // that no entity uses directly; see {@link extractTypeSchemas}.
   readonly definitions?: ClosedMultiEntityTypesDefinitions;
   readonly loadingComponent: ReactElement;
   /** Open an entity, wired to clicking a flat-tier dot (resolved via the join key). */
@@ -75,7 +75,7 @@ interface EntityGraphVisualizerV2Props {
   /** Override the worker's layout/scale config; omit to use the defaults. */
   readonly config?: VizConfig;
   /**
-   * A stable identity for the data SOURCE (the query/filter behind `entities`), NOT the result.
+   * A stable identity for the data source (the query/filter behind `entities`), not the result.
    * `entities` streaming in for the same source keeps this constant; a filter change flips it. The
    * worker's ingest is additive (no retract), so a changed key recreates it for a clean re-ingest.
    * Omit (e.g. a fixed ego graph) to never recreate -- `entities` is then assumed append-only.
@@ -83,8 +83,8 @@ interface EntityGraphVisualizerV2Props {
   readonly sourceKey?: string;
   /**
    * Debug affordance: receives the live {@link WorkerHandle} (undefined on teardown) so debug
-   * surfaces outside the visualizer (the dev harness) can issue worker queries — e.g. the
-   * CAPTURE-LIVE-FIXTURE hook (`handle.captureLayoutFixture()`).
+   * surfaces outside the visualizer (the dev harness) can issue worker queries, e.g. the
+   * capture-live-fixture hook (`handle.captureLayoutFixture()`).
    */
   readonly onWorkerHandle?: (handle: WorkerHandle | undefined) => void;
   /**
@@ -120,7 +120,7 @@ function toIngestEntities(
       // root-ness is set membership -- non-members render as greyed-out frontier nodes.
       isRoot: !isLink && (rootIds === undefined || rootIds.has(entityId)),
       linkData: entity.linkData,
-      // Property values, for NODE entities only, so the worker can name embedding clusters
+      // Property values, for node entities only, so the worker can name embedding clusters
       // by their distinctive shared properties. Links are never embedding-clustered.
       properties: isLink ? undefined : entity.properties,
     };
@@ -146,21 +146,19 @@ function titleFromUrl(versionedUrl: VersionedUrl): string {
 
 /**
  * Build one {@link TypeSchemaEntry} per unique VersionedUrl reachable from the
- * entities' types — INCLUDING inherited ancestor types that no entity uses
+ * entities' types, including inherited ancestor types that no entity uses
  * directly.
  *
  * Each `entry.allOf` is the inheritance chain of a directly-applied type: the
  * type itself at depth 0 followed by its ancestors. Those ancestor entries are
- * {@link EntityTypeDisplayMetadata} — they carry `$id`/`depth`/`icon` but NO
- * title — so titles for ancestors are looked up in `definitions.entityTypes`.
+ * {@link EntityTypeDisplayMetadata}; they carry `$id`/`depth`/`icon` but NO
+ * title, so titles for ancestors are looked up in `definitions.entityTypes`.
  *
- * We register every type in the chain, not just the leaf. Previously only the
- * leaf was registered and its ancestors were pushed as bare parent refs; the
- * worker then interned a parent URL (e.g. a shared "Company" supertype) but had
- * no TypeInfo for it, so root resolution silently produced no root and every
- * such child fell into the catch-all "unknown" bucket (rendering as a nameless
- * "Other" rollup). Registering ancestors lets the worker resolve a real root
- * and group/label them correctly.
+ * Register every type in the chain, not just the leaf: leaf-only registration
+ * left ancestor URLs interned without TypeInfo, so root resolution produced
+ * no root and every such child fell into the catch-all "unknown" bucket
+ * (rendering as a nameless "Other" rollup). Ancestors in the schema let the
+ * worker resolve a real root and group/label them correctly.
  */
 function extractTypeSchemas(
   entities: HashEntity[],
@@ -197,7 +195,7 @@ function extractTypeSchemas(
 
         // Deeper entries are this type's ancestors. Pointing at all of them
         // (not only the direct parent) over-approximates the inheritance DAG
-        // with transitive edges — harmless for the worker's root resolution
+        // with transitive edges; harmless for the worker's root resolution
         // (root = union of parents' roots) and robust to multiple inheritance
         // without reconstructing the DAG here.
         const allOfRefs = chain
@@ -232,7 +230,7 @@ function extractTypeSchemas(
  * Property display titles keyed by base URL, for every property type referenced by the
  * loaded entities. Shipped to the worker so a distinctive-feature cluster label reads
  * "Destination = ..." with the human title rather than a raw base URL. The worker holds
- * the property VALUES (on the ingested entities); this supplies their names.
+ * the property values (on the ingested entities); this supplies their names.
  */
 function extractPropertySchemas(
   definitions: ClosedMultiEntityTypesDefinitions | undefined,
@@ -312,7 +310,7 @@ export const EntityGraphVisualizerV2 = memo(
     const [highwayHover, setHighwayHover] = useState<HighwayHover | null>(null);
 
     // The hovered wholly-frontier cluster, shown as an interactive load card. Unlike the other hover
-    // cards this one has a button, so it stays open while the cursor is over the bubble OR the card:
+    // cards this one has a button, so it stays open while the cursor is over the bubble or the card:
     // a leave starts a short grace timer that the card's own enter cancels, the standard
     // interactive-tooltip handoff. The latest frontier ids ride a ref so the Load handler stays stable.
     const [clusterHover, setClusterHover] = useState<ClusterHover | null>(null);
@@ -346,7 +344,7 @@ export const EntityGraphVisualizerV2 = memo(
     // Frontier nodes the user has already expanded. Tracked locally because the worker learns
     // their root-ness via ingest, but the bridge's prop-derived rootIdSet never does.
     const expandedRootsRef = useRef(new Set<EntityId>());
-    // Freshly-fetched expansion nodes + links (NOT in the prop `entities`) + the type maps their
+    // Freshly-fetched expansion nodes + links (not in the prop `entities`) + the type maps their
     // card resolves against. The root map is a nested per-type-chain structure, so we keep each
     // node's source map rather than deep-merging maps from every expansion.
     const expandedByIdRef = useRef(new Map<EntityId, EntityCardContext>());
@@ -368,7 +366,7 @@ export const EntityGraphVisualizerV2 = memo(
     }, [entities]);
 
     // Each entity's incident-link count (degree): a link entity carries both endpoints, so one pass
-    // over the links tallies both sides. Counts the prop links AND the links pulled in by frontier
+    // over the links tallies both sides. Counts the prop links and the links pulled in by frontier
     // expansion (held in `expandedByIdRef`) -- the union the worker itself ingested -- so a hub
     // enlarged by expansion reports its true loaded degree, not just its prop-visible links.
     // `frontierVersion` bumps after each expansion to recompute.
@@ -399,12 +397,11 @@ export const EntityGraphVisualizerV2 = memo(
       return map;
     }, [entities, frontierVersion]);
 
-    // Resolve a dot's entity to its display label (its name, e.g. "Alice"), the SAME way the hover
-    // card does -- resolving from the prop set OR a frontier expansion. WHICH dots are hubs (and so
-    // get an always-on label) is decided by the Scene from the worker's by-degree radius, not here;
-    // this just names whatever it is asked about. The Scene calls it only when it rebuilds the label
-    // set (zoom / structure change), never per frame. Undefined on any miss (entity not held, or its
-    // closed type can't be resolved) so the dot simply goes unlabelled.
+    // Resolve a dot's entity to its display label (its name, e.g. "Alice"), matching the hover
+    // card's two-source lookup (prop set or frontier expansion). Hub selection and always-on
+    // labels come from the Scene's by-degree radius, not here; this only names whatever it
+    // is asked about. Invoked on label-set rebuild (zoom / structure change), not per frame.
+    // Returns undefined on miss so the dot goes unlabelled.
     const resolveEntityLabel = useCallback(
       (entityId: EntityId): string | undefined => {
         const propEntity = entityById.get(entityId);
@@ -427,15 +424,12 @@ export const EntityGraphVisualizerV2 = memo(
       [entityById, closedMultiEntityTypesRootMap],
     );
 
-    // Resolve a dot's entity to its TYPE ICON as an atlas key -- the same display field the hover
-    // card's icon uses (`getDisplayFieldsForClosedEntityType(...).icon`, which walks the type
-    // hierarchy). The Scene calls this only when it rebuilds the flat-tier icon set (a structure
-    // change), never per frame. Returns the key only when it's a non-empty STRING (an emoji or an
-    // image URL); a ReactElement icon (system-type override) or none -> null -> no atlas entry,
-    // so that dot simply shows no icon. NOT gated on hubs: the IconLayer's soft-LOD sizing hides
-    // icons on dots that are small on screen, so every entity is eligible.
-    // Icon resolution walks the type hierarchy; memo by type-set key so
-    // each distinct set resolves once. Cache resets when the root map changes.
+    // Resolve a dot's entity to its type icon as an atlas key: the same display field the hover
+    // card uses (`getDisplayFieldsForClosedEntityType(...).icon`). Invoked on flat-tier icon-set
+    // rebuild (structure change), not per frame. Returns a key only for non-empty strings
+    // (emoji or image URL); ReactElement overrides and absent icons -> null -> no atlas entry.
+    // Not hub-gated: IconLayer soft-LOD hides icons on small dots.
+    // Memo keyed by closed type-set so each distinct set resolves once per rebuild.
     const iconByTypeKey = useMemo(() => {
       void closedMultiEntityTypesRootMap;
       return new Map<string, string | null>();
@@ -475,7 +469,7 @@ export const EntityGraphVisualizerV2 = memo(
       [entityById, closedMultiEntityTypesRootMap, iconByTypeKey],
     );
 
-    // Reset when the worker is torn down (ready goes false→true on first build OR a sourceKey
+    // Reset when the worker is torn down (ready goes false->true on first build OR a sourceKey
     // recreate): the fresh worker holds nothing, so every local mirror of its state clears too.
     useEffect(() => {
       if (!ready) {

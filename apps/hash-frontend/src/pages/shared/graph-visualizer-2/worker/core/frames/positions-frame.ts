@@ -1,7 +1,7 @@
 /**
  * PositionsFrame emission: cluster positions, highway/feeder Bezier
  * geometry, edge labels/arrows, and the per-leaf entity fan-out, all
- * computed from the CURRENT node positions against the committed topology.
+ * computed from the current node positions against the committed topology.
  * Runs every tick that moved something, plus once per structure commit.
  */
 import { entityIndexFromNodeId } from "../../../ids";

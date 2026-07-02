@@ -1,8 +1,8 @@
 /**
  * Owns the Deck.gl instance and drives it imperatively from the worker handle's subscribe
  * stream: structure/position events rebuild the layer set off React, and the camera lives
- * in a field (never React state), so settling and pan/zoom never trigger a render. The
- * React component is a thin mount/dispose shell over this.
+ * in a field (never React state), so settling and pan/zoom never trigger a render.
+ * React mounts and disposes Scene; Scene owns all runtime state.
  *
  * The Scene itself is the layer-building composition root; the camera
  * ({@link SceneCamera}), interaction/selection state ({@link SceneInteractions}),
@@ -66,6 +66,7 @@ function buildLabelLayers(
   if (clusterLabels) {
     result.push(clusterLabels);
   }
+
   return result;
 }
 
@@ -273,9 +274,9 @@ export class Scene {
   ): Layer[] {
     const clusters = this.#handle.getClusters();
     const result: Layer[] = [];
-    // Layer order is RENDER order (later = on top). Hierarchical edges (feeders/highways) render
-    // UNDER the faint container bubbles so they read THROUGH them with depth-opacity -- drawn over
-    // the bubbles they wash out and effectively vanish. Picking is DECOUPLED from this order
+    // Layer order is draw order (later = on top). Hierarchical edges (feeders/highways) render
+    // under the faint container bubbles so they read through them with depth-opacity -- drawn over
+    // the bubbles they wash out and effectively vanish. Picking is decoupled from this order
     // (see SceneInteractions): an edge under a bubble still wins a click/hover, while a dot --
     // drawn on top -- still wins over an edge passing under it.
     const edges = edgeLayer(positions, structure.flatGraph !== undefined);
@@ -287,7 +288,7 @@ export class Scene {
       result.push(...edges);
       result.push(...edgeArrows);
       result.push(...flatDotsLayer(structure.flatGraph, clusters));
-      // Type icons sit ON the dots (rendered after them). The device is required to build the atlas
+      // Type icons sit on the dots (rendered after them). The device is required to build the atlas
       // texture, so before it initialises the icons are simply absent (they appear on the re-push
       // from onDeviceInitialized). The hierarchical leaf counterpart is in the other branch.
       if (this.#device !== undefined) {
@@ -325,7 +326,7 @@ export class Scene {
           highlightedEntities: this.#interactions.highlightedEntities,
         }),
       );
-      // Type icons sit ON the leaf dots (rendered after them), one IconLayer per open leaf. Gated on
+      // Type icons sit on the leaf dots (rendered after them), one IconLayer per open leaf. Gated on
       // the device the same way as the flat tier (the atlas texture needs it; absent until init).
       if (this.#device !== undefined) {
         result.push(
@@ -445,7 +446,7 @@ export class Scene {
     }
 
     // Cluster + edge labels only. The hub-label overlay is HTML (see HubLabels), and the
-    // entity-label layer rides the CURRENT #positionTick so it tracks the settling layout
+    // entity-label layer rides the current #positionTick so it tracks the settling layout
     // (live SAB reads) -- this method only fires on zoom / structure.
     this.#labelLayers = buildLabelLayers(
       structure,

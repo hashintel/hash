@@ -23,10 +23,12 @@ const expectFiniteCoords = (x: Float32Array, y: Float32Array): void => {
 };
 
 /** A path graph 0-1-2-...-(n-1). */
-const pathGraph = (n: number): { src: Uint32Array; dst: Uint32Array } => {
-  const src = new Uint32Array(Math.max(0, n - 1));
-  const dst = new Uint32Array(Math.max(0, n - 1));
-  for (let index = 0; index < n - 1; index++) {
+const pathGraph = (
+  nodeCount: number,
+): { src: Uint32Array; dst: Uint32Array } => {
+  const src = new Uint32Array(Math.max(0, nodeCount - 1));
+  const dst = new Uint32Array(Math.max(0, nodeCount - 1));
+  for (let index = 0; index < nodeCount - 1; index++) {
     src[index] = index;
     dst[index] = index + 1;
   }
@@ -34,11 +36,11 @@ const pathGraph = (n: number): { src: Uint32Array; dst: Uint32Array } => {
 };
 
 const analyse = (
-  n: number,
+  nodeCount: number,
   src: Uint32Array,
   dst: Uint32Array,
   options: StressAnalysisOptions = {},
-) => new StressAnalysis({ n, src, dst }, options).run();
+) => new StressAnalysis({ n: nodeCount, src, dst }, options).run();
 
 describe("StressAnalysis", () => {
   it("is deterministic for identical inputs (seeded init, no sampling)", () => {
@@ -71,15 +73,15 @@ describe("StressAnalysis", () => {
   });
 
   it("spreads a path graph out (PivotMDS init, no collapse)", () => {
-    const n = 64;
-    const { src, dst } = pathGraph(n);
-    const result = analyse(n, src, dst, { idealEdgeLength: 30 });
+    const nodeCount = 64;
+    const { src, dst } = pathGraph(nodeCount);
+    const result = analyse(nodeCount, src, dst, { idealEdgeLength: 30 });
 
     expectFiniteCoords(result.x, result.y);
     // Endpoints of the path must land far apart relative to adjacent nodes.
     const endToEnd = Math.hypot(
-      result.x[n - 1]! - result.x[0]!,
-      result.y[n - 1]! - result.y[0]!,
+      result.x[nodeCount - 1]! - result.x[0]!,
+      result.y[nodeCount - 1]! - result.y[0]!,
     );
     const adjacent = Math.hypot(
       result.x[1]! - result.x[0]!,
@@ -89,23 +91,23 @@ describe("StressAnalysis", () => {
   });
 
   it("exposes exact BFS rows for the pivots (what the term builder samples)", () => {
-    const n = 40;
-    const { src, dst } = pathGraph(n);
-    const result = analyse(n, src, dst);
+    const nodeCount = 40;
+    const { src, dst } = pathGraph(nodeCount);
+    const result = analyse(nodeCount, src, dst);
 
     const { pivots, distances } = result.pivots;
     expect(pivots.length).toBeGreaterThan(0);
     for (const [row, pivot] of pivots.entries()) {
-      for (let node = 0; node < n; node++) {
+      for (let node = 0; node < nodeCount; node++) {
         // On a path graph the BFS distance is |pivot − node|.
-        expect(distances[row * n + node]).toBe(Math.abs(pivot - node));
+        expect(distances[row * nodeCount + node]).toBe(Math.abs(pivot - node));
       }
     }
   });
 
   it("labels weak components and packs them apart", () => {
     // Two disjoint 10-node paths.
-    const n = 20;
+    const nodeCount = 20;
     const src = new Uint32Array(18);
     const dst = new Uint32Array(18);
     for (let index = 0; index < 9; index++) {
@@ -114,7 +116,7 @@ describe("StressAnalysis", () => {
       src[index + 9] = 10 + index;
       dst[index + 9] = 10 + index + 1;
     }
-    const result = analyse(n, src, dst, { idealEdgeLength: 20 });
+    const result = analyse(nodeCount, src, dst, { idealEdgeLength: 20 });
 
     expect(result.components.count).toBe(2);
     const labels = result.components.labels;

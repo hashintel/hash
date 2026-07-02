@@ -1,5 +1,6 @@
 /** Web worker entry point. Dispatches messages to {@link GraphWorker}. */
 
+import { CommitCoalescer } from "./core/commit-coalescer";
 import { GraphWorker } from "./core/graph-worker";
 
 import type { PositionsFrame, StructureFrame } from "../frames";
@@ -39,6 +40,14 @@ function postPositions(frame: PositionsFrame): void {
 
 let worker: GraphWorker | undefined;
 
+/**
+ * Coalesces per-batch commits during an ingest burst (F2): batches are
+ * ingested into the stores on arrival, but the commit (layout absorb, render
+ * edges, structure frame -> main-thread rescans) runs once per burst. See
+ * {@link CommitCoalescer} for the latency policy.
+ */
+let commits: CommitCoalescer | undefined;
+
 let drainScheduled = false;
 
 function scheduleDrain(): void {
@@ -61,11 +70,35 @@ globalThis.onmessage = ({ data }: MessageEvent<MainToWorkerMessage>) => {
   switch (data.type) {
     case "INIT": {
       try {
-        worker = new GraphWorker(data.config);
+        const created = new GraphWorker(data.config);
+        worker = created;
         worker.registerTypes(data.typeSchemas, data.propertySchemas);
         worker.onLayoutMessage = (msg) => post(msg);
         worker.onStructureFrame = (frame) => postStructure(frame);
         worker.onPositionsFrame = (frame) => postPositions(frame);
+        commits = new CommitCoalescer({
+          commit: ({ deltas, rebuildTree }) => {
+            const t0 = performance.now();
+            created.commitStructure({ deltas, rebuildTree });
+            // Re-style if an expand flipped an already-rendered frontier node to a root
+            // (hierarchical tier only; the flat tier already restyled in the commit).
+            // Must run after the commit: it consumes the pending-flip flag the flat
+            // commit's style pass reads.
+            created.restyleIfRootsFlipped();
+            if (created.debug) {
+              // eslint-disable-next-line no-console
+              console.debug(
+                `[graph-worker][commit] ${created.nodeCount} nodes, ` +
+                  `${created.linkCount} links | ` +
+                  `${deltas.length} group deltas` +
+                  `${rebuildTree ? " + tree rebuild" : ""} | ` +
+                  `${(performance.now() - t0).toFixed(1)}ms`,
+              );
+            }
+            // A commit can queue embedding-clustering requests; drain them.
+            scheduleDrain();
+          },
+        });
 
         post({ type: "READY" });
       } catch (err) {
@@ -89,9 +122,15 @@ globalThis.onmessage = ({ data }: MessageEvent<MainToWorkerMessage>) => {
         // the tree need rebuilding. Identical re-registrations (the common case)
         // and property-only additions do not: top-level re-layout as the graph
         // grows is driven by ingest (see #clusterLayoutOutgrown), not by type
-        // registration, so skipping this no longer freezes the overview.
+        // registration. Skipping rebuild on identical re-registration keeps the
+        // overview responsive while ingest drives top-level re-layout.
+        //
+        // The rebuild rides the coalescer so the frontier-expansion flow
+        // (REGISTER_TYPES immediately followed by INGEST_BATCHes) lands as one
+        // commit carrying both the rebuildTree flag and the merged deltas. A
+        // lone registration flushes on the next queue drain (~a macrotask).
         if (typesChanged) {
-          worker.commitStructure({ rebuildTree: true });
+          commits?.enqueueRebuildTree();
         }
       } catch (err) {
         post({ type: "ERROR", message: String(err) });
@@ -108,18 +147,15 @@ globalThis.onmessage = ({ data }: MessageEvent<MainToWorkerMessage>) => {
       const t0 = performance.now();
       const deltas = worker.ingestBatch(data.entities);
       const tIngest = performance.now();
-      worker.commitStructure({ deltas });
-      // Re-style if an expand flipped an already-rendered frontier node to a root (hierarchical
-      // tier only; the flat tier already restyled in the commit).
-      worker.restyleIfRootsFlipped();
-      const tCommit = performance.now();
+      // The stores now hold the batch; the commit (and its restyle/debug log)
+      // is deferred to the coalescer so a burst of queued batches pays for one.
+      commits?.enqueueDeltas(deltas);
       if (worker.debug) {
         // eslint-disable-next-line no-console
         console.debug(
-          `[graph-worker][ingest] +${data.entities.length} → ${worker.nodeCount} nodes, ` +
+          `[graph-worker][ingest] +${data.entities.length} -> ${worker.nodeCount} nodes, ` +
             `${worker.linkCount} links | ` +
-            `ingest ${(tIngest - t0).toFixed(1)}ms ` +
-            `commit ${(tCommit - tIngest).toFixed(1)}ms`,
+            `ingest ${(tIngest - t0).toFixed(1)}ms`,
         );
       }
       scheduleDrain();
@@ -130,6 +166,9 @@ globalThis.onmessage = ({ data }: MessageEvent<MainToWorkerMessage>) => {
       if (!worker) {
         break;
       }
+      // Everything below INGEST_BATCH observes committed state (cuts, layouts,
+      // the cluster tree), so a pending coalesced commit must land first.
+      commits?.flush();
       worker.handleViewport({
         zoom: data.zoom,
         centerX: data.center[0],
@@ -145,6 +184,7 @@ globalThis.onmessage = ({ data }: MessageEvent<MainToWorkerMessage>) => {
       if (!worker) {
         break;
       }
+      commits?.flush();
       worker.applyEmbeddingResult(data.clusterId, data.clusters);
       worker.commitStructure();
       break;
@@ -154,6 +194,7 @@ globalThis.onmessage = ({ data }: MessageEvent<MainToWorkerMessage>) => {
       if (!worker) {
         break;
       }
+      commits?.flush();
       post({
         type: "EGO_RESULT",
         requestId: data.requestId,
@@ -166,6 +207,7 @@ globalThis.onmessage = ({ data }: MessageEvent<MainToWorkerMessage>) => {
       if (!worker) {
         break;
       }
+      commits?.flush();
       post({
         type: "HIGHWAY_LINKS_RESULT",
         requestId: data.requestId,
@@ -178,6 +220,7 @@ globalThis.onmessage = ({ data }: MessageEvent<MainToWorkerMessage>) => {
       if (!worker) {
         break;
       }
+      commits?.flush();
       post({
         type: "LAYOUT_FIXTURE_RESULT",
         requestId: data.requestId,
@@ -190,6 +233,7 @@ globalThis.onmessage = ({ data }: MessageEvent<MainToWorkerMessage>) => {
       if (!worker) {
         break;
       }
+      commits?.flush();
       worker.pin(data.clusterId ?? undefined);
       break;
     }
@@ -198,6 +242,7 @@ globalThis.onmessage = ({ data }: MessageEvent<MainToWorkerMessage>) => {
       if (!worker) {
         break;
       }
+      commits?.flush();
       worker.setHighlight(data.entityIdxs);
       break;
     }

@@ -104,7 +104,7 @@ export class SettlePolisher {
     return this.#topLevelPositions.get(id);
   }
 
-  /** Drop persisted positions for clusters the rebuilt tree no longer produces. */
+  /** Drop persisted positions for cluster ids absent from the rebuilt tree. */
   pruneTopLevelPositions(exists: (id: ClusterId) => boolean): void {
     for (const clusterId of this.#topLevelPositions.keys()) {
       if (!exists(clusterId)) {

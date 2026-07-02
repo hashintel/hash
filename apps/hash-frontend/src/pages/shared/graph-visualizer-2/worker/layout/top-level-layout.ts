@@ -24,11 +24,11 @@
  * a near-optimal layout cheaply.
  *
  * Stability (mental-map preservation). A from-scratch global search is the right
- * tool for the FIRST build, but re-running it on every ingest makes the top
+ * tool for the first build, but re-running it on every ingest makes the top
  * level jump around: the search is a near-optimal but discontinuous function of
  * its input, so adding one bubble re-derives a completely different (if equally
  * good) arrangement. So on an incremental update the caller passes the previous
- * positions as {@link Anchor}s and the search becomes a LOCAL refine: an inertia
+ * positions as {@link Anchor}s and the search becomes a local refine: an inertia
  * term penalises moving an existing bubble away from its anchor, and the search
  * takes small steps with few restarts and rare swaps. New bubbles (null anchor)
  * are still placed freely, and the layout keeps self-healing crossings — it just
@@ -66,7 +66,7 @@ export interface OptimizeTopLevelOptions {
   readonly anchors?: readonly (Anchor | null)[];
   /**
    * Skip the final non-overlap relaxation. Exists so tests can assert that the
-   * anchored search ALONE leaves a grown-bubble overlap unresolved (proving the
+   * anchored search alone leaves a grown-bubble overlap unresolved (proving the
    * relaxation is what clears it); production never sets it.
    */
   readonly skipOverlapRelaxation?: boolean;
@@ -102,7 +102,7 @@ const SWAP_PROB = 0.25;
 
 /**
  * Incremental-refine (anchored) search. When previous positions are supplied,
- * the search stays LOCAL so existing bubbles keep their place: an inertia term
+ * the search stays local so existing bubbles keep their place: an inertia term
  * adds {@link ANCHOR_WEIGHT}·(displacement / meanRadius)² per anchored node to
  * the objective, and the search takes small steps ({@link ANCHORED_MOVE_SCALE_MUL}
  * of the mean radius) with a single pass ({@link ANCHORED_RESTARTS}) and rare
@@ -121,11 +121,11 @@ const ANCHORED_MOVE_SCALE_MUL = 1.2;
 
 /**
  * Final non-overlap relaxation (anchored refine only). Inertia is quadratic and
- * the overlap penalty is linear, so for a LARGE forced displacement — a bubble
+ * the overlap penalty is linear, so for a large forced displacement — a bubble
  * that suddenly grew (e.g. 70 → 2000 entities, radius ~5×) whose neighbours are
  * all pinned near the viewport — the anchor wins and the grown bubble is left
  * overlapping. This deterministic push-apart runs after the search and
- * GUARANTEES a non-overlapping result, distributing the separation by anchor
+ * guarantees a non-overlapping result, distributing the separation by anchor
  * weight (as mass): a pinned central bubble barely moves while lighter /
  * off-screen neighbours yield. A no-op when nothing overlaps, so it never
  * disturbs a stable layout.
@@ -384,7 +384,7 @@ export function measureLayout(
 /**
  * Push overlapping nodes apart in place until none overlap (or the iteration
  * budget runs out), distributing each pair's separation by anchor weight as a
- * mass: a node moves proportionally to the OTHER's mass, so a heavy (pinned,
+ * mass: a node moves proportionally to the other's mass, so a heavy (pinned,
  * high-weight) bubble barely moves and a light (off-screen or new) one yields.
  * Uses the same minimum separation as the overlap objective term, so the result
  * scores zero overlap. See {@link OVERLAP_RELAX_ITERS}.
@@ -420,7 +420,7 @@ export function relaxOverlaps(
         const massI = anchors[i]?.weight ?? FREE_NODE_MASS;
         const massJ = anchors[j]?.weight ?? FREE_NODE_MASS;
         const total = massI + massJ;
-        // Each node moves proportional to the OTHER's mass (heavy moves less).
+        // Each node moves proportional to the other's mass (heavy moves less).
         const shareI = total > 0 ? massJ / total : 0.5;
         const shareJ = total > 0 ? massI / total : 0.5;
         const ux = dx / dist;
@@ -470,10 +470,10 @@ export function optimizeTopLevel(
   const anchored =
     rawAnchors !== undefined && rawAnchors.some((anchor) => anchor !== null);
 
-  // Align the anchor cloud to the seed, so inertia penalises RELATIVE
+  // Align the anchor cloud to the seed, so inertia penalises relative
   // rearrangement only. The layout is re-centred on its centroid (which shifts
   // when a node is added/removed), so the raw anchors and the seed differ by a
-  // uniform translation we must not fight. The alignment is WEIGHTED, pinning
+  // uniform translation we must not fight. The alignment is weighted, pinning
   // the frame to the heavily-anchored (central) nodes, so they keep their
   // on-screen position while low-weight nodes drift.
   const anchors: (Anchor | null)[] = new Array<Anchor | null>(count).fill(null);

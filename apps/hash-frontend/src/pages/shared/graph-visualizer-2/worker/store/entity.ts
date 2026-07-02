@@ -87,7 +87,7 @@ export class EntityStore {
     return this.#root.has(index);
   }
 
-  /** Promote to root. Returns whether it flipped (was previously frontier). */
+  /** Promote to root. Returns whether the entity was frontier before promotion. */
   insertRoot(index: EntityIndex): boolean {
     if (this.#root.has(index)) {
       return false;

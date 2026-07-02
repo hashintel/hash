@@ -49,7 +49,7 @@ export interface EntitySelection {
 }
 
 /**
- * An always-on entity label to overlay as HTML: the entity, its display name, and its CURRENT
+ * An always-on entity label to overlay as HTML: the entity, its display name, and its current
  * on-screen position (container pixels). The Scene re-emits the visible set each frame so the
  * labels track the camera / settling layout; React renders them over the canvas (viewport-culled),
  * so they read in the hash-frontend design language rather than as GPU text.

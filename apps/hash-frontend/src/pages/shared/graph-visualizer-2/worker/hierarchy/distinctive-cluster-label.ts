@@ -219,7 +219,7 @@ function buildNumericRanges(
       continue;
     }
 
-    // One representative median per cluster the axis is CHARACTERISTIC of (covers a majority).
+    // One representative median per cluster the axis is characteristic of (covers a majority).
     const medians: number[] = [];
     for (let cluster = 0; cluster < perCluster.length; cluster++) {
       const values = perCluster[cluster]!;

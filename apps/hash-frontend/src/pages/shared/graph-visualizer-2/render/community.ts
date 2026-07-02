@@ -3,25 +3,28 @@ import {
   FLAT_HEADER_BYTES,
   FLAT_RECORD_BYTES,
 } from "../worker/buffers/position-buffer";
+import { planBubbleCorridors } from "./bubble-corridors";
 /**
  * Community-force metaball isocontours: one per Louvain community, drawn
  * behind dots/edges. Gathers each kept community's node centres from the
- * SAB into a positions texture; the SDF shader sums and thresholds the field.
+ * SAB, then bins every kernel into per-cell instances (`bubble-grid.ts`)
+ * whose texel ranges the SDF shader sums and thresholds.
  *
- * CONNECTIVITY: a community's members can sit in clumps farther apart than
+ * Connectivity: a community's members can sit in clumps farther apart than
  * the metaball reach, which would render one community as several bubble
  * islands. `bubble-corridors.ts` plans thin capsule corridors along a
  * deterministic MST over each community's members (BubbleSets' virtual
- * edges); their endpoint texels ride the same positions texture, so the
- * shader's field — and therefore the iso-contour — is connected per
- * community. Corridor TOPOLOGY is replanned only when members drift
- * (movement-gated); endpoint POSITIONS are refreshed every frame.
+ * edges); the packer copies their endpoint pairs into the same positions
+ * texture, so the shader's field (and therefore the iso-contour) is
+ * connected per community. Corridor topology is replanned only when members
+ * drift (movement-gated); endpoint positions track the live gather each
+ * frame via the pack.
  *
  * The per-community index list is cached by `communities` array identity
  * ({@link groupingCache}); a settling frame skips the regroup and only
- * re-gathers moved node centres plus recomputes bounding boxes.
+ * re-gathers moved node centres plus re-packs the grid.
  */
-import { planBubbleCorridors } from "./bubble-corridors";
+import { BubbleCellPacker, BUBBLE_TEX_WIDTH } from "./bubble-grid";
 import {
   BubbleSetSDFLayer,
   MAX_NODES_PER_COMMUNITY,
@@ -35,15 +38,13 @@ import type { Layer } from "@deck.gl/core";
 /** Metaball field radius (world units): wide enough that a community's
  * neighbouring nodes' fields merge into one blob. Tune visually. */
 const FLAT_BUBBLE_FIELD_RADIUS = 50;
-/** Only PROMOTE non-trivial communities — a pair/singleton needs no hull, and
+/** Promote only non-trivial communities; a pair/singleton needs no hull, and
  * bubbling every one (most of a mostly-disconnected graph) is what turns the
  * canvas to mud. Tunable. */
 const MIN_COMMUNITY_SIZE = 4;
-/** Width of the positions texture the metaball shader samples (rows wrap). */
-const BUBBLE_TEX_WIDTH = 256;
 /** Replan a community's corridors once any member drifts this far (world
  * units) from where its plan was made. Endpoints track live positions every
- * frame regardless; this only refreshes the MST/obstacle TOPOLOGY. */
+ * frame regardless; this only refreshes the MST/obstacle topology. */
 const CORRIDOR_REPLAN_DISPLACEMENT = 24;
 
 /**
@@ -53,26 +54,22 @@ const CORRIDOR_REPLAN_DISPLACEMENT = 24;
 interface CommunityGrouping {
   /** Kept communities' node SAB indices, laid out community-by-community in gather order. */
   readonly memberIndices: Int32Array;
-  /** Per kept community: `[offset, count]` into {@link memberIndices} / the positions texture. */
+  /** Per kept community: `[offset, count]` into {@link memberIndices} / {@link pointTexels}. */
   readonly ranges: Float32Array;
   /** Per kept community: its Louvain community id (corridor obstacle tests). */
   readonly communityIds: Int32Array;
-  /** Per kept community RGBA (community id → colour). Constant for the grouping's life. */
+  /** Per kept community RGBA (community id to colour). Constant for the grouping's life. */
   readonly colors: Uint8Array;
   readonly keptCount: number;
-  readonly texWidth: number;
-  readonly texHeight: number;
-  /** Texture data (4 floats per texel): point texels, then corridor-segment
-   * texel pairs. Points refilled from the SAB each frame; segment endpoints
-   * copied from the point texels each frame. */
-  readonly positions: Float32Array;
-  /** Per kept community `[minX, minY, maxX, maxY]`, refilled each frame. */
-  readonly bounds: Float32Array;
+  /** CPU-side canonical member positions (texel stride 4), refilled from the
+   * SAB each frame. The corridor planner reads it; the GPU never sees it;
+   * the packer copies kernels into the per-cell texture instead. */
+  readonly pointTexels: Float32Array;
+  /** Bins kernels into per-cell instances every frame (owns all scratch). */
+  readonly cellPacker: BubbleCellPacker;
 
-  // --- Corridor plan (see bubble-corridors.ts) ---
-  /** First texel of the corridor-segment region (== total point texels). */
-  readonly segTexelBase: number;
-  /** Per segment `[slotA, slotB]` point-texel slots; capacity 2·(k−1) per community. */
+  // Corridor plan: see planBubbleCorridors in bubble-corridors.ts.
+  /** Per segment `[slotA, slotB]` point-texel slots; capacity 2 * (k - 1) per community. */
   readonly segSlots: Int32Array;
   /** Per segment capsule radius (world units). */
   readonly segRadius: Float32Array;
@@ -80,8 +77,6 @@ interface CommunityGrouping {
   readonly segCounts: Int32Array;
   /** Per kept community: first segment-storage index (fixed disjoint regions). */
   readonly segStorageOffsets: Int32Array;
-  /** Per kept community `[firstSegTexel, segCount]` instance attribute. */
-  readonly segRanges: Float32Array;
   /** Member positions at each community's last corridor plan (2 floats/slot). */
   readonly planSnapshot: Float32Array;
   /** Per kept community: replan request scratch (movement-gated). */
@@ -90,7 +85,7 @@ interface CommunityGrouping {
   planned: boolean;
   /** True once the settled-frame replan has run (reset if the layout resumes). */
   settledPlanned: boolean;
-  /** Bumped on each refill to trigger an in-place texture re-upload. */
+  /** Bumped on each re-pack to trigger an in-place texture re-upload. */
   version: number;
 }
 
@@ -136,14 +131,12 @@ function buildGrouping(
   }
 
   const totalNodes = kept.reduce((sum, [, members]) => sum + members.length, 0);
-  // Corridor capacity: an MST has k−1 edges, each emitting ≤ 2 segments
-  // (reroute split); each segment is 2 texels.
+  // Corridor capacity: an MST has k - 1 edges, each emitting <= 2 segments
+  // (reroute split).
   const totalSegCapacity = kept.reduce(
     (sum, [, members]) => sum + Math.max(0, members.length - 1) * 2,
     0,
   );
-  const totalTexels = totalNodes + totalSegCapacity * 2;
-  const texHeight = Math.max(1, Math.ceil(totalTexels / BUBBLE_TEX_WIDTH));
   const memberIndices = new Int32Array(totalNodes);
   const ranges = new Float32Array(kept.length * 2);
   const communityIds = new Int32Array(kept.length);
@@ -176,16 +169,12 @@ function buildGrouping(
     communityIds,
     colors,
     keptCount: kept.length,
-    texWidth: BUBBLE_TEX_WIDTH,
-    texHeight,
-    positions: new Float32Array(BUBBLE_TEX_WIDTH * texHeight * 4),
-    bounds: new Float32Array(kept.length * 4),
-    segTexelBase: totalNodes,
+    pointTexels: new Float32Array(totalNodes * 4),
+    cellPacker: new BubbleCellPacker(),
     segSlots: new Int32Array(totalSegCapacity * 2),
     segRadius: new Float32Array(totalSegCapacity),
     segCounts: new Int32Array(kept.length),
     segStorageOffsets,
-    segRanges: new Float32Array(kept.length * 2),
     planSnapshot: new Float32Array(totalNodes * 2),
     replanScratch: kept.map(() => false),
     planned: false,
@@ -200,8 +189,8 @@ function buildGrouping(
  * (plus a movement-gated corridor replan when members drift).
  *
  * `settled` (the positions frame's terminal flag) forces one final corridor
- * replan from the SETTLED coordinates, so the resting corridor topology is a
- * pure function of the deterministic layout — not of which animation frames
+ * replan from the settled coordinates, so the resting corridor topology is a
+ * pure function of the deterministic layout, not of which animation frames
  * happened to trip the movement gate along the way.
  */
 export function communityLayer(
@@ -234,22 +223,18 @@ export function communityLayer(
   const {
     memberIndices,
     ranges,
-    colors,
     keptCount,
-    positions,
-    bounds,
+    pointTexels,
     planSnapshot,
     replanScratch,
   } = grouping;
 
-  // Re-gather node centres + recompute bounding boxes, both refilled in place.
-  // Deck re-uploads the attribute arrays anyway (the `data` object below is
-  // fresh each call), so reusing the buffers only saves the allocation churn.
-  // The same pass movement-gates the corridor replan: any member drifting
-  // beyond the threshold from its plan-time position marks its community.
+  // Re-gather node centres in place. The same pass movement-gates the
+  // corridor replan: any member drifting beyond the threshold from its
+  // plan-time position marks its community.
   const replanDistSq =
     CORRIDOR_REPLAN_DISPLACEMENT * CORRIDOR_REPLAN_DISPLACEMENT;
-  // The settled frame replans EVERYTHING once from the final coordinates
+  // The settled frame replans all communities once from the final coordinates
   // (deterministic resting topology); a resumed layout re-arms the flag.
   const settledReplan = settled && !grouping.settledPlanned;
   grouping.settledPlanned = settled;
@@ -257,22 +242,14 @@ export function communityLayer(
   for (let ci = 0; ci < keptCount; ci++) {
     const start = ranges[ci * 2]!;
     const memberCount = ranges[ci * 2 + 1]!;
-    let minX = Infinity;
-    let minY = Infinity;
-    let maxX = -Infinity;
-    let maxY = -Infinity;
     let drifted = false;
     for (let member = 0; member < memberCount; member++) {
       const slot = start + member;
       const idx = memberIndices[slot]!;
       const posX = floats[headerFloats + idx * recordFloats] ?? 0;
       const posY = floats[headerFloats + idx * recordFloats + 1] ?? 0;
-      positions[slot * 4] = posX;
-      positions[slot * 4 + 1] = posY;
-      minX = Math.min(minX, posX);
-      maxX = Math.max(maxX, posX);
-      minY = Math.min(minY, posY);
-      maxY = Math.max(maxY, posY);
+      pointTexels[slot * 4] = posX;
+      pointTexels[slot * 4 + 1] = posY;
       if (!drifted) {
         const dx = posX - planSnapshot[slot * 2]!;
         const dy = posY - planSnapshot[slot * 2 + 1]!;
@@ -281,10 +258,6 @@ export function communityLayer(
     }
     replanScratch[ci] = !grouping.planned || settledReplan || drifted;
     needsPlan ||= drifted;
-    bounds[ci * 4] = minX - FLAT_BUBBLE_FIELD_RADIUS;
-    bounds[ci * 4 + 1] = minY - FLAT_BUBBLE_FIELD_RADIUS;
-    bounds[ci * 4 + 2] = maxX + FLAT_BUBBLE_FIELD_RADIUS;
-    bounds[ci * 4 + 3] = maxY + FLAT_BUBBLE_FIELD_RADIUS;
   }
 
   if (needsPlan) {
@@ -292,7 +265,7 @@ export function communityLayer(
       keptCount,
       ranges,
       communityIds: grouping.communityIds,
-      pointTexels: positions,
+      pointTexels,
       replan: grouping.planned ? replanScratch : null,
       floats,
       headerFloats,
@@ -310,57 +283,50 @@ export function communityLayer(
         const memberCount = ranges[ci * 2 + 1]!;
         for (let member = 0; member < memberCount; member++) {
           const slot = start + member;
-          planSnapshot[slot * 2] = positions[slot * 4]!;
-          planSnapshot[slot * 2 + 1] = positions[slot * 4 + 1]!;
+          planSnapshot[slot * 2] = pointTexels[slot * 4]!;
+          planSnapshot[slot * 2 + 1] = pointTexels[slot * 4 + 1]!;
         }
       }
     }
     grouping.planned = true;
   }
 
-  // Refresh corridor-segment texels (endpoints copied from the point texels
-  // just gathered, so corridors track the live animation between replans) and
-  // the per-community segment ranges.
-  for (let ci = 0; ci < keptCount; ci++) {
-    const storageStart = grouping.segStorageOffsets[ci]!;
-    const segCount = grouping.segCounts[ci]!;
-    const firstTexel = grouping.segTexelBase + storageStart * 2;
-    grouping.segRanges[ci * 2] = firstTexel;
-    grouping.segRanges[ci * 2 + 1] = segCount;
-    for (let seg = 0; seg < segCount; seg++) {
-      const storage = storageStart + seg;
-      const slotA = grouping.segSlots[storage * 2]!;
-      const slotB = grouping.segSlots[storage * 2 + 1]!;
-      const texel = (grouping.segTexelBase + storage * 2) * 4;
-      positions[texel] = positions[slotA * 4]!;
-      positions[texel + 1] = positions[slotA * 4 + 1]!;
-      positions[texel + 2] = grouping.segRadius[storage]!;
-      positions[texel + 4] = positions[slotB * 4]!;
-      positions[texel + 5] = positions[slotB * 4 + 1]!;
-    }
-  }
+  // Bin every kernel (fresh member positions + live corridor endpoints) into
+  // per-cell instances; corridors track the animation because the pack reads
+  // endpoint positions straight from the point texels gathered above.
+  const packed = grouping.cellPacker.pack({
+    keptCount,
+    ranges,
+    pointTexels,
+    colors: grouping.colors,
+    segSlots: grouping.segSlots,
+    segRadius: grouping.segRadius,
+    segCounts: grouping.segCounts,
+    segStorageOffsets: grouping.segStorageOffsets,
+    fieldRadius: FLAT_BUBBLE_FIELD_RADIUS,
+  });
   grouping.version += 1;
 
   return [
     new BubbleSetSDFLayer({
       id: "flat-bubbles",
       data: {
-        length: keptCount,
+        length: packed.cellCount,
         attributes: {
-          getBounds: { value: bounds, size: 4 },
-          getColor: { value: colors, size: 4 },
-          getNodeRange: { value: ranges, size: 2 },
-          getSegRange: { value: grouping.segRanges, size: 2 },
+          getBounds: { value: packed.bounds, size: 4 },
+          getColor: { value: packed.colors, size: 4 },
+          getNodeRange: { value: packed.nodeRanges, size: 2 },
+          getSegRange: { value: packed.segRanges, size: 2 },
         },
       },
-      positions,
+      positions: packed.texels,
       positionsVersion: grouping.version,
-      texWidth: grouping.texWidth,
-      texHeight: grouping.texHeight,
+      texWidth: BUBBLE_TEX_WIDTH,
+      texHeight: packed.texHeight,
       fieldRadius: FLAT_BUBBLE_FIELD_RADIUS,
       isoThreshold: 0.58,
       // A backdrop must not write depth, or its bounding quad stamps the depth buffer and the
-      // coplanar edges drawn AFTER it (the flat tier draws bubbles first) fail the depth test and
+      // coplanar edges drawn after it (the flat tier draws bubbles first) fail the depth test and
       // vanish. Set at the layer level so deck's render pass honours it -- the Model parameter
       // alone is overridden by the pass defaults.
       parameters: { depthWriteEnabled: false, depthCompare: "always" },

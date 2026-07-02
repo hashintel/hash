@@ -2,10 +2,18 @@ type BackingBuffer = SharedArrayBuffer | ArrayBuffer;
 
 const sharedBufferAvailable = typeof SharedArrayBuffer !== "undefined";
 
-function allocBuffer(byteLength: number): BackingBuffer {
-  return sharedBufferAvailable
-    ? new SharedArrayBuffer(byteLength)
-    : new ArrayBuffer(byteLength);
+export interface ColumnOptions {
+  /**
+   * Which buffer to allocate:
+   *
+   * - `"shared-if-available"` (default): SharedArrayBuffer when the platform
+   *   has it, so workers and the main thread can read the same memory.
+   * - `"plain"`: always a regular ArrayBuffer. Use this for columns whose
+   *   views are handed to GPU upload APIs (deck attributes, luma textures) —
+   *   WebGL entry points don't reliably accept SharedArrayBuffer-backed
+   *   views across browsers — or when nothing ever reads them cross-thread.
+   */
+  readonly backing?: "shared-if-available" | "plain";
 }
 
 export type TypedArrayConstructor<T extends TypedArray> = {
@@ -45,7 +53,7 @@ export class ColumnView<A extends TypedArray, T extends number = number> {
     return this.#view.buffer as BackingBuffer;
   }
 
-  /** The raw typed array backing this view. */
+  /** The typed array this view reads. */
   get view(): A {
     return this.#view;
   }
@@ -71,7 +79,7 @@ export class ColumnView<A extends TypedArray, T extends number = number> {
 }
 
 /**
- * Growable columnar storage backed by SharedArrayBuffer when available,
+ * Growable columnar storage using SharedArrayBuffer when available,
  * falling back to ArrayBuffer otherwise.
  *
  * SharedArrayBuffer allows both the worker and main thread to read
@@ -86,15 +94,29 @@ export class ColumnView<A extends TypedArray, T extends number = number> {
  */
 export class Column<A extends TypedArray, T extends number = number> {
   readonly #ctor: TypedArrayConstructor<A>;
+  readonly #shared: boolean;
   #buffer: BackingBuffer;
   #view: A;
   #length: number;
 
-  constructor(Ctor: TypedArrayConstructor<A>, initialCapacity: number) {
+  constructor(
+    Ctor: TypedArrayConstructor<A>,
+    initialCapacity: number,
+    options?: ColumnOptions,
+  ) {
     this.#ctor = Ctor;
-    this.#buffer = allocBuffer(initialCapacity * Ctor.BYTES_PER_ELEMENT);
+    this.#shared =
+      sharedBufferAvailable &&
+      (options?.backing ?? "shared-if-available") !== "plain";
+    this.#buffer = this.#alloc(initialCapacity * Ctor.BYTES_PER_ELEMENT);
     this.#view = new Ctor(this.#buffer);
     this.#length = 0;
+  }
+
+  #alloc(byteLength: number): BackingBuffer {
+    return this.#shared
+      ? new SharedArrayBuffer(byteLength)
+      : new ArrayBuffer(byteLength);
   }
 
   get length(): number {
@@ -151,6 +173,15 @@ export class Column<A extends TypedArray, T extends number = number> {
     const filled = new this.#ctor(this.#buffer, 0, this.#length);
 
     return new ColumnView<A, T>(filled.subarray(start, end) as A);
+  }
+
+  /**
+   * Reset the filled length to zero. Capacity (and buffer identity) are
+   * kept, so a column reused as per-frame scratch stops allocating once it
+   * has seen its high-water mark.
+   */
+  clear(): void {
+    this.#length = 0;
   }
 
   /**
@@ -218,7 +249,7 @@ export class Column<A extends TypedArray, T extends number = number> {
       this.#buffer.grow(newByteLength);
       this.#view = new this.#ctor(this.#buffer);
     } else {
-      const next = allocBuffer(newByteLength);
+      const next = this.#alloc(newByteLength);
       const nextView = new this.#ctor(next);
       nextView.set(this.#view);
       this.#buffer = next;

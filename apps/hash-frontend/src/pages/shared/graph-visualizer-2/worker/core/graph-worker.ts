@@ -280,7 +280,7 @@ export class GraphWorker {
     return this.#structureEmitter.highwayLinks(laneId);
   }
 
-  /** See {@link FlatTierController.captureFixture} (CAPTURE-LIVE-FIXTURE hook). */
+  /** See {@link FlatTierController.captureFixture} (capture-live-fixture hook). */
   captureLayoutFixture(): CapturedLayoutFixture | null {
     return this.#flatTier.captureFixture();
   }

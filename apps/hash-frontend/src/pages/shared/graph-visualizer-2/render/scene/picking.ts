@@ -65,7 +65,7 @@ export function resolvePickedEntity(
 }
 
 /**
- * The link's EntityIdx for a pick on a FLAT-tier edge (there beziers.ids carries the link's
+ * The link's EntityIdx for a pick on a flat-tier edge (there beziers.ids carries the link's
  * EntityIdx). Null otherwise -- including the hierarchical tier, where the same channel carries
  * an aggregate laneId instead (see {@link pickedHighwayLaneId}).
  */
@@ -85,7 +85,7 @@ export function pickedLinkEntityIdx(
 }
 
 /**
- * The aggregate lane id for a pick on a HIERARCHICAL-tier highway (there beziers.ids carries
+ * The aggregate lane id for a pick on a hierarchical-tier highway (there beziers.ids carries
  * the laneId). Null otherwise (flat tier / not an edge / the BEZIER_NO_LINK sentinel).
  */
 export function pickedHighwayLaneId(

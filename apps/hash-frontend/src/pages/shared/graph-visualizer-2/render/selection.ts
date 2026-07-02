@@ -26,8 +26,8 @@ export interface Selection {
   /**
    * Render index into the layout's buffer. Stable for a hierarchical leaf (fixed node set);
    * for the flat buffer it is the live record index, valid until the buffer reorders -- the
-   * Scene drops the selection when a structure frame shows the index no longer resolves to
-   * the same entity.
+   * Scene drops the selection when a structure frame shows a different entity
+   * at this buffer index.
    */
   readonly localIndex: number;
 }

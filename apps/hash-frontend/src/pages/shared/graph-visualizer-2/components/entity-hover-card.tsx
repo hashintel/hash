@@ -65,7 +65,7 @@ const rise = keyframes`
 type EntityHoverCardBodyProps = Omit<EntityHoverCardProps, "x" | "y">;
 
 /**
- * The card's visual body. Memoized on the entity + type context (NOT the position), so a pan
+ * The card's visual body. Memoized on the entity + type context (not the position), so a pan
  * that moves the card every frame only updates the wrapper's transform -- this MUI tree (label,
  * type, properties, footer) is laid out once per entity, never re-rendered per frame. For that
  * to hold, every prop here must be referentially stable while the selection is unchanged.
@@ -327,7 +327,7 @@ const EntityHoverCardBodyComponent = ({
 const EntityHoverCardBody = memo(EntityHoverCardBodyComponent);
 
 /**
- * Hover / selection card for an entity dot. Owns how an entity is PRESENTED (label, type, a few
+ * Hover / selection card for an entity dot. Owns how an entity is presented (label, type, a few
  * key properties, a creation date) in the hash-frontend design language. The wrapper positions
  * the card via a GPU transform -- cheap to update every pan frame -- while {@link
  * EntityHoverCardBody} renders the contents, memoized so that per-frame move never re-lays them

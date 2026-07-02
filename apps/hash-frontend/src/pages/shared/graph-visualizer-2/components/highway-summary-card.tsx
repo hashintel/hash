@@ -51,10 +51,10 @@ function directionLabel(
 type HighwaySummaryBodyProps = Omit<HighwaySummaryCardProps, "x" | "y">;
 
 /**
- * The card's visual body, memoized on its content (NOT the cursor position), so a mouse-move that
+ * The card's visual body, memoized on its content (not the cursor position), so a mouse-move that
  * re-positions the wrapper every frame never re-lays out this MUI tree. Resolves the link type's
- * icon + title from the closed type schema the SAME way {@link EntityHoverCard} does (the
- * hierarchy-walking {@link getDisplayFieldsForClosedEntityType}), and follows the SAME icon +
+ * icon + title from the closed type schema the same way {@link EntityHoverCard} does (the
+ * hierarchy-walking {@link getDisplayFieldsForClosedEntityType}), and follows the same icon +
  * title + subtitle + stat discipline, so the two hover surfaces read as one language.
  */
 const HighwaySummaryBodyComponent = ({

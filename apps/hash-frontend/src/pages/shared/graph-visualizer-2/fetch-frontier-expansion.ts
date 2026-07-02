@@ -48,7 +48,7 @@ export interface FrontierExpansion {
 
 /**
  * Imperatively fetch the neighbourhood of a set of frontier nodes, to feed the worker's additive
- * ingest (the whole point of incremental loading). Deliberately a plain async function, NOT a
+ * ingest (the whole point of incremental loading). Deliberately a plain async function, not a
  * reactive hook: it has no React-state dependencies, and a reactive query here would fight the
  * additive model. Each id is rooted via {@link generateEntityIdFilter}, so every expanded node
  * brings its links + endpoints.

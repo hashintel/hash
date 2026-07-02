@@ -39,7 +39,7 @@ export function layoutNeedsRebuild(
   current: readonly SizedNode[],
   toleranceFrac: number = OVERLAP_REBUILD_TOLERANCE_FRAC,
 ): boolean {
-  // A child added or removed: the set changed, rebuild.
+  // Membership count changed: positions from the previous set are invalid.
   if (previous.length !== current.length) {
     return true;
   }
@@ -60,8 +60,8 @@ export function layoutNeedsRebuild(
     placed.push({ x: position.x, y: position.y, radius: child.radius });
   }
 
-  // Any pair overlapping (beyond the dead-band) at the frozen positions with the
-  // new radii means the reused layout is no longer feasible.
+  // Overlap beyond the dead-band at frozen positions with updated radii means
+  // the reused layout is infeasible.
   for (let idxA = 0; idxA < placed.length; idxA++) {
     const nodeA = placed[idxA]!;
     for (let idxB = idxA + 1; idxB < placed.length; idxB++) {
@@ -85,14 +85,14 @@ export function layoutNeedsRebuild(
  * clusters visibly re-arrange before any overlap occurs. The threshold
  * prevents re-warming on every streaming batch.
  *
- * Radius grows as `sqrt(count)`, so 0.15 ≈ +32% members.
+ * Radius grows as `sqrt(count)`, so 0.15 is about +32% members.
  */
 export const GROWTH_RELAYOUT_TOLERANCE_FRAC = 0.15;
 
 /**
  * Whether any child's radius has grown past `toleranceFrac` of the radius it had
  * when the layout was built (`buildTime`). Ids only present on one side are
- * ignored — {@link layoutNeedsRebuild} owns set-membership changes.
+ * ignored; {@link layoutNeedsRebuild} owns set-membership changes.
  */
 export function layoutOutgrown(
   buildTime: readonly SizedNode[],

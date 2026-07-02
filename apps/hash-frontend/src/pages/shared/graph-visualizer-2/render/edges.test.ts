@@ -39,14 +39,16 @@ describe("edgeLayer", () => {
     expect(layers[0]).toBeInstanceOf(LineLayer);
   });
 
-  it("uses distinct Bezier layer ids for hierarchical edges", () => {
+  it("renders hierarchical edges as ONE halo-folded Bezier layer", () => {
     const layers = edgeLayer(positionsFrame(), false);
 
-    expect(layers.map((layer) => layer.id)).toEqual([
-      "edges-underlay",
-      "hierarchical-edges",
-    ]);
+    // The former separate "edges-underlay" layer ran the SDF curve solve a
+    // second time over every edge's neighbourhood; the halo now rides the
+    // same layer (see BezierSDFLayer haloWidthFactor).
+    expect(layers.map((layer) => layer.id)).toEqual(["hierarchical-edges"]);
     expect(layers[0]).toBeInstanceOf(BezierSDFLayer);
-    expect(layers[1]).toBeInstanceOf(BezierSDFLayer);
+    expect((layers[0] as BezierSDFLayer).props.haloWidthFactor).toBeGreaterThan(
+      1,
+    );
   });
 });

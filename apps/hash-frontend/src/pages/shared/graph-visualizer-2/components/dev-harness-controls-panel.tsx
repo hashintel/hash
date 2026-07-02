@@ -16,7 +16,7 @@ export interface HarnessKnobs {
   readonly rootFraction: number;
   readonly hubCount: number;
   // Majorization target-shaping tuning (community-force flat tier; all spread the
-  // layout OUTWARD and stay overlap-free).
+  // layout outward and stay overlap-free).
   readonly stressCommunityCohesion: number;
   readonly stressCommunitySeparation: number;
   readonly stressDegreeRepulsion: number;
@@ -30,13 +30,13 @@ interface ControlsPanelProps {
   readonly onChange: (knobs: HarnessKnobs) => void;
   readonly onRegenerate: () => void;
   /**
-   * CAPTURE-LIVE-FIXTURE debug hook: serialize the live layout graph to a
+   * capture-live-fixture debug hook: serialize the live layout graph to a
    * downloadable JSON fixture (replayable via bench-fixtures.ts). Absent when
    * no worker handle is live yet.
    */
   readonly onCaptureFixture?: () => void;
   /**
-   * RENDER-BENCH debug hook: capture deck stats + layer-push timings for a
+   * render-bench debug hook: capture deck stats + layer-push timings for a
    * fixed window under a scripted zoom sweep (report JSON in the console).
    */
   readonly onRunRenderBench?: () => void;

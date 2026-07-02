@@ -1,7 +1,7 @@
 /**
- * Always-on hub labels, overlaid as HTML by React: WHICH dots label is a
+ * Always-on hub labels, overlaid as HTML by React: which dots label is a
  * cached eligibility set (rebuilt only on zoom/structure change); each frame
- * just re-projects that set to screen, culls to the viewport, resolves
+ * re-projects that set to screen, culls to the viewport, resolves
  * label-box collisions, and emits.
  */
 import {
@@ -19,16 +19,16 @@ import type { EntityId } from "@blockprotocol/type-system";
 import type { Deck, OrthographicView } from "@deck.gl/core";
 
 /**
- * Minimum on-screen dot DIAMETER (px) for its entity label to be eligible. Under OrthographicView
+ * Minimum on-screen dot diameter (px) for its entity label to be eligible. Under OrthographicView
  * one world unit is `2 ** zoom` px, so a dot of `worldRadius` clears this once
  * `worldRadius * 2 * 2 ** zoom > ENTITY_LABEL_MIN_SCREEN_DIAMETER`. This is the on-screen-size bar;
- * WHICH dots are hubs is a separate by-radius cut (see {@link HUB_LABEL_MIN_RADIUS}). Ordinary
+ * which dots are hubs is a separate by-radius cut (see {@link HUB_LABEL_MIN_RADIUS}). Ordinary
  * entities are never labelled; their detail is hover-only (the card).
  */
 const ENTITY_LABEL_MIN_SCREEN_DIAMETER = 24;
 
 /**
- * Hub selection for always-on labels. A dot is a hub by its by-degree RADIUS -- the worker's
+ * Hub selection for always-on labels. A dot is a hub by its by-degree radius -- the worker's
  * authoritative connectivity (it sizes every dot this way, counting links a main-thread prop tally
  * would miss, e.g. frontier-expansion links). Eligible = radius of at least a {@link
  * HUB_LABEL_MIN_DEGREE}-degree node; of those (and on-screen-large enough), only the largest
@@ -124,7 +124,7 @@ export class HubLabels {
 
     // Flat tier: one whole-graph SAB. Each record carries its by-degree radius (the worker's
     // connectivity authority). A dot is a hub candidate when that radius marks it as connected
-    // enough AND it is large enough on screen; of the candidates, only the largest few are kept so
+    // enough and it is large enough on screen; of the candidates, only the largest few are kept so
     // the labels orient the view. (Ranking by radius, not a main-thread degree tally, is what lets
     // a node enlarged by frontier expansion still read as a hub.)
     const flatGraph = structure.flatGraph;
@@ -159,8 +159,8 @@ export class HubLabels {
   /**
    * Project the cached hub-label set to screen and emit the on-screen ones for React to overlay as
    * HTML. Called wherever positions change (frame + view change), so the labels track the camera /
-   * settle. The SET (which hubs + text) is NOT recomputed here (that is the gated {@link rebuild});
-   * only positions re-project, bounded by the set.
+   * settle. The hub set (which hubs + text) is not recomputed here (that is the gated
+   * {@link rebuild}); only positions re-project, bounded by the set.
    */
   schedule(): void {
     if (this.#frame !== null) {
@@ -210,7 +210,7 @@ export class HubLabels {
       if (x < -margin || y < -margin || x > maxX || y > maxY) {
         continue;
       }
-      // Anchor to the RIGHT of the dot's edge (its radius scales with zoom), left-aligned and
+      // Anchor to the right of the dot's edge (its radius scales with zoom), left-aligned and
       // vertically centred on the dot in React -- so the label reads "● Name" and its anchor is
       // the text start, which holds steady beside the dot as the camera zooms.
       const labelX = x + datum.worldRadius * scale + ENTITY_LABEL_GAP_PX;

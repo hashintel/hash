@@ -113,7 +113,7 @@ export class LinkStore {
   }
 
   /**
-   * Resolve a previously-pending endpoint and add it to the adjacency index.
+   * Resolve a deferred endpoint and add it to the adjacency index.
    *
    * Only the recorded pending side is written; the other endpoint keeps its
    * value. Resolutions are logged for {@link drainResolvedEndpoints} so that

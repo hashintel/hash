@@ -1,10 +1,10 @@
 /**
  * Render-cost capture for the scene: Deck's once-per-second stats plus our
- * own timing of each layer REBUILD span, summarised into one report.
+ * own timing of each layer rebuild span, summarised into one report.
  *
  * A rebuild span covers everything the scene does synchronously to refresh
  * the layer set: layer construction, label rebuild, and the `setProps` call.
- * It deliberately does NOT stop at `setProps` -- that call only stores props
+ * It deliberately does not stop at `setProps` -- that call only stores props
  * and schedules a redraw (measured at ~microseconds), while Deck performs
  * the deferred diffing and attribute regeneration inside its next draw,
  * which surfaces in `updateAttributesTime` / `cpuTimePerFrame` here.

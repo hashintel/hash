@@ -126,12 +126,12 @@ describe("createFlatLayout", () => {
     }
   });
 
-  // Perf probe (skipped — ~6.6s). cola's Descent is the small-N (flat-force)
-  // engine; this confirms it stays robust at the TOP of its range — 1000 nodes in
+  // Perf probe (skipped; ~6.6s). cola's Descent is the small-N (flat-force)
+  // engine; this confirms it stays robust at the TOP of its range (1000 nodes in
   // one connected component is the worst case for its O(N^2) (real data is many
-  // small components, far faster). The community-force tier uses the Louvain ->
-  // SMACOF-seed -> FA2 pipeline (#26) — a different engine for a different scale,
-  // not a fallback for when this is slow. Un-skip to re-benchmark.
+  // small components, far faster). The community-force tier uses the majorization
+  // engine; a different engine for a different scale, not a fallback for when
+  // this is slow. Un-skip to re-benchmark.
   it.skip("settles ~1000 nodes (worst case: one connected component) and times it", () => {
     const count = 1000;
     const nodes: ForceNode[] = [];

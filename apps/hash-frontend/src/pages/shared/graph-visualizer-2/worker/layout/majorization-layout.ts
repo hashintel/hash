@@ -1,5 +1,5 @@
 /**
- * Constrained stress-MAJORIZATION layout engine — THE community-tier engine (the
+ * Constrained stress-majorization layout engine; the community-tier engine (the
  * ForceAtlas2 and sparse-stress-SGD engines it was benchmarked against were retired
  * in its favour). Implements {@link LayoutSimulation} and fills a shared
  * {@link FlatGraphBuffer}.
@@ -8,45 +8,45 @@
  *
  *   1. Sparse quadratic stress over graph edges + subsampled pivot terms (the Ortmann
  *      sparse-stress model; pivot selection and BFS graph distances come from the
- *      {@link StressAnalysis} passes — CSR / weak-components / pivot-BFS plus the
- *      PivotMDS initialisation). Weights are 1/d² in hop space and NEVER change; the
- *      weighted CSR Laplacian is built ONCE per (re)layout/absorb.
+ *      {@link StressAnalysis} passes; CSR / weak-components / pivot-BFS plus the
+ *      PivotMDS initialisation). Weights are 1/d² in hop space and never change; the
+ *      weighted CSR Laplacian is built once per (re)layout/absorb.
  *   2. Per majorization iteration (SMACOF): the majorant right-hand side is computed from
- *      the current positions, then L·x = bₓ and L·y = b_y are solved per dimension with
- *      Jacobi-preconditioned conjugate gradient. CG state persists across worker ticks —
- *      each tick advances a bounded number of CG steps, so per-tick cost is capped BY
- *      CONSTRUCTION (the budget is generous enough that each majorant is solved to
+ *      the current positions, then L·x = b_x and L·y = b_y are solved per dimension with
+ *      Jacobi-preconditioned conjugate gradient. CG state persists across worker ticks;
+ *      each tick advances a bounded number of CG steps, so per-tick cost is capped by
+ *      construction (the budget is generous enough that each majorant is solved to
  *      tolerance; see CG_STEPS_PER_ITERATION).
- *   3. Feasibility comes from iterated CIRCLE relaxation ({@link overlapRelaxPass}'s
+ *   3. Feasibility comes from iterated circle relaxation ({@link overlapRelaxPass}'s
  *      shared spatial-grid machinery): gentle pile-bleeding passes
- *      at every iteration boundary, then a TERMINAL SETTLE phase (a few bounded
- *      passes per advance unit) that runs until one full pass VERIFIES the layout
+ *      at every iteration boundary, then a terminal settle phase (a few bounded
+ *      passes per advance unit) that runs until one full pass verifies the layout
  *      overlap-free. See ITERATION_RELAX_PASSES for why the rectangle-based VPSC
- *      solver is deliberately NOT used as a per-iteration projector (geometry
+ *      solver is deliberately not used as a per-iteration projector (geometry
  *      mismatch ⇒ limit cycle). Positions are published to the shared buffer at
  *      iteration / settle-unit boundaries only, and the final published frame is
  *      verified overlap-free.
  *
- * FEASIBILITY SCALING makes the two halves agree instead of fight: raw hop-space
- * targets (hops · 60 px) are frequently infeasible for the disk packing — a ~3k-node
- * cloud "wants" a ~240 px-radius layout while its disks need ~800 px — and an
+ * Feasibility scaling makes the two halves agree instead of fight: raw hop-space
+ * targets (hops · 60 px) are frequently infeasible for the disk packing; a ~3k-node
+ * cloud "wants" a ~240 px-radius layout while its disks need ~800 px; and an
  * infeasible stress optimum turns majorize→project into a permanent tug-of-war (the
  * solve compresses, the projector re-expands, every iteration, forever). Each weak
  * component therefore gets a target scale factor
  *   scale_c = max(1, R_packing / R_hop-ideal)
  * where R_packing is the radius of the disk that holds the component's nodes at the
  * shared packing utilisation and R_hop-ideal comes from the pivot-BFS
- * eccentricity. Scaled targets put the UNCONSTRAINED stress optimum near the feasible
+ * eccentricity. Scaled targets put the unconstrained stress optimum near the feasible
  * set, so the projector's correction is small and local, the alternation contracts,
- * and — because the PivotMDS seed is laid out at unscaled hop geometry — the layout
- * only ever EXPANDS toward its targets: no contract→expand swing.
+ * and, because the PivotMDS seed is laid out at unscaled hop geometry, the layout
+ * only ever expands toward its targets: no contract→expand swing.
  *
- * Non-overlap is therefore the PROJECTOR's job, never the dynamics': there is no
+ * Non-overlap is therefore the projector's job, never the dynamics': there is no
  * force-summed separation term to livelock against the stress pull (the failure mode of
  * the abandoned force-interleave), and termination is a max-displacement threshold plus
  * a hard iteration cap that logs and stops rather than spinning.
  *
- * Community / degree / size awareness is TARGET SHAPING, not forces:
+ * Community / degree / size awareness is target shaping, not forces:
  *
  *   - Cross-community pair targets are inflated by `communitySeparation`; same-community
  *     targets are slightly deflated by `communityCohesion` (seeded Louvain ids).
@@ -59,20 +59,20 @@
  *     harness max 0.3 → children start 60 % of the way to the packing shell). All
  *     three sliders keep working; they regenerate targets (the Laplacian, keyed to
  *     hop distances only, is unaffected).
- *   - Hub-incident edge targets are PACKING-AWARE: when a hub's one-ring radius
+ *   - Hub-incident edge targets are packing-aware: when a hub's one-ring radius
  *     (Σ_children(2r+pad)/2π) exceeds the edge target, its children cannot all sit at
  *     the target distance, so its spokes get the feasible band from the collision gap
  *     out to the hub's disk-packing radius (at the shared ~55 % utilisation)
- *     with slack. A 150-leaf hub thus AIMS its spokes at a geometrically feasible
+ *     with slack. A 150-leaf hub thus aims its spokes at a geometrically feasible
  *     halo from iteration one instead of compacting to an infeasible 1-hop length and
- *     being exploded by a terminal overlap pass — this kills the contract→expand
+ *     being exploded by a terminal overlap pass; this kills the contract→expand
  *     relayout swing.
  *   - Near-coincident non-adjacent pairs (spatial-hash grid over the initial/warm
  *     positions, the same 3×3-neighbourhood scan the overlap passes use) get floor
- *     terms d* ≥ rᵢ + r_j + pad, so piles separate through the stress solve itself.
+ *     terms d* ≥ r_i + r_j + pad, so piles separate through the stress solve itself.
  *
  * Deterministic throughout: seeded pivot selection, hash-derived coincident directions,
- * index-ordered scans, and a deterministic projector — identical input yields identical
+ * index-ordered scans, and a deterministic projector; identical input yields identical
  * output. Warm start on absorb/relayout: positions are kept, the analysis + Laplacian
  * are rebuilt, and CG warm-starts from the current layout. No cold re-seed.
  *
@@ -85,7 +85,7 @@
  *   - Mark Ortmann, Mirza Klimenta, Ulrik Brandes,
  *     "A Sparse Stress Model" (GD 2016).
  *   - Tim Dwyer, Kim Marriott, Peter J. Stuckey,
- *     "Fast Node Overlap Removal" (GD 2005) — evaluated as the projector; rejected
+ *     "Fast Node Overlap Removal" (GD 2005); evaluated as the projector; rejected
  *     for the steady state because its rectangle geometry conflicts with circle
  *     stress terms (see ITERATION_RELAX_PASSES).
  */
@@ -116,7 +116,7 @@ import type { StressAnalysisResult } from "./stress-analysis";
 
 /** Layout-space length for one graph hop. */
 const IDEAL_LINK_LENGTH = 60;
-/** Extra gap between node disks: collision floors AND the projector's pair gap. */
+/** Extra gap between node disks: collision floors and the projector's pair gap. */
 const OVERLAP_PADDING = 8;
 /** Default community/degree shaping weights (the harness slider defaults). */
 const COMMUNITY_COHESION = 0.02;
@@ -124,9 +124,9 @@ const COMMUNITY_SEPARATION = 0.08;
 const DEGREE_REPULSION = 0.02;
 
 /**
- * Slider-to-target-shaping gains. The three tuning weights shape TARGETS:
+ * Slider-to-target-shaping gains. The three tuning weights shape targets:
  *   cross-community target ×(1 + separation·GAIN), same-community ×1/(1 + cohesion·GAIN),
- *   packing-bound hub spokes: haloShare = min(1, degreeRepulsion·GAIN) — the fraction
+ *   packing-bound hub spokes: haloShare = min(1, degreeRepulsion·GAIN); the fraction
  *   of the hub's packing radius its children are pushed out to (0 = children may pack
  *   right against the hub's rim; 1 = children start at the packing radius shell).
  * GAIN = 2 places the harness slider ranges (0–0.3 / 0–0.8 / 0–0.3) onto a
@@ -143,43 +143,43 @@ const DEGREE_HALO_GAIN = 2;
  */
 const PACKING_UTILISATION = 0.55;
 
-/** Near-pair floor weight: full edge weight — these terms ARE the separation engine. */
+/** Near-pair floor weight: full edge weight; these terms are the separation engine. */
 const NEAR_PAIR_WEIGHT = 1;
 /** Cap near-pair partners per node so a k-node pile emits O(k), not O(k²), terms. */
 const NEAR_PAIR_MAX_PARTNERS = 8;
 
 /**
- * COMMUNITY-REGION floors: every node outside community c is kept OUT of c's region
- * disk — centred on the members' live centroid, radius R_c from the packing area of
+ * `community-region` floors: every node outside community c is kept out of c's region
+ * disk; centred on the members' live centroid, radius R_c from the packing area of
  * c's member disks (the same packing model as the hub floors). This is region-level
  * separation that target shaping alone cannot provide: cross-community inflation
- * only stretches EXISTING terms (edges + pivot pairs), so an unrelated branch —
- * sharing no edge and no pivot term with a foreign community — had NOTHING keeping
+ * only stretches existing terms (edges + pivot pairs), so an unrelated branch;
+ * sharing no edge and no pivot term with a foreign community; had nothing keeping
  * it out of that community's fan and folded straight through it (measured: 32 % of
  * real-shape nodes sat inside a foreign community's core disk; degree-1 leaves,
  * which pivot anchoring deliberately skips, interpenetrate worst).
  *
- * Enforced as a RELAX PASS (violators are pushed radially out of the region disk,
+ * Enforced as a relax pass (violators are pushed radially out of the region disk,
  * gently at every iteration boundary and to verified-clean in the terminal
- * settle), NOT as Laplacian floor terms, for the build-once architecture's
+ * settle), not as Laplacian floor terms, for the build-once architecture's
  * economics: `regions × n` interval terms would dominate the Laplacian (~5× the
  * nnz at 5k) and add constant stiffness between every node and every region even
  * while satisfied (an in-band interval term exerts zero net force but keeps full
  * weight in L), taxing every CG step of every solve. The relax pass costs zero
- * solve stiffness and is push-only with NO opposing term — the stress energy has
+ * solve stiffness and is push-only with NO opposing term; the stress energy has
  * no term pulling a foreign node into a region (that absence is the root cause),
  * so pushed-out is a genuine fixed point: the same no-livelock argument as the hub
  * bands, now enforced by the projector instead of fought over by the dynamics.
- * The terminal settle exits only when a full sweep verifies the layout BOTH
- * disk-overlap-free AND region-clean, so the end state is guaranteed, not asked
+ * The terminal settle exits only when a full sweep verifies the layout both
+ * disk-overlap-free and region-clean, so the end state is guaranteed, not asked
  * of the dynamics.
  *
  * Exemptions, planned per build (per-node bitmask, hence the ≤ 32 region cap):
- * members of c, and nodes with an edge INTO c — a bridge endpoint legitimately
+ * members of c, and nodes with an edge into c; a bridge endpoint legitimately
  * sits at the region rim, and shoving it out against its own edge target would
  * leave permanent tension for the solve to fight (measured as a settle-phase
  * treadmill). Only the largest communities with ≥ REGION_MIN_COMMUNITY_SIZE
- * members cast a region — tiny communities and singleton noise are skipped, so
+ * members cast a region; tiny communities and singleton noise are skipped, so
  * fragmented graphs stay O(n · 32) per pass, ~a disk-relax pass's cost.
  * REGION_MIN_COMMUNITY_SIZE and the packing utilisation are imported from
  * {@link "./region-metrics"} so the gate measures exactly what the engine enforces.
@@ -191,7 +191,7 @@ const REGION_RELAX_STRENGTH_ITERATION = 0.5;
  * Region clearance margin (world units beyond R_c + r_v) while the solve runs:
  * overlapPadding + communitySeparation · GAIN · idealEdgeLength (default 0.08 →
  * ~13 px, harness max 0.8 → ~56 px). Combined with the pre-existing
- * cross-community TARGET inflation ×(1 + 2·separation), the slider now moves both
+ * cross-community target inflation ×(1 + 2·separation), the slider now moves both
  * the pairwise stretch and the region clearance. The terminal settle relaxes and
  * verifies at a 2 px sliver instead (same design as SETTLE_PADDING): the margin is
  * the stress phase's breathing room, and re-enforcing all of it terminally would
@@ -201,12 +201,12 @@ const REGION_MARGIN_GAIN = 1;
 const REGION_SETTLE_MARGIN = 2;
 
 /**
- * Dead-zone ceiling for FLOORED / packing-bound terms, as a multiple of the reference
- * radius. Such terms become INTERVAL targets [lo, hi]: below lo they push out, above
+ * Dead-zone ceiling for floored / packing-bound terms, as a multiple of the reference
+ * radius. Such terms become interval targets [lo, hi]: below lo they push out, above
  * hi they pull in, and in between they exert zero net force (effective target =
  * current distance). Without the dead zone, majorization re-compacts every such pair
  * to a single exact distance each iteration while the projector pushes the pile out to
- * whatever configuration feasibility actually needs — a persistent tug-of-war whose
+ * whatever configuration feasibility actually needs; a persistent tug-of-war whose
  * amplitude never decays below the convergence threshold (the projector's constraint
  * generation is discontinuous in the positions, so the alternation chatters instead
  * of settling). With the dead zone, whatever configuration the projector settles a
@@ -216,13 +216,13 @@ const FLOOR_CEILING_SLACK = 1.5;
 
 /**
  * Relative half-widths of the interval bands on stress terms: target·[1−band, 1+band].
- * Demanding EXACT distances fights the disk packing — the projector necessarily
+ * Demanding exact distances fights the disk packing; the projector necessarily
  * distorts local geometry (its minimal-displacement x/y passes shift whole chains of
  * touching rectangles), and every term left violated at the projected configuration
  * pulls again next iteration, re-creating the same overlaps and re-running the same
  * projection: a structural majorize↔project limit cycle whose amplitude never decays.
- * With dead-zone bands, the projector's output is (mostly) a ZERO-FORCE configuration
- * — a genuine fixed point — while distances beyond the band still pull back, bounding
+ * With dead-zone bands, the projector's output is (mostly) a zero-force configuration,
+ * a genuine fixed point, while distances beyond the band still pull back, bounding
  * drift. Edge terms are tighter (they carry local structure); pivot terms, which only
  * hold the global shape, are looser.
  */
@@ -235,8 +235,8 @@ const PIVOT_COUNT_CAP = 64;
 /**
  * CG budget per majorization iteration (each step costs one SpMV per open dimension).
  * The Laplacian is very sparse (pivot terms skip degree-≤1 endpoints), so a step is
- * tens of microseconds even at 5k — the budget is set high enough that CG effectively
- * CONVERGES on the majorant each iteration. Under-solving is not a saving: it leaves
+ * tens of microseconds even at 5k; the budget is set high enough that CG effectively
+ * converges on the majorant each iteration. Under-solving is not a saving: it leaves
  * low-degree nodes' rows unsolved, the next iteration restarts CG from scratch against
  * a fresh RHS, and the leftover disequilibrium re-appears every iteration as sustained
  * displacement that never crosses the convergence threshold.
@@ -245,38 +245,38 @@ const CG_STEPS_PER_ITERATION = 120;
 /** Relative tolerance (preconditioned residual norm²) at which a solve stops early. */
 const CG_RELATIVE_TOLERANCE = 0.01;
 
-/** Hard iteration cap: reaching it LOGS "capped" and settles rather than spinning. */
+/** Hard iteration cap: reaching it logs "capped" and settles rather than spinning. */
 const MAX_ITERATIONS = 150;
 /** Converged when max per-iteration displacement < ε · idealEdgeLength for `streak` iterations. */
 const CONVERGENCE_EPSILON = 8e-3;
 const CONVERGENCE_STREAK = 2;
 
 /**
- * FEASIBILITY is delivered by iterated CIRCLE relaxation ({@link overlapRelaxPass} —
- * one bounded uniform-grid sweep per pass), NOT by a per-iteration exact projection,
- * and the engine cleanly separates SHAPE from FEASIBILITY in time:
+ * Feasibility is delivered by iterated circle relaxation ({@link overlapRelaxPass};
+ * one bounded uniform-grid sweep per pass), not by a per-iteration exact projection,
+ * and the engine cleanly separates shape from feasibility in time:
  *
- *   - During majorization iterations, each iteration ends with a couple of GENTLE
+ *   - During majorization iterations, each iteration ends with a couple of gentle
  *     relax passes that bleed coincident piles down while the solve spreads the
  *     layout toward its (feasibility-scaled, packing-aware) targets.
- *   - Once the stress solve converges or plateaus, a TERMINAL SETTLE phase runs relax
- *     passes — a few per advance unit, so per-tick cost stays capped — until one full
- *     pass VERIFIES the layout overlap-free. Because the targets were shaped
+ *   - Once the stress solve converges or plateaus, a terminal settle phase runs relax
+ *     passes; a few per advance unit, so per-tick cost stays capped; until one full
+ *     pass verifies the layout overlap-free. Because the targets were shaped
  *     feasibility-first, this phase does small local separation, not a global
  *     explosion (no contract→expand swing), and pure separation with no opposing
- *     force always terminates — the livelock class of the abandoned force-interleave
+ *     force always terminates; the livelock class of the abandoned force-interleave
  *     is structurally impossible.
  *
- * Two projector designs were tried and REJECTED on measurement, both livelocking the
+ * Two projector designs were tried and rejected on measurement, both livelocking the
  * 3k benchmark at the iteration cap with projection eating ~98 % of wall time:
  *   1. Per-iteration exact VPSC (a rectangle-separation solver, since deleted): its
- *      RECTANGLE geometry (|dx| or |dy| ≥ half-extent sum) conflicts with the CIRCLE geometry
+ *      rectangle geometry (|dx| or |dy| ≥ half-extent sum) conflicts with the circle geometry
  *      of the stress terms, the collision floors, and the zero-overlap oracle
- *      (dist ≥ rᵢ+r_j+pad). A circle-optimal solve packs pairs diagonally at
+ *      (dist ≥ r_i+r_j+pad). A circle-optimal solve packs pairs diagonally at
  *      distances the rectangle model forbids by up to ~30 %, so the projector
- *      shifted whole chains by 100–500 px every iteration and the next solve pulled
+ *      shifted whole chains by 100-500 px every iteration and the next solve pulled
  *      them straight back.
- *   2. Per-iteration relax-to-clean with near-pair floors regenerated INSIDE the
+ *   2. Per-iteration relax-to-clean with near-pair floors regenerated inside the
  *      solve every iteration: the ever-changing one-sided terms destabilised the
  *      alternation (overlap count grew to a ~2.6k steady state as solve and relaxer
  *      fought at ~200 px amplitude).
@@ -288,26 +288,26 @@ const SETTLE_PASSES_PER_UNIT = 4;
 const SETTLE_RELAX_STRENGTH = 1;
 /**
  * Gap the settle phase enforces (world units beyond r_i + r_j). Deliberately a
- * SLIVER of the full overlap padding: breathing room is the stress phase's job
+ * sliver of the full overlap padding: breathing room is the stress phase's job
  * (near-pair floors and hub bands already target the padded distance), so the
  * terminal phase only fixes residual true intersections. Both extremes fail
- * measurably — at the full padding the phase is diffusive (a packed 3k cloud holds
+ * measurably; at the full padding the phase is diffusive (a packed 3k cloud holds
  * ~5k padded-but-clean pairs; every fixture burned the whole pass cap) and inflates
  * the settled cloud ~2 % (a terminal expand, the exact motion this engine exists to
  * kill); at zero it stalls (pairs resolve to exactly-touching, any later nudge
- * re-intersects them — 342 overlaps never cleared). A couple of pixels of slack
+ * re-intersects them; 342 overlaps never cleared). A couple of pixels of slack
  * keeps resolution stable at negligible inflation.
  */
 const SETTLE_PADDING = 2;
 /** A pass moving nothing proves feasibility; the interval check catches near-zero treadmills. */
 const SETTLE_VERIFY_INTERVAL = 8;
-/** Safety cap on total settle passes: reaching it LOGS instead of spinning. */
+/** Safety cap on total settle passes: reaching it logs instead of spinning. */
 const SETTLE_MAX_PASSES = 1024;
 
 /**
  * Plateau detector: dense graphs (feasibility scale ≫ 1) never push per-iteration
- * displacement below the convergence threshold — the gentle relax passes keep nudging
- * piles — so when the best max-displacement has not improved by PLATEAU_IMPROVEMENT
+ * displacement below the convergence threshold; the gentle relax passes keep nudging
+ * piles; so when the best max-displacement has not improved by PLATEAU_IMPROVEMENT
  * for PLATEAU_WINDOW consecutive iterations, the stress phase is declared done and
  * the terminal settle phase takes over. Sparse graphs converge normally instead.
  */
@@ -425,8 +425,8 @@ class MajorizationSolver {
   #analysisResult: StressAnalysisResult | undefined;
 
   /**
-   * STATIC stress terms (edges + pivot terms), fixed after the build. Each term is an
-   * INTERVAL target [lo, hi]: the majorant RHS uses the effective target
+   * Static stress terms (edges + pivot terms), fixed after the build. Each term is an
+   * interval target [lo, hi]: the majorant RHS uses the effective target
    * clamp(currentDistance, lo, hi), so a pair inside its band exerts zero net force
    * (the IPSep one-sided treatment, generalised to a band). See #shapeTarget for how
    * the bands are derived.
@@ -530,9 +530,9 @@ class MajorizationSolver {
   maxProjectionMs = 0;
   /** Iterations/settle units whose relax passes had actual work (diagnostic). */
   projectionRuns = 0;
-  /** Max displacement of the last SOLVE step alone, pre-projection (diagnostic). */
+  /** Max displacement of the last solve step alone, pre-projection (diagnostic). */
   lastSolveDisplacement = 0;
-  /** Max displacement the last PROJECTION added on top of the solve (diagnostic). */
+  /** Max displacement the last projection added on top of the solve (diagnostic). */
   lastProjectDisplacement = 0;
   /** Node index with the largest last-iteration displacement (diagnostic). */
   lastMaxDisplacementNode = -1;
@@ -608,7 +608,7 @@ class MajorizationSolver {
   /**
    * Whether published frames are verified non-overlapping: latches when the settle
    * phase's final relax pass confirms zero overlaps (the engine settles right after,
-   * so every frame published from then on — the final state — is feasible).
+   * so every frame published from then on; the final state; is feasible).
    */
   get projectionActive(): boolean {
     return this.#everFeasible;
@@ -689,12 +689,10 @@ class MajorizationSolver {
     }
   }
 
-  /** Publish cadence for the shell: bumps at iteration AND settle-unit boundaries. */
+  /** Publish cadence for the shell: bumps at iteration and settle-unit boundaries. */
   get publishGeneration(): number {
     return this.#iteration + this.#settleUnits;
   }
-
-  // --- Build phases -------------------------------------------------------------
 
   #prepareTermBuild(): void {
     const n = this.#n;
@@ -702,10 +700,10 @@ class MajorizationSolver {
     const pad = this.#options.overlapPadding;
 
     // Degrees + per-node hub geometry from the (deduped) edge list. For a hub v two
-    // radii matter: the ONE-RING radius that seats its children side by side
-    // (Σ(2r+pad)/2π) and the DISK radius that packs them at the packing utilisation.
-    // When the ring radius exceeds an edge's target the hub is PACKING-BOUND — its
-    // children cannot all sit at the target distance — and its spokes get a wide
+    // radii matter: the one-ring radius that seats its children side by side
+    // (Σ(2r+pad)/2π) and the disk radius that packs them at the packing utilisation.
+    // When the ring radius exceeds an edge's target the hub is packing-bound; its
+    // children cannot all sit at the target distance; and its spokes get a wide
     // feasible band instead of an exact target (see #shapeTarget).
     this.#degrees = new Uint32Array(n);
     const childExtent = new Float64Array(n);
@@ -764,7 +762,7 @@ class MajorizationSolver {
       }
       maxHop[component] = rowMax;
     }
-    // The safety factor puts the stress optimum slightly OUTSIDE the packing
+    // The safety factor puts the stress optimum slightly outside the packing
     // envelope instead of just inside it: without it the settle phase must inflate
     // the whole cloud by the missing few percent, which reads as a terminal
     // contract→expand rebound (measured ~8 % RMS-spread dip at 3k, the exact motion
@@ -820,9 +818,9 @@ class MajorizationSolver {
 
     // Near-pair floor terms: pairs currently overlapping (or nearly) that share no
     // edge, found with the same uniform-grid 3×3 scan the overlap-relax passes use.
-    // Emitted ONCE per build from the seed/warm positions: they break the initial
-    // coincident piles apart through the stress solve itself (PUSH-ONLY: [floor, ∞)).
-    // Pairs that drift together only mid-solve are the settle phase's job instead —
+    // Emitted once per build from the seed/warm positions: they break the initial
+    // coincident piles apart through the stress solve itself (push-only: [floor, inf)).
+    // Pairs that drift together only mid-solve are the settle phase's job instead;
     // regenerating these inside the loop was tried and destabilised the alternation
     // (see the projector notes above).
     this.#emitNearPairTerms();
@@ -865,7 +863,7 @@ class MajorizationSolver {
         candidates.push(c);
       }
     }
-    // Largest first; community id breaks ties — deterministic under the dense
+    // Largest first; community id breaks ties; deterministic under the dense
     // (first-seen) community numbering.
     candidates.sort((a, b) => memberCount[b]! - memberCount[a]! || a - b);
     const regions = candidates.slice(0, REGION_FLOOR_MAX_COMMUNITIES);
@@ -942,8 +940,8 @@ class MajorizationSolver {
    * `margin`. Returns the number of violations found; with `strength` 0 it only
    * counts (the settle phase's verification read). Deterministic: fixed region
    * order, index-ordered node scan, hash-derived direction for a node exactly on a
-   * centroid. One-sided by design — the stress energy has no term pulling a foreign
-   * node INTO a region, so pushed-out is a fixed point (no force to fight).
+   * centroid. One-sided by design; the stress energy has no term pulling a foreign
+   * node into a region, so pushed-out is a fixed point (no force to fight).
    */
   #regionRelaxPass(margin: number, strength: number): number {
     const count = this.#regionCount;
@@ -1010,21 +1008,21 @@ class MajorizationSolver {
    * Community-shaped target band for a pair at `hops` graph distance, written to
    * `#shapedLo` / `#shapedHi`.
    *
-   *   - Edge terms (hops = 1) get an exact target — they carry local structure —
-   *     UNLESS an endpoint hub is PACKING-BOUND (its one-ring radius exceeds the
+   *   - Edge terms (hops = 1) get an exact target; they carry local structure;
+   *     unless an endpoint hub is packing-bound (its one-ring radius exceeds the
    *     target, i.e. its children cannot all sit at the target distance). Such spokes
    *     get the wide feasible band [collision + haloShare·(pack − collision),
    *     max(pack, target)·slack]: the compact packing the projector produces (children
-   *     at radii from the hub's rim out to the packing radius) lies INSIDE the band,
+   *     at radii from the hub's rim out to the packing radius) lies inside the band,
    *     so a packed hub is a fixed point instead of a fight. `degreeRepulsion` sets
-   *     haloShare — how far children are pushed from the rim toward an explicit
+   *     haloShare; how far children are pushed from the rim toward an explicit
    *     halo shell.
    *   - Pivot terms (hops ≥ 2) get a ±PIVOT_BAND dead zone around the target so
    *     packing distortion does not generate perpetual pulls.
-   *   - The collision floor rᵢ + r_j + pad applies to every band (floored terms get a
+   *   - The collision floor r_i + r_j + pad applies to every band (floored terms get a
    *     FLOOR_CEILING_SLACK dead zone rather than an exact floor).
    *
-   * The hub band is applied HERE, not just on edge terms, because a pivot row
+   * The hub band is applied here, not just on edge terms, because a pivot row
    * re-emits (pivot, neighbour) pairs at d = 1 and a conflicting un-banded target
    * would average against the edge term and undercut the halo. All d = 1 terms for a
    * pair agree exactly, so duplicates only add weight.
@@ -1096,8 +1094,8 @@ class MajorizationSolver {
   /**
    * Grid-detected near-pair floors. Deterministic: nodes scanned in index order, each
    * unordered pair visited once, partners capped per node in scan order. Cell keys
-   * are packed NUMERIC (like the overlap-relax grid's cell hashing, but collision-free):
-   * (cx, cy) offset into [0, 2²⁶) and combined as cx·2²⁶ + cy — exact in a float64
+   * are packed numeric (like the overlap-relax grid's cell hashing, but collision-free):
+   * (cx, cy) offset into [0, 2²⁶) and combined as cx·2²⁶ + cy; exact in a float64
    * up to 2⁵², injective for |cell| < 2²⁵ (world coords far beyond any layout).
    */
   #emitNearPairTerms(): void {
@@ -1181,7 +1179,7 @@ class MajorizationSolver {
 
   /**
    * Pivot terms, chunked: for pivot row p and node v at BFS distance d, a term with
-   * weight 1/d² and community-shaped target d·ideal. Degree-1 nodes are SKIPPED as the
+   * weight 1/d² and community-shaped target d·ideal. Degree-1 nodes are skipped as the
    * non-pivot endpoint: a leaf's position is fully determined by its single edge plus
    * the projector, and anchoring it to k pivots at hop-scaled targets is exactly the
    * inward compaction pressure that fought the hub halos (its own pivot row, if a leaf
@@ -1240,10 +1238,10 @@ class MajorizationSolver {
   }
 
   /**
-   * CSR weighted Laplacian over the terms, built ONCE per (re)layout/absorb, in three
+   * CSR weighted Laplacian over the terms, built once per (re)layout/absorb, in three
    * bounded passes (count / prefix+allocate / fill). Off-diagonals only; the diagonal
    * lives in its own array (also the Jacobi preconditioner). Duplicate (i,j) entries
-   * (an edge that is also a pivot pair) simply accumulate in the SpMV — no dedupe pass.
+   * (an edge that is also a pivot pair) simply accumulate in the SpMV; no dedupe pass.
    */
   #buildLaplacianPass(): void {
     const n = this.#n;
@@ -1324,8 +1322,6 @@ class MajorizationSolver {
     this.#rhsCursor = 0;
     this.#phase = "rhs";
   }
-
-  // --- Majorization iterations ----------------------------------------------------
 
   /**
    * Majorant right-hand side from the current positions: for each term (a, b, w, d*)
@@ -1504,7 +1500,7 @@ class MajorizationSolver {
 
   /**
    * Iteration boundary: adopt the CG iterate, bleed piles with a couple of gentle
-   * relax passes, measure displacement, and decide — converge (→ settle), plateau
+   * relax passes, measure displacement, and decide; converge (→ settle), plateau
    * (→ settle), cap (log, → settle), or loop.
    */
   #projectAndFinishIteration(): void {
@@ -1639,10 +1635,10 @@ class MajorizationSolver {
 
   /**
    * One terminal-settle unit: a few full-strength relax passes (region floor, then
-   * disk overlap). Ends the solve once a sweep verifies the layout BOTH
+   * disk overlap). Ends the solve once a sweep verifies the layout both
    * disk-overlap-free and region-clean; pure separation with no opposing force, so
-   * termination is structural — the safety cap only guards against the impossible
-   * and LOGS if ever hit (surfaced via `settleCapped`).
+   * termination is structural; the safety cap only guards against the impossible
+   * and logs if ever hit (surfaced via `settleCapped`).
    */
   #settleChunk(): void {
     const start = performance.now();
@@ -1715,8 +1711,6 @@ class MajorizationSolver {
   }
 }
 
-// --- LayoutSimulation shell ----------------------------------------------------------
-
 class MajorizationLayout implements LayoutSimulation {
   readonly #nodes: ForceNode[];
   readonly #buffer: FlatGraphBuffer;
@@ -1734,24 +1728,24 @@ class MajorizationLayout implements LayoutSimulation {
   #status: ForceLayoutStatus;
   /**
    * Last published solver generation (iterations + settle units). Starts at 0 so
-   * nothing is published until the FIRST majorization iterate completes — the
+   * nothing is published until the first majorization iterate completes; the
    * analysis phases mutate positions incrementally (PivotMDS init), and a mid-init
    * frame must never be displayed.
    */
   #publishedGeneration = 0;
 
-  // Diagnostics, read STRUCTURALLY (duck-typed) by the worker's debug log
+  // Diagnostics, read structurally (duck-typed) by the worker's debug log
   // (tick-loop's #logOverlapDiagnostics).
   /** Cumulative wall time (ms) spent in solver ticks. */
   overlapProjectionMs = 0;
   /** Majorization iterations completed. */
   overlapProjectionCalls = 0;
-  /** Worst single tick (ms) — the per-tick budget guard. */
+  /** Worst single tick (ms); the per-tick budget guard. */
   maxTickMs = 0;
   /**
-   * MEASURED strict disk overlaps in the last completed iterate / settle
+   * measured strict disk overlaps in the last completed iterate / settle
    * verification. Non-zero during the stress phase by design; a non-zero value
-   * after settle means the settle cap was hit — see {@link settleCapped}.
+   * after settle means the settle cap was hit; see {@link settleCapped}.
    */
   overlapsRemaining = 0;
   /** Laplacian (re)builds (cold build + every warm absorb/relayout). */
@@ -1941,7 +1935,7 @@ class MajorizationLayout implements LayoutSimulation {
   /**
    * Absorb newly-arrived nodes without a cold restart: append them (existing indices
    * keep their slot so the shared buffer grows in place), rebuild the analysis +
-   * Laplacian over the new topology, and continue majorization WARM from the preserved
+   * Laplacian over the new topology, and continue majorization warm from the preserved
    * positions (projection re-enables after the first iteration). Refreshes Louvain once
    * the layout has grown enough, so the BubbleSets track the evolving communities.
    */
@@ -1989,7 +1983,7 @@ class MajorizationLayout implements LayoutSimulation {
   /**
    * Force a Louvain refresh if nodes were absorbed since the last one (trailing-edge
    * complement to the growth trigger). Position-neutral; returns whether it ran. The
-   * refreshed membership feeds the NEXT solver build's target shaping (a mid-solve
+   * refreshed membership feeds the next solver build's target shaping (a mid-solve
    * relabel does not regenerate the current targets).
    */
   refreshCommunities(): boolean {

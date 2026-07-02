@@ -194,7 +194,7 @@ export interface CoincidentHubSpec {
 }
 
 /**
- * A {@link buildForceGraph} cloud PLUS one or more super-hubs, each with `leaves`
+ * A {@link buildForceGraph} cloud plus one or more super-hubs, each with `leaves`
  * degree-1 leaves initialised near-coincident with its hub centre. This reproduces
  * the production pathology that froze a long-deleted terminal VPSC projection for
  * seconds: a hub's worth of near-coincident leaves reaching the overlap-resolution
@@ -287,9 +287,9 @@ export function buildRealShapeFixture(seed = 7_001): {
 }
 
 /**
- * Replay a CAPTURE-LIVE-FIXTURE JSON (the dev harness's "Capture layout fixture"
+ * Replay a capture-live-fixture JSON (the dev harness's "Capture layout fixture"
  * button → {@link CapturedLayoutFixture}) as a layout fixture: real node ids,
- * radii, and LIVE positions (so warm-relayout scenarios replay from the captured
+ * radii, and live positions (so warm-relayout scenarios replay from the captured
  * geometry; pass `scrambleSeed` to test cold layout from a deterministic
  * phyllotaxis scatter instead). The captured Louvain labels ride along for
  * metrics that want the partition the user was looking at.

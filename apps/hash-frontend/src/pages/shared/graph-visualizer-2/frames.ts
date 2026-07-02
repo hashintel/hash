@@ -7,7 +7,7 @@ import type { ClusterId, VizMode } from "./ids";
  * O(links) work happens only when topology changes, never on a position tick:
  *
  * - {@link StructureFrame}: identities, colors, labels, radii, and edge
- *   topology. Sent ONLY when the visible cut (LOD) changes. Held in a ref on
+ *   topology. Sent only when the visible cut (LOD) changes. Held in a ref on
  *   the main thread; a version counter drives Deck.gl `updateTriggers`.
  *
  * - {@link PositionsFrame}: world positions for the (bounded) set of visible
@@ -62,7 +62,7 @@ export interface RenderCluster {
 /**
  * Describes the individual-entity edges for one open entity-mode leaf. The
  * geometry is composed on the main thread from the leaf's position SAB, so it
- * tracks the dots exactly. Endpoints are LOCAL to the leaf's center; the main
+ * tracks the dots exactly. Endpoints are local to the leaf's center; the main
  * thread adds the leaf's world position (see {@link leafClusterIndex}).
  */
 export interface RenderEntityLayer {
@@ -80,7 +80,7 @@ export interface RenderEntityLayer {
   readonly color: Color;
   /**
    * Entity-to-entity internal links: interleaved local index pairs
-   * `[a0, b0, a1, b1, ...]` into the leaf's position SAB. This is TOPOLOGY (which
+   * `[a0, b0, a1, b1, ...]` into the leaf's position SAB. This is topology (which
    * dots link), unchanged between cut changes; the positions come from the SAB.
    */
   readonly internalEdges: Uint32Array;
@@ -88,11 +88,11 @@ export interface RenderEntityLayer {
 }
 
 /**
- * Per open entity-mode leaf, the fan-out feeder endpoints for the CURRENT
+ * Per open entity-mode leaf, the fan-out feeder endpoints for the current
  * positions: interleaved `[localIdx, exitLocalX, exitLocalY, ...]`, the exit in
- * the leaf's LOCAL frame. This is POSITIONAL — the exit moves as the leaf's
- * ports re-slot while the macro layout settles — so it rides the
- * {@link PositionsFrame}, NOT the (topology-only) {@link StructureFrame}. The
+ * the leaf's local frame. This is positional: the exit moves as the leaf's
+ * ports re-slot while the macro layout settles, so it rides the
+ * {@link PositionsFrame}, not the (topology-only) {@link StructureFrame}. The
  * main thread pairs it with the leaf's {@link RenderEntityLayer} (for
  * `leafClusterIndex` + `fanOutColor`) by `layoutId`.
  */
@@ -102,24 +102,24 @@ export interface RenderEntityFanOut {
 }
 
 /**
- * The whole-graph individual-entity view, used by the `flat-force` and
- * `community-force` modes (one regime — see `LAYOUT-MODES.md`). Unlike the
+ * The whole-graph individual-entity view for `flat-force` and
+ * `community-force` (one regime; see `LAYOUT-MODES.md`). Unlike the
  * hierarchical {@link RenderEntityLayer} (one open leaf, uniform colour/radius),
- * this is the ENTIRE entity set as one graph, each entity coloured by its type
+ * this is the entire entity set as one graph, each entity coloured by its type
  * (hierarchy-aware) and sized by its degree.
  *
- * ALL per-node GPU data — positions, radii, colours — lives in one SAB (a
+ * All per-node GPU data (positions, radii, colours) lives in one SAB (a
  * `FlatGraphBuffer`, delivered via `LayoutCreatedMessage` keyed by {@link
  * layoutId}), so the renderer reads it directly and per-node updates are written
  * in place. Positions are world coords centred on the origin (no leaf offset).
- * This payload therefore carries NO per-node arrays — only the identity + count.
+ * This payload therefore carries NO per-node arrays, only the identity + count.
  * Edges are worker-built bezier segments ({@link PositionsFrame.beziers}, one per
  * link, coloured by the link's own type), drawn separately.
  */
 export interface RenderFlatGraph {
   /** Matches a {@link "../worker/protocol".LayoutCreatedMessage} clusterId SAB. */
   readonly layoutId: ClusterId;
-  /** Live node count (≤ the SAB capacity); how many instances to render. */
+  /** Live node count (<= the SAB capacity); how many instances to render. */
   readonly count: number;
   /**
    * Per-node Louvain community id, in SAB record order (`-1` = unassigned). Present
@@ -138,7 +138,7 @@ export interface RenderFlatGraph {
  * `id` carried on the lane's bezier segments). A clicked highway segment reads
  * its `id`, looks up this summary, and can ask the worker for the full link set.
  *
- * The array is dense over every visual edge (aggregate AND individual), so the
+ * The array is dense over every visual edge (aggregate and individual), so the
  * index lines up with `laneId`; an individual (non-aggregate) edge gets the
  * placeholder `{ typeId: null, typeLabel: "", count: 0, direction: "both" }`.
  */
@@ -158,7 +158,7 @@ export interface StructureFrame {
   readonly version: number;
   readonly mode: VizMode;
   /**
-   * Visible clusters in a STABLE order. {@link PositionsFrame.clusterPositions}
+   * Visible clusters in a stable order. {@link PositionsFrame.clusterPositions}
    * is index-aligned with this array until the next structure frame. Empty in
    * the flat tiers (see {@link flatGraph}).
    */
@@ -230,7 +230,7 @@ export interface RenderEdgeLabel {
   /** Degrees (kept upright): rotates the label to ride along its lane. */
   readonly angle: number;
   /**
-   * Label size in WORLD/common units, matching the lane it annotates.
+   * Label size in world/common units, matching the lane it annotates.
    */
   readonly size: number;
   /** World-space lane length, for screen-space culling. */
