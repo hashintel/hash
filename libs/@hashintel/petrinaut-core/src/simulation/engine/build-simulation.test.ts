@@ -1,11 +1,80 @@
 import { describe, expect, it } from "vitest";
 
+import { compileSimulationFrameReader } from "../frames/frame-reader";
 import { materializeEngineFrame } from "../frames/internal-frame";
 import { buildSimulation } from "./build-simulation";
 
 import type { SimulationInput } from "./types";
 
 describe("buildSimulation", () => {
+  it("packs and decodes integer and boolean token attributes", () => {
+    const input: SimulationInput = {
+      sdcpn: {
+        types: [
+          {
+            id: "type1",
+            name: "Typed entity",
+            iconSlug: "circle",
+            displayColor: "#FF0000",
+            elements: [
+              { elementId: "e1", name: "amount", type: "real" },
+              { elementId: "e2", name: "count", type: "integer" },
+              { elementId: "e3", name: "active", type: "boolean" },
+            ],
+          },
+        ],
+        differentialEquations: [],
+        parameters: [],
+        places: [
+          {
+            id: "p1",
+            name: "Place 1",
+            colorId: "type1",
+            dynamicsEnabled: false,
+            differentialEquationId: null,
+            x: 0,
+            y: 0,
+          },
+        ],
+        transitions: [],
+      },
+      initialMarking: {
+        p1: [
+          {
+            amount: 1.25,
+            count: 2.7,
+            active: true,
+          },
+        ],
+      },
+      parameterValues: {},
+      seed: 42,
+      dt: 0.1,
+      maxTime: null,
+    };
+
+    const simulationInstance = buildSimulation(input);
+    const engineFrame = simulationInstance.frames[0]!;
+    const frame = materializeEngineFrame(
+      simulationInstance.frameLayout,
+      engineFrame,
+    );
+
+    expect(frame.buffer).toEqual(new Float64Array([1.25, 3, 1]));
+
+    const reader = compileSimulationFrameReader(input.sdcpn)(engineFrame, 0, 0);
+
+    expect(
+      reader.getPlaceTokens(input.sdcpn.places[0]!, input.sdcpn.types[0]),
+    ).toEqual([
+      {
+        amount: 1.25,
+        count: 3,
+        active: true,
+      },
+    ]);
+  });
+
   it("does not compile Lambda code when transition lambdas are unavailable", () => {
     const simulation = buildSimulation({
       sdcpn: {
@@ -440,6 +509,7 @@ describe("buildSimulation", () => {
         placeName: "Processor 1::Port In",
         weight: 1,
         elementNames: null,
+        elements: null,
       },
     ]);
     expect(simulation.compiledTransitions.get("receive")?.inputPlaces).toEqual([
@@ -449,6 +519,7 @@ describe("buildSimulation", () => {
         weight: 1,
         arcType: "standard",
         elementNames: null,
+        elements: null,
       },
     ]);
     expect(frame.places["root-input"]?.count).toBe(2);

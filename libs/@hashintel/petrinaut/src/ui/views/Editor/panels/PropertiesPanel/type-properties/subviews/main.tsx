@@ -1,9 +1,18 @@
 import { useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 
-import { Button, TextInput, Tooltip } from "@hashintel/ds-components";
+import {
+  Button,
+  Select,
+  TextInput,
+  Tooltip,
+  type SelectItem,
+} from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
-import { validateDisplayName } from "@hashintel/petrinaut-core";
+import {
+  validateDisplayName,
+  type ColorElementType,
+} from "@hashintel/petrinaut-core";
 
 import { useIsReadOnly } from "../../../../../../../react/state/use-is-read-only";
 import { DraftFieldInput } from "../../../../../../components/draft-field-input";
@@ -28,7 +37,11 @@ const emptyDimensionsStyle = css({
 const dimensionsListStyle = css({
   display: "flex",
   flexDirection: "column",
-  gap: "1.5",
+  borderWidth: "[1px]",
+  borderStyle: "solid",
+  borderColor: "neutral.bd.subtle",
+  borderRadius: "md",
+  overflow: "hidden",
 });
 
 const dimensionRowStyle = cva({
@@ -38,30 +51,24 @@ const dimensionRowStyle = cva({
     gap: "1",
     padding: "1",
     paddingLeft: "2",
-    borderRadius: "md",
     transition: "[all 0.15s ease]",
   },
   variants: {
     isDragged: {
       true: {
         backgroundColor: "blue.bg.min",
-        borderWidth: "[1px]",
-        borderStyle: "solid",
-        borderColor: "neutral.bd.subtle",
       },
       false: {
         backgroundColor: "neutral.a20",
-        borderWidth: "[1px]",
-        borderStyle: "solid",
-        borderColor: "neutral.bd.subtle",
       },
     },
     isDragOver: {
       true: {
         backgroundColor: "blue.bg.min",
-        borderWidth: "[1px]",
-        borderStyle: "dashed",
-        borderColor: "blue.s50",
+        outlineWidth: "[1px]",
+        outlineStyle: "dashed",
+        outlineColor: "blue.s50",
+        outlineOffset: "[-1px]",
       },
       false: {},
     },
@@ -94,27 +101,52 @@ const dragHandleLineStyle = css({
   backgroundColor: "neutral.s105",
 });
 
-const indexChipStyle = css({
-  fontSize: "[11px]",
-  fontWeight: "medium",
-  fontVariantNumeric: "tabular-nums",
-  color: "neutral.s100",
-  width: "3",
+const dimensionFieldGroupStyle = css({
   display: "flex",
   alignItems: "center",
-  justifyContent: "center",
-  flexShrink: 0,
+  flex: "[1]",
+  minWidth: "[0]",
 });
 
 const dimensionNameInputStyle = css({
+  display: "flex",
   flex: "[1]",
-  marginX: "1",
+  minWidth: "[0]",
+
+  "& input": {
+    fontFamily: "mono",
+  },
+});
+
+const dimensionTypeSelectStyle = css({
+  width: "[96px]",
+  flexShrink: 0,
+});
+
+const deleteDimensionButtonStyle = css({
+  color: "neutral.s90",
+
+  "&:not([aria-disabled=true]):is(:hover, :focus-visible)": {
+    background: "red.a25",
+    borderColor: "red.a70",
+    color: "red.s105",
+  },
+
+  "&:focus-visible": {
+    outlineColor: "red.a60",
+  },
 });
 
 type ElementNameInputState = Record<
   string,
   { sourceName: string; value: string }
 >;
+
+const typeOptions: SelectItem<ColorElementType>[] = [
+  { value: "real", text: "Real" },
+  { value: "integer", text: "Integer" },
+  { value: "boolean", text: "Boolean" },
+];
 
 const slugifyToIdentifier = (input: string): string => {
   let slug = input
@@ -238,6 +270,17 @@ const TypeMainContent: React.FC = () => {
     });
   };
 
+  const handleUpdateElementType = (
+    elementId: string,
+    elementType: ColorElementType,
+  ) => {
+    updateTypeElement({
+      typeId: type.id,
+      elementId,
+      update: { type: elementType },
+    });
+  };
+
   const handleDragStart = (index: number) => {
     setDraggedIndex(index);
   };
@@ -310,14 +353,13 @@ const TypeMainContent: React.FC = () => {
 
       <Section
         title="Dimensions"
-        tooltip="A type is an ordered tuple of real-valued dimensions. The index of each dimension determines its position in the token vector."
+        tooltip="A type is an ordered tuple of token attributes. Real attributes can be updated by dynamics; integer and boolean attributes are discrete."
         renderHeaderAction={() => (
           <Button
             onClick={handleAddElement}
             disabled={isDisabled}
             size="xs"
             variant="ghost"
-            tone="brand"
             aria-label="Add dimension"
             tooltip={isDisabled ? UI_MESSAGES.READ_ONLY_MODE : "Add dimension"}
             iconName="plus"
@@ -356,31 +398,49 @@ const TypeMainContent: React.FC = () => {
                   <div className={dragHandleLineStyle} />
                 </div>
 
-                {/* Index chip */}
-                <div className={indexChipStyle}>{index}</div>
+                <div className={dimensionFieldGroupStyle}>
+                  <Tooltip
+                    content={UI_MESSAGES.READ_ONLY_MODE}
+                    disableTooltip={!isDisabled}
+                    className={dimensionNameInputStyle}
+                  >
+                    <TextInput
+                      value={getElementNameInputValue(element)}
+                      size="sm"
+                      width="fullWidth"
+                      onChange={(name) => {
+                        handleUpdateElementName(element.elementId, name);
+                      }}
+                      onBlur={(event) => {
+                        handleBlurElementName(
+                          element.elementId,
+                          event.target.value,
+                        );
+                      }}
+                      disabled={isDisabled}
+                      placeholder="dimension_name"
+                      connectToRightInput
+                    />
+                  </Tooltip>
 
-                {/* Name input */}
-                <Tooltip
-                  content={UI_MESSAGES.READ_ONLY_MODE}
-                  disableTooltip={!isDisabled}
-                  className={dimensionNameInputStyle}
-                >
-                  <TextInput
-                    value={getElementNameInputValue(element)}
-                    size="sm"
-                    onChange={(name) => {
-                      handleUpdateElementName(element.elementId, name);
-                    }}
-                    onBlur={(event) => {
-                      handleBlurElementName(
-                        element.elementId,
-                        event.target.value,
-                      );
-                    }}
-                    disabled={isDisabled}
-                    placeholder="dimension_name"
-                  />
-                </Tooltip>
+                  <Tooltip
+                    content={UI_MESSAGES.READ_ONLY_MODE}
+                    disableTooltip={!isDisabled}
+                  >
+                    <Select
+                      required
+                      value={element.type}
+                      onChange={(value) => {
+                        handleUpdateElementType(element.elementId, value);
+                      }}
+                      items={typeOptions}
+                      disabled={isDisabled}
+                      size="sm"
+                      className={dimensionTypeSelectStyle}
+                      connectToLeftInput
+                    />
+                  </Tooltip>
+                </div>
 
                 {/* Delete button */}
                 <Button
@@ -390,7 +450,7 @@ const TypeMainContent: React.FC = () => {
                   disabled={isDisabled || type.elements.length === 1}
                   size="xxs"
                   variant="ghost"
-                  tone="error"
+                  className={deleteDimensionButtonStyle}
                   aria-label={`Delete dimension ${element.name}`}
                   tooltip={
                     isDisabled

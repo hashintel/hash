@@ -1,5 +1,11 @@
 export type ID = string;
 
+export type ColorElementType = "real" | "integer" | "boolean";
+
+export type TokenAttributeValue = number | boolean;
+
+export type TokenRecord = Record<string, TokenAttributeValue>;
+
 export type InputArcType = "standard" | "inhibitor" | "read";
 
 export type PlaceArcEndpoint = {
@@ -72,7 +78,7 @@ export type Color = {
   elements: {
     elementId: string;
     name: string;
-    type: "real" | "integer" | "boolean";
+    type: ColorElementType;
   }[];
 };
 
@@ -127,10 +133,10 @@ export type Scenario = {
         /**
          * Per-place initial state. Values are either:
          * - `string`: expression for uncolored places (evaluates to token count)
-         * - `number[][]`: token data for colored places (rows × elements)
+         * - `TokenAttributeValue[][]`: token data for colored places (rows × elements)
          */
         type: "per_place";
-        content: Record<ID, string | number[][]>;
+        content: Record<ID, string | TokenAttributeValue[][]>;
       }
     | {
         /** Single code block that returns the full initial state object. */

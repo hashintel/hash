@@ -102,6 +102,14 @@ function makeCompiledTransitions({
       null
     );
   };
+  const getElements = (placeId: string) => {
+    const place = placesMap.get(placeId);
+    if (!place?.colorId) {
+      return null;
+    }
+
+    return typesMap.get(place.colorId)?.elements ?? null;
+  };
 
   return new Map(
     transitions.map((transition) => {
@@ -124,6 +132,7 @@ function makeCompiledTransitions({
               weight: arc.weight,
               arcType: arc.type,
               elementNames: getElementNames(placeId),
+              elements: getElements(placeId),
             };
           }),
           outputPlaces: transition.outputArcs.map((arc) => {
@@ -133,6 +142,7 @@ function makeCompiledTransitions({
               placeName: placesMap.get(placeId)?.name ?? placeId,
               weight: arc.weight,
               elementNames: getElementNames(placeId),
+              elements: getElements(placeId),
             };
           }),
           lambdaFn,
@@ -433,5 +443,82 @@ describe("computePossibleTransition", () => {
       add: { p2: [[2.0]] },
     });
     expect(result?.newRngState).toBeTypeOf("number");
+  });
+
+  it("decodes typed input tokens and encodes typed output tokens", () => {
+    const typedColor: Color = {
+      id: "typed",
+      name: "Typed",
+      iconSlug: "circle",
+      displayColor: "#FF0000",
+      elements: [
+        { elementId: "amount", name: "amount", type: "real" },
+        { elementId: "count", name: "count", type: "integer" },
+        { elementId: "active", name: "active", type: "boolean" },
+      ],
+    };
+    const transition = makeTransition({
+      id: "t1",
+      inputArcs: [{ placeId: "p1", weight: 1, type: "standard" }],
+      outputArcs: [{ placeId: "p2", weight: 1 }],
+    });
+    let lambdaInput: unknown;
+    const simulation = makeSimulation({
+      places: [
+        makePlace("p1", "Source", typedColor.id),
+        makePlace("p2", "Target", typedColor.id),
+      ],
+      transitions: [transition],
+      types: [typedColor],
+      lambdaFns: new Map([
+        [
+          "t1",
+          (tokens) => {
+            lambdaInput = tokens;
+            return 10.0;
+          },
+        ],
+      ]),
+      transitionKernelFns: new Map<string, TransitionKernelFn>([
+        [
+          "t1",
+          () => ({
+            Target: [
+              {
+                amount: 2.5,
+                count: 3.6,
+                active: false,
+              },
+            ],
+          }),
+        ],
+      ]),
+    });
+    const frame = makeFrame({
+      places: {
+        p1: { offset: 0, count: 1, dimensions: 3 },
+        p2: { offset: 3, count: 0, dimensions: 3 },
+      },
+      transitions: {
+        t1: transitionState(),
+      },
+      buffer: new Float64Array([1.25, 3, 1]),
+    });
+
+    const result = computePossibleTransition(frame, simulation, "t1", 42);
+
+    expect(lambdaInput).toEqual({
+      Source: [
+        {
+          amount: 1.25,
+          count: 3,
+          active: true,
+        },
+      ],
+    });
+    expect(result).toMatchObject({
+      remove: { p1: new Set([0]) },
+      add: { p2: [[2.5, 4, 0]] },
+    });
   });
 });

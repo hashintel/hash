@@ -2,7 +2,7 @@ import type { AbortSignalLike, WorkerFactoryLike } from "../environment";
 import type { PetrinautExtensionSettings } from "../extensions";
 import type { EventStream } from "../instance";
 import type { ReadableStore } from "../store";
-import type { Color, Place, SDCPN } from "../types/sdcpn";
+import type { Color, Place, SDCPN, TokenRecord } from "../types/sdcpn";
 
 export type SimulationState =
   | "Initializing"
@@ -39,7 +39,7 @@ export type WorkerFactory = WorkerFactoryLike;
  * - Uncolored places use a token count.
  * - Colored places use one record per token, keyed by color element name.
  */
-export type InitialPlaceMarking = number | Record<string, number>[];
+export type InitialPlaceMarking = number | TokenRecord[];
 export type InitialMarking = Record<string, InitialPlaceMarking>;
 
 /**
@@ -105,10 +105,7 @@ export interface SimulationFrameReader {
 
   getPlaceTokenCount(placeId: string): number;
   getPlaceTokenValues(placeId: string): SimulationPlaceTokenValues | null;
-  getPlaceTokens(
-    place: Place,
-    color: Color | null | undefined,
-  ): Record<string, number>[];
+  getPlaceTokens(place: Place, color: Color | null | undefined): TokenRecord[];
   getTransitionState(transitionId: string): {
     /**
      * Time elapsed since this transition last fired, in milliseconds.

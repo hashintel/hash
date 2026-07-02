@@ -1,3 +1,4 @@
+import { decodeTokenAttributeValue } from "../engine/token-values";
 import {
   createEngineFrameLayout,
   readEngineFrame,
@@ -5,7 +6,7 @@ import {
   type EngineFrameLayout,
 } from "./internal-frame";
 
-import type { SDCPN } from "../../types/sdcpn";
+import type { SDCPN, TokenRecord } from "../../types/sdcpn";
 import type {
   SimulationFrameReader,
   SimulationFrameState,
@@ -51,21 +52,24 @@ function createSimulationFrameReader(
 
       const { offset, count, dimensions } = placeState;
       const elements = color?.elements ?? [];
-      const tokens: Record<string, number>[] = [];
+      const tokens: TokenRecord[] = [];
       if (elements.length === 0 || dimensions === 0 || count === 0) {
         return tokens;
       }
 
       for (let tokenIndex = 0; tokenIndex < count; tokenIndex++) {
-        const token: Record<string, number> = {};
+        const token: TokenRecord = {};
         const base = offset + tokenIndex * dimensions;
         for (
           let dimensionIndex = 0;
           dimensionIndex < elements.length && dimensionIndex < dimensions;
           dimensionIndex++
         ) {
-          token[elements[dimensionIndex]!.name] =
-            frameView.tokenValues[base + dimensionIndex] ?? 0;
+          const element = elements[dimensionIndex]!;
+          token[element.name] = decodeTokenAttributeValue(
+            element,
+            frameView.tokenValues[base + dimensionIndex] ?? 0,
+          );
         }
         tokens.push(token);
       }

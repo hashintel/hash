@@ -2,7 +2,7 @@ import { useState } from "react";
 
 import { Spreadsheet } from "./spreadsheet";
 
-import type { SpreadsheetColumn } from "./spreadsheet";
+import type { SpreadsheetCellValue, SpreadsheetColumn } from "./spreadsheet";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
 const meta = {
@@ -22,7 +22,7 @@ const COLUMNS_3: SpreadsheetColumn[] = [
   { id: "z", name: "z" },
 ];
 
-const SAMPLE_DATA: number[][] = [
+const SAMPLE_DATA: SpreadsheetCellValue[][] = [
   [1, 2, 3],
   [4, 5, 6],
   [7, 8, 9],
@@ -38,7 +38,7 @@ const InteractiveSpreadsheet = ({
   readOnly,
 }: {
   columns: SpreadsheetColumn[];
-  initialData: number[][];
+  initialData: SpreadsheetCellValue[][];
   readOnly?: boolean;
 }) => {
   const [data, setData] = useState(initialData);

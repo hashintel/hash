@@ -11,6 +11,8 @@ import type {
   InputArcType,
   Place,
   SDCPN,
+  TokenAttributeValue,
+  TokenRecord,
   Transition,
 } from "../../types/sdcpn";
 import type { InitialMarking } from "../api";
@@ -36,10 +38,10 @@ export type DifferentialEquationFn = (
   numberOfTokens: number,
 ) => Float64Array;
 
-export type TransitionTokenValues = Record<string, Record<string, number>[]>;
+export type TransitionTokenValues = Record<string, TokenRecord[]>;
 export type TransitionKernelOutput = Record<
   string,
-  Record<string, number | RuntimeDistribution>[]
+  Record<string, TokenAttributeValue | RuntimeDistribution>[]
 >;
 
 /**
@@ -67,6 +69,7 @@ export type CompiledTransitionPlace = {
   placeName: string;
   weight: number;
   elementNames: readonly string[] | null;
+  elements: readonly Color["elements"][number][] | null;
 };
 
 export type CompiledTransitionInputPlace = CompiledTransitionPlace & {

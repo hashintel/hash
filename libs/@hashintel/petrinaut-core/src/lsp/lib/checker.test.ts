@@ -1,3 +1,4 @@
+import ts from "typescript";
 import { describe, expect, it } from "vitest";
 
 import { checkSDCPN } from "./checker";
@@ -152,6 +153,82 @@ describe("checkSDCPN", () => {
       expect(result.itemDiagnostics[0]?.diagnostics[0]?.messageText).toContain(
         "undefinedProperty",
       );
+    });
+
+    it("returns valid when returning derivatives only for real attributes", () => {
+      // GIVEN
+      const sdcpn = createSDCPN({
+        types: [
+          {
+            id: "color1",
+            elements: [
+              { name: "x", type: "real" },
+              { name: "count", type: "integer" },
+              { name: "flag", type: "boolean" },
+            ],
+          },
+        ],
+        differentialEquations: [
+          {
+            colorId: "color1",
+            code: `export default Dynamics((tokens, parameters) => {
+              return tokens.map(({ x, count, flag }) => {
+                return { x: flag ? x + count : x };
+              });
+            });`,
+          },
+        ],
+      });
+
+      // WHEN
+      const result = check(sdcpn);
+
+      // THEN
+      expect(result.isValid).toBe(true);
+      expect(result.itemDiagnostics).toHaveLength(0);
+    });
+
+    it("returns invalid when returning a derivative for a discrete attribute", () => {
+      // GIVEN
+      const sdcpn = createSDCPN({
+        types: [
+          {
+            id: "color1",
+            elements: [
+              { name: "x", type: "real" },
+              { name: "flag", type: "boolean" },
+            ],
+          },
+        ],
+        differentialEquations: [
+          {
+            colorId: "color1",
+            code: `export default Dynamics((tokens, parameters) => {
+              return tokens.map(({ x }) => {
+                return { x: 1, flag: 0 };
+              });
+            });`,
+          },
+        ],
+      });
+      const de = sdcpn.differentialEquations[0]!;
+
+      // WHEN
+      const result = check(sdcpn);
+
+      // THEN
+      expect(result.isValid).toBe(false);
+      expect(result.itemDiagnostics).toHaveLength(1);
+      expect(result.itemDiagnostics[0]?.itemId).toBe(de.id);
+      expect(result.itemDiagnostics[0]?.itemType).toBe("differential-equation");
+      // The assignability error is a nested DiagnosticMessageChain naming the
+      // offending discrete attribute.
+      expect(
+        ts.flattenDiagnosticMessageText(
+          result.itemDiagnostics[0]?.diagnostics[0]?.messageText,
+          "\n",
+        ),
+      ).toContain("flag");
     });
 
     it("returns invalid when accessing undefined parameter", () => {

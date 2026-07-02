@@ -161,7 +161,7 @@ export const colorElementSchema = z
       }),
     type: z.enum(["real", "integer", "boolean"]).meta({
       description:
-        "Primitive token attribute type. Note: the simulation buffer stores all values as Float64; `integer`/`boolean` are documentation/type-hints only, not enforced at runtime.",
+        "`real` is continuous and may be updated by dynamics. `integer` and `boolean` are discrete token attributes updated by transition kernels. `integer` values are stored as Float64 and rounded on read/write: they are exact only within ±2^53 (±9,007,199,254,740,992); values beyond that lose precision silently.",
     }),
   })
   .meta({
@@ -250,7 +250,7 @@ export const transitionSchema = z
         "Transition kernel code is meaningful only when colours are enabled and the transition has at least one coloured output place.",
         "`input` and `parameters` have the same shape as the transition's lambda.",
         "MUST return an object keyed by OUTPUT PLACE NAME with a tuple sized to that arc's weight. Coloured output places MUST be present; uncoloured output places MUST be omitted (they are auto-populated with empty tokens).",
-        "Token attribute values can be plain numbers/booleans. When stochasticity is enabled, values can also be `Distribution.Gaussian(mean, sd)` / `Distribution.Uniform(min, max)` / `Distribution.Lognormal(mu, sigma)`; each distribution is sampled once per token, and chained `.map(fn)` calls on the same distribution share that single sample (useful for deriving multiple attributes from one draw).",
+        "Token attribute values must match the output type: real/integer use numbers, boolean uses booleans. When stochasticity is enabled, real/integer attributes may also use `Distribution.Gaussian(mean, sd)` / `Distribution.Uniform(min, max)` / `Distribution.Lognormal(mu, sigma)`; each distribution is sampled once per token, and chained `.map(fn)` calls on the same distribution share that single sample.",
         "Leave empty when no coloured outputs exist.",
       ].join(" "),
     }),
@@ -282,7 +282,7 @@ export const colorSchema = z
     }),
     elements: z.array(colorElementSchema).meta({
       description:
-        "Typed token attributes available on tokens of this colour/type. Element order matters: coloured initial state in scenario per_place mode supplies `number[][]` rows in this order.",
+        "Typed token attributes available on tokens of this colour/type. Element order matters: coloured initial state in scenario per_place mode supplies rows in this order.",
     }),
   })
   .meta({
@@ -303,16 +303,16 @@ export const differentialEquationSchema = z
     code: z.string().meta({
       description: [
         "Module: `export default Dynamics((tokens, parameters) => …)`.",
-        "`tokens` is THIS place's current tokens only — `Array<{ [elementName]: number }>` — NOT all places' tokens.",
-        "MUST return an array of the SAME LENGTH where each entry is `{ [elementName]: derivative }` (i.e. dx/dt, NOT the new value).",
-        "Missing keys default to 0 silently, so return every element your colour type declares.",
+        "`tokens` is THIS place's current tokens only — NOT all places' tokens.",
+        "MUST return an array of the SAME LENGTH where each entry provides real-valued derivatives (i.e. dx/dt, NOT the new value).",
+        "Integer and boolean elements are discrete and remain unchanged by dynamics.",
         "`parameters` is keyed by each parameter's `variableName` value (lower_snake_case, e.g. `parameters.damage_per_second`).",
       ].join(" "),
     }),
   })
   .meta({
     description:
-      "A differential equation for continuous dynamics on coloured tokens. The `colorId` MUST match the colour of every place that references this equation via `differentialEquationId`, and the returned derivative keys MUST cover that colour's elements.",
+      "A differential equation for continuous dynamics on coloured tokens. The `colorId` MUST match the colour of every place that references this equation via `differentialEquationId`, and returned derivatives only update that colour's real-valued elements.",
   }) satisfies z.ZodType<DifferentialEquation>;
 
 export const parameterSchema = z

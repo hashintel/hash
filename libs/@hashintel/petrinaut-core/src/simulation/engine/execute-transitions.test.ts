@@ -113,6 +113,14 @@ function makeCompiledTransitions({
       null
     );
   };
+  const getElements = (placeId: string) => {
+    const place = placesMap.get(placeId);
+    if (!place?.colorId) {
+      return null;
+    }
+
+    return typesMap.get(place.colorId)?.elements ?? null;
+  };
 
   return new Map(
     transitions.map((transition) => {
@@ -135,6 +143,7 @@ function makeCompiledTransitions({
               weight: arc.weight,
               arcType: arc.type,
               elementNames: getElementNames(placeId),
+              elements: getElements(placeId),
             };
           }),
           outputPlaces: transition.outputArcs.map((arc) => {
@@ -144,6 +153,7 @@ function makeCompiledTransitions({
               placeName: placesMap.get(placeId)?.name ?? placeId,
               weight: arc.weight,
               elementNames: getElementNames(placeId),
+              elements: getElements(placeId),
             };
           }),
           lambdaFn,

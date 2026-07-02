@@ -329,6 +329,50 @@ describe("compileScenario", () => {
       }
     });
 
+    it("converts typed token row values to token records", () => {
+      const result = compileScenario(
+        scenario({
+          initialState: {
+            type: "per_place",
+            content: {
+              place1: [[1.5, 2.7, true], []],
+            },
+          },
+        }),
+        [],
+        [place("place1", "Place 1", "type1")],
+        [
+          {
+            id: "type1",
+            name: "Typed entity",
+            iconSlug: "circle",
+            displayColor: "#000000",
+            elements: [
+              { elementId: "amount", name: "amount", type: "real" },
+              { elementId: "count", name: "count", type: "integer" },
+              { elementId: "active", name: "active", type: "boolean" },
+            ],
+          },
+        ],
+      );
+
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.result.initialState.place1).toEqual([
+          {
+            amount: 1.5,
+            count: 3,
+            active: true,
+          },
+          {
+            amount: 0,
+            count: 0,
+            active: false,
+          },
+        ]);
+      }
+    });
+
     it("handles empty token array", () => {
       const result = compileScenario(
         scenario({

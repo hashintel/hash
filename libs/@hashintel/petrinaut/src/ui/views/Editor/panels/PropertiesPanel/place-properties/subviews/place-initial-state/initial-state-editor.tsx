@@ -4,22 +4,36 @@ import { PlaybackContext } from "../../../../../../../../react/playback/context"
 import { SimulationContext } from "../../../../../../../../react/simulation/context";
 import { Spreadsheet } from "../../../../../../../components/spreadsheet";
 
-import type { SpreadsheetColumn } from "../../../../../../../components/spreadsheet";
-import type { Color } from "@hashintel/petrinaut-core";
+import type {
+  SpreadsheetCellValue,
+  SpreadsheetColumn,
+} from "../../../../../../../components/spreadsheet";
+import type { Color, Place, TokenRecord } from "@hashintel/petrinaut-core";
+
+const getDefaultValue = (column: SpreadsheetColumn): SpreadsheetCellValue => {
+  switch (column.type) {
+    case "boolean":
+      return false;
+    case "integer":
+    case "real":
+    default:
+      return 0;
+  }
+};
 
 /**
  * InitialStateEditor - A component for editing initial tokens in a place
  * Stores data in SimulationStore, not in the Place definition
  */
 interface InitialStateEditorProps {
-  placeId: string;
+  place: Place;
   placeType: Color;
   /** Force read-only mode (e.g. when state is defined by a scenario). */
   readOnly?: boolean;
 }
 
 export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
-  placeId,
+  place,
   placeType,
   readOnly = false,
 }) => {
@@ -34,41 +48,39 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
       placeType.elements.map((element) => ({
         id: element.elementId,
         name: element.name,
+        type: element.type,
       })),
     [placeType.elements],
   );
 
   // Convert current frame data or serializable initial marking to spreadsheet rows.
-  const data: number[][] = useMemo(() => {
+  const data: SpreadsheetCellValue[][] = useMemo(() => {
     if (hasSimulation && currentFrameReader) {
-      const currentMarking = currentFrameReader.getPlaceTokenValues(placeId);
-      if (!currentMarking || currentMarking.count === 0) {
-        return [];
-      }
-
-      const dimensions = columns.length;
-      const tokens: number[][] = [];
-      for (let i = 0; i < currentMarking.count; i++) {
-        const tokenValues: number[] = [];
-        for (let colIndex = 0; colIndex < dimensions; colIndex++) {
-          tokenValues.push(
-            currentMarking.values[i * dimensions + colIndex] ?? 0,
-          );
-        }
-        tokens.push(tokenValues);
-      }
-      return tokens;
+      return currentFrameReader
+        .getPlaceTokens(place, placeType)
+        .map((token) =>
+          columns.map(
+            (column) => token[column.name] ?? getDefaultValue(column),
+          ),
+        );
     }
 
-    const marking = initialMarking[placeId];
+    const marking = initialMarking[place.id];
     if (!Array.isArray(marking)) {
       return [];
     }
 
     return marking.map((token) =>
-      columns.map((column) => token[column.name] ?? 0),
+      columns.map((column) => token[column.name] ?? getDefaultValue(column)),
     );
-  }, [hasSimulation, currentFrameReader, placeId, columns, initialMarking]);
+  }, [
+    hasSimulation,
+    currentFrameReader,
+    place,
+    placeType,
+    columns,
+    initialMarking,
+  ]);
 
   // Convert spreadsheet rows back to serializable token records.
   const handleChange = useMemo(() => {
@@ -76,15 +88,19 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
       return undefined;
     }
 
-    return (newData: number[][]) => {
-      const tokens = newData.map((row) =>
-        Object.fromEntries(
-          columns.map((column, col) => [column.name, row[col] ?? 0]),
-        ),
+    return (newData: SpreadsheetCellValue[][]) => {
+      const tokens: TokenRecord[] = newData.map(
+        (row) =>
+          Object.fromEntries(
+            columns.map((column, col) => [
+              column.name,
+              row[col] ?? getDefaultValue(column),
+            ]),
+          ) as TokenRecord,
       );
-      setInitialMarking(placeId, tokens);
+      setInitialMarking(place.id, tokens);
     };
-  }, [hasSimulation, readOnly, columns, setInitialMarking, placeId]);
+  }, [hasSimulation, readOnly, columns, setInitialMarking, place.id]);
 
   return <Spreadsheet columns={columns} data={data} onChange={handleChange} />;
 };

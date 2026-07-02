@@ -6,6 +6,7 @@ import {
   scenarioSchema,
   type Color,
   type Scenario,
+  type TokenAttributeValue,
 } from "@hashintel/petrinaut-core";
 
 import { usePetrinautMutations } from "../../../../../../react";
@@ -48,9 +49,10 @@ function buildDefaultsFromScenario(scenario: Scenario): ScenarioFormState {
       scenario.initialState.type === "per_place"
         ? (Object.fromEntries(
             Object.entries(scenario.initialState.content).filter(
-              (entry): entry is [string, number[][]] => Array.isArray(entry[1]),
+              (entry): entry is [string, TokenAttributeValue[][]] =>
+                Array.isArray(entry[1]),
             ),
-          ) as Record<string, number[][]>)
+          ) as Record<string, TokenAttributeValue[][]>)
         : {},
     showAllPlaces: false,
     initialStateAsCode: scenario.initialState.type === "code",

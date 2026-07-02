@@ -9,6 +9,8 @@ import {
 import { getItemFilePath } from "./file-paths";
 
 import type {
+  Color,
+  ColorElementType,
   InputArc,
   OutputArc,
   SDCPN,
@@ -28,8 +30,32 @@ function sanitizeColorId(colorId: string): string {
 /**
  * Maps SDCPN element types to TypeScript types
  */
-function toTsType(type: "real" | "integer" | "boolean" | "ratio"): string {
-  return type === "boolean" ? "boolean" : "number";
+function toTsType(type: ColorElementType | "ratio"): string {
+  if (type === "boolean") {
+    return "boolean";
+  }
+  return "number";
+}
+
+/**
+ * Dynamics derivatives only apply to continuous (real) attributes. Discrete
+ * elements are typed `?: never` rather than omitted: user code returns
+ * derivatives through `tokens.map(...)`, whose result is not a fresh object
+ * literal, so excess property checks would not reject extra keys — `never`
+ * rejects them in any assignment.
+ */
+function toDynamicsDerivativeType(color: Color): string {
+  const properties = color.elements
+    .map((element) =>
+      element.type === "real"
+        ? `  ${element.name}?: number;`
+        : `  ${element.name}?: never;`,
+    )
+    .join("\n");
+
+  return properties.length > 0
+    ? `{\n${properties}\n}`
+    : "Record<string, never>";
 }
 
 /**
@@ -138,6 +164,7 @@ export function generateVirtualFiles(
     ? sdcpn.differentialEquations
     : []) {
     const sanitizedColorId = de.colorId ? sanitizeColorId(de.colorId) : null;
+    const color = de.colorId ? colorById.get(de.colorId) : undefined;
     const deDefsPath = getItemFilePath("differential-equation-defs", {
       id: de.id,
     });
@@ -162,7 +189,10 @@ export function generateVirtualFiles(
         sanitizedColorId
           ? `type Tokens = Array<Color_${sanitizedColorId}>;`
           : `type Tokens = Array<number>;`,
-        `export type Dynamics = (fn: (tokens: Tokens, parameters: Parameters) => Tokens) => void;`,
+        color
+          ? `type Derivative = ${toDynamicsDerivativeType(color)};`
+          : `type Derivative = Record<string, never>;`,
+        `export type Dynamics = (fn: (tokens: Tokens, parameters: Parameters) => Derivative[]) => void;`,
       ].join("\n"),
     });
 
@@ -521,7 +551,7 @@ export function generateMetricSessionFiles(
   const { sessionId } = session;
 
   // Build per-place state types. Colored places expose typed `tokens` arrays;
-  // uncolored places fall back to `Record<string, number>[]`.
+  // uncolored places fall back to an empty token-record array.
   const colorById = new Map(sdcpn.types.map((c) => [c.id, c]));
   const placeStateImports: string[] = [];
   const placeStateProperties: string[] = [];
@@ -541,10 +571,10 @@ export function generateMetricSessionFiles(
         }
         tokensType = `Color_${sanitized}[]`;
       } else {
-        tokensType = "Record<string, number>[]";
+        tokensType = "Record<string, number | boolean>[]";
       }
     } else {
-      tokensType = "Record<string, number>[]";
+      tokensType = "Record<string, number | boolean>[]";
     }
     placeStateProperties.push(
       `  "${place.name}": { count: number; tokens: ${tokensType} };`,
@@ -554,7 +584,7 @@ export function generateMetricSessionFiles(
   const placesType =
     placeStateProperties.length > 0
       ? `{\n${placeStateProperties.join("\n")}\n}`
-      : "Record<string, { count: number; tokens: Record<string, number>[] }>";
+      : "Record<string, { count: number; tokens: Record<string, number | boolean>[] }>";
 
   // defs file (kept separate so updates only invalidate code on real changes)
   const defsPath = getItemFilePath("metric-session-defs", { sessionId });

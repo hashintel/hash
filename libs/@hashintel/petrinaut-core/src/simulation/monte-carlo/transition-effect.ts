@@ -3,6 +3,10 @@ import { isDistribution } from "../authoring/user-code/distribution";
 import { enumerateWeightedMarkingIndicesGenerator } from "../engine/enumerate-weighted-markings";
 import { sampleDistribution } from "../engine/sample-distribution";
 import { nextRandom } from "../engine/seeded-rng";
+import {
+  decodeTokenRecord,
+  encodeTokenAttributeValue,
+} from "../engine/token-values";
 import { getPlaceIndex, getTransitionIndex } from "./layout";
 
 import type {
@@ -82,16 +86,20 @@ export function computeTransitionEffect(
           inputPlace.placeId,
         );
       }
-      const elementNames = inputPlace.elementNames;
+      const elements = inputPlace.elements;
+      if (!elements) {
+        throw new SDCPNItemError(
+          `Place \`${inputPlace.placeName}\` has no type defined`,
+          inputPlace.placeId,
+        );
+      }
 
       tokenValues[inputPlace.placeName] = tokenIndices.map((tokenIndex) => {
         const tokenOffset = offset + tokenIndex * dimensions;
-        const token: Record<string, number> = {};
-        for (let dimension = 0; dimension < dimensions; dimension++) {
-          token[elementNames[dimension]!] =
-            frame.tokenValues[tokenOffset + dimension]!;
-        }
-        return token;
+        return decodeTokenRecord(
+          elements,
+          frame.tokenValues.subarray(tokenOffset, tokenOffset + dimensions),
+        );
       });
     }
 
@@ -155,18 +163,28 @@ export function computeTransitionEffect(
       const tokenArrays: number[][] = [];
       for (const token of outputTokens) {
         const values: number[] = [];
-        for (const elementName of outputPlace.elementNames) {
-          const rawValue = token[elementName]!;
+        for (const element of outputPlace.elements ?? []) {
+          let rawValue = token[element.name];
           if (isDistribution(rawValue)) {
+            if (element.type !== "real" && element.type !== "integer") {
+              throw new Error(
+                `Transition ${transition.id} produced a distribution for discrete element ${element.name}.`,
+              );
+            }
             const [sampled, nextRngState] = sampleDistribution(
               rawValue,
               currentRngState,
             );
             currentRngState = nextRngState;
-            values.push(sampled);
-          } else {
-            values.push(rawValue);
+            rawValue = sampled;
           }
+          values.push(
+            encodeTokenAttributeValue(
+              element,
+              rawValue,
+              `Transition ${transition.id} output ${outputPlace.placeName}.${element.name}`,
+            ),
+          );
         }
 
         if (values.length !== dimensions) {

@@ -6,6 +6,7 @@ import { idSchema } from "./entity-schemas";
 import type { Scenario } from "../types/sdcpn";
 
 const SNAKE_CASE_RE = /^[a-z][a-z0-9_]*$/;
+const tokenAttributeValueSchema = z.union([z.number(), z.boolean()]);
 
 export const scenarioParameterSchema = z
   .strictObject({
@@ -39,13 +40,13 @@ const initialStateSchema = z
         content: z
           .record(
             z.string(),
-            z.union([z.string(), z.array(z.array(z.number()))]),
+            z.union([z.string(), z.array(z.array(tokenAttributeValueSchema))]),
           )
           .meta({
             description: [
               "Map keyed by place ID (NOT place name).",
               'For uncoloured places, the value is a string expression with `parameters` and `scenario` in scope (e.g. `"scenario.population * (1 - scenario.infected_ratio)"`). The result is `Math.round`ed and clamped to >= 0 (token counts are always non-negative integers).',
-              "For coloured places, the value is `number[][]` where each inner array supplies element values in the SAME ORDER as the colour type's `elements`. Extra columns throw at compile time; missing columns default to 0.",
+              "For coloured places, the value is a row array where each inner array supplies element values in the SAME ORDER as the colour type's `elements`. Extra columns throw at compile time; missing columns default to the element type's zero value.",
               "`parameters` in expressions is keyed by each parameter's `variableName` value (lower_snake_case).",
             ].join(" "),
           }),
@@ -61,7 +62,7 @@ const initialStateSchema = z
           description: [
             "Function body (NOT a module — no `export default`, no wrapper) with `parameters` and `scenario` in scope.",
             "MUST `return` an object keyed by PLACE NAME (NOT place ID — note the asymmetry with per_place mode, which uses place IDs).",
-            "Per-place values: a number for uncoloured places (rounded and clamped to >= 0); `Array<{ [elementName]: number }>` for coloured places.",
+            "Per-place values: a number for uncoloured places (rounded and clamped to >= 0); `Array<{ [elementName]: number | boolean }>` for coloured places.",
             "Unknown place names in the returned object are silently dropped — typos produce an empty initial state with no error, so verify names exactly match.",
           ].join(" "),
         }),
