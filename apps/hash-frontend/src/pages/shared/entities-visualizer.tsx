@@ -34,7 +34,7 @@ import { useSlideStackHandlers } from "./entities-visualizer/use-slide-stack-han
 import { useVisualizerHeights } from "./entities-visualizer/use-visualizer-heights";
 import { useVisualizerView } from "./entities-visualizer/use-visualizer-view";
 import { VisualizerToolbar } from "./entities-visualizer/visualizer-toolbar";
-import { EntityGraphVisualizerV2 } from "./graph-visualizer-2/entity-graph-visualizer";
+import { EntityGraphVisualizer } from "./graph-visualizer/entity-graph-visualizer";
 
 import type { EntitiesTableRow } from "./entities-visualizer/entities-table-data";
 import type { BaseUrl, VersionedUrl } from "@blockprotocol/type-system";
@@ -306,7 +306,7 @@ export const EntitiesVisualizer: FunctionComponent<{
         </Stack>
       ) : view === "Graph" ? (
         <Box height={availableHeight} sx={tableContentSx}>
-          <EntityGraphVisualizerV2
+          <EntityGraphVisualizer
             entities={readyData.entities}
             rootEntityIds={readyData.rootEntityIds}
             sourceKey={entitySetKey}

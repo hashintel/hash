@@ -50,7 +50,7 @@ interface GraphVisualizerProps {
   readonly onSceneReady?: (scene: Scene | null) => void;
 }
 
-export const GraphVisualizerV2 = ({
+export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
   handle,
   loadingComponent,
   onEntityHover,
@@ -62,7 +62,7 @@ export const GraphVisualizerV2 = ({
   resolveEntityIcon,
   onEntityLabels,
   onSceneReady,
-}: GraphVisualizerProps) => {
+}) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<Scene | null>(null);
   const [hasStructure, setHasStructure] = useState(false);

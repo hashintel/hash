@@ -9,7 +9,7 @@ import { deserializeQueryEntitySubgraphResponse } from "@local/hash-graph-sdk/en
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 
 import { queryEntitySubgraphQuery } from "../../../../graphql/queries/knowledge/entity.queries";
-import { EntityGraphVisualizerV2 } from "../../graph-visualizer-2/entity-graph-visualizer";
+import { EntityGraphVisualizer } from "../../graph-visualizer/entity-graph-visualizer";
 import { useSlideStack } from "../../slide-stack";
 
 import type {
@@ -144,7 +144,7 @@ export const GraphSection = ({ entityId }: { entityId: EntityId }) => {
           <LoadingSpinner size={42} color={theme.palette.blue[60]} />
         </Box>
       ) : (
-        <EntityGraphVisualizerV2
+        <EntityGraphVisualizer
           entities={entities}
           rootEntityIds={rootEntityIds}
           sourceKey={entityId}

@@ -31,7 +31,7 @@ import {
 import { useEntityDisplay } from "./components/use-entity-display";
 import { useEntityIngest } from "./components/use-entity-ingest";
 import { useFrontierExpansion } from "./components/use-frontier-expansion";
-import { GraphVisualizerV2 } from "./graph-visualizer";
+import { GraphVisualizer } from "./graph-visualizer";
 import { useGraphGuidanceDismissal } from "./interactivity/use-graph-guidance-dismissal";
 import { useGraphWorker } from "./render/use-graph-worker";
 
@@ -46,7 +46,7 @@ import type {
 } from "@local/hash-graph-sdk/ontology";
 import type { ReactElement } from "react";
 
-interface EntityGraphVisualizerV2Props {
+interface EntityGraphVisualizerProps {
   readonly entities?: HashEntity[];
   /**
    * EntityIds of the query roots. Any entity in `entities` not in this set is a frontier node -- a
@@ -86,7 +86,7 @@ interface EntityGraphVisualizerV2Props {
   readonly onSceneReady?: (scene: Scene | null) => void;
 }
 
-export const EntityGraphVisualizerV2 = memo(
+export const EntityGraphVisualizer: React.FC<EntityGraphVisualizerProps> = memo(
   ({
     entities,
     rootEntityIds,
@@ -99,7 +99,7 @@ export const EntityGraphVisualizerV2 = memo(
     sourceKey,
     onWorkerHandle,
     onSceneReady,
-  }: EntityGraphVisualizerV2Props) => {
+  }) => {
     const typeSchemas = useMemo(
       () =>
         extractTypeSchemas(
@@ -247,7 +247,7 @@ export const EntityGraphVisualizerV2 = memo(
 
     return (
       <Box sx={{ position: "relative", width: "100%", height: "100%" }}>
-        <GraphVisualizerV2
+        <GraphVisualizer
           handle={handle}
           loadingComponent={
             <GraphStatusOverlay

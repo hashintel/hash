@@ -1,5 +1,5 @@
 /**
- * Dev harness for {@link EntityGraphVisualizerV2}: renders the visualizer against a synthetic
+ * Dev harness for {@link EntityGraphVisualizer}: renders the visualizer against a synthetic
  * fixture driven by UI knobs, so the visualizer can be iterated on without navigating to the
  * entities page and creating real entities.
  *
@@ -16,7 +16,7 @@ import { LoadingSpinner } from "@hashintel/design-system";
 import { ControlsPanel } from "./components/dev-harness-controls-panel";
 import { defaultVizConfig } from "./config";
 import { generateGraphFixture } from "./dev-harness/generate-fixture";
-import { EntityGraphVisualizerV2 } from "./entity-graph-visualizer";
+import { EntityGraphVisualizer } from "./entity-graph-visualizer";
 
 import type { HarnessKnobs } from "./components/dev-harness-controls-panel";
 import type { VizConfig } from "./config";
@@ -412,7 +412,7 @@ export const DevHarness = () => {
         totalCount={fixture.entities.length}
         seed={seed}
       />
-      <EntityGraphVisualizerV2
+      <EntityGraphVisualizer
         key={visualizerKey}
         config={layoutConfig}
         entities={visibleEntities}
