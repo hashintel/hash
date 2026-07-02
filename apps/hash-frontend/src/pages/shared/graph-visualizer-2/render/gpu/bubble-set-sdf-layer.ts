@@ -16,7 +16,7 @@
  *
  * Connectivity (BubbleSets virtual edges): the field also sums thin capsule
  * kernels over corridor segments; endpoint texel pairs in the same
- * positions texture, addressed by the per-instance [segOffset, segCount]
+ * positions texture, addressed by the per-instance [segmentOffset, segmentCount]
  * range, each pair's first texel carrying the capsule radius in `.b`. The
  * corridors follow an MST over the community's members (planned CPU-side in
  * `render/bubble-corridors.ts`), so one community always renders as one
@@ -96,17 +96,17 @@ const vs = `\
 
 in vec2 positions;
 
-in vec4 instanceBounds;     // minX, minY, maxX, maxY (world)
+in vec4 instanceBounds;         // minX, minY, maxX, maxY (world)
 in vec4 instanceColors;
-in vec2 instanceNodeRange;  // offset, count into the positions texture
-in vec2 instanceSegRange;   // first endpoint-pair texel, segment count
+in vec2 instanceNodeRange;      // offset, count into the positions texture
+in vec2 instanceSegmentRange;   // first endpoint-pair texel, segment count
 
 out vec2 vWorldPos;
 out vec4 vColor;
 flat out int vOffset;
 flat out int vCount;
-flat out int vSegOffset;
-flat out int vSegCount;
+flat out int vSegmentOffset;
+flat out int vSegmentCount;
 
 void main(void) {
   vec2 uv = positions * 0.5 + 0.5;
@@ -116,8 +116,8 @@ void main(void) {
   vColor = instanceColors;
   vOffset = int(instanceNodeRange.x);
   vCount = int(instanceNodeRange.y);
-  vSegOffset = int(instanceSegRange.x);
-  vSegCount = int(instanceSegRange.y);
+  vSegmentOffset = int(instanceSegmentRange.x);
+  vSegmentCount = int(instanceSegmentRange.y);
 
   vec3 projected = project_position(vec3(worldPos, 0.0));
   gl_Position = project_common_position_to_clipspace(vec4(projected, 1.0));
@@ -135,8 +135,8 @@ in vec2 vWorldPos;
 in vec4 vColor;
 flat in int vOffset;
 flat in int vCount;
-flat in int vSegOffset;
-flat in int vSegCount;
+flat in int vSegmentOffset;
+flat in int vSegmentCount;
 
 out vec4 fragColor;
 
@@ -177,11 +177,12 @@ void main(void) {
   // segment is an endpoint-pair of texels; the first texel's .b carries the
   // capsule radius (world units).
   for (int s = 0; s < ${MAX_SEGMENTS_PER_COMMUNITY}; s++) {
-    if (s >= vSegCount || field >= saturation) {
+    if (s >= vSegmentCount || field >= saturation) {
       break;
     }
-    vec4 endpointA = fetchTexel(vSegOffset + s * 2);
-    vec2 endpointB = fetchTexel(vSegOffset + s * 2 + 1).rg;
+
+    vec4 endpointA = fetchTexel(vSegmentOffset + s * 2);
+    vec2 endpointB = fetchTexel(vSegmentOffset + s * 2 + 1).rg;
     float radius = endpointA.b;
     if (radius <= 0.0) {
       continue;
@@ -281,9 +282,9 @@ export class BubbleSetSDFLayer extends Layer<BubbleSetSDFLayerProps> {
         accessor: "getNodeRange",
         defaultValue: [0, 0],
       },
-      instanceSegRange: {
+      instanceSegmentRange: {
         size: 2,
-        accessor: "getSegRange",
+        accessor: "getSegmentRange",
         defaultValue: [0, 0],
       },
     });

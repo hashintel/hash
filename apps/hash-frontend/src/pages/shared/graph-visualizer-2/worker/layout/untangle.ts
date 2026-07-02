@@ -110,7 +110,7 @@ function segmentsCross(
 }
 
 /** Squared distance from point (px,py) to segment (ax,ay)-(bx,by). */
-function pointSegDist2(
+function pointSegmentDist2(
   px: number,
   py: number,
   ax: number,
@@ -194,7 +194,7 @@ function nodeEnergy(
       }
       const clear = nodes[k]!.radius * THROUGH_CLEARANCE;
       if (
-        pointSegDist2(nodes[k]!.x, nodes[k]!.y, ax, ay, bx, by) <
+        pointSegmentDist2(nodes[k]!.x, nodes[k]!.y, ax, ay, bx, by) <
         clear * clear
       ) {
         energy += THROUGH_WEIGHT;
@@ -210,7 +210,7 @@ function nodeEnergy(
       continue;
     }
     if (
-      pointSegDist2(
+      pointSegmentDist2(
         node.x,
         node.y,
         nodes[c]!.x,
@@ -303,7 +303,7 @@ function totalEnergy(
       }
       const clear = nodes[k]!.radius * THROUGH_CLEARANCE;
       if (
-        pointSegDist2(nodes[k]!.x, nodes[k]!.y, ax, ay, bx, by) <
+        pointSegmentDist2(nodes[k]!.x, nodes[k]!.y, ax, ay, bx, by) <
         clear * clear
       ) {
         energy += THROUGH_WEIGHT;

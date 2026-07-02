@@ -16,7 +16,7 @@ import {
   planBubbleCorridors,
 } from "./bubble-corridors";
 
-import type { CorridorPlanArgs } from "./bubble-corridors";
+import type { CorridorPlan } from "./bubble-corridors";
 
 /** Matches the shader defaults in render/community.ts. */
 const FIELD_RADIUS = 50;
@@ -35,7 +35,7 @@ interface WorldNode {
 }
 
 interface World {
-  readonly args: CorridorPlanArgs;
+  readonly plan: CorridorPlan;
   readonly segmentsOf: (ci: number) => {
     readonly aSlot: number;
     readonly bSlot: number;
@@ -71,19 +71,19 @@ function makeWorld(
   );
   const totalMembers = memberSlots.reduce((sum, list) => sum + list.length, 0);
   const ranges = new Float32Array(keptCommunityIds.length * 2);
-  const segStorageOffsets = new Int32Array(keptCommunityIds.length);
+  const segmentStorageOffsets = new Int32Array(keptCommunityIds.length);
   const pointTexels = new Float32Array(totalMembers * 4);
   let offset = 0;
-  let segStorage = 0;
-  const segCapacity = memberSlots.reduce(
+  let segmentStorage = 0;
+  const segmentCapacity = memberSlots.reduce(
     (sum, list) => sum + Math.max(0, list.length - 1) * 2,
     0,
   );
   for (const [ci, list] of memberSlots.entries()) {
     ranges[ci * 2] = offset;
     ranges[ci * 2 + 1] = list.length;
-    segStorageOffsets[ci] = segStorage;
-    segStorage += Math.max(0, list.length - 1) * 2;
+    segmentStorageOffsets[ci] = segmentStorage;
+    segmentStorage += Math.max(0, list.length - 1) * 2;
     for (const idx of list) {
       pointTexels[offset * 4] = nodes[idx]!.x;
       pointTexels[offset * 4 + 1] = nodes[idx]!.y;
@@ -91,7 +91,7 @@ function makeWorld(
     }
   }
 
-  const args: CorridorPlanArgs = {
+  const plan: CorridorPlan = {
     keptCount: keptCommunityIds.length,
     ranges,
     communityIds: Int32Array.from(keptCommunityIds),
@@ -102,20 +102,20 @@ function makeWorld(
     recordFloats: RECORD_FLOATS,
     membership,
     nodeCount: nodes.length,
-    segSlots: new Int32Array(segCapacity * 2),
-    segRadius: new Float32Array(segCapacity),
-    segCounts: new Int32Array(keptCommunityIds.length),
-    segStorageOffsets,
+    segmentSlots: new Int32Array(segmentCapacity * 2),
+    segmentRadius: new Float32Array(segmentCapacity),
+    segmentCounts: new Int32Array(keptCommunityIds.length),
+    segmentStorageOffsets,
   };
 
   return {
-    args,
+    plan,
     segmentsOf: (ci) => {
       const list = [];
-      const start = args.segStorageOffsets[ci]!;
-      for (let seg = 0; seg < args.segCounts[ci]!; seg++) {
-        const aSlot = args.segSlots[(start + seg) * 2]!;
-        const bSlot = args.segSlots[(start + seg) * 2 + 1]!;
+      const start = plan.segmentStorageOffsets[ci]!;
+      for (let segment = 0; segment < plan.segmentCounts[ci]!; segment++) {
+        const aSlot = plan.segmentSlots[(start + segment) * 2]!;
+        const bSlot = plan.segmentSlots[(start + segment) * 2 + 1]!;
         list.push({
           aSlot,
           bSlot,
@@ -123,7 +123,7 @@ function makeWorld(
           ay: pointTexels[aSlot * 4 + 1]!,
           bx: pointTexels[bSlot * 4]!,
           by: pointTexels[bSlot * 4 + 1]!,
-          radius: args.segRadius[start + seg]!,
+          radius: plan.segmentRadius[start + segment]!,
         });
       }
       return list;
@@ -164,12 +164,12 @@ function fieldComponentsContainingMembers(
 ): number {
   const members = world.membersOf(ci);
   const segments = withSegments
-    ? world.segmentsOf(ci).map((seg) => ({
-        ax: seg.ax,
-        ay: seg.ay,
-        bx: seg.bx,
-        by: seg.by,
-        radius: seg.radius,
+    ? world.segmentsOf(ci).map((segment) => ({
+        ax: segment.ax,
+        ay: segment.ay,
+        bx: segment.bx,
+        by: segment.by,
+        radius: segment.radius,
       }))
     : [];
   const pad = FIELD_RADIUS;
@@ -242,8 +242,8 @@ function fieldComponentsContainingMembers(
 
 /** Union-find spanning check: do the segments connect every member slot? */
 function segmentsSpanAllMembers(world: World, ci: number): boolean {
-  const start = world.args.ranges[ci * 2]!;
-  const count = world.args.ranges[ci * 2 + 1]!;
+  const start = world.plan.ranges[ci * 2]!;
+  const count = world.plan.ranges[ci * 2 + 1]!;
   const parent = Array.from({ length: count }, (_, member) => member);
   const find = (member: number): number => {
     let root = member;
@@ -252,8 +252,8 @@ function segmentsSpanAllMembers(world: World, ci: number): boolean {
     }
     return root;
   };
-  for (const seg of world.segmentsOf(ci)) {
-    parent[find(seg.aSlot - start)] = find(seg.bSlot - start);
+  for (const segment of world.segmentsOf(ci)) {
+    parent[find(segment.aSlot - start)] = find(segment.bSlot - start);
   }
   const root = find(0);
   for (let member = 1; member < count; member++) {
@@ -265,17 +265,20 @@ function segmentsSpanAllMembers(world: World, ci: number): boolean {
 }
 
 function segmentDistanceTo(
-  seg: { ax: number; ay: number; bx: number; by: number },
+  segment: { ax: number; ay: number; bx: number; by: number },
   px: number,
   py: number,
 ): number {
-  const abX = seg.bx - seg.ax;
-  const abY = seg.by - seg.ay;
+  const abX = segment.bx - segment.ax;
+  const abY = segment.by - segment.ay;
   const lenSq = abX * abX + abY * abY;
   const raw =
-    lenSq > 0 ? ((px - seg.ax) * abX + (py - seg.ay) * abY) / lenSq : 0;
+    lenSq > 0 ? ((px - segment.ax) * abX + (py - segment.ay) * abY) / lenSq : 0;
   const along = Math.max(0, Math.min(1, raw));
-  return Math.hypot(px - (seg.ax + abX * along), py - (seg.ay + abY * along));
+  return Math.hypot(
+    px - (segment.ax + abX * along),
+    py - (segment.ay + abY * along),
+  );
 }
 
 describe("bubble corridors, connectivity guarantee", () => {
@@ -284,7 +287,7 @@ describe("bubble corridors, connectivity guarantee", () => {
       [...clump(0, 0, 7), ...clump(600, 0, 7), ...clump(300, 500, 7)],
       [7],
     );
-    planBubbleCorridors(world.args);
+    planBubbleCorridors(world.plan);
 
     expect(segmentsSpanAllMembers(world, 0)).toBe(true);
     // The guard: WITHOUT corridors this fixture is three islands...
@@ -294,8 +297,8 @@ describe("bubble corridors, connectivity guarantee", () => {
     // ...and WITH corridors exactly one.
     expect(fieldComponentsContainingMembers(world, 0)).toBe(1);
     // Nothing foreign anywhere: every corridor is full width.
-    for (const seg of world.segmentsOf(0)) {
-      expect(seg.radius).toBe(CORRIDOR_FIELD_RADIUS);
+    for (const segment of world.segmentsOf(0)) {
+      expect(segment.radius).toBe(CORRIDOR_FIELD_RADIUS);
     }
   });
 
@@ -313,24 +316,24 @@ describe("bubble corridors, connectivity guarantee", () => {
       ],
       [3],
     );
-    planBubbleCorridors(world.args);
+    planBubbleCorridors(world.plan);
 
     expect(segmentsSpanAllMembers(world, 0)).toBe(true);
     expect(fieldComponentsContainingMembers(world, 0)).toBe(1);
     // No full-width corridor may brush the foreign node.
-    for (const seg of world.segmentsOf(0)) {
-      if (seg.radius === CORRIDOR_FIELD_RADIUS) {
-        expect(segmentDistanceTo(seg, 300, 0)).toBeGreaterThan(
+    for (const segment of world.segmentsOf(0)) {
+      if (segment.radius === CORRIDOR_FIELD_RADIUS) {
+        expect(segmentDistanceTo(segment, 300, 0)).toBeGreaterThan(
           CORRIDOR_FIELD_RADIUS,
         );
       }
     }
     // The reroute SPLIT an edge (no narrow fallback): more segments than a
     // plain MST (k − 1), all at full width.
-    const memberCount = world.args.ranges[1]!;
+    const memberCount = world.plan.ranges[1]!;
     expect(world.segmentsOf(0).length).toBeGreaterThan(memberCount - 1);
-    for (const seg of world.segmentsOf(0)) {
-      expect(seg.radius).toBe(CORRIDOR_FIELD_RADIUS);
+    for (const segment of world.segmentsOf(0)) {
+      expect(segment.radius).toBe(CORRIDOR_FIELD_RADIUS);
     }
   });
 
@@ -343,7 +346,7 @@ describe("bubble corridors, connectivity guarantee", () => {
       [...clump(0, 0, 5), ...clump(600, 0, 5), ...barrier],
       [5],
     );
-    planBubbleCorridors(world.args);
+    planBubbleCorridors(world.plan);
 
     expect(segmentsSpanAllMembers(world, 0)).toBe(true);
     // Still connected via a thin thread, not a fat blob over the barrier.
@@ -351,10 +354,10 @@ describe("bubble corridors, connectivity guarantee", () => {
     // (float32 storage: compare against full width, not exact product)
     const narrow = world
       .segmentsOf(0)
-      .filter((seg) => seg.radius < CORRIDOR_FIELD_RADIUS);
+      .filter((segment) => segment.radius < CORRIDOR_FIELD_RADIUS);
     expect(narrow.length).toBeGreaterThan(0);
-    for (const seg of narrow) {
-      expect(seg.radius).toBeCloseTo(
+    for (const segment of narrow) {
+      expect(segment.radius).toBeCloseTo(
         CORRIDOR_FIELD_RADIUS * CORRIDOR_NARROW_FACTOR,
         3,
       );
@@ -373,9 +376,9 @@ describe("bubble corridors, connectivity guarantee", () => {
       ],
       [1, 2],
     );
-    expect(() => planBubbleCorridors(world.args)).not.toThrow();
-    expect(world.args.segCounts[0]).toBe(0);
-    expect(world.args.segCounts[1]).toBe(3);
+    expect(() => planBubbleCorridors(world.plan)).not.toThrow();
+    expect(world.plan.segmentCounts[0]).toBe(0);
+    expect(world.plan.segmentCounts[1]).toBe(3);
     expect(fieldComponentsContainingMembers(world, 1)).toBe(1);
   });
 
@@ -391,14 +394,18 @@ describe("bubble corridors, connectivity guarantee", () => {
         ],
         [4],
       );
-      planBubbleCorridors(world.args);
+      planBubbleCorridors(world.plan);
       return world;
     };
     const first = build();
     const second = build();
-    expect([...second.args.segCounts]).toEqual([...first.args.segCounts]);
-    expect([...second.args.segSlots]).toEqual([...first.args.segSlots]);
-    expect([...second.args.segRadius]).toEqual([...first.args.segRadius]);
+    expect([...second.plan.segmentCounts]).toEqual([
+      ...first.plan.segmentCounts,
+    ]);
+    expect([...second.plan.segmentSlots]).toEqual([...first.plan.segmentSlots]);
+    expect([...second.plan.segmentRadius]).toEqual([
+      ...first.plan.segmentRadius,
+    ]);
   });
 });
 
@@ -434,7 +441,7 @@ describe("bubble corridors, planning cost", () => {
     );
 
     const startedAt = performance.now();
-    planBubbleCorridors(world.args);
+    planBubbleCorridors(world.plan);
     const elapsedMs = performance.now() - startedAt;
 
     for (let ci = 0; ci < 10; ci++) {
@@ -449,27 +456,27 @@ describe("bubble corridors, planning cost", () => {
 
     // Steady-state per-frame ADDED cost (no replan): the segment-endpoint
     // Texel refresh mirrors the loop in render/community.ts.
-    const { args } = world;
+    const { plan } = world;
     const totalMembers = 1000;
-    const segTexelBase = totalMembers;
+    const segmentTexelBase = totalMembers;
     const texels = new Float32Array(
-      (totalMembers + args.segRadius.length * 2) * 4,
+      (totalMembers + plan.segmentRadius.length * 2) * 4,
     );
-    texels.set(args.pointTexels);
+    texels.set(plan.pointTexels);
     const frames = 1000;
     const refillStart = performance.now();
     for (let frame = 0; frame < frames; frame++) {
-      for (let ci = 0; ci < args.keptCount; ci++) {
-        const storageStart = args.segStorageOffsets[ci]!;
-        const segCount = args.segCounts[ci]!;
-        for (let seg = 0; seg < segCount; seg++) {
-          const storage = storageStart + seg;
-          const slotA = args.segSlots[storage * 2]!;
-          const slotB = args.segSlots[storage * 2 + 1]!;
-          const texel = (segTexelBase + storage * 2) * 4;
+      for (let ci = 0; ci < plan.keptCount; ci++) {
+        const storageStart = plan.segmentStorageOffsets[ci]!;
+        const segmentCount = plan.segmentCounts[ci]!;
+        for (let segment = 0; segment < segmentCount; segment++) {
+          const storage = storageStart + segment;
+          const slotA = plan.segmentSlots[storage * 2]!;
+          const slotB = plan.segmentSlots[storage * 2 + 1]!;
+          const texel = (segmentTexelBase + storage * 2) * 4;
           texels[texel] = texels[slotA * 4]!;
           texels[texel + 1] = texels[slotA * 4 + 1]!;
-          texels[texel + 2] = args.segRadius[storage]!;
+          texels[texel + 2] = plan.segmentRadius[storage]!;
           texels[texel + 4] = texels[slotB * 4]!;
           texels[texel + 5] = texels[slotB * 4 + 1]!;
         }
@@ -478,7 +485,7 @@ describe("bubble corridors, planning cost", () => {
     const perFrameMs = (performance.now() - refillStart) / frames;
     expect(perFrameMs).toBeLessThan(1);
     process.stdout.write(
-      `[bubble-corridors] per-frame segment refill (~${args.segRadius.length} segment capacity) = ${(perFrameMs * 1000).toFixed(1)} µs\n`,
+      `[bubble-corridors] per-frame segment refill (~${plan.segmentRadius.length} segment capacity) = ${(perFrameMs * 1000).toFixed(1)} µs\n`,
     );
   });
 });

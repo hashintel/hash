@@ -497,12 +497,14 @@ function getOrCreateSegment(
   key: string,
   init: Omit<FeederSegment, "types">,
 ): FeederSegment {
-  let seg = segments.get(key);
-  if (!seg) {
-    seg = { ...init, types: new Map() };
-    segments.set(key, seg);
+  let segment = segments.get(key);
+
+  if (!segment) {
+    segment = { ...init, types: new Map() };
+    segments.set(key, segment);
   }
-  return seg;
+
+  return segment;
 }
 
 function mergeFeederTypes(
@@ -511,6 +513,7 @@ function mergeFeederTypes(
 ): void {
   for (const [typeKey, info] of source) {
     const existing = target.get(typeKey);
+
     if (existing) {
       existing.count += info.count;
     } else {
@@ -605,8 +608,8 @@ function computeRawCurves(
   for (let wi = 0; wi < waypoints.length - 1; wi++) {
     const from = waypoints[wi]!;
     const to = waypoints[wi + 1]!;
-    const segLen = Math.hypot(to.x - from.x, to.y - from.y);
-    const tension = config.portTension * segLen;
+    const segmentLength = Math.hypot(to.x - from.x, to.y - from.y);
+    const tension = config.portTension * segmentLength;
     curves.push(cubicBetweenWaypoints(from, to, tension, useBow));
   }
 
@@ -916,13 +919,14 @@ function emitRecursiveBezierFeeders(
       const parentId = node.parent.id;
       if (parentId === outermostContainerId) {
         const key = `${currentId}:${outermostContainerId}`;
-        const seg = getOrCreateSegment(segments, key, {
+        const segment = getOrCreateSegment(segments, key, {
           sourceId: currentId,
           sourceCircle: currentCircle,
           targetWp: outermostWp,
           targetId: outermostContainerId,
         });
-        mergeFeederTypes(seg.types, childTypes);
+
+        mergeFeederTypes(segment.types, childTypes);
         break;
       }
       if (containerIds.has(parentId)) {
@@ -937,13 +941,14 @@ function emitRecursiveBezierFeeders(
           config.portPaddingWorld,
         );
         const key = `${currentId}:${parentId}`;
-        const seg = getOrCreateSegment(segments, key, {
+        const segment = getOrCreateSegment(segments, key, {
           sourceId: currentId,
           sourceCircle: currentCircle,
           targetWp: parentPortWp,
           targetId: parentId,
         });
-        mergeFeederTypes(seg.types, childTypes);
+
+        mergeFeederTypes(segment.types, childTypes);
         currentId = parentId;
         currentCircle = parentCluster.circle;
         node = parentCluster;
@@ -956,7 +961,7 @@ function emitRecursiveBezierFeeders(
   const gap = LANE_GAP_WORLD;
   const childIds = new Set(children.map((child) => child.childId));
 
-  for (const seg of segments.values()) {
+  for (const segment of segments.values()) {
     // Where the hop leaves its source circle. The original participant leaves
     // toward its own first boundary (`targetWp`). A pass-through container is
     // entered at its boundary toward the outermost port (the exact point the
@@ -964,31 +969,37 @@ function emitRecursiveBezierFeeders(
     // a pass-through toward its next hop instead made hops disagree by a few
     // position-dependent degrees at every nested intermediate (the feeder kink at
     // depth >= 2 intermediate containers; a single intermediate happens to align).
-    const aimToward = childIds.has(seg.sourceId) ? seg.targetWp : outermostWp;
+    const aimToward = childIds.has(segment.sourceId)
+      ? segment.targetWp
+      : outermostWp;
     const sourceAngle = Math.atan2(
-      aimToward.y - seg.sourceCircle.y,
-      aimToward.x - seg.sourceCircle.x,
+      aimToward.y - segment.sourceCircle.y,
+      aimToward.x - segment.sourceCircle.x,
     );
     const feederSource: Waypoint = {
-      x: seg.sourceCircle.x + seg.sourceCircle.radius * Math.cos(sourceAngle),
-      y: seg.sourceCircle.y + seg.sourceCircle.radius * Math.sin(sourceAngle),
+      x:
+        segment.sourceCircle.x +
+        segment.sourceCircle.radius * Math.cos(sourceAngle),
+      y:
+        segment.sourceCircle.y +
+        segment.sourceCircle.radius * Math.sin(sourceAngle),
       angle: sourceAngle,
     };
     const inwardAngle = Math.atan2(
-      seg.sourceCircle.y - seg.targetWp.y,
-      seg.sourceCircle.x - seg.targetWp.x,
+      segment.sourceCircle.y - segment.targetWp.y,
+      segment.sourceCircle.x - segment.targetWp.x,
     );
     const feederEnd: Waypoint = {
-      x: seg.targetWp.x,
-      y: seg.targetWp.y,
+      x: segment.targetWp.x,
+      y: segment.targetWp.y,
       angle: inwardAngle,
     };
 
-    const segLen = Math.hypot(
+    const segmentLength = Math.hypot(
       feederEnd.x - feederSource.x,
       feederEnd.y - feederSource.y,
     );
-    const tension = config.portTension * segLen;
+    const tension = config.portTension * segmentLength;
     const baseCurve = cubicBetweenWaypoints(feederSource, feederEnd, tension);
 
     // Clip every hop flush at both its container walls: leave the source's outer
@@ -996,11 +1007,11 @@ function emitRecursiveBezierFeeders(
     // (erase outside the target). Applied at every nesting level so the feeder
     // is flush at intermediate container walls too -- without it, two hops'
     // round caps overlap into a blob poking through the (translucent) wall.
-    const targetCircle = clusterTree.get(seg.targetId)?.circle;
-    const clipStart = clipInside(seg.sourceCircle);
+    const targetCircle = clusterTree.get(segment.targetId)?.circle;
+    const clipStart = clipInside(segment.sourceCircle);
     const clipEnd = targetCircle ? clipOutside(targetCircle) : undefined;
 
-    const types = [...seg.types.values()];
+    const types = [...segment.types.values()];
     let bundleWidth = -gap;
     for (const info of types) {
       bundleWidth += widthForCount(info.count) + gap;
@@ -1029,7 +1040,7 @@ function emitRecursiveBezierFeeders(
             cubicTangentRadians(curve, t) + (forwardAlongCurve ? 0 : Math.PI),
           size: arrowSizeForLane(laneWidth),
           color: info.color,
-          chord: segLen,
+          chord: segmentLength,
         });
       }
     }
@@ -1090,7 +1101,7 @@ export function portsFor(
 
 /** The worst obstacle intrusion on one polyline segment, if any. */
 interface SegmentHit {
-  readonly segIndex: number;
+  readonly segmentIndex: number;
   /** Foot-of-perpendicular position along the segment. */
   readonly footX: number;
   readonly footY: number;
@@ -1117,9 +1128,9 @@ function worstObstacleOnPath(
 ): SegmentHit | null {
   let worst: SegmentHit | null = null;
 
-  for (let seg = 0; seg < path.length - 1; seg++) {
-    const a = path[seg]!;
-    const b = path[seg + 1]!;
+  for (let segment = 0; segment < path.length - 1; segment++) {
+    const a = path[segment]!;
+    const b = path[segment + 1]!;
     const dx = b.x - a.x;
     const dy = b.y - a.y;
     const chord = Math.hypot(dx, dy);
@@ -1154,7 +1165,7 @@ function worstObstacleOnPath(
       const intrusion = clear - dist;
       if (worst === null || intrusion > worst.intrusion) {
         worst = {
-          segIndex: seg,
+          segmentIndex: segment,
           footX: a.x + ux * (param * chord),
           footY: a.y + uy * (param * chord),
           nx,
@@ -1234,7 +1245,7 @@ function routeAround(
     // detour), just past its clearance ring.
     const side = hit.perp >= 0 ? -1 : 1;
     const wpPerp = hit.perp + side * hit.clear;
-    path.splice(hit.segIndex + 1, 0, {
+    path.splice(hit.segmentIndex + 1, 0, {
       x: hit.footX + hit.nx * wpPerp,
       y: hit.footY + hit.ny * wpPerp,
       angle: 0,
@@ -1287,8 +1298,8 @@ function routeAround(
     const fromAngle = tangentAt(idx);
     const toAngle =
       idx + 1 === path.length - 1 ? target.angle : tangentAt(idx + 1) + Math.PI;
-    const segLen = Math.hypot(b.x - a.x, b.y - a.y);
-    const tension = config.portTension * segLen;
+    const segmentLength = Math.hypot(b.x - a.x, b.y - a.y);
+    const tension = config.portTension * segmentLength;
     curves.push(
       cubicBetweenWaypoints(
         { x: a.x, y: a.y, angle: fromAngle },

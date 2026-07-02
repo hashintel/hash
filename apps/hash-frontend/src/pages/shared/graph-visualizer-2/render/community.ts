@@ -1,9 +1,3 @@
-import { communityColorForId } from "../visual-style";
-import {
-  FLAT_HEADER_BYTES,
-  FLAT_RECORD_BYTES,
-} from "../worker/buffers/position-buffer";
-import { planBubbleCorridors } from "./bubble-corridors";
 /**
  * Community-force metaball isocontours: one per Louvain community, drawn
  * behind dots/edges. Gathers each kept community's node centres from the
@@ -24,6 +18,13 @@ import { planBubbleCorridors } from "./bubble-corridors";
  * ({@link groupingCache}); a settling frame skips the regroup and only
  * re-gathers moved node centres plus re-packs the grid.
  */
+
+import { communityColorForId } from "../visual-style";
+import {
+  FLAT_HEADER_BYTES,
+  FLAT_RECORD_BYTES,
+} from "../worker/buffers/position-buffer";
+import { planBubbleCorridors } from "./bubble-corridors";
 import { BubbleCellPacker, BUBBLE_TEX_WIDTH } from "./bubble-grid";
 import {
   BubbleSetSDFLayer,
@@ -70,13 +71,13 @@ interface CommunityGrouping {
 
   // Corridor plan: see planBubbleCorridors in bubble-corridors.ts.
   /** Per segment `[slotA, slotB]` point-texel slots; capacity 2 · (k - 1) per community. */
-  readonly segSlots: Int32Array;
+  readonly segmentSlots: Int32Array;
   /** Per segment capsule radius (world units). */
-  readonly segRadius: Float32Array;
+  readonly segmentRadius: Float32Array;
   /** Per kept community: live segment count. */
-  readonly segCounts: Int32Array;
+  readonly segmentCount: Int32Array;
   /** Per kept community: first segment-storage index (fixed disjoint regions). */
-  readonly segStorageOffsets: Int32Array;
+  readonly segmentStorageOffsets: Int32Array;
   /** Member positions at each community's last corridor plan (2 floats/slot). */
   readonly planSnapshot: Float32Array;
   /** Per kept community: replan request scratch (movement-gated). */
@@ -102,6 +103,7 @@ function buildGrouping(
     if (community < 0) {
       continue;
     }
+
     const members = byCommunity.get(community);
     if (members) {
       members.push(idx);
@@ -109,6 +111,7 @@ function buildGrouping(
       byCommunity.set(community, [idx]);
     }
   }
+
   const kept = [...byCommunity.entries()]
     .filter(([, members]) => members.length >= MIN_COMMUNITY_SIZE)
     .map(([community, members]) => {
@@ -126,37 +129,43 @@ function buildGrouping(
       }
       return [community, sampled] as const;
     });
+
   if (kept.length === 0) {
     return null;
   }
 
   const totalNodes = kept.reduce((sum, [, members]) => sum + members.length, 0);
+
   // Corridor capacity: an MST has k - 1 edges, each emitting ≤ 2 segments
   // (reroute split).
-  const totalSegCapacity = kept.reduce(
+  const totalSegmentCapacity = kept.reduce(
     (sum, [, members]) => sum + Math.max(0, members.length - 1) * 2,
     0,
   );
+
   const memberIndices = new Int32Array(totalNodes);
   const ranges = new Float32Array(kept.length * 2);
   const communityIds = new Int32Array(kept.length);
   const colors = new Uint8Array(kept.length * 4);
-  const segStorageOffsets = new Int32Array(kept.length);
+  const segmentStorageOffsets = new Int32Array(kept.length);
 
   let offset = 0;
-  let segStorage = 0;
+  let segmentStorage = 0;
   for (let ci = 0; ci < kept.length; ci++) {
     const [community, members] = kept[ci]!;
     ranges[ci * 2] = offset;
     ranges[ci * 2 + 1] = members.length;
     communityIds[ci] = community;
-    segStorageOffsets[ci] = segStorage;
-    segStorage += Math.max(0, members.length - 1) * 2;
+
+    segmentStorageOffsets[ci] = segmentStorage;
+    segmentStorage += Math.max(0, members.length - 1) * 2;
+
     const [red, green, blue, alpha] = communityColorForId(community);
     colors[ci * 4] = red;
     colors[ci * 4 + 1] = green;
     colors[ci * 4 + 2] = blue;
     colors[ci * 4 + 3] = alpha;
+
     for (const idx of members) {
       memberIndices[offset] = idx;
       offset += 1;
@@ -171,10 +180,10 @@ function buildGrouping(
     keptCount: kept.length,
     pointTexels: new Float32Array(totalNodes * 4),
     cellPacker: new BubbleCellPacker(),
-    segSlots: new Int32Array(totalSegCapacity * 2),
-    segRadius: new Float32Array(totalSegCapacity),
-    segCounts: new Int32Array(kept.length),
-    segStorageOffsets,
+    segmentSlots: new Int32Array(totalSegmentCapacity * 2),
+    segmentRadius: new Float32Array(totalSegmentCapacity),
+    segmentCount: new Int32Array(kept.length),
+    segmentStorageOffsets,
     planSnapshot: new Float32Array(totalNodes * 2),
     replanScratch: kept.map(() => false),
     planned: false,
@@ -202,6 +211,7 @@ export function communityLayer(
   if (!membership) {
     return [];
   }
+
   const cluster = clusters.get(graph.layoutId);
   if (!cluster) {
     return [];
@@ -213,6 +223,7 @@ export function communityLayer(
     if (built === null) {
       return [];
     }
+
     grouping = built;
     groupingCache.set(membership, grouping);
   }
@@ -234,15 +245,18 @@ export function communityLayer(
   // plan-time position marks its community.
   const replanDistSq =
     CORRIDOR_REPLAN_DISPLACEMENT * CORRIDOR_REPLAN_DISPLACEMENT;
+
   // The settled frame replans all communities once from the final coordinates
   // (deterministic resting topology); a resumed layout re-arms the flag.
   const settledReplan = settled && !grouping.settledPlanned;
   grouping.settledPlanned = settled;
+
   let needsPlan = !grouping.planned || settledReplan;
   for (let ci = 0; ci < keptCount; ci++) {
     const start = ranges[ci * 2]!;
     const memberCount = ranges[ci * 2 + 1]!;
     let drifted = false;
+
     for (let member = 0; member < memberCount; member++) {
       const slot = start + member;
       const idx = memberIndices[slot]!;
@@ -250,12 +264,14 @@ export function communityLayer(
       const posY = floats[headerFloats + idx * recordFloats + 1] ?? 0;
       pointTexels[slot * 4] = posX;
       pointTexels[slot * 4 + 1] = posY;
+
       if (!drifted) {
         const dx = posX - planSnapshot[slot * 2]!;
         const dy = posY - planSnapshot[slot * 2 + 1]!;
         drifted = dx * dx + dy * dy > replanDistSq;
       }
     }
+
     replanScratch[ci] = !grouping.planned || settledReplan || drifted;
     needsPlan ||= drifted;
   }
@@ -272,15 +288,17 @@ export function communityLayer(
       recordFloats,
       membership,
       nodeCount: graph.count,
-      segSlots: grouping.segSlots,
-      segRadius: grouping.segRadius,
-      segCounts: grouping.segCounts,
-      segStorageOffsets: grouping.segStorageOffsets,
+      segmentSlots: grouping.segmentSlots,
+      segmentRadius: grouping.segmentRadius,
+      segmentCounts: grouping.segmentCount,
+      segmentStorageOffsets: grouping.segmentStorageOffsets,
     });
+
     for (let ci = 0; ci < keptCount; ci++) {
       if (!grouping.planned || replanScratch[ci]) {
         const start = ranges[ci * 2]!;
         const memberCount = ranges[ci * 2 + 1]!;
+
         for (let member = 0; member < memberCount; member++) {
           const slot = start + member;
           planSnapshot[slot * 2] = pointTexels[slot * 4]!;
@@ -288,6 +306,7 @@ export function communityLayer(
         }
       }
     }
+
     grouping.planned = true;
   }
 
@@ -299,10 +318,10 @@ export function communityLayer(
     ranges,
     pointTexels,
     colors: grouping.colors,
-    segSlots: grouping.segSlots,
-    segRadius: grouping.segRadius,
-    segCounts: grouping.segCounts,
-    segStorageOffsets: grouping.segStorageOffsets,
+    segmentSlots: grouping.segmentSlots,
+    segmentRadius: grouping.segmentRadius,
+    segmentCounts: grouping.segmentCount,
+    segmentStorageOffsets: grouping.segmentStorageOffsets,
     fieldRadius: FLAT_BUBBLE_FIELD_RADIUS,
   });
   grouping.version += 1;
@@ -316,7 +335,7 @@ export function communityLayer(
           getBounds: { value: packed.bounds, size: 4 },
           getColor: { value: packed.colors, size: 4 },
           getNodeRange: { value: packed.nodeRanges, size: 2 },
-          getSegRange: { value: packed.segRanges, size: 2 },
+          getSegmentRange: { value: packed.segmentRanges, size: 2 },
         },
       },
       positions: packed.texels,

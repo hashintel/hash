@@ -62,7 +62,7 @@ const primDist = new Float64Array(PRIM_CAP);
 const primParent = new Int32Array(PRIM_CAP);
 const primInTree = new Uint8Array(PRIM_CAP);
 
-export interface CorridorPlanArgs {
+export interface CorridorPlan {
   /** Number of rendered (kept) communities. */
   readonly keptCount: number;
   /** Per kept community `[pointTexelOffset, memberCount]` (gather order). */
@@ -85,13 +85,13 @@ export interface CorridorPlanArgs {
 
   /** Outputs, pre-allocated by the caller (capacities fixed per grouping): */
   /** Per segment `[slotA, slotB]`, absolute point-texel slots. */
-  readonly segSlots: Int32Array;
+  readonly segmentSlots: Int32Array;
   /** Per segment: capsule kernel radius (world units). */
-  readonly segRadius: Float32Array;
+  readonly segmentRadius: Float32Array;
   /** Per kept community: live segment count (≤ its capacity). */
-  readonly segCounts: Int32Array;
+  readonly segmentCounts: Int32Array;
   /** Per kept community: first segment-storage index (segment units, fixed). */
-  readonly segStorageOffsets: Int32Array;
+  readonly segmentStorageOffsets: Int32Array;
 }
 
 /** Point → segment distance. */
@@ -125,21 +125,25 @@ class ObstacleGrid {
   readonly #recordFloats: number;
   readonly #membership: Int32Array;
 
-  constructor(args: CorridorPlanArgs) {
-    this.#floats = args.floats;
-    this.#headerFloats = args.headerFloats;
-    this.#recordFloats = args.recordFloats;
-    this.#membership = args.membership;
-    for (let idx = 0; idx < args.nodeCount; idx++) {
-      const base = args.headerFloats + idx * args.recordFloats;
+  constructor(plan: CorridorPlan) {
+    this.#floats = plan.floats;
+    this.#headerFloats = plan.headerFloats;
+    this.#recordFloats = plan.recordFloats;
+    this.#membership = plan.membership;
+
+    for (let idx = 0; idx < plan.nodeCount; idx++) {
+      const base = plan.headerFloats + idx * plan.recordFloats;
       const cellX = Math.floor(
-        (args.floats[base + RECORD_X] ?? 0) / OBSTACLE_GRID_CELL,
+        (plan.floats[base + RECORD_X] ?? 0) / OBSTACLE_GRID_CELL,
       );
+
       const cellY = Math.floor(
-        (args.floats[base + RECORD_Y] ?? 0) / OBSTACLE_GRID_CELL,
+        (plan.floats[base + RECORD_Y] ?? 0) / OBSTACLE_GRID_CELL,
       );
+
       const key = (cellX + CELL_OFFSET) * CELL_STRIDE + (cellY + CELL_OFFSET);
       const bucket = this.#cells.get(key);
+
       if (bucket) {
         bucket.push(idx);
       } else {
@@ -199,11 +203,19 @@ class ObstacleGrid {
  * (Re)plan corridor segments for the requested communities. Untouched
  * communities keep their previous plan (their storage regions are disjoint).
  */
-export function planBubbleCorridors(args: CorridorPlanArgs): void {
-  // Output arrays destructured to locals: the planner writes elements of the
-  // caller-owned buffers, never reassigns the properties themselves.
-  const { keptCount, ranges, pointTexels, replan, segSlots, segRadius } = args;
-  const { segCounts, segStorageOffsets, communityIds } = args;
+export function planBubbleCorridors(plan: CorridorPlan): void {
+  const {
+    keptCount,
+    ranges,
+    pointTexels,
+    replan,
+    segmentSlots,
+    segmentRadius,
+    segmentCounts,
+    segmentStorageOffsets,
+    communityIds,
+  } = plan;
+
   let anyReplan = false;
   for (let ci = 0; ci < keptCount; ci++) {
     if (replan === null || replan[ci]) {
@@ -215,7 +227,7 @@ export function planBubbleCorridors(args: CorridorPlanArgs): void {
     return;
   }
 
-  const grid = new ObstacleGrid(args);
+  const grid = new ObstacleGrid(plan);
 
   for (let ci = 0; ci < keptCount; ci++) {
     if (replan !== null && !replan[ci]) {
@@ -224,8 +236,8 @@ export function planBubbleCorridors(args: CorridorPlanArgs): void {
     const pointOffset = ranges[ci * 2]!;
     const memberCount = ranges[ci * 2 + 1]!;
     const communityId = communityIds[ci]!;
-    const storageStart = segStorageOffsets[ci]!;
-    let segCount = 0;
+    const storageStart = segmentStorageOffsets[ci]!;
+    let segmentCount = 0;
 
     if (memberCount >= 2 && memberCount <= PRIM_CAP) {
       // Euclidean MST (Prim, deterministic) over member texel coords.
@@ -270,11 +282,11 @@ export function planBubbleCorridors(args: CorridorPlanArgs): void {
       // two full segments; blocked edges narrow. Capacity is 2 · (memberCount - 1):
       // every edge emits at most two segments.
       const emit = (memberA: number, memberB: number, radius: number): void => {
-        const seg = storageStart + segCount;
-        segSlots[seg * 2] = pointOffset + memberA;
-        segSlots[seg * 2 + 1] = pointOffset + memberB;
-        segRadius[seg] = radius;
-        segCount += 1;
+        const storage = storageStart + segmentCount;
+        segmentSlots[storage * 2] = pointOffset + memberA;
+        segmentSlots[storage * 2 + 1] = pointOffset + memberB;
+        segmentRadius[storage] = radius;
+        segmentCount += 1;
       };
       const clearance = CORRIDOR_FIELD_RADIUS + CORRIDOR_CLEARANCE_PAD;
 
@@ -326,7 +338,7 @@ export function planBubbleCorridors(args: CorridorPlanArgs): void {
       }
     }
 
-    segCounts[ci] = segCount;
+    segmentCounts[ci] = segmentCount;
   }
 }
 
@@ -355,12 +367,19 @@ export function evaluateBubbleField(
       field += falloff * falloff;
     }
   }
-  for (const seg of segments) {
-    if (seg.radius <= 0) {
+  for (const segment of segments) {
+    if (segment.radius <= 0) {
       continue;
     }
     const norm =
-      distanceToSegment(px, py, seg.ax, seg.ay, seg.bx, seg.by) / seg.radius;
+      distanceToSegment(
+        px,
+        py,
+        segment.ax,
+        segment.ay,
+        segment.bx,
+        segment.by,
+      ) / segment.radius;
     if (norm < 1) {
       const falloff = 1 - norm * norm;
       field += falloff * falloff;

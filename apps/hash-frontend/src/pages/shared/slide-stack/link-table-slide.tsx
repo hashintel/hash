@@ -11,7 +11,7 @@
  */
 import { useQuery } from "@apollo/client";
 import { Box, Container, Stack, Typography, useTheme } from "@mui/material";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { getRoots } from "@blockprotocol/graph/stdlib";
 import {
@@ -39,7 +39,6 @@ import type {
   EntitiesTableRow,
   SortableEntitiesTableColumnKey,
 } from "../entities-visualizer/entities-table-data";
-import type { SizedGridColumn } from "@glideapps/glide-data-grid";
 import type { Filter } from "@local/hash-graph-client";
 import type { ClosedMultiEntityTypesRootMap } from "@local/hash-graph-sdk/ontology";
 
@@ -172,9 +171,8 @@ export const LinkTableSlide = ({
   // requires the setter, so provide a stable no-op.
   const noopSetActiveConversions = useCallback(() => {}, []);
 
-  // EntitiesTable drives a number of features (sorting, search, selection, CSV
-  // export) from caller-owned state. This slide shows a fixed set of links, so it
-  // simply owns that state locally.
+  // EntitiesTable drives sorting and selection from caller-owned state. This
+  // slide shows a fixed set of links, so it simply owns that state locally.
   const [sort, setSort] = useState<
     ColumnSort<SortableEntitiesTableColumnKey> & { convertTo?: BaseUrl }
   >({
@@ -182,11 +180,7 @@ export const LinkTableSlide = ({
     direction: "asc",
   });
 
-  const [showSearch, setShowSearch] = useState(false);
   const [selectedRows, setSelectedRows] = useState<EntitiesTableRow[]>([]);
-
-  const currentlyDisplayedColumnsRef = useRef<SizedGridColumn[] | null>(null);
-  const currentlyDisplayedRowsRef = useRef<EntitiesTableRow[] | null>(null);
 
   const showLoading = loading && !tableData;
   const isEmpty = !loading && tableData !== null && tableData.rows.length === 0;
@@ -310,9 +304,8 @@ export const LinkTableSlide = ({
           <EntitiesTable
             activeConversions={null}
             csvFileTitle="Links"
-            currentlyDisplayedColumnsRef={currentlyDisplayedColumnsRef}
-            currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
             handleEntityClick={handleEntityClick}
+            hasMoreRowsAvailable={false}
             loading={loading}
             isViewingOnlyPages={false}
             maxHeight="calc(100vh - 220px)"
@@ -320,11 +313,8 @@ export const LinkTableSlide = ({
             setActiveConversions={noopSetActiveConversions}
             setSelectedEntityType={handleEntityTypeClick}
             setSelectedRows={setSelectedRows}
-            setShowSearch={setShowSearch}
-            showSearch={showSearch}
             sort={sort}
             setSort={setSort}
-            subgraph={subgraph}
             tableData={tableData}
             totalResultCount={tableData?.rows.length ?? null}
           />

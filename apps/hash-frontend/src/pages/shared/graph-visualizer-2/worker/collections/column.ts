@@ -182,6 +182,20 @@ export class Column<A extends TypedArray, T extends number = number> {
   }
 
   /**
+   * The raw backing view over the FULL CAPACITY — zero-allocation access for
+   * hot loops that already bound their indices by {@link length}. Unlike
+   * {@link subarray}, no view object is created and no bounds are enforced;
+   * slots past the filled window are exposed. Prefer {@link subarray}
+   * wherever a correctly-sized view matters (GPU uploads, iteration).
+   *
+   * The reference is invalidated by anything that can grow the column
+   * ({@link push}, {@link resize}, {@link append}): re-read it afterwards.
+   */
+  get raw(): A {
+    return this.#view;
+  }
+
+  /**
    * Reset the filled length to zero. Capacity (and buffer identity) are
    * kept, so a column reused as per-frame scratch stops allocating once it
    * has seen its high-water mark.

@@ -65,4 +65,23 @@ describe("Column windowed-scratch API", () => {
     plain.resize(4096);
     expect(plain.buffer).toBeInstanceOf(ArrayBuffer);
   });
+
+  it("raw is the stable capacity view until growth invalidates it", () => {
+    const column = new Column(Int32Array, 8);
+    column.resize(4);
+
+    // Zero-allocation contract: repeated reads return the SAME view object.
+    const rawBefore = column.raw;
+    expect(column.raw).toBe(rawBefore);
+    expect(rawBefore.length).toBe(column.capacity);
+
+    // Writes through raw are writes to the column.
+    rawBefore[2] = 99;
+    expect(column.get(2)).toBe(99);
+
+    // Growth re-points raw at the new buffer, contents carried over.
+    column.resize(64);
+    expect(column.raw).not.toBe(rawBefore);
+    expect(column.raw[2]).toBe(99);
+  });
 });
