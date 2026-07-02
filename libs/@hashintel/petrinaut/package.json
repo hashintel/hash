@@ -12,6 +12,7 @@
   "files": [
     "dist",
     "CHANGELOG.md",
+    "INTEGRATION.md",
     "LICENSE",
     "LICENSE-APACHE.md",
     "LICENSE-MIT.md",

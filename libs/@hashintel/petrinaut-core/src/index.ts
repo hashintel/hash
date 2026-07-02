@@ -264,6 +264,14 @@ export type {
 
 // --- Domain types ---
 export type * from "./types/sdcpn";
+export { normalizeSDCPN } from "./types/sdcpn-input";
+export type {
+  SDCPNInput,
+  SDCPNInputArcInput,
+  SDCPNOutputArcInput,
+  SDCPNPlaceInput,
+  SDCPNTransitionInput,
+} from "./types/sdcpn-input";
 export { parseArcId } from "./types/selection";
 export type * from "./types/selection";
 
