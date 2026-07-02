@@ -1,5 +1,23 @@
 # @hashintel/ds-components
 
+## 0.3.0
+
+### Minor Changes
+
+- [#8912](https://github.com/hashintel/hash/pull/8912) [`4681616`](https://github.com/hashintel/hash/commit/468161636972a3352890445568c0ac062469631d) Thanks [@alex-e-leon](https://github.com/alex-e-leon)! - New UI and api for Checkbox component (breaking change)
+
+### Patch Changes
+
+- [#8865](https://github.com/hashintel/hash/pull/8865) [`8494d8a`](https://github.com/hashintel/hash/commit/8494d8a91782a68d5855f88aeaf1a975e0f3a2e4) Thanks [@CiaranMn](https://github.com/CiaranMn)! - New icons: trend arrows, file lines, grid, print, puzzle piece, truck
+
+- [#8833](https://github.com/hashintel/hash/pull/8833) [`d0af60d`](https://github.com/hashintel/hash/commit/d0af60dfdb56a8052dbf2230d8e2a0a7584e56a8) Thanks [@alex-e-leon](https://github.com/alex-e-leon)! - Add Menu component to ds
+
+- [#8842](https://github.com/hashintel/hash/pull/8842) [`0aadff3`](https://github.com/hashintel/hash/commit/0aadff3546ac85767911589ac2fe6544e8a78ae5) Thanks [@alex-e-leon](https://github.com/alex-e-leon)! - Added Select component
+
+- [#8923](https://github.com/hashintel/hash/pull/8923) [`aaaddd6`](https://github.com/hashintel/hash/commit/aaaddd62ebce44795b16ffc172cd9a9c9a57ae7b) Thanks [@alex-e-leon](https://github.com/alex-e-leon)! - Added CheckboxGroup and RadioGroup components
+
+- [#8871](https://github.com/hashintel/hash/pull/8871) [`343cc4a`](https://github.com/hashintel/hash/commit/343cc4aa57eac8e1bb44db1f165365d1d0cf23a2) Thanks [@alex-e-leon](https://github.com/alex-e-leon)! - Add Toggle component
+
 ## 0.2.2
 
 ### Patch Changes
