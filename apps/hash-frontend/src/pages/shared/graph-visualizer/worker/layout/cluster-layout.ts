@@ -264,10 +264,25 @@ class ClusterLayout implements LayoutSimulation {
 
   /**
    * Move the fixed port anchors in place: no re-run, no emit. WebCola re-reads
-   * a fixed node's locked `px`/`py` each step, so updating them re-aims the
-   * anchors; a still-running layout's children follow as it settles. (A layout
-   * that has already settled won't move, which is acceptable: the macro and its
-   * sub-clusters co-settle, which is when tracking matters.)
+   * a fixed node's locked `px`/`py` at the start of every step, so on a
+   * still-running layout the updated anchors re-aim the children, which keep
+   * sorting toward them as the layout settles.
+   *
+   * On a settled layout the writes are inert: `tick` returns before stepping,
+   * so nothing re-reads the locks, and no production path restarts a settled
+   * cluster layout short of rebuilding it (the port-constraint pass applies
+   * anchors to running layouts only). Settle times are not coupled: a small
+   * sub-cluster settles well before a large macro, and the macro's settle-tick
+   * polish can jump bubble positions afterwards, so a tracked neighbour can
+   * end up in a direction the settled children never sorted toward. That
+   * staleness is accepted deliberately: feeders are rebuilt from live circles
+   * every frame, so edges still meet the true rim port and the worst case is
+   * cosmetic (children grouped toward an outdated side, feeders running
+   * further across the bubble interior); the settle-tick untangle polish
+   * re-arranges small sub-clusters with no port term anyway, so port sorting
+   * is a soft bias of the running phase, not a maintained invariant; and
+   * restarting a settled layout to chase drift would visibly re-shuffle an
+   * arrangement the user has already been shown.
    */
   updateAnchorPositions(positions: readonly Position[]): void {
     const childCount = this.#childColaNodes.length;

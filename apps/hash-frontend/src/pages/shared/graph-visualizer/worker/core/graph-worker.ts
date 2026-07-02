@@ -12,7 +12,11 @@
  * collaborator and coordinates cross-tier transitions collaborators cannot
  * see alone.
  */
-import { validateConfig } from "../../config";
+import {
+  assignVizConfigInPlace,
+  cloneVizConfig,
+  validateConfig,
+} from "../../config";
 import { configureEntityStyle } from "../entity-style";
 import { PortCache } from "../geometry/bubble-ports";
 import { EdgeAggregator } from "../geometry/edge-aggregation";
@@ -92,6 +96,14 @@ export class GraphWorker {
   /** True when the committed state is the hierarchical (cluster-tree) regime. */
   #hierarchicalActive = false;
 
+  /**
+   * While true the tick scheduler stays stopped and start requests are
+   * swallowed (see {@link setSimulationPaused}), so a backgrounded
+   * visualizer's simulation costs nothing. Everything else (ingest,
+   * commits, queries) keeps working.
+   */
+  #simulationPaused = false;
+
   readonly #ticker = new TickScheduler(() => this.#tickLoop.tick());
   readonly #jobs = new JobScheduler();
 
@@ -118,9 +130,13 @@ export class GraphWorker {
   readonly #embedding: EmbeddingCoordinator;
   readonly #tickLoop: TickLoop;
 
-  constructor(config: VizConfig) {
-    validateConfig(config);
-    this.config = config;
+  constructor(rawConfig: VizConfig) {
+    validateConfig(rawConfig);
+    // Own a copy: updateConfig mutates it in place, and the caller's object
+    // (tests pass the shared defaultVizConfig; production passes a shallow
+    // spread whose groups are still shared) must not observe that.
+    this.config = cloneVizConfig(rawConfig);
+    const config = this.config;
 
     // Colour/size style is module state (hot loops); install it before any
     // commit pass runs.
@@ -164,7 +180,7 @@ export class GraphWorker {
       snapshotNodeEntityIdxs: () => this.#ingest.snapshotNodeEntityIdxs(),
       rootFlipPending: () => this.#ingest.rootFlipPending,
       highlightedEntities: () => this.#highlightedEntities,
-      ensureSchedulerRunning: () => this.#ticker.ensureRunning(),
+      ensureSchedulerRunning: () => this.#ensureTicking(),
       postLayoutMessage: (msg) => this.#onLayoutMessage?.(msg),
       emitStructure: (flatGraph) => this.#structureEmitter.emit([], flatGraph),
       emitPositions: () => this.#positionsEmitter.emit(),
@@ -196,7 +212,7 @@ export class GraphWorker {
       typeSets: this.#typeSets,
       types: this.#types,
       highlightedEntities: () => this.#highlightedEntities,
-      ensureSchedulerRunning: () => this.#ticker.ensureRunning(),
+      ensureSchedulerRunning: () => this.#ensureTicking(),
       postLayoutMessage: (msg) => this.#onLayoutMessage?.(msg),
     });
 
@@ -237,8 +253,7 @@ export class GraphWorker {
     });
 
     this.#tickLoop = new TickLoop({
-      debug: this.debug,
-      slowTickWarningMs: config.ingest.slowTickWarningMs,
+      config,
       layouts: this.#layouts,
       clusterTree: this.#clusterTree,
       polisher: this.#polisher,
@@ -348,6 +363,69 @@ export class GraphWorker {
   recomputeMode(): VizMode {
     this.#mode = nextVizMode(this.#mode, this.nodeCount, this.config);
     return this.#mode;
+  }
+
+  /**
+   * Replace the live config without recreating the worker: stores, ingest
+   * state, and the viewport survive; both tiers rebuild their layouts under
+   * the new tuning and the regime is re-evaluated against the new
+   * thresholds (crossing a threshold tears down the losing tier as usual).
+   *
+   * Mutates {@link config} in place (see {@link assignVizConfigInPlace})
+   * because collaborators hold references to it and to its nested groups.
+   * Values that are read live (LOD fractions, stability thresholds, edge
+   * budgets, tick diagnostics) apply from here on without further work; the
+   * forced commit below covers everything the layout engines copied at
+   * construction.
+   *
+   * @throws {Error} When `next` fails {@link validateConfig}; the previous
+   * config stays fully in effect.
+   */
+  updateConfig(next: VizConfig): void {
+    validateConfig(next);
+    assignVizConfigInPlace(this.config, next);
+    configureEntityStyle(this.config.entityStyle);
+
+    // Layout engines copy their tuning at construction and never re-read
+    // it, so force a rebuild pass. The flat tier warm-seeds from the live
+    // layout's positions; the hierarchical tier rebuilds the tree (new
+    // sizing) and re-seeds top-level bubbles from their persisted
+    // positions, so both keep the user's mental map.
+    this.#flatTier.invalidateLayout();
+    this.commitStructure({ rebuildTree: this.#hierarchicalActive });
+  }
+
+  /**
+   * Freeze or resume the layout simulation. Pausing stops the tick
+   * scheduler mid-settle without losing state; layouts keep their `running`
+   * status and continue from the same positions on resume. Start requests
+   * that arrive while paused (an ingest commit creating or re-warming
+   * layouts) are swallowed by {@link #ensureTicking} and honoured on resume.
+   */
+  setSimulationPaused(paused: boolean): void {
+    if (this.#simulationPaused === paused) {
+      return;
+    }
+
+    this.#simulationPaused = paused;
+
+    if (paused) {
+      this.#ticker.stop();
+    } else if (this.#layouts.anyLayoutRunning()) {
+      this.#ticker.ensureRunning();
+    }
+  }
+
+  /**
+   * The scheduler start-gate every layout collaborator routes through: a
+   * no-op while the simulation is paused, so a backgrounded worker never
+   * burns ticks. {@link setSimulationPaused} re-arms the scheduler on
+   * resume when any layout is still running.
+   */
+  #ensureTicking(): void {
+    if (!this.#simulationPaused) {
+      this.#ticker.ensureRunning();
+    }
   }
 
   /** Record a new viewport and commit if the LOD cut changed. */

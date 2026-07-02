@@ -65,6 +65,18 @@ export interface RegisterTypesMessage {
   readonly propertySchemas: readonly PropertySchemaEntry[];
 }
 
+/**
+ * Replace the live {@link VizConfig} without recreating the worker: stores
+ * and ingest state are kept, layouts are rebuilt under the new tuning
+ * (warm-seeded from current positions), and the regime thresholds are
+ * re-evaluated. This is what lets config knobs (dev harness today,
+ * user-facing settings later) apply without a full visualizer reset.
+ */
+export interface UpdateConfigMessage {
+  readonly type: "UPDATE_CONFIG";
+  readonly config: VizConfig;
+}
+
 export interface IngestBatchMessage {
   readonly type: "INGEST_BATCH";
   readonly batchId: string;
@@ -140,6 +152,18 @@ export interface QueryHighwayLinksMessage {
 }
 
 /**
+ * Freeze or resume the layout simulation. While paused the worker stops
+ * ticking (no CPU spent settling, no positions frames emitted); ingest,
+ * commits, and queries keep working, and layouts resume exactly where they
+ * stopped. Sent when the visualizer is not visible (covered by a slide, or
+ * the tab is hidden) so background instances cost nothing.
+ */
+export interface SetSimulationPausedMessage {
+  readonly type: "SET_SIMULATION_PAUSED";
+  readonly paused: boolean;
+}
+
+/**
  * Debug hook: serializes the live flat-tier layout (positions, radii,
  * deduped edges, Louvain labels) for deterministic bench replay via
  * {@link CapturedLayoutFixture}.
@@ -154,6 +178,7 @@ export interface CaptureLayoutFixtureMessage {
 export type MainToWorkerMessage =
   | InitMessage
   | RegisterTypesMessage
+  | UpdateConfigMessage
   | IngestBatchMessage
   | ViewportChangedMessage
   | EmbeddingClusteringResultMessage
@@ -161,7 +186,8 @@ export type MainToWorkerMessage =
   | SetPinnedMessage
   | SetHighlightMessage
   | QueryHighwayLinksMessage
-  | CaptureLayoutFixtureMessage;
+  | CaptureLayoutFixtureMessage
+  | SetSimulationPausedMessage;
 
 export interface ReadyMessage {
   readonly type: "READY";

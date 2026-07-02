@@ -3,6 +3,7 @@ import { useState } from "react";
 
 import { getDefaultOperatorForKind } from "../shared/property-filters/get-operators-for-kind";
 import { AddFiltersMenu } from "./add-filters-menu";
+import { FrontierAdditionsPill } from "./frontier-additions-pill";
 import { IncludeArchivedPill } from "./include-archived-pill";
 import { PropertyFilterPill } from "./property-filter-pill";
 import { TypeFilterPill } from "./type-filter-pill";
@@ -22,8 +23,15 @@ type FilterRibbonProps = {
   availableTypesLoading: boolean;
   propertyFilterMetadata: FilterMetadataForProperty[];
   filterState: EntitiesFilterState;
+  /**
+   * How many entities graph exploration has OR-ed into the displayed set
+   * (frontier expansions). Zero hides the pill.
+   */
+  frontierAdditionsCount: number;
   internalWebs: InternalWeb[];
   isTypePinned: boolean;
+  /** Drop the graph-expansion additions (dismiss the "OR n entities" pill). */
+  onClearFrontierAdditions: () => void;
   setFilterState: (
     updater: (prev: EntitiesFilterState) => EntitiesFilterState,
   ) => void;
@@ -40,8 +48,10 @@ export const FilterRibbon: FunctionComponent<FilterRibbonProps> = ({
   availableTypesLoading,
   propertyFilterMetadata,
   filterState,
+  frontierAdditionsCount,
   internalWebs,
   isTypePinned,
+  onClearFrontierAdditions,
   setFilterState,
 }) => {
   const [draftPropertyFilter, setDraftPropertyFilter] =
@@ -136,6 +146,12 @@ export const FilterRibbon: FunctionComponent<FilterRibbonProps> = ({
           autoOpen
           onCommit={handleCommitDraftPropertyFilter}
           onRemove={() => setDraftPropertyFilter(null)}
+        />
+      )}
+      {frontierAdditionsCount > 0 && (
+        <FrontierAdditionsPill
+          count={frontierAdditionsCount}
+          onRemove={onClearFrontierAdditions}
         />
       )}
       <AddFiltersMenu

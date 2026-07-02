@@ -92,7 +92,10 @@ export interface LayoutSimulation {
   refreshCommunities?(): boolean;
   /** Re-run with fixed external-port anchors (cluster layout only). */
   setPortAnchors?(anchors: readonly PortAnchor[]): void;
-  /** Move existing port anchors in place (no re-run); children track them. */
+  /**
+   * Move existing port anchors in place (no re-run). A running layout re-aims
+   * its children toward them; a settled layout ignores the writes.
+   */
   updateAnchorPositions?(positions: readonly Position[]): void;
 }
 

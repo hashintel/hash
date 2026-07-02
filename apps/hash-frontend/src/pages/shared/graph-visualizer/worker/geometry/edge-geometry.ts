@@ -1087,7 +1087,14 @@ export function highwayEndpoints(
   };
 }
 
-/** The port on each of two clusters for their connecting highway, by id. */
+/**
+ * The port on each of two clusters for their connecting highway, by id.
+ *
+ * Returns `undefined` when no pair is registered for the ids. The per-emit
+ * port pass registers a pair for every aggregated pair with distinct,
+ * tree-resolvable highway endpoints, so in a consistent frame a lookup at
+ * highway level always resolves and a miss indicates frame/tree desync.
+ */
 export function portsFor(
   portPairs: ReadonlyMap<
     string,
@@ -1447,6 +1454,8 @@ export function buildBezierSegments(
   }
 
   const highwayGroups = new Map<string, HighwayGroup>();
+  let droppedPairCount = 0;
+  let droppedFeederChildCount = 0;
 
   for (const pair of classified) {
     const { sourceContainers, targetContainers } = pair.hierarchy;
@@ -1473,10 +1482,18 @@ export function buildBezierSegments(
         outermostSource?.circle ?? ctx.clusterTree.get(pair.sourceId)?.circle;
       const targetCircle =
         outermostTarget?.circle ?? ctx.clusterTree.get(pair.targetId)?.circle;
-      // An endpoint the tree cannot resolve (mid-rebuild race) has no
-      // meaningful position; emitting a curve to a made-up origin circle
-      // draws a highway to (0,0). Drop the pair for this frame instead.
+      // Both lookups resolve while the committed edge frame and the live
+      // tree are in sync: pair ids are tree ids captured at the last
+      // structure commit, mutations that remove tree ids run only inside a
+      // commit that re-derives the frame before the next emit, and between
+      // commits the tree only gains nodes. A miss therefore means frame and
+      // tree have desynced (e.g. stale aggregator pair state) and the
+      // endpoint has no meaningful position; emitting a curve to a made-up
+      // origin circle would draw a highway to (0,0). Drop the pair and
+      // tally it: the drop recurs every frame while the desync lasts, and
+      // the debug warn below is its only surface.
       if (!sourceCircle || !targetCircle) {
+        droppedPairCount += 1;
         continue;
       }
 
@@ -1491,6 +1508,12 @@ export function buildBezierSegments(
       highwayGroups.set(groupKey, group);
     }
 
+    // Same frame/tree desync class as the group-circle lookup above (pair ids
+    // are tree ids captured at the last structure commit; a miss means an
+    // in-flight desync, tallied there). Here a miss drops only this child's
+    // feeder lanes from the merged highway, not the whole group: the group
+    // itself already resolved via the outermost container ids, which can
+    // differ from this inner child id.
     if (outermostSource) {
       const childCluster = ctx.clusterTree.get(pair.sourceId);
       if (childCluster) {
@@ -1499,6 +1522,8 @@ export function buildBezierSegments(
           childCircle: childCluster.circle,
           edges: pair.edges,
         });
+      } else {
+        droppedFeederChildCount += 1;
       }
     }
     if (outermostTarget) {
@@ -1509,9 +1534,13 @@ export function buildBezierSegments(
           childCircle: childCluster.circle,
           edges: pair.edges,
         });
+      } else {
+        droppedFeederChildCount += 1;
       }
     }
   }
+
+  let portFallbackCount = 0;
 
   for (const group of highwayGroups.values()) {
     // Each pair contributes its edges once. When both endpoints are
@@ -1538,13 +1567,27 @@ export function buildBezierSegments(
     }));
 
     // Route through the stable container-level ports so the highway attaches at
-    // the same point whether the container is open or closed; fall back to a raw
-    // boundary waypoint if a port is missing, so edges always render.
+    // the same point whether the container is open or closed. The per-emit port
+    // pass derives a pair for every aggregated pair's highway endpoints from the
+    // same live tree and committed cut that built these groups, so while frame
+    // and tree are in sync this lookup always resolves. A miss means an endpoint
+    // id failed to resolve during the port pass (the frame/tree desync class
+    // `droppedPairCount` tallies above) and recurs every tick until a structure
+    // commit re-derives frame and ports together. The fallback keeps the highway
+    // rendered with near-port geometry: the raw boundary waypoint sits on the
+    // same padded ring at the port's ideal centre-to-centre angle, differing
+    // from a real port only by the crowding adjustment port placement applies on
+    // busy rims. It is used every tick while the desync lasts (never flapping
+    // frame-to-frame against a real port), and tallied because the plausible
+    // fallback otherwise hides the desync entirely.
     const hp = portsFor(
       portPairs,
       group.highwaySourceId,
       group.highwayTargetId,
     );
+    if (!hp) {
+      portFallbackCount += 1;
+    }
     const sourceWp: Waypoint =
       hp?.a ??
       containerBoundaryWaypoint(
@@ -1621,6 +1664,43 @@ export function buildBezierSegments(
     console.warn(
       `[graph-worker][edge-routing] ${cappedRouteCount} highway route(s) hit ` +
         `ROUTE_MAX_PASSES; residual bubble clips possible this frame`,
+    );
+  }
+
+  // A frame/tree desync is invisible in the rendered frame itself (the
+  // affected pairs' links simply vanish) and recurs every positions tick
+  // while it lasts, so this warn is its only surface. Debug-gated because
+  // it would repeat once per tick in a production console.
+  if (config.debug && droppedPairCount > 0) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      `[graph-worker][edge-geometry] ${droppedPairCount} nested pair(s) ` +
+        `dropped: endpoint cluster missing from tree (frame/tree desync)`,
+    );
+  }
+
+  // Same desync class as droppedPairCount above, scoped to a single child
+  // instead of the whole highway: the group still renders (via the outermost
+  // container ids, which resolved), but this child's own edges are missing
+  // from its feeder lanes until a structure commit heals the desync.
+  if (config.debug && droppedFeederChildCount > 0) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      `[graph-worker][edge-geometry] ${droppedFeederChildCount} feeder ` +
+        `child(ren) dropped: child cluster missing from tree (frame/tree desync)`,
+    );
+  }
+
+  // A missing port pair is invisible in the rendered frame itself (the
+  // boundary-waypoint fallback draws a plausible highway), so this warn is
+  // its only surface. Debug-gated because it recurs once per positions tick
+  // while the desync lasts.
+  if (config.debug && portFallbackCount > 0) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      `[graph-worker][edge-geometry] ${portFallbackCount} highway group(s) ` +
+        `missing a container-level port pair; boundary-waypoint fallback ` +
+        `used (frame/tree desync)`,
     );
   }
 

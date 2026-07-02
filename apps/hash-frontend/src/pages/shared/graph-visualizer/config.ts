@@ -417,7 +417,7 @@ export interface VizConfig {
   readonly ingest: IngestTuningConfig;
 
   /** Enable noisy worker diagnostics. Intended for local profiling/debug only. */
-  readonly debug?: boolean;
+  readonly debug: boolean;
 }
 
 export const defaultVizConfig: VizConfig = {
@@ -485,7 +485,27 @@ export const defaultVizConfig: VizConfig = {
     maxCoalesceDelayMs: MAX_COALESCE_DELAY_MS,
     slowTickWarningMs: 10,
   },
+
+  debug: false,
 };
+
+/**
+ * Copy a config one group deep: a fresh root object with fresh nested group
+ * objects (groups are flat value objects, so one level suffices).
+ *
+ * {@link GraphWorker} clones the config it is constructed with so that
+ * {@link assignVizConfigInPlace} can mutate the worker's copy without the
+ * caller (which may have passed the shared {@link defaultVizConfig}, or a
+ * shallow spread of it) observing the mutation.
+ */
+export function cloneVizConfig(config: VizConfig): VizConfig {
+  const result: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(config)) {
+    result[key] =
+      value !== null && typeof value === "object" ? { ...value } : value;
+  }
+  return result as unknown as VizConfig;
+}
 
 /**
  * Overwrite `target`'s values with `next`'s, preserving the identity of the
@@ -494,8 +514,8 @@ export const defaultVizConfig: VizConfig = {
  * The worker shares one {@link VizConfig} reference (and references to its
  * nested groups, e.g. `config.topLevelPolish` held by the settle polisher)
  * across its collaborators, so a live config update must mutate in place
- * rather than replace objects. Fields absent from `next` keep their old
- * values; a full `VizConfig` always carries every field.
+ * rather than replace objects. A full `VizConfig` always carries every
+ * field, so nothing in `target` survives unoverwritten.
  */
 export function assignVizConfigInPlace(
   target: VizConfig,

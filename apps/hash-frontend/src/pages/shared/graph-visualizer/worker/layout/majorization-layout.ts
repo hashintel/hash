@@ -1516,10 +1516,12 @@ class MajorizationSolver {
       }
       moved = true;
     }
+
     this.#trackProjectionUnit(start);
     if (moved) {
       this.projectionRuns += 1;
     }
+
     // Measure post-projection residuals so diagnostic fields match the adopted iterate.
     this.residualOverlaps = countOverlaps({
       x: this.#x,
@@ -1810,7 +1812,12 @@ class MajorizationLayout implements LayoutSimulation {
     return this.#status === "settled" ? 0 : 1;
   }
 
-  /** Louvain community id per node, in buffer order; drives target shaping and community-region floors. */
+  /**
+   * Louvain community id per node, in buffer order: the membership BubbleSets
+   * group by. Each solver build densifies a snapshot of it for target shaping and
+   * community-region floors; live relabels reach the solver only at the next
+   * build (see {@link refreshCommunities}).
+   */
   get communities(): readonly number[] {
     return this.#communities;
   }
@@ -1970,9 +1977,35 @@ class MajorizationLayout implements LayoutSimulation {
 
   /**
    * Force a Louvain refresh if nodes were absorbed since the last one (trailing-edge
-   * complement to the growth trigger). Position-neutral; returns whether it ran. The
-   * refreshed membership feeds the next solver build's target shaping (a mid-solve
-   * relabel does not regenerate the current targets).
+   * complement to the growth trigger in {@link absorb}). Returns whether it ran.
+   *
+   * Relabel-only, never a re-solve: `#communities` (the {@link communities} getter,
+   * republished for BubbleSets grouping) updates immediately, but the live solver
+   * keeps the membership snapshot densified into it at build time, with the
+   * community-shaped target bands and the community-region floor plan baked into
+   * its terms. Whether that solve is mid-flight (the usual case: the trailing
+   * debounce that invokes this is far shorter than a solve) or already settled, it
+   * proceeds exactly as if the relabel had not happened. Positions never move
+   * because of a refresh; the new labels reach the physics at the next warm solver
+   * build (the next {@link absorb} or relayout).
+   *
+   * The hull/physics divergence this permits is bounded and self-healing:
+   * {@link absorb} re-runs Louvain before building the solver once growth crosses
+   * the refresh threshold, so the published membership and the solver's snapshot
+   * describe graphs that differ by less than one sub-threshold tail of absorbed
+   * nodes (see LOUVAIN_REFRESH_GROWTH_FRACTION). Worst case a relabeled node keeps
+   * the spot the old shaping gave it while BubbleSets paint it into its new
+   * community; the corridor planner ({@link "../../render/bubble-corridors"})
+   * still connects it there, so the artifact is a stretched hull, not a wrong
+   * grouping, and the next absorb re-shapes it away.
+   *
+   * Rebuilding the solver here instead would be strictly worse: warm-starting from
+   * whatever positions the timer happened to catch would make the settled layout
+   * depend on tick/timer interleaving (breaking the engine's guarantee that
+   * identical input yields identical output), a rebuild after settle would
+   * re-animate a resting layout (the post-settle motion this engine exists to
+   * kill), and the linger caller does not re-kick the tick scheduler, so a solver
+   * rebuilt after the scheduler stopped would sit unticked forever.
    */
   refreshCommunities(): boolean {
     if (this.#absorbedSinceLouvain === 0) {

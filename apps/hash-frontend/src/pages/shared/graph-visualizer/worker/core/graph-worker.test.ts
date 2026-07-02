@@ -560,6 +560,81 @@ describe("GraphWorker.commitStructure, hierarchical tier", () => {
   });
 });
 
+describe("GraphWorker.updateConfig", () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("re-lays out the flat tier in place, keeping state and config identity", () => {
+    const harness = prime(FLAT_FORCE);
+    const configBefore = harness.worker.config;
+    const flatForceBefore = harness.worker.config.flatForce;
+    const nodesBefore = harness.worker.nodeCount;
+    const linksBefore = harness.worker.linkCount;
+    harness.structure.mockClear();
+    harness.layout.mockClear();
+
+    harness.worker.updateConfig({
+      ...defaultVizConfig,
+      flatForce: { ...defaultVizConfig.flatForce, idealLinkLength: 80 },
+    });
+
+    // Ingested state survives; the layout is rebuilt under the new tuning.
+    expect(harness.worker.nodeCount).toBe(nodesBefore);
+    expect(harness.worker.linkCount).toBe(linksBefore);
+    expect(harness.lastFlatCount()).toBe(FLAT_FORCE.nodeCount);
+    expect(harness.layoutLifecycleCalls()).toBeGreaterThan(0);
+
+    // In-place application: collaborators hold these references, so the
+    // root config and its nested groups must keep their identity...
+    expect(harness.worker.config).toBe(configBefore);
+    expect(harness.worker.config.flatForce).toBe(flatForceBefore);
+    expect(harness.worker.config.flatForce.idealLinkLength).toBe(80);
+    // ...while the shared defaults (passed to the constructor) stay pristine.
+    expect(defaultVizConfig.flatForce.idealLinkLength).toBe(40);
+  });
+
+  it("re-evaluates the regime under new thresholds", () => {
+    const harness = prime(COMMUNITY_FORCE);
+    expect(harness.worker.mode).toBe("community-force");
+
+    harness.worker.updateConfig({
+      ...defaultVizConfig,
+      flatLayoutMaxNodes: 50,
+      flatLayoutExitNodes: 80,
+      communityColorMaxNodes: 100,
+      communityColorExitNodes: 200,
+    });
+
+    // 600 nodes now sit above the hierarchical entry threshold.
+    expect(harness.worker.mode).toBe("hierarchical-lod");
+    const calls = harness.structure.mock.calls;
+    const lastFrame = calls[calls.length - 1]?.[0] as
+      | { mode: string }
+      | undefined;
+    expect(lastFrame?.mode).toBe("hierarchical-lod");
+  });
+
+  it("rejects an invalid config, keeping the previous one fully in effect", () => {
+    const worker = new GraphWorker(defaultVizConfig);
+
+    expect(() =>
+      worker.updateConfig({
+        ...defaultVizConfig,
+        // Breaks the flat-tier hysteresis pair.
+        flatLayoutExitNodes: defaultVizConfig.flatLayoutMaxNodes,
+      }),
+    ).toThrow(/flatLayoutMaxNodes/);
+
+    expect(worker.config.flatLayoutExitNodes).toBe(
+      defaultVizConfig.flatLayoutExitNodes,
+    );
+  });
+});
+
 describe("GraphWorker.registerTypes, change classification", () => {
   it("reports no change on an identical re-registration", () => {
     const worker = new GraphWorker(defaultVizConfig);

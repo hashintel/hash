@@ -118,6 +118,19 @@ export interface WorkerHandle {
     typeSchemas: readonly TypeSchemaEntry[],
     propertySchemas: readonly PropertySchemaEntry[],
   ): void;
+  /**
+   * Apply a new config live: the worker keeps its ingested state and
+   * re-lays out under the new tuning (no worker recreation, camera
+   * untouched). No-op when `config` is the reference already applied.
+   */
+  updateConfig(config: VizConfig): void;
+  /**
+   * Freeze or resume the worker's layout simulation. Paused, the worker
+   * stops ticking (and therefore stops emitting positions frames) but keeps
+   * all state; layouts resume from the same positions. Used to idle
+   * visualizers the user cannot see (covered by a slide, hidden tab).
+   */
+  setSimulationPaused(paused: boolean): void;
 }
 interface WorkerConnectionConfig {
   readonly config: VizConfig;
@@ -129,6 +142,8 @@ export class WorkerConnection implements WorkerHandle {
   readonly #worker: Worker;
   readonly #onReady: () => void;
   readonly #onError: (message: string) => void;
+  /** The config last sent to the worker, for the updateConfig no-op check. */
+  #appliedConfig: VizConfig;
 
   #structure: StructureFrame | undefined;
   #positions: PositionsFrame | undefined;
@@ -171,6 +186,7 @@ export class WorkerConnection implements WorkerHandle {
   constructor({ config, onReady, onError }: WorkerConnectionConfig) {
     this.#onReady = onReady;
     this.#onError = onError;
+    this.#appliedConfig = config;
 
     // The worker installs the same style at INIT; this covers main-thread
     // consumers (hub-label radii).
@@ -378,6 +394,14 @@ export class WorkerConnection implements WorkerHandle {
     this.#worker.postMessage(message);
   }
 
+  setSimulationPaused(paused: boolean): void {
+    const message: MainToWorkerMessage = {
+      type: "SET_SIMULATION_PAUSED",
+      paused,
+    };
+    this.#worker.postMessage(message);
+  }
+
   ingestBatch(entities: readonly IngestEntity[]): void {
     this.#batchId += 1;
     const message: MainToWorkerMessage = {
@@ -409,6 +433,27 @@ export class WorkerConnection implements WorkerHandle {
       type: "REGISTER_TYPES",
       typeSchemas,
       propertySchemas,
+    };
+    this.#worker.postMessage(message);
+  }
+
+  updateConfig(config: VizConfig): void {
+    // Reference check: callers keep the applied config referentially stable
+    // and produce a new object per change (React state), so identity is the
+    // change signal. Avoids a gratuitous re-layout when an effect re-fires
+    // with the same config (e.g. on the ready flip).
+    if (config === this.#appliedConfig) {
+      return;
+    }
+    this.#appliedConfig = config;
+
+    // Keep the main thread's copy of the style module state in sync with
+    // the worker's (hub-label radii read it here).
+    configureEntityStyle(config.entityStyle);
+
+    const message: MainToWorkerMessage = {
+      type: "UPDATE_CONFIG",
+      config: { ...config, debug: config.debug ?? workerDebugLogsEnabled() },
     };
     this.#worker.postMessage(message);
   }

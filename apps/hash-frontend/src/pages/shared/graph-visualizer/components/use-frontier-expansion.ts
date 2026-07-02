@@ -1,7 +1,17 @@
 /**
- * React binding for {@link FrontierExpansionStore}: one store per worker
- * connection, subscribed via `useSyncExternalStore`, plus the derived
- * not-yet-expanded frontier id list.
+ * React bindings for {@link FrontierExpansionStore}.
+ *
+ * Ownership is split in two:
+ *
+ * - {@link useOwnedFrontierStore} runs where the entity QUERY lives (the
+ *   entities page, an entity slide, the dev harness): it creates the store,
+ *   resets it when the query identity changes, and deactivates it on
+ *   unmount. Owning it above the visualizer is what lets expansions survive
+ *   view switches and surface outside the graph (filter pill, table rows).
+ * - {@link useFrontierExpansion} runs inside the visualizer: it attaches the
+ *   store to the current worker connection (replaying committed expansions
+ *   into a recreated worker), subscribes to snapshots, and derives the
+ *   not-yet-expanded frontier id list.
  */
 import { useEffect, useMemo, useState } from "react";
 
@@ -16,47 +26,72 @@ import type { FrontierSnapshot } from "./frontier-expansion-store";
 import type { EntityId } from "@blockprotocol/type-system";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 
+/**
+ * Create and own a {@link FrontierExpansionStore} scoped to `resetKey` (the
+ * identity of the entity set expansions extend — a filter change or an
+ * explicit "clear additions" flips it). A key change swaps in a fresh store,
+ * deactivating the orphan so its in-flight expansions stop; every local
+ * mirror of the old generation resets with it.
+ */
+export function useOwnedFrontierStore(
+  resetKey: string | undefined,
+): FrontierExpansionStore {
+  const [entry, setEntry] = useState(() => ({
+    key: resetKey,
+    store: new FrontierExpansionStore(),
+  }));
+
+  // State-adjust during render (not an effect) so no frame ever pairs the new
+  // key's UI with the old generation's expansions.
+  if (entry.key !== resetKey) {
+    setEntry({ key: resetKey, store: new FrontierExpansionStore() });
+  }
+
+  useEffect(() => {
+    entry.store.activate();
+
+    return () => {
+      entry.store.deactivate();
+    };
+  }, [entry.store]);
+
+  return entry.store;
+}
+
 interface UseFrontierExpansionOptions {
+  /** The owner-scoped store (see {@link useOwnedFrontierStore}). */
+  readonly store: FrontierExpansionStore;
   readonly handle: WorkerHandle | undefined;
   readonly entities: readonly HashEntity[] | undefined;
   readonly rootIdSet: ReadonlySet<EntityId> | undefined;
 }
 
 interface UseFrontierExpansionResult {
-  /**
-   * Stable per worker connection. Imperative consumers (the Scene's resolvers, click
-   * handlers) call `store.expand` / read `store.getSnapshot()` for the latest state
-   * without needing a render in between.
-   */
-  readonly store: FrontierExpansionStore;
   readonly snapshot: FrontierSnapshot;
   /** Every loaded entity that is still frontier: not a root, not expanded, not in flight. */
   readonly frontierEntityIds: readonly EntityId[];
 }
 
 export function useFrontierExpansion({
+  store,
   handle,
   entities,
   rootIdSet,
 }: UseFrontierExpansionOptions): UseFrontierExpansionResult {
-  const [store, setStore] = useState(() => new FrontierExpansionStore(handle));
-
-  // A recreated worker (sourceKey change) gets a fresh store: the old worker's expansions
-  // are torn down with it, so every local mirror of its state resets too. State-adjust
-  // during render (not an effect) so no frame ever pairs the new worker with stale state.
-  if (store.handle !== handle) {
-    setStore(new FrontierExpansionStore(handle));
-  }
-
-  // Deactivation stops an orphaned store's in-flight expansion from fetching further
-  // batches (its results would feed a terminated worker).
+  // Bind the store to the live worker. A recreated worker (sourceKey change,
+  // including a cleared-additions epoch bump) attaches fresh and receives the
+  // record replay; posting stops the moment the old worker is torn down.
   useEffect(() => {
-    store.activate();
+    if (!handle) {
+      return;
+    }
+
+    store.attach(handle);
 
     return () => {
-      store.deactivate();
+      store.detach();
     };
-  }, [store]);
+  }, [store, handle]);
 
   const snapshot = useFrontierExpansionStore(store);
   const { expandedRoots, inFlight, expandedById } = snapshot;
@@ -71,5 +106,5 @@ export function useFrontierExpansion({
     [entities, rootIdSet, expandedRoots, inFlight, expandedById],
   );
 
-  return { store, snapshot, frontierEntityIds };
+  return { snapshot, frontierEntityIds };
 }

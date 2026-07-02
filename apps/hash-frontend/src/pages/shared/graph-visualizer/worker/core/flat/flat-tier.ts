@@ -216,6 +216,16 @@ export class FlatTierController {
   }
 
   /**
+   * Mark the built layout stale so the next {@link commit} rebuilds it
+   * (warm-seeded from current positions) instead of reusing it. Used by
+   * live config updates: the layout engines copy their tuning at
+   * construction, so new tuning needs a rebuild to take effect.
+   */
+  invalidateLayout(): void {
+    this.#builtLayoutMode = undefined;
+  }
+
+  /**
    * capture-live-fixture debug hook: serialize the live flat-tier layout (node
    * positions/radii, deduped edges rebuilt from the link store exactly as the
    * layout received them, Louvain communities) for replay via
@@ -290,7 +300,12 @@ export class FlatTierController {
   /**
    * After ingests go quiet for `stability.flatLouvainLingerMs`, run one
    * trailing Louvain so BubbleSets reflect the settled graph; the last batch
-   * may not have crossed the growth-fraction refresh threshold.
+   * may not have crossed the growth-fraction refresh threshold. Relabel-only
+   * by contract ({@link LayoutSimulation.refreshCommunities} is
+   * position-neutral): the re-emitted frame regroups the hulls, while a solve
+   * still in flight keeps its build-time community target shaping until the
+   * next absorb rebuilds the solver, which is also why this path needs no
+   * scheduler re-kick.
    */
   #scheduleLouvainLinger(): void {
     if (this.#dependencies.mode() !== "community-force") {

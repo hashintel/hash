@@ -33,8 +33,10 @@ import { useEntityIngest } from "./components/use-entity-ingest";
 import { useFrontierExpansion } from "./components/use-frontier-expansion";
 import { GraphVisualizer } from "./graph-visualizer";
 import { useGraphGuidanceDismissal } from "./interactivity/use-graph-guidance-dismissal";
+import { useSimulationPause } from "./interactivity/use-simulation-pause";
 import { useGraphWorker } from "./render/use-graph-worker";
 
+import type { FrontierExpansionStore } from "./components/frontier-expansion-store";
 import type { VizConfig } from "./config";
 import type { EntitySelection, Scene } from "./render/scene";
 import type { WorkerHandle } from "./render/worker-connection";
@@ -64,7 +66,11 @@ interface EntityGraphVisualizerProps {
   readonly onEntityClick?: (entityId: EntityId) => void;
   /** Open the underlying link entities of an aggregated "highway" edge in a table. */
   readonly onOpenLinkTable?: (linkEntityIds: readonly EntityId[]) => void;
-  /** Override the worker's layout/scale config; omit to use the defaults. */
+  /**
+   * Override the worker's layout/scale config; omit to use the defaults. May
+   * change while mounted: a new reference is applied to the live worker
+   * (which re-tunes and re-lays out in place), keeping graph and camera.
+   */
   readonly config?: VizConfig;
   /**
    * A stable identity for the data source (the query/filter behind `entities`), not the result.
@@ -73,6 +79,20 @@ interface EntityGraphVisualizerProps {
    * Omit (e.g. a fixed ego graph) to never recreate -- `entities` is then assumed append-only.
    */
   readonly sourceKey?: string;
+  /**
+   * True while other UI is layered over this visualizer (a slide covering the page, a slide
+   * covered by a later slide) — occlusion only the caller can know about. While not visible
+   * (this, a hidden tab, or scrolled out of view) the worker's simulation is paused: no CPU
+   * spent settling layouts, resuming from the same positions when visible again.
+   */
+  readonly occluded?: boolean;
+  /**
+   * Frontier-expansion state, owned by the surface that owns the entity query (create it with
+   * `useOwnedFrontierStore`, keyed to the query's identity). Owned above this component so
+   * expansions persist across view switches and worker recreations — this component attaches
+   * the store to each worker it creates, replaying committed expansions into it.
+   */
+  readonly frontierStore: FrontierExpansionStore;
   /**
    * Debug affordance: receives the live {@link WorkerHandle} (undefined on teardown) so debug
    * surfaces outside the visualizer (the dev harness) can issue worker queries, e.g. the
@@ -97,6 +117,8 @@ export const EntityGraphVisualizer: React.FC<EntityGraphVisualizerProps> = memo(
     onOpenLinkTable,
     config,
     sourceKey,
+    occluded = false,
+    frontierStore,
     onWorkerHandle,
     onSceneReady,
   }) => {
@@ -147,11 +169,14 @@ export const EntityGraphVisualizer: React.FC<EntityGraphVisualizerProps> = memo(
       rootIdSet,
     });
 
-    const {
+    const containerRef = useSimulationPause({ handle, ready, occluded });
+
+    const { snapshot: frontier, frontierEntityIds } = useFrontierExpansion({
       store: frontierStore,
-      snapshot: frontier,
-      frontierEntityIds,
-    } = useFrontierExpansion({ handle, entities, rootIdSet });
+      handle,
+      entities,
+      rootIdSet,
+    });
 
     const [overlayStore] = useState(() => new SceneOverlayStore());
     // A recreated worker gets a fresh Scene: clear the old scene's overlay reports (and
@@ -247,7 +272,10 @@ export const EntityGraphVisualizer: React.FC<EntityGraphVisualizerProps> = memo(
     }
 
     return (
-      <Box sx={{ position: "relative", width: "100%", height: "100%" }}>
+      <Box
+        ref={containerRef}
+        sx={{ position: "relative", width: "100%", height: "100%" }}
+      >
         <GraphVisualizer
           handle={handle}
           loadingComponent={

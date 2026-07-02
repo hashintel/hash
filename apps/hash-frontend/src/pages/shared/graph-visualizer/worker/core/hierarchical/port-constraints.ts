@@ -173,7 +173,14 @@ export class PortConstraintController {
     }
   }
 
-  /** Re-aim opened sub-clusters' port anchors at their moved external neighbours. */
+  /**
+   * Re-aim opened sub-clusters' port anchors at their moved external
+   * neighbours. Runs over every tracked container whenever any cluster-level
+   * layout moves: still-running layouts re-sort their children toward the new
+   * directions, settled layouts ignore the writes (an accepted staleness,
+   * documented on `updateAnchorPositions` in
+   * {@link "../../layout/cluster-layout"}).
+   */
   updateAnchorTracking(): void {
     const { layouts, clusterTree } = this.#dependencies;
     for (const [containerId, endpointIds] of this.#anchorEndpoints) {

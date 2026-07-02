@@ -9,8 +9,9 @@ import { deserializeQueryEntitySubgraphResponse } from "@local/hash-graph-sdk/en
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 
 import { queryEntitySubgraphQuery } from "../../../../graphql/queries/knowledge/entity.queries";
+import { useOwnedFrontierStore } from "../../graph-visualizer/components/use-frontier-expansion";
 import { EntityGraphVisualizer } from "../../graph-visualizer/entity-graph-visualizer";
-import { useSlideStack } from "../../slide-stack";
+import { useSlideStack, useSlideStackOcclusion } from "../../slide-stack";
 
 import type {
   QueryEntitySubgraphQuery,
@@ -46,6 +47,12 @@ const graphViewTraversalPaths: TraversalPath[] = [
 export const GraphSection = ({ entityId }: { entityId: EntityId }) => {
   const theme = useTheme();
   const { pushToSlideStack } = useSlideStack();
+  // Pause the simulation while this editor's slide is covered by a later
+  // slide (or, on a full page, while any slide is open over it).
+  const occluded = useSlideStackOcclusion();
+  // Expansions extend this seed entity's neighbourhood; a different seed is
+  // a different graph, so the store resets with the entity id.
+  const frontierStore = useOwnedFrontierStore(entityId);
 
   const [webId, entityUuid] = splitEntityId(entityId);
 
@@ -112,7 +119,9 @@ export const GraphSection = ({ entityId }: { entityId: EntityId }) => {
     (linkEntityIds: readonly EntityId[]) => {
       pushToSlideStack({
         kind: "linkTable",
-        itemId: `linkTable:${linkEntityIds[0] ?? "empty"}:${linkEntityIds.length}`,
+        itemId: `linkTable:${linkEntityIds[0] ?? "empty"}:${
+          linkEntityIds.length
+        }`,
         linkEntityIds: [...linkEntityIds],
       });
     },
@@ -148,6 +157,8 @@ export const GraphSection = ({ entityId }: { entityId: EntityId }) => {
           entities={entities}
           rootEntityIds={rootEntityIds}
           sourceKey={entityId}
+          occluded={occluded}
+          frontierStore={frontierStore}
           closedMultiEntityTypesRootMap={
             data?.queryEntitySubgraph.closedMultiEntityTypes
           }

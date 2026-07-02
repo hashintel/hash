@@ -9,8 +9,10 @@
  *
  * Edits are validated with {@link validateConfig} before they are applied;
  * an invalid draft stays local (worker keeps the last valid config) with the
- * validation error shown until a knob change makes it valid again. "Copy JSON"
- * exports the full applied config for pasting into code or a bug report.
+ * validation error shown until a knob change makes it valid again. Applied
+ * configs reach the live worker (UPDATE_CONFIG), which re-lays out in place,
+ * keeping the ingested graph and the camera. "Copy JSON" exports the full
+ * applied config for pasting into code or a bug report.
  */
 import { Box, Slider, Stack, Switch, Typography } from "@mui/material";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
@@ -233,9 +235,9 @@ interface NumberKnobProps {
 /**
  * One numeric knob: a slider (when a range is inferable from the default)
  * plus an exact-entry input. Slider drags preview locally and commit on
- * release, so the worker is not re-initialised on every drag tick; the input
- * commits on blur or Enter. A dot button appears when the value differs from
- * the default and resets the field.
+ * release, so the live worker is not re-tuned (and re-laid-out) on every
+ * drag tick; the input commits on blur or Enter. A reset button appears when
+ * the value differs from the default.
  */
 const NumberKnob = memo(
   ({ label, value, defaultValue, onCommit }: NumberKnobProps) => {

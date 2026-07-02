@@ -48,6 +48,12 @@ export interface FrontierExpansion {
   entities: HashEntity[];
   closedMultiEntityTypes: QueryEntitySubgraphQuery["queryEntitySubgraph"]["closedMultiEntityTypes"];
   definitions: QueryEntitySubgraphQuery["queryEntitySubgraph"]["definitions"];
+  /**
+   * The response's subgraph as serialized on the wire, in the shape
+   * table-row generation consumes (see `generate-table-data-from-rows.ts`) —
+   * so expanded entities can be presented as table rows outside the graph.
+   */
+  subgraph: QueryEntitySubgraphQuery["queryEntitySubgraph"]["subgraph"];
 }
 
 /**
@@ -106,5 +112,6 @@ export async function fetchFrontierExpansion(
     closedMultiEntityTypes:
       expansion.queryEntitySubgraph.closedMultiEntityTypes,
     definitions: expansion.queryEntitySubgraph.definitions,
+    subgraph: expansion.queryEntitySubgraph.subgraph,
   };
 }

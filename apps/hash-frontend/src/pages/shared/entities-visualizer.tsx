@@ -23,6 +23,7 @@ import {
   EntitiesTable,
   toolbarHeight,
 } from "./entities-visualizer/entities-table";
+import { withExpansionRows } from "./entities-visualizer/expansion-table-data";
 import { GridView } from "./entities-visualizer/grid-view";
 import { titleFromBaseUrl } from "./entities-visualizer/shared/filter-state-url";
 import { useAvailableTypes } from "./entities-visualizer/shared/use-available-types";
@@ -34,10 +35,18 @@ import { useSlideStackHandlers } from "./entities-visualizer/use-slide-stack-han
 import { useVisualizerHeights } from "./entities-visualizer/use-visualizer-heights";
 import { useVisualizerView } from "./entities-visualizer/use-visualizer-view";
 import { VisualizerToolbar } from "./entities-visualizer/visualizer-toolbar";
+import { useFrontierExpansionStore } from "./graph-visualizer/components/frontier-expansion-store";
+import { useOwnedFrontierStore } from "./graph-visualizer/components/use-frontier-expansion";
 import { EntityGraphVisualizer } from "./graph-visualizer/entity-graph-visualizer";
+import { useSlideStackOcclusion } from "./slide-stack";
 
 import type { EntitiesTableRow } from "./entities-visualizer/entities-table-data";
-import type { BaseUrl, VersionedUrl } from "@blockprotocol/type-system";
+import type {
+  BaseUrl,
+  EntityId,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { FunctionComponent } from "react";
 
 /** How many entities each request fetches; "Show more" appends another page of this size. */
@@ -102,6 +111,30 @@ export const EntitiesVisualizer: FunctionComponent<{
     () => (entityTypeId ? [entityTypeId] : undefined),
     [entityTypeId],
   );
+
+  /**
+   * Frontier expansions from the Graph view ("OR n entities"), owned here —
+   * above the visualizer — so they persist across view switches and surface
+   * outside the graph (the filter pill, table rows). Dismissing the pill
+   * bumps the epoch: that swaps in a fresh store AND recreates the graph
+   * worker (via `graphSourceKey` below), since the worker's additive ingest
+   * cannot retract the expanded entities.
+   */
+  const [expansionEpoch, setExpansionEpoch] = useState(0);
+  const graphSourceKey = `${entitySetKey}::${expansionEpoch}`;
+  const frontierStore = useOwnedFrontierStore(graphSourceKey);
+  const frontierSnapshot = useFrontierExpansionStore(frontierStore);
+
+  const clearFrontierAdditions = useCallback(() => {
+    setExpansionEpoch((epoch) => epoch + 1);
+  }, []);
+
+  /**
+   * Pause the graph simulation while a slide is open over this page — the
+   * slide may itself contain a visualizer, and only the one the user sees
+   * should spend CPU.
+   */
+  const occluded = useSlideStackOcclusion();
 
   const entitiesData = useEntitiesVisualizerData({
     conversions: conversionRequests,
@@ -178,8 +211,10 @@ export const EntitiesVisualizer: FunctionComponent<{
 
   const entities = readyData?.entities;
 
+  const { expandedById } = frontierSnapshot;
+
   const selectedEntities = useMemo(() => {
-    if (view !== "Table" || selectedTableRows.length === 0 || !entities) {
+    if (view !== "Table" || selectedTableRows.length === 0) {
       return [];
     }
 
@@ -187,10 +222,27 @@ export const EntitiesVisualizer: FunctionComponent<{
       selectedTableRows.map(({ entityId }) => entityId),
     );
 
-    return entities.filter((entity) =>
-      selectedEntityIds.has(entity.metadata.recordId.entityId),
-    );
-  }, [entities, selectedTableRows, view]);
+    const selectedById = new Map<EntityId, HashEntity>();
+
+    for (const entity of entities ?? []) {
+      if (selectedEntityIds.has(entity.metadata.recordId.entityId)) {
+        selectedById.set(entity.metadata.recordId.entityId, entity);
+      }
+    }
+
+    // Rows appended by graph expansion aren't in the query result; resolve
+    // them from the expansion state instead.
+    for (const entityId of selectedEntityIds) {
+      if (!selectedById.has(entityId)) {
+        const context = expandedById.get(entityId);
+        if (context) {
+          selectedById.set(entityId, context.entity);
+        }
+      }
+    }
+
+    return [...selectedById.values()];
+  }, [entities, expandedById, selectedTableRows, view]);
 
   const refresh = readyData?.refresh;
 
@@ -230,6 +282,29 @@ export const EntitiesVisualizer: FunctionComponent<{
     entityTypeBaseUrl === systemEntityTypes.page.entityTypeBaseUrl ||
     entityTypeId === systemEntityTypes.page.entityTypeId;
 
+  const queryTableData = readyData?.tableData ?? null;
+
+  /**
+   * The table shows the query's rows plus the graph-expansion additions
+   * (each generated against the type maps its expansion arrived with).
+   * Identity-stable when there are no additions.
+   */
+  const tableDataWithAdditions = useMemo(() => {
+    if (!queryTableData) {
+      return null;
+    }
+
+    return withExpansionRows(queryTableData, frontierSnapshot.records, {
+      hideColumns,
+      hideArchivedColumn: !filterState.includeArchived,
+    });
+  }, [
+    queryTableData,
+    frontierSnapshot.records,
+    hideColumns,
+    filterState.includeArchived,
+  ]);
+
   // A stable element, so passing it to the memoized graph visualizer doesn't
   // re-render it every time this component renders.
   const loadingSpinner = useMemo(
@@ -243,9 +318,12 @@ export const EntitiesVisualizer: FunctionComponent<{
         availableEntityTypes={availableEntityTypes}
         availableTypesLoading={availableTypesLoading}
         filterState={filterState}
+        frontierAdditionsCount={frontierSnapshot.expandedRoots.size}
         internalWebs={internalWebs}
         isTypePinned={isTypePinned}
+        loadedResultCount={readyData?.rootEntityIds.length ?? null}
         onBulkActionCompleted={handleBulkActionCompleted}
+        onClearFrontierAdditions={clearFrontierAdditions}
         propertyFilterData={propertyFilterData}
         selectedEntities={selectedEntities}
         setFilterState={setFilterState}
@@ -309,7 +387,9 @@ export const EntitiesVisualizer: FunctionComponent<{
           <EntityGraphVisualizer
             entities={readyData.entities}
             rootEntityIds={readyData.rootEntityIds}
-            sourceKey={entitySetKey}
+            sourceKey={graphSourceKey}
+            occluded={occluded}
+            frontierStore={frontierStore}
             closedMultiEntityTypesRootMap={
               readyData.closedMultiEntityTypesRootMap
             }
@@ -340,8 +420,9 @@ export const EntitiesVisualizer: FunctionComponent<{
           selectedRows={selectedTableRows}
           sort={sort}
           setSort={setSort}
-          tableData={readyData.tableData}
+          tableData={tableDataWithAdditions}
           totalResultCount={entitiesData.totalResultCount}
+          queryRowCount={readyData.tableData.rows.length}
         />
       )}
     </Box>

@@ -116,6 +116,14 @@ interface EntitiesTableProps {
   ) => void;
   readonly tableData: EntitiesTableData | null;
   readonly totalResultCount: number | null;
+  /**
+   * How many rows came from the paginated query itself, when `tableData`
+   * also carries appended rows from another source (graph-expansion
+   * additions). Drives the "N remaining" count next to "Show more", which
+   * compares the QUERY's progress against `totalResultCount` — appended
+   * rows are outside that total. Defaults to all rows.
+   */
+  readonly queryRowCount?: number;
 }
 
 export const EntitiesTable: React.FC<EntitiesTableProps> = memo(
@@ -137,6 +145,7 @@ export const EntitiesTable: React.FC<EntitiesTableProps> = memo(
     sort,
     tableData,
     totalResultCount,
+    queryRowCount,
   }) => {
     const router = useRouter();
 
@@ -910,7 +919,9 @@ export const EntitiesTable: React.FC<EntitiesTableProps> = memo(
                       sx={{ color: ({ palette }) => palette.gray[50], ml: 0.5 }}
                     >
                       {totalResultCount != null
-                        ? `- ${formatNumber(totalResultCount - rows.length)} remaining`
+                        ? `- ${formatNumber(
+                            totalResultCount - (queryRowCount ?? rows.length),
+                          )} remaining`
                         : ""}
                     </Box>
                     <ArrowDownRegularIcon

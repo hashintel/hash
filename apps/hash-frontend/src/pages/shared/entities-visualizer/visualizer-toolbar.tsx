@@ -17,9 +17,14 @@ interface VisualizerToolbarProps {
   readonly availableEntityTypes: AvailableType[];
   readonly availableTypesLoading: boolean;
   readonly filterState: EntitiesFilterState;
+  /** Entities OR-ed into the set by graph exploration; shown as a dismissible pill. */
+  readonly frontierAdditionsCount: number;
   readonly internalWebs: InternalWeb[];
   readonly isTypePinned: boolean;
+  /** Loaded query roots, for the "m of n entities" count. Null while no page has landed. */
+  readonly loadedResultCount: number | null;
   readonly onBulkActionCompleted: () => void;
+  readonly onClearFrontierAdditions: () => void;
   readonly propertyFilterData: FilterMetadataForProperty[];
   /** When non-empty, the filter ribbon is replaced by bulk actions for the selection. */
   readonly selectedEntities: HashEntity[];
@@ -41,9 +46,12 @@ export const VisualizerToolbar: React.FC<VisualizerToolbarProps> = memo(
     availableEntityTypes,
     availableTypesLoading,
     filterState,
+    frontierAdditionsCount,
     internalWebs,
     isTypePinned,
+    loadedResultCount,
     onBulkActionCompleted,
+    onClearFrontierAdditions,
     propertyFilterData,
     selectedEntities,
     setFilterState,
@@ -66,8 +74,10 @@ export const VisualizerToolbar: React.FC<VisualizerToolbarProps> = memo(
             availableTypesLoading={availableTypesLoading}
             propertyFilterMetadata={propertyFilterData}
             filterState={filterState}
+            frontierAdditionsCount={frontierAdditionsCount}
             internalWebs={internalWebs}
             isTypePinned={isTypePinned}
+            onClearFrontierAdditions={onClearFrontierAdditions}
             setFilterState={setFilterState}
           />
         )
@@ -76,6 +86,7 @@ export const VisualizerToolbar: React.FC<VisualizerToolbarProps> = memo(
         <>
           <QueryCount
             count={totalResultCount}
+            loadedCount={loadedResultCount}
             loading={totalResultCountLoading}
           />
           <TableHeaderToggle

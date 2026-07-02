@@ -7,6 +7,7 @@
 import { sharedBufferAvailable } from "../layout/force-simulation";
 import { FLAT_LAYOUT_ID } from "./flat/flat-tier";
 
+import type { VizConfig } from "../../config";
 import type { ClusterTree } from "../hierarchy/cluster-tree";
 import type { LayoutSimulation } from "../layout/force-simulation";
 import type { LayoutSideChannelMessage } from "../protocol";
@@ -16,9 +17,11 @@ import type { SettlePolisher } from "./hierarchical/settle-polish";
 import type { LayoutRegistry } from "./layout-registry";
 
 export interface TickLoopDependencies {
-  readonly debug: boolean;
-  /** Debug-mode threshold (ms) above which a full tick logs a warning. */
-  readonly slowTickWarningMs: number;
+  /**
+   * The worker's live config: `debug` and `ingest.slowTickWarningMs` are read
+   * per tick (not copied) so a live config update applies immediately.
+   */
+  readonly config: VizConfig;
   readonly layouts: LayoutRegistry;
   readonly clusterTree: ClusterTree;
   readonly polisher: SettlePolisher;
@@ -47,6 +50,7 @@ export class TickLoop {
    */
   tick(): void {
     const { layouts, clusterTree, polisher } = this.#dependencies;
+    const debug = this.#dependencies.config.debug ?? false;
 
     const tickStart = performance.now();
     const clustersRunningBefore = layouts.anyClusterLayoutRunning();
@@ -66,7 +70,7 @@ export class TickLoop {
       const changed = layout.tick(1);
       const layoutTickMs = performance.now() - layoutTickStart;
 
-      if (this.#dependencies.debug && kind === "entities") {
+      if (debug && kind === "entities") {
         this.#logOverlapDiagnostics(clusterId, layout, changed, layoutTickMs);
       }
 
@@ -142,10 +146,7 @@ export class TickLoop {
     }
 
     const elapsed = performance.now() - tickStart;
-    if (
-      this.#dependencies.debug &&
-      elapsed > this.#dependencies.slowTickWarningMs
-    ) {
+    if (debug && elapsed > this.#dependencies.config.ingest.slowTickWarningMs) {
       // eslint-disable-next-line no-console
       console.warn(
         `[graph-worker][slow tick] ${elapsed.toFixed(1)}ms (${layouts.size} layouts)`,

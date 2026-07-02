@@ -79,6 +79,40 @@ function scheduleDrain(): void {
   });
 }
 
+/**
+ * Build the coalescer against the worker's live ingest tuning. Called at
+ * INIT and again on UPDATE_CONFIG (after a flush) because the coalescer
+ * copies its caps at construction.
+ */
+function createCommitCoalescer(created: GraphWorker): CommitCoalescer {
+  return new CommitCoalescer({
+    maxCoalescedBatches: created.config.ingest.maxCoalescedBatches,
+    maxCoalesceDelayMs: created.config.ingest.maxCoalesceDelayMs,
+    commit: ({ deltas, rebuildTree }) => {
+      const t0 = performance.now();
+      created.commitStructure({ deltas, rebuildTree });
+      // Re-style if an expand flipped an already-rendered frontier node to a root
+      // (hierarchical tier only; the flat tier already restyled in the commit).
+      // Must run after the commit: it consumes the pending-flip flag the flat
+      // commit's style pass reads.
+      created.restyleIfRootsFlipped();
+      if (created.debug) {
+        // eslint-disable-next-line no-console
+        console.debug(
+          `[graph-worker][commit] ${created.nodeCount} nodes, ` +
+            `${created.linkCount} links | ` +
+            `${deltas.length} group deltas` +
+            `${rebuildTree ? " + tree rebuild" : ""} | ` +
+            `${(performance.now() - t0).toFixed(1)}ms`,
+        );
+      }
+      // commitStructure may enqueue EMBEDDING_CLUSTERING_NEEDED messages
+      // that must post before the next ingest batch is coalesced.
+      scheduleDrain();
+    },
+  });
+}
+
 globalThis.onmessage = ({ data }: MessageEvent<MainToWorkerMessage>) => {
   switch (data.type) {
     case "INIT": {
@@ -89,36 +123,31 @@ globalThis.onmessage = ({ data }: MessageEvent<MainToWorkerMessage>) => {
         worker.onLayoutMessage = (msg) => post(msg);
         worker.onStructureFrame = (frame) => postStructure(frame);
         worker.onPositionsFrame = (frame) => postPositions(frame);
-        commits = new CommitCoalescer({
-          maxCoalescedBatches: data.config.ingest.maxCoalescedBatches,
-          maxCoalesceDelayMs: data.config.ingest.maxCoalesceDelayMs,
-          commit: ({ deltas, rebuildTree }) => {
-            const t0 = performance.now();
-            created.commitStructure({ deltas, rebuildTree });
-            // Re-style if an expand flipped an already-rendered frontier node to a root
-            // (hierarchical tier only; the flat tier already restyled in the commit).
-            // Must run after the commit: it consumes the pending-flip flag the flat
-            // commit's style pass reads.
-            created.restyleIfRootsFlipped();
-            if (created.debug) {
-              // eslint-disable-next-line no-console
-              console.debug(
-                `[graph-worker][commit] ${created.nodeCount} nodes, ` +
-                  `${created.linkCount} links | ` +
-                  `${deltas.length} group deltas` +
-                  `${rebuildTree ? " + tree rebuild" : ""} | ` +
-                  `${(performance.now() - t0).toFixed(1)}ms`,
-              );
-            }
-            // commitStructure may enqueue EMBEDDING_CLUSTERING_NEEDED messages
-            // that must post before the next ingest batch is coalesced.
-            scheduleDrain();
-          },
-        });
+        commits = createCommitCoalescer(created);
 
         post({ type: "READY" });
       } catch (err) {
         post({ type: "ERROR", message: String(err) });
+      }
+      break;
+    }
+
+    case "UPDATE_CONFIG": {
+      if (!worker) {
+        post({ type: "ERROR", message: "Worker not initialized" });
+        break;
+      }
+
+      try {
+        // Batches already ingested under the old tuning must commit before
+        // the config-driven re-layout so it covers them.
+        commits?.flush();
+        worker.updateConfig(data.config);
+        // The coalescer copied its caps at construction; recreate it (it is
+        // empty after the flush above) so new ingest tuning takes effect.
+        commits = createCommitCoalescer(worker);
+      } catch (err) {
+        post({ type: "ERROR", message: String(err), context: "UPDATE_CONFIG" });
       }
       break;
     }
@@ -262,6 +291,14 @@ globalThis.onmessage = ({ data }: MessageEvent<MainToWorkerMessage>) => {
       }
       commits?.flush();
       worker.setHighlight(data.entityIdxs);
+      break;
+    }
+
+    case "SET_SIMULATION_PAUSED": {
+      // No coalescer flush: pausing gates the tick scheduler only and reads
+      // no committed state; a pending commit lands (without ticking) on the
+      // next queue drain as usual.
+      worker?.setSimulationPaused(data.paused);
       break;
     }
 

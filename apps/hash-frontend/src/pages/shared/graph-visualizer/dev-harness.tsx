@@ -15,6 +15,7 @@ import { LoadingSpinner } from "@hashintel/design-system";
 
 import { VizConfigPanel } from "./components/dev-harness-config-panel";
 import { ControlsPanel } from "./components/dev-harness-controls-panel";
+import { useOwnedFrontierStore } from "./components/use-frontier-expansion";
 import { defaultVizConfig } from "./config";
 import { generateGraphFixture } from "./dev-harness/generate-fixture";
 import { EntityGraphVisualizer } from "./entity-graph-visualizer";
@@ -62,15 +63,11 @@ export const DevHarness = () => {
   const [knobs, setKnobs] = useState<HarnessKnobs>(DEFAULT_KNOBS);
   const [seed, setSeed] = useState(1);
 
-  // The full worker config, driven by the config panel's knobs. The revision
-  // counter keys the visualizer: ingest is additive, so each applied config
-  // change remounts it (fresh worker, re-init with the new config, re-ingest).
+  // The full worker config, driven by the config panel's knobs. Applied
+  // changes reach the live worker via UPDATE_CONFIG (it re-tunes and
+  // re-lays out in place), so the visualizer keeps its camera and ingested
+  // graph -- no remount.
   const [layoutConfig, setLayoutConfig] = useState<VizConfig>(defaultVizConfig);
-  const [configRevision, setConfigRevision] = useState(0);
-  const handleApplyConfig = useCallback((next: VizConfig) => {
-    setLayoutConfig(next);
-    setConfigRevision((previous) => previous + 1);
-  }, []);
 
   // The fixture is regenerated only when a fixture-shaping knob (or seed) changes; the streaming
   // knobs (chunk size, interval) drive the feed, not the fixture.
@@ -270,7 +267,9 @@ export const DevHarness = () => {
         ? "all layers"
         : `hidden: ${[...hiddenLayerKindsRef.current].sort().join("+")}`;
     setRenderBenchStatus(
-      `capturing ${RENDER_BENCH_DURATION_MS / 1000}s (${sweep ? "zoom sweep" : "pinned camera"}, ${hiddenLabel})...`,
+      `capturing ${RENDER_BENCH_DURATION_MS / 1000}s (${
+        sweep ? "zoom sweep" : "pinned camera"
+      }, ${hiddenLabel})...`,
     );
     const beginCapture = () => {
       const liveScene = sceneRef.current;
@@ -304,19 +303,33 @@ export const DevHarness = () => {
         }
         // eslint-disable-next-line no-console -- dev harness affordance (console-copyable)
         console.log(
-          `render-bench report (${sweep ? "sweep" : "pinned"}, ${hiddenLabel}):`,
+          `render-bench report (${
+            sweep ? "sweep" : "pinned"
+          }, ${hiddenLabel}):`,
           JSON.stringify(report, null, 2),
         );
         const gpuSummary = report.gpu.available
-          ? `gpu p95 ${report.gpu.p95Ms.toFixed(1)}ms max ${report.gpu.maxMs.toFixed(0)}ms (${report.gpu.samples}x)`
+          ? `gpu p95 ${report.gpu.p95Ms.toFixed(
+              1,
+            )}ms max ${report.gpu.maxMs.toFixed(0)}ms (${report.gpu.samples}x)`
           : "gpu n/a";
         setRenderBenchStatus(
-          `${hiddenLabel} | fps ${report.deck.fps.toFixed(0)} | frame p95 ${report.frames.p95Ms.toFixed(1)}ms, ` +
-            `${report.frames.hitchCount} hitch${report.frames.hitchCount === 1 ? "" : "es"} (max ${report.frames.maxMs.toFixed(0)}ms) | ` +
+          `${hiddenLabel} | fps ${report.deck.fps.toFixed(
+            0,
+          )} | frame p95 ${report.frames.p95Ms.toFixed(1)}ms, ` +
+            `${report.frames.hitchCount} hitch${
+              report.frames.hitchCount === 1 ? "" : "es"
+            } (max ${report.frames.maxMs.toFixed(0)}ms) | ` +
             `${gpuSummary} | ` +
             `attrs ${report.deck.updateAttributesTime.toFixed(1)}ms/s | ` +
-            `rebuild p95 ${report.rebuild.p95Ms.toFixed(2)}ms (${report.rebuild.count}x) | ` +
-            `zoom ${report.camera.initialZoom.toFixed(1)} [${report.camera.minZoom.toFixed(1)}..${report.camera.maxZoom.toFixed(1)}]`,
+            `rebuild p95 ${report.rebuild.p95Ms.toFixed(2)}ms (${
+              report.rebuild.count
+            }x) | ` +
+            `zoom ${report.camera.initialZoom.toFixed(
+              1,
+            )} [${report.camera.minZoom.toFixed(
+              1,
+            )}..${report.camera.maxZoom.toFixed(1)}]`,
         );
       }, RENDER_BENCH_DURATION_MS);
     };
@@ -367,11 +380,11 @@ export const DevHarness = () => {
     [],
   );
 
-  // Remount the visualizer (fresh worker, cleared graph) whenever the fixture identity, feed mode,
-  // or applied config changes. Ingest is additive, so without a remount a regenerated fixture would
-  // pile its entities onto the previous graph instead of replacing it -- so the key must include
-  // every fixture-shaping knob, not just seed/stream (changing any of these sliders regenerates the
-  // fixture too).
+  // Remount the visualizer (fresh worker, cleared graph) whenever the fixture identity or feed
+  // mode changes. Ingest is additive, so without a remount a regenerated fixture would pile its
+  // entities onto the previous graph instead of replacing it -- so the key must include every
+  // fixture-shaping knob, not just seed/stream (changing any of these sliders regenerates the
+  // fixture too). Config changes are NOT in the key: they apply to the live worker.
   const visualizerKey = [
     seed,
     knobs.entityCount,
@@ -380,8 +393,11 @@ export const DevHarness = () => {
     knobs.rootFraction,
     knobs.hubCount,
     knobs.stream,
-    configRevision,
   ].join(":");
+
+  // Synthetic ids never resolve server-side, so expansions no-op; the store
+  // just satisfies the visualizer's ownership contract, reset per fixture.
+  const frontierStore = useOwnedFrontierStore(visualizerKey);
 
   return (
     <Box sx={{ position: "relative", width: "100%", height: "100%" }}>
@@ -399,12 +415,13 @@ export const DevHarness = () => {
         totalCount={fixture.entities.length}
         seed={seed}
       />
-      <VizConfigPanel value={layoutConfig} onApply={handleApplyConfig} />
+      <VizConfigPanel value={layoutConfig} onApply={setLayoutConfig} />
       <EntityGraphVisualizer
         key={visualizerKey}
         config={layoutConfig}
         entities={visibleEntities}
         rootEntityIds={visibleRootIds}
+        frontierStore={frontierStore}
         closedMultiEntityTypesRootMap={fixture.closedMultiEntityTypesRootMap}
         definitions={fixture.definitions}
         loadingComponent={<LoadingSpinner size={42} />}
