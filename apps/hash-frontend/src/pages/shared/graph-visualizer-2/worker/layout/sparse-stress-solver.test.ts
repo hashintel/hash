@@ -1,5 +1,5 @@
 /* eslint-disable id-length */
-// eslint-disable-next-line import/no-extraneous-dependencies
+
 import { describe, expect, it } from "vitest";
 
 import { countOverlaps } from "./overlap-relax";

@@ -42,6 +42,12 @@ interface GraphVisualizerProps {
   readonly resolveEntityIcon?: (entityId: EntityId) => string | null;
   /** Receive the always-on hub labels (with current on-screen positions) to overlay as HTML. */
   readonly onEntityLabels?: (labels: readonly EntityLabel[]) => void;
+  /**
+   * Surface the live {@link Scene} to debug consumers (the dev harness render
+   * benchmark drives captures and camera sweeps through it). Called with null
+   * on unmount.
+   */
+  readonly onSceneReady?: (scene: Scene | null) => void;
 }
 
 export const GraphVisualizerV2 = ({
@@ -55,6 +61,7 @@ export const GraphVisualizerV2 = ({
   resolveEntityLabel,
   resolveEntityIcon,
   onEntityLabels,
+  onSceneReady,
 }: GraphVisualizerProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<Scene | null>(null);
@@ -81,7 +88,9 @@ export const GraphVisualizerV2 = ({
       onFirstStructure: handleFirstStructure,
     });
     sceneRef.current = scene;
+    onSceneReady?.(scene);
     return () => {
+      onSceneReady?.(null);
       scene.dispose();
       sceneRef.current = null;
     };

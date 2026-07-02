@@ -174,6 +174,18 @@ globalThis.onmessage = ({ data }: MessageEvent<MainToWorkerMessage>) => {
       break;
     }
 
+    case "CAPTURE_LAYOUT_FIXTURE": {
+      if (!worker) {
+        break;
+      }
+      post({
+        type: "LAYOUT_FIXTURE_RESULT",
+        requestId: data.requestId,
+        fixture: worker.captureLayoutFixture(),
+      });
+      break;
+    }
+
     case "SET_PINNED": {
       if (!worker) {
         break;

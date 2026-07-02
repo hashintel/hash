@@ -38,7 +38,9 @@ import type {
   EntityLabel,
   EntitySelection,
   HighwayHover,
+  Scene,
 } from "./render/scene";
+import type { WorkerHandle } from "./render/worker-connection";
 import type {
   IngestEntity,
   PropertySchemaEntry,
@@ -79,6 +81,17 @@ interface EntityGraphVisualizerV2Props {
    * Omit (e.g. a fixed ego graph) to never recreate -- `entities` is then assumed append-only.
    */
   readonly sourceKey?: string;
+  /**
+   * Debug affordance: receives the live {@link WorkerHandle} (undefined on teardown) so debug
+   * surfaces outside the visualizer (the dev harness) can issue worker queries — e.g. the
+   * CAPTURE-LIVE-FIXTURE hook (`handle.captureLayoutFixture()`).
+   */
+  readonly onWorkerHandle?: (handle: WorkerHandle | undefined) => void;
+  /**
+   * Debug affordance: receives the live {@link Scene} (null on teardown) so
+   * the dev harness render benchmark can drive captures and camera sweeps.
+   */
+  readonly onSceneReady?: (scene: Scene | null) => void;
 }
 
 /**
@@ -249,6 +262,8 @@ export const EntityGraphVisualizerV2 = memo(
     onOpenLinkTable,
     config,
     sourceKey,
+    onWorkerHandle,
+    onSceneReady,
   }: EntityGraphVisualizerV2Props) => {
     const typeSchemas = useMemo(
       () =>
@@ -279,6 +294,13 @@ export const EntityGraphVisualizerV2 = memo(
       propertySchemas,
       resetKey: sourceKey,
     });
+    // Surface the live handle to debug consumers (dev harness capture hook).
+    useEffect(() => {
+      onWorkerHandle?.(handle);
+      return () => {
+        onWorkerHandle?.(undefined);
+      };
+    }, [handle, onWorkerHandle]);
     const { shouldShowGuidance, dismissGuidance } = useGraphGuidanceDismissal();
 
     const [hover, setHover] = useState<{
@@ -781,6 +803,7 @@ export const EntityGraphVisualizerV2 = memo(
           resolveEntityLabel={resolveEntityLabel}
           resolveEntityIcon={resolveEntityIcon}
           onEntityLabels={setEntityLabels}
+          onSceneReady={onSceneReady}
         />
         <FrontierControls
           frontierCount={frontierEntityIds.length}

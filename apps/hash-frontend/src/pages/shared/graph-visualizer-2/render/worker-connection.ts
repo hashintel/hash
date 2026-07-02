@@ -19,6 +19,7 @@ import { decodeEntityId, ID_HEADER_BYTES } from "../worker/entity-id-codec";
 import type { VizConfig } from "../config";
 import type { PositionsFrame, StructureFrame } from "../frames";
 import type {
+  CapturedLayoutFixture,
   EgoTarget,
   IngestEntity,
   MainToWorkerMessage,
@@ -101,6 +102,11 @@ export interface WorkerHandle {
   queryEgo(entityIdx: EntityIndex): Promise<readonly EgoTarget[]>;
   /** Ask the worker for the link entities aggregated by a highway lane (its `laneId`). */
   queryHighwayLinks(laneId: number): Promise<readonly EntityIndex[]>;
+  /**
+   * CAPTURE-LIVE-FIXTURE debug hook: serialize the live flat-tier layout graph
+   * for replay as a bench/test fixture. Null when no flat layout is live.
+   */
+  captureLayoutFixture(): Promise<CapturedLayoutFixture | null>;
   /** Pin a hierarchical leaf open (with ancestors) regardless of zoom, or null to clear. */
   setPinned(clusterId: ClusterId | null): void;
   /** Highlight entities (selection ego now, path later); empty restores full colour. */
@@ -147,6 +153,13 @@ export class WorkerConnection implements WorkerHandle {
   readonly #highwayRequests = new Map<
     number,
     (linkEntityIdxs: readonly EntityIndex[]) => void
+  >();
+
+  /** Correlates capture-live-fixture requests (debug hook) with replies. */
+  #fixtureRequestId = 0;
+  readonly #fixtureRequests = new Map<
+    number,
+    (fixture: CapturedLayoutFixture | null) => void
   >();
 
   #structureDirty = false;
@@ -331,6 +344,19 @@ export class WorkerConnection implements WorkerHandle {
     });
   }
 
+  captureLayoutFixture(): Promise<CapturedLayoutFixture | null> {
+    this.#fixtureRequestId += 1;
+    const requestId = this.#fixtureRequestId;
+    const message: MainToWorkerMessage = {
+      type: "CAPTURE_LAYOUT_FIXTURE",
+      requestId,
+    };
+    this.#worker.postMessage(message);
+    return new Promise((resolve) => {
+      this.#fixtureRequests.set(requestId, resolve);
+    });
+  }
+
   setPinned(clusterId: ClusterId | null): void {
     const message: MainToWorkerMessage = { type: "SET_PINNED", clusterId };
     this.#worker.postMessage(message);
@@ -397,6 +423,10 @@ export class WorkerConnection implements WorkerHandle {
       resolve([]);
     }
     this.#highwayRequests.clear();
+    for (const resolve of this.#fixtureRequests.values()) {
+      resolve(null);
+    }
+    this.#fixtureRequests.clear();
     this.#structure = undefined;
     this.#positions = undefined;
   }
@@ -487,6 +517,14 @@ export class WorkerConnection implements WorkerHandle {
         if (resolve) {
           this.#highwayRequests.delete(data.requestId);
           resolve(data.linkEntityIdxs);
+        }
+        break;
+      }
+      case "LAYOUT_FIXTURE_RESULT": {
+        const resolve = this.#fixtureRequests.get(data.requestId);
+        if (resolve) {
+          this.#fixtureRequests.delete(data.requestId);
+          resolve(data.fixture);
         }
         break;
       }

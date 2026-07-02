@@ -34,7 +34,7 @@ import {
 import { makePairKey, widthForCount } from "./edge-aggregation";
 
 import type { VizConfig } from "../../config";
-import type { Circle } from "../../geometry";
+import type { Circle, Position } from "../../geometry";
 import type { ClusterId, PairKey } from "../../ids";
 import type { ClusterTree } from "../hierarchy/cluster-tree";
 import type { Port } from "./bubble-ports";
@@ -44,9 +44,7 @@ import type {
   EdgeFrame,
 } from "./edge-aggregation";
 
-interface Waypoint {
-  readonly x: number;
-  readonly y: number;
+interface Waypoint extends Position {
   readonly angle: number;
 }
 
@@ -1046,7 +1044,10 @@ export function highwayEndpoints(
   targetId: ClusterId,
   clusterTree: ClusterTree,
   containerIds: ReadonlySet<ClusterId>,
-): { readonly hwSourceId: ClusterId; readonly hwTargetId: ClusterId } {
+): {
+  readonly highwaySourceId: ClusterId;
+  readonly highwayTargetId: ClusterId;
+} {
   const { sourceContainers, targetContainers } = analyzeHierarchy(
     sourceId,
     targetId,
@@ -1054,11 +1055,11 @@ export function highwayEndpoints(
     containerIds,
   );
   return {
-    hwSourceId:
+    highwaySourceId:
       sourceContainers.length > 0
         ? sourceContainers[sourceContainers.length - 1]!.containerId
         : sourceId,
-    hwTargetId:
+    highwayTargetId:
       targetContainers.length > 0
         ? targetContainers[targetContainers.length - 1]!.containerId
         : targetId,

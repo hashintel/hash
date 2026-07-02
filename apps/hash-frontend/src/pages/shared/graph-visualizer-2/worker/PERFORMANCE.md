@@ -116,6 +116,11 @@ shapes the hot paths consume:
 - `buildForceGraph(shape)` → `ForceNode[]` / `ForceEdge[]` for the layout engines.
 - `buildCommunityInputs(shape)` → a `LinkStore` + entity‑index `Column` for the
   community‑detection pipeline.
+- `forceGraphFromCapturedFixture(json)` → replays a live graph captured from the
+  dev harness ("Capture layout fixture" button, or
+  `worker.captureLayoutFixture()`) as a `ForceNode[]`/`ForceEdge[]` fixture,
+  optionally re‑scattered with a deterministic seed. Use this when a production
+  graph exhibits behaviour the synthetic fixtures cannot reproduce.
 
 Link endpoints are hub‑biased (≈70 % of links point at one of the first
 `hubCount` nodes) so the degree distribution resembles real query results rather

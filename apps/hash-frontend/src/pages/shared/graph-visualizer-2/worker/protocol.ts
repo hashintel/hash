@@ -129,6 +129,21 @@ export interface QueryHighwayLinksMessage {
   readonly laneId: number;
 }
 
+/**
+ * CAPTURE-LIVE-FIXTURE debug hook: serialize the CURRENT flat-tier layout graph
+ * (nodes with live positions/radii, deduped edges, Louvain communities) so a
+ * production graph can be replayed as a deterministic bench/test fixture
+ * (`forceGraphFromCapturedFixture` in bench-fixtures.ts). Every layout-engine
+ * production failure so far was invisible to the synthetic fixtures; this hook
+ * makes the user's actual graph the fixture.
+ *
+ * Reply: {@link LayoutFixtureResultMessage}, correlated by {@link requestId}.
+ */
+export interface CaptureLayoutFixtureMessage {
+  readonly type: "CAPTURE_LAYOUT_FIXTURE";
+  readonly requestId: number;
+}
+
 export type MainToWorkerMessage =
   | InitMessage
   | RegisterTypesMessage
@@ -138,7 +153,8 @@ export type MainToWorkerMessage =
   | QueryEgoMessage
   | SetPinnedMessage
   | SetHighlightMessage
-  | QueryHighwayLinksMessage;
+  | QueryHighwayLinksMessage
+  | CaptureLayoutFixtureMessage;
 
 export interface ReadyMessage {
   readonly type: "READY";
@@ -239,6 +255,18 @@ export interface EntityIdMapMessage {
   readonly capacity: number;
 }
 
+/**
+ * The buffer/layout side channel: messages the worker forwards to the main
+ * thread outside the frame stream (layout lifecycles, buffer republishes,
+ * the entity-id join map).
+ */
+export type LayoutSideChannelMessage =
+  | LayoutCreatedMessage
+  | LayoutDestroyedMessage
+  | LayoutPositionsMessage
+  | BufferRepublishedMessage
+  | EntityIdMapMessage;
+
 export interface ErrorMessage {
   readonly type: "ERROR";
   readonly message: string;
@@ -267,6 +295,39 @@ export interface HighwayLinksResultMessage {
   readonly linkEntityIdxs: readonly EntityIndex[];
 }
 
+/**
+ * A live layout graph serialized for replay as a bench/test fixture (see
+ * {@link CaptureLayoutFixtureMessage}). Plain JSON: node ids are the layout's
+ * opaque node ids, edges reference them, `communities[i]` labels `nodes[i]`.
+ */
+export interface CapturedLayoutFixture {
+  /** ISO capture timestamp (metadata only; not used by the replay loader). */
+  readonly capturedAt: string;
+  readonly nodes: readonly {
+    readonly id: string;
+    readonly x: number;
+    readonly y: number;
+    readonly radius: number;
+  }[];
+  readonly edges: readonly {
+    readonly source: string;
+    readonly target: string;
+    readonly weight: number;
+  }[];
+  /** Louvain community per node, parallel to {@link nodes} (-1 = unassigned). */
+  readonly communities: readonly number[];
+}
+
+/**
+ * Reply to {@link CaptureLayoutFixtureMessage}. `fixture` is null when no
+ * flat-tier layout is live (hierarchical mode or an empty graph).
+ */
+export interface LayoutFixtureResultMessage {
+  readonly type: "LAYOUT_FIXTURE_RESULT";
+  readonly requestId: number;
+  readonly fixture: CapturedLayoutFixture | null;
+}
+
 export type WorkerToMainMessage =
   | ReadyMessage
   | StructureFrameMessage
@@ -280,4 +341,5 @@ export type WorkerToMainMessage =
   | EntityIdMapMessage
   | ErrorMessage
   | EgoResultMessage
-  | HighwayLinksResultMessage;
+  | HighwayLinksResultMessage
+  | LayoutFixtureResultMessage;

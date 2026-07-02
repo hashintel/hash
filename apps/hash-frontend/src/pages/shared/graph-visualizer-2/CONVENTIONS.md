@@ -12,6 +12,7 @@
 - Each file has a single clear purpose. If a file accumulates unrelated concerns, split it.
 - **No file larger than ~500 lines.** When a file approaches the limit, split it along responsibility seams (state vs. orchestration vs. pure functions), not arbitrarily. Exception: math-heavy solver/algorithm code where one algorithm genuinely is one unit.
 - **General-purpose helpers never live inline in a consumer file.** Before writing a hash, PRNG, shuffle, clamp, or similar utility, check `math/` and `worker/collections/` for an existing one. If none exists, create a module named for what it provides (`math/hash.ts`, not `utils.ts`) and put it there.
+- **Group by concern/domain, never by "shared-ness".** When a directory grows past ~15 files, group related modules into subdirectories named for the concern they implement (`core/flat/`, `core/hierarchical/`, `core/frames/`). Never create `shared/`, `common/`, or `utils/` folders; cross-folder imports are fine.
 - Types that are only used within one file stay in that file; extract only when shared.
 - Barrel exports (`index.ts`) are kept minimal: re-export the public surface, nothing internal.
 
@@ -36,7 +37,7 @@
 - Discriminated unions for message types (the `type` field).
 - No `any`. No `as` casts unless at a boundary with documented justification.
 - No ASCII banners or decorative comment separators.
-- Spell identifiers out; abbreviate only when genuinely well known (`src`, `dst`, `idx`, `id`). `tgt`, `hw`, `cnt` and other ad-hoc truncations are not. Math-heavy code may mirror the paper's notation.
+- Spell identifiers out; abbreviate only when genuinely well known (`src`, `dst`, `idx`, `id`). `tgt`, `hw`, `cnt`, `deps` (write `dependencies`: `#dependencies`, `FooDependencies`) and other ad-hoc truncations are not. Math-heavy code may mirror the paper's notation.
 - Document non-obvious invariants in comments. Don't narrate structure the code already shows.
 - Never comment what was removed or changed (`// removed X`, `// previously…`, `// used to…`, "no longer needed"). The code shows what IS, not what WAS — history is git's job.
 - Never take shortcuts. When patches stop converging, STOP — step back and rework the module wholesale rather than patch-on-patch. A clean rework usually beats serial patches on a failing design, and a genuine shift can require fundamentally changing something; don't cling to the existing structure to dodge the rework. Correctness and performance are the bar above all.

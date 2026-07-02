@@ -1,7 +1,6 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
 import { describe, expect, it } from "vitest";
 
-import { EntityIndex } from "../../ids";
+import { EntityIndex } from "../../../ids";
 import { membershipFingerprint } from "./membership-fingerprint";
 
 const indices = (...values: number[]): EntityIndex[] =>

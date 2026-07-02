@@ -24,6 +24,7 @@ Spell identifiers out unless the abbreviation is genuinely well known.
 
 - Acceptable: `src`, `dst`, `id`, `idx` (index), `min`/`max`, `rng`.
 - Not acceptable: `tgt` (write `target`), `hw` (write `highway`), `cnt`, `mgr`,
+  `deps` (write `dependencies`, e.g. `#dependencies` / `FooDependencies`),
   ad-hoc truncations in general.
 - Math-heavy code is exempt where the short names mirror the notation of the
   algorithm or paper (`x`, `y`, `k1`, `h1`, `wij`); keep a comment or doc link

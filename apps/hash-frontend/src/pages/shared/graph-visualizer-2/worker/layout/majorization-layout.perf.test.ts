@@ -11,8 +11,12 @@
  *   3. No contract→expand: the RMS-spread trajectory shows no significant
  *      dip-below-final-then-rebound after its widest point (same terminal-rebound
  *      metric as the SGD engine's monotonicity gate).
+ *   4. Region disjointness: on the real shape, majorization's region-overlap
+ *      (fraction of nodes strictly inside a foreign community's packing disk —
+ *      see region-metrics.ts) must beat the SGD engine's measured in the same run
+ *      AND stay under an absolute ceiling far below the pre-fix baseline (0.32
+ *      before the community-region floors; the folding artifact the user reported).
  */
-// eslint-disable-next-line import/no-extraneous-dependencies
 import { describe, expect, it } from "vitest";
 
 import {
@@ -22,6 +26,8 @@ import {
 import { FlatGraphBuffer } from "../buffers/position-buffer";
 import { createMajorizationLayout } from "./majorization-layout";
 import { countOverlaps } from "./overlap-relax";
+import { measureRegionOverlap } from "./region-metrics";
+import { createStressLayout } from "./stress-layout";
 
 import type { GraphShape } from "../bench-fixtures";
 import type { LayoutSimulation } from "./force-simulation";
@@ -31,6 +37,14 @@ import type { MajorizationLayoutOptions } from "./majorization-layout";
 const MAX_TICK_MS = 100;
 /** PRIMARY gate: wall-to-settled budget for the real two-hub shape. */
 const REAL_SHAPE_WALL_MS = 2_000;
+/**
+ * Region-overlap ceiling on the real shape at default weights. Pre-fix baseline was
+ * 0.32 (a third of the graph sat inside foreign community disks); the community-region
+ * floors bring it to ~0.03. The ceiling is set with slack for the small violations the
+ * bridge-endpoint exemption legitimately allows, while still failing loudly if the
+ * floors regress toward the folding regime.
+ */
+const REAL_SHAPE_REGION_OVERLAP_MAX = 0.08;
 const HUB_LEAVES = 150;
 
 /** Weight sets exercised on every fixture: gentle defaults and a clearly elevated set. */
@@ -60,6 +74,23 @@ function overlapCountOf(layout: LayoutSimulation): number {
     radii[index] = node.radius;
   }
   return countOverlaps({ x, y, radii, count, padding: 0 });
+}
+
+/**
+ * Region-overlap (disk containment) over the engine's OWN Louvain labels — the
+ * partition the rendered community bubbles come from, i.e. what the user sees.
+ */
+function regionOverlapOf(layout: LayoutSimulation): number {
+  const communities = (layout as unknown as { communities?: readonly number[] })
+    .communities;
+  return measureRegionOverlap(
+    layout.nodes.map((node, index) => ({
+      x: node.x ?? 0,
+      y: node.y ?? 0,
+      radius: node.radius,
+      community: communities?.[index] ?? -1,
+    })),
+  ).diskContainment;
 }
 
 interface DriveResult {
@@ -229,4 +260,45 @@ describe("majorization layout — real two-hub shape (PRIMARY gate)", () => {
     },
     60_000,
   );
+});
+
+describe("majorization layout — region disjointness gate", () => {
+  it("keeps community regions disjoint on the real shape (≤ SGD engine, below the folding baseline)", () => {
+    const majorization = (() => {
+      const { nodes, edges } = buildRealShapeFixture();
+      const layout = createMajorizationLayout(
+        nodes,
+        edges,
+        new FlatGraphBuffer(nodes.length),
+      );
+      drive(layout);
+      return layout;
+    })();
+    const stress = (() => {
+      const { nodes, edges } = buildRealShapeFixture();
+      const layout = createStressLayout(
+        nodes,
+        edges,
+        new FlatGraphBuffer(nodes.length),
+      );
+      drive(layout);
+      return layout;
+    })();
+
+    const majorizationOverlap = regionOverlapOf(majorization);
+    const stressOverlap = regionOverlapOf(stress);
+
+    // eslint-disable-next-line no-console
+    console.log(
+      `[majorization-region] real-shape regionOverlap: ` +
+        `majorization=${majorizationOverlap.toFixed(4)} ` +
+        `stress=${stressOverlap.toFixed(4)} ` +
+        `(pre-fix majorization baseline: 0.32)`,
+    );
+
+    expect(majorization.isSettled).toBe(true);
+    expect(overlapCountOf(majorization)).toBe(0);
+    expect(majorizationOverlap).toBeLessThan(REAL_SHAPE_REGION_OVERLAP_MAX);
+    expect(majorizationOverlap).toBeLessThanOrEqual(stressOverlap);
+  }, 60_000);
 });

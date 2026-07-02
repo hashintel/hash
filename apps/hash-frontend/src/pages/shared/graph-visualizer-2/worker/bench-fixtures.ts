@@ -8,7 +8,11 @@ import { radiusForDegree } from "./entity-style";
 import { LinkStore } from "./store/link";
 
 import type { ForceEdge, ForceNode } from "./layout/force-simulation";
-import type { IngestEntity, TypeSchemaEntry } from "./protocol";
+import type {
+  CapturedLayoutFixture,
+  IngestEntity,
+  TypeSchemaEntry,
+} from "./protocol";
 import type {
   EntityId,
   EntityUuid,
@@ -279,6 +283,63 @@ export function buildRealShapeFixture(seed = 7_001): {
     { leaves: 150, x: -220, y: -40 },
     { leaves: 150, x: 240, y: 60 },
   ]);
+}
+
+/**
+ * Replay a CAPTURE-LIVE-FIXTURE JSON (the dev harness's "Capture layout fixture"
+ * button → {@link CapturedLayoutFixture}) as a layout fixture: real node ids,
+ * radii, and LIVE positions (so warm-relayout scenarios replay from the captured
+ * geometry; pass `scrambleSeed` to test cold layout from a deterministic
+ * phyllotaxis scatter instead). The captured Louvain labels ride along for
+ * metrics that want the partition the user was looking at.
+ *
+ * Usage: save the downloaded JSON under e.g. `worker/fixtures/` and
+ * `import fixture from "./fixtures/graph-fixture-1234n-5678e.json"`, or inline
+ * `JSON.parse` a console-copied capture, then feed the result to any engine
+ * factory exactly like the synthetic builders above.
+ */
+export function forceGraphFromCapturedFixture(
+  fixture: CapturedLayoutFixture,
+  options: { readonly scrambleSeed?: number } = {},
+): {
+  readonly nodes: ForceNode[];
+  readonly edges: ForceEdge[];
+  /** Captured Louvain label per node (parallel to `nodes`; -1 = unassigned). */
+  readonly communities: number[];
+} {
+  const goldenAngle = Math.PI * (3 - Math.sqrt(5));
+  const scramble =
+    options.scrambleSeed === undefined
+      ? undefined
+      : mulberry32(options.scrambleSeed);
+  const nodes: ForceNode[] = fixture.nodes.map((node, index) => {
+    if (!scramble) {
+      return { id: node.id, x: node.x, y: node.y, radius: node.radius };
+    }
+    // Deterministic phyllotaxis scatter (the same cold-start shape the synthetic
+    // builders use), with the golden-angle sequence jittered by the seed so two
+    // scrambles of the same capture differ.
+    const distance = 20 * Math.sqrt(index + 1);
+    const angle = index * goldenAngle + scramble() * Math.PI * 2;
+    return {
+      id: node.id,
+      x: Math.cos(angle) * distance,
+      y: Math.sin(angle) * distance,
+      radius: node.radius,
+    };
+  });
+  return {
+    nodes,
+    edges: fixture.edges.map((edge) => ({
+      source: edge.source,
+      target: edge.target,
+      weight: edge.weight,
+    })),
+    communities:
+      fixture.communities.length === nodes.length
+        ? [...fixture.communities]
+        : nodes.map(() => -1),
+  };
 }
 
 /** Link store and entity index column. Entity indices are the contiguous range `[0, nodeCount)`. */

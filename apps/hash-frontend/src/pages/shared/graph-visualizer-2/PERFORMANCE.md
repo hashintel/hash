@@ -65,19 +65,19 @@ in or settling.
 
 ### Implementation status
 
-| #   | Status            | Notes                                                                                                                                                                                                                                                                     |
-| --- | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| R1  | ⏳ Deferred       | Full layer persistence + per‑layout "moved" gating is a large re‑architecture that changes deck binary‑attribute re‑upload semantics; wants runtime profiling + visual QA. The concrete per‑frame _gather/alloc_ hotspots it names are addressed by R3 (community) below. |
-| R2  | ✅ Done           | `resolveEntityIcon` is memoised by the `entityTypeIds` key in the bridge, so thousands of per‑dot type‑hierarchy walks collapse to one per distinct type‑set. (Incremental "only scan added dots" not done — the memo already removes the dominant cost.)                 |
-| R3  | ✅ Done           | Community grouping is cached by the `communities` array identity; the positions texture is uploaded **in place** (`Texture.writeData`) and only re‑created when the kept‑community set / dimensions change.                                                               |
-| R4  | ⏳ Deferred       | Per‑leaf endpoint‑buffer reuse; needs the same deck re‑upload‑semantics care as R1 (risk of edge/dot tearing) and is best validated in‑app.                                                                                                                               |
-| R5  | ⏳ Deferred       | Bézier shader sample‑count / underlay‑fold is a visual‑quality trade‑off that must be compared on‑screen before shipping.                                                                                                                                                 |
-| R6  | ✅ Done           | Cluster/edge label rebuild + full layer re‑push is gated on a fine zoom **bucket** (`LABEL_COLOR_ZOOM_BUCKETS_PER_UNIT`) instead of every wheel delta; a pure sub‑bucket zoom now does no layer work.                                                                     |
-| R7  | ✅ Done           | `#emitEntityLabels` diffs the projected hub set (ids + rounded x/y + text) and skips the React `setState` when unchanged, so a settled graph stops re‑rendering the bridge subtree.                                                                                       |
-| R8  | ✅ Done           | `PositionsFrame.settled` now means "no layout (cluster **or** entity/flat) is running", and the worker emits exactly one final `settled: true` frame when the last layout settles.                                                                                        |
-| R9  | ⏳ Deferred       | Metaball spatial binning is a substantial shader rewrite needing GPU profiling + visual QA.                                                                                                                                                                               |
-| R10 | ⏳ Deferred       | Low value; secondary edge‑pick debounce.                                                                                                                                                                                                                                  |
-| R11 | ✅ Partial (R11a) | The misleading `edgeArrowLayer` split `WeakMap` (a guaranteed cache miss — the array is fresh each frame) is removed. The `characterSet:"auto"` and empty‑overlay points fold into the deferred R1/R6 persistence work.                                                   |
+| #   | Status            | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| --- | ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| R1  | ⏳ Deferred       | Full layer persistence + per‑layout "moved" gating is a large re‑architecture that changes deck binary‑attribute re‑upload semantics; wants runtime profiling + visual QA. The concrete per‑frame _gather/alloc_ hotspots it names are addressed by R3 (community) below.                                                                                                                                                                                                           |
+| R2  | ✅ Done           | `resolveEntityIcon` is memoised by the `entityTypeIds` key in the bridge, so thousands of per‑dot type‑hierarchy walks collapse to one per distinct type‑set. (Incremental "only scan added dots" not done — the memo already removes the dominant cost.)                                                                                                                                                                                                                           |
+| R3  | ✅ Done           | Community grouping is cached by the `communities` array identity; the positions texture is uploaded **in place** (`Texture.writeData`) and only re‑created when the kept‑community set / dimensions change. (The texture is now `rgba32float` and also carries the connectivity‑corridor endpoint pairs — `render/bubble-corridors.ts`; corridor MST/obstacle planning is movement‑gated, not per‑frame, and the per‑frame endpoint refresh rides the existing gather at µs scale.) |
+| R4  | ⏳ Deferred       | Per‑leaf endpoint‑buffer reuse; needs the same deck re‑upload‑semantics care as R1 (risk of edge/dot tearing) and is best validated in‑app.                                                                                                                                                                                                                                                                                                                                         |
+| R5  | ⏳ Deferred       | Bézier shader sample‑count / underlay‑fold is a visual‑quality trade‑off that must be compared on‑screen before shipping.                                                                                                                                                                                                                                                                                                                                                           |
+| R6  | ✅ Done           | Cluster/edge label rebuild + full layer re‑push is gated on a fine zoom **bucket** (`LABEL_COLOR_ZOOM_BUCKETS_PER_UNIT`) instead of every wheel delta; a pure sub‑bucket zoom now does no layer work.                                                                                                                                                                                                                                                                               |
+| R7  | ✅ Done           | `#emitEntityLabels` diffs the projected hub set (ids + rounded x/y + text) and skips the React `setState` when unchanged, so a settled graph stops re‑rendering the bridge subtree.                                                                                                                                                                                                                                                                                                 |
+| R8  | ✅ Done           | `PositionsFrame.settled` now means "no layout (cluster **or** entity/flat) is running", and the worker emits exactly one final `settled: true` frame when the last layout settles.                                                                                                                                                                                                                                                                                                  |
+| R9  | ⏳ Deferred       | Metaball spatial binning is a substantial shader rewrite needing GPU profiling + visual QA. (Note: the connectivity corridors add a second early‑exit per‑pixel loop over ≤ 2·(members−1) capsule segments; it shares any future binning fix.)                                                                                                                                                                                                                                      |
+| R10 | ⏳ Deferred       | Low value; secondary edge‑pick debounce.                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| R11 | ✅ Partial (R11a) | The misleading `edgeArrowLayer` split `WeakMap` (a guaranteed cache miss — the array is fresh each frame) is removed. The `characterSet:"auto"` and empty‑overlay points fold into the deferred R1/R6 persistence work.                                                                                                                                                                                                                                                             |
 
 The deferred items are either visual‑quality trade‑offs (R5, R9) or layer‑persistence
 re‑architectures (R1, R4) whose deck re‑upload semantics should be validated against a
@@ -728,6 +728,44 @@ None of this needs a build; it can be measured in the running app:
 - **`settled` (R8):** log `frame.settled` in `WorkerConnection.#handleMessage`
   `POSITIONS_FRAME`; today it's `true` on the first flat frame — that's the bug to
   confirm before wiring it to anything.
+
+### 7.1 Render benchmark (the built-in capture)
+
+The scene now instruments itself, so the numbers above have a one-click,
+reproducible source: `RenderMetricsProbe` (`render/scene/render-metrics.ts`)
+collects Deck's once-per-second stats (`_onMetrics`) **plus our own timing of
+every `#pushLayers`** — the `setProps({ layers })` call that includes layer
+construction diffing, i.e. exactly the "deck.gl rebuild" cost R1 targets.
+
+How to run:
+
+1. Open the dev harness (`/dev-graph-visualizer`), set the fixture knobs to the
+   scenario you care about (e.g. 5k entities, streaming on for rebuild load, or
+   streaming off + settled for pure pan/zoom cost).
+2. Click **"Render bench (10s zoom sweep)"**. The harness starts a capture,
+   drives a scripted zoom oscillation for 10 s (crossing label/LOD buckets both
+   ways, so layer rebuilds happen the way interactive use causes them), then
+   prints the `RenderCaptureReport` JSON to the console and a summary line
+   (fps | cpu/frame | push p95) in the panel.
+3. Programmatic access (e.g. Playwright): the scene surfaces
+   `startRenderCapture()` / `stopRenderCapture()` — the harness reaches it via
+   the `onSceneReady` prop on `EntityGraphVisualizerV2`.
+
+Reading the report:
+
+- `layerPush.p95Ms` / `maxMs` — main-thread cost per rebuild+push. **This is
+  the number to hold a budget on** (and to compare before/after for R1's
+  persistent-layer work).
+- `deck.fps`, `deck.cpuTimePerFrame`, `deck.gpuTimePerFrame` — smoothness
+  during the sweep; `framesRedrawn` says how many frames actually drew.
+- `deck.setPropsTime` / `updateAttributesTime` — Deck's own accounting of prop
+  diffing and attribute (re)generation; `updateAttributesTime` is the R1/R6
+  signal.
+
+Suggested starting budgets (same machine, same fixture, compare trends not
+absolutes): at 5k entities settled, sweep fps ≥ 55 and `layerPush.p95Ms` ≤ 4 ms;
+while streaming 5k in, fps ≥ 30 and `layerPush.p95Ms` ≤ 8 ms. Tighten these
+once R1 (persistent layers + `updateTriggers`) lands.
 
 ---
 

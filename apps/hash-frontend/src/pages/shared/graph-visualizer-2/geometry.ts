@@ -7,9 +7,17 @@
  * used during layout passes where positions change in place.
  */
 
-export interface Circle {
+export interface Position {
   readonly x: number;
   readonly y: number;
+}
+
+export interface MutablePosition {
+  x: number;
+  y: number;
+}
+
+export interface Circle extends Position {
   readonly radius: number;
 }
 
@@ -24,6 +32,7 @@ export function screenRadius(circle: Circle, zoom: number): number {
 export class MutableCircle implements Circle {
   x: number;
   y: number;
+
   radius: number;
 
   constructor(x?: number, y?: number, radius?: number) {

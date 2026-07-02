@@ -9,7 +9,7 @@
  */
 
 import type { VizConfig } from "../../config";
-import type { Circle } from "../../geometry";
+import type { Circle, Position } from "../../geometry";
 import type { ClusterId } from "../../ids";
 import type { ClusterTree } from "../hierarchy/cluster-tree";
 
@@ -20,7 +20,7 @@ export interface PairInfo {
   readonly byType: ReadonlySet<number>;
 }
 
-export interface Port {
+export interface Port extends Position {
   readonly clusterId: ClusterId;
   readonly neighborId: ClusterId;
   /**
@@ -32,8 +32,7 @@ export interface Port {
    */
   readonly allNeighborIds: readonly ClusterId[];
   readonly angle: number;
-  readonly x: number;
-  readonly y: number;
+
   readonly edgeCount: number;
   readonly distinctTypes: number;
 }

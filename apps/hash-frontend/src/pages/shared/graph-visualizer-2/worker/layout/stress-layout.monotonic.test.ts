@@ -13,7 +13,7 @@
  * seed→settle contraction is expected and is NOT what this measures — it happens before,
  * or up to, the peak, so it never contributes to the post-peak rebound.)
  */
-// eslint-disable-next-line import/no-extraneous-dependencies
+
 import { describe, expect, it } from "vitest";
 
 import { buildForceGraphWithCoincidentHub } from "../bench-fixtures";

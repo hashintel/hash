@@ -135,6 +135,40 @@ Three engines coexist, one per regime — none replaces another:
 (SMACOF appears twice on purpose: the flat-tier _seed_, and the cluster layout
 engine. Different uses, same majoriser.)
 
+### Flat-tier entity engines (`worker/layout/`) — the `stress.engine` toggle
+
+Within the flat/community-force regime, THREE interchangeable entity-layout
+engines exist today (the "means, not design decisions" rule above — same
+displayed goal, different cost/quality trade-offs):
+
+- **FA2 pipeline** (`community-layout.ts`, `createCommunityLayout`) — the
+  original Louvain → sparse-stress seed → FA2 refine pipeline described above.
+  Superseded for the community tier by the two below (slower to settle, rebounds,
+  and leaves overlaps to a terminal pass), kept as the A/B baseline.
+- **Sparse stress / SGD** (`stress-layout.ts`, `createStressLayout`) — pivot-based
+  sparse stress solved by SGD with the FORBID overlap term fused into the loop,
+  plus community cohesion/separation and degree-repulsion _forces_. The
+  production default.
+- **Stress majorization** (`majorization-layout.ts`, `createMajorizationLayout`)
+  — constrained stress majorization: the same pivot analysis feeding a
+  persistent-CG majorizer over interval targets, with circle-relaxation
+  projection at every iteration boundary, a verified-clean terminal settle, and
+  **community-region floors** (every node is kept out of foreign communities'
+  packing disks — the region-level separation that pure target inflation cannot
+  provide). Zero overlaps and region disjointness are _verified_ at settle, not
+  hoped for.
+
+`VizConfig.stress.engine` (`"stress"` default | `"majorization"`, surfaced as the
+engine switch in the dev-harness controls panel) selects between the latter two
+at layout-build time. The three tuning sliders (`communityCohesion`,
+`communitySeparation`, `degreeRepulsion`) apply to BOTH engines with
+engine-specific semantics — forces on the SGD loop vs target shaping (community
+target scaling, hub halo bands, region-floor margin) in majorization; the
+mapping is documented on `StressTuning` in `config.ts`. The A/B bench comparing
+all three on identical fixtures (wall time, worst tick, overlaps, edge stress,
+rebound, inter/intra, region-overlap, hub halo, determinism) lives at
+`worker/layout/majorization-ab.bench.ts`.
+
 ## Display: zoom-driven level of detail (ALL tiers)
 
 Display is **never gated by mode** (A vs B). It's gated by **zoom + apparent

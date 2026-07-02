@@ -30,6 +30,19 @@ interface ControlsPanelProps {
   readonly knobs: HarnessKnobs;
   readonly onChange: (knobs: HarnessKnobs) => void;
   readonly onRegenerate: () => void;
+  /**
+   * CAPTURE-LIVE-FIXTURE debug hook: serialize the live layout graph to a
+   * downloadable JSON fixture (replayable via bench-fixtures.ts). Absent when
+   * no worker handle is live yet.
+   */
+  readonly onCaptureFixture?: () => void;
+  /**
+   * RENDER-BENCH debug hook: capture deck stats + layer-push timings for a
+   * fixed window under a scripted zoom sweep (report JSON in the console).
+   */
+  readonly onRunRenderBench?: () => void;
+  /** Summary line of the last render bench (or its in-progress notice). */
+  readonly renderBenchStatus?: string;
   /** Entities handed to the visualizer so far, shown against the total while streaming. */
   readonly streamedCount: number;
   readonly totalCount: number;
@@ -75,6 +88,9 @@ export const ControlsPanel = memo(
     knobs,
     onChange,
     onRegenerate,
+    onCaptureFixture,
+    onRunRenderBench,
+    renderBenchStatus,
     streamedCount,
     totalCount,
     seed,
@@ -267,6 +283,21 @@ export const ControlsPanel = memo(
             <Button variant="primary" size="small" onClick={onRegenerate}>
               Regenerate
             </Button>
+            {onCaptureFixture ? (
+              <Button variant="tertiary" size="xs" onClick={onCaptureFixture}>
+                Capture layout fixture (JSON)
+              </Button>
+            ) : null}
+            {onRunRenderBench ? (
+              <Button variant="tertiary" size="xs" onClick={onRunRenderBench}>
+                Render bench (10s zoom sweep)
+              </Button>
+            ) : null}
+            {renderBenchStatus ? (
+              <Typography sx={{ fontSize: 11, color: "gray.60" }}>
+                {renderBenchStatus}
+              </Typography>
+            ) : null}
           </Stack>
         )}
       </Box>

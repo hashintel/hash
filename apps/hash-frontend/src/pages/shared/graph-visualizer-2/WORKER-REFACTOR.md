@@ -20,7 +20,9 @@ A pinned, resumable plan for the `worker/` cohesion refactor. Driven by a read-o
 - Per cohesive step: `mv` files, fix imports (moved files: depth +1 for `../` externals,
   `./collections|buffers|...` become `../...`, siblings stay `./`; importers: `./X` ->
   `./folder/X`; external importers under `../worker/...`), then gate on
-  `tsc` + `eslint` (graph-visualizer-2) + worker `vitest`. No `index.ts` barrels (fractal).
+  `tsc` + `eslint` (graph-visualizer-2) + worker `vitest`. No `index.ts` barrels.
+- Subdirectory grouping is by concern/domain (e.g. `core/flat/`,
+  `core/hierarchical/`, `core/frames/`). Never create `shared/` folders.
 
 ## DONE (committed, green)
 
@@ -32,8 +34,59 @@ geometry/ core/`; `index.ts` -> `core/graph-worker.ts`. `entry.ts`, `protocol.ts
   `entity-id-codec.ts` (byte codec, shared with the main thread), `random.ts`
   (`mulberry32` + `parkMillerRng`, both preserved exactly), `csr-graph.ts`
   (`CsrGraph` + `buildInducedCsr` + `connectedComponents`).
+- **Phase C:** `core/graph-worker.ts` (~3k lines) decomposed into a composition
+  root (474 lines) + collaborators, all <= 500 lines. Private state became
+  constructor-injected dependencies; `entry.ts`'s public surface is unchanged.
+- **Phase C.1 (core regrouped by concern, no `shared/` folders):** `core/` root
+  keeps orchestration + cross-tier state (`graph-worker.ts`, `ingest.ts`,
+  `tick-loop.ts`, `schedulers.ts`, `layout-registry.ts`, `mode-policy.ts`,
+  `committed-view.ts`, `cluster-membership.ts`, `entity-edges.ts`, `ego.ts`);
+  `core/flat/` owns the flat/community tier (`flat-tier.ts`, `flat-edges.ts`,
+  `flat-seed.ts`, `entity-colors.ts`); `core/hierarchical/` owns the LOD tier
+  (`hierarchical-tier.ts`, `hierarchical-layouts.ts`, `settle-polish.ts`,
+  `viewport-anchor.ts`, `port-constraints.ts`, `layout-reuse.ts`,
+  `membership-fingerprint.ts`, `leaf-colors.ts`, `embedding-coordinator.ts`);
+  `core/frames/` owns frame emission (`structure-frame.ts`,
+  `positions-frame.ts`, `leaf-local-cache.ts`).
+- **Core tests:** meaningful co-located suites for `mode-policy` (hysteresis
+  known-answers), `schedulers` (macro-task tick/job semantics),
+  `cluster-membership` (direct/groups/rollup + frontier filters),
+  `entity-edges` (dedupe + cluster-pair weights), `flat/flat-seed`
+  (prior-position keep, neighbour offset, cascade, determinism),
+  `frames/leaf-local-cache`, `collections/position-scratch`, and
+  `render/scene/render-metrics`.
+- **Generators + data structures in core:** `frontierMembers` /
+  `entityIdsForCluster` are generators (plus `frontierCount`), so structure
+  commits only materialise member arrays for wholly-frontier clusters;
+  `buildEntityEdges` dedupes on numeric pair keys (no per-link strings);
+  `buildClusterEdges` walks the entity->child map directly (no per-child
+  arrays); flat seeding reuses one `PositionScratch` (Float64Array-backed
+  collection) instead of allocating position `Map`s per rebuild.
+- **Render benchmark:** `render/scene/render-metrics.ts` probe (deck stats +
+  layer-push timings) wired into `Scene` (`startRenderCapture` /
+  `stopRenderCapture`), driven by the dev-harness "Render bench" button via
+  `onSceneReady`. See PERFORMANCE.md section 7.1 for budgets.
+- **Scene split (render side, same 500-line rule):** `render/scene.ts` (~1.7k
+  lines) -> composition root (396 lines) + `render/scene/` collaborators:
+  `callbacks.ts` (public payload types), `view-state.ts`, `geometry.ts`,
+  `picking.ts`, `camera.ts`, `interactions.ts`, `hover-tracking.ts`,
+  `hub-labels.ts`, `entity-icons.ts`, `render-metrics.ts`.
 
 ## REMAINING
+
+### Candidate follow-ups (files still > 500 lines)
+
+- `render/worker-connection.ts` (683) -- frame decode vs connection lifecycle.
+- `entity-graph-visualizer.tsx` (861) -- React shell; hooks could split out.
+- `worker/geometry/edge-geometry.ts` (1549), `worker/geometry/edge-aggregation.ts`
+  (965), `worker/hierarchy/cluster-tree.ts` (1217),
+  `worker/hierarchy/distinctive-cluster-label.ts` (587) -- the Phase B splits
+  below already plan these.
+- Math-heavy layout engines are EXEMPT per the "math-heavy" exception
+  (`sparse-stress-solver.ts`, `sparse-stress-seed.ts`, `majorization-layout.ts`,
+  `overlap-removal.ts`, `community-layout.ts`, `top-level-layout.ts`,
+  `forbid.ts`, `stress-layout.ts`, `untangle.ts`); majorization/sparse-stress
+  are mid-rewrite (CG solver) -- do not touch until that lands.
 
 ### Phase B splits (hit 500-700 lines/file)
 
@@ -52,33 +105,6 @@ geometry/ core/`; `index.ts` -> `core/graph-worker.ts`. `entry.ts`, `protocol.ts
 - `hierarchy/cluster-tree.ts` (1296) -> `cluster-node.ts` (value classes),
   `cluster-labeling.ts` (TF-IDF), `cluster-merge.ts`, and `geometry/cluster-packing.ts`
   (`enclosingRadius` etc; the `cluster-radii` test follows `enclosingRadius`).
-
-### Phase C: decompose `core/graph-worker.ts` (2369) into collaborator classes
-
-Smallest-first to validate the shared-private-state seam. Extract to `core/`:
-
-1. `embedding-controller.ts` (~90): `#pendingEmbeddingRequests`, `drainEmbeddingRequests`,
-   `applyEmbeddingResult`.
-2. `layout-scheduler.ts` (~120): the MessageChannel tick loop (`#schedulerChannel`,
-   `#scheduleNextTick`, `#ensureSchedulerRunning`, `#tickAllLayouts`, running predicates).
-3. `settle-polish.ts` (~160): `#polishSettledLayout`, `#optimizeTopLevelLayout`,
-   `#untangleClusterLayout`, `#writeChildCircles`.
-4. `port-constraint-controller.ts` (~200): `#computePorts`, `#applyPortConstraints`,
-   `#updateAnchorTracking`, `#anchorEndpoints`, `#entityPortTargets` (+ the PortCache).
-5. `geometry-emitter.ts` (~280): `#emitStructure`, `#emitPositions`, `#renderCluster`,
-   `#buildEntityLayers`, `#buildEntityFanOut`, the BezierSegmentSink.
-6. `ingest-controller.ts` (~260): `registerTypes`, `insertNodeEntity`, `insertLinkEntity`,
-   `ingestBatch`, `#resolvePendingLinks`, `recomputeMode`.
-7. `flat-tier-controller.ts` (~380): `#commitFlat`, `#rebuildFlatLayout`,
-   `#absorbFlatNodes`, `#seedFlatNodes`, `#writeFlatStyle`, flat bezier edges,
-   `#scheduleFlatLouvainLinger`, `FLAT_*`, `flatCapacityFor`, `#flatBuffer`.
-8. `hierarchical-tier-controller.ts` (~340): `commitStructure` (hierarchical branch),
-   `#ensureChildrenLayout`, `#ensureEntityLayout`, `#buildClusterEdges`,
-   `#buildEntityEdges`, `#trySubdivide`, the `#rendered/#cutIndex/#edgeFrame` state.
-
-`GraphWorker` slims to composition + the public methods `entry.ts` calls. RISK: `#private`
-state shared across responsibilities (e.g. `#flatBuffer`) becomes constructor-injected;
-extract smallest-first to validate the boundary before the two tier controllers.
 
 ### Phase D: branded types + interface configs (one family per step, after the moves)
 

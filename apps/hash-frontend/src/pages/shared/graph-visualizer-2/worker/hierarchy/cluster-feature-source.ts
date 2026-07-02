@@ -21,7 +21,7 @@ import type {
   NumericReading,
 } from "./distinctive-cluster-label";
 
-export interface ClusterFeatureDeps {
+export interface ClusterFeatureDependencies {
   readonly properties: PropertyStore;
   readonly links: LinkStore;
   readonly entities: EntityStore;
@@ -33,9 +33,9 @@ export interface ClusterFeatureDeps {
 const LINK_SORT_PREFIX = "\uFFFF";
 
 export function createClusterFeatureSource(
-  deps: ClusterFeatureDeps,
+  dependencies: ClusterFeatureDependencies,
 ): FeatureSource {
-  const { properties, links, entities, typeSets, types } = deps;
+  const { properties, links, entities, typeSets, types } = dependencies;
 
   /** The primary (most specific) type of the entity an endpoint points at, if known. */
   const targetTypeIdx = (otherIdx: EntityIndex): TypeId | undefined => {

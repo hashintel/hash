@@ -13,7 +13,7 @@
  * so off-screen bubbles remain free to reflow.
  */
 
-import type { ViewportState } from "../hierarchy/lod";
+import type { ViewportState } from "../../hierarchy/lod";
 
 /** Off-screen bubbles keep this much anchor: they reflow but don't teleport while
  * the user isn't looking. Also the floor of {@link viewportAnchorWeight}. */
@@ -35,6 +35,7 @@ export function viewportAnchorWeight(
     worldY - viewport.centerY,
   );
   const falloff = Math.exp(-((distance / visibleRadius) ** 2));
+
   // Amplify only the on-screen (high-falloff) term by the zoom, never below 1×.
   // Off-screen bubbles have falloff ≈ 0, so they stay at the floor at any zoom.
   const zoomStrength = Math.max(1, scale);

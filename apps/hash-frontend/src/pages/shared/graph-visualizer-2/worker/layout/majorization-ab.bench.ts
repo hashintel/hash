@@ -23,6 +23,11 @@
  *                (0 = monotone approach, the motion gate)
  *   inter/intra  mean cross-community edge length ÷ mean same-community edge length
  *                (Louvain partition computed once per fixture, shared by all engines)
+ *   regionOv     region-overlap (PRIMARY region-disjointness metric): fraction of
+ *                nodes strictly inside a FOREIGN community's packing disk — the
+ *                user-visible "bubble intrudes into another community" artifact
+ *                that inter/intra cannot see (folded branches share no edges).
+ *                See region-metrics.ts for the full rationale.
  *   hubSpoke     mean spoke length of the 150-leaf hub ÷ its one-ring packing radius
  *                (≈1 = leaves sit right at the tightest feasible halo)
  *   determ.      bitwise position equality across two identical runs
@@ -45,6 +50,7 @@ import { FlatGraphBuffer } from "../buffers/position-buffer";
 import { createCommunityLayout } from "./community-layout";
 import { createMajorizationLayout } from "./majorization-layout";
 import { countOverlaps } from "./overlap-relax";
+import { measureRegionOverlap } from "./region-metrics";
 import { createStressLayout } from "./stress-layout";
 
 import type { GraphShape } from "../bench-fixtures";
@@ -238,6 +244,7 @@ interface Quality {
   readonly overlaps: number;
   readonly edgeStress: number;
   readonly interIntra: number;
+  readonly regionOverlap: number;
   readonly hubSpokeRatio: number;
 }
 
@@ -334,6 +341,15 @@ function measureQuality(
   }
   const ringRadius = ringNeed / (2 * Math.PI);
 
+  const regionStats = measureRegionOverlap(
+    nodes.map((node) => ({
+      x: node.x ?? 0,
+      y: node.y ?? 0,
+      radius: node.radius,
+      community: communities.get(node.id) ?? -1,
+    })),
+  );
+
   return {
     overlaps: countOverlaps({ x, y, radii, count, padding: 0 }),
     edgeStress: lengths.length > 0 ? Math.sqrt(sumSqDev / lengths.length) : 0,
@@ -341,6 +357,7 @@ function measureQuality(
       sameCount > 0 && crossCount > 0
         ? sumCross / crossCount / (sumSame / sameCount)
         : 0,
+    regionOverlap: regionStats.diskContainment,
     hubSpokeRatio:
       spokeCount > 0 && ringRadius > 0 ? spokeSum / spokeCount / ringRadius : 0,
   };
@@ -375,7 +392,7 @@ function pad(text: string, width: number, alignRight = true): string {
 function comparisonReport(fixture: Fixture): string {
   const { nodes, edges } = fixture;
   const communities = communityPartition(nodes, edges, 1);
-  const columns = [13, 9, 10, 9, 11, 10, 12, 9, 8];
+  const columns = [13, 9, 10, 9, 11, 10, 12, 9, 9, 8];
   const row = (cells: readonly string[]): string =>
     cells
       .map((cell, index) => pad(cell, columns[index]!, index !== 0))
@@ -393,6 +410,7 @@ function comparisonReport(fixture: Fixture): string {
     "edgeStress",
     "spreadDip",
     "inter/intra",
+    "regionOv",
     "hubSpoke",
     "determ.",
   ]);
@@ -422,6 +440,7 @@ function comparisonReport(fixture: Fixture): string {
         quality.edgeStress.toFixed(3),
         terminalReboundOf(result.spreads).toFixed(3),
         quality.interIntra.toFixed(2),
+        quality.regionOverlap.toFixed(3),
         quality.hubSpokeRatio.toFixed(2),
         deterministic,
       ]),

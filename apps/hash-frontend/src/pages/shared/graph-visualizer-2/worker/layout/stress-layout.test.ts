@@ -1,5 +1,5 @@
 /* eslint-disable id-length -- community/centroid index math (k, c) mirrors the solver and reads best short; matches the sibling *.test.ts files. */
-// eslint-disable-next-line import/no-extraneous-dependencies
+
 import { describe, expect, it } from "vitest";
 
 import {

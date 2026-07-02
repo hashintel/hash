@@ -1,6 +1,6 @@
-import { fmix32 } from "../../math/hash";
+import { fmix32 } from "../../../math/hash";
 
-import type { EntityIndex } from "../../ids";
+import type { EntityIndex } from "../../../ids";
 
 /**
  * Order-independent fingerprint of an entity-index set: count plus the sum

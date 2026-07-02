@@ -100,6 +100,10 @@ import louvain from "graphology-communities-louvain";
 
 import { parkMillerRng } from "../../math/random";
 import { countOverlaps, overlapRelaxPass } from "./overlap-relax";
+import {
+  REGION_MIN_COMMUNITY_SIZE,
+  REGION_PACKING_UTILISATION,
+} from "./region-metrics";
 import { INF_DIST, SparseStressSolver } from "./sparse-stress-solver";
 
 import type { FlatGraphBuffer } from "../buffers/position-buffer";
@@ -145,6 +149,59 @@ const PACKING_UTILISATION = 0.55;
 const NEAR_PAIR_WEIGHT = 1;
 /** Cap near-pair partners per node so a k-node pile emits O(k), not O(k²), terms. */
 const NEAR_PAIR_MAX_PARTNERS = 8;
+
+/**
+ * COMMUNITY-REGION floors: every node outside community c is kept OUT of c's region
+ * disk — centred on the members' live centroid, radius R_c from the packing area of
+ * c's member disks (the same packing model as the hub floors and the sibling
+ * engines' scale-to-fit). This is the region-level separation the target-shaping
+ * translation of the SGD engine dropped: cross-community inflation only stretches
+ * EXISTING terms (edges + pivot pairs), so an unrelated branch — sharing no edge
+ * and no pivot term with a foreign community — had NOTHING keeping it out of that
+ * community's fan and folded straight through it (measured: 32 % of real-shape
+ * nodes sat inside a foreign community's core disk; degree-1 leaves, which pivot
+ * anchoring deliberately skips, interpenetrate worst).
+ *
+ * Enforced as a RELAX PASS (violators are pushed radially out of the region disk,
+ * gently at every iteration boundary and to verified-clean in the terminal
+ * settle), NOT as Laplacian floor terms, for the build-once architecture's
+ * economics: `regions × n` interval terms would dominate the Laplacian (~5× the
+ * nnz at 5k) and add constant stiffness between every node and every region even
+ * while satisfied (an in-band interval term exerts zero net force but keeps full
+ * weight in L), taxing every CG step of every solve. The relax pass costs zero
+ * solve stiffness and is push-only with NO opposing term — the stress energy has
+ * no term pulling a foreign node into a region (that absence is the root cause),
+ * so pushed-out is a genuine fixed point: the same no-livelock argument as the hub
+ * bands, now enforced by the projector instead of fought over by the dynamics.
+ * The terminal settle exits only when a full sweep verifies the layout BOTH
+ * disk-overlap-free AND region-clean, so the end state is guaranteed, not asked
+ * of the dynamics.
+ *
+ * Exemptions, planned per build (per-node bitmask, hence the ≤ 32 region cap):
+ * members of c, and nodes with an edge INTO c — a bridge endpoint legitimately
+ * sits at the region rim, and shoving it out against its own edge target would
+ * leave permanent tension for the solve to fight (measured as a settle-phase
+ * treadmill). Only the largest communities with ≥ REGION_MIN_COMMUNITY_SIZE
+ * members cast a region — tiny communities and singleton noise are skipped, so
+ * fragmented graphs stay O(n · 32) per pass, ~a disk-relax pass's cost.
+ * REGION_MIN_COMMUNITY_SIZE and the packing utilisation are imported from
+ * {@link "./region-metrics"} so the gate measures exactly what the engine enforces.
+ */
+const REGION_FLOOR_MAX_COMMUNITIES = 32;
+/** Fraction of a region violation corrected per iteration-boundary pass. */
+const REGION_RELAX_STRENGTH_ITERATION = 0.5;
+/**
+ * Region clearance margin (world units beyond R_c + r_v) while the solve runs:
+ * overlapPadding + communitySeparation · GAIN · idealEdgeLength (default 0.08 →
+ * ~13 px, harness max 0.8 → ~56 px). Combined with the pre-existing
+ * cross-community TARGET inflation ×(1 + 2·separation), the slider now moves both
+ * the pairwise stretch and the region clearance. The terminal settle relaxes and
+ * verifies at a 2 px sliver instead (same design as SETTLE_PADDING): the margin is
+ * the stress phase's breathing room, and re-enforcing all of it terminally would
+ * read as a terminal expansion.
+ */
+const REGION_MARGIN_GAIN = 1;
+const REGION_SETTLE_MARGIN = 2;
 
 /**
  * Dead-zone ceiling for FLOORED / packing-bound terms, as a multiple of the reference
@@ -397,6 +454,23 @@ class MajorizationSolver {
   // Per-component feasibility scale on hop targets + node→component map (see header).
   #componentScale = new Float64Array(0);
   #componentOf: Int32Array<ArrayBufferLike> = new Int32Array(0);
+
+  // Community-region floor plan (see REGION_FLOOR_MAX_COMMUNITIES): the largest
+  // communities cast centroid-centred packing disks that non-members are relaxed out
+  // of. Built once per solver build; centroids are recomputed from live member
+  // positions at every pass.
+  #regionCount = 0;
+  /** Region members, region-major (offsets below); feeds the centroid recompute. */
+  #regionMemberNodes = new Int32Array(0);
+  #regionMemberOffsets = new Int32Array(0);
+  /** Packing radius per region (world units, before the per-node radius + margin). */
+  #regionRadius = new Float32Array(0);
+  /** Per node, bit r set ⇔ exempt from region r (member or edge-adjacent). */
+  #regionExempt = new Uint32Array(0);
+  #regionCentroidX = new Float64Array(0);
+  #regionCentroidY = new Float64Array(0);
+  /** Solve-time clearance beyond R_c + r_v (slider-scaled; see REGION_MARGIN_GAIN). */
+  #regionMargin = 0;
   // Scratch outputs of #shapeTarget (avoids a per-call tuple allocation at build time).
   #shapedLo = 0;
   #shapedHi = 0;
@@ -447,6 +521,12 @@ class MajorizationSolver {
   #settleUnits = 0;
   /** Latches once a full relax pass verifies the layout overlap-free. */
   #everFeasible = false;
+  /** Whether the settle phase hit its pass cap with violations remaining. */
+  settleCapped = false;
+  /** Strict disk overlaps at the last measurement (per iteration / settle verify). */
+  residualOverlaps = 0;
+  /** Community-region violations (margin 0) at the last measurement. */
+  residualRegionViolations = 0;
   /** Cumulative ms spent inside relaxation passes (diagnostic). */
   projectionMs = 0;
   /** Worst single relaxation unit (ms; diagnostic). */
@@ -753,8 +833,183 @@ class MajorizationSolver {
     // (see the projector notes above).
     this.#emitNearPairTerms();
 
+    this.#buildRegionPlan();
+
     this.#pivotRowCursor = 0;
     this.#pivotNodeCursor = 0;
+  }
+
+  /**
+   * Community-region floor plan (see REGION_FLOOR_MAX_COMMUNITIES): pick the largest
+   * ≥ REGION_MIN_COMMUNITY_SIZE communities (bounded, deterministic order), compute
+   * each one's packing radius from its member disk areas, and mark the exempt nodes
+   * (members + anything edge-adjacent to a member) in a per-node bitmask.
+   */
+  #buildRegionPlan(): void {
+    const n = this.#n;
+    const communityOf = this.#communityOf;
+    this.#regionCount = 0;
+    this.#regionExempt = new Uint32Array(0);
+    if (!communityOf || n === 0) {
+      return;
+    }
+
+    let communityCount = 0;
+    for (let v = 0; v < n; v++) {
+      if (communityOf[v]! + 1 > communityCount) {
+        communityCount = communityOf[v]! + 1;
+      }
+    }
+    const memberCount = new Int32Array(communityCount);
+    for (let v = 0; v < n; v++) {
+      memberCount[communityOf[v]!]! += 1;
+    }
+
+    const candidates: number[] = [];
+    for (let c = 0; c < communityCount; c++) {
+      if (memberCount[c]! >= REGION_MIN_COMMUNITY_SIZE) {
+        candidates.push(c);
+      }
+    }
+    // Largest first; community id breaks ties — deterministic under the dense
+    // (first-seen) community numbering.
+    candidates.sort((a, b) => memberCount[b]! - memberCount[a]! || a - b);
+    const regions = candidates.slice(0, REGION_FLOOR_MAX_COMMUNITIES);
+    if (regions.length === 0) {
+      return;
+    }
+
+    const regionOfCommunity = new Int32Array(communityCount).fill(-1);
+    for (const [regionIndex, community] of regions.entries()) {
+      regionOfCommunity[community] = regionIndex;
+    }
+
+    const count = regions.length;
+    this.#regionCount = count;
+    this.#regionRadius = new Float32Array(count);
+    this.#regionCentroidX = new Float64Array(count);
+    this.#regionCentroidY = new Float64Array(count);
+    this.#regionMemberOffsets = new Int32Array(count + 1);
+    this.#regionExempt = new Uint32Array(n);
+    this.#regionMargin =
+      this.#options.overlapPadding +
+      this.#options.communitySeparation *
+        REGION_MARGIN_GAIN *
+        this.#options.idealEdgeLength;
+
+    // Packing radius + member exemption, then member lists (counting sort).
+    const pad = this.#options.overlapPadding;
+    const areaSq = new Float64Array(count);
+    for (let v = 0; v < n; v++) {
+      const region = regionOfCommunity[communityOf[v]!]!;
+      if (region < 0) {
+        continue;
+      }
+      const half = this.#radii[v]! + pad / 2;
+      areaSq[region]! += half * half;
+      this.#regionExempt[v]! |= 1 << region;
+      this.#regionMemberOffsets[region + 1]! += 1;
+    }
+    for (let r = 0; r < count; r++) {
+      this.#regionRadius[r] = Math.sqrt(
+        areaSq[r]! / REGION_PACKING_UTILISATION,
+      );
+      this.#regionMemberOffsets[r + 1]! += this.#regionMemberOffsets[r]!;
+    }
+    this.#regionMemberNodes = new Int32Array(this.#regionMemberOffsets[count]!);
+    const cursor = this.#regionMemberOffsets.slice(0, count);
+    for (let v = 0; v < n; v++) {
+      const region = regionOfCommunity[communityOf[v]!]!;
+      if (region >= 0) {
+        this.#regionMemberNodes[cursor[region]!] = v;
+        cursor[region]! += 1;
+      }
+    }
+
+    // Edge-adjacency exemption: a bridge endpoint may sit at the foreign region's
+    // rim (its own edge target puts it there); shoving it out would fight the edge.
+    for (let e = 0; e < this.#src.length; e++) {
+      const u = this.#src[e]!;
+      const v = this.#dst[e]!;
+      const regionU = regionOfCommunity[communityOf[u]!]!;
+      const regionV = regionOfCommunity[communityOf[v]!]!;
+      if (regionU >= 0) {
+        this.#regionExempt[v]! |= 1 << regionU;
+      }
+      if (regionV >= 0) {
+        this.#regionExempt[u]! |= 1 << regionV;
+      }
+    }
+  }
+
+  /**
+   * One community-region relax pass: recompute each region's centroid from its live
+   * members, then push every non-exempt node radially out to R_region + r_node +
+   * `margin`. Returns the number of violations found; with `strength` 0 it only
+   * counts (the settle phase's verification read). Deterministic: fixed region
+   * order, index-ordered node scan, hash-derived direction for a node exactly on a
+   * centroid. One-sided by design — the stress energy has no term pulling a foreign
+   * node INTO a region, so pushed-out is a fixed point (no force to fight).
+   */
+  #regionRelaxPass(margin: number, strength: number): number {
+    const count = this.#regionCount;
+    if (count === 0) {
+      return 0;
+    }
+    const n = this.#n;
+
+    for (let r = 0; r < count; r++) {
+      const start = this.#regionMemberOffsets[r]!;
+      const end = this.#regionMemberOffsets[r + 1]!;
+      let cx = 0;
+      let cy = 0;
+      for (let m = start; m < end; m++) {
+        const member = this.#regionMemberNodes[m]!;
+        cx += this.#x[member]!;
+        cy += this.#y[member]!;
+      }
+      const members = end - start;
+      this.#regionCentroidX[r] = members > 0 ? cx / members : 0;
+      this.#regionCentroidY[r] = members > 0 ? cy / members : 0;
+    }
+
+    let violations = 0;
+    for (let r = 0; r < count; r++) {
+      const cx = this.#regionCentroidX[r]!;
+      const cy = this.#regionCentroidY[r]!;
+      const base = this.#regionRadius[r]! + margin;
+      const bit = 1 << r;
+      for (let v = 0; v < n; v++) {
+        if ((this.#regionExempt[v]! & bit) !== 0) {
+          continue;
+        }
+        const need = base + this.#radii[v]!;
+        let dx = this.#x[v]! - cx;
+        let dy = this.#y[v]! - cy;
+        const distSq = dx * dx + dy * dy;
+        if (distSq >= need * need) {
+          continue;
+        }
+        violations += 1;
+        if (strength === 0) {
+          continue;
+        }
+        let dist = Math.sqrt(distSq);
+        if (dist < EPS) {
+          const angle = coincidentAngle(v, n + r);
+          dx = Math.cos(angle);
+          dy = Math.sin(angle);
+          dist = 1;
+        } else {
+          dx /= dist;
+          dy /= dist;
+        }
+        const shift = (need - dist) * strength;
+        this.#x[v]! += dx * shift;
+        this.#y[v]! += dy * shift;
+      }
+    }
+    return violations;
   }
 
   /**
@@ -846,7 +1101,10 @@ class MajorizationSolver {
 
   /**
    * Grid-detected near-pair floors. Deterministic: nodes scanned in index order, each
-   * unordered pair visited once, partners capped per node in scan order.
+   * unordered pair visited once, partners capped per node in scan order. Cell keys
+   * are packed NUMERIC (like the sibling grids' cell hashing, but collision-free):
+   * (cx, cy) offset into [0, 2²⁶) and combined as cx·2²⁶ + cy — exact in a float64
+   * up to 2⁵², injective for |cell| < 2²⁵ (world coords far beyond any layout).
    */
   #emitNearPairTerms(): void {
     const n = this.#n;
@@ -858,15 +1116,17 @@ class MajorizationSolver {
       }
     }
     const cellSize = Math.max(1e-6, 2 * maxRadius + pad);
+    const CELL_OFFSET = 1 << 25;
+    const CELL_STRIDE = 1 << 26;
 
     const cellOf = new Int32Array(n * 2);
-    const buckets = new Map<string, number[]>();
+    const buckets = new Map<number, number[]>();
     for (let v = 0; v < n; v++) {
       const cx = Math.floor(this.#x[v]! / cellSize);
       const cy = Math.floor(this.#y[v]! / cellSize);
       cellOf[v * 2] = cx;
       cellOf[v * 2 + 1] = cy;
-      const key = `${cx},${cy}`;
+      const key = (cx + CELL_OFFSET) * CELL_STRIDE + (cy + CELL_OFFSET);
       const bucket = buckets.get(key);
       if (bucket) {
         bucket.push(v);
@@ -884,7 +1144,10 @@ class MajorizationSolver {
       const baseY = cellOf[a * 2 + 1]!;
       for (let ox = -1; ox <= 1; ox++) {
         for (let oy = -1; oy <= 1; oy++) {
-          const bucket = buckets.get(`${baseX + ox},${baseY + oy}`);
+          const bucket = buckets.get(
+            (baseX + ox + CELL_OFFSET) * CELL_STRIDE +
+              (baseY + oy + CELL_OFFSET),
+          );
           if (!bucket) {
             continue;
           }
@@ -1061,6 +1324,9 @@ class MajorizationSolver {
     this.#settlePasses = 0;
     this.#settleUnits = 0;
     this.#everFeasible = false;
+    this.settleCapped = false;
+    this.residualOverlaps = 0;
+    this.residualRegionViolations = 0;
     this.#rhsCursor = 0;
     this.#phase = "rhs";
   }
@@ -1265,7 +1531,13 @@ class MajorizationSolver {
     this.lastSolveDisplacement = Math.sqrt(solveDispSq);
 
     const start = performance.now();
-    let moved = false;
+    // Region floor first (it can create disk overlaps for the passes below to bleed;
+    // the reverse order would leave region pushes un-cleaned until next iteration).
+    let moved =
+      this.#regionRelaxPass(
+        this.#regionMargin,
+        REGION_RELAX_STRENGTH_ITERATION,
+      ) > 0;
     for (let pass = 0; pass < ITERATION_RELAX_PASSES; pass++) {
       if (
         overlapRelaxPass({
@@ -1285,6 +1557,16 @@ class MajorizationSolver {
     if (moved) {
       this.projectionRuns += 1;
     }
+    // Truthful live diagnostics: the worker debug log prints these every tick, so
+    // they must reflect the actual iterate rather than an optimistic constant.
+    this.residualOverlaps = countOverlaps({
+      x: this.#x,
+      y: this.#y,
+      radii: this.#radii,
+      count: n,
+      padding: 0,
+    });
+    this.residualRegionViolations = this.#regionRelaxPass(0, 0);
 
     let maxDispSq = 0;
     let maxDispNode = -1;
@@ -1362,16 +1644,21 @@ class MajorizationSolver {
   }
 
   /**
-   * One terminal-settle unit: a few full-strength relax passes. Ends the solve once
-   * a pass verifies the layout overlap-free (returns zero movement); pure separation
-   * with no opposing force, so termination is structural — the safety cap only
-   * guards against the impossible and LOGS if ever hit.
+   * One terminal-settle unit: a few full-strength relax passes (region floor, then
+   * disk overlap). Ends the solve once a sweep verifies the layout BOTH
+   * disk-overlap-free and region-clean; pure separation with no opposing force, so
+   * termination is structural — the safety cap only guards against the impossible
+   * and LOGS if ever hit (surfaced via `settleCapped`).
    */
   #settleChunk(): void {
     const start = performance.now();
     let verifiedClean = false;
     for (let pass = 0; pass < SETTLE_PASSES_PER_UNIT; pass++) {
       this.#settlePasses += 1;
+      const regionViolations = this.#regionRelaxPass(
+        REGION_SETTLE_MARGIN,
+        SETTLE_RELAX_STRENGTH,
+      );
       const moved = overlapRelaxPass({
         x: this.#x,
         y: this.#y,
@@ -1381,17 +1668,24 @@ class MajorizationSolver {
         strength: SETTLE_RELAX_STRENGTH,
       });
       if (
-        (moved === 0 || this.#settlePasses % SETTLE_VERIFY_INTERVAL === 0) &&
-        countOverlaps({
+        (moved === 0 && regionViolations === 0) ||
+        this.#settlePasses % SETTLE_VERIFY_INTERVAL === 0
+      ) {
+        this.residualOverlaps = countOverlaps({
           x: this.#x,
           y: this.#y,
           radii: this.#radii,
           count: this.#n,
           padding: 0,
-        }) === 0
-      ) {
-        verifiedClean = true;
-        break;
+        });
+        this.residualRegionViolations = this.#regionRelaxPass(0, 0);
+        if (
+          this.residualOverlaps === 0 &&
+          this.residualRegionViolations === 0
+        ) {
+          verifiedClean = true;
+          break;
+        }
       }
       if (this.#settlePasses >= SETTLE_MAX_PASSES) {
         break;
@@ -1407,10 +1701,20 @@ class MajorizationSolver {
       return;
     }
     if (this.#settlePasses >= SETTLE_MAX_PASSES) {
+      this.settleCapped = true;
+      this.residualOverlaps = countOverlaps({
+        x: this.#x,
+        y: this.#y,
+        radii: this.#radii,
+        count: this.#n,
+        padding: 0,
+      });
+      this.residualRegionViolations = this.#regionRelaxPass(0, 0);
       // eslint-disable-next-line no-console
       console.warn(
-        `[majorization] settle pass cap hit at ${this.#settlePasses} passes ` +
-          `with overlaps remaining`,
+        `[majorization] settle pass cap hit at ${this.#settlePasses} passes: ` +
+          `${this.residualOverlaps} overlaps, ` +
+          `${this.residualRegionViolations} region violations remain`,
       );
       this.#phase = "done";
     }
@@ -1442,16 +1746,22 @@ class MajorizationLayout implements LayoutSimulation {
    */
   #publishedGeneration = 0;
 
-  // Diagnostics, duck-typed to the same names the worker's debug log reads from the
-  // sibling engines: projection calls ≈ iterations, "forbid" fields map to the
-  // projector here (overlaps remaining is 0 by construction once projection runs).
+  // Diagnostics, duck-typed to the names the worker's debug log reads STRUCTURALLY
+  // from every engine (`diag.forbidOverlaps` etc. in graph-worker's #tickLayouts) —
+  // renaming them would silently drop this engine from the debug line, so the names
+  // stay and the mapping is documented per field.
   /** Cumulative wall time (ms) spent in solver ticks. */
   overlapProjectionMs = 0;
   /** Majorization iterations completed. */
   overlapProjectionCalls = 0;
   /** Worst single tick (ms) — the per-tick budget guard. */
   maxForbidStepMs = 0;
-  /** Overlapping pairs in published frames: 0 once the projector is active. */
+  /**
+   * MEASURED strict disk overlaps in the last completed iterate / settle
+   * verification (the SGD engine feeds this from `overlapsRemaining`). Non-zero
+   * during the stress phase by design; a non-zero value after settle means the
+   * settle cap was hit — see {@link settleCapped}.
+   */
   forbidOverlaps = 0;
   /** Laplacian (re)builds — the closest analogue to the SGD engine's expansions. */
   forbidExpansions = 0;
@@ -1543,6 +1853,16 @@ class MajorizationLayout implements LayoutSimulation {
     return this.#solver?.capped ?? false;
   }
 
+  /** Whether the settle phase hit its pass cap with violations remaining. */
+  get settleCapped(): boolean {
+    return this.#solver?.settleCapped ?? false;
+  }
+
+  /** Community-region violations (margin 0) at the last measurement. */
+  get regionViolations(): number {
+    return this.#solver?.residualRegionViolations ?? 0;
+  }
+
   /** Majorization iterations completed so far (bench/test diagnostic). */
   get iterations(): number {
     return this.#solver?.iteration ?? 0;
@@ -1590,6 +1910,7 @@ class MajorizationLayout implements LayoutSimulation {
         }
       }
       this.overlapProjectionCalls = solver.iteration;
+      this.forbidOverlaps = solver.residualOverlaps;
       // Publish at iteration / settle-unit boundaries only: every displayed frame is
       // a completed majorization iterate (or a settle sweep of one).
       if (

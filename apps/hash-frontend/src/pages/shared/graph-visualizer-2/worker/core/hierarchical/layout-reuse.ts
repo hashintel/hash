@@ -12,6 +12,8 @@
  * harmless growth (churn) yet miss overlap in a tightly-packed spot.
  */
 
+import type { Circle, Position } from "../../../geometry";
+
 /**
  * How far one bubble may penetrate another (as a fraction of the smaller
  * radius) before a rebuild is forced. A small dead-band so freshly-solved
@@ -19,10 +21,8 @@
  */
 export const OVERLAP_REBUILD_TOLERANCE_FRAC = 0.05;
 
-interface PlacedNode {
+interface PlacedNode extends Position {
   readonly id: string;
-  readonly x: number;
-  readonly y: number;
 }
 
 interface SizedNode {
@@ -43,13 +43,15 @@ export function layoutNeedsRebuild(
   if (previous.length !== current.length) {
     return true;
   }
+
   const positionById = new Map<string, PlacedNode>();
   for (const node of previous) {
     positionById.set(node.id, node);
   }
+
   // Join the new radii onto the current positions; a missing id means the set
   // changed even though the count matched.
-  const placed: { x: number; y: number; radius: number }[] = [];
+  const placed: Circle[] = [];
   for (const child of current) {
     const position = positionById.get(child.id);
     if (position === undefined) {
@@ -57,6 +59,7 @@ export function layoutNeedsRebuild(
     }
     placed.push({ x: position.x, y: position.y, radius: child.radius });
   }
+
   // Any pair overlapping (beyond the dead-band) at the frozen positions with the
   // new radii means the reused layout is no longer feasible.
   for (let idxA = 0; idxA < placed.length; idxA++) {
@@ -71,6 +74,7 @@ export function layoutNeedsRebuild(
       }
     }
   }
+
   return false;
 }
 
@@ -96,14 +100,17 @@ export function layoutOutgrown(
   toleranceFrac: number = GROWTH_RELAYOUT_TOLERANCE_FRAC,
 ): boolean {
   const builtRadiusById = new Map<string, number>();
+
   for (const node of buildTime) {
     builtRadiusById.set(node.id, node.radius);
   }
+
   for (const child of current) {
     const built = builtRadiusById.get(child.id);
     if (built !== undefined && child.radius > built * (1 + toleranceFrac)) {
       return true;
     }
   }
+
   return false;
 }

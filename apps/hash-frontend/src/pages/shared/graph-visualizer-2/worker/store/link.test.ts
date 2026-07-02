@@ -5,7 +5,7 @@
  * already known (the A->B becomes B->B corruption), and adjacency must count
  * each incident link once.
  */
-// eslint-disable-next-line import/no-extraneous-dependencies
+
 import { describe, expect, it } from "vitest";
 
 import { entityIdFromComponents } from "@blockprotocol/type-system";

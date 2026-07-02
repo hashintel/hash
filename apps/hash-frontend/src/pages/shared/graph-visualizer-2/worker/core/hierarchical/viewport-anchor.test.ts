@@ -1,9 +1,8 @@
-// eslint-disable-next-line import/no-extraneous-dependencies -- vitest is provided by the monorepo; the frontend's own test runner is not yet wired up.
 import { describe, expect, it } from "vitest";
 
 import { VIEWPORT_ANCHOR_FLOOR, viewportAnchorWeight } from "./viewport-anchor";
 
-import type { ViewportState } from "../hierarchy/lod";
+import type { ViewportState } from "../../hierarchy/lod";
 
 /** A 1000x1000 viewport centred on the origin at the given zoom. */
 const viewportAt = (zoom: number): ViewportState => ({

@@ -10,7 +10,7 @@
  *   classification without corrupting an unrelated pair's count,
  * - hidden bookkeeping must not drift below the true count.
  */
-// eslint-disable-next-line import/no-extraneous-dependencies
+
 import { describe, expect, it } from "vitest";
 
 import { defaultVizConfig } from "../../config";

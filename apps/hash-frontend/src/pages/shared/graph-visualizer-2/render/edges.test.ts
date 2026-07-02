@@ -1,5 +1,4 @@
 import { LineLayer } from "@deck.gl/layers";
-// eslint-disable-next-line import/no-extraneous-dependencies -- vitest is provided by the monorepo; the frontend's own test runner is not yet wired up.
 import { describe, expect, it } from "vitest";
 
 import { BEZIER_NO_LINK } from "../frames";

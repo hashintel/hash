@@ -8,17 +8,31 @@
 export interface StressTuning {
   /**
    * Which engine drives the community-force flat tier:
-   *   - "stress" (default): sparse-stress SGD with the fused FORBID overlap term.
-   *   - "majorization": constrained stress majorization (IPSep-CoLa style) — CG solves
-   *     with a per-iteration VPSC non-overlap projection; the three weights below act
-   *     as target shaping instead of forces.
+   *   - "stress" (default): sparse-stress SGD with the fused FORBID overlap term;
+   *     the three weights below are extra FORCES layered on the SGD loop.
+   *   - "majorization": constrained stress majorization — persistent-CG solves with
+   *     circle-relaxation projection and a verified-clean terminal settle; the three
+   *     weights below act as TARGET SHAPING (community-scaled stress targets, hub
+   *     halo bands) plus the community-region floor margin.
    */
   readonly engine?: "stress" | "majorization";
-  /** Pull each node toward its own Louvain community centroid (Noack cohesion). */
+  /**
+   * Same-community attraction. stress: pull toward the community centroid (Noack
+   * cohesion). majorization: deflate same-community stress targets ÷(1 + 1.5·w).
+   */
   readonly communityCohesion?: number;
-  /** Repel community centroids apart, translating whole communities off the seam. */
+  /**
+   * Cross-community separation. stress: repel community centroids apart.
+   * majorization: inflate cross-community stress targets ×(1 + 2·w) AND widen the
+   * community-region floor margin (the keep-out disk every non-member is held
+   * outside) by w·idealEdgeLength.
+   */
   readonly communitySeparation?: number;
-  /** FA2-style near-field repulsion scaled by degree, so hubs claim more space. */
+  /**
+   * Hub breathing room. stress: FA2-style near-field repulsion scaled by degree.
+   * majorization: how far a packed hub's children are pushed from its rim toward
+   * an explicit halo shell (band floor share).
+   */
   readonly degreeRepulsion?: number;
 }
 

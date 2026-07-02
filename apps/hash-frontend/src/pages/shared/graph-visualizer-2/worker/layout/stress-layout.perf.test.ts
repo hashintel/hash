@@ -11,7 +11,7 @@
  * elevated ones, because those outward terms (like FORBID) push nodes apart and must
  * not break either gate — the whole knob set has to stay frame-safe and overlap-free.
  */
-// eslint-disable-next-line import/no-extraneous-dependencies
+
 import { describe, expect, it } from "vitest";
 
 import { buildForceGraphWithCoincidentHub } from "../bench-fixtures";

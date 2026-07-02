@@ -11,6 +11,14 @@
  * muddy gradient overlap), coloured by community. Because each quad sums only its
  * OWN community's nodes, communities stay distinct in one pass — no offscreen FBO.
  *
+ * CONNECTIVITY (BubbleSets virtual edges): the field also sums thin CAPSULE
+ * kernels over per-community corridor segments — texel PAIRS in the same
+ * positions texture, addressed by the per-instance [segOffset, segCount]
+ * range, each pair's first texel carrying the capsule radius in `.b`. The
+ * corridors follow an MST over the community's members (planned CPU-side in
+ * `render/bubble-corridors.ts`), so one community always renders as ONE
+ * connected contour instead of an island per spatial clump.
+ *
  * Drawn BEHIND the dots/edges (community-force only). Node positions come from the
  * flat SAB (gathered per community into the texture by the presentation layer);
  * everything is in `common`/world units, so the contour scales with zoom. Only
@@ -31,6 +39,13 @@ import type { ShaderModule } from "@luma.gl/shadertools";
  * layer downsamples larger communities to fit (see `render/community.ts`).
  */
 export const MAX_NODES_PER_COMMUNITY = 256;
+
+/**
+ * Loop bound for the per-pixel corridor sum. An MST over ≤ 256 members has
+ * ≤ 255 edges; each may split into 2 segments when rerouted around foreign
+ * nodes, so 512 covers the worst case.
+ */
+export const MAX_SEGMENTS_PER_COMMUNITY = 512;
 
 interface BubbleUniformProps {
   /** Metaball field radius per node, in `common` (world) units. */
@@ -78,11 +93,14 @@ in vec2 positions;
 in vec4 instanceBounds;     // minX, minY, maxX, maxY (world)
 in vec4 instanceColors;
 in vec2 instanceNodeRange;  // offset, count into the positions texture
+in vec2 instanceSegRange;   // first endpoint-pair texel, segment count
 
 out vec2 vWorldPos;
 out vec4 vColor;
 flat out int vOffset;
 flat out int vCount;
+flat out int vSegOffset;
+flat out int vSegCount;
 
 void main(void) {
   vec2 uv = positions * 0.5 + 0.5;
@@ -92,6 +110,8 @@ void main(void) {
   vColor = instanceColors;
   vOffset = int(instanceNodeRange.x);
   vCount = int(instanceNodeRange.y);
+  vSegOffset = int(instanceSegRange.x);
+  vSegCount = int(instanceSegRange.y);
 
   vec3 projected = project_position(vec3(worldPos, 0.0));
   gl_Position = project_common_position_to_clipspace(vec4(projected, 1.0));
@@ -109,8 +129,14 @@ in vec2 vWorldPos;
 in vec4 vColor;
 flat in int vOffset;
 flat in int vCount;
+flat in int vSegOffset;
+flat in int vSegCount;
 
 out vec4 fragColor;
+
+vec4 fetchTexel(int idx) {
+  return texelFetch(positionsTex, ivec2(idx % bubble.texWidth, idx / bubble.texWidth), 0);
+}
 
 void main(void) {
   // Sum the finite-support metaball kernel over this community's node centres.
@@ -119,13 +145,34 @@ void main(void) {
     if (i >= vCount) {
       break;
     }
-    int idx = vOffset + i;
-    vec2 nodePos =
-      texelFetch(positionsTex, ivec2(idx % bubble.texWidth, idx / bubble.texWidth), 0).rg;
-    float d = distance(vWorldPos, nodePos) / bubble.fieldRadius;
+    float d = distance(vWorldPos, fetchTexel(vOffset + i).rg) / bubble.fieldRadius;
     if (d < 1.0) {
       // Wyvill-style kernel: 1 at the centre, 0 at the rim, C1-continuous so
       // overlapping fields merge into one smooth contour.
+      float base = 1.0 - d * d;
+      field += base * base;
+    }
+  }
+
+  // Add the corridor capsules (BubbleSets virtual edges): thin segment kernels
+  // along the community's MST, guaranteeing the contour is CONNECTED. Each
+  // segment is an endpoint-pair of texels; the first texel's .b carries the
+  // capsule radius (world units).
+  for (int s = 0; s < ${MAX_SEGMENTS_PER_COMMUNITY}; s++) {
+    if (s >= vSegCount) {
+      break;
+    }
+    vec4 endpointA = fetchTexel(vSegOffset + s * 2);
+    vec2 endpointB = fetchTexel(vSegOffset + s * 2 + 1).rg;
+    float radius = endpointA.b;
+    if (radius <= 0.0) {
+      continue;
+    }
+    vec2 pa = vWorldPos - endpointA.rg;
+    vec2 ba = endpointB - endpointA.rg;
+    float h = clamp(dot(pa, ba) / max(dot(ba, ba), 1.0e-6), 0.0, 1.0);
+    float d = length(pa - ba * h) / radius;
+    if (d < 1.0) {
       float base = 1.0 - d * d;
       field += base * base;
     }
@@ -158,7 +205,9 @@ interface BinaryData {
 
 interface BubbleSetSDFLayerProps extends LayerProps {
   readonly data: BinaryData;
-  /** Node centres (world), grouped by community: `texWidth * texHeight` rg32f texels. */
+  /** Node centres + corridor endpoint pairs (world), grouped by community:
+   * `texWidth * texHeight` rgba32f texels (`.rg` position, `.b` capsule radius
+   * on a segment pair's first texel, unused on point texels). */
   readonly positions: Float32Array;
   /** Bumped when positions are refilled in place; drives a texture re-upload without reallocation. */
   readonly positionsVersion?: number;
@@ -211,6 +260,11 @@ export class BubbleSetSDFLayer extends Layer<BubbleSetSDFLayerProps> {
       instanceNodeRange: {
         size: 2,
         accessor: "getNodeRange",
+        defaultValue: [0, 0],
+      },
+      instanceSegRange: {
+        size: 2,
+        accessor: "getSegRange",
         defaultValue: [0, 0],
       },
     });
@@ -267,12 +321,12 @@ export class BubbleSetSDFLayer extends Layer<BubbleSetSDFLayerProps> {
     super.finalizeState(context);
   }
 
-  /** Allocate the rg32float positions texture and upload the current node centres. */
+  /** Allocate the rgba32float positions texture and upload the current node centres. */
   _createTexture() {
     const state = this.state as BubbleLayerState;
     state.texture?.destroy();
     state.texture = this.context.device.createTexture({
-      format: "rg32float",
+      format: "rgba32float",
       width: this.props.texWidth,
       height: this.props.texHeight,
       data: this.props.positions,

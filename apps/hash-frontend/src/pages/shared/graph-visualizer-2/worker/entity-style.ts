@@ -40,6 +40,9 @@ const EDGE_NEUTRAL: Color = [...graphColors.fallbackEntity];
 /** Colour for a frontier node (fetched link endpoint, not itself a query root). */
 export const FRONTIER_COLOR: Color = [...graphColors.frontier];
 
+/** Uniform entity-dot radius as a fraction of the parent bubble radius. */
+export const ENTITY_RADIUS_FRACTION = 0.02;
+
 function slotHue(
   typeIdx: TypeId | undefined,
   types: TypeRegistry,
