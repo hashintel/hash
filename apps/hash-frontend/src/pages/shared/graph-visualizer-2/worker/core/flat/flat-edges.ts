@@ -24,7 +24,7 @@ export const FLAT_EDGE_WIDTH_WORLD = 1.2;
 /**
  * Degree-scaled link fading: a link incident to a high-degree hub draws fainter, so a
  * 150-leaf starburst reads as a soft halo instead of an opaque disk of strokes (every
- * spoke crowds the same few pixels around the hub — full-alpha spokes sum to a blob
+ * spoke crowds the same few pixels around the hub. Full-alpha spokes sum to a blob
  * that hides both the hub and any through-traffic). The scale ramps down with the
  * LOG of the larger endpoint degree: links into ordinary nodes (degree below the
  * start) keep full alpha, and the ramp saturates at a floor so hub links stay

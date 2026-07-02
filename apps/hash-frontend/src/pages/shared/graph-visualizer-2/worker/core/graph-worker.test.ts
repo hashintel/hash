@@ -137,7 +137,7 @@ function positionDrift(
   return total;
 }
 
-describe("GraphWorker.commitStructure — flat tier", () => {
+describe("GraphWorker.commitStructure, flat tier", () => {
   // The trailing-Louvain linger uses setTimeout; fake only timers so it can't
   // fire mid-test (MessageChannel scheduling and performance.now stay real).
   beforeEach(() => {
@@ -202,7 +202,7 @@ describe("GraphWorker.commitStructure — flat tier", () => {
   });
 });
 
-describe("GraphWorker.commitStructure — streaming equals bulk", () => {
+describe("GraphWorker.commitStructure, streaming equals bulk", () => {
   beforeEach(() => {
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
   });
@@ -241,7 +241,7 @@ describe("GraphWorker.commitStructure — streaming equals bulk", () => {
  * {@link CommitCoalescer}): a burst must land in the same committed state as
  * bulk while paying a BOUNDED number of commits, not one per batch.
  */
-describe("GraphWorker.commitStructure — coalesced streaming", () => {
+describe("GraphWorker.commitStructure, coalesced streaming", () => {
   beforeEach(() => {
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
   });
@@ -316,7 +316,7 @@ describe("GraphWorker.commitStructure — coalesced streaming", () => {
 
   /** The `communities` of the most recent flat structure frame. */
   function lastCommunities(harness: Harness): Int32Array | undefined {
-    const calls = (harness.structure as ReturnType<typeof vi.fn>).mock.calls;
+    const calls = harness.structure.mock.calls;
     const last = calls[calls.length - 1]?.[0] as
       | { flatGraph?: { communities?: Int32Array } }
       | undefined;
@@ -327,7 +327,7 @@ describe("GraphWorker.commitStructure — coalesced streaming", () => {
    * Re-batch the fixture the way real pages arrive: each batch carries nodes
    * AND their links. (`buildIngestEntities` emits all nodes then all links;
    * streaming THAT shape ends on link-only absorbs, which refresh no Louvain
-   * — nodes drive the refresh counters — so communities would lag the final
+   * - nodes drive the refresh counters, so communities would lag the final
    * links under bulk and streaming alike. Interleaving keeps the trailing
    * refresh meaningful, which is what the communities assertion needs.)
    */
@@ -373,7 +373,7 @@ describe("GraphWorker.commitStructure — coalesced streaming", () => {
 
     // The whole point: commits/frames per stream stay bounded by the
     // coalescing policy (first-drain + batch-count cap + final flush), far
-    // below one per batch — they must not grow linearly with batch count.
+    // below one per batch. They must not grow linearly with batch count.
     const expectedCeiling = 2 + Math.ceil(batchCount / MAX_COALESCED_BATCHES);
     expect(streamed.streamFrames()).toBeLessThanOrEqual(expectedCeiling);
     expect(streamed.streamFrames()).toBeLessThan(batchCount / 2);
@@ -390,10 +390,14 @@ describe("GraphWorker.commitStructure — coalesced streaming", () => {
   });
 
   it("is deterministic: two identical coalesced streams settle identical layouts", () => {
-    const entities = buildIngestEntities(COMMUNITY_FORCE);
+    const batches = interleaveBatches(
+      buildIngestEntities(COMMUNITY_FORCE),
+      COMMUNITY_FORCE.nodeCount,
+      20,
+    );
 
-    const first = streamCoalesced(entities, 100);
-    const second = streamCoalesced(entities, 100);
+    const first = streamCoalesced(batches);
+    const second = streamCoalesced(batches);
 
     const firstFixture = first.worker.captureLayoutFixture();
     const secondFixture = second.worker.captureLayoutFixture();
@@ -413,7 +417,7 @@ const HIERARCHICAL: GraphShape = {
   seed: 13,
 };
 
-describe("GraphWorker.commitStructure — hierarchical tier", () => {
+describe("GraphWorker.commitStructure, hierarchical tier", () => {
   beforeEach(() => {
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
   });
@@ -554,7 +558,7 @@ describe("GraphWorker.commitStructure — hierarchical tier", () => {
   });
 });
 
-describe("GraphWorker.registerTypes — change classification", () => {
+describe("GraphWorker.registerTypes, change classification", () => {
   it("reports no change on an identical re-registration", () => {
     const worker = new GraphWorker(defaultVizConfig);
     const schemas = benchTypeSchemas(8);

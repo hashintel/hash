@@ -1,36 +1,34 @@
 /* eslint-disable no-console -- committed metrics harness whose whole purpose is to PRINT
    the majorization engine's tracked quality/perf baseline table. */
 /**
- * Tracked metrics baseline for the community-tier layout engine (constrained
- * stress majorization — the only engine since the FA2/SGD trim). Descended from
- * the three-way A/B harness that picked it; the fixtures and metrics are
- * unchanged so numbers stay comparable across history:
+ * Tracked metrics baseline for the community-tier constrained stress-majorization
+ * engine. Fixtures and metrics are stable so numbers stay comparable across history:
  *
- *   wall ms      construct → settled wall time
- *   worstTick    largest single tick (ms) — the jank ceiling
- *   overlaps     strictly intersecting disk pairs (zero-overlap oracle)
- *   edgeStress   scale-invariant RMS edge-length deviation (best-fit uniform scale)
- *   spreadDip    terminal contract→expand rebound: how far the RMS spread dips below
- *                its final value after the widest point, as a fraction of final
- *                (0 = monotone approach, the motion gate)
- *   inter/intra  mean cross-community edge length ÷ mean same-community edge length
- *                (Louvain partition computed once per fixture)
- *   regionOv     region-overlap (PRIMARY region-disjointness metric): fraction of
- *                nodes strictly inside a FOREIGN community's packing disk — the
- *                user-visible "bubble intrudes into another community" artifact
- *                that inter/intra cannot see (folded branches share no edges).
- *                See region-metrics.ts for the full rationale.
- *   hubSpoke     mean spoke length of the 150-leaf hub ÷ its one-ring packing radius
- *                (≈1 = leaves sit right at the tightest feasible halo)
- *   determ.      bitwise position equality across two identical runs
+ * wall ms construct → settled wall time
+ * worstTick largest single tick (ms), the jank ceiling
+ * overlaps strictly intersecting disk pairs (zero-overlap oracle)
+ * edgeStress scale-invariant RMS edge-length deviation (best-fit uniform scale)
+ * spreadDip terminal contract→expand rebound: how far the RMS spread dips below
+ * its final value after the widest point, as a fraction of final
+ * (0 = monotone approach, the motion gate)
+ * inter/intra mean cross-community edge length ÷ mean same-community edge length
+ * (Louvain partition computed once per fixture)
+ * regionOv region-overlap (PRIMARY region-disjointness metric): fraction of
+ * nodes strictly inside a FOREIGN community's packing disk. The
+ * user-visible "bubble intrudes into another community" artifact
+ * that inter/intra cannot see (folded branches share no edges).
+ * See region-metrics.ts for the full rationale.
+ * hubSpoke mean spoke length of the 150-leaf hub ÷ its one-ring packing radius
+ * (≈1 = leaves sit right at the tightest feasible halo)
+ * determ. bitwise position equality across two identical runs
  *
  * Fixtures are the perf-gate shapes: 1k/3k/5k hub-skewed clouds with a 150-leaf
  * near-coincident hub grafted on, plus the ~1k-node TWO-hub "real shape". All are
  * driven at the production 1 ms tick cadence.
  *
  * Run (from apps/hash-frontend):
- *   node_modules/.bin/vitest bench --run \
- *     src/pages/shared/graph-visualizer-2/worker/layout/majorization-baseline.bench.ts
+ * node_modules/.bin/vitest bench --run \
+ * src/pages/shared/graph-visualizer-2/worker/layout/majorization-baseline.bench.ts
  */
 import { UndirectedGraph } from "graphology";
 import louvain from "graphology-communities-louvain";

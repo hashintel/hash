@@ -18,12 +18,12 @@
  * whatever local minimum the seed fell into.
  *
  * Two correctness notes:
- *  - Temperature is on the energy scale (a crossing costs `CROSS_WEIGHT`), so
- *    `exp(-Δ/T)` actually accepts uphill moves early and this is real annealing,
- *    not greedy descent.
- *  - Crossing minimisation is NP-hard, so "directly" means full-space search
- *    with the true objective + restarts (near-optimal for the dozens of nodes we
- *    have at the cluster level), not a provable global optimum.
+ * - Temperature is on the energy scale (a crossing costs `CROSS_WEIGHT`), so
+ *   `exp(-Δ/T)` actually accepts uphill moves early and this is real annealing,
+ *   not greedy descent.
+ * - Crossing minimisation is NP-hard, so "directly" means full-space search
+ *   with the true objective + restarts (near-optimal for the dozens of nodes we
+ *   have at the cluster level), not a provable global optimum.
  *
  * A seeded PRNG makes every run deterministic.
  *

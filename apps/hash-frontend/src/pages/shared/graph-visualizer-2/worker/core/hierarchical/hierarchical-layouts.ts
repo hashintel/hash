@@ -112,8 +112,8 @@ export class HierarchicalLayoutManager {
     }
 
     // Invalidate when a freshly-sized child overlaps a neighbour at its frozen
-    // position (harmless growth with slack around it is kept), OR — top level
-    // only — when a cluster has grown enough since this layout was built to
+    // position (harmless growth with slack around it is kept), or at top level
+    // only, when a cluster has grown enough since this layout was built to
     // warrant a re-pack, so the hierarchy overview visibly re-arranges as it
     // grows rather than only when growth finally forces an overlap.
     if (

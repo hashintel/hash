@@ -102,8 +102,8 @@ function clipOutside(circle: Circle): ClipCircle {
  * directly into three parallel scratch buffers:
  *
  * - `positions`: 8 floats/segment (p0..p3, interleaved as vec2 pairs)
- * - `colors`:    4 bytes/segment  (r, g, b, a)
- * - `widths`:    1 float/segment  (px)
+ * - `colors`: 4 bytes/segment (r, g, b, a)
+ * - `widths`: 1 float/segment (px)
  *
  * The buffers are owned by the worker and reused across frames: `reset()`
  * rewinds the write cursor, and capacity only ever grows (never shrinks).
@@ -234,9 +234,11 @@ export class BezierSegmentSink {
  * (near-)collinear, expressed so that the resulting midpoint sag is a
  * gentle fraction of the chord. Keeps a smooth, deterministic arc instead
  * of degenerating to a straight line when two ports face each other
- * directly (MANIFESTO "Avoiding intermediate cluster intersections",
- * approach C). The bend metric below equals (p1 + p2) perpendicular
- * deviation; the curve's midpoint sag is (3/8) of it.
+ * directly. Inject a deterministic perpendicular bow so the curve does not
+ * degenerate to a straight segment. The offset ramps smoothly to zero as natural
+ * curvature reaches the threshold; bend side is stable (sorted cluster-id hash).
+ * The bend metric below equals (p1 + p2) perpendicular deviation; the curve's
+ * midpoint sag is (3/8) of it.
  */
 const COLLINEAR_BEND_FRACTION = 0.15;
 
@@ -253,11 +255,12 @@ const LANE_GAP_WORLD = 1;
  * perpendicular bow is then injected toward the chord's left normal, ramping
  * smoothly to zero once the natural curvature is large enough. The side is
  * derived purely from chord direction, so:
- *  - it is continuous (no snap) as the layout settles, and crucially does not
- *    flip when an LOD change swaps the highway endpoints (the old per-pair
- *    hash flipped, which read as a jarring jump);
- *  - opposing flows separate for free: A->B and B->A have opposite chords, so
- *    they bow to opposite sides instead of overlapping.
+ *
+ * - it is continuous (no snap) as the layout settles, and crucially does not
+ *   flip when an LOD change swaps the highway endpoints (the old per-pair
+ *   hash flipped, which read as a jarring jump);
+ * - opposing flows separate for free: A->B and B->A have opposite chords, so
+ *   they bow to opposite sides instead of overlapping.
  */
 function cubicBetweenWaypoints(
   from: Waypoint,

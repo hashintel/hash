@@ -2,18 +2,18 @@
  * Perf + motion gates for the constrained stress-MAJORIZATION engine (the community-
  * tier engine), including the PRIMARY real-shape gate from the relayout-motion brief:
  *
- *   1. Per-tick budget: at 1k/3k/5k (cloud + 150-leaf coincident hub), at default AND
- *      elevated shaping weights, no single 1 ms-budget tick blows past 100 ms, the
- *      layout settles, and the settled result is strictly overlap-free.
- *   2. PRIMARY: the real graph shape (~1000 nodes, TWO ~150-leaf near-coincident hubs
- *      + sparse background) reaches settled in ≤ 2 s wall time, overlap-free.
- *   3. No contract→expand: the RMS-spread trajectory shows no significant
- *      dip-below-final-then-rebound after its widest point (terminal-rebound metric).
- *   4. Region disjointness: on the real shape, majorization's region-overlap
- *      (fraction of nodes strictly inside a foreign community's packing disk —
- *      see region-metrics.ts) must stay under an absolute ceiling far below the
- *      pre-fix baseline (0.32 before the community-region floors; the folding
- *      artifact the user reported).
+ * 1. Per-tick budget: at 1k/3k/5k (cloud + 150-leaf coincident hub), at default AND
+ *    elevated shaping weights, no single 1 ms-budget tick blows past 100 ms, the
+ *    layout settles, and the settled result is strictly overlap-free.
+ * 2. PRIMARY: the real graph shape (~1000 nodes, TWO ~150-leaf near-coincident hubs
+ *    + sparse background) reaches settled in ≤ 2 s wall time, overlap-free.
+ * 3. No contract→expand: the RMS-spread trajectory shows no significant
+ *    dip-below-final-then-rebound after its widest point (terminal-rebound metric).
+ * 4. Region disjointness: on the real shape, majorization's region-overlap
+ *    (fraction of nodes strictly inside a foreign community's packing disk;
+ *    see region-metrics.ts) must stay under an absolute ceiling far below the
+ *    pre-fix baseline (0.32 before the community-region floors; the folding
+ *    artifact the user reported).
  */
 import { describe, expect, it } from "vitest";
 
@@ -30,7 +30,7 @@ import type { GraphShape } from "../bench-fixtures";
 import type { LayoutSimulation } from "./force-simulation";
 import type { MajorizationLayoutOptions } from "./majorization-layout";
 
-/** Largest single tick may not approach a dropped frame; the old VPSC call was ~6.5 s. */
+/** Largest single tick must stay well below one frame; rectangle VPSC once reached ~6.5 s per tick. */
 const MAX_TICK_MS = 100;
 /** PRIMARY gate: wall-to-settled budget for the real two-hub shape. */
 const REAL_SHAPE_WALL_MS = 2_000;
@@ -74,7 +74,7 @@ function overlapCountOf(layout: LayoutSimulation): number {
 }
 
 /**
- * Region-overlap (disk containment) over the engine's OWN Louvain labels — the
+ * Region-overlap (disk containment) over the engine's OWN Louvain labels. The
  * partition the rendered community bubbles come from, i.e. what the user sees.
  */
 function regionOverlapOf(layout: LayoutSimulation): number {
@@ -172,7 +172,7 @@ const GATE_CASES = CLOUD_SIZES.flatMap((cloudCount) =>
   WEIGHT_CONFIGS.map((config) => ({ cloudCount, config })),
 );
 
-describe("majorization layout — coincident-hub perf gate", () => {
+describe("majorization layout, coincident-hub perf gate", () => {
   it.each(GATE_CASES)(
     "stays within the tick budget and ends overlap-free ($cloudCount-node cloud + coincident hub, $config.label weights)",
     ({ cloudCount, config }) => {
@@ -221,7 +221,7 @@ describe("majorization layout — coincident-hub perf gate", () => {
   );
 });
 
-describe("majorization layout — real two-hub shape (PRIMARY gate)", () => {
+describe("majorization layout, real two-hub shape (PRIMARY gate)", () => {
   it.each(WEIGHT_CONFIGS.map((config) => ({ config })))(
     "settles the ~1k node / two 150-leaf-hub shape in ≤ 2 s, overlap-free, no contract→expand ($config.label weights)",
     ({ config }) => {
@@ -259,7 +259,7 @@ describe("majorization layout — real two-hub shape (PRIMARY gate)", () => {
   );
 });
 
-describe("majorization layout — region disjointness gate", () => {
+describe("majorization layout, region disjointness gate", () => {
   it("keeps community regions disjoint on the real shape (below the folding baseline)", () => {
     const { nodes, edges } = buildRealShapeFixture();
     const layout = createMajorizationLayout(

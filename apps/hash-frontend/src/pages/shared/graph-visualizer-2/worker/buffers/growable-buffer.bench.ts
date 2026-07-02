@@ -12,7 +12,7 @@
  * last two is the payoff of the 1.5x slack, and the reason a test should lock it in.
  *
  * Run: `cd apps/hash-frontend && ../../node_modules/.bin/vitest bench --run \
- *   src/pages/shared/graph-visualizer-2/worker/buffers/growable-buffer.bench.ts`
+ * src/pages/shared/graph-visualizer-2/worker/buffers/growable-buffer.bench.ts`
  */
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { bench, describe } from "vitest";

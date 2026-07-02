@@ -305,6 +305,7 @@ void main(void) {
   if (outAlpha <= 0.001) {
     discard;
   }
+
   // "Core over halo" resolved to one straight-alpha output: weight the core
   // colour by its share of the blended alpha.
   vec3 outColor =

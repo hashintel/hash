@@ -43,7 +43,7 @@ function makeNode(id: string): ClusterNode {
   return node;
 }
 
-describe("syncWorldPositions — nested world composition", () => {
+describe("syncWorldPositions, nested world composition", () => {
   it("composes leaf world = root + container-local + leaf-local at depth 2", () => {
     const root = makeNode("cluster:root");
     const container = makeNode("A"); // top-level container
@@ -91,7 +91,7 @@ describe("syncWorldPositions — nested world composition", () => {
     syncWorldPositions(root, layoutFor, isCluster);
     expect(leaf.circle.x).toBe(105);
 
-    // The macro re-settles and moves the container by +50 in x — only the ROOT
+    // The macro re-settles and moves the container by +50 in x. Only the ROOT
     // layout changes; the container's own (settled) layout is untouched.
     rootLayout.nodes[0]!.x = 150;
 

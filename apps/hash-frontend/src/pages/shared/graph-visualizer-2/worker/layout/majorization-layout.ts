@@ -1,41 +1,39 @@
 /**
- * Constrained stress-majorization layout engine; the community-tier engine (the
- * ForceAtlas2 and sparse-stress-SGD engines it was benchmarked against were retired
- * in its favour). Implements {@link LayoutSimulation} and fills a shared
+ * Constrained stress-majorization layout engine for the community tier.
+ * Implements {@link LayoutSimulation} and fills a shared
  * {@link FlatGraphBuffer}.
  *
  * Architecture (IPSep-CoLa style: majorize, then project):
  *
- *   1. Sparse quadratic stress over graph edges + subsampled pivot terms (the Ortmann
- *      sparse-stress model; pivot selection and BFS graph distances come from the
- *      {@link StressAnalysis} passes; CSR / weak-components / pivot-BFS plus the
- *      PivotMDS initialisation). Weights are 1/d² in hop space and never change; the
- *      weighted CSR Laplacian is built once per (re)layout/absorb.
- *   2. Per majorization iteration (SMACOF): the majorant right-hand side is computed from
- *      the current positions, then L·x = b_x and L·y = b_y are solved per dimension with
- *      Jacobi-preconditioned conjugate gradient. CG state persists across worker ticks;
- *      each tick advances a bounded number of CG steps, so per-tick cost is capped by
- *      construction (the budget is generous enough that each majorant is solved to
- *      tolerance; see CG_STEPS_PER_ITERATION).
- *   3. Feasibility comes from iterated circle relaxation ({@link overlapRelaxPass}'s
- *      shared spatial-grid machinery): gentle pile-bleeding passes
- *      at every iteration boundary, then a terminal settle phase (a few bounded
- *      passes per advance unit) that runs until one full pass verifies the layout
- *      overlap-free. See ITERATION_RELAX_PASSES for why the rectangle-based VPSC
- *      solver is deliberately not used as a per-iteration projector (geometry
- *      mismatch ⇒ limit cycle). Positions are published to the shared buffer at
- *      iteration / settle-unit boundaries only, and the final published frame is
- *      verified overlap-free.
+ * 1. Sparse quadratic stress over graph edges + subsampled pivot terms (the Ortmann
+ *    sparse-stress model; pivot selection and BFS graph distances come from the
+ *    {@link StressAnalysis} passes; CSR / weak-components / pivot-BFS plus the
+ *    PivotMDS initialisation). Weights are 1/d² in hop space and never change; the
+ *    weighted CSR Laplacian is built once per (re)layout/absorb.
+ * 2. Per majorization iteration (SMACOF): the majorant right-hand side is computed from
+ *    the current positions, then L·x = b_x and L·y = b_y are solved per dimension with
+ *    Jacobi-preconditioned conjugate gradient. CG state persists across worker ticks;
+ *    each tick advances a bounded number of CG steps, so per-tick cost is capped by
+ *    construction (the budget is generous enough that each majorant is solved to
+ *    tolerance; see CG_STEPS_PER_ITERATION).
+ * 3. Feasibility comes from iterated circle relaxation ({@link overlapRelaxPass}'s
+ *    shared spatial-grid machinery): gentle pile-bleeding passes
+ *    at every iteration boundary, then a terminal settle phase (a few bounded
+ *    passes per advance unit) that runs until one full pass verifies the layout
+ *    overlap-free. See ITERATION_RELAX_PASSES for why the rectangle-based VPSC
+ *    solver is deliberately not used as a per-iteration projector (geometry
+ *    mismatch ⇒ limit cycle). Positions are published to the shared buffer at
+ *    iteration / settle-unit boundaries only, and the final published frame is
+ *    verified overlap-free.
  *
  * Feasibility scaling makes the two halves agree instead of fight: raw hop-space
  * targets (hops · 60 px) are frequently infeasible for the disk packing; a ~3k-node
  * cloud "wants" a ~240 px-radius layout while its disks need ~800 px; and an
  * infeasible stress optimum turns majorize→project into a permanent tug-of-war (the
  * solve compresses, the projector re-expands, every iteration, forever). Each weak
- * component therefore gets a target scale factor
- *   scale_c = max(1, R_packing / R_hop-ideal)
- * where R_packing is the radius of the disk that holds the component's nodes at the
- * shared packing utilisation and R_hop-ideal comes from the pivot-BFS
+ * component therefore gets a target scale factor `scale_c = max(1, R_packing / R_hop-ideal)`
+ * where `R_packing` is the radius of the disk that holds the component's nodes at the
+ * shared packing utilisation and `R_hop-ideal` comes from the pivot-BFS
  * eccentricity. Scaled targets put the unconstrained stress optimum near the feasible
  * set, so the projector's correction is small and local, the alternation contracts,
  * and, because the PivotMDS seed is laid out at unscaled hop geometry, the layout
@@ -48,28 +46,28 @@
  *
  * Community / degree / size awareness is target shaping, not forces:
  *
- *   - Cross-community pair targets are inflated by `communitySeparation`; same-community
- *     targets are slightly deflated by `communityCohesion` (seeded Louvain ids).
- *     Weight-to-shaping mapping (the numeric slider ranges predate this engine, so the
- *     scales are documented explicitly): separation w → ×(1 + 2w) on cross-community
- *     targets (default 0.08 → +16 %, harness max 0.8 → +160 %); cohesion w → ×1/(1 + 2w)
- *     on same-community targets (default 0.02 → −4 %); degreeRepulsion w → haloShare
- *     min(1, 2w), the fraction of a packing-bound hub's packing radius its children
- *     are pushed out to (default 0.02 → compact packing against the hub's rim;
- *     harness max 0.3 → children start 60 % of the way to the packing shell). All
- *     three sliders keep working; they regenerate targets (the Laplacian, keyed to
- *     hop distances only, is unaffected).
- *   - Hub-incident edge targets are packing-aware: when a hub's one-ring radius
- *     (Σ_children(2r+pad)/2π) exceeds the edge target, its children cannot all sit at
- *     the target distance, so its spokes get the feasible band from the collision gap
- *     out to the hub's disk-packing radius (at the shared ~55 % utilisation)
- *     with slack. A 150-leaf hub thus aims its spokes at a geometrically feasible
- *     halo from iteration one instead of compacting to an infeasible 1-hop length and
- *     being exploded by a terminal overlap pass; this kills the contract→expand
- *     relayout swing.
- *   - Near-coincident non-adjacent pairs (spatial-hash grid over the initial/warm
- *     positions, the same 3×3-neighbourhood scan the overlap passes use) get floor
- *     terms d* ≥ r_i + r_j + pad, so piles separate through the stress solve itself.
+ * - Cross-community pair targets are inflated by `communitySeparation`; same-community
+ *   targets are slightly deflated by `communityCohesion` (seeded Louvain ids).
+ *   Weight-to-shaping mapping (the numeric slider ranges predate this engine, so the
+ *   scales are documented explicitly): separation w → ×(1 + 2w) on cross-community
+ *   targets (default 0.08 → +16 %, harness max 0.8 → +160 %); cohesion w → ×1/(1 + 2w)
+ *   on same-community targets (default 0.02 → −4 %); degreeRepulsion w → haloShare
+ *   min(1, 2w), the fraction of a packing-bound hub's packing radius its children
+ *   are pushed out to (default 0.02 → compact packing against the hub's rim;
+ *   harness max 0.3 → children start 60 % of the way to the packing shell). All
+ *   three sliders keep working; they regenerate targets (the Laplacian, keyed to
+ *   hop distances only, is unaffected).
+ * - Hub-incident edge targets are packing-aware: when a hub's one-ring radius
+ *   (Σ_children(2r+pad)/2π) exceeds the edge target, its children cannot all sit at
+ *   the target distance, so its spokes get the feasible band from the collision gap
+ *   out to the hub's disk-packing radius (at the shared ~55 % utilisation)
+ *   with slack. A 150-leaf hub thus aims its spokes at a geometrically feasible
+ *   halo from iteration one instead of compacting to an infeasible 1-hop length and
+ *   being exploded by a terminal overlap pass; this kills the contract→expand
+ *   relayout swing.
+ * - Near-coincident non-adjacent pairs (spatial-hash grid over the initial/warm
+ *   positions, the same 3×3-neighbourhood scan the overlap passes use) get floor
+ *   terms d* ≥ r_i + r_j + pad, so piles separate through the stress solve itself.
  *
  * Deterministic throughout: seeded pivot selection, hash-derived coincident directions,
  * index-ordered scans, and a deterministic projector; identical input yields identical
@@ -77,17 +75,10 @@
  * are rebuilt, and CG warm-starts from the current layout. No cold re-seed.
  *
  * References:
- *   - Emden R. Gansner, Yehuda Koren, Stephen North,
- *     "Graph Drawing by Stress Majorization" (GD 2004).
- *   - Tim Dwyer, Yehuda Koren, Kim Marriott,
- *     "IPSep-CoLa: An Incremental Procedure for Separation Constraint Layout of
- *     Graphs" (InfoVis 2006).
- *   - Mark Ortmann, Mirza Klimenta, Ulrik Brandes,
- *     "A Sparse Stress Model" (GD 2016).
- *   - Tim Dwyer, Kim Marriott, Peter J. Stuckey,
- *     "Fast Node Overlap Removal" (GD 2005); evaluated as the projector; rejected
- *     for the steady state because its rectangle geometry conflicts with circle
- *     stress terms (see ITERATION_RELAX_PASSES).
+ * - Emden R. Gansner, Yehuda Koren, Stephen North, "Graph Drawing by Stress Majorization" (GD 2004).
+ * - Tim Dwyer, Yehuda Koren, Kim Marriott, "IPSep-CoLa: An Incremental Procedure for Separation Constraint Layout of Graphs" (InfoVis 2006).
+ * - Mark Ortmann, Mirza Klimenta, Ulrik Brandes, "A Sparse Stress Model" (GD 2016).
+ * - Tim Dwyer, Kim Marriott, Peter J. Stuckey, "Fast Node Overlap Removal" (GD 2005).
  */
 /* eslint-disable no-bitwise */
 /* eslint-disable id-length */
@@ -125,12 +116,12 @@ const DEGREE_REPULSION = 0.02;
 
 /**
  * Slider-to-target-shaping gains. The three tuning weights shape targets:
- *   cross-community target ×(1 + separation·GAIN), same-community ×1/(1 + cohesion·GAIN),
- *   packing-bound hub spokes: haloShare = min(1, degreeRepulsion·GAIN); the fraction
- *   of the hub's packing radius its children are pushed out to (0 = children may pack
- *   right against the hub's rim; 1 = children start at the packing radius shell).
- * GAIN = 2 places the harness slider ranges (0–0.3 / 0–0.8 / 0–0.3) onto a
- * ±few-percent … +160 % shaping range.
+ * cross-community target ×(1 + separation·GAIN), same-community ×1/(1 + cohesion·GAIN),
+ * packing-bound hub spokes: haloShare = min(1, degreeRepulsion·GAIN); the fraction
+ * of the hub's packing radius its children are pushed out to (0 = children may pack
+ * right against the hub's rim; 1 = children start at the packing radius shell).
+ * GAIN = 2 places the harness slider ranges (0-0.3 / 0-0.8 / 0-0.3) onto a
+ * ±few-percent ... +160 % shaping range.
  */
 const SEPARATION_TARGET_GAIN = 2;
 const COHESION_TARGET_GAIN = 2;
@@ -256,30 +247,30 @@ const CONVERGENCE_STREAK = 2;
  * one bounded uniform-grid sweep per pass), not by a per-iteration exact projection,
  * and the engine cleanly separates shape from feasibility in time:
  *
- *   - During majorization iterations, each iteration ends with a couple of gentle
- *     relax passes that bleed coincident piles down while the solve spreads the
- *     layout toward its (feasibility-scaled, packing-aware) targets.
- *   - Once the stress solve converges or plateaus, a terminal settle phase runs relax
- *     passes; a few per advance unit, so per-tick cost stays capped; until one full
- *     pass verifies the layout overlap-free. Because the targets were shaped
- *     feasibility-first, this phase does small local separation, not a global
- *     explosion (no contract→expand swing), and pure separation with no opposing
- *     force always terminates; the livelock class of the abandoned force-interleave
- *     is structurally impossible.
+ * - During majorization iterations, each iteration ends with a couple of gentle
+ * relax passes that bleed coincident piles down while the solve spreads the
+ * layout toward its (feasibility-scaled, packing-aware) targets.
+ * - Once the stress solve converges or plateaus, a terminal settle phase runs relax
+ * passes; a few per advance unit, so per-tick cost stays capped; until one full
+ * pass verifies the layout overlap-free. Because the targets were shaped
+ * feasibility-first, this phase does small local separation, not a global
+ * explosion (no contract→expand swing), and pure separation with no opposing
+ * force always terminates; the livelock class of the abandoned force-interleave
+ * is structurally impossible.
  *
  * Two projector designs were tried and rejected on measurement, both livelocking the
  * 3k benchmark at the iteration cap with projection eating ~98 % of wall time:
- *   1. Per-iteration exact VPSC (a rectangle-separation solver, since deleted): its
- *      rectangle geometry (|dx| or |dy| ≥ half-extent sum) conflicts with the circle geometry
- *      of the stress terms, the collision floors, and the zero-overlap oracle
- *      (dist ≥ r_i+r_j+pad). A circle-optimal solve packs pairs diagonally at
- *      distances the rectangle model forbids by up to ~30 %, so the projector
- *      shifted whole chains by 100-500 px every iteration and the next solve pulled
- *      them straight back.
- *   2. Per-iteration relax-to-clean with near-pair floors regenerated inside the
- *      solve every iteration: the ever-changing one-sided terms destabilised the
- *      alternation (overlap count grew to a ~2.6k steady state as solve and relaxer
- *      fought at ~200 px amplitude).
+ * 1. Per-iteration exact VPSC (rectangle-separation geometry): its
+ * rectangle geometry (|dx| or |dy| ≥ half-extent sum) conflicts with the circle geometry
+ * of the stress terms, the collision floors, and the zero-overlap oracle
+ * (dist ≥ r_i+r_j+pad). A circle-optimal solve packs pairs diagonally at
+ * distances the rectangle model forbids by up to ~30 %, so the projector
+ * shifted whole chains by 100-500 px every iteration and the next solve pulled
+ * them straight back.
+ * 2. Per-iteration relax-to-clean with near-pair floors regenerated inside the
+ * solve every iteration: the ever-changing one-sided terms destabilised the
+ * alternation (overlap count grew to a ~2.6k steady state as solve and relaxer
+ * fought at ~200 px amplitude).
  */
 const ITERATION_RELAX_PASSES = 4;
 const ITERATION_RELAX_STRENGTH = 0.85;
@@ -1008,19 +999,19 @@ class MajorizationSolver {
    * Community-shaped target band for a pair at `hops` graph distance, written to
    * `#shapedLo` / `#shapedHi`.
    *
-   *   - Edge terms (hops = 1) get an exact target; they carry local structure;
-   *     unless an endpoint hub is packing-bound (its one-ring radius exceeds the
-   *     target, i.e. its children cannot all sit at the target distance). Such spokes
-   *     get the wide feasible band [collision + haloShare·(pack − collision),
-   *     max(pack, target)·slack]: the compact packing the projector produces (children
-   *     at radii from the hub's rim out to the packing radius) lies inside the band,
-   *     so a packed hub is a fixed point instead of a fight. `degreeRepulsion` sets
-   *     haloShare; how far children are pushed from the rim toward an explicit
-   *     halo shell.
-   *   - Pivot terms (hops ≥ 2) get a ±PIVOT_BAND dead zone around the target so
-   *     packing distortion does not generate perpetual pulls.
-   *   - The collision floor r_i + r_j + pad applies to every band (floored terms get a
-   *     FLOOR_CEILING_SLACK dead zone rather than an exact floor).
+   * - Edge terms (hops = 1) get an exact target; they carry local structure;
+   * unless an endpoint hub is packing-bound (its one-ring radius exceeds the
+   * target, i.e. its children cannot all sit at the target distance). Such spokes
+   * get the wide feasible band [collision + haloShare·(pack − collision),
+   * max(pack, target)·slack]: the compact packing the projector produces (children
+   * at radii from the hub's rim out to the packing radius) lies inside the band,
+   * so a packed hub is a fixed point instead of a fight. `degreeRepulsion` sets
+   * haloShare; how far children are pushed from the rim toward an explicit
+   * halo shell.
+   * - Pivot terms (hops ≥ 2) get a ±PIVOT_BAND dead zone around the target so
+   * packing distortion does not generate perpetual pulls.
+   * - The collision floor r_i + r_j + pad applies to every band (floored terms get a
+   * FLOOR_CEILING_SLACK dead zone rather than an exact floor).
    *
    * The hub band is applied here, not just on edge terms, because a pivot row
    * re-emits (pivot, neighbour) pairs at d = 1 and a conflicting un-banded target

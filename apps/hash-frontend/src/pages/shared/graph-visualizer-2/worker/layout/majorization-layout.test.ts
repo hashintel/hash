@@ -328,7 +328,7 @@ describe("createMajorizationLayout", () => {
   it("settles a dense hub (1 + 120 coincident leaves) with zero disk overlaps", () => {
     const count = 121;
     const nodes: ForceNode[] = [];
-    // All nodes start essentially coincident — the production pathology.
+    // All nodes start essentially coincident (the production pathology).
     for (let idx = 0; idx < count; idx++) {
       nodes.push({
         id: String(idx),
@@ -348,7 +348,7 @@ describe("createMajorizationLayout", () => {
     expect(overlapCountOf(layout, 0)).toBe(0);
   });
 
-  // Ported from the retired SGD engine's suite: the deepest single hub it gated.
+  // Densest single hub the suite gates (1 hub + 250 leaves).
   it("settles a very dense hub (1 + 250 leaves) overlap-free", () => {
     const count = 251;
     const nodes = makeNodes(count);
@@ -363,8 +363,7 @@ describe("createMajorizationLayout", () => {
     expect(overlapCountOf(layout, 0)).toBe(0);
   });
 
-  // Ported from the retired SGD engine's suite: overlap resolution must re-run
-  // after a warm absorb, not only on the cold start.
+  // Overlap resolution must re-run after a warm absorb, not only on the cold start.
   it("also removes overlaps after a bulk warm absorb (50 coincident newcomers)", () => {
     const nodes = makeNodes(40);
     const edges: ForceEdge[] = [];
@@ -389,8 +388,7 @@ describe("createMajorizationLayout", () => {
     expect(overlapCountOf(layout, 0)).toBe(0);
   });
 
-  // Ported from the retired SGD engine's suite: Louvain labels must refresh once
-  // growth is significant, so the bubbles reflect the grown topology.
+  // Louvain labels must refresh once growth is significant, so the bubbles reflect the grown topology.
   it("re-globalises (refreshes Louvain communities) after significant growth", () => {
     const nodes = makeNodes(6);
     const edges: ForceEdge[] = [
@@ -421,9 +419,9 @@ describe("createMajorizationLayout", () => {
   });
 
   /**
-   * THE livelock regression (named): a settled-but-jammed 150-leaf hub — the exact
+   * THE livelock regression (named): a settled-but-jammed 150-leaf hub: the exact
    * state that livelocked the abandoned force-interleave at 1623 epochs with 300
-   * overlaps — must terminate in bounded iterations with zero overlaps. Bounded
+   * overlaps. It must terminate in bounded iterations with zero overlaps. Bounded
    * means: the engine settles well under its hard iteration cap (no "capped" exit),
    * within a bounded tick count.
    */
@@ -538,8 +536,7 @@ describe("createMajorizationLayout", () => {
     );
   });
 
-  // Ported from the retired SGD engine's suite: the degreeRepulsion slider must
-  // still widen a high-degree hub's halo under majorization's target shaping.
+  // The degreeRepulsion slider must widen a high-degree hub's halo under majorization's target shaping.
   it("degree repulsion widens a high-degree hub's halo", () => {
     const count = 61;
     const nodes = makeNodes(count);

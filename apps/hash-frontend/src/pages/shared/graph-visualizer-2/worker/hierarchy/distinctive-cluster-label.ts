@@ -5,10 +5,10 @@
  * this finds a meaningful label for each group from the features its members share
  * but its siblings don't. Features come from three sources:
  *
- *  - exact `(property = value)` pairs (e.g. `Destination = "foo"`),
- *  - numeric/date ranges (e.g. `Quantity 100–500`), bucketed per-subdivision from
- *    the live distribution of the siblings, and
- *  - link target types (e.g. `→ Material`).
+ * - exact `(property = value)` pairs (e.g. `Destination = "foo"`),
+ * - numeric/date ranges (e.g. `Quantity 100-500`), bucketed per-subdivision from
+ *   the live distribution of the siblings, and
+ * - link target types (e.g. `→ Material`).
  *
  * Scoring is coverage * IDF: a feature must be common within the cluster (coverage
  * >= {@link MIN_COVERAGE}) and rare across siblings (high IDF). Features are grouped
@@ -32,7 +32,7 @@ export interface ClusterMembers {
 export interface FeatureDescriptor {
   /** Dedup group: at most one part per group appears in a compound label. */
   readonly group: string;
-  /** Rendered label line, e.g. `Destination = "foo"`, `Quantity 100–500`, `→ Material`. */
+  /** Rendered label line, e.g. `Destination = "foo"`, `Quantity 100-500`, `→ Material`. */
   readonly text: string;
   /** Stable sort key so a multi-part label never reshuffles its lines. */
   readonly sortKey: string;

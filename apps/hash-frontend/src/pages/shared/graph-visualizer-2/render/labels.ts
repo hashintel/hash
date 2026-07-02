@@ -38,7 +38,7 @@ function fadeAlpha(
 
 function clusterLabelSize(cluster: RenderCluster): number {
   // Property labels arrive multi-line ("Title = value" per line + a "(count)" line); width
-  // is set by the LONGEST line and the stack must fit the bubble vertically. A single-line
+  // is set by the longest line and the stack must fit the bubble vertically. A single-line
   // type-set label (lineCount 1) keeps its original size via the per-line cap.
   const lines = cluster.label.split("\n");
   let longest = 1;

@@ -10,7 +10,7 @@
  * as ballpark (few samples), the cross-size / cross-engine SHAPE is the point.
  *
  * Run: `cd apps/hash-frontend && ../../node_modules/.bin/vitest bench --run \
- *   src/pages/shared/graph-visualizer-2/worker/layout/force-simulation.bench.ts`
+ * src/pages/shared/graph-visualizer-2/worker/layout/force-simulation.bench.ts`
  */
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { bench, describe } from "vitest";

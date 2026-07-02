@@ -6,7 +6,7 @@
  * Two feed modes:
  * - all-at-once: every fixture entity is handed to the visualizer immediately.
  * - streaming: entities are revealed in chunks over time (and `rootEntityIds` grows alongside), to
- *   reproduce the incremental/absorb path (FA2 settling, hub-labels during load).
+ * reproduce the incremental/absorb path (warm re-settling, hub-labels during load).
  */
 import { Box } from "@mui/material";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -176,8 +176,8 @@ export const DevHarness = () => {
     setSeed((previous) => previous + 1);
   }, []);
 
-  // CAPTURE-LIVE-FIXTURE hook: the visualizer surfaces its worker handle here so the
-  // capture button can serialize the LIVE layout graph (positions, radii, edges,
+  // capture-live-fixture hook: the visualizer surfaces its worker handle here so the
+  // capture button can serialize the live layout graph (positions, radii, edges,
   // Louvain communities) to a JSON download + console copy. Replay it in benches or
   // tests via `forceGraphFromCapturedFixture` (worker/bench-fixtures.ts).
   const workerHandleRef = useRef<WorkerHandle | undefined>(undefined);
@@ -206,10 +206,13 @@ export const DevHarness = () => {
     });
   }, []);
 
-  // RENDER-BENCH hook: the visualizer surfaces its Scene here so the bench button can
+  // render-bench hook: the visualizer surfaces its Scene here so the bench button can
   // capture deck stats + layer-push timings under a scripted zoom sweep. The report JSON
-  // lands in the console; the summary line shows in the panel. See PERFORMANCE.md
-  // ("Render benchmark") for how to read it and the budgets to hold.
+  // lands in the console; the summary line shows fps | attrs ms/s | rebuild p95.
+  // Key fields: rebuild.p95Ms (main-thread layer rebuild), deck.updateAttributesTime
+  // (Deck's deferred attribute regen, the primary jank signal), deck.fps/cpuTimePerFrame.
+  // Compare runs only at matching zoom envelopes; settled vs under-load sweeps measure
+  // different things.
   const sceneRef = useRef<Scene | null>(null);
   const handleSceneReady = useCallback((scene: Scene | null) => {
     sceneRef.current = scene;
@@ -276,7 +279,7 @@ export const DevHarness = () => {
 
   // Remount the visualizer (fresh worker, cleared graph) whenever the fixture identity or feed mode
   // changes. Ingest is additive, so without a remount a regenerated fixture would pile its entities
-  // onto the previous graph instead of replacing it -- so the key must include EVERY fixture-shaping
+  // onto the previous graph instead of replacing it -- so the key must include every fixture-shaping
   // knob, not just seed/stream (changing any of these sliders regenerates the fixture too).
   const visualizerKey = [
     seed,

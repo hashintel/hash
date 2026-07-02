@@ -3,25 +3,25 @@
  * components, min-fill/max-min pivot selection with per-pivot BFS distance rows,
  * PivotMDS-style coordinate initialisation, and (cold builds only) disconnected-
  * component packing. This is exactly the pre-solve machinery majorization-layout.ts
- * consumes — it performs no layout solving itself (the retired sparse-stress SGD
- * engine that used to live around these passes was deleted when majorization was
- * promoted to the only community-tier engine).
+ * consumes: analysis and initialisation only. Layout solving lives in
+ * majorization-layout.ts.
  *
  * Everything is budget-sliced: `tick({ maxWork, maxMs })` advances the phase machine
  * by a bounded number of work units so a large graph never freezes a frame, and the
  * whole pipeline is deterministic (seeded tie-breaking, index-ordered scans).
  *
  * References:
- *   - Sparse/pivot stress idea for avoiding all-pairs stress terms:
- *     Mark Ortmann, Mirza Klimenta, Ulrik Brandes,
- *     "A Sparse Stress Model" (2017).
- *     https://jgaa.info/index.php/jgaa/article/view/paper440
+ * - Sparse/pivot stress idea for avoiding all-pairs stress terms:
+ *   Mark Ortmann, Mirza Klimenta, Ulrik Brandes,
+ *   "A Sparse Stress Model" (2017).
+ *   https://jgaa.info/index.php/jgaa/article/view/paper440
  *
- *   - Landmark/Pivot-MDS-style use of distances from a small set of landmarks:
- *     Vin de Silva, Joshua B. Tenenbaum,
- *     "Sparse multidimensional scaling using landmark points" (2004), and
- *     Ulrik Brandes, Christian Pich,
- *     "Eigensolver Methods for Progressive Multidimensional Scaling of Large Data".
+ * - Landmark/Pivot-MDS-style use of distances from a small set of landmarks:
+ *   Vin de Silva, Joshua B. Tenenbaum,
+ *   "Sparse multidimensional scaling using landmark points" (2004), and
+ *
+ *   Ulrik Brandes, Christian Pich,
+ *   "Eigensolver Methods for Progressive Multidimensional Scaling of Large Data".
  */
 /* eslint-disable no-param-reassign */
 /* eslint-disable no-bitwise */

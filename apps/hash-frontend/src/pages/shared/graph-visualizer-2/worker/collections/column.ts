@@ -9,9 +9,9 @@ export interface ColumnOptions {
    * - `"shared-if-available"` (default): SharedArrayBuffer when the platform
    *   has it, so workers and the main thread can read the same memory.
    * - `"plain"`: always a regular ArrayBuffer. Use this for columns whose
-   *   views are handed to GPU upload APIs (deck attributes, luma textures) —
-   *   WebGL entry points don't reliably accept SharedArrayBuffer-backed
-   *   views across browsers — or when nothing ever reads them cross-thread.
+   *   views are handed to GPU upload APIs (deck attributes, luma textures):
+   *   WebGL entry points do not reliably accept SharedArrayBuffer-backed views
+   *   across browsers. Also use plain when nothing reads the column cross-thread.
    */
   readonly backing?: "shared-if-available" | "plain";
 }
@@ -85,7 +85,8 @@ export class ColumnView<A extends TypedArray, T extends number = number> {
  * SharedArrayBuffer allows both the worker and main thread to read
  * the same memory without serialization. The column grows by doubling
  * capacity; when resizable shared buffers are available it resizes in place,
- * otherwise it allocates and copies.
+ * otherwise it allocates and copies. Columns whose views feed GPU upload
+ * APIs must opt out of the shared backing ({@link ColumnOptions.backing}).
  *
  * Generic over typed array kind via the constructor parameter:
  *
@@ -121,6 +122,11 @@ export class Column<A extends TypedArray, T extends number = number> {
 
   get length(): number {
     return this.#length;
+  }
+
+  /** Allocated slots (≥ {@link length}); grows by doubling, never shrinks. */
+  get capacity(): number {
+    return this.#view.length;
   }
 
   /** The underlying buffer. SharedArrayBuffer when available. */
@@ -182,6 +188,24 @@ export class Column<A extends TypedArray, T extends number = number> {
    */
   clear(): void {
     this.#length = 0;
+  }
+
+  /**
+   * Set the filled length directly (random-access/scatter usage, where the
+   * window size is known up front rather than discovered by `push`).
+   *
+   * Growth preserves contents and is not automatically zeroed; slots re-exposed by growing the window after
+   * a `clear`/shrink keep whatever they last held. Callers that need a clean
+   * window must {@link fill} it.
+   */
+  resize(length: number): void {
+    this.#ensureCapacity(length);
+    this.#length = length;
+  }
+
+  /** Fill the filled window (or a sub-range of it) with `value`. */
+  fill(value: T, start = 0, end = this.#length): void {
+    this.#view.fill(value, start, Math.min(end, this.#length));
   }
 
   /**

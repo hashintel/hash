@@ -22,7 +22,7 @@ function polygon(count: number, ring: number, radius: number): LayoutNode[] {
   return nodes;
 }
 
-/** Ring edges (0-1, 1-2, …, n-1-0): a crossing-free cycle for the polygon. */
+/** Ring edges (0-1, 1-2, ..., n-1-0): a crossing-free cycle for the polygon. */
 function ringEdges(count: number): [number, number][] {
   return Array.from(
     { length: count },
@@ -60,18 +60,18 @@ function relativeDisplacements(
 
 describe("optimizeTopLevel", () => {
   it("clears an edge forced straight through a huge obstacle bubble", () => {
-    // A↔B connected, with a HUGE bubble C parked on the A–B line between them
+    // A↔B connected, with a HUGE bubble C parked on the A-B line between them
     // (C↔D keeps C placeable). This is the "Of Material wraps around Material
     // Movement" case: the straight edge pierces the obstacle.
     const nodes: LayoutNode[] = [
       { x: 0, y: 0, radius: 10 }, // A
       { x: 160, y: 0, radius: 10 }, // B
-      { x: 80, y: 0, radius: 50 }, // C — huge, between A and B
+      { x: 80, y: 0, radius: 50 }, // C: huge, parked between A and B
       { x: 80, y: 150, radius: 10 }, // D
     ];
     const edges: ReadonlyArray<readonly [number, number]> = [
-      [0, 1], // A–B
-      [2, 3], // C–D
+      [0, 1], // A-B
+      [2, 3], // C-D
     ];
 
     const before = measureLayout(nodes, edges);
@@ -101,8 +101,8 @@ describe("optimizeTopLevel", () => {
       { x: 0, y: 100, radius: 10 }, // D
     ];
     const edges: ReadonlyArray<readonly [number, number]> = [
-      [0, 1], // A–B (diagonal)
-      [2, 3], // C–D (diagonal)
+      [0, 1], // A-B (diagonal)
+      [2, 3], // C-D (diagonal)
     ];
 
     const before = measureLayout(nodes, edges);
@@ -157,7 +157,7 @@ describe("optimizeTopLevel anchored refine (incremental stability)", () => {
     const existing = polygon(6, ring, radius);
     const anchors: (Anchor | null)[] = [
       ...existing.map((node) => ({ x: node.x, y: node.y })),
-      null, // the 7th bubble is new — placed freely
+      null, // the 7th bubble is new, placed freely
     ];
 
     // New bubble seeded near the centre, connected to one existing bubble.
@@ -166,12 +166,12 @@ describe("optimizeTopLevel anchored refine (incremental stability)", () => {
 
     optimizeTopLevel(nodes, edges, 99, { anchors });
 
-    // The 6 existing bubbles barely move (mental map preserved)…
+    // The 6 existing bubbles barely move (mental map preserved)...
     const displacements = relativeDisplacements(nodes, anchors);
     for (let idx = 0; idx < 6; idx++) {
       expect(displacements[idx]!).toBeLessThan(2 * radius);
     }
-    // …while the new bubble leaves its poor central seed to find open space.
+    // ...while the new bubble leaves its poor central seed to find open space.
     const newNode = nodes[6]!;
     expect(Math.hypot(newNode.x - 5, newNode.y - 5)).toBeGreaterThan(radius);
     for (const node of nodes) {
@@ -216,9 +216,9 @@ describe("optimizeTopLevel anchored refine (incremental stability)", () => {
     console.log(
       `[toplevel] movement cold ${coldMovement.toFixed(1)} vs anchored ${refinedMovement.toFixed(1)}`,
     );
-    // The anchored refine keeps bubbles close to their previous positions…
+    // The anchored refine keeps bubbles close to their previous positions...
     expect(refinedMovement).toBeLessThan(coldMovement);
-    // …and the geometry it produces is no worse than the seed it started from.
+    // ...and the geometry it produces is no worse than the seed it started from.
     expect(measureLayout(refined, edges).energy).toBeLessThanOrEqual(
       measureLayout(seed(), edges).energy + 1e-6,
     );
@@ -258,8 +258,8 @@ describe("optimizeTopLevel anchored refine (incremental stability)", () => {
   it("guarantees zero overlap on growth, where the search leaves a sliver", () => {
     // A central bubble grew huge (radius 200) and is pinned, and so are its two
     // neighbours (all weight 1, all on screen) at positions now buried inside
-    // it. The anchored search resolves MOST of this on its own, but — anchored
-    // to infeasible (overlapping) positions — it leaves a residual sliver it
+    // it. The anchored search resolves most of this on its own, but anchored
+    // to infeasible (overlapping) positions. It leaves a residual sliver it
     // won't close. The final relaxation must turn that sliver into exactly zero.
     const seedNodes = (): LayoutNode[] => [
       { x: 0, y: 0, radius: 200 },
@@ -285,7 +285,7 @@ describe("optimizeTopLevel anchored refine (incremental stability)", () => {
     const searchOnlyOverlap = measureLayout(searchOnly, edges).overlap;
     expect(searchOnlyOverlap).toBeGreaterThan(0.01);
 
-    // The full pass drives it to zero — the relaxation is what closes the gap.
+    // The full pass drives it to zero. The relaxation is what closes the gap.
     const nodes = seedNodes();
     optimizeTopLevel(nodes, edges, 23, { anchors });
     const fullOverlap = measureLayout(nodes, edges).overlap;
@@ -296,7 +296,7 @@ describe("optimizeTopLevel anchored refine (incremental stability)", () => {
   it("relaxOverlaps separates overlaps and moves the heavier bubble less", () => {
     // Two overlapping bubbles, B four times as heavy (pinned) as A. The push
     // apart must (a) actually separate them and (b) move the heavier one less,
-    // i.e. distribute by weight rather than 50/50. No SA involved — this is the
+    // i.e. distribute by weight rather than 50/50. No SA involved; this is the
     // relaxation in isolation.
     const meanRadius = 10;
     const nodes: LayoutNode[] = [

@@ -3,26 +3,27 @@
  * the real {@link GraphWorker} exactly as `entry.ts` does (ingest -> commit).
  *
  * Two questions:
- *  - `no-op re-commit`: how much work does a commit do when NOTHING changed?
- *    (`recomputeMode` + `#allNodeEntityIdxs` sort + topology rescan + `#writeFlatStyle`
- *    + `#buildFlatRenderEdges`, or the hierarchical cut recompute + frame rebuild.)
- *    A no-op should be near-free; anything else is per-commit waste on every batch.
- *  - `bulk vs streaming`: the same final graph delivered as one batch+commit vs.
- *    many batch+commits. The gap is the per-commit O(N) work (re)done per batch --
- *    the streaming-ingest tax.
+ * - `no-op re-commit`: how much work does a commit do when NOTHING changed?
+ * (`recomputeMode` + `#allNodeEntityIdxs` sort + topology rescan + `#writeFlatStyle`
+ * + `#buildFlatRenderEdges`, or the hierarchical cut recompute + frame rebuild.)
+ * A no-op should be near-free; anything else is per-commit waste on every batch.
+ * - `bulk vs streaming`: the same final graph delivered as one batch+commit vs.
+ * many batch+commits. The gap is the per-commit O(N) work (re)done per batch --
+ * the streaming-ingest tax.
  *
  * The GraphWorker runs its layout scheduler on MessageChannels; a synchronous
  * bench body never lets those macrotasks fire mid-measurement, and vitest tears
  * the process down after the run, so no scheduler cleanup is needed here.
  *
  * Run: `cd apps/hash-frontend && ../../node_modules/.bin/vitest bench --run \
- *   src/pages/shared/graph-visualizer-2/worker/core/commit-rebuild.bench.ts`
+ * src/pages/shared/graph-visualizer-2/worker/core/commit-rebuild.bench.ts`
  */
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { bench, describe } from "vitest";
 
 import { defaultVizConfig } from "../../config";
 import { benchTypeSchemas, buildIngestEntities } from "../bench-fixtures";
+import { CommitCoalescer } from "./commit-coalescer";
 import { GraphWorker } from "./graph-worker";
 
 import type { GraphShape } from "../bench-fixtures";
@@ -142,8 +143,10 @@ describe(`ingest ${STREAM_SHAPE.nodeCount} nodes / ${STREAM_SHAPE.linkCount} lin
     FRESH_WORKER_OPTS,
   );
 
+  // The pre-coalescing streaming tax (one commit per batch), kept as the
+  // baseline the coalesced row below is judged against.
   bench(
-    `streaming: ${STREAM_BATCH}-entity batches + commit each`,
+    `streaming, uncoalesced: ${STREAM_BATCH}-entity batches + commit each`,
     () => {
       const worker = newWorker(STREAM_SHAPE.typeCount);
       for (
@@ -156,6 +159,34 @@ describe(`ingest ${STREAM_SHAPE.nodeCount} nodes / ${STREAM_SHAPE.linkCount} lin
         worker.commitStructure({ deltas });
         worker.restyleIfRootsFlipped();
       }
+    },
+    FRESH_WORKER_OPTS,
+  );
+
+  // What entry.ts actually does now: per-batch ingest, commits routed through
+  // the CommitCoalescer. The bench body is synchronous, so the MessageChannel
+  // drain never fires mid-run and the batch-count cap paces the commits. The
+  // WORST coalescing case (a saturated queue); real gaps only commit less
+  // often. The explicit trailing flush() is the test-visible drain hook.
+  bench(
+    `streaming, coalesced: ${STREAM_BATCH}-entity batches through CommitCoalescer`,
+    () => {
+      const worker = newWorker(STREAM_SHAPE.typeCount);
+      const coalescer = new CommitCoalescer({
+        commit: ({ deltas, rebuildTree }) => {
+          worker.commitStructure({ deltas, rebuildTree });
+          worker.restyleIfRootsFlipped();
+        },
+      });
+      for (
+        let start = 0;
+        start < STREAM_ENTITIES.length;
+        start += STREAM_BATCH
+      ) {
+        const chunk = STREAM_ENTITIES.slice(start, start + STREAM_BATCH);
+        coalescer.enqueueDeltas(worker.ingestBatch(chunk));
+      }
+      coalescer.flush();
     },
     FRESH_WORKER_OPTS,
   );

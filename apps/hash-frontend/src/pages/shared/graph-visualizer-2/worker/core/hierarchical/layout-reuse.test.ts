@@ -46,7 +46,7 @@ describe("layoutNeedsRebuild", () => {
 
   it("reuses a big growth that still has slack (no churn)", () => {
     // a: 40 -> 55 (nearly +40%). Edge-to-edge gap shrinks 20 -> 5 but they do
-    // NOT overlap, so the layout must be kept — this is the anti-churn case.
+    // NOT overlap, so the layout must be kept. This is the anti-churn case.
     const { previous, current } = pairAt(55, 40);
     expect(layoutNeedsRebuild(previous, current)).toBe(false);
   });
@@ -130,7 +130,7 @@ describe("layoutOutgrown", () => {
 
   it("ignores ids not present when the layout was built", () => {
     // A genuinely new cluster is layoutNeedsRebuild's job (count change), not
-    // this growth check — so an unknown id alone must not trigger a re-warm.
+    // this growth check, so an unknown id alone must not trigger a re-warm.
     expect(layoutOutgrown(buildTime, [{ id: "z", radius: 9_999 }])).toBe(false);
   });
 });

@@ -4,13 +4,13 @@
  *
  * Zero disk overlaps does not imply visually separate community regions: a branch
  * of one community can fold deep into another community's fan without any pair of
- * disks intersecting (classic sparse-stress folding — unrelated cross-community
+ * disks intersecting (classic sparse-stress folding, unrelated to cross-community
  * pairs carry no stress term, so nothing separates them). The bench's inter/intra
  * edge-length ratio cannot see this (it only measures edges, and the folded pairs
  * share none), which is exactly how region interpenetration shipped while every
  * edge metric looked fine. These metrics measure the regions themselves.
  *
- * Primary metric: `diskContainment` — the fraction of nodes lying strictly inside
+ * Primary metric: `diskContainment`, the fraction of nodes lying strictly inside
  * a foreign community's disk, where community c's disk is centred on its member
  * centroid with the community's packing radius (the radius of the disk that holds
  * the members' drawn areas at the engines' shared utilisation). Chosen as primary
@@ -23,9 +23,9 @@
  * Secondary (reported, not gated): convex-hull `foreignContainment` and worst
  * pairwise hull intersection-over-min-area. Hulls also see boundary
  * interpenetration between region perimeters, but they systematically overcount
- * for concave shapes — a crescent community's hull covers its bay, and everything
- * inside the bay counts as "contained" even when the drawn bubbles are disjoint —
- * so they complement the disk metric rather than replace it.
+ * for concave shapes. A crescent community's hull covers its bay, so everything
+ * inside the bay counts as "contained" even when the drawn bubbles are disjoint.
+ * Hulls complement the disk metric rather than replace it.
  */
 
 /**
@@ -36,7 +36,7 @@
 export const REGION_MIN_COMMUNITY_SIZE = 8;
 
 /**
- * Disk-packing utilisation for a community's region radius — the same fraction
+ * Disk-packing utilisation for a community's region radius. The same fraction
  * the layout engines use for their scale-to-fit / hub packing sizing.
  */
 export const REGION_PACKING_UTILISATION = 0.55;
@@ -125,7 +125,7 @@ function intersect(from: Point, to: Point, edgeA: Point, edgeB: Point): Point {
   };
 }
 
-/** Sutherland–Hodgman clip of a convex polygon by a convex CCW clip polygon. */
+/** Sutherland-Hodgman clip of a convex polygon by a convex CCW clip polygon. */
 function clipConvex(
   subject: readonly Point[],
   clip: readonly Point[],
@@ -185,7 +185,7 @@ export interface RegionOverlapStats {
 
 /**
  * Region-overlap statistics over a settled layout. Deterministic; O(regions ·
- * (n + hull²)) — bench/test-scale cost only.
+ * (n + hull²)). Bench/test-scale cost only.
  */
 export function measureRegionOverlap(
   nodes: readonly RegionNode[],

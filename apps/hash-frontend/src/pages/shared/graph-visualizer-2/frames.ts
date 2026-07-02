@@ -102,9 +102,10 @@ export interface RenderEntityFanOut {
 }
 
 /**
- * The whole-graph individual-entity view for `flat-force` and
- * `community-force` (one regime; see `LAYOUT-MODES.md`). Unlike the
- * hierarchical {@link RenderEntityLayer} (one open leaf, uniform colour/radius),
+ * The whole-graph individual-entity view for `flat-force` and `community-force`
+ * (one placement regime with identical nodes and edges; the modes differ only in
+ * whether BubbleSets highlight subcommunities). Unlike the hierarchical
+ * {@link RenderEntityLayer} (one open leaf, uniform colour/radius),
  * this is the entire entity set as one graph, each entity coloured by its type
  * (hierarchy-aware) and sized by its degree.
  *

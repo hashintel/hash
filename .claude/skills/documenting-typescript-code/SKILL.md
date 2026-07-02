@@ -196,7 +196,32 @@ Code that coordinates across threads (workers, `SharedArrayBuffer`, `Atomics`) d
 - No commented-out code. Delete it; git remembers.
 - No caller narration ("Used by Scene to…"). Describe what the code provides.
 - No composition narration ("wraps a Foo", "this is a thin wrapper around"). State the semantic purpose.
+- Comments must be self-contained; do not defer essential context to external markdown or spec files (`PERFORMANCE.md`, `MANIFESTO.md`, `LAYOUT-MODES.md`, and similar). When migrating legacy comments that cite such docs, inline the contract or invariant instead of deleting the pointer.
 - TODOs name the condition under which they get resolved, not just a wish: `// TODO: fold into CutIndex once link entities join type-set groups.` A TODO with no trigger is a lie with a timestamp.
+- Prose punctuation must be ASCII. When a comment used Unicode dashes or ellipses, rewrite the sentence in plain English rather than substituting `---`, `--`, spaced hyphens, or semicolons as stand-ins for em dashes. Split into two sentences, use commas or parentheses, or rephrase so the comment reads naturally.
+
+### Math notation in comments
+
+**Math and formula notation are exempt from ASCII-only hygiene.** Keep standard mathematical symbols wherever they make a formula easier to read. Do not "flatten" them into prose.
+
+Symbols that belong in formulas include:
+
+- Set operators: `∩`, `∪`
+- Relations and mappings: `≤`, `≥`, `≈`, `≪`, `≫`, `→`, `↔`, `⇒`, `⇔`, `←`
+- Operators: `×`, `·`, `Σ`, `−` (minus inside a formula)
+- Superscripts, subscripts, and constants in formulas: `d²`, `rᵢ`, `2²⁶`, `ε`, `π`, `norm²`, etc.
+
+Examples:
+
+```ts
+/** Jaccard similarity: |A ∩ B| / |A ∪ B|. Returns 1 if both empty. */
+/** separation w → ×(1 + 2w); cohesion w → ×1/(1 + 2w) */
+/** L·x = b_x solved per dimension; majorize→project limit cycle */
+```
+
+Use ASCII for ordinary prose punctuation (commas, semicolons between clauses) and for identifiers that are not part of a formula (`EntityIdx->EntityId` join maps, log arrows, protocol names). When a comment is clearly a mapping or formula (`f: A → B`, `scale_c = max(1, R_packing / R_hop-ideal)`), keep `→`, `×`, `·`, and relation symbols.
+
+**Do not** replace helpful math glyphs with spelled-out words (`intersect`, `union`, `times`, `less than or equal`, `much less than`) unless the line is pure narrative with no formula structure.
 
 ## Narration anti-patterns
 
@@ -243,5 +268,7 @@ Before finalizing documentation or a comment pass:
 - Config knobs state default + tradeoff.
 - Inline comments explain why, are affirmative and present-tense, and sit at the point of surprise.
 - No banners, no commented-out code, no history narration, no caller narration, no ALL-CAPS emphasis in prose.
+- Comments are self-contained; no pointers to external markdown/spec files for essential context.
+- Prose punctuation is ASCII; rewrite Unicode dash/ellipsis prose instead of substituting `---`, `--`, or semicolons for em dashes.
 - Concurrency protocols are documented where the coordination happens.
 - Every `{@link}` resolves; plain backticks are not used for type references.

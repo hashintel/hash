@@ -1,8 +1,8 @@
 /**
  * Optional tuning overrides for the community-force flat tier's stress-majorization
  * engine (persistent-CG solves with circle-relaxation projection and a verified-clean
- * terminal settle). Each weight acts as TARGET SHAPING — community-scaled stress
- * targets, hub halo bands, and the community-region floor margin — not as a force.
+ * terminal settle). Each weight shapes stress targets (community-scaled edge lengths, hub halo bands,
+ * and the community-region floor margin), not a force term.
  * An unset field keeps the gentle default; set a field to 0 to disable that shaping.
  */
 export interface StressTuning {
@@ -12,7 +12,7 @@ export interface StressTuning {
   readonly communityCohesion?: number;
   /**
    * Cross-community separation: inflate cross-community stress targets ×(1 + 2·w)
-   * AND widen the community-region floor margin (the keep-out disk every non-member
+   * and widen the community-region floor margin (the keep-out disk every non-member
    * is held outside) by w·idealEdgeLength.
    */
   readonly communitySeparation?: number;

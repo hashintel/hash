@@ -31,7 +31,7 @@
  * positions as {@link Anchor}s and the search becomes a local refine: an inertia
  * term penalises moving an existing bubble away from its anchor, and the search
  * takes small steps with few restarts and rare swaps. New bubbles (null anchor)
- * are still placed freely, and the layout keeps self-healing crossings — it just
+ * are still placed freely, and the layout keeps self-healing crossings. It just
  * does so by small, legible adjustments instead of wholesale reshuffles.
  */
 import { mulberry32 } from "../../math/random";
@@ -106,7 +106,7 @@ const SWAP_PROB = 0.25;
  * adds {@link ANCHOR_WEIGHT}·(displacement / meanRadius)² per anchored node to
  * the objective, and the search takes small steps ({@link ANCHORED_MOVE_SCALE_MUL}
  * of the mean radius) with a single pass ({@link ANCHORED_RESTARTS}) and rare
- * swaps ({@link ANCHORED_SWAP_PROB} — a swap relocates a node across the whole
+ * swaps ({@link ANCHORED_SWAP_PROB}): a swap relocates a node across the whole
  * layout, the opposite of staying put). The weight is calibrated against
  * {@link CROSS_WEIGHT}: at weight 12 a node won't travel ~2 mean-radii from its
  * anchor unless doing so removes more than ~1.5 crossings, so the layout only
@@ -121,9 +121,9 @@ const ANCHORED_MOVE_SCALE_MUL = 1.2;
 
 /**
  * Final non-overlap relaxation (anchored refine only). Inertia is quadratic and
- * the overlap penalty is linear, so for a large forced displacement — a bubble
+ * the overlap penalty is linear, so for a large forced displacement (a bubble
  * that suddenly grew (e.g. 70 → 2000 entities, radius ~5×) whose neighbours are
- * all pinned near the viewport — the anchor wins and the grown bubble is left
+ * all pinned near the viewport). The anchor wins and the grown bubble is left
  * overlapping. This deterministic push-apart runs after the search and
  * guarantees a non-overlapping result, distributing the separation by anchor
  * weight (as mass): a pinned central bubble barely moves while lighter /

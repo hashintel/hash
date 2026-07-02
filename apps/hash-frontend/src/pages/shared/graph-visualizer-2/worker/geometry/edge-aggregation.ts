@@ -7,16 +7,16 @@
  * the visible-owner equivalence relation induced by the LOD cut.
  *
  * Invariants:
- *   1. Every stored link is classified as exactly one of
- *      aggregate / individual / hidden (no double counting).
- *   2. For every aggregate edge (A, B, type), its count equals
- *      the number of links whose endpoint visible owners are A and B
- *      with that TypeSetId.
- *   3. Visual keys are based on semantic identity (cluster pair + type),
- *      not array order.
- *   4. Even when rendering a collapsed edge, exact byType counts are kept.
- *   5. Aggregates are additive: affected links can be subtracted and
- *      re-added exactly for incremental updates.
+ * 1. Every stored link is classified as exactly one of
+ *    aggregate / individual / hidden (no double counting).
+ * 2. For every aggregate edge (A, B, type), its count equals
+ *    the number of links whose endpoint visible owners are A and B
+ *    with that TypeSetId.
+ * 3. Visual keys are based on semantic identity (cluster pair + type),
+ *    not array order.
+ * 4. Even when rendering a collapsed edge, exact byType counts are kept.
+ * 5. Aggregates are additive: affected links can be subtracted and
+ *    re-added exactly for incremental updates.
  */
 import { PairKey, VisualEdgeKey } from "../../ids";
 import { graphColors } from "../../visual-style";
@@ -343,7 +343,8 @@ export interface AggregatedVisualEdge {
    * The lane's single link type as a VersionedUrl, when it has exactly one (a lane is single-type
    * by definition). `null` for a multi-type rollup (`collapsed`). The main thread resolves the
    * type's icon + title from the closed type schema it already holds -- the worker ships only the
-   * identity, never rich type data (INTERACTION.md: worker computes, main thread presents).
+   * identity, never rich type data. The main thread resolves icons and titles from
+   * the type schemas React already holds; the worker ships geometry and ids only.
    */
   readonly typeId: VersionedUrl | null;
   readonly direction: EdgeDirection;

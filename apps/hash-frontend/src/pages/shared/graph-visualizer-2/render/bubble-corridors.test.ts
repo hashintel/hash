@@ -3,8 +3,8 @@
  *
  * The contract under test: for every rendered community, the metaball field
  * (point kernels + planned capsule corridors, as the shader sums it) has ONE
- * connected above-threshold region containing all members — no matter how the
- * members clump spatially — while corridors stay clear of (or narrow over)
+ * connected above-threshold region containing all members no matter how they
+ * clump spatially, while corridors stay clear of (or narrow over)
  * foreign nodes, deterministically.
  */
 import { describe, expect, it } from "vitest";
@@ -205,7 +205,7 @@ function fieldComponentsContainingMembers(
     const row = Math.round((memberY - minY) / cell);
     const seed = row * cols + col;
     if (inside[seed] !== 1) {
-      throw new Error("member cell below threshold — fixture broken");
+      throw new Error("member cell below threshold (fixture broken)");
     }
     if (componentOf[seed] !== -1) {
       continue;
@@ -278,7 +278,7 @@ function segmentDistanceTo(
   return Math.hypot(px - (seg.ax + abX * along), py - (seg.ay + abY * along));
 }
 
-describe("bubble corridors — connectivity guarantee", () => {
+describe("bubble corridors, connectivity guarantee", () => {
   it("three spread clumps: MST spans all members and the field is ONE component", () => {
     const world = makeWorld(
       [...clump(0, 0, 7), ...clump(600, 0, 7), ...clump(300, 500, 7)],
@@ -287,11 +287,11 @@ describe("bubble corridors — connectivity guarantee", () => {
     planBubbleCorridors(world.args);
 
     expect(segmentsSpanAllMembers(world, 0)).toBe(true);
-    // The guard: WITHOUT corridors this fixture is three islands…
+    // The guard: WITHOUT corridors this fixture is three islands...
     expect(
       fieldComponentsContainingMembers(world, 0, { withSegments: false }),
     ).toBeGreaterThan(1);
-    // …and WITH corridors exactly one.
+    // ...and WITH corridors exactly one.
     expect(fieldComponentsContainingMembers(world, 0)).toBe(1);
     // Nothing foreign anywhere: every corridor is full width.
     for (const seg of world.segmentsOf(0)) {
@@ -302,8 +302,8 @@ describe("bubble corridors — connectivity guarantee", () => {
   it("reroutes a corridor around a foreign node via an intermediate member", () => {
     // A(0,0) and B(600,0) clumps whose direct MST edge passes over a foreign
     // node at (300,0). The lone member M(0,300) is FARTHER from B than the
-    // direct edge (so the MST still picks A–B) but offers a clear one-hop
-    // detour within the 2× cap: |A–M| + |M–B| ≈ 290 + 660 < 2 × 570.
+    // direct edge (so the MST still picks A-B) but offers a clear one-hop
+    // detour within the 2× cap: |A-M| + |M-B| ≈ 290 + 660 < 2 × 570.
     const world = makeWorld(
       [
         ...clump(0, 0, 3),
@@ -346,7 +346,7 @@ describe("bubble corridors — connectivity guarantee", () => {
     planBubbleCorridors(world.args);
 
     expect(segmentsSpanAllMembers(world, 0)).toBe(true);
-    // Still connected — via a THIN thread, not a fat blob over the barrier.
+    // Still connected via a thin thread, not a fat blob over the barrier.
     expect(fieldComponentsContainingMembers(world, 0)).toBe(1);
     // (float32 storage: compare against full width, not exact product)
     const narrow = world
@@ -402,7 +402,7 @@ describe("bubble corridors — connectivity guarantee", () => {
   });
 });
 
-describe("bubble corridors — planning cost", () => {
+describe("bubble corridors, planning cost", () => {
   it("plans a large realistic frame well inside a frame budget", () => {
     // 10 spread communities × 100 members + 1000 loose foreign nodes: a
     // harsher obstacle field than the production graphs seen so far.
@@ -448,7 +448,7 @@ describe("bubble corridors — planning cost", () => {
     );
 
     // Steady-state per-frame ADDED cost (no replan): the segment-endpoint
-    // texel refresh — mirror of the loop in render/community.ts.
+    // Texel refresh mirrors the loop in render/community.ts.
     const { args } = world;
     const totalMembers = 1000;
     const segTexelBase = totalMembers;

@@ -58,7 +58,7 @@ interface CommunityGrouping {
   readonly ranges: Float32Array;
   /** Per kept community: its Louvain community id (corridor obstacle tests). */
   readonly communityIds: Int32Array;
-  /** Per kept community RGBA (community id to colour). Constant for the grouping's life. */
+  /** Per kept community RGBA (community id → colour). Constant for the grouping's life. */
   readonly colors: Uint8Array;
   readonly keptCount: number;
   /** CPU-side canonical member positions (texel stride 4), refilled from the
@@ -69,7 +69,7 @@ interface CommunityGrouping {
   readonly cellPacker: BubbleCellPacker;
 
   // Corridor plan: see planBubbleCorridors in bubble-corridors.ts.
-  /** Per segment `[slotA, slotB]` point-texel slots; capacity 2 * (k - 1) per community. */
+  /** Per segment `[slotA, slotB]` point-texel slots; capacity 2 · (k - 1) per community. */
   readonly segSlots: Int32Array;
   /** Per segment capsule radius (world units). */
   readonly segRadius: Float32Array;
@@ -131,7 +131,7 @@ function buildGrouping(
   }
 
   const totalNodes = kept.reduce((sum, [, members]) => sum + members.length, 0);
-  // Corridor capacity: an MST has k - 1 edges, each emitting <= 2 segments
+  // Corridor capacity: an MST has k - 1 edges, each emitting ≤ 2 segments
   // (reroute split).
   const totalSegCapacity = kept.reduce(
     (sum, [, members]) => sum + Math.max(0, members.length - 1) * 2,

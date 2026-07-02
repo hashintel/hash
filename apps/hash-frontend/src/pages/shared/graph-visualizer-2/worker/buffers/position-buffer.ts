@@ -147,8 +147,8 @@ export function leafColorAttribute(raw: SharedArrayBuffer | ArrayBuffer): {
 /**
  * Flat-tier interleaved shared buffer. Header plus fixed-size records:
  *
- *   `[version:i32][count:u32]` then count records of
- *   `{ x:f32, y:f32, radius:f32, rgba:u8x4, entityIdx:u32 }` (20 bytes each)
+ * `[version:i32][count:u32]` then count records of
+ * `{ x:f32, y:f32, radius:f32, rgba:u8x4, entityIdx:u32 }` (20 bytes each)
  *
  * `entityIdx` is the join key mapping a rendered record back to its entity.
  */

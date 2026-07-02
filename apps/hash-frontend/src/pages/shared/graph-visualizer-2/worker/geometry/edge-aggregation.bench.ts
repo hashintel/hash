@@ -10,7 +10,7 @@
  * `core/commit-rebuild.bench.ts` (hierarchical case).
  *
  * Run: `cd apps/hash-frontend && ../../node_modules/.bin/vitest bench --run \
- *   src/pages/shared/graph-visualizer-2/worker/geometry/edge-aggregation.bench.ts`
+ * src/pages/shared/graph-visualizer-2/worker/geometry/edge-aggregation.bench.ts`
  */
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { bench, describe } from "vitest";

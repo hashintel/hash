@@ -99,17 +99,37 @@ every commit. Implemented in `core/graph-worker.ts`, guarded by
   (structure) and `#buildEntityFanOut` (positions) build it once per leaf per
   topology and reuse it across position ticks, instead of rebuilding it twice per
   emit.
+- **F2 — fixed.** `entry.ts` no longer commits per `INGEST_BATCH`: batches are
+  ingested into the stores on arrival (cheap, incremental), and the commit is
+  routed through `core/commit-coalescer.ts` (`CommitCoalescer`), so a burst of
+  queued batches pays for ONE commit — one layout absorb, one render‑edge
+  rebuild, one structure frame (and therefore one main‑thread icon/label
+  rescan, see `PERFORMANCE.md` R2). Mechanism: the first deferral posts to a
+  MessageChannel port, which the event loop delivers only after the already
+  queued worker messages drain (the `TickScheduler` property); batches
+  separated by real gaps land in separate commits, so progressive rendering is
+  preserved. Latency policy: the first‑ever enqueue flushes synchronously
+  (cold‑load first paint), and two enqueue‑time backstops bound a saturated
+  queue — a batch‑count cap (`MAX_COALESCED_BATCHES` = 8) and an age cap
+  (`MAX_COALESCE_DELAY_MS` = 100 ms). Deltas merge across the burst (per‑group
+  `delta`s sum; `previousCount`/`isNewGroup` keep the first batch's values, so
+  threshold promotion still sees the true before/after), and a `rebuildTree`
+  from a mid‑burst `REGISTER_TYPES` becomes a flag on the merged commit —
+  applied exactly once, preserving the frontier‑expansion flow. Every other
+  message that reads committed state (viewport, embedding results, queries,
+  pin/highlight, fixture capture) flushes the coalescer first, so observable
+  ordering is unchanged. **Streamed ingest: 1,150 ms → 171 ms same‑run (16.6× →
+  2.5× over bulk), 4 commits instead of 20 for a 20‑batch stream** (§2.5).
+  Guarded by `core/commit-coalescer.test.ts` (policy + merge semantics) and
+  `core/graph-worker.test.ts` ("coalesced streaming": bulk‑equal end state,
+  bounded commit count, deterministic layout).
 
-Still open (call‑frequency, not `commitStructure` internals): **F2** — `entry.ts`
-still issues one commit per `INGEST_BATCH`, so a streamed graph is ~24× a bulk
-load. Coalescing a streaming burst into a single commit (accumulating + merging
-deltas, deferred via a MessageChannel behind the queued batches) is the
-recommended next step. **F9** (incremental `CutIndex` for real cut changes) and
-the remaining medium items below are also unaddressed. The broader versioned
-invalidation the review sketches (per‑artifact dirty bits for highway lanes,
-ports, rendered‑cluster metadata, Bézier geometry) is a larger follow‑up; the
-guards above cover the true no‑op and the specific redundant recomputations
-called out, not per‑artifact caching on partial changes.
+Still open: **F9** (incremental `CutIndex` for real cut changes) and the
+remaining medium items below. The broader versioned invalidation the review
+sketches (per‑artifact dirty bits for highway lanes, ports, rendered‑cluster
+metadata, Bézier geometry) is a larger follow‑up; the guards above cover the
+true no‑op and the specific redundant recomputations called out, not
+per‑artifact caching on partial changes.
 
 ---
 
@@ -252,18 +272,32 @@ Driven through the real `GraphWorker` exactly as `entry.ts` does.
 | community‑force (1,500 nodes)                              | **8.45 ms** |
 | hierarchical‑lod (8,000 nodes)                             | 3.17 ms     |
 
-| Ingest 2,000 nodes / 5,000 links            | mean                 |
-| ------------------------------------------- | -------------------- |
-| bulk: 1 batch + 1 commit                    | 42.5 ms              |
-| streaming: 100‑entity batches + commit each | **1,043 ms (24.5×)** |
+| Ingest 2,000 nodes / 5,000 links (2026‑07‑02 re‑run)     | mean                 |
+| -------------------------------------------------------- | -------------------- |
+| bulk: 1 batch + 1 commit                                 | 69 ms                |
+| streaming, uncoalesced: 100‑entity batches + commit each | **1,150 ms (16.6×)** |
+| streaming, coalesced (F2 fix): same batches              | **171 ms (2.5×)**    |
+
+(The audit's original run measured bulk at 42.5 ms and uncoalesced streaming at
+1,043 ms — 24.5×; the table above is the post‑F2 re‑run of all three variants on
+the same machine, one sitting, so the ratios are same‑run comparable.)
 
 The community‑force no‑op (8.5 ms) is _more_ expensive than the hierarchical
 no‑op (3.2 ms) despite fewer nodes: the flat tiers touch every node and every
 link on each commit, while the hierarchical tier only recomputes the cut and the
 visible clusters. This is the clearest evidence of the missing incremental commit
 path. (The bulk row has high run‑to‑run variance, ±30 % RME, from GC on the big
-single allocation; the streaming row is stable at ±2 %, so the ~24× ratio is a
+single allocation; the streaming rows are stable at ±5–7 %, so the ratios are a
 floor, not an artifact.)
+
+The coalesced row drives the same 20 batches through the `CommitCoalescer`
+exactly as `entry.ts` now does. The synchronous bench body never lets the
+MessageChannel drain fire, so the batch‑count cap (`MAX_COALESCED_BATCHES` = 8)
+paces the commits — the WORST case, a saturated queue — and the stream pays
+**4 commits instead of 20** (5 if the 100 ms age cap trips mid‑stream). The
+residual over bulk is the caps' progressive‑paint commits plus per‑batch ingest
+bookkeeping. With real gaps between bursts the drain replaces the cap and a
+burst pays one commit.
 
 ### 2.6 Edge aggregation keying — `geometry/edge-aggregation.bench.ts`
 
@@ -605,15 +639,15 @@ parentheses.
 
 All under `apps/hash-frontend/src/pages/shared/graph-visualizer-2/worker/`:
 
-| File                                 | Covers                                                                              |
-| ------------------------------------ | ----------------------------------------------------------------------------------- |
-| `bench-fixtures.ts`                  | Shared deterministic graph builders (not a bench itself).                           |
-| `stores/ingestion.bench.ts`          | Type‑set keying, entity interning, link adjacency.                                  |
-| `hierarchy/community.bench.ts`       | `buildInducedCsr`, `connectedComponents`, `boundedLabelPropagation`, full pipeline. |
-| `buffers/growable-buffer.bench.ts`   | Flat/leaf buffer writes, presized vs geometric vs naïve growth, `Column` push.      |
-| `layout/force-simulation.bench.ts`   | flat‑force (cola) and community‑force (majorization) build + settle.                |
-| `core/commit-rebuild.bench.ts`       | No‑op re‑commit + bulk vs streaming ingest through the real `GraphWorker`.          |
-| `geometry/edge-aggregation.bench.ts` | `makePairKey` (rules it out as a hot path).                                         |
+| File                                 | Covers                                                                                                 |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------ |
+| `bench-fixtures.ts`                  | Shared deterministic graph builders (not a bench itself).                                              |
+| `stores/ingestion.bench.ts`          | Type‑set keying, entity interning, link adjacency.                                                     |
+| `hierarchy/community.bench.ts`       | `buildInducedCsr`, `connectedComponents`, `boundedLabelPropagation`, full pipeline.                    |
+| `buffers/growable-buffer.bench.ts`   | Flat/leaf buffer writes, presized vs geometric vs naïve growth, `Column` push.                         |
+| `layout/force-simulation.bench.ts`   | flat‑force (cola) and community‑force (majorization) build + settle.                                   |
+| `core/commit-rebuild.bench.ts`       | No‑op re‑commit + bulk vs streaming (uncoalesced and coalesced) ingest through the real `GraphWorker`. |
+| `geometry/edge-aggregation.bench.ts` | `makePairKey` (rules it out as a hot path).                                                            |
 
 Run one file:
 

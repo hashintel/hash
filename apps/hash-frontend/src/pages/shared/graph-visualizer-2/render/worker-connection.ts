@@ -1,9 +1,9 @@
 /**
  * Owns the graph worker connection and turns its messages into a coalesced
  * subscribe stream, split by update rate:
- *  - structure events (topology / LOD cut) fire when a new StructureFrame commits;
- *  - position events (cluster positions, edge geometry, entity SAB notifies) are
- *    coalesced to at most one per animation frame.
+ * - structure events (topology / LOD cut) fire when a new StructureFrame commits;
+ * - position events (cluster positions, edge geometry, entity SAB notifies) are
+ * coalesced to at most one per animation frame.
  *
  * The presentation subscribes and drives Deck.gl imperatively from these events, so
  * no React state ever holds per-frame data and the layer set is never rebuilt wholesale.

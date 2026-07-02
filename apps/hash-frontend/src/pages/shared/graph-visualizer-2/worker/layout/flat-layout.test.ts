@@ -143,9 +143,10 @@ describe("createFlatLayout", () => {
         radius: 5,
       });
     }
+
     // One connected component (chain + cross-links): a fully-connected graph is
-    // the WORST case for cola's O(N^2) (dense distance matrix, slow convergence) —
-    // heavier than the real many-small-components data.
+    // the WORST case for cola's O(N^2) (dense distance matrix, slow convergence).
+    // Heavier than the real many-small-components data.
     const edges: ForceEdge[] = [];
     for (let idx = 1; idx < count; idx++) {
       edges.push({ source: String(idx - 1), target: String(idx), weight: 1 });

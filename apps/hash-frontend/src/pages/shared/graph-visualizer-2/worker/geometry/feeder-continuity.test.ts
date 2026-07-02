@@ -9,7 +9,7 @@ import { containerBoundaryWaypoint } from "./edge-geometry";
  * re-projected onto that container's rim aimed at ITS OWN next target. For the
  * feeder to be continuous, hop[i].end must equal hop[i+1].start on the shared
  * container rim. This test shows they agree with ONE intermediate container but
- * drift apart with TWO — the same "aimed at the wrong reference" class as the
+ * drift apart with two. The same "aimed at the wrong reference" class as the
  * entity fan-out, surfacing as a few-degree feeder kink at deep nesting.
  */
 const outermostPort = { x: 200, y: 0 };
@@ -87,7 +87,7 @@ describe("feeder hop continuity", () => {
     expect(driftDeg).toBeGreaterThan(2);
 
     // The fix: a pass-through container leaves at its boundary toward the
-    // OUTERMOST port — the same point the incoming hop ended at — so the hops
+    // OUTERMOST port (the same point the incoming hop ended at) so the hops
     // share an endpoint again.
     const outgoingStartFixed = containerBoundaryWaypoint(
       inner,
@@ -109,7 +109,7 @@ describe("feeder hop continuity", () => {
     // outward, so each container's "next hop" is the next-OUTER container (and the
     // outermost intermediate hops straight to the port).
     const containers = [
-      { x: 35, y: 55, radius: 18 }, // c3 (around the participant — innermost)
+      { x: 35, y: 55, radius: 18 }, // c3 (around the participant, innermost)
       { x: 60, y: 40, radius: 35 }, // c2
       { x: 120, y: 20, radius: 60 }, // c1 (closest to outermost)
     ];
@@ -124,8 +124,8 @@ describe("feeder hop continuity", () => {
       const container = containers[level]!;
       const crossing = crossings[level]!;
       // FIX: the hop ARRIVING here ends at this container's crossing (toward the
-      // outermost), and the LEAVING pass-through hop aims at the outermost too —
-      // the same point. So the junction is continuous at EVERY level, any depth.
+      // outermost), and the LEAVING pass-through hop aims at the outermost too,
+      // the same point. So the junction is continuous at every level, any depth.
       const fixedStart = containerBoundaryWaypoint(
         container,
         outermostPort.x,
@@ -141,8 +141,8 @@ describe("feeder hop continuity", () => {
       expect(fixedDrift).toBeLessThan(1e-9);
 
       // OLD: the leaving hop was re-projected toward the NEXT crossing. The drift
-      // is position-dependent (large at one junction, near-zero at another — the
-      // "sometimes fits" effect), but present somewhere on any 2+-deep chain.
+      // is position-dependent (large at one junction, near-zero at another,
+      // the "sometimes fits" effect), but present somewhere on any 2+-deep chain.
       if (level < containers.length - 1) {
         const nextCrossing = crossings[level + 1]!;
         const oldStart = containerBoundaryWaypoint(

@@ -41,7 +41,7 @@ function postPositions(frame: PositionsFrame): void {
 let worker: GraphWorker | undefined;
 
 /**
- * Coalesces per-batch commits during an ingest burst (F2): batches are
+ * Coalesces per-batch commits during an ingest burst: batches are
  * ingested into the stores on arrival, but the commit (layout absorb, render
  * edges, structure frame -> main-thread rescans) runs once per burst. See
  * {@link CommitCoalescer} for the latency policy.

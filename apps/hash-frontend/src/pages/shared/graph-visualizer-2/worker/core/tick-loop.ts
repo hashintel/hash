@@ -1,7 +1,7 @@
 /**
  * The per-frame simulation step driven by {@link TickScheduler}: advance every
  * running layout once, propagate cluster movement into world positions and
- * port anchors, and emit PositionsFrames. Purely positional — the topology
+ * port anchors, and emit PositionsFrames. Purely positional: the topology
  * pipeline (cut, CutIndex, aggregation) never runs here.
  */
 import { sharedBufferAvailable } from "../layout/force-simulation";
@@ -169,7 +169,7 @@ export class TickLoop {
       overlapsRemaining: number;
       /** Majorization iterations completed. */
       overlapProjectionCalls: number;
-      /** Worst single tick (ms) — the per-tick budget guard. */
+      /** Worst single tick (ms), the per-tick budget guard. */
       maxTickMs: number;
       /** Laplacian (re)builds (cold build + every warm absorb/relayout). */
       laplacianRebuilds: number;

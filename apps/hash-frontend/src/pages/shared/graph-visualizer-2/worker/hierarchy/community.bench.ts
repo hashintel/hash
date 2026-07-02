@@ -6,7 +6,7 @@
  * per node per iteration, up to 20 iterations) can each be attributed.
  *
  * Run: `cd apps/hash-frontend && ../../node_modules/.bin/vitest bench --run \
- *   src/pages/shared/graph-visualizer-2/worker/hierarchy/community.bench.ts`
+ * src/pages/shared/graph-visualizer-2/worker/hierarchy/community.bench.ts`
  */
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { bench, describe } from "vitest";

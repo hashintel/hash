@@ -8,8 +8,8 @@ import { containerBoundaryWaypoint } from "./edge-geometry";
  * port), then hops outward. The fan-out exit (where the dots' feeders converge
  * on the bucket rim) MUST aim at that same first waypoint. The old code aimed
  * straight at the outermost port `hp.a`; with an intermediate container between
- * the leaf and the outermost, that diverges by a position-dependent few degrees
- * — the "4 vs 5 o'clock" drift that only showed up at depth ≥ 2.
+ * the leaf and the outermost, that diverges by a position-dependent few degrees.
+ * The "4 vs 5 o'clock" drift that only showed up at depth ≥ 2.
  */
 const outermostPort = { x: 100, y: 0 }; // hp.a, on the outermost container's rim
 const intermediate = { x: -30, y: -40, radius: 30 }; // container between leaf + outer

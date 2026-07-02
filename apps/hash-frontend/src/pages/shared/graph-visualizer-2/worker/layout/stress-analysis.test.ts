@@ -2,12 +2,10 @@
  * Tests for the graph-analysis pipeline (CSR → weak components → pivot BFS rows →
  * PivotMDS init → component packing) that feeds the majorization engine.
  *
- * Ported from the deleted SGD solver's test suite (sparse-stress-solver.test.ts):
- * the analysis-stage behaviors — determinism, empty/tiny graph handling, warm
- * continuation from supplied positions — survive here. The SGD-specific gates
- * (epoch adaptivity, fused overlap term, community/degree force terms) died with
- * the solver; their user-visible behaviors are gated at the engine level in
- * majorization-layout.test.ts / majorization-layout.perf.test.ts instead.
+ * Covers analysis-stage behaviors: determinism, empty/tiny graph handling, warm
+ * continuation from supplied positions. Solver-level gates (overlap-free settle,
+ * warm absorb, Louvain refresh, degree repulsion) live in majorization-layout.test.ts
+ * and majorization-layout.perf.test.ts.
  */
 import { describe, expect, it } from "vitest";
 

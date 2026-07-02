@@ -5,9 +5,9 @@
  * {@link version} bumps on any change (new cell, finished async raster, canvas grow).
  *
  * Icon formats:
- *  - URL (`http(s)://` or `/`): monochrome SVG drawn as a white silhouette
- *    (recoloured via `source-in`), loaded asynchronously. Pending until resolved.
- *  - Other string: emoji, drawn synchronously with `fillText`.
+ * - URL (`http(s)://` or `/`): monochrome SVG drawn as a white silhouette
+ *   (recoloured via `source-in`), loaded asynchronously. Pending until resolved.
+ * - Other string: emoji, drawn synchronously with `fillText`.
  *
  * Cells are pre-coloured (white silhouettes / full-colour emoji). The atlas owns
  * the GPU texture lifecycle: {@link getTexture} lazily rebuilds from the canvas

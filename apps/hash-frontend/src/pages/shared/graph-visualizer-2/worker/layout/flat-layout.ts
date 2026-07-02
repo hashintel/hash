@@ -1,7 +1,8 @@
 /**
  * The flat-tier layout: one stress-minimised embedding of the whole entity set
- * for `flat-force` and `community-force` (the individual-entity regime, see
- * `LAYOUT-MODES.md`). This is not the cluster (macro) layout: there are no
+ * for `flat-force` and `community-force` (one individual-entity regime:
+ * identical placement; the modes differ only in whether BubbleSets highlight
+ * subcommunities). This is not the cluster (macro) layout: there are no
  * containers, no ports, every node is an individual entity.
  *
  * We drive WebCola's `Descent` solver directly rather than via its `Layout`
@@ -10,17 +11,17 @@
  * through the event-queue scheduler and stream to the SharedArrayBuffer. So we
  * own the sequencing and stage the phases across `tick()` calls:
  *
- *  - Phase A (unconstrained stress majorisation): `descent.project = null`; step
- *    `rungeKutta()` until stress converges. cola unfolds the graph by pure
- *    stress, link communities separating spatially (jaccard-weighted ideal link
- *    lengths). Disconnected pairs have an infinite ideal distance, which cola's
- *    gradient treats as zero force (harmless), so components drift freely here.
- *  - Pack: `separateGraphs` + `applyPacking` arrange the (now-settled) connected
- *    components compactly, the geometric step the stress phase can't do.
- *  - Phase B (VPSC non-overlap): `descent.project = Projection(...).projectFunctions()`
- *    with `avoidOverlaps`; step `rungeKutta()` for a fixed iteration budget. Not
- *    "until stress converges", VPSC is nearly stress-neutral, so a convergence
- *    test quits before overlap is resolved (this is how `Layout` does it too).
+ * - Phase A (unconstrained stress majorisation): `descent.project = null`; step
+ *   `rungeKutta()` until stress converges. cola unfolds the graph by pure
+ *   stress, link communities separating spatially (jaccard-weighted ideal link
+ *   lengths). Disconnected pairs have an infinite ideal distance, which cola's
+ *   gradient treats as zero force (harmless), so components drift freely here.
+ * - Pack: `separateGraphs` + `applyPacking` arrange the (now-settled) connected
+ *   components compactly, the geometric step the stress phase can't do.
+ * - Phase B (VPSC non-overlap): `descent.project = Projection(...).projectFunctions()`
+ *   with `avoidOverlaps`; step `rungeKutta()` for a fixed iteration budget. Not
+ *   "until stress converges", VPSC is nearly stress-neutral, so a convergence
+ *   test quits before overlap is resolved (this is how `Layout` does it too).
  *
  * Every step writes the shared buffer and is published, so the whole settling
  * streams. cola owns every position throughout, we never mutate its node
