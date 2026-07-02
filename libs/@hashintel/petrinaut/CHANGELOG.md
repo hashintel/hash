@@ -1,5 +1,25 @@
 # @hashintel/petrinaut
 
+## 0.1.0
+
+### Minor Changes
+
+- [#8829](https://github.com/hashintel/hash/pull/8829) [`4820e48`](https://github.com/hashintel/hash/commit/4820e48b10e9b01ee1f43e871533cc5c66c9d7df) Thanks [@kube](https://github.com/kube)! - Add Actual mode: a read-only live-execution view fed by a host-provided event stream, with an Actual timeline and Events tab, recording export helpers, and a redesigned timeline series selector.
+
+### Patch Changes
+
+- [#8846](https://github.com/hashintel/hash/pull/8846) [`706981f`](https://github.com/hashintel/hash/commit/706981fe092d7373cf294ea47e9b038d4fb559ad) Thanks [@CiaranMn](https://github.com/CiaranMn)! - Update inhibitor arc styling
+
+- [#8763](https://github.com/hashintel/hash/pull/8763) [`faddfad`](https://github.com/hashintel/hash/commit/faddfad49bd8148dcfb94e55205b0ee65415b8aa) Thanks [@kube](https://github.com/kube)! - Add handle capabilities for disabling SDCPN extensions and global parameters.
+
+- [#8662](https://github.com/hashintel/hash/pull/8662) [`62f4e31`](https://github.com/hashintel/hash/commit/62f4e31a6bd9b30a4fe0c05f637415b1fea1a4af) Thanks [@kube](https://github.com/kube)! - Add subnet definitions, component instances, and wiring support to Petrinaut.
+
+- [#8774](https://github.com/hashintel/hash/pull/8774) [`f2d9df1`](https://github.com/hashintel/hash/commit/f2d9df18efa55728f78e4e7c86da14c452055c49) Thanks [@kube](https://github.com/kube)! - Add editor support for read input arcs, including arc controls and distinct canvas rendering.
+
+- Updated dependencies [[`8494d8a`](https://github.com/hashintel/hash/commit/8494d8a91782a68d5855f88aeaf1a975e0f3a2e4), [`d0af60d`](https://github.com/hashintel/hash/commit/d0af60dfdb56a8052dbf2230d8e2a0a7584e56a8), [`4820e48`](https://github.com/hashintel/hash/commit/4820e48b10e9b01ee1f43e871533cc5c66c9d7df), [`faddfad`](https://github.com/hashintel/hash/commit/faddfad49bd8148dcfb94e55205b0ee65415b8aa), [`4681616`](https://github.com/hashintel/hash/commit/468161636972a3352890445568c0ac062469631d), [`62f4e31`](https://github.com/hashintel/hash/commit/62f4e31a6bd9b30a4fe0c05f637415b1fea1a4af), [`f2d9df1`](https://github.com/hashintel/hash/commit/f2d9df18efa55728f78e4e7c86da14c452055c49), [`0aadff3`](https://github.com/hashintel/hash/commit/0aadff3546ac85767911589ac2fe6544e8a78ae5), [`aaaddd6`](https://github.com/hashintel/hash/commit/aaaddd62ebce44795b16ffc172cd9a9c9a57ae7b), [`343cc4a`](https://github.com/hashintel/hash/commit/343cc4aa57eac8e1bb44db1f165365d1d0cf23a2)]:
+  - @hashintel/ds-components@0.3.0
+  - @hashintel/petrinaut-core@0.1.0
+
 ## 0.0.16
 
 ### Patch Changes
