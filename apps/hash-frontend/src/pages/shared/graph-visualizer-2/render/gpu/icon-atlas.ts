@@ -159,6 +159,12 @@ export class IconAtlas {
     }
   }
 
+  /** Release the GPU texture. The atlas must not be used afterwards. */
+  dispose(): void {
+    this.#texture?.destroy();
+    this.#texture = undefined;
+  }
+
   #contextOf(canvas: HTMLCanvasElement): CanvasRenderingContext2D {
     const ctx = canvas.getContext("2d");
     if (ctx === null) {

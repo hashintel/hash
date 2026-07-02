@@ -3,7 +3,7 @@
  * callbacks current. All rendering state and behavior live in Scene; React owns only
  * the container and the loading overlay. The entity hover card is owned by the parent bridge.
  */
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { GraphControls } from "./components/graph-controls";
 import { GRAPH_CAMERA_ZOOM_STEP } from "./interactivity/graph-camera-commands";
@@ -59,12 +59,16 @@ export const GraphVisualizerV2 = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<Scene | null>(null);
   const [hasStructure, setHasStructure] = useState(false);
+  const handleFirstStructure = useCallback(() => setHasStructure(true), []);
 
   useEffect(() => {
     const container = containerRef.current;
     if (!container) {
       return undefined;
     }
+    // A new handle means a fresh worker with no committed structure yet: show
+    // the loading overlay again until its first structure frame arrives.
+    setHasStructure(false);
     const scene = new Scene(container, handle, {
       onEntityHover,
       onHighwayHover,
@@ -74,7 +78,7 @@ export const GraphVisualizerV2 = ({
       resolveEntityLabel,
       resolveEntityIcon,
       onEntityLabels,
-      onFirstStructure: () => setHasStructure(true),
+      onFirstStructure: handleFirstStructure,
     });
     sceneRef.current = scene;
     return () => {
@@ -96,12 +100,24 @@ export const GraphVisualizerV2 = ({
       resolveEntityLabel,
       resolveEntityIcon,
       onEntityLabels,
-      onFirstStructure: () => setHasStructure(true),
+      onFirstStructure: handleFirstStructure,
     });
-  });
+  }, [
+    onEntityHover,
+    onHighwayHover,
+    onEntitySelect,
+    onOpenLinkTable,
+    onClusterHover,
+    resolveEntityLabel,
+    resolveEntityIcon,
+    onEntityLabels,
+    handleFirstStructure,
+  ]);
 
   return (
     <div
+      role="application"
+      aria-label="Entity relationship graph"
       style={{
         position: "relative",
         width: "100%",

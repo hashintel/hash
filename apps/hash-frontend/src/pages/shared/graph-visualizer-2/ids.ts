@@ -12,6 +12,17 @@ import type { Branded } from "./brand";
 export type EntityIndex = Branded<number, "EntityIndex">;
 export const EntityIndex = make<EntityIndex>();
 
+/**
+ * Force-layout node ids are stringified {@link EntityIndex} values (the layout
+ * engines key nodes by string). These two helpers are the only sanctioned
+ * conversion in each direction; keep them inverse of one another.
+ */
+export const nodeIdForEntityIndex = (entityIdx: EntityIndex): string =>
+  String(entityIdx);
+
+export const entityIndexFromNodeId = (nodeId: string): EntityIndex =>
+  Number(nodeId) as EntityIndex;
+
 export type LinkId = Branded<number, "LinkId">;
 export const LinkId = make<LinkId>();
 

@@ -24,8 +24,13 @@ import type { LayerProps, UpdateParameters } from "@deck.gl/core";
 import type { Texture } from "@luma.gl/core";
 import type { ShaderModule } from "@luma.gl/shadertools";
 
-/** Loop bound for the per-pixel node sum (a community larger than this truncates). */
-const MAX_NODES_PER_COMMUNITY = 256;
+/**
+ * Loop bound for the per-pixel node sum. Callers must not point an instance's
+ * [offset, count] range at more nodes than this: the shader stops summing at
+ * the bound, so the hull would silently ignore the excess. The presentation
+ * layer downsamples larger communities to fit (see `render/community.ts`).
+ */
+export const MAX_NODES_PER_COMMUNITY = 256;
 
 interface BubbleUniformProps {
   /** Metaball field radius per node, in `common` (world) units. */

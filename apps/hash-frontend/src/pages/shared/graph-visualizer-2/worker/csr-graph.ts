@@ -18,6 +18,12 @@ export interface CsrGraph {
  * Build a CSR graph restricted to the given entity set.
  *
  * Links with an endpoint outside the set, or self-loops, are dropped.
+ *
+ * Runs in O(sum of member degrees): links are discovered through each
+ * member's adjacency, not by scanning the whole store, so repeated
+ * subdivisions of small clusters stay cheap on large graphs. A link with
+ * both endpoints in the set surfaces once per endpoint, which yields
+ * exactly the two directed CSR entries it needs.
  */
 export function buildInducedCsr(
   entityIdxs: Column<Int32Array, EntityIndex>,
@@ -33,24 +39,15 @@ export function buildInducedCsr(
     () => [],
   );
 
-  for (let linkIdx = 0; linkIdx < links.count; linkIdx++) {
-    const left = links.getLeft(linkIdx);
-    const right = links.getRight(linkIdx);
-    if (left === -1 || right === -1) {
-      continue;
+  for (let idx = 0; idx < entityIdxs.length; idx++) {
+    const member = entityIdxs.get(idx);
+    for (const { otherId } of links.linksFor(member)) {
+      const otherLocal = localIndex.get(otherId);
+      if (otherLocal === undefined || otherLocal === idx) {
+        continue;
+      }
+      adjacency[idx]!.push(otherLocal);
     }
-
-    const leftLocal = localIndex.get(left);
-    const rightLocal = localIndex.get(right);
-    if (leftLocal === undefined || rightLocal === undefined) {
-      continue;
-    }
-    if (leftLocal === rightLocal) {
-      continue;
-    }
-
-    adjacency[leftLocal]!.push(rightLocal);
-    adjacency[rightLocal]!.push(leftLocal);
   }
 
   const totalEdges = adjacency.reduce((sum, adj) => sum + adj.length, 0);

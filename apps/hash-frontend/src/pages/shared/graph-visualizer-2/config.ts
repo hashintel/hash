@@ -1,15 +1,4 @@
 /**
- * Optional FA2 force overrides for the community-force tier. Each field, when set, REPLACES the
- * value inferSettings derives from node count; an unset field keeps inferSettings' value.
- */
-export interface Fa2Tuning {
-  readonly gravity?: number;
-  readonly scalingRatio?: number;
-  readonly linLogMode?: boolean;
-  readonly strongGravityMode?: boolean;
-}
-
-/**
  * Optional stress-solver force overrides for the community-force flat tier (the FORBID-backed
  * sparse-stress layout). Each field, when set, REPLACES the StressLayout default weight; an
  * unset field keeps the gentle default. All three push nodes OUTWARD and compose with FORBID's
@@ -17,6 +6,14 @@ export interface Fa2Tuning {
  * field to 0 to disable that term entirely.
  */
 export interface StressTuning {
+  /**
+   * Which engine drives the community-force flat tier:
+   *   - "stress" (default): sparse-stress SGD with the fused FORBID overlap term.
+   *   - "majorization": constrained stress majorization (IPSep-CoLa style) — CG solves
+   *     with a per-iteration VPSC non-overlap projection; the three weights below act
+   *     as target shaping instead of forces.
+   */
+  readonly engine?: "stress" | "majorization";
   /** Pull each node toward its own Louvain community centroid (Noack cohesion). */
   readonly communityCohesion?: number;
   /** Repel community centroids apart, translating whole communities off the seam. */
@@ -75,9 +72,6 @@ export interface VizConfig {
   readonly parallelEdgeSpacingPx: number;
   readonly parallelEdgeCurvature: number;
   readonly curveSegments: number;
-
-  // Optional FA2 force overrides; unset keeps inferSettings' per-order values.
-  readonly fa2?: Fa2Tuning;
 
   // Optional stress-solver force overrides (community-force flat tier); unset keeps defaults.
   readonly stress?: StressTuning;

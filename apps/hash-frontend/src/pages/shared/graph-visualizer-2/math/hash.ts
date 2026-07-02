@@ -24,7 +24,13 @@ function getBlock32(key: Uint8Array, i: number): number {
   );
 }
 
-function fmix32(k: number): number {
+/**
+ * MurmurHash3's 32-bit finalizer: a full-avalanche mix, so consecutive or
+ * otherwise structured inputs map to well-spread words. Use it whenever
+ * integer keys need decorrelating before they are combined (sums, xors,
+ * bucket indices).
+ */
+export function fmix32(k: number): number {
   k ^= k >>> 16;
   k = mul32(k, 0x85ebca6b);
   k ^= k >>> 13;

@@ -29,12 +29,8 @@ const DEFAULT_KNOBS: HarnessKnobs = {
   linkDensity: 1.2,
   rootFraction: 0.7,
   hubCount: 4,
-  // FA2 baseline matching the production default, so the initial view equals it.
-  fa2Gravity: 0.05,
-  fa2ScalingRatio: 10,
-  fa2LinLog: true,
-  fa2StrongGravity: false,
   // Stress baseline matching the StressLayout production defaults, so the initial view equals it.
+  stressEngine: "stress",
   stressCommunityCohesion: 0.02,
   stressCommunitySeparation: 0.08,
   stressDegreeRepulsion: 0.02,
@@ -198,38 +194,27 @@ export const DevHarness = () => {
     knobs.linkDensity,
     knobs.rootFraction,
     knobs.hubCount,
-    knobs.fa2Gravity,
-    knobs.fa2ScalingRatio,
-    knobs.fa2LinLog,
-    knobs.fa2StrongGravity,
+    knobs.stressEngine,
     knobs.stressCommunityCohesion,
     knobs.stressCommunitySeparation,
     knobs.stressDegreeRepulsion,
     knobs.stream,
   ].join(":");
 
-  // Default scale/cluster config plus the FA2 force overrides from the knobs. A change to any FA2
-  // knob also changes the key above, so the worker remounts and re-inits with the new forces.
+  // Default scale/cluster config plus the stress force overrides from the knobs. A change to any
+  // stress knob also changes the key above, so the worker remounts and re-inits with the new forces.
   const layoutConfig = useMemo<VizConfig>(
     () => ({
       ...defaultVizConfig,
-      fa2: {
-        gravity: knobs.fa2Gravity,
-        scalingRatio: knobs.fa2ScalingRatio,
-        linLogMode: knobs.fa2LinLog,
-        strongGravityMode: knobs.fa2StrongGravity,
-      },
       stress: {
+        engine: knobs.stressEngine,
         communityCohesion: knobs.stressCommunityCohesion,
         communitySeparation: knobs.stressCommunitySeparation,
         degreeRepulsion: knobs.stressDegreeRepulsion,
       },
     }),
     [
-      knobs.fa2Gravity,
-      knobs.fa2ScalingRatio,
-      knobs.fa2LinLog,
-      knobs.fa2StrongGravity,
+      knobs.stressEngine,
       knobs.stressCommunityCohesion,
       knobs.stressCommunitySeparation,
       knobs.stressDegreeRepulsion,

@@ -16,7 +16,13 @@ export const GraphStatusOverlay = ({
   variant = "loading",
 }: GraphStatusOverlayProps) => (
   <GraphOverlayPanel placement="top-left" interactive={false}>
-    <Stack direction="row" gap={1.25} alignItems="flex-start">
+    <Stack
+      direction="row"
+      gap={1.25}
+      alignItems="flex-start"
+      role="status"
+      aria-live="polite"
+    >
       {variant === "loading" ? <LoadingSpinner size={18} /> : null}
       <Stack gap={0.25}>
         <Typography

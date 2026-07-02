@@ -1,6 +1,11 @@
 import { validateConfig } from "../../config";
 import { dimColor } from "../../dim-color";
-import { ClusterId } from "../../ids";
+import {
+  ClusterId,
+  entityIndexFromNodeId,
+  nodeIdForEntityIndex,
+} from "../../ids";
+import { murmur3String } from "../../math/hash";
 import { graphColors } from "../../visual-style";
 import { FlatGraphBuffer } from "../buffers/position-buffer";
 import { Column } from "../collections/column";
@@ -38,6 +43,7 @@ import { createClusterLayout } from "../layout/cluster-layout";
 import { createEntityLayout } from "../layout/entity-layout";
 import { createFlatLayout } from "../layout/flat-layout";
 import { sharedBufferAvailable } from "../layout/force-simulation";
+import { createMajorizationLayout } from "../layout/majorization-layout";
 import { createStressLayout } from "../layout/stress-layout";
 import { optimizeTopLevel } from "../layout/top-level-layout";
 import { untangleLayout } from "../layout/untangle";
@@ -47,6 +53,7 @@ import { PropertyStore } from "../store/property";
 import { TypeRegistry } from "../store/type-registry";
 import { TypeSetStore } from "../store/type-set";
 import { layoutNeedsRebuild, layoutOutgrown } from "./layout-reuse";
+import { membershipFingerprint } from "./membership-fingerprint";
 import { viewportAnchorWeight } from "./viewport-anchor";
 
 import type { VizConfig } from "../../config";
@@ -103,15 +110,6 @@ const UNTANGLE_MAX_NODES = 48;
 /** Above this top-level cluster count, skip the optimiser (keep WebCola's result). */
 const TOP_LEVEL_MAX_NODES = 32;
 
-/** Stable non-bitwise string hash -> seed for the deterministic untangle PRNG. */
-function hashId(id: string): number {
-  let hash = 0;
-  for (let idx = 0; idx < id.length; idx++) {
-    hash = (hash * 31 + id.charCodeAt(idx)) % 2147483647;
-  }
-  return hash;
-}
-
 /** What a force layout's nodes represent: child cluster bubbles or entities. */
 type LayoutKind = "clusters" | "entities";
 
@@ -155,6 +153,30 @@ const FLAT_SEED_NEIGHBOUR_OFFSET = 24;
 const FLAT_SEED_DISK_SCALE = 28;
 /** Flat-tier edge stroke width in world units (the layer scales it with zoom). */
 const FLAT_EDGE_WIDTH_WORLD = 1.2;
+
+/**
+ * Degree-scaled link fading: a link incident to a high-degree hub draws fainter, so a
+ * 150-leaf starburst reads as a soft halo instead of an opaque disk of strokes (every
+ * spoke crowds the same few pixels around the hub — full-alpha spokes sum to a blob
+ * that hides both the hub and any through-traffic). The scale ramps down with the
+ * LOG of the larger endpoint degree: links into ordinary nodes (degree below the
+ * start) keep full alpha, and the ramp saturates at a floor so hub links stay
+ * visible, just de-emphasised.
+ */
+const HUB_LINK_FADE_START_DEGREE = 8;
+const HUB_LINK_FADE_END_DEGREE = 128;
+const HUB_LINK_FADE_MIN_SCALE = 0.3;
+
+/** Alpha multiplier in [HUB_LINK_FADE_MIN_SCALE, 1] for a link whose larger endpoint has `degree`. */
+function hubLinkAlphaScale(degree: number): number {
+  if (degree <= HUB_LINK_FADE_START_DEGREE) {
+    return 1;
+  }
+  const ramp =
+    Math.log(degree / HUB_LINK_FADE_START_DEGREE) /
+    Math.log(HUB_LINK_FADE_END_DEGREE / HUB_LINK_FADE_START_DEGREE);
+  return 1 - Math.min(1, ramp) * (1 - HUB_LINK_FADE_MIN_SCALE);
+}
 /** Initial capacity for the flat-tier node-index column (grows by doubling). */
 const FLAT_NODE_IDX_CAPACITY = 4096;
 /** Over-allocate capacity so streamed nodes can append without reallocation. */
@@ -204,6 +226,8 @@ export class GraphWorker {
 
   /** Per entity-layout, the live port-attraction targets (shared with its force). */
   readonly #entityPortTargets = new Map<ClusterId, Float32Array>();
+  /** Per entity-layout, the member-set fingerprint it was built over (see #ensureEntityLayout). */
+  readonly #entityLayoutFingerprints = new Map<ClusterId, string>();
   /** Per opened container, the external endpoint ids its port anchors track. */
   readonly #anchorEndpoints = new Map<ClusterId, ClusterId[]>();
   readonly #layoutKind = new Map<ClusterId, LayoutKind>();
@@ -264,7 +288,7 @@ export class GraphWorker {
   /** Link count at the last flat-layout (re)build; a change forces a rebuild. */
   #flatLinkCount = -1;
   /** Which engine the current flat layout was built for ("flat-force" -> cola,
-   * "community-force" -> FA2). Crossing that boundary forces a rebuild. */
+   * "community-force" -> stress). Crossing that boundary forces a rebuild. */
   #flatLayoutMode: VizMode | undefined;
   /** Trailing-debounce timer: one final Louvain once community-force ingests quiet. */
   #flatLingerTimer: ReturnType<typeof setTimeout> | undefined;
@@ -433,7 +457,7 @@ export class GraphWorker {
       // Per-tick instrumentation for the incremental overlap-removal (FORBID) phase:
       // confirms on the user's actual graph that no single tick freezes and that the
       // overlap count marches to zero. Debug-gated; the fields are duck-typed so this
-      // stays agnostic to which layout engine (stress vs FA2) is mounted.
+      // stays agnostic to which layout engine (stress vs majorization) is mounted.
       if (this.debug && kind === "entities") {
         const diag = layout as Partial<{
           forbidOverlaps: number;
@@ -600,9 +624,16 @@ export class GraphWorker {
     return { typesChanged, propertyTitlesChanged };
   }
 
-  /** Insert a node entity. Returns undefined if duplicate. */
+  /**
+   * Insert a node entity. Returns undefined if duplicate.
+   *
+   * `knownGroup` skips re-resolving the type-set group when the caller has
+   * already peeked it for this entity (see {@link ingestBatch}); it must be
+   * the group {@link #peekGroup} returned for the same entity.
+   */
   insertNodeEntity(
     entity: IngestEntity,
+    knownGroup?: TypeSetGroup,
   ): { entityIdx: EntityIndex; groupKey: TypeSetKey } | undefined {
     const [created, entityIdx] = this.#entities.insert(entity.entityId);
     // Apply root-ness even for an already-interned entity: an expand re-sends a frontier node as a
@@ -621,12 +652,15 @@ export class GraphWorker {
     // Interner indices are monotonic, so this stays sorted (see #nodeEntityIdxs).
     this.#nodeEntityIdxs.push(entityIdx);
 
-    const directTypeIdxs = new ReadonlySortedSet(
-      entity.entityTypeIds.map((url) => this.#types.intern(url)),
-      (lhs, rhs) => lhs - rhs,
-    );
-
-    const group = this.#typeSets.getOrCreate(directTypeIdxs, this.#types.size);
+    const group =
+      knownGroup ??
+      this.#typeSets.getOrCreate(
+        new ReadonlySortedSet(
+          entity.entityTypeIds.map((url) => this.#types.intern(url)),
+          (lhs, rhs) => lhs - rhs,
+        ),
+        this.#types.size,
+      );
     group.addEntity(entityIdx);
     this.#entities.setTypeSet(entityIdx, group.id);
     // Reduce the entity's properties to its interned features now, while ingesting, so a
@@ -667,10 +701,10 @@ export class GraphWorker {
     );
 
     if (leftIdx === -1) {
-      this.#links.addPending(entity.linkData.leftEntityId, linkId);
+      this.#links.addPending(entity.linkData.leftEntityId, linkId, "left");
     }
     if (rightIdx === -1) {
-      this.#links.addPending(entity.linkData.rightEntityId, linkId);
+      this.#links.addPending(entity.linkData.rightEntityId, linkId, "right");
     }
   }
 
@@ -691,7 +725,8 @@ export class GraphWorker {
         continue;
       }
 
-      // Snapshot count before insert so we can compute deltas.
+      // Snapshot count before insert so we can compute deltas. The peeked
+      // group is handed to the insert, which skips re-resolving it.
       const group = this.#peekGroup(entity);
       if (group && !groupSnapshots.has(group.key)) {
         groupSnapshots.set(group.key, {
@@ -700,7 +735,7 @@ export class GraphWorker {
         });
       }
 
-      this.insertNodeEntity(entity);
+      this.insertNodeEntity(entity, group);
     }
 
     for (const entity of links) {
@@ -784,6 +819,7 @@ export class GraphWorker {
     this.#forceLayouts.clear();
     this.#layoutKind.clear();
     this.#entityPortTargets.clear();
+    this.#entityLayoutFingerprints.clear();
     this.#anchorEndpoints.clear();
     this.#clusterEdges.clear();
     this.#untangled.clear();
@@ -794,6 +830,15 @@ export class GraphWorker {
 
     this.#clusterTree.rebuild(this.#typeSets, this.#types, this.config);
     this.#clusterEpoch += 1;
+
+    // Warm-seed positions are only useful for clusters that still exist;
+    // drop entries for ids the rebuilt tree no longer produces so the map
+    // doesn't grow monotonically across source evolutions.
+    for (const clusterId of this.#topLevelPositions.keys()) {
+      if (!this.#clusterTree.get(clusterId)) {
+        this.#topLevelPositions.delete(clusterId);
+      }
+    }
   }
 
   /**
@@ -1156,12 +1201,13 @@ export class GraphWorker {
       return;
     }
 
+    let layoutRebuilt = false;
     if (structureChanged) {
       // Materialise the packed column into a plain array for the layout builders
       // (they map/filter/spread it). Only reached on a real structural change --
       // the no-op path above never allocates.
       const entityIdxs = [...this.#nodeEntityIdxs];
-      // community-force (FA2) can warm-absorb additions in place; everything
+      // community-force layouts can warm-absorb additions in place; everything
       // else (first build, mode switch, or a shrink -- impossible with add-only
       // stores, handled defensively) rebuilds, warm-seeded from current spots.
       const canAbsorb =
@@ -1174,6 +1220,7 @@ export class GraphWorker {
         this.#absorbFlatNodes(existing, entityIdxs);
       } else {
         this.#rebuildFlatLayout(entityIdxs);
+        layoutRebuilt = true;
       }
     }
 
@@ -1191,6 +1238,20 @@ export class GraphWorker {
     // skipped on the no-op path above.
     this.#writeFlatStyle(layout, buffer);
     this.#flatRenderEdges = this.#buildFlatRenderEdges(layout);
+
+    // Announce a rebuilt layout only after the style pass above has filled the
+    // buffer: the main thread starts reading the SAB on LAYOUT_CREATED, and an
+    // earlier post would let it render colourless zero-radius records.
+    if (layoutRebuilt) {
+      this.#onLayoutMessage?.({
+        type: "LAYOUT_CREATED",
+        clusterId: FLAT_LAYOUT_ID,
+        buffer: buffer.raw,
+        nodeIds: layout.nodeIds,
+        flatCapacity: buffer.capacity,
+      });
+    }
+
     this.#emitFlatFrame(layout);
     if (structureChanged) {
       this.#scheduleFlatLouvainLinger();
@@ -1253,7 +1314,7 @@ export class GraphWorker {
     const priorPositions = new Map<EntityIndex, readonly [number, number]>();
     if (previous) {
       for (const node of previous.nodes) {
-        priorPositions.set(Number(node.id) as EntityIndex, [
+        priorPositions.set(entityIndexFromNodeId(node.id), [
           node.x ?? 0,
           node.y ?? 0,
         ]);
@@ -1269,11 +1330,14 @@ export class GraphWorker {
       this.#republishFlatBuffer,
     );
     buffer.setCount(nodes.length);
-    // flat-force uses cola; community-force uses FA2. Both fill the same
-    // shared buffer; downstream style/edges/render are identical.
+    // flat-force uses cola; community-force uses the SGD stress engine or (behind
+    // `config.stress.engine`) the constrained stress-majorization engine. All fill
+    // the same shared buffer; downstream style/edges/render are identical.
     const layout =
       this.#mode === "community-force"
-        ? createStressLayout(nodes, edges, buffer, this.config.stress)
+        ? // ? this.config.stress?.engine === "majorization"
+          //   ? createMajorizationLayout(nodes, edges, buffer, this.config.stress)
+          createMajorizationLayout(nodes, edges, buffer, this.config.stress)
         : createFlatLayout(nodes, edges, buffer);
 
     if (previous) {
@@ -1289,14 +1353,8 @@ export class GraphWorker {
     this.#forceLayouts.set(FLAT_LAYOUT_ID, layout);
     this.#layoutKind.set(FLAT_LAYOUT_ID, "entities");
     this.#ensureSchedulerRunning();
-
-    this.#onLayoutMessage?.({
-      type: "LAYOUT_CREATED",
-      clusterId: FLAT_LAYOUT_ID,
-      buffer: buffer.raw,
-      nodeIds: layout.nodeIds,
-      flatCapacity: buffer.capacity,
-    });
+    // LAYOUT_CREATED is posted by #commitFlat once the style pass has filled
+    // the buffer, so the main thread never reads unstyled records.
   }
 
   /**
@@ -1310,7 +1368,7 @@ export class GraphWorker {
   ): void {
     const priorPositions = new Map<EntityIndex, readonly [number, number]>();
     for (const node of layout.nodes) {
-      priorPositions.set(Number(node.id) as EntityIndex, [
+      priorPositions.set(entityIndexFromNodeId(node.id), [
         node.x ?? 0,
         node.y ?? 0,
       ]);
@@ -1391,7 +1449,7 @@ export class GraphWorker {
       const position = placed.get(idx)!;
       const degree = this.#links.degreeOf(idx);
       return {
-        id: String(idx),
+        id: nodeIdForEntityIndex(idx),
         x: position[0],
         y: position[1],
         radius: radiusForDegree(degree),
@@ -1404,7 +1462,7 @@ export class GraphWorker {
     const colorByGroup = new Map<TypeSetId, Color>();
     for (let idx = 0; idx < layout.nodes.length; idx++) {
       const node = layout.nodes[idx]!;
-      const entityIdx = Number(node.id) as EntityIndex;
+      const entityIdx = entityIndexFromNodeId(node.id);
       buffer.setRadius(idx, node.radius);
       const base = this.#colorForEntity(entityIdx, colorByGroup);
       const dimmed =
@@ -1442,10 +1500,32 @@ export class GraphWorker {
           continue;
         }
         seenLinks.add(link.linkId);
+        // Hub-incident links draw fainter (degree-scaled alpha) so a hub's spoke
+        // fan reads as a halo rather than an opaque starburst. Applied here (once
+        // per commit) rather than per tick: degree only changes with topology.
+        const typeColor = this.#edgeColorForTypeGroup(
+          link.typeSetId,
+          colorCache,
+        );
+        const fade = hubLinkAlphaScale(
+          Math.max(
+            this.#links.degreeOf(entityIdx),
+            this.#links.degreeOf(link.otherId),
+          ),
+        );
+        const color: Color =
+          fade < 1
+            ? [
+                typeColor[0],
+                typeColor[1],
+                typeColor[2],
+                Math.round(typeColor[3] * fade),
+              ]
+            : typeColor;
         edges.push({
           sourceIdx: link.direction === "out" ? sourceIdx : targetIdx,
           targetIdx: link.direction === "out" ? targetIdx : sourceIdx,
-          color: this.#edgeColorForTypeGroup(link.typeSetId, colorCache),
+          color,
           linkEntityIdx: this.#links.getEntityIndex(link.linkId),
         });
       }
@@ -1616,6 +1696,7 @@ export class GraphWorker {
     this.#forceLayouts.clear();
     this.#layoutKind.clear();
     this.#entityPortTargets.clear();
+    this.#entityLayoutFingerprints.clear();
     this.#anchorEndpoints.clear();
     this.#clusterEdges.clear();
     this.#untangled.clear();
@@ -1645,6 +1726,7 @@ export class GraphWorker {
         this.#forceLayouts.delete(key);
         this.#layoutKind.delete(key);
         this.#entityPortTargets.delete(key);
+        this.#entityLayoutFingerprints.delete(key);
         this.#anchorEndpoints.delete(key);
         this.#clusterEdges.delete(key);
         this.#untangled.delete(key);
@@ -2125,7 +2207,7 @@ export class GraphWorker {
       let connectivityChanged = false;
       const fanOut: number[] = [];
       for (const node of layout.nodes) {
-        const entityIdx = Number(node.id) as EntityIndex;
+        const entityIdx = entityIndexFromNodeId(node.id);
         const localIdx = localOf.get(entityIdx)!;
         const seenTargets = new Set<ClusterId>();
         let sumX = 0;
@@ -2526,7 +2608,7 @@ export class GraphWorker {
       return { x: previous.x, y: previous.y, weight };
     });
 
-    optimizeTopLevel(nodes, edges, hashId(cluster.id), { anchors });
+    optimizeTopLevel(nodes, edges, murmur3String(cluster.id), { anchors });
 
     for (let idx = 0; idx < nodeList.length; idx++) {
       nodeList[idx]!.x = nodes[idx]!.x;
@@ -2561,7 +2643,7 @@ export class GraphWorker {
         cluster.kind === "root"
           ? Number.POSITIVE_INFINITY
           : cluster.circle.radius,
-      seed: hashId(cluster.id),
+      seed: murmur3String(cluster.id),
     });
 
     for (let idx = 0; idx < nodeList.length; idx++) {
@@ -2574,16 +2656,20 @@ export class GraphWorker {
   #ensureEntityLayout(cluster: ClusterNode): void {
     const key = cluster.id;
     const existing = this.#forceLayouts.get(key);
+    const entityIdxs = [...this.#entityIndicesForCluster(cluster)];
+    // Order-independent membership fingerprint. A bare count check misses
+    // same-size swaps (an entity leaving the "other" bucket as another
+    // arrives), which would keep rendering the stale member set.
+    const fingerprint = membershipFingerprint(entityIdxs);
     if (existing) {
-      if (existing.nodes.length === cluster.count) {
+      if (this.#entityLayoutFingerprints.get(key) === fingerprint) {
         return;
       }
       this.#forceLayouts.delete(key);
       this.#entityPortTargets.delete(key);
       this.#onLayoutMessage?.({ type: "LAYOUT_DESTROYED", clusterId: key });
     }
-
-    const entityIdxs = [...this.#entityIndicesForCluster(cluster)];
+    this.#entityLayoutFingerprints.set(key, fingerprint);
     const parentR = cluster.circle.radius;
     const entityRadius = parentR * ENTITY_RADIUS_FRACTION;
 
@@ -2596,7 +2682,7 @@ export class GraphWorker {
       const dist = fillRadius * Math.sqrt((idx + 0.5) / entityIdxs.length);
       const angle = idx * goldenAngle;
       nodes.push({
-        id: String(entityIdxs[idx]),
+        id: nodeIdForEntityIndex(entityIdxs[idx]!),
         x: Math.cos(angle) * dist,
         y: Math.sin(angle) * dist,
         radius: entityRadius,
@@ -2689,10 +2775,13 @@ export class GraphWorker {
           if (otherChildId === undefined || otherChildId === child.id) {
             continue;
           }
-          const pairKey =
-            child.id < otherChildId
-              ? `${child.id}|${otherChildId}`
-              : `${otherChildId}|${child.id}`;
+          // Every inter-sibling link surfaces from both endpoints' children;
+          // count it only from the lower-sorted side so the weight equals the
+          // link count (matching the aggregator's highway count).
+          if (child.id > otherChildId) {
+            continue;
+          }
+          const pairKey = `${child.id}|${otherChildId}`;
           edgeCounts.set(pairKey, (edgeCounts.get(pairKey) ?? 0) + 1);
         }
       }
@@ -2850,21 +2939,24 @@ export class GraphWorker {
     }[],
   ): void {
     const assignments = clusters.map((embeddingCluster) => {
-      const memberIdxs = new Int32Array(embeddingCluster.entityIds.length);
-      for (let idx = 0; idx < embeddingCluster.entityIds.length; idx++) {
-        const entityIdx = this.#entities.lookup(
-          embeddingCluster.entityIds[idx]! as EntityId,
-        );
+      // Compact unknown ids away. Leaving a slot at its Int32Array default of
+      // 0 would silently claim entity index 0 as a member of every cluster
+      // containing an id the store has not (or no longer) interned.
+      const scratch = new Int32Array(embeddingCluster.entityIds.length);
+      let matched = 0;
+      for (const rawId of embeddingCluster.entityIds) {
+        const entityIdx = this.#entities.lookup(rawId as EntityId);
         if (entityIdx !== undefined) {
-          memberIdxs[idx] = entityIdx;
+          scratch[matched] = entityIdx;
+          matched += 1;
         }
       }
       return {
         childId: ClusterId(
           `${clusterId}:embedding:${embeddingCluster.clusterId}`,
         ),
-        count: embeddingCluster.entityIds.length,
-        memberIdxs,
+        count: matched,
+        memberIdxs: scratch.subarray(0, matched),
       };
     });
 
@@ -2936,9 +3028,11 @@ export class GraphWorker {
       return;
     }
 
-    for (const linkId of pending) {
-      this.#links.resolveEndpoint(linkId, "left", entityIdx);
-      this.#links.resolveEndpoint(linkId, "right", entityIdx);
+    // Each pending record names the exact side that referenced this entity.
+    // Resolving both sides here would rewrite the already-known endpoint to
+    // this entity, corrupting the link into a self-loop (A->B becoming B->B).
+    for (const { linkId, side } of pending) {
+      this.#links.resolveEndpoint(linkId, side, entityIdx);
     }
   }
 }

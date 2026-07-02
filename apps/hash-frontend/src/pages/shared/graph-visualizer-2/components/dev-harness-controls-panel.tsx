@@ -15,11 +15,8 @@ export interface HarnessKnobs {
   readonly linkDensity: number;
   readonly rootFraction: number;
   readonly hubCount: number;
-  // FA2 force tuning (community-force tier).
-  readonly fa2Gravity: number;
-  readonly fa2ScalingRatio: number;
-  readonly fa2LinLog: boolean;
-  readonly fa2StrongGravity: boolean;
+  /** Which community-tier engine drives the flat layout (A/B flip). */
+  readonly stressEngine: "stress" | "majorization";
   // Stress-solver force tuning (community-force flat tier; all push OUTWARD, stay overlap-free).
   readonly stressCommunityCohesion: number;
   readonly stressCommunitySeparation: number;
@@ -173,22 +170,6 @@ export const ControlsPanel = memo(
               onChange={(hubCount) => set({ hubCount })}
             />
 
-            <KnobSlider
-              label="FA2 gravity"
-              value={knobs.fa2Gravity}
-              min={0}
-              max={5}
-              step={0.05}
-              onChange={(fa2Gravity) => set({ fa2Gravity })}
-            />
-            <KnobSlider
-              label="FA2 scaling (repulsion)"
-              value={knobs.fa2ScalingRatio}
-              min={0.5}
-              max={20}
-              step={0.5}
-              onChange={(fa2ScalingRatio) => set({ fa2ScalingRatio })}
-            />
             <Stack
               direction="row"
               alignItems="center"
@@ -197,33 +178,20 @@ export const ControlsPanel = memo(
               <Typography
                 sx={{ fontSize: 12, fontWeight: 600, color: "gray.80" }}
               >
-                FA2 LinLog mode
+                Majorization engine
               </Typography>
               <Switch
                 size="small"
-                checked={knobs.fa2LinLog}
-                onChange={(event) => set({ fa2LinLog: event.target.checked })}
-              />
-            </Stack>
-            <Stack
-              direction="row"
-              alignItems="center"
-              justifyContent="space-between"
-            >
-              <Typography
-                sx={{ fontSize: 12, fontWeight: 600, color: "gray.80" }}
-              >
-                FA2 strong gravity
-              </Typography>
-              <Switch
-                size="small"
-                checked={knobs.fa2StrongGravity}
+                checked={knobs.stressEngine === "majorization"}
                 onChange={(event) =>
-                  set({ fa2StrongGravity: event.target.checked })
+                  set({
+                    stressEngine: event.target.checked
+                      ? "majorization"
+                      : "stress",
+                  })
                 }
               />
             </Stack>
-
             <KnobSlider
               label="Stress community cohesion"
               value={knobs.stressCommunityCohesion}

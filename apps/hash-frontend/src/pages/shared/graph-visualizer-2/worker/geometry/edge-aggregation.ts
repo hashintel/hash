@@ -265,6 +265,18 @@ export class CutIndex {
   }
 }
 
+/**
+ * The cut surface {@link EdgeAggregator} classifies against: entity -> owner
+ * lookups plus the entity-mode flag per owner. {@link CutIndex} satisfies it;
+ * tests can substitute a hand-built cut without a cluster tree.
+ */
+export interface CutView {
+  readonly size: number;
+  ownerOf(entityIdx: EntityIndex): ClusterId | undefined;
+  isEntityMode(clusterId: ClusterId): boolean;
+  entries(): IterableIterator<[EntityIndex, ClusterId]>;
+}
+
 const SEP = "\u001f";
 
 export function makePairKey(
@@ -398,12 +410,16 @@ function explodePair(
 
   if (aggregations.length > config.maxParallelEdgeTypes) {
     // A collapsed/"both" lane carries the union of both directions' links.
-    let collapsedLinks: Set<EntityIndex> = new Set();
+    // Built by accumulation: Set.union would allocate a fresh copy per step.
+    const collapsedLinks = new Set<EntityIndex>();
 
     for (const aggregation of aggregations) {
-      collapsedLinks = collapsedLinks
-        .union(aggregation.forward)
-        .union(aggregation.reverse);
+      for (const linkEntityIdx of aggregation.forward) {
+        collapsedLinks.add(linkEntityIdx);
+      }
+      for (const linkEntityIdx of aggregation.reverse) {
+        collapsedLinks.add(linkEntityIdx);
+      }
     }
 
     return [
@@ -467,7 +483,9 @@ function explodePair(
         typeLabel,
         // Assigned once the final visualEdges order is known (#buildFrame).
         laneId: -1,
-        entities: structuredClone(aggregate.forward),
+        // Copied (not aliased): the aggregation sets mutate incrementally
+        // while emitted frames must stay stable snapshots.
+        entities: new Set(aggregate.forward),
       });
     }
 
@@ -492,7 +510,8 @@ function explodePair(
         typeLabel: inverseLabel,
         // Assigned once the final visualEdges order is known (#buildFrame).
         laneId: -1,
-        entities: structuredClone(aggregate.reverse),
+        // Copied (not aliased), as with the forward lane above.
+        entities: new Set(aggregate.reverse),
       });
     }
   }
@@ -504,28 +523,43 @@ function explodePair(
  * Maintains edge aggregation state across frames. When the LOD cut changes,
  * only links whose visible owner changed are reclassified; falls back to
  * full recomputation when >35% of entities changed owners.
+ *
+ * Incremental updates rely on the {@link LinkStore} being append-only: links
+ * with id below `#appliedLinkCount` are already folded into the state, the
+ * tail is applied fresh each update. Endpoint resolutions (a pending `-1`
+ * side filling in) are replayed from the store's resolution log so the undo
+ * uses the values the link was originally applied with -- undoing with the
+ * freshly-resolved endpoints would decrement a pair bucket the link never
+ * contributed to.
  */
 export class EdgeAggregator {
   readonly #pairs = new Map<string, MutablePairAggregation>();
   readonly #individuals = new Map<number, StoredIndividualEdge>();
   #hiddenCount = 0;
-  #previousCutIndex: CutIndex | undefined;
+  #previousCutIndex: CutView | undefined;
+  /** Links with id below this are folded into the aggregation state. */
+  #appliedLinkCount = 0;
 
   reset(): void {
     this.#pairs.clear();
     this.#individuals.clear();
     this.#hiddenCount = 0;
     this.#previousCutIndex = undefined;
+    this.#appliedLinkCount = 0;
   }
 
   /** Update aggregation for a new LOD cut. */
   update(
-    cutIndex: CutIndex,
+    cutIndex: CutView,
     linkStore: LinkStore,
     typeSets: TypeSetStore,
     types: TypeRegistry,
     config: VizConfig,
   ): EdgeFrame {
+    // Consume the resolution log unconditionally: after a full recompute its
+    // entries are stale (the rebuild reads current endpoint values directly).
+    const resolvedEndpoints = linkStore.drainResolvedEndpoints();
+
     if (!this.#previousCutIndex) {
       this.#fullRecompute(cutIndex, linkStore);
     } else {
@@ -534,8 +568,34 @@ export class EdgeAggregator {
 
       if (changeRatio > 0.35) {
         this.#fullRecompute(cutIndex, linkStore);
-      } else if (changedEntities.size > 0) {
-        this.#incrementalUpdate(changedEntities, cutIndex, linkStore);
+      } else {
+        // Sides that were still -1 when their link was applied, keyed by
+        // link. Resolutions of links at or beyond #appliedLinkCount are
+        // dropped: those links were never applied and the tail pass below
+        // reads their current (already resolved) endpoints.
+        const resolvedSides = new Map<LinkId, Array<"left" | "right">>();
+        for (const { linkId, side } of resolvedEndpoints) {
+          if (linkId >= this.#appliedLinkCount) {
+            continue;
+          }
+          const sides = resolvedSides.get(linkId);
+          if (sides) {
+            sides.push(side);
+          } else {
+            resolvedSides.set(linkId, [side]);
+          }
+        }
+
+        if (changedEntities.size > 0) {
+          this.#incrementalUpdate(
+            changedEntities,
+            cutIndex,
+            linkStore,
+            resolvedSides,
+          );
+        }
+        this.#reapplyResolved(resolvedSides, cutIndex, linkStore);
+        this.#applyTail(cutIndex, linkStore);
       }
     }
 
@@ -556,7 +616,7 @@ export class EdgeAggregator {
     rightIndex: EntityIndex | -1,
     typeSetId: TypeSetId,
     linkEntityIdx: EntityIndex,
-    cutIndex: CutIndex,
+    cutIndex: CutView,
     sign: 1 | -1,
   ): void {
     if (leftIndex === -1 || rightIndex === -1) {
@@ -651,7 +711,7 @@ export class EdgeAggregator {
     }
   }
 
-  #fullRecompute(cutIndex: CutIndex, linkStore: LinkStore): void {
+  #fullRecompute(cutIndex: CutView, linkStore: LinkStore): void {
     this.#pairs.clear();
     this.#individuals.clear();
     this.#hiddenCount = 0;
@@ -667,12 +727,14 @@ export class EdgeAggregator {
         1,
       );
     }
+    this.#appliedLinkCount = linkStore.count;
   }
 
   #incrementalUpdate(
     changedEntities: Set<EntityIndex>,
-    newCutIndex: CutIndex,
+    newCutIndex: CutView,
     linkStore: LinkStore,
+    resolvedSides: ReadonlyMap<LinkId, ReadonlyArray<"left" | "right">>,
   ): void {
     const oldCutIndex = this.#previousCutIndex!;
     const processedLinks = new Set<LinkId>();
@@ -684,6 +746,17 @@ export class EdgeAggregator {
         }
 
         processedLinks.add(link.linkId);
+
+        // Not yet applied (tail) or applied with a since-resolved -1 side:
+        // #applyTail / #reapplyResolved handle these with the exact values
+        // the state saw; undoing them here with current endpoints would
+        // corrupt counts they never contributed to.
+        if (
+          link.linkId >= this.#appliedLinkCount ||
+          resolvedSides.has(link.linkId)
+        ) {
+          continue;
+        }
 
         const leftIdx = linkStore.getLeft(link.linkId);
         const rightIdx = linkStore.getRight(link.linkId);
@@ -714,7 +787,67 @@ export class EdgeAggregator {
     }
   }
 
-  #findChangedEntities(newCutIndex: CutIndex): Set<EntityIndex> {
+  /**
+   * Reclassify links whose pending endpoint resolved since the last update:
+   * undo with the as-applied endpoints (resolved sides restored to -1, which
+   * classified the link as hidden), then apply with the real endpoints.
+   */
+  #reapplyResolved(
+    resolvedSides: ReadonlyMap<LinkId, ReadonlyArray<"left" | "right">>,
+    newCutIndex: CutView,
+    linkStore: LinkStore,
+  ): void {
+    const oldCutIndex = this.#previousCutIndex!;
+
+    for (const [linkId, sides] of resolvedSides) {
+      const leftIdx = linkStore.getLeft(linkId);
+      const rightIdx = linkStore.getRight(linkId);
+      const typeSetId = linkStore.getTypeSetId(linkId);
+      const linkEntityIdx = linkStore.getEntityIndex(linkId);
+
+      this.#applyLink(
+        linkId,
+        sides.includes("left") ? -1 : leftIdx,
+        sides.includes("right") ? -1 : rightIdx,
+        typeSetId,
+        linkEntityIdx,
+        oldCutIndex,
+        -1,
+      );
+
+      this.#applyLink(
+        linkId,
+        leftIdx,
+        rightIdx,
+        typeSetId,
+        linkEntityIdx,
+        newCutIndex,
+        1,
+      );
+    }
+  }
+
+  /**
+   * Fold in links inserted since the last update. Catches link-only batches
+   * between already-visible entities, which `#findChangedEntities` cannot
+   * see: it tracks entity ownership, and a new link changes no owners.
+   */
+  #applyTail(cutIndex: CutView, linkStore: LinkStore): void {
+    for (let link = this.#appliedLinkCount; link < linkStore.count; link++) {
+      this.#applyLink(
+        link as LinkId,
+        linkStore.getLeft(link),
+        linkStore.getRight(link),
+        linkStore.getTypeSetId(link),
+        linkStore.getEntityIndex(link),
+        cutIndex,
+        1,
+      );
+    }
+    this.#appliedLinkCount = linkStore.count;
+  }
+
+  #findChangedEntities(newCutIndex: CutView): Set<EntityIndex> {
     const changed = new Set<EntityIndex>();
     const oldCutIndex = this.#previousCutIndex!;
 

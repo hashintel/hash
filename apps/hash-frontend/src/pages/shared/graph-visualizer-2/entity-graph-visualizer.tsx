@@ -317,6 +317,10 @@ export const EntityGraphVisualizerV2 = memo(
     // How many of `entities` have been handed to the worker. `entities` is append-only within one
     // data source (see `sourceKey`); a source change recreates the worker, which resets this.
     const sentCountRef = useRef(0);
+    // Bumped on every worker reset. In-flight frontier expansions capture the value at start and
+    // compare after each await: a mismatch means their results belong to a torn-down worker and
+    // must not leak into the fresh generation's mirrors (expandedRootsRef, expandedByIdRef).
+    const workerGenerationRef = useRef(0);
     // Frontier nodes the user has already expanded. Tracked locally because the worker learns
     // their root-ness via ingest, but the bridge's prop-derived rootIdSet never does.
     const expandedRootsRef = useRef(new Set<EntityId>());
@@ -416,11 +420,16 @@ export const EntityGraphVisualizerV2 = memo(
     }, [closedMultiEntityTypesRootMap]);
     const resolveEntityIcon = useCallback(
       (entityId: EntityId): string | null => {
-        const entity = entityById.get(entityId);
-        if (!entity || !closedMultiEntityTypesRootMap) {
+        // Same two-source lookup as resolveEntityLabel: prop entities resolve against the prop
+        // root map, frontier-expanded entities against the map their expansion arrived with.
+        const propEntity = entityById.get(entityId);
+        const context = propEntity
+          ? { entity: propEntity, rootMap: closedMultiEntityTypesRootMap }
+          : expandedByIdRef.current.get(entityId);
+        if (!context?.entity || !context.rootMap) {
           return null;
         }
-        const typeKey = [...entity.metadata.entityTypeIds]
+        const typeKey = [...context.entity.metadata.entityTypeIds]
           .sort()
           .join("\u0000");
         const cached = iconByTypeKey.get(typeKey);
@@ -430,8 +439,8 @@ export const EntityGraphVisualizerV2 = memo(
         let resolved: string | null;
         try {
           const closedType = getClosedMultiEntityTypeFromMap(
-            closedMultiEntityTypesRootMap,
-            entity.metadata.entityTypeIds,
+            context.rootMap,
+            context.entity.metadata.entityTypeIds,
           );
           const { icon } = getDisplayFieldsForClosedEntityType(closedType);
           resolved = typeof icon === "string" && icon.length > 0 ? icon : null;
@@ -448,6 +457,7 @@ export const EntityGraphVisualizerV2 = memo(
     // recreate): the fresh worker holds nothing, so every local mirror of its state clears too.
     useEffect(() => {
       if (!ready) {
+        workerGenerationRef.current += 1;
         sentCountRef.current = 0;
         expandedRootsRef.current.clear();
         expandedByIdRef.current.clear();
@@ -483,6 +493,12 @@ export const EntityGraphVisualizerV2 = memo(
         if (!handle) {
           return;
         }
+        // A worker reset (sourceKey change) while a fetch is in flight makes this run stale: its
+        // handle is disposed and its results describe the previous source. Every continuation
+        // after an await re-checks before touching the worker or the local mirrors.
+        const generation = workerGenerationRef.current;
+        const isStale = () => workerGenerationRef.current !== generation;
+
         const fresh = freshFrontierIds(
           entityIds,
           expandedRootsRef.current,
@@ -502,6 +518,9 @@ export const EntityGraphVisualizerV2 = memo(
         try {
           for (const batch of frontierExpansionBatches(fresh)) {
             const expansion = await fetchFrontierExpansion(batch);
+            if (isStale()) {
+              return;
+            }
             if (!expansion) {
               throw new Error("Frontier expansion returned no data.");
             }
@@ -536,26 +555,35 @@ export const EntityGraphVisualizerV2 = memo(
             });
           }
         } catch (fetchError) {
-          setFrontierError(
-            fetchError instanceof Error
-              ? fetchError.message
-              : "Could not fetch the frontier.",
-          );
-        } finally {
-          for (const entityId of fresh) {
-            inFlightFrontierRef.current.delete(entityId);
+          if (!isStale()) {
+            setFrontierError(
+              fetchError instanceof Error
+                ? fetchError.message
+                : "Could not fetch the frontier.",
+            );
           }
-          setFrontierProgress((progress) => ({
-            ...progress,
-            fetching: false,
-          }));
-          setFrontierVersion((version) => version + 1);
+        } finally {
+          // After a reset the fresh generation owns these refs and the progress UI; a stale run
+          // must not delete in-flight markers the new generation may have re-added.
+          if (!isStale()) {
+            for (const entityId of fresh) {
+              inFlightFrontierRef.current.delete(entityId);
+            }
+            setFrontierProgress((progress) => ({
+              ...progress,
+              fetching: false,
+            }));
+            setFrontierVersion((version) => version + 1);
+          }
         }
       },
       [handle],
     );
 
-    const frontierEntityIds = (() => {
+    // The not-yet-expanded frontier across both entity sources (props + prior expansions).
+    // Reads ref-held sets the render can't observe changing directly; `frontierVersion`
+    // bumps after each expansion mutates them, which is what re-runs this memo.
+    const frontierEntityIds = useMemo(() => {
       void frontierVersion;
       if (!rootIdSet) {
         return [];
@@ -579,7 +607,7 @@ export const EntityGraphVisualizerV2 = memo(
         addIfFrontier(context.entity);
       }
       return [...frontier];
-    })();
+    }, [frontierVersion, rootIdSet, entities]);
 
     const fetchCompleteFrontier = useCallback(() => {
       void expandFrontier(frontierEntityIds);

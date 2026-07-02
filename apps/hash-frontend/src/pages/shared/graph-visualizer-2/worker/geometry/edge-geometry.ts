@@ -422,7 +422,6 @@ function highwayDirection(
 }
 
 interface MergedLane {
-  readonly typeKey: number;
   readonly count: number;
   readonly color: Color;
   readonly widthWorld: number;
@@ -464,7 +463,6 @@ function mergeLanes(
   }
 
   return [...byLane.values()].map((info) => ({
-    typeKey: 0,
     count: info.count,
     color: info.color,
     widthWorld: widthForCount(info.count),
@@ -994,9 +992,9 @@ function emitRecursiveBezierFeeders(
 
     // Clip every hop flush at both its container walls: leave the source's outer
     // wall (erase inside the source) and reach the target container's inner wall
-    // (erase outside the target). Applied at every nesting level, so the feeder
-    // is flush at intermediate container walls too, where two hops' round caps
-    // used to overlap into a blob poking through the (translucent) wall.
+    // (erase outside the target). Applied at every nesting level so the feeder
+    // is flush at intermediate container walls too -- without it, two hops'
+    // round caps overlap into a blob poking through the (translucent) wall.
     const targetCircle = clusterTree.get(seg.targetId)?.circle;
     const clipStart = clipInside(seg.sourceCircle);
     const clipEnd = targetCircle ? clipOutside(targetCircle) : undefined;
@@ -1398,22 +1396,28 @@ export function buildBezierSegments(
         ? targetContainers[targetContainers.length - 1]!
         : undefined;
 
-    const hwSourceId = outermostSource?.containerId ?? pair.sourceId;
-    const hwTargetId = outermostTarget?.containerId ?? pair.targetId;
-    const groupKey = `${hwSourceId}\x1f${hwTargetId}`;
+    const highwaySourceId = outermostSource?.containerId ?? pair.sourceId;
+    const highwayTargetId = outermostTarget?.containerId ?? pair.targetId;
+    const groupKey = `${highwaySourceId}\x1f${highwayTargetId}`;
 
     let group = highwayGroups.get(groupKey);
     if (!group) {
-      const srcCircle = outermostSource?.circle ??
-        ctx.clusterTree.get(pair.sourceId)?.circle ?? { x: 0, y: 0, radius: 0 };
-      const tgtCircle = outermostTarget?.circle ??
-        ctx.clusterTree.get(pair.targetId)?.circle ?? { x: 0, y: 0, radius: 0 };
+      const sourceCircle =
+        outermostSource?.circle ?? ctx.clusterTree.get(pair.sourceId)?.circle;
+      const targetCircle =
+        outermostTarget?.circle ?? ctx.clusterTree.get(pair.targetId)?.circle;
+      // An endpoint the tree cannot resolve (mid-rebuild race) has no
+      // meaningful position; emitting a curve to a made-up origin circle
+      // draws a highway to (0,0). Drop the pair for this frame instead.
+      if (!sourceCircle || !targetCircle) {
+        continue;
+      }
 
       group = {
-        highwaySourceId: hwSourceId,
-        highwaySourceCircle: srcCircle,
-        highwayTargetId: hwTargetId,
-        highwayTargetCircle: tgtCircle,
+        highwaySourceId,
+        highwaySourceCircle: sourceCircle,
+        highwayTargetId,
+        highwayTargetCircle: targetCircle,
         sourceChildren: [],
         targetChildren: [],
       };

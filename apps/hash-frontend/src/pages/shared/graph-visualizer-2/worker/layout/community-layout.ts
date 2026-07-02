@@ -1,11 +1,16 @@
 /**
- * The community-force tier: the medium-scale individual-entity regime. Same
+ * FA2 reference engine for the community-force tier, reachable from benches
+ * and tests only: production selects `stress-layout.ts` for this tier
+ * (`GraphWorker#rebuildFlatLayout`), and this engine exists as the A/B
+ * baseline the stress engine is measured against (`stress-vs-fa2.bench.ts`).
+ *
+ * The tier itself is the medium-scale individual-entity regime. Same
  * displayed result as flat-force (individual nodes laid out by link structure,
  * coloured by type, sized by degree) but a different engine. cola's `Descent`
- * is O(N^2) per step and strands above a few hundred nodes, so here we use FA2
- * (Barnes-Hut, ~O(N log N) per step). The engine is a means; the view is
- * identical (LAYOUT-MODES.md "engine split"). The pipeline (LAYOUT-MODES.md
- * "flat-tier pipeline"):
+ * is O(N^2) per step and strands above a few hundred nodes, so this engine
+ * uses FA2 (Barnes-Hut, ~O(N log N) per step). The engine is a means; the
+ * view is identical (LAYOUT-MODES.md "engine split"). The pipeline
+ * (LAYOUT-MODES.md "flat-tier pipeline"):
  *
  *   1. Louvain over the link graph -> a community id per node. Membership only,
  *      no coordinates. Stored (exposed via `communities`) for the BubbleSets hulls
@@ -41,7 +46,6 @@ import iterate from "graphology-layout-forceatlas2/iterate";
 import { parkMillerRng } from "../../math/random";
 import { SparseStressSeeder } from "./sparse-stress-seed";
 
-import type { Fa2Tuning } from "../../config";
 import type { FlatGraphBuffer } from "../buffers/position-buffer";
 import type {
   ForceEdge,
@@ -98,6 +102,18 @@ interface Fa2IterStats {
   readonly maxMove: number;
 }
 
+/**
+ * Optional FA2 force overrides. Each field, when set, REPLACES the value
+ * inferSettings derives from node count; an unset field keeps inferSettings'
+ * value.
+ */
+export interface Fa2Tuning {
+  readonly gravity?: number;
+  readonly scalingRatio?: number;
+  readonly linLogMode?: boolean;
+  readonly strongGravityMode?: boolean;
+}
+
 /** FA2's library defaults; merged under inferSettings + our overrides so every key
  * `iterate` reads is present (a missing key would feed NaN into the matrix). */
 const FA2_DEFAULTS = {
@@ -123,7 +139,7 @@ const FA2_DEFAULTS = {
  *     pulls connected nodes tight and separates clusters (plain FA2 spreads edge-
  *     linked nodes into a hub-and-spoke ball); strong gravity is off so it does
  *     not crush that structure back toward the origin.
- * An optional `tuning` (from `config.fa2`) overrides individual force fields on
+ * An optional `tuning` ({@link Fa2Tuning}) overrides individual force fields on
  * top of all of the above.
  */
 function buildFa2Settings(

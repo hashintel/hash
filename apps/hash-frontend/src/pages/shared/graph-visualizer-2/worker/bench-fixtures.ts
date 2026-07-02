@@ -182,14 +182,65 @@ export function buildForceGraph(shape: GraphShape): {
   return { nodes, edges };
 }
 
+/** One near-coincident super-hub to graft onto a cloud: leaf count + hub centre. */
+export interface CoincidentHubSpec {
+  readonly leaves: number;
+  readonly x: number;
+  readonly y: number;
+}
+
 /**
- * A {@link buildForceGraph} cloud PLUS one super-hub with `hubLeaves` degree-1 leaves,
- * initialised near-coincident with the hub. This reproduces the production pathology
- * that froze the old terminal VPSC projection for seconds: a single hub's worth of
- * leaves cannot be pulled apart by the stress phase's soft overlap term (it reaches
- * equilibrium), so a tight near-coincident pile-up reaches the overlap-removal phase.
- * The extra node/edge ids continue the cloud's index space.
+ * A {@link buildForceGraph} cloud PLUS one or more super-hubs, each with `leaves`
+ * degree-1 leaves initialised near-coincident with its hub centre. This reproduces
+ * the production pathology that froze the old terminal VPSC projection for seconds:
+ * a hub's worth of leaves cannot be pulled apart by the stress phase's soft overlap
+ * term (it reaches equilibrium), so a tight near-coincident pile-up reaches the
+ * overlap-removal phase. The extra node/edge ids continue the cloud's index space.
  */
+export function buildForceGraphWithCoincidentHubs(
+  shape: GraphShape,
+  hubs: readonly CoincidentHubSpec[],
+): {
+  readonly nodes: ForceNode[];
+  readonly edges: ForceEdge[];
+} {
+  const { nodes, edges } = buildForceGraph(shape);
+  const random = mulberry32(shape.seed + 0x5bd1e995);
+
+  let nextIndex = shape.nodeCount;
+  for (const hub of hubs) {
+    const hubIndex = nextIndex;
+    nextIndex += 1 + hub.leaves;
+
+    nodes.push({
+      id: String(hubIndex),
+      x: hub.x,
+      y: hub.y,
+      radius: radiusForDegree(hub.leaves),
+    });
+    for (let leaf = 0; leaf < hub.leaves; leaf++) {
+      const leafIndex = hubIndex + 1 + leaf;
+      // ~40px from the shared centre, mutually overlapping — the real hub geometry.
+      const angle = random() * Math.PI * 2;
+      const distance = 40 * random();
+      nodes.push({
+        id: String(leafIndex),
+        x: hub.x + Math.cos(angle) * distance,
+        y: hub.y + Math.sin(angle) * distance,
+        radius: radiusForDegree(1),
+      });
+      edges.push({
+        source: String(hubIndex),
+        target: String(leafIndex),
+        weight: 1,
+      });
+    }
+  }
+
+  return { nodes, edges };
+}
+
+/** Single-hub convenience over {@link buildForceGraphWithCoincidentHubs} (hub at the origin). */
 export function buildForceGraphWithCoincidentHub(
   shape: GraphShape,
   hubLeaves: number,
@@ -197,35 +248,37 @@ export function buildForceGraphWithCoincidentHub(
   readonly nodes: ForceNode[];
   readonly edges: ForceEdge[];
 } {
-  const { nodes, edges } = buildForceGraph(shape);
-  const random = mulberry32(shape.seed + 0x5bd1e995);
-  const hubIndex = shape.nodeCount;
+  return buildForceGraphWithCoincidentHubs(shape, [
+    { leaves: hubLeaves, x: 0, y: 0 },
+  ]);
+}
 
-  nodes.push({
-    id: String(hubIndex),
-    x: 0,
-    y: 0,
-    radius: radiusForDegree(hubLeaves),
-  });
-  for (let leaf = 0; leaf < hubLeaves; leaf++) {
-    const leafIndex = hubIndex + 1 + leaf;
-    // ~40px from the shared centre, mutually overlapping — the real hub geometry.
-    const angle = random() * Math.PI * 2;
-    const distance = 40 * random();
-    nodes.push({
-      id: String(leafIndex),
-      x: Math.cos(angle) * distance,
-      y: Math.sin(angle) * distance,
-      radius: radiusForDegree(1),
-    });
-    edges.push({
-      source: String(hubIndex),
-      target: String(leafIndex),
-      weight: 1,
-    });
-  }
-
-  return { nodes, edges };
+/**
+ * The user's real graph shape, as a deterministic fixture: a ~700-node sparse
+ * background cloud plus TWO ~150-leaf near-coincident super-hubs (~1000 nodes
+ * total). This is the primary relayout-motion gate: two dense hubs whose spokes
+ * are geometrically infeasible at the plain ideal edge length, embedded in a
+ * cloud sparse enough that the hubs dominate the drawing.
+ */
+export function buildRealShapeFixture(seed = 7_001): {
+  readonly nodes: ForceNode[];
+  readonly edges: ForceEdge[];
+} {
+  const cloudCount = 700;
+  const shape: GraphShape = {
+    nodeCount: cloudCount,
+    linkCount: Math.round(cloudCount * 1.5),
+    typeCount: 1,
+    hubCount: 6,
+    rootFraction: 1,
+    seed,
+  };
+  // Hub centres sit inside the seeded cloud (radius ~20·√700 ≈ 530), far enough
+  // apart that the two piles start as distinct near-coincident clumps.
+  return buildForceGraphWithCoincidentHubs(shape, [
+    { leaves: 150, x: -220, y: -40 },
+    { leaves: 150, x: 240, y: 60 },
+  ]);
 }
 
 /** Link store and entity index column. Entity indices are the contiguous range `[0, nodeCount)`. */

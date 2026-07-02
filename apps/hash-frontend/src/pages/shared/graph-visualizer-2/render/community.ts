@@ -12,7 +12,10 @@ import {
  * ({@link groupingCache}); a settling frame skips the regroup and only
  * re-gathers moved node centres plus recomputes bounding boxes.
  */
-import { BubbleSetSDFLayer } from "./gpu/bubble-set-sdf-layer";
+import {
+  BubbleSetSDFLayer,
+  MAX_NODES_PER_COMMUNITY,
+} from "./gpu/bubble-set-sdf-layer";
 
 import type { RenderFlatGraph } from "../frames";
 import type { ClusterId } from "../ids";
@@ -45,6 +48,8 @@ interface CommunityGrouping {
   readonly texHeight: number;
   /** Node-centre texture data, refilled from the SAB each frame. */
   readonly positions: Float32Array;
+  /** Per kept community `[minX, minY, maxX, maxY]`, refilled each frame. */
+  readonly bounds: Float32Array;
   /** Bumped on each refill to trigger an in-place texture re-upload. */
   version: number;
 }
@@ -69,9 +74,23 @@ function buildGrouping(
       byCommunity.set(community, [idx]);
     }
   }
-  const kept = [...byCommunity.entries()].filter(
-    ([, members]) => members.length >= MIN_COMMUNITY_SIZE,
-  );
+  const kept = [...byCommunity.entries()]
+    .filter(([, members]) => members.length >= MIN_COMMUNITY_SIZE)
+    .map(([community, members]) => {
+      // The shader sums at most MAX_NODES_PER_COMMUNITY centres per hull.
+      // Downsample evenly across the member list (not first-N arrival order)
+      // so an oversized community keeps its overall footprint; the metaball
+      // field radius papers over the thinned interior.
+      if (members.length <= MAX_NODES_PER_COMMUNITY) {
+        return [community, members] as const;
+      }
+      const step = members.length / MAX_NODES_PER_COMMUNITY;
+      const sampled: number[] = [];
+      for (let pick = 0; pick < MAX_NODES_PER_COMMUNITY; pick++) {
+        sampled.push(members[Math.floor(pick * step)]!);
+      }
+      return [community, sampled] as const;
+    });
   if (kept.length === 0) {
     return null;
   }
@@ -106,6 +125,7 @@ function buildGrouping(
     texWidth: BUBBLE_TEX_WIDTH,
     texHeight,
     positions: new Float32Array(BUBBLE_TEX_WIDTH * texHeight * 2),
+    bounds: new Float32Array(kept.length * 4),
     version: 0,
   };
 }
@@ -140,11 +160,12 @@ export function communityLayer(
   const floats = new Float32Array(cluster.versionView.buffer);
   const headerFloats = FLAT_HEADER_BYTES / 4;
   const recordFloats = FLAT_RECORD_BYTES / 4;
-  const { memberIndices, ranges, colors, keptCount, positions } = grouping;
+  const { memberIndices, ranges, colors, keptCount, positions, bounds } =
+    grouping;
 
-  // Re-gather node centres + recompute bounding boxes. `bounds` is re-allocated
-  // (Deck re-uploads it); `positions` is refilled in place (version-driven upload).
-  const bounds = new Float32Array(keptCount * 4);
+  // Re-gather node centres + recompute bounding boxes, both refilled in place.
+  // Deck re-uploads the attribute arrays anyway (the `data` object below is
+  // fresh each call), so reusing the buffers only saves the allocation churn.
   for (let ci = 0; ci < keptCount; ci++) {
     const start = ranges[ci * 2]!;
     const memberCount = ranges[ci * 2 + 1]!;

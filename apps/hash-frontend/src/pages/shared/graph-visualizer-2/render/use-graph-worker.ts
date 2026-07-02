@@ -9,6 +9,11 @@ import type { PropertySchemaEntry, TypeSchemaEntry } from "../worker/protocol";
 import type { WorkerHandle } from "./worker-connection";
 
 interface UseGraphWorkerOptions {
+  /**
+   * Must be referentially stable (module constant or memoized): it is an
+   * effect dependency below, so a config object rebuilt each render would
+   * tear down and recreate the worker every render.
+   */
   readonly config?: VizConfig;
   readonly typeSchemas: readonly TypeSchemaEntry[];
   readonly propertySchemas: readonly PropertySchemaEntry[];

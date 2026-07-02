@@ -1,7 +1,13 @@
 /**
  * SharedArrayBuffer-backed `EntityIdx -> EntityId` map. The worker writes;
- * the main thread reads via atomic version sync. Byte layout is defined
- * in {@link "../entity-id-codec"}.
+ * the main thread reads. Byte layout is defined in {@link "../entity-id-codec"}.
+ *
+ * NO-VERSION CONTRACT: unlike the position buffers, reads here do not check
+ * the version header. That is safe because a record is written the instant its
+ * EntityIdx is interned -- strictly before any frame referencing that index is
+ * published -- and once written it never changes. The main thread can only ask
+ * about indices it learned from a published frame, so it never reads an
+ * unwritten or torn record.
  */
 import {
   ENTITY_ID_BYTES,

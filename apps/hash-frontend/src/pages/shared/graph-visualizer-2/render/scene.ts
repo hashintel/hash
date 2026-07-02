@@ -45,10 +45,12 @@ type ViewState = Record<string, any>;
 
 const FLAT_EDGE_LAYER_ID = "flat-edges";
 const HIERARCHICAL_EDGE_LAYER_ID = "hierarchical-edges";
-const PICKABLE_EDGE_LAYER_IDS = [
+// Mutable string[] (not `as const`) so it can be passed to deck's pickObject
+// without a defensive copy on every hover.
+const PICKABLE_EDGE_LAYER_IDS: string[] = [
   FLAT_EDGE_LAYER_ID,
   HIERARCHICAL_EDGE_LAYER_ID,
-] as const;
+];
 
 function isPickableEdgeLayer(layerId: string | undefined): boolean {
   return (
@@ -384,6 +386,11 @@ export class Scene {
   #egoTargets: EgoRef[] = [];
 
   #firstStructureSeen = false;
+  /**
+   * Set by {@link dispose}. Async work (worker round-trips, icon rasters)
+   * checks it before touching the finalized Deck or the disposed handle.
+   */
+  #disposed = false;
   #viewportFrame: number | null = null;
   #viewportTimer: number | null = null;
   #viewportDirty = false;
@@ -520,6 +527,7 @@ export class Scene {
   }
 
   dispose(): void {
+    this.#disposed = true;
     if (this.#viewportFrame !== null) {
       cancelAnimationFrame(this.#viewportFrame);
     }
@@ -530,6 +538,7 @@ export class Scene {
       cancelAnimationFrame(this.#entityLabelsFrame);
     }
     this.#unsubscribe();
+    this.#iconAtlas.dispose();
     this.#deck.finalize();
   }
 
@@ -1025,7 +1034,7 @@ export class Scene {
       x: info.x,
       y: info.y,
       radius: 4,
-      layerIds: [...PICKABLE_EDGE_LAYER_IDS],
+      layerIds: PICKABLE_EDGE_LAYER_IDS,
     });
   }
 
@@ -1164,6 +1173,9 @@ export class Scene {
     }
 
     void this.#handle.queryHighwayLinks(laneId).then((linkEntityIdxs) => {
+      if (this.#disposed) {
+        return;
+      }
       const linkEntityIds: EntityId[] = [];
       for (const entityIdx of linkEntityIdxs) {
         const entityId = this.#handle.entityIdToId(entityIdx);
@@ -1224,7 +1236,7 @@ export class Scene {
     const currentVersion = this.#highlightVersion;
 
     void this.#handle.queryEgo(entityIdx).then((targets) => {
-      if (this.#selected !== selection) {
+      if (this.#disposed || this.#selected !== selection) {
         return;
       }
 
@@ -1369,6 +1381,11 @@ export class Scene {
   // Rebuild + push the data layers against the current frames (e.g. after a selection change
   // while the layout is settled, when no position event would otherwise refresh the ring).
   #refreshDataLayers(): void {
+    // Reachable after dispose via async icon rasters and ego resolutions;
+    // setProps on a finalized Deck throws.
+    if (this.#disposed) {
+      return;
+    }
     const structure = this.#handle.getStructure();
     const positions = this.#handle.getPositions();
     if (!structure || !positions) {

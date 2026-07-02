@@ -50,6 +50,33 @@
       "blockMessage": "Skill is required to proceed",
       "skipConditions": {}
     },
+    "documenting-typescript-code": {
+      "type": "domain",
+      "enforcement": "suggest",
+      "priority": "high",
+      "description": "TypeScript documentation and comment-writing guide for doc comments (TSDoc), file headers, and inline comments. Use when writing or reviewing doc comments, documenting functions/types/modules, writing inline comments, explaining invariants, or auditing comment quality in TypeScript code.",
+      "promptTriggers": {
+        "keywords": [
+          "tsdoc",
+          "jsdoc",
+          "doc comment",
+          "inline comment",
+          "documentation"
+        ],
+        "intentPatterns": [
+          "\\bdocument(ing|ation)?\\b.*?\\b(typescript|function|type|interface|class|module)\\b",
+          "\\b(write|add|create|review|clean)\\b.*?\\bcomments?\\b"
+        ]
+      },
+      "fileTriggers": {
+        "include": [],
+        "exclude": [],
+        "content": [],
+        "create-only": false
+      },
+      "blockMessage": "Skill is required to proceed",
+      "skipConditions": {}
+    },
     "exploring-rust-crates": {
       "type": "domain",
       "enforcement": "suggest",

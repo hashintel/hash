@@ -18,13 +18,31 @@ export interface LinkEndpoint {
   readonly direction: "out" | "in";
 }
 
+/** A link endpoint awaiting the arrival of the entity it references. */
+export interface PendingEndpoint {
+  readonly linkId: LinkId;
+  readonly side: "left" | "right";
+}
+
+/**
+ * An endpoint that flipped from `-1` to a real index since the last
+ * {@link LinkStore.drainResolvedEndpoints}. Consumers that cache per-link
+ * derived state (the edge aggregator) need the exact side to reconstruct
+ * the values the link carried when they last saw it.
+ */
+export interface ResolvedEndpoint {
+  readonly linkId: LinkId;
+  readonly side: "left" | "right";
+}
+
 export class LinkStore {
   readonly #left: Column<Int32Array, EntityIndex | -1>;
   readonly #right: Column<Int32Array, EntityIndex | -1>;
   readonly #type: Column<Uint32Array, TypeSetId>;
   readonly #entity: Column<Uint32Array, EntityIndex>;
-  readonly #pending: Map<EntityId, LinkId[]>;
+  readonly #pending: Map<EntityId, PendingEndpoint[]>;
   readonly #adjacency: Map<number, LinkId[]>;
+  #resolvedLog: ResolvedEndpoint[] = [];
 
   constructor() {
     this.#left = new Column(Int32Array, INITIAL_CAPACITY);
@@ -75,14 +93,18 @@ export class LinkStore {
     list.push(linkId);
   }
 
-  addPending(endpointId: EntityId, linkId: LinkId): void {
+  addPending(
+    endpointId: EntityId,
+    linkId: LinkId,
+    side: "left" | "right",
+  ): void {
     const pending = this.#pending.get(endpointId) ?? [];
-    pending.push(linkId);
+    pending.push({ linkId, side });
     this.#pending.set(endpointId, pending);
   }
 
-  /** Remove and return pending links for an endpoint, or `undefined` if none. */
-  takePending(endpointId: EntityId): LinkId[] | undefined {
+  /** Remove and return pending endpoints for an entity, or `undefined` if none. */
+  takePending(endpointId: EntityId): PendingEndpoint[] | undefined {
     const pending = this.#pending.get(endpointId);
     if (pending) {
       this.#pending.delete(endpointId);
@@ -90,7 +112,14 @@ export class LinkStore {
     return pending;
   }
 
-  /** Resolve a previously-pending endpoint and add it to the adjacency index. */
+  /**
+   * Resolve a previously-pending endpoint and add it to the adjacency index.
+   *
+   * Only the recorded pending side is written; the other endpoint keeps its
+   * value. Resolutions are logged for {@link drainResolvedEndpoints} so that
+   * incremental consumers can undo the classification the link had while the
+   * side was still `-1`.
+   */
   resolveEndpoint(
     linkId: LinkId,
     side: "left" | "right",
@@ -102,6 +131,14 @@ export class LinkStore {
       this.#right.set(linkId, entityIndex);
     }
     this.#addToAdjacency(entityIndex, linkId);
+    this.#resolvedLog.push({ linkId, side });
+  }
+
+  /** Endpoint resolutions since the previous drain. Draining resets the log. */
+  drainResolvedEndpoints(): ResolvedEndpoint[] {
+    const drained = this.#resolvedLog;
+    this.#resolvedLog = [];
+    return drained;
   }
 
   getLeft(linkId: number): EntityIndex | -1 {

@@ -257,9 +257,15 @@ class StressLayout implements LayoutSimulation {
     const startTime = performance.now();
     let stepped = false;
 
-    while (performance.now() - startTime < budgetMs && this.#phase !== "done") {
+    // do-while: at least one advance per tick even if the budget is already gone
+    // (a pre-empted worker can lose >1 ms between taking startTime and the first
+    // check; returning false while unsettled reads as a dead layout upstream).
+    while (this.#phase !== "done") {
       this.#advance();
       stepped = true;
+      if (performance.now() - startTime >= budgetMs) {
+        break;
+      }
     }
 
     if (stepped) {

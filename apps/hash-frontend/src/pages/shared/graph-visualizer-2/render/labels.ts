@@ -118,9 +118,6 @@ export function edgeLabelLayer(
   const scale = 2 ** zoom;
   const data = positions.edgeLabels;
 
-  if (data.length === 0) {
-    return undefined;
-  }
   return new TextLayer<RenderEdgeLabel>({
     id: "edge-labels",
     data,

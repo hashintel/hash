@@ -310,8 +310,8 @@ function slotPorts(
 
 /**
  * Caches port assignments per cluster, keyed by a signature of the
- * cluster's circle, each neighbor's center, and the neighbor set.
- * Ports reuse cached positions until an input changes.
+ * cluster's circle, each neighbor's center + lane counts, and the
+ * neighbor set. Ports reuse cached positions until an input changes.
  */
 export class PortCache {
   readonly #cache = new Map<
@@ -411,8 +411,12 @@ export function computeAllPorts(
         edgeCount: info.edgeCount,
         distinctTypes: info.distinctTypes,
       });
+      // The signature covers everything slotPorts reads: neighbor positions
+      // (angles) AND per-neighbor lane counts (reserved arc widths). Counts
+      // change without movement when links stream in between two settled
+      // clusters; a position-only key would keep serving stale arcs.
       sigParts.push(
-        `${info.neighborId}@${neighbor.circle.x.toFixed(2)},${neighbor.circle.y.toFixed(2)}`,
+        `${info.neighborId}@${neighbor.circle.x.toFixed(2)},${neighbor.circle.y.toFixed(2)}#${info.edgeCount},${info.distinctTypes}`,
       );
     }
 
