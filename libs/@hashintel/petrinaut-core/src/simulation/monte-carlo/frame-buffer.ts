@@ -6,15 +6,21 @@ import type {
 
 export type MonteCarloFrameBuffer = {
   buffer: ArrayBuffer;
-  tokenValueCapacity: number;
-  tokenValueCount: number;
+  /** Allocated token region capacity, in bytes (multiple of 8). */
+  tokenByteCapacity: number;
+  /** Used token region length, in bytes. */
+  tokenByteCount: number;
   placeCounts: Uint32Array;
+  /** Per-place byte offsets within the token region. */
   placeOffsets: Uint32Array;
   transitionElapsedFrames: Float64Array;
   transitionElapsed: Float64Array;
   transitionFiringCounts: Uint32Array;
   transitionFiredFlags: Uint8Array;
-  tokenValues: Float64Array;
+  /** u8 view over the whole token region capacity. */
+  tokenBytes: Uint8Array;
+  /** f64 view over the whole token region capacity. */
+  tokenF64: Float64Array;
 };
 
 const alignTo = (value: number, alignment: number): number =>
@@ -24,16 +30,18 @@ const alignTo = (value: number, alignment: number): number =>
  * Creates typed-array views over one Monte Carlo frame buffer.
  *
  * The buffer contains fixed-size place and transition metadata followed by the
- * variable-capacity token value region. Keeping all views over one ArrayBuffer
- * makes frame swapping cheap and keeps ownership explicit.
+ * variable-capacity token byte region. Keeping all views over one ArrayBuffer
+ * makes frame swapping cheap and keeps ownership explicit. The token region
+ * starts at an 8-aligned offset and spans a multiple of 8 bytes, so both the
+ * u8 and f64 views address the same packed-struct token bytes.
  */
 function createViews(
   layout: EngineFrameLayout,
   buffer: ArrayBuffer,
-  tokenValueCapacity: number,
+  tokenByteCapacity: number,
 ): Omit<
   MonteCarloFrameBuffer,
-  "buffer" | "tokenValueCapacity" | "tokenValueCount"
+  "buffer" | "tokenByteCapacity" | "tokenByteCount"
 > {
   const placeCount = layout.placeIds.length;
   const transitionCount = layout.transitionIds.length;
@@ -81,24 +89,25 @@ function createViews(
       transitionFiredFlagsOffset,
       transitionCount,
     ),
-    tokenValues: new Float64Array(
+    tokenBytes: new Uint8Array(buffer, tokenValuesOffset, tokenByteCapacity),
+    tokenF64: new Float64Array(
       buffer,
       tokenValuesOffset,
-      tokenValueCapacity,
+      tokenByteCapacity / 8,
     ),
   };
 }
 
 /**
  * Computes the ArrayBuffer byte length required for a frame with this layout
- * and token value capacity.
+ * and token byte capacity.
  *
- * `tokenValueCapacity` is measured in Float64 values, not token count, because
- * colored places can have different dimensionality.
+ * `tokenByteCapacity` is measured in bytes, not token count, because colored
+ * places can have different token strides.
  */
 export function getMonteCarloFrameBufferByteLength(
   layout: EngineFrameLayout,
-  tokenValueCapacity: number,
+  tokenByteCapacity: number,
 ): number {
   const placeCount = layout.placeIds.length;
   const transitionCount = layout.transitionIds.length;
@@ -117,9 +126,7 @@ export function getMonteCarloFrameBufferByteLength(
     Float64Array.BYTES_PER_ELEMENT,
   );
 
-  return (
-    tokenValuesOffset + tokenValueCapacity * Float64Array.BYTES_PER_ELEMENT
-  );
+  return tokenValuesOffset + tokenByteCapacity;
 }
 
 /**
@@ -127,21 +134,24 @@ export function getMonteCarloFrameBufferByteLength(
  * views.
  *
  * The returned frame owns one ArrayBuffer and starts with zero used token
- * values, even if a larger capacity was allocated.
+ * bytes, even if a larger capacity was allocated.
  */
 export function createMonteCarloFrameBuffer(
   layout: EngineFrameLayout,
-  tokenValueCapacity: number,
+  tokenByteCapacity: number,
 ): MonteCarloFrameBuffer {
-  const normalizedCapacity = Math.max(0, Math.ceil(tokenValueCapacity));
+  const normalizedCapacity = alignTo(
+    Math.max(0, Math.ceil(tokenByteCapacity)),
+    8,
+  );
   const buffer = new ArrayBuffer(
     getMonteCarloFrameBufferByteLength(layout, normalizedCapacity),
   );
 
   return {
     buffer,
-    tokenValueCapacity: normalizedCapacity,
-    tokenValueCount: 0,
+    tokenByteCapacity: normalizedCapacity,
+    tokenByteCount: 0,
     ...createViews(layout, buffer, normalizedCapacity),
   };
 }
@@ -150,16 +160,16 @@ export function createMonteCarloFrameBuffer(
  * Copies the used portion of one Monte Carlo frame into another existing frame
  * buffer.
  *
- * The target must already have enough token value capacity. This is used for
+ * The target must already have enough token byte capacity. This is used for
  * current/next frame swapping without allocating on every simulation step.
  */
 export function copyMonteCarloFrameBuffer(
   source: MonteCarloFrameBuffer,
   target: MonteCarloFrameBuffer,
 ): void {
-  if (target.tokenValueCapacity < source.tokenValueCount) {
+  if (target.tokenByteCapacity < source.tokenByteCount) {
     throw new Error(
-      `Target MonteCarloFrameBuffer capacity ${target.tokenValueCapacity} cannot hold ${source.tokenValueCount} token values`,
+      `Target MonteCarloFrameBuffer capacity ${target.tokenByteCapacity} cannot hold ${source.tokenByteCount} token bytes`,
     );
   }
 
@@ -169,25 +179,23 @@ export function copyMonteCarloFrameBuffer(
   target.transitionElapsed.set(source.transitionElapsed);
   target.transitionFiringCounts.set(source.transitionFiringCounts);
   target.transitionFiredFlags.set(source.transitionFiredFlags);
-  target.tokenValues.set(
-    source.tokenValues.subarray(0, source.tokenValueCount),
-  );
-  target.tokenValueCount = source.tokenValueCount;
+  target.tokenBytes.set(source.tokenBytes.subarray(0, source.tokenByteCount));
+  target.tokenByteCount = source.tokenByteCount;
 }
 
 /**
  * Allocates a new Monte Carlo frame buffer and copies an existing frame into
  * it.
  *
- * This is the resize path used when a run outgrows its current token value
+ * This is the resize path used when a run outgrows its current token byte
  * capacity.
  */
 export function cloneMonteCarloFrameBuffer(
   layout: EngineFrameLayout,
   source: MonteCarloFrameBuffer,
-  tokenValueCapacity: number,
+  tokenByteCapacity: number,
 ): MonteCarloFrameBuffer {
-  const target = createMonteCarloFrameBuffer(layout, tokenValueCapacity);
+  const target = createMonteCarloFrameBuffer(layout, tokenByteCapacity);
   copyMonteCarloFrameBuffer(source, target);
   return target;
 }
@@ -206,10 +214,10 @@ export function copyEngineFrameViewToMonteCarloFrameBuffer(
   target: MonteCarloFrameBuffer,
   dt: number,
 ): void {
-  const tokenValueCount = source.tokenValues.length;
-  if (target.tokenValueCapacity < tokenValueCount) {
+  const tokenByteCount = source.tokenBytes.byteLength;
+  if (target.tokenByteCapacity < tokenByteCount) {
     throw new Error(
-      `Target MonteCarloFrameBuffer capacity ${target.tokenValueCapacity} cannot hold ${tokenValueCount} token values`,
+      `Target MonteCarloFrameBuffer capacity ${target.tokenByteCapacity} cannot hold ${tokenByteCount} token bytes`,
     );
   }
 
@@ -221,7 +229,7 @@ export function copyEngineFrameViewToMonteCarloFrameBuffer(
     }
 
     target.placeCounts[index] = placeState.count;
-    target.placeOffsets[index] = placeState.offset;
+    target.placeOffsets[index] = placeState.byteOffset;
   }
 
   for (let index = 0; index < layout.transitionIds.length; index++) {
@@ -244,6 +252,6 @@ export function copyEngineFrameViewToMonteCarloFrameBuffer(
       : 0;
   }
 
-  target.tokenValues.set(source.tokenValues);
-  target.tokenValueCount = tokenValueCount;
+  target.tokenBytes.set(source.tokenBytes);
+  target.tokenByteCount = tokenByteCount;
 }

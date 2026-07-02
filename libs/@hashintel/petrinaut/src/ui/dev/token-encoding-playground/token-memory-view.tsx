@@ -4,13 +4,16 @@ import { css, cva } from "@hashintel/ds-helpers/css";
 
 import { f64BitPart } from "./physical-layout";
 
-import type { LayoutField, TokenLayout } from "./physical-layout";
-import type { TokenRecord } from "@hashintel/petrinaut-core";
+import type {
+  TokenLayoutField,
+  TokenRecord,
+  TokenSlotLayout,
+} from "@hashintel/petrinaut-core";
 
 export type BitOrder = "logical" | "memory";
 
 export type TokenMemoryViewProps = {
-  layout: TokenLayout;
+  layout: TokenSlotLayout;
   buffer: ArrayBuffer;
   /** Raw values returned by the user's code, before coercion. */
   input: Record<string, unknown>;
@@ -28,8 +31,11 @@ const fieldColor = (fieldIndex: number, lightness: number): string =>
 const PADDING_BACKGROUND =
   "repeating-linear-gradient(45deg, #f2f2f2, #f2f2f2 2px, #d8d8d8 2px, #d8d8d8 4px)";
 
-const bitLightness = (field: LayoutField, msbFirstIndex: number): number => {
-  if (field.physical.kind !== "f64") {
+const bitLightness = (
+  field: TokenLayoutField,
+  msbFirstIndex: number,
+): number => {
+  if (field.kind !== "f64") {
     return 78;
   }
   switch (f64BitPart(msbFirstIndex)) {
@@ -54,7 +60,7 @@ type ByteRow = {
 
 type SlotGroup = {
   key: string;
-  field: LayoutField | null; // null = padding
+  field: TokenLayoutField | null; // null = padding
   fieldIndex: number;
   startByte: number;
   rows: ByteRow[];
@@ -66,7 +72,7 @@ type SlotGroup = {
  * order follows the buffer (little-endian: least-significant byte first).
  */
 function buildSlotGroups(
-  layout: TokenLayout,
+  layout: TokenSlotLayout,
   buffer: ArrayBuffer,
   bitOrder: BitOrder,
 ): SlotGroup[] {
@@ -74,12 +80,12 @@ function buildSlotGroups(
   const groups: SlotGroup[] = [];
 
   for (const [fieldIndex, field] of layout.fields.entries()) {
-    const size = field.physical.byteSize;
+    const size = field.byteSize;
     const byteIndices = Array.from({ length: size }, (_, position) =>
       bitOrder === "logical" ? size - 1 - position : position,
     );
     groups.push({
-      key: `field-${field.name}`,
+      key: `field-${field.element.name}`,
       field,
       fieldIndex,
       startByte: field.byteOffset,
@@ -262,12 +268,8 @@ const formatValue = (value: unknown): string => {
   return value === undefined ? "undefined" : JSON.stringify(value);
 };
 
-const fieldHex = (buffer: ArrayBuffer, field: LayoutField): string => {
-  const bytes = new Uint8Array(
-    buffer,
-    field.byteOffset,
-    field.physical.byteSize,
-  );
+const fieldHex = (buffer: ArrayBuffer, field: TokenLayoutField): string => {
+  const bytes = new Uint8Array(buffer, field.byteOffset, field.byteSize);
   let hex = "";
   for (let byteIndex = bytes.length - 1; byteIndex >= 0; byteIndex--) {
     hex += bytes[byteIndex]!.toString(16).padStart(2, "0");
@@ -306,7 +308,7 @@ export const TokenMemoryView: React.FC<TokenMemoryViewProps> = ({
 
   const groups = buildSlotGroups(layout, buffer, bitOrder);
   const hoveredGroup = groups.find((group) => group.key === hoveredKey) ?? null;
-  const hasF64 = layout.fields.some((field) => field.physical.kind === "f64");
+  const hasF64 = layout.fields.some((field) => field.kind === "f64");
 
   return (
     <div className={containerStyle}>
@@ -314,13 +316,13 @@ export const TokenMemoryView: React.FC<TokenMemoryViewProps> = ({
       <div className={legendStyle}>
         {layout.fields.map((field, fieldIndex) => (
           <span
-            key={field.name}
+            key={field.element.name}
             className={legendChipStyle}
-            onMouseEnter={() => setHoveredKey(`field-${field.name}`)}
+            onMouseEnter={() => setHoveredKey(`field-${field.element.name}`)}
             onMouseLeave={() => setHoveredKey(null)}
           >
             <i style={{ background: fieldColor(fieldIndex, 70) }} />
-            {field.name} · {field.physical.kind}
+            {field.element.name} · {field.kind}
           </span>
         ))}
         {layout.paddingRanges.length > 0 ? (
@@ -330,7 +332,7 @@ export const TokenMemoryView: React.FC<TokenMemoryViewProps> = ({
           </span>
         ) : null}
         <span className={legendNoteStyle}>
-          sizeof(token) = {layout.strideBytes} B ({layout.mode})
+          sizeof(token) = {layout.strideBytes} B
         </span>
         {hasF64 ? (
           <span className={legendNoteStyle}>
@@ -407,19 +409,20 @@ export const TokenMemoryView: React.FC<TokenMemoryViewProps> = ({
               className={infoTitleStyle}
               style={{ color: fieldColor(hoveredGroup.fieldIndex, 35) }}
             >
-              {hoveredGroup.field.name}
+              {hoveredGroup.field.element.name}
             </span>
             <span>
-              {hoveredGroup.field.elementType} →{" "}
-              {hoveredGroup.field.physical.kind} · offset{" "}
-              {hoveredGroup.field.byteOffset} ·{" "}
-              {hoveredGroup.field.physical.byteSize} B
+              {hoveredGroup.field.element.type} → {hoveredGroup.field.kind} ·
+              offset {hoveredGroup.field.byteOffset} ·{" "}
+              {hoveredGroup.field.byteSize} B
             </span>
             <span>{fieldHex(buffer, hoveredGroup.field)}</span>
             <span className={roundTripStyle}>
-              input {formatValue(input[hoveredGroup.field.name])} → stored{" "}
-              <b>{formatValue(stored[hoveredGroup.field.name])}</b> → reads back{" "}
-              <b>{formatValue(decoded[hoveredGroup.field.name])}</b>
+              input {formatValue(input[hoveredGroup.field.element.name])} →
+              stored{" "}
+              <b>{formatValue(stored[hoveredGroup.field.element.name])}</b> →
+              reads back{" "}
+              <b>{formatValue(decoded[hoveredGroup.field.element.name])}</b>
             </span>
           </>
         )}

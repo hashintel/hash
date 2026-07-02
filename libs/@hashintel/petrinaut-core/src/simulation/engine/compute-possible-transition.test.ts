@@ -1,18 +1,18 @@
 import { describe, expect, it } from "vitest";
 
 import { getArcEndpointPlaceId } from "../../arc-endpoints";
-import {
-  createEngineFrame,
-  createEngineFrameLayout,
-  type EngineFrameLayout,
-  type EngineFrameSnapshot,
-} from "../frames/internal-frame";
+import { createEngineFrameLayout } from "../frames/internal-frame";
 import { computePossibleTransition as computePossibleTransitionImpl } from "./compute-possible-transition";
+import { computeTokenSlotLayout } from "./token-layout";
+import {
+  decodeTokenBlock,
+  makeTestFrame,
+  type TestFrame,
+} from "./token-layout.test-helpers";
 
 import type { Color, Place, Transition } from "../../types/sdcpn";
 import type {
   CompiledTransition,
-  EngineFrame,
   LambdaFn,
   SimulationInstance,
   TransitionKernelFn,
@@ -33,8 +33,6 @@ const transitionState = (timeSinceLastFiringMs = 1.0) => ({
   firingCount: 0,
 });
 
-type TestFrame = EngineFrame & { layout: EngineFrameLayout };
-
 function makePlace(id: string, name: string, colorId: string | null): Place {
   return {
     id,
@@ -44,20 +42,6 @@ function makePlace(id: string, name: string, colorId: string | null): Place {
     differentialEquationId: null,
     x: 0,
     y: 0,
-  };
-}
-
-function makeColor(dimensions: number): Color {
-  return {
-    id: `frame-type-${dimensions}`,
-    name: `Frame Type ${dimensions}`,
-    iconSlug: "circle",
-    displayColor: "#000000",
-    elements: Array.from({ length: dimensions }, (_, index) => ({
-      elementId: `d${index}`,
-      name: `d${index}`,
-      type: "real",
-    })),
   };
 }
 
@@ -91,17 +75,6 @@ function makeCompiledTransitions({
 }): Map<string, CompiledTransition> {
   const placesMap = new Map(places.map((place) => [place.id, place]));
   const typesMap = new Map(types.map((type) => [type.id, type]));
-  const getElementNames = (placeId: string) => {
-    const place = placesMap.get(placeId);
-    if (!place?.colorId) {
-      return null;
-    }
-
-    return (
-      typesMap.get(place.colorId)?.elements.map((element) => element.name) ??
-      null
-    );
-  };
   const getElements = (placeId: string) => {
     const place = placesMap.get(placeId);
     if (!place?.colorId) {
@@ -126,23 +99,25 @@ function makeCompiledTransitions({
           name: transition.name,
           inputPlaces: transition.inputArcs.map((arc) => {
             const placeId = getArcEndpointPlaceId(arc)!;
+            const elements = getElements(placeId);
             return {
               placeId,
               placeName: placesMap.get(placeId)?.name ?? placeId,
               weight: arc.weight,
               arcType: arc.type,
-              elementNames: getElementNames(placeId),
-              elements: getElements(placeId),
+              elements,
+              tokenLayout: elements ? computeTokenSlotLayout(elements) : null,
             };
           }),
           outputPlaces: transition.outputArcs.map((arc) => {
             const placeId = getArcEndpointPlaceId(arc)!;
+            const elements = getElements(placeId);
             return {
               placeId,
               placeName: placesMap.get(placeId)?.name ?? placeId,
               weight: arc.weight,
-              elementNames: getElementNames(placeId),
-              elements: getElements(placeId),
+              elements,
+              tokenLayout: elements ? computeTokenSlotLayout(elements) : null,
             };
           }),
           lambdaFn,
@@ -197,30 +172,6 @@ function makeSimulation({
   };
 }
 
-function makeFrame(snapshot: EngineFrameSnapshot): TestFrame {
-  const dimensions = new Set(
-    Object.values(snapshot.places).map((place) => place.dimensions),
-  );
-  const layout = createEngineFrameLayout({
-    places: Object.entries(snapshot.places).map(([id, place]) =>
-      makePlace(
-        id,
-        id,
-        place.dimensions === 0 ? null : `frame-type-${place.dimensions}`,
-      ),
-    ),
-    transitions: Object.keys(snapshot.transitions).map((id) =>
-      makeTransition({ id, inputArcs: [], outputArcs: [] }),
-    ),
-    types: [...dimensions]
-      .filter((dimension) => dimension > 0)
-      .map((dimension) => makeColor(dimension)),
-  });
-  const frame = createEngineFrame(layout, snapshot) as TestFrame;
-  Object.defineProperty(frame, "layout", { value: layout });
-  return frame;
-}
-
 function computePossibleTransition(
   frame: TestFrame,
   simulation: SimulationInstance,
@@ -249,14 +200,13 @@ describe("computePossibleTransition", () => {
         ["t1", () => ({ p2: [{ x: 1.0 }] })],
       ]),
     });
-    const frame = makeFrame({
+    const frame = makeTestFrame({
       places: {
-        p1: { offset: 0, count: 1, dimensions: 1 },
+        p1: { elements: type1.elements, tokens: [{ x: 1.0 }] },
       },
       transitions: {
         t1: transitionState(),
       },
-      buffer: new Float64Array([1.0]),
     });
 
     expect(computePossibleTransition(frame, simulation, "t1", 42)).toBeNull();
@@ -275,14 +225,13 @@ describe("computePossibleTransition", () => {
         ["t1", () => ({})],
       ]),
     });
-    const frame = makeFrame({
+    const frame = makeTestFrame({
       places: {
-        p1: { offset: 0, count: 2, dimensions: 0 },
+        p1: { count: 2 },
       },
       transitions: {
         t1: transitionState(),
       },
-      buffer: new Float64Array([]),
     });
 
     expect(computePossibleTransition(frame, simulation, "t1", 42)).toBeNull();
@@ -312,16 +261,15 @@ describe("computePossibleTransition", () => {
         ["t1", () => ({ Target: [{ x: 5.0 }] })],
       ]),
     });
-    const frame = makeFrame({
+    const frame = makeTestFrame({
       places: {
-        p1: { offset: 0, count: 1, dimensions: 1 },
-        p2: { offset: 1, count: 0, dimensions: 0 },
-        p3: { offset: 1, count: 0, dimensions: 1 },
+        p1: { elements: type1.elements, tokens: [{ x: 3.0 }] },
+        p2: { count: 0 },
+        p3: { elements: type1.elements, tokens: [] },
       },
       transitions: {
         t1: transitionState(),
       },
-      buffer: new Float64Array([3.0]),
     });
 
     const result = computePossibleTransition(frame, simulation, "t1", 42);
@@ -329,7 +277,9 @@ describe("computePossibleTransition", () => {
     expect(result).not.toBeNull();
     expect(result!.remove).toHaveProperty("p1");
     expect(result!.remove).not.toHaveProperty("p2");
-    expect(result!.add).toMatchObject({ p3: [[5.0]] });
+    expect(
+      result!.add.p3!.map((block) => decodeTokenBlock(type1.elements, block)),
+    ).toEqual([{ x: 5 }]);
   });
 
   it("passes read arc tokens to lambda and kernel without consuming them", () => {
@@ -377,16 +327,15 @@ describe("computePossibleTransition", () => {
         ],
       ]),
     });
-    const frame = makeFrame({
+    const frame = makeTestFrame({
       places: {
-        p1: { offset: 0, count: 1, dimensions: 1 },
-        p2: { offset: 1, count: 1, dimensions: 1 },
-        p3: { offset: 2, count: 0, dimensions: 1 },
+        p1: { elements: type1.elements, tokens: [{ x: 3.0 }] },
+        p2: { elements: type1.elements, tokens: [{ x: 7.0 }] },
+        p3: { elements: type1.elements, tokens: [] },
       },
       transitions: {
         t1: transitionState(),
       },
-      buffer: new Float64Array([3.0, 7.0]),
     });
 
     const result = computePossibleTransition(frame, simulation, "t1", 42);
@@ -401,7 +350,10 @@ describe("computePossibleTransition", () => {
       Guard: [{ x: 7.0 }],
     });
     expect(result!.remove).toEqual({ p1: new Set([0]) });
-    expect(result!.add).toEqual({ p3: [[7.0]] });
+    expect(Object.keys(result!.add)).toEqual(["p3"]);
+    expect(
+      result!.add.p3!.map((block) => decodeTokenBlock(type1.elements, block)),
+    ).toEqual([{ x: 7 }]);
   });
 
   it("returns token combinations when transition is enabled and fires", () => {
@@ -424,15 +376,14 @@ describe("computePossibleTransition", () => {
         ["t1", () => ({ "Place 2": [{ x: 2.0 }] })],
       ]),
     });
-    const frame = makeFrame({
+    const frame = makeTestFrame({
       places: {
-        p1: { offset: 0, count: 2, dimensions: 1 },
-        p2: { offset: 2, count: 0, dimensions: 1 },
+        p1: { elements: type1.elements, tokens: [{ x: 1.0 }, { x: 1.5 }] },
+        p2: { elements: type1.elements, tokens: [] },
       },
       transitions: {
         t1: transitionState(),
       },
-      buffer: new Float64Array([1.0, 1.5]),
     });
 
     const result = computePossibleTransition(frame, simulation, "t1", 42);
@@ -440,8 +391,10 @@ describe("computePossibleTransition", () => {
     expect(result).not.toBeNull();
     expect(result).toMatchObject({
       remove: { p1: new Set([0]) },
-      add: { p2: [[2.0]] },
     });
+    expect(
+      result!.add.p2!.map((block) => decodeTokenBlock(type1.elements, block)),
+    ).toEqual([{ x: 2 }]);
     expect(result?.newRngState).toBeTypeOf("number");
   });
 
@@ -494,15 +447,17 @@ describe("computePossibleTransition", () => {
         ],
       ]),
     });
-    const frame = makeFrame({
+    const frame = makeTestFrame({
       places: {
-        p1: { offset: 0, count: 1, dimensions: 3 },
-        p2: { offset: 3, count: 0, dimensions: 3 },
+        p1: {
+          elements: typedColor.elements,
+          tokens: [{ amount: 1.25, count: 3, active: true }],
+        },
+        p2: { elements: typedColor.elements, tokens: [] },
       },
       transitions: {
         t1: transitionState(),
       },
-      buffer: new Float64Array([1.25, 3, 1]),
     });
 
     const result = computePossibleTransition(frame, simulation, "t1", 42);
@@ -518,7 +473,11 @@ describe("computePossibleTransition", () => {
     });
     expect(result).toMatchObject({
       remove: { p1: new Set([0]) },
-      add: { p2: [[2.5, 4, 0]] },
     });
+    expect(
+      result!.add.p2!.map((block) =>
+        decodeTokenBlock(typedColor.elements, block),
+      ),
+    ).toEqual([{ amount: 2.5, count: 4, active: false }]);
   });
 });

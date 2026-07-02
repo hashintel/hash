@@ -92,11 +92,6 @@ export type SimulationFrameState = {
   };
 };
 
-export type SimulationPlaceTokenValues = {
-  values: Float64Array;
-  count: number;
-};
-
 export interface SimulationFrameReader {
   /** Frame index in the simulation history. */
   readonly number: number;
@@ -104,7 +99,6 @@ export interface SimulationFrameReader {
   readonly time: number;
 
   getPlaceTokenCount(placeId: string): number;
-  getPlaceTokenValues(placeId: string): SimulationPlaceTokenValues | null;
   getPlaceTokens(place: Place, color: Color | null | undefined): TokenRecord[];
   getTransitionState(transitionId: string): {
     /**

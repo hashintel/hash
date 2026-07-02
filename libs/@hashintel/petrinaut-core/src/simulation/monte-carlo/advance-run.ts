@@ -52,7 +52,7 @@ export function advanceRun(run: MonteCarloRunState): boolean {
 
     run.status = "running";
     let workingFrame = writeFrameAfterDynamics(run);
-    const tokensToAdd = new Map<PlaceID, number[][]>();
+    const tokensToAdd = new Map<PlaceID, Uint8Array[]>();
     const firedTransitions = new Set<string>();
 
     for (const transitionId of run.simulation.frameLayout.transitionIds) {

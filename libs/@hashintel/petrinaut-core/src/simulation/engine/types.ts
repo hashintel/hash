@@ -18,6 +18,7 @@ import type {
 import type { InitialMarking } from "../api";
 import type { RuntimeDistribution } from "../authoring/user-code/distribution";
 import type { EngineFrame, EngineFrameLayout } from "../frames/internal-frame";
+import type { TokenSlotLayout } from "./token-layout";
 
 /**
  * Runtime parameter values used during simulation execution.
@@ -29,12 +30,16 @@ export type ParameterValues = Record<string, number | boolean>;
  * Engine-facing differential equation for one place's continuous dynamics.
  *
  * Today this wraps the user-authored object API and adapts it to/from the
- * engine's packed numeric buffers. Later this can be replaced by an
+ * engine's packed token byte regions. Later this can be replaced by an
  * IR-compiled buffer-native function without changing the stepping loop.
+ *
+ * `placeBytes` is one place's token byte region (`numberOfTokens ×
+ * strideBytes`, 8-aligned). The returned derivatives are laid out as
+ * `numberOfTokens × realFieldF64Offsets.length`, in the field order of the
+ * place colour's `TokenSlotLayout.realFieldF64Offsets`.
  */
 export type DifferentialEquationFn = (
-  currentState: Float64Array,
-  dimensions: number,
+  placeBytes: Uint8Array,
   numberOfTokens: number,
 ) => Float64Array;
 
@@ -68,8 +73,10 @@ export type CompiledTransitionPlace = {
   placeId: string;
   placeName: string;
   weight: number;
-  elementNames: readonly string[] | null;
+  /** Colour elements in declaration order, or null for uncoloured places. */
   elements: readonly Color["elements"][number][] | null;
+  /** Packed token layout for the place colour, or null for uncoloured places. */
+  tokenLayout: TokenSlotLayout | null;
 };
 
 export type CompiledTransitionInputPlace = CompiledTransitionPlace & {

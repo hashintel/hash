@@ -23,7 +23,8 @@ export type MonteCarloSimulatorConfig = {
   dt: number;
   maxTime: number;
   runs?: readonly MonteCarloRunConfig[];
-  initialTokenValueCapacity?: number;
+  /** Initial token region capacity per run, in bytes. */
+  initialTokenByteCapacity?: number;
   metrics?: readonly MonteCarloFrameMetric[];
 };
 
@@ -37,8 +38,10 @@ export type MonteCarloRunSummary = {
   parameterValues: ParameterValues;
   completionReason: SimulationCompletionReason | null;
   error: string | null;
-  tokenValueCount: number;
-  tokenValueCapacity: number;
+  /** Used token region length of the current frame, in bytes. */
+  tokenByteCount: number;
+  /** Allocated token region capacity of the current frame, in bytes. */
+  tokenByteCapacity: number;
   reallocations: number;
 };
 

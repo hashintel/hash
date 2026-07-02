@@ -74,7 +74,7 @@ export function computeNextFrame(
 
   // Only apply dynamics if there are places with differential equations
   if (simulation.differentialEquationFns.size > 0) {
-    const newBuffer = new Float64Array(currentSnapshot.buffer);
+    const newBuffer = new Uint8Array(currentSnapshot.buffer);
 
     for (const [
       placeId,
@@ -84,24 +84,34 @@ export function computeNextFrame(
       if (!placeState) {
         throw new Error(`Place with ID ${placeId} not found in frame`);
       }
-      const { offset, count, dimensions } = placeState;
-      const placeSize = count * dimensions;
-      const placeBuffer = currentSnapshot.buffer.slice(
-        offset,
-        offset + placeSize,
+      const placeIndex = simulation.frameLayout.placeIndexById.get(placeId);
+      const tokenLayout =
+        placeIndex === undefined
+          ? null
+          : simulation.frameLayout.placeTokenLayouts[placeIndex];
+      if (!tokenLayout) {
+        throw new Error(
+          `Place with ID ${placeId} has no token layout but has dynamics`,
+        );
+      }
+      const { byteOffset, count, strideBytes } = placeState;
+      const placeByteSize = count * strideBytes;
+      const placeBytes = currentSnapshot.buffer.slice(
+        byteOffset,
+        byteOffset + placeByteSize,
       );
 
-      const nextPlaceBuffer = computePlaceNextState(
-        placeBuffer,
-        dimensions,
+      const nextPlaceBytes = computePlaceNextState(
+        placeBytes,
+        tokenLayout,
         count,
         differentialEquation,
         "euler", // Currently only Euler method is implemented
         simulation.dt,
       );
 
-      // Copy the updated values back into the new buffer
-      newBuffer.set(nextPlaceBuffer, offset);
+      // Copy the updated bytes back into the new buffer
+      newBuffer.set(nextPlaceBytes, byteOffset);
     }
 
     // Create frame with updated buffer after applying dynamics

@@ -28,7 +28,7 @@ function makeFrame(time: number): SimulationFramePayload {
   const frame = createEngineFrame(createEngineFrameLayout(empty()), {
     places: {},
     transitions: {},
-    buffer: new Float64Array(),
+    buffer: new Uint8Array(0),
   });
 
   return {

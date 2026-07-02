@@ -7,7 +7,7 @@ import { SegmentGroup } from "../../components/segment-group";
 import { CodeEditor } from "../../monaco/code-editor";
 import { MonacoContext } from "../../monaco/context";
 import { DimensionEditor } from "./dimension-editor";
-import { computeTokenLayout, encodeToken } from "./physical-layout";
+import { computePlaygroundTokenLayout, encodeToken } from "./physical-layout";
 import {
   enableTypescriptLanguageService,
   generateTokenDefs,
@@ -15,13 +15,9 @@ import {
 } from "./playground-monaco";
 import { TokenMemoryView } from "./token-memory-view";
 
-import type {
-  EncodedToken,
-  LayoutMode,
-  PlaygroundDimension,
-  TokenLayout,
-} from "./physical-layout";
+import type { EncodedToken, PlaygroundDimension } from "./physical-layout";
 import type { BitOrder } from "./token-memory-view";
+import type { TokenSlotLayout } from "@hashintel/petrinaut-core";
 
 const DEFAULT_DIMENSIONS: PlaygroundDimension[] = [
   { name: "amount", type: "real" },
@@ -39,7 +35,7 @@ const DEFAULT_CODE = `export default Token(() => ({
 type EvaluationResult =
   | {
       ok: true;
-      layout: TokenLayout;
+      layout: TokenSlotLayout;
       encoded: EncodedToken;
       input: Record<string, unknown>;
     }
@@ -48,10 +44,9 @@ type EvaluationResult =
 function evaluate(
   code: string,
   dimensions: PlaygroundDimension[],
-  mode: LayoutMode,
 ): EvaluationResult {
   try {
-    const layout = computeTokenLayout(dimensions, mode);
+    const layout = computePlaygroundTokenLayout(dimensions);
     // Same pipeline user code takes in the product (Babel TS-strip + eval).
     const create = compileUserCode<[]>(code, "Token");
     const raw: unknown = create();
@@ -160,23 +155,22 @@ const PlaygroundEditor: React.FC<{
 
 /**
  * Dev-only playground: define a colour's dimensions, author a token value,
- * and inspect the exact bits the simulation buffer would hold — in the
- * shipped v1 encoding (uniform f64 slots) or the planned v2 packed layout.
+ * and inspect the exact bits the simulation buffer holds in the shipped
+ * packed-struct token layout (format v2).
  */
 export const TokenEncodingPlayground: React.FC = () => {
   const [dimensions, setDimensions] =
     useState<PlaygroundDimension[]>(DEFAULT_DIMENSIONS);
   const [code, setCode] = useState(DEFAULT_CODE);
-  const [layoutMode, setLayoutMode] = useState<LayoutMode>("v1");
   const [bitOrder, setBitOrder] = useState<BitOrder>("logical");
   const [result, setResult] = useState<EvaluationResult | null>(null);
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      setResult(evaluate(code, dimensions, layoutMode));
+      setResult(evaluate(code, dimensions));
     }, 250);
     return () => clearTimeout(timer);
-  }, [code, dimensions, layoutMode]);
+  }, [code, dimensions]);
 
   return (
     <div className={containerStyle}>
@@ -202,15 +196,6 @@ export const TokenEncodingPlayground: React.FC = () => {
       </div>
 
       <div className={togglesStyle}>
-        <SegmentGroup
-          size="sm"
-          value={layoutMode}
-          onChange={(value) => setLayoutMode(value as LayoutMode)}
-          options={[
-            { value: "v1", label: "v1 — uniform f64 (shipped)" },
-            { value: "v2", label: "v2 — packed struct (planned)" },
-          ]}
-        />
         <SegmentGroup
           size="sm"
           value={bitOrder}
