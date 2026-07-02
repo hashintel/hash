@@ -5,9 +5,9 @@
  * The regressions covered:
  *
  * - a link-only batch (both endpoints already visible) must show up without
- * an owner change to trigger it,
+ *   an owner change to trigger it,
  * - a pending endpoint resolving must move the link from hidden to its real
- * classification without corrupting an unrelated pair's count,
+ *   classification without corrupting an unrelated pair's count,
  * - hidden bookkeeping must not drift below the true count.
  */
 
