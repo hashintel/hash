@@ -123,7 +123,8 @@ export function overlapRelaxPass(input: OverlapPassInput): number {
         }
 
         for (const nodeB of bucket) {
-          // Resolve each unordered pair exactly once (also skips self).
+          // nodeB <= nodeA skips self-pairs and double-counting across the
+          // 3x3 bucket scan.
           if (nodeB <= nodeA) {
             continue;
           }
@@ -206,10 +207,19 @@ export function countOverlaps(input: OverlapGridInput): number {
 }
 
 export interface RelaxOverlapsOptions {
+  /** Extra gap enforced beyond `radius_i + radius_j`, in world units. @defaultValue 0 */
   readonly padding?: number;
+  /**
+   * Fraction of each overlap corrected per pass. Lower is gentler but
+   * converges more slowly. @defaultValue 0.5
+   */
   readonly strength?: number;
+  /** Safety cap on relaxation passes. @defaultValue 40 */
   readonly maxPasses?: number;
-  /** Stop once a pass's largest displacement drops below this (world units). */
+  /**
+   * Stop once a pass's largest displacement drops below this (world units).
+   * @defaultValue 0.05
+   */
   readonly minMove?: number;
 }
 

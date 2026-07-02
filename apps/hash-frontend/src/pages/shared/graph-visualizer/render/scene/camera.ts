@@ -1,9 +1,8 @@
 /**
  * The camera: owns the Deck view state (never React state), the coarse zoom
  * buckets that gate expensive rebuilds, and the throttled viewport stream to
- * the worker's LOD. Camera moves (pan/zoom/transitions) flow through
- * {@link SceneCamera.applyViewState}; the scene reacts via the
- * `afterViewStateApplied` hook.
+ * the worker's LOD. Camera moves flow through {@link SceneCamera.applyViewState},
+ * which invokes {@link SceneCameraDependencies.afterViewStateApplied} when bucket crossings occur.
  */
 import { LinearInterpolator } from "@deck.gl/core";
 
@@ -29,7 +28,7 @@ import type { WorkerHandle } from "../worker-connection";
 import type { ViewState } from "./view-state";
 import type { Deck, OrthographicView } from "@deck.gl/core";
 
-interface ViewBounds {
+export interface ViewBounds {
   readonly minX: number;
   readonly minY: number;
   readonly maxX: number;
@@ -110,6 +109,7 @@ function contentBounds(handle: WorkerHandle): ViewBounds | null {
       include(
         originX + leafNodeX(ref.positions, index),
         originY + leafNodeY(ref.positions, index),
+        // Leaf nodes have no per-record radius in the SAB; use a fixed 4-world-unit pad for fit-to-content bounds.
         4,
       );
     }
@@ -186,14 +186,20 @@ export class SceneCamera {
 
   fitToContent(): void {
     const bounds = contentBounds(this.#dependencies.handle);
+    if (bounds) {
+      this.fitToBounds(bounds, 72);
+    }
+  }
+
+  /** Frame a world-space box: centre it and zoom so it fills the padded viewport. */
+  fitToBounds(bounds: ViewBounds, padding: number): void {
     const viewport = this.#dependencies.deck().getViewports()[0];
-    if (!bounds || !viewport) {
+    if (!viewport) {
       return;
     }
 
     const width = Math.max(1, bounds.maxX - bounds.minX);
     const height = Math.max(1, bounds.maxY - bounds.minY);
-    const padding = 72;
     const usableWidth = Math.max(1, viewport.width - padding * 2);
     const usableHeight = Math.max(1, viewport.height - padding * 2);
     const nextZoom = Math.log2(

@@ -1,4 +1,14 @@
-/** Message protocol for the worker <-> main thread boundary. */
+/**
+ * Message protocol for the worker <-> main thread boundary.
+ *
+ * Three kinds of traffic share this boundary: a versioned frame stream
+ * ({@link StructureFrameMessage} on topology changes, followed by
+ * {@link PositionsFrameMessage} ticks that are valid only against the latest
+ * structure version), a side channel for shared-buffer lifecycle and the
+ * entity-id lookup table ({@link LayoutSideChannelMessage}), and
+ * request/response pairs correlated by `requestId` (e.g.
+ * {@link QueryEgoMessage} / {@link EgoResultMessage}).
+ */
 
 import type { VizConfig } from "../config";
 import type { PositionsFrame, StructureFrame } from "../frames";
@@ -130,12 +140,9 @@ export interface QueryHighwayLinksMessage {
 }
 
 /**
- * capture-live-fixture debug hook: serialize the current flat-tier layout graph
- * (nodes with live positions/radii, deduped edges, Louvain communities) so a
- * production graph can be replayed as a deterministic bench/test fixture
- * (`forceGraphFromCapturedFixture` in bench-fixtures.ts). Every layout-engine
- * production failure so far was invisible to the synthetic fixtures; this hook
- * makes the user's actual graph the fixture.
+ * Debug hook: serializes the live flat-tier layout (positions, radii,
+ * deduped edges, Louvain labels) for deterministic bench replay via
+ * {@link CapturedLayoutFixture}.
  *
  * Reply: {@link LayoutFixtureResultMessage}, correlated by {@link requestId}.
  */
@@ -174,6 +181,10 @@ export interface StructureFrameMessage {
  * Positions changed (force layout tick). Carries bounded cluster positions and
  * freshly-computed edge geometry. Valid only against the latest
  * {@link StructureFrameMessage}.
+ *
+ * The main thread must drop ticks whose structure version is stale; the
+ * worker never interleaves a structure commit and a position tick for the
+ * same version.
  */
 export interface PositionsFrameMessage {
   readonly type: "POSITIONS_FRAME";
@@ -197,6 +208,9 @@ export interface EmbeddingClusteringNeededMessage {
  * An open leaf's entity positions live in this shared buffer.
  *
  * Positions are local to the leaf center: `[version_i32, x0, y0, x1, y1, ...]`.
+ * The worker is the sole writer of both the version and the positions; the
+ * main thread reads only after observing the version change, via Atomics or
+ * message ordering.
  */
 export interface LayoutCreatedMessage {
   readonly type: "LAYOUT_CREATED";
@@ -256,9 +270,8 @@ export interface EntityIdMapMessage {
 }
 
 /**
- * The buffer/layout side channel: messages the worker forwards to the main
- * thread outside the frame stream (layout lifecycles, buffer republishes,
- * the entity-id join map).
+ * Out-of-band worker-to-main messages for shared-buffer lifecycle and
+ * entity-id lookup, not tied to frame versions.
  */
 export type LayoutSideChannelMessage =
   | LayoutCreatedMessage
@@ -267,6 +280,10 @@ export type LayoutSideChannelMessage =
   | BufferRepublishedMessage
   | EntityIdMapMessage;
 
+/**
+ * Posted when worker construction, type registration, or a handler throws;
+ * the worker stays alive but may be partially initialized.
+ */
 export interface ErrorMessage {
   readonly type: "ERROR";
   readonly message: string;

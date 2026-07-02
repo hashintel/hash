@@ -95,8 +95,9 @@ export class LodState {
   /**
    * Commit a new visible cut. Returns true if the cut changed.
    *
-   * This is the single point where open-state is committed; call it
-   * alongside force-layout creation/destruction so they never diverge.
+   * This is the sole mutation of hysteresis open-state; layout side
+   * effects must run in the same frame when `true` is returned so open
+   * clusters and their force simulations stay aligned.
    */
   applyVisibleCut(items: readonly LodItem[]): boolean {
     const { visible, children, entities } = this.#partition(items);
@@ -163,6 +164,7 @@ export function computeVisibleCut(
   let renderedEntities = 0;
 
   while (queue.length > 0) {
+    // while (queue.length > 0) guarantees a node exists.
     const node = queue.shift()!;
 
     // Every cluster stays in the cut regardless of viewport position. Frustum
@@ -193,7 +195,6 @@ export function computeVisibleCut(
     // zoom, viewport, or budget. They stay open until deselected.
     const pinned = pinnedOpen?.has(node.id) ?? false;
 
-    // Leaf cluster small enough to reveal individual entities?
     if (
       !hasChildren &&
       node.count <= config.entityRevealMax &&
@@ -206,12 +207,12 @@ export function computeVisibleCut(
       continue;
     }
 
-    // Too large for entities and no children: try lazy subdivision.
+    // Lazy subdivision: community detection runs only when the cluster
+    // would otherwise open with no children.
     if (!hasChildren && (openChildren || pinned) && trySubdivide?.(node)) {
       hasChildren = node.children.length > 0;
     }
 
-    // Big enough to open and has children to show?
     if (
       hasChildren &&
       (pinned ||
@@ -223,6 +224,7 @@ export function computeVisibleCut(
 
       for (const child of node.children) {
         const childRPx = screenRadiusPx(child, viewport.zoom);
+        // insertIdx <= queue.length after the ascending scan.
         let insertIdx = 0;
         while (
           insertIdx < queue.length &&
@@ -235,7 +237,6 @@ export function computeVisibleCut(
       continue;
     }
 
-    // Default: render as a single bubble.
     result.push({ clusterId: node.id, mode: "cluster" });
     renderedClusters++;
   }

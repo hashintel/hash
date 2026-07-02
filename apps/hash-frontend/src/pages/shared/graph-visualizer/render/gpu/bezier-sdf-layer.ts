@@ -78,9 +78,6 @@ const bezierUniforms = {
   },
 } satisfies ShaderModule<BezierUniformProps>;
 
-// Vertex shader: project control points to screen space,
-// expand a quad covering the bounding box + padding.
-
 const vs = `\
 #version 300 es
 #define SHADER_NAME bezier-sdf-layer-vertex
@@ -170,9 +167,8 @@ void main(void) {
 }
 `;
 
-// Fragment shader: SDF distance to cubic Bezier.
-// Brute-force search (12 samples) + Newton refinement (3 iterations).
-// Bump to 24/5 respectively if there are any artifacts visible.
+// SAMPLE_SIZE 12 / NEWTON_ITERATIONS 3: tuned for near-straight highway
+// control nets; increase if tight S-curves show distance error.
 const SAMPLE_SIZE = 12;
 const NEWTON_ITERATIONS = 3;
 
@@ -278,8 +274,8 @@ void main(void) {
   float clip = clipFactor(vPixel, vClipACenter, vClipARadiusPx)
     * clipFactor(vPixel, vClipBCenter, vClipBRadiusPx);
 
-  // Picking must hit-test the core stroke only (the halo is a soft backdrop,
-  // not a target), matching the old separate non-pickable underlay layer.
+  // Picking hit-tests the core stroke only; the halo is a non-interactive
+  // backdrop.
   if (bool(picking.isActive)) {
     float pickAlpha = vColor.a * coreCoverage * clip;
     if (pickAlpha <= 0.001) {
@@ -289,9 +285,8 @@ void main(void) {
     return;
   }
 
-  // Optional halo: the wide soft band formerly drawn as a second full layer
-  // ("edges-underlay"). Same SDF evaluation, one extra smoothstep -- the
-  // stacked-layer look is reproduced by compositing core over halo here.
+  // Optional halo: when uHaloWidthFactor > 1, composite a wider smoothstep
+  // band under the core stroke in one evaluation.
   float coreAlpha = vColor.a * coreCoverage;
   float haloAlpha = 0.0;
   if (bezier.uHaloWidthFactor > 1.0) {
@@ -314,8 +309,6 @@ void main(void) {
   fragColor = vec4(outColor, outAlpha);
 }
 `;
-
-// Layer props
 
 /**
  * A single binary instance attribute supplied via `data.attributes`. The
@@ -356,10 +349,10 @@ interface BezierSDFLayerProps<
   readonly widthUnits?: Unit;
   readonly widthScale?: number;
   /**
-   * Halo stroke width as a multiple of the core width (> 1 enables it). The
-   * halo is the soft wide band once drawn as a separate underlay layer; folding
-   * it in here reuses the (expensive) per-fragment curve solve instead of
-   * running it twice over overlapping quads.
+   * Halo stroke width as a multiple of the core width.
+   *
+   * @defaultValue 0 (disabled). Values > 1 draw a soft wide band in the same
+   * fragment pass, avoiding a second SDF solve over overlapping quads.
    */
   readonly haloWidthFactor?: number;
   /** Halo RGBA, 0-255 like other layer colours. Only drawn when {@link haloWidthFactor} > 1. */
@@ -423,6 +416,7 @@ export class BezierSDFLayer extends Layer<BezierSDFLayerProps> {
   }
 
   initializeState() {
+    // initializeState runs after Layer constructs the attribute manager.
     const attributeManager = this.getAttributeManager()!;
 
     attributeManager.addInstanced({
@@ -476,6 +470,7 @@ export class BezierSDFLayer extends Layer<BezierSDFLayerProps> {
     super.updateState(params);
 
     if (params.changeFlags.extensionsChanged) {
+      // Layer.state is untyped; model is optional until initializeState completes.
       (this.state as { model?: Model }).model?.destroy();
       this.setState({ model: this._getModel() });
       this.getAttributeManager()?.invalidateAll();

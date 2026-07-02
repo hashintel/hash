@@ -104,22 +104,21 @@ export class TickLoop {
         clusterMoved = true;
       }
 
-      // The tick it settles, polish positions once (root -> optimiser,
-      // sub-cluster -> untangle). Also runs from ensureChildrenLayout for
-      // layouts that settle during their warm-up (which this loop would skip).
+      // On the tick when a layout settles, polish positions once (root ->
+      // optimiser, sub-cluster -> untangle). Also runs from
+      // ensureChildrenLayout for layouts that settle during their warm-up
+      // (which this loop would skip).
       if (cluster && layout.isSettled && !polisher.isPolished(clusterId)) {
         polisher.polishSettledLayout(cluster, layout);
         clusterMoved = true;
       }
     }
 
-    // Emit a PositionsFrame when clusters moved, and one final frame on the
-    // tick where the last cluster layout settles (so `settled` reaches main).
+    // Emit when clusters moved, when the last cluster layout settles (final
+    // settled flag), or when the flat graph moved / any layout just settled.
     const clustersJustSettled =
       clustersRunningBefore && !layouts.anyClusterLayoutRunning();
 
-    // Emit one last frame when the final layout settles, so the renderer
-    // receives exactly one `settled: true` positions frame.
     const layoutsJustSettled =
       layoutsRunningBefore && !layouts.anyLayoutRunning();
 
@@ -142,7 +141,6 @@ export class TickLoop {
       this.#dependencies.stopScheduler();
     }
 
-    // Only log slow ticks.
     const elapsed = performance.now() - tickStart;
     if (this.#dependencies.debug && elapsed > SLOW_TICK_WARNING_MS) {
       // eslint-disable-next-line no-console
@@ -164,6 +162,8 @@ export class TickLoop {
     changed: boolean,
     layoutTickMs: number,
   ): void {
+    // Debug-only duck typing: majorization layouts expose these fields;
+    // other engines omit them and skip logging.
     const diag = layout as Partial<{
       /** Strict disk overlaps at the last iterate / settle verification. */
       overlapsRemaining: number;

@@ -51,6 +51,8 @@ function writeUuid(target: Uint8Array, offset: number, uuid: string): void {
       index += 1;
     }
 
+    // writeUuid only consumes hyphenated UUID hex digits; non-hex input is a
+    // caller bug.
     target[offset + i] =
       (HEX_VAL[uuid.charCodeAt(index)]! << 4) |
       HEX_VAL[uuid.charCodeAt(index + 1)]!;
@@ -64,7 +66,11 @@ function readUuid(source: Uint8Array, offset: number): string {
   return `${b(0)}${b(1)}${b(2)}${b(3)}-${b(4)}${b(5)}-${b(6)}${b(7)}-${b(8)}${b(9)}-${b(10)}${b(11)}${b(12)}${b(13)}${b(14)}${b(15)}`;
 }
 
-/** Encode an {@link EntityId} at the given index. */
+/**
+ * Writes `webId`, `entityUuid`, and `draftId` (zero-filled when absent) into
+ * the shared lookup buffer at `entityIdx`. Overwrites any prior record at
+ * that slot.
+ */
 export function encodeEntityId(
   bytes: Uint8Array,
   entityIdx: number,
@@ -91,9 +97,15 @@ function isZeroSlot(bytes: Uint8Array, offset: number): boolean {
   return true;
 }
 
-/** Reconstruct the {@link EntityId} at the given index. */
+/**
+ * Reads the packed record at `entityIdx` and rebuilds an {@link EntityId};
+ * an all-zero draftId slot means the entity is not a draft.
+ */
 export function decodeEntityId(bytes: Uint8Array, entityIdx: number): EntityId {
   const base = entityIdx * ENTITY_ID_BYTES;
+  // Bytes were written by encodeEntityId/writeUuid from valid type-system
+  // UUID strings, so readUuid output satisfies WebId/EntityUuid/DraftId
+  // branding.
   const webId = readUuid(bytes, base) as WebId;
   const entityUuid = readUuid(bytes, base + UUID_BYTES) as EntityUuid;
   const draftOffset = base + UUID_BYTES * 2;

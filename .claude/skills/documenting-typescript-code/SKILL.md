@@ -97,7 +97,7 @@ Document concrete conditions for thrown errors and rejected promises. TypeScript
 
 Avoid "Throws an error if something goes wrong."
 
-### Invariants (the `# Safety` analog)
+### Invariants
 
 TypeScript's unsafe corners — `as` casts, non-null `!`, `SharedArrayBuffer`/`Atomics` protocols, index arithmetic into typed arrays, branded-type constructions — need caller obligations stated as invariants, not suggestions:
 
@@ -118,6 +118,7 @@ Every `as` cast at a boundary needs a comment justifying why it is sound. An une
 - `@defaultValue` on configuration fields and options.
 - `@example` for non-obvious usage; examples should demonstrate why the API matters, not just that it can be called. App-internal code rarely needs them; shared utilities and tricky pure functions often do.
 - `@deprecated` with a pointer to the replacement.
+- `@internal` for private/internal APIs that are not part of the public interface.
 
 ### Configuration and options
 
@@ -208,7 +209,7 @@ Symbols that belong in formulas include:
 
 - Set operators: `∩`, `∪`
 - Relations and mappings: `≤`, `≥`, `≈`, `≪`, `≫`, `→`, `↔`, `⇒`, `⇔`, `←`
-- Operators: `×`, `·`, `Σ`, `−` (minus inside a formula)
+- Operators: `×`, `·`, `Σ`, `-` (do not use unicode minus inside a formula)
 - Superscripts, subscripts, and constants in formulas: `d²`, `rᵢ`, `2²⁶`, `ε`, `π`, `norm²`, etc.
 
 Examples:

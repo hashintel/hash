@@ -31,9 +31,9 @@ describe("overlapRelaxPass", () => {
       0,
     );
 
-    // Relax with a small positive padding: separation approaches the target from
-    // below (asymptotically), so a strict no-overlap check at padding 0 only holds
-    // once the target clears r_i + r_j by a margin.
+    // Asymptotic convergence: a padding-0 check passes only once separation
+    // exceeds r_i + r_j by a margin, since relaxation approaches the padded
+    // target from below.
     relaxOverlaps(x, y, radii, count, {
       padding: 2,
       strength: 0.8,

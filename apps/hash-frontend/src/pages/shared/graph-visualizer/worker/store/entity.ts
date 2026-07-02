@@ -14,6 +14,8 @@ import type { EntityIndex, LabelId, TypeSetId } from "../../ids";
 import type { RepublishHandler } from "../buffers/growable-buffer";
 import type { EntityId } from "@blockprotocol/type-system";
 
+// Initial column capacity (4096); growable buffers reallocate on republish
+// when exceeded.
 const INITIAL_CAPACITY = 4096;
 
 export class EntityStore {
@@ -37,12 +39,19 @@ export class EntityStore {
     return this.#interner.size;
   }
 
-  /** The EntityIndex to EntityId shared buffer. */
+  /**
+   * Shared lookup buffer mapping each {@link EntityIndex} to its
+   * {@link EntityId}; worker writes on insert, main thread reads for UI
+   * joins.
+   */
   get lookupBuffer(): EntityIdBuffer {
     return this.#lookup;
   }
 
-  /** Insert an entity if not already present. */
+  /**
+   * Interns an entity id, appends aligned type/label columns when new, and
+   * writes the lookup buffer. Returns `[created, index]`.
+   */
   insert(entityId: EntityId): [created: boolean, index: EntityIndex] {
     const [created, index] = this.#interner.tryIntern(entityId);
 

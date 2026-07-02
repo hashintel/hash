@@ -192,8 +192,9 @@ export class IngestController {
         continue;
       }
 
-      // Snapshot count before insert so we can compute deltas. The peeked
-      // group is handed to the insert, which skips re-resolving it.
+      // Snapshot each group's count once per batch so deltas stay correct
+      // when multiple entities share a group; pass the peeked group to
+      // avoid a second type-set lookup.
       const group = this.#peekGroup(entity);
       if (group && !groupSnapshots.has(group.key)) {
         groupSnapshots.set(group.key, {
@@ -211,6 +212,8 @@ export class IngestController {
 
     const deltas: IngestDelta[] = [];
     for (const [groupKey, { before, isNew }] of groupSnapshots) {
+      // groupKey came from groupSnapshots populated only for groups touched
+      // in this batch; the group must still exist.
       const group = this.#stores.typeSets.get(groupKey)!;
       const delta = group.count - before;
       if (delta > 0) {

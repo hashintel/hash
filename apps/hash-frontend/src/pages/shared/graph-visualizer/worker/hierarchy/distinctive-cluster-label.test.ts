@@ -16,7 +16,7 @@ interface MemberSpec {
   readonly numerics: readonly NumericReading[];
 }
 
-/** A tiny in-memory {@link FeatureSource} so the namer is tested without the worker's stores. */
+/** In-memory {@link FeatureSource} with explicit feature registration for unit tests. */
 class FeatureModel {
   readonly #members: MemberSpec[] = [];
   readonly #descriptors = new Map<string, FeatureDescriptor>();
@@ -175,7 +175,7 @@ describe("nameClustersByDistinctiveFeatures", () => {
     const gold = model.exact("tier", "Tier", "gold");
     const silver = model.exact("tier", "Tier", "silver");
 
-    // A and B uniquely share Region = US (rare across the 5 siblings, so it is each one's TOP
+    // A and B uniquely share Region = US (rare across the 5 siblings, so it is each one's top-scoring
     // feature -> they collide); Tier is more widely shared, so it can only break the tie once
     // compounded on top of Region.
     const members = (keys: readonly string[]): EntityIndex[] =>

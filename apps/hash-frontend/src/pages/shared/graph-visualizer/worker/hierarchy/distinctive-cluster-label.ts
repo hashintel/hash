@@ -58,9 +58,9 @@ export interface NumericDimension {
  * opaque except numeric readings, whose range bucketing it owns.
  */
 export interface FeatureSource {
-  /** Stable feature keys for a member (exact property + link/target-type). */
+  /** Opaque feature keys for a member; decode only via {@link FeatureSource.describe}. */
   keysOf(member: EntityIndex): Iterable<string>;
-  /** Raw numeric/date readings for a member. */
+  /** Raw axis readings for a member; the namer may bucket these into range features. */
   numericsOf(member: EntityIndex): Iterable<NumericReading>;
   /** Describe a key returned by {@link keysOf}, or undefined to skip it. */
   describe(key: string): FeatureDescriptor | undefined;
@@ -68,7 +68,10 @@ export interface FeatureSource {
   describeNumeric(dimension: string): NumericDimension | undefined;
 }
 
-/** A feature must cover at least this fraction of a cluster to be a labelling candidate. */
+/**
+ * Minimum within-cluster coverage (default 0.6). Lower values admit
+ * noisier labels; higher values leave more clusters unnamed.
+ */
 const MIN_COVERAGE = 0.6;
 /** Most parts joined into one compound label (collision breaking). */
 const MAX_LABEL_PARTS = 3;
@@ -82,7 +85,11 @@ const DISCRIMINATOR_MIN_GAP = 0.2;
 /** Discriminative passes to attempt once characteristic compounding is exhausted. */
 const MAX_DISCRIMINATOR_PASSES = 2;
 
-/** Cap the members scanned per cluster; bigger clusters name from an even sample of this many. */
+/**
+ * Cap the members scanned per cluster; bigger clusters name from an even
+ * sample of this many. Default 5000. Raising improves accuracy on skewed
+ * distributions at O(sample) cost per cluster.
+ */
 const MAX_SAMPLE_MEMBERS = 5000;
 /**
  * A numeric axis needs at least this many distinct values across the subdivision
@@ -191,9 +198,11 @@ function buildNumericRanges(
   samples: readonly Int32Array[],
   source: FeatureSource,
 ): Map<string, NumericRange> {
-  // axis -> per-cluster list of that axis's values among the cluster's sampled members.
+  // Collect per-cluster value lists so median-based bucket edges separate
+  // magnitude bands.
   const valuesByAxis = new Map<string, number[][]>();
   for (let cluster = 0; cluster < samples.length; cluster++) {
+    // subsample stores EntityIndex values in an Int32Array.
     for (const member of samples[cluster]!) {
       for (const reading of source.numericsOf(member as EntityIndex)) {
         let perCluster = valuesByAxis.get(reading.dimension);
@@ -277,6 +286,7 @@ function clusterCoverage(
     return counts;
   }
 
+  // sample stores EntityIndex values in an Int32Array.
   for (const member of sample) {
     const seen = new Set<string>();
     for (const key of source.keysOf(member as EntityIndex)) {
@@ -321,6 +331,9 @@ function clusterCoverage(
 /**
  * Rank a cluster's distinctive candidates, keeping the best-scoring feature per
  * dedup group so a compound label never repeats a dimension.
+ *
+ * Within a group, ties break by higher coverage, then by sort key, so the
+ * chosen candidate is deterministic across runs.
  */
 function rankCandidates(
   coverage: Map<string, number>,
@@ -342,7 +355,7 @@ function rankCandidates(
     const idf = Math.log((clusterCount + 1) / (docFreq + 1));
     const score = fraction * idf;
     if (score <= 0) {
-      // Shared by every cluster (idf 0) -- carries no distinguishing signal.
+      // Shared by every cluster (idf 0); carries no distinguishing signal.
       continue;
     }
 
@@ -354,7 +367,6 @@ function rankCandidates(
       score,
     };
     const existing = bestPerGroup.get(descriptor.group);
-    // Deterministic best-feature selection: higher score, then higher coverage, then sort key.
     if (
       !existing ||
       score > existing.score ||
@@ -444,6 +456,11 @@ function renderLabel(parts: readonly FeatureDescriptor[]): string {
 /**
  * Turn ranked candidates into labels, extending colliding clusters until they
  * separate or the label-part budget is spent.
+ *
+ * Two phases run in order: first, colliding clusters are extended with
+ * their next most characteristic candidate; once that is exhausted,
+ * remaining collisions are separated by the feature where they most
+ * differ (see {@link bestDiscriminator}).
  */
 function resolveLabels(
   clusters: readonly ClusterMembers[],
@@ -475,7 +492,8 @@ function resolveLabels(
     return [...byLabel.values()].filter((bucket) => bucket.length > 1);
   };
 
-  // Phase 1: lengthen colliding clusters with their next characteristic candidate.
+  // Phase 1: try to separate collisions by adding each cluster's next
+  // most characteristic feature before falling back to discriminators.
   for (let pass = 1; pass < MAX_LABEL_PARTS; pass++) {
     const groups = collisions();
     if (groups.length === 0) {
@@ -569,7 +587,7 @@ export function nameClustersByDistinctiveFeatures(
     clusterCoverage(sample, source, ranges, descriptors),
   );
 
-  // Document frequency: how many clusters a feature covers at >= MIN_COVERAGE.
+  // IDF denominator: features common across siblings score lower.
   const documentFrequency = new Map<string, number>();
   for (const coverage of coverages) {
     for (const [key, fraction] of coverage) {

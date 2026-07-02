@@ -265,6 +265,7 @@ export class BubbleSetSDFLayer extends Layer<BubbleSetSDFLayerProps> {
   }
 
   initializeState() {
+    // initializeState: attribute manager is always constructed by Layer base.
     this.getAttributeManager()!.addInstanced({
       instanceBounds: {
         size: 4,

@@ -23,8 +23,9 @@
  *
  * Confinement: WebCola lays out unconstrained and we re-centre; the parent
  * circle is sized by the cluster tree's packing, close to WebCola's non-overlap
- * extent. (Hard circular confinement, and ports as fixed boundary nodes, is a
- * planned refinement; WebCola's `fixed` node locking is the hook.)
+ * extent. Sub-cluster confinement is enforced post-WebCola via `#fitWithin`;
+ * rim ports as fixed WebCola boundary nodes remain future work (WebCola's
+ * `fixed` node locking is the integration point).
  */
 import { Layout } from "webcola";
 
@@ -55,7 +56,7 @@ const CONFINE_PASSES = 16;
 /** Child->port-anchor link length, as a fraction of the parent radius. */
 const ANCHOR_LINK_FRAC = 0.6;
 
-/** Subclass exposing WebCola's protected `tick` so we can drive it ourselves. */
+/** Drives WebCola one majorisation step at a time under a time budget. */
 class SteppableLayout extends Layout {
   /** One stress-majorisation step. Returns true once converged. */
   runStep(): boolean {
@@ -106,7 +107,8 @@ class ClusterLayout implements LayoutSimulation {
       idToIndex.set(node.id, index);
     }
 
-    // WebCola nodes: seed position + padded bounding box for non-overlap.
+    // Pad each bubble's collision box so WebCola's non-overlap constraint
+    // matches our size-aware spacing.
     this.#colaNodes = nodes.map((node) => ({
       x: node.x ?? 0,
       y: node.y ?? 0,
@@ -275,6 +277,8 @@ class ClusterLayout implements LayoutSimulation {
   updateAnchorPositions(positions: readonly Position[]): void {
     const childCount = this.#childColaNodes.length;
     for (let idx = 0; idx < positions.length; idx++) {
+      // childCount + idx is within #colaNodes only when setPortAnchors
+      // appended anchors; cast reaches WebCola's undocumented px/py lock fields.
       const anchor = this.#colaNodes[childCount + idx] as
         | (InputNode & { px?: number; py?: number })
         | undefined;
@@ -319,7 +323,8 @@ class ClusterLayout implements LayoutSimulation {
 
     const positions = this.#buffer.positions;
     for (let idx = 0; idx < count; idx++) {
-      // Mirror into the ForceNode view so #writeChildCircles / untangle read it.
+      // Keep ForceNode x/y in sync with the buffer so downstream geometry
+      // passes read settled local coords.
       this.#nodes[idx]!.x = xs[idx]!;
       this.#nodes[idx]!.y = ys[idx]!;
       positions[idx * 2] = xs[idx]!;
@@ -382,6 +387,10 @@ class ClusterLayout implements LayoutSimulation {
   }
 }
 
+/**
+ * Creates a WebCola-backed cluster layout that streams re-centred positions
+ * into a SharedArrayBuffer each tick.
+ */
 export function createClusterLayout(
   nodes: ForceNode[],
   edges: ForceEdge[],

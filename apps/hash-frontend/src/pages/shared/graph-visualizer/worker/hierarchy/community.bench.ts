@@ -6,7 +6,7 @@
  * per node per iteration, up to 20 iterations) can each be attributed.
  *
  * Run: `cd apps/hash-frontend && ../../node_modules/.bin/vitest bench --run \
- * src/pages/shared/graph-visualizer-2/worker/hierarchy/community.bench.ts`
+ * src/pages/shared/graph-visualizer/worker/hierarchy/community.bench.ts`
  */
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { bench, describe } from "vitest";
@@ -59,7 +59,7 @@ const CASES: readonly Case[] = [
 ];
 
 for (const { label, shape } of CASES) {
-  // Inputs are built once and only READ by the pipeline, so they can be shared
+  // Inputs are built once and only read by the pipeline, so they can be shared
   // across iterations. buildInducedCsr allocates fresh output every call.
   const { entityIdxs, links } = buildCommunityInputs(shape);
   const csr = buildInducedCsr(entityIdxs, links);

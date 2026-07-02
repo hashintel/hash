@@ -222,9 +222,9 @@ export class WorkerConnection implements WorkerHandle {
       return undefined;
     }
 
-    // Hierarchical leaf: a positions-only SAB with a node set fixed at creation, so the
-    // render index maps straight through nodeIds (each the stable entityIdx, stringified)
-    // to the global id-map. (The flat buffer reorders, so it can't use a creation list.)
+    // Hierarchical leaf: nodeIds[recordIndex] is the stable entityIdx string;
+    // decode via the global id-map. Flat buffer: read entityIdx from the
+    // live record (records reorder during ingest).
     if (cluster.flatCapacity === undefined) {
       const entityIdx = cluster.nodeIds[recordIndex];
       return entityIdx === undefined
@@ -265,6 +265,8 @@ export class WorkerConnection implements WorkerHandle {
     // off the record -- the same join key resolveEntityId decodes.
     if (cluster.flatCapacity === undefined) {
       const idx = cluster.nodeIds[recordIndex];
+      // nodeIds entries are entityIdx decimal strings from the worker;
+      // Number() is exact below 2^53.
       return idx === undefined ? undefined : (Number(idx) as EntityIndex);
     }
     const records = new Uint32Array(cluster.versionView.buffer);
@@ -405,7 +407,7 @@ export class WorkerConnection implements WorkerHandle {
     this.#worker.postMessage(message);
   }
 
-  /** Tear down the worker and watchers; called by the hook on unmount. */
+  /** Terminates the worker, cancels pending flushes, resolves in-flight promises, and clears listeners. */
   dispose(): void {
     if (this.#flushHandle !== undefined) {
       cancelAnimationFrame(this.#flushHandle);
@@ -502,7 +504,7 @@ export class WorkerConnection implements WorkerHandle {
         this.#entityIdMapBytes = new Uint8Array(data.buffer, ID_HEADER_BYTES);
         break;
       case "MODE_CHANGED":
-        // Mode is carried on the structure frame; nothing to do here.
+        // MODE_CHANGED is informational; mode is read from StructureFrame on commit.
         break;
       case "EGO_RESULT": {
         const resolve = this.#egoRequests.get(data.requestId);

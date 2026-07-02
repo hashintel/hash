@@ -1,4 +1,11 @@
-/** Compressed sparse row (CSR) graph over a set of entities. */
+/**
+ * Compressed sparse row (CSR) graph over a set of entities.
+ *
+ * Undirected edges are stored as two directed entries, one per endpoint, so
+ * an edge with both endpoints in the set contributes exactly two rows.
+ * `offsets.length` is always `nodeIds.length + 1`, and `neighbors` and
+ * `weights` are parallel arrays indexed by the same edge slot.
+ */
 
 import { BitSet } from "./collections/bitset";
 
@@ -69,7 +76,11 @@ export function buildInducedCsr(
   return { nodeIds: entityIdxs, offsets, neighbors, weights };
 }
 
-/** Connected components of the graph, each a list of local node indices. */
+/**
+ * Returns each connected component as local node indices; isolated nodes
+ * are singleton components. Order follows ascending start-node discovery,
+ * not component size.
+ */
 export function connectedComponents(graph: CsrGraph): number[][] {
   const nodeCount = graph.nodeIds.length;
   const visited = BitSet.empty(nodeCount);
@@ -89,6 +100,9 @@ export function connectedComponents(graph: CsrGraph): number[][] {
       const node = stack.pop()!;
       component.push(node);
 
+      // CSR offsets are well-formed (built by buildInducedCsr or test
+      // csrFrom), so every popped node has a valid [offsets[i], offsets[i+1))
+      // slice and every edge index resolves to a neighbor.
       for (
         let edge = graph.offsets[node]!;
         edge < graph.offsets[node + 1]!;

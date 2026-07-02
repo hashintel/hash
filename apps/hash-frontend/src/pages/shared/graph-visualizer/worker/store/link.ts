@@ -9,6 +9,7 @@ import { Column } from "../collections/column";
 import type { EntityIndex, TypeSetId } from "../../ids";
 import type { EntityId } from "@blockprotocol/type-system";
 
+// Initial link column capacity (1024); columns grow implicitly on push.
 const INITIAL_CAPACITY = 1024;
 
 export interface LinkEndpoint {
@@ -134,7 +135,11 @@ export class LinkStore {
     this.#resolvedLog.push({ linkId, side });
   }
 
-  /** Endpoint resolutions since the previous drain. Draining resets the log. */
+  /**
+   * Returns endpoint resolutions accumulated since the last drain and
+   * clears the log; incremental consumers use this to patch cached edge
+   * state.
+   */
   drainResolvedEndpoints(): ResolvedEndpoint[] {
     const drained = this.#resolvedLog;
     this.#resolvedLog = [];

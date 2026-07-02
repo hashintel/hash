@@ -4,8 +4,8 @@
  *
  * Zero disk overlaps does not imply visually separate community regions: a branch
  * of one community can fold deep into another community's fan without any pair of
- * disks intersecting (classic sparse-stress folding, unrelated to cross-community
- * pairs carry no stress term, so nothing separates them). The bench's inter/intra
+ * disks intersecting (classic sparse-stress folding: cross-community pairs carry
+ * no stress term, so nothing pushes folded branches apart). The bench's inter/intra
  * edge-length ratio cannot see this (it only measures edges, and the folded pairs
  * share none), which is exactly how region interpenetration shipped while every
  * edge metric looked fine. These metrics measure the regions themselves.

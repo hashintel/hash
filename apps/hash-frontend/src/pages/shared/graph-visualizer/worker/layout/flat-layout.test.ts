@@ -80,7 +80,7 @@ describe("createFlatLayout", () => {
     const positions = positionsOf(layout);
     for (let lhs = 0; lhs < positions.length; lhs++) {
       for (let rhs = lhs + 1; rhs < positions.length; rhs++) {
-        // Radius 4 each → centres must be clearly apart (non-overlap box).
+        // Radius 4 each: centres must be clearly apart (non-overlap box is 2*(4+3)=14).
         expect(distanceBetween(positions, lhs, rhs)).toBeGreaterThan(4);
       }
     }
@@ -127,11 +127,11 @@ describe("createFlatLayout", () => {
   });
 
   // Perf probe (skipped; ~6.6s). cola's Descent is the small-N (flat-force)
-  // engine; this confirms it stays robust at the TOP of its range (1000 nodes in
+  // engine; this confirms it stays robust at the top of its range (1000 nodes in
   // one connected component is the worst case for its O(N^2) (real data is many
   // small components, far faster). The community-force tier uses the majorization
-  // engine; a different engine for a different scale, not a fallback for when
-  // this is slow. Un-skip to re-benchmark.
+  // engine; a different engine for a different scale, not a fallback when
+  // flat-force is slow. Un-skip to re-benchmark.
   it.skip("settles ~1000 nodes (worst case: one connected component) and times it", () => {
     const count = 1000;
     const nodes: ForceNode[] = [];
@@ -145,7 +145,7 @@ describe("createFlatLayout", () => {
     }
 
     // One connected component (chain + cross-links): a fully-connected graph is
-    // the WORST case for cola's O(N^2) (dense distance matrix, slow convergence).
+    // the worst case for cola's O(N^2) (dense distance matrix, slow convergence).
     // Heavier than the real many-small-components data.
     const edges: ForceEdge[] = [];
     for (let idx = 1; idx < count; idx++) {

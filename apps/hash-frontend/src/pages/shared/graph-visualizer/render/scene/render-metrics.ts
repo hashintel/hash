@@ -230,6 +230,7 @@ function percentile(values: readonly number[], fraction: number): number {
     sorted.length - 1,
     Math.max(0, Math.ceil(fraction * sorted.length) - 1),
   );
+  // rank is clamped to [0, sorted.length - 1] above, so the index is always in bounds.
   return sorted[rank]!;
 }
 

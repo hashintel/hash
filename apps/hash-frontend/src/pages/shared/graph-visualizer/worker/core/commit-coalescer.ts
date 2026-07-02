@@ -1,14 +1,15 @@
 /**
- * Coalesces `commitStructure` calls during a streaming-ingest burst.
+ * Coalesces structure commits during streaming ingest.
  *
- * `entry.ts` ingests every INGEST_BATCH into the stores immediately (cheap,
- * incremental) but routes the expensive commit through this class instead of
- * committing per batch. A burst of batches sitting in the worker's message
+ * Ingest still lands per batch in the stores immediately (cheap,
+ * incremental), but the expensive commit routes through this class instead
+ * of running per batch. A burst of batches sitting in the worker's message
  * queue then produces one commit: the first deferral posts a message to a
  * MessageChannel port, which the event loop delivers only after the already
  * queued worker messages drain (the same property {@link TickScheduler}
- * exploits). Batches separated by a real gap land in separate commits, so
- * progressive rendering is preserved.
+ * exploits), so a saturated queue yields one merged commit per queue cycle.
+ * Batches separated by a real gap land in separate commits, so progressive
+ * rendering is preserved.
  *
  * Latency policy:
  * - The first enqueue ever flushes synchronously, so a cold load's first
@@ -100,7 +101,7 @@ export class CommitCoalescer {
   }
 
   /**
-   * Record one ingested batch's deltas (possibly empty (a link-only batch
+   * Record one ingested batch's deltas (possibly empty; a link-only batch
    * still changes topology via the link count) and flush or defer per policy.
    */
   enqueueDeltas(deltas: readonly IngestDelta[]): void {
@@ -124,10 +125,10 @@ export class CommitCoalescer {
   }
 
   /**
-   * Commit everything pending now. Called by the drain, by the enqueue-time
-   * caps, and by `entry.ts` before any message that must observe the
-   * committed state (viewport, queries, pin/highlight). No-op when idle.
-   * Returns whether a commit ran.
+   * Commit everything pending now. Invoked by the drain scheduler,
+   * enqueue-time caps, and any protocol handler that must observe committed
+   * topology before answering (viewport, queries, pin/highlight). No-op when
+   * idle; returns whether a commit ran.
    */
   flush(): boolean {
     if (this.#pendingCount === 0) {

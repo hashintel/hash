@@ -6,12 +6,13 @@ import type { Position } from "../../geometry";
  * position storage, time-budgeted ticking, settle detection, and circular
  * confinement. The forces differ per use and are configured by the dedicated
  * factory ({@link "./entity-layout"}); this base only owns what they have in
- * common. (Cluster/macro layout is handled by WebCola in {@link
- * "./cluster-layout"}; this engine now backs only the entity-dot layouts.)
+ * common. This engine backs entity-dot layouts; cluster/macro layout uses
+ * WebCola in {@link "./cluster-layout"}.
  *
  * Positions are local to the parent (centered at 0,0); the caller translates to
- * world coords using the parent's position. A version counter at the start of
- * the buffer lets the main thread detect changes via Atomics.
+ * world coords using the parent's position. Worker writes positions then
+ * Atomics-increments the version in the SharedArrayBuffer; main thread polls
+ * the version to decide GPU re-upload (no lock; monotonic counter).
  */
 import type { Force, Simulation, SimulationNodeDatum } from "d3-force";
 
@@ -52,11 +53,9 @@ export interface PortAnchor extends Position {
 }
 
 /**
- * The position-producing surface every layout engine exposes to the worker,
- * implemented by the d3-force {@link ForceSimulation} (entity dots) and the
- * WebCola cluster layout. The scheduler, SharedArrayBuffer plumbing, and
- * LAYOUT_CREATED message depend only on this, so the two engines are
- * interchangeable.
+ * Common tick/pause/resume/buffer contract shared by WebCola cluster layouts
+ * and d3-force entity layouts ({@link ForceSimulation}); the worker drives any
+ * layout engine through this surface alone.
  */
 export interface LayoutSimulation {
   readonly status: ForceLayoutStatus;
@@ -98,10 +97,10 @@ export interface LayoutSimulation {
 }
 
 /**
- * Freeze a layout once its energy drops to here: d3's natural settle floor.
- * A higher threshold (the old 0.01) freezes early, before the low-energy
- * collision pass has nudged the last overlaps apart; running down to 0.001
- * lets the layout fully relax (the "nicer layout when left alone" effect).
+ * Freeze a layout once its energy drops to here. A threshold of 0.01 freezes
+ * before collision forces finish separating the last overlaps; 0.001 matches
+ * d3's natural settle floor, letting the layout fully relax (the "nicer layout
+ * when left alone" effect).
  */
 const SETTLE_ALPHA = 0.001;
 
@@ -140,10 +139,8 @@ export function forceConfine(radius: number): Force<ForceNode, undefined> {
 }
 
 /**
- * Owns a pre-configured (and `.stop()`'d) d3 simulation plus its
- * SharedArrayBuffer-backed position storage. The factory builds the forces and
- * hands the simulation
- * here; this class drives it.
+ * Drives a stopped d3 simulation under a time budget, writing re-centred local
+ * positions into an {@link EntityPositionBuffer} each tick.
  */
 export class ForceSimulation implements LayoutSimulation {
   readonly #simulation: Simulation<ForceNode, ForceEdge>;
@@ -196,8 +193,9 @@ export class ForceSimulation implements LayoutSimulation {
   }
 
   /**
-   * Run the simulation for up to `budgetMs` milliseconds.
-   * Returns true if positions changed.
+   * Advances the simulation until alpha falls below {@link SETTLE_ALPHA} or the
+   * `budgetMs` time budget elapses; returns whether any tick ran and positions
+   * were committed.
    */
   tick(budgetMs: number): boolean {
     if (this.#status === "settled") {
@@ -265,6 +263,8 @@ export class ForceSimulation implements LayoutSimulation {
   }
 
   #clampPositions(): void {
+    // #clampPositions is only called from tick when confinementRadius was set
+    // in the constructor.
     const maxR = this.#confinementRadius!;
 
     for (const node of this.#nodes) {

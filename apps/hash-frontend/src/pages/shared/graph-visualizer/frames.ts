@@ -18,7 +18,7 @@ import type { ClusterId, VizMode } from "./ids";
  *   (bounded by the render budget), so it travels by `postMessage`.
  *
  * - Entity positions: millions-scale, so they never travel by message. They
- *   live in a `SharedArrayBuffer` per open leaf (see `LayoutCreatedMessage`)
+ *   live in a `SharedArrayBuffer` per open leaf (see {@link LayoutCreatedMessage})
  *   and are read directly by the GPU. Entity-incident edges are composed on
  *   the main thread from that same SAB, so dots and their edges cannot tear.
  */

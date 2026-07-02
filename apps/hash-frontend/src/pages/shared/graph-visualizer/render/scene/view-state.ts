@@ -17,14 +17,39 @@ export const INITIAL_VIEW_STATE: ViewState = {
   maxZoom: 24,
 };
 
-/** Recompute label eligibility only when zoom crosses this coarse bucket. */
+/**
+ * Label eligibility rebuild gate.
+ *
+ * @defaultValue 4 buckets per zoom unit. Higher values reduce rebuild frequency but delay label
+ * appearance when zooming in.
+ */
 const LABEL_ZOOM_BUCKETS_PER_UNIT = 4;
-/** Re-evaluate icon visibility/color only on coarse zoom buckets, not every wheel delta. */
+/**
+ * Icon visibility gate.
+ *
+ * @defaultValue 8 buckets per zoom unit. Higher values cut icon-layer rebuilds but make icon
+ * fade-in/out coarser.
+ */
 export const ICON_ZOOM_BUCKETS_PER_UNIT = 8;
-/** Cluster/edge label layers rebuild only when zoom crosses this bucket. */
+/**
+ * Label colour rebuild gate.
+ *
+ * @defaultValue 24 buckets per zoom unit. Higher values reduce colour-tier churn at the cost of
+ * slower colour transitions.
+ */
 const LABEL_COLOR_ZOOM_BUCKETS_PER_UNIT = 24;
-/** Worker-side edge/LOD geometry does not need every tiny wheel delta. */
+/**
+ * Worker viewport zoom quantisation.
+ *
+ * @defaultValue 16 buckets per zoom unit. Higher values mean fewer worker viewport messages
+ * at the cost of coarser LOD zoom resolution.
+ */
 const WORKER_VIEWPORT_ZOOM_BUCKETS_PER_UNIT = 16;
+/**
+ * Worker viewport update rate limit.
+ *
+ * @defaultValue 20 fps. Lower values reduce worker load at the cost of laggier LOD response.
+ */
 const WORKER_VIEWPORT_MAX_FPS = 20;
 export const WORKER_VIEWPORT_MIN_INTERVAL_MS = 1000 / WORKER_VIEWPORT_MAX_FPS;
 
@@ -76,6 +101,7 @@ export class WorkerViewportSnapshot {
     // Pan only affects hierarchical LOD when bubble centres cross meaningful screen-space thresholds.
     // Quantise to ~32px buckets so erratic drag does not spam equivalent LOD probes.
     const centerBucketWorld = 32 / Math.max(scale, 1e-6);
+    // INITIAL_VIEW_STATE and all callers set target to a numeric [x, y, z] tuple.
     const centerX = viewState.target[0] as number;
     const centerY = viewState.target[1] as number;
     this.zoom = zoom;

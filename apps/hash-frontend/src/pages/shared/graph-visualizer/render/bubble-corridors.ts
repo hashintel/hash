@@ -30,10 +30,9 @@
  *
  * Topology (which slots each segment joins, each segment's radius) is planned
  * here on the CPU, once when a grouping is built, then only when members
- * drift (movement-gated by the caller). Segment endpoint positions are
- * refreshed from the already-gathered point texels every frame by
- * `render/community.ts`, so corridors track the animation between replans at
- * zero planning cost.
+ * drift (movement-gated by the caller). Endpoint positions are refreshed
+ * from the gathered point texels on every pack frame, so corridors track
+ * animation between replans without re-running the planner.
  */
 
 import { BitSet } from "../worker/collections/bitset";
@@ -96,7 +95,10 @@ export interface CorridorPlan {
   readonly segmentStorageOffsets: Int32Array;
 }
 
-/** Point → segment distance. */
+/**
+ * Returns the shortest distance from `(px, py)` to the closed segment
+ * `(ax, ay)`-`(bx, by)`, clamping the projection to the segment ends.
+ */
 function distanceToSegment(
   px: number,
   py: number,
@@ -235,7 +237,6 @@ export function planBubbleCorridors(plan: CorridorPlan): void {
     let segmentCount = 0;
 
     if (memberCount >= 2 && memberCount <= PRIM_CAP) {
-      // Euclidean MST (Prim, deterministic) over member texel coords.
       const coordAt = (member: number): readonly [number, number] => {
         const slot = (pointOffset + member) * 4;
         return [pointTexels[slot]!, pointTexels[slot + 1]!];

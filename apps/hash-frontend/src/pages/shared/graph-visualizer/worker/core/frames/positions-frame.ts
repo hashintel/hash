@@ -38,7 +38,7 @@ type PortPairs = ReadonlyMap<
   { readonly source: Port; readonly target: Port }
 >;
 
-/** The flat tier's contribution to a positions frame (straight clipped edges). */
+/** Supplies straight clipped edge segments when hierarchical Bezier routing is inactive. */
 export interface FlatEdgeSource {
   readonly hasRenderEdges: boolean;
   buildEdgeBeziers(sink: BezierSegmentSink, arrowsOut: RenderEdgeArrow[]): void;
@@ -70,7 +70,10 @@ export class PositionsFrameEmitter {
     this.#dependencies = dependencies;
   }
 
-  /** Emit a PositionsFrame with cluster positions and highway/feeder Bezier geometry. */
+  /**
+   * Publishes one positions tick: syncs world circles, recomputes ports and
+   * edge geometry, and fans out per-leaf feeder endpoints.
+   */
   emit(): void {
     const { view, layouts, clusterTree, config, flatEdges } =
       this.#dependencies;
@@ -105,8 +108,8 @@ export class PositionsFrameEmitter {
         edgeArrows,
       );
     } else if (flatEdges.hasRenderEdges) {
-      // Flat tier: straight, clipped segments from current node positions. The
-      // renderer uses LineLayer for these instead of the hierarchical Bezier SDF.
+      // Flat tier emits straight clipped segments because no cluster
+      // containers exist to route around.
       flatEdges.buildEdgeBeziers(this.#bezierSink, edgeArrows);
     }
 
@@ -129,7 +132,8 @@ export class PositionsFrameEmitter {
     this.#version++;
     this.#dependencies.onFrame({
       version: this.#version,
-      // True once every layout (cluster and entity/flat) has settled.
+      // settled gates main-thread animation: false while any force sim is
+      // still running.
       settled: !layouts.anyLayoutRunning(),
       clusterPositions,
       beziers,
@@ -287,6 +291,8 @@ export class PositionsFrameEmitter {
 
       for (const node of layout.nodes) {
         const entityIdx = entityIndexFromNodeId(node.id);
+        // layout.nodes and localOf are built from the same nodeIds list, so
+        // every layout node id maps to a local slot.
         const localIdx = localOf.get(entityIdx)!;
         const seenTargets = new Set<ClusterId>();
 

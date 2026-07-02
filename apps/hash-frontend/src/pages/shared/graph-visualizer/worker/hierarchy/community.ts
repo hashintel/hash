@@ -21,6 +21,19 @@ import type { VizConfig } from "../../config";
 import type { EntityIndex } from "../../ids";
 import type { LinkStore } from "../store/link";
 
+/**
+ * Synchronous label-propagation community detection on a single connected
+ * component of `graph`.
+ *
+ * Returns per-node community labels as an `Int32Array` indexed by the
+ * same local node ids as `graph` (entries outside `component` are left
+ * at their zero-initialized default). Stops early once fewer than 0.5%
+ * of the component's nodes change label in a pass, or after 20
+ * iterations. A size-penalty exponent (`alpha` = 0.35) discourages
+ * joining already-large communities, and a small stability bias (0.01)
+ * favors keeping a node's current label on ties, together limiting
+ * runaway mega-communities.
+ */
 export function boundedLabelPropagation(
   graph: CsrGraph,
   component: number[],
@@ -34,14 +47,22 @@ export function boundedLabelPropagation(
     sizes[localIdx] = 1;
   }
 
+  // Extra passes rarely change labels after convergence; raising this
+  // slows large components linearly.
   const maxIterations = 20;
+  // Penalizes joining large communities; lower values merge more
+  // aggressively.
   const alpha = 0.35;
+  // Breaks ties toward the current label to reduce oscillation.
   const stabilityBias = 0.01;
 
   for (let iteration = 0; iteration < maxIterations; iteration++) {
     let changed = 0;
     const order = deterministicShuffle(component, iteration);
 
+    // node is a local CSR index in this component; labels/sizes were
+    // initialized for every component member above, and graph.offsets
+    // bounds valid neighbor/weight indices for any node in the graph.
     for (const node of order) {
       const current = labels[node]!;
       const scores = new Map<number, number>();
@@ -79,6 +100,8 @@ export function boundedLabelPropagation(
       }
     }
 
+    // Stop when fewer than 0.5% of component nodes relabel in one pass
+    // (empirical convergence threshold for link graphs).
     if (changed / component.length < 0.005) {
       break;
     }
@@ -221,6 +244,8 @@ function labelAllCommunities(
 
     for (const [featureKey, count] of features) {
       const coverage = count / memberCount;
+      // Require the link feature in at least a quarter of members before
+      // naming a community by it.
       if (coverage < 0.25) {
         continue;
       }
@@ -325,7 +350,10 @@ function coarseLinkSignatureBuckets(
 /**
  * Last-resort partitioning when community detection can't produce
  * meaningful groups (e.g. zero internal edges). Splits entities into
- * roughly equal chunks that embedding k-means can later replace.
+ * roughly equal entity-bucket chunks sized for embedding k-means.
+ *
+ * Buckets are placeholders until embedding subdivision succeeds; if
+ * embeddings never arrive, the buckets remain the visible partition.
  */
 function deterministicPartition(
   cluster: ClusterNode,
@@ -361,8 +389,12 @@ function deterministicPartition(
  * Sub-cluster a single cluster into child nodes.
  *
  * Returns an empty array if the cluster is small enough to show entities
- * directly, otherwise >= 2 children. Falls through community detection
- * to deterministic partition as a last resort.
+ * directly, otherwise >= 2 children. When `entityIdxs.length` exceeds
+ * `config.communityWorkerNodeCap`, skips full CSR community detection
+ * and buckets members by coarse link signature instead. Otherwise runs
+ * community detection and falls back to {@link deterministicPartition}
+ * when there are no internal edges or fewer than two normalized
+ * communities.
  */
 export function subclusterByLinks(
   cluster: ClusterNode,
@@ -374,13 +406,16 @@ export function subclusterByLinks(
     return [];
   }
 
+  // Above the worker node cap, skip O(E) CSR community detection; bucket
+  // by link signature instead (faster, coarser groups).
   if (entityIdxs.length > config.communityWorkerNodeCap) {
     return coarseLinkSignatureBuckets(cluster, entityIdxs, links, config);
   }
 
   const csr = buildInducedCsr(entityIdxs, links);
 
-  // No internal edges: community detection can't work.
+  // Isolated or externally-only subgraph: label propagation has no
+  // signal, so partition deterministically.
   if (csr.neighbors.length === 0) {
     return deterministicPartition(cluster, entityIdxs, config);
   }
@@ -403,7 +438,8 @@ export function subclusterByLinks(
 
   const normalized = normalizeCommunitySizes(rawCommunities, csr, config);
 
-  // Community detection produced too few groups.
+  // A single mega-community after normalization still hides structure;
+  // fall back to equal chunks for drill-in.
   if (normalized.length < 2) {
     return deterministicPartition(cluster, entityIdxs, config);
   }

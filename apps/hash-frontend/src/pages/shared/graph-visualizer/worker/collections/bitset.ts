@@ -82,7 +82,7 @@ export class BitSet<T extends number> {
     this.#cardinality = 0;
   }
 
-  /** Returns a new BitSet that is the union of this and other. */
+  /** Union of this set and other. Allocates a new BitSet; does not mutate either operand. O(words). */
   or(other: BitSet<T>): BitSet<T> {
     const len = Math.max(this.#words.length, other.#words.length);
     const result = new Uint32Array(len);
@@ -97,7 +97,7 @@ export class BitSet<T extends number> {
     return new BitSet(result, cardinality);
   }
 
-  /** Returns a new BitSet that is the intersection of this and other. */
+  /** Intersection of this set and other. Allocates a new BitSet; does not mutate either operand. O(words). */
   and(other: BitSet<T>): BitSet<T> {
     const len = Math.min(this.#words.length, other.#words.length);
     const result = new Uint32Array(len);
@@ -137,6 +137,7 @@ export class BitSet<T extends number> {
       let bits = this.#words[word]!;
       while (bits !== 0) {
         const lsb = bits & -bits;
+        // Bit index is always < universe size; T is the branded index type for that universe.
         yield ((word << 5) + Math.log2(lsb)) as T;
         bits ^= lsb;
       }

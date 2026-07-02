@@ -47,7 +47,10 @@ export interface HierarchicalLayoutDependencies {
   readonly postLayoutMessage: (msg: LayoutSideChannelMessage) => void;
 }
 
-/** Whether a reused cluster layout must be rebuilt. See {@link layoutNeedsRebuild}. */
+/**
+ * True when frozen child positions overlap at updated radii or membership
+ * changed (delegates to {@link layoutNeedsRebuild}).
+ */
 const clusterLayoutStale = (
   layout: LayoutSimulation,
   parent: ClusterNode,
@@ -153,6 +156,9 @@ export class HierarchicalLayoutManager {
       }
       const edgeIndices: [number, number][] = [];
       for (const edge of edges) {
+        // buildClusterEdges emits string cluster ids matching
+        // parent.children[].id before forceLink mutates endpoints to node
+        // objects.
         const sourceIdx = indexOf.get(edge.source as string);
         const targetIdx = indexOf.get(edge.target as string);
         if (sourceIdx !== undefined && targetIdx !== undefined) {
@@ -170,6 +176,8 @@ export class HierarchicalLayoutManager {
         parent.children.map((child) => [child.id, child]),
       );
       for (const node of layout.nodes) {
+        // Cluster layouts use ClusterId strings as force node ids; every
+        // node.id was just seeded from parent.children.
         const child = childById.get(node.id as ClusterId);
         if (child) {
           child.circle.x = parent.circle.x + (node.x ?? 0);
@@ -224,6 +232,8 @@ export class HierarchicalLayoutManager {
     for (let idx = 0; idx < entityIdxs.length; idx++) {
       const dist = fillRadius * Math.sqrt((idx + 0.5) / entityIdxs.length);
       const angle = idx * goldenAngle;
+      // entityIdxs is a fresh array built in the same function; idx is
+      // always in range.
       nodes.push({
         id: nodeIdForEntityIndex(entityIdxs[idx]!),
         x: Math.cos(angle) * dist,

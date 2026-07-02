@@ -38,7 +38,6 @@ const normalize = (components: number[][]) =>
 
 describe("connectedComponents", () => {
   it("separates disconnected components and isolated nodes", () => {
-    // 0-1, 2-3, and 4 isolated
     const graph = csrFrom([[1], [0], [3], [2], []]);
     expect(normalize(connectedComponents(graph))).toEqual([
       [0, 1],
@@ -48,7 +47,6 @@ describe("connectedComponents", () => {
   });
 
   it("returns a single component when fully connected", () => {
-    // path 0-1-2-3
     const graph = csrFrom([[1], [0, 2], [1, 3], [2]]);
     expect(normalize(connectedComponents(graph))).toEqual([[0, 1, 2, 3]]);
   });

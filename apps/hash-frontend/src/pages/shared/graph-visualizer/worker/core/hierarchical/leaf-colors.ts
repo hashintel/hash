@@ -36,6 +36,8 @@ export function writeLeafColors(
   const active = highlighted.size > 0;
 
   for (let idx = 0; idx < layout.nodeIds.length; idx++) {
+    // nodeIds is parallel to layout.nodes for entity layouts created in
+    // ensureEntityLayout.
     const entityIdx = entityIndexFromNodeId(layout.nodeIds[idx]!);
 
     if (!dependencies.isRoot(entityIdx)) {

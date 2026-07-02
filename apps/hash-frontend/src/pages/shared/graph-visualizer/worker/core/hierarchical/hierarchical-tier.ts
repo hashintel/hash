@@ -79,7 +79,8 @@ export class HierarchicalTier {
 
     const cut = this.#computeCut(viewport);
     if (this.#lodState.wouldChange(cut)) {
-      // Reuse the just-computed cut instead of recomputing it.
+      // handleViewport already computed cut; pass it through to avoid
+      // duplicate LOD work.
       this.#dependencies.requestCommit({ cut });
     }
   }
@@ -100,7 +101,8 @@ export class HierarchicalTier {
       return;
     }
 
-    // Only commit when the pin actually changes the visible cut.
+    // pin() mirrors handleViewport's wouldChange guard so identical cuts do
+    // not re-commit.
     const cut = this.#computeCut(viewport);
     if (this.#lodState.wouldChange(cut)) {
       this.#dependencies.requestCommit({ cut });
@@ -298,7 +300,8 @@ export class HierarchicalTier {
 
     layoutManager.commitRendered(rendered, activeLayouts);
 
-    // Edge aggregation (topology). Reused unchanged by position ticks.
+    // Cache CutIndex + EdgeFrame on the committed view so position-only
+    // ticks skip recomputation.
     const cutIndex = new CutIndex(
       cut,
       clusterTree,
@@ -323,7 +326,8 @@ export class HierarchicalTier {
     structureEmitter.emit(structureEmitter.buildEntityLayers(cutIndex));
     this.#dependencies.positionsEmitter.emit();
 
-    // Snapshot dependency versions for the no-op fast path.
+    // Record epoch + link count so the next commit can bail out when tree,
+    // links, and cut are unchanged.
     view.committedClusterEpoch = view.clusterEpoch;
     view.committedLinkCount = this.#dependencies.links.count;
   }

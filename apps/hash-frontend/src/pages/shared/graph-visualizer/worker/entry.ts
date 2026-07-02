@@ -1,4 +1,16 @@
-/** Web worker entry point. Dispatches messages to {@link GraphWorker}. */
+/**
+ * Web worker entry point: dispatches {@link MainToWorkerMessage}s to a
+ * {@link GraphWorker} and posts its replies and frames back to the main
+ * thread.
+ *
+ * `INGEST_BATCH` applies immediately to the stores, but the resulting
+ * structure commit is coalesced across a burst (see {@link CommitCoalescer});
+ * every other handler that reads committed state (viewport, queries,
+ * embedding results, pin/highlight) flushes the coalescer first so it never
+ * observes a stale cut or layout. Buffers attached to `STRUCTURE_FRAME` and
+ * `POSITIONS_FRAME` are exclusively worker-owned until transferred in
+ * `postMessage`.
+ */
 
 import { CommitCoalescer } from "./core/commit-coalescer";
 import { GraphWorker } from "./core/graph-worker";
@@ -31,7 +43,8 @@ function postPositions(frame: PositionsFrame): void {
     frame.beziers.clips.buffer,
     frame.beziers.ids.buffer,
   ];
-  // Per-leaf fan-out endpoints are freshly built each tick, transfer them too.
+  // Fan-out buffers are not shared with the main thread, so transfer avoids
+  // a copy each tick.
   for (const entry of frame.entityFanOut) {
     transfer.push(entry.fanOut.buffer);
   }
@@ -95,7 +108,8 @@ globalThis.onmessage = ({ data }: MessageEvent<MainToWorkerMessage>) => {
                   `${(performance.now() - t0).toFixed(1)}ms`,
               );
             }
-            // A commit can queue embedding-clustering requests; drain them.
+            // commitStructure may enqueue EMBEDDING_CLUSTERING_NEEDED messages
+            // that must post before the next ingest batch is coalesced.
             scheduleDrain();
           },
         });
@@ -119,11 +133,13 @@ globalThis.onmessage = ({ data }: MessageEvent<MainToWorkerMessage>) => {
           data.propertySchemas,
         );
         // Only a genuinely new type changes grouping/colour, so only then does
-        // the tree need rebuilding. Identical re-registrations (the common case)
-        // and property-only additions do not: top-level re-layout as the graph
-        // grows is driven by ingest (see #clusterLayoutOutgrown), not by type
-        // registration. Skipping rebuild on identical re-registration keeps the
-        // overview responsive while ingest drives top-level re-layout.
+        // the tree need rebuilding. Identical re-registrations (the common
+        // case) and property-only additions do not: top-level cluster
+        // re-layout on graph growth is triggered by ingest when a child
+        // layout outgrows its parent bubble (clusterLayoutOutgrown), not by
+        // type registration alone. Skipping rebuild on identical
+        // re-registration keeps the overview responsive while ingest drives
+        // top-level re-layout.
         //
         // The rebuild rides the coalescer so the frontier-expansion flow
         // (REGISTER_TYPES immediately followed by INGEST_BATCHes) lands as one

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { enclosingRadius } from "./cluster-tree";
 
-// The top-level radius floor a count-6 leaf (e.g. the old "Company") would get.
+// Top-level minimum radius (`TOP_LEVEL_MIN_RADIUS` = 15) for a count-6 leaf-sized bubble.
 const TOP_LEVEL_FLOOR = 15;
 
 describe("enclosingRadius", () => {

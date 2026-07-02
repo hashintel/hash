@@ -96,6 +96,8 @@ export class FlatEdgePipeline {
     const localOf = new Map<EntityIndex, number>();
 
     for (let idx = 0; idx < layout.nodeIds.length; idx++) {
+      // nodeIds is dense 0..length-1 for flat layouts built in the same
+      // commit pass.
       localOf.set(entityIndexFromNodeId(layout.nodeIds[idx]!), idx);
     }
 

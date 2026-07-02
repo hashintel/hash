@@ -125,6 +125,8 @@ export class TypeRegistry {
   }
 
   #assignColorSlots(newlyRegistered: readonly TypeId[]): void {
+    // newlyRegistered ids were just pushed to #types in registerAll, so
+    // entries exist.
     const sorted = [...newlyRegistered].sort((left, right) => {
       const leftUrl = extractBaseUrl(this.#types[left]!.url);
       const rightUrl = extractBaseUrl(this.#types[right]!.url);
@@ -166,7 +168,6 @@ export class TypeRegistry {
           continue;
         }
 
-        // Ancestor closure: self + union of parent closures.
         const current = closures.get(info.id)!;
         let merged = current;
 
@@ -183,7 +184,6 @@ export class TypeRegistry {
 
         closures.set(info.id, merged);
 
-        // Depth: 1 + max parent depth.
         if (info.parentIds.length > 0) {
           const parentDepth = Math.max(
             ...info.parentIds.map((parentId) => depths.get(parentId) ?? 0),

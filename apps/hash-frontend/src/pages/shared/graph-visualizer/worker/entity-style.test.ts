@@ -122,10 +122,8 @@ describe("entity-style colour", () => {
   });
 
   it("gives a type the same colour regardless of type arrival order", () => {
-    // The reload-consistency bug: colour was keyed off arrival-order intern
-    // indices, so the same type drew a different colour depending on the order
-    // types streamed in. Two registries with the same types in opposite orders
-    // must now produce identical colours.
+    // Colour slots are sorted by base URL within each batch, so registration
+    // order must not change the hue for the same type.
     const company = url("company");
     const customer = url("customer");
     const person = url("person");
@@ -164,7 +162,7 @@ describe("entity-style colour", () => {
     expect(radius0).toBeGreaterThan(0);
     expect(radius5).toBeGreaterThan(radius0);
     expect(radius50).toBeGreaterThan(radius5);
-    // Subtle: a degree-50 hub is not even 3× a leaf.
+    // radiusForDegree uses ln scaling so high degree does not dominate dot size.
     expect(radius50).toBeLessThan(radius0 * 3);
   });
 });

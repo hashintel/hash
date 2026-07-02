@@ -1,15 +1,16 @@
 /**
- * The worker-side orchestrator. Owns the stores, the cluster tree, and the
- * regime flag (flat vs hierarchical), and wires the collaborators that do
- * the actual work: ingest ({@link IngestController}), the flat tier
- * ({@link FlatTierController}), the hierarchical tier
- * ({@link HierarchicalTier}), layout lifecycle
+ * Worker-side orchestrator for graph ingest, regime selection (flat vs
+ * hierarchical), structure commits, viewport-driven LOD, layout lifecycle,
+ * and frame emission. Owns the stores, the cluster tree, and the regime
+ * flag, and wires the collaborators that do the actual work: ingest
+ * ({@link IngestController}), the flat tier ({@link FlatTierController}),
+ * the hierarchical tier ({@link HierarchicalTier}), layout lifecycle
  * ({@link HierarchicalLayoutManager}), port constraints, settle polish,
  * frame emission, the tick loop, and embedding-driven subdivision.
  *
- * Public methods are the worker protocol surface `entry.ts` calls; each
- * delegates into a collaborator and coordinates the regime transitions the
- * collaborators cannot see alone.
+ * Public methods form the worker message protocol; each routes into a
+ * collaborator and coordinates cross-tier transitions collaborators cannot
+ * see alone.
  */
 import { validateConfig } from "../../config";
 import { PortCache } from "../geometry/bubble-ports";
@@ -82,8 +83,8 @@ export class GraphWorker {
   readonly #leafLocalCache = new LeafLocalCache();
 
   #viewport: ViewportState | undefined;
-  /** Entities kept at full colour while a highlight is active (a selection's ego now, a path
-   * later); everyone else dims. Empty = no highlight. Set via {@link setHighlight}. */
+  /** Entities kept at full colour while a highlight is active (selection ego today);
+   * everyone else dims. Empty = no highlight. Set via {@link setHighlight}. */
   #highlightedEntities = new Set<EntityIndex>();
 
   #mode: VizMode = "flat-force";
@@ -267,7 +268,11 @@ export class GraphWorker {
     return this.#links.count;
   }
 
-  /** See {@link egoTargets}. */
+  /**
+   * Returns the on-screen representatives of the selected entity's
+   * neighbors (entities or visible clusters), omitting neighbors outside
+   * the current cut.
+   */
   ego(entityIdx: EntityIndex): EgoTarget[] {
     return egoTargets(entityIdx, this.#links, this.#view.cutIndex);
   }
@@ -280,12 +285,18 @@ export class GraphWorker {
     return this.#structureEmitter.highwayLinks(laneId);
   }
 
-  /** See {@link FlatTierController.captureFixture} (capture-live-fixture hook). */
+  /**
+   * Serializes the live flat-tier layout (nodes, deduped edges, Louvain
+   * communities) for offline replay; null when no flat layout is active.
+   */
   captureLayoutFixture(): CapturedLayoutFixture | null {
     return this.#flatTier.captureFixture();
   }
 
-  /** See {@link IngestController.registerTypes}. */
+  /**
+   * Registers type and property schemas and reports whether either changed
+   * (so callers can skip no-op commits).
+   */
   registerTypes(
     schemas: readonly TypeSchemaEntry[],
     propertySchemas: readonly PropertySchemaEntry[],
@@ -296,7 +307,7 @@ export class GraphWorker {
     return this.#ingest.registerTypes(schemas, propertySchemas);
   }
 
-  /** See {@link IngestController.insertNodeEntity}. */
+  /** Inserts one node entity into the stores; returns undefined for duplicates. */
   insertNodeEntity(
     entity: IngestEntity,
     knownGroup?: TypeSetGroup,
@@ -304,12 +315,18 @@ export class GraphWorker {
     return this.#ingest.insertNodeEntity(entity, knownGroup);
   }
 
-  /** See {@link IngestController.insertLinkEntity}. */
+  /**
+   * Inserts one link entity and wires endpoints, deferring resolution when
+   * an endpoint is not interned yet.
+   */
   insertLinkEntity(entity: IngestEntity): void {
     this.#ingest.insertLinkEntity(entity);
   }
 
-  /** See {@link IngestController.ingestBatch}. */
+  /**
+   * Ingests a batch of entities and returns per-type-set deltas for
+   * incremental structure commits.
+   */
   ingestBatch(entities: readonly IngestEntity[]): IngestDelta[] {
     return this.#ingest.ingestBatch(entities);
   }
@@ -343,8 +360,9 @@ export class GraphWorker {
     this.#applyHighlight();
   }
 
-  // Re-write node colours (flat SAB + open leaf SABs) honouring the current highlight, and
-  // re-emit so the edge beziers pick it up too. Inline buffer mutation + notify -- no rebuild.
+  // Highlight is colour-only: mutate shared colour buffers in place and
+  // re-emit positions so edge beziers pick up the dimming without a layout
+  // rebuild.
   #applyHighlight(): void {
     this.#flatTier.restyle();
     if (this.#view.cutIndex) {
@@ -424,7 +442,11 @@ export class GraphWorker {
     this.#entityIdMapPublished = true;
   }
 
-  /** Drain pending embedding requests. Called by entry.ts after frame dispatch. */
+  /**
+   * Returns and clears pending embedding-clustering requests queued during
+   * subdivision; intended to run after each structure frame so the main
+   * thread can service them.
+   */
   drainEmbeddingRequests(): EmbeddingClusteringNeededMessage[] {
     return this.#embedding.drainRequests();
   }
@@ -463,7 +485,10 @@ export class GraphWorker {
     this.#positionsEmitter.emit();
   }
 
-  /** Recompose world positions over the opened subtree. See {@link syncWorldPositions}. */
+  /**
+   * Recomputes world-space child circles top-down after cluster layouts
+   * move, so port anchors and aggregation read propagated positions.
+   */
   #syncWorldPositions(): void {
     syncWorldPositions(
       this.#clusterTree.root,

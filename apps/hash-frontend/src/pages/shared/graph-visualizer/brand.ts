@@ -6,14 +6,14 @@
  * information lives in the type system unless you choose a validating
  * constructor.
  *
- * Extracted from https://github.com/Effect-TS/effect-smol/blob/5a0c1a4faee5707b5cc35e646ff1ffdad70f1956/packages/effect/src/Brand.ts#L35
- * MIT licensed.
+ * Vendored from Effect-TS effect-smol (MIT).
  */
 
 const TypeId = "~effect/Brand";
 
 /**
- * A generic interface that defines a branded type.
+ * Compile-time brand tag carried on a value so structurally identical primitives
+ * cannot be mixed at the type level.
  *
  * **When to use**
  *
@@ -42,7 +42,8 @@ export interface Brand<in out Keys extends string> {
 // eslint-disable-next-line @typescript-eslint/no-namespace
 export declare namespace Brand {
   /**
-   * A utility type to extract the unbranded value type from a brand.
+   * Strips every brand key from a branded type, leaving only the underlying
+   * value type.
    *
    * @category utility types
    * @since 2.0.0
@@ -52,7 +53,7 @@ export declare namespace Brand {
     : B;
 
   /**
-   * A utility type to extract the keys of a branded type.
+   * Lists the string brand keys attached to a branded type.
    *
    * @category utility types
    * @since 4.0.0
@@ -66,7 +67,8 @@ export declare namespace Brand {
     : never;
 
   /**
-   * A utility type to extract the brands from a branded type.
+   * Intersects the per-key brand tags of a multiply-branded type into one
+   * brand object.
    *
    * @category utility types
    * @since 2.0.0
@@ -77,7 +79,7 @@ export declare namespace Brand {
 }
 
 /**
- * A type alias for creating branded types more concisely.
+ * Pairs a base value type with a single compile-time brand key.
  *
  * @category utility types
  * @since 2.0.0
@@ -87,4 +89,5 @@ export type Branded<A, Key extends string> = A & Brand<Key>;
 export const Branded =
   <B extends Brand<any>>() =>
   (value: Brand.Unbranded<B>): B =>
+    // Identity at runtime; the brand exists only in the type system.
     value as B;

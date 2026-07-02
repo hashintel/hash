@@ -1,4 +1,7 @@
-/** React lifecycle wrapper around {@link WorkerConnection}. */
+/**
+ * Creates and disposes a {@link WorkerConnection} on mount/unmount and
+ * forwards schema registration when the worker is ready.
+ */
 import { useEffect, useState } from "react";
 
 import { defaultVizConfig } from "../config";
@@ -55,7 +58,6 @@ export function useGraphWorker({
     };
   }, [config, resetKey]);
 
-  // Send type + property schemas once the worker is ready and whenever they change.
   useEffect(() => {
     if (connection && ready && typeSchemas.length > 0) {
       connection.registerTypes(typeSchemas, propertySchemas);

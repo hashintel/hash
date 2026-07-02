@@ -228,19 +228,20 @@ export class BezierSegmentSink {
 }
 
 /**
- * Minimum curve "bend" injected when the natural control points are
- * (near-)collinear, expressed so that the resulting midpoint sag is a
- * gentle fraction of the chord. Keeps a smooth, deterministic arc instead
- * of degenerating to a straight line when two ports face each other
- * directly. Inject a deterministic perpendicular bow so the curve does not
- * degenerate to a straight segment. The offset ramps smoothly to zero as natural
- * curvature reaches the threshold; bend side is stable (sorted cluster-id hash).
- * The bend metric below equals (p1 + p2) perpendicular deviation; the curve's
- * midpoint sag is (3/8) of it.
+ * Max perpendicular bow as a fraction of chord length when handles are
+ * collinear.
+ *
+ * @defaultValue 0.15. Larger values separate opposing lanes more
+ * aggressively but exaggerate the curve on ports that face each other
+ * nearly head-on.
  */
 const COLLINEAR_BEND_FRACTION = 0.15;
 
-/** Common/world gap between snug-packed parallel lanes. 0 = touching. */
+/**
+ * World-space gap between parallel lanes; 0 means lanes touch.
+ *
+ * @defaultValue 1. Increase for clearer separation at high zoom.
+ */
 const LANE_GAP_WORLD = 1;
 
 /**
@@ -254,9 +255,9 @@ const LANE_GAP_WORLD = 1;
  * smoothly to zero once the natural curvature is large enough. The side is
  * derived purely from chord direction, so:
  *
- * - it is continuous (no snap) as the layout settles, and crucially does not
- *   flip when an LOD change swaps the highway endpoints (the old per-pair
- *   hash flipped, which read as a jarring jump);
+ * - it is continuous (no snap) as the layout settles, and stays stable across
+ *   LOD endpoint swaps (chord-derived side does not flip when source/target
+ *   exchange roles);
  * - opposing flows separate for free: A->B and B->A have opposite chords, so
  *   they bow to opposite sides instead of overlapping.
  */
@@ -324,7 +325,8 @@ interface HierarchyInfo {
 }
 
 /**
- * Find container boundaries between source and target, split by side.
+ * Returns source-side and target-side container crossings for a cluster
+ * pair, omitting containers that enclose both endpoints.
  */
 export function analyzeHierarchy(
   sourceId: ClusterId,
@@ -444,6 +446,8 @@ function mergeLanes(
 
   for (const child of children) {
     for (const edge of child.edges) {
+      // Branded TypeSetId | undefined -> number for lane merge key; -1
+      // denotes collapsed lanes.
       const typeKey = (edge.typeSetId as number | undefined) ?? -1;
       const direction = highwayDirection(edge, child.childId, side);
       const key = `${typeKey}:${direction}`;
@@ -560,9 +564,19 @@ export interface EdgeGeometryContext {
   }[];
 }
 
-/** Keep a routed highway this far (x obstacle radius) outside the bubble. */
+/**
+ * Keep a routed highway this far (x obstacle radius) outside the bubble.
+ *
+ * @defaultValue 1.15. Lower values hug bubbles tighter but increase clip
+ * risk; higher values push detours further out.
+ */
 const ROUTE_CLEARANCE_MUL = 1.15;
-/** Ignore obstacles this close (fraction of chord) to either endpoint. */
+/**
+ * Ignore obstacles this close (fraction of chord) to either endpoint.
+ *
+ * @defaultValue 0.08. Higher values reduce spurious detours near endpoints
+ * but can let a highway skim closer to a near-endpoint obstacle.
+ */
 const ROUTE_END_MARGIN = 0.08;
 
 /**
@@ -693,7 +707,7 @@ function formatCount(count: number): string {
   return String(count);
 }
 
-/** Point on a cubic Bezier at parameter t. */
+/** Evaluates the cubic at parameter t in [0, 1] using the Bernstein basis. */
 function cubicPoint(curve: CubicCurve, t: number): readonly [number, number] {
   const u = 1 - t;
   const w0 = u * u * u;
@@ -782,11 +796,8 @@ function emitCurveLanes(
     readonly count: number;
     readonly direction?: LaneDirection;
     /**
-     * The aggregate lane's stable per-commit id (its index in the edge frame's
-     * visual-edge list). Carried as the segment `id` so a clicked highway
-     * segment resolves back to the lane (and thus its link set). Undefined for a
-     * lane with no single aggregate identity (a merged highway uses the group's
-     * representative id, passed by the caller).
+     * Aggregate lane id written into each segment's pick id; omitted when
+     * the caller supplies a merged-group representative.
      */
     readonly laneId?: number;
   }[],
@@ -872,10 +883,10 @@ function emitCurveLanes(
   }
 }
 
-/** Emit feeder paths recursively through the container hierarchy as Bezier
- * segments. Every segment carries `laneId` (the highway group's representative
- * aggregate lane id) so a clicked feeder resolves to the same link set as its
- * highway. */
+/**
+ * Emits nested feeder cubics from child clusters to a container port,
+ * tagging segments with the highway group's representative lane id.
+ */
 function emitRecursiveBezierFeeders(
   out: BezierSegmentSink,
   arrowsOut: RenderEdgeArrow[],
@@ -960,13 +971,9 @@ function emitRecursiveBezierFeeders(
   const childIds = new Set(children.map((child) => child.childId));
 
   for (const segment of segments.values()) {
-    // Where the hop leaves its source circle. The original participant leaves
-    // toward its own first boundary (`targetWp`). A pass-through container is
-    // entered at its boundary toward the outermost port (the exact point the
-    // incoming hop targeted) so consecutive hops share an endpoint. Re-projecting
-    // a pass-through toward its next hop instead made hops disagree by a few
-    // position-dependent degrees at every nested intermediate (the feeder kink at
-    // depth >= 2 intermediate containers; a single intermediate happens to align).
+    // Pass-through containers aim at the outermost port so the hop endpoint
+    // matches the incoming boundary; aiming at the next hop's target
+    // re-projects the rim point and breaks continuity when depth >= 2.
     const aimToward = childIds.has(segment.sourceId)
       ? segment.targetWp
       : outermostWp;
@@ -1025,6 +1032,8 @@ function emitRecursiveBezierFeeders(
 
       out.push(curve, info.color, laneWidth, clipStart, clipEnd, laneId);
       if (info.direction === "forward" || info.direction === "reverse") {
+        // Place feeder arrows slightly past mid-curve (0.58) so they sit
+        // clear of port clips.
         const t = 0.58;
         const [x, y] = cubicPoint(curve, t);
         const forwardAlongCurve =
@@ -1091,7 +1100,8 @@ export function portsFor(
   if (!pair) {
     return undefined;
   }
-  // computeAllPorts orders source/target by id; map back to the requested ids.
+  // Pair map keys sort clusters lexicographically; swap ports when the
+  // caller's aId > bId.
   return aId < bId
     ? { a: pair.source, b: pair.target }
     : { a: pair.target, b: pair.source };
@@ -1193,7 +1203,7 @@ function containsPoint(circle: Circle, pt: Position): boolean {
 }
 
 /**
- * B1: a highway from `source` to `target` that bends around every intervening
+ * Routes a highway from `source` to `target` that bends around every intervening
  * bubble (one waypoint per obstacle, on the shorter side), or the straight cubic
  * if nothing is in the way. Multi-pass: after inserting a detour we re-test the
  * whole polyline, so a waypoint that newly clips another bubble is itself routed
@@ -1328,7 +1338,6 @@ export function buildBezierSegments(
   labelsOut: RenderEdgeLabel[],
   arrowsOut: RenderEdgeArrow[],
 ): void {
-  // Classify aggregate edges into pairs.
   const byPair = new Map<PairKey, AggregatedVisualEdge[]>();
   for (const edge of frame.visualEdges) {
     if (edge.kind !== "aggregate") {
@@ -1355,7 +1364,6 @@ export function buildBezierSegments(
     classified.push({ pairKey, edges, sourceId, targetId, hierarchy });
   }
 
-  // Direct pairs: highway curves through the pair's (container-level) ports.
   for (const pair of classified) {
     if (
       pair.hierarchy.sourceContainers.length > 0 ||
@@ -1388,7 +1396,6 @@ export function buildBezierSegments(
     );
   }
 
-  // Hierarchical pairs: merged highways + feeders.
   const highwayGroups = new Map<string, HighwayGroup>();
 
   for (const pair of classified) {
@@ -1523,7 +1530,6 @@ export function buildBezierSegments(
       clipInside(group.highwayTargetCircle),
     );
 
-    // Feeders as Bezier segments.
     emitRecursiveBezierFeeders(
       out,
       arrowsOut,
@@ -1550,10 +1556,9 @@ export function buildBezierSegments(
     );
   }
 
-  // Individual entity edges and entity fan-out feeders are not emitted here.
-  // They depend on per-entity positions that stream through the position
-  // SharedArrayBuffer, and would otherwise force this whole O(entities * degree)
-  // pass to re-run on every force tick. The main thread composes them as straight
-  // LineLayers from the same shared buffer the dots read (see RenderEntityLayer),
-  // so dots and their edges share one update channel and cannot tear.
+  // Entity-level edges are omitted here: their endpoints live in the position
+  // SharedArrayBuffer that updates every force tick; recomputing cubics here
+  // would be O(entities * degree) per tick. Straight segments are composed
+  // where that buffer is already read for dots (see RenderEntityLayer), so
+  // dots and their edges share one update channel and cannot tear.
 }

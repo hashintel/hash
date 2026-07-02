@@ -1,10 +1,9 @@
 /**
  * Instanced endpoint V caps for flat-tier directed edges.
  *
- * The geometry is one static two-arm V mesh. Each endpoint arrow only supplies
- * position, angle, size, and color; the vertex shader applies the per-instance
- * transform. This avoids both PolygonLayer/earcut and the doubled source/target
- * buffer expansion that a generic LineLayer V would need.
+ * Each instance supplies position, angle, size, and color; one static
+ * two-arm mesh is instanced in the vertex shader, keeping CPU buffers to one
+ * record per arrow.
  */
 import { Layer, project32 } from "@deck.gl/core";
 import { Geometry, Model } from "@luma.gl/engine";

@@ -140,6 +140,8 @@ export class PortConstraintController {
           byEndpoint.set(highwayTargetId, anchor);
         }
 
+        // childId is the in-container endpoint of a boundary aggregate
+        // edge, so it must be one of container.children.
         const childPos = childIndex.get(childId)!;
         anchor.counts.set(
           childPos,

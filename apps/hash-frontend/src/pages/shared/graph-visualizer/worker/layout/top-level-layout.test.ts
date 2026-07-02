@@ -24,6 +24,8 @@ function polygon(count: number, ring: number, radius: number): LayoutNode[] {
 
 /** Ring edges (0-1, 1-2, ..., n-1-0): a crossing-free cycle for the polygon. */
 function ringEdges(count: number): [number, number][] {
+  // Tuple cast: Array.from infers number[]; edge endpoints are always valid
+  // [number, number] pairs.
   return Array.from(
     { length: count },
     (_, idx) => [idx, (idx + 1) % count] as [number, number],
@@ -180,11 +182,9 @@ describe("optimizeTopLevel anchored refine (incremental stability)", () => {
     }
   });
 
-  it("re-optimises far less aggressively than a cold search (the fix)", () => {
-    // The same poor seed (six bubbles strung along a line) optimised two ways.
-    // A cold global search re-derives a clean arrangement, moving bubbles a long
-    // way; the anchored refine keeps them near their previous spot. This is the
-    // erratic-vs-stable contrast the anchoring exists to fix.
+  it("re-optimises far less aggressively than a cold search (stability contract)", () => {
+    // Anchored refine limits displacement relative to a cold global search on
+    // the same seed.
     const radius = 12;
     const seed = (): LayoutNode[] =>
       Array.from({ length: 6 }, (_, idx) => ({

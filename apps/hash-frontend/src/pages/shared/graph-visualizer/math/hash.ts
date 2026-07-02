@@ -39,11 +39,7 @@ export function fmix32(k: number): number {
   return k;
 }
 
-/**
- * MurmurHash3 x86 32-bit.
- *
- * Vendored and adapted from https://github.com/timepp/murmurhash/tree/master
- */
+/** MurmurHash3 x86 32-bit (vendored from timepp/murmurhash). */
 export function murmur3(key: Uint8Array, seed: number = 0): number {
   let h1 = seed >>> 0;
 
@@ -53,7 +49,6 @@ export function murmur3(key: Uint8Array, seed: number = 0): number {
   const c1 = 0xcc9e2d51;
   const c2 = 0x1b873593;
 
-  // body
   for (let i = 0; i < blocks; i++) {
     let k1 = getBlock32(key, i);
     k1 = mul32(k1, c1);
@@ -82,7 +77,6 @@ export function murmur3(key: Uint8Array, seed: number = 0): number {
     h1 ^= k1;
   }
 
-  // finalization
   h1 ^= length;
   h1 = fmix32(h1);
 

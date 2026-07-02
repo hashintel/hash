@@ -7,21 +7,20 @@
  * anchors; WebCola's stress + non-overlap (plus the anchors) is the right tool
  * there. The outside is harder: top-level clusters are unconfined, vary
  * enormously in size (a 5 500-node bubble next to a 76-node one), and the edges
- * between them have to get past those huge obstacles. Stress alone doesn't see
- * crossings or detours, and the old pipeline optimised a proxy at each stage
- * (WebCola centres -> untangle centres -> ports placed afterwards -> edges
- * routed), so nothing ever minimised what you actually see. The top level is
- * also the overview every deeper decision inherits, so it's worth solving
- * directly.
+ * between them have to get past those huge obstacles. Stress alone does not
+ * penalize crossings or detours; staging layout through separate centre,
+ * untangle, port, and routing passes optimizes proxies rather than the drawn
+ * rim-to-rim geometry. The top level is also the overview every deeper
+ * decision inherits, so it's worth solving directly.
  *
  * This optimiser minimises one objective over the small top-level layout,
  * evaluated on the geometry that gets drawn: edges leave each bubble at the rim
  * facing their neighbour (a port), and we score crossings + detours of those
  * rim-to-rim segments, plus edge length (connected-near), non-overlap, and
- * neighbour spread (so a cluster's connections fan out instead of bunching, the
- * "mitosis" intuition, now an objective term rather than a separate seed). The N
- * is tiny, so a simulated-annealing search with position swaps and restarts gets
- * a near-optimal layout cheaply.
+ * neighbour spread, so a cluster's connections fan out instead of bunching.
+ * Neighbour spread is an explicit objective term (the "mitosis" intuition)
+ * rather than a separate seeding pass. The N is tiny, so a simulated-annealing
+ * search with position swaps and restarts gets a near-optimal layout cheaply.
  *
  * Stability (mental-map preservation). A from-scratch global search is the right
  * tool for the first build, but re-running it on every ingest makes the top
@@ -73,8 +72,11 @@ export interface OptimizeTopLevelOptions {
   readonly skipOverlapRelaxation?: boolean;
 }
 
-/** Objective weights. Crossings, detours, and overlap dominate (legibility); */
-/** stress (normalised, scale-free) and spread are gentle shaping terms. */
+/**
+ * Objective weights (fixed). Crossings, detours, and overlap dominate
+ * legibility; stress (normalised, scale-free) and spread are gentle shaping
+ * terms.
+ */
 const CROSS_WEIGHT = 30;
 const DETOUR_WEIGHT = 24;
 const OVERLAP_WEIGHT = 40;
@@ -125,11 +127,13 @@ const ANCHORED_MOVE_SCALE_MUL = 1.2;
  * the overlap penalty is linear, so for a large forced displacement (a bubble
  * that suddenly grew (e.g. 70 → 2000 entities, radius ~5×) whose neighbours are
  * all pinned near the viewport). The anchor wins and the grown bubble is left
- * overlapping. This deterministic push-apart runs after the search and
- * guarantees a non-overlapping result, distributing the separation by anchor
- * weight (as mass): a pinned central bubble barely moves while lighter /
- * off-screen neighbours yield. A no-op when nothing overlaps, so it never
- * disturbs a stable layout.
+ * overlapping. This deterministic push-apart runs after the search and drives
+ * overlap toward zero, distributing the separation by anchor weight (as mass):
+ * a pinned central bubble barely moves while lighter / off-screen neighbours
+ * yield. Convergence is bounded by {@link OVERLAP_RELAX_ITERS} (see
+ * {@link relaxOverlaps}), so a pathological all-pinned growth case may retain a
+ * residual sliver if the budget is exhausted. A no-op when nothing overlaps, so
+ * it never disturbs a stable layout.
  */
 const OVERLAP_RELAX_ITERS = 64;
 /** Relaxation mass of an un-anchored (new) bubble: very light, so it yields
@@ -207,6 +211,9 @@ function buildProblem(
   const adjacency: number[][] = nodes.map(() => []);
   const ideals: number[] = [];
   const gap = meanRadius * IDEAL_GAP_FRAC;
+  // Edge endpoints are valid node indices: buildProblem is only called from
+  // measureLayout/optimizeTopLevel on the same nodes array that defines
+  // adjacency's length.
   for (const [a, b] of edges) {
     adjacency[a]!.push(b);
     adjacency[b]!.push(a);
@@ -223,7 +230,10 @@ interface LayoutTerms {
   spread: number;
 }
 
-/** Fill `terms` with the (unweighted) objective components for the positions. */
+/**
+ * Computes crossings, detour, overlap, stress, and spread for the current node
+ * positions into `terms` (unweighted components).
+ */
 function computeTerms(
   nodes: readonly LayoutNode[],
   problem: Problem,
@@ -232,7 +242,7 @@ function computeTerms(
   const { edges, adjacency, ideals, meanRadius } = problem;
   const edgeCount = edges.length;
 
-  // Rim attach points for each edge end (the drawn segment endpoints).
+  // Score crossings and detours on rim-to-rim segments, not centre-to-centre lines.
   const ax = new Float64Array(edgeCount);
   const ay = new Float64Array(edgeCount);
   const bx = new Float64Array(edgeCount);
@@ -361,11 +371,15 @@ function weightedTotal(terms: LayoutTerms): number {
   );
 }
 
-/** The drawn-geometry objective, broken down, for tests and diagnostics. */
+/** Per-term breakdown of the drawn-geometry objective plus total weighted energy. */
 export interface LayoutMeasure extends LayoutTerms {
   readonly energy: number;
 }
 
+/**
+ * Returns the drawn-geometry objective terms and total weighted energy for
+ * `nodes`/`edges` without mutating positions.
+ */
 export function measureLayout(
   nodes: readonly LayoutNode[],
   edges: readonly (readonly [number, number])[],
@@ -383,12 +397,14 @@ export function measureLayout(
 }
 
 /**
- * Push overlapping nodes apart in place until none overlap (or the iteration
- * budget runs out), distributing each pair's separation by anchor weight as a
- * mass: a node moves proportionally to the other's mass, so a heavy (pinned,
- * high-weight) bubble barely moves and a light (off-screen or new) one yields.
- * Uses the same minimum separation as the overlap objective term, so the result
- * scores zero overlap. See {@link OVERLAP_RELAX_ITERS}.
+ * Push overlapping nodes apart in place, stopping when no pair overlaps or
+ * after {@link OVERLAP_RELAX_ITERS} passes, distributing each pair's
+ * separation by anchor weight as a mass: a node moves proportionally to the
+ * other's mass, so a heavy (pinned, high-weight) bubble barely moves and a
+ * light (off-screen or new) one yields. Uses the same minimum separation as the
+ * overlap objective term. When the budget is exhausted with residual overlap,
+ * positions are left as-is; callers must not assume zero overlap without
+ * verifying.
  */
 export function relaxOverlaps(
   nodes: LayoutNode[],
@@ -421,7 +437,8 @@ export function relaxOverlaps(
         const massI = anchors[i]?.weight ?? FREE_NODE_MASS;
         const massJ = anchors[j]?.weight ?? FREE_NODE_MASS;
         const total = massI + massJ;
-        // Each node moves proportional to the other's mass (heavy moves less).
+        // Mass-weighted split so low-weight (off-screen) neighbours yield
+        // before pinned, high-weight anchors.
         const shareI = total > 0 ? massJ / total : 0.5;
         const shareJ = total > 0 ? massI / total : 0.5;
         const ux = dx / dist;
@@ -539,7 +556,8 @@ export function optimizeTopLevel(
     return weightedTotal(terms) + anchorEnergy();
   };
 
-  // Move scale ~ the layout's extent.
+  // Cold-search jitter span scales with layout extent so moves stay
+  // proportional to bubble spread.
   let extent = 0;
   for (const node of nodes) {
     extent = Math.max(extent, Math.hypot(node.x, node.y) + node.radius);
@@ -602,7 +620,8 @@ export function optimizeTopLevel(
           nodes[i]!.y = ty;
         }
       } else {
-        // Jitter one node (annealed step size).
+        // Annealing shrinks jitter with temperature so late steps are local
+        // refinements.
         const i = Math.floor(rng() * count);
         const ox = nodes[i]!.x;
         const oy = nodes[i]!.y;
@@ -640,9 +659,10 @@ export function optimizeTopLevel(
   // Anchoring pins bubbles to their previous positions, which become infeasible
   // when one grows. The search clears most of the resulting overlap, but anchored
   // to overlapping positions it can leave a residual sliver it won't close (the
-  // quadratic inertia holds bubbles short of fully separating). Guarantee a
-  // non-overlapping result, moving lighter/off-screen bubbles before pinned
-  // central ones. (Cold builds resolve overlap during the global search.)
+  // quadratic inertia holds bubbles short of fully separating). Run post-search
+  // overlap relaxation to clear that sliver; separation is mass-weighted toward
+  // lighter/off-screen bubbles (see {@link relaxOverlaps} iteration budget).
+  // (Cold builds resolve overlap during the global search.)
   if (anchored && options?.skipOverlapRelaxation !== true) {
     relaxOverlaps(nodes, anchors, problem.meanRadius);
   }

@@ -37,8 +37,13 @@ import type { ClusterId } from "../ids";
 import type { ClusterReference } from "./worker-connection";
 import type { Layer } from "@deck.gl/core";
 
-/** Metaball field radius (world units): wide enough that a community's
- * neighbouring nodes' fields merge into one blob. Tune visually. */
+/**
+ * Metaball field radius (world units).
+ *
+ * @defaultValue 50. Neighbouring nodes merge into one blob; lower values
+ * tighten hulls and increase disconnected-clump risk before corridors
+ * engage; higher values thicken overlaps and raise per-fragment kernel cost.
+ */
 const FLAT_BUBBLE_FIELD_RADIUS = 50;
 /** Promote only non-trivial communities; a pair/singleton needs no hull, and
  * bubbling every one (most of a mostly-disconnected graph) is what turns the
@@ -70,7 +75,8 @@ interface CommunityGrouping {
   /** Bins kernels into per-cell instances every frame (owns all scratch). */
   readonly cellPacker: BubbleCellPacker;
 
-  // Corridor plan: see planBubbleCorridors in bubble-corridors.ts.
+  // Corridor topology is planned by {@link planBubbleCorridors} into
+  // segmentSlots/segmentRadius/segmentCount.
   /** Per segment `[slotA, slotB]` point-texel slots; capacity 2 · (k - 1) per community. */
   readonly segmentSlots: Int32Array;
   /** Per segment capsule radius (world units). */
@@ -229,6 +235,8 @@ export function communityLayer(
     groupingCache.set(membership, grouping);
   }
 
+  // Safe to read: this runs on a coalesced position event after the worker
+  // publishes the buffer (Atomics.notify on versionView).
   const floats = new Float32Array(cluster.versionView.buffer);
   const headerFloats = FLAT_HEADER_BYTES / 4;
   const recordFloats = FLAT_RECORD_BYTES / 4;

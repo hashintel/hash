@@ -1,4 +1,13 @@
-/** Deterministic synthetic-graph builders for benchmarks. */
+/**
+ * Deterministic synthetic-graph builders for layout benchmarks.
+ *
+ * Nodes and links share one contiguous {@link benchEntityId} index space:
+ * node indices are `[0, nodeCount)`, and link indices continue from
+ * `nodeCount`. Builders that draw independent randomness (edge pairs, hub
+ * leaves) offset their seed from the caller's `seed` so their draws do not
+ * correlate with `buildIngestEntities`'s. Every builder is a pure function
+ * of its shape and seed, so a bench replays the identical graph across runs.
+ */
 import { entityIdFromComponents } from "@blockprotocol/type-system";
 
 import { EntityIndex, TypeSetId } from "../ids";
@@ -23,7 +32,10 @@ import type {
 
 const WEB_ID = "11111111-1111-4111-8111-111111111111" as WebId;
 
-/** EntityId for the given index. Node and link ids share the index space. */
+/**
+ * Builds a deterministic {@link EntityId} from a contiguous index; node
+ * indices are `[0, nodeCount)` and link indices continue from `nodeCount`.
+ */
 export function benchEntityId(index: number): EntityId {
   const uuid =
     `22222222-2222-4222-8222-${index.toString(16).padStart(12, "0")}` as EntityUuid;
@@ -108,6 +120,8 @@ export function buildIngestEntities(shape: GraphShape): IngestEntity[] {
     if (right === left) {
       right = (right + 1) % nodeCount;
     }
+    // Synthetic endpoints only: left/right ids are always interned node
+    // EntityIds, satisfying LinkData for bench ingest.
     const linkData = {
       leftEntityId: benchEntityId(left),
       rightEntityId: benchEntityId(right),
@@ -159,6 +173,7 @@ export function buildForceGraph(shape: GraphShape): {
 } {
   const pairs = buildEdgePairs(shape);
   const degree = new Int32Array(shape.nodeCount);
+  // left/right are local indices from buildEdgePairs, always in [0, nodeCount).
   for (const [left, right] of pairs) {
     degree[left]! += 1;
     degree[right]! += 1;
@@ -244,7 +259,7 @@ export function buildForceGraphWithCoincidentHubs(
   return { nodes, edges };
 }
 
-/** Single-hub convenience over {@link buildForceGraphWithCoincidentHubs} (hub at the origin). */
+/** Builds a force graph with one near-coincident super-hub centred at the origin. */
 export function buildForceGraphWithCoincidentHub(
   shape: GraphShape,
   hubLeaves: number,
@@ -286,17 +301,14 @@ export function buildRealShapeFixture(seed = 7_001): {
 }
 
 /**
- * Replay a capture-live-fixture JSON (the dev harness's "Capture layout fixture"
- * button → {@link CapturedLayoutFixture}) as a layout fixture: real node ids,
- * radii, and live positions (so warm-relayout scenarios replay from the captured
- * geometry; pass `scrambleSeed` to test cold layout from a deterministic
- * phyllotaxis scatter instead). The captured Louvain labels ride along for
- * metrics that want the partition the user was looking at.
- *
- * Usage: save the downloaded JSON under e.g. `worker/fixtures/` and
- * `import fixture from "./fixtures/graph-fixture-1234n-5678e.json"`, or inline
- * `JSON.parse` a console-copied capture, then feed the result to any engine
- * factory exactly like the synthetic builders above.
+ * Replays a {@link CapturedLayoutFixture} as layout-engine inputs: real node
+ * ids, radii, and (unless `scrambleSeed` is set) the captured live positions,
+ * so warm-relayout scenarios replay from the exact geometry that was
+ * captured. When `scrambleSeed` is set, positions are re-seeded from a
+ * deterministic phyllotaxis scatter instead, for testing cold layout on the
+ * same topology. The captured Louvain labels ride along in `communities`
+ * when their length matches `nodes`, for metrics that want the partition
+ * that was on screen at capture time.
  */
 export function forceGraphFromCapturedFixture(
   fixture: CapturedLayoutFixture,
@@ -335,6 +347,9 @@ export function forceGraphFromCapturedFixture(
       target: edge.target,
       weight: edge.weight,
     })),
+    // Mismatched community arrays are treated as unassigned (-1) so replay
+    // still runs; metrics that need Louvain labels must validate lengths
+    // upstream.
     communities:
       fixture.communities.length === nodes.length
         ? [...fixture.communities]
@@ -359,6 +374,7 @@ export function buildCommunityInputs(shape: GraphShape): {
   const pairs = buildEdgePairs(shape);
   const linkTypeIdx = TypeSetId(0);
   for (let pairIndex = 0; pairIndex < pairs.length; pairIndex++) {
+    // pairIndex iterates pairs.length, so each index is defined.
     const [left, right] = pairs[pairIndex]!;
     links.insert(
       EntityIndex(left),

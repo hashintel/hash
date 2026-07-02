@@ -19,11 +19,11 @@ import {
 import type { Position } from "../geometry";
 import type { CorridorPlan } from "./bubble-corridors";
 
-/** Matches the shader defaults in render/community.ts. */
+/** Field radius and iso threshold matching production defaults (50 / 0.58). */
 const FIELD_RADIUS = 50;
 const ISO_THRESHOLD = 0.58;
 
-/** SAB record layout used by the real caller (header 8 B, record 20 B). */
+/** SAB record layout matching `FLAT_HEADER_BYTES` / `FLAT_RECORD_BYTES` (header 8 B, record 20 B). */
 const HEADER_FLOATS = 2;
 const RECORD_FLOATS = 5;
 
@@ -48,9 +48,9 @@ interface World {
 }
 
 /**
- * Build planner inputs exactly the way `render/community.ts` does: an
- * SAB-shaped float array, kept communities in first-seen order, members in
- * node-index order, point texels gathered at stride 4.
+ * Builds a {@link World} whose {@link CorridorPlan} has SAB-shaped floats,
+ * kept communities in first-seen order, members in node-index order, and
+ * stride-4 point texels.
  */
 function makeWorld(
   nodes: readonly WorldNode[],
@@ -289,11 +289,11 @@ describe("bubble corridors, connectivity guarantee", () => {
     planBubbleCorridors(world.plan);
 
     expect(segmentsSpanAllMembers(world, 0)).toBe(true);
-    // The guard: WITHOUT corridors this fixture is three islands...
+    // Baseline: point kernels alone yield >1 component; corridors must
+    // reduce to exactly 1.
     expect(
       fieldComponentsContainingMembers(world, 0, { withSegments: false }),
     ).toBeGreaterThan(1);
-    // ...and WITH corridors exactly one.
     expect(fieldComponentsContainingMembers(world, 0)).toBe(1);
     // Nothing foreign anywhere: every corridor is full width.
     for (const segment of world.segmentsOf(0)) {
@@ -303,7 +303,7 @@ describe("bubble corridors, connectivity guarantee", () => {
 
   it("reroutes a corridor around a foreign node via an intermediate member", () => {
     // A(0,0) and B(600,0) clumps whose direct MST edge passes over a foreign
-    // node at (300,0). The lone member M(0,300) is FARTHER from B than the
+    // node at (300,0). The lone member M(0,300) is farther from B than the
     // direct edge (so the MST still picks A-B) but offers a clear one-hop
     // detour within the 2× cap: |A-M| + |M-B| ≈ 290 + 660 < 2 × 570.
     const world = makeWorld(
@@ -327,8 +327,8 @@ describe("bubble corridors, connectivity guarantee", () => {
         );
       }
     }
-    // The reroute SPLIT an edge (no narrow fallback): more segments than a
-    // plain MST (k − 1), all at full width.
+    // The reroute splits one MST edge into two full-width segments (no
+    // narrow fallback).
     const memberCount = world.plan.ranges[1]!;
     expect(world.segmentsOf(0).length).toBeGreaterThan(memberCount - 1);
     for (const segment of world.segmentsOf(0)) {
@@ -367,7 +367,7 @@ describe("bubble corridors, connectivity guarantee", () => {
     const world = makeWorld(
       [
         { x: 0, y: 0, community: 1 },
-        // Coincident four-node community.
+        // All four members share one world position (degenerate MST).
         { x: 900, y: 900, community: 2 },
         { x: 900, y: 900, community: 2 },
         { x: 900, y: 900, community: 2 },
@@ -453,8 +453,8 @@ describe("bubble corridors, planning cost", () => {
       `[bubble-corridors] full plan: 10 communities × 100 members + 1000 obstacles = ${elapsedMs.toFixed(2)} ms\n`,
     );
 
-    // Steady-state per-frame ADDED cost (no replan): the segment-endpoint
-    // Texel refresh mirrors the loop in render/community.ts.
+    // Steady-state per-frame cost: segment endpoint texel refresh only (no
+    // replan).
     const { plan } = world;
     const totalMembers = 1000;
     const segmentTexelBase = totalMembers;

@@ -149,7 +149,9 @@ export class PropertyStore {
   /**
    * Extract scalar features and numeric readings from an entity's properties.
    *
-   * No-op when the entity has no labelable property.
+   * No-op when `properties` is undefined. Calling again for the same
+   * `index` overwrites its previously stored feature and numeric arrays;
+   * feature ids are stored sorted in ascending order.
    */
   ingest(index: EntityIndex, properties: PropertyObject | undefined): void {
     if (!properties) {

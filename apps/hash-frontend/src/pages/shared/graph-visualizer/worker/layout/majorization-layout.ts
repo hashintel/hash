@@ -258,19 +258,13 @@ const CONVERGENCE_STREAK = 2;
  * force always terminates; the livelock class of the abandoned force-interleave
  * is structurally impossible.
  *
- * Two projector designs were tried and rejected on measurement, both livelocking the
- * 3k benchmark at the iteration cap with projection eating ~98 % of wall time:
- * 1. Per-iteration exact VPSC (rectangle-separation geometry): its
- * rectangle geometry (|dx| or |dy| ≥ half-extent sum) conflicts with the circle geometry
- * of the stress terms, the collision floors, and the zero-overlap oracle
- * (dist ≥ r_i+r_j+pad). A circle-optimal solve packs pairs diagonally at
- * distances the rectangle model forbids by up to ~30 %, so the projector
- * shifted whole chains by 100-500 px every iteration and the next solve pulled
- * them straight back.
- * 2. Per-iteration relax-to-clean with near-pair floors regenerated inside the
- * solve every iteration: the ever-changing one-sided terms destabilised the
- * alternation (overlap count grew to a ~2.6k steady state as solve and relaxer
- * fought at ~200 px amplitude).
+ * Per-iteration projection uses bounded circle relaxation, not rectangle VPSC (the
+ * mismatch between circle and rectangle separation geometry causes limit cycles: a
+ * circle-optimal solve packs pairs diagonally at distances the rectangle model
+ * forbids by up to ~30 %, so a VPSC projector shifts whole chains by 100-500 px
+ * every iteration and the next solve pulls them straight back). Near-pair floors are
+ * static, emitted once at build: regenerating them inside the loop destabilises the
+ * alternation instead of letting it converge.
  */
 const ITERATION_RELAX_PASSES = 4;
 const ITERATION_RELAX_STRENGTH = 0.85;
@@ -305,16 +299,34 @@ const SETTLE_MAX_PASSES = 1024;
 const PLATEAU_WINDOW = 12;
 const PLATEAU_IMPROVEMENT = 0.9;
 
-/** Analysis (CSR + components + pivot BFS) work units per advance step. */
+/**
+ * Analysis (CSR + components + pivot BFS) work units per advance step. Default
+ * 16384: a larger chunk crosses fewer phase transitions but risks a slower single
+ * tick; a smaller chunk keeps the worker cadence smoother at more per-tick overhead.
+ */
 const ANALYSIS_TICK_WORK = 16384;
-/** Term-emission / RHS work units per advance step. */
+/**
+ * Term-emission / RHS work units per advance step. Default 65536: a larger chunk
+ * crosses fewer phase transitions but risks a slower single tick; a smaller chunk
+ * keeps the worker cadence smoother at more per-tick overhead.
+ */
 const TERM_CHUNK = 65_536;
 
-/** Refresh Louvain once the layout grows by this fraction. */
+/**
+ * Re-run Louvain after absorb once new nodes ≥ max(LOUVAIN_REFRESH_MIN_NEW_NODES,
+ * LOUVAIN_REFRESH_GROWTH_FRACTION of the node count at the last refresh). Default
+ * 24 / 30%: a lower fraction keeps community labels fresher at more rebuild cost; a
+ * higher fraction risks stale shaping on fast growth.
+ */
 const LOUVAIN_REFRESH_GROWTH_FRACTION = 0.3;
 const LOUVAIN_REFRESH_MIN_NEW_NODES = 24;
 
-/** Deterministic init jitter (fraction of the ideal edge length). */
+/**
+ * Deterministic init jitter (fraction of the ideal edge length). Default 0.01, just
+ * enough to break exact coincident cold seeds apart; a larger value spreads the
+ * initial layout further and reduces pile pathology but moves the deterministic
+ * start further from the raw hop layout.
+ */
 const SEED_JITTER = 0.01;
 
 const EPS = 1e-9;
@@ -337,6 +349,12 @@ const coincidentAngle = (i: number, j: number): number =>
   TAU;
 
 export interface MajorizationLayoutOptions {
+  /**
+   * Target graph-edge length in layout space (px per hop). Default
+   * {@link IDEAL_LINK_LENGTH} (60). Lower values tighten the layout but raise
+   * packing infeasibility risk on dense hubs; higher values spread components and
+   * increase settle work.
+   */
   readonly idealEdgeLength?: number;
   /** Extra gap between node disks (floors + the projector's pair gap). Default 8. */
   readonly overlapPadding?: number;
@@ -360,7 +378,7 @@ export interface MajorizationLayoutOptions {
 
 type ResolvedOptions = Required<MajorizationLayoutOptions>;
 
-/** A resolved index pair plus accumulated weight (parallel links merged). */
+/** Deduped undirected edge in index space with summed parallel weight. */
 interface IndexEdge {
   readonly source: number;
   readonly target: number;
@@ -371,7 +389,7 @@ interface SolverInput {
   readonly n: number;
   readonly src: Uint32Array;
   readonly dst: Uint32Array;
-  /** Mutated in place; the shell publishes them. */
+  /** Solver-owned position buffers; mutated in place each iteration and copied to the shared buffer at publish boundaries. */
   readonly x: Float32Array;
   readonly y: Float32Array;
   readonly radii: Float32Array;
@@ -430,7 +448,7 @@ class MajorizationSolver {
   #termCount = 0;
   #termCapacity = 0;
 
-  // Term-emission cursors (chunked build).
+  // Chunked emission resumes from these cursors so absorb/rebuild stays budget-sliced.
   #pivotRowCursor = 0;
   #pivotNodeCursor = 0;
   #degrees = new Uint32Array(0);
@@ -439,7 +457,7 @@ class MajorizationSolver {
   /** Disk radius that packs v's children at the packing utilisation. */
   #hubPack = new Float32Array(0);
   #edgeKeys: Set<number> = new Set();
-  // Per-component feasibility scale on hop targets + node→component map (see header).
+  // componentScale[c] = max(1, 1.3·R_packing / R_hop); multiplies all hop targets for component c.
   #componentScale = new Float64Array(0);
   #componentOf: Int32Array<ArrayBufferLike> = new Int32Array(0);
 
@@ -491,7 +509,6 @@ class MajorizationSolver {
   #cgDoneX = false;
   #cgDoneY = false;
 
-  // Iteration bookkeeping.
   #iteration = 0;
   #convergedStreak = 0;
   #prevX = new Float32Array(0);
@@ -505,7 +522,7 @@ class MajorizationSolver {
   // Terminal-settle bookkeeping (iterated circle relaxation to verified clean).
   /** Total settle passes run (safety-capped by SETTLE_MAX_PASSES). */
   #settlePasses = 0;
-  /** Completed settle advance units (publish cadence for the shell). */
+  /** Completed settle advance units; included in {@link publishGeneration} so each settle chunk can trigger a buffer publish. */
   #settleUnits = 0;
   /** Latches once a full relax pass verifies the layout overlap-free. */
   #everFeasible = false;
@@ -553,9 +570,8 @@ class MajorizationSolver {
       return;
     }
 
-    // The analysis passes: CSR, weak components, min-fill/max-min pivot selection
-    // with per-pivot BFS distance rows, and (cold only) the PivotMDS coordinate
-    // initialisation + component packing.
+    // Cold builds seed positions via PivotMDS; warm keeps the current layout (see
+    // the StressAnalysis options below).
     this.#analysis = new StressAnalysis(
       {
         n: this.#n,
@@ -581,7 +597,7 @@ class MajorizationSolver {
     return this.#phase === "done";
   }
 
-  /** Completed majorization iterations (the shell publishes on change). */
+  /** Completed majorization iterations since the last solver build. */
   get iteration(): number {
     return this.#iteration;
   }
@@ -597,9 +613,9 @@ class MajorizationSolver {
   }
 
   /**
-   * Whether published frames are verified non-overlapping: latches when the settle
-   * phase's final relax pass confirms zero overlaps (the engine settles right after,
-   * so every frame published from then on; the final state; is feasible).
+   * True once terminal settle verifies zero disk overlaps. Before latch,
+   * iteration-boundary publishes may still contain overlaps; after latch, the
+   * layout is settled and overlap-free.
    */
   get projectionActive(): boolean {
     return this.#everFeasible;
@@ -637,6 +653,8 @@ class MajorizationSolver {
   #advanceInner(): boolean {
     switch (this.#phase) {
       case "analysis": {
+        // #analysis is non-null only in the "analysis" phase; tick() returns
+        // result only when done.
         const result = this.#analysis!.tick({ maxWork: ANALYSIS_TICK_WORK });
         if (result.done) {
           this.#analysisResult = result.result!;
@@ -680,7 +698,10 @@ class MajorizationSolver {
     }
   }
 
-  /** Publish cadence for the shell: bumps at iteration and settle-unit boundaries. */
+  /**
+   * Monotonic generation counter; changes at each completed majorization iteration
+   * or settle unit to gate buffer publishes.
+   */
   get publishGeneration(): number {
     return this.#iteration + this.#settleUnits;
   }
@@ -723,8 +744,8 @@ class MajorizationSolver {
       this.#hubPack[v] = Math.min(ringNeed, diskNeed + this.#radii[v]!);
     }
 
-    // Per-component feasibility scale (see header): hop targets are multiplied by
-    // max(1, R_packing / R_hop-ideal) so the unconstrained stress optimum is roughly
+    // Per-component feasibility scale: hop targets are multiplied by max(1,
+    // R_packing / R_hop-ideal) so the unconstrained stress optimum is roughly
     // packing-feasible and the projector only has local work. R_packing is the radius
     // of the disk holding Σπ(r+pad/2)² at the packing utilisation; R_hop-ideal is half
     // the component's max pivot-BFS distance in layout units.
@@ -753,11 +774,11 @@ class MajorizationSolver {
       }
       maxHop[component] = rowMax;
     }
-    // The safety factor puts the stress optimum slightly outside the packing
-    // envelope instead of just inside it: without it the settle phase must inflate
-    // the whole cloud by the missing few percent, which reads as a terminal
-    // contract→expand rebound (measured ~8 % RMS-spread dip at 3k, the exact motion
-    // this engine exists to kill).
+    /**
+     * Feasibility-scale headroom. Default 1.3: without it, hop-scaled targets sit
+     * just inside the packing envelope and terminal settle must inflate the cloud
+     * (~8 % RMS rebound at 3k), the exact motion this engine exists to kill.
+     */
     const SCALE_SAFETY = 1.3;
     this.#componentScale = new Float64Array(components.count);
     for (let c = 0; c < components.count; c++) {
@@ -799,7 +820,6 @@ class MajorizationSolver {
     this.#termHi = new Float32Array(this.#termCapacity);
     this.#termCount = 0;
 
-    // Edge terms (one hop): shaped target with halo + collision floors (see below).
     for (let e = 0; e < edgeCount; e++) {
       const u = this.#src[e]!;
       const v = this.#dst[e]!;
@@ -811,9 +831,8 @@ class MajorizationSolver {
     // edge, found with the same uniform-grid 3×3 scan the overlap-relax passes use.
     // Emitted once per build from the seed/warm positions: they break the initial
     // coincident piles apart through the stress solve itself (push-only: [floor, inf)).
-    // Pairs that drift together only mid-solve are the settle phase's job instead;
-    // regenerating these inside the loop was tried and destabilised the alternation
-    // (see the projector notes above).
+    // Pairs that become overlapping only mid-solve are separated in the terminal
+    // settle phase; static floors keep the Laplacian build-once.
     this.#emitNearPairTerms();
 
     this.#buildRegionPlan();
@@ -880,7 +899,7 @@ class MajorizationSolver {
         REGION_MARGIN_GAIN *
         this.#options.idealEdgeLength;
 
-    // Packing radius + member exemption, then member lists (counting sort).
+    // Counting-sort member lists so region scans stay cache-friendly and deterministic.
     const pad = this.#options.overlapPadding;
     const areaSq = new Float64Array(count);
     for (let v = 0; v < n; v++) {
@@ -1283,7 +1302,7 @@ class MajorizationSolver {
       this.#invDiag[v] = this.#diag[v]! > 0 ? 1 / this.#diag[v]! : 0;
     }
 
-    // Allocate the iterate-loop state once; the loop itself never allocates.
+    // Zero-allocation iterate loop (worker hot path).
     this.#bX = new Float64Array(n);
     this.#bY = new Float64Array(n);
     this.#solX = new Float64Array(n);
@@ -1470,6 +1489,8 @@ class MajorizationSolver {
     for (let i = 0; i < n; i++) {
       pAp += dir[i]! * apply[i]!;
     }
+    // Degenerate search direction: treat dimension as converged (pAp ≤ ε avoids
+    // divide-by-zero and infinite step).
     if (pAp <= EPS) {
       return 0;
     }
@@ -1538,8 +1559,7 @@ class MajorizationSolver {
     if (moved) {
       this.projectionRuns += 1;
     }
-    // Truthful live diagnostics: the worker debug log prints these every tick, so
-    // they must reflect the actual iterate rather than an optimistic constant.
+    // Measure post-projection residuals so diagnostic fields match the adopted iterate.
     this.residualOverlaps = countOverlaps({
       x: this.#x,
       y: this.#y,
@@ -1592,8 +1612,8 @@ class MajorizationSolver {
       this.#bestDisplacementIteration = this.#iteration;
     }
 
-    // The stress phase ends by converging, plateauing, or hitting the hard cap; in
-    // every case the terminal settle phase delivers verified feasibility.
+    // Stress phase exits on convergence, plateau, or iteration cap; terminal settle
+    // then seeks verified feasibility (unless {@link settleCapped}; see SETTLE_MAX_PASSES).
     if (this.#convergedStreak >= this.#options.convergenceStreak) {
       this.#phase = "settle";
       return;
@@ -1628,8 +1648,12 @@ class MajorizationSolver {
    * One terminal-settle unit: a few full-strength relax passes (region floor, then
    * disk overlap). Ends the solve once a sweep verifies the layout both
    * disk-overlap-free and region-clean; pure separation with no opposing force, so
-   * termination is structural; the safety cap only guards against the impossible
-   * and logs if ever hit (surfaced via `settleCapped`).
+   * termination is structural and the safety cap only guards against the impossible.
+   *
+   * When the cap is hit, `settleCapped` latches true while `#phase` still moves to
+   * "done": `residualOverlaps` / `residualRegionViolations` may be non-zero and
+   * `isSettled` is still true. Callers must treat a capped settle as a hard failure
+   * mode to surface, not a benign alternate exit.
    */
   #settleChunk(): void {
     const start = performance.now();
@@ -1725,8 +1749,8 @@ class MajorizationLayout implements LayoutSimulation {
    */
   #publishedGeneration = 0;
 
-  // Diagnostics, read structurally (duck-typed) by the worker's debug log
-  // (tick-loop's #logOverlapDiagnostics).
+  // Public diagnostic fields for perf/regression harnesses (iteration count, tick
+  // budget, residual overlaps).
   /** Cumulative wall time (ms) spent in solver ticks. */
   overlapProjectionMs = 0;
   /** Majorization iterations completed. */
@@ -1734,9 +1758,10 @@ class MajorizationLayout implements LayoutSimulation {
   /** Worst single tick (ms); the per-tick budget guard. */
   maxTickMs = 0;
   /**
-   * measured strict disk overlaps in the last completed iterate / settle
-   * verification. Non-zero during the stress phase by design; a non-zero value
-   * after settle means the settle cap was hit; see {@link settleCapped}.
+   * Strict disk-overlap count after the last iteration or settle verify. Non-zero
+   * during stress is expected; non-zero after settle indicates {@link settleCapped}.
+   * Published SAB frames during stress may still show overlaps until
+   * {@link projectionActive} latches.
    */
   overlapsRemaining = 0;
   /** Laplacian (re)builds (cold build + every warm absorb/relayout). */
@@ -1814,17 +1839,17 @@ class MajorizationLayout implements LayoutSimulation {
     return this.#status === "settled" ? 0 : 1;
   }
 
-  /** Louvain community id per node, in buffer order (for BubbleSets / seeding). */
+  /** Louvain community id per node, in buffer order; drives target shaping and community-region floors. */
   get communities(): readonly number[] {
     return this.#communities;
   }
 
-  /** Resolved (deduped) edge count; a worker/bench diagnostic. */
+  /** Deduped edge count after parallel merge. */
   get edgeCount(): number {
     return this.#indexEdges.length;
   }
 
-  /** Whether the last solve hit the iteration cap (bench/test diagnostic). */
+  /** Whether the last solve hit the iteration cap instead of converging. */
   get capped(): boolean {
     return this.#solver?.capped ?? false;
   }
@@ -1839,12 +1864,12 @@ class MajorizationLayout implements LayoutSimulation {
     return this.#solver?.residualRegionViolations ?? 0;
   }
 
-  /** Majorization iterations completed so far (bench/test diagnostic). */
+  /** Majorization iterations completed so far. */
   get iterations(): number {
     return this.#solver?.iteration ?? 0;
   }
 
-  /** The live solver, exposed for perf diagnostics (phase timings) in tests/benches. */
+  /** The live solver instance, source of phase-timing and projection diagnostics. */
   get solverDiagnostics(): {
     readonly phaseCumulativeMs: Partial<Record<string, number>>;
     readonly phaseMaxMs: Partial<Record<string, number>>;
@@ -1887,8 +1912,9 @@ class MajorizationLayout implements LayoutSimulation {
       }
       this.overlapProjectionCalls = solver.iteration;
       this.overlapsRemaining = solver.residualOverlaps;
-      // Publish at iteration / settle-unit boundaries only: every displayed frame is
-      // a completed majorization iterate (or a settle sweep of one).
+      // Publish at iteration/settle-unit boundaries only. Frames during stress may
+      // still overlap; overlap-free publish is guaranteed only after
+      // {@link projectionActive} latches.
       if (
         solver.publishGeneration !== this.#publishedGeneration ||
         (solver.done && stepped)
@@ -1928,7 +1954,7 @@ class MajorizationLayout implements LayoutSimulation {
    * keep their slot so the shared buffer grows in place), rebuild the analysis +
    * Laplacian over the new topology, and continue majorization warm from the preserved
    * positions (projection re-enables after the first iteration). Refreshes Louvain once
-   * the layout has grown enough, so the BubbleSets track the evolving communities.
+   * the layout has grown enough that stale Louvain labels would mis-shape targets.
    */
   absorb(newNodes: ForceNode[], edges: ForceEdge[]): void {
     const previousCount = this.#nodes.length;
@@ -2136,6 +2162,24 @@ class MajorizationLayout implements LayoutSimulation {
   }
 }
 
+/**
+ * Constructs a budget-sliced stress-majorization layout that implements
+ * {@link LayoutSimulation}.
+ *
+ * Cold construction seeds positions via PivotMDS and builds the sparse-stress
+ * Laplacian once; each `tick` call then advances a bounded unit of analysis,
+ * term-build, CG, or relaxation work and publishes to `buffer` only at
+ * majorization-iteration or settle-unit boundaries. Calling `absorb` on the
+ * returned layout keeps existing positions (warm start), rebuilds the analysis
+ * and Laplacian over the grown topology, and continues majorization without a
+ * cold restart.
+ *
+ * Deterministic: identical `nodes` / `edges` / `options` produce bitwise-identical
+ * output. The terminal (settled) layout is guaranteed overlap-free unless the
+ * returned instance's `settleCapped` diagnostic is set, which signals a hard
+ * failure of the safety cap rather than a benign alternate exit. See
+ * {@link MajorizationLayoutOptions} for tunable defaults.
+ */
 export function createMajorizationLayout(
   nodes: ForceNode[],
   edges: ForceEdge[],

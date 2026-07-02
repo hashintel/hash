@@ -1,8 +1,7 @@
 /**
- * Incremental-update guards for {@link EdgeAggregator}. The invariant under
- * test is #5 from the module header: aggregates are additive, so any sequence
- * of incremental updates must land in the same state as a full recompute.
- * The regressions covered:
+ * Incremental-update guards for {@link EdgeAggregator}. Aggregates are
+ * additive: any sequence of incremental updates must match a full recompute
+ * (module header invariant 5). The regressions covered:
  *
  * - a link-only batch (both endpoints already visible) must show up without
  *   an owner change to trigger it,
@@ -25,7 +24,10 @@ import type { EntityId } from "@blockprotocol/type-system";
 
 const TYPE = TypeSetId(0);
 
-/** A fixed entity -> owner assignment with every owner in block mode. */
+/**
+ * Builds a {@link CutView} from a test fixture; optional entityModeIds mark
+ * clusters in entity (non-block) mode.
+ */
 function cutOf(
   assignments: Record<number, string>,
   entityModeIds: readonly string[] = [],
@@ -43,7 +45,7 @@ function cutOf(
   };
 }
 
-/** TypeSetStore stub: the aggregator only calls getById for labels/colors. */
+/** Minimal TypeSetStore stub returning undefined groups (labels fall back to "Unknown"). */
 const typeSets = {
   getById: (): TypeSetGroup | undefined => undefined,
 } as unknown as TypeSetStore;
@@ -131,8 +133,8 @@ describe("EdgeAggregator incremental updates", () => {
     const cut2 = cutOf({ 0: "A", 1: "A", 2: "B", 3: "C" }, ["A"]);
     const incrementalFrame = update(incremental, cut2, links);
 
-    // Reference: a fresh aggregator over the same final store and cut. Drain
-    // the log first -- a fresh instance recomputes from current values.
+    // Reference: fresh aggregator on the same final store and cut. Drain the
+    // log first, since a fresh instance reads current endpoints only.
     links.drainResolvedEndpoints();
     const fresh = new EdgeAggregator();
     const freshFrame = update(fresh, cut2, links);

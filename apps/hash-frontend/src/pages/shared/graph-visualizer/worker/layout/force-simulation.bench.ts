@@ -10,7 +10,7 @@
  * as ballpark (few samples), the cross-size / cross-engine SHAPE is the point.
  *
  * Run: `cd apps/hash-frontend && ../../node_modules/.bin/vitest bench --run \
- * src/pages/shared/graph-visualizer-2/worker/layout/force-simulation.bench.ts`
+ * src/pages/shared/graph-visualizer/worker/layout/force-simulation.bench.ts`
  */
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { bench, describe } from "vitest";
@@ -87,9 +87,9 @@ for (const graphShape of COMMUNITY_CASES) {
   describe(`community-force (${graphShape.nodeCount} nodes)`, () => {
     const { nodes, edges } = buildForceGraph(graphShape);
 
-    // Synchronous construction (Louvain + typed-array allocation); the analysis
-    // and solve are budget-sliced across ticks, so this is what blocks the
-    // worker before the first frame can stream.
+    // Worker thread blocks on synchronous Louvain + buffer allocation during
+    // createMajorizationLayout; subsequent solve ticks are budget-sliced and
+    // stream to the main thread.
     bench(
       "build only (construct)",
       () => {

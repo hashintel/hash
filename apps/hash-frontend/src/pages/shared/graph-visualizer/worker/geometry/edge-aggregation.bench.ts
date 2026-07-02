@@ -3,14 +3,13 @@
  * plus a result object for every cluster pair it classifies, and it runs inside
  * the aggregation loop on every structure commit (and the bezier build reads the
  * same pair keys per frame). Cluster-pair counts are far smaller than edge
- * counts, so this bench sizes that allocation cost against realistic pair counts
- * -- it exists to CONFIRM the aggregation keying is (or is not) a bottleneck, not
- * to assume it. The full `EdgeAggregator.update` / `buildBezierSegments` path
- * needs a live cut + cluster tree and is covered end-to-end by
- * `core/commit-rebuild.bench.ts` (hierarchical case).
+ * counts, so this bench sizes that allocation cost against realistic pair counts.
+ * This bench isolates makePairKey allocation only; full aggregator/bezier cost
+ * needs a live cut + cluster tree (see the hierarchical case in
+ * `core/commit-rebuild.bench.ts` for that path).
  *
  * Run: `cd apps/hash-frontend && ../../node_modules/.bin/vitest bench --run \
- * src/pages/shared/graph-visualizer-2/worker/geometry/edge-aggregation.bench.ts`
+ * src/pages/shared/graph-visualizer/worker/geometry/edge-aggregation.bench.ts`
  */
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { bench, describe } from "vitest";

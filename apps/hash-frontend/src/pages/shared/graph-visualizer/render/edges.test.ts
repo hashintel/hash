@@ -42,9 +42,8 @@ describe("edgeLayer", () => {
   it("renders hierarchical edges as ONE halo-folded Bezier layer", () => {
     const layers = edgeLayer(positionsFrame(), false);
 
-    // The former separate "edges-underlay" layer ran the SDF curve solve a
-    // second time over every edge's neighbourhood; the halo now rides the
-    // same layer (see BezierSDFLayer haloWidthFactor).
+    // Hierarchical edges use one BezierSDFLayer; haloWidthFactor must be > 1
+    // for the soft underlay band.
     expect(layers.map((layer) => layer.id)).toEqual(["hierarchical-edges"]);
     expect(layers[0]).toBeInstanceOf(BezierSDFLayer);
     expect((layers[0] as BezierSDFLayer).props.haloWidthFactor).toBeGreaterThan(

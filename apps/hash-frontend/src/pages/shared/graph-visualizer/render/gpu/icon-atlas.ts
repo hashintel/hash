@@ -39,7 +39,7 @@ const ROW_GROWTH = 8;
 /** Emoji glyph size within a cell (leaves a small margin so it never clips the cell edge). */
 const EMOJI_FONT_PX = Math.round(CELL_SIZE * 0.8);
 
-/** Whether an icon string is a URL (a mask/silhouette) vs an emoji -- mirrors EntityOrTypeIcon. */
+/** True when the icon string is http(s) or root-relative (async SVG silhouette); otherwise treated as emoji. */
 function isUrlIcon(icon: string): boolean {
   return (
     icon.startsWith("http://") ||
@@ -48,7 +48,7 @@ function isUrlIcon(icon: string): boolean {
   );
 }
 
-/** Resolve a possibly root-relative icon URL against the page origin (as EntityOrTypeIcon does). */
+/** Resolve root-relative paths against window.location.origin. */
 function resolveIconUrl(icon: string): string {
   return icon.startsWith("/")
     ? new URL(icon, window.location.origin).href

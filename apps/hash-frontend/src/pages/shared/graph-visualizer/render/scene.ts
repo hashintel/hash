@@ -3,11 +3,6 @@
  * stream: structure/position events rebuild the layer set off React, and the camera lives
  * in a field (never React state), so settling and pan/zoom never trigger a render.
  * React mounts and disposes Scene; Scene owns all runtime state.
- *
- * The Scene itself is the layer-building composition root; the camera
- * ({@link SceneCamera}), interaction/selection state ({@link SceneInteractions}),
- * HTML hub labels ({@link HubLabels}), and icon-key resolution
- * ({@link EntityIcons}) are collaborators under `scene/`.
  */
 import { Deck, OrthographicView } from "@deck.gl/core";
 
@@ -22,7 +17,8 @@ import { edgeArrowLayer } from "./edge-arrows";
 import { edgeLayer } from "./edges";
 import { flatDotsLayer } from "./flat-dots";
 import { IconAtlas } from "./gpu/icon-atlas";
-import { clusterLabelLayer, edgeLabelLayer } from "./labels";
+import { LabelCharacterSet } from "./label-character-set";
+import { clusterLabelLayer, edgeLabelLayer, labelTexts } from "./labels";
 import { SceneCamera } from "./scene/camera";
 import { EntityIcons } from "./scene/entity-icons";
 import { GpuFrameTimer } from "./scene/gpu-frame-timer";
@@ -54,18 +50,37 @@ export type {
 } from "./scene/callbacks";
 export type { RenderCaptureReport } from "./scene/render-metrics";
 
-function buildLabelLayers(
-  structure: StructureFrame,
-  positions: PositionsFrame,
-  zoom: number,
-  positionTick: number,
-): Layer[] {
+interface BuildLabelLayersConfig {
+  readonly structure: StructureFrame;
+  readonly positions: PositionsFrame;
+  readonly zoom: number;
+  readonly positionTick: number;
+  readonly characterSet: readonly string[];
+}
+
+function buildLabelLayers({
+  structure,
+  positions,
+  zoom,
+  positionTick,
+  characterSet,
+}: BuildLabelLayersConfig): Layer[] {
   const result: Layer[] = [];
-  const edgeLabels = edgeLabelLayer(positions, zoom, positionTick);
+  const edgeLabels = edgeLabelLayer({
+    positions,
+    zoom,
+    positionVersion: positionTick,
+    characterSet,
+  });
   if (edgeLabels) {
     result.push(edgeLabels);
   }
-  const clusterLabels = clusterLabelLayer(structure, positions, zoom);
+  const clusterLabels = clusterLabelLayer({
+    structure,
+    positions,
+    zoom,
+    characterSet,
+  });
   if (clusterLabels) {
     result.push(clusterLabels);
   }
@@ -103,6 +118,9 @@ export class Scene {
   readonly #interactions: SceneInteractions;
   readonly #hubLabels: HubLabels;
   readonly #entityIcons: EntityIcons;
+  /** Grow-only glyph set shared by the label layers (see label-character-set.ts). */
+  readonly #labelCharacters = new LabelCharacterSet();
+
   /** Render-cost capture (dev harness benchmark); idle unless a capture is running. */
   readonly #renderMetrics = new RenderMetricsProbe();
   /** Per-frame GPU draw time for the capture (idle outside one). */
@@ -124,8 +142,8 @@ export class Scene {
   ) {
     this.#handle = handle;
     this.#callbacks = callbacks;
-    // A finished async icon raster bumps the atlas version and re-pushes the layers so the
-    // newly-ready icon appears (it was simply absent until now).
+    // Async icon rasters bump the atlas version and trigger a layer re-push
+    // so ready icons appear on the next frame.
     this.#iconAtlas = new IconAtlas(() => this.#refreshDataLayers());
 
     this.#camera = new SceneCamera({
@@ -230,6 +248,47 @@ export class Scene {
     this.#camera.fitToContent();
   }
 
+  /**
+   * Frame the largest leaf bubble (by world radius) so it fills the padded
+   * viewport, falling back to fit-to-content when no bubbles exist (flat
+   * tier / empty graph). Data-derived, so repeated calls frame the same
+   * view: the render bench uses this to anchor its sweep on the graph's
+   * fill-heaviest region instead of whatever the camera last showed.
+   */
+  frameLargestBubble(): void {
+    const structure = this.#handle.getStructure();
+    const positions = this.#handle.getPositions();
+    if (!structure || !positions) {
+      this.#camera.fitToContent();
+      return;
+    }
+    let largestIndex = -1;
+    let largestRadius = 0;
+    for (const [index, cluster] of structure.clusters.entries()) {
+      // depth > 0 are opened containers (faint outlines); the fill cost
+      // lives in the leaf bubbles they contain.
+      if (cluster.depth === 0 && cluster.radius > largestRadius) {
+        largestRadius = cluster.radius;
+        largestIndex = index;
+      }
+    }
+    if (largestIndex === -1) {
+      this.#camera.fitToContent();
+      return;
+    }
+    const x = positions.clusterPositions[largestIndex * 2] ?? 0;
+    const y = positions.clusterPositions[largestIndex * 2 + 1] ?? 0;
+    this.#camera.fitToBounds(
+      {
+        minX: x - largestRadius,
+        minY: y - largestRadius,
+        maxX: x + largestRadius,
+        maxY: y + largestRadius,
+      },
+      48,
+    );
+  }
+
   /** Begin a render-cost capture (deck stats + rebuild timings + zoom envelope). */
   startRenderCapture(): void {
     this.#renderMetrics.start(this.#camera.zoom);
@@ -309,9 +368,8 @@ export class Scene {
     }
   }
 
-  // Edges + per-tier layers. Bubbles draw from the persistent `#placed` (so a settling
-  // frame re-uploads only their positions); flat/hierarchical entity layers build from the
-  // current frames.
+  // #placed preserves bubble array identity across position frames
+  // (position-only updateTrigger).
   #buildDataLayers(
     structure: StructureFrame,
     positions: PositionsFrame,
@@ -392,9 +450,8 @@ export class Scene {
     return result;
   }
 
-  // The selection overlay, drawn over the base layers and labels. Just the selected node's ring
-  // (empty data when nothing is selected, so the layer set stays stable). Ego neighbors are
-  // conveyed by the focus dim, not rings.
+  // Selection overlay above labels; empty data when unselected keeps layer
+  // ids stable.
   #buildOverlay(): Layer[] {
     return selectionOverlayLayers(
       this.#interactions.selectedGeometry(),
@@ -492,11 +549,14 @@ export class Scene {
     // Cluster + edge labels only. The hub-label overlay is HTML (see HubLabels), and the
     // entity-label layer rides the current #positionTick so it tracks the settling layout
     // (live SAB reads) -- this method only fires on zoom / structure.
-    this.#labelLayers = buildLabelLayers(
+    this.#labelLayers = buildLabelLayers({
       structure,
       positions,
-      this.#camera.zoom,
-      this.#positionTick,
-    );
+      zoom: this.#camera.zoom,
+      positionTick: this.#positionTick,
+      characterSet: this.#labelCharacters.extend(
+        labelTexts(structure, positions),
+      ),
+    });
   }
 }

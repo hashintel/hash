@@ -69,6 +69,7 @@ function makeUuid(rng: () => number): string {
 }
 
 function makeEntityId(rng: () => number): EntityId {
+  // Fixture ids use the Graph API webId~uuid shape expected by EntityId.
   return `${WEB_ID}~${makeUuid(rng)}` as EntityId;
 }
 
@@ -191,6 +192,7 @@ export function buildEntities(params: BuildEntitiesParams): EntityFixture {
   const perKindCounter = new Map<VersionedUrl, number>();
 
   for (let index = 0; index < nodeCount; index++) {
+    // kinds is non-empty (buildTypeMaps clamps kindCount >= 1).
     const kind = params.kinds[index % params.kinds.length]!;
     const ordinal = (perKindCounter.get(kind.typeId) ?? 0) + 1;
     perKindCounter.set(kind.typeId, ordinal);
@@ -224,6 +226,8 @@ export function buildEntities(params: BuildEntitiesParams): EntityFixture {
         entityId: makeEntityId(rng),
         editionId: makeUuid(rng),
         linkTypeId: params.linkTypeId,
+        // sourceIndex and targetIndex are drawn from [0, nodeCount) and nodeIds has
+        // length nodeCount.
         leftEntityId: nodeIds[sourceIndex]!,
         rightEntityId: nodeIds[targetIndex]!,
         label: "related to",

@@ -3,13 +3,10 @@ import { describe, expect, it } from "vitest";
 import { containerBoundaryWaypoint } from "./edge-geometry";
 
 /**
- * Locks the depth-≥2 fan-out geometry. The FEEDER leaves an entity bucket toward
- * its nearest enclosing container's boundary (in the direction of the outermost
- * port), then hops outward. The fan-out exit (where the dots' feeders converge
- * on the bucket rim) MUST aim at that same first waypoint. The old code aimed
- * straight at the outermost port `hp.a`; with an intermediate container between
- * the leaf and the outermost, that diverges by a position-dependent few degrees.
- * The "4 vs 5 o'clock" drift that only showed up at depth ≥ 2.
+ * Regression: at nesting depth >= 2, the entity fan-out exit must aim at the
+ * same first boundary waypoint the recursive feeder uses
+ * (containerBoundaryWaypoint toward the outermost port), not directly at the
+ * outermost port.
  */
 const outermostPort = { x: 100, y: 0 }; // hp.a, on the outermost container's rim
 const intermediate = { x: -30, y: -40, radius: 30 }; // container between leaf + outer
@@ -31,12 +28,12 @@ describe("entity fan-out exit (depth ≥ 2)", () => {
   const feederExitAngle = angleFromLeaf(feederFirstWaypoint);
 
   it("the fixed exit aims exactly where the feeder leaves the bucket", () => {
-    // The fix points the exit at the same waypoint the feeder uses.
+    // Expected: exit angle matches feeder first-waypoint angle.
     const fixedExitAngle = angleFromLeaf(feederFirstWaypoint);
     expect(Math.abs(fixedExitAngle - feederExitAngle)).toBeLessThan(1e-9);
   });
 
-  it("aiming straight at the outermost port (the old bug) drifts off the feeder", () => {
+  it("aiming straight at the outermost port drifts off the feeder at depth >= 2", () => {
     const oldExitAngle = angleFromLeaf(outermostPort);
     const driftDegrees =
       (Math.abs(oldExitAngle - feederExitAngle) * 180) / Math.PI;

@@ -28,7 +28,7 @@ export const toIngestEntities = (
 
     return {
       entityId,
-      entityTypeIds: entity.metadata.entityTypeIds as VersionedUrl[],
+      entityTypeIds: entity.metadata.entityTypeIds,
       isLink,
       // A link is never a root. With no root set, every node is a root (no frontier); otherwise
       // root-ness is set membership -- non-members render as greyed-out frontier nodes.
@@ -69,13 +69,9 @@ function titleFromUrl(versionedUrl: VersionedUrl): string {
  * {@link EntityTypeDisplayMetadata} — they carry `$id`/`depth`/`icon` but NO
  * title — so titles for ancestors are looked up in `definitions.entityTypes`.
  *
- * We register every type in the chain, not just the leaf. Previously only the
- * leaf was registered and its ancestors were pushed as bare parent refs; the
- * worker then interned a parent URL (e.g. a shared "Company" supertype) but had
- * no TypeInfo for it, so root resolution silently produced no root and every
- * such child fell into the catch-all "unknown" bucket (rendering as a nameless
- * "Other" rollup). Registering ancestors lets the worker resolve a real root
- * and group/label them correctly.
+ * We register every ancestor in the inheritance chain, not only the leaf: the
+ * worker needs TypeInfo for ancestor URLs to resolve roots and avoid routing
+ * entities into the nameless "Other" bucket.
  */
 export function extractTypeSchemas(
   entities: readonly HashEntity[],
@@ -105,6 +101,7 @@ export function extractTypeSchemas(
       const chain = [...entry.allOf].sort((a, b) => a.depth - b.depth);
 
       for (let depthIdx = 0; depthIdx < chain.length; depthIdx++) {
+        // depthIdx is bounded by chain.length from the enclosing for-loop.
         const node = chain[depthIdx]!;
         if (seen.has(node.$id)) {
           continue;

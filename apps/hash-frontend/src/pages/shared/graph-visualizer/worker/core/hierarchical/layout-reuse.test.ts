@@ -45,8 +45,8 @@ describe("layoutNeedsRebuild", () => {
   });
 
   it("reuses a big growth that still has slack (no churn)", () => {
-    // a: 40 -> 55 (nearly +40%). Edge-to-edge gap shrinks 20 -> 5 but they do
-    // NOT overlap, so the layout must be kept. This is the anti-churn case.
+    // a: 40 -> 55 (nearly +40%). Edge-to-edge gap shrinks 20 -> 5 but there
+    // is no overlap despite growth, so the layout must be kept (anti-churn case).
     const { previous, current } = pairAt(55, 40);
     expect(layoutNeedsRebuild(previous, current)).toBe(false);
   });

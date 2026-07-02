@@ -13,7 +13,7 @@ export interface EntityHover extends Position {
 
 /** A hovered aggregated highway: a summary of the links it bundles, at the cursor. */
 export interface HighwayHover extends Position {
-  /** The lane's single link type (for the main thread to resolve the icon); null for a rollup. */
+  /** The lane's single link type used to look up its icon; null for a rollup lane. */
   readonly typeId: VersionedUrl | null;
   readonly typeLabel: string;
   readonly count: number;
@@ -43,9 +43,8 @@ export interface EntitySelection extends Position {
 
 /**
  * An always-on entity label to overlay as HTML: the entity, its display name, and its current
- * on-screen position (container pixels). The Scene re-emits the visible set each frame so the
- * labels track the camera / settling layout; React renders them over the canvas (viewport-culled),
- * so they read in the hash-frontend design language rather than as GPU text.
+ * on-screen position (container pixels). Re-emitted each frame so labels track camera motion
+ * and layout settling; intended for HTML overlay (viewport-culled), not GPU text.
  */
 export interface EntityLabel extends Position {
   readonly entityId: EntityId;
@@ -64,14 +63,13 @@ export interface SceneCallbacks {
   /** Report a hovered wholly-frontier cluster bubble (offer to load its entities), or null on leave. */
   readonly onClusterHover?: (hover: ClusterHover | null) => void;
   /**
-   * Resolve an entity's display label (its name) for the always-on graph labels. Called only
-   * while the label SET is (re)built -- on a zoom / structure change -- never per frame.
+   * Resolve an entity's display label for always-on graph labels. Called only while the label
+   * eligibility set is (re)built (on zoom or structure change), never per frame.
    */
   readonly resolveEntityLabel?: (entityId: EntityId) => string | undefined;
   /**
-   * Resolve an entity's type icon to an atlas KEY (an emoji or an image URL), or null for none
-   * (a ReactElement / absent icon has no atlas entry). Called only while the icon SET is
-   * (re)built -- on a structure change -- never per frame.
+   * Resolve an entity's type icon to an atlas key (emoji or image URL), or null when none exists.
+   * Called only while the icon cache is (re)built on structure change, never per frame.
    */
   readonly resolveEntityIcon?: (entityId: EntityId) => string | null;
   /**
@@ -79,6 +77,6 @@ export interface SceneCallbacks {
    * current on-screen positions (so they track the camera / settle). Empty when none are visible.
    */
   readonly onEntityLabels?: (labels: readonly EntityLabel[]) => void;
-  /** Fired once, when the first structure frame lands (to drop the loading overlay). */
+  /** Fired once when the first structure frame lands, signalling that the graph is ready to display. */
   readonly onFirstStructure: () => void;
 }

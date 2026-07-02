@@ -4,10 +4,8 @@
  * highlight (dim everything except the selection's neighbourhood). Hover-card
  * state lives in {@link HoverTracker}.
  *
- * Owns no layers. The scene reads {@link SceneInteractions.selectedGeometry},
- * {@link SceneInteractions.keepFullClusters}, and the highlight fields when
- * it builds layers, and calls {@link SceneInteractions.afterPositions}
- * whenever positions or the camera change so the tracked cards re-project.
+ * Owns no layers. Exposes selection geometry, ego-highlight state, and overlay
+ * re-projection hooks consumed during layer builds and position/camera updates.
  */
 import { liveNodeGeometry, linkMidpoint } from "./geometry";
 import { HoverTracker } from "./hover-tracking";
@@ -45,7 +43,7 @@ export interface SceneInteractionsDependencies {
   readonly placed: () => readonly PlacedCluster[];
   readonly zoom: () => number;
   readonly isDisposed: () => boolean;
-  /** Rebuild + push the data layers (ring/dim changes outside a position tick). */
+  /** Trigger a data-layer rebuild when ring or dim state changes outside a position tick. */
   readonly refreshDataLayers: () => void;
   readonly focusCamera: (x: number, y: number) => void;
   readonly zoomToBubble: (placed: PlacedCluster) => void;
@@ -82,10 +80,14 @@ export class SceneInteractions {
 
   /** Bumped when the selection/ego changes, to re-evaluate the cluster-bubble focus dim. */
   #highlightTick = 0;
-  /* Used in conjunction with highlightTick, if they are the same, then ego has been resolved */
+  /**
+   * Monotonic counter bumped at the start of each ego query. {@link #highlightTick} catches up
+   * when the async result lands; equality means the dim set matches the current selection (see
+   * {@link queryEgo}).
+   */
   #highlightVersion = 0;
-  /** Highlighted entities (selection + visible ego), mirroring what was sent to the worker, so
-   * the internal leaf-edge lines dim in step with the dots they connect. */
+  /** Entity indices kept at full colour (selection + visible ego neighbors), used to dim
+   * leaf-edge lines in step with their endpoint dots. */
   #highlightedEntities: ReadonlySet<EntityIndex> = new Set();
 
   constructor(dependencies: SceneInteractionsDependencies) {
@@ -170,8 +172,8 @@ export class SceneInteractions {
   }
 
   handleClick(info: PickingInfo): void {
-    // Entity dot: select it (ring + focus + pinned card). Dots draw on top, so a dot pick wins
-    // outright. Opening is the card's Open button (wired by the bridge).
+    // Dots render above edges and bubbles, so a dot pick wins outright. Entity opening is handled
+    // by the pinned card's Open action, not this click handler.
     const picked = resolvePickedEntity(this.#dependencies.handle, info);
     if (picked) {
       this.#select(picked);
@@ -198,12 +200,12 @@ export class SceneInteractions {
       }
     }
     // Cluster bubble: animate so its on-screen radius crosses the open threshold.
+    // Deck only attaches PlacedCluster to cluster-bubble layer picks.
     const placed = info.object as PlacedCluster | undefined;
     if (placed?.cluster) {
       this.#dependencies.zoomToBubble(placed);
       return;
     }
-    // Empty space: clear the selection.
     this.#select(null);
   }
 
@@ -247,6 +249,7 @@ export class SceneInteractions {
     }
     // Wholly-frontier cluster bubble (no dot/edge over it): offer to load its entities. Anchored to
     // the bubble so the load card tracks it through pan / settle.
+    // Cluster-bubble layer objects are always PlacedCluster.
     const placed = info.object as PlacedCluster | undefined;
     const frontierIds = placed?.cluster.frontierEntityIds;
     if (placed && frontierIds && frontierIds.length > 0) {
@@ -365,6 +368,7 @@ export class SceneInteractions {
     if (isPickableEdgeLayer(info.layer?.id)) {
       return info;
     }
+    // Only cluster-bubble layer picks carry a PlacedCluster with a .cluster field.
     const overBubble =
       (info.object as PlacedCluster | undefined)?.cluster !== undefined;
     if (!overBubble) {
@@ -468,8 +472,6 @@ export class SceneInteractions {
   }
 
   #isEgoResolved(): boolean {
-    // highlightVersion bumps on each ego query; highlightTick catches up when
-    // the async result lands. Equality means the dim set matches the selection.
     return this.#highlightVersion === this.#highlightTick;
   }
 }

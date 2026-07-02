@@ -99,8 +99,8 @@ export class StructureFrameEmitter {
     const clusterFrontierCount = frontierCount(cluster, typeSets, entities);
     const allFrontier =
       cluster.count > 0 && clusterFrontierCount === cluster.count;
-    // Multi-line property labels (newline-joined "Title = value" lines) get the count on its
-    // own line below the stack; a single-line type-set label keeps it inline as before.
+    // Multi-line property labels append the count on a new line; single-line
+    // labels keep the count inline.
     const text = cluster.label.text;
     const label =
       text.length === 0
@@ -121,6 +121,8 @@ export class StructureFrameEmitter {
       // every other cluster gets away with the count alone.
       ...(allFrontier
         ? {
+            // idx comes from frontierMembers for this cluster, so it is
+            // always interned.
             frontierEntityIds: Array.from(
               frontierMembers(cluster, typeSets, entities),
               (idx) => entities.get(idx)!,
@@ -130,7 +132,7 @@ export class StructureFrameEmitter {
     };
   }
 
-  /** Build per-leaf entity-edge topology for the structure frame. */
+  /** Collects per-open-leaf internal edge slot pairs and metadata for the structure frame. */
   buildEntityLayers(cutIndex: CutIndex): RenderEntityLayer[] {
     const { view, layouts, leafLocalCache, clusterTree, types } =
       this.#dependencies;
@@ -146,10 +148,10 @@ export class StructureFrameEmitter {
 
       const localOf = leafLocalCache.of(layout);
 
-      // Internal entity-to-entity links (both endpoints owned by this leaf).
       const internal: number[] = [];
       if (view.edgeFrame) {
         for (const edge of view.edgeFrame.visualEdges) {
+          // Skip cross-leaf visual edges: fan-out handles those positionally.
           if (
             edge.kind !== "individual" ||
             edge.source.ownerClusterId !== leafId
@@ -215,6 +217,8 @@ export class StructureFrameEmitter {
       const outerTarget =
         targetContainers[targetContainers.length - 1]?.containerId ??
         edge.target.id;
+      // Unmerged aggregate lanes use visualKey as the grouping key; it is
+      // always a string at this branch.
       const key =
         sourceContainers.length === 0 && targetContainers.length === 0
           ? (edge.visualKey as string)

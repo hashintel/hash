@@ -1,3 +1,7 @@
+/**
+ * Immutable sorted set built once from an iterable; supports O(n+m) subset
+ * checks via merge walk.
+ */
 function binarySearch<T>(
   sorted: readonly T[],
   target: T,
@@ -47,7 +51,7 @@ export class ReadonlySortedSet<T> {
     return binarySearch(this.#items, value, this.#compare) >= 0;
   }
 
-  /** Whether every item in this set is also in other. */
+  /** True when this set is a subset of other. Runs in O(|this| + |other|) via sorted merge walk. */
   isSubsetOf(other: ReadonlySortedSet<T>): boolean {
     const lhs = this.#items;
     const rhs = other.#items;

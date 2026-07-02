@@ -222,7 +222,7 @@ describe("createMajorizationLayout", () => {
     settle(layout);
     expect(layout.nodes.length).toBe(5);
 
-    // Seed the newcomer beside its neighbour (as the worker does).
+    // Place the newcomer near an existing node to mimic incremental graph growth (warm absorb).
     const anchor = layout.nodes.find((node) => node.id === "0")!;
     const newNode: ForceNode = {
       id: "5",
@@ -419,11 +419,8 @@ describe("createMajorizationLayout", () => {
   });
 
   /**
-   * THE livelock regression (named): a settled-but-jammed 150-leaf hub: the exact
-   * state that livelocked the abandoned force-interleave at 1623 epochs with 300
-   * overlaps. It must terminate in bounded iterations with zero overlaps. Bounded
-   * means: the engine settles well under its hard iteration cap (no "capped" exit),
-   * within a bounded tick count.
+   * Regression: a settled-but-jammed 150-leaf hub must terminate under the
+   * iteration cap with zero overlaps and without a capped exit.
    */
   it("livelock regression: a settled-but-jammed 150-leaf hub terminates in bounded iterations", () => {
     const shape: GraphShape = {
@@ -443,6 +440,7 @@ describe("createMajorizationLayout", () => {
       ticks += 1;
     }
 
+    // Duck-type layout diagnostics not on LayoutSimulation; createMajorizationLayout exposes these in tests.
     const diag = layout as unknown as {
       capped?: boolean;
       iterations?: number;
@@ -474,8 +472,8 @@ describe("createMajorizationLayout", () => {
       layout.tick(1);
       const projection = layout as unknown as { projectionActive?: boolean };
       if (projection.projectionActive) {
-        // The mirrored ForceNode view IS the published frame (written together
-        // with the SAB at iteration boundaries).
+        // Assert overlap-freedom on the same node coordinates written to the
+        // shared buffer each publish.
         expect(overlapCountOf(layout, 0)).toBe(0);
         checkedFrames += 1;
       }
@@ -599,7 +597,7 @@ describe("createMajorizationLayout", () => {
     settle(layout);
     expect(overlapCountOf(layout, 0)).toBe(0);
 
-    // WebCola on the same graph: full stress majorisation + avoidOverlaps.
+    // Oracle baseline: WebCola stress majorization with rectangle overlap removal.
     const indexOfId = new Map<string, number>(
       nodes.map((node, index) => [node.id, index]),
     );
@@ -651,8 +649,8 @@ describe("createMajorizationLayout", () => {
         `colaStress=${colaStress.toFixed(4)}`,
     );
 
-    // Comparable quality: same order of magnitude as the dense-matrix oracle
-    // (the sparse model + halo floors trade a bounded amount of edge fidelity).
+    // Comparable quality: within 3x the dense-matrix oracle's stress plus a 0.05
+    // floor (the sparse model + halo floors trade a bounded amount of edge fidelity).
     expect(ourStress).toBeLessThan(Math.max(0.25, colaStress * 3 + 0.05));
   });
 

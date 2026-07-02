@@ -56,9 +56,8 @@ export function typeLabelForGroup(
 }
 
 /**
- * The single link type's VersionedUrl for a type-set group, or `null` if the
- * group covers more than one type (a rollup). The main thread resolves the
- * type's icon and title from the closed type schema it already holds.
+ * Returns the sole VersionedUrl when the group has exactly one direct type;
+ * null for multi-type rollups or missing registry entries.
  */
 export function typeUrlForGroup(
   group: TypeSetGroup | undefined,
@@ -164,14 +163,11 @@ export class CutIndex {
     const containerIds = new Set<ClusterId>();
     const entityOwner = new Map<EntityIndex, ClusterId>();
 
-    // Index viewport cut by cluster ID for mode lookup.
     const cutModes = new Map<ClusterId, LodItem["mode"]>();
     for (const item of viewportCut) {
       cutModes.set(item.clusterId, item.mode);
     }
 
-    // Walk all clusters in the tree, using viewport cut modes
-    // where available, defaulting to "cluster" for off-screen nodes.
     this.#walkTree(
       clusterTree.root,
       cutModes,
@@ -217,7 +213,6 @@ export class CutIndex {
 
     const mode = cutModes.get(node.id);
 
-    // "children" mode: this node is a container.
     if (mode === "children" && node.children.length > 0) {
       containerIds.add(node.id);
       for (const child of node.children) {
@@ -234,7 +229,6 @@ export class CutIndex {
       return;
     }
 
-    // Block: this node owns all its entities.
     blockIds.add(node.id);
 
     if (mode === "entities" || mode === "entities-pending") {
@@ -340,11 +334,9 @@ export interface AggregatedVisualEdge {
   readonly pairKey: PairKey;
   readonly typeSetId: TypeSetId | undefined;
   /**
-   * The lane's single link type as a VersionedUrl, when it has exactly one (a lane is single-type
-   * by definition). `null` for a multi-type rollup (`collapsed`). The main thread resolves the
-   * type's icon + title from the closed type schema it already holds -- the worker ships only the
-   * identity, never rich type data. The main thread resolves icons and titles from
-   * the type schemas React already holds; the worker ships geometry and ids only.
+   * Single-type lanes carry that type's VersionedUrl; collapsed rollups use
+   * null. The worker ships only the identity; icon/title resolution stays on
+   * the main thread from closed type schemas.
    */
   readonly typeId: VersionedUrl | null;
   readonly direction: EdgeDirection;
@@ -356,10 +348,8 @@ export interface AggregatedVisualEdge {
   readonly widthWorld: number;
   readonly typeLabel: string;
   /**
-   * Stable per-commit id of this lane: its index in the final
-   * `EdgeFrame.visualEdges` array. Carried out to the rendered bezier segments
-   * (their `id`) so a clicked highway segment maps back to this lane, and used
-   * to index `StructureFrame.highwayLanes`.
+   * Stable per-commit lane index in `EdgeFrame.visualEdges`; stamped after
+   * sort/truncation so pick hits and highway lane tables stay aligned.
    */
   readonly laneId: number;
   /**
@@ -466,6 +456,8 @@ function explodePair(
     if (aggregate.forward.size > 0) {
       edges.push({
         kind: "aggregate",
+        // TypeSetId is a numeric brand; cast for stable visualKey string
+        // formatting.
         visualKey: VisualEdgeKey(
           `agg:${pairKey}:${aggregate.typeSetId as number}:forward`,
         ),
@@ -493,6 +485,7 @@ function explodePair(
     if (aggregate.reverse.size > 0) {
       edges.push({
         kind: "aggregate",
+        // Same TypeSetId numeric-brand cast as the forward lane above.
         visualKey: VisualEdgeKey(
           `agg:${pairKey}:${aggregate.typeSetId as number}:reverse`,
         ),
@@ -549,7 +542,10 @@ export class EdgeAggregator {
     this.#appliedLinkCount = 0;
   }
 
-  /** Update aggregation for a new LOD cut. */
+  /**
+   * Reclassifies links for a new LOD cut incrementally when owner-change
+   * ratio stays at or below 35%; otherwise full recompute.
+   */
   update(
     cutIndex: CutView,
     linkStore: LinkStore,
@@ -567,6 +563,8 @@ export class EdgeAggregator {
       const changedEntities = this.#findChangedEntities(cutIndex);
       const changeRatio = changedEntities.size / Math.max(1, cutIndex.size);
 
+      // Full recompute when more than 35% of entities change owners
+      // (incremental undo/reapply cost crosses full-scan breakeven).
       if (changeRatio > 0.35) {
         this.#fullRecompute(cutIndex, linkStore);
       } else {
@@ -604,7 +602,8 @@ export class EdgeAggregator {
     return this.#buildFrame(typeSets, types, config);
   }
 
-  // Accessors for edge-geometry fan-out
+  // Expose mutable pair buckets for geometry fan-out without copying
+  // aggregation state.
 
   get pairs(): ReadonlyMap<string, MutablePairAggregation> {
     return this.#pairs;
@@ -653,7 +652,6 @@ export class EdgeAggregator {
       return;
     }
 
-    // Different visible owners: aggregate.
     const { key, sourceId, targetId } = makePairKey(leftOwner, rightOwner);
 
     // "forward" = flow matches PairKey sort order (source is the lower-sorted cluster).
@@ -718,6 +716,7 @@ export class EdgeAggregator {
     this.#hiddenCount = 0;
 
     for (let link = 0; link < linkStore.count; link++) {
+      // LinkStore ids are dense 0..count-1; loop index is a valid LinkId.
       this.#applyLink(
         link as LinkId,
         linkStore.getLeft(link),
@@ -764,7 +763,8 @@ export class EdgeAggregator {
         const typeSetId = linkStore.getTypeSetId(link.linkId);
         const linkEntityIdx = linkStore.getEntityIndex(link.linkId);
 
-        // Undo old classification, apply new classification.
+        // Reclassify against the previous cut, then the new cut (additive
+        // invariant).
         this.#applyLink(
           link.linkId,
           leftIdx,
@@ -835,6 +835,7 @@ export class EdgeAggregator {
    */
   #applyTail(cutIndex: CutView, linkStore: LinkStore): void {
     for (let link = this.#appliedLinkCount; link < linkStore.count; link++) {
+      // LinkStore ids are dense 0..count-1; loop index is a valid LinkId.
       this.#applyLink(
         link as LinkId,
         linkStore.getLeft(link),
@@ -885,8 +886,9 @@ export class EdgeAggregator {
   ): EdgeFrame {
     const visualEdges: VisualEdge[] = [];
 
-    // Explode pairs into per-type (or collapsed) aggregate edges.
     for (const [pairKey, pair] of this.#pairs) {
+      // Map keys are PairKey strings produced by makePairKey; safe to
+      // brand on read.
       const exploded = explodePair(
         pairKey as PairKey,
         pair,
@@ -897,7 +899,6 @@ export class EdgeAggregator {
       visualEdges.push(...exploded);
     }
 
-    // Individual edges.
     for (const edge of this.#individuals.values()) {
       const group = typeSets.getById(edge.typeSetId);
       visualEdges.push({
@@ -925,7 +926,6 @@ export class EdgeAggregator {
       });
     }
 
-    // Compute metadata.
     let aggregateTotal = 0;
     for (const pair of this.#pairs.values()) {
       aggregateTotal += pair.totalCount;
@@ -933,7 +933,8 @@ export class EdgeAggregator {
     const exactLogicalEdgeCount =
       aggregateTotal + this.#individuals.size + this.#hiddenCount;
 
-    // Edge cap: keep highest-count edges if over budget.
+    // Truncate to config.maxRenderedEdges, keeping highest-count lanes so
+    // dense graphs stay drawable.
     const truncated = visualEdges.length > config.maxRenderedEdges;
     if (truncated) {
       visualEdges.sort((lhs, rhs) => rhs.count - lhs.count);

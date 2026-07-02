@@ -36,6 +36,8 @@ export function writeChildCircles(
 ): void {
   const childById = new Map(cluster.children.map((child) => [child.id, child]));
   for (const node of layout.nodes) {
+    // Cluster-layout node ids are ClusterIds drawn from cluster.children
+    // when the layout was created.
     const child = childById.get(node.id as ClusterId);
 
     if (child) {

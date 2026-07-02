@@ -48,8 +48,10 @@ export class PositionBuffer {
 
 /**
  * Per-leaf entity-dot buffer: interleaved records of `{ x:f32, y:f32, rgba:u8x4 }`
- * (12 bytes each) after a 4-byte version header. Non-growable; recreated on
- * count change.
+ * (12 bytes each) after a 4-byte version header.
+ *
+ * Worker writes positions/colours then calls {@link EntityPositionBuffer.commit}; main thread
+ * reads via the version counter (`Atomics.waitAsync`). Recreated (not grown) when node count changes.
  */
 export const LEAF_HEADER_BYTES = 4;
 export const LEAF_RECORD_BYTES = 12;
@@ -165,6 +167,9 @@ const FLAT_RECORD_SLOTS = FLAT_RECORD_BYTES / 4;
  * Growable, interleaved store for the flat-tier graph. Non-resizable
  * (GPU-uploaded); outgrowing capacity re-allocates via
  * {@link GrowableBuffer.ensureCapacity}.
+ *
+ * Worker writes records, sets count, then calls {@link GrowableBuffer.commit}. Main thread
+ * reads count + records after observing a version bump; re-allocation triggers republish.
  */
 export class FlatGraphBuffer extends GrowableBuffer {
   /** `count` header slot. */

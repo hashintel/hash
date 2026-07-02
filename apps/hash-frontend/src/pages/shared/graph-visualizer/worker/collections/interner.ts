@@ -17,6 +17,7 @@ export class Interner<In, Out extends number> {
       return [false, existing];
     }
 
+    // Indices are assigned sequentially from 0; Out is a branded number type.
     const index = this.#values.length as Out;
     this.#values.push(value);
     this.#map.set(value, index);
@@ -24,18 +25,22 @@ export class Interner<In, Out extends number> {
     return [true, index];
   }
 
-  /** Get or create an index for the given value. */
+  /** Returns the stable index for value, assigning the next monotonic index on first sight. */
   intern(value: In): Out {
     const [, index] = this.tryIntern(value);
     return index;
   }
 
-  /** Get the index for a value, or undefined if not interned. */
+  /** Looks up a previously interned value's index without inserting. */
   tryGet(value: In): Out | undefined {
     return this.#map.get(value);
   }
 
-  /** Get the value for an index. */
+  /**
+   * Reverse lookup by index.
+   *
+   * @throws {Error} When idx is out of range or was never assigned.
+   */
   getValue(idx: Out): In {
     const value = this.#values[idx];
 

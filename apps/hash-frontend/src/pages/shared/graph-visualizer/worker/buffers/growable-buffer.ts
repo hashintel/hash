@@ -116,7 +116,7 @@ export abstract class GrowableBuffer {
     if (growBuffer(this.raw, neededBytes)) {
       return;
     }
-    // Double current capacity or use the requested amount, whichever is larger.
+    // Geometric growth amortises re-allocations when in-place grow is unavailable.
     const growTo = Math.max(needed, this.capacity * 2);
     const growToBytes = this.headerBytes + growTo * this.recordBytes;
     const next = makeGrowableBuffer(
@@ -131,7 +131,11 @@ export abstract class GrowableBuffer {
     this.#republish(this.raw, growTo);
   }
 
-  /** Bump + notify the version counter so the main thread re-reads the buffer. */
+  /**
+   * Publish a buffer snapshot. The worker (subclass caller) must finish all record writes before
+   * calling this. Atomics.store makes the version visible; Atomics.notify wakes main-thread
+   * Atomics.waitAsync watchers. Version wraps at 2^31 (`| 0`); consumers compare for change, not magnitude.
+   */
   commit(): void {
     if (sharedBufferAvailable) {
       Atomics.store(this.#version, 0, (this.#version[0]! + 1) | 0);

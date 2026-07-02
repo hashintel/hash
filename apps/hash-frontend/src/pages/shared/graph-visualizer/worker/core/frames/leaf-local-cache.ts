@@ -25,6 +25,7 @@ export class LeafLocalCache {
     }
 
     const localOf = new Map<EntityIndex, number>();
+    // idx is bounded by layout.nodeIds.length in the loop.
     for (let idx = 0; idx < layout.nodeIds.length; idx++) {
       localOf.set(entityIndexFromNodeId(layout.nodeIds[idx]!), idx);
     }

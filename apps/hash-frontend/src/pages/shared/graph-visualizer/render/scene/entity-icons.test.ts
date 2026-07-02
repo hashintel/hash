@@ -105,7 +105,7 @@ describe("EntityIcons, incremental flat scan", () => {
     expect(harness.icons.flatScannedCount).toBe(150);
     expect(harness.icons.version).toBe(versionAfterBuild + 1);
 
-    // The cached prefix survived and the tail resolved.
+    // Confirms the incremental scan neither corrupts the retained prefix nor skips the new tail.
     expect(harness.icons.flatNames[0]).toBe(null); // ".../0" resolves null
     expect(harness.icons.flatNames[1]).toBe(`icon:${FLAT_ID}/1`);
     expect(harness.icons.flatNames[149]).toBe(`icon:${FLAT_ID}/149`);

@@ -88,7 +88,7 @@ function propertyTypeId(typeTitle: string, propertyName: string): VersionedUrl {
   return `${propertyBaseUrl(typeTitle, propertyName)}v/1` as VersionedUrl;
 }
 
-/** A minimal single-text-value property type. */
+/** Builds a Block Protocol property type that constrains values to the shared text data type. */
 function makePropertyType($id: VersionedUrl, title: string): PropertyType {
   return {
     $schema:
@@ -160,6 +160,7 @@ export function buildTypeMaps(kindCount: number): TypeFixture {
   const kinds: FixtureEntityKind[] = [];
 
   for (let index = 0; index < clamped; index++) {
+    // index < clamped <= KIND_TITLES.length.
     const { title, icon } = KIND_TITLES[index]!;
     const typeId = entityTypeId(title);
 

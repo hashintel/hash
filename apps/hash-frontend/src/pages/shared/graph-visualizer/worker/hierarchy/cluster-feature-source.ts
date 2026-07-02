@@ -1,10 +1,9 @@
 /**
- * Adapts the worker's stores into a {@link FeatureSource} for
+ * Builds a {@link FeatureSource} over worker stores for
  * {@link nameClustersByDistinctiveFeatures}.
  *
  * Feature keys are namespaced strings (`p`/`lt`/`n` + NUL-separated fields);
- * the namer treats them as opaque and this module decodes them in
- * {@link FeatureSource.describe}.
+ * this module decodes them in {@link FeatureSource.describe}.
  */
 import { primaryTypeOfSet } from "../entity-style";
 
@@ -32,6 +31,15 @@ export interface ClusterFeatureDependencies {
 /** Sorts link parts after property/range parts (which sort by their human title). */
 const LINK_SORT_PREFIX = "\uFFFF";
 
+/**
+ * Returns a {@link FeatureSource} backed by the worker's property, link,
+ * entity, type-set, and type stores.
+ *
+ * Keys are opaque to the namer; {@link FeatureSource.describe} and
+ * {@link FeatureSource.describeNumeric} decode them for display. Link
+ * features require a resolvable target type; members without one are
+ * skipped.
+ */
 export function createClusterFeatureSource(
   dependencies: ClusterFeatureDependencies,
 ): FeatureSource {
@@ -73,6 +81,7 @@ export function createClusterFeatureSource(
       if (!keys || !values) {
         return;
       }
+      // keys and values are parallel arrays of equal length from the same member.
       for (let index = 0; index < keys.length; index++) {
         yield { dimension: `n\u0000${keys[index]!}`, value: values[index]! };
       }
@@ -93,6 +102,8 @@ export function createClusterFeatureSource(
       }
       if (parts[0] === "lt") {
         const direction = parts[1];
+        // parts[2] is the type index encoded when the key was built from a
+        // resolved target type.
         const info = types.get(Number(parts[2]) as TypeId);
         if (!info) {
           return undefined;

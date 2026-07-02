@@ -2,7 +2,14 @@
  * Cluster and highway edge labels, faded by on-screen size so they don't
  * pop in/out at low zoom.
  *
- * PERF TODO: Use the collision extension to automatically cull overlapping labels.
+ * Both layers take an explicit reference-stable `characterSet` (grown by
+ * `LabelCharacterSet`) instead of `"auto"`, which re-derives a fresh set
+ * from the visible labels on every rebuild and re-enters deck's font-atlas
+ * manager each time (see label-character-set.ts).
+ *
+ * TODO: adopt @deck.gl/extensions CollisionFilterExtension once label density
+ * exceeds ~N visible cluster+edge labels at zoom Z (measured overlap in the
+ * capture harness).
  */
 import { TextLayer } from "@deck.gl/layers";
 
@@ -23,6 +30,19 @@ const EDGE_LABEL_MIN_SCREEN_CHORD = 82;
 const LABEL_FADE_PX = 18;
 /** Line-to-line spacing for multi-line cluster labels (also passed to the TextLayer). */
 const LABEL_LINE_HEIGHT = 1.08;
+
+/** Every string the two label layers can render, for character-set growth. */
+export function* labelTexts(
+  structure: StructureFrame,
+  positions: PositionsFrame,
+): Generator<string> {
+  for (const cluster of structure.clusters) {
+    yield cluster.label;
+  }
+  for (const label of positions.edgeLabels) {
+    yield label.text;
+  }
+}
 
 function fadeAlpha(
   screenMetric: number,
@@ -59,11 +79,20 @@ function clusterLabelSize(cluster: RenderCluster): number {
   return Math.min(widthFit, heightFit);
 }
 
-export function clusterLabelLayer(
-  structure: StructureFrame,
-  positions: PositionsFrame,
-  zoom: number,
-): Layer | undefined {
+export interface ClusterLabelLayerConfig {
+  readonly structure: StructureFrame;
+  readonly positions: PositionsFrame;
+  readonly zoom: number;
+  /** Reference-stable glyph set; a new array only when the union grew. */
+  readonly characterSet: readonly string[];
+}
+
+export function clusterLabelLayer({
+  structure,
+  positions,
+  zoom,
+  characterSet,
+}: ClusterLabelLayerConfig): Layer | undefined {
   const scale = 2 ** zoom;
   const data: { cluster: RenderCluster; x: number; y: number }[] = [];
   for (let index = 0; index < structure.clusters.length; index++) {
@@ -99,7 +128,8 @@ export function clusterLabelLayer(
     getTextAnchor: "middle",
     getAlignmentBaseline: "center",
     fontFamily: "Inter, sans-serif",
-    characterSet: "auto",
+    // deck's prop type wants a mutable array; it never mutates it.
+    characterSet: characterSet as string[],
     pickable: false,
     updateTriggers: {
       getColor: zoom,
@@ -107,11 +137,20 @@ export function clusterLabelLayer(
   });
 }
 
-export function edgeLabelLayer(
-  positions: PositionsFrame,
-  zoom: number,
-  positionVersion: number,
-): Layer | undefined {
+export interface EdgeLabelLayerConfig {
+  readonly positions: PositionsFrame;
+  readonly zoom: number;
+  readonly positionVersion: number;
+  /** Reference-stable glyph set; a new array only when the union grew. */
+  readonly characterSet: readonly string[];
+}
+
+export function edgeLabelLayer({
+  positions,
+  zoom,
+  positionVersion,
+  characterSet,
+}: EdgeLabelLayerConfig): Layer | undefined {
   if (positions.edgeLabels.length === 0) {
     return undefined;
   }
@@ -148,7 +187,8 @@ export function edgeLabelLayer(
     getAlignmentBaseline: "center",
     fontFamily: "Inter, sans-serif",
     fontWeight: 600,
-    characterSet: "auto",
+    // deck's prop type wants a mutable array; it never mutates it.
+    characterSet: characterSet as string[],
     pickable: false,
     updateTriggers: {
       getColor: zoom,

@@ -40,6 +40,8 @@ export function buildEntityEdges(
 ): ForceEdge[] {
   const idxToNodeId = new Map<EntityIndex, string>();
   for (let idx = 0; idx < entityIdxs.length; idx++) {
+    // entityIdxs and nodes are parallel inputs from the same caller; equal
+    // length is a precondition of buildEntityEdges.
     idxToNodeId.set(entityIdxs[idx]!, nodes[idx]!.id);
   }
 
@@ -48,7 +50,8 @@ export function buildEntityEdges(
 
   for (const entityIdx of entityIdxs) {
     for (const link of links.linksFor(entityIdx)) {
-      // Membership and node-id resolution in one lookup.
+      // Skip links whose other endpoint is outside entityIdxs before
+      // allocating an edge record.
       const targetId = idxToNodeId.get(link.otherId);
       if (targetId === undefined) {
         continue;
@@ -59,6 +62,8 @@ export function buildEntityEdges(
       }
       seen.add(pairKey);
       edges.push({
+        // entityIdx is always a member of entityIdxs (the outer loop
+        // variable), so the map lookup cannot fail here.
         source: idxToNodeId.get(entityIdx)!,
         target: targetId,
         weight: 1,
@@ -109,6 +114,8 @@ export function buildClusterEdges(
 
   const edges: ForceEdge[] = [];
   for (const [pairKey, weight] of edgeCounts) {
+    // pairKey is always "${childId}|${otherChildId}" with ClusterId strings
+    // that contain no '|'.
     const [sourceId, targetId] = pairKey.split("|") as [string, string];
     edges.push({ source: sourceId, target: targetId, weight });
   }

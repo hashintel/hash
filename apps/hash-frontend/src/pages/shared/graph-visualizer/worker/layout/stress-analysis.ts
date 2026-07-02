@@ -1,16 +1,16 @@
 /*
- * Graph analysis passes for the stress-majorization engine: CSR adjacency, weak
- * components, min-fill/max-min pivot selection with per-pivot BFS distance rows,
- * PivotMDS-style coordinate initialisation, and (cold builds only) disconnected-
- * component packing. This is exactly the pre-solve machinery majorization-layout.ts
- * consumes: analysis and initialisation only. Layout solving lives in
+ * Owns graph analysis and coordinate initialisation for stress majorization: CSR
+ * build, weak-component decomposition, min-fill/max-min pivot selection with
+ * per-pivot BFS distance rows, PivotMDS-style coordinate initialisation, and
+ * disconnected-component packing (skippable via `packComponents`, including on
+ * warm starts). Layout iteration/solving is out of scope; it lives in
  * majorization-layout.ts.
  *
  * Everything is budget-sliced: `tick({ maxWork, maxMs })` advances the phase machine
  * by a bounded number of work units so a large graph never freezes a frame, and the
  * whole pipeline is deterministic (seeded tie-breaking, index-ordered scans).
  *
- * References:
+ * See also:
  * - Sparse/pivot stress idea for avoiding all-pairs stress terms:
  *   Mark Ortmann, Mirza Klimenta, Ulrik Brandes,
  *   "A Sparse Stress Model" (2017).
@@ -44,13 +44,22 @@ export interface StressAnalysisInput {
 }
 
 export interface StressAnalysisOptions {
-  /** Number of landmark pivots. Default is auto, capped at 256. */
+  /**
+   * Landmark pivot count. Default follows {@link defaultPivotCount} (0 to 256
+   * depending on graph size). Raising it improves distance fidelity at
+   * O(k·n) BFS and storage cost.
+   */
   readonly pivotCount?: number;
 
   /** Layout-space length for one graph hop (scales the PivotMDS init). Default 1. */
   readonly idealEdgeLength?: number;
 
-  /** Initial deterministic jitter, in layout units. Default 0.01. */
+  /**
+   * Initial deterministic jitter, in layout units. Default 0.01; raising it
+   * reduces the chance that pivot-derived coordinates place two nodes at the
+   * exact same position, at the cost of a noisier seed for the solver to
+   * unwind.
+   */
   readonly jitter?: number;
 
   /** Random/hash seed used only for deterministic jitter and tie breaking. Default 1. */
@@ -69,6 +78,11 @@ export interface StressAnalysisOptions {
   readonly validate?: boolean;
 }
 
+/**
+ * Weakly-connected component decomposition: per-node labels plus CSR-style
+ * node lists, sizes, and per-component seed nodes (highest degree, tie by
+ * index).
+ */
 export class WeakComponents {
   readonly count: number;
   readonly labels: Int32Array;
@@ -112,6 +126,10 @@ export class WeakComponents {
   }
 }
 
+/**
+ * Landmark pivot set: per-pivot BFS distance rows (k × n Uint16), component
+ * ids, and graph diameter estimate used by init and the term builder.
+ */
 export class Pivots {
   readonly pivots: Uint32Array;
   readonly components: Int32Array;
@@ -218,6 +236,11 @@ const validateInput = ({ n, src, dst, x, y }: StressAnalysisInput): void => {
   }
 };
 
+/**
+ * Auto pivot count: 0 for N≤1; min(N,16) for N<128; otherwise
+ * min(N, max(32, min(256, ⌈2√N⌉))). More pivots improve stress fidelity; each
+ * adds an n-row BFS and init cost.
+ */
 const defaultPivotCount = (n: number): number => {
   if (n <= 1) {
     return 0;
@@ -230,6 +253,12 @@ const defaultPivotCount = (n: number): number => {
   return Math.min(n, Math.max(32, Math.min(256, Math.ceil(Math.sqrt(n) * 2))));
 };
 
+/**
+ * Distributes requested pivot budget across components: at least one per
+ * non-empty component, then proportional to size, then round-robin the
+ * remainder. May return fewer than `total` when every component is at
+ * capacity.
+ */
 const allocatePivots = (
   components: WeakComponents,
   total: number,
@@ -463,6 +492,8 @@ const packWeakComponents = (
 
   order.sort((a, b) => components.sizes[b]! - components.sizes[a]!);
 
+  // Target row width ≈ 1.25·√(sum of component box areas) for a roughly
+  // square shelf packing.
   const targetRowWidth = Math.max(padding, Math.sqrt(totalArea) * 1.25);
   const shiftX = new Float32Array(cN);
   const shiftY = new Float32Array(cN);
@@ -842,6 +873,14 @@ class WeakComponentsPhase {
   }
 }
 
+/**
+ * Per-component farthest-point (max-min) pivot selection: for each new pivot,
+ * runs a BFS to fill one distance row, updates `minPivotDist` for every node
+ * in the component, then picks the next pivot as the node with the largest
+ * margin (ties broken by a seeded hash). Sliced across `min-fill` →
+ * `row-fill` → `bfs` → `select` sub-phases so `step` can be budgeted like the
+ * other phases.
+ */
 class PivotPhase {
   readonly #n: number;
   readonly #components: WeakComponents;
@@ -1030,6 +1069,9 @@ class PivotPhase {
         this.#bfsHead += 1;
         this.#bfsCurrentU = u;
 
+        // Stop expanding past MAX_STORED_DIST: Uint16 rows use INF_DIST
+        // (0xffff) as "unreached", and distances at the cap are treated as
+        // unreachable in init (see `distance()`).
         if (du >= MAX_STORED_DIST) {
           this.#bfsNeighborP = 0;
           this.#bfsNeighborEnd = 0;
@@ -1083,6 +1125,8 @@ class PivotPhase {
 
       const md = this.#minPivotDist[v]!;
       if (md !== INF_DIST) {
+        // Pack margin md and deterministic tie-break into one integer so
+        // lexicographic compare is a single scalar max.
         const score = md * 1024 + (hashU32((v ^ this.#tieSalt) >>> 0) & 1023);
         if (score > this.#farthestScore) {
           this.#farthestScore = score;
@@ -1101,6 +1145,9 @@ class PivotPhase {
       if (
         this.#k >= this.#requestedPivotCount ||
         this.#local >= this.#want ||
+        // Stop early when farthest-point selection stalls (repeats the last
+        // pivot, or finds no positive margin); the component simply gets
+        // fewer pivots than its allocation.
         this.#farthest === previous ||
         this.#farthestScore <= 0
       ) {
@@ -1152,10 +1199,9 @@ class PivotPhase {
 }
 
 /**
- * Coordinate initialisation + component packing: PivotMDS-style placement from the
- * first four pivot distance rows of each component (or a warm pass-through with
- * optional jitter when `keepInitialPositions` is set), followed by the
- * disconnected-component shelf packing.
+ * Assigns x/y from the first four pivot rows per component (x from rows 0-1,
+ * y from rows 2-3, with fallbacks when fewer pivots exist), then optionally
+ * shelf-packs weak components.
  */
 class InitPhase {
   readonly #n: number;
@@ -1169,7 +1215,8 @@ class InitPhase {
   readonly #x: Float32Array;
   readonly #y: Float32Array;
 
-  // Coordinate initialization state.
+  // first4[component*4 + slot] = pivot row index used for PivotMDS axes
+  // (-1 = unused slot).
   #initFirst4: Int32Array | undefined;
   #initComponent = 0;
   #initNodeCursor = 0;
@@ -1240,7 +1287,12 @@ class InitPhase {
     const jitterScale = this.#idealEdgeLength * this.#jitter;
     let work = 0;
 
+    // Treat unreachable / capped-out BFS distances (INF_DIST sentinel) as 0
+    // layout offset so PivotMDS axes still place nodes when a pivot row is
+    // missing or truncated.
     const distance = (d: number) => (d === INF_DIST ? 0 : d);
+    // #initFirst4 is assigned in #prepareCoordinates during the prepare→init
+    // transition; init phase never runs without it.
     const first4 = this.#initFirst4!;
 
     while (this.#initComponent < components.count && work < budget) {
@@ -1403,6 +1455,12 @@ class InitPhase {
  * per-pivot BFS rows → PivotMDS init (+ component packing). `tick` advances by a
  * bounded amount of work; the `result` carries the pivot distance matrix the
  * majorization term builder samples.
+ *
+ * @throws {Error} From the first `tick`/`run` call (not the constructor, since
+ * validation runs lazily in the `setup` phase) when `options.validate`
+ * (default `true`) is enabled and `input.n` is not a non-negative integer,
+ * `input.src`/`input.dst` differ in length, `input.x`/`input.y` are shorter
+ * than `input.n`, or an edge references a node id outside `[0, input.n)`.
  */
 export class StressAnalysis {
   readonly #n: number;
@@ -1565,6 +1623,18 @@ export class StressAnalysis {
     }
   }
 
+  /**
+   * Advances the phase machine by up to `maxWork` units. Returns `done:
+   * false` with partial progress when the wall-clock budget (`maxMs`) is hit
+   * before `maxWork` is exhausted. If a phase makes more than 64 consecutive
+   * zero-work transitions without changing phase, this returns early with
+   * `done: false` instead of throwing; callers must keep ticking or treat a
+   * stuck phase as fatal themselves ({@link StressAnalysis.run} throws in
+   * that situation).
+   *
+   * @throws {Error} The validation errors documented on
+   * {@link StressAnalysis} (first call only).
+   */
   tick(budget: StressAnalysisTickBudget = {}): StressAnalysisTickResult {
     const maxWork = assertPositive(
       Math.floor(budget.maxWork ?? 50_000),
@@ -1577,7 +1647,8 @@ export class StressAnalysis {
     let zeroWorkTransitions = 0;
 
     while (!this.#done && workDone < maxWork) {
-      // We need to make sure that we have done _some_ work
+      // Apply maxMs only after this tick has performed at least one work
+      // unit, so a single call always makes progress.
       if (workDone > 0 && now() - start >= maxMs) {
         break;
       }
@@ -1590,6 +1661,8 @@ export class StressAnalysis {
         zeroWorkTransitions = 0;
       } else {
         zeroWorkTransitions++;
+        // Bail after 64 no-progress ticks to avoid spinning when a phase
+        // cannot make forward work under the current budget.
         if (beforePhase === this.#phase || zeroWorkTransitions > 64) {
           break;
         }
@@ -1604,6 +1677,15 @@ export class StressAnalysis {
     };
   }
 
+  /**
+   * Runs the analysis to completion synchronously, ignoring any work or time
+   * budget.
+   *
+   * @throws {Error} The validation errors documented on
+   * {@link StressAnalysis} (first call only), or when a phase makes no
+   * progress for more than 64 consecutive steps (a stalled phase is a bug,
+   * not a valid outcome for `run`).
+   */
   run(): StressAnalysisResult {
     let zeroWorkTransitions = 0;
     while (!this.#done) {

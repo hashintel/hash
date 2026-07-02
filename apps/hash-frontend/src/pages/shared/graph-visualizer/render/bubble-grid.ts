@@ -31,9 +31,8 @@
  * channels the shader never samples (`.ba` of points, the pair's second
  * `.ba`) are left unwritten between frames.
  *
- * Storage is {@link Column}s (plain-buffer backing: the views feed deck
- * attribute uploads and the luma texture), reused across frames — this runs
- * per position frame while a layout settles. Hot loops go through
+ * Storage reuses grow-only {@link Column} buffers across frames; steady-state
+ * packing allocates only per-pack subarray views. Hot loops go through
  * `Column.raw`, so steady-state packing allocates nothing but the five
  * exact-length result views per pack. The reported texture height is
  * monotone (grow-only) so the layer's texture is not re-created every time
@@ -325,7 +324,8 @@ export class BubbleCellPacker {
         segmentRanges[instance * 2] = segmentRegionBase + segmentPairCursor * 2;
         segmentRanges[instance * 2 + 1] = segmentCounts[cell]!;
 
-        // Counts become scatter cursors (absolute texel indices).
+        // Prefix sums are complete; overwrite counts with absolute texel
+        // write cursors for the scatter passes.
         const pointStart = pointCursor;
         pointCursor += pointCounts[cell]!;
         pointCounts[cell] = pointStart;

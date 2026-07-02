@@ -30,7 +30,7 @@ interface Community {
   readonly color?: readonly [number, number, number, number];
 }
 
-/** Build packer inputs the way `community.ts` lays them out. */
+/** Build a {@link BubbleCellPack} mirroring production layout: ranges, segment slots, and point texels in gather order. */
 function makePack(communities: readonly Community[]): BubbleCellPack {
   const totalMembers = communities.reduce(
     (sum, community) => sum + community.members.length,
@@ -163,7 +163,7 @@ function expectFieldEquivalence(
     const minY = Math.min(...ys) - pad;
     const maxY = Math.max(...ys) + pad;
 
-    // This community's cells (bounds + colour match).
+    // Identify packed cells for this community via matching alpha channel.
     const cells: number[] = [];
     for (let cell = 0; cell < packed.cellCount; cell++) {
       if (packed.colors[cell * 4 + 3] === pack.colors[ci * 4 + 3]) {
@@ -271,7 +271,7 @@ describe("bubble grid packing, field equivalence", () => {
 
     expectFieldEquivalence(pack, packed);
 
-    // Every instance carries its own community's colour.
+    // cellCount partitions cleanly by community colour.
     let first = 0;
     let second = 0;
     for (let cell = 0; cell < packed.cellCount; cell++) {

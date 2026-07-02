@@ -1,3 +1,7 @@
+/**
+ * Growable typed-array columns with optional SharedArrayBuffer backing for
+ * worker/main-thread sharing or plain ArrayBuffer for GPU upload paths.
+ */
 type BackingBuffer = SharedArrayBuffer | ArrayBuffer;
 
 const sharedBufferAvailable = typeof SharedArrayBuffer !== "undefined";
@@ -53,7 +57,7 @@ export class ColumnView<A extends TypedArray, T extends number = number> {
     return this.#view.buffer as BackingBuffer;
   }
 
-  /** The typed array this view reads. */
+  /** The underlying typed array backing this read-only slice. */
   get view(): A {
     return this.#view;
   }

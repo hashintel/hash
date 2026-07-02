@@ -75,8 +75,8 @@ const EntityHoverCardBodyComponent = ({
   degree,
   onOpen,
 }: EntityHoverCardBodyProps) => {
-  // Resolve everything from the entity + type context, keyed on the entity so a cursor move
-  // over the same dot reuses it (the position rides x/y separately).
+  // Memoize label/type/property resolution on entity identity so pan frames only move
+  // the wrapper transform.
   const content = useMemo(() => {
     if (!closedMultiEntityTypesRootMap) {
       return null;

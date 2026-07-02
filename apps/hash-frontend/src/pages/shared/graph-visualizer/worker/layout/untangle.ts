@@ -48,7 +48,10 @@ export interface UntangleOptions {
   readonly confinementRadius: number;
   /** Deterministic seed so re-runs reproduce the layout. */
   readonly seed: number;
-  /** Anneal iterations per restart. Defaults to scale with N. */
+  /**
+   * Anneal iterations per restart. Default `min(4000, N·120)`; more
+   * iterations improve search quality at linear time cost.
+   */
   readonly iterations?: number;
   /** Independent annealing runs; the lowest-energy one wins. Defaults to 6. */
   readonly restarts?: number;
@@ -74,12 +77,17 @@ const THROUGH_CLEARANCE = 1.15;
  */
 const START_TEMP = 25;
 const DEFAULT_RESTARTS = 6;
-/** Above this node count, skip 2-opt swaps (the O(N²*|energy|) pass gets slow). */
+/**
+ * Skip the 2-opt polish pass above this node count (default 24). Below the
+ * cap, 2-opt removes crossings annealing cannot; above it, only annealing
+ * runs, so crossings may remain. Tradeoff: 2-opt is O(passes·N²·|energy|) and
+ * dominates runtime for larger N.
+ */
 const TWO_OPT_MAX_NODES = 24;
 /** Cap on 2-opt passes; it converges in a few full pairwise sweeps. */
 const TWO_OPT_PASSES = 4;
 
-/** Orientation sign of (a, b, c). */
+/** Returns the signed area of triangle (a,b,c); sign indicates clockwise vs counter-clockwise turn at b. */
 function orient(
   ax: number,
   ay: number,
@@ -109,7 +117,7 @@ function segmentsCross(
   return d1 * d2 < 0 && d3 * d4 < 0;
 }
 
-/** Squared distance from point (px,py) to segment (ax,ay)-(bx,by). */
+/** Returns squared Euclidean distance from p to the closed segment ab (clamped projection). */
 function pointSegmentDist2(
   px: number,
   py: number,
@@ -130,7 +138,7 @@ function pointSegmentDist2(
   return (px - qx) ** 2 + (py - qy) ** 2;
 }
 
-/** Ideal centre-to-centre distance for a linked pair. */
+/** Target centre distance for a linked pair: (r_a + r_b) × LINK_IDEAL_MUL. */
 function idealLinkDist(a: UntangleNode, b: UntangleNode): number {
   return (a.radius + b.radius) * LINK_IDEAL_MUL;
 }
@@ -148,7 +156,6 @@ function nodeEnergy(
   const node = nodes[i]!;
   let energy = 0;
 
-  // Crossings of i's incident edges against every other edge.
   for (const ie of incident) {
     const [a, b] = edges[ie]!;
     const ax = nodes[a]!.x;
@@ -181,7 +188,6 @@ function nodeEnergy(
     }
   }
 
-  // i's incident edges passing through any other node.
   for (const ie of incident) {
     const [a, b] = edges[ie]!;
     const ax = nodes[a]!.x;
@@ -202,7 +208,8 @@ function nodeEnergy(
     }
   }
 
-  // Any edge (not incident to i) passing through node i.
+  // Through-node penalty is symmetric: count edges piercing i's disk whether
+  // or not i is an endpoint.
   const clearI = node.radius * THROUGH_CLEARANCE;
   for (let je = 0; je < edges.length; je++) {
     const [c, d] = edges[je]!;
@@ -224,7 +231,6 @@ function nodeEnergy(
     }
   }
 
-  // i overlapping other nodes.
   for (let k = 0; k < nodes.length; k++) {
     if (k === i) {
       continue;
@@ -236,7 +242,6 @@ function nodeEnergy(
     }
   }
 
-  // Linked-pairs-too-far: pull i toward the clusters it links to.
   for (const ie of incident) {
     const [a, b] = edges[ie]!;
     const other = nodes[a === i ? b : a]!;
@@ -261,13 +266,13 @@ function totalEnergy(
 ): number {
   let energy = 0;
 
-  // Crossings: each unordered edge pair once.
   for (let ie = 0; ie < edges.length; ie++) {
     const [a, b] = edges[ie]!;
     const ax = nodes[a]!.x;
     const ay = nodes[a]!.y;
     const bx = nodes[b]!.x;
     const by = nodes[b]!.y;
+    // je starts at ie+1 so each unordered pair is charged once.
     for (let je = ie + 1; je < edges.length; je++) {
       const [c, d] = edges[je]!;
       if (c === a || c === b || d === a || d === b) {
@@ -290,7 +295,6 @@ function totalEnergy(
     }
   }
 
-  // Edge-through-node: each edge against each non-endpoint node.
   for (let ie = 0; ie < edges.length; ie++) {
     const [a, b] = edges[ie]!;
     const ax = nodes[a]!.x;
@@ -311,7 +315,6 @@ function totalEnergy(
     }
   }
 
-  // Overlap + compactness over each node; links over each edge once.
   for (let i = 0; i < nodes.length; i++) {
     const node = nodes[i]!;
     for (let k = i + 1; k < nodes.length; k++) {
@@ -351,7 +354,7 @@ function confine(node: UntangleNode, confinementRadius: number): void {
   }
 }
 
-/** One simulated-annealing descent over the current node positions, in place. */
+/** Runs one annealing pass with cooling temperature and step scale; mutates positions in place. */
 function annealOnce(
   nodes: UntangleNode[],
   edges: readonly (readonly [number, number])[],
@@ -388,7 +391,7 @@ function annealOnce(
     const after = nodeEnergy(i, nodes, edges, incident[i]!);
     const delta = after - before;
 
-    // Accept improvements always; uphill moves with annealing probability.
+    // Metropolis: reject uphill moves whose acceptance draw exceeds exp(-delta / temperature).
     if (delta > 0 && rng() >= Math.exp(-delta / Math.max(1e-3, temperature))) {
       node.x = oldX;
       node.y = oldY;
@@ -441,6 +444,13 @@ function twoOptSwaps(
   }
 }
 
+/**
+ * Minimises crossings, edge-through-node, overlap, and stretch for small
+ * graphs via multi-restart simulated annealing plus optional 2-opt polish.
+ * Mutates node positions in place; no-op when N < 3 or there are no edges.
+ * Warm-start positions seed restart 0 only. 2-opt runs only when
+ * N ≤ TWO_OPT_MAX_NODES (default 24).
+ */
 export function untangleLayout(
   nodes: UntangleNode[],
   options: UntangleOptions,
@@ -451,7 +461,6 @@ export function untangleLayout(
     return;
   }
 
-  // Per-node incident-edge index lists.
   const incident: number[][] = Array.from({ length: count }, () => []);
   for (let e = 0; e < edges.length; e++) {
     const [a, b] = edges[e]!;
@@ -463,7 +472,8 @@ export function untangleLayout(
   const iterations = options.iterations ?? Math.min(4000, count * 120);
   const rng = mulberry32(seed);
 
-  // The warm-start init the caller positioned `nodes` at (force / SMACOF).
+  // Snapshot incoming positions as restart-0 seed (force layout, SMACOF, or
+  // any prior placement).
   const init = nodes.map((node) => ({ x: node.x, y: node.y }));
   let extent = 0;
   for (const node of init) {
@@ -511,9 +521,9 @@ export function untangleLayout(
     nodes[i]!.y = best[i]!.y;
   }
 
-  // Polish the best result with 2-opt position swaps. For the small N at the
-  // cluster level this removes the crossings the single-node annealing only
-  // nudges at (a swap un-crosses what a nudge can't).
+  // 2-opt is the only step that can eliminate multi-edge crossing patterns;
+  // gated to N ≤ TWO_OPT_MAX_NODES (see constant), so above that cap the
+  // returned layout may still cross.
   if (count <= TWO_OPT_MAX_NODES) {
     twoOptSwaps(nodes, edges);
   }

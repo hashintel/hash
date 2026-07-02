@@ -2,11 +2,12 @@
  * Embedding-driven subdivision and cluster naming.
  *
  * When a subdivision produces deterministic entity buckets, this requests a
- * server-side embedding clustering (drained by entry.ts after each frame
- * dispatch) and, when the result lands, replaces the buckets with the
- * embedding groups. Both bucket and embedding children get distinctive-
- * feature names computed off the job scheduler, so the placeholder commit
- * paints first and the relabel lands as a label-only re-emit.
+ * server-side embedding clustering (requests are drained after each
+ * structure frame dispatch) and, when the result lands, replaces the
+ * buckets with the embedding groups. Both bucket and embedding children get
+ * distinctive-feature names computed off the job scheduler, so the
+ * placeholder commit paints first and the relabel lands as a label-only
+ * re-emit.
  */
 import { ClusterId } from "../../../ids";
 import { createClusterFeatureSource } from "../../hierarchy/cluster-feature-source";
@@ -48,7 +49,7 @@ export class EmbeddingCoordinator {
     this.#dependencies = dependencies;
   }
 
-  /** Drain pending embedding requests. Called by entry.ts after frame dispatch. */
+  /** Returns and clears embedding-clustering requests queued during subdivision. */
   drainRequests(): EmbeddingClusteringNeededMessage[] {
     if (this.#pendingRequests.length === 0) {
       return [];
@@ -133,6 +134,8 @@ export class EmbeddingCoordinator {
       let matched = 0;
 
       for (const rawId of embeddingCluster.entityIds) {
+        // Embedding payloads carry string EntityIds; cast matches the store
+        // lookup key type. Unknown ids are dropped below.
         const entityIdx = entities.lookup(rawId as EntityId);
         if (entityIdx !== undefined) {
           scratch[matched] = entityIdx;

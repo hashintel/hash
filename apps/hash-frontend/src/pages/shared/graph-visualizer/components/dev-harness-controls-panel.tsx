@@ -1,7 +1,7 @@
 /**
- * The floating controls panel for the dev harness: sliders for the fixture knobs, the streaming
- * toggle and its chunk controls, and the Regenerate button. Pure presentation -- it reads the
- * current knob values and reports changes up; the harness owns the state and the fixture.
+ * Floating panel of fixture and streaming knobs for the dev harness: sliders for the
+ * fixture knobs, the streaming toggle and its chunk controls, and the Regenerate
+ * button.
  */
 import { Box, Slider, Stack, Switch, Typography } from "@mui/material";
 import { memo, useState } from "react";
@@ -33,9 +33,8 @@ interface ControlsPanelProps {
   readonly onChange: (knobs: HarnessKnobs) => void;
   readonly onRegenerate: () => void;
   /**
-   * capture-live-fixture debug hook: serialize the live layout graph to a
-   * downloadable JSON fixture (replayable via bench-fixtures.ts). Absent when
-   * no worker handle is live yet.
+   * Optional callback: download the live layout as replayable JSON. Omitted
+   * until a worker handle exists.
    */
   readonly onCaptureFixture?: () => void;
   /**
@@ -87,6 +86,7 @@ const KnobSlider = memo(
         step={step}
         disabled={disabled}
         onChange={(_event, next) => {
+          // MUI Slider onChange passes number for a single-thumb slider.
           onChange(Array.isArray(next) ? next[0]! : next);
         }}
       />

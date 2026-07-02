@@ -21,6 +21,8 @@ export const nodeIdForEntityIndex = (entityIdx: EntityIndex): string =>
   String(entityIdx);
 
 export const entityIndexFromNodeId = (nodeId: string): EntityIndex =>
+  // nodeId is always String(entityIdx) from nodeIdForEntityIndex; Number round-trips
+  // safely for layout-sized indices.
   Number(nodeId) as EntityIndex;
 
 export type LinkId = Branded<number, "LinkId">;

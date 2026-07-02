@@ -29,9 +29,9 @@ export class TypeSetGroup {
   readonly standaloneClusterId: ClusterId;
 
   readonly #entities: Column<Int32Array, EntityIndex>;
-  /** Union of ancestor closures of all direct types. Used for merge-target lookup. */
+  /** Union of ancestor closures of all direct types; identifies candidate merge targets by type overlap. */
   #closure: BitSet<TypeId>;
-  /** Incremented on entity add; used for change detection. */
+  /** Monotonic counter bumped on each entity add so cluster assignment can detect membership changes without scanning entities. */
   #version = 0;
   /**
    * The cluster that currently owns this group's entities:

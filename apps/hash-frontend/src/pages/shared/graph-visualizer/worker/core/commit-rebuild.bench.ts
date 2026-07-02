@@ -3,7 +3,7 @@
  * the real {@link GraphWorker} exactly as `entry.ts` does (ingest -> commit).
  *
  * Two questions:
- * - `no-op re-commit`: how much work does a commit do when NOTHING changed?
+ * - `no-op re-commit`: how much work does a commit do when nothing changed?
  * (`recomputeMode` + `#allNodeEntityIdxs` sort + topology rescan + `#writeFlatStyle`
  * + `#buildFlatRenderEdges`, or the hierarchical cut recompute + frame rebuild.)
  * A no-op should be near-free; anything else is per-commit waste on every batch.
@@ -16,7 +16,7 @@
  * the process down after the run, so no scheduler cleanup is needed here.
  *
  * Run: `cd apps/hash-frontend && ../../node_modules/.bin/vitest bench --run \
- * src/pages/shared/graph-visualizer-2/worker/core/commit-rebuild.bench.ts`
+ * src/pages/shared/graph-visualizer/worker/core/commit-rebuild.bench.ts`
  */
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { bench, describe } from "vitest";
@@ -39,7 +39,7 @@ const FRESH_WORKER_OPTS = {
 } as const;
 
 const IGNORE = (): void => {
-  // Benchmarks discard the worker's output frames / layout messages.
+  // Suppress frame/layout callbacks so vitest measures commit cost only.
 };
 
 function newWorker(typeCount: number): GraphWorker {
@@ -143,8 +143,8 @@ describe(`ingest ${STREAM_SHAPE.nodeCount} nodes / ${STREAM_SHAPE.linkCount} lin
     FRESH_WORKER_OPTS,
   );
 
-  // The pre-coalescing streaming tax (one commit per batch), kept as the
-  // baseline the coalesced row below is judged against.
+  // Uncoalesced streaming baseline: one commit per batch, representing the
+  // per-commit O(N) tax coalescing is meant to reduce.
   bench(
     `streaming, uncoalesced: ${STREAM_BATCH}-entity batches + commit each`,
     () => {
@@ -163,11 +163,11 @@ describe(`ingest ${STREAM_SHAPE.nodeCount} nodes / ${STREAM_SHAPE.linkCount} lin
     FRESH_WORKER_OPTS,
   );
 
-  // What entry.ts actually does now: per-batch ingest, commits routed through
-  // the CommitCoalescer. The bench body is synchronous, so the MessageChannel
-  // drain never fires mid-run and the batch-count cap paces the commits. The
-  // WORST coalescing case (a saturated queue); real gaps only commit less
-  // often. The explicit trailing flush() is the test-visible drain hook.
+  // Coalesced streaming path: per-batch ingest with commits routed through
+  // CommitCoalescer. This synchronous bench never delivers the MessageChannel
+  // drain mid-run, so the batch-count cap paces commits (worst-case saturated
+  // queue). Real inter-batch gaps commit less often. The trailing flush()
+  // stands in for the drain hook.
   bench(
     `streaming, coalesced: ${STREAM_BATCH}-entity batches through CommitCoalescer`,
     () => {

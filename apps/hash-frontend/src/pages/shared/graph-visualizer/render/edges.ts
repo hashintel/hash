@@ -82,10 +82,8 @@ export function edgeLayer(positions: PositionsFrame, isFlat: boolean): Layer[] {
     ];
   }
 
-  // Halo + core in one layer: the underlay used to be a second full
-  // BezierSDFLayer, which ran the per-fragment curve solve twice over
-  // overlapping (wider-padded) quads. The layer's haloWidthFactor folds the
-  // wide soft band into the same fragment evaluation.
+  // Halo + core share one SDF evaluation; haloWidthFactor widens the stroke
+  // band in the same fragment pass instead of drawing a second padded quad.
   return [
     new BezierSDFLayer({
       id: "hierarchical-edges",

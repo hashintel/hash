@@ -71,8 +71,7 @@ export function updatePlaced(
   }
 }
 
-/** Cluster bubble layer. Position re-uploads on tick; radius on structure change;
- * colour on highlight change. */
+/** Renders hierarchical cluster bubbles as pickable scatterplot instances with depth-based fill and highlight dimming. */
 export function clusterBubbleLayer(
   placed: PlacedCluster[],
   positionTick: number,
@@ -129,13 +128,15 @@ export function clusterEntityLayers(config: {
   // same lookup the dots' colours use, so a line dims exactly when its endpoints' dots do.
   const nodeHighlighted = (ref: ClusterReference, local: number): boolean => {
     const id = ref.nodeIds[local];
+    // nodeIds store entityIdx as decimal strings allocated by the worker;
+    // Number() is exact below 2^53.
     return (
       id !== undefined && highlightedEntities.has(Number(id) as EntityIndex)
     );
   };
   const clusterPositions = positions.clusterPositions;
-  // Fan-out feeder endpoints are positional (they ride the positions frame, keyed by leaf
-  // id), not the structure. Build a quick lookup for the loop.
+  // Fan-out geometry lives on PositionsFrame, not StructureFrame; index by
+  // layoutId once.
   const fanOutByLeaf = new Map<ClusterId, Float32Array>();
   for (const entry of positions.entityFanOut) {
     fanOutByLeaf.set(entry.layoutId, entry.fanOut);

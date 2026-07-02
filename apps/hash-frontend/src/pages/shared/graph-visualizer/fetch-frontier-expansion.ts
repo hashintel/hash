@@ -1,3 +1,7 @@
+/**
+ * GraphQL fetch for one frontier-expansion step: expanded nodes plus link endpoints
+ * and the type maps needed to register them.
+ */
 import { getLatestEntityVertices } from "@blockprotocol/graph/stdlib";
 import { deserializeQueryEntitySubgraphResponse } from "@local/hash-graph-sdk/entity";
 import {
@@ -47,11 +51,18 @@ export interface FrontierExpansion {
 }
 
 /**
- * Imperatively fetch the neighbourhood of a set of frontier nodes, to feed the worker's additive
- * ingest (the whole point of incremental loading). Deliberately a plain async function, not a
- * reactive hook: it has no React-state dependencies, and a reactive query here would fight the
- * additive model. Each id is rooted via {@link generateEntityIdFilter}, so every expanded node
- * brings its links + endpoints.
+ * Fetches the neighbourhood of a set of frontier nodes to feed the worker's additive
+ * ingest (the whole point of incremental loading).
+ *
+ * Deliberately a plain async function, not a reactive hook: it has no React-state
+ * dependencies, and a reactive query here would fight the additive model. Each id is
+ * rooted via {@link generateEntityIdFilter}, so every expanded node brings its links
+ * and endpoints back in the same response.
+ *
+ * @returns `undefined` only when `entityIds` is empty; otherwise the fetched
+ * expansion (which may itself carry no new entities).
+ * @throws Propagates Apollo/network and GraphQL errors from the underlying query;
+ * callers are responsible for catching and surfacing them.
  */
 export async function fetchFrontierExpansion(
   entityIds: readonly EntityId[],
@@ -65,6 +76,8 @@ export async function fetchFrontierExpansion(
     QueryEntitySubgraphQueryVariables
   >({
     query: queryEntitySubgraphQuery,
+    // network-only: frontier expansion must reflect server state after prior
+    // ingests, not a cached subgraph.
     fetchPolicy: "network-only",
     variables: {
       request: {

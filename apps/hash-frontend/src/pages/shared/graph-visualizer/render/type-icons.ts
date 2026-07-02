@@ -45,7 +45,7 @@ interface TypeIconLayerParams {
   readonly atlas: IconAtlas;
   /** The GPU device the atlas texture must be built on (the Deck instance's device). */
   readonly device: Device;
-  /** Per-render-index atlas key, or null for "no icon" (built by the Scene's icon-data scan). */
+  /** Per-render-index atlas key, or null when the entity has no icon (index-aligned with flat buffer records). */
   readonly names: readonly (string | null)[];
   /** Version of {@link names}; combined with the atlas version drives the getIcon trigger. */
   readonly namesVersion: number;
@@ -96,7 +96,7 @@ export function typeIconLayer({
             stride: FLAT_RECORD_BYTES,
             offset: FLAT_HEADER_BYTES,
           },
-          // The dot RADIUS feeds getSize; sizeScale below turns radius into the icon diameter.
+          // getSize reads dot radius; sizeScale converts radius to icon diameter in common units.
           getSize: {
             value: floats,
             size: 1,
@@ -145,10 +145,7 @@ interface LeafTypeIconLayersParams {
   readonly atlas: IconAtlas;
   /** The GPU device the atlas texture must be built on (the Deck instance's device). */
   readonly device: Device;
-  /**
-   * Per open leaf (keyed by `layoutId`), the per-local-index atlas key (or null for none), built by
-   * the Scene's icon-data scan -- index-aligned with the leaf's SAB records / dots.
-   */
+  /** Per open leaf, per-local-index atlas key (or null); index-aligned with the leaf SAB records. */
   readonly namesByLeaf: ReadonlyMap<ClusterId, readonly (string | null)[]>;
   /** Version of {@link namesByLeaf}; with the atlas version drives the getIcon trigger. */
   readonly namesVersion: number;

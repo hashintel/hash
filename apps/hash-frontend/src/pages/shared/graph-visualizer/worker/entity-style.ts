@@ -40,7 +40,11 @@ const EDGE_NEUTRAL: Color = [...graphColors.fallbackEntity];
 /** Colour for a frontier node (fetched link endpoint, not itself a query root). */
 export const FRONTIER_COLOR: Color = [...graphColors.frontier];
 
-/** Uniform entity-dot radius as a fraction of the parent bubble radius. */
+/**
+ * Entity-dot radius as a fraction of the parent bubble radius (currently
+ * 0.02). Lower values keep dense leaves readable; higher values make
+ * individual dots dominate the bubble.
+ */
 export const ENTITY_RADIUS_FRACTION = 0.02;
 
 function slotHue(
@@ -78,7 +82,11 @@ export function primaryTypeOfSet(
   return best;
 }
 
-/** Colour for a type. Falls back to neutral grey when the type or its root is unknown. */
+/**
+ * Maps a type to an OKLCH RGBA dot colour from its root hue slot, depth
+ * shading, and sibling jitter; returns neutral grey when the type or root
+ * slot is missing.
+ */
 export function colorForType(
   typeIdx: TypeId | undefined,
   types: TypeRegistry,
@@ -96,7 +104,6 @@ export function colorForType(
   }
   const depth = Math.min(info.depth, MAX_SHADE_DEPTH);
 
-  // Hash-based jitter separates same-depth siblings within a family hue.
   const fraction = murmur3StringUnit(extractBaseUrl(info.url));
 
   const jitter = (fraction - 0.5) * 2 * SIBLING_JITTER;

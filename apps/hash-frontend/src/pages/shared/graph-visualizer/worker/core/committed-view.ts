@@ -32,11 +32,16 @@ export class CommittedView {
   committedClusterEpoch = -1;
   committedLinkCount = -1;
 
-  /** Replace the visible set and rebuild the id-to-position index. */
+  /**
+   * Atomically swaps the committed visible-cluster list and rebuilds
+   * {@link renderedIndex} so cluster ids index-align with position buffers.
+   */
   replaceRendered(rendered: RenderedEntry[]): void {
     this.rendered = rendered;
     this.renderedIndex.clear();
     for (let idx = 0; idx < rendered.length; idx++) {
+      // rendered is built contiguously by callers; idx is always in range
+      // and entries are non-null.
       this.renderedIndex.set(rendered[idx]!.node.id, idx);
     }
   }

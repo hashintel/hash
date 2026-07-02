@@ -1,7 +1,6 @@
 /**
- * React mount for {@link Scene}: owns the container and loading overlay while
- * Scene holds all rendering state and behavior. The entity hover card is owned
- * by the parent bridge.
+ * Mounts the Deck.gl {@link Scene} in a container, shows a loading overlay until
+ * the first structure frame, and wires zoom/fit controls.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 

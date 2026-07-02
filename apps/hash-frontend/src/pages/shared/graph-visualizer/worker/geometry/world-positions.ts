@@ -19,9 +19,9 @@ export function syncWorldPositions(
 ): void {
   const visit = (cluster: ClusterNode): void => {
     const layout = layoutFor(cluster.id);
-    // A "clusters" layout whose node set still matches the children positions
-    // those children; anything else (entity layout, stale/mismatched layout, a
-    // closed cluster with no layout) leaves the children as-is and we stop.
+    // Apply only when this cluster has a matching clusters layout (same child
+    // count); entity layouts, stale layouts, and closed clusters leave
+    // existing world circles unchanged for this subtree.
     if (
       layout &&
       isClusterLayout(cluster.id) &&
@@ -31,6 +31,7 @@ export function syncWorldPositions(
         cluster.children.map((child) => [child.id, child]),
       );
       for (const node of layout.nodes) {
+        // ForceSimulation node ids are ClusterId strings for cluster layouts.
         const child = childById.get(node.id as ClusterId);
         if (child) {
           child.circle.x = cluster.circle.x + (node.x ?? 0);

@@ -1,7 +1,7 @@
 /**
  * Per-dot type-icon atlas keys for both tiers, index-aligned with each
  * layout's render records. Fires only on a structure/resolver change, and the
- * scan is INCREMENTAL on the streaming path (R2): the flat SAB is append-only
+ * scan is incremental on the streaming path: the flat SAB is append-only
  * (see below), so a structure frame that only grew resolves icons for the
  * added tail `[prevCount, count)` and keeps the cached prefix. The icon
  * layers read the cached arrays (keyed by a version) every layer build.
@@ -70,7 +70,7 @@ export class EntityIcons {
     return this.#version;
   }
 
-  /** Flat records resolved so far (the cached prefix length). Test/diagnostic hook. */
+  /** Number of flat-tier records whose icon keys have been resolved (the reusable prefix length). */
   get flatScannedCount(): number {
     return this.#flatScannedCount;
   }
@@ -101,7 +101,7 @@ export class EntityIcons {
 
     const keys = new Set<string>();
 
-    // Resolve records [from, to) of a layout SAB to their icon keys (index-aligned with the dots).
+    // Only the tail [from, to) is scanned; the prefix is index-aligned with the layout SAB.
     const scanRange = (
       layoutId: ClusterId,
       from: number,

@@ -34,18 +34,18 @@ describe("viewportAnchorWeight", () => {
     expect(w2).toBeGreaterThan(w3);
   });
 
-  it("strengthens the centre pin as you zoom in (the fix)", () => {
-    // Same bubble, dead centre, viewed at increasing zoom: it must be pinned
-    // harder so its SCREEN movement doesn't balloon.
+  it("strengthens the centre pin as you zoom in", () => {
+    // Same centred bubble at increasing zoom must pin harder so
+    // screen-space movement stays bounded.
     const atZoom0 = viewportAnchorWeight(0, 0, viewportAt(0));
     const atZoom4 = viewportAnchorWeight(0, 0, viewportAt(4));
     expect(atZoom4).toBeGreaterThan(atZoom0 * 8);
   });
 
   it("holds the centre's SCREEN movement ~constant across zoom-in", () => {
-    // World wobble ~ 1/weight, screen wobble ~ scale/weight. With the zoom
-    // amplification this proxy stays ~flat; WITHOUT it (weight capped at 1) it
-    // would grow with scale (1, 4, 16, ...). Assert it barely varies.
+    // World wobble ~ 1/weight, screen wobble ~ scale/weight. With zoom
+    // amplification the screen-movement proxy stays ~flat; a weight cap at 1
+    // would let it grow with scale (1, 4, 16, ...). Assert it barely varies.
     const proxies = [0, 1, 2, 3, 4, 5].map((zoom) => {
       const scale = 2 ** zoom;
       return scale / viewportAnchorWeight(0, 0, viewportAt(zoom));

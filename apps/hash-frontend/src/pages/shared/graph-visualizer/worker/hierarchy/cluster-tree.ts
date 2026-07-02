@@ -18,6 +18,15 @@ function stableHashToAngle(id: string): number {
   return murmur3StringUnit(id) * 2 * Math.PI;
 }
 
+/**
+ * Display label for a cluster, plus the classification metadata behind it.
+ *
+ * `primaryType` is the type that decided the label, or `null` for generic
+ * rollup labels ("All entities", "More", "Mixed entities"). `coverage` is
+ * the fraction of the cluster's mass covered by `primaryType`; `isMixed`
+ * marks labels below the "clean" coverage threshold, shown to the user
+ * with a "Mostly " prefix.
+ */
 export class ClusterLabel {
   readonly text: string;
   readonly primaryType: TypeId | null;
@@ -37,6 +46,15 @@ export class ClusterLabel {
   }
 }
 
+/**
+ * Per-cluster accumulator of type membership counts, tracked as `direct`
+ * (only a group's own type ids) and `closure` (direct types plus their
+ * ancestors) mass.
+ *
+ * Labeling reads these maps to find the type that best explains a
+ * cluster; `absorb` merges another cluster's mass in when subtrees are
+ * rolled up into a family node.
+ */
 export class ClusterMass {
   readonly direct = new Map<TypeId, number>();
   readonly closure = new Map<TypeId, number>();
@@ -90,8 +108,29 @@ interface DirectMembership {
   readonly members: Column<Int32Array, EntityIndex>;
 }
 
+/**
+ * How a cluster's entity membership is tracked. `"groups"` clusters
+ * (type-set rollups, families) reference their member type-set keys and
+ * recompute mass from the live {@link TypeSetStore}; `"direct"` clusters
+ * (embedding and community children) hold a materialized column of entity
+ * indices instead. `ClusterNode.addGroupMass`, `removeGroupMass`, and
+ * `incrementGroupMass` only take effect on `"groups"` nodes.
+ */
 export type ClusterMembership = GroupMembership | DirectMembership;
 
+/**
+ * A node in the cluster hierarchy: an id, a `kind` discriminant, its own
+ * type mass, a live `count`, an ordered list of `children`, and a
+ * `circle` used for layout.
+ *
+ * `parent` is stored as a `WeakRef` so a node removed from the tree's
+ * registry can be garbage-collected even while a stale sibling or child
+ * reference still points at it; use `addChild`/`removeChild` rather than
+ * mutating `children` directly so `parent` stays consistent with the tree
+ * shape. `count` on `"direct"`-membership nodes is set directly by the
+ * caller that materializes the node, not through the mass-mutation
+ * methods above.
+ */
 export class ClusterNode {
   readonly id: ClusterId;
   readonly kind: ClusterKind;
@@ -172,6 +211,11 @@ export class ClusterNode {
   }
 }
 
+/**
+ * One type-set's count change for {@link ClusterTree.updateIncrementally}.
+ * `previousCount` is the count before this delta was applied, used to
+ * detect a small group crossing the standalone-promotion threshold.
+ */
 export interface IngestDelta {
   readonly groupKey: TypeSetKey;
   readonly delta: number;
@@ -185,12 +229,19 @@ function stableSortNodes(nodes: ClusterNode[]): ClusterNode[] {
   );
 }
 
-/** Area-proportional radius: sqrt(count) * k. */
+/**
+ * Leaf radius: `sqrt(count) * RADIUS_PER_SQRT_COUNT` (default 5). Higher
+ * values enlarge all bubbles proportionally; lower values increase
+ * overlap risk in force layout.
+ */
 const RADIUS_PER_SQRT_COUNT = 5;
+/** Minimum leaf radius (default 8) regardless of count, so tiny clusters stay clickable. */
 const LEAF_MIN_RADIUS = 8;
 /** Larger floor so singleton-type top-level bubbles stay clickable. */
 const TOP_LEVEL_MIN_RADIUS = 15;
+/** Minimum gap (default 2) enforced between sibling circles in {@link enclosingRadius}. */
 const ENCLOSE_GAP = 2;
+/** Extra margin (default 3) added on top of the enclosing fit so force layout has room to settle children without clipping. */
 const ENCLOSE_PADDING = 3;
 
 /**
@@ -206,10 +257,13 @@ export function enclosingRadius(radii: readonly number[], gap: number): number {
     return 0;
   }
   if (count === 1) {
+    // count === 1 guarantees radii[0] exists.
     return radii[0]!;
   }
   const sorted = [...radii].sort((left, right) => right - left);
   // The two largest children could end up adjacent, size for that worst case.
+  // count >= 2 here guarantees sorted[0] and sorted[1] exist after the
+  // descending sort.
   const widestPair = sorted[0]! + sorted[1]! + gap;
   if (count === 2) {
     return widestPair;
@@ -274,6 +328,7 @@ function distinctiveLabel(
   totalClusters: number,
   types: TypeRegistry,
 ): ClusterLabel {
+  // "other" clusters are heterogeneous; accept lower type coverage.
   const minCoverage = cluster.kind === "other" ? 0.35 : 0.5;
 
   const candidate =
@@ -289,6 +344,9 @@ function distinctiveLabel(
       cluster,
       cluster.mass.closure,
       closureDf,
+      // Closure mass is inherited from ancestor types, a weaker signal
+      // than direct membership; require majority coverage regardless of
+      // cluster kind.
       0.5,
       totalClusters,
       types,
@@ -297,6 +355,7 @@ function distinctiveLabel(
   if (candidate) {
     const info = types.get(candidate.typeIdx);
     const title = info?.title ?? "Unknown";
+    // Prefix "Mostly" and set isMixed when coverage is below 0.65.
     const prefix = candidate.coverage < 0.65 ? "Mostly " : "";
     return new ClusterLabel(
       `${prefix}${title}`,
@@ -333,6 +392,8 @@ function findMergeTarget(
   for (const anchor of candidates.values()) {
     const rawJaccard = small.closure.jaccard(anchor.closure);
     const directSuperset = small.directTypeIds.isSubsetOf(anchor.directTypeIds);
+    // Prefer anchors whose direct types are a superset of the small
+    // group's, even when Jaccard is tied.
     const adjustedScore = rawJaccard + (directSuperset ? 0.1 : 0);
 
     if (
@@ -420,6 +481,20 @@ function siblingTint(cluster: ClusterNode): number {
   return (index / (count - 1) - 0.5) * SUBCLUSTER_HUE_SPAN_DEG;
 }
 
+/**
+ * Returns the RGBA fill color for a cluster's bubble.
+ *
+ * Hue derives from the primary type's color slot, spread by the golden
+ * angle (`CLUSTER_GOLDEN_ANGLE_DEG` = 137.508°) so sibling root types
+ * stay visually distinct. Clusters that inherit their label from an
+ * ancestor (no distinctive type of their own) additionally shift hue via
+ * `siblingTint`, spreading up to `SUBCLUSTER_HUE_SPAN_DEG` (18°) across
+ * siblings so an inherited family reads as related bubbles. Mixed or
+ * low-coverage clusters (`isMixed`, or coverage below 0.55) desaturate
+ * toward gray; depth and inheritance both reduce alpha and adjust
+ * lightness so nested and inherited bubbles recede behind their more
+ * distinctive ancestors.
+ */
 export function colorForCluster(
   cluster: ClusterNode,
   types: TypeRegistry,
@@ -514,7 +589,11 @@ export class ClusterTree {
     return sum;
   }
 
-  /** Human-readable dump of the whole tree, indented by depth. */
+  /**
+   * Returns an indented debug string of the full tree (label, count,
+   * kind, radius, child count, id). For diagnostics only; not stable
+   * across versions.
+   */
   debugDump(): string {
     const lines: string[] = [];
     const visit = (node: ClusterNode, depth: number): void => {
@@ -531,7 +610,14 @@ export class ClusterTree {
     return lines.join("\n");
   }
 
-  /** Full rebuild pipeline. Cold-start path for the first ingest batch. */
+  /**
+   * Full rebuild pipeline: reclassifies type-sets, clears the tree,
+   * materializes clusters, recomputes labels, rebuilds the display
+   * hierarchy, and lays out top-level radii.
+   *
+   * Replaces all prior nodes; use {@link ClusterTree.updateIncrementally}
+   * after the first batch.
+   */
   rebuild(
     typeSets: TypeSetStore,
     types: TypeRegistry,
@@ -550,8 +636,15 @@ export class ClusterTree {
   }
 
   /**
-   * Incremental update. Handles count growth, new groups,
-   * threshold promotion, and re-targeting of small groups.
+   * Incremental update. Handles count growth, new groups, threshold
+   * promotion, and re-targeting of small groups.
+   *
+   * Nodes left at count 0 after applying deltas are unregistered; dirty
+   * nodes are relabeled via {@link distinctiveLabel}; counts propagate up
+   * to the root ancestors of every touched node. When a delta triggers a
+   * structural change (promotion, re-targeting, a new group, or a node
+   * emptying out), family rollup nodes are cleared and the display
+   * hierarchy is rebuilt from scratch before layout runs.
    */
   updateIncrementally(
     deltas: readonly IngestDelta[],
@@ -669,8 +762,12 @@ export class ClusterTree {
   }
 
   /**
-   * Synchronously subdivide a leaf cluster via community detection.
-   * Returns true if children were created.
+   * Synchronously subdivides a leaf cluster via community detection.
+   *
+   * Returns `false` without mutating the tree when `node.count` is at or
+   * below `config.entityRevealMax`, the node already has children, or
+   * community detection yields fewer than two groups. On success,
+   * registers the new children and lays them out inside `node`.
    */
   ensureSubclusters(
     node: ClusterNode,
@@ -738,8 +835,11 @@ export class ClusterTree {
       return;
     }
 
-    // No results (e.g. missing embeddings): keep deterministic
-    // partition and don't retry.
+    // When embedding subdivision returns no assignments, leave existing
+    // entity-bucket children in place. The subdivision request stays
+    // consumed (see markSubdivisionRequested), so the worker will not
+    // retry until the cluster is rebuilt or the tree is reset; callers
+    // must treat empty results as a terminal fallback to coarse buckets.
     if (childAssignments.length === 0) {
       return;
     }
@@ -751,6 +851,8 @@ export class ClusterTree {
         Int32Array,
         memberIdxs.length,
       );
+      // memberIdxs originate from entity index columns; branding matches
+      // EntityIndex.
       for (const idx of memberIdxs) {
         members.push(idx as EntityIndex);
       }
@@ -771,8 +873,8 @@ export class ClusterTree {
   }
 
   /**
-   * Replace a node's label text. Safe to call on embedding or community
-   * nodes: their labels are not overwritten by `#computeLabels`.
+   * Sets a cluster's display label. Embedding and community nodes keep
+   * this text across `#computeLabels` / `#relabelDirty` passes.
    */
   setLabelText(id: ClusterId, text: string): void {
     const node = this.#nodes.get(id);
@@ -1063,6 +1165,7 @@ export class ClusterTree {
 
     for (const [rootTypeIdx, bucketNodes] of buckets) {
       if (bucketNodes.length === 1) {
+        // bucketNodes.length === 1 in this branch.
         topLevel.push(bucketNodes[0]!);
         continue;
       }
@@ -1144,6 +1247,7 @@ export class ClusterTree {
     this.#assignRadii();
 
     for (let idx = 0; idx < children.length; idx++) {
+      // idx iterates 0..children.length-1.
       const child = children[idx]!;
       child.circle.radius = Math.max(TOP_LEVEL_MIN_RADIUS, child.circle.radius);
     }
@@ -1171,6 +1275,9 @@ export class ClusterTree {
     const totalCount = children.reduce((sum, child) => sum + child.count, 0);
 
     for (const child of children) {
+      // Scale child radius by sqrt(count share) of parent, capped at
+      // LEAF_MIN_RADIUS (8); 0.6 leaves margin for force-layout gaps
+      // inside the parent.
       child.circle.radius = Math.max(
         8,
         parent.circle.radius * Math.sqrt(child.count / totalCount) * 0.6,

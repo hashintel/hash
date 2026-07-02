@@ -95,8 +95,9 @@ export function frontierCount(
 }
 
 /**
- * The EntityIds of every own member, for handoff to the embedding service.
- * Non-recursive, mirroring {@link frontierMembers}.
+ * Yields the EntityIds of the cluster's own members (non-recursive, same
+ * membership surface as {@link frontierMembers}). Unknown group keys are
+ * skipped.
  */
 export function* entityIdsForCluster(
   node: ClusterNode,
@@ -108,6 +109,8 @@ export function* entityIdsForCluster(
       const group = typeSets.get(key);
       if (group) {
         for (const idx of group.entities) {
+          // group.entities only lists indices present in the EntityStore;
+          // ingest is add-only so interned members always resolve.
           yield entities.get(idx)!;
         }
       }
@@ -119,6 +122,8 @@ export function* entityIdsForCluster(
   const members = node.membership.members.subarray();
 
   for (let idx = 0; idx < members.length; idx++) {
+    // direct membership column is written at ingest time; every packed
+    // index is a live EntityStore row.
     yield entities.get(members.get(idx))!;
   }
 }

@@ -1,19 +1,18 @@
 /**
- * Perf + motion gates for the constrained stress-MAJORIZATION engine (the community-
- * tier engine), including the PRIMARY real-shape gate from the relayout-motion brief:
+ * Perf + motion gates for the constrained stress-majorization engine (the community-
+ * tier engine), including the primary real-shape gate:
  *
- * 1. Per-tick budget: at 1k/3k/5k (cloud + 150-leaf coincident hub), at default AND
+ * 1. Per-tick budget: at 1k/3k/5k (cloud + 150-leaf coincident hub), at default and
  *    elevated shaping weights, no single 1 ms-budget tick blows past 100 ms, the
  *    layout settles, and the settled result is strictly overlap-free.
- * 2. PRIMARY: the real graph shape (~1000 nodes, TWO ~150-leaf near-coincident hubs
+ * 2. Primary: the real graph shape (~1000 nodes, two ~150-leaf near-coincident hubs
  *    + sparse background) reaches settled in ≤ 2 s wall time, overlap-free.
  * 3. No contract→expand: the RMS-spread trajectory shows no significant
  *    dip-below-final-then-rebound after its widest point (terminal-rebound metric).
- * 4. Region disjointness: on the real shape, majorization's region-overlap
- *    (fraction of nodes strictly inside a foreign community's packing disk;
- *    see region-metrics.ts) must stay under an absolute ceiling far below the
- *    pre-fix baseline (0.32 before the community-region floors; the folding
- *    artifact the user reported).
+ * 4. Region disjointness: on the real shape, majorization's region-overlap (the
+ *    fraction of nodes strictly inside a foreign community's packing disk) must
+ *    stay under an absolute ceiling of 0.08, well below the 0.32 baseline measured
+ *    before the community-region floors existed.
  */
 import { describe, expect, it } from "vitest";
 
@@ -32,14 +31,14 @@ import type { MajorizationLayoutOptions } from "./majorization-layout";
 
 /** Largest single tick must stay well below one frame; rectangle VPSC once reached ~6.5 s per tick. */
 const MAX_TICK_MS = 100;
-/** PRIMARY gate: wall-to-settled budget for the real two-hub shape. */
+/** Primary gate: wall-to-settled budget (2000 ms) for the real two-hub shape. */
 const REAL_SHAPE_WALL_MS = 2_000;
 /**
- * Region-overlap ceiling on the real shape at default weights. Pre-fix baseline was
- * 0.32 (a third of the graph sat inside foreign community disks); the community-region
- * floors bring it to ~0.03. The ceiling is set with slack for the small violations the
- * bridge-endpoint exemption legitimately allows, while still failing loudly if the
- * floors regress toward the folding regime.
+ * Region-overlap ceiling (0.08) on the real shape at default weights. The
+ * community-region floors keep this metric around ~0.03 versus a 0.32 baseline
+ * without them. Slack above ~0.03 covers the small violations the bridge-endpoint
+ * exemption legitimately allows, while a value approaching 0.32 indicates the
+ * floors have regressed toward the folding regime.
  */
 const REAL_SHAPE_REGION_OVERLAP_MAX = 0.08;
 const HUB_LEAVES = 150;
@@ -78,6 +77,7 @@ function overlapCountOf(layout: LayoutSimulation): number {
  * partition the rendered community bubbles come from, i.e. what the user sees.
  */
 function regionOverlapOf(layout: LayoutSimulation): number {
+  // communities is on the concrete layout implementation, not LayoutSimulation.
   const communities = (layout as unknown as { communities?: readonly number[] })
     .communities;
   return measureRegionOverlap(
@@ -221,7 +221,7 @@ describe("majorization layout, coincident-hub perf gate", () => {
   );
 });
 
-describe("majorization layout, real two-hub shape (PRIMARY gate)", () => {
+describe("majorization layout, real two-hub shape (primary gate)", () => {
   it.each(WEIGHT_CONFIGS.map((config) => ({ config })))(
     "settles the ~1k node / two 150-leaf-hub shape in ≤ 2 s, overlap-free, no contract→expand ($config.label weights)",
     ({ config }) => {

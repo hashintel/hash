@@ -182,10 +182,8 @@ export const DevHarness = () => {
     setSeed((previous) => previous + 1);
   }, []);
 
-  // capture-live-fixture hook: the visualizer surfaces its worker handle here so the
-  // capture button can serialize the live layout graph (positions, radii, edges,
-  // Louvain communities) to a JSON download + console copy. Replay it in benches or
-  // tests via `forceGraphFromCapturedFixture` (worker/bench-fixtures.ts).
+  // Debug hook: exposes the live worker handle so Capture can download a replayable
+  // layout fixture (positions, radii, edges, Louvain communities).
   const workerHandleRef = useRef<WorkerHandle | undefined>(undefined);
   const handleWorkerHandle = useCallback((handle: WorkerHandle | undefined) => {
     workerHandleRef.current = handle;

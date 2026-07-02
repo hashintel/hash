@@ -99,8 +99,10 @@ class FlatLayout implements LayoutSimulation {
   readonly #objectLinks: ColaObjectLink[];
   readonly #rootGroup: { leaves: ColaNode[]; groups: never[]; padding: number };
   readonly #descent: Descent;
-  /** Weight matrix (default 2 = push-apart-only; 1 for edges). Attached for the
-   * overlap phase only, exactly as `Layout.start` does. */
+  /**
+   * Square weight matrix: 2 off-edge (repel only), 1 on-edge (pull to ideal).
+   * Attached only during Phase B overlap projection.
+   */
   readonly #weights: number[][];
   readonly #buffer: FlatGraphBuffer;
   #status: ForceLayoutStatus;
@@ -280,10 +282,10 @@ class FlatLayout implements LayoutSimulation {
         // Switch on VPSC non-overlap. Projection rebuilds each node's bounds from
         // the descent's position arrays every step, so we needn't sync node x/y.
         const projection = new Projection(
-          // cola's loose GraphNode/Group types, boundary casts. constraints must
-          // be [] not null: Projection only inits xConstraints/yConstraints when
-          // `constraints` is truthy, and project() does `xConstraints.concat(...)`
-          // (Layout passes [] here too).
+          // as never: ColaNode satisfies runtime shape but not WebCola's
+          // GraphNode d.ts. [] not null: Projection skips xConstraints init
+          // when falsy, then project() calls xConstraints.concat(...) and
+          // throws (Layout passes [] here too).
           this.#colaNodes as never,
           [],
           this.#rootGroup as never,
@@ -329,10 +331,10 @@ class FlatLayout implements LayoutSimulation {
   }
 
   /**
-   * Pack the connected components compactly (the geometric step stress can't do,
-   * disconnected components have no inter-force). `applyPacking` works on node
-   * x/y, so sync from the descent, pack, sync back. Mirrors
-   * `Layout.separateOverlappingComponents`.
+   * Packs disconnected components compactly after stress convergence: a
+   * geometric step unconstrained stress cannot perform, since disconnected
+   * components have no inter-force to pull them together. `applyPacking` works
+   * on node x/y, so this syncs from the descent, packs, and syncs back.
    */
   #packComponents(): void {
     const xs = this.#descent.x[0]!;
@@ -353,6 +355,8 @@ class FlatLayout implements LayoutSimulation {
     const width = Math.max(1, maxX - minX);
     const height = Math.max(1, maxY - minY);
 
+    // as never: separateGraphs expects cola's Link<GraphNode> d.ts; object
+    // endpoints carry .index at runtime.
     const graphs = separateGraphs(this.#colaNodes, this.#objectLinks as never);
     applyPacking(graphs, width, height, PACK_NODE_SIZE, 1, true);
 
@@ -380,7 +384,8 @@ class FlatLayout implements LayoutSimulation {
     for (let idx = 0; idx < count; idx++) {
       const localX = xs[idx]! - centroidX;
       const localY = ys[idx]! - centroidY;
-      // Mirror into the ForceNode view so a warm-start can read settled coords.
+      // Keep ForceNode x/y aligned with descent arrays for rebuilds that seed
+      // from prior positions.
       this.#nodes[idx]!.x = localX;
       this.#nodes[idx]!.y = localY;
       this.#buffer.setPosition(idx, localX, localY);
@@ -389,6 +394,10 @@ class FlatLayout implements LayoutSimulation {
   }
 }
 
+/**
+ * Creates a phased WebCola Descent layout (stress -> pack -> overlap) that
+ * streams positions through a FlatGraphBuffer.
+ */
 export function createFlatLayout(
   nodes: ForceNode[],
   edges: ForceEdge[],

@@ -46,8 +46,20 @@ const ENTITY_LABEL_CULL_MARGIN_PX = 80;
 
 /** Gap (px) between a hub dot's edge and its label, which sits to the dot's right. */
 const ENTITY_LABEL_GAP_PX = 6;
+/**
+ * Maximum label width (px) used to size its collision box.
+ *
+ * @defaultValue 180. Lower values collide (and hide) fewer neighbouring labels but truncate
+ * long entity names sooner; higher values show more of the name at the cost of more collisions.
+ */
 const ENTITY_LABEL_MAX_WIDTH_PX = 180;
 const ENTITY_LABEL_HEIGHT_PX = 22;
+/**
+ * Approximate glyph width (px) per character, used to estimate label width for collision boxes.
+ *
+ * @defaultValue 7. Cheaper than measuring actual text width on the canvas, at the cost of
+ * collision boxes that are slightly off for unusually wide or narrow glyphs.
+ */
 const ENTITY_LABEL_APPROX_CHAR_WIDTH_PX = 7;
 const ENTITY_LABEL_COLLISION_PADDING_PX = 4;
 
@@ -77,7 +89,7 @@ export class HubLabels {
   /** Hub-label eligibility + resolved text. Rebuilt on zoom/structure change. */
   #data: EntityLabelDatum[] = [];
   #frame: number | null = null;
-  /** Signature of the last hub-label set emitted to React; skips setState when unchanged. */
+  /** Signature of the last emitted label set; skips callback when screen positions are unchanged. */
   #lastEmittedSignature = "";
 
   constructor(dependencies: HubLabelsDependencies) {

@@ -13,11 +13,11 @@
  * (0 = monotone approach, the motion gate)
  * inter/intra mean cross-community edge length ÷ mean same-community edge length
  * (Louvain partition computed once per fixture)
- * regionOv region-overlap (PRIMARY region-disjointness metric): fraction of
- * nodes strictly inside a FOREIGN community's packing disk. The
- * user-visible "bubble intrudes into another community" artifact
- * that inter/intra cannot see (folded branches share no edges).
- * See region-metrics.ts for the full rationale.
+ * regionOv region-overlap (the primary region-disjointness metric): fraction of
+ * nodes strictly inside a foreign community's packing disk (a community's
+ * centroid-centred disk at the shared packing utilisation). Catches the
+ * "bubble intrudes into another community" artifact directly, which
+ * inter/intra cannot see (folded branches share no edges).
  * hubSpoke mean spoke length of the 150-leaf hub ÷ its one-ring packing radius
  * (≈1 = leaves sit right at the tightest feasible halo)
  * determ. bitwise position equality across two identical runs
@@ -28,7 +28,7 @@
  *
  * Run (from apps/hash-frontend):
  * node_modules/.bin/vitest bench --run \
- * src/pages/shared/graph-visualizer-2/worker/layout/majorization-baseline.bench.ts
+ * src/pages/shared/graph-visualizer/worker/layout/majorization-baseline.bench.ts
  */
 import { UndirectedGraph } from "graphology";
 import louvain from "graphology-communities-louvain";
@@ -53,7 +53,7 @@ import type {
 } from "./force-simulation";
 
 const HUB_LEAVES = 150;
-/** Extra pair gap used by the hub-halo denominator (matches the engine's padding). */
+/** Hub halo denominator padding (8 px); must match `OVERLAP_PADDING` in majorization-layout.ts. */
 const HALO_PADDING = 8;
 
 interface Fixture {
@@ -241,7 +241,7 @@ function measureQuality(
     radii[index] = node.radius;
   }
 
-  // Deduped edge lengths, split by community sides.
+  // One length per undirected edge, for edge stress and the inter/intra ratio.
   const lengths: number[] = [];
   let sumSame = 0;
   let sameCount = 0;
@@ -264,6 +264,7 @@ function measureQuality(
       continue;
     }
     seen.add(key);
+    // lo/hi are valid indices: edges with missing endpoints were skipped above.
     degree[lo]! += 1;
     degree[hi]! += 1;
     const length = Math.hypot(x[hi]! - x[lo]!, y[hi]! - y[lo]!);

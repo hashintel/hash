@@ -24,7 +24,7 @@ export function flatDotsLayer(
   if (!cluster) {
     return [];
   }
-  // Views over the whole buffer; stride/offset address each record field.
+  // Zero-copy binary attributes: one SAB view, per-field stride/offset into interleaved records.
   const raw = cluster.versionView.buffer;
   const floats = new Float32Array(raw);
   const bytes = new Uint8Array(raw);

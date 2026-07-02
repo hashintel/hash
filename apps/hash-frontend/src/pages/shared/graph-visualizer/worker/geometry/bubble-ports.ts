@@ -121,9 +121,8 @@ function placePortsOnPerimeter(
     return;
   }
 
-  // Reserved arc per port (proportional to lane count), clamped; scaled down
-  // together if they would overflow the rim, so they always fit (then they pack
-  // tight).
+  // Scale reserved arcs uniformly when their sum exceeds the rim budget so
+  // PAVA always has a feasible domain.
   const arc = ports.map((port) =>
     Math.min(maxArc, Math.max(minArc, minArc * port.distinctTypes)),
   );
@@ -131,6 +130,8 @@ function placePortsOnPerimeter(
   for (const value of arc) {
     total += value;
   }
+  // Leave ~2% angular slack on the rim so numeric packing does not pin the
+  // last port to 2π exactly.
   const budget = 2 * Math.PI * 0.98;
   if (total > budget) {
     const scale = budget / total;
@@ -139,7 +140,8 @@ function placePortsOnPerimeter(
     }
   }
 
-  // Required centre-to-centre gap after port i (wrapping).
+  // Minimum angular separation between port i and i+1 (half the sum of
+  // their reserved arcs).
   const gapAfter = (i: number): number => (arc[i]! + arc[(i + 1) % n]!) / 2;
 
   // Cut the cycle at the consecutive pair with the most slack, so no separation
@@ -159,7 +161,8 @@ function placePortsOnPerimeter(
     }
   }
 
-  // Linear order starting just after the cut; unwrap angles to increase.
+  // Unwrap angles monotonically so the cut cycle becomes a chain for
+  // isotonic regression.
   const order: number[] = [];
   for (let k = 0; k < n; k++) {
     order.push((cutAfter + 1 + k) % n);
@@ -176,7 +179,8 @@ function placePortsOnPerimeter(
     running = angle;
   }
 
-  // Fold out cumulative gaps -> isotonic problem; PAVA; fold the gaps back in.
+  // Subtract required gaps to get desired centres, run PAVA, then add gaps
+  // back to recover feasible angles.
   const prefix: number[] = [0];
   for (let k = 1; k < n; k++) {
     prefix.push(prefix[k - 1]! + gapAfter(order[k - 1]!));
@@ -189,7 +193,10 @@ function placePortsOnPerimeter(
   }
 }
 
-/** Merge ports into angular sectors when there are too many for the rim. */
+/**
+ * Collapses excess neighbor ports into fixed angular sectors, keyed so every
+ * neighbor in a sector resolves to the same merged port.
+ */
 function mergeByAngularSector(
   ports: readonly RawPort[],
   sectorCount: number,
@@ -223,7 +230,8 @@ function mergeByAngularSector(
       continue;
     }
 
-    // Circular mean angle.
+    // atan2 of summed unit vectors so merged ports sit at the sector's mean
+    // direction, not a linear average that wraps badly.
     let sinSum = 0;
     let cosSum = 0;
     let totalEdges = 0;
@@ -238,6 +246,9 @@ function mergeByAngularSector(
 
     const merged = makePort(
       clusterId,
+      // group is non-empty (we skipped empty sectors). neighborId is only
+      // the map representative: allNeighborIds lists every neighbor in the
+      // sector.
       group[0]!.neighborId,
       group.map((p) => p.neighborId),
       meanAngle,
@@ -247,7 +258,6 @@ function mergeByAngularSector(
       totalTypes,
     );
 
-    // All neighbors in this sector share the merged port.
     for (const p of group) {
       result.set(p.neighborId, merged);
     }
@@ -256,7 +266,10 @@ function mergeByAngularSector(
   return result;
 }
 
-/** Compute slotted ports for a single cluster. */
+/**
+ * Places or sector-merges neighbor ports on one cluster's rim, enforcing
+ * minimum angular separation from config.
+ */
 function slotPorts(
   clusterId: ClusterId,
   rawPorts: RawPort[],
@@ -267,7 +280,6 @@ function slotPorts(
     return new Map();
   }
 
-  // Sort by angle for slotting.
   rawPorts.sort((a, b) => a.angle - b.angle);
 
   // Slotting is zoom-independent: ports recompute only when neighbor set
@@ -297,7 +309,6 @@ function slotPorts(
     return result;
   }
 
-  // Too many ports: merge by angular sector.
   return mergeByAngularSector(
     rawPorts,
     portCap,
@@ -356,14 +367,16 @@ function addNeighborInfo(
   list.push({ neighborId: to, edgeCount, distinctTypes });
 }
 
-/** Compute ports for all connected cluster pairs. */
+/**
+ * Builds per-cluster port maps (with cache reuse) and pairs source/target
+ * ports for every connected cluster pair.
+ */
 export function computeAllPorts(
   pairs: ReadonlyMap<string, PairInfo>,
   clusterTree: ClusterTree,
   config: VizConfig,
   cache: PortCache,
 ): Map<string, { readonly source: Port; readonly target: Port }> {
-  // Collect per-cluster neighbor info.
   const clusterNeighbors = new Map<ClusterId, NeighborInfo[]>();
 
   for (const pair of pairs.values()) {
@@ -383,7 +396,8 @@ export function computeAllPorts(
     );
   }
 
-  // Compute slotted ports for each cluster (with hysteresis).
+  // Compute slotted ports per cluster; reuse PortCache entries until the
+  // cache key (circle + neighbor positions + lane counts) changes.
   const portsByCluster = new Map<ClusterId, Map<ClusterId, Port>>();
 
   for (const [clusterId, neighbors] of clusterNeighbors) {
@@ -392,7 +406,6 @@ export function computeAllPorts(
       continue;
     }
 
-    // Compute raw port angles and the cache signature in one pass.
     const rawPorts: RawPort[] = [];
     const sigParts: string[] = [];
     for (const info of neighbors) {
@@ -435,7 +448,6 @@ export function computeAllPorts(
     portsByCluster.set(clusterId, portMap);
   }
 
-  // Build pair key -> (source port, target port) map.
   const result = new Map<
     string,
     { readonly source: Port; readonly target: Port }

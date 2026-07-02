@@ -51,6 +51,7 @@ export function deterministicShuffle(
     state = (state ^ (state >>> 17)) | 0;
     state = (state ^ (state << 5)) | 0;
     const target = (state >>> 0) % (idx + 1);
+    // idx and target are in [0, result.length) from the Fisher-Yates loop bounds.
     const temp = result[idx]!;
     result[idx] = result[target]!;
     result[target] = temp;

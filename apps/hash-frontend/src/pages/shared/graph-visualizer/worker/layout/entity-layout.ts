@@ -6,12 +6,12 @@
  * springs pull connected entities together. This is deliberately not the
  * cluster layout: bubbles need to spread and route edges; dots need to pack.
  *
- * On top of that, a port-attraction force pulls each entity toward the rim point
- * where its external connection leaves the leaf (its port target). This replaces
- * the old "fan out to a baked exit" model: the dots cluster near their real
- * exits, so the fan-out lines stay short and legible. The target array is shared
- * with (and updated live by) the worker, so as ports re-slot the dots follow,
- * with no baked, going-stale positions.
+ * On top of that, a port-attraction force pulls each entity toward the live rim
+ * point where its external edge attaches (its port target), instead of a
+ * pre-baked exit fan: the dots cluster near their real exits, so the fan-out
+ * lines stay short and legible. The target array is shared with (and updated
+ * live by) the worker, so as ports re-slot the dots follow, with no baked,
+ * going-stale positions.
  *
  * The port pull does not fully win: the gentle center spring stays on for every
  * dot, so a targeted dot settles a bit inside the rim (a blend of port + centre)
@@ -69,6 +69,10 @@ function forcePortAttraction(
   return force;
 }
 
+/**
+ * Builds a confined d3-force simulation for leaf-cluster entities with
+ * optional live port-target attraction.
+ */
 export function createEntityLayout(
   nodes: ForceNode[],
   edges: ForceEdge[],
@@ -85,6 +89,8 @@ export function createEntityLayout(
       "link",
       forceLink<ForceNode, ForceEdge>(edges)
         .id((node) => node.id)
+        // forceLink resolves string endpoints to ForceNode objects before
+        // distance/strength run; cast is safe after simulation init.
         .distance(
           (edge) =>
             ((edge.source as ForceNode).radius +

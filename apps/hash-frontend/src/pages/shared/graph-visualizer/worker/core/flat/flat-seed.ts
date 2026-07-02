@@ -31,7 +31,9 @@ export function seedFlatNodes(
 ): ForceNode[] {
   const goldenAngle = Math.PI * (3 - Math.sqrt(5));
 
-  // Grow placement outward from placed nodes along their links.
+  // Repeat until no progress: each unplaced node with a placed neighbor
+  // picks a golden-angle offset beside that neighbor (handles out-of-order
+  // input).
   let changed = true;
   while (changed) {
     changed = false;

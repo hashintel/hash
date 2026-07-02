@@ -1,13 +1,13 @@
 /**
- * Drop-in replacement for EntityGraphVisualizer that uses the
- * Deck.gl-based graph visualization (v2).
+ * Production bridge from Hash entity query results to the graph worker and overlay
+ * UI: ingests entities, drives frontier expansion, and renders hover/selection cards.
  *
- * The bridge between HashEntity page data and the graph worker: it feeds entities in
- * (`use-entity-ingest.ts`), expands the frontier on demand
- * (`frontier-expansion-store.ts`), resolves display fields (`use-entity-display.ts`),
- * and renders the HTML overlays. The Scene's per-frame position reports flow through
- * the {@link SceneOverlayStore} into leaf overlay components, so this component itself
- * re-renders only when data (not the camera) changes.
+ * It feeds entities into the worker (`use-entity-ingest.ts`), expands the frontier on
+ * demand (`frontier-expansion-store.ts`), resolves display fields
+ * (`use-entity-display.ts`), and renders the HTML overlays. The Scene's per-frame
+ * position reports flow through the {@link SceneOverlayStore} into leaf overlay
+ * components, so this component itself re-renders only when data (not the camera)
+ * changes.
  */
 import { Box } from "@mui/material";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
@@ -130,7 +130,8 @@ export const EntityGraphVisualizer: React.FC<EntityGraphVisualizerProps> = memo(
       resetKey: sourceKey,
     });
 
-    // Surface the live handle to debug consumers (dev harness capture hook).
+    // Forward the live worker handle whenever it changes so debug tooling can query
+    // layout state.
     useEffect(() => {
       onWorkerHandle?.(handle);
       return () => {

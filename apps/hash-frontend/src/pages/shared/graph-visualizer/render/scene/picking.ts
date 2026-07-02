@@ -33,7 +33,7 @@ function isFlatMode(handle: WorkerHandle): boolean {
  * Map a pick on any entity-dot layer to a selection (the entity + the buffer/index it
  * resolved from, needed to read its live position). The flat tier is one whole-graph layer
  * ("flat-entities"); the hierarchical tier is one layer per open leaf, id
- * "entities:<layoutId>". The handle decodes the binary pick index against that buffer.
+ * "entities:<layoutId>". The pick index maps to a render record in that layout's buffer.
  */
 export function resolvePickedEntity(
   handle: WorkerHandle,
@@ -81,6 +81,7 @@ export function pickedLinkEntityIdx(
     return null;
   }
   const id = handle.getPositions()?.beziers.ids[info.index];
+  // Flat-tier beziers.ids stores EntityIdx values; BEZIER_NO_LINK is the only non-entity sentinel.
   return id === undefined || id === BEZIER_NO_LINK ? null : (id as EntityIndex);
 }
 

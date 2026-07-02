@@ -53,7 +53,8 @@ describe("syncWorldPositions, nested world composition", () => {
 
     // The root's layout (keyed by the root) places the container at local
     // (100, 0); the container's layout (keyed by the container) places the leaf
-    // at local (5, 3). A layout is keyed by the PARENT whose children it lays.
+    // at local (5, 3). Layouts are keyed by the parent cluster whose children
+    // they position.
     const rootLayout = fakeLayout([{ id: "A", x: 100, y: 0 }]);
     const containerLayout = fakeLayout([{ id: "A:leaf", x: 5, y: 3 }]);
     const layouts = new Map<string, LayoutSimulation>([
@@ -97,7 +98,8 @@ describe("syncWorldPositions, nested world composition", () => {
 
     syncWorldPositions(root, layoutFor, isCluster);
 
-    // The deep leaf must follow the container, NOT stay at its old world x.
+    // The deep leaf follows the container translation; it must not keep the
+    // pre-move world x.
     expect(container.circle.x).toBe(150);
     expect(leaf.circle.x).toBe(155); // followed: 150 + 5
     expect(leaf.circle.y).toBe(3);

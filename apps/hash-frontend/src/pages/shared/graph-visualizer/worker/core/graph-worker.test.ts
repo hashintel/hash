@@ -237,9 +237,9 @@ describe("GraphWorker.commitStructure, streaming equals bulk", () => {
 });
 
 /**
- * The coalesced streaming path (`entry.ts` routes per-batch commits through a
+ * Coalesced streaming path (per-batch commits merged through
  * {@link CommitCoalescer}): a burst must land in the same committed state as
- * bulk while paying a BOUNDED number of commits, not one per batch.
+ * bulk while paying a bounded number of commits, not one per batch.
  */
 describe("GraphWorker.commitStructure, coalesced streaming", () => {
   beforeEach(() => {
@@ -255,11 +255,12 @@ describe("GraphWorker.commitStructure, coalesced streaming", () => {
   }
 
   /**
-   * Drive a harness the way `entry.ts` does: type registration and every
-   * batch's deltas ride the coalescer. The drain fires once after the first
-   * batch (a cold load's first queue cycle); the rest of the stream arrives
-   * as one saturated burst, so the batch-count cap paces the commits. The
-   * clock is frozen so the age cap cannot fire mid-loop on a slow machine.
+   * Drive a harness through the production coalescing sequence: type
+   * registration and every batch's deltas ride the coalescer. The drain
+   * fires once after the first batch (a cold load's first queue cycle); the
+   * rest of the stream arrives as one saturated burst, so the batch-count
+   * cap paces the commits. The clock is frozen so the age cap cannot fire
+   * mid-loop on a slow machine.
    */
   function streamCoalesced(
     batches: readonly (readonly IngestEntity[])[],
@@ -430,7 +431,8 @@ describe("GraphWorker.commitStructure, hierarchical tier", () => {
     expect(harness.worker.mode).toBe("hierarchical-lod");
 
     // A viewport change computes a cut then commits it; the commit must reuse
-    // that cut (F10) and emit a hierarchical (cluster) frame, not a flat one.
+    // that precomputed cut (not recompute against a stale tree) and emit a
+    // hierarchical cluster frame, not a flat one.
     harness.structure.mockClear();
     harness.worker.handleViewport({
       zoom: 1,
@@ -528,13 +530,13 @@ describe("GraphWorker.commitStructure, hierarchical tier", () => {
     });
     const afterTrickle = topLevelSnapshot(harness);
 
-    // The growth WAS applied (member counts rose) ...
+    // Member counts increased (trickle ingest landed), but no cluster
+    // crossed the re-warm threshold, so top-level positions stay fixed.
     expect(
       [...afterTrickle].some(
         ([id, cluster]) => cluster.count > (before.get(id)?.count ?? 0),
       ),
     ).toBe(true);
-    // ... yet no single cluster grew enough to re-warm: the overview holds.
     expect(positionDrift(before, afterTrickle)).toBe(0);
 
     // A real expansion: many nodes into ONE existing type. That cluster grows
