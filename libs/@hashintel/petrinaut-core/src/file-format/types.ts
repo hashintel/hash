@@ -3,6 +3,7 @@ import { z } from "zod";
 import {
   colorElementSchema as currentColorElementSchema,
   colorSchema as currentColorSchema,
+  componentInstanceSchema as currentComponentInstanceSchema,
   differentialEquationSchema as currentDifferentialEquationSchema,
   inputArcSchema as currentInputArcSchema,
   outputArcSchema as currentOutputArcSchema,
@@ -109,6 +110,26 @@ const metricSchema = z.object({
   code: z.string().default(""),
 });
 
+const componentInstanceSchema = z.object({
+  ...currentComponentInstanceSchema.shape,
+  id: z.string(),
+  name: z.string(),
+  parameterValues: z.record(z.string(), z.string()).default({}),
+  x: z.number().optional(),
+  y: z.number().optional(),
+});
+
+const subnetSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  places: z.array(placeSchema),
+  transitions: z.array(transitionSchema),
+  types: z.array(colorSchema).default([]),
+  differentialEquations: z.array(differentialEquationSchema).default([]),
+  parameters: z.array(parameterSchema).default([]),
+  componentInstances: z.array(componentInstanceSchema).default([]),
+});
+
 export const sdcpnSchema = z.object({
   places: z.array(placeSchema),
   transitions: z.array(transitionSchema),
@@ -117,6 +138,8 @@ export const sdcpnSchema = z.object({
   parameters: z.array(parameterSchema).default([]),
   scenarios: z.array(scenarioSchema).default([]),
   metrics: z.array(metricSchema).default([]),
+  subnets: z.array(subnetSchema).default([]),
+  componentInstances: z.array(componentInstanceSchema).default([]),
 });
 
 const fileMetaSchema = z.object({

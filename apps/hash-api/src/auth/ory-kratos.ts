@@ -2,6 +2,7 @@ import { Configuration } from "@ory/client";
 import { FrontendApi, IdentityApi } from "@ory/kratos-client";
 
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
+import { normalizeEmail } from "@local/hash-isomorphic-utils/normalize";
 
 import type { CreateIdentityBody, Identity } from "@ory/kratos-client";
 
@@ -31,7 +32,7 @@ export const getVerifiedEmailsFromKratosIdentity = (
 ): string[] =>
   (identity.verifiable_addresses ?? [])
     .filter((address) => address.verified === true)
-    .map(({ value }) => value);
+    .map(({ value }) => normalizeEmail(value));
 
 export const createKratosIdentity = async (
   params: Omit<CreateIdentityBody, "schema_id" | "traits"> & {

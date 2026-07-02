@@ -60,7 +60,17 @@ export const logProgress = (logs: StepProgressLog[]) => {
     return;
   }
 
-  const { workflowId, runId } = Context.current().info.workflowExecution;
+  const { workflowId, runId } = Context.current().info.workflowExecution ?? {};
+
+  if (!workflowId) {
+    throw new Error(
+      "No workflowId associated with the current workflow execution",
+    );
+  }
+
+  if (!runId) {
+    throw new Error("No runId associated with the current workflow execution");
+  }
 
   const existingLogs = logQueueByRunId.get(runId) ?? [];
 

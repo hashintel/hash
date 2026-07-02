@@ -34,9 +34,9 @@ import {
 } from "../../shared/use-actors";
 import { useAuthenticatedUser } from "./auth-info-context";
 import { createRenderChipCell } from "./chip-cell";
-import { createRenderTextIconCell } from "./entities-visualizer/entities-table/text-icon-cell";
 import { useSlideStack } from "./slide-stack";
 import { TableHeaderToggle } from "./table-header-toggle";
+import { createRenderTextIconCell } from "./text-icon-cell";
 import { TOP_CONTEXT_BAR_HEIGHT } from "./top-context-bar";
 import { TypeGraphVisualizer } from "./type-graph-visualizer";
 import { visualizerViewIcons } from "./visualizer-views";
@@ -44,7 +44,7 @@ import { visualizerViewIcons } from "./visualizer-views";
 import type { CustomIcon } from "../../components/grid/utils/custom-grid-icons";
 import type { FilterState } from "../../shared/table-header";
 import type { ChipCell } from "./chip-cell";
-import type { TextIconCell } from "./entities-visualizer/entities-table/text-icon-cell";
+import type { TextIconCell } from "./text-icon-cell";
 import type { VisualizerView } from "./visualizer-views";
 import type {
   Item,
@@ -473,6 +473,8 @@ export const TypesTable: FunctionComponent<{
     HEADER_HEIGHT + TOP_CONTEXT_BAR_HEIGHT + 170 + tableHeaderHeight
   }px + ${theme.spacing(5)}) - ${theme.spacing(5)})`;
 
+  const displayedRowCount = Math.max(filteredRows?.length ?? 1, 1);
+
   const currentlyDisplayedRowsRef = useRef<TypesTableRow[] | null>(null);
 
   const onTypeClick = useCallback(
@@ -549,7 +551,7 @@ export const TypesTable: FunctionComponent<{
                 ${maxTableHeight},
                 calc(
                   ${gridHeaderHeightWithBorder}px +
-                  (${filteredRows?.length ?? 1} * ${gridRowHeight}px) +
+                  (${displayedRowCount} * ${gridRowHeight}px) +
                   ${gridHorizontalScrollbarHeight}px
                 )
               )`}

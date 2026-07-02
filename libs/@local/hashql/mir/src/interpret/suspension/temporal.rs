@@ -17,12 +17,14 @@ use crate::interpret::value::Int;
 pub struct Timestamp(Int);
 
 impl From<Int> for Timestamp {
+    #[inline]
     fn from(value: Int) -> Self {
         Self(value)
     }
 }
 
 impl From<Timestamp> for Int {
+    #[inline]
     fn from(value: Timestamp) -> Self {
         value.0
     }

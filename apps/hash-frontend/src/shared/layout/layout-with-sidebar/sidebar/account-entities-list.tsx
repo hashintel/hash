@@ -15,15 +15,15 @@ import { blockProtocolHubOrigin } from "@local/hash-isomorphic-utils/blocks-cons
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import { useUpdateAuthenticatedUser } from "../../../../components/hooks/use-update-authenticated-user";
-import { queryEntitiesQuery } from "../../../../graphql/queries/knowledge/entity.queries";
+import { summarizeEntitiesQuery } from "../../../../graphql/queries/knowledge/entity.queries";
 import { hiddenEntityTypeIds } from "../../../../pages/shared/hidden-types";
 import { useActiveWorkspace } from "../../../../pages/shared/workspace-context";
 import { useLatestEntityTypesOptional } from "../../../entity-types-context/hooks";
+import { generateSidebarEntitiesQueryVariables } from "../../../generate-sidebar-entities-query-variables";
 import { ArrowDownAZRegularIcon } from "../../../icons/arrow-down-a-z-regular-icon";
 import { ArrowUpZARegularIcon } from "../../../icons/arrow-up-a-z-regular-icon";
 import { PlusRegularIcon } from "../../../icons/plus-regular";
 import { Link } from "../../../ui";
-import { generateSidebarEntityTypeEntitiesQueryVariables } from "../../../use-entity-type-entities";
 import { useUserPreferences } from "../../../use-user-preferences";
 import { LoadingSkeleton } from "../shared/loading-skeleton";
 import { EntityOrTypeSidebarItem } from "./shared/entity-or-type-sidebar-item";
@@ -32,8 +32,8 @@ import { SortActionsDropdown } from "./shared/sort-actions-dropdown";
 import { ViewAllLink } from "./shared/view-all-link";
 
 import type {
-  QueryEntitiesQuery,
-  QueryEntitiesQueryVariables,
+  SummarizeEntitiesQuery,
+  SummarizeEntitiesQueryVariables,
 } from "../../../../graphql/api-types.gen";
 import type { SortType } from "./shared/sort-actions-dropdown";
 import type { FunctionComponent } from "react";
@@ -85,10 +85,10 @@ export const AccountEntitiesList: FunctionComponent<
   } = useLatestEntityTypesOptional();
 
   const { data: userEntitiesData, loading: userEntitiesLoading } = useQuery<
-    QueryEntitiesQuery,
-    QueryEntitiesQueryVariables
-  >(queryEntitiesQuery, {
-    variables: generateSidebarEntityTypeEntitiesQueryVariables({
+    SummarizeEntitiesQuery,
+    SummarizeEntitiesQueryVariables
+  >(summarizeEntitiesQuery, {
+    variables: generateSidebarEntitiesQueryVariables({
       webId,
     }),
     fetchPolicy: "network-only",
@@ -112,9 +112,9 @@ export const AccountEntitiesList: FunctionComponent<
         (root) =>
           ((isOwnedOntologyElementMetadata(root.metadata) &&
             root.metadata.webId === webId) ||
-            Object.keys(userEntitiesData?.queryEntities.typeIds ?? {}).includes(
-              root.schema.$id,
-            )) &&
+            Object.keys(
+              userEntitiesData?.summarizeEntities.typeIds ?? {},
+            ).includes(root.schema.$id)) &&
           // Filter out external types from blockprotocol.org, except the Address type.
           (!root.schema.$id.startsWith(blockProtocolHubOrigin) ||
             root.schema.$id.includes("/address/")) &&

@@ -1,18 +1,19 @@
-use alloc::alloc::Global;
 use core::mem;
 
 use hashql_compiletest::pipeline::Pipeline;
-use hashql_core::{heap::ResetAllocator as _, span::SpanId};
+use hashql_core::{
+    heap::{Heap, ResetAllocator as _},
+    span::SpanId,
+};
 use hashql_diagnostics::{Diagnostic, diagnostic::BoxedDiagnostic};
 use hashql_eval::{
-    context::EvalContext,
+    context::{CodeExecutionContext, CodeGenerationContext},
     orchestrator::{AppendEventLog, Event, Orchestrator},
     postgres::PostgresCompiler,
 };
 use hashql_mir::{
     body::Body,
     def::{DefId, DefIdSlice, DefIdVec},
-    intern::Interner,
     interpret::{Inputs, value::Value},
 };
 use tokio::runtime;
@@ -23,7 +24,7 @@ use tokio_postgres::Client;
 /// Holds the MIR artifacts needed to build typed inputs (via the decoder
 /// and the environment) before proceeding to execution.
 pub(crate) struct Lowered<'heap> {
-    pub interner: Interner<'heap>,
+    pub interner: hashql_mir::intern::Interner<'heap>,
     pub entry: DefId,
     pub bodies: DefIdVec<Body<'heap>>,
 }
@@ -65,16 +66,16 @@ pub(crate) fn run<'heap>(
     runtime: &runtime::Runtime,
     client: &Client,
 
-    inputs: &Inputs<'heap, Global>,
+    inputs: &Inputs<'heap, &'heap Heap>,
 
-    lowered: &mut Lowered<'heap>,
-) -> Result<(Value<'heap, Global>, Vec<Event>), BoxedDiagnostic<'static, SpanId>> {
+    mut lowered: Lowered<'heap>,
+) -> Result<(Value<'heap, &'heap Heap>, Vec<Event>), BoxedDiagnostic<'static, SpanId>> {
     run_impl(
         pipeline,
         runtime,
         client,
         inputs,
-        &lowered.interner,
+        lowered.interner,
         lowered.entry,
         &mut lowered.bodies,
     )
@@ -94,12 +95,12 @@ pub(crate) fn execute<'heap>(
     runtime: &runtime::Runtime,
     client: &Client,
 
-    inputs: &Inputs<'heap, Global>,
+    inputs: &Inputs<'heap, &'heap Heap>,
 
-    interner: &Interner<'heap>,
+    interner: hashql_mir::intern::Interner<'heap>,
     entry: DefId,
     bodies: &mut DefIdSlice<Body<'heap>>,
-) -> Result<(Value<'heap, Global>, Vec<Event>), BoxedDiagnostic<'static, SpanId>> {
+) -> Result<(Value<'heap, &'heap Heap>, Vec<Event>), BoxedDiagnostic<'static, SpanId>> {
     run_impl(pipeline, runtime, client, inputs, interner, entry, bodies)
 }
 
@@ -116,18 +117,19 @@ fn run_impl<'heap>(
     runtime: &runtime::Runtime,
     client: &Client,
 
-    inputs: &Inputs<'heap, Global>,
+    inputs: &Inputs<'heap, &'heap Heap>,
 
-    interner: &Interner<'heap>,
+    interner: hashql_mir::intern::Interner<'heap>,
     entry: DefId,
     bodies: &mut DefIdSlice<Body<'heap>>,
-) -> Result<(Value<'heap, Global>, Vec<Event>), BoxedDiagnostic<'static, SpanId>> {
-    pipeline.transform(interner, bodies)?;
-    let analysis = pipeline.prepare(interner, bodies)?;
+) -> Result<(Value<'heap, &'heap Heap>, Vec<Event>), BoxedDiagnostic<'static, SpanId>> {
+    pipeline.transform(&interner, bodies)?;
+    let analysis = pipeline.prepare(&interner, bodies)?;
 
-    let mut context = EvalContext::new_in(
+    let interner = interner.into();
+    let mut context = CodeGenerationContext::new_in(
         &pipeline.env,
-        interner,
+        &interner,
         bodies,
         &analysis,
         pipeline.heap,
@@ -141,11 +143,13 @@ fn run_impl<'heap>(
     pipeline.diagnostics.append(&mut diagnostics.boxed());
 
     let event_log = AppendEventLog::new();
+    let context = CodeExecutionContext::from(context);
     let orchestrator =
         Orchestrator::new(PostgresClient(client), &queries, &context).with_event_log(&event_log);
 
     let value = runtime
-        .block_on(orchestrator.run(inputs, entry, []))
+        .block_on(orchestrator.run_in(inputs, entry, [], pipeline.heap))
+        .map_err(Diagnostic::generalize)
         .map_err(Diagnostic::boxed)?;
 
     Ok((value, event_log.take()))

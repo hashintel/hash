@@ -1,6 +1,8 @@
 export const formInputSizes = ["xxs", "xs", "sm", "md", "lg"] as const;
 export type FormInputSize = (typeof formInputSizes)[number];
 
+export type Tone = "neutral" | "brand" | "error"; // success, warning, etc
+
 export type FormInputWidth =
   | "xs"
   | "sm"

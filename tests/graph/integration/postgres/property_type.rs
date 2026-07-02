@@ -5,11 +5,8 @@ use hash_graph_store::{
         UpdatePropertyTypesParams,
     },
     query::ConflictBehavior,
-    subgraph::temporal_axes::{
-        PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
-    },
+    subgraph::temporal_axes::QueryTemporalAxesUnresolved,
 };
-use hash_graph_temporal_versioning::TemporalBound;
 use hash_graph_test_data::{data_type, property_type};
 use type_system::{
     ontology::{
@@ -86,13 +83,7 @@ async fn query() {
             api.account_id,
             QueryPropertyTypesParams {
                 filter: Filter::for_versioned_url(&favorite_quote_pt.id),
-                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                    pinned: PinnedTemporalAxisUnresolved::new(None),
-                    variable: VariableTemporalAxisUnresolved::new(
-                        Some(TemporalBound::Unbounded),
-                        None,
-                    ),
-                },
+                temporal_axes: QueryTemporalAxesUnresolved::all(),
                 after: None,
                 limit: None,
                 include_count: false,
@@ -166,13 +157,7 @@ async fn update() {
             api.account_id,
             QueryPropertyTypesParams {
                 filter: Filter::for_versioned_url(&user_id_pt_v1.id),
-                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                    pinned: PinnedTemporalAxisUnresolved::new(None),
-                    variable: VariableTemporalAxisUnresolved::new(
-                        Some(TemporalBound::Unbounded),
-                        None,
-                    ),
-                },
+                temporal_axes: QueryTemporalAxesUnresolved::all(),
                 after: None,
                 limit: None,
                 include_count: false,
@@ -189,13 +174,7 @@ async fn update() {
             api.account_id,
             QueryPropertyTypesParams {
                 filter: Filter::for_versioned_url(&user_id_pt_v2.id),
-                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                    pinned: PinnedTemporalAxisUnresolved::new(None),
-                    variable: VariableTemporalAxisUnresolved::new(
-                        Some(TemporalBound::Unbounded),
-                        None,
-                    ),
-                },
+                temporal_axes: QueryTemporalAxesUnresolved::all(),
                 after: None,
                 limit: None,
                 include_count: false,

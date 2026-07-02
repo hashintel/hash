@@ -1,7 +1,5 @@
 import { extractDraftIdFromEntityId } from "@blockprotocol/type-system";
 
-import { useMarkLinkEntityToArchive } from "../../../../../shared/use-mark-link-entity-to-archive";
-import { useEntityEditor } from "../../../../entity-editor-context";
 import {
   createDraftLinkEntity,
   LinkedEntityListEditor,
@@ -15,16 +13,17 @@ import type { HashEntity } from "@local/hash-graph-sdk/entity";
 export const LinkedWithCellEditor: ProvideEditorComponent<LinkedWithCell> = (
   props,
 ) => {
-  const { entity, setDraftLinksToCreate } = useEntityEditor();
-  const markLinkEntityToArchive = useMarkLinkEntityToArchive();
-
   const { value: cell, onFinishedEditing } = props;
   const {
+    entity,
     expectedEntityTypes,
     linkAndTargetEntities,
     linkEntityTypeId,
     linkTitle,
+    markLinkAsArchived,
     maxItems,
+    readonly,
+    setDraftLinksToCreate,
   } = cell.data.linkRow;
 
   const onSelectForSingleLink = (
@@ -45,7 +44,7 @@ export const LinkedWithCellEditor: ProvideEditorComponent<LinkedWithCell> = (
 
     // if there is an existing link, archive it
     if (currentLink) {
-      markLinkEntityToArchive(currentLink.metadata.recordId.entityId);
+      markLinkAsArchived(currentLink.metadata.recordId.entityId);
     }
 
     // create new link
@@ -78,6 +77,7 @@ export const LinkedWithCellEditor: ProvideEditorComponent<LinkedWithCell> = (
 
     return (
       <LinkedEntitySelector
+        entity={entity}
         includeDrafts={
           !!extractDraftIdFromEntityId(entity.metadata.recordId.entityId)
         }
@@ -86,6 +86,7 @@ export const LinkedWithCellEditor: ProvideEditorComponent<LinkedWithCell> = (
         expectedEntityTypes={expectedEntityTypes}
         entityIdsToFilterOut={linkedEntityId && [linkedEntityId]}
         linkEntityTypeId={linkEntityTypeId}
+        readonly={readonly}
       />
     );
   }

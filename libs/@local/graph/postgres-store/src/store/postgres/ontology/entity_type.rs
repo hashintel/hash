@@ -4,12 +4,13 @@ use std::collections::{HashMap, HashSet};
 
 use error_stack::{Report, ResultExt as _};
 use futures::{StreamExt as _, TryStreamExt as _};
+use hash_codec::numeric::Real;
 use hash_graph_authorization::policies::{
     Authorized, MergePolicies, PolicyComponents, Request, RequestContext, ResourceId,
     action::ActionName, principal::actor::AuthenticatedActor,
 };
 use hash_graph_store::{
-    entity::ClosedMultiEntityTypeMap,
+    entity::{ClosedMultiEntityTypeMap, EntityStore},
     entity_type::{
         ArchiveEntityTypeParams, ClosedDataTypeDefinition, CommonQueryEntityTypesParams,
         CountEntityTypesParams, CreateEntityTypeParams, EntityTypeQueryPath,
@@ -17,10 +18,11 @@ use hash_graph_store::{
         HasPermissionForEntityTypesParams, IncludeEntityTypeOption,
         IncludeResolvedEntityTypeOption, QueryEntityTypeSubgraphParams,
         QueryEntityTypeSubgraphResponse, QueryEntityTypesParams, QueryEntityTypesResponse,
-        UnarchiveEntityTypeParams, UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
+        SearchEntityTypesParams, SearchEntityTypesResponse, UnarchiveEntityTypeParams,
+        UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
     },
     error::{CheckPermissionError, InsertionError, QueryError, UpdateError},
-    filter::{Filter, FilterExpression, FilterExpressionList, ParameterList},
+    filter::{Filter, FilterExpression, FilterExpressionList, Parameter, ParameterList},
     property_type::{
         PropertyTypeStore as _, QueryPropertyTypeSubgraphParams, QueryPropertyTypesParams,
     },
@@ -32,10 +34,7 @@ use hash_graph_store::{
             SubgraphTraversalParams, TraversalEdge,
         },
         identifier::{EntityTypeVertexId, GraphElementVertexId, PropertyTypeVertexId},
-        temporal_axes::{
-            PinnedTemporalAxisUnresolved, QueryTemporalAxes, QueryTemporalAxesUnresolved,
-            VariableAxis, VariableTemporalAxisUnresolved,
-        },
+        temporal_axes::{QueryTemporalAxes, QueryTemporalAxesUnresolved, VariableAxis},
     },
 };
 use hash_graph_temporal_versioning::{RightBoundedTemporalInterval, Timestamp, TransactionTime};
@@ -242,7 +241,7 @@ where
                     traversal_paths: Vec::new(),
                     request: QueryPropertyTypesParams {
                         filter: Filter::for_property_type_uuids(&property_type_uuids),
-                        temporal_axes: QueryTemporalAxesUnresolved::default(),
+                        temporal_axes: QueryTemporalAxesUnresolved::all(),
                         after: None,
                         limit: None,
                         include_count: false,
@@ -1005,10 +1004,7 @@ where
                                 parameters: ParameterList::EntityTypeIds(&required_reference_ids),
                             },
                         ),
-                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                            pinned: PinnedTemporalAxisUnresolved::new(None),
-                            variable: VariableTemporalAxisUnresolved::new(None, None),
-                        },
+                        temporal_axes: QueryTemporalAxesUnresolved::live_only(),
                         after: None,
                         limit: None,
                         include_count: false,
@@ -1202,6 +1198,62 @@ where
         }
 
         Ok(response)
+    }
+
+    #[tracing::instrument(level = "info", skip(self, params))]
+    async fn search_entity_types(
+        &self,
+        actor_id: ActorEntityUuid,
+        params: SearchEntityTypesParams,
+    ) -> Result<SearchEntityTypesResponse, Report<QueryError>> {
+        let SearchEntityTypesParams {
+            embedding,
+            maximum_semantic_distance,
+            limit,
+        } = params;
+
+        // TODO(BE-618): optimize the query — it scans embeddings without a vector index, which
+        //   needs an ANN-friendly query shape to be usable (the current `MIN(<=>) GROUP BY`
+        //   defeats it).
+        let maximum_distance =
+            Real::try_from(maximum_semantic_distance.into_inner()).change_context(QueryError)?;
+
+        let filter = Filter::CosineDistance(
+            FilterExpression::Path {
+                path: EntityTypeQueryPath::Embedding,
+            },
+            FilterExpression::Parameter {
+                parameter: Parameter::Vector(embedding),
+                convert: None,
+            },
+            FilterExpression::Parameter {
+                parameter: Parameter::Decimal(maximum_distance),
+                convert: None,
+            },
+        );
+
+        // The search always runs against the current time.
+        let response = self
+            .query_entity_types(
+                actor_id,
+                QueryEntityTypesParams {
+                    request: CommonQueryEntityTypesParams {
+                        filter,
+                        temporal_axes: QueryTemporalAxesUnresolved::live_only(),
+                        after: None,
+                        limit: Some(limit),
+                        include_count: false,
+                        include_web_ids: false,
+                        include_edition_created_by_ids: false,
+                    },
+                    include_entity_types: None,
+                },
+            )
+            .await?;
+
+        Ok(SearchEntityTypesResponse {
+            entity_types: response.entity_types,
+        })
     }
 
     #[tracing::instrument(
@@ -1601,10 +1653,7 @@ where
                                 parameters: ParameterList::EntityTypeIds(&required_reference_ids),
                             },
                         ),
-                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                            pinned: PinnedTemporalAxisUnresolved::new(None),
-                            variable: VariableTemporalAxisUnresolved::new(None, None),
-                        },
+                        temporal_axes: QueryTemporalAxesUnresolved::live_only(),
                         after: None,
                         limit: None,
                         include_count: false,
@@ -1873,7 +1922,7 @@ where
     #[tracing::instrument(level = "info", skip(self))]
     async fn reindex_entity_type_cache(&mut self) -> Result<(), Report<UpdateError>> {
         tracing::info!("Reindexing entity type cache");
-        let transaction = self.transaction().await.change_context(UpdateError)?;
+        let mut transaction = self.transaction().await.change_context(UpdateError)?;
 
         // We remove the data from the reference tables first
         transaction
@@ -1949,6 +1998,11 @@ where
                 .await
                 .change_context(UpdateError)?;
         }
+
+        // The entity edition cache derives type titles, labels (via `closed_schema`), and
+        // the inherited type entries from the data rebuilt above, so it has to be rebuilt
+        // as well — otherwise it silently keeps serving the pre-reindex schemas.
+        EntityStore::reindex_entity_cache(&mut transaction).await?;
 
         transaction.commit().await.change_context(UpdateError)?;
 
@@ -2046,11 +2100,7 @@ where
                 })
                 .collect()
         } else {
-            let temporal_axes = QueryTemporalAxesUnresolved::DecisionTime {
-                pinned: PinnedTemporalAxisUnresolved::new(None),
-                variable: VariableTemporalAxisUnresolved::new(None, None),
-            }
-            .resolve();
+            let temporal_axes = QueryTemporalAxesUnresolved::live_only().resolve();
             let mut compiler = SelectCompiler::new(Some(&temporal_axes), true);
 
             let entity_type_uuids = params

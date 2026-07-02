@@ -151,10 +151,12 @@ import type {
   ShortnamePropertyValueWithMetadata,
   TextDataType,
   TextDataTypeWithMetadata,
-  UploadCompletedAtPropertyValue,
-  UploadCompletedAtPropertyValueWithMetadata,
   URIDataType,
   URIDataTypeWithMetadata,
+  UploadCompletedAtPropertyValue,
+  UploadCompletedAtPropertyValueWithMetadata,
+  ValueDataType,
+  ValueDataTypeWithMetadata,
   WebsiteURLPropertyValue,
   WebsiteURLPropertyValueWithMetadata,
 } from "./shared.js";
@@ -312,6 +314,8 @@ export type {
   UploadCompletedAtPropertyValueWithMetadata,
   URIDataType,
   URIDataTypeWithMetadata,
+  ValueDataType,
+  ValueDataTypeWithMetadata,
   WebsiteURLPropertyValue,
   WebsiteURLPropertyValueWithMetadata,
 };

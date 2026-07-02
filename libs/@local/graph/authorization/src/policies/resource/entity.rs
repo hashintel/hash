@@ -25,6 +25,7 @@ pub struct EntityResource<'a> {
     pub entity_types: Cow<'a, [VersionedUrl]>,
     pub entity_base_types: Cow<'a, [BaseUrl]>,
     pub created_by: ActorId,
+    pub read_only: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -43,6 +44,8 @@ pub enum EntityResourceFilter {
     IsOfBaseType { entity_type: BaseUrl },
     #[serde(rename_all = "camelCase")]
     CreatedByPrincipal,
+    #[serde(rename_all = "camelCase")]
+    IsReadOnly,
 }
 
 #[derive(Debug, derive_more::Display)]
@@ -76,6 +79,7 @@ impl TryFrom<PolicyExpressionTree> for EntityResourceFilter {
                 Ok(Self::IsOfBaseType { entity_type })
             }
             PolicyExpressionTree::CreatedByPrincipal => Ok(Self::CreatedByPrincipal),
+            PolicyExpressionTree::IsReadOnly => Ok(Self::IsReadOnly),
             condition @ (PolicyExpressionTree::Is(_)
             | PolicyExpressionTree::In(_)
             | PolicyExpressionTree::BaseUrl(_)
@@ -134,6 +138,13 @@ impl ToCedarExpr for EntityResourceFilter {
                     SmolStr::new_static("id"),
                 ),
             ),
+            Self::IsReadOnly => ast::Expr::is_eq(
+                ast::Expr::get_attr(
+                    ast::Expr::var(ast::Var::Resource),
+                    SmolStr::new_static("read_only"),
+                ),
+                ast::Expr::val(true),
+            ),
         }
     }
 }
@@ -175,6 +186,10 @@ impl EntityResource<'_> {
                 (
                     SmolStr::new_static("created_by"),
                     ast::PartialValue::Value(self.created_by.to_cedar_value()),
+                ),
+                (
+                    SmolStr::new_static("read_only"),
+                    ast::PartialValue::Value(ast::Value::from(self.read_only)),
                 ),
             ],
             HashSet::new(),
@@ -246,6 +261,7 @@ impl EntityResourceConstraint {
     }
 }
 
+#[expect(clippy::panic_in_result_fn)]
 #[cfg(test)]
 mod tests {
     use core::{error::Error, str::FromStr as _};
@@ -411,6 +427,33 @@ mod tests {
                 },
             }),
             format!(r#"resource is HASH::Entity in HASH::Web::"{web_id}""#),
+        )?;
+
+        Ok(())
+    }
+
+    #[test]
+    fn filter_is_read_only() -> Result<(), Box<dyn Error>> {
+        use crate::policies::cedar::{FromCedarExpr as _, ToCedarExpr as _};
+
+        // The `isReadOnly` filter must survive the Cedar expression round-trip, since policies are
+        // serialized to and parsed back from Cedar.
+        let filter = EntityResourceFilter::IsReadOnly;
+        let parsed = EntityResourceFilter::from_cedar(&filter.to_cedar_expr())
+            .expect("read-only filter should round-trip through Cedar");
+        assert_eq!(parsed, filter);
+
+        check_resource(
+            Some(ResourceConstraint::Entity(EntityResourceConstraint::Any {
+                filter: EntityResourceFilter::IsReadOnly,
+            })),
+            json!({
+                "type": "entity",
+                "filter": {
+                    "type": "isReadOnly",
+                },
+            }),
+            "resource is HASH::Entity",
         )?;
 
         Ok(())

@@ -43,6 +43,7 @@ export type UserSettings = {
   snapToGrid: boolean;
   partialSelection: boolean;
   useEntitiesTreeView: boolean;
+  enableNetComponents: boolean;
   /**
    * Persisted preference controlling whether the product walkthrough opens
    * automatically the next time the app initializes. The live open state is
@@ -70,6 +71,7 @@ export type UserSettingsActions = {
   setSnapToGrid: (value: boolean) => void;
   setPartialSelection: (value: boolean) => void;
   setUseEntitiesTreeView: (value: boolean) => void;
+  setEnableNetComponents: (value: boolean) => void;
   setShowWalkthroughOnInit: (value: boolean) => void;
   updateSubViewSection: (
     containerName: string,
@@ -97,6 +99,7 @@ export const defaultUserSettings: UserSettings = {
   snapToGrid: true,
   partialSelection: true,
   useEntitiesTreeView: false,
+  enableNetComponents: false,
   showWalkthroughOnInit: true,
   subViewPanels: {},
 };
@@ -119,6 +122,7 @@ const DEFAULT_CONTEXT_VALUE: UserSettingsContextValue = {
   setSnapToGrid: () => {},
   setPartialSelection: () => {},
   setUseEntitiesTreeView: () => {},
+  setEnableNetComponents: () => {},
   setShowWalkthroughOnInit: () => {},
   updateSubViewSection: () => {},
 };

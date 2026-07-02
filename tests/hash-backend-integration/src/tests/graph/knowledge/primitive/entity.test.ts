@@ -17,6 +17,7 @@ import {
   createEntityType,
 } from "@apps/hash-api/src/graph/ontology/primitive/entity-type";
 import { createPropertyType } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
+import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import { Logger } from "@local/hash-backend-utils/logger";
 import {
@@ -25,6 +26,7 @@ import {
   queryEntities,
 } from "@local/hash-graph-sdk/entity";
 import { getClosedMultiEntityTypes } from "@local/hash-graph-sdk/entity-type";
+import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   blockProtocolDataTypes,
@@ -47,6 +49,7 @@ import type { Org } from "@apps/hash-api/src/graph/knowledge/system-types/org";
 import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import type {
   EntityTypeWithMetadata,
+  EntityUuid,
   PropertyTypeWithMetadata,
   WebId,
 } from "@blockprotocol/type-system";
@@ -469,6 +472,92 @@ describe("Entity CRU", () => {
     expect(linkEntity.metadata.entityTypeIds).toContain(
       linkEntityTypeFriend.schema.$id,
     );
+  });
+
+  it("assigns distinct entity UUIDs when creating entity with linked new entities", async () => {
+    const rootEntityUuid = generateUuid() as EntityUuid;
+
+    const rootEntity = await createEntityWithLinks(
+      graphContext,
+      { actorId: testUser.accountId },
+      {
+        webId: testUser.accountId as WebId,
+        entityUuid: rootEntityUuid,
+        entityTypeIds: [entityType.schema.$id],
+        properties: {
+          value: {
+            [namePropertyType.metadata.recordId.baseUrl]: {
+              value: "Bob",
+              metadata: {
+                dataTypeId: blockProtocolDataTypes.text.dataTypeId,
+              },
+            },
+            [favoriteBookPropertyType.metadata.recordId.baseUrl]: {
+              value: "some text",
+              metadata: {
+                dataTypeId: blockProtocolDataTypes.text.dataTypeId,
+              },
+            },
+          },
+        },
+        linkedEntities: [
+          {
+            destinationAccountId: testUser.accountId,
+            linkEntityTypeId: linkEntityTypeFriend.schema.$id,
+            entity: {
+              entityTypeIds: [entityType.schema.$id],
+              entityProperties: {
+                value: {
+                  [namePropertyType.metadata.recordId.baseUrl]: {
+                    value: "Charlie",
+                    metadata: {
+                      dataTypeId: blockProtocolDataTypes.text.dataTypeId,
+                    },
+                  },
+                  [favoriteBookPropertyType.metadata.recordId.baseUrl]: {
+                    value: "another book",
+                    metadata: {
+                      dataTypeId: blockProtocolDataTypes.text.dataTypeId,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        ],
+      },
+    );
+
+    const linkEntity = (
+      await getEntityOutgoingLinks(
+        graphContext,
+        { actorId: testUser.accountId },
+        {
+          entityId: rootEntity.metadata.recordId.entityId,
+        },
+      )
+    )[0]!;
+
+    const linkedEntity = await getLinkEntityRightEntity(
+      graphContext,
+      { actorId: testUser.accountId },
+      { linkEntity },
+    );
+
+    const rootUuid = extractEntityUuidFromEntityId(
+      rootEntity.metadata.recordId.entityId,
+    );
+    const linkedUuid = extractEntityUuidFromEntityId(
+      linkedEntity.metadata.recordId.entityId,
+    );
+    const linkUuid = extractEntityUuidFromEntityId(
+      linkEntity.metadata.recordId.entityId,
+    );
+
+    expect(rootUuid).toEqual(rootEntityUuid);
+    expect(linkedUuid).not.toEqual(rootUuid);
+    expect(linkUuid).not.toEqual(rootUuid);
+    expect(linkUuid).not.toEqual(linkedUuid);
   });
 
   it("Cannot instantiate actor entity type", async () => {

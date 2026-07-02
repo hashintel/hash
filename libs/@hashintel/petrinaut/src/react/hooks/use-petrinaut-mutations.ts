@@ -1,11 +1,16 @@
 import { use } from "react";
 
 import { PetrinautInstanceContext } from "../instance-context";
+import { ActiveNetContext } from "../state/active-net-context";
 import { SDCPNContext } from "../state/sdcpn-context";
 import { simulateModeAllowedMutationNames } from "../state/simulate-mode-allowed-mutation-names";
 import { useIsReadOnly } from "../state/use-is-read-only";
 
 import type { PetrinautMutations } from "@hashintel/petrinaut-core";
+
+type PetrinautMutationInput<Name extends keyof PetrinautMutations> = Parameters<
+  PetrinautMutations[Name]
+>[0];
 
 /**
  * React-facing bundle of atomic SDCPN mutations.
@@ -31,19 +36,30 @@ export function usePetrinautMutations(): PetrinautMutations {
     );
   }
   const { readonly } = use(SDCPNContext);
+  const { activeSubnetId } = use(ActiveNetContext);
   const isReadOnly = useIsReadOnly();
   const { mutations } = instance;
 
   const withReadonlyGuard = <Name extends keyof PetrinautMutations>(
     name: Name,
+    options?: { targetActiveSubnet?: boolean },
   ): PetrinautMutations[Name] => {
     const allowedInSimulate = simulateModeAllowedMutationNames.has(name);
-    const target = mutations[name] as (input: never) => void;
-    const wrapped = ((input: never) => {
+    const target = mutations[name] as (
+      input: PetrinautMutationInput<Name>,
+    ) => void;
+    const wrapped = ((input: PetrinautMutationInput<Name>) => {
       if (allowedInSimulate ? readonly : isReadOnly) {
         return;
       }
-      target(input);
+      const nextInput =
+        options?.targetActiveSubnet === false
+          ? input
+          : ({
+              ...input,
+              targetSubnetId: activeSubnetId,
+            } as PetrinautMutationInput<Name>);
+      target(nextInput);
     }) as PetrinautMutations[Name];
     return wrapped;
   };
@@ -75,12 +91,35 @@ export function usePetrinautMutations(): PetrinautMutations {
     addParameter: withReadonlyGuard("addParameter"),
     updateParameter: withReadonlyGuard("updateParameter"),
     removeParameter: withReadonlyGuard("removeParameter"),
-    addScenario: withReadonlyGuard("addScenario"),
-    updateScenario: withReadonlyGuard("updateScenario"),
-    removeScenario: withReadonlyGuard("removeScenario"),
-    addMetric: withReadonlyGuard("addMetric"),
-    updateMetric: withReadonlyGuard("updateMetric"),
-    removeMetric: withReadonlyGuard("removeMetric"),
+    addScenario: withReadonlyGuard("addScenario", {
+      targetActiveSubnet: false,
+    }),
+    updateScenario: withReadonlyGuard("updateScenario", {
+      targetActiveSubnet: false,
+    }),
+    removeScenario: withReadonlyGuard("removeScenario", {
+      targetActiveSubnet: false,
+    }),
+    addMetric: withReadonlyGuard("addMetric", { targetActiveSubnet: false }),
+    updateMetric: withReadonlyGuard("updateMetric", {
+      targetActiveSubnet: false,
+    }),
+    removeMetric: withReadonlyGuard("removeMetric", {
+      targetActiveSubnet: false,
+    }),
+    addSubnet: withReadonlyGuard("addSubnet", { targetActiveSubnet: false }),
+    updateSubnet: withReadonlyGuard("updateSubnet", {
+      targetActiveSubnet: false,
+    }),
+    removeSubnet: withReadonlyGuard("removeSubnet", {
+      targetActiveSubnet: false,
+    }),
+    addComponentInstance: withReadonlyGuard("addComponentInstance"),
+    updateComponentInstance: withReadonlyGuard("updateComponentInstance"),
+    updateComponentInstancePosition: withReadonlyGuard(
+      "updateComponentInstancePosition",
+    ),
+    removeComponentInstance: withReadonlyGuard("removeComponentInstance"),
     deleteItemsByIds: withReadonlyGuard("deleteItemsByIds"),
     commitNodePositions: withReadonlyGuard("commitNodePositions"),
   };

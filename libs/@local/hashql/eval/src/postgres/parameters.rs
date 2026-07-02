@@ -36,6 +36,7 @@ impl Display for ParameterIndex {
 }
 
 impl From<ParameterIndex> for Expression {
+    #[inline]
     fn from(value: ParameterIndex) -> Self {
         Self::Parameter(value.as_usize() + 1)
     }

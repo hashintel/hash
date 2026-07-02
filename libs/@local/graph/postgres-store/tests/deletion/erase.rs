@@ -6,6 +6,7 @@ use hash_graph_store::{
         PatchEntityParams,
     },
     filter::Filter,
+    subgraph::temporal_axes::QueryTemporalAxesUnresolved,
 };
 use type_system::knowledge::property::{
     Property, PropertyObjectWithMetadata, PropertyPatchOperation, PropertyPath,
@@ -13,7 +14,7 @@ use type_system::knowledge::property::{
 };
 
 use crate::{
-    DatabaseTestWrapper, alice, count_entity, create_person, get_deletion_provenance,
+    DatabaseTestWrapper, alice, count_entities, create_person, get_deletion_provenance,
     person_type_id, provenance, raw_count, raw_entity_ids_exists, seed,
 };
 
@@ -39,7 +40,7 @@ async fn removes_entity_ids_row() {
                 filter: Filter::for_entity_by_entity_id(entity_id),
                 include_drafts: false,
                 scope: DeletionScope::Erase,
-                temporal_axes: crate::live_only_axes(),
+                temporal_axes: QueryTemporalAxesUnresolved::live_only(),
                 decision_time: None,
             },
         )
@@ -55,7 +56,7 @@ async fn removes_entity_ids_row() {
         }
     );
 
-    assert_eq!(count_entity(&api, entity_id, false).await, 0);
+    assert_eq!(count_entities(&api, entity_id, false).await, 0);
     assert!(!raw_entity_ids_exists(&api, entity_id.web_id, entity_id.entity_uuid).await);
 }
 
@@ -83,7 +84,7 @@ async fn satellite_tables_cleaned() {
                 filter: Filter::for_entity_by_entity_id(entity_id),
                 include_drafts: false,
                 scope: DeletionScope::Erase,
-                temporal_axes: crate::live_only_axes(),
+                temporal_axes: QueryTemporalAxesUnresolved::live_only(),
                 decision_time: None,
             },
         )
@@ -155,7 +156,7 @@ async fn entity_with_history() {
         .await
         .expect("could not patch entity");
 
-    assert!(count_entity(&api, entity_id, false).await >= 2);
+    assert!(count_entities(&api, entity_id, false).await >= 2);
 
     let web_id = entity_id.web_id;
     let entity_uuid = entity_id.entity_uuid;
@@ -172,7 +173,7 @@ async fn entity_with_history() {
                 filter: Filter::for_entity_by_entity_id(entity_id),
                 include_drafts: false,
                 scope: DeletionScope::Erase,
-                temporal_axes: crate::live_only_axes(),
+                temporal_axes: QueryTemporalAxesUnresolved::live_only(),
                 decision_time: None,
             },
         )
@@ -188,7 +189,7 @@ async fn entity_with_history() {
         }
     );
 
-    assert_eq!(count_entity(&api, entity_id, false).await, 0);
+    assert_eq!(count_entities(&api, entity_id, false).await, 0);
     assert_eq!(
         raw_count(&api, "entity_temporal_metadata", web_id, entity_uuid).await,
         0,
@@ -219,7 +220,7 @@ async fn double_deletion_is_noop() {
                 filter: Filter::for_entity_by_entity_id(entity_id),
                 include_drafts: false,
                 scope: DeletionScope::Erase,
-                temporal_axes: crate::live_only_axes(),
+                temporal_axes: QueryTemporalAxesUnresolved::live_only(),
                 decision_time: None,
             },
         )
@@ -243,7 +244,7 @@ async fn double_deletion_is_noop() {
                 filter: Filter::for_entity_by_entity_id(entity_id),
                 include_drafts: false,
                 scope: DeletionScope::Erase,
-                temporal_axes: crate::live_only_axes(),
+                temporal_axes: QueryTemporalAxesUnresolved::live_only(),
                 decision_time: None,
             },
         )
@@ -284,7 +285,7 @@ async fn entity_reuse_after_erase() {
                 filter: Filter::for_entity_by_entity_id(entity_id),
                 include_drafts: false,
                 scope: DeletionScope::Erase,
-                temporal_axes: crate::live_only_axes(),
+                temporal_axes: QueryTemporalAxesUnresolved::live_only(),
                 decision_time: None,
             },
         )
@@ -310,13 +311,14 @@ async fn entity_reuse_after_erase() {
                 draft: false,
                 policies: Vec::new(),
                 provenance: provenance(),
+                read_only: false,
             },
         )
         .await
         .expect("re-creating entity with same UUID should succeed");
 
     let new_id = new_entity.metadata.record_id.entity_id;
-    assert!(count_entity(&api, new_id, false).await >= 1);
+    assert!(count_entities(&api, new_id, false).await >= 1);
 
     // Verify it's fully functional by patching
     api.store
@@ -356,7 +358,7 @@ async fn promoted_draft_only_entity() {
         draft_id: None,
     };
 
-    assert!(count_entity(&api, base_entity_id, true).await >= 1);
+    assert!(count_entities(&api, base_entity_id, true).await >= 1);
 
     let summary = api
         .store
@@ -366,7 +368,7 @@ async fn promoted_draft_only_entity() {
                 filter: Filter::for_entity_by_entity_id(base_entity_id),
                 include_drafts: true,
                 scope: DeletionScope::Erase,
-                temporal_axes: crate::live_only_axes(),
+                temporal_axes: QueryTemporalAxesUnresolved::live_only(),
                 decision_time: None,
             },
         )
@@ -382,7 +384,7 @@ async fn promoted_draft_only_entity() {
         }
     );
 
-    assert_eq!(count_entity(&api, base_entity_id, true).await, 0);
+    assert_eq!(count_entities(&api, base_entity_id, true).await, 0);
     assert!(!raw_entity_ids_exists(&api, entity_id.web_id, entity_id.entity_uuid).await);
 }
 
@@ -426,7 +428,7 @@ async fn erase_partial_draft_preserves_entity_ids() {
     let draft_entity_id = patched.metadata.record_id.entity_id;
     assert!(draft_entity_id.draft_id.is_some());
 
-    assert!(count_entity(&api, entity_id, true).await >= 2);
+    assert!(count_entities(&api, entity_id, true).await >= 2);
 
     // Erase filtering only the draft
     let summary = api
@@ -437,7 +439,7 @@ async fn erase_partial_draft_preserves_entity_ids() {
                 filter: Filter::for_entity_by_entity_id(draft_entity_id),
                 include_drafts: true,
                 scope: DeletionScope::Erase,
-                temporal_axes: crate::live_only_axes(),
+                temporal_axes: QueryTemporalAxesUnresolved::live_only(),
                 decision_time: None,
             },
         )
@@ -454,10 +456,10 @@ async fn erase_partial_draft_preserves_entity_ids() {
     );
 
     // Published version survives
-    assert!(count_entity(&api, entity_id, false).await >= 1);
+    assert!(count_entities(&api, entity_id, false).await >= 1);
     assert_eq!(
-        count_entity(&api, entity_id, true).await,
-        count_entity(&api, entity_id, false).await
+        count_entities(&api, entity_id, true).await,
+        count_entities(&api, entity_id, false).await
     );
 
     // entity_ids is NOT deleted despite Erase scope (draft-only target)

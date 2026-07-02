@@ -213,6 +213,7 @@ impl CopyPropagation {
 }
 
 impl Default for CopyPropagation {
+    #[inline]
     fn default() -> Self {
         Self::new()
     }

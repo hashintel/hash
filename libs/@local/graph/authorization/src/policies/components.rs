@@ -535,6 +535,9 @@ impl<'a, S> PolicyComponentsBuilder<'a, S> {
             ),
             entity_types,
             created_by: actor,
+            // Creation never gates on `read_only` (only update/archive do). For existing entities
+            // it's loaded from the database in `build_entity_context`.
+            read_only: false,
         });
     }
 

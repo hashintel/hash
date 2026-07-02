@@ -48,6 +48,7 @@ const TYPE_LABELS: Record<string, string> = {
   place: "place",
   transition: "transition",
   arc: "arc",
+  componentInstance: "component instance",
   type: "type",
   differentialEquation: "differential equation",
   parameter: "parameter",

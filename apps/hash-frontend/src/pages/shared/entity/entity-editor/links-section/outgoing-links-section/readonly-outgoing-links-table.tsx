@@ -1,12 +1,5 @@
 import { Box, Stack, TableCell, Typography } from "@mui/material";
-import {
-  memo,
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { EntityOrTypeIcon } from "@hashintel/design-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
@@ -24,9 +17,6 @@ import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-p
 import { ClickableCellChip } from "../../../../clickable-cell-chip";
 import { VirtualizedTable } from "../../../../virtualized-table";
 import { virtualizedTableHeaderHeight } from "../../../../virtualized-table/header";
-import { isValueIncludedInFilter } from "../../../../virtualized-table/header/filter";
-import { useVirtualizedTableFilterState } from "../../../../virtualized-table/use-filter-state";
-import { useEntityEditor } from "../../entity-editor-context";
 import { PropertiesTooltip } from "../shared/properties-tooltip";
 import {
   linksTableCellSx,
@@ -40,24 +30,39 @@ import type {
   VirtualizedTableColumn,
   VirtualizedTableRow,
 } from "../../../../virtualized-table";
-import type {
-  VirtualizedTableFilterDefinition,
-  VirtualizedTableFilterDefinitionsByFieldId,
-  VirtualizedTableFilterValue,
-  VirtualizedTableFilterValuesByFieldId,
-} from "../../../../virtualized-table/header/filter";
+import type { VirtualizedTableFilterValuesByFieldId } from "../../../../virtualized-table/header/filter";
 import type { VirtualizedTableSort } from "../../../../virtualized-table/header/sort";
 import type { CustomEntityLinksColumn } from "../../shared/types";
-import type { LinkEntityAndRightEntity } from "@blockprotocol/graph";
+import type {
+  LinkTypeFilterDefinitions,
+  LinkTypeFilterValues,
+} from "../use-link-type-filter";
+import type {
+  EntityRootType,
+  LinkEntityAndRightEntity,
+  Subgraph,
+} from "@blockprotocol/graph";
 import type {
   Entity,
   EntityId,
   PartialEntityType,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-import type { ReactElement } from "react";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import type {
+  ClosedMultiEntityTypesDefinitions,
+  ClosedMultiEntityTypesRootMap,
+} from "@local/hash-graph-sdk/ontology";
+import type { ReactElement, RefObject } from "react";
+import type { ListRange } from "react-virtuoso";
 
-type OutgoingLinksFieldId = "linkTypes" | "linkedTo" | "linkedToTypes" | "link";
+export type OutgoingLinksFieldId =
+  | "linkTypes"
+  | "linkedTo"
+  | "linkedToTypes"
+  | "link";
+
+const serverSortableFieldIds: OutgoingLinksFieldId[] = ["linkTypes"];
 
 export type OutgoingLinksFilterValues =
   VirtualizedTableFilterValuesByFieldId<OutgoingLinksFieldId>;
@@ -122,6 +127,7 @@ type OutgoingLinkRow = {
   onEntityClick: (entityId: EntityId) => void;
   onTypeClick: (kind: "dataType" | "entityType", itemId: VersionedUrl) => void;
   customFields: { [fieldId: string]: string | number };
+  slideContainerRef?: RefObject<HTMLDivElement | null>;
 };
 
 const TableRow = memo(({ row }: { row: OutgoingLinkRow }) => {
@@ -162,6 +168,7 @@ const TableRow = memo(({ row }: { row: OutgoingLinkRow }) => {
         <PropertiesTooltip
           entityType="target entity"
           properties={row.targetEntityProperties}
+          slideContainerRef={row.slideContainerRef}
         >
           <ClickableCellChip
             onClick={() =>
@@ -209,6 +216,7 @@ const TableRow = memo(({ row }: { row: OutgoingLinkRow }) => {
         <PropertiesTooltip
           entityType="link entity"
           properties={row.linkEntityProperties}
+          slideContainerRef={row.slideContainerRef}
         >
           <ClickableCellChip
             onClick={() =>
@@ -239,77 +247,57 @@ const createRowContent: CreateVirtualizedRowContentFn<
 > = (_index, row) => <TableRow row={row.data} />;
 
 type OutgoingLinksTableProps = {
+  closedMultiEntityTypesDefinitions: ClosedMultiEntityTypesDefinitions;
+  closedMultiEntityTypesMap: ClosedMultiEntityTypesRootMap | null;
+  customEntityLinksColumns?: CustomEntityLinksColumn[];
+  defaultOutgoingLinkFilters?: Partial<OutgoingLinksFilterValues>;
+  entitySubgraph: Subgraph<EntityRootType<HashEntity>>;
+  filterDefinitions?: LinkTypeFilterDefinitions;
+  filterValues?: LinkTypeFilterValues;
+  setFilterValues?: (filterValues: LinkTypeFilterValues) => void;
+  loadingMore?: boolean;
+  onEndReached?: () => void;
+  onEntityClick: (entityId: EntityId) => void;
+  onTypeClick: (kind: "dataType" | "entityType", itemId: VersionedUrl) => void;
   outgoingLinksAndTargets: LinkEntityAndRightEntity[];
+  sort: VirtualizedTableSort<OutgoingLinksFieldId>;
+  setSort: (sort: VirtualizedTableSort<OutgoingLinksFieldId>) => void;
+  slideContainerRef?: RefObject<HTMLDivElement | null>;
 };
 
 export const OutgoingLinksTable = memo(
-  ({ outgoingLinksAndTargets }: OutgoingLinksTableProps) => {
-    const [sort, setSort] = useState<
-      VirtualizedTableSort<OutgoingLinksFieldId>
-    >({
-      fieldId: "linkedTo",
-      direction: "asc",
-    });
-
+  ({
+    closedMultiEntityTypesDefinitions,
+    closedMultiEntityTypesMap,
+    customEntityLinksColumns: customColumns,
+    defaultOutgoingLinkFilters,
+    entitySubgraph,
+    filterDefinitions,
+    filterValues,
+    setFilterValues,
+    loadingMore,
+    onEndReached,
+    onEntityClick,
+    onTypeClick,
+    outgoingLinksAndTargets,
+    sort,
+    setSort,
+    slideContainerRef,
+  }: OutgoingLinksTableProps) => {
     const {
-      closedMultiEntityTypesDefinitions,
-      linkAndDestinationEntitiesClosedMultiEntityTypesMap:
-        closedMultiEntityTypesMap,
-      entitySubgraph,
-      customEntityLinksColumns: customColumns,
-      defaultOutgoingLinkFilters,
-      onEntityClick,
-      onTypeClick,
-    } = useEntityEditor();
-
-    const outputContainerRef = useRef<HTMLDivElement>(null);
-    const [outputContainerHeight, setOutputContainerHeight] = useState(400);
-    useLayoutEffect(() => {
-      if (
-        outputContainerRef.current &&
-        outputContainerRef.current.clientHeight !== outputContainerHeight
-      ) {
-        setOutputContainerHeight(outputContainerRef.current.clientHeight);
-      }
-    }, [outputContainerHeight]);
-
-    const {
-      filterDefinitions,
-      initialFilterValues,
-      unsortedRows,
+      rows,
+      presentLinkEntityTypeIds,
     }: {
-      filterDefinitions: VirtualizedTableFilterDefinitionsByFieldId<OutgoingLinksFieldId>;
-      initialFilterValues: VirtualizedTableFilterValuesByFieldId<OutgoingLinksFieldId>;
-      unsortedRows: VirtualizedTableRow<OutgoingLinkRow>[];
+      rows: VirtualizedTableRow<OutgoingLinkRow>[];
+      presentLinkEntityTypeIds: Set<VersionedUrl>;
     } = useMemo(() => {
       const rowData: VirtualizedTableRow<OutgoingLinkRow>[] = [];
 
-      const filterDefs = {
-        linkTypes: {
-          header: "Type",
-          initialValue: new Set<string>(),
-          options: {} as VirtualizedTableFilterDefinition["options"],
-          type: "checkboxes",
-        },
-        linkedTo: {
-          header: "Name",
-          initialValue: new Set<string>(),
-          options: {} as VirtualizedTableFilterDefinition["options"],
-          type: "checkboxes",
-        },
-        linkedToTypes: {
-          header: "Type",
-          initialValue: new Set<string>(),
-          options: {} as VirtualizedTableFilterDefinition["options"],
-          type: "checkboxes",
-        },
-        link: {
-          header: "Name",
-          initialValue: new Set<string>(),
-          options: {} as VirtualizedTableFilterDefinition["options"],
-          type: "checkboxes",
-        },
-      } as const satisfies VirtualizedTableFilterDefinitionsByFieldId<OutgoingLinksFieldId>;
+      /**
+       * The set of link entity type ids present across the loaded rows, used to
+       * decide which custom columns apply.
+       */
+      const linkEntityTypeIds = new Set<VersionedUrl>();
 
       for (const {
         rightEntity: rightEntityRevisions,
@@ -350,16 +338,7 @@ export const OutgoingLinksTable = memo(
         );
 
         for (const linkType of linkEntityClosedMultiType.allOf) {
-          const linkEntityTypeId = linkType.$id;
-
-          filterDefs.linkTypes.options[linkEntityTypeId] ??= {
-            label: linkType.title,
-            count: 0,
-            value: linkEntityTypeId,
-          };
-
-          filterDefs.linkTypes.options[linkEntityTypeId].count++;
-          filterDefs.linkTypes.initialValue.add(linkEntityTypeId);
+          linkEntityTypeIds.add(linkType.$id);
         }
 
         const rightEntity = rightEntityRevisions[0];
@@ -379,39 +358,6 @@ export const OutgoingLinksTable = memo(
               closedMultiEntityTypesRootMap: closedMultiEntityTypesMap,
             })
           : generateEntityLabel(rightEntityClosedMultiType, rightEntity);
-
-        filterDefs.linkedTo.options[rightEntity.metadata.recordId.entityId] ??=
-          {
-            label: rightEntityLabel,
-            count: 0,
-            value: rightEntity.metadata.recordId.entityId,
-          };
-        filterDefs.linkedTo.options[rightEntity.metadata.recordId.entityId]!
-          .count++;
-        filterDefs.linkedTo.initialValue.add(
-          rightEntity.metadata.recordId.entityId,
-        );
-
-        for (const rightType of rightEntityClosedMultiType.allOf) {
-          const rightEntityTypeId = rightType.$id;
-
-          filterDefs.linkedToTypes.options[rightEntityTypeId] ??= {
-            label: rightType.title,
-            count: 0,
-            value: rightEntityTypeId,
-          };
-
-          filterDefs.linkedToTypes.options[rightEntityTypeId].count++;
-          filterDefs.linkedToTypes.initialValue.add(rightEntityTypeId);
-        }
-
-        filterDefs.link.options[linkEntity.metadata.recordId.entityId] ??= {
-          label: linkEntityLabel,
-          count: 0,
-          value: linkEntity.metadata.recordId.entityId,
-        };
-        filterDefs.link.options[linkEntity.metadata.recordId.entityId]!.count++;
-        filterDefs.link.initialValue.add(linkEntity.metadata.recordId.entityId);
 
         const linkEntityProperties: OutgoingLinkRow["linkEntityProperties"] =
           {};
@@ -462,6 +408,7 @@ export const OutgoingLinksTable = memo(
             linkEntityProperties,
             onEntityClick,
             onTypeClick,
+            slideContainerRef,
             targetEntity: rightEntity,
             targetEntityLabel: rightEntityLabel,
             targetEntityProperties,
@@ -480,17 +427,8 @@ export const OutgoingLinksTable = memo(
       }
 
       return {
-        filterDefinitions: filterDefs,
-        initialFilterValues: Object.fromEntries(
-          typedEntries(filterDefs).map(
-            ([columnId, filterDef]) =>
-              [columnId, filterDef.initialValue] satisfies [
-                OutgoingLinksFieldId,
-                VirtualizedTableFilterValue,
-              ],
-          ),
-        ) as OutgoingLinksFilterValues,
-        unsortedRows: rowData,
+        rows: rowData,
+        presentLinkEntityTypeIds: linkEntityTypeIds,
       };
     }, [
       closedMultiEntityTypesMap,
@@ -500,6 +438,7 @@ export const OutgoingLinksTable = memo(
       outgoingLinksAndTargets,
       onEntityClick,
       onTypeClick,
+      slideContainerRef,
     ]);
 
     const [highlightOutgoingLinks, setHighlightOutgoingLinks] = useState(
@@ -510,132 +449,56 @@ export const OutgoingLinksTable = memo(
       setTimeout(() => setHighlightOutgoingLinks(false), 5_000);
     }, []);
 
-    const [filterValues, setFilterValues] = useVirtualizedTableFilterState({
-      defaultFilterValues: {
-        ...initialFilterValues,
-        ...(defaultOutgoingLinkFilters ?? {}),
-      },
-      filterDefinitions,
-    });
-
-    const rows = useMemo(
-      () =>
-        unsortedRows
-          .filter((row) => {
-            for (const [fieldId, currentValue] of typedEntries(filterValues)) {
-              switch (fieldId) {
-                case "linkTypes": {
-                  if (
-                    !isValueIncludedInFilter({
-                      currentValue,
-                      valueToCheck: row.data.linkEntity.metadata.entityTypeIds,
-                    })
-                  ) {
-                    return false;
-                  }
-                  break;
-                }
-                case "linkedTo": {
-                  if (
-                    !isValueIncludedInFilter({
-                      currentValue,
-                      valueToCheck:
-                        row.data.targetEntity.metadata.recordId.entityId,
-                    })
-                  ) {
-                    return false;
-                  }
-                  break;
-                }
-                case "linkedToTypes": {
-                  if (
-                    !isValueIncludedInFilter({
-                      currentValue,
-                      valueToCheck:
-                        row.data.targetEntity.metadata.entityTypeIds,
-                    })
-                  ) {
-                    return false;
-                  }
-                  break;
-                }
-                case "link": {
-                  if (
-                    !isValueIncludedInFilter({
-                      currentValue,
-                      valueToCheck:
-                        row.data.linkEntity.metadata.recordId.entityId,
-                    })
-                  ) {
-                    return false;
-                  }
-                  break;
-                }
-              }
-            }
-
-            return true;
-          })
-          .sort((a, b) => {
-            const field = sort.fieldId;
-            const direction = sort.direction === "asc" ? 1 : -1;
-
-            switch (field) {
-              case "linkTypes": {
-                return (
-                  a.data.linkEntityTypes[0]!.title.localeCompare(
-                    b.data.linkEntityTypes[0]!.title,
-                  ) * direction
-                );
-              }
-              case "linkedToTypes": {
-                return (
-                  a.data.targetEntityTypes[0]!.title.localeCompare(
-                    b.data.targetEntityTypes[0]!.title,
-                  ) * direction
-                );
-              }
-              case "linkedTo": {
-                return (
-                  a.data.targetEntityLabel.localeCompare(
-                    b.data.targetEntityLabel,
-                  ) * direction
-                );
-              }
-              case "link": {
-                return (
-                  a.data.linkEntityLabel.localeCompare(b.data.linkEntityLabel) *
-                  direction
-                );
-              }
-              default: {
-                const customFieldA = a.data.customFields[field];
-                const customFieldB = b.data.customFields[field];
-                if (
-                  typeof customFieldA === "number" &&
-                  typeof customFieldB === "number"
-                ) {
-                  return (customFieldA - customFieldB) * direction;
-                }
-                return (
-                  String(customFieldA).localeCompare(String(customFieldB)) *
-                  direction
-                );
-              }
-            }
-          }),
-      [filterValues, sort, unsortedRows],
-    );
-
     const columns = useMemo(() => {
-      const applicableCustomColumns = customColumns?.filter(
-        (column) =>
-          typeof filterValues.linkTypes === "object" &&
-          filterValues.linkTypes.has(column.appliesToEntityTypeId),
+      const applicableCustomColumns = customColumns?.filter((column) =>
+        presentLinkEntityTypeIds.has(column.appliesToEntityTypeId),
       );
 
-      return createColumns(applicableCustomColumns ?? []);
-    }, [filterValues, customColumns]);
+      const createdColumns = createColumns(applicableCustomColumns ?? []);
+
+      return createdColumns.map((column) => ({
+        ...column,
+        sortable: serverSortableFieldIds.includes(column.id),
+      }));
+    }, [customColumns, presentLinkEntityTypeIds]);
+
+    /**
+     * Whether scrolling to the bottom may trigger a load of the next page. It
+     * starts disarmed so that the initial range-change callback Virtuoso fires
+     * on mount (which reports the rendered range including overscan, and would
+     * otherwise auto-load page 2 with no user scroll when the first page fits in
+     * the viewport) cannot trigger a load. It is armed only once the user
+     * actually scrolls, disarmed again as soon as a load is triggered, and
+     * re-armed when the user starts scrolling again – so a single scroll to the
+     * bottom loads at most one page, and the user must scroll again to load more
+     * (rather than the table looping while the scroll position stays at the
+     * bottom).
+     */
+    const canLoadMoreRef = useRef(false);
+
+    const handleIsScrolling = useCallback((isScrolling: boolean) => {
+      if (isScrolling) {
+        canLoadMoreRef.current = true;
+      }
+    }, []);
+
+    const handleRangeChange = useMemo(
+      () =>
+        onEndReached
+          ? ({ endIndex }: ListRange) => {
+              // Load the next page once the loaded rows scroll into view
+              if (
+                canLoadMoreRef.current &&
+                !loadingMore &&
+                endIndex >= rows.length - 1
+              ) {
+                canLoadMoreRef.current = false;
+                onEndReached();
+              }
+            }
+          : undefined,
+      [loadingMore, onEndReached, rows.length],
+    );
 
     const height = Math.min(
       maxLinksTableHeight,
@@ -663,6 +526,10 @@ export const OutgoingLinksTable = memo(
           filterDefinitions={filterDefinitions}
           filterValues={filterValues}
           setFilterValues={setFilterValues}
+          followOutput={false}
+          loadingMore={loadingMore}
+          onIsScrolling={handleIsScrolling}
+          onRangeChange={handleRangeChange}
           rows={rows}
           sort={sort}
           setSort={setSort}

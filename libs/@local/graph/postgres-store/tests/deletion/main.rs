@@ -17,7 +17,7 @@ use hash_graph_postgres_store::store::{AsClient as _, PostgresStore};
 use hash_graph_store::{
     account::{AccountStore as _, CreateUserActorParams},
     data_type::{CreateDataTypeParams, DataTypeStore as _},
-    entity::{CountEntitiesParams, CreateEntityParams, EntityStore as _},
+    entity::{CreateEntityParams, EntityStore as _, SummarizeEntitiesParams},
     entity_type::{CreateEntityTypeParams, EntityTypeStore as _},
     error::InsertionError,
     filter::Filter,
@@ -27,7 +27,6 @@ use hash_graph_store::{
         PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
     },
 };
-use hash_graph_temporal_versioning::TemporalBound;
 use hash_graph_test_data::{data_type, entity, entity_type, property_type};
 use tokio_postgres::Transaction;
 use type_system::{
@@ -297,28 +296,30 @@ pub(crate) async fn seed(database: &mut DatabaseTestWrapper) -> DatabaseApi<'_> 
         .expect("could not seed database")
 }
 
-pub(crate) async fn count_entity(
+pub(crate) async fn count_entities(
     api: &DatabaseApi<'_>,
     entity_id: EntityId,
     include_drafts: bool,
 ) -> usize {
     api.store
-        .count_entities(
+        .summarize_entities(
             api.account_id,
-            CountEntitiesParams {
+            SummarizeEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(entity_id),
-                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                    pinned: PinnedTemporalAxisUnresolved::new(None),
-                    variable: VariableTemporalAxisUnresolved::new(
-                        Some(TemporalBound::Unbounded),
-                        None,
-                    ),
-                },
+                temporal_axes: QueryTemporalAxesUnresolved::all(),
                 include_drafts,
+                include_count: true,
+                include_web_ids: false,
+                include_created_by_ids: false,
+                include_edition_created_by_ids: false,
+                include_type_ids: false,
+                include_type_titles: false,
             },
         )
         .await
         .expect("could not count entities")
+        .count
+        .expect("summarize_entities should include `count` when `include_count` is true")
 }
 
 pub(crate) async fn create_person(
@@ -341,6 +342,7 @@ pub(crate) async fn create_person(
                 draft,
                 policies: Vec::new(),
                 provenance: provenance(),
+                read_only: false,
             },
         )
         .await
@@ -374,6 +376,7 @@ pub(crate) async fn create_link(
                 draft: false,
                 policies: Vec::new(),
                 provenance: provenance(),
+                read_only: false,
             },
         )
         .await
@@ -530,16 +533,6 @@ pub(crate) async fn has_archived_provenance(
         .get(0)
 }
 
-/// Temporal axes that pin both axes at "now" — finds only live entities.
-///
-/// Equivalent to the old `decision_time: None` behavior.
-pub(crate) fn live_only_axes() -> QueryTemporalAxesUnresolved {
-    QueryTemporalAxesUnresolved::TransactionTime {
-        pinned: PinnedTemporalAxisUnresolved::new(None),
-        variable: VariableTemporalAxisUnresolved::new(None, None),
-    }
-}
-
 /// Temporal axes that pin `decision_time` at a specific past timestamp.
 pub(crate) fn axes_at_decision_time(
     dt: hash_graph_temporal_versioning::Timestamp<hash_graph_temporal_versioning::DecisionTime>,
@@ -571,18 +564,6 @@ pub(crate) async fn raw_count_archived_temporal_rows(
         .await
         .expect("raw_count_archived_temporal_rows query failed")
         .get(0)
-}
-
-/// Returns the "find everything" temporal axes — unbounded decision time, transaction time at
-/// now.
-///
-/// This finds all entities regardless of their temporal state: live, archived, or any past
-/// decision time. Used by `resetGraph` and tests that need to find archived entities.
-pub(crate) fn find_all_axes() -> QueryTemporalAxesUnresolved {
-    QueryTemporalAxesUnresolved::DecisionTime {
-        pinned: PinnedTemporalAxisUnresolved::new(None),
-        variable: VariableTemporalAxisUnresolved::new(Some(TemporalBound::Unbounded), None),
-    }
 }
 
 pub(crate) async fn raw_entity_ids_exists(

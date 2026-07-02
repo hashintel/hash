@@ -1,5 +1,4 @@
 import { getSimplifiedAiFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
-import { generateVersionedUrlMatchingFilter } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { StatusCode } from "@local/status";
 
@@ -34,10 +33,15 @@ export const processAutomaticBrowsingSettingsAction: AiFlowActionActivity<
             { parameter: userAuthentication.actorId },
           ],
         },
-        generateVersionedUrlMatchingFilter(
-          systemEntityTypes.browserPluginSettings.entityTypeId,
-          { ignoreParents: true },
-        ),
+        {
+          equal: [
+            { path: ["type", "baseUrl"] },
+            {
+              parameter:
+                systemEntityTypes.browserPluginSettings.entityTypeBaseUrl,
+            },
+          ],
+        },
       ],
     },
     graphApiClient,

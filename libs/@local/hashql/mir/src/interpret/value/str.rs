@@ -1,9 +1,16 @@
 //! String representation for the MIR interpreter.
 
 use alloc::{alloc::Global, rc::Rc};
-use core::{alloc::Allocator, cmp, fmt};
+use core::{
+    alloc::{AllocError, Allocator},
+    cmp, fmt,
+};
 
-use hashql_core::{symbol::Symbol, value::String};
+use hashql_core::{
+    heap::{FromIn as _, TryCloneIn},
+    symbol::Symbol,
+    value::String,
+};
 
 /// Internal storage for string values.
 #[derive(Clone)]
@@ -43,9 +50,22 @@ impl<A: Allocator> Ord for StrInner<'_, A> {
 
 /// A string value.
 ///
-/// Supports both owned strings (via [`Rc<str>`]) and borrowed interned
-/// symbols. This dual representation allows efficient handling of both
-/// dynamically created strings and compile-time literals.
+/// Use [`as_str`](Self::as_str) to access the content. Strings that
+/// originate from a [`Heap`](hashql_core::heap::Heap) can be detached
+/// with [`into_owned_in`](Self::into_owned_in) to outlive that heap.
+///
+/// # Examples
+///
+/// ```
+/// use hashql_mir::interpret::value::Str;
+/// # extern crate alloc;
+/// # use alloc::rc::Rc;
+///
+/// let a = Str::from(Rc::<str>::from("hello"));
+/// let b = Str::from(Rc::<str>::from("hello"));
+/// assert_eq!(a.as_str(), "hello");
+/// assert_eq!(a, b);
+/// ```
 #[derive(Clone)]
 pub struct Str<'heap, A: Allocator = Global> {
     inner: StrInner<'heap, A>,
@@ -53,6 +73,18 @@ pub struct Str<'heap, A: Allocator = Global> {
 
 impl<A: Allocator> Str<'_, A> {
     /// Returns this string as a string slice.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hashql_mir::interpret::value::Str;
+    /// # extern crate alloc;
+    /// # use alloc::rc::Rc;
+    ///
+    /// let s = Str::from(Rc::<str>::from("hello"));
+    /// assert_eq!(s.as_str(), "hello");
+    /// ```
+    #[inline]
     #[must_use]
     pub fn as_str(&self) -> &str {
         match &self.inner {
@@ -61,6 +93,26 @@ impl<A: Allocator> Str<'_, A> {
         }
     }
 
+    /// Converts this string into an owned representation with an independent
+    /// lifetime.
+    ///
+    /// The returned [`Str`] is not tied to the original heap, so it can
+    /// outlive the heap the string was interned on.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # #![feature(allocator_api)]
+    /// # extern crate alloc;
+    /// use alloc::alloc::Global;
+    ///
+    /// use hashql_mir::interpret::value::Str;
+    /// # use alloc::rc::Rc;
+    ///
+    /// let s = Str::from(Rc::<str>::from("hello"));
+    /// let owned: Str<'static, Global> = s.into_owned_in(Global);
+    /// assert_eq!(owned.as_str(), "hello");
+    /// ```
     pub fn into_owned_in<'lifetime>(self, alloc: A) -> Str<'lifetime, A> {
         match self.inner {
             StrInner::Owned(value) => Str {
@@ -73,7 +125,16 @@ impl<A: Allocator> Str<'_, A> {
     }
 }
 
+impl<'heap, A: Allocator> From<Symbol<'heap>> for Str<'heap, A> {
+    fn from(value: Symbol<'heap>) -> Self {
+        Self {
+            inner: StrInner::Interned(value),
+        }
+    }
+}
+
 impl<'heap, A: Allocator> From<String<'heap>> for Str<'heap, A> {
+    #[inline]
     fn from(value: String<'heap>) -> Self {
         Self {
             inner: StrInner::Interned(value.as_symbol()),
@@ -82,6 +143,7 @@ impl<'heap, A: Allocator> From<String<'heap>> for Str<'heap, A> {
 }
 
 impl<'heap, A: Allocator> From<&String<'heap>> for Str<'heap, A> {
+    #[inline]
     fn from(value: &String<'heap>) -> Self {
         Self {
             inner: StrInner::Interned(value.as_symbol()),
@@ -90,6 +152,7 @@ impl<'heap, A: Allocator> From<&String<'heap>> for Str<'heap, A> {
 }
 
 impl<A: Allocator> From<Rc<str, A>> for Str<'_, A> {
+    #[inline]
     fn from(value: Rc<str, A>) -> Self {
         Self {
             inner: StrInner::Owned(value),
@@ -123,5 +186,16 @@ impl<A: Allocator> Ord for Str<'_, A> {
         let Self { inner } = self;
 
         inner.cmp(&other.inner)
+    }
+}
+
+impl<'heap, A: Allocator, B: Allocator> TryCloneIn<B> for Str<'heap, A> {
+    type Cloned = Str<'heap, B>;
+
+    fn try_clone_in(&self, allocator: B) -> Result<Self::Cloned, AllocError> {
+        match &self.inner {
+            StrInner::Owned(value) => Ok(Str::from(Rc::from_in(&**value, allocator))),
+            &StrInner::Interned(symbol) => Ok(Str::from(symbol)),
+        }
     }
 }

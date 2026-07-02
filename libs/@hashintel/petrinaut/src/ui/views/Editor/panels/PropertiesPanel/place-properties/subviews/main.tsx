@@ -6,16 +6,17 @@ import {
   Icon,
   Select,
   TextInput,
+  Toggle,
   Tooltip,
 } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import { validateEntityName } from "@hashintel/petrinaut-core";
 
 import { usePetrinautMutations } from "../../../../../../../react";
+import { ActiveNetContext } from "../../../../../../../react/state/active-net-context";
 import { EditorContext } from "../../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../../react/state/sdcpn-context";
 import { Section, SectionList } from "../../../../../../components/section";
-import { Switch } from "../../../../../../components/switch";
 import { PlaceIcon } from "../../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
 import { useDraftField } from "../../../../../../hooks/use-draft-field";
@@ -58,11 +59,10 @@ const PlaceMainContent: React.FC = () => {
   const { place, types, isReadOnly, updatePlace } = usePlacePropertiesContext();
   const { selectItem } = use(EditorContext);
 
+  const { getItemType, extensions } = use(SDCPNContext);
   const {
-    getItemType,
-    extensions,
-    petriNetDefinition: { differentialEquations, types: availableTypes },
-  } = use(SDCPNContext);
+    activeNet: { differentialEquations, types: availableTypes },
+  } = use(ActiveNetContext);
 
   const nameField = useDraftField({
     sourceId: place.id,
@@ -233,46 +233,55 @@ const PlaceMainContent: React.FC = () => {
           <Section
             title="Dynamics"
             tooltip="Token data can dynamically change over time when tokens remain in a place, governed by a differential equation."
-            renderHeaderAction={() => (
-              <Switch
-                checked={!!place.colorId && place.dynamicsEnabled}
-                disabled={
-                  isReadOnly ||
-                  place.colorId === null ||
-                  availableDiffEqs.length === 0
-                }
-                tooltip={
-                  isReadOnly
-                    ? UI_MESSAGES.READ_ONLY_MODE
-                    : place.colorId === null
-                      ? UI_MESSAGES.DYNAMICS_REQUIRES_TYPE
-                      : availableDiffEqs.length === 0
-                        ? "Create a differential equation for this type first"
-                        : undefined
-                }
-                onCheckedChange={(checked) => {
-                  const update: {
-                    dynamicsEnabled: boolean;
-                    differentialEquationId?: string | null;
-                  } = { dynamicsEnabled: checked };
+            renderHeaderAction={() => {
+              const dynamicsTooltip = isReadOnly
+                ? UI_MESSAGES.READ_ONLY_MODE
+                : place.colorId === null
+                  ? UI_MESSAGES.DYNAMICS_REQUIRES_TYPE
+                  : availableDiffEqs.length === 0
+                    ? "Create a differential equation for this type first"
+                    : undefined;
 
-                  if (checked) {
-                    // Auto-select first available diff eq if none selected or previous no longer exists
-                    const currentIsValid = availableDiffEqs.some(
-                      (eq) => eq.id === place.differentialEquationId,
-                    );
-                    if (!currentIsValid && availableDiffEqs.length > 0) {
-                      update.differentialEquationId = availableDiffEqs[0]!.id;
+              return (
+                <Tooltip
+                  content={dynamicsTooltip}
+                  disableTooltip={!dynamicsTooltip}
+                >
+                  <Toggle
+                    size="sm"
+                    tone="success"
+                    value={!!place.colorId && place.dynamicsEnabled}
+                    disabled={
+                      isReadOnly ||
+                      place.colorId === null ||
+                      availableDiffEqs.length === 0
                     }
-                  }
+                    onChange={(checked) => {
+                      const update: {
+                        dynamicsEnabled: boolean;
+                        differentialEquationId?: string | null;
+                      } = { dynamicsEnabled: checked };
 
-                  updatePlace({
-                    placeId: place.id,
-                    update,
-                  });
-                }}
-              />
-            )}
+                      if (checked) {
+                        // Auto-select first available diff eq if none selected or previous no longer exists
+                        const currentIsValid = availableDiffEqs.some(
+                          (eq) => eq.id === place.differentialEquationId,
+                        );
+                        if (!currentIsValid && availableDiffEqs.length > 0) {
+                          update.differentialEquationId =
+                            availableDiffEqs[0]!.id;
+                        }
+                      }
+
+                      updatePlace({
+                        placeId: place.id,
+                        update,
+                      });
+                    }}
+                  />
+                </Tooltip>
+              );
+            }}
           >
             {place.colorId === null ? (
               <div className={hintTextStyle}>
@@ -338,13 +347,36 @@ const PlaceMainContent: React.FC = () => {
           </Section>
         )}
         <Section
+          title="Component port"
+          tooltip="Exposes this place as an arc endpoint when its subnet is instantiated as a component."
+          renderHeaderLeading={() => (
+            <Checkbox
+              value={!!place.isPort}
+              disabled={isReadOnly}
+              onChange={(checked) => {
+                updatePlace({
+                  placeId: place.id,
+                  update: { isPort: checked === true },
+                });
+              }}
+            />
+          )}
+        >
+          <div className={hintTextStyle}>
+            {place.isPort
+              ? "Transitions in the parent net can connect arcs to this subnet place through a component instance."
+              : "Enable this for subnet boundary places that should be available as component instance arc endpoints."}
+          </div>
+        </Section>
+        <Section
           title="Default starting place"
           tooltip="Pre-selects this place when creating a new scenario."
           renderHeaderLeading={() => (
             <Checkbox
-              checked={!!place.showAsInitialState}
+              size="sm"
+              value={!!place.showAsInitialState}
               disabled={isReadOnly}
-              onCheckedChange={(checked) => {
+              onChange={(checked) => {
                 updatePlace({
                   placeId: place.id,
                   update: { showAsInitialState: checked === true },

@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from "@apollo/client";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { getRoots } from "@blockprotocol/graph/stdlib";
 import { mustHaveAtLeastOne, splitEntityId } from "@blockprotocol/type-system";
@@ -56,6 +56,7 @@ import type { EntityEditorProps } from "./entity/entity-editor";
 import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
 import type { EntityId, PropertyObject } from "@blockprotocol/type-system";
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
+import type { EntityTraversalPath } from "@rust/hash-graph-store/types";
 
 interface EntityProps {
   entityId: EntityId;
@@ -250,6 +251,32 @@ export const Entity = ({
 
   const [isDirty, setIsDirty] = useState(!!draftLocalEntity);
 
+  /**
+   * Whether the main entity query should include the entity's incoming and
+   * outgoing link data.
+   *
+   * We only fetch it here when the entity is editable, so that the edit flow has
+   * the links available in the editor subgraph. When the entity is readonly, the
+   * link tables fetch this data themselves (see `isReadOnly` below), keeping the
+   * main query (and the editor shell) independent of the entity's link volume.
+   *
+   * This starts `false` (we don't know the user's permissions until the first
+   * response) and is set from the entity permissions in `onCompleted`. If the
+   * user can edit, the query variables change and the query refetches with the
+   * link data included.
+   */
+  const [includeLinkDataInQuery, setIncludeLinkDataInQuery] = useState(false);
+  const hasCompletedInitialLoadRef = useRef(false);
+  /**
+   * We put the links tables in a loading state until we've:
+   * 1. Decided whether we need to fetch links at this root component, and
+   * 2. If so, have fetched them.
+   *
+   * If we have a draft or proposed entity subgraph, we know we won't be fetching links.
+   */
+  const [hasRootLinkDataBeenResolved, setHasRootLinkDataBeenResolved] =
+    useState<boolean>(!!(draftLocalEntity ?? proposedEntitySubgraph));
+
   const { data: queryEntitySubgraphData, refetch } = useQuery<
     QueryEntitySubgraphQuery,
     QueryEntitySubgraphQueryVariables
@@ -296,11 +323,32 @@ export const Entity = ({
           closedMultiEntityTypes,
       });
 
+      const isInitialLoad = !hasCompletedInitialLoadRef.current;
+      hasCompletedInitialLoadRef.current = true;
+
       setDraftEntitySubgraph(subgraph);
 
       setIsDirty(false);
       setDraftLinksToCreate([]);
       setDraftLinksToArchive([]);
+
+      const canUpdate =
+        !!data.queryEntitySubgraph.entityPermissions?.[entityId]?.update;
+
+      if (isInitialLoad) {
+        /**
+         * For editable entities this flips the query variables, triggering the
+         * link-data upgrade refetch handled above. For readonly entities it stays
+         * false and the link tables self-fetch instead.
+         */
+        setIncludeLinkDataInQuery(canUpdate);
+      } else if (canUpdate) {
+        /**
+         * If this is _not_ the initial load, and the entity is editable,
+         * this is the result of a subsequent fetch with the link traversal included.
+         */
+        setHasRootLinkDataBeenResolved(true);
+      }
 
       setLoading(false);
     },
@@ -325,18 +373,31 @@ export const Entity = ({
         },
         temporalAxes: currentTimeInstantTemporalAxes,
         traversalPaths: [
-          {
-            edges: [
-              { kind: "has-left-entity", direction: "incoming" },
-              { kind: "has-right-entity", direction: "outgoing" },
-            ],
-          },
-          {
-            edges: [
-              { kind: "has-right-entity", direction: "incoming" },
-              { kind: "has-left-entity", direction: "outgoing" },
-            ],
-          },
+          /**
+           * Incoming and outgoing links (and their source/target entities) are
+           * only fetched here when the entity is editable. When readonly, the
+           * link tables fetch this data themselves (see `isReadOnly`).
+           */
+          ...(includeLinkDataInQuery
+            ? ([
+                {
+                  edges: [
+                    { kind: "has-left-entity", direction: "incoming" },
+                    { kind: "has-right-entity", direction: "outgoing" },
+                  ],
+                },
+                {
+                  edges: [
+                    { kind: "has-right-entity", direction: "incoming" },
+                    { kind: "has-left-entity", direction: "outgoing" },
+                  ],
+                },
+              ] satisfies EntityTraversalPath[])
+            : []),
+          /**
+           * These paths resolve the entity's own source/target when the entity
+           * is itself a link, and are always required (e.g. by `LinkSection`).
+           */
           {
             edges: [{ kind: "has-left-entity", direction: "outgoing" }],
           },
@@ -570,6 +631,7 @@ export const Entity = ({
                 JSON.stringify(entityFromDb?.metadata.entityTypeIds.toSorted()),
             );
           }}
+          hasRootLinkDataBeenResolved={hasRootLinkDataBeenResolved}
           isDirty={isDirty}
           isInSlide={isInSlide}
           onEntityClick={(clickedEntityId) =>
@@ -696,6 +758,7 @@ export const Entity = ({
                     ),
                 );
               }}
+              hasRootLinkDataBeenResolved={hasRootLinkDataBeenResolved}
               isDirty={isDirty}
               onEntityClick={(clickedEntityId) =>
                 pushToSlideStack({

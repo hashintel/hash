@@ -12,6 +12,7 @@ import {
   extractWebIdFromEntityId,
 } from "@blockprotocol/type-system";
 import { getFirstEntityRevision } from "@local/hash-isomorphic-utils/entity";
+import { normalizeEmail } from "@local/hash-isomorphic-utils/normalize";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
@@ -374,9 +375,11 @@ export const constructUser = (params: {
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- permissions means this may be undefined. @todo types to account for property-level permissions
   const primaryEmailAddress = email?.[0] ?? "";
 
+  const normalizedPrimaryEmail = normalizeEmail(primaryEmailAddress);
+
   const isPrimaryEmailAddressVerified =
     params.verifiableAddresses?.find(
-      ({ value }) => value === primaryEmailAddress,
+      ({ value }) => normalizeEmail(value) === normalizedPrimaryEmail,
     )?.verified === true;
 
   const minimalUser = constructMinimalUser({ userEntity });

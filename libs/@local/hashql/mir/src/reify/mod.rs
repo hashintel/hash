@@ -6,7 +6,8 @@ mod terminator;
 mod transform;
 mod types;
 
-use core::debug_assert_matches;
+use alloc::alloc::Global;
+use core::{alloc::Allocator, debug_assert_matches};
 
 use hashql_core::{
     collections::{
@@ -36,11 +37,11 @@ use hashql_hir::{
     },
 };
 
+pub use self::error::{ReifyDiagnostic, ReifyDiagnosticCategory, ReifyDiagnosticIssues};
 use self::{
     current::CurrentBlock,
     error::{
-        ReifyDiagnosticCategory, ReifyDiagnosticIssues, expected_anf_thunk, expected_anf_variable,
-        external_modules_unsupported, local_not_thunk,
+        expected_anf_thunk, expected_anf_variable, external_modules_unsupported, local_not_thunk,
     },
     types::unwrap_closure_type,
 };
@@ -65,13 +66,15 @@ use crate::{
 ///
 /// This structure contains the essential components needed to transform HIR(ANF) into MIR,
 /// including symbol tables, type information, and memory management.
-pub struct ReifyContext<'mir, 'hir, 'env, 'heap> {
+pub struct ReifyContext<'mir, 'hir, 'env, 'heap, A: Allocator = Global, S: Allocator = Global> {
     /// Mutable reference to the collection of MIR bodies being generated.
-    pub bodies: &'mir mut DefIdVec<Body<'heap>>,
+    pub bodies: &'mir mut DefIdVec<Body<'heap>, A>,
     /// MIR context.
     pub mir: &'mir mut MirContext<'env, 'heap>,
     /// HIR context containing the source nodes and variable mappings.
     pub hir: &'hir HirContext<'hir, 'heap>,
+    /// Scratch allocator for temporary memory usage during reification.
+    pub scratch: S,
 }
 
 /// Tracks the mapping between variable IDs and their corresponding thunk definition IDs.
@@ -83,12 +86,12 @@ pub struct ReifyContext<'mir, 'hir, 'env, 'heap> {
 ///
 /// Thunks are sparse and limited to the first few IDs since nested thunks are not allowed.
 /// Using a vector here is memory-efficient given this constraint.
-pub struct Thunks {
-    defs: VarIdVec<Option<DefId>>,
+pub struct Thunks<S: Allocator> {
+    defs: VarIdVec<Option<DefId>, S>,
     set: MixedBitSet<VarId>,
 }
 
-impl Thunks {
+impl<S: Allocator> Thunks<S> {
     fn insert(&mut self, var: VarId, def: DefId) {
         self.defs.insert(var, def);
         self.set.insert(var);
@@ -99,9 +102,9 @@ impl Thunks {
 ///
 /// This structure maintains global state needed throughout reification, including
 /// thunk mappings, constructor definitions, and memory pools for efficient allocation.
-struct CrossCompileState<'heap> {
+struct CrossCompileState<'heap, S: Allocator> {
     /// Mapping of variable IDs to their thunk definitions.
-    thunks: Thunks,
+    thunks: Thunks<S>,
 
     /// Collection of diagnostics encountered during reification.
     diagnostics: ReifyDiagnosticIssues,
@@ -117,12 +120,12 @@ struct CrossCompileState<'heap> {
 /// Each `Reifier` instance is responsible for converting a single function/thunk/closure
 /// from HIR to MIR. It maintains its own local state for basic blocks, variable mappings,
 /// and local allocation while sharing global state through the context and cross-compile state.
-struct Reifier<'ctx, 'mir, 'hir, 'env, 'heap> {
+struct Reifier<'ctx, 'mir, 'hir, 'env, 'heap, A: Allocator, S: Allocator> {
     /// Reference to the global reification context.
-    context: &'ctx mut ReifyContext<'mir, 'hir, 'env, 'heap>,
+    context: &'ctx mut ReifyContext<'mir, 'hir, 'env, 'heap, A, S>,
 
     /// Reference to the shared cross-compilation state.
-    state: &'ctx mut CrossCompileState<'heap>,
+    state: &'ctx mut CrossCompileState<'heap, S>,
 
     /// Basic blocks being constructed for the current function body.
     blocks: BasicBlockVec<BasicBlock<'heap>, &'heap Heap>,
@@ -133,10 +136,12 @@ struct Reifier<'ctx, 'mir, 'hir, 'env, 'heap> {
     local_decls: LocalVec<LocalDecl<'heap>, &'heap Heap>,
 }
 
-impl<'ctx, 'mir, 'hir, 'env, 'heap> Reifier<'ctx, 'mir, 'hir, 'env, 'heap> {
+impl<'ctx, 'mir, 'hir, 'env, 'heap, A: Allocator, S: Allocator>
+    Reifier<'ctx, 'mir, 'hir, 'env, 'heap, A, S>
+{
     const fn new(
-        context: &'ctx mut ReifyContext<'mir, 'hir, 'env, 'heap>,
-        state: &'ctx mut CrossCompileState<'heap>,
+        context: &'ctx mut ReifyContext<'mir, 'hir, 'env, 'heap, A, S>,
+        state: &'ctx mut CrossCompileState<'heap, S>,
     ) -> Self {
         let blocks = BasicBlockVec::new_in(context.mir.heap);
         let local_decls = LocalVec::new_in(context.mir.heap);
@@ -473,9 +478,9 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> Reifier<'ctx, 'mir, 'hir, 'env, 'heap> {
 ///
 /// See [BE-67](https://linear.app/hash/issue/BE-67/hashql-implement-modules) for
 /// planned multi-module architecture.
-pub fn from_hir<'heap>(
+pub fn from_hir<'heap, A: Allocator, S: Allocator + Clone>(
     node: Node<'heap>,
-    context: &mut ReifyContext<'_, '_, '_, 'heap>,
+    context: &mut ReifyContext<'_, '_, '_, 'heap, A, S>,
 ) -> Status<DefId, ReifyDiagnosticCategory, SpanId> {
     // The node is already in HIR(ANF) - each node will be a thunk.
     let NodeKind::Let(Let { bindings, body }) = node.kind else {
@@ -496,7 +501,7 @@ pub fn from_hir<'heap>(
     };
 
     let thunks = Thunks {
-        defs: VarIdVec::new(),
+        defs: VarIdVec::new_in(context.scratch.clone()),
         set: MixedBitSet::new_empty(context.hir.counter.var.size()),
     };
     let mut state = CrossCompileState {

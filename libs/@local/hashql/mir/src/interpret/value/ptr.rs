@@ -8,6 +8,16 @@ use crate::def::DefId;
 ///
 /// Points to a function definition identified by its [`DefId`]. Used to
 /// represent first-class functions and closures in the interpreter.
+///
+/// # Examples
+///
+/// ```
+/// use hashql_mir::{def::DefId, interpret::value::Ptr};
+///
+/// let ptr = Ptr::new(DefId::DICT_INSERT);
+/// assert_eq!(ptr.def(), DefId::DICT_INSERT);
+/// assert_eq!(ptr.to_string(), format!("*{}", DefId::DICT_INSERT));
+/// ```
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Ptr {
     value: DefId,
@@ -15,12 +25,32 @@ pub struct Ptr {
 
 impl Ptr {
     /// Creates a new function pointer from a [`DefId`].
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hashql_mir::{def::DefId, interpret::value::Ptr};
+    ///
+    /// let ptr = Ptr::new(DefId::DICT_INSERT);
+    /// assert_eq!(ptr.def(), DefId::DICT_INSERT);
+    /// ```
+    #[inline]
     #[must_use]
     pub const fn new(value: DefId) -> Self {
         Self { value }
     }
 
     /// Returns the [`DefId`] this pointer references.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hashql_mir::{def::DefId, interpret::value::Ptr};
+    ///
+    /// let ptr = Ptr::from(DefId::DICT_INSERT);
+    /// assert_eq!(ptr.def(), DefId::DICT_INSERT);
+    /// ```
+    #[inline]
     #[must_use]
     pub const fn def(self) -> DefId {
         self.value
@@ -28,6 +58,7 @@ impl Ptr {
 }
 
 impl From<DefId> for Ptr {
+    #[inline]
     fn from(value: DefId) -> Self {
         Self::new(value)
     }

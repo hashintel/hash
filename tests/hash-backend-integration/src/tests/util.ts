@@ -81,6 +81,11 @@ export const createTestImpureGraphContext = (): ImpureGraphContext<
           "File presign download not implemented in tests. Override with mock to test.",
         );
       },
+      presignDownloadByKey: (_params) => {
+        throw new Error(
+          "File presign download by key not implemented in tests. Override with mock to test.",
+        );
+      },
       presignUpload: (_params) => {
         throw new Error(
           "File presign upload not implemented in tests. Override with mock to test.",

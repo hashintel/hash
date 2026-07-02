@@ -14,6 +14,10 @@
 //!
 //! When changing any of these types, make sure that the OpenAPI generator types do not degenerate
 //! into any of these cases.
+#![expect(
+    dead_code,
+    reason = "https://linear.app/hash/issue/BE-537/hashql-remove-old-backend-wire-up-hashql-in-the-api"
+)]
 use alloc::borrow::Cow;
 use core::{cmp, ops::Range};
 
@@ -21,14 +25,15 @@ use axum::{
     Json,
     response::{Html, IntoResponse as _},
 };
-use error_stack::Report;
+use error_stack::{Report, ResultExt as _};
 use hash_graph_store::{
     entity::{
         EntityQueryCursor, EntityQueryPath, EntityQuerySorting, EntityQuerySortingRecord,
-        QueryConversion, QueryEntitiesParams, QueryEntitySubgraphParams,
+        QueryConversion, QueryEntitiesParams, QueryEntitySubgraphParams, SearchEntitiesFilter,
+        SearchEntitiesParams,
     },
     entity_type::IncludeEntityTypeOption,
-    filter::Filter,
+    filter::{Filter, SemanticDistance},
     query::Ordering,
     subgraph::{
         edges::{
@@ -39,25 +44,20 @@ use hash_graph_store::{
         temporal_axes::QueryTemporalAxesUnresolved,
     },
 };
+use hash_graph_types::Embedding;
 use hashql_ast::error::AstDiagnosticCategory;
 use hashql_core::{
-    collections::fast_hash_map_with_capacity,
     heap::Heap,
-    module::ModuleRegistry,
     span::{SpanId, SpanTable},
-    r#type::environment::Environment,
 };
 use hashql_diagnostics::{
-    DiagnosticIssues, Failure, Severity, Status, StatusExt as _, Success,
+    DiagnosticIssues, Failure, Severity,
     category::{DiagnosticCategory, canonical_category_id},
     diagnostic::render::{Format, RenderOptions},
-    source::{DiagnosticSpan, Source, SourceId, Sources},
+    source::{DiagnosticSpan, Source, Sources},
 };
-use hashql_eval::{
-    error::EvalDiagnosticCategory,
-    graph::{error::GraphCompilerDiagnosticCategory, read::FilterSlice},
-};
-use hashql_hir::{error::HirDiagnosticCategory, visit::Visitor as _};
+use hashql_eval::error::EvalDiagnosticCategory;
+use hashql_hir::error::HirDiagnosticCategory;
 use hashql_syntax_jexpr::{error::JExprDiagnosticCategory, span::Span};
 use http::StatusCode;
 use serde::Deserialize;
@@ -65,7 +65,9 @@ use serde_json::value::RawValue as RawJsonValue;
 use type_system::knowledge::Entity;
 use utoipa::ToSchema;
 
-use super::{ApiConfig, LimitExceededError, resolve_limit, status::BoxedResponse};
+use super::{
+    ApiConfig, LimitExceededError, SearchRequestError, resolve_limit, status::BoxedResponse,
+};
 
 #[tracing::instrument(level = "info", skip_all)]
 fn generate_sorting_paths(
@@ -156,10 +158,6 @@ fn generate_sorting_paths(
 ///
 /// See <https://github.com/serde-rs/json/issues/497> and <https://github.com/serde-rs/serde/issues/1183> for more details.
 #[derive(Debug, Clone, Deserialize)]
-#[expect(
-    clippy::struct_excessive_bools,
-    reason = "Parameter struct deserialized from JSON"
-)]
 #[serde(rename_all = "camelCase")]
 struct FlatQueryEntitiesRequestData<'q, 's, 'p> {
     // `QueryEntitiesQuery::Filter`
@@ -180,19 +178,7 @@ struct FlatQueryEntitiesRequestData<'q, 's, 'p> {
     #[serde(borrow)]
     cursor: Option<EntityQueryCursor<'s>>,
     #[serde(default)]
-    include_count: bool,
-    #[serde(default)]
     include_entity_types: Option<IncludeEntityTypeOption>,
-    #[serde(default)]
-    include_web_ids: bool,
-    #[serde(default)]
-    include_created_by_ids: bool,
-    #[serde(default)]
-    include_edition_created_by_ids: bool,
-    #[serde(default)]
-    include_type_ids: bool,
-    #[serde(default)]
-    include_type_titles: bool,
     include_permissions: bool,
 
     traversal_paths: Option<Vec<TraversalPath>>,
@@ -329,92 +315,6 @@ pub enum EntityQuery<'q> {
 }
 
 impl<'q> EntityQuery<'q> {
-    fn compile_query<'heap>(
-        heap: &'heap Heap,
-        spans: &mut SpanTable<Span>,
-        query: &RawJsonValue,
-    ) -> Status<Filter<'heap, Entity>, HashQLDiagnosticCategory, SpanId> {
-        // Parse the query
-        let mut parser = hashql_syntax_jexpr::Parser::new(heap, spans);
-        let mut ast = parser
-            .parse_expr(query.get().as_bytes())
-            .map_err(|diagnostic| {
-                Failure::new(diagnostic.map_category(HashQLDiagnosticCategory::JExpr))
-            })?;
-
-        let mut env = Environment::new(heap);
-        let modules = ModuleRegistry::new(&env);
-
-        // Lower the AST
-        let Success {
-            value: types,
-            advisories,
-        } = hashql_ast::lowering::lower(heap.intern_symbol("main"), &mut ast, &env, &modules)
-            .map_category(|category| {
-                HashQLDiagnosticCategory::Ast(AstDiagnosticCategory::Lowering(category))
-            })?;
-
-        let interner = hashql_hir::intern::Interner::new(heap);
-        let mut context = hashql_hir::context::HirContext::new(&interner, &modules);
-
-        // Reify the HIR from the AST
-        let Success {
-            value: hir,
-            advisories,
-        } = hashql_hir::node::NodeData::from_ast(ast, &mut context, &types)
-            .map_category(|category| {
-                HashQLDiagnosticCategory::Hir(HirDiagnosticCategory::Reification(category))
-            })
-            .with_diagnostics(advisories)?;
-
-        // Lower the HIR
-        let Success {
-            value: hir,
-            advisories,
-        } = hashql_hir::lower::lower(hir, &types, &mut env, &mut context)
-            .map_category(|category| {
-                HashQLDiagnosticCategory::Hir(HirDiagnosticCategory::Lowering(category))
-            })
-            .with_diagnostics(advisories)?;
-
-        // Evaluate the HIR
-        // TODO: https://linear.app/hash/issue/BE-41/hashql-expose-input-in-graph-api
-        let inputs = fast_hash_map_with_capacity(0);
-        let mut compiler = hashql_eval::graph::read::GraphReadCompiler::new(heap, &inputs);
-
-        compiler.visit_node(hir);
-
-        let Success {
-            value: result,
-            advisories,
-        } = compiler
-            .finish()
-            .map_category(|category| {
-                HashQLDiagnosticCategory::Eval(EvalDiagnosticCategory::Graph(
-                    GraphCompilerDiagnosticCategory::Read(category),
-                ))
-            })
-            .with_diagnostics(advisories)?;
-
-        let output = result.output.get(&hir.id).expect("TODO");
-
-        // Compile the Filter into one
-        let filters = match output {
-            FilterSlice::Entity { range } => result.filters.entity(range.clone()),
-        };
-
-        let filter = match filters {
-            [] => Filter::All(Vec::new()),
-            [filter] => filter.clone(),
-            _ => Filter::All(filters.to_vec()),
-        };
-
-        Ok(Success {
-            value: filter,
-            advisories,
-        })
-    }
-
     /// Compiles a query into an executable entity filter.
     ///
     /// Transforms the query representation into a [`Filter`] that can be executed
@@ -427,35 +327,14 @@ impl<'q> EntityQuery<'q> {
     /// Returns an error if the HashQL query cannot be compiled.
     pub(crate) fn compile(
         self,
-        heap: &'q Heap,
-        options: CompilationOptions,
+        _: &'q Heap,
+        _: CompilationOptions,
     ) -> Result<Filter<'q, Entity>, BoxedResponse> {
         match self {
             EntityQuery::Filter { filter } => Ok(filter),
-            EntityQuery::Query { query } => {
-                let mut spans = SpanTable::new(SourceId::new_unchecked(0x00));
-
-                let Success {
-                    value: filter,
-                    advisories,
-                } = Self::compile_query(heap, &mut spans, query).map_err(|failure| {
-                    failure_to_response(failure, query.get(), &spans, options)
-                })?;
-                if !advisories.is_empty() {
-                    // This isn't perfect, what we'd want instead is to return it alongside the
-                    // response, the problem with that approach is just how: we'd need to adjust the
-                    // return type, and respect interactive. Returning warnings before so that user
-                    // can fix them before trying again seems to be the best approach for now.
-                    return Err(issues_to_response(
-                        advisories.generalize(),
-                        Severity::Warning,
-                        query.get(),
-                        &spans,
-                        options,
-                    ));
-                }
-
-                Ok(filter)
+            EntityQuery::Query { query: _ } => {
+                let response = (StatusCode::NOT_IMPLEMENTED, "https://linear.app/hash/issue/BE-537/hashql-remove-old-backend-wire-up-hashql-in-the-api").into_response();
+                Err(response.into())
             }
         }
     }
@@ -478,10 +357,6 @@ impl core::error::Error for EntityQueryOptionsError {}
 
 #[derive(Debug, Clone, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-#[expect(
-    clippy::struct_excessive_bools,
-    reason = "Parameter struct deserialized from JSON"
-)]
 pub struct EntityQueryOptions<'s, 'p> {
     pub temporal_axes: QueryTemporalAxesUnresolved,
     pub include_drafts: bool,
@@ -493,19 +368,7 @@ pub struct EntityQueryOptions<'s, 'p> {
     #[serde(borrow)]
     pub cursor: Option<EntityQueryCursor<'s>>,
     #[serde(default)]
-    pub include_count: bool,
-    #[serde(default)]
     pub include_entity_types: Option<IncludeEntityTypeOption>,
-    #[serde(default)]
-    pub include_web_ids: bool,
-    #[serde(default)]
-    pub include_created_by_ids: bool,
-    #[serde(default)]
-    pub include_edition_created_by_ids: bool,
-    #[serde(default)]
-    pub include_type_ids: bool,
-    #[serde(default)]
-    pub include_type_titles: bool,
     pub include_permissions: bool,
 }
 
@@ -522,13 +385,7 @@ impl<'q, 's, 'p> TryFrom<FlatQueryEntitiesRequestData<'q, 's, 'p>> for EntityQue
             conversions,
             sorting_paths,
             cursor,
-            include_count,
             include_entity_types,
-            include_web_ids,
-            include_created_by_ids,
-            include_edition_created_by_ids,
-            include_type_ids,
-            include_type_titles,
             include_permissions,
             graph_resolve_depths,
             traversal_paths,
@@ -561,13 +418,7 @@ impl<'q, 's, 'p> TryFrom<FlatQueryEntitiesRequestData<'q, 's, 'p>> for EntityQue
             conversions,
             sorting_paths,
             cursor,
-            include_count,
             include_entity_types,
-            include_web_ids,
-            include_created_by_ids,
-            include_edition_created_by_ids,
-            include_type_ids,
-            include_type_titles,
             include_permissions,
         })
     }
@@ -597,14 +448,8 @@ impl<'p> EntityQueryOptions<'_, 'p> {
             limit,
             conversions: self.conversions,
             include_drafts: self.include_drafts,
-            include_count: self.include_count,
             include_entity_types: self.include_entity_types,
             temporal_axes: self.temporal_axes,
-            include_web_ids: self.include_web_ids,
-            include_created_by_ids: self.include_created_by_ids,
-            include_edition_created_by_ids: self.include_edition_created_by_ids,
-            include_type_ids: self.include_type_ids,
-            include_type_titles: self.include_type_titles,
             include_permissions: self.include_permissions,
         })
     }
@@ -638,6 +483,45 @@ impl<'p> EntityQueryOptions<'_, 'p> {
                 request: self.into_params(filter, config)?,
             }),
         }
+    }
+}
+
+/// Request body for the entity embedding search endpoint.
+#[derive(Debug, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct SearchEntitiesRequest {
+    pub embedding: Embedding<'static>,
+    pub maximum_semantic_distance: f64,
+    pub limit: Option<usize>,
+    #[serde(default)]
+    pub include_entity_types: bool,
+    #[serde(default)]
+    pub filter: SearchEntitiesFilter,
+}
+
+impl SearchEntitiesRequest {
+    /// # Errors
+    ///
+    /// - [`InvalidSemanticDistance`] if the maximum semantic distance is invalid.
+    /// - [`LimitExceeded`] if the requested limit exceeds the configured maximum.
+    ///
+    /// [`InvalidSemanticDistance`]: [`SearchRequestError::InvalidSemanticDistance`]
+    /// [`LimitExceeded`]: [`SearchRequestError::LimitExceeded`]
+    pub fn into_params(
+        self,
+        config: ApiConfig,
+    ) -> Result<SearchEntitiesParams, Report<SearchRequestError>> {
+        Ok(SearchEntitiesParams {
+            embedding: self.embedding,
+            maximum_semantic_distance: SemanticDistance::try_from(self.maximum_semantic_distance)
+                .change_context(
+                SearchRequestError::InvalidSemanticDistance,
+            )?,
+            limit: resolve_limit(self.limit, config.query_entity_limit)
+                .change_context(SearchRequestError::LimitExceeded)?,
+            include_entity_types: self.include_entity_types,
+            filter: self.filter,
+        })
     }
 }
 

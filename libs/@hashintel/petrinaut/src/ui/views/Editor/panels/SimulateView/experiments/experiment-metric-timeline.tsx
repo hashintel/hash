@@ -5,7 +5,7 @@ import uPlot from "uplot";
 import {
   Button,
   Select,
-  Switch,
+  Toggle,
   usePortalContainerRef,
 } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
@@ -1428,7 +1428,9 @@ export const ExperimentMetricTimeline = ({
               <span
                 className={legendSwatchStyle}
                 style={{
-                  borderTop: `2px ${item.dash ? "dashed" : "solid"} ${item.stroke}`,
+                  borderTop: `2px ${item.dash ? "dashed" : "solid"} ${
+                    item.stroke
+                  }`,
                 }}
               />
               {item.label}
@@ -1441,9 +1443,10 @@ export const ExperimentMetricTimeline = ({
           <div className={footerBlockStyle}>
             <div className={aggregationControlStyle}>
               <span className={aggregationLabelStyle}>Aggregate runs</span>
-              <Switch
-                checked={aggregateRuns}
-                onCheckedChange={setAggregateRuns}
+              <Toggle
+                value={aggregateRuns}
+                onChange={setAggregateRuns}
+                size="xs"
               />
             </div>
             {aggregateRuns ? (
@@ -1470,9 +1473,10 @@ export const ExperimentMetricTimeline = ({
         <div className={footerBlockRightStyle}>
           <div className={aggregationControlStyle}>
             <span className={aggregationLabelStyle}>Aggregate over time</span>
-            <Switch
-              checked={aggregateTime}
-              onCheckedChange={setAggregateTime}
+            <Toggle
+              value={aggregateTime}
+              onChange={setAggregateTime}
+              size="xs"
             />
           </div>
           {aggregateTime ? (

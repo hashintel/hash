@@ -30,9 +30,9 @@
 //!   validates them, then flushes the decoded state into the interpreter's callstack.
 //! - `request`: per-suspension-type handlers (currently [`GraphRead`]).
 //! - `tail`: result accumulation strategies (currently collection into a list).
-//! - `error`: error types for all failure modes in the bridge. All variants use `Severity::Bug`
-//!   because the user wrote HashQL, not SQL: if the bridge fails, the compiler or runtime produced
-//!   something invalid.
+//! - `error`: diagnostic category hierarchy ([`OrchestratorDiagnosticCategory`]) and bridge error
+//!   types. Bridge errors use `Severity::Bug` because the user wrote HashQL, not SQL: if the bridge
+//!   fails, the compiler or runtime produced something invalid.
 //!
 //! [`GraphRead`]: hashql_mir::body::terminator::GraphRead
 //! [`Suspension`]: hashql_mir::interpret::suspension::Suspension
@@ -48,19 +48,21 @@ use hashql_mir::{
     def::DefId,
     interpret::{
         CallStack, Inputs, Runtime, RuntimeConfig, RuntimeError,
-        error::InterpretDiagnostic,
         suspension::{Continuation, Suspension},
         value::Value,
     },
 };
 use tokio_postgres::Client;
 
-pub use self::events::{AppendEventLog, Event, EventLog};
 use self::{error::BridgeError, request::GraphReadOrchestrator};
-use crate::{context::EvalContext, postgres::PreparedQueries};
+pub use self::{
+    error::{OrchestratorDiagnostic, OrchestratorDiagnosticCategory},
+    events::{AppendEventLog, Event, EventLog},
+};
+use crate::{context::CodeExecutionContext, postgres::PreparedQueries};
 
 pub mod codec;
-pub(crate) mod error;
+pub mod error;
 mod events;
 mod partial;
 mod postgres;
@@ -117,7 +119,7 @@ impl<T> Deref for Indexed<T> {
 pub struct Orchestrator<'env, 'ctx, 'heap, C, E, A: Allocator> {
     client: C,
     queries: &'env PreparedQueries<'heap, A>,
-    context: &'env EvalContext<'ctx, 'heap, A>,
+    context: &'env CodeExecutionContext<'ctx, 'heap, A>,
     /// Event sink for execution tracing. See [`EventLog`].
     pub event_log: E,
 }
@@ -126,7 +128,7 @@ impl<'env, 'ctx, 'heap, C, A: Allocator> Orchestrator<'env, 'ctx, 'heap, C, (), 
     pub const fn new(
         client: C,
         queries: &'env PreparedQueries<'heap, A>,
-        context: &'env EvalContext<'ctx, 'heap, A>,
+        context: &'env CodeExecutionContext<'ctx, 'heap, A>,
     ) -> Self {
         Self {
             client,
@@ -164,7 +166,7 @@ impl<'ctx, 'heap, C, E: EventLog, A: Allocator> Orchestrator<'_, 'ctx, 'heap, C,
     ///
     /// # Errors
     ///
-    /// Returns an [`InterpretDiagnostic`] if the interpreter fails or any
+    /// Returns an [`OrchestratorDiagnostic`] if the interpreter fails or any
     /// suspension cannot be fulfilled (database errors, decoding failures,
     /// filter evaluation failures).
     ///
@@ -177,7 +179,7 @@ impl<'ctx, 'heap, C, E: EventLog, A: Allocator> Orchestrator<'_, 'ctx, 'heap, C,
         args: impl IntoIterator<Item = Value<'heap, L>, IntoIter: ExactSizeIterator>,
 
         alloc: L,
-    ) -> Result<Value<'heap, L>, InterpretDiagnostic>
+    ) -> Result<Value<'heap, L>, OrchestratorDiagnostic>
     where
         C: AsRef<Client>,
     {
@@ -209,16 +211,18 @@ impl<'ctx, 'heap, C, E: EventLog, A: Allocator> Orchestrator<'_, 'ctx, 'heap, C,
             }
         };
 
-        Err(
-            error.into_diagnostic(callstack.unwind().map(|(_, span)| span), |suspension| {
+        Err(error.into_diagnostic_with(
+            callstack.unwind().map(|(_, span)| span),
+            |suspension| {
                 let span = callstack
                     .unwind()
                     .next()
                     .map_or(self.context.bodies[body].span, |(_, span)| span);
 
                 suspension.into_diagnostic(span, self.context.env)
-            }),
-        )
+            },
+            OrchestratorDiagnosticCategory::Interpret,
+        ))
     }
 
     /// Convenience wrapper around [`run_in`](Self::run_in) that uses the
@@ -226,14 +230,14 @@ impl<'ctx, 'heap, C, E: EventLog, A: Allocator> Orchestrator<'_, 'ctx, 'heap, C,
     ///
     /// # Errors
     ///
-    /// Returns an [`InterpretDiagnostic`] on failure. See
+    /// Returns an [`OrchestratorDiagnostic`] on failure. See
     /// [`run_in`](Self::run_in).
     pub async fn run(
         &self,
         inputs: &Inputs<'heap, Global>,
         body: DefId,
         args: impl IntoIterator<Item = Value<'heap, Global>, IntoIter: ExactSizeIterator>,
-    ) -> Result<Value<'heap, Global>, InterpretDiagnostic>
+    ) -> Result<Value<'heap, Global>, OrchestratorDiagnostic>
     where
         C: AsRef<Client>,
     {

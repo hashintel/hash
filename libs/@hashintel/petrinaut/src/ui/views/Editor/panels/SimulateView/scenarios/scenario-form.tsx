@@ -6,13 +6,13 @@ import {
   NumberInput,
   Select,
   TextInput,
+  Toggle,
 } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
 import { Section, SectionList } from "../../../../../components/section";
 import { Spreadsheet } from "../../../../../components/spreadsheet";
-import { Switch } from "../../../../../components/switch";
 import { CodeEditor } from "../../../../../monaco/code-editor";
 import { getScenarioDocumentUri } from "../../../../../monaco/editor-paths";
 
@@ -715,9 +715,10 @@ const ScenarioFormSections = ({
                   <span className={paramLabelStyle}>Default</span>
                   {param.type === "boolean" ? (
                     <div className={css({ marginLeft: "3", marginTop: "1" })}>
-                      <Switch
-                        checked={param.default !== 0}
-                        onCheckedChange={(checked) =>
+                      <Toggle
+                        size="sm"
+                        value={param.default !== 0}
+                        onChange={(checked) =>
                           updateScenarioParam(param._key, {
                             default: checked ? 1 : 0,
                           })
@@ -815,17 +816,21 @@ const ScenarioFormSections = ({
             {!state.initialStateAsCode && (
               <div className={switchGroupStyle}>
                 <span>Show all places</span>
-                <Switch
-                  checked={state.showAllPlaces}
-                  onCheckedChange={callbacks.onShowAllPlacesChange}
+                <Toggle
+                  size="xs"
+                  tone="success"
+                  value={state.showAllPlaces}
+                  onChange={callbacks.onShowAllPlacesChange}
                 />
               </div>
             )}
             <div className={switchGroupStyle}>
               <span>Define as code</span>
-              <Switch
-                checked={state.initialStateAsCode}
-                onCheckedChange={callbacks.onInitialStateAsCodeChange}
+              <Toggle
+                size="xs"
+                tone="success"
+                value={state.initialStateAsCode}
+                onChange={callbacks.onInitialStateAsCodeChange}
               />
             </div>
           </div>

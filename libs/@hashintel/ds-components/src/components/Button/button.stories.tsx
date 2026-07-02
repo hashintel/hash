@@ -2,13 +2,12 @@ import { Fragment, useState } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 
-import { formInputSizes } from "../../util/form-shared";
+import { formInputSizes, type Tone } from "../../util/form-shared";
 import { Icon, iconNames } from "../Icon/icon";
 import {
   Button as ButtonComponent,
   type ButtonElementProps,
   iconSizeMap,
-  type Tone,
   type Variant,
 } from "./button";
 

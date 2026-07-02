@@ -26,6 +26,7 @@ pub struct CanonicalizationConfig {
 }
 
 impl Default for CanonicalizationConfig {
+    #[inline]
     fn default() -> Self {
         Self { max_iterations: 16 }
     }
@@ -119,7 +120,7 @@ impl<A: BumpAllocator> Canonicalization<A> {
         unstable: &DenseBitSet<DefId>,
         state: &mut DefIdSlice<Changed>,
     ) -> Changed {
-        self.alloc.scoped(|alloc| {
+        self.alloc.scoped_mut(|alloc| {
             let pass = CopyPropagation::new_in(alloc);
             Self::run_local_pass(context, bodies, pass, unstable, state)
         })
@@ -132,7 +133,7 @@ impl<A: BumpAllocator> Canonicalization<A> {
         unstable: &DenseBitSet<DefId>,
         state: &mut DefIdSlice<Changed>,
     ) -> Changed {
-        self.alloc.scoped(|alloc| {
+        self.alloc.scoped_mut(|alloc| {
             let pass = CfgSimplify::new_in(alloc);
             Self::run_local_pass(context, bodies, pass, unstable, state)
         })
@@ -145,7 +146,7 @@ impl<A: BumpAllocator> Canonicalization<A> {
         unstable: &DenseBitSet<DefId>,
         state: &mut DefIdSlice<Changed>,
     ) -> Changed {
-        self.alloc.scoped(|alloc| {
+        self.alloc.scoped_mut(|alloc| {
             let pass = InstSimplify::new_in(alloc);
             Self::run_local_pass(context, bodies, pass, unstable, state)
         })
@@ -158,7 +159,7 @@ impl<A: BumpAllocator> Canonicalization<A> {
         unstable: &DenseBitSet<DefId>,
         state: &mut DefIdSlice<Changed>,
     ) -> Changed {
-        self.alloc.scoped(|alloc| {
+        self.alloc.scoped_mut(|alloc| {
             let pass = ForwardSubstitution::new_in(alloc);
             Self::run_local_pass(context, bodies, pass, unstable, state)
         })
@@ -171,7 +172,7 @@ impl<A: BumpAllocator> Canonicalization<A> {
         unstable: &mut DenseBitSet<DefId>,
         state: &mut DefIdSlice<Changed>,
     ) -> Changed {
-        let changed: Changed = self.alloc.scoped(|alloc| {
+        let changed: Changed = self.alloc.scoped_mut(|alloc| {
             let pass = AdministrativeReduction::new_in(alloc);
             Self::run_global_pass(context, bodies, pass, state)
         });
@@ -196,7 +197,7 @@ impl<A: BumpAllocator> Canonicalization<A> {
         unstable: &DenseBitSet<DefId>,
         state: &mut DefIdSlice<Changed>,
     ) -> Changed {
-        self.alloc.scoped(|alloc| {
+        self.alloc.scoped_mut(|alloc| {
             let pass = DeadStoreElimination::new_in(alloc);
             Self::run_local_pass(context, bodies, pass, unstable, state)
         })

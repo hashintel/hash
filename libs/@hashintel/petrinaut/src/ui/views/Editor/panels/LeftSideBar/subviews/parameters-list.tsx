@@ -5,6 +5,7 @@ import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { usePetrinautMutations } from "../../../../../../react/hooks/use-petrinaut-mutations";
+import { ActiveNetContext } from "../../../../../../react/state/active-net-context";
 import { EditorContext } from "../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { useIsReadOnly } from "../../../../../../react/state/use-is-read-only";
@@ -30,9 +31,9 @@ const parameterVarNameStyle = css({
  */
 export const ParametersHeaderAction: React.FC = () => {
   const {
-    extensions,
-    petriNetDefinition: { parameters },
-  } = use(SDCPNContext);
+    activeNet: { parameters },
+  } = use(ActiveNetContext);
+  const { extensions } = use(SDCPNContext);
   const { addParameter } = usePetrinautMutations();
   const { selectItem } = use(EditorContext);
 
@@ -115,9 +116,9 @@ export const parametersListSubView: SubView = createFilterableListSubView({
   },
   useItems: () => {
     const {
-      extensions,
-      petriNetDefinition: { parameters },
-    } = use(SDCPNContext);
+      activeNet: { parameters },
+    } = use(ActiveNetContext);
+    const { extensions } = use(SDCPNContext);
     if (!extensions.parameters) {
       return [];
     }

@@ -1,6 +1,7 @@
 mod parameter;
 mod path;
 pub mod protection;
+mod semantic_distance;
 
 use alloc::borrow::Cow;
 use core::{borrow::Borrow as _, fmt, hash::Hash};
@@ -39,6 +40,7 @@ pub use self::{
         FilterExpressionList, Parameter, ParameterConversionError, ParameterList, ParameterType,
     },
     path::{JsonPath, PathToken},
+    semantic_distance::{InvalidSemanticDistanceError, SemanticDistance},
 };
 use crate::{
     data_type::DataTypeQueryPath,
@@ -135,6 +137,7 @@ pub enum Filter<'p, R: QueryRecord> {
     GreaterOrEqual(FilterExpression<'p, R>, FilterExpression<'p, R>),
     Less(FilterExpression<'p, R>, FilterExpression<'p, R>),
     LessOrEqual(FilterExpression<'p, R>, FilterExpression<'p, R>),
+    #[serde(skip)]
     CosineDistance(
         FilterExpression<'p, R>,
         FilterExpression<'p, R>,
@@ -905,24 +908,19 @@ impl<'p> Filter<'p, Entity> {
 
     #[must_use]
     pub fn for_entity_by_type_id(entity_type_id: &'p VersionedUrl) -> Self {
-        Filter::All(vec![
-            Self::for_entity_by_base_type_id(&entity_type_id.base_url),
-            Filter::Equal(
-                FilterExpression::Path {
-                    path: EntityQueryPath::EntityTypeEdge {
-                        edge_kind: SharedEdgeKind::IsOfType,
-                        path: EntityTypeQueryPath::Version,
-                        inheritance_depth: None,
-                    },
+        Filter::Equal(
+            FilterExpression::Path {
+                path: EntityQueryPath::EntityTypeEdge {
+                    edge_kind: SharedEdgeKind::IsOfType,
+                    path: EntityTypeQueryPath::VersionedUrl,
+                    inheritance_depth: None,
                 },
-                FilterExpression::Parameter {
-                    parameter: Parameter::OntologyTypeVersion(Cow::Borrowed(
-                        &entity_type_id.version,
-                    )),
-                    convert: None,
-                },
-            ),
-        ])
+            },
+            FilterExpression::Parameter {
+                parameter: Parameter::Text(Cow::Owned(entity_type_id.to_string())),
+                convert: None,
+            },
+        )
     }
 
     #[must_use]
@@ -970,6 +968,15 @@ impl<'p> Filter<'p, Entity> {
                             .map_or_else(ActorEntityUuid::public_actor, ActorEntityUuid::from)
                             .to_string(),
                     )),
+                    convert: None,
+                },
+            ),
+            EntityResourceFilter::IsReadOnly => Self::Equal(
+                FilterExpression::Path {
+                    path: EntityQueryPath::ReadOnly,
+                },
+                FilterExpression::Parameter {
+                    parameter: Parameter::Boolean(true),
                     convert: None,
                 },
             ),

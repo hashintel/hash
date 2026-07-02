@@ -19,7 +19,6 @@ import { Button } from "../../../../../../../../shared/ui/button";
 import { FileUploadDropzone } from "../../../../../../../settings/shared/file-upload-dropzone";
 import { EntitySelector } from "../../../../../../entity-selector";
 import { WorkspaceContext } from "../../../../../../workspace-context";
-import { useEntityEditor } from "../../../../entity-editor-context";
 
 import type {
   EntityId,
@@ -30,12 +29,14 @@ import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { PaperProps } from "@mui/material";
 
 interface LinkedEntitySelectorProps {
+  entity: HashEntity;
   includeDrafts: boolean;
   onSelect: (option: HashEntity, entityLabel: string) => void;
   onFinishedEditing: () => void;
   expectedEntityTypes: Pick<EntityType, "$id">[];
   entityIdsToFilterOut?: EntityId[];
   linkEntityTypeId: VersionedUrl;
+  readonly: boolean;
 }
 
 const FileCreationContext = createContext<
@@ -70,15 +71,15 @@ const FileCreationPane = (props: PaperProps) => {
 };
 
 export const LinkedEntitySelector = ({
+  entity,
   includeDrafts,
   onSelect,
   onFinishedEditing,
   expectedEntityTypes,
   entityIdsToFilterOut,
   linkEntityTypeId,
+  readonly,
 }: LinkedEntitySelectorProps) => {
-  const { entity, readonly } = useEntityEditor();
-
   const entityId = entity.metadata.recordId.entityId;
 
   const [showUploadFileMenu, setShowUploadFileMenu] = useState(false);

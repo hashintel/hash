@@ -478,11 +478,12 @@ impl<A: BumpAllocator> CfgSimplify<A> {
         id: BasicBlockId,
     ) -> bool {
         self.alloc
-            .scoped(|alloc| simplify(context, body, id, &alloc))
+            .scoped_mut(|alloc| simplify(context, body, id, &alloc))
     }
 }
 
 impl Default for CfgSimplify {
+    #[inline]
     fn default() -> Self {
         Self::new()
     }
@@ -535,12 +536,12 @@ impl<'env, 'heap, A: BumpAllocator> TransformPass<'env, 'heap> for CfgSimplify<A
         // Unreachable blocks will be dead, therefore must be removed
         let _: Changed = self
             .alloc
-            .scoped(|alloc| DeadBlockElimination::new_in(alloc).run(context, body));
+            .scoped_mut(|alloc| DeadBlockElimination::new_in(alloc).run(context, body));
 
         // Simplifications may break SSA (e.g., merged blocks with conflicting definitions).
         let _: Changed = self
             .alloc
-            .scoped(|alloc| SsaRepair::new_in(alloc).run(context, body));
+            .scoped_mut(|alloc| SsaRepair::new_in(alloc).run(context, body));
 
         // We ignore the changed of the sub-passes above, because we **know** that we already
         // modified, if they don't doesn't matter.

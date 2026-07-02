@@ -122,8 +122,6 @@ struct QueryEntitiesQueryParameters {
     actor_id: Vec<ActorEntityUuid>,
     #[serde(default)]
     limit: Vec<usize>,
-    #[serde(default)]
-    include_count: Vec<bool>,
 }
 
 #[derive(Debug, Clone, serde::Deserialize)]
@@ -140,7 +138,6 @@ impl QueryEntitiesQuery<'_, '_, '_> {
     fn prepare_request(mut self) -> impl Iterator<Item = (Self, String)> {
         let modifies_actor_id = !self.settings.parameters.actor_id.is_empty();
         let modifies_limit = !self.settings.parameters.limit.is_empty();
-        let modifies_include_count = !self.settings.parameters.include_count.is_empty();
 
         let (query, options) = self.request.into_parts();
 
@@ -156,21 +153,14 @@ impl QueryEntitiesQuery<'_, '_, '_> {
             )
             .sorted()
             .dedup();
-        let include_count = iter::once(options.include_count)
-            .chain(mem::take(&mut self.settings.parameters.include_count))
-            .sorted()
-            .dedup();
 
-        iproduct!(actor_id, limit, include_count).map(move |(actor_id, limit, include_count)| {
+        iproduct!(actor_id, limit).map(move |(actor_id, limit)| {
             let mut parameters = Vec::new();
             if modifies_actor_id {
                 parameters.push(format!("actor_id={actor_id}"));
             }
             if modifies_limit && let Some(limit) = limit {
                 parameters.push(format!("limit={limit}"));
-            }
-            if modifies_include_count {
-                parameters.push(format!("include_count={include_count}"));
             }
             (
                 Self {
@@ -179,7 +169,6 @@ impl QueryEntitiesQuery<'_, '_, '_> {
                         query.clone(),
                         EntityQueryOptions {
                             limit,
-                            include_count,
                             ..options.clone()
                         },
                     ),
@@ -198,8 +187,6 @@ struct QueryEntitySubgraphQueryParameters {
     actor_id: Vec<ActorEntityUuid>,
     #[serde(default)]
     limit: Vec<usize>,
-    #[serde(default)]
-    include_count: Vec<bool>,
     #[serde(default)]
     traversal_params: Vec<SubgraphTraversalParams>,
 }
@@ -249,7 +236,6 @@ impl QueryEntitySubgraphQuery<'_, '_, '_> {
     fn prepare_request(mut self) -> impl Iterator<Item = (Self, String)> {
         let modifies_actor_id = !self.settings.parameters.actor_id.is_empty();
         let modifies_limit = !self.settings.parameters.limit.is_empty();
-        let modifies_include_count = !self.settings.parameters.include_count.is_empty();
         let modifies_graph_resolve_depths = !self.settings.parameters.traversal_params.is_empty();
 
         let (query, options, traversal_params) = self.request.clone().into_parts();
@@ -266,24 +252,17 @@ impl QueryEntitySubgraphQuery<'_, '_, '_> {
             )
             .sorted()
             .dedup();
-        let include_count = iter::once(options.include_count)
-            .chain(mem::take(&mut self.settings.parameters.include_count))
-            .sorted()
-            .dedup();
         let traversal_params_iter = iter::once(traversal_params)
             .chain(mem::take(&mut self.settings.parameters.traversal_params));
 
-        iproduct!(actor_id, limit, include_count, traversal_params_iter).map(
-            move |(actor_id, limit, include_count, traversal_params)| {
+        iproduct!(actor_id, limit, traversal_params_iter).map(
+            move |(actor_id, limit, traversal_params)| {
                 let mut parameters = Vec::new();
                 if modifies_actor_id {
                     parameters.push(format!("actor_id={actor_id}"));
                 }
                 if modifies_limit && let Some(limit) = limit {
                     parameters.push(format!("limit={limit}"));
-                }
-                if modifies_include_count {
-                    parameters.push(format!("include_count={include_count}"));
                 }
                 if modifies_graph_resolve_depths {
                     parameters.push(format_traversal_params(&traversal_params));
@@ -295,7 +274,6 @@ impl QueryEntitySubgraphQuery<'_, '_, '_> {
                             query.clone(),
                             EntityQueryOptions {
                                 limit,
-                                include_count,
                                 ..options.clone()
                             },
                             traversal_params,

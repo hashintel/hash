@@ -35,18 +35,20 @@ use hash_graph_store::{
         UnarchiveDataTypeParams, UpdateDataTypeEmbeddingParams, UpdateDataTypesParams,
     },
     entity::{
-        CountEntitiesParams, CreateEntityParams, DeleteEntitiesParams, DeletionSummary,
-        EntityStore, EntityValidationReport, HasPermissionForEntitiesParams, PatchEntityParams,
+        CreateEntityParams, DeleteEntitiesParams, DeletionSummary, EntityStore,
+        EntityValidationReport, HasPermissionForEntitiesParams, PatchEntityParams,
         QueryEntitiesParams, QueryEntitiesResponse, QueryEntitySubgraphParams,
-        QueryEntitySubgraphResponse, UpdateEntityEmbeddingsParams, ValidateEntityParams,
+        QueryEntitySubgraphResponse, SearchEntitiesParams, SearchEntitiesResponse,
+        SummarizeEntitiesParams, SummarizeEntitiesResponse, UpdateEntityEmbeddingsParams,
+        ValidateEntityParams,
     },
     entity_type::{
         ArchiveEntityTypeParams, CommonQueryEntityTypesParams, CountEntityTypesParams,
         CreateEntityTypeParams, EntityTypeStore, GetClosedMultiEntityTypesResponse,
         HasPermissionForEntityTypesParams, IncludeResolvedEntityTypeOption,
         QueryEntityTypeSubgraphParams, QueryEntityTypeSubgraphResponse, QueryEntityTypesParams,
-        QueryEntityTypesResponse, UnarchiveEntityTypeParams, UpdateEntityTypeEmbeddingParams,
-        UpdateEntityTypesParams,
+        QueryEntityTypesResponse, SearchEntityTypesParams, SearchEntityTypesResponse,
+        UnarchiveEntityTypeParams, UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
     },
     error::{CheckPermissionError, DeletionError, InsertionError, QueryError, UpdateError},
     filter::{Filter, QueryRecord},
@@ -58,10 +60,7 @@ use hash_graph_store::{
         UnarchivePropertyTypeParams, UpdatePropertyTypeEmbeddingParams, UpdatePropertyTypesParams,
     },
     query::{ConflictBehavior, QueryResult, Read, ReadPaginated, Sorting},
-    subgraph::temporal_axes::{
-        PinnedTemporalAxisUnresolved, QueryTemporalAxes, QueryTemporalAxesUnresolved,
-        VariableTemporalAxisUnresolved,
-    },
+    subgraph::temporal_axes::{QueryTemporalAxes, QueryTemporalAxesUnresolved},
 };
 use hash_graph_temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
 use hash_graph_types::ontology::{
@@ -461,10 +460,7 @@ where
                     actor_id,
                     QueryDataTypesParams {
                         filter: Filter::for_versioned_url(url),
-                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                            pinned: PinnedTemporalAxisUnresolved::new(None),
-                            variable: VariableTemporalAxisUnresolved::new(None, None),
-                        },
+                        temporal_axes: QueryTemporalAxesUnresolved::live_only(),
                         after: None,
                         limit: None,
                         include_count: false,
@@ -478,10 +474,7 @@ where
                     actor_id,
                     QueryPropertyTypesParams {
                         filter: Filter::for_versioned_url(url),
-                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                            pinned: PinnedTemporalAxisUnresolved::new(None),
-                            variable: VariableTemporalAxisUnresolved::new(None, None),
-                        },
+                        temporal_axes: QueryTemporalAxesUnresolved::live_only(),
                         after: None,
                         limit: None,
                         include_count: false,
@@ -496,10 +489,7 @@ where
                     QueryEntityTypesParams {
                         request: CommonQueryEntityTypesParams {
                             filter: Filter::for_versioned_url(url),
-                            temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                                pinned: PinnedTemporalAxisUnresolved::new(None),
-                                variable: VariableTemporalAxisUnresolved::new(None, None),
-                            },
+                            temporal_axes: QueryTemporalAxesUnresolved::live_only(),
                             after: None,
                             limit: None,
                             include_count: false,
@@ -1484,6 +1474,14 @@ where
         self.store.query_entity_types(actor_id, params).await
     }
 
+    async fn search_entity_types(
+        &self,
+        actor_id: ActorEntityUuid,
+        params: SearchEntityTypesParams,
+    ) -> Result<SearchEntityTypesResponse, Report<QueryError>> {
+        self.store.search_entity_types(actor_id, params).await
+    }
+
     async fn get_closed_multi_entity_types<I, J>(
         &self,
         actor_id: ActorEntityUuid,
@@ -1642,6 +1640,14 @@ where
         self.store.query_entities(actor_id, params).await
     }
 
+    async fn search_entities(
+        &self,
+        actor_id: ActorEntityUuid,
+        params: SearchEntitiesParams,
+    ) -> Result<SearchEntitiesResponse, Report<QueryError>> {
+        self.store.search_entities(actor_id, params).await
+    }
+
     async fn query_entity_subgraph(
         &self,
         actor_id: ActorEntityUuid,
@@ -1662,12 +1668,12 @@ where
             .await
     }
 
-    async fn count_entities(
+    async fn summarize_entities(
         &self,
         actor_id: ActorEntityUuid,
-        params: CountEntitiesParams<'_>,
-    ) -> Result<usize, Report<QueryError>> {
-        self.store.count_entities(actor_id, params).await
+        params: SummarizeEntitiesParams<'_>,
+    ) -> Result<SummarizeEntitiesResponse, Report<QueryError>> {
+        self.store.summarize_entities(actor_id, params).await
     }
 
     async fn patch_entity(

@@ -66,7 +66,7 @@
     },
     // Test commands
     "test:unit": {
-      "dependsOn": ["codegen"],
+      "dependsOn": ["codegen", "^build"],
       "env": ["TEST_COVERAGE"]
     },
     "test:integration": {

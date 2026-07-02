@@ -1,10 +1,10 @@
 import { use } from "react";
 
-import { Button, Dialog, Select } from "@hashintel/ds-components";
+import { Button, Dialog, Select, Toggle } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
+import { SDCPNContext } from "../../../../react/state/sdcpn-context";
 import { UserSettingsContext } from "../../../../react/state/user-settings-context";
-import { Switch } from "../../../components/switch";
 
 import type { ArcRendering } from "../../../../react/state/user-settings-context";
 
@@ -113,7 +113,10 @@ export const ViewportSettingsDialog: React.FC<ViewportSettingsDialogProps> = ({
     setPartialSelection,
     useEntitiesTreeView,
     setUseEntitiesTreeView,
+    enableNetComponents,
+    setEnableNetComponents,
   } = use(UserSettingsContext);
+  const { extensions } = use(SDCPNContext);
 
   if (!open) {
     return null;
@@ -130,24 +133,25 @@ export const ViewportSettingsDialog: React.FC<ViewportSettingsDialogProps> = ({
           label="Minimap"
           description="Show an overview minimap in the top-right corner"
         >
-          <Switch checked={showMinimap} onCheckedChange={setShowMinimap} />
+          <Toggle value={showMinimap} onChange={setShowMinimap} size="sm" />
         </SettingRow>
         <SettingRow
           label="Snap to grid"
           description="Snap node positions to the grid when placing or dragging"
         >
-          <Switch checked={snapToGrid} onCheckedChange={setSnapToGrid} />
+          <Toggle value={snapToGrid} onChange={setSnapToGrid} size="sm" />
         </SettingRow>
         <SettingRow label="Compact nodes">
-          <Switch checked={compactNodes} onCheckedChange={setCompactNodes} />
+          <Toggle value={compactNodes} onChange={setCompactNodes} size="sm" />
         </SettingRow>
         <SettingRow
           label="Partial selection"
           description="Select nodes that are only partially inside the selection box"
         >
-          <Switch
-            checked={partialSelection}
-            onCheckedChange={setPartialSelection}
+          <Toggle
+            value={partialSelection}
+            onChange={setPartialSelection}
+            size="sm"
           />
         </SettingRow>
         <SettingRow label="Arcs rendering">
@@ -172,18 +176,20 @@ export const ViewportSettingsDialog: React.FC<ViewportSettingsDialogProps> = ({
           label="Animations"
           description="Animate panel transitions and UI interactions"
         >
-          <Switch
-            checked={showAnimations}
-            onCheckedChange={setShowAnimations}
+          <Toggle
+            value={showAnimations}
+            onChange={setShowAnimations}
+            size="sm"
           />
         </SettingRow>
         <SettingRow
           label="Keep panels mounted"
           description="Keep hidden panels loaded in the background for faster switching"
         >
-          <Switch
-            checked={keepPanelsMounted}
-            onCheckedChange={setKeepPanelsMounted}
+          <Toggle
+            value={keepPanelsMounted}
+            onChange={setKeepPanelsMounted}
+            size="sm"
           />
         </SettingRow>
         <SettingRow
@@ -195,11 +201,28 @@ export const ViewportSettingsDialog: React.FC<ViewportSettingsDialogProps> = ({
           }
           description="Show a unified tree of all entities in the left sidebar"
         >
-          <Switch
-            checked={useEntitiesTreeView}
-            onCheckedChange={setUseEntitiesTreeView}
+          <Toggle
+            value={useEntitiesTreeView}
+            onChange={setUseEntitiesTreeView}
+            size="sm"
           />
         </SettingRow>
+        {extensions.subnets && (
+          <SettingRow
+            label={
+              <>
+                Net Components <span className={badgeStyle}>Experimental</span>
+              </>
+            }
+            description="Enable subnet definitions and component instances for hierarchical net composition"
+          >
+            <Toggle
+              value={enableNetComponents}
+              onChange={setEnableNetComponents}
+              size="sm"
+            />
+          </SettingRow>
+        )}
       </Dialog.Body>
       <Dialog.Footer
         actions={

@@ -120,7 +120,8 @@ impl TryFrom<PolicyExpressionTree> for MetaResourceFilter {
             | PolicyExpressionTree::IsOfType(_)
             | PolicyExpressionTree::IsOfBaseType(_)
             | PolicyExpressionTree::OntologyTypeVersion(_)
-            | PolicyExpressionTree::CreatedByPrincipal) => {
+            | PolicyExpressionTree::CreatedByPrincipal
+            | PolicyExpressionTree::IsReadOnly) => {
                 Err(Report::new(InvalidMetaResourceFilter(condition)))
             }
         }

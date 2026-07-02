@@ -1,5 +1,3 @@
-import { Predicate } from "effect";
-
 import {
   extractBaseUrl,
   isArrayMetadata,
@@ -9,7 +7,7 @@ import {
 } from "@blockprotocol/type-system";
 import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
 
-import { rewriteSemanticFilter } from "./embeddings.js";
+import { calculateEmbedding } from "./embeddings.js";
 import {
   mapGraphApiClosedMultiEntityTypeMapToClosedMultiEntityTypeMap,
   mapGraphApiEntityTypeResolveDefinitionsToEntityTypeResolveDefinitions,
@@ -99,6 +97,12 @@ import type {
   QueryEntitySubgraphRequest as QueryEntitySubgraphRequestGraphApi,
   QueryEntitySubgraphResponse as QueryEntitySubgraphResponseGraphApi,
   ValidateEntityParams,
+  SummarizeEntitiesParams,
+  SummarizeEntitiesResponse as SummarizeEntitiesResponseGraphApi,
+  SearchEntitiesRequest as SearchEntitiesRequestGraphApi,
+  SearchEntitiesFilter as SearchEntitiesFilterGraphApi,
+  SearchEntitiesResponse as SearchEntitiesResponseGraphApi,
+  Embedding,
 } from "@local/hash-graph-client";
 import type {
   CreateEntityPolicyParams,
@@ -227,6 +231,16 @@ export type QueryEntitiesRequest = DistributiveOmit<
   conversions?: ConversionRequest[];
 };
 
+export type SearchEntitiesRequest = DistributiveOmit<
+  SearchEntitiesRequestGraphApi,
+  "embedding" | "filter"
+> & {
+  filter?: Omit<SearchEntitiesFilterGraphApi, "entityTypeIds" | "webIds"> & {
+    entityTypeIds?: VersionedUrl[];
+    webIds?: WebId[];
+  };
+} & ExclusiveUnion<{ embedding: Embedding } | { semanticString: string }>;
+
 export type EntityPermissionsMap = Record<EntityId, EntityPermissions>;
 
 export type QueryEntitiesResponse<
@@ -234,24 +248,11 @@ export type QueryEntitiesResponse<
     TypeIdsAndPropertiesForEntity,
 > = DistributiveOmit<
   QueryEntitiesResponseGraphApi,
-  | "entities"
-  | "closedMultiEntityTypes"
-  | "definitions"
-  | "webIds"
-  | "createdByIds"
-  | "editionCreatedByIds"
-  | "typeIds"
-  | "typeTitles"
-  | "permissions"
+  "entities" | "closedMultiEntityTypes" | "definitions" | "permissions"
 > & {
   entities: HashEntity<PropertyMap>[];
   closedMultiEntityTypes?: Record<VersionedUrl, ClosedMultiEntityTypeMap>;
   definitions?: EntityTypeResolveDefinitions;
-  webIds?: Record<WebId, number>;
-  createdByIds?: Record<ActorEntityUuid, number>;
-  editionCreatedByIds?: Record<ActorEntityUuid, number>;
-  typeIds?: Record<VersionedUrl, number>;
-  typeTitles?: Record<VersionedUrl, string>;
   permissions?: EntityPermissionsMap;
 };
 
@@ -260,6 +261,27 @@ export type SerializedQueryEntitiesResponse<
     TypeIdsAndPropertiesForEntity,
 > = DistributiveReplaceProperties<
   QueryEntitiesResponse<PropertyMap>,
+  {
+    entities: SerializedEntity<PropertyMap>[];
+  }
+>;
+
+export type SearchEntitiesResponse<
+  PropertyMap extends TypeIdsAndPropertiesForEntity =
+    TypeIdsAndPropertiesForEntity,
+> = DistributiveOmit<
+  SearchEntitiesResponseGraphApi,
+  "entities" | "closedMultiEntityTypes"
+> & {
+  entities: HashEntity<PropertyMap>[];
+  closedMultiEntityTypes?: Record<VersionedUrl, ClosedMultiEntityTypeMap>;
+};
+
+export type SerializedSearchEntitiesResponse<
+  PropertyMap extends TypeIdsAndPropertiesForEntity =
+    TypeIdsAndPropertiesForEntity,
+> = DistributiveReplaceProperties<
+  SearchEntitiesResponse<PropertyMap>,
   {
     entities: SerializedEntity<PropertyMap>[];
   }
@@ -279,24 +301,23 @@ export type QueryEntitySubgraphResponse<
     TypeIdsAndPropertiesForEntity,
 > = DistributiveOmit<
   QueryEntitySubgraphResponseGraphApi,
-  | "subgraph"
-  | "closedMultiEntityTypes"
-  | "definitions"
-  | "webIds"
-  | "createdByIds"
-  | "editionCreatedByIds"
-  | "typeIds"
-  | "typeTitles"
+  "subgraph" | "closedMultiEntityTypes" | "definitions"
 > & {
   subgraph: Subgraph<EntityRootType<HashEntity<PropertyMap>>, HashEntity>;
   closedMultiEntityTypes?: Record<VersionedUrl, ClosedMultiEntityTypeMap>;
   definitions?: EntityTypeResolveDefinitions;
+  entityPermissions?: EntityPermissionsMap;
+};
+
+export type SummarizeEntitiesResponse = DistributiveOmit<
+  SummarizeEntitiesResponseGraphApi,
+  "webIds" | "createdByIds" | "editionCreatedByIds" | "typeIds" | "typeTitles"
+> & {
   webIds?: Record<WebId, number>;
   createdByIds?: Record<ActorEntityUuid, number>;
   editionCreatedByIds?: Record<ActorEntityUuid, number>;
   typeIds?: Record<VersionedUrl, number>;
   typeTitles?: Record<VersionedUrl, string>;
-  entityPermissions?: EntityPermissionsMap;
 };
 
 export type SerializedQueryEntitySubgraphResponse = DistributiveOmit<
@@ -315,15 +336,10 @@ export const queryEntitySubgraph = async <
   PropertyMap extends TypeIdsAndPropertiesForEntity =
     TypeIdsAndPropertiesForEntity,
 >(
-  context: { graphApi: GraphApi; temporalClient?: TemporalClient },
+  context: { graphApi: GraphApi },
   authentication: AuthenticationContext,
   params: QueryEntitySubgraphRequest,
 ): Promise<QueryEntitySubgraphResponse<PropertyMap>> => {
-  if (Predicate.hasProperty(params, "filter")) {
-    // TODO: https://linear.app/hash/issue/BE-108/consider-moving-semantic-filter-rewriting-to-the-graph
-    await rewriteSemanticFilter(params.filter, context.temporalClient);
-  }
-
   return await context.graphApi
     .queryEntitySubgraph(authentication.actorId, params)
     .then(({ data }) => {
@@ -363,17 +379,6 @@ export const queryEntitySubgraph = async <
               response.definitions,
             )
           : undefined,
-        webIds: response.webIds as Record<WebId, number> | undefined,
-        createdByIds: response.createdByIds as
-          | Record<ActorEntityUuid, number>
-          | undefined,
-        editionCreatedByIds: response.editionCreatedByIds as
-          | Record<ActorEntityUuid, number>
-          | undefined,
-        typeIds: response.typeIds as Record<VersionedUrl, number> | undefined,
-        typeTitles: response.typeTitles as
-          | Record<VersionedUrl, string>
-          | undefined,
         entityPermissions: response.entityPermissions as
           | EntityPermissionsMap
           | undefined,
@@ -1508,16 +1513,10 @@ export const queryEntities = async <
 >(
   context: {
     graphApi: GraphApi;
-    temporalClient?: TemporalClient;
   },
   authentication: AuthenticationContext,
   params: QueryEntitiesRequest,
 ): Promise<QueryEntitiesResponse<PropertyMap>> => {
-  if (Predicate.hasProperty(params, "filter")) {
-    // TODO: https://linear.app/hash/issue/BE-108/consider-moving-semantic-filter-rewriting-to-the-graph
-    await rewriteSemanticFilter(params.filter, context.temporalClient);
-  }
-
   return context.graphApi
     .queryEntities(authentication.actorId, params)
     .then(({ data: response }) => ({
@@ -1533,6 +1532,56 @@ export const queryEntities = async <
             response.definitions,
           )
         : undefined,
+      permissions: response.permissions as EntityPermissionsMap | undefined,
+    }));
+};
+
+export const searchEntities = async (
+  context: {
+    graphApi: GraphApi;
+    temporalClient?: TemporalClient;
+  },
+  authentication: AuthenticationContext,
+  params: SearchEntitiesRequest,
+): Promise<SearchEntitiesResponse> => {
+  // TODO(BE-622): Move to the graph
+  if (params.semanticString !== undefined) {
+    if (!context.temporalClient) {
+      throw new Error("Cannot query semantic string without temporal client");
+    }
+    const { semanticString, ...rest } = params;
+    const embedding = await calculateEmbedding(
+      semanticString,
+      context.temporalClient,
+    );
+    // eslint-disable-next-line no-param-reassign
+    params = { ...rest, embedding };
+  }
+
+  return context.graphApi
+    .searchEntities(authentication.actorId, params)
+    .then(({ data: response }) => ({
+      ...response,
+      entities: response.entities.map((entity) => new HashEntity(entity)),
+      closedMultiEntityTypes: response.closedMultiEntityTypes
+        ? mapGraphApiClosedMultiEntityTypeMapToClosedMultiEntityTypeMap(
+            response.closedMultiEntityTypes,
+          )
+        : undefined,
+    }));
+};
+
+export const summarizeEntities = async (
+  context: {
+    graphApi: GraphApi;
+  },
+  authentication: AuthenticationContext,
+  params: SummarizeEntitiesParams,
+): Promise<SummarizeEntitiesResponse> => {
+  return context.graphApi
+    .summarizeEntities(authentication.actorId, params)
+    .then(({ data: response }) => ({
+      ...response,
       webIds: response.webIds as Record<WebId, number> | undefined,
       createdByIds: response.createdByIds as
         | Record<ActorEntityUuid, number>
@@ -1544,7 +1593,6 @@ export const queryEntities = async <
       typeTitles: response.typeTitles as
         | Record<VersionedUrl, string>
         | undefined,
-      permissions: response.permissions as EntityPermissionsMap | undefined,
     }));
 };
 
@@ -1564,6 +1612,26 @@ export const deserializeQueryEntitiesResponse = <
 >(
   response: SerializedQueryEntitiesResponse<PropertyMap>,
 ): QueryEntitiesResponse<PropertyMap> => ({
+  ...response,
+  entities: response.entities.map((entity) => new HashEntity(entity)),
+});
+
+export const serializeSearchEntitiesResponse = <
+  PropertyMap extends TypeIdsAndPropertiesForEntity =
+    TypeIdsAndPropertiesForEntity,
+>(
+  response: SearchEntitiesResponse<PropertyMap>,
+): SerializedSearchEntitiesResponse<PropertyMap> => ({
+  ...response,
+  entities: response.entities.map((entity) => entity.toJSON()),
+});
+
+export const deserializeSearchEntitiesResponse = <
+  PropertyMap extends TypeIdsAndPropertiesForEntity =
+    TypeIdsAndPropertiesForEntity,
+>(
+  response: SerializedSearchEntitiesResponse<PropertyMap>,
+): SearchEntitiesResponse<PropertyMap> => ({
   ...response,
   entities: response.entities.map((entity) => new HashEntity(entity)),
 });

@@ -13,6 +13,7 @@ import type {
   FileStorageProvider,
   GetFileEntityStorageKeyParams,
   GetFlowOutputStorageKeyParams,
+  PresignedDownloadByKeyRequest,
   PresignedDownloadRequest,
   PresignedPutUpload,
   PresignedStorageRequest,
@@ -47,7 +48,9 @@ export class LocalFileSystemStorageProvider implements FileStorageProvider {
     fileUploadPath,
     apiOrigin,
   }: LocalFileSystemStorageProviderConstructorArgs) {
-    this.fileUploadPath = path.join(appRoot.path, fileUploadPath);
+    this.fileUploadPath = path.isAbsolute(fileUploadPath)
+      ? fileUploadPath
+      : path.join(appRoot.path, fileUploadPath);
     this.apiOrigin = apiOrigin;
     if (!fs.existsSync(this.fileUploadPath)) {
       fs.mkdirSync(this.fileUploadPath, { recursive: true });
@@ -88,6 +91,13 @@ export class LocalFileSystemStorageProvider implements FileStorageProvider {
   }
 
   async presignDownload(params: PresignedDownloadRequest): Promise<Url> {
+    return new URL(path.join(DOWNLOAD_BASE_URL, params.key), this.apiOrigin)
+      .href as Url;
+  }
+
+  async presignDownloadByKey(
+    params: PresignedDownloadByKeyRequest,
+  ): Promise<Url> {
     return new URL(path.join(DOWNLOAD_BASE_URL, params.key), this.apiOrigin)
       .href as Url;
   }

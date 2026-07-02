@@ -5,14 +5,13 @@ import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { deserializeQueryEntitiesResponse } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
-  generateVersionedUrlMatchingFilter,
   pageOrNotificationNotArchivedFilter,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { queryEntitiesQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import {
-  countEntitiesQuery,
+  summarizeEntitiesQuery,
   updateEntitiesMutation,
   updateEntityMutation,
 } from "../graphql/queries/knowledge/entity.queries";
@@ -20,8 +19,8 @@ import { useAuthInfo } from "../pages/shared/auth-info-context";
 import { usePollInterval } from "./use-poll-interval";
 
 import type {
-  CountEntitiesQuery,
-  CountEntitiesQueryVariables,
+  SummarizeEntitiesQuery,
+  SummarizeEntitiesQueryVariables,
   QueryEntitiesQuery,
   QueryEntitiesQueryVariables,
   UpdateEntitiesMutation,
@@ -87,11 +86,11 @@ export const NotificationCountContextProvider: FunctionComponent<
   const pollInterval = usePollInterval();
 
   const {
-    data: notificationCountData,
-    loading: loadingNotificationCount,
-    refetch: refetchNotificationCount,
-  } = useQuery<CountEntitiesQuery, CountEntitiesQueryVariables>(
-    countEntitiesQuery,
+    data: notificationSummarizeData,
+    loading: loadingNotificationSummary,
+    refetch: refetchNotificationSummary,
+  } = useQuery<SummarizeEntitiesQuery, SummarizeEntitiesQueryVariables>(
+    summarizeEntitiesQuery,
     {
       pollInterval,
       variables: {
@@ -104,15 +103,20 @@ export const NotificationCountContextProvider: FunctionComponent<
                   { parameter: authenticatedUser?.accountId },
                 ],
               },
-              generateVersionedUrlMatchingFilter(
-                systemEntityTypes.notification.entityTypeId,
-                { ignoreParents: false },
-              ),
+              {
+                equal: [
+                  { path: ["type", "baseUrl"] },
+                  {
+                    parameter: systemEntityTypes.notification.entityTypeBaseUrl,
+                  },
+                ],
+              },
               pageOrNotificationNotArchivedFilter,
             ],
           },
           temporalAxes: currentTimeInstantTemporalAxes,
           includeDrafts: false,
+          includeCount: true,
         },
       },
       skip: !authenticatedUser?.accountSignupComplete,
@@ -131,14 +135,14 @@ export const NotificationCountContextProvider: FunctionComponent<
     UpdateEntityMutation,
     UpdateEntityMutationVariables
   >(updateEntityMutation, {
-    onCompleted: () => refetchNotificationCount(),
+    onCompleted: () => refetchNotificationSummary(),
   });
 
   const [updateEntities] = useMutation<
     UpdateEntitiesMutation,
     UpdateEntitiesMutationVariables
   >(updateEntitiesMutation, {
-    onCompleted: () => refetchNotificationCount(),
+    onCompleted: () => refetchNotificationSummary(),
   });
 
   const getNotificationsLinkingToEntity = useCallback(
@@ -154,10 +158,16 @@ export const NotificationCountContextProvider: FunctionComponent<
                     { parameter: authenticatedUser?.accountId },
                   ],
                 },
-                generateVersionedUrlMatchingFilter(
-                  systemEntityTypes.notification.entityTypeId,
-                  { ignoreParents: false },
-                ),
+
+                {
+                  equal: [
+                    { path: ["type", "baseUrl"] },
+                    {
+                      parameter:
+                        systemEntityTypes.notification.entityTypeBaseUrl,
+                    },
+                  ],
+                },
                 {
                   equal: [
                     { path: ["outgoingLinks", "rightEntity", "uuid"] },
@@ -301,18 +311,18 @@ export const NotificationCountContextProvider: FunctionComponent<
   const value = useMemo<NotificationCountContextValues>(
     () => ({
       archiveNotificationsForEntity,
-      loading: loadingNotificationCount,
+      loading: loadingNotificationSummary,
       markNotificationAsRead,
       markNotificationsAsReadForEntity,
       numberOfUnreadNotifications:
-        notificationCountData?.countEntities ?? undefined,
+        notificationSummarizeData?.summarizeEntities.count ?? undefined,
     }),
     [
       archiveNotificationsForEntity,
-      loadingNotificationCount,
+      loadingNotificationSummary,
       markNotificationAsRead,
       markNotificationsAsReadForEntity,
-      notificationCountData,
+      notificationSummarizeData,
     ],
   );
 

@@ -20,6 +20,7 @@ enum ComputedColumn {
 }
 
 impl From<ComputedColumn> for ColumnName<'_> {
+    #[inline]
     fn from(value: ComputedColumn) -> Self {
         match value {
             ComputedColumn::EntityTypeIds => ColumnName::from(Identifier::from("entity_type_ids")),
@@ -115,7 +116,7 @@ impl Projections {
         ColumnReference {
             correlation: Some(TableReference {
                 schema: None,
-                name: TableName::from(Table::EntityIsOfTypeIds),
+                name: TableName::from(Table::EntityEditionCache),
                 alias: Some(alias),
             }),
             name: ComputedColumn::EntityTypeIds.into(),
@@ -176,15 +177,19 @@ impl Projections {
             from = self.build_entity_ids(from, alias);
         }
 
-        // entity_type_ids: self-contained LATERAL that joins entity_is_of_type_ids
-        // internally, unnests the parallel arrays, and aggregates into a JSONB array.
+        // entity_type_ids: self-contained LATERAL that joins entity_edition_cache
+        // internally, unnests the parallel arrays, and aggregates into a JSONB array. The
+        // cache arrays cover all inheritance depths with the direct types as prefix, so the
+        // ordinality predicate restricts the output to the entity's direct types.
         //
         // LEFT JOIN LATERAL (
         //     SELECT jsonb_agg(jsonb_build_object($base_url, u."b", $version, u."v"))
         //            AS "entity_type_ids"
-        //     FROM "entity_is_of_type_ids" AS "eit"
-        //       CROSS JOIN LATERAL UNNEST("eit"."base_urls", "eit"."versions") AS "u"("b", "v")
-        //     WHERE "eit"."entity_edition_id" = "base"."entity_edition_id"
+        //     FROM "entity_edition_cache" AS "eec"
+        //       CROSS JOIN LATERAL UNNEST("eec"."base_urls", "eec"."versions"::text[])
+        //            WITH ORDINALITY AS "u"("b", "v", "ordinality")
+        //     WHERE "eec"."entity_edition_id" = "base"."entity_edition_id"
+        //       AND "u"."ordinality" <= "eec"."direct_types"
         // ) AS <alias> ON TRUE
         if let Some(alias) = self.entity_type_ids {
             from = self.build_entity_type_ids(parameters, from, alias);
@@ -245,64 +250,73 @@ impl Projections {
         .build()
     }
 
+    #[expect(clippy::too_many_lines)]
     fn build_entity_type_ids<'item>(
         &self,
         parameters: &mut Parameters<'_, impl Allocator>,
         from: FromItem<'item>,
         alias: Alias,
     ) -> FromItem<'item> {
-        let eit_ref = TableReference {
+        let eec_ref = TableReference {
             schema: None,
-            name: TableName::from(Identifier::from("eit")),
+            name: TableName::from(Identifier::from("eec")),
+            alias: None,
+        };
+        let unnest_ref = TableReference {
+            schema: None,
+            name: TableName::from(Identifier::from("u")),
             alias: None,
         };
 
-        let inner_from = FromItem::table(Table::EntityIsOfTypeIds)
-            .alias(TableReference {
-                schema: None,
-                name: TableName::from(Identifier::from("eit")),
-                alias: None,
-            })
+        let inner_from = FromItem::table(Table::EntityEditionCache)
+            .alias(eec_ref.clone())
             .build()
             .cross_join(FromItem::Function {
                 lateral: true,
                 function: query::Function::Unnest(vec![
                     query::Expression::ColumnReference(ColumnReference {
-                        correlation: Some(eit_ref.clone()),
-                        name: Column::EntityIsOfTypeIds(table::EntityIsOfTypeIds::BaseUrls).into(),
+                        correlation: Some(eec_ref.clone()),
+                        name: Column::EntityEditionCache(table::EntityEditionCache::BaseUrls)
+                            .into(),
                     }),
                     query::Expression::ColumnReference(ColumnReference {
-                        correlation: Some(eit_ref),
-                        name: Column::EntityIsOfTypeIds(table::EntityIsOfTypeIds::Versions).into(),
+                        correlation: Some(eec_ref.clone()),
+                        name: Column::EntityEditionCache(table::EntityEditionCache::Versions)
+                            .into(),
                     })
                     .cast(PostgresType::Array(Box::new(PostgresType::Text))),
                 ]),
-                with_ordinality: false,
-                alias: Some(TableReference {
-                    schema: None,
-                    name: TableName::from(Identifier::from("u")),
-                    alias: None,
-                }),
+                with_ordinality: true,
+                alias: Some(unnest_ref.clone()),
                 column_alias: vec![
                     ColumnName::from(Identifier::from("b")),
                     ColumnName::from(Identifier::from("v")),
+                    ColumnName::from(Identifier::from("ordinality")),
                 ],
             });
 
-        // WHERE "eit"."entity_edition_id" = "base"."entity_edition_id"
+        // WHERE "eec"."entity_edition_id" = "base"."entity_edition_id"
         let correlation = query::Expression::equal(
             query::Expression::ColumnReference(ColumnReference {
-                correlation: Some(TableReference {
-                    schema: None,
-                    name: TableName::from(Identifier::from("eit")),
-                    alias: None,
-                }),
-                name: Column::EntityIsOfType(table::EntityIsOfType::EntityEditionId, None).into(),
+                correlation: Some(eec_ref.clone()),
+                name: Column::EntityEditionCache(table::EntityEditionCache::EntityEditionId).into(),
             }),
             query::Expression::ColumnReference(ColumnReference {
                 correlation: Some(self.temporal_metadata()),
                 name: Column::EntityTemporalMetadata(table::EntityTemporalMetadata::EditionId)
                     .into(),
+            }),
+        );
+        // AND "u"."ordinality" <= "eec"."direct_types": the cache arrays cover all inheritance
+        // depths with the direct types as prefix; `entity_type_ids` only exposes direct types.
+        let direct_prefix = query::Expression::less_or_equal(
+            query::Expression::ColumnReference(ColumnReference {
+                correlation: Some(unnest_ref),
+                name: ColumnName::from(Identifier::from("ordinality")),
+            }),
+            query::Expression::ColumnReference(ColumnReference {
+                correlation: Some(eec_ref),
+                name: Column::EntityEditionCache(table::EntityEditionCache::DirectTypes).into(),
             }),
         );
 
@@ -332,6 +346,7 @@ impl Projections {
             .where_expression({
                 let mut w = query::WhereExpression::default();
                 w.add_condition(correlation);
+                w.add_condition(direct_prefix);
                 w
             })
             .build();
@@ -341,7 +356,7 @@ impl Projections {
             statement: Box::new(subquery),
             alias: Some(TableReference {
                 schema: None,
-                name: TableName::from(Table::EntityIsOfTypeIds),
+                name: TableName::from(Table::EntityEditionCache),
                 alias: Some(alias),
             }),
             column_alias: vec![],

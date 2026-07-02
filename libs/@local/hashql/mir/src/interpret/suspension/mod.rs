@@ -20,7 +20,7 @@
 mod graph_read;
 mod temporal;
 
-use core::{alloc::Allocator, debug_assert_matches};
+use core::alloc::Allocator;
 
 pub(crate) use self::graph_read::extract_axis;
 pub use self::temporal::{TemporalAxesInterval, TemporalInterval, Timestamp};
@@ -106,7 +106,7 @@ impl<'ctx, 'heap, A: Allocator> Continuation<'ctx, 'heap, A> {
                     let current_statement = frame.current_statement;
                     debug_assert_eq!(current_block.block.statements.len(), current_statement);
 
-                    debug_assert_matches!(
+                    core::debug_assert_matches!(
                         current_block.block.terminator.kind,
                         TerminatorKind::GraphRead(_)
                     );

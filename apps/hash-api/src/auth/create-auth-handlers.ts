@@ -7,8 +7,9 @@ import { publicUserAccountId } from "@local/hash-backend-utils/public-user-accou
 
 import { createUser, getUser } from "../graph/knowledge/system-types/user";
 import { systemAccountId } from "../graph/system-account";
+import { telemetry } from "../telemetry/telemetry";
 import { hydraAdmin } from "./ory-hydra";
-import { isUserEmailVerified, kratosFrontendApi } from "./ory-kratos";
+import { kratosFrontendApi } from "./ory-kratos";
 
 import type { ImpureGraphContext } from "../graph/context-types";
 import type { User } from "../graph/knowledge/system-types/user";
@@ -67,9 +68,24 @@ const kratosAfterRegistrationHookHandler =
           throw new Error("User registration is disabled.");
         }
 
-        await createUser(context, authentication, {
+        const user = await createUser(context, authentication, {
           emails,
           kratosIdentityId,
+        });
+
+        // This is a Kratos -> server webhook, so there is no `req.user` and
+        // `req.ip` is Kratos's, not the registrant's. Emit via the actor path
+        // keyed on the newly created user's accountId.
+        const actor = {
+          accountId: user.accountId,
+          shortname: user.shortname,
+        };
+        telemetry.identifyActor(actor, {
+          email: emails[0],
+          shortname: user.shortname,
+        });
+        telemetry.trackForActor(actor, "user_register", {
+          email: emails[0],
         });
 
         res.status(200).end();
@@ -122,7 +138,6 @@ export const getUserAndSession = async ({
   logger: Logger;
   sessionToken?: string;
 }): Promise<{
-  primaryEmailVerified?: boolean;
   session?: Session;
   user?: User;
 }> => {
@@ -158,13 +173,6 @@ export const getUserAndSession = async ({
 
     const { id: kratosIdentityId, traits } = identity as KratosUserIdentity;
 
-    const primaryEmailAddress = traits.emails[0];
-
-    const primaryEmailVerified =
-      identity.verifiable_addresses?.find(
-        ({ value }) => value === primaryEmailAddress,
-      )?.verified === true;
-
     let user = await getUser(context, authentication, {
       kratosIdentityId,
       emails: traits.emails,
@@ -191,7 +199,7 @@ export const getUserAndSession = async ({
       }
     }
 
-    return { primaryEmailVerified, session: kratosSession, user };
+    return { session: kratosSession, user };
   }
 
   return {};
@@ -226,9 +234,6 @@ export const createAuthMiddleware = (params: {
           },
         );
         if (user) {
-          req.primaryEmailVerified = await isUserEmailVerified(
-            user.kratosIdentityId,
-          );
           req.user = user;
           next();
           return;
@@ -236,14 +241,13 @@ export const createAuthMiddleware = (params: {
       }
     }
 
-    const { primaryEmailVerified, session, user } = await getUserAndSession({
+    const { session, user } = await getUserAndSession({
       context,
       cookie: req.header("cookie"),
       logger,
       sessionToken: accessOrSessionToken,
     });
     if (session) {
-      req.primaryEmailVerified = primaryEmailVerified;
       req.session = session;
       req.user = user;
     }

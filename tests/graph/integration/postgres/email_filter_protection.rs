@@ -1,8 +1,4 @@
 #![expect(
-    clippy::large_futures,
-    reason = "Test verification futures are large due to filter complexity; acceptable for tests"
-)]
-#![expect(
     clippy::print_stderr,
     reason = "eprintln! used for debug output on test failures"
 )]
@@ -23,9 +19,10 @@ use std::collections::HashSet;
 use hash_graph_postgres_store::store::PostgresStoreSettings;
 use hash_graph_store::{
     entity::{
-        CountEntitiesParams, CreateEntityParams, EntityQueryPath, EntityQuerySorting,
-        EntityQuerySortingRecord, EntityStore as _, QueryEntitiesParams, QueryEntitySubgraphParams,
+        CreateEntityParams, EntityQueryPath, EntityQuerySorting, EntityQuerySortingRecord,
+        EntityStore as _, QueryEntitiesParams, QueryEntitySubgraphParams, SummarizeEntitiesParams,
     },
+    entity_type::EntityTypeQueryPath,
     filter::{
         Filter, FilterExpression, JsonPath, Parameter, PathToken,
         protection::{
@@ -35,14 +32,13 @@ use hash_graph_store::{
     },
     query::{NullOrdering, Ordering},
     subgraph::{
-        edges::{EdgeDirection, EntityTraversalEdge, EntityTraversalPath, GraphResolveDepths},
-        temporal_axes::{
-            PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved,
-            VariableTemporalAxisUnresolved,
+        edges::{
+            EdgeDirection, EntityTraversalEdge, EntityTraversalPath, GraphResolveDepths,
+            SharedEdgeKind,
         },
+        temporal_axes::QueryTemporalAxesUnresolved,
     },
 };
-use hash_graph_temporal_versioning::TemporalBound;
 use hash_graph_test_data::{data_type, entity_type};
 use type_system::{
     knowledge::{
@@ -209,10 +205,7 @@ fn shortname_filter(shortname: &str) -> Filter<'static, type_system::knowledge::
 
 /// Helper to get standard temporal axes for queries.
 fn standard_temporal_axes() -> QueryTemporalAxesUnresolved {
-    QueryTemporalAxesUnresolved::DecisionTime {
-        pinned: PinnedTemporalAxisUnresolved::new(None),
-        variable: VariableTemporalAxisUnresolved::new(Some(TemporalBound::Unbounded), None),
-    }
+    QueryTemporalAxesUnresolved::all()
 }
 
 /// Seeds the database with User and Invitation entity types (with email and shortname properties).
@@ -292,6 +285,7 @@ impl DatabaseApi<'_> {
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
                     sources: Vec::new(),
                 },
+                read_only: false,
             },
         )
         .await
@@ -326,6 +320,7 @@ impl DatabaseApi<'_> {
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
                     sources: Vec::new(),
                 },
+                read_only: false,
             },
         )
         .await
@@ -371,6 +366,7 @@ impl DatabaseApi<'_> {
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
                     sources: Vec::new(),
                 },
+                read_only: false,
             },
         )
         .await
@@ -390,14 +386,8 @@ impl DatabaseApi<'_> {
                 sorting,
                 limit: 1000,
                 conversions: Vec::new(),
-                include_count: false,
                 include_entity_types: None,
                 include_drafts: false,
-                include_web_ids: false,
-                include_created_by_ids: false,
-                include_edition_created_by_ids: false,
-                include_type_ids: false,
-                include_type_titles: false,
                 include_permissions: false,
             },
         )
@@ -407,16 +397,24 @@ impl DatabaseApi<'_> {
     }
 
     async fn count(&self, filter: Filter<'_, Entity>) -> usize {
-        self.count_entities(
+        self.summarize_entities(
             self.account_id,
-            CountEntitiesParams {
+            SummarizeEntitiesParams {
                 filter,
                 temporal_axes: standard_temporal_axes(),
                 include_drafts: false,
+                include_count: true,
+                include_web_ids: false,
+                include_created_by_ids: false,
+                include_edition_created_by_ids: false,
+                include_type_ids: false,
+                include_type_titles: false,
             },
         )
         .await
         .expect("count failed")
+        .count
+        .expect("summarize_entities should include `count` when `include_count` is true")
     }
 }
 
@@ -1424,7 +1422,11 @@ fn multi_property_config() -> PropertyProtectionFilterConfig<'static> {
                     parameter: Parameter::Text(Cow::Borrowed(USER_ENTITY_TYPE_BASE_URL)),
                 },
                 PropertyFilterExpressionList::Path {
-                    path: EntityQueryPath::TypeBaseUrls,
+                    path: EntityQueryPath::EntityTypeEdge {
+                        edge_kind: SharedEdgeKind::IsOfType,
+                        path: EntityTypeQueryPath::BaseUrl,
+                        inheritance_depth: None,
+                    },
                 },
             ),
             PropertyFilter::NotEqual(
@@ -1495,6 +1497,7 @@ impl DatabaseApi<'_> {
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
                     sources: Vec::new(),
                 },
+                read_only: false,
             },
         )
         .await
@@ -1534,6 +1537,7 @@ impl DatabaseApi<'_> {
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
                     sources: Vec::new(),
                 },
+                read_only: false,
             },
         )
         .await
@@ -2046,7 +2050,11 @@ fn multi_type_config() -> PropertyProtectionFilterConfig<'static> {
                     parameter: Parameter::Text(Cow::Borrowed(USER_ENTITY_TYPE_BASE_URL)),
                 },
                 PropertyFilterExpressionList::Path {
-                    path: EntityQueryPath::TypeBaseUrls,
+                    path: EntityQueryPath::EntityTypeEdge {
+                        edge_kind: SharedEdgeKind::IsOfType,
+                        path: EntityTypeQueryPath::BaseUrl,
+                        inheritance_depth: None,
+                    },
                 },
             ),
             PropertyFilter::NotEqual(
@@ -2065,7 +2073,11 @@ fn multi_type_config() -> PropertyProtectionFilterConfig<'static> {
                     parameter: Parameter::Text(Cow::Borrowed(SECRET_ENTITY_TYPE_BASE_URL)),
                 },
                 PropertyFilterExpressionList::Path {
-                    path: EntityQueryPath::TypeBaseUrls,
+                    path: EntityQueryPath::EntityTypeEdge {
+                        edge_kind: SharedEdgeKind::IsOfType,
+                        path: EntityTypeQueryPath::BaseUrl,
+                        inheritance_depth: None,
+                    },
                 },
             ),
             PropertyFilter::NotEqual(
@@ -2129,6 +2141,7 @@ impl DatabaseApi<'_> {
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
                     sources: Vec::new(),
                 },
+                read_only: false,
             },
         )
         .await
@@ -2168,6 +2181,7 @@ impl DatabaseApi<'_> {
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
                     sources: Vec::new(),
                 },
+                read_only: false,
             },
         )
         .await
@@ -2575,6 +2589,7 @@ impl DatabaseApi<'_> {
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
                     sources: Vec::new(),
                 },
+                read_only: false,
             },
         )
         .await
@@ -3056,6 +3071,7 @@ async fn subgraph_traversal_masks_linked_user_email() {
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
                     sources: Vec::new(),
                 },
+                read_only: false,
             },
         )
         .await
@@ -3085,6 +3101,7 @@ async fn subgraph_traversal_masks_linked_user_email() {
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
                     sources: Vec::new(),
                 },
+                read_only: false,
             },
         )
         .await
@@ -3116,6 +3133,7 @@ async fn subgraph_traversal_masks_linked_user_email() {
                 origin: OriginProvenance::from_empty_type(OriginType::Api),
                 sources: Vec::new(),
             },
+            read_only: false,
         },
     )
     .await
@@ -3159,14 +3177,8 @@ async fn subgraph_traversal_masks_linked_user_email() {
                     },
                     limit: 1000,
                     conversions: Vec::new(),
-                    include_count: false,
                     include_entity_types: None,
                     include_drafts: false,
-                    include_web_ids: false,
-                    include_created_by_ids: false,
-                    include_edition_created_by_ids: false,
-                    include_type_ids: false,
-                    include_type_titles: false,
                     include_permissions: false,
                 },
             },

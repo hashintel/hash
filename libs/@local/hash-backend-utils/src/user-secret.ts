@@ -4,10 +4,7 @@ import {
   type HashEntity,
   queryEntitySubgraph,
 } from "@local/hash-graph-sdk/entity";
-import {
-  currentTimeInstantTemporalAxes,
-  generateVersionedUrlMatchingFilter,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
@@ -37,12 +34,15 @@ export const getSecretEntitiesForIntegration = async ({
   return queryEntitySubgraph({ graphApi: graphApiClient }, authentication, {
     filter: {
       all: [
-        generateVersionedUrlMatchingFilter(
-          systemLinkEntityTypes.usesUserSecret.linkEntityTypeId,
-          {
-            ignoreParents: true,
-          },
-        ),
+        {
+          equal: [
+            { path: ["type", "baseUrl"] },
+            {
+              parameter:
+                systemLinkEntityTypes.usesUserSecret.linkEntityTypeBaseUrl,
+            },
+          ],
+        },
         {
           equal: [
             { path: ["leftEntity", "uuid"] },

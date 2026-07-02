@@ -5,6 +5,7 @@ import { css, cva } from "@hashintel/ds-helpers/css";
 import { refractive } from "@hashintel/refractive";
 
 import { LanguageClientContext } from "../../../../../react/lsp/context";
+import { ActiveNetContext } from "../../../../../react/state/active-net-context";
 import {
   type CursorMode,
   EditorContext,
@@ -90,6 +91,8 @@ export const BottomBar: React.FC<BottomBarProps> = ({
 
   const { totalDiagnosticsCount } = use(LanguageClientContext);
   const hasDiagnostics = totalDiagnosticsCount > 0;
+  const { activeSubnetId } = use(ActiveNetContext);
+  const isInSubnet = activeSubnetId !== null;
 
   const showDiagnostics = useCallback(() => {
     setBottomPanelOpen(true);
@@ -102,10 +105,7 @@ export const BottomBar: React.FC<BottomBarProps> = ({
 
   // Fallback to cursor mode when switching away from edit while in a mutative mode.
   useEffect(() => {
-    if (
-      mode !== "edit" &&
-      (editionMode === "add-place" || editionMode === "add-transition")
-    ) {
+    if (mode !== "edit" && editionMode !== "cursor") {
       onEditionModeChange("cursor");
     }
   }, [mode, editionMode, onEditionModeChange]);
@@ -192,7 +192,10 @@ export const BottomBar: React.FC<BottomBarProps> = ({
                 isExpanded={isBottomPanelOpen}
               />
               <ToolbarDivider />
-              <SimulationControls disabled={hasDiagnostics} />
+              <SimulationControls
+                disabled={hasDiagnostics}
+                inSubnet={isInSubnet}
+              />
             </>
           )}
         </div>

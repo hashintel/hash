@@ -1,7 +1,7 @@
 import type { AeroApiScheduledFlight } from "../types.js";
 import type { MappingFunction } from "./mapping-types.js";
 import type { ProvidedEntityEditionProvenance } from "@blockprotocol/type-system";
-import type { DepartsFrom as HashDepartsFrom } from "@local/hash-isomorphic-utils/system-types/flight";
+import type { TakesOffFrom as HashTakesOffFrom } from "@local/hash-isomorphic-utils/system-types/flight";
 
 /**
  * Input type for departure link mapping from AeroAPI data.
@@ -21,17 +21,17 @@ export type AeroApiDepartureInput = Pick<
 >;
 
 /**
- * Maps AeroAPI departure data to a HASH "Departs From" link entity.
+ * Maps AeroAPI departure data to a HASH "Takes Off From" link entity.
  */
-export const mapDepartsFrom: MappingFunction<
+export const mapTakesOffFrom: MappingFunction<
   AeroApiDepartureInput,
-  HashDepartsFrom,
+  HashTakesOffFrom,
   true
 > = (
   input: AeroApiDepartureInput,
   provenance: Pick<ProvidedEntityEditionProvenance, "sources">,
 ) => {
-  const properties: HashDepartsFrom["propertiesWithMetadata"] = {
+  const properties: HashTakesOffFrom["propertiesWithMetadata"] = {
     value: {
       ...(input.gate_origin && {
         "https://hash.ai/@h/types/property-type/gate/": {
@@ -134,7 +134,9 @@ export const mapDepartsFrom: MappingFunction<
   return {
     primaryKey: null, // Links don't have primary keys
     typeIdsAndProperties: {
-      entityTypeIds: ["https://hash.ai/@h/types/entity-type/departs-from/v/1"],
+      entityTypeIds: [
+        "https://hash.ai/@h/types/entity-type/takes-off-from/v/1",
+      ],
       properties,
     },
   };

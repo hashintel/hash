@@ -6,7 +6,7 @@ import { createPortal } from "react-dom";
 import { useFieldArray, useForm } from "react-hook-form";
 
 import {
-  AsteriskRegularIcon,
+  EntityOrTypeIcon,
   IconButton,
   XMarkRegularIcon,
 } from "@hashintel/design-system";
@@ -21,7 +21,6 @@ import { updateEntityMutation } from "../../../graphql/queries/knowledge/entity.
 import { useLatestEntityTypesOptional } from "../../../shared/entity-types-context/hooks";
 import { generateLinkParameters } from "../../../shared/generate-link-parameters";
 import { ArrowUpRightRegularIcon } from "../../../shared/icons/arrow-up-right-regular-icon";
-import { CustomLinkIcon } from "../../../shared/icons/custom-link-icon";
 import { GripDotsVerticalRegularIcon } from "../../../shared/icons/grip-dots-vertical-regular-icon";
 import { PlusRegularIcon } from "../../../shared/icons/plus-regular";
 import { Button, Link, Modal } from "../../../shared/ui";
@@ -328,23 +327,20 @@ export const EditPinnedEntityTypesModal: FunctionComponent<
                                   justifyContent: "center",
                                 }}
                               >
-                                {field.schema.icon ??
-                                  (isSpecialEntityTypeLookup?.[field.schema.$id]
-                                    ?.isLink ? (
-                                    <CustomLinkIcon
-                                      sx={{
-                                        fontSize: 22,
-                                        marginLeft: -0.75,
-                                        marginRight: -0.75,
-                                      }}
-                                    />
-                                  ) : (
-                                    (entityTypeIcons[field.schema.$id] ?? (
-                                      <AsteriskRegularIcon
-                                        sx={{ fontSize: 12 }}
-                                      />
-                                    ))
-                                  ))}
+                                <EntityOrTypeIcon
+                                  entity={null}
+                                  icon={
+                                    field.schema.icon ??
+                                    entityTypeIcons[field.schema.$id]
+                                  }
+                                  isLink={
+                                    !!isSpecialEntityTypeLookup?.[
+                                      field.schema.$id
+                                    ]?.isLink
+                                  }
+                                  fontSize={14}
+                                  fill={({ palette }) => palette.blue[70]}
+                                />
                               </Box>
                               <Typography
                                 sx={{

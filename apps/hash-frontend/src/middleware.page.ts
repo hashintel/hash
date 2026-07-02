@@ -42,7 +42,7 @@ const petrinautEmbedRouteRegExp = /^\/processes\/[^/]+\/embed(?:\/|$)/;
 export const middleware = async (request: NextRequest) => {
   const nonce = generateNonce();
   const cspHeader = petrinautEmbedRouteRegExp.test(request.nextUrl.pathname)
-    ? buildEmbedCspHeader(nonce)
+    ? buildEmbedCspHeader()
     : buildCspHeader(nonce);
 
   // Forward the nonce to server-side rendering via a request header so that

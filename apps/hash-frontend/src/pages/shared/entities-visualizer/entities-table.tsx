@@ -1,6 +1,7 @@
 import { useQuery } from "@apollo/client";
 import { GridCellKind } from "@glideapps/glide-data-grid";
 import { Box, Stack, useTheme } from "@mui/material";
+import * as Sentry from "@sentry/nextjs";
 import { useRouter } from "next/router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
@@ -15,7 +16,6 @@ import { formatNumber } from "@local/hash-isomorphic-utils/format-number";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 
 import { Grid } from "../../../components/grid/grid";
-import { blankCell } from "../../../components/grid/utils";
 import { useGetOwnerForEntity } from "../../../components/hooks/use-get-owner-for-entity";
 import { findDataTypeConversionTargetsQuery } from "../../../graphql/queries/ontology/data-type.queries";
 import { generateCsvFile as buildCsvFile } from "../../../shared/table-header/generate-csv-file";
@@ -27,13 +27,14 @@ import {
 } from "../../../shared/use-actors";
 import { useMemoCompare } from "../../../shared/use-memo-compare";
 import { createRenderChipCell } from "../chip-cell";
+import { getReferencedDataTypeIds } from "../format-value";
+import { createRenderTextIconCell } from "../text-icon-cell";
 import { createRenderUrlCell } from "../url-cell";
 import {
   createRenderEntitiesTableValueCell,
   type EntitiesTableValueCellProps,
 } from "./entities-table/entities-table-value-cell";
 import { TableToolbar } from "./entities-table/table-toolbar";
-import { createRenderTextIconCell } from "./entities-table/text-icon-cell";
 
 import type {
   ConversionTargetsByColumnKey,
@@ -47,13 +48,13 @@ import type {
 } from "../../../graphql/api-types.gen";
 import type { GenerateCsvFileFunction } from "../../../shared/table-header/export-to-csv-button";
 import type { ChipCellProps } from "../chip-cell";
+import type { TextIconCell } from "../text-icon-cell";
 import type { UrlCellProps } from "../url-cell";
-import type { TextIconCell } from "./entities-table/text-icon-cell";
 import type {
   EntitiesTableData,
   EntitiesTableRow,
   SortableEntitiesTableColumnKey,
-} from "./types";
+} from "./entities-table-data";
 import type { EntitiesVisualizerData } from "./use-entities-visualizer-data";
 import type {
   ActorEntityUuid,
@@ -77,23 +78,20 @@ import type {
   SetStateAction,
 } from "react";
 
+export { toolbarHeight } from "./entities-table/table-toolbar";
+
 const firstColumnLeftPadding = 16;
 
 const emptyTableData: EntitiesTableData = {
   columns: [],
+  dataTypeDefinitions: {},
   rows: [],
   entityTypesWithMultipleVersionsPresent: new Set(),
-  visibleRowsFilterData: {
-    noSourceCount: 0,
-    noTargetCount: 0,
-    sources: {},
-    targets: {},
-  },
   visibleDataTypeIdsByPropertyBaseUrl: {},
 };
 
 export const EntitiesTable: FunctionComponent<
-  Pick<EntitiesVisualizerData, "definitions" | "subgraph" | "webIds"> & {
+  Pick<EntitiesVisualizerData, "subgraph"> & {
     activeConversions: {
       [columnBaseUrl: BaseUrl]: {
         dataTypeId: VersionedUrl;
@@ -108,6 +106,7 @@ export const EntitiesTable: FunctionComponent<
     loading: boolean;
     isViewingOnlyPages: boolean;
     maxHeight: string | number;
+    hasMoreRowsAvailable: boolean;
     loadMoreRows?: () => void;
     selectedRows: EntitiesTableRow[];
     setActiveConversions: Dispatch<
@@ -133,12 +132,12 @@ export const EntitiesTable: FunctionComponent<
   csvFileTitle,
   currentlyDisplayedColumnsRef,
   currentlyDisplayedRowsRef,
-  definitions,
   disableTypeClick,
   handleEntityClick,
   loading: entityDataLoading,
   isViewingOnlyPages,
   maxHeight,
+  hasMoreRowsAvailable,
   loadMoreRows,
   selectedRows,
   setActiveConversions,
@@ -150,7 +149,6 @@ export const EntitiesTable: FunctionComponent<
   sort,
   tableData,
   totalResultCount,
-  webIds,
 }) => {
   const router = useRouter();
 
@@ -158,6 +156,7 @@ export const EntitiesTable: FunctionComponent<
 
   const {
     columns,
+    dataTypeDefinitions,
     entityTypesWithMultipleVersionsPresent,
     rows,
     visibleDataTypeIdsByPropertyBaseUrl,
@@ -192,19 +191,20 @@ export const EntitiesTable: FunctionComponent<
     }, [actors]);
 
   const webNameByWebId = useMemo(() => {
-    if (!webIds) {
+    if (!rows.length) {
       return {};
     }
 
     const webNameByOwner: Record<WebId, string> = {};
 
-    for (const webId of typedKeys(webIds)) {
+    const webIds = rows.map((row) => row.webId);
+    for (const webId of webIds) {
       const owner = getOwnerForEntity({ webId });
       webNameByOwner[webId] = owner.shortname;
     }
 
     return webNameByOwner;
-  }, [getOwnerForEntity, webIds]);
+  }, [getOwnerForEntity, rows]);
 
   const visibleDataTypeIds = useMemoCompare(
     () => {
@@ -341,22 +341,24 @@ export const EntitiesTable: FunctionComponent<
         | CustomCell => {
         const columnId = columns[colIndex]?.id;
 
+        const blankCell: TextCell = {
+          kind: GridCellKind.Text,
+          allowOverlay: false,
+          readonly: true,
+          displayData: "",
+          data: "",
+        };
+
         if (columnId) {
           const row = entityRows[rowIndex];
 
-          if (!row || !definitions?.dataTypes) {
+          if (!row) {
             /**
              * This can occur when `createGetCellContent` is called
              * for a row that has just been filtered out, so we handle
              * this by briefly not displaying anything in the cell.
              */
-            return {
-              kind: GridCellKind.Text,
-              allowOverlay: false,
-              readonly: true,
-              displayData: String("Not Found"),
-              data: "Not Found",
-            };
+            return blankCell;
           }
 
           if (isBaseUrl(columnId)) {
@@ -388,6 +390,26 @@ export const EntitiesTable: FunctionComponent<
                 };
               }
 
+              /**
+               * Belt-and-braces against `formatValue` throwing: if any data
+               * type the value depends on is missing from the pool, render the
+               * fallback rather than crashing the whole grid. With the pool now
+               * bundled into `tableData` this should not happen in normal flow,
+               * but it still guards against a genuinely inconsistent response.
+               */
+              const unresolvedDataTypeId = getReferencedDataTypeIds(
+                propertyMetadata,
+              ).find((dataTypeId) => !dataTypeDefinitions[dataTypeId]);
+
+              if (unresolvedDataTypeId) {
+                Sentry.captureException(
+                  new Error(
+                    `Data type not found for ${unresolvedDataTypeId} when rendering value`,
+                  ),
+                );
+                return blankCell;
+              }
+
               return {
                 kind: GridCellKind.Custom,
                 allowOverlay: true,
@@ -398,7 +420,7 @@ export const EntitiesTable: FunctionComponent<
                   isArray,
                   value,
                   propertyMetadata,
-                  dataTypeDefinitions: definitions.dataTypes,
+                  dataTypeDefinitions,
                 } satisfies EntitiesTableValueCellProps,
               };
             }
@@ -637,7 +659,7 @@ export const EntitiesTable: FunctionComponent<
     [
       actorsByAccountId,
       columns,
-      definitions?.dataTypes,
+      dataTypeDefinitions,
       disableTypeClick,
       entityTypesWithMultipleVersionsPresent,
       handleEntityClick,
@@ -790,8 +812,6 @@ export const EntitiesTable: FunctionComponent<
     });
   }, [rows.length]);
 
-  const hasMoreRowsAvailable =
-    !!totalResultCount && totalResultCount > rows.length;
   const loadMoreRowHeight = 60;
 
   return (
@@ -886,7 +906,9 @@ export const EntitiesTable: FunctionComponent<
                     component="span"
                     sx={{ color: ({ palette }) => palette.gray[50], ml: 0.5 }}
                   >
-                    - {formatNumber(totalResultCount - rows.length)} remaining
+                    {totalResultCount != null
+                      ? `- ${formatNumber(totalResultCount - rows.length)} remaining`
+                      : ""}
                   </Box>
                   <ArrowDownRegularIcon
                     sx={{

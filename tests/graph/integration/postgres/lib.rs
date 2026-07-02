@@ -17,6 +17,7 @@ mod multi_type;
 mod partial_updates;
 mod property_metadata;
 mod property_type;
+mod read_only;
 mod sorting;
 
 use std::collections::{HashMap, HashSet};
@@ -34,7 +35,9 @@ use hash_graph_postgres_store::{
     },
 };
 use hash_graph_store::{
-    account::{AccountStore as _, CreateUserActorParams},
+    account::{
+        AccountStore as _, CreateAiActorParams, CreateMachineActorParams, CreateUserActorParams,
+    },
     data_type::{
         ArchiveDataTypeParams, CountDataTypesParams, CreateDataTypeParams, DataTypeStore,
         FindDataTypeConversionTargetsParams, FindDataTypeConversionTargetsResponse,
@@ -43,17 +46,20 @@ use hash_graph_store::{
         UnarchiveDataTypeParams, UpdateDataTypeEmbeddingParams, UpdateDataTypesParams,
     },
     entity::{
-        CountEntitiesParams, CreateEntityParams, DeleteEntitiesParams, DeletionSummary,
-        EntityStore, EntityValidationReport, HasPermissionForEntitiesParams, PatchEntityParams,
+        CreateEntityParams, DeleteEntitiesParams, DeletionSummary, EntityStore,
+        EntityValidationReport, HasPermissionForEntitiesParams, PatchEntityParams,
         QueryEntitiesParams, QueryEntitiesResponse, QueryEntitySubgraphParams,
-        QueryEntitySubgraphResponse, UpdateEntityEmbeddingsParams, ValidateEntityParams,
+        QueryEntitySubgraphResponse, SearchEntitiesParams, SearchEntitiesResponse,
+        SummarizeEntitiesParams, SummarizeEntitiesResponse, UpdateEntityEmbeddingsParams,
+        ValidateEntityParams,
     },
     entity_type::{
         ArchiveEntityTypeParams, CountEntityTypesParams, CreateEntityTypeParams, EntityTypeStore,
         GetClosedMultiEntityTypesResponse, HasPermissionForEntityTypesParams,
         IncludeResolvedEntityTypeOption, QueryEntityTypeSubgraphParams,
         QueryEntityTypeSubgraphResponse, QueryEntityTypesParams, QueryEntityTypesResponse,
-        UnarchiveEntityTypeParams, UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
+        SearchEntityTypesParams, SearchEntityTypesResponse, UnarchiveEntityTypeParams,
+        UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
     },
     error::{CheckPermissionError, DeletionError, InsertionError, QueryError, UpdateError},
     pool::StorePool,
@@ -78,7 +84,11 @@ use type_system::{
         property_type::{PropertyType, PropertyTypeMetadata},
         provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
     },
-    principal::actor::{ActorEntityUuid, ActorType},
+    principal::{
+        actor::{ActorEntityUuid, ActorType, AiId, MachineId},
+        actor_group::WebId,
+        role::RoleName,
+    },
     provenance::{OriginProvenance, OriginType},
 };
 
@@ -90,6 +100,46 @@ pub struct DatabaseTestWrapper {
 pub struct DatabaseApi<'pool> {
     store: PostgresStore<Transaction<'pool>>,
     account_id: ActorEntityUuid,
+}
+
+impl DatabaseApi<'_> {
+    pub async fn create_machine(&mut self, identifier: &str) -> MachineId {
+        self.store
+            .create_machine_actor(
+                self.account_id,
+                CreateMachineActorParams {
+                    identifier: identifier.to_owned(),
+                },
+            )
+            .await
+            .expect("could not create machine actor")
+    }
+
+    pub async fn create_ai(&mut self, identifier: &str) -> AiId {
+        self.store
+            .create_ai_actor(
+                self.account_id,
+                CreateAiActorParams {
+                    identifier: identifier.to_owned(),
+                },
+            )
+            .await
+            .expect("could not create AI actor")
+    }
+
+    /// Assigns `actor` as an administrator of `web_id`, granting it the web's `UpdateEntity`
+    /// rights.
+    pub async fn assign_web_administrator(&mut self, actor: ActorEntityUuid, web_id: WebId) {
+        self.store
+            .assign_role(
+                self.account_id,
+                actor,
+                web_id.into(),
+                RoleName::Administrator,
+            )
+            .await
+            .expect("could not assign web administrator role");
+    }
 }
 
 pub fn init_logging() {
@@ -590,6 +640,14 @@ impl EntityTypeStore for DatabaseApi<'_> {
         self.store.count_entity_types(actor_id, params).await
     }
 
+    async fn search_entity_types(
+        &self,
+        actor_id: ActorEntityUuid,
+        params: SearchEntityTypesParams,
+    ) -> Result<SearchEntityTypesResponse, Report<QueryError>> {
+        self.store.search_entity_types(actor_id, params).await
+    }
+
     async fn query_entity_types(
         &self,
         actor_id: ActorEntityUuid,
@@ -763,82 +821,33 @@ impl EntityStore for DatabaseApi<'_> {
     async fn query_entities(
         &self,
         actor_id: ActorEntityUuid,
-        mut params: QueryEntitiesParams<'_>,
+        params: QueryEntitiesParams<'_>,
     ) -> Result<QueryEntitiesResponse<'static>, Report<QueryError>> {
-        let include_count = params.include_count;
-        let is_first_page = params.sorting.cursor.is_none();
-        let limit = params.limit;
-        params.include_count = true;
+        self.store.query_entities(actor_id, params).await
+    }
 
-        let count = self
-            .count_entities(
-                actor_id,
-                CountEntitiesParams {
-                    filter: params.filter.clone(),
-                    temporal_axes: params.temporal_axes,
-                    include_drafts: params.include_drafts,
-                },
-            )
-            .await?;
-
-        let mut response = self.store.query_entities(actor_id, params).await?;
-
-        // We can ensure that `count_entities` and `get_entity` return the same count;
-        assert_eq!(response.count, Some(count));
-        // if this is the first page and the limit is large enough, all entities should be returned
-        if is_first_page && count <= limit {
-            assert_eq!(count, response.entities.len());
-        }
-
-        if !include_count {
-            response.count = None;
-        }
-        Ok(response)
+    async fn search_entities(
+        &self,
+        actor_id: ActorEntityUuid,
+        params: SearchEntitiesParams,
+    ) -> Result<SearchEntitiesResponse, Report<QueryError>> {
+        self.store.search_entities(actor_id, params).await
     }
 
     async fn query_entity_subgraph(
         &self,
         actor_id: ActorEntityUuid,
-        mut params: QueryEntitySubgraphParams<'_>,
+        params: QueryEntitySubgraphParams<'_>,
     ) -> Result<QueryEntitySubgraphResponse<'static>, Report<QueryError>> {
-        let request = params.request_mut();
-
-        let include_count = request.include_count;
-        let is_first_page = request.sorting.cursor.is_none();
-        let limit = request.limit;
-        request.include_count = true;
-
-        let count = self
-            .count_entities(
-                actor_id,
-                CountEntitiesParams {
-                    filter: request.filter.clone(),
-                    temporal_axes: request.temporal_axes,
-                    include_drafts: request.include_drafts,
-                },
-            )
-            .await?;
-        let mut response = self.store.query_entity_subgraph(actor_id, params).await?;
-
-        // We can ensure that `count_entities` and `get_entity` return the same count;
-        assert_eq!(response.count, Some(count));
-        // if this is the first page and the limit is large enough, all entities should be returned
-        if is_first_page && count <= limit {
-            assert_eq!(count, response.subgraph.roots.len());
-        }
-
-        if !include_count {
-            response.count = None;
-        }
-        Ok(response)
+        self.store.query_entity_subgraph(actor_id, params).await
     }
 
-    async fn count_entities(
+    async fn summarize_entities(
         &self,
         actor_id: ActorEntityUuid,
-        params: CountEntitiesParams<'_>,
-    ) -> Result<usize, Report<QueryError>> {
-        self.store.count_entities(actor_id, params).await
+        params: SummarizeEntitiesParams<'_>,
+    ) -> Result<SummarizeEntitiesResponse, Report<QueryError>> {
+        self.store.summarize_entities(actor_id, params).await
     }
 
     async fn get_entity_by_id(

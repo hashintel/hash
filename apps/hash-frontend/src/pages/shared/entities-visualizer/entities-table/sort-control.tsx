@@ -18,7 +18,7 @@ import type { GridSort } from "../../../../components/grid/grid";
 import type {
   EntitiesTableColumnKey,
   SortableEntitiesTableColumnKey,
-} from "../types";
+} from "../entities-table-data";
 import type { BaseUrl } from "@blockprotocol/type-system";
 import type { SizedGridColumn } from "@glideapps/glide-data-grid";
 import type { FunctionComponent } from "react";

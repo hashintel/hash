@@ -34,6 +34,8 @@ import type {
   PersonPropertiesWithMetadata,
   TextDataType,
   TextDataTypeWithMetadata,
+  ValueDataType,
+  ValueDataTypeWithMetadata,
 } from "./shared.js";
 
 export type {
@@ -68,4 +70,6 @@ export type {
   PersonPropertiesWithMetadata,
   TextDataType,
   TextDataTypeWithMetadata,
+  ValueDataType,
+  ValueDataTypeWithMetadata,
 };

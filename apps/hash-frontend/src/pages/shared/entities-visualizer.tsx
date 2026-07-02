@@ -16,17 +16,19 @@ import { tableContentSx } from "../../shared/table-content";
 import { BulkActionsDropdown } from "../../shared/table-header/bulk-actions-dropdown";
 import { useMemoCompare } from "../../shared/use-memo-compare";
 import { useAuthenticatedUser } from "./auth-info-context";
-import { createDefaultFilterState } from "./entities-visualizer/data/types";
-import { useAvailableTypes } from "./entities-visualizer/data/use-available-types";
-import { EntitiesTable } from "./entities-visualizer/entities-table";
-import { GridView } from "./entities-visualizer/entities-table/grid-view";
-import { toolbarHeight } from "./entities-visualizer/entities-table/table-toolbar";
-import { FilterRibbon } from "./entities-visualizer/header/filter-ribbon";
-import { QueryCount } from "./entities-visualizer/header/query-count";
 import {
+  EntitiesTable,
+  toolbarHeight,
+} from "./entities-visualizer/entities-table";
+import { GridView } from "./entities-visualizer/grid-view";
+import {
+  FilterRibbon,
+  QueryCount,
   VisualizerHeader,
   visualizerHeaderHeight,
-} from "./entities-visualizer/header/visualizer-header";
+} from "./entities-visualizer/header";
+import { createDefaultFilterState } from "./entities-visualizer/shared/filter-state";
+import { useAvailableTypes } from "./entities-visualizer/shared/use-available-types";
 import { useEntitiesVisualizerData } from "./entities-visualizer/use-entities-visualizer-data";
 import { EntityGraphVisualizer } from "./entity-graph-visualizer";
 import { useSlideStack } from "./slide-stack";
@@ -35,11 +37,11 @@ import { TOP_CONTEXT_BAR_HEIGHT } from "./top-context-bar";
 import { visualizerViewIcons } from "./visualizer-views";
 
 import type { ColumnSort } from "../../components/grid/utils/sorting";
-import type { EntitiesFilterState } from "./entities-visualizer/data/types";
 import type {
   EntitiesTableRow,
   SortableEntitiesTableColumnKey,
-} from "./entities-visualizer/types";
+} from "./entities-visualizer/entities-table-data";
+import type { EntitiesFilterState } from "./entities-visualizer/shared/filter-state";
 import type { EntityEditorProps } from "./entity/entity-editor";
 import type { VisualizerView } from "./visualizer-views";
 import type {
@@ -147,23 +149,37 @@ export const EntitiesVisualizer: FunctionComponent<{
 
   const { authenticatedUser } = useAuthenticatedUser();
 
-  const internalWebIds = useMemoCompare(
+  const { isSpecialEntityTypeLookup } = useEntityTypesContextRequired();
+
+  const internalWebs = useMemoCompare(
     () => {
       return [
-        authenticatedUser.accountId as WebId,
-        ...authenticatedUser.memberOf.map(({ org }) => org.webId),
+        {
+          webId: authenticatedUser.accountId as WebId,
+          name: `@${authenticatedUser.shortname}`,
+        },
+        ...authenticatedUser.memberOf.map(({ org }) => ({
+          webId: org.webId,
+          name: `@${org.shortname}`,
+        })),
       ];
     },
     [authenticatedUser],
     (oldValue, newValue) => {
-      const oldSet = new Set(oldValue);
-      const newSet = new Set(newValue);
-      return oldSet.size === newSet.size && oldSet.isSubsetOf(newSet);
+      return (
+        oldValue.length === newValue.length &&
+        oldValue.every((oldWeb) =>
+          newValue.some(
+            (newWeb) =>
+              oldWeb.webId === newWeb.webId && oldWeb.name === newWeb.name,
+          ),
+        )
+      );
     },
   );
 
   const [filterState, _setFilterState] = useState<EntitiesFilterState>(() =>
-    createDefaultFilterState(internalWebIds),
+    createDefaultFilterState(internalWebs.map(({ webId }) => webId)),
   );
 
   const [cursor, setCursor] = useState<EntityQueryCursor>();
@@ -249,8 +265,8 @@ export const EntitiesVisualizer: FunctionComponent<{
     entityTypeIds: entityTypeId ? [entityTypeId] : undefined,
     filterState,
     hideColumns,
-    internalWebIds,
-    limit: view === "Graph" ? undefined : 500,
+    internalWebs,
+    limit: 500,
     sort: graphSort,
     view,
   });
@@ -259,13 +275,11 @@ export const EntitiesVisualizer: FunctionComponent<{
   const [visualizerData, setVisualizerData] = useState(entitiesData);
 
   const {
-    count: totalCountFromEntityRequest,
     cursor: nextCursor,
     definitions,
     entities,
     closedMultiEntityTypes: closedMultiEntityTypesRootMap,
     subgraph,
-    webIds,
   } = visualizerData;
 
   const closedMultiEntityTypes = useMemo(() => {
@@ -332,9 +346,88 @@ export const EntitiesVisualizer: FunctionComponent<{
     }
   }, [entitiesData]);
 
-  const totalResultCount = totalCountFromEntityRequest ?? null;
+  const isTypePinned = !!entityTypeBaseUrl || !!entityTypeId;
 
-  const { isSpecialEntityTypeLookup } = useEntityTypesContextRequired();
+  const {
+    availableEntityTypes,
+    propertyFilterData,
+    loading: availableTypesLoading,
+  } = useAvailableTypes({
+    filterState,
+    internalWebs,
+    entityTypeBaseUrl,
+    entityTypeIds: entityTypeId ? [entityTypeId] : undefined,
+  });
+
+  useEffect(() => {
+    if (availableTypesLoading) {
+      return;
+    }
+
+    let nextSelectedTypeIds = filterState.type.selectedTypeIds;
+
+    if (!isTypePinned && filterState.type.selectedTypeIds) {
+      const availableEntityTypeIds = new Set(
+        availableEntityTypes.map(
+          ({ entityTypeId: availableEntityTypeId }) => availableEntityTypeId,
+        ),
+      );
+
+      const retainedSelectedTypeIds = [
+        ...filterState.type.selectedTypeIds,
+      ].filter((selectedTypeId) => availableEntityTypeIds.has(selectedTypeId));
+
+      if (
+        retainedSelectedTypeIds.length !== filterState.type.selectedTypeIds.size
+      ) {
+        nextSelectedTypeIds =
+          retainedSelectedTypeIds.length === 0
+            ? null
+            : new Set(retainedSelectedTypeIds);
+      }
+    }
+
+    let nextPropertyFilters = filterState.propertyFilters;
+    if (filterState.propertyFilters.length) {
+      const filterablePropertyKindsByBaseUrl = new Map(
+        propertyFilterData
+          .filter((property) => property.filterable)
+          .map((property) => [property.baseUrl, property.kind]),
+      );
+
+      nextPropertyFilters = filterState.propertyFilters.filter(
+        ({ baseUrl, kind }) =>
+          filterablePropertyKindsByBaseUrl.get(baseUrl) === kind,
+      );
+    }
+
+    const typeFilterChanged =
+      nextSelectedTypeIds !== filterState.type.selectedTypeIds;
+    const propertyFiltersChanged =
+      nextPropertyFilters.length !== filterState.propertyFilters.length;
+
+    if (!typeFilterChanged && !propertyFiltersChanged) {
+      return;
+    }
+
+    setFilterState((prev) => ({
+      ...prev,
+      type: typeFilterChanged
+        ? { selectedTypeIds: nextSelectedTypeIds }
+        : prev.type,
+      propertyFilters: propertyFiltersChanged
+        ? nextPropertyFilters
+        : prev.propertyFilters,
+    }));
+  }, [
+    availableEntityTypes,
+    availableTypesLoading,
+    filterState.propertyFilters,
+    filterState.type.selectedTypeIds,
+    isTypePinned,
+    propertyFilterData,
+    setFilterState,
+  ]);
 
   const isDisplayingFilesOnly = useMemo(
     () =>
@@ -421,13 +514,15 @@ export const EntitiesVisualizer: FunctionComponent<{
     return () => observer.disconnect();
   }, []);
 
-  const tableHeight = `min(600px, calc(100vh - ${
+  const availableHeight = `calc(100vh - ${
     contentTop != null
       ? `${contentTop}px - ${theme.spacing(5)}`
       : `(${
           HEADER_HEIGHT + TOP_CONTEXT_BAR_HEIGHT + 230 + visualizerHeaderHeight
-        }px + ${theme.spacing(5)} + ${theme.spacing(5)})`
-  }))`;
+        }px + ${theme.spacing(5)} + ${theme.spacing(5)}`
+  })`;
+
+  const tableHeight = `min(${availableHeight}, 1000px)`;
 
   const isPrimaryEntity = useCallback(
     (entity: { metadata: Pick<HashEntity["metadata"], "entityTypeIds"> }) =>
@@ -451,16 +546,6 @@ export const EntitiesVisualizer: FunctionComponent<{
     setCursor(nextCursor ?? undefined);
   }, [nextCursor]);
 
-  const isTypePinned = !!entityTypeBaseUrl || !!entityTypeId;
-
-  const { types: availableTypes, loading: availableTypesLoading } =
-    useAvailableTypes({
-      filterState,
-      internalWebIds,
-      entityTypeBaseUrl,
-      entityTypeIds: entityTypeId ? [entityTypeId] : undefined,
-    });
-
   const selectedEntities = useMemo(() => {
     if (view !== "Table" || selectedTableRows.length === 0 || !entities) {
       return [];
@@ -482,6 +567,8 @@ export const EntitiesVisualizer: FunctionComponent<{
 
   const showLoading = !subgraph || !closedMultiEntityTypesRootMap;
 
+  const { totalResultCount } = visualizerData;
+
   return (
     <Box>
       <VisualizerHeader
@@ -493,10 +580,11 @@ export const EntitiesVisualizer: FunctionComponent<{
             />
           ) : (
             <FilterRibbon
-              availableTypes={availableTypes}
+              availableEntityTypes={availableEntityTypes}
               availableTypesLoading={availableTypesLoading}
+              propertyFilterMetadata={propertyFilterData}
               filterState={filterState}
-              internalWebIds={internalWebIds}
+              internalWebs={internalWebs}
               isTypePinned={isTypePinned}
               setFilterState={(updater) => setFilterState(updater)}
             />
@@ -541,7 +629,7 @@ export const EntitiesVisualizer: FunctionComponent<{
           </Box>
         </Stack>
       ) : view === "Graph" ? (
-        <Box height={tableHeight} sx={tableContentSx}>
+        <Box height={availableHeight} sx={tableContentSx}>
           <EntityGraphVisualizer
             closedMultiEntityTypesRootMap={closedMultiEntityTypesRootMap}
             entities={entities}
@@ -560,8 +648,8 @@ export const EntitiesVisualizer: FunctionComponent<{
           csvFileTitle="Entities"
           currentlyDisplayedColumnsRef={currentlyDisplayedColumnsRef}
           currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
-          definitions={definitions}
           handleEntityClick={handleEntityClick}
+          hasMoreRowsAvailable={nextCursor != null}
           loading={dataLoading}
           isViewingOnlyPages={isViewingOnlyPages}
           maxHeight={`calc(${tableHeight} - ${toolbarHeight}px)`}
@@ -577,7 +665,6 @@ export const EntitiesVisualizer: FunctionComponent<{
           subgraph={subgraph}
           tableData={visualizerData.tableData}
           totalResultCount={totalResultCount}
-          webIds={webIds}
         />
       )}
     </Box>

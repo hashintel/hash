@@ -42,7 +42,7 @@ mod tests;
 /// [`Unknown`]: hashql_core::type::kind::TypeKind::Unknown
 pub struct Decoder<'env, 'heap, A> {
     env: &'env Environment<'heap>,
-    interner: &'env hashql_mir::intern::Interner<'heap>,
+    interner: &'env crate::intern::Interner<'heap>,
 
     alloc: A,
 }
@@ -50,7 +50,7 @@ pub struct Decoder<'env, 'heap, A> {
 impl<'env, 'heap, A: Allocator> Decoder<'env, 'heap, A> {
     pub const fn new(
         env: &'env Environment<'heap>,
-        interner: &'env hashql_mir::intern::Interner<'heap>,
+        interner: &'env crate::intern::Interner<'heap>,
         alloc: A,
     ) -> Self {
         Self {

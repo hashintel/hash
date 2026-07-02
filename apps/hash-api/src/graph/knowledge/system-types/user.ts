@@ -20,10 +20,8 @@ import {
   type FeatureFlag,
   featureFlags,
 } from "@local/hash-isomorphic-utils/feature-flags";
-import {
-  currentTimeInstantTemporalAxes,
-  generateVersionedUrlMatchingFilter,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
+import { normalizeEmail } from "@local/hash-isomorphic-utils/normalize";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
@@ -66,10 +64,7 @@ import type { OrgMembership } from "./org-membership";
 import type { EntityId, EntityUuid, UserId } from "@blockprotocol/type-system";
 import type { Filter } from "@local/hash-graph-client";
 import type { PendingOrgInvitation } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
-import type {
-  EnabledFeatureFlagsPropertyValue,
-  User as UserEntity,
-} from "@local/hash-isomorphic-utils/system-types/user";
+import type { User as UserEntity } from "@local/hash-isomorphic-utils/system-types/user";
 
 export type User = {
   accountId: UserId;
@@ -81,16 +76,6 @@ export type User = {
   kratosIdentityId: string;
   shortname?: string;
 };
-
-function assertFeatureFlags(
-  uncheckedFeatureFlags: EnabledFeatureFlagsPropertyValue,
-): asserts uncheckedFeatureFlags is FeatureFlag[] {
-  for (const maybeFlag of uncheckedFeatureFlags) {
-    if (!featureFlags.includes(maybeFlag as FeatureFlag)) {
-      throw new Error(`Invalid feature flag: ${maybeFlag}`);
-    }
-  }
-}
 
 function isUserEntity(entity: HashEntity): entity is HashEntity<UserEntity> {
   return entity.metadata.entityTypeIds.some(
@@ -153,9 +138,11 @@ export const checkEmailVerificationAndUsageStatus = async (
   | { status: "verified"; kratosIdentityId: string }
   | { status: "not-verified"; kratosIdentityId: string }
 > => {
+  const normalizedEmail = normalizeEmail(email);
+
   try {
     const { data: identities } = await kratosIdentityApi.listIdentities({
-      credentialsIdentifier: email,
+      credentialsIdentifier: normalizedEmail,
     });
 
     if (identities.length === 0) {
@@ -163,7 +150,7 @@ export const checkEmailVerificationAndUsageStatus = async (
     }
 
     const verifiedEmails = getVerifiedEmailsFromKratosIdentity(identities[0]!);
-    if (verifiedEmails.includes(email)) {
+    if (verifiedEmails.includes(normalizedEmail)) {
       return { status: "verified", kratosIdentityId: identities[0]!.id };
     } else {
       return { status: "not-verified", kratosIdentityId: identities[0]!.id };
@@ -182,17 +169,24 @@ export const getUserFromEntity: PureGraphFunction<
 
   const {
     displayName,
-    email: emails,
+    email,
     enabledFeatureFlags: maybeFeatureFlags,
     kratosIdentityId,
     shortname,
   } = simplifyProperties(entity.properties);
 
+  // `email` is typed as a required property, but property-level permission
+  // masking can drop it at runtime for non-owners (see `getUser`'s Kratos
+  // back-fill). Model that nullability, then canonicalise so every `User` built
+  // from an entity compares case-insensitively regardless of signup casing.
+  const emails = (email as typeof email | undefined)?.map(normalizeEmail) ?? [];
+
   const isAccountSignupComplete = !!shortname && !!displayName;
 
-  const enabledFeatureFlags = maybeFeatureFlags ?? [];
-
-  assertFeatureFlags(enabledFeatureFlags);
+  const enabledFeatureFlags =
+    maybeFeatureFlags?.filter((flag): flag is FeatureFlag =>
+      featureFlags.includes(flag as FeatureFlag),
+    ) ?? [];
 
   return {
     accountId: extractWebIdFromEntityId(
@@ -285,12 +279,14 @@ export const getUser: ImpureGraphFunction<
     } = await queryEntities<UserEntity>(context, authentication, {
       filter: {
         all: [
-          generateVersionedUrlMatchingFilter(
-            systemEntityTypes.user.entityTypeId,
-            {
-              ignoreParents: true,
-            },
-          ),
+          {
+            equal: [
+              { path: ["type", "baseUrl"] },
+              {
+                parameter: systemEntityTypes.user.entityTypeBaseUrl,
+              },
+            ],
+          },
           queryFilter,
         ],
       },
@@ -654,9 +650,14 @@ export const getUserPendingInvitations: ImpureGraphFunction<
       temporalAxes: currentTimeInstantTemporalAxes,
       filter: {
         all: [
-          generateVersionedUrlMatchingFilter(
-            systemEntityTypes.invitation.entityTypeId,
-          ),
+          {
+            equal: [
+              { path: ["type", "baseUrl"] },
+              {
+                parameter: systemEntityTypes.invitation.entityTypeBaseUrl,
+              },
+            ],
+          },
           {
             equal: [
               {

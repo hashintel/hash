@@ -62,7 +62,7 @@ use super::{
     traverse::eval_entity_path,
     types::{IntegerType, integer_type},
 };
-use crate::{context::EvalContext, error::EvalDiagnosticIssues};
+use crate::{context::CodeGenerationContext, error::EvalDiagnosticIssues};
 
 /// Internal representation of a continuation result before casting to the SQL composite type.
 ///
@@ -233,7 +233,7 @@ fn finish_switch_int<A: Allocator>(
 /// internal buffer retrievable via [`Self::into_diagnostics`].
 pub(crate) struct GraphReadFilterCompiler<'ctx, 'heap, A: Allocator = Global, S: Allocator = Global>
 {
-    context: &'ctx EvalContext<'ctx, 'heap, A>,
+    context: &'ctx CodeGenerationContext<'ctx, 'heap, A>,
 
     body: &'ctx Body<'heap>,
     env: Local,
@@ -247,7 +247,7 @@ pub(crate) struct GraphReadFilterCompiler<'ctx, 'heap, A: Allocator = Global, S:
 
 impl<'ctx, 'heap, A: Allocator, S: Allocator> GraphReadFilterCompiler<'ctx, 'heap, A, S> {
     pub(crate) fn new(
-        context: &'ctx EvalContext<'ctx, 'heap, A>,
+        context: &'ctx CodeGenerationContext<'ctx, 'heap, A>,
         body: &'ctx Body<'heap>,
         env: Local,
         scratch: S,

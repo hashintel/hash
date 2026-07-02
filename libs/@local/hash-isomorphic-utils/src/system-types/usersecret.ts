@@ -16,6 +16,8 @@ import type {
   UserSecretOutgoingLinksByLinkEntityTypeId,
   UserSecretProperties,
   UserSecretPropertiesWithMetadata,
+  ValueDataType,
+  ValueDataTypeWithMetadata,
   VaultPathPropertyValue,
   VaultPathPropertyValueWithMetadata,
 } from "./shared.js";
@@ -34,6 +36,8 @@ export type {
   UserSecretOutgoingLinksByLinkEntityTypeId,
   UserSecretProperties,
   UserSecretPropertiesWithMetadata,
+  ValueDataType,
+  ValueDataTypeWithMetadata,
   VaultPathPropertyValue,
   VaultPathPropertyValueWithMetadata,
 };

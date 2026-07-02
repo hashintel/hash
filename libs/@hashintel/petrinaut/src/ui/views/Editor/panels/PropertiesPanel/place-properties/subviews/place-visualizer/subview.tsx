@@ -1,6 +1,6 @@
 import { use, useState } from "react";
 
-import { Button, Icon, Menu, Tooltip } from "@hashintel/ds-components";
+import { Button, Icon, Menu, Toggle, Tooltip } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import {
   DEFAULT_VISUALIZER_CODE,
@@ -10,7 +10,6 @@ import {
 import { ExecutionFrameSourceContext } from "../../../../../../../../react/execution-frame/context";
 import { EditorContext } from "../../../../../../../../react/state/editor-context";
 import { SegmentGroup } from "../../../../../../../components/segment-group";
-import { Switch } from "../../../../../../../components/switch";
 import { UI_MESSAGES } from "../../../../../../../constants/ui-messages";
 import { CodeEditor } from "../../../../../../../monaco/code-editor";
 import { PlaceStateVisualization } from "../../../../../../shared/place-state-visualization";
@@ -149,33 +148,39 @@ const VisualizerHeaderAction: React.FC = () => {
   return (
     <>
       {globalMode === "edit" && (
-        <Switch
-          checked={hasVisualizer}
-          disabled={isReadOnly}
-          tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
-          onCheckedChange={(checked) => {
-            if (checked) {
-              updatePlace({
-                placeId: place.id,
-                update: {
-                  visualizerCode:
-                    savedVisualizerCode ?? DEFAULT_VISUALIZER_CODE,
-                },
-              });
-            } else {
-              if (place.visualizerCode) {
-                setSavedVisualizerCodeState({
+        <Tooltip
+          content={UI_MESSAGES.READ_ONLY_MODE}
+          disableTooltip={!isReadOnly}
+        >
+          <Toggle
+            size="sm"
+            tone="success"
+            value={hasVisualizer}
+            disabled={isReadOnly}
+            onChange={(checked) => {
+              if (checked) {
+                updatePlace({
                   placeId: place.id,
-                  code: place.visualizerCode,
+                  update: {
+                    visualizerCode:
+                      savedVisualizerCode ?? DEFAULT_VISUALIZER_CODE,
+                  },
+                });
+              } else {
+                if (place.visualizerCode) {
+                  setSavedVisualizerCodeState({
+                    placeId: place.id,
+                    code: place.visualizerCode,
+                  });
+                }
+                updatePlace({
+                  placeId: place.id,
+                  update: { visualizerCode: undefined },
                 });
               }
-              updatePlace({
-                placeId: place.id,
-                update: { visualizerCode: undefined },
-              });
-            }
-          }}
-        />
+            }}
+          />
+        </Tooltip>
       )}
       {hasVisualizer && globalMode === "edit" && (
         <Menu
