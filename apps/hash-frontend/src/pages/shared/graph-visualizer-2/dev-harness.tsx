@@ -208,11 +208,11 @@ export const DevHarness = () => {
 
   // render-bench hook: the visualizer surfaces its Scene here so the bench button can
   // capture deck stats + layer-push timings under a scripted zoom sweep. The report JSON
-  // lands in the console; the summary line shows fps | attrs ms/s | rebuild p95.
-  // Key fields: rebuild.p95Ms (main-thread layer rebuild), deck.updateAttributesTime
-  // (Deck's deferred attribute regen, the primary jank signal), deck.fps/cpuTimePerFrame.
-  // Compare runs only at matching zoom envelopes; settled vs under-load sweeps measure
-  // different things.
+  // lands in the console; the summary line shows fps | frame p95/hitches | attrs ms/s |
+  // rebuild p95. Key fields: frames.p95Ms/hitchCount (rAF cadence -- felt smoothness),
+  // rebuild.p95Ms (main-thread layer rebuild), deck.updateAttributesTime (Deck's
+  // deferred attribute regen), deck.fps/cpuTimePerFrame. Compare runs only at matching
+  // zoom envelopes; settled vs under-load sweeps measure different things.
   const sceneRef = useRef<Scene | null>(null);
   const handleSceneReady = useCallback((scene: Scene | null) => {
     sceneRef.current = scene;
@@ -254,7 +254,9 @@ export const DevHarness = () => {
       // eslint-disable-next-line no-console -- dev harness affordance (console-copyable)
       console.log("render-bench report:", JSON.stringify(report, null, 2));
       setRenderBenchStatus(
-        `fps ${report.deck.fps.toFixed(0)} | attrs ${report.deck.updateAttributesTime.toFixed(1)}ms/s | ` +
+        `fps ${report.deck.fps.toFixed(0)} | frame p95 ${report.frames.p95Ms.toFixed(1)}ms, ` +
+          `${report.frames.hitchCount} hitch${report.frames.hitchCount === 1 ? "" : "es"} (max ${report.frames.maxMs.toFixed(0)}ms) | ` +
+          `attrs ${report.deck.updateAttributesTime.toFixed(1)}ms/s | ` +
           `rebuild p95 ${report.rebuild.p95Ms.toFixed(2)}ms (${report.rebuild.count}x) | ` +
           `zoom ${report.camera.initialZoom.toFixed(1)} [${report.camera.minZoom.toFixed(1)}..${report.camera.maxZoom.toFixed(1)}]`,
       );

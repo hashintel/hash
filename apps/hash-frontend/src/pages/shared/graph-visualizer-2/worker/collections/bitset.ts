@@ -76,6 +76,12 @@ export class BitSet<T extends number> {
     }
   }
 
+  /** Remove every member; keeps the allocated word capacity for reuse. */
+  clear(): void {
+    this.#words.fill(0);
+    this.#cardinality = 0;
+  }
+
   /** Returns a new BitSet that is the union of this and other. */
   or(other: BitSet<T>): BitSet<T> {
     const len = Math.max(this.#words.length, other.#words.length);

@@ -7,7 +7,7 @@
  * layers read the cached arrays (keyed by a version) every layer build.
  *
  * Why the flat prefix is reusable: flat records are ordered by ascending
- * entity index in every code path — `FlatTierController.#rebuildLayout` seeds
+ * entity index in every code path. `FlatTierController.#rebuildLayout` seeds
  * from the sorted `snapshotNodeEntityIdxs()` column, and `#absorbNodes`
  * appends newcomers (interner indices are monotonic, so they sort after every
  * existing record). Stores are add-only, so record `i` maps to the same
@@ -21,11 +21,11 @@
  * bridge recreates the resolver on every appended page; treating that as an
  * invalidation would re-trigger the full O(dots) rescan per batch this class
  * exists to avoid. The trade-off: an icon EDITED mid-session refreshes on the
- * next full rescan — tier change or remount — instead of the next frame.)
+ * next full rescan (tier change or remount), not the next frame.)
  *
  * Hierarchical leaves have no append-only guarantee (group re-targeting can
  * change a leaf's membership), so a leaf's cached array is reused only while
- * the leaf's `nodeIds` identity is unchanged — every leaf layout (re)build
+ * the leaf's `nodeIds` identity is unchanged. Every leaf layout (re)build
  * adopts a fresh `nodeIds` via LAYOUT_CREATED, while a growth republish
  * keeps it.
  */
@@ -85,10 +85,12 @@ export class EntityIcons {
   rebuild(): void {
     const resolveIcon = this.#dependencies.callbacks().resolveEntityIcon;
     const structure = this.#dependencies.handle.getStructure();
+
     if (resolveIcon === undefined || structure === undefined) {
       if (this.#flatNames.length > 0 || this.#leafNames.size > 0) {
         this.#version += 1;
       }
+
       this.#flatNames = [];
       this.#flatScannedCount = 0;
       this.#flatLayoutId = undefined;
@@ -98,28 +100,35 @@ export class EntityIcons {
     }
 
     const keys = new Set<string>();
-    // Resolve records [from, to) of a layout SAB into `names` (index-aligned with the dots).
+
+    // Resolve records [from, to) of a layout SAB to their icon keys (index-aligned with the dots).
     const scanRange = (
       layoutId: ClusterId,
-      names: (string | null)[],
       from: number,
       to: number,
-    ): void => {
+    ): (string | null)[] => {
+      const scanned: (string | null)[] = [];
+
       for (let index = from; index < to; index++) {
-        names[index] = null;
+        let name: string | null = null;
         const entityId = this.#dependencies.handle.resolveEntityId(
           layoutId,
           index,
         );
-        if (entityId === undefined) {
-          continue;
+
+        if (entityId !== undefined) {
+          const key = resolveIcon(entityId);
+
+          if (key !== null && key.length > 0) {
+            name = key;
+            keys.add(key);
+          }
         }
-        const key = resolveIcon(entityId);
-        if (key !== null && key.length > 0) {
-          names[index] = key;
-          keys.add(key);
-        }
+
+        scanned.push(name);
       }
+
+      return scanned;
     };
 
     let changed = false;
@@ -130,10 +139,12 @@ export class EntityIcons {
       flatGraph !== undefined &&
       this.#dependencies.handle.getClusters().get(flatGraph.layoutId) !==
         undefined;
+
     if (!flatUsable) {
       if (this.#flatNames.length > 0) {
         changed = true;
       }
+
       this.#flatNames = [];
       this.#flatScannedCount = 0;
       this.#flatLayoutId = undefined;
@@ -141,21 +152,26 @@ export class EntityIcons {
       const prefixReusable =
         this.#flatLayoutId === flatGraph.layoutId &&
         flatGraph.count >= this.#flatScannedCount;
+
       if (!prefixReusable) {
         this.#flatNames = [];
         this.#flatScannedCount = 0;
       }
+
       if (flatGraph.count !== this.#flatScannedCount) {
         changed = true;
-        this.#flatNames.length = flatGraph.count;
-        scanRange(
+
+        for (const name of scanRange(
           flatGraph.layoutId,
-          this.#flatNames,
           this.#flatScannedCount,
           flatGraph.count,
-        );
+        )) {
+          this.#flatNames.push(name);
+        }
+
         this.#flatScannedCount = flatGraph.count;
       }
+
       this.#flatLayoutId = flatGraph.layoutId;
     }
 
@@ -163,31 +179,39 @@ export class EntityIcons {
     // valid while its nodeIds identity holds (no membership change).
     const leafNames = new Map<ClusterId, (string | null)[]>();
     const leafSourceNodeIds = new Map<ClusterId, readonly string[]>();
+
     for (const layer of structure.entityLayers) {
       const cluster = this.#dependencies.handle
         .getClusters()
         .get(layer.layoutId);
+
       if (cluster === undefined) {
         continue;
       }
+
       const cached = this.#leafNames.get(layer.layoutId);
       const cacheValid =
         cached !== undefined &&
         cached.length === layer.count &&
         this.#leafSourceNodeIds.get(layer.layoutId) === cluster.nodeIds;
+
       if (cacheValid) {
         leafNames.set(layer.layoutId, cached);
       } else {
-        const names = Array.from<string | null>({ length: layer.count });
-        scanRange(layer.layoutId, names, 0, layer.count);
-        leafNames.set(layer.layoutId, names);
+        leafNames.set(
+          layer.layoutId,
+          scanRange(layer.layoutId, 0, layer.count),
+        );
+
         changed = true;
       }
       leafSourceNodeIds.set(layer.layoutId, cluster.nodeIds);
     }
+
     if (leafNames.size !== this.#leafNames.size) {
       changed = true;
     }
+
     this.#leafNames = leafNames;
     this.#leafSourceNodeIds = leafSourceNodeIds;
 

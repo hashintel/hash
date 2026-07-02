@@ -125,7 +125,9 @@ export class BubbleCellPacker {
    * Per-segment visit stamp, so one segment marks each cell at most once.
    * Contents deliberately PERSIST across packs (a stale stamp can never
    * equal a fresh {@link #stampCounter} value, and `resize` re-exposes old
-   * slots as-is), so it is never zeroed in the steady state.
+   * slots as-is), so it is never zeroed in the steady state. A `BitSet`
+   * would do the same job but needs an O(cells) clear per segment; bumping
+   * the stamp is a free reset.
    */
   #cellStamp = new Column(Int32Array, 256, plain);
 

@@ -83,11 +83,11 @@ The remaining deferred items are layer‑persistence re‑architectures (R1, R4)
 deck re‑upload semantics should be validated against a live profile/frame‑capture
 rather than changed blind. The applied set targets both **High** items (R2, R3),
 the coordination/render‑loop **Medium**s (R6, R7, R8), and the fill‑rate
-**Medium**s (R5, R9) that the render bench exposed as the fps floor. If the
-zoomed‑out worst case is still fill‑bound after R9's binning, the next suspect is
-the flat tier's edge hairball itself (thousands of alpha‑blended `LineLayer`
-lines over the same central pixels), which none of the R‑items cover — that
-would be a new density/LOD work item.
+**Medium**s (R5, R9) that the render bench exposed as the fps floor. R9's
+binning was re‑benched on the zoomed‑out worst case (§7.1) and recovered it
+from 12.8 fps to vsync, so the standby suspect for that scenario — the flat
+tier's alpha‑blended edge hairball — did not need its own density/LOD work
+item at this scale.
 
 **Validation (in‑app, dev harness).** The applied build was measured on
 `/dev-graph-visualizer` with the WebGL texture calls (`texImage2D/3D`,
@@ -771,13 +771,22 @@ Reading the report:
   covered (deck log2 units). Zoom is a first-order variable: a zoomed-in
   viewport is fill-rate bound and benches a different thing than
   fit-to-content. Only compare runs with matching envelopes.
+- `frames` — the rAF inter-frame interval distribution (p50/p95/p99/max) plus
+  `hitchCount`, intervals above two 60 Hz vsync periods (> 33.4 ms — at least
+  one whole missed frame). **This is the smoothness signal**: a mean fps over
+  10 s can read near-60 while isolated 100 ms stalls (GC, a slow pack, a
+  pipeline flush) ride under it — those are exactly the felt hiccups, and
+  they only show here. The probe runs its own rAF loop during the capture,
+  so it observes main-thread cadence even on ticks where Deck skips drawing.
 - `rebuild.p95Ms` / `maxMs` — the main-thread cost per layer rebuild
   (construction + labels + push).
 - `deck.updateAttributesTime` (ms per sample-second) — Deck's deferred
   attribute regeneration; **the primary R1/R6 signal**.
-- `deck.fps`, `deck.cpuTimePerFrame` — smoothness during the sweep;
+- `deck.fps`, `deck.cpuTimePerFrame` — mean throughput during the sweep;
   `framesRedrawn` says how many frames actually drew. `gpuTimePerFrame` reads
-  0 where the browser exposes no GPU timer (typical).
+  0 where the browser exposes no GPU timer (typical). Read fps together with
+  `frames.p95Ms`: fps is the average story, the interval tail is the hiccup
+  story.
 
 Baselines (captured 2026-07-02, dev machine, ~5k entities / 4 types /
 density 1.2 / 4 hubs, 10 s sweep — before R1; zoom envelopes not recorded
@@ -805,10 +814,39 @@ What the three runs establish:
   (big dots, bubble SDF overdraw) — R5/R9 observed live, with Deck's metrics
   loop starving to 2 samples as corroboration.
 
+**Zoomed-out worst case, before → after R9's spatial binning** (same fixture,
+fit-all camera showing the full ~5k-node hairball with all community bubbles
+on screen; envelopes ≈ [-0.99, +0.07] before, [-1.07, +0.20] after — the
+"after" sweep covers a strictly wider envelope and still wins):
+
+| metric                      | before binning (2026-07-02)   | after (same day) |
+| --------------------------- | ----------------------------- | ---------------- |
+| `deck.fps`                  | 12.8                          | **58.1**         |
+| `deck.cpuTimePerFrame` (ms) | 1.60                          | 1.61             |
+| `deck.updateAttributesTime` | 40.5 ms/s (starved, 1 sample) | 17.1 ms/s        |
+| `deck.framesRedrawn` (10 s) | 46                            | 524              |
+| `rebuild.p95Ms`             | 0.20                          | 2.78             |
+| deck metric samples in 10 s | 1                             | 9                |
+
+The before run's flat CPU time (1.6 ms/frame at 12.8 fps) already said
+fill-rate, not main thread; binning confirmed it: the GPU now rasterises
+only occupied cells with local kernel lists and the same viewport hits the
+vsync cap. Every frame that used to starve (46 redraws in 10 s) now draws
+(524). The rebuild p95 rose from 0.20 → 2.78 ms because each rebuild now
+includes the CPU pack (binning + texel copies) — well inside a 16.6 ms
+budget, and the trade that bought back the GPU. `updateAttributesTime`
+(~17 ms/s) is now the largest remaining line item, which is R1's
+(deferred) territory. Subjective hiccups were still felt during the
+after-run; the `frames` interval stats (added right after this capture —
+both runs above predate them) exist to pin those down, since a 10 s mean
+fps cannot.
+
 R1 acceptance: under-load fps back above ~60 and `updateAttributesTime` at or
 below the settled figure, with the settled numbers not regressing. R5/R9
-acceptance: the zoomed-in sweep (matching zoom envelope) recovering toward
-the settled fps.
+acceptance — **met for R9** on the zoomed-out worst case (table above); the
+zoomed-in sweep (25.3 fps baseline, captured before camera tracking landed,
+so no recorded envelope) still wants a re-run at a comparable zoom-in to
+confirm the saturation-exit + R5 half.
 
 ---
 

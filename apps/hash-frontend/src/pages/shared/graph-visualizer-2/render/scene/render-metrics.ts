@@ -10,6 +10,12 @@
  * which surfaces in `updateAttributesTime` / `cpuTimePerFrame` here.
  * Recording is gated on {@link capturing} so an idle probe costs one branch
  * per rebuild.
+ *
+ * While capturing, the probe also runs its own `requestAnimationFrame` loop
+ * and records the interval between consecutive callbacks. A mean fps over
+ * the whole window hides exactly the thing a user feels -- isolated long
+ * frames -- so the report carries the interval distribution (p50/p95/p99/max)
+ * and a count of hitches (intervals above {@link HITCH_THRESHOLD_MS}).
  */
 import type { DeckProps } from "@deck.gl/core";
 
@@ -21,6 +27,44 @@ export interface RebuildStats {
   readonly meanMs: number;
   readonly p95Ms: number;
   readonly maxMs: number;
+}
+
+/**
+ * A frame interval at least this long (two 60 Hz vsync periods, i.e. at
+ * least one whole missed frame) reads as a felt hitch.
+ */
+export const HITCH_THRESHOLD_MS = 33.4;
+
+/** Main-thread frame cadence over the capture (rAF inter-frame intervals). */
+export interface FrameStats {
+  /** Intervals observed (one fewer than rAF callbacks delivered). */
+  readonly count: number;
+  readonly meanMs: number;
+  readonly p50Ms: number;
+  readonly p95Ms: number;
+  readonly p99Ms: number;
+  readonly maxMs: number;
+  /** Intervals above {@link HITCH_THRESHOLD_MS} -- the "felt" stalls. */
+  readonly hitchCount: number;
+}
+
+/** Injectable `requestAnimationFrame` pair so tests can drive frames manually. */
+export interface FrameLoop {
+  readonly schedule: (callback: (timestampMs: number) => void) => number;
+  readonly cancel: (handle: number) => void;
+}
+
+function defaultFrameLoop(): FrameLoop | null {
+  // Non-browser environments (unit tests) simply report zero frame stats.
+  if (typeof requestAnimationFrame !== "function") {
+    return null;
+  }
+  return {
+    schedule: (callback) => requestAnimationFrame(callback),
+    cancel: (handle) => {
+      cancelAnimationFrame(handle);
+    },
+  };
 }
 
 /** Deck's per-second samples, aggregated over the capture window. */
@@ -55,6 +99,7 @@ export interface CameraStats {
 export interface RenderCaptureReport {
   readonly durationMs: number;
   readonly camera: CameraStats;
+  readonly frames: FrameStats;
   readonly rebuild: RebuildStats;
   readonly deck: DeckStatsSummary;
 }
@@ -91,11 +136,19 @@ export class RenderMetricsProbe {
   #initialZoom = 0;
   #minZoom = 0;
   #maxZoom = 0;
+  #frameIntervalsMs: number[] = [];
+  #frameHandle: number | null = null;
+  #lastFrameAt: number | null = null;
 
   readonly #clock: () => number;
+  readonly #frameLoop: FrameLoop | null;
 
-  constructor(clock: () => number = () => performance.now()) {
+  constructor(
+    clock: () => number = () => performance.now(),
+    frameLoop: FrameLoop | null = defaultFrameLoop(),
+  ) {
     this.#clock = clock;
+    this.#frameLoop = frameLoop;
   }
 
   get capturing(): boolean {
@@ -110,6 +163,25 @@ export class RenderMetricsProbe {
     this.#initialZoom = initialZoom;
     this.#minZoom = initialZoom;
     this.#maxZoom = initialZoom;
+    this.#frameIntervalsMs = [];
+    this.#lastFrameAt = null;
+    this.#scheduleFrameProbe();
+  }
+
+  #scheduleFrameProbe(): void {
+    if (this.#frameLoop === null) {
+      return;
+    }
+    this.#frameHandle = this.#frameLoop.schedule((timestampMs) => {
+      if (!this.#capturing) {
+        return;
+      }
+      if (this.#lastFrameAt !== null) {
+        this.#frameIntervalsMs.push(timestampMs - this.#lastFrameAt);
+      }
+      this.#lastFrameAt = timestampMs;
+      this.#scheduleFrameProbe();
+    });
   }
 
   recordRebuild(elapsedMs: number): void {
@@ -136,12 +208,24 @@ export class RenderMetricsProbe {
   stop(finalZoom: number): RenderCaptureReport {
     this.recordZoom(finalZoom);
     this.#capturing = false;
+    if (this.#frameHandle !== null) {
+      this.#frameLoop?.cancel(this.#frameHandle);
+      this.#frameHandle = null;
+    }
     const rebuilds = this.#rebuildDurationsMs;
     const samples = this.#deckSamples;
+    const intervals = this.#frameIntervalsMs;
 
     let framesRedrawn = 0;
     for (const sample of samples) {
       framesRedrawn += sample.framesRedrawn;
+    }
+
+    let hitchCount = 0;
+    for (const interval of intervals) {
+      if (interval > HITCH_THRESHOLD_MS) {
+        hitchCount += 1;
+      }
     }
 
     return {
@@ -151,6 +235,15 @@ export class RenderMetricsProbe {
         finalZoom,
         minZoom: this.#minZoom,
         maxZoom: this.#maxZoom,
+      },
+      frames: {
+        count: intervals.length,
+        meanMs: mean(intervals),
+        p50Ms: percentile(intervals, 0.5),
+        p95Ms: percentile(intervals, 0.95),
+        p99Ms: percentile(intervals, 0.99),
+        maxMs: intervals.length === 0 ? 0 : Math.max(...intervals),
+        hitchCount,
       },
       rebuild: {
         count: rebuilds.length,

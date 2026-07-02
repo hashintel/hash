@@ -24,6 +24,7 @@ import {
   FLAT_HEADER_BYTES,
   FLAT_RECORD_BYTES,
 } from "../worker/buffers/position-buffer";
+import { BitSet } from "../worker/collections/bitset";
 import { planBubbleCorridors } from "./bubble-corridors";
 import { BubbleCellPacker, BUBBLE_TEX_WIDTH } from "./bubble-grid";
 import {
@@ -81,7 +82,7 @@ interface CommunityGrouping {
   /** Member positions at each community's last corridor plan (2 floats/slot). */
   readonly planSnapshot: Float32Array;
   /** Per kept community: replan request scratch (movement-gated). */
-  readonly replanScratch: boolean[];
+  readonly replanScratch: BitSet<number>;
   /** False until the first plan has run (plan everything once). */
   planned: boolean;
   /** True once the settled-frame replan has run (reset if the layout resumes). */
@@ -185,7 +186,7 @@ function buildGrouping(
     segmentCount: new Int32Array(kept.length),
     segmentStorageOffsets,
     planSnapshot: new Float32Array(totalNodes * 2),
-    replanScratch: kept.map(() => false),
+    replanScratch: BitSet.empty(kept.length),
     planned: false,
     settledPlanned: false,
     version: 0,
@@ -252,6 +253,8 @@ export function communityLayer(
   grouping.settledPlanned = settled;
 
   let needsPlan = !grouping.planned || settledReplan;
+  replanScratch.clear();
+
   for (let ci = 0; ci < keptCount; ci++) {
     const start = ranges[ci * 2]!;
     const memberCount = ranges[ci * 2 + 1]!;
@@ -272,7 +275,9 @@ export function communityLayer(
       }
     }
 
-    replanScratch[ci] = !grouping.planned || settledReplan || drifted;
+    if (!grouping.planned || settledReplan || drifted) {
+      replanScratch.add(ci);
+    }
     needsPlan ||= drifted;
   }
 
@@ -295,7 +300,7 @@ export function communityLayer(
     });
 
     for (let ci = 0; ci < keptCount; ci++) {
-      if (!grouping.planned || replanScratch[ci]) {
+      if (!grouping.planned || replanScratch.has(ci)) {
         const start = ranges[ci * 2]!;
         const memberCount = ranges[ci * 2 + 1]!;
 

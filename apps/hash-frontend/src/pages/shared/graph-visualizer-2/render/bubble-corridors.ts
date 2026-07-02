@@ -36,6 +36,8 @@
  * zero planning cost.
  */
 
+import { BitSet } from "../worker/collections/bitset";
+
 /** Capsule kernel radius (world units) for full-width corridors. Visual ribbon
  * half-width at the default iso-threshold ≈ 0.49 × this. */
 export const CORRIDOR_FIELD_RADIUS = 22;
@@ -60,7 +62,7 @@ const RECORD_RADIUS = 2;
 const PRIM_CAP = 256;
 const primDist = new Float64Array(PRIM_CAP);
 const primParent = new Int32Array(PRIM_CAP);
-const primInTree = new Uint8Array(PRIM_CAP);
+const primInTree = BitSet.empty<number>(PRIM_CAP);
 
 export interface CorridorPlan {
   /** Number of rendered (kept) communities. */
@@ -72,7 +74,7 @@ export interface CorridorPlan {
   /** Gathered member positions, texel stride 4 (`[x, y, _, _]` per texel). */
   readonly pointTexels: Float32Array;
   /** Which kept communities to (re)plan; `null` plans all of them. */
-  readonly replan: readonly boolean[] | null;
+  readonly replan: BitSet<number> | null;
 
   /** Flat SAB float view + record layout, for foreign node positions/radii. */
   readonly floats: Float32Array;
@@ -216,21 +218,14 @@ export function planBubbleCorridors(plan: CorridorPlan): void {
     communityIds,
   } = plan;
 
-  let anyReplan = false;
-  for (let ci = 0; ci < keptCount; ci++) {
-    if (replan === null || replan[ci]) {
-      anyReplan = true;
-      break;
-    }
-  }
-  if (!anyReplan) {
+  if (replan !== null && replan.cardinality === 0) {
     return;
   }
 
   const grid = new ObstacleGrid(plan);
 
   for (let ci = 0; ci < keptCount; ci++) {
-    if (replan !== null && !replan[ci]) {
+    if (replan !== null && !replan.has(ci)) {
       continue;
     }
     const pointOffset = ranges[ci * 2]!;
@@ -245,7 +240,7 @@ export function planBubbleCorridors(plan: CorridorPlan): void {
         const slot = (pointOffset + member) * 4;
         return [pointTexels[slot]!, pointTexels[slot + 1]!];
       };
-      primInTree.fill(0, 0, memberCount);
+      primInTree.clear();
       primDist.fill(Number.POSITIVE_INFINITY, 0, memberCount);
       primParent.fill(-1, 0, memberCount);
       primDist[0] = 0;
@@ -253,7 +248,7 @@ export function planBubbleCorridors(plan: CorridorPlan): void {
         let next = -1;
         let nextDist = Number.POSITIVE_INFINITY;
         for (let member = 0; member < memberCount; member++) {
-          if (primInTree[member] === 0 && primDist[member]! < nextDist) {
+          if (!primInTree.has(member) && primDist[member]! < nextDist) {
             nextDist = primDist[member]!;
             next = member;
           }
@@ -261,10 +256,10 @@ export function planBubbleCorridors(plan: CorridorPlan): void {
         if (next < 0) {
           break;
         }
-        primInTree[next] = 1;
+        primInTree.add(next);
         const [nextX, nextY] = coordAt(next);
         for (let member = 0; member < memberCount; member++) {
-          if (primInTree[member] === 1) {
+          if (primInTree.has(member)) {
             continue;
           }
           const [memberX, memberY] = coordAt(member);
