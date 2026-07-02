@@ -161,7 +161,7 @@ export const colorElementSchema = z
       }),
     type: z.enum(["real", "integer", "boolean"]).meta({
       description:
-        "`real` is continuous and may be updated by dynamics. `integer` and `boolean` are discrete token attributes updated by transition kernels.",
+        "`real` is continuous and may be updated by dynamics. `integer` and `boolean` are discrete token attributes updated by transition kernels. `integer` values are stored as Float64 and rounded on read/write: they are exact only within ±2^53 (±9,007,199,254,740,992); values beyond that lose precision silently.",
     }),
   })
   .meta({
