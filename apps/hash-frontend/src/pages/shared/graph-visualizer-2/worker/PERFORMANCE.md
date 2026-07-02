@@ -7,6 +7,16 @@ concrete inefficiencies found (with `file:line` references and severity), the
 recommended fixes ordered by impact/effort, and the tests that should be added
 to lock in the wins.
 
+> **Engine note (post‑trim).** Since this report was written, the
+> community‑force tier's engines were consolidated: the FA2 pipeline
+> (`layout/community-layout.ts`) and the sparse‑stress SGD solver
+> (`layout/stress-layout.ts`) were DELETED, and constrained stress majorization
+> (`layout/majorization-layout.ts` + `layout/stress-analysis.ts`) is the single
+> community engine. References to FA2 / `community-layout.ts` below describe
+> the engine **as measured at the time**; the structural findings they support
+> (per‑batch absorb cost, settle‑dominates‑build) still apply to the
+> majorization engine's absorb/settle path.
+
 Headline findings:
 
 - **A no‑op `commitStructure()` is not free.** In the flat/community tier every
@@ -601,7 +611,7 @@ All under `apps/hash-frontend/src/pages/shared/graph-visualizer-2/worker/`:
 | `stores/ingestion.bench.ts`          | Type‑set keying, entity interning, link adjacency.                                  |
 | `hierarchy/community.bench.ts`       | `buildInducedCsr`, `connectedComponents`, `boundedLabelPropagation`, full pipeline. |
 | `buffers/growable-buffer.bench.ts`   | Flat/leaf buffer writes, presized vs geometric vs naïve growth, `Column` push.      |
-| `layout/force-simulation.bench.ts`   | flat‑force (cola) and community‑force (FA2) build + settle.                         |
+| `layout/force-simulation.bench.ts`   | flat‑force (cola) and community‑force (majorization) build + settle.                |
 | `core/commit-rebuild.bench.ts`       | No‑op re‑commit + bulk vs streaming ingest through the real `GraphWorker`.          |
 | `geometry/edge-aggregation.bench.ts` | `makePairKey` (rules it out as a hot path).                                         |
 

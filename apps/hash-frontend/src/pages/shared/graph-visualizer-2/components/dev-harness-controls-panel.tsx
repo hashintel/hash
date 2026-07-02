@@ -15,9 +15,8 @@ export interface HarnessKnobs {
   readonly linkDensity: number;
   readonly rootFraction: number;
   readonly hubCount: number;
-  /** Which community-tier engine drives the flat layout (A/B flip). */
-  readonly stressEngine: "stress" | "majorization";
-  // Stress-solver force tuning (community-force flat tier; all push OUTWARD, stay overlap-free).
+  // Majorization target-shaping tuning (community-force flat tier; all spread the
+  // layout OUTWARD and stay overlap-free).
   readonly stressCommunityCohesion: number;
   readonly stressCommunitySeparation: number;
   readonly stressDegreeRepulsion: number;
@@ -186,30 +185,8 @@ export const ControlsPanel = memo(
               onChange={(hubCount) => set({ hubCount })}
             />
 
-            <Stack
-              direction="row"
-              alignItems="center"
-              justifyContent="space-between"
-            >
-              <Typography
-                sx={{ fontSize: 12, fontWeight: 600, color: "gray.80" }}
-              >
-                Majorization engine
-              </Typography>
-              <Switch
-                size="small"
-                checked={knobs.stressEngine === "majorization"}
-                onChange={(event) =>
-                  set({
-                    stressEngine: event.target.checked
-                      ? "majorization"
-                      : "stress",
-                  })
-                }
-              />
-            </Stack>
             <KnobSlider
-              label="Stress community cohesion"
+              label="Community cohesion"
               value={knobs.stressCommunityCohesion}
               min={0}
               max={0.3}
@@ -219,7 +196,7 @@ export const ControlsPanel = memo(
               }
             />
             <KnobSlider
-              label="Stress community separation"
+              label="Community separation"
               value={knobs.stressCommunitySeparation}
               min={0}
               max={0.8}
@@ -229,7 +206,7 @@ export const ControlsPanel = memo(
               }
             />
             <KnobSlider
-              label="Stress degree repulsion"
+              label="Degree repulsion (hub halo)"
               value={knobs.stressDegreeRepulsion}
               min={0}
               max={0.3}

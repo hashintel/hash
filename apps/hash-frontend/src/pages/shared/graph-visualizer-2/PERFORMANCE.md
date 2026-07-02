@@ -31,8 +31,8 @@ findings below are careful not to contradict them:
   (`worker/core/graph-worker.ts` `#tickAllLayouts` → `#scheduleNextTick`) shuts
   itself off once `!#anyLayoutRunning()`, and every layout engine has a terminal
   `settled`/`done` state (`force-simulation.ts` `SETTLE_ALPHA`, `flat-layout.ts`
-  and `stress-layout.ts` phase `"done"`). So a static graph does **not** emit
-  position frames forever, and the renderer goes idle with it.
+  and `majorization-layout.ts` phase `"done"`). So a static graph does **not**
+  emit position frames forever, and the renderer goes idle with it.
 
 The consequence: the biggest wins are **not** "stop rendering when idle" (that
 already happens). They are about the **cost of each frame while the layout is
@@ -89,7 +89,8 @@ behaviour‑preserving changes.
 `/dev-graph-visualizer` with the WebGL texture calls (`texImage2D/3D`,
 `texSubImage2D/3D`) and a frame counter instrumented via CDP. Idle on a settled graph:
 **0** texture ops over ~3 min at ~60fps (confirms §0 and R3's idle behaviour). A full
-remount + FA2 settle: **0** texture _creates_ and 2 `texSubImage2D` total — i.e. no
+remount + layout settle (then the FA2 engine, since replaced by majorization):
+**0** texture _creates_ and 2 `texSubImage2D` total — i.e. no
 per‑frame texture reallocation, which is R3's intended shape. Frame rate held ~60fps
 throughout, including interaction. Conclusion: R3 is healthy and the render loop is not
 GPU‑texture‑bound at the tested scales. R1/R4 are CPU/JS‑side and only bite on much
@@ -734,8 +735,15 @@ None of this needs a build; it can be measured in the running app:
 The scene now instruments itself, so the numbers above have a one-click,
 reproducible source: `RenderMetricsProbe` (`render/scene/render-metrics.ts`)
 collects Deck's once-per-second stats (`_onMetrics`) **plus our own timing of
-every `#pushLayers`** — the `setProps({ layers })` call that includes layer
-construction diffing, i.e. exactly the "deck.gl rebuild" cost R1 targets.
+every rebuild span** — the synchronous block that constructs layers, rebuilds
+labels, and calls `setProps` (`Scene.#timedRebuild`).
+
+> **Measurement note:** `setProps` alone is NOT the rebuild cost — it stores
+> props and schedules a redraw (~microseconds; the first capture measured a
+> p95 of 0.02 ms). Deck does the deferred layer diffing and attribute
+> regeneration inside its next draw, which lands in `updateAttributesTime` /
+> `cpuTimePerFrame`. Our `rebuild` metric therefore times the whole
+> synchronous span, and Deck's own metrics cover the deferred half.
 
 How to run:
 
@@ -746,26 +754,55 @@ How to run:
    drives a scripted zoom oscillation for 10 s (crossing label/LOD buckets both
    ways, so layer rebuilds happen the way interactive use causes them), then
    prints the `RenderCaptureReport` JSON to the console and a summary line
-   (fps | cpu/frame | push p95) in the panel.
+   (fps | attrs ms/s | rebuild p95) in the panel.
 3. Programmatic access (e.g. Playwright): the scene surfaces
    `startRenderCapture()` / `stopRenderCapture()` — the harness reaches it via
    the `onSceneReady` prop on `EntityGraphVisualizerV2`.
 
 Reading the report:
 
-- `layerPush.p95Ms` / `maxMs` — main-thread cost per rebuild+push. **This is
-  the number to hold a budget on** (and to compare before/after for R1's
-  persistent-layer work).
-- `deck.fps`, `deck.cpuTimePerFrame`, `deck.gpuTimePerFrame` — smoothness
-  during the sweep; `framesRedrawn` says how many frames actually drew.
-- `deck.setPropsTime` / `updateAttributesTime` — Deck's own accounting of prop
-  diffing and attribute (re)generation; `updateAttributesTime` is the R1/R6
-  signal.
+- `camera` — the zoom the run started at plus the min/max envelope the sweep
+  covered (deck log2 units). Zoom is a first-order variable: a zoomed-in
+  viewport is fill-rate bound and benches a different thing than
+  fit-to-content. Only compare runs with matching envelopes.
+- `rebuild.p95Ms` / `maxMs` — the main-thread cost per layer rebuild
+  (construction + labels + push).
+- `deck.updateAttributesTime` (ms per sample-second) — Deck's deferred
+  attribute regeneration; **the primary R1/R6 signal**.
+- `deck.fps`, `deck.cpuTimePerFrame` — smoothness during the sweep;
+  `framesRedrawn` says how many frames actually drew. `gpuTimePerFrame` reads
+  0 where the browser exposes no GPU timer (typical).
 
-Suggested starting budgets (same machine, same fixture, compare trends not
-absolutes): at 5k entities settled, sweep fps ≥ 55 and `layerPush.p95Ms` ≤ 4 ms;
-while streaming 5k in, fps ≥ 30 and `layerPush.p95Ms` ≤ 8 ms. Tighten these
-once R1 (persistent layers + `updateTriggers`) lands.
+Baselines (captured 2026-07-02, dev machine, ~5k entities / 4 types /
+density 1.2 / 4 hubs, 10 s sweep — before R1; zoom envelopes not recorded
+for the first two runs, camera tracking landed with the third):
+
+| metric                      | settled sweep | under load   | zoomed-in sweep |
+| --------------------------- | ------------- | ------------ | --------------- |
+| `deck.fps`                  | 68.4          | 52.7         | 25.3            |
+| `deck.cpuTimePerFrame` (ms) | 0.93          | 1.26         | 1.30            |
+| `deck.updateAttributesTime` | 7.6 ms/s      | 19.4 ms/s    | 29.9 ms/s       |
+| `deck.setPropsTime`         | 4.0 ms/s      | 4.4 ms/s     | 3.0 ms/s        |
+| `rebuild.p95Ms`             | (mis-scoped)  | (mis-scoped) | 0.20            |
+| deck metric samples in 10 s | 11            | 8            | 2               |
+
+What the three runs establish:
+
+- **Our synchronous layer construction is NOT the bottleneck.** With the
+  corrected probe, a full rebuild (layers + labels + push) costs p95 0.2 ms /
+  max 0.4 ms at ~5k entities — the SAB pass-through design (§0) is doing its
+  job. R1's value is therefore concentrated in `updateAttributesTime` (Deck
+  regenerating attributes because each tick hands it brand-new layer
+  instances), not in main-thread stalls.
+- **The zoomed-in fps collapse (25 fps at ~1.3 ms CPU/frame) is fill-rate.**
+  The main thread is mostly idle; the budget disappears into fragment work
+  (big dots, bubble SDF overdraw) — R5/R9 observed live, with Deck's metrics
+  loop starving to 2 samples as corroboration.
+
+R1 acceptance: under-load fps back above ~60 and `updateAttributesTime` at or
+below the settled figure, with the settled numbers not regressing. R5/R9
+acceptance: the zoomed-in sweep (matching zoom envelope) recovering toward
+the settled fps.
 
 ---
 

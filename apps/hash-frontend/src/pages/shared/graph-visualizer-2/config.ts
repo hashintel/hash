@@ -1,37 +1,24 @@
 /**
- * Optional stress-solver force overrides for the community-force flat tier (the FORBID-backed
- * sparse-stress layout). Each field, when set, REPLACES the StressLayout default weight; an
- * unset field keeps the gentle default. All three push nodes OUTWARD and compose with FORBID's
- * terminal zero-overlap pass, so raising them stays overlap-free but spreads the layout. Set a
- * field to 0 to disable that term entirely.
+ * Optional tuning overrides for the community-force flat tier's stress-majorization
+ * engine (persistent-CG solves with circle-relaxation projection and a verified-clean
+ * terminal settle). Each weight acts as TARGET SHAPING — community-scaled stress
+ * targets, hub halo bands, and the community-region floor margin — not as a force.
+ * An unset field keeps the gentle default; set a field to 0 to disable that shaping.
  */
 export interface StressTuning {
   /**
-   * Which engine drives the community-force flat tier:
-   *   - "stress" (default): sparse-stress SGD with the fused FORBID overlap term;
-   *     the three weights below are extra FORCES layered on the SGD loop.
-   *   - "majorization": constrained stress majorization — persistent-CG solves with
-   *     circle-relaxation projection and a verified-clean terminal settle; the three
-   *     weights below act as TARGET SHAPING (community-scaled stress targets, hub
-   *     halo bands) plus the community-region floor margin.
-   */
-  readonly engine?: "stress" | "majorization";
-  /**
-   * Same-community attraction. stress: pull toward the community centroid (Noack
-   * cohesion). majorization: deflate same-community stress targets ÷(1 + 1.5·w).
+   * Same-community attraction: deflate same-community stress targets ÷(1 + 2·w).
    */
   readonly communityCohesion?: number;
   /**
-   * Cross-community separation. stress: repel community centroids apart.
-   * majorization: inflate cross-community stress targets ×(1 + 2·w) AND widen the
-   * community-region floor margin (the keep-out disk every non-member is held
-   * outside) by w·idealEdgeLength.
+   * Cross-community separation: inflate cross-community stress targets ×(1 + 2·w)
+   * AND widen the community-region floor margin (the keep-out disk every non-member
+   * is held outside) by w·idealEdgeLength.
    */
   readonly communitySeparation?: number;
   /**
-   * Hub breathing room. stress: FA2-style near-field repulsion scaled by degree.
-   * majorization: how far a packed hub's children are pushed from its rim toward
-   * an explicit halo shell (band floor share).
+   * Hub breathing room: how far a packed hub's children are pushed from its rim
+   * toward an explicit halo shell (band floor share min(1, 2·w)).
    */
   readonly degreeRepulsion?: number;
 }
@@ -87,7 +74,7 @@ export interface VizConfig {
   readonly parallelEdgeCurvature: number;
   readonly curveSegments: number;
 
-  // Optional stress-solver force overrides (community-force flat tier); unset keeps defaults.
+  // Optional majorization target-shaping overrides (community-force flat tier).
   readonly stress?: StressTuning;
 
   /** Enable noisy worker diagnostics. Intended for local profiling/debug only. */

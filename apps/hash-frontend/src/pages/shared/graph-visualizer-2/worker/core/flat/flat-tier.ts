@@ -333,13 +333,8 @@ export class FlatTierController {
     buffer.setCount(nodes.length);
 
     // flat-force uses cola; community-force uses the constrained
-    // stress-majorization engine. Both fill the same shared buffer;
-    // downstream style/edges/render are identical.
-    // NOTE: `config.stress.engine` is deliberately bypassed here — majorization
-    // is pinned as the community-force engine while it is live-tested (mirrors
-    // the hardcode in the pre-refactor graph-worker checkpoint). Restore
-    //   config.stress?.engine === "majorization" ? createMajorizationLayout(…) : createStressLayout(…)
-    // to re-enable the A/B toggle documented in LAYOUT-MODES.md.
+    // stress-majorization engine (the only community-tier engine). Both fill the
+    // same shared buffer; downstream style/edges/render are identical.
     const layout =
       this.#dependencies.mode() === "community-force"
         ? createMajorizationLayout(nodes, edges, buffer, config.stress)

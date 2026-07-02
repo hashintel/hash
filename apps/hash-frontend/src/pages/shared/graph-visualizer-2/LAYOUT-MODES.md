@@ -20,9 +20,12 @@ Consequences:
 - The tiers, the grouping axis, and the zoom-LOD all answer **"what's valuable to
   show here?"** — never "what's fast?".
 - **Engine choices are interchangeable _means_, not design decisions.** WebCola
-  vs FA2, Louvain vs label-prop — whichever we pick, the _displayed result is the
-  same_. They change cost, not what's shown. So we use the best one we can afford
-  and swap reactively under load, and that swap is invisible to the design.
+  vs the majorization engine, Louvain vs label-prop — whichever we pick, the
+  _displayed result is the same_. They change cost, not what's shown. So we use
+  the best one we can afford and swap reactively under load, and that swap is
+  invisible to the design. (This rule is how the flat tier's engine got REPLACED
+  wholesale — FA2, then sparse-stress SGD, now constrained stress majorization —
+  without the design changing.)
 
 ## Why three tiers — what's valuable changes with scale
 
@@ -48,8 +51,8 @@ the user may move them or opt in — exact numbers don't matter to the design.)
 
 | Mode               | Scale (what's valuable)                      | Layout                                     | Grouping visual                    |
 | ------------------ | -------------------------------------------- | ------------------------------------------ | ---------------------------------- |
-| `flat-force`       | small — read the link structure              | Louvain → SMACOF → FA2                     | none (communities read spatially)  |
-| `community-force`  | medium — highlight the communities           | Louvain → SMACOF → FA2                     | **BubbleSets** over subcommunities |
+| `flat-force`       | small — read the link structure              | WebCola `Descent` (full stress)            | none (communities read spatially)  |
+| `community-force`  | medium — highlight the communities           | Louvain → PivotMDS → stress majorization   | **BubbleSets** over subcommunities |
 | `hierarchical-lod` | huge — flat view is a hairball; zoom instead | SMACOF (WebCola) + SA optimiser **(DONE)** | containment circles                |
 
 **`flat-force` and `community-force` are ONE regime in disguise** — identical
@@ -58,28 +61,33 @@ genuine break is `hierarchical-lod`, for the perceptual reason above.
 
 ## The flat-tier layout pipeline — a PIPELINE, not either/or
 
-FA2 only ever finds a **local** minimum. From a random start, a node that belongs
-on the left can strand on the right with no downhill path back — a bad local
-minimum. So we front-load intelligence to start near the **global** minimum:
+A local refiner only ever finds a **local** minimum. From a random start, a node
+that belongs on the left can strand on the right with no downhill path back — a
+bad local minimum. So we front-load intelligence to start near the **global**
+minimum:
 
 1. **Louvain over the link graph** (`graphology-communities-louvain`, seeded →
    deterministic). Gives **cluster membership ONLY** — which node is in which
    community. **No coordinates.**
-2. **SMACOF** (stress majorisation over the link graph, via WebCola). Turns the
-   structure into **stress-minimised initial positions** — the seed Louvain
+2. **Pivot analysis + PivotMDS** (`worker/layout/stress-analysis.ts`): weak
+   components, pivot BFS distance rows, and a PivotMDS-style spectral init turn
+   the structure into **stress-minimised initial positions** — the seed Louvain
    can't give. Deterministic; nothing random.
-3. **FA2** refines (local spacing, hub-spreading) → a good local minimum near the
-   global one.
+3. **Constrained stress majorization** (`worker/layout/majorization-layout.ts`)
+   solves sparse quadratic stress over community/degree-shaped interval targets
+   with overlap projection at every iteration boundary → a verified-clean,
+   overlap-free layout near the global minimum.
 
-Each step is distinct: **Louvain = clusters, SMACOF = stress-min seed, FA2 =
-refinement.** That's "FA2 over SMACOF". The displayed result is the legible
-link-structure layout — that's the goal; the steps are just how we reach it.
+Each step is distinct: **Louvain = clusters, PivotMDS = stress-min seed,
+majorization = the solve.** The displayed result is the legible link-structure
+layout — that's the goal; the steps are just how we reach it.
 
 ### Engine choice within the pipeline (a means, not a tier)
 
-WebCola/SMACOF layouts are markedly better but O(N²); FA2 (Barnes-Hut) scales.
-So below ~100 nodes WebCola does the whole layout, and above it we degrade to
-SMACOF-seeded FA2. **This is purely how we stay affordable — the displayed
+WebCola's dense-matrix stress layout is excellent but O(N²); the sparse
+pivot-based majorization engine scales. So below ~200 nodes WebCola `Descent`
+does the whole layout (`flat-layout.ts`), and above it the sparse majorization
+engine takes over. **This is purely how we stay affordable — the displayed
 link-structure view is identical either way.** It is not a design tier and the
 user never perceives it; tunable crossover.
 
@@ -91,21 +99,22 @@ already follows: warm tracking, incremental updates). This is a _usefulness_
 requirement: a layout that jumps on every arrival is unreadable.
 
 - **New node** → seed it near its already-placed neighbours (or its community
-  centroid); the **warm FA2** absorbs it and re-settles locally. No global
-  restart.
-- **Louvain + SMACOF run on the first substantial batch, then re-seed only on a
-  DEBOUNCED / significant-structure-change basis — NOT per node** (per-node
-  re-seed reshuffles, which is what makes it unreadable).
+  centroid); the engine's **warm absorb** re-solves from current positions and
+  re-settles locally. No global restart.
+- **Louvain + the pivot analysis run on the first substantial batch, then
+  re-seed only on a DEBOUNCED / significant-structure-change basis — NOT per
+  node** (per-node re-seed reshuffles, which is what makes it unreadable).
 - If a chosen engine can't keep up as the set grows, **swap to a cheaper one**
-  (label-prop for Louvain, skip SMACOF, FA2-warm-only) — measured, never
+  (label-prop for Louvain, fewer pivots, warm-absorb-only) — measured, never
   pre-emptive. The displayed view is unchanged; only the cost is.
 - Deterministic + stable: seeded RNG, warm-start from current positions, never
   re-randomise.
 
 ## The grouping axis — the reason the tiers _look_ different
 
-- **Flat tiers → link communities.** Louvain→SMACOF→FA2 reflects the real edge
-  communities **spatially**. `flat-force` shows them with type colour and nothing
+- **Flat tiers → link communities.** The Louvain → PivotMDS → majorization
+  pipeline reflects the real edge communities **spatially**. `flat-force` shows
+  them with type colour and nothing
   else. At `community-force` scale they're hard to pick out by eye, so
   **BubbleSets** shade the **subcommunities** to promote them. BubbleSets are over
   (sub)communities, **NOT types** — types are already the node colours.
@@ -121,53 +130,43 @@ community detection.)
 
 Three engines coexist, one per regime — none replaces another:
 
-- **FA2** (`graphology-layout-forceatlas2`, already a dep) — the **port-free flat
-  tiers**. No containers → no ports → nothing for FA2's fixed force model to
-  conflict with.
+- **Constrained stress majorization** (`worker/layout/majorization-layout.ts`) —
+  the **port-free flat tiers** above the WebCola crossover. No containers → no
+  ports → nothing for its distance-target model to conflict with.
 - **d3-force + `forcePortAttraction`** — stays for the hierarchical
   **entity-reveal** (dots inside a cluster chasing their ports). d3-force's
-  pluggable forces are the ONLY reason port-attraction works; FA2 has no
-  plug-point for a custom force. **Do not touch it.**
+  pluggable forces are the ONLY reason port-attraction works; the majorization
+  engine has no plug-point for a custom force. **Do not touch it.**
 - **SMACOF (WebCola) + SA drawn-geometry optimiser** — stays for the **cluster
   bubbles** (≤32 top-level, ≤96 sub-cluster). The SA pass minimises _actual_
   crossings / detours / edge-length.
 
-(SMACOF appears twice on purpose: the flat-tier _seed_, and the cluster layout
-engine. Different uses, same majoriser.)
+(Stress majorisation appears twice on purpose: the flat-tier entity engine, and
+the WebCola cluster layout. Different uses, same idea.)
 
-### Flat-tier entity engines (`worker/layout/`) — the `stress.engine` toggle
+### The flat-tier entity engine (`worker/layout/`)
 
-Within the flat/community-force regime, THREE interchangeable entity-layout
-engines exist today (the "means, not design decisions" rule above — same
-displayed goal, different cost/quality trade-offs):
+Within the flat/community-force regime, ONE entity-layout engine remains —
+**constrained stress majorization** (`majorization-layout.ts`,
+`createMajorizationLayout`). It won a measured three-way A/B against the two
+engines it replaced (an FA2 refine pipeline and a sparse-stress SGD solver,
+both deleted): faster to settle, no terminal rebound, zero overlaps and region
+disjointness _verified_ at settle rather than hoped for.
 
-- **FA2 pipeline** (`community-layout.ts`, `createCommunityLayout`) — the
-  original Louvain → sparse-stress seed → FA2 refine pipeline described above.
-  Superseded for the community tier by the two below (slower to settle, rebounds,
-  and leaves overlaps to a terminal pass), kept as the A/B baseline.
-- **Sparse stress / SGD** (`stress-layout.ts`, `createStressLayout`) — pivot-based
-  sparse stress solved by SGD with the FORBID overlap term fused into the loop,
-  plus community cohesion/separation and degree-repulsion _forces_. The
-  production default.
-- **Stress majorization** (`majorization-layout.ts`, `createMajorizationLayout`)
-  — constrained stress majorization: the same pivot analysis feeding a
-  persistent-CG majorizer over interval targets, with circle-relaxation
-  projection at every iteration boundary, a verified-clean terminal settle, and
-  **community-region floors** (every node is kept out of foreign communities'
-  packing disks — the region-level separation that pure target inflation cannot
-  provide). Zero overlaps and region disjointness are _verified_ at settle, not
-  hoped for.
+The engine: the pivot analysis (`stress-analysis.ts` — CSR, weak components,
+pivot BFS rows, PivotMDS init) feeds a persistent-CG majorizer over interval
+targets, with circle-relaxation projection at every iteration boundary, a
+verified-clean terminal settle, and **community-region floors** (every node is
+kept out of foreign communities' packing disks — the region-level separation
+that pure target inflation cannot provide).
 
-`VizConfig.stress.engine` (`"stress"` default | `"majorization"`, surfaced as the
-engine switch in the dev-harness controls panel) selects between the latter two
-at layout-build time. The three tuning sliders (`communityCohesion`,
-`communitySeparation`, `degreeRepulsion`) apply to BOTH engines with
-engine-specific semantics — forces on the SGD loop vs target shaping (community
-target scaling, hub halo bands, region-floor margin) in majorization; the
-mapping is documented on `StressTuning` in `config.ts`. The A/B bench comparing
-all three on identical fixtures (wall time, worst tick, overlaps, edge stress,
-rebound, inter/intra, region-overlap, hub halo, determinism) lives at
-`worker/layout/majorization-ab.bench.ts`.
+The three tuning sliders (`communityCohesion`, `communitySeparation`,
+`degreeRepulsion`, surfaced in the dev-harness controls panel) act as target
+shaping: community target scaling, region-floor margin, and hub halo bands. The
+mapping is documented on `StressTuning` in `config.ts`. The tracked metrics
+baseline (wall time, worst tick, overlaps, edge stress, rebound, inter/intra,
+region-overlap, hub halo, determinism on identical fixtures) lives at
+`worker/layout/majorization-baseline.bench.ts`.
 
 ## Display: zoom-driven level of detail (ALL tiers)
 
@@ -193,7 +192,8 @@ the current zoom, not gated on mode. Zoomed in enough → every edge's label.
 
 ### `flat-force` — the fine-grained view
 
-- **Layout**: Louvain → SMACOF → FA2 (above).
+- **Layout**: WebCola `Descent` below the crossover, the majorization pipeline
+  above it (see "The flat-tier layout pipeline").
 - **Nodes**: individual entities; **colour by type**; **size by degree** (subtle);
   **centre icon** if the type defines one.
 - **Labels / icons**: zoom-driven LOD (see Display) — hubs label first, every
@@ -204,7 +204,7 @@ the current zoom, not gated on mode. Zoomed in enough → every edge's label.
 
 ### `community-force` — medium
 
-- Same Louvain → SMACOF → FA2 layout / nodes / edges as `flat-force`.
+- Same layout pipeline / nodes / edges as `flat-force`.
 - **+ BubbleSets** over the Louvain **subcommunities** (promote communities the
   eye can't pick out at this scale). NOT over types. **This tier only.** (Exactly
   which sets get a hull — communities vs finer subcommunities — is open.)
@@ -215,8 +215,9 @@ the current zoom, not gated on mode. Zoomed in enough → every edge's label.
 
 - Cluster bubbles via SMACOF + SA optimiser (current; do not change).
 - **Entity-reveal** (deep zoom into a cluster): individual entities via the
-  EXISTING d3-force + `forcePortAttraction` (unchanged — FA2 can't host the port
-  force). Gains the same **centre icons** (render feature, engine-independent).
+  EXISTING d3-force + `forcePortAttraction` (unchanged — the majorization engine
+  can't host the port force). Gains the same **centre icons** (render feature,
+  engine-independent).
 - **No BubbleSets** — containment circles already encode grouping.
 
 ## Cross-cutting features
@@ -273,11 +274,12 @@ is _for_ the most.)
 
 Already present:
 
-- **FA2**: `graphology-layout-forceatlas2` (v1 dep).
-- **SMACOF**: WebCola already drives stress majorisation for the cluster layout —
-  reuse it on the link graph for the flat-tier seed.
+- **Majorization engine**: `worker/layout/majorization-layout.ts` +
+  `worker/layout/stress-analysis.ts` (pivot analysis / PivotMDS init).
+- **SMACOF**: WebCola drives stress majorisation for the cluster layout and the
+  small-N flat tier (`flat-layout.ts`).
 - **Link adjacency**: link store / CSR (spec §"Entity and Link Storage") — what
-  Louvain + SMACOF run over.
+  Louvain + the pivot analysis run over.
 - **Port-aware entity force**: `entity-layout.ts` `createEntityLayout` (d3-force +
   port-attraction) — stays as-is.
 - **Render**: `ScatterplotLayer` (dots), `BezierSDFLayer` (edges).
@@ -290,7 +292,8 @@ type-icon rendering, the hub classifier, by-degree sizing.
 ## Build order
 
 1. **`flat-force` standalone** — add `graphology-communities-louvain`; flat render
-   path + Louvain → SMACOF → FA2 (incremental from the start) + by-degree size +
+   path + the Louvain → PivotMDS → majorization pipeline (incremental from the
+   start) + by-degree size +
    type colour + centre icons + hub-classifier → beside-labels + individual edges.
 2. **`community-force`** — same layout + BubbleSets over subcommunities.
 3. **Cross-mode transitions** (entities ↔ centroids).
@@ -305,13 +308,15 @@ type-icon rendering, the hub classifier, by-degree sizing.
   package). Hulls are over **subcommunities** (resolved — not communities, not
   types).
 - **Re-seed trigger** — what counts as a "significant structure change" that
-  triggers a Louvain/SMACOF re-seed during incremental load (vs warm FA2 absorb)?
+  triggers a Louvain/analysis re-seed during incremental load (vs the engine's
+  warm absorb)?
 - **LOD thresholds** — apparent-size cutoffs for dot → icon → label, and how much
   importance shifts them.
 
-Resolved: flat-tier layout = **Louvain (clusters) → SMACOF (stress-min seed) →
-FA2 (refine)** (engine is a means — WebCola < ~100, FA2 above, same displayed
-result); d3-force + port-attraction stays for entity-reveal; SMACOF + SA stays
+Resolved: flat-tier layout = **Louvain (clusters) → PivotMDS (stress-min seed) →
+constrained stress majorization (solve)** (engine is a means — WebCola < ~200,
+the sparse majorization engine above, same displayed result); d3-force +
+port-attraction stays for entity-reveal; SMACOF + SA stays
 for cluster bubbles; the large tier is a **perceptual** shift to type-set semantic
 zoom (not a compute compromise); BubbleSets over (sub)communities in
 `community-force` only.

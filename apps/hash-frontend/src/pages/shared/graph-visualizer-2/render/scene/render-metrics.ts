@@ -1,19 +1,22 @@
 /**
  * Render-cost capture for the scene: Deck's once-per-second stats plus our
- * own per-push `setProps({ layers })` timings, summarised into one report.
+ * own timing of each layer REBUILD span, summarised into one report.
  *
- * The layer push is the main-thread cost this component controls (layer
- * construction + Deck diffing + attribute upload scheduling), so its p95 is
- * the number rebuild optimisations are measured against; fps / frame times
- * come from Deck's own metrics. Recording is gated on {@link capturing} so
- * an idle probe costs one branch per push.
+ * A rebuild span covers everything the scene does synchronously to refresh
+ * the layer set: layer construction, label rebuild, and the `setProps` call.
+ * It deliberately does NOT stop at `setProps` -- that call only stores props
+ * and schedules a redraw (measured at ~microseconds), while Deck performs
+ * the deferred diffing and attribute regeneration inside its next draw,
+ * which surfaces in `updateAttributesTime` / `cpuTimePerFrame` here.
+ * Recording is gated on {@link capturing} so an idle probe costs one branch
+ * per rebuild.
  */
 import type { DeckProps } from "@deck.gl/core";
 
 /** Deck's per-second stats object (not re-exported from the package root). */
 export type DeckMetrics = Parameters<NonNullable<DeckProps["_onMetrics"]>>[0];
 
-export interface LayerPushStats {
+export interface RebuildStats {
   readonly count: number;
   readonly meanMs: number;
   readonly p95Ms: number;
@@ -37,9 +40,22 @@ export interface DeckStatsSummary {
   readonly framesRedrawn: number;
 }
 
+/**
+ * Camera zoom over the capture (deck log2 units), so runs are comparable:
+ * fps at a zoomed-in viewport (fill-rate bound) and at fit-to-content are
+ * different benchmarks.
+ */
+export interface CameraStats {
+  readonly initialZoom: number;
+  readonly finalZoom: number;
+  readonly minZoom: number;
+  readonly maxZoom: number;
+}
+
 export interface RenderCaptureReport {
   readonly durationMs: number;
-  readonly layerPush: LayerPushStats;
+  readonly camera: CameraStats;
+  readonly rebuild: RebuildStats;
   readonly deck: DeckStatsSummary;
 }
 
@@ -70,8 +86,11 @@ function percentile(values: readonly number[], fraction: number): number {
 export class RenderMetricsProbe {
   #capturing = false;
   #startedAt = 0;
-  #pushDurationsMs: number[] = [];
+  #rebuildDurationsMs: number[] = [];
   #deckSamples: DeckMetrics[] = [];
+  #initialZoom = 0;
+  #minZoom = 0;
+  #maxZoom = 0;
 
   readonly #clock: () => number;
 
@@ -83,16 +102,27 @@ export class RenderMetricsProbe {
     return this.#capturing;
   }
 
-  start(): void {
+  start(initialZoom: number): void {
     this.#capturing = true;
     this.#startedAt = this.#clock();
-    this.#pushDurationsMs = [];
+    this.#rebuildDurationsMs = [];
     this.#deckSamples = [];
+    this.#initialZoom = initialZoom;
+    this.#minZoom = initialZoom;
+    this.#maxZoom = initialZoom;
   }
 
-  recordLayerPush(elapsedMs: number): void {
+  recordRebuild(elapsedMs: number): void {
     if (this.#capturing) {
-      this.#pushDurationsMs.push(elapsedMs);
+      this.#rebuildDurationsMs.push(elapsedMs);
+    }
+  }
+
+  /** Fold a zoom observation into the capture's min/max envelope. */
+  recordZoom(zoom: number): void {
+    if (this.#capturing) {
+      this.#minZoom = Math.min(this.#minZoom, zoom);
+      this.#maxZoom = Math.max(this.#maxZoom, zoom);
     }
   }
 
@@ -103,9 +133,10 @@ export class RenderMetricsProbe {
     }
   }
 
-  stop(): RenderCaptureReport {
+  stop(finalZoom: number): RenderCaptureReport {
+    this.recordZoom(finalZoom);
     this.#capturing = false;
-    const pushes = this.#pushDurationsMs;
+    const rebuilds = this.#rebuildDurationsMs;
     const samples = this.#deckSamples;
 
     let framesRedrawn = 0;
@@ -115,11 +146,17 @@ export class RenderMetricsProbe {
 
     return {
       durationMs: this.#clock() - this.#startedAt,
-      layerPush: {
-        count: pushes.length,
-        meanMs: mean(pushes),
-        p95Ms: percentile(pushes, 0.95),
-        maxMs: pushes.length === 0 ? 0 : Math.max(...pushes),
+      camera: {
+        initialZoom: this.#initialZoom,
+        finalZoom,
+        minZoom: this.#minZoom,
+        maxZoom: this.#maxZoom,
+      },
+      rebuild: {
+        count: rebuilds.length,
+        meanMs: mean(rebuilds),
+        p95Ms: percentile(rebuilds, 0.95),
+        maxMs: rebuilds.length === 0 ? 0 : Math.max(...rebuilds),
       },
       deck: {
         samples: samples.length,

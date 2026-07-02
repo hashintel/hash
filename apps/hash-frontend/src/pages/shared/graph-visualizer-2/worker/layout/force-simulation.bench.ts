@@ -3,7 +3,7 @@
  * is the whole time-to-laid-out a user waits on: matrix/seed construction plus
  * every solver iteration to convergence. It shows why flat-force (cola `Descent`,
  * O(N^2) per step + an O(N^2) distance matrix at build) is capped at 200 nodes
- * and community-force (FA2) takes the medium tier.
+ * and community-force (constrained stress majorization) takes the medium tier.
  *
  * Settling dominates and is expensive, so these use a fixed, small iteration
  * count (`SETTLE_OPTS`) rather than vitest's default time budget; treat the means
@@ -17,8 +17,8 @@ import { bench, describe } from "vitest";
 
 import { buildForceGraph } from "../bench-fixtures";
 import { FlatGraphBuffer } from "../buffers/position-buffer";
-import { createCommunityLayout } from "./community-layout";
 import { createFlatLayout } from "./flat-layout";
+import { createMajorizationLayout } from "./majorization-layout";
 
 import type { GraphShape } from "../bench-fixtures";
 import type { ForceNode, LayoutSimulation } from "./force-simulation";
@@ -87,22 +87,23 @@ for (const graphShape of COMMUNITY_CASES) {
   describe(`community-force (${graphShape.nodeCount} nodes)`, () => {
     const { nodes, edges } = buildForceGraph(graphShape);
 
-    // Synchronous build (Louvain + sparse-stress seed alloc + FA2 matrices); this
-    // blocks before the first frame can stream.
+    // Synchronous construction (Louvain + typed-array allocation); the analysis
+    // and solve are budget-sliced across ticks, so this is what blocks the
+    // worker before the first frame can stream.
     bench(
-      "build only (Louvain + seed + matrices)",
+      "build only (construct)",
       () => {
         const buffer = new FlatGraphBuffer(nodes.length);
-        createCommunityLayout(cloneNodes(nodes), edges, buffer);
+        createMajorizationLayout(cloneNodes(nodes), edges, buffer);
       },
       SETTLE_OPTS,
     );
 
     bench(
-      "build + settle (seed + FA2)",
+      "build + settle (majorization)",
       () => {
         const buffer = new FlatGraphBuffer(nodes.length);
-        settle(createCommunityLayout(cloneNodes(nodes), edges, buffer));
+        settle(createMajorizationLayout(cloneNodes(nodes), edges, buffer));
       },
       SETTLE_OPTS,
     );

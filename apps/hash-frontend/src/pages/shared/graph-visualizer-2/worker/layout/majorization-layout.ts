@@ -1,16 +1,15 @@
 /**
- * Constrained stress-MAJORIZATION layout engine — the third community-tier engine,
- * drop-in interchangeable with the ForceAtlas2 ({@link "./community-layout"}) and
- * sparse-stress-SGD ({@link "./stress-layout"}) engines (all implement
- * {@link LayoutSimulation} and fill the same {@link FlatGraphBuffer}).
+ * Constrained stress-MAJORIZATION layout engine — THE community-tier engine (the
+ * ForceAtlas2 and sparse-stress-SGD engines it was benchmarked against were retired
+ * in its favour). Implements {@link LayoutSimulation} and fills a shared
+ * {@link FlatGraphBuffer}.
  *
  * Architecture (IPSep-CoLa style: majorize, then project):
  *
  *   1. Sparse quadratic stress over graph edges + subsampled pivot terms (the Ortmann
- *      sparse-stress model; pivot selection and BFS graph distances are REUSED from the
- *      existing {@link SparseStressSolver} by running it with `epochs: 0`, which performs
- *      exactly the CSR / weak-components / pivot-BFS analysis passes plus the PivotMDS
- *      initialisation, then stops). Weights are 1/d² in hop space and NEVER change; the
+ *      sparse-stress model; pivot selection and BFS graph distances come from the
+ *      {@link StressAnalysis} passes — CSR / weak-components / pivot-BFS plus the
+ *      PivotMDS initialisation). Weights are 1/d² in hop space and NEVER change; the
  *      weighted CSR Laplacian is built ONCE per (re)layout/absorb.
  *   2. Per majorization iteration (SMACOF): the majorant right-hand side is computed from
  *      the current positions, then L·x = bₓ and L·y = b_y are solved per dimension with
@@ -18,8 +17,8 @@
  *      each tick advances a bounded number of CG steps, so per-tick cost is capped BY
  *      CONSTRUCTION (the budget is generous enough that each majorant is solved to
  *      tolerance; see CG_STEPS_PER_ITERATION).
- *   3. Feasibility comes from iterated CIRCLE relaxation ({@link overlapRelaxPass} —
- *      the same grid machinery the sibling engines use): gentle pile-bleeding passes
+ *   3. Feasibility comes from iterated CIRCLE relaxation ({@link overlapRelaxPass}'s
+ *      shared spatial-grid machinery): gentle pile-bleeding passes
  *      at every iteration boundary, then a TERMINAL SETTLE phase (a few bounded
  *      passes per advance unit) that runs until one full pass VERIFIES the layout
  *      overlap-free. See ITERATION_RELAX_PASSES for why the rectangle-based VPSC
@@ -36,7 +35,7 @@
  * component therefore gets a target scale factor
  *   scale_c = max(1, R_packing / R_hop-ideal)
  * where R_packing is the radius of the disk that holds the component's nodes at the
- * sibling engines' packing utilisation and R_hop-ideal comes from the pivot-BFS
+ * shared packing utilisation and R_hop-ideal comes from the pivot-BFS
  * eccentricity. Scaled targets put the UNCONSTRAINED stress optimum near the feasible
  * set, so the projector's correction is small and local, the alternation contracts,
  * and — because the PivotMDS seed is laid out at unscaled hop geometry — the layout
@@ -50,11 +49,11 @@
  * Community / degree / size awareness is TARGET SHAPING, not forces:
  *
  *   - Cross-community pair targets are inflated by `communitySeparation`; same-community
- *     targets are slightly deflated by `communityCohesion` (Louvain ids come from the
- *     same pipeline the sibling engines use). Weight-to-shaping mapping from the SGD
- *     engine's force weights: separation w → ×(1 + 2w) on cross-community targets
- *     (default 0.08 → +16 %, harness max 0.8 → +160 %); cohesion w → ×1/(1 + 2w) on
- *     same-community targets (default 0.02 → −4 %); degreeRepulsion w → haloShare
+ *     targets are slightly deflated by `communityCohesion` (seeded Louvain ids).
+ *     Weight-to-shaping mapping (the numeric slider ranges predate this engine, so the
+ *     scales are documented explicitly): separation w → ×(1 + 2w) on cross-community
+ *     targets (default 0.08 → +16 %, harness max 0.8 → +160 %); cohesion w → ×1/(1 + 2w)
+ *     on same-community targets (default 0.02 → −4 %); degreeRepulsion w → haloShare
  *     min(1, 2w), the fraction of a packing-bound hub's packing radius its children
  *     are pushed out to (default 0.02 → compact packing against the hub's rim;
  *     harness max 0.3 → children start 60 % of the way to the packing shell). All
@@ -63,13 +62,13 @@
  *   - Hub-incident edge targets are PACKING-AWARE: when a hub's one-ring radius
  *     (Σ_children(2r+pad)/2π) exceeds the edge target, its children cannot all sit at
  *     the target distance, so its spokes get the feasible band from the collision gap
- *     out to the hub's disk-packing radius (at the sibling engines' ~55 % utilisation)
+ *     out to the hub's disk-packing radius (at the shared ~55 % utilisation)
  *     with slack. A 150-leaf hub thus AIMS its spokes at a geometrically feasible
  *     halo from iteration one instead of compacting to an infeasible 1-hop length and
  *     being exploded by a terminal overlap pass — this kills the contract→expand
  *     relayout swing.
  *   - Near-coincident non-adjacent pairs (spatial-hash grid over the initial/warm
- *     positions, same 3×3-neighbourhood scan the sibling overlap passes use) get floor
+ *     positions, the same 3×3-neighbourhood scan the overlap passes use) get floor
  *     terms d* ≥ rᵢ + r_j + pad, so piles separate through the stress solve itself.
  *
  * Deterministic throughout: seeded pivot selection, hash-derived coincident directions,
@@ -93,7 +92,7 @@
 /* eslint-disable no-bitwise */
 /* eslint-disable id-length */
 /* eslint-disable no-param-reassign -- typed-array kernels (SpMV / CG) write through
-   caller-owned buffers by design, as in the sibling solvers */
+   caller-owned buffers by design */
 
 import { UndirectedGraph } from "graphology";
 import louvain from "graphology-communities-louvain";
@@ -104,7 +103,7 @@ import {
   REGION_MIN_COMMUNITY_SIZE,
   REGION_PACKING_UTILISATION,
 } from "./region-metrics";
-import { INF_DIST, SparseStressSolver } from "./sparse-stress-solver";
+import { INF_DIST, StressAnalysis } from "./stress-analysis";
 
 import type { FlatGraphBuffer } from "../buffers/position-buffer";
 import type {
@@ -113,35 +112,34 @@ import type {
   ForceNode,
   LayoutSimulation,
 } from "./force-simulation";
-import type { SparseStressSolverResult } from "./sparse-stress-solver";
+import type { StressAnalysisResult } from "./stress-analysis";
 
-/** Layout-space length for one graph hop (matches the sibling engines). */
+/** Layout-space length for one graph hop. */
 const IDEAL_LINK_LENGTH = 60;
 /** Extra gap between node disks: collision floors AND the projector's pair gap. */
 const OVERLAP_PADDING = 8;
-/** Default community/degree shaping weights — identical to the SGD engine's sliders. */
+/** Default community/degree shaping weights (the harness slider defaults). */
 const COMMUNITY_COHESION = 0.02;
 const COMMUNITY_SEPARATION = 0.08;
 const DEGREE_REPULSION = 0.02;
 
 /**
- * Slider-to-target-shaping gains. The SGD engine consumed the three weights as
- * per-epoch force step fractions; here they shape TARGETS instead:
+ * Slider-to-target-shaping gains. The three tuning weights shape TARGETS:
  *   cross-community target ×(1 + separation·GAIN), same-community ×1/(1 + cohesion·GAIN),
  *   packing-bound hub spokes: haloShare = min(1, degreeRepulsion·GAIN) — the fraction
  *   of the hub's packing radius its children are pushed out to (0 = children may pack
  *   right against the hub's rim; 1 = children start at the packing radius shell).
  * GAIN = 2 places the harness slider ranges (0–0.3 / 0–0.8 / 0–0.3) onto a
- * ±few-percent … +160 % shaping range, bracketing the old engines' visual effect.
+ * ±few-percent … +160 % shaping range.
  */
 const SEPARATION_TARGET_GAIN = 2;
 const COHESION_TARGET_GAIN = 2;
 const DEGREE_HALO_GAIN = 2;
 
 /**
- * Disk-packing utilisation (matches the sibling engines' scale-to-fit sizing), used
- * both for the multi-ring hub floor (the disk that packs a hub's children) and for the
- * per-component feasibility scale (the disk that packs a whole component).
+ * Disk-packing utilisation, used both for the multi-ring hub floor (the disk that
+ * packs a hub's children) and for the per-component feasibility scale (the disk
+ * that packs a whole component).
  */
 const PACKING_UTILISATION = 0.55;
 
@@ -153,14 +151,13 @@ const NEAR_PAIR_MAX_PARTNERS = 8;
 /**
  * COMMUNITY-REGION floors: every node outside community c is kept OUT of c's region
  * disk — centred on the members' live centroid, radius R_c from the packing area of
- * c's member disks (the same packing model as the hub floors and the sibling
- * engines' scale-to-fit). This is the region-level separation the target-shaping
- * translation of the SGD engine dropped: cross-community inflation only stretches
- * EXISTING terms (edges + pivot pairs), so an unrelated branch — sharing no edge
- * and no pivot term with a foreign community — had NOTHING keeping it out of that
- * community's fan and folded straight through it (measured: 32 % of real-shape
- * nodes sat inside a foreign community's core disk; degree-1 leaves, which pivot
- * anchoring deliberately skips, interpenetrate worst).
+ * c's member disks (the same packing model as the hub floors). This is region-level
+ * separation that target shaping alone cannot provide: cross-community inflation
+ * only stretches EXISTING terms (edges + pivot pairs), so an unrelated branch —
+ * sharing no edge and no pivot term with a foreign community — had NOTHING keeping
+ * it out of that community's fan and folded straight through it (measured: 32 % of
+ * real-shape nodes sat inside a foreign community's core disk; degree-1 leaves,
+ * which pivot anchoring deliberately skips, interpenetrate worst).
  *
  * Enforced as a RELAX PASS (violators are pushed radially out of the region disk,
  * gently at every iteration boundary and to verified-clean in the terminal
@@ -272,8 +269,8 @@ const CONVERGENCE_STREAK = 2;
  *
  * Two projector designs were tried and REJECTED on measurement, both livelocking the
  * 3k benchmark at the iteration cap with projection eating ~98 % of wall time:
- *   1. Per-iteration exact VPSC ({@link "./overlap-removal"}): its RECTANGLE
- *      geometry (|dx| or |dy| ≥ half-extent sum) conflicts with the CIRCLE geometry
+ *   1. Per-iteration exact VPSC (a rectangle-separation solver, since deleted): its
+ *      RECTANGLE geometry (|dx| or |dy| ≥ half-extent sum) conflicts with the CIRCLE geometry
  *      of the stress terms, the collision floors, and the zero-overlap oracle
  *      (dist ≥ rᵢ+r_j+pad). A circle-optimal solve packs pairs diagonally at
  *      distances the rectangle model forbids by up to ~30 %, so the projector
@@ -322,11 +319,11 @@ const ANALYSIS_TICK_WORK = 16384;
 /** Term-emission / RHS work units per advance step. */
 const TERM_CHUNK = 65_536;
 
-/** Refresh Louvain once the layout grows by this fraction (matches the sibling engines). */
+/** Refresh Louvain once the layout grows by this fraction. */
 const LOUVAIN_REFRESH_GROWTH_FRACTION = 0.3;
 const LOUVAIN_REFRESH_MIN_NEW_NODES = 24;
 
-/** Deterministic init jitter (fraction of the ideal edge length), as the SGD engine uses. */
+/** Deterministic init jitter (fraction of the ideal edge length). */
 const SEED_JITTER = 0.01;
 
 const EPS = 1e-9;
@@ -423,9 +420,9 @@ class MajorizationSolver {
 
   #phase: SolverPhase;
 
-  /** Reused pivot/BFS/PivotMDS analysis from the sparse-stress engine (epochs: 0). */
-  #analysis: SparseStressSolver | null;
-  #analysisResult: SparseStressSolverResult | undefined;
+  /** Budget-sliced CSR / weak-components / pivot-BFS / PivotMDS analysis passes. */
+  #analysis: StressAnalysis | null;
+  #analysisResult: StressAnalysisResult | undefined;
 
   /**
    * STATIC stress terms (edges + pivot terms), fixed after the build. Each term is an
@@ -565,11 +562,10 @@ class MajorizationSolver {
       return;
     }
 
-    // Reuse the sparse-stress analysis passes: CSR, weak components, min-fill/max-min
-    // pivot selection with per-pivot BFS distance rows, and (cold only) the PivotMDS
-    // coordinate initialisation. `epochs: 0` runs exactly those phases and stops —
-    // no SGD epoch ever executes.
-    this.#analysis = new SparseStressSolver(
+    // The analysis passes: CSR, weak components, min-fill/max-min pivot selection
+    // with per-pivot BFS distance rows, and (cold only) the PivotMDS coordinate
+    // initialisation + component packing.
+    this.#analysis = new StressAnalysis(
       {
         n: this.#n,
         src: this.#src,
@@ -579,11 +575,9 @@ class MajorizationSolver {
       },
       {
         pivotCount: options.pivotCount,
-        epochs: 0,
         keepInitialPositions: input.warm,
         jitter: input.warm ? 0 : SEED_JITTER,
         packComponents: !input.warm,
-        returnPivotDistances: true,
         randomSeed: 1,
         idealEdgeLength: options.idealEdgeLength,
         validate: false,
@@ -825,7 +819,7 @@ class MajorizationSolver {
     }
 
     // Near-pair floor terms: pairs currently overlapping (or nearly) that share no
-    // edge, found with the same uniform-grid 3×3 scan the sibling overlap passes use.
+    // edge, found with the same uniform-grid 3×3 scan the overlap-relax passes use.
     // Emitted ONCE per build from the seed/warm positions: they break the initial
     // coincident piles apart through the stress solve itself (PUSH-ONLY: [floor, ∞)).
     // Pairs that drift together only mid-solve are the settle phase's job instead —
@@ -1102,7 +1096,7 @@ class MajorizationSolver {
   /**
    * Grid-detected near-pair floors. Deterministic: nodes scanned in index order, each
    * unordered pair visited once, partners capped per node in scan order. Cell keys
-   * are packed NUMERIC (like the sibling grids' cell hashing, but collision-free):
+   * are packed NUMERIC (like the overlap-relax grid's cell hashing, but collision-free):
    * (cx, cy) offset into [0, 2²⁶) and combined as cx·2²⁶ + cy — exact in a float64
    * up to 2⁵², injective for |cell| < 2²⁵ (world coords far beyond any layout).
    */
@@ -1746,25 +1740,22 @@ class MajorizationLayout implements LayoutSimulation {
    */
   #publishedGeneration = 0;
 
-  // Diagnostics, duck-typed to the names the worker's debug log reads STRUCTURALLY
-  // from every engine (`diag.forbidOverlaps` etc. in graph-worker's #tickLayouts) —
-  // renaming them would silently drop this engine from the debug line, so the names
-  // stay and the mapping is documented per field.
+  // Diagnostics, read STRUCTURALLY (duck-typed) by the worker's debug log
+  // (tick-loop's #logOverlapDiagnostics).
   /** Cumulative wall time (ms) spent in solver ticks. */
   overlapProjectionMs = 0;
   /** Majorization iterations completed. */
   overlapProjectionCalls = 0;
   /** Worst single tick (ms) — the per-tick budget guard. */
-  maxForbidStepMs = 0;
+  maxTickMs = 0;
   /**
    * MEASURED strict disk overlaps in the last completed iterate / settle
-   * verification (the SGD engine feeds this from `overlapsRemaining`). Non-zero
-   * during the stress phase by design; a non-zero value after settle means the
-   * settle cap was hit — see {@link settleCapped}.
+   * verification. Non-zero during the stress phase by design; a non-zero value
+   * after settle means the settle cap was hit — see {@link settleCapped}.
    */
-  forbidOverlaps = 0;
-  /** Laplacian (re)builds — the closest analogue to the SGD engine's expansions. */
-  forbidExpansions = 0;
+  overlapsRemaining = 0;
+  /** Laplacian (re)builds (cold build + every warm absorb/relayout). */
+  laplacianRebuilds = 0;
 
   #absorbedSinceLouvain = 0;
   #countAtLastLouvain = 0;
@@ -1910,7 +1901,7 @@ class MajorizationLayout implements LayoutSimulation {
         }
       }
       this.overlapProjectionCalls = solver.iteration;
-      this.forbidOverlaps = solver.residualOverlaps;
+      this.overlapsRemaining = solver.residualOverlaps;
       // Publish at iteration / settle-unit boundaries only: every displayed frame is
       // a completed majorization iterate (or a settle sweep of one).
       if (
@@ -1929,8 +1920,8 @@ class MajorizationLayout implements LayoutSimulation {
 
     const elapsed = performance.now() - startTime;
     this.overlapProjectionMs += elapsed;
-    if (elapsed > this.maxForbidStepMs) {
-      this.maxForbidStepMs = elapsed;
+    if (elapsed > this.maxTickMs) {
+      this.maxTickMs = elapsed;
     }
     return stepped;
   }
@@ -1999,7 +1990,7 @@ class MajorizationLayout implements LayoutSimulation {
    * Force a Louvain refresh if nodes were absorbed since the last one (trailing-edge
    * complement to the growth trigger). Position-neutral; returns whether it ran. The
    * refreshed membership feeds the NEXT solver build's target shaping (a mid-solve
-   * relabel does not regenerate the current targets — parity with the SGD engine).
+   * relabel does not regenerate the current targets).
    */
   refreshCommunities(): boolean {
     if (this.#absorbedSinceLouvain === 0) {
@@ -2051,7 +2042,7 @@ class MajorizationLayout implements LayoutSimulation {
       }
     }
 
-    this.forbidExpansions += 1;
+    this.laplacianRebuilds += 1;
     return new MajorizationSolver(
       {
         n: count,

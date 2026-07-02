@@ -115,8 +115,8 @@ React's data via the join key):
 
 **Layout-affecting — round-trips to the worker** (inbound SAB):
 
-- **Drag a node** → pin it (FA2 `fixed`) at the dragged position; the field
-  re-energises and neighbours adjust; unpin on release.
+- **Drag a node** → pin it at the dragged position (an engine pin/fixed flag);
+  the field re-energises and neighbours adjust; unpin on release.
 - **Click a (greyed-out) frontier node → expand** — fetch its neighbours (they become
   the new frontier), colour it in. (Spec §7; `worker/frontier.ts` is scaffolded.)
 

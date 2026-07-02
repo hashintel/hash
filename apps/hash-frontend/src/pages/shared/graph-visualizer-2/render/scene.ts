@@ -101,6 +101,8 @@ export class Scene {
   readonly #entityIcons: EntityIcons;
   /** Render-cost capture (dev harness benchmark); idle unless a capture is running. */
   readonly #renderMetrics = new RenderMetricsProbe();
+  /** True while inside a timed rebuild, so nested rebuild paths count once. */
+  #rebuildTimingActive = false;
 
   constructor(
     container: HTMLDivElement,
@@ -197,14 +199,14 @@ export class Scene {
     this.#camera.fitToContent();
   }
 
-  /** Begin a render-cost capture (deck stats + layer-push timings). */
+  /** Begin a render-cost capture (deck stats + rebuild timings + zoom envelope). */
   startRenderCapture(): void {
-    this.#renderMetrics.start();
+    this.#renderMetrics.start(this.#camera.zoom);
   }
 
   /** End the capture started by {@link startRenderCapture} and summarise it. */
   stopRenderCapture(): RenderCaptureReport {
-    return this.#renderMetrics.stop();
+    return this.#renderMetrics.stop(this.#camera.zoom);
   }
 
   get renderCapturing(): boolean {
@@ -246,11 +248,13 @@ export class Scene {
     }
 
     this.#positionTick += 1;
-    updatePlaced(this.#placed, positions);
-    this.#dataLayers = this.#buildDataLayers(structure, positions);
-    this.#rebuildLabels();
-    this.#overlayLayers = this.#buildOverlay();
-    this.#pushLayers();
+    this.#timedRebuild(() => {
+      updatePlaced(this.#placed, positions);
+      this.#dataLayers = this.#buildDataLayers(structure, positions);
+      this.#rebuildLabels();
+      this.#overlayLayers = this.#buildOverlay();
+      this.#pushLayers();
+    });
     // The selected node may have moved this tick: refresh the tracked overlays.
     this.#interactions.afterPositions();
     this.#hubLabels.schedule();
@@ -356,17 +360,25 @@ export class Scene {
   /** Camera moved: run the bucket-gated rebuilds and re-project the HTML overlays. */
   #afterViewStateApplied(changes: ZoomBucketChanges): void {
     // Label layers rebuild on zoom bucket changes; a pure pan reprojects
-    // via viewState with no rebuild.
-    if (changes.labelColorBucketChanged) {
-      this.#rebuildLabels();
-    }
-    if (changes.labelEligibilityChanged) {
-      this.#hubLabels.rebuild();
-    }
-    if (changes.iconEligibilityChanged) {
-      this.#refreshDataLayers();
-    } else if (changes.labelColorBucketChanged) {
-      this.#pushLayers();
+    // via viewState with no rebuild (and records no rebuild span).
+    if (
+      changes.labelColorBucketChanged ||
+      changes.labelEligibilityChanged ||
+      changes.iconEligibilityChanged
+    ) {
+      this.#timedRebuild(() => {
+        if (changes.labelColorBucketChanged) {
+          this.#rebuildLabels();
+        }
+        if (changes.labelEligibilityChanged) {
+          this.#hubLabels.rebuild();
+        }
+        if (changes.iconEligibilityChanged) {
+          this.#refreshDataLayers();
+        } else if (changes.labelColorBucketChanged) {
+          this.#pushLayers();
+        }
+      });
     }
     // HTML overlays use projected screen coords, so they must re-project on
     // every camera move (pan included) or they freeze under the sliding canvas.
@@ -387,14 +399,35 @@ export class Scene {
     if (!structure || !positions) {
       return;
     }
-    this.#dataLayers = this.#buildDataLayers(structure, positions);
-    this.#overlayLayers = this.#buildOverlay();
-    this.#pushLayers();
+    this.#timedRebuild(() => {
+      this.#dataLayers = this.#buildDataLayers(structure, positions);
+      this.#overlayLayers = this.#buildOverlay();
+      this.#pushLayers();
+    });
+  }
+
+  /**
+   * Run a synchronous layer-rebuild span under the metrics probe. Spans
+   * nest (a zoom-bucket rebuild funnels into {@link #refreshDataLayers});
+   * only the outermost records, so each rebuild is counted once, in full.
+   */
+  #timedRebuild(rebuild: () => void): void {
+    if (!this.#renderMetrics.capturing || this.#rebuildTimingActive) {
+      rebuild();
+      return;
+    }
+    this.#rebuildTimingActive = true;
+    const startMs = performance.now();
+    try {
+      rebuild();
+    } finally {
+      this.#rebuildTimingActive = false;
+      this.#renderMetrics.recordRebuild(performance.now() - startMs);
+      this.#renderMetrics.recordZoom(this.#camera.zoom);
+    }
   }
 
   #pushLayers(): void {
-    const capturing = this.#renderMetrics.capturing;
-    const pushStart = capturing ? performance.now() : 0;
     this.#deck.setProps({
       layers: [
         ...this.#dataLayers,
@@ -402,9 +435,6 @@ export class Scene {
         ...this.#overlayLayers,
       ],
     });
-    if (capturing) {
-      this.#renderMetrics.recordLayerPush(performance.now() - pushStart);
-    }
   }
 
   #rebuildLabels(): void {

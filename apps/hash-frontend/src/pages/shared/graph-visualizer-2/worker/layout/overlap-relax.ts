@@ -2,10 +2,11 @@
  * Node-size overlap resolution for the stress-based layout.
  *
  * Stress / MDS layouts place nodes to match graph-theoretic distances and carry no
- * notion of a node's drawn radius, so dots can overlap. This is the separable
- * equivalent of ForceAtlas2's `adjustSizes` anti-overlap: a uniform-grid relaxation
- * that pushes overlapping pairs apart, run as its own pass between solver ticks so
- * the stress engine ({@link "./sparse-stress-seed"}) stays untouched.
+ * notion of a node's drawn radius, so dots can overlap. This is a uniform-grid
+ * relaxation that pushes overlapping pairs apart, run as its own pass between
+ * solver iterations (the majorization engine's projection step) so the stress
+ * solve itself stays untouched. `countOverlaps` is the zero-overlap oracle the
+ * engine's settle verification and the test gates share.
  *
  * Deterministic: nodes are visited in index order, each unordered pair is resolved
  * once, and coincident nodes separate along a hash-derived direction, so a seeded

@@ -38,8 +38,8 @@ const DEFAULT_KNOBS: HarnessKnobs = {
   linkDensity: 1.2,
   rootFraction: 0.7,
   hubCount: 4,
-  // Stress baseline matching the StressLayout production defaults, so the initial view equals it.
-  stressEngine: "stress",
+  // Target-shaping baseline matching the majorization engine's production defaults,
+  // so the initial view equals it.
   stressCommunityCohesion: 0.02,
   stressCommunitySeparation: 0.08,
   stressDegreeRepulsion: 0.02,
@@ -251,8 +251,9 @@ export const DevHarness = () => {
       // eslint-disable-next-line no-console -- dev harness affordance (console-copyable)
       console.log("render-bench report:", JSON.stringify(report, null, 2));
       setRenderBenchStatus(
-        `fps ${report.deck.fps.toFixed(0)} | cpu/frame ${report.deck.cpuTimePerFrame.toFixed(1)}ms | ` +
-          `push p95 ${report.layerPush.p95Ms.toFixed(2)}ms (${report.layerPush.count} pushes)`,
+        `fps ${report.deck.fps.toFixed(0)} | attrs ${report.deck.updateAttributesTime.toFixed(1)}ms/s | ` +
+          `rebuild p95 ${report.rebuild.p95Ms.toFixed(2)}ms (${report.rebuild.count}x) | ` +
+          `zoom ${report.camera.initialZoom.toFixed(1)} [${report.camera.minZoom.toFixed(1)}..${report.camera.maxZoom.toFixed(1)}]`,
       );
     }, RENDER_BENCH_DURATION_MS);
   }, []);
@@ -284,27 +285,25 @@ export const DevHarness = () => {
     knobs.linkDensity,
     knobs.rootFraction,
     knobs.hubCount,
-    knobs.stressEngine,
     knobs.stressCommunityCohesion,
     knobs.stressCommunitySeparation,
     knobs.stressDegreeRepulsion,
     knobs.stream,
   ].join(":");
 
-  // Default scale/cluster config plus the stress force overrides from the knobs. A change to any
-  // stress knob also changes the key above, so the worker remounts and re-inits with the new forces.
+  // Default scale/cluster config plus the target-shaping overrides from the knobs. A change to
+  // any stress knob also changes the key above, so the worker remounts and re-inits with the
+  // new shaping weights.
   const layoutConfig = useMemo<VizConfig>(
     () => ({
       ...defaultVizConfig,
       stress: {
-        engine: knobs.stressEngine,
         communityCohesion: knobs.stressCommunityCohesion,
         communitySeparation: knobs.stressCommunitySeparation,
         degreeRepulsion: knobs.stressDegreeRepulsion,
       },
     }),
     [
-      knobs.stressEngine,
       knobs.stressCommunityCohesion,
       knobs.stressCommunitySeparation,
       knobs.stressDegreeRepulsion,

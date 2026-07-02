@@ -196,10 +196,11 @@ export interface CoincidentHubSpec {
 /**
  * A {@link buildForceGraph} cloud PLUS one or more super-hubs, each with `leaves`
  * degree-1 leaves initialised near-coincident with its hub centre. This reproduces
- * the production pathology that froze the old terminal VPSC projection for seconds:
- * a hub's worth of leaves cannot be pulled apart by the stress phase's soft overlap
- * term (it reaches equilibrium), so a tight near-coincident pile-up reaches the
- * overlap-removal phase. The extra node/edge ids continue the cloud's index space.
+ * the production pathology that froze a long-deleted terminal VPSC projection for
+ * seconds: a hub's worth of near-coincident leaves reaching the overlap-resolution
+ * phase as one tight pile-up. It remains the stress fixture for the majorization
+ * engine's projection + hub floors. The extra node/edge ids continue the cloud's
+ * index space.
  */
 export function buildForceGraphWithCoincidentHubs(
   shape: GraphShape,

@@ -153,11 +153,10 @@ export class TickLoop {
   }
 
   /**
-   * Per-tick instrumentation for the incremental overlap-removal (FORBID)
-   * phase: confirms on the user's actual graph that no single tick freezes and
-   * that the overlap count marches to zero. Debug-gated; the fields are
-   * duck-typed so this stays agnostic to which layout engine (stress vs
-   * majorization) is mounted.
+   * Per-tick instrumentation for the majorization engine's overlap projection:
+   * confirms on the user's actual graph that no single tick freezes and that
+   * the overlap count marches to zero. Debug-gated; the fields are duck-typed
+   * (read structurally off the layout) so the tick loop needs no engine import.
    */
   #logOverlapDiagnostics(
     clusterId: string,
@@ -166,16 +165,20 @@ export class TickLoop {
     layoutTickMs: number,
   ): void {
     const diag = layout as Partial<{
-      forbidOverlaps: number;
+      /** Strict disk overlaps at the last iterate / settle verification. */
+      overlapsRemaining: number;
+      /** Majorization iterations completed. */
       overlapProjectionCalls: number;
-      maxForbidStepMs: number;
-      forbidExpansions: number;
+      /** Worst single tick (ms) — the per-tick budget guard. */
+      maxTickMs: number;
+      /** Laplacian (re)builds (cold build + every warm absorb/relayout). */
+      laplacianRebuilds: number;
       edgeCount: number;
-      /** Majorization: iteration cap hit (solve stopped before convergence). */
+      /** Iteration cap hit (solve stopped before convergence). */
       capped: boolean;
-      /** Majorization: settle pass cap hit (violations may remain). */
+      /** Settle pass cap hit (violations may remain). */
       settleCapped: boolean;
-      /** Majorization: community-region floor violations at last measurement. */
+      /** Community-region floor violations at last measurement. */
       regionViolations: number;
     }>;
 
@@ -193,17 +196,17 @@ export class TickLoop {
     ];
 
     const parts = [
-      `[graph-worker][forbid] cluster=${clusterId}`,
+      `[graph-worker][majorization] cluster=${clusterId}`,
       `n=${layout.nodes.length}`,
       `edges=${diag.edgeCount ?? "?"}`,
       `tickMs=${layoutTickMs.toFixed(2)}`,
-      `epochs=${diag.overlapProjectionCalls}`,
-      `overlaps=${diag.forbidOverlaps ?? "?"}`,
+      `iterations=${diag.overlapProjectionCalls}`,
+      `overlaps=${diag.overlapsRemaining ?? "?"}`,
       ...(diag.regionViolations !== undefined
         ? [`regionViolations=${diag.regionViolations}`]
         : []),
-      `expansions=${diag.forbidExpansions ?? 0}`,
-      `maxStepMs=${(diag.maxForbidStepMs ?? 0).toFixed(2)}`,
+      `rebuilds=${diag.laplacianRebuilds ?? 0}`,
+      `maxTickMs=${(diag.maxTickMs ?? 0).toFixed(2)}`,
       ...(cappedFlags.length > 0 ? [`capped=${cappedFlags.join("+")}`] : []),
     ];
 

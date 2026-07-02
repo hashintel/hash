@@ -1,28 +1,20 @@
-/* eslint-disable no-console -- committed A/B harness whose whole purpose is to PRINT a
-   side-by-side majorization-vs-stress-vs-FA2 comparison table (time + layout quality). */
+/* eslint-disable no-console -- committed metrics harness whose whole purpose is to PRINT
+   the majorization engine's tracked quality/perf baseline table. */
 /**
- * Three-way head-to-head of the community-tier layout engines on identical
- * deterministic fixtures (the relayout-motion brief's A/B):
- *
- *   - FA2          : createCommunityLayout    (Louvain → sparse-stress SEED → FA2 refine)
- *   - stress       : createStressLayout       (SGD² pivot stress + fused overlap + terminal FORBID)
- *   - majorization : createMajorizationLayout (constrained stress majorization, IPSep-CoLa style)
- *
- * Fixtures are the perf-gate shapes: 1k/3k/5k hub-skewed clouds with a 150-leaf
- * near-coincident hub grafted on, plus the ~1k-node TWO-hub "real shape". Metrics per
- * engine per fixture, all from the settled positions driven at the production 1 ms
- * tick cadence:
+ * Tracked metrics baseline for the community-tier layout engine (constrained
+ * stress majorization — the only engine since the FA2/SGD trim). Descended from
+ * the three-way A/B harness that picked it; the fixtures and metrics are
+ * unchanged so numbers stay comparable across history:
  *
  *   wall ms      construct → settled wall time
  *   worstTick    largest single tick (ms) — the jank ceiling
  *   overlaps     strictly intersecting disk pairs (zero-overlap oracle)
- *   edgeStress   scale-invariant RMS edge-length deviation (best-fit uniform scale,
- *                so engines with different global scales compare fairly)
+ *   edgeStress   scale-invariant RMS edge-length deviation (best-fit uniform scale)
  *   spreadDip    terminal contract→expand rebound: how far the RMS spread dips below
  *                its final value after the widest point, as a fraction of final
  *                (0 = monotone approach, the motion gate)
  *   inter/intra  mean cross-community edge length ÷ mean same-community edge length
- *                (Louvain partition computed once per fixture, shared by all engines)
+ *                (Louvain partition computed once per fixture)
  *   regionOv     region-overlap (PRIMARY region-disjointness metric): fraction of
  *                nodes strictly inside a FOREIGN community's packing disk — the
  *                user-visible "bubble intrudes into another community" artifact
@@ -32,9 +24,13 @@
  *                (≈1 = leaves sit right at the tightest feasible halo)
  *   determ.      bitwise position equality across two identical runs
  *
+ * Fixtures are the perf-gate shapes: 1k/3k/5k hub-skewed clouds with a 150-leaf
+ * near-coincident hub grafted on, plus the ~1k-node TWO-hub "real shape". All are
+ * driven at the production 1 ms tick cadence.
+ *
  * Run (from apps/hash-frontend):
  *   node_modules/.bin/vitest bench --run \
- *     src/pages/shared/graph-visualizer-2/worker/layout/majorization-ab.bench.ts
+ *     src/pages/shared/graph-visualizer-2/worker/layout/majorization-baseline.bench.ts
  */
 import { UndirectedGraph } from "graphology";
 import louvain from "graphology-communities-louvain";
@@ -47,11 +43,9 @@ import {
   buildRealShapeFixture,
 } from "../bench-fixtures";
 import { FlatGraphBuffer } from "../buffers/position-buffer";
-import { createCommunityLayout } from "./community-layout";
 import { createMajorizationLayout } from "./majorization-layout";
 import { countOverlaps } from "./overlap-relax";
 import { measureRegionOverlap } from "./region-metrics";
-import { createStressLayout } from "./stress-layout";
 
 import type { GraphShape } from "../bench-fixtures";
 import type {
@@ -61,7 +55,7 @@ import type {
 } from "./force-simulation";
 
 const HUB_LEAVES = 150;
-/** Extra pair gap used by the hub-halo denominator (matches the engines' padding). */
+/** Extra pair gap used by the hub-halo denominator (matches the engine's padding). */
 const HALO_PADDING = 8;
 
 interface Fixture {
@@ -108,34 +102,17 @@ function buildFixtures(): Fixture[] {
   return fixtures;
 }
 
-type LayoutFactory = (
+/** Fresh node objects per run: the solver mutates x/y in place. */
+function cloneNodes(nodes: readonly ForceNode[]): ForceNode[] {
+  return nodes.map((node) => ({ ...node }));
+}
+
+function makeLayout(
   nodes: ForceNode[],
   edges: ForceEdge[],
   buffer: FlatGraphBuffer,
-) => LayoutSimulation;
-
-const ENGINES: readonly {
-  readonly name: string;
-  readonly make: LayoutFactory;
-}[] = [
-  {
-    name: "FA2",
-    make: (nodes, edges, buffer) => createCommunityLayout(nodes, edges, buffer),
-  },
-  {
-    name: "stress",
-    make: (nodes, edges, buffer) => createStressLayout(nodes, edges, buffer),
-  },
-  {
-    name: "majorization",
-    make: (nodes, edges, buffer) =>
-      createMajorizationLayout(nodes, edges, buffer),
-  },
-];
-
-/** Fresh node objects per run: the solvers mutate x/y in place. */
-function cloneNodes(nodes: readonly ForceNode[]): ForceNode[] {
-  return nodes.map((node) => ({ ...node }));
+): LayoutSimulation {
+  return createMajorizationLayout(nodes, edges, buffer);
 }
 
 const edgeEndpointId = (endpoint: ForceEdge["source"]): string =>
@@ -215,7 +192,7 @@ function terminalReboundOf(spreads: readonly number[]): number {
   return finalSpread > 0 ? (finalSpread - postPeakMin) / finalSpread : 0;
 }
 
-/** One Louvain partition per fixture (seeded → deterministic), shared by every engine. */
+/** One Louvain partition per fixture (seeded → deterministic). */
 function communityPartition(
   nodes: readonly ForceNode[],
   edges: readonly ForceEdge[],
@@ -364,14 +341,14 @@ function measureQuality(
 }
 
 /** Bitwise position equality of two settled runs over identical input. */
-function isDeterministic(
-  make: LayoutFactory,
-  nodes: readonly ForceNode[],
-  edges: ForceEdge[],
-): boolean {
+function isDeterministic(nodes: readonly ForceNode[], edges: ForceEdge[]) {
   const runPositions = (): Float64Array => {
     const runNodes = cloneNodes(nodes);
-    const layout = make(runNodes, edges, new FlatGraphBuffer(runNodes.length));
+    const layout = makeLayout(
+      runNodes,
+      edges,
+      new FlatGraphBuffer(runNodes.length),
+    );
     drive(layout);
     const positions = new Float64Array(runNodes.length * 2);
     for (const [index, node] of layout.nodes.entries()) {
@@ -389,7 +366,7 @@ function pad(text: string, width: number, alignRight = true): string {
   return alignRight ? text.padStart(width) : text.padEnd(width);
 }
 
-function comparisonReport(fixture: Fixture): string {
+function baselineReport(fixture: Fixture): string {
   const { nodes, edges } = fixture;
   const communities = communityPartition(nodes, edges, 1);
   const columns = [13, 9, 10, 9, 11, 10, 12, 9, 9, 8];
@@ -400,7 +377,7 @@ function comparisonReport(fixture: Fixture): string {
 
   const lines: string[] = [];
   lines.push(
-    `\n=== A/B ${fixture.name}: ${nodes.length} nodes / ${edges.length} edges ===`,
+    `\n=== baseline ${fixture.name}: ${nodes.length} nodes / ${edges.length} edges ===`,
   );
   const header = row([
     "engine",
@@ -417,41 +394,39 @@ function comparisonReport(fixture: Fixture): string {
   lines.push(header);
   lines.push("-".repeat(header.length));
 
-  for (const engine of ENGINES) {
-    const runNodes = cloneNodes(nodes);
-    const layout = engine.make(
-      runNodes,
-      edges,
-      new FlatGraphBuffer(runNodes.length),
-    );
-    const result = drive(layout);
-    const quality = measureQuality(layout, edges, communities);
-    const deterministic = fixture.checkDeterminism
-      ? isDeterministic(engine.make, nodes, edges)
-        ? "yes"
-        : "NO"
-      : "-";
-    lines.push(
-      row([
-        engine.name,
-        result.wallMs.toFixed(0),
-        result.worstTickMs.toFixed(1),
-        String(quality.overlaps),
-        quality.edgeStress.toFixed(3),
-        terminalReboundOf(result.spreads).toFixed(3),
-        quality.interIntra.toFixed(2),
-        quality.regionOverlap.toFixed(3),
-        quality.hubSpokeRatio.toFixed(2),
-        deterministic,
-      ]),
-    );
-  }
+  const runNodes = cloneNodes(nodes);
+  const layout = makeLayout(
+    runNodes,
+    edges,
+    new FlatGraphBuffer(runNodes.length),
+  );
+  const result = drive(layout);
+  const quality = measureQuality(layout, edges, communities);
+  const deterministic = fixture.checkDeterminism
+    ? isDeterministic(nodes, edges)
+      ? "yes"
+      : "NO"
+    : "-";
+  lines.push(
+    row([
+      "majorization",
+      result.wallMs.toFixed(0),
+      result.worstTickMs.toFixed(1),
+      String(quality.overlaps),
+      quality.edgeStress.toFixed(3),
+      terminalReboundOf(result.spreads).toFixed(3),
+      quality.interIntra.toFixed(2),
+      quality.regionOverlap.toFixed(3),
+      quality.hubSpokeRatio.toFixed(2),
+      deterministic,
+    ]),
+  );
 
   return lines.join("\n");
 }
 
 for (const fixture of buildFixtures()) {
-  console.log(comparisonReport(fixture));
+  console.log(baselineReport(fixture));
 }
 
 /** Statistical timing cross-check on the real shape (the primary fixture). */
@@ -464,16 +439,12 @@ const BENCH_OPTIONS = {
 
 describe("community layout solve (real two-hub shape)", () => {
   const { nodes, edges } = buildRealShapeFixture();
-  for (const engine of ENGINES) {
-    bench(
-      engine.name,
-      () => {
-        const runNodes = cloneNodes(nodes);
-        drive(
-          engine.make(runNodes, edges, new FlatGraphBuffer(runNodes.length)),
-        );
-      },
-      BENCH_OPTIONS,
-    );
-  }
+  bench(
+    "majorization",
+    () => {
+      const runNodes = cloneNodes(nodes);
+      drive(makeLayout(runNodes, edges, new FlatGraphBuffer(runNodes.length)));
+    },
+    BENCH_OPTIONS,
+  );
 });

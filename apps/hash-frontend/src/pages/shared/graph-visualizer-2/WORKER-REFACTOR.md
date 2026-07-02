@@ -83,10 +83,10 @@ geometry/ core/`; `index.ts` -> `core/graph-worker.ts`. `entry.ts`, `protocol.ts
   `worker/hierarchy/distinctive-cluster-label.ts` (587) -- the Phase B splits
   below already plan these.
 - Math-heavy layout engines are EXEMPT per the "math-heavy" exception
-  (`sparse-stress-solver.ts`, `sparse-stress-seed.ts`, `majorization-layout.ts`,
-  `overlap-removal.ts`, `community-layout.ts`, `top-level-layout.ts`,
-  `forbid.ts`, `stress-layout.ts`, `untangle.ts`); majorization/sparse-stress
-  are mid-rewrite (CG solver) -- do not touch until that lands.
+  (`majorization-layout.ts`, `stress-analysis.ts`, `overlap-relax.ts`,
+  `top-level-layout.ts`, `untangle.ts`). (The engine trim deleted the other
+  solvers this list used to name — FA2/SGD/FORBID/VPSC; majorization is the
+  single community engine now.)
 
 ### Phase B splits (hit 500-700 lines/file)
 

@@ -1,47 +1,52 @@
 /**
- * Dense index -> (x, y) scratch map backed by a single Float64Array.
+ * Dense index -> (x, y) scratch map backed by two Float64Arrays (one per
+ * coordinate plane).
  *
  * Replaces `Map<index, [x, y]>` in seeding passes that run per layout
- * (re)build: one flat buffer instead of a Map plus one tuple allocation per
- * entry, and `reset` reuses the buffer across passes.
+ * (re)build: flat buffers instead of a Map plus one tuple allocation per
+ * entry, and `reset` reuses the buffers across passes. Separate x/y planes
+ * rather than one interleaved buffer: measured faster for both random access
+ * and sequential sweeps, and half the slots to clear when only presence (x)
+ * must be invalidated.
  *
  * A NaN x-coordinate marks an empty slot (a legitimate position is never
- * NaN), so presence needs no separate bit set.
+ * NaN), so presence needs no separate bit set -- and clearing touches only
+ * the x plane.
  */
 export class PositionScratch<Index extends number> {
-  #coords = new Float64Array(0);
+  #xs = new Float64Array(0);
+  #ys = new Float64Array(0);
 
-  /** Entries in use: 2 * the capacity passed to the last {@link reset}. */
+  /** Slots in use: the capacity passed to the last {@link reset}. */
   #length = 0;
 
   /** Empty every slot and ensure room for indices below `capacity`. */
   reset(capacity: number): void {
-    const required = capacity * 2;
-    if (this.#coords.length < required) {
-      this.#coords = new Float64Array(required);
+    if (this.#xs.length < capacity) {
+      this.#xs = new Float64Array(capacity);
+      this.#ys = new Float64Array(capacity);
     }
-    this.#length = required;
-    this.#coords.fill(Number.NaN, 0, required);
+    this.#length = capacity;
+    // Only x carries the empty marker; y is always written alongside it.
+    this.#xs.fill(Number.NaN, 0, capacity);
   }
 
   has(index: Index): boolean {
-    const slot = index * 2;
-    return slot < this.#length && !Number.isNaN(this.#coords[slot]!);
+    return index < this.#length && !Number.isNaN(this.#xs[index]!);
   }
 
   /** The x coordinate of a slot {@link set} earlier; NaN when empty. */
   x(index: Index): number {
-    return this.#coords[index * 2]!;
+    return this.#xs[index]!;
   }
 
-  /** The y coordinate of a slot {@link set} earlier; NaN when empty. */
+  /** The y coordinate of a slot {@link set} earlier; meaningful only when {@link has}. */
   y(index: Index): number {
-    return this.#coords[index * 2 + 1]!;
+    return this.#ys[index]!;
   }
 
   set(index: Index, x: number, y: number): void {
-    const slot = index * 2;
-    this.#coords[slot] = x;
-    this.#coords[slot + 1] = y;
+    this.#xs[index] = x;
+    this.#ys[index] = y;
   }
 }

@@ -348,6 +348,78 @@ describe("createMajorizationLayout", () => {
     expect(overlapCountOf(layout, 0)).toBe(0);
   });
 
+  // Ported from the retired SGD engine's suite: the deepest single hub it gated.
+  it("settles a very dense hub (1 + 250 leaves) overlap-free", () => {
+    const count = 251;
+    const nodes = makeNodes(count);
+    const edges: ForceEdge[] = [];
+    for (let leaf = 1; leaf < count; leaf++) {
+      edges.push({ source: "0", target: String(leaf), weight: 1 });
+    }
+    const layout = layoutOf(nodes, edges);
+    settle(layout);
+
+    expect(layout.isSettled).toBe(true);
+    expect(overlapCountOf(layout, 0)).toBe(0);
+  });
+
+  // Ported from the retired SGD engine's suite: overlap resolution must re-run
+  // after a warm absorb, not only on the cold start.
+  it("also removes overlaps after a bulk warm absorb (50 coincident newcomers)", () => {
+    const nodes = makeNodes(40);
+    const edges: ForceEdge[] = [];
+    for (let leaf = 1; leaf < 40; leaf++) {
+      edges.push({ source: "0", target: String(leaf), weight: 1 });
+    }
+    const layout = layoutOf(nodes, edges);
+    settle(layout);
+    expect(overlapCountOf(layout, 0)).toBe(0);
+
+    const newNodes: ForceNode[] = [];
+    const grownEdges: ForceEdge[] = [...edges];
+    for (let id = 40; id < 90; id++) {
+      newNodes.push({ id: String(id), x: 0, y: 0, radius: 4 });
+      grownEdges.push({ source: "0", target: String(id), weight: 1 });
+    }
+    layout.absorb!(newNodes, grownEdges);
+    settle(layout);
+
+    expect(layout.isSettled).toBe(true);
+    expect(layout.nodes.length).toBe(90);
+    expect(overlapCountOf(layout, 0)).toBe(0);
+  });
+
+  // Ported from the retired SGD engine's suite: Louvain labels must refresh once
+  // growth is significant, so the bubbles reflect the grown topology.
+  it("re-globalises (refreshes Louvain communities) after significant growth", () => {
+    const nodes = makeNodes(6);
+    const edges: ForceEdge[] = [
+      { source: "0", target: "1", weight: 1 },
+      { source: "1", target: "2", weight: 1 },
+      { source: "3", target: "4", weight: 1 },
+    ];
+    const layout = layoutOf(nodes, edges);
+    settle(layout);
+
+    const newNodes: ForceNode[] = [];
+    const grownEdges: ForceEdge[] = [...edges];
+    for (let id = 6; id < 36; id++) {
+      newNodes.push({ id: String(id), x: 0, y: 0, radius: 4 });
+      grownEdges.push({
+        source: String(id),
+        target: String(id % 6),
+        weight: 1,
+      });
+    }
+    layout.absorb!(newNodes, grownEdges);
+    settle(layout);
+
+    expect(layout.nodes.length).toBe(36);
+    const communities = layout.communities!;
+    expect(communities).toHaveLength(36);
+    expect(communities.every((community) => community >= 0)).toBe(true);
+  });
+
   /**
    * THE livelock regression (named): a settled-but-jammed 150-leaf hub — the exact
    * state that livelocked the abandoned force-interleave at 1623 epochs with 300
@@ -464,6 +536,47 @@ describe("createMajorizationLayout", () => {
     expect(crossCommunityMeanEdgeLength(strong)).toBeGreaterThan(
       crossCommunityMeanEdgeLength(gentle) * 1.15,
     );
+  });
+
+  // Ported from the retired SGD engine's suite: the degreeRepulsion slider must
+  // still widen a high-degree hub's halo under majorization's target shaping.
+  it("degree repulsion widens a high-degree hub's halo", () => {
+    const count = 61;
+    const nodes = makeNodes(count);
+    const edges: ForceEdge[] = [];
+    for (let leaf = 1; leaf < count; leaf++) {
+      edges.push({ source: "0", target: String(leaf), weight: 1 });
+    }
+
+    const meanHubDistance = (layout: LayoutSimulation): number => {
+      const positions = positionsOf(layout);
+      const hub = layout.nodeIds.indexOf("0");
+      let sum = 0;
+      let sampled = 0;
+      for (let leaf = 1; leaf < count; leaf++) {
+        const index = layout.nodeIds.indexOf(String(leaf));
+        sum += distanceBetween(positions, hub, index);
+        sampled += 1;
+      }
+      return sum / sampled;
+    };
+
+    const makeLayout = (degreeRepulsion: number) => {
+      const layout = createMajorizationLayout(
+        nodes.map((node) => ({ ...node })),
+        [...edges],
+        new FlatGraphBuffer(nodes.length),
+        { communityCohesion: 0, communitySeparation: 0, degreeRepulsion },
+      );
+      settle(layout);
+      return layout;
+    };
+
+    const off = makeLayout(0);
+    const on = makeLayout(0.25);
+
+    expect(overlapCountOf(on, 0)).toBe(0);
+    expect(meanHubDistance(on)).toBeGreaterThan(meanHubDistance(off) * 1.1);
   });
 
   it("matches the WebCola oracle at N ≤ 150 (comparable stress, zero overlaps)", () => {

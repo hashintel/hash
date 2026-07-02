@@ -1,41 +1,27 @@
 /*
- * Implementation of sparse stress seeding for ForceAtlas2 or similar force layouts.
+ * Graph ANALYSIS passes for the stress-majorization engine: CSR adjacency, weak
+ * components, min-fill/max-min pivot selection with per-pivot BFS distance rows,
+ * PivotMDS-style coordinate initialisation, and (cold builds only) disconnected-
+ * component packing. This is exactly the pre-solve machinery majorization-layout.ts
+ * consumes — it performs NO layout solving itself (the retired sparse-stress SGD
+ * engine that used to live around these passes was deleted when majorization was
+ * promoted to the only community-tier engine).
+ *
+ * Everything is budget-sliced: `tick({ maxWork, maxMs })` advances the phase machine
+ * by a bounded number of work units so a large graph never freezes a frame, and the
+ * whole pipeline is deterministic (seeded tie-breaking, index-ordered scans).
  *
  * References:
- *   - Stress objective over graph-theoretic target distances:
- *     Emden R. Gansner, Yehuda Koren, Stephen North,
- *     "Graph Drawing by Stress Majorization" (2004).
- *     https://graphviz.org/documentation/GKN04.pdf
- *
- *   - Pairwise stress SGD update, per-pair relaxation cap mu <= 1, and
- *     exponential eta schedule:
- *     Jonathan X. Zheng, Samraat Pawar, Dan F. M. Goodman,
- *     "Graph Drawing by Stochastic Gradient Descent" (2018).
- *     https://arxiv.org/pdf/1710.04626
- *
  *   - Sparse/pivot stress idea for avoiding all-pairs stress terms:
  *     Mark Ortmann, Mirza Klimenta, Ulrik Brandes,
  *     "A Sparse Stress Model" (2017).
  *     https://jgaa.info/index.php/jgaa/article/view/paper440
- *     See also the authors-of-SGD-adjacent reference implementation notes in
- *     s_gd2, especially `layout_sparse`.
- *     https://github.com/jxz12/s_gd2
  *
  *   - Landmark/Pivot-MDS-style use of distances from a small set of landmarks:
  *     Vin de Silva, Joshua B. Tenenbaum,
  *     "Sparse multidimensional scaling using landmark points" (2004), and
  *     Ulrik Brandes, Christian Pich,
  *     "Eigensolver Methods for Progressive Multidimensional Scaling of Large Data".
- *
- *   - Directed-flow projection inspiration: WebCola's `flowLayout`, which
- *     creates separation constraints for directed edges not involved in cycles
- *     / strongly connected components.
- *     https://ialab.it.monash.edu/webcola/doc/classes/_layout_.layout.html
- *
- *   - Intended downstream polish: ForceAtlas2 as described by Jacomy,
- *     Venturini, Heymann, and Bastian (2014).
- *     https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0098679
- *
  */
 /* eslint-disable no-param-reassign */
 /* eslint-disable no-bitwise */
@@ -45,10 +31,9 @@ import { Column } from "../collections/column";
 
 export const INF_DIST = 0xffff;
 const MAX_STORED_DIST = 0xfffe;
-const EPS = 1e-9;
 const TAU = Math.PI * 2;
 
-export interface SparseStressSeedInput {
+export interface StressAnalysisInput {
   readonly n: number;
   readonly src: Uint32Array;
   readonly dst: Uint32Array;
@@ -58,41 +43,12 @@ export interface SparseStressSeedInput {
   readonly y?: Float32Array;
 }
 
-export interface DirectedFlowOptions {
-  /** Default false. Adds a light y-axis separation projection for u -> v edges. */
-  readonly enabled?: boolean;
-
-  /** Minimum y[v] - y[u] separation. Multiplied by idealEdgeLength. Default 1. */
-  readonly separation?: number;
-
-  /** Projection strength. Small values are safer for cyclic/noisy graphs. Default 0.08. */
-  readonly alpha?: number;
-
-  /** Run projection every N stress epochs. Default 1. */
-  readonly every?: number;
-
-  /** Optional SCC labels. If absent and flow is enabled, labels are computed. */
-  readonly sccLabels?: Int32Array;
-
-  /** If true, project even within SCCs. Usually leave false. Default false. */
-  readonly includeIntraScc?: boolean;
-}
-
-export interface SparseStressSeedOptions {
+export interface StressAnalysisOptions {
   /** Number of landmark pivots. Default is auto, capped at 256. */
   readonly pivotCount?: number;
 
-  /** Sparse stress SGD epochs. Default is auto, usually 6 to 12. */
-  readonly epochs?: number;
-
-  /** Layout-space length for one graph hop. Default 1. */
+  /** Layout-space length for one graph hop (scales the PivotMDS init). Default 1. */
   readonly idealEdgeLength?: number;
-
-  /** Edge relaxation weight. Default 1. */
-  readonly edgeWeight?: number;
-
-  /** Process at most this many pivots per epoch. Default: all pivots. */
-  readonly pivotsPerEpoch?: number;
 
   /** Initial deterministic jitter, in layout units. Default 0.01. */
   readonly jitter?: number;
@@ -100,29 +56,20 @@ export interface SparseStressSeedOptions {
   /** Random/hash seed used only for deterministic jitter and tie breaking. Default 1. */
   readonly randomSeed?: number;
 
-  /** Annealing epsilon used in stress SGD. Default 0.1. */
-  readonly epsilon?: number;
-
-  /** Keep existing x/y and only run stress from them. Default false. */
+  /** Keep existing x/y (warm start) instead of running the PivotMDS init. Default false. */
   readonly keepInitialPositions?: boolean;
 
-  /** Pack disconnected weak components after stress. Default true. */
+  /** Pack disconnected weak components after the init. Default true. */
   readonly packComponents?: boolean;
 
   /** Component packing padding in ideal-edge units. Default 4. */
   readonly componentPadding?: number;
 
-  /** Optional directed flow bias. Default disabled. */
-  readonly directedFlow?: DirectedFlowOptions;
-
   /** Validate node ids and buffer lengths. Default true. */
   readonly validate?: boolean;
-
-  /** Return the pivot distance matrix. Default false. */
-  readonly returnPivotDistances?: boolean;
 }
 
-class WeakComponents {
+export class WeakComponents {
   readonly count: number;
   readonly labels: Int32Array;
   readonly offsets: Uint32Array;
@@ -165,7 +112,7 @@ class WeakComponents {
   }
 }
 
-class Pivots {
+export class Pivots {
   readonly pivots: Uint32Array;
   readonly components: Int32Array;
   readonly distances: Uint16Array;
@@ -198,132 +145,43 @@ class Pivots {
   }
 }
 
-export interface SparseStressSeedResult {
+export interface StressAnalysisResult {
   readonly x: Float32Array;
   readonly y: Float32Array;
 
+  /** Pivot rows INCLUDING the per-pivot BFS distance matrix (k × n, Uint16). */
   readonly pivots: Pivots;
 
   readonly components: WeakComponents;
-  readonly epochs: number;
-
-  readonly elapsed: number;
 }
 
-export interface CsrGraph {
+interface CsrGraph {
   readonly offsets: Uint32Array;
   readonly targets: Uint32Array;
   readonly degree: Uint32Array;
 }
 
-export type SparseStressSeederPhase =
+type StressAnalysisPhase =
   | "setup"
-  | "weak-csr-degree"
-  | "weak-csr-prefix"
-  | "weak-csr-fill"
-  | "components-init"
-  | "components-scan"
-  | "pivot-min-fill"
-  | "pivot-row-fill"
-  | "pivot-bfs"
-  | "pivot-select"
-  | "pivot-done"
-  | "stress-prepare"
-  | "stress-init"
-  | "stress-scc"
-  | "stress-edges"
-  | "stress-pivots"
-  | "stress-flow"
-  | "stress-pack"
-  | "stress-done";
+  | "weak-csr"
+  | "components"
+  | "pivots"
+  | "init"
+  | "done";
 
-const SEEDER_PHASE_ORDER: readonly SparseStressSeederPhase[] = [
-  "setup",
-  "weak-csr-degree",
-  "weak-csr-prefix",
-  "weak-csr-fill",
-  "components-init",
-  "components-scan",
-  "pivot-min-fill",
-  "pivot-row-fill",
-  "pivot-bfs",
-  "pivot-select",
-  "pivot-done",
-  "stress-prepare",
-  "stress-init",
-  "stress-scc",
-  "stress-edges",
-  "stress-pivots",
-  "stress-flow",
-  "stress-pack",
-  "stress-done",
-];
-
-export interface SparseStressTickBudget {
-  /** Approximate unit budget. Edges, nodes, and pair relaxations each cost ~1. */
+export interface StressAnalysisTickBudget {
+  /** Approximate unit budget. Edges, nodes, and BFS visits each cost ~1. */
   readonly maxWork?: number;
 
   /** Optional wall-clock budget for this tick, in milliseconds. */
   readonly maxMs?: number;
 }
 
-export interface SparseStressProgressReport {
-  /** Same value as SparseStressTickResult.phase, repeated for convenient logging. */
-  readonly phase: SparseStressSeederPhase;
-
-  /** Monotonic overall progress in [0, 1]. */
-  readonly progress: number;
-
-  /** Progress inside the current coarse phase bucket in [0, 1]. */
-  readonly phaseProgress: number;
-
-  /** Ordinal of the current fine-grained phase in SparseStressSeederPhase order. */
-  readonly stageIndex: number;
-
-  /** Total number of fine-grained phases. */
-  readonly stageCount: number;
-
-  readonly epoch: number;
-  readonly epochs: number;
-
-  /** Currently completed/active pivot row, depending on phase. */
-  readonly pivotIndex: number;
-
-  /** Final pivot count after pivoting, or requested pivot count while pivoting. */
-  readonly pivotCount: number;
-
-  /** Number of pivots selected so far, or final selected count after pivoting. */
-  readonly selectedPivotCount: number;
-
-  /** Requested pivot count while the pivot phase exists; useful for UI labels. */
-  readonly requestedPivotCount: number;
-}
-
-export interface SparseStressTickResult {
+export interface StressAnalysisTickResult {
   readonly done: boolean;
-  readonly phase: SparseStressSeederPhase;
-  readonly progress: number;
-
-  /** Progress inside the current coarse phase bucket in [0, 1]. */
-  readonly phaseProgress: number;
-
   readonly workDone: number;
-
   readonly elapsedMs: number;
-
-  readonly epoch: number;
-  readonly epochs: number;
-
-  readonly pivotIndex: number;
-  readonly pivotCount: number;
-
-  /** Structured progress data for logging/debug UI without poking private fields. */
-  readonly report: SparseStressProgressReport;
-
-  readonly x: Float32Array;
-  readonly y: Float32Array;
-
-  readonly result?: SparseStressSeedResult;
+  readonly result?: StressAnalysisResult;
 }
 
 const assertNonNegative = (value: number, name: string) => {
@@ -342,7 +200,7 @@ const assertPositive = (value: number, name: string) => {
   return value;
 };
 
-const validateInput = ({ n, src, dst, x, y }: SparseStressSeedInput): void => {
+const validateInput = ({ n, src, dst, x, y }: StressAnalysisInput): void => {
   if (!Number.isInteger(n) || n < 0) {
     throw new Error("n must be a non-negative integer.");
   }
@@ -370,19 +228,6 @@ const defaultPivotCount = (n: number): number => {
   }
 
   return Math.min(n, Math.max(32, Math.min(256, Math.ceil(Math.sqrt(n) * 2))));
-};
-
-const defaultEpochCount = (n: number, m: number): number => {
-  if (n <= 1 || m === 0) {
-    return 0;
-  }
-  if (n < 2000) {
-    return 12;
-  }
-  if (n < 50000) {
-    return 8;
-  }
-  return 5;
 };
 
 const allocatePivots = (
@@ -487,9 +332,6 @@ const allocatePivots = (
 
 const now = () => performance.now();
 
-const positiveOr = (value: number | undefined, fallback: number): number =>
-  value !== undefined && Number.isFinite(value) && value > 0 ? value : fallback;
-
 const clampInt = (value: number, lo: number, hi: number): number => {
   const v = Math.trunc(value);
   if (v < lo) {
@@ -501,25 +343,6 @@ const clampInt = (value: number, lo: number, hi: number): number => {
   }
   return v;
 };
-
-const clampNumber = (value: number, lo: number, hi: number): number => {
-  if (!Number.isFinite(value)) {
-    return lo;
-  }
-  if (value < lo) {
-    return lo;
-  }
-  if (value > hi) {
-    return hi;
-  }
-  return value;
-};
-
-const ratio01 = (num: number, den: number): number =>
-  den <= 0 ? 1 : clampNumber(num / den, 0, 1);
-
-const mixProgress = (base: number, span: number, inner: number): number =>
-  clampNumber(base + span * clampNumber(inner, 0, 1), 0, 1);
 
 const hashU32 = (x: number): number => {
   x >>>= 0;
@@ -681,226 +504,6 @@ const packWeakComponents = (
   recenterAll(x, y, components.nodes.length);
 };
 
-interface SccResult {
-  readonly labels: Int32Array;
-  readonly count: number;
-  readonly sizes: Uint32Array;
-}
-
-const buildDirectedCsr = (
-  n: number,
-  src: Uint32Array,
-  dst: Uint32Array,
-  {
-    reverse,
-    validate,
-  }: { readonly reverse: boolean; readonly validate: boolean },
-): CsrGraph => {
-  const degree = new Uint32Array(n);
-  const m = src.length;
-
-  for (let e = 0; e < m; e++) {
-    const a = reverse ? dst[e]! : src[e]!;
-    const b = reverse ? src[e]! : dst[e]!;
-
-    if (validate && (a >= n || b >= n)) {
-      throw new Error(`edge ${e} has a node id outside [0, n).`);
-    }
-
-    if (a === b) {
-      continue;
-    }
-
-    degree[a]! += 1;
-  }
-
-  const offsets = new Uint32Array(n + 1);
-  for (let i = 0; i < n; i++) {
-    offsets[i + 1] = offsets[i]! + degree[i]!;
-  }
-
-  const targets = new Uint32Array(offsets[n]!);
-  const cursor = offsets.slice(0, n);
-
-  for (let e = 0; e < m; e++) {
-    const a = reverse ? dst[e]! : src[e]!;
-    const b = reverse ? src[e]! : dst[e]!;
-    if (a === b) {
-      continue;
-    }
-
-    targets[cursor[a]!] = b;
-    cursor[a]! += 1;
-  }
-
-  return { offsets, targets, degree };
-};
-
-/**
- * Iterative Kosaraju-Sharir SCC labeling used by the optional flow projection.
- * It avoids recursion so it is safe for large browser graphs.
- */
-const computeSccLabels = (
-  n: number,
-  src: Uint32Array,
-  dst: Uint32Array,
-  { validate }: { readonly validate: boolean },
-): SccResult => {
-  if (validate) {
-    if (!Number.isInteger(n) || n < 0) {
-      throw new Error("n must be a non-negative integer.");
-    }
-    if (src.length !== dst.length) {
-      throw new Error("src and dst must have the same length.");
-    }
-  }
-
-  const g = buildDirectedCsr(n, src, dst, { reverse: false, validate });
-  const gr = buildDirectedCsr(n, src, dst, { reverse: true, validate });
-
-  const visited = new Uint8Array(n);
-  const iter = new Uint32Array(n);
-  const stack = new Uint32Array(n);
-  const order = new Uint32Array(n);
-  let orderLen = 0;
-
-  for (let start = 0; start < n; start++) {
-    if (visited[start]) {
-      continue;
-    }
-
-    let sp = 0;
-    visited[start] = 1;
-    iter[start] = g.offsets[start]!;
-    stack[sp] = start;
-    sp += 1;
-
-    while (sp > 0) {
-      const u = stack[sp - 1]!;
-      let p = iter[u]!;
-      const end = g.offsets[u + 1]!;
-
-      while (p < end && visited[g.targets[p]!]) {
-        p += 1;
-      }
-      iter[u] = p;
-
-      if (p < end) {
-        const v = g.targets[p]!;
-        iter[u] = p + 1;
-
-        if (!visited[v]) {
-          visited[v] = 1;
-          iter[v] = g.offsets[v]!;
-          stack[sp] = v;
-          sp += 1;
-        }
-      } else {
-        sp -= 1;
-        order[orderLen] = u;
-        orderLen += 1;
-      }
-    }
-  }
-
-  const labels = new Int32Array(n);
-  labels.fill(-1);
-  const sizes: number[] = [];
-  let count = 0;
-
-  for (let oi = orderLen - 1; oi >= 0; oi--) {
-    const start = order[oi]!;
-    if (labels[start] !== -1) {
-      continue;
-    }
-
-    let sp = 0;
-    let size = 0;
-    labels[start] = count;
-    stack[sp] = start;
-    sp += 1;
-
-    while (sp > 0) {
-      sp -= 1;
-      const u = stack[sp]!;
-      size++;
-      for (let p = gr.offsets[u]!; p < gr.offsets[u + 1]!; p++) {
-        const v = gr.targets[p]!;
-        if (labels[v] === -1) {
-          labels[v] = count;
-          stack[sp] = v;
-          sp += 1;
-        }
-      }
-    }
-
-    sizes.push(size);
-    count++;
-  }
-
-  return { labels, count, sizes: Uint32Array.from(sizes) };
-};
-
-/**
- * One pairwise stress-SGD relaxation.
- * For a term w_ij (||x_i - x_j|| - d_ij)^2, move the endpoints symmetrically
- * along their current separation vector. The `mu = min(w * eta, 1)` cap and
- * the half-step endpoint update follow the SGD formulation in
- * Zheng/Pawar/Goodman, "Graph Drawing by Stochastic Gradient Descent".
- */
-const relaxPair = (
-  x: Float32Array,
-  y: Float32Array,
-  i: number,
-  j: number,
-  ideal: number,
-  weight: number,
-  eta: number,
-): void => {
-  const dx = x[i]! - x[j]!;
-  const dy = y[i]! - y[j]!;
-  const len2 = dx * dx + dy * dy + EPS;
-  const len = Math.sqrt(len2);
-
-  let mu = weight * eta;
-  if (mu > 1) {
-    mu = 1;
-  }
-  if (mu <= 0) {
-    return;
-  }
-
-  const s = (mu * 0.5 * (len - ideal)) / len;
-  const mx = s * dx;
-  const my = s * dy;
-
-  x[i]! -= mx;
-  y[i]! -= my;
-  x[j]! += mx;
-  y[j]! += my;
-};
-
-/**
- * Exponential annealing schedule for stress SGD.
- * This follows the schedule shape used by Zheng/Pawar/Goodman: start with an
- * eta large enough that low-weight long-distance terms can move, then decay
- * toward epsilon so late epochs behave like small local refinements.
- */
-const etaAt = (
-  epoch: number,
-  epochs: number,
-  diameter: number,
-  epsilon = 0.1,
-): number => {
-  if (epochs <= 1) {
-    return epsilon;
-  }
-  const d = Math.max(1, diameter);
-  const etaMax = d * d;
-  const etaMin = Math.max(EPS, epsilon);
-  return etaMax * Math.exp(Math.log(etaMin / etaMax) * (epoch / (epochs - 1)));
-};
-
 class CsrPhase {
   #n: number;
   #validate: boolean;
@@ -1042,19 +645,6 @@ class CsrPhase {
     }
 
     return work;
-  }
-
-  progress(edgeCount: number): number {
-    switch (this.#phase) {
-      case "degree":
-        return mixProgress(0, 1 / 3, ratio01(this.#edgeCursor, edgeCount));
-      case "prefix":
-        return mixProgress(1 / 3, 1 / 3, ratio01(this.#nodeCursor, this.#n));
-      case "fill":
-        return mixProgress(2 / 3, 1 / 3, ratio01(this.#edgeCursor, edgeCount));
-      case "done":
-        return 1;
-    }
   }
 
   get phase() {
@@ -1241,17 +831,6 @@ class WeakComponentsPhase {
     }
 
     return work;
-  }
-
-  progress(): number {
-    switch (this.#phase) {
-      case "init":
-        return mixProgress(0, 0.15, ratio01(this.#nodeCursor, this.#n));
-      case "scan":
-        return mixProgress(0.15, 0.85, ratio01(this.#nodeWrite, this.#n));
-      case "done":
-        return 1;
-    }
   }
 
   get phase() {
@@ -1563,54 +1142,6 @@ class PivotPhase {
     return work;
   }
 
-  progress(): number {
-    if (this.#requestedPivotCount <= 0) {
-      return 1;
-    }
-
-    let rowProgress = 0;
-    switch (this.#phase) {
-      case "min-fill":
-        rowProgress = mixProgress(
-          0,
-          0.1,
-          ratio01(
-            this.#fillCursor - this.#componentStart,
-            this.#componentEnd - this.#componentStart,
-          ),
-        );
-        break;
-      case "row-fill":
-        rowProgress = mixProgress(
-          0.1,
-          0.15,
-          ratio01(this.#rowFillCursor, this.#n),
-        );
-        break;
-      case "bfs":
-        rowProgress = mixProgress(
-          0.25,
-          0.55,
-          ratio01(this.#bfsHead, Math.max(1, this.#bfsTail)),
-        );
-        break;
-      case "select":
-        rowProgress = mixProgress(
-          0.8,
-          0.2,
-          ratio01(
-            this.#selectCursor - this.#componentStart,
-            this.#componentEnd - this.#componentStart,
-          ),
-        );
-        break;
-      case "done":
-        return 1;
-    }
-
-    return ratio01(this.#k + rowProgress, this.#requestedPivotCount);
-  }
-
   get phase() {
     return this.#phase;
   }
@@ -1618,28 +1149,20 @@ class PivotPhase {
   get result() {
     return this.#result;
   }
-
-  get k() {
-    return this.#k;
-  }
-
-  get requestedPivotCount() {
-    return this.#requestedPivotCount;
-  }
 }
 
-class StressPhase {
+/**
+ * Coordinate initialisation + component packing: PivotMDS-style placement from the
+ * first four pivot distance rows of each component (or a warm pass-through with
+ * optional jitter when `keepInitialPositions` is set), followed by the
+ * disconnected-component shelf packing.
+ */
+class InitPhase {
   readonly #n: number;
   readonly #jitter: number;
   readonly #idealEdgeLength: number;
   readonly #randomSeed: number;
   readonly #keepInitialPositions: boolean;
-  readonly #flow?: DirectedFlowOptions;
-  readonly #validate: boolean;
-  readonly #epochs: number;
-  readonly #epsilon: number;
-  readonly #pivotsPerEpoch: number | undefined;
-  readonly #edgeWeight: number;
   readonly #shouldPackComponents: boolean;
   readonly #componentPadding: number;
 
@@ -1651,27 +1174,7 @@ class StressPhase {
   #initComponent = 0;
   #initNodeCursor = 0;
 
-  // Optional directed-flow/SCC state.
-  #sccLabels: Int32Array | undefined;
-
-  #epoch = 0;
-  #eta = 0;
-  #edgeCursor = 0;
-  #pivotBatchCursor = 0;
-  #pivotNodeCursor = 0;
-  #pivotNodeEnd = 0;
-  #pivotIndex = 0;
-  #pivotStart = 0;
-
-  #phase:
-    | "prepare"
-    | "init"
-    | "scc"
-    | "pack"
-    | "edges"
-    | "pivots"
-    | "flow"
-    | "done" = "prepare";
+  #phase: "prepare" | "init" | "pack" | "done" = "prepare";
 
   constructor(
     n: number,
@@ -1682,27 +1185,15 @@ class StressPhase {
       idealEdgeLength,
       randomSeed,
       keepInitialPositions,
-      validate,
-      epochs,
-      epsilon,
-      pivotsPerEpoch,
-      edgeWeight,
       shouldPackComponents,
       componentPadding,
-      flow,
     }: {
       readonly jitter: number;
       readonly idealEdgeLength: number;
       readonly randomSeed: number;
       readonly keepInitialPositions: boolean;
-      readonly validate: boolean;
-      readonly epochs: number;
-      readonly epsilon: number;
-      readonly pivotsPerEpoch: number | undefined;
-      readonly edgeWeight: number;
       readonly shouldPackComponents: boolean;
       readonly componentPadding: number;
-      readonly flow?: DirectedFlowOptions;
     },
   ) {
     this.#n = n;
@@ -1713,14 +1204,8 @@ class StressPhase {
     this.#idealEdgeLength = idealEdgeLength;
     this.#randomSeed = randomSeed;
     this.#keepInitialPositions = keepInitialPositions;
-    this.#validate = validate;
-    this.#epochs = epochs;
-    this.#epsilon = epsilon;
-    this.#pivotsPerEpoch = pivotsPerEpoch;
-    this.#edgeWeight = edgeWeight;
     this.#shouldPackComponents = shouldPackComponents;
     this.#componentPadding = componentPadding;
-    this.#flow = flow;
   }
 
   #prepareCoordinates(components: WeakComponents, pivots: Pivots): number {
@@ -1745,22 +1230,6 @@ class StressPhase {
     this.#phase = "init";
 
     return 1;
-  }
-
-  #finishCoordinates(pivots: Pivots) {
-    if (this.#flow?.enabled && this.#flow.sccLabels) {
-      this.#sccLabels = this.#flow.sccLabels;
-    }
-
-    if (
-      this.#flow?.enabled &&
-      !this.#flow.includeIntraScc &&
-      !this.#sccLabels
-    ) {
-      this.#phase = "scc";
-    } else {
-      this.#prepareStressOrPack(pivots);
-    }
   }
 
   #computeCoordinates(
@@ -1875,216 +1344,7 @@ class StressPhase {
     }
 
     if (this.#initComponent >= components.count) {
-      this.#finishCoordinates(pivots);
-    }
-
-    return work;
-  }
-
-  #computeScc(src: Uint32Array, dst: Uint32Array, pivots: Pivots) {
-    // SCC computation is only needed for optional directed-flow projection.
-    // Pass directedFlow.sccLabels if you want to avoid this one-shot pass in a
-    // tight frame budget. The algorithm itself is iterative Kosaraju-Sharir.
-    this.#sccLabels = computeSccLabels(this.#n, src, dst, {
-      validate: this.#validate,
-    }).labels;
-
-    this.#prepareStressOrPack(pivots);
-    return 1;
-  }
-
-  #prepareStressOrPack(pivots: Pivots) {
-    this.#epoch = 0;
-
-    if (this.#epochs <= 0) {
       this.#phase = "pack";
-      return;
-    }
-
-    this.#beginEpoch(pivots);
-  }
-
-  #resolvedPivotsPerEpoch(pivots: Pivots): number {
-    const k = pivots.pivots.length;
-    return clampInt(this.#pivotsPerEpoch ?? k, 0, k);
-  }
-
-  #prepareNextPivot(components: WeakComponents, pivots: Pivots) {
-    const k = pivots.pivots.length;
-    const limit = this.#resolvedPivotsPerEpoch(pivots);
-
-    if (k === 0 || limit <= 0 || this.#pivotBatchCursor >= limit) {
-      this.#phase = "flow";
-      this.#edgeCursor = 0;
-      return;
-    }
-
-    const pIndex = (this.#pivotStart + this.#pivotBatchCursor) % k;
-    const component = pivots.components[pIndex]!;
-
-    this.#pivotIndex = pIndex;
-    this.#pivotNodeCursor = components.offsets[component]!;
-    this.#pivotNodeEnd = components.offsets[component + 1]!;
-  }
-
-  #beginEpoch(pivots: Pivots) {
-    this.#eta = etaAt(
-      this.#epoch,
-      Math.max(1, this.#epochs),
-      Math.max(1, pivots.diameter),
-      this.#epsilon,
-    );
-    this.#edgeCursor = 0;
-    this.#pivotBatchCursor = 0;
-    this.#pivotNodeCursor = 0;
-    this.#pivotNodeEnd = 0;
-    this.#pivotIndex = 0;
-    this.#pivotStart =
-      pivots.pivots.length === 0
-        ? 0
-        : (this.#epoch * this.#resolvedPivotsPerEpoch(pivots)) %
-          pivots.pivots.length;
-    this.#phase = "edges";
-  }
-
-  #computeEdges(
-    src: Uint32Array,
-    dst: Uint32Array,
-    components: WeakComponents,
-    pivots: Pivots,
-    budget: number,
-  ) {
-    const m = src.length;
-    let work = 0;
-
-    while (this.#edgeCursor < m && work < budget) {
-      const e = this.#edgeCursor;
-      this.#edgeCursor += 1;
-
-      const u = src[e]!;
-      const v = dst[e]!;
-
-      if (u !== v) {
-        relaxPair(
-          this.#x,
-          this.#y,
-          u,
-          v,
-          this.#idealEdgeLength,
-          this.#edgeWeight,
-          this.#eta,
-        );
-      }
-      work += 1;
-    }
-
-    if (this.#edgeCursor >= m) {
-      this.#phase = "pivots";
-      this.#prepareNextPivot(components, pivots);
-    }
-
-    return work;
-  }
-
-  #computePivots(components: WeakComponents, pivots: Pivots, budget: number) {
-    const distances = pivots.distances;
-    let work = 0;
-
-    while (work < budget) {
-      const limit = this.#resolvedPivotsPerEpoch(pivots);
-      if (
-        pivots.pivots.length === 0 ||
-        limit <= 0 ||
-        this.#pivotBatchCursor >= limit
-      ) {
-        this.#phase = "flow";
-        this.#edgeCursor = 0;
-        break;
-      }
-
-      const pivot = pivots.pivots[this.#pivotIndex]!;
-      const rowBase = this.#pivotIndex * this.#n;
-
-      while (this.#pivotNodeCursor < this.#pivotNodeEnd && work < budget) {
-        const v = components.nodes[this.#pivotNodeCursor]!;
-        this.#pivotNodeCursor += 1;
-        const d = distances[rowBase + v]!;
-
-        if (d !== 0 && d !== INF_DIST) {
-          const ideal = d * this.#idealEdgeLength;
-          const weight = 1 / (d * d);
-
-          relaxPair(this.#x, this.#y, pivot, v, ideal, weight, this.#eta);
-        }
-        work++;
-      }
-
-      if (this.#pivotNodeCursor >= this.#pivotNodeEnd) {
-        this.#pivotBatchCursor += 1;
-        this.#prepareNextPivot(components, pivots);
-        if (this.#phase !== "pivots") {
-          break;
-        }
-      }
-    }
-
-    return work;
-  }
-
-  #computeFlow(
-    src: Uint32Array,
-    dst: Uint32Array,
-    pivots: Pivots,
-    budget: number,
-  ) {
-    const flow = this.#flow;
-    const m = src.length;
-    let work = 0;
-
-    if (flow?.enabled) {
-      const every = Math.max(1, flow.every ?? 1);
-      if (this.#epoch % every === 0) {
-        const separation =
-          this.#idealEdgeLength * positiveOr(flow.separation, 1);
-        const alpha = clampNumber(flow.alpha ?? 0.08, 0, 1);
-        const includeIntraScc = flow.includeIntraScc === true;
-        const labels = this.#sccLabels;
-
-        while (this.#edgeCursor < m && work < budget) {
-          const e = this.#edgeCursor;
-          this.#edgeCursor += 1;
-
-          const u = src[e]!;
-          const v = dst[e]!;
-
-          if (
-            u !== v &&
-            (includeIntraScc || !labels || labels[u] !== labels[v])
-          ) {
-            const gap = this.#y[v]! - this.#y[u]!;
-            const violation = separation - gap;
-            if (violation > 0) {
-              const move = 0.5 * alpha * violation;
-              this.#y[u]! -= move;
-              this.#y[v]! += move;
-            }
-          }
-          work++;
-        }
-      } else {
-        this.#edgeCursor = m;
-      }
-    } else {
-      this.#edgeCursor = m;
-    }
-
-    if (this.#edgeCursor >= m) {
-      this.#epoch += 1;
-      if (this.#epoch >= this.#epochs) {
-        this.#phase = "pack";
-      } else {
-        this.#beginEpoch(pivots);
-      }
     }
 
     return work;
@@ -2106,13 +1366,7 @@ class StressPhase {
     return 1;
   }
 
-  step(
-    src: Uint32Array,
-    dst: Uint32Array,
-    components: WeakComponents,
-    pivots: Pivots,
-    budget: number,
-  ): number {
+  step(components: WeakComponents, pivots: Pivots, budget: number): number {
     let work = 0;
 
     while (work < budget) {
@@ -2126,24 +1380,8 @@ class StressPhase {
           work += this.#computeCoordinates(components, pivots, remaining);
           break;
         }
-        case "scc": {
-          work += this.#computeScc(src, dst, pivots);
-          break;
-        }
         case "pack": {
           work += this.#computePack(components);
-          break;
-        }
-        case "edges": {
-          work += this.#computeEdges(src, dst, components, pivots, remaining);
-          break;
-        }
-        case "pivots": {
-          work += this.#computePivots(components, pivots, remaining);
-          break;
-        }
-        case "flow": {
-          work += this.#computeFlow(src, dst, pivots, remaining);
           break;
         }
         case "done": {
@@ -2155,101 +1393,28 @@ class StressPhase {
     return work;
   }
 
-  progress(
-    components: WeakComponents,
-    pivots: Pivots,
-    edgeCount: number,
-  ): number {
-    switch (this.#phase) {
-      case "prepare":
-        return 0;
-      case "init":
-        return mixProgress(
-          0,
-          0.08,
-          ratio01(this.#initNodeCursor, components.nodes.length),
-        );
-      case "scc":
-        return 0.09;
-      case "pack":
-        return 0.98;
-      case "done":
-        return 1;
-      case "edges":
-      case "pivots":
-      case "flow": {
-        if (this.#epochs <= 0) {
-          return 0.98;
-        }
-
-        let inEpoch = 0;
-        if (this.#phase === "edges") {
-          inEpoch = mixProgress(0, 0.35, ratio01(this.#edgeCursor, edgeCount));
-        } else if (this.#phase === "pivots") {
-          const limit = this.#resolvedPivotsPerEpoch(pivots);
-          let nodeProgress = 0;
-          if (limit > 0 && pivots.pivots.length > 0) {
-            const component = pivots.components[this.#pivotIndex]!;
-            const start = components.offsets[component] ?? 0;
-            const end = components.offsets[component + 1] ?? start;
-            nodeProgress = ratio01(this.#pivotNodeCursor - start, end - start);
-          }
-          const pivotProgress = ratio01(
-            this.#pivotBatchCursor + nodeProgress,
-            Math.max(1, limit),
-          );
-          inEpoch = mixProgress(0.35, 0.55, pivotProgress);
-        } else {
-          inEpoch = mixProgress(0.9, 0.1, ratio01(this.#edgeCursor, edgeCount));
-        }
-
-        return mixProgress(
-          0.08,
-          0.9,
-          ratio01(this.#epoch + inEpoch, this.#epochs),
-        );
-      }
-    }
-  }
-
   get phase() {
     return this.#phase;
   }
-
-  get epoch() {
-    return this.#epoch;
-  }
-
-  get epochs() {
-    return this.#epochs;
-  }
-
-  get currentPivotIndex() {
-    return this.#pivotIndex;
-  }
 }
 
-export class SparseStressSeeder {
+/**
+ * The budget-sliced analysis driver: CSR → weak components → pivot selection with
+ * per-pivot BFS rows → PivotMDS init (+ component packing). `tick` advances by a
+ * bounded amount of work; the `result` carries the pivot distance matrix the
+ * majorization term builder samples.
+ */
+export class StressAnalysis {
   readonly #n: number;
   readonly #src: Uint32Array;
   readonly #dst: Uint32Array;
-  readonly #options: SparseStressSeedOptions;
   readonly #validate: boolean;
-
+  readonly #pivotCount: number | undefined;
   readonly #randomSeed: number;
 
-  #phase: SparseStressSeederPhase = "setup";
+  #phase: StressAnalysisPhase = "setup";
   #done = false;
-  #result: SparseStressSeedResult | undefined;
-  #lastProgress = 0;
-
-  // Lightweight snapshots used after heavy phase objects have been released.
-  // In particular, PivotPhase owns a full pivot-distance scratch matrix, so it
-  // should not be kept solely for UI reporting once pivoting is complete.
-  #requestedPivotCountForReport = 0;
-  #selectedPivotCountForReport = 0;
-
-  startedAt = 0;
+  #result: StressAnalysisResult | undefined;
 
   #x: Float32Array;
   #y: Float32Array;
@@ -2262,26 +1427,21 @@ export class SparseStressSeeder {
   #componentsPhase: WeakComponentsPhase | undefined;
   #pivotPhase: PivotPhase | undefined;
 
-  #stress: StressPhase;
+  #init: InitPhase;
 
-  constructor(
-    input: SparseStressSeedInput,
-    options: SparseStressSeedOptions = {},
-  ) {
+  constructor(input: StressAnalysisInput, options: StressAnalysisOptions = {}) {
     this.#n = input.n;
     this.#src = input.src;
     this.#dst = input.dst;
-    this.#options = options;
     this.#validate = options.validate ?? true;
+    this.#pivotCount = options.pivotCount;
 
     const idealEdgeLength = assertNonNegative(
       options.idealEdgeLength ?? 1,
       "idealEdgeLength",
     );
-    const edgeWeight = assertNonNegative(options.edgeWeight ?? 1, "edgeWeight");
     const randomSeed = options.randomSeed ?? 1;
     const jitter = options.jitter ?? 0.01;
-    const epsilon = assertNonNegative(options.epsilon ?? 0.1, "epsilon");
     const shouldPackComponents = options.packComponents ?? true;
     const componentPadding = assertNonNegative(
       options.componentPadding ?? 4,
@@ -2292,50 +1452,25 @@ export class SparseStressSeeder {
     this.#y = input.y ?? new Float32Array(input.n);
     this.#randomSeed = randomSeed;
 
-    const epochs = clampInt(
-      options.epochs ?? defaultEpochCount(this.#n, this.#src.length),
-      0,
-      1000000,
-    );
-
-    this.#stress = new StressPhase(this.#n, this.#x, this.#y, {
+    this.#init = new InitPhase(this.#n, this.#x, this.#y, {
       jitter,
       idealEdgeLength,
       randomSeed,
       keepInitialPositions: options.keepInitialPositions ?? false,
-      validate: this.#validate,
-      epochs,
-      epsilon,
-      pivotsPerEpoch: options.pivotsPerEpoch,
-      edgeWeight,
       shouldPackComponents,
       componentPadding,
-      flow: options.directedFlow,
     });
   }
 
-  #finish(components: WeakComponents, pivots: Pivots, epochs: number): void {
-    const elapsedMs = this.startedAt === 0 ? 0 : now() - this.startedAt;
-    const resultPivots = this.#options.returnPivotDistances
-      ? pivots
-      : new Pivots({
-          pivots: pivots.pivots,
-          components: pivots.components,
-          distances: new Uint16Array(0),
-          diameter: pivots.diameter,
-        });
-
-    const result: SparseStressSeedResult = {
+  #finish(components: WeakComponents, pivots: Pivots): void {
+    this.#result = {
       x: this.#x,
       y: this.#y,
-      pivots: resultPivots,
+      pivots,
       components,
-      epochs,
-      elapsed: elapsedMs,
     };
 
-    this.#result = result;
-    this.#phase = "stress-done";
+    this.#phase = "done";
     this.#done = true;
   }
 
@@ -2353,15 +1488,13 @@ export class SparseStressSeeder {
     if (this.#n === 0) {
       this.#components = WeakComponents.empty();
       this.#pivots = Pivots.unit();
-      this.#requestedPivotCountForReport = 0;
-      this.#selectedPivotCountForReport = 0;
 
-      this.#finish(this.#components, this.#pivots, 0);
+      this.#finish(this.#components, this.#pivots);
       return 0;
     }
 
     this.#csrPhase = new CsrPhase(this.#n, { validate: this.#validate });
-    this.#phase = "weak-csr-degree";
+    this.#phase = "weak-csr";
 
     return 0;
   }
@@ -2370,234 +1503,69 @@ export class SparseStressSeeder {
     switch (this.#phase) {
       case "setup":
         return this.#setup();
-      case "weak-csr-degree":
-      case "weak-csr-prefix":
-      case "weak-csr-fill": {
+      case "weak-csr": {
         const phase = this.#csrPhase!;
         const done = phase.step(this.#src, this.#dst, budget);
 
         if (phase.phase === "done") {
-          // Flush the result back to our main class, `done` means that the result has been populated.
           this.#csr = phase.result!;
-
+          this.#csrPhase = undefined;
           this.#componentsPhase = new WeakComponentsPhase(this.#n);
-
-          // Keep the completed CSR phase mounted: it is lightweight report state
-          // and shares the CSR arrays with #csr rather than duplicating them.
-          this.#phase = "components-init";
-        } else {
-          this.#phase = `weak-csr-${phase.phase}`;
+          this.#phase = "components";
         }
 
         return done;
       }
 
-      case "components-init":
-      case "components-scan": {
+      case "components": {
         const phase = this.#componentsPhase!;
         const done = phase.step(this.#csr!, budget);
 
         if (phase.phase === "done") {
-          // Flush the result back to our main class, `done` means that the result has been populated.
           this.#components = phase.result!;
-
+          this.#componentsPhase = undefined;
           this.#pivotPhase = new PivotPhase(this.#n, {
             randomSeed: this.#randomSeed,
             components: this.#components,
-            count: this.#options.pivotCount,
+            count: this.#pivotCount,
           });
-          this.#requestedPivotCountForReport =
-            this.#pivotPhase.requestedPivotCount;
-          // Keep the completed components phase mounted for reporting. It owns a
-          // queue, which is fine to keep around.
-          this.#phase = `pivot-${this.#pivotPhase.phase}`;
-        } else {
-          this.#phase = `components-${phase.phase}`;
+          this.#phase = "pivots";
         }
 
         return done;
       }
-      case "pivot-min-fill":
-      case "pivot-row-fill":
-      case "pivot-bfs":
-      case "pivot-select":
-      case "pivot-done": {
+
+      case "pivots": {
         const phase = this.#pivotPhase!;
         const done = phase.step(this.#csr!, budget);
 
         if (phase.phase === "done") {
-          // Flush the result back to our main class, `done` means that the result has been populated.
           this.#pivots = phase.result!;
-          this.#selectedPivotCountForReport = this.#pivots.pivots.length;
-          this.#requestedPivotCountForReport = phase.requestedPivotCount;
-
-          this.#phase = `stress-prepare`;
-          // We unmount the pivot phase, and put it's state used for reporting into a locals,
-          // reason being that pivoting allocates relatively speaking large scratch buffers.
-          // That are best dropped early.
+          // Unmount early: pivoting owns relatively large scratch buffers that
+          // are best dropped as soon as the rows are extracted.
           this.#pivotPhase = undefined;
-        } else {
-          this.#phase = `pivot-${phase.phase}`;
+          this.#phase = "init";
         }
 
         return done;
       }
-      case "stress-prepare":
-      case "stress-init":
-      case "stress-scc":
-      case "stress-edges":
-      case "stress-pivots":
-      case "stress-flow":
-      case "stress-pack":
-      case "stress-done": {
-        const previousPhase = this.#phase;
-        const done = this.#stress.step(
-          this.#src,
-          this.#dst,
-          this.#components!,
-          this.#pivots!,
-          budget,
-        );
 
-        this.#phase = `stress-${this.#stress.phase}`;
-        if (this.#phase === "stress-done" && previousPhase !== "stress-done") {
-          this.#finish(this.#components!, this.#pivots!, this.#stress.epochs);
+      case "init": {
+        const previousPhase = this.#init.phase;
+        const done = this.#init.step(this.#components!, this.#pivots!, budget);
+
+        if (this.#init.phase === "done" && previousPhase !== "done") {
+          this.#finish(this.#components!, this.#pivots!);
         }
         return done;
       }
-    }
-  }
 
-  #rawProgressEstimate(): number {
-    if (this.#done) {
-      return 1;
-    }
-
-    switch (this.#phase) {
-      case "setup":
+      case "done":
         return 0;
-      case "weak-csr-degree":
-      case "weak-csr-prefix":
-      case "weak-csr-fill":
-        return mixProgress(
-          0,
-          0.18,
-          this.#csrPhase?.progress(this.#src.length) ?? 0,
-        );
-      case "components-init":
-      case "components-scan":
-        return mixProgress(0.18, 0.17, this.#componentsPhase?.progress() ?? 0);
-      case "pivot-min-fill":
-      case "pivot-row-fill":
-      case "pivot-bfs":
-      case "pivot-select":
-      case "pivot-done":
-        return mixProgress(0.35, 0.3, this.#pivotPhase?.progress() ?? 0);
-      case "stress-prepare":
-      case "stress-init":
-      case "stress-scc":
-      case "stress-edges":
-      case "stress-pivots":
-      case "stress-flow":
-      case "stress-pack":
-      case "stress-done":
-        return mixProgress(
-          0.65,
-          0.35,
-          this.#stress.progress(
-            this.#components ?? WeakComponents.empty(),
-            this.#pivots ?? Pivots.unit(),
-            this.#src.length,
-          ),
-        );
     }
   }
 
-  #progressEstimate(): number {
-    const progress = this.#rawProgressEstimate();
-    this.#lastProgress = Math.max(
-      this.#lastProgress,
-      clampNumber(progress, 0, this.#done ? 1 : 0.999),
-    );
-    if (this.#done) {
-      this.#lastProgress = 1;
-    }
-    return this.#lastProgress;
-  }
-
-  #phaseProgressEstimate(): number {
-    switch (this.#phase) {
-      case "setup":
-        return 0;
-      case "weak-csr-degree":
-      case "weak-csr-prefix":
-      case "weak-csr-fill":
-        return this.#csrPhase?.progress(this.#src.length) ?? 1;
-      case "components-init":
-      case "components-scan":
-        return this.#componentsPhase?.progress() ?? 1;
-      case "pivot-min-fill":
-      case "pivot-row-fill":
-      case "pivot-bfs":
-      case "pivot-select":
-      case "pivot-done":
-        return this.#pivotPhase?.progress() ?? 1;
-      case "stress-prepare":
-      case "stress-init":
-      case "stress-scc":
-      case "stress-edges":
-      case "stress-pivots":
-      case "stress-flow":
-      case "stress-pack":
-      case "stress-done":
-        return this.#stress.progress(
-          this.#components ?? WeakComponents.empty(),
-          this.#pivots ?? Pivots.unit(),
-          this.#src.length,
-        );
-    }
-  }
-
-  #pivotCountForReport(): number {
-    if (this.#pivots) {
-      return this.#pivots.pivots.length;
-    }
-
-    if (this.#pivotPhase) {
-      return this.#pivotPhase.requestedPivotCount;
-    }
-
-    return this.#requestedPivotCountForReport;
-  }
-
-  #selectedPivotCountForReportValue(): number {
-    if (this.#pivotPhase) {
-      return this.#pivotPhase.k;
-    }
-
-    return (
-      (this.#selectedPivotCountForReport || this.#pivots?.pivots.length) ?? 0
-    );
-  }
-
-  #stageIndexForReport(): number {
-    const index = SEEDER_PHASE_ORDER.indexOf(this.#phase);
-    return index === -1 ? 0 : index;
-  }
-
-  #currentPivotIndexForReport(): number {
-    if (this.#pivotPhase) {
-      return this.#pivotPhase.k;
-    }
-
-    if (this.#phase.startsWith("stress-")) {
-      return this.#stress.currentPivotIndex;
-    }
-
-    return this.#selectedPivotCountForReportValue();
-  }
-
-  tick(budget: SparseStressTickBudget = {}): SparseStressTickResult {
+  tick(budget: StressAnalysisTickBudget = {}): StressAnalysisTickResult {
     const maxWork = assertPositive(
       Math.floor(budget.maxWork ?? 50_000),
       "maxWork",
@@ -2605,10 +1573,6 @@ export class SparseStressSeeder {
     const maxMs = assertNonNegative(budget.maxMs ?? Infinity, "maxMs");
 
     const start = now();
-    if (this.startedAt === 0) {
-      this.startedAt = start;
-    }
-
     let workDone = 0;
     let zeroWorkTransitions = 0;
 
@@ -2632,51 +1596,15 @@ export class SparseStressSeeder {
       }
     }
 
-    const elapsed = now() - start;
-    const progress = this.#progressEstimate();
-    const phaseProgress = clampNumber(this.#phaseProgressEstimate(), 0, 1);
-    const pivotIndex = this.#currentPivotIndexForReport();
-    const pivotCount = this.#pivotCountForReport();
-    const selectedPivotCount = this.#selectedPivotCountForReportValue();
-    const stageIndex = this.#stageIndexForReport();
-
-    const report: SparseStressProgressReport = {
-      phase: this.#phase,
-      progress,
-      phaseProgress,
-      stageIndex,
-      stageCount: SEEDER_PHASE_ORDER.length,
-      epoch: this.#stress.epoch,
-      epochs: this.#stress.epochs,
-      pivotIndex,
-      pivotCount,
-      selectedPivotCount,
-      requestedPivotCount: this.#requestedPivotCountForReport,
-    };
-
     return {
       done: this.#done,
-      phase: this.#phase,
-      progress,
-      phaseProgress,
       workDone,
-      elapsedMs: elapsed,
-      epoch: this.#stress.epoch,
-      epochs: this.#stress.epochs,
-      pivotIndex,
-      pivotCount,
-      report,
-      x: this.#x,
-      y: this.#y,
+      elapsedMs: now() - start,
       result: this.#result,
     };
   }
 
-  run(): SparseStressSeedResult {
-    if (this.startedAt === 0) {
-      this.startedAt = now();
-    }
-
+  run(): StressAnalysisResult {
     let zeroWorkTransitions = 0;
     while (!this.#done) {
       const beforePhase = this.#phase;
@@ -2687,9 +1615,7 @@ export class SparseStressSeeder {
       } else {
         zeroWorkTransitions += 1;
         if (beforePhase === this.#phase || zeroWorkTransitions > 64) {
-          throw new Error(
-            `SparseStressSeeder stalled in phase ${this.#phase}.`,
-          );
+          throw new Error(`StressAnalysis stalled in phase ${this.#phase}.`);
         }
       }
     }
@@ -2697,11 +1623,7 @@ export class SparseStressSeeder {
     return this.#result!;
   }
 
-  get result(): SparseStressSeedResult | undefined {
+  get result(): StressAnalysisResult | undefined {
     return this.#result;
-  }
-
-  get phase(): SparseStressSeederPhase {
-    return this.#phase;
   }
 }
