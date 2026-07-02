@@ -16,7 +16,7 @@
     "start": "next start",
     "start:healthcheck": "wait-on --timeout 1200000 http://localhost:3000",
     "start:test": "next start",
-    "start:test:healthcheck": "wait-on --timeout 600000 http://localhost:3000",
+    "start:test:healthcheck": "wait-on --timeout 1200000 http://localhost:3000",
     "test:unit": "vitest run"
   },
   "dependencies": {

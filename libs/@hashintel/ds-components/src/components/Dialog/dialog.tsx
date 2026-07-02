@@ -92,27 +92,36 @@ const Header = ({
 
   return (
     <div className={classes.header}>
-      <div>
+      <div className={classes.headerMain}>
         {iconName && (
           <Icon name={iconName} size="md" className={classes.titleIcon} />
         )}
-        {actions ? (
-          <div className={classes.headerRight}>
-            <div className={classes.headerActions}>{actions}</div>
-            {closeButton}
-          </div>
-        ) : (
-          closeButton
-        )}
-        {title && (
-          <ArkDialog.Title className={classes.title}>{title}</ArkDialog.Title>
-        )}
+        {/*
+         * The actions/close float to the end within this text column so the
+         * title and description wrap around them. On md and up the column is a
+         * flex item (its own formatting context) sitting to the right of the
+         * flexed icon; on xs/sm it is a transparent block, so the icon float
+         * from headerMain still reaches the text.
+         */}
+        <div className={classes.headerText}>
+          {actions ? (
+            <div className={classes.headerRight}>
+              <div className={classes.headerActions}>{actions}</div>
+              {closeButton}
+            </div>
+          ) : (
+            closeButton
+          )}
+          {title && (
+            <ArkDialog.Title className={classes.title}>{title}</ArkDialog.Title>
+          )}
+          {description && (
+            <ArkDialog.Description className={classes.description}>
+              {description}
+            </ArkDialog.Description>
+          )}
+        </div>
       </div>
-      {description && (
-        <ArkDialog.Description className={classes.description}>
-          {description}
-        </ArkDialog.Description>
-      )}
     </div>
   );
 };
