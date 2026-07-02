@@ -6,12 +6,10 @@ use hashql_core::{
     symbol::sym,
     r#type::{TypeId, builder::TypeBuilder, environment::Environment},
 };
-use hashql_mir::{
-    intern::Interner,
-    interpret::value::{self, Value},
-};
+use hashql_mir::interpret::value::{self, Value};
 
 use super::{DecodeError, Decoder, JsonValueRef};
+use crate::intern::Interner;
 
 fn str_value(content: &str) -> Value<'_, Global> {
     Value::String(value::Str::from(Rc::<str>::from(content)))
@@ -28,7 +26,7 @@ fn decoder<'env, 'heap>(
 fn primitive_string() {
     let heap = Heap::new();
     let env = Environment::new(&heap);
-    let interner = Interner::new(&heap);
+    let interner = Interner::testing(&heap);
     let types = TypeBuilder::synthetic(&env);
     let decoder = decoder(&env, &interner);
 
@@ -42,7 +40,7 @@ fn primitive_string() {
 fn primitive_integer() {
     let heap = Heap::new();
     let env = Environment::new(&heap);
-    let interner = Interner::new(&heap);
+    let interner = Interner::testing(&heap);
     let types = TypeBuilder::synthetic(&env);
     let decoder = decoder(&env, &interner);
 
@@ -57,7 +55,7 @@ fn primitive_integer() {
 fn primitive_number() {
     let heap = Heap::new();
     let env = Environment::new(&heap);
-    let interner = Interner::new(&heap);
+    let interner = Interner::testing(&heap);
     let types = TypeBuilder::synthetic(&env);
     let decoder = decoder(&env, &interner);
 
@@ -72,7 +70,7 @@ fn primitive_number() {
 fn primitive_boolean_true() {
     let heap = Heap::new();
     let env = Environment::new(&heap);
-    let interner = Interner::new(&heap);
+    let interner = Interner::testing(&heap);
     let types = TypeBuilder::synthetic(&env);
     let decoder = decoder(&env, &interner);
 
@@ -89,7 +87,7 @@ fn primitive_boolean_true() {
 fn primitive_boolean_false() {
     let heap = Heap::new();
     let env = Environment::new(&heap);
-    let interner = Interner::new(&heap);
+    let interner = Interner::testing(&heap);
     let types = TypeBuilder::synthetic(&env);
     let decoder = decoder(&env, &interner);
 
@@ -106,7 +104,7 @@ fn primitive_boolean_false() {
 fn primitive_null() {
     let heap = Heap::new();
     let env = Environment::new(&heap);
-    let interner = Interner::new(&heap);
+    let interner = Interner::testing(&heap);
     let types = TypeBuilder::synthetic(&env);
     let decoder = decoder(&env, &interner);
 
@@ -120,7 +118,7 @@ fn primitive_null() {
 fn primitive_type_mismatch() {
     let heap = Heap::new();
     let env = Environment::new(&heap);
-    let interner = Interner::new(&heap);
+    let interner = Interner::testing(&heap);
     let types = TypeBuilder::synthetic(&env);
     let decoder = decoder(&env, &interner);
 
@@ -132,7 +130,7 @@ fn primitive_type_mismatch() {
 fn struct_matching_fields() {
     let heap = Heap::new();
     let env = Environment::new(&heap);
-    let interner = Interner::new(&heap);
+    let interner = Interner::testing(&heap);
     let types = TypeBuilder::synthetic(&env);
     let decoder = decoder(&env, &interner);
 
@@ -157,7 +155,7 @@ fn struct_matching_fields() {
 fn struct_missing_field() {
     let heap = Heap::new();
     let env = Environment::new(&heap);
-    let interner = Interner::new(&heap);
+    let interner = Interner::testing(&heap);
     let types = TypeBuilder::synthetic(&env);
     let decoder = decoder(&env, &interner);
 
@@ -174,7 +172,7 @@ fn struct_missing_field() {
 fn struct_extra_field() {
     let heap = Heap::new();
     let env = Environment::new(&heap);
-    let interner = Interner::new(&heap);
+    let interner = Interner::testing(&heap);
     let types = TypeBuilder::synthetic(&env);
     let decoder = decoder(&env, &interner);
 
@@ -192,7 +190,7 @@ fn struct_extra_field() {
 fn tuple_correct_length() {
     let heap = Heap::new();
     let env = Environment::new(&heap);
-    let interner = Interner::new(&heap);
+    let interner = Interner::testing(&heap);
     let types = TypeBuilder::synthetic(&env);
     let decoder = decoder(&env, &interner);
 
@@ -221,7 +219,7 @@ fn tuple_correct_length() {
 fn tuple_length_mismatch() {
     let heap = Heap::new();
     let env = Environment::new(&heap);
-    let interner = Interner::new(&heap);
+    let interner = Interner::testing(&heap);
     let types = TypeBuilder::synthetic(&env);
     let decoder = decoder(&env, &interner);
 
@@ -236,7 +234,7 @@ fn tuple_length_mismatch() {
 fn union_first_variant_matches() {
     let heap = Heap::new();
     let env = Environment::new(&heap);
-    let interner = Interner::new(&heap);
+    let interner = Interner::testing(&heap);
     let types = TypeBuilder::synthetic(&env);
     let decoder = decoder(&env, &interner);
 
@@ -253,7 +251,7 @@ fn union_first_variant_matches() {
 fn union_second_variant_matches() {
     let heap = Heap::new();
     let env = Environment::new(&heap);
-    let interner = Interner::new(&heap);
+    let interner = Interner::testing(&heap);
     let types = TypeBuilder::synthetic(&env);
     let decoder = decoder(&env, &interner);
 
@@ -269,7 +267,7 @@ fn union_second_variant_matches() {
 fn union_no_variant_matches() {
     let heap = Heap::new();
     let env = Environment::new(&heap);
-    let interner = Interner::new(&heap);
+    let interner = Interner::testing(&heap);
     let types = TypeBuilder::synthetic(&env);
     let decoder = decoder(&env, &interner);
 
@@ -283,7 +281,7 @@ fn union_no_variant_matches() {
 fn opaque_wraps_inner() {
     let heap = Heap::new();
     let env = Environment::new(&heap);
-    let interner = Interner::new(&heap);
+    let interner = Interner::testing(&heap);
     let types = TypeBuilder::synthetic(&env);
     let decoder = decoder(&env, &interner);
 
@@ -303,7 +301,7 @@ fn opaque_wraps_inner() {
 fn list_intrinsic() {
     let heap = Heap::new();
     let env = Environment::new(&heap);
-    let interner = Interner::new(&heap);
+    let interner = Interner::testing(&heap);
     let types = TypeBuilder::synthetic(&env);
     let decoder = decoder(&env, &interner);
 
@@ -329,7 +327,7 @@ fn list_intrinsic() {
 fn dict_intrinsic() {
     let heap = Heap::new();
     let env = Environment::new(&heap);
-    let interner = Interner::new(&heap);
+    let interner = Interner::testing(&heap);
     let types = TypeBuilder::synthetic(&env);
     let decoder = decoder(&env, &interner);
 
@@ -360,7 +358,7 @@ fn dict_intrinsic() {
 fn intersection_type_error() {
     let heap = Heap::new();
     let env = Environment::new(&heap);
-    let interner = Interner::new(&heap);
+    let interner = Interner::testing(&heap);
     let types = TypeBuilder::synthetic(&env);
     let decoder = decoder(&env, &interner);
 
@@ -374,7 +372,7 @@ fn intersection_type_error() {
 fn closure_type_error() {
     let heap = Heap::new();
     let env = Environment::new(&heap);
-    let interner = Interner::new(&heap);
+    let interner = Interner::testing(&heap);
     let types = TypeBuilder::synthetic(&env);
     let decoder = decoder(&env, &interner);
 
@@ -388,7 +386,7 @@ fn closure_type_error() {
 fn never_type_error() {
     let heap = Heap::new();
     let env = Environment::new(&heap);
-    let interner = Interner::new(&heap);
+    let interner = Interner::testing(&heap);
     let types = TypeBuilder::synthetic(&env);
     let decoder = decoder(&env, &interner);
 
@@ -400,7 +398,7 @@ fn never_type_error() {
 fn unknown_type_integer_fallback() {
     let heap = Heap::new();
     let env = Environment::new(&heap);
-    let interner = Interner::new(&heap);
+    let interner = Interner::testing(&heap);
     let types = TypeBuilder::synthetic(&env);
     let decoder = decoder(&env, &interner);
 
@@ -415,7 +413,7 @@ fn unknown_type_integer_fallback() {
 fn unknown_type_float_fallback() {
     let heap = Heap::new();
     let env = Environment::new(&heap);
-    let interner = Interner::new(&heap);
+    let interner = Interner::testing(&heap);
     let types = TypeBuilder::synthetic(&env);
     let decoder = decoder(&env, &interner);
 
@@ -430,7 +428,7 @@ fn unknown_type_float_fallback() {
 fn unknown_type_array_becomes_list() {
     let heap = Heap::new();
     let env = Environment::new(&heap);
-    let interner = Interner::new(&heap);
+    let interner = Interner::testing(&heap);
     let types = TypeBuilder::synthetic(&env);
     let decoder = decoder(&env, &interner);
 
@@ -450,7 +448,7 @@ fn unknown_type_array_becomes_list() {
 fn unknown_type_non_url_object_becomes_dict() {
     let heap = Heap::new();
     let env = Environment::new(&heap);
-    let interner = Interner::new(&heap);
+    let interner = Interner::testing(&heap);
     let types = TypeBuilder::synthetic(&env);
     let decoder = decoder(&env, &interner);
 
@@ -469,7 +467,7 @@ fn unknown_type_non_url_object_becomes_dict() {
 fn unknown_type_url_object_becomes_struct() {
     let heap = Heap::new();
     let env = Environment::new(&heap);
-    let interner = Interner::new(&heap);
+    let interner = Interner::testing(&heap);
     let types = TypeBuilder::synthetic(&env);
     let decoder = decoder(&env, &interner);
 

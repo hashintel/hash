@@ -1,4 +1,4 @@
-use core::{alloc::Allocator, ops::Index};
+use core::{alloc::Allocator, fmt, ops::Index};
 
 use hashql_core::{
     heap::BumpAllocator, id::bit_vec::DenseBitSet, r#type::environment::Environment,
@@ -11,7 +11,6 @@ use hashql_mir::{
         local::Local,
     },
     def::{DefId, DefIdSlice, DefIdVec},
-    intern::Interner,
     pass::{
         analysis::dataflow::{
             TraversalLivenessAnalysis,
@@ -21,7 +20,7 @@ use hashql_mir::{
     },
 };
 
-use crate::error::EvalDiagnosticIssues;
+use crate::{error::EvalDiagnosticIssues, intern::Interner};
 
 struct BasicBlockLiveOut<A: Allocator>(
     Box<BasicBlockSlice<(DenseBitSet<Local>, TraversalPathBitSet)>, A>,
@@ -49,7 +48,7 @@ impl<A: Allocator> Index<(DefId, BasicBlockId)> for LiveOut<A> {
     }
 }
 
-pub struct EvalContext<'ctx, 'heap, A: Allocator> {
+pub struct CodeGenerationContext<'ctx, 'heap, A: Allocator> {
     pub env: &'ctx Environment<'heap>,
     pub interner: &'ctx Interner<'heap>,
 
@@ -58,10 +57,11 @@ pub struct EvalContext<'ctx, 'heap, A: Allocator> {
 
     pub live_out: LiveOut<A>,
     pub diagnostics: EvalDiagnosticIssues,
+
     pub alloc: A,
 }
 
-impl<'ctx, 'heap, A: Allocator> EvalContext<'ctx, 'heap, A> {
+impl<'ctx, 'heap, A: Allocator> CodeGenerationContext<'ctx, 'heap, A> {
     pub fn new_in<S: BumpAllocator>(
         env: &'ctx Environment<'heap>,
         interner: &'ctx Interner<'heap>,
@@ -118,6 +118,42 @@ impl<'ctx, 'heap, A: Allocator> EvalContext<'ctx, 'heap, A> {
             live_out: LiveOut(live_out),
             diagnostics: DiagnosticIssues::new(),
             alloc,
+        }
+    }
+}
+
+#[derive(Copy, Clone)]
+pub struct CodeExecutionContext<'ctx, 'heap, A: Allocator> {
+    pub env: &'ctx Environment<'heap>,
+    pub interner: &'ctx Interner<'heap>,
+
+    pub bodies: &'ctx DefIdSlice<Body<'heap>>,
+    pub execution: &'ctx DefIdSlice<Option<ExecutionAnalysisResidual<A>>>,
+
+    pub alloc: A,
+}
+
+impl<A: Allocator> fmt::Debug for CodeExecutionContext<'_, '_, A> {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt.debug_struct("CodeExecutionContext")
+            .field("env", &self.env)
+            .field("interner", &self.interner)
+            .field("bodies", &self.bodies)
+            .field("execution", &self.execution)
+            .finish_non_exhaustive()
+    }
+}
+
+impl<'ctx, 'heap, A: Allocator> From<CodeGenerationContext<'ctx, 'heap, A>>
+    for CodeExecutionContext<'ctx, 'heap, A>
+{
+    fn from(context: CodeGenerationContext<'ctx, 'heap, A>) -> Self {
+        Self {
+            env: context.env,
+            interner: context.interner,
+            bodies: context.bodies,
+            execution: context.execution,
+            alloc: context.alloc,
         }
     }
 }
