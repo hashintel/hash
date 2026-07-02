@@ -114,6 +114,7 @@ export const TextArea = ({
       {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- click-to-focus container delegates to inner <textarea> */}
       <div
         className={classes.root}
+        data-part="textarea-box"
         onClick={(event) => {
           if (!disabled) {
             internalRef.current?.focus();
@@ -121,31 +122,32 @@ export const TextArea = ({
           }
         }}
       >
-        <div className={classes.textareaWrapper}>
-          <textarea
-            id={inputId}
-            ref={mergedInputRef}
-            name={name}
-            value={value ?? ""}
-            rows={rows}
-            placeholder={placeholder}
-            disabled={disabled}
-            required={required}
-            aria-invalid={invalid ?? undefined}
-            onChange={(event) => {
-              onChange(event.target.value, event);
-            }}
-            onFocus={onFocus}
-            onBlur={onBlur}
-            onKeyDown={onKeyDown}
-            spellCheck={spellcheck}
-            data-testid={testId}
-            className={classes.textarea}
-            autoFocus={autoFocus === true ? true : undefined}
-            {...ariaProps}
-          />
-        </div>
+        <textarea
+          id={inputId}
+          ref={mergedInputRef}
+          name={name}
+          value={value ?? ""}
+          rows={rows}
+          placeholder={placeholder}
+          disabled={disabled}
+          required={required}
+          aria-invalid={invalid ?? undefined}
+          onChange={(event) => {
+            onChange(event.target.value, event);
+          }}
+          onFocus={onFocus}
+          onBlur={onBlur}
+          onKeyDown={onKeyDown}
+          spellCheck={spellcheck}
+          data-testid={testId}
+          className={classes.textarea}
+          autoFocus={autoFocus === true ? true : undefined}
+          {...ariaProps}
+        />
       </div>
+      {variant === "subtle" && (
+        <div className={classes.subtleOverlay} aria-hidden="true" />
+      )}
       {characterLimit != null && (
         <CharacterCount
           className={classes.charCount}

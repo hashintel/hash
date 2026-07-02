@@ -6,7 +6,7 @@ export const textAreaRecipe = sva({
   slots: [
     "wrapper",
     "root",
-    "textareaWrapper",
+    "subtleOverlay",
     "textarea",
     "readonly",
     "charCount",
@@ -14,24 +14,42 @@ export const textAreaRecipe = sva({
   base: {
     wrapper: {
       width: "[100%]",
-    },
-    root: {
-      width: "[100%]",
       position: "relative",
-      background: "[var(--base-input-background-color)]",
-      border: "var(--form-border-width) solid transparent",
-      borderRadius: "var(--base-input-border-radius)",
-      transition: "[background 0.15s ease, border 0.15s ease]",
+      isolation: "isolate",
       "--base-input-background-color": "var(--colors-white)",
       "--base-input-focus-color": "var(--colors-neutral-s40)",
       "--base-input-border-color": "var(--colors-neutral-s40)",
       "--base-input-border-hover-color": "var(--colors-neutral-s80)",
     },
-    textareaWrapper: {
+    root: {
+      width: "[100%]",
+      maxWidth: "[100%]",
+      position: "relative",
+      anchorName: "[--textarea-root]",
       overflow: "hidden",
+      background: "[var(--base-input-background-color)]",
+      border: "var(--form-border-width) solid transparent",
       borderRadius: "var(--base-input-border-radius)",
+      transition: "[background 0.15s ease, border 0.15s ease]",
+    },
+    subtleOverlay: {
+      position: "absolute",
+      positionAnchor: "[--textarea-root]",
+      top: "[calc(anchor(--textarea-root top) - 1px)]",
+      left: "[calc(anchor(--textarea-root left) - var(--base-input-padding-x))]",
+      width:
+        "[calc(anchor-size(--textarea-root width) + var(--base-input-padding-x))]",
+      height: "[calc(anchor-size(--textarea-root height) + 2px)]",
+      zIndex: "[-1]",
+      borderRadius: "var(--base-input-border-radius)",
+      border: "1px solid var(--textarea-overlay-border-color, transparent)",
+      background: "[var(--base-input-background-color)]",
+      pointerEvents: "none",
+      transition: "[background 0.15s ease, border 0.15s ease]",
     },
     textarea: {
+      height: "[100%]",
+      resize: "none",
       position: "relative",
       display: "block",
       width: "[100%]",
@@ -76,31 +94,20 @@ export const textAreaRecipe = sva({
         },
       },
       subtle: {
-        root: {
+        wrapper: {
           "--base-input-border-hover-color": "var(--colors-neutral-a40)",
           "--base-input-background-color": "transparent",
-          _before: {
-            content: '""',
-            position: "absolute",
-            insetY: "[-1px]",
-            left: "[calc(-1 * var(--base-input-padding-x))]",
-            right: "[0]",
-            borderRadius: "var(--base-input-border-radius)",
-            border: "1px solid transparent",
-            pointerEvents: "none",
-            background: "[var(--base-input-background-color)]",
-            transition: "[background 0.15s ease, border 0.15s ease]",
-          },
-          "&:not(.layer-style_disabled):hover": {
-            _before: {
-              borderColor: "var(--base-input-border-hover-color)",
+          "--textarea-overlay-border-color": "transparent",
+          // hovering the box (not the character counter) shows the subtle border
+          "&:has([data-part='textarea-box']:not(.layer-style_disabled):hover)":
+            {
+              "--textarea-overlay-border-color":
+                "var(--base-input-border-hover-color)",
             },
-          },
-          "&:focus-within:not(.layer-style_disabled)": {
+          // focusing the textarea fills the background and shows the border
+          "&:focus-within": {
             "--base-input-background-color": "var(--colors-white)",
-            _before: {
-              borderColor: "var(--base-input-border-color)",
-            },
+            "--textarea-overlay-border-color": "var(--base-input-border-color)",
           },
         },
         textarea: {
@@ -152,7 +159,7 @@ export const textAreaRecipe = sva({
     },
     invalid: {
       true: {
-        root: {
+        wrapper: {
           "--base-input-focus-color": "var(--colors-red-s60)",
           "--base-input-border-color": "var(--colors-red-s60)",
           "--base-input-border-hover-color": "var(--colors-red-s65)",
@@ -173,10 +180,10 @@ export const textAreaRecipe = sva({
       right: { textarea: { textAlign: "end" } },
     },
     resize: {
-      none: { textarea: { resize: "none" } },
-      vertical: { textarea: { resize: "vertical" } },
-      horizontal: { textarea: { resize: "horizontal" } },
-      both: { textarea: { resize: "both" } },
+      none: { root: { resize: "none" } },
+      vertical: { root: { resize: "vertical" } },
+      horizontal: { root: { resize: "horizontal" } },
+      both: { root: { resize: "both" } },
     },
     autoResize: {
       // grow to fit content; the browser handles this natively via field-sizing
@@ -249,11 +256,12 @@ export const textAreaRecipe = sva({
       variant: "subtle",
       invalid: true,
       css: {
-        root: {
-          _before: {
-            right: "[-1px]",
-            borderColor: "var(--base-input-border-color)",
-          },
+        wrapper: {
+          "--textarea-overlay-border-color": "var(--base-input-border-color)",
+        },
+        subtleOverlay: {
+          width:
+            "[calc(anchor-size(--textarea-root width) + var(--base-input-padding-x) + 1px)]",
         },
       },
     },
