@@ -117,7 +117,7 @@ const CURRENCY_SYMBOLS: Record<string, string> = {
   USD: "$",
   EUR: "€",
   CNY: "¥",
-  CHF: "CHF ",
+  CHF: "CHF",
 };
 
 /** Resolve the active locale for all number/date formatting. Single source of truth. */
