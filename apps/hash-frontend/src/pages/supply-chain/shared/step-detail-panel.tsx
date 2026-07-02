@@ -24,6 +24,7 @@ import { stepDocTarget } from "./docs/docs-modal/docs-content";
 import { useDocs } from "./docs/use-docs";
 import { useSupplierPerformanceEnabled } from "./feature-flags";
 import { LoadingState, ErrorState } from "./load-state";
+import { MaterialTag } from "./material-tag";
 import { applyOutlierSelectionToStep } from "./outlier-selection";
 import { computePeriodDeltas } from "./period-trends";
 import { useProcurementBasis } from "./procurement-basis-context";
@@ -301,6 +302,13 @@ interface StepDetailPanelProps {
    * shared across multiple finished goods) so the title isn't misleading.
    */
   productName?: string;
+  /**
+   * Material number for the step/node this panel describes (e.g. the
+   * procured raw material, intermediate, or finished good).
+   * `StepDetail` doesn't carry the material, so callers pass the graph node's
+   * `material`. Omit when the step isn't tied to a single material.
+   */
+  stepMaterial?: string | null;
   briefHref?: string;
   /** All status updates left against this step/node (any order; rendered newest-first). */
   statusEntries?: StatusEntry[];
@@ -337,6 +345,7 @@ export const StepDetailPanel = ({
   onClose,
   siteContext,
   productName,
+  stepMaterial,
   briefHref,
   statusEntries = [],
   onStatus,
@@ -360,6 +369,15 @@ export const StepDetailPanel = ({
     () => products.find((product) => product.id === productId) ?? null,
     [products, productId],
   );
+  const materialByProductId = useMemo(() => {
+    const lookup = new Map<string, string>();
+    for (const product of products) {
+      if (product.material) {
+        lookup.set(product.id, product.material);
+      }
+    }
+    return lookup;
+  }, [products]);
   useEffect(() => {
     setLoading(true);
     setError(null);
@@ -663,7 +681,11 @@ export const StepDetailPanel = ({
                       href={`/supply-chain/product/${product.id}?step=${stepId}`}
                       className={productLink}
                     >
-                      {product.name}
+                      <MaterialTag
+                        material={materialByProductId.get(product.id)}
+                      >
+                        {product.name}
+                      </MaterialTag>
                       <Icon name="externalLink" size="xs" />
                     </Link>
                   </span>
@@ -671,7 +693,11 @@ export const StepDetailPanel = ({
               </div>
             )}
             <div className={titleRow}>
-              <h2 className={titleStyles}>{step?.label ?? "Loading..."}</h2>
+              <h2 className={titleStyles}>
+                <MaterialTag material={stepMaterial}>
+                  {step?.label ?? "Loading..."}
+                </MaterialTag>
+              </h2>
               <div className={titleActions}>
                 {briefHref && <BriefLink href={briefHref} />}
                 {onStatus && (

@@ -15,9 +15,11 @@ import {
   AnalysisSettingsPanel,
   HeaderActionButtons,
 } from "../shared/header-actions";
+import { MaterialTag } from "../shared/material-tag";
 import { MEASURE_LABELS, useBaseMeasure } from "../shared/measure-context";
 import { useProcurementBasis } from "../shared/procurement-basis-context";
 import { filterGraphNodeByDateRange } from "../shared/range-filter";
+import { useRegistry } from "../shared/registry-context";
 import { ScopeSelect } from "../shared/scope-select";
 import { SegmentedControl } from "../shared/segmented-control";
 import { normaliseSiteCode } from "../shared/site-code";
@@ -264,6 +266,12 @@ export const Overview = ({
     useCostParams();
   const { excludeOutliers } = useOutlierSetting();
   const { basis: procurementBasis } = useProcurementBasis();
+  const { products } = useRegistry();
+  const productMaterial = useMemo(
+    () =>
+      products.find((product) => product.id === productId)?.material ?? null,
+    [products, productId],
+  );
 
   const [searchParams, setSearchParams] = useSearchParams();
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -483,7 +491,7 @@ export const Overview = ({
   // history across scopes). The site code is smaller and less likely to change,
   // so derive it once from the graph and use it for the whole product page.
   //
-  // `node.plant` is the raw (upper-case) SAP plant code, whereas the site
+  // `node.plant` is the raw (upper-case) plant code, whereas the site
   // overview scopes by the lower-cased route slug; `normaliseSiteCode` reconciles
   // the two so status set on the site overview lines up with the product page.
   const productSiteId = useMemo(() => {
@@ -529,7 +537,9 @@ export const Overview = ({
         <div className={headerRow}>
           {/* Left: scope picker (doubles as title) + stats */}
           <div className={titleCol}>
-            <ScopeSelect productId={productId} />
+            <MaterialTag material={productMaterial} side="right">
+              <ScopeSelect productId={productId} />
+            </MaterialTag>
             <div className={statsRow}>
               {summaryStats.totalMean != null && (
                 <StatChip
@@ -692,6 +702,7 @@ export const Overview = ({
           stepId={selectedStepId}
           onClose={handlePanelClose}
           productName={graph.product_name}
+          stepMaterial={selectedNode?.material}
           briefHref={selectedBriefHref}
           statusEntries={
             selectedStatusKey

@@ -624,6 +624,7 @@ export const SiteOverview = ({
           stepId={selectedStep.stepId}
           onClose={handlePanelClose}
           siteContext={selectedStep.siteContext}
+          stepMaterial={selectedStep.node.material}
           briefHref={selectedStep.briefHref}
           statusEntries={
             opportunityStatusHistory[statusKey(siteSlug, selectedStep.node)] ??
