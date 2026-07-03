@@ -8,7 +8,7 @@ import { nodeGeometry } from "../selection";
 import type { PositionsFrame } from "../../frames";
 import type { ClusterId, EntityIndex } from "../../ids";
 import type { SelectionGeometry } from "../selection";
-import type { WorkerHandle } from "../worker-connection";
+import type { WorkerHandle } from "../entity-worker-connection";
 
 /** Live world position + radius of a node by its layout + render index, or null if gone. */
 export function liveNodeGeometry(

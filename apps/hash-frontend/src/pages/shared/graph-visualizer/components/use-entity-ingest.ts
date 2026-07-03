@@ -10,7 +10,7 @@ import { useEffect, useRef } from "react";
 
 import { toIngestEntities } from "./ingest-mapping";
 
-import type { WorkerHandle } from "../render/worker-connection";
+import type { WorkerHandle } from "../render/entity-worker-connection";
 import type { EntityId } from "@blockprotocol/type-system";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 

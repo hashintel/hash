@@ -15,7 +15,7 @@ import {
 
 import type { PositionsFrame, RenderCluster, StructureFrame } from "../frames";
 import type { ClusterId, EntityIndex } from "../ids";
-import type { ClusterReference } from "./worker-connection";
+import type { ClusterReference } from "./frame-connection";
 import type { Layer } from "@deck.gl/core";
 
 /** A cluster bubble with its current world position (mutated in place across frames). */

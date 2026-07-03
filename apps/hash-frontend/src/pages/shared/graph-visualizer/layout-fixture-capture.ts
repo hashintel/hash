@@ -16,7 +16,7 @@
  */
 import { useEffect } from "react";
 
-import type { WorkerHandle } from "./render/worker-connection";
+import type { WorkerHandle } from "./render/entity-worker-connection";
 import type { CapturedLayoutFixture } from "./worker/protocol";
 
 /** Trigger a browser download of the fixture; returns the filename. */

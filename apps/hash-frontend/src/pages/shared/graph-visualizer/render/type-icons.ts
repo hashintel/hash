@@ -19,7 +19,7 @@ import type {
 } from "../frames";
 import type { ClusterId } from "../ids";
 import type { IconAtlas } from "./gpu/icon-atlas";
-import type { ClusterReference } from "./worker-connection";
+import type { ClusterReference } from "./frame-connection";
 import type { Layer } from "@deck.gl/core";
 import type { Device } from "@luma.gl/core";
 

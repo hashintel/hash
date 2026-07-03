@@ -21,10 +21,11 @@
  */
 import { useCallback, useEffect, useState } from "react";
 
-import type { WorkerHandle } from "../render/worker-connection";
+import type { FrameHandle } from "../render/frame-connection";
 
 interface UseSimulationPauseOptions {
-  readonly handle: WorkerHandle | undefined;
+  /** Either lifecycle's connection: pausing is lifecycle-neutral. */
+  readonly handle: FrameHandle | undefined;
   /** Only send once the worker exists (INIT processed); earlier posts would be dropped. */
   readonly ready: boolean;
   /** Caller-known occlusion: UI layered over an otherwise-visible visualizer. */

@@ -40,7 +40,7 @@ import { useGraphWorker } from "./render/use-graph-worker";
 import type { FrontierExpansionStore } from "./components/frontier-expansion-store";
 import type { VizConfig } from "./config";
 import type { EntitySelection, Scene } from "./render/scene";
-import type { WorkerHandle } from "./render/worker-connection";
+import type { WorkerHandle } from "./render/entity-worker-connection";
 import type { EntityId } from "@blockprotocol/type-system";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import type {

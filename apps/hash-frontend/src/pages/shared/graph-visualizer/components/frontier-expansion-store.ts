@@ -38,7 +38,7 @@ import {
   toIngestEntities,
 } from "./ingest-mapping";
 
-import type { WorkerHandle } from "../render/worker-connection";
+import type { WorkerHandle } from "../render/entity-worker-connection";
 import type {
   IngestEntity,
   PropertySchemaEntry,

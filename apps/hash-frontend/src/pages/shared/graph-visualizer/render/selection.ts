@@ -16,7 +16,7 @@ import {
 import type { PositionsFrame, StructureFrame } from "../frames";
 import type { Position } from "../geometry";
 import type { ClusterId } from "../ids";
-import type { ClusterReference } from "./worker-connection";
+import type { ClusterReference } from "./frame-connection";
 import type { EntityId } from "@blockprotocol/type-system";
 import type { Layer } from "@deck.gl/core";
 

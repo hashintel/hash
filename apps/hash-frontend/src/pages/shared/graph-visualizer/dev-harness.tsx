@@ -26,7 +26,7 @@ import type { VizConfig } from "./config";
 import type { GraphFixture } from "./dev-harness/generate-fixture";
 import type { Scene } from "./render/scene";
 import type { LayerKind } from "./render/scene/layer-kinds";
-import type { WorkerHandle } from "./render/worker-connection";
+import type { WorkerHandle } from "./render/entity-worker-connection";
 import type { EntityId } from "@blockprotocol/type-system";
 
 /** Render-bench capture length. Long enough for ~10 deck metric samples. */

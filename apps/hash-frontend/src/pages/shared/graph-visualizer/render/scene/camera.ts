@@ -24,7 +24,7 @@ import {
 } from "./view-state";
 
 import type { PlacedCluster } from "../clusters";
-import type { WorkerHandle } from "../worker-connection";
+import type { WorkerHandle } from "../entity-worker-connection";
 import type { ViewState } from "./view-state";
 import type { Deck, OrthographicView } from "@deck.gl/core";
 

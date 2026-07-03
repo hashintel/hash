@@ -46,7 +46,7 @@
  */
 import type { ClusterId } from "../../ids";
 import type { IconAtlas } from "../gpu/icon-atlas";
-import type { WorkerHandle } from "../worker-connection";
+import type { WorkerHandle } from "../entity-worker-connection";
 import type { SceneCallbacks } from "./callbacks";
 
 export interface EntityIconsDependencies {

@@ -7,7 +7,7 @@ import { BEZIER_NO_LINK } from "../../frames";
 
 import type { ClusterId, EntityIndex } from "../../ids";
 import type { Selection } from "../selection";
-import type { WorkerHandle } from "../worker-connection";
+import type { WorkerHandle } from "../entity-worker-connection";
 import type { PickingInfo } from "@deck.gl/core";
 
 export const FLAT_EDGE_LAYER_ID = "flat-edges";

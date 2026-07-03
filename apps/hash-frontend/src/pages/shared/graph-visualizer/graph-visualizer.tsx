@@ -15,7 +15,7 @@ import type {
   EntitySelection,
   HighwayHover,
 } from "./render/scene";
-import type { WorkerHandle } from "./render/worker-connection";
+import type { WorkerHandle } from "./render/entity-worker-connection";
 import type { EntityId } from "@blockprotocol/type-system";
 import type { ReactElement } from "react";
 

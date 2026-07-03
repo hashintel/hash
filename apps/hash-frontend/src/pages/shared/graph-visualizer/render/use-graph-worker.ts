@@ -1,16 +1,16 @@
 /**
- * Creates and disposes a {@link WorkerConnection} on mount/unmount, forwards
- * schema registration when the worker is ready, and applies config changes
- * live (the worker re-tunes and re-lays out; it is not recreated).
+ * Creates and disposes an {@link EntityWorkerConnection} on mount/unmount,
+ * forwards schema registration when the worker is ready, and applies config
+ * changes live (the worker re-tunes and re-lays out; it is not recreated).
  */
 import { useEffect, useRef, useState } from "react";
 
 import { defaultVizConfig } from "../config";
-import { WorkerConnection } from "./worker-connection";
+import { EntityWorkerConnection } from "./entity-worker-connection";
 
 import type { VizConfig } from "../config";
 import type { PropertySchemaEntry, TypeSchemaEntry } from "../worker/protocol";
-import type { WorkerHandle } from "./worker-connection";
+import type { WorkerHandle } from "./entity-worker-connection";
 
 interface UseGraphWorkerOptions {
   /**
@@ -39,9 +39,9 @@ export function useGraphWorker({
   propertySchemas,
   resetKey,
 }: UseGraphWorkerOptions): UseGraphWorkerResult {
-  const [connection, setConnection] = useState<WorkerConnection | undefined>(
-    undefined,
-  );
+  const [connection, setConnection] = useState<
+    EntityWorkerConnection | undefined
+  >(undefined);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | undefined>(undefined);
 
@@ -51,7 +51,7 @@ export function useGraphWorker({
   configRef.current = config;
 
   useEffect(() => {
-    const created = new WorkerConnection({
+    const created = new EntityWorkerConnection({
       config: configRef.current,
       onReady: () => setReady(true),
       onError: setError,

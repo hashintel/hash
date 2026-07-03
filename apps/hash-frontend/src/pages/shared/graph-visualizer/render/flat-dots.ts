@@ -13,7 +13,7 @@ import {
 
 import type { RenderFlatGraph } from "../frames";
 import type { ClusterId } from "../ids";
-import type { ClusterReference } from "./worker-connection";
+import type { ClusterReference } from "./frame-connection";
 import type { Layer } from "@deck.gl/core";
 
 export function flatDotsLayer(

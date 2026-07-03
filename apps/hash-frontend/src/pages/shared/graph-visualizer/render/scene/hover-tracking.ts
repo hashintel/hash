@@ -6,7 +6,7 @@
  */
 import type { ClusterId } from "../../ids";
 import type { PlacedCluster } from "../clusters";
-import type { WorkerHandle } from "../worker-connection";
+import type { WorkerHandle } from "../entity-worker-connection";
 import type { SceneCallbacks } from "./callbacks";
 import type { EntityId } from "@blockprotocol/type-system";
 import type { Deck, OrthographicView } from "@deck.gl/core";

@@ -21,7 +21,7 @@ import {
   useFrontierExpansionStore,
 } from "./frontier-expansion-store";
 
-import type { WorkerHandle } from "../render/worker-connection";
+import type { WorkerHandle } from "../render/entity-worker-connection";
 import type { FrontierSnapshot } from "./frontier-expansion-store";
 import type { EntityId } from "@blockprotocol/type-system";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";

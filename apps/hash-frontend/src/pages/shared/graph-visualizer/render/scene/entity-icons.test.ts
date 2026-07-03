@@ -12,7 +12,8 @@ import { EntityIcons } from "./entity-icons";
 
 import type { StructureFrame } from "../../frames";
 import type { IconAtlas } from "../gpu/icon-atlas";
-import type { ClusterReference, WorkerHandle } from "../worker-connection";
+import type { WorkerHandle } from "../entity-worker-connection";
+import type { ClusterReference } from "../frame-connection";
 import type { SceneCallbacks } from "./callbacks";
 import type { EntityId } from "@blockprotocol/type-system";
 

@@ -36,7 +36,8 @@ import type { SceneCallbacks } from "./scene/callbacks";
 import type { ZoomBucketChanges } from "./scene/camera";
 import type { LayerKind } from "./scene/layer-kinds";
 import type { RenderCaptureReport } from "./scene/render-metrics";
-import type { WorkerEvent, WorkerHandle } from "./worker-connection";
+import type { WorkerHandle } from "./entity-worker-connection";
+import type { WorkerEvent } from "./frame-connection";
 import type { Layer } from "@deck.gl/core";
 import type { Device } from "@luma.gl/core";
 
