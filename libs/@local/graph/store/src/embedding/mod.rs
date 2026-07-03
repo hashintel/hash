@@ -10,4 +10,7 @@
 
 pub mod clustering;
 pub mod dimension;
-pub(crate) mod kernel;
+// Hidden from docs: the kernel is an implementation detail, exposed only so
+// the `embedding` bench target can measure it in isolation.
+#[doc(hidden)]
+pub mod kernel;

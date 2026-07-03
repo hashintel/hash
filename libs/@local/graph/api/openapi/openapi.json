@@ -3832,7 +3832,8 @@
         "description": "Result of [`EntityStore::cluster_entities`].",
         "required": [
           "clusters",
-          "missingEmbeddings"
+          "missingEmbeddings",
+          "inertia"
         ],
         "properties": {
           "clusters": {
@@ -3841,6 +3842,11 @@
               "$ref": "#/components/schemas/EntityCluster"
             },
             "description": "One entry per non-empty cluster. Empty clusters (no points assigned)\nare omitted."
+          },
+          "inertia": {
+            "type": "number",
+            "format": "float",
+            "description": "Sum of squared chord distances from every clustered entity to its\nassigned centroid. Lower is tighter; comparable across runs over the\nsame entities, e.g. to choose a cluster count. `0.0` when nothing was\nclustered."
           },
           "missingEmbeddings": {
             "type": "array",

@@ -3,7 +3,10 @@
     reason = "while usually discouraged, SIMD operations need to be inlined, as otherwise we \
               spill SIMD registers, see the SIMD documentation."
 )]
-use core::simd::{Simd, f32x8, num::SimdFloat as _};
+use core::{
+    num::NonZero,
+    simd::{Simd, f32x8, num::SimdFloat as _},
+};
 
 /// Fused multiply-add when the target has native FMA, separate mul+add otherwise.
 ///
@@ -39,7 +42,7 @@ fn simd_mul_add(lhs: f32x8, rhs: f32x8, acc: f32x8) -> f32x8 {
 /// * Both lengths are multiples of 8.
 #[inline]
 #[must_use]
-pub(crate) unsafe fn dot(lhs: &[f32], rhs: &[f32]) -> f32 {
+pub unsafe fn dot(lhs: &[f32], rhs: &[f32]) -> f32 {
     debug_assert!(lhs.len().is_multiple_of(8) && lhs.len() == rhs.len());
 
     // SAFETY: the caller guarantees equal lengths and a multiple of 8.
@@ -96,63 +99,6 @@ pub(crate) unsafe fn dot(lhs: &[f32], rhs: &[f32]) -> f32 {
     (s0 + s1 + s2 + s3).reduce_sum()
 }
 
-/// Adds `src` element-wise into `dst`.
-///
-/// # Safety
-///
-/// * `dst.len() == src.len()`
-/// * Both lengths are multiples of 8.
-#[inline]
-pub(crate) unsafe fn add_into(dst: &mut [f32], src: &[f32]) {
-    debug_assert!(dst.len().is_multiple_of(8) && dst.len() == src.len());
-
-    // SAFETY: the caller guarantees equal lengths and a multiple of 8.
-    unsafe {
-        core::hint::assert_unchecked(dst.len() == src.len());
-        core::hint::assert_unchecked(dst.len().is_multiple_of(8));
-    }
-
-    let (dst, _) = dst.as_chunks_mut::<8>();
-    let (src, _) = src.as_chunks::<8>();
-
-    // SAFETY: same reasoning as the pre-chunk hints: equal input lengths
-    // that are multiples of 8 produce equal chunk counts.
-    unsafe { core::hint::assert_unchecked(dst.len() == src.len()) }
-
-    for index in 0..dst.len() {
-        dst[index] = (f32x8::from_slice(&dst[index]) + f32x8::from_slice(&src[index])).to_array();
-    }
-}
-
-/// Writes `src * factor` element-wise into `dst`.
-///
-/// # Safety
-///
-/// * `dst.len() == src.len()`
-/// * Both lengths are multiples of 8.
-#[inline]
-pub(crate) unsafe fn scale_into(dst: &mut [f32], src: &[f32], factor: f32) {
-    debug_assert!(dst.len().is_multiple_of(8) && dst.len() == src.len());
-
-    // SAFETY: the caller guarantees equal lengths and a multiple of 8.
-    unsafe {
-        core::hint::assert_unchecked(dst.len() == src.len());
-        core::hint::assert_unchecked(dst.len().is_multiple_of(8));
-    }
-
-    let factor = f32x8::splat(factor);
-    let (dst, _) = dst.as_chunks_mut::<8>();
-    let (src, _) = src.as_chunks::<8>();
-
-    // SAFETY: same reasoning as the pre-chunk hints: equal input lengths
-    // that are multiples of 8 produce equal chunk counts.
-    unsafe { core::hint::assert_unchecked(dst.len() == src.len()) }
-
-    for index in 0..dst.len() {
-        dst[index] = (f32x8::from_slice(&src[index]) * factor).to_array();
-    }
-}
-
 /// Scales `value` in-place by `factor`.
 ///
 /// # Safety
@@ -185,7 +131,7 @@ pub(crate) unsafe fn scale(value: &mut [f32], factor: f32) {
 /// * `dst.len() == src.len()`
 /// * Both lengths are multiples of 8.
 #[inline]
-pub(crate) unsafe fn add_scaled_into(dst: &mut [f32], src: &[f32], factor: f32) {
+pub unsafe fn add_scaled_into(dst: &mut [f32], src: &[f32], factor: f32) {
     debug_assert!(dst.len().is_multiple_of(8) && dst.len() == src.len());
 
     // SAFETY: the caller guarantees equal lengths and a multiple of 8.
@@ -247,7 +193,8 @@ pub(crate) unsafe fn normalize(value: &mut [f32]) {
 /// * all six slices have length `d`
 /// * `d` is a multiple of 8
 #[inline(always)] // micro-kernel must inline nearest4 to keep accumulators in registers
-pub(crate) unsafe fn micro_4x2(
+#[must_use]
+pub unsafe fn micro_4x2(
     p0: &[f32],
     p1: &[f32],
     p2: &[f32],
@@ -316,6 +263,67 @@ pub(crate) unsafe fn micro_4x2(
     ]
 }
 
+/// 4 points x 1 centroid: the odd-`k` remainder of [`nearest4`]. Four
+/// independent accumulators (one per point) share each centroid load, so the
+/// centroid streams through registers once instead of once per point.
+///
+/// # Safety
+///
+/// * all five slices have length `d`
+/// * `d` is a multiple of 8
+#[inline(always)] // micro-kernel must inline into nearest4 to keep accumulators in registers
+pub(crate) unsafe fn micro_4x1(
+    p0: &[f32],
+    p1: &[f32],
+    p2: &[f32],
+    p3: &[f32],
+    c: &[f32],
+) -> [f32; 4] {
+    debug_assert!(p0.len().is_multiple_of(8));
+    debug_assert!(
+        [p1.len(), p2.len(), p3.len(), c.len()]
+            .iter()
+            .all(|&l| l == p0.len())
+    );
+
+    let (p0, _) = p0.as_chunks::<8>();
+    let (p1, _) = p1.as_chunks::<8>();
+    let (p2, _) = p2.as_chunks::<8>();
+    let (p3, _) = p3.as_chunks::<8>();
+    let (c, _) = c.as_chunks::<8>();
+
+    // SAFETY: the caller guarantees all five slices have equal length `d`,
+    // and `d` is a multiple of 8. The hints let the compiler prove that
+    // `as_chunks` produces equal-length chunk slices.
+    unsafe {
+        core::hint::assert_unchecked(p0.len() == p1.len());
+        core::hint::assert_unchecked(p0.len() == p2.len());
+        core::hint::assert_unchecked(p0.len() == p3.len());
+        core::hint::assert_unchecked(p0.len() == c.len());
+    }
+
+    let mut a0 = f32x8::splat(0.0);
+    let mut a1 = f32x8::splat(0.0);
+    let mut a2 = f32x8::splat(0.0);
+    let mut a3 = f32x8::splat(0.0);
+
+    for t in 0..c.len() {
+        let v = Simd::from_array(c[t]);
+
+        a0 = simd_mul_add(Simd::from_array(p0[t]), v, a0);
+        a1 = simd_mul_add(Simd::from_array(p1[t]), v, a1);
+        a2 = simd_mul_add(Simd::from_array(p2[t]), v, a2);
+        a3 = simd_mul_add(Simd::from_array(p3[t]), v, a3);
+    }
+
+    [
+        a0.reduce_sum(),
+        a1.reduce_sum(),
+        a2.reduce_sum(),
+        a3.reduce_sum(),
+    ]
+}
+
 /// Finds the nearest centroid for 4 points simultaneously using the
 /// [`micro_4x2`] tiled kernel.
 ///
@@ -328,16 +336,15 @@ pub(crate) unsafe fn micro_4x2(
 /// * All four point slices have length `d`.
 /// * `centroids.len() >= k * d`.
 /// * `d` is a multiple of 8.
-/// * `k > 0`.
 #[inline]
 #[must_use]
-pub(crate) unsafe fn nearest4(
+pub unsafe fn nearest4(
     p0: &[f32],
     p1: &[f32],
     p2: &[f32],
     p3: &[f32],
     centroids: &[f32],
-    k: usize,
+    k: NonZero<usize>,
     d: usize,
 ) -> [(u16, f32); 4] {
     let mut best_dot = [f32::NEG_INFINITY; 4];
@@ -349,13 +356,12 @@ pub(crate) unsafe fn nearest4(
         core::hint::assert_unchecked(p0.len() == p1.len());
         core::hint::assert_unchecked(p0.len() == p2.len());
         core::hint::assert_unchecked(p0.len() == p3.len());
-        core::hint::assert_unchecked(centroids.len() >= k * d);
+        core::hint::assert_unchecked(centroids.len() >= k.get() * d);
         core::hint::assert_unchecked(d.is_multiple_of(8));
-        core::hint::assert_unchecked(k > 0);
     }
 
     let mut j = 0;
-    while j + 2 <= k {
+    while j + 2 <= k.get() {
         // SAFETY: `j + 2 <= k` and `centroids.len() >= k * d`, so both
         // slices `[j*d .. (j+2)*d]` are in-bounds.
         let c0 = unsafe { centroids.get_unchecked(j * d..j * d + d) };
@@ -382,19 +388,19 @@ pub(crate) unsafe fn nearest4(
         j += 2;
     }
 
-    // Handle odd k: one remaining centroid.
-    if j < k {
+    // Handle odd k: one remaining centroid via the 4x1 tile.
+    if j < k.get() {
         let c = &centroids[j * d..j * d + d];
-        let ps = [p0, p1, p2, p3];
+        // SAFETY: all five slices have length `d`, a multiple of 8.
+        let dots = unsafe { micro_4x1(p0, p1, p2, p3, c) };
+
+        #[expect(
+            clippy::cast_possible_truncation,
+            reason = "k originates from Config::k (u16)"
+        )]
         for m in 0..4 {
-            // SAFETY: point and centroid both have length `d`, a multiple of 8.
-            let d = unsafe { dot(ps[m], c) };
-            #[expect(
-                clippy::cast_possible_truncation,
-                reason = "k originates from Config::k (u16)"
-            )]
-            if d > best_dot[m] {
-                best_dot[m] = d;
+            if dots[m] > best_dot[m] {
+                best_dot[m] = dots[m];
                 best_idx[m] = j as u16;
             }
         }
@@ -413,6 +419,12 @@ mod tests {
     #![expect(clippy::float_cmp, clippy::integer_division_remainder_used)]
 
     use super::*;
+
+    macro_rules! nz {
+        ($expr:expr) => {
+            const { NonZero::new($expr).unwrap() }
+        };
+    }
 
     /// Scalar dot product for reference.
     fn ref_dot(a: &[f32], b: &[f32]) -> f32 {
@@ -508,55 +520,6 @@ mod tests {
         // SAFETY: both slices have length 8.
         let got = unsafe { dot(&a, &b) };
         assert_eq!(got, 0.0);
-    }
-
-    #[test]
-    fn add_into_matches_scalar() {
-        let src = ramp(16, 1.0);
-        let mut dst = ramp(16, 0.5);
-        let expected: Vec<f32> = dst.iter().zip(&src).map(|(d, s)| d + s).collect();
-        // SAFETY: both slices have length 16, a multiple of 8.
-        unsafe { add_into(&mut dst, &src) }
-        assert_eq!(dst, expected);
-    }
-
-    #[test]
-    fn add_into_zero_is_identity() {
-        let zeros = vec![0.0_f32; 24];
-        let mut dst = ramp(24, 1.0);
-        let original = dst.clone();
-        // SAFETY: both slices have length 24, a multiple of 8.
-        unsafe { add_into(&mut dst, &zeros) }
-        assert_eq!(dst, original);
-    }
-
-    #[test]
-    fn scale_into_matches_scalar() {
-        let src = ramp(16, 1.0);
-        let mut dst = vec![0.0_f32; 16];
-        let factor = 2.5;
-        let expected: Vec<f32> = src.iter().map(|x| x * factor).collect();
-        // SAFETY: both slices have length 16, a multiple of 8.
-        unsafe { scale_into(&mut dst, &src, factor) }
-        assert_eq!(dst, expected);
-    }
-
-    #[test]
-    fn scale_into_zero_gives_zeros() {
-        let src = ramp(8, 1.0);
-        let mut dst = ramp(8, 999.0);
-        // SAFETY: both slices have length 8, a multiple of 8.
-        unsafe { scale_into(&mut dst, &src, 0.0) }
-        assert!(dst.iter().all(|&x| x == 0.0));
-    }
-
-    #[test]
-    fn scale_into_one_is_copy() {
-        let src = ramp(16, 0.3);
-        let mut dst = vec![0.0_f32; 16];
-        // SAFETY: both slices have length 16, a multiple of 8.
-        unsafe { scale_into(&mut dst, &src, 1.0) }
-        assert_eq!(dst, src);
     }
 
     #[test]
@@ -687,13 +650,61 @@ mod tests {
     }
 
     #[test]
+    fn micro_4x1_matches_individual_dots() {
+        let d = 16;
+        let p0 = ramp(d, 0.1);
+        let p1 = ramp(d, -0.2);
+        let p2 = ramp(d, 0.3);
+        let p3 = ramp(d, -0.4);
+        let c = ramp(d, 0.5);
+
+        // SAFETY: all 5 slices have length 16, a multiple of 8.
+        let got = unsafe { micro_4x1(&p0, &p1, &p2, &p3, &c) };
+
+        let expected = [
+            ref_dot(&p0, &c),
+            ref_dot(&p1, &c),
+            ref_dot(&p2, &c),
+            ref_dot(&p3, &c),
+        ];
+
+        for (g, e) in got.iter().zip(&expected) {
+            assert_close(*g, *e, 1e-5);
+        }
+    }
+
+    #[test]
+    fn micro_4x1_d3072() {
+        let d = 3072;
+        let p0 = ramp(d, 0.001);
+        let p1 = ramp(d, -0.001);
+        let p2 = ramp(d, 0.002);
+        let p3 = ramp(d, -0.002);
+        let c = ramp(d, 0.001);
+
+        // SAFETY: all 5 slices have length 3072, a multiple of 8.
+        let got = unsafe { micro_4x1(&p0, &p1, &p2, &p3, &c) };
+
+        let expected = [
+            ref_dot(&p0, &c),
+            ref_dot(&p1, &c),
+            ref_dot(&p2, &c),
+            ref_dot(&p3, &c),
+        ];
+
+        for (g, e) in got.iter().zip(&expected) {
+            assert_close(*g, *e, 1e-3);
+        }
+    }
+
+    #[test]
     fn nearest4_matches_brute_force_even_k() {
         let d = 8;
-        let k = 4;
+        let k = nz!(4);
 
         // 4 centroids: axis-aligned unit vectors.
-        let mut centroids = vec![0.0_f32; k * d];
-        for i in 0..k {
+        let mut centroids = vec![0.0_f32; k.get() * d];
+        for i in 0..k.get() {
             centroids[i * d + i] = 1.0;
         }
 
@@ -721,10 +732,10 @@ mod tests {
     #[test]
     fn nearest4_matches_brute_force_odd_k() {
         let d = 8;
-        let k = 3; // odd: exercises the remainder path
+        let k = nz!(3); // odd: exercises the remainder path
 
-        let mut centroids = vec![0.0_f32; k * d];
-        for i in 0..k {
+        let mut centroids = vec![0.0_f32; k.get() * d];
+        for i in 0..k.get() {
             centroids[i * d + i] = 1.0;
         }
 
@@ -759,7 +770,7 @@ mod tests {
 
         // SAFETY: d=8 (multiple of 8), k=1 > 0, centroids has length d,
         // all point slices have length d.
-        let got = unsafe { nearest4(&p0, &p1, &p2, &p3, &centroids, 1, d) };
+        let got = unsafe { nearest4(&p0, &p1, &p2, &p3, &centroids, nz!(1), d) };
 
         assert_eq!(got[0].0, 0);
         assert_eq!(got[1].0, 0);

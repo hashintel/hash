@@ -2654,6 +2654,10 @@ where
 
         // Truncate server-side via `subvector` so postgres only sends
         // `truncated_dim`-dimensional vectors over the wire.
+        //
+        // Matryoshka truncation shortens the vectors without re-normalizing;
+        // that is fine here because spherical k-means normalizes internally
+        // (it works with inverse norms), so no `l2_normalize` is needed.
         let row_stream = self
             .as_client()
             .query_raw(
@@ -2722,6 +2726,7 @@ where
             return Ok(ClusterEntitiesResponse {
                 clusters: Vec::new(),
                 missing_embeddings,
+                inertia: 0.0,
             });
         }
 
@@ -2764,6 +2769,7 @@ where
         Ok(ClusterEntitiesResponse {
             clusters,
             missing_embeddings,
+            inertia: result.inertia,
         })
     }
 }

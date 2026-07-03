@@ -40,13 +40,19 @@ tracing        = { workspace = true }
 uuid           = { workspace = true, features = ["v4"] }
 
 [dev-dependencies]
-hash-codegen = { workspace = true }
-insta        = { workspace = true }
-tokio        = { workspace = true, features = ["macros"] }
+codspeed-criterion-compat = { workspace = true }
+darwin-kperf-criterion    = { workspace = true, features = ["codspeed"] }
+hash-codegen              = { workspace = true }
+insta                     = { workspace = true }
+tokio                     = { workspace = true, features = ["macros"] }
 
 [[test]]
 name              = "codegen"
 required-features = ["codegen"]
+
+[[bench]]
+name    = "embedding"
+harness = false
 
 [features]
 codegen  = ["dep:specta", "type-system/codegen", "hash-graph-authorization/codegen"]

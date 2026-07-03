@@ -576,6 +576,11 @@ pub struct ClusterEntitiesResponse {
     pub clusters: Vec<EntityCluster>,
     /// Entities from the request that had no stored embedding.
     pub missing_embeddings: Vec<EntityId>,
+    /// Sum of squared chord distances from every clustered entity to its
+    /// assigned centroid. Lower is tighter; comparable across runs over the
+    /// same entities, e.g. to choose a cluster count. `0.0` when nothing was
+    /// clustered.
+    pub inertia: f32,
 }
 
 #[derive(Debug, Deserialize)]

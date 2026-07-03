@@ -3803,6 +3803,8 @@ name = "hash-graph-store"
 version = "0.0.0"
 dependencies = [
  "bytes",
+ "codspeed-criterion-compat",
+ "darwin-kperf-criterion",
  "derive-where",
  "derive_more",
  "error-stack",

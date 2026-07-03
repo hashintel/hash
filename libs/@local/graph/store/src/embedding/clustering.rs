@@ -1,9 +1,16 @@
 use alloc::borrow::Cow;
-use core::{cmp, mem, num::NonZero};
+use core::{cmp, num::NonZero};
+use std::collections::HashSet;
 
 use rand::{Rng, RngExt as _, SeedableRng as _};
 use rand_xoshiro::Xoshiro256PlusPlus;
-use rayon::prelude::*;
+use rayon::{
+    iter::{
+        IndexedParallelIterator as _, IntoParallelIterator as _, IntoParallelRefIterator as _,
+        IntoParallelRefMutIterator as _, ParallelIterator as _,
+    },
+    slice::{ParallelSlice as _, ParallelSliceMut as _},
+};
 
 use super::{dimension::Dimension, kernel};
 
@@ -29,10 +36,14 @@ pub struct Config {
     /// Capped to avoid quadratic seeding cost on very large datasets.
     pub sample_cap: usize,
 
-    /// Base seed for the PRNG. Each restart derives its own seed from this.
+    /// Base seed for the PRNG.
+    ///
+    /// Runs with the same seed, input, and configuration produce identical
+    /// labels and centroids.
     pub seed: u64,
 
-    /// Number of points processed per batch in the assignment step.
+    /// Number of points processed per batch in the parallel passes.
+    /// Values larger than the number of points are clamped.
     pub chunk: NonZero<usize>,
 }
 
@@ -64,10 +75,26 @@ pub struct Clustering {
     pub dimension: Dimension,
 
     /// Flat centroid matrix, `k * d` elements in row-major order.
+    ///
+    /// Centroids are unit-normalized, with one exception: a cluster whose
+    /// members are all zero-norm points keeps a zero centroid, since there
+    /// is no direction to normalize.
     pub centroids: Box<[f32]>,
 
     /// Cluster assignment for each input point, values in `0..k`.
+    ///
+    /// When [`cluster`] ran with `k == 0` (requested or clamped) the labels
+    /// are all-zero placeholders and there are no centroids to index.
     pub labels: Box<[u16]>,
+
+    /// Sum of squared chord distances from every input point to its assigned
+    /// centroid, measured against the final centroids. Lower is tighter;
+    /// comparable across runs on the same input, e.g. for choosing `k`.
+    /// `0.0` when `k == 0` or the input is empty.
+    ///
+    /// The value is precise only up to floating-point summation order:
+    /// repeated runs over identical input can differ in the final bits.
+    pub inertia: f32,
 }
 
 impl Clustering {
@@ -85,10 +112,15 @@ impl Clustering {
             centroids,
             labels,
             dimension: d,
+            inertia: 0.0,
         }
     }
 
     /// Returns the `D`-dimensional slice for centroid `cluster`.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `cluster` is not below the number of centroids.
     #[must_use]
     pub fn centroid(&self, cluster: u16) -> &[f32] {
         &self.centroids[cluster as usize * (self.dimension.get() as usize)
@@ -102,23 +134,40 @@ impl Clustering {
     }
 
     /// Returns the cluster label for point `entity`.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `entity` is not below the number of input points.
     #[must_use]
     pub fn label(&self, entity: usize) -> u16 {
         self.labels[entity]
     }
 }
 
-// TODO: I wonder if we can make this allocation less
+/// Draws `m` distinct indices uniformly at random from `0..n` in O(m) time
+/// and memory (Robert Floyd's sampling algorithm).
+///
+/// The result is sorted and deterministic for a given RNG state.
 fn sample_indices(n: usize, m: usize, mut rng: impl Rng) -> Vec<usize> {
-    let mut idx: Vec<usize> = (0..n).collect();
+    debug_assert!(m <= n);
 
-    for i in 0..m {
-        let j = i + rng.random_range(0..n - i); // partial Fisher–Yates
-        idx.swap(i, j);
+    let mut selected: HashSet<usize> = HashSet::with_capacity(m);
+
+    for upper in n - m..n {
+        let candidate = rng.random_range(0..=upper);
+
+        if !selected.insert(candidate) {
+            // `candidate` was already drawn in an earlier round. Earlier
+            // rounds only drew from `0..upper`, so `upper` itself is fresh.
+            selected.insert(upper);
+        }
     }
 
-    idx.truncate(m);
-    idx
+    let mut indices: Vec<usize> = selected.into_iter().collect();
+    // Sorting erases the hash set's nondeterministic iteration order and
+    // turns the caller's gather into a forward walk over `x`.
+    indices.sort_unstable();
+    indices
 }
 
 /// Squared chord distance between a point and a unit centroid.
@@ -147,36 +196,33 @@ fn squared_chord_distance(dot: f32, point_inv_norm: f32) -> f32 {
 ///
 /// # Safety
 ///
-/// * `point.len() == D`
-/// * `centroids.len() == k * D`
-/// * `k > 0`
-/// * `D` is a multiple of 8 (enforced at compile time by the const generic).
+/// * `point.len() == d`
+/// * `centroids.len() == k * d`
+/// * `d` is a multiple of 8 (guaranteed by [`Dimension`]).
 #[inline]
 #[must_use]
 pub(crate) unsafe fn nearest_centroid(
     point: &[f32],
     point_inv_norm: f32,
     centroids: &[f32],
-    k: usize,
+    k: NonZero<usize>,
     d: usize,
 ) -> (u16, f32) {
     debug_assert_eq!(point.len(), d);
-    debug_assert_eq!(centroids.len(), k * d);
-    debug_assert!(k > 0);
+    debug_assert_eq!(centroids.len(), k.get() * d);
 
     // SAFETY: the caller guarantees these preconditions. The hints let the
     // compiler elide bounds checks on the centroid slicing inside the loop.
     unsafe {
         core::hint::assert_unchecked(point.len() == d);
-        core::hint::assert_unchecked(centroids.len() == k * d);
+        core::hint::assert_unchecked(centroids.len() == k.get() * d);
         core::hint::assert_unchecked(d.is_multiple_of(8));
-        core::hint::assert_unchecked(k > 0);
     }
 
     let mut best = 0;
     let mut best_dot = f32::NEG_INFINITY;
 
-    for cluster in 0..k {
+    for cluster in 0..k.get() {
         let start = cluster * d;
         let centroid = &centroids[start..start + d];
 
@@ -186,7 +232,7 @@ pub(crate) unsafe fn nearest_centroid(
 
         #[expect(
             clippy::cast_possible_truncation,
-            reason = "k is supposed to be low, and checked as such via the config"
+            reason = "cluster < k, and k originates from Config::k (u16)"
         )]
         if dot > best_dot {
             best = cluster as u16;
@@ -197,351 +243,182 @@ pub(crate) unsafe fn nearest_centroid(
     (best, squared_chord_distance(best_dot, point_inv_norm))
 }
 
-/// Pre-allocated scratch space for the k-means fitting loop.
+/// Assigns one chunk of points during Lloyd iterations: writes each point's
+/// nearest centroid into `labels` and its squared chord distance into
+/// `distances`.
 ///
-/// All buffers are allocated once and reused across restarts to avoid
-/// per-iteration allocation overhead.
-struct Fit {
-    k: usize,
+/// # Safety
+///
+/// * `points.len() == labels.len() * d`
+/// * `inv_norms.len() == labels.len()`
+/// * `distances.len() == labels.len()`
+/// * `centroids.len() == k * d`
+/// * `d` is a multiple of 8
+unsafe fn lloyd_assign(
+    k: NonZero<usize>,
+    d: usize,
+    centroids: &[f32],
+    points: &[f32],
+    inv_norms: &[f32],
+    labels: &mut [u16],
+    distances: &mut [f32],
+) {
+    let count = labels.len();
+
+    // SAFETY: the caller guarantees the length relations; the hints let the
+    // compiler elide bounds checks in the tiled loop below.
+    unsafe {
+        core::hint::assert_unchecked(points.len() == count * d);
+        core::hint::assert_unchecked(inv_norms.len() == count);
+        core::hint::assert_unchecked(distances.len() == count);
+        core::hint::assert_unchecked(d.is_multiple_of(8));
+    }
+
+    let mut i = 0;
+    while i + 4 <= count {
+        let p0 = &points[i * d..i * d + d];
+        let p1 = &points[(i + 1) * d..(i + 1) * d + d];
+        let p2 = &points[(i + 2) * d..(i + 2) * d + d];
+        let p3 = &points[(i + 3) * d..(i + 3) * d + d];
+
+        // SAFETY: each point length d, centroids length k*d,
+        // k > 0, d a multiple of 8 (guaranteed by Dimension).
+        let nearest = unsafe { kernel::nearest4(p0, p1, p2, p3, centroids, k, d) };
+
+        for offset in 0..4 {
+            labels[i + offset] = nearest[offset].0;
+            distances[i + offset] =
+                squared_chord_distance(nearest[offset].1, inv_norms[i + offset]);
+        }
+        i += 4;
+    }
+
+    while i < count {
+        let point = &points[i * d..i * d + d];
+
+        // SAFETY: point length d, centroids length k*d, k > 0, d mult of 8.
+        let (label, distance) = unsafe { nearest_centroid(point, inv_norms[i], centroids, k, d) };
+        labels[i] = label;
+        distances[i] = distance;
+        i += 1;
+    }
+}
+
+/// Per-restart scratch and state for one k-means fit on the sample.
+///
+/// Restarts run in parallel, so each owns its buffers. [`Restart::new`]
+/// hands them back zeroed.
+struct Restart {
+    k: NonZero<usize>,
     m: usize,
     d: usize,
 
-    /// Current centroids for this restart, `k * d` elements.
+    /// Centroids for this restart, `k * d` elements.
     centroids: Box<[f32]>,
-    /// Best centroids seen across all restarts.
-    best_centroids: Box<[f32]>,
     /// Per-cluster accumulator for centroid recomputation, `k * d` elements.
     sums: Box<[f32]>,
-    /// Per-cluster point count for centroid averaging.
+    /// Per-cluster point count for the empty-cluster check.
     counts: Box<[usize]>,
     /// Per-sample-point cluster assignment.
     labels: Box<[u16]>,
-    /// Per-sample-point closest centroid distance (for k-means++ seeding).
-    closest_distances: Box<[f32]>,
+    /// Per-sample-point distance scratch.
+    point_distances: Box<[f32]>,
     /// Tracks which sample points have been selected as seeds.
     selected: Box<[bool]>,
-    /// Lowest inertia across all restarts.
-    best_inertia: f32,
 }
 
-impl Fit {
-    fn new(k: usize, m: usize, d: usize) -> Self {
-        // SAFETY: all-zero bits are valid for f32 (IEEE 754 +0.0), usize (0), u16 (0), and bool
-        // (false). `Box::new_zeroed_slice` allocates zeroed memory of the correct layout
-        // for each type, so `assume_init` is sound in every case.
-        let centroids = unsafe { Box::<[f32]>::new_zeroed_slice(k * d).assume_init() };
+impl Restart {
+    fn new(k: NonZero<usize>, m: usize, d: usize) -> Self {
+        // SAFETY: all-zero bits are valid for `f32` (IEEE 754 +0.0), `usize` (0), `u16` (0), and
+        // `bool` (false). `Box::new_zeroed_slice` allocates zeroed memory of the correct
+        // layout for each type, so `assume_init` is sound in every case.
+        let centroids = unsafe { Box::<[f32]>::new_zeroed_slice(k.get() * d).assume_init() };
         // SAFETY: see above
-        let best_centroids = unsafe { Box::<[f32]>::new_zeroed_slice(k * d).assume_init() };
+        let sums = unsafe { Box::<[f32]>::new_zeroed_slice(k.get() * d).assume_init() };
         // SAFETY: see above
-        let sums = unsafe { Box::<[f32]>::new_zeroed_slice(k * d).assume_init() };
-        // SAFETY: see above
-        let counts = unsafe { Box::<[usize]>::new_zeroed_slice(k).assume_init() };
+        let counts = unsafe { Box::<[usize]>::new_zeroed_slice(k.get()).assume_init() };
         // SAFETY: see above
         let labels = unsafe { Box::<[u16]>::new_zeroed_slice(m).assume_init() };
         // SAFETY: see above
-        let closest_distances = unsafe { Box::<[f32]>::new_zeroed_slice(m).assume_init() };
+        let point_distances = unsafe { Box::<[f32]>::new_zeroed_slice(m).assume_init() };
         // SAFETY: see above
         let selected = unsafe { Box::<[bool]>::new_zeroed_slice(m).assume_init() };
-        let best_inertia = f32::INFINITY;
 
         Self {
             k,
             m,
             d,
             centroids,
-            best_centroids,
             sums,
             counts,
             labels,
-            closest_distances,
+            point_distances,
             selected,
-            best_inertia,
         }
     }
 
-    fn reset_centroids(&mut self) {
-        self.centroids.fill(0.0);
-    }
-
-    fn reset_sums(&mut self) {
-        self.sums.fill(0.0);
-    }
-
-    fn reset_counts(&mut self) {
-        self.counts.fill(0);
-    }
-
-    fn reset_selected(&mut self) {
-        self.selected.fill(false);
-    }
-
-    /// Reinitializes empty clusters from the sample point farthest from
-    /// its assigned centroid.
+    /// Runs one restart: k-means++ seeding followed by Lloyd iterations.
     ///
-    /// For each empty cluster, scans the sample to find the point with
-    /// the largest squared chord distance to its current centroid, copies
-    /// that point as the new centroid (normalized), and updates the
-    /// point's label so it won't be picked again for subsequent empty
-    /// clusters in the same pass.
-    #[expect(
-        clippy::cast_possible_truncation,
-        reason = "cluster index < k, and k originates from Config::k (u16)"
-    )]
-    fn reinit_empty_clusters(&mut self, sample: &[f32], sample_inv_norms: &[f32]) -> bool {
-        let &mut Self { d, k, .. } = self;
-
-        let mut reseeded = false;
-
-        for cluster in 0..k {
-            if self.counts[cluster] != 0 {
-                continue;
-            }
-
-            reseeded = true;
-            let mut farthest_idx = 0;
-            let mut farthest_dist = -1.0_f32;
-
-            for (i, (point, &inv_norm)) in sample.chunks_exact(d).zip(sample_inv_norms).enumerate()
-            {
-                let label = usize::from(self.labels[i]);
-                let c_start = label * d;
-
-                // SAFETY: point and centroid both have length `d`,
-                // a multiple of 8 (guaranteed by Dimension).
-                let dot = unsafe { kernel::dot(point, &self.centroids[c_start..c_start + d]) };
-                let dist = squared_chord_distance(dot, inv_norm);
-
-                if dist > farthest_dist {
-                    farthest_dist = dist;
-                    farthest_idx = i;
-                }
-            }
-
-            let point_start = farthest_idx * d;
-            let centroid_start = cluster * d;
-            self.centroids[centroid_start..centroid_start + d]
-                .copy_from_slice(&sample[point_start..point_start + d]);
-
-            // SAFETY: centroid row has length `d`, a multiple of 8.
-            unsafe {
-                kernel::normalize(&mut self.centroids[centroid_start..centroid_start + d]);
-            }
-
-            // Update the label so the next empty cluster picks a different
-            // point (this point's distance to its new centroid is ~0).
-            self.labels[farthest_idx] = cluster as u16;
-        }
-
-        reseeded
-    }
-
-    /// Runs k-means++ initialization followed by Lloyd iterations on the
-    /// sample, repeating for `n_init` restarts. The best centroids (lowest
-    /// inertia) are stored in `self.best_centroids`.
+    /// Returns the sample inertia of the fitted centroids.
     fn run(
         &mut self,
         sample: &[f32],
         chunk: usize,
         row_chunk: usize,
         sample_inv_norms: &[f32],
-        mut rng: impl Rng,
-        config: &Config,
-    ) {
-        for _ in 0..config.n_init.get() {
-            self.reset_centroids();
-            self.closest_distances.fill(f32::INFINITY);
-            self.reset_selected();
-
-            self.seed_plusplus(sample, sample_inv_norms, &mut rng);
-
-            let inertia = self.lloyd(sample, chunk, row_chunk, sample_inv_norms, config);
-
-            if inertia < self.best_inertia {
-                self.best_inertia = inertia;
-                mem::swap(&mut self.best_centroids, &mut self.centroids);
-            }
-        }
-    }
-
-    /// Runs Lloyd iterations on the sample until convergence or `max_iters`.
-    /// Returns the final inertia (sum of distances to assigned centroids).
-    fn lloyd(
-        &mut self,
-        sample: &[f32],
-        chunk: usize,
-        row_chunk: usize,
-        sample_inv_norms: &[f32],
+        seed: u64,
         config: &Config,
     ) -> f32 {
-        let &mut Self { d, k, .. } = self;
-        let mut previous_inertia = f32::INFINITY;
-        let mut inertia = f32::INFINITY;
+        let mut rng = Xoshiro256PlusPlus::seed_from_u64(seed);
 
-        for _ in 0..config.max_iters.get() {
-            inertia = sample
-                .par_chunks(row_chunk)
-                .zip(sample_inv_norms.par_chunks(chunk))
-                .zip(self.labels.par_chunks_mut(chunk))
-                .map(|((points, inv_norms), labels)| {
-                    let mut inertia = 0.0;
-                    let count = labels.len();
+        // `new` zeroes everything else; the distance scratch must start at
+        // infinity so the first seeding pass overwrites every entry.
+        self.point_distances.fill(f32::INFINITY);
 
-                    // SAFETY: each parallel chunk pairs `count` labels with
-                    // `count * d` floats of point data and `count` inv_norms.
-                    // `d` is a multiple of 8 (guaranteed by Dimension).
-                    unsafe {
-                        core::hint::assert_unchecked(points.len() == count * d);
-                        core::hint::assert_unchecked(inv_norms.len() == count);
-                        core::hint::assert_unchecked(d.is_multiple_of(8));
-                    }
-
-                    let mut i = 0;
-                    while i + 4 <= count {
-                        let p0 = &points[i * d..i * d + d];
-                        let p1 = &points[(i + 1) * d..(i + 1) * d + d];
-                        let p2 = &points[(i + 2) * d..(i + 2) * d + d];
-                        let p3 = &points[(i + 3) * d..(i + 3) * d + d];
-
-                        // SAFETY: each point length d, centroids length k*d,
-                        // k > 0, d a multiple of 8 (guaranteed by Dimension).
-                        let nearest =
-                            unsafe { kernel::nearest4(p0, p1, p2, p3, &self.centroids, k, d) };
-
-                        let inv = [
-                            inv_norms[i],
-                            inv_norms[i + 1],
-                            inv_norms[i + 2],
-                            inv_norms[i + 3],
-                        ];
-                        for m in 0..4 {
-                            labels[i + m] = nearest[m].0;
-                            inertia += squared_chord_distance(nearest[m].1, inv[m]);
-                        }
-                        i += 4;
-                    }
-
-                    while i < count {
-                        let point = &points[i * d..i * d + d];
-                        // SAFETY: point length d, centroids length k*d, k > 0,
-                        // d mult of 8.
-                        let (label, distance) =
-                            unsafe { nearest_centroid(point, inv_norms[i], &self.centroids, k, d) };
-                        labels[i] = label;
-                        inertia += distance;
-                        i += 1;
-                    }
-
-                    inertia
-                })
-                .sum();
-
-            self.reset_sums();
-            self.reset_counts();
-
-            for ((point, label), inv_norm) in sample
-                .chunks_exact(d)
-                .zip(self.labels.iter().copied())
-                .zip(sample_inv_norms.iter().copied())
-            {
-                let cluster = usize::from(label);
-                let start = cluster * d;
-
-                self.counts[cluster] += 1;
-
-                if inv_norm == 0.0 {
-                    continue;
-                }
-
-                // SAFETY: `sums[start..start + d]` and `point` both have
-                // length `d`, and `d` is a multiple of 8 (guaranteed by Dimension).
-                unsafe {
-                    kernel::add_scaled_into(&mut self.sums[start..start + d], point, inv_norm);
-                }
-            }
-
-            for cluster in 0..k {
-                if self.counts[cluster] == 0 {
-                    continue;
-                }
-
-                let start = cluster * d;
-                let centroid = &mut self.centroids[start..start + d];
-                let sum = &self.sums[start..start + d];
-
-                // SAFETY: `centroid` and `sum` both have length `D`, and `D`
-                // is a multiple of 8 (guaranteed by Dimension).
-                unsafe {
-                    #[expect(
-                        clippy::cast_precision_loss,
-                        reason = "cluster count is bounded by sample_cap (≤8192), well within f32 \
-                                  precision"
-                    )]
-                    let inv_count = 1.0 / self.counts[cluster] as f32;
-                    kernel::scale_into(centroid, sum, inv_count);
-                }
-
-                // SAFETY: centroid rows have length `D`, and `D` is a
-                // multiple of 8 (guaranteed by Dimension).
-                unsafe {
-                    kernel::normalize(centroid);
-                }
-            }
-
-            let reseeded = self.reinit_empty_clusters(sample, sample_inv_norms);
-
-            // Skip the convergence check when a cluster was just reseeded:
-            // the reseeded centroid hasn't had an assignment pass yet, so
-            // breaking now would waste the reinit.
-            if !reseeded && previous_inertia.is_finite() {
-                let relative_change =
-                    (previous_inertia - inertia).abs() / previous_inertia.max(f32::EPSILON);
-
-                if relative_change <= config.tol {
-                    break;
-                }
-            }
-
-            previous_inertia = inertia;
-        }
-
-        inertia
+        self.seed_plusplus(sample, sample_inv_norms, &mut rng);
+        self.lloyd(sample, chunk, row_chunk, sample_inv_norms, config)
     }
 
     /// k-means++ D² weighted seeding. Picks `k` initial centroids from the
     /// sample, each chosen with probability proportional to its squared
     /// distance from the nearest already-chosen centroid.
-    fn seed_plusplus(&mut self, sample: &[f32], sample_inv_norms: &[f32], mut rng: impl Rng) {
+    fn seed_plusplus(&mut self, sample: &[f32], sample_inv_norms: &[f32], rng: &mut impl Rng) {
         let &mut Self { d, k, m, .. } = self;
+        let mut point = rng.random_range(0..m);
 
-        let mut restart_rng = Xoshiro256PlusPlus::seed_from_u64(rng.random());
-        let mut point = restart_rng.random_range(0..m);
-
-        for cluster in 0..k {
+        for cluster in 0..k.get() {
             let centroid_start = cluster * d;
             let point_start = point * d;
 
             self.centroids[centroid_start..centroid_start + d]
                 .copy_from_slice(&sample[point_start..point_start + d]);
 
-            // SAFETY: centroid rows have length `D`, and `D` is a multiple of 8 (guaranteed by
-            // Dimension).
+            // SAFETY: centroid rows have length `d`, and `d` is a multiple of 8.
             unsafe {
                 kernel::normalize(&mut self.centroids[centroid_start..centroid_start + d]);
             }
 
             self.selected[point] = true;
 
+            // The last centroid needs no D² update: those distances would
+            // only be used to sample a further seed.
+            if cluster + 1 == k.get() {
+                break;
+            }
+
             let centroid = &self.centroids[centroid_start..centroid_start + d];
 
-            let total: f32 = sample
+            // Per-element writes only, so the pass is deterministic under
+            // rayon; the D² total is summed sequentially below.
+            sample
                 .par_chunks_exact(d)
-                .zip(sample_inv_norms.par_iter().copied())
-                .zip(self.closest_distances.par_iter_mut())
+                .zip(sample_inv_norms.par_iter())
+                .zip(self.point_distances.par_iter_mut())
                 .enumerate()
-                .map(|(index, ((point, inv_norm), closest))| {
+                .for_each(|(index, ((point, &inv_norm), closest))| {
                     if self.selected[index] {
                         *closest = 0.0;
-                        return 0.0;
+                        return;
                     }
 
                     // SAFETY: `point` and `centroid` both have length `D`, and
@@ -552,40 +429,37 @@ impl Fit {
                     if distance < *closest {
                         *closest = distance;
                     }
+                });
 
-                    *closest
-                })
-                .sum();
-
-            if cluster + 1 == k {
-                break;
-            }
+            let total: f32 = self.point_distances.iter().sum();
 
             point = if total.is_finite() && total > 0.0 {
-                let mut target = restart_rng.random_range(0.0..total);
-                let mut sampled = self
-                    .closest_distances
-                    .iter()
-                    .rposition(|distance| *distance > 0.0)
-                    .unwrap_or(0);
+                let mut target = rng.random_range(0.0..total);
+                let mut sampled = None;
+                let mut last_positive = 0;
 
-                for (index, distance) in self.closest_distances.iter().copied().enumerate() {
+                for (index, &distance) in self.point_distances.iter().enumerate() {
                     if distance <= 0.0 {
                         continue;
                     }
 
+                    last_positive = index;
                     target -= distance;
 
                     if target <= 0.0 {
-                        sampled = index;
+                        sampled = Some(index);
                         break;
                     }
                 }
 
-                sampled
+                // Rounding can leave `target` marginally positive after the last bucket;
+                // fall back to the last point with positive mass.
+                sampled.unwrap_or(last_positive)
             } else {
+                // Degenerate geometry: every remaining point coincides with a seed.
+                // Pick uniformly among the unselected points.
                 let remaining = self.selected.iter().filter(|selected| !**selected).count();
-                let mut target = restart_rng.random_range(0..remaining);
+                let mut target = rng.random_range(0..remaining);
                 let mut sampled = 0;
 
                 for (index, selected) in self.selected.iter().copied().enumerate() {
@@ -605,240 +479,234 @@ impl Fit {
             };
         }
     }
-}
 
-/// Per-thread accumulator for parallel centroid recomputation.
-///
-/// Each rayon task gets its own `Accum`; they are merged via [`Accum::merge`]
-/// after the parallel fold completes.
-struct Accum {
-    /// Per-cluster sum of normalized points, `k * d` elements.
-    sums: Box<[f32]>,
-    /// Per-cluster point count.
-    counts: Box<[usize]>,
-}
+    /// Runs Lloyd iterations on the sample until convergence or `max_iters`.
+    ///
+    /// Returns the final inertia (sum of distances to assigned centroids).
+    fn lloyd(
+        &mut self,
+        sample: &[f32],
+        chunk: usize,
+        row_chunk: usize,
+        sample_inv_norms: &[f32],
+        config: &Config,
+    ) -> f32 {
+        let &mut Self { d, k, .. } = self;
+        let mut previous_inertia = f32::INFINITY;
+        let mut inertia = f32::INFINITY;
 
-impl Accum {
-    fn new(k: usize, d: usize) -> Self {
-        // SAFETY: all-zero bits are valid for f32 (0.0) and usize (0). `assume_init` is
-        // sound after `new_zeroed_slice`.
-        let sums = unsafe { Box::<[f32]>::new_zeroed_slice(k * d).assume_init() };
-        // SAFETY: see above
-        let counts = unsafe { Box::<[usize]>::new_zeroed_slice(k).assume_init() };
-        Self { sums, counts }
-    }
+        for _ in 0..config.max_iters.get() {
+            // Assignment: labels and per-point distances.
+            // Trivially deterministic under rayon, as writes are per element.
+            sample
+                .par_chunks(row_chunk)
+                .zip(sample_inv_norms.par_chunks(chunk))
+                .zip(self.labels.par_chunks_mut(chunk))
+                .zip(self.point_distances.par_chunks_mut(chunk))
+                .for_each(|(((points, inv_norms), labels), distances)| {
+                    // SAFETY: `par_chunks(row_chunk)` with `row_chunk == chunk * d`
+                    // pairs `labels.len()` labels, distances, and inv norms with
+                    // `labels.len() * d` floats of points. `self.centroids` has
+                    // length `k * d`, and `d` is a multiple of 8 (guaranteed by
+                    // Dimension).
+                    unsafe {
+                        lloyd_assign(k, d, &self.centroids, points, inv_norms, labels, distances);
+                    };
+                });
 
-    fn merge(mut self, other: &Self, k: usize, d: usize) -> Self {
-        for cluster in 0..k {
-            let start = cluster * d;
+            inertia = self.point_distances.iter().sum();
 
-            self.counts[cluster] += other.counts[cluster];
-
-            // SAFETY: both cluster sum rows have length `d`, and `d` is a
-            // multiple of 8 (guaranteed by Dimension).
+            // SAFETY: `sample.len() == m * d` with `m` labels, sums is
+            // `k * d` with `k` counts, and `d` is a multiple of 8
+            // (guaranteed by Dimension).
             unsafe {
-                kernel::add_into(
-                    &mut self.sums[start..start + d],
-                    &other.sums[start..start + d],
+                accumulate_clusters(
+                    sample,
+                    &self.labels,
+                    Some(sample_inv_norms),
+                    &mut self.sums,
+                    &mut self.counts,
+                    d,
                 );
             }
-        }
 
-        self
-    }
-}
-
-/// Assigns all `n` points to their nearest centroid, recomputes centroids
-/// from the full population, and re-assigns labels to the final centroids.
-///
-/// Uses a parallel fold/reduce: each rayon task accumulates into its own
-/// [`Accum`], then results are merged. The final centroids are averaged
-/// and normalized in-place.
-///
-/// # Safety
-///
-/// * `x.len() == n * D` for some `n`
-/// * `clustering.centroids.len() == k * D`
-/// * `clustering.labels.len() == n`
-/// * `k > 0`
-/// * `D` is a multiple of 8 (guaranteed by Dimension)
-unsafe fn assign(x: &[f32], clustering: &mut Clustering, k: usize, chunk: usize, row_chunk: usize) {
-    let d = clustering.dimension.get() as usize;
-
-    let full = x
-        .par_chunks(row_chunk)
-        .zip(clustering.labels.par_chunks_mut(chunk))
-        .fold(
-            || Accum::new(k, d),
-            |mut accum, (points, labels)| {
-                // SAFETY: `cluster` established `x.len() == n * D` and
-                // `centroids.len() == k * D`. `par_chunks(row_chunk)` with
-                // `row_chunk = chunk * D` produces chunks where
-                // `points.len()` is a multiple of `D` and matches `labels.len() * D`.
-                unsafe {
-                    assign_chunk(&clustering.centroids, k, d, points, labels, &mut accum);
+            for cluster in 0..k.get() {
+                if self.counts[cluster] == 0 {
+                    continue;
                 }
 
-                accum
-            },
-        )
-        .reduce(|| Accum::new(k, d), |lhs, rhs| lhs.merge(&rhs, k, d));
+                let start = cluster * d;
 
-    for cluster in 0..k {
-        if full.counts[cluster] == 0 {
-            continue;
+                // Normalization is scale-invariant, so the raw sum gives the same direction as the
+                // average.
+                self.centroids[start..start + d].copy_from_slice(&self.sums[start..start + d]);
+
+                // SAFETY: centroid rows have length `d`, and `d` is a multiple of 8
+                // (guaranteed by Dimension).
+                unsafe {
+                    kernel::normalize(&mut self.centroids[start..start + d]);
+                }
+            }
+
+            let reseeded = self.reinit_empty_clusters(sample);
+
+            // Skip the convergence check when a cluster was just reseeded:
+            // the reseeded centroid hasn't had an assignment pass yet, so
+            // breaking now would waste the reinit.
+            if !reseeded && previous_inertia.is_finite() {
+                let relative_change =
+                    (previous_inertia - inertia).abs() / previous_inertia.max(f32::EPSILON);
+
+                if relative_change <= config.tol {
+                    break;
+                }
+            }
+
+            previous_inertia = inertia;
         }
 
-        let start = cluster * d;
-
-        #[expect(
-            clippy::cast_possible_truncation,
-            reason = "cluster < k and k originates from Config::k (u16)"
-        )]
-        let centroid = clustering.centroid_mut(cluster as u16);
-        let sum = &full.sums[start..start + d];
-
-        // SAFETY: centroid and sum both length D, a multiple of 8.
-        unsafe {
-            #[expect(
-                clippy::cast_precision_loss,
-                reason = "cluster count bounded by n; precision loss acceptable for averaging"
-            )]
-            let inv_count = 1.0 / full.counts[cluster] as f32;
-            kernel::scale_into(centroid, sum, inv_count);
-        }
-        // SAFETY: centroid length D, a multiple of 8.
-        unsafe {
-            kernel::normalize(centroid);
-        }
+        inertia
     }
 
-    // SAFETY: centroids were just recomputed; same invariants hold.
-    unsafe {
-        reassign(
-            x,
-            &clustering.centroids,
-            &mut clustering.labels,
-            k,
-            d,
-            chunk,
-            row_chunk,
-        );
-    }
-}
+    /// Reinitializes empty clusters from the sample point farthest from its
+    /// assigned centroid, using the distances stored by the assignment pass.
+    ///
+    /// After relocating a point its stored distance is zeroed and its label
+    /// updated, so subsequent empty clusters in the same pass pick different
+    /// points.
+    #[expect(
+        clippy::cast_possible_truncation,
+        reason = "cluster index < k, and k originates from Config::k (u16)"
+    )]
+    fn reinit_empty_clusters(&mut self, sample: &[f32]) -> bool {
+        let &mut Self { d, k, .. } = self;
+        let mut reseeded = false;
 
-/// Processes one parallel chunk of the assignment step: finds the nearest
-/// centroid for each point, accumulates normalized points into cluster sums,
-/// and records labels.
-///
-/// # Safety
-///
-/// * `points.len() == labels.len() * d`
-/// * `centroids.len() >= k * d`
-/// * `d` is a multiple of 8
-/// * `k > 0`
-/// * `accum.sums.len() >= k * d` and `accum.counts.len() >= k`
-unsafe fn assign_chunk(
-    centroids: &[f32],
-    k: usize,
-    d: usize,
-    points: &[f32],
-    labels: &mut [u16],
-    accum: &mut Accum,
-) {
-    // field path -> disjoint capture of `centroids` only, leaving
-    // `labels` free for the mutable parallel borrow.
-    let count = labels.len();
-
-    // SAFETY: each parallel chunk pairs `count` labels with
-    // `count * D` floats of point data. `D` is a compile-time
-    // multiple of 8.
-    unsafe {
-        core::hint::assert_unchecked(points.len() == count * d);
-        core::hint::assert_unchecked(d.is_multiple_of(8));
-    }
-
-    let mut i = 0;
-    while i + 4 <= count {
-        let p0 = &points[i * d..i * d + d];
-        let p1 = &points[(i + 1) * d..(i + 1) * d + d];
-        let p2 = &points[(i + 2) * d..(i + 2) * d + d];
-        let p3 = &points[(i + 3) * d..(i + 3) * d + d];
-
-        // SAFETY: each point length D, centroids length k*D, k > 0, D a multiple of 8 (guaranteed
-        // by Dimension).
-        let nearest = unsafe { kernel::nearest4(p0, p1, p2, p3, centroids, k, d) };
-        let ps = [p0, p1, p2, p3];
-
-        for m in 0..4 {
-            let label = nearest[m].0;
-            labels[i + m] = label;
-            let cluster = usize::from(label);
-            accum.counts[cluster] += 1;
-
-            let start = cluster * d;
-
-            // SAFETY: point length D, a multiple of 8.
-            let norm = unsafe { kernel::dot(ps[m], ps[m]).sqrt() };
-            if norm == 0.0 {
+        for cluster in 0..k.get() {
+            if self.counts[cluster] != 0 {
                 continue;
             }
 
-            // SAFETY: `sums[start..start + D]` and `point` both have length `D`, and `D` is a
-            // multiple of 8 (guaranteed by Dimension).
-            unsafe {
-                kernel::add_scaled_into(&mut accum.sums[start..start + d], ps[m], norm.recip());
+            reseeded = true;
+
+            let mut farthest_idx = 0;
+            let mut farthest_dist = -1.0_f32;
+
+            for (index, &distance) in self.point_distances.iter().enumerate() {
+                if distance > farthest_dist {
+                    farthest_dist = distance;
+                    farthest_idx = index;
+                }
             }
-        }
-        i += 4;
-    }
 
-    while i < count {
-        let point = &points[i * d..i * d + d];
-        // SAFETY: point length D, centroids length k*D, k > 0, D mult of 8.
-        let (label, _) = unsafe { nearest_centroid(point, 1.0, centroids, k, d) };
-        labels[i] = label;
-        let cluster = usize::from(label);
-        accum.counts[cluster] += 1;
+            let point_start = farthest_idx * d;
+            let centroid_start = cluster * d;
 
-        let start = cluster * d;
+            self.centroids[centroid_start..centroid_start + d]
+                .copy_from_slice(&sample[point_start..point_start + d]);
 
-        // SAFETY: point length D.
-        let norm = unsafe { kernel::dot(point, point).sqrt() };
-        if norm != 0.0 {
-            // SAFETY: `sums[start..start + D]` and `point` both
-            // have length `D`, and `D` is a multiple of 8.
+            // SAFETY: centroid rows have length `d`, a multiple of 8.
             unsafe {
-                kernel::add_scaled_into(&mut accum.sums[start..start + d], point, norm.recip());
+                kernel::normalize(&mut self.centroids[centroid_start..centroid_start + d]);
             }
+
+            self.labels[farthest_idx] = cluster as u16;
+            self.point_distances[farthest_idx] = 0.0;
         }
-        i += 1;
+
+        reseeded
     }
 }
 
-/// Processes one parallel chunk of the reassignment step: updates each
-/// label to the nearest final centroid.
+/// Recomputes per-cluster sums and counts from labeled points.
+///
+/// The result is impervious to any thread schedule order.
+///
+/// `inv_norms` supplies precomputed inverse norms; pass `None` to compute
+/// them on the fly.
+///
+/// Zero-norm points are counted but contribute nothing to the sums.
+///
+/// # Safety
+///
+/// * `points.len() == labels.len() * d`
+/// * `sums.len() == counts.len() * d`
+/// * `inv_norms`, when provided, has one entry per label
+/// * `d` is a multiple of 8
+unsafe fn accumulate_clusters(
+    points: &[f32],
+    labels: &[u16],
+    inv_norms: Option<&[f32]>,
+    sums: &mut [f32],
+    counts: &mut [usize],
+    d: usize,
+) {
+    // A `debug_assert` only: an `assert_unchecked` here would be sound (the
+    // length is a documented precondition), but to elide the
+    // `inv_norms[index]` bounds check the fact would have to survive into
+    // the rayon closure, and that check is noise next to the `d`-wide
+    // kernel call it precedes.
+    debug_assert!(inv_norms.is_none_or(|norms| norms.len() == labels.len()));
+
+    sums.par_chunks_exact_mut(d)
+        .zip(counts.par_iter_mut())
+        .enumerate()
+        .for_each(|(cluster, (sum, count))| {
+            sum.fill(0.0);
+            *count = 0;
+
+            for (index, (point, &label)) in points.chunks_exact(d).zip(labels).enumerate() {
+                if usize::from(label) != cluster {
+                    continue;
+                }
+
+                *count += 1;
+
+                let inv_norm = inv_norms.map_or_else(
+                    || {
+                        // SAFETY: `point` has length `d`, a multiple of 8
+                        // (guaranteed by the caller).
+                        let norm = unsafe { kernel::dot(point, point) }.sqrt();
+
+                        if norm > 0.0 { norm.recip() } else { 0.0 }
+                    },
+                    |inv_norms| inv_norms[index],
+                );
+
+                if inv_norm == 0.0 {
+                    continue;
+                }
+
+                // SAFETY: `sum` and `point` both have length `d`, and `d` is
+                // a multiple of 8 (guaranteed by the caller).
+                unsafe {
+                    kernel::add_scaled_into(sum, point, inv_norm);
+                }
+            }
+        });
+}
+
+/// Labels one parallel chunk: each point gets its nearest centroid.
 ///
 /// # Safety
 ///
 /// * `points.len() == labels.len() * d`
 /// * `centroids.len() >= k * d`
 /// * `d` is a multiple of 8
-/// * `k > 0`
-unsafe fn reassign_chunk(
-    k: usize,
-    d: usize,
+unsafe fn label_chunk(
     centroids: &[f32],
+    k: NonZero<usize>,
+    d: usize,
     points: &[f32],
     labels: &mut [u16],
 ) {
     let count = labels.len();
 
-    // SAFETY: each parallel chunk pairs `count` labels with
-    // `count * D` floats of point data. `D` is a compile-time
-    // multiple of 8.
+    // SAFETY: each parallel chunk pairs `count` labels with `count * d`
+    // floats of point data; `d` is a multiple of 8 (guaranteed by Dimension).
     unsafe {
         core::hint::assert_unchecked(points.len() == count * d);
+        core::hint::assert_unchecked(centroids.len() >= k.get() * d);
         core::hint::assert_unchecked(d.is_multiple_of(8));
     }
 
@@ -849,8 +717,8 @@ unsafe fn reassign_chunk(
         let p2 = &points[(i + 2) * d..(i + 2) * d + d];
         let p3 = &points[(i + 3) * d..(i + 3) * d + d];
 
-        // SAFETY: each point length D, centroids length k*D, k > 0,
-        // D a multiple of 8 (guaranteed by Dimension).
+        // SAFETY: each point length d, centroids length k*d, k > 0,
+        // d a multiple of 8 (guaranteed by Dimension).
         let nearest = unsafe { kernel::nearest4(p0, p1, p2, p3, centroids, k, d) };
 
         labels[i] = nearest[0].0;
@@ -862,26 +730,91 @@ unsafe fn reassign_chunk(
 
     while i < count {
         let point = &points[i * d..i * d + d];
-        // SAFETY: point length D, centroids length k*D, k > 0, D mult of 8.
+        // SAFETY: point length d, centroids length k*d, k > 0, d mult of 8.
         let (label, _) = unsafe { nearest_centroid(point, 1.0, centroids, k, d) };
         labels[i] = label;
         i += 1;
     }
 }
 
-/// Re-assigns labels to the nearest final centroid.
-///
-/// After centroid recomputation, some boundary points may no longer be
-/// nearest to the centroid stored under their label. This pass fixes that.
+/// Labels one parallel chunk against the final centroids and returns its
+/// inertia contribution. Inverse norms are computed on the fly.
 ///
 /// # Safety
 ///
-/// Same as [`assign`].
+/// * `points.len() == labels.len() * d`
+/// * `centroids.len() >= k * d`
+/// * `d` is a multiple of 8
+unsafe fn score_chunk(
+    centroids: &[f32],
+    k: NonZero<usize>,
+    d: usize,
+    points: &[f32],
+    labels: &mut [u16],
+) -> f32 {
+    debug_assert_eq!(points.len(), labels.len() * d);
+
+    // SAFETY: The caller must ensure `points.len() == labels.len() * d`.
+    unsafe {
+        core::hint::assert_unchecked(points.len() == labels.len() * d);
+    }
+
+    let count = labels.len();
+    let mut inertia = 0.0_f32;
+
+    let mut i = 0;
+    while i + 4 <= count {
+        let p0 = &points[i * d..i * d + d];
+        let p1 = &points[(i + 1) * d..(i + 1) * d + d];
+        let p2 = &points[(i + 2) * d..(i + 2) * d + d];
+        let p3 = &points[(i + 3) * d..(i + 3) * d + d];
+
+        // SAFETY: each point length d, centroids length k*d, k > 0,
+        // d a multiple of 8 (guaranteed by Dimension).
+        let nearest = unsafe { kernel::nearest4(p0, p1, p2, p3, centroids, k, d) };
+        let ps = [p0, p1, p2, p3];
+
+        for offset in 0..4 {
+            labels[i + offset] = nearest[offset].0;
+
+            // SAFETY: point length d, a multiple of 8.
+            let norm = unsafe { kernel::dot(ps[offset], ps[offset]) }.sqrt();
+            let inv_norm = if norm > 0.0 { norm.recip() } else { 0.0 };
+            inertia += squared_chord_distance(nearest[offset].1, inv_norm);
+        }
+        i += 4;
+    }
+
+    while i < count {
+        let point = &points[i * d..i * d + d];
+
+        // SAFETY: point length d, a multiple of 8.
+        let norm = unsafe { kernel::dot(point, point) }.sqrt();
+        let inv_norm = if norm > 0.0 { norm.recip() } else { 0.0 };
+
+        // SAFETY: point length d, centroids length k*d, k > 0, d mult of 8.
+        let (label, distance) = unsafe { nearest_centroid(point, inv_norm, centroids, k, d) };
+        labels[i] = label;
+        inertia += distance;
+        i += 1;
+    }
+
+    inertia
+}
+
+/// Labels every point with its nearest centroid.
+///
+/// # Safety
+///
+/// * `x.len() == n * d` for some `n`
+/// * `clustering.centroids.len() == k * d`
+/// * `clustering.labels.len() == n`
+/// * `d` is a multiple of 8
 unsafe fn reassign(
     x: &[f32],
     centroids: &[f32],
     labels: &mut [u16],
-    k: usize,
+    k: NonZero<usize>,
     d: usize,
     chunk: usize,
     row_chunk: usize,
@@ -889,19 +822,149 @@ unsafe fn reassign(
     x.par_chunks(row_chunk)
         .zip(labels.par_chunks_mut(chunk))
         .for_each(|(points, labels)| {
-            // SAFETY: `par_chunks(row_chunk)` with `row_chunk = chunk * D`
-            // ensures `points.len() == labels.len() * D`. Centroids and k
+            // SAFETY: `par_chunks(row_chunk)` with `row_chunk = chunk * d`
+            // ensures `points.len() == labels.len() * d`. Centroids and k
             // are valid from the caller.
             unsafe {
-                reassign_chunk(k, d, centroids, points, labels);
+                label_chunk(centroids, k, d, points, labels);
             }
         });
+}
+
+/// Labels every point with its nearest centroid and returns the total
+/// inertia.
+///
+/// Labels are exact; the inertia is precise only up to floating-point
+/// summation order.
+///
+/// # Safety
+///
+/// * `x.len() == n * d` for some `n`
+/// * `clustering.centroids.len() == k * d`
+/// * `clustering.labels.len() == n`
+/// * `d` is a multiple of 8
+unsafe fn reassign_scored(
+    x: &[f32],
+    centroids: &[f32],
+    labels: &mut [u16],
+    k: NonZero<usize>,
+    d: usize,
+    chunk: usize,
+    row_chunk: usize,
+) -> f32 {
+    // Unordered parallel reduction: the grouping follows rayon's scheduling, so the sum is not
+    // bit-stable. An ordered reduction would need to collect per-chunk partials, costing an
+    // allocation per call.
+    x.par_chunks(row_chunk)
+        .zip(labels.par_chunks_mut(chunk))
+        .map(|(points, labels)| {
+            // SAFETY: `par_chunks(row_chunk)` with `row_chunk = chunk * d`
+            // ensures `points.len() == labels.len() * d`. Centroids and k
+            // are valid from the caller.
+            unsafe { score_chunk(centroids, k, d, points, labels) }
+        })
+        .sum()
+}
+
+/// Assigns all `n` points to their nearest centroid, recomputes centroids
+/// from the full population, and re-labels against the final centroids.
+/// Returns the full-data inertia.
+///
+/// `sums` and `counts` are accumulator scratch; their contents on entry are
+/// irrelevant.
+///
+/// # Safety
+///
+/// * `x.len() == n * d` for some `n`
+/// * `clustering.centroids.len() == k * d`
+/// * `clustering.labels.len() == n`
+/// * `sums.len() == k * d` and `counts.len() == k`
+/// * `d` is a multiple of 8
+unsafe fn assign(
+    x: &[f32],
+    clustering: &mut Clustering,
+    k: NonZero<usize>,
+    chunk: usize,
+    row_chunk: usize,
+    sums: &mut [f32],
+    counts: &mut [usize],
+) -> f32 {
+    let d = clustering.dimension.get() as usize;
+
+    // 1. Label all points against the sample-fitted centroids.
+    // SAFETY: forwarded from the caller.
+    unsafe {
+        reassign(
+            x,
+            &clustering.centroids,
+            &mut clustering.labels,
+            k,
+            d,
+            chunk,
+            row_chunk,
+        );
+    }
+
+    // 2. Recompute centroids from the full population.
+    // SAFETY: `x.len() == n * d` with `n` labels, sums is `k * d` with `k`
+    // counts, and `d` is a multiple of 8 (guaranteed by Dimension).
+    unsafe {
+        accumulate_clusters(x, &clustering.labels, None, sums, counts, d);
+    }
+
+    for (cluster, count) in counts.iter_mut().enumerate() {
+        if *count == 0 {
+            continue;
+        }
+
+        let start = cluster * d;
+
+        #[expect(
+            clippy::cast_possible_truncation,
+            reason = "cluster < k and k originates from Config::k (u16)"
+        )]
+        let centroid = clustering.centroid_mut(cluster as u16);
+        // Normalization is scale-invariant, so the raw sum gives the same
+        // direction as the average.
+        centroid.copy_from_slice(&sums[start..start + d]);
+
+        // SAFETY: centroid length d, a multiple of 8.
+        unsafe {
+            kernel::normalize(centroid);
+        }
+    }
+
+    // 3. Final labels and inertia against the recomputed centroids.
+    // SAFETY: centroids were just recomputed in place; same invariants hold.
+    unsafe {
+        reassign_scored(
+            x,
+            &clustering.centroids,
+            &mut clustering.labels,
+            k,
+            d,
+            chunk,
+            row_chunk,
+        )
+    }
 }
 
 /// Runs spherical k-means over a flat row-major embedding matrix.
 ///
 /// `x` contains `n` points of `dimension` floats each, laid out
-/// contiguously. Returns cluster assignments and unit-normalized centroids.
+/// contiguously. Returns cluster assignments, unit-normalized centroids, and
+/// the full-data inertia.
+///
+/// Given the same input and configuration, the returned labels and
+/// centroids are identical across runs; the inertia is precise only up to
+/// floating-point summation order (see [`Clustering::inertia`]).
+///
+/// Zero-norm points do not influence centroids, and are always assigned to
+/// cluster 0 at distance 0. If a cluster consists solely of zero-norm points,
+/// its centroid is zero; see [`Clustering::centroids`].
+///
+/// If `config.k == 0` or `x` is empty there is nothing to fit: the result
+/// has no centroids, all-zero placeholder labels, and an inertia of `0.0`.
 ///
 /// # Panics
 ///
@@ -917,21 +980,21 @@ pub fn cluster(x: &[f32], dimension: Dimension, config: &Config) -> Clustering {
 
     let mut clustering = Clustering::new(k, n, dimension);
 
-    if k == 0 {
+    let Some(k) = NonZero::new(k) else {
         return clustering;
-    }
+    };
 
-    let k = usize::from(k);
+    let k = NonZero::from(k);
     let mut rng = Xoshiro256PlusPlus::seed_from_u64(config.seed);
 
     // 1. subsample (fit on all of n only when n is already small)
-    let m = config.sample_cap.max(k).min(n);
+    let m = config.sample_cap.max(k.get()).min(n);
 
     let sample = if m == n {
         Cow::Borrowed(x)
     } else {
         let indices = sample_indices(n, m, &mut rng);
-        let mut sampled = vec![0_f32; m * d];
+        let mut sampled = vec![0.0_f32; m * d];
 
         let chunks = sampled.chunks_mut(d);
         assert_eq!(chunks.len(), indices.len());
@@ -944,34 +1007,71 @@ pub fn cluster(x: &[f32], dimension: Dimension, config: &Config) -> Clustering {
     };
 
     let sample = sample.as_ref();
-    let chunk = config.chunk.get();
-    let row_chunk = chunk
-        .checked_mul(d)
-        .unwrap_or_else(|| usize::MAX - (usize::MAX % d))
-        .max(d);
+
+    // Clamping to `n` keeps `row_chunk` from overflowing: `chunk * d` is at most `n * d ==
+    // x.len()`.
+    let chunk = cmp::min(config.chunk.get(), n);
+    let row_chunk = chunk * d;
 
     let sample_inv_norms: Vec<f32> = sample
         .par_chunks_exact(d)
         .map(|point| {
             // SAFETY: every point is a `d`-sized row, and `d` is a multiple of 8 (guaranteed by
             // Dimension).
-            let norm = unsafe { kernel::dot(point, point).sqrt() };
+            let norm = unsafe { kernel::dot(point, point) }.sqrt();
 
             if norm > 0.0 { norm.recip() } else { 0.0 }
         })
         .collect();
 
-    // 2. fit on the sample, best of n_init restarts (guards against bad initializations)
-    let mut fit = Fit::new(k, m, d);
-    fit.run(sample, chunk, row_chunk, &sample_inv_norms, rng, config);
-    mem::swap(&mut clustering.centroids, &mut fit.best_centroids);
+    // 2. fit on the sample: independent k-means++ restarts in parallel, the
+    // run with the lowest inertia wins (guards against bad initializations).
+    // Seeds are pre-derived so the stream matches a sequential run; ties
+    // break on the restart index, which keeps the winner deterministic no
+    // matter how rayon schedules the restarts.
+    let seeds: Vec<u64> = core::iter::repeat_with(|| rng.random())
+        .take(usize::try_from(config.n_init.get()).unwrap_or(usize::MAX))
+        .collect();
+
+    let best = seeds
+        .into_par_iter()
+        .enumerate()
+        .map(|(index, seed)| {
+            let mut restart = Restart::new(k, m, d);
+            let inertia = restart.run(sample, chunk, row_chunk, &sample_inv_norms, seed, config);
+
+            (inertia, index, restart)
+        })
+        .min_by(|lhs, rhs| lhs.0.total_cmp(&rhs.0).then(lhs.1.cmp(&rhs.1)))
+        .expect("config.n_init is non-zero, so at least one restart ran");
+
+    // Reuse the winning restart's buffers: its centroids become the result
+    // and its per-cluster accumulators serve the full-data recomputation,
+    // instead of allocating fresh ones.
+    let Restart {
+        centroids,
+        mut sums,
+        mut counts,
+        ..
+    } = best.2;
+
+    clustering.centroids = centroids;
 
     // 3. assign points to clusters
     // SAFETY: `x.len() == n * d` (asserted above), `clustering.centroids.len() == k * d`,
-    // `k > 0` (checked above), `d` is a multiple of 8 (guaranteed by Dimension).
-    unsafe {
-        assign(x, &mut clustering, k, chunk, row_chunk);
-    }
+    // `sums` and `counts` are the restart's `k * d` and `k` sized accumulators,
+    // and `d` is a multiple of 8 (guaranteed by Dimension).
+    clustering.inertia = unsafe {
+        assign(
+            x,
+            &mut clustering,
+            k,
+            chunk,
+            row_chunk,
+            &mut sums,
+            &mut counts,
+        )
+    };
 
     clustering
 }
@@ -985,6 +1085,12 @@ mod tests {
                   checks; modulo is used in test data construction"
     )]
     use super::*;
+
+    macro_rules! nz {
+        ($expr:expr) => {
+            const { NonZero::new($expr).unwrap() }
+        };
+    }
 
     /// Builds well-separated blob clusters in D-dimensional space.
     ///
@@ -1029,9 +1135,9 @@ mod tests {
     }
 
     /// Random unit-norm centroids in `D`-dimensional space.
-    fn unit_random(k: usize, seed: u64) -> Vec<f32> {
+    fn unit_random(k: NonZero<usize>, seed: u64) -> Vec<f32> {
         let mut rng = Xoshiro256PlusPlus::seed_from_u64(seed);
-        let mut c = vec![0.0_f32; k * D];
+        let mut c = vec![0.0_f32; k.get() * D];
         for row in c.chunks_exact_mut(D) {
             for v in row.iter_mut() {
                 *v = rng.random_range(-1.0..1.0);
@@ -1046,11 +1152,12 @@ mod tests {
 
     /// Brute-force nearest centroid by cosine similarity.
     #[expect(clippy::cast_possible_truncation, reason = "k is small in tests")]
-    fn brute_nearest_cosine(point: &[f32], centroids: &[f32], k: usize) -> u16 {
+    fn brute_nearest_cosine(point: &[f32], centroids: &[f32], k: NonZero<usize>) -> u16 {
         let pn = l2(point);
         let mut best = 0_u16;
         let mut best_cos = f32::NEG_INFINITY;
-        for c in 0..k {
+
+        for c in 0..k.get() {
             let cent = &centroids[c * D..(c + 1) * D];
             let d: f32 = point.iter().zip(cent).map(|(a, b)| a * b).sum();
             let cn = l2(cent);
@@ -1059,6 +1166,7 @@ mod tests {
             } else {
                 d / (pn * cn)
             };
+
             if cos > best_cos {
                 best_cos = cos;
                 best = c as u16;
@@ -1132,11 +1240,25 @@ mod tests {
     }
 
     #[test]
+    fn sample_indices_unique_sorted_in_range() {
+        let rng = Xoshiro256PlusPlus::seed_from_u64(1);
+        let indices = sample_indices(1000, 100, rng);
+
+        assert_eq!(indices.len(), 100);
+        assert!(
+            indices.is_sorted_by(|lhs, rhs| lhs < rhs),
+            "indices must be strictly increasing (sorted, unique)"
+        );
+        assert!(indices.iter().all(|&index| index < 1000));
+    }
+
+    #[test]
     fn cluster_empty_input() {
         let config = Config::for_k_with_seed(4, 42);
         let result = cluster(&[], dim(8), &config);
         assert_eq!(result.labels.len(), 0);
         assert_eq!(result.centroids.len(), 0);
+        assert_eq!(result.inertia, 0.0);
     }
 
     #[test]
@@ -1146,6 +1268,8 @@ mod tests {
         let result = cluster(&data, dim(8), &config);
         assert_eq!(result.labels.len(), 1);
         assert_eq!(result.labels[0], 0);
+        assert_eq!(result.centroids.len(), 0);
+        assert_eq!(result.inertia, 0.0);
     }
 
     #[test]
@@ -1229,21 +1353,31 @@ mod tests {
 
         assert_eq!(r1.labels, r2.labels);
         assert_eq!(r1.centroids, r2.centroids);
+
+        // The inertia reduction is a parallel sum, so it is only
+        // deterministic up to float summation order.
+        let tolerance = r1.inertia.abs().max(f32::EPSILON) * 1e-5;
+        assert!(
+            (r1.inertia - r2.inertia).abs() <= tolerance,
+            "inertia should agree within summation-order tolerance: {} vs {}",
+            r1.inertia,
+            r2.inertia
+        );
     }
 
     #[test]
-    fn cluster_different_seeds_may_differ() {
-        let (data, _) = make_blobs::<8>(30, 3, 555);
+    fn cluster_recovers_blobs_across_seeds() {
+        let (data, truth) = make_blobs::<8>(30, 3, 555);
 
-        let r1 = cluster(&data, dim(8), &Config::for_k_with_seed(3, 42));
-        let r2 = cluster(&data, dim(8), &Config::for_k_with_seed(3, 9999));
-
-        // Not guaranteed to differ, but with well-separated blobs and
-        // different seeds the label permutation usually differs.
-        assert!(
-            r1.labels != r2.labels,
-            "different seeds produced identical label vectors (possible but unlikely)"
-        );
+        for seed in [42, 9999] {
+            let result = cluster(&data, dim(8), &Config::for_k_with_seed(3, seed));
+            let acc = accuracy(&result.labels, &truth, 3);
+            assert!(
+                acc > 0.95,
+                "seed {seed}: expected >95% accuracy, got {:.1}%",
+                acc * 100.0
+            );
+        }
     }
 
     #[test]
@@ -1315,6 +1449,72 @@ mod tests {
     }
 
     #[test]
+    fn cluster_d256_recovers_blobs() {
+        // Production default dimension (matryoshka truncation target).
+        let (data, truth) = make_blobs::<256>(50, 4, 1234);
+        let config = Config::for_k_with_seed(4, 42);
+        let result = cluster(&data, dim(256), &config);
+
+        let acc = accuracy(&result.labels, &truth, 4);
+        assert!(
+            acc > 0.95,
+            "D=256: expected >95% accuracy, got {:.1}%",
+            acc * 100.0
+        );
+    }
+
+    #[test]
+    fn cluster_d1536_recovers_blobs() {
+        let (data, truth) = make_blobs::<1536>(20, 3, 4321);
+        let config = Config::for_k_with_seed(3, 42);
+        let result = cluster(&data, dim(1536), &config);
+
+        let acc = accuracy(&result.labels, &truth, 3);
+        assert!(
+            acc > 0.95,
+            "D=1536: expected >95% accuracy, got {:.1}%",
+            acc * 100.0
+        );
+    }
+
+    #[test]
+    fn cluster_chunk_sizes_produce_valid_results() {
+        let (data, truth) = make_blobs::<8>(50, 4, 314);
+
+        for chunk in [1_usize, 3, 1_000_000] {
+            let mut config = Config::for_k_with_seed(4, 42);
+            config.chunk = NonZero::new(chunk).expect("chunk is non-zero");
+            let result = cluster(&data, dim(8), &config);
+
+            let acc = accuracy(&result.labels, &truth, 4);
+            assert!(
+                acc > 0.95,
+                "chunk={chunk}: expected >95% accuracy, got {:.1}%",
+                acc * 100.0
+            );
+        }
+    }
+
+    #[test]
+    fn cluster_inertia_reflects_fit_quality() {
+        let (data, _) = make_blobs::<8>(50, 4, 99);
+
+        let tight = cluster(&data, dim(8), &Config::for_k_with_seed(4, 42));
+        assert!(tight.inertia.is_finite());
+        assert!(tight.inertia >= 0.0);
+
+        // Forcing 4 well-separated blobs into a single cluster must fit
+        // strictly worse.
+        let loose = cluster(&data, dim(8), &Config::for_k_with_seed(1, 42));
+        assert!(
+            loose.inertia > tight.inertia,
+            "k=1 inertia {} should exceed k=4 inertia {}",
+            loose.inertia,
+            tight.inertia
+        );
+    }
+
+    #[test]
     fn cluster_recovers_with_subsampling() {
         // n=12000 with sample_cap=1024 exercises the Cow::Owned path.
         let (data, truth) = make_blobs::<8>(2000, 6, 21);
@@ -1361,7 +1561,7 @@ mod tests {
 
     #[test]
     fn nearest_centroid_matches_brute_force_cosine() {
-        let k = 7;
+        let k = nz!(7);
         let centroids = unit_random(k, 99);
         let mut rng = Xoshiro256PlusPlus::seed_from_u64(100);
 
@@ -1385,7 +1585,7 @@ mod tests {
 
     #[test]
     fn nearest_centroid_argmax_independent_of_inv_norm() {
-        let k = 5;
+        let k = nz!(5);
         let centroids = unit_random(k, 7);
         let mut rng = Xoshiro256PlusPlus::seed_from_u64(8);
 
