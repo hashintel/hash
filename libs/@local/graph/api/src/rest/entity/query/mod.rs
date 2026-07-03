@@ -36,8 +36,6 @@ use crate::rest::{
     tag = "Entity",
     params(
         ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
-        ("after" = Option<String>, Query, description = "The cursor to start reading from"),
-        ("limit" = Option<usize>, Query, description = "The maximum number of entities to read"),
     ),
     responses(
         (
@@ -65,11 +63,6 @@ where
         query_logger.capture(actor_id, OpenApiQuery::GetEntities(&request));
     }
 
-    let store = store_pool
-        .acquire(temporal_client.0)
-        .await
-        .map_err(report_to_response)?;
-
     let request = QueryEntitiesRequest::deserialize(&*request)
         .map_err(Report::from)
         .attach(StatusCode::InvalidArgument)
@@ -78,6 +71,11 @@ where
     let params = request
         .into_params(api_config)
         .attach(hash_status::StatusCode::InvalidArgument)
+        .map_err(report_to_response)?;
+
+    let store = store_pool
+        .acquire(temporal_client.0)
+        .await
         .map_err(report_to_response)?;
 
     let response = store
@@ -116,8 +114,6 @@ pub(super) struct QueryEntitySubgraphResponse<'r> {
     tag = "Entity",
     params(
         ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
-        ("after" = Option<String>, Query, description = "The cursor to start reading from"),
-        ("limit" = Option<usize>, Query, description = "The maximum number of entities to read"),
     ),
     responses(
         (
@@ -145,11 +141,6 @@ where
         query_logger.capture(actor_id, OpenApiQuery::GetEntitySubgraph(&request));
     }
 
-    let store = store_pool
-        .acquire(temporal_client.0)
-        .await
-        .map_err(report_to_response)?;
-
     let request = QueryEntitySubgraphRequest::deserialize(&request)
         .map_err(Report::from)
         .attach(hash_status::StatusCode::InvalidArgument)
@@ -158,6 +149,11 @@ where
     let params = request
         .into_traversal_params(api_config)
         .attach(hash_status::StatusCode::InvalidArgument)
+        .map_err(report_to_response)?;
+
+    let store = store_pool
+        .acquire(temporal_client.0)
+        .await
         .map_err(report_to_response)?;
 
     let response = store
@@ -186,7 +182,6 @@ where
     tag = "Entity",
     params(
         ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
-
     ),
     responses(
         (

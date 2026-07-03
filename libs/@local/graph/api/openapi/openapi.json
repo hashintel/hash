@@ -1647,27 +1647,6 @@
             "schema": {
               "$ref": "#/components/schemas/ActorEntityUuid"
             }
-          },
-          {
-            "name": "after",
-            "in": "query",
-            "description": "The cursor to start reading from",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "nullable": true
-            }
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "description": "The maximum number of entities to read",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "nullable": true,
-              "minimum": 0
-            }
           }
         ],
         "requestBody": {
@@ -1715,27 +1694,6 @@
             "required": true,
             "schema": {
               "$ref": "#/components/schemas/ActorEntityUuid"
-            }
-          },
-          {
-            "name": "after",
-            "in": "query",
-            "description": "The cursor to start reading from",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "nullable": true
-            }
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "description": "The maximum number of entities to read",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "nullable": true,
-              "minimum": 0
             }
           }
         ],
