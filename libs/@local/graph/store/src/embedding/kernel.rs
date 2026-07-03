@@ -320,9 +320,8 @@ pub(crate) unsafe fn micro_4x2(
 /// [`micro_4x2`] tiled kernel.
 ///
 /// Returns `(centroid_index, raw_dot_product)` for each of the 4 points.
-/// The raw dot product is **not** a distance; the caller must convert via
-/// [`squared_chord_distance`](super::clustering::squared_chord_distance)
-/// if needed.
+/// The raw dot product is **not** a distance; and must be converted via
+/// using the chord distance formula.
 ///
 /// # Safety
 ///
