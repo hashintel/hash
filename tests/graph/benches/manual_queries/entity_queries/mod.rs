@@ -247,10 +247,6 @@ impl QueryEntitySubgraphQuery<'_, '_, '_> {
             )
             .sorted()
             .dedup();
-        let include_count = iter::once(request.include_count)
-            .chain(mem::take(&mut self.settings.parameters.include_count))
-            .sorted()
-            .dedup();
         let traversal_params_iter = iter::once(traversal_params)
             .chain(mem::take(&mut self.settings.parameters.traversal_params));
 
