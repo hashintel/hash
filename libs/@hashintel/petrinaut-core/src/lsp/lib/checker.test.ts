@@ -612,6 +612,65 @@ describe("checkSDCPN", () => {
       expect(result.itemDiagnostics).toHaveLength(0);
     });
 
+    it("allows Distribution for real attributes but not for discrete attributes", () => {
+      // GIVEN — stochasticity enabled (default extensions), a colour mixing
+      // real and discrete elements
+      const types = [
+        {
+          id: "color1",
+          elements: [
+            { name: "x", type: "real" as const },
+            { name: "count", type: "integer" as const },
+            { name: "active", type: "boolean" as const },
+          ],
+        },
+      ];
+      const places = [
+        { id: "place1", name: "Source", colorId: "color1" },
+        { id: "place2", name: "Target", colorId: "color1" },
+      ];
+      const kernel = (body: string) =>
+        createSDCPN({
+          types,
+          places,
+          transitions: [
+            {
+              id: "t1",
+              inputArcs: [{ placeId: "place1", weight: 1, type: "standard" }],
+              outputArcs: [{ placeId: "place2", weight: 1 }],
+              transitionKernelCode: `export default TransitionKernel((input, parameters) => {
+                return { Target: [${body}] };
+              });`,
+            },
+          ],
+        });
+
+      // WHEN / THEN — Distribution on the real attribute is fine
+      const valid = check(
+        kernel(`{ x: Distribution.Gaussian(0, 1), count: 1, active: true }`),
+      );
+      expect(valid.isValid).toBe(true);
+      expect(valid.itemDiagnostics).toHaveLength(0);
+
+      // WHEN / THEN — Distribution on the integer attribute is a type error
+      const invalidInteger = check(
+        kernel(`{ x: 1, count: Distribution.Uniform(0, 5), active: true }`),
+      );
+      expect(invalidInteger.isValid).toBe(false);
+      expect(invalidInteger.itemDiagnostics[0]?.itemType).toBe(
+        "transition-kernel",
+      );
+
+      // WHEN / THEN — Distribution on the boolean attribute is a type error
+      const invalidBoolean = check(
+        kernel(`{ x: 1, count: 1, active: Distribution.Uniform(0, 1) }`),
+      );
+      expect(invalidBoolean.isValid).toBe(false);
+      expect(invalidBoolean.itemDiagnostics[0]?.itemType).toBe(
+        "transition-kernel",
+      );
+    });
+
     it("returns invalid when TransitionKernel uses Distribution while stochasticity is disabled", () => {
       const sdcpn = createSDCPN({
         types: [{ id: "color1", elements: [{ name: "x", type: "real" }] }],
