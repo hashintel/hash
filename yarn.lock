@@ -668,13 +668,9 @@ __metadata:
     "@ory/integrations": "npm:1.3.1"
     "@pandacss/dev": "npm:1.11.1"
     "@popperjs/core": "npm:2.11.8"
-    "@react-sigma/core": "npm:4.0.3"
     "@sentry/nextjs": "npm:10.64.0"
     "@sentry/react": "npm:10.64.0"
     "@sentry/webpack-plugin": "npm:5.3.0"
-    "@sigma/edge-curve": "patch:@sigma/edge-curve@npm%3A3.0.0-beta.16#~/.yarn/patches/@sigma-edge-curve-npm-3.0.0-beta.16-3d8b985284.patch"
-    "@sigma/node-border": "npm:3.0.0"
-    "@sigma/node-image": "npm:3.0.0"
     "@svgr/webpack": "npm:8.1.0"
     "@tanstack/react-table": "npm:8.21.3"
     "@tldraw/editor": "patch:@tldraw/editor@npm%3A2.0.0-alpha.12#~/.yarn/patches/@tldraw-editor-npm-2.0.0-alpha.12-ba59bf001c.patch"
@@ -719,10 +715,6 @@ __metadata:
     framer-motion: "npm:11.18.2"
     graphology: "npm:0.26.0"
     graphology-communities-louvain: "npm:2.0.2"
-    graphology-layout: "npm:0.6.1"
-    graphology-layout-forceatlas2: "npm:0.10.1"
-    graphology-shortest-path: "npm:2.1.0"
-    graphology-simple-path: "npm:0.2.0"
     graphology-types: "npm:0.24.8"
     graphql: "npm:16.11.0"
     iframe-resizer: "npm:4.4.5"
@@ -769,7 +761,6 @@ __metadata:
     safe-stable-stringify: "npm:2.5.0"
     sass: "npm:1.93.2"
     setimmediate: "npm:1.0.5"
-    sigma: "npm:3.0.2"
     signia: "npm:0.1.5"
     signia-react: "npm:0.1.5"
     typescript: "npm:5.9.3"
@@ -12561,17 +12552,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@react-sigma/core@npm:4.0.3":
-  version: 4.0.3
-  resolution: "@react-sigma/core@npm:4.0.3"
-  peerDependencies:
-    graphology: ^0.25.4
-    react: ^18.0.0
-    sigma: ^3.0.0-beta.24
-  checksum: 10c0/0b8d5c57987fb0ac391da18515e570c379aea58f9063d2e2d3721d4015946be7a624f2f5366a41423fad90b70d6c65ad733fcea750976d5d05432d52b433876f
-  languageName: node
-  linkType: hard
-
 "@reactflow/background@npm:11.3.14":
   version: 11.3.14
   resolution: "@reactflow/background@npm:11.3.14"
@@ -14437,42 +14417,6 @@ __metadata:
   peerDependencies:
     webpack: ">=5.0.0"
   checksum: 10c0/1a24a3502dd673a5cb1c893196599c212a3aea1202d1a3d47934487f5055c80a3aae9ee1c7bde835257222d78ae3247c7b218a89beb45f89d391d673437a4782
-  languageName: node
-  linkType: hard
-
-"@sigma/edge-curve@npm:3.0.0-beta.16":
-  version: 3.0.0-beta.16
-  resolution: "@sigma/edge-curve@npm:3.0.0-beta.16"
-  peerDependencies:
-    sigma: ">=3.0.0-beta.10"
-  checksum: 10c0/71c7547a0138c0ed508e179cb2d2f8d82a8d34578b02246a43d073d84007e740e05c20d6009c7ea5f5ddde77e0a470ea719b75ebf18cda204526dcb4d36dc8b3
-  languageName: node
-  linkType: hard
-
-"@sigma/edge-curve@patch:@sigma/edge-curve@npm%3A3.0.0-beta.16#~/.yarn/patches/@sigma-edge-curve-npm-3.0.0-beta.16-3d8b985284.patch":
-  version: 3.0.0-beta.16
-  resolution: "@sigma/edge-curve@patch:@sigma/edge-curve@npm%3A3.0.0-beta.16#~/.yarn/patches/@sigma-edge-curve-npm-3.0.0-beta.16-3d8b985284.patch::version=3.0.0-beta.16&hash=8004c8"
-  peerDependencies:
-    sigma: ">=3.0.0-beta.10"
-  checksum: 10c0/39ec1037a91b7bd1f2d0321c511d283b3b4ced4e1ce8341d2d5f6ee8f0a7bd4308d6b008bc4d787e0beabf3de8ee7d513b1da9dace65bfc9d0e9d9206eec4278
-  languageName: node
-  linkType: hard
-
-"@sigma/node-border@npm:3.0.0":
-  version: 3.0.0
-  resolution: "@sigma/node-border@npm:3.0.0"
-  peerDependencies:
-    sigma: ">=3.0.0-beta.17"
-  checksum: 10c0/aa5ae48a30699ed8947c0ae85750a4a5be7f415849b08a2e664b04a0636f9ca9cbdbdc72f14a5438016e99a1a18599222b8501e7fd8db531fbd176c3167a454d
-  languageName: node
-  linkType: hard
-
-"@sigma/node-image@npm:3.0.0":
-  version: 3.0.0
-  resolution: "@sigma/node-image@npm:3.0.0"
-  peerDependencies:
-    sigma: ">=3.0.0-beta.10"
-  checksum: 10c0/1af4bf4805011a4713db0eaa48424ef74afde837c819471f18b154e7bd64cd7ebecae49b9ba041ac6183c81d8f55b30107b0150a2a32a5da6524faf73ebe12b2
   languageName: node
   linkType: hard
 
@@ -19501,13 +19445,6 @@ __metadata:
   dependencies:
     tslib: "npm:^2.4.0"
   checksum: 10c0/90226789475680ba599833571dd76c0718dd5b4c5022481263ef309d6a628f6246671cd6ca86e49c966ddefa7aca6ccef82240dc1476d2cea702ea5bee2a6b72
-  languageName: node
-  linkType: hard
-
-"@yomguithereal/helpers@npm:^1.1.1":
-  version: 1.1.1
-  resolution: "@yomguithereal/helpers@npm:1.1.1"
-  checksum: 10c0/a521e8e02a3902f5a33b970397158d70520bf1b79bca67db3990cb90703adaa9fc67e45c6cabfa98021202534002530e97e617adc19afa62f9e282d996513934
   languageName: node
   linkType: hard
 
@@ -28116,55 +28053,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"graphology-layout-forceatlas2@npm:0.10.1":
-  version: 0.10.1
-  resolution: "graphology-layout-forceatlas2@npm:0.10.1"
-  dependencies:
-    graphology-utils: "npm:^2.1.0"
-  peerDependencies:
-    graphology-types: ">=0.19.0"
-  checksum: 10c0/a5d5798503368322ce0b803f2f1528a99be9ec9cf2953f53a6f271e28c67ea3e190812e0271441138c61955935442a967d3d320b38825237c183f208b4d7907e
-  languageName: node
-  linkType: hard
-
-"graphology-layout@npm:0.6.1":
-  version: 0.6.1
-  resolution: "graphology-layout@npm:0.6.1"
-  dependencies:
-    graphology-utils: "npm:^2.3.0"
-    pandemonium: "npm:^2.4.0"
-  peerDependencies:
-    graphology-types: ">=0.19.0"
-  checksum: 10c0/006f5ef849ff8daf2e8f321f75b16a4a9217df0642750d09926cc2206d6f0b896f08fbe9c2ae2f496b67f34462028a65387ed8ca2ba247acfca718c6901830c6
-  languageName: node
-  linkType: hard
-
-"graphology-shortest-path@npm:2.1.0":
-  version: 2.1.0
-  resolution: "graphology-shortest-path@npm:2.1.0"
-  dependencies:
-    "@yomguithereal/helpers": "npm:^1.1.1"
-    graphology-indices: "npm:^0.17.0"
-    graphology-utils: "npm:^2.4.3"
-    mnemonist: "npm:^0.39.0"
-  peerDependencies:
-    graphology-types: ">=0.20.0"
-  checksum: 10c0/7ede7a89902c6bf84c854902b076ae90c6a1e8c2535ecf19fdeac17169795b3cf367f72ae721fdf360cee501bd9ee4684dc525ae467e77babc747c0a218e05d9
-  languageName: node
-  linkType: hard
-
-"graphology-simple-path@npm:0.2.0":
-  version: 0.2.0
-  resolution: "graphology-simple-path@npm:0.2.0"
-  dependencies:
-    graphology-utils: "npm:^1.8.0"
-    mnemonist: "npm:^0.39.0"
-  peerDependencies:
-    graphology-types: ">=0.20.0"
-  checksum: 10c0/6e4dcb9447ba4e75fd63be7da2bcc942fdf4b3ad5a346f5b38a801ac24e593f15e4e3a5c41ecdd69cff2b15b993633dff6a667bc57b1f0de1daf7af14128b289
-  languageName: node
-  linkType: hard
-
 "graphology-types@npm:0.24.8":
   version: 0.24.8
   resolution: "graphology-types@npm:0.24.8"
@@ -28172,16 +28060,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"graphology-utils@npm:^1.8.0":
-  version: 1.8.0
-  resolution: "graphology-utils@npm:1.8.0"
-  peerDependencies:
-    graphology-types: ">=0.19.0"
-  checksum: 10c0/7737be19f260585368bba5e96377123be7e5e243de561479a59ae97f037be2a6301001fd75306728955cca26a904be27a560ca182cbad0cefc2229cc8dbfb58c
-  languageName: node
-  linkType: hard
-
-"graphology-utils@npm:^2.1.0, graphology-utils@npm:^2.3.0, graphology-utils@npm:^2.4.2, graphology-utils@npm:^2.4.3, graphology-utils@npm:^2.4.4, graphology-utils@npm:^2.5.2":
+"graphology-utils@npm:^2.4.2, graphology-utils@npm:^2.4.4":
   version: 2.5.2
   resolution: "graphology-utils@npm:2.5.2"
   peerDependencies:
@@ -35374,7 +35253,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"pandemonium@npm:^2.4.0, pandemonium@npm:^2.4.1":
+"pandemonium@npm:^2.4.1":
   version: 2.4.1
   resolution: "pandemonium@npm:2.4.1"
   dependencies:
@@ -39553,16 +39432,6 @@ __metadata:
   version: 2.0.0
   resolution: "siginfo@npm:2.0.0"
   checksum: 10c0/3def8f8e516fbb34cb6ae415b07ccc5d9c018d85b4b8611e3dc6f8be6d1899f693a4382913c9ed51a06babb5201639d76453ab297d1c54a456544acf5c892e34
-  languageName: node
-  linkType: hard
-
-"sigma@npm:3.0.2":
-  version: 3.0.2
-  resolution: "sigma@npm:3.0.2"
-  dependencies:
-    events: "npm:^3.3.0"
-    graphology-utils: "npm:^2.5.2"
-  checksum: 10c0/925a8e75248020797988bf70ee4c18ae311164bfdd4ef228549736909732d11c3f338ee0c68a52de7149997817189a6bdc539905d8631bba08baf85bd3ec2517
   languageName: node
   linkType: hard
 
