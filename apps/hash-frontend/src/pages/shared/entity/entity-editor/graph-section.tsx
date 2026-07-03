@@ -9,8 +9,8 @@ import { deserializeQueryEntitySubgraphResponse } from "@local/hash-graph-sdk/en
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 
 import { queryEntitySubgraphQuery } from "../../../../graphql/queries/knowledge/entity.queries";
-import { useOwnedFrontierStore } from "../../graph-visualizer/components/use-frontier-expansion";
-import { EntityGraphVisualizer } from "../../graph-visualizer/entity-graph-visualizer";
+import { useOwnedFrontierStore } from "../../graph-visualizer/entity-graph/use-frontier-expansion";
+import { EntityGraphVisualizer } from "../../graph-visualizer/entity-graph/visualizer";
 import { useSlideStack, useSlideStackOcclusion } from "../../slide-stack";
 
 import type {

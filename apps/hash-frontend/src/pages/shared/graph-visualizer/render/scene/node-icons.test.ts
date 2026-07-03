@@ -11,8 +11,8 @@ import { ClusterId } from "../../ids";
 import { NodeIcons } from "./node-icons";
 
 import type { StructureFrame } from "../../frames";
-import type { IconAtlas } from "../gpu/icon-atlas";
 import type { ClusterReference } from "../frame-connection";
+import type { IconAtlas } from "../gpu/icon-atlas";
 import type { SceneCallbacks } from "./callbacks";
 import type { SceneHandle } from "./handle";
 import type { EntityId } from "@blockprotocol/type-system";
@@ -32,7 +32,7 @@ function flatFrame(count: number): StructureFrame {
 }
 
 function leafFrame(
-  layers: readonly { layoutId: ClusterId; count: number }[]
+  layers: readonly { layoutId: ClusterId; count: number }[],
 ): StructureFrame {
   return {
     version: 1,
@@ -59,7 +59,7 @@ function newHarness(): Harness {
   let structure: StructureFrame | undefined;
   const clusters = new Map<ClusterId, ClusterReference>();
   const resolveNodeIcon = vi.fn((entityId: EntityId): string | null =>
-    entityId.endsWith("0") ? null : `icon:${entityId}`
+    entityId.endsWith("0") ? null : `icon:${entityId}`,
   );
   const ensureIcons = vi.fn();
 
@@ -73,7 +73,7 @@ function newHarness(): Harness {
   const icons = new NodeIcons<EntityId>({
     handle,
     callbacks: () =>
-      ({ resolveNodeIcon } as unknown as SceneCallbacks<EntityId>),
+      ({ resolveNodeIcon }) as unknown as SceneCallbacks<EntityId>,
     iconAtlas: { ensureIcons } as unknown as IconAtlas,
   });
 

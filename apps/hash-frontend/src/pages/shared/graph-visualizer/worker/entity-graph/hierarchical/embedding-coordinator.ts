@@ -15,15 +15,15 @@ import { nameClustersByDistinctiveFeatures } from "../../hierarchy/distinctive-c
 import { entityIdsForCluster } from "../cluster-membership";
 
 import type { VizConfig } from "../../../config";
+import type { JobScheduler } from "../../core/schedulers";
 import type { ClusterNode, ClusterTree } from "../../hierarchy/cluster-tree";
 import type { ClusterMembers } from "../../hierarchy/distinctive-cluster-label";
 import type { EmbeddingClusteringNeededMessage } from "../../protocol";
+import type { TypeRegistry } from "../../store/type-registry";
 import type { EntityStore } from "../store/entity";
 import type { LinkStore } from "../store/link";
 import type { PropertyStore } from "../store/property";
-import type { TypeRegistry } from "../../store/type-registry";
 import type { TypeSetStore } from "../store/type-set";
-import type { JobScheduler } from "../../core/schedulers";
 import type { EntityId } from "@blockprotocol/type-system";
 
 export interface EmbeddingCoordinatorDependencies {

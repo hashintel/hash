@@ -1,7 +1,7 @@
 import { Stack, Typography } from "@mui/material";
 
 import { Button } from "../../../../shared/ui/button";
-import { GraphOverlayPanel } from "./graph-overlay-panel";
+import { GraphOverlayPanel } from "../components/graph-overlay-panel";
 
 interface GraphGuidanceCardProps {
   readonly onDismiss: () => void;

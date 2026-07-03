@@ -13,20 +13,20 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { LoadingSpinner } from "@hashintel/design-system";
 
-import { VizConfigPanel } from "./components/dev-harness-config-panel";
-import { ControlsPanel } from "./components/dev-harness-controls-panel";
-import { useOwnedFrontierStore } from "./components/use-frontier-expansion";
-import { defaultVizConfig } from "./config";
-import { generateGraphFixture } from "./dev-harness/generate-fixture";
-import { EntityGraphVisualizer } from "./entity-graph-visualizer";
-import { downloadLayoutFixture } from "./layout-fixture-capture";
+import { defaultVizConfig } from "../config";
+import { useOwnedFrontierStore } from "../entity-graph/use-frontier-expansion";
+import { EntityGraphVisualizer } from "../entity-graph/visualizer";
+import { downloadLayoutFixture } from "../layout-fixture-capture";
+import { VizConfigPanel } from "./config-panel";
+import { ControlsPanel } from "./controls-panel";
+import { generateGraphFixture } from "./generate-fixture";
 
-import type { HarnessKnobs } from "./components/dev-harness-controls-panel";
-import type { VizConfig } from "./config";
-import type { GraphFixture } from "./dev-harness/generate-fixture";
-import type { Scene } from "./render/scene";
-import type { LayerKind } from "./render/scene/layer-kinds";
-import type { WorkerHandle } from "./render/entity-worker-connection";
+import type { VizConfig } from "../config";
+import type { WorkerHandle } from "../render/entity-worker-connection";
+import type { LayerKind } from "../render/scene/layer-kinds";
+import type { Scene } from "../render/scene/scene";
+import type { HarnessKnobs } from "./controls-panel";
+import type { GraphFixture } from "./generate-fixture";
 import type { EntityId } from "@blockprotocol/type-system";
 
 /** Render-bench capture length. Long enough for ~10 deck metric samples. */

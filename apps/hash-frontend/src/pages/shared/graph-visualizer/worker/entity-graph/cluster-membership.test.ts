@@ -6,14 +6,14 @@ import { ClusterId, EntityIndex, TypeId } from "../../ids";
 import { Column } from "../collections/column";
 import { ReadonlySortedSet } from "../collections/readonly-sorted-set";
 import { ClusterNode } from "../hierarchy/cluster-tree";
-import { EntityStore } from "./store/entity";
-import { TypeSetStore } from "./store/type-set";
 import {
   entityIdsForCluster,
   entityIndicesForCluster,
   frontierCount,
   frontierMembers,
 } from "./cluster-membership";
+import { EntityStore } from "./store/entity";
+import { TypeSetStore } from "./store/type-set";
 
 import type { EntityUuid, WebId } from "@blockprotocol/type-system";
 

@@ -1,6 +1,6 @@
 import { Box } from "@mui/material";
 
-import { DevHarness } from "./shared/graph-visualizer/dev-harness";
+import { DevHarness } from "./shared/graph-visualizer/dev-harness/harness";
 
 import type { NextPageWithLayout } from "../shared/layout";
 

@@ -83,7 +83,7 @@ function contentBounds(handle: FrameHandle): ViewBounds | null {
         include(
           data.getFloat32(recordOffset, true),
           data.getFloat32(recordOffset + 4, true),
-          data.getFloat32(recordOffset + FLAT_RADIUS_BYTE_OFFSET, true)
+          data.getFloat32(recordOffset + FLAT_RADIUS_BYTE_OFFSET, true),
         );
       }
     }
@@ -110,7 +110,7 @@ function contentBounds(handle: FrameHandle): ViewBounds | null {
         originX + leafNodeX(ref.positions, index),
         originY + leafNodeY(ref.positions, index),
         // Leaf nodes have no per-record radius in the SAB; use a fixed 4-world-unit pad for fit-to-content bounds.
-        4
+        4,
       );
     }
   }
@@ -183,7 +183,7 @@ function largestBubbleBounds(handle: FrameHandle): ViewBounds | null {
       }
       const radius = data.getFloat32(
         recordOffset + FLAT_RADIUS_BYTE_OFFSET,
-        true
+        true,
       );
       minX = Math.min(minX, x - radius);
       minY = Math.min(minY, y - radius);
@@ -227,7 +227,7 @@ export class SceneCamera {
   #labelZoomBucket = labelZoomBucket(viewStateZoom(INITIAL_VIEW_STATE));
   #iconZoomBucket = iconZoomBucket(viewStateZoom(INITIAL_VIEW_STATE));
   #labelColorZoomBucket = labelColorZoomBucket(
-    viewStateZoom(INITIAL_VIEW_STATE)
+    viewStateZoom(INITIAL_VIEW_STATE),
   );
 
   #viewportFrame: number | null = null;
@@ -267,7 +267,7 @@ export class SceneCamera {
     const zoom = this.zoom;
     const nextZoom = Math.min(
       this.#maxZoom(),
-      Math.max(this.#minZoom(), zoom + delta)
+      Math.max(this.#minZoom(), zoom + delta),
     );
     this.applyViewState({
       ...this.#viewState,
@@ -311,11 +311,11 @@ export class SceneCamera {
     const usableWidth = Math.max(1, viewport.width - padding * 2);
     const usableHeight = Math.max(1, viewport.height - padding * 2);
     const nextZoom = Math.log2(
-      Math.min(usableWidth / width, usableHeight / height)
+      Math.min(usableWidth / width, usableHeight / height),
     );
     const clampedZoom = Math.min(
       this.#maxZoom(),
-      Math.max(this.#minZoom(), nextZoom)
+      Math.max(this.#minZoom(), nextZoom),
     );
 
     this.applyViewState({

@@ -10,8 +10,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { GraphControls } from "./components/graph-controls";
 import { GRAPH_CAMERA_ZOOM_STEP } from "./interactivity/graph-camera-commands";
-import { Scene } from "./render/scene";
+import { Scene } from "./render/scene/scene";
 
+import type { SceneHandle } from "./render/scene/handle";
 import type {
   ClusterHover,
   FlatEdgeHover,
@@ -21,8 +22,7 @@ import type {
   NodeLabel,
   NodeSelection,
   SceneOptions,
-} from "./render/scene";
-import type { SceneHandle } from "./render/scene/handle";
+} from "./render/scene/scene";
 import type { EntityId } from "@blockprotocol/type-system";
 import type { ReactElement } from "react";
 
@@ -88,7 +88,7 @@ export const GraphVisualizer = <NodeId extends string = EntityId>({
   const sceneOptions = useMemo<SceneOptions>(
     () => ({ labelPolicy }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    []
+    [],
   );
 
   useEffect(() => {
@@ -116,7 +116,7 @@ export const GraphVisualizer = <NodeId extends string = EntityId>({
         onNodeLabels,
         onFirstStructure: handleFirstStructure,
       },
-      sceneOptions
+      sceneOptions,
     );
     sceneRef.current = scene;
     onSceneReady?.(scene);

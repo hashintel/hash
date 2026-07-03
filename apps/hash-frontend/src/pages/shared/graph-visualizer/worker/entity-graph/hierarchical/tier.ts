@@ -12,6 +12,9 @@ import { CutIndex } from "../../geometry/edge-aggregation";
 import { LodState, computeVisibleCut } from "../../hierarchy/lod";
 
 import type { VizConfig } from "../../../config";
+import type { CommittedView, RenderedEntry } from "../../core/committed-view";
+import type { PositionsFrameEmitter } from "../../core/frames/positions-frame";
+import type { StructureFrameEmitter } from "../../core/frames/structure-frame";
 import type { PortCache } from "../../geometry/bubble-ports";
 import type { EdgeAggregator } from "../../geometry/edge-aggregation";
 import type {
@@ -20,12 +23,9 @@ import type {
   IngestDelta,
 } from "../../hierarchy/cluster-tree";
 import type { LodItem, ViewportState } from "../../hierarchy/lod";
-import type { LinkStore } from "../store/link";
 import type { TypeRegistry } from "../../store/type-registry";
+import type { LinkStore } from "../store/link";
 import type { TypeSetStore } from "../store/type-set";
-import type { CommittedView, RenderedEntry } from "../../core/committed-view";
-import type { PositionsFrameEmitter } from "../../core/frames/positions-frame";
-import type { StructureFrameEmitter } from "../../core/frames/structure-frame";
 import type { EmbeddingCoordinator } from "./embedding-coordinator";
 import type { HierarchicalLayoutManager } from "./layouts";
 import type { PortConstraintController } from "./port-constraints";

@@ -11,8 +11,8 @@ import type { EntityIndex, TypeId } from "../../ids";
 import type { EntityStore } from "../entity-graph/store/entity";
 import type { LinkStore } from "../entity-graph/store/link";
 import type { PropertyStore } from "../entity-graph/store/property";
-import type { TypeRegistry } from "../store/type-registry";
 import type { TypeSetStore } from "../entity-graph/store/type-set";
+import type { TypeRegistry } from "../store/type-registry";
 import type {
   FeatureDescriptor,
   FeatureSource,

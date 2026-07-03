@@ -6,8 +6,8 @@
  * Reproducible per seed (a seeded PRNG drives every choice), so Regenerate with the same seed yields
  * the same graph.
  */
-import { buildEntities } from "./generate-fixture/build-entities";
-import { buildTypeMaps } from "./generate-fixture/build-type-maps";
+import { buildEntities } from "./build-entities";
+import { buildTypeMaps } from "./build-type-maps";
 
 import type { EntityId } from "@blockprotocol/type-system";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";

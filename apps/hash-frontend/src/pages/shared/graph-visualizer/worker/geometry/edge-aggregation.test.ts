@@ -18,7 +18,10 @@ import { LinkStore } from "../entity-graph/store/link";
 import { TypeRegistry } from "../store/type-registry";
 import { EdgeAggregator } from "./edge-aggregation";
 
-import type { TypeSetGroup, TypeSetStore } from "../entity-graph/store/type-set";
+import type {
+  TypeSetGroup,
+  TypeSetStore,
+} from "../entity-graph/store/type-set";
 import type { CutView } from "./edge-aggregation";
 import type { EntityId } from "@blockprotocol/type-system";
 

@@ -6,20 +6,20 @@
  */
 import { useCallback } from "react";
 
-import { EntityHoverCard } from "./entity-hover-card";
-import { EntityLabelOverlay } from "./entity-label-overlay";
+import { NodeLabelOverlay } from "../components/node-label-overlay";
+import { useOverlaySlice } from "../components/scene-overlay-store";
 import { FrontierClusterCard } from "./frontier-cluster-card";
 import { HighwaySummaryCard } from "./highway-summary-card";
-import { useOverlaySlice } from "./scene-overlay-store";
+import { EntityHoverCard } from "./hover-card";
 
+import type { SceneOverlayStore } from "../components/scene-overlay-store";
 import type { EntityCardContext } from "./frontier-expansion-store";
-import type { SceneOverlayStore } from "./scene-overlay-store";
 import type { EntityId } from "@blockprotocol/type-system";
 import type { ClosedMultiEntityTypesRootMap } from "@local/hash-graph-sdk/ontology";
 
 interface EntityCardResolvers {
   readonly getCardContext: (
-    entityId: EntityId
+    entityId: EntityId,
   ) => EntityCardContext | undefined;
   readonly degreeById: ReadonlyMap<EntityId, number>;
 }
@@ -33,7 +33,7 @@ export const EntityHoverOverlay: React.FC<
     readonly overlayStore: SceneOverlayStore;
   }
 > = ({ overlayStore, getCardContext, degreeById }) => {
-  const hover = useOverlaySlice(overlayStore.entityHover);
+  const hover = useOverlaySlice(overlayStore.nodeHover);
   const selection = useOverlaySlice(overlayStore.selection);
 
   if (hover === null || hover.nodeId === selection?.nodeId) {
@@ -192,7 +192,7 @@ interface EntityLabelsOverlayProps {
 export const EntityLabelsOverlay = ({
   overlayStore,
 }: EntityLabelsOverlayProps) => {
-  const labels = useOverlaySlice(overlayStore.entityLabels);
+  const labels = useOverlaySlice(overlayStore.nodeLabels);
 
-  return <EntityLabelOverlay labels={labels} />;
+  return <NodeLabelOverlay labels={labels} />;
 };

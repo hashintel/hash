@@ -13,6 +13,8 @@ interface FrontierControlsProps {
   readonly fetchedCount: number;
   readonly totalToFetch: number;
   readonly error?: string;
+  /** What a frontier node is, for button/tooltip copy ("entity", "type"). */
+  readonly noun: string;
   readonly onFetchCompleteFrontier: () => void;
 }
 
@@ -22,6 +24,7 @@ export const FrontierControls = ({
   fetchedCount,
   totalToFetch,
   error,
+  noun,
   onFetchCompleteFrontier,
 }: FrontierControlsProps) => {
   const theme = useTheme();
@@ -47,12 +50,13 @@ export const FrontierControls = ({
       : undefined;
   const badgeCount = isFetching ? 0 : frontierCount;
   const disabled = frontierCount === 0 || isFetching;
+  const nounPlural = noun === "entity" ? "entities" : `${noun}s`;
   const tooltipTitle =
     error ??
     progress ??
     (frontierCount > 0
       ? `Fetch ${frontierCount.toLocaleString()} frontier ${
-          frontierCount === 1 ? "entity" : "entities"
+          frontierCount === 1 ? noun : nounPlural
         }`
       : "The visible frontier is fully fetched.");
 
@@ -101,7 +105,7 @@ export const FrontierControls = ({
       <Tooltip title={tooltipTitle} placement="bottom">
         <Box component="span" sx={{ position: "relative", display: "block" }}>
           <GrayToBlueIconButton
-            aria-label="Fetch frontier entities"
+            aria-label={`Fetch frontier ${nounPlural}`}
             disabled={disabled}
             onClick={onFetchCompleteFrontier}
             sx={{

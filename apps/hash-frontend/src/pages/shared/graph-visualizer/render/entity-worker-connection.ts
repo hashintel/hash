@@ -41,7 +41,7 @@ export interface WorkerHandle extends SceneHandle<EntityId> {
   ingestBatch(entities: readonly IngestEntity[]): void;
   registerTypes(
     typeSchemas: readonly TypeSchemaEntry[],
-    propertySchemas: readonly PropertySchemaEntry[]
+    propertySchemas: readonly PropertySchemaEntry[],
   ): void;
 }
 
@@ -73,7 +73,7 @@ export class EntityWorkerConnection
 
   resolveNodeId(
     layoutId: ClusterId,
-    recordIndex: number
+    recordIndex: number,
   ): EntityId | undefined {
     const entityIdx = this.nodeKeyAt(layoutId, recordIndex);
     return entityIdx === undefined ? undefined : this.nodeKeyToId(entityIdx);
@@ -173,7 +173,7 @@ export class EntityWorkerConnection
 
   registerTypes(
     typeSchemas: readonly TypeSchemaEntry[],
-    propertySchemas: readonly PropertySchemaEntry[]
+    propertySchemas: readonly PropertySchemaEntry[],
   ): void {
     this.send({ type: "REGISTER_TYPES", typeSchemas, propertySchemas });
   }
@@ -192,14 +192,14 @@ export class EntityWorkerConnection
         // A fresh length-tracking view covers any in-place growth that follows.
         this.#entityIdMapBytes = new Uint8Array(
           message.buffer,
-          ID_HEADER_BYTES
+          ID_HEADER_BYTES,
         );
         break;
       case "EMBEDDING_CLUSTERING_NEEDED":
         void this.#fetchEmbeddingClusters(
           message.clusterId,
           message.entityIds as string[],
-          message.clusterCount
+          message.clusterCount,
         );
         break;
       case "EGO_RESULT":
@@ -223,7 +223,7 @@ export class EntityWorkerConnection
   async #fetchEmbeddingClusters(
     clusterId: string,
     entityIds: string[],
-    clusterCount: number
+    clusterCount: number,
   ): Promise<void> {
     try {
       const apiOrigin =
@@ -238,13 +238,13 @@ export class EntityWorkerConnection
           credentials: "include",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ entityIds, clusterCount, dimension: 256 }),
-        }
+        },
       );
 
       if (!response.ok) {
         // eslint-disable-next-line no-console
         console.warn(
-          `[embedding] clustering failed for ${clusterId}: ${response.status}`
+          `[embedding] clustering failed for ${clusterId}: ${response.status}`,
         );
         return;
       }
@@ -266,7 +266,7 @@ export class EntityWorkerConnection
       // eslint-disable-next-line no-console
       console.warn(
         `[embedding] clustering request failed for ${clusterId}:`,
-        err
+        err,
       );
     }
   }

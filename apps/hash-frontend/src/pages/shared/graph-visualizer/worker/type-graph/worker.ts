@@ -19,31 +19,56 @@
  */
 import { dimColor } from "../../dim-color";
 import { nodeIdForTypeId, TypeId, typeIdFromNodeId } from "../../ids";
-import { PositionScratch } from "../collections/position-scratch";
-import { colorForType, configureEntityStyle, edgeColorForType, entityStyle, FRONTIER_COLOR } from "../entity-style";
 import { FlatGraphBuffer } from "../buffers/position-buffer";
+import { PositionScratch } from "../collections/position-scratch";
 import { writeStraightFlatEdge } from "../core/flat-edge-writer";
 import { placeFlatSeeds } from "../core/flat-seed";
 import { FLAT_LAYOUT_ID, LayoutRegistry } from "../core/layout-registry";
 import { TickScheduler } from "../core/schedulers";
-import { BezierSegmentSink, EndpointArrowSink } from "../geometry/edge-geometry";
+import {
+  colorForType,
+  configureEntityStyle,
+  edgeColorForType,
+  entityStyle,
+  FRONTIER_COLOR,
+} from "../entity-style";
+import {
+  BezierSegmentSink,
+  EndpointArrowSink,
+} from "../geometry/edge-geometry";
 import { createFlatLayout } from "../layout/flat-layout";
 import { createMajorizationLayout } from "../layout/majorization-layout";
 import { TypeRegistry } from "../store/type-registry";
 import { TypeGraphStore } from "./store";
 
-import type { Color, PositionsFrame, RenderTypeEdge, StructureFrame } from "../../frames";
+import type {
+  Color,
+  PositionsFrame,
+  RenderTypeEdge,
+  StructureFrame,
+} from "../../frames";
 import type { RepublishHandler } from "../buffers/growable-buffer";
-import type { ForceEdge, ForceNode, LayoutSimulation } from "../layout/force-simulation";
+import type {
+  ForceEdge,
+  ForceNode,
+  LayoutSimulation,
+} from "../layout/force-simulation";
 import type { LayoutSideChannelMessage, TypeSchemaEntry } from "../protocol";
-import type { IngestTypeEdge, IngestTypeNode, TypeGraphConfig, TypeIdTableMessage } from "./protocol";
+import type {
+  IngestTypeEdge,
+  IngestTypeNode,
+  TypeGraphConfig,
+  TypeIdTableMessage,
+} from "./protocol";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 
 /** The two engines the type graph runs (a subset of the entity VizModes). */
 type TypeGraphEngine = "flat-force" | "community-force";
 
 /** Side-channel traffic this lifecycle posts (buffer lifecycle + id table). */
-export type TypeGraphSideMessage = LayoutSideChannelMessage | TypeIdTableMessage;
+export type TypeGraphSideMessage =
+  | LayoutSideChannelMessage
+  | TypeIdTableMessage;
 
 /** Over-allocate capacity so later ingests can append without reallocation. */
 function typeCapacityFor(count: number): number {
@@ -162,7 +187,9 @@ export class TypeGraphWorker {
     return this.#engine;
   }
 
-  set onSideMessage(handler: ((msg: TypeGraphSideMessage) => void) | undefined) {
+  set onSideMessage(
+    handler: ((msg: TypeGraphSideMessage) => void) | undefined,
+  ) {
     this.#onSideMessage = handler;
   }
 
@@ -386,7 +413,12 @@ export class TypeGraphWorker {
 
     const layout =
       this.#engine === "community-force"
-        ? createMajorizationLayout(nodes, edges, buffer, this.#config.majorization)
+        ? createMajorizationLayout(
+            nodes,
+            edges,
+            buffer,
+            this.#config.majorization,
+          )
         : createFlatLayout(nodes, edges, buffer, this.#config.flatForce);
 
     if (previous) {

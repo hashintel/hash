@@ -177,7 +177,7 @@ const flatJoinKeySlot = (recordIndex: number): number =>
  */
 export function flatRecordJoinKey(
   cluster: ClusterReference,
-  recordIndex: number
+  recordIndex: number,
 ): number | undefined {
   const records = new Uint32Array(cluster.versionView.buffer);
   return records[flatJoinKeySlot(recordIndex)];
@@ -412,7 +412,7 @@ export abstract class FrameConnection implements FrameHandle {
   // position flush. Self-cancels once the cluster is replaced or destroyed.
   #watchClusterBuffer(
     cluster: ClusterReference,
-    buffer: SharedArrayBuffer | ArrayBuffer
+    buffer: SharedArrayBuffer | ArrayBuffer,
   ): void {
     if (
       typeof SharedArrayBuffer === "undefined" ||

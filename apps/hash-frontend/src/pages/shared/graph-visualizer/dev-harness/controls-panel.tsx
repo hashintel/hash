@@ -14,7 +14,7 @@ import type { LayerKind } from "../render/scene/layer-kinds";
 /**
  * The full knob set the harness drives the generator with. Layout/worker
  * tuning lives in the separate config panel
- * ({@link "./dev-harness-config-panel"}), not here.
+ * ({@link "./config-panel"}), not here.
  */
 export interface HarnessKnobs {
   readonly entityCount: number;

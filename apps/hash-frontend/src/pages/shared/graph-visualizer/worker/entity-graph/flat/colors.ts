@@ -14,8 +14,8 @@ import {
 
 import type { Color } from "../../../frames";
 import type { EntityIndex, TypeSetId } from "../../../ids";
-import type { EntityStore } from "../store/entity";
 import type { TypeRegistry } from "../../store/type-registry";
+import type { EntityStore } from "../store/entity";
 import type { TypeSetStore } from "../store/type-set";
 
 export type ColorCache = Map<TypeSetId, Color>;

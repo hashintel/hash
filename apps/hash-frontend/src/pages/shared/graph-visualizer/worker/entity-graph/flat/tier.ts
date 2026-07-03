@@ -24,6 +24,8 @@ import type { VizConfig } from "../../../config";
 import type { RenderFlatGraph } from "../../../frames";
 import type { EntityIndex, VizMode } from "../../../ids";
 import type { RepublishHandler } from "../../buffers/growable-buffer";
+import type { CommittedView } from "../../core/committed-view";
+import type { LayoutRegistry } from "../../core/layout-registry";
 import type {
   BezierSegmentSink,
   EndpointArrowSink,
@@ -33,12 +35,10 @@ import type {
   CapturedLayoutFixture,
   LayoutSideChannelMessage,
 } from "../../protocol";
+import type { TypeRegistry } from "../../store/type-registry";
 import type { EntityStore } from "../store/entity";
 import type { LinkStore } from "../store/link";
-import type { TypeRegistry } from "../../store/type-registry";
 import type { TypeSetStore } from "../store/type-set";
-import type { CommittedView } from "../../core/committed-view";
-import type { LayoutRegistry } from "../../core/layout-registry";
 import type { ColorCache } from "./colors";
 
 /** Over-allocate capacity so streamed nodes can append without reallocation. */

@@ -25,11 +25,14 @@ import { edgeColorForType, primaryTypeOfSet } from "../entity-style";
 import type { VizConfig } from "../../config";
 import type { Color } from "../../frames";
 import type { ClusterId, EntityIndex, LinkId, TypeSetId } from "../../ids";
+import type { LinkStore } from "../entity-graph/store/link";
+import type {
+  TypeSetGroup,
+  TypeSetStore,
+} from "../entity-graph/store/type-set";
 import type { ClusterNode, ClusterTree } from "../hierarchy/cluster-tree";
 import type { LodItem } from "../hierarchy/lod";
-import type { LinkStore } from "../entity-graph/store/link";
 import type { TypeRegistry } from "../store/type-registry";
-import type { TypeSetGroup, TypeSetStore } from "../entity-graph/store/type-set";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 
 export function widthForCount(count: number): number {

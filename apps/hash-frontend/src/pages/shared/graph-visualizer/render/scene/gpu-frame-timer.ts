@@ -55,7 +55,7 @@ export class GpuFrameTimer {
   constructor(
     onSample: GpuSampleSink,
     onDisjoint: GpuDisjointSink,
-    clock: () => number = () => performance.now()
+    clock: () => number = () => performance.now(),
   ) {
     this.#onSample = onSample;
     this.#onDisjoint = onDisjoint;
@@ -78,7 +78,7 @@ export class GpuFrameTimer {
       this.#probed = true;
       this.#gl = gl;
       this.#extension = gl.getExtension(
-        "EXT_disjoint_timer_query_webgl2"
+        "EXT_disjoint_timer_query_webgl2",
       ) as TimerExtension | null;
     }
 
@@ -144,7 +144,7 @@ export class GpuFrameTimer {
       }
       const nanoseconds = gl.getQueryParameter(
         query,
-        gl.QUERY_RESULT
+        gl.QUERY_RESULT,
       ) as number;
       this.#onSample(submittedAtMs, nanoseconds / NANOSECONDS_PER_MILLISECOND);
       this.#pool.push(query);

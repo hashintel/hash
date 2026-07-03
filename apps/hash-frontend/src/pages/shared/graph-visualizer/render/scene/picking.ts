@@ -39,7 +39,7 @@ function isFlatMode(handle: FrameHandle): boolean {
  */
 export function resolvePickedNode<NodeId extends string>(
   handle: SceneHandle<NodeId>,
-  info: PickingInfo
+  info: PickingInfo,
 ): Selection<NodeId> | null {
   const layerId = info.layer?.id;
   if (layerId === undefined || info.index < 0) {
@@ -54,7 +54,7 @@ export function resolvePickedNode<NodeId extends string>(
     layoutId = structure.flatGraph?.layoutId;
   } else if (layerId.startsWith("entities:")) {
     layoutId = structure.entityLayers.find(
-      (entry) => `entities:${entry.layoutId}` === layerId
+      (entry) => `entities:${entry.layoutId}` === layerId,
     )?.layoutId;
   }
   if (layoutId === undefined) {
@@ -75,7 +75,7 @@ export function resolvePickedNode<NodeId extends string>(
  */
 export function pickedFlatEdgeId(
   handle: FrameHandle,
-  info: PickingInfo
+  info: PickingInfo,
 ): number | null {
   if (
     info.layer?.id !== FLAT_EDGE_LAYER_ID ||
@@ -95,7 +95,7 @@ export function pickedFlatEdgeId(
  */
 export function pickedHighwayLaneId(
   handle: FrameHandle,
-  info: PickingInfo
+  info: PickingInfo,
 ): number | null {
   if (
     info.layer?.id !== HIERARCHICAL_EDGE_LAYER_ID ||

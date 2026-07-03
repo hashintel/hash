@@ -12,8 +12,11 @@ import type { VizConfig } from "../../config";
 import type { Color } from "../../frames";
 import type { ClusterKind, EntityIndex, TypeId, TypeSetKey } from "../../ids";
 import type { LinkStore } from "../entity-graph/store/link";
+import type {
+  TypeSetGroup,
+  TypeSetStore,
+} from "../entity-graph/store/type-set";
 import type { TypeRegistry } from "../store/type-registry";
-import type { TypeSetGroup, TypeSetStore } from "../entity-graph/store/type-set";
 import type { ClusterSizingConfig } from "./cluster-sizing-config";
 
 function stableHashToAngle(id: string): number {

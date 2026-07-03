@@ -34,7 +34,7 @@ export interface TypeWorkerHandle extends SceneHandle<VersionedUrl> {
   ingestTypes(
     nodes: readonly IngestTypeNode[],
     edges: readonly IngestTypeEdge[],
-    linkTypeSchemas: readonly TypeSchemaEntry[]
+    linkTypeSchemas: readonly TypeSchemaEntry[],
   ): void;
 }
 
@@ -61,7 +61,7 @@ export class TypeWorkerConnection
 
   resolveNodeId(
     layoutId: ClusterId,
-    recordIndex: number
+    recordIndex: number,
   ): VersionedUrl | undefined {
     const typeId = this.nodeKeyAt(layoutId, recordIndex);
     return typeId === undefined ? undefined : this.#typeUrls[typeId];
@@ -129,7 +129,7 @@ export class TypeWorkerConnection
   ingestTypes(
     nodes: readonly IngestTypeNode[],
     edges: readonly IngestTypeEdge[],
-    linkTypeSchemas: readonly TypeSchemaEntry[]
+    linkTypeSchemas: readonly TypeSchemaEntry[],
   ): void {
     this.send({ type: "INGEST_TYPES", nodes, edges, linkTypeSchemas });
   }
@@ -148,7 +148,7 @@ export class TypeWorkerConnection
         this.#typeUrls.splice(
           message.startId,
           message.urls.length,
-          ...message.urls
+          ...message.urls,
         );
         break;
       case "TYPE_EGO_RESULT":

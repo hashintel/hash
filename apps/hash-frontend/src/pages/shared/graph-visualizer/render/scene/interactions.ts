@@ -98,7 +98,7 @@ export class SceneInteractions<NodeId extends string> {
     return liveNodeGeometry(
       this.#dependencies.handle,
       this.#selected.layoutId,
-      this.#selected.localIndex
+      this.#selected.localIndex,
     );
   }
 
@@ -133,7 +133,7 @@ export class SceneInteractions<NodeId extends string> {
       this.#selected !== null &&
       this.#dependencies.handle.resolveNodeId(
         this.#selected.layoutId,
-        this.#selected.localIndex
+        this.#selected.localIndex,
       ) !== this.#selected.nodeId
     ) {
       this.#selected = null;
@@ -261,7 +261,7 @@ export class SceneInteractions<NodeId extends string> {
         ? linkMidpoint(positions, this.#selectedFlatEdge)
         : null;
       const pick = this.#dependencies.handle.resolveFlatEdge(
-        this.#selectedFlatEdge
+        this.#selectedFlatEdge,
       );
       nodeId = pick?.kind === "node" ? pick.nodeId : undefined;
     }
@@ -300,7 +300,7 @@ export class SceneInteractions<NodeId extends string> {
 
     const nodeKey = this.#dependencies.handle.nodeKeyAt(
       selection.layoutId,
-      selection.localIndex
+      selection.localIndex,
     );
 
     if (nodeKey === undefined) {
@@ -452,7 +452,7 @@ export class SceneInteractions<NodeId extends string> {
       .getClusters()
       .get(selection.layoutId);
     this.#dependencies.handle.setPinned(
-      cluster && cluster.flatCapacity === undefined ? selection.layoutId : null
+      cluster && cluster.flatCapacity === undefined ? selection.layoutId : null,
     );
   }
 

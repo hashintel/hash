@@ -15,7 +15,10 @@ import {
   benchTypeSchemas,
   buildIngestEntities,
 } from "../bench-fixtures";
-import { CommitCoalescer, MAX_COALESCED_BATCHES } from "../core/commit-coalescer";
+import {
+  CommitCoalescer,
+  MAX_COALESCED_BATCHES,
+} from "../core/commit-coalescer";
 import { EntityGraphWorker } from "./worker";
 
 import type { PositionsFrame, StructureFrame } from "../../frames";

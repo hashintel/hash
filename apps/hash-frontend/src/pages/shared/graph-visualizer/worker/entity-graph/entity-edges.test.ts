@@ -8,9 +8,9 @@ import {
 } from "../../ids";
 import { Column } from "../collections/column";
 import { ClusterNode } from "../hierarchy/cluster-tree";
+import { buildClusterEdges, buildEntityEdges } from "./entity-edges";
 import { LinkStore } from "./store/link";
 import { TypeSetStore } from "./store/type-set";
-import { buildClusterEdges, buildEntityEdges } from "./entity-edges";
 
 import type { ForceNode } from "../layout/force-simulation";
 

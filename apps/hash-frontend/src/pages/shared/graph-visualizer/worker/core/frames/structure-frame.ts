@@ -4,9 +4,12 @@
  * Emitted on structure commits only, never on a position tick.
  */
 import { graphColors } from "../../../visual-style";
+import {
+  frontierCount,
+  frontierMembers,
+} from "../../entity-graph/cluster-membership";
 import { analyzeHierarchy } from "../../geometry/edge-geometry";
 import { colorForCluster } from "../../hierarchy/cluster-tree";
-import { frontierCount, frontierMembers } from "../../entity-graph/cluster-membership";
 
 import type { VizConfig } from "../../../config";
 import type {
@@ -18,11 +21,11 @@ import type {
   StructureFrame,
 } from "../../../frames";
 import type { ClusterId, EntityIndex, VizMode } from "../../../ids";
+import type { EntityStore } from "../../entity-graph/store/entity";
+import type { TypeSetStore } from "../../entity-graph/store/type-set";
 import type { CutIndex } from "../../geometry/edge-aggregation";
 import type { ClusterNode, ClusterTree } from "../../hierarchy/cluster-tree";
-import type { EntityStore } from "../../entity-graph/store/entity";
 import type { TypeRegistry } from "../../store/type-registry";
-import type { TypeSetStore } from "../../entity-graph/store/type-set";
 import type { CommittedView } from "../committed-view";
 import type { LayoutRegistry } from "../layout-registry";
 import type { LeafLocalCache } from "./leaf-local-cache";

@@ -9,11 +9,13 @@ import { useSyncExternalStore } from "react";
 
 import type {
   ClusterHover,
-  EntityHover,
-  EntityLabel,
-  EntitySelection,
+  FlatEdgeHover,
   HighwayHover,
-} from "../render/scene";
+  NodeHover,
+  NodeLabel,
+  NodeSelection,
+} from "../render/scene/scene";
+import type { EntityId } from "@blockprotocol/type-system";
 
 /**
  * Grace period the frontier-cluster card stays open after the cursor leaves its bubble, so
@@ -57,13 +59,16 @@ export class OverlaySlice<Value> {
 export const useOverlaySlice = <Value>(slice: OverlaySlice<Value>): Value =>
   useSyncExternalStore(slice.subscribe, slice.getValue, slice.getValue);
 
-const noLabels: readonly EntityLabel[] = [];
+const noLabels: readonly [] = [];
 
-export class SceneOverlayStore {
-  readonly entityHover = new OverlaySlice<EntityHover | null>(null);
+export class SceneOverlayStore<NodeId extends string = EntityId> {
+  readonly nodeHover = new OverlaySlice<NodeHover<NodeId> | null>(null);
+  readonly edgeHover = new OverlaySlice<FlatEdgeHover<NodeId> | null>(null);
   readonly highwayHover = new OverlaySlice<HighwayHover | null>(null);
-  readonly selection = new OverlaySlice<EntitySelection | null>(null);
-  readonly entityLabels = new OverlaySlice<readonly EntityLabel[]>(noLabels);
+  readonly selection = new OverlaySlice<NodeSelection<NodeId> | null>(null);
+  readonly nodeLabels = new OverlaySlice<readonly NodeLabel<NodeId>[]>(
+    noLabels,
+  );
 
   /**
    * The hovered wholly-frontier cluster, shown as an interactive load card. Unlike the other
@@ -118,11 +123,12 @@ export class SceneOverlayStore {
   reset(): void {
     this.#clusterCardHovered = false;
     this.#cancelClusterCloseTimer();
-    this.entityHover.setValue(null);
+    this.nodeHover.setValue(null);
+    this.edgeHover.setValue(null);
     this.highwayHover.setValue(null);
     this.clusterHover.setValue(null);
     this.selection.setValue(null);
-    this.entityLabels.setValue(noLabels);
+    this.nodeLabels.setValue(noLabels);
   }
 
   #cancelClusterCloseTimer(): void {

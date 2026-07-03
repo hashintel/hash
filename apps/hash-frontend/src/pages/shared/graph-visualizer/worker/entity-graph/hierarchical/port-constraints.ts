@@ -11,10 +11,10 @@ import { highwayEndpoints } from "../../geometry/edge-geometry";
 
 import type { Position } from "../../../geometry";
 import type { ClusterId } from "../../../ids";
+import type { LayoutRegistry } from "../../core/layout-registry";
 import type { CutIndex, EdgeFrame } from "../../geometry/edge-aggregation";
 import type { ClusterTree } from "../../hierarchy/cluster-tree";
 import type { PortAnchor } from "../../layout/force-simulation";
-import type { LayoutRegistry } from "../../core/layout-registry";
 
 export interface PortConstraintDependencies {
   readonly layouts: LayoutRegistry;

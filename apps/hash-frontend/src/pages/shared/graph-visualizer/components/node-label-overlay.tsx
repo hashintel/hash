@@ -1,10 +1,10 @@
 import { alpha, Box } from "@mui/material";
 import { memo } from "react";
 
-import type { EntityLabel } from "../render/scene";
+import type { NodeLabel } from "../render/scene/scene";
 
-interface EntityLabelOverlayProps {
-  readonly labels: readonly EntityLabel[];
+interface NodeLabelOverlayProps {
+  readonly labels: readonly NodeLabel<string>[];
 }
 
 /**
@@ -45,7 +45,7 @@ const HubLabel = memo(({ text }: { readonly text: string }) => (
  * layout. Each label rides a cheap GPU transform; the pill itself is memoized on its text.
  * Click-through (pointer-events disabled) so it never eats a hover / pan on the canvas.
  */
-export const EntityLabelOverlay = ({ labels }: EntityLabelOverlayProps) => (
+export const NodeLabelOverlay = ({ labels }: NodeLabelOverlayProps) => (
   <>
     {labels.map((label) => (
       <div

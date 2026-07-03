@@ -17,10 +17,6 @@ import {
   cloneVizConfig,
   validateConfig,
 } from "../../config";
-import { configureEntityStyle } from "../entity-style";
-import { PortCache } from "../geometry/bubble-ports";
-import { EdgeAggregator } from "../geometry/edge-aggregation";
-import { syncWorldPositions } from "../geometry/world-positions";
 import { CommittedView } from "../core/committed-view";
 import { LeafLocalCache } from "../core/frames/leaf-local-cache";
 import { PositionsFrameEmitter } from "../core/frames/positions-frame";
@@ -28,6 +24,10 @@ import { StructureFrameEmitter } from "../core/frames/structure-frame";
 import { LayoutRegistry } from "../core/layout-registry";
 import { JobScheduler, TickScheduler } from "../core/schedulers";
 import { TickLoop } from "../core/tick-loop";
+import { configureEntityStyle } from "../entity-style";
+import { PortCache } from "../geometry/bubble-ports";
+import { EdgeAggregator } from "../geometry/edge-aggregation";
+import { syncWorldPositions } from "../geometry/world-positions";
 import { ClusterTree } from "../hierarchy/cluster-tree";
 import { TypeRegistry } from "../store/type-registry";
 import { egoTargets } from "./ego";

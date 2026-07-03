@@ -28,7 +28,7 @@ export interface PlacedCluster {
 }
 
 function containerFillColor(
-  cluster: RenderCluster
+  cluster: RenderCluster,
 ): [number, number, number, number] {
   // A wholly-frontier bubble (every member fetched-but-unexpanded) reads in the frontier
   // grey, matching the greyed-out frontier dots; otherwise it carries its own type colour.
@@ -46,7 +46,7 @@ function containerFillColor(
 /** Build placed bubbles from a structure frame, deepest-container-first. */
 export function buildPlaced(
   structure: StructureFrame,
-  positions: PositionsFrame
+  positions: PositionsFrame,
 ): PlacedCluster[] {
   const clusterPositions = positions.clusterPositions;
   const placed = structure.clusters.map((cluster, index) => ({
@@ -62,7 +62,7 @@ export function buildPlaced(
 /** Mutate placed positions in place (array identity preserved for updateTrigger). */
 export function updatePlaced(
   placed: PlacedCluster[],
-  positions: PositionsFrame
+  positions: PositionsFrame,
 ): void {
   const clusterPositions = positions.clusterPositions;
   for (const entry of placed) {
@@ -77,7 +77,7 @@ export function clusterBubbleLayer(
   positionTick: number,
   /** Clusters to keep at full colour during a highlight; null when no selection. */
   keepFull: ReadonlySet<ClusterId> | null,
-  highlightTick: number
+  highlightTick: number,
 ): Layer {
   return new ScatterplotLayer<PlacedCluster>({
     id: "clusters",
@@ -170,7 +170,7 @@ export function clusterEntityLayers(config: {
             nodeHighlighted(cluster, entity)
               ? layer.fanOutColor
               : dimColor(layer.fanOutColor),
-            edge * 4
+            edge * 4,
           );
         }
       }
@@ -211,7 +211,7 @@ export function clusterEntityLayers(config: {
           getWidth: 1,
           widthUnits: "pixels",
           pickable: false,
-        })
+        }),
       );
     }
 
@@ -275,7 +275,7 @@ export function clusterEntityLayers(config: {
           opacity: 0.5,
           widthUnits: "pixels",
           pickable: false,
-        })
+        }),
       );
     }
 
@@ -318,7 +318,7 @@ export function clusterEntityLayers(config: {
           getPosition: positionTick,
           getFillColor: positionTick,
         },
-      })
+      }),
     );
   }
 

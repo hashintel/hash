@@ -117,7 +117,9 @@ function newHarness(): Harness {
       expect(recordIdx).toBeGreaterThanOrEqual(0);
       const bytes = new Uint8Array(layout.buffer);
       const offset =
-        FLAT_HEADER_BYTES + recordIdx * FLAT_RECORD_BYTES + FLAT_COLOR_BYTE_OFFSET;
+        FLAT_HEADER_BYTES +
+        recordIdx * FLAT_RECORD_BYTES +
+        FLAT_COLOR_BYTE_OFFSET;
       return [
         bytes[offset]!,
         bytes[offset + 1]!,
@@ -194,13 +196,10 @@ describe("TypeGraphWorker", () => {
     harness.worker.ingest([node("remote", { loaded: true })], [], []);
 
     expect(
-      harness
-        .sideMessages()
-        .filter((msg) => msg.type === "LAYOUT_CREATED").length,
+      harness.sideMessages().filter((msg) => msg.type === "LAYOUT_CREATED")
+        .length,
     ).toBe(layoutCreations);
-    expect(harness.colorOf(typeUrl("remote"))).not.toEqual([
-      ...FRONTIER_COLOR,
-    ]);
+    expect(harness.colorOf(typeUrl("remote"))).not.toEqual([...FRONTIER_COLOR]);
   });
 
   it("answers ego with distinct neighbours across both directions", () => {
@@ -213,7 +212,11 @@ describe("TypeGraphWorker", () => {
         // A parallel link type must not duplicate the neighbour.
         edge("person", "org", "admin-of"),
       ],
-      [linkSchema("member-of"), linkSchema("authored-by"), linkSchema("admin-of")],
+      [
+        linkSchema("member-of"),
+        linkSchema("authored-by"),
+        linkSchema("admin-of"),
+      ],
     );
 
     const ego = harness.worker.ego(harness.idOf(typeUrl("person")));
@@ -236,9 +239,7 @@ describe("TypeGraphWorker", () => {
     const dimmedOrg = harness.colorOf(typeUrl("org"));
     expect(dimmedOrg[3]).toBeLessThan(fullOrg[3]);
     // Highlighted node keeps its full colour.
-    expect(harness.colorOf(typeUrl("person"))[3]).toBeGreaterThan(
-      dimmedOrg[3],
-    );
+    expect(harness.colorOf(typeUrl("person"))[3]).toBeGreaterThan(dimmedOrg[3]);
 
     harness.worker.setHighlight([]);
     expect(harness.colorOf(typeUrl("org"))).toEqual(fullOrg);

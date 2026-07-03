@@ -18,8 +18,8 @@ import type {
   StructureFrame,
 } from "../frames";
 import type { ClusterId } from "../ids";
-import type { IconAtlas } from "./gpu/icon-atlas";
 import type { ClusterReference } from "./frame-connection";
+import type { IconAtlas } from "./gpu/icon-atlas";
 import type { Layer } from "@deck.gl/core";
 import type { Device } from "@luma.gl/core";
 

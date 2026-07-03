@@ -14,7 +14,7 @@ import type { SelectionGeometry } from "../selection";
 export function liveNodeGeometry(
   handle: FrameHandle,
   layoutId: ClusterId,
-  localIndex: number
+  localIndex: number,
 ): SelectionGeometry | null {
   const cluster = handle.getClusters().get(layoutId);
   const structure = handle.getStructure();
@@ -32,7 +32,7 @@ export function liveNodeGeometry(
  */
 export function linkMidpoint(
   positions: PositionsFrame,
-  flatEdgeId: number
+  flatEdgeId: number,
 ): { x: number; y: number } | null {
   const { ids, positions: pos } = positions.beziers;
   for (let index = 0; index < ids.length; index++) {

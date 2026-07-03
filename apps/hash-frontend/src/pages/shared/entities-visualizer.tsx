@@ -44,9 +44,9 @@ import { useSlideStackHandlers } from "./entities-visualizer/use-slide-stack-han
 import { useVisualizerHeights } from "./entities-visualizer/use-visualizer-heights";
 import { useVisualizerView } from "./entities-visualizer/use-visualizer-view";
 import { VisualizerToolbar } from "./entities-visualizer/visualizer-toolbar";
-import { useFrontierExpansionStore } from "./graph-visualizer/components/frontier-expansion-store";
-import { useOwnedFrontierStore } from "./graph-visualizer/components/use-frontier-expansion";
-import { EntityGraphVisualizer } from "./graph-visualizer/entity-graph-visualizer";
+import { useFrontierExpansionStore } from "./graph-visualizer/entity-graph/frontier-expansion-store";
+import { useOwnedFrontierStore } from "./graph-visualizer/entity-graph/use-frontier-expansion";
+import { EntityGraphVisualizer } from "./graph-visualizer/entity-graph/visualizer";
 import { useSlideStackOcclusion } from "./slide-stack";
 
 import type { EntitiesTableRow } from "./entities-visualizer/entities-table-data";

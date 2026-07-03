@@ -18,8 +18,8 @@ import type {
   EndpointArrowSink,
 } from "../../geometry/edge-geometry";
 import type { LayoutSimulation } from "../../layout/force-simulation";
-import type { LinkStore } from "../store/link";
 import type { TypeRegistry } from "../../store/type-registry";
+import type { LinkStore } from "../store/link";
 import type { TypeSetStore } from "../store/type-set";
 import type { ColorCache } from "./colors";
 

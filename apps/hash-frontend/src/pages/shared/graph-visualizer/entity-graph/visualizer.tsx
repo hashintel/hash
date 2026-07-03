@@ -2,9 +2,9 @@
  * Production bridge from Hash entity query results to the graph worker and overlay
  * UI: ingests entities, drives frontier expansion, and renders hover/selection cards.
  *
- * It feeds entities into the worker (`use-entity-ingest.ts`), expands the frontier on
+ * It feeds entities into the worker (`use-ingest.ts`), expands the frontier on
  * demand (`frontier-expansion-store.ts`), resolves display fields
- * (`use-entity-display.ts`), and renders the HTML overlays. The Scene's per-frame
+ * (`use-display.ts`), and renders the HTML overlays. The Scene's per-frame
  * position reports flow through the {@link SceneOverlayStore} into leaf overlay
  * components, so this component itself re-renders only when data (not the camera)
  * changes.
@@ -12,35 +12,32 @@
 import { Box } from "@mui/material";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 
-import { FrontierControls } from "./components/frontier-controls";
-import { FrontierLegend } from "./components/frontier-legend";
-import { GraphGuidanceCard } from "./components/graph-guidance-card";
-import { GraphStatusOverlay } from "./components/graph-status-overlay";
-import {
-  extractPropertySchemas,
-  extractTypeSchemas,
-} from "./components/ingest-mapping";
-import { SceneOverlayStore } from "./components/scene-overlay-store";
+import { FrontierControls } from "../components/frontier-controls";
+import { GraphStatusOverlay } from "../components/graph-status-overlay";
+import { SceneOverlayStore } from "../components/scene-overlay-store";
+import { GraphVisualizer } from "../graph-visualizer";
+import { useGraphGuidanceDismissal } from "../interactivity/use-graph-guidance-dismissal";
+import { useSimulationPause } from "../interactivity/use-simulation-pause";
+import { useLayoutFixtureCaptureHook } from "../layout-fixture-capture";
+import { useGraphWorker } from "../render/use-graph-worker";
+import { FrontierLegend } from "./frontier-legend";
+import { GraphGuidanceCard } from "./guidance-card";
+import { extractPropertySchemas, extractTypeSchemas } from "./ingest-mapping";
 import {
   ClusterHoverOverlay,
   EntityHoverOverlay,
   EntityLabelsOverlay,
   HighwayHoverOverlay,
   SelectionOverlay,
-} from "./components/scene-overlays";
-import { useEntityDisplay } from "./components/use-entity-display";
-import { useEntityIngest } from "./components/use-entity-ingest";
-import { useFrontierExpansion } from "./components/use-frontier-expansion";
-import { GraphVisualizer } from "./graph-visualizer";
-import { useGraphGuidanceDismissal } from "./interactivity/use-graph-guidance-dismissal";
-import { useSimulationPause } from "./interactivity/use-simulation-pause";
-import { useLayoutFixtureCaptureHook } from "./layout-fixture-capture";
-import { useGraphWorker } from "./render/use-graph-worker";
+} from "./overlays";
+import { useEntityDisplay } from "./use-display";
+import { useFrontierExpansion } from "./use-frontier-expansion";
+import { useEntityIngest } from "./use-ingest";
 
-import type { FrontierExpansionStore } from "./components/frontier-expansion-store";
-import type { VizConfig } from "./config";
-import type { EntitySelection, Scene } from "./render/scene";
-import type { WorkerHandle } from "./render/entity-worker-connection";
+import type { VizConfig } from "../config";
+import type { WorkerHandle } from "../render/entity-worker-connection";
+import type { EntitySelection, Scene } from "../render/scene/scene";
+import type { FrontierExpansionStore } from "./frontier-expansion-store";
 import type { EntityId } from "@blockprotocol/type-system";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import type {
@@ -128,19 +125,19 @@ export const EntityGraphVisualizer: React.FC<EntityGraphVisualizerProps> = memo(
         extractTypeSchemas(
           entities ?? [],
           closedMultiEntityTypesRootMap,
-          definitions
+          definitions,
         ),
-      [entities, closedMultiEntityTypesRootMap, definitions]
+      [entities, closedMultiEntityTypesRootMap, definitions],
     );
 
     const propertySchemas = useMemo(
       () => extractPropertySchemas(definitions),
-      [definitions]
+      [definitions],
     );
 
     const rootIdSet = useMemo(
       () => (rootEntityIds ? new Set(rootEntityIds) : undefined),
-      [rootEntityIds]
+      [rootEntityIds],
     );
 
     // The data source's identity drives a worker recreate: a changed `sourceKey` (filter change)
@@ -190,7 +187,7 @@ export const EntityGraphVisualizer: React.FC<EntityGraphVisualizerProps> = memo(
       () => () => {
         overlayStore.reset();
       },
-      [overlayStore, handle]
+      [overlayStore, handle],
     );
 
     const {
@@ -212,7 +209,7 @@ export const EntityGraphVisualizer: React.FC<EntityGraphVisualizerProps> = memo(
       (entityIds: readonly EntityId[]) => {
         void frontierStore.expand(entityIds);
       },
-      [frontierStore]
+      [frontierStore],
     );
 
     const fetchCompleteFrontier = useCallback(() => {
@@ -228,7 +225,7 @@ export const EntityGraphVisualizer: React.FC<EntityGraphVisualizerProps> = memo(
           void frontierStore.expand([selection.nodeId]);
         }
       },
-      [overlayStore, frontierStore, rootIdSet]
+      [overlayStore, frontierStore, rootIdSet],
     );
 
     if (error) {
@@ -289,14 +286,14 @@ export const EntityGraphVisualizer: React.FC<EntityGraphVisualizerProps> = memo(
               description="Existing graph content stays visible while new data loads."
             />
           }
-          onNodeHover={overlayStore.entityHover.setValue}
+          onNodeHover={overlayStore.nodeHover.setValue}
           onHighwayHover={overlayStore.highwayHover.setValue}
           onNodeSelect={handleEntitySelect}
           onClusterHover={overlayStore.handleClusterHover}
           onOpenLinkTable={onOpenLinkTable}
           resolveNodeLabel={resolveEntityLabel}
           resolveNodeIcon={resolveEntityIcon}
-          onNodeLabels={overlayStore.entityLabels.setValue}
+          onNodeLabels={overlayStore.nodeLabels.setValue}
           onSceneReady={onSceneReady}
         />
         <FrontierControls
@@ -305,6 +302,7 @@ export const EntityGraphVisualizer: React.FC<EntityGraphVisualizerProps> = memo(
           fetchedCount={frontier.progress.done}
           totalToFetch={frontier.progress.total}
           error={frontier.error}
+          noun="entity"
           onFetchCompleteFrontier={fetchCompleteFrontier}
         />
         {shouldShowGuidance ? (
@@ -335,5 +333,5 @@ export const EntityGraphVisualizer: React.FC<EntityGraphVisualizerProps> = memo(
         />
       </Box>
     );
-  }
+  },
 );

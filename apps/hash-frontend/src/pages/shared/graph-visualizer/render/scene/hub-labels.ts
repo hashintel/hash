@@ -134,11 +134,11 @@ export class HubLabels<NodeId extends string> {
     const push = (
       layoutId: ClusterId,
       recordIndex: number,
-      worldRadius: number
+      worldRadius: number,
     ): void => {
       const nodeId = this.#dependencies.handle.resolveNodeId(
         layoutId,
-        recordIndex
+        recordIndex,
       );
       if (nodeId === undefined) {
         return;
@@ -224,7 +224,7 @@ export class HubLabels<NodeId extends string> {
       const geometry = liveNodeGeometry(
         this.#dependencies.handle,
         datum.layoutId,
-        datum.recordIndex
+        datum.recordIndex,
       );
       if (geometry === null) {
         continue;
@@ -244,7 +244,7 @@ export class HubLabels<NodeId extends string> {
       const labelX = x + datum.worldRadius * scale + NODE_LABEL_GAP_PX;
       const labelWidth = Math.min(
         NODE_LABEL_MAX_WIDTH_PX,
-        datum.text.length * NODE_LABEL_APPROX_CHAR_WIDTH_PX + 14
+        datum.text.length * NODE_LABEL_APPROX_CHAR_WIDTH_PX + 14,
       );
       const rect = {
         left: labelX - NODE_LABEL_COLLISION_PADDING_PX,
@@ -258,7 +258,7 @@ export class HubLabels<NodeId extends string> {
             rect.left < other.right &&
             rect.right > other.left &&
             rect.top < other.bottom &&
-            rect.bottom > other.top
+            rect.bottom > other.top,
         )
       ) {
         continue;
@@ -273,7 +273,7 @@ export class HubLabels<NodeId extends string> {
         (label) =>
           `${label.nodeId}|${Math.round(label.x)}|${Math.round(label.y)}|${
             label.text
-          }`
+          }`,
       )
       .join(";");
     if (signature === this.#lastEmittedSignature) {

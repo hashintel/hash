@@ -87,7 +87,7 @@ function timerOver(clockTimes: number[]): {
     () => {
       recorded.disjoints += 1;
     },
-    () => clockTimes.shift() ?? 0
+    () => clockTimes.shift() ?? 0,
   );
   return { timer, recorded };
 }

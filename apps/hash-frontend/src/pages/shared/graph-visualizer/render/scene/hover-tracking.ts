@@ -62,7 +62,7 @@ export class HoverTracker<NodeId extends string> {
   setEdge(
     edge: Extract<FlatEdgePick<NodeId>, { kind: "edge" }>,
     x: number,
-    y: number
+    y: number,
   ): void {
     this.clearNode();
     this.clearHighway();

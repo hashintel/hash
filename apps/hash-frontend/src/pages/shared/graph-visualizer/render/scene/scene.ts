@@ -4,7 +4,7 @@
  * in a field (never React state), so settling and pan/zoom never trigger a render.
  * React mounts and disposes Scene; Scene owns all runtime state.
  *
- * Parameterized over node identity (see {@link "./scene/handle"}): the entity
+ * Parameterized over node identity (see {@link "./handle"}): the entity
  * lifecycle mounts a `Scene<EntityId>` on an `EntityWorkerConnection`, the
  * type lifecycle a `Scene<VersionedUrl>` on a `TypeWorkerConnection`.
  */
@@ -15,34 +15,34 @@ import {
   clusterBubbleLayer,
   clusterEntityLayers,
   updatePlaced,
-} from "./clusters";
-import { communityLayer } from "./community";
-import { edgeArrowLayer } from "./edge-arrows";
-import { edgeLayer } from "./edges";
-import { flatDotsLayer } from "./flat-dots";
-import { IconAtlas } from "./gpu/icon-atlas";
-import { LabelCharacterSet } from "./label-character-set";
-import { clusterLabelLayer, edgeLabelLayer, labelTexts } from "./labels";
-import { SceneCamera } from "./scene/camera";
-import { GpuFrameTimer } from "./scene/gpu-frame-timer";
-import { defaultLabelPolicy, HubLabels } from "./scene/hub-labels";
-import { SceneInteractions } from "./scene/interactions";
-import { layerKindOf } from "./scene/layer-kinds";
-import { NodeIcons } from "./scene/node-icons";
-import { RenderMetricsProbe } from "./scene/render-metrics";
-import { ICON_ZOOM_BUCKETS_PER_UNIT } from "./scene/view-state";
-import { selectionOverlayLayers } from "./selection";
-import { leafTypeIconLayers, typeIconLayer } from "./type-icons";
+} from "../clusters";
+import { communityLayer } from "../community";
+import { edgeArrowLayer } from "../edge-arrows";
+import { edgeLayer } from "../edges";
+import { flatDotsLayer } from "../flat-dots";
+import { IconAtlas } from "../gpu/icon-atlas";
+import { LabelCharacterSet } from "../label-character-set";
+import { clusterLabelLayer, edgeLabelLayer, labelTexts } from "../labels";
+import { selectionOverlayLayers } from "../selection";
+import { leafTypeIconLayers, typeIconLayer } from "../type-icons";
+import { SceneCamera } from "./camera";
+import { GpuFrameTimer } from "./gpu-frame-timer";
+import { defaultLabelPolicy, HubLabels } from "./hub-labels";
+import { SceneInteractions } from "./interactions";
+import { layerKindOf } from "./layer-kinds";
+import { NodeIcons } from "./node-icons";
+import { RenderMetricsProbe } from "./render-metrics";
+import { ICON_ZOOM_BUCKETS_PER_UNIT } from "./view-state";
 
-import type { PositionsFrame, StructureFrame } from "../frames";
-import type { PlacedCluster } from "./clusters";
-import type { SceneCallbacks } from "./scene/callbacks";
-import type { ZoomBucketChanges } from "./scene/camera";
-import type { SceneHandle } from "./scene/handle";
-import type { LabelPolicy } from "./scene/hub-labels";
-import type { LayerKind } from "./scene/layer-kinds";
-import type { RenderCaptureReport } from "./scene/render-metrics";
-import type { WorkerEvent } from "./frame-connection";
+import type { PositionsFrame, StructureFrame } from "../../frames";
+import type { PlacedCluster } from "../clusters";
+import type { WorkerEvent } from "../frame-connection";
+import type { SceneCallbacks } from "./callbacks";
+import type { ZoomBucketChanges } from "./camera";
+import type { SceneHandle } from "./handle";
+import type { LabelPolicy } from "./hub-labels";
+import type { LayerKind } from "./layer-kinds";
+import type { RenderCaptureReport } from "./render-metrics";
 import type { EntityId } from "@blockprotocol/type-system";
 import type { Layer } from "@deck.gl/core";
 import type { Device } from "@luma.gl/core";
@@ -58,9 +58,9 @@ export type {
   NodeLabel,
   NodeSelection,
   SceneCallbacks,
-} from "./scene/callbacks";
-export type { LabelPolicy } from "./scene/hub-labels";
-export type { RenderCaptureReport } from "./scene/render-metrics";
+} from "./callbacks";
+export type { LabelPolicy } from "./hub-labels";
+export type { RenderCaptureReport } from "./render-metrics";
 
 export interface SceneOptions {
   /** Which dots get an always-on label; omitted fields keep the entity-hub defaults. */
@@ -144,7 +144,7 @@ export class Scene<NodeId extends string = EntityId> {
   readonly #gpuTimer = new GpuFrameTimer(
     (submittedAtMs, durationMs) =>
       this.#renderMetrics.recordGpuFrame(submittedAtMs, durationMs),
-    () => this.#renderMetrics.recordGpuDisjoint()
+    () => this.#renderMetrics.recordGpuDisjoint(),
   );
 
   /** Layer kinds hidden via {@link setHiddenLayerKinds} (GPU-cost bisection). */
@@ -156,7 +156,7 @@ export class Scene<NodeId extends string = EntityId> {
     container: HTMLDivElement,
     handle: SceneHandle<NodeId>,
     callbacks: SceneCallbacks<NodeId>,
-    options: SceneOptions = {}
+    options: SceneOptions = {},
   ) {
     this.#handle = handle;
     this.#callbacks = callbacks;
@@ -219,7 +219,7 @@ export class Scene<NodeId extends string = EntityId> {
         if (this.#renderMetrics.capturing) {
           this.#gpuTimer.frameBegin(gl);
           this.#renderMetrics.noteGpuAvailability(
-            this.#gpuTimer.available === true
+            this.#gpuTimer.available === true,
           );
         }
       },
@@ -360,7 +360,7 @@ export class Scene<NodeId extends string = EntityId> {
   // (position-only updateTrigger).
   #buildDataLayers(
     structure: StructureFrame,
-    positions: PositionsFrame
+    positions: PositionsFrame,
   ): Layer[] {
     const clusters = this.#handle.getClusters();
     const result: Layer[] = [];
@@ -373,7 +373,7 @@ export class Scene<NodeId extends string = EntityId> {
     const edgeArrows = edgeArrowLayer(positions, this.#camera.zoom);
     if (structure.flatGraph) {
       result.push(
-        ...communityLayer(structure.flatGraph, clusters, positions.settled)
+        ...communityLayer(structure.flatGraph, clusters, positions.settled),
       );
       result.push(...edges);
       result.push(...edgeArrows);
@@ -393,7 +393,7 @@ export class Scene<NodeId extends string = EntityId> {
             positionTick: this.#positionTick,
             zoom: this.#camera.iconBucket / ICON_ZOOM_BUCKETS_PER_UNIT,
             zoomBucket: this.#camera.iconBucket,
-          })
+          }),
         );
       }
     } else {
@@ -403,8 +403,8 @@ export class Scene<NodeId extends string = EntityId> {
           this.#placed,
           this.#positionTick,
           this.#interactions.keepFullClusters(),
-          this.#interactions.highlightTick
-        )
+          this.#interactions.highlightTick,
+        ),
       );
       result.push(...edgeArrows);
       result.push(
@@ -414,7 +414,7 @@ export class Scene<NodeId extends string = EntityId> {
           clusters,
           positionTick: this.#positionTick,
           highlightedEntities: this.#interactions.highlightedNodeKeys,
-        })
+        }),
       );
       // Type icons sit on the leaf dots (rendered after them), one IconLayer per open leaf. Gated on
       // the device the same way as the flat tier (the atlas texture needs it; absent until init).
@@ -431,7 +431,7 @@ export class Scene<NodeId extends string = EntityId> {
             positionTick: this.#positionTick,
             zoom: this.#camera.iconBucket / ICON_ZOOM_BUCKETS_PER_UNIT,
             zoomBucket: this.#camera.iconBucket,
-          })
+          }),
         );
       }
     }
@@ -443,7 +443,7 @@ export class Scene<NodeId extends string = EntityId> {
   #buildOverlay(): Layer[] {
     return selectionOverlayLayers(
       this.#interactions.selectedGeometry(),
-      this.#positionTick
+      this.#positionTick,
     );
   }
 
@@ -543,7 +543,7 @@ export class Scene<NodeId extends string = EntityId> {
       zoom: this.#camera.zoom,
       positionTick: this.#positionTick,
       characterSet: this.#labelCharacters.extend(
-        labelTexts(structure, positions)
+        labelTexts(structure, positions),
       ),
     });
   }

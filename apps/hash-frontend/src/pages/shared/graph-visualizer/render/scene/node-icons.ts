@@ -125,7 +125,7 @@ export class NodeIcons<NodeId extends string> {
     const scanRange = (
       layoutId: ClusterId,
       from: number,
-      to: number
+      to: number,
     ): (string | null)[] => {
       const scanned: (string | null)[] = [];
 
@@ -181,7 +181,7 @@ export class NodeIcons<NodeId extends string> {
         for (const name of scanRange(
           flatGraph.layoutId,
           this.#flatScannedCount,
-          flatGraph.count
+          flatGraph.count,
         )) {
           this.#flatNames.push(name);
         }
@@ -217,7 +217,7 @@ export class NodeIcons<NodeId extends string> {
       } else {
         leafNames.set(
           layer.layoutId,
-          scanRange(layer.layoutId, 0, layer.count)
+          scanRange(layer.layoutId, 0, layer.count),
         );
 
         changed = true;

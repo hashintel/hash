@@ -13,8 +13,8 @@ import { entityIdFromComponents } from "@blockprotocol/type-system";
 import { EntityIndex, TypeSetId } from "../ids";
 import { mulberry32 } from "../math/random";
 import { Column } from "./collections/column";
-import { radiusForDegree } from "./entity-style";
 import { LinkStore } from "./entity-graph/store/link";
+import { radiusForDegree } from "./entity-style";
 
 import type { ForceEdge, ForceNode } from "./layout/force-simulation";
 import type {

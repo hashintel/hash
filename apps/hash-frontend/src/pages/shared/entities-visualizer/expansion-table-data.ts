@@ -11,7 +11,7 @@
 import { generateTableDataFromRows } from "./shared/generate-table-data-from-rows";
 import { mergeTableData } from "./use-entities-visualizer-data/merge-table-data";
 
-import type { ExpansionRecord } from "../graph-visualizer/components/frontier-expansion-store";
+import type { ExpansionRecord } from "../graph-visualizer/entity-graph/frontier-expansion-store";
 import type {
   EntitiesTableData,
   EntitiesTableRow,

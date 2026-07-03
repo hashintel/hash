@@ -39,8 +39,8 @@ import {
   EndpointArrowSink,
 } from "../../geometry/edge-geometry";
 import { createMajorizationLayout } from "../../layout/majorization-layout";
-import { LinkStore } from "../store/link";
 import { TypeRegistry } from "../../store/type-registry";
+import { LinkStore } from "../store/link";
 import { TypeSetStore } from "../store/type-set";
 import { FlatEdgePipeline } from "./edges";
 

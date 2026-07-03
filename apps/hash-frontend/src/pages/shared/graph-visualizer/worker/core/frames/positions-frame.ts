@@ -26,12 +26,12 @@ import type {
 } from "../../../frames";
 import type { Position } from "../../../geometry";
 import type { ClusterId, TypeSetId } from "../../../ids";
+import type { PortConstraintController } from "../../entity-graph/hierarchical/port-constraints";
+import type { LinkStore } from "../../entity-graph/store/link";
 import type { Port, PortCache } from "../../geometry/bubble-ports";
 import type { CutIndex, EdgeAggregator } from "../../geometry/edge-aggregation";
 import type { ClusterTree } from "../../hierarchy/cluster-tree";
-import type { LinkStore } from "../../entity-graph/store/link";
 import type { CommittedView } from "../committed-view";
-import type { PortConstraintController } from "../../entity-graph/hierarchical/port-constraints";
 import type { LayoutRegistry } from "../layout-registry";
 import type { LeafLocalCache } from "./leaf-local-cache";
 
