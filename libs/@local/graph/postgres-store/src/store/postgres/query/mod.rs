@@ -37,9 +37,7 @@ pub use self::{
         PostgresType, SelectExpression, TableName, TableReference, UnaryExpression, UnaryOperator,
         VariadicExpression, VariadicOperator, WhereExpression, WithExpression,
     },
-    statement::{
-        Distinctness, InsertStatementBuilder, SelectStatement, Statement, WindowStatement,
-    },
+    statement::{Distinctness, InsertStatement, SelectStatement, Statement, WindowStatement},
     table::{Alias, Column, ForeignKeyReference, JsonField, ReferenceTable, Relation, Table},
 };
 use crate::store::postgres::crud::QueryRecordDecode;

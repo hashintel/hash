@@ -11,7 +11,7 @@ use hash_graph_store::{
 use hash_graph_temporal_versioning::TimeAxis;
 use postgres_types::ToSql;
 
-use super::expression::{ColumnName, ColumnReference, TableName, TableReference};
+use super::expression::{ColumnName, ColumnReference, PostgresType, TableName, TableReference};
 use crate::store::postgres::query::{Constant, Expression, Transpile, expression::JoinType};
 
 /// The name of a [`Table`] in the Postgres database.
@@ -407,6 +407,17 @@ pub trait DatabaseColumn: Copy {
     fn as_str(self) -> &'static str;
 }
 
+/// A physical column bulk inserts write to.
+///
+/// Unlike [`parameter_type`], which describes the logical type used for filtering, this
+/// declares the Postgres type the column is stored as, used for the `unnest` element casts.
+///
+/// [`parameter_type`]: DatabaseColumn::parameter_type
+pub trait InsertableColumn: DatabaseColumn {
+    /// The Postgres type of the column as stored in the database.
+    fn postgres_type(self) -> PostgresType;
+}
+
 impl<C> Transpile for C
 where
     C: DatabaseColumn + 'static,
@@ -643,6 +654,16 @@ impl DatabaseColumn for DataTypeConversions {
     }
 }
 
+impl InsertableColumn for DataTypeConversions {
+    fn postgres_type(self) -> PostgresType {
+        match self {
+            Self::SourceDataTypeOntologyId => PostgresType::Uuid,
+            Self::TargetDataTypeBaseUrl => PostgresType::Text,
+            Self::Into | Self::From => PostgresType::JsonB,
+        }
+    }
+}
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum DataTypeConversionAggregation {
     SourceDataTypeOntologyId,
@@ -817,6 +838,117 @@ impl DatabaseColumn for EntityIds {
     }
 }
 
+impl InsertableColumn for EntityIds {
+    fn postgres_type(self) -> PostgresType {
+        match self {
+            Self::WebId | Self::EntityUuid => PostgresType::Uuid,
+            Self::Provenance => PostgresType::JsonB,
+            Self::ReadOnly => PostgresType::Boolean,
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum EntityDrafts {
+    WebId,
+    EntityUuid,
+    DraftId,
+}
+
+impl DatabaseColumn for EntityDrafts {
+    fn parameter_type(self) -> ParameterType {
+        match self {
+            Self::WebId | Self::EntityUuid | Self::DraftId => ParameterType::Uuid,
+        }
+    }
+
+    fn nullable(self) -> bool {
+        false
+    }
+
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::WebId => "web_id",
+            Self::EntityUuid => "entity_uuid",
+            Self::DraftId => "draft_id",
+        }
+    }
+}
+
+impl InsertableColumn for EntityDrafts {
+    fn postgres_type(self) -> PostgresType {
+        match self {
+            Self::WebId | Self::EntityUuid | Self::DraftId => PostgresType::Uuid,
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum EntityEdge {
+    SourceWebId,
+    SourceEntityUuid,
+    TargetWebId,
+    TargetEntityUuid,
+    Kind,
+    Direction,
+    Provenance,
+    Confidence,
+}
+
+impl DatabaseColumn for EntityEdge {
+    fn parameter_type(self) -> ParameterType {
+        match self {
+            Self::SourceWebId
+            | Self::SourceEntityUuid
+            | Self::TargetWebId
+            | Self::TargetEntityUuid => ParameterType::Uuid,
+            Self::Kind | Self::Direction => ParameterType::Text,
+            Self::Provenance => ParameterType::Any,
+            Self::Confidence => ParameterType::Decimal,
+        }
+    }
+
+    fn nullable(self) -> bool {
+        match self {
+            Self::SourceWebId
+            | Self::SourceEntityUuid
+            | Self::TargetWebId
+            | Self::TargetEntityUuid
+            | Self::Kind
+            | Self::Direction => false,
+            Self::Provenance | Self::Confidence => true,
+        }
+    }
+
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::SourceWebId => "source_web_id",
+            Self::SourceEntityUuid => "source_entity_uuid",
+            Self::TargetWebId => "target_web_id",
+            Self::TargetEntityUuid => "target_entity_uuid",
+            Self::Kind => "kind",
+            Self::Direction => "direction",
+            Self::Provenance => "provenance",
+            Self::Confidence => "confidence",
+        }
+    }
+}
+
+impl InsertableColumn for EntityEdge {
+    fn postgres_type(self) -> PostgresType {
+        match self {
+            Self::SourceWebId
+            | Self::SourceEntityUuid
+            | Self::TargetWebId
+            | Self::TargetEntityUuid => PostgresType::Uuid,
+            Self::Kind => PostgresType::EntityEdgeKind,
+            Self::Direction => PostgresType::EdgeDirection,
+            Self::Provenance => PostgresType::JsonB,
+            Self::Confidence => PostgresType::DoublePrecision,
+        }
+    }
+}
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum EntityTemporalMetadata {
     WebId,
@@ -864,6 +996,15 @@ impl DatabaseColumn for EntityTemporalMetadata {
             Self::EditionId => "entity_edition_id",
             Self::DecisionTime => "decision_time",
             Self::TransactionTime => "transaction_time",
+        }
+    }
+}
+
+impl InsertableColumn for EntityTemporalMetadata {
+    fn postgres_type(self) -> PostgresType {
+        match self {
+            Self::WebId | Self::EntityUuid | Self::DraftId | Self::EditionId => PostgresType::Uuid,
+            Self::DecisionTime | Self::TransactionTime => PostgresType::TimestampTzRange,
         }
     }
 }
@@ -996,6 +1137,7 @@ impl DatabaseColumn for EntityTypeEmbeddings {
 pub enum EntityEmbeddings {
     WebId,
     EntityUuid,
+    DraftId,
     Embedding,
     Property,
     UpdatedAtTransactionTime,
@@ -1006,7 +1148,7 @@ pub enum EntityEmbeddings {
 impl DatabaseColumn for EntityEmbeddings {
     fn parameter_type(self) -> ParameterType {
         match self {
-            Self::WebId | Self::EntityUuid => ParameterType::Uuid,
+            Self::WebId | Self::EntityUuid | Self::DraftId => ParameterType::Uuid,
             Self::Embedding => ParameterType::Vector(Box::new(ParameterType::Decimal)),
             Self::Property => ParameterType::BaseUrl,
             Self::UpdatedAtTransactionTime | Self::UpdatedAtDecisionTime => {
@@ -1024,7 +1166,7 @@ impl DatabaseColumn for EntityEmbeddings {
             | Self::UpdatedAtTransactionTime
             | Self::UpdatedAtDecisionTime
             | Self::Distance => false,
-            Self::Property => true,
+            Self::DraftId | Self::Property => true,
         }
     }
 
@@ -1032,6 +1174,7 @@ impl DatabaseColumn for EntityEmbeddings {
         match self {
             Self::WebId => "web_id",
             Self::EntityUuid => "entity_uuid",
+            Self::DraftId => "draft_id",
             Self::Embedding => "embedding",
             Self::Property => "property",
             Self::UpdatedAtDecisionTime => "updated_at_decision_time",
@@ -1080,6 +1223,17 @@ impl DatabaseColumn for EntityEditions {
     }
 }
 
+impl InsertableColumn for EntityEditions {
+    fn postgres_type(self) -> PostgresType {
+        match self {
+            Self::EditionId => PostgresType::Uuid,
+            Self::Properties | Self::Provenance | Self::PropertyMetadata => PostgresType::JsonB,
+            Self::Archived => PostgresType::Boolean,
+            Self::Confidence => PostgresType::DoublePrecision,
+        }
+    }
+}
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum EntityIsOfType {
     EntityEditionId,
@@ -1104,6 +1258,15 @@ impl DatabaseColumn for EntityIsOfType {
             Self::EntityEditionId => "entity_edition_id",
             Self::EntityTypeOntologyId => "entity_type_ontology_id",
             Self::InheritanceDepth => "inheritance_depth",
+        }
+    }
+}
+
+impl InsertableColumn for EntityIsOfType {
+    fn postgres_type(self) -> PostgresType {
+        match self {
+            Self::EntityEditionId | Self::EntityTypeOntologyId => PostgresType::Uuid,
+            Self::InheritanceDepth => PostgresType::Int,
         }
     }
 }

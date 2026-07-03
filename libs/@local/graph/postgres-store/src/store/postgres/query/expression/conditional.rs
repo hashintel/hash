@@ -6,7 +6,7 @@ use hash_graph_store::filter::PathToken;
 
 use super::{ColumnName, ColumnReference};
 use crate::store::postgres::query::{
-    SelectStatement, Table, Transpile, WindowStatement,
+    SelectStatement, Transpile, WindowStatement,
     expression::{
         BinaryExpression, BinaryOperator, UnaryExpression, UnaryOperator, VariadicExpression,
         VariadicOperator,
@@ -261,7 +261,6 @@ impl Transpile for Constant {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum PostgresType {
     Array(Box<Self>),
-    Row(Table),
     Text,
     JsonB,
     JsonPath,
@@ -270,7 +269,13 @@ pub enum PostgresType {
     Int,
     BigInt,
     Boolean,
+    Uuid,
+    DoublePrecision,
+    TimestampTz,
     TimestampTzRange,
+    Vector,
+    EntityEdgeKind,
+    EdgeDirection,
 }
 
 impl Transpile for PostgresType {
@@ -280,7 +285,6 @@ impl Transpile for PostgresType {
                 inner.transpile(fmt)?;
                 fmt.write_str("[]")
             }
-            Self::Row(table) => table.transpile(fmt),
             Self::Text => fmt.write_str("text"),
             Self::JsonB => fmt.write_str("jsonb"),
             Self::JsonPath => fmt.write_str("jsonpath"),
@@ -289,7 +293,13 @@ impl Transpile for PostgresType {
             Self::Int => fmt.write_str("int"),
             Self::BigInt => fmt.write_str("bigint"),
             Self::Boolean => fmt.write_str("boolean"),
+            Self::Uuid => fmt.write_str("uuid"),
+            Self::DoublePrecision => fmt.write_str("double precision"),
+            Self::TimestampTz => fmt.write_str("timestamptz"),
             Self::TimestampTzRange => fmt.write_str("tstzrange"),
+            Self::Vector => fmt.write_str("vector"),
+            Self::EntityEdgeKind => fmt.write_str("entity_edge_kind"),
+            Self::EdgeDirection => fmt.write_str("edge_direction"),
         }
     }
 }
@@ -344,17 +354,6 @@ pub enum Expression {
         expr: Box<Self>,
         index: usize,
     },
-    /// Row expansion - expands a composite type into its constituent columns.
-    ///
-    /// Transpiles to `(expression).*` in PostgreSQL, which is used to expand
-    /// composite/row types into individual columns. Commonly used in INSERT
-    /// statements to expand a row parameter into column values.
-    ///
-    /// # Example SQL
-    /// ```sql
-    /// INSERT INTO users VALUES (($1::users).*)
-    /// ```
-    RowExpansion(Box<Self>),
     /// Row constructor - builds a composite row value from individual expressions.
     ///
     /// Transpiles to `ROW(e1, e2, ...)` in PostgreSQL.
@@ -697,10 +696,6 @@ impl Transpile for Expression {
                 fmt.write_str("::")?;
                 cast_type.transpile(fmt)?;
                 fmt.write_char(')')
-            }
-            Self::RowExpansion(expression) => {
-                expression.transpile(fmt)?;
-                fmt.write_str(".*")
             }
             Self::Row(exprs) => {
                 fmt.write_str("ROW(")?;

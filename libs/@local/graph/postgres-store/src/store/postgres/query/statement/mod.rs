@@ -5,7 +5,7 @@ mod window;
 use core::fmt;
 
 pub use self::{
-    insert::InsertStatementBuilder,
+    insert::InsertStatement,
     select::{Distinctness, SelectStatement},
     window::WindowStatement,
 };

@@ -37,10 +37,10 @@ use hash_graph_store::{
         temporal_axes::{QueryTemporalAxes, QueryTemporalAxesUnresolved, VariableAxis},
     },
 };
-use hash_graph_temporal_versioning::{RightBoundedTemporalInterval, Timestamp, TransactionTime};
-use hash_graph_types::{Embedding, ontology::OntologyTypeProvider};
+use hash_graph_temporal_versioning::RightBoundedTemporalInterval;
+use hash_graph_types::ontology::OntologyTypeProvider;
 use hash_status::StatusCode;
-use postgres_types::{Json, ToSql};
+use postgres_types::Json;
 use serde::Deserialize as _;
 use serde_json::Value as JsonValue;
 use tokio_postgres::{GenericClient as _, Row};
@@ -1847,18 +1847,7 @@ where
         _: ActorEntityUuid,
         params: UpdateEntityTypeEmbeddingParams<'_>,
     ) -> Result<(), Report<UpdateError>> {
-        #[derive(Debug, ToSql)]
-        #[postgres(name = "entity_type_embeddings")]
-        pub struct EntityTypeEmbeddingsRow<'a> {
-            ontology_id: OntologyTypeUuid,
-            embedding: Embedding<'a>,
-            updated_at_transaction_time: Timestamp<TransactionTime>,
-        }
-        let entity_type_embeddings = vec![EntityTypeEmbeddingsRow {
-            ontology_id: OntologyTypeUuid::from(DataTypeUuid::from_url(&params.entity_type_id)),
-            embedding: params.embedding,
-            updated_at_transaction_time: params.updated_at_transaction_time,
-        }];
+        let ontology_id = OntologyTypeUuid::from(DataTypeUuid::from_url(&params.entity_type_id));
 
         // TODO: Add permission to allow updating embeddings
         //   see https://linear.app/hash/issue/H-1870
@@ -1873,7 +1862,11 @@ where
                     ),
                     provided_embeddings AS (
                         SELECT embeddings.*, base_url, max_version
-                        FROM UNNEST($1::entity_type_embeddings[]) AS embeddings
+                        FROM (
+                            SELECT $1::uuid AS ontology_id,
+                                   $2::vector AS embedding,
+                                   $3::timestamptz AS updated_at_transaction_time
+                        ) AS embeddings
                         JOIN ontology_ids USING (ontology_id)
                         JOIN base_urls USING (base_url)
                         WHERE version = max_version
@@ -1885,7 +1878,7 @@ where
                         JOIN entity_type_embeddings
                           ON ontology_ids.ontology_id = entity_type_embeddings.ontology_id
                         WHERE version < max_version
-                           OR ($2 AND version = max_version
+                           OR ($4 AND version = max_version
                                   AND entity_type_embeddings.updated_at_transaction_time
                                    <= provided_embeddings.updated_at_transaction_time)
                     ),
@@ -1893,7 +1886,11 @@ where
                         DELETE FROM entity_type_embeddings
                         WHERE (ontology_id) IN (SELECT ontology_id FROM embeddings_to_delete)
                     )
-                INSERT INTO entity_type_embeddings
+                INSERT INTO entity_type_embeddings (
+                    ontology_id,
+                    embedding,
+                    updated_at_transaction_time
+                )
                 SELECT
                     ontology_id,
                     embedding,
@@ -1905,7 +1902,12 @@ where
                 WHERE entity_type_embeddings.updated_at_transaction_time
                       <= EXCLUDED.updated_at_transaction_time;
                 ",
-                &[&entity_type_embeddings, &params.reset],
+                &[
+                    &ontology_id,
+                    &params.embedding,
+                    &params.updated_at_transaction_time,
+                    &params.reset,
+                ],
             )
             .instrument(tracing::info_span!(
                 "INSERT",
