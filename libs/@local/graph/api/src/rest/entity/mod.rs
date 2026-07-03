@@ -12,16 +12,18 @@ use hash_graph_postgres_store::store::error::{EntityDoesNotExist, RaceConditionO
 use hash_graph_store::{
     self,
     entity::{
-        ClosedMultiEntityTypeMap, CountEntitiesParams, CreateEntityParams, DiffEntityParams,
-        DiffEntityResult, EntityPermissions, EntityQueryCursor, EntityQuerySortingRecord,
-        EntityQuerySortingToken, EntityQueryToken, EntityStore, EntityTypesError,
-        EntityValidationReport, EntityValidationType, HasPermissionForEntitiesParams,
-        LinkDataStateError, LinkDataValidationReport, LinkError, LinkTargetError,
-        LinkValidationReport, LinkedEntityError, MetadataValidationReport, PatchEntityParams,
+        ClosedMultiEntityTypeMap, CreateEntityParams, DiffEntityParams, DiffEntityResult,
+        EntityPermissions, EntityQueryCursor, EntityQuerySortingRecord, EntityQuerySortingToken,
+        EntityQueryToken, EntityStore, EntityTypesError, EntityValidationReport,
+        EntityValidationType, HasPermissionForEntitiesParams, LinkDataStateError,
+        LinkDataValidationReport, LinkError, LinkTargetError, LinkValidationReport,
+        LinkedEntityError, MetadataValidationReport, PatchEntityParams,
         PropertyMetadataValidationReport, QueryConversion, QueryEntitiesResponse,
-        UnexpectedEntityType, UpdateEntityEmbeddingsParams, ValidateEntityComponents,
-        ValidateEntityParams,
+        SearchEntitiesFilter, SearchEntitiesParams, SearchEntitiesResponse,
+        SummarizeEntitiesParams, SummarizeEntitiesResponse, UnexpectedEntityType,
+        UpdateEntityEmbeddingsParams, ValidateEntityComponents, ValidateEntityParams,
     },
+    filter::SemanticDistance,
     pool::StorePool,
     query::{NullOrdering, Ordering},
 };
@@ -70,12 +72,14 @@ use type_system::{
 };
 
 use self::query::{
-    QueryEntitySubgraphResponse, count_entities, query_entities, query_entity_subgraph,
+    QueryEntitySubgraphResponse, query_entities, query_entity_subgraph,
     request::{QueryEntitiesRequest, QueryEntitySubgraphRequest},
+    summarize_entities,
 };
 use crate::rest::{
-    AuthenticatedUserHeader, OpenApiQuery, QueryLogger,
+    ApiConfig, AuthenticatedUserHeader, OpenApiQuery, QueryLogger, SearchRequestError,
     json::Json,
+    resolve_limit,
     status::{BoxedResponse, report_to_response},
 };
 
@@ -88,7 +92,8 @@ use crate::rest::{
         has_permission_for_entities,
         self::query::query_entities,
         self::query::query_entity_subgraph,
-        self::query::count_entities,
+        self::query::summarize_entities,
+        search_entities,
         patch_entity,
         update_entity_embeddings,
         diff_entity,
@@ -101,7 +106,8 @@ use crate::rest::{
             PropertyArrayWithMetadata,
             PropertyObjectWithMetadata,
             ValidateEntityParams,
-            CountEntitiesParams,
+            SummarizeEntitiesParams,
+            SummarizeEntitiesResponse,
             EntityValidationType,
             ValidateEntityComponents,
             Embedding,
@@ -116,6 +122,9 @@ use crate::rest::{
 
             QueryEntitiesRequest,
             QueryEntitySubgraphRequest,
+            SearchEntitiesRequest,
+            SearchEntitiesFilter,
+            SearchEntitiesResponse,
             EntityQueryCursor,
             Ordering,
             NullOrdering,
@@ -218,12 +227,13 @@ impl EntityResource {
                 .route("/validate", post(validate_entity::<S>))
                 .route("/embeddings", post(update_entity_embeddings::<S>))
                 .route("/permissions", post(has_permission_for_entities::<S>))
+                .route("/search", post(search_entities::<S>))
                 .nest(
                     "/query",
                     Router::new()
                         .route("/", post(query_entities::<S>))
                         .route("/subgraph", post(query_entity_subgraph::<S>))
-                        .route("/count", post(count_entities::<S>)),
+                        .route("/summarize", post(summarize_entities::<S>)),
                 ),
         )
     }
@@ -390,6 +400,93 @@ where
         .await
         .map_err(report_to_response)?
         .has_permission_for_entities(AuthenticatedActor::from(actor), params)
+        .await
+        .map(Json)
+        .map_err(report_to_response)
+}
+
+/// Request body for the entity embedding search endpoint.
+#[derive(Debug, serde::Deserialize, utoipa::ToSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub(crate) struct SearchEntitiesRequest {
+    pub embedding: Embedding<'static>,
+    pub maximum_semantic_distance: f64,
+    pub limit: Option<usize>,
+    #[serde(default)]
+    pub include_entity_types: bool,
+    #[serde(default)]
+    pub filter: SearchEntitiesFilter,
+}
+
+impl SearchEntitiesRequest {
+    /// Convert this request into [`SearchEntitiesParams`] with the given [`ApiConfig`].
+    ///
+    /// # Errors
+    ///
+    /// - [`InvalidSemanticDistance`] if the maximum semantic distance is invalid.
+    /// - [`LimitExceeded`] if the requested limit exceeds the configured maximum.
+    ///
+    /// [`InvalidSemanticDistance`]: SearchRequestError::InvalidSemanticDistance
+    /// [`LimitExceeded`]: SearchRequestError::LimitExceeded
+    pub(crate) fn into_params(
+        self,
+        config: ApiConfig,
+    ) -> Result<SearchEntitiesParams, Report<SearchRequestError>> {
+        Ok(SearchEntitiesParams {
+            embedding: self.embedding,
+            maximum_semantic_distance: SemanticDistance::try_from(self.maximum_semantic_distance)
+                .change_context(
+                SearchRequestError::InvalidSemanticDistance,
+            )?,
+            limit: resolve_limit(self.limit, config.query_entity_limit)
+                .change_context(SearchRequestError::LimitExceeded)?,
+            include_entity_types: self.include_entity_types,
+            filter: self.filter,
+        })
+    }
+}
+
+#[utoipa::path(
+    post,
+    path = "/entities/search",
+    request_body = SearchEntitiesRequest,
+    tag = "Entity",
+    params(
+        ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
+    ),
+    responses(
+        (
+            status = 200,
+            content_type = "application/json",
+            body = SearchEntitiesResponse,
+            description = "Entities ordered by ascending cosine distance to the query embedding.",
+        ),
+        (status = 400, content_type = "text/plain", description = "Provided request body is invalid"),
+        (status = 500, description = "Store error occurred"),
+    )
+)]
+async fn search_entities<S>(
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    store_pool: Extension<Arc<S>>,
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
+    Extension(api_config): Extension<ApiConfig>,
+    Json(request): Json<SearchEntitiesRequest>,
+) -> Result<Json<SearchEntitiesResponse>, BoxedResponse>
+where
+    S: StorePool + Send + Sync,
+{
+    let store = store_pool
+        .acquire(temporal_client.0)
+        .await
+        .map_err(report_to_response)?;
+
+    let params = request
+        .into_params(api_config)
+        .attach(hash_status::StatusCode::InvalidArgument)
+        .map_err(report_to_response)?;
+
+    store
+        .search_entities(actor_id, params)
         .await
         .map(Json)
         .map_err(report_to_response)

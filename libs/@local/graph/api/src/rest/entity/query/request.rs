@@ -152,10 +152,6 @@ fn generate_sorting_paths(
 }
 
 #[derive(Debug, Clone, serde::Deserialize, utoipa::ToSchema)]
-#[expect(
-    clippy::struct_excessive_bools,
-    reason = "Parameter struct deserialized from JSON"
-)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct QueryEntitiesRequest<'q, 's, 'p> {
     #[serde(borrow)]
@@ -171,19 +167,7 @@ pub struct QueryEntitiesRequest<'q, 's, 'p> {
     #[serde(borrow)]
     pub cursor: Option<EntityQueryCursor<'s>>,
     #[serde(default)]
-    pub include_count: bool,
-    #[serde(default)]
     pub include_entity_types: Option<IncludeEntityTypeOption>,
-    #[serde(default)]
-    pub include_web_ids: bool,
-    #[serde(default)]
-    pub include_created_by_ids: bool,
-    #[serde(default)]
-    pub include_edition_created_by_ids: bool,
-    #[serde(default)]
-    pub include_type_ids: bool,
-    #[serde(default)]
-    pub include_type_titles: bool,
     pub include_permissions: bool,
 }
 
@@ -211,14 +195,8 @@ impl<'q, 'p> QueryEntitiesRequest<'q, '_, 'p> {
             limit,
             conversions: self.conversions,
             include_drafts: self.include_drafts,
-            include_count: self.include_count,
             include_entity_types: self.include_entity_types,
             temporal_axes: self.temporal_axes,
-            include_web_ids: self.include_web_ids,
-            include_created_by_ids: self.include_created_by_ids,
-            include_edition_created_by_ids: self.include_edition_created_by_ids,
-            include_type_ids: self.include_type_ids,
-            include_type_titles: self.include_type_titles,
             include_permissions: self.include_permissions,
         }
     }
@@ -423,13 +401,7 @@ mod tests {
                 limit: None,
                 sorting_paths: None,
                 cursor: None,
-                include_count: false,
                 include_entity_types: None,
-                include_web_ids: false,
-                include_created_by_ids: false,
-                include_edition_created_by_ids: false,
-                include_type_ids: false,
-                include_type_titles: false,
                 ..
             })
         );
@@ -443,12 +415,6 @@ mod tests {
             "includeDrafts": true,
             "includePermissions": true,
             "limit": 50,
-            "includeCount": true,
-            "includeWebIds": true,
-            "includeCreatedByIds": true,
-            "includeEditionCreatedByIds": true,
-            "includeTypeIds": true,
-            "includeTypeTitles": true
         })
         .to_string();
         assert_matches!(
@@ -457,12 +423,6 @@ mod tests {
                 include_drafts: true,
                 include_permissions: true,
                 limit: Some(50),
-                include_count: true,
-                include_web_ids: true,
-                include_created_by_ids: true,
-                include_edition_created_by_ids: true,
-                include_type_ids: true,
-                include_type_titles: true,
                 ..
             })
         );
@@ -606,13 +566,12 @@ mod tests {
     }
 
     #[test]
-    fn deserialize_filter_request_with_limit_and_count() {
+    fn deserialize_filter_request_with_limit() {
         let payload = json!({
             "filter": { "all": [] },
             "temporalAxes": temporal_axes(),
             "includeDrafts": false,
             "limit": 100,
-            "includeCount": true,
             "includePermissions": false
         })
         .to_string();
@@ -620,7 +579,6 @@ mod tests {
             serde_json::from_str::<QueryEntitiesRequest<'_, '_, '_>>(&payload),
             Ok(QueryEntitiesRequest {
                 limit: Some(100),
-                include_count: true,
                 ..
             })
         );
