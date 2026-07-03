@@ -21,6 +21,7 @@ export type {
 export { NumberInput } from "./components/NumberInput/number-input";
 export { Radio } from "./components/Radio/radio";
 export { RadioGroup } from "./components/RadioGroup/radio-group";
+export { RightClickMenu } from "./components/RightClickMenu/right-click-menu";
 export {
   SegmentedControl,
   type SegmentedControlProps,

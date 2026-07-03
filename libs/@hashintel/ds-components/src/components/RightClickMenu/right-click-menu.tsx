@@ -1,65 +1,42 @@
 import { Menu as ArkMenu } from "@ark-ui/react/menu";
 import { Portal } from "@ark-ui/react/portal";
-import { cloneElement, useMemo } from "react";
+import { useMemo } from "react";
 
 import { usePortalContainerRef } from "../../util/portal-container-context";
-import { type Position } from "../Tooltip/tooltip";
+import { collectSelectedIds, type MenuItem } from "../Menu/menu";
 import {
   SelectableList,
-  type Item,
   type ItemOrGroup,
-} from "./SelectableList/selectable-list";
-import {
-  getItemId,
-  isGroup,
-  useLoopSelection,
-} from "./SelectableList/selectable-list-util";
+} from "../Menu/SelectableList/selectable-list";
+import { useLoopSelection } from "../Menu/SelectableList/selectable-list-util";
+import { type Position } from "../Tooltip/tooltip";
 
-export type MenuItem = Item & { selected?: boolean };
-
-export const collectSelectedIds = (
-  entries: Array<ItemOrGroup<MenuItem>>,
-): string[] => {
-  const result: string[] = [];
-  const visit = (entry: ItemOrGroup<MenuItem>) => {
-    if (isGroup(entry)) {
-      for (const child of entry.items) {
-        visit(child);
-      }
-      return;
-    }
-    if (entry.selected) {
-      result.push(getItemId(entry));
-    }
-    if (entry.subItems) {
-      for (const child of entry.subItems) {
-        visit(child);
-      }
-    }
-  };
-  for (const entry of entries) {
-    visit(entry);
-  }
-  return result;
-};
-
-export const Menu = ({
+export const RightClickMenu = ({
   items,
-  trigger,
   position = "bottom-start",
   className,
+  children,
 }: {
   items: Array<ItemOrGroup<MenuItem>>;
-  trigger: React.ReactElement;
+  /**
+   * Preferred placement of the menu relative to the pointer position it opens
+   * at. As with `Menu`, another placement may be chosen for a better fit.
+   */
   position?: Position;
+  /** Applied to the menu content, as with `Menu`. */
   className?: string;
+  /**
+   * The area to attach the context menu to. Right-clicking (or long-pressing
+   * on touch/pen) anywhere within the rendered children opens the menu.
+   */
+  children: React.ReactNode;
 }) => {
   const portalContainerRef = usePortalContainerRef();
   const handleLoopKeyDown = useLoopSelection(items);
   const selected = useMemo(() => collectSelectedIds(items), [items]);
 
   if (items.length === 0) {
-    return trigger;
+    return children;
   }
 
   return (
@@ -72,15 +49,9 @@ export const Menu = ({
       <ArkMenu.Context>
         {(menu) => (
           <>
-            <ArkMenu.Trigger asChild>
-              {cloneElement(
-                trigger as React.ReactElement<{
-                  pressed?: boolean;
-                  "aria-pressed"?: boolean;
-                }>,
-                { pressed: menu.open, "aria-pressed": false },
-              )}
-            </ArkMenu.Trigger>
+            <ArkMenu.ContextTrigger asChild>
+              <div style={{ display: "contents" }}>{children}</div>
+            </ArkMenu.ContextTrigger>
             <Portal container={portalContainerRef}>
               <ArkMenu.Positioner
                 onKeyDownCapture={(event) => handleLoopKeyDown(event, menu)}
