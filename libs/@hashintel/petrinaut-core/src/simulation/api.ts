@@ -31,15 +31,25 @@ export interface SimulationTransport {
 export type WorkerFactory = WorkerFactoryLike;
 
 /**
+ * One token attribute value in an initial marking. In addition to runtime
+ * token values, `uuid` attributes may be supplied as canonical UUID strings
+ * (the JSON-serializable at-rest form) — the simulator coerces both.
+ */
+export type InitialTokenAttributeValue = number | boolean | bigint | string;
+
+/**
  * Initial token distribution for starting a simulation.
  *
- * This is intentionally JSON-serializable. The simulator is responsible for
+ * This is intentionally JSON-serializable (supply `uuid` attributes as
+ * strings, not bigints, when serializing). The simulator is responsible for
  * converting it into its internal packed frame representation.
  *
  * - Uncolored places use a token count.
  * - Colored places use one record per token, keyed by color element name.
  */
-export type InitialPlaceMarking = number | TokenRecord[];
+export type InitialPlaceMarking =
+  | number
+  | Record<string, InitialTokenAttributeValue>[];
 export type InitialMarking = Record<string, InitialPlaceMarking>;
 
 /**

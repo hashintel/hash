@@ -6,7 +6,13 @@ import { idSchema } from "./entity-schemas";
 import type { Scenario } from "../types/sdcpn";
 
 const SNAKE_CASE_RE = /^[a-z][a-z0-9_]*$/;
-const tokenAttributeValueSchema = z.union([z.number(), z.boolean()]);
+// Strings supply `uuid` element values (canonical UUID strings pass through;
+// any other text converts deterministically via UUIDv5 at compile time).
+const tokenAttributeValueSchema = z.union([
+  z.number(),
+  z.boolean(),
+  z.string(),
+]);
 
 export const scenarioParameterSchema = z
   .strictObject({

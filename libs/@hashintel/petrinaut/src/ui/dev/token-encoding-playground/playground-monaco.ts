@@ -144,7 +144,9 @@ export function generateTokenDefs(
     .filter((dimension) => IDENTIFIER_RE.test(dimension.name))
     .map(
       (dimension) =>
-        `  ${dimension.name}: ${dimension.type === "boolean" ? "boolean" : "number"};`,
+        // uuid accepts strings too — the encoder coerces via `toUuid`, so the
+        // playground types match what it actually accepts.
+        `  ${dimension.name}: ${dimension.type === "boolean" ? "boolean" : dimension.type === "uuid" ? "bigint | string" : "number"};`,
     );
 
   return [

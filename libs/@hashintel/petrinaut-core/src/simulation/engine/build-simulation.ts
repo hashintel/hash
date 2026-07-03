@@ -183,7 +183,7 @@ function createDifferentialEquationFn({
       );
     }
 
-    const { f64, u8 } = createTokenRegionViews(
+    const views = createTokenRegionViews(
       placeBytes.buffer,
       placeBytes.byteOffset,
       placeBytes.byteLength,
@@ -192,7 +192,7 @@ function createDifferentialEquationFn({
     const inputTokens: TokenRecord[] = [];
     for (let tokenIndex = 0; tokenIndex < numberOfTokens; tokenIndex++) {
       inputTokens.push(
-        readTokenRecord(tokenLayout, f64, u8, tokenIndex * strideBytes),
+        readTokenRecord(tokenLayout, views, tokenIndex * strideBytes),
       );
     }
 

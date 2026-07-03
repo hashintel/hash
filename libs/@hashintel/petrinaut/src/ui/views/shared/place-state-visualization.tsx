@@ -1,6 +1,7 @@
 import { use, useMemo } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
+import { coerceTokenRecord } from "@hashintel/petrinaut-core";
 
 import { ExecutionFrameSourceContext } from "../../../react/execution-frame/context";
 import {
@@ -74,7 +75,17 @@ export const PlaceStateVisualization: React.FC<
   } else {
     const marking = initialMarking[place.id];
     if (Array.isArray(marking) && marking.length > 0) {
-      tokens.push(...marking);
+      // Marking records may hold uuid values as at-rest strings; coerce them
+      // to runtime token values (uuid → bigint) as the engine would.
+      tokens.push(
+        ...marking.map((token) =>
+          coerceTokenRecord(
+            token,
+            placeType.elements,
+            `Initial marking for place ${place.name}`,
+          ),
+        ),
+      );
     }
 
     parameters = mergeParameterValues(parameterValues, defaultParameterValues);

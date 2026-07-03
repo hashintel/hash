@@ -43,8 +43,7 @@ function createSimulationFrameReader(
         tokens.push(
           readTokenRecord(
             tokenLayout,
-            frameView.tokenF64,
-            frameView.tokenBytes,
+            frameView.tokenViews,
             byteOffset + tokenIndex * strideBytes,
           ),
         );

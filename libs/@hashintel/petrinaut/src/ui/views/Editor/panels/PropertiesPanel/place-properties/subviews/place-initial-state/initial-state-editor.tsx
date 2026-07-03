@@ -1,6 +1,6 @@
 import { use, useMemo } from "react";
 
-import { defaultTokenAttributeValue } from "@hashintel/petrinaut-core";
+import { defaultTokenAttributeValue, toUuid } from "@hashintel/petrinaut-core";
 
 import { PlaybackContext } from "../../../../../../../../react/playback/context";
 import { SimulationContext } from "../../../../../../../../react/simulation/context";
@@ -14,6 +14,23 @@ import type { Color, Place, TokenRecord } from "@hashintel/petrinaut-core";
 
 const getDefaultValue = (column: SpreadsheetColumn): SpreadsheetCellValue =>
   column.type ? defaultTokenAttributeValue(column.type) : 0;
+
+/**
+ * Converts one stored marking value to a spreadsheet cell value. uuid columns
+ * may hold at-rest strings — parse them to bigints for the spreadsheet.
+ */
+const toCellValue = (
+  column: SpreadsheetColumn,
+  raw: number | boolean | bigint | string | undefined,
+): SpreadsheetCellValue => {
+  if (raw === undefined) {
+    return getDefaultValue(column);
+  }
+  if (column.type === "uuid") {
+    return toUuid(raw);
+  }
+  return typeof raw === "string" ? Number.parseFloat(raw) || 0 : raw;
+};
 
 /**
  * InitialStateEditor - A component for editing initial tokens in a place
@@ -65,7 +82,7 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
     }
 
     return marking.map((token) =>
-      columns.map((column) => token[column.name] ?? getDefaultValue(column)),
+      columns.map((column) => toCellValue(column, token[column.name])),
     );
   }, [
     hasSimulation,

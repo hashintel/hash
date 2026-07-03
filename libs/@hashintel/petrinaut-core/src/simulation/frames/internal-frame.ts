@@ -1,5 +1,7 @@
 import {
   computeTokenSlotLayout,
+  createTokenRegionViews,
+  type TokenRegionViews,
   type TokenSlotLayout,
 } from "../engine/token-layout";
 
@@ -62,8 +64,8 @@ type EngineFrameHeader = {
 export type EngineFrameView = {
   /** The whole token byte region. */
   tokenBytes: Uint8Array;
-  /** f64 view over the whole token region (region offset/length are 8-aligned). */
-  tokenF64: Float64Array;
+  /** Shared f64/u64/u8 views over the whole token region (region offset/length are 8-aligned). */
+  tokenViews: TokenRegionViews;
   getPlaceState(placeId: ID): EngineFramePlaceState | null;
   getPlaceEntries(): [ID, EngineFramePlaceState][];
   getTransitionState(transitionId: ID): SimulationTransitionState | null;
@@ -417,16 +419,12 @@ export function readEngineFrame(
     header.transitionFiredFlagsOffset,
     header.transitionCount,
   );
-  const tokenBytes = new Uint8Array(
+  const tokenViews = createTokenRegionViews(
     frame,
     header.tokenValuesOffset,
     header.tokenByteLength,
   );
-  const tokenF64 = new Float64Array(
-    frame,
-    header.tokenValuesOffset,
-    header.tokenByteLength / 8,
-  );
+  const tokenBytes = tokenViews.u8;
 
   const getPlaceState = (placeId: ID): EngineFramePlaceState | null => {
     const index = layout.placeIndexById.get(placeId);
@@ -467,7 +465,7 @@ export function readEngineFrame(
 
   return {
     tokenBytes,
-    tokenF64,
+    tokenViews,
     getPlaceState,
     getPlaceEntries,
     getTransitionState,

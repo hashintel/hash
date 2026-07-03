@@ -345,8 +345,16 @@ export {
   readTokenRecord,
   type PhysicalKind,
   type TokenLayoutField,
+  type TokenRegionViews,
   type TokenSlotLayout,
 } from "./simulation/engine/token-layout";
+export {
+  formatUuid,
+  NIL_UUID,
+  parseUuid,
+  PETRINAUT_UUID_NAMESPACE,
+  toUuid,
+} from "./simulation/engine/uuid";
 export { compileUserCode } from "./simulation/authoring/user-code/compile-user-code";
 export {
   displayNameSchema,
