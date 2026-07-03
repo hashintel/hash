@@ -10,17 +10,26 @@ By default, places hold **untyped tokens** -- they only track a count. Tokens ar
 
 To give tokens structure, assign a **type** to a place. Each token then carries named dimensions (e.g. `x`, `y`, `velocity`), enabling dynamics, visualization, and data-dependent transition logic.
 
+Each dimension has one of three value types, chosen with the dropdown next to the dimension's name:
+
+- **Real** -- a continuous number. This is the only kind of dimension that differential equations (dynamics) can update.
+- **Integer** -- a whole number. Values are rounded when stored, and are exact up to ±2^53 (about 9 quadrillion); beyond that they lose precision.
+- **Boolean** -- `true` or `false`.
+
+Integer and Boolean dimensions are **discrete**: their values only change when a transition fires (via a transition kernel), never through dynamics.
+
 **To create a type:**
 
 1. Open the **Token Types** tab in the left sidebar.
 2. Click **+** to add a new type.
 3. Give it a **name** and **display colour**.
+4. Add dimensions, giving each a name and a value type.
 
 <img width="1707" height="1058" alt="token-type" src="https://github.com/user-attachments/assets/eb88fbc9-828e-4f12-842a-968fa86b2038" />
 
 **To assign a type to a place:** select the place, then choose the type from the **Accepted token type** dropdown in the properties panel.
 
-Once a place has a type, its tokens are accessible in code as structured objects. For example, a type with dimensions `x` and `y` means each token is `{ x: number, y: number }`.
+Once a place has a type, its tokens are accessible in code as structured objects, with each dimension typed accordingly. For example, a type with Real dimensions `x` and `y` and a Boolean dimension `active` means each token is `{ x: number, y: number, active: boolean }`.
 
 ## Global parameters
 
@@ -58,7 +67,7 @@ export default Dynamics((tokens, parameters) => {
 });
 ```
 
-The function receives the current token values and global parameters. It must return an array of derivative objects -- one per token, with the same dimension names.
+The function receives the current token values and global parameters. It must return an array of derivative objects -- one per token, with entries for the type's **Real** dimensions only. Integer and Boolean dimensions are discrete: dynamics leave them unchanged (they can be read from the input tokens, but returning a derivative for them is a type error). A type with no Real dimensions has no dynamics to run.
 
 <img width="1707" height="1055" alt="diff-equations" src="https://github.com/user-attachments/assets/bb18dc15-e43c-4233-974a-70ff9a0c1978" />
 
@@ -108,7 +117,7 @@ export default TransitionKernel((tokensByPlace, parameters) => {
 });
 ```
 
-`tokensByPlace` is keyed by **place name**. Each value is a tuple of token objects -- one entry per token consumed from that arc, sized to the arc weight. The return value is keyed by **output place name**, each containing an array of token objects to produce sized to the output arc weight.
+`tokensByPlace` is keyed by **place name**. Each value is a tuple of token objects -- one entry per token consumed from that arc, sized to the arc weight. The return value is keyed by **output place name**, each containing an array of token objects to produce sized to the output arc weight. Output values must match each dimension's type: numbers for Real and Integer dimensions (Integer values are rounded), `true`/`false` for Boolean dimensions. Transition kernels are the only place discrete (Integer/Boolean) dimensions get new values.
 
 Two important asymmetries:
 

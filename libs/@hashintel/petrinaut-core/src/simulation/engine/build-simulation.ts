@@ -549,6 +549,7 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
       const userFn = compileUserCode<[TokenRecord[], ParameterValues]>(
         code,
         "Dynamics",
+        { enableDistribution: extensions.stochasticity },
       ) as UserDifferentialEquationFn;
       differentialEquationFns.set(
         place.id,

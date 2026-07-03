@@ -317,10 +317,24 @@ export function compileScenario(
           continue;
         }
 
-        initialState[placeId] = tokenRecordsFromRows(
-          value,
-          color?.elements ?? [],
-        );
+        try {
+          initialState[placeId] = tokenRecordsFromRows(
+            value,
+            color?.elements ?? [],
+          );
+        } catch (error) {
+          // Row coercion throws on invalid typed values (e.g. a non-finite
+          // number); report it like every other compilation failure instead
+          // of letting compileScenario throw.
+          errors.push({
+            source: "initialState",
+            itemId: placeId,
+            message:
+              error instanceof Error
+                ? error.message
+                : `Invalid token rows for place "${placeId}".`,
+          });
+        }
         continue;
       }
 
