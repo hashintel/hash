@@ -13,6 +13,7 @@ use hash_graph_store::{
     entity_type::EntityTypeResolveDefinitions,
     pool::StorePool,
 };
+use hash_status::StatusCode;
 use hash_temporal_client::TemporalClient;
 use serde::Deserialize as _;
 use serde_json::value::RawValue as RawJsonValue;
@@ -71,6 +72,7 @@ where
 
     let request = QueryEntitiesRequest::deserialize(&*request)
         .map_err(Report::from)
+        .attach(StatusCode::InvalidArgument)
         .map_err(report_to_response)?;
 
     let params = request
