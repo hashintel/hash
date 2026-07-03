@@ -19,7 +19,7 @@ import { ClusterLabel, ClusterNode } from "./cluster-tree";
 
 import type { VizConfig } from "../../config";
 import type { EntityIndex } from "../../ids";
-import type { LinkStore } from "../store/link";
+import type { LinkStore } from "../entity-graph/store/link";
 
 /**
  * Synchronous label-propagation community detection on a single connected

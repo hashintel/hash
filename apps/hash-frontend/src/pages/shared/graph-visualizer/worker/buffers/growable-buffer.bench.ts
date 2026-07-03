@@ -6,7 +6,7 @@
  * re-allocate + full memcpy because `FlatGraphBuffer` is non-resizable.
  *
  * The three flat-buffer cases quantify that growth: `presized` is the floor,
- * `geometric` mirrors production (`flatCapacityFor` in core/graph-worker.ts
+ * `geometric` mirrors production (`flatCapacityFor` in entity-graph/worker.ts
  * over-allocates 1.5x so growth is amortized), and `fixed-step` is the naive
  * grow-to-exact-count path production deliberately avoids -- the gap between the
  * last two is the payoff of the 1.5x slack, and the reason a test should lock it in.
@@ -42,7 +42,7 @@ function writeAllRecords(buffer: FlatGraphBuffer, count: number): void {
   buffer.commit();
 }
 
-/** Mirrors `flatCapacityFor` in core/graph-worker.ts (1.5x geometric slack). */
+/** Mirrors `flatCapacityFor` in entity-graph/worker.ts (1.5x geometric slack). */
 function flatCapacityFor(count: number): number {
   return Math.max(count + 64, Math.ceil(count * 1.5));
 }

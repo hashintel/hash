@@ -8,7 +8,7 @@
 import { dimColor } from "../../../dim-color";
 import { entityIndexFromNodeId } from "../../../ids";
 import { entityStyle } from "../../entity-style";
-import { edgeColorForTypeGroup } from "./entity-colors";
+import { edgeColorForTypeGroup } from "./colors";
 
 import type { Color } from "../../../frames";
 import type { EntityIndex, LinkId } from "../../../ids";
@@ -17,10 +17,10 @@ import type {
   EndpointArrowSink,
 } from "../../geometry/edge-geometry";
 import type { LayoutSimulation } from "../../layout/force-simulation";
-import type { LinkStore } from "../../store/link";
+import type { LinkStore } from "../store/link";
 import type { TypeRegistry } from "../../store/type-registry";
-import type { TypeSetStore } from "../../store/type-set";
-import type { ColorCache } from "./entity-colors";
+import type { TypeSetStore } from "../store/type-set";
+import type { ColorCache } from "./colors";
 
 /**
  * Degree-scaled link fading: a link incident to a high-degree hub draws fainter, so a

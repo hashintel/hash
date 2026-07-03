@@ -4,7 +4,7 @@
  * edges, and emitted frames.
  *
  * Owns the LOD state and the pinned leaf (the inputs that shape the cut).
- * The regime decision itself (flat vs hierarchical) stays with GraphWorker;
+ * The regime decision itself (flat vs hierarchical) stays with EntityGraphWorker;
  * this tier is only entered when the mode is `hierarchical-lod`.
  */
 import { ClusterId } from "../../../ids";
@@ -20,14 +20,14 @@ import type {
   IngestDelta,
 } from "../../hierarchy/cluster-tree";
 import type { LodItem, ViewportState } from "../../hierarchy/lod";
-import type { LinkStore } from "../../store/link";
+import type { LinkStore } from "../store/link";
 import type { TypeRegistry } from "../../store/type-registry";
-import type { TypeSetStore } from "../../store/type-set";
-import type { CommittedView, RenderedEntry } from "../committed-view";
-import type { PositionsFrameEmitter } from "../frames/positions-frame";
-import type { StructureFrameEmitter } from "../frames/structure-frame";
+import type { TypeSetStore } from "../store/type-set";
+import type { CommittedView, RenderedEntry } from "../../core/committed-view";
+import type { PositionsFrameEmitter } from "../../core/frames/positions-frame";
+import type { StructureFrameEmitter } from "../../core/frames/structure-frame";
 import type { EmbeddingCoordinator } from "./embedding-coordinator";
-import type { HierarchicalLayoutManager } from "./hierarchical-layouts";
+import type { HierarchicalLayoutManager } from "./layouts";
 import type { PortConstraintController } from "./port-constraints";
 import type { SettlePolisher } from "./settle-polish";
 
@@ -51,7 +51,7 @@ export interface HierarchicalTierDependencies {
   readonly hierarchicalModeActive: () => boolean;
   readonly viewport: () => ViewportState | undefined;
   readonly rootFlipPending: () => boolean;
-  /** Route a cut-triggered commit through GraphWorker.commitStructure (regime dispatch). */
+  /** Route a cut-triggered commit through EntityGraphWorker.commitStructure (regime dispatch). */
   readonly requestCommit: (opts: { readonly cut: readonly LodItem[] }) => void;
 }
 

@@ -14,11 +14,11 @@ import { describe, expect, it } from "vitest";
 
 import { defaultVizConfig } from "../../config";
 import { ClusterId, EntityIndex, TypeSetId } from "../../ids";
-import { LinkStore } from "../store/link";
+import { LinkStore } from "../entity-graph/store/link";
 import { TypeRegistry } from "../store/type-registry";
 import { EdgeAggregator } from "./edge-aggregation";
 
-import type { TypeSetGroup, TypeSetStore } from "../store/type-set";
+import type { TypeSetGroup, TypeSetStore } from "../entity-graph/store/type-set";
 import type { CutView } from "./edge-aggregation";
 import type { EntityId } from "@blockprotocol/type-system";
 

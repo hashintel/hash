@@ -80,8 +80,8 @@ export interface OptimizeTopLevelOptions {
 /**
  * Tuning for the top-level (hierarchy overview) polish: this module's
  * annealing search plus the gates its callers apply
- * ({@link "../core/hierarchical/settle-polish"} skips the optimiser above
- * `maxNodes`; {@link "../core/hierarchical/viewport-anchor"} floors its anchor
+ * ({@link "../entity-graph/hierarchical/settle-polish"} skips the optimiser above
+ * `maxNodes`; {@link "../entity-graph/hierarchical/viewport-anchor"} floors its anchor
  * weight at `viewportAnchorFloor`).
  */
 export interface TopLevelPolishConfig {
@@ -171,7 +171,7 @@ export interface TopLevelPolishConfig {
   /**
    * Anchor weight kept by off-screen bubbles during viewport-weighted refines:
    * they reflow but don't teleport while the user isn't looking (see
-   * {@link "../core/hierarchical/viewport-anchor"}).
+   * {@link "../entity-graph/hierarchical/viewport-anchor"}).
    *
    * @defaultValue 0.05.
    */

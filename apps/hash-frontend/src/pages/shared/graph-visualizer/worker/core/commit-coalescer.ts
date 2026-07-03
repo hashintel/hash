@@ -30,7 +30,7 @@
 import type { TypeSetKey } from "../../ids";
 import type { IngestDelta } from "../hierarchy/cluster-tree";
 
-/** Options forwarded to {@link GraphWorker.commitStructure} on flush. */
+/** Options forwarded to {@link EntityGraphWorker.commitStructure} on flush. */
 export interface CoalescedCommit {
   readonly deltas: readonly IngestDelta[];
   readonly rebuildTree: boolean;

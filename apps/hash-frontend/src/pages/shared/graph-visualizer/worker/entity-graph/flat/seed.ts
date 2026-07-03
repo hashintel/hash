@@ -11,7 +11,7 @@ import { radiusForDegree } from "../../entity-style";
 import type { EntityIndex } from "../../../ids";
 import type { PositionScratch } from "../../collections/position-scratch";
 import type { ForceNode } from "../../layout/force-simulation";
-import type { LinkStore } from "../../store/link";
+import type { LinkStore } from "../store/link";
 
 /** Seed offset (world units) for a streamed node placed beside a placed neighbour. */
 export const FLAT_SEED_NEIGHBOUR_OFFSET = 24;

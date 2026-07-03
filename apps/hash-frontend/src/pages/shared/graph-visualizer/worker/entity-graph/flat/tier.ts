@@ -9,15 +9,16 @@
  * {@link FLAT_LAYOUT_ID} so the scheduler ticks it like any other.
  */
 import { dimColor } from "../../../dim-color";
-import { ClusterId, entityIndexFromNodeId } from "../../../ids";
+import { entityIndexFromNodeId } from "../../../ids";
 import { FlatGraphBuffer } from "../../buffers/position-buffer";
 import { PositionScratch } from "../../collections/position-scratch";
+import { FLAT_LAYOUT_ID } from "../../core/layout-registry";
 import { createFlatLayout } from "../../layout/flat-layout";
 import { createMajorizationLayout } from "../../layout/majorization-layout";
 import { buildEntityEdges } from "../entity-edges";
-import { colorForEntity } from "./entity-colors";
-import { FlatEdgePipeline } from "./flat-edges";
-import { seedFlatNodes } from "./flat-seed";
+import { colorForEntity } from "./colors";
+import { FlatEdgePipeline } from "./edges";
+import { seedFlatNodes } from "./seed";
 
 import type { VizConfig } from "../../../config";
 import type { RenderFlatGraph } from "../../../frames";
@@ -32,16 +33,13 @@ import type {
   CapturedLayoutFixture,
   LayoutSideChannelMessage,
 } from "../../protocol";
-import type { EntityStore } from "../../store/entity";
-import type { LinkStore } from "../../store/link";
+import type { EntityStore } from "../store/entity";
+import type { LinkStore } from "../store/link";
 import type { TypeRegistry } from "../../store/type-registry";
-import type { TypeSetStore } from "../../store/type-set";
-import type { CommittedView } from "../committed-view";
-import type { LayoutRegistry } from "../layout-registry";
-import type { ColorCache } from "./entity-colors";
-
-/** The single layout id for the whole-graph flat-tier (individual-entity) layout. */
-export const FLAT_LAYOUT_ID = ClusterId("flat:all");
+import type { TypeSetStore } from "../store/type-set";
+import type { CommittedView } from "../../core/committed-view";
+import type { LayoutRegistry } from "../../core/layout-registry";
+import type { ColorCache } from "./colors";
 
 /** Over-allocate capacity so streamed nodes can append without reallocation. */
 function flatCapacityFor(count: number): number {

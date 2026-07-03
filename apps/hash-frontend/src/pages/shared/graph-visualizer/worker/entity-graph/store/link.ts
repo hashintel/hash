@@ -3,10 +3,10 @@
  * index, plus an adjacency index and a pending-endpoint queue for
  * frontier resolution.
  */
-import { LinkId } from "../../ids";
-import { Column } from "../collections/column";
+import { LinkId } from "../../../ids";
+import { Column } from "../../collections/column";
 
-import type { EntityIndex, TypeSetId } from "../../ids";
+import type { EntityIndex, TypeSetId } from "../../../ids";
 import type { EntityId } from "@blockprotocol/type-system";
 
 // Initial link column capacity (1024); columns grow implicitly on push.

@@ -1,7 +1,7 @@
 import type { EntityIndex } from "../../ids";
 import type { CutIndex } from "../geometry/edge-aggregation";
 import type { EgoTarget } from "../protocol";
-import type { LinkStore } from "../store/link";
+import type { LinkStore } from "./store/link";
 
 /**
  * The ego of a selected node: for each neighbor, the representative currently

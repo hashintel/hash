@@ -6,8 +6,8 @@ import { ClusterId, EntityIndex, TypeId } from "../../ids";
 import { Column } from "../collections/column";
 import { ReadonlySortedSet } from "../collections/readonly-sorted-set";
 import { ClusterNode } from "../hierarchy/cluster-tree";
-import { EntityStore } from "../store/entity";
-import { TypeSetStore } from "../store/type-set";
+import { EntityStore } from "./store/entity";
+import { TypeSetStore } from "./store/type-set";
 import {
   entityIdsForCluster,
   entityIndicesForCluster,

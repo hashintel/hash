@@ -21,29 +21,29 @@ import { configureEntityStyle } from "../entity-style";
 import { PortCache } from "../geometry/bubble-ports";
 import { EdgeAggregator } from "../geometry/edge-aggregation";
 import { syncWorldPositions } from "../geometry/world-positions";
+import { CommittedView } from "../core/committed-view";
+import { LeafLocalCache } from "../core/frames/leaf-local-cache";
+import { PositionsFrameEmitter } from "../core/frames/positions-frame";
+import { StructureFrameEmitter } from "../core/frames/structure-frame";
+import { LayoutRegistry } from "../core/layout-registry";
+import { JobScheduler, TickScheduler } from "../core/schedulers";
+import { TickLoop } from "../core/tick-loop";
 import { ClusterTree } from "../hierarchy/cluster-tree";
-import { EntityStore } from "../store/entity";
-import { LinkStore } from "../store/link";
-import { PropertyStore } from "../store/property";
 import { TypeRegistry } from "../store/type-registry";
-import { TypeSetStore } from "../store/type-set";
-import { CommittedView } from "./committed-view";
 import { egoTargets } from "./ego";
-import { FlatTierController } from "./flat/flat-tier";
-import { LeafLocalCache } from "./frames/leaf-local-cache";
-import { PositionsFrameEmitter } from "./frames/positions-frame";
-import { StructureFrameEmitter } from "./frames/structure-frame";
+import { FlatTierController } from "./flat/tier";
 import { EmbeddingCoordinator } from "./hierarchical/embedding-coordinator";
-import { HierarchicalLayoutManager } from "./hierarchical/hierarchical-layouts";
-import { HierarchicalTier } from "./hierarchical/hierarchical-tier";
+import { HierarchicalLayoutManager } from "./hierarchical/layouts";
 import { writeLeafColors } from "./hierarchical/leaf-colors";
 import { PortConstraintController } from "./hierarchical/port-constraints";
 import { SettlePolisher } from "./hierarchical/settle-polish";
+import { HierarchicalTier } from "./hierarchical/tier";
 import { IngestController } from "./ingest";
-import { LayoutRegistry } from "./layout-registry";
 import { nextVizMode } from "./mode-policy";
-import { JobScheduler, TickScheduler } from "./schedulers";
-import { TickLoop } from "./tick-loop";
+import { EntityStore } from "./store/entity";
+import { LinkStore } from "./store/link";
+import { PropertyStore } from "./store/property";
+import { TypeSetStore } from "./store/type-set";
 
 import type { VizConfig } from "../../config";
 import type { PositionsFrame, StructureFrame } from "../../frames";
@@ -60,9 +60,9 @@ import type {
   PropertySchemaEntry,
   TypeSchemaEntry,
 } from "../protocol";
-import type { TypeSetGroup } from "../store/type-set";
+import type { TypeSetGroup } from "./store/type-set";
 
-export class GraphWorker {
+export class EntityGraphWorker {
   readonly config: VizConfig;
 
   readonly #types: TypeRegistry = new TypeRegistry();

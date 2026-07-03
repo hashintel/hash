@@ -14,7 +14,7 @@ import { EntityIndex, TypeSetId } from "../ids";
 import { mulberry32 } from "../math/random";
 import { Column } from "./collections/column";
 import { radiusForDegree } from "./entity-style";
-import { LinkStore } from "./store/link";
+import { LinkStore } from "./entity-graph/store/link";
 
 import type { ForceEdge, ForceNode } from "./layout/force-simulation";
 import type {

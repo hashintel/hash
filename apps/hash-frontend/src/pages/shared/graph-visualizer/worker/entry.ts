@@ -1,7 +1,9 @@
 /**
- * Web worker entry point: dispatches {@link MainToWorkerMessage}s to a
- * {@link GraphWorker} and posts its replies and frames back to the main
- * thread.
+ * Web worker entry point: the first message selects the lifecycle
+ * (`INIT_ENTITY` boots an {@link EntityGraphWorker}), then every later
+ * {@link MainToWorkerMessage} dispatches into it and its replies and frames
+ * post back to the main thread. Each connection spawns its own Worker, so
+ * exactly one lifecycle ever runs per worker process.
  *
  * `INGEST_BATCH` applies immediately to the stores, but the resulting
  * structure commit is coalesced across a burst (see {@link CommitCoalescer});
@@ -13,7 +15,7 @@
  */
 
 import { CommitCoalescer } from "./core/commit-coalescer";
-import { GraphWorker } from "./core/graph-worker";
+import { EntityGraphWorker } from "./entity-graph/worker";
 
 import type { PositionsFrame, StructureFrame } from "../frames";
 import type { MainToWorkerMessage, WorkerToMainMessage } from "./protocol";
@@ -63,7 +65,7 @@ function postPositions(frame: PositionsFrame): void {
   post({ type: "POSITIONS_FRAME", frame }, transfer);
 }
 
-let worker: GraphWorker | undefined;
+let worker: EntityGraphWorker | undefined;
 
 /**
  * Coalesces per-batch commits during an ingest burst: batches are
@@ -96,7 +98,7 @@ function scheduleDrain(): void {
  * INIT and again on UPDATE_CONFIG (after a flush) because the coalescer
  * copies its caps at construction.
  */
-function createCommitCoalescer(created: GraphWorker): CommitCoalescer {
+function createCommitCoalescer(created: EntityGraphWorker): CommitCoalescer {
   return new CommitCoalescer({
     maxCoalescedBatches: created.config.ingest.maxCoalescedBatches,
     maxCoalesceDelayMs: created.config.ingest.maxCoalesceDelayMs,
@@ -127,9 +129,9 @@ function createCommitCoalescer(created: GraphWorker): CommitCoalescer {
 
 globalThis.onmessage = ({ data }: MessageEvent<MainToWorkerMessage>) => {
   switch (data.type) {
-    case "INIT": {
+    case "INIT_ENTITY": {
       try {
-        const created = new GraphWorker(data.config);
+        const created = new EntityGraphWorker(data.config);
         worker = created;
         worker.registerTypes(data.typeSchemas, data.propertySchemas);
         worker.onLayoutMessage = (msg) => post(msg);

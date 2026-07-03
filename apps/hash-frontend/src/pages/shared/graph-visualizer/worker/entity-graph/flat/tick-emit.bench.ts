@@ -8,7 +8,7 @@
  * The scale bench ({@link "../../layout/majorization-scale.bench"}) measures
  * the solver alone: `tick(1)` back to back. In production every tick that
  * reports a change ALSO runs the positions-frame emission
- * ({@link "../frames/positions-frame"} → {@link "./flat-edges"}): rebuild all
+ * ({@link "../frames/positions-frame"} → {@link "./edges"}): rebuild all
  * edge beziers + arrows from current positions, snapshot the segment sink,
  * and serialise the frame over `postMessage`. This harness replays that loop
  * faithfully with the real engine, the real {@link FlatEdgePipeline}, the
@@ -21,7 +21,7 @@
  *
  * Run (from apps/hash-frontend):
  *   node_modules/.bin/vitest bench --run \
- *     src/pages/shared/graph-visualizer/worker/core/flat/flat-tick-emit.bench.ts \
+ *     src/pages/shared/graph-visualizer/worker/entity-graph/flat/tick-emit.bench.ts \
  *     --disable-console-intercept
  */
 import { readFileSync } from "node:fs";
@@ -39,10 +39,10 @@ import {
   EndpointArrowSink,
 } from "../../geometry/edge-geometry";
 import { createMajorizationLayout } from "../../layout/majorization-layout";
-import { LinkStore } from "../../store/link";
+import { LinkStore } from "../store/link";
 import { TypeRegistry } from "../../store/type-registry";
-import { TypeSetStore } from "../../store/type-set";
-import { FlatEdgePipeline } from "./flat-edges";
+import { TypeSetStore } from "../store/type-set";
+import { FlatEdgePipeline } from "./edges";
 
 import type { PositionsFrame } from "../../../frames";
 import type { TypeId } from "../../../ids";

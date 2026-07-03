@@ -9,8 +9,8 @@ import { entityIndicesForCluster } from "./cluster-membership";
 import type { ClusterId, EntityIndex } from "../../ids";
 import type { ClusterNode } from "../hierarchy/cluster-tree";
 import type { ForceEdge, ForceNode } from "../layout/force-simulation";
-import type { LinkStore } from "../store/link";
-import type { TypeSetStore } from "../store/type-set";
+import type { LinkStore } from "./store/link";
+import type { TypeSetStore } from "./store/type-set";
 
 /**
  * Numeric unordered-pair key for two entity indices, `(first << 26) | second`

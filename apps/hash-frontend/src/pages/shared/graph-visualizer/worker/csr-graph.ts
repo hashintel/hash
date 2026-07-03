@@ -11,7 +11,7 @@ import { BitSet } from "./collections/bitset";
 
 import type { EntityIndex } from "../ids";
 import type { Column } from "./collections/column";
-import type { LinkStore } from "./store/link";
+import type { LinkStore } from "./entity-graph/store/link";
 
 export interface CsrGraph {
   readonly nodeIds: Column<Int32Array, EntityIndex>;

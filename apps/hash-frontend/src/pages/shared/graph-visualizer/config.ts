@@ -14,11 +14,11 @@ import {
 import {
   FLAT_SEED_DISK_SCALE,
   FLAT_SEED_NEIGHBOUR_OFFSET,
-} from "./worker/core/flat/flat-seed";
+} from "./worker/entity-graph/flat/seed";
 import {
   GROWTH_RELAYOUT_TOLERANCE_FRAC,
   OVERLAP_REBUILD_TOLERANCE_FRAC,
-} from "./worker/core/hierarchical/layout-reuse";
+} from "./worker/entity-graph/hierarchical/layout-reuse";
 import { defaultEntityStyleConfig } from "./worker/entity-style";
 import { defaultClusterSizingConfig } from "./worker/hierarchy/cluster-sizing-config";
 import { defaultClusterForceConfig } from "./worker/layout/cluster-layout-config";
@@ -493,7 +493,7 @@ export const defaultVizConfig: VizConfig = {
  * Copy a config one group deep: a fresh root object with fresh nested group
  * objects (groups are flat value objects, so one level suffices).
  *
- * {@link GraphWorker} clones the config it is constructed with so that
+ * {@link EntityGraphWorker} clones the config it is constructed with so that
  * {@link assignVizConfigInPlace} can mutate the worker's copy without the
  * caller (which may have passed the shared {@link defaultVizConfig}, or a
  * shallow spread of it) observing the mutation.

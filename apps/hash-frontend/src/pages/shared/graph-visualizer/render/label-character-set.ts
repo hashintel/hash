@@ -21,7 +21,7 @@
 
 /**
  * Characters the worker's label builders emit that are NOT printable ASCII:
- * `…` from property-value truncation (worker/store/property.ts), `→`/`←`
+ * `…` from property-value truncation (worker/entity-graph/store/property.ts), `→`/`←`
  * from link features (worker/hierarchy/cluster-feature-source.ts), plus
  * typographic dashes/quotes so user text stays safe under copy tweaks.
  */

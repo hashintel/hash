@@ -5,15 +5,15 @@
  * pipeline (cut, CutIndex, aggregation) never runs here.
  */
 import { sharedBufferAvailable } from "../layout/force-simulation";
-import { FLAT_LAYOUT_ID } from "./flat/flat-tier";
+import { FLAT_LAYOUT_ID } from "./layout-registry";
 
 import type { VizConfig } from "../../config";
+import type { PortConstraintController } from "../entity-graph/hierarchical/port-constraints";
+import type { SettlePolisher } from "../entity-graph/hierarchical/settle-polish";
 import type { ClusterTree } from "../hierarchy/cluster-tree";
 import type { LayoutSimulation } from "../layout/force-simulation";
 import type { LayoutSideChannelMessage } from "../protocol";
 import type { PositionsFrameEmitter } from "./frames/positions-frame";
-import type { PortConstraintController } from "./hierarchical/port-constraints";
-import type { SettlePolisher } from "./hierarchical/settle-polish";
 import type { LayoutRegistry } from "./layout-registry";
 
 export interface TickLoopDependencies {

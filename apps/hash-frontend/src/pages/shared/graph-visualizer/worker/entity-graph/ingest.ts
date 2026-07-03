@@ -8,11 +8,11 @@ import type {
   PropertySchemaEntry,
   TypeSchemaEntry,
 } from "../protocol";
-import type { EntityStore } from "../store/entity";
-import type { LinkStore } from "../store/link";
-import type { PropertyStore } from "../store/property";
+import type { EntityStore } from "./store/entity";
+import type { LinkStore } from "./store/link";
+import type { PropertyStore } from "./store/property";
 import type { TypeRegistry } from "../store/type-registry";
-import type { TypeSetGroup, TypeSetStore } from "../store/type-set";
+import type { TypeSetGroup, TypeSetStore } from "./store/type-set";
 import type { EntityId } from "@blockprotocol/type-system";
 
 /** Initial capacity for the node-index column (grows by doubling). */
@@ -109,7 +109,7 @@ export class IngestController {
 
     // Apply root-ness even for an already-interned entity: an expand re-sends a frontier node as a
     // root, and this is what flips it. A flip of an already-rendered node needs a restyle the
-    // commit alone won't do in the hierarchical tier (see GraphWorker.restyleIfRootsFlipped).
+    // commit alone won't do in the hierarchical tier (see EntityGraphWorker.restyleIfRootsFlipped).
     if (entity.isRoot) {
       const flippedExisting = entities.insertRoot(entityIdx) && !created;
       if (flippedExisting) {

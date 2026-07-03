@@ -1,7 +1,7 @@
 /**
  * Sizing of cluster bubbles and entity dots: leaf radii from member counts
  * ({@link "./cluster-tree"}), enclosing-parent fits, and the entity-dot radius
- * used when a leaf opens ({@link "../core/hierarchical/hierarchical-layouts"},
+ * used when a leaf opens ({@link "../entity-graph/hierarchical/layouts"},
  * {@link "../core/frames/structure-frame"}).
  *
  * Kept separate from {@link "./cluster-tree"} so the main thread (root

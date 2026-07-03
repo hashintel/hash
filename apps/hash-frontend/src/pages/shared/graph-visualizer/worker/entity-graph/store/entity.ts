@@ -5,13 +5,13 @@
  * gets a push on every column, so {@link EntityIndex} indexes into all
  * of them.
  */
-import { EntityIdBuffer } from "../buffers/entity-id-buffer";
-import { BitSet } from "../collections/bitset";
-import { Column } from "../collections/column";
-import { Interner } from "../collections/interner";
+import { EntityIdBuffer } from "../../buffers/entity-id-buffer";
+import { BitSet } from "../../collections/bitset";
+import { Column } from "../../collections/column";
+import { Interner } from "../../collections/interner";
 
-import type { EntityIndex, LabelId, TypeSetId } from "../../ids";
-import type { RepublishHandler } from "../buffers/growable-buffer";
+import type { EntityIndex, LabelId, TypeSetId } from "../../../ids";
+import type { RepublishHandler } from "../../buffers/growable-buffer";
 import type { EntityId } from "@blockprotocol/type-system";
 
 // Initial column capacity (4096); growable buffers reallocate on republish

@@ -5,10 +5,10 @@
  * and interned. Numbers and ISO dates additionally keep their raw value for
  * quantile range bucketing.
  */
-import { Interner } from "../collections/interner";
+import { Interner } from "../../collections/interner";
 
-import type { EntityIndex } from "../../ids";
-import type { PropertySchemaEntry } from "../protocol";
+import type { EntityIndex } from "../../../ids";
+import type { PropertySchemaEntry } from "../../protocol";
 import type { PropertyObject } from "@blockprotocol/type-system";
 
 /** Interned index of a distinct `(baseUrl, formatted-value)` feature. */

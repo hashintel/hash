@@ -1,5 +1,13 @@
-import type { ClusterId } from "../../ids";
+import { ClusterId } from "../../ids";
+
 import type { LayoutSimulation } from "../layout/force-simulation";
+
+/**
+ * The single registry id for the whole-graph flat layout (the entity flat
+ * tier and the type graph both run exactly one, keyed here so the shared
+ * tick loop recognises it).
+ */
+export const FLAT_LAYOUT_ID = ClusterId("flat:all");
 
 /** What a force layout's nodes represent: child cluster bubbles or entities. */
 export type LayoutKind = "clusters" | "entities";

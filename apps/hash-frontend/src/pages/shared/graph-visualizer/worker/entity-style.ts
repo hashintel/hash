@@ -28,7 +28,7 @@ export const FRONTIER_COLOR: Color = [...graphColors.frontier];
 /**
  * Visual style of entity dots and flat-tier edges (colour by type hierarchy,
  * size by degree), including the hub-link fading applied by
- * {@link "./core/flat/flat-edges"}.
+ * {@link "./entity-graph/flat/edges"}.
  */
 export interface EntityStyleConfig {
   /** OKLCH chroma of entity dots. @defaultValue 0.13. */

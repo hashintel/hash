@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { entityIdFromComponents } from "@blockprotocol/type-system";
 
-import { decodeEntityId, ID_HEADER_BYTES } from "../entity-id-codec";
+import { decodeEntityId, ID_HEADER_BYTES } from "../../entity-id-codec";
 import { EntityStore } from "./entity";
 
 import type { EntityUuid, WebId } from "@blockprotocol/type-system";

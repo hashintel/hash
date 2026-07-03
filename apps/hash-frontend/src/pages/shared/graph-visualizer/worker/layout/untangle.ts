@@ -65,7 +65,7 @@ export interface UntangleOptions {
 /**
  * Tuning for the small-N sub-cluster untangle: this module's annealing/2-opt
  * search plus the gate its caller applies
- * ({@link "../core/hierarchical/settle-polish"} skips the untangle above
+ * ({@link "../entity-graph/hierarchical/settle-polish"} skips the untangle above
  * `maxNodes`).
  *
  * Crossings (and edges through bubbles) dominate the soft link-length /

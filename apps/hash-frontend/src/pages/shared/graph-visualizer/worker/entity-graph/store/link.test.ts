@@ -10,7 +10,7 @@ import { describe, expect, it } from "vitest";
 
 import { entityIdFromComponents } from "@blockprotocol/type-system";
 
-import { EntityIndex, TypeSetId } from "../../ids";
+import { EntityIndex, TypeSetId } from "../../../ids";
 import { LinkStore } from "./link";
 
 import type { EntityUuid, WebId } from "@blockprotocol/type-system";

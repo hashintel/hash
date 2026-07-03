@@ -2,14 +2,14 @@
  * Type-set grouping: entities that share the exact same set of direct
  * entity types belong to one {@link TypeSetGroup}.
  */
-import { ClusterId, TypeSetKey } from "../../ids";
-import { BitSet } from "../collections/bitset";
-import { Column } from "../collections/column";
-import { Interner } from "../collections/interner";
+import { ClusterId, TypeSetKey } from "../../../ids";
+import { BitSet } from "../../collections/bitset";
+import { Column } from "../../collections/column";
+import { Interner } from "../../collections/interner";
 
-import type { EntityIndex, TypeId, TypeSetId } from "../../ids";
-import type { ReadonlySortedSet } from "../collections/readonly-sorted-set";
-import type { TypeRegistry } from "./type-registry";
+import type { EntityIndex, TypeId, TypeSetId } from "../../../ids";
+import type { ReadonlySortedSet } from "../../collections/readonly-sorted-set";
+import type { TypeRegistry } from "../../store/type-registry";
 
 const INITIAL_CAPACITY = 256;
 

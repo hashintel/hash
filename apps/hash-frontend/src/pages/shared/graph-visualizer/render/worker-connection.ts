@@ -192,8 +192,8 @@ export class WorkerConnection implements WorkerHandle {
     this.#onError = onError;
     this.#appliedConfig = config;
 
-    // The worker installs the same style at INIT; this covers main-thread
-    // consumers (hub-label radii).
+    // The worker installs the same style at INIT_ENTITY; this covers
+    // main-thread consumers (hub-label radii).
     configureEntityStyle(config.entityStyle);
 
     this.#worker = new Worker(new URL("../worker/entry.ts", import.meta.url));
@@ -202,7 +202,7 @@ export class WorkerConnection implements WorkerHandle {
     this.#worker.onerror = (event) => this.#onError(event.message);
 
     const init: MainToWorkerMessage = {
-      type: "INIT",
+      type: "INIT_ENTITY",
       config: { ...config, debug: config.debug || workerDebugLogsEnabled() },
       typeSchemas: [],
       propertySchemas: [],

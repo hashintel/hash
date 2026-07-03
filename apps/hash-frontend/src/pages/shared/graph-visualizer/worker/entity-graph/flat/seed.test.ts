@@ -3,8 +3,8 @@ import { describe, expect, it } from "vitest";
 import { EntityIndex, nodeIdForEntityIndex, TypeSetId } from "../../../ids";
 import { PositionScratch } from "../../collections/position-scratch";
 import { radiusForDegree } from "../../entity-style";
-import { LinkStore } from "../../store/link";
-import { seedFlatNodes } from "./flat-seed";
+import { LinkStore } from "../store/link";
+import { seedFlatNodes } from "./seed";
 
 const TYPE = TypeSetId(0);
 

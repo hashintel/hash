@@ -52,8 +52,9 @@ export interface IngestEntity {
   readonly properties?: PropertyObject;
 }
 
-export interface InitMessage {
-  readonly type: "INIT";
+/** Boot the entity-graph lifecycle ({@link EntityGraphWorker}) in this worker. */
+export interface InitEntityMessage {
+  readonly type: "INIT_ENTITY";
   readonly config: VizConfig;
   readonly typeSchemas: readonly TypeSchemaEntry[];
   readonly propertySchemas: readonly PropertySchemaEntry[];
@@ -176,7 +177,7 @@ export interface CaptureLayoutFixtureMessage {
 }
 
 export type MainToWorkerMessage =
-  | InitMessage
+  | InitEntityMessage
   | RegisterTypesMessage
   | UpdateConfigMessage
   | IngestBatchMessage

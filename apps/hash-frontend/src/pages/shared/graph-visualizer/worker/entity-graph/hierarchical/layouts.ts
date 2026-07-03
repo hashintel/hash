@@ -24,12 +24,12 @@ import type {
   LayoutSimulation,
 } from "../../layout/force-simulation";
 import type { LayoutSideChannelMessage } from "../../protocol";
-import type { EntityStore } from "../../store/entity";
-import type { LinkStore } from "../../store/link";
+import type { EntityStore } from "../store/entity";
+import type { LinkStore } from "../store/link";
 import type { TypeRegistry } from "../../store/type-registry";
-import type { TypeSetStore } from "../../store/type-set";
-import type { CommittedView, RenderedEntry } from "../committed-view";
-import type { LayoutRegistry } from "../layout-registry";
+import type { TypeSetStore } from "../store/type-set";
+import type { CommittedView, RenderedEntry } from "../../core/committed-view";
+import type { LayoutRegistry } from "../../core/layout-registry";
 import type { PortConstraintController } from "./port-constraints";
 import type { SettlePolisher } from "./settle-polish";
 

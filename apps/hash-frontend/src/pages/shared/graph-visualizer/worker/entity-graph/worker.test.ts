@@ -1,9 +1,9 @@
 /**
- * Guards for the change-aware {@link GraphWorker.commitStructure} flat-tier
- * path: a commit with nothing new must do no structural work (no rebuild, no
- * re-emit), a colour-only change must restyle without rebuilding the layout,
- * and streaming a graph in batches must land in the same committed state as
- * ingesting it in one shot.
+ * Guards for the change-aware {@link EntityGraphWorker.commitStructure}
+ * flat-tier path: a commit with nothing new must do no structural work (no
+ * rebuild, no re-emit), a colour-only change must restyle without rebuilding
+ * the layout, and streaming a graph in batches must land in the same
+ * committed state as ingesting it in one shot.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -15,8 +15,8 @@ import {
   benchTypeSchemas,
   buildIngestEntities,
 } from "../bench-fixtures";
-import { CommitCoalescer, MAX_COALESCED_BATCHES } from "./commit-coalescer";
-import { GraphWorker } from "./graph-worker";
+import { CommitCoalescer, MAX_COALESCED_BATCHES } from "../core/commit-coalescer";
+import { EntityGraphWorker } from "./worker";
 
 import type { PositionsFrame, StructureFrame } from "../../frames";
 import type { GraphShape } from "../bench-fixtures";
@@ -42,7 +42,7 @@ const COMMUNITY_FORCE: GraphShape = {
 };
 
 interface Harness {
-  readonly worker: GraphWorker;
+  readonly worker: EntityGraphWorker;
   readonly structure: ReturnType<typeof vi.fn>;
   readonly positions: ReturnType<typeof vi.fn>;
   readonly layout: ReturnType<typeof vi.fn>;
@@ -53,7 +53,7 @@ interface Harness {
 }
 
 function newHarness(): Harness {
-  const worker = new GraphWorker(defaultVizConfig);
+  const worker = new EntityGraphWorker(defaultVizConfig);
   const structure = vi.fn();
   const positions = vi.fn();
   const layout = vi.fn();
@@ -137,7 +137,7 @@ function positionDrift(
   return total;
 }
 
-describe("GraphWorker.commitStructure, flat tier", () => {
+describe("EntityGraphWorker.commitStructure, flat tier", () => {
   // The trailing-Louvain linger uses setTimeout; fake only timers so it can't
   // fire mid-test (MessageChannel scheduling and performance.now stay real).
   beforeEach(() => {
@@ -202,7 +202,7 @@ describe("GraphWorker.commitStructure, flat tier", () => {
   });
 });
 
-describe("GraphWorker.commitStructure, streaming equals bulk", () => {
+describe("EntityGraphWorker.commitStructure, streaming equals bulk", () => {
   beforeEach(() => {
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
   });
@@ -241,7 +241,7 @@ describe("GraphWorker.commitStructure, streaming equals bulk", () => {
  * {@link CommitCoalescer}): a burst must land in the same committed state as
  * bulk while paying a bounded number of commits, not one per batch.
  */
-describe("GraphWorker.commitStructure, coalesced streaming", () => {
+describe("EntityGraphWorker.commitStructure, coalesced streaming", () => {
   beforeEach(() => {
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
   });
@@ -418,7 +418,7 @@ const HIERARCHICAL: GraphShape = {
   seed: 13,
 };
 
-describe("GraphWorker.commitStructure, hierarchical tier", () => {
+describe("EntityGraphWorker.commitStructure, hierarchical tier", () => {
   beforeEach(() => {
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
   });
@@ -560,7 +560,7 @@ describe("GraphWorker.commitStructure, hierarchical tier", () => {
   });
 });
 
-describe("GraphWorker.updateConfig", () => {
+describe("EntityGraphWorker.updateConfig", () => {
   beforeEach(() => {
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
   });
@@ -619,7 +619,7 @@ describe("GraphWorker.updateConfig", () => {
   });
 
   it("rejects an invalid config, keeping the previous one fully in effect", () => {
-    const worker = new GraphWorker(defaultVizConfig);
+    const worker = new EntityGraphWorker(defaultVizConfig);
 
     expect(() =>
       worker.updateConfig({
@@ -635,9 +635,9 @@ describe("GraphWorker.updateConfig", () => {
   });
 });
 
-describe("GraphWorker.registerTypes, change classification", () => {
+describe("EntityGraphWorker.registerTypes, change classification", () => {
   it("reports no change on an identical re-registration", () => {
-    const worker = new GraphWorker(defaultVizConfig);
+    const worker = new EntityGraphWorker(defaultVizConfig);
     const schemas = benchTypeSchemas(8);
 
     expect(worker.registerTypes(schemas, []).typesChanged).toBe(true);
@@ -648,7 +648,7 @@ describe("GraphWorker.registerTypes, change classification", () => {
   });
 
   it("reports a change when a genuinely new type is registered", () => {
-    const worker = new GraphWorker(defaultVizConfig);
+    const worker = new EntityGraphWorker(defaultVizConfig);
     worker.registerTypes(benchTypeSchemas(8), []);
 
     // benchTypeSchemas(10) is a superset -- two new node types -- which can

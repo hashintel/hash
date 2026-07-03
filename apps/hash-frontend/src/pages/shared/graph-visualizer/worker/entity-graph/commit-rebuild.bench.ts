@@ -1,6 +1,6 @@
 /**
  * End-to-end rebuild/redraw path: what `commitStructure` costs, driven through
- * the real {@link GraphWorker} exactly as `entry.ts` does (ingest -> commit).
+ * the real {@link EntityGraphWorker} exactly as `entry.ts` does (ingest -> commit).
  *
  * Two questions:
  * - `no-op re-commit`: how much work does a commit do when nothing changed?
@@ -11,25 +11,25 @@
  * many batch+commits. The gap is the per-commit O(N) work (re)done per batch --
  * the streaming-ingest tax.
  *
- * The GraphWorker runs its layout scheduler on MessageChannels; a synchronous
+ * The EntityGraphWorker runs its layout scheduler on MessageChannels; a synchronous
  * bench body never lets those macrotasks fire mid-measurement, and vitest tears
  * the process down after the run, so no scheduler cleanup is needed here.
  *
  * Run: `cd apps/hash-frontend && ../../node_modules/.bin/vitest bench --run \
- * src/pages/shared/graph-visualizer/worker/core/commit-rebuild.bench.ts`
+ * src/pages/shared/graph-visualizer/worker/entity-graph/commit-rebuild.bench.ts`
  */
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { bench, describe } from "vitest";
 
 import { defaultVizConfig } from "../../config";
 import { benchTypeSchemas, buildIngestEntities } from "../bench-fixtures";
-import { CommitCoalescer } from "./commit-coalescer";
-import { GraphWorker } from "./graph-worker";
+import { CommitCoalescer } from "../core/commit-coalescer";
+import { EntityGraphWorker } from "./worker";
 
 import type { GraphShape } from "../bench-fixtures";
 import type { IngestEntity } from "../protocol";
 
-/** Fresh GraphWorkers are built per iteration below, and each is relatively
+/** Fresh workers are built per iteration below, and each is relatively
  * expensive, so bound the fresh-worker benches to a fixed iteration count. */
 const FRESH_WORKER_OPTS = {
   time: 0,
@@ -42,8 +42,8 @@ const IGNORE = (): void => {
   // Suppress frame/layout callbacks so vitest measures commit cost only.
 };
 
-function newWorker(typeCount: number): GraphWorker {
-  const worker = new GraphWorker(defaultVizConfig);
+function newWorker(typeCount: number): EntityGraphWorker {
+  const worker = new EntityGraphWorker(defaultVizConfig);
   worker.onLayoutMessage = IGNORE;
   worker.onStructureFrame = IGNORE;
   worker.onPositionsFrame = IGNORE;
@@ -54,7 +54,7 @@ function newWorker(typeCount: number): GraphWorker {
 /** Ingest the whole graph, commit twice (stabilise mode + tree), record a
  * viewport (so the hierarchical tier has a cut to recompute), and return the
  * worker sitting in a committed steady state. */
-function primedWorker(shape: GraphShape): GraphWorker {
+function primedWorker(shape: GraphShape): EntityGraphWorker {
   const worker = newWorker(shape.typeCount);
   const deltas = worker.ingestBatch(buildIngestEntities(shape));
   worker.commitStructure({ deltas });

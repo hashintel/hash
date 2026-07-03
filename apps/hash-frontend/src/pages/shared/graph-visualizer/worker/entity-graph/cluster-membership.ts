@@ -8,8 +8,8 @@
  */
 import type { EntityIndex } from "../../ids";
 import type { ClusterNode } from "../hierarchy/cluster-tree";
-import type { EntityStore } from "../store/entity";
-import type { TypeSetStore } from "../store/type-set";
+import type { EntityStore } from "./store/entity";
+import type { TypeSetStore } from "./store/type-set";
 
 export function* entityIndicesForCluster(
   cluster: ClusterNode,
