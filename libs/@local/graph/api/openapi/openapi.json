@@ -3809,7 +3809,8 @@
             "description": "Embedding dimension after matryoshka truncation. Must be a positive\nmultiple of 8; values above 3072 are rejected. Defaults to 256.",
             "default": 256,
             "example": 256,
-            "minimum": 1
+            "multipleOf": 8,
+            "minimum": 8
           },
           "entityIds": {
             "type": "array",
