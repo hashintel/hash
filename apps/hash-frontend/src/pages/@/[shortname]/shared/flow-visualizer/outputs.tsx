@@ -648,6 +648,10 @@ export const Outputs = ({
                 persistedEntitiesTypesInfo?.entityTypes ??
                 proposedEntitiesTypesInfo?.entityTypes
               }
+              definitions={
+                persistedEntitiesTypesInfo?.definitions ??
+                proposedEntitiesTypesInfo?.definitions
+              }
               entities={entitiesForGraph}
             />
           ))}
