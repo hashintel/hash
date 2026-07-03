@@ -10,7 +10,7 @@ import { EntityWorkerConnection } from "./entity-worker-connection";
 
 import type { VizConfig } from "../config";
 import type { PropertySchemaEntry, TypeSchemaEntry } from "../worker/protocol";
-import type { WorkerHandle } from "./entity-worker-connection";
+import type { EntityWorkerHandle } from "./entity-worker-connection";
 
 interface UseGraphWorkerOptions {
   /**
@@ -28,7 +28,7 @@ interface UseGraphWorkerOptions {
 
 interface UseGraphWorkerResult {
   /** Undefined until the connection is created in the mount effect (client only). */
-  readonly handle: WorkerHandle | undefined;
+  readonly handle: EntityWorkerHandle | undefined;
   readonly ready: boolean;
   readonly error: string | undefined;
 }

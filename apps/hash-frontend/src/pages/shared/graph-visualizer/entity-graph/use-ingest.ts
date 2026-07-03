@@ -10,12 +10,12 @@ import { useEffect, useRef } from "react";
 
 import { toIngestEntities } from "./ingest-mapping";
 
-import type { WorkerHandle } from "../render/entity-worker-connection";
+import type { EntityWorkerHandle } from "../render/entity-worker-connection";
 import type { EntityId } from "@blockprotocol/type-system";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 
 interface UseEntityIngestOptions {
-  readonly handle: WorkerHandle | undefined;
+  readonly handle: EntityWorkerHandle | undefined;
   readonly ready: boolean;
   readonly entities: readonly HashEntity[] | undefined;
   /**
@@ -28,7 +28,7 @@ interface UseEntityIngestOptions {
 }
 
 interface SentProgress {
-  readonly handle: WorkerHandle;
+  readonly handle: EntityWorkerHandle;
   count: number;
 }
 

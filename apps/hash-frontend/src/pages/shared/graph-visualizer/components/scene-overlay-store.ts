@@ -15,7 +15,6 @@ import type {
   NodeLabel,
   NodeSelection,
 } from "../render/scene/scene";
-import type { EntityId } from "@blockprotocol/type-system";
 
 /**
  * Grace period the frontier-cluster card stays open after the cursor leaves its bubble, so
@@ -61,7 +60,7 @@ export const useOverlaySlice = <Value>(slice: OverlaySlice<Value>): Value =>
 
 const noLabels: readonly [] = [];
 
-export class SceneOverlayStore<NodeId extends string = EntityId> {
+export class SceneOverlayStore<NodeId extends string> {
   readonly nodeHover = new OverlaySlice<NodeHover<NodeId> | null>(null);
   readonly edgeHover = new OverlaySlice<FlatEdgeHover<NodeId> | null>(null);
   readonly highwayHover = new OverlaySlice<HighwayHover | null>(null);

@@ -30,7 +30,11 @@ import type { FlatEdgePick, NodeEgo, SceneHandle } from "./scene/handle";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 
 /** The public surface the type presentation drives Deck.gl from. */
-export interface TypeWorkerHandle extends SceneHandle<VersionedUrl> {
+export interface TypeWorkerHandle extends SceneHandle<
+  VersionedUrl,
+  TypeId,
+  TypeId
+> {
   ingestTypes(
     nodes: readonly IngestTypeNode[],
     edges: readonly IngestTypeEdge[],
@@ -67,7 +71,7 @@ export class TypeWorkerConnection
     return typeId === undefined ? undefined : this.#typeUrls[typeId];
   }
 
-  nodeKeyToId(nodeKey: number): VersionedUrl | undefined {
+  nodeKeyToId(nodeKey: TypeId): VersionedUrl | undefined {
     return this.#typeUrls[nodeKey];
   }
 
@@ -82,11 +86,12 @@ export class TypeWorkerConnection
   }
 
   /** An edge here is a link *type* between two type nodes, not a node itself. */
-  resolveFlatEdge(edgeId: number): FlatEdgePick<VersionedUrl> | null {
+  resolveFlatEdge(edgeId: TypeId): FlatEdgePick<VersionedUrl> | null {
     const edge = this.getStructure()?.typeEdges?.[edgeId];
     if (!edge) {
       return null;
     }
+
     const source = this.#typeUrls[edge.source];
     const target = this.#typeUrls[edge.target];
     const linkType = this.#typeUrls[edge.linkTypeId];
@@ -97,7 +102,7 @@ export class TypeWorkerConnection
       : { kind: "edge", source, target, linkType };
   }
 
-  queryEgo(nodeKey: number): Promise<NodeEgo> {
+  queryEgo(nodeKey: TypeId): Promise<NodeEgo<TypeId>> {
     return new Promise((resolve) => {
       this.send({
         type: "QUERY_TYPE_EGO",
@@ -106,15 +111,15 @@ export class TypeWorkerConnection
           // rendered node, so the collapsed-cluster set is always empty.
           resolve({ nodeKeys: typeIds, clusterIds: [] });
         }),
-        typeId: nodeKey as TypeId,
+        typeId: nodeKey,
       });
     });
   }
 
-  setHighlight(nodeKeys: readonly number[]): void {
+  setHighlight(nodeKeys: readonly TypeId[]): void {
     this.send({
       type: "SET_TYPE_HIGHLIGHT",
-      typeIds: nodeKeys as readonly TypeId[],
+      typeIds: nodeKeys,
     });
   }
 
@@ -122,7 +127,7 @@ export class TypeWorkerConnection
   setPinned(): void {}
 
   /** No aggregated highways in the type lifecycle; nothing to expand. */
-  queryHighwayLinks(): Promise<readonly number[]> {
+  queryHighwayLinks(): Promise<readonly TypeId[]> {
     return Promise.resolve([]);
   }
 

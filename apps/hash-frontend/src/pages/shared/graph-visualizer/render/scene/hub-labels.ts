@@ -89,16 +89,24 @@ interface NodeLabelDatum<NodeId extends string> {
   readonly worldRadius: number;
 }
 
-export interface HubLabelsDependencies<NodeId extends string> {
-  readonly handle: SceneHandle<NodeId>;
+export interface HubLabelsDependencies<
+  NodeId extends string,
+  NodeIndex extends number,
+  EdgeIndex extends number,
+> {
+  readonly handle: SceneHandle<NodeId, NodeIndex, EdgeIndex>;
   readonly deck: () => Deck<OrthographicView>;
   readonly callbacks: () => SceneCallbacks<NodeId>;
   readonly zoom: () => number;
   readonly labelPolicy: LabelPolicy;
 }
 
-export class HubLabels<NodeId extends string> {
-  readonly #dependencies: HubLabelsDependencies<NodeId>;
+export class HubLabels<
+  NodeId extends string,
+  NodeIndex extends number,
+  EdgeIndex extends number,
+> {
+  readonly #dependencies: HubLabelsDependencies<NodeId, NodeIndex, EdgeIndex>;
 
   /** Label eligibility + resolved text. Rebuilt on zoom/structure change. */
   #data: NodeLabelDatum<NodeId>[] = [];
@@ -106,7 +114,9 @@ export class HubLabels<NodeId extends string> {
   /** Signature of the last emitted label set; skips callback when screen positions are unchanged. */
   #lastEmittedSignature = "";
 
-  constructor(dependencies: HubLabelsDependencies<NodeId>) {
+  constructor(
+    dependencies: HubLabelsDependencies<NodeId, NodeIndex, EdgeIndex>,
+  ) {
     this.#dependencies = dependencies;
   }
 

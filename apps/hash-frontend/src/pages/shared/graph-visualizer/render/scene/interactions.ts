@@ -29,8 +29,12 @@ import type { SceneCallbacks } from "./callbacks";
 import type { SceneHandle } from "./handle";
 import type { Deck, OrthographicView, PickingInfo } from "@deck.gl/core";
 
-export interface SceneInteractionsDependencies<NodeId extends string> {
-  readonly handle: SceneHandle<NodeId>;
+export interface SceneInteractionsDependencies<
+  NodeId extends string,
+  NodeIndex extends number,
+  EdgeIndex extends number,
+> {
+  readonly handle: SceneHandle<NodeId, NodeIndex, EdgeIndex>;
   readonly deck: () => Deck<OrthographicView>;
   readonly callbacks: () => SceneCallbacks<NodeId>;
   /** The persistent cluster-bubble set (positions mutate in place per tick). */
@@ -43,8 +47,17 @@ export interface SceneInteractionsDependencies<NodeId extends string> {
   readonly zoomToBubble: (placed: PlacedCluster) => void;
 }
 
-export class SceneInteractions<NodeId extends string> {
-  readonly #dependencies: SceneInteractionsDependencies<NodeId>;
+export class SceneInteractions<
+  NodeId extends string,
+  NodeIndex extends number,
+  EdgeIndex extends number,
+> {
+  readonly #dependencies: SceneInteractionsDependencies<
+    NodeId,
+    NodeIndex,
+    EdgeIndex
+  >;
+
   readonly #hover: HoverTracker<NodeId>;
 
   #isDragging = false;
@@ -54,7 +67,8 @@ export class SceneInteractions<NodeId extends string> {
   /** A selected node-kind flat edge (a link entity, by its bezier edge id): a pinned card + Open,
    * no ring/dim (a link isn't a node to focus). Tracked by re-finding its bezier each emit.
    * Excludes #selected. */
-  #selectedFlatEdge: number | null = null;
+  #selectedFlatEdge: EdgeIndex | null = null;
+
   /** The selected node's collapsed-cluster ego neighbours: the only ego targets we ring + keep at
    * full colour, since visible node neighbours read as the un-dimmed dots. */
   #egoClusterIds: readonly ClusterId[] = [];
@@ -69,9 +83,11 @@ export class SceneInteractions<NodeId extends string> {
   #highlightVersion = 0;
   /** Node keys kept at full colour (selection + visible ego neighbours), used to dim
    * leaf-edge lines in step with their endpoint dots. */
-  #highlightedNodeKeys: ReadonlySet<number> = new Set();
+  #highlightedNodeKeys: ReadonlySet<NodeIndex> = new Set();
 
-  constructor(dependencies: SceneInteractionsDependencies<NodeId>) {
+  constructor(
+    dependencies: SceneInteractionsDependencies<NodeId, NodeIndex, EdgeIndex>,
+  ) {
     this.#dependencies = dependencies;
     this.#hover = new HoverTracker({
       handle: dependencies.handle,
@@ -86,7 +102,7 @@ export class SceneInteractions<NodeId extends string> {
     return this.#highlightTick;
   }
 
-  get highlightedNodeKeys(): ReadonlySet<number> {
+  get highlightedNodeKeys(): ReadonlySet<NodeIndex> {
     return this.#highlightedNodeKeys;
   }
 
@@ -155,6 +171,7 @@ export class SceneInteractions<NodeId extends string> {
       this.#select(picked);
       return;
     }
+
     // Click a flat edge: a node-kind edge (a link entity) pins its card (Open -> slideover), no
     // ring/dim; an edge-kind edge (a link type) shows its card at the click point. Click a
     // hierarchical highway: open a table of the links it aggregates. Edges render under the
@@ -162,25 +179,32 @@ export class SceneInteractions<NodeId extends string> {
     // the topmost pick is a bubble).
     const edgeInfo = this.#edgePickFor(info);
     if (edgeInfo) {
-      const edgeId = pickedFlatEdgeId(this.#dependencies.handle, edgeInfo);
+      const edgeId = pickedFlatEdgeId<EdgeIndex>(
+        this.#dependencies.handle,
+        edgeInfo,
+      );
       const edgePick =
         edgeId === null
           ? null
           : this.#dependencies.handle.resolveFlatEdge(edgeId);
+
       if (edgeId !== null && edgePick?.kind === "node") {
         this.#selectFlatEdge(edgeId);
         return;
       }
+
       if (edgePick?.kind === "edge") {
         this.#hover.setEdge(edgePick, info.x, info.y);
         return;
       }
+
       const laneId = pickedHighwayLaneId(this.#dependencies.handle, edgeInfo);
       if (laneId !== null) {
         this.#openHighwayLinks(laneId);
         return;
       }
     }
+
     // Cluster bubble: animate so its on-screen radius crosses the open threshold.
     // Deck only attaches PlacedCluster to cluster-bubble layer picks.
     const placed = info.object as PlacedCluster | undefined;
@@ -188,6 +212,7 @@ export class SceneInteractions<NodeId extends string> {
       this.#dependencies.zoomToBubble(placed);
       return;
     }
+
     this.#select(null);
   }
 
@@ -207,25 +232,32 @@ export class SceneInteractions<NodeId extends string> {
     if (edgeInfo) {
       // Flat edge, resolved via the handle: an entity graph's link is itself an entity (node
       // card); a type graph's edge is a link type (edge card).
-      const edgeId = pickedFlatEdgeId(this.#dependencies.handle, edgeInfo);
+      const edgeId = pickedFlatEdgeId<EdgeIndex>(
+        this.#dependencies.handle,
+        edgeInfo,
+      );
       const edgePick =
         edgeId === null
           ? null
           : this.#dependencies.handle.resolveFlatEdge(edgeId);
+
       if (edgePick?.kind === "node") {
         this.#hover.setNode(edgePick.nodeId, info.x, info.y);
         return;
       }
+
       if (edgePick?.kind === "edge") {
         this.#hover.setEdge(edgePick, info.x, info.y);
         return;
       }
+
       // Hierarchical highway: a summary of the links it bundles.
       const laneId = pickedHighwayLaneId(this.#dependencies.handle, edgeInfo);
       const lane =
         laneId === null
           ? undefined
           : this.#dependencies.handle.getStructure()?.highwayLanes[laneId];
+
       if (laneId !== null && lane && lane.count > 0) {
         this.#hover.setHighway(laneId, info.x, info.y);
         return;
@@ -404,7 +436,7 @@ export class SceneInteractions<NodeId extends string> {
    * edge's midpoint -- no ring/dim/ego (a link isn't a node to focus). Clears any node
    * selection first (un-dims).
    */
-  #selectFlatEdge(edgeId: number): void {
+  #selectFlatEdge(edgeId: EdgeIndex): void {
     this.#select(null);
     this.#selectedFlatEdge = edgeId;
     this.emitSelection();
@@ -426,13 +458,16 @@ export class SceneInteractions<NodeId extends string> {
         if (this.#dependencies.isDisposed()) {
           return;
         }
+
         const linkNodeIds: NodeId[] = [];
+
         for (const nodeKey of linkNodeKeys) {
           const nodeId = this.#dependencies.handle.nodeKeyToId(nodeKey);
           if (nodeId !== undefined) {
             linkNodeIds.push(nodeId);
           }
         }
+
         if (linkNodeIds.length > 0) {
           onOpen(linkNodeIds);
         }

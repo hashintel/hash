@@ -38,7 +38,7 @@ import {
   toIngestEntities,
 } from "./ingest-mapping";
 
-import type { WorkerHandle } from "../render/entity-worker-connection";
+import type { EntityWorkerHandle } from "../render/entity-worker-connection";
 import type {
   IngestEntity,
   PropertySchemaEntry,
@@ -138,7 +138,7 @@ export class FrontierExpansionStore {
    * next {@link attach} replays them. Never read across an await without
    * re-reading (a detach/attach can happen mid-expansion).
    */
-  #handle: WorkerHandle | undefined;
+  #handle: EntityWorkerHandle | undefined;
 
   readonly #listeners = new Set<() => void>();
 
@@ -169,7 +169,7 @@ export class FrontierExpansionStore {
    * replay after the base re-ingest converges to the same graph the previous
    * worker held.
    */
-  attach(handle: WorkerHandle): void {
+  attach(handle: EntityWorkerHandle): void {
     this.#handle = handle;
 
     for (const record of this.#snapshot.records) {

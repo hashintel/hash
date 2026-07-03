@@ -7,7 +7,7 @@
  */
 import { describe, expect, it, vi } from "vitest";
 
-import { ClusterId } from "../../ids";
+import { ClusterId, type EntityIndex } from "../../ids";
 import { NodeIcons } from "./node-icons";
 
 import type { StructureFrame } from "../../frames";
@@ -48,7 +48,7 @@ function clusterRef(nodeIds: readonly string[]): ClusterReference {
 }
 
 interface Harness {
-  readonly icons: NodeIcons<EntityId>;
+  readonly icons: NodeIcons<EntityId, EntityIndex, EntityIndex>;
   readonly clusters: Map<ClusterId, ClusterReference>;
   readonly resolveCalls: () => number;
   setStructure(frame: StructureFrame | undefined): void;
@@ -68,9 +68,9 @@ function newHarness(): Harness {
     getClusters: () => clusters,
     resolveNodeId: (layoutId: ClusterId, index: number) =>
       `${layoutId}/${index}` as EntityId,
-  } as unknown as SceneHandle<EntityId>;
+  } as unknown as SceneHandle<EntityId, EntityIndex, EntityIndex>;
 
-  const icons = new NodeIcons<EntityId>({
+  const icons = new NodeIcons<EntityId, EntityIndex, EntityIndex>({
     handle,
     callbacks: () =>
       ({ resolveNodeIcon }) as unknown as SceneCallbacks<EntityId>,

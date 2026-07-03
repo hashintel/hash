@@ -34,25 +34,29 @@ export type FlatEdgePick<NodeId extends string> =
     };
 
 /** A node's neighbourhood, in scene currency (reply to {@link SceneHandle.queryEgo}). */
-export interface NodeEgo {
+export interface NodeEgo<NodeIndex extends number> {
   /** Join keys of visible node neighbours (kept at full colour by the highlight). */
-  readonly nodeKeys: readonly number[];
+  readonly nodeKeys: readonly NodeIndex[];
   /** Collapsed-cluster neighbours (hierarchical entity tier only; ringed, not opened). */
   readonly clusterIds: readonly ClusterId[];
 }
 
 /** The scene-facing handle surface both worker connections implement. */
-export interface SceneHandle<NodeId extends string> extends FrameHandle {
+export interface SceneHandle<
+  NodeId extends string,
+  NodeIndex extends number,
+  EdgeIndex extends number,
+> extends FrameHandle {
   /** Resolve a picked dot (layout + render index) to its domain node id. */
   resolveNodeId(layoutId: ClusterId, recordIndex: number): NodeId | undefined;
   /** The u32 join key at a record (the highlight/ego currency). */
-  nodeKeyAt(layoutId: ClusterId, recordIndex: number): number | undefined;
+  nodeKeyAt(layoutId: ClusterId, recordIndex: number): NodeIndex | undefined;
   /** Decode a join key back to its domain node id. */
-  nodeKeyToId(nodeKey: number): NodeId | undefined;
+  nodeKeyToId(nodeKey: NodeIndex): NodeId | undefined;
   /** Resolve a flat-tier edge pick (its bezier id) to a node or edge target. */
-  resolveFlatEdge(edgeId: number): FlatEdgePick<NodeId> | null;
+  resolveFlatEdge(edgeId: EdgeIndex): FlatEdgePick<NodeId> | null;
   /** A selected node's neighbourhood (visible node keys + collapsed clusters). */
-  queryEgo(nodeKey: number): Promise<NodeEgo>;
+  queryEgo(nodeKey: NodeIndex): Promise<NodeEgo<NodeIndex>>;
   /** Keys kept at full colour; everything else dims. Empty restores full colour. */
   setHighlight(nodeKeys: readonly number[]): void;
   /**
@@ -64,5 +68,5 @@ export interface SceneHandle<NodeId extends string> extends FrameHandle {
    * The node keys of the links a highway lane aggregates (hierarchical entity
    * tier only; other lifecycles resolve empty).
    */
-  queryHighwayLinks(laneId: number): Promise<readonly number[]>;
+  queryHighwayLinks(laneId: number): Promise<readonly NodeIndex[]>;
 }

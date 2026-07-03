@@ -21,7 +21,7 @@ import {
   useFrontierExpansionStore,
 } from "./frontier-expansion-store";
 
-import type { WorkerHandle } from "../render/entity-worker-connection";
+import type { EntityWorkerHandle } from "../render/entity-worker-connection";
 import type { FrontierSnapshot } from "./frontier-expansion-store";
 import type { EntityId } from "@blockprotocol/type-system";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
@@ -61,7 +61,7 @@ export function useOwnedFrontierStore(
 interface UseFrontierExpansionOptions {
   /** The owner-scoped store (see {@link useOwnedFrontierStore}). */
   readonly store: FrontierExpansionStore;
-  readonly handle: WorkerHandle | undefined;
+  readonly handle: EntityWorkerHandle | undefined;
   readonly entities: readonly HashEntity[] | undefined;
   readonly rootIdSet: ReadonlySet<EntityId> | undefined;
 }

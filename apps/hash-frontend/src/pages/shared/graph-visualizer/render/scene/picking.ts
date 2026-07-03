@@ -37,8 +37,12 @@ function isFlatMode(handle: FrameHandle): boolean {
  * ("flat-entities"); the hierarchical tier is one layer per open leaf, id
  * "entities:<layoutId>". The pick index maps to a render record in that layout's buffer.
  */
-export function resolvePickedNode<NodeId extends string>(
-  handle: SceneHandle<NodeId>,
+export function resolvePickedNode<
+  NodeId extends string,
+  NodeIndex extends number,
+  EdgeIndex extends number,
+>(
+  handle: SceneHandle<NodeId, NodeIndex, EdgeIndex>,
   info: PickingInfo,
 ): Selection<NodeId> | null {
   const layerId = info.layer?.id;
@@ -73,10 +77,10 @@ export function resolvePickedNode<NodeId extends string>(
  * hierarchical tier, where the same channel carries an aggregate laneId instead (see
  * {@link pickedHighwayLaneId}).
  */
-export function pickedFlatEdgeId(
+export function pickedFlatEdgeId<EdgeIndex extends number>(
   handle: FrameHandle,
   info: PickingInfo,
-): number | null {
+): EdgeIndex | null {
   if (
     info.layer?.id !== FLAT_EDGE_LAYER_ID ||
     info.index < 0 ||
@@ -86,7 +90,8 @@ export function pickedFlatEdgeId(
   }
   const id = handle.getPositions()?.beziers.ids[info.index];
   // BEZIER_NO_LINK is the only non-edge sentinel in the flat-tier id channel.
-  return id === undefined || id === BEZIER_NO_LINK ? null : id;
+  //
+  return id === undefined || id === BEZIER_NO_LINK ? null : (id as EdgeIndex);
 }
 
 /**

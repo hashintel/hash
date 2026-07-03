@@ -43,7 +43,6 @@ import type { SceneHandle } from "./handle";
 import type { LabelPolicy } from "./hub-labels";
 import type { LayerKind } from "./layer-kinds";
 import type { RenderCaptureReport } from "./render-metrics";
-import type { EntityId } from "@blockprotocol/type-system";
 import type { Layer } from "@deck.gl/core";
 import type { Device } from "@luma.gl/core";
 
@@ -105,7 +104,11 @@ function buildLabelLayers({
   return result;
 }
 
-export class Scene<NodeId extends string = EntityId> {
+export class Scene<
+  NodeId extends string,
+  NodeIndex extends number,
+  EdgeIndex extends number,
+> {
   readonly #deck: Deck<OrthographicView>;
   /**
    * Scene-owned canvas, removed explicitly on {@link dispose}. Deck only
@@ -116,7 +119,7 @@ export class Scene<NodeId extends string = EntityId> {
    * canvases that break pointer math for the live one underneath.
    */
   readonly #canvas: HTMLCanvasElement;
-  readonly #handle: SceneHandle<NodeId>;
+  readonly #handle: SceneHandle<NodeId, NodeIndex, EdgeIndex>;
   readonly #unsubscribe: () => void;
 
   #callbacks: SceneCallbacks<NodeId>;
@@ -141,9 +144,9 @@ export class Scene<NodeId extends string = EntityId> {
   #placed: PlacedCluster[] = [];
 
   readonly #camera: SceneCamera;
-  readonly #interactions: SceneInteractions<NodeId>;
-  readonly #hubLabels: HubLabels<NodeId>;
-  readonly #nodeIcons: NodeIcons<NodeId>;
+  readonly #interactions: SceneInteractions<NodeId, NodeIndex, EdgeIndex>;
+  readonly #hubLabels: HubLabels<NodeId, NodeIndex, EdgeIndex>;
+  readonly #nodeIcons: NodeIcons<NodeId, NodeIndex, EdgeIndex>;
   /** Grow-only glyph set shared by the label layers (see label-character-set.ts). */
   readonly #labelCharacters = new LabelCharacterSet();
 
@@ -163,7 +166,7 @@ export class Scene<NodeId extends string = EntityId> {
 
   constructor(
     container: HTMLDivElement,
-    handle: SceneHandle<NodeId>,
+    handle: SceneHandle<NodeId, NodeIndex, EdgeIndex>,
     callbacks: SceneCallbacks<NodeId>,
     options: SceneOptions = {},
   ) {

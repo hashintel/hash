@@ -22,7 +22,8 @@ import { ControlsPanel } from "./controls-panel";
 import { generateGraphFixture } from "./generate-fixture";
 
 import type { VizConfig } from "../config";
-import type { WorkerHandle } from "../render/entity-worker-connection";
+import type { EntityIndex } from "../ids";
+import type { EntityWorkerHandle } from "../render/entity-worker-connection";
 import type { LayerKind } from "../render/scene/layer-kinds";
 import type { Scene } from "../render/scene/scene";
 import type { HarnessKnobs } from "./controls-panel";
@@ -188,10 +189,13 @@ export const DevHarness = () => {
 
   // Debug hook: exposes the live worker handle so Capture can download a replayable
   // layout fixture (positions, radii, edges, Louvain communities).
-  const workerHandleRef = useRef<WorkerHandle | undefined>(undefined);
-  const handleWorkerHandle = useCallback((handle: WorkerHandle | undefined) => {
-    workerHandleRef.current = handle;
-  }, []);
+  const workerHandleRef = useRef<EntityWorkerHandle | undefined>(undefined);
+  const handleWorkerHandle = useCallback(
+    (handle: EntityWorkerHandle | undefined) => {
+      workerHandleRef.current = handle;
+    },
+    [],
+  );
   const handleCaptureFixture = useCallback(() => {
     void workerHandleRef.current?.captureLayoutFixture().then((captured) => {
       if (!captured) {
@@ -212,17 +216,22 @@ export const DevHarness = () => {
   // rebuild.p95Ms (main-thread layer rebuild), deck.updateAttributesTime (Deck's
   // deferred attribute regen), deck.fps/cpuTimePerFrame. Compare runs only at matching
   // zoom envelopes; settled vs under-load sweeps measure different things.
-  const sceneRef = useRef<Scene | null>(null);
+  const sceneRef = useRef<Scene<EntityId, EntityIndex, EntityIndex> | null>(
+    null,
+  );
   // GPU-cost bisection state: kinds currently hidden from every render pass.
   // Kept in a ref too so a scene remount re-applies the selection.
   const [hiddenLayerKinds, setHiddenLayerKinds] = useState<
     readonly LayerKind[]
   >([]);
   const hiddenLayerKindsRef = useRef(hiddenLayerKinds);
-  const handleSceneReady = useCallback((scene: Scene | null) => {
-    sceneRef.current = scene;
-    scene?.setHiddenLayerKinds(hiddenLayerKindsRef.current);
-  }, []);
+  const handleSceneReady = useCallback(
+    (scene: Scene<EntityId, EntityIndex, EntityIndex> | null) => {
+      sceneRef.current = scene;
+      scene?.setHiddenLayerKinds(hiddenLayerKindsRef.current);
+    },
+    [],
+  );
   const handleToggleLayerKind = useCallback((kind: LayerKind) => {
     setHiddenLayerKinds((current) => {
       const next = current.includes(kind)

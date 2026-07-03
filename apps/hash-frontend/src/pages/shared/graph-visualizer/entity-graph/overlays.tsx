@@ -30,7 +30,7 @@ interface EntityCardResolvers {
  */
 export const EntityHoverOverlay: React.FC<
   EntityCardResolvers & {
-    readonly overlayStore: SceneOverlayStore;
+    readonly overlayStore: SceneOverlayStore<EntityId>;
   }
 > = ({ overlayStore, getCardContext, degreeById }) => {
   const hover = useOverlaySlice(overlayStore.nodeHover);
@@ -58,7 +58,7 @@ export const EntityHoverOverlay: React.FC<
 };
 
 interface SelectionOverlayProps extends EntityCardResolvers {
-  readonly overlayStore: SceneOverlayStore;
+  readonly overlayStore: SceneOverlayStore<EntityId>;
   readonly onEntityClick?: (entityId: EntityId) => void;
 }
 
@@ -106,7 +106,7 @@ export const SelectionOverlay: React.FC<SelectionOverlayProps> = ({
 };
 
 interface HighwayHoverOverlayProps {
-  readonly overlayStore: SceneOverlayStore;
+  readonly overlayStore: SceneOverlayStore<EntityId>;
   readonly closedMultiEntityTypesRootMap:
     | ClosedMultiEntityTypesRootMap
     | undefined;
@@ -137,7 +137,7 @@ export const HighwayHoverOverlay = ({
 };
 
 interface ClusterHoverOverlayProps {
-  readonly overlayStore: SceneOverlayStore;
+  readonly overlayStore: SceneOverlayStore<EntityId>;
   readonly isFetching: boolean;
   readonly onLoadFrontier: (entityIds: readonly EntityId[]) => void;
 }
@@ -182,7 +182,7 @@ export const ClusterHoverOverlay = ({
 };
 
 interface EntityLabelsOverlayProps {
-  readonly overlayStore: SceneOverlayStore;
+  readonly overlayStore: SceneOverlayStore<EntityId>;
 }
 
 /**

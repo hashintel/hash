@@ -35,7 +35,8 @@ import { useFrontierExpansion } from "./use-frontier-expansion";
 import { useEntityIngest } from "./use-ingest";
 
 import type { VizConfig } from "../config";
-import type { WorkerHandle } from "../render/entity-worker-connection";
+import type { EntityIndex } from "../ids";
+import type { EntityWorkerHandle } from "../render/entity-worker-connection";
 import type { EntitySelection, Scene } from "../render/scene/scene";
 import type { FrontierExpansionStore } from "./frontier-expansion-store";
 import type { EntityId } from "@blockprotocol/type-system";
@@ -92,16 +93,18 @@ interface EntityGraphVisualizerProps {
    */
   readonly frontierStore: FrontierExpansionStore;
   /**
-   * Debug affordance: receives the live {@link WorkerHandle} (undefined on teardown) so debug
+   * Debug affordance: receives the live {@link EntityWorkerHandle} (undefined on teardown) so debug
    * surfaces outside the visualizer (the dev harness) can issue worker queries, e.g. the
    * capture-live-fixture hook (`handle.captureLayoutFixture()`).
    */
-  readonly onWorkerHandle?: (handle: WorkerHandle | undefined) => void;
+  readonly onWorkerHandle?: (handle: EntityWorkerHandle | undefined) => void;
   /**
    * Debug affordance: receives the live {@link Scene} (null on teardown) so
    * the dev harness render benchmark can drive captures and camera sweeps.
    */
-  readonly onSceneReady?: (scene: Scene | null) => void;
+  readonly onSceneReady?: (
+    scene: Scene<EntityId, EntityIndex, EntityIndex> | null,
+  ) => void;
 }
 
 export const EntityGraphVisualizer: React.FC<EntityGraphVisualizerProps> = memo(
@@ -180,7 +183,7 @@ export const EntityGraphVisualizer: React.FC<EntityGraphVisualizerProps> = memo(
       rootIdSet,
     });
 
-    const [overlayStore] = useState(() => new SceneOverlayStore());
+    const [overlayStore] = useState(() => new SceneOverlayStore<EntityId>());
     // A recreated worker gets a fresh Scene: clear the old scene's overlay reports (and
     // the cluster card's grace timer) so nothing stale lingers over the new canvas.
     useEffect(

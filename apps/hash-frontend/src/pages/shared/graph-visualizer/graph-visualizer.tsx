@@ -26,8 +26,12 @@ import type {
 import type { EntityId } from "@blockprotocol/type-system";
 import type { ReactElement } from "react";
 
-interface GraphVisualizerProps<NodeId extends string> {
-  readonly handle: SceneHandle<NodeId>;
+interface GraphVisualizerProps<
+  NodeId extends string,
+  NodeIndex extends number,
+  EdgeIndex extends number,
+> {
+  readonly handle: SceneHandle<NodeId, NodeIndex, EdgeIndex>;
   readonly loadingComponent: ReactElement;
   /** Accessible name for the graph region; defaults to the entity flavour. */
   readonly ariaLabel?: string;
@@ -59,10 +63,16 @@ interface GraphVisualizerProps<NodeId extends string> {
    * benchmark drives captures and camera sweeps through it). Called with null
    * on unmount.
    */
-  readonly onSceneReady?: (scene: Scene<NodeId> | null) => void;
+  readonly onSceneReady?: (
+    scene: Scene<NodeId, NodeIndex, EdgeIndex> | null,
+  ) => void;
 }
 
-export const GraphVisualizer = <NodeId extends string = EntityId>({
+export const GraphVisualizer = <
+  NodeId extends string = EntityId,
+  NodeIndex extends number = number,
+  EdgeIndex extends number = number,
+>({
   handle,
   loadingComponent,
   ariaLabel = "Entity relationship graph",
@@ -77,9 +87,9 @@ export const GraphVisualizer = <NodeId extends string = EntityId>({
   onNodeLabels,
   labelPolicy,
   onSceneReady,
-}: GraphVisualizerProps<NodeId>): ReactElement => {
+}: GraphVisualizerProps<NodeId, NodeIndex, EdgeIndex>): ReactElement => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const sceneRef = useRef<Scene<NodeId> | null>(null);
+  const sceneRef = useRef<Scene<NodeId, NodeIndex, EdgeIndex> | null>(null);
   const [hasStructure, setHasStructure] = useState(false);
   const handleFirstStructure = useCallback(() => setHasStructure(true), []);
 
@@ -101,7 +111,7 @@ export const GraphVisualizer = <NodeId extends string = EntityId>({
     // the loading overlay again until its first structure frame arrives.
     setHasStructure(false);
 
-    const scene = new Scene<NodeId>(
+    const scene = new Scene<NodeId, NodeIndex, EdgeIndex>(
       container,
       handle,
       {

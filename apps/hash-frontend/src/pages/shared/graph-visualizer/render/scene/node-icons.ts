@@ -54,14 +54,22 @@ import type { IconAtlas } from "../gpu/icon-atlas";
 import type { SceneCallbacks } from "./callbacks";
 import type { SceneHandle } from "./handle";
 
-export interface NodeIconsDependencies<NodeId extends string> {
-  readonly handle: SceneHandle<NodeId>;
+export interface NodeIconsDependencies<
+  NodeId extends string,
+  NodeIndex extends number,
+  EdgeIndex extends number,
+> {
+  readonly handle: SceneHandle<NodeId, NodeIndex, EdgeIndex>;
   readonly callbacks: () => SceneCallbacks<NodeId>;
   readonly iconAtlas: IconAtlas;
 }
 
-export class NodeIcons<NodeId extends string> {
-  readonly #dependencies: NodeIconsDependencies<NodeId>;
+export class NodeIcons<
+  NodeId extends string,
+  NodeIndex extends number,
+  EdgeIndex extends number,
+> {
+  readonly #dependencies: NodeIconsDependencies<NodeId, NodeIndex, EdgeIndex>;
 
   /** Flat-tier per-render-index icon atlas key. Extended in place on grow-only frames. */
   #flatNames: (string | null)[] = [];
@@ -74,7 +82,9 @@ export class NodeIcons<NodeId extends string> {
   #leafSourceNodeIds = new Map<ClusterId, readonly string[]>();
   #version = 0;
 
-  constructor(dependencies: NodeIconsDependencies<NodeId>) {
+  constructor(
+    dependencies: NodeIconsDependencies<NodeId, NodeIndex, EdgeIndex>,
+  ) {
     this.#dependencies = dependencies;
   }
 

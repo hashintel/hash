@@ -16,7 +16,7 @@
  */
 import { useEffect } from "react";
 
-import type { WorkerHandle } from "./render/entity-worker-connection";
+import type { EntityWorkerHandle } from "./render/entity-worker-connection";
 import type { CapturedLayoutFixture } from "./worker/protocol";
 
 /** Trigger a browser download of the fixture; returns the filename. */
@@ -63,7 +63,7 @@ function syncWindowHook(): void {
  * flat layout is live, e.g. hierarchical mode).
  */
 export function useLayoutFixtureCaptureHook(
-  handle: WorkerHandle | undefined,
+  handle: EntityWorkerHandle | undefined,
 ): void {
   useEffect(() => {
     if (!handle) {
