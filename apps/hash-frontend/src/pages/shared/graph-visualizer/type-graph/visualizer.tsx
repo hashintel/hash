@@ -166,6 +166,7 @@ export const TypeGraphVisualizer: React.FC<TypeGraphVisualizerProps> = memo(
     // the selection tracks pan frames.
     const openSelectedType = useCallback(() => {
       const selection = overlayStore.selection.getValue();
+
       if (selection && selection.nodeId !== ANYTHING_NODE_URL) {
         onTypeClick(selection.nodeId);
       }
@@ -175,7 +176,7 @@ export const TypeGraphVisualizer: React.FC<TypeGraphVisualizerProps> = memo(
 
     // Selecting a frontier node expands it: fetch its schema (if needed) and
     // walk its links into the graph on the rebuild that follows. Loaded nodes
-    // just select -- no expansion churn.
+    // just select, and therefore no expansion churn.
     const handleNodeSelect = useCallback(
       (selection: NodeSelection<VersionedUrl> | null) => {
         overlayStore.selection.setValue(selection);

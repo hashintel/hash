@@ -107,6 +107,15 @@ function buildLabelLayers({
 
 export class Scene<NodeId extends string = EntityId> {
   readonly #deck: Deck<OrthographicView>;
+  /**
+   * Scene-owned canvas, removed explicitly on {@link dispose}. Deck only
+   * removes an internally-created canvas from the DOM once its ASYNC device
+   * init has attached it (`_setDevice`); a Deck finalized before that --
+   * e.g. a filter change recreating the worker moments after mount --
+   * orphans its canvas in the container, stacking dead `deckgl-overlay`
+   * canvases that break pointer math for the live one underneath.
+   */
+  readonly #canvas: HTMLCanvasElement;
   readonly #handle: SceneHandle<NodeId>;
   readonly #unsubscribe: () => void;
 
@@ -197,8 +206,20 @@ export class Scene<NodeId extends string = EntityId> {
       iconAtlas: this.#iconAtlas,
     });
 
+    // Pre-style to what Deck's own sizing would apply, so the canvas fills
+    // the container even before (or without) device init.
+    this.#canvas = document.createElement("canvas");
+    Object.assign(this.#canvas.style, {
+      position: "absolute",
+      inset: "0",
+      width: "100%",
+      height: "100%",
+    });
+    container.appendChild(this.#canvas);
+
     this.#deck = new Deck<OrthographicView>({
       parent: container,
+      canvas: this.#canvas,
       views: new OrthographicView({ id: "main", controller: true }),
       controller: true,
       viewState: this.#camera.viewState,
@@ -312,6 +333,9 @@ export class Scene<NodeId extends string = EntityId> {
     this.#unsubscribe();
     this.#iconAtlas.dispose();
     this.#deck.finalize();
+    // Deck never removes an externally-provided canvas; and even for its own
+    // it fails to when finalized before async device init (see #canvas).
+    this.#canvas.remove();
   }
 
   #handleEvent(event: WorkerEvent): void {
