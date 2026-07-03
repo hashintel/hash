@@ -203,8 +203,7 @@ const getDefaultCellValue = (
   }
 };
 
-const formatCellValue = (value: SpreadsheetCellValue): string =>
-  typeof value === "boolean" ? String(value) : String(value);
+const formatCellValue = (value: SpreadsheetCellValue): string => String(value);
 
 const parseCellValue = (
   column: SpreadsheetColumn | undefined,
@@ -449,6 +448,12 @@ export const Spreadsheet: React.FC<SpreadsheetProps> = ({
         event.preventDefault();
         updateCell(row, col, false);
         setSelectedRow(null);
+        return;
+      }
+      // Swallow any other printable key — boolean cells never open the text
+      // editor (but keep shortcuts like Cmd+C working).
+      if (event.key.length === 1 && !event.metaKey && !event.ctrlKey) {
+        event.preventDefault();
         return;
       }
     }
@@ -713,7 +718,7 @@ export const Spreadsheet: React.FC<SpreadsheetProps> = ({
                               step={
                                 columns[colIndex]?.type === "integer"
                                   ? 1
-                                  : undefined
+                                  : "any"
                               }
                               value={editingValue}
                               onChange={(event) =>
@@ -749,6 +754,7 @@ export const Spreadsheet: React.FC<SpreadsheetProps> = ({
                               }}
                               role="checkbox"
                               aria-checked={Boolean(value)}
+                              aria-label={columns[colIndex].name}
                               tabIndex={0}
                               onFocus={() => {
                                 setFocusedCell({
@@ -765,11 +771,15 @@ export const Spreadsheet: React.FC<SpreadsheetProps> = ({
                               }
                               className={cellButtonStyle({ isFocused })}
                             >
+                              {/* Visual only — the wrapping div owns the
+                                  checkbox role, so hide this from AT to
+                                  avoid double announcement. */}
                               <input
                                 type="checkbox"
                                 checked={Boolean(value)}
                                 readOnly
                                 tabIndex={-1}
+                                aria-hidden
                                 className={booleanCellStyle}
                               />
                             </div>
