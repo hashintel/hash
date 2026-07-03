@@ -33,6 +33,7 @@
   },
   "devDependencies": {
     "@local/tsconfig": "workspace:*",
+    "@rust/darwin-kperf-criterion": "workspace:*",
     "@rust/hash-codegen": "workspace:*",
     "typescript": "5.9.3"
   }
