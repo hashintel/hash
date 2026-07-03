@@ -198,8 +198,8 @@ const MetricFormSections = ({
           </label>
           <TextArea
             htmlForId={`${idPrefix}metric-description`}
+            className={css({ minHeight: "[80px]" })}
             size="sm"
-            resize="vertical"
             value={state.description}
             onChange={callbacks.onDescriptionChange}
           />

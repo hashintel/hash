@@ -47,7 +47,7 @@ export const TextArea = ({
   placeholder,
   rows = 3,
   readonly,
-  resize = "both",
+  resize = "vertical",
   autoResize = false,
   variant = "default",
   align = "left",
@@ -108,13 +108,10 @@ export const TextArea = ({
   }
 
   return (
-    <div
-      ref={ref as React.Ref<HTMLDivElement>}
-      className={cx(classes.wrapper, className)}
-    >
+    <div ref={ref as React.Ref<HTMLDivElement>} className={classes.wrapper}>
       {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- click-to-focus container delegates to inner <textarea> */}
       <div
-        className={classes.root}
+        className={cx(classes.root, className)}
         data-part="textarea-box"
         onClick={(event) => {
           if (!disabled) {

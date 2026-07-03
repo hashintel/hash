@@ -600,8 +600,8 @@ const ScenarioFormSections = ({
           </label>
           <TextArea
             htmlForId={`${idPrefix}scenario-description`}
+            className={css({ minHeight: "[80px]" })}
             size="sm"
-            resize="vertical"
             value={state.description}
             onChange={callbacks.onDescriptionChange}
           />
