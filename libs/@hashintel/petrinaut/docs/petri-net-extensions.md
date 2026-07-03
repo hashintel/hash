@@ -130,7 +130,7 @@ Use the menu in the code editor header to **Load default template** for a starti
 
 ### Distributions
 
-Kernel output values are plain numbers or booleans. When stochasticity is enabled for the document, numeric output values can also be `Distribution` objects for stochastic output:
+Kernel output values are plain numbers or booleans. When stochasticity is enabled for the document, values for **Real** dimensions can also be `Distribution` objects for stochastic output (discrete dimensions -- Integer and Boolean -- always take plain values):
 
 - `Distribution.Gaussian(mean, standardDeviation)`
 - `Distribution.Uniform(min, max)`

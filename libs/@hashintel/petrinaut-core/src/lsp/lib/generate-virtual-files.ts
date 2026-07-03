@@ -59,6 +59,30 @@ function toDynamicsDerivativeType(color: Color): string {
 }
 
 /**
+ * Kernel output token type when stochasticity is enabled. Only continuous
+ * (`real`) attributes may be produced as a `Distribution`; discrete
+ * attributes (`integer`, `boolean`) must be plain values — the generic
+ * `Probabilistic<T>` mapped type could not distinguish integer from real
+ * (both are `number`), so the type is generated per element instead.
+ */
+function toStochasticOutputTokenType(color: Color): string {
+  const properties = color.elements
+    .map(
+      (element) =>
+        `  ${element.name}: ${
+          element.type === "real"
+            ? "number | Distribution"
+            : toTsType(element.type)
+        };`,
+    )
+    .join("\n");
+
+  return properties.length > 0
+    ? `{\n${properties}\n}`
+    : "Record<string, never>";
+}
+
+/**
  * Scope separator for component instance place names
  */
 const SCOPE_SEPARATOR = "::";
@@ -113,7 +137,6 @@ export function generateVirtualFiles(
     content: extensions.stochasticity
       ? [
           `type Distribution = { map(fn: (value: number) => number): Distribution };`,
-          `type Probabilistic<T> = { [K in keyof T]: T[K] extends number ? number | Distribution : T[K] };`,
           `declare namespace Distribution {`,
           `  function Gaussian(mean: number, deviation: number): Distribution;`,
           `  function Uniform(min: number, max: number): Distribution;`,
@@ -270,6 +293,8 @@ export function generateVirtualFiles(
     // Build output type: { [placeName]: [Token, Token, ...] } based on output arcs.
     const outputTypeImports: string[] = [];
     const outputTypeProperties: string[] = [];
+    // Per-colour stochastic output token types (Distribution on real only).
+    const outputTokenTypeAliases = new Map<string, string>();
 
     for (const arc of transition.outputArcs) {
       const place = resolveArcPlace(arc);
@@ -296,10 +321,19 @@ export function generateVirtualFiles(
       const tokenTuple = Array.from({ length: arc.weight })
         .fill(
           extensions.stochasticity
-            ? `Probabilistic<Color_${sanitizedColorId}>`
+            ? `Output_${sanitizedColorId}`
             : `Color_${sanitizedColorId}`,
         )
         .join(", ");
+      if (
+        extensions.stochasticity &&
+        !outputTokenTypeAliases.has(sanitizedColorId)
+      ) {
+        outputTokenTypeAliases.set(
+          sanitizedColorId,
+          `type Output_${sanitizedColorId} = ${toStochasticOutputTokenType(color)};`,
+        );
+      }
       const placeDisplayName = getPlaceDisplayNameForArc(arc, sdcpn);
       outputTypeProperties.push(`  "${placeDisplayName}": [${tokenTuple}];`);
     }
@@ -349,6 +383,7 @@ export function generateVirtualFiles(
           `import type { Parameters } from "${parametersDefsPath}";`,
           ...allImports,
           ``,
+          ...outputTokenTypeAliases.values(),
           `export type Input = ${inputType};`,
           `export type Output = ${outputType};`,
           `export type TransitionKernel = (fn: (input: Input, parameters: Parameters) => Output) => void;`,
