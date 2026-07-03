@@ -13215,6 +13215,7 @@ __metadata:
   dependencies:
     "@blockprotocol/type-system-rs": "workspace:*"
     "@local/tsconfig": "workspace:*"
+    "@rust/darwin-kperf-criterion": "workspace:*"
     "@rust/error-stack": "workspace:*"
     "@rust/hash-codec": "workspace:*"
     "@rust/hash-codegen": "workspace:*"
