@@ -7,6 +7,7 @@
  */
 import { dimColor } from "../../../dim-color";
 import { entityIndexFromNodeId } from "../../../ids";
+import { writeStraightFlatEdge } from "../../core/flat-edge-writer";
 import { entityStyle } from "../../entity-style";
 import { edgeColorForTypeGroup } from "./colors";
 
@@ -177,37 +178,6 @@ export class FlatEdgePipeline {
         continue;
       }
 
-      const ax = source.x ?? 0;
-      const ay = source.y ?? 0;
-      const bx = target.x ?? 0;
-      const by = target.y ?? 0;
-      const dx = bx - ax;
-      const dy = by - ay;
-      const chord = Math.hypot(dx, dy);
-
-      if (chord <= 0.001) {
-        continue;
-      }
-
-      const startDistance = source.radius + edgeWidth;
-      const endDistance = target.radius + edgeWidth;
-      const visibleChord = chord - startDistance - endDistance;
-      if (visibleChord <= edgeWidth) {
-        continue;
-      }
-
-      const ux = dx / chord;
-      const uy = dy / chord;
-      const sx = ax + ux * startDistance;
-      const sy = ay + uy * startDistance;
-      const tx = bx - ux * endDistance;
-      const ty = by - uy * endDistance;
-      const edgeEndInset = Math.min(edgeWidth * 0.9, visibleChord * 0.35);
-      const edgeTx = tx - ux * edgeEndInset;
-      const edgeTy = ty - uy * edgeEndInset;
-      const visibleDx = edgeTx - sx;
-      const visibleDy = edgeTy - sy;
-
       // An edge stays full only when both endpoints are highlighted.
       const full =
         highlighted.size === 0 ||
@@ -215,28 +185,18 @@ export class FlatEdgePipeline {
           highlighted.has(entityIndexFromNodeId(target.id)));
       const color = full ? edge.color : dimColor(edge.color);
 
-      sink.pushUnclipped(
-        sx,
-        sy,
-        sx + visibleDx / 3,
-        sy + visibleDy / 3,
-        sx + (2 * visibleDx) / 3,
-        sy + (2 * visibleDy) / 3,
-        edgeTx,
-        edgeTy,
+      writeStraightFlatEdge(
+        sink,
+        arrows,
+        source.x ?? 0,
+        source.y ?? 0,
+        source.radius,
+        target.x ?? 0,
+        target.y ?? 0,
+        target.radius,
         color,
         edgeWidth,
         edge.linkEntityIdx,
-      );
-
-      const arrowInset = Math.min(edgeWidth * 0.45, visibleChord * 0.2);
-      arrows.push(
-        tx + ux * arrowInset,
-        ty + uy * arrowInset,
-        Math.atan2(dy, dx),
-        edgeWidth,
-        visibleChord,
-        color,
       );
     }
   }

@@ -31,6 +31,18 @@ export const LinkId = make<LinkId>();
 export type TypeId = Branded<number, "TypeId">;
 export const TypeId = make<TypeId>();
 
+/**
+ * Type-graph force-layout node ids are stringified {@link TypeId} values,
+ * mirroring the entity pair above. These two helpers are the only sanctioned
+ * conversion in each direction; keep them inverse of one another.
+ */
+export const nodeIdForTypeId = (typeId: TypeId): string => String(typeId);
+
+export const typeIdFromNodeId = (nodeId: string): TypeId =>
+  // nodeId is always String(typeId) from nodeIdForTypeId; Number round-trips
+  // safely for registry-sized ids.
+  Number(nodeId) as TypeId;
+
 /** Sorted, comma-joined TypeIdx values. Canonical grouping key. */
 export type TypeSetKey = Branded<string, "TypeSetKey">;
 export const TypeSetKey = make<TypeSetKey>();

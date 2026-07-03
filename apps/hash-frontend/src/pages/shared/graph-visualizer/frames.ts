@@ -1,5 +1,5 @@
 import type { Position } from "./geometry";
-import type { ClusterId, VizMode } from "./ids";
+import type { ClusterId, TypeId, VizMode } from "./ids";
 /**
  * Types the rendering layer owns: the payloads the worker sends to the main
  * thread for Deck.gl to consume.
@@ -156,6 +156,19 @@ export interface HighwayLaneSummary {
   readonly direction: "forward" | "reverse" | "both";
 }
 
+/**
+ * One rendered type-graph edge (source type to target type via a link type).
+ * The edge's index in {@link StructureFrame.typeEdges} is the id carried on
+ * its bezier segments ({@link RenderBezierBuffers.ids}), so a picked or
+ * hovered edge resolves to the link type naming it. Ids resolve to urls via
+ * the type-id table (see {@link "./worker/type-graph/protocol"}).
+ */
+export interface RenderTypeEdge {
+  readonly source: TypeId;
+  readonly target: TypeId;
+  readonly linkTypeId: TypeId;
+}
+
 export interface StructureFrame {
   readonly version: number;
   readonly mode: VizMode;
@@ -178,6 +191,12 @@ export interface StructureFrame {
    * visual edges occupy their slot with a placeholder so the index aligns.
    */
   readonly highwayLanes: readonly HighwayLaneSummary[];
+  /**
+   * Present in the type-graph lifecycle: the rendered edges, indexed by the
+   * bezier segment ids. Absent in the entity lifecycle (whose flat edges
+   * carry link EntityIdx ids instead).
+   */
+  readonly typeEdges?: readonly RenderTypeEdge[];
 }
 
 /**

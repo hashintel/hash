@@ -14,7 +14,7 @@ import {
 import {
   FLAT_SEED_DISK_SCALE,
   FLAT_SEED_NEIGHBOUR_OFFSET,
-} from "./worker/entity-graph/flat/seed";
+} from "./worker/core/flat-seed";
 import {
   GROWTH_RELAYOUT_TOLERANCE_FRAC,
   OVERLAP_REBUILD_TOLERANCE_FRAC,

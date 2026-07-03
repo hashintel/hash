@@ -1,28 +1,40 @@
 /**
  * Web worker entry point: the first message selects the lifecycle
- * (`INIT_ENTITY` boots an {@link EntityGraphWorker}), then every later
- * {@link MainToWorkerMessage} dispatches into it and its replies and frames
- * post back to the main thread. Each connection spawns its own Worker, so
- * exactly one lifecycle ever runs per worker process.
+ * (`INIT_ENTITY` boots an {@link EntityGraphWorker}, `INIT_TYPE` a
+ * {@link TypeGraphWorker}), then every later message dispatches into it and
+ * its replies and frames post back to the main thread. Each connection
+ * spawns its own Worker, so exactly one lifecycle ever runs per worker
+ * process.
  *
- * `INGEST_BATCH` applies immediately to the stores, but the resulting
- * structure commit is coalesced across a burst (see {@link CommitCoalescer});
- * every other handler that reads committed state (viewport, queries,
- * embedding results, pin/highlight) flushes the coalescer first so it never
- * observes a stale cut or layout. Buffers attached to `STRUCTURE_FRAME` and
- * `POSITIONS_FRAME` are exclusively worker-owned until transferred in
- * `postMessage`.
+ * Entity lifecycle: `INGEST_BATCH` applies immediately to the stores, but
+ * the resulting structure commit is coalesced across a burst (see
+ * {@link CommitCoalescer}); every other handler that reads committed state
+ * (viewport, queries, embedding results, pin/highlight) flushes the
+ * coalescer first so it never observes a stale cut or layout. The type
+ * lifecycle commits per `INGEST_TYPES` message (no coalescer: type graphs
+ * arrive in a few batches, not streamed). Buffers attached to
+ * `STRUCTURE_FRAME` and `POSITIONS_FRAME` are exclusively worker-owned until
+ * transferred in `postMessage`.
  */
 
 import { CommitCoalescer } from "./core/commit-coalescer";
 import { EntityGraphWorker } from "./entity-graph/worker";
+import { TypeGraphWorker } from "./type-graph/worker";
 
 import type { PositionsFrame, StructureFrame } from "../frames";
 import type { MainToWorkerMessage, WorkerToMainMessage } from "./protocol";
+import type {
+  MainToTypeWorkerMessage,
+  TypeEgoResultMessage,
+  TypeIdTableMessage,
+} from "./type-graph/protocol";
 
 const workerScope = globalThis as unknown as DedicatedWorkerGlobalScope;
 
-function post(message: WorkerToMainMessage, transfer?: Transferable[]): void {
+function post(
+  message: WorkerToMainMessage | TypeIdTableMessage | TypeEgoResultMessage,
+  transfer?: Transferable[],
+): void {
   workerScope.postMessage(message, transfer ?? []);
 }
 
@@ -66,6 +78,7 @@ function postPositions(frame: PositionsFrame): void {
 }
 
 let worker: EntityGraphWorker | undefined;
+let typeWorker: TypeGraphWorker | undefined;
 
 /**
  * Coalesces per-batch commits during an ingest burst: batches are
@@ -127,7 +140,9 @@ function createCommitCoalescer(created: EntityGraphWorker): CommitCoalescer {
   });
 }
 
-globalThis.onmessage = ({ data }: MessageEvent<MainToWorkerMessage>) => {
+globalThis.onmessage = ({
+  data,
+}: MessageEvent<MainToWorkerMessage | MainToTypeWorkerMessage>) => {
   switch (data.type) {
     case "INIT_ENTITY": {
       try {
@@ -146,7 +161,66 @@ globalThis.onmessage = ({ data }: MessageEvent<MainToWorkerMessage>) => {
       break;
     }
 
+    case "INIT_TYPE": {
+      try {
+        const created = new TypeGraphWorker(data.config);
+        typeWorker = created;
+        created.onSideMessage = (msg) => post(msg);
+        created.onStructureFrame = (frame) => postStructure(frame);
+        created.onPositionsFrame = (frame) => postPositions(frame);
+
+        post({ type: "READY" });
+      } catch (err) {
+        post({ type: "ERROR", message: String(err) });
+      }
+      break;
+    }
+
+    case "INGEST_TYPES": {
+      if (!typeWorker) {
+        post({ type: "ERROR", message: "Worker not initialized" });
+        break;
+      }
+
+      try {
+        typeWorker.ingest(data.nodes, data.edges, data.linkTypeSchemas);
+      } catch (err) {
+        post({ type: "ERROR", message: String(err), context: "INGEST_TYPES" });
+      }
+      break;
+    }
+
+    case "SET_TYPE_HIGHLIGHT": {
+      typeWorker?.setHighlight(data.typeIds);
+      break;
+    }
+
+    case "QUERY_TYPE_EGO": {
+      if (!typeWorker) {
+        break;
+      }
+      post({
+        type: "TYPE_EGO_RESULT",
+        requestId: data.requestId,
+        typeIds: typeWorker.ego(data.typeId),
+      });
+      break;
+    }
+
     case "UPDATE_CONFIG": {
+      if (typeWorker) {
+        try {
+          typeWorker.updateConfig(data.config);
+        } catch (err) {
+          post({
+            type: "ERROR",
+            message: String(err),
+            context: "UPDATE_CONFIG",
+          });
+        }
+        break;
+      }
+
       if (!worker) {
         post({ type: "ERROR", message: "Worker not initialized" });
         break;
@@ -313,6 +387,7 @@ globalThis.onmessage = ({ data }: MessageEvent<MainToWorkerMessage>) => {
       // no committed state; a pending commit lands (without ticking) on the
       // next queue drain as usual.
       worker?.setSimulationPaused(data.paused);
+      typeWorker?.setSimulationPaused(data.paused);
       break;
     }
 
