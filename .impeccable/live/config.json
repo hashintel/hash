@@ -1,6 +1,0 @@
-{
-  "files": ["apps/hash-frontend/src/pages/_document.page.tsx"],
-  "insertBefore": "</body>",
-  "commentSyntax": "jsx",
-  "cspChecked": true
-}
