@@ -5,6 +5,7 @@ export { CharacterCount } from "./components/CharacterCount/character-count";
 export { Checkbox } from "./components/Checkbox/checkbox";
 export { CheckboxGroup } from "./components/CheckboxGroup/checkbox-group";
 export { Dialog } from "./components/Dialog/dialog";
+export { Drawer } from "./components/Drawer/drawer";
 export { Form } from "./components/Form/form";
 export { HelpTooltip } from "./components/HelpTooltip/help-tooltip";
 export { Icon, type IconName, iconNames } from "./components/Icon/icon";

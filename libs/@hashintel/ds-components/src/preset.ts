@@ -116,6 +116,14 @@ export function createPreset(options?: PresetOptions) {
             from: { opacity: "1" },
             to: { opacity: "0" },
           },
+          drawerSlideIn: {
+            from: { transform: "translateX(100%)" },
+            to: { transform: "translateX(0)" },
+          },
+          drawerSlideOut: {
+            from: { transform: "translateX(0)" },
+            to: { transform: "translateX(100%)" },
+          },
           popoverIn: {
             from: { opacity: "0", transform: "scale(0.98)" },
             to: { opacity: "1", transform: "scale(1)" },
