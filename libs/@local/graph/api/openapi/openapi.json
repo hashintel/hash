@@ -7993,16 +7993,7 @@
           "filter": {
             "$ref": "#/components/schemas/Filter"
           },
-          "includeCount": {
-            "type": "boolean"
-          },
-          "includeCreatedByIds": {
-            "type": "boolean"
-          },
           "includeDrafts": {
-            "type": "boolean"
-          },
-          "includeEditionCreatedByIds": {
             "type": "boolean"
           },
           "includeEntityTypes": {
@@ -8014,15 +8005,6 @@
             "nullable": true
           },
           "includePermissions": {
-            "type": "boolean"
-          },
-          "includeTypeIds": {
-            "type": "boolean"
-          },
-          "includeTypeTitles": {
-            "type": "boolean"
-          },
-          "includeWebIds": {
             "type": "boolean"
           },
           "limit": {
@@ -8115,58 +8097,6 @@
             "allOf": [
               {
                 "$ref": "#/components/schemas/QueryEntitiesRequest"
-              },
-              {
-                "type": "object",
-                "required": [
-                  "filter",
-                  "traversalPaths",
-                  "graphResolveDepths"
-                ],
-                "properties": {
-                  "filter": {
-                    "$ref": "#/components/schemas/Filter"
-                  },
-                  "graphResolveDepths": {
-                    "$ref": "#/components/schemas/GraphResolveDepths"
-                  },
-                  "traversalPaths": {
-                    "type": "array",
-                    "items": {
-                      "$ref": "#/components/schemas/EntityTraversalPath"
-                    }
-                  }
-                }
-              }
-            ]
-          },
-          {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/EntityQueryOptions"
-              },
-              {
-                "type": "object",
-                "required": [
-                  "query",
-                  "traversalPaths"
-                ],
-                "properties": {
-                  "query": {},
-                  "traversalPaths": {
-                    "type": "array",
-                    "items": {
-                      "$ref": "#/components/schemas/TraversalPath"
-                    }
-                  }
-                }
-              }
-            ]
-          },
-          {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/EntityQueryOptions"
               },
               {
                 "type": "object",
