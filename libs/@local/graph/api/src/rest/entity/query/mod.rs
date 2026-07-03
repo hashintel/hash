@@ -152,6 +152,7 @@ where
 
     let request = QueryEntitySubgraphRequest::deserialize(&request)
         .map_err(Report::from)
+        .attach(hash_status::StatusCode::InvalidArgument)
         .map_err(report_to_response)?;
 
     let params = request
