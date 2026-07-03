@@ -214,12 +214,12 @@ describe("uuid u64x2 lanes", () => {
     );
 
     const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
-    // eslint-disable-next-line no-bitwise -- lane inspection
-    expect(view.getBigUint64(0, true)).toBe(
-      canonicalValue & 0xffffffffffffffffn,
-    );
-    // eslint-disable-next-line no-bitwise -- lane inspection
-    expect(view.getBigUint64(8, true)).toBe(canonicalValue >> 64n);
+    /* eslint-disable no-bitwise -- lane inspection */
+    const expectedLo = canonicalValue & 0xffffffffffffffffn;
+    const expectedHi = canonicalValue >> 64n;
+    /* eslint-enable no-bitwise */
+    expect(view.getBigUint64(0, true)).toBe(expectedLo);
+    expect(view.getBigUint64(8, true)).toBe(expectedHi);
   });
 
   it("round-trips bigint and string uuid values", () => {

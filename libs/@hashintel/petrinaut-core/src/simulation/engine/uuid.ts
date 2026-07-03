@@ -82,21 +82,26 @@ export function toUuid(value: unknown): bigint {
  * Generates a v4-shaped UUID from the seeded simulation RNG (never
  * `crypto.randomUUID` — simulation runs must stay deterministic per seed).
  *
- * Draws four values from `nextRandom`, maps each to 32 bits, assembles them
- * MSB-first into a 128-bit bigint, then forces the version (4) and RFC 4122
- * variant bits.
+ * Draws eight values from `nextRandom`, takes the top 16 bits of each,
+ * assembles them MSB-first into a 128-bit bigint, then forces the version (4)
+ * and RFC 4122 variant bits.
  */
 export function generateUuidFromRng(
   rngState: number,
 ): [uuid: bigint, nextRngState: number] {
   let state = rngState;
   let b = 0n;
-  for (let draw = 0; draw < 4; draw++) {
+  // The seeded LCG's low bits are unreliable: `LCG_A * state` exceeds 2^53
+  // for large states, so each draw's low ~8 bits are float-precision
+  // artifacts (visibly zero in generated IDs). Only the top 16 bits of each
+  // draw are well-mixed and precision-safe, so a UUID takes eight 16-bit
+  // draws instead of four 32-bit ones.
+  for (let draw = 0; draw < 8; draw++) {
     const [value, nextState] = nextRandom(state);
     state = nextState;
-    const word = Math.floor(value * 0x1_0000_0000);
+    const word = Math.floor(value * 0x1_0000);
     // eslint-disable-next-line no-bitwise -- assembling the 128-bit value
-    b = (b << 32n) | BigInt(word);
+    b = (b << 16n) | BigInt(word);
   }
   /* eslint-disable no-bitwise -- version/variant bit surgery */
   // Version nibble (bits 76–79) := 4.

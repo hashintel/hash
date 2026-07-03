@@ -126,6 +126,7 @@ const rowNumberCellStyle = cva({
 
 const cellContainerStyle = cva({
   base: {
+    position: "relative",
     borderBottom: "[1px solid {colors.neutral.a05}]",
     padding: "0",
     height: "[28px]",
@@ -193,6 +194,41 @@ const cellButtonStyle = cva({
 
 const booleanCellStyle = css({
   margin: "0",
+});
+
+/**
+ * Selected uuid cells expand to the full canonical string, spilling over the
+ * neighbouring cells (spreadsheet-style overflow). Pointer events pass
+ * through so double-click still opens the editor underneath. Cells in the
+ * right half of the table spill leftwards so the overlay is not clipped by
+ * the scroll container's edge.
+ */
+const uuidExpandedOverlayStyle = cva({
+  base: {
+    position: "absolute",
+    top: "[0]",
+    height: "[28px]",
+    display: "flex",
+    alignItems: "center",
+    padding: "[4px 8px]",
+    fontFamily: "mono",
+    fontSize: "xs",
+    whiteSpace: "nowrap",
+    width: "[max-content]",
+    minWidth: "[100%]",
+    // Opaque: the overlay covers neighbouring cell content while expanded.
+    backgroundColor: "neutral.s00",
+    outline: "[2px solid {colors.blue.s50}]",
+    outlineOffset: "[-2px]",
+    zIndex: "[2]",
+    pointerEvents: "none",
+  },
+  variants: {
+    anchor: {
+      left: { left: "[0]" },
+      right: { right: "[0]", justifyContent: "flex-end" },
+    },
+  },
 });
 
 const getDefaultCellValue = (
@@ -868,6 +904,21 @@ export const Spreadsheet: React.FC<SpreadsheetProps> = ({
                                 : getCellDisplayText(columns[colIndex], value)}
                             </div>
                           )}
+                          {!isReadOnly &&
+                          !isEditing &&
+                          !isPhantomRow &&
+                          isFocused &&
+                          columns[colIndex]?.type === "uuid" ? (
+                            <span
+                              className={uuidExpandedOverlayStyle({
+                                anchor:
+                                  colIndex >= colCount / 2 ? "right" : "left",
+                              })}
+                              aria-hidden
+                            >
+                              {toCanonicalUuidString(value)}
+                            </span>
+                          ) : null}
                         </td>
                       );
                     })}
