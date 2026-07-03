@@ -1,29 +1,34 @@
 /**
- * Hover-card state: the hovered entity dot (card at the cursor), the hovered
- * highway (summary anchored to a world point), and the hovered wholly-frontier
- * cluster bubble (load card anchored to the bubble). The anchored cards are
- * re-emitted on every frame / camera move so they track pan + settle.
+ * Hover-card state: the hovered node dot (card at the cursor), a hovered
+ * non-node flat edge (a type graph's link-type edge, card at the cursor),
+ * the hovered highway (summary anchored to a world point), and the hovered
+ * wholly-frontier cluster bubble (load card anchored to the bubble). The
+ * anchored cards are re-emitted on every frame / camera move so they track
+ * pan + settle.
  */
 import type { ClusterId } from "../../ids";
 import type { PlacedCluster } from "../clusters";
-import type { WorkerHandle } from "../entity-worker-connection";
+import type { FrameHandle } from "../frame-connection";
 import type { SceneCallbacks } from "./callbacks";
-import type { EntityId } from "@blockprotocol/type-system";
+import type { FlatEdgePick } from "./handle";
 import type { Deck, OrthographicView } from "@deck.gl/core";
 
-export interface HoverTrackerDependencies {
-  readonly handle: WorkerHandle;
+export interface HoverTrackerDependencies<NodeId extends string> {
+  readonly handle: FrameHandle;
   readonly deck: () => Deck<OrthographicView>;
-  readonly callbacks: () => SceneCallbacks;
+  readonly callbacks: () => SceneCallbacks<NodeId>;
   /** The persistent cluster-bubble set (positions mutate in place per tick). */
   readonly placed: () => readonly PlacedCluster[];
   readonly zoom: () => number;
 }
 
-export class HoverTracker {
-  readonly #dependencies: HoverTrackerDependencies;
+export class HoverTracker<NodeId extends string> {
+  readonly #dependencies: HoverTrackerDependencies<NodeId>;
 
-  #hoveredEntity: EntityId | null = null;
+  #hoveredNode: NodeId | null = null;
+
+  /** True while a non-node flat edge's card is showing (cursor-positioned, not anchored). */
+  #edgeHoverActive = false;
 
   /**
    * The hovered highway's lane + the hovered point in WORLD space. Kept so the summary card tracks
@@ -40,16 +45,36 @@ export class HoverTracker {
    */
   #hoveredClusterId: ClusterId | null = null;
 
-  constructor(dependencies: HoverTrackerDependencies) {
+  constructor(dependencies: HoverTrackerDependencies<NodeId>) {
     this.#dependencies = dependencies;
   }
 
-  /** An entity dot (or a flat link edge) is hovered: card at the cursor. */
-  setEntity(entityId: EntityId, x: number, y: number): void {
-    this.#hoveredEntity = entityId;
-    this.#dependencies.callbacks().onEntityHover?.({ entityId, x, y });
+  /** A node dot (or a flat link edge that is a node) is hovered: card at the cursor. */
+  setNode(nodeId: NodeId, x: number, y: number): void {
+    this.#hoveredNode = nodeId;
+    this.#dependencies.callbacks().onNodeHover?.({ nodeId, x, y });
+    this.clearEdge();
     this.clearHighway();
     this.clearCluster();
+  }
+
+  /** A non-node flat edge is hovered (type lifecycle): its triple's card at the cursor. */
+  setEdge(
+    edge: Extract<FlatEdgePick<NodeId>, { kind: "edge" }>,
+    x: number,
+    y: number
+  ): void {
+    this.clearNode();
+    this.clearHighway();
+    this.clearCluster();
+    this.#edgeHoverActive = true;
+    this.#dependencies.callbacks().onEdgeHover?.({
+      source: edge.source,
+      target: edge.target,
+      linkType: edge.linkType,
+      x,
+      y,
+    });
   }
 
   /**
@@ -58,7 +83,8 @@ export class HoverTracker {
    * {@link emitHighwayHover}), like the pinned card.
    */
   setHighway(laneId: number, screenX: number, screenY: number): void {
-    this.clearEntity();
+    this.clearNode();
+    this.clearEdge();
     this.clearCluster();
     const world = this.#viewport()?.unproject([screenX, screenY]);
     this.#hoveredHighway =
@@ -70,17 +96,26 @@ export class HoverTracker {
 
   /** A wholly-frontier bubble is hovered: the load card tracks it through pan / settle. */
   setCluster(clusterId: ClusterId): void {
-    this.clearEntity();
+    this.clearNode();
+    this.clearEdge();
     this.clearHighway();
     this.#hoveredClusterId = clusterId;
     this.emitClusterHover();
   }
 
   /** Hide the hover card (the cursor left the dots, or a pan started under it). */
-  clearEntity(): void {
-    if (this.#hoveredEntity !== null) {
-      this.#hoveredEntity = null;
-      this.#dependencies.callbacks().onEntityHover?.(null);
+  clearNode(): void {
+    if (this.#hoveredNode !== null) {
+      this.#hoveredNode = null;
+      this.#dependencies.callbacks().onNodeHover?.(null);
+    }
+  }
+
+  /** Clear the non-node edge card (cursor left it, or another hover took over). */
+  clearEdge(): void {
+    if (this.#edgeHoverActive) {
+      this.#edgeHoverActive = false;
+      this.#dependencies.callbacks().onEdgeHover?.(null);
     }
   }
 
@@ -100,7 +135,8 @@ export class HoverTracker {
   }
 
   clearAll(): void {
-    this.clearEntity();
+    this.clearNode();
+    this.clearEdge();
     this.clearHighway();
     this.clearCluster();
   }

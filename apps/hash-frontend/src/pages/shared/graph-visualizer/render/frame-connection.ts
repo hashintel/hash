@@ -170,9 +170,6 @@ const flatJoinKeySlot = (recordIndex: number): number =>
     FLAT_ENTITYIDX_BYTE_OFFSET) /
   4;
 
-/** u32 slot of the live record count ([version:i32][count:u32] header). */
-const FLAT_COUNT_SLOT = 1;
-
 /**
  * A flat-tier record's u32 join key (`entityIdx` in the entity lifecycle,
  * `TypeId` in the type lifecycle). Flat records reorder as nodes stream in,
@@ -184,23 +181,6 @@ export function flatRecordJoinKey(
 ): number | undefined {
   const records = new Uint32Array(cluster.versionView.buffer);
   return records[flatJoinKeySlot(recordIndex)];
-}
-
-/** Scan a flat buffer's live records for the wanted join keys (key -> record index). */
-export function locateFlatRecords<Key extends number>(
-  cluster: ClusterReference,
-  wanted: ReadonlySet<Key>
-): Map<Key, number> {
-  const result = new Map<Key, number>();
-  const records = new Uint32Array(cluster.versionView.buffer);
-  const count = records[FLAT_COUNT_SLOT] ?? 0;
-  for (let index = 0; index < count; index++) {
-    const key = records[flatJoinKeySlot(index)] as Key | undefined;
-    if (key !== undefined && wanted.has(key)) {
-      result.set(key, index);
-    }
-  }
-  return result;
 }
 
 export interface FrameConnectionConfig {

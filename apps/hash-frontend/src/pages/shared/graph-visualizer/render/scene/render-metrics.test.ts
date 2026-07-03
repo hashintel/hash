@@ -109,10 +109,10 @@ describe("RenderMetricsProbe", () => {
     const probe = probeAt([0, 2000]);
     probe.start(0);
     probe.sampleDeckMetrics(
-      deckSample({ fps: 60, cpuTimePerFrame: 4, framesRedrawn: 60 }),
+      deckSample({ fps: 60, cpuTimePerFrame: 4, framesRedrawn: 60 })
     );
     probe.sampleDeckMetrics(
-      deckSample({ fps: 30, cpuTimePerFrame: 8, framesRedrawn: 30 }),
+      deckSample({ fps: 30, cpuTimePerFrame: 8, framesRedrawn: 30 })
     );
 
     const report = probe.stop(0);

@@ -3,6 +3,10 @@
  * stream: structure/position events rebuild the layer set off React, and the camera lives
  * in a field (never React state), so settling and pan/zoom never trigger a render.
  * React mounts and disposes Scene; Scene owns all runtime state.
+ *
+ * Parameterized over node identity (see {@link "./scene/handle"}): the entity
+ * lifecycle mounts a `Scene<EntityId>` on an `EntityWorkerConnection`, the
+ * type lifecycle a `Scene<VersionedUrl>` on a `TypeWorkerConnection`.
  */
 import { Deck, OrthographicView } from "@deck.gl/core";
 
@@ -20,11 +24,11 @@ import { IconAtlas } from "./gpu/icon-atlas";
 import { LabelCharacterSet } from "./label-character-set";
 import { clusterLabelLayer, edgeLabelLayer, labelTexts } from "./labels";
 import { SceneCamera } from "./scene/camera";
-import { EntityIcons } from "./scene/entity-icons";
 import { GpuFrameTimer } from "./scene/gpu-frame-timer";
-import { HubLabels } from "./scene/hub-labels";
+import { defaultLabelPolicy, HubLabels } from "./scene/hub-labels";
 import { SceneInteractions } from "./scene/interactions";
 import { layerKindOf } from "./scene/layer-kinds";
+import { NodeIcons } from "./scene/node-icons";
 import { RenderMetricsProbe } from "./scene/render-metrics";
 import { ICON_ZOOM_BUCKETS_PER_UNIT } from "./scene/view-state";
 import { selectionOverlayLayers } from "./selection";
@@ -34,10 +38,12 @@ import type { PositionsFrame, StructureFrame } from "../frames";
 import type { PlacedCluster } from "./clusters";
 import type { SceneCallbacks } from "./scene/callbacks";
 import type { ZoomBucketChanges } from "./scene/camera";
+import type { SceneHandle } from "./scene/handle";
+import type { LabelPolicy } from "./scene/hub-labels";
 import type { LayerKind } from "./scene/layer-kinds";
 import type { RenderCaptureReport } from "./scene/render-metrics";
-import type { WorkerHandle } from "./entity-worker-connection";
 import type { WorkerEvent } from "./frame-connection";
+import type { EntityId } from "@blockprotocol/type-system";
 import type { Layer } from "@deck.gl/core";
 import type { Device } from "@luma.gl/core";
 
@@ -46,10 +52,20 @@ export type {
   EntityHover,
   EntityLabel,
   EntitySelection,
+  FlatEdgeHover,
   HighwayHover,
+  NodeHover,
+  NodeLabel,
+  NodeSelection,
   SceneCallbacks,
 } from "./scene/callbacks";
+export type { LabelPolicy } from "./scene/hub-labels";
 export type { RenderCaptureReport } from "./scene/render-metrics";
+
+export interface SceneOptions {
+  /** Which dots get an always-on label; omitted fields keep the entity-hub defaults. */
+  readonly labelPolicy?: Partial<LabelPolicy>;
+}
 
 interface BuildLabelLayersConfig {
   readonly structure: StructureFrame;
@@ -89,12 +105,12 @@ function buildLabelLayers({
   return result;
 }
 
-export class Scene {
+export class Scene<NodeId extends string = EntityId> {
   readonly #deck: Deck<OrthographicView>;
-  readonly #handle: WorkerHandle;
+  readonly #handle: SceneHandle<NodeId>;
   readonly #unsubscribe: () => void;
 
-  #callbacks: SceneCallbacks;
+  #callbacks: SceneCallbacks<NodeId>;
   #dataLayers: Layer[] = [];
   #labelLayers: Layer[] = [];
 
@@ -116,9 +132,9 @@ export class Scene {
   #placed: PlacedCluster[] = [];
 
   readonly #camera: SceneCamera;
-  readonly #interactions: SceneInteractions;
-  readonly #hubLabels: HubLabels;
-  readonly #entityIcons: EntityIcons;
+  readonly #interactions: SceneInteractions<NodeId>;
+  readonly #hubLabels: HubLabels<NodeId>;
+  readonly #nodeIcons: NodeIcons<NodeId>;
   /** Grow-only glyph set shared by the label layers (see label-character-set.ts). */
   readonly #labelCharacters = new LabelCharacterSet();
 
@@ -128,7 +144,7 @@ export class Scene {
   readonly #gpuTimer = new GpuFrameTimer(
     (submittedAtMs, durationMs) =>
       this.#renderMetrics.recordGpuFrame(submittedAtMs, durationMs),
-    () => this.#renderMetrics.recordGpuDisjoint(),
+    () => this.#renderMetrics.recordGpuDisjoint()
   );
 
   /** Layer kinds hidden via {@link setHiddenLayerKinds} (GPU-cost bisection). */
@@ -138,8 +154,9 @@ export class Scene {
 
   constructor(
     container: HTMLDivElement,
-    handle: WorkerHandle,
-    callbacks: SceneCallbacks,
+    handle: SceneHandle<NodeId>,
+    callbacks: SceneCallbacks<NodeId>,
+    options: SceneOptions = {}
   ) {
     this.#handle = handle;
     this.#callbacks = callbacks;
@@ -171,9 +188,10 @@ export class Scene {
       deck: () => this.#deck,
       callbacks: () => this.#callbacks,
       zoom: () => this.#camera.zoom,
+      labelPolicy: { ...defaultLabelPolicy, ...options.labelPolicy },
     });
 
-    this.#entityIcons = new EntityIcons({
+    this.#nodeIcons = new NodeIcons({
       handle,
       callbacks: () => this.#callbacks,
       iconAtlas: this.#iconAtlas,
@@ -201,7 +219,7 @@ export class Scene {
         if (this.#renderMetrics.capturing) {
           this.#gpuTimer.frameBegin(gl);
           this.#renderMetrics.noteGpuAvailability(
-            this.#gpuTimer.available === true,
+            this.#gpuTimer.available === true
           );
         }
       },
@@ -237,7 +255,7 @@ export class Scene {
   }
 
   /** Refresh the interaction callbacks without re-mounting Deck. */
-  setCallbacks(callbacks: SceneCallbacks): void {
+  setCallbacks(callbacks: SceneCallbacks<NodeId>): void {
     this.#callbacks = callbacks;
   }
 
@@ -316,7 +334,7 @@ export class Scene {
       this.#hubLabels.rebuild();
 
       // Same gating for the per-dot type-icon keys (the only O(dots) icon-resolution scan).
-      this.#entityIcons.rebuild();
+      this.#nodeIcons.rebuild();
 
       return;
     }
@@ -342,7 +360,7 @@ export class Scene {
   // (position-only updateTrigger).
   #buildDataLayers(
     structure: StructureFrame,
-    positions: PositionsFrame,
+    positions: PositionsFrame
   ): Layer[] {
     const clusters = this.#handle.getClusters();
     const result: Layer[] = [];
@@ -355,7 +373,7 @@ export class Scene {
     const edgeArrows = edgeArrowLayer(positions, this.#camera.zoom);
     if (structure.flatGraph) {
       result.push(
-        ...communityLayer(structure.flatGraph, clusters, positions.settled),
+        ...communityLayer(structure.flatGraph, clusters, positions.settled)
       );
       result.push(...edges);
       result.push(...edgeArrows);
@@ -370,12 +388,12 @@ export class Scene {
             clusters,
             atlas: this.#iconAtlas,
             device: this.#device,
-            names: this.#entityIcons.flatNames,
-            namesVersion: this.#entityIcons.version,
+            names: this.#nodeIcons.flatNames,
+            namesVersion: this.#nodeIcons.version,
             positionTick: this.#positionTick,
             zoom: this.#camera.iconBucket / ICON_ZOOM_BUCKETS_PER_UNIT,
             zoomBucket: this.#camera.iconBucket,
-          }),
+          })
         );
       }
     } else {
@@ -385,8 +403,8 @@ export class Scene {
           this.#placed,
           this.#positionTick,
           this.#interactions.keepFullClusters(),
-          this.#interactions.highlightTick,
-        ),
+          this.#interactions.highlightTick
+        )
       );
       result.push(...edgeArrows);
       result.push(
@@ -395,8 +413,8 @@ export class Scene {
           positions,
           clusters,
           positionTick: this.#positionTick,
-          highlightedEntities: this.#interactions.highlightedEntities,
-        }),
+          highlightedEntities: this.#interactions.highlightedNodeKeys,
+        })
       );
       // Type icons sit on the leaf dots (rendered after them), one IconLayer per open leaf. Gated on
       // the device the same way as the flat tier (the atlas texture needs it; absent until init).
@@ -408,12 +426,12 @@ export class Scene {
             clusters,
             atlas: this.#iconAtlas,
             device: this.#device,
-            namesByLeaf: this.#entityIcons.leafNames,
-            namesVersion: this.#entityIcons.version,
+            namesByLeaf: this.#nodeIcons.leafNames,
+            namesVersion: this.#nodeIcons.version,
             positionTick: this.#positionTick,
             zoom: this.#camera.iconBucket / ICON_ZOOM_BUCKETS_PER_UNIT,
             zoomBucket: this.#camera.iconBucket,
-          }),
+          })
         );
       }
     }
@@ -425,7 +443,7 @@ export class Scene {
   #buildOverlay(): Layer[] {
     return selectionOverlayLayers(
       this.#interactions.selectedGeometry(),
-      this.#positionTick,
+      this.#positionTick
     );
   }
 
@@ -525,7 +543,7 @@ export class Scene {
       zoom: this.#camera.zoom,
       positionTick: this.#positionTick,
       characterSet: this.#labelCharacters.extend(
-        labelTexts(structure, positions),
+        labelTexts(structure, positions)
       ),
     });
   }

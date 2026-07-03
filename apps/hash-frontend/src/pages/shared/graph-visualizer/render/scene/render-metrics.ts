@@ -111,7 +111,7 @@ export interface GpuStats {
  */
 export interface LongTaskSource {
   readonly observe: (
-    onEntry: (startTimeMs: number, durationMs: number) => void,
+    onEntry: (startTimeMs: number, durationMs: number) => void
   ) => () => void;
 }
 
@@ -228,7 +228,7 @@ function percentile(values: readonly number[], fraction: number): number {
   const sorted = [...values].sort((left, right) => left - right);
   const rank = Math.min(
     sorted.length - 1,
-    Math.max(0, Math.ceil(fraction * sorted.length) - 1),
+    Math.max(0, Math.ceil(fraction * sorted.length) - 1)
   );
   // rank is clamped to [0, sorted.length - 1] above, so the index is always in bounds.
   return sorted[rank]!;
@@ -323,7 +323,7 @@ export class RenderMetricsProbe {
             durationMs,
           });
         }
-      },
+      }
     );
   }
 
@@ -470,7 +470,7 @@ export class RenderMetricsProbe {
         gpuTimePerFrame: mean(samples.map((sample) => sample.gpuTimePerFrame)),
         setPropsTime: mean(samples.map((sample) => sample.setPropsTime)),
         updateAttributesTime: mean(
-          samples.map((sample) => sample.updateAttributesTime),
+          samples.map((sample) => sample.updateAttributesTime)
         ),
         framesRedrawn,
       },

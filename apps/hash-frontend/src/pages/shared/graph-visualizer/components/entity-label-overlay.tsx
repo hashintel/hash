@@ -49,7 +49,7 @@ export const EntityLabelOverlay = ({ labels }: EntityLabelOverlayProps) => (
   <>
     {labels.map((label) => (
       <div
-        key={label.entityId}
+        key={label.nodeId}
         style={{
           position: "absolute",
           left: 0,

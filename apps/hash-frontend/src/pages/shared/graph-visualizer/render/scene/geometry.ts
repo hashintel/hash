@@ -6,15 +6,15 @@
 import { nodeGeometry } from "../selection";
 
 import type { PositionsFrame } from "../../frames";
-import type { ClusterId, EntityIndex } from "../../ids";
+import type { ClusterId } from "../../ids";
+import type { FrameHandle } from "../frame-connection";
 import type { SelectionGeometry } from "../selection";
-import type { WorkerHandle } from "../entity-worker-connection";
 
 /** Live world position + radius of a node by its layout + render index, or null if gone. */
 export function liveNodeGeometry(
-  handle: WorkerHandle,
+  handle: FrameHandle,
   layoutId: ClusterId,
-  localIndex: number,
+  localIndex: number
 ): SelectionGeometry | null {
   const cluster = handle.getClusters().get(layoutId);
   const structure = handle.getStructure();
@@ -26,16 +26,17 @@ export function liveNodeGeometry(
 }
 
 /**
- * World midpoint of a selected link's edge, by re-locating its bezier segment (segment order
- * changes per tick, but the link's EntityIdx is stable). null if the link isn't rendered.
+ * World midpoint of a selected flat edge, by re-locating its bezier segment (segment order
+ * changes per tick, but the edge's id -- the link's EntityIdx, or the type lifecycle's
+ * edge-table index -- is stable). null if the edge isn't rendered.
  */
 export function linkMidpoint(
   positions: PositionsFrame,
-  linkEntityIdx: EntityIndex,
+  flatEdgeId: number
 ): { x: number; y: number } | null {
   const { ids, positions: pos } = positions.beziers;
   for (let index = 0; index < ids.length; index++) {
-    if (ids[index] === linkEntityIdx) {
+    if (ids[index] === flatEdgeId) {
       // Flat links are straight cubics, so the chord midpoint (p0+p3)/2 is the visual centre.
       const base = index * 8;
       return {

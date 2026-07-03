@@ -1,13 +1,15 @@
 /**
- * Pick resolution: mapping Deck picks to entities, link edges, and highway
- * lanes, decoupled from render order (edges render under the bubbles but
- * still win a click/hover over them).
+ * Pick resolution: mapping Deck picks to node dots, flat-tier edges, and
+ * highway lanes, decoupled from render order (edges render under the bubbles
+ * but still win a click/hover over them). Node identity is resolved through
+ * the {@link SceneHandle}, so the same paths serve both worker lifecycles.
  */
 import { BEZIER_NO_LINK } from "../../frames";
 
-import type { ClusterId, EntityIndex } from "../../ids";
+import type { ClusterId } from "../../ids";
+import type { FrameHandle } from "../frame-connection";
 import type { Selection } from "../selection";
-import type { WorkerHandle } from "../entity-worker-connection";
+import type { SceneHandle } from "./handle";
 import type { PickingInfo } from "@deck.gl/core";
 
 export const FLAT_EDGE_LAYER_ID = "flat-edges";
@@ -25,20 +27,20 @@ export function isPickableEdgeLayer(layerId: string | undefined): boolean {
   );
 }
 
-function isFlatMode(handle: WorkerHandle): boolean {
+function isFlatMode(handle: FrameHandle): boolean {
   return handle.getStructure()?.flatGraph !== undefined;
 }
 
 /**
- * Map a pick on any entity-dot layer to a selection (the entity + the buffer/index it
+ * Map a pick on any node-dot layer to a selection (the node + the buffer/index it
  * resolved from, needed to read its live position). The flat tier is one whole-graph layer
  * ("flat-entities"); the hierarchical tier is one layer per open leaf, id
  * "entities:<layoutId>". The pick index maps to a render record in that layout's buffer.
  */
-export function resolvePickedEntity(
-  handle: WorkerHandle,
-  info: PickingInfo,
-): Selection | null {
+export function resolvePickedNode<NodeId extends string>(
+  handle: SceneHandle<NodeId>,
+  info: PickingInfo
+): Selection<NodeId> | null {
   const layerId = info.layer?.id;
   if (layerId === undefined || info.index < 0) {
     return null;
@@ -52,27 +54,29 @@ export function resolvePickedEntity(
     layoutId = structure.flatGraph?.layoutId;
   } else if (layerId.startsWith("entities:")) {
     layoutId = structure.entityLayers.find(
-      (entry) => `entities:${entry.layoutId}` === layerId,
+      (entry) => `entities:${entry.layoutId}` === layerId
     )?.layoutId;
   }
   if (layoutId === undefined) {
     return null;
   }
-  const entityId = handle.resolveEntityId(layoutId, info.index);
-  return entityId === undefined
+  const nodeId = handle.resolveNodeId(layoutId, info.index);
+  return nodeId === undefined
     ? null
-    : { entityId, layoutId, localIndex: info.index };
+    : { nodeId, layoutId, localIndex: info.index };
 }
 
 /**
- * The link's EntityIdx for a pick on a flat-tier edge (there beziers.ids carries the link's
- * EntityIdx). Null otherwise -- including the hierarchical tier, where the same channel carries
- * an aggregate laneId instead (see {@link pickedHighwayLaneId}).
+ * The edge id for a pick on a flat-tier edge (there beziers.ids carries the edge's identity:
+ * the link's EntityIdx in the entity lifecycle, the edge-table index in the type lifecycle;
+ * resolve it via {@link SceneHandle.resolveFlatEdge}). Null otherwise -- including the
+ * hierarchical tier, where the same channel carries an aggregate laneId instead (see
+ * {@link pickedHighwayLaneId}).
  */
-export function pickedLinkEntityIdx(
-  handle: WorkerHandle,
-  info: PickingInfo,
-): EntityIndex | null {
+export function pickedFlatEdgeId(
+  handle: FrameHandle,
+  info: PickingInfo
+): number | null {
   if (
     info.layer?.id !== FLAT_EDGE_LAYER_ID ||
     info.index < 0 ||
@@ -81,8 +85,8 @@ export function pickedLinkEntityIdx(
     return null;
   }
   const id = handle.getPositions()?.beziers.ids[info.index];
-  // Flat-tier beziers.ids stores EntityIdx values; BEZIER_NO_LINK is the only non-entity sentinel.
-  return id === undefined || id === BEZIER_NO_LINK ? null : (id as EntityIndex);
+  // BEZIER_NO_LINK is the only non-edge sentinel in the flat-tier id channel.
+  return id === undefined || id === BEZIER_NO_LINK ? null : id;
 }
 
 /**
@@ -90,8 +94,8 @@ export function pickedLinkEntityIdx(
  * the laneId). Null otherwise (flat tier / not an edge / the BEZIER_NO_LINK sentinel).
  */
 export function pickedHighwayLaneId(
-  handle: WorkerHandle,
-  info: PickingInfo,
+  handle: FrameHandle,
+  info: PickingInfo
 ): number | null {
   if (
     info.layer?.id !== HIERARCHICAL_EDGE_LAYER_ID ||

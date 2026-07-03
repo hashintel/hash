@@ -17,17 +17,16 @@ import type { PositionsFrame, StructureFrame } from "../frames";
 import type { Position } from "../geometry";
 import type { ClusterId } from "../ids";
 import type { ClusterReference } from "./frame-connection";
-import type { EntityId } from "@blockprotocol/type-system";
 import type { Layer } from "@deck.gl/core";
 
-/** A selected entity dot, tracked by the buffer + index the pick resolved to. */
-export interface Selection {
-  readonly entityId: EntityId;
+/** A selected node dot, tracked by the buffer + index the pick resolved to. */
+export interface Selection<NodeId extends string> {
+  readonly nodeId: NodeId;
   readonly layoutId: ClusterId;
   /**
    * Render index into the layout's buffer. Stable for a hierarchical leaf (fixed node set);
    * for the flat buffer it is the live record index, valid until the buffer reorders -- the
-   * Scene drops the selection when a structure frame shows a different entity
+   * Scene drops the selection when a structure frame shows a different node
    * at this buffer index.
    */
   readonly localIndex: number;
@@ -48,7 +47,7 @@ export function nodeGeometry(
   localIndex: number,
   cluster: ClusterReference,
   structure: StructureFrame,
-  positions: PositionsFrame,
+  positions: PositionsFrame
 ): SelectionGeometry | null {
   if (cluster.flatCapacity !== undefined) {
     const floats = new Float32Array(cluster.versionView.buffer);
@@ -62,7 +61,7 @@ export function nodeGeometry(
   }
 
   const layer = structure.entityLayers.find(
-    (entry) => entry.layoutId === layoutId,
+    (entry) => entry.layoutId === layoutId
   );
   if (!layer) {
     return null;
@@ -85,7 +84,7 @@ function ringLayer(
   lineWidth: number,
   color: readonly [number, number, number, number],
   filled: boolean,
-  positionTick: number,
+  positionTick: number
 ): Layer {
   return new ScatterplotLayer<SelectionGeometry>({
     id,
@@ -109,7 +108,7 @@ function ringLayer(
 /** Selection ring layers. Empty data when nothing is selected (stable layer set). */
 export function selectionOverlayLayers(
   selected: SelectionGeometry | null,
-  positionTick: number,
+  positionTick: number
 ): Layer[] {
   const data = selected ? [selected] : [];
   return [
@@ -120,7 +119,7 @@ export function selectionOverlayLayers(
       2,
       graphColors.selectionHalo,
       false,
-      positionTick,
+      positionTick
     ),
     ringLayer(
       "selection-ring",
@@ -129,7 +128,7 @@ export function selectionOverlayLayers(
       2,
       graphColors.selection,
       false,
-      positionTick,
+      positionTick
     ),
   ];
 }

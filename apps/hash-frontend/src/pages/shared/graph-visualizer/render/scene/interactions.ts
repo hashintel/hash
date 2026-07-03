@@ -1,8 +1,13 @@
 /**
  * Click/hover dispatch and selection state: the selected node (ring + camera
- * focus + pinned card), a selected link edge (pinned card only), and the ego
- * highlight (dim everything except the selection's neighbourhood). Hover-card
- * state lives in {@link HoverTracker}.
+ * focus + pinned card), a selected flat edge that is a node (a link entity:
+ * pinned card only), and the ego highlight (dim everything except the
+ * selection's neighbourhood). Hover-card state lives in {@link HoverTracker}.
+ *
+ * Node identity flows through the {@link SceneHandle}, so the same controller
+ * serves both worker lifecycles; hierarchical-only affordances (highways,
+ * pins, frontier bubbles) simply never trigger for lifecycles without that
+ * tier.
  *
  * Owns no layers. Exposes selection geometry, ego-highlight state, and overlay
  * re-projection hooks consumed during layer builds and position/camera updates.
@@ -12,33 +17,22 @@ import { HoverTracker } from "./hover-tracking";
 import {
   isPickableEdgeLayer,
   PICKABLE_EDGE_LAYER_IDS,
+  pickedFlatEdgeId,
   pickedHighwayLaneId,
-  pickedLinkEntityIdx,
-  resolvePickedEntity,
+  resolvePickedNode,
 } from "./picking";
 
-import type { ClusterId, EntityIndex } from "../../ids";
-import type { EgoTarget } from "../../worker/protocol";
+import type { ClusterId } from "../../ids";
 import type { PlacedCluster } from "../clusters";
 import type { Selection, SelectionGeometry } from "../selection";
-import type { WorkerHandle } from "../entity-worker-connection";
 import type { SceneCallbacks } from "./callbacks";
-import type { EntityId } from "@blockprotocol/type-system";
+import type { SceneHandle } from "./handle";
 import type { Deck, OrthographicView, PickingInfo } from "@deck.gl/core";
 
-/**
- * A collapsed-cluster ego neighbor, by bubble id: the only ego target we ring + keep at full
- * colour, since visible entity neighbors read as the un-dimmed dots. Geometry is read live each
- * frame so the overlay tracks motion.
- */
-interface EgoRef {
-  readonly clusterId: ClusterId;
-}
-
-export interface SceneInteractionsDependencies {
-  readonly handle: WorkerHandle;
+export interface SceneInteractionsDependencies<NodeId extends string> {
+  readonly handle: SceneHandle<NodeId>;
   readonly deck: () => Deck<OrthographicView>;
-  readonly callbacks: () => SceneCallbacks;
+  readonly callbacks: () => SceneCallbacks<NodeId>;
   /** The persistent cluster-bubble set (positions mutate in place per tick). */
   readonly placed: () => readonly PlacedCluster[];
   readonly zoom: () => number;
@@ -49,34 +43,21 @@ export interface SceneInteractionsDependencies {
   readonly zoomToBubble: (placed: PlacedCluster) => void;
 }
 
-/**
- * Resolve the worker's ego targets to renderable refs: only collapsed-cluster neighbors are
- * ring + keep-full targets; entity neighbors read as the un-dimmed dots (the worker keeps
- * them at full colour via the highlight set).
- */
-function resolveEgoTargets(targets: readonly EgoTarget[]): EgoRef[] {
-  const refs: EgoRef[] = [];
-  for (const target of targets) {
-    if (target.kind === "cluster") {
-      refs.push({ clusterId: target.clusterId });
-    }
-  }
-  return refs;
-}
-
-export class SceneInteractions {
-  readonly #dependencies: SceneInteractionsDependencies;
-  readonly #hover: HoverTracker;
+export class SceneInteractions<NodeId extends string> {
+  readonly #dependencies: SceneInteractionsDependencies<NodeId>;
+  readonly #hover: HoverTracker<NodeId>;
 
   #isDragging = false;
 
-  /** The selected entity dot: ring + camera focus + pinned card. Set on click. */
-  #selected: Selection | null = null;
-  /** A selected link edge (the link's own EntityIdx): a pinned card + Open, no ring/dim (a link
-   * isn't a node to focus). Tracked by re-finding its bezier each emit. Excludes #selected. */
-  #selectedLink: EntityIndex | null = null;
-  /** The selected node's ego (neighbors' visible representatives: dots and/or bubbles). */
-  #egoTargets: EgoRef[] = [];
+  /** The selected node dot: ring + camera focus + pinned card. Set on click. */
+  #selected: Selection<NodeId> | null = null;
+  /** A selected node-kind flat edge (a link entity, by its bezier edge id): a pinned card + Open,
+   * no ring/dim (a link isn't a node to focus). Tracked by re-finding its bezier each emit.
+   * Excludes #selected. */
+  #selectedFlatEdge: number | null = null;
+  /** The selected node's collapsed-cluster ego neighbours: the only ego targets we ring + keep at
+   * full colour, since visible node neighbours read as the un-dimmed dots. */
+  #egoClusterIds: readonly ClusterId[] = [];
 
   /** Bumped when the selection/ego changes, to re-evaluate the cluster-bubble focus dim. */
   #highlightTick = 0;
@@ -86,11 +67,11 @@ export class SceneInteractions {
    * {@link queryEgo}).
    */
   #highlightVersion = 0;
-  /** Entity indices kept at full colour (selection + visible ego neighbors), used to dim
+  /** Node keys kept at full colour (selection + visible ego neighbours), used to dim
    * leaf-edge lines in step with their endpoint dots. */
-  #highlightedEntities: ReadonlySet<EntityIndex> = new Set();
+  #highlightedNodeKeys: ReadonlySet<number> = new Set();
 
-  constructor(dependencies: SceneInteractionsDependencies) {
+  constructor(dependencies: SceneInteractionsDependencies<NodeId>) {
     this.#dependencies = dependencies;
     this.#hover = new HoverTracker({
       handle: dependencies.handle,
@@ -105,8 +86,8 @@ export class SceneInteractions {
     return this.#highlightTick;
   }
 
-  get highlightedEntities(): ReadonlySet<EntityIndex> {
-    return this.#highlightedEntities;
+  get highlightedNodeKeys(): ReadonlySet<number> {
+    return this.#highlightedNodeKeys;
   }
 
   /** Live geometry of the selected node, for the ring overlay. Null when nothing is selected. */
@@ -117,7 +98,7 @@ export class SceneInteractions {
     return liveNodeGeometry(
       this.#dependencies.handle,
       this.#selected.layoutId,
-      this.#selected.localIndex,
+      this.#selected.localIndex
     );
   }
 
@@ -129,12 +110,7 @@ export class SceneInteractions {
     if (this.#selected === null || !this.#isEgoResolved()) {
       return null;
     }
-
-    const keep = new Set<ClusterId>();
-    for (const ref of this.#egoTargets) {
-      keep.add(ref.clusterId);
-    }
-    return keep;
+    return new Set(this.#egoClusterIds);
   }
 
   /** A pan begins: hover cards are anchored to moving graph geometry, so hide them. */
@@ -150,15 +126,15 @@ export class SceneInteractions {
   /**
    * A structure frame landed: the cut changed, so a flat-buffer reorder (or a
    * closed leaf) can invalidate the selected index. Keep the selection only
-   * while it still resolves to the same entity, then refresh the ego set.
+   * while it still resolves to the same node, then refresh the ego set.
    */
   onStructure(): void {
     if (
       this.#selected !== null &&
-      this.#dependencies.handle.resolveEntityId(
+      this.#dependencies.handle.resolveNodeId(
         this.#selected.layoutId,
-        this.#selected.localIndex,
-      ) !== this.#selected.entityId
+        this.#selected.localIndex
+      ) !== this.#selected.nodeId
     ) {
       this.#selected = null;
     }
@@ -172,25 +148,31 @@ export class SceneInteractions {
   }
 
   handleClick(info: PickingInfo): void {
-    // Dots render above edges and bubbles, so a dot pick wins outright. Entity opening is handled
+    // Dots render above edges and bubbles, so a dot pick wins outright. Node opening is handled
     // by the pinned card's Open action, not this click handler.
-    const picked = resolvePickedEntity(this.#dependencies.handle, info);
+    const picked = resolvePickedNode(this.#dependencies.handle, info);
     if (picked) {
       this.#select(picked);
       return;
     }
-    // Click a flat link edge: pin its card (Open -> slideover), no ring/dim. Click a hierarchical
-    // highway: open a table of the links it aggregates. Edges render under the bubbles but win the
-    // click over them (#edgePickFor queries the pickable edge layers when the topmost pick is a
-    // bubble).
+    // Click a flat edge: a node-kind edge (a link entity) pins its card (Open -> slideover), no
+    // ring/dim; an edge-kind edge (a link type) shows its card at the click point. Click a
+    // hierarchical highway: open a table of the links it aggregates. Edges render under the
+    // bubbles but win the click over them (#edgePickFor queries the pickable edge layers when
+    // the topmost pick is a bubble).
     const edgeInfo = this.#edgePickFor(info);
     if (edgeInfo) {
-      const linkEntityIdx = pickedLinkEntityIdx(
-        this.#dependencies.handle,
-        edgeInfo,
-      );
-      if (linkEntityIdx !== null) {
-        this.#selectLink(linkEntityIdx);
+      const edgeId = pickedFlatEdgeId(this.#dependencies.handle, edgeInfo);
+      const edgePick =
+        edgeId === null
+          ? null
+          : this.#dependencies.handle.resolveFlatEdge(edgeId);
+      if (edgeId !== null && edgePick?.kind === "node") {
+        this.#selectFlatEdge(edgeId);
+        return;
+      }
+      if (edgePick?.kind === "edge") {
+        this.#hover.setEdge(edgePick, info.x, info.y);
         return;
       }
       const laneId = pickedHighwayLaneId(this.#dependencies.handle, edgeInfo);
@@ -213,27 +195,29 @@ export class SceneInteractions {
     if (this.#isDragging) {
       return;
     }
-    // Entity dot (flat graph or an open hierarchical leaf): show its card at the cursor. Dots draw
+    // Node dot (flat graph or an open hierarchical leaf): show its card at the cursor. Dots draw
     // on top, so a dot pick wins outright (and clears any highway summary).
-    const picked = resolvePickedEntity(this.#dependencies.handle, info);
+    const picked = resolvePickedNode(this.#dependencies.handle, info);
     if (picked) {
-      this.#hover.setEntity(picked.entityId, info.x, info.y);
+      this.#hover.setNode(picked.nodeId, info.x, info.y);
       return;
     }
     // Edges render under the bubbles but still win a hover over them (#edgePickFor).
     const edgeInfo = this.#edgePickFor(info);
     if (edgeInfo) {
-      // Flat edge: a link is an entity, so show the same card for the link entity.
-      const linkEntityIdx = pickedLinkEntityIdx(
-        this.#dependencies.handle,
-        edgeInfo,
-      );
-      const linkEntityId =
-        linkEntityIdx === null
+      // Flat edge, resolved via the handle: an entity graph's link is itself an entity (node
+      // card); a type graph's edge is a link type (edge card).
+      const edgeId = pickedFlatEdgeId(this.#dependencies.handle, edgeInfo);
+      const edgePick =
+        edgeId === null
           ? null
-          : (this.#dependencies.handle.entityIdToId(linkEntityIdx) ?? null);
-      if (linkEntityId !== null) {
-        this.#hover.setEntity(linkEntityId, info.x, info.y);
+          : this.#dependencies.handle.resolveFlatEdge(edgeId);
+      if (edgePick?.kind === "node") {
+        this.#hover.setNode(edgePick.nodeId, info.x, info.y);
+        return;
+      }
+      if (edgePick?.kind === "edge") {
+        this.#hover.setEdge(edgePick, info.x, info.y);
         return;
       }
       // Hierarchical highway: a summary of the links it bundles.
@@ -265,22 +249,27 @@ export class SceneInteractions {
    * geometry keeps the last position rather than flickering the card off).
    */
   emitSelection(): void {
-    // The pinned card tracks a selected node (its dot) or a selected link (its edge midpoint).
+    // The pinned card tracks a selected node (its dot) or a selected link edge (its midpoint).
     let world: { x: number; y: number } | null = null;
-    let entityId: EntityId | undefined;
+    let nodeId: NodeId | undefined;
     if (this.#selected !== null) {
       world = this.selectedGeometry();
-      entityId = this.#selected.entityId;
-    } else if (this.#selectedLink !== null) {
+      nodeId = this.#selected.nodeId;
+    } else if (this.#selectedFlatEdge !== null) {
       const positions = this.#dependencies.handle.getPositions();
-      world = positions ? linkMidpoint(positions, this.#selectedLink) : null;
-      entityId = this.#dependencies.handle.entityIdToId(this.#selectedLink);
+      world = positions
+        ? linkMidpoint(positions, this.#selectedFlatEdge)
+        : null;
+      const pick = this.#dependencies.handle.resolveFlatEdge(
+        this.#selectedFlatEdge
+      );
+      nodeId = pick?.kind === "node" ? pick.nodeId : undefined;
     }
-    if (world === null || entityId === undefined) {
+    if (world === null || nodeId === undefined) {
       // Nothing selected -> clear the card; a transiently missing geometry keeps the last
       // position rather than flickering the card off.
-      if (this.#selected === null && this.#selectedLink === null) {
-        this.#dependencies.callbacks().onEntitySelect?.(null);
+      if (this.#selected === null && this.#selectedFlatEdge === null) {
+        this.#dependencies.callbacks().onNodeSelect?.(null);
       }
       return;
     }
@@ -294,7 +283,7 @@ export class SceneInteractions {
     if (x === undefined || y === undefined) {
       return;
     }
-    this.#dependencies.callbacks().onEntitySelect?.({ entityId, x, y });
+    this.#dependencies.callbacks().onNodeSelect?.({ nodeId, x, y });
   }
 
   /**
@@ -309,12 +298,12 @@ export class SceneInteractions {
       return;
     }
 
-    const entityIdx = this.#dependencies.handle.entityIdxAt(
+    const nodeKey = this.#dependencies.handle.nodeKeyAt(
       selection.layoutId,
-      selection.localIndex,
+      selection.localIndex
     );
 
-    if (entityIdx === undefined) {
+    if (nodeKey === undefined) {
       // Transient (e.g. the flat buffer reordered mid-resolve); keep the current dim and let
       // the next structure frame re-query, rather than flicker it off and back on.
       return;
@@ -327,28 +316,23 @@ export class SceneInteractions {
     this.#highlightVersion += 1;
     const currentVersion = this.#highlightVersion;
 
-    void this.#dependencies.handle.queryEgo(entityIdx).then((targets) => {
+    void this.#dependencies.handle.queryEgo(nodeKey).then((ego) => {
       if (this.#dependencies.isDisposed() || this.#selected !== selection) {
         return;
       }
 
-      this.#egoTargets = resolveEgoTargets(targets);
+      this.#egoClusterIds = ego.clusterIds;
       if (currentVersion !== this.#highlightVersion) {
         // While waiting for the result, someone else has already updated the highlight version;
         // ignore this result and wait for the next structure frame to re-query.
         return;
       }
 
-      // The dim set: the selected node + its visible (entity) neighbors stay full colour;
-      // collapsed-cluster neighbors are not opened (that would defeat the LOD), just dimmed.
-      const highlighted = [entityIdx];
-      for (const target of targets) {
-        if (target.kind === "entity") {
-          highlighted.push(target.entityIdx);
-        }
-      }
+      // The dim set: the selected node + its visible neighbours stay full colour;
+      // collapsed-cluster neighbours are not opened (that would defeat the LOD), just dimmed.
+      const highlighted = [nodeKey, ...ego.nodeKeys];
 
-      this.#highlightedEntities = new Set(highlighted);
+      this.#highlightedNodeKeys = new Set(highlighted);
       this.#highlightTick = this.#highlightVersion;
 
       this.#dependencies.handle.setHighlight(highlighted);
@@ -383,19 +367,19 @@ export class SceneInteractions {
   }
 
   /**
-   * Select an entity dot, or clear with null: ring + camera focus + a pinned card. The ring
+   * Select a node dot, or clear with null: ring + camera focus + a pinned card. The ring
    * is part of the data layers (world-space); the pinned card is React, fed the node's
-   * tracked screen position via onEntitySelect.
+   * tracked screen position via onNodeSelect.
    */
-  #select(selection: Selection | null): void {
+  #select(selection: Selection<NodeId> | null): void {
     this.#selected = selection;
-    this.#selectedLink = null;
+    this.#selectedFlatEdge = null;
 
     // A selection change un-dims immediately; the focus dim re-applies once the ego query
     // resolves -- so it never half-applies mid-resolve, and a re-query on a structure frame
     // (same selection) leaves the current dim untouched instead of flashing it off.
-    this.#egoTargets = [];
-    this.#highlightedEntities = new Set();
+    this.#egoClusterIds = [];
+    this.#highlightedNodeKeys = new Set();
 
     // Bump highlightTick with highlightVersion so the dim overlay stays stable
     // through the in-flight ego re-query (avoids a one-frame undim flash).
@@ -416,18 +400,19 @@ export class SceneInteractions {
   }
 
   /**
-   * Select a link edge: a pinned card (with Open) that tracks the link's midpoint -- no
-   * ring/dim/ego (a link isn't a node to focus). Clears any node selection first (un-dims).
+   * Select a node-kind flat edge (a link entity): a pinned card (with Open) that tracks the
+   * edge's midpoint -- no ring/dim/ego (a link isn't a node to focus). Clears any node
+   * selection first (un-dims).
    */
-  #selectLink(linkEntityIdx: EntityIndex): void {
+  #selectFlatEdge(edgeId: number): void {
     this.#select(null);
-    this.#selectedLink = linkEntityIdx;
+    this.#selectedFlatEdge = edgeId;
     this.emitSelection();
   }
 
   /**
    * Open the link entities aggregated by a highway lane in a table (the slide-stack). Async:
-   * the worker maps the laneId to its link EntityIdx set; we resolve those to EntityIds.
+   * the worker maps the laneId to its link node keys; we resolve those to node ids.
    */
   #openHighwayLinks(laneId: number): void {
     const onOpen = this.#dependencies.callbacks().onOpenLinkTable;
@@ -437,19 +422,19 @@ export class SceneInteractions {
 
     void this.#dependencies.handle
       .queryHighwayLinks(laneId)
-      .then((linkEntityIdxs) => {
+      .then((linkNodeKeys) => {
         if (this.#dependencies.isDisposed()) {
           return;
         }
-        const linkEntityIds: EntityId[] = [];
-        for (const entityIdx of linkEntityIdxs) {
-          const entityId = this.#dependencies.handle.entityIdToId(entityIdx);
-          if (entityId !== undefined) {
-            linkEntityIds.push(entityId);
+        const linkNodeIds: NodeId[] = [];
+        for (const nodeKey of linkNodeKeys) {
+          const nodeId = this.#dependencies.handle.nodeKeyToId(nodeKey);
+          if (nodeId !== undefined) {
+            linkNodeIds.push(nodeId);
           }
         }
-        if (linkEntityIds.length > 0) {
-          onOpen(linkEntityIds);
+        if (linkNodeIds.length > 0) {
+          onOpen(linkNodeIds);
         }
       });
   }
@@ -458,7 +443,7 @@ export class SceneInteractions {
    * Pin the selected node's leaf open (hierarchical only -- the flat layout has no LOD) so it
    * stays visible as you zoom out for a birds-eye view; clear the pin on deselect.
    */
-  #pinSelection(selection: Selection | null): void {
+  #pinSelection(selection: Selection<NodeId> | null): void {
     if (selection === null) {
       this.#dependencies.handle.setPinned(null);
       return;
@@ -467,7 +452,7 @@ export class SceneInteractions {
       .getClusters()
       .get(selection.layoutId);
     this.#dependencies.handle.setPinned(
-      cluster && cluster.flatCapacity === undefined ? selection.layoutId : null,
+      cluster && cluster.flatCapacity === undefined ? selection.layoutId : null
     );
   }
 

@@ -6,22 +6,27 @@
  * added tail `[prevCount, count)` and keeps the cached prefix. The icon
  * layers read the cached arrays (keyed by a version) every layer build.
  *
- * Why the flat prefix is reusable: flat records are ordered by ascending
- * entity index in every code path. `FlatTierController.#rebuildLayout` seeds
- * from the sorted `snapshotNodeEntityIdxs()` column, and `#absorbNodes`
- * appends newcomers (interner indices are monotonic, so they sort after every
- * existing record). Stores are add-only, so record `i` maps to the same
- * entity forever; a full rescan happens only on a shrink (defensive; add-only
- * stores cannot shrink) or when the flat layout disappears (tier change).
+ * Node identity flows through the {@link SceneHandle}, so both worker
+ * lifecycles share this scan (the icon resolver just answers by its own
+ * NodeId currency).
  *
- * Cached keys are kept across resolver identity changes: the bridge
+ * Why the flat prefix is reusable: flat records are ordered by ascending
+ * join key in every code path. The entity tier seeds from the sorted
+ * `snapshotNodeEntityIdxs()` column and appends newcomers (interner indices
+ * are monotonic, so they sort after every existing record); the type tier
+ * seeds from the interner's id order the same way. Stores are add-only, so
+ * record `i` maps to the same node forever; a full rescan happens only on a
+ * shrink (defensive; add-only stores cannot shrink) or when the flat layout
+ * disappears (tier change).
+ *
+ * Cached keys are kept across resolver identity changes: the entity bridge
  * recreates the resolver on every appended page, and treating that as an
  * invalidation would re-trigger the full O(dots) rescan per batch this class
- * exists to avoid. Both streaming flows land an entity and its type context
+ * exists to avoid. Both streaming flows land a node and its type context
  * in the bridge before the worker's structure frame for it returns, so a
  * prefix `null` is a genuine no-icon answer, not a not-yet-known one.
  *
- * A cached key is the icon of the entity's type set as the bridge captured
+ * A cached key is the icon of the node's type set as the bridge captured
  * it when the record was first scanned. Type sets are editable in-product
  * (clicking a dot opens the entity editor in the slide stack), but an edit
  * does not reach an open graph: subgraph responses are unnormalized scalars
@@ -38,25 +43,25 @@
  * an upstream product decision (refetch plus worker restyle), not a cache
  * policy here.
  *
- * Hierarchical leaves have no append-only guarantee (group re-targeting can
- * change a leaf's membership), so a leaf's cached array is reused only while
- * the leaf's `nodeIds` identity is unchanged. Every leaf layout (re)build
- * adopts a fresh `nodeIds` via LAYOUT_CREATED, while a growth republish
- * keeps it.
+ * Hierarchical leaves (entity lifecycle only) have no append-only guarantee
+ * (group re-targeting can change a leaf's membership), so a leaf's cached
+ * array is reused only while the leaf's `nodeIds` identity is unchanged.
+ * Every leaf layout (re)build adopts a fresh `nodeIds` via LAYOUT_CREATED,
+ * while a growth republish keeps it.
  */
 import type { ClusterId } from "../../ids";
 import type { IconAtlas } from "../gpu/icon-atlas";
-import type { WorkerHandle } from "../entity-worker-connection";
 import type { SceneCallbacks } from "./callbacks";
+import type { SceneHandle } from "./handle";
 
-export interface EntityIconsDependencies {
-  readonly handle: WorkerHandle;
-  readonly callbacks: () => SceneCallbacks;
+export interface NodeIconsDependencies<NodeId extends string> {
+  readonly handle: SceneHandle<NodeId>;
+  readonly callbacks: () => SceneCallbacks<NodeId>;
   readonly iconAtlas: IconAtlas;
 }
 
-export class EntityIcons {
-  readonly #dependencies: EntityIconsDependencies;
+export class NodeIcons<NodeId extends string> {
+  readonly #dependencies: NodeIconsDependencies<NodeId>;
 
   /** Flat-tier per-render-index icon atlas key. Extended in place on grow-only frames. */
   #flatNames: (string | null)[] = [];
@@ -69,7 +74,7 @@ export class EntityIcons {
   #leafSourceNodeIds = new Map<ClusterId, readonly string[]>();
   #version = 0;
 
-  constructor(dependencies: EntityIconsDependencies) {
+  constructor(dependencies: NodeIconsDependencies<NodeId>) {
     this.#dependencies = dependencies;
   }
 
@@ -98,7 +103,7 @@ export class EntityIcons {
    * costs no resolver calls and no icon-attribute regeneration.
    */
   rebuild(): void {
-    const resolveIcon = this.#dependencies.callbacks().resolveEntityIcon;
+    const resolveIcon = this.#dependencies.callbacks().resolveNodeIcon;
     const structure = this.#dependencies.handle.getStructure();
 
     if (resolveIcon === undefined || structure === undefined) {
@@ -120,19 +125,16 @@ export class EntityIcons {
     const scanRange = (
       layoutId: ClusterId,
       from: number,
-      to: number,
+      to: number
     ): (string | null)[] => {
       const scanned: (string | null)[] = [];
 
       for (let index = from; index < to; index++) {
         let name: string | null = null;
-        const entityId = this.#dependencies.handle.resolveEntityId(
-          layoutId,
-          index,
-        );
+        const nodeId = this.#dependencies.handle.resolveNodeId(layoutId, index);
 
-        if (entityId !== undefined) {
-          const key = resolveIcon(entityId);
+        if (nodeId !== undefined) {
+          const key = resolveIcon(nodeId);
 
           if (key !== null && key.length > 0) {
             name = key;
@@ -179,7 +181,7 @@ export class EntityIcons {
         for (const name of scanRange(
           flatGraph.layoutId,
           this.#flatScannedCount,
-          flatGraph.count,
+          flatGraph.count
         )) {
           this.#flatNames.push(name);
         }
@@ -215,7 +217,7 @@ export class EntityIcons {
       } else {
         leafNames.set(
           layer.layoutId,
-          scanRange(layer.layoutId, 0, layer.count),
+          scanRange(layer.layoutId, 0, layer.count)
         );
 
         changed = true;

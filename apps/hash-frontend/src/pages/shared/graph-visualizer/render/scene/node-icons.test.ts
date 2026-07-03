@@ -8,13 +8,13 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { ClusterId } from "../../ids";
-import { EntityIcons } from "./entity-icons";
+import { NodeIcons } from "./node-icons";
 
 import type { StructureFrame } from "../../frames";
 import type { IconAtlas } from "../gpu/icon-atlas";
-import type { WorkerHandle } from "../entity-worker-connection";
 import type { ClusterReference } from "../frame-connection";
 import type { SceneCallbacks } from "./callbacks";
+import type { SceneHandle } from "./handle";
 import type { EntityId } from "@blockprotocol/type-system";
 
 const FLAT_ID = ClusterId("flat:all");
@@ -32,7 +32,7 @@ function flatFrame(count: number): StructureFrame {
 }
 
 function leafFrame(
-  layers: readonly { layoutId: ClusterId; count: number }[],
+  layers: readonly { layoutId: ClusterId; count: number }[]
 ): StructureFrame {
   return {
     version: 1,
@@ -48,7 +48,7 @@ function clusterRef(nodeIds: readonly string[]): ClusterReference {
 }
 
 interface Harness {
-  readonly icons: EntityIcons;
+  readonly icons: NodeIcons<EntityId>;
   readonly clusters: Map<ClusterId, ClusterReference>;
   readonly resolveCalls: () => number;
   setStructure(frame: StructureFrame | undefined): void;
@@ -58,28 +58,29 @@ interface Harness {
 function newHarness(): Harness {
   let structure: StructureFrame | undefined;
   const clusters = new Map<ClusterId, ClusterReference>();
-  const resolveEntityIcon = vi.fn((entityId: EntityId): string | null =>
-    entityId.endsWith("0") ? null : `icon:${entityId}`,
+  const resolveNodeIcon = vi.fn((entityId: EntityId): string | null =>
+    entityId.endsWith("0") ? null : `icon:${entityId}`
   );
   const ensureIcons = vi.fn();
 
   const handle = {
     getStructure: () => structure,
     getClusters: () => clusters,
-    resolveEntityId: (layoutId: ClusterId, index: number) =>
+    resolveNodeId: (layoutId: ClusterId, index: number) =>
       `${layoutId}/${index}` as EntityId,
-  } as unknown as WorkerHandle;
+  } as unknown as SceneHandle<EntityId>;
 
-  const icons = new EntityIcons({
+  const icons = new NodeIcons<EntityId>({
     handle,
-    callbacks: () => ({ resolveEntityIcon }) as unknown as SceneCallbacks,
+    callbacks: () =>
+      ({ resolveNodeIcon } as unknown as SceneCallbacks<EntityId>),
     iconAtlas: { ensureIcons } as unknown as IconAtlas,
   });
 
   return {
     icons,
     clusters,
-    resolveCalls: () => resolveEntityIcon.mock.calls.length,
+    resolveCalls: () => resolveNodeIcon.mock.calls.length,
     setStructure(frame) {
       structure = frame;
     },
@@ -87,7 +88,7 @@ function newHarness(): Harness {
   };
 }
 
-describe("EntityIcons, incremental flat scan", () => {
+describe("NodeIcons, incremental flat scan", () => {
   it("resolves only the added range on a grow-only structure frame", () => {
     const harness = newHarness();
     harness.clusters.set(FLAT_ID, clusterRef([]));
@@ -174,7 +175,7 @@ describe("EntityIcons, incremental flat scan", () => {
   });
 });
 
-describe("EntityIcons, leaf caches", () => {
+describe("NodeIcons, leaf caches", () => {
   it("reuses a leaf's keys while its nodeIds identity holds, rescans when it changes", () => {
     const harness = newHarness();
     const firstNodeIds = ["1", "2", "3"];

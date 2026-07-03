@@ -1,8 +1,12 @@
 /**
  * Mounts the Deck.gl {@link Scene} in a container, shows a loading overlay until
  * the first structure frame, and wires zoom/fit controls.
+ *
+ * Generic over node identity: the entity bridge mounts it on a
+ * `WorkerHandle` (`NodeId = EntityId`), the type bridge on a
+ * `TypeWorkerHandle` (`NodeId = VersionedUrl`). See {@link "./render/scene/handle"}.
  */
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { GraphControls } from "./components/graph-controls";
 import { GRAPH_CAMERA_ZOOM_STEP } from "./interactivity/graph-camera-commands";
@@ -10,62 +14,82 @@ import { Scene } from "./render/scene";
 
 import type {
   ClusterHover,
-  EntityHover,
-  EntityLabel,
-  EntitySelection,
+  FlatEdgeHover,
   HighwayHover,
+  LabelPolicy,
+  NodeHover,
+  NodeLabel,
+  NodeSelection,
+  SceneOptions,
 } from "./render/scene";
-import type { WorkerHandle } from "./render/entity-worker-connection";
+import type { SceneHandle } from "./render/scene/handle";
 import type { EntityId } from "@blockprotocol/type-system";
 import type { ReactElement } from "react";
 
-interface GraphVisualizerProps {
-  readonly handle: WorkerHandle;
+interface GraphVisualizerProps<NodeId extends string> {
+  readonly handle: SceneHandle<NodeId>;
   readonly loadingComponent: ReactElement;
-  readonly onEntityHover?: (hover: EntityHover | null) => void;
+  /** Accessible name for the graph region; defaults to the entity flavour. */
+  readonly ariaLabel?: string;
+  readonly onNodeHover?: (hover: NodeHover<NodeId> | null) => void;
   readonly onHighwayHover?: (hover: HighwayHover | null) => void;
-  readonly onEntitySelect?: (selection: EntitySelection | null) => void;
+  readonly onNodeSelect?: (selection: NodeSelection<NodeId> | null) => void;
   /** Open the underlying link entities of an aggregated "highway" edge in a table. */
-  readonly onOpenLinkTable?: (linkEntityIds: readonly EntityId[]) => void;
+  readonly onOpenLinkTable?: (linkNodeIds: readonly NodeId[]) => void;
   /** Report a hovered wholly-frontier cluster bubble (to offer loading its entities), or null on leave. */
   readonly onClusterHover?: (hover: ClusterHover | null) => void;
+  /** Report a hovered non-node flat edge (a type graph's link-type edge), or null on leave. */
+  readonly onEdgeHover?: (hover: FlatEdgeHover<NodeId> | null) => void;
   /**
-   * Resolve an entity's display label (its name) for always-on graph labels.
+   * Resolve a node's display label (its name) for always-on graph labels.
    * Invoked when the label set is rebuilt (zoom / structure change), never per frame.
    */
-  readonly resolveEntityLabel?: (entityId: EntityId) => string | undefined;
+  readonly resolveNodeLabel?: (nodeId: NodeId) => string | undefined;
   /**
-   * Resolve an entity's type icon to an atlas key (emoji or image URL), or null for none.
+   * Resolve a node's type icon to an atlas key (emoji or image URL), or null for none.
    * Invoked when the flat-tier icon set is rebuilt (structure change), never per frame.
    */
-  readonly resolveEntityIcon?: (entityId: EntityId) => string | null;
+  readonly resolveNodeIcon?: (nodeId: NodeId) => string | null;
   /** Receive the always-on hub labels (with current on-screen positions) to overlay as HTML. */
-  readonly onEntityLabels?: (labels: readonly EntityLabel[]) => void;
+  readonly onNodeLabels?: (labels: readonly NodeLabel<NodeId>[]) => void;
+  /** Which dots get always-on labels; omit for the entity-hub defaults. */
+  readonly labelPolicy?: Partial<LabelPolicy>;
   /**
    * Surface the live {@link Scene} to debug consumers (the dev harness render
    * benchmark drives captures and camera sweeps through it). Called with null
    * on unmount.
    */
-  readonly onSceneReady?: (scene: Scene | null) => void;
+  readonly onSceneReady?: (scene: Scene<NodeId> | null) => void;
 }
 
-export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
+export const GraphVisualizer = <NodeId extends string = EntityId>({
   handle,
   loadingComponent,
-  onEntityHover,
+  ariaLabel = "Entity relationship graph",
+  onNodeHover,
   onHighwayHover,
-  onEntitySelect,
+  onNodeSelect,
   onOpenLinkTable,
   onClusterHover,
-  resolveEntityLabel,
-  resolveEntityIcon,
-  onEntityLabels,
+  onEdgeHover,
+  resolveNodeLabel,
+  resolveNodeIcon,
+  onNodeLabels,
+  labelPolicy,
   onSceneReady,
-}) => {
+}: GraphVisualizerProps<NodeId>): ReactElement => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const sceneRef = useRef<Scene | null>(null);
+  const sceneRef = useRef<Scene<NodeId> | null>(null);
   const [hasStructure, setHasStructure] = useState(false);
   const handleFirstStructure = useCallback(() => setHasStructure(true), []);
+
+  // The scene reads the policy once at mount; a mid-session policy change is
+  // not a supported flow (hosts pass a constant).
+  const sceneOptions = useMemo<SceneOptions>(
+    () => ({ labelPolicy }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
+  );
 
   useEffect(() => {
     const container = containerRef.current;
@@ -77,17 +101,23 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
     // the loading overlay again until its first structure frame arrives.
     setHasStructure(false);
 
-    const scene = new Scene(container, handle, {
-      onEntityHover,
-      onHighwayHover,
-      onEntitySelect,
-      onOpenLinkTable,
-      onClusterHover,
-      resolveEntityLabel,
-      resolveEntityIcon,
-      onEntityLabels,
-      onFirstStructure: handleFirstStructure,
-    });
+    const scene = new Scene<NodeId>(
+      container,
+      handle,
+      {
+        onNodeHover,
+        onHighwayHover,
+        onNodeSelect,
+        onOpenLinkTable,
+        onClusterHover,
+        onEdgeHover,
+        resolveNodeLabel,
+        resolveNodeIcon,
+        onNodeLabels,
+        onFirstStructure: handleFirstStructure,
+      },
+      sceneOptions
+    );
     sceneRef.current = scene;
     onSceneReady?.(scene);
 
@@ -103,32 +133,34 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
   // Keep the scene's interaction callbacks current without re-mounting Deck.
   useEffect(() => {
     sceneRef.current?.setCallbacks({
-      onEntityHover,
+      onNodeHover,
       onHighwayHover,
-      onEntitySelect,
+      onNodeSelect,
       onOpenLinkTable,
       onClusterHover,
-      resolveEntityLabel,
-      resolveEntityIcon,
-      onEntityLabels,
+      onEdgeHover,
+      resolveNodeLabel,
+      resolveNodeIcon,
+      onNodeLabels,
       onFirstStructure: handleFirstStructure,
     });
   }, [
-    onEntityHover,
+    onNodeHover,
     onHighwayHover,
-    onEntitySelect,
+    onNodeSelect,
     onOpenLinkTable,
     onClusterHover,
-    resolveEntityLabel,
-    resolveEntityIcon,
-    onEntityLabels,
+    onEdgeHover,
+    resolveNodeLabel,
+    resolveNodeIcon,
+    onNodeLabels,
     handleFirstStructure,
   ]);
 
   return (
     <div
       role="application"
-      aria-label="Entity relationship graph"
+      aria-label={ariaLabel}
       style={{
         position: "relative",
         width: "100%",

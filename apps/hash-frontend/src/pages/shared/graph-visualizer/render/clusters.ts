@@ -14,7 +14,7 @@ import {
 } from "../worker/buffers/position-buffer";
 
 import type { PositionsFrame, RenderCluster, StructureFrame } from "../frames";
-import type { ClusterId, EntityIndex } from "../ids";
+import type { ClusterId } from "../ids";
 import type { ClusterReference } from "./frame-connection";
 import type { Layer } from "@deck.gl/core";
 
@@ -28,7 +28,7 @@ export interface PlacedCluster {
 }
 
 function containerFillColor(
-  cluster: RenderCluster,
+  cluster: RenderCluster
 ): [number, number, number, number] {
   // A wholly-frontier bubble (every member fetched-but-unexpanded) reads in the frontier
   // grey, matching the greyed-out frontier dots; otherwise it carries its own type colour.
@@ -46,7 +46,7 @@ function containerFillColor(
 /** Build placed bubbles from a structure frame, deepest-container-first. */
 export function buildPlaced(
   structure: StructureFrame,
-  positions: PositionsFrame,
+  positions: PositionsFrame
 ): PlacedCluster[] {
   const clusterPositions = positions.clusterPositions;
   const placed = structure.clusters.map((cluster, index) => ({
@@ -62,7 +62,7 @@ export function buildPlaced(
 /** Mutate placed positions in place (array identity preserved for updateTrigger). */
 export function updatePlaced(
   placed: PlacedCluster[],
-  positions: PositionsFrame,
+  positions: PositionsFrame
 ): void {
   const clusterPositions = positions.clusterPositions;
   for (const entry of placed) {
@@ -77,7 +77,7 @@ export function clusterBubbleLayer(
   positionTick: number,
   /** Clusters to keep at full colour during a highlight; null when no selection. */
   keepFull: ReadonlySet<ClusterId> | null,
-  highlightTick: number,
+  highlightTick: number
 ): Layer {
   return new ScatterplotLayer<PlacedCluster>({
     id: "clusters",
@@ -117,9 +117,9 @@ export function clusterEntityLayers(config: {
   readonly clusters: Map<ClusterId, ClusterReference>;
   /** Drives the dots' getPosition updateTrigger, so the SAB re-uploads only on a tick. */
   readonly positionTick: number;
-  /** Highlighted entities (selection + ego); a leaf line whose endpoints aren't all in here
-   * dims, in step with the dots. Empty = no selection, every line full. */
-  readonly highlightedEntities: ReadonlySet<EntityIndex>;
+  /** Highlighted entities' join keys (selection + ego); a leaf line whose endpoints aren't all
+   * in here dims, in step with the dots. Empty = no selection, every line full. */
+  readonly highlightedEntities: ReadonlySet<number>;
 }): Layer[] {
   const { structure, positions, clusters, positionTick, highlightedEntities } =
     config;
@@ -130,9 +130,7 @@ export function clusterEntityLayers(config: {
     const id = ref.nodeIds[local];
     // nodeIds store entityIdx as decimal strings allocated by the worker;
     // Number() is exact below 2^53.
-    return (
-      id !== undefined && highlightedEntities.has(Number(id) as EntityIndex)
-    );
+    return id !== undefined && highlightedEntities.has(Number(id));
   };
   const clusterPositions = positions.clusterPositions;
   // Fan-out geometry lives on PositionsFrame, not StructureFrame; index by
@@ -172,7 +170,7 @@ export function clusterEntityLayers(config: {
             nodeHighlighted(cluster, entity)
               ? layer.fanOutColor
               : dimColor(layer.fanOutColor),
-            edge * 4,
+            edge * 4
           );
         }
       }
@@ -192,16 +190,28 @@ export function clusterEntityLayers(config: {
           },
           // oxfmt-ignore
           modelMatrix: [
-            1, 0, 0, 0,
-            0, 1, 0, 0,
-            0, 0, 1, 0,
-            originX, originY, 0, 1,
+            1,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            originX,
+            originY,
+            0,
+            1,
           ],
           ...(colors ? {} : { getColor: layer.fanOutColor }),
           getWidth: 1,
           widthUnits: "pixels",
           pickable: false,
-        }),
+        })
       );
     }
 
@@ -243,17 +253,29 @@ export function clusterEntityLayers(config: {
           },
           // oxfmt-ignore
           modelMatrix: [
-            1, 0, 0, 0,
-            0, 1, 0, 0,
-            0, 0, 1, 0,
-            originX, originY, 0, 1,
+            1,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            originX,
+            originY,
+            0,
+            1,
           ],
           ...(colors ? {} : { getColor: layer.color }),
           getWidth: 1,
           opacity: 0.5,
           widthUnits: "pixels",
           pickable: false,
-        }),
+        })
       );
     }
 
@@ -272,10 +294,22 @@ export function clusterEntityLayers(config: {
         },
         // oxfmt-ignore
         modelMatrix: [
-          1, 0, 0, 0,
-          0, 1, 0, 0,
-          0, 0, 1, 0,
-          originX, originY, 0, 1,
+          1,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
+          originX,
+          originY,
+          0,
+          1,
         ],
         getRadius: layer.radius,
         radiusUnits: "common",
@@ -284,7 +318,7 @@ export function clusterEntityLayers(config: {
           getPosition: positionTick,
           getFillColor: positionTick,
         },
-      }),
+      })
     );
   }
 

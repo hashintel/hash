@@ -128,19 +128,19 @@ export const EntityGraphVisualizer: React.FC<EntityGraphVisualizerProps> = memo(
         extractTypeSchemas(
           entities ?? [],
           closedMultiEntityTypesRootMap,
-          definitions,
+          definitions
         ),
-      [entities, closedMultiEntityTypesRootMap, definitions],
+      [entities, closedMultiEntityTypesRootMap, definitions]
     );
 
     const propertySchemas = useMemo(
       () => extractPropertySchemas(definitions),
-      [definitions],
+      [definitions]
     );
 
     const rootIdSet = useMemo(
       () => (rootEntityIds ? new Set(rootEntityIds) : undefined),
-      [rootEntityIds],
+      [rootEntityIds]
     );
 
     // The data source's identity drives a worker recreate: a changed `sourceKey` (filter change)
@@ -190,7 +190,7 @@ export const EntityGraphVisualizer: React.FC<EntityGraphVisualizerProps> = memo(
       () => () => {
         overlayStore.reset();
       },
-      [overlayStore, handle],
+      [overlayStore, handle]
     );
 
     const {
@@ -212,7 +212,7 @@ export const EntityGraphVisualizer: React.FC<EntityGraphVisualizerProps> = memo(
       (entityIds: readonly EntityId[]) => {
         void frontierStore.expand(entityIds);
       },
-      [frontierStore],
+      [frontierStore]
     );
 
     const fetchCompleteFrontier = useCallback(() => {
@@ -224,11 +224,11 @@ export const EntityGraphVisualizer: React.FC<EntityGraphVisualizerProps> = memo(
         overlayStore.selection.setValue(selection);
         // Selecting a frontier node also expands its neighbourhood; the store dedupes,
         // so the Scene's per-frame re-emission of the selection expands at most once.
-        if (selection && rootIdSet && !rootIdSet.has(selection.entityId)) {
-          void frontierStore.expand([selection.entityId]);
+        if (selection && rootIdSet && !rootIdSet.has(selection.nodeId)) {
+          void frontierStore.expand([selection.nodeId]);
         }
       },
-      [overlayStore, frontierStore, rootIdSet],
+      [overlayStore, frontierStore, rootIdSet]
     );
 
     if (error) {
@@ -289,14 +289,14 @@ export const EntityGraphVisualizer: React.FC<EntityGraphVisualizerProps> = memo(
               description="Existing graph content stays visible while new data loads."
             />
           }
-          onEntityHover={overlayStore.entityHover.setValue}
+          onNodeHover={overlayStore.entityHover.setValue}
           onHighwayHover={overlayStore.highwayHover.setValue}
-          onEntitySelect={handleEntitySelect}
+          onNodeSelect={handleEntitySelect}
           onClusterHover={overlayStore.handleClusterHover}
           onOpenLinkTable={onOpenLinkTable}
-          resolveEntityLabel={resolveEntityLabel}
-          resolveEntityIcon={resolveEntityIcon}
-          onEntityLabels={overlayStore.entityLabels.setValue}
+          resolveNodeLabel={resolveEntityLabel}
+          resolveNodeIcon={resolveEntityIcon}
+          onNodeLabels={overlayStore.entityLabels.setValue}
           onSceneReady={onSceneReady}
         />
         <FrontierControls
@@ -335,5 +335,5 @@ export const EntityGraphVisualizer: React.FC<EntityGraphVisualizerProps> = memo(
         />
       </Box>
     );
-  },
+  }
 );

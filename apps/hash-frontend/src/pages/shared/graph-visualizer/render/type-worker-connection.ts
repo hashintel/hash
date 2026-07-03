@@ -1,23 +1,21 @@
 /**
- * The type-graph lifecycle's worker connection: boots `INIT_TYPE` and adds
- * the type-specific surface on top of {@link FrameConnection}'s frame stream.
+ * The type-graph lifecycle's worker connection: boots `INIT_TYPE` and
+ * implements {@link SceneHandle}<VersionedUrl> on top of
+ * {@link FrameConnection}'s frame stream.
  *
- * Node identity is a {@link TypeId} join key in the flat buffer, resolved to
- * a {@link VersionedUrl} against the append-only `TYPE_ID_TABLE` the worker
- * publishes (the type-graph analogue of the entity id-map SAB). Edge
- * identity: bezier segment ids are indices into the store's edge table,
- * mirrored per structure frame as {@link StructureFrame.typeEdges}, so a
- * hovered segment resolves to its source / target / link type without a
- * worker round-trip.
+ * Node keys are {@link TypeId}s, resolved to {@link VersionedUrl}s against
+ * the append-only `TYPE_ID_TABLE` the worker publishes (the type-graph
+ * analogue of the entity id-map SAB). Edge identity: bezier segment ids are
+ * indices into the store's edge table, mirrored per structure frame as
+ * {@link StructureFrame.typeEdges}, so a hovered segment resolves to its
+ * source / target / link type without a worker round-trip.
  */
 import {
   flatRecordJoinKey,
   FrameConnection,
-  locateFlatRecords,
   PendingRequests,
 } from "./frame-connection";
 
-import type { RenderTypeEdge } from "../frames";
 import type { ClusterId, TypeId } from "../ids";
 import type { TypeSchemaEntry } from "../worker/protocol";
 import type {
@@ -26,33 +24,13 @@ import type {
 } from "../worker/type-graph/protocol";
 import type {
   FrameConnectionConfig,
-  FrameHandle,
   LifecycleMessage,
 } from "./frame-connection";
+import type { FlatEdgePick, NodeEgo, SceneHandle } from "./scene/handle";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 
 /** The public surface the type presentation drives Deck.gl from. */
-export interface TypeWorkerHandle extends FrameHandle {
-  /** Resolve a picked type dot to its VersionedUrl via the id table. */
-  resolveTypeUrl(
-    layoutId: ClusterId,
-    recordIndex: number
-  ): VersionedUrl | undefined;
-  /** Decode a TypeId to its VersionedUrl via the id table. */
-  typeIdToUrl(typeId: TypeId): VersionedUrl | undefined;
-  /** The raw TypeId (join key) for a record. */
-  typeIdAt(layoutId: ClusterId, recordIndex: number): TypeId | undefined;
-  /** Map wanted TypeIds to their current render indices within the layout's buffer. */
-  locateRecords(
-    layoutId: ClusterId,
-    wanted: ReadonlySet<TypeId>
-  ): Map<TypeId, number>;
-  /** Resolve a picked edge segment (its id) to source / target / link type. */
-  resolveFlatEdge(edgeIdx: number): RenderTypeEdge | undefined;
-  /** Ask the worker for a selected type node's neighbours. */
-  queryEgo(typeId: TypeId): Promise<readonly TypeId[]>;
-  /** Highlight type nodes (selection ego); empty restores full colour. */
-  setHighlight(typeIds: readonly TypeId[]): void;
+export interface TypeWorkerHandle extends SceneHandle<VersionedUrl> {
   ingestTypes(
     nodes: readonly IngestTypeNode[],
     edges: readonly IngestTypeEdge[],
@@ -81,19 +59,19 @@ export class TypeWorkerConnection
     });
   }
 
-  resolveTypeUrl(
+  resolveNodeId(
     layoutId: ClusterId,
     recordIndex: number
   ): VersionedUrl | undefined {
-    const typeId = this.typeIdAt(layoutId, recordIndex);
+    const typeId = this.nodeKeyAt(layoutId, recordIndex);
     return typeId === undefined ? undefined : this.#typeUrls[typeId];
   }
 
-  typeIdToUrl(typeId: TypeId): VersionedUrl | undefined {
-    return this.#typeUrls[typeId];
+  nodeKeyToId(nodeKey: number): VersionedUrl | undefined {
+    return this.#typeUrls[nodeKey];
   }
 
-  typeIdAt(layoutId: ClusterId, recordIndex: number): TypeId | undefined {
+  nodeKeyAt(layoutId: ClusterId, recordIndex: number): TypeId | undefined {
     const cluster = this.getClusters().get(layoutId);
     if (!cluster || recordIndex < 0) {
       return undefined;
@@ -103,33 +81,49 @@ export class TypeWorkerConnection
     return flatRecordJoinKey(cluster, recordIndex) as TypeId | undefined;
   }
 
-  locateRecords(
-    layoutId: ClusterId,
-    wanted: ReadonlySet<TypeId>
-  ): Map<TypeId, number> {
-    const cluster = this.getClusters().get(layoutId);
-    if (!cluster || wanted.size === 0) {
-      return new Map();
+  /** An edge here is a link *type* between two type nodes, not a node itself. */
+  resolveFlatEdge(edgeId: number): FlatEdgePick<VersionedUrl> | null {
+    const edge = this.getStructure()?.typeEdges?.[edgeId];
+    if (!edge) {
+      return null;
     }
-    return locateFlatRecords(cluster, wanted);
+    const source = this.#typeUrls[edge.source];
+    const target = this.#typeUrls[edge.target];
+    const linkType = this.#typeUrls[edge.linkTypeId];
+    return source === undefined ||
+      target === undefined ||
+      linkType === undefined
+      ? null
+      : { kind: "edge", source, target, linkType };
   }
 
-  resolveFlatEdge(edgeIdx: number): RenderTypeEdge | undefined {
-    return this.getStructure()?.typeEdges?.[edgeIdx];
-  }
-
-  queryEgo(typeId: TypeId): Promise<readonly TypeId[]> {
+  queryEgo(nodeKey: number): Promise<NodeEgo> {
     return new Promise((resolve) => {
       this.send({
         type: "QUERY_TYPE_EGO",
-        requestId: this.#egoRequests.open(resolve),
-        typeId,
+        requestId: this.#egoRequests.open((typeIds) => {
+          // No hierarchical tier: every neighbour is an individually
+          // rendered node, so the collapsed-cluster set is always empty.
+          resolve({ nodeKeys: typeIds, clusterIds: [] });
+        }),
+        typeId: nodeKey as TypeId,
       });
     });
   }
 
-  setHighlight(typeIds: readonly TypeId[]): void {
-    this.send({ type: "SET_TYPE_HIGHLIGHT", typeIds });
+  setHighlight(nodeKeys: readonly number[]): void {
+    this.send({
+      type: "SET_TYPE_HIGHLIGHT",
+      typeIds: nodeKeys as readonly TypeId[],
+    });
+  }
+
+  /** No hierarchical tier to pin; the scene calls this on deselect regardless. */
+  setPinned(): void {}
+
+  /** No aggregated highways in the type lifecycle; nothing to expand. */
+  queryHighwayLinks(): Promise<readonly number[]> {
+    return Promise.resolve([]);
   }
 
   ingestTypes(

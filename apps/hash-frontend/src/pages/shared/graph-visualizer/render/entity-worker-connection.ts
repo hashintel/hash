@@ -1,16 +1,19 @@
 /**
- * The entity-graph lifecycle's worker connection: boots `INIT_ENTITY` and adds
- * the entity-specific surface on top of {@link FrameConnection}'s frame
- * stream -- EntityIdx <-> EntityId resolution via the id-map SAB, ingest and
- * type registration, ego / highway / fixture queries, pin and highlight, and
- * the embedding-clustering fetch round-trip.
+ * The entity-graph lifecycle's worker connection: boots `INIT_ENTITY` and
+ * implements {@link SceneHandle}<EntityId> on top of {@link FrameConnection}'s
+ * frame stream -- EntityIdx <-> EntityId resolution via the id-map SAB, ingest
+ * and type registration, ego / highway / fixture queries, pin and highlight,
+ * and the embedding-clustering fetch round-trip.
+ *
+ * Node keys are {@link EntityIndex}es: the scene passes them around as plain
+ * numbers (see {@link "./scene/handle"}); this connection brands them at the
+ * protocol boundary.
  */
 import { ClusterId, type EntityIndex } from "../ids";
 import { decodeEntityId, ID_HEADER_BYTES } from "../worker/entity-id-codec";
 import {
   flatRecordJoinKey,
   FrameConnection,
-  locateFlatRecords,
   PendingRequests,
 } from "./frame-connection";
 
@@ -23,43 +26,18 @@ import type {
 } from "../worker/protocol";
 import type {
   FrameConnectionConfig,
-  FrameHandle,
   LifecycleMessage,
 } from "./frame-connection";
+import type { FlatEdgePick, NodeEgo, SceneHandle } from "./scene/handle";
 import type { EntityId } from "@blockprotocol/type-system";
 
 /** The public surface the entity presentation drives Deck.gl from. */
-export interface WorkerHandle extends FrameHandle {
-  /** Resolve a picked entity dot to its EntityId via the id-map SAB. */
-  resolveEntityId(
-    layoutId: ClusterId,
-    recordIndex: number
-  ): EntityId | undefined;
-  /** Decode an EntityIdx to its EntityId via the id-map SAB. */
-  entityIdToId(entityIdx: EntityIndex): EntityId | undefined;
-  /** The raw EntityIdx (join key) for a record. */
-  entityIdxAt(
-    layoutId: ClusterId,
-    recordIndex: number
-  ): EntityIndex | undefined;
-  /** Map wanted entityIdxs to their current render indices within a layout's buffer. */
-  locateRecords(
-    layoutId: ClusterId,
-    wanted: ReadonlySet<EntityIndex>
-  ): Map<EntityIndex, number>;
-  /** Ask the worker for a selected node's ego (its neighbors' visible representatives). */
-  queryEgo(entityIdx: EntityIndex): Promise<readonly EgoTarget[]>;
-  /** Ask the worker for the link entities aggregated by a highway lane (its `laneId`). */
-  queryHighwayLinks(laneId: number): Promise<readonly EntityIndex[]>;
+export interface WorkerHandle extends SceneHandle<EntityId> {
   /**
    * capture-live-fixture debug hook: serialize the live flat-tier layout graph
    * for replay as a bench/test fixture. Null when no flat layout is live.
    */
   captureLayoutFixture(): Promise<CapturedLayoutFixture | null>;
-  /** Pin a hierarchical leaf open (with ancestors) regardless of zoom, or null to clear. */
-  setPinned(clusterId: ClusterId | null): void;
-  /** Highlight entities (selection ego now, path later); empty restores full colour. */
-  setHighlight(entityIdxs: readonly EntityIndex[]): void;
   ingestBatch(entities: readonly IngestEntity[]): void;
   registerTypes(
     typeSchemas: readonly TypeSchemaEntry[],
@@ -93,31 +71,22 @@ export class EntityWorkerConnection
     });
   }
 
-  resolveEntityId(
+  resolveNodeId(
     layoutId: ClusterId,
     recordIndex: number
   ): EntityId | undefined {
-    const mapBytes = this.#entityIdMapBytes;
-    if (!mapBytes) {
-      return undefined;
-    }
-    const entityIdx = this.entityIdxAt(layoutId, recordIndex);
-    return entityIdx === undefined
-      ? undefined
-      : decodeEntityId(mapBytes, entityIdx);
+    const entityIdx = this.nodeKeyAt(layoutId, recordIndex);
+    return entityIdx === undefined ? undefined : this.nodeKeyToId(entityIdx);
   }
 
-  entityIdToId(entityIdx: EntityIndex): EntityId | undefined {
+  nodeKeyToId(nodeKey: number): EntityId | undefined {
     const mapBytes = this.#entityIdMapBytes;
     return mapBytes === undefined
       ? undefined
-      : decodeEntityId(mapBytes, entityIdx);
+      : decodeEntityId(mapBytes, nodeKey as EntityIndex);
   }
 
-  entityIdxAt(
-    layoutId: ClusterId,
-    recordIndex: number
-  ): EntityIndex | undefined {
+  nodeKeyAt(layoutId: ClusterId, recordIndex: number): EntityIndex | undefined {
     const cluster = this.getClusters().get(layoutId);
     if (!cluster || recordIndex < 0) {
       return undefined;
@@ -134,39 +103,31 @@ export class EntityWorkerConnection
     return flatRecordJoinKey(cluster, recordIndex) as EntityIndex | undefined;
   }
 
-  locateRecords(
-    layoutId: ClusterId,
-    wanted: ReadonlySet<EntityIndex>
-  ): Map<EntityIndex, number> {
-    const cluster = this.getClusters().get(layoutId);
-    if (!cluster || wanted.size === 0) {
-      return new Map();
-    }
-    if (cluster.flatCapacity === undefined) {
-      // Hierarchical leaf: fixed node set, nodeIds[index] is the entityIdx (stringified).
-      const result = new Map<EntityIndex, number>();
-      for (let index = 0; index < cluster.nodeIds.length; index++) {
-        const raw = cluster.nodeIds[index];
-        if (raw === undefined) {
-          continue;
-        }
-        const entityIdx = Number(raw) as EntityIndex;
-        if (wanted.has(entityIdx)) {
-          result.set(entityIdx, index);
-        }
-      }
-      return result;
-    }
-    // Flat buffer: records reorder, so scan the live records for the wanted entityIdxs.
-    return locateFlatRecords(cluster, wanted);
+  /** A flat edge IS a link entity here: its bezier id is the link's EntityIdx. */
+  resolveFlatEdge(edgeId: number): FlatEdgePick<EntityId> | null {
+    const nodeId = this.nodeKeyToId(edgeId);
+    return nodeId === undefined ? null : { kind: "node", nodeId };
   }
 
-  queryEgo(entityIdx: EntityIndex): Promise<readonly EgoTarget[]> {
+  queryEgo(nodeKey: number): Promise<NodeEgo> {
     return new Promise((resolve) => {
       this.send({
         type: "QUERY_EGO",
-        requestId: this.#egoRequests.open(resolve),
-        entityIdx,
+        requestId: this.#egoRequests.open((targets) => {
+          // Split the worker's visible-representative targets into scene
+          // currency: individually rendered neighbours vs collapsed bubbles.
+          const nodeKeys: number[] = [];
+          const clusterIds: ClusterId[] = [];
+          for (const target of targets) {
+            if (target.kind === "entity") {
+              nodeKeys.push(target.entityIdx);
+            } else {
+              clusterIds.push(target.clusterId);
+            }
+          }
+          resolve({ nodeKeys, clusterIds });
+        }),
+        entityIdx: nodeKey as EntityIndex,
       });
     });
   }
@@ -194,8 +155,11 @@ export class EntityWorkerConnection
     this.send({ type: "SET_PINNED", clusterId });
   }
 
-  setHighlight(entityIdxs: readonly EntityIndex[]): void {
-    this.send({ type: "SET_HIGHLIGHT", entityIdxs });
+  setHighlight(nodeKeys: readonly number[]): void {
+    this.send({
+      type: "SET_HIGHLIGHT",
+      entityIdxs: nodeKeys as readonly EntityIndex[],
+    });
   }
 
   ingestBatch(entities: readonly IngestEntity[]): void {

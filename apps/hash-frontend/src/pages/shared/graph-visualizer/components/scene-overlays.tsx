@@ -19,7 +19,7 @@ import type { ClosedMultiEntityTypesRootMap } from "@local/hash-graph-sdk/ontolo
 
 interface EntityCardResolvers {
   readonly getCardContext: (
-    entityId: EntityId,
+    entityId: EntityId
   ) => EntityCardContext | undefined;
   readonly degreeById: ReadonlyMap<EntityId, number>;
 }
@@ -36,11 +36,11 @@ export const EntityHoverOverlay: React.FC<
   const hover = useOverlaySlice(overlayStore.entityHover);
   const selection = useOverlaySlice(overlayStore.selection);
 
-  if (hover === null || hover.entityId === selection?.entityId) {
+  if (hover === null || hover.nodeId === selection?.nodeId) {
     return null;
   }
 
-  const context = getCardContext(hover.entityId);
+  const context = getCardContext(hover.nodeId);
   if (context === undefined) {
     return null;
   }
@@ -50,7 +50,7 @@ export const EntityHoverOverlay: React.FC<
       entity={context.entity}
       closedMultiEntityTypesRootMap={context.rootMap}
       definitions={context.definitions}
-      degree={degreeById.get(hover.entityId) ?? 0}
+      degree={degreeById.get(hover.nodeId) ?? 0}
       x={hover.x}
       y={hover.y}
     />
@@ -76,7 +76,7 @@ export const SelectionOverlay: React.FC<SelectionOverlayProps> = ({
 
   // Keyed on the id, not the per-frame selection object, so the memoized card body
   // stays referentially stable while the card tracks the node across pan frames.
-  const selectedEntityId = selection?.entityId;
+  const selectedEntityId = selection?.nodeId;
   const handleOpen = useCallback(() => {
     if (selectedEntityId !== undefined) {
       onEntityClick?.(selectedEntityId);
@@ -87,7 +87,7 @@ export const SelectionOverlay: React.FC<SelectionOverlayProps> = ({
     return null;
   }
 
-  const context = getCardContext(selection.entityId);
+  const context = getCardContext(selection.nodeId);
   if (context === undefined) {
     return null;
   }
@@ -97,7 +97,7 @@ export const SelectionOverlay: React.FC<SelectionOverlayProps> = ({
       entity={context.entity}
       closedMultiEntityTypesRootMap={context.rootMap}
       definitions={context.definitions}
-      degree={degreeById.get(selection.entityId) ?? 0}
+      degree={degreeById.get(selection.nodeId) ?? 0}
       x={selection.x}
       y={selection.y}
       onOpen={onEntityClick ? handleOpen : undefined}
