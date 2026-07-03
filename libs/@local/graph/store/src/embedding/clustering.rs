@@ -9,8 +9,8 @@ use super::{dimension::Dimension, kernel};
 
 /// Parameters for k-means clustering.
 ///
-/// Use [`Config::for_k`] or [`Config::for_k_with_seed`] to construct with
-/// reasonable defaults, then override individual fields as needed.
+/// Use [`Config::for_k_with_seed`] to construct with reasonable defaults, then override individual
+/// fields as needed.
 pub struct Config {
     /// Number of clusters.
     pub k: u16,
