@@ -250,7 +250,7 @@ export const transitionSchema = z
         "Transition kernel code is meaningful only when colours are enabled and the transition has at least one coloured output place.",
         "`input` and `parameters` have the same shape as the transition's lambda.",
         "MUST return an object keyed by OUTPUT PLACE NAME with a tuple sized to that arc's weight. Coloured output places MUST be present; uncoloured output places MUST be omitted (they are auto-populated with empty tokens).",
-        "Token attribute values must match the output type: real/integer use numbers, boolean uses booleans. When stochasticity is enabled, real/integer attributes may also use `Distribution.Gaussian(mean, sd)` / `Distribution.Uniform(min, max)` / `Distribution.Lognormal(mu, sigma)`; each distribution is sampled once per token, and chained `.map(fn)` calls on the same distribution share that single sample.",
+        "Token attribute values must match the output type: real/integer use numbers, boolean uses booleans. When stochasticity is enabled, `real` attributes may also use `Distribution.Gaussian(mean, sd)` / `Distribution.Uniform(min, max)` / `Distribution.Lognormal(mu, sigma)` (discrete attributes always take plain values); each distribution is sampled once per token, and chained `.map(fn)` calls on the same distribution share that single sample.",
         "Leave empty when no coloured outputs exist.",
       ].join(" "),
     }),

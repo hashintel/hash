@@ -230,7 +230,7 @@ export function computePossibleTransition(
           for (const element of outputPlace.elements ?? []) {
             let raw = token[element.name];
             if (isDistribution(raw)) {
-              if (element.type !== "real" && element.type !== "integer") {
+              if (element.type !== "real") {
                 throw new Error(
                   `Transition ${transition.id} produced a distribution for discrete element ${element.name}.`,
                 );
