@@ -3,6 +3,7 @@ import { useState } from "react";
 
 import { getDefaultOperatorForKind } from "../shared/property-filters/get-operators-for-kind";
 import { AddFiltersMenu } from "./add-filters-menu";
+import { FilterConfigButtons } from "./filter-config-buttons";
 import { FrontierAdditionsPill } from "./frontier-additions-pill";
 import { IncludeArchivedPill } from "./include-archived-pill";
 import { PropertyFilterPill } from "./property-filter-pill";
@@ -25,13 +26,17 @@ type FilterRibbonProps = {
   filterState: EntitiesFilterState;
   /**
    * How many entities graph exploration has OR-ed into the displayed set
-   * (frontier expansions). Zero hides the pill.
+   * beyond the query's own results. Zero hides the pill.
    */
   frontierAdditionsCount: number;
   internalWebs: InternalWeb[];
   isTypePinned: boolean;
   /** Drop the graph-expansion additions (dismiss the "OR n entities" pill). */
   onClearFrontierAdditions: () => void;
+  /** Download the current filter configuration (filters plus graph additions). */
+  onExportFilters: () => void;
+  /** Restore a configuration from a picked file's text. */
+  onImportFilters: (fileText: string) => void;
   setFilterState: (
     updater: (prev: EntitiesFilterState) => EntitiesFilterState,
   ) => void;
@@ -52,6 +57,8 @@ export const FilterRibbon: FunctionComponent<FilterRibbonProps> = ({
   internalWebs,
   isTypePinned,
   onClearFrontierAdditions,
+  onExportFilters,
+  onImportFilters,
   setFilterState,
 }) => {
   const [draftPropertyFilter, setDraftPropertyFilter] =
@@ -148,18 +155,24 @@ export const FilterRibbon: FunctionComponent<FilterRibbonProps> = ({
           onRemove={() => setDraftPropertyFilter(null)}
         />
       )}
-      {frontierAdditionsCount > 0 && (
-        <FrontierAdditionsPill
-          count={frontierAdditionsCount}
-          onRemove={onClearFrontierAdditions}
-        />
-      )}
       <AddFiltersMenu
         canAddIncludeArchived={!filterState.includeArchived}
         onAddIncludeArchived={() => setIncludeArchived(true)}
         filterableProperties={propertyFilterMetadata}
         propertiesLoading={availableTypesLoading}
         onAddPropertyFilter={handleAddPropertyFilter}
+      />
+      {/* After the add-filter button: the AND-ed filter clause ends
+          there, and the OR clause joins onto the completed ribbon. */}
+      {frontierAdditionsCount > 0 && (
+        <FrontierAdditionsPill
+          count={frontierAdditionsCount}
+          onRemove={onClearFrontierAdditions}
+        />
+      )}
+      <FilterConfigButtons
+        onExport={onExportFilters}
+        onImport={onImportFilters}
       />
     </Box>
   );

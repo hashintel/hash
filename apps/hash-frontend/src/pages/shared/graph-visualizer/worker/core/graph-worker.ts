@@ -266,7 +266,7 @@ export class GraphWorker {
   }
 
   get debug(): boolean {
-    return this.config.debug ?? false;
+    return this.config.debug;
   }
 
   set onStructureFrame(handler: ((frame: StructureFrame) => void) | undefined) {
@@ -396,11 +396,9 @@ export class GraphWorker {
   }
 
   /**
-   * Freeze or resume the layout simulation. Pausing stops the tick
-   * scheduler mid-settle without losing state; layouts keep their `running`
-   * status and continue from the same positions on resume. Start requests
-   * that arrive while paused (an ingest commit creating or re-warming
-   * layouts) are swallowed by {@link #ensureTicking} and honoured on resume.
+   * Freeze or resume the worker. Any backgrounded worker will be paused,
+   * worker messages are queued but not resolved until the simulation
+   * has been resumed again.
    */
   setSimulationPaused(paused: boolean): void {
     if (this.#simulationPaused === paused) {
@@ -410,9 +408,11 @@ export class GraphWorker {
     this.#simulationPaused = paused;
 
     if (paused) {
-      this.#ticker.stop();
-    } else if (this.#layouts.anyLayoutRunning()) {
-      this.#ticker.ensureRunning();
+      this.#ticker.pause();
+      this.#jobs.pause();
+    } else {
+      this.#ticker.resume();
+      this.#jobs.resume();
     }
   }
 
@@ -423,9 +423,7 @@ export class GraphWorker {
    * resume when any layout is still running.
    */
   #ensureTicking(): void {
-    if (!this.#simulationPaused) {
-      this.#ticker.ensureRunning();
-    }
+    this.#ticker.ensureRunning();
   }
 
   /** Record a new viewport and commit if the LOD cut changed. */
@@ -456,6 +454,7 @@ export class GraphWorker {
   // rebuild.
   #applyHighlight(): void {
     this.#flatTier.restyle();
+
     if (this.#view.cutIndex) {
       for (const leafId of this.#view.cutIndex.entityModeIds) {
         const cluster = this.#clusterTree.get(leafId);
@@ -469,6 +468,7 @@ export class GraphWorker {
         }
       }
     }
+
     this.#positionsEmitter.emit();
   }
 
@@ -562,6 +562,7 @@ export class GraphWorker {
    */
   #recommitLabelsOnly(): void {
     const cutIndex = this.#view.cutIndex;
+
     if (
       this.#mode !== "hierarchical-lod" ||
       !cutIndex ||
@@ -570,6 +571,7 @@ export class GraphWorker {
       this.commitStructure();
       return;
     }
+
     this.#structureEmitter.emit(
       this.#structureEmitter.buildEntityLayers(cutIndex),
     );

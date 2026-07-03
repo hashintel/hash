@@ -10,18 +10,21 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  BUBBLE_ISO_THRESHOLD,
+  CORRIDOR_ANCHOR_CAP,
   CORRIDOR_FIELD_RADIUS,
   CORRIDOR_NARROW_FACTOR,
   evaluateBubbleField,
+  pairMergeDistance,
   planBubbleCorridors,
 } from "./bubble-corridors";
 
 import type { Position } from "../geometry";
 import type { CorridorPlan } from "./bubble-corridors";
 
-/** Field radius and iso threshold matching production defaults (50 / 0.58). */
+/** Field radius matching the production base default (50). */
 const FIELD_RADIUS = 50;
-const ISO_THRESHOLD = 0.58;
+const ISO_THRESHOLD = BUBBLE_ISO_THRESHOLD;
 
 /** SAB record layout matching `FLAT_HEADER_BYTES` / `FLAT_RECORD_BYTES` (header 8 B, record 20 B). */
 const HEADER_FLOATS = 2;
@@ -55,6 +58,7 @@ interface World {
 function makeWorld(
   nodes: readonly WorldNode[],
   keptCommunityIds: readonly number[],
+  fieldRadius = FIELD_RADIUS,
 ): World {
   const floats = new Float32Array(HEADER_FLOATS + nodes.length * RECORD_FLOATS);
   const membership = new Int32Array(nodes.length);
@@ -95,6 +99,7 @@ function makeWorld(
     ranges,
     communityIds: Int32Array.from(keptCommunityIds),
     pointTexels,
+    fieldRadii: new Float32Array(keptCommunityIds.length).fill(fieldRadius),
     replan: null,
     floats,
     headerFloats: HEADER_FLOATS,
@@ -159,7 +164,10 @@ function clump(cx: number, cy: number, community: number): WorldNode[] {
 function fieldComponentsContainingMembers(
   world: World,
   ci: number,
-  { withSegments = true }: { withSegments?: boolean } = {},
+  {
+    withSegments = true,
+    fieldRadius = FIELD_RADIUS,
+  }: { withSegments?: boolean; fieldRadius?: number } = {},
 ): number {
   const members = world.membersOf(ci);
   const segments = withSegments
@@ -171,7 +179,7 @@ function fieldComponentsContainingMembers(
         radius: segment.radius,
       }))
     : [];
-  const pad = FIELD_RADIUS;
+  const pad = fieldRadius;
   const minX = Math.min(...members.map(([mx]) => mx)) - pad;
   const maxX = Math.max(...members.map(([mx]) => mx)) + pad;
   const minY = Math.min(...members.map(([, my]) => my)) - pad;
@@ -190,7 +198,7 @@ function fieldComponentsContainingMembers(
         minY + row * cell,
         members,
         segments,
-        FIELD_RADIUS,
+        fieldRadius,
       );
       inside[row * cols + col] = field >= ISO_THRESHOLD ? 1 : 0;
     }
@@ -381,6 +389,73 @@ describe("bubble corridors, connectivity guarantee", () => {
     expect(fieldComponentsContainingMembers(world, 1)).toBe(1);
   });
 
+  it("pairMergeDistance: two kernels at exactly that spacing meet the iso threshold at their midpoint", () => {
+    const distance = pairMergeDistance(FIELD_RADIUS);
+    const midpointField = evaluateBubbleField(
+      distance / 2,
+      0,
+      [
+        [0, 0],
+        [distance, 0],
+      ],
+      [],
+      FIELD_RADIUS,
+    );
+    expect(midpointField).toBeCloseTo(ISO_THRESHOLD, 9);
+  });
+
+  it("oversized community: corridors span merge-scale anchors and the field is ONE component", () => {
+    // 270 members (> CORRIDOR_ANCHOR_CAP) in three dense clumps spread past
+    // the kernel reach. The planner must reduce to anchors (one per
+    // merge-scale cell), span them, and still connect every clump.
+    const denseClump = (cx: number, cy: number): WorldNode[] => {
+      const members: WorldNode[] = [];
+      for (let row = 0; row < 9; row++) {
+        for (let col = 0; col < 10; col++) {
+          members.push({ x: cx + col * 6, y: cy + row * 6, community: 11 });
+        }
+      }
+      return members;
+    };
+    const build = () => {
+      const world = makeWorld(
+        [...denseClump(0, 0), ...denseClump(280, 0), ...denseClump(140, 220)],
+        [11],
+      );
+      planBubbleCorridors(world.plan);
+      return world;
+    };
+    const world = build();
+    const memberCount = world.plan.ranges[1]!;
+    expect(memberCount).toBeGreaterThan(CORRIDOR_ANCHOR_CAP);
+
+    const segments = world.segmentsOf(0);
+    expect(segments.length).toBeGreaterThan(0);
+    // Anchor MST: strictly fewer corridor nodes than members, within capacity.
+    expect(segments.length).toBeLessThanOrEqual((CORRIDOR_ANCHOR_CAP - 1) * 2);
+    for (const segment of segments) {
+      expect(segment.aSlot).toBeGreaterThanOrEqual(0);
+      expect(segment.aSlot).toBeLessThan(memberCount);
+      expect(segment.bSlot).toBeGreaterThanOrEqual(0);
+      expect(segment.bSlot).toBeLessThan(memberCount);
+    }
+
+    // The one-contour contract at anchor granularity: every member fuses
+    // with its cell anchor (cell edge ≤ merge distance / √2), anchors are
+    // MST-connected, so the whole community is one component.
+    expect(
+      fieldComponentsContainingMembers(world, 0, { withSegments: false }),
+    ).toBeGreaterThan(1);
+    expect(fieldComponentsContainingMembers(world, 0)).toBe(1);
+
+    // Anchor selection and the MST are deterministic.
+    const second = build();
+    expect([...second.plan.segmentCounts]).toEqual([
+      ...world.plan.segmentCounts,
+    ]);
+    expect([...second.plan.segmentSlots]).toEqual([...world.plan.segmentSlots]);
+  });
+
   it("is deterministic: identical inputs produce identical plans", () => {
     const build = () => {
       const world = makeWorld(
@@ -450,7 +525,9 @@ describe("bubble corridors, planning cost", () => {
     // per-frame cadence this must stay far below a 60 fps frame.
     expect(elapsedMs).toBeLessThan(50);
     process.stdout.write(
-      `[bubble-corridors] full plan: 10 communities × 100 members + 1000 obstacles = ${elapsedMs.toFixed(2)} ms\n`,
+      `[bubble-corridors] full plan: 10 communities × 100 members + 1000 obstacles = ${elapsedMs.toFixed(
+        2,
+      )} ms\n`,
     );
 
     // Steady-state per-frame cost: segment endpoint texel refresh only (no
@@ -484,7 +561,9 @@ describe("bubble corridors, planning cost", () => {
     const perFrameMs = (performance.now() - refillStart) / frames;
     expect(perFrameMs).toBeLessThan(1);
     process.stdout.write(
-      `[bubble-corridors] per-frame segment refill (~${plan.segmentRadius.length} segment capacity) = ${(perFrameMs * 1000).toFixed(1)} µs\n`,
+      `[bubble-corridors] per-frame segment refill (~${
+        plan.segmentRadius.length
+      } segment capacity) = ${(perFrameMs * 1000).toFixed(1)} µs\n`,
     );
   });
 });

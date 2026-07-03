@@ -25,7 +25,11 @@ import {
   FLAT_RECORD_BYTES,
 } from "../worker/buffers/position-buffer";
 import { BitSet } from "../worker/collections/bitset";
-import { planBubbleCorridors } from "./bubble-corridors";
+import {
+  BUBBLE_ISO_THRESHOLD,
+  CORRIDOR_ANCHOR_CAP,
+  planBubbleCorridors,
+} from "./bubble-corridors";
 import { BubbleCellPacker, BUBBLE_TEX_WIDTH } from "./bubble-grid";
 import {
   BubbleSetSDFLayer,
@@ -38,13 +42,31 @@ import type { ClusterReference } from "./worker-connection";
 import type { Layer } from "@deck.gl/core";
 
 /**
- * Metaball field radius (world units).
+ * Base metaball field radius (world units).
  *
  * @defaultValue 50. Neighbouring nodes merge into one blob; lower values
  * tighten hulls and increase disconnected-clump risk before corridors
  * engage; higher values thicken overlaps and raise per-fragment kernel cost.
  */
 const FLAT_BUBBLE_FIELD_RADIUS = 50;
+
+/**
+ * Effective kernel radius for one community: the base radius scaled by the
+ * sample-density deficit. A community larger than the shader's node cap is
+ * downsampled to fit, which stretches the spacing between rendered kernels
+ * by √(true / sampled); without compensation the kernels stop merging and
+ * the hull disintegrates into a maze of blobs and corridor worms (observed
+ * on a 2.9k-member star community: sampled spacing ≈ kernel radius).
+ * Scaling the radius by the same √ factor restores the merge behaviour of
+ * the fully-sampled community at its true density.
+ */
+function communityFieldRadius(trueMemberCount: number): number {
+  return (
+    FLAT_BUBBLE_FIELD_RADIUS *
+    Math.max(1, Math.sqrt(trueMemberCount / MAX_NODES_PER_COMMUNITY))
+  );
+}
+
 /** Promote only non-trivial communities; a pair/singleton needs no hull, and
  * bubbling every one (most of a mostly-disconnected graph) is what turns the
  * canvas to mud. Tunable. */
@@ -67,6 +89,8 @@ interface CommunityGrouping {
   readonly communityIds: Int32Array;
   /** Per kept community RGBA (community id → colour). Constant for the grouping's life. */
   readonly colors: Uint8Array;
+  /** Per kept community: adaptive point-kernel radius (world units). */
+  readonly fieldRadii: Float32Array;
   readonly keptCount: number;
   /** CPU-side canonical member positions (texel stride 4), refilled from the
    * SAB each frame. The corridor planner reads it; the GPU never sees it;
@@ -124,17 +148,20 @@ function buildGrouping(
     .map(([community, members]) => {
       // The shader sums at most MAX_NODES_PER_COMMUNITY centres per hull.
       // Downsample evenly across the member list (not first-N arrival order)
-      // so an oversized community keeps its overall footprint; the metaball
-      // field radius papers over the thinned interior.
+      // so an oversized community keeps its overall footprint; the adaptive
+      // kernel radius ({@link communityFieldRadius}) compensates for the
+      // thinned interior density.
       if (members.length <= MAX_NODES_PER_COMMUNITY) {
-        return [community, members] as const;
+        return [community, members, members.length] as const;
       }
+
       const step = members.length / MAX_NODES_PER_COMMUNITY;
       const sampled: number[] = [];
       for (let pick = 0; pick < MAX_NODES_PER_COMMUNITY; pick++) {
         sampled.push(members[Math.floor(pick * step)]!);
       }
-      return [community, sampled] as const;
+
+      return [community, sampled, members.length] as const;
     });
 
   if (kept.length === 0) {
@@ -143,10 +170,11 @@ function buildGrouping(
 
   const totalNodes = kept.reduce((sum, [, members]) => sum + members.length, 0);
 
-  // Corridor capacity: an MST has k - 1 edges, each emitting ≤ 2 segments
-  // (reroute split).
+  // Corridor capacity: an MST over ≤ CORRIDOR_ANCHOR_CAP anchors has
+  // anchors - 1 edges, each emitting ≤ 2 segments (reroute split).
   const totalSegmentCapacity = kept.reduce(
-    (sum, [, members]) => sum + Math.max(0, members.length - 1) * 2,
+    (sum, [, members]) =>
+      sum + Math.max(0, Math.min(members.length, CORRIDOR_ANCHOR_CAP) - 1) * 2,
     0,
   );
 
@@ -154,18 +182,21 @@ function buildGrouping(
   const ranges = new Float32Array(kept.length * 2);
   const communityIds = new Int32Array(kept.length);
   const colors = new Uint8Array(kept.length * 4);
+  const fieldRadii = new Float32Array(kept.length);
   const segmentStorageOffsets = new Int32Array(kept.length);
 
   let offset = 0;
   let segmentStorage = 0;
   for (let ci = 0; ci < kept.length; ci++) {
-    const [community, members] = kept[ci]!;
+    const [community, members, trueMemberCount] = kept[ci]!;
     ranges[ci * 2] = offset;
     ranges[ci * 2 + 1] = members.length;
     communityIds[ci] = community;
+    fieldRadii[ci] = communityFieldRadius(trueMemberCount);
 
     segmentStorageOffsets[ci] = segmentStorage;
-    segmentStorage += Math.max(0, members.length - 1) * 2;
+    segmentStorage +=
+      Math.max(0, Math.min(members.length, CORRIDOR_ANCHOR_CAP) - 1) * 2;
 
     const [red, green, blue, alpha] = communityColorForId(community);
     colors[ci * 4] = red;
@@ -184,6 +215,7 @@ function buildGrouping(
     ranges,
     communityIds,
     colors,
+    fieldRadii,
     keptCount: kept.length,
     pointTexels: new Float32Array(totalNodes * 4),
     cellPacker: new BubbleCellPacker(),
@@ -286,6 +318,7 @@ export function communityLayer(
     if (!grouping.planned || settledReplan || drifted) {
       replanScratch.add(ci);
     }
+
     needsPlan ||= drifted;
   }
 
@@ -295,6 +328,7 @@ export function communityLayer(
       ranges,
       communityIds: grouping.communityIds,
       pointTexels,
+      fieldRadii: grouping.fieldRadii,
       replan: grouping.planned ? replanScratch : null,
       floats,
       headerFloats,
@@ -335,7 +369,7 @@ export function communityLayer(
     segmentRadius: grouping.segmentRadius,
     segmentCounts: grouping.segmentCount,
     segmentStorageOffsets: grouping.segmentStorageOffsets,
-    fieldRadius: FLAT_BUBBLE_FIELD_RADIUS,
+    fieldRadii: grouping.fieldRadii,
   });
   grouping.version += 1;
 
@@ -349,14 +383,14 @@ export function communityLayer(
           getColor: { value: packed.colors, size: 4 },
           getNodeRange: { value: packed.nodeRanges, size: 2 },
           getSegmentRange: { value: packed.segmentRanges, size: 2 },
+          getFieldRadius: { value: packed.fieldRadii, size: 1 },
         },
       },
       positions: packed.texels,
       positionsVersion: grouping.version,
       texWidth: BUBBLE_TEX_WIDTH,
       texHeight: packed.texHeight,
-      fieldRadius: FLAT_BUBBLE_FIELD_RADIUS,
-      isoThreshold: 0.58,
+      isoThreshold: BUBBLE_ISO_THRESHOLD,
       // A backdrop must not write depth, or its bounding quad stamps the depth buffer and the
       // coplanar edges drawn after it (the flat tier draws bubbles first) fail the depth test and
       // vanish. Set at the layer level so deck's render pass honours it -- the Model parameter

@@ -4,20 +4,20 @@
  *
  * Three independent "not visible" signals are OR-ed together:
  *
- * 1. `occluded` — the caller's knowledge of UI stacked over the visualizer
+ * 1. `occluded`: the caller's knowledge of UI stacked over the visualizer
  *    (a slide covering the page, a slide covered by a later slide). Only the
  *    caller can know this; z-order occlusion is invisible to the browser
  *    APIs below.
- * 2. Document visibility — the tab is hidden. Crucial because the worker's
- *    MessageChannel tick loop is NOT throttled in background tabs the way
+ * 2. Document visibility: the tab is hidden. Crucial because the worker's
+ *    MessageChannel tick loop is not throttled in background tabs the way
  *    rAF is, so an unsettled layout would otherwise burn CPU indefinitely.
- * 3. Viewport intersection — the container is scrolled out of view or
+ * 3. Viewport intersection: the container is scrolled out of view or
  *    `display: none` (an IntersectionObserver reports both as
  *    non-intersecting).
  *
  * The worker keeps ingesting and committing while paused; only the tick
- * scheduler idles, and layouts resume from the same positions (see
- * `SET_SIMULATION_PAUSED` in `worker/protocol.ts`).
+ * scheduler idles, and layouts resume from the same positions (the
+ * `SET_SIMULATION_PAUSED` contract in `worker/protocol.ts`).
  */
 import { useCallback, useEffect, useState } from "react";
 
@@ -32,9 +32,9 @@ interface UseSimulationPauseOptions {
 }
 
 /**
- * Returns the ref to attach to the visualizer's root element (a callback
- * ref, because the element mounts conditionally after the worker exists — a
- * static ref filled in later would never re-trigger observation).
+ * Returns the ref to attach to the visualizer's root element. It is a
+ * callback ref because the element mounts conditionally after the worker
+ * exists; a static ref filled in later would never re-trigger observation.
  */
 export function useSimulationPause({
   handle,
@@ -52,6 +52,7 @@ export function useSimulationPause({
 
     update();
     document.addEventListener("visibilitychange", update);
+
     return () => {
       document.removeEventListener("visibilitychange", update);
     };

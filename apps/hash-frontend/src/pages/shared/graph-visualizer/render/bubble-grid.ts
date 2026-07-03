@@ -82,8 +82,10 @@ export interface BubbleCellPack {
   readonly segmentCounts: Int32Array;
   /** Per kept community: first segment-storage index. */
   readonly segmentStorageOffsets: Int32Array;
-  /** Point-kernel field radius (world units). */
-  readonly fieldRadius: number;
+  /** Per kept community: point-kernel field radius (world units). Oversampled
+   * communities carry a larger radius (see `communityFieldRadius`), so the
+   * cell grid — sized from the radius — is coarser for them too. */
+  readonly fieldRadii: Float32Array;
 }
 
 /** Views over the packer's columns; valid until the next `pack()`. */
@@ -101,6 +103,8 @@ export interface BubbleCellPackResult {
   readonly nodeRanges: Float32Array;
   /** Per cell `[firstEndpointPairTexel, segmentCount]`. */
   readonly segmentRanges: Float32Array;
+  /** Per cell: its community's point-kernel field radius (world units). */
+  readonly fieldRadii: Float32Array;
 }
 
 /** GPU-bound and scratch storage never leaves this thread. */
@@ -153,6 +157,8 @@ export class BubbleCellPacker {
 
   #segmentRanges = new Column(Float32Array, 128, plain);
 
+  #fieldRadii = new Column(Float32Array, 128, plain);
+
   /** Monotone texture height: keeps occupancy jitter from re-creating the GPU texture. */
   #texHeight = 1;
 
@@ -177,8 +183,7 @@ export class BubbleCellPacker {
   };
 
   pack(pack: BubbleCellPack): BubbleCellPackResult {
-    const { keptCount, ranges, pointTexels, fieldRadius } = pack;
-    const cellSize = fieldRadius * CELL_SIZE_FIELD_RADII;
+    const { keptCount, ranges, pointTexels } = pack;
 
     // Stamps stay valid across packs because the counter only grows; reset
     // both before it can wrap (hours of continuous packing) so a stale stamp
@@ -192,6 +197,7 @@ export class BubbleCellPacker {
     this.#colors.clear();
     this.#nodeRanges.clear();
     this.#segmentRanges.clear();
+    this.#fieldRadii.clear();
     this.#texels.clear();
 
     let cellTotal = 0;
@@ -203,6 +209,9 @@ export class BubbleCellPacker {
       if (memberCount === 0) {
         continue;
       }
+
+      const fieldRadius = pack.fieldRadii[ci]!;
+      const cellSize = fieldRadius * CELL_SIZE_FIELD_RADII;
 
       // Grid over the community bbox EXPANDED by the field radius: kernels
       // reach that far past the outermost member, and every pixel with a
@@ -245,7 +254,14 @@ export class BubbleCellPacker {
       this.#cellInstance.resize(cellCount);
       this.#cellStamp.resize(cellCount);
 
-      this.#collectPointPairs(pack, ci, originX, originY, cellSize);
+      this.#collectPointPairs(
+        pack,
+        ci,
+        fieldRadius,
+        originX,
+        originY,
+        cellSize,
+      );
       this.#collectSegmentPairs(pack, ci, originX, originY, cellSize);
 
       // Occupied cells to dense instances, then prefix-sum both count
@@ -280,6 +296,7 @@ export class BubbleCellPacker {
       this.#colors.resize(instanceEnd * 4);
       this.#nodeRanges.resize(instanceEnd * 2);
       this.#segmentRanges.resize(instanceEnd * 2);
+      this.#fieldRadii.resize(instanceEnd);
 
       const pointRegionBase = texelCursor;
       const segmentRegionBase = pointRegionBase + pointCopyTotal;
@@ -290,6 +307,7 @@ export class BubbleCellPacker {
       const colors = this.#colors.raw;
       const nodeRanges = this.#nodeRanges.raw;
       const segmentRanges = this.#segmentRanges.raw;
+      const fieldRadii = this.#fieldRadii.raw;
 
       let pointCursor = pointRegionBase;
       let segmentPairCursor = 0;
@@ -317,6 +335,8 @@ export class BubbleCellPacker {
         colors[instance * 4 + 1] = green;
         colors[instance * 4 + 2] = blue;
         colors[instance * 4 + 3] = alpha;
+
+        fieldRadii[instance] = fieldRadius;
 
         nodeRanges[instance * 2] = pointCursor;
         nodeRanges[instance * 2 + 1] = pointCounts[cell]!;
@@ -355,6 +375,7 @@ export class BubbleCellPacker {
       colors: this.#colors.subarray().view,
       nodeRanges: this.#nodeRanges.subarray().view,
       segmentRanges: this.#segmentRanges.subarray().view,
+      fieldRadii: this.#fieldRadii.subarray().view,
     };
   }
 
@@ -367,11 +388,12 @@ export class BubbleCellPacker {
   #collectPointPairs(
     pack: BubbleCellPack,
     ci: number,
+    fieldRadius: number,
     originX: number,
     originY: number,
     cellSize: number,
   ): void {
-    const { ranges, pointTexels, fieldRadius } = pack;
+    const { ranges, pointTexels } = pack;
     const cols = this.#cols;
     const rows = this.#rows;
     const pointCounts = this.#cellPointCounts.raw;

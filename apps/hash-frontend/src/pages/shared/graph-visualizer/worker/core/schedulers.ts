@@ -18,10 +18,16 @@
 export class TickScheduler {
   readonly #channel = new MessageChannel();
   #running = false;
+  #paused = false;
 
   constructor(tick: () => void) {
     this.#channel.port1.onmessage = () => {
+      if (this.#paused) {
+        return;
+      }
+
       tick();
+
       if (this.#running) {
         this.#scheduleNextTick();
       }
@@ -32,7 +38,15 @@ export class TickScheduler {
     return this.#running;
   }
 
+  get paused(): boolean {
+    return this.#paused;
+  }
+
   ensureRunning(): void {
+    if (this.#paused) {
+      return;
+    }
+
     if (!this.#running) {
       this.#running = true;
       this.#scheduleNextTick();
@@ -44,7 +58,23 @@ export class TickScheduler {
     this.#running = false;
   }
 
+  pause(): void {
+    this.#paused = true;
+  }
+
+  resume(): void {
+    this.#paused = false;
+
+    if (this.#running) {
+      this.#scheduleNextTick();
+    }
+  }
+
   #scheduleNextTick(): void {
+    if (this.#paused) {
+      return;
+    }
+
     this.#channel.port2.postMessage(undefined);
   }
 }
@@ -58,14 +88,32 @@ export class TickScheduler {
 export class JobScheduler {
   readonly #channel = new MessageChannel();
   readonly #jobs: Array<() => void> = [];
+  #paused = false;
 
   constructor() {
     this.#channel.port1.onmessage = () => {
+      if (this.#paused) {
+        return;
+      }
+
       this.#jobs.shift()?.();
+
       if (this.#jobs.length > 0) {
         this.#channel.port2.postMessage(undefined);
       }
     };
+  }
+
+  pause(): void {
+    this.#paused = true;
+  }
+
+  resume(): void {
+    this.#paused = false;
+
+    if (this.#jobs.length > 0) {
+      this.#channel.port2.postMessage(undefined);
+    }
   }
 
   schedule(job: () => void): void {

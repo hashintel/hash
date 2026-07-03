@@ -30,6 +30,7 @@ import {
   type RenderBezierBuffers,
   type RenderEdgeArrow,
   type RenderEdgeLabel,
+  type RenderEndpointArrowBuffers,
 } from "../../frames";
 import { makePairKey, widthForCount } from "./edge-aggregation";
 
@@ -147,6 +148,48 @@ export class BezierSegmentSink {
     clipB?: ClipCircle,
     id: number = BEZIER_NO_LINK,
   ): void {
+    this.pushUnclipped(
+      curve.p0[0],
+      curve.p0[1],
+      curve.p1[0],
+      curve.p1[1],
+      curve.p2[0],
+      curve.p2[1],
+      curve.p3[0],
+      curve.p3[1],
+      color,
+      width,
+      id,
+    );
+
+    const k = (this.#count - 1) * FLOATS_PER_CLIP;
+    const clips = this.#clips;
+    clips[k] = clipA?.x ?? 0;
+    clips[k + 1] = clipA?.y ?? 0;
+    clips[k + 2] = clipA?.signedRadius ?? 0;
+    clips[k + 3] = clipB?.x ?? 0;
+    clips[k + 4] = clipB?.y ?? 0;
+    clips[k + 5] = clipB?.signedRadius ?? 0;
+  }
+
+  /**
+   * Append one clip-free segment from scalar control points. The flat tier's
+   * per-tick hot path: no curve/tuple objects per call (22k+ segments per
+   * frame on large graphs made the object form a measurable GC tax).
+   */
+  pushUnclipped(
+    p0x: number,
+    p0y: number,
+    p1x: number,
+    p1y: number,
+    p2x: number,
+    p2y: number,
+    p3x: number,
+    p3y: number,
+    color: Color,
+    width: number,
+    id: number = BEZIER_NO_LINK,
+  ): void {
     if (this.#count >= this.#capacity) {
       this.#grow(this.#count + 1);
     }
@@ -154,14 +197,14 @@ export class BezierSegmentSink {
     const i = this.#count;
     const p = i * FLOATS_PER_SEGMENT;
     const pos = this.#positions;
-    pos[p] = curve.p0[0];
-    pos[p + 1] = curve.p0[1];
-    pos[p + 2] = curve.p1[0];
-    pos[p + 3] = curve.p1[1];
-    pos[p + 4] = curve.p2[0];
-    pos[p + 5] = curve.p2[1];
-    pos[p + 6] = curve.p3[0];
-    pos[p + 7] = curve.p3[1];
+    pos[p] = p0x;
+    pos[p + 1] = p0y;
+    pos[p + 2] = p1x;
+    pos[p + 3] = p1y;
+    pos[p + 4] = p2x;
+    pos[p + 5] = p2y;
+    pos[p + 6] = p3x;
+    pos[p + 7] = p3y;
 
     const c = i * BYTES_PER_COLOR;
     const colors = this.#colors;
@@ -174,12 +217,12 @@ export class BezierSegmentSink {
 
     const k = i * FLOATS_PER_CLIP;
     const clips = this.#clips;
-    clips[k] = clipA?.x ?? 0;
-    clips[k + 1] = clipA?.y ?? 0;
-    clips[k + 2] = clipA?.signedRadius ?? 0;
-    clips[k + 3] = clipB?.x ?? 0;
-    clips[k + 4] = clipB?.y ?? 0;
-    clips[k + 5] = clipB?.signedRadius ?? 0;
+    clips[k] = 0;
+    clips[k + 1] = 0;
+    clips[k + 2] = 0;
+    clips[k + 3] = 0;
+    clips[k + 4] = 0;
+    clips[k + 5] = 0;
 
     this.#ids[i] = id;
     this.#count = i + 1;
@@ -223,6 +266,102 @@ export class BezierSegmentSink {
       clips: this.#clips.slice(0, count * FLOATS_PER_CLIP),
       ids: this.#ids.slice(0, count),
       segmentCount: count,
+    };
+  }
+}
+
+/**
+ * Append-only sink for the flat tier's packed per-edge endpoint arrows
+ * ({@link RenderEndpointArrowBuffers}), the same reuse discipline as
+ * {@link BezierSegmentSink}: worker-owned scratch reused across frames,
+ * `reset()` rewinds, `snapshot()` copies exact-sized transferable buffers.
+ */
+export class EndpointArrowSink {
+  #positions: Float32Array;
+  #angles: Float32Array;
+  #sizes: Float32Array;
+  #chords: Float32Array;
+  #colors: Uint8Array;
+  #count = 0;
+  #capacity: number;
+
+  constructor(initialCapacity = 1024) {
+    this.#capacity = Math.max(1, initialCapacity);
+    this.#positions = new Float32Array(this.#capacity * 2);
+    this.#angles = new Float32Array(this.#capacity);
+    this.#sizes = new Float32Array(this.#capacity);
+    this.#chords = new Float32Array(this.#capacity);
+    this.#colors = new Uint8Array(this.#capacity * BYTES_PER_COLOR);
+  }
+
+  get count(): number {
+    return this.#count;
+  }
+
+  /** Rewind the write cursor. Retains allocated capacity. */
+  reset(): void {
+    this.#count = 0;
+  }
+
+  push(
+    x: number,
+    y: number,
+    angle: number,
+    size: number,
+    chord: number,
+    color: Color,
+  ): void {
+    if (this.#count >= this.#capacity) {
+      this.#grow(this.#count + 1);
+    }
+    const i = this.#count;
+    this.#positions[i * 2] = x;
+    this.#positions[i * 2 + 1] = y;
+    this.#angles[i] = angle;
+    this.#sizes[i] = size;
+    this.#chords[i] = chord;
+    const c = i * BYTES_PER_COLOR;
+    const colors = this.#colors;
+    colors[c] = color[0];
+    colors[c + 1] = color[1];
+    colors[c + 2] = color[2];
+    colors[c + 3] = color[3];
+    this.#count = i + 1;
+  }
+
+  #grow(minCapacity: number): void {
+    let next = this.#capacity * 2;
+    while (next < minCapacity) {
+      next *= 2;
+    }
+    const positions = new Float32Array(next * 2);
+    positions.set(this.#positions);
+    const angles = new Float32Array(next);
+    angles.set(this.#angles);
+    const sizes = new Float32Array(next);
+    sizes.set(this.#sizes);
+    const chords = new Float32Array(next);
+    chords.set(this.#chords);
+    const colors = new Uint8Array(next * BYTES_PER_COLOR);
+    colors.set(this.#colors);
+    this.#positions = positions;
+    this.#angles = angles;
+    this.#sizes = sizes;
+    this.#chords = chords;
+    this.#colors = colors;
+    this.#capacity = next;
+  }
+
+  /** Exact-sized transferable copies; scratch stays intact for the next frame. */
+  snapshot(): RenderEndpointArrowBuffers {
+    const count = this.#count;
+    return {
+      positions: this.#positions.slice(0, count * 2),
+      angles: this.#angles.slice(0, count),
+      sizes: this.#sizes.slice(0, count),
+      chords: this.#chords.slice(0, count),
+      colors: this.#colors.slice(0, count * BYTES_PER_COLOR),
+      count,
     };
   }
 }

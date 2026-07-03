@@ -34,6 +34,7 @@ import { useFrontierExpansion } from "./components/use-frontier-expansion";
 import { GraphVisualizer } from "./graph-visualizer";
 import { useGraphGuidanceDismissal } from "./interactivity/use-graph-guidance-dismissal";
 import { useSimulationPause } from "./interactivity/use-simulation-pause";
+import { useLayoutFixtureCaptureHook } from "./layout-fixture-capture";
 import { useGraphWorker } from "./render/use-graph-worker";
 
 import type { FrontierExpansionStore } from "./components/frontier-expansion-store";
@@ -81,7 +82,7 @@ interface EntityGraphVisualizerProps {
   readonly sourceKey?: string;
   /**
    * True while other UI is layered over this visualizer (a slide covering the page, a slide
-   * covered by a later slide) — occlusion only the caller can know about. While not visible
+   * covered by a later slide): occlusion only the caller can know about. While not visible
    * (this, a hidden tab, or scrolled out of view) the worker's simulation is paused: no CPU
    * spent settling layouts, resuming from the same positions when visible again.
    */
@@ -89,7 +90,7 @@ interface EntityGraphVisualizerProps {
   /**
    * Frontier-expansion state, owned by the surface that owns the entity query (create it with
    * `useOwnedFrontierStore`, keyed to the query's identity). Owned above this component so
-   * expansions persist across view switches and worker recreations — this component attaches
+   * expansions persist across view switches and worker recreations; this component attaches
    * the store to each worker it creates, replaying committed expansions into it.
    */
   readonly frontierStore: FrontierExpansionStore;
@@ -160,6 +161,10 @@ export const EntityGraphVisualizer: React.FC<EntityGraphVisualizerProps> = memo(
         onWorkerHandle?.(undefined);
       };
     }, [handle, onWorkerHandle]);
+
+    // Console debug hook (all surfaces, prod included): dump the live layout
+    // as a replayable fixture via `__hashGraphCaptureLayoutFixture()`.
+    useLayoutFixtureCaptureHook(handle);
 
     useEntityIngest({
       handle,

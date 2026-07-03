@@ -120,8 +120,10 @@ interface EntitiesTableProps {
    * How many rows came from the paginated query itself, when `tableData`
    * also carries appended rows from another source (graph-expansion
    * additions). Drives the "N remaining" count next to "Show more", which
-   * compares the QUERY's progress against `totalResultCount` — appended
-   * rows are outside that total. Defaults to all rows.
+   * compares the query's progress against `totalResultCount`; appended
+   * rows are outside that total.
+   *
+   * @defaultValue all rows, i.e. every row is the query's.
    */
   readonly queryRowCount?: number;
 }

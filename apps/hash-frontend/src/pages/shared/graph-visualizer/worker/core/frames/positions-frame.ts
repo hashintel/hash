@@ -11,6 +11,7 @@ import {
   BezierSegmentSink,
   buildBezierSegments,
   containerBoundaryWaypoint,
+  EndpointArrowSink,
   highwayEndpoints,
   portsFor,
 } from "../../geometry/edge-geometry";
@@ -20,6 +21,7 @@ import type {
   PositionsFrame,
   RenderEdgeArrow,
   RenderEdgeLabel,
+  RenderEndpointArrowBuffers,
   RenderEntityFanOut,
 } from "../../../frames";
 import type { Position } from "../../../geometry";
@@ -41,7 +43,7 @@ type PortPairs = ReadonlyMap<
 /** Supplies straight clipped edge segments when hierarchical Bezier routing is inactive. */
 export interface FlatEdgeSource {
   readonly hasRenderEdges: boolean;
-  buildEdgeBeziers(sink: BezierSegmentSink, arrowsOut: RenderEdgeArrow[]): void;
+  buildEdgeBeziers(sink: BezierSegmentSink, arrows: EndpointArrowSink): void;
 }
 
 export interface PositionsFrameDependencies {
@@ -65,6 +67,8 @@ export class PositionsFrameEmitter {
   #version = 0;
   /** Reused flat-array scratch for Bezier segments; snapshot()ed per frame. */
   readonly #bezierSink = new BezierSegmentSink();
+  /** Reused packed scratch for flat-tier endpoint arrows; snapshot()ed per frame. */
+  readonly #arrowSink = new EndpointArrowSink();
 
   constructor(dependencies: PositionsFrameDependencies) {
     this.#dependencies = dependencies;
@@ -88,6 +92,7 @@ export class PositionsFrameEmitter {
     // they sit on the drawn highways (one per merged highway, not per base pair).
     const edgeLabels: RenderEdgeLabel[] = [];
     const edgeArrows: RenderEdgeArrow[] = [];
+    let flatArrows: RenderEndpointArrowBuffers | undefined;
 
     this.#bezierSink.reset();
     if (view.edgeFrame && view.cutIndex) {
@@ -108,9 +113,12 @@ export class PositionsFrameEmitter {
         edgeArrows,
       );
     } else if (flatEdges.hasRenderEdges) {
-      // Flat tier emits straight clipped segments because no cluster
-      // containers exist to route around.
-      flatEdges.buildEdgeBeziers(this.#bezierSink, edgeArrows);
+      // Flat tier emits straight clipped segments (no cluster containers to
+      // route around) and packed per-edge arrows (object arrows at 22k+ edges
+      // made postMessage serialisation the dominant frame cost).
+      this.#arrowSink.reset();
+      flatEdges.buildEdgeBeziers(this.#bezierSink, this.#arrowSink);
+      flatArrows = this.#arrowSink.snapshot();
     }
 
     const beziers = this.#bezierSink.snapshot();
@@ -139,6 +147,7 @@ export class PositionsFrameEmitter {
       beziers,
       edgeLabels,
       edgeArrows,
+      flatArrows,
       entityFanOut,
     });
   }

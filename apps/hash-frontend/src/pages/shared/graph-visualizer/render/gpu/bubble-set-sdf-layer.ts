@@ -42,20 +42,26 @@ import type { ShaderModule } from "@luma.gl/shadertools";
  * layer downsamples larger communities to fit (see `render/community.ts`);
  * a grid cell's copies are a subset of its community's members, so per-cell
  * ranges inherit the bound.
+ *
+ * The bound does NOT set per-fragment cost: fragments sum only the kernels
+ * binned into their own grid cell (`render/bubble-grid.ts`), and the packer's
+ * cell edge scales with the kernel radius, which itself scales with the
+ * sample-density deficit (see `communityFieldRadius`), keeping the per-cell
+ * population roughly constant. Raising the bound costs texture texels and
+ * CPU gather time (both linear, both tiny), not fill rate.
  */
-export const MAX_NODES_PER_COMMUNITY = 256;
+export const MAX_NODES_PER_COMMUNITY = 1024;
 
 /**
- * Loop bound for the per-pixel corridor sum. An MST over <= 256 members has
- * <= 255 edges; each may split into 2 segments when rerouted around foreign
- * nodes, so 512 covers the worst case (again a per-community bound that any
- * per-cell subset inherits).
+ * Loop bound for the per-pixel corridor sum. Corridors span at most
+ * `CORRIDOR_ANCHOR_CAP` (256) anchors per community (`bubble-corridors.ts`),
+ * so an MST has <= 255 edges; each may split into 2 segments when rerouted
+ * around foreign nodes, so 512 covers the worst case (again a per-community
+ * bound that any per-cell subset inherits).
  */
 export const MAX_SEGMENTS_PER_COMMUNITY = 512;
 
 interface BubbleUniformProps {
-  /** Metaball field radius per node, in `common` (world) units. */
-  fieldRadius: number;
   /** Field value of the isocontour (where the hard edge sits). */
   isoThreshold: number;
   /** Width of the positions texture, for texelFetch index to (x, y). */
@@ -66,25 +72,21 @@ const bubbleUniforms = {
   name: "bubble",
   vs: `\
 layout(std140) uniform bubbleUniforms {
-  float fieldRadius;
   float isoThreshold;
   highp int texWidth;
 } bubble;
 `,
   fs: `\
 layout(std140) uniform bubbleUniforms {
-  float fieldRadius;
   float isoThreshold;
   highp int texWidth;
 } bubble;
 `,
   uniformTypes: {
-    fieldRadius: "f32",
     isoThreshold: "f32",
     texWidth: "i32",
   },
   defaultUniforms: {
-    fieldRadius: 55,
     isoThreshold: 0.5,
     texWidth: 256,
   },
@@ -100,6 +102,7 @@ in vec4 instanceBounds;         // minX, minY, maxX, maxY (world)
 in vec4 instanceColors;
 in vec2 instanceNodeRange;      // offset, count into the positions texture
 in vec2 instanceSegmentRange;   // first endpoint-pair texel, segment count
+in float instanceFieldRadius;   // point-kernel radius (world), per community
 
 out vec2 vWorldPos;
 out vec4 vColor;
@@ -107,6 +110,7 @@ flat out int vOffset;
 flat out int vCount;
 flat out int vSegmentOffset;
 flat out int vSegmentCount;
+flat out float vFieldRadius;
 
 void main(void) {
   vec2 uv = positions * 0.5 + 0.5;
@@ -118,6 +122,7 @@ void main(void) {
   vCount = int(instanceNodeRange.y);
   vSegmentOffset = int(instanceSegmentRange.x);
   vSegmentCount = int(instanceSegmentRange.y);
+  vFieldRadius = instanceFieldRadius;
 
   vec3 projected = project_position(vec3(worldPos, 0.0));
   gl_Position = project_common_position_to_clipspace(vec4(projected, 1.0));
@@ -137,6 +142,7 @@ flat in int vOffset;
 flat in int vCount;
 flat in int vSegmentOffset;
 flat in int vSegmentCount;
+flat in float vFieldRadius;
 
 out vec4 fragColor;
 
@@ -147,7 +153,7 @@ vec4 fetchTexel(int idx) {
 void main(void) {
   // The Wyvill kernel (1 - d^2)^2 only needs the squared distance, so the
   // whole field sum runs without a single sqrt.
-  float invFieldRadiusSq = 1.0 / (bubble.fieldRadius * bubble.fieldRadius);
+  float invFieldRadiusSq = 1.0 / (vFieldRadius * vFieldRadius);
   // Saturation exit: kernels only add, so once the field sits this far above
   // the iso threshold the smoothstep below is pinned at 1 no matter what the
   // remaining kernels contribute -- stop summing. Zoomed in, almost every
@@ -233,8 +239,6 @@ interface BubbleSetSDFLayerProps extends LayerProps {
   readonly positionsVersion?: number;
   readonly texWidth: number;
   readonly texHeight: number;
-  /** Metaball field radius per node, in `common` (world) units. */
-  readonly fieldRadius?: number;
   readonly isoThreshold?: number;
 }
 
@@ -243,7 +247,6 @@ const defaultProps = {
   positionsVersion: { type: "number" as const, value: 0 },
   texWidth: { type: "number" as const, value: 256 },
   texHeight: { type: "number" as const, value: 1 },
-  fieldRadius: { type: "number" as const, value: 55 },
   isoThreshold: { type: "number" as const, value: 0.5 },
 };
 
@@ -288,6 +291,11 @@ export class BubbleSetSDFLayer extends Layer<BubbleSetSDFLayerProps> {
         accessor: "getSegmentRange",
         defaultValue: [0, 0],
       },
+      instanceFieldRadius: {
+        size: 1,
+        accessor: "getFieldRadius",
+        defaultValue: [55],
+      },
     });
     this.setState({ model: this._getModel() });
   }
@@ -327,7 +335,6 @@ export class BubbleSetSDFLayer extends Layer<BubbleSetSDFLayerProps> {
     model.setBindings({ positionsTex: texture });
     model.shaderInputs.setProps({
       bubble: {
-        fieldRadius: this.props.fieldRadius ?? 55,
         isoThreshold: this.props.isoThreshold ?? 0.5,
         texWidth: this.props.texWidth,
       },

@@ -25,6 +25,7 @@ import { mergeTableData } from "./use-entities-visualizer-data/merge-table-data"
 import {
   advancePageChain,
   type ChainPage,
+  growPageWindow,
   type PageChain,
 } from "./use-entities-visualizer-data/page-chain";
 
@@ -67,8 +68,6 @@ type SubgraphResponse = QueryEntitySubgraphQuery["queryEntitySubgraph"];
  */
 interface ResultPage extends ChainPage<SubgraphResponse> {
   readonly definitions: ClosedMultiEntityTypesDefinitions;
-  /** Cursor for the page after this one; `null` when this is the last page. */
-  readonly nextCursor: EntityQueryCursor | null;
   readonly rootEntities: HashEntity[];
   readonly rootMap: ClosedMultiEntityTypesRootMap;
   readonly subgraph: Subgraph<EntityRootType<HashEntity>, HashEntity>;
@@ -95,36 +94,41 @@ export type EntitiesVisualizerData = {
    * kept available so consumers can keep showing them (with a loading
    * indicator) instead of flashing an empty state.
    */
-  fetching: boolean;
+  readonly fetching: boolean;
   /** From the independent summary query; available regardless of status. */
-  totalResultCount: number | null;
+  readonly totalResultCount: number | null;
 } & (
-  | { status: "loading" }
-  | { status: "error"; error: ApolloError; retry: () => void }
+  | { readonly status: "loading" }
   | {
-      status: "ready";
-      closedMultiEntityTypesRootMap: ClosedMultiEntityTypesRootMap;
-      definitions: ClosedMultiEntityTypesDefinitions;
+      readonly status: "error";
+      readonly error: ApolloError;
+      readonly retry: () => void;
+    }
+  | {
+      readonly status: "ready";
+      readonly closedMultiEntityTypesRootMap: ClosedMultiEntityTypesRootMap;
+      readonly definitions: ClosedMultiEntityTypesDefinitions;
       /**
        * All accumulated pages' results. For Graph-view queries this is every
-       * fetched vertex -- the query roots plus the frontier link-endpoints
-       * the traversal pulled in; otherwise it is the roots only.
+       * fetched vertex (the query roots plus the frontier link-endpoints
+       * the traversal pulled in); otherwise it is the roots only.
        */
-      entities: HashEntity[];
+      readonly entities: HashEntity[];
       /** EntityIds of the query roots. `entities` not in this set are frontier nodes. */
-      rootEntityIds: EntityId[];
-      tableData: EntitiesTableData;
+      readonly rootEntityIds: EntityId[];
+      readonly tableData: EntitiesTableData;
       /**
        * Fetches the next page, appending it to the accumulated results.
        * Undefined when there is no next page.
        */
-      fetchNextPage: (() => void) | undefined;
-      hasNextPage: boolean;
+      readonly fetchNextPage: (() => void) | undefined;
+      readonly hasNextPage: boolean;
       /**
-       * Discards the accumulated pages and refetches from page one, e.g.
-       * after a bulk action changed the underlying entities.
+       * Refetches from page one, e.g. after a bulk action changed the
+       * underlying entities. The pagination window is kept: pages the user
+       * had expanded to are refetched fresh rather than dropped.
        */
-      refresh: () => void;
+      readonly refresh: () => void;
     }
 );
 
@@ -148,10 +152,17 @@ interface UseEntitiesVisualizerData {
  * Pagination is owned here rather than by the caller because a cursor is
  * only meaningful relative to responses: pages are stored together with the
  * identity of the inputs they were fetched for ({@link QueryInputsIdentity}),
- * so any input change automatically restarts from page one -- there is no
+ * so any input change automatically restarts from page one; there is no
  * pagination state for callers to remember to reset. The previous inputs'
  * pages remain on screen (with `fetching: true`) until the first page of the
  * new query arrives.
+ *
+ * The pagination window (how many pages the user expanded to) is scoped to
+ * the entity set, not to the full input identity: when a view switch, sort,
+ * or conversion change forces a from-page-one refetch of the same set, the
+ * rebuilt chain auto-fetches page after page until it is back at the window
+ * (see {@link PageChain.windowKey}). A filter change is a different set and
+ * resets the window.
  */
 export const useEntitiesVisualizerData = ({
   conversions,
@@ -186,6 +197,19 @@ export const useEntitiesVisualizerData = ({
    * the accumulated pages.
    */
   const traversalPaths = traversalPathsForView(view);
+
+  /**
+   * Identity of the entity set the pagination window belongs to (see
+   * {@link PageChain.windowKey}): the filter (which embeds any pinned type)
+   * plus the page size. Everything else about the query (traversal paths,
+   * sort, conversions) re-shapes or re-orders the same set, so the window
+   * survives it: a Graph-view switch or a re-sort refetches the pages the
+   * user had already expanded to, instead of collapsing back to page one.
+   */
+  const windowKey = useMemo(
+    () => JSON.stringify({ filter, limit }),
+    [filter, limit],
+  );
 
   /**
    * The page chain's convergence relies on this object keeping its identity
@@ -277,8 +301,8 @@ export const useEntitiesVisualizerData = ({
   /**
    * Capture the latest response into the chain during render (the React
    * "adjust state while rendering" pattern). `data` always corresponds to the
-   * current variables -- Apollo clears it while a request for new variables
-   * is in flight -- so a defined response can be attributed to
+   * current variables (Apollo clears it while a request for new variables is
+   * in flight), so a defined response can be attributed to
    * (`queryInputs`, `requestedCursor`) without bookkeeping in a completion
    * callback. Everything below derives from `displayedChain`, which keeps
    * showing the previous inputs' pages until the new first page lands.
@@ -289,6 +313,7 @@ export const useEntitiesVisualizerData = ({
     identity: queryInputs,
     requestedCursor,
     response: data?.queryEntitySubgraph,
+    windowKey,
   });
 
   if (displayedChain !== chain) {
@@ -368,9 +393,9 @@ export const useEntitiesVisualizerData = ({
   /**
    * Derived from the pages rather than imperatively appended to, so the table
    * can never drift from what was fetched. Graph-view pages produce table
-   * data too -- their roots are exactly the rows a Table query would return
-   * -- so switching Graph -> Table shows rows instantly while the
-   * table-shaped query loads.
+   * data too (their roots are exactly the rows a Table query would return),
+   * so switching Graph -> Table shows rows instantly while the table-shaped
+   * query loads.
    */
   const tableData = useMemo(() => {
     if (!pages) {
@@ -406,11 +431,7 @@ export const useEntitiesVisualizerData = ({
           return previousChain;
         }
 
-        const cursor = previousChain.pages.at(-1)?.nextCursor;
-
-        return cursor
-          ? { ...previousChain, activeCursor: cursor }
-          : previousChain;
+        return growPageWindow(previousChain);
       });
     };
   }, [nextCursor, queryInputs]);
@@ -423,7 +444,8 @@ export const useEntitiesVisualizerData = ({
     } else {
       // Clearing the cursor changes the query variables; cache-and-network
       // then hits the network, and the arriving first page rebuilds the
-      // chain (dropping the accumulated pages).
+      // chain. The kept window then re-chases the later pages against the
+      // refreshed result set.
       setChain((previousChain) =>
         previousChain
           ? { ...previousChain, activeCursor: undefined }

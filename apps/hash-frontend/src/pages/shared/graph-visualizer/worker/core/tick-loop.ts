@@ -50,7 +50,7 @@ export class TickLoop {
    */
   tick(): void {
     const { layouts, clusterTree, polisher } = this.#dependencies;
-    const debug = this.#dependencies.config.debug ?? false;
+    const debug = this.#dependencies.config.debug;
 
     const tickStart = performance.now();
     const clustersRunningBefore = layouts.anyClusterLayoutRunning();

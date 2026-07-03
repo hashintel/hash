@@ -26,7 +26,7 @@ interface WithExpansionRowsOptions {
  * Appends the expansion records' entities to `tableData` as extra rows.
  *
  * An expanded entity that has since become a query root (a later "Show more"
- * page fetched it) is skipped — the query row wins, so nothing appears
+ * page fetched it) is skipped: the query row wins, so nothing appears
  * twice. Returns `tableData` unchanged (same reference) when the records add
  * nothing, so memoized consumers see no change.
  */

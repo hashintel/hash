@@ -254,10 +254,26 @@ const defaultPivotCount = (n: number): number => {
 };
 
 /**
+ * Pivots are only worth spending on components whose internal geometry is
+ * under-determined by edge terms alone. A component smaller than this places
+ * fine from its edges + collision floors (and PivotMDS falls back to a local
+ * scatter for components without pivot rows), while every slot it would
+ * consume is a BFS row NOT anchoring a big component's global shape.
+ *
+ * The failure mode this guards: a captured 20k-node production graph carried
+ * ~4.5k components (4.1k singleton "dust" nodes + fragment tail) around one
+ * 15k-node giant; the old at-least-one-per-component rule handed 63 of the 64
+ * pivot slots to dust and left the giant component's entire global shape
+ * anchored by a single BFS row.
+ */
+const MIN_PIVOT_COMPONENT_SIZE = 8;
+
+/**
  * Distributes requested pivot budget across components: at least one per
- * non-empty component, then proportional to size, then round-robin the
- * remainder. May return fewer than `total` when every component is at
- * capacity.
+ * eligible component (size ≥ {@link MIN_PIVOT_COMPONENT_SIZE}; when none
+ * qualify, every non-empty component is eligible so small graphs keep their
+ * pivots), then proportional to size, then round-robin the remainder. May
+ * return fewer than `total` when every eligible component is at capacity.
  */
 const allocatePivots = (
   components: WeakComponents,
@@ -275,12 +291,21 @@ const allocatePivots = (
   }
   order.sort((a, b) => components.sizes[b]! - components.sizes[a]!);
 
+  let anyEligible = false;
+  for (let c = 0; c < cN; c++) {
+    if (components.sizes[c]! >= MIN_PIVOT_COMPONENT_SIZE) {
+      anyEligible = true;
+      break;
+    }
+  }
+  const minSize = anyEligible ? MIN_PIVOT_COMPONENT_SIZE : 1;
+
   let remaining = total;
   let active = 0;
 
   for (const c of order) {
-    const size = components.sizes[c];
-    if (size === 0 || remaining === 0) {
+    const size = components.sizes[c]!;
+    if (size < minSize || remaining === 0) {
       continue;
     }
 
@@ -303,12 +328,15 @@ const allocatePivots = (
     return alloc;
   }
 
+  // Only components that received their guarantee participate below, so an
+  // ineligible fragment never siphons slots in the proportional/round-robin
+  // phases either.
   for (const c of order) {
     if (remaining === 0) {
       break;
     }
     const size = components.sizes[c]!;
-    if (size <= alloc[c]!) {
+    if (alloc[c]! === 0 || size <= alloc[c]!) {
       continue;
     }
 
@@ -328,7 +356,7 @@ const allocatePivots = (
   while (remaining > 0) {
     const c = order[cursor % order.length]!;
 
-    if (components.sizes[c]! > alloc[c]!) {
+    if (alloc[c]! > 0 && components.sizes[c]! > alloc[c]!) {
       alloc[c]! += 1;
       remaining -= 1;
     }
@@ -343,7 +371,7 @@ const allocatePivots = (
           break;
         }
 
-        if (components.sizes[cc]! > alloc[cc]!) {
+        if (alloc[cc]! > 0 && components.sizes[cc]! > alloc[cc]!) {
           alloc[cc]! += 1;
           remaining -= 1;
           changed = true;

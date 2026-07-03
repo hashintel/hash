@@ -20,10 +20,13 @@ import { FlatEdgePipeline } from "./flat-edges";
 import { seedFlatNodes } from "./flat-seed";
 
 import type { VizConfig } from "../../../config";
-import type { RenderEdgeArrow, RenderFlatGraph } from "../../../frames";
+import type { RenderFlatGraph } from "../../../frames";
 import type { EntityIndex, VizMode } from "../../../ids";
 import type { RepublishHandler } from "../../buffers/growable-buffer";
-import type { BezierSegmentSink } from "../../geometry/edge-geometry";
+import type {
+  BezierSegmentSink,
+  EndpointArrowSink,
+} from "../../geometry/edge-geometry";
 import type { LayoutSimulation } from "../../layout/force-simulation";
 import type {
   CapturedLayoutFixture,
@@ -474,10 +477,7 @@ export class FlatTierController {
   }
 
   /** Emit one straight cubic per flat render edge. See {@link FlatEdgePipeline.buildEdgeBeziers}. */
-  buildEdgeBeziers(
-    sink: BezierSegmentSink,
-    arrowsOut: RenderEdgeArrow[],
-  ): void {
-    this.#edges.buildEdgeBeziers(sink, arrowsOut);
+  buildEdgeBeziers(sink: BezierSegmentSink, arrows: EndpointArrowSink): void {
+    this.#edges.buildEdgeBeziers(sink, arrows);
   }
 }

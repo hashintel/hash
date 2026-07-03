@@ -1,4 +1,4 @@
-import { Box } from "@mui/material";
+import { Stack, Typography } from "@mui/material";
 
 import { Chip, IconButton, XMarkRegularIcon } from "@hashintel/design-system";
 import { formatNumber } from "@local/hash-isomorphic-utils/format-number";
@@ -15,16 +15,27 @@ type FrontierAdditionsPillProps = {
 };
 
 /**
- * Shows the entities pulled in by expanding frontier nodes in the graph view:
- * they match no filter, they are OR-ed into the displayed set on top of the
- * filtered results. Removing the pill drops them again (the graph resets to
- * the filtered set).
+ * Shows the entities pulled in by expanding frontier nodes in the graph view.
+ * The filter pills before it AND together; these entities match no filter, so
+ * a plain-typography "OR" joins the pill onto the ribbon, reading as "filters
+ * OR these n entities". Removing the pill drops them again (the graph resets
+ * to the filtered set).
  */
 export const FrontierAdditionsPill: FunctionComponent<
   FrontierAdditionsPillProps
 > = ({ count, onRemove }) => {
   return (
-    <Box>
+    <Stack direction="row" alignItems="center" gap={1}>
+      <Typography
+        component="span"
+        sx={{
+          color: ({ palette }) => palette.gray[60],
+          fontSize: 13,
+          fontWeight: 600,
+        }}
+      >
+        OR
+      </Typography>
       <Chip
         icon={
           <ChartNetworkRegularIcon
@@ -32,11 +43,8 @@ export const FrontierAdditionsPill: FunctionComponent<
           />
         }
         label={
-          <Box
-            component="span"
-            sx={{ display: "inline-flex", alignItems: "center", gap: 0.6 }}
-          >
-            {`OR ${formatNumber(count)} ${count === 1 ? "entity" : "entities"}`}
+          <Stack component="span" direction="row" alignItems="center" gap={0.6}>
+            {`${formatNumber(count)} ${count === 1 ? "entity" : "entities"}`}
             <IconButton
               size="small"
               onClick={onRemove}
@@ -53,10 +61,10 @@ export const FrontierAdditionsPill: FunctionComponent<
             >
               <XMarkRegularIcon />
             </IconButton>
-          </Box>
+          </Stack>
         }
         sx={activePillSx}
       />
-    </Box>
+    </Stack>
   );
 };

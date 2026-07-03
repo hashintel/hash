@@ -50,59 +50,78 @@ export function edgeArrowLayer(
   positions: PositionsFrame,
   zoom: number,
 ): Layer[] {
-  if (positions.edgeArrows.length === 0) {
-    return [];
+  const scale = 2 ** zoom;
+  const layers: Layer[] = [];
+
+  // Flat tier: packed per-edge arrows straight to the GPU as binary
+  // attributes; chord fade runs in the shader against deck's project module
+  // (world→pixel via the live viewport), so 22k+ arrows cost zero per-frame
+  // CPU here.
+  const { flatArrows } = positions;
+  if (flatArrows && flatArrows.count > 0) {
+    layers.push(
+      new EndpointVLayer({
+        id: "edge-endpoint-arrows",
+        data: {
+          length: flatArrows.count,
+          attributes: {
+            getPosition: { value: flatArrows.positions, size: 2 },
+            getAngle: { value: flatArrows.angles, size: 1 },
+            getSize: { value: flatArrows.sizes, size: 1 },
+            getChord: { value: flatArrows.chords, size: 1 },
+            getColor: { value: flatArrows.colors, size: 4 },
+          },
+        },
+        pickable: false,
+        parameters: { depthWriteEnabled: false, depthCompare: "always" },
+      }),
+    );
   }
 
-  const scale = 2 ** zoom;
+  if (positions.edgeArrows.length === 0) {
+    return layers;
+  }
+
+  // Hierarchical tier: bounded object arrows (a few hundred lane marks).
   const { lanes, endpoints } = splitEdgeArrows(positions.edgeArrows);
-  return [
-    ...(endpoints.length > 0
-      ? [
-          new EndpointVLayer({
-            id: "edge-endpoint-arrows",
-            data: endpoints,
-            getSize: (arrow) => arrow.size,
-            getColor: (arrow) => [
-              arrow.color[0],
-              arrow.color[1],
-              arrow.color[2],
-              fadeAlpha(
-                arrow.chord * scale,
-                EDGE_ARROW_MIN_SCREEN_CHORD,
-                Math.min(255, Math.round(arrow.color[3] * 1.28)),
-              ),
-            ],
-            pickable: false,
-            parameters: { depthWriteEnabled: false, depthCompare: "always" },
-          }),
-        ]
-      : []),
-    ...(lanes.length > 0
-      ? [
-          new TextLayer<RenderEdgeArrow>({
-            id: "edge-lane-chevrons",
-            data: lanes,
-            getPosition: (arrow) => [arrow.x, arrow.y],
-            getText: () => EDGE_ARROW_TEXT,
-            getSize: (arrow) => arrow.size,
-            sizeUnits: "common",
-            getAngle: arrowAngleDegrees,
-            getColor: (arrow) => [
-              255,
-              255,
-              255,
-              fadeAlpha(arrow.chord * scale, EDGE_ARROW_MIN_SCREEN_CHORD, 230),
-            ],
-            getTextAnchor: "middle",
-            getAlignmentBaseline: "center",
-            fontFamily: "Inter, sans-serif",
-            fontWeight: 700,
-            characterSet: [EDGE_ARROW_TEXT],
-            pickable: false,
-            parameters: { depthWriteEnabled: false, depthCompare: "always" },
-          }),
-        ]
-      : []),
-  ];
+  if (endpoints.length > 0) {
+    layers.push(
+      new EndpointVLayer({
+        id: "edge-endpoint-arrows",
+        data: endpoints,
+        getSize: (arrow) => arrow.size,
+        getColor: (arrow) => arrow.color,
+        pickable: false,
+        parameters: { depthWriteEnabled: false, depthCompare: "always" },
+      }),
+    );
+  }
+
+  if (lanes.length > 0) {
+    layers.push(
+      new TextLayer<RenderEdgeArrow>({
+        id: "edge-lane-chevrons",
+        data: lanes,
+        getPosition: (arrow) => [arrow.x, arrow.y],
+        getText: () => EDGE_ARROW_TEXT,
+        getSize: (arrow) => arrow.size,
+        sizeUnits: "common",
+        getAngle: arrowAngleDegrees,
+        getColor: (arrow) => [
+          255,
+          255,
+          255,
+          fadeAlpha(arrow.chord * scale, EDGE_ARROW_MIN_SCREEN_CHORD, 230),
+        ],
+        getTextAnchor: "middle",
+        getAlignmentBaseline: "center",
+        fontFamily: "Inter, sans-serif",
+        fontWeight: 700,
+        characterSet: [EDGE_ARROW_TEXT],
+        pickable: false,
+        parameters: { depthWriteEnabled: false, depthCompare: "always" },
+      }),
+    );
+  }
+  return layers;
 }

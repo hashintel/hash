@@ -5,18 +5,19 @@
  * This component is a composition root: the moving parts live in
  * `entities-visualizer/` as focused hooks. Query inputs (filters, sort,
  * conversions, view) are owned by {@link useEntitiesQueryState}; the fetched
- * result pages -- including pagination -- by {@link useEntitiesVisualizerData};
+ * result pages (including pagination) by {@link useEntitiesVisualizerData};
  * everything else is derived from those, so there is no state
  * synchronization between them.
  */
 import { Box, Stack, Typography, useTheme } from "@mui/material";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { extractBaseUrl } from "@blockprotocol/type-system";
 import { LoadingSpinner } from "@hashintel/design-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
+import { useSnackbar } from "../../components/hooks/use-snackbar";
 import { tableContentSx } from "../../shared/table-content";
 import { Button } from "../../shared/ui/button";
 import {
@@ -25,7 +26,15 @@ import {
 } from "./entities-visualizer/entities-table";
 import { withExpansionRows } from "./entities-visualizer/expansion-table-data";
 import { GridView } from "./entities-visualizer/grid-view";
-import { titleFromBaseUrl } from "./entities-visualizer/shared/filter-state-url";
+import {
+  downloadFilterConfigFile,
+  parseFilterConfigFile,
+} from "./entities-visualizer/shared/filter-config-file";
+import {
+  parseFilterStateFromQuery,
+  serializeFilterStateToQuery,
+  titleFromBaseUrl,
+} from "./entities-visualizer/shared/filter-state-url";
 import { useAvailableTypes } from "./entities-visualizer/shared/use-available-types";
 import { useEntitiesQueryState } from "./entities-visualizer/use-entities-query-state";
 import { useEntitiesVisualizerData } from "./entities-visualizer/use-entities-visualizer-data";
@@ -113,10 +122,10 @@ export const EntitiesVisualizer: FunctionComponent<{
   );
 
   /**
-   * Frontier expansions from the Graph view ("OR n entities"), owned here —
-   * above the visualizer — so they persist across view switches and surface
+   * Frontier expansions from the Graph view ("OR n entities"), owned here,
+   * above the visualizer, so they persist across view switches and surface
    * outside the graph (the filter pill, table rows). Dismissing the pill
-   * bumps the epoch: that swaps in a fresh store AND recreates the graph
+   * bumps the epoch: that swaps in a fresh store and recreates the graph
    * worker (via `graphSourceKey` below), since the worker's additive ingest
    * cannot retract the expanded entities.
    */
@@ -129,8 +138,76 @@ export const EntitiesVisualizer: FunctionComponent<{
     setExpansionEpoch((epoch) => epoch + 1);
   }, []);
 
+  const { triggerSnackbar } = useSnackbar();
+
   /**
-   * Pause the graph simulation while a slide is open over this page — the
+   * Expansion ids waiting to be replayed into the frontier store, set by a
+   * filter-config import. Import bumps the epoch (and possibly the filter),
+   * which swaps in a fresh store during the same render that sets this; the
+   * effect below then expands into that new generation, so the imported
+   * additions never mix with the pre-import ones.
+   */
+  const [pendingExpansionIds, setPendingExpansionIds] = useState<
+    EntityId[] | null
+  >(null);
+
+  useEffect(() => {
+    if (!pendingExpansionIds) {
+      return;
+    }
+    setPendingExpansionIds(null);
+
+    if (pendingExpansionIds.length > 0) {
+      void frontierStore.expand(pendingExpansionIds);
+    }
+  }, [pendingExpansionIds, frontierStore]);
+
+  /**
+   * Export/import of the whole filter configuration (filter state plus the
+   * graph-expansion ids) as a file. A file rather than the URL because the
+   * expansion ids are far too long for one (see
+   * `entities-visualizer/shared/filter-config-file.ts`); filter state alone
+   * still syncs to the URL as usual.
+   */
+  const exportFilters = useCallback(() => {
+    downloadFilterConfigFile({
+      filters: serializeFilterStateToQuery({
+        filterState,
+        internalWebIds: internalWebs.map(({ webId }) => webId),
+        isTypePinned,
+      }),
+      expandedEntityIds: [...frontierSnapshot.expandedRoots],
+    });
+  }, [filterState, internalWebs, isTypePinned, frontierSnapshot.expandedRoots]);
+
+  const importFilters = useCallback(
+    (fileText: string) => {
+      const config = parseFilterConfigFile(fileText);
+      if (!config) {
+        triggerSnackbar.error(
+          "That file is not a HASH filter export (or is from a newer version).",
+        );
+        return;
+      }
+
+      setFilterState(() =>
+        parseFilterStateFromQuery({
+          query: config.filters,
+          internalWebIds: internalWebs.map(({ webId }) => webId),
+          isTypePinned,
+        }),
+      );
+
+      // Fresh store generation so the imported additions replace (rather
+      // than pile onto) whatever was expanded before the import.
+      setExpansionEpoch((epoch) => epoch + 1);
+      setPendingExpansionIds(config.expandedEntityIds);
+    },
+    [internalWebs, isTypePinned, setFilterState, triggerSnackbar],
+  );
+
+  /**
+   * Pause the graph simulation while a slide is open over this page: the
    * slide may itself contain a visualizer, and only the one the user sees
    * should spend CPU.
    */
@@ -257,7 +334,7 @@ export const EntitiesVisualizer: FunctionComponent<{
    * The active conversions enriched with each target data type's display
    * title. `definitions` comes from the last-loaded response, so a
    * just-activated conversion's target may not be in the pool until the
-   * converted response lands -- fall back to a title derived from the type's
+   * converted response lands; fall back to a title derived from the type's
    * URL slug for that window.
    */
   const activeConversionsWithTitles = useMemo(() => {
@@ -305,6 +382,19 @@ export const EntitiesVisualizer: FunctionComponent<{
     filterState.includeArchived,
   ]);
 
+  /**
+   * How many entities the graph expansions add beyond the query's own
+   * results, measured as the extra table rows so it can never disagree with
+   * what is displayed (an expanded entity a later "Show more" page fetched
+   * as a query root no longer counts). Drives the "OR n entities" pill and
+   * is folded into both sides of the "m of n entities" count, so the header
+   * describes the whole displayed set: query matches OR these additions.
+   */
+  const frontierAdditionsCount =
+    tableDataWithAdditions && queryTableData
+      ? tableDataWithAdditions.rows.length - queryTableData.rows.length
+      : 0;
+
   // A stable element, so passing it to the memoized graph visualizer doesn't
   // re-render it every time this component renders.
   const loadingSpinner = useMemo(
@@ -318,17 +408,27 @@ export const EntitiesVisualizer: FunctionComponent<{
         availableEntityTypes={availableEntityTypes}
         availableTypesLoading={availableTypesLoading}
         filterState={filterState}
-        frontierAdditionsCount={frontierSnapshot.expandedRoots.size}
+        frontierAdditionsCount={frontierAdditionsCount}
         internalWebs={internalWebs}
         isTypePinned={isTypePinned}
-        loadedResultCount={readyData?.rootEntityIds.length ?? null}
+        loadedResultCount={
+          readyData
+            ? readyData.rootEntityIds.length + frontierAdditionsCount
+            : null
+        }
         onBulkActionCompleted={handleBulkActionCompleted}
         onClearFrontierAdditions={clearFrontierAdditions}
+        onExportFilters={exportFilters}
+        onImportFilters={importFilters}
         propertyFilterData={propertyFilterData}
         selectedEntities={selectedEntities}
         setFilterState={setFilterState}
         setView={setSelectedView}
-        totalResultCount={entitiesData.totalResultCount}
+        totalResultCount={
+          entitiesData.totalResultCount !== null
+            ? entitiesData.totalResultCount + frontierAdditionsCount
+            : null
+        }
         totalResultCountLoading={entitiesData.fetching}
         view={view}
         viewOptions={viewOptions}

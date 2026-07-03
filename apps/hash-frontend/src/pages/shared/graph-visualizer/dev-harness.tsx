@@ -19,6 +19,7 @@ import { useOwnedFrontierStore } from "./components/use-frontier-expansion";
 import { defaultVizConfig } from "./config";
 import { generateGraphFixture } from "./dev-harness/generate-fixture";
 import { EntityGraphVisualizer } from "./entity-graph-visualizer";
+import { downloadLayoutFixture } from "./layout-fixture-capture";
 
 import type { HarnessKnobs } from "./components/dev-harness-controls-panel";
 import type { VizConfig } from "./config";
@@ -200,16 +201,7 @@ export const DevHarness = () => {
         );
         return;
       }
-      const json = JSON.stringify(captured);
-      // eslint-disable-next-line no-console -- dev harness affordance (console-copyable)
-      console.log("capture-layout-fixture JSON (also downloaded):", json);
-      const blob = new Blob([json], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const anchor = document.createElement("a");
-      anchor.href = url;
-      anchor.download = `graph-fixture-${captured.nodes.length}n-${captured.edges.length}e.json`;
-      anchor.click();
-      URL.revokeObjectURL(url);
+      downloadLayoutFixture(captured);
     });
   }, []);
 

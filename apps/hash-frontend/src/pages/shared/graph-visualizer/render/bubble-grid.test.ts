@@ -13,6 +13,10 @@ import { describe, expect, it } from "vitest";
 
 import { evaluateBubbleField } from "./bubble-corridors";
 import { BUBBLE_TEX_WIDTH, BubbleCellPacker } from "./bubble-grid";
+import {
+  MAX_NODES_PER_COMMUNITY,
+  MAX_SEGMENTS_PER_COMMUNITY,
+} from "./gpu/bubble-set-sdf-layer";
 
 import type { BubbleCellPack, BubbleCellPackResult } from "./bubble-grid";
 
@@ -28,6 +32,8 @@ interface Community {
   readonly members: readonly (readonly [number, number])[];
   readonly segments: readonly Segment[];
   readonly color?: readonly [number, number, number, number];
+  /** Point-kernel radius override (world units); defaults to {@link FIELD_RADIUS}. */
+  readonly fieldRadius?: number;
 }
 
 /** Build a {@link BubbleCellPack} mirroring production layout: ranges, segment slots, and point texels in gather order. */
@@ -40,8 +46,10 @@ function makePack(communities: readonly Community[]): BubbleCellPack {
     (sum, community) => sum + community.segments.length,
     0,
   );
+
   const ranges = new Float32Array(communities.length * 2);
   const colors = new Uint8Array(communities.length * 4);
+  const fieldRadii = new Float32Array(communities.length);
   const pointTexels = new Float32Array(totalMembers * 4);
   const segmentSlots = new Int32Array(totalSegments * 2);
   const segmentRadius = new Float32Array(totalSegments);
@@ -53,15 +61,19 @@ function makePack(communities: readonly Community[]): BubbleCellPack {
   for (const [ci, community] of communities.entries()) {
     ranges[ci * 2] = pointOffset;
     ranges[ci * 2 + 1] = community.members.length;
+
     const [red, green, blue, alpha] = community.color ?? [10, 20, 30, 40];
     colors[ci * 4] = red;
     colors[ci * 4 + 1] = green;
     colors[ci * 4 + 2] = blue;
     colors[ci * 4 + 3] = alpha;
+
+    fieldRadii[ci] = community.fieldRadius ?? FIELD_RADIUS;
     for (const [member, [x, y]] of community.members.entries()) {
       pointTexels[(pointOffset + member) * 4] = x;
       pointTexels[(pointOffset + member) * 4 + 1] = y;
     }
+
     segmentStorageOffsets[ci] = segmentOffset;
     segmentCounts[ci] = community.segments.length;
     for (const [segmentIndex, segment] of community.segments.entries()) {
@@ -71,6 +83,7 @@ function makePack(communities: readonly Community[]): BubbleCellPack {
         pointOffset + segment.memberB;
       segmentRadius[segmentOffset + segmentIndex] = segment.radius;
     }
+
     pointOffset += community.members.length;
     segmentOffset += community.segments.length;
   }
@@ -84,7 +97,7 @@ function makePack(communities: readonly Community[]): BubbleCellPack {
     segmentRadius,
     segmentCounts,
     segmentStorageOffsets,
-    fieldRadius: FIELD_RADIUS,
+    fieldRadii,
   };
 }
 
@@ -154,10 +167,11 @@ function expectFieldEquivalence(
     if (full.points.length === 0) {
       continue;
     }
+    const fieldRadius = pack.fieldRadii[ci]!;
     const xs = full.points.map(([x]) => x);
     const ys = full.points.map(([, y]) => y);
     // Sample past the kernel reach so the "outside every cell" case is hit.
-    const pad = FIELD_RADIUS * 2;
+    const pad = fieldRadius * 2;
     const minX = Math.min(...xs) - pad;
     const maxX = Math.max(...xs) + pad;
     const minY = Math.min(...ys) - pad;
@@ -180,7 +194,7 @@ function expectFieldEquivalence(
           y,
           full.points,
           full.segments,
-          FIELD_RADIUS,
+          fieldRadius,
         );
         const cell = cells.find((candidate) => {
           const bounds = packed.bounds.subarray(
@@ -207,7 +221,7 @@ function expectFieldEquivalence(
           y,
           local.points,
           local.segments,
-          FIELD_RADIUS,
+          fieldRadius,
         );
         expect(Math.abs(cellField - fullField)).toBeLessThan(1e-9);
       }
@@ -287,22 +301,57 @@ describe("bubble grid packing, field equivalence", () => {
     expect(first + second).toBe(packed.cellCount);
   });
 
+  it("mixed per-community kernel radii stay exact and tag every cell", () => {
+    // An oversampled community carries a larger adaptive radius; its grid is
+    // coarser but the per-cell field must still match the full field, and
+    // each cell must carry its own community's radius for the shader.
+    const pack = makePack([
+      {
+        members: clump(0, 0),
+        segments: [],
+        color: [1, 2, 3, 100],
+        fieldRadius: 130,
+      },
+      {
+        members: clump(700, 100),
+        segments: [{ memberA: 0, memberB: 3, radius: 22 }],
+        color: [4, 5, 6, 200],
+      },
+    ]);
+    const packed = new BubbleCellPacker().pack(pack);
+
+    expectFieldEquivalence(pack, packed);
+
+    for (let cell = 0; cell < packed.cellCount; cell++) {
+      const alpha = packed.colors[cell * 4 + 3];
+      expect(packed.fieldRadii[cell]).toBe(alpha === 100 ? 130 : FIELD_RADIUS);
+    }
+  });
+
   it("cells stay within the shader loop bounds", () => {
-    // Worst plausible density: one community, many members in one spot.
+    // Worst plausible density: one community, the full sample cap in one spot.
     const members: (readonly [number, number])[] = [];
-    for (let member = 0; member < 256; member++) {
-      members.push([(member % 16) * 6, Math.floor(member / 16) * 6]);
+    for (let member = 0; member < MAX_NODES_PER_COMMUNITY; member++) {
+      members.push([(member % 32) * 6, Math.floor(member / 32) * 6]);
     }
     const segments: Segment[] = [];
     for (let segment = 0; segment < 255; segment++) {
-      segments.push({ memberA: segment, memberB: segment + 1, radius: 22 });
+      segments.push({
+        memberA: segment * 4,
+        memberB: segment * 4 + 4,
+        radius: 22,
+      });
     }
     const pack = makePack([{ members, segments }]);
     const packed = new BubbleCellPacker().pack(pack);
 
     for (let cell = 0; cell < packed.cellCount; cell++) {
-      expect(packed.nodeRanges[cell * 2 + 1]!).toBeLessThanOrEqual(256);
-      expect(packed.segmentRanges[cell * 2 + 1]!).toBeLessThanOrEqual(512);
+      expect(packed.nodeRanges[cell * 2 + 1]!).toBeLessThanOrEqual(
+        MAX_NODES_PER_COMMUNITY,
+      );
+      expect(packed.segmentRanges[cell * 2 + 1]!).toBeLessThanOrEqual(
+        MAX_SEGMENTS_PER_COMMUNITY,
+      );
     }
     expectFieldEquivalence(pack, packed, 11);
   });

@@ -66,6 +66,15 @@ export interface LayoutSimulation {
   readonly alpha: number;
   /** Louvain community id per node in buffer order (community-force layout only). */
   readonly communities?: readonly number[];
+
+  /**
+   * Advance up to `budgetMs` of simulation work. Returns whether node
+   * positions were committed (published) during this call; the worker gates
+   * frame emission on it, so an engine that advances internally without
+   * moving published positions MUST return false for those ticks (emitting
+   * anyway rebuilds all edge geometry for an unchanged picture).
+   * Liveness/termination is `isSettled`, never this return value.
+   */
   tick(budgetMs: number): boolean;
   pause(): void;
   resume(): void;

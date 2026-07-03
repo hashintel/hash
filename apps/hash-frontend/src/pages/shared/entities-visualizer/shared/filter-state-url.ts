@@ -1,5 +1,6 @@
 import { isBaseUrl } from "@blockprotocol/type-system";
 
+import { applyQueryValuesToAsPath } from "./apply-query-values-to-as-path";
 import { getOperatorDescriptor } from "./property-filters/get-operators-for-kind";
 
 import type { EntitiesFilterState } from "./filter-state";
@@ -275,52 +276,10 @@ export const serializeFilterStateToQuery = ({
 };
 
 /**
- * Percent-encodes a query value while leaving characters that are legal in a URL
- * query and aid readability (`:` `/` `@` `,` `;`) intact, so type and property
- * URLs remain legible rather than turning into `%3A%2F%2F…` noise.
- */
-const encodeQueryValue = (value: string): string =>
-  encodeURIComponent(value)
-    .replace(/%3A/g, ":")
-    .replace(/%2F/g, "/")
-    .replace(/%40/g, "@")
-    .replace(/%2C/g, ",")
-    .replace(/%3B/g, ";");
-
-const parseRawPairs = (search: string): [string, string][] =>
-  search
-    ? search.split("&").map((pair): [string, string] => {
-        const equalsIndex = pair.indexOf("=");
-        return equalsIndex === -1
-          ? [pair, ""]
-          : [pair.slice(0, equalsIndex), pair.slice(equalsIndex + 1)];
-      })
-    : [];
-
-const groupRawValuesByKey = (
-  pairs: [string, string][],
-): Map<string, string[]> => {
-  const byKey = new Map<string, string[]>();
-  for (const [key, rawValue] of pairs) {
-    const existing = byKey.get(key);
-    if (existing) {
-      existing.push(rawValue);
-    } else {
-      byKey.set(key, [rawValue]);
-    }
-  }
-  return byKey;
-};
-
-const arraysEqual = (a: string[], b: string[]): boolean =>
-  a.length === b.length && a.every((value, index) => value === b[index]);
-
-/**
  * Merges the given filter parameter values into an existing `asPath`, leaving
- * any non-filter parameters in place. Comparison is performed against the raw
- * (already-encoded) query so the result is stable across re-renders, and values
- * are written with {@link encodeQueryValue} to keep URLs readable. Returns
- * whether the resulting path differs so callers can avoid redundant navigations.
+ * any non-filter parameters in place (see {@link applyQueryValuesToAsPath}).
+ * Returns whether the resulting path differs so callers can avoid redundant
+ * navigations.
  */
 export const applyFilterValuesToAsPath = ({
   asPath,
@@ -328,46 +287,9 @@ export const applyFilterValuesToAsPath = ({
 }: {
   asPath: string;
   filterValues: Record<string, string | string[]>;
-}): { changed: boolean; nextAsPath: string } => {
-  const [path = "", search = ""] = asPath.split("?");
-  const existingPairs = parseRawPairs(search);
-  const currentByKey = groupRawValuesByKey(existingPairs);
-
-  const desiredByKey = new Map<string, string[]>();
-  for (const key of filterStateQueryKeys) {
-    const value = filterValues[key];
-    if (value === undefined) {
-      continue;
-    }
-    const list = Array.isArray(value) ? value : [value];
-    desiredByKey.set(key, list.map(encodeQueryValue));
-  }
-
-  const changed = filterStateQueryKeys.some(
-    (key) =>
-      !arraysEqual(currentByKey.get(key) ?? [], desiredByKey.get(key) ?? []),
-  );
-
-  if (!changed) {
-    return { changed: false, nextAsPath: asPath };
-  }
-
-  const ownedKeys = new Set<string>(filterStateQueryKeys);
-
-  const rebuilt = existingPairs
-    .filter(([key]) => !ownedKeys.has(key))
-    .map(([key, rawValue]) => (rawValue === "" ? key : `${key}=${rawValue}`));
-
-  for (const key of filterStateQueryKeys) {
-    for (const rawValue of desiredByKey.get(key) ?? []) {
-      rebuilt.push(`${key}=${rawValue}`);
-    }
-  }
-
-  const nextSearch = rebuilt.join("&");
-
-  return {
-    changed: true,
-    nextAsPath: nextSearch ? `${path}?${nextSearch}` : path,
-  };
-};
+}): { changed: boolean; nextAsPath: string } =>
+  applyQueryValuesToAsPath({
+    asPath,
+    ownedKeys: filterStateQueryKeys,
+    values: filterValues,
+  });

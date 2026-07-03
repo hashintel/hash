@@ -10,9 +10,12 @@ import { entityIndexFromNodeId } from "../../../ids";
 import { entityStyle } from "../../entity-style";
 import { edgeColorForTypeGroup } from "./entity-colors";
 
-import type { Color, RenderEdgeArrow } from "../../../frames";
+import type { Color } from "../../../frames";
 import type { EntityIndex, LinkId } from "../../../ids";
-import type { BezierSegmentSink } from "../../geometry/edge-geometry";
+import type {
+  BezierSegmentSink,
+  EndpointArrowSink,
+} from "../../geometry/edge-geometry";
 import type { LayoutSimulation } from "../../layout/force-simulation";
 import type { LinkStore } from "../../store/link";
 import type { TypeRegistry } from "../../store/type-registry";
@@ -151,11 +154,12 @@ export class FlatEdgePipeline {
     this.#renderEdges = edges;
   }
 
-  /** Emit one straight cubic per flat render edge from current node positions. */
-  buildEdgeBeziers(
-    sink: BezierSegmentSink,
-    arrowsOut: RenderEdgeArrow[],
-  ): void {
+  /**
+   * Emit one straight cubic per flat render edge from current node positions,
+   * plus one packed endpoint arrow per edge. Per-tick hot path at 22k+ edges:
+   * scalar sink writes only, no per-edge allocation.
+   */
+  buildEdgeBeziers(sink: BezierSegmentSink, arrows: EndpointArrowSink): void {
     const layout = this.#dependencies.layout();
     if (!layout) {
       return;
@@ -211,32 +215,29 @@ export class FlatEdgePipeline {
           highlighted.has(entityIndexFromNodeId(target.id)));
       const color = full ? edge.color : dimColor(edge.color);
 
-      sink.push(
-        {
-          p0: [sx, sy],
-          p1: [sx + visibleDx / 3, sy + visibleDy / 3],
-          p2: [sx + (2 * visibleDx) / 3, sy + (2 * visibleDy) / 3],
-          p3: [edgeTx, edgeTy],
-        },
+      sink.pushUnclipped(
+        sx,
+        sy,
+        sx + visibleDx / 3,
+        sy + visibleDy / 3,
+        sx + (2 * visibleDx) / 3,
+        sy + (2 * visibleDy) / 3,
+        edgeTx,
+        edgeTy,
         color,
         edgeWidth,
-        undefined,
-        undefined,
         edge.linkEntityIdx,
       );
 
-      const arrowSize = edgeWidth;
       const arrowInset = Math.min(edgeWidth * 0.45, visibleChord * 0.2);
-
-      arrowsOut.push({
-        kind: "endpoint",
-        x: tx + ux * arrowInset,
-        y: ty + uy * arrowInset,
-        angle: Math.atan2(dy, dx),
-        size: arrowSize,
+      arrows.push(
+        tx + ux * arrowInset,
+        ty + uy * arrowInset,
+        Math.atan2(dy, dx),
+        edgeWidth,
+        visibleChord,
         color,
-        chord: visibleChord,
-      });
+      );
     }
   }
 }

@@ -43,11 +43,23 @@ function postPositions(frame: PositionsFrame): void {
     frame.beziers.clips.buffer,
     frame.beziers.ids.buffer,
   ];
+
+  if (frame.flatArrows) {
+    transfer.push(
+      frame.flatArrows.positions.buffer,
+      frame.flatArrows.angles.buffer,
+      frame.flatArrows.sizes.buffer,
+      frame.flatArrows.chords.buffer,
+      frame.flatArrows.colors.buffer,
+    );
+  }
+
   // Fan-out buffers are not shared with the main thread, so transfer avoids
   // a copy each tick.
   for (const entry of frame.entityFanOut) {
     transfer.push(entry.fanOut.buffer);
   }
+
   post({ type: "POSITIONS_FRAME", frame }, transfer);
 }
 

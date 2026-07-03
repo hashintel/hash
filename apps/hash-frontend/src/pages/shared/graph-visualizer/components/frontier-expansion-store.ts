@@ -1,22 +1,22 @@
 /**
- * Frontier-expansion state, held OUTSIDE React and read through
+ * Frontier-expansion state, held outside React and read through
  * `useSyncExternalStore` snapshots (see `use-frontier-expansion.ts`).
  *
  * Expansions are async fetch pipelines (id batches -> subgraph fetch -> worker
- * ingest) whose bookkeeping — what's expanded, what's in flight, what each
- * expansion revealed — must be readable both by React renders and by the
+ * ingest) whose bookkeeping (what is expanded, what is in flight, what each
+ * expansion revealed) must be readable both by React renders and by the
  * Scene's imperative resolvers between renders. A store gives both readers one
  * authority: React subscribes to immutable snapshots; imperative code reads
  * the latest snapshot directly.
  *
- * The store OUTLIVES any one worker: it is owned by the surface that owns the
- * entity QUERY (the entities page, an entity slide) and keyed to the query's
+ * The store outlives any one worker: it is owned by the surface that owns the
+ * entity query (the entities page, an entity slide) and keyed to the query's
  * identity, while workers come and go beneath it (view switches unmount the
  * visualizer; a `sourceKey` change recreates the worker). The worker is a
  * sink the store {@link FrontierExpansionStore.attach}es to: every committed
  * expansion is kept as an {@link ExpansionRecord}, and attaching a fresh
- * worker REPLAYS the records into it — so expansions survive leaving and
- * re-entering the graph view, and can be shown outside it (the "OR n
+ * worker replays the records into it, so expansions survive leaving and
+ * re-entering the graph view and can be shown outside it (the "OR n
  * entities" filter pill, expansion rows in the table).
  *
  * An expansion still in flight when its owner scope dies keeps fetching until
@@ -66,7 +66,7 @@ export interface EntityCardContext {
 }
 
 /**
- * One committed expansion batch — everything needed to (1) replay it into a
+ * One committed expansion batch: everything needed to (1) replay it into a
  * recreated worker byte-for-byte (the exact schema/ingest payloads originally
  * sent) and (2) present the expanded entities outside the graph (table rows,
  * resolved against the type maps and subgraph the batch arrived with).
@@ -76,8 +76,8 @@ export interface ExpansionRecord {
   readonly expandedIds: readonly EntityId[];
   /**
    * The expanded entities themselves (the fetched entities matching
-   * {@link expandedIds}) — the rows an expansion adds to the table. The rest
-   * of the fetched neighbourhood (links, endpoint nodes) is the next
+   * {@link expandedIds}), which are the rows an expansion adds to the table.
+   * The rest of the fetched neighbourhood (links, endpoint nodes) is the next
    * frontier, not an addition.
    */
   readonly expandedEntities: readonly HashEntity[];
@@ -105,9 +105,9 @@ export interface FrontierSnapshot {
   readonly expandedRoots: ReadonlySet<EntityId>;
   readonly inFlight: ReadonlySet<EntityId>;
   /**
-   * Freshly-fetched expansion nodes + links (NOT in the prop `entities`) + the type maps their
-   * card resolves against. The root map is a nested per-type-chain structure, so each node keeps
-   * its source map rather than deep-merging maps from every expansion.
+   * Freshly-fetched expansion nodes and links (absent from the prop `entities`) plus the type
+   * maps their card resolves against. The root map is a nested per-type-chain structure, so each
+   * node keeps its source map rather than deep-merging maps from every expansion.
    */
   readonly expandedById: ReadonlyMap<EntityId, EntityCardContext>;
   /** Committed expansion batches, in commit order (the replay + table-row log). */
@@ -190,9 +190,9 @@ export class FrontierExpansionStore {
 
   /**
    * Stop in-flight expansions from fetching further batches and mutating
-   * state. Called when the owning scope goes away — the store's reset key
-   * changed (new filter set / cleared additions) or its owner unmounted —
-   * leaving this instance orphaned.
+   * state. Called when the owning scope goes away and leaves this instance
+   * orphaned: the store's reset key changed (new filter set, cleared
+   * additions) or its owner unmounted.
    */
   deactivate(): void {
     this.#active = false;
@@ -275,7 +275,7 @@ export class FrontierExpansionStore {
           expandedRoots.add(entityId);
         }
 
-        // Keep the fetched entities + the maps their card resolves against, for hover/selection
+        // Keep the fetched entities and the maps their card resolves against, for hover/selection
         // on nodes this expansion revealed (they are not in the prop `entities`).
         const expandedById = new Map(this.#snapshot.expandedById);
         for (const entity of expansion.entities) {

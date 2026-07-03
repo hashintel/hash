@@ -128,17 +128,15 @@ function drive(layout: LayoutSimulation): DriveResult {
   let totalMs = 0;
   let ticks = 0;
   const spreads: number[] = [];
+  // tick() returns publish-happened, not liveness; isSettled ends the loop.
   for (let step = 0; step < 200_000 && !layout.isSettled; step++) {
     const start = performance.now();
-    const moved = layout.tick(1);
+    layout.tick(1);
     const tickMs = performance.now() - start;
     totalMs += tickMs;
     maxTickMs = Math.max(maxTickMs, tickMs);
     ticks += 1;
     spreads.push(rmsSpread(layout));
-    if (!moved) {
-      break;
-    }
   }
   return { ticks, totalMs, maxTickMs, spreads };
 }

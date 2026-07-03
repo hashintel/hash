@@ -13,12 +13,22 @@
  * end to end and the union {member blobs} ∪ {MST corridors} is connected.
  *
  * Construction, per rendered community (all deterministic):
- * 1. Euclidean MST over the community's sampled member positions
- *    (Prim from slot 0; strict `<` keeps the lowest candidate slot on ties).
- * 2. Obstacle pass: an MST edge whose corridor passes within clearance of a
+ * 1. Anchor selection: communities with more than {@link CORRIDOR_ANCHOR_CAP}
+ *    sampled members are reduced to one anchor per merge-scale grid cell
+ *    (cell edge = pairwise kernel-merge distance / √2, doubled until the
+ *    anchor count fits the cap). Any two points in one cell are closer than
+ *    the merge distance, so every non-anchor member's kernel provably fuses
+ *    with its cell anchor's kernel above the iso threshold; connecting the
+ *    anchors therefore connects every member. Communities at or under the
+ *    cap use every member as an anchor (identical to the pre-anchor
+ *    behaviour). The guarantee only softens on the (pathological) doubling
+ *    path: points sharing a doubled cell may sit past the merge distance.
+ * 2. Euclidean MST over the anchor positions
+ *    (Prim from anchor 0; strict `<` keeps the lowest candidate slot on ties).
+ * 3. Obstacle pass: an MST edge whose corridor passes within clearance of a
  *    foreign node (any node not in this community, measured against the
  *    node's actual dot radius via a uniform grid) is rerouted through the
- *    best intermediate member (min detour ≤ {@link CORRIDOR_DETOUR_CAP} ×
+ *    best intermediate anchor (min detour ≤ {@link CORRIDOR_DETOUR_CAP} ×
  *    direct, both halves clear, tie-break lowest slot).
  *
  * When every capped one-hop detour is blocked as well (foreign nodes wall off
@@ -52,6 +62,13 @@
 
 import { BitSet } from "../worker/collections/bitset";
 
+/**
+ * Iso threshold of the bubble field (shared by the SDF layer, the corridor
+ * merge-distance math, and the tests). Field values above this render inside
+ * the hull.
+ */
+export const BUBBLE_ISO_THRESHOLD = 0.58;
+
 /** Capsule kernel radius (world units) for full-width corridors. Visual ribbon
  * half-width at the default iso-threshold ≈ 0.49 × this. */
 export const CORRIDOR_FIELD_RADIUS = 22;
@@ -77,11 +94,79 @@ const RECORD_X = 0;
 const RECORD_Y = 1;
 const RECORD_RADIUS = 2;
 
-/** Prim scratch, sized to the shader's per-community node cap (256). */
-const PRIM_CAP = 256;
-const primDist = new Float64Array(PRIM_CAP);
-const primParent = new Int32Array(PRIM_CAP);
-const primInTree = BitSet.empty<number>(PRIM_CAP);
+/**
+ * Upper bound on corridor MST nodes per community. Prim is O(anchors²), so
+ * this caps planning cost regardless of how many members the hull samples
+ * (up to `MAX_NODES_PER_COMMUNITY`, 1024). It also keeps the worst-case
+ * segment count (2 · (anchors − 1) with reroute splits) inside the shader's
+ * `MAX_SEGMENTS_PER_COMMUNITY` loop bound of 512.
+ */
+export const CORRIDOR_ANCHOR_CAP = 256;
+
+/** Prim scratch, sized to {@link CORRIDOR_ANCHOR_CAP}. */
+const primDist = new Float64Array(CORRIDOR_ANCHOR_CAP);
+const primParent = new Int32Array(CORRIDOR_ANCHOR_CAP);
+const primInTree = BitSet.empty<number>(CORRIDOR_ANCHOR_CAP);
+/** Anchor member indices for the community currently being planned. */
+const anchorMembers = new Int32Array(CORRIDOR_ANCHOR_CAP);
+
+/**
+ * Centre-to-centre distance below which two point kernels of radius
+ * `fieldRadius` merge into one above-threshold region: the field at their
+ * midpoint, `2 · (1 − (d / 2r)²)²`, meets {@link BUBBLE_ISO_THRESHOLD}.
+ * ≈ 1.36 × the radius at the default threshold.
+ */
+export function pairMergeDistance(fieldRadius: number): number {
+  return 2 * fieldRadius * Math.sqrt(1 - Math.sqrt(BUBBLE_ISO_THRESHOLD / 2));
+}
+
+/**
+ * Fills {@link anchorMembers} with ≤ {@link CORRIDOR_ANCHOR_CAP} member
+ * indices for one community and returns the count. At or under the cap every
+ * member is an anchor; above it, members are binned into merge-scale grid
+ * cells (edge = merge distance / √2 so same-cell points always fuse) and the
+ * first member of each occupied cell (member order — deterministic) is kept,
+ * doubling the cell edge until the anchors fit the cap.
+ */
+function selectAnchors(
+  pointTexels: Float32Array,
+  pointOffset: number,
+  memberCount: number,
+  fieldRadius: number,
+): number {
+  if (memberCount <= CORRIDOR_ANCHOR_CAP) {
+    for (let member = 0; member < memberCount; member++) {
+      anchorMembers[member] = member;
+    }
+    return memberCount;
+  }
+
+  // Plans are movement-gated, not per-frame; a transient Map per attempt is
+  // fine here (same policy as ObstacleGrid).
+  let cellEdge = pairMergeDistance(fieldRadius) / Math.SQRT2;
+  for (;;) {
+    const firstMemberOfCell = new Map<number, number>();
+    for (let member = 0; member < memberCount; member++) {
+      const slot = (pointOffset + member) * 4;
+      const cellX = Math.floor(pointTexels[slot]! / cellEdge);
+      const cellY = Math.floor(pointTexels[slot + 1]! / cellEdge);
+      const key = (cellX + CELL_OFFSET) * CELL_STRIDE + (cellY + CELL_OFFSET);
+      if (!firstMemberOfCell.has(key)) {
+        firstMemberOfCell.set(key, member);
+      }
+    }
+    if (firstMemberOfCell.size <= CORRIDOR_ANCHOR_CAP) {
+      let anchorCount = 0;
+      // Map iteration follows insertion order == member order: deterministic.
+      for (const member of firstMemberOfCell.values()) {
+        anchorMembers[anchorCount] = member;
+        anchorCount += 1;
+      }
+      return anchorCount;
+    }
+    cellEdge *= 2;
+  }
+}
 
 export interface CorridorPlan {
   /** Number of rendered (kept) communities. */
@@ -92,6 +177,9 @@ export interface CorridorPlan {
   readonly communityIds: Int32Array;
   /** Gathered member positions, texel stride 4 (`[x, y, _, _]` per texel). */
   readonly pointTexels: Float32Array;
+  /** Per kept community: point-kernel field radius (world units); sets the
+   * anchor merge scale for oversampled communities. */
+  readonly fieldRadii: Float32Array;
   /** Which kept communities to (re)plan; `null` plans all of them. */
   readonly replan: BitSet<number> | null;
 
@@ -256,87 +344,108 @@ export function planBubbleCorridors(plan: CorridorPlan): void {
     const storageStart = segmentStorageOffsets[ci]!;
     let segmentCount = 0;
 
-    if (memberCount >= 2 && memberCount <= PRIM_CAP) {
-      const coordAt = (member: number): readonly [number, number] => {
-        const slot = (pointOffset + member) * 4;
+    if (memberCount >= 2) {
+      const anchorCount = selectAnchors(
+        pointTexels,
+        pointOffset,
+        memberCount,
+        plan.fieldRadii[ci]!,
+      );
+
+      const coordAt = (anchor: number): readonly [number, number] => {
+        const slot = (pointOffset + anchorMembers[anchor]!) * 4;
         return [pointTexels[slot]!, pointTexels[slot + 1]!];
       };
+
       primInTree.clear();
-      primDist.fill(Number.POSITIVE_INFINITY, 0, memberCount);
-      primParent.fill(-1, 0, memberCount);
+      primDist.fill(Number.POSITIVE_INFINITY, 0, anchorCount);
+      primParent.fill(-1, 0, anchorCount);
       primDist[0] = 0;
-      for (let step = 0; step < memberCount; step++) {
+
+      for (let step = 0; step < anchorCount; step++) {
         let next = -1;
         let nextDist = Number.POSITIVE_INFINITY;
-        for (let member = 0; member < memberCount; member++) {
-          if (!primInTree.has(member) && primDist[member]! < nextDist) {
-            nextDist = primDist[member]!;
-            next = member;
+
+        for (let anchor = 0; anchor < anchorCount; anchor++) {
+          if (!primInTree.has(anchor) && primDist[anchor]! < nextDist) {
+            nextDist = primDist[anchor]!;
+            next = anchor;
           }
         }
+
         if (next < 0) {
           break;
         }
+
         primInTree.add(next);
+
         const [nextX, nextY] = coordAt(next);
-        for (let member = 0; member < memberCount; member++) {
-          if (primInTree.has(member)) {
+        for (let anchor = 0; anchor < anchorCount; anchor++) {
+          if (primInTree.has(anchor)) {
             continue;
           }
-          const [memberX, memberY] = coordAt(member);
-          const dx = memberX - nextX;
-          const dy = memberY - nextY;
+
+          const [anchorX, anchorY] = coordAt(anchor);
+          const dx = anchorX - nextX;
+          const dy = anchorY - nextY;
           const distSq = dx * dx + dy * dy;
-          if (distSq < primDist[member]!) {
-            primDist[member] = distSq;
-            primParent[member] = next;
+
+          if (distSq < primDist[anchor]!) {
+            primDist[anchor] = distSq;
+            primParent[anchor] = next;
           }
         }
       }
 
       // Obstacle pass per MST edge: clear edges use full radius; reroutes use
-      // two full segments; blocked edges narrow. Capacity is 2 · (memberCount - 1):
+      // two full segments; blocked edges narrow. Capacity is 2 · (anchorCount - 1):
       // every edge emits at most two segments.
-      const emit = (memberA: number, memberB: number, radius: number): void => {
+      const emit = (anchorA: number, anchorB: number, radius: number): void => {
         const storage = storageStart + segmentCount;
-        segmentSlots[storage * 2] = pointOffset + memberA;
-        segmentSlots[storage * 2 + 1] = pointOffset + memberB;
+        segmentSlots[storage * 2] = pointOffset + anchorMembers[anchorA]!;
+        segmentSlots[storage * 2 + 1] = pointOffset + anchorMembers[anchorB]!;
         segmentRadius[storage] = radius;
         segmentCount += 1;
       };
       const clearance = CORRIDOR_FIELD_RADIUS + CORRIDOR_CLEARANCE_PAD;
 
-      for (let member = 1; member < memberCount; member++) {
-        const parent = primParent[member]!;
+      for (let anchor = 1; anchor < anchorCount; anchor++) {
+        const parent = primParent[anchor]!;
         if (parent < 0) {
-          continue; // Unreachable member (coincident degenerate); skip.
+          continue; // Unreachable anchor (coincident degenerate); skip.
         }
+
         const [ax, ay] = coordAt(parent);
-        const [bx, by] = coordAt(member);
+        const [bx, by] = coordAt(anchor);
+
         const directLen = Math.hypot(bx - ax, by - ay);
         if (
           directLen < 1e-3 ||
           grid.segmentClear(ax, ay, bx, by, communityId, clearance)
         ) {
-          emit(parent, member, CORRIDOR_FIELD_RADIUS);
+          emit(parent, anchor, CORRIDOR_FIELD_RADIUS);
           continue;
         }
-        // Blocked: cheapest clear one-hop detour via another member.
+
+        // Blocked: cheapest clear one-hop detour via another anchor.
         let bestVia = -1;
         let bestDetour = Number.POSITIVE_INFINITY;
-        for (let via = 0; via < memberCount; via++) {
-          if (via === parent || via === member) {
+        for (let via = 0; via < anchorCount; via++) {
+          if (via === parent || via === anchor) {
             continue;
           }
+
           const [viaX, viaY] = coordAt(via);
           const detour =
             Math.hypot(viaX - ax, viaY - ay) + Math.hypot(bx - viaX, by - viaY);
+
           if (
             detour >= bestDetour ||
             detour > directLen * CORRIDOR_DETOUR_CAP
           ) {
             continue;
           }
+
           if (
             grid.segmentClear(ax, ay, viaX, viaY, communityId, clearance) &&
             grid.segmentClear(viaX, viaY, bx, by, communityId, clearance)
@@ -345,14 +454,15 @@ export function planBubbleCorridors(plan: CorridorPlan): void {
             bestVia = via;
           }
         }
+
         if (bestVia >= 0) {
           emit(parent, bestVia, CORRIDOR_FIELD_RADIUS);
-          emit(bestVia, member, CORRIDOR_FIELD_RADIUS);
+          emit(bestVia, anchor, CORRIDOR_FIELD_RADIUS);
         } else {
           // No clear detour: emit the direct segment narrowed. It can still
           // cross foreign nodes; the header explains why that beats
           // disconnecting the hull.
-          emit(parent, member, CORRIDOR_FIELD_RADIUS * CORRIDOR_NARROW_FACTOR);
+          emit(parent, anchor, CORRIDOR_FIELD_RADIUS * CORRIDOR_NARROW_FACTOR);
         }
       }
     }
@@ -381,15 +491,18 @@ export function evaluateBubbleField(
   let field = 0;
   for (const [pointX, pointY] of points) {
     const norm = Math.hypot(px - pointX, py - pointY) / fieldRadius;
+
     if (norm < 1) {
       const falloff = 1 - norm * norm;
       field += falloff * falloff;
     }
   }
+
   for (const segment of segments) {
     if (segment.radius <= 0) {
       continue;
     }
+
     const norm =
       distanceToSegment(
         px,
@@ -399,10 +512,12 @@ export function evaluateBubbleField(
         segment.bx,
         segment.by,
       ) / segment.radius;
+
     if (norm < 1) {
       const falloff = 1 - norm * norm;
       field += falloff * falloff;
     }
   }
+
   return field;
 }

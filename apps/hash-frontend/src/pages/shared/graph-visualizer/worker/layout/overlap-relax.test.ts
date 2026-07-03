@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   countOverlaps,
   overlapRelaxPass,
+  OverlapSweep,
   relaxOverlaps,
 } from "./overlap-relax";
 
@@ -49,7 +50,7 @@ describe("overlapRelaxPass", () => {
     const beforeX = Float32Array.from(x);
     const beforeY = Float32Array.from(y);
 
-    const move = overlapRelaxPass({
+    const { maxMove, overlapsFound } = overlapRelaxPass({
       x,
       y,
       radii,
@@ -58,9 +59,49 @@ describe("overlapRelaxPass", () => {
       strength: 0.5,
     });
 
-    expect(move).toBe(0);
+    expect(maxMove).toBe(0);
+    expect(overlapsFound).toBe(0);
     expect([...x]).toEqual([...beforeX]);
     expect([...y]).toEqual([...beforeY]);
+  });
+
+  it("produces bitwise-identical results when run in budget slices", () => {
+    const oneShot = grid(8, 4, 5);
+    const sliced = grid(8, 4, 5);
+
+    const oneShotResult = overlapRelaxPass({
+      ...oneShot,
+      padding: 2,
+      strength: 0.7,
+    });
+
+    const sweep = new OverlapSweep();
+    sweep.reset({ ...sliced, padding: 2, strength: 0.7 });
+    sweep.buildGrid();
+    let steps = 0;
+    while (!sweep.run(7)) {
+      steps += 1;
+    }
+
+    expect(steps).toBeGreaterThan(2);
+    expect(sweep.result).toEqual(oneShotResult);
+    expect([...sliced.x]).toEqual([...oneShot.x]);
+    expect([...sliced.y]).toEqual([...oneShot.y]);
+  });
+
+  it("reports the pass's overlap count (counting pass at strength 0)", () => {
+    const { x, y, radii, count } = grid(4, 4, 5);
+    const strict = countOverlaps({ x, y, radii, count, padding: 0 });
+    const viaPass = overlapRelaxPass({
+      x,
+      y,
+      radii,
+      count,
+      padding: 0,
+      strength: 0,
+    });
+    expect(viaPass.overlapsFound).toBe(strict);
+    expect(viaPass.maxMove).toBe(0);
   });
 
   it("separates exactly-coincident nodes deterministically", () => {

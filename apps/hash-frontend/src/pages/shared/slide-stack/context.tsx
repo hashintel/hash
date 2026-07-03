@@ -45,8 +45,8 @@ export const SlideOcclusionContext = createContext<SlideOcclusion>({
 /**
  * Whether this subtree is visually occluded by the slide stack: covered by a
  * higher slide when inside one, or behind any open slide when on the page.
- * Used to idle expensive surfaces (the graph visualizer's simulation) the
- * user cannot currently see.
+ * Lets expensive surfaces (a graph simulation, for example) idle while the
+ * user cannot see them.
  */
 export const useSlideStackOcclusion = (): boolean => {
   const { hasOpenSlides } = useSlideStack();

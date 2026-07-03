@@ -254,6 +254,34 @@ export interface RenderEdgeArrow extends Position {
 }
 
 /**
+ * Packed per-link endpoint arrowheads for the flat tier, one record per
+ * rendered edge across parallel buffers (index `i` addresses one arrow).
+ *
+ * The flat tier emits one arrow per edge — 22k+ on large graphs, every
+ * positions frame — so the object form ({@link RenderEdgeArrow}) is emitted
+ * only by the hierarchical tier (a few hundred lane marks): structured-clone
+ * of tens of thousands of small objects dominated the worker's frame cost
+ * (measured 38.5s of a 53s settle on a 20k graph). These buffers transfer
+ * instead, and the render side feeds them to the GPU as binary attributes;
+ * chord-based fade happens in the shader (zoom is a uniform), never per
+ * arrow on the CPU. Backing `ArrayBuffer`s are transferred, so a frame
+ * carrying them may be consumed only once.
+ */
+export interface RenderEndpointArrowBuffers {
+  /** 2 floats per arrow: world x, y. */
+  readonly positions: Float32Array;
+  /** 1 float per arrow: world-space angle (radians) in link flow direction. */
+  readonly angles: Float32Array;
+  /** 1 float per arrow: world/common size (from the lane width). */
+  readonly sizes: Float32Array;
+  /** 1 float per arrow: world-space visible chord, for screen-space fade. */
+  readonly chords: Float32Array;
+  /** 4 bytes per arrow: `r, g, b, a` (unsigned, 0..255). */
+  readonly colors: Uint8Array;
+  readonly count: number;
+}
+
+/**
  * High-frequency position update, valid only against the current
  * {@link StructureFrame}. Sent on every tick while the macro layout is
  * unsettled, then it stops. Cluster geometry is bounded by the render budget,
@@ -269,8 +297,10 @@ export interface PositionsFrame {
   readonly beziers: RenderBezierBuffers;
   /** Top connections by count, labelled at their midpoints. */
   readonly edgeLabels: readonly RenderEdgeLabel[];
-  /** Direction marks for directed aggregate highway lanes. */
+  /** Direction marks for directed aggregate highway lanes (hierarchical tier). */
   readonly edgeArrows: readonly RenderEdgeArrow[];
+  /** Packed per-edge endpoint arrows (flat tier; see the type's rationale). */
+  readonly flatArrows?: RenderEndpointArrowBuffers;
   /** Per open entity-mode leaf, fan-out feeder endpoints (positional). */
   readonly entityFanOut: readonly RenderEntityFanOut[];
 }

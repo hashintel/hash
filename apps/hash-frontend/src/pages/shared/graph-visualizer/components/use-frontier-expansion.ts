@@ -3,7 +3,7 @@
  *
  * Ownership is split in two:
  *
- * - {@link useOwnedFrontierStore} runs where the entity QUERY lives (the
+ * - {@link useOwnedFrontierStore} runs where the entity query lives (the
  *   entities page, an entity slide, the dev harness): it creates the store,
  *   resets it when the query identity changes, and deactivates it on
  *   unmount. Owning it above the visualizer is what lets expansions survive
@@ -27,8 +27,8 @@ import type { EntityId } from "@blockprotocol/type-system";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 
 /**
- * Create and own a {@link FrontierExpansionStore} scoped to `resetKey` (the
- * identity of the entity set expansions extend — a filter change or an
+ * Create and own a {@link FrontierExpansionStore} scoped to `resetKey`, the
+ * identity of the entity set expansions extend (a filter change or an
  * explicit "clear additions" flips it). A key change swaps in a fresh store,
  * deactivating the orphan so its in-flight expansions stop; every local
  * mirror of the old generation resets with it.

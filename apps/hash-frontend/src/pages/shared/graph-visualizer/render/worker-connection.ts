@@ -36,6 +36,7 @@ function workerDebugLogsEnabled(): boolean {
   if (typeof window === "undefined") {
     return false;
   }
+
   return window.localStorage.getItem(WORKER_DEBUG_LOGS_KEY) === "1";
 }
 
@@ -118,17 +119,20 @@ export interface WorkerHandle {
     typeSchemas: readonly TypeSchemaEntry[],
     propertySchemas: readonly PropertySchemaEntry[],
   ): void;
+
   /**
    * Apply a new config live: the worker keeps its ingested state and
    * re-lays out under the new tuning (no worker recreation, camera
    * untouched). No-op when `config` is the reference already applied.
    */
   updateConfig(config: VizConfig): void;
+
   /**
    * Freeze or resume the worker's layout simulation. Paused, the worker
    * stops ticking (and therefore stops emitting positions frames) but keeps
-   * all state; layouts resume from the same positions. Used to idle
-   * visualizers the user cannot see (covered by a slide, hidden tab).
+   * all state; layouts resume from the same positions. Send `true` while the
+   * visualizer is not visible (covered by a slide, hidden tab) so background
+   * instances cost no CPU.
    */
   setSimulationPaused(paused: boolean): void;
 }
@@ -196,12 +200,14 @@ export class WorkerConnection implements WorkerHandle {
     this.#worker.onmessage = ({ data }: MessageEvent<WorkerToMainMessage>) =>
       this.#handleMessage(data);
     this.#worker.onerror = (event) => this.#onError(event.message);
+
     const init: MainToWorkerMessage = {
       type: "INIT",
-      config: { ...config, debug: config.debug ?? workerDebugLogsEnabled() },
+      config: { ...config, debug: config.debug || workerDebugLogsEnabled() },
       typeSchemas: [],
       propertySchemas: [],
     };
+
     this.#worker.postMessage(init);
   }
 
@@ -399,6 +405,7 @@ export class WorkerConnection implements WorkerHandle {
       type: "SET_SIMULATION_PAUSED",
       paused,
     };
+
     this.#worker.postMessage(message);
   }
 
@@ -453,7 +460,7 @@ export class WorkerConnection implements WorkerHandle {
 
     const message: MainToWorkerMessage = {
       type: "UPDATE_CONFIG",
-      config: { ...config, debug: config.debug ?? workerDebugLogsEnabled() },
+      config: { ...config, debug: config.debug || workerDebugLogsEnabled() },
     };
     this.#worker.postMessage(message);
   }

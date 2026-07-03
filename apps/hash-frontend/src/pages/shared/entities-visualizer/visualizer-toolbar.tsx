@@ -17,19 +17,30 @@ interface VisualizerToolbarProps {
   readonly availableEntityTypes: AvailableType[];
   readonly availableTypesLoading: boolean;
   readonly filterState: EntitiesFilterState;
-  /** Entities OR-ed into the set by graph exploration; shown as a dismissible pill. */
+  /**
+   * Entities graph exploration OR-ed into the set beyond the query's own
+   * results; shown as a dismissible pill.
+   */
   readonly frontierAdditionsCount: number;
   readonly internalWebs: InternalWeb[];
   readonly isTypePinned: boolean;
-  /** Loaded query roots, for the "m of n entities" count. Null while no page has landed. */
+  /**
+   * Loaded entities in the displayed set (query roots plus graph additions),
+   * for the "m of n entities" count. Null while no page has landed.
+   */
   readonly loadedResultCount: number | null;
   readonly onBulkActionCompleted: () => void;
   readonly onClearFrontierAdditions: () => void;
+  /** Download the current filter configuration (filters plus graph additions). */
+  readonly onExportFilters: () => void;
+  /** Restore a configuration from a picked file's text. */
+  readonly onImportFilters: (fileText: string) => void;
   readonly propertyFilterData: FilterMetadataForProperty[];
   /** When non-empty, the filter ribbon is replaced by bulk actions for the selection. */
   readonly selectedEntities: HashEntity[];
   readonly setFilterState: Dispatch<SetStateAction<EntitiesFilterState>>;
   readonly setView: (view: VisualizerView) => void;
+  /** Size of the whole displayed set: the query's total plus graph additions. */
   readonly totalResultCount: number | null;
   readonly totalResultCountLoading: boolean;
   readonly view: VisualizerView;
@@ -52,6 +63,8 @@ export const VisualizerToolbar: React.FC<VisualizerToolbarProps> = memo(
     loadedResultCount,
     onBulkActionCompleted,
     onClearFrontierAdditions,
+    onExportFilters,
+    onImportFilters,
     propertyFilterData,
     selectedEntities,
     setFilterState,
@@ -78,6 +91,8 @@ export const VisualizerToolbar: React.FC<VisualizerToolbarProps> = memo(
             internalWebs={internalWebs}
             isTypePinned={isTypePinned}
             onClearFrontierAdditions={onClearFrontierAdditions}
+            onExportFilters={onExportFilters}
+            onImportFilters={onImportFilters}
             setFilterState={setFilterState}
           />
         )

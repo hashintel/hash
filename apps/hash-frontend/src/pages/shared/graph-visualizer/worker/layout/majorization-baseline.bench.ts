@@ -148,17 +148,15 @@ function drive(layout: LayoutSimulation): DriveResult {
   let worstTickMs = 0;
   const spreads: number[] = [];
   const wallStart = performance.now();
+  // tick() returns publish-happened, not liveness; isSettled ends the loop.
   for (let step = 0; step < 2_000_000 && !layout.isSettled; step++) {
     const start = performance.now();
-    const moved = layout.tick(1);
+    layout.tick(1);
     const tickMs = performance.now() - start;
     if (tickMs > worstTickMs) {
       worstTickMs = tickMs;
     }
     spreads.push(rmsSpread(layout));
-    if (!moved) {
-      break;
-    }
   }
   return {
     wallMs: performance.now() - wallStart,
