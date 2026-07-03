@@ -14,16 +14,59 @@ import {
 } from "monaco-editor/esm/vs/language/typescript/monaco.contribution.js";
 
 import type { PlaygroundDimension } from "./physical-layout";
-
-let environmentPatched = false;
+import type { Monaco } from "@monaco-editor/react";
 
 /**
- * Must run after `MonacoProvider`'s init (which assigns `MonacoEnvironment`)
- * and before the first `typescript` model is created — callers guarantee
+ * The TS mode's feature flags. The product's editors are `typescript`
+ * models backed by the SDCPN LSP — Monaco's built-in TS service must never
+ * touch them, or it adds bogus "Cannot find name 'TransitionKernel'"
+ * diagnostics on top of the LSP's. So: everything OFF at module load, ON
+ * only while the playground is mounted.
+ */
+const TS_MODE_OFF: Record<string, boolean> = {
+  completionItems: false,
+  hovers: false,
+  documentSymbols: false,
+  definitions: false,
+  references: false,
+  documentHighlights: false,
+  rename: false,
+  diagnostics: false,
+  documentRangeFormattingEdits: false,
+  signatureHelp: false,
+  onTypeFormattingEdits: false,
+  codeActions: false,
+  inlayHints: false,
+};
+
+const TS_MODE_PLAYGROUND: Record<string, boolean> = {
+  ...TS_MODE_OFF,
+  completionItems: true,
+  hovers: true,
+  diagnostics: true,
+  signatureHelp: true,
+};
+
+// Importing the contribution above registers the TS mode for every
+// `typescript` model in this Monaco instance. Silence it immediately; the
+// playground re-enables it for the duration of its mount.
+typescriptDefaults.setModeConfiguration(TS_MODE_OFF);
+
+let environmentPatched = false;
+let playgroundActive = false;
+
+/**
+ * Enables the TS language service for the playground's lifetime. Must run
+ * after `MonacoProvider`'s init (which assigns `MonacoEnvironment`) and
+ * before the playground's `typescript` model is created — callers guarantee
  * this by resolving `MonacoContext` first and calling this before rendering
- * the editor.
+ * the editor. Pair with {@link disableTypescriptLanguageService} on unmount.
  */
 export function enableTypescriptLanguageService(): void {
+  if (!playgroundActive) {
+    playgroundActive = true;
+    typescriptDefaults.setModeConfiguration(TS_MODE_PLAYGROUND);
+  }
   if (environmentPatched) {
     return;
   }
@@ -61,6 +104,30 @@ export function enableTypescriptLanguageService(): void {
     allowNonTsExtensions: true,
   });
   typescriptDefaults.setEagerModelSync(true);
+}
+
+/** Minimal structural view of `monaco.editor` (oxlint cannot resolve the
+ * `Monaco` type through the esm editor.api path, tsc can). */
+type MonacoEditorApi = {
+  getModels(): unknown[];
+  setModelMarkers(model: unknown, owner: string, markers: never[]): void;
+};
+
+/**
+ * Turns the built-in TS service back off (playground unmount) and clears any
+ * markers it produced, so product editors — whose diagnostics come from the
+ * SDCPN LSP — are unaffected for the rest of the session.
+ */
+export function disableTypescriptLanguageService(monaco: Monaco): void {
+  if (!playgroundActive) {
+    return;
+  }
+  playgroundActive = false;
+  typescriptDefaults.setModeConfiguration(TS_MODE_OFF);
+  const editorApi = (monaco as unknown as { editor: MonacoEditorApi }).editor;
+  for (const model of editorApi.getModels()) {
+    editorApi.setModelMarkers(model, "typescript", []);
+  }
 }
 
 const IDENTIFIER_RE = /^[A-Za-z_$][A-Za-z0-9_$]*$/;

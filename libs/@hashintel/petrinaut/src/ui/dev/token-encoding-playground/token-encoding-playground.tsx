@@ -9,6 +9,7 @@ import { MonacoContext } from "../../monaco/context";
 import { DimensionEditor } from "./dimension-editor";
 import { computePlaygroundTokenLayout, encodeToken } from "./physical-layout";
 import {
+  disableTypescriptLanguageService,
   enableTypescriptLanguageService,
   generateTokenDefs,
   setPlaygroundTokenDefs,
@@ -133,11 +134,19 @@ const PlaygroundEditor: React.FC<{
 }> = ({ code, onChange, defs }) => {
   // Suspends until MonacoProvider's init has run — required so the worker
   // environment patch below lands after the provider's assignment.
-  use(use(MonacoContext));
+  const { monaco } = use(use(MonacoContext));
   // Both calls are idempotent and MUST run before the editor's `typescript`
   // model is created below (worker routing + extra libs).
   enableTypescriptLanguageService();
   setPlaygroundTokenDefs(defs);
+
+  // The built-in TS service is playground-scoped: it must not shadow the
+  // SDCPN LSP in the product's editors, so re-enable after StrictMode
+  // remounts and switch it off (clearing its markers) on unmount.
+  useEffect(() => {
+    enableTypescriptLanguageService();
+    return () => disableTypescriptLanguageService(monaco);
+  }, [monaco]);
 
   return (
     <CodeEditor
