@@ -6703,6 +6703,11 @@ __metadata:
     vitest: "npm:4.1.8"
     vscode-languageserver-types: "npm:3.17.5"
     zod: "npm:4.4.3"
+  peerDependencies:
+    typescript: ">=5.5"
+  peerDependenciesMeta:
+    typescript:
+      optional: true
   languageName: unknown
   linkType: soft
 
