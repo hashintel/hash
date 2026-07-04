@@ -7,6 +7,7 @@ import {
   type EngineFrameSnapshot,
 } from "../frames/internal-frame";
 import { executeTransitions as executeEngineTransitions } from "./execute-transitions";
+import { StringPool } from "./string-pool";
 import { computeTokenSlotLayout } from "./token-layout";
 import {
   decodePlaceTokens,
@@ -180,6 +181,7 @@ function makeSimulation({
     maxTime: null,
     currentTime: 0,
     rngState: 42,
+    stringPool: new StringPool(),
     frameLayout,
     frames: [],
     currentFrameNumber: 0,

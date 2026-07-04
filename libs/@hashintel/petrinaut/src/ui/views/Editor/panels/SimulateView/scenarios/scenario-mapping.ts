@@ -30,8 +30,8 @@ function getPlaceElements(
 
 /**
  * Converts persisted scenario rows into spreadsheet cell values: uuid columns
- * parse (or deterministically convert) to bigints; other columns pass
- * through.
+ * parse (or deterministically convert) to bigints; string columns pass
+ * through literally; other columns pass through.
  */
 export function scenarioRowsToSpreadsheetData(
   rows: ScenarioTokenRow[],
@@ -42,8 +42,12 @@ export function scenarioRowsToSpreadsheetData(
       if (elements?.[columnIndex]?.type === "uuid") {
         return toUuid(cell);
       }
-      // Non-uuid columns are numbers/booleans at rest; coerce any stray
-      // strings so the spreadsheet never sees them.
+      // String columns are literal text both at rest and in the spreadsheet.
+      if (elements?.[columnIndex]?.type === "string") {
+        return typeof cell === "string" ? cell : String(cell);
+      }
+      // Other non-uuid columns are numbers/booleans at rest; coerce any
+      // stray strings so the spreadsheet never sees them.
       if (typeof cell === "string") {
         return elements?.[columnIndex]?.type === "boolean"
           ? cell.trim().toLowerCase() === "true"

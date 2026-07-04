@@ -89,6 +89,7 @@ export function computeTransitionEffect(
           tokenLayout,
           frame.tokenViews,
           byteOffset + tokenIndex * strideBytes,
+          run.simulation.stringPool,
         ),
       );
     }
@@ -98,9 +99,13 @@ export function computeTransitionEffect(
       lambdaResult = transition.lambdaFn(tokenValues);
     } catch (error) {
       throw new SDCPNItemError(
-        `Error while executing lambda function for transition \`${transition.name}\`:\n\n${
-          (error as Error).message
-        }\n\nInput:\n${JSON.stringify(tokenValues, null, 2)}`,
+        `Error while executing lambda function for transition \`${
+          transition.name
+        }\`:\n\n${(error as Error).message}\n\nInput:\n${JSON.stringify(
+          tokenValues,
+          null,
+          2,
+        )}`,
         transition.id,
       );
     }
@@ -121,9 +126,13 @@ export function computeTransitionEffect(
       kernelOutput = transition.transitionKernelFn(tokenValues);
     } catch (error) {
       throw new SDCPNItemError(
-        `Error while executing transition kernel for transition \`${transition.name}\`:\n\n${
-          (error as Error).message
-        }\n\nInput:\n${JSON.stringify(tokenValues, null, 2)}`,
+        `Error while executing transition kernel for transition \`${
+          transition.name
+        }\`:\n\n${(error as Error).message}\n\nInput:\n${JSON.stringify(
+          tokenValues,
+          null,
+          2,
+        )}`,
         transition.id,
       );
     }
@@ -159,6 +168,7 @@ export function computeTransitionEffect(
           rngState: currentRngState,
           transitionId: transition.id,
           placeName: outputPlace.placeName,
+          stringPool: run.simulation.stringPool,
         });
         currentRngState = nextRngState;
         if (block.byteLength !== strideBytes) {

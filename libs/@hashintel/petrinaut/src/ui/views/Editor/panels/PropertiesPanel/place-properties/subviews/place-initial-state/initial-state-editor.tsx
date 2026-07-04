@@ -18,6 +18,7 @@ const getDefaultValue = (column: SpreadsheetColumn): SpreadsheetCellValue =>
 /**
  * Converts one stored marking value to a spreadsheet cell value. uuid columns
  * may hold at-rest strings — parse them to bigints for the spreadsheet.
+ * String columns keep their text verbatim.
  */
 const toCellValue = (
   column: SpreadsheetColumn,
@@ -28,6 +29,9 @@ const toCellValue = (
   }
   if (column.type === "uuid") {
     return toUuid(raw);
+  }
+  if (column.type === "string") {
+    return typeof raw === "string" ? raw : String(raw);
   }
   return typeof raw === "string" ? Number.parseFloat(raw) || 0 : raw;
 };

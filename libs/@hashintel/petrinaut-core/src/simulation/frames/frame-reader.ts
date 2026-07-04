@@ -8,12 +8,14 @@ import {
 
 import type { SDCPN, TokenRecord } from "../../types/sdcpn";
 import type { SimulationFrameReader, SimulationFrameState } from "../api";
+import type { StringPoolReader } from "../engine/token-layout";
 
 function createSimulationFrameReader(
   layout: EngineFrameLayout,
   frame: EngineFrame,
   number: number,
   time: number,
+  stringPool: StringPoolReader | undefined,
 ): SimulationFrameReader {
   const frameView = readEngineFrame(layout, frame);
 
@@ -45,6 +47,7 @@ function createSimulationFrameReader(
             tokenLayout,
             frameView.tokenViews,
             byteOffset + tokenIndex * strideBytes,
+            stringPool,
           ),
         );
       }
@@ -67,11 +70,18 @@ function createSimulationFrameReader(
   };
 }
 
+/**
+ * Compiles the SDCPN's frame layout once and returns a per-frame reader
+ * factory. `stringPool` is required to decode `string` token elements (the
+ * frame stores pool references, not the strings) — the frame store passes an
+ * accessor over its accumulated main-thread pool copy.
+ */
 export function compileSimulationFrameReader(
   sdcpn: Pick<SDCPN, "places" | "transitions" | "types">,
+  stringPool?: StringPoolReader,
 ): (frame: EngineFrame, number: number, time: number) => SimulationFrameReader {
   const layout = createEngineFrameLayout(sdcpn);
 
   return (frame, number, time) =>
-    createSimulationFrameReader(layout, frame, number, time);
+    createSimulationFrameReader(layout, frame, number, time, stringPool);
 }

@@ -619,6 +619,66 @@ describe("compileScenario", () => {
     });
   });
 
+  describe("string elements", () => {
+    const stringType: Color = {
+      id: "type1",
+      name: "Labelled entity",
+      iconSlug: "circle",
+      displayColor: "#000000",
+      elements: [
+        { elementId: "label", name: "label", type: "string" },
+        { elementId: "x", name: "x", type: "real" },
+      ],
+    };
+
+    const compileRows = (rows: (number | boolean | string)[][]) =>
+      compileScenario(
+        scenario({
+          initialState: { type: "per_place", content: { place1: rows } },
+        }),
+        [],
+        [place("place1", "Place 1", "type1")],
+        [stringType],
+      );
+
+    it("passes string values through literally (no trim, no uuid coercion)", () => {
+      const result = compileRows([
+        ["alpha", 1],
+        ["  spaced text  ", 2],
+        ["", 3],
+      ]);
+
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.result.initialState.place1).toEqual([
+          { label: "alpha", x: 1 },
+          { label: "  spaced text  ", x: 2 },
+          { label: "", x: 3 },
+        ]);
+        // JSON-serializable at rest.
+        expect(() => JSON.stringify(result.result.initialState)).not.toThrow();
+      }
+    });
+
+    it('defaults missing string columns to "" and stringifies numbers', () => {
+      const missing = compileRows([[]]);
+      expect(missing.ok).toBe(true);
+      if (missing.ok) {
+        expect(missing.result.initialState.place1).toEqual([
+          { label: "", x: 0 },
+        ]);
+      }
+
+      const numeric = compileRows([[42, 1]]);
+      expect(numeric.ok).toBe(true);
+      if (numeric.ok) {
+        expect(numeric.result.initialState.place1).toEqual([
+          { label: "42", x: 1 },
+        ]);
+      }
+    });
+  });
+
   describe("evaluation order", () => {
     it("initial state sees overridden parameter values", () => {
       const result = compileScenario(

@@ -20,6 +20,7 @@ import {
 
 import type { Color, ID, TokenRecord, Transition } from "../../types/sdcpn";
 import type { SimulationTransitionState } from "../frames/transition-state";
+import type { StringPool } from "./string-pool";
 
 export type ColorElement = Color["elements"][number];
 
@@ -44,11 +45,12 @@ export type TestFrame = EngineFrame & { layout: EngineFrameLayout };
 export function buildTokenBytes(
   layout: TokenSlotLayout,
   tokens: readonly Record<string, unknown>[],
+  stringPool?: StringPool,
 ): Uint8Array {
   const bytes = new Uint8Array(tokens.length * layout.strideBytes);
   for (const [tokenIndex, token] of tokens.entries()) {
     bytes.set(
-      encodeTokenToBytes(layout, token, "Test token"),
+      encodeTokenToBytes(layout, token, "Test token", stringPool),
       tokenIndex * layout.strideBytes,
     );
   }
@@ -59,6 +61,7 @@ export function buildTokenBytes(
 export function decodeTokenBlock(
   elements: readonly ColorElement[],
   block: Uint8Array,
+  stringPool?: StringPool,
 ): TokenRecord {
   const layout = computeTokenSlotLayout(elements);
   const views = createTokenRegionViews(
@@ -66,7 +69,7 @@ export function decodeTokenBlock(
     block.byteOffset,
     block.byteLength,
   );
-  return readTokenRecord(layout, views, 0);
+  return readTokenRecord(layout, views, 0, stringPool);
 }
 
 /** Decodes all of one place's tokens from a frame. */
@@ -117,9 +120,12 @@ const makeStubTransition = (id: ID): Transition => ({
 export function makeTestFrame({
   places,
   transitions = {},
+  stringPool,
 }: {
   places: Record<ID, TestPlaceSpec>;
   transitions?: Record<ID, SimulationTransitionState>;
+  /** Pool for colours with `string` elements — share it with the simulation. */
+  stringPool?: StringPool;
 }): TestFrame {
   const types: Color[] = [];
   const sdcpnPlaces = Object.entries(places).map(([placeId, spec]) => {
@@ -162,7 +168,7 @@ export function makeTestFrame({
     const count = spec.elements ? spec.tokens.length : spec.count;
     const bytes =
       spec.elements && tokenLayout
-        ? buildTokenBytes(tokenLayout, spec.tokens)
+        ? buildTokenBytes(tokenLayout, spec.tokens, stringPool)
         : new Uint8Array(0);
 
     snapshotPlaces[placeId] = { byteOffset, count, strideBytes };

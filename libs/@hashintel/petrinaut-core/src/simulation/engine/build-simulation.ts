@@ -22,6 +22,7 @@ import {
   flattenComponentInstancesForSimulation,
   getArcPlaceNameOverrideKey,
 } from "./flatten-component-instances";
+import { StringPool } from "./string-pool";
 import {
   computeTokenSlotLayout,
   createTokenRegionViews,
@@ -102,6 +103,7 @@ function packInitialPlaceMarking(
   place: SimulationInput["sdcpn"]["places"][0],
   sdcpn: SimulationInput["sdcpn"],
   value: SimulationInput["initialMarking"][string] | undefined,
+  stringPool: StringPool,
 ): PackedInitialPlaceMarking {
   const tokenLayout = getPlaceTokenLayout(place, sdcpn);
 
@@ -149,6 +151,7 @@ function packInitialPlaceMarking(
         tokenLayout,
         tokenRecord,
         `Initial marking token for place ${place.id}`,
+        stringPool,
       ),
       tokenIndex * tokenLayout.strideBytes,
     );
@@ -162,11 +165,13 @@ function createDifferentialEquationFn({
   tokenLayout,
   parameterValues,
   userFn,
+  stringPool,
 }: {
   placeId: string;
   tokenLayout: TokenSlotLayout;
   parameterValues: ParameterValues;
   userFn: UserDifferentialEquationFn;
+  stringPool: StringPool;
 }): DifferentialEquationFn {
   const { strideBytes } = tokenLayout;
   const realFields = tokenLayout.fields.filter(
@@ -177,9 +182,9 @@ function createDifferentialEquationFn({
   return (placeBytes, numberOfTokens) => {
     if (placeBytes.byteLength !== numberOfTokens * strideBytes) {
       throw new Error(
-        `Place ${placeId} has ${placeBytes.byteLength} token bytes in frame, expected ${
-          numberOfTokens * strideBytes
-        }`,
+        `Place ${placeId} has ${
+          placeBytes.byteLength
+        } token bytes in frame, expected ${numberOfTokens * strideBytes}`,
       );
     }
 
@@ -192,7 +197,12 @@ function createDifferentialEquationFn({
     const inputTokens: TokenRecord[] = [];
     for (let tokenIndex = 0; tokenIndex < numberOfTokens; tokenIndex++) {
       inputTokens.push(
-        readTokenRecord(tokenLayout, views, tokenIndex * strideBytes),
+        readTokenRecord(
+          tokenLayout,
+          views,
+          tokenIndex * strideBytes,
+          stringPool,
+        ),
       );
     }
 
@@ -482,6 +492,10 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
     }
   }
 
+  // Per-run string intern pool. Initial marking packing below interns string
+  // attribute values into it; the pool lives on the simulation instance.
+  const stringPool = new StringPool();
+
   const packedInitialMarking = new Map<string, PackedInitialPlaceMarking>();
   for (const place of sdcpn.places) {
     packedInitialMarking.set(
@@ -490,6 +504,7 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
         place,
         sdcpn,
         getInitialMarkingValue(initialMarking, place.id),
+        stringPool,
       ),
     );
   }
@@ -541,6 +556,7 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
           parameterValues:
             flattened.placeParameterValues.get(place.id) ?? parameterValues,
           userFn,
+          stringPool,
         }),
       );
     } catch (error) {
@@ -636,6 +652,7 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
     maxTime,
     currentTime: 0,
     rngState: seed,
+    stringPool,
     frameLayout,
     frames: [], // Will be populated with the initial frame
     currentFrameNumber: 0,

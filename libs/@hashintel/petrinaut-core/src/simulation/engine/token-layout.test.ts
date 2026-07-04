@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { StringPool } from "./string-pool";
 import {
   computeTokenSlotLayout,
   createTokenRegionViews,
@@ -302,6 +303,134 @@ describe("uuid u64x2 lanes", () => {
       x: 2,
       active: true,
     });
+  });
+});
+
+describe("string u64 pool references", () => {
+  const elements = [
+    element("active", "boolean"),
+    element("label", "string"),
+    element("x", "real"),
+  ];
+  const layout = computeTokenSlotLayout(elements);
+
+  it("lays out string fields as 8-byte, 8-aligned u64 slots", () => {
+    expect(
+      layout.fields.map((field) => [
+        field.element.name,
+        field.kind,
+        field.byteOffset,
+        field.byteSize,
+      ]),
+    ).toEqual([
+      ["label", "u64", 0, 8],
+      ["x", "f64", 8, 8],
+      ["active", "u8", 16, 1],
+    ]);
+    expect(layout.strideBytes).toBe(24);
+    // Real-field f64 offsets skip the string slot.
+    expect(layout.realFieldF64Offsets).toEqual([1]);
+  });
+
+  it("round-trips strings through the pool and stores only the pool id", () => {
+    const pool = new StringPool();
+    const bytes = encodeTokenToBytes(
+      layout,
+      { label: "alpha", x: 1.5, active: true },
+      "Test",
+      pool,
+    );
+
+    // The buffer holds the pool reference (id 1), 8 bytes little-endian.
+    const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+    expect(view.getBigUint64(0, true)).toBe(1n);
+    expect(pool.get(1)).toBe("alpha");
+
+    const views = createTokenRegionViews(
+      bytes.buffer,
+      bytes.byteOffset,
+      bytes.byteLength,
+    );
+    expect(readTokenRecord(layout, views, 0, pool)).toEqual({
+      label: "alpha",
+      x: 1.5,
+      active: true,
+    });
+  });
+
+  it("interns equal strings once — same bytes for the same value", () => {
+    const pool = new StringPool();
+    const first = encodeTokenToBytes(layout, { label: "same" }, "T", pool);
+    const second = encodeTokenToBytes(layout, { label: "same" }, "T", pool);
+
+    expect(first).toEqual(second);
+    expect(pool.size).toBe(2); // "" + "same"
+  });
+
+  it('defaults missing values to "" (id 0) and coerces non-strings', () => {
+    const pool = new StringPool();
+    const missing = encodeTokenToBytes(layout, { x: 1 }, "T", pool);
+    const missingViews = createTokenRegionViews(
+      missing.buffer,
+      missing.byteOffset,
+      missing.byteLength,
+    );
+    expect(readTokenRecord(layout, missingViews, 0, pool).label).toBe("");
+    // The empty string is pre-seeded: no new pool entry was created.
+    expect(pool.size).toBe(1);
+
+    const numeric = encodeTokenToBytes(layout, { label: 42 }, "T", pool);
+    const numericViews = createTokenRegionViews(
+      numeric.buffer,
+      numeric.byteOffset,
+      numeric.byteLength,
+    );
+    expect(readTokenRecord(layout, numericViews, 0, pool).label).toBe("42");
+  });
+
+  it("reads pre-encoded pool ids packed by element name at non-zero offsets", () => {
+    const pool = new StringPool();
+    const alpha = BigInt(pool.intern("alpha"));
+    const beta = BigInt(pool.intern("beta"));
+    const region = new Uint8Array(2 * layout.strideBytes);
+    region.set(encodeTokenValuesToBytes(layout, { label: alpha, x: 1 }), 0);
+    region.set(
+      encodeTokenValuesToBytes(layout, { label: beta, x: 2, active: 1 }),
+      layout.strideBytes,
+    );
+
+    const views = createTokenRegionViews(
+      region.buffer,
+      region.byteOffset,
+      region.byteLength,
+    );
+    expect(readTokenRecord(layout, views, 0, pool)).toEqual({
+      label: "alpha",
+      x: 1,
+      active: false,
+    });
+    expect(readTokenRecord(layout, views, layout.strideBytes, pool)).toEqual({
+      label: "beta",
+      x: 2,
+      active: true,
+    });
+  });
+
+  it("throws when string fields are read or encoded without a pool", () => {
+    const pool = new StringPool();
+    const bytes = encodeTokenToBytes(layout, { label: "alpha" }, "T", pool);
+    const views = createTokenRegionViews(
+      bytes.buffer,
+      bytes.byteOffset,
+      bytes.byteLength,
+    );
+
+    expect(() => readTokenRecord(layout, views, 0)).toThrow(
+      'layout contains string field "label" but no string pool was provided',
+    );
+    expect(() => encodeTokenToBytes(layout, { label: "alpha" }, "T")).toThrow(
+      'layout contains string field "label" but no string pool was provided',
+    );
   });
 });
 

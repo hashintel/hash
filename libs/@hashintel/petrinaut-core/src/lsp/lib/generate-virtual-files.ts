@@ -37,6 +37,9 @@ function toTsType(type: ColorElementType | "ratio"): string {
   if (type === "uuid") {
     return "bigint";
   }
+  if (type === "string") {
+    return "string";
+  }
   return "number";
 }
 
@@ -71,7 +74,8 @@ function toDynamicsDerivativeType(color: Color): string {
  * - `uuid` attributes are OPTIONAL (omitted values are auto-generated from
  *   the seeded simulation RNG) and also accept UUID strings and the
  *   `Uuid.generate()` / `Uuid.from(value)` sentinels.
- * - Other discrete attributes (`integer`, `boolean`) must be plain values.
+ * - Other discrete attributes (`integer`, `boolean`, `string`) must be plain
+ *   values (`string` never takes a Distribution or a sentinel).
  */
 function toKernelOutputTokenType(
   color: Color,
@@ -624,10 +628,10 @@ export function generateMetricSessionFiles(
         }
         tokensType = `Color_${sanitized}[]`;
       } else {
-        tokensType = "Record<string, number | boolean | bigint>[]";
+        tokensType = "Record<string, number | boolean | bigint | string>[]";
       }
     } else {
-      tokensType = "Record<string, number | boolean | bigint>[]";
+      tokensType = "Record<string, number | boolean | bigint | string>[]";
     }
     placeStateProperties.push(
       `  "${place.name}": { count: number; tokens: ${tokensType} };`,
@@ -637,7 +641,7 @@ export function generateMetricSessionFiles(
   const placesType =
     placeStateProperties.length > 0
       ? `{\n${placeStateProperties.join("\n")}\n}`
-      : "Record<string, { count: number; tokens: Record<string, number | boolean | bigint>[] }>";
+      : "Record<string, { count: number; tokens: Record<string, number | boolean | bigint | string>[] }>";
 
   // defs file (kept separate so updates only invalidate code on real changes)
   const defsPath = getItemFilePath("metric-session-defs", { sessionId });

@@ -135,7 +135,7 @@ const IDENTIFIER_RE = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
 /**
  * Generates the declarations the value editor is checked against — the
  * playground equivalent of the LSP virtual defs files. Mirrors the LSP's
- * type mapping: real/integer → number, boolean → boolean.
+ * type mapping: real/integer → number, boolean → boolean, string → string.
  */
 export function generateTokenDefs(
   dimensions: readonly PlaygroundDimension[],
@@ -146,7 +146,15 @@ export function generateTokenDefs(
       (dimension) =>
         // uuid accepts strings too — the encoder coerces via `toUuid`, so the
         // playground types match what it actually accepts.
-        `  ${dimension.name}: ${dimension.type === "boolean" ? "boolean" : dimension.type === "uuid" ? "bigint | string" : "number"};`,
+        `  ${dimension.name}: ${
+          dimension.type === "boolean"
+            ? "boolean"
+            : dimension.type === "uuid"
+              ? "bigint | string"
+              : dimension.type === "string"
+                ? "string"
+                : "number"
+        };`,
     );
 
   return [

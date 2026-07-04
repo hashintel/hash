@@ -278,6 +278,10 @@ const formatValue = (value: unknown): string => {
   return value === undefined ? "undefined" : JSON.stringify(value);
 };
 
+/** Pool reference stored in a `u64` (string) field — IDs are small integers. */
+const stringPoolId = (buffer: ArrayBuffer, field: TokenLayoutField): number =>
+  Number(new BigUint64Array(buffer, field.byteOffset, 1)[0] ?? 0n);
+
 const fieldHex = (buffer: ArrayBuffer, field: TokenLayoutField): string => {
   const bytes = new Uint8Array(buffer, field.byteOffset, field.byteSize);
   let hex = "";
@@ -427,13 +431,23 @@ export const TokenMemoryView: React.FC<TokenMemoryViewProps> = ({
               {hoveredGroup.field.byteSize} B
             </span>
             <span>{fieldHex(buffer, hoveredGroup.field)}</span>
-            <span className={roundTripStyle}>
-              input {formatValue(input[hoveredGroup.field.element.name])} →
-              stored{" "}
-              <b>{formatValue(stored[hoveredGroup.field.element.name])}</b> →
-              reads back{" "}
-              <b>{formatValue(decoded[hoveredGroup.field.element.name])}</b>
-            </span>
+            {hoveredGroup.field.kind === "u64" ? (
+              // String fields store a pool reference, not the text: the
+              // round-trip resolves through the simulation's string pool.
+              <span className={roundTripStyle}>
+                input {formatValue(input[hoveredGroup.field.element.name])} →
+                pool id {stringPoolId(buffer, hoveredGroup.field)} →{" "}
+                <b>{formatValue(decoded[hoveredGroup.field.element.name])}</b>
+              </span>
+            ) : (
+              <span className={roundTripStyle}>
+                input {formatValue(input[hoveredGroup.field.element.name])} →
+                stored{" "}
+                <b>{formatValue(stored[hoveredGroup.field.element.name])}</b> →
+                reads back{" "}
+                <b>{formatValue(decoded[hoveredGroup.field.element.name])}</b>
+              </span>
+            )}
           </>
         )}
       </div>
