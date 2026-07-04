@@ -6689,8 +6689,6 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@hashintel/petrinaut-core@workspace:libs/@hashintel/petrinaut-core"
   dependencies:
-    "@babel/standalone": "npm:7.28.5"
-    "@types/babel__standalone": "npm:7.1.9"
     "@types/node": "npm:22.18.13"
     "@typescript/native-preview": "npm:7.0.0-dev.20260511.1"
     elkjs: "npm:0.11.0"

@@ -34,6 +34,14 @@
       "types": "./dist/examples/index.d.d.ts",
       "import": "./dist/examples/index.js"
     },
+    "./hir": {
+      "types": "./dist/hir.d.d.ts",
+      "import": "./dist/hir.js"
+    },
+    "./hir-runtime": {
+      "types": "./dist/hir-runtime.d.d.ts",
+      "import": "./dist/hir-runtime.js"
+    },
     "./workers/lsp": {
       "types": "./dist/workers/lsp.d.d.ts",
       "import": "./dist/workers/lsp.js"
@@ -76,5 +84,13 @@
     "typescript": "5.9.3",
     "vite": "8.1.0",
     "vitest": "4.1.8"
+  },
+  "peerDependencies": {
+    "typescript": ">=5.5"
+  },
+  "peerDependenciesMeta": {
+    "typescript": {
+      "optional": true
+    }
   }
 }
