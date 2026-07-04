@@ -1848,7 +1848,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e75b2483e97a5a7da73ac68a05b629f9c53cff58d8ed1c77866079e18b00dba5"
 dependencies = [
  "digest 0.10.7",
- "spin 0.10.0",
+ "spin",
 ]
 
 [[package]]
@@ -2667,7 +2667,7 @@ dependencies = [
 
 [[package]]
 name = "error-stack"
-version = "0.7.1"
+version = "0.8.0"
 dependencies = [
  "ansi-to-html",
  "anyhow",
@@ -2684,7 +2684,7 @@ dependencies = [
  "rustc_version",
  "serde",
  "serde_core",
- "spin 0.12.1",
+ "spin",
  "supports-color",
  "supports-unicode",
  "thiserror 2.0.18",
@@ -9274,12 +9274,6 @@ name = "spin"
 version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d5fe4ccb98d9c292d56fec89a5e07da7fc4cf0dc11e156b41793132775d3e591"
-
-[[package]]
-name = "spin"
-version = "0.12.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bd5231412d905519dca6a5deb0327d407be68d6c941feec004533401d3a0a715"
 
 [[package]]
 name = "spki"

@@ -16,7 +16,7 @@
     "start": "next start",
     "start:healthcheck": "wait-on --timeout 1200000 http://localhost:3000",
     "start:test": "next start",
-    "start:test:healthcheck": "wait-on --timeout 600000 http://localhost:3000",
+    "start:test:healthcheck": "wait-on --timeout 1200000 http://localhost:3000",
     "test:unit": "vitest run"
   },
   "dependencies": {
@@ -80,7 +80,7 @@
     "buffer": "6.0.3",
     "clsx": "2.1.1",
     "date-fns": "4.1.0",
-    "dompurify": "3.4.0",
+    "dompurify": "3.4.11",
     "dotenv-flow": "3.3.0",
     "elkjs": "0.11.0",
     "emoji-mart": "5.6.0",
