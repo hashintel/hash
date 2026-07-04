@@ -27,7 +27,10 @@ import { LoadingState, ErrorState } from "./load-state";
 import { applyOutlierSelectionToStep } from "./outlier-selection";
 import { computePeriodDeltas } from "./period-trends";
 import { useProcurementBasis } from "./procurement-basis-context";
-import { scopeDwellStepToProduct } from "./product-dwell-scope";
+import {
+  dwellStepScopesOpenCarryOnProduct,
+  scopeDwellStepToProduct,
+} from "./product-dwell-scope";
 import {
   filterStepByDateRange,
   applyProcurementBasisToStep,
@@ -360,23 +363,40 @@ export const StepDetailPanel = ({
     () => products.find((product) => product.id === productId) ?? null,
     [products, productId],
   );
+  const isSiteContext = siteContext != null;
   useEffect(() => {
     setLoading(true);
     setError(null);
     fetchStepDetail(productId, stepId)
       .then((nextStep) => {
+        // Rebuild carry from the detail rows. Realized rows always count; open
+        // carry is scoped in when it's attributable here -- the site overview
+        // always shows it (matching the node's exit-typed split), and on a
+        // product view only for FG-specific steps (post-QA / destination).
+        // Timing (dwell durations) stays realized-only either way: open rows
+        // carry no completed duration.
+        const includeOpenCarry =
+          isSiteContext || dwellStepScopesOpenCarryOnProduct(nextStep.type);
         setStep(
-          productName
-            ? scopeDwellStepToProduct(nextStep, {
-                productMaterial: selectedProduct?.material,
-                productName,
-              })
-            : nextStep,
+          scopeDwellStepToProduct(
+            nextStep,
+            {
+              productMaterial: selectedProduct?.material,
+              productName,
+            },
+            { scopeToProduct: Boolean(productName), includeOpenCarry },
+          ),
         );
       })
       .catch((event) => setError(event.message))
       .finally(() => setLoading(false));
-  }, [productId, productName, selectedProduct?.material, stepId]);
+  }, [
+    productId,
+    productName,
+    selectedProduct?.material,
+    stepId,
+    isSiteContext,
+  ]);
   const filteredStep = useMemo(() => {
     if (!step) {
       return null;

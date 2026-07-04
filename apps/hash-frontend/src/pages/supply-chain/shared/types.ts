@@ -42,6 +42,7 @@ export type StepType =
 export interface CostData {
   unit_price: number | null;
   currency: string | null;
+  unit_price_source?: string | null;
 }
 
 /**
@@ -296,13 +297,30 @@ export interface GraphData {
   batch_timelines?: BatchTimelines;
 }
 
+export type RawGraphData = Omit<GraphData, "pipeline_summary"> & {
+  pipeline_summary?: Record<string, PipelineSummary>;
+};
+
 export interface MonthlyBucket {
   month: string;
   mean: number | null;
   median: number | null;
   n: number;
+  /**
+   * Carrying kg-days for cost. On product-scoped dwell steps/nodes this is the
+   * realized, finished-good-scoped total rebuilt from the detail rows. On site
+   * overview nodes it is stamped during deduplication to the exit-typed split
+   * this node type owns (see the split fields below + site-aggregation).
+   */
   total_kg_days?: number | null;
-  realized_kg_days?: number | null;
+  /**
+   * Exit-typed carrying kg-days split (dwell nodes on the site overview). The
+   * site aggregation attributes each bucket to the right node: `consumed` ->
+   * intermediate/raw dwell, `dispatched` + `open` -> post-QA for FG-intermediates.
+   */
+  consumed_kg_days?: number | null;
+  dispatched_kg_days?: number | null;
+  other_exit_kg_days?: number | null;
   open_kg_days?: number | null;
   actual_qty?: number | null;
   expected_qty?: number | null;
@@ -493,6 +511,13 @@ export interface StepDetail {
    * `detail_rows` on load.
    */
   value_col?: string | null;
+  /**
+   * Global data horizon (max posting date, `YYYY-MM-DD`) shipped on dwell steps.
+   * Lets the client accrue each open-carry row's kg-days across calendar months
+   * from `detail_rows` alone: the open interval is
+   * `[horizon - open_days + 1, horizon]`. Absent on non-dwell steps.
+   */
+  data_horizon?: string | null;
   /**
    * Client-derived secondary timing series. For procurement steps this carries
    * the inactive first/last receipt basis after deriving both from detail rows.

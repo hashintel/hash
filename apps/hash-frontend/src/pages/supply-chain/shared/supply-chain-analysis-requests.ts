@@ -60,15 +60,15 @@ export const fetchStepDetail = <StepDetail = unknown>(
 export const fetchSiteSummary = async <SiteSummary = unknown>(
   webId: WebId,
   siteId: string,
-): Promise<SiteSummary | null> => {
+): Promise<SiteSummary> => {
   try {
     return await fetchAnalysisArtifact<SiteSummary>({
       analysis: "siteSummary",
       args: { siteId },
       webId,
     });
-  } catch {
-    return null;
+  } catch (cause) {
+    throw new Error("Could not fetch site summary data", { cause });
   }
 };
 

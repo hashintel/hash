@@ -96,6 +96,20 @@ export function lowSampleBadges(
   return badges;
 }
 
+// Finished-good-specific steps whose base label is identical across products
+// and would make the table row ambiguous without the finished-good name appended.
+const PRODUCT_TITLED_TYPES: StepType[] = ["post_qa_ship", "qa_hold"];
+
+export function siteNodeDisplayLabel(node: SiteNode): string {
+  if (PRODUCT_TITLED_TYPES.includes(node.type) && node.products.length === 1) {
+    const name = node.products[0]?.name;
+    if (name) {
+      return `${node.label}: ${name}`;
+    }
+  }
+  return node.label;
+}
+
 export function subtitleForVendor(value: VendorOtifStats): string {
   const parts: string[] = [`${value.n_lines} lines`];
   if (value.n_late > 0 && value.mean_days_late_when_late != null) {
