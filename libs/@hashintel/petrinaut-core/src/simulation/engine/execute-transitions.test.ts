@@ -137,6 +137,7 @@ function makeCompiledTransitions({
           }),
           lambdaFn,
           transitionKernelFn,
+          buffer: null,
         },
       ];
     }),

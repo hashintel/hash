@@ -8,9 +8,15 @@ The simulation module is split into five boundaries:
 
 - `api.ts` defines the public Core contract. Consumers receive
   `SimulationFrameReader` and summary state, not engine storage objects.
-- `authoring/metric/`, `authoring/scenario/`, and `authoring/user-code/`
-  compile user-authored inputs. Shared same-realm hardening helpers live in
-  `authoring/sandbox.ts`.
+- `authoring/metric/` and `authoring/scenario/` compile metric/scenario
+  inputs (`new Function` with same-realm hardening from
+  `authoring/sandbox.ts`). Dynamics/lambda/kernel code is compiled solely
+  through the HIR pipeline (`src/hir/README.md`) into
+  `SimulationInput.hirArtifacts` — produced off-engine (LSP worker) and
+  instantiated dependency-free via `src/hir-runtime.ts`. Buffer-ABI programs
+  read/write the packed frame floats directly (`engine/buffer-transition.ts`);
+  object-convention programs are the per-item fallback for shapes the buffer
+  emitter cannot scalarize.
 - `engine/` builds SDCPN definitions into runnable state and advances internal
   `EngineFrame` state. `EngineFrame` is an `ArrayBuffer`; the
   SDCPN-specialized `EngineFrameLayout` lives on the `SimulationInstance`.

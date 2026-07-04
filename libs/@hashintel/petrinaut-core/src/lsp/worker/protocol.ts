@@ -135,6 +135,15 @@ type ClientRequest =
       id: number;
       method: "textDocument/signatureHelp";
       params: TextDocumentPositionParams;
+    }
+  | {
+      jsonrpc: "2.0";
+      id: number;
+      method: "sdcpn/compileHirArtifacts";
+      params: {
+        sdcpn: SDCPN;
+        extensions?: PetrinautExtensionSettings;
+      };
     };
 
 /** Any message from the main thread to the worker. */

@@ -261,6 +261,7 @@ export function createSimulation(
       seed: config.seed,
       dt: config.dt,
       maxTime: config.maxTime,
+      hirArtifacts: config.hirArtifacts,
       maxFramesAhead: config.backpressure?.maxFramesAhead,
       batchSize: config.backpressure?.batchSize,
     });

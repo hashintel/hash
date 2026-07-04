@@ -1,9 +1,24 @@
 import { describe, expect, it } from "vitest";
 
+import { compileHirArtifacts } from "../../hir";
 import { createMonteCarloUserDefinedMetric } from "./metrics";
-import { createMonteCarloSimulator } from "./monte-carlo-simulator";
+import { createMonteCarloSimulator as createMonteCarloSimulatorRaw } from "./monte-carlo-simulator";
 
 import type { SDCPN } from "../../types/sdcpn";
+import type { MonteCarloSimulatorConfig } from "./types";
+
+/** createMonteCarloSimulator with HIR artifacts compiled from the config's
+ * SDCPN (the engine no longer compiles user code itself). */
+function createMonteCarloSimulator(
+  config: MonteCarloSimulatorConfig,
+): ReturnType<typeof createMonteCarloSimulatorRaw> {
+  return createMonteCarloSimulatorRaw({
+    ...config,
+    hirArtifacts:
+      config.hirArtifacts ??
+      compileHirArtifacts(config.sdcpn, config.extensions).artifacts,
+  });
+}
 
 const sdcpn: SDCPN = {
   types: [

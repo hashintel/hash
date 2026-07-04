@@ -157,6 +157,7 @@ function initialize(message: MonteCarloInitMessage): void {
     seed: message.seed,
     dt: message.dt,
     maxTime: message.maxTime,
+    hirArtifacts: message.hirArtifacts,
     runCount: message.runCount,
     metrics: userMetrics,
   });

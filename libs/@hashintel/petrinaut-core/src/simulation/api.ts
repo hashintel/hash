@@ -1,5 +1,6 @@
 import type { AbortSignalLike, WorkerFactoryLike } from "../environment";
 import type { PetrinautExtensionSettings } from "../extensions";
+import type { HirArtifacts } from "../hir-runtime";
 import type { EventStream } from "../instance";
 import type { ReadableStore } from "../store";
 import type { Color, Place, SDCPN, TokenRecord } from "../types/sdcpn";
@@ -67,6 +68,13 @@ export type SimulationConfig = {
   dt: number;
   /** Maximum simulation time. Null = no limit. */
   maxTime: number | null;
+  /**
+   * Precompiled HIR artifacts for the net's user code, produced by
+   * `compileHirArtifacts` (or `LanguageClient.requestHirArtifacts`). The
+   * engine has no compiler of its own: items with user code and no artifact
+   * fail to build.
+   */
+  hirArtifacts?: HirArtifacts;
   backpressure?: BackpressureConfig;
   /** Optional cancellation. Aborting tears down the simulation. */
   signal?: AbortSignalLike;

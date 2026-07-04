@@ -16,6 +16,7 @@ import { createMonteCarloWorker } from "@hashintel/petrinaut-core/workers/monte-
 import { useBlockWindowClose } from "../hooks/use-block-window-close";
 import { useLatest } from "../hooks/use-latest";
 import { useStableCallback } from "../hooks/use-stable-callback";
+import { LanguageClientContext } from "../lsp/context";
 import { NotificationsContext } from "../notifications/context";
 import { SDCPNContext } from "../state/sdcpn-context";
 import {
@@ -163,6 +164,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
   workerFactory,
 }) => {
   const { extensions, petriNetDefinition } = use(SDCPNContext);
+  const { requestHirArtifacts } = use(LanguageClientContext);
   const { addNotification } = use(NotificationsContext);
   const petriNetDefinitionRef = useLatest(petriNetDefinition);
   const extensionsRef = useLatest(extensions);
@@ -360,18 +362,25 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
     pendingRegistrationsRef.current.set(experimentId, { abortController });
 
     const initializeExperiment = async () => {
-      const experimentConfigBase = {
-        sdcpn: experimentSdcpn,
-        extensions: extensionsRef.current,
-        initialMarking,
-        parameterValues,
-        seed: input.seed,
-        dt: input.dt,
-        maxTime: input.maxTime,
-        runCount: input.runCount,
-      };
-
       try {
+        // Compile the net's user code to HIR artifacts in the language
+        // worker — the simulation engine has no compiler of its own.
+        const { artifacts } = await requestHirArtifacts(
+          experimentSdcpn,
+          extensionsRef.current,
+        );
+        const experimentConfigBase = {
+          sdcpn: experimentSdcpn,
+          extensions: extensionsRef.current,
+          initialMarking,
+          parameterValues,
+          seed: input.seed,
+          dt: input.dt,
+          maxTime: input.maxTime,
+          hirArtifacts: artifacts,
+          runCount: input.runCount,
+        };
+
         const handle = await createMonteCarloExperiment({
           ...experimentConfigBase,
           createWorker: workerFactoryRef.current,

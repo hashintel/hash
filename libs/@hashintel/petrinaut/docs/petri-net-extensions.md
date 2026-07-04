@@ -221,8 +221,21 @@ Use read arcs when a transition needs to inspect shared state, permission tokens
 
 ## Diagnostics
 
-The **Diagnostics** tab in the bottom panel shows TypeScript errors in your code (dynamics, firing rate, kernels, visualizers), grouped by entity. Click a diagnostic to select the relevant entity and see the error in context.
+The **Diagnostics** tab in the bottom panel shows problems in your code (dynamics, firing rate, kernels, visualizers), grouped by entity. Click a diagnostic to select the relevant entity and see the problem in context.
 
 Petrinaut only reports diagnostics for code surfaces that are active for the current document and graph shape. For example, a hidden firing-time editor or a transition with no coloured outputs will not produce lambda or kernel diagnostics.
 
-Diagnostics must be resolved before running a simulation -- pressing Play with unresolved errors opens the Diagnostics tab instead of starting the simulation.
+Diagnostics come in two flavours:
+
+- **Errors** (red) -- TypeScript type/syntax errors, plus code that falls outside Petrinaut's supported code subset (see below). These must be resolved before running a simulation: pressing Play with unresolved errors opens the Diagnostics tab instead of starting the simulation. The status indicator in the bottom toolbar shows a red cross while errors remain.
+- **Warnings and hints** (amber indicator) -- semantic advice that does not block simulation. Examples: `Math.random()` makes runs non-reproducible (prefer `Distribution.Uniform`), a firing rate that is always 0 so the transition can never fire, a `const` binding that is never used, or one distribution feeding several output attributes (they all receive the same sampled value).
+
+### Supported code subset
+
+Dynamics, firing-rate and transition-kernel code is compiled by Petrinaut's own compiler, which accepts a focused expression subset of TypeScript rather than arbitrary programs:
+
+- `const` bindings (including destructuring like `const { a, b } = parameters` or `const [first] = input.Place`), a final `return`, and guard clauses (`if (condition) return value;`).
+- Arithmetic, comparisons, boolean logic, ternaries, and `Math.*` functions.
+- Token access (`input.Place[0].attr`, `.length`), `.map(...)` over token arrays, and `Distribution.*` constructors (with `.map` transforms).
+
+Loops, `let`/`var`, object spread and arbitrary function calls are rejected with an error pointing at the offending code and suggesting the idiomatic alternative. This is what lets Petrinaut analyze your model (e.g. which parameters a rate depends on) and compile it to fast code that reads token values directly from the simulation's internal buffers. Metric and scenario code is not affected by this subset.

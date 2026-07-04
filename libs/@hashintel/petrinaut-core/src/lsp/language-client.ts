@@ -1,3 +1,5 @@
+import { DiagnosticSeverity } from "vscode-languageserver-types";
+
 import {
   createWorkerLspTransport,
   type LspTransport,
@@ -5,6 +7,8 @@ import {
 } from "./transport";
 
 import type { PetrinautExtensionSettings } from "../extensions";
+// Type-only: must not pull the compiler (`typescript`) into client bundles.
+import type { HirCompileResult } from "../hir";
 import type { ReadableStore } from "../store";
 import type { SDCPN } from "../types/sdcpn";
 import type {
@@ -25,6 +29,12 @@ import type {
 export type DiagnosticsSnapshot = {
   byUri: Map<DocumentUri, Diagnostic[]>;
   total: number;
+  /**
+   * Error-severity diagnostics only. Use this (not `total`) to decide whether
+   * the net is simulatable — warnings/hints (e.g. HIR semantic lints) don't
+   * block running.
+   */
+  errorCount: number;
 };
 
 /**
@@ -74,6 +84,16 @@ export interface LanguageClient {
     uri: DocumentUri,
     position: Position,
   ): Promise<SignatureHelp | null>;
+  /**
+   * Compiles the SDCPN's user code to HIR artifacts (in the worker, where the
+   * TypeScript frontend lives). Pass the result as `hirArtifacts` when
+   * starting simulations/experiments — the engine has no compiler of its own.
+   */
+  requestHirArtifacts(
+    this: void,
+    sdcpn: SDCPN,
+    extensions?: PetrinautExtensionSettings,
+  ): Promise<HirCompileResult>;
 
   /**
    * Tear down the transport. Pending requests reject with "Worker terminated".
@@ -89,6 +109,7 @@ export type CreateLanguageClientConfig =
 const EMPTY_DIAGNOSTICS: DiagnosticsSnapshot = {
   byUri: new Map(),
   total: 0,
+  errorCount: 0,
 };
 
 function createReadableStore<T>(initial: T): ReadableStore<T> & {
@@ -119,14 +140,20 @@ function buildSnapshot(
 ): DiagnosticsSnapshot {
   const byUri = new Map<DocumentUri, Diagnostic[]>();
   let total = 0;
+  let errorCount = 0;
   for (const param of allParams) {
     if (param.diagnostics.length === 0) {
       continue;
     }
     byUri.set(param.uri, param.diagnostics);
     total += param.diagnostics.length;
+    for (const diagnostic of param.diagnostics) {
+      if (diagnostic.severity === DiagnosticSeverity.Error) {
+        errorCount += 1;
+      }
+    }
   }
-  return { byUri, total };
+  return { byUri, total, errorCount };
 }
 
 /**
@@ -285,6 +312,12 @@ export function createLanguageClient(
       return sendRequest<SignatureHelp | null>("textDocument/signatureHelp", {
         textDocument: { uri },
         position,
+      });
+    },
+    requestHirArtifacts(sdcpn, extensions) {
+      return sendRequest<HirCompileResult>("sdcpn/compileHirArtifacts", {
+        sdcpn,
+        extensions,
       });
     },
 
