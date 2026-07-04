@@ -1,11 +1,25 @@
 import { describe, expect, it } from "vitest";
 
+import { compileHirArtifacts } from "../../hir";
 import { compileSimulationFrameReader } from "../frames/frame-reader";
 import { materializeEngineFrame } from "../frames/internal-frame";
-import { buildSimulation } from "./build-simulation";
+import { buildSimulation as buildSimulationRaw } from "./build-simulation";
 import { decodePlaceTokens } from "./token-layout.test-helpers";
 
 import type { SimulationInput } from "./types";
+
+/** buildSimulation with HIR artifacts compiled from the input's SDCPN (the
+ * engine no longer compiles user code itself). */
+function buildSimulation(
+  input: SimulationInput,
+): ReturnType<typeof buildSimulationRaw> {
+  return buildSimulationRaw({
+    ...input,
+    hirArtifacts:
+      input.hirArtifacts ??
+      compileHirArtifacts(input.sdcpn, input.extensions).artifacts,
+  });
+}
 
 describe("buildSimulation", () => {
   it("packs and decodes integer and boolean token attributes", () => {
@@ -273,7 +287,7 @@ describe("buildSimulation", () => {
         dt: 0.1,
         maxTime: null,
       }),
-    ).toThrow("Failed to compile Lambda function");
+    ).toThrow("The Lambda code for `Move` has not been compiled");
   });
 
   it("does not expose Distribution to transition kernels when stochasticity is disabled", () => {
@@ -553,7 +567,7 @@ describe("buildSimulation", () => {
             id: "diffeq1",
             name: "Differential Equation 1",
             colorId: "type1",
-            code: "export default Dynamics((placeValues, t) => { return new Float64Array([0, 0]); });",
+            code: "export default Dynamics((tokens) => tokens.map(() => ({})));",
           },
         ],
         parameters: [],
@@ -650,13 +664,13 @@ describe("buildSimulation", () => {
             id: "diffeq1",
             name: "Differential Equation 1",
             colorId: "type1",
-            code: "export default Dynamics((placeValues, t) => { return new Float64Array([0]); });",
+            code: "export default Dynamics((tokens) => tokens.map(() => ({})));",
           },
           {
             id: "diffeq2",
             name: "Differential Equation 2",
             colorId: "type2",
-            code: "export default Dynamics((placeValues, t) => { return new Float64Array([0, 0]); });",
+            code: "export default Dynamics((tokens) => tokens.map(() => ({})));",
           },
         ],
         parameters: [],
@@ -817,7 +831,7 @@ describe("buildSimulation", () => {
             id: "diffeq1",
             name: "Differential Equation 1",
             colorId: "type1",
-            code: "export default Dynamics((placeValues, t) => { return new Float64Array([0]); });",
+            code: "export default Dynamics((tokens) => tokens.map(() => ({})));",
           },
         ],
         parameters: [],
@@ -868,7 +882,7 @@ describe("buildSimulation", () => {
             id: "diffeq1",
             name: "Differential Equation 1",
             colorId: "type1",
-            code: "export default Dynamics((placeValues, t) => { return new Float64Array([0, 0]); });",
+            code: "export default Dynamics((tokens) => tokens.map(() => ({})));",
           },
         ],
         parameters: [],

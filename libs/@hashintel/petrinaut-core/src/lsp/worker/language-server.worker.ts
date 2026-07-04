@@ -21,6 +21,7 @@ import {
 
 import { createWorkerThreadRuntime } from "../../environment";
 import { DEFAULT_PETRINAUT_EXTENSIONS } from "../../extensions";
+import { compileHirArtifacts } from "../../hir";
 import { checkSDCPN } from "../lib/checker";
 import { SDCPNLanguageServer } from "../lib/create-sdcpn-language-service";
 import { filePathToUri, uriToFilePath } from "../lib/document-uris";
@@ -366,6 +367,15 @@ workerRuntime.onMessage((data) => {
       }
 
       // --- Requests (send response) ---
+
+      case "sdcpn/compileHirArtifacts": {
+        const { id } = data;
+        respond(
+          id,
+          compileHirArtifacts(data.params.sdcpn, data.params.extensions),
+        );
+        break;
+      }
 
       case "textDocument/completion": {
         const { id } = data;

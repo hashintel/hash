@@ -5,6 +5,7 @@
  */
 
 import type { PetrinautExtensionSettings } from "../../extensions";
+import type { HirArtifacts } from "../../hir-runtime";
 import type { SDCPN } from "../../types/sdcpn";
 import type { InitialMarking } from "../api";
 import type { SimulationFramePayload } from "./frame-payload";
@@ -33,6 +34,9 @@ export type InitMessage = {
   dt: number;
   /** Maximum simulation time (immutable once set). Null means no limit. */
   maxTime: number | null;
+  /** Precompiled HIR artifacts (`compileHirArtifacts`) — required for any
+   * dynamics/lambda/kernel user code in the net. */
+  hirArtifacts?: HirArtifacts;
   /** Maximum frames the worker can compute ahead before waiting for ack (backpressure) */
   maxFramesAhead?: number;
   /** Number of frames to compute in each batch before checking for messages */

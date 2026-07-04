@@ -15,6 +15,7 @@ import { createSimulationWorker } from "@hashintel/petrinaut-core/workers/simula
 import { deriveDefaultParameterValues } from "../hooks/use-default-parameter-values";
 import { useLatest } from "../hooks/use-latest";
 import { useStableCallback } from "../hooks/use-stable-callback";
+import { LanguageClientContext } from "../lsp/context";
 import { NotificationsContext } from "../notifications/context";
 import { SDCPNContext } from "../state/sdcpn-context";
 import { useStore } from "../use-store";
@@ -159,6 +160,7 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
   workerFactory,
 }) => {
   const sdcpnContext = use(SDCPNContext);
+  const { requestHirArtifacts } = use(LanguageClientContext);
   const { extensions, petriNetDefinition } = sdcpnContext;
   const { addNotification } = use(NotificationsContext);
 
@@ -374,9 +376,16 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
 
     let sim: Simulation;
     try {
+      // Compile the net's user code to HIR artifacts in the language worker —
+      // the simulation engine has no compiler of its own.
+      const { artifacts } = await requestHirArtifacts(
+        simulationSdcpn,
+        extensionsRef.current,
+      );
       sim = await createSimulation({
         sdcpn: simulationSdcpn,
         extensions: extensionsRef.current,
+        hirArtifacts: artifacts,
         // eslint-disable-next-line no-use-before-define -- closure; ref is defined later in render
         initialMarking: effectiveInitialMarkingRef.current,
         // eslint-disable-next-line no-use-before-define -- closure; ref is defined later in render

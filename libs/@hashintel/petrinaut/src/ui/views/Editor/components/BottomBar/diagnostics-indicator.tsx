@@ -21,6 +21,10 @@ const iconContainerStyle = cva({
         backgroundColor: "[rgba(239, 68, 68, 0.1)]",
         color: "[#dc2626]",
       },
+      warning: {
+        backgroundColor: "[rgba(245, 158, 11, 0.1)]",
+        color: "[#d97706]",
+      },
       success: {
         backgroundColor: "[rgba(34, 197, 94, 0.1)]",
         color: "[#16a34a]",
@@ -42,22 +46,26 @@ interface DiagnosticsIndicatorProps {
 /**
  * DiagnosticsIndicator shows the current SDCPN validation status.
  * - Green check icon if no issues
- * - Red cross icon with count if issues found
+ * - Amber icon with count if only warnings/hints (simulation still allowed)
+ * - Red cross icon with count if errors found
  */
 export const DiagnosticsIndicator: React.FC<DiagnosticsIndicatorProps> = ({
   onClick,
   isExpanded,
 }) => {
-  const { totalDiagnosticsCount } = use(LanguageClientContext);
+  const { totalDiagnosticsCount, errorDiagnosticsCount } = use(
+    LanguageClientContext,
+  );
 
-  const hasErrors = totalDiagnosticsCount > 0;
+  const hasErrors = errorDiagnosticsCount > 0;
+  const hasIssues = totalDiagnosticsCount > 0;
 
   return (
     <ToolbarButton
       tooltip="Show Diagnostics"
       onClick={onClick}
       ariaLabel={
-        hasErrors
+        hasIssues
           ? `${totalDiagnosticsCount} diagnostic issues found`
           : "No diagnostic issues"
       }
@@ -65,10 +73,10 @@ export const DiagnosticsIndicator: React.FC<DiagnosticsIndicatorProps> = ({
     >
       <div
         className={iconContainerStyle({
-          status: hasErrors ? "error" : "success",
+          status: hasErrors ? "error" : hasIssues ? "warning" : "success",
         })}
       >
-        {hasErrors ? (
+        {hasIssues ? (
           <>
             <Icon name="close" size="sm" />
             <span className={countStyle}>{totalDiagnosticsCount}</span>

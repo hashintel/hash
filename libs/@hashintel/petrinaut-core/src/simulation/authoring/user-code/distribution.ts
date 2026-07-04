@@ -40,27 +40,6 @@ export function isDistribution(value: unknown): value is RuntimeDistribution {
   );
 }
 
-/**
- * JavaScript source code that defines the Distribution namespace at runtime.
- * Injected into the compiled user code execution context so that
- * Distribution.Gaussian() and Distribution.Uniform() are available.
- */
-export const distributionRuntimeCode = `
-  function __addMap(dist) {
-    dist.map = function(fn) {
-      return __addMap({ __brand: "distribution", type: "mapped", inner: dist, fn: fn });
-    };
-    return dist;
-  }
-  var Distribution = {
-    Gaussian: function(mean, deviation) {
-      return __addMap({ __brand: "distribution", type: "gaussian", mean: mean, deviation: deviation });
-    },
-    Uniform: function(min, max) {
-      return __addMap({ __brand: "distribution", type: "uniform", min: min, max: max });
-    },
-    Lognormal: function(mu, sigma) {
-      return __addMap({ __brand: "distribution", type: "lognormal", mu: mu, sigma: sigma });
-    }
-  };
-`;
+// Distribution construction for compiled user code lives in
+// `hir/instantiate.ts` (`hirDistributionRuntime`) — emitted programs call it
+// through the injected `__dist` binding instead of injected source code.

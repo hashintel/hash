@@ -7,6 +7,11 @@
 
 import type { PetrinautExtensionSettings } from "../../extensions";
 import type {
+  HirArtifacts,
+  HirCompiledBufferKernel,
+  HirCompiledBufferLambda,
+} from "../../hir-runtime";
+import type {
   Color,
   InputArcType,
   Place,
@@ -93,6 +98,26 @@ export type CompiledTransitionInputPlace = CompiledTransitionPlace & {
   arcType: InputArcType;
 };
 
+/**
+ * Buffer-ABI programs and reusable scratch for one transition. Present when
+ * at least one of lambda/kernel compiled to the buffer ABI; scratch is
+ * shared across evaluations (the engine is single-threaded per simulation).
+ */
+export type CompiledTransitionBuffer = {
+  /** `(tokenValues, slotBases) => number | boolean`, parameters pre-bound. */
+  lambdaFn: HirCompiledBufferLambda | null;
+  /** `(tokenValues, slotBases, out, distSink) => void`, parameters pre-bound. */
+  kernelFn: HirCompiledBufferKernel | null;
+  /** One float base offset per input token slot (see `hir/surface-context.ts`
+   * slot layout invariant); filled per enumerated combination. */
+  slotBases: Int32Array;
+  /** Kernel output staging: colored output arcs place-major in arc order. */
+  kernelStaging: Float64Array;
+  /** Deferred distribution sinks, reused per kernel call. */
+  pendingSlots: number[];
+  pendingDists: RuntimeDistribution[];
+};
+
 export type CompiledTransition = {
   id: string;
   name: string;
@@ -100,6 +125,7 @@ export type CompiledTransition = {
   outputPlaces: readonly CompiledTransitionPlace[];
   lambdaFn: LambdaFn;
   transitionKernelFn: TransitionKernelFn;
+  buffer: CompiledTransitionBuffer | null;
 };
 
 /**
@@ -120,6 +146,14 @@ export type SimulationInput = {
   dt: number;
   /** Maximum simulation time (immutable once set). Null means no limit. */
   maxTime: number | null;
+  /**
+   * Optional precompiled HIR artifacts (see `compileHirArtifacts`). When an
+   * item has an artifact it is instantiated directly — skipping the Babel
+   * compile and, for dynamics, running buffer-native without per-token record
+   * decoding. Items without artifacts use the legacy compiler. Artifacts must
+   * be produced from the same SDCPN snapshot.
+   */
+  hirArtifacts?: HirArtifacts;
 };
 
 /**

@@ -1,4 +1,5 @@
 import type { PetrinautExtensionSettings } from "../../extensions";
+import type { HirArtifacts } from "../../hir-runtime";
 import type { SDCPN } from "../../types/sdcpn";
 import type { InitialMarking } from "../api";
 import type { SimulationCompletionReason } from "../engine/compute-next-frame";
@@ -16,6 +17,9 @@ export type MonteCarloRunConfig = {
 export type MonteCarloSimulatorConfig = {
   sdcpn: SDCPN;
   extensions?: PetrinautExtensionSettings;
+  /** Precompiled HIR artifacts (`compileHirArtifacts`) — required for any
+   * dynamics/lambda/kernel user code in the net. */
+  hirArtifacts?: HirArtifacts;
   runCount: number;
   initialMarking: InitialMarking;
   parameterValues?: Record<string, string>;

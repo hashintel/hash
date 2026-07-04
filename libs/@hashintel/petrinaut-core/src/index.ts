@@ -243,6 +243,15 @@ export type {
   TextDocumentIdentifier,
 } from "./lsp";
 
+// --- HIR (type-only from the main entry; the compiler itself stays in the
+// LSP worker, runtime instantiation in ./hir-runtime) ---
+export type {
+  HirArtifacts,
+  HirCompileFailure,
+  HirCompileResult,
+  HirDiagnostic,
+} from "./hir";
+
 // --- Playback ---
 export {
   createPlayback,

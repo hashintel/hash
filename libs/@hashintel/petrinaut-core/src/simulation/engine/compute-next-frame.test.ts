@@ -1,11 +1,26 @@
 import { describe, expect, it } from "vitest";
 
-import { buildSimulation } from "./build-simulation";
+import { compileHirArtifacts } from "../../hir";
+import { buildSimulation as buildSimulationRaw } from "./build-simulation";
 import { computeNextFrame } from "./compute-next-frame";
 import { decodePlaceTokens } from "./token-layout.test-helpers";
 import { parseUuid } from "./uuid";
 
 import type { SDCPN } from "../../types/sdcpn";
+import type { SimulationInput as SimulationInputForArtifacts } from "./types";
+
+/** buildSimulation with HIR artifacts compiled from the input's SDCPN (the
+ * engine no longer compiles user code itself). */
+function buildSimulation(
+  input: SimulationInputForArtifacts,
+): ReturnType<typeof buildSimulationRaw> {
+  return buildSimulationRaw({
+    ...input,
+    hirArtifacts:
+      input.hirArtifacts ??
+      compileHirArtifacts(input.sdcpn, input.extensions).artifacts,
+  });
+}
 
 describe("computeNextFrame", () => {
   it("should compute next frame with dynamics and transitions", () => {
