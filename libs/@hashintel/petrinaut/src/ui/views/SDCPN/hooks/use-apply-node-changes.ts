@@ -15,11 +15,23 @@ import type { EdgeChange, NodeChange } from "@xyflow/react";
  *
  * @see https://github.com/xyflow/xyflow/blob/04055c9625cbd92cf83a2f4c340d6fae5199bfa3/packages/react/src/utils/changes.ts#L107
  */
-export function useApplyNodeChanges() {
+export function useApplyNodeChanges(options?: {
+  /**
+   * Maps a displayed canvas position back to a stored (model) position.
+   * Used while subnets are expanded in place (FE-874 prototype): the canvas
+   * displays displaced positions, but drag commits must store undisplaced
+   * coordinates.
+   */
+  displayedPositionToModelPosition?: (
+    nodeId: string,
+    position: { x: number; y: number },
+  ) => { x: number; y: number };
+}) {
   const { getItemType } = use(SDCPNContext);
   const { commitNodePositions } = usePetrinautMutations();
   const { updateDraggingStateByNodeId, setSelection } = use(EditorContext);
   const { snapToGrid } = use(UserSettingsContext);
+  const { displayedPositionToModelPosition } = options ?? {};
 
   return (changes: (NodeChange | EdgeChange)[]) => {
     const positionCommits: Array<{
@@ -136,10 +148,15 @@ export function useApplyNodeChanges() {
           type === "transition" ||
           type === "componentInstance"
         ) {
+          const displayedPosition = snapToGrid
+            ? snapPositionToGrid(position)
+            : position;
           commits.push({
             id,
             itemType: type,
-            position: snapToGrid ? snapPositionToGrid(position) : position,
+            position: displayedPositionToModelPosition
+              ? displayedPositionToModelPosition(id, displayedPosition)
+              : displayedPosition,
           });
         }
       }
