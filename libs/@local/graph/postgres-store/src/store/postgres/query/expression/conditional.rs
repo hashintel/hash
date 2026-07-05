@@ -11,6 +11,7 @@ use crate::store::postgres::query::{
         BinaryExpression, BinaryOperator, UnaryExpression, UnaryOperator, VariadicExpression,
         VariadicOperator,
     },
+    postgres_type::PostgresType,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -254,52 +255,6 @@ impl Transpile for Constant {
             Self::U32(number) => fmt::Display::fmt(number, fmt),
             Self::U128(number) => fmt::Display::fmt(number, fmt),
             Self::JsonNull => fmt.write_str("'null'::jsonb"),
-        }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum PostgresType {
-    Array(Box<Self>),
-    Text,
-    JsonB,
-    JsonPath,
-    Continuation,
-    Numeric,
-    Int,
-    BigInt,
-    Boolean,
-    Uuid,
-    DoublePrecision,
-    TimestampTz,
-    TimestampTzRange,
-    Vector,
-    EntityEdgeKind,
-    EdgeDirection,
-}
-
-impl Transpile for PostgresType {
-    fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Self::Array(inner) => {
-                inner.transpile(fmt)?;
-                fmt.write_str("[]")
-            }
-            Self::Text => fmt.write_str("text"),
-            Self::JsonB => fmt.write_str("jsonb"),
-            Self::JsonPath => fmt.write_str("jsonpath"),
-            Self::Continuation => fmt.write_str("continuation"),
-            Self::Numeric => fmt.write_str("numeric"),
-            Self::Int => fmt.write_str("int"),
-            Self::BigInt => fmt.write_str("bigint"),
-            Self::Boolean => fmt.write_str("boolean"),
-            Self::Uuid => fmt.write_str("uuid"),
-            Self::DoublePrecision => fmt.write_str("double precision"),
-            Self::TimestampTz => fmt.write_str("timestamptz"),
-            Self::TimestampTzRange => fmt.write_str("tstzrange"),
-            Self::Vector => fmt.write_str("vector"),
-            Self::EntityEdgeKind => fmt.write_str("entity_edge_kind"),
-            Self::EdgeDirection => fmt.write_str("edge_direction"),
         }
     }
 }
@@ -977,15 +932,15 @@ mod tests {
         );
         assert_eq!(
             Expression::Parameter(1)
-                .cast(PostgresType::Int)
+                .cast(PostgresType::Int4)
                 .transpile_to_string(),
-            "($1::int)"
+            "($1::int4)"
         );
         assert_eq!(
             Expression::Parameter(1)
-                .cast(PostgresType::BigInt)
+                .cast(PostgresType::Int8)
                 .transpile_to_string(),
-            "($1::bigint)"
+            "($1::int8)"
         );
     }
 

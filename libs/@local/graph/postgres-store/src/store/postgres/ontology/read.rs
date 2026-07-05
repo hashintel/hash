@@ -163,7 +163,7 @@ impl<C: AsClient> PostgresStore<C> {
 
         let depth = reference_table
             .inheritance_depth_column()
-            .and_then(|column| Some((column.as_str(), column.inheritance_depth()?)));
+            .and_then(|column| Some((column.as_str().to_owned(), column.inheritance_depth()?)));
 
         let where_statement = match depth {
             Some((column, depth)) => Cow::Owned(format!("WHERE {table}.{column} <= {depth}")),

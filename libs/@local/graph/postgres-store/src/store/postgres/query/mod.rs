@@ -7,6 +7,7 @@ mod data_type;
 mod entity;
 mod entity_type;
 mod expression;
+pub mod postgres_type;
 mod property_type;
 pub(crate) mod rows;
 mod statement;
@@ -34,10 +35,14 @@ pub use self::{
         BinaryExpression, BinaryOperator, ColumnName, ColumnReference, Constant, EqualityOperator,
         Expression, FromItem, FromItemFunctionBuilder, FromItemJoinBuilder,
         FromItemSubqueryBuilder, FromItemTableBuilder, Function, Identifier, JoinType,
-        PostgresType, SelectExpression, TableName, TableReference, UnaryExpression, UnaryOperator,
+        SelectExpression, TableName, TableReference, UnaryExpression, UnaryOperator,
         VariadicExpression, VariadicOperator, WhereExpression, WithExpression,
     },
-    statement::{Distinctness, InsertStatement, SelectStatement, Statement, WindowStatement},
+    postgres_type::PostgresType,
+    statement::{
+        Distinctness, InsertStatement, InsertStatementOptions, OnConflict, SelectStatement,
+        Statement, WindowStatement,
+    },
     table::{Alias, Column, ForeignKeyReference, JsonField, ReferenceTable, Relation, Table},
 };
 use crate::store::postgres::crud::QueryRecordDecode;

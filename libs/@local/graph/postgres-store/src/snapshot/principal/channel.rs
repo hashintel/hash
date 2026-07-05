@@ -33,7 +33,7 @@ pub struct PrincipalSender {
     roles: Sender<RoleRow>,
 }
 
-// This is a direct wrapper around `Sink<mpsc::Sender<AccountRow>>` with error-handling added
+// This is a direct wrapper around the row senders with error-handling added
 // to make it easier to use.
 impl Sink<Principal> for PrincipalSender {
     type Error = Report<SnapshotRestoreError>;

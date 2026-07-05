@@ -47,7 +47,7 @@ in
                     parameter: Decimal(
                         Real(
                             FBig {
-                                significand: 1 (1 digits, 1 bits),
+                                significand: 1 (digits: 1, bits: 1),
                                 exponent: 10 ^ 0,
                                 precision: 1,
                                 rounding: HalfAway,
@@ -60,7 +60,7 @@ in
                     parameter: Decimal(
                         Real(
                             FBig {
-                                significand: 2 (1 digits, 2 bits),
+                                significand: 2 (digits: 1, bits: 2),
                                 exponent: 10 ^ 0,
                                 precision: 1,
                                 rounding: HalfAway,
@@ -75,7 +75,7 @@ in
                     parameter: Decimal(
                         Real(
                             FBig {
-                                significand: 1 (1 digits, 1 bits),
+                                significand: 1 (digits: 1, bits: 1),
                                 exponent: 10 ^ 0,
                                 precision: 1,
                                 rounding: HalfAway,
@@ -88,7 +88,7 @@ in
                     parameter: Decimal(
                         Real(
                             FBig {
-                                significand: 2 (1 digits, 2 bits),
+                                significand: 2 (digits: 1, bits: 2),
                                 exponent: 10 ^ 0,
                                 precision: 1,
                                 rounding: HalfAway,
@@ -103,7 +103,7 @@ in
                     parameter: Decimal(
                         Real(
                             FBig {
-                                significand: 1 (1 digits, 1 bits),
+                                significand: 1 (digits: 1, bits: 1),
                                 exponent: 10 ^ 0,
                                 precision: 1,
                                 rounding: HalfAway,
@@ -116,7 +116,7 @@ in
                     parameter: Decimal(
                         Real(
                             FBig {
-                                significand: 2 (1 digits, 2 bits),
+                                significand: 2 (digits: 1, bits: 2),
                                 exponent: 10 ^ 0,
                                 precision: 1,
                                 rounding: HalfAway,
@@ -131,7 +131,7 @@ in
                     parameter: Decimal(
                         Real(
                             FBig {
-                                significand: 1 (1 digits, 1 bits),
+                                significand: 1 (digits: 1, bits: 1),
                                 exponent: 10 ^ 0,
                                 precision: 1,
                                 rounding: HalfAway,
@@ -144,7 +144,7 @@ in
                     parameter: Decimal(
                         Real(
                             FBig {
-                                significand: 2 (1 digits, 2 bits),
+                                significand: 2 (digits: 1, bits: 2),
                                 exponent: 10 ^ 0,
                                 precision: 1,
                                 rounding: HalfAway,

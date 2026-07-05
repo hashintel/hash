@@ -97,6 +97,13 @@ impl<'name, I: Into<Identifier<'name>>> From<I> for TableName<'name> {
     }
 }
 
+impl TableName<'_> {
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        self.0.as_str()
+    }
+}
+
 impl Transpile for TableName<'_> {
     fn transpile(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match &self.0 {

@@ -1083,7 +1083,7 @@ fn temporal_decision_time_interval() {
     assert_snapshot!("temporal_decision_time_interval", report.to_string());
 }
 
-/// `BinOp::BitAnd` on integers → `BinaryOperator::BitwiseAnd` with `::bigint` casts.
+/// `BinOp::BitAnd` on integers → `BinaryOperator::BitwiseAnd` with `::int8` casts.
 #[test]
 fn binary_bitand_bigint_cast() {
     let heap = Heap::new();
@@ -1110,7 +1110,7 @@ fn binary_bitand_bigint_cast() {
     assert_snapshot!("binary_bitand_bigint_cast", report.to_string());
 }
 
-/// `BinOp::BitAnd` on booleans → `VariadicOperator::And` with `::boolean` casts.
+/// `BinOp::BitAnd` on booleans → `VariadicOperator::And` with `::bool` casts.
 #[test]
 fn binary_bitand_boolean_and() {
     let heap = Heap::new();
@@ -1137,7 +1137,7 @@ fn binary_bitand_boolean_and() {
     assert_snapshot!("binary_bitand_boolean_and", report.to_string());
 }
 
-/// `BinOp::BitOr` on integers → `BinaryOperator::BitwiseOr` with `::bigint` casts.
+/// `BinOp::BitOr` on integers → `BinaryOperator::BitwiseOr` with `::int8` casts.
 #[test]
 fn binary_bitor_bigint_cast() {
     let heap = Heap::new();
@@ -1164,7 +1164,7 @@ fn binary_bitor_bigint_cast() {
     assert_snapshot!("binary_bitor_bigint_cast", report.to_string());
 }
 
-/// `BinOp::BitOr` on booleans → `VariadicOperator::Or` with `::boolean` casts.
+/// `BinOp::BitOr` on booleans → `VariadicOperator::Or` with `::bool` casts.
 #[test]
 fn binary_bitor_boolean_or() {
     let heap = Heap::new();
