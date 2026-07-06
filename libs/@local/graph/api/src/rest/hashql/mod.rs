@@ -103,6 +103,7 @@ async fn query_local_impl(
         value: compilation,
         advisories,
     } = Compilation::compile(&heap, &mut scratch, spans, query)?;
+    drop(scratch);
 
     let context = compilation.context();
 
@@ -201,6 +202,7 @@ where
 
 /// Request body for the `/hashql` endpoint.
 #[derive(serde::Deserialize, utoipa::ToSchema)]
+#[serde(deny_unknown_fields)]
 pub(crate) struct HashQlRequest {
     #[schema(value_type = serde_json::Value)]
     query: Arc<RawValue>,

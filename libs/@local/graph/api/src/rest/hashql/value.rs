@@ -1,5 +1,5 @@
 use alloc::{collections::BTreeMap, sync::Arc};
-use core::alloc::Allocator;
+use core::{alloc::Allocator, num::FpCategory};
 
 use hashql_core::id::Id as _;
 use hashql_mir::interpret::value::{Int, Num, Ptr, Value};
@@ -11,7 +11,15 @@ fn serialize_int<S: serde::Serializer>(int: &Int, serializer: S) -> Result<S::Ok
 
 #[expect(clippy::trivially_copy_pass_by_ref)]
 fn serialize_num<S: serde::Serializer>(num: &Num, serializer: S) -> Result<S::Ok, S::Error> {
-    num.as_f64().serialize(serializer)
+    let value = num.as_f64();
+    match value.classify() {
+        FpCategory::Infinite if value.is_sign_negative() => "-inf".serialize(serializer),
+        FpCategory::Infinite => "inf".serialize(serializer),
+        FpCategory::Nan => "nan".serialize(serializer),
+        FpCategory::Zero | FpCategory::Subnormal | FpCategory::Normal => {
+            value.serialize(serializer)
+        }
+    }
 }
 
 #[expect(clippy::trivially_copy_pass_by_ref)]
@@ -97,6 +105,21 @@ impl<'heap, A: Allocator + Clone> From<Value<'heap, A>> for OwnedValue {
     }
 }
 
+fn is_string(value: &OwnedValue) -> bool {
+    match value {
+        OwnedValue::String(_) => true,
+        OwnedValue::Opaque(_, opaque) => is_string(opaque),
+        OwnedValue::Unit
+        | OwnedValue::Integer(_)
+        | OwnedValue::Number(_)
+        | OwnedValue::Pointer(_)
+        | OwnedValue::Struct(_)
+        | OwnedValue::Tuple(_)
+        | OwnedValue::List(_)
+        | OwnedValue::Dict(_) => false,
+    }
+}
+
 #[derive(Copy, Clone)]
 pub(crate) struct JsonValueSerialize<'value>(pub &'value OwnedValue);
 
@@ -128,10 +151,7 @@ impl serde::Serialize for JsonValueSerialize<'_> {
 
                 // If all the keys are strings we can collect a map, otherwise we must fallback
                 // to collecting as a sequence
-                if btree_map
-                    .keys()
-                    .all(|key| matches!(key, OwnedValue::String(_)))
-                {
+                if btree_map.keys().all(is_string) {
                     serializer.collect_map(iter)
                 } else {
                     serializer.collect_seq(iter)
