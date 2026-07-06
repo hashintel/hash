@@ -145,14 +145,14 @@ fn bench_nearest4<M: Measurement>(criterion: &mut Criterion<M>) {
 
     // k = 15 exercises the odd-k remainder path.
     for &(d, k) in &[
-        (256, nz!(15)),
-        (256, nz!(16)),
-        (256, nz!(64)),
-        (1536, nz!(16)),
-        (3072, nz!(16)),
+        (nz!(256), nz!(15)),
+        (nz!(256), nz!(16)),
+        (nz!(256), nz!(64)),
+        (nz!(1536), nz!(16)),
+        (nz!(3072), nz!(16)),
     ] {
-        let points: Vec<Vec<f32>> = (0..4).map(|seed| random_vec(d, 30 + seed)).collect();
-        let centroids = random_vec(k.get() * d, 40);
+        let points: Vec<Vec<f32>> = (0..4).map(|seed| random_vec(d.get(), 30 + seed)).collect();
+        let centroids = random_vec(k.get() * d.get(), 40);
 
         group.bench_with_input(
             BenchmarkId::new(format!("d{d}"), k),

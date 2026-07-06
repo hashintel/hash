@@ -345,8 +345,11 @@ pub unsafe fn nearest4(
     p3: &[f32],
     centroids: &[f32],
     k: NonZero<usize>,
-    d: usize,
+    d: NonZero<usize>,
 ) -> [(u16, f32); 4] {
+    let d = d.get();
+    let k = k.get();
+
     let mut best_dot = [f32::NEG_INFINITY; 4];
     let mut best_idx = [0_u16; 4];
 
@@ -356,12 +359,12 @@ pub unsafe fn nearest4(
         core::hint::assert_unchecked(p0.len() == p1.len());
         core::hint::assert_unchecked(p0.len() == p2.len());
         core::hint::assert_unchecked(p0.len() == p3.len());
-        core::hint::assert_unchecked(centroids.len() >= k.get() * d);
+        core::hint::assert_unchecked(centroids.len() >= k * d);
         core::hint::assert_unchecked(d.is_multiple_of(8));
     }
 
     let mut j = 0;
-    while j + 2 <= k.get() {
+    while j + 2 <= k {
         // SAFETY: `j + 2 <= k` and `centroids.len() >= k * d`, so both
         // slices `[j*d .. (j+2)*d]` are in-bounds.
         let c0 = unsafe { centroids.get_unchecked(j * d..j * d + d) };
@@ -389,7 +392,7 @@ pub unsafe fn nearest4(
     }
 
     // Handle odd k: one remaining centroid via the 4x1 tile.
-    if j < k.get() {
+    if j < k {
         let c = &centroids[j * d..j * d + d];
         // SAFETY: all five slices have length `d`, a multiple of 8.
         let dots = unsafe { micro_4x1(p0, p1, p2, p3, c) };
@@ -719,7 +722,13 @@ mod tests {
         // all point slices have length d.
         let got = unsafe {
             nearest4(
-                &points[0], &points[1], &points[2], &points[3], &centroids, k, d,
+                &points[0],
+                &points[1],
+                &points[2],
+                &points[3],
+                &centroids,
+                k,
+                nz!(8),
             )
         };
 
@@ -749,7 +758,13 @@ mod tests {
         // all point slices have length d.
         let got = unsafe {
             nearest4(
-                &points[0], &points[1], &points[2], &points[3], &centroids, k, d,
+                &points[0],
+                &points[1],
+                &points[2],
+                &points[3],
+                &centroids,
+                k,
+                nz!(8),
             )
         };
 
@@ -770,7 +785,7 @@ mod tests {
 
         // SAFETY: d=8 (multiple of 8), k=1 > 0, centroids has length d,
         // all point slices have length d.
-        let got = unsafe { nearest4(&p0, &p1, &p2, &p3, &centroids, nz!(1), d) };
+        let got = unsafe { nearest4(&p0, &p1, &p2, &p3, &centroids, nz!(1), nz!(8)) };
 
         assert_eq!(got[0].0, 0);
         assert_eq!(got[1].0, 0);

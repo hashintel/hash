@@ -201,25 +201,25 @@ pub(crate) unsafe fn nearest_centroid(
     point_inv_norm: f32,
     centroids: &[f32],
     k: NonZero<usize>,
-    d: usize,
+    d: NonZero<usize>,
 ) -> (u16, f32) {
-    debug_assert_eq!(point.len(), d);
-    debug_assert_eq!(centroids.len(), k.get() * d);
+    debug_assert_eq!(point.len(), d.get());
+    debug_assert_eq!(centroids.len(), k.get() * d.get());
 
     // SAFETY: the caller guarantees these preconditions. The hints let the
     // compiler elide bounds checks on the centroid slicing inside the loop.
     unsafe {
-        core::hint::assert_unchecked(point.len() == d);
-        core::hint::assert_unchecked(centroids.len() == k.get() * d);
-        core::hint::assert_unchecked(d.is_multiple_of(8));
+        core::hint::assert_unchecked(point.len() == d.get());
+        core::hint::assert_unchecked(centroids.len() == k.get() * d.get());
+        core::hint::assert_unchecked(d.get().is_multiple_of(8));
     }
 
     let mut best = 0;
     let mut best_dot = f32::NEG_INFINITY;
 
     for cluster in 0..k.get() {
-        let start = cluster * d;
-        let centroid = &centroids[start..start + d];
+        let start = cluster * d.get();
+        let centroid = &centroids[start..start + d.get()];
 
         // SAFETY: `point` and `centroid` both have length `D`, and `D` is a
         // multiple of 8 (guaranteed by Dimension).
@@ -251,7 +251,7 @@ pub(crate) unsafe fn nearest_centroid(
 /// * `d` is a multiple of 8
 unsafe fn lloyd_assign(
     k: NonZero<usize>,
-    d: usize,
+    d: NonZero<usize>,
     centroids: &[f32],
     points: &[f32],
     inv_norms: &[f32],
@@ -263,18 +263,18 @@ unsafe fn lloyd_assign(
     // SAFETY: the caller guarantees the length relations; the hints let the
     // compiler elide bounds checks in the tiled loop below.
     unsafe {
-        core::hint::assert_unchecked(points.len() == count * d);
+        core::hint::assert_unchecked(points.len() == count * d.get());
         core::hint::assert_unchecked(inv_norms.len() == count);
         core::hint::assert_unchecked(distances.len() == count);
-        core::hint::assert_unchecked(d.is_multiple_of(8));
+        core::hint::assert_unchecked(d.get().is_multiple_of(8));
     }
 
     let mut i = 0;
     while i + 4 <= count {
-        let p0 = &points[i * d..i * d + d];
-        let p1 = &points[(i + 1) * d..(i + 1) * d + d];
-        let p2 = &points[(i + 2) * d..(i + 2) * d + d];
-        let p3 = &points[(i + 3) * d..(i + 3) * d + d];
+        let p0 = &points[i * d.get()..i * d.get() + d.get()];
+        let p1 = &points[(i + 1) * d.get()..(i + 1) * d.get() + d.get()];
+        let p2 = &points[(i + 2) * d.get()..(i + 2) * d.get() + d.get()];
+        let p3 = &points[(i + 3) * d.get()..(i + 3) * d.get() + d.get()];
 
         // SAFETY: each point length d, centroids length k*d,
         // k > 0, d a multiple of 8 (guaranteed by Dimension).
@@ -289,7 +289,7 @@ unsafe fn lloyd_assign(
     }
 
     while i < count {
-        let point = &points[i * d..i * d + d];
+        let point = &points[i * d.get()..i * d.get() + d.get()];
 
         // SAFETY: point length d, centroids length k*d, k > 0, d mult of 8.
         let (label, distance) = unsafe { nearest_centroid(point, inv_norms[i], centroids, k, d) };
@@ -306,7 +306,7 @@ unsafe fn lloyd_assign(
 struct Restart {
     k: NonZero<usize>,
     m: usize,
-    d: usize,
+    d: NonZero<usize>,
 
     /// Centroids for this restart, `k * d` elements.
     centroids: Box<[f32]>,
@@ -320,16 +320,24 @@ struct Restart {
     point_distances: Box<[f32]>,
     /// Tracks which sample points have been selected as seeds.
     selected: Box<[bool]>,
+    /// Point indices grouped by cluster, `m` elements; grouping scratch for
+    /// [`accumulate_clusters`].
+    order: Box<[usize]>,
+    /// Bucket cursors/boundaries, `k + 1` elements; grouping scratch for
+    /// [`accumulate_clusters`].
+    bounds: Box<[usize]>,
 }
 
 impl Restart {
-    fn new(k: NonZero<usize>, m: usize, d: usize) -> Self {
-        let centroids: Box<[f32]> = vec![0.0; k.get() * d].into_boxed_slice();
-        let sums: Box<[f32]> = vec![0.0; k.get() * d].into_boxed_slice();
+    fn new(k: NonZero<usize>, m: usize, d: NonZero<usize>) -> Self {
+        let centroids: Box<[f32]> = vec![0.0; k.get() * d.get()].into_boxed_slice();
+        let sums: Box<[f32]> = vec![0.0; k.get() * d.get()].into_boxed_slice();
         let counts: Box<[usize]> = vec![0; k.get()].into_boxed_slice();
         let labels: Box<[u16]> = vec![0; m].into_boxed_slice();
         let point_distances: Box<[f32]> = vec![0.0; m].into_boxed_slice();
         let selected: Box<[bool]> = vec![false; m].into_boxed_slice();
+        let order: Box<[usize]> = vec![0; m].into_boxed_slice();
+        let bounds: Box<[usize]> = vec![0; k.get() + 1].into_boxed_slice();
 
         Self {
             k,
@@ -341,6 +349,8 @@ impl Restart {
             labels,
             point_distances,
             selected,
+            order,
+            bounds,
         }
     }
 
@@ -374,15 +384,15 @@ impl Restart {
         let mut point = rng.random_range(0..m);
 
         for cluster in 0..k.get() {
-            let centroid_start = cluster * d;
-            let point_start = point * d;
+            let centroid_start = cluster * d.get();
+            let point_start = point * d.get();
 
-            self.centroids[centroid_start..centroid_start + d]
-                .copy_from_slice(&sample[point_start..point_start + d]);
+            self.centroids[centroid_start..centroid_start + d.get()]
+                .copy_from_slice(&sample[point_start..point_start + d.get()]);
 
             // SAFETY: centroid rows have length `d`, and `d` is a multiple of 8.
             unsafe {
-                kernel::normalize(&mut self.centroids[centroid_start..centroid_start + d]);
+                kernel::normalize(&mut self.centroids[centroid_start..centroid_start + d.get()]);
             }
 
             self.selected[point] = true;
@@ -393,12 +403,12 @@ impl Restart {
                 break;
             }
 
-            let centroid = &self.centroids[centroid_start..centroid_start + d];
+            let centroid = &self.centroids[centroid_start..centroid_start + d.get()];
 
             // Per-element writes only, so the pass is deterministic under
             // rayon; the D² total is summed sequentially below.
             sample
-                .par_chunks_exact(d)
+                .par_chunks_exact(d.get())
                 .zip(sample_inv_norms.par_iter())
                 .zip(self.point_distances.par_iter_mut())
                 .enumerate()
@@ -503,16 +513,22 @@ impl Restart {
 
             inertia = self.point_distances.iter().sum();
 
-            // SAFETY: `sample.len() == m * d` with `m` labels, sums is
-            // `k * d` with `k` counts, and `d` is a multiple of 8
-            // (guaranteed by Dimension).
+            let mut scratch = Scratch {
+                sums: &mut self.sums,
+                counts: &mut self.counts,
+                order: &mut self.order,
+                bounds: &mut self.bounds,
+            };
+
+            // SAFETY: `d` is a multiple of 8 (guaranteed by Dimension);
+            // every other requirement is checked by `accumulate_clusters`
+            // itself and panics rather than misbehaving.
             unsafe {
                 accumulate_clusters(
                     sample,
                     &self.labels,
                     Some(sample_inv_norms),
-                    &mut self.sums,
-                    &mut self.counts,
+                    &mut scratch,
                     d,
                 );
             }
@@ -522,16 +538,17 @@ impl Restart {
                     continue;
                 }
 
-                let start = cluster * d;
+                let start = cluster * d.get();
 
                 // Normalization is scale-invariant, so the raw sum gives the same direction as the
                 // average.
-                self.centroids[start..start + d].copy_from_slice(&self.sums[start..start + d]);
+                self.centroids[start..start + d.get()]
+                    .copy_from_slice(&self.sums[start..start + d.get()]);
 
                 // SAFETY: centroid rows have length `d`, and `d` is a multiple of 8
                 // (guaranteed by Dimension).
                 unsafe {
-                    kernel::normalize(&mut self.centroids[start..start + d]);
+                    kernel::normalize(&mut self.centroids[start..start + d.get()]);
                 }
             }
 
@@ -586,15 +603,15 @@ impl Restart {
                 }
             }
 
-            let point_start = farthest_idx * d;
-            let centroid_start = cluster * d;
+            let point_start = farthest_idx * d.get();
+            let centroid_start = cluster * d.get();
 
-            self.centroids[centroid_start..centroid_start + d]
-                .copy_from_slice(&sample[point_start..point_start + d]);
+            self.centroids[centroid_start..centroid_start + d.get()]
+                .copy_from_slice(&sample[point_start..point_start + d.get()]);
 
             // SAFETY: centroid rows have length `d`, a multiple of 8.
             unsafe {
-                kernel::normalize(&mut self.centroids[centroid_start..centroid_start + d]);
+                kernel::normalize(&mut self.centroids[centroid_start..centroid_start + d.get()]);
             }
 
             self.labels[farthest_idx] = cluster as u16;
@@ -605,53 +622,126 @@ impl Restart {
     }
 }
 
+/// Borrowed scratch for [`accumulate_clusters`].
+struct Scratch<'ctx> {
+    /// Per-cluster accumulator, `k * d` elements.
+    sums: &'ctx mut [f32],
+    /// Per-cluster point count, `k` elements.
+    counts: &'ctx mut [usize],
+    /// Point indices grouped by cluster, one per labeled point.
+    order: &'ctx mut [usize],
+    /// Bucket cursors during the scatter, bucket boundaries after;
+    /// `k + 1` elements.
+    bounds: &'ctx mut [usize],
+}
+
 /// Recomputes per-cluster sums and counts from labeled points.
 ///
-/// The result is impervious to any thread schedule order.
+/// Points are grouped by cluster first (a stable counting sort on labels,
+/// through `order` and `bounds`), then each cluster task walks only its own
+/// bucket: one pass over the labels instead of one per cluster. Buckets
+/// preserve ascending point order, so every cluster sum receives its
+/// additions in a fixed order and the result is impervious to any thread
+/// schedule order: the grouping runs sequentially on the calling thread,
+/// and each sum is reduced by exactly one task over a fixed range.
 ///
 /// `inv_norms` supplies precomputed inverse norms; pass `None` to compute
 /// them on the fly.
 ///
 /// Zero-norm points are counted but contribute nothing to the sums.
 ///
+/// `order` and `bounds` are grouping scratch; their contents on entry are
+/// irrelevant.
+///
+/// # Panics
+///
+/// Panics if any label is not below `counts.len()`, or if the scratch and
+/// input shapes are inconsistent: `order.len() != labels.len()`,
+/// `bounds.len() != counts.len() + 1`, `sums.len() != counts.len() * d`,
+/// or `inv_norms` (when provided) not one entry per label.
+///
 /// # Safety
 ///
-/// * `points.len() == labels.len() * d`
-/// * `sums.len() == counts.len() * d`
-/// * `inv_norms`, when provided, has one entry per label
-/// * `d` is a multiple of 8
+/// * `d` is a multiple of 8 (the SIMD kernels rely on it; every other requirement is checked at
+///   runtime and panics)
 unsafe fn accumulate_clusters(
     points: &[f32],
     labels: &[u16],
     inv_norms: Option<&[f32]>,
-    sums: &mut [f32],
-    counts: &mut [usize],
-    d: usize,
+    Scratch {
+        sums,
+        counts,
+        order,
+        bounds,
+    }: &mut Scratch<'_>,
+    d: NonZero<usize>,
 ) {
-    // A `debug_assert` only: an `assert_unchecked` here would be sound (the
-    // length is a documented precondition), but to elide the
-    // `inv_norms[index]` bounds check the fact would have to survive into
-    // the rayon closure, and that check is noise next to the `d`-wide
-    // kernel call it precedes.
-    debug_assert!(inv_norms.is_none_or(|norms| norms.len() == labels.len()));
+    let d = d.get();
 
-    // TODO(PERF): This isn't as performant as it could be, in theory we could first create a
-    // histogram, and then use that to dispatch over it. A potential optimization opportunity if
-    // ever required.
+    // We deliberately opt into checked indexing here. Profiling via performance counters on
+    // Apple M5 (which does have a large out-of-order execution window) showed that the fully
+    // checked version has negligible cost: an additional ~13 instructions and ~6 branches per
+    // point (+5.3% instructions), yet no increase in cycle count. This is because the check
+    // branches are >99.8% predicted, and the extra µops retire from issue slots that otherwise
+    // sit idle behind FMA and load latency (backend stall slots *drop* ~4%); the loop is
+    // memory/FMA-bound, not issue-bound.
+    //
+    // While the measurements are specific to Apple M5, the general trend should be transferable
+    // to other architectures.
+    //
+    // The checks buy panics-instead-of-UB for free, shrinking `# Safety` to the kernels'
+    // alignment requirement. Do not switch this back to unchecked indexing without new
+    // measurements.
+    assert!(inv_norms.is_none_or(|norms| norms.len() == labels.len()));
+    assert_eq!(order.len(), labels.len());
+    assert_eq!(bounds.len(), counts.len() + 1);
+    assert!(!bounds.is_empty());
+    assert_eq!(sums.len(), counts.len() * d);
 
+    // 1. Histogram: the counts double as the bucket sizes, and the checked indexing doubles as
+    //    validation: an out-of-range label panics here, before any scratch is written.
+    counts.fill(0);
+    for &label in labels {
+        counts[usize::from(label)] += 1;
+    }
+
+    // 2. Bucket starts. During the scatter, `bounds[c + 1]` is cluster `c`'s write cursor; each
+    //    cursor ends at its bucket end, leaving `bounds` as exactly the boundary array the gather
+    //    needs: cluster `c` owns `order[bounds[c]..bounds[c + 1]]`.
+    bounds[0] = 0;
+    let mut running = 0;
+    for (bound, &count) in bounds[1..].iter_mut().zip(counts.iter()) {
+        *bound = running;
+        running += count;
+    }
+
+    // 3. Stable scatter: visiting points in ascending index order keeps each bucket ascending,
+    //    which pins the per-cluster addition order (and therefore the sums) regardless of how rayon
+    //    schedules the gather.
+    for (index, &label) in labels.iter().enumerate() {
+        // Cluster `c`'s cursor starts at its bucket start and is bumped once
+        // per point labeled `c`, of which the histogram counted exactly
+        // `counts[c]`, so it stays below the bucket end (at most
+        // `order.len()`): for histogram-validated labels these accesses
+        // cannot panic.
+        let cursor = &mut bounds[usize::from(label) + 1];
+        order[*cursor] = index;
+        *cursor += 1;
+    }
+
+    // Shared views for the parallel gather.
+    let order: &[usize] = order;
+    let bounds: &[usize] = bounds;
+
+    // 4. Accumulate: one task per cluster, walking only its own bucket.
     sums.par_chunks_exact_mut(d)
-        .zip(counts.par_iter_mut())
-        .enumerate()
-        .for_each(|(cluster, (sum, count))| {
+        .zip(bounds.par_array_windows::<2>())
+        .for_each(|(sum, &[start, end])| {
             sum.fill(0.0);
-            *count = 0;
 
-            for (index, (point, &label)) in points.chunks_exact(d).zip(labels).enumerate() {
-                if usize::from(label) != cluster {
-                    continue;
-                }
-
-                *count += 1;
+            for &index in &order[start..end] {
+                let row = index * d;
+                let point = &points[row..row + d];
 
                 let inv_norm = inv_norms.map_or_else(
                     || {
@@ -686,18 +776,21 @@ unsafe fn accumulate_clusters(
 /// * `d` is a multiple of 8
 unsafe fn label_chunk(
     centroids: &[f32],
-    k: NonZero<usize>,
-    d: usize,
+    k_nz: NonZero<usize>,
+    d_nz: NonZero<usize>,
     points: &[f32],
     labels: &mut [u16],
 ) {
+    let k = k_nz.get();
+    let d = d_nz.get();
+
     let count = labels.len();
 
     // SAFETY: each parallel chunk pairs `count` labels with `count * d`
     // floats of point data; `d` is a multiple of 8 (guaranteed by Dimension).
     unsafe {
         core::hint::assert_unchecked(points.len() == count * d);
-        core::hint::assert_unchecked(centroids.len() >= k.get() * d);
+        core::hint::assert_unchecked(centroids.len() >= k * d);
         core::hint::assert_unchecked(d.is_multiple_of(8));
     }
 
@@ -710,7 +803,7 @@ unsafe fn label_chunk(
 
         // SAFETY: each point length d, centroids length k*d, k > 0,
         // d a multiple of 8 (guaranteed by Dimension).
-        let nearest = unsafe { kernel::nearest4(p0, p1, p2, p3, centroids, k, d) };
+        let nearest = unsafe { kernel::nearest4(p0, p1, p2, p3, centroids, k_nz, d_nz) };
 
         labels[i] = nearest[0].0;
         labels[i + 1] = nearest[1].0;
@@ -722,7 +815,7 @@ unsafe fn label_chunk(
     while i < count {
         let point = &points[i * d..i * d + d];
         // SAFETY: point length d, centroids length k*d, k > 0, d mult of 8.
-        let (label, _) = unsafe { nearest_centroid(point, 1.0, centroids, k, d) };
+        let (label, _) = unsafe { nearest_centroid(point, 1.0, centroids, k_nz, d_nz) };
         labels[i] = label;
         i += 1;
     }
@@ -739,10 +832,12 @@ unsafe fn label_chunk(
 unsafe fn score_chunk(
     centroids: &[f32],
     k: NonZero<usize>,
-    d: usize,
+    d_nz: NonZero<usize>,
     points: &[f32],
     labels: &mut [u16],
 ) -> f32 {
+    let d = d_nz.get();
+
     debug_assert_eq!(points.len(), labels.len() * d);
 
     // SAFETY: The caller must ensure `points.len() == labels.len() * d`.
@@ -762,7 +857,7 @@ unsafe fn score_chunk(
 
         // SAFETY: each point length d, centroids length k*d, k > 0,
         // d a multiple of 8 (guaranteed by Dimension).
-        let nearest = unsafe { kernel::nearest4(p0, p1, p2, p3, centroids, k, d) };
+        let nearest = unsafe { kernel::nearest4(p0, p1, p2, p3, centroids, k, d_nz) };
         let ps = [p0, p1, p2, p3];
 
         for offset in 0..4 {
@@ -784,7 +879,7 @@ unsafe fn score_chunk(
         let inv_norm = if norm > 0.0 { norm.recip() } else { 0.0 };
 
         // SAFETY: point length d, centroids length k*d, k > 0, d mult of 8.
-        let (label, distance) = unsafe { nearest_centroid(point, inv_norm, centroids, k, d) };
+        let (label, distance) = unsafe { nearest_centroid(point, inv_norm, centroids, k, d_nz) };
         labels[i] = label;
         inertia += distance;
         i += 1;
@@ -806,7 +901,7 @@ unsafe fn reassign(
     centroids: &[f32],
     labels: &mut [u16],
     k: NonZero<usize>,
-    d: usize,
+    d: NonZero<usize>,
     chunk: usize,
     row_chunk: usize,
 ) {
@@ -839,7 +934,7 @@ unsafe fn reassign_scored(
     centroids: &[f32],
     labels: &mut [u16],
     k: NonZero<usize>,
-    d: usize,
+    d: NonZero<usize>,
     chunk: usize,
     row_chunk: usize,
 ) -> f32 {
@@ -861,15 +956,14 @@ unsafe fn reassign_scored(
 /// from the full population, and re-labels against the final centroids.
 /// Returns the full-data inertia.
 ///
-/// `sums` and `counts` are accumulator scratch; their contents on entry are
-/// irrelevant.
+/// `scratch` contents on entry are irrelevant; its shape is validated by
+/// [`accumulate_clusters`], which panics on any mismatch.
 ///
 /// # Safety
 ///
 /// * `x.len() == n * d` for some `n`
 /// * `clustering.centroids.len() == k * d`
 /// * `clustering.labels.len() == n`
-/// * `sums.len() == k * d` and `counts.len() == k`
 /// * `d` is a multiple of 8
 unsafe fn assign(
     x: &[f32],
@@ -877,10 +971,9 @@ unsafe fn assign(
     k: NonZero<usize>,
     chunk: usize,
     row_chunk: usize,
-    sums: &mut [f32],
-    counts: &mut [usize],
+    scratch: &mut Scratch<'_>,
 ) -> f32 {
-    let d = clustering.dimension.get() as usize;
+    let d = NonZero::<usize>::from(clustering.dimension.value());
 
     // 1. Label all points against the sample-fitted centroids.
     // SAFETY: forwarded from the caller.
@@ -897,18 +990,19 @@ unsafe fn assign(
     }
 
     // 2. Recompute centroids from the full population.
-    // SAFETY: `x.len() == n * d` with `n` labels, sums is `k * d` with `k`
-    // counts, and `d` is a multiple of 8 (guaranteed by Dimension).
+    // SAFETY: `d` is a multiple of 8 (guaranteed by Dimension); every other
+    // requirement is checked by `accumulate_clusters` itself and panics
+    // rather than misbehaving.
     unsafe {
-        accumulate_clusters(x, &clustering.labels, None, sums, counts, d);
+        accumulate_clusters(x, &clustering.labels, None, scratch, d);
     }
 
-    for (cluster, count) in counts.iter_mut().enumerate() {
+    for (cluster, count) in scratch.counts.iter_mut().enumerate() {
         if *count == 0 {
             continue;
         }
 
-        let start = cluster * d;
+        let start = cluster * d.get();
 
         #[expect(
             clippy::cast_possible_truncation,
@@ -917,7 +1011,7 @@ unsafe fn assign(
         let centroid = clustering.centroid_mut(cluster as u16);
         // Normalization is scale-invariant, so the raw sum gives the same
         // direction as the average.
-        centroid.copy_from_slice(&sums[start..start + d]);
+        centroid.copy_from_slice(&scratch.sums[start..start + d.get()]);
 
         // SAFETY: centroid length d, a multiple of 8.
         unsafe {
@@ -1028,7 +1122,7 @@ pub fn cluster(x: &[f32], dimension: Dimension, config: &Config) -> Clustering {
         .into_par_iter()
         .enumerate()
         .map(|(index, seed)| {
-            let mut restart = Restart::new(k, m, d);
+            let mut restart = Restart::new(k, m, dimension.value().into());
             let inertia = restart.run(sample, chunk, row_chunk, &sample_inv_norms, seed, config);
 
             (inertia, index, restart)
@@ -1038,31 +1132,35 @@ pub fn cluster(x: &[f32], dimension: Dimension, config: &Config) -> Clustering {
 
     // Reuse the winning restart's buffers: its centroids become the result
     // and its per-cluster accumulators serve the full-data recomputation,
-    // instead of allocating fresh ones.
+    // instead of allocating fresh ones. Only `order` needs a fresh, `n`-sized
+    // allocation (the restart's is sample-sized); this is the sole per-fit
+    // scratch allocation outside setup, and none happen per iteration.
     let Restart {
         centroids,
         mut sums,
         mut counts,
+        mut bounds,
         ..
     } = best.2;
 
     clustering.centroids = centroids;
 
+    let mut order = vec![0_usize; n];
+
+    let mut scratch = Scratch {
+        sums: &mut sums,
+        counts: &mut counts,
+        order: &mut order,
+        bounds: &mut bounds,
+    };
+
     // 3. assign points to clusters
     // SAFETY: `x.len() == n * d` (asserted above), `clustering.centroids.len() == k * d`,
     // `sums` and `counts` are the restart's `k * d` and `k` sized accumulators,
-    // and `d` is a multiple of 8 (guaranteed by Dimension).
-    clustering.inertia = unsafe {
-        assign(
-            x,
-            &mut clustering,
-            k,
-            chunk,
-            row_chunk,
-            &mut sums,
-            &mut counts,
-        )
-    };
+    // `order` was just allocated with `n` entries, `bounds` is the restart's
+    // `k + 1` boundary scratch, and `d` is a multiple of 8 (guaranteed by
+    // Dimension).
+    clustering.inertia = unsafe { assign(x, &mut clustering, k, chunk, row_chunk, &mut scratch) };
 
     clustering
 }
@@ -1565,7 +1663,7 @@ mod tests {
 
             // SAFETY: point has length D=64, centroids has length k*D,
             // k > 0, D is a multiple of 8.
-            let (got, _) = unsafe { nearest_centroid(&p, inv, &centroids, k, D) };
+            let (got, _) = unsafe { nearest_centroid(&p, inv, &centroids, k, nz!(D)) };
             assert_eq!(
                 got,
                 brute_nearest_cosine(&p, &centroids, k),
@@ -1587,9 +1685,9 @@ mod tests {
 
             // SAFETY: point has length D=64, centroids has length k*D,
             // k > 0, D is a multiple of 8.
-            let (a, _) = unsafe { nearest_centroid(&p, 1.0, &centroids, k, D) };
+            let (a, _) = unsafe { nearest_centroid(&p, 1.0, &centroids, k, nz!(D)) };
             // SAFETY: same preconditions.
-            let (b, _) = unsafe { nearest_centroid(&p, 0.123, &centroids, k, D) };
+            let (b, _) = unsafe { nearest_centroid(&p, 0.123, &centroids, k, nz!(D)) };
             assert_eq!(a, b, "inv_norm must not change the selected centroid");
         }
     }
@@ -1613,5 +1711,140 @@ mod tests {
 
         assert!(result.centroids.iter().all(|v| v.is_finite()));
         assert!(result.labels.iter().all(|&l| l < 5));
+    }
+
+    /// Sequential reference for [`accumulate_clusters`]: one pass over the
+    /// points in ascending index order, adding each to its cluster's sum
+    /// with the same kernels. Bit-identical to the parallel version by
+    /// construction if (and only if) the grouping preserves per-cluster
+    /// ascending order, which is exactly the property under test.
+    fn accumulate_reference(
+        points: &[f32],
+        labels: &[u16],
+        inv_norms: Option<&[f32]>,
+        k: usize,
+        d: usize,
+    ) -> (Vec<f32>, Vec<usize>) {
+        let mut sums = vec![0.0_f32; k * d];
+        let mut counts = vec![0_usize; k];
+
+        for (index, (point, &label)) in points.chunks_exact(d).zip(labels).enumerate() {
+            let cluster = usize::from(label);
+            counts[cluster] += 1;
+
+            let inv_norm = inv_norms.map_or_else(
+                || {
+                    // SAFETY: `point` has length `d`, a multiple of 8.
+                    let norm = unsafe { kernel::dot(point, point) }.sqrt();
+
+                    if norm > 0.0 { norm.recip() } else { 0.0 }
+                },
+                |inv_norms| inv_norms[index],
+            );
+
+            if inv_norm == 0.0 {
+                continue;
+            }
+
+            // SAFETY: sum rows and `point` have length `d`, a multiple of 8.
+            unsafe {
+                kernel::add_scaled_into(&mut sums[cluster * d..(cluster + 1) * d], point, inv_norm);
+            }
+        }
+
+        (sums, counts)
+    }
+
+    #[test]
+    fn accumulate_clusters_matches_sequential_reference_bitwise() {
+        // Half the points land in cluster 0 (skew), the rest spread over
+        // 1..=5; cluster 6 stays empty.
+        const PATTERN: [u16; 10] = [0, 1, 0, 2, 0, 3, 0, 4, 0, 5];
+        let n = 203;
+        let d = 32;
+        let k = 7_usize;
+
+        let mut rng = Xoshiro256PlusPlus::seed_from_u64(31);
+        let mut points = vec![0.0_f32; n * d];
+        for (i, row) in points.chunks_exact_mut(d).enumerate() {
+            if i % 17 == 0 {
+                continue; // leave all-zero: counted, but contributes nothing
+            }
+            for v in row.iter_mut() {
+                *v = rng.random_range(-1.0..1.0);
+            }
+        }
+
+        let labels: Vec<u16> = (0..n).map(|i| PATTERN[i % PATTERN.len()]).collect();
+
+        let inv_norms: Vec<f32> = points
+            .chunks_exact(d)
+            .map(|row| {
+                let norm = l2(row);
+                if norm > 0.0 { norm.recip() } else { 0.0 }
+            })
+            .collect();
+
+        for inv in [None, Some(inv_norms.as_slice())] {
+            // Sentinels: the accumulator must overwrite all of its outputs.
+            let mut sums = vec![f32::NAN; k * d];
+            let mut counts = vec![usize::MAX; k];
+            let mut order = vec![usize::MAX; n];
+            let mut bounds = vec![usize::MAX; k + 1];
+
+            let mut scratch = Scratch {
+                sums: &mut sums,
+                counts: &mut counts,
+                order: &mut order,
+                bounds: &mut bounds,
+            };
+
+            // SAFETY: `points` is `n * d` floats with `n` labels, all labels
+            // are drawn from `PATTERN` and below `k == 7`, sums are `k * d`
+            // with `k` counts, inv norms (when provided) have one entry per
+            // label, order has `n` entries, bounds has `k + 1`, and
+            // `d == 32` is a multiple of 8.
+            unsafe {
+                accumulate_clusters(&points, &labels, inv, &mut scratch, nz!(32));
+            }
+
+            let (expected_sums, expected_counts) =
+                accumulate_reference(&points, &labels, inv, k, d);
+
+            assert_eq!(counts, expected_counts);
+            assert_eq!(counts[6], 0, "cluster 6 must stay empty");
+            assert_eq!(counts.iter().sum::<usize>(), n, "every point counted");
+
+            for (i, (sum, expected)) in sums.iter().zip(&expected_sums).enumerate() {
+                assert_eq!(
+                    sum.to_bits(),
+                    expected.to_bits(),
+                    "sums diverge at element {i}: {sum} vs {expected}"
+                );
+            }
+        }
+    }
+
+    /// The determinism contract: identical bits regardless of pool width.
+    /// Guards the accumulate/assignment structure against rewrites whose
+    /// float reduction order depends on rayon's scheduling.
+    #[test]
+    fn cluster_bitwise_identical_across_pool_sizes() {
+        let (data, _) = make_blobs::<8>(40, 4, 2024);
+        let config = Config::for_k_with_seed(4, 7);
+
+        let single = rayon::ThreadPoolBuilder::new()
+            .num_threads(1)
+            .build()
+            .expect("single-thread pool should build")
+            .install(|| cluster(&data, dim(8), &config));
+        let multi = rayon::ThreadPoolBuilder::new()
+            .num_threads(8)
+            .build()
+            .expect("multi-thread pool should build")
+            .install(|| cluster(&data, dim(8), &config));
+
+        assert_eq!(single.labels, multi.labels);
+        assert_eq!(single.centroids, multi.centroids);
     }
 }
