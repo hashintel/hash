@@ -3800,16 +3800,18 @@
           "clusterCount": {
             "type": "integer",
             "format": "int32",
-            "description": "Desired number of clusters. Clamped to the number of entities with\nembeddings when that is smaller.",
+            "description": "Desired number of clusters.\n\nClamped to the number of entities with embeddings when that is smaller.",
+            "maximum": 64,
             "minimum": 0
           },
           "dimension": {
             "type": "integer",
             "format": "int32",
-            "description": "Embedding dimension after matryoshka truncation. Must be a positive\nmultiple of 8; values above 3072 are rejected. Defaults to 256.",
+            "description": "Embedding dimension after matryoshka truncation.\n\nMust be a positive multiple of 8; values above 512 are rejected. Defaults to 256.",
             "default": 256,
             "example": 256,
             "multipleOf": 8,
+            "maximum": 512,
             "minimum": 8
           },
           "entityIds": {
@@ -3854,7 +3856,7 @@
             "items": {
               "$ref": "#/components/schemas/EntityId"
             },
-            "description": "Entities from the request that had no stored embedding."
+            "description": "Entities from the request that had no stored embedding or that do not exist."
           }
         }
       },
@@ -4643,7 +4645,7 @@
           "clusterId": {
             "type": "integer",
             "format": "int32",
-            "description": "Index in `0..cluster_count`.",
+            "description": "Index in `0..min(cluster_count, n)`.",
             "minimum": 0
           },
           "entityIds": {
