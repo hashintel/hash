@@ -54,6 +54,12 @@ export const overlayPartsStyles = sva({
       paddingX: "[var(--panel-horizontal-padding)]",
       paddingTop: "[var(--panel-top-padding)]",
       paddingBottom: "3.5",
+      '[data-drawer-position="right"] &': { borderTopRightRadius: "[0]" },
+      '[data-drawer-position="left"] &': { borderTopLeftRadius: "[0]" },
+      '[data-drawer-position="top"] &': {
+        borderTopLeftRadius: "[0]",
+        borderTopRightRadius: "[0]",
+      },
     },
     hasCustomHeader: {
       display: "flex",
@@ -116,6 +122,14 @@ export const overlayPartsStyles = sva({
       paddingX: "[var(--panel-horizontal-padding)]",
       paddingTop: "4",
       paddingBottom: "5",
+      '[data-drawer-position="right"] &': { borderBottomRightRadius: "[0]" },
+      '[data-drawer-position="left"] &': { borderBottomLeftRadius: "[0]" },
+      '[data-drawer-position="bottom"] &': {
+        "&:last-child": {
+          borderBottomLeftRadius: "[0]",
+          borderBottomRightRadius: "[0]",
+        },
+      },
       // While loading, lock the body's scroll so the absolutely-positioned
       // overlay stays pinned to the visible area instead of riding the
       // scrolled content.
@@ -135,6 +149,12 @@ export const overlayPartsStyles = sva({
       paddingX: "[var(--panel-horizontal-padding)]",
       paddingTop: "3.5",
       paddingBottom: "3",
+      '[data-drawer-position="right"] &': { borderBottomRightRadius: "[0]" },
+      '[data-drawer-position="left"] &': { borderBottomLeftRadius: "[0]" },
+      '[data-drawer-position="bottom"] &': {
+        borderBottomLeftRadius: "[0]",
+        borderBottomRightRadius: "[0]",
+      },
     },
     footerActions: {
       display: "flex",
@@ -262,19 +282,7 @@ export const overlayPartsStyles = sva({
           _closed: { animationDuration: "faster" },
         },
       },
-      // The Drawer is pinned flush against the right edge of the viewport with
-      // square right-hand corners, so its chrome squares off the right corners
-      // the Dialog leaves rounded. Physical-corner longhands are used so they
-      // override the two-corner shorthands above in the cascade; the body's
-      // `:last-child` clause likewise beats the rounding the `plain` variant
-      // restores on a footerless body.
       drawer: {
-        header: { borderTopRightRadius: "[0]" },
-        body: {
-          borderBottomRightRadius: "[0]",
-          "&:last-child": { borderBottomRightRadius: "[0]" },
-        },
-        footer: { borderBottomRightRadius: "[0]" },
         backdrop: {
           _open: { animationDuration: "faster" },
           _closed: { animationDuration: "fastest" },

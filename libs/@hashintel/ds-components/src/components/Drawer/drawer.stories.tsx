@@ -4,7 +4,7 @@ import { css } from "@hashintel/ds-helpers/css";
 
 import { Button } from "../Button/button";
 import { Icon } from "../Icon/icon";
-import { Drawer, type DrawerSize } from "./drawer";
+import { Drawer, type DrawerPosition, type DrawerSize } from "./drawer";
 
 import type { Story, StoryDefault } from "@ladle/react";
 
@@ -281,6 +281,41 @@ export const Examples: Story = () => (
   </div>
 );
 
+const positions = [
+  "left",
+  "top",
+  "right",
+  "bottom",
+] as const satisfies readonly DrawerPosition[];
+
+export const Positions: Story = () => (
+  <div className={stackStyles}>
+    {positions.map((position) => (
+      <DrawerExample
+        key={position}
+        buttonLabel={position}
+        renderDrawer={(close) => (
+          <Drawer position={position} onClose={close}>
+            <Drawer.Header
+              title={`${position} drawer`}
+              iconName="gear"
+              description={`Anchored to the ${position} edge of the viewport.`}
+            />
+            <Drawer.Body>{sampleBody}</Drawer.Body>
+            <Drawer.Footer
+              actions={
+                <Button variant="solid" tone="brand" onClick={close}>
+                  Done
+                </Button>
+              }
+            />
+          </Drawer>
+        )}
+      />
+    ))}
+  </div>
+);
+
 const sizes = ["sm", "md", "lg", "xl"] as const satisfies readonly DrawerSize[];
 
 const renderKitchenSink = (
@@ -344,6 +379,26 @@ export const Sizes: Story = () => (
             renderKitchenSink(size, close, { loading: true })
           }
         />
+        <DrawerExample
+          buttonLabel={`Bottom — ${size}`}
+          renderDrawer={(close) => (
+            <Drawer size={size} position="bottom" onClose={close}>
+              <Drawer.Header
+                title={`Bottom drawer (${size})`}
+                iconName="gear"
+                description="Anchored to the bottom edge, sized for this height."
+              />
+              <Drawer.Body>{sampleBody}</Drawer.Body>
+              <Drawer.Footer
+                actions={
+                  <Button variant="solid" tone="brand" onClick={close}>
+                    Done
+                  </Button>
+                }
+              />
+            </Drawer>
+          )}
+        />
         {size === "sm" ? (
           <>
             <DrawerExample
@@ -384,6 +439,29 @@ export const Sizes: Story = () => (
             <Drawer.Header
               title="Custom width (480px)"
               description="maxWidth is overridden via className."
+            />
+            <Drawer.Body>{sampleBody}</Drawer.Body>
+            <Drawer.Footer
+              actions={
+                <Button variant="solid" tone="brand" onClick={close}>
+                  Save changes
+                </Button>
+              }
+            />
+          </Drawer>
+        )}
+      />
+      <DrawerExample
+        buttonLabel="Custom height (320px, bottom)"
+        renderDrawer={(close) => (
+          <Drawer
+            position="bottom"
+            className={css({ maxHeight: "[320px]" })}
+            onClose={close}
+          >
+            <Drawer.Header
+              title="Custom height (320px)"
+              description="maxHeight is overridden via className on a bottom drawer."
             />
             <Drawer.Body>{sampleBody}</Drawer.Body>
             <Drawer.Footer

@@ -4,8 +4,16 @@ import { sva } from "@hashintel/ds-helpers/css";
 
 /**
  * The header / body / footer chrome is shared with the Dialog and lives in
- * `../../util/overlay-parts.recipe`; the `--panel-*` custom properties
- * declared on `content` below feed that shared chrome via inheritance.
+ * `../../util/overlay-parts.recipe`; the `--panel-*` custom properties declared
+ * on `content` below feed that shared chrome via inheritance.
+ *
+ * The drawer can be anchored to any viewport edge via the `position` variant,
+ * which sets the anchor, the panel's dimensions, the rounded corners (the edge
+ * it's flush against stays square), the shadow direction, and the slide
+ * animation. `size` feeds `--drawer-width` and `--drawer-height`; `position`
+ * maps the width to `maxWidth` (left/right) or the height to `maxHeight`
+ * (top/bottom), since a top/bottom sheet reads best much shorter than a
+ * left/right drawer is wide.
  */
 export const styles = sva({
   className: "drawer",
@@ -22,8 +30,6 @@ export const styles = sva({
     },
     positioner: {
       display: "flex",
-      justifyContent: "flex-end",
-      alignItems: "stretch",
       position: "fixed",
       inset: "0",
       width: "[100dvw]",
@@ -31,7 +37,6 @@ export const styles = sva({
       overflow: "hidden",
       overscrollBehaviorY: "none",
       zIndex: "modal",
-      paddingLeft: "[10%]",
     },
     content: {
       "--panel-horizontal-padding": "var(--spacing-5\\.5)",
@@ -41,25 +46,14 @@ export const styles = sva({
       display: "flex",
       flexDirection: "column",
       width: "[100%]",
-      height: "[100dvh]",
-      maxHeight: "[100dvh]",
       outline: "none",
-      boxShadow:
-        "[-1px 0 0 0 rgba(0, 0, 0, 0.03), -1px 0 2px -1px rgba(0, 0, 0, 0.06), -8px 0 16px -6px rgba(0, 0, 0, 0.09), -18px 0 32px -14px rgba(0, 0, 0, 0.16)]",
-      borderTopLeftRadius: "xl",
-      borderBottomLeftRadius: "xl",
-      borderTopRightRadius: "[0]",
-      borderBottomRightRadius: "[0]",
       backgroundColor: "neutral.s10",
       padding: "1",
       transition: "[transform 0.2s ease]",
-
       _open: {
-        animationName: "drawerSlideIn",
         animationDuration: "normal",
       },
       _closed: {
-        animationName: "drawerSlideOut",
         animationDuration: "fast",
       },
     },
@@ -68,24 +62,106 @@ export const styles = sva({
     size: {
       sm: {
         content: {
-          maxWidth: "[520px]",
+          "--drawer-width": "520px",
+          "--drawer-height": "280px",
           "--panel-horizontal-padding": "var(--spacing-4)",
           "--panel-top-padding": "var(--spacing-3\\.5)",
           "--panel-close-button-gap": "var(--spacing-2\\.5)",
         },
       },
       md: {
-        content: { maxWidth: "[640px]" },
+        content: { "--drawer-width": "640px", "--drawer-height": "400px" },
       },
       lg: {
-        content: { maxWidth: "[860px]" },
+        content: { "--drawer-width": "860px", "--drawer-height": "560px" },
       },
       xl: {
-        content: { maxWidth: "[1060px]" },
+        content: { "--drawer-width": "1060px", "--drawer-height": "720px" },
+      },
+    },
+    position: {
+      right: {
+        positioner: {
+          justifyContent: "flex-end",
+          alignItems: "stretch",
+          paddingLeft: "[10%]",
+        },
+        content: {
+          height: "[100dvh]",
+          maxWidth: "[var(--drawer-width)]",
+          borderTopLeftRadius: "xl",
+          borderBottomLeftRadius: "xl",
+          borderTopRightRadius: "[0]",
+          borderBottomRightRadius: "[0]",
+          boxShadow:
+            "[-1px 0 0 0 rgba(0, 0, 0, 0.03), -1px 0 2px -1px rgba(0, 0, 0, 0.06), -8px 0 16px -6px rgba(0, 0, 0, 0.09), -18px 0 32px -14px rgba(0, 0, 0, 0.16)]",
+          _open: { animationName: "drawerSlideInRight" },
+          _closed: { animationName: "drawerSlideOutRight" },
+        },
+      },
+      left: {
+        positioner: {
+          justifyContent: "flex-start",
+          alignItems: "stretch",
+          paddingRight: "[10%]",
+        },
+        content: {
+          height: "[100dvh]",
+          maxWidth: "[var(--drawer-width)]",
+          borderTopRightRadius: "xl",
+          borderBottomRightRadius: "xl",
+          borderTopLeftRadius: "[0]",
+          borderBottomLeftRadius: "[0]",
+          boxShadow:
+            "[1px 0 0 0 rgba(0, 0, 0, 0.03), 1px 0 2px -1px rgba(0, 0, 0, 0.06), 8px 0 16px -6px rgba(0, 0, 0, 0.09), 18px 0 32px -14px rgba(0, 0, 0, 0.16)]",
+          _open: { animationName: "drawerSlideInLeft" },
+          _closed: { animationName: "drawerSlideOutLeft" },
+        },
+      },
+      top: {
+        positioner: {
+          flexDirection: "column",
+          justifyContent: "flex-start",
+          alignItems: "stretch",
+          paddingBottom: "[10%]",
+        },
+        content: {
+          height: "[100%]",
+          maxHeight: "[var(--drawer-height)]",
+          borderBottomLeftRadius: "xl",
+          borderBottomRightRadius: "xl",
+          borderTopLeftRadius: "[0]",
+          borderTopRightRadius: "[0]",
+          boxShadow:
+            "[0 1px 0 0 rgba(0, 0, 0, 0.03), 0 1px 2px -1px rgba(0, 0, 0, 0.06), 0 8px 16px -6px rgba(0, 0, 0, 0.09), 0 18px 32px -14px rgba(0, 0, 0, 0.16)]",
+          _open: { animationName: "drawerSlideInTop" },
+          _closed: { animationName: "drawerSlideOutTop" },
+        },
+      },
+      bottom: {
+        positioner: {
+          flexDirection: "column",
+          justifyContent: "flex-end",
+          alignItems: "stretch",
+          paddingTop: "[10%]",
+        },
+        content: {
+          height: "[100%]",
+          maxHeight: "[var(--drawer-height)]",
+          borderTopLeftRadius: "xl",
+          borderTopRightRadius: "xl",
+          borderBottomLeftRadius: "[0]",
+          borderBottomRightRadius: "[0]",
+          boxShadow:
+            "[0 -1px 0 0 rgba(0, 0, 0, 0.03), 0 -1px 2px -1px rgba(0, 0, 0, 0.06), 0 -8px 16px -6px rgba(0, 0, 0, 0.09), 0 -18px 32px -14px rgba(0, 0, 0, 0.16)]",
+          _open: { animationName: "drawerSlideInBottom" },
+          _closed: { animationName: "drawerSlideOutBottom" },
+        },
       },
     },
   },
   defaultVariants: {
     size: "md",
+    position: "right",
   },
 });

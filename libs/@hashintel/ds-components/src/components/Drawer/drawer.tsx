@@ -20,12 +20,24 @@ import { styles } from "./drawer.recipe";
 
 export type DrawerSize = "sm" | "md" | "lg" | "xl";
 
+export type DrawerPosition = "left" | "top" | "right" | "bottom";
+
 const backdropClassName = overlayPartsStyles({ component: "drawer" }).backdrop;
+
+// Which way the panel is swiped to dismiss, per anchor edge. Ark resolves
+// "start"/"end" to left/right based on the writing direction.
+const swipeDirectionByPosition = {
+  right: "end",
+  left: "start",
+  top: "up",
+  bottom: "down",
+} as const;
 
 const DrawerRoot = ({
   className,
   size = "md",
   variant = "partitionedFooter",
+  position = "right",
   children,
   showBackdrop = true,
   shouldCloseOn = "closeButtonAndOverlay",
@@ -40,6 +52,8 @@ const DrawerRoot = ({
   size?: DrawerSize;
   onKeyDown?: React.KeyboardEventHandler<Element>;
   variant?: "partitionedFooter" | "plain";
+  /** Which viewport edge the drawer is anchored to. Defaults to `"right"`. */
+  position?: DrawerPosition;
   /** Render the dimmed overlay behind the drawer. Defaults to `true`. */
   showBackdrop?: boolean;
   children:
@@ -61,7 +75,7 @@ const DrawerRoot = ({
 } & React.AriaAttributes) => {
   const portalContainerRef = usePortalContainerRef();
 
-  const classes = useMemo(() => styles({ size }), [size]);
+  const classes = useMemo(() => styles({ size, position }), [size, position]);
 
   const renderCloseButton = shouldCloseOn !== "none";
   const closeOnEscape = shouldCloseOn !== "none";
@@ -93,7 +107,7 @@ const DrawerRoot = ({
       open={open}
       lazyMount
       unmountOnExit
-      swipeDirection="end"
+      swipeDirection={swipeDirectionByPosition[position]}
       // Without a backdrop the drawer is non-modal, so the page behind stays interactive
       // But we still want to keep focus trapped even when modal={false}
       modal={showBackdrop}
@@ -119,6 +133,7 @@ const DrawerRoot = ({
           <ArkDrawer.Positioner className={classes.positioner}>
             <ArkDrawer.Content
               {...ariaAttributes}
+              data-drawer-position={position}
               className={cx(classes.content, className)}
               aria-busy={loading ?? undefined}
               onKeyDown={onKeyDown}
