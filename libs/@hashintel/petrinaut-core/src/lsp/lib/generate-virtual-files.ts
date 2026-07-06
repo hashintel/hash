@@ -586,7 +586,9 @@ export function generateMetricSessionFiles(
   const { sessionId } = session;
 
   // Build per-place state types. Colored places expose typed `tokens` arrays;
-  // uncolored places fall back to an empty token-record array.
+  // uncolored places (and places whose color can't be resolved) always yield
+  // `[]` at runtime, so their element type is `never` — indexing into them is
+  // a type error instead of a phantom token record.
   const colorById = new Map(sdcpn.types.map((c) => [c.id, c]));
   const placeStateImports: string[] = [];
   const placeStateProperties: string[] = [];
@@ -606,10 +608,10 @@ export function generateMetricSessionFiles(
         }
         tokensType = `Color_${sanitized}[]`;
       } else {
-        tokensType = "Record<string, number | boolean>[]";
+        tokensType = "never[]";
       }
     } else {
-      tokensType = "Record<string, number | boolean>[]";
+      tokensType = "never[]";
     }
     placeStateProperties.push(
       `  "${place.name}": { count: number; tokens: ${tokensType} };`,
