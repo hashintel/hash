@@ -63,7 +63,7 @@ export const styles = sva({
     content: {
       "--panel-horizontal-padding": "var(--spacing-5\\.5)",
       "--panel-top-padding": "var(--spacing-4)",
-      "--panel-close-button-gap": "var(--spacing-2)",
+      "--panel-close-button-gap": "var(--spacing-3\\.5)",
       position: "relative",
       display: "flex",
       flexDirection: "column",
@@ -99,10 +99,16 @@ export const styles = sva({
           maxWidth: "[400px]",
           "--panel-horizontal-padding": "var(--spacing-4)",
           "--panel-top-padding": "var(--spacing-3\\.5)",
+          "--panel-close-button-gap": "var(--spacing-2\\.5)",
         },
       },
       sm: {
-        content: { maxWidth: "[520px]" },
+        content: {
+          maxWidth: "[520px]",
+          "--panel-horizontal-padding": "var(--spacing-4)",
+          "--panel-top-padding": "var(--spacing-3\\.5)",
+          "--panel-close-button-gap": "var(--spacing-2\\.5)",
+        },
       },
       md: {
         content: { maxWidth: "[640px]" },

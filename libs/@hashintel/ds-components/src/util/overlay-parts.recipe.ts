@@ -45,7 +45,6 @@ export const overlayPartsStyles = sva({
       display: "flex",
       alignItems: "flex-start",
       gap: "2",
-      flex: "[1 1 auto]",
       minWidth: "0",
     },
     headerMain: {},
@@ -229,6 +228,10 @@ export const overlayPartsStyles = sva({
         },
         body: {
           borderBottom: "none",
+          "&:last-child": {
+            borderBottomRadius: "lg",
+            borderBottom: "[1px solid {colors.neutral.s50}]",
+          },
         },
         footer: {
           backgroundColor: "white",

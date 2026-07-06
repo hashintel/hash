@@ -4,6 +4,7 @@ import {
   isValidElement,
   useContext,
   useMemo,
+  useRef,
 } from "react";
 
 import { css, cx } from "@hashintel/ds-helpers/css";
@@ -12,6 +13,7 @@ import { Button } from "../components/Button/button";
 import { Icon, type IconName } from "../components/Icon/icon";
 import { LoadingSpinner } from "../components/Loading/loading-spinner";
 import { overlayPartsStyles } from "./overlay-parts.recipe";
+import { useAvoidScrollWidthChange } from "./use-avoid-scroll-width-change";
 
 import type { ExclusifyUnion, RequireAtLeastOne } from "type-fest";
 
@@ -184,8 +186,17 @@ export const OverlayBody = ({
 }: OverlayBodyProps) => {
   const { classes, loading } = useOverlayContext();
 
+  const bodyRef = useRef<HTMLDivElement>(null);
+
+  // Hold the body's content width steady as its vertical scrollbar appears and
+  // disappears, so content doesn't shift sideways (a no-op with overlay
+  // scrollbars). Skipped when the body forgoes its own padding, since it then
+  // has no gutter to manage.
+  useAvoidScrollWidthChange(bodyRef, withPadding);
+
   return (
     <div
+      ref={bodyRef}
       className={cx(
         classes.body,
         !withPadding && css({ padding: "[0 !important]" }),
