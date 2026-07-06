@@ -70,6 +70,9 @@ jobs:
         with:
           scope: ${{ matrix.name }}
 
+      - name: Warm up repository
+        uses: ./.github/actions/warm-up-repo
+
       - name: Build the benchmark target
         run: turbo run build:codspeed --filter=${{ matrix.name }}
 
