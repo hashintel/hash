@@ -572,17 +572,23 @@ impl SearchEntityTypesRequest {
         config: ApiConfig,
         embedding_client: Option<&OpenAiEmbeddingClient>,
     ) -> Result<SearchEntityTypesParams, Report<SearchRequestError>> {
-        let embedding =
-            resolve_search_embedding(self.embedding, self.semantic_string, embedding_client)
-                .await?;
+        // Validate the local fields before resolving the embedding so an invalid request does not
+        // spend an embedding-provider call.
+        let maximum_semantic_distance = SemanticDistance::try_from(self.maximum_semantic_distance)
+            .change_context(SearchRequestError::InvalidSemanticDistance)
+            .attach(hash_status::StatusCode::InvalidArgument)?;
+        let limit = resolve_limit(self.limit, config.query_ontology_limit)
+            .change_context(SearchRequestError::LimitExceeded)
+            .attach(hash_status::StatusCode::InvalidArgument)?;
         Ok(SearchEntityTypesParams {
-            embedding,
-            maximum_semantic_distance: SemanticDistance::try_from(self.maximum_semantic_distance)
-                .change_context(SearchRequestError::InvalidSemanticDistance)
-                .attach(hash_status::StatusCode::InvalidArgument)?,
-            limit: resolve_limit(self.limit, config.query_ontology_limit)
-                .change_context(SearchRequestError::LimitExceeded)
-                .attach(hash_status::StatusCode::InvalidArgument)?,
+            embedding: resolve_search_embedding(
+                self.embedding,
+                self.semantic_string,
+                embedding_client,
+            )
+            .await?,
+            maximum_semantic_distance,
+            limit,
         })
     }
 }
