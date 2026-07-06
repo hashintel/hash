@@ -204,7 +204,7 @@ function emitBuffer(
     case "kernel": {
       const program = emitBufferKernelJs(fn, context);
       return program
-        ? `// inputSlotCount: ${program.inputSlotCount}, outputFloatCount: ${program.outputFloatCount}\n${program.source}`
+        ? `// inputSlotCount: ${program.inputSlotCount}, outputByteCount: ${program.outputByteCount}\n${program.source}`
         : null;
     }
   }

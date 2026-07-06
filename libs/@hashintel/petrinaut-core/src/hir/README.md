@@ -129,12 +129,9 @@ stochastic model, including RNG state evolution.
 
 ## Current limitations
 
-- Structural shapes the buffer emitter cannot scalarize (conditionals over
-  whole records, dynamic token indices, `.map` over >16 tokens) fall back to
-  the object-convention program per item — still HIR-compiled, just with the
-  engine's record decode/encode around it.
-- Kernels run the object program when stochasticity is disabled (the object
-  wrapper carries the distributions-forbidden runtime check).
+- Shapes the buffer emitter cannot scalarize (dynamic token indices,
+  structurally-dynamic results) are compile errors — there is no fallback
+  program.
 - Metrics, scenarios and visualizers are separate surfaces: metrics/scenarios
   keep their `new Function` compilation (they never used Babel), visualizers
   (JSX) keep `@babel/standalone` in the UI package.

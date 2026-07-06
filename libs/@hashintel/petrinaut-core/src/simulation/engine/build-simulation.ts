@@ -9,14 +9,13 @@ import {
 } from "../../extensions";
 import {
   instantiateHirBufferDynamics,
+  instantiateHirBufferKernel,
   instantiateHirBufferLambda,
-  instantiateHirUserFn,
 } from "../../hir-runtime";
 import {
   deriveDefaultParameterValues,
   mergeParameterValues,
 } from "../../parameter-values";
-import { isDistribution } from "../authoring/user-code/distribution";
 import {
   createEngineFrame,
   createEngineFrameLayout,
@@ -31,29 +30,23 @@ import {
   computeTokenSlotLayout,
   createTokenRegionViews,
   encodeTokenToBytes,
-  readTokenRecord,
   type TokenSlotLayout,
 } from "./token-layout";
 import { coerceTokenRecord } from "./token-values";
 
 import type {
+  HirCompiledBufferKernel,
   HirCompiledBufferLambda,
   HirDynamicsArtifact,
   HirKernelArtifact,
   HirLambdaArtifact,
 } from "../../hir-runtime";
-import type { TokenRecord } from "../../types/sdcpn";
 import type {
   CompiledTransition,
-  CompiledTransitionBuffer,
   DifferentialEquationFn,
-  LambdaFn,
   ParameterValues,
   SimulationInput,
   SimulationInstance,
-  TransitionKernelOutput,
-  TransitionKernelFn,
-  TransitionTokenValues,
 } from "./types";
 
 type ColorElement =
@@ -63,21 +56,6 @@ type PackedInitialPlaceMarking = {
   bytes: Uint8Array;
   count: number;
 };
-
-type UserDifferentialEquationFn = (
-  tokens: TokenRecord[],
-  parameters: ParameterValues,
-) => Record<string, number>[];
-
-type UserLambdaFn = (
-  tokenValues: TransitionTokenValues,
-  parameters: ParameterValues,
-) => number | boolean;
-
-type UserTransitionKernelFn = (
-  tokenValues: TransitionTokenValues,
-  parameters: ParameterValues,
-) => TransitionKernelOutput;
 
 function getInitialMarkingValue(
   initialMarking: SimulationInput["initialMarking"],
@@ -171,70 +149,6 @@ function packInitialPlaceMarking(
   return { bytes, count: value.length };
 }
 
-function createDifferentialEquationFn({
-  placeId,
-  tokenLayout,
-  parameterValues,
-  userFn,
-  stringPool,
-}: {
-  placeId: string;
-  tokenLayout: TokenSlotLayout;
-  parameterValues: ParameterValues;
-  userFn: UserDifferentialEquationFn;
-  stringPool: StringPool;
-}): DifferentialEquationFn {
-  const { strideBytes } = tokenLayout;
-  const realFields = tokenLayout.fields.filter(
-    (field) => field.element.type === "real",
-  );
-  const realFieldCount = realFields.length;
-
-  return (placeBytes, numberOfTokens) => {
-    if (placeBytes.byteLength !== numberOfTokens * strideBytes) {
-      throw new Error(
-        `Place ${placeId} has ${
-          placeBytes.byteLength
-        } token bytes in frame, expected ${numberOfTokens * strideBytes}`,
-      );
-    }
-
-    const views = createTokenRegionViews(
-      placeBytes.buffer,
-      placeBytes.byteOffset,
-      placeBytes.byteLength,
-    );
-
-    const inputTokens: TokenRecord[] = [];
-    for (let tokenIndex = 0; tokenIndex < numberOfTokens; tokenIndex++) {
-      inputTokens.push(
-        readTokenRecord(
-          tokenLayout,
-          views,
-          tokenIndex * strideBytes,
-          stringPool,
-        ),
-      );
-    }
-
-    const resultTokens = userFn(inputTokens, parameterValues);
-    const result = new Float64Array(numberOfTokens * realFieldCount);
-    const tokenCount = Math.min(resultTokens.length, numberOfTokens);
-
-    for (let tokenIndex = 0; tokenIndex < tokenCount; tokenIndex++) {
-      const token = resultTokens[tokenIndex]!;
-      for (let fieldIndex = 0; fieldIndex < realFieldCount; fieldIndex++) {
-        const field = realFields[fieldIndex]!;
-        result[tokenIndex * realFieldCount + fieldIndex] = Number(
-          token[field.element.name] ?? 0,
-        );
-      }
-    }
-
-    return result;
-  };
-}
-
 function getPlaceElements(
   placeId: string,
   placesMap: ReadonlyMap<string, SimulationInput["sdcpn"]["places"][number]>,
@@ -287,7 +201,7 @@ function missingArtifactError(
 }
 
 /**
- * Expected `slotBases.length` for a transition: one slot per token of each
+ * Expected `indices.length` for a transition: one slot per token of each
  * colored, non-inhibitor input arc whose color has at least one element —
  * must match the emitter's layout (see `hir/surface-context.ts`).
  */
@@ -311,6 +225,53 @@ function computeInputSlotCount(
   return slots;
 }
 
+/**
+ * Expected `placeBases.length` for a transition: one entry per colored,
+ * non-inhibitor input arc whose color has at least one element — the arcs
+ * that contribute slots in `computeInputSlotCount`, counted once each.
+ */
+function computeColoredInputArcCount(
+  transition: SimulationInput["sdcpn"]["transitions"][number],
+  placesMap: ReadonlyMap<string, SimulationInput["sdcpn"]["places"][number]>,
+  typesMap: ReadonlyMap<string, SimulationInput["sdcpn"]["types"][number]>,
+): number {
+  let arcs = 0;
+  for (const arc of transition.inputArcs) {
+    if (arc.type === "inhibitor") {
+      continue;
+    }
+    const placeId = getArcEndpointPlaceId(arc);
+    const place = placeId ? placesMap.get(placeId) : undefined;
+    const color = place?.colorId ? typesMap.get(place.colorId) : undefined;
+    if (color && color.elements.length > 0) {
+      arcs += 1;
+    }
+  }
+  return arcs;
+}
+
+/**
+ * Expected kernel staging byte length: colored output arcs place-major (arc
+ * order), `weight` tokens back-to-back at the color's packed stride — must
+ * match the kernel emitter's `outputByteCount` (see `hir/emit-buffer-js.ts`).
+ */
+function computeKernelStagingSize(
+  transition: SimulationInput["sdcpn"]["transitions"][number],
+  placesMap: ReadonlyMap<string, SimulationInput["sdcpn"]["places"][number]>,
+  typesMap: ReadonlyMap<string, SimulationInput["sdcpn"]["types"][number]>,
+): number {
+  let bytes = 0;
+  for (const arc of transition.outputArcs) {
+    const placeId = getArcEndpointPlaceId(arc);
+    const place = placeId ? placesMap.get(placeId) : undefined;
+    const color = place?.colorId ? typesMap.get(place.colorId) : undefined;
+    if (color) {
+      bytes += arc.weight * computeTokenSlotLayout(color.elements).strideBytes;
+    }
+  }
+  return bytes;
+}
+
 function createLambdaFn({
   transition,
   sdcpn,
@@ -327,7 +288,7 @@ function createLambdaFn({
   artifact: HirLambdaArtifact | undefined;
   expectedSlotCount: number;
   stringPool: StringPool;
-}): { lambdaFn: LambdaFn; bufferLambdaFn: HirCompiledBufferLambda | null } {
+}): HirCompiledBufferLambda {
   const availability = getTransitionLogicAvailability(
     transition,
     sdcpn,
@@ -336,30 +297,27 @@ function createLambdaFn({
   const lambdaType = getEffectiveTransitionLambdaType(transition, availability);
 
   if (!availability.lambda || transition.lambdaCode.trim() === "") {
-    return {
-      lambdaFn: lambdaType === "stochastic" ? () => Infinity : () => true,
-      bufferLambdaFn: null,
-    };
+    // Buffer-ABI-shaped constants — the arguments are ignored.
+    return lambdaType === "stochastic" ? () => Infinity : () => true;
   }
 
-  if (!artifact?.object) {
+  if (!artifact) {
     throw missingArtifactError("Lambda", transition.name, transition.id);
   }
 
+  if (artifact.inputSlotCount !== expectedSlotCount) {
+    throw new SDCPNItemError(
+      `The compiled Lambda for transition \`${transition.name}\` expects ${artifact.inputSlotCount} input token slot(s) but the net requires ${expectedSlotCount}. The compiled artifacts are stale — recompile them from the current net.`,
+      transition.id,
+    );
+  }
+
   try {
-    const userFn = instantiateHirUserFn(artifact.object) as UserLambdaFn;
-    const bufferLambdaFn =
-      artifact.buffer && artifact.buffer.inputSlotCount === expectedSlotCount
-        ? instantiateHirBufferLambda(
-            artifact.buffer.source,
-            parameterValues,
-            stringPool,
-          )
-        : null;
-    return {
-      lambdaFn: (tokenValues) => userFn(tokenValues, parameterValues),
-      bufferLambdaFn,
-    };
+    return instantiateHirBufferLambda(
+      artifact.source,
+      parameterValues,
+      stringPool,
+    );
   } catch (error) {
     throw new SDCPNItemError(
       `Failed to instantiate the compiled Lambda for transition \`${
@@ -372,17 +330,21 @@ function createLambdaFn({
 
 function createTransitionKernelFn({
   transition,
-  extensions,
   placesMap,
   parameterValues,
   artifact,
+  expectedSlotCount,
+  expectedStagingSize,
+  stringPool,
 }: {
   transition: SimulationInput["sdcpn"]["transitions"][number];
-  extensions: PetrinautExtensionSettings;
   placesMap: ReadonlyMap<string, SimulationInput["sdcpn"]["places"][number]>;
   parameterValues: ParameterValues;
   artifact: HirKernelArtifact | undefined;
-}): { transitionKernelFn: TransitionKernelFn } {
+  expectedSlotCount: number;
+  expectedStagingSize: number;
+  stringPool: StringPool;
+}): HirCompiledBufferKernel | null {
   const hasTypedOutputPlace = transition.outputArcs.some((arc) => {
     const placeId = getArcEndpointPlaceId(arc);
     const place = placeId ? placesMap.get(placeId) : undefined;
@@ -390,10 +352,10 @@ function createTransitionKernelFn({
   });
 
   if (!hasTypedOutputPlace) {
-    return { transitionKernelFn: () => ({}) };
+    return null;
   }
 
-  if (!artifact?.object) {
+  if (!artifact) {
     throw missingArtifactError(
       "transition kernel",
       transition.name,
@@ -401,29 +363,26 @@ function createTransitionKernelFn({
     );
   }
 
-  try {
-    const userFn = instantiateHirUserFn(
-      artifact.object,
-    ) as UserTransitionKernelFn;
-    const transitionKernelFn: TransitionKernelFn = (tokenValues) => {
-      const output = userFn(tokenValues, parameterValues);
-      if (!extensions.stochasticity) {
-        for (const [placeName, tokens] of Object.entries(output)) {
-          for (const token of tokens) {
-            for (const [elementName, value] of Object.entries(token)) {
-              if (isDistribution(value)) {
-                throw new Error(
-                  `Transition kernel output for place "${placeName}" returned a Distribution for "${elementName}", but stochasticity is disabled.`,
-                );
-              }
-            }
-          }
-        }
-      }
-      return output;
-    };
+  if (artifact.inputSlotCount !== expectedSlotCount) {
+    throw new SDCPNItemError(
+      `The compiled transition kernel for transition \`${transition.name}\` expects ${artifact.inputSlotCount} input token slot(s) but the net requires ${expectedSlotCount}. The compiled artifacts are stale — recompile them from the current net.`,
+      transition.id,
+    );
+  }
 
-    return { transitionKernelFn };
+  if (artifact.outputByteCount !== expectedStagingSize) {
+    throw new SDCPNItemError(
+      `The compiled transition kernel for transition \`${transition.name}\` writes ${artifact.outputByteCount} output byte(s) but the net requires ${expectedStagingSize}. The compiled artifacts are stale — recompile them from the current net.`,
+      transition.id,
+    );
+  }
+
+  try {
+    return instantiateHirBufferKernel(
+      artifact.source,
+      parameterValues,
+      stringPool,
+    );
   } catch (error) {
     throw new SDCPNItemError(
       `Failed to instantiate the compiled transition kernel for transition \`${
@@ -462,7 +421,13 @@ function createCompiledTransition({
     placesMap,
     typesMap,
   );
-  const { lambdaFn, bufferLambdaFn } = createLambdaFn({
+  const coloredInputArcCount = computeColoredInputArcCount(
+    transition,
+    placesMap,
+    typesMap,
+  );
+  const stagingSize = computeKernelStagingSize(transition, placesMap, typesMap);
+  const lambdaFn = createLambdaFn({
     transition,
     sdcpn,
     extensions,
@@ -471,20 +436,22 @@ function createCompiledTransition({
     expectedSlotCount,
     stringPool,
   });
-  const { transitionKernelFn } = createTransitionKernelFn({
+  const kernelFn = createTransitionKernelFn({
     transition,
-    extensions,
     placesMap,
     parameterValues,
     artifact: kernelArtifact,
+    expectedSlotCount,
+    expectedStagingSize: stagingSize,
+    stringPool,
   });
 
-  const buffer: CompiledTransitionBuffer | null = bufferLambdaFn
-    ? {
-        lambdaFn: bufferLambdaFn,
-        slotBases: new Int32Array(expectedSlotCount),
-      }
-    : null;
+  const kernelStaging = new Uint8Array(stagingSize);
+  const kernelStagingViews = createTokenRegionViews(
+    kernelStaging.buffer,
+    0,
+    kernelStaging.byteLength,
+  );
 
   return {
     id: transition.id,
@@ -549,8 +516,11 @@ function createCompiledTransition({
       };
     }),
     lambdaFn,
-    transitionKernelFn,
-    buffer,
+    kernelFn,
+    placeBases: new Int32Array(coloredInputArcCount),
+    indices: new Int32Array(expectedSlotCount),
+    kernelStaging,
+    kernelStagingViews,
   };
 }
 
@@ -673,7 +643,7 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
 
       const artifact: HirDynamicsArtifact | undefined =
         input.hirArtifacts?.dynamics[sourceItemId(differentialEquation.id)];
-      if (!artifact || (!artifact.buffer && !artifact.object)) {
+      if (!artifact) {
         throw missingArtifactError(
           "dynamics",
           differentialEquation.name,
@@ -681,33 +651,15 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
         );
       }
 
-      // Prefer the buffer-native program: it matches the byte-addressed
-      // DifferentialEquationFn shape directly and skips per-token record
-      // decoding entirely.
-      if (artifact.buffer) {
-        differentialEquationFns.set(
-          place.id,
-          instantiateHirBufferDynamics(
-            artifact.buffer,
-            placeParameterValues,
-            stringPool,
-          ),
-        );
-        continue;
-      }
-
-      const userFn = instantiateHirUserFn(
-        artifact.object!,
-      ) as unknown as UserDifferentialEquationFn;
+      // Buffer-native program: matches the byte-addressed
+      // DifferentialEquationFn shape directly — no per-token record decoding.
       differentialEquationFns.set(
         place.id,
-        createDifferentialEquationFn({
-          placeId: place.id,
-          tokenLayout: computeTokenSlotLayout(type.elements),
-          parameterValues: placeParameterValues,
-          userFn,
+        instantiateHirBufferDynamics(
+          artifact.source,
+          placeParameterValues,
           stringPool,
-        }),
+        ),
       );
     } catch (error) {
       throw new SDCPNItemError(

@@ -13,10 +13,12 @@ import {
 } from "./emit-buffer-js";
 import {
   instantiateHirBufferDynamics,
+  instantiateHirBufferKernel,
   instantiateHirBufferLambda,
 } from "./instantiate";
 import { lowerTypeScriptToHir } from "./lower-typescript";
 
+import type { RuntimeDistribution } from "../simulation/authoring/user-code/distribution";
 import type { HirFunction } from "./hir";
 import type { HirKernelContext, HirLambdaContext } from "./surface-context";
 
@@ -64,7 +66,9 @@ const lambdaContext: HirLambdaContext = {
   lambdaType: "stochastic",
 };
 
-// A frame region with two Pool tokens, back to back.
+// A frame region with two Pool tokens, back to back. `placeBases` has one
+// entry per input arc (the Pool arc's place region starts at byte 0);
+// `indices` one selected token index per slot (strides are baked in).
 function makeRegion(pool: StringPool) {
   // hi = 0x0123456789abcdef, lo = 0xfedcba9876543210 (avoids no-bitwise)
   const uuid =
@@ -85,8 +89,9 @@ function makeRegion(pool: StringPool) {
   bytes.set(tokenA, 0);
   bytes.set(tokenB, poolLayout.strideBytes);
   const views = createTokenRegionViews(bytes.buffer, 0, bytes.byteLength);
-  const slotBases = new Int32Array([0, poolLayout.strideBytes]);
-  return { views, slotBases, uuid };
+  const placeBases = new Int32Array([0]);
+  const indices = new Int32Array([0, 1]);
+  return { views, placeBases, indices, uuid };
 }
 
 function compileLambda(code: string, pool: StringPool, parameters = {}) {
@@ -99,38 +104,40 @@ function compileLambda(code: string, pool: StringPool, parameters = {}) {
 describe("emitBufferLambdaJs (token format v2)", () => {
   it("reads real/boolean attributes at packed byte offsets", () => {
     const pool = new StringPool();
-    const { views, slotBases } = makeRegion(pool);
+    const { views, placeBases, indices } = makeRegion(pool);
     const fn = compileLambda(
       `export default Lambda((input, parameters) => input.Pool[0].alive ? input.Pool[0].x + input.Pool[1].v : 0);`,
       pool,
     );
-    expect(fn(views.f64, views.u64, views.u8, slotBases)).toBe(1.5 + 8);
+    expect(fn(views.f64, views.u64, views.u8, placeBases, indices)).toBe(
+      1.5 + 8,
+    );
   });
 
   it("resolves interned strings through the pool", () => {
     const pool = new StringPool();
-    const { views, slotBases } = makeRegion(pool);
+    const { views, placeBases, indices } = makeRegion(pool);
     const fn = compileLambda(
       `export default Lambda((input, parameters) => input.Pool[0].status === "shipped" && input.Pool[1].status.startsWith("q"));`,
       pool,
     );
-    expect(fn(views.f64, views.u64, views.u8, slotBases)).toBe(true);
+    expect(fn(views.f64, views.u64, views.u8, placeBases, indices)).toBe(true);
   });
 
   it("assembles uuid attributes as bigints from the two u64 lanes", () => {
     const pool = new StringPool();
-    const { views, slotBases, uuid } = makeRegion(pool);
+    const { views, placeBases, indices, uuid } = makeRegion(pool);
     const fn = compileLambda(
       `export default Lambda((input, parameters) => input.Pool[0].id === input.Pool[1].id ? 1 : 0.5);`,
       pool,
     );
-    expect(fn(views.f64, views.u64, views.u8, slotBases)).toBe(0.5);
+    expect(fn(views.f64, views.u64, views.u8, placeBases, indices)).toBe(0.5);
     void uuid;
   });
 
   it("binds parameters and supports guards/destructuring", () => {
     const pool = new StringPool();
-    const { views, slotBases } = makeRegion(pool);
+    const { views, placeBases, indices } = makeRegion(pool);
     const fn = compileLambda(
       `export default Lambda((input, parameters) => {
   const { rate, threshold } = parameters;
@@ -142,26 +149,183 @@ describe("emitBufferLambdaJs (token format v2)", () => {
       pool,
       { rate: 2, threshold: 1 },
     );
-    expect(fn(views.f64, views.u64, views.u8, slotBases)).toBe(3);
+    expect(fn(views.f64, views.u64, views.u8, placeBases, indices)).toBe(3);
   });
 });
 
 describe("emitBufferKernelJs (token format v2)", () => {
-  it("is not emitted yet — kernels run the object program", () => {
-    const context: HirKernelContext = {
-      surface: "kernel",
-      parameters: [],
-      inputPlaces: lambdaContext.inputPlaces,
-      inputSlots: lambdaContext.inputSlots,
-      outputPlaces: lambdaContext.inputPlaces,
-      outputSlots: lambdaContext.inputSlots,
-      stochasticity: true,
-    };
-    const fn = lower(
-      `export default TransitionKernel((input) => ({ Pool: [input.Pool[0], input.Pool[1]] }));`,
-      "kernel",
+  // Out place: a(real) b(real) label(string) id(uuid) flag(boolean) — same
+  // packing rules as Pool: a@0, b@8, label@16, id@24 (2×u64), flag@40;
+  // stride 48.
+  const outElements = [
+    { name: "a", type: "real" as const },
+    { name: "b", type: "real" as const },
+    { name: "label", type: "string" as const },
+    { name: "id", type: "uuid" as const },
+    { name: "flag", type: "boolean" as const },
+  ];
+  const outLayout = computeTokenSlotLayout(
+    outElements.map((element, index) => ({
+      elementId: `o${index}`,
+      name: element.name,
+      type: element.type,
+    })),
+  );
+  const fieldOffset = (name: string) =>
+    outLayout.fields.find((field) => field.element.name === name)!.byteOffset;
+
+  const kernelContext: HirKernelContext = {
+    surface: "kernel",
+    parameters: [],
+    inputPlaces: lambdaContext.inputPlaces,
+    inputSlots: lambdaContext.inputSlots,
+    outputPlaces: [
+      { name: "Out", colorId: "c2", elements: outElements, tokenCount: 2 },
+    ],
+    outputSlots: [
+      {
+        name: "Out",
+        colorId: "c2",
+        elements: outElements,
+        tokenCount: 2,
+        slotStart: 0,
+      },
+    ],
+    stochasticity: true,
+  };
+
+  type SinkCall = { kind: string; index: number; payload: unknown };
+
+  function runKernel(code: string, pool: StringPool) {
+    const program = emitBufferKernelJs(lower(code, "kernel"), kernelContext);
+    expect(program).not.toBeNull();
+    expect(program!.inputSlotCount).toBe(2);
+    const fn = instantiateHirBufferKernel(program!.source, {}, pool);
+    const { views, placeBases, indices } = makeRegion(pool);
+    const staging = new Uint8Array(program!.outputByteCount);
+    const stagingViews = createTokenRegionViews(
+      staging.buffer,
+      0,
+      staging.byteLength,
     );
-    expect(emitBufferKernelJs(fn, context)).toBeNull();
+    const sinkCalls: SinkCall[] = [];
+    fn(
+      views.f64,
+      views.u64,
+      views.u8,
+      placeBases,
+      indices,
+      stagingViews.f64,
+      stagingViews.u64,
+      stagingViews.u8,
+      (kind, index, payload) => sinkCalls.push({ kind, index, payload }),
+    );
+    return { program: program!, stagingViews, sinkCalls };
+  }
+
+  it("writes static values at packed offsets and defers RNG values through the sink", () => {
+    const pool = new StringPool();
+    const { program, stagingViews, sinkCalls } = runKernel(
+      `export default TransitionKernel((input) => {
+  const noise = Distribution.Gaussian(0, 1);
+  return {
+    Out: [
+      { a: input.Pool[0].x + 1, b: noise, label: "shipped", flag: true },
+      { a: 2, b: 3, label: input.Pool[1].status, id: Uuid.from("order-1"), flag: false },
+    ],
+  };
+});`,
+      pool,
+    );
+
+    const stride = outLayout.strideBytes;
+    expect(program.outputByteCount).toBe(2 * stride);
+
+    // Token 0 static writes at the packed offsets.
+    expect(stagingViews.f64[fieldOffset("a") / 8]).toBe(1.5 + 1);
+    expect(pool.get(Number(stagingViews.u64[fieldOffset("label") / 8]))).toBe(
+      "shipped",
+    );
+    expect(stagingViews.u8[fieldOffset("flag")]).toBe(1);
+
+    // Token 1 static writes, one stride further.
+    expect(stagingViews.f64[(stride + fieldOffset("a")) / 8]).toBe(2);
+    expect(stagingViews.f64[(stride + fieldOffset("b")) / 8]).toBe(3);
+    expect(
+      pool.get(Number(stagingViews.u64[(stride + fieldOffset("label")) / 8])),
+    ).toBe("queued");
+    expect(stagingViews.u8[stride + fieldOffset("flag")]).toBe(0);
+
+    // Deferred slots arrive in (token, element-declaration) order: token 0's
+    // distribution (b) then omitted uuid (id, auto-generate), then token 1's
+    // Uuid.from. Indices are 64-bit lanes into the staging buffer.
+    expect(sinkCalls.map(({ kind, index }) => ({ kind, index }))).toEqual([
+      { kind: "dist", index: fieldOffset("b") / 8 },
+      { kind: "generate", index: fieldOffset("id") / 8 },
+      { kind: "from", index: (stride + fieldOffset("id")) / 8 },
+    ]);
+    expect(sinkCalls[0]!.payload as RuntimeDistribution).toMatchObject({
+      __brand: "distribution",
+      type: "gaussian",
+      mean: 0,
+      deviation: 1,
+    });
+    expect(sinkCalls[2]!.payload).toBe("order-1");
+  });
+
+  it("forwards whole input tokens, deferring uuid copies through the sink", () => {
+    const forwardContext: HirKernelContext = {
+      ...kernelContext,
+      outputPlaces: [
+        { name: "Pool", colorId: "c1", elements: poolElements, tokenCount: 2 },
+      ],
+      outputSlots: [poolSlot],
+    };
+    const program = emitBufferKernelJs(
+      lower(
+        `export default TransitionKernel((input) => ({ Pool: [input.Pool[0], input.Pool[1]] }));`,
+        "kernel",
+      ),
+      forwardContext,
+    );
+    expect(program).not.toBeNull();
+    expect(program!.outputByteCount).toBe(2 * poolLayout.strideBytes);
+
+    const pool = new StringPool();
+    const fn = instantiateHirBufferKernel(program!.source, {}, pool);
+    const { views, placeBases, indices, uuid } = makeRegion(pool);
+    const staging = new Uint8Array(program!.outputByteCount);
+    const stagingViews = createTokenRegionViews(
+      staging.buffer,
+      0,
+      staging.byteLength,
+    );
+    const sinkCalls: SinkCall[] = [];
+    fn(
+      views.f64,
+      views.u64,
+      views.u8,
+      placeBases,
+      indices,
+      stagingViews.f64,
+      stagingViews.u64,
+      stagingViews.u8,
+      (kind, index, payload) => sinkCalls.push({ kind, index, payload }),
+    );
+
+    const stride = poolLayout.strideBytes;
+    // Real/boolean/string attributes are copied inline.
+    expect(stagingViews.f64[0]).toBe(1.5); // token 0 x
+    expect(stagingViews.f64[1]).toBe(-2); // token 0 v
+    expect(stagingViews.f64[stride / 8]).toBe(4); // token 1 x
+    expect(pool.get(Number(stagingViews.u64[2]))).toBe("shipped");
+    expect(pool.get(Number(stagingViews.u64[stride / 8 + 2]))).toBe("queued");
+    expect(stagingViews.u8[40]).toBe(1);
+    expect(stagingViews.u8[stride + 40]).toBe(0);
+    // uuid copies are bigints, deferred through the sink as "from".
+    expect(sinkCalls.map(({ kind }) => kind)).toEqual(["from", "from"]);
+    expect(sinkCalls[0]!.payload).toBe(uuid);
+    expect(sinkCalls[1]!.payload).toBe(7n);
   });
 });
 
