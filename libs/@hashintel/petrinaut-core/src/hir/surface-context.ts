@@ -114,10 +114,28 @@ export type HirKernelContext = {
   stochasticity: boolean;
 };
 
+/** One root-net place as seen by metric code (`state.places.<name>`). */
+export type HirMetricPlaceInfo = {
+  name: string;
+  /** Attributes of the place's color; empty for uncolored places (they still
+   * expose `count` and an empty-record `tokens` array). */
+  elements: HirTokenElementInfo[];
+};
+
+export type HirMetricContext = {
+  surface: "metric";
+  /** Metrics have no parameters object — always empty. */
+  parameters: HirParameterInfo[];
+  /** ALL places of the root net, keyed by display name (last name wins for
+   * duplicates, matching the runtime object-key overwrite). */
+  places: HirMetricPlaceInfo[];
+};
+
 export type HirSurfaceContext =
   | HirDynamicsContext
   | HirLambdaContext
-  | HirKernelContext;
+  | HirKernelContext
+  | HirMetricContext;
 
 const SCOPE_SEPARATOR = "::";
 
@@ -295,6 +313,34 @@ export function buildLambdaContext(
     inputPlaces: bindings,
     inputSlots: slots,
     lambdaType: getEffectiveTransitionLambdaType(transition, availability),
+  };
+}
+
+/**
+ * Builds the context for a metric: every place of the root net by display
+ * name. Uncolored places (and places whose color has no elements) expose
+ * `count` plus an empty-record `tokens` array.
+ */
+export function buildMetricContext(
+  sdcpn: SDCPN,
+  extensions: PetrinautExtensionSettings = DEFAULT_PETRINAUT_EXTENSIONS,
+): HirMetricContext {
+  const colorById = collectColors(sdcpn, extensions);
+  const placesByName = new Map<string, HirMetricPlaceInfo>();
+  for (const place of sdcpn.places) {
+    const color = place.colorId ? colorById.get(place.colorId) : undefined;
+    placesByName.set(place.name, {
+      name: place.name,
+      elements: (color?.elements ?? []).map((element) => ({
+        name: element.name,
+        type: element.type,
+      })),
+    });
+  }
+  return {
+    surface: "metric",
+    parameters: [],
+    places: [...placesByName.values()],
   };
 }
 

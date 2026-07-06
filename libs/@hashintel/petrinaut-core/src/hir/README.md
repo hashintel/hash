@@ -132,9 +132,11 @@ stochastic model, including RNG state evolution.
 - Shapes the buffer emitter cannot scalarize (dynamic token indices,
   structurally-dynamic results) are compile errors — there is no fallback
   program.
-- Metrics, scenarios and visualizers are separate surfaces: metrics/scenarios
-  keep their `new Function` compilation (they never used Babel), visualizers
-  (JSX) keep `@babel/standalone` in the UI package.
+- Metrics compile through the HIR too (`metric` surface: a bare function
+  body over `state.places`, with `.reduce`/`.concat` loops emitted over the
+  dynamic per-place token counts). Scenarios keep their `new Function`
+  compilation (they never used Babel); visualizers (JSX) keep
+  `@babel/standalone` in the UI package.
 - Lowering is syntactic (no `ts.TypeChecker`); `.map` is disambiguated by
   tracking distribution-valued bindings.
 - Numeric semantics are JS doubles end-to-end; integer attributes are exact
@@ -148,9 +150,9 @@ stochastic model, including RNG state evolution.
 2. **Buffer-native dynamics for more shapes** (cross-token reductions),
    and buffer kernels under disabled stochasticity (needs the
    distributions-forbidden check on the buffer path).
-3. **Metrics & scenarios on the HIR**: needs `reduce`/`filter` comprehension
-   nodes and a `MetricState` surface context; then their `new Function`
-   paths can go too.
+3. **Scenarios on the HIR**: metrics are done (`arrayReduce`/`arrayConcat`
+   nodes + the `metric` surface context); scenario expressions still use
+   their sandboxed `new Function` path.
 4. **WASM backend**: the buffer ABI is already the right shape — scalars,
    static offsets, no GC; lower `emit-buffer-js` output structure to WAT and
    provide host shims for `Math.*`/distributions/RNG.

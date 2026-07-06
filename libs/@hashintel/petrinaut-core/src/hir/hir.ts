@@ -33,11 +33,14 @@ export type HirNodeId = number;
  * `dynamics` — differential equations (`Dynamics(...)`)
  * `lambda` — transition firing predicates / stochastic rates (`Lambda(...)`)
  * `kernel` — transition kernels (`TransitionKernel(...)`)
+ * `metric` — Monte-Carlo/timeline metrics: a bare function *body* over a
+ *   `state` object (statements ending in `return <number>`), not an
+ *   `export default` module.
  *
- * Metrics and scenario expressions are expressible with the same node set but
- * do not have lowering entry points yet (see `README.md`).
+ * Scenario expressions are expressible with the same node set but do not
+ * have a lowering entry point yet (see `README.md`).
  */
-export type HirSurfaceKind = "dynamics" | "lambda" | "kernel";
+export type HirSurfaceKind = "dynamics" | "lambda" | "kernel" | "metric";
 
 /** Scalar and structural types inferred over HIR nodes. */
 export type HirType =
@@ -285,6 +288,28 @@ export type HirArrayMap = HirNodeBase & {
   body: HirExpr;
 };
 
+/**
+ * Array fold — lowered from `collection.reduce((acc, element, index?) =>
+ * body, initial)`. The callback must be an inline arrow/function expression
+ * with 2–3 parameters, and `.reduce` takes exactly two call arguments.
+ */
+export type HirArrayReduce = HirNodeBase & {
+  kind: "arrayReduce";
+  target: HirExpr;
+  accParam: { name: string; span: Span };
+  param: { name: string; span: Span };
+  indexParam?: { name: string; span: Span };
+  body: HirExpr;
+  initial: HirExpr;
+};
+
+/** Array concatenation — lowered from `a.concat(b)` (single argument). */
+export type HirArrayConcat = HirNodeBase & {
+  kind: "arrayConcat";
+  left: HirExpr;
+  right: HirExpr;
+};
+
 /** Distribution construction: `Distribution.Gaussian(mean, deviation)`, ... */
 export type HirDistribution = HirNodeBase & {
   kind: "distribution";
@@ -321,6 +346,8 @@ export type HirExpr =
   | HirRecordLit
   | HirArrayLit
   | HirArrayMap
+  | HirArrayReduce
+  | HirArrayConcat
   | HirDistribution
   | HirDistributionMap;
 
@@ -391,6 +418,11 @@ export function hirChildren(expr: HirExpr): HirExpr[] {
       return expr.elements;
     case "arrayMap":
       return [expr.target, expr.body];
+    case "arrayReduce":
+      // Source order: target, callback body, initial value.
+      return [expr.target, expr.body, expr.initial];
+    case "arrayConcat":
+      return [expr.left, expr.right];
     case "distribution":
       return expr.args;
     case "distributionMap":

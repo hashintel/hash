@@ -166,6 +166,23 @@ function emitExpr(expr: HirExpr, scope: EmitScope): string {
       // eslint-disable-next-line no-use-before-define -- mutual recursion
       return `${emitExpr(expr.target, scope)}.map((${params}) => ${emitBody(expr.body, bodyScope)})`;
     }
+    case "arrayReduce": {
+      const bodyScope = childScope(scope);
+      const accName = bodyScope.allocator.allocate(expr.accParam.name);
+      bodyScope.names.set(expr.accParam.name, accName);
+      const paramName = bodyScope.allocator.allocate(expr.param.name);
+      bodyScope.names.set(expr.param.name, paramName);
+      let params = `${accName}, ${paramName}`;
+      if (expr.indexParam) {
+        const indexName = bodyScope.allocator.allocate(expr.indexParam.name);
+        bodyScope.names.set(expr.indexParam.name, indexName);
+        params = `${params}, ${indexName}`;
+      }
+      // eslint-disable-next-line no-use-before-define -- mutual recursion
+      return `${emitExpr(expr.target, scope)}.reduce((${params}) => ${emitBody(expr.body, bodyScope)}, ${emitExpr(expr.initial, scope)})`;
+    }
+    case "arrayConcat":
+      return `${emitExpr(expr.left, scope)}.concat(${emitExpr(expr.right, scope)})`;
     case "distribution":
       return `__dist.${expr.dist}(${expr.args
         .map((argument) => emitExpr(argument, scope))

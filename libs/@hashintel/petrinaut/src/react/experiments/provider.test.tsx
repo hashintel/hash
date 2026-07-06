@@ -11,7 +11,9 @@ import {
   type SDCPN,
   type WorkerLike,
 } from "@hashintel/petrinaut-core";
+import { compileHirArtifacts } from "@hashintel/petrinaut-core/hir";
 
+import { LanguageClientContext } from "../lsp/context";
 import {
   NotificationsContext,
   type AddNotificationInput,
@@ -143,6 +145,25 @@ const sdcpnContextValue: SDCPNContextValue = {
   getItemType: () => null,
 };
 
+/**
+ * Overrides the (no-op) default language client so experiment expression
+ * metrics compile for real — the provider requires HIR metric artifacts.
+ */
+const LanguageClientOverride = ({ children }: React.PropsWithChildren) => {
+  const value = use(LanguageClientContext);
+  return (
+    <LanguageClientContext.Provider
+      value={{
+        ...value,
+        requestHirArtifacts: (sdcpn, extensions) =>
+          Promise.resolve(compileHirArtifacts(sdcpn, extensions)),
+      }}
+    >
+      {children}
+    </LanguageClientContext.Provider>
+  );
+};
+
 const ExperimentsContextConsumer = ({
   onContextValue,
 }: {
@@ -169,16 +190,18 @@ const TestWrapper = ({
     }}
   >
     <SDCPNContext.Provider value={sdcpnContextValue}>
-      <ExperimentsProvider
-        workerFactory={() =>
-          worker as WorkerLike<
-            MonteCarloToWorkerMessage,
-            MonteCarloToMainMessage
-          >
-        }
-      >
-        <ExperimentsContextConsumer onContextValue={onContextValue} />
-      </ExperimentsProvider>
+      <LanguageClientOverride>
+        <ExperimentsProvider
+          workerFactory={() =>
+            worker as WorkerLike<
+              MonteCarloToWorkerMessage,
+              MonteCarloToMainMessage
+            >
+          }
+        >
+          <ExperimentsContextConsumer onContextValue={onContextValue} />
+        </ExperimentsProvider>
+      </LanguageClientOverride>
     </SDCPNContext.Provider>
   </NotificationsContext>
 );

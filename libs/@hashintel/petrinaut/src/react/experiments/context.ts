@@ -1,6 +1,7 @@
 import { createContext } from "react";
 
 import type {
+  MonteCarloExpressionMetricSpec,
   MonteCarloMetricSpec,
   MonteCarloUserDefinedMetricFrame,
   MonteCarloWorkerProgress,
@@ -13,6 +14,15 @@ export type ExperimentStatus =
   | "error"
   | "cancelled";
 
+/**
+ * Metric spec as authored by the experiment form. Expression metrics are
+ * provided without a compiled `artifact` — the experiments provider compiles
+ * them through the HIR (in the language worker) before starting the run.
+ */
+export type ExperimentMetricSpecInput =
+  | Exclude<MonteCarloMetricSpec, MonteCarloExpressionMetricSpec>
+  | Omit<MonteCarloExpressionMetricSpec, "artifact">;
+
 export type CreateExperimentInput = {
   name: string;
   scenarioId: string | null;
@@ -21,7 +31,7 @@ export type CreateExperimentInput = {
   seed: number;
   dt: number;
   maxTime: number;
-  metricSpecs: readonly MonteCarloMetricSpec[];
+  metricSpecs: readonly ExperimentMetricSpecInput[];
 };
 
 export type ExperimentRecord = {
@@ -36,7 +46,7 @@ export type ExperimentRecord = {
   maxTime: number;
   status: ExperimentStatus;
   error: string | null;
-  metricSpecs: readonly MonteCarloMetricSpec[];
+  metricSpecs: readonly ExperimentMetricSpecInput[];
   progress: MonteCarloWorkerProgress | null;
   metricFrames: readonly MonteCarloUserDefinedMetricFrame[];
   latestMetricFramesById: Readonly<

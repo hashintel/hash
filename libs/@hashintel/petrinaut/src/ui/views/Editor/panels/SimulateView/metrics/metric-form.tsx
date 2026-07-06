@@ -61,7 +61,7 @@ function validateMetricName(
 
 /**
  * Reject empty/whitespace-only metric code so the form can't save a metric
- * that `compileMetric` would reject at runtime.
+ * that could never compile to a runnable program.
  */
 function validateMetricCode(code: string): string | undefined {
   if (code.trim() === "") {

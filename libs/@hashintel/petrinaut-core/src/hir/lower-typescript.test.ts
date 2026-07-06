@@ -4,7 +4,10 @@ import { lowerTypeScriptToHir } from "./lower-typescript";
 
 import type { HirExpr } from "./hir";
 
-function lowerOk(code: string, surface: "dynamics" | "lambda" | "kernel") {
+function lowerOk(
+  code: string,
+  surface: "dynamics" | "lambda" | "kernel" | "metric",
+) {
   const result = lowerTypeScriptToHir(code, surface);
   if (!result.ok) {
     throw new Error(
@@ -16,7 +19,10 @@ function lowerOk(code: string, surface: "dynamics" | "lambda" | "kernel") {
   return result.fn;
 }
 
-function lowerErr(code: string, surface: "dynamics" | "lambda" | "kernel") {
+function lowerErr(
+  code: string,
+  surface: "dynamics" | "lambda" | "kernel" | "metric",
+) {
   const result = lowerTypeScriptToHir(code, surface);
   if (result.ok) {
     throw new Error("Expected lowering to fail");
@@ -490,6 +496,129 @@ describe("lowerTypeScriptToHir", () => {
         "lambda",
       );
       expect(diagnostic!.code).toBe("hir:bare-parameters-object");
+    });
+  });
+
+  describe("reduce and concat", () => {
+    it("lowers .reduce with (acc, element) callbacks", () => {
+      const fn = lowerOk(
+        `export default Lambda((input) => input.Pool.reduce((sum, token) => sum + token.x, 0));`,
+        "lambda",
+      );
+      expect(fn.body.kind).toBe("arrayReduce");
+      const reduce = fn.body as Extract<HirExpr, { kind: "arrayReduce" }>;
+      expect(reduce.accParam.name).toBe("sum");
+      expect(reduce.param.name).toBe("token");
+      expect(reduce.indexParam).toBeUndefined();
+      expect(reduce.initial.kind).toBe("numberLit");
+      expect(reduce.body.kind).toBe("binary");
+    });
+
+    it("lowers .reduce with an index parameter", () => {
+      const fn = lowerOk(
+        `export default Lambda((input) => input.Pool.reduce((acc, token, index) => acc + index, 0));`,
+        "lambda",
+      );
+      const reduce = fn.body as Extract<HirExpr, { kind: "arrayReduce" }>;
+      expect(reduce.indexParam?.name).toBe("index");
+    });
+
+    it("rejects .reduce without an initial value", () => {
+      const [diagnostic] = lowerErr(
+        `export default Lambda((input) => input.Pool.reduce((sum, token) => sum + token.x));`,
+        "lambda",
+      );
+      expect(diagnostic!.code).toBe("hir:reduce-arity");
+    });
+
+    it("rejects .reduce callbacks with one parameter", () => {
+      const [diagnostic] = lowerErr(
+        `export default Lambda((input) => input.Pool.reduce((sum) => sum, 0));`,
+        "lambda",
+      );
+      expect(diagnostic!.code).toBe("hir:reduce-arity");
+    });
+
+    it("lowers single-argument .concat", () => {
+      const fn = lowerOk(
+        `export default Lambda((input) => input.Pool.concat(input.Buffer).length);`,
+        "lambda",
+      );
+      expect(fn.body.kind).toBe("length");
+      const length = fn.body as Extract<HirExpr, { kind: "length" }>;
+      expect(length.target.kind).toBe("arrayConcat");
+    });
+
+    it("rejects multi-argument .concat", () => {
+      const [diagnostic] = lowerErr(
+        `export default Lambda((input) => input.Pool.concat(input.A, input.B).length);`,
+        "lambda",
+      );
+      expect(diagnostic!.code).toBe("hir:concat-arity");
+    });
+  });
+
+  describe("metric surface", () => {
+    it("lowers a metric body with state in scope and no parameters object", () => {
+      const fn = lowerOk(
+        `const pool = state.places.Pool.tokens;
+if (pool.length === 0) return 0;
+return pool.reduce((sum, t) => sum + t.x, 0) / pool.length;`,
+        "metric",
+      );
+      expect(fn.surface).toBe("metric");
+      expect(fn.params.map((parameter) => parameter.name)).toEqual(["state"]);
+      expect(fn.body.kind).toBe("let");
+    });
+
+    it("maps node spans onto the raw metric body", () => {
+      const code = `const total = state.places.Pool.count;
+return total;`;
+      const fn = lowerOk(code, "metric");
+      const letExpr = fn.body as Extract<HirExpr, { kind: "let" }>;
+      const binding = letExpr.bindings[0]!;
+      expect(
+        code.slice(
+          binding.nameSpan.start,
+          binding.nameSpan.start + binding.nameSpan.length,
+        ),
+      ).toBe("total");
+      expect(
+        code.slice(
+          binding.value.span.start,
+          binding.value.span.start + binding.value.span.length,
+        ),
+      ).toBe("state.places.Pool.count");
+    });
+
+    it("maps diagnostic spans onto the raw metric body", () => {
+      const code = `const a = 1;
+return missing;`;
+      const [diagnostic] = lowerErr(code, "metric");
+      expect(diagnostic!.code).toBe("hir:unknown-identifier");
+      expect(
+        code.slice(
+          diagnostic!.span.start,
+          diagnostic!.span.start + diagnostic!.span.length,
+        ),
+      ).toBe("missing");
+    });
+
+    it("shifts parse-error spans onto the raw metric body", () => {
+      const code = `return 1 +;`;
+      const [diagnostic] = lowerErr(code, "metric");
+      expect(diagnostic!.code).toBe("hir:parse-error");
+      expect(diagnostic!.span.start).toBeLessThanOrEqual(code.length);
+    });
+
+    it("requires the metric body to end in a return", () => {
+      const [diagnostic] = lowerErr(`const a = 1;`, "metric");
+      expect(diagnostic!.code).toBe("hir:missing-return");
+    });
+
+    it("rejects a bare parameters-style object (metrics have none)", () => {
+      const [diagnostic] = lowerErr(`return parameters.rate;`, "metric");
+      expect(diagnostic!.code).toBe("hir:unknown-identifier");
     });
   });
 

@@ -10,19 +10,28 @@ import {
   emitBufferDynamicsJs,
   emitBufferKernelJs,
   emitBufferLambdaJs,
+  emitBufferMetricJs,
 } from "./emit-buffer-js";
 import {
   instantiateHirBufferDynamics,
   instantiateHirBufferKernel,
   instantiateHirBufferLambda,
+  instantiateHirMetric,
 } from "./instantiate";
 import { lowerTypeScriptToHir } from "./lower-typescript";
 
 import type { RuntimeDistribution } from "../simulation/authoring/user-code/distribution";
 import type { HirFunction } from "./hir";
-import type { HirKernelContext, HirLambdaContext } from "./surface-context";
+import type {
+  HirKernelContext,
+  HirLambdaContext,
+  HirMetricContext,
+} from "./surface-context";
 
-function lower(code: string, surface: "lambda" | "kernel" | "dynamics") {
+function lower(
+  code: string,
+  surface: "lambda" | "kernel" | "dynamics" | "metric",
+) {
   const result = lowerTypeScriptToHir(code, surface);
   if (!result.ok) {
     throw new Error(result.diagnostics[0]?.message);
@@ -376,6 +385,254 @@ describe("emitBufferDynamicsJs (token format v2)", () => {
       emitBufferDynamicsJs(
         lower(`export default Dynamics((tokens) => [{ x: 1 }]);`, "dynamics"),
         poolElements,
+      ),
+    ).toBeNull();
+  });
+});
+// ---------------------------------------------------------------------------
+// Metric programs (Monte-Carlo-style frame buffers)
+// ---------------------------------------------------------------------------
+
+const metricContext: HirMetricContext = {
+  surface: "metric",
+  parameters: [],
+  places: [
+    {
+      name: "Pool",
+      elements: [
+        { name: "x", type: "real" },
+        { name: "status", type: "string" },
+      ],
+    },
+    { name: "Buffer", elements: [{ name: "x", type: "real" }] },
+    // Uncolored place: exposes `count` and an empty-record tokens array.
+    { name: "Bin", elements: [] },
+  ],
+};
+
+const metricPoolLayout = computeTokenSlotLayout([
+  { elementId: "e0", name: "x", type: "real" },
+  { elementId: "e1", name: "status", type: "string" },
+]);
+const metricBufferLayout = computeTokenSlotLayout([
+  { elementId: "e0", name: "x", type: "real" },
+]);
+
+/**
+ * Hand-packs one Monte-Carlo-style frame: dense `placeCounts`/`placeOffsets`
+ * in frame order (Bin, Pool, Buffer — deliberately different from the metric
+ * context order so `__places` mapping is exercised), plus shared views over
+ * the token region.
+ */
+function makeMetricFrame(pool: StringPool) {
+  const poolTokens = [
+    { x: 1.5, status: "shipped" },
+    { x: 2.5, status: "queued" },
+    { x: 3, status: "shipped" },
+  ];
+  const bufferTokens = [{ x: 10 }, { x: 20 }];
+
+  const poolBytes = poolTokens.length * metricPoolLayout.strideBytes;
+  const bufferBytes = bufferTokens.length * metricBufferLayout.strideBytes;
+  const bytes = new Uint8Array(poolBytes + bufferBytes);
+  for (const [index, token] of poolTokens.entries()) {
+    bytes.set(
+      encodeTokenToBytes(metricPoolLayout, token, "test", pool),
+      index * metricPoolLayout.strideBytes,
+    );
+  }
+  for (const [index, token] of bufferTokens.entries()) {
+    bytes.set(
+      encodeTokenToBytes(metricBufferLayout, token, "test", pool),
+      poolBytes + index * metricBufferLayout.strideBytes,
+    );
+  }
+  const views = createTokenRegionViews(bytes.buffer, 0, bytes.byteLength);
+
+  // Frame order: Bin=0, Pool=1, Buffer=2.
+  const placeIndexByName: Record<string, number> = {
+    Bin: 0,
+    Pool: 1,
+    Buffer: 2,
+  };
+  const placeCounts = new Uint32Array([
+    5,
+    poolTokens.length,
+    bufferTokens.length,
+  ]);
+  const placeOffsets = new Uint32Array([0, 0, poolBytes]);
+  return { views, placeCounts, placeOffsets, placeIndexByName };
+}
+
+function compileMetric(
+  code: string,
+  pool: StringPool,
+  placeIndexByName: Record<string, number>,
+) {
+  const program = emitBufferMetricJs(lower(code, "metric"), metricContext);
+  expect(program).not.toBeNull();
+  const placeIndices = new Int32Array(
+    program!.placeNames.map((name) => placeIndexByName[name]!),
+  );
+  return instantiateHirMetric(program!.source, placeIndices, pool);
+}
+
+describe("emitBufferMetricJs (Monte-Carlo frame buffers)", () => {
+  it("reads place counts (including uncolored places)", () => {
+    const pool = new StringPool();
+    const frame = makeMetricFrame(pool);
+    const fn = compileMetric(
+      `return state.places.Bin.count + 10 * state.places.Pool.count;`,
+      pool,
+      frame.placeIndexByName,
+    );
+    expect(
+      fn(
+        frame.views.f64,
+        frame.views.u64,
+        frame.views.u8,
+        frame.placeCounts,
+        frame.placeOffsets,
+      ),
+    ).toBe(5 + 30);
+  });
+
+  it("compiles reduce over place tokens to a loop", () => {
+    const pool = new StringPool();
+    const frame = makeMetricFrame(pool);
+    const fn = compileMetric(
+      `return state.places.Pool.tokens.reduce((sum, t) => sum + t.x, 0);`,
+      pool,
+      frame.placeIndexByName,
+    );
+    expect(
+      fn(
+        frame.views.f64,
+        frame.views.u64,
+        frame.views.u8,
+        frame.placeCounts,
+        frame.placeOffsets,
+      ),
+    ).toBe(1.5 + 2.5 + 3);
+  });
+
+  it("compiles reduce over a concat as sequential loops with a running index", () => {
+    const pool = new StringPool();
+    const frame = makeMetricFrame(pool);
+    const fn = compileMetric(
+      `const fleet = state.places.Pool.tokens.concat(state.places.Buffer.tokens);
+if (fleet.length === 0) return -1;
+const indexSum = fleet.reduce((acc, t, i) => acc + i, 0);
+return fleet.reduce((sum, t) => sum + t.x, 0) / fleet.length + indexSum;`,
+      pool,
+      frame.placeIndexByName,
+    );
+    // x sum = 7 + 30 = 37 over 5 tokens; index sum = 0+1+2+3+4 = 10.
+    expect(
+      fn(
+        frame.views.f64,
+        frame.views.u64,
+        frame.views.u8,
+        frame.placeCounts,
+        frame.placeOffsets,
+      ),
+    ).toBe(37 / 5 + 10);
+  });
+
+  it("supports early-return guards around reduces", () => {
+    const pool = new StringPool();
+    const frame = makeMetricFrame(pool);
+    const fn = compileMetric(
+      `const tokens = state.places.Buffer.tokens;
+if (tokens.length === 0) return 0;
+return tokens.reduce((sum, t) => sum + t.x, 0) / tokens.length;`,
+      pool,
+      frame.placeIndexByName,
+    );
+    expect(
+      fn(
+        frame.views.f64,
+        frame.views.u64,
+        frame.views.u8,
+        frame.placeCounts,
+        frame.placeOffsets,
+      ),
+    ).toBe(15);
+
+    // Empty frame → the guard branch wins (loops run zero iterations).
+    const emptyCounts = new Uint32Array([0, 0, 0]);
+    expect(
+      fn(
+        frame.views.f64,
+        frame.views.u64,
+        frame.views.u8,
+        emptyCounts,
+        frame.placeOffsets,
+      ),
+    ).toBe(0);
+  });
+
+  it("compares string attributes through the pool inside reduce loops", () => {
+    const pool = new StringPool();
+    const frame = makeMetricFrame(pool);
+    const fn = compileMetric(
+      `return state.places.Pool.tokens.reduce(
+  (count, t) => t.status === "shipped" ? count + 1 : count,
+  0,
+);`,
+      pool,
+      frame.placeIndexByName,
+    );
+    expect(
+      fn(
+        frame.views.f64,
+        frame.views.u64,
+        frame.views.u8,
+        frame.placeCounts,
+        frame.placeOffsets,
+      ),
+    ).toBe(2);
+  });
+
+  it("indexes place tokens with dynamic indices", () => {
+    const pool = new StringPool();
+    const frame = makeMetricFrame(pool);
+    const fn = compileMetric(
+      `return state.places.Pool.tokens[state.places.Bin.count - 4].x;`,
+      pool,
+      frame.placeIndexByName,
+    );
+    // Bin.count = 5 → index 1 → x = 2.5.
+    expect(
+      fn(
+        frame.views.f64,
+        frame.views.u64,
+        frame.views.u8,
+        frame.placeCounts,
+        frame.placeOffsets,
+      ),
+    ).toBe(2.5);
+  });
+
+  it("registers referenced places in first-reference order", () => {
+    const program = emitBufferMetricJs(
+      lower(
+        `return state.places.Buffer.count + state.places.Pool.count + state.places.Buffer.count;`,
+        "metric",
+      ),
+      metricContext,
+    );
+    expect(program?.placeNames).toEqual(["Buffer", "Pool"]);
+  });
+
+  it("bails to null on reduce over non-place arrays", () => {
+    expect(
+      emitBufferMetricJs(
+        lower(
+          `return [1, 2, 3].reduce((sum, value) => sum + value, 0);`,
+          "metric",
+        ),
+        metricContext,
       ),
     ).toBeNull();
   });

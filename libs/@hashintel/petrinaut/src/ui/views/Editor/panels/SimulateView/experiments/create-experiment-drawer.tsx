@@ -12,9 +12,11 @@ import {
   type SelectItem,
 } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
-import { compileMetric } from "@hashintel/petrinaut-core";
 
-import { ExperimentsContext } from "../../../../../../react/experiments/context";
+import {
+  ExperimentsContext,
+  type ExperimentMetricSpecInput,
+} from "../../../../../../react/experiments/context";
 import { useStableCallback } from "../../../../../../react/hooks/use-stable-callback";
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
@@ -444,7 +446,7 @@ function createDefaultMetricDraft(sdcpn: SDCPN): ExperimentMetricDraft {
 function buildMetricSpecs(
   drafts: readonly ExperimentMetricDraft[],
   sdcpn: SDCPN,
-): MonteCarloMetricSpec[] {
+): ExperimentMetricSpecInput[] {
   if (drafts.length === 0) {
     throw new Error("Define at least one metric");
   }
@@ -492,16 +494,13 @@ function buildMetricSpecs(
         };
       }
       case "expression": {
-        const compiled = compileMetric({
-          id: draft.id,
-          name: label,
-          code: draft.code,
-        });
-
-        if (!compiled.ok) {
-          throw new Error(compiled.error);
+        if (draft.code.trim() === "") {
+          throw new Error(`Metric "${label}" code is required`);
         }
 
+        // Compilation happens through the HIR when the experiment starts
+        // (the provider attaches the compiled artifact); live validation is
+        // covered by the metric LSP session diagnostics.
         return {
           ...sampledMetricBase,
           kind: "expression",

@@ -1,5 +1,6 @@
 /**
- * Buffer-ABI JavaScript emission for lambdas and transition kernels.
+ * Buffer-ABI JavaScript emission for lambdas, transition kernels and
+ * metrics.
  *
  * Instead of the legacy object convention (decode packed tokens into
  * `{ Place: [{ x, y }] }` records per combination, call, re-encode), the
@@ -42,6 +43,7 @@ import type {
   HirArcSlot,
   HirKernelContext,
   HirLambdaContext,
+  HirMetricContext,
   HirTokenElementInfo,
 } from "./surface-context";
 
@@ -57,6 +59,14 @@ export type BufferKernelProgram = BufferProgram & {
   outputByteCount: number;
 };
 
+export type BufferMetricProgram = {
+  /** JS source of the emitted function (arrow expression). */
+  source: string;
+  /** Places referenced by the program, in emitted-ordinal order — the
+   * instantiation binds `__places[ordinal] → frame place index`. */
+  placeNames: string[];
+};
+
 /** Maximum tokens per arc slot we are willing to unroll `.map` over. */
 const MAX_UNROLL = 16;
 
@@ -67,7 +77,10 @@ const RESERVED_NAMES = [
   "__pool",
   "__out",
   "__sink",
+  "__places",
   "placeBases",
+  "placeCounts",
+  "placeOffsets",
   "indices",
   "out",
   "distSink",
@@ -80,6 +93,12 @@ const RESERVED_NAMES = [
 
 /** Internal bail signal: shape outside the buffer-ABI subset. */
 class BailError extends Error {}
+
+/** One place referenced by a metric program (registered ordinal + color). */
+type MetricPlaceRef = {
+  ordinal: number;
+  elements: HirTokenElementInfo[];
+};
 
 type Value =
   /** A JS expression producing a number or boolean. */
@@ -95,7 +114,17 @@ type Value =
   /** One token; `baseCode` is a JS expression for its float base offset. */
   | { kind: "token"; baseCode: string; elements: HirTokenElementInfo[] }
   | { kind: "record"; fields: Map<string, Value> }
-  | { kind: "array"; items: Value[] };
+  | { kind: "array"; items: Value[] }
+  /** The metric `state` parameter. */
+  | { kind: "metricState" }
+  /** `state.places` in a metric program. */
+  | { kind: "placesRecord" }
+  /** `state.places.<Name>` — `count`/`tokens` read through `__places`. */
+  | ({ kind: "placeState" } & MetricPlaceRef)
+  /** `state.places.<Name>.tokens` — a dynamically-sized token array. */
+  | ({ kind: "placeTokens" } & MetricPlaceRef)
+  /** `a.concat(b)` over place token arrays (parts in source order). */
+  | { kind: "placeTokensConcat"; parts: MetricPlaceRef[] };
 
 function quoteKey(key: string): string {
   return JSON.stringify(key);
@@ -137,11 +166,26 @@ class NameAllocator {
 }
 
 class BufferEmitter {
-  /** Hoisted `const` statements, in evaluation order. */
+  /** Hoisted statements (consts, metric reduce loops), in evaluation order. */
   readonly lines: string[] = [];
   readonly names = new NameAllocator(RESERVED_NAMES);
 
-  constructor(readonly inputSlots: HirArcSlot[]) {}
+  /** Metric-referenced place names in emitted-ordinal order. */
+  readonly placeNames: string[] = [];
+  private readonly metricPlaceByName: Map<
+    string,
+    { name: string; elements: HirTokenElementInfo[] }
+  > | null;
+  private readonly metricOrdinalByName = new Map<string, number>();
+
+  constructor(
+    readonly inputSlots: HirArcSlot[],
+    metricContext: HirMetricContext | null = null,
+  ) {
+    this.metricPlaceByName = metricContext
+      ? new Map(metricContext.places.map((place) => [place.name, place]))
+      : null;
+  }
 
   /** Resolves a place display name to its arc slot (last arc wins, matching
    * the runtime's object-key overwrite). */
@@ -152,6 +196,40 @@ class BufferEmitter {
       }
     }
     return null;
+  }
+
+  /** Registers (on first reference) and returns the metric place ref for a
+   * `state.places.<name>` access. Unknown names bail — typecheck already
+   * errors on them, so this only guards mistyped programs. */
+  private metricPlaceRef(name: string): MetricPlaceRef {
+    const place = this.metricPlaceByName?.get(name);
+    if (!place) {
+      throw new BailError();
+    }
+    let ordinal = this.metricOrdinalByName.get(name);
+    if (ordinal === undefined) {
+      ordinal = this.placeNames.length;
+      this.placeNames.push(name);
+      this.metricOrdinalByName.set(name, ordinal);
+    }
+    return { ordinal, elements: place.elements };
+  }
+
+  /** `placeCounts[...]` read for one referenced place. */
+  private metricCountCode(ordinal: number): string {
+    return `placeCounts[__places[${ordinal}]]`;
+  }
+
+  /** Flattens a reduce/concat target into place parts; anything that is not
+   * a place token array (or a concat of them) bails to the object path. */
+  private concatParts(value: Value): MetricPlaceRef[] {
+    if (value.kind === "placeTokens") {
+      return [{ ordinal: value.ordinal, elements: value.elements }];
+    }
+    if (value.kind === "placeTokensConcat") {
+      return value.parts;
+    }
+    throw new BailError();
   }
 
   /** Token layouts computed once per arc slot; byte offsets and strides are
@@ -319,6 +397,31 @@ class BufferEmitter {
           }
           return { kind: "tokens", slot };
         }
+        if (target.kind === "metricState") {
+          if (expr.field !== "places") {
+            throw new BailError();
+          }
+          return { kind: "placesRecord" };
+        }
+        if (target.kind === "placesRecord") {
+          return { kind: "placeState", ...this.metricPlaceRef(expr.field) };
+        }
+        if (target.kind === "placeState") {
+          if (expr.field === "count") {
+            return {
+              kind: "scalar",
+              code: this.metricCountCode(target.ordinal),
+            };
+          }
+          if (expr.field === "tokens") {
+            return {
+              kind: "placeTokens",
+              ordinal: target.ordinal,
+              elements: target.elements,
+            };
+          }
+          throw new BailError();
+        }
         if (target.kind === "token") {
           return this.readAttribute(target, expr.field);
         }
@@ -333,6 +436,19 @@ class BufferEmitter {
       }
       case "indexAccess": {
         const target = this.eval(expr.target, env);
+        if (target.kind === "placeTokens") {
+          // Metric token counts are dynamic, so any scalar index is allowed;
+          // metric code is expected to guard with `.length` (out-of-range
+          // reads land in other places' token bytes or zeroed capacity).
+          const index = this.scalar(this.eval(expr.index, env));
+          const stride = this.layoutOf(target.elements).strideBytes;
+          const strideCode = stride === 0 ? "0" : `(${index}) * ${stride}`;
+          return {
+            kind: "token",
+            baseCode: `placeOffsets[__places[${target.ordinal}]] + ${strideCode}`,
+            elements: target.elements,
+          };
+        }
         const index = foldHir(expr.index);
         if (index.kind !== "numberLit" || !Number.isInteger(index.value)) {
           // Dynamic token indices would read unchecked memory — leave those
@@ -361,6 +477,17 @@ class BufferEmitter {
         }
         if (target.kind === "array") {
           return { kind: "scalar", code: String(target.items.length) };
+        }
+        if (target.kind === "placeTokens") {
+          return { kind: "scalar", code: this.metricCountCode(target.ordinal) };
+        }
+        if (target.kind === "placeTokensConcat") {
+          return {
+            kind: "scalar",
+            code: `(${target.parts
+              .map((part) => this.metricCountCode(part.ordinal))
+              .join(" + ")})`,
+          };
         }
         throw new BailError();
       }
@@ -457,6 +584,16 @@ class BufferEmitter {
           }),
         };
       }
+      case "arrayReduce":
+        return this.evalReduce(expr, env);
+      case "arrayConcat": {
+        const left = this.eval(expr.left, env);
+        const right = this.eval(expr.right, env);
+        return {
+          kind: "placeTokensConcat",
+          parts: [...this.concatParts(left), ...this.concatParts(right)],
+        };
+      }
       case "distribution": {
         const args = expr.args.map((argument) =>
           this.scalar(this.eval(argument, env)),
@@ -486,6 +623,72 @@ class BufferEmitter {
       }
     }
     throw new BailError();
+  }
+
+  /**
+   * Emits a `.reduce(...)` over place token arrays (metric surface) as
+   * sequential loops sharing one accumulator — token counts are dynamic, so
+   * unrolling is impossible. A reduce over a concat emits one loop per part;
+   * when the index parameter is used, a global running index continues
+   * across parts.
+   *
+   * Note: a reduce nested inside a `cond` branch is evaluated eagerly (the
+   * loop is emitted unconditionally before the ternary that consumes the
+   * accumulator). That is semantically safe — the HIR is pure — and only
+   * costs redundant work on the untaken branch.
+   */
+  private evalReduce(
+    expr: Extract<HirExpr, { kind: "arrayReduce" }>,
+    env: Map<string, Value>,
+  ): Value {
+    const target = this.eval(expr.target, env);
+    const parts = this.concatParts(target);
+    const initial = this.scalar(this.eval(expr.initial, env));
+
+    const accName = this.names.allocate(expr.accParam.name);
+    this.lines.push(`let ${accName} = ${initial};`);
+    let indexName: string | null = null;
+    if (expr.indexParam) {
+      indexName = this.names.allocate(expr.indexParam.name);
+      this.lines.push(`let ${indexName} = 0;`);
+    }
+
+    for (const part of parts) {
+      const stride = this.layoutOf(part.elements).strideBytes;
+      const countName = this.names.allocate("__n");
+      const baseName = this.names.allocate("__b");
+      const iterName = this.names.allocate("__i");
+
+      const scoped = new Map(env);
+      scoped.set(expr.accParam.name, { kind: "scalar", code: accName });
+      scoped.set(expr.param.name, {
+        kind: "token",
+        baseCode:
+          stride === 0 ? baseName : `${baseName} + ${iterName} * ${stride}`,
+        elements: part.elements,
+      });
+      if (expr.indexParam && indexName) {
+        scoped.set(expr.indexParam.name, { kind: "scalar", code: indexName });
+      }
+
+      // Body `const` bindings (and nested reduce loops) evaluated after this
+      // mark belong inside the per-iteration loop body.
+      const mark = this.lines.length;
+      const body = this.scalar(this.eval(expr.body, scoped));
+      const bodyLines = this.lines.splice(mark);
+
+      this.lines.push(
+        `{ const ${countName} = ${this.metricCountCode(part.ordinal)}; const ${baseName} = placeOffsets[__places[${part.ordinal}]];`,
+        `  for (let ${iterName} = 0; ${iterName} < ${countName}; ${iterName}++) {`,
+        ...bodyLines.map((line) => `    ${line}`),
+        `    ${accName} = ${body};`,
+        ...(indexName ? [`    ${indexName} += 1;`] : []),
+        `  }`,
+        `}`,
+      );
+    }
+
+    return { kind: "scalar", code: accName };
   }
 
   /**
@@ -725,6 +928,56 @@ export function emitBufferKernelJs(
       inputSlotCount: slotCount(context.inputSlots),
       outputByteCount: byteBase,
     };
+  } catch (error) {
+    if (error instanceof BailError) {
+      return null;
+    }
+    throw error;
+  }
+}
+
+/**
+ * Emits a buffer-ABI metric program (token format v2):
+ *
+ *   (f64, u64, u8, placeCounts, placeOffsets) => number
+ *
+ * - `f64`/`u64`/`u8` — shared views over the frame's token byte region.
+ * - `placeCounts`/`placeOffsets` — the frame's dense per-place token counts
+ *   and byte offsets (Monte-Carlo frame buffer / engine frame fields).
+ * - `__places` (instantiation-bound `Int32Array`) maps each emitted place
+ *   ordinal (see `placeNames`) to its frame place index; `__pool` resolves
+ *   interned string attributes.
+ *
+ * `state.places.<Name>.count` reads compile to `placeCounts` lookups;
+ * `.tokens` accesses index the packed token structs at compile-time-constant
+ * strides/offsets; `.reduce(...)` over token arrays (or `.concat(...)`s of
+ * them) compiles to loops since counts are dynamic. Returns `null` for
+ * shapes that don't scalarize — `compileHirArtifacts` reports those as
+ * compile failures (there is no other metric program).
+ */
+export function emitBufferMetricJs(
+  fn: HirFunction,
+  context: HirMetricContext,
+): BufferMetricProgram | null {
+  const stateParam = fn.params[0];
+  if (!stateParam) {
+    return null;
+  }
+  try {
+    const emitter = new BufferEmitter([], context);
+    const env = new Map<string, Value>();
+    env.set(stateParam.name, { kind: "metricState" });
+    const result = emitter.eval(foldHir(fn.body), env);
+    if (result.kind !== "scalar") {
+      return null;
+    }
+    const source = [
+      `(f64, u64, u8, placeCounts, placeOffsets) => {`,
+      ...emitter.lines.map((line) => `  ${line}`),
+      `  return ${result.code};`,
+      `}`,
+    ].join("\n");
+    return { source, placeNames: emitter.placeNames };
   } catch (error) {
     if (error instanceof BailError) {
       return null;

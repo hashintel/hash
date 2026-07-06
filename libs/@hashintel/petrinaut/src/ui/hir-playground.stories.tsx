@@ -5,6 +5,7 @@ import {
   emitBufferDynamicsJs,
   emitBufferKernelJs,
   emitBufferLambdaJs,
+  emitBufferMetricJs,
   emitUserFunctionJs,
   formatHirType,
   lintHirUserCode,
@@ -87,6 +88,14 @@ function toContext(
         outputPlaces: toArcSlots(schema.outputPlaces),
         outputSlots: toArcSlots(schema.outputPlaces),
         stochasticity: schema.stochasticity,
+      };
+    case "metric":
+      return {
+        surface,
+        parameters: [],
+        places: [...schema.inputPlaces, ...schema.outputPlaces].map(
+          (place) => ({ name: place.name, elements: place.elements }),
+        ),
       };
   }
 }
@@ -172,6 +181,10 @@ const CODE_PRESETS: Record<HirSurfaceKind, string> = {
   };
 });
 `,
+  metric: `const pool = state.places.Pool.tokens;
+if (pool.length === 0) return 0;
+return pool.reduce((sum, token) => sum + token.x, 0) / pool.length;
+`,
 };
 
 // -- The pipeline result (recomputed every render — lowering is ~1ms) ----------
@@ -205,6 +218,12 @@ function emitBuffer(
       const program = emitBufferKernelJs(fn, context);
       return program
         ? `// inputSlotCount: ${program.inputSlotCount}, outputByteCount: ${program.outputByteCount}\n${program.source}`
+        : null;
+    }
+    case "metric": {
+      const program = emitBufferMetricJs(fn, context);
+      return program
+        ? `// placeNames: ${program.placeNames.join(", ")}\n${program.source}`
         : null;
     }
   }
@@ -449,17 +468,19 @@ const HirPlayground = () => {
       {/* Left column — inputs */}
       <div className={columnStyle}>
         <div className={surfaceBarStyle}>
-          {(["dynamics", "lambda", "kernel"] as const).map((candidate) => (
-            <button
-              key={candidate}
-              type="button"
-              className={surfaceButtonStyle}
-              data-active={surface === candidate}
-              onClick={() => setSurface(candidate)}
-            >
-              {candidate}
-            </button>
-          ))}
+          {(["dynamics", "lambda", "kernel", "metric"] as const).map(
+            (candidate) => (
+              <button
+                key={candidate}
+                type="button"
+                className={surfaceButtonStyle}
+                data-active={surface === candidate}
+                onClick={() => setSurface(candidate)}
+              >
+                {candidate}
+              </button>
+            ),
+          )}
         </div>
 
         <Panel title="TypeScript user code">

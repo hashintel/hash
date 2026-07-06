@@ -11,6 +11,7 @@
  * severity chosen by the caller) and no artifacts.
  */
 import { analyzeHir, foldHir } from "./analyze";
+import { emitBufferMetricJs } from "./emit-buffer-js";
 import { walkHir } from "./hir";
 import { lowerTypeScriptToHir } from "./lower-typescript";
 import { typecheckHir } from "./typecheck";
@@ -171,6 +172,23 @@ export function lintHirUserCode(
         span: binding.nameSpan,
       });
     }
+  }
+
+  // --- Buffer compilability (metrics) ---------------------------------------
+  // Metrics have exactly one program shape — surface non-compilable bodies
+  // here so the editor errors match `compileHirArtifacts` failures.
+  if (
+    context.surface === "metric" &&
+    !diagnostics.some((diagnostic) => diagnostic.severity === "error") &&
+    emitBufferMetricJs(fn, context) === null
+  ) {
+    diagnostics.push({
+      code: "hir:not-compilable",
+      severity: "error",
+      message:
+        "This code shape cannot be compiled to a buffer program (e.g. dynamic token indices, structurally-dynamic results). Restructure it as static token records / `.map(...)` over input tokens.",
+      span: fn.body.span,
+    });
   }
 
   return { diagnostics, fn, analysis, typecheck };
