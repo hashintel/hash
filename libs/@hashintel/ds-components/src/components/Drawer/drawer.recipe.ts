@@ -20,22 +20,6 @@ export const styles = sva({
           visibility: "hidden",
         },
     },
-    backdrop: {
-      background: "black.a60",
-      position: "fixed",
-      inset: "0",
-      width: "[100dvw]",
-      height: "[100dvh]",
-      zIndex: "modal",
-      _open: {
-        animationName: "fadeIn",
-        animationDuration: "faster",
-      },
-      _closed: {
-        animationName: "fadeOut",
-        animationDuration: "fastest",
-      },
-    },
     positioner: {
       display: "flex",
       justifyContent: "flex-end",
@@ -47,6 +31,7 @@ export const styles = sva({
       overflow: "hidden",
       overscrollBehaviorY: "none",
       zIndex: "modal",
+      paddingLeft: "[10%]",
     },
     content: {
       "--panel-horizontal-padding": "var(--spacing-5\\.5)",
@@ -59,7 +44,8 @@ export const styles = sva({
       height: "[100dvh]",
       maxHeight: "[100dvh]",
       outline: "none",
-      boxShadow: "[-10px 0 40px rgba(0, 0, 0, 0.2)]",
+      boxShadow:
+        "[-1px 0 0 0 rgba(0, 0, 0, 0.03), -1px 0 2px -1px rgba(0, 0, 0, 0.06), -8px 0 16px -6px rgba(0, 0, 0, 0.09), -18px 0 32px -14px rgba(0, 0, 0, 0.16)]",
       borderTopLeftRadius: "xl",
       borderBottomLeftRadius: "xl",
       borderTopRightRadius: "[0]",

@@ -14,16 +14,20 @@ import {
   type OverlayHeaderProps,
   type OverlayShouldCloseOn,
 } from "../../util/overlay-parts";
+import { overlayPartsStyles } from "../../util/overlay-parts.recipe";
 import { usePortalContainerRef } from "../../util/portal-container-context";
 import { styles } from "./drawer.recipe";
 
 export type DrawerSize = "sm" | "md" | "lg" | "xl";
+
+const backdropClassName = overlayPartsStyles({ component: "drawer" }).backdrop;
 
 const DrawerRoot = ({
   className,
   size = "md",
   variant = "partitionedFooter",
   children,
+  showBackdrop = true,
   shouldCloseOn = "closeButtonAndOverlay",
   loading,
   onClose,
@@ -36,6 +40,8 @@ const DrawerRoot = ({
   size?: DrawerSize;
   onKeyDown?: React.KeyboardEventHandler<Element>;
   variant?: "partitionedFooter" | "plain";
+  /** Render the dimmed overlay behind the drawer. Defaults to `true`. */
+  showBackdrop?: boolean;
   children:
     | readonly [
         React.ReactElement<OverlayHeaderProps, typeof OverlayHeader>,
@@ -88,6 +94,10 @@ const DrawerRoot = ({
       lazyMount
       unmountOnExit
       swipeDirection="end"
+      // Without a backdrop the drawer is non-modal, so the page behind stays interactive
+      // But we still want to keep focus trapped even when modal={false}
+      modal={showBackdrop}
+      trapFocus
       closeOnEscape={closeOnEscape}
       closeOnInteractOutside={closeOnInteractOutside}
       onOpenChange={(event) => {
@@ -105,7 +115,7 @@ const DrawerRoot = ({
     >
       <Portal container={portalContainerRef}>
         <div className={classes.stackRoot}>
-          <ArkDrawer.Backdrop className={classes.backdrop} />
+          {showBackdrop && <ArkDrawer.Backdrop className={backdropClassName} />}
           <ArkDrawer.Positioner className={classes.positioner}>
             <ArkDrawer.Content
               {...ariaAttributes}

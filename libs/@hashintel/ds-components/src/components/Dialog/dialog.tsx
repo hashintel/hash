@@ -14,10 +14,13 @@ import {
   type OverlayHeaderProps,
   type OverlayShouldCloseOn,
 } from "../../util/overlay-parts";
+import { overlayPartsStyles } from "../../util/overlay-parts.recipe";
 import { usePortalContainerRef } from "../../util/portal-container-context";
 import { styles } from "./dialog.recipe";
 
 export type DialogSize = "xs" | "sm" | "md" | "lg" | "xl" | "fullScreen";
+
+const backdropClassName = overlayPartsStyles({ component: "dialog" }).backdrop;
 
 const DialogRoot = ({
   className,
@@ -105,7 +108,7 @@ const DialogRoot = ({
     >
       <Portal container={portalContainerRef}>
         <div className={classes.stackRoot}>
-          <ArkDialog.Backdrop className={classes.backdrop} />
+          <ArkDialog.Backdrop className={backdropClassName} />
           <ArkDialog.Positioner className={classes.positioner}>
             <ArkDialog.Content
               {...ariaAttributes}

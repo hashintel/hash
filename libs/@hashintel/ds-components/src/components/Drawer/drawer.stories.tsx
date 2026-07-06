@@ -240,6 +240,18 @@ const buildExampleEntries = (variant: DrawerVariant): ExampleProps[] => [
       </Drawer>
     ),
   },
+  {
+    buttonLabel: "No backdrop",
+    renderDrawer: (close) => (
+      <Drawer variant={variant} showBackdrop={false} onClose={close}>
+        <Drawer.Header
+          title="No backdrop"
+          description="Rendered with showBackdrop={false}, so the page behind stays visible with no dimmed overlay."
+        />
+        <Drawer.Body>{sampleBody}</Drawer.Body>
+      </Drawer>
+    ),
+  },
 ];
 
 export const Examples: Story = () => (

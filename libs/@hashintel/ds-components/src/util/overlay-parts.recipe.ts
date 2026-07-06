@@ -1,10 +1,9 @@
 import { sva } from "@hashintel/ds-helpers/css";
 
 /**
- * Shared slot styles for the header / body / footer chrome rendered inside both
- * the Dialog and Drawer components. Each component owns its own recipe for the
- * surrounding structural slots (backdrop, positioner, content, stackRoot); this
- * recipe is the single source of truth for everything between them.
+ * Shared slot styles for the Dialog and Drawer components: the dimmed
+ * `backdrop` plus the header / body / footer chrome. Each component owns its own
+ * recipe for the remaining structural slots (positioner, content, stackRoot).
  *
  * The `--panel-*` custom properties consumed below are declared on each
  * component's `content` slot (the chrome's ancestor) and inherited down, so the
@@ -13,6 +12,7 @@ import { sva } from "@hashintel/ds-helpers/css";
 export const overlayPartsStyles = sva({
   className: "panel",
   slots: [
+    "backdrop",
     "header",
     "hasCustomHeader",
     "headerMain",
@@ -31,6 +31,20 @@ export const overlayPartsStyles = sva({
     "loadingSpinner",
   ],
   base: {
+    backdrop: {
+      background: "black.a60",
+      position: "fixed",
+      inset: "0",
+      width: "[100dvw]",
+      height: "[100dvh]",
+      zIndex: "modal",
+      _open: {
+        animationName: "fadeIn",
+      },
+      _closed: {
+        animationName: "fadeOut",
+      },
+    },
     header: {
       flex: "[0 0 auto]",
       backgroundColor: "white",
@@ -242,7 +256,12 @@ export const overlayPartsStyles = sva({
       },
     },
     component: {
-      dialog: {},
+      dialog: {
+        backdrop: {
+          _open: { animationDuration: "fast" },
+          _closed: { animationDuration: "faster" },
+        },
+      },
       // The Drawer is pinned flush against the right edge of the viewport with
       // square right-hand corners, so its chrome squares off the right corners
       // the Dialog leaves rounded. Physical-corner longhands are used so they
@@ -256,6 +275,10 @@ export const overlayPartsStyles = sva({
           "&:last-child": { borderBottomRightRadius: "[0]" },
         },
         footer: { borderBottomRightRadius: "[0]" },
+        backdrop: {
+          _open: { animationDuration: "faster" },
+          _closed: { animationDuration: "fastest" },
+        },
       },
     },
     hasIcon: {
