@@ -533,13 +533,16 @@ impl PatchEntityParams {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ClusterEntitiesParams {
     pub entity_ids: Vec<EntityId>,
-    /// Desired number of clusters. Clamped to the number of entities with
-    /// embeddings when that is smaller.
+    /// Desired number of clusters.
+    ///
+    /// Clamped to the number of entities with embeddings when that is smaller.
+    #[cfg_attr(feature = "utoipa", schema(minimum = 0, maximum = 64))]
     pub cluster_count: u16,
-    /// Embedding dimension after matryoshka truncation. Must be a positive
-    /// multiple of 8; values above 3072 are rejected. Defaults to 256.
+    /// Embedding dimension after matryoshka truncation.
+    ///
+    /// Must be a positive multiple of 8; values above 512 are rejected. Defaults to 256.
     #[serde(default = "ClusterEntitiesParams::default_dimension")]
-    #[cfg_attr(feature = "utoipa", schema(value_type = u16, minimum = 8, multiple_of = 8, default = 256, example = 256))]
+    #[cfg_attr(feature = "utoipa", schema(value_type = u16, minimum = 8, maximum = 512, multiple_of = 8, default = 256, example = 256))]
     pub dimension: NonZero<u16>,
 
     /// Seed for the random number generator used in clustering.
@@ -559,7 +562,7 @@ impl ClusterEntitiesParams {
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase")]
 pub struct EntityCluster {
-    /// Index in `0..cluster_count`.
+    /// Index in `0..min(cluster_count, n)`.
     pub cluster_id: u16,
     pub entity_ids: Vec<EntityId>,
     /// Centroid with length equal to the requested dimension.

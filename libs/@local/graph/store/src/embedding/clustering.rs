@@ -100,13 +100,8 @@ pub struct Clustering {
 impl Clustering {
     /// Allocates a zeroed clustering for `k` centroids over `n` points.
     fn new(k: u16, n: usize, d: Dimension) -> Self {
-        // SAFETY: All-zero bits are valid for `f32` (IEEE 754 positive zero)
-        // and for `u16` (the integer 0). `Box::new_zeroed_slice` allocates
-        // zeroed memory of the correct layout, so `assume_init` is sound.
-        let centroids: Box<[f32]> =
-            unsafe { Box::new_zeroed_slice((k as usize) * (d.get() as usize)).assume_init() };
-        // SAFETY: All-zero bits are valid for `u16` (the integer 0).
-        let labels: Box<[u16]> = unsafe { Box::new_zeroed_slice(n).assume_init() };
+        let centroids: Box<[f32]> = vec![0.0; (k as usize) * (d.get() as usize)].into_boxed_slice();
+        let labels: Box<[u16]> = vec![0; n].into_boxed_slice();
 
         Self {
             centroids,
@@ -329,20 +324,12 @@ struct Restart {
 
 impl Restart {
     fn new(k: NonZero<usize>, m: usize, d: usize) -> Self {
-        // SAFETY: all-zero bits are valid for `f32` (IEEE 754 +0.0), `usize` (0), `u16` (0), and
-        // `bool` (false). `Box::new_zeroed_slice` allocates zeroed memory of the correct
-        // layout for each type, so `assume_init` is sound in every case.
-        let centroids = unsafe { Box::<[f32]>::new_zeroed_slice(k.get() * d).assume_init() };
-        // SAFETY: see above
-        let sums = unsafe { Box::<[f32]>::new_zeroed_slice(k.get() * d).assume_init() };
-        // SAFETY: see above
-        let counts = unsafe { Box::<[usize]>::new_zeroed_slice(k.get()).assume_init() };
-        // SAFETY: see above
-        let labels = unsafe { Box::<[u16]>::new_zeroed_slice(m).assume_init() };
-        // SAFETY: see above
-        let point_distances = unsafe { Box::<[f32]>::new_zeroed_slice(m).assume_init() };
-        // SAFETY: see above
-        let selected = unsafe { Box::<[bool]>::new_zeroed_slice(m).assume_init() };
+        let centroids: Box<[f32]> = vec![0.0; k.get() * d].into_boxed_slice();
+        let sums: Box<[f32]> = vec![0.0; k.get() * d].into_boxed_slice();
+        let counts: Box<[usize]> = vec![0; k.get()].into_boxed_slice();
+        let labels: Box<[u16]> = vec![0; m].into_boxed_slice();
+        let point_distances: Box<[f32]> = vec![0.0; m].into_boxed_slice();
+        let selected: Box<[bool]> = vec![false; m].into_boxed_slice();
 
         Self {
             k,

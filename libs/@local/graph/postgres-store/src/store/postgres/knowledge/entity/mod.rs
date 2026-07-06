@@ -2599,7 +2599,7 @@ where
         Ok(permitted_ids)
     }
 
-    #[expect(clippy::too_many_lines, clippy::cast_possible_truncation)]
+    #[expect(clippy::too_many_lines)]
     #[tracing::instrument(skip(self, params))]
     async fn cluster_entities(
         &self,
@@ -2607,7 +2607,8 @@ where
         params: ClusterEntitiesParams,
     ) -> Result<ClusterEntitiesResponse, Report<ClusterError>> {
         const { assert!(Embedding::DIM <= u16::MAX as usize) };
-        const STORED_DIM: u16 = Embedding::DIM as u16;
+        const MAX_ALLOWED_DIM: u16 = 512;
+        const MAX_ALLOWED_K: u16 = 64;
 
         let dimension = Dimension::new(params.dimension.get()).ok_or_else(|| {
             Report::new(ClusterError::InvalidDimension {
@@ -2616,13 +2617,22 @@ where
             .attach(StatusCode::InvalidArgument)
         })?;
 
-        if dimension.get() > STORED_DIM {
+        if dimension.get() > MAX_ALLOWED_DIM {
             return Err(Report::new(ClusterError::DimensionTooLarge {
                 dimension: dimension.value(),
-                max: STORED_DIM,
+                max: MAX_ALLOWED_DIM,
             })
             .attach(StatusCode::InvalidArgument));
         }
+
+        if params.cluster_count > MAX_ALLOWED_K {
+            return Err(Report::new(ClusterError::KTooLarge {
+                count: params.cluster_count,
+                max: MAX_ALLOWED_K,
+            })
+            .attach(StatusCode::InvalidArgument));
+        }
+
         let truncated_dim = usize::from(dimension.get());
 
         // Filter to entities the actor is allowed to view.

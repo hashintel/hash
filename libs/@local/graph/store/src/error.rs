@@ -78,6 +78,8 @@ pub enum ClusterError {
     InvalidDimension { dimension: NonZero<u16> },
     #[display("dimension {dimension} exceeds stored embedding dimension {max}")]
     DimensionTooLarge { dimension: NonZero<u16>, max: u16 },
+    #[display("cluster count {count} exceeds maximum allowed {max}")]
+    KTooLarge { count: u16, max: u16 },
     #[display("embedding query failed")]
     Store,
 }

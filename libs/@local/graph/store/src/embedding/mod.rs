@@ -4,8 +4,8 @@
     clippy::float_arithmetic,
     clippy::min_ident_chars,
     clippy::many_single_char_names,
-    reason = "embedding module is under active development. Single-char idents (k, n, m, d, x) \
-              are standard mathematical notation for clustering."
+    reason = "Single-char idents (k, n, m, d, x) are standard mathematical notation for \
+              clustering."
 )]
 
 pub mod clustering;
