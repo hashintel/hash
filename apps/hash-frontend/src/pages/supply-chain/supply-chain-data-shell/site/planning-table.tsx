@@ -12,6 +12,7 @@ import { siteNodeKey } from "../../shared/site-node-key";
 import { deriveStatusActionState, statusKey } from "../../shared/status";
 import { trackSupplyChainInteraction } from "../../shared/telemetry";
 import { TrendIndicator } from "../../shared/trend-indicator";
+import { siteNodeDisplayLabel } from "./shared/helpers";
 import { LowSampleBadge } from "./shared/low-sample-badge";
 import { ProductTags } from "./shared/product-tags";
 import {
@@ -168,7 +169,9 @@ export const PlanningTable = ({
                       style={{ backgroundColor: getCategoryColor(row.type) }}
                     />
 
-                    <span className={threshold.stepLabel}>{row.label}</span>
+                    <span className={threshold.stepLabel}>
+                      {siteNodeDisplayLabel(row)}
+                    </span>
                   </div>
                   {row.plan_note &&
                     row.plan_note !== "No planning parameter set" && (

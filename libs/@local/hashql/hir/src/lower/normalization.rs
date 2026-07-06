@@ -210,6 +210,7 @@ pub struct NormalizationState<'heap> {
 }
 
 impl Default for NormalizationState<'_> {
+    #[inline]
     fn default() -> Self {
         Self {
             recycler: VecPool::new(4),

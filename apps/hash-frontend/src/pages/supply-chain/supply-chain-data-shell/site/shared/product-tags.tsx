@@ -14,7 +14,6 @@ const chip = css({
   color: "fg.muted",
 });
 
-/** Wrapping list of product chips (falls back to the upper-cased id for long names). */
 export const ProductTags = ({
   products,
 }: {
@@ -23,8 +22,8 @@ export const ProductTags = ({
   return (
     <span className={wrap}>
       {products.map((product) => (
-        <span key={product.id} className={chip}>
-          {product.name.length > 20 ? product.id.toUpperCase() : product.name}
+        <span key={product.id} className={chip} title={product.name}>
+          {product.name}
         </span>
       ))}
     </span>

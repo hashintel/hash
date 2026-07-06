@@ -1548,6 +1548,7 @@ export const OpportunityBrief = ({
   const supplierPerformanceEnabled = useSupplierPerformanceEnabled();
   const [siteSummary, setSiteSummary] = useState<SiteSummary | null>(null);
   const [siteSummaryLoading, setSiteSummaryLoading] = useState(true);
+  const [siteSummaryError, setSiteSummaryError] = useState<string | null>(null);
   const [step, setStep] = useState<StepDetail | null>(null);
   const [stepError, setStepError] = useState<string | null>(null);
   const [searchParams] = useSearchParams();
@@ -1558,20 +1559,26 @@ export const OpportunityBrief = ({
   useEffect(() => {
     if (!siteId) {
       setSiteSummary(null);
+      setSiteSummaryError(null);
       setSiteSummaryLoading(false);
       return;
     }
     let cancelled = false;
     setSiteSummaryLoading(true);
+    setSiteSummaryError(null);
+
     fetchSiteSummary(siteId)
       .then((summary) => {
         if (!cancelled) {
           setSiteSummary(summary);
         }
       })
-      .catch(() => {
+      .catch((event) => {
         if (!cancelled) {
           setSiteSummary(null);
+          setSiteSummaryError(
+            event instanceof Error ? event.message : String(event),
+          );
         }
       })
       .finally(() => {
@@ -1636,7 +1643,7 @@ export const OpportunityBrief = ({
     };
   }, [nodes, productId, siteId, siteSummaryLoading, stepId]);
 
-  const error = stepError;
+  const error = siteSummaryError ?? stepError;
   const siteNode = useMemo((): SiteNode | null => {
     const node = findBriefNode(nodes, stepId, productId);
     if (!node) {

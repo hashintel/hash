@@ -5,6 +5,7 @@ extern crate alloc;
 use core::{
     error::Error,
     fmt::{Display, Formatter, Write as _},
+    ops::ControlFlow,
 };
 
 mod common;
@@ -92,11 +93,40 @@ fn iter() {
 fn iter_mut() {
     let mut report = build();
 
+    let mut chars = Vec::new();
+    let flow = report.frames_mut(|frame| {
+        if let Some(ch) = frame.downcast_mut::<Char>() {
+            chars.push(ch.0);
+            ch.0 = ch.0.to_ascii_lowercase();
+        }
+        ControlFlow::Continue(())
+    });
+    assert!(flow.is_continue());
+    assert_eq!(chars, ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']);
+
     assert_eq!(
         report
-            .frames_mut()
+            .frames()
             .filter_map(|frame| frame.downcast_ref::<Char>().map(|ch| ch.0))
             .collect::<Vec<_>>(),
-        ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']
+        ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
     );
+}
+
+#[test]
+fn iter_mut_break() {
+    let mut report = build();
+
+    let mut chars = Vec::new();
+    let flow = report.frames_mut(|frame| {
+        if let Some(ch) = frame.downcast_ref::<Char>() {
+            chars.push(ch.0);
+            if ch.0 == 'D' {
+                return ControlFlow::Break(());
+            }
+        }
+        ControlFlow::Continue(())
+    });
+    assert!(flow.is_break());
+    assert_eq!(chars, ['A', 'B', 'C', 'D']);
 }

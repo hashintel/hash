@@ -154,6 +154,7 @@ futures                            = { version = "0.3.31", default-features = fa
 futures-channel                    = { version = "0.3.31", default-features = false }
 futures-core                       = { version = "0.3.31", default-features = false }
 futures-io                         = { version = "0.3.31", default-features = false }
+futures-lite                       = { version = "2.6.1" }
 futures-sink                       = { version = "0.3.31", default-features = false }
 futures-util                       = { version = "0.3.31", default-features = false }
 glob                               = { version = "0.3.3" }
@@ -249,6 +250,8 @@ smallvec                           = { version = "2.0.0-alpha.11", default-featu
 smol_str                           = { version = "0.3.4" }
 sort-package-json                  = { version = "0.0.12" }
 specta                             = { version = "2.0.0-rc.22", default-features = false }
+sqruff-lib                         = { version = "0.37.3" }
+sqruff-lib-core                    = { version = "0.37.3" }
 stacker                            = { version = "0.1.22", default-features = false }
 supports-color                     = { version = "3.0.2", default-features = false }
 supports-unicode                   = { version = "3.0.0", default-features = false }

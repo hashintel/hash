@@ -439,7 +439,22 @@ export const DataTableSection = forwardRef<
     const layerRef = useRef<HTMLDivElement>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
     const [open, setOpen] = useState(false);
-    const [sorting, setSorting] = useState<SortingState>([]);
+
+    // Default to rows reading chronologically to the latest exit.
+    const [sorting, setSorting] = useState<SortingState>(() =>
+      dateColumnKey ? [{ id: dateColumnKey, desc: false }] : [],
+    );
+
+    // Re-apply the default when the active date column changes (e.g. switching
+    // dimension); a manual re-sort persists until then.
+    const defaultSortKeyRef = useRef(dateColumnKey);
+    useEffect(() => {
+      if (defaultSortKeyRef.current !== dateColumnKey) {
+        defaultSortKeyRef.current = dateColumnKey;
+        setSorting(dateColumnKey ? [{ id: dateColumnKey, desc: false }] : []);
+      }
+    }, [dateColumnKey]);
+
     const [activeFilters, setActiveFilters] = useState<DataTableFilters>({});
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
     const applyFilters = useCallback(

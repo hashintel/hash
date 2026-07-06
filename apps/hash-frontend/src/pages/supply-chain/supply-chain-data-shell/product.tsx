@@ -123,8 +123,7 @@ const emptyPipelineRow = css({
   py: "3",
   display: "flex",
   alignItems: "center",
-  gap: "3",
-  h: "7",
+  gap: "2",
 });
 const emptyPipelineTitle = css({
   textStyle: "base",
@@ -407,10 +406,15 @@ export const Overview = ({
         procurementBasis,
       ),
     );
+
     const bt = graph.batch_timelines;
     if (!bt || bt.batches.length === 0) {
-      return { ...graph, nodes: filteredNodes };
+      return {
+        ...graph,
+        nodes: filteredNodes,
+      };
     }
+
     const cutoff = cutoffForRange(timeRange);
     const filteredBatches = cutoff
       ? bt.batches.filter((batch) => {
@@ -646,11 +650,13 @@ export const Overview = ({
               <div className={emptyPipelineRow}>
                 <h3 className={emptyPipelineTitle}>End-to-End Pipeline</h3>
                 <span className={emptyPipelineNote}>
-                  No traceable batch pipeline for this period/product
+                  — no dispatches for the product over the last {timeRange}.
                 </span>
               </div>
             );
-          } // Resolve active route: prefer the URL param when it points at a
+          }
+
+          // Resolve active route: prefer the URL param when it points at a
           // route that exists for this product, otherwise fall back to
           // the first route so the picker has a sensible default.
           const routeKeys = Object.keys(filteredGraph.pipeline_summary);

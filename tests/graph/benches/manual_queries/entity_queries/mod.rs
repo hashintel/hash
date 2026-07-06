@@ -6,8 +6,8 @@ use criterion_macro::criterion;
 use either::Either;
 use error_stack::Report;
 use hash_graph_api::rest::{
-    self, ApiConfig,
-    entity::{EntityQueryOptions, QueryEntitiesRequest, QueryEntitySubgraphRequest},
+    ApiConfig,
+    entity::query::{QueryEntitiesRequest, QueryEntitySubgraphRequest},
 };
 use hash_graph_postgres_store::{
     Environment, load_env,
@@ -139,13 +139,11 @@ impl QueryEntitiesQuery<'_, '_, '_> {
         let modifies_actor_id = !self.settings.parameters.actor_id.is_empty();
         let modifies_limit = !self.settings.parameters.limit.is_empty();
 
-        let (query, options) = self.request.into_parts();
-
         let actor_id = iter::once(self.actor_id)
             .chain(mem::take(&mut self.settings.parameters.actor_id))
             .sorted_by_key(|actor_id| Uuid::from(*actor_id))
             .dedup();
-        let limit = iter::once(options.limit)
+        let limit = iter::once(self.request.limit)
             .chain(
                 mem::take(&mut self.settings.parameters.limit)
                     .into_iter()
@@ -165,13 +163,10 @@ impl QueryEntitiesQuery<'_, '_, '_> {
             (
                 Self {
                     actor_id,
-                    request: QueryEntitiesRequest::from_parts(
-                        query.clone(),
-                        EntityQueryOptions {
-                            limit,
-                            ..options.clone()
-                        },
-                    ),
+                    request: QueryEntitiesRequest {
+                        limit,
+                        ..self.request.clone()
+                    },
                     settings: self.settings.clone(),
                 },
                 parameters.join(","),
@@ -238,13 +233,13 @@ impl QueryEntitySubgraphQuery<'_, '_, '_> {
         let modifies_limit = !self.settings.parameters.limit.is_empty();
         let modifies_graph_resolve_depths = !self.settings.parameters.traversal_params.is_empty();
 
-        let (query, options, traversal_params) = self.request.clone().into_parts();
+        let (request, traversal_params) = self.request.clone().into_parts();
 
         let actor_id = iter::once(self.actor_id)
             .chain(mem::take(&mut self.settings.parameters.actor_id))
             .sorted_by_key(|actor_id| Uuid::from(*actor_id))
             .dedup();
-        let limit = iter::once(options.limit)
+        let limit = iter::once(request.limit)
             .chain(
                 mem::take(&mut self.settings.parameters.limit)
                     .into_iter()
@@ -271,10 +266,9 @@ impl QueryEntitySubgraphQuery<'_, '_, '_> {
                     Self {
                         actor_id,
                         request: QueryEntitySubgraphRequest::from_parts(
-                            query.clone(),
-                            EntityQueryOptions {
+                            QueryEntitiesRequest {
                                 limit,
-                                ..options.clone()
+                                ..request.clone()
                             },
                             traversal_params,
                         ),
@@ -320,33 +314,19 @@ where
 
     match request {
         GraphQuery::QueryEntities(request) => {
-            let (query, options) = request.request.into_parts();
-            let rest::entity::EntityQuery::Filter { filter } = query else {
-                panic!("unsupported query type")
-            };
-
             let _response = store
                 .query_entities(
                     request.actor_id,
-                    options
-                        .into_params(filter, config)
-                        .expect("limit should not exceed configured maximum"),
+                    request.request.into_params_unchecked(config, None),
                 )
                 .await
                 .expect("failed to read entities from store");
         }
         GraphQuery::QueryEntitySubgraph(request) => {
-            let (query, options, traversal) = request.request.into_parts();
-            let rest::entity::EntityQuery::Filter { filter } = query else {
-                panic!("unsupported query type")
-            };
-
             let _response = store
                 .query_entity_subgraph(
                     request.actor_id,
-                    options
-                        .into_traversal_params(filter, traversal, config)
-                        .expect("limit should not exceed configured maximum"),
+                    request.request.into_traversal_params_unchecked(config),
                 )
                 .await
                 .expect("failed to read entity subgraph from store");

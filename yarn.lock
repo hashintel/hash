@@ -13093,12 +13093,6 @@ __metadata:
     "@rust/hash-graph-validation": "workspace:*"
     "@rust/hash-status": "workspace:*"
     "@rust/hash-temporal-client": "workspace:*"
-    "@rust/hashql-ast": "workspace:*"
-    "@rust/hashql-core": "workspace:*"
-    "@rust/hashql-diagnostics": "workspace:*"
-    "@rust/hashql-eval": "workspace:*"
-    "@rust/hashql-hir": "workspace:*"
-    "@rust/hashql-syntax-jexpr": "workspace:*"
   languageName: unknown
   linkType: soft
 

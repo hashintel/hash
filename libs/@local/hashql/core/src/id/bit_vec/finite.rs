@@ -85,7 +85,7 @@ macro_rules! impl_trait {
         $(impl_trait!(@impl $integral);)*
     };
     (@impl $integral:ty) => {
-        impl const FiniteBitSetIntegral for $integral {
+        const impl FiniteBitSetIntegral for $integral {
             const EMPTY: Self = Self::MIN;
             const FILLED: Self = Self::MAX;
             const MAX_DOMAIN_SIZE: u32 = <$integral>::BITS;

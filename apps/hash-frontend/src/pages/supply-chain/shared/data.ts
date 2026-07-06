@@ -5,7 +5,10 @@ import {
   ensureNodeStats,
   ensureStepStats,
 } from "./normalize-contract";
-import { scopeDwellNodeToProduct } from "./product-dwell-scope";
+import {
+  dwellStepScopesOpenCarryOnProduct,
+  scopeDwellNodeToProduct,
+} from "./product-dwell-scope";
 import {
   fetchGraph as fetchAnalysisGraph,
   fetchProducts as fetchAnalysisProducts,
@@ -18,6 +21,7 @@ import {
 import type {
   Product,
   GraphData,
+  RawGraphData,
   StepDetail,
   StepDetailWire,
   SiteData,
@@ -40,12 +44,14 @@ let productsCache: Promise<Product[]> | null = null;
  * rejected promise is evicted so a later mount can retry.
  */
 const siteDataCache = new Map<string, Promise<SiteData>>();
+
 /**
  * Site-wide supplier performance. Cached for the session; missing optional
  * artifacts resolve to `null`, so the cache holds at most one resolved promise.
  */
 let supplierPerformanceCache: Promise<SiteSupplierPerformance | null> | null =
   null;
+
 /**
  * Configure the workspace web whose published analysis artifacts back the
  * supply-chain views. All data reads go through HASH's analysis gateway.
@@ -60,32 +66,38 @@ export function configureDataSource({
   supplierPerformanceCache = null;
   siteDataCache.clear();
 }
+
 const getActiveWebId = (): WebId => {
   if (!activeWebId) {
     throw new Error("Supply-chain data source is not configured.");
   }
   return activeWebId;
 };
+
 export function fetchProducts(): Promise<Product[]> {
   productsCache =
     productsCache ??
     (fetchAnalysisProducts(getActiveWebId()) as Promise<Product[]>);
   return productsCache;
 }
+
 /**
  * Site registry used to populate the scope picker and resolve display names.
  * Returns an empty list when unavailable.
- */ export function fetchSites(): Promise<SiteRef[]> {
+ */
+export function fetchSites(): Promise<SiteRef[]> {
   return fetchAnalysisSites(getActiveWebId());
 }
+
 /**
  * Load a product graph. With the v1 data contract the generator emits the
  * final node/segment shape, so the loader is a straight typed fetch with a
  * normalization pass for older optional fields.
- */ export async function fetchGraph(productId: string): Promise<GraphData> {
+ */
+export async function fetchGraph(productId: string): Promise<GraphData> {
   const webId = getActiveWebId();
   const graph = ensureGraphStats(
-    await fetchAnalysisGraph<GraphData>(webId, productId),
+    await fetchAnalysisGraph<RawGraphData>(webId, productId),
   );
   const products = await fetchProducts();
   const product = products.find((candidate) => candidate.id === productId);
@@ -103,10 +115,24 @@ export function fetchProducts(): Promise<Product[]> {
         const step = ensureStepStats(
           await fetchAnalysisStepDetail<StepDetail>(webId, productId, node.id),
         );
-        return scopeDwellNodeToProduct(node, step, {
-          productMaterial: product.material,
-          productName: graph.product_name,
-        });
+
+        return scopeDwellNodeToProduct(
+          node,
+          step,
+          {
+            productMaterial: product.material,
+            productName: graph.product_name,
+          },
+
+          // FG-specific dwell (post-QA / destination) scopes open carry into the
+          // product view; shared raw/intermediate dwell stays realized-only for simplicity,
+          // as we can't guarantee which FG the material will be consumed by.
+          //
+          // A future enhancement could assign open inventory where a material reservation exists,
+          // or where we know a material is only consumed by one FG, but this might be confusing to users,
+          // versus 'always go to the site overview for a full picture of inventory carrying costs'.
+          { includeOpenCarry: dwellStepScopesOpenCarryOnProduct(node.type) },
+        );
       } catch {
         return node;
       }
@@ -115,19 +141,7 @@ export function fetchProducts(): Promise<Product[]> {
 
   return { ...graph, nodes: scopedNodes };
 }
-export async function fetchAllGraphs(products: Product[]): Promise<SiteData> {
-  const graphs = await Promise.all(
-    products.map((product) =>
-      fetchGraph(product.id).then((graph) => ({ product, graph })),
-    ),
-  );
-  return {
-    analysis_settings:
-      graphs.find(({ graph }) => graph.analysis_settings)?.graph
-        .analysis_settings ?? null,
-    graphs,
-  };
-}
+
 export function fetchSupplierPerformance(): Promise<SiteSupplierPerformance | null> {
   if (supplierPerformanceCache) {
     return supplierPerformanceCache;
@@ -136,6 +150,7 @@ export function fetchSupplierPerformance(): Promise<SiteSupplierPerformance | nu
     fetchAnalysisSupplierPerformance<SiteSupplierPerformance>(getActiveWebId());
   return supplierPerformanceCache;
 }
+
 export function fetchStepDetail(
   productId: string,
   stepId: string,
@@ -146,43 +161,40 @@ export function fetchStepDetail(
     stepId,
   ).then(ensureStepStats);
 }
+
 /**
  * Site overview summary. Precomputed per site so the overview never has to
  * fetch every product's full graph.
- */ export function fetchSiteSummary(
-  siteId: string,
-): Promise<SiteSummary | null> {
+ */
+export function fetchSiteSummary(siteId: string): Promise<SiteSummary> {
   return fetchAnalysisSiteSummary<SiteSummary>(getActiveWebId(), siteId);
 }
+
 /**
- * Build the `SiteData` the overview consumes. Prefers the precomputed
- * `site/{id}/summary.json` (one request, full v1 nodes embedded) and adapts it
+ * Build the `SiteData` the overview consumes from the precomputed
+ * `site/{id}/summary.json` (one request, full v1 nodes embedded), adapting it
  * into the `{ graphs: [{ product, graph }] }` shape the aggregation helpers
- * expect. Falls back to fetching every product's full graph only when no
- * summary is published.
- */ export async function fetchSiteData(
-  siteId: string,
-  products: Product[],
-): Promise<SiteData> {
+ * expect. The summary is always published, so a failed fetch throws rather than
+ * silently degrading. An empty product set is valid and renders an empty shell.
+ */
+export async function fetchSiteData(siteId: string): Promise<SiteData> {
   const summary = await fetchSiteSummary(siteId);
-  if (summary && summary.products.length > 0) {
-    return {
-      analysis_settings: summary.analysis_settings ?? null,
-      graphs: summary.products.map((product) => ({
-        product: { id: product.id, name: product.name, material: "" },
-        graph: {
-          schema_version: summary.schema_version,
-          product_id: product.id,
-          product_name: product.name,
-          nodes: product.nodes.map(ensureNodeStats),
-          edges: [],
-          pipeline_summary: {},
-        },
-      })),
-    };
-  }
-  return fetchAllGraphs(products);
+  return {
+    analysis_settings: summary.analysis_settings ?? null,
+    graphs: summary.products.map((product) => ({
+      product: { id: product.id, name: product.name, material: "" },
+      graph: {
+        schema_version: summary.schema_version,
+        product_id: product.id,
+        product_name: product.name,
+        nodes: product.nodes.map(ensureNodeStats),
+        edges: [],
+        pipeline_summary: {},
+      },
+    })),
+  };
 }
+
 export function fetchSiteDataCached(
   siteId: string,
   products: Product[],
@@ -195,7 +207,7 @@ export function fetchSiteDataCached(
   if (cached) {
     return cached;
   }
-  const pending = fetchSiteData(siteId, products);
+  const pending = fetchSiteData(siteId);
   siteDataCache.set(key, pending);
   pending.catch(() => siteDataCache.delete(key));
   return pending;
