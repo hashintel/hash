@@ -1,0 +1,279 @@
+import { sva } from "@hashintel/ds-helpers/css";
+
+/**
+ * Shared slot styles for the header / body / footer chrome rendered inside both
+ * the Dialog and Drawer components. Each component owns its own recipe for the
+ * surrounding structural slots (backdrop, positioner, content, stackRoot); this
+ * recipe is the single source of truth for everything between them.
+ *
+ * The `--panel-*` custom properties consumed below are declared on each
+ * component's `content` slot (the chrome's ancestor) and inherited down, so the
+ * two components can tune horizontal/top padding without diverging this recipe.
+ */
+export const overlayPartsStyles = sva({
+  className: "panel",
+  slots: [
+    "header",
+    "hasCustomHeader",
+    "headerMain",
+    "headerText",
+    "titleIcon",
+    "title",
+    "description",
+    "headerRight",
+    "headerActions",
+    "body",
+    "footer",
+    "footerActions",
+    "footerSecondaryActions",
+    "closeButton",
+    "loadingOverlay",
+    "loadingSpinner",
+  ],
+  base: {
+    header: {
+      flex: "[0 0 auto]",
+      backgroundColor: "white",
+      border: "[1px solid {colors.neutral.s50}]",
+      borderTopRadius: "lg",
+      borderBottom: "[1px solid {colors.neutral.s30}]",
+      paddingX: "[var(--panel-horizontal-padding)]",
+      paddingTop: "[var(--panel-top-padding)]",
+      paddingBottom: "3.5",
+    },
+    hasCustomHeader: {
+      display: "flex",
+      alignItems: "flex-start",
+      gap: "2",
+      flex: "[1 1 auto]",
+      minWidth: "0",
+    },
+    headerMain: {},
+    headerText: {},
+    titleIcon: {
+      float: "start",
+      marginLeft: "-0.5",
+      marginRight: "2",
+      color: "neutral.s90",
+      flex: "[0 0 auto]",
+      backgroundColor: "neutral.s25",
+      borderRadius: "full",
+      padding: "1",
+      alignSelf: "flex-start",
+      top: "[1.5px]",
+      position: "relative",
+    },
+    title: {
+      display: "inline",
+      fontWeight: "semibold",
+      textStyle: "lg",
+      color: "fg.body",
+    },
+    description: {
+      color: "fg.muted",
+      textStyle: "sm",
+      marginTop: "-0.5",
+    },
+    headerRight: {
+      float: "end",
+      display: "flex",
+      alignItems: "center",
+      gap: "[1px]",
+    },
+    headerActions: {
+      display: "flex",
+      marginLeft: "auto",
+      alignItems: "center",
+      gap: "[1px]",
+      flex: "[0 0 auto]",
+      marginTop:
+        "[calc(var(--panel-top-padding) * -1 + var(--panel-close-button-gap))]",
+    },
+    body: {
+      position: "relative",
+      flex: "[1 1 auto]",
+      minHeight: "0",
+      overflow: "auto",
+      scrollbarWidth: "[thin]",
+      background: "white",
+      border: "[1px solid {colors.neutral.s50}]",
+      borderTop: "none",
+      color: "fg.body",
+      textStyle: "sm",
+      paddingX: "[var(--panel-horizontal-padding)]",
+      paddingTop: "4",
+      paddingBottom: "5",
+      // While loading, lock the body's scroll so the absolutely-positioned
+      // overlay stays pinned to the visible area instead of riding the
+      // scrolled content.
+      '[aria-busy="true"] &': {
+        overflow: "hidden",
+      },
+      _focusVisible: {
+        outlineColor: "neutral.a50",
+      },
+    },
+    footer: {
+      flex: "[0 0 auto]",
+      display: "flex",
+      alignItems: "flex-start",
+      justifyContent: "space-between",
+      gap: "3",
+      paddingX: "[var(--panel-horizontal-padding)]",
+      paddingTop: "3.5",
+      paddingBottom: "3",
+    },
+    footerActions: {
+      display: "flex",
+      flexWrap: "wrap",
+      justifyContent: "flex-end",
+      alignItems: "center",
+      gap: "2",
+      marginLeft: "auto",
+    },
+    footerSecondaryActions: {
+      display: "flex",
+      flexWrap: "wrap",
+      alignItems: "center",
+      gap: "2",
+    },
+    closeButton: {
+      flex: "[0 0 auto]",
+      marginLeft: "auto",
+      float: "end",
+      position: "relative",
+      zIndex: "[1]",
+      marginTop:
+        "[calc(var(--panel-top-padding) * -1 + var(--panel-close-button-gap))]",
+      marginRight:
+        "[calc(var(--panel-horizontal-padding) * -1 + var(--panel-close-button-gap))]",
+    },
+    loadingOverlay: {
+      position: "absolute",
+      inset: "0",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      background: "[rgba(255, 255, 255, 0.88)]",
+      zIndex: "[1]",
+      borderRadius: "[inherit]",
+    },
+    loadingSpinner: {
+      width: "[auto !important]",
+      aspectRatio: "1",
+      maxHeight: "[60%]",
+      color: "black",
+    },
+  },
+  variants: {
+    size: {
+      xs: {
+        header: {
+          paddingBottom: "3",
+        },
+        body: {
+          paddingTop: "4",
+          paddingBottom: "4.5",
+        },
+        footer: {
+          paddingTop: "3",
+          paddingBottom: "2.5",
+        },
+      },
+      sm: {
+        loadingSpinner: { height: "[38px !important]" },
+      },
+      md: {
+        loadingSpinner: { height: "[40px !important]" },
+        headerMain: { display: "flex", alignItems: "flex-start", gap: "2" },
+        titleIcon: { marginRight: "0" },
+        headerText: { flex: "[1 1 auto]", minWidth: "[0]" },
+      },
+      lg: {
+        loadingSpinner: {
+          height: "[45px !important]",
+          color: "neutral.s115",
+        },
+        headerMain: { display: "flex", alignItems: "flex-start", gap: "2" },
+        titleIcon: { marginRight: "0" },
+        headerText: { flex: "[1 1 auto]", minWidth: "[0]" },
+      },
+      xl: {
+        loadingSpinner: {
+          height: "[50px !important]",
+          color: "neutral.s115",
+        },
+        headerMain: { display: "flex", alignItems: "flex-start", gap: "2" },
+        titleIcon: { marginRight: "0" },
+        headerText: { flex: "[1 1 auto]", minWidth: "[0]" },
+      },
+      fullScreen: {
+        loadingSpinner: {
+          height: "[50px !important]",
+          color: "neutral.s110",
+        },
+        headerMain: { display: "flex", alignItems: "flex-start", gap: "2" },
+        titleIcon: { marginRight: "0" },
+        headerText: { flex: "[1 1 auto]", minWidth: "[0]" },
+      },
+    },
+    variant: {
+      partitionedFooter: {
+        body: {
+          borderBottomRadius: "lg",
+        },
+      },
+      plain: {
+        header: {
+          borderBottomColor: "neutral.s20",
+        },
+        body: {
+          borderBottom: "none",
+        },
+        footer: {
+          backgroundColor: "white",
+          border: "[1px solid {colors.neutral.s50}]",
+          borderBottomRadius: "lg",
+          borderTop: "[1px solid {colors.neutral.s20}]",
+        },
+      },
+    },
+    hasIcon: {
+      true: {
+        description: { marginTop: "0.5" },
+      },
+    },
+    headerless: {
+      true: {
+        header: {
+          paddingBottom: "0",
+          borderBottom: "none",
+        },
+        closeButton: {
+          marginBottom: "-1.5",
+        },
+        body: {
+          paddingTop: "0",
+          paddingBottom: "6",
+        },
+      },
+    },
+  },
+  compoundVariants: [
+    {
+      headerless: true,
+      size: "xs",
+      css: {
+        header: {
+          paddingBottom: "0",
+        },
+        body: {
+          paddingBottom: "5",
+        },
+      },
+    },
+  ],
+  defaultVariants: {
+    size: "md",
+  },
+});
