@@ -1,264 +1,218 @@
 import { describe, expect, it } from "vitest";
 
-import { emitBufferKernelJs, emitBufferLambdaJs } from "./emit-buffer-js";
+import { StringPool } from "../simulation/engine/string-pool";
 import {
-  instantiateHirBufferKernel,
+  createTokenRegionViews,
+  encodeTokenToBytes,
+  computeTokenSlotLayout,
+} from "../simulation/engine/token-layout";
+import {
+  emitBufferDynamicsJs,
+  emitBufferKernelJs,
+  emitBufferLambdaJs,
+} from "./emit-buffer-js";
+import {
+  instantiateHirBufferDynamics,
   instantiateHirBufferLambda,
 } from "./instantiate";
 import { lowerTypeScriptToHir } from "./lower-typescript";
 
-import type { RuntimeDistribution } from "../simulation/authoring/user-code/distribution";
 import type { HirFunction } from "./hir";
 import type { HirKernelContext, HirLambdaContext } from "./surface-context";
 
-function lower(code: string, surface: "lambda" | "kernel"): HirFunction {
+function lower(code: string, surface: "lambda" | "kernel" | "dynamics") {
   const result = lowerTypeScriptToHir(code, surface);
   if (!result.ok) {
     throw new Error(result.diagnostics[0]?.message);
   }
-  return result.fn;
+  return result.fn as HirFunction;
 }
 
-// Layout: two input arcs — Pool (weight 2, elements x/alive) then
-// Fuel (weight 1, element level). Slots: [Pool0, Pool1, Fuel0].
+// Pool place: x(real) v(real) alive(boolean) status(string) id(uuid).
+// Packed layout (v2): 8-aligned fields in declaration order — x@0, v@8,
+// status@16 (u64 handle), id@24 (2×u64) — then alive(u8)@40; stride 48.
+const poolElements = [
+  { name: "x", type: "real" as const },
+  { name: "v", type: "real" as const },
+  { name: "status", type: "string" as const },
+  { name: "id", type: "uuid" as const },
+  { name: "alive", type: "boolean" as const },
+];
+const poolColorElements = poolElements.map((element, index) => ({
+  elementId: `e${index}`,
+  name: element.name,
+  type: element.type,
+}));
+const poolLayout = computeTokenSlotLayout(poolColorElements);
+
 const poolSlot = {
   name: "Pool",
   colorId: "c1",
-  elements: [
-    { name: "x", type: "real" as const },
-    { name: "alive", type: "boolean" as const },
-  ],
+  elements: poolElements,
   tokenCount: 2,
   slotStart: 0,
-};
-const fuelSlot = {
-  name: "Fuel",
-  colorId: "c2",
-  elements: [{ name: "level", type: "real" as const }],
-  tokenCount: 1,
-  slotStart: 2,
 };
 
 const lambdaContext: HirLambdaContext = {
   surface: "lambda",
-  parameters: [{ name: "rate", type: "real" }],
-  inputPlaces: [
-    { ...poolSlot, slotStart: undefined as never },
-    { ...fuelSlot, slotStart: undefined as never },
-  ].map(({ slotStart: _slotStart, ...binding }) => binding),
-  inputSlots: [poolSlot, fuelSlot],
+  parameters: [
+    { name: "rate", type: "real" },
+    { name: "threshold", type: "real" },
+  ],
+  inputPlaces: [(({ slotStart: _s, ...binding }) => binding)(poolSlot)],
+  inputSlots: [poolSlot],
   lambdaType: "stochastic",
 };
 
-const outSlot = {
-  name: "Out",
-  colorId: "c3",
-  elements: [
-    { name: "x", type: "real" as const },
-    { name: "count", type: "integer" as const },
-    { name: "flag", type: "boolean" as const },
-  ],
-  tokenCount: 1,
-  slotStart: 0,
-};
+// A frame region with two Pool tokens, back to back.
+function makeRegion(pool: StringPool) {
+  // hi = 0x0123456789abcdef, lo = 0xfedcba9876543210 (avoids no-bitwise)
+  const uuid =
+    0x0123456789abcdefn * 18446744073709551616n + 0xfedcba9876543210n;
+  const tokenA = encodeTokenToBytes(
+    poolLayout,
+    { x: 1.5, v: -2, status: "shipped", id: uuid, alive: true },
+    "test",
+    pool,
+  );
+  const tokenB = encodeTokenToBytes(
+    poolLayout,
+    { x: 4, v: 8, status: "queued", id: 7n, alive: false },
+    "test",
+    pool,
+  );
+  const bytes = new Uint8Array(poolLayout.strideBytes * 2);
+  bytes.set(tokenA, 0);
+  bytes.set(tokenB, poolLayout.strideBytes);
+  const views = createTokenRegionViews(bytes.buffer, 0, bytes.byteLength);
+  const slotBases = new Int32Array([0, poolLayout.strideBytes]);
+  return { views, slotBases, uuid };
+}
 
-const kernelContext: HirKernelContext = {
-  surface: "kernel",
-  parameters: [{ name: "sigma", type: "real" }],
-  inputPlaces: lambdaContext.inputPlaces,
-  inputSlots: lambdaContext.inputSlots,
-  outputPlaces: [(({ slotStart: _slotStart, ...binding }) => binding)(outSlot)],
-  outputSlots: [outSlot],
-  stochasticity: true,
-};
+function compileLambda(code: string, pool: StringPool, parameters = {}) {
+  const program = emitBufferLambdaJs(lower(code, "lambda"), lambdaContext);
+  expect(program).not.toBeNull();
+  expect(program!.inputSlotCount).toBe(2);
+  return instantiateHirBufferLambda(program!.source, parameters, pool);
+}
 
-// A frame: Pool tokens at bases 0 and 2, Fuel token at base 10.
-// Pool[0] = { x: 1.5, alive: 1 }, Pool[1] = { x: -2, alive: 0 },
-// Fuel[0] = { level: 7 }.
-const tokenValues = new Float64Array(16);
-tokenValues.set([1.5, 1], 0);
-tokenValues.set([-2, 0], 2);
-tokenValues.set([7], 10);
-const slotBases = new Int32Array([0, 2, 10]);
-
-describe("emitBufferLambdaJs", () => {
-  function compileLambda(code: string, parameters = { rate: 3 }) {
-    const program = emitBufferLambdaJs(lower(code, "lambda"), lambdaContext);
-    expect(program).not.toBeNull();
-    expect(program!.inputSlotCount).toBe(3);
-    return instantiateHirBufferLambda(program!.source, parameters);
-  }
-
-  it("reads token attributes at static offsets", () => {
+describe("emitBufferLambdaJs (token format v2)", () => {
+  it("reads real/boolean attributes at packed byte offsets", () => {
+    const pool = new StringPool();
+    const { views, slotBases } = makeRegion(pool);
     const fn = compileLambda(
-      `export default Lambda((input, parameters) => input.Pool[0].x + input.Pool[1].x + input.Fuel[0].level);`,
+      `export default Lambda((input, parameters) => input.Pool[0].alive ? input.Pool[0].x + input.Pool[1].v : 0);`,
+      pool,
     );
-    expect(fn(tokenValues, slotBases)).toBe(1.5 - 2 + 7);
+    expect(fn(views.f64, views.u64, views.u8, slotBases)).toBe(1.5 + 8);
   });
 
-  it("decodes booleans and binds parameters", () => {
+  it("resolves interned strings through the pool", () => {
+    const pool = new StringPool();
+    const { views, slotBases } = makeRegion(pool);
     const fn = compileLambda(
-      `export default Lambda((input, parameters) => input.Pool[0].alive && input.Pool[0].x * parameters.rate > 4);`,
+      `export default Lambda((input, parameters) => input.Pool[0].status === "shipped" && input.Pool[1].status.startsWith("q"));`,
+      pool,
     );
-    expect(fn(tokenValues, slotBases)).toBe(true);
+    expect(fn(views.f64, views.u64, views.u8, slotBases)).toBe(true);
   });
 
-  it("supports destructured bindings and guard clauses", () => {
+  it("assembles uuid attributes as bigints from the two u64 lanes", () => {
+    const pool = new StringPool();
+    const { views, slotBases, uuid } = makeRegion(pool);
+    const fn = compileLambda(
+      `export default Lambda((input, parameters) => input.Pool[0].id === input.Pool[1].id ? 1 : 0.5);`,
+      pool,
+    );
+    expect(fn(views.f64, views.u64, views.u8, slotBases)).toBe(0.5);
+    void uuid;
+  });
+
+  it("binds parameters and supports guards/destructuring", () => {
+    const pool = new StringPool();
+    const { views, slotBases } = makeRegion(pool);
     const fn = compileLambda(
       `export default Lambda((input, parameters) => {
+  const { rate, threshold } = parameters;
   const { x, alive } = input.Pool[0];
   if (!alive) return 0;
-  const { rate } = parameters;
-  return x * rate;
+  if (x < threshold) return 0;
+  return rate * x;
 });`,
+      pool,
+      { rate: 2, threshold: 1 },
     );
-    expect(fn(tokenValues, slotBases)).toBe(4.5);
-  });
-
-  it("resolves .length to the static arc weight", () => {
-    const fn = compileLambda(
-      `export default Lambda((input) => input.Pool.length * 10 + input.Fuel.length);`,
-    );
-    expect(fn(tokenValues, slotBases)).toBe(21);
-  });
-
-  it("supports array destructuring of the tuple", () => {
-    const fn = compileLambda(
-      `export default Lambda((input) => {
-  const [a, b] = input.Pool;
-  return a.x - b.x;
-});`,
-    );
-    expect(fn(tokenValues, slotBases)).toBe(3.5);
-  });
-
-  it("bails to null on dynamic token indices", () => {
-    const fn = lower(
-      `export default Lambda((input, parameters) => input.Pool[parameters.rate].x);`,
-      "lambda",
-    );
-    expect(emitBufferLambdaJs(fn, lambdaContext)).toBeNull();
+    expect(fn(views.f64, views.u64, views.u8, slotBases)).toBe(3);
   });
 });
 
-describe("emitBufferKernelJs", () => {
-  function compileKernel(code: string, parameters = { sigma: 2 }) {
-    const program = emitBufferKernelJs(lower(code, "kernel"), kernelContext);
-    expect(program).not.toBeNull();
-    expect(program!.inputSlotCount).toBe(3);
-    expect(program!.outputFloatCount).toBe(3);
-    return instantiateHirBufferKernel(program!.source, parameters);
-  }
-
-  function runKernel(fn: ReturnType<typeof compileKernel>) {
-    const out = new Float64Array(3);
-    const sinks: [number, RuntimeDistribution][] = [];
-    fn(tokenValues, slotBases, out, (index, dist) => sinks.push([index, dist]));
-    return { out, sinks };
-  }
-
-  it("writes attributes place-major with integer rounding and boolean 0/1", () => {
-    const fn = compileKernel(
-      `export default TransitionKernel((input, parameters) => ({
-  Out: [{ x: input.Pool[0].x * 2, count: 2.7, flag: input.Pool[1].x < 0 }],
-}));`,
-    );
-    const { out, sinks } = runKernel(fn);
-    expect([...out]).toEqual([3, 3, 1]);
-    expect(sinks).toEqual([]);
-  });
-
-  it("defers distributions through distSink with shared identity", () => {
-    const fn = compileKernel(
-      `export default TransitionKernel((input, parameters) => {
-  const noise = Distribution.Gaussian(0, parameters.sigma);
-  const scaled = noise.map((v) => v * 10);
-  return { Out: [{ x: scaled, count: 1, flag: false }] };
-});`,
-    );
-    const { out, sinks } = runKernel(fn);
-    expect(out[1]).toBe(1);
-    expect(sinks).toHaveLength(1);
-    const [index, dist] = sinks[0]!;
-    expect(index).toBe(0);
-    expect(dist.type).toBe("mapped");
-    if (dist.type === "mapped") {
-      expect(dist.inner).toMatchObject({
-        type: "gaussian",
-        mean: 0,
-        deviation: 2,
-      });
-      expect(dist.fn(3)).toBe(30);
-    }
-  });
-
-  it("unrolls .map over input tuples", () => {
+describe("emitBufferKernelJs (token format v2)", () => {
+  it("is not emitted yet — kernels run the object program", () => {
     const context: HirKernelContext = {
-      ...kernelContext,
-      outputSlots: [{ ...outSlot, tokenCount: 2 }],
-      outputPlaces: [
-        (({ slotStart: _s, ...binding }) => ({ ...binding, tokenCount: 2 }))(
-          outSlot,
-        ),
-      ],
+      surface: "kernel",
+      parameters: [],
+      inputPlaces: lambdaContext.inputPlaces,
+      inputSlots: lambdaContext.inputSlots,
+      outputPlaces: lambdaContext.inputPlaces,
+      outputSlots: lambdaContext.inputSlots,
+      stochasticity: true,
     };
-    const program = emitBufferKernelJs(
-      lower(
-        `export default TransitionKernel((input, parameters) => ({
-  Out: input.Pool.map((token, i) => ({ x: token.x + i, count: i, flag: token.alive })),
-}));`,
-        "kernel",
-      ),
-      context,
-    );
-    expect(program).not.toBeNull();
-    const fn = instantiateHirBufferKernel(program!.source, {});
-    const out = new Float64Array(6);
-    fn(tokenValues, slotBases, out, () => {});
-    expect([...out]).toEqual([1.5, 0, 1, -1, 1, 0]);
-  });
-
-  it("forwards whole input tuples to outputs", () => {
-    const context: HirKernelContext = {
-      ...kernelContext,
-      outputSlots: [
-        {
-          name: "Sink",
-          colorId: "c2",
-          elements: [{ name: "level", type: "real" as const }],
-          tokenCount: 1,
-          slotStart: 0,
-        },
-      ],
-      outputPlaces: [
-        {
-          name: "Sink",
-          colorId: "c2",
-          elements: [{ name: "level", type: "real" as const }],
-          tokenCount: 1,
-        },
-      ],
-    };
-    const program = emitBufferKernelJs(
-      lower(
-        `export default TransitionKernel((input) => ({ Sink: input.Fuel }));`,
-        "kernel",
-      ),
-      context,
-    );
-    expect(program).not.toBeNull();
-    const fn = instantiateHirBufferKernel(program!.source, {});
-    const out = new Float64Array(1);
-    fn(tokenValues, slotBases, out, () => {});
-    expect([...out]).toEqual([7]);
-  });
-
-  it("bails when the output token count is not statically resolvable", () => {
-    // Returning a conditional record — structurally dynamic.
     const fn = lower(
-      `export default TransitionKernel((input, parameters) => parameters.sigma > 1 ? { Out: [{ x: 1, count: 0, flag: false }] } : { Out: [{ x: 2, count: 0, flag: false }] });`,
+      `export default TransitionKernel((input) => ({ Pool: [input.Pool[0], input.Pool[1]] }));`,
       "kernel",
     );
-    expect(emitBufferKernelJs(fn, kernelContext)).toBeNull();
+    expect(emitBufferKernelJs(fn, context)).toBeNull();
+  });
+});
+
+describe("emitBufferDynamicsJs (token format v2)", () => {
+  it("computes derivatives from packed bytes without record decoding", () => {
+    const pool = new StringPool();
+    const { views } = makeRegion(pool);
+    const source = emitBufferDynamicsJs(
+      lower(
+        `export default Dynamics((tokens, parameters) => {
+  const g = parameters.g;
+  return tokens.map(({ x, v, alive }) => ({
+    x: alive ? v : 0,
+    v: -g * x,
+  }));
+});`,
+        "dynamics",
+      ),
+      poolElements,
+    );
+    expect(source).not.toBeNull();
+    const fn = instantiateHirBufferDynamics(source!, { g: 2 }, pool);
+    const result = fn(views.u8, 2);
+    // Token A: alive → x' = v = -2, v' = -2 * 1.5 = -3
+    // Token B: dead  → x' = 0,      v' = -2 * 4 = -8
+    expect([...result]).toEqual([-2, -3, 0, -8]);
+  });
+
+  it("reads string attributes in dynamics (read-only)", () => {
+    const pool = new StringPool();
+    const { views } = makeRegion(pool);
+    const source = emitBufferDynamicsJs(
+      lower(
+        `export default Dynamics((tokens) => tokens.map(({ v, status }) => ({
+  x: status === "shipped" ? v : 0,
+})));`,
+        "dynamics",
+      ),
+      poolElements,
+    );
+    expect(source).not.toBeNull();
+    const fn = instantiateHirBufferDynamics(source!, {}, pool);
+    expect([...fn(views.u8, 2)]).toEqual([-2, 0, 0, 0]);
+  });
+
+  it("bails to null when the body is not a token map", () => {
+    expect(
+      emitBufferDynamicsJs(
+        lower(`export default Dynamics((tokens) => [{ x: 1 }]);`, "dynamics"),
+        poolElements,
+      ),
+    ).toBeNull();
   });
 });

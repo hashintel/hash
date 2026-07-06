@@ -19,7 +19,7 @@
  */
 import ts from "typescript";
 
-import { HIR_MATH_FNS } from "./hir";
+import { HIR_MATH_FNS, HIR_STRING_FNS } from "./hir";
 
 import type {
   HirBinaryOp,
@@ -730,11 +730,7 @@ class Lowering {
       return this.make(node, { kind: "arrayLit", elements });
     }
     if (ts.isStringLiteralLike(node)) {
-      this.fail(
-        node,
-        "hir:string-value",
-        "String values are not supported — token attributes are numbers and booleans.",
-      );
+      return this.make(node, { kind: "stringLit", value: node.text });
     }
 
     this.fail(
@@ -907,6 +903,41 @@ class Lowering {
         });
       }
 
+      // Uuid.generate() / Uuid.from(value)
+      if (
+        ts.isIdentifier(callee.expression) &&
+        callee.expression.text === "Uuid"
+      ) {
+        if (method === "generate") {
+          if (node.arguments.length !== 0) {
+            this.fail(
+              node,
+              "hir:uuid-arity",
+              "`Uuid.generate()` takes no arguments.",
+            );
+          }
+          return this.make(node, { kind: "uuidGenerate" });
+        }
+        if (method === "from") {
+          if (node.arguments.length !== 1) {
+            this.fail(
+              node,
+              "hir:uuid-arity",
+              "`Uuid.from(value)` takes exactly one argument.",
+            );
+          }
+          return this.make(node, {
+            kind: "uuidFrom",
+            operand: this.lowerExpr(node.arguments[0]!, scope),
+          });
+        }
+        this.fail(
+          callee.name,
+          "hir:unknown-uuid-helper",
+          `Unknown helper \`Uuid.${method}\` — expected \`generate\` or \`from\`.`,
+        );
+      }
+
       // Distribution.Gaussian(...) / Uniform / Lognormal
       if (
         ts.isIdentifier(callee.expression) &&
@@ -932,6 +963,23 @@ class Lowering {
       // <expr>.map(...)
       if (method === "map") {
         return this.lowerMapCall(node, callee, scope);
+      }
+
+      // String predicates: <expr>.startsWith(arg) etc.
+      if ((HIR_STRING_FNS as readonly string[]).includes(method)) {
+        if (node.arguments.length !== 1) {
+          this.fail(
+            node,
+            "hir:string-call-arity",
+            `\`.${method}(...)\` takes exactly one argument.`,
+          );
+        }
+        return this.make(node, {
+          kind: "stringCall",
+          fn: method as (typeof HIR_STRING_FNS)[number],
+          target: this.lowerExpr(callee.expression, scope),
+          argument: this.lowerExpr(node.arguments[0]!, scope),
+        });
       }
     }
 

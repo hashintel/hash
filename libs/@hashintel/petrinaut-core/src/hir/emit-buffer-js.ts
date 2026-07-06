@@ -31,6 +31,7 @@
  * Only emit from functions whose typecheck produced no errors: the emitter
  * relies on attribute/place validity established by `typecheckHir`.
  */
+import { computeTokenSlotLayout } from "../simulation/engine/token-layout";
 import { foldHir } from "./analyze";
 
 import type { HirExpr, HirFunction } from "./hir";
@@ -57,7 +58,10 @@ export type BufferKernelProgram = BufferProgram & {
 const MAX_UNROLL = 16;
 
 const RESERVED_NAMES = [
-  "tokenValues",
+  "f64",
+  "u64",
+  "u8",
+  "__pool",
   "slotBases",
   "out",
   "distSink",
@@ -150,20 +154,57 @@ class BufferEmitter {
     };
   }
 
+  /**
+   * Emits a read of one attribute from the packed token struct (format v2):
+   * `baseCode` is the token's base BYTE offset within the token region;
+   * field offsets come from `computeTokenSlotLayout`. real/integer are f64,
+   * booleans u8 (0/1), strings u64 pool handles (resolved through `__pool`),
+   * uuids two u64 lanes assembled into one bigint.
+   */
   private readAttribute(
     token: Extract<Value, { kind: "token" }>,
     field: string,
   ): Value {
-    const index = token.elements.findIndex((element) => element.name === field);
-    if (index === -1) {
+    const layout = computeTokenSlotLayout(
+      token.elements.map((element, index) => ({
+        elementId: String(index),
+        name: element.name,
+        type: element.type,
+      })),
+    );
+    const layoutField = layout.fields.find(
+      (candidate) => candidate.element.name === field,
+    );
+    if (!layoutField) {
       throw new BailError();
     }
-    const read = `tokenValues[${token.baseCode} + ${index}]`;
-    return {
-      kind: "scalar",
-      code:
-        token.elements[index]!.type === "boolean" ? `(${read} !== 0)` : read,
-    };
+    const byteOffset = layoutField.byteOffset;
+    const base =
+      byteOffset === 0 ? token.baseCode : `${token.baseCode} + ${byteOffset}`;
+    switch (layoutField.kind) {
+      case "f64": {
+        const read = `f64[(${base}) >> 3]`;
+        return {
+          kind: "scalar",
+          code:
+            layoutField.element.type === "integer"
+              ? `Math.round(${read})`
+              : read,
+        };
+      }
+      case "u8":
+        return { kind: "scalar", code: `(u8[${base}] !== 0)` };
+      case "u64":
+        return {
+          kind: "scalar",
+          code: `__pool.get(Number(u64[(${base}) >> 3]))`,
+        };
+      case "u64x2":
+        return {
+          kind: "scalar",
+          code: `((u64[((${base}) >> 3) + 1] << 64n) | u64[(${base}) >> 3])`,
+        };
+    }
   }
 
   private scalar(value: Value): string {
@@ -179,6 +220,19 @@ class BufferEmitter {
         return { kind: "scalar", code: emitNumber(expr.value, expr.raw) };
       case "boolLit":
         return { kind: "scalar", code: expr.value ? "true" : "false" };
+      case "stringLit":
+        return { kind: "scalar", code: JSON.stringify(expr.value) };
+      case "stringCall":
+        return {
+          kind: "scalar",
+          code: `${this.scalar(this.eval(expr.target, env))}.${expr.fn}(${this.scalar(
+            this.eval(expr.argument, env),
+          )})`,
+        };
+      case "uuidGenerate":
+      case "uuidFrom":
+        // Kernel-output-only constructs; kernels don't use this emitter yet.
+        throw new BailError();
       case "constant":
         switch (expr.name) {
           case "PI":
@@ -403,7 +457,7 @@ class BufferEmitter {
 
   /** Binds a `const`: scalars and distributions become hoisted consts (so
    * they evaluate once); structural values stay symbolic. */
-  private hoist(name: string, value: Value): Value {
+  hoist(name: string, value: Value): Value {
     if (value.kind === "scalar") {
       const jsName = this.names.allocate(name);
       this.lines.push(`const ${jsName} = ${value.code};`);
@@ -452,7 +506,7 @@ export function emitBufferLambdaJs(
       return null;
     }
     const source = [
-      `(tokenValues, slotBases) => {`,
+      `(f64, u64, u8, slotBases) => {`,
       ...emitter.lines.map((line) => `  ${line}`),
       `  return ${result.code};`,
       `}`,
@@ -467,115 +521,141 @@ export function emitBufferLambdaJs(
 }
 
 /**
- * Emits a buffer-ABI kernel:
- * `(tokenValues, slotBases, out, distSink) => void`.
- *
- * Writes every output attribute into `out` (place-major, arc order):
- * integers pre-rounded, booleans as 0/1, distribution values deferred via
- * `distSink`. Returns `null` when the output shape is not statically
- * resolvable (the object-convention fallback handles it).
+ * Buffer-ABI kernels are not emitted yet for the packed token layout
+ * (format v2): kernel outputs interleave RNG consumption (distribution
+ * sampling, uuid auto-generation) and string interning in element
+ * declaration order, which requires an ordinal-tagged deferred-sink design
+ * to preserve the engine's RNG stream. Kernels run the object-convention
+ * program meanwhile — they execute once per firing (cold) versus the
+ * lambda's once per token combination (hot).
  */
 export function emitBufferKernelJs(
-  fn: HirFunction,
-  context: HirKernelContext,
+  _fn: HirFunction,
+  _context: HirKernelContext,
 ): BufferKernelProgram | null {
+  return null;
+}
+
+/**
+ * Compiles a dynamics function to the buffer-native v2 shape:
+ *
+ *   (placeBytes: Uint8Array, numberOfTokens) => Float64Array
+ *
+ * Reads token attributes at packed-struct byte offsets through views created
+ * once per call; derivatives are written flat as `numberOfTokens × realField`
+ * in layout field order (matching `TokenSlotLayout.realFieldF64Offsets`).
+ * References `__params` / `__pool`, bound at instantiation. Returns `null`
+ * when the body doesn't fit the `tokens.map((token, index?) => ({ ... }))`
+ * shape (the object program runs behind the decoding adapter instead).
+ */
+export function emitBufferDynamicsJs(
+  fn: HirFunction,
+  elements: readonly HirTokenElementInfo[],
+): string | null {
+  const tokensParam = fn.params[0];
+  if (!tokensParam) {
+    return null;
+  }
+  const layout = computeTokenSlotLayout(
+    elements.map((element, index) => ({
+      elementId: String(index),
+      name: element.name,
+      type: element.type,
+    })),
+  );
+  const realFields = layout.fields.filter(
+    (field) => field.element.type === "real",
+  );
+  if (realFields.length === 0) {
+    return null;
+  }
+
+  let body = foldHir(fn.body);
+  let outerBindings: Extract<HirExpr, { kind: "let" }>["bindings"] = [];
+  if (body.kind === "let") {
+    outerBindings = body.bindings;
+    body = body.body;
+  }
+  if (
+    body.kind !== "arrayMap" ||
+    body.target.kind !== "localRef" ||
+    body.target.name !== tokensParam.name
+  ) {
+    return null;
+  }
+  const mapBody = body.body;
+  const innerBindings = mapBody.kind === "let" ? mapBody.bindings : [];
+  const record = mapBody.kind === "let" ? mapBody.body : mapBody;
+  if (record.kind !== "recordLit") {
+    return null;
+  }
+
   try {
-    const emitter = new BufferEmitter(context.inputSlots);
-    const result = emitter.eval(foldHir(fn.body), initialEnv(fn));
-    if (result.kind !== "record") {
-      return null;
+    const emitter = new BufferEmitter([]);
+    const env = new Map<string, Value>();
+
+    // Token-independent bindings, hoisted before the loop.
+    for (const binding of outerBindings) {
+      env.set(
+        binding.name,
+        emitter.hoist(binding.name, emitter.eval(binding.value, env)),
+      );
+    }
+    const hoisted = [...emitter.lines];
+    emitter.lines.length = 0;
+
+    const loopEnv = new Map(env);
+    loopEnv.set(body.param.name, {
+      kind: "token",
+      baseCode: "__b",
+      elements: [...elements],
+    });
+    if (body.indexParam) {
+      loopEnv.set(body.indexParam.name, { kind: "scalar", code: "__i" });
+    }
+    for (const binding of innerBindings) {
+      loopEnv.set(
+        binding.name,
+        emitter.hoist(binding.name, emitter.eval(binding.value, loopEnv)),
+      );
     }
 
     const writes: string[] = [];
-    let floatBase = 0;
-
-    for (const slot of context.outputSlots) {
-      const dims = slot.elements.length;
-      const entry = result.fields.get(slot.name);
+    for (const [fieldIndex, field] of realFields.entries()) {
+      const entry = record.entries.find(
+        (candidate) => candidate.key === field.element.name,
+      );
+      // Missing real derivatives default to 0 (`out` is zero-initialised),
+      // matching the object adapter's `?? 0`.
       if (!entry) {
-        return null;
+        continue;
       }
-
-      // Resolve the entry to one token Value per output slot position.
-      let tokens: Value[];
-      if (entry.kind === "array") {
-        tokens = entry.items;
-      } else if (entry.kind === "tokens") {
-        // Whole input tuple forwarded to an output place.
-        if (entry.slot.tokenCount !== slot.tokenCount) {
-          return null;
-        }
-        tokens = Array.from({ length: entry.slot.tokenCount }, (_, index) => ({
-          kind: "token" as const,
-          baseCode: `slotBases[${entry.slot.slotStart + index}]`,
-          elements: entry.slot.elements,
-        }));
-      } else {
-        return null;
+      const value = emitter.eval(entry.value, loopEnv);
+      if (value.kind !== "scalar") {
+        throw new BailError();
       }
-      if (tokens.length !== slot.tokenCount) {
-        return null;
-      }
-
-      for (const [tokenIndex, token] of tokens.entries()) {
-        for (const [elementIndex, element] of slot.elements.entries()) {
-          const floatIndex = floatBase + tokenIndex * dims + elementIndex;
-
-          let value: Value;
-          if (token.kind === "record") {
-            const field = token.fields.get(element.name);
-            if (!field) {
-              return null;
-            }
-            value = field;
-          } else if (token.kind === "token") {
-            const index = token.elements.findIndex(
-              (candidate) => candidate.name === element.name,
-            );
-            if (index === -1) {
-              return null;
-            }
-            value = {
-              kind: "scalar",
-              code: `tokenValues[${token.baseCode} + ${index}]`,
-            };
-          } else {
-            return null;
-          }
-
-          if (value.kind === "scalar") {
-            const encoded =
-              element.type === "integer"
-                ? `Math.round(${value.code})`
-                : element.type === "boolean"
-                  ? `(${value.code}) ? 1 : 0`
-                  : value.code;
-            writes.push(`out[${floatIndex}] = ${encoded};`);
-          } else if (value.kind === "dist") {
-            if (element.type !== "real") {
-              return null;
-            }
-            writes.push(`distSink(${floatIndex}, ${value.code});`);
-          } else {
-            return null;
-          }
-        }
-      }
-
-      floatBase += slot.tokenCount * dims;
+      writes.push(
+        `    out[__i * ${realFields.length} + ${fieldIndex}] = ${value.code};`,
+      );
     }
+    const perIteration = emitter.lines;
 
-    const source = [
-      `(tokenValues, slotBases, out, distSink) => {`,
-      ...emitter.lines.map((line) => `  ${line}`),
-      ...writes.map((line) => `  ${line}`),
+    return [
+      `(placeBytes, numberOfTokens) => {`,
+      `  "use strict";`,
+      `  const f64 = new Float64Array(placeBytes.buffer, placeBytes.byteOffset, placeBytes.byteLength >> 3);`,
+      `  const u64 = new BigUint64Array(placeBytes.buffer, placeBytes.byteOffset, placeBytes.byteLength >> 3);`,
+      `  const u8 = placeBytes;`,
+      ...hoisted.map((line) => `  ${line}`),
+      `  const out = new Float64Array(numberOfTokens * ${realFields.length});`,
+      `  for (let __i = 0; __i < numberOfTokens; __i++) {`,
+      `    const __b = __i * ${layout.strideBytes};`,
+      ...perIteration.map((line) => `    ${line}`),
+      ...writes,
+      `  }`,
+      `  return out;`,
       `}`,
     ].join("\n");
-    return {
-      source,
-      inputSlotCount: slotCount(context.inputSlots),
-      outputFloatCount: floatBase,
-    };
   } catch (error) {
     if (error instanceof BailError) {
       return null;

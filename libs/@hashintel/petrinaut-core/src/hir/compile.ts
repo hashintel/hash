@@ -22,8 +22,12 @@ import {
   sanitizeSDCPNForExtensions,
   type PetrinautExtensionSettings,
 } from "../extensions";
-import { emitBufferKernelJs, emitBufferLambdaJs } from "./emit-buffer-js";
-import { emitBufferDynamicsJs, emitUserFunctionJs } from "./emit-js";
+import {
+  emitBufferDynamicsJs,
+  emitBufferKernelJs,
+  emitBufferLambdaJs,
+} from "./emit-buffer-js";
+import { emitUserFunctionJs } from "./emit-js";
 import {
   instantiateHirBufferDynamics,
   instantiateHirUserFn,
@@ -43,6 +47,7 @@ import type {
   HirCompiledBufferDynamics,
   HirCompiledUserFn,
   HirParameterValues,
+  HirStringPoolReader,
 } from "./instantiate";
 import type {
   HirNetScope,
@@ -261,6 +266,7 @@ export function tryCompileHirBufferDynamics(
   code: string,
   elements: readonly HirTokenElementInfo[],
   parameterValues: HirParameterValues,
+  stringPool: HirStringPoolReader = { get: () => "" },
 ): HirCompiledBufferDynamics | null {
   try {
     const lowered = lowerTypeScriptToHir(code, "dynamics");
@@ -271,7 +277,7 @@ export function tryCompileHirBufferDynamics(
     if (source === null) {
       return null;
     }
-    return instantiateHirBufferDynamics(source, parameterValues);
+    return instantiateHirBufferDynamics(source, parameterValues, stringPool);
   } catch {
     return null;
   }

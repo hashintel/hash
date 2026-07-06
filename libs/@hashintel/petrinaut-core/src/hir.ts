@@ -43,12 +43,13 @@ export {
   type HirParameterValues,
 } from "./hir/instantiate";
 export {
+  emitBufferDynamicsJs,
   emitBufferKernelJs,
   emitBufferLambdaJs,
   type BufferKernelProgram,
   type BufferProgram,
 } from "./hir/emit-buffer-js";
-export { emitBufferDynamicsJs, emitUserFunctionJs } from "./hir/emit-js";
+export { emitUserFunctionJs } from "./hir/emit-js";
 export {
   formatHirType,
   hirChildren,

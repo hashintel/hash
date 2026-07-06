@@ -1,10 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  tryCompileHirBufferDynamics,
-  tryCompileHirKernel,
-  tryCompileHirLambda,
-} from "./compile";
+import { tryCompileHirKernel, tryCompileHirLambda } from "./compile";
 
 import type { RuntimeDistribution } from "../simulation/authoring/user-code/distribution";
 
@@ -109,86 +105,5 @@ describe("tryCompileHirKernel", () => {
       { x: 1, y: 6 },
       { x: 11, y: 60 },
     ]);
-  });
-});
-
-describe("tryCompileHirBufferDynamics", () => {
-  const elements = [
-    { name: "x", type: "real" as const },
-    { name: "v", type: "real" as const },
-    { name: "alive", type: "boolean" as const },
-  ];
-
-  it("computes derivatives directly on the packed buffer", () => {
-    const fn = tryCompileHirBufferDynamics(
-      `export default Dynamics((tokens, parameters) => {
-  return tokens.map(({ x, v }) => {
-    return { x: v, v: -parameters.k * x };
-  });
-});`,
-      elements,
-      { k: 2 },
-    )!;
-    expect(fn).not.toBeNull();
-
-    // Two tokens: (x=1, v=10, alive=1), (x=-3, v=0, alive=0)
-    const state = new Float64Array([1, 10, 1, -3, 0, 0]);
-    const result = fn(state, 3, 2);
-    expect([...result]).toEqual([10, -2, 0, 0, 6, 0]);
-  });
-
-  it("decodes booleans and evaluates conditionals per token", () => {
-    const code = `export default Dynamics((tokens, parameters) => {
-  return tokens.map(({ x, v, alive }) => {
-    return { x: alive ? v * parameters.g : 0, v: Math.cos(x) };
-  });
-});`;
-    const hirFn = tryCompileHirBufferDynamics(code, elements, { g: 9.81 })!;
-    expect(hirFn).not.toBeNull();
-
-    const state = new Float64Array([0.5, 2, 1, 1.5, -4, 0]);
-    const hirResult = hirFn(state, 3, 2);
-
-    expect([...hirResult]).toEqual([
-      2 * 9.81, // token 0 alive: v * g
-      Math.cos(0.5),
-      0, // discrete attribute derivative is always 0
-      0, // token 1 not alive
-      Math.cos(1.5),
-      0,
-    ]);
-  });
-
-  it("supports index params, token counts and cross-token reads", () => {
-    const fn = tryCompileHirBufferDynamics(
-      `export default Dynamics((tokens) => tokens.map((token, i) => ({
-  x: tokens[0].x + i * tokens.length,
-})));`,
-      [{ name: "x", type: "real" as const }],
-      {},
-    )!;
-    const state = new Float64Array([7, 100, 200]);
-    expect([...fn(state, 1, 3)]).toEqual([7, 10, 13]);
-  });
-
-  it("returns null when the body is not a token map", () => {
-    expect(
-      tryCompileHirBufferDynamics(
-        `export default Dynamics((tokens) => [{ x: 1 }]);`,
-        [{ name: "x", type: "real" as const }],
-        {},
-      ),
-    ).toBeNull();
-  });
-
-  it("throws on dimension mismatch like the legacy wrapper", () => {
-    const fn = tryCompileHirBufferDynamics(
-      `export default Dynamics((tokens) => tokens.map(() => ({ x: 1 })));`,
-      [{ name: "x", type: "real" as const }],
-      {},
-    )!;
-    expect(() => fn(new Float64Array([0, 0]), 2, 1)).toThrow(
-      /Expected 1 dimensions/,
-    );
   });
 });

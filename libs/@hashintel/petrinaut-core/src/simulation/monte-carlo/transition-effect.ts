@@ -1,4 +1,5 @@
 import { SDCPNItemError } from "../../errors";
+import { fillSlotBases } from "../engine/buffer-transition";
 import { encodeKernelOutputToken } from "../engine/encode-kernel-token";
 import { enumerateWeightedMarkingIndicesGenerator } from "../engine/enumerate-weighted-markings";
 import { nextRandom } from "../engine/seeded-rng";
@@ -67,42 +68,68 @@ export function computeTransitionEffect(
     inputPlacesWithValues,
   );
 
-  for (const tokenCombinationIndices of tokenCombinations) {
-    const tokenValues: TransitionTokenValues = {};
+  // Buffer-ABI fast path (see compute-possible-transition.ts).
+  const buffer = transition.buffer;
 
-    for (const [
-      placeIndex,
-      tokenIndices,
-    ] of tokenCombinationIndices.entries()) {
-      const inputPlace = inputPlacesWithValues[placeIndex]!;
-      const { strideBytes, byteOffset } = inputPlace;
-      const tokenLayout = inputPlace.tokenLayout;
-      if (!tokenLayout) {
-        throw new SDCPNItemError(
-          `Place \`${inputPlace.placeName}\` has no type defined`,
-          inputPlace.placeId,
+  for (const tokenCombinationIndices of tokenCombinations) {
+    const slotsFilled =
+      buffer !== null &&
+      fillSlotBases(
+        buffer.slotBases,
+        tokenCombinationIndices,
+        inputPlacesWithValues,
+      );
+
+    let tokenValuesMemo: TransitionTokenValues | null = null;
+    const getTokenValues = (): TransitionTokenValues => {
+      if (tokenValuesMemo !== null) {
+        return tokenValuesMemo;
+      }
+      const values: TransitionTokenValues = {};
+      for (const [
+        placeIndex,
+        tokenIndices,
+      ] of tokenCombinationIndices.entries()) {
+        const inputPlace = inputPlacesWithValues[placeIndex]!;
+        const { strideBytes, byteOffset } = inputPlace;
+        const tokenLayout = inputPlace.tokenLayout;
+        if (!tokenLayout) {
+          throw new SDCPNItemError(
+            `Place \`${inputPlace.placeName}\` has no type defined`,
+            inputPlace.placeId,
+          );
+        }
+
+        values[inputPlace.placeName] = tokenIndices.map((tokenIndex) =>
+          readTokenRecord(
+            tokenLayout,
+            frame.tokenViews,
+            byteOffset + tokenIndex * strideBytes,
+            run.simulation.stringPool,
+          ),
         );
       }
-
-      tokenValues[inputPlace.placeName] = tokenIndices.map((tokenIndex) =>
-        readTokenRecord(
-          tokenLayout,
-          frame.tokenViews,
-          byteOffset + tokenIndex * strideBytes,
-          run.simulation.stringPool,
-        ),
-      );
-    }
+      tokenValuesMemo = values;
+      return values;
+    };
 
     let lambdaResult: ReturnType<typeof transition.lambdaFn>;
     try {
-      lambdaResult = transition.lambdaFn(tokenValues);
+      lambdaResult =
+        buffer !== null && slotsFilled
+          ? buffer.lambdaFn(
+              frame.tokenViews.f64,
+              frame.tokenViews.u64,
+              frame.tokenViews.u8,
+              buffer.slotBases,
+            )
+          : transition.lambdaFn(getTokenValues());
     } catch (error) {
       throw new SDCPNItemError(
         `Error while executing lambda function for transition \`${
           transition.name
         }\`:\n\n${(error as Error).message}\n\nInput:\n${JSON.stringify(
-          tokenValues,
+          getTokenValues(),
           null,
           2,
         )}`,
@@ -123,13 +150,13 @@ export function computeTransitionEffect(
 
     let kernelOutput: ReturnType<typeof transition.transitionKernelFn>;
     try {
-      kernelOutput = transition.transitionKernelFn(tokenValues);
+      kernelOutput = transition.transitionKernelFn(getTokenValues());
     } catch (error) {
       throw new SDCPNItemError(
         `Error while executing transition kernel for transition \`${
           transition.name
         }\`:\n\n${(error as Error).message}\n\nInput:\n${JSON.stringify(
-          tokenValues,
+          getTokenValues(),
           null,
           2,
         )}`,

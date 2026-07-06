@@ -18,19 +18,28 @@ export type HirCompiledUserFn = (
   parameters: HirParameterValues,
 ) => unknown;
 
-/** Buffer-native dynamics (engine `DifferentialEquationFn` shape). */
+/** Per-run string pool view needed by compiled programs (resolving interned
+ * string attributes). Structural subset of the engine's `StringPool`. */
+export type HirStringPoolReader = { get(id: number): string };
+
+/** Buffer-native dynamics (engine `DifferentialEquationFn` shape, token
+ * format v2: one place's packed token bytes). Parameters and the string pool
+ * are pre-bound. */
 export type HirCompiledBufferDynamics = (
-  currentState: Float64Array,
-  dimensions: number,
+  placeBytes: Uint8Array,
   numberOfTokens: number,
 ) => Float64Array;
 
 /**
- * Buffer-ABI lambda: reads token attributes at `slotBases[slot] + attr`
- * directly from the frame's token-value floats. Parameters are pre-bound.
+ * Buffer-ABI lambda (token format v2): reads token attributes at
+ * statically-resolved byte offsets through the frame's shared views.
+ * `slotBases` holds each selected token's base byte offset within the token
+ * region. Parameters and the string pool are pre-bound.
  */
 export type HirCompiledBufferLambda = (
-  tokenValues: Float64Array,
+  f64: Float64Array,
+  u64: BigUint64Array,
+  u8: Uint8Array,
   slotBases: Int32Array,
 ) => number | boolean;
 
@@ -136,13 +145,15 @@ function instantiate(source: string): unknown {
 function instantiateWithParams(
   source: string,
   parameterValues: HirParameterValues,
+  stringPool?: HirStringPoolReader,
 ): unknown {
   // eslint-disable-next-line no-new-func, @typescript-eslint/no-implied-eval, @typescript-eslint/no-unsafe-call
   return new Function(
     "__dist",
     "__params",
+    "__pool",
     `"use strict"; return (${source});`,
-  )(hirDistributionRuntime, parameterValues);
+  )(hirDistributionRuntime, parameterValues, stringPool);
 }
 
 /** Instantiates an emitted object-convention source (`emitUserFunctionJs`). */
@@ -157,11 +168,13 @@ export function instantiateHirUserFn(source: string): HirCompiledUserFn {
 export function instantiateHirBufferDynamics(
   source: string,
   parameterValues: HirParameterValues,
+  stringPool: HirStringPoolReader,
 ): HirCompiledBufferDynamics {
-  const factory = instantiate(source) as (
-    parameters: HirParameterValues,
-  ) => HirCompiledBufferDynamics;
-  return factory(parameterValues);
+  return instantiateWithParams(
+    source,
+    parameterValues,
+    stringPool,
+  ) as HirCompiledBufferDynamics;
 }
 
 /** Instantiates a buffer-ABI lambda source (`emitBufferLambdaJs`), binding
@@ -169,10 +182,12 @@ export function instantiateHirBufferDynamics(
 export function instantiateHirBufferLambda(
   source: string,
   parameterValues: HirParameterValues,
+  stringPool: HirStringPoolReader,
 ): HirCompiledBufferLambda {
   return instantiateWithParams(
     source,
     parameterValues,
+    stringPool,
   ) as HirCompiledBufferLambda;
 }
 

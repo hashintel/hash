@@ -52,7 +52,6 @@ const SUBSET_CODES = new Set([
   "hir:early-return",
   "hir:spread",
   "hir:computed-key",
-  "hir:string-value",
   "hir:map-callback",
   "hir:unknown-math-function",
   "hir:math-reference",

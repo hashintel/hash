@@ -54,6 +54,10 @@ export type HirType =
       /** Statically-known length (e.g. arc-weight token tuples). */
       length?: number;
     }
+  /** A 128-bit identifier attribute (surfaced to user code as `bigint`). */
+  | { kind: "uuid" }
+  /** An interned string attribute. */
+  | { kind: "string" }
   /** A probability distribution over reals. */
   | { kind: "distribution" }
   | { kind: "unknown" };
@@ -61,6 +65,8 @@ export type HirType =
 export const HIR_TYPE_REAL: HirType = { kind: "real" };
 export const HIR_TYPE_INT: HirType = { kind: "int" };
 export const HIR_TYPE_BOOL: HirType = { kind: "bool" };
+export const HIR_TYPE_UUID: HirType = { kind: "uuid" };
+export const HIR_TYPE_STRING: HirType = { kind: "string" };
 export const HIR_TYPE_DISTRIBUTION: HirType = { kind: "distribution" };
 export const HIR_TYPE_UNKNOWN: HirType = { kind: "unknown" };
 
@@ -134,6 +140,38 @@ export type HirNumberLit = HirNodeBase & {
 export type HirBoolLit = HirNodeBase & {
   kind: "boolLit";
   value: boolean;
+};
+
+/** String literal — valid wherever `string` attributes flow (comparisons,
+ * kernel outputs, uuid coercion). */
+export type HirStringLit = HirNodeBase & {
+  kind: "stringLit";
+  value: string;
+};
+
+/** `Uuid.generate()` — a fresh UUID drawn from the seeded RNG when the
+ * transition fires (kernel outputs only). */
+export type HirUuidGenerate = HirNodeBase & {
+  kind: "uuidGenerate";
+};
+
+/** `Uuid.from(value)` — deterministic conversion of a value to a UUID
+ * (kernel outputs only). */
+export type HirUuidFrom = HirNodeBase & {
+  kind: "uuidFrom";
+  operand: HirExpr;
+};
+
+export const HIR_STRING_FNS = ["startsWith", "endsWith", "includes"] as const;
+
+export type HirStringFn = (typeof HIR_STRING_FNS)[number];
+
+/** Pure string predicate: `target.startsWith(arg)` etc. */
+export type HirStringCall = HirNodeBase & {
+  kind: "stringCall";
+  fn: HirStringFn;
+  target: HirExpr;
+  argument: HirExpr;
 };
 
 /** Named numeric constant (`Math.PI`, `Infinity`, ...). */
@@ -265,6 +303,10 @@ export type HirDistributionMap = HirNodeBase & {
 export type HirExpr =
   | HirNumberLit
   | HirBoolLit
+  | HirStringLit
+  | HirStringCall
+  | HirUuidGenerate
+  | HirUuidFrom
   | HirConstant
   | HirLocalRef
   | HirParamRef
@@ -317,10 +359,16 @@ export function hirChildren(expr: HirExpr): HirExpr[] {
   switch (expr.kind) {
     case "numberLit":
     case "boolLit":
+    case "stringLit":
+    case "uuidGenerate":
     case "constant":
     case "localRef":
     case "paramRef":
       return [];
+    case "uuidFrom":
+      return [expr.operand];
+    case "stringCall":
+      return [expr.target, expr.argument];
     case "fieldAccess":
       return [expr.target];
     case "indexAccess":
@@ -367,6 +415,10 @@ export function formatHirType(type: HirType): string {
       return "integer";
     case "bool":
       return "boolean";
+    case "uuid":
+      return "uuid";
+    case "string":
+      return "string";
     case "distribution":
       return "Distribution";
     case "record":
