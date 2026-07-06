@@ -74,7 +74,7 @@ const DEFAULT_CONTEXT_VALUE: LanguageClientContextValue = {
   requestSignatureHelp: () => Promise.resolve(null),
   requestHirArtifacts: () =>
     Promise.resolve({
-      artifacts: { version: 2, dynamics: {}, lambdas: {}, kernels: {} },
+      artifacts: { version: 3, dynamics: {}, lambdas: {}, kernels: {} },
       failures: [],
     }),
   initializeScenarioSession: () => {},

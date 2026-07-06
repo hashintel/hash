@@ -1,100 +1,95 @@
 /**
- * Instantiation of HIR-emitted JavaScript sources.
+ * Instantiation of HIR-emitted JavaScript programs.
  *
  * Deliberately free of any compiler dependency (no `typescript` import): the
- * simulation engine and its workers instantiate precompiled artifact strings
- * without bundling the TS→HIR frontend. Compilation lives in `compile.ts`;
- * artifact sources are emitted by `emit-js.ts` (object convention) and
- * `emit-buffer-js.ts` (buffer ABI).
+ * simulation workers instantiate precompiled artifact sources without
+ * bundling the TS→HIR frontend. Compilation lives in `compile.ts`; sources
+ * are emitted by `emit-buffer-js.ts` (the simulator's only program shape —
+ * packed-struct buffer access with compile-time-constant offsets/strides).
  */
 import type { RuntimeDistribution } from "../simulation/authoring/user-code/distribution";
 
 export type HirParameterValues = Record<string, number | boolean>;
-type TokensByPlace = Record<string, Record<string, number | boolean>[]>;
 
-/** Legacy object-convention user function (fallback path). */
-export type HirCompiledUserFn = (
-  tokensByPlace: TokensByPlace,
-  parameters: HirParameterValues,
-) => unknown;
+/** Per-run string pool view needed by compiled programs. Structural subset
+ * of the engine's `StringPool`. */
+export type HirStringPool = {
+  get(id: number): string;
+  intern(value: string): number;
+};
 
-/** Per-run string pool view needed by compiled programs (resolving interned
- * string attributes). Structural subset of the engine's `StringPool`. */
-export type HirStringPoolReader = { get(id: number): string };
+/**
+ * Deferred kernel-output slots that consume the seeded RNG or need engine
+ * conversion. Emitted calls arrive in (arc, token, element-declaration)
+ * order — process them in call order to reproduce the RNG stream.
+ * `index` is a 64-bit lane index into the staging buffer.
+ */
+export type HirKernelSink = (
+  kind: "dist" | "generate" | "from",
+  index: number,
+  payload: unknown,
+) => void;
 
-/** Buffer-native dynamics (engine `DifferentialEquationFn` shape, token
- * format v2: one place's packed token bytes). Parameters and the string pool
- * are pre-bound. */
+/** Buffer-native dynamics (token format v2: one place's packed token bytes).
+ * Parameters and the string pool are pre-bound. */
 export type HirCompiledBufferDynamics = (
   placeBytes: Uint8Array,
   numberOfTokens: number,
 ) => Float64Array;
 
 /**
- * Buffer-ABI lambda (token format v2): reads token attributes at
- * statically-resolved byte offsets through the frame's shared views.
- * `slotBases` holds each selected token's base byte offset within the token
- * region. Parameters and the string pool are pre-bound.
+ * Buffer-ABI lambda: reads token attributes at compile-time-constant byte
+ * offsets through the frame's shared views. `placeBases[arc]` is each input
+ * arc's place base byte offset; `indices[slot]` the selected token index per
+ * slot (strides are baked into the program). Parameters/pool pre-bound.
  */
 export type HirCompiledBufferLambda = (
   f64: Float64Array,
   u64: BigUint64Array,
   u8: Uint8Array,
-  slotBases: Int32Array,
+  placeBases: Int32Array,
+  indices: Int32Array,
 ) => number | boolean;
 
-/**
- * Buffer-ABI kernel: writes output attributes into `out` (place-major, arc
- * order) and defers distribution-valued attributes through `distSink`.
- * Parameters are pre-bound.
- */
+/** Buffer-ABI kernel: writes output attributes into per-transition staging
+ * (place-major, baked offsets); RNG-consuming slots defer through the sink. */
 export type HirCompiledBufferKernel = (
-  tokenValues: Float64Array,
-  slotBases: Int32Array,
-  out: Float64Array,
-  distSink: (floatIndex: number, distribution: RuntimeDistribution) => void,
+  f64: Float64Array,
+  u64: BigUint64Array,
+  u8: Uint8Array,
+  placeBases: Int32Array,
+  indices: Int32Array,
+  outF64: Float64Array,
+  outU64: BigUint64Array,
+  outU8: Uint8Array,
+  sink: HirKernelSink,
 ) => void;
 
-/** A compiled program for one user-code item. `buffer` is preferred by the
- * engine; `object` is the fallback for shapes the buffer emitter cannot
- * scalarize. At least one is present for every compilable item. */
 export type HirLambdaArtifact = {
-  buffer?: {
-    source: string;
-    /** Expected `slotBases.length` — engine-side sanity check. */
-    inputSlotCount: number;
-  };
-  object?: string;
+  source: string;
+  /** Expected `indices.length` — engine-side sanity check. */
+  inputSlotCount: number;
 };
 
 export type HirKernelArtifact = {
-  buffer?: {
-    source: string;
-    inputSlotCount: number;
-    /** Expected staging size — engine-side sanity check. */
-    outputFloatCount: number;
-  };
-  object?: string;
+  source: string;
+  inputSlotCount: number;
+  /** Expected staging byte length — engine-side sanity check. */
+  outputByteCount: number;
 };
 
 export type HirDynamicsArtifact = {
-  /** Buffer-native derivative factory (see `emitBufferDynamicsJs`). */
-  buffer?: string;
-  /** Object-convention `(tokens, parameters) => derivatives[]` fallback. */
-  object?: string;
+  source: string;
 };
 
 /**
- * Precompiled HIR artifacts for one SDCPN, keyed by item id (differential
- * equation id / transition id, pre-flattening — the engine resolves flattened
- * `path::id` ids back to their source id). Produced by `compileHirArtifacts`.
- *
- * Artifacts must be produced from the same SDCPN snapshot that is simulated —
- * they are the only compilation path; items without an artifact fail to
- * build with a diagnosis to fix the code.
+ * Precompiled HIR programs for one SDCPN, keyed by item id (differential
+ * equation id / transition id, pre-flattening — the engine resolves
+ * flattened `path::id` ids back to their source id). Produced by
+ * `compileHirArtifacts`; the engine has no other compilation path.
  */
 export type HirArtifacts = {
-  version: 2;
+  version: 3;
   dynamics: Record<string, HirDynamicsArtifact>;
   lambdas: Record<string, HirLambdaArtifact>;
   kernels: Record<string, HirKernelArtifact>;
@@ -102,8 +97,6 @@ export type HirArtifacts = {
 
 /**
  * Distribution constructors injected into emitted code as `__dist`.
- * Produces the same branded objects as the previous runtime, minus the
- * `.map` method — emitted code calls `__dist.map(...)` instead.
  */
 export const hirDistributionRuntime = {
   gaussian: (mean: number, deviation: number): RuntimeDistribution => ({
@@ -135,17 +128,10 @@ export const hirDistributionRuntime = {
   }),
 };
 
-function instantiate(source: string): unknown {
-  // eslint-disable-next-line no-new-func, @typescript-eslint/no-implied-eval, @typescript-eslint/no-unsafe-call
-  return new Function("__dist", `"use strict"; return (${source});`)(
-    hirDistributionRuntime,
-  );
-}
-
-function instantiateWithParams(
+function instantiate(
   source: string,
   parameterValues: HirParameterValues,
-  stringPool?: HirStringPoolReader,
+  stringPool: HirStringPool,
 ): unknown {
   // eslint-disable-next-line no-new-func, @typescript-eslint/no-implied-eval, @typescript-eslint/no-unsafe-call
   return new Function(
@@ -156,49 +142,38 @@ function instantiateWithParams(
   )(hirDistributionRuntime, parameterValues, stringPool);
 }
 
-/** Instantiates an emitted object-convention source (`emitUserFunctionJs`). */
-export function instantiateHirUserFn(source: string): HirCompiledUserFn {
-  return instantiate(source) as HirCompiledUserFn;
-}
-
-/**
- * Instantiates an emitted buffer-native dynamics factory source
- * (`emitBufferDynamicsJs`), binding the run's parameter values.
- */
 export function instantiateHirBufferDynamics(
   source: string,
   parameterValues: HirParameterValues,
-  stringPool: HirStringPoolReader,
+  stringPool: HirStringPool,
 ): HirCompiledBufferDynamics {
-  return instantiateWithParams(
+  return instantiate(
     source,
     parameterValues,
     stringPool,
   ) as HirCompiledBufferDynamics;
 }
 
-/** Instantiates a buffer-ABI lambda source (`emitBufferLambdaJs`), binding
- * the run's parameter values. */
 export function instantiateHirBufferLambda(
   source: string,
   parameterValues: HirParameterValues,
-  stringPool: HirStringPoolReader,
+  stringPool: HirStringPool,
 ): HirCompiledBufferLambda {
-  return instantiateWithParams(
+  return instantiate(
     source,
     parameterValues,
     stringPool,
   ) as HirCompiledBufferLambda;
 }
 
-/** Instantiates a buffer-ABI kernel source (`emitBufferKernelJs`), binding
- * the run's parameter values. */
 export function instantiateHirBufferKernel(
   source: string,
   parameterValues: HirParameterValues,
+  stringPool: HirStringPool,
 ): HirCompiledBufferKernel {
-  return instantiateWithParams(
+  return instantiate(
     source,
     parameterValues,
+    stringPool,
   ) as HirCompiledBufferKernel;
 }

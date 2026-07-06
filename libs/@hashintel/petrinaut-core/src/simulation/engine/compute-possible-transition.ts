@@ -1,17 +1,16 @@
 import { SDCPNItemError } from "../../errors";
 import { materializeEngineFrame } from "../frames/internal-frame";
-import { fillSlotBases } from "./buffer-transition";
-import { encodeKernelOutputToken } from "./encode-kernel-token";
+import {
+  executeBufferKernel,
+  fillPlaceBases,
+  fillTokenIndices,
+} from "./buffer-transition";
 import { enumerateWeightedMarkingIndicesGenerator } from "./enumerate-weighted-markings";
 import { nextRandom } from "./seeded-rng";
-import { createTokenRegionViews, readTokenRecord } from "./token-layout";
+import { createTokenRegionViews } from "./token-layout";
 
 import type { ID } from "../../types/sdcpn";
-import type {
-  EngineFrame,
-  SimulationInstance,
-  TransitionTokenValues,
-} from "./types";
+import type { EngineFrame, SimulationInstance } from "./types";
 
 type PlaceID = ID;
 
@@ -104,57 +103,23 @@ export function computePossibleTransition(
     inputPlacesWithTokenValues,
   );
 
-  // Buffer-ABI fast path: the compiled lambda reads token attributes at
-  // packed-struct byte offsets straight from the shared views — no
-  // per-combination record decoding.
-  const buffer = transition.buffer;
+  // The compiled buffer-ABI lambda reads token attributes at packed-struct
+  // byte offsets straight from the shared views — no per-combination record
+  // decoding. Place base offsets don't change across combinations.
+  if (!fillPlaceBases(transition.placeBases, inputPlacesWithTokenValues)) {
+    throw new SDCPNItemError(
+      `The compiled program for transition \`${transition.name}\` does not match the net (input arc count changed). Recompile the artifacts from the current net.`,
+      transition.id,
+    );
+  }
 
   for (const tokenCombinationIndices of tokensCombinations) {
-    const slotsFilled =
-      buffer !== null &&
-      fillSlotBases(
-        buffer.slotBases,
-        tokenCombinationIndices,
-        inputPlacesWithTokenValues,
+    if (!fillTokenIndices(transition.indices, tokenCombinationIndices)) {
+      throw new SDCPNItemError(
+        `The compiled program for transition \`${transition.name}\` does not match the net (input token slot count changed). Recompile the artifacts from the current net.`,
+        transition.id,
       );
-
-    // Decoded object input — built lazily, only for object-convention
-    // lambdas/kernels (and error messages).
-    let tokenCombinationValues: TransitionTokenValues | null = null;
-    const getTokenCombinationValues = (): TransitionTokenValues => {
-      if (tokenCombinationValues !== null) {
-        return tokenCombinationValues;
-      }
-      const values: TransitionTokenValues = {};
-      for (const [
-        placeIndex,
-        placeTokenIndices,
-      ] of tokenCombinationIndices.entries()) {
-        const inputPlace = inputPlacesWithTokenValues[placeIndex]!;
-        const placeByteOffset = inputPlace.byteOffset;
-        const strideBytes = inputPlace.strideBytes;
-
-        const tokenLayout = inputPlace.tokenLayout;
-        if (!tokenLayout) {
-          throw new SDCPNItemError(
-            `Place \`${inputPlace.placeName}\` has no type defined`,
-            inputPlace.placeId,
-          );
-        }
-
-        values[inputPlace.placeName] = placeTokenIndices.map(
-          (tokenIndexInPlace) =>
-            readTokenRecord(
-              tokenLayout,
-              tokenViews,
-              placeByteOffset + tokenIndexInPlace * strideBytes,
-              simulation.stringPool,
-            ),
-        );
-      }
-      tokenCombinationValues = values;
-      return values;
-    };
+    }
 
     // Approximate by just multiplying by elapsed time since last transition,
     // not a real accumulation over time with lambda varying as the paper suggests.
@@ -162,24 +127,18 @@ export function computePossibleTransition(
     // which should be reordered in case of new tokens arriving.
     let lambdaResult: ReturnType<typeof transition.lambdaFn>;
     try {
-      lambdaResult =
-        buffer !== null && slotsFilled
-          ? buffer.lambdaFn(
-              tokenViews.f64,
-              tokenViews.u64,
-              tokenViews.u8,
-              buffer.slotBases,
-            )
-          : transition.lambdaFn(getTokenCombinationValues());
+      lambdaResult = transition.lambdaFn(
+        tokenViews.f64,
+        tokenViews.u64,
+        tokenViews.u8,
+        transition.placeBases,
+        transition.indices,
+      );
     } catch (err) {
       throw new SDCPNItemError(
         `Error while executing lambda function for transition \`${
           transition.name
-        }\`:\n\n${(err as Error).message}\n\nInput:\n${JSON.stringify(
-          getTokenCombinationValues(),
-          null,
-          2,
-        )}`,
+        }\`:\n\n${(err as Error).message}`,
         transition.id,
       );
     }
@@ -197,81 +156,40 @@ export function computePossibleTransition(
     // Find the first combination of tokens where e^(-lambda) < U1
     // We should normally find the minimum for all possibilities, but we try to reduce as much as we can here.
     if (Math.exp(-lambdaValue) <= U1) {
-      let transitionKernelOutput: ReturnType<
-        typeof transition.transitionKernelFn
-      >;
-      try {
-        // Transition fires!
-        // Return result of the transition kernel as is (no stochasticity for now, only one result)
-        transitionKernelOutput = transition.transitionKernelFn(
-          getTokenCombinationValues(),
-        );
-      } catch (err) {
-        throw new SDCPNItemError(
-          `Error while executing transition kernel for transition \`${
-            transition.name
-          }\`:\n\n${(err as Error).message}\n\nInput:\n${JSON.stringify(
-            getTokenCombinationValues(),
-            null,
-            2,
-          )}`,
-          transition.id,
-        );
-      }
-
-      // Convert transition kernel output back to place-indexed format
-      // The kernel returns { PlaceName: [{ x: 0, y: 0 }, ...], ... }
-      // We need to convert this to place IDs and pack each token into its
-      // stride-sized byte block.
-      // Distribution values are sampled here, advancing the RNG state.
-      const addMap: Record<PlaceID, Uint8Array[]> = {};
+      // Transition fires! The compiled kernel writes output tokens into the
+      // transition's staging bytes; Distribution/uuid values are resolved
+      // through the kernel sink, advancing the RNG state.
+      let addMap: Record<PlaceID, Uint8Array[]>;
       let currentRngState = newRngState;
 
-      for (const outputPlace of transition.outputPlaces) {
-        const outputPlaceState = snapshot.places[outputPlace.placeId];
-        if (!outputPlaceState) {
-          throw new Error(
-            `Output place with ID ${outputPlace.placeId} not found in frame`,
-          );
-        }
-
-        // If place has no type, create n empty blocks where n is the arc weight
-        if (!outputPlace.tokenLayout) {
+      if (transition.kernelFn === null) {
+        // No colored output places — every output gets `weight` empty blocks.
+        addMap = {};
+        for (const outputPlace of transition.outputPlaces) {
           addMap[outputPlace.placeId] = Array.from(
             { length: outputPlace.weight },
             () => EMPTY_TOKEN_BYTES,
           );
-          continue;
         }
-
-        const outputTokens = transitionKernelOutput[outputPlace.placeName];
-
-        if (!outputTokens) {
-          throw new SDCPNItemError(
-            `Transition kernel for transition \`${transition.name}\` did not return tokens for place "${outputPlace.placeName}"`,
-            transition.id,
-          );
-        }
-
-        // Resolve Distribution samples and uuid values using the RNG (in
-        // element declaration order), then pack each token into a
-        // stride-sized byte block.
-        const tokenBlocks: Uint8Array[] = [];
-        for (const token of outputTokens) {
-          const { bytes, nextRngState } = encodeKernelOutputToken({
-            token,
-            elements: outputPlace.elements ?? [],
-            tokenLayout: outputPlace.tokenLayout,
-            rngState: currentRngState,
-            transitionId: transition.id,
-            placeName: outputPlace.placeName,
-            stringPool: simulation.stringPool,
+      } else {
+        try {
+          const { add, newRngState: rngAfterKernel } = executeBufferKernel({
+            transition,
+            views: tokenViews,
+            rngState: newRngState,
           });
-          currentRngState = nextRngState;
-          tokenBlocks.push(bytes);
+          addMap = add;
+          currentRngState = rngAfterKernel;
+        } catch (err) {
+          throw err instanceof SDCPNItemError
+            ? err
+            : new SDCPNItemError(
+                `Error while executing transition kernel for transition \`${
+                  transition.name
+                }\`:\n\n${(err as Error).message}`,
+                transition.id,
+              );
         }
-
-        addMap[outputPlace.placeId] = tokenBlocks;
       }
 
       return {

@@ -1,8 +1,8 @@
 /**
- * End-to-end tests for HIR-compiled artifacts: buffer-ABI programs must
- * produce bit-identical frames (including RNG stream evolution) to the
- * object-convention programs, and simulations without artifacts must fail
- * with a per-item error.
+ * End-to-end tests for HIR-compiled artifacts: the engine runs buffer-ABI
+ * programs only — identical inputs must produce identical frames (including
+ * RNG stream evolution), simulations without artifacts must fail with a
+ * per-item error, and stale artifact metadata must be rejected.
  */
 import { describe, expect, it } from "vitest";
 
@@ -136,73 +136,54 @@ function runFrames(instance: SimulationInstance, count: number): number[][] {
   return frames;
 }
 
-/** Strips buffer programs so only the object convention runs. */
-function objectOnly(artifacts: HirArtifacts): HirArtifacts {
-  const strip = <Artifact extends { object?: string }>(
-    entries: Record<string, Artifact>,
-  ): Record<string, { object?: string }> =>
-    Object.fromEntries(
-      Object.entries(entries).map(([key, value]) => [
-        key,
-        { object: value.object },
-      ]),
-    );
-  return {
-    version: 2,
-    dynamics: strip(artifacts.dynamics),
-    lambdas: strip(artifacts.lambdas),
-    kernels: strip(artifacts.kernels),
-  };
-}
-
 describe("buildSimulation with HIR artifacts", () => {
-  it("compiles buffer and object programs for all three surfaces", () => {
+  it("compiles buffer programs for all three surfaces", () => {
     const { artifacts, failures } = compileHirArtifacts(sdcpn);
     expect(failures).toEqual([]);
-    expect(artifacts.dynamics.de1!.buffer).toBeDefined();
-    expect(artifacts.dynamics.de1!.object).toBeDefined();
-    expect(artifacts.lambdas.t1!.buffer).toBeDefined();
-    expect(artifacts.lambdas.t1!.buffer!.inputSlotCount).toBe(1);
-    // Kernels run the object program for now (buffer emission for the packed
-    // layout needs the RNG-ordinal sink design).
-    expect(artifacts.kernels.t1!.buffer).toBeUndefined();
-    expect(artifacts.kernels.t1!.object).toBeDefined();
+    expect(artifacts.version).toBe(3);
+    expect(typeof artifacts.dynamics.de1!.source).toBe("string");
+    expect(typeof artifacts.lambdas.t1!.source).toBe("string");
+    expect(artifacts.lambdas.t1!.inputSlotCount).toBe(1);
+    expect(typeof artifacts.kernels.t1!.source).toBe("string");
+    expect(artifacts.kernels.t1!.inputSlotCount).toBe(1);
+    // One output token: x(f64) + v(f64) + generation(f64) → 24-byte stride.
+    expect(artifacts.kernels.t1!.outputByteCount).toBe(24);
   });
 
-  it("buffer programs produce bit-identical frames to the object convention", () => {
+  it("instantiates buffer programs and scratch for the engine", () => {
+    const { artifacts } = compileHirArtifacts(sdcpn);
+    const simulation = buildSimulation(makeInput(artifacts));
+    const compiled = simulation.compiledTransitions.get("t1")!;
+    expect(typeof compiled.lambdaFn).toBe("function");
+    expect(typeof compiled.kernelFn).toBe("function");
+    expect(compiled.placeBases).toHaveLength(1);
+    expect(compiled.indices).toHaveLength(1);
+    expect(compiled.kernelStaging).toHaveLength(24);
+  });
+
+  it("produces identical frames for identical inputs (deterministic)", () => {
     const { artifacts } = compileHirArtifacts(sdcpn);
 
-    const bufferRun = buildSimulation(makeInput(artifacts));
-    const objectRun = buildSimulation(makeInput(objectOnly(artifacts)));
+    const firstRun = buildSimulation(makeInput(artifacts));
+    const secondRun = buildSimulation(makeInput(artifacts));
 
-    // Sanity: the buffer run actually uses buffer programs.
-    const compiled = bufferRun.compiledTransitions.get("t1")!;
-    expect(compiled.buffer?.lambdaFn).toBeDefined();
-    expect(objectRun.compiledTransitions.get("t1")!.buffer).toBeNull();
-
-    expect(runFrames(bufferRun, 50)).toEqual(runFrames(objectRun, 50));
+    expect(runFrames(firstRun, 50)).toEqual(runFrames(secondRun, 50));
   });
 
   it("throws a per-item error when artifacts are missing", () => {
     expect(() => buildSimulation(makeInput())).toThrow(/has not been compiled/);
   });
 
-  it("falls back to object programs when buffer metadata is stale", () => {
+  it("throws when artifact metadata is stale", () => {
     const { artifacts } = compileHirArtifacts(sdcpn);
     const stale: HirArtifacts = {
       ...artifacts,
       lambdas: {
-        t1: {
-          ...artifacts.lambdas.t1!,
-          buffer: { ...artifacts.lambdas.t1!.buffer!, inputSlotCount: 99 },
-        },
+        t1: { ...artifacts.lambdas.t1!, inputSlotCount: 99 },
       },
     };
-    const simulation = buildSimulation(makeInput(stale));
-    // Mismatched slot metadata → no buffer program for this transition.
-    expect(simulation.compiledTransitions.get("t1")!.buffer).toBeNull();
-    // Still simulates correctly via the object path.
-    const reference = buildSimulation(makeInput(objectOnly(artifacts)));
-    expect(runFrames(simulation, 10)).toEqual(runFrames(reference, 10));
+    expect(() => buildSimulation(makeInput(stale))).toThrow(
+      /does not match|stale|has not been compiled/i,
+    );
   });
 });

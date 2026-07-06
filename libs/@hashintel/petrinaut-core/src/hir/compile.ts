@@ -27,11 +27,6 @@ import {
   emitBufferKernelJs,
   emitBufferLambdaJs,
 } from "./emit-buffer-js";
-import { emitUserFunctionJs } from "./emit-js";
-import {
-  instantiateHirBufferDynamics,
-  instantiateHirUserFn,
-} from "./instantiate";
 import { lowerTypeScriptToHir } from "./lower-typescript";
 import {
   buildDynamicsContext,
@@ -42,18 +37,8 @@ import { typecheckHir } from "./typecheck";
 
 import type { SDCPN, Subnet } from "../types/sdcpn";
 import type { HirDiagnostic, HirFunction, HirSurfaceKind } from "./hir";
-import type {
-  HirArtifacts,
-  HirCompiledBufferDynamics,
-  HirCompiledUserFn,
-  HirParameterValues,
-  HirStringPoolReader,
-} from "./instantiate";
-import type {
-  HirNetScope,
-  HirSurfaceContext,
-  HirTokenElementInfo,
-} from "./surface-context";
+import type { HirArtifacts } from "./instantiate";
+import type { HirNetScope, HirSurfaceContext } from "./surface-context";
 
 export type HirCompileFailure = {
   itemId: string;
@@ -67,37 +52,47 @@ export type HirCompileResult = {
   failures: HirCompileFailure[];
 };
 
-type LoweredItem = {
-  fn: HirFunction;
-  /** True when typechecking against the context produced no errors — the
-   * gate for buffer-ABI emission. */
-  typecheckClean: boolean;
-};
+function notCompilableDiagnostic(fn: HirFunction): HirDiagnostic {
+  return {
+    code: "hir:not-compilable",
+    message:
+      "This code shape cannot be compiled to a buffer program (e.g. dynamic token indices, structurally-dynamic results). Restructure it as static token records / `.map(...)` over input tokens.",
+    severity: "error",
+    span: fn.body.span,
+  };
+}
+
+type ItemResult =
+  | { ok: true; fn: HirFunction }
+  | { ok: false; diagnostics: HirDiagnostic[] };
 
 function lowerAndCheck(
   code: string,
   surface: HirSurfaceKind,
   context: HirSurfaceContext | null,
-): LoweredItem | HirDiagnostic[] {
+): ItemResult {
   const lowered = lowerTypeScriptToHir(code, surface);
   if (!lowered.ok) {
-    return lowered.diagnostics;
+    return { ok: false, diagnostics: lowered.diagnostics };
   }
-  let typecheckClean = false;
   if (context) {
     const checked = typecheckHir(lowered.fn, context);
-    typecheckClean = !checked.diagnostics.some(
+    const errors = checked.diagnostics.filter(
       (diagnostic) => diagnostic.severity === "error",
     );
+    if (errors.length > 0) {
+      return { ok: false, diagnostics: errors };
+    }
   }
-  return { fn: lowered.fn, typecheckClean };
+  return { ok: true, fn: lowered.fn };
 }
 
 /**
  * Batch-compiles all dynamics/lambda/kernel code of an SDCPN (root and
- * subnets) to HIR artifacts for `buildSimulation`. Item availability mirrors
- * the engine: empty lambdas and kernels without colored output places are
- * skipped (the engine substitutes defaults for those).
+ * subnets) to buffer programs — the simulator's only compilation path.
+ * Items whose code cannot be lowered, fails the schema typecheck, or does
+ * not scalarize to a buffer program are reported in `failures` (mirrored by
+ * the LSP as error diagnostics); such items cannot simulate.
  */
 export function compileHirArtifacts(
   sdcpn: SDCPN,
@@ -105,7 +100,7 @@ export function compileHirArtifacts(
 ): HirCompileResult {
   const sanitized = sanitizeSDCPNForExtensions(sdcpn, extensions);
   const artifacts: HirArtifacts = {
-    version: 2,
+    version: 3,
     dynamics: {},
     lambdas: {},
     kernels: {},
@@ -141,22 +136,25 @@ export function compileHirArtifacts(
       const context = de.colorId
         ? buildDynamicsContext(sanitized, de.colorId, extensions, net)
         : null;
-      const lowered = lowerAndCheck(de.code, "dynamics", context);
-      if (Array.isArray(lowered)) {
+      const item = lowerAndCheck(de.code, "dynamics", context);
+      if (!item.ok) {
         failures.push({
           itemId: de.id,
           itemType: "differential-equation",
-          diagnostics: lowered,
+          diagnostics: item.diagnostics,
         });
         continue;
       }
-      const buffer = lowered.typecheckClean
-        ? emitBufferDynamicsJs(lowered.fn, color.elements)
-        : null;
-      artifacts.dynamics[de.id] = {
-        ...(buffer !== null ? { buffer } : {}),
-        object: emitUserFunctionJs(lowered.fn),
-      };
+      const source = emitBufferDynamicsJs(item.fn, color.elements);
+      if (source === null) {
+        failures.push({
+          itemId: de.id,
+          itemType: "differential-equation",
+          diagnostics: [notCompilableDiagnostic(item.fn)],
+        });
+        continue;
+      }
+      artifacts.dynamics[de.id] = { source };
     }
 
     for (const transition of transitions) {
@@ -174,21 +172,27 @@ export function compileHirArtifacts(
           extensions,
           net,
         );
-        const lowered = lowerAndCheck(transition.lambdaCode, "lambda", context);
-        if (Array.isArray(lowered)) {
+        const item = lowerAndCheck(transition.lambdaCode, "lambda", context);
+        if (!item.ok) {
           failures.push({
             itemId: transition.id,
             itemType: "transition-lambda",
-            diagnostics: lowered,
+            diagnostics: item.diagnostics,
           });
         } else {
-          const buffer = lowered.typecheckClean
-            ? emitBufferLambdaJs(lowered.fn, context)
-            : null;
-          artifacts.lambdas[transition.id] = {
-            ...(buffer !== null ? { buffer } : {}),
-            object: emitUserFunctionJs(lowered.fn),
-          };
+          const program = emitBufferLambdaJs(item.fn, context);
+          if (program === null) {
+            failures.push({
+              itemId: transition.id,
+              itemType: "transition-lambda",
+              diagnostics: [notCompilableDiagnostic(item.fn)],
+            });
+          } else {
+            artifacts.lambdas[transition.id] = {
+              source: program.source,
+              inputSlotCount: program.inputSlotCount,
+            };
+          }
         }
       }
 
@@ -199,86 +203,36 @@ export function compileHirArtifacts(
           extensions,
           net,
         );
-        const lowered = lowerAndCheck(
+        const item = lowerAndCheck(
           transition.transitionKernelCode,
           "kernel",
           context,
         );
-        if (Array.isArray(lowered)) {
+        if (!item.ok) {
           failures.push({
             itemId: transition.id,
             itemType: "transition-kernel",
-            diagnostics: lowered,
+            diagnostics: item.diagnostics,
           });
         } else {
-          const buffer = lowered.typecheckClean
-            ? emitBufferKernelJs(lowered.fn, context)
-            : null;
-          artifacts.kernels[transition.id] = {
-            ...(buffer !== null ? { buffer } : {}),
-            object: emitUserFunctionJs(lowered.fn),
-          };
+          const program = emitBufferKernelJs(item.fn, context);
+          if (program === null) {
+            failures.push({
+              itemId: transition.id,
+              itemType: "transition-kernel",
+              diagnostics: [notCompilableDiagnostic(item.fn)],
+            });
+          } else {
+            artifacts.kernels[transition.id] = {
+              source: program.source,
+              inputSlotCount: program.inputSlotCount,
+              outputByteCount: program.outputByteCount,
+            };
+          }
         }
       }
     }
   }
 
   return { artifacts, failures };
-}
-
-// ---------------------------------------------------------------------------
-// Single-item helpers (tests, tooling)
-// ---------------------------------------------------------------------------
-
-function emitObjectSource(
-  code: string,
-  surface: HirSurfaceKind,
-): string | null {
-  try {
-    const lowered = lowerTypeScriptToHir(code, surface);
-    if (!lowered.ok) {
-      return null;
-    }
-    return emitUserFunctionJs(lowered.fn);
-  } catch {
-    return null;
-  }
-}
-
-/** Compiles a `Lambda(...)` module to an object-convention function, or
- * `null` when the code is outside the HIR subset. */
-export function tryCompileHirLambda(code: string): HirCompiledUserFn | null {
-  const source = emitObjectSource(code, "lambda");
-  return source === null ? null : instantiateHirUserFn(source);
-}
-
-/** Compiles a `TransitionKernel(...)` module to an object-convention
- * function, or `null` when the code is outside the HIR subset. */
-export function tryCompileHirKernel(code: string): HirCompiledUserFn | null {
-  const source = emitObjectSource(code, "kernel");
-  return source === null ? null : instantiateHirUserFn(source);
-}
-
-/** Compiles a `Dynamics(...)` module to a buffer-native derivative function
- * with `parameterValues` pre-bound, or `null` when the body doesn't fit the
- * buffer-native shape. */
-export function tryCompileHirBufferDynamics(
-  code: string,
-  elements: readonly HirTokenElementInfo[],
-  parameterValues: HirParameterValues,
-  stringPool: HirStringPoolReader = { get: () => "" },
-): HirCompiledBufferDynamics | null {
-  try {
-    const lowered = lowerTypeScriptToHir(code, "dynamics");
-    if (!lowered.ok) {
-      return null;
-    }
-    const source = emitBufferDynamicsJs(lowered.fn, elements);
-    if (source === null) {
-      return null;
-    }
-    return instantiateHirBufferDynamics(source, parameterValues, stringPool);
-  } catch {
-    return null;
-  }
 }

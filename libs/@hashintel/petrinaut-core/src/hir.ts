@@ -20,9 +20,6 @@ export {
 } from "./hir/analyze";
 export {
   compileHirArtifacts,
-  tryCompileHirBufferDynamics,
-  tryCompileHirKernel,
-  tryCompileHirLambda,
   type HirCompileFailure,
   type HirCompileResult,
 } from "./hir/compile";
@@ -31,16 +28,16 @@ export {
   instantiateHirBufferDynamics,
   instantiateHirBufferKernel,
   instantiateHirBufferLambda,
-  instantiateHirUserFn,
   type HirArtifacts,
   type HirCompiledBufferDynamics,
   type HirCompiledBufferKernel,
   type HirCompiledBufferLambda,
-  type HirCompiledUserFn,
   type HirDynamicsArtifact,
   type HirKernelArtifact,
+  type HirKernelSink,
   type HirLambdaArtifact,
   type HirParameterValues,
+  type HirStringPool,
 } from "./hir/instantiate";
 export {
   emitBufferDynamicsJs,

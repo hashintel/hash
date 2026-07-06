@@ -31,7 +31,10 @@
  * Only emit from functions whose typecheck produced no errors: the emitter
  * relies on attribute/place validity established by `typecheckHir`.
  */
-import { computeTokenSlotLayout } from "../simulation/engine/token-layout";
+import {
+  computeTokenSlotLayout,
+  type TokenSlotLayout,
+} from "../simulation/engine/token-layout";
 import { foldHir } from "./analyze";
 
 import type { HirExpr, HirFunction } from "./hir";
@@ -50,8 +53,8 @@ export type BufferProgram = {
 };
 
 export type BufferKernelProgram = BufferProgram & {
-  /** Expected `out.length` — engine-side sanity check. */
-  outputFloatCount: number;
+  /** Expected staging byte length — engine-side sanity check. */
+  outputByteCount: number;
 };
 
 /** Maximum tokens per arc slot we are willing to unroll `.map` over. */
@@ -62,7 +65,10 @@ const RESERVED_NAMES = [
   "u64",
   "u8",
   "__pool",
-  "slotBases",
+  "__out",
+  "__sink",
+  "placeBases",
+  "indices",
   "out",
   "distSink",
   "__params",
@@ -80,6 +86,8 @@ type Value =
   | { kind: "scalar"; code: string }
   /** A JS expression producing a RuntimeDistribution (a hoisted const). */
   | { kind: "dist"; code: string }
+  /** `Uuid.generate()` / `Uuid.from(...)` — resolved by the engine sink. */
+  | { kind: "uuidSentinel"; mode: "generate" | "from"; code: string }
   /** The lambda/kernel first parameter (`tokensByPlace`). */
   | { kind: "inputRecord" }
   /** A whole input arc slot's token tuple. */
@@ -133,7 +141,7 @@ class BufferEmitter {
   readonly lines: string[] = [];
   readonly names = new NameAllocator(RESERVED_NAMES);
 
-  constructor(private readonly inputSlots: HirArcSlot[]) {}
+  constructor(readonly inputSlots: HirArcSlot[]) {}
 
   /** Resolves a place display name to its arc slot (last arc wins, matching
    * the runtime's object-key overwrite). */
@@ -146,10 +154,41 @@ class BufferEmitter {
     return null;
   }
 
+  /** Token layouts computed once per arc slot; byte offsets and strides are
+   * baked into the emitted code as literal constants. */
+  private readonly layoutBySlot = new Map<HirArcSlot, TokenSlotLayout>();
+
+  private layoutOf(elements: readonly HirTokenElementInfo[]): TokenSlotLayout {
+    return computeTokenSlotLayout(
+      elements.map((element, index) => ({
+        elementId: String(index),
+        name: element.name,
+        type: element.type,
+      })),
+    );
+  }
+
+  private slotLayout(slot: HirArcSlot): TokenSlotLayout {
+    let layout = this.layoutBySlot.get(slot);
+    if (!layout) {
+      layout = this.layoutOf(slot.elements);
+      this.layoutBySlot.set(slot, layout);
+    }
+    return layout;
+  }
+
+  /** Which `placeBases` entry an arc slot reads from (its arc index). */
+  private placeBaseIndex(slot: HirArcSlot): number {
+    return this.inputSlots.indexOf(slot);
+  }
+
   private tokenOfSlot(slot: HirArcSlot, tokenIndex: number): Value {
+    const stride = this.slotLayout(slot).strideBytes;
+    const slotIndex = slot.slotStart + tokenIndex;
+    const strideCode = stride === 0 ? "0" : `indices[${slotIndex}] * ${stride}`;
     return {
       kind: "token",
-      baseCode: `slotBases[${slot.slotStart + tokenIndex}]`,
+      baseCode: `placeBases[${this.placeBaseIndex(slot)}] + ${strideCode}`,
       elements: slot.elements,
     };
   }
@@ -161,17 +200,30 @@ class BufferEmitter {
    * booleans u8 (0/1), strings u64 pool handles (resolved through `__pool`),
    * uuids two u64 lanes assembled into one bigint.
    */
+  /** Public wrappers for the kernel emitter. */
+  tokenValueOf(slot: HirArcSlot, tokenIndex: number): Value {
+    return this.tokenOfSlot(slot, tokenIndex);
+  }
+
+  readTokenField(
+    token: Extract<Value, { kind: "token" }>,
+    field: string,
+  ): Value | undefined {
+    try {
+      return this.readAttribute(token, field);
+    } catch (error) {
+      if (error instanceof BailError) {
+        return undefined;
+      }
+      throw error;
+    }
+  }
+
   private readAttribute(
     token: Extract<Value, { kind: "token" }>,
     field: string,
   ): Value {
-    const layout = computeTokenSlotLayout(
-      token.elements.map((element, index) => ({
-        elementId: String(index),
-        name: element.name,
-        type: element.type,
-      })),
-    );
+    const layout = this.layoutOf(token.elements);
     const layoutField = layout.fields.find(
       (candidate) => candidate.element.name === field,
     );
@@ -230,9 +282,13 @@ class BufferEmitter {
           )})`,
         };
       case "uuidGenerate":
+        return { kind: "uuidSentinel", mode: "generate", code: "0" };
       case "uuidFrom":
-        // Kernel-output-only constructs; kernels don't use this emitter yet.
-        throw new BailError();
+        return {
+          kind: "uuidSentinel",
+          mode: "from",
+          code: this.scalar(this.eval(expr.operand, env)),
+        };
       case "constant":
         switch (expr.name) {
           case "PI":
@@ -506,7 +562,7 @@ export function emitBufferLambdaJs(
       return null;
     }
     const source = [
-      `(f64, u64, u8, slotBases) => {`,
+      `(f64, u64, u8, placeBases, indices) => {`,
       ...emitter.lines.map((line) => `  ${line}`),
       `  return ${result.code};`,
       `}`,
@@ -521,19 +577,160 @@ export function emitBufferLambdaJs(
 }
 
 /**
- * Buffer-ABI kernels are not emitted yet for the packed token layout
- * (format v2): kernel outputs interleave RNG consumption (distribution
- * sampling, uuid auto-generation) and string interning in element
- * declaration order, which requires an ordinal-tagged deferred-sink design
- * to preserve the engine's RNG stream. Kernels run the object-convention
- * program meanwhile — they execute once per firing (cold) versus the
- * lambda's once per token combination (hot).
+ * Emits a buffer-ABI kernel (token format v2):
+ *
+ *   (f64, u64, u8, placeBases, indices, outF64, outU64, outU8, sink) => void
+ *
+ * Output attributes are written into per-transition staging bytes at
+ * compile-time-constant offsets (colored output arcs place-major, tokens
+ * back-to-back with baked strides). Values that consume the seeded RNG —
+ * distributions, generated/converted UUIDs — are deferred through
+ * `sink(kind, index, payload)`, and the emitted calls follow (arc, token,
+ * element-declaration) order so the engine reproduces the exact RNG stream
+ * by processing them in call order. String attributes intern through
+ * `__pool` inline. Returns `null` for shapes that don't scalarize (which
+ * `compileHirArtifacts` reports as a compile failure — there is no other
+ * program).
  */
 export function emitBufferKernelJs(
-  _fn: HirFunction,
-  _context: HirKernelContext,
+  fn: HirFunction,
+  context: HirKernelContext,
 ): BufferKernelProgram | null {
-  return null;
+  try {
+    const emitter = new BufferEmitter(context.inputSlots);
+    const result = emitter.eval(foldHir(fn.body), initialEnv(fn));
+    if (result.kind !== "record") {
+      return null;
+    }
+
+    const writes: string[] = [];
+    let byteBase = 0;
+
+    for (const slot of context.outputSlots) {
+      const layout = computeTokenSlotLayout(
+        slot.elements.map((element, index) => ({
+          elementId: String(index),
+          name: element.name,
+          type: element.type,
+        })),
+      );
+      const entry = result.fields.get(slot.name);
+      if (!entry) {
+        return null;
+      }
+
+      // Resolve the entry to one token Value per output slot position.
+      let tokens: Value[];
+      if (entry.kind === "array") {
+        tokens = entry.items;
+      } else if (entry.kind === "tokens") {
+        // Whole input tuple forwarded to an output place.
+        if (entry.slot.tokenCount !== slot.tokenCount) {
+          return null;
+        }
+        tokens = Array.from({ length: entry.slot.tokenCount }, (_, index) =>
+          emitter.tokenValueOf(entry.slot, index),
+        );
+      } else {
+        return null;
+      }
+      if (tokens.length !== slot.tokenCount) {
+        return null;
+      }
+
+      /* eslint-disable no-bitwise -- `at >> 3` converts compile-time-constant
+         byte offsets of 8-aligned fields to 64-bit lane indices */
+      for (const [tokenIndex, token] of tokens.entries()) {
+        const tokenBase = byteBase + tokenIndex * layout.strideBytes;
+        // Element declaration order — this is the engine's RNG order.
+        for (const element of slot.elements) {
+          const field = layout.fields.find(
+            (candidate) => candidate.element.name === element.name,
+          )!;
+          const at = tokenBase + field.byteOffset;
+
+          let value: Value | undefined;
+          if (token.kind === "record") {
+            value = token.fields.get(element.name);
+          } else if (token.kind === "token") {
+            value = emitter.readTokenField(token, element.name);
+          } else {
+            return null;
+          }
+
+          // Omitted uuid attributes auto-generate from the seeded RNG.
+          if (value === undefined) {
+            if (element.type === "uuid") {
+              writes.push(`__sink("generate", ${at >> 3}, 0);`);
+              continue;
+            }
+            return null;
+          }
+
+          if (value.kind === "dist") {
+            if (element.type !== "real") {
+              return null;
+            }
+            writes.push(`__sink("dist", ${at >> 3}, ${value.code});`);
+            continue;
+          }
+          if (value.kind === "uuidSentinel") {
+            writes.push(
+              value.mode === "generate"
+                ? `__sink("generate", ${at >> 3}, 0);`
+                : `__sink("from", ${at >> 3}, ${value.code});`,
+            );
+            continue;
+          }
+          if (value.kind !== "scalar") {
+            return null;
+          }
+
+          switch (element.type) {
+            case "real":
+              writes.push(`outF64[${at >> 3}] = ${value.code};`);
+              break;
+            case "integer":
+              writes.push(`outF64[${at >> 3}] = Math.round(${value.code});`);
+              break;
+            case "boolean":
+              writes.push(`outU8[${at}] = (${value.code}) ? 1 : 0;`);
+              break;
+            case "string":
+              writes.push(
+                `outU64[${at >> 3}] = BigInt(__pool.intern(${value.code}));`,
+              );
+              break;
+            case "uuid":
+              // A uuid-typed scalar is a bigint (copied from an input token)
+              // or a string (converted deterministically) — defer strings.
+              writes.push(`__sink("from", ${at >> 3}, ${value.code});`);
+              break;
+          }
+        }
+      }
+      /* eslint-enable no-bitwise */
+
+      byteBase += slot.tokenCount * layout.strideBytes;
+    }
+
+    const source = [
+      `(f64, u64, u8, placeBases, indices, outF64, outU64, outU8, __sink) => {`,
+      ...emitter.lines.map((line) => `  ${line}`),
+      ...writes.map((line) => `  ${line}`),
+      `}`,
+    ].join("\n");
+    return {
+      source,
+      inputSlotCount: slotCount(context.inputSlots),
+      outputByteCount: byteBase,
+    };
+  } catch (error) {
+    if (error instanceof BailError) {
+      return null;
+    }
+    throw error;
+  }
 }
 
 /**

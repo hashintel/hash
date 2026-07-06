@@ -12,6 +12,10 @@ import {
   sirModel,
   supplyChainWithDisruption,
 } from "../examples/index";
+import {
+  DEFAULT_PETRINAUT_EXTENSIONS,
+  getTransitionLogicAvailability,
+} from "../extensions";
 import { buildSimulation } from "../simulation/engine/build-simulation";
 import { compileHirArtifacts } from "./compile";
 
@@ -40,20 +44,76 @@ describe("compileHirArtifacts on example models", () => {
   });
 
   it.each(EXAMPLES)(
-    "compiles every lambda and dynamics of %s to the buffer ABI",
+    "compiles every lambda, kernel and dynamics of %s to the buffer ABI",
     (_name, sdcpn) => {
-      const { artifacts } = compileHirArtifacts(sdcpn);
-      // Kernels run the object program for now (buffer emission for the
-      // packed layout needs the RNG-ordinal sink design).
-      const withoutBuffer = [
-        ...Object.entries(artifacts.lambdas)
-          .filter(([, artifact]) => !artifact.buffer)
-          .map(([id]) => `lambda:${id}`),
-        ...Object.entries(artifacts.dynamics)
-          .filter(([, artifact]) => !artifact.buffer)
-          .map(([id]) => `dynamics:${id}`),
+      const { artifacts, failures } = compileHirArtifacts(sdcpn);
+      expect(failures).toEqual([]);
+      expect(artifacts.version).toBe(3);
+
+      const colorById = new Map(
+        [
+          ...sdcpn.types,
+          ...(sdcpn.subnets ?? []).flatMap((subnet) => subnet.types),
+        ].map((color) => [color.id, color]),
+      );
+
+      const missing: string[] = [];
+      const nets = [
+        { net: sdcpn, subnet: null },
+        ...(sdcpn.subnets ?? []).map((subnet) => ({ net: subnet, subnet })),
       ];
-      expect(withoutBuffer).toEqual([]);
+      for (const { net, subnet } of nets) {
+        const differentialEquations = subnet
+          ? subnet.differentialEquations
+          : sdcpn.differentialEquations;
+        const transitions = subnet ? subnet.transitions : sdcpn.transitions;
+
+        for (const de of differentialEquations) {
+          const color = de.colorId ? colorById.get(de.colorId) : undefined;
+          if (
+            color?.elements.some((element) => element.type === "real") &&
+            !artifacts.dynamics[de.id]
+          ) {
+            missing.push(`dynamics:${de.id}`);
+          }
+        }
+        for (const transition of transitions) {
+          const availability = getTransitionLogicAvailability(
+            transition,
+            sdcpn,
+            DEFAULT_PETRINAUT_EXTENSIONS,
+            net,
+          );
+          if (
+            availability.lambda &&
+            transition.lambdaCode.trim() !== "" &&
+            !artifacts.lambdas[transition.id]
+          ) {
+            missing.push(`lambda:${transition.id}`);
+          }
+          if (
+            availability.transitionKernel &&
+            !artifacts.kernels[transition.id]
+          ) {
+            missing.push(`kernel:${transition.id}`);
+          }
+        }
+      }
+      expect(missing).toEqual([]);
+
+      // Artifacts carry the buffer-ABI metadata the engine validates against.
+      for (const artifact of Object.values(artifacts.lambdas)) {
+        expect(typeof artifact.source).toBe("string");
+        expect(typeof artifact.inputSlotCount).toBe("number");
+      }
+      for (const artifact of Object.values(artifacts.kernels)) {
+        expect(typeof artifact.source).toBe("string");
+        expect(typeof artifact.inputSlotCount).toBe("number");
+        expect(typeof artifact.outputByteCount).toBe("number");
+      }
+      for (const artifact of Object.values(artifacts.dynamics)) {
+        expect(typeof artifact.source).toBe("string");
+      }
     },
   );
 
