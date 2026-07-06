@@ -5588,7 +5588,8 @@
             "description": "Input values for the query. Must be an empty list until input support ships."
           },
           "query": {}
-        }
+        },
+        "additionalProperties": false
       },
       "IncludeEntityTypeOption": {
         "type": "string",
