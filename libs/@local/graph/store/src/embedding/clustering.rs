@@ -662,8 +662,7 @@ struct Scratch<'ctx> {
 ///
 /// # Safety
 ///
-/// * `d` is a multiple of 8 (the SIMD kernels rely on it; every other requirement is checked at
-///   runtime and panics)
+/// * `d` is a multiple of 8
 unsafe fn accumulate_clusters(
     points: &[f32],
     labels: &[u16],
