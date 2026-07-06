@@ -25,17 +25,17 @@ pub enum PostgresType {
     TstzRange,
     JsonB,
     JsonPath,
-    /// `pgvector` embedding vector
+    // `pgvector` embedding vector
     Vector,
-    /// `entity_edge_kind` enum
+    // `entity_edge_kind` enum
     EntityEdgeKind,
-    /// `edge_direction` enum
+    // `edge_direction` enum
     EdgeDirection,
-    /// `principal_type` enum
+    // `principal_type` enum
     PrincipalType,
-    /// `policy_effect` enum
+    // `policy_effect` enum
     PolicyEffect,
-    /// `continuation` composite driving HashQL evaluation
+    // `continuation` composite driving HashQL evaluation
     Continuation,
 }
 

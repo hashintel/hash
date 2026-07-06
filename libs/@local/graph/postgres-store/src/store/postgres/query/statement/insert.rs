@@ -3,7 +3,7 @@ use core::{fmt, fmt::Formatter};
 use postgres_types::ToSql;
 
 use crate::store::postgres::query::{
-    PostgresType, TableName, Transpile, rows::PostgresRow, table::DatabaseColumn as _,
+    PostgresType, TableName, Transpile, rows::PostgresRow, table::DatabaseColumn,
 };
 
 /// Conflict handling for a bulk [`InsertStatement`].
@@ -67,10 +67,7 @@ impl InsertStatement {
                 .iter()
                 .map(|column| column.as_str().to_owned())
                 .collect(),
-            casts: columns
-                .iter()
-                .map(|column| column.postgres_type())
-                .collect(),
+            casts: columns.iter().map(DatabaseColumn::postgres_type).collect(),
             distinct: options.distinct,
             on_conflict: options.on_conflict,
         };
