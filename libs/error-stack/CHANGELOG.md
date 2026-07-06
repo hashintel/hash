@@ -8,6 +8,12 @@ All notable changes to `error-stack` will be documented in this file.
 - Support for [`defmt`](https://defmt.ferrous-systems.com).
 - Better support for serialization and deserialization of `Report`.
 
+## [0.8.0](https://github.com/hashintel/hash/tree/error-stack%400.8.0/libs/error-stack) - 2026-07-03
+
+### Breaking Changes
+
+- Fix a soundness hole in `Report::frames_mut`: the returned iterator handed out `&mut Frame`s with independent lifetimes, so a frame and one of its sources (via `Frame::sources_mut`) could be borrowed mutably at the same time — undefined behavior triggerable from safe code, up to segfaults. `frames_mut` now takes a visitor closure (`FnMut(&mut Frame) -> ControlFlow<()>`) instead of returning an iterator, and the `FramesMut` type has been removed. `Report::downcast_mut` is unaffected. ([#8946](https://github.com/hashintel/hash/pull/8946))
+
 ## [0.7.1](https://github.com/hashintel/hash/tree/error-stack%400.7.1/libs/error-stack) - 2026-05-27
 
 ### Fixes

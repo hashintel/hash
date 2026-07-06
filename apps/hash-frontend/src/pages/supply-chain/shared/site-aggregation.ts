@@ -1,5 +1,12 @@
 import { DWELL_TYPES } from "./categories";
-import { computePeriodCost } from "./cost";
+import {
+  bucketKgDaysForCategories,
+  CARRY_CATEGORY_KEYS,
+  type CarryCategoryKey,
+  computePeriodCost,
+  FG_INTERMEDIATE_CARRY_CATEGORIES,
+  NODE_CARRY_CATEGORIES,
+} from "./cost";
 import { type BaseMeasure, selectStat } from "./measure-context";
 import { computeStats } from "./stats";
 
@@ -16,30 +23,44 @@ const SHARED_STEP_TYPES = new Set(["raw_material_dwell", "procurement"]);
 function normaliseLabel(label: string): string {
   return label.trim().toLowerCase().replace(/\s+/g, " ");
 }
+
 function fingerprintValue(value: string | number | null | undefined): string {
   if (typeof value === "number") {
     return Number.isFinite(value) ? value.toPrecision(12) : "nan";
   }
   return value ?? "null";
 }
+
 function costFingerprint(
   unitPrice: number | null | undefined,
   currency: string | null | undefined,
 ): string {
   return [unitPrice, currency].map(fingerprintValue).join(":");
 }
+
 function monthlyFingerprint(monthly: MonthlyBucket[] | undefined): string {
   if (!monthly || monthly.length === 0) {
     return "no-monthly";
   }
   return monthly
     .map((month) =>
-      [month.month, month.n, month.total_kg_days, month.mean, month.median]
+      [
+        month.month,
+        month.n,
+        month.total_kg_days,
+        month.consumed_kg_days,
+        month.dispatched_kg_days,
+        month.other_exit_kg_days,
+        month.open_kg_days,
+        month.mean,
+        month.median,
+      ]
         .map(fingerprintValue)
         .join(":"),
     )
     .join(";");
 }
+
 function statsFingerprint(stats: StepStats): string {
   return [
     stats.n,
@@ -56,6 +77,7 @@ function statsFingerprint(stats: StepStats): string {
     .map(fingerprintValue)
     .join(",");
 }
+
 function dwellSeriesFingerprint(node: GraphNode): string {
   return [
     statsFingerprint(node.stats),
@@ -63,9 +85,18 @@ function dwellSeriesFingerprint(node: GraphNode): string {
     costFingerprint(node.cost?.unit_price, node.cost?.currency),
   ].join("~");
 }
+
 function dwellDedupKey(node: GraphNode, productId: string): string {
-  if (node.type === "raw_material_dwell" && node.material) {
-    return ["raw-dwell", node.plant, node.type, node.material].join("|");
+  // Raw-material and intermediate dwell describe a material's carrying cost at a
+  // plant, not a per-product quantity, so a given (material, plant) is the same
+  // dwell regardless of which finished good's graph it appears in. Key on the
+  // material alone so the shared row merges into one entry with all consuming products as tags.
+  if (
+    (node.type === "raw_material_dwell" ||
+      node.type === "intermediate_dwell") &&
+    node.material
+  ) {
+    return ["dwell-material", node.plant, node.type, node.material].join("|");
   }
   const series = dwellSeriesFingerprint(node);
   if (node.material) {
@@ -88,9 +119,22 @@ function dedupKey(node: GraphNode, productId: string): string {
   }
   return ["product", productId, node.id, node.plant, node.type].join("|");
 }
+
 function aggregateMonthlyBuckets(nodes: GraphNode[]): MonthlyBucket[] {
   const observationsByMonth = new Map<string, number[]>();
-  const kgDaysByMonth = new Map<string, number>();
+  const splitByMonth = new Map<string, Record<CarryCategoryKey, number>>();
+  const totalByMonth = new Map<string, number>();
+  // Whether any merged bucket carried the exit-typed split. Legacy / fallback
+  // nodes ship only `total_kg_days`; for those we must NOT emit a (zeroed) split
+  // or the attribution stamp would read it as "split present" and zero the cost.
+  let sawSplit = false;
+
+  const zeroSplit = (): Record<CarryCategoryKey, number> => ({
+    consumed_kg_days: 0,
+    dispatched_kg_days: 0,
+    other_exit_kg_days: 0,
+    open_kg_days: 0,
+  });
 
   for (const node of nodes) {
     for (const observation of node.observations ?? []) {
@@ -103,25 +147,38 @@ function aggregateMonthlyBuckets(nodes: GraphNode[]): MonthlyBucket[] {
       }
     }
     for (const bucket of node.monthly ?? []) {
-      kgDaysByMonth.set(
+      const split = splitByMonth.get(bucket.month) ?? zeroSplit();
+      for (const key of CARRY_CATEGORY_KEYS) {
+        const value = bucket[key];
+        if (typeof value === "number") {
+          sawSplit = true;
+          split[key] += value;
+        }
+      }
+      splitByMonth.set(bucket.month, split);
+      totalByMonth.set(
         bucket.month,
-        (kgDaysByMonth.get(bucket.month) ?? 0) + (bucket.total_kg_days ?? 0),
+        (totalByMonth.get(bucket.month) ?? 0) + (bucket.total_kg_days ?? 0),
       );
     }
   }
 
-  return [...new Set([...observationsByMonth.keys(), ...kgDaysByMonth.keys()])]
+  return [...new Set([...observationsByMonth.keys(), ...totalByMonth.keys()])]
     .sort()
     .map((month) => {
       const values = observationsByMonth.get(month) ?? [];
       const stats = computeStats(values);
-      return {
+      const bucket: MonthlyBucket = {
         month,
         mean: values.length > 0 ? stats.mean : null,
         median: values.length > 0 ? stats.median : null,
         n: values.length > 0 ? stats.n : 0,
-        total_kg_days: kgDaysByMonth.get(month) ?? 0,
+        total_kg_days: totalByMonth.get(month) ?? 0,
       };
+      if (sawSplit) {
+        Object.assign(bucket, splitByMonth.get(month) ?? zeroSplit());
+      }
+      return bucket;
     });
 }
 
@@ -145,6 +202,47 @@ function aggregateRawMaterialDwellNodes(nodes: GraphNode[]): GraphNode {
     monthly: aggregateMonthlyBuckets(uniqueNodes),
     stats,
     pct_exceeding_plan: null,
+  };
+}
+
+/**
+ * The exit-typed carry buckets a node owns at the site level. An
+ * `intermediate_dwell` for a material that is ALSO a directly-sold finished good
+ * (i.e. it has a post-QA node at the site) owns only its consumed carry -- its
+ * dispatched + open carry is booked on that post-QA node -- so the two nodes sum
+ * without double counting. A pure intermediate owns all four buckets.
+ */
+function carryCategoriesForNode(
+  node: GraphNode,
+  fgIntermediateMaterials: Set<string>,
+): readonly CarryCategoryKey[] {
+  if (node.type === "intermediate_dwell") {
+    return node.material && fgIntermediateMaterials.has(node.material)
+      ? FG_INTERMEDIATE_CARRY_CATEGORIES
+      : CARRY_CATEGORY_KEYS;
+  }
+  return NODE_CARRY_CATEGORIES[node.type] ?? CARRY_CATEGORY_KEYS;
+}
+
+/**
+ * Stamp each dwell node's `total_kg_days` to the exit-typed split it owns, so
+ * every downstream cost consumer (period cost, monthly chart, trends) reads a
+ * single attributed carry number without knowing the split rules.
+ */
+function stampAttributedKgDays(
+  node: SiteNode,
+  fgIntermediateMaterials: Set<string>,
+): SiteNode {
+  if (!DWELL_TYPES.includes(node.type) || !node.monthly) {
+    return node;
+  }
+  const categories = carryCategoriesForNode(node, fgIntermediateMaterials);
+  return {
+    ...node,
+    monthly: node.monthly.map((bucket) => ({
+      ...bucket,
+      total_kg_days: bucketKgDaysForCategories(bucket, categories),
+    })),
   };
 }
 
@@ -175,16 +273,32 @@ export function deduplicateNodes(siteData: SiteData): SiteNode[] {
     }
   }
 
-  return Array.from(grouped.values()).map(({ nodes, products }) => {
-    const node =
-      nodes[0]?.type === "raw_material_dwell"
-        ? aggregateRawMaterialDwellNodes(nodes)
-        : nodes[0]!;
-    return {
-      ...node,
-      products,
-    };
-  });
+  const merged: SiteNode[] = Array.from(grouped.values()).map(
+    ({ nodes, products }) => {
+      const node =
+        nodes[0]?.type === "raw_material_dwell"
+          ? aggregateRawMaterialDwellNodes(nodes)
+          : nodes[0]!;
+      return {
+        ...node,
+        products,
+      };
+    },
+  );
+
+  // Materials that are directly-sold finished goods (they have a post-QA node)
+  // so their intermediate dwell keeps only consumed carry (dispatched + open is
+  // attributed to the post-QA node), avoiding double counting when both nodes
+  // exist for the same material at the site.
+  const fgIntermediateMaterials = new Set(
+    merged
+      .filter((node) => node.type === "post_qa_ship" && node.material)
+      .map((node) => node.material as string),
+  );
+
+  return merged.map((node) =>
+    stampAttributedKgDays(node, fgIntermediateMaterials),
+  );
 }
 
 export function computeNodePeriodCost(

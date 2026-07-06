@@ -2667,7 +2667,7 @@ dependencies = [
 
 [[package]]
 name = "error-stack"
-version = "0.7.1"
+version = "0.8.0"
 dependencies = [
  "ansi-to-html",
  "anyhow",
@@ -3572,12 +3572,6 @@ dependencies = [
  "hash-graph-validation",
  "hash-status",
  "hash-temporal-client",
- "hashql-ast",
- "hashql-core",
- "hashql-diagnostics",
- "hashql-eval",
- "hashql-hir",
- "hashql-syntax-jexpr",
  "http 1.4.2",
  "hyper",
  "include_dir",

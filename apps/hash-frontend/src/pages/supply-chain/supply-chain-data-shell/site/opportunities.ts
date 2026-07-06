@@ -1,5 +1,6 @@
 import { formatCost, formatNumber } from "../../shared/cost";
 import { siteNodeKey } from "../../shared/site-node-key";
+import { siteNodeDisplayLabel } from "./shared/helpers";
 import { LOW_SAMPLE_N } from "./shared/row-types";
 
 import type { StatusOption } from "../../shared/status";
@@ -121,7 +122,7 @@ function planningOpportunity(
     productId: row.products[0]?.id ?? "",
     stepId: row.id,
     node: row,
-    title: row.label,
+    title: siteNodeDisplayLabel(row),
     products: row.products,
     typeLabel: kind === "planning_over" ? "Planning over" : "Planning under",
     impactLabel: "P95 vs plan",
@@ -172,7 +173,7 @@ export function buildSiteOpportunities({
       productId: row.products[0]?.id ?? "",
       stepId: row.id,
       node: row,
-      title: row.label,
+      title: siteNodeDisplayLabel(row),
       products: row.products,
       typeLabel: "Dwell cost",
       impactLabel: `Cost (${timeRange})`,

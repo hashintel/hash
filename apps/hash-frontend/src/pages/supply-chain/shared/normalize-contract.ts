@@ -7,6 +7,7 @@ import { computeStats, percentileOf, round } from "./stats";
 
 import type {
   GraphData,
+  RawGraphData,
   GraphNode,
   StepDetail,
   StepDetailWire,
@@ -107,7 +108,8 @@ function buildMonthlyFromObservations(obs: Observation[]): MonthlyBucket[] {
  * `detail_rows` (+ `value_col`/`ref_date_col`) and no precomputed timing series,
  * rehydrate observations/durations/monthly/stats from the rows. A strict no-op
  * whenever `observations` are already present.
- */ function ensureTimingSeriesStats<
+ */
+function ensureTimingSeriesStats<
   T extends {
     observations?: Observation[];
     monthly?: MonthlyBucket[];
@@ -127,6 +129,7 @@ function buildMonthlyFromObservations(obs: Observation[]): MonthlyBucket[] {
     stats: computeStats(obs.map((observation) => observation.value)),
   };
 }
+
 function normalizeProcurementNode(node: GraphNode): GraphNode {
   if (node.type !== "procurement") {
     return node;
@@ -149,9 +152,9 @@ function normalizeProcurementNode(node: GraphNode): GraphNode {
     monthly: buildMonthlyFromObservations(observations),
   };
 }
-/** Fill a graph node's `stats` from its observations when absent. */ export function ensureNodeStats(
-  node: GraphNode,
-): GraphNode {
+
+/** Fill a graph node's `stats` from its observations when absent. */
+export function ensureNodeStats(node: GraphNode): GraphNode {
   const normalized = normalizeProcurementNode(node);
   const observations = normalized.observations ?? [];
   const withMonthly =
@@ -166,15 +169,16 @@ function normalizeProcurementNode(node: GraphNode): GraphNode {
     pct_exceeding_plan: pctExceeding(base.observations, base.plan),
   };
 }
-/** Normalize every node in a product graph (+ default the client-derived pipeline_summary). */ export function ensureGraphStats(
-  graph: GraphData,
-): GraphData {
+
+/** Normalize every node in a product graph (+ default the client-derived pipeline_summary). */
+export function ensureGraphStats(graph: RawGraphData): GraphData {
   return {
     ...graph,
-    pipeline_summary: graph.pipeline_summary,
+    pipeline_summary: graph.pipeline_summary ?? {},
     nodes: graph.nodes.map(ensureNodeStats),
   };
 }
+
 /**
  * Fill per-month timing percentiles from observations onto existing monthly
  * buckets, preserving every other column (notably the carrying-cost
@@ -182,7 +186,8 @@ function normalizeProcurementNode(node: GraphNode): GraphNode {
  * and rely on this to rebuild the timing percentiles on load. Buckets with no
  * matching observations (e.g. dwell carry-over months) are left untouched.
  * When there are no buckets at all, falls back to building them from scratch.
- */ function fillMonthlyTiming(
+ */
+function fillMonthlyTiming(
   monthly: MonthlyBucket[] | undefined,
   obs: Observation[],
 ): MonthlyBucket[] {

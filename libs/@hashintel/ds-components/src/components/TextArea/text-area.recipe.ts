@@ -28,6 +28,8 @@ export const textAreaRecipe = sva({
       width: "[100%]",
       maxWidth: "[100%]",
       minWidth: "var(--form-min-width)",
+      minHeight:
+        "[calc(var(--form-line-height) * var(--leading-factor, 1) + var(--form-padding-y) * 2 + var(--form-border-width) * 2)]",
       position: "relative",
       anchorName: "[--textarea-root]",
       overflow: "hidden",
@@ -39,11 +41,11 @@ export const textAreaRecipe = sva({
     subtleOverlay: {
       position: "absolute",
       positionAnchor: "[--textarea-root]",
-      top: "[calc(anchor(--textarea-root top) - 1px)]",
+      top: "[calc(anchor(--textarea-root top))]",
       left: "[calc(anchor(--textarea-root left) - var(--base-input-padding-x))]",
       width:
-        "[calc(anchor-size(--textarea-root width) + var(--base-input-padding-x) + 1px)]",
-      height: "[calc(anchor-size(--textarea-root height) + 2px)]",
+        "[calc(anchor-size(--textarea-root width) + var(--base-input-padding-x))]",
+      height: "[calc(anchor-size(--textarea-root height))]",
       zIndex: "[-1]",
       borderRadius: "var(--base-input-border-radius)",
       border: "1px solid var(--textarea-overlay-border-color, transparent)",
@@ -120,6 +122,9 @@ export const textAreaRecipe = sva({
             "--base-input-background-color": "var(--colors-white)",
             "--textarea-overlay-border-color": "var(--base-input-border-color)",
           },
+        },
+        root: {
+          background: "[transparent]",
         },
         textarea: {
           paddingRight: "[calc(var(--base-input-padding-x) * 3 / 4)]",
@@ -210,35 +215,37 @@ export const textAreaRecipe = sva({
     {
       variant: "subtle",
       size: "xxs",
-      css: { root: { "--base-input-padding-x": "spacing.2" } },
+      css: { wrapper: { "--base-input-padding-x": "spacing.2" } },
     },
     {
       variant: "subtle",
       size: "xs",
-      css: { root: { "--base-input-padding-x": "spacing.2" } },
+      css: { wrapper: { "--base-input-padding-x": "spacing.2" } },
     },
     {
       variant: "subtle",
       size: "sm",
-      css: { root: { "--base-input-padding-x": "spacing.2" } },
+      css: { wrapper: { "--base-input-padding-x": "spacing.2" } },
     },
     {
       variant: "subtle",
       size: "md",
-      css: { root: { "--base-input-padding-x": "spacing.2" } },
+      css: { wrapper: { "--base-input-padding-x": "spacing.2" } },
     },
     {
       variant: "subtle",
       size: "lg",
-      css: { root: { "--base-input-padding-x": "spacing.2" } },
+      css: { wrapper: { "--base-input-padding-x": "spacing.2" } },
     },
     {
       variant: "default",
       disabled: true,
       css: {
-        root: {
+        wrapper: {
           "--base-input-border-color": "var(--colors-neutral-s50)",
           "--base-input-background-color": "var(--colors-neutral-s20)",
+        },
+        root: {
           color: "neutral.s80",
         },
       },

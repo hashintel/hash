@@ -169,7 +169,11 @@ describe("deduplicateNodes", () => {
     );
   });
 
-  it("keeps genuinely different dwell series separate even when material matches", () => {
+  it("merges shared intermediate dwell across products even when the finished-good-scoped series differs slightly", () => {
+    // Intermediate dwell carries the plant-global balance for a material, so the
+    // series can differ between consuming products (scoped stats/observations,
+    // opening-balance inference). It must still collapse to a single row, keeping
+    // the first node's (global) data rather than summing or duplicating it.
     const base = node({
       id: "im-a",
       label: "Intermediate Dwell: Shared Material",
@@ -184,7 +188,7 @@ describe("deduplicateNodes", () => {
       ...base,
       id: "im-b",
       stats: stats(8, 12),
-      monthly: [kgDayMonth("2026-01", 3000)],
+      monthly: [kgDayMonth("2026-01", 9998)],
     };
     const productA: Product = { id: "pa", name: "Product A", material: "FG-A" };
     const productB: Product = { id: "pb", name: "Product B", material: "FG-B" };
@@ -213,7 +217,17 @@ describe("deduplicateNodes", () => {
       ],
     };
 
-    expect(deduplicateNodes(site)).toHaveLength(2);
+    const result = deduplicateNodes(site);
+    expect(result).toHaveLength(1);
+    const merged = result[0];
+    expect(merged).toBeDefined();
+    // First-wins: keep one representative of the global balance, do NOT sum.
+    expect(merged!.monthly).toEqual(base.monthly);
+    expect(merged!.stats).toMatchObject({ n: 10, median: 20 });
+    expect(merged!.products.map((product) => product.id).sort()).toEqual([
+      "pa",
+      "pb",
+    ]);
   });
 
   it("aggregates product-scoped raw-material dwell series at site level", () => {
@@ -275,6 +289,128 @@ describe("deduplicateNodes", () => {
       "pa",
       "pb",
     ]);
+  });
+});
+
+function splitMonth(
+  month: string,
+  split: {
+    consumed?: number;
+    dispatched?: number;
+    other?: number;
+    open?: number;
+  },
+): MonthlyBucket {
+  return {
+    month,
+    mean: null,
+    median: null,
+    n: 1,
+    consumed_kg_days: split.consumed ?? 0,
+    dispatched_kg_days: split.dispatched ?? 0,
+    other_exit_kg_days: split.other ?? 0,
+    open_kg_days: split.open ?? 0,
+  };
+}
+
+function singleNodeSite(graphNode: GraphNode, id = "p"): SiteData {
+  return {
+    graphs: [
+      {
+        product: { id, name: id, material: `FG-${id}` },
+        graph: {
+          product_id: id,
+          product_name: id,
+          nodes: [graphNode],
+          edges: [],
+          pipeline_summary: {},
+        },
+      },
+    ],
+  };
+}
+
+describe("exit-typed carry attribution", () => {
+  it("stamps a pure intermediate's total_kg_days from all four buckets", () => {
+    const site = singleNodeSite(
+      node({
+        id: "im-pure",
+        type: "intermediate_dwell",
+        material: "INT-PURE",
+        stats: stats(1, 10),
+        cost: cost(100),
+        monthly: [
+          splitMonth("2026-01", {
+            consumed: 100,
+            dispatched: 20,
+            other: 5,
+            open: 40,
+          }),
+        ],
+      }),
+    );
+
+    const result = deduplicateNodes(site);
+    const im = result.find((row) => row.id === "im-pure");
+    // No post-QA node for INT-PURE, so it owns every bucket.
+    expect(im?.monthly?.[0]?.total_kg_days).toBe(165);
+  });
+
+  it("splits an FG-intermediate: consumed -> IM dwell, dispatched+open -> post-QA", () => {
+    const im = node({
+      id: "im-fg",
+      type: "intermediate_dwell",
+      material: "INT-FG",
+      stats: stats(1, 10),
+      cost: cost(100),
+      monthly: [
+        splitMonth("2026-01", {
+          consumed: 100,
+          dispatched: 20,
+          other: 5,
+          open: 40,
+        }),
+      ],
+    });
+    const postQa = node({
+      id: "pq-fg",
+      type: "post_qa_ship",
+      material: "INT-FG",
+      stats: stats(1, 3),
+      cost: cost(100),
+      monthly: [
+        splitMonth("2026-01", {
+          consumed: 0,
+          dispatched: 200,
+          other: 10,
+          open: 60,
+        }),
+      ],
+    });
+    const site: SiteData = {
+      graphs: [
+        {
+          product: { id: "p", name: "P", material: "FG-INT-FG" },
+          graph: {
+            product_id: "p",
+            product_name: "P",
+            nodes: [im, postQa],
+            edges: [],
+            pipeline_summary: {},
+          },
+        },
+      ],
+    };
+
+    const result = deduplicateNodes(site);
+    // FG-intermediate dwell keeps only its consumed carry ...
+    expect(
+      result.find((row) => row.id === "im-fg")?.monthly?.[0]?.total_kg_days,
+    ).toBe(100);
+    // ... and the post-QA node owns dispatched + other + open (200 + 10 + 60).
+    expect(
+      result.find((row) => row.id === "pq-fg")?.monthly?.[0]?.total_kg_days,
+    ).toBe(270);
   });
 });
 
