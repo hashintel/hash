@@ -32,6 +32,31 @@ export interface StatusActionState {
   tone: StatusActionTone;
 }
 
+export type StatusActionLabel = StatusActionState["label"];
+
+/** Status buckets in their canonical (custom) order. */
+export const STATUS_LABELS_IN_ORDER: StatusActionLabel[] = [
+  "To action",
+  "Investigating",
+  "Investigated",
+  "Rejected",
+];
+
+/**
+ * Sort/filter rank of each status bucket.
+ */
+const STATUS_RANK: Record<StatusActionLabel, number> = Object.fromEntries(
+  STATUS_LABELS_IN_ORDER.map((label, index) => [label, index]),
+) as Record<StatusActionLabel, number>;
+
+/** Custom-order comparator (asc) for two status bucket labels. */
+export function compareStatusLabels(
+  left: StatusActionLabel,
+  right: StatusActionLabel,
+): number {
+  return STATUS_RANK[left] - STATUS_RANK[right];
+}
+
 export function statusCommentRequired(category: StatusOption): boolean {
   return category !== "Investigation started";
 }
@@ -93,4 +118,13 @@ export function deriveStatusActionState(
   }
 
   return { label: "Investigating", tone: "neutral" };
+}
+
+/** The status bucket label for a node, resolved from its status history. */
+export function statusLabelForNode(
+  siteId: string,
+  node: SiteNode,
+  statusHistory: StatusStore,
+): StatusActionLabel {
+  return deriveStatusActionState(statusHistory[statusKey(siteId, node)]).label;
 }

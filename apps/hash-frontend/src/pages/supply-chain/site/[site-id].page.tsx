@@ -36,7 +36,6 @@ const SitePage: NextPageWithLayout = () => {
     <SiteOverview
       products={products}
       siteId={siteId}
-      opportunityStatuses={opportunityStatusStore.statuses}
       opportunityStatusHistory={opportunityStatusStore.statusHistory}
       opportunityStatusActions={opportunityStatusStore.actions}
     />
