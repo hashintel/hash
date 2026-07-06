@@ -205,6 +205,12 @@ const getDefaultCellValue = (
 
 const formatCellValue = (value: SpreadsheetCellValue): string => String(value);
 
+// Pasting "Infinity" or overflowing notation must not leak non-finite
+// numbers into stored state (the runtime codecs reject them later).
+const parseFiniteNumber = (rawValue: string): number => {
+  const parsed = Number.parseFloat(rawValue);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
 const parseCellValue = (
   column: SpreadsheetColumn | undefined,
   rawValue: string,
@@ -215,10 +221,10 @@ const parseCellValue = (
       return normalized === "true" || normalized === "1";
     }
     case "integer":
-      return Math.round(Number.parseFloat(rawValue) || 0);
+      return Math.round(parseFiniteNumber(rawValue));
     case "real":
     default:
-      return Number.parseFloat(rawValue) || 0;
+      return parseFiniteNumber(rawValue);
   }
 };
 
