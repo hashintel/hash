@@ -580,7 +580,7 @@ pub struct ClusterEntitiesResponse {
     /// One entry per non-empty cluster. Empty clusters (no points assigned)
     /// are omitted.
     pub clusters: Vec<EntityCluster>,
-    /// Entities from the request that had no stored embedding.
+    /// Entities from the request that had no stored embedding or that do not exist.
     pub missing_embeddings: Vec<EntityId>,
     /// Sum of squared chord distances from every clustered entity to its
     /// assigned centroid. Lower is tighter; comparable across runs over the
