@@ -423,6 +423,10 @@ mod tests {
         Ok(property)
     }
 
+    #[expect(
+        clippy::result_large_err,
+        reason = "test helper mirrors production validation APIs that return large reports"
+    )]
     pub(crate) async fn validate_data(
         value: JsonValue,
         data_type: &str,
