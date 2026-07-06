@@ -29,11 +29,11 @@ export const styles = sva({
       zIndex: "modal",
       _open: {
         animationName: "fadeIn",
-        animationDuration: "normal",
+        animationDuration: "faster",
       },
       _closed: {
         animationName: "fadeOut",
-        animationDuration: "fast",
+        animationDuration: "fastest",
       },
     },
     positioner: {

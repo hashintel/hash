@@ -1,6 +1,6 @@
 import { Drawer as ArkDrawer } from "@ark-ui/react/drawer";
 import { Portal } from "@ark-ui/react/portal";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { cx } from "@hashintel/ds-helpers/css";
 
@@ -61,16 +61,42 @@ const DrawerRoot = ({
   const closeOnEscape = shouldCloseOn !== "none";
   const closeOnInteractOutside = shouldCloseOn === "closeButtonAndOverlay";
 
+  // The parent mounts/unmounts the Drawer to open/close it, but Ark only plays
+  // the slide animations when `open` actually transitions. So we drive `open`
+  // internally: it starts closed and flips open on the next frame (playing the
+  // enter animation), and every close request flips it back to closed to play
+  // the exit animation. The parent-facing `onClose` is deferred until that exit
+  // animation completes, so the panel finishes sliding out before it unmounts.
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      setOpen(true);
+    });
+    return () => {
+      cancelAnimationFrame(frame);
+    };
+  }, []);
+
+  const requestClose = () => {
+    setOpen(false);
+  };
+
   return (
     <ArkDrawer.Root
-      open
+      open={open}
+      lazyMount
+      unmountOnExit
       swipeDirection="end"
       closeOnEscape={closeOnEscape}
       closeOnInteractOutside={closeOnInteractOutside}
       onOpenChange={(event) => {
         if (!event.open) {
-          onClose?.();
+          requestClose();
         }
+      }}
+      onExitComplete={() => {
+        onClose?.();
       }}
       initialFocusEl={
         initialFocusRef ? () => initialFocusRef.current : undefined
@@ -90,7 +116,7 @@ const DrawerRoot = ({
               <OverlaySections
                 size={size}
                 variant={variant}
-                onClose={onClose}
+                onClose={requestClose}
                 renderCloseButton={renderCloseButton}
                 loading={loading}
                 Title={ArkDrawer.Title}

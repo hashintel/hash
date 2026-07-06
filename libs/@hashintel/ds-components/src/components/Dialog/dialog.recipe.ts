@@ -29,11 +29,11 @@ export const styles = sva({
       zIndex: "modal",
       _open: {
         animationName: "fadeIn",
-        animationDuration: "normal",
+        animationDuration: "fast",
       },
       _closed: {
         animationName: "fadeOut",
-        animationDuration: "fast",
+        animationDuration: "faster",
       },
     },
     positioner: {
@@ -76,12 +76,12 @@ export const styles = sva({
       padding: "1",
 
       _open: {
-        animationName: "fadeIn",
-        animationDuration: "normal",
+        animationName: "popoverIn",
+        animationDuration: "fast",
       },
       _closed: {
-        animationName: "fadeOut",
-        animationDuration: "fast",
+        animationName: "popoverOut",
+        animationDuration: "faster",
       },
       // When another dialog is opened on top, shift this one up-and-left by
       // 30px per layer above it so the stack reads visually.

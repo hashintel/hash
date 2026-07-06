@@ -1,6 +1,6 @@
 import { Dialog as ArkDialog } from "@ark-ui/react/dialog";
 import { Portal } from "@ark-ui/react/portal";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { cx } from "@hashintel/ds-helpers/css";
 
@@ -61,15 +61,42 @@ const DialogRoot = ({
   const closeOnEscape = shouldCloseOn !== "none";
   const closeOnInteractOutside = shouldCloseOn === "closeButtonAndOverlay";
 
+  // The parent mounts/unmounts the Dialog to open/close it, but Ark only plays
+  // the open/close animations when `open` actually transitions. So we drive
+  // `open` internally: it starts closed and flips open on the next frame
+  // (playing the enter animation), and every close request flips it back to
+  // closed to play the exit animation. The parent-facing `onClose` is deferred
+  // until that exit animation completes, so the dialog finishes fading out
+  // before it unmounts.
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      setOpen(true);
+    });
+    return () => {
+      cancelAnimationFrame(frame);
+    };
+  }, []);
+
+  const requestClose = () => {
+    setOpen(false);
+  };
+
   return (
     <ArkDialog.Root
-      open
+      open={open}
+      lazyMount
+      unmountOnExit
       closeOnEscape={closeOnEscape}
       closeOnInteractOutside={closeOnInteractOutside}
       onOpenChange={(event) => {
         if (!event.open) {
-          onClose?.();
+          requestClose();
         }
+      }}
+      onExitComplete={() => {
+        onClose?.();
       }}
       initialFocusEl={
         initialFocusRef ? () => initialFocusRef.current : undefined
@@ -89,7 +116,7 @@ const DialogRoot = ({
               <OverlaySections
                 size={size}
                 variant={variant}
-                onClose={onClose}
+                onClose={requestClose}
                 renderCloseButton={renderCloseButton}
                 loading={loading}
                 Title={ArkDialog.Title}
