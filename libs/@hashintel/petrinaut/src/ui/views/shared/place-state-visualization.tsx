@@ -74,7 +74,17 @@ export const PlaceStateVisualization: React.FC<
   } else {
     const marking = initialMarking[place.id];
     if (Array.isArray(marking) && marking.length > 0) {
-      tokens.push(...marking);
+      // Stored records may predate schema edits (added dimensions), so fill
+      // missing keys with each element's default — visualizer code should
+      // see 0/false, not undefined.
+      for (const token of marking) {
+        const filled: TokenRecord = {};
+        for (const element of placeType.elements) {
+          filled[element.name] =
+            token[element.name] ?? (element.type === "boolean" ? false : 0);
+        }
+        tokens.push(filled);
+      }
     }
 
     parameters = mergeParameterValues(parameterValues, defaultParameterValues);

@@ -291,7 +291,9 @@ export const Spreadsheet: React.FC<SpreadsheetProps> = ({
   const toggleBooleanCell = (row: number, col: number) => {
     const currentValue =
       tableData[row]?.[col] ?? getDefaultCellValue(columns[col]);
-    updateCell(row, col, currentValue !== true);
+    // Truthiness, not `!== true`: a numerically-encoded 1 must toggle off
+    // like `true` does.
+    updateCell(row, col, !currentValue);
   };
 
   const removeRow = (rowIndex: number) => {
