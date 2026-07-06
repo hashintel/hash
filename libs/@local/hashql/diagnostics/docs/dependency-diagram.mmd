@@ -8,21 +8,28 @@ graph TD
     %% --> : Normal dependency
     %% -.-> : Dev dependency
     %% ---> : Build dependency
-    0[<a href="../hashql_ast/index.html">hashql-ast</a>]
-    1[<a href="../hashql_compiletest/index.html">hashql-compiletest</a>]
-    2[<a href="../hashql_core/index.html">hashql-core</a>]
-    3[hashql-diagnostics]
-    class 3 root
-    4[<a href="../hashql_eval/index.html">hashql-eval</a>]
-    5[<a href="../hashql_hir/index.html">hashql-hir</a>]
-    6[<a href="../hashql_mir/index.html">hashql-mir</a>]
-    7[<a href="../hashql_syntax_jexpr/index.html">hashql-syntax-jexpr</a>]
-    0 -.-> 1
-    1 --> 4
-    1 --> 7
-    2 --> 3
-    4 --> 6
-    5 -.-> 1
-    6 --> 5
-    7 --> 0
-    7 --> 2
+    0[<a href="../hash_graph/index.html">hash-graph</a>]
+    1[<a href="../hash_graph_api/index.html">hash-graph-api</a>]
+    2[<a href="../hashql_ast/index.html">hashql-ast</a>]
+    3[<a href="../hashql_compiletest/index.html">hashql-compiletest</a>]
+    4[<a href="../hashql_core/index.html">hashql-core</a>]
+    5[hashql-diagnostics]
+    class 5 root
+    6[<a href="../hashql_eval/index.html">hashql-eval</a>]
+    7[<a href="../hashql_hir/index.html">hashql-hir</a>]
+    8[<a href="../hashql_mir/index.html">hashql-mir</a>]
+    9[<a href="../hashql_syntax_jexpr/index.html">hashql-syntax-jexpr</a>]
+    10[<a href="../hash_graph_benches/index.html">hash-graph-benches</a>]
+    0 --> 1
+    1 --> 6
+    1 --> 9
+    2 -.-> 3
+    3 --> 6
+    3 --> 9
+    4 --> 5
+    6 --> 8
+    7 -.-> 3
+    8 --> 7
+    9 --> 2
+    9 --> 4
+    10 -.-> 1

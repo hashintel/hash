@@ -9,6 +9,7 @@
 
     // Library Features
     error_generic_member_access,
+    allocator_api
 )]
 
 extern crate alloc;
