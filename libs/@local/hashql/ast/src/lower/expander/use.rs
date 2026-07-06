@@ -230,6 +230,9 @@ where
                 }
             }
 
+            // Visit the body with whatever imports resolved successfully, so references to them
+            // don't cascade into spurious unresolved-name diagnostics. Failed bindings already have
+            // their own diagnostic from the loop above; the expression is still poisoned below.
             let mut body = mem::replace(&mut body.value, Expr::dummy());
             expander.visit(&mut body);
 
@@ -300,6 +303,7 @@ where
         return Expr::dummy();
     };
 
+    // Snapshot/rollback runs unconditionally to ensure that scope never leaks.
     let snapshot = expander.namespace.snapshot();
     let body = lower_body(expander, &path, imports, body);
     expander.namespace.rollback_to(snapshot);
