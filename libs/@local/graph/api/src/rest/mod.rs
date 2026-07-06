@@ -371,7 +371,7 @@ pub(crate) fn resolve_limit(
 #[derive(Debug, Copy, Clone, PartialEq, Eq, derive_more::Display)]
 pub enum SearchRequestError {
     /// The requested `limit` exceeds the configured maximum.
-    #[display("The requested limit is invalid.")]
+    #[display("The requested limit exceeds the maximum allowed.")]
     LimitExceeded,
     /// The requested maximum semantic distance is outside the valid range.
     #[display("The requested maximum semantic distance is invalid.")]
