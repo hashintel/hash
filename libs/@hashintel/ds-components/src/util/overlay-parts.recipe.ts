@@ -241,6 +241,23 @@ export const overlayPartsStyles = sva({
         },
       },
     },
+    component: {
+      dialog: {},
+      // The Drawer is pinned flush against the right edge of the viewport with
+      // square right-hand corners, so its chrome squares off the right corners
+      // the Dialog leaves rounded. Physical-corner longhands are used so they
+      // override the two-corner shorthands above in the cascade; the body's
+      // `:last-child` clause likewise beats the rounding the `plain` variant
+      // restores on a footerless body.
+      drawer: {
+        header: { borderTopRightRadius: "[0]" },
+        body: {
+          borderBottomRightRadius: "[0]",
+          "&:last-child": { borderBottomRightRadius: "[0]" },
+        },
+        footer: { borderBottomRightRadius: "[0]" },
+      },
+    },
     hasIcon: {
       true: {
         description: { marginTop: "0.5" },

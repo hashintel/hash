@@ -37,8 +37,8 @@ type OverlayContextValue = {
   loading?: boolean;
   Title: OverlayPrimitive;
   Description: OverlayPrimitive;
-  /** "Dialog" | "Drawer" — drives the close-button label and error message. */
-  componentName: string;
+  /** Sets the close-button label and squares off the Drawer's right edge. */
+  componentName: "Dialog" | "Drawer";
 };
 
 const OverlayContext = createContext<OverlayContextValue | null>(null);
@@ -236,7 +236,7 @@ export const OverlaySections = ({
   loading?: boolean;
   Title: OverlayPrimitive;
   Description: OverlayPrimitive;
-  componentName: string;
+  componentName: "Dialog" | "Drawer";
   children: React.ReactNode;
 }) => {
   const headerChild = Children.toArray(children).find(
@@ -253,10 +253,11 @@ export const OverlaySections = ({
       overlayPartsStyles({
         size,
         variant,
+        component: componentName === "Drawer" ? "drawer" : "dialog",
         hasIcon: !!titleIconName,
         headerless: !hasHeader,
       }),
-    [size, variant, titleIconName, hasHeader],
+    [size, variant, componentName, titleIconName, hasHeader],
   );
 
   const ctx = useMemo(
