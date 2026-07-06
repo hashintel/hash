@@ -4638,7 +4638,7 @@
               "type": "number",
               "format": "float"
             },
-            "description": "Unit-normalized centroid with length equal to the requested dimension."
+            "description": "Centroid with length equal to the requested dimension.\n\nTypically unit-normalized, but may be the all-zero vector if all assigned points have zero\nnorm."
           },
           "clusterId": {
             "type": "integer",

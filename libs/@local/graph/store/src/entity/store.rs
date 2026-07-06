@@ -562,7 +562,10 @@ pub struct EntityCluster {
     /// Index in `0..cluster_count`.
     pub cluster_id: u16,
     pub entity_ids: Vec<EntityId>,
-    /// Unit-normalized centroid with length equal to the requested dimension.
+    /// Centroid with length equal to the requested dimension.
+    ///
+    /// Typically unit-normalized, but may be the all-zero vector if all assigned points have zero
+    /// norm.
     pub centroid: Vec<f32>,
 }
 
