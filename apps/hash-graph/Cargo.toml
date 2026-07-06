@@ -34,6 +34,7 @@ futures = { workspace = true }
 jsonwebtoken = { workspace = true }
 mimalloc = { workspace = true }
 multiaddr = { workspace = true }
+rayon = { workspace = true }
 regex = { workspace = true }
 reqwest = { workspace = true, features = ["rustls"] }
 simple-mermaid = { workspace = true }

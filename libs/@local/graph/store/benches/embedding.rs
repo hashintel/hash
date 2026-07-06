@@ -179,6 +179,11 @@ fn bench_nearest4<M: Measurement>(criterion: &mut Criterion<M>) {
 }
 
 fn bench_cluster(criterion: &mut Criterion) {
+    rayon::ThreadPoolBuilder::new()
+        .num_threads(1)
+        .build_global()
+        .expect("should be built exactly once");
+
     let mut group = criterion.benchmark_group("embedding/cluster");
     group.sample_size(10);
 

@@ -7,7 +7,7 @@ mod snapshot;
 mod type_fetcher;
 
 use core::time::Duration;
-use std::time::Instant;
+use std::{thread::available_parallelism, time::Instant};
 
 use clap::Parser;
 use error_stack::{Report, ensure};
@@ -141,11 +141,22 @@ pub enum Subcommand {
     ReindexCache(Box<ReindexCacheArgs>),
 }
 
+#[expect(clippy::integer_division, clippy::integer_division_remainder_used)]
 fn block_on(
     future: impl Future<Output = Result<(), Report<GraphError>>>,
     service_name: &'static str,
     tracing_config: TracingConfig,
 ) -> Result<(), Report<GraphError>> {
+    rayon::ThreadPoolBuilder::new()
+        .num_threads(
+            available_parallelism()
+                .map_or(1, |cores| cores.get() / 2)
+                .max(1),
+        )
+        .thread_name(|index| format!("rayon-{index}"))
+        .build_global()
+        .expect("rayon pool should be initialized exactly once");
+
     tokio::runtime::Builder::new_multi_thread()
         .enable_all()
         .build()

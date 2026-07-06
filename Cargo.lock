@@ -3527,6 +3527,7 @@ dependencies = [
  "jsonwebtoken",
  "mimalloc",
  "multiaddr",
+ "rayon",
  "regex",
  "reqwest",
  "simple-mermaid",
