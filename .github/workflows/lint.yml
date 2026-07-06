@@ -139,6 +139,7 @@ jobs:
         run: |
           pushd ${{ matrix.path }}
           turbo run lint:clippy --filter "${{ matrix.name }}" -- --message-format=json \
+            | tee clippy-output.log \
             | clippy-sarif \
             | jq --arg path "${{ matrix.path }}" '.runs[].results |= map(select(.locations[].physicalLocation.artifactLocation.uri | startswith($path)))' \
             | jq '.runs[].results |= unique' \
@@ -147,6 +148,13 @@ jobs:
           cat ${{ matrix.path }}/clippy.sarif | sarif-fmt
 
           jq -e '.runs[].results == []' ${{ matrix.path }}/clippy.sarif> /dev/null
+
+          # Cargo's manifest lints (e.g. `cargo::unused_dependencies`) are emitted as plain text
+          # rather than compiler JSON messages, so they bypass the SARIF gate above.
+          if grep -E "warning: unused dependency|\(manifest\) generated" ${{ matrix.path }}/clippy-output.log; then
+            echo 'Cargo reported manifest lint warnings; see the lines above.'
+            exit 1
+          fi
 
       - name: Print clippy errors to summary
         if: failure() && steps.lints.outputs.clippy == 'true'

@@ -32,7 +32,6 @@ lexical              = { workspace = true, features = ["parse-integers", "parse-
 memchr               = { workspace = true }
 rapidfuzz            = { workspace = true }
 roaring              = { workspace = true, features = ["std"] }
-rpds                 = { workspace = true }
 serde                = { workspace = true, optional = true, features = ["alloc", "derive"] }
 simple-mermaid       = { workspace = true }
 tracing              = { workspace = true }
