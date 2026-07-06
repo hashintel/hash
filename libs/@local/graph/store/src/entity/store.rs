@@ -989,7 +989,7 @@ pub trait EntityStore {
     ///
     /// Returns [`ClusterError::InvalidDimension`] if the dimension is not a
     /// positive multiple of 8, [`ClusterError::DimensionTooLarge`] if it
-    /// exceeds the stored embedding width, or [`ClusterError::Store`] if the
+    /// exceeds the maximum allowed dimension, or [`ClusterError::Store`] if the
     /// embedding query fails.
     fn cluster_entities(
         &self,

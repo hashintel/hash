@@ -635,6 +635,10 @@ unsafe fn accumulate_clusters(
     // kernel call it precedes.
     debug_assert!(inv_norms.is_none_or(|norms| norms.len() == labels.len()));
 
+    // TODO(PERF): This isn't as performant as it could be, in theory we could first create a
+    // histogram, and then use that to dispatch over it. A potential optimization opportunity if
+    // ever required.
+
     sums.par_chunks_exact_mut(d)
         .zip(counts.par_iter_mut())
         .enumerate()

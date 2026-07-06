@@ -76,7 +76,7 @@ impl Error for CheckPermissionError {}
 pub enum ClusterError {
     #[display("dimension {dimension} is not a positive multiple of 8")]
     InvalidDimension { dimension: NonZero<u16> },
-    #[display("dimension {dimension} exceeds stored embedding dimension {max}")]
+    #[display("dimension {dimension} exceeds maximum allowed dimension {max}")]
     DimensionTooLarge { dimension: NonZero<u16>, max: u16 },
     #[display("cluster count {count} exceeds maximum allowed {max}")]
     KTooLarge { count: u16, max: u16 },
