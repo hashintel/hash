@@ -117,12 +117,12 @@ export function createPreset(options?: PresetOptions) {
             to: { opacity: "0" },
           },
           popoverIn: {
-            from: { opacity: "0", transform: "scale(0.96)" },
+            from: { opacity: "0", transform: "scale(0.98)" },
             to: { opacity: "1", transform: "scale(1)" },
           },
           popoverOut: {
             from: { opacity: "1", transform: "scale(1)" },
-            to: { opacity: "0", transform: "scale(0.96)" },
+            to: { opacity: "0", transform: "scale(0.98)" },
           },
           rotateRight: {
             from: { transform: "rotate(0deg)" },
