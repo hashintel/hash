@@ -15,11 +15,14 @@
     "./types": "./types/index.snap.js"
   },
   "scripts": {
+    "build:codspeed": "cargo codspeed build -p hash-graph-store",
     "build:types": "INSTA_UPDATE=always mise exec --env dev cargo:cargo-insta -- cargo-insta test --features codegen --test codegen",
     "doc:dependency-diagram": "cargo run -p hash-repo-chores -- dependency-diagram --output docs/dependency-diagram.mmd --root hash-graph-store --root-deps-and-dependents --link-mode non-roots --include-dev-deps --include-build-deps --logging-console-level info",
     "fix:clippy": "just clippy --fix",
     "lint:clippy": "just clippy",
     "lint:tsc": "tsc --noEmit",
+    "test:codspeed": "cargo codspeed run -p hash-graph-store",
+    "test:miri": "cargo miri nextest run -- embedding::kernel embedding::clustering::tests::nearest_centroid_argmax_independent_of_inv_norm",
     "test:unit": "mise run test:unit @rust/hash-graph-store"
   },
   "dependencies": {
