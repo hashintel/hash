@@ -16,7 +16,9 @@ import {
   HIR_TYPE_DISTRIBUTION,
   HIR_TYPE_INT,
   HIR_TYPE_REAL,
+  HIR_TYPE_STRING,
   HIR_TYPE_UNKNOWN,
+  HIR_TYPE_UUID,
 } from "./hir";
 
 import type {
@@ -84,6 +86,10 @@ function elementType(element: HirTokenElementInfo): HirType {
       return HIR_TYPE_INT;
     case "boolean":
       return HIR_TYPE_BOOL;
+    case "uuid":
+      return HIR_TYPE_UUID;
+    case "string":
+      return HIR_TYPE_STRING;
   }
 }
 
@@ -206,6 +212,35 @@ class Typechecker {
         return Number.isInteger(expr.value) ? HIR_TYPE_INT : HIR_TYPE_REAL;
       case "boolLit":
         return HIR_TYPE_BOOL;
+      case "stringLit":
+        return HIR_TYPE_STRING;
+      case "stringCall": {
+        const targetType = this.infer(expr.target, env);
+        const argumentType = this.infer(expr.argument, env);
+        if (targetType.kind !== "string" && targetType.kind !== "unknown") {
+          this.report(
+            expr.target.span,
+            "hir:type-mismatch",
+            `\`.${expr.fn}(...)\` is only available on strings, not ${formatHirType(targetType)}.`,
+          );
+        }
+        if (argumentType.kind !== "string" && argumentType.kind !== "unknown") {
+          this.report(
+            expr.argument.span,
+            "hir:type-mismatch",
+            `\`.${expr.fn}(...)\` expects a string argument, got ${formatHirType(argumentType)}.`,
+          );
+        }
+        return HIR_TYPE_BOOL;
+      }
+      case "uuidGenerate":
+        this.checkUuidHelperAllowed(expr.span);
+        return HIR_TYPE_UUID;
+      case "uuidFrom": {
+        this.checkUuidHelperAllowed(expr.span);
+        this.infer(expr.operand, env);
+        return HIR_TYPE_UUID;
+      }
       case "constant":
         return HIR_TYPE_REAL;
       case "localRef":
@@ -286,11 +321,15 @@ class Typechecker {
       }
       case "length": {
         const targetType = this.infer(expr.target, env);
-        if (targetType.kind !== "array" && targetType.kind !== "unknown") {
+        if (
+          targetType.kind !== "array" &&
+          targetType.kind !== "string" &&
+          targetType.kind !== "unknown"
+        ) {
           this.report(
             expr.span,
             "hir:invalid-length",
-            `\`.length\` is only available on arrays, not ${formatHirType(targetType)}.`,
+            `\`.length\` is only available on arrays and strings, not ${formatHirType(targetType)}.`,
           );
         }
         return HIR_TYPE_INT;
@@ -524,6 +563,16 @@ class Typechecker {
     }
   }
 
+  private checkUuidHelperAllowed(span: Span): void {
+    if (this.context.surface !== "kernel") {
+      this.report(
+        span,
+        "hir:uuid-outside-kernel",
+        "`Uuid.generate()` / `Uuid.from(...)` are only meaningful in transition kernel outputs.",
+      );
+    }
+  }
+
   private checkDistributionAllowed(span: Span): void {
     if (this.context.surface !== "kernel") {
       this.report(
@@ -703,6 +752,45 @@ class Typechecker {
             `\`${tokenField.name}\` is a discrete (${element.type}) attribute — Distributions can only produce real attributes.`,
           );
         }
+        // uuid attributes accept uuids or UUID strings (converted
+        // deterministically by the engine).
+        if (element.type === "uuid") {
+          if (
+            tokenField.type.kind !== "uuid" &&
+            tokenField.type.kind !== "string" &&
+            tokenField.type.kind !== "unknown"
+          ) {
+            this.report(
+              keySpan,
+              "hir:type-mismatch",
+              `\`${tokenField.name}\` is a uuid attribute — provide a uuid (\`Uuid.generate()\`, \`Uuid.from(...)\`, an input token's uuid), a UUID string, or omit it to auto-generate.`,
+            );
+          }
+          continue;
+        }
+        if (element.type === "string") {
+          if (
+            tokenField.type.kind !== "string" &&
+            tokenField.type.kind !== "unknown"
+          ) {
+            this.report(
+              keySpan,
+              "hir:type-mismatch",
+              `\`${tokenField.name}\` is a string attribute but received ${formatHirType(tokenField.type)}.`,
+            );
+          }
+          continue;
+        }
+        if (
+          tokenField.type.kind === "string" ||
+          tokenField.type.kind === "uuid"
+        ) {
+          this.report(
+            keySpan,
+            "hir:type-mismatch",
+            `\`${tokenField.name}\` is a ${element.type} attribute but received ${formatHirType(tokenField.type)}.`,
+          );
+        }
         if (tokenField.type.kind === "bool" && element.type !== "boolean") {
           this.report(
             keySpan,
@@ -722,6 +810,11 @@ class Typechecker {
         }
       }
       for (const element of place.elements) {
+        // uuid attributes may be omitted — the engine generates a fresh UUID
+        // from the seeded RNG per firing.
+        if (element.type === "uuid") {
+          continue;
+        }
         if (
           !field.type.element.fields.some(
             (tokenField) => tokenField.name === element.name,

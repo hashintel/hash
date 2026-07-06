@@ -46,6 +46,8 @@ export type HirDependencies = {
   samplesDistributions: boolean;
   /** Whether the code calls `Math.random()` (breaks reproducibility). */
   usesMathRandom: boolean;
+  /** Whether the code auto-generates UUIDs (consumes the seeded RNG). */
+  generatesUuids: boolean;
   /** True when the result is a pure function of (tokens, parameters). */
   isDeterministic: boolean;
 };
@@ -163,11 +165,14 @@ function constantValue(name: "PI" | "E" | "Infinity" | "NaN"): number {
   }
 }
 
-function literalValue(expr: HirExpr): number | boolean | undefined {
+function literalValue(expr: HirExpr): number | boolean | string | undefined {
   if (expr.kind === "numberLit") {
     return expr.value;
   }
   if (expr.kind === "boolLit") {
+    return expr.value;
+  }
+  if (expr.kind === "stringLit") {
     return expr.value;
   }
   if (expr.kind === "constant") {
@@ -191,9 +196,19 @@ function numberNode(
 
 function foldBinary(
   op: Extract<HirExpr, { kind: "binary" }>["op"],
-  left: number | boolean,
-  right: number | boolean,
+  left: number | boolean | string,
+  right: number | boolean | string,
 ): number | boolean | undefined {
+  // Strings only participate in equality folding.
+  if (typeof left === "string" || typeof right === "string") {
+    if (op === "==") {
+      return left === right;
+    }
+    if (op === "!=") {
+      return left !== right;
+    }
+    return undefined;
+  }
   switch (op) {
     case "+":
       return typeof left === "number" && typeof right === "number"
@@ -241,10 +256,20 @@ export function foldHir(expr: HirExpr): HirExpr {
   switch (expr.kind) {
     case "numberLit":
     case "boolLit":
+    case "stringLit":
+    case "uuidGenerate":
     case "constant":
     case "localRef":
     case "paramRef":
       return expr;
+    case "uuidFrom":
+      return { ...expr, operand: foldHir(expr.operand) };
+    case "stringCall":
+      return {
+        ...expr,
+        target: foldHir(expr.target),
+        argument: foldHir(expr.argument),
+      };
     case "unary": {
       const operand = foldHir(expr.operand);
       const value = literalValue(operand);
@@ -369,6 +394,7 @@ class Analyzer {
   readonly bindings: BindingRecord[] = [];
   readsTokenCounts = false;
   usesMathRandom = false;
+  generatesUuids = false;
   /** Depth of `.map(...)` iteration during evaluation. */
   private mapDepth = 0;
 
@@ -423,7 +449,18 @@ class Analyzer {
     switch (expr.kind) {
       case "numberLit":
       case "boolLit":
+      case "stringLit":
       case "constant":
+        return SCALAR;
+      case "uuidGenerate":
+        this.generatesUuids = true;
+        return SCALAR;
+      case "uuidFrom":
+        this.evalExpr(expr.operand, env);
+        return SCALAR;
+      case "stringCall":
+        this.evalExpr(expr.target, env);
+        this.evalExpr(expr.argument, env);
         return SCALAR;
       case "localRef": {
         const entry = env.get(expr.name);
@@ -722,7 +759,11 @@ export function analyzeHir(fn: HirFunction): HirAnalysis {
     readsTokenCounts: analyzer.readsTokenCounts,
     samplesDistributions: dagNodes.length > 0,
     usesMathRandom: analyzer.usesMathRandom,
-    isDeterministic: dagNodes.length === 0 && !analyzer.usesMathRandom,
+    generatesUuids: analyzer.generatesUuids,
+    isDeterministic:
+      dagNodes.length === 0 &&
+      !analyzer.usesMathRandom &&
+      !analyzer.generatesUuids,
   };
 
   return {

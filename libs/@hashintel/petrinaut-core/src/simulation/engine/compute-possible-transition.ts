@@ -1,5 +1,6 @@
 import { SDCPNItemError } from "../../errors";
 import { materializeEngineFrame } from "../frames/internal-frame";
+import { fillSlotBases } from "./buffer-transition";
 import { encodeKernelOutputToken } from "./encode-kernel-token";
 import { enumerateWeightedMarkingIndicesGenerator } from "./enumerate-weighted-markings";
 import { nextRandom } from "./seeded-rng";
@@ -104,40 +105,57 @@ export function computePossibleTransition(
     inputPlacesWithTokenValues,
   );
 
+  // Buffer-ABI fast path: the compiled lambda reads token attributes at
+  // packed-struct byte offsets straight from the shared views — no
+  // per-combination record decoding.
+  const buffer = transition.buffer;
+
   for (const tokenCombinationIndices of tokensCombinations) {
-    // Expensive: get token values from global buffer
-    // And transform them for lambda function input.
-    // Convert to object format with place names as keys
-    const tokenCombinationValues: TransitionTokenValues = {};
-
-    for (const [
-      placeIndex,
-      placeTokenIndices,
-    ] of tokenCombinationIndices.entries()) {
-      const inputPlace = inputPlacesWithTokenValues[placeIndex]!;
-      const placeByteOffset = inputPlace.byteOffset;
-      const strideBytes = inputPlace.strideBytes;
-
-      const tokenLayout = inputPlace.tokenLayout;
-      if (!tokenLayout) {
-        throw new SDCPNItemError(
-          `Place \`${inputPlace.placeName}\` has no type defined`,
-          inputPlace.placeId,
-        );
-      }
-
-      // Convert tokens for this place to objects with named dimensions
-      const placeTokens = placeTokenIndices.map((tokenIndexInPlace) =>
-        readTokenRecord(
-          tokenLayout,
-          tokenViews,
-          placeByteOffset + tokenIndexInPlace * strideBytes,
-          simulation.stringPool,
-        ),
+    const slotsFilled =
+      buffer !== null &&
+      fillSlotBases(
+        buffer.slotBases,
+        tokenCombinationIndices,
+        inputPlacesWithTokenValues,
       );
 
-      tokenCombinationValues[inputPlace.placeName] = placeTokens;
-    }
+    // Decoded object input — built lazily, only for object-convention
+    // lambdas/kernels (and error messages).
+    let tokenCombinationValues: TransitionTokenValues | null = null;
+    const getTokenCombinationValues = (): TransitionTokenValues => {
+      if (tokenCombinationValues !== null) {
+        return tokenCombinationValues;
+      }
+      const values: TransitionTokenValues = {};
+      for (const [
+        placeIndex,
+        placeTokenIndices,
+      ] of tokenCombinationIndices.entries()) {
+        const inputPlace = inputPlacesWithTokenValues[placeIndex]!;
+        const placeByteOffset = inputPlace.byteOffset;
+        const strideBytes = inputPlace.strideBytes;
+
+        const tokenLayout = inputPlace.tokenLayout;
+        if (!tokenLayout) {
+          throw new SDCPNItemError(
+            `Place \`${inputPlace.placeName}\` has no type defined`,
+            inputPlace.placeId,
+          );
+        }
+
+        values[inputPlace.placeName] = placeTokenIndices.map(
+          (tokenIndexInPlace) =>
+            readTokenRecord(
+              tokenLayout,
+              tokenViews,
+              placeByteOffset + tokenIndexInPlace * strideBytes,
+              simulation.stringPool,
+            ),
+        );
+      }
+      tokenCombinationValues = values;
+      return values;
+    };
 
     // Approximate by just multiplying by elapsed time since last transition,
     // not a real accumulation over time with lambda varying as the paper suggests.
@@ -145,12 +163,20 @@ export function computePossibleTransition(
     // which should be reordered in case of new tokens arriving.
     let lambdaResult: ReturnType<typeof transition.lambdaFn>;
     try {
-      lambdaResult = transition.lambdaFn(tokenCombinationValues);
+      lambdaResult =
+        buffer !== null && slotsFilled
+          ? buffer.lambdaFn(
+              tokenViews.f64,
+              tokenViews.u64,
+              tokenViews.u8,
+              buffer.slotBases,
+            )
+          : transition.lambdaFn(getTokenCombinationValues());
     } catch (err) {
       throw new SDCPNItemError(
         `Error while executing lambda function for transition \`${transition.name}\`:\n\n${
           (err as Error).message
-        }\n\nInput:\n${describeTokenValuesForError(tokenCombinationValues)}`,
+        }\n\nInput:\n${describeTokenValuesForError(getTokenCombinationValues())}`,
         transition.id,
       );
     }
@@ -175,13 +201,13 @@ export function computePossibleTransition(
         // Transition fires!
         // Return result of the transition kernel as is (no stochasticity for now, only one result)
         transitionKernelOutput = transition.transitionKernelFn(
-          tokenCombinationValues,
+          getTokenCombinationValues(),
         );
       } catch (err) {
         throw new SDCPNItemError(
           `Error while executing transition kernel for transition \`${transition.name}\`:\n\n${
             (err as Error).message
-          }\n\nInput:\n${describeTokenValuesForError(tokenCombinationValues)}`,
+          }\n\nInput:\n${describeTokenValuesForError(getTokenCombinationValues())}`,
           transition.id,
         );
       }

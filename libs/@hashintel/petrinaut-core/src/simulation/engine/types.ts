@@ -6,11 +6,7 @@
  */
 
 import type { PetrinautExtensionSettings } from "../../extensions";
-import type {
-  HirArtifacts,
-  HirCompiledBufferKernel,
-  HirCompiledBufferLambda,
-} from "../../hir-runtime";
+import type { HirArtifacts, HirCompiledBufferLambda } from "../../hir-runtime";
 import type {
   Color,
   InputArcType,
@@ -104,18 +100,12 @@ export type CompiledTransitionInputPlace = CompiledTransitionPlace & {
  * shared across evaluations (the engine is single-threaded per simulation).
  */
 export type CompiledTransitionBuffer = {
-  /** `(tokenValues, slotBases) => number | boolean`, parameters pre-bound. */
-  lambdaFn: HirCompiledBufferLambda | null;
-  /** `(tokenValues, slotBases, out, distSink) => void`, parameters pre-bound. */
-  kernelFn: HirCompiledBufferKernel | null;
-  /** One float base offset per input token slot (see `hir/surface-context.ts`
+  /** Buffer-ABI lambda `(f64, u64, u8, slotBases) => number | boolean`
+   * (token format v2 packed structs); parameters and pool pre-bound. */
+  lambdaFn: HirCompiledBufferLambda;
+  /** One base BYTE offset per input token slot (see `hir/surface-context.ts`
    * slot layout invariant); filled per enumerated combination. */
   slotBases: Int32Array;
-  /** Kernel output staging: colored output arcs place-major in arc order. */
-  kernelStaging: Float64Array;
-  /** Deferred distribution sinks, reused per kernel call. */
-  pendingSlots: number[];
-  pendingDists: RuntimeDistribution[];
 };
 
 export type CompiledTransition = {

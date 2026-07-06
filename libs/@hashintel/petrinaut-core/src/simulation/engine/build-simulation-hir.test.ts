@@ -163,8 +163,10 @@ describe("buildSimulation with HIR artifacts", () => {
     expect(artifacts.dynamics.de1!.object).toBeDefined();
     expect(artifacts.lambdas.t1!.buffer).toBeDefined();
     expect(artifacts.lambdas.t1!.buffer!.inputSlotCount).toBe(1);
-    expect(artifacts.kernels.t1!.buffer).toBeDefined();
-    expect(artifacts.kernels.t1!.buffer!.outputFloatCount).toBe(3);
+    // Kernels run the object program for now (buffer emission for the packed
+    // layout needs the RNG-ordinal sink design).
+    expect(artifacts.kernels.t1!.buffer).toBeUndefined();
+    expect(artifacts.kernels.t1!.object).toBeDefined();
   });
 
   it("buffer programs produce bit-identical frames to the object convention", () => {
@@ -175,8 +177,7 @@ describe("buildSimulation with HIR artifacts", () => {
 
     // Sanity: the buffer run actually uses buffer programs.
     const compiled = bufferRun.compiledTransitions.get("t1")!;
-    expect(compiled.buffer?.lambdaFn).not.toBeNull();
-    expect(compiled.buffer?.kernelFn).not.toBeNull();
+    expect(compiled.buffer?.lambdaFn).toBeDefined();
     expect(objectRun.compiledTransitions.get("t1")!.buffer).toBeNull();
 
     expect(runFrames(bufferRun, 50)).toEqual(runFrames(objectRun, 50));
@@ -198,9 +199,8 @@ describe("buildSimulation with HIR artifacts", () => {
       },
     };
     const simulation = buildSimulation(makeInput(stale));
-    expect(
-      simulation.compiledTransitions.get("t1")!.buffer?.lambdaFn,
-    ).toBeNull();
+    // Mismatched slot metadata → no buffer program for this transition.
+    expect(simulation.compiledTransitions.get("t1")!.buffer).toBeNull();
     // Still simulates correctly via the object path.
     const reference = buildSimulation(makeInput(objectOnly(artifacts)));
     expect(runFrames(simulation, 10)).toEqual(runFrames(reference, 10));

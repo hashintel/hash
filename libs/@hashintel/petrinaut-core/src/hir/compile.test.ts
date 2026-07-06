@@ -40,16 +40,15 @@ describe("compileHirArtifacts on example models", () => {
   });
 
   it.each(EXAMPLES)(
-    "compiles every lambda and kernel of %s to the buffer ABI",
+    "compiles every lambda and dynamics of %s to the buffer ABI",
     (_name, sdcpn) => {
       const { artifacts } = compileHirArtifacts(sdcpn);
+      // Kernels run the object program for now (buffer emission for the
+      // packed layout needs the RNG-ordinal sink design).
       const withoutBuffer = [
         ...Object.entries(artifacts.lambdas)
           .filter(([, artifact]) => !artifact.buffer)
           .map(([id]) => `lambda:${id}`),
-        ...Object.entries(artifacts.kernels)
-          .filter(([, artifact]) => !artifact.buffer)
-          .map(([id]) => `kernel:${id}`),
         ...Object.entries(artifacts.dynamics)
           .filter(([, artifact]) => !artifact.buffer)
           .map(([id]) => `dynamics:${id}`),
