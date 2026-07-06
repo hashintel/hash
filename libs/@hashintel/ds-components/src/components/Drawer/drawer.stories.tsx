@@ -3,6 +3,7 @@ import { useState } from "react";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { Button } from "../Button/button";
+import { Dialog } from "../Dialog/dialog";
 import { Icon } from "../Icon/icon";
 import { Drawer, type DrawerPosition, type DrawerSize } from "./drawer";
 
@@ -644,104 +645,156 @@ export const Overflow: Story = () => (
   </div>
 );
 
-const StackedDrawers = () => {
-  const [first, setFirst] = useState(false);
-  const [second, setSecond] = useState(false);
-  const [third, setThird] = useState(false);
-  const [fourth, setFourth] = useState(false);
+const StackedExample = ({
+  buttonLabel,
+  position,
+}: {
+  buttonLabel: string;
+  position: DrawerPosition;
+}) => {
+  const [l1, setL1] = useState(false);
+  const [l2, setL2] = useState(false);
+  const [l3, setL3] = useState(false);
+  const [l4, setL4] = useState(false);
+  const [l5, setL5] = useState(false);
+  const [l6, setL6] = useState(false);
+  const [l7, setL7] = useState(false);
 
   return (
     <>
-      <Button onClick={() => setFirst(true)}>Open stacked drawers</Button>
-      {first ? (
-        <Drawer size="md" onClose={() => setFirst(false)}>
+      <Button onClick={() => setL1(true)}>{buttonLabel}</Button>
+      {l1 ? (
+        <Drawer size="lg" position={position} onClose={() => setL1(false)}>
           <Drawer.Header
-            title="First drawer"
+            title="Drawer 1 (lg)"
             iconName="gear"
             description="Open the next drawer to stack another on top."
           />
           <Drawer.Body>{sampleBody}</Drawer.Body>
           <Drawer.Footer
             actions={
-              <Button
-                variant="solid"
-                tone="brand"
-                onClick={() => setSecond(true)}
-              >
-                Open second drawer
+              <Button variant="solid" tone="brand" onClick={() => setL2(true)}>
+                Open lg drawer
               </Button>
             }
           />
         </Drawer>
       ) : null}
-      {second ? (
-        <Drawer size="md" onClose={() => setSecond(false)}>
+      {l2 ? (
+        <Drawer size="lg" position={position} onClose={() => setL2(false)}>
           <Drawer.Header
-            title="Second drawer"
+            title="Drawer 2 (lg)"
             iconName="gear"
-            description="Open the next drawer to stack a small drawer on top."
+            description="Open a smaller drawer to stack it on top."
           />
           <Drawer.Body>{sampleBody}</Drawer.Body>
           <Drawer.Footer
             actions={
-              <Button
-                variant="solid"
-                tone="brand"
-                onClick={() => setThird(true)}
-              >
-                Open small drawer
+              <Button variant="solid" tone="brand" onClick={() => setL3(true)}>
+                Open sm drawer
               </Button>
             }
           />
         </Drawer>
       ) : null}
-      {third ? (
-        <Drawer size="sm" onClose={() => setThird(false)}>
+      {l3 ? (
+        <Drawer size="sm" position={position} onClose={() => setL3(false)}>
           <Drawer.Header
-            title="Small drawer"
+            title="Drawer 3 (sm)"
+            iconName="gear"
+            description="Open a medium drawer to stack it on top."
+          />
+          <Drawer.Body>{sampleBody}</Drawer.Body>
+          <Drawer.Footer
+            actions={
+              <Button variant="solid" tone="brand" onClick={() => setL4(true)}>
+                Open md drawer
+              </Button>
+            }
+          />
+        </Drawer>
+      ) : null}
+      {l4 ? (
+        <Drawer size="md" position={position} onClose={() => setL4(false)}>
+          <Drawer.Header
+            title="Drawer 4 (md)"
+            iconName="gear"
+            description="Open a dialog to stack it on top of the drawers."
+          />
+          <Drawer.Body>{sampleBody}</Drawer.Body>
+          <Drawer.Footer
+            actions={
+              <Button variant="solid" tone="brand" onClick={() => setL5(true)}>
+                Open dialog
+              </Button>
+            }
+          />
+        </Drawer>
+      ) : null}
+      {l5 ? (
+        <Dialog size="md" onClose={() => setL5(false)}>
+          <Dialog.Header
+            title="Dialog"
             iconName="info"
-            description="Open another small drawer on top of this one."
+            description="A dialog stacked in the middle. Open another drawer to keep stacking."
+          />
+          <Dialog.Body>{sampleBody}</Dialog.Body>
+          <Dialog.Footer
+            actions={
+              <Button variant="solid" tone="brand" onClick={() => setL6(true)}>
+                Open lg drawer
+              </Button>
+            }
+          />
+        </Dialog>
+      ) : null}
+      {l6 ? (
+        <Drawer size="lg" position={position} onClose={() => setL6(false)}>
+          <Drawer.Header
+            title="Drawer 5 (lg)"
+            iconName="info"
+            description="Open a final dialog to top off the stack."
           />
           <Drawer.Body>{sampleBody}</Drawer.Body>
           <Drawer.Footer
             actions={
-              <Button
-                variant="solid"
-                tone="brand"
-                onClick={() => setFourth(true)}
-              >
-                Open another small drawer
+              <Button variant="solid" tone="brand" onClick={() => setL7(true)}>
+                Open dialog
               </Button>
             }
           />
         </Drawer>
       ) : null}
-      {fourth ? (
-        <Drawer size="sm" onClose={() => setFourth(false)}>
-          <Drawer.Header
-            title="Another small drawer"
+      {l7 ? (
+        <Dialog size="md" onClose={() => setL7(false)}>
+          <Dialog.Header
+            title="Dialog"
             iconName="info"
             description="This is the top of the stack."
           />
-          <Drawer.Body>{sampleBody}</Drawer.Body>
-          <Drawer.Footer
+          <Dialog.Body>{sampleBody}</Dialog.Body>
+          <Dialog.Footer
             actions={
-              <Button
-                variant="solid"
-                tone="brand"
-                onClick={() => setFourth(false)}
-              >
+              <Button variant="solid" tone="brand" onClick={() => setL7(false)}>
                 Done
               </Button>
             }
           />
-        </Drawer>
+        </Dialog>
       ) : null}
     </>
   );
 };
 
-export const Stacked: Story = () => <StackedDrawers />;
+export const Stacked: Story = () => (
+  <div className={stackStyles}>
+    <StackedExample buttonLabel="Open stacked drawers" position="right" />
+    <StackedExample
+      buttonLabel="Open stacked bottom drawers"
+      position="bottom"
+    />
+  </div>
+);
 
 export const ShouldCloseOn: Story = () => (
   <div className={stackStyles}>
