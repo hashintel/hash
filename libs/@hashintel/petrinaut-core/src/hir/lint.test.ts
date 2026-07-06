@@ -6,6 +6,7 @@ import type {
   HirDynamicsContext,
   HirKernelContext,
   HirLambdaContext,
+  HirMetricContext,
 } from "./surface-context";
 
 const dynamicsContext: HirDynamicsContext = {
@@ -299,6 +300,49 @@ describe("lintHirUserCode", () => {
           },
         ),
       ).toContainEqual(["hir:shared-sample", "info"]);
+    });
+
+    it("lints metric bodies: return type, unknown places, compilability", () => {
+      const metricContext: HirMetricContext = {
+        surface: "metric",
+        parameters: [],
+        places: [
+          {
+            name: "Pool",
+            elements: [{ name: "x", type: "real" }],
+          },
+          { name: "Bin", elements: [] },
+        ],
+      };
+
+      // Clean metric: counts, reduce, concat, guard.
+      expect(
+        codes(
+          `const all = state.places.Pool.tokens;
+if (all.length === 0) return state.places.Bin.count;
+return all.reduce((sum, t) => sum + t.x, 0) / all.length;`,
+          metricContext,
+        ),
+      ).toEqual([]);
+
+      // Non-numeric result.
+      expect(codes(`return true;`, metricContext)).toContainEqual([
+        "hir:metric-return",
+        "error",
+      ]);
+
+      // Unknown place.
+      expect(
+        codes(`return state.places.Missing.count;`, metricContext),
+      ).toContainEqual(["hir:unknown-field", "error"]);
+
+      // Typecheck-clean but not buffer-compilable (map over dynamic tokens).
+      expect(
+        codes(
+          `return state.places.Pool.tokens.map((t) => t.x)[0];`,
+          metricContext,
+        ),
+      ).toContainEqual(["hir:not-compilable", "error"]);
     });
 
     it("hints at unused bindings but ignores underscore names", () => {

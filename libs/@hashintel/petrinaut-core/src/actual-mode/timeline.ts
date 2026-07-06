@@ -1,3 +1,8 @@
+import {
+  computeTokenSlotLayout,
+  createTokenRegionViews,
+  encodeTokenToBytes,
+} from "../simulation/engine/token-layout";
 import { ACTUAL_MODE_TIMELINE_TICK_MS } from "./constants";
 import {
   getActualModeMarkingAtTransitionFiringIndex,
@@ -7,6 +12,7 @@ import {
 import { parseActualModeTimestampMs } from "./time";
 
 import type {
+  SimulationFrameRawView,
   SimulationFrameReader,
   SimulationFrameState,
 } from "../simulation/api";
@@ -187,11 +193,101 @@ export const createActualModeTimelineFrameReader = (params: {
     transitionFiringIndex: point.transitionFiringIndex,
   });
 
+  // Packs the object marking into a format-v2 token buffer on demand so
+  // HIR-compiled expression metrics can run against actual-mode frames.
+  const createRawView = (): SimulationFrameRawView => {
+    const colorById = new Map(
+      definition.types.map((color) => [color.id, color]),
+    );
+    const placeIndexById = new Map<string, number>();
+    const placeCounts = new Uint32Array(definition.places.length);
+    const placeOffsets = new Uint32Array(definition.places.length);
+
+    // Minimal string pool: actual-mode tokens rarely carry strings, but the
+    // packed layout still needs interning when the colour declares them.
+    const strings: string[] = [""];
+    const idsByString = new Map<string, number>([["", 0]]);
+    const stringPool = {
+      intern(value: string): number {
+        let id = idsByString.get(value);
+        if (id === undefined) {
+          id = strings.length;
+          strings.push(value);
+          idsByString.set(value, id);
+        }
+        return id;
+      },
+      get(id: number): string {
+        return strings[id] ?? "";
+      },
+    };
+
+    type PackedPlace = {
+      layout: ReturnType<typeof computeTokenSlotLayout>;
+      tokens: readonly Record<string, number>[];
+      byteOffset: number;
+    };
+    const packedPlaces: PackedPlace[] = [];
+    let byteLength = 0;
+
+    for (const [index, place] of definition.places.entries()) {
+      placeIndexById.set(place.id, index);
+      const placeMarking = marking[place.id];
+      placeCounts[index] = getActualModePlaceMarkingTokenCount(placeMarking);
+      placeOffsets[index] = byteLength;
+
+      const color = place.colorId ? colorById.get(place.colorId) : undefined;
+      if (!color || color.elements.length === 0) {
+        continue;
+      }
+      const layout = computeTokenSlotLayout(color.elements);
+      if (layout.strideBytes === 0) {
+        continue;
+      }
+      const tokens = isActualModeTokenColourArray(placeMarking)
+        ? placeMarking
+        : [];
+      // Reserve stride bytes per counted token even when attribute values are
+      // unavailable (count-only markings) so out-of-place reads stay
+      // in-bounds and decode to zeros.
+      byteLength += placeCounts[index]! * layout.strideBytes;
+      packedPlaces.push({ layout, tokens, byteOffset: placeOffsets[index]! });
+    }
+
+    const alignedLength = Math.ceil(byteLength / 8) * 8;
+    const views = createTokenRegionViews(
+      new ArrayBuffer(alignedLength),
+      0,
+      alignedLength,
+    );
+    for (const packed of packedPlaces) {
+      for (const [tokenIndex, token] of packed.tokens.entries()) {
+        views.u8.set(
+          encodeTokenToBytes(packed.layout, token, "actual-mode", stringPool),
+          packed.byteOffset + tokenIndex * packed.layout.strideBytes,
+        );
+      }
+    }
+
+    return {
+      ...views,
+      placeCounts,
+      placeOffsets,
+      placeIndexById,
+      stringPool,
+    };
+  };
+  let rawView: SimulationFrameRawView | null = null;
+
   return {
     number,
     time: point.timeMs / 1_000,
     getPlaceTokenCount: (placeId: string) =>
       getActualModePlaceMarkingTokenCount(marking[placeId]),
+    getRawView: () => {
+      rawView ??= createRawView();
+      return rawView;
+    },
     getPlaceTokens: (
       place: Place,
       color: Color | null | undefined,

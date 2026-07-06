@@ -26,12 +26,14 @@ import {
   emitBufferDynamicsJs,
   emitBufferKernelJs,
   emitBufferLambdaJs,
+  emitBufferMetricJs,
 } from "./emit-buffer-js";
 import { lowerTypeScriptToHir } from "./lower-typescript";
 import {
   buildDynamicsContext,
   buildKernelContext,
   buildLambdaContext,
+  buildMetricContext,
 } from "./surface-context";
 import { typecheckHir } from "./typecheck";
 
@@ -42,7 +44,11 @@ import type { HirNetScope, HirSurfaceContext } from "./surface-context";
 
 export type HirCompileFailure = {
   itemId: string;
-  itemType: "differential-equation" | "transition-lambda" | "transition-kernel";
+  itemType:
+    | "differential-equation"
+    | "transition-lambda"
+    | "transition-kernel"
+    | "metric";
   diagnostics: HirDiagnostic[];
 };
 
@@ -104,6 +110,7 @@ export function compileHirArtifacts(
     dynamics: {},
     lambdas: {},
     kernels: {},
+    metrics: {},
   };
   const failures: HirCompileFailure[] = [];
 
@@ -232,6 +239,38 @@ export function compileHirArtifacts(
         }
       }
     }
+  }
+
+  // Metrics live on the root net only and see every root place by name.
+  const metricContext = buildMetricContext(sanitized, extensions);
+  for (const metric of sanitized.metrics ?? []) {
+    if (metric.code.trim() === "") {
+      // Empty drafts get no artifact; running them reports a missing-artifact
+      // error, but they must not block the rest of the net from compiling.
+      continue;
+    }
+    const item = lowerAndCheck(metric.code, "metric", metricContext);
+    if (!item.ok) {
+      failures.push({
+        itemId: metric.id,
+        itemType: "metric",
+        diagnostics: item.diagnostics,
+      });
+      continue;
+    }
+    const program = emitBufferMetricJs(item.fn, metricContext);
+    if (program === null) {
+      failures.push({
+        itemId: metric.id,
+        itemType: "metric",
+        diagnostics: [notCompilableDiagnostic(item.fn)],
+      });
+      continue;
+    }
+    artifacts.metrics[metric.id] = {
+      source: program.source,
+      placeNames: program.placeNames,
+    };
   }
 
   return { artifacts, failures };

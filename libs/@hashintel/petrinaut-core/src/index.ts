@@ -166,6 +166,7 @@ export type {
   SimulationConfig,
   SimulationErrorEvent,
   SimulationEvent,
+  SimulationFrameRawView,
   SimulationFrameReader,
   SimulationFrameState,
   SimulationFrameSummary,
@@ -249,6 +250,7 @@ export type {
   HirCompileFailure,
   HirCompileResult,
   HirDiagnostic,
+  HirMetricArtifact,
 } from "./hir";
 
 // --- Playback ---
@@ -323,13 +325,6 @@ export {
   generateDefaultVisualizerCode,
 } from "./default-codes";
 export {
-  compileMetric,
-  type CompiledMetric,
-  type CompileMetricOutcome,
-  type MetricPlaceState,
-  type MetricState,
-} from "./simulation/authoring/metric/compile-metric";
-export {
   compileScenario,
   type CompiledPlaceMarking,
   type CompiledScenarioResult,
@@ -338,7 +333,7 @@ export {
   type ScenarioCompilationError,
   type ScenarioParameterValues,
 } from "./simulation/authoring/scenario/compile-scenario";
-export { buildMetricState } from "./simulation/frames/metric-state";
+export { createHirMetricEvaluator } from "./simulation/frames/hir-metric";
 export {
   coerceTokenAttributeValue,
   coerceTokenRecord,

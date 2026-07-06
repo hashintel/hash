@@ -197,6 +197,34 @@ class Typechecker {
             } satisfies HirType,
           })),
         };
+      case "metric":
+        return {
+          kind: "record",
+          fields: [
+            {
+              name: "places",
+              type: {
+                kind: "record",
+                fields: context.places.map((place) => ({
+                  name: place.name,
+                  type: {
+                    kind: "record",
+                    fields: [
+                      { name: "count", type: HIR_TYPE_INT },
+                      {
+                        name: "tokens",
+                        type: {
+                          kind: "array",
+                          element: tokenRecordType(place.elements),
+                        } satisfies HirType,
+                      },
+                    ],
+                  } satisfies HirType,
+                })),
+              },
+            },
+          ],
+        };
     }
   }
 
@@ -504,6 +532,56 @@ class Typechecker {
           length,
         };
       }
+      case "arrayReduce": {
+        const targetType = this.infer(expr.target, env);
+        let elementType_: HirType = HIR_TYPE_UNKNOWN;
+        if (targetType.kind === "array") {
+          elementType_ = targetType.element;
+        } else if (targetType.kind !== "unknown") {
+          this.report(
+            expr.target.span,
+            "hir:invalid-map",
+            `\`.reduce(...)\` is only available on arrays, not ${formatHirType(targetType)}.`,
+          );
+        }
+        const initialType = this.infer(expr.initial, env);
+        const scoped = new Map(env);
+        // The accumulator is seeded with the initial value's type; the result
+        // is the join of the initial and body types (e.g. int seed + real
+        // body → real).
+        scoped.set(expr.accParam.name, initialType);
+        scoped.set(expr.param.name, elementType_);
+        if (expr.indexParam) {
+          scoped.set(expr.indexParam.name, HIR_TYPE_INT);
+        }
+        const bodyType = this.infer(expr.body, scoped);
+        return joinTypes(initialType, bodyType);
+      }
+      case "arrayConcat": {
+        const leftType = this.infer(expr.left, env);
+        const rightType = this.infer(expr.right, env);
+        const elementOf = (type: HirType, span: Span): HirType => {
+          if (type.kind === "array") {
+            return type.element;
+          }
+          if (type.kind !== "unknown") {
+            this.report(
+              span,
+              "hir:invalid-map",
+              `\`.concat(...)\` is only available on arrays, not ${formatHirType(type)}.`,
+            );
+          }
+          return HIR_TYPE_UNKNOWN;
+        };
+        return {
+          kind: "array",
+          element: joinTypes(
+            elementOf(leftType, expr.left.span),
+            elementOf(rightType, expr.right.span),
+          ),
+          // The combined length is dynamic.
+        };
+      }
       case "distribution": {
         this.checkDistributionAllowed(expr.span);
         if (expr.args.length !== 2) {
@@ -666,6 +744,16 @@ class Typechecker {
           return;
         }
         this.checkKernelOutput(fn, returnType);
+        return;
+      }
+      case "metric": {
+        if (!isNumeric(returnType)) {
+          this.report(
+            bodySpan,
+            "hir:metric-return",
+            `Metrics must return a number, got ${formatHirType(returnType)}.`,
+          );
+        }
         return;
       }
     }

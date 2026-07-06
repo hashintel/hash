@@ -99,6 +99,13 @@ describe("compileHirArtifacts on example models", () => {
           }
         }
       }
+      // Every declared metric (they use reduce/concat/guard ifs) must
+      // compile to a buffer metric program — there is no other metric path.
+      for (const metric of sdcpn.metrics ?? []) {
+        if (!artifacts.metrics[metric.id]) {
+          missing.push(`metric:${metric.id}`);
+        }
+      }
       expect(missing).toEqual([]);
 
       // Artifacts carry the buffer-ABI metadata the engine validates against.
@@ -113,6 +120,10 @@ describe("compileHirArtifacts on example models", () => {
       }
       for (const artifact of Object.values(artifacts.dynamics)) {
         expect(typeof artifact.source).toBe("string");
+      }
+      for (const artifact of Object.values(artifacts.metrics)) {
+        expect(typeof artifact.source).toBe("string");
+        expect(Array.isArray(artifact.placeNames)).toBe(true);
       }
     },
   );

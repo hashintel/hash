@@ -19,7 +19,7 @@
  */
 import ts from "typescript";
 
-import { HIR_MATH_FNS, HIR_STRING_FNS } from "./hir";
+import { HIR_MATH_FNS, HIR_STRING_FNS, walkHir } from "./hir";
 
 import type {
   HirBinaryOp,
@@ -37,11 +37,20 @@ export type LowerTypeScriptResult =
   | { ok: true; fn: HirFunction; diagnostics: HirDiagnostic[] }
   | { ok: false; diagnostics: HirDiagnostic[] };
 
-const CONSTRUCTOR_NAMES: Record<HirSurfaceKind, string> = {
+const CONSTRUCTOR_NAMES: Record<Exclude<HirSurfaceKind, "metric">, string> = {
   dynamics: "Dynamics",
   lambda: "Lambda",
   kernel: "TransitionKernel",
 };
+
+/**
+ * Metric user code is a bare function *body* (with `state` in scope), not an
+ * `export default` module. It is wrapped in this prefix (plus a closing
+ * `\n}`) before parsing; all spans in the lowering result are shifted back by
+ * the prefix length so they map onto the raw user body.
+ */
+const METRIC_PREFIX = "(state) => {\n";
+const METRIC_SUFFIX = "\n}";
 
 const DISTRIBUTION_FACTORIES: Record<string, HirDistributionKind> = {
   Gaussian: "gaussian",
@@ -144,7 +153,59 @@ class Lowering {
     } as unknown as Extract<HirExpr, { kind: Init["kind"] }>;
   }
 
+  /**
+   * Lowers a wrapped metric body (`(state) => { <user body> }`, see
+   * `METRIC_PREFIX`). Spans are still relative to the wrapped text — the
+   * caller shifts them back onto the raw user body.
+   */
+  lowerMetricModule(): HirFunction {
+    const [statement, ...rest] = this.sourceFile.statements;
+    if (rest.length > 0) {
+      this.fail(
+        rest[0]!,
+        "hir:unsupported-statement",
+        "Metric code must be a single function body ending in `return`.",
+      );
+    }
+    const arrow =
+      statement &&
+      ts.isExpressionStatement(statement) &&
+      ts.isArrowFunction(statement.expression)
+        ? statement.expression
+        : null;
+    const arrowBody = arrow && ts.isBlock(arrow.body) ? arrow.body : null;
+    if (!arrow || !arrowBody) {
+      throw new LowerError({
+        code: "hir:unsupported-syntax",
+        message: "Metric code must be a function body ending in `return`.",
+        severity: "error",
+        span: { start: 0, length: Math.max(this.sourceFile.text.length, 1) },
+      });
+    }
+    const stateParam = arrow.parameters[0]!;
+    const scope: LowerScope = {
+      locals: new Set(["state"]),
+      distributionLocals: new Set(),
+      destructuredFields: new Map(),
+      parameterAliases: new Map(),
+      // Metrics have no parameters object.
+      parametersName: null,
+    };
+    const body = this.lowerBlock(arrowBody, scope);
+    return {
+      hirVersion: 1,
+      surface: "metric",
+      params: [{ name: "state", span: this.spanOf(stateParam.name) }],
+      body,
+      span: this.spanOf(arrow),
+    };
+  }
+
   lowerModule(): HirFunction {
+    if (this.surface === "metric") {
+      // Metric code has no module wrapper — see `lowerMetricModule`.
+      return this.lowerMetricModule();
+    }
     const constructorName = CONSTRUCTOR_NAMES[this.surface];
     let exportAssignment: ts.ExportAssignment | undefined;
 
@@ -965,6 +1026,27 @@ class Lowering {
         return this.lowerMapCall(node, callee, scope);
       }
 
+      // <expr>.reduce((acc, element, index?) => ..., initial)
+      if (method === "reduce") {
+        return this.lowerReduceCall(node, callee, scope);
+      }
+
+      // <expr>.concat(other)
+      if (method === "concat") {
+        if (node.arguments.length !== 1) {
+          this.fail(
+            node,
+            "hir:concat-arity",
+            "`.concat(...)` takes exactly one array argument.",
+          );
+        }
+        return this.make(node, {
+          kind: "arrayConcat",
+          left: this.lowerExpr(callee.expression, scope),
+          right: this.lowerExpr(node.arguments[0]!, scope),
+        });
+      }
+
       // String predicates: <expr>.startsWith(arg) etc.
       if ((HIR_STRING_FNS as readonly string[]).includes(method)) {
         if (node.arguments.length !== 1) {
@@ -986,8 +1068,83 @@ class Lowering {
     this.fail(
       node,
       "hir:unsupported-call",
-      "Only `Math.*`, `Distribution.*` and `.map(...)` calls are supported.",
+      "Only `Math.*`, `Distribution.*`, `.map(...)`, `.reduce(...)` and `.concat(...)` calls are supported.",
     );
+  }
+
+  private lowerReduceCall(
+    node: ts.CallExpression,
+    callee: ts.PropertyAccessExpression,
+    scope: LowerScope,
+  ): HirExpr {
+    if (node.arguments.length !== 2) {
+      this.fail(
+        node,
+        "hir:reduce-arity",
+        "`.reduce(...)` expects exactly two arguments: a callback and an initial value.",
+      );
+    }
+    const target = this.lowerExpr(callee.expression, scope);
+    const callback = node.arguments[0]!;
+    if (!ts.isArrowFunction(callback) && !ts.isFunctionExpression(callback)) {
+      this.fail(
+        callback,
+        "hir:map-callback",
+        "`.reduce(...)` expects an inline function, e.g. `.reduce((sum, token) => sum + token.x, 0)`.",
+      );
+    }
+    if (callback.parameters.length < 2 || callback.parameters.length > 3) {
+      this.fail(
+        callback,
+        "hir:reduce-arity",
+        "`.reduce(...)` callbacks take (accumulator, element) or (accumulator, element, index).",
+      );
+    }
+
+    const bodyScope = childScope(scope);
+    const bindParam = (
+      parameter: ts.ParameterDeclaration,
+    ): { name: string; span: Span } => {
+      if (!ts.isIdentifier(parameter.name)) {
+        this.fail(
+          parameter.name,
+          "hir:destructured-binding",
+          "`.reduce(...)` callback parameters must be plain names.",
+        );
+      }
+      const bound = {
+        name: parameter.name.text,
+        span: this.spanOf(parameter.name),
+      };
+      bodyScope.locals.add(bound.name);
+      bodyScope.distributionLocals.delete(bound.name);
+      bodyScope.destructuredFields.delete(bound.name);
+      bodyScope.parameterAliases.delete(bound.name);
+      return bound;
+    };
+
+    const accParam = bindParam(callback.parameters[0]!);
+    const param = bindParam(callback.parameters[1]!);
+    const indexParam = callback.parameters[2]
+      ? bindParam(callback.parameters[2])
+      : undefined;
+
+    // The initial value is evaluated in the outer scope.
+    const initial = this.lowerExpr(node.arguments[1]!, scope);
+
+    const body = ts.isBlock(callback.body)
+      ? this.lowerBlock(callback.body, bodyScope)
+      : this.lowerExpr(callback.body, bodyScope);
+
+    return this.make(node, {
+      kind: "arrayReduce",
+      target,
+      accParam,
+      param,
+      indexParam,
+      body,
+      initial,
+    });
   }
 
   private lowerMapCall(
@@ -1248,17 +1405,150 @@ class Lowering {
 }
 
 /**
- * Lowers a user-authored TypeScript module to an `HirFunction`.
+ * Shifts a span from wrapped-metric-source coordinates back onto the raw
+ * user body: subtracts the prefix length and clamps the result into
+ * `[0, codeLength]` (spans covering the synthetic prefix/suffix collapse to
+ * the nearest edge of the user text).
+ */
+function shiftMetricSpan(span: Span, codeLength: number): void {
+  const start = Math.min(
+    Math.max(0, span.start - METRIC_PREFIX.length),
+    codeLength,
+  );
+  const end = Math.min(
+    Math.max(start, span.start + span.length - METRIC_PREFIX.length),
+    codeLength,
+  );
+  // eslint-disable-next-line no-param-reassign -- in-place span rebasing over freshly-built nodes is the point of this helper
+  span.start = start;
+  // eslint-disable-next-line no-param-reassign -- see above
+  span.length = end - start;
+}
+
+/** Shifts every span in a lowered metric function (nodes, binding names,
+ * record keys, callback params, fn/params spans) onto the raw user body. */
+function shiftMetricFunctionSpans(fn: HirFunction, codeLength: number): void {
+  shiftMetricSpan(fn.span, codeLength);
+  for (const param of fn.params) {
+    shiftMetricSpan(param.span, codeLength);
+  }
+  walkHir(fn.body, (node) => {
+    shiftMetricSpan(node.span, codeLength);
+    switch (node.kind) {
+      case "fieldAccess":
+        shiftMetricSpan(node.fieldSpan, codeLength);
+        break;
+      case "let":
+        for (const binding of node.bindings) {
+          shiftMetricSpan(binding.nameSpan, codeLength);
+        }
+        break;
+      case "recordLit":
+        for (const entry of node.entries) {
+          shiftMetricSpan(entry.keySpan, codeLength);
+        }
+        break;
+      case "arrayMap":
+        shiftMetricSpan(node.param.span, codeLength);
+        if (node.indexParam) {
+          shiftMetricSpan(node.indexParam.span, codeLength);
+        }
+        break;
+      case "arrayReduce":
+        shiftMetricSpan(node.accParam.span, codeLength);
+        shiftMetricSpan(node.param.span, codeLength);
+        if (node.indexParam) {
+          shiftMetricSpan(node.indexParam.span, codeLength);
+        }
+        break;
+      case "distributionMap":
+        shiftMetricSpan(node.param.span, codeLength);
+        break;
+      default:
+        break;
+    }
+  });
+}
+
+function parseErrorDiagnostics(
+  sourceFile: ts.SourceFile,
+): HirDiagnostic[] | null {
+  // `parseDiagnostics` is not part of the public API but has been stable
+  // across TypeScript versions.
+  const parseDiagnostics = (
+    sourceFile as ts.SourceFile & {
+      parseDiagnostics?: ts.DiagnosticWithLocation[];
+    }
+  ).parseDiagnostics;
+  if (!parseDiagnostics || parseDiagnostics.length === 0) {
+    return null;
+  }
+  return parseDiagnostics.slice(0, 3).map((diagnostic) => ({
+    code: "hir:parse-error",
+    message: ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n"),
+    severity: "error" as const,
+    span: {
+      start: diagnostic.start,
+      length: Math.max(diagnostic.length, 1),
+    },
+  }));
+}
+
+/**
+ * Lowers a metric function body (`state` in scope, statements ending in
+ * `return`). The body is wrapped as `(state) => { ... }` for parsing; all
+ * spans in the result (including diagnostics) are shifted back so they are
+ * relative to the raw user body.
+ */
+function lowerMetricBodyToHir(code: string): LowerTypeScriptResult {
+  const wrapped = METRIC_PREFIX + code + METRIC_SUFFIX;
+  const sourceFile = ts.createSourceFile(
+    "user-metric.ts",
+    wrapped,
+    ts.ScriptTarget.ES2020,
+    /* setParentNodes */ true,
+  );
+
+  const shiftDiagnostic = (diagnostic: HirDiagnostic): HirDiagnostic => {
+    const span = { ...diagnostic.span };
+    shiftMetricSpan(span, code.length);
+    return { ...diagnostic, span };
+  };
+
+  const parseErrors = parseErrorDiagnostics(sourceFile);
+  if (parseErrors) {
+    return { ok: false, diagnostics: parseErrors.map(shiftDiagnostic) };
+  }
+
+  try {
+    const fn = new Lowering(sourceFile, "metric").lowerMetricModule();
+    shiftMetricFunctionSpans(fn, code.length);
+    return { ok: true, fn, diagnostics: [] };
+  } catch (error) {
+    if (error instanceof LowerError) {
+      return { ok: false, diagnostics: [shiftDiagnostic(error.diagnostic)] };
+    }
+    throw error;
+  }
+}
+
+/**
+ * Lowers user-authored TypeScript to an `HirFunction`.
  *
- * `code` must be the user-visible source text (not the LSP-wrapped virtual
- * file); all spans in the result are relative to it. Returns `ok: false` with
- * a positioned diagnostic when the code is syntactically invalid or falls
- * outside the analyzable subset.
+ * For module surfaces (dynamics/lambda/kernel), `code` must be the
+ * user-visible `export default Ctor(...)` module; for the `metric` surface it
+ * is a bare function body with `state` in scope. All spans in the result are
+ * relative to `code`. Returns `ok: false` with a positioned diagnostic when
+ * the code is syntactically invalid or falls outside the analyzable subset.
  */
 export function lowerTypeScriptToHir(
   code: string,
   surface: HirSurfaceKind,
 ): LowerTypeScriptResult {
+  if (surface === "metric") {
+    return lowerMetricBodyToHir(code);
+  }
+
   const sourceFile = ts.createSourceFile(
     "user-code.ts",
     code,
@@ -1267,26 +1557,10 @@ export function lowerTypeScriptToHir(
   );
 
   // Short-circuit on parse errors so downstream diagnostics don't pile on top
-  // of syntactically broken code. `parseDiagnostics` is not part of the
-  // public API but has been stable across TypeScript versions.
-  const parseDiagnostics = (
-    sourceFile as ts.SourceFile & {
-      parseDiagnostics?: ts.DiagnosticWithLocation[];
-    }
-  ).parseDiagnostics;
-  if (parseDiagnostics && parseDiagnostics.length > 0) {
-    return {
-      ok: false,
-      diagnostics: parseDiagnostics.slice(0, 3).map((diagnostic) => ({
-        code: "hir:parse-error",
-        message: ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n"),
-        severity: "error" as const,
-        span: {
-          start: diagnostic.start,
-          length: Math.max(diagnostic.length, 1),
-        },
-      })),
-    };
+  // of syntactically broken code.
+  const parseErrors = parseErrorDiagnostics(sourceFile);
+  if (parseErrors) {
+    return { ok: false, diagnostics: parseErrors };
   }
 
   try {

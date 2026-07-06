@@ -80,6 +80,11 @@ export const HIR_DIAGNOSTIC_CODES: Record<string, number> = {
   "hir:transition-never-fires": 99071,
   "hir:shared-sample": 99072,
   "hir:unused-binding": 99073,
+  // --- Appended (registry is append-only) ---
+  "hir:reduce-arity": 99035,
+  "hir:concat-arity": 99036,
+  "hir:metric-return": 99064,
+  "hir:not-compilable": 99074,
 };
 
 const FALLBACK_CODE = 99000;

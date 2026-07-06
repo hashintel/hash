@@ -364,11 +364,47 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
     const initializeExperiment = async () => {
       try {
         // Compile the net's user code to HIR artifacts in the language
-        // worker — the simulation engine has no compiler of its own.
-        const { artifacts } = await requestHirArtifacts(
-          experimentSdcpn,
+        // worker — the simulation engine has no compiler of its own. The
+        // experiment's expression metrics are compiled alongside by
+        // substituting them for the model's metrics.
+        const expressionSpecs = input.metricSpecs.filter(
+          (spec) => spec.kind === "expression",
+        );
+        const { artifacts, failures } = await requestHirArtifacts(
+          {
+            ...experimentSdcpn,
+            metrics: expressionSpecs.map((spec) => ({
+              id: spec.id,
+              name: spec.label,
+              code: spec.code,
+            })),
+          },
           extensionsRef.current,
         );
+
+        const metricSpecs = input.metricSpecs.map((spec) => {
+          if (spec.kind !== "expression") {
+            return spec;
+          }
+          const artifact = artifacts.metrics[spec.id];
+          if (!artifact) {
+            const diagnostics = failures
+              .filter(
+                (failure) =>
+                  failure.itemType === "metric" && failure.itemId === spec.id,
+              )
+              .flatMap((failure) =>
+                failure.diagnostics.map((diagnostic) => diagnostic.message),
+              );
+            throw new Error(
+              `Metric "${spec.label}" did not compile${
+                diagnostics.length > 0 ? `: ${diagnostics.join("; ")}` : ""
+              }`,
+            );
+          }
+          return { ...spec, artifact };
+        });
+
         const experimentConfigBase = {
           sdcpn: experimentSdcpn,
           extensions: extensionsRef.current,
@@ -384,7 +420,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
         const handle = await createMonteCarloExperiment({
           ...experimentConfigBase,
           createWorker: workerFactoryRef.current,
-          metricSpecs: input.metricSpecs,
+          metricSpecs,
           signal: abortController.signal,
         });
 

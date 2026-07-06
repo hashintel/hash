@@ -26,6 +26,15 @@ function createSimulationFrameReader(
     number,
     time,
     getPlaceTokenCount,
+    getRawView() {
+      return {
+        ...frameView.tokenViews,
+        placeCounts: frameView.placeCounts,
+        placeOffsets: frameView.placeByteOffsets,
+        placeIndexById: layout.placeIndexById,
+        ...(stringPool ? { stringPool } : {}),
+      };
+    },
     getPlaceTokens(place, _color) {
       const placeState = frameView.getPlaceState(place.id);
       if (!placeState) {

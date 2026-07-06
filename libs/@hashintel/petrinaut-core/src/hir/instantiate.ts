@@ -18,6 +18,9 @@ export type HirStringPool = {
   intern(value: string): number;
 };
 
+/** Read-only pool view — all metric programs need (they never intern). */
+export type HirStringPoolReader = Pick<HirStringPool, "get">;
+
 /**
  * Deferred kernel-output slots that consume the seeded RNG or need engine
  * conversion. Emitted calls arrive in (arc, token, element-declaration)
@@ -51,6 +54,20 @@ export type HirCompiledBufferLambda = (
   indices: Int32Array,
 ) => number | boolean;
 
+/**
+ * Buffer-ABI metric: reads a frame's packed token region through shared
+ * views plus its dense per-place `placeCounts`/`placeOffsets` arrays and
+ * returns one number. The place-ordinal→frame-place-index table and string
+ * pool are pre-bound at instantiation.
+ */
+export type HirCompiledMetric = (
+  f64: Float64Array,
+  u64: BigUint64Array,
+  u8: Uint8Array,
+  placeCounts: Uint32Array,
+  placeOffsets: Uint32Array,
+) => number;
+
 /** Buffer-ABI kernel: writes output attributes into per-transition staging
  * (place-major, baked offsets); RNG-consuming slots defer through the sink. */
 export type HirCompiledBufferKernel = (
@@ -82,10 +99,16 @@ export type HirDynamicsArtifact = {
   source: string;
 };
 
+export type HirMetricArtifact = {
+  source: string;
+  /** Places referenced by the program, in `__places` ordinal order. */
+  placeNames: string[];
+};
+
 /**
  * Precompiled HIR programs for one SDCPN, keyed by item id (differential
- * equation id / transition id, pre-flattening — the engine resolves
- * flattened `path::id` ids back to their source id). Produced by
+ * equation id / transition id / metric id, pre-flattening — the engine
+ * resolves flattened `path::id` ids back to their source id). Produced by
  * `compileHirArtifacts`; the engine has no other compilation path.
  */
 export type HirArtifacts = {
@@ -93,6 +116,7 @@ export type HirArtifacts = {
   dynamics: Record<string, HirDynamicsArtifact>;
   lambdas: Record<string, HirLambdaArtifact>;
   kernels: Record<string, HirKernelArtifact>;
+  metrics: Record<string, HirMetricArtifact>;
 };
 
 /**
@@ -176,4 +200,26 @@ export function instantiateHirBufferKernel(
     parameterValues,
     stringPool,
   ) as HirCompiledBufferKernel;
+}
+
+/**
+ * Instantiates a compiled metric program. `placeIndices[ordinal]` maps each
+ * of the artifact's `placeNames` to the frame's place index (resolve once
+ * per experiment/simulation, not per frame). Metrics have no parameters
+ * object and never intern strings; `__params`/`__dist` are bound for ABI
+ * parity with the other programs but unused.
+ */
+export function instantiateHirMetric(
+  source: string,
+  placeIndices: Int32Array,
+  stringPool: HirStringPoolReader,
+): HirCompiledMetric {
+  // eslint-disable-next-line no-new-func, @typescript-eslint/no-implied-eval, @typescript-eslint/no-unsafe-call
+  return new Function(
+    "__dist",
+    "__params",
+    "__pool",
+    "__places",
+    `"use strict"; return (${source});`,
+  )(hirDistributionRuntime, {}, stringPool, placeIndices) as HirCompiledMetric;
 }

@@ -364,6 +364,16 @@ export function foldHir(expr: HirExpr): HirExpr {
         target: foldHir(expr.target),
         body: foldHir(expr.body),
       };
+    case "arrayReduce":
+      // Never folded away — only the subexpressions are folded.
+      return {
+        ...expr,
+        target: foldHir(expr.target),
+        body: foldHir(expr.body),
+        initial: foldHir(expr.initial),
+      };
+    case "arrayConcat":
+      return { ...expr, left: foldHir(expr.left), right: foldHir(expr.right) };
     case "distribution":
       return { ...expr, args: expr.args.map(foldHir) };
     case "distributionMap":
@@ -554,6 +564,38 @@ class Analyzer {
         const element = this.evalExpr(expr.body, scoped);
         this.mapDepth -= 1;
         return { kind: "array", elements: null, element };
+      }
+      case "arrayReduce": {
+        const target = this.evalExpr(expr.target, env);
+        const initial = this.evalExpr(expr.initial, env);
+        const scoped = new Map(env);
+        // The body is evaluated once: the accumulator is seeded with the
+        // initial value and the element with the target's element (so token
+        // reads inside the body are attributed like `arrayMap`).
+        scoped.set(expr.accParam.name, { value: initial });
+        scoped.set(expr.param.name, { value: this.elementOf(target) });
+        if (expr.indexParam) {
+          scoped.set(expr.indexParam.name, { value: SCALAR });
+        }
+        this.mapDepth += 1;
+        const body = this.evalExpr(expr.body, scoped);
+        this.mapDepth -= 1;
+        if (body === initial) {
+          return body;
+        }
+        return { kind: "union", values: [initial, body] };
+      }
+      case "arrayConcat": {
+        const left = this.evalExpr(expr.left, env);
+        const right = this.evalExpr(expr.right, env);
+        return {
+          kind: "array",
+          elements: null,
+          element: {
+            kind: "union",
+            values: [this.elementOf(left), this.elementOf(right)],
+          },
+        };
       }
       case "distribution": {
         const [, argDeps] = this.withDepSink(() => {

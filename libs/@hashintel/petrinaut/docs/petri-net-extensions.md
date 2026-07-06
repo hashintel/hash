@@ -232,10 +232,11 @@ Diagnostics come in two flavours:
 
 ### Supported code subset
 
-Dynamics, firing-rate and transition-kernel code is compiled by Petrinaut's own compiler, which accepts a focused expression subset of TypeScript rather than arbitrary programs:
+Dynamics, firing-rate, transition-kernel and metric code is compiled by Petrinaut's own compiler, which accepts a focused expression subset of TypeScript rather than arbitrary programs:
 
 - `const` bindings (including destructuring like `const { a, b } = parameters` or `const [first] = input.Place`), a final `return`, and guard clauses (`if (condition) return value;`).
 - Arithmetic, comparisons, boolean logic, ternaries, and `Math.*` functions.
-- Token access (`input.Place[0].attr`, `.length`), `.map(...)` over token arrays, and `Distribution.*` constructors (with `.map` transforms).
+- Token access (`input.Place[0].attr`, `.length`), `.map(...)`, `.reduce(...)` and `.concat(...)` over token arrays, and `Distribution.*` constructors (with `.map` transforms).
+- In metric code, place state access via `state.places.<Name>.count` and `state.places.<Name>.tokens` (a metric must `return` a number).
 
-Loops, `let`/`var`, object spread and arbitrary function calls are rejected with an error pointing at the offending code and suggesting the idiomatic alternative. This is what lets Petrinaut analyze your model (e.g. which parameters a rate depends on) and compile it to fast code that reads token values directly from the simulation's internal buffers. Metric and scenario code is not affected by this subset.
+Loops, `let`/`var`, object spread and arbitrary function calls are rejected with an error pointing at the offending code and suggesting the idiomatic alternative. This is what lets Petrinaut analyze your model (e.g. which parameters a rate depends on) and compile it to fast code that reads token values directly from the simulation's internal buffers — metrics included, so they stay cheap even across thousands of Monte Carlo runs. Scenario code is not affected by this subset.

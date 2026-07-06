@@ -21,6 +21,15 @@ export function createMonteCarloFrameReader(
     number: run.frameNumber,
     time: run.frameNumber * simulation.dt,
     getPlaceTokenCount,
+    getRawView() {
+      return {
+        ...currentFrame.tokenViews,
+        placeCounts: currentFrame.placeCounts,
+        placeOffsets: currentFrame.placeOffsets,
+        placeIndexById: frameLayout.placeIndexById,
+        stringPool: simulation.stringPool,
+      };
+    },
     getPlaceTokens(place: Place, _color: Color | null | undefined) {
       const placeIndex = frameLayout.placeIndexById.get(place.id);
       if (placeIndex === undefined) {
