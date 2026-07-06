@@ -1,5 +1,8 @@
 import {
   generateArcId,
+  getArcEndpointKey,
+  placeArcEndpoint,
+  type ArcEndpoint,
   type PetrinautAiCommandToolInput,
   type PetrinautAiCommandToolName,
   type PetrinautAiMutationToolInput,
@@ -151,14 +154,42 @@ const itemLabel = (
   return `${typeLabel}: ${targetName(definition, item)}`;
 };
 
+const normalizeArcToolEndpoint = (input: {
+  placeId?: string;
+  endpoint?: ArcEndpoint;
+}): ArcEndpoint => input.endpoint ?? placeArcEndpoint(input.placeId ?? "");
+
+const componentPortName = (
+  definition: SDCPN | undefined,
+  endpoint: Extract<ArcEndpoint, { kind: "componentPort" }>,
+): string => {
+  const instance = definition?.componentInstances?.find(
+    ({ id }) => id === endpoint.componentInstanceId,
+  );
+  const subnet = definition?.subnets?.find(
+    ({ id }) => id === instance?.subnetId,
+  );
+  const port = subnet?.places.find(
+    (place) => place.id === endpoint.portPlaceId,
+  );
+  return `${instance?.name ?? endpoint.componentInstanceId}.${
+    port?.name ?? endpoint.portPlaceId
+  }`;
+};
+
 const arcEndpointDetail = (
   definition: SDCPN | undefined,
   input: {
-    placeId: string;
+    placeId?: string;
+    endpoint?: ArcEndpoint;
     transitionId: string;
   },
 ): string => {
-  const place = targetName(definition, { type: "place", id: input.placeId });
+  const endpoint = normalizeArcToolEndpoint(input);
+  const place =
+    endpoint.kind === "place"
+      ? targetName(definition, { type: "place", id: endpoint.placeId })
+      : componentPortName(definition, endpoint);
   const transition = targetName(definition, {
     type: "transition",
     id: input.transitionId,
@@ -184,15 +215,35 @@ const addArcTitle = (input: {
 
 const arcTarget = (input: {
   arcDirection: "input" | "output";
-  placeId: string;
+  placeId?: string;
+  endpoint?: ArcEndpoint;
   transitionId: string;
 }): SelectionItem => ({
   type: "arc",
   id:
     input.arcDirection === "input"
-      ? generateArcId({ inputId: input.placeId, outputId: input.transitionId })
-      : generateArcId({ inputId: input.transitionId, outputId: input.placeId }),
+      ? generateArcId({
+          inputId: getArcEndpointKey(normalizeArcToolEndpoint(input)),
+          outputId: input.transitionId,
+        })
+      : generateArcId({
+          inputId: input.transitionId,
+          outputId: getArcEndpointKey(normalizeArcToolEndpoint(input)),
+        }),
 });
+
+const endpointNameFromUpdateInput = (
+  definition: SDCPN | undefined,
+  input: {
+    placeId?: string;
+    endpoint?: ArcEndpoint;
+  },
+): string => {
+  const endpoint = input.endpoint ?? placeArcEndpoint(input.placeId ?? "");
+  return endpoint.kind === "place"
+    ? targetName(definition, { type: "place", id: endpoint.placeId })
+    : componentPortName(definition, endpoint);
+};
 
 const selectionTarget = (item: SelectionItem): AiToolTarget => ({
   kind: "selection",
@@ -340,12 +391,12 @@ export const summarizePetrinautAiToolCall = (
     case "updateArcPlace":
       return {
         title: "Updated arc endpoint",
-        detail: `${targetName(definition, {
-          type: "place",
-          id: input.oldPlaceId,
-        })} -> ${targetName(definition, {
-          type: "place",
-          id: input.newPlaceId,
+        detail: `${endpointNameFromUpdateInput(definition, {
+          placeId: input.oldPlaceId,
+          endpoint: input.oldEndpoint,
+        })} -> ${endpointNameFromUpdateInput(definition, {
+          placeId: input.newPlaceId,
+          endpoint: input.newEndpoint,
         })}`,
       };
     case "addType":

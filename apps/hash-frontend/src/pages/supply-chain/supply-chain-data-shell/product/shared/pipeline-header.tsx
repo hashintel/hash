@@ -172,6 +172,7 @@ export const PipelineHeader = ({
               value: row2,
               text: routeText(row2),
             }))}
+            required
             size="xs"
             width="fitContent"
             className={expanded ? selectWidthExpanded : selectWidth}

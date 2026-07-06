@@ -2,6 +2,7 @@ import { useRouter } from "next/router";
 import { useEffect } from "react";
 
 import { useRegistry } from "../shared/registry-context";
+import { normaliseSiteCode } from "../shared/site-code";
 import { getSupplyChainLayout } from "../shared/supply-chain-layout";
 import { trackSupplyChainViewed } from "../shared/telemetry";
 import { SiteOverview } from "../supply-chain-data-shell/site";
@@ -12,10 +13,11 @@ import type { NextPageWithLayout } from "../../../shared/layout";
 const SitePage: NextPageWithLayout = () => {
   const router = useRouter();
   const { products, sites } = useRegistry();
-  const siteId =
+  const siteId = normaliseSiteCode(
     typeof router.query["site-id"] === "string"
       ? router.query["site-id"]
-      : (sites[0]?.slug ?? "");
+      : (sites[0]?.slug ?? ""),
+  );
   const opportunityStatusStore = useSupplyChainStatusState(siteId);
 
   useEffect(() => {

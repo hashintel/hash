@@ -8,6 +8,7 @@ import {
 
 import { css } from "@hashintel/ds-helpers/css";
 
+import { useMemoCompare } from "../../shared/use-memo-compare";
 import { useAuthInfo } from "../shared/auth-info-context";
 import { useActiveWorkspace } from "../shared/workspace-context";
 import {
@@ -172,7 +173,8 @@ export const SupplyChainDataShell = ({
   const { authenticatedUser } = useAuthInfo();
   const { activeWorkspace } = useActiveWorkspace();
 
-  const candidateWebIds = useMemo(
+  // Avoid full reloads when the user object but not its web memberships change.
+  const candidateWebIds = useMemoCompare(
     () =>
       getOrderedWebIds([
         scope,
@@ -180,6 +182,13 @@ export const SupplyChainDataShell = ({
         authenticatedUser?.accountId as WebId | undefined,
       ]),
     [authenticatedUser, scope],
+    (previous, next) => {
+      const previousSet = new Set(previous);
+      const nextSet = new Set(next);
+      return (
+        previousSet.size === nextSet.size && previousSet.isSupersetOf(nextSet)
+      );
+    },
   );
 
   const [searchParams, setSearchParams] = useSearchParams();

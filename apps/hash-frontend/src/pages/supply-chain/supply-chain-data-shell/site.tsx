@@ -570,6 +570,7 @@ export const SiteOverview = ({
           {tab === "dwell" && (
             <DwellTable
               rows={dwellRows}
+              siteId={siteSlug}
               sort={dwellSort}
               onSort={setDwellSort}
               onRowClick={handleStepClick}
@@ -583,6 +584,7 @@ export const SiteOverview = ({
           {tab === "planning" && (
             <PlanningTable
               rows={filteredPlanningRows}
+              siteId={siteSlug}
               sort={planSort}
               onSort={setPlanSort}
               onRowClick={handleStepClick}
@@ -594,6 +596,7 @@ export const SiteOverview = ({
           {tab === "trends" && (
             <TrendTable
               rows={filteredTrendRows}
+              siteId={siteSlug}
               sort={trendSort}
               onSort={setTrendSort}
               onRowClick={handleStepClick}
@@ -621,6 +624,7 @@ export const SiteOverview = ({
           stepId={selectedStep.stepId}
           onClose={handlePanelClose}
           siteContext={selectedStep.siteContext}
+          stepMaterial={selectedStep.node.material}
           briefHref={selectedStep.briefHref}
           statusEntries={
             opportunityStatusHistory[statusKey(siteSlug, selectedStep.node)] ??

@@ -1,4 +1,6 @@
+import { getArcEndpoint } from "../../arc-endpoints";
 import {
+  createArcPlaceResolver,
   DEFAULT_PETRINAUT_EXTENSIONS,
   getEffectiveTransitionLambdaType,
   getTransitionLogicAvailability,
@@ -6,7 +8,12 @@ import {
 } from "../../extensions";
 import { getItemFilePath } from "./file-paths";
 
-import type { SDCPN, ScenarioParameter } from "../../types/sdcpn";
+import type {
+  InputArc,
+  OutputArc,
+  SDCPN,
+  ScenarioParameter,
+} from "../../types/sdcpn";
 import type { VirtualFile } from "./create-language-service-host";
 
 /**
@@ -23,6 +30,47 @@ function sanitizeColorId(colorId: string): string {
  */
 function toTsType(type: "real" | "integer" | "boolean" | "ratio"): string {
   return type === "boolean" ? "boolean" : "number";
+}
+
+/**
+ * Scope separator for component instance place names
+ */
+const SCOPE_SEPARATOR = "::";
+
+/**
+ * Gets the display name for a place referenced by an arc, using scoped names for component ports.
+ * For component port arcs: returns "InstanceName::PlaceName"
+ * For regular place arcs: returns the place name as-is
+ */
+function getPlaceDisplayNameForArc(
+  arc: InputArc | OutputArc,
+  sdcpn: SDCPN,
+): string {
+  const endpoint = getArcEndpoint(arc);
+
+  if (endpoint.kind === "place") {
+    // Regular place arc - use the place name directly
+    const place = sdcpn.places.find((p) => p.id === endpoint.placeId);
+    return place?.name ?? endpoint.placeId;
+  }
+
+  // Component port arc - use scoped name format
+  const instance = sdcpn.componentInstances?.find(
+    (i) => i.id === endpoint.componentInstanceId,
+  );
+  const subnet = instance
+    ? sdcpn.subnets?.find((s) => s.id === instance.subnetId)
+    : undefined;
+  const portPlace = subnet?.places.find(
+    (p) => p.id === endpoint.portPlaceId && p.isPort,
+  );
+
+  if (instance && portPlace) {
+    return `${instance.name}${SCOPE_SEPARATOR}${portPlace.name}`;
+  }
+
+  // Fallback to place ID if we can't resolve the place
+  return endpoint.componentInstanceId + SCOPE_SEPARATOR + endpoint.portPlaceId;
 }
 
 /**
@@ -49,11 +97,20 @@ export function generateVirtualFiles(
       : "",
   });
 
-  // Build lookup maps for places and types
-  const placeById = new Map(sdcpn.places.map((place) => [place.id, place]));
-  const colorById = new Map(
-    (extensions.colors ? sdcpn.types : []).map((color) => [color.id, color]),
-  );
+  // Build lookup maps for places and types.
+  // Colors are collected from the root net AND all subnets so that port places
+  // whose colorId references a subnet-local type are still resolvable.
+  const allColors = extensions.colors
+    ? [
+        ...sdcpn.types,
+        ...(sdcpn.subnets ?? []).flatMap((subnet) => subnet.types),
+      ]
+    : [];
+  // Deduplicate by ID (last definition wins if the same ID appears in multiple subnets).
+  const colorById = new Map(allColors.map((color) => [color.id, color]));
+  const resolveArcPlace = createArcPlaceResolver(sdcpn, sdcpn, {
+    componentPortsEnabled: extensions.subnets,
+  });
 
   // Generate parameters type definition
   const parametersProperties = (extensions.parameters ? sdcpn.parameters : [])
@@ -64,8 +121,8 @@ export function generateVirtualFiles(
     content: `export type Parameters = {\n${parametersProperties}\n};`,
   });
 
-  // Generate type definitions for each color
-  for (const color of extensions.colors ? sdcpn.types : []) {
+  // Generate type definitions for each color (root + all subnets, deduplicated)
+  for (const color of colorById.values()) {
     const sanitizedColorId = sanitizeColorId(color.id);
     const properties = color.elements
       .map((el) => `  ${el.name}: ${toTsType(el.type)};`)
@@ -128,6 +185,7 @@ export function generateVirtualFiles(
       sdcpn,
       extensions,
     );
+
     const parametersDefsPath = getItemFilePath("parameters-defs");
     const lambdaDefsPath = getItemFilePath("transition-lambda-defs", {
       transitionId: transition.id,
@@ -142,7 +200,8 @@ export function generateVirtualFiles(
       transitionId: transition.id,
     });
 
-    // Build input type: { [placeName]: [Token, Token, ...] } based on input arcs
+    // Build input type: { [placeName]: [Token, Token, ...] } based on input arcs.
+    // resolveArcPlace handles both regular place arcs and componentPort arcs.
     const inputTypeImports: string[] = [];
     const inputTypeProperties: string[] = [];
 
@@ -153,7 +212,7 @@ export function generateVirtualFiles(
       if (arc.type === "inhibitor") {
         continue;
       }
-      const place = placeById.get(arc.placeId);
+      const place = resolveArcPlace(arc);
       if (!extensions.colors || !place?.colorId) {
         continue;
       }
@@ -174,15 +233,16 @@ export function generateVirtualFiles(
       const tokenTuple = Array.from({ length: arc.weight })
         .fill(`Color_${sanitizedColorId}`)
         .join(", ");
-      inputTypeProperties.push(`  "${place.name}": [${tokenTuple}];`);
+      const placeDisplayName = getPlaceDisplayNameForArc(arc, sdcpn);
+      inputTypeProperties.push(`  "${placeDisplayName}": [${tokenTuple}];`);
     }
 
-    // Build output type: { [placeName]: [Token, Token, ...] } based on output arcs
+    // Build output type: { [placeName]: [Token, Token, ...] } based on output arcs.
     const outputTypeImports: string[] = [];
     const outputTypeProperties: string[] = [];
 
     for (const arc of transition.outputArcs) {
-      const place = placeById.get(arc.placeId);
+      const place = resolveArcPlace(arc);
       if (!extensions.colors || !place?.colorId) {
         continue;
       }
@@ -210,7 +270,8 @@ export function generateVirtualFiles(
             : `Color_${sanitizedColorId}`,
         )
         .join(", ");
-      outputTypeProperties.push(`  "${place.name}": [${tokenTuple}];`);
+      const placeDisplayName = getPlaceDisplayNameForArc(arc, sdcpn);
+      outputTypeProperties.push(`  "${placeDisplayName}": [${tokenTuple}];`);
     }
 
     const allImports = [...inputTypeImports, ...outputTypeImports];

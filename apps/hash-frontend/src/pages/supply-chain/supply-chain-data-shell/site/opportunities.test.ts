@@ -234,30 +234,94 @@ describe("statusKey", () => {
     }
   });
 
-  it("shares status keys for non-post-QA steps across products", () => {
-    const transit = dwell({
-      id: "transit",
-      type: "transit",
+  it("keys location-agnostic steps on node.id alone (shared across products)", () => {
+    // Production is keyed on the *produced thing*, which lives in `node.id`
+    // (e.g. `prod_duration_green_blend`). The `products` array lists the
+    // finished goods that consume this production, and must not be part of the
+    // key -- it drifts as the product mix changes.
+    const greenBlendProduction = planning({
+      id: "prod_duration_green_blend",
+      type: "production",
       products: [{ id: "p1", name: "Product 1" }],
     });
-    const destinationDwell = dwell({
-      id: "destination",
-      type: "destination_dwell",
-      products: [{ id: "p2", name: "Product 2" }],
-    });
 
+    // Same produced thing consumed by a different finished good -> same key.
+    expect(
+      statusKey("site-a", {
+        ...greenBlendProduction,
+        products: [{ id: "p2", name: "Product 2" }],
+      }),
+    ).toBe(statusKey("site-a", greenBlendProduction));
+    expect(statusKey("site-a", greenBlendProduction)).toBe(
+      "site-a::planning::prod_duration_green_blend",
+    );
+
+    // Different produced thing -> different key, without embedding any product.
     expect(
       statusKey(
         "site-a",
-        dwell({
-          ...transit,
-          products: [{ id: "p2", name: "Product 2" }],
+        planning({
+          id: "prod_duration_harbor_dark_roast",
+          type: "production",
+          products: [{ id: "p1", name: "Product 1" }],
         }),
       ),
-    ).toBe(statusKey("site-a", transit));
-    expect(statusKey("site-a", destinationDwell)).toBe(
-      "site-a::dwell::destination",
+    ).not.toBe(statusKey("site-a", greenBlendProduction));
+
+    // Intermediate dwell keys on the material dwelling (in `node.id`); the
+    // consuming finished good is deliberately shared, not part of the key.
+    const imDwell = dwell({
+      id: "intermed_dwell_green_blend",
+      type: "intermediate_dwell",
+      products: [{ id: "p1", name: "Product 1" }],
+    });
+    expect(
+      statusKey("site-a", {
+        ...imDwell,
+        products: [{ id: "p2", name: "Product 2" }],
+      }),
+    ).toBe(statusKey("site-a", imDwell));
+    expect(statusKey("site-a", imDwell)).toBe(
+      "site-a::dwell::intermed_dwell_green_blend",
     );
+  });
+
+  it("disambiguates location-scoped steps (transit, destination dwell) by product", () => {
+    // Transit ids are lane-scoped (`transit_pla_hub1`) with the finished good
+    // only in `products`, so the product must be appended. Transit is a
+    // planning-category step.
+    const transit = planning({
+      id: "transit_pla_hub1",
+      type: "transit",
+      products: [{ id: "p1", name: "Product 1" }],
+    });
+    expect(statusKey("site-a", transit)).toBe(
+      "site-a::planning::transit_pla_hub1-p1",
+    );
+    expect(
+      statusKey("site-a", {
+        ...transit,
+        products: [{ id: "p2", name: "Product 2" }],
+      }),
+    ).toBe("site-a::planning::transit_pla_hub1-p2");
+
+    // Destination dwell ids are hub-scoped (`dest_dwell_hub1`); the thing
+    // dwelling is the finished good, so the product must be appended. It is a
+    // dwell-category step.
+    const destDwell = dwell({
+      id: "dest_dwell_hub1",
+      type: "destination_dwell",
+      products: [{ id: "p1", name: "Product 1" }],
+    });
+    expect(statusKey("site-a", destDwell)).toBe(
+      "site-a::dwell::dest_dwell_hub1-p1",
+    );
+    expect(
+      statusKey("site-a", {
+        ...destDwell,
+        products: [{ id: "p2", name: "Product 2" }],
+      }),
+    ).toBe("site-a::dwell::dest_dwell_hub1-p2");
   });
 
   it("disambiguates post-QA dwell status by product", () => {
@@ -274,6 +338,24 @@ describe("statusKey", () => {
         products: [{ id: "p2", name: "Product 2" }],
       }),
     ).toBe("site-a::dwell::post-qa-p2");
+  });
+
+  it("disambiguates production -> QA release (qa_hold) status by product", () => {
+    const qaHold = planning({
+      id: "prod-to-qa",
+      type: "qa_hold",
+      products: [{ id: "p1", name: "Product 1" }],
+    });
+
+    // qa_hold is a planning-category step, so it lives under `::planning::`, but
+    // it is a single-finished-good step so the product is part of the key.
+    expect(statusKey("site-a", qaHold)).toBe("site-a::planning::prod-to-qa-p1");
+    expect(
+      statusKey("site-a", {
+        ...qaHold,
+        products: [{ id: "p2", name: "Product 2" }],
+      }),
+    ).toBe("site-a::planning::prod-to-qa-p2");
   });
 
   it("distinguishes dwell and planning nodes", () => {

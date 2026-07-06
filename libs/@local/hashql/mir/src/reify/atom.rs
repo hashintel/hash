@@ -1,3 +1,5 @@
+use core::alloc::Allocator;
+
 use hashql_core::{id::Id as _, r#type::kind::TypeKind};
 use hashql_hir::node::{
     Node,
@@ -25,7 +27,7 @@ use crate::{
     },
 };
 
-impl<'heap> Reifier<'_, '_, '_, '_, 'heap> {
+impl<'heap, A: Allocator, S: Allocator> Reifier<'_, '_, '_, '_, 'heap, A, S> {
     fn local(&mut self, node: Node<'heap>) -> Local {
         let NodeKind::Variable(Variable::Local(local)) = node.kind else {
             self.state

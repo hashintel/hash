@@ -98,6 +98,8 @@ The transition kernel defines how input tokens are transformed into output token
 
 The **Transition Results** editor is shown only when the transition has at least one coloured output place. If every output place is uncoloured, leave the kernel empty; the engine creates the right number of plain tokens from the output arc weights.
 
+When a coloured output arc first makes a kernel available, Petrinaut inserts a starter template based on the transition's typed output places. You can replace or edit that code directly.
+
 ```ts
 export default TransitionKernel((tokensByPlace, parameters) => {
   return {

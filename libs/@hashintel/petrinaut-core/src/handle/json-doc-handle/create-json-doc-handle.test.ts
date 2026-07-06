@@ -268,6 +268,7 @@ describe("createPetrinaut", () => {
       stochasticity: false,
       dynamics: false,
       parameters: false,
+      subnets: true,
     });
   });
 
@@ -289,6 +290,7 @@ describe("createPetrinaut", () => {
       stochasticity: true,
       dynamics: false,
       parameters: true,
+      subnets: true,
     });
   });
 

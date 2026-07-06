@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { getArcEndpointPlaceId } from "../../arc-endpoints";
 import {
   createEngineFrame,
   createEngineFrameLayout,
@@ -126,19 +127,25 @@ function makeCompiledTransitions({
         {
           id: transition.id,
           name: transition.name,
-          inputPlaces: transition.inputArcs.map((arc) => ({
-            placeId: arc.placeId,
-            placeName: placesMap.get(arc.placeId)?.name ?? arc.placeId,
-            weight: arc.weight,
-            arcType: arc.type,
-            elementNames: getElementNames(arc.placeId),
-          })),
-          outputPlaces: transition.outputArcs.map((arc) => ({
-            placeId: arc.placeId,
-            placeName: placesMap.get(arc.placeId)?.name ?? arc.placeId,
-            weight: arc.weight,
-            elementNames: getElementNames(arc.placeId),
-          })),
+          inputPlaces: transition.inputArcs.map((arc) => {
+            const placeId = getArcEndpointPlaceId(arc)!;
+            return {
+              placeId,
+              placeName: placesMap.get(placeId)?.name ?? placeId,
+              weight: arc.weight,
+              arcType: arc.type,
+              elementNames: getElementNames(placeId),
+            };
+          }),
+          outputPlaces: transition.outputArcs.map((arc) => {
+            const placeId = getArcEndpointPlaceId(arc)!;
+            return {
+              placeId,
+              placeName: placesMap.get(placeId)?.name ?? placeId,
+              weight: arc.weight,
+              elementNames: getElementNames(placeId),
+            };
+          }),
           lambdaFn,
           transitionKernelFn,
         },

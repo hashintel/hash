@@ -54,7 +54,7 @@ const createSeries = (count: number): TimelineSeriesMeta[] =>
 
 /**
  * Owns the hidden-series state so strip interactions behave as they do under
- * the real EditorContext-backed wiring.
+ * the real EditorContext-backed connections.
  */
 const StatefulLegend = ({ series }: { series: TimelineSeriesMeta[] }) => {
   const [hiddenSeries, setHiddenSeries] = useState<Set<string>>(new Set());

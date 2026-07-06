@@ -95,6 +95,14 @@ const stochasticTimingCapabilities = {
   disabledExtensions: ["colors", "dynamics", "parameters"],
 } satisfies PetrinautHandleCapabilities;
 
+const subnetsWithColorsCapabilities = {
+  disabledExtensions: [],
+} satisfies PetrinautHandleCapabilities;
+
+const subnetsWithoutColorsCapabilities = {
+  disabledExtensions: ["colors", "dynamics"],
+} satisfies PetrinautHandleCapabilities;
+
 const colouredTokenFlowNet: SDCPN = {
   places: [
     {
@@ -438,6 +446,28 @@ export const StochasticTimingOnly: Story = {
       capabilities={stochasticTimingCapabilities}
       initial={stochasticTimingNet}
       initialTitle="Stochastic timing"
+    />
+  ),
+};
+
+export const SubnetsWithColors: Story = {
+  name: "Subnets — with colours",
+  render: () => (
+    <HandleSpikeRender
+      capabilities={subnetsWithColorsCapabilities}
+      initial={sirModel.petriNetDefinition}
+      initialTitle={sirModel.title}
+    />
+  ),
+};
+
+export const SubnetsWithoutColors: Story = {
+  name: "Subnets — without colours",
+  render: () => (
+    <HandleSpikeRender
+      capabilities={subnetsWithoutColorsCapabilities}
+      initial={sirModel.petriNetDefinition}
+      initialTitle={sirModel.title}
     />
   ),
 };

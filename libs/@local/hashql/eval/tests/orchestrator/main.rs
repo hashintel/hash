@@ -108,8 +108,7 @@ fn run_jexpr_test(
     let heap = Heap::new();
     let mut pipeline = Pipeline::new(&heap);
 
-    // Lower first so the type environment is populated, then build inputs.
-    let mut lowered = match execution::lower(&mut pipeline, &bytes) {
+    let lowered = match execution::lower(&mut pipeline, &bytes) {
         Ok(lowered) => lowered,
         Err(diagnostic) => {
             let rendered = render_failure(&source, &pipeline, &diagnostic);
@@ -119,8 +118,7 @@ fn run_jexpr_test(
 
     let inputs = build_inputs(
         &heap,
-        &pipeline,
-        &lowered.interner,
+        &lowered.interner.symbols,
         &context.entities,
         &axis_directives,
     );
@@ -130,7 +128,7 @@ fn run_jexpr_test(
         runtime,
         context.store.as_client(),
         &inputs,
-        &mut lowered,
+        lowered,
     ) {
         Ok((value, events)) => {
             let rendered = render_success(&source, &value, &events, &pipeline)?;
@@ -162,8 +160,7 @@ fn run_programmatic_test(
 
     let inputs = build_inputs(
         &heap,
-        &pipeline,
-        &interner,
+        &interner.symbols,
         &context.entities,
         &AxisDirectives::default(),
     );
@@ -177,7 +174,7 @@ fn run_programmatic_test(
         runtime,
         context.store.as_client(),
         &inputs,
-        &interner,
+        interner,
         entry,
         &mut bodies,
     ) {

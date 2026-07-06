@@ -64,7 +64,7 @@ pub use self::{
     continuation::ContinuationField,
     parameters::{Parameter, ParameterIndex, ParameterValue, Parameters, TemporalAxis},
 };
-use crate::context::EvalContext;
+use crate::context::CodeGenerationContext;
 
 mod continuation;
 pub(crate) mod error;
@@ -235,12 +235,12 @@ impl<'heap, A: Allocator> PreparedQueries<'heap, A> {
 /// Compiles Postgres-targeted MIR islands into a single PostgreSQL `SELECT`.
 ///
 /// Created per evaluation and used to compile [`GraphRead`] terminators. Compilation emits
-/// diagnostics into the shared [`EvalContext`] rather than returning `Result`, so multiple
-/// errors can be reported from a single compilation pass.
+/// diagnostics into the shared [`CodeGenerationContext`] rather than returning `Result`, so
+/// multiple errors can be reported from a single compilation pass.
 ///
 /// [`GraphRead`]: hashql_mir::body::terminator::GraphRead
 pub struct PostgresCompiler<'eval, 'ctx, 'heap, A: Allocator, S: Allocator> {
-    context: &'eval mut EvalContext<'ctx, 'heap, A>,
+    context: &'eval mut CodeGenerationContext<'ctx, 'heap, A>,
 
     alloc: A,
     scratch: S,
@@ -257,7 +257,7 @@ pub struct PostgresCompiler<'eval, 'ctx, 'heap, A: Allocator, S: Allocator> {
 impl<'eval, 'ctx, 'heap, A: Allocator, S: BumpAllocator>
     PostgresCompiler<'eval, 'ctx, 'heap, A, S>
 {
-    pub fn new_in(context: &'eval mut EvalContext<'ctx, 'heap, A>, scratch: S) -> Self
+    pub fn new_in(context: &'eval mut CodeGenerationContext<'ctx, 'heap, A>, scratch: S) -> Self
     where
         A: Clone,
     {

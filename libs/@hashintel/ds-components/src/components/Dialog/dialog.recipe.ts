@@ -8,6 +8,8 @@ export const styles = sva({
     .extendWith(
       "stackRoot",
       "header",
+      "headerMain",
+      "headerText",
       "titleIcon",
       "headerActions",
       "headerRight",
@@ -121,6 +123,8 @@ export const styles = sva({
       flex: "[1 1 auto]",
       minWidth: "0",
     },
+    headerMain: {},
+    headerText: {},
     titleIcon: {
       float: "start",
       marginLeft: "-0.5",
@@ -263,6 +267,9 @@ export const styles = sva({
       md: {
         content: { maxWidth: "[640px]" },
         loadingSpinner: { height: "[40px !important]" },
+        headerMain: { display: "flex", alignItems: "flex-start", gap: "2" },
+        titleIcon: { marginRight: "0" },
+        headerText: { flex: "[1 1 auto]", minWidth: "[0]" },
       },
       lg: {
         content: { maxWidth: "[860px]" },
@@ -270,6 +277,9 @@ export const styles = sva({
           height: "[45px !important]",
           color: "neutral.s115",
         },
+        headerMain: { display: "flex", alignItems: "flex-start", gap: "2" },
+        titleIcon: { marginRight: "0" },
+        headerText: { flex: "[1 1 auto]", minWidth: "[0]" },
       },
       xl: {
         content: { maxWidth: "[1060px]" },
@@ -277,6 +287,9 @@ export const styles = sva({
           height: "[50px !important]",
           color: "neutral.s115",
         },
+        headerMain: { display: "flex", alignItems: "flex-start", gap: "2" },
+        titleIcon: { marginRight: "0" },
+        headerText: { flex: "[1 1 auto]", minWidth: "[0]" },
       },
       fullScreen: {
         positioner: { padding: "0" },
@@ -291,6 +304,9 @@ export const styles = sva({
           height: "[50px !important]",
           color: "neutral.s110",
         },
+        headerMain: { display: "flex", alignItems: "flex-start", gap: "2" },
+        titleIcon: { marginRight: "0" },
+        headerText: { flex: "[1 1 auto]", minWidth: "[0]" },
       },
     },
     variant: {

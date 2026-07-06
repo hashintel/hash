@@ -19,7 +19,7 @@ mod terminator_placement;
 pub mod traversal;
 mod vertex;
 
-use core::{alloc::Allocator, assert_matches};
+use core::{alloc::Allocator, assert_matches, fmt};
 
 use hashql_core::heap::{BumpAllocator, Heap};
 
@@ -55,6 +55,15 @@ use crate::{
 pub struct ExecutionAnalysisResidual<A: Allocator> {
     pub assignment: BasicBlockVec<TargetId, A>,
     pub islands: IslandGraph<A>,
+}
+
+impl<A: Allocator> core::fmt::Debug for ExecutionAnalysisResidual<A> {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt.debug_struct("ExecutionAnalysisResidual")
+            .field("assignment", &self.assignment)
+            .field("islands", &self.islands)
+            .finish()
+    }
 }
 
 pub struct ExecutionAnalysis<'ctx, 'heap, S: Allocator> {

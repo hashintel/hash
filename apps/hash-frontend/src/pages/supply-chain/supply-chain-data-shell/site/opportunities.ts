@@ -60,8 +60,7 @@ export interface BuildSiteOpportunitiesInput {
 }
 
 const DWELL_DAYS_CUTOFF = 7;
-// Minimum annualised carrying cost (site currency, treated as the CHF-equivalent
-// floor) for a dwell-cost opportunity: below this the saving isn't worth surfacing.
+// Minimum annualised carrying cost for a dwell-cost opportunity: below this the saving isn't worth surfacing.
 const DWELL_MIN_PERIOD_COST = 5000;
 const PLANNING_RATIO_THRESHOLD = 0.1;
 

@@ -157,6 +157,7 @@ impl<'env, 'heap, A: Allocator> TransformPass<'env, 'heap> for ForwardSubstituti
 }
 
 impl Default for ForwardSubstitution {
+    #[inline]
     fn default() -> Self {
         Self::new()
     }

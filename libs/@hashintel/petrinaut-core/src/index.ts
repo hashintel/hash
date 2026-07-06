@@ -51,6 +51,7 @@ export type { ReadableStore } from "./store";
 export {
   DEFAULT_PETRINAUT_EXTENSIONS,
   PETRINAUT_EXTENSION_NAMES,
+  createArcPlaceResolver,
   getEffectiveTransitionLambdaType,
   getTransitionLogicAvailability,
   hasTypedNonInhibitorInputPlace,
@@ -109,6 +110,7 @@ export {
 // --- AI ---
 export {
   colorSchema,
+  componentInstanceSchema,
   createPetrinautAiWritableCallbacks,
   differentialEquationSchema,
   getLatestNetDefinitionToolName,
@@ -127,6 +129,7 @@ export {
   scenarioSchema,
   setNetTitleToolInputSchema,
   setNetTitleToolName,
+  subnetSchema,
   transitionSchema,
 } from "./ai";
 export type {
@@ -276,6 +279,21 @@ export {
   generateArcId,
   type ArcIdPrefix,
 } from "./arc-id";
+export {
+  arcEndpointsEqual,
+  arcMatchesEndpoint,
+  arcReferencesComponentInstance,
+  arcReferencesPlace,
+  componentPortArcEndpoint,
+  createArcEndpointReference,
+  getArcEndpoint,
+  getArcEndpointKey,
+  getArcEndpointNodeId,
+  getArcEndpointPlaceId,
+  getComponentPortEndpointSubnet,
+  parseArcEndpointKey,
+  placeArcEndpoint,
+} from "./arc-endpoints";
 export { GRID_SIZE } from "./grid-size";
 export {
   type DefaultParameterValues,

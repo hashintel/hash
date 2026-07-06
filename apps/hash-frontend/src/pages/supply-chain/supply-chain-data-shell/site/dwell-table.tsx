@@ -28,6 +28,7 @@ import type { SiteNode } from "../../shared/types";
 
 export const DwellTable = ({
   rows,
+  siteId,
   sort,
   onSort,
   onRowClick,
@@ -38,6 +39,8 @@ export const DwellTable = ({
   currency,
 }: {
   rows: DwellRow[];
+  /** Route site slug; scopes status keys to the global store. */
+  siteId: string;
   sort: { key: SortKey; dir: SortDir };
   onSort: (s: { key: SortKey; dir: SortDir }) => void;
   onRowClick: (node: SiteNode) => void;
@@ -173,7 +176,7 @@ export const DwellTable = ({
 
                   <StatusActionButton
                     state={deriveStatusActionState(
-                      statusHistory[statusKey(row.plant, row)],
+                      statusHistory[statusKey(siteId, row)],
                     )}
                     onClick={(event) => {
                       event.stopPropagation();

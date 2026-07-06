@@ -15,11 +15,14 @@ import {
   AnalysisSettingsPanel,
   HeaderActionButtons,
 } from "../shared/header-actions";
+import { MaterialTag } from "../shared/material-tag";
 import { MEASURE_LABELS, useBaseMeasure } from "../shared/measure-context";
 import { useProcurementBasis } from "../shared/procurement-basis-context";
 import { filterGraphNodeByDateRange } from "../shared/range-filter";
+import { useRegistry } from "../shared/registry-context";
 import { ScopeSelect } from "../shared/scope-select";
 import { SegmentedControl } from "../shared/segmented-control";
+import { normaliseSiteCode } from "../shared/site-code";
 import { StatChip } from "../shared/stat-chip";
 import { statusKey } from "../shared/status";
 import { StatusDialog } from "../shared/status-dialog";
@@ -263,6 +266,12 @@ export const Overview = ({
     useCostParams();
   const { excludeOutliers } = useOutlierSetting();
   const { basis: procurementBasis } = useProcurementBasis();
+  const { products } = useRegistry();
+  const productMaterial = useMemo(
+    () =>
+      products.find((product) => product.id === productId)?.material ?? null,
+    [products, productId],
+  );
 
   const [searchParams, setSearchParams] = useSearchParams();
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -474,13 +483,32 @@ export const Overview = ({
       : null;
   }, [graph.nodes, graph.product_name, productId, selectedStepId]);
 
-  const selectedSiteId = selectedNode?.plant ?? "";
-  const opportunityStatusStore = useSupplyChainStatusState(selectedSiteId);
+  // Stable site code for the product: the plant where the finished good is
+  // produced/QA'd. Transit and destination-dwell nodes carry lane/hub
+  // identifiers in `plant`, so scoping the status hook / status keys / brief
+  // links off the *selected* step's plant made the site scope jump around as
+  // the selection changed (re-initialising the status hook and splitting status
+  // history across scopes). The site code is smaller and less likely to change,
+  // so derive it once from the graph and use it for the whole product page.
+  //
+  // `node.plant` is the raw (upper-case) plant code, whereas the site
+  // overview scopes by the lower-cased route slug; `normaliseSiteCode` reconciles
+  // the two so status set on the site overview lines up with the product page.
+  const productSiteId = useMemo(() => {
+    const homeNode =
+      graph.nodes.find((node) => node.type === "production") ??
+      graph.nodes.find((node) => node.type === "qa_hold") ??
+      graph.nodes.find(
+        (node) => node.type !== "transit" && node.type !== "destination_dwell",
+      );
+    return normaliseSiteCode(homeNode?.plant ?? graph.nodes[0]?.plant ?? "");
+  }, [graph.nodes]);
+  const opportunityStatusStore = useSupplyChainStatusState(productSiteId);
   const selectedStatusKey = selectedNode
-    ? statusKey(selectedSiteId, selectedNode)
+    ? statusKey(productSiteId, selectedNode)
     : null;
   const selectedBriefHref = useMemo(() => {
-    if (!selectedNode || !selectedSiteId) {
+    if (!selectedNode || !productSiteId) {
       return undefined;
     }
     const params = new URLSearchParams({ range: timeRange });
@@ -491,10 +519,10 @@ export const Overview = ({
       }
     }
 
-    return `/supply-chain/site/${selectedSiteId}/opportunity/${
+    return `/supply-chain/site/${productSiteId}/opportunity/${
       isDwellType(selectedNode.type) ? "dwell" : "planning"
     }/${productId}/${selectedNode.id}?${params.toString()}`;
-  }, [productId, searchParams, selectedNode, selectedSiteId, timeRange]);
+  }, [productId, searchParams, selectedNode, productSiteId, timeRange]);
 
   const statusTargetIsSelectedNode =
     selectedNode != null &&
@@ -509,7 +537,9 @@ export const Overview = ({
         <div className={headerRow}>
           {/* Left: scope picker (doubles as title) + stats */}
           <div className={titleCol}>
-            <ScopeSelect productId={productId} />
+            <MaterialTag material={productMaterial} side="right">
+              <ScopeSelect productId={productId} />
+            </MaterialTag>
             <div className={statsRow}>
               {summaryStats.totalMean != null && (
                 <StatChip
@@ -672,6 +702,7 @@ export const Overview = ({
           stepId={selectedStepId}
           onClose={handlePanelClose}
           productName={graph.product_name}
+          stepMaterial={selectedNode?.material}
           briefHref={selectedBriefHref}
           statusEntries={
             selectedStatusKey

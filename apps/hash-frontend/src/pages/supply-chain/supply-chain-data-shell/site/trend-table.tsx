@@ -148,6 +148,7 @@ const TrendSampleTooltip = ({
 };
 export const TrendTable = ({
   rows,
+  siteId,
   sort,
   onSort,
   onRowClick,
@@ -155,6 +156,8 @@ export const TrendTable = ({
   onStatus,
 }: {
   rows: TrendRow[];
+  /** Route site slug; scopes status keys to the global store. */
+  siteId: string;
   sort: { key: SortKey; dir: SortDir };
   onSort: (s: { key: SortKey; dir: SortDir }) => void;
   onRowClick: (node: SiteNode) => void;
@@ -278,7 +281,7 @@ export const TrendTable = ({
               <td className={cx(threshold.td, threshold.tdRight)}>
                 <StatusActionButton
                   state={deriveStatusActionState(
-                    statusHistory[statusKey(row.plant, row)],
+                    statusHistory[statusKey(siteId, row)],
                   )}
                   onClick={(event) => {
                     event.stopPropagation();

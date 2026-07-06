@@ -27,6 +27,7 @@ pub mod context;
 pub mod error;
 #[cfg(feature = "graph")]
 pub mod graph;
+pub mod intern;
 pub mod orchestrator;
 pub mod postgres;
 

@@ -18,7 +18,9 @@ import type {
 const backdrop = css({
   position: "fixed",
   inset: "0",
-  zIndex: "[1000]",
+  // Sits above the slide-over (positioner `modal` = 1400) so the docs modal,
+  // which can be opened from within the slide-over, renders on top of it.
+  zIndex: "[1450]",
   bg: "neutral.a80",
   display: "flex",
   alignItems: "center",

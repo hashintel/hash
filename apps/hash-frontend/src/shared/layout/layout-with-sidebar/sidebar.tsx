@@ -29,6 +29,7 @@ import { useInvites } from "../../invites-context";
 import { useNotificationCount } from "../../notification-count-context";
 import { useRoutePageInfo } from "../../routing";
 import { useUserPreferences } from "../../use-user-preferences";
+import { HEADER_HEIGHT } from "../layout-with-header/page-header";
 import { useSidebarContext } from "./sidebar-context";
 import { AccountEntitiesList } from "./sidebar/account-entities-list";
 import { AccountEntityTypeList } from "./sidebar/account-entity-type-list";
@@ -219,6 +220,7 @@ export const PageSidebar: FunctionComponent = () => {
       sx={{
         zIndex: 0,
         width: SIDEBAR_WIDTH,
+        maxHeight: `calc(100vh - ${HEADER_HEIGHT}px)`,
       }}
       PaperProps={{
         sx: (theme) => ({

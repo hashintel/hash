@@ -14,6 +14,7 @@ export type SelectionItemType =
   | "place"
   | "transition"
   | "arc"
+  | "componentInstance"
   | "type"
   | "differentialEquation"
   | "parameter";
@@ -22,6 +23,7 @@ export type SelectionItem =
   | { type: "place"; id: string }
   | { type: "transition"; id: string }
   | { type: "arc"; id: string }
+  | { type: "componentInstance"; id: string }
   | { type: "type"; id: string }
   | { type: "differentialEquation"; id: string }
   | { type: "parameter"; id: string };

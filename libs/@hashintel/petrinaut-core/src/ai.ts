@@ -14,13 +14,16 @@ import { typedKeys } from "./lib/typed-entries";
 import type { Petrinaut } from "./instance";
 
 export {
+  arcEndpointSchema,
   colorSchema,
+  componentInstanceSchema,
   differentialEquationSchema,
   metricSchema,
   parameterSchema,
   mutationActionInputSchemas,
   placeSchema,
   scenarioSchema,
+  subnetSchema,
   transitionSchema,
 } from "./action-schemas";
 export type {
