@@ -4,7 +4,7 @@ mod read;
 mod summary;
 
 use alloc::{borrow::Cow, collections::BTreeMap};
-use core::{borrow::Borrow as _, mem};
+use core::{any::Any, borrow::Borrow as _, fmt, mem};
 use std::collections::{HashMap, HashSet};
 
 use error_stack::{FutureExt as _, Report, ResultExt as _, TryReportStreamExt as _, ensure};
@@ -65,6 +65,7 @@ use hash_graph_types::{
 use hash_graph_validation::{EntityPreprocessor, Validate as _};
 use hash_status::StatusCode;
 use postgres_types::ToSql;
+use tokio::sync::oneshot;
 use tokio_postgres::{GenericClient as _, error::SqlState};
 use tracing::Instrument as _;
 use type_system::{
@@ -112,6 +113,71 @@ use crate::store::{
     },
     validation::StoreProvider,
 };
+
+/// The panic that happened during a spawned task.
+///
+/// Opaque to fulfil the `Sync` contract, which has the safety requirement that it must be sound for
+/// `&JoinError`, to cross thread boundaries. By design, a `&JoinError` has no API whatsoever,
+/// making it useless, thus harmless, thus memory safe.
+///
+/// This use has precedent, see the nightly `SyncView`, the `SyncWrapper` inside tokio, and
+/// `SyncWrapper` of the `sync_wrapper` crate.
+struct JoinError(Box<dyn Any + Send>);
+
+// SAFETY: An immutable reference to a `JoinError` is useless, as the value can only be interacted
+// with by getting the inner value. This mirrors the design of `SyncView`, see the rationale behind
+// it. We choose to implement a custom wrapper instead, to be able to downcast, as long as the
+// actual value hidden behind is `Sync`, making the wrapper a no-op, mirroring the internal
+// `SyncWrapper` type of tokio, used for it's `JoinError`.
+// See: https://github.com/tokio-rs/tokio/blob/c4c6265a0746a79d4a2f3852f726aa0101f29fd3/tokio/src/util/sync_wrapper.rs#L8
+// and: https://github.com/rust-lang/rust/blob/f10db292a3733b5c67c8da8c7661195ff4b05774/library/core/src/sync/sync_view.rs#L90
+#[expect(unsafe_code)]
+unsafe impl Sync for JoinError {}
+
+impl JoinError {
+    // Adapted from: https://github.com/rust-lang/rust/blob/6c8138de8f1c96b2f66adbbc0e37c73525444750/library/std/src/panicking.rs#L779-L787
+    fn message(&self) -> Option<&str> {
+        if let Some(value) = self.downcast_ref_sync::<&'static str>() {
+            return Some(*value);
+        }
+
+        if let Some(value) = self.downcast_ref_sync::<String>() {
+            return Some(&**value);
+        }
+
+        None
+    }
+
+    fn downcast_ref_sync<T: Any + Sync>(&self) -> Option<&T> {
+        // If the downcast fails, the inner value is not touched, so no thread-safety violation can
+        // occur.
+        self.0.downcast_ref()
+    }
+}
+
+impl fmt::Debug for JoinError {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut debug = fmt.debug_tuple("JoinError");
+
+        if let Some(message) = self.message() {
+            return debug.field(&message).finish();
+        }
+
+        debug.finish_non_exhaustive()
+    }
+}
+
+impl fmt::Display for JoinError {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if let Some(message) = self.message() {
+            return write!(fmt, "task panicked with message: {message}");
+        }
+
+        fmt.write_str("task panicked")
+    }
+}
+
+impl core::error::Error for JoinError {}
 
 impl<C> PostgresStore<C>
 where
@@ -2756,15 +2822,25 @@ where
             }),
         );
 
-        let result = tokio::task::spawn_blocking(move || {
-            hash_graph_embeddings::clustering::cluster(&flat, dimension, &config)
-        })
-        .await
-        .change_context(ClusterError::Store)?;
+        let (tx, rx) = oneshot::channel();
+        rayon::spawn(move || {
+            let result = std::panic::catch_unwind(core::panic::AssertUnwindSafe(|| {
+                hash_graph_embeddings::clustering::cluster(&flat, dimension, &config)
+            }));
+
+            let result = result.map_err(JoinError);
+
+            let _tx = tx.send(result);
+        });
+
+        let clustering = rx
+            .await
+            .change_context(ClusterError::Store)?
+            .change_context(ClusterError::Store)?;
 
         let mut groups: BTreeMap<u16, Vec<EntityId>> = BTreeMap::new();
         for (index, id) in found_ids.iter().enumerate() {
-            groups.entry(result.label(index)).or_default().push(*id);
+            groups.entry(clustering.label(index)).or_default().push(*id);
         }
 
         let clusters = groups
@@ -2772,14 +2848,14 @@ where
             .map(|(cluster_id, entity_ids)| EntityCluster {
                 cluster_id,
                 entity_ids,
-                centroid: result.centroid(cluster_id).to_vec(),
+                centroid: clustering.centroid(cluster_id).to_vec(),
             })
             .collect();
 
         Ok(ClusterEntitiesResponse {
             clusters,
             missing_embeddings,
-            inertia: result.inertia,
+            inertia: clustering.inertia,
         })
     }
 }

@@ -3789,6 +3789,7 @@ dependencies = [
  "indoc",
  "postgres-types",
  "pretty_assertions",
+ "rayon",
  "refinery",
  "regex",
  "semver",
