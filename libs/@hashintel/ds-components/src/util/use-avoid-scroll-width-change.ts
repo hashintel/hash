@@ -127,8 +127,8 @@ export const useAvoidScrollWidthChange = (
     let appliedBlockGutter: number | null = null;
 
     const sync = (): void => {
-      const hasVerticalScrollbar = element.scrollHeight > element.clientHeight;
-      const hasHorizontalScrollbar = element.scrollWidth > element.clientWidth;
+      const hasVerticalScrollbar = element.scrollHeight >= element.clientHeight;
+      const hasHorizontalScrollbar = element.scrollWidth >= element.clientWidth;
 
       const style = getComputedStyle(element);
 

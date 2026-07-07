@@ -176,7 +176,10 @@ export const OverlayFooter = ({
 
 export type OverlayBodyProps = {
   children: React.ReactNode;
-  /** Turn padding on/off. Used when the body content controls padding itself. defaults to true */
+  /**
+   * Turn padding on/off. Used when the body content controls padding itself. defaults to true.
+   * If set, you will need to apply useAvoidScrollWidthChange yourself if the content height/width can change.
+   * */
   withPadding?: boolean;
 };
 
