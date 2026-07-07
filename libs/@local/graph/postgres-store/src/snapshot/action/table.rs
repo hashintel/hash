@@ -1,5 +1,9 @@
 use postgres_types::ToSql;
 
+use crate::store::postgres::query::{
+    PostgresType, Table, TableName, rows::PostgresRow, table::DatabaseColumn,
+};
+
 #[derive(Debug)]
 pub struct ActionRow {
     pub name: String,
@@ -12,10 +16,6 @@ pub struct ActionHierarchyRow {
     pub child_name: String,
     pub depth: i32,
 }
-
-use crate::store::postgres::query::{
-    PostgresType, Table, TableName, rows::PostgresRow, table::DatabaseColumn,
-};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum Action {
