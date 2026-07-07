@@ -1,3 +1,29 @@
+import {
+  currentTimestamp,
+  entityIdFromComponents,
+} from "@blockprotocol/type-system";
+import { typedKeys } from "@local/advanced-types/typed-entries";
+import {
+  getStorageProvider,
+  storePayload,
+} from "@local/hash-backend-utils/flows/payload-storage";
+import { isInferenceModelName } from "@local/hash-isomorphic-utils/ai-inference-types";
+import { getSimplifiedAiFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
+import { StatusCode } from "@local/status";
+
+import { getAiAssistantAccountIdActivity } from "../get-ai-assistant-account-id-activity.js";
+import { getDereferencedEntityTypesActivity } from "../get-dereferenced-entity-types-activity.js";
+import { inferEntitiesFromWebPageActivity } from "../infer-entities-from-web-page-activity.js";
+import { getFlowContext } from "../shared/get-flow-context.js";
+import { graphApiClient } from "../shared/graph-api-client.js";
+import { inferenceModelAliasToSpecificModel } from "../shared/inference-model-alias-to-llm-model.js";
+import { isPermittedOpenAiModel } from "../shared/openai-client.js";
+
+import type {
+  DereferencedEntityTypesByTypeId,
+  InferenceState,
+} from "../infer-entities/inference-types.js";
 import type {
   EntityId,
   EntityUuid,
@@ -6,33 +32,8 @@ import type {
   SourceProvenance,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-import {
-  currentTimestamp,
-  entityIdFromComponents,
-} from "@blockprotocol/type-system";
-import { typedKeys } from "@local/advanced-types/typed-entries";
 import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
-import {
-  getStorageProvider,
-  storePayload,
-} from "@local/hash-backend-utils/flows/payload-storage";
-import { isInferenceModelName } from "@local/hash-isomorphic-utils/ai-inference-types";
-import { getSimplifiedAiFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
-import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
-import { StatusCode } from "@local/status";
-
-import { getAiAssistantAccountIdActivity } from "../get-ai-assistant-account-id-activity.js";
-import { getDereferencedEntityTypesActivity } from "../get-dereferenced-entity-types-activity.js";
-import type {
-  DereferencedEntityTypesByTypeId,
-  InferenceState,
-} from "../infer-entities/inference-types.js";
-import { inferEntitiesFromWebPageActivity } from "../infer-entities-from-web-page-activity.js";
-import { getFlowContext } from "../shared/get-flow-context.js";
-import { graphApiClient } from "../shared/graph-api-client.js";
-import { inferenceModelAliasToSpecificModel } from "../shared/inference-model-alias-to-llm-model.js";
-import { isPermittedOpenAiModel } from "../shared/openai-client.js";
 
 export const inferEntitiesFromContentAction: AiFlowActionActivity<
   "inferEntitiesFromContent"

@@ -7,6 +7,7 @@ import { GrayToBlueIconButton } from "../../gray-to-blue-icon-button";
 import { ControlPanel } from "./shared/control-components";
 import { useGraphContext } from "./shared/graph-context";
 import { SimpleAutocomplete } from "./shared/simple-autocomplete";
+
 import type { GraphVizNode } from "./shared/types";
 
 type NodeData = GraphVizNode & {

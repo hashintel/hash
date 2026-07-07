@@ -1,10 +1,10 @@
-import { stringifyError } from "@local/hash-isomorphic-utils/stringify-error";
 import { backOff } from "exponential-backoff";
+
+import * as Error from "../../error";
+import { getOpenAiClient } from "./shared/openai-client";
 
 import type { QueryGenerateInverseArgs, ResolverFn } from "../../api-types.gen";
 import type { GraphQLContext } from "../../context";
-import * as Error from "../../error";
-import { getOpenAiClient } from "./shared/openai-client";
 
 const generatePrompt = (relationship: string): string => `
 You are building the ontology for a knowledge graph. You have a directed relationship between two nodes called "${relationship}".
@@ -79,10 +79,11 @@ export const generateInverseResolver: ResolverFn<
     );
 
     return responseMessage;
-  } catch (err) {
-    graphQLContext.logger.error(
-      `Failed to generate inverse relationship for '${relationship}': ${stringifyError(err)}`,
-    );
+  } catch (error) {
+    graphQLContext.logger.error("Failed to generate inverse relationship", {
+      relationship,
+      error,
+    });
     throw Error.internal(
       `Failed to generate inverse relationship for ${relationship}`,
     );

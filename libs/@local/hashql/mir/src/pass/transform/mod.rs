@@ -12,7 +12,6 @@ mod inst_simplify;
 mod post_inline;
 mod pre_inline;
 mod ssa_repair;
-mod traversal_extraction;
 
 pub use self::{
     administrative_reduction::AdministrativeReduction,
@@ -23,10 +22,12 @@ pub use self::{
     dle::DeadLocalElimination,
     dse::DeadStoreElimination,
     forward_substitution::ForwardSubstitution,
-    inline::{Inline, InlineConfig, InlineCostEstimationConfig, InlineHeuristicsConfig},
+    inline::{
+        Inline, InlineConfig, InlineCostEstimationConfig, InlineHeuristicsConfig,
+        InlineLoopBreakerConfig,
+    },
     inst_simplify::InstSimplify,
-    post_inline::{PostInline, PostInlineResidual},
+    post_inline::PostInline,
     pre_inline::PreInline,
     ssa_repair::SsaRepair,
-    traversal_extraction::{TraversalExtraction, Traversals},
 };

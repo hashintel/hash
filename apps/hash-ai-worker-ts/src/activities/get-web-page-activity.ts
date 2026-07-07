@@ -1,19 +1,21 @@
-import type { Url } from "@blockprotocol/type-system";
-import { validateExternalUrlWithDnsCheck } from "@local/hash-backend-utils/url-validation";
-import type {
-  FlowInternetAccessSettings,
-  WebPage,
-} from "@local/hash-isomorphic-utils/flows/types";
-import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
-import { stringifyError } from "@local/hash-isomorphic-utils/stringify-error";
 import { Context } from "@temporalio/activity";
 import { JSDOM } from "jsdom";
 import puppeteer from "puppeteer-core";
 import sanitizeHtml from "sanitize-html";
 
+import { validateExternalUrlWithDnsCheck } from "@local/hash-backend-utils/url-validation";
+import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
+import { stringifyError } from "@local/hash-isomorphic-utils/stringify-error";
+
 import { logger } from "./shared/activity-logger.js";
 import { getFlowContext } from "./shared/get-flow-context.js";
 import { requestExternalInput } from "./shared/request-external-input.js";
+
+import type { Url } from "@blockprotocol/type-system";
+import type {
+  FlowInternetAccessSettings,
+  WebPage,
+} from "@local/hash-isomorphic-utils/flows/types";
 
 const sliceContentForLlmConsumption = (params: {
   content: string;
@@ -213,11 +215,13 @@ const getWebPageFromRemoteBrowser = async (
       url,
     };
   } catch (error) {
-    const errMessage = stringifyError(error);
-    logger.error(`Failed to load URL ${url} in remote browser: ${errMessage}`);
+    logger.error(`Failed to load URL ${url} in remote browser`, {
+      url,
+      error,
+    });
 
     return {
-      error: errMessage,
+      error: stringifyError(error),
     };
   } finally {
     await page?.close().catch(() => {});

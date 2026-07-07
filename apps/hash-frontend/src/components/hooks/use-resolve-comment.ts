@@ -1,13 +1,14 @@
 import { useMutation } from "@apollo/client";
-import type { EntityId } from "@blockprotocol/type-system";
 import { useCallback } from "react";
+
+import { resolveComment } from "../../graphql/queries/comment.queries";
+import { getPageComments } from "../../graphql/queries/page.queries";
 
 import type {
   ResolveCommentMutation,
   ResolveCommentMutationVariables,
 } from "../../graphql/api-types.gen";
-import { resolveComment } from "../../graphql/queries/comment.queries";
-import { getPageComments } from "../../graphql/queries/page.queries";
+import type { EntityId } from "@blockprotocol/type-system";
 
 export const useResolveComment = (pageId: EntityId) => {
   const [resolveCommentFn, { loading }] = useMutation<

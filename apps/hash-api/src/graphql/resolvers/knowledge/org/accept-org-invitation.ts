@@ -1,7 +1,8 @@
-import { extractWebIdFromEntityId } from "@blockprotocol/type-system";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import {
+  extractWebIdFromEntityId,
+  type EntityId,
+} from "@blockprotocol/type-system";
 import { getActorGroupRole } from "@local/hash-graph-sdk/principal/actor-group";
-import type { MutationAcceptOrgInvitationArgs } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import {
   isInvitationByEmail,
@@ -17,24 +18,34 @@ import {
   type Org,
 } from "../../../../graph/knowledge/system-types/org";
 import {
+  getUserVerifiedEmails,
   isUserMemberOfOrg,
   joinOrg,
 } from "../../../../graph/knowledge/system-types/user";
 import { systemAccountId } from "../../../../graph/system-account";
+import * as Error from "../../../error";
+import { graphQLContextToImpureGraphContext } from "../../util";
+
 import type {
   AcceptInvitationResult,
   ResolverFn,
 } from "../../../api-types.gen";
 import type { LoggedInGraphQLContext } from "../../../context";
-import * as Error from "../../../error";
-import { graphQLContextToImpureGraphContext } from "../../util";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import type { MutationAcceptOrgInvitationArgs } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 
-export const acceptOrgInvitationResolver: ResolverFn<
-  Promise<AcceptInvitationResult>,
-  Record<string, never>,
-  LoggedInGraphQLContext,
-  MutationAcceptOrgInvitationArgs
-> = async (_, { orgInvitationEntityId }, graphQLContext) => {
+const inFlightInvitationAcceptances = new Map<
+  string,
+  Promise<AcceptInvitationResult>
+>();
+
+async function acceptOrgInvitation({
+  graphQLContext,
+  orgInvitationEntityId,
+}: {
+  graphQLContext: LoggedInGraphQLContext;
+  orgInvitationEntityId: EntityId;
+}): Promise<AcceptInvitationResult> {
   const { user } = graphQLContext;
 
   const context = graphQLContextToImpureGraphContext(graphQLContext);
@@ -65,7 +76,15 @@ export const acceptOrgInvitationResolver: ResolverFn<
   let isForUser: boolean;
 
   if (isInvitationByEmail(invitation)) {
-    isForUser = user.emails.includes(
+    const verifiedEmails = await getUserVerifiedEmails(
+      context,
+      graphQLContext.authentication,
+      {
+        user,
+      },
+    );
+
+    isForUser = verifiedEmails.includes(
       invitation.properties["https://hash.ai/@h/types/property-type/email/"],
     );
   } else if (isInvitationByShortname(invitation)) {
@@ -189,6 +208,26 @@ export const acceptOrgInvitationResolver: ResolverFn<
     );
   }
 
+  const becameAMemberWhileAccepting = await isUserMemberOfOrg(
+    context,
+    graphQLContext.authentication,
+    {
+      userEntityId: user.entity.metadata.recordId.entityId,
+      orgEntityUuid: extractWebIdFromEntityId(invitation.entityId),
+    },
+  );
+
+  if (becameAMemberWhileAccepting) {
+    await archiveInvitation();
+
+    return {
+      accepted: false,
+      alreadyAMember: true,
+      expired: false,
+      notForUser: false,
+    };
+  }
+
   const membershipCreationAuthentication = {
     /**
      * We use the authority of the person who issued the invitation to create the membership link,
@@ -210,4 +249,32 @@ export const acceptOrgInvitationResolver: ResolverFn<
     expired: false,
     notForUser: false,
   };
+}
+
+export const acceptOrgInvitationResolver: ResolverFn<
+  Promise<AcceptInvitationResult>,
+  Record<string, never>,
+  LoggedInGraphQLContext,
+  MutationAcceptOrgInvitationArgs
+> = async (_, { orgInvitationEntityId }, graphQLContext) => {
+  const inFlightAcceptanceKey = `${orgInvitationEntityId}:${graphQLContext.user.entity.metadata.recordId.entityId}`;
+
+  const inFlightAcceptance = inFlightInvitationAcceptances.get(
+    inFlightAcceptanceKey,
+  );
+
+  if (inFlightAcceptance) {
+    return inFlightAcceptance;
+  }
+
+  const acceptancePromise = acceptOrgInvitation({
+    graphQLContext,
+    orgInvitationEntityId,
+  }).finally(() => {
+    inFlightInvitationAcceptances.delete(inFlightAcceptanceKey);
+  });
+
+  inFlightInvitationAcceptances.set(inFlightAcceptanceKey, acceptancePromise);
+
+  return acceptancePromise;
 };

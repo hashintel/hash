@@ -27,10 +27,7 @@ use hash_graph_store::{
             TraversalEdge,
         },
         identifier::{DataTypeVertexId, GraphElementVertexId},
-        temporal_axes::{
-            PinnedTemporalAxisUnresolved, QueryTemporalAxes, QueryTemporalAxesUnresolved,
-            VariableAxis, VariableTemporalAxisUnresolved,
-        },
+        temporal_axes::{QueryTemporalAxes, QueryTemporalAxesUnresolved, VariableAxis},
     },
 };
 use hash_graph_temporal_versioning::{RightBoundedTemporalInterval, Timestamp, TransactionTime};
@@ -625,10 +622,7 @@ where
                             parameters: ParameterList::DataTypeIds(&required_reference_ids),
                         },
                     ),
-                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                        pinned: PinnedTemporalAxisUnresolved::new(None),
-                        variable: VariableTemporalAxisUnresolved::new(None, None),
-                    },
+                    temporal_axes: QueryTemporalAxesUnresolved::live_only(),
                     after: None,
                     limit: None,
                     include_count: false,
@@ -1055,10 +1049,7 @@ where
                             parameters: ParameterList::DataTypeIds(&required_parent_ids),
                         },
                     ),
-                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                        pinned: PinnedTemporalAxisUnresolved::new(None),
-                        variable: VariableTemporalAxisUnresolved::new(None, None),
-                    },
+                    temporal_axes: QueryTemporalAxesUnresolved::live_only(),
                     after: None,
                     limit: None,
                     include_count: false,
@@ -1599,11 +1590,7 @@ where
         authenticated_actor: AuthenticatedActor,
         params: HasPermissionForDataTypesParams<'_>,
     ) -> Result<HashSet<VersionedUrl>, Report<hash_graph_store::error::CheckPermissionError>> {
-        let temporal_axes = QueryTemporalAxesUnresolved::DecisionTime {
-            pinned: PinnedTemporalAxisUnresolved::new(None),
-            variable: VariableTemporalAxisUnresolved::new(None, None),
-        }
-        .resolve();
+        let temporal_axes = QueryTemporalAxesUnresolved::live_only().resolve();
         let mut compiler = SelectCompiler::new(Some(&temporal_axes), true);
 
         let data_type_uuids = params

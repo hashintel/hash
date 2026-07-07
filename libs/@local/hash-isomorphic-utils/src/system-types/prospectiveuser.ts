@@ -2,8 +2,6 @@
  * This file was automatically generated – do not edit it.
  */
 
-import type { ObjectMetadata } from "@blockprotocol/type-system";
-
 import type {
   EmailDataType,
   EmailDataTypeWithMetadata,
@@ -13,9 +11,12 @@ import type {
   TextDataTypeWithMetadata,
   URIDataType,
   URIDataTypeWithMetadata,
+  ValueDataType,
+  ValueDataTypeWithMetadata,
   WebsiteURLPropertyValue,
   WebsiteURLPropertyValueWithMetadata,
 } from "./shared.js";
+import type { ObjectMetadata } from "@blockprotocol/type-system";
 
 export type {
   EmailDataType,
@@ -26,6 +27,8 @@ export type {
   TextDataTypeWithMetadata,
   URIDataType,
   URIDataTypeWithMetadata,
+  ValueDataType,
+  ValueDataTypeWithMetadata,
   WebsiteURLPropertyValue,
   WebsiteURLPropertyValueWithMetadata,
 };

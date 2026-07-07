@@ -5,9 +5,10 @@ import { AbstractConstraint } from "./data-type-constraints/abstract-constraint"
 import { NumberConstraints } from "./data-type-constraints/number-constraints";
 import { ConstraintText } from "./data-type-constraints/shared/constraint-text";
 import { StringConstraints } from "./data-type-constraints/string-constraints";
+import { useInheritedConstraints } from "./shared/use-inherited-constraints";
+
 import type { InheritedConstraints } from "./data-type-constraints/types";
 import type { DataTypeFormData } from "./data-type-form";
-import { useInheritedConstraints } from "./shared/use-inherited-constraints";
 
 const Constraint = ({
   inheritedConstraints,

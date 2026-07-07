@@ -1,18 +1,20 @@
+import { CircularProgress, TableCell, Tooltip } from "@mui/material";
+import { useState } from "react";
+
 import {
   CheckIcon,
   CloseIcon,
   DashIcon,
   IconButton,
 } from "@hashintel/design-system";
-import { CircularProgress, TableCell, Tooltip } from "@mui/material";
-import type { MouseEvent } from "react";
-import { useState } from "react";
 
 import { FlowRunStatus } from "../../../../../../../graphql/api-types.gen";
-import type { MinimalFlowRun } from "../../../../../../../shared/storage";
 import { sendMessageToBackground } from "../../../../../../shared/messages";
 import { CellWithHoverButton } from "./cell-with-hover-button";
 import { Chip } from "./chip";
+
+import type { MinimalFlowRun } from "../../../../../../../shared/storage";
+import type { MouseEvent } from "react";
 
 const flowStatusToStatusText = (status: FlowRunStatus) => {
   switch (status) {

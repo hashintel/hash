@@ -1,5 +1,18 @@
 # @blockprotocol/graph
 
+## 0.4.3
+
+### Patch Changes
+
+- Updated dependencies [[`0e52504`](https://github.com/hashintel/hash/commit/0e52504315a909befc9fe2c748edd765f183e15a)]:
+  - @blockprotocol/type-system@0.2.2
+
+## 0.4.2
+
+### Patch Changes
+
+- [#8568](https://github.com/hashintel/hash/pull/8568) [`1e22831`](https://github.com/hashintel/hash/commit/1e228319eaa9770831a21482846e10b5f76f6b8e) Thanks [@hash-worker](https://github.com/apps/hash-worker)! - update dependencies
+
 ## 0.4.1
 
 ### Patch Changes

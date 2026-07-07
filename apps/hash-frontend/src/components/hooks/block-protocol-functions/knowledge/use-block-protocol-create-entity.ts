@@ -1,22 +1,24 @@
 import { useMutation } from "@apollo/client";
-import type { WebId } from "@blockprotocol/type-system";
+import { useCallback } from "react";
+
 import {
   HashEntity,
   mergePropertyObjectAndMetadata,
 } from "@local/hash-graph-sdk/entity";
-import { useCallback } from "react";
 
-import type {
-  CreateEntityMutation,
-  CreateEntityMutationVariables,
-} from "../../../../graphql/api-types.gen";
 import {
   createEntityMutation,
   queryEntitySubgraphQuery,
 } from "../../../../graphql/queries/knowledge/entity.queries";
 import { useActiveWorkspace } from "../../../../pages/shared/workspace-context";
-import { generateSidebarEntityTypeEntitiesQueryVariables } from "../../../../shared/use-entity-type-entities";
+import { generateSidebarEntitiesQueryVariables } from "../../../../shared/generate-sidebar-entities-query-variables";
+
+import type {
+  CreateEntityMutation,
+  CreateEntityMutationVariables,
+} from "../../../../graphql/api-types.gen";
 import type { CreateEntityMessageCallback } from "./knowledge-shim";
+import type { WebId } from "@blockprotocol/type-system";
 
 export const useBlockProtocolCreateEntity = (
   webId: WebId | null,
@@ -39,7 +41,7 @@ export const useBlockProtocolCreateEntity = (
            */
           {
             query: queryEntitySubgraphQuery,
-            variables: generateSidebarEntityTypeEntitiesQueryVariables({
+            variables: generateSidebarEntitiesQueryVariables({
               webId: activeWorkspaceWebId,
             }),
           },

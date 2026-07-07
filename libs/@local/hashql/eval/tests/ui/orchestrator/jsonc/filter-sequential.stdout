@@ -1,0 +1,15 @@
+[
+  {}
+]
+---
+query executed: body 5, block bb0
+row received
+filter started: body 3
+island entered: body 3, island 0, target postgres
+continuation implicit true: body 3
+filter accepted: body 3
+filter started: body 4
+island entered: body 4, island 0, target postgres
+continuation implicit true: body 4
+filter accepted: body 4
+row accepted

@@ -1,12 +1,10 @@
-import { TextField } from "@hashintel/design-system";
 import { Box, Collapse, Typography } from "@mui/material";
-import type { RecoveryFlow } from "@ory/client";
 import { isUiNodeInputAttributes } from "@ory/integrations/ui";
 import { useRouter } from "next/router";
-import type { FormEventHandler } from "react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
-import type { NextPageWithLayout } from "../shared/layout";
+import { TextField } from "@hashintel/design-system";
+
 import { getPlainLayout } from "../shared/layout";
 import { Button } from "../shared/ui";
 import { AuthHeading } from "./shared/auth-heading";
@@ -17,6 +15,10 @@ import {
   oryKratosClient,
 } from "./shared/ory-kratos";
 import { useKratosErrorHandler } from "./shared/use-kratos-flow-error-handler";
+
+import type { NextPageWithLayout } from "../shared/layout";
+import type { RecoveryFlow } from "@ory/client";
+import type { FormEventHandler } from "react";
 
 const extractFlowEmailValue = (flowToSearch: RecoveryFlow | undefined) => {
   const uiCode = flowToSearch?.ui.nodes.find(
@@ -119,30 +121,39 @@ const RecoveryPage: NextPageWithLayout = () => {
       .catch(handleFlowError);
   };
 
+  const submitCode = useCallback(
+    (codeToSubmit: string) => {
+      if (!flow || !codeToSubmit) {
+        return;
+      }
+
+      void router.replace(
+        `/recovery`,
+        { query: { flow: flow.id } },
+        { shallow: true },
+      );
+
+      const { csrf_token } = gatherUiNodeValuesFromFlow<"recovery">(flow);
+
+      oryKratosClient
+        .updateRecoveryFlow({
+          flow: String(flow.id),
+          updateRecoveryFlowBody: {
+            csrf_token,
+            method: "code",
+            code: codeToSubmit,
+          },
+        })
+        .then(({ data }) => setFlow(data))
+        .catch(handleFlowError);
+    },
+    [flow, handleFlowError, router],
+  );
+
   const handleSubmitCode: FormEventHandler<HTMLFormElement> = (event) => {
     event.preventDefault();
     event.stopPropagation();
-
-    if (!flow) {
-      return;
-    }
-
-    void router
-      // On submission, add the flow ID to the URL but do not navigate. This prevents the user losing
-      // their data when they reload the page.
-      .replace(`/recovery`, { query: { flow: flow.id } }, { shallow: true });
-
-    const { csrf_token } = gatherUiNodeValuesFromFlow<"recovery">(flow);
-
-    oryKratosClient
-      .updateRecoveryFlow({
-        flow: String(flow.id),
-        updateRecoveryFlowBody: { csrf_token, method: "code", code },
-      })
-      // Note that the user is automatically redirected to the settings page
-      // where they can update their password.
-      .then(({ data }) => setFlow(data))
-      .catch(handleFlowError);
+    submitCode(code);
   };
 
   const resetFlow = () => {
@@ -227,11 +238,18 @@ const RecoveryPage: NextPageWithLayout = () => {
             <TextField
               label="Verification code"
               type="text"
-              autoComplete="off"
+              autoComplete="one-time-code"
               autoFocus
               placeholder="Enter your verification code"
               value={code}
-              onChange={({ target }) => setCode(target.value)}
+              onChange={({ target }) => {
+                const value = target.value;
+                setCode(value);
+
+                if (/^\d{6}$/.test(value)) {
+                  submitCode(value);
+                }
+              }}
               error={
                 !!codeInputUiNode?.messages.find(({ type }) => type === "error")
               }
@@ -239,6 +257,11 @@ const RecoveryPage: NextPageWithLayout = () => {
                 <Typography key={id}>{text}</Typography>
               ))}
               required
+              inputProps={{
+                maxLength: 6,
+                inputMode: "numeric",
+                pattern: "[0-9]{6}",
+              }}
             />
             <Button type="submit" disabled={!code}>
               Submit code

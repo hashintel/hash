@@ -1,13 +1,14 @@
 import { useMutation } from "@apollo/client";
-import type { EntityId } from "@blockprotocol/type-system";
 import { useCallback } from "react";
+
+import { deleteComment } from "../../graphql/queries/comment.queries";
+import { getPageComments } from "../../graphql/queries/page.queries";
 
 import type {
   DeleteCommentMutation,
   DeleteCommentMutationVariables,
 } from "../../graphql/api-types.gen";
-import { deleteComment } from "../../graphql/queries/comment.queries";
-import { getPageComments } from "../../graphql/queries/page.queries";
+import type { EntityId } from "@blockprotocol/type-system";
 
 export const useDeleteComment = (pageId: EntityId) => {
   const [deleteCommentFn, { loading }] = useMutation<

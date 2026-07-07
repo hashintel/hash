@@ -1,7 +1,8 @@
 import { useRouter } from "next/router";
 
-import type { NextPageWithLayout } from "../../shared/layout";
 import { getSettingsLayout } from "../shared/settings-layout";
+
+import type { NextPageWithLayout } from "../../shared/layout";
 
 const SettingsPage: NextPageWithLayout = () => {
   const router = useRouter();

@@ -1,3 +1,5 @@
+import { isPropertyValueArray } from "../../../../../../../../lib/typeguards";
+
 import type {
   DataTypeReference,
   PropertyType,
@@ -7,8 +9,6 @@ import type {
   ClosedDataTypeDefinition,
   ClosedMultiEntityTypesDefinitions,
 } from "@local/hash-graph-sdk/ontology";
-
-import { isPropertyValueArray } from "../../../../../../../../lib/typeguards";
 
 const getDataType = (
   dataTypeReference: DataTypeReference,

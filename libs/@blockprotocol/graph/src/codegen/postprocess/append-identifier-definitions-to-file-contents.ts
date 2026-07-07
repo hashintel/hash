@@ -1,5 +1,6 @@
 import { mustBeDefined } from "../../util/must-be-defined.js";
 import { typedEntries } from "../../util/typed-entries.js";
+
 import type { PostprocessContext } from "../context/postprocess.js";
 
 export const appendIdentifierDefinitionsToFileContents = (

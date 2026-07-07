@@ -1,4 +1,5 @@
 import { getRequiredEnv } from "./environment.js";
+
 import type { AwsS3StorageProviderConstructorArgs } from "./file-storage/aws-s3-storage-provider.js";
 
 export const getAwsRegion = (): string => getRequiredEnv("AWS_REGION");

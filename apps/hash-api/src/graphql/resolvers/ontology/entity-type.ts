@@ -1,18 +1,8 @@
-import type {
-  EntityTypeWithMetadata,
-  OntologyTemporalMetadata,
-  WebId,
-} from "@blockprotocol/type-system";
-import type { UserPermissionsOnEntityType } from "@local/hash-graph-sdk/authorization";
-import type {
-  GetClosedMultiEntityTypesResponse,
-  QueryEntityTypesResponse,
-  SerializedQueryEntityTypeSubgraphResponse,
-} from "@local/hash-graph-sdk/entity-type";
 import {
   getClosedMultiEntityTypes,
   queryEntityTypes,
   queryEntityTypeSubgraph,
+  searchEntityTypes,
   serializeQueryEntityTypeSubgraphResponse,
 } from "@local/hash-graph-sdk/entity-type";
 
@@ -24,6 +14,8 @@ import {
   updateEntityType,
   updateEntityTypes,
 } from "../../../graph/ontology/primitive/entity-type";
+import { graphQLContextToImpureGraphContext } from "../util";
+
 import type {
   MutationArchiveEntityTypeArgs,
   MutationCreateEntityTypeArgs,
@@ -34,10 +26,22 @@ import type {
   QueryGetClosedMultiEntityTypesArgs,
   QueryQueryEntityTypesArgs,
   QueryQueryEntityTypeSubgraphArgs,
+  QuerySearchEntityTypesArgs,
   ResolverFn,
 } from "../../api-types.gen";
 import type { GraphQLContext, LoggedInGraphQLContext } from "../../context";
-import { graphQLContextToImpureGraphContext } from "../util";
+import type {
+  EntityTypeWithMetadata,
+  OntologyTemporalMetadata,
+  WebId,
+} from "@blockprotocol/type-system";
+import type { UserPermissionsOnEntityType } from "@local/hash-graph-sdk/authorization";
+import type {
+  GetClosedMultiEntityTypesResponse,
+  QueryEntityTypesResponse,
+  SearchEntityTypesResponse,
+  SerializedQueryEntityTypeSubgraphResponse,
+} from "@local/hash-graph-sdk/entity-type";
 
 export const createEntityTypeResolver: ResolverFn<
   Promise<EntityTypeWithMetadata>,
@@ -66,6 +70,18 @@ export const queryEntityTypesResolver: ResolverFn<
 > = async (_, { request }, graphQLContext) =>
   queryEntityTypes(
     graphQLContextToImpureGraphContext(graphQLContext).graphApi,
+    graphQLContext.authentication,
+    request,
+  );
+
+export const searchEntityTypesResolver: ResolverFn<
+  Promise<SearchEntityTypesResponse>,
+  Record<string, never>,
+  GraphQLContext,
+  QuerySearchEntityTypesArgs
+> = async (_, { request }, graphQLContext) =>
+  searchEntityTypes(
+    graphQLContextToImpureGraphContext(graphQLContext),
     graphQLContext.authentication,
     request,
   );

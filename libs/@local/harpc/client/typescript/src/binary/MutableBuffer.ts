@@ -1,7 +1,6 @@
 import { Data, Either, Function, pipe, Pipeable } from "effect";
 
 import { createProto } from "../utils.js";
-
 import * as MutableBytes from "./MutableBytes.js";
 
 const TypeId: unique symbol = Symbol(

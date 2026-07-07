@@ -1,16 +1,15 @@
 import type {
-  CustomCell,
-  DrawArgs,
-  Rectangle,
-} from "@glideapps/glide-data-grid";
-
-import type {
   CellPath,
   ColumnHeaderDrawArgs,
   ColumnHeaderPath,
   CursorPos,
   InteractablePosition,
 } from "./types";
+import type {
+  CustomCell,
+  DrawArgs,
+  Rectangle,
+} from "@glideapps/glide-data-grid";
 
 export const isPathCellPath = (
   path: CellPath | ColumnHeaderPath,

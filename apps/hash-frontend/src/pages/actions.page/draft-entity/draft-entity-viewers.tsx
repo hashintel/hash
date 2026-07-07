@@ -1,17 +1,18 @@
 import { useQuery } from "@apollo/client";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { Typography } from "@mui/material";
-import type { FunctionComponent } from "react";
 import { useMemo } from "react";
 
 import { useOrgsWithLinks } from "../../../components/hooks/use-orgs-with-links";
 import { useUsers } from "../../../components/hooks/use-users";
+import { getEntityAuthorizationRelationshipsQuery } from "../../../graphql/queries/knowledge/entity.queries";
+
 import type {
   GetEntityAuthorizationRelationshipsQuery,
   GetEntityAuthorizationRelationshipsQueryVariables,
 } from "../../../graphql/api-types.gen";
-import { getEntityAuthorizationRelationshipsQuery } from "../../../graphql/queries/knowledge/entity.queries";
 import type { MinimalUser } from "../../../lib/user-and-org";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import type { FunctionComponent } from "react";
 
 export const DraftEntityViewers: FunctionComponent<{
   entity: HashEntity;

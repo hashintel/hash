@@ -1,4 +1,5 @@
 import * as Sentry from "@sentry/node";
+
 import type { Context } from "@temporalio/activity";
 import type {
   ActivityExecuteInput,
@@ -6,9 +7,7 @@ import type {
 } from "@temporalio/worker";
 import type { Next } from "@temporalio/workflow";
 
-export class SentryActivityInboundInterceptor
-  implements ActivityInboundCallsInterceptor
-{
+export class SentryActivityInboundInterceptor implements ActivityInboundCallsInterceptor {
   constructor(public readonly context: Context) {
     this.context = context;
   }
@@ -35,8 +34,8 @@ export class SentryActivityInboundInterceptor
             extra: {
               activityId: this.context.info.activityId,
               isLocal: this.context.info.isLocal,
-              workflowId: this.context.info.workflowExecution.workflowId,
-              runId: this.context.info.workflowExecution.runId,
+              workflowId: this.context.info.workflowExecution?.workflowId,
+              runId: this.context.info.workflowExecution?.runId,
               attempt: this.context.info.attempt,
               scheduledTimestamp: this.context.info.scheduledTimestampMs,
               scheduleToCloseTimeout:

@@ -1,10 +1,10 @@
-import type { NextPage } from "next";
-import type { ReactElement, ReactNode } from "react";
-
 import { LayoutWithHeader } from "./layout/layout-with-header";
-import type { LayoutWithSidebarProps } from "./layout/layout-with-sidebar";
 import { LayoutWithSidebar } from "./layout/layout-with-sidebar";
 import { PlainLayout } from "./layout/plain-layout";
+
+import type { LayoutWithSidebarProps } from "./layout/layout-with-sidebar";
+import type { NextPage } from "next";
+import type { ReactElement, ReactNode } from "react";
 
 export type NextPageWithLayout<
   T extends Record<string, unknown> = Record<string, unknown>,

@@ -1,12 +1,18 @@
+import { expect, test } from "vitest";
+
+import {
+  deserializeSearchEntitiesResponse,
+  HashEntity,
+  serializeSearchEntitiesResponse,
+} from "../src/entity.js";
+
+import type { SearchEntitiesResponse } from "../src/entity.js";
 import type {
   BaseUrl,
   Confidence,
   PropertyObjectMetadata,
 } from "@blockprotocol/type-system";
 import type { Entity as GraphApiEntity } from "@local/hash-graph-client";
-import { expect, test } from "vitest";
-
-import { HashEntity } from "../src/entity.js";
 
 const base_url_a = "https://example.com/property-type/a/" as BaseUrl;
 const base_url_aa = "https://example.com/property-type/aa/" as BaseUrl;
@@ -250,6 +256,24 @@ test("propertyMetadata access", () => {
         "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
     },
   });
+});
+
+test("search entities response round-trips through serialization", () => {
+  const entity = new HashEntity(createTestEntity());
+  const response: SearchEntitiesResponse = {
+    entities: [entity],
+  };
+
+  const serialized = serializeSearchEntitiesResponse(response);
+
+  // Serialized entities are plain JSON, not `HashEntity` instances.
+  expect(serialized.entities[0]).toEqual(entity.toJSON());
+
+  const deserialized = deserializeSearchEntitiesResponse(serialized);
+
+  expect(deserialized.entities).toHaveLength(1);
+  expect(deserialized.entities[0]).toBeInstanceOf(HashEntity);
+  expect(deserialized.entities[0]!.entityId).toBe(entity.entityId);
 });
 
 test("flattened properties", () => {

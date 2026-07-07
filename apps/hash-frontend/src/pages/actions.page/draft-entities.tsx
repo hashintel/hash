@@ -1,14 +1,4 @@
-import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
-import type { BaseUrl, EntityId } from "@blockprotocol/type-system";
-import { Skeleton } from "@hashintel/design-system";
-import {
-  getClosedMultiEntityTypeFromMap,
-  type HashEntity,
-} from "@local/hash-graph-sdk/entity";
-import type { ClosedMultiEntityTypesRootMap } from "@local/hash-graph-sdk/ontology";
-import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { Box, Container, Divider, Typography } from "@mui/material";
-import type { Dispatch, FunctionComponent, SetStateAction } from "react";
 import {
   Fragment,
   useCallback,
@@ -19,11 +9,17 @@ import {
   useState,
 } from "react";
 
+import { Skeleton } from "@hashintel/design-system";
+import {
+  getClosedMultiEntityTypeFromMap,
+  type HashEntity,
+} from "@local/hash-graph-sdk/entity";
+import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
+
 import { Button } from "../../shared/ui";
-import type { MinimalActor } from "../../shared/use-actors";
 import { useActors } from "../../shared/use-actors";
+import { useDraftEntities } from "./draft-entities-context";
 import { DraftEntitiesContextBar } from "./draft-entities/draft-entities-context-bar";
-import type { DraftEntityFilterState } from "./draft-entities/draft-entities-filters";
 import {
   DraftEntitiesFilters,
   filterDraftEntities,
@@ -31,9 +27,15 @@ import {
   getDraftEntityTypeBaseUrls,
   isFilerStateDefaultFilterState,
 } from "./draft-entities/draft-entities-filters";
-import type { EntityTypeDisplayInfoByBaseUrl } from "./draft-entities/types";
-import { useDraftEntities } from "./draft-entities-context";
 import { DraftEntity } from "./draft-entity";
+
+import type { MinimalActor } from "../../shared/use-actors";
+import type { DraftEntityFilterState } from "./draft-entities/draft-entities-filters";
+import type { EntityTypeDisplayInfoByBaseUrl } from "./draft-entities/types";
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
+import type { BaseUrl, EntityId } from "@blockprotocol/type-system";
+import type { ClosedMultiEntityTypesRootMap } from "@local/hash-graph-sdk/ontology";
+import type { Dispatch, FunctionComponent, SetStateAction } from "react";
 
 const incrementNumberOfEntitiesToDisplay = 20;
 

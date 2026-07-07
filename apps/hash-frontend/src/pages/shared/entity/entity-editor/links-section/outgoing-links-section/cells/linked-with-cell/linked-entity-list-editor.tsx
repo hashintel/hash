@@ -1,28 +1,28 @@
+import { Box } from "@mui/material";
+import { produce } from "immer";
+import { useMemo, useState } from "react";
+
+import {
+  currentTimestamp,
+  extractDraftIdFromEntityId,
+} from "@blockprotocol/type-system";
+import { HashEntity } from "@local/hash-graph-sdk/entity";
+
+import { getImageUrlFromEntityProperties } from "../../../../../../get-file-properties";
+import { AddAnotherButton } from "../../../../properties-section/property-table/cells/value-cell/array-editor/add-another-button";
+import { GridEditorWrapper } from "../../../../shared/grid-editor-wrapper";
+import { sortLinkAndTargetEntities } from "../sort-link-and-target-entities";
+import { LinkedEntityListRow } from "./linked-entity-list-editor/linked-entity-list-row";
+import { MaxItemsReached } from "./linked-entity-list-editor/max-items-reached";
+import { LinkedEntitySelector } from "./linked-entity-selector";
+
+import type { LinkedWithCell } from "../linked-with-cell";
 import type {
   ActorEntityUuid,
   EntityId,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-import {
-  currentTimestamp,
-  extractDraftIdFromEntityId,
-} from "@blockprotocol/type-system";
 import type { ProvideEditorComponent } from "@glideapps/glide-data-grid";
-import { HashEntity } from "@local/hash-graph-sdk/entity";
-import { Box } from "@mui/material";
-import { produce } from "immer";
-import { useMemo, useState } from "react";
-
-import { getImageUrlFromEntityProperties } from "../../../../../../get-file-properties";
-import { useMarkLinkEntityToArchive } from "../../../../../shared/use-mark-link-entity-to-archive";
-import { useEntityEditor } from "../../../../entity-editor-context";
-import { AddAnotherButton } from "../../../../properties-section/property-table/cells/value-cell/array-editor/add-another-button";
-import { GridEditorWrapper } from "../../../../shared/grid-editor-wrapper";
-import type { LinkedWithCell } from "../linked-with-cell";
-import { sortLinkAndTargetEntities } from "../sort-link-and-target-entities";
-import { LinkedEntityListRow } from "./linked-entity-list-editor/linked-entity-list-row";
-import { MaxItemsReached } from "./linked-entity-list-editor/max-items-reached";
-import { LinkedEntitySelector } from "./linked-entity-selector";
 
 /**
  * @todo - This is unsafe, and should be refactored to return a new type `DraftEntity`, so that we aren't
@@ -82,17 +82,19 @@ export const createDraftLinkEntity = ({
 export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
   props,
 ) => {
-  const { entity, draftLinksToCreate, setDraftLinksToCreate, readonly } =
-    useEntityEditor();
-  const markLinkEntityToArchive = useMarkLinkEntityToArchive();
-
   const { value: cell, onFinishedEditing, onChange } = props;
   const {
+    draftLinksToCreate,
+    entity,
     expectedEntityTypes,
     linkAndTargetEntities,
     linkEntityTypeId,
     linkTitle,
+    markLinkAsArchived,
     maxItems,
+    onEntityClick,
+    readonly,
+    setDraftLinksToCreate,
   } = cell.data.linkRow;
 
   const [addingLink, setAddingLink] = useState(!linkAndTargetEntities.length);
@@ -172,6 +174,8 @@ export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
               <LinkedEntityListRow
                 key={linkEntityId}
                 closeEditor={onFinishedEditing}
+                onEntityClick={onEntityClick}
+                readonly={readonly}
                 entityId={
                   isUncreatedDraftLink
                     ? /**
@@ -198,7 +202,7 @@ export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
 
                   onChange(newCell);
 
-                  markLinkEntityToArchive(linkEntityId);
+                  markLinkAsArchived(linkEntityId);
                 }}
               />
             );
@@ -210,6 +214,7 @@ export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
         !readonly &&
         (addingLink ? (
           <LinkedEntitySelector
+            entity={entity}
             includeDrafts={
               !!extractDraftIdFromEntityId(entity.metadata.recordId.entityId)
             }
@@ -218,6 +223,7 @@ export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
             expectedEntityTypes={expectedEntityTypes}
             entityIdsToFilterOut={linkedEntityIds}
             linkEntityTypeId={linkEntityTypeId}
+            readonly={readonly}
           />
         ) : (
           <AddAnotherButton

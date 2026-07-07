@@ -1,8 +1,9 @@
 import { useRouter } from "next/router";
 
-import type { NextPageWithLayout } from "../shared/layout";
 import { getLayoutWithSidebar } from "../shared/layout";
 import { useAuthInfo } from "./shared/auth-info-context";
+
+import type { NextPageWithLayout } from "../shared/layout";
 
 const MePage: NextPageWithLayout = () => {
   const router = useRouter();

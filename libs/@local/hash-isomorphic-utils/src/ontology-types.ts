@@ -1,9 +1,3 @@
-import type {
-  BaseUrl,
-  EntityType,
-  OntologyTypeVersion,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
 import {
   atLeastOne,
   componentsFromVersionedUrl,
@@ -15,6 +9,13 @@ import { typedEntries } from "@local/advanced-types/typed-entries";
 
 import { frontendUrl } from "./environment.js";
 import { slugifyTypeTitle } from "./slugify-type-title.js";
+
+import type {
+  BaseUrl,
+  EntityType,
+  OntologyTypeVersion,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 
 export type SchemaKind = "data-type" | "property-type" | "entity-type";
 

@@ -1,9 +1,11 @@
-import type { WebId } from "@blockprotocol/type-system";
-import { extractWebIdFromEntityId } from "@blockprotocol/type-system";
 import { useMemo } from "react";
+
+import { extractWebIdFromEntityId } from "@blockprotocol/type-system";
 
 import { useOrgs } from "./use-orgs";
 import { useUsers } from "./use-users";
+
+import type { WebId } from "@blockprotocol/type-system";
 
 export const useGetWebIdForShortname = (
   shortname: string | undefined,

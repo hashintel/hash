@@ -6,10 +6,13 @@
     coverage_attribute,
 
     // Library Features
+    allocator_api,
+    core_io,
     duration_millis_float,
     exitcode_exit_method,
     file_buffered,
     formatting_options,
+    macro_metavar_expr,
     pattern,
     string_from_utf8_lossy_owned,
     try_trait_v2,
@@ -30,6 +33,7 @@ use self::{
 
 mod annotation;
 mod harness;
+pub mod pipeline;
 pub mod runner;
 mod suite;
 mod ui;

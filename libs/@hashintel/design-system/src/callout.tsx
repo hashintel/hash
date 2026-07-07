@@ -3,11 +3,12 @@ import {
   faTriangleExclamation,
   faWarning,
 } from "@fortawesome/free-solid-svg-icons";
-import type { SxProps, Theme } from "@mui/material";
 import { Stack, Typography } from "@mui/material";
-import type { PropsWithChildren, ReactNode } from "react";
 
 import { FontAwesomeIcon } from "./fontawesome-icon";
+
+import type { SxProps, Theme } from "@mui/material";
+import type { PropsWithChildren, ReactNode } from "react";
 
 type CalloutProps = {
   children: ReactNode;

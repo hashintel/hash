@@ -1,275 +1,293 @@
-import type { Meta, StoryObj } from "@storybook/react-vite";
+import { Fragment, useState } from "react";
 
-import { Button } from "../button";
+import { css } from "@hashintel/ds-helpers/css";
 
-const meta: Meta<typeof Button> = {
+import { formInputSizes, type Tone } from "../../util/form-shared";
+import { Icon, iconNames } from "../Icon/icon";
+import {
+  Button as ButtonComponent,
+  type ButtonElementProps,
+  iconSizeMap,
+  type Variant,
+} from "./button";
+
+import type { Story, StoryDefault } from "@ladle/react";
+
+const variants: Variant[] = ["solid", "subtle", "ghost", "link", "linkSubtle"];
+const tones: Tone[] = ["neutral", "brand", "error"];
+
+export default {
   title: "Components/Button",
-  component: Button,
+  parameters: {
+    layout: "centered",
+  },
   argTypes: {
     variant: {
-      control: "select",
-      options: ["primary", "secondary", "ghost"],
-      description: "The variant style of the button",
+      control: {
+        type: "select",
+        options: variants,
+      },
     },
-    colorScheme: {
-      control: "select",
-      options: ["brand", "neutral", "critical"],
-      description: "The color scheme of the button",
+    tone: {
+      control: {
+        type: "select",
+        options: [undefined, ...tones],
+      },
     },
     size: {
-      control: "select",
-      options: ["xs", "sm", "md", "lg"],
-      description: "The size of the button",
+      control: {
+        type: "select",
+        options: formInputSizes,
+      },
     },
-    isLoading: {
-      control: "boolean",
-      description: "Whether the button is in a loading state",
+    iconName: {
+      control: {
+        type: "select",
+        options: [undefined, ...iconNames],
+      },
+    },
+    iconPosition: {
+      control: {
+        type: "select",
+        options: ["left", "right"],
+      },
+    },
+    loading: {
+      control: { type: "boolean" },
     },
     disabled: {
-      control: "boolean",
-      description: "Whether the button is disabled",
+      control: { type: "boolean" },
+    },
+    pressed: {
+      control: { type: "boolean" },
+    },
+    shape: {
+      control: {
+        type: "select",
+        options: ["default", "round"],
+      },
     },
   },
   args: {
     children: "Button",
-    variant: "primary",
-    colorScheme: "brand",
+    variant: "solid",
     size: "md",
+    disabled: false,
+    loading: false,
   },
+} satisfies StoryDefault<ButtonElementProps>;
+
+const Button = (args: ButtonElementProps) => (
+  <ButtonComponent {...args} onClick={args.onClick ?? (() => {})}>
+    {args.children ?? ""}
+  </ButtonComponent>
+);
+
+export const Default: Story<ButtonElementProps> = (args) => {
+  const [loading, setLoading] = useState<string | null>(null);
+  return (
+    <>
+      {tones.map((tone) => (
+        <div
+          key={tone}
+          className={css({
+            display: "flex",
+            gap: "[16px]",
+            alignItems: "flex-end",
+            flexWrap: "wrap",
+            marginBottom: "4",
+          })}
+        >
+          {variants.map((variant) => (
+            <Fragment key={variant}>
+              <Button
+                {...args}
+                variant={variant}
+                tone={tone}
+                onClick={() => {
+                  setLoading(`${variant}-${tone}`);
+                  setTimeout(() => setLoading(null), 1000);
+                }}
+                loading={loading === `${variant}-${tone}`}
+              >
+                {variant}
+              </Button>
+              <Button {...args} variant={variant} tone={tone} loading>
+                {variant}
+              </Button>
+              <Button {...args} variant={variant} tone={tone} disabled>
+                disabled
+              </Button>
+              <Button {...args} variant={variant} tone={tone} pressed>
+                pressed
+              </Button>
+            </Fragment>
+          ))}
+        </div>
+      ))}
+    </>
+  );
 };
 
-export default meta;
-type Story = StoryObj<typeof Button>;
-
-// Primary Variants
-export const PrimaryBrand: Story = {
-  args: {
-    variant: "primary",
-    colorScheme: "brand",
-    children: "Primary Brand",
-  },
+Default.parameters = {
+  controls: { exclude: ["variant", "tone", "loading", "pressed", "disabled"] },
 };
 
-export const PrimaryNeutral: Story = {
-  args: {
-    variant: "primary",
-    colorScheme: "neutral",
-    children: "Primary Neutral",
-  },
-};
-
-export const PrimaryCritical: Story = {
-  args: {
-    variant: "primary",
-    colorScheme: "critical",
-    children: "Primary Critical",
-  },
-};
-
-// Secondary Variants
-export const SecondaryBrand: Story = {
-  args: {
-    variant: "secondary",
-    colorScheme: "brand",
-    children: "Secondary Brand",
-  },
-};
-
-export const SecondaryNeutral: Story = {
-  args: {
-    variant: "secondary",
-    colorScheme: "neutral",
-    children: "Secondary Neutral",
-  },
-};
-
-export const SecondaryCritical: Story = {
-  args: {
-    variant: "secondary",
-    colorScheme: "critical",
-    children: "Secondary Critical",
-  },
-};
-
-// Ghost Variants
-export const GhostBrand: Story = {
-  args: {
-    variant: "ghost",
-    colorScheme: "brand",
-    children: "Ghost Brand",
-  },
-};
-
-export const GhostNeutral: Story = {
-  args: {
-    variant: "ghost",
-    colorScheme: "neutral",
-    children: "Ghost Neutral",
-  },
-};
-
-export const GhostCritical: Story = {
-  args: {
-    variant: "ghost",
-    colorScheme: "critical",
-    children: "Ghost Critical",
-  },
-};
-
-// Sizes
-export const Sizes: Story = {
-  parameters: {
-    controls: { exclude: ["size"] },
-  },
-  render: (args) => (
-    <div style={{ display: "flex", gap: "16px", alignItems: "center" }}>
-      <Button {...args} size="xs">
-        Extra Small
-      </Button>
-      <Button {...args} size="sm">
-        Small
-      </Button>
-      <Button {...args} size="md">
-        Medium
-      </Button>
-      <Button {...args} size="lg">
-        Large
-      </Button>
-    </div>
-  ),
-};
-
-// States
-export const Loading: Story = {
-  args: {
-    isLoading: true,
-    children: "Loading",
-  },
-};
-
-export const Disabled: Story = {
-  args: {
-    disabled: true,
-    children: "Disabled",
-  },
-};
-
-// With Icons
-export const WithIconLeft: Story = {
-  args: {
-    iconLeft: (
-      <svg
-        width="16"
-        height="16"
-        viewBox="0 0 16 16"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
+export const Sizes: Story<ButtonElementProps> = (args) => (
+  <>
+    {variants.map((variant) => (
+      <div
+        key={variant}
+        className={css({
+          display: "flex",
+          gap: "[16px]",
+          alignItems: "center",
+          marginBottom: "4",
+        })}
       >
-        <path
-          d="M8 12L4 8L8 4"
-          stroke="currentColor"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
-    ),
-    children: "With Icon",
-  },
+        {formInputSizes.map((size) => (
+          <div
+            key={size}
+            className={css({
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: "[8px]",
+            })}
+          >
+            <div
+              className={css({
+                display: "flex",
+                gap: "[4px]",
+                alignItems: "center",
+                marginBottom: "4",
+              })}
+            >
+              <Button {...args} size={size} variant={variant}>
+                {size}
+              </Button>
+              <Button {...args} size={size} variant={variant} loading>
+                {size}
+              </Button>
+            </div>
+            <span className={css({ fontSize: "[12px]", color: "neutral.s80" })}>
+              {size}
+            </span>
+          </div>
+        ))}
+      </div>
+    ))}
+  </>
+);
+
+Sizes.parameters = {
+  controls: { exclude: ["size", "loading", "variant"] },
 };
 
-export const WithIconRight: Story = {
-  args: {
-    iconRight: (
-      <svg
-        width="16"
-        height="16"
-        viewBox="0 0 16 16"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
+export const WithIcon: Story<ButtonElementProps> = (args) => (
+  <>
+    {variants.map((variant) => (
+      <div
+        key={variant}
+        className={css({
+          display: "flex",
+          gap: "[16px]",
+          alignItems: "center",
+          marginBottom: "4",
+          flexWrap: "wrap",
+        })}
       >
-        <path
-          d="M8 4L12 8L8 12"
-          stroke="currentColor"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
-    ),
-    children: "With Icon",
-  },
+        {formInputSizes.map((size) => (
+          <Fragment key={size}>
+            {/* eslint-disable -- spreading union-typed Ladle args triggers false TS errors from RequireAtLeastOne/ExclusifyUnion distribution */}
+            <Button
+              {...(args as any)}
+              variant={variant}
+              iconName="plus"
+              size={size}
+            >
+              Icon Left
+            </Button>
+            <Button
+              {...(args as any)}
+              variant={variant}
+              iconName="arrowRight"
+              iconPosition="right"
+              size={size}
+            >
+              Icon Right
+            </Button>
+            <ButtonComponent
+              {...(args as any)}
+              variant={variant}
+              size={size}
+              prefix={<Icon name="plus" size={iconSizeMap[size]} />}
+              suffix={<Icon name="arrowRight" size={iconSizeMap[size]} />}
+              onClick={() => {}}
+            >
+              Both Icons
+            </ButtonComponent>
+            <Button
+              {...(args as any)}
+              variant={variant}
+              iconName="star"
+              size={size}
+              tooltip="Star"
+            >
+              {undefined}
+            </Button>
+            <ButtonComponent
+              {...(args as any)}
+              variant={variant}
+              size={size}
+              prefix={<Icon name="plus" size={iconSizeMap[size]} />}
+              suffix={<Icon name="arrowRight" size={iconSizeMap[size]} />}
+              onClick={() => {}}
+              tooltip="Icon only with prefix and suffix"
+            >
+              {undefined}
+            </ButtonComponent>
+            {/* eslint-enable */}
+          </Fragment>
+        ))}
+        <Button
+          /* eslint-disable-next-line @typescript-eslint/no-explicit-any -- same union spread issue */
+          {...(args as any)}
+          variant={variant}
+          iconName="star"
+          loading
+          tooltip="Star"
+        >
+          {undefined}
+        </Button>
+      </div>
+    ))}
+  </>
+);
+
+WithIcon.parameters = {
+  controls: { exclude: ["iconName", "iconPosition", "variant", "loading"] },
 };
 
-// All Variants Showcase
-export const AllVariants: Story = {
-  parameters: {
-    controls: { disable: true },
-  },
-  render: () => (
-    <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-      <div>
-        <h3 style={{ marginBottom: "12px" }}>Primary</h3>
-        <div style={{ display: "flex", gap: "12px" }}>
-          <Button variant="primary" colorScheme="brand">
-            Brand
-          </Button>
-          <Button variant="primary" colorScheme="neutral">
-            Neutral
-          </Button>
-          <Button variant="primary" colorScheme="critical">
-            Critical
-          </Button>
-        </div>
+export const Shape: Story<ButtonElementProps> = (args) => (
+  <>
+    {variants.map((variant) => (
+      <div
+        key={variant}
+        className={css({
+          display: "flex",
+          gap: "[16px]",
+          alignItems: "center",
+          marginBottom: "4",
+        })}
+      >
+        <Button {...args} variant={variant}>
+          Default
+        </Button>
+        <Button {...args} shape="round" variant={variant}>
+          Round
+        </Button>
       </div>
-
-      <div>
-        <h3 style={{ marginBottom: "12px" }}>Secondary</h3>
-        <div style={{ display: "flex", gap: "12px" }}>
-          <Button variant="secondary" colorScheme="brand">
-            Brand
-          </Button>
-          <Button variant="secondary" colorScheme="neutral">
-            Neutral
-          </Button>
-          <Button variant="secondary" colorScheme="critical">
-            Critical
-          </Button>
-        </div>
-      </div>
-
-      <div>
-        <h3 style={{ marginBottom: "12px" }}>Ghost</h3>
-        <div style={{ display: "flex", gap: "12px" }}>
-          <Button variant="ghost" colorScheme="brand">
-            Brand
-          </Button>
-          <Button variant="ghost" colorScheme="neutral">
-            Neutral
-          </Button>
-          <Button variant="ghost" colorScheme="critical">
-            Critical
-          </Button>
-        </div>
-      </div>
-
-      <div>
-        <h3 style={{ marginBottom: "12px" }}>Sizes</h3>
-        <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
-          <Button size="xs">XS</Button>
-          <Button size="sm">SM</Button>
-          <Button size="md">MD</Button>
-          <Button size="lg">LG</Button>
-        </div>
-      </div>
-
-      <div>
-        <h3 style={{ marginBottom: "12px" }}>States</h3>
-        <div style={{ display: "flex", gap: "12px" }}>
-          <Button isLoading>Loading</Button>
-          <Button disabled>Disabled</Button>
-        </div>
-      </div>
-    </div>
-  ),
-};
+    ))}
+  </>
+);

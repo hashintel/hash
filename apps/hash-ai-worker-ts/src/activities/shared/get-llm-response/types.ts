@@ -1,8 +1,3 @@
-import type { GenerateContentResponse } from "@google-cloud/vertexai";
-import type { OpenAI } from "openai";
-import type { JSONSchema } from "openai/lib/jsonschema";
-
-import type { PermittedOpenAiModel } from "../openai-client.js";
 import {
   type AnthropicApiProvider,
   type AnthropicMessagesCreateParams,
@@ -14,7 +9,12 @@ import {
   isPermittedGoogleAiModel,
   type PermittedGoogleAiModel,
 } from "./google-vertex-ai-client.js";
+
+import type { PermittedOpenAiModel } from "../openai-client.js";
 import type { LlmAssistantMessage, LlmMessage } from "./llm-message.js";
+import type { GenerateContentResponse } from "@google/genai";
+import type { OpenAI } from "openai";
+import type { JSONSchema } from "openai/lib/jsonschema";
 
 /**
  * Extended JSON Schema type that supports $defs and $ref for schema references.
@@ -154,7 +154,15 @@ export type OpenAiResponse = Omit<
 
 export type GoogleAiResponse = Omit<
   GenerateContentResponse,
-  "usage" | "candidates"
+  // genai's GenerateContentResponse exposes computed getters over `candidates`;
+  // we normalize candidates ourselves, so omit both them and the derived getters.
+  | "usageMetadata"
+  | "candidates"
+  | "text"
+  | "data"
+  | "functionCalls"
+  | "executableCode"
+  | "codeExecutionResult"
 > & {
   invalidResponses: (GenerateContentResponse & { requestTime: number })[];
 };

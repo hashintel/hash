@@ -1,4 +1,3 @@
-import type { StringFormat } from "@blockprotocol/type-system";
 import {
   closestCenter,
   DndContext,
@@ -16,6 +15,12 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
+import { Tooltip, Typography } from "@mui/material";
+import { Box, Stack, type SxProps, type Theme } from "@mui/system";
+import { type ReactElement, useEffect, useMemo, useRef, useState } from "react";
+import { useFormContext, useWatch } from "react-hook-form";
+
 import { PenToSquareIcon } from "@hashintel/block-design-system";
 import {
   CheckRegularIcon,
@@ -26,19 +31,16 @@ import {
   createFormattedValueParts,
   type MergedValueSchema,
 } from "@local/hash-isomorphic-utils/data-types";
-import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
-import { Tooltip, Typography } from "@mui/material";
-import { Box, Stack, type SxProps, type Theme } from "@mui/system";
-import { type ReactElement, useEffect, useMemo, useRef, useState } from "react";
-import { useFormContext, useWatch } from "react-hook-form";
 
 import { TriangleExclamationRegularIcon } from "../../../../../shared/icons/triangle-exclamation-regular-icon";
 import { Button } from "../../../../../shared/ui";
 import { NumberOrTextInput } from "../../../number-or-text-input";
-import type { DataTypeFormData } from "../../data-type-form";
 import { ItemLabel } from "../../shared/item-label";
 import { useInheritedConstraints } from "../../shared/use-inherited-constraints";
+
+import type { DataTypeFormData } from "../../data-type-form";
 import type { InheritedConstraints } from "../types";
+import type { StringFormat } from "@blockprotocol/type-system";
 
 const SaveButton = ({ onClick }: { onClick: () => void }) => (
   <Tooltip title="Save" placement="top">

@@ -1,3 +1,8 @@
+import { proxyActivities } from "@temporalio/workflow";
+
+import { runFlowWorkflow } from "./workflows/run-flow-workflow.js";
+
+import type { createLinearIntegrationActivities } from "./activities/linear-activities.js";
 import type {
   CreateHashEntityFromLinearData,
   ReadLinearTeamsWorkflow,
@@ -6,10 +11,6 @@ import type {
   UpdateLinearDataWorkflow,
 } from "@local/hash-backend-utils/temporal-integration-workflow-types";
 import type { ActivityOptions } from "@temporalio/workflow";
-import { proxyActivities } from "@temporalio/workflow";
-
-import type { createLinearIntegrationActivities } from "./activities/linear-activities.js";
-import { runFlowWorkflow } from "./workflows/run-flow-workflow.js";
 
 const commonConfig: ActivityOptions = {
   startToCloseTimeout: "360 second",

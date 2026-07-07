@@ -1,0 +1,54 @@
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+import { type BrowserContext, chromium, test as base } from "@playwright/test";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const monorepoRootDir = path.resolve(__dirname, "../../../../../");
+
+export const test = base.extend<{
+  context: BrowserContext;
+  extensionId: string;
+}>({
+  // eslint-disable-next-line no-empty-pattern
+  context: async ({}, use) => {
+    const pathToExtension = path.join(
+      monorepoRootDir,
+      "apps/plugin-browser/build",
+    );
+    const context = await chromium.launchPersistentContext("", {
+      headless: false,
+      args: [
+        `--headless=new`,
+        `--disable-extensions-except=${pathToExtension}`,
+        `--load-extension=${pathToExtension}`,
+      ],
+      serviceWorkers: "allow",
+    });
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    await use(context);
+    await context.close();
+  },
+  extensionId: async ({ context }, use) => {
+    let [background] = context.serviceWorkers();
+    background ??= await context.waitForEvent("serviceworker");
+
+    const extensionId = background.url().split("/")[2];
+    if (!extensionId) {
+      throw new Error("Could not find extension ID");
+    }
+
+    // Drop any cached state from a previous run so the popup hydrates
+    // via `getUser()` rather than from stale local storage. Backend
+    // settings are still restored on login and are cleared per-test in
+    // the spec's reset helpers.
+    await background.evaluate(() => chrome.storage.local.clear());
+
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    await use(extensionId);
+  },
+});
+
+export const expect = test.expect;

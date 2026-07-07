@@ -1,6 +1,7 @@
-import type { UserId } from "@blockprotocol/type-system";
 import { extractDraftIdFromEntityId } from "@blockprotocol/type-system";
 import { createGraphChangeNotification } from "@local/hash-backend-utils/notifications";
+
+import type { UserId } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 

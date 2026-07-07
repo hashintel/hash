@@ -1,25 +1,18 @@
 import { useLazyQuery, useQuery } from "@apollo/client";
-import type { EntityType, VersionedUrl } from "@blockprotocol/type-system";
-import {
-  ENTITY_TYPE_META_SCHEMA,
-  makeOntologyTypeVersion,
-} from "@blockprotocol/type-system";
-import { Callout, TextField } from "@hashintel/design-system";
-import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { Box, Stack } from "@mui/material";
 import { Buffer } from "buffer/";
 import { useRouter } from "next/router";
 import { useCallback, useContext, useState } from "react";
 import { useForm } from "react-hook-form";
 
+import {
+  ENTITY_TYPE_META_SCHEMA,
+  makeOntologyTypeVersion,
+} from "@blockprotocol/type-system";
+import { Callout, TextField } from "@hashintel/design-system";
+import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+
 import { useBlockProtocolGetEntityType } from "../../components/hooks/block-protocol-functions/ontology/use-block-protocol-get-entity-type";
-import type {
-  GenerateInverseQuery,
-  GenerateInverseQueryVariables,
-  GeneratePluralQuery,
-  GeneratePluralQueryVariables,
-  IsGenerationAvailableQuery,
-} from "../../graphql/api-types.gen";
 import {
   generateInverseQuery,
   generatePluralQuery,
@@ -31,6 +24,15 @@ import { useAuthenticatedUser } from "./auth-info-context";
 import { useSlideStack } from "./slide-stack";
 import { useGenerateTypeUrlsForUser } from "./use-generate-type-urls-for-user";
 import { WorkspaceContext } from "./workspace-context";
+
+import type {
+  GenerateInverseQuery,
+  GenerateInverseQueryVariables,
+  GeneratePluralQuery,
+  GeneratePluralQueryVariables,
+  IsGenerationAvailableQuery,
+} from "../../graphql/api-types.gen";
+import type { EntityType, VersionedUrl } from "@blockprotocol/type-system";
 
 const HELPER_TEXT_WIDTH = 290;
 

@@ -1,13 +1,14 @@
+import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+
+import { isEntityPageEntity, isType } from "./is-of-type";
+
 import type {
   DataTypeWithMetadata,
   Entity,
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
 } from "@blockprotocol/type-system";
-import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-
-import { isEntityPageEntity, isType } from "./is-of-type";
 
 export const isTypeArchived = (
   type:

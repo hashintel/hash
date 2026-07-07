@@ -2,8 +2,6 @@
  * This file was automatically generated – do not edit it.
  */
 
-import type { ObjectMetadata } from "@blockprotocol/type-system";
-
 import type {
   Actor,
   ActorOutgoingLinkAndTarget,
@@ -14,7 +12,10 @@ import type {
   DisplayNamePropertyValueWithMetadata,
   TextDataType,
   TextDataTypeWithMetadata,
+  ValueDataType,
+  ValueDataTypeWithMetadata,
 } from "./shared.js";
+import type { ObjectMetadata } from "@blockprotocol/type-system";
 
 export type {
   Actor,
@@ -26,6 +27,8 @@ export type {
   DisplayNamePropertyValueWithMetadata,
   TextDataType,
   TextDataTypeWithMetadata,
+  ValueDataType,
+  ValueDataTypeWithMetadata,
 };
 
 /**

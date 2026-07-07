@@ -1,7 +1,8 @@
-import type { ChangeEvent, CSSProperties, HTMLProps } from "react";
 import { forwardRef } from "react";
 
 import { InputLabelWrapper } from "./input-label-wrapper";
+
+import type { ChangeEvent, CSSProperties, HTMLProps } from "react";
 
 type TextInputProps = {
   disallowRegExp?: RegExp;

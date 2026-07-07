@@ -12,9 +12,10 @@
  * Do not edit the class manually.
  */
 
-import { Configuration } from "./configuration.js";
-import { RequiredError, RequestArgs } from "./base.js";
 import { AxiosInstance, AxiosResponse } from "axios";
+
+import { RequiredError, RequestArgs } from "./base.js";
+import { Configuration } from "./configuration.js";
 
 /**
  *

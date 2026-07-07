@@ -1647,37 +1647,6 @@
             "schema": {
               "$ref": "#/components/schemas/ActorEntityUuid"
             }
-          },
-          {
-            "name": "Interactive",
-            "in": "header",
-            "description": "Whether the request is used interactively",
-            "required": false,
-            "schema": {
-              "type": "boolean",
-              "nullable": true
-            }
-          },
-          {
-            "name": "after",
-            "in": "query",
-            "description": "The cursor to start reading from",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "nullable": true
-            }
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "description": "The maximum number of entities to read",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "nullable": true,
-              "minimum": 0
-            }
           }
         ],
         "requestBody": {
@@ -1710,55 +1679,6 @@
         }
       }
     },
-    "/entities/query/count": {
-      "post": {
-        "tags": [
-          "Graph",
-          "Entity"
-        ],
-        "operationId": "count_entities",
-        "parameters": [
-          {
-            "name": "X-Authenticated-User-Actor-Id",
-            "in": "header",
-            "description": "The ID of the actor which is used to authorize the request",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/ActorEntityUuid"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CountEntitiesParams"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "integer",
-                  "minimum": 0
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Provided query is invalid"
-          },
-          "500": {
-            "description": "Store error occurred"
-          }
-        }
-      }
-    },
     "/entities/query/subgraph": {
       "post": {
         "tags": [
@@ -1774,37 +1694,6 @@
             "required": true,
             "schema": {
               "$ref": "#/components/schemas/ActorEntityUuid"
-            }
-          },
-          {
-            "name": "Interactive",
-            "in": "header",
-            "description": "Whether the query is interactive",
-            "required": false,
-            "schema": {
-              "type": "boolean",
-              "nullable": true
-            }
-          },
-          {
-            "name": "after",
-            "in": "query",
-            "description": "The cursor to start reading from",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "nullable": true
-            }
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "description": "The maximum number of entities to read",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "nullable": true,
-              "minimum": 0
             }
           }
         ],
@@ -1831,6 +1720,102 @@
           },
           "422": {
             "description": "Provided query is invalid"
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      }
+    },
+    "/entities/query/summarize": {
+      "post": {
+        "tags": [
+          "Graph",
+          "Entity"
+        ],
+        "operationId": "summarize_entities",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ActorEntityUuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SummarizeEntitiesParams"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SummarizeEntitiesResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Provided query is invalid"
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      }
+    },
+    "/entities/search": {
+      "post": {
+        "tags": [
+          "Graph",
+          "Entity"
+        ],
+        "operationId": "search_entities",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ActorEntityUuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SearchEntitiesRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Entities ordered by ascending cosine distance to the query embedding.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchEntitiesResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Provided request body is invalid"
           },
           "500": {
             "description": "Store error occurred"
@@ -2429,6 +2414,54 @@
         }
       }
     },
+    "/entity-types/search": {
+      "post": {
+        "tags": [
+          "Graph",
+          "EntityType"
+        ],
+        "operationId": "search_entity_types",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ActorEntityUuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SearchEntityTypesRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Entity types ordered by ascending cosine distance to the query embedding.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchEntityTypesResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Provided request body is invalid"
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      }
+    },
     "/entity-types/unarchive": {
       "put": {
         "tags": [
@@ -2479,6 +2512,58 @@
           },
           "500": {
             "description": "Store error occurred"
+          }
+        }
+      }
+    },
+    "/hashql": {
+      "post": {
+        "tags": [
+          "Graph",
+          "HashQL"
+        ],
+        "operationId": "query_hashql",
+        "parameters": [
+          {
+            "name": "Interactive",
+            "in": "header",
+            "description": "When true, error responses are rendered as HTML instead of JSON",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "nullable": true
+            }
+          },
+          {
+            "name": "Json-Compat",
+            "in": "header",
+            "description": "When true, serializes the result as plain JSON values, stripping HashQL-specific type wrappers",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "nullable": true
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HashQlRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Query executed successfully"
+          },
+          "400": {
+            "description": "Query compilation or validation error"
+          },
+          "500": {
+            "description": "Internal compiler or database error"
           }
         }
       }
@@ -3580,7 +3665,10 @@
       },
       "BaseUrl": {
         "type": "string",
-        "format": "uri"
+        "title": "Base URL",
+        "format": "uri",
+        "description": "The base URL of a Block Protocol ontology type (the $id of the schema, without the versioned suffix). It should be a valid URL, with a trailing slash.",
+        "maxLength": 2048
       },
       "ClosedDataType": {
         "$ref": "./models/closed_data_type.json"
@@ -3767,26 +3855,6 @@
         },
         "additionalProperties": false
       },
-      "CountEntitiesParams": {
-        "type": "object",
-        "required": [
-          "filter",
-          "temporalAxes",
-          "includeDrafts"
-        ],
-        "properties": {
-          "filter": {
-            "$ref": "#/components/schemas/Filter"
-          },
-          "includeDrafts": {
-            "type": "boolean"
-          },
-          "temporalAxes": {
-            "$ref": "#/components/schemas/QueryTemporalAxesUnresolved"
-          }
-        },
-        "additionalProperties": false
-      },
       "CreateAiActorParams": {
         "type": "object",
         "required": [
@@ -3890,6 +3958,10 @@
           },
           "provenance": {
             "$ref": "#/components/schemas/ProvidedEntityEditionProvenance"
+          },
+          "readOnly": {
+            "type": "boolean",
+            "description": "Marks the entity read-only, blocking later updates and archival by user actors.\n\nSet once at creation, e.g. by a one-way integration sync."
           },
           "webId": {
             "$ref": "#/components/schemas/WebId"
@@ -4556,6 +4628,10 @@
           "provenance": {
             "$ref": "#/components/schemas/EntityProvenance"
           },
+          "readOnly": {
+            "type": "boolean",
+            "description": "Whether this entity is read-only and must not be modified by user actors."
+          },
           "recordId": {
             "$ref": "#/components/schemas/EntityRecordId"
           },
@@ -4599,78 +4675,6 @@
         "items": {
           "type": "object"
         }
-      },
-      "EntityQueryOptions": {
-        "type": "object",
-        "required": [
-          "temporalAxes",
-          "includeDrafts",
-          "includePermissions"
-        ],
-        "properties": {
-          "conversions": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/QueryConversion"
-            }
-          },
-          "cursor": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/EntityQueryCursor"
-              }
-            ],
-            "nullable": true
-          },
-          "includeCount": {
-            "type": "boolean"
-          },
-          "includeCreatedByIds": {
-            "type": "boolean"
-          },
-          "includeDrafts": {
-            "type": "boolean"
-          },
-          "includeEditionCreatedByIds": {
-            "type": "boolean"
-          },
-          "includeEntityTypes": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/IncludeEntityTypeOption"
-              }
-            ],
-            "nullable": true
-          },
-          "includePermissions": {
-            "type": "boolean"
-          },
-          "includeTypeIds": {
-            "type": "boolean"
-          },
-          "includeTypeTitles": {
-            "type": "boolean"
-          },
-          "includeWebIds": {
-            "type": "boolean"
-          },
-          "limit": {
-            "type": "integer",
-            "nullable": true,
-            "minimum": 0
-          },
-          "sortingPaths": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/EntityQuerySortingRecord"
-            },
-            "nullable": true
-          },
-          "temporalAxes": {
-            "$ref": "#/components/schemas/QueryTemporalAxesUnresolved"
-          }
-        },
-        "additionalProperties": false
       },
       "EntityQuerySortingPath": {
         "type": "array",
@@ -5290,23 +5294,6 @@
           },
           {
             "type": "object",
-            "title": "CosineDistanceFilter",
-            "required": [
-              "cosineDistance"
-            ],
-            "properties": {
-              "cosineDistance": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/FilterExpression"
-                },
-                "maxItems": 3,
-                "minItems": 3
-              }
-            }
-          },
-          {
-            "type": "object",
             "title": "StartsWithFilter",
             "required": [
               "startsWith"
@@ -5581,6 +5568,26 @@
               "$ref": "#/components/schemas/VersionedUrl"
             }
           }
+        },
+        "additionalProperties": false
+      },
+      "HashQlRequest": {
+        "type": "object",
+        "description": "Request body for the `/hashql` endpoint.",
+        "required": [
+          "query",
+          "inputs"
+        ],
+        "properties": {
+          "inputs": {
+            "type": "array",
+            "items": {
+              "default": null,
+              "nullable": true
+            },
+            "description": "Input values for the query. Must be an empty list until input support ships."
+          },
+          "query": {}
         },
         "additionalProperties": false
       },
@@ -7991,42 +7998,62 @@
         }
       },
       "QueryEntitiesRequest": {
-        "oneOf": [
-          {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/EntityQueryOptions"
-              },
-              {
-                "type": "object",
-                "required": [
-                  "query"
-                ],
-                "properties": {
-                  "query": {}
-                }
-              }
-            ]
+        "type": "object",
+        "required": [
+          "filter",
+          "temporalAxes",
+          "includeDrafts",
+          "includePermissions"
+        ],
+        "properties": {
+          "conversions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QueryConversion"
+            }
           },
-          {
+          "cursor": {
             "allOf": [
               {
-                "$ref": "#/components/schemas/EntityQueryOptions"
-              },
-              {
-                "type": "object",
-                "required": [
-                  "filter"
-                ],
-                "properties": {
-                  "filter": {
-                    "$ref": "#/components/schemas/Filter"
-                  }
-                }
+                "$ref": "#/components/schemas/EntityQueryCursor"
               }
-            ]
+            ],
+            "nullable": true
+          },
+          "filter": {
+            "$ref": "#/components/schemas/Filter"
+          },
+          "includeDrafts": {
+            "type": "boolean"
+          },
+          "includeEntityTypes": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/IncludeEntityTypeOption"
+              }
+            ],
+            "nullable": true
+          },
+          "includePermissions": {
+            "type": "boolean"
+          },
+          "limit": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 0
+          },
+          "sortingPaths": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EntityQuerySortingRecord"
+            },
+            "nullable": true
+          },
+          "temporalAxes": {
+            "$ref": "#/components/schemas/QueryTemporalAxesUnresolved"
           }
-        ]
+        },
+        "additionalProperties": false
       },
       "QueryEntitiesResponse": {
         "type": "object",
@@ -8038,17 +8065,6 @@
             "type": "object",
             "additionalProperties": {
               "$ref": "#/components/schemas/ClosedMultiEntityTypeMap"
-            }
-          },
-          "count": {
-            "type": "integer",
-            "minimum": 0
-          },
-          "createdByIds": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "integer",
-              "minimum": 0
             }
           },
           "cursor": {
@@ -8066,13 +8082,6 @@
               }
             ]
           },
-          "editionCreatedByIds": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "integer",
-              "minimum": 0
-            }
-          },
           "entities": {
             "type": "array",
             "items": {
@@ -8084,26 +8093,6 @@
             "additionalProperties": {
               "$ref": "#/components/schemas/EntityPermissions"
             }
-          },
-          "typeIds": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "integer",
-              "minimum": 0
-            }
-          },
-          "typeTitles": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "string"
-            }
-          },
-          "webIds": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "integer",
-              "minimum": 0
-            }
           }
         }
       },
@@ -8112,46 +8101,15 @@
           {
             "allOf": [
               {
-                "$ref": "#/components/schemas/EntityQueryOptions"
+                "$ref": "#/components/schemas/QueryEntitiesRequest"
               },
               {
                 "type": "object",
                 "required": [
-                  "query",
                   "traversalPaths",
                   "graphResolveDepths"
                 ],
                 "properties": {
-                  "graphResolveDepths": {
-                    "$ref": "#/components/schemas/GraphResolveDepths"
-                  },
-                  "query": {},
-                  "traversalPaths": {
-                    "type": "array",
-                    "items": {
-                      "$ref": "#/components/schemas/EntityTraversalPath"
-                    }
-                  }
-                }
-              }
-            ]
-          },
-          {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/EntityQueryOptions"
-              },
-              {
-                "type": "object",
-                "required": [
-                  "filter",
-                  "traversalPaths",
-                  "graphResolveDepths"
-                ],
-                "properties": {
-                  "filter": {
-                    "$ref": "#/components/schemas/Filter"
-                  },
                   "graphResolveDepths": {
                     "$ref": "#/components/schemas/GraphResolveDepths"
                   },
@@ -8168,41 +8126,14 @@
           {
             "allOf": [
               {
-                "$ref": "#/components/schemas/EntityQueryOptions"
+                "$ref": "#/components/schemas/QueryEntitiesRequest"
               },
               {
                 "type": "object",
                 "required": [
-                  "query",
                   "traversalPaths"
                 ],
                 "properties": {
-                  "query": {},
-                  "traversalPaths": {
-                    "type": "array",
-                    "items": {
-                      "$ref": "#/components/schemas/TraversalPath"
-                    }
-                  }
-                }
-              }
-            ]
-          },
-          {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/EntityQueryOptions"
-              },
-              {
-                "type": "object",
-                "required": [
-                  "filter",
-                  "traversalPaths"
-                ],
-                "properties": {
-                  "filter": {
-                    "$ref": "#/components/schemas/Filter"
-                  },
                   "traversalPaths": {
                     "type": "array",
                     "items": {
@@ -8227,17 +8158,6 @@
               "$ref": "#/components/schemas/ClosedMultiEntityTypeMap"
             }
           },
-          "count": {
-            "type": "integer",
-            "minimum": 0
-          },
-          "createdByIds": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "integer",
-              "minimum": 0
-            }
-          },
           "cursor": {
             "allOf": [
               {
@@ -8253,13 +8173,6 @@
               }
             ]
           },
-          "editionCreatedByIds": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "integer",
-              "minimum": 0
-            }
-          },
           "entityPermissions": {
             "type": "object",
             "additionalProperties": {
@@ -8268,26 +8181,6 @@
           },
           "subgraph": {
             "$ref": "#/components/schemas/Subgraph"
-          },
-          "typeIds": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "integer",
-              "minimum": 0
-            }
-          },
-          "typeTitles": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "string"
-            }
-          },
-          "webIds": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "integer",
-              "minimum": 0
-            }
           }
         }
       },
@@ -8795,6 +8688,131 @@
           "not-assigned"
         ]
       },
+      "SearchEntitiesFilter": {
+        "type": "object",
+        "description": "Scope constraints for [`EntityStore::search_entities`].\n\nEmpty lists impose no restriction.",
+        "properties": {
+          "entityTypeIds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VersionedUrl"
+            },
+            "default": []
+          },
+          "includeDrafts": {
+            "type": "boolean",
+            "default": false
+          },
+          "webIds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WebId"
+            },
+            "default": []
+          }
+        },
+        "additionalProperties": false
+      },
+      "SearchEntitiesRequest": {
+        "type": "object",
+        "description": "Request body for the entity embedding search endpoint.\n\nExactly one of `embedding` or `semanticString` must be provided. `semanticString` is converted\ninto an embedding by the server, which requires an embedding client to be configured.",
+        "required": [
+          "maximumSemanticDistance"
+        ],
+        "properties": {
+          "embedding": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Embedding"
+              }
+            ]
+          },
+          "filter": {
+            "$ref": "#/components/schemas/SearchEntitiesFilter"
+          },
+          "includeEntityTypes": {
+            "type": "boolean"
+          },
+          "limit": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 0
+          },
+          "maximumSemanticDistance": {
+            "type": "number",
+            "format": "double"
+          },
+          "semanticString": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "SearchEntitiesResponse": {
+        "type": "object",
+        "description": "Response for [`EntityStore::search_entities`].",
+        "required": [
+          "entities"
+        ],
+        "properties": {
+          "closedMultiEntityTypes": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/ClosedMultiEntityTypeMap"
+            }
+          },
+          "entities": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Entity"
+            }
+          }
+        }
+      },
+      "SearchEntityTypesRequest": {
+        "type": "object",
+        "description": "Request body for the entity type embedding search endpoint.\n\nExactly one of `embedding` or `semanticString` must be provided. `semanticString` is converted\ninto an embedding by the server, which requires an embedding client to be configured.",
+        "required": [
+          "maximumSemanticDistance"
+        ],
+        "properties": {
+          "embedding": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Embedding"
+              }
+            ]
+          },
+          "limit": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 0
+          },
+          "maximumSemanticDistance": {
+            "type": "number",
+            "format": "double"
+          },
+          "semanticString": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "SearchEntityTypesResponse": {
+        "type": "object",
+        "description": "Response for [`EntityTypeStore::search_entity_types`].",
+        "required": [
+          "entityTypes"
+        ],
+        "properties": {
+          "entityTypes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EntityTypeWithMetadata"
+            }
+          }
+        }
+      },
       "Selector": {
         "type": "string",
         "enum": [
@@ -8912,6 +8930,87 @@
           },
           "resolved": {
             "$ref": "#/components/schemas/QueryTemporalAxes"
+          }
+        }
+      },
+      "SummarizeEntitiesParams": {
+        "type": "object",
+        "required": [
+          "filter",
+          "temporalAxes",
+          "includeDrafts"
+        ],
+        "properties": {
+          "filter": {
+            "$ref": "#/components/schemas/Filter"
+          },
+          "includeCount": {
+            "type": "boolean"
+          },
+          "includeCreatedByIds": {
+            "type": "boolean"
+          },
+          "includeDrafts": {
+            "type": "boolean"
+          },
+          "includeEditionCreatedByIds": {
+            "type": "boolean"
+          },
+          "includeTypeIds": {
+            "type": "boolean"
+          },
+          "includeTypeTitles": {
+            "type": "boolean"
+          },
+          "includeWebIds": {
+            "type": "boolean"
+          },
+          "temporalAxes": {
+            "$ref": "#/components/schemas/QueryTemporalAxesUnresolved"
+          }
+        },
+        "additionalProperties": false
+      },
+      "SummarizeEntitiesResponse": {
+        "type": "object",
+        "properties": {
+          "count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "createdByIds": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "editionCreatedByIds": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "typeIds": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "typeTitles": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "webIds": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "minimum": 0
+            }
           }
         }
       },
@@ -9615,7 +9714,10 @@
       },
       "VersionedUrl": {
         "type": "string",
-        "format": "uri"
+        "title": "Versioned URL",
+        "format": "uri",
+        "description": "The versioned URL of a Block Protocol ontology type (the $id of the schema). It should be of the form `${baseUrl}v/${versionNumber}`",
+        "maxLength": 2048
       },
       "Vertex": {
         "oneOf": [
@@ -9676,6 +9778,10 @@
     {
       "name": "Principal",
       "description": "Principal management API"
+    },
+    {
+      "name": "HashQL",
+      "description": "HashQL query execution API"
     }
   ]
 }

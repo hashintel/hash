@@ -1,10 +1,10 @@
-import { stringifyError } from "@local/hash-isomorphic-utils/stringify-error";
 import { backOff } from "exponential-backoff";
+
+import * as Error from "../../error";
+import { getOpenAiClient } from "./shared/openai-client";
 
 import type { QueryGeneratePluralArgs, ResolverFn } from "../../api-types.gen";
 import type { GraphQLContext } from "../../context";
-import * as Error from "../../error";
-import { getOpenAiClient } from "./shared/openai-client";
 
 const generatePrompt = (type: string): string => `
 You are building the ontology for a knowledge graph.
@@ -71,10 +71,11 @@ export const generatePluralResolver: ResolverFn<
     );
 
     return responseMessage;
-  } catch (err) {
-    graphQLContext.logger.error(
-      `Failed to generate plural for '${singular}': ${stringifyError(err)}`,
-    );
+  } catch (error) {
+    graphQLContext.logger.error("Failed to generate plural", {
+      singular,
+      error,
+    });
     throw Error.internal(`Failed to generate plural for '${singular}'`);
   }
 };

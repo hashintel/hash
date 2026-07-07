@@ -1,3 +1,14 @@
+import {
+  Box,
+  CircularProgress,
+  Stack,
+  Tooltip,
+  Typography,
+} from "@mui/material";
+import dynamic from "next/dynamic";
+import { useState } from "react";
+import { FullScreen, useFullScreenHandle } from "react-full-screen";
+
 import { extractWebIdFromEntityId } from "@blockprotocol/type-system";
 import {
   ArrowLeftIcon,
@@ -12,17 +23,6 @@ import {
 } from "@hashintel/design-system";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import {
-  Box,
-  CircularProgress,
-  Stack,
-  Tooltip,
-  Typography,
-} from "@mui/material";
-import type { PropsWithChildren } from "react";
-import { useState } from "react";
-import { FullScreen, useFullScreenHandle } from "react-full-screen";
 
 import {
   useFileUploads,
@@ -32,11 +32,18 @@ import { FileUploadDropzone } from "../../../settings/shared/file-upload-dropzon
 import { useAuthInfo } from "../../auth-info-context";
 import { getFileProperties } from "../../get-file-properties";
 import { GrayToBlueIconButton } from "../../gray-to-blue-icon-button";
-import { PdfPreview } from "../../pdf-preview";
 import { SectionWrapper } from "../../section-wrapper";
 import { useEntityEditor } from "./entity-editor-context";
 
+import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { PropsWithChildren } from "react";
+
 const previewHeight = 250;
+
+const PdfPreview = dynamic(
+  () => import("../../pdf-preview").then((module) => module.PdfPreview),
+  { ssr: false },
+);
 
 const ActionButtonsContainer = ({ children }: PropsWithChildren) => (
   <Stack

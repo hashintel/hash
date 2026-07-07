@@ -1,24 +1,3 @@
-import type {
-  EntityTypeWithMetadata,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
-import {
-  extractBaseUrl,
-  extractVersion,
-  isBaseUrl,
-} from "@blockprotocol/type-system";
-import {
-  AsteriskRegularIcon,
-  EntityOrTypeIcon,
-  EyeSolidIcon,
-  PenToSquareSolidIcon,
-} from "@hashintel/design-system";
-import {
-  blockProtocolEntityTypes,
-  systemEntityTypes,
-} from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { pluralize } from "@local/hash-isomorphic-utils/pluralize";
-import type { SxProps, Theme } from "@mui/material";
 import {
   Box,
   buttonClasses,
@@ -27,10 +6,24 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
-import { useRouter } from "next/router";
 import { NextSeo } from "next-seo";
-import type { FunctionComponent } from "react";
+import { useRouter } from "next/router";
 import { useCallback, useMemo } from "react";
+
+import {
+  extractBaseUrl,
+  extractVersion,
+  isBaseUrl,
+} from "@blockprotocol/type-system";
+import {
+  AsteriskRegularIcon,
+  EntityOrTypeIcon,
+} from "@hashintel/design-system";
+import {
+  blockProtocolEntityTypes,
+  systemEntityTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { pluralize } from "@local/hash-isomorphic-utils/pluralize";
 
 import { useAccountPages } from "../components/hooks/use-account-pages";
 import { useCreatePage } from "../components/hooks/use-create-page";
@@ -43,20 +36,22 @@ import { FileCirclePlusRegularIcon } from "../shared/icons/file-circle-plus-regu
 import { FilesLightIcon } from "../shared/icons/files-light-icon";
 import { FilesRegularIcon } from "../shared/icons/files-regular-icon";
 import { PlusRegularIcon } from "../shared/icons/plus-regular";
-import type { NextPageWithLayout } from "../shared/layout";
 import { getLayoutWithSidebar } from "../shared/layout";
-import { Button } from "../shared/ui";
-import { TabLink } from "../shared/ui/tab-link";
-import { Tabs } from "../shared/ui/tabs";
 import { useUserPermissionsOnEntityType } from "../shared/use-user-permissions-on-entity-type";
-import type { Breadcrumb } from "./shared/breadcrumbs";
 import { CreateButton } from "./shared/create-button";
 import { EntitiesVisualizer } from "./shared/entities-visualizer";
+import { largePageMaxWidthCss } from "./shared/page-width";
 import { TopContextBar } from "./shared/top-context-bar";
 import { useEnabledFeatureFlags } from "./shared/use-enabled-feature-flags";
 import { useActiveWorkspace } from "./shared/workspace-context";
 
-const contentMaxWidth = 1000;
+import type { NextPageWithLayout } from "../shared/layout";
+import type { Breadcrumb } from "./shared/breadcrumbs";
+import type {
+  EntityTypeWithMetadata,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
+import type { FunctionComponent } from "react";
 
 type ParsedQueryParams = {
   entityTypeIdOrBaseUrl?: string;
@@ -144,7 +139,7 @@ export const CreateButtons: FunctionComponent<{
           endIcon={<FileCirclePlusRegularIcon />}
           onClick={createDocument}
         >
-          Create new document
+          Create document
         </CreateButton>
       ) : null}
       {(isViewAllPagesPage || isViewAllCanvasesPage) &&
@@ -160,7 +155,7 @@ export const CreateButtons: FunctionComponent<{
           endIcon={<CanvasNewIcon />}
           onClick={createCanvas}
         >
-          Create new canvas
+          Create canvas
         </CreateButton>
       ) : null}
     </Box>
@@ -170,17 +165,11 @@ export const CreateButtons: FunctionComponent<{
       variant="tertiary_quiet"
       endIcon={<PlusRegularIcon />}
     >
-      {isFile ? "Add" : "Create"} new{" "}
+      {isFile ? "Add " : "Create "}
       {entityType?.schema.title.toLowerCase() ?? "entity"}
       {isFile ? "(s)" : ""}
     </CreateButton>
   );
-};
-
-const typeIconSx: SxProps<Theme> = {
-  ml: 1,
-  fill: ({ palette }) => palette.common.white,
-  fontSize: 14,
 };
 
 const EntitiesPage: NextPageWithLayout = () => {
@@ -296,27 +285,28 @@ const EntitiesPage: NextPageWithLayout = () => {
     return crumbs;
   }, [entityType, isViewAllPagesPage, pageTitle]);
 
-  const maxWidth = { lg: `max(${contentMaxWidth}, "70%")` } as const;
-
   return (
     <>
       <NextSeo title={pageTitle} />
       <TopContextBar
         defaultCrumbIcon={null}
-        crumbs={breadcrumbs}
+        crumbs={breadcrumbs.length === 1 ? [] : breadcrumbs}
         scrollToTop={() => {}}
       />
       <Box
         sx={{
           borderBottom: 1,
           borderColor: ({ palette }) => palette.gray[20],
-          pt: 3.75,
           backgroundColor: ({ palette }) => palette.common.white,
         }}
       >
-        <Container sx={{ maxWidth }}>
-          <Stack direction="row" justifyContent="space-between">
-            <Stack direction="row" alignItems="center" gap={2} my={3}>
+        <Container sx={largePageMaxWidthCss}>
+          <Stack
+            direction="row"
+            justifyContent="space-between"
+            alignItems="flex-end"
+          >
+            <Stack direction="row" alignItems="center" gap={2} mt={3} mb={5}>
               {isViewAllPagesPage ? (
                 <FilesLightIcon />
               ) : (
@@ -339,38 +329,19 @@ const EntitiesPage: NextPageWithLayout = () => {
                   }
                 />
               )}
-              <Typography variant="h1" fontWeight="bold" my={3}>
+              <Typography variant="h1" fontWeight="bold">
                 {pageTitle}
               </Typography>
             </Stack>
-            {entityType && (
-              <Button
-                href={generateLinkParameters(entityType.schema.$id).href}
-                size="small"
-                sx={{ alignSelf: "center" }}
-              >
-                {userPermissions?.edit ? "Edit" : "View"} Type
-                {userPermissions?.edit ? (
-                  <PenToSquareSolidIcon sx={typeIconSx} />
-                ) : (
-                  <EyeSolidIcon sx={typeIconSx} />
-                )}
-              </Button>
-            )}
-          </Stack>
-          <Box display="flex" justifyContent="space-between">
-            <Tabs value="all">
-              <TabLink href="" value="all" active label={`All ${pageTitle}`} />
-            </Tabs>
             <Fade in={displayCreateEntityButton}>
               <Box>
                 <CreateButtons entityType={entityType} />
               </Box>
             </Fade>
-          </Box>
+          </Stack>
         </Container>
       </Box>
-      <Container sx={{ maxWidth, py: 5 }}>
+      <Container sx={{ ...largePageMaxWidthCss, py: 5 }}>
         <EntitiesVisualizer
           entityTypeBaseUrl={entityTypeBaseUrl}
           entityTypeId={entityTypeId}

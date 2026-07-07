@@ -1,4 +1,3 @@
-import { Avatar } from "@hashintel/design-system";
 import {
   Box,
   Divider,
@@ -13,13 +12,16 @@ import {
   bindTrigger,
   usePopupState,
 } from "material-ui-popup-state/hooks";
-import type { FunctionComponent } from "react";
 import { useMemo } from "react";
+
+import { Avatar } from "@hashintel/design-system";
 
 import { useAuthenticatedUser } from "../../../pages/shared/auth-info-context";
 import { getImageUrlFromEntityProperties } from "../../../pages/shared/get-file-properties";
 import { Link, MenuItem } from "../../ui";
 import { HeaderIconButton } from "./shared/header-icon-button";
+
+import type { FunctionComponent } from "react";
 
 type AccountDropdownProps = {
   logout: () => void;

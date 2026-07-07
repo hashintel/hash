@@ -1,8 +1,3 @@
-import type {
-  EntityRootType,
-  LinkEntityAndRightEntity,
-  Subgraph,
-} from "@blockprotocol/graph";
 import {
   getIncomingLinkAndSourceEntities,
   getOutgoingLinkAndTargetEntities,
@@ -11,21 +6,13 @@ import {
   intervalCompareWithInterval,
   intervalForTimestamp,
 } from "@blockprotocol/graph/stdlib";
-import type {
-  BaseUrl,
-  Entity,
-  LinkEntity,
-  UserId,
-  WebId,
-} from "@blockprotocol/type-system";
 import {
   currentTimestamp,
   extractBaseUrl,
   extractWebIdFromEntityId,
 } from "@blockprotocol/type-system";
-import type { HashEntity, HashLinkEntity } from "@local/hash-graph-sdk/entity";
 import { getFirstEntityRevision } from "@local/hash-isomorphic-utils/entity";
-import type { FeatureFlag } from "@local/hash-isomorphic-utils/feature-flags";
+import { normalizeEmail } from "@local/hash-isomorphic-utils/normalize";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
@@ -35,6 +22,22 @@ import {
   isInvitationByShortname,
 } from "@local/hash-isomorphic-utils/organization";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+
+import type { UserPreferences } from "../shared/use-user-preferences";
+import type {
+  EntityRootType,
+  LinkEntityAndRightEntity,
+  Subgraph,
+} from "@blockprotocol/graph";
+import type {
+  BaseUrl,
+  Entity,
+  LinkEntity,
+  UserId,
+  WebId,
+} from "@blockprotocol/type-system";
+import type { HashEntity, HashLinkEntity } from "@local/hash-graph-sdk/entity";
+import type { FeatureFlag } from "@local/hash-isomorphic-utils/feature-flags";
 import type { ImageFile } from "@local/hash-isomorphic-utils/system-types/imagefile";
 import type {
   HasBio,
@@ -47,8 +50,6 @@ import type {
 } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { User as UserEntity } from "@local/hash-isomorphic-utils/system-types/user";
 import type { VerifiableIdentityAddress } from "@ory/client";
-
-import type { UserPreferences } from "../shared/use-user-preferences";
 
 export const constructMinimalOrg = (params: {
   orgEntity: Entity<Organization>;
@@ -374,9 +375,11 @@ export const constructUser = (params: {
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- permissions means this may be undefined. @todo types to account for property-level permissions
   const primaryEmailAddress = email?.[0] ?? "";
 
+  const normalizedPrimaryEmail = normalizeEmail(primaryEmailAddress);
+
   const isPrimaryEmailAddressVerified =
     params.verifiableAddresses?.find(
-      ({ value }) => value === primaryEmailAddress,
+      ({ value }) => normalizeEmail(value) === normalizedPrimaryEmail,
     )?.verified === true;
 
   const minimalUser = constructMinimalUser({ userEntity });

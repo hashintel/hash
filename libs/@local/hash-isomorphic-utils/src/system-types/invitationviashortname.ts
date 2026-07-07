@@ -21,6 +21,8 @@ import type {
   ShortnamePropertyValueWithMetadata,
   TextDataType,
   TextDataTypeWithMetadata,
+  ValueDataType,
+  ValueDataTypeWithMetadata,
 } from "./shared.js";
 
 export type {
@@ -42,4 +44,6 @@ export type {
   ShortnamePropertyValueWithMetadata,
   TextDataType,
   TextDataTypeWithMetadata,
+  ValueDataType,
+  ValueDataTypeWithMetadata,
 };

@@ -1,10 +1,11 @@
-import type { Url } from "@blockprotocol/type-system";
 import browser from "webextension-polyfill";
 
 import {
   type GetTabContentReturn,
   isWellFormattedMessage,
 } from "../shared/messages";
+
+import type { Url } from "@blockprotocol/type-system";
 
 /**
  * @file

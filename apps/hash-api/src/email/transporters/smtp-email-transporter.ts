@@ -1,13 +1,15 @@
-import { getRequiredEnv } from "@local/hash-backend-utils/environment";
 import { convert } from "html-to-text";
 import nodemailer from "nodemailer";
-import type SMTPTransport from "nodemailer/lib/smtp-transport";
+
+import { getRequiredEnv } from "@local/hash-backend-utils/environment";
 
 import { logger } from "../../logger";
+
 import type {
   EmailTransporter,
   EmailTransporterSendMailOptions,
 } from "./types";
+import type SMTPTransport from "nodemailer/lib/smtp-transport";
 
 export interface SmtpEmailTransporterConfig {
   from: string;
@@ -51,8 +53,8 @@ export class SmtpEmailTransporter implements EmailTransporter {
         html,
       })
       .then(() => undefined)
-      .catch((err) => {
-        logger.error(`Error sending email: ${err as string}`);
+      .catch((error) => {
+        logger.error("Error sending email", { error });
       });
   }
 }

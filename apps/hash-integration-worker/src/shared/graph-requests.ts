@@ -1,25 +1,23 @@
+import {
+  extractEntityUuidFromEntityId,
+  extractWebIdFromEntityId,
+  splitEntityId,
+} from "@blockprotocol/type-system";
+import {
+  HashEntity,
+  HashLinkEntity,
+  queryEntities,
+} from "@local/hash-graph-sdk/entity";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
+import { linearPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+
 import type {
   ActorEntityUuid,
   EntityId,
   VersionedUrl,
   WebId,
 } from "@blockprotocol/type-system";
-import {
-  extractEntityUuidFromEntityId,
-  extractWebIdFromEntityId,
-  splitEntityId,
-} from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
-import {
-  HashEntity,
-  HashLinkEntity,
-  queryEntities,
-} from "@local/hash-graph-sdk/entity";
-import {
-  currentTimeInstantTemporalAxes,
-  generateVersionedUrlMatchingFilter,
-} from "@local/hash-isomorphic-utils/graph-queries";
-import { linearPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 export const getEntitiesByLinearId = async (params: {
   graphApiClient: GraphApi;
@@ -33,9 +31,14 @@ export const getEntitiesByLinearId = async (params: {
     filter: {
       all: [
         params.entityTypeId
-          ? generateVersionedUrlMatchingFilter(params.entityTypeId, {
-              ignoreParents: true,
-            })
+          ? {
+              equal: [
+                { path: ["type", "versionedUrl"] },
+                {
+                  parameter: params.entityTypeId,
+                },
+              ],
+            }
           : [],
         {
           equal: [

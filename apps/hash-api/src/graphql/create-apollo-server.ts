@@ -1,4 +1,3 @@
-import type { Server } from "node:http";
 import { performance } from "node:perf_hooks";
 
 import { ApolloServer, type ApolloServerPlugin } from "@apollo/server";
@@ -10,29 +9,34 @@ import {
 import { KeyvAdapter } from "@apollo/utils.keyvadapter";
 import { expressMiddleware } from "@as-integrations/express5";
 import { makeExecutableSchema } from "@graphql-tools/schema";
-import type { FileStorageProvider } from "@local/hash-backend-utils/file-storage";
-import type { Logger } from "@local/hash-backend-utils/logger";
-import type { TemporalClient } from "@local/hash-backend-utils/temporal";
-import type { VaultClient } from "@local/hash-backend-utils/vault";
+import * as Sentry from "@sentry/node";
+
 import { schema } from "@local/hash-isomorphic-utils/graphql/type-defs/schema";
 import {
   getHashClientTypeFromRequest,
   hashClientHeaderKey,
 } from "@local/hash-isomorphic-utils/http-requests";
-import * as Sentry from "@sentry/node";
-import type { StatsD } from "hot-shots";
-import type Keyv from "keyv";
 
 import { getActorIdFromRequest } from "../auth/get-actor-id";
+import { isProdEnv } from "../lib/env-config";
+import { resolvers } from "./resolvers";
+
 import type { EmailTransporter } from "../email/transporters";
 import type { GraphApi } from "../graph/context-types";
-import { isProdEnv } from "../lib/env-config";
 import type { GraphQLContext } from "./context";
-import { resolvers } from "./resolvers";
+import type { FileStorageProvider } from "@local/hash-backend-utils/file-storage";
+import type { Logger } from "@local/hash-backend-utils/logger";
+import type { TemporalClient } from "@local/hash-backend-utils/temporal";
+import type { VaultClient } from "@local/hash-backend-utils/vault";
+import type { StatsD } from "hot-shots";
+import type Keyv from "keyv";
+import type { Server } from "node:http";
 
 const statsPlugin = ({
   statsd,
-}: { statsd?: StatsD }): ApolloServerPlugin<GraphQLContext> => ({
+}: {
+  statsd?: StatsD;
+}): ApolloServerPlugin<GraphQLContext> => ({
   requestDidStart: async () => {
     const startTimestamp = performance.now();
 
@@ -92,19 +96,22 @@ const statsPlugin = ({
           },
           userAgent,
         };
+        const operationType = ctx.operation?.operation ?? "graphql";
+        const operationLabel = `${operationType} ${ctx.operationName ?? "anonymous"}`;
+        // Use the request-scoped logger so log lines correlate with the
+        // rest of the request via the requestId set in the context.
+        const reqLogger = ctx.contextValue.logger;
         if (ctx.errors) {
           if (ctx.errors[0]?.extensions.code !== "FORBIDDEN") {
             /** Log errors unrelated to auth failures */
-            ctx.logger.error(
-              JSON.stringify({
-                ...msg,
-                errors: ctx.errors,
-                stack: ctx.errors.map((err) => err.stack),
-              }),
-            );
+            reqLogger.error(`${operationLabel} failed`, {
+              ...msg,
+              errors: ctx.errors,
+              stack: ctx.errors.map((err) => err.stack),
+            });
           }
         } else {
-          ctx.logger.info(JSON.stringify(msg));
+          reqLogger.info(operationLabel, msg);
           if (ctx.operationName) {
             statsd?.timing(ctx.operationName, elapsed, 1, ["graphql"]);
           }

@@ -1,5 +1,24 @@
-import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
+import { Box, Stack } from "@mui/material";
+import { useMemo } from "react";
+
 import { getRoots } from "@blockprotocol/graph/stdlib";
+
+import { ClaimsSection } from "./entity-editor/claims-section";
+import { EntityEditorContextProvider } from "./entity-editor/entity-editor-context";
+import { FilePreviewSection } from "./entity-editor/file-preview-section";
+import { HistorySection } from "./entity-editor/history-section";
+import { LinkSection } from "./entity-editor/link-section";
+import { IncomingLinksSection } from "./entity-editor/links-section/incoming-links-section";
+import { OutgoingLinksSection } from "./entity-editor/links-section/outgoing-links-section";
+import { PropertiesSection } from "./entity-editor/properties-section";
+import { TypesSection } from "./entity-editor/types-section";
+import { useEntityEditorTab } from "./shared/entity-editor-tabs";
+
+import type { MinimalEntityValidationReport } from "../use-validate-entity";
+import type { OutgoingLinksFilterValues } from "./entity-editor/links-section/outgoing-links-section/readonly-outgoing-links-table";
+import type { CustomEntityLinksColumn } from "./entity-editor/shared/types";
+import type { DraftLinkState } from "./shared/use-draft-link-state";
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
 import type {
   BaseUrl,
   ClosedMultiEntityType,
@@ -11,23 +30,7 @@ import type {
   ClosedMultiEntityTypesDefinitions,
   ClosedMultiEntityTypesRootMap,
 } from "@local/hash-graph-sdk/ontology";
-import { Box } from "@mui/material";
 import type { RefObject } from "react";
-import { useMemo } from "react";
-
-import type { MinimalEntityValidationReport } from "../use-validate-entity";
-import { ClaimsSection } from "./entity-editor/claims-section";
-import { EntityEditorContextProvider } from "./entity-editor/entity-editor-context";
-import { FilePreviewSection } from "./entity-editor/file-preview-section";
-import { HistorySection } from "./entity-editor/history-section";
-import { LinkSection } from "./entity-editor/link-section";
-import { LinksSection } from "./entity-editor/links-section";
-import type { OutgoingLinksFilterValues } from "./entity-editor/links-section/outgoing-links-section/readonly-outgoing-links-table";
-import { PropertiesSection } from "./entity-editor/properties-section";
-import type { CustomEntityLinksColumn } from "./entity-editor/shared/types";
-import { TypesSection } from "./entity-editor/types-section";
-import { useEntityEditorTab } from "./shared/entity-editor-tabs";
-import type { DraftLinkState } from "./shared/use-draft-link-state";
 
 export type { CustomEntityLinksColumn };
 
@@ -53,6 +56,10 @@ export interface EntityEditorProps extends DraftLinkState {
    * Whether the entity is dirty (has unsaved changes)
    */
   isDirty: boolean;
+  /**
+   * When the component is not in readonly, whether the link data (if any) is now included in the subgraph.
+   */
+  hasRootLinkDataBeenResolved: boolean;
   /**
    * The label of the entity being edited
    */
@@ -109,7 +116,24 @@ export interface EntityEditorProps extends DraftLinkState {
 }
 
 export const EntityEditor = (props: EntityEditorProps) => {
-  const { entitySubgraph } = props;
+  const {
+    closedMultiEntityType,
+    closedMultiEntityTypesDefinitions,
+    customEntityLinksColumns,
+    defaultOutgoingLinkFilters,
+    draftLinksToArchive,
+    draftLinksToCreate,
+    entityLabel,
+    entitySubgraph,
+    hasRootLinkDataBeenResolved,
+    linkAndDestinationEntitiesClosedMultiEntityTypesMap,
+    onEntityClick,
+    onTypeClick,
+    readonly,
+    setDraftLinksToArchive,
+    setDraftLinksToCreate,
+    slideContainerRef,
+  } = props;
 
   const entity = useMemo(() => {
     const roots = getRoots(entitySubgraph);
@@ -157,7 +181,53 @@ export const EntityEditor = (props: EntityEditorProps) => {
 
           <PropertiesSection />
 
-          <LinksSection isLinkEntity={isLinkEntity} />
+          <Stack gap={6}>
+            <OutgoingLinksSection
+              closedMultiEntityType={closedMultiEntityType}
+              closedMultiEntityTypesDefinitions={
+                closedMultiEntityTypesDefinitions
+              }
+              customEntityLinksColumns={customEntityLinksColumns}
+              defaultOutgoingLinkFilters={defaultOutgoingLinkFilters}
+              draftLinksToArchive={draftLinksToArchive}
+              draftLinksToCreate={draftLinksToCreate}
+              entity={entity}
+              entitySubgraph={entitySubgraph}
+              isLinkEntity={isLinkEntity}
+              key={`outgoing-${entity.metadata.recordId.editionId}`}
+              linkAndDestinationEntitiesClosedMultiEntityTypesMap={
+                linkAndDestinationEntitiesClosedMultiEntityTypesMap
+              }
+              hasRootLinkDataBeenResolved={hasRootLinkDataBeenResolved}
+              onEntityClick={onEntityClick}
+              onTypeClick={onTypeClick}
+              readonly={readonly}
+              setDraftLinksToArchive={setDraftLinksToArchive}
+              setDraftLinksToCreate={setDraftLinksToCreate}
+              slideContainerRef={slideContainerRef}
+            />
+
+            <IncomingLinksSection
+              closedMultiEntityTypesDefinitions={
+                closedMultiEntityTypesDefinitions
+              }
+              customEntityLinksColumns={customEntityLinksColumns}
+              draftLinksToArchive={draftLinksToArchive}
+              entity={entity}
+              entityLabel={entityLabel}
+              entitySubgraph={entitySubgraph}
+              isLinkEntity={isLinkEntity}
+              hasRootLinkDataBeenResolved={hasRootLinkDataBeenResolved}
+              key={`incoming-${entity.metadata.recordId.editionId}`}
+              linkAndDestinationEntitiesClosedMultiEntityTypesMap={
+                linkAndDestinationEntitiesClosedMultiEntityTypesMap
+              }
+              onEntityClick={onEntityClick}
+              onTypeClick={onTypeClick}
+              readonly={readonly}
+              slideContainerRef={slideContainerRef}
+            />
+          </Stack>
 
           <ClaimsSection />
 

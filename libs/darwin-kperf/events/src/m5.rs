@@ -17,6 +17,21 @@ pub enum M5Event {
     ArmL1DCacheRd,
     /// Level 1 data cache refill.
     ArmL1DCacheRefill,
+    /// Counts each Instruction memory access to at least the Level 1 instruction or
+    /// unified cache.
+    ArmL1ICache,
+    /// Data memory access.
+    ArmMemAccess,
+    /// Checked data memory access.
+    ArmMemAccessChecked,
+    /// Checked data memory access, read.
+    ArmMemAccessCheckedRd,
+    /// Checked data memory access, write.
+    ArmMemAccessCheckedWr,
+    /// Data memory access, read.
+    ArmMemAccessRd,
+    /// Data memory access, write.
+    ArmMemAccessWr,
     /// No operation sent for execution.
     ArmStall,
     /// No operation issued due to the backend.
@@ -37,6 +52,9 @@ pub enum M5Event {
     /// incorrectly undercounts for exclusives when the cache line is initially
     /// found in shared state, however counts correctly for atomics).
     AtomicOrExclusiveSucc,
+    /// Retired indirect branch instructions, excluding call and return
+    /// instructions, that mispredicted.
+    BranchBrIndirMispredNonspec,
     /// Retired indirect call instructions mispredicted.
     BranchCallIndirMispredNonspec,
     /// Retired conditional branch instructions that mispredicted.
@@ -50,6 +68,12 @@ pub enum M5Event {
     BranchRetIndirMispredNonspec,
     /// Cycles while the core was active.
     CoreActiveCycle,
+    /// Cycles while the core was waiting to push instructions to the SME engine or
+    /// the core was waiting for data from the SME engine, and no uop was issued by
+    /// the scheduler, prioritized.
+    CoreWaitingSmeEngineCycle,
+    /// Decoded uops.
+    DecodeUop,
     /// Fetch Unit internal restarts for any reason. Does not include branch
     /// mispredicts.
     FetchRestart,
@@ -68,6 +92,8 @@ pub enum M5Event {
     InstBranch,
     /// Retired subroutine call instructions.
     InstBranchCall,
+    /// Retired indirect subroutine call instructions; subset of INST_BRANCH_CALL.
+    InstBranchCallIndir,
     /// Retired conditional branch instructions (on M3 and prior, incorrectly only
     /// counts only B.cond instructions, where on M4 and following, adds
     /// CBZ/CBNZ/TBZ/TBNZ instructions to form the complete set of conditional
@@ -89,6 +115,8 @@ pub enum M5Event {
     /// Retired load and store instructions; does not count DC ZVA (Data Cache Zero
     /// by VA).
     InstLdst,
+    /// Retired instructions that require internal microcode.
+    InstMicrocoded,
     /// Retired non-load/store Advanced SIMD and FP Unit instructions.
     InstSimdAlu,
     /// Retired non-load/store vector Advanced SIMD instructions.
@@ -149,12 +177,46 @@ pub enum M5Event {
     LdSmeNormalUop,
     /// SME engine load uops that executed with non-temporal hint.
     LdSmeNtUop,
+    /// Retired load instructions where the data is supplied by another core in the
+    /// same cluster. See Apple Silicon CPU Optimization Guide.
+    LdSrcCoreSameclusterNonspec,
+    /// Retired load instructions where the data is supplied by the core's Shared L2
+    /// Cache. See Apple Silicon CPU Optimization Guide.
+    LdSrcLlCacheNonspec,
+    /// Retired load instructions where the data is supplied by either the Memory
+    /// Cache or the DRAM. See Apple Silicon CPU Optimization Guide.
+    LdSrcMemsysNonspec,
+    /// Retired load instructions where the data is supplied by either the Memory
+    /// Cache or the DRAM on another die. Subset of LD_SRC_MEMSYS_NONSPEC. See Apple
+    /// Silicon CPU Optimization Guide.
+    LdSrcMemsysOtherdieNonspec,
+    /// Retired load instructions where the data is supplied by an agent in another
+    /// cluster. See Apple Silicon CPU Optimization Guide.
+    LdSrcOtherclusterNonspec,
+    /// Retired load instructions where the data is supplied by an agent in another
+    /// cluster on another die. Subset of LD_SRC_OTHERCLUSTER_NONSPEC. See Apple
+    /// Silicon CPU Optimization Guide.
+    LdSrcOtherclusterOtherdieNonspec,
+    /// Retired load instructions where the data is supplied by the core's PL2. The
+    /// PL2 is only available on some cores. See Apple Silicon CPU Optimization
+    /// Guide.
+    LdSrcPl2CacheNonspec,
+    /// Retired load instructions where the data is at least partially supplied by
+    /// older stores that have yet to write into the L1 Cache. See Apple Silicon CPU
+    /// Optimization Guide.
+    LdSrcStoreNonspec,
     /// Uops that flowed through the Load Unit.
     LdUnitUop,
     /// Cycles while a younger load uop is waiting for data after an L1 Data Cache
     /// miss, and no uop was issued by the scheduler with no critical miss,
     /// prioritized.
     LdUnitWaitingYoungL1DCacheMiss,
+    /// Read or write allocation tag checked data memory accesses that required tags
+    /// from 2 different 64B cache lines of tags.
+    LdstMemAccessCheckedX2K,
+    /// Cycles while an old load or store uop is waiting for its MTE tag check, and
+    /// no uop was issued by the scheduler, prioritized.
+    LdstOldestMteTagCheckCycle,
     /// SME engine load and store uops where all lanes are inactive due to the
     /// governing predicate; for a page-crossing load or store, the event may
     /// incorrectly count when all of the elements of the low page are predicated
@@ -201,6 +263,9 @@ pub enum M5Event {
     MapDispatchBubbleItlb,
     /// Slots where the Map Unit had no uops to process and was not stalled.
     MapDispatchBubbleSlot,
+    /// Slots where the Map Unit had no uops to process after a taken branch and was
+    /// not stalled.
+    MapDispatchBubbleTakenbrSlot,
     /// Mapped core Integer Unit uops for SME engine instructions.
     MapIntSmeUop,
     /// Mapped Integer Unit uops.
@@ -229,6 +294,24 @@ pub enum M5Event {
     MmuTableWalkData,
     /// Table walk memory requests on behalf of instruction fetches.
     MmuTableWalkInstruction,
+    /// Any request that accessed the PL2 Cache.
+    Pl2CacheAccess,
+    /// Instruction fetch requests that accessed the PL2 Cache.
+    Pl2CacheAccessInstruction,
+    /// Translation table walk requests that accessed the PL2 Cache.
+    Pl2CacheAccessMmu,
+    /// Store requests that accessed the PL2 Cache.
+    Pl2CacheAccessSt,
+    /// Any request that missed the PL2 Cache.
+    Pl2CacheMiss,
+    /// Instruction fetch requests that missed the PL2 Cache.
+    Pl2CacheMissInstruction,
+    /// Load requests that missed the PL2 Cache.
+    Pl2CacheMissLd,
+    /// Translation table walk requests that missed the PL2 Cache.
+    Pl2CacheMissMmu,
+    /// Store requests that missed the PL2 Cache.
+    Pl2CacheMissSt,
     /// All retired uops.
     RetireUop,
     /// Cycles while the uop scheduler is empty.
@@ -276,6 +359,13 @@ impl M5Event {
             Event::ArmL1DCacheLmissRd => Some(Self::ArmL1DCacheLmissRd),
             Event::ArmL1DCacheRd => Some(Self::ArmL1DCacheRd),
             Event::ArmL1DCacheRefill => Some(Self::ArmL1DCacheRefill),
+            Event::ArmL1ICache => Some(Self::ArmL1ICache),
+            Event::ArmMemAccess => Some(Self::ArmMemAccess),
+            Event::ArmMemAccessChecked => Some(Self::ArmMemAccessChecked),
+            Event::ArmMemAccessCheckedRd => Some(Self::ArmMemAccessCheckedRd),
+            Event::ArmMemAccessCheckedWr => Some(Self::ArmMemAccessCheckedWr),
+            Event::ArmMemAccessRd => Some(Self::ArmMemAccessRd),
+            Event::ArmMemAccessWr => Some(Self::ArmMemAccessWr),
             Event::ArmStall => Some(Self::ArmStall),
             Event::ArmStallBackend => Some(Self::ArmStallBackend),
             Event::ArmStallFrontend => Some(Self::ArmStallFrontend),
@@ -284,12 +374,15 @@ impl M5Event {
             Event::ArmStallSlotFrontend => Some(Self::ArmStallSlotFrontend),
             Event::AtomicOrExclusiveFail => Some(Self::AtomicOrExclusiveFail),
             Event::AtomicOrExclusiveSucc => Some(Self::AtomicOrExclusiveSucc),
+            Event::BranchBrIndirMispredNonspec => Some(Self::BranchBrIndirMispredNonspec),
             Event::BranchCallIndirMispredNonspec => Some(Self::BranchCallIndirMispredNonspec),
             Event::BranchCondMispredNonspec => Some(Self::BranchCondMispredNonspec),
             Event::BranchIndirMispredNonspec => Some(Self::BranchIndirMispredNonspec),
             Event::BranchMispredNonspec => Some(Self::BranchMispredNonspec),
             Event::BranchRetIndirMispredNonspec => Some(Self::BranchRetIndirMispredNonspec),
             Event::CoreActiveCycle => Some(Self::CoreActiveCycle),
+            Event::CoreWaitingSmeEngineCycle => Some(Self::CoreWaitingSmeEngineCycle),
+            Event::DecodeUop => Some(Self::DecodeUop),
             Event::FetchRestart => Some(Self::FetchRestart),
             Event::FixedCycles => Some(Self::FixedCycles),
             Event::FixedInstructions => Some(Self::FixedInstructions),
@@ -298,6 +391,7 @@ impl M5Event {
             Event::InstBarrier => Some(Self::InstBarrier),
             Event::InstBranch => Some(Self::InstBranch),
             Event::InstBranchCall => Some(Self::InstBranchCall),
+            Event::InstBranchCallIndir => Some(Self::InstBranchCallIndir),
             Event::InstBranchCond => Some(Self::InstBranchCond),
             Event::InstBranchIndir => Some(Self::InstBranchIndir),
             Event::InstBranchRet => Some(Self::InstBranchRet),
@@ -306,6 +400,7 @@ impl M5Event {
             Event::InstIntLd => Some(Self::InstIntLd),
             Event::InstIntSt => Some(Self::InstIntSt),
             Event::InstLdst => Some(Self::InstLdst),
+            Event::InstMicrocoded => Some(Self::InstMicrocoded),
             Event::InstSimdAlu => Some(Self::InstSimdAlu),
             Event::InstSimdAluVec => Some(Self::InstSimdAluVec),
             Event::InstSimdLd => Some(Self::InstSimdLd),
@@ -334,8 +429,18 @@ impl M5Event {
             Event::LdNtUop => Some(Self::LdNtUop),
             Event::LdSmeNormalUop => Some(Self::LdSmeNormalUop),
             Event::LdSmeNtUop => Some(Self::LdSmeNtUop),
+            Event::LdSrcCoreSameclusterNonspec => Some(Self::LdSrcCoreSameclusterNonspec),
+            Event::LdSrcLlCacheNonspec => Some(Self::LdSrcLlCacheNonspec),
+            Event::LdSrcMemsysNonspec => Some(Self::LdSrcMemsysNonspec),
+            Event::LdSrcMemsysOtherdieNonspec => Some(Self::LdSrcMemsysOtherdieNonspec),
+            Event::LdSrcOtherclusterNonspec => Some(Self::LdSrcOtherclusterNonspec),
+            Event::LdSrcOtherclusterOtherdieNonspec => Some(Self::LdSrcOtherclusterOtherdieNonspec),
+            Event::LdSrcPl2CacheNonspec => Some(Self::LdSrcPl2CacheNonspec),
+            Event::LdSrcStoreNonspec => Some(Self::LdSrcStoreNonspec),
             Event::LdUnitUop => Some(Self::LdUnitUop),
             Event::LdUnitWaitingYoungL1DCacheMiss => Some(Self::LdUnitWaitingYoungL1DCacheMiss),
+            Event::LdstMemAccessCheckedX2K => Some(Self::LdstMemAccessCheckedX2K),
+            Event::LdstOldestMteTagCheckCycle => Some(Self::LdstOldestMteTagCheckCycle),
             Event::LdstSmePredInactive => Some(Self::LdstSmePredInactive),
             Event::LdstSmeXpgUop => Some(Self::LdstSmeXpgUop),
             Event::LdstUnitOldL1DCacheMiss => Some(Self::LdstUnitOldL1DCacheMiss),
@@ -350,6 +455,7 @@ impl M5Event {
             Event::MapDispatchBubbleIc => Some(Self::MapDispatchBubbleIc),
             Event::MapDispatchBubbleItlb => Some(Self::MapDispatchBubbleItlb),
             Event::MapDispatchBubbleSlot => Some(Self::MapDispatchBubbleSlot),
+            Event::MapDispatchBubbleTakenbrSlot => Some(Self::MapDispatchBubbleTakenbrSlot),
             Event::MapIntSmeUop => Some(Self::MapIntSmeUop),
             Event::MapIntUop => Some(Self::MapIntUop),
             Event::MapLdstUop => Some(Self::MapLdstUop),
@@ -362,6 +468,15 @@ impl M5Event {
             Event::MapUop => Some(Self::MapUop),
             Event::MmuTableWalkData => Some(Self::MmuTableWalkData),
             Event::MmuTableWalkInstruction => Some(Self::MmuTableWalkInstruction),
+            Event::Pl2CacheAccess => Some(Self::Pl2CacheAccess),
+            Event::Pl2CacheAccessInstruction => Some(Self::Pl2CacheAccessInstruction),
+            Event::Pl2CacheAccessMmu => Some(Self::Pl2CacheAccessMmu),
+            Event::Pl2CacheAccessSt => Some(Self::Pl2CacheAccessSt),
+            Event::Pl2CacheMiss => Some(Self::Pl2CacheMiss),
+            Event::Pl2CacheMissInstruction => Some(Self::Pl2CacheMissInstruction),
+            Event::Pl2CacheMissLd => Some(Self::Pl2CacheMissLd),
+            Event::Pl2CacheMissMmu => Some(Self::Pl2CacheMissMmu),
+            Event::Pl2CacheMissSt => Some(Self::Pl2CacheMissSt),
             Event::RetireUop => Some(Self::RetireUop),
             Event::ScheduleEmpty => Some(Self::ScheduleEmpty),
             Event::ScheduleUop => Some(Self::ScheduleUop),
@@ -388,6 +503,13 @@ impl EventInfo for M5Event {
             Self::ArmL1DCacheLmissRd => "ARM_L1D_CACHE_LMISS_RD",
             Self::ArmL1DCacheRd => "ARM_L1D_CACHE_RD",
             Self::ArmL1DCacheRefill => "ARM_L1D_CACHE_REFILL",
+            Self::ArmL1ICache => "ARM_L1I_CACHE",
+            Self::ArmMemAccess => "ARM_MEM_ACCESS",
+            Self::ArmMemAccessChecked => "ARM_MEM_ACCESS_CHECKED",
+            Self::ArmMemAccessCheckedRd => "ARM_MEM_ACCESS_CHECKED_RD",
+            Self::ArmMemAccessCheckedWr => "ARM_MEM_ACCESS_CHECKED_WR",
+            Self::ArmMemAccessRd => "ARM_MEM_ACCESS_RD",
+            Self::ArmMemAccessWr => "ARM_MEM_ACCESS_WR",
             Self::ArmStall => "ARM_STALL",
             Self::ArmStallBackend => "ARM_STALL_BACKEND",
             Self::ArmStallFrontend => "ARM_STALL_FRONTEND",
@@ -396,12 +518,15 @@ impl EventInfo for M5Event {
             Self::ArmStallSlotFrontend => "ARM_STALL_SLOT_FRONTEND",
             Self::AtomicOrExclusiveFail => "ATOMIC_OR_EXCLUSIVE_FAIL",
             Self::AtomicOrExclusiveSucc => "ATOMIC_OR_EXCLUSIVE_SUCC",
+            Self::BranchBrIndirMispredNonspec => "BRANCH_BR_INDIR_MISPRED_NONSPEC",
             Self::BranchCallIndirMispredNonspec => "BRANCH_CALL_INDIR_MISPRED_NONSPEC",
             Self::BranchCondMispredNonspec => "BRANCH_COND_MISPRED_NONSPEC",
             Self::BranchIndirMispredNonspec => "BRANCH_INDIR_MISPRED_NONSPEC",
             Self::BranchMispredNonspec => "BRANCH_MISPRED_NONSPEC",
             Self::BranchRetIndirMispredNonspec => "BRANCH_RET_INDIR_MISPRED_NONSPEC",
             Self::CoreActiveCycle => "CORE_ACTIVE_CYCLE",
+            Self::CoreWaitingSmeEngineCycle => "CORE_WAITING_SME_ENGINE_CYCLE",
+            Self::DecodeUop => "DECODE_UOP",
             Self::FetchRestart => "FETCH_RESTART",
             Self::FixedCycles => "FIXED_CYCLES",
             Self::FixedInstructions => "FIXED_INSTRUCTIONS",
@@ -410,6 +535,7 @@ impl EventInfo for M5Event {
             Self::InstBarrier => "INST_BARRIER",
             Self::InstBranch => "INST_BRANCH",
             Self::InstBranchCall => "INST_BRANCH_CALL",
+            Self::InstBranchCallIndir => "INST_BRANCH_CALL_INDIR",
             Self::InstBranchCond => "INST_BRANCH_COND",
             Self::InstBranchIndir => "INST_BRANCH_INDIR",
             Self::InstBranchRet => "INST_BRANCH_RET",
@@ -418,6 +544,7 @@ impl EventInfo for M5Event {
             Self::InstIntLd => "INST_INT_LD",
             Self::InstIntSt => "INST_INT_ST",
             Self::InstLdst => "INST_LDST",
+            Self::InstMicrocoded => "INST_MICROCODED",
             Self::InstSimdAlu => "INST_SIMD_ALU",
             Self::InstSimdAluVec => "INST_SIMD_ALU_VEC",
             Self::InstSimdLd => "INST_SIMD_LD",
@@ -446,8 +573,18 @@ impl EventInfo for M5Event {
             Self::LdNtUop => "LD_NT_UOP",
             Self::LdSmeNormalUop => "LD_SME_NORMAL_UOP",
             Self::LdSmeNtUop => "LD_SME_NT_UOP",
+            Self::LdSrcCoreSameclusterNonspec => "LD_SRC_CORE_SAMECLUSTER_NONSPEC",
+            Self::LdSrcLlCacheNonspec => "LD_SRC_LL_CACHE_NONSPEC",
+            Self::LdSrcMemsysNonspec => "LD_SRC_MEMSYS_NONSPEC",
+            Self::LdSrcMemsysOtherdieNonspec => "LD_SRC_MEMSYS_OTHERDIE_NONSPEC",
+            Self::LdSrcOtherclusterNonspec => "LD_SRC_OTHERCLUSTER_NONSPEC",
+            Self::LdSrcOtherclusterOtherdieNonspec => "LD_SRC_OTHERCLUSTER_OTHERDIE_NONSPEC",
+            Self::LdSrcPl2CacheNonspec => "LD_SRC_PL2_CACHE_NONSPEC",
+            Self::LdSrcStoreNonspec => "LD_SRC_STORE_NONSPEC",
             Self::LdUnitUop => "LD_UNIT_UOP",
             Self::LdUnitWaitingYoungL1DCacheMiss => "LD_UNIT_WAITING_YOUNG_L1D_CACHE_MISS",
+            Self::LdstMemAccessCheckedX2K => "LDST_MEM_ACCESS_CHECKED_X2K",
+            Self::LdstOldestMteTagCheckCycle => "LDST_OLDEST_MTE_TAG_CHECK_CYCLE",
             Self::LdstSmePredInactive => "LDST_SME_PRED_INACTIVE",
             Self::LdstSmeXpgUop => "LDST_SME_XPG_UOP",
             Self::LdstUnitOldL1DCacheMiss => "LDST_UNIT_OLD_L1D_CACHE_MISS",
@@ -462,6 +599,7 @@ impl EventInfo for M5Event {
             Self::MapDispatchBubbleIc => "MAP_DISPATCH_BUBBLE_IC",
             Self::MapDispatchBubbleItlb => "MAP_DISPATCH_BUBBLE_ITLB",
             Self::MapDispatchBubbleSlot => "MAP_DISPATCH_BUBBLE_SLOT",
+            Self::MapDispatchBubbleTakenbrSlot => "MAP_DISPATCH_BUBBLE_TAKENBR_SLOT",
             Self::MapIntSmeUop => "MAP_INT_SME_UOP",
             Self::MapIntUop => "MAP_INT_UOP",
             Self::MapLdstUop => "MAP_LDST_UOP",
@@ -474,6 +612,15 @@ impl EventInfo for M5Event {
             Self::MapUop => "MAP_UOP",
             Self::MmuTableWalkData => "MMU_TABLE_WALK_DATA",
             Self::MmuTableWalkInstruction => "MMU_TABLE_WALK_INSTRUCTION",
+            Self::Pl2CacheAccess => "PL2_CACHE_ACCESS",
+            Self::Pl2CacheAccessInstruction => "PL2_CACHE_ACCESS_INSTRUCTION",
+            Self::Pl2CacheAccessMmu => "PL2_CACHE_ACCESS_MMU",
+            Self::Pl2CacheAccessSt => "PL2_CACHE_ACCESS_ST",
+            Self::Pl2CacheMiss => "PL2_CACHE_MISS",
+            Self::Pl2CacheMissInstruction => "PL2_CACHE_MISS_INSTRUCTION",
+            Self::Pl2CacheMissLd => "PL2_CACHE_MISS_LD",
+            Self::Pl2CacheMissMmu => "PL2_CACHE_MISS_MMU",
+            Self::Pl2CacheMissSt => "PL2_CACHE_MISS_ST",
             Self::RetireUop => "RETIRE_UOP",
             Self::ScheduleEmpty => "SCHEDULE_EMPTY",
             Self::ScheduleUop => "SCHEDULE_UOP_ANY",
@@ -499,6 +646,13 @@ impl EventInfo for M5Event {
             Self::ArmL1DCacheLmissRd => c"ARM_L1D_CACHE_LMISS_RD",
             Self::ArmL1DCacheRd => c"ARM_L1D_CACHE_RD",
             Self::ArmL1DCacheRefill => c"ARM_L1D_CACHE_REFILL",
+            Self::ArmL1ICache => c"ARM_L1I_CACHE",
+            Self::ArmMemAccess => c"ARM_MEM_ACCESS",
+            Self::ArmMemAccessChecked => c"ARM_MEM_ACCESS_CHECKED",
+            Self::ArmMemAccessCheckedRd => c"ARM_MEM_ACCESS_CHECKED_RD",
+            Self::ArmMemAccessCheckedWr => c"ARM_MEM_ACCESS_CHECKED_WR",
+            Self::ArmMemAccessRd => c"ARM_MEM_ACCESS_RD",
+            Self::ArmMemAccessWr => c"ARM_MEM_ACCESS_WR",
             Self::ArmStall => c"ARM_STALL",
             Self::ArmStallBackend => c"ARM_STALL_BACKEND",
             Self::ArmStallFrontend => c"ARM_STALL_FRONTEND",
@@ -507,12 +661,15 @@ impl EventInfo for M5Event {
             Self::ArmStallSlotFrontend => c"ARM_STALL_SLOT_FRONTEND",
             Self::AtomicOrExclusiveFail => c"ATOMIC_OR_EXCLUSIVE_FAIL",
             Self::AtomicOrExclusiveSucc => c"ATOMIC_OR_EXCLUSIVE_SUCC",
+            Self::BranchBrIndirMispredNonspec => c"BRANCH_BR_INDIR_MISPRED_NONSPEC",
             Self::BranchCallIndirMispredNonspec => c"BRANCH_CALL_INDIR_MISPRED_NONSPEC",
             Self::BranchCondMispredNonspec => c"BRANCH_COND_MISPRED_NONSPEC",
             Self::BranchIndirMispredNonspec => c"BRANCH_INDIR_MISPRED_NONSPEC",
             Self::BranchMispredNonspec => c"BRANCH_MISPRED_NONSPEC",
             Self::BranchRetIndirMispredNonspec => c"BRANCH_RET_INDIR_MISPRED_NONSPEC",
             Self::CoreActiveCycle => c"CORE_ACTIVE_CYCLE",
+            Self::CoreWaitingSmeEngineCycle => c"CORE_WAITING_SME_ENGINE_CYCLE",
+            Self::DecodeUop => c"DECODE_UOP",
             Self::FetchRestart => c"FETCH_RESTART",
             Self::FixedCycles => c"FIXED_CYCLES",
             Self::FixedInstructions => c"FIXED_INSTRUCTIONS",
@@ -521,6 +678,7 @@ impl EventInfo for M5Event {
             Self::InstBarrier => c"INST_BARRIER",
             Self::InstBranch => c"INST_BRANCH",
             Self::InstBranchCall => c"INST_BRANCH_CALL",
+            Self::InstBranchCallIndir => c"INST_BRANCH_CALL_INDIR",
             Self::InstBranchCond => c"INST_BRANCH_COND",
             Self::InstBranchIndir => c"INST_BRANCH_INDIR",
             Self::InstBranchRet => c"INST_BRANCH_RET",
@@ -529,6 +687,7 @@ impl EventInfo for M5Event {
             Self::InstIntLd => c"INST_INT_LD",
             Self::InstIntSt => c"INST_INT_ST",
             Self::InstLdst => c"INST_LDST",
+            Self::InstMicrocoded => c"INST_MICROCODED",
             Self::InstSimdAlu => c"INST_SIMD_ALU",
             Self::InstSimdAluVec => c"INST_SIMD_ALU_VEC",
             Self::InstSimdLd => c"INST_SIMD_LD",
@@ -557,8 +716,18 @@ impl EventInfo for M5Event {
             Self::LdNtUop => c"LD_NT_UOP",
             Self::LdSmeNormalUop => c"LD_SME_NORMAL_UOP",
             Self::LdSmeNtUop => c"LD_SME_NT_UOP",
+            Self::LdSrcCoreSameclusterNonspec => c"LD_SRC_CORE_SAMECLUSTER_NONSPEC",
+            Self::LdSrcLlCacheNonspec => c"LD_SRC_LL_CACHE_NONSPEC",
+            Self::LdSrcMemsysNonspec => c"LD_SRC_MEMSYS_NONSPEC",
+            Self::LdSrcMemsysOtherdieNonspec => c"LD_SRC_MEMSYS_OTHERDIE_NONSPEC",
+            Self::LdSrcOtherclusterNonspec => c"LD_SRC_OTHERCLUSTER_NONSPEC",
+            Self::LdSrcOtherclusterOtherdieNonspec => c"LD_SRC_OTHERCLUSTER_OTHERDIE_NONSPEC",
+            Self::LdSrcPl2CacheNonspec => c"LD_SRC_PL2_CACHE_NONSPEC",
+            Self::LdSrcStoreNonspec => c"LD_SRC_STORE_NONSPEC",
             Self::LdUnitUop => c"LD_UNIT_UOP",
             Self::LdUnitWaitingYoungL1DCacheMiss => c"LD_UNIT_WAITING_YOUNG_L1D_CACHE_MISS",
+            Self::LdstMemAccessCheckedX2K => c"LDST_MEM_ACCESS_CHECKED_X2K",
+            Self::LdstOldestMteTagCheckCycle => c"LDST_OLDEST_MTE_TAG_CHECK_CYCLE",
             Self::LdstSmePredInactive => c"LDST_SME_PRED_INACTIVE",
             Self::LdstSmeXpgUop => c"LDST_SME_XPG_UOP",
             Self::LdstUnitOldL1DCacheMiss => c"LDST_UNIT_OLD_L1D_CACHE_MISS",
@@ -573,6 +742,7 @@ impl EventInfo for M5Event {
             Self::MapDispatchBubbleIc => c"MAP_DISPATCH_BUBBLE_IC",
             Self::MapDispatchBubbleItlb => c"MAP_DISPATCH_BUBBLE_ITLB",
             Self::MapDispatchBubbleSlot => c"MAP_DISPATCH_BUBBLE_SLOT",
+            Self::MapDispatchBubbleTakenbrSlot => c"MAP_DISPATCH_BUBBLE_TAKENBR_SLOT",
             Self::MapIntSmeUop => c"MAP_INT_SME_UOP",
             Self::MapIntUop => c"MAP_INT_UOP",
             Self::MapLdstUop => c"MAP_LDST_UOP",
@@ -585,6 +755,15 @@ impl EventInfo for M5Event {
             Self::MapUop => c"MAP_UOP",
             Self::MmuTableWalkData => c"MMU_TABLE_WALK_DATA",
             Self::MmuTableWalkInstruction => c"MMU_TABLE_WALK_INSTRUCTION",
+            Self::Pl2CacheAccess => c"PL2_CACHE_ACCESS",
+            Self::Pl2CacheAccessInstruction => c"PL2_CACHE_ACCESS_INSTRUCTION",
+            Self::Pl2CacheAccessMmu => c"PL2_CACHE_ACCESS_MMU",
+            Self::Pl2CacheAccessSt => c"PL2_CACHE_ACCESS_ST",
+            Self::Pl2CacheMiss => c"PL2_CACHE_MISS",
+            Self::Pl2CacheMissInstruction => c"PL2_CACHE_MISS_INSTRUCTION",
+            Self::Pl2CacheMissLd => c"PL2_CACHE_MISS_LD",
+            Self::Pl2CacheMissMmu => c"PL2_CACHE_MISS_MMU",
+            Self::Pl2CacheMissSt => c"PL2_CACHE_MISS_ST",
             Self::RetireUop => c"RETIRE_UOP",
             Self::ScheduleEmpty => c"SCHEDULE_EMPTY",
             Self::ScheduleUop => c"SCHEDULE_UOP_ANY",
@@ -610,6 +789,16 @@ impl EventInfo for M5Event {
             Self::ArmL1DCacheLmissRd => "Level 1 data cache long-latency read miss",
             Self::ArmL1DCacheRd => "Attributable Level 1 data cache access, read",
             Self::ArmL1DCacheRefill => "Level 1 data cache refill",
+            Self::ArmL1ICache => {
+                "Counts each Instruction memory access to at least the Level 1 instruction or \
+                 unified cache"
+            }
+            Self::ArmMemAccess => "Data memory access",
+            Self::ArmMemAccessChecked => "Checked data memory access",
+            Self::ArmMemAccessCheckedRd => "Checked data memory access, read",
+            Self::ArmMemAccessCheckedWr => "Checked data memory access, write",
+            Self::ArmMemAccessRd => "Data memory access, read",
+            Self::ArmMemAccessWr => "Data memory access, write",
             Self::ArmStall => "No operation sent for execution",
             Self::ArmStallBackend => "No operation issued due to the backend",
             Self::ArmStallFrontend => "No operation issued due to the frontend",
@@ -630,6 +819,10 @@ impl EventInfo for M5Event {
                  incorrectly undercounts for exclusives when the cache line is initially found in \
                  shared state, however counts correctly for atomics)"
             }
+            Self::BranchBrIndirMispredNonspec => {
+                "Retired indirect branch instructions, excluding call and return instructions, \
+                 that mispredicted."
+            }
             Self::BranchCallIndirMispredNonspec => {
                 "Retired indirect call instructions mispredicted"
             }
@@ -644,6 +837,12 @@ impl EventInfo for M5Event {
             }
             Self::BranchRetIndirMispredNonspec => "Retired return instructions that mispredicted",
             Self::CoreActiveCycle => "Cycles while the core was active",
+            Self::CoreWaitingSmeEngineCycle => {
+                "Cycles while the core was waiting to push instructions to the SME engine or the \
+                 core was waiting for data from the SME engine, and no uop was issued by the \
+                 scheduler, prioritized"
+            }
+            Self::DecodeUop => "Decoded uops",
             Self::FetchRestart => {
                 "Fetch Unit internal restarts for any reason. Does not include branch mispredicts"
             }
@@ -657,6 +856,9 @@ impl EventInfo for M5Event {
             Self::InstBarrier => "Retired data barrier instructions",
             Self::InstBranch => "Retired branch instructions including calls and returns",
             Self::InstBranchCall => "Retired subroutine call instructions",
+            Self::InstBranchCallIndir => {
+                "Retired indirect subroutine call instructions; subset of INST_BRANCH_CALL"
+            }
             Self::InstBranchCond => {
                 "Retired conditional branch instructions (on M3 and prior, incorrectly only counts \
                  only B.cond instructions, where on M4 and following, adds CBZ/CBNZ/TBZ/TBNZ \
@@ -676,6 +878,7 @@ impl EventInfo for M5Event {
             Self::InstLdst => {
                 "Retired load and store instructions; does not count DC ZVA (Data Cache Zero by VA)"
             }
+            Self::InstMicrocoded => "Retired instructions that require internal microcode.",
             Self::InstSimdAlu => "Retired non-load/store Advanced SIMD and FP Unit instructions",
             Self::InstSimdAluVec => "Retired non-load/store vector Advanced SIMD  instructions",
             Self::InstSimdLd => "Retired load Advanced SIMD and FP Unit instructions",
@@ -716,10 +919,53 @@ impl EventInfo for M5Event {
             }
             Self::LdSmeNormalUop => "SME engine load uops with Normal memory type",
             Self::LdSmeNtUop => "SME engine load uops that executed with non-temporal hint",
+            Self::LdSrcCoreSameclusterNonspec => {
+                "Retired load instructions where the data is supplied by another core in the same \
+                 cluster.  See Apple Silicon CPU Optimization Guide."
+            }
+            Self::LdSrcLlCacheNonspec => {
+                "Retired load instructions where the data is supplied by the core's Shared L2 \
+                 Cache.  See Apple Silicon CPU Optimization Guide."
+            }
+            Self::LdSrcMemsysNonspec => {
+                "Retired load instructions where the data is supplied by either the Memory Cache \
+                 or the DRAM.  See Apple Silicon CPU Optimization Guide."
+            }
+            Self::LdSrcMemsysOtherdieNonspec => {
+                "Retired load instructions where the data is supplied by either the Memory Cache \
+                 or the DRAM on another die.  Subset of LD_SRC_MEMSYS_NONSPEC.  See Apple Silicon \
+                 CPU Optimization Guide."
+            }
+            Self::LdSrcOtherclusterNonspec => {
+                "Retired load instructions where the data is supplied by an agent in another \
+                 cluster.  See Apple Silicon CPU Optimization Guide."
+            }
+            Self::LdSrcOtherclusterOtherdieNonspec => {
+                "Retired load instructions where the data is supplied by an agent in another \
+                 cluster on another die.  Subset of LD_SRC_OTHERCLUSTER_NONSPEC. See Apple Silicon \
+                 CPU Optimization Guide."
+            }
+            Self::LdSrcPl2CacheNonspec => {
+                "Retired load instructions where the data is supplied by the core's PL2.  The PL2 \
+                 is only available on some cores.  See Apple Silicon CPU Optimization Guide."
+            }
+            Self::LdSrcStoreNonspec => {
+                "Retired load instructions where the data is at least partially supplied by older \
+                 stores that have yet to write into the L1 Cache.  See Apple Silicon CPU \
+                 Optimization Guide."
+            }
             Self::LdUnitUop => "Uops that flowed through the Load Unit",
             Self::LdUnitWaitingYoungL1DCacheMiss => {
                 "Cycles while a younger load uop is waiting for data after an L1 Data Cache miss, \
                  and no uop was issued by the scheduler with no critical miss, prioritized"
+            }
+            Self::LdstMemAccessCheckedX2K => {
+                "Read or write allocation tag checked data memory accesses that required tags from \
+                 2 different 64B cache lines of tags"
+            }
+            Self::LdstOldestMteTagCheckCycle => {
+                "Cycles while an old load or store uop is waiting for its MTE tag check, and no \
+                 uop was issued by the scheduler, prioritized"
             }
             Self::LdstSmePredInactive => {
                 "SME engine load and store uops where all lanes are inactive due to the governing \
@@ -774,6 +1020,10 @@ impl EventInfo for M5Event {
             Self::MapDispatchBubbleSlot => {
                 "Slots where the Map Unit had no uops to process and was not stalled"
             }
+            Self::MapDispatchBubbleTakenbrSlot => {
+                "Slots where the Map Unit had no uops to process after a taken branch and was not \
+                 stalled"
+            }
             Self::MapIntSmeUop => "Mapped core Integer Unit uops for SME engine instructions",
             Self::MapIntUop => "Mapped Integer Unit uops",
             Self::MapLdstUop => {
@@ -800,6 +1050,19 @@ impl EventInfo for M5Event {
             Self::MmuTableWalkInstruction => {
                 "Table walk memory requests on behalf of instruction fetches"
             }
+            Self::Pl2CacheAccess => "Any request that accessed the PL2 Cache",
+            Self::Pl2CacheAccessInstruction => {
+                "Instruction fetch requests that accessed the PL2 Cache"
+            }
+            Self::Pl2CacheAccessMmu => {
+                "Translation table walk requests that accessed the PL2 Cache"
+            }
+            Self::Pl2CacheAccessSt => "Store requests that accessed the PL2 Cache",
+            Self::Pl2CacheMiss => "Any request that missed the PL2 Cache",
+            Self::Pl2CacheMissInstruction => "Instruction fetch requests that missed the PL2 Cache",
+            Self::Pl2CacheMissLd => "Load requests that missed the PL2 Cache",
+            Self::Pl2CacheMissMmu => "Translation table walk requests that missed the PL2 Cache",
+            Self::Pl2CacheMissSt => "Store requests that missed the PL2 Cache",
             Self::RetireUop => "All retired uops",
             Self::ScheduleEmpty => "Cycles while the uop scheduler is empty",
             Self::ScheduleUop => {
@@ -847,6 +1110,13 @@ impl EventInfo for M5Event {
             Self::ArmL1DCacheLmissRd => None,
             Self::ArmL1DCacheRd => None,
             Self::ArmL1DCacheRefill => None,
+            Self::ArmL1ICache => None,
+            Self::ArmMemAccess => None,
+            Self::ArmMemAccessChecked => None,
+            Self::ArmMemAccessCheckedRd => None,
+            Self::ArmMemAccessCheckedWr => None,
+            Self::ArmMemAccessRd => None,
+            Self::ArmMemAccessWr => None,
             Self::ArmStall => None,
             Self::ArmStallBackend => None,
             Self::ArmStallFrontend => None,
@@ -855,12 +1125,15 @@ impl EventInfo for M5Event {
             Self::ArmStallSlotFrontend => None,
             Self::AtomicOrExclusiveFail => None,
             Self::AtomicOrExclusiveSucc => None,
+            Self::BranchBrIndirMispredNonspec => Some(252u32),
             Self::BranchCallIndirMispredNonspec => Some(252u32),
             Self::BranchCondMispredNonspec => Some(252u32),
             Self::BranchIndirMispredNonspec => Some(252u32),
             Self::BranchMispredNonspec => Some(252u32),
             Self::BranchRetIndirMispredNonspec => Some(252u32),
             Self::CoreActiveCycle => None,
+            Self::CoreWaitingSmeEngineCycle => None,
+            Self::DecodeUop => None,
             Self::FetchRestart => None,
             Self::FixedCycles => Some(1u32),
             Self::FixedInstructions => Some(2u32),
@@ -869,6 +1142,7 @@ impl EventInfo for M5Event {
             Self::InstBarrier => Some(252u32),
             Self::InstBranch => Some(252u32),
             Self::InstBranchCall => Some(252u32),
+            Self::InstBranchCallIndir => Some(252u32),
             Self::InstBranchCond => Some(252u32),
             Self::InstBranchIndir => Some(252u32),
             Self::InstBranchRet => Some(252u32),
@@ -877,6 +1151,7 @@ impl EventInfo for M5Event {
             Self::InstIntLd => Some(252u32),
             Self::InstIntSt => Some(128u32),
             Self::InstLdst => Some(128u32),
+            Self::InstMicrocoded => Some(128u32),
             Self::InstSimdAlu => Some(128u32),
             Self::InstSimdAluVec => Some(128u32),
             Self::InstSimdLd => Some(252u32),
@@ -905,8 +1180,18 @@ impl EventInfo for M5Event {
             Self::LdNtUop => None,
             Self::LdSmeNormalUop => None,
             Self::LdSmeNtUop => None,
+            Self::LdSrcCoreSameclusterNonspec => Some(252u32),
+            Self::LdSrcLlCacheNonspec => Some(252u32),
+            Self::LdSrcMemsysNonspec => Some(252u32),
+            Self::LdSrcMemsysOtherdieNonspec => Some(252u32),
+            Self::LdSrcOtherclusterNonspec => Some(252u32),
+            Self::LdSrcOtherclusterOtherdieNonspec => Some(252u32),
+            Self::LdSrcPl2CacheNonspec => Some(252u32),
+            Self::LdSrcStoreNonspec => Some(252u32),
             Self::LdUnitUop => None,
             Self::LdUnitWaitingYoungL1DCacheMiss => None,
+            Self::LdstMemAccessCheckedX2K => None,
+            Self::LdstOldestMteTagCheckCycle => None,
             Self::LdstSmePredInactive => None,
             Self::LdstSmeXpgUop => None,
             Self::LdstUnitOldL1DCacheMiss => None,
@@ -919,6 +1204,7 @@ impl EventInfo for M5Event {
             Self::MapDispatchBubbleIc => None,
             Self::MapDispatchBubbleItlb => None,
             Self::MapDispatchBubbleSlot => None,
+            Self::MapDispatchBubbleTakenbrSlot => None,
             Self::MapIntSmeUop => None,
             Self::MapIntUop => None,
             Self::MapLdstUop => None,
@@ -931,6 +1217,15 @@ impl EventInfo for M5Event {
             Self::MapUop => None,
             Self::MmuTableWalkData => None,
             Self::MmuTableWalkInstruction => None,
+            Self::Pl2CacheAccess => None,
+            Self::Pl2CacheAccessInstruction => None,
+            Self::Pl2CacheAccessMmu => None,
+            Self::Pl2CacheAccessSt => None,
+            Self::Pl2CacheMiss => None,
+            Self::Pl2CacheMissInstruction => None,
+            Self::Pl2CacheMissLd => None,
+            Self::Pl2CacheMissMmu => None,
+            Self::Pl2CacheMissSt => None,
             Self::RetireUop => Some(252u32),
             Self::ScheduleEmpty => None,
             Self::ScheduleUop => None,
@@ -956,6 +1251,13 @@ impl EventInfo for M5Event {
             Self::ArmL1DCacheLmissRd => Some(57u16),
             Self::ArmL1DCacheRd => Some(64u16),
             Self::ArmL1DCacheRefill => Some(3u16),
+            Self::ArmL1ICache => Some(20u16),
+            Self::ArmMemAccess => Some(19u16),
+            Self::ArmMemAccessChecked => Some(16420u16),
+            Self::ArmMemAccessCheckedRd => Some(16421u16),
+            Self::ArmMemAccessCheckedWr => Some(16422u16),
+            Self::ArmMemAccessRd => Some(102u16),
+            Self::ArmMemAccessWr => Some(103u16),
             Self::ArmStall => Some(60u16),
             Self::ArmStallBackend => Some(36u16),
             Self::ArmStallFrontend => Some(35u16),
@@ -964,12 +1266,15 @@ impl EventInfo for M5Event {
             Self::ArmStallSlotFrontend => Some(62u16),
             Self::AtomicOrExclusiveFail => Some(1460u16),
             Self::AtomicOrExclusiveSucc => Some(1459u16),
+            Self::BranchBrIndirMispredNonspec => Some(2247u16),
             Self::BranchCallIndirMispredNonspec => Some(2250u16),
             Self::BranchCondMispredNonspec => Some(2245u16),
             Self::BranchIndirMispredNonspec => Some(2246u16),
             Self::BranchMispredNonspec => Some(34u16),
             Self::BranchRetIndirMispredNonspec => Some(2248u16),
             Self::CoreActiveCycle => Some(17u16),
+            Self::CoreWaitingSmeEngineCycle => Some(661u16),
+            Self::DecodeUop => Some(390u16),
             Self::FetchRestart => Some(478u16),
             Self::FixedCycles => None,
             Self::FixedInstructions => None,
@@ -978,6 +1283,7 @@ impl EventInfo for M5Event {
             Self::InstBarrier => Some(2204u16),
             Self::InstBranch => Some(33u16),
             Self::InstBranchCall => Some(2190u16),
+            Self::InstBranchCallIndir => Some(2193u16),
             Self::InstBranchCond => Some(2196u16),
             Self::InstBranchIndir => Some(2195u16),
             Self::InstBranchRet => Some(2191u16),
@@ -986,6 +1292,7 @@ impl EventInfo for M5Event {
             Self::InstIntLd => Some(2197u16),
             Self::InstIntSt => Some(2198u16),
             Self::InstLdst => Some(2203u16),
+            Self::InstMicrocoded => Some(2212u16),
             Self::InstSimdAlu => Some(2202u16),
             Self::InstSimdAluVec => Some(2207u16),
             Self::InstSimdLd => Some(2200u16),
@@ -1014,8 +1321,18 @@ impl EventInfo for M5Event {
             Self::LdNtUop => Some(1510u16),
             Self::LdSmeNormalUop => Some(1397u16),
             Self::LdSmeNtUop => Some(1395u16),
+            Self::LdSrcCoreSameclusterNonspec => Some(2226u16),
+            Self::LdSrcLlCacheNonspec => Some(2225u16),
+            Self::LdSrcMemsysNonspec => Some(2233u16),
+            Self::LdSrcMemsysOtherdieNonspec => Some(2234u16),
+            Self::LdSrcOtherclusterNonspec => Some(2227u16),
+            Self::LdSrcOtherclusterOtherdieNonspec => Some(2228u16),
+            Self::LdSrcPl2CacheNonspec => Some(2224u16),
+            Self::LdSrcStoreNonspec => Some(2223u16),
             Self::LdUnitUop => Some(1446u16),
             Self::LdUnitWaitingYoungL1DCacheMiss => Some(660u16),
+            Self::LdstMemAccessCheckedX2K => Some(1408u16),
+            Self::LdstOldestMteTagCheckCycle => Some(669u16),
             Self::LdstSmePredInactive => Some(1399u16),
             Self::LdstSmeXpgUop => Some(1288u16),
             Self::LdstUnitOldL1DCacheMiss => Some(656u16),
@@ -1028,6 +1345,7 @@ impl EventInfo for M5Event {
             Self::MapDispatchBubbleIc => Some(386u16),
             Self::MapDispatchBubbleItlb => Some(387u16),
             Self::MapDispatchBubbleSlot => Some(481u16),
+            Self::MapDispatchBubbleTakenbrSlot => Some(484u16),
             Self::MapIntSmeUop => Some(645u16),
             Self::MapIntUop => Some(636u16),
             Self::MapLdstUop => Some(637u16),
@@ -1040,6 +1358,15 @@ impl EventInfo for M5Event {
             Self::MapUop => Some(59u16),
             Self::MmuTableWalkData => Some(1032u16),
             Self::MmuTableWalkInstruction => Some(1031u16),
+            Self::Pl2CacheAccess => Some(2334u16),
+            Self::Pl2CacheAccessInstruction => Some(2328u16),
+            Self::Pl2CacheAccessMmu => Some(2326u16),
+            Self::Pl2CacheAccessSt => Some(2332u16),
+            Self::Pl2CacheMiss => Some(2335u16),
+            Self::Pl2CacheMissInstruction => Some(2329u16),
+            Self::Pl2CacheMissLd => Some(2331u16),
+            Self::Pl2CacheMissMmu => Some(2327u16),
+            Self::Pl2CacheMissSt => Some(2333u16),
             Self::RetireUop => Some(58u16),
             Self::ScheduleEmpty => Some(849u16),
             Self::ScheduleUop => Some(643u16),
@@ -1065,6 +1392,13 @@ impl EventInfo for M5Event {
             Self::ArmL1DCacheLmissRd => None,
             Self::ArmL1DCacheRd => None,
             Self::ArmL1DCacheRefill => None,
+            Self::ArmL1ICache => None,
+            Self::ArmMemAccess => None,
+            Self::ArmMemAccessChecked => None,
+            Self::ArmMemAccessCheckedRd => None,
+            Self::ArmMemAccessCheckedWr => None,
+            Self::ArmMemAccessRd => None,
+            Self::ArmMemAccessWr => None,
             Self::ArmStall => None,
             Self::ArmStallBackend => None,
             Self::ArmStallFrontend => None,
@@ -1073,12 +1407,15 @@ impl EventInfo for M5Event {
             Self::ArmStallSlotFrontend => None,
             Self::AtomicOrExclusiveFail => None,
             Self::AtomicOrExclusiveSucc => None,
+            Self::BranchBrIndirMispredNonspec => None,
             Self::BranchCallIndirMispredNonspec => None,
             Self::BranchCondMispredNonspec => None,
             Self::BranchIndirMispredNonspec => None,
             Self::BranchMispredNonspec => None,
             Self::BranchRetIndirMispredNonspec => None,
             Self::CoreActiveCycle => None,
+            Self::CoreWaitingSmeEngineCycle => None,
+            Self::DecodeUop => None,
             Self::FetchRestart => None,
             Self::FixedCycles => Some(0u8),
             Self::FixedInstructions => Some(1u8),
@@ -1087,6 +1424,7 @@ impl EventInfo for M5Event {
             Self::InstBarrier => None,
             Self::InstBranch => None,
             Self::InstBranchCall => None,
+            Self::InstBranchCallIndir => None,
             Self::InstBranchCond => None,
             Self::InstBranchIndir => None,
             Self::InstBranchRet => None,
@@ -1095,6 +1433,7 @@ impl EventInfo for M5Event {
             Self::InstIntLd => None,
             Self::InstIntSt => None,
             Self::InstLdst => None,
+            Self::InstMicrocoded => None,
             Self::InstSimdAlu => None,
             Self::InstSimdAluVec => None,
             Self::InstSimdLd => None,
@@ -1123,8 +1462,18 @@ impl EventInfo for M5Event {
             Self::LdNtUop => None,
             Self::LdSmeNormalUop => None,
             Self::LdSmeNtUop => None,
+            Self::LdSrcCoreSameclusterNonspec => None,
+            Self::LdSrcLlCacheNonspec => None,
+            Self::LdSrcMemsysNonspec => None,
+            Self::LdSrcMemsysOtherdieNonspec => None,
+            Self::LdSrcOtherclusterNonspec => None,
+            Self::LdSrcOtherclusterOtherdieNonspec => None,
+            Self::LdSrcPl2CacheNonspec => None,
+            Self::LdSrcStoreNonspec => None,
             Self::LdUnitUop => None,
             Self::LdUnitWaitingYoungL1DCacheMiss => None,
+            Self::LdstMemAccessCheckedX2K => None,
+            Self::LdstOldestMteTagCheckCycle => None,
             Self::LdstSmePredInactive => None,
             Self::LdstSmeXpgUop => None,
             Self::LdstUnitOldL1DCacheMiss => None,
@@ -1137,6 +1486,7 @@ impl EventInfo for M5Event {
             Self::MapDispatchBubbleIc => None,
             Self::MapDispatchBubbleItlb => None,
             Self::MapDispatchBubbleSlot => None,
+            Self::MapDispatchBubbleTakenbrSlot => None,
             Self::MapIntSmeUop => None,
             Self::MapIntUop => None,
             Self::MapLdstUop => None,
@@ -1149,6 +1499,15 @@ impl EventInfo for M5Event {
             Self::MapUop => None,
             Self::MmuTableWalkData => None,
             Self::MmuTableWalkInstruction => None,
+            Self::Pl2CacheAccess => None,
+            Self::Pl2CacheAccessInstruction => None,
+            Self::Pl2CacheAccessMmu => None,
+            Self::Pl2CacheAccessSt => None,
+            Self::Pl2CacheMiss => None,
+            Self::Pl2CacheMissInstruction => None,
+            Self::Pl2CacheMissLd => None,
+            Self::Pl2CacheMissMmu => None,
+            Self::Pl2CacheMissSt => None,
             Self::RetireUop => None,
             Self::ScheduleEmpty => None,
             Self::ScheduleUop => None,
@@ -1174,6 +1533,13 @@ impl EventInfo for M5Event {
             Self::ArmL1DCacheLmissRd => None,
             Self::ArmL1DCacheRd => None,
             Self::ArmL1DCacheRefill => None,
+            Self::ArmL1ICache => None,
+            Self::ArmMemAccess => None,
+            Self::ArmMemAccessChecked => None,
+            Self::ArmMemAccessCheckedRd => None,
+            Self::ArmMemAccessCheckedWr => None,
+            Self::ArmMemAccessRd => None,
+            Self::ArmMemAccessWr => None,
             Self::ArmStall => None,
             Self::ArmStallBackend => None,
             Self::ArmStallFrontend => None,
@@ -1182,12 +1548,15 @@ impl EventInfo for M5Event {
             Self::ArmStallSlotFrontend => None,
             Self::AtomicOrExclusiveFail => None,
             Self::AtomicOrExclusiveSucc => None,
+            Self::BranchBrIndirMispredNonspec => None,
             Self::BranchCallIndirMispredNonspec => None,
             Self::BranchCondMispredNonspec => None,
             Self::BranchIndirMispredNonspec => None,
             Self::BranchMispredNonspec => None,
             Self::BranchRetIndirMispredNonspec => None,
             Self::CoreActiveCycle => None,
+            Self::CoreWaitingSmeEngineCycle => None,
+            Self::DecodeUop => None,
             Self::FetchRestart => None,
             Self::FixedCycles => None,
             Self::FixedInstructions => Some("INST_ALL"),
@@ -1196,6 +1565,7 @@ impl EventInfo for M5Event {
             Self::InstBarrier => None,
             Self::InstBranch => None,
             Self::InstBranchCall => None,
+            Self::InstBranchCallIndir => None,
             Self::InstBranchCond => None,
             Self::InstBranchIndir => None,
             Self::InstBranchRet => None,
@@ -1204,6 +1574,7 @@ impl EventInfo for M5Event {
             Self::InstIntLd => None,
             Self::InstIntSt => None,
             Self::InstLdst => None,
+            Self::InstMicrocoded => None,
             Self::InstSimdAlu => None,
             Self::InstSimdAluVec => None,
             Self::InstSimdLd => None,
@@ -1232,8 +1603,18 @@ impl EventInfo for M5Event {
             Self::LdNtUop => None,
             Self::LdSmeNormalUop => None,
             Self::LdSmeNtUop => None,
+            Self::LdSrcCoreSameclusterNonspec => None,
+            Self::LdSrcLlCacheNonspec => None,
+            Self::LdSrcMemsysNonspec => None,
+            Self::LdSrcMemsysOtherdieNonspec => None,
+            Self::LdSrcOtherclusterNonspec => None,
+            Self::LdSrcOtherclusterOtherdieNonspec => None,
+            Self::LdSrcPl2CacheNonspec => None,
+            Self::LdSrcStoreNonspec => None,
             Self::LdUnitUop => None,
             Self::LdUnitWaitingYoungL1DCacheMiss => None,
+            Self::LdstMemAccessCheckedX2K => None,
+            Self::LdstOldestMteTagCheckCycle => None,
             Self::LdstSmePredInactive => None,
             Self::LdstSmeXpgUop => None,
             Self::LdstUnitOldL1DCacheMiss => None,
@@ -1246,6 +1627,7 @@ impl EventInfo for M5Event {
             Self::MapDispatchBubbleIc => None,
             Self::MapDispatchBubbleItlb => None,
             Self::MapDispatchBubbleSlot => None,
+            Self::MapDispatchBubbleTakenbrSlot => None,
             Self::MapIntSmeUop => None,
             Self::MapIntUop => None,
             Self::MapLdstUop => None,
@@ -1258,6 +1640,15 @@ impl EventInfo for M5Event {
             Self::MapUop => None,
             Self::MmuTableWalkData => None,
             Self::MmuTableWalkInstruction => None,
+            Self::Pl2CacheAccess => None,
+            Self::Pl2CacheAccessInstruction => None,
+            Self::Pl2CacheAccessMmu => None,
+            Self::Pl2CacheAccessSt => None,
+            Self::Pl2CacheMiss => None,
+            Self::Pl2CacheMissInstruction => None,
+            Self::Pl2CacheMissLd => None,
+            Self::Pl2CacheMissMmu => None,
+            Self::Pl2CacheMissSt => None,
             Self::RetireUop => None,
             Self::ScheduleEmpty => None,
             Self::ScheduleUop => None,
@@ -1283,6 +1674,13 @@ impl EventInfo for M5Event {
             Self::ArmL1DCacheLmissRd => &[],
             Self::ArmL1DCacheRd => &[],
             Self::ArmL1DCacheRefill => &[],
+            Self::ArmL1ICache => &[],
+            Self::ArmMemAccess => &[],
+            Self::ArmMemAccessChecked => &[],
+            Self::ArmMemAccessCheckedRd => &[],
+            Self::ArmMemAccessCheckedWr => &[],
+            Self::ArmMemAccessRd => &[],
+            Self::ArmMemAccessWr => &[],
             Self::ArmStall => &[],
             Self::ArmStallBackend => &[],
             Self::ArmStallFrontend => &[],
@@ -1291,12 +1689,15 @@ impl EventInfo for M5Event {
             Self::ArmStallSlotFrontend => &[],
             Self::AtomicOrExclusiveFail => &[],
             Self::AtomicOrExclusiveSucc => &[],
+            Self::BranchBrIndirMispredNonspec => &[],
             Self::BranchCallIndirMispredNonspec => &[],
             Self::BranchCondMispredNonspec => &[],
             Self::BranchIndirMispredNonspec => &[],
             Self::BranchMispredNonspec => &[],
             Self::BranchRetIndirMispredNonspec => &[],
             Self::CoreActiveCycle => &[],
+            Self::CoreWaitingSmeEngineCycle => &[],
+            Self::DecodeUop => &[],
             Self::FetchRestart => &[],
             Self::FixedCycles => &["Cycles"],
             Self::FixedInstructions => &["Instructions"],
@@ -1305,6 +1706,7 @@ impl EventInfo for M5Event {
             Self::InstBarrier => &[],
             Self::InstBranch => &[],
             Self::InstBranchCall => &[],
+            Self::InstBranchCallIndir => &[],
             Self::InstBranchCond => &[],
             Self::InstBranchIndir => &[],
             Self::InstBranchRet => &[],
@@ -1313,6 +1715,7 @@ impl EventInfo for M5Event {
             Self::InstIntLd => &[],
             Self::InstIntSt => &[],
             Self::InstLdst => &[],
+            Self::InstMicrocoded => &[],
             Self::InstSimdAlu => &[],
             Self::InstSimdAluVec => &[],
             Self::InstSimdLd => &[],
@@ -1341,8 +1744,18 @@ impl EventInfo for M5Event {
             Self::LdNtUop => &[],
             Self::LdSmeNormalUop => &[],
             Self::LdSmeNtUop => &[],
+            Self::LdSrcCoreSameclusterNonspec => &[],
+            Self::LdSrcLlCacheNonspec => &[],
+            Self::LdSrcMemsysNonspec => &[],
+            Self::LdSrcMemsysOtherdieNonspec => &[],
+            Self::LdSrcOtherclusterNonspec => &[],
+            Self::LdSrcOtherclusterOtherdieNonspec => &[],
+            Self::LdSrcPl2CacheNonspec => &[],
+            Self::LdSrcStoreNonspec => &[],
             Self::LdUnitUop => &[],
             Self::LdUnitWaitingYoungL1DCacheMiss => &[],
+            Self::LdstMemAccessCheckedX2K => &[],
+            Self::LdstOldestMteTagCheckCycle => &[],
             Self::LdstSmePredInactive => &[],
             Self::LdstSmeXpgUop => &[],
             Self::LdstUnitOldL1DCacheMiss => &[],
@@ -1355,6 +1768,7 @@ impl EventInfo for M5Event {
             Self::MapDispatchBubbleIc => &[],
             Self::MapDispatchBubbleItlb => &[],
             Self::MapDispatchBubbleSlot => &[],
+            Self::MapDispatchBubbleTakenbrSlot => &[],
             Self::MapIntSmeUop => &[],
             Self::MapIntUop => &[],
             Self::MapLdstUop => &[],
@@ -1367,6 +1781,15 @@ impl EventInfo for M5Event {
             Self::MapUop => &[],
             Self::MmuTableWalkData => &[],
             Self::MmuTableWalkInstruction => &[],
+            Self::Pl2CacheAccess => &[],
+            Self::Pl2CacheAccessInstruction => &[],
+            Self::Pl2CacheAccessMmu => &[],
+            Self::Pl2CacheAccessSt => &[],
+            Self::Pl2CacheMiss => &[],
+            Self::Pl2CacheMissInstruction => &[],
+            Self::Pl2CacheMissLd => &[],
+            Self::Pl2CacheMissMmu => &[],
+            Self::Pl2CacheMissSt => &[],
             Self::RetireUop => &[],
             Self::ScheduleEmpty => &[],
             Self::ScheduleUop => &[],

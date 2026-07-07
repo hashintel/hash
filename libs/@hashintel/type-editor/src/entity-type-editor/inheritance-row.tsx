@@ -1,5 +1,8 @@
-import type { EntityType, VersionedUrl } from "@blockprotocol/type-system";
 import { faPlus } from "@fortawesome/free-solid-svg-icons";
+import { Box, Stack } from "@mui/material";
+import { useMemo, useRef, useState } from "react";
+import { useFormContext, useWatch } from "react-hook-form";
+
 import {
   AlertModal,
   Button,
@@ -8,19 +11,18 @@ import {
   LinkTypeIcon,
   TYPE_SELECTOR_HEIGHT,
 } from "@hashintel/design-system";
-import { Box, Stack } from "@mui/material";
-import type { ReactElement } from "react";
-import { useMemo, useRef, useState } from "react";
-import { useFormContext, useWatch } from "react-hook-form";
 
 import { useEntityTypesOptions } from "../shared/entity-types-options-context";
-import type { EntityTypeEditorFormData } from "../shared/form-types";
 import { useIsReadonly } from "../shared/read-only-context";
 import { linkEntityTypeUrl } from "../shared/urls";
 import { InheritedTypeCard } from "./inheritance-row/inherited-type-card";
 import { useValidateParents } from "./inheritance-row/use-validate-parents";
 import { TypeSelector } from "./shared/insert-property-field/type-selector";
 import { useFilterTypeOptions } from "./shared/use-filter-type-options";
+
+import type { EntityTypeEditorFormData } from "../shared/form-types";
+import type { EntityType, VersionedUrl } from "@blockprotocol/type-system";
+import type { ReactElement } from "react";
 
 type ModalData = {
   callback?: () => void;

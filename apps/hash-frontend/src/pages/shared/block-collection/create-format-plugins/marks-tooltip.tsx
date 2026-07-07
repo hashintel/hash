@@ -1,4 +1,3 @@
-import { GraphIcon } from "@hashintel/design-system";
 import {
   Divider,
   Paper,
@@ -8,13 +7,16 @@ import {
   toggleButtonClasses,
   useTheme,
 } from "@mui/material";
-import type { FunctionComponent } from "react";
+
+import { GraphIcon } from "@hashintel/design-system";
 
 import { BoldIcon } from "../../../../shared/icons/bold-icon";
 import { HighlighterIcon } from "../../../../shared/icons/hightlighter-icon";
 import { ItalicIcon } from "../../../../shared/icons/italic-icon";
 import { StrikethroughIcon } from "../../../../shared/icons/strikethrough-icon";
 import { UnderlineIcon } from "../../../../shared/icons/underline-icon";
+
+import type { FunctionComponent } from "react";
 
 const FormatButton = styled(ToggleButton)(({ theme }) => ({
   display: "flex",

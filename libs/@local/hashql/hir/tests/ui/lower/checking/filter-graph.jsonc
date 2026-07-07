@@ -10,7 +10,7 @@
     "_",
     [
       "==",
-      "vertex.id.entity_id.entity_uuid",
+      "vertex.metadata.record_id.entity_id.entity_uuid",
       [
         "::graph::types::knowledge::entity::EntityUuid",
         [

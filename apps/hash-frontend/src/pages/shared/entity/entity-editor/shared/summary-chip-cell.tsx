@@ -1,5 +1,5 @@
-import type { CustomCell, CustomRenderer } from "@glideapps/glide-data-grid";
 import { GridCellKind } from "@glideapps/glide-data-grid";
+
 import { customColors } from "@hashintel/design-system/theme";
 
 import { getYCenter } from "../../../../../components/grid/utils";
@@ -7,8 +7,10 @@ import { drawCellFadeOutGradient } from "../../../../../components/grid/utils/dr
 import { drawRoundRect } from "../../../../../components/grid/utils/draw-round-rect";
 import { InteractableManager } from "../../../../../components/grid/utils/interactable-manager";
 import { drawInteractableTooltipIcons } from "../../../../../components/grid/utils/use-grid-tooltip/draw-interactable-tooltip-icons";
+
 import type { TooltipCellProps } from "../../../../../components/grid/utils/use-grid-tooltip/types";
 import type { PropertyRow } from "../properties-section/property-table/types";
+import type { CustomCell, CustomRenderer } from "@glideapps/glide-data-grid";
 
 export interface SummaryChipCellProps extends TooltipCellProps {
   readonly kind: "summary-chip-cell";

@@ -1,5 +1,4 @@
-import type { SxProps, Theme } from "@mui/material";
-import { Box } from "@mui/material";
+import { Box, CircularProgress } from "@mui/material";
 /* eslint-disable no-restricted-imports */
 import Table from "@mui/material/Table";
 import TableBody from "@mui/material/TableBody";
@@ -7,21 +6,23 @@ import TableContainer from "@mui/material/TableContainer";
 import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
 /* eslint-enable no-restricted-imports */
-import type { ComponentPropsWithoutRef, ReactElement } from "react";
 import { forwardRef, useCallback, useMemo } from "react";
-import type { TableComponents } from "react-virtuoso";
 import { TableVirtuoso } from "react-virtuoso";
 
-import type { ColumnMetadata } from "./virtualized-table/header";
 import {
   HeaderContent,
   virtualizedTableHeaderHeight,
 } from "./virtualized-table/header";
+
+import type { ColumnMetadata } from "./virtualized-table/header";
 import type { TableFilterProps } from "./virtualized-table/header/filter";
 import type {
   TableSortProps,
   VirtualizedTableSort,
 } from "./virtualized-table/header/sort";
+import type { SxProps, Theme } from "@mui/material";
+import type { ComponentPropsWithoutRef, ReactElement } from "react";
+import type { FollowOutput, ListRange, TableComponents } from "react-virtuoso";
 
 export const defaultCellSx = {
   padding: "5px 14px",
@@ -129,6 +130,11 @@ type VirtualizedTableProps<
   columns?: VirtualizedTableColumn<Id, M>[];
   fixedColumns?: number;
   EmptyPlaceholder?: () => ReactElement;
+  onEndReached?: () => void;
+  onRangeChange?: (range: ListRange) => void;
+  onIsScrolling?: (isScrolling: boolean) => void;
+  followOutput?: FollowOutput;
+  loadingMore?: boolean;
   rows: VirtualizedTableRow<D>[];
 } & TableSortProps<S> &
   Partial<TableFilterProps<FilteredIds>>;
@@ -146,6 +152,11 @@ export const VirtualizedTable = <
   columns,
   fixedColumns,
   EmptyPlaceholder,
+  onEndReached,
+  onRangeChange,
+  onIsScrolling,
+  followOutput = "smooth",
+  loadingMore,
   rows,
   filterDefinitions,
   filterValues,
@@ -187,17 +198,42 @@ export const VirtualizedTable = <
 
   const context = useMemo(() => ({ columns: columns ?? [] }), [columns]);
 
+  const fixedFooterContent = useMemo(() => {
+    if (!loadingMore) {
+      return undefined;
+    }
+
+    return () => (
+      <tr>
+        <td
+          colSpan={columns?.length ?? 1}
+          style={{
+            padding: "8px 14px",
+            textAlign: "center",
+            background: "linear-gradient(to top, #ffffff, transparent)",
+          }}
+        >
+          <CircularProgress size={16} />
+        </td>
+      </tr>
+    );
+  }, [columns?.length, loadingMore]);
+
   return (
     <Box style={{ borderRadius, width: "100%", ...heightStyle }}>
       <TableVirtuoso
         context={context}
         data={rows}
         components={components}
+        endReached={onEndReached}
+        rangeChanged={onRangeChange}
+        isScrolling={onIsScrolling}
+        fixedFooterContent={fixedFooterContent}
         fixedHeaderContent={fixedHeaderContent}
-        followOutput="smooth"
-        increaseViewportBy={50}
+        followOutput={followOutput}
+        increaseViewportBy={2000}
         itemContent={createRowContent}
-        overscan={{ main: 200, reverse: 200 }}
+        overscan={{ main: 1000, reverse: 1000 }}
         style={heightStyle}
       />
     </Box>

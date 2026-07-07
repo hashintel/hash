@@ -1,8 +1,10 @@
-import type { FeatureFlag } from "@local/hash-isomorphic-utils/feature-flags";
-import { featureFlags } from "@local/hash-isomorphic-utils/feature-flags";
 import { useMemo } from "react";
 
+import { featureFlags } from "@local/hash-isomorphic-utils/feature-flags";
+
 import { useAuthenticatedUser } from "./auth-info-context";
+
+import type { FeatureFlag } from "@local/hash-isomorphic-utils/feature-flags";
 
 export const useEnabledFeatureFlags = () => {
   const { authenticatedUser } = useAuthenticatedUser();

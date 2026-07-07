@@ -44,7 +44,7 @@
 //! use hash_graph_test_data::seeding::context::{
 //!     LocalId, ProduceContext, ProducerId, Provenance, RunId, Scope, ShardId, StageId, SubScope,
 //! };
-//! use rand::Rng as _;
+//! use rand::RngExt as _;
 //!
 //! let context = ProduceContext {
 //!     run_id: RunId::new(0xDEAD),
@@ -59,10 +59,10 @@
 //! # let _ = value;
 //! ```
 
-use core::{error::Error, fmt};
+use core::{convert::Infallible, error::Error, fmt};
 
 use error_stack::{Report, ResultExt as _, TryReportTupleExt as _};
-use rand::{Rng, RngCore, rand_core::impls::fill_bytes_via_next};
+use rand::{Rng, TryRng, rand_core::utils::fill_bytes_via_next_word};
 use uuid::Uuid;
 use xxhash_rust::xxh3::xxh3_64;
 
@@ -577,24 +577,26 @@ struct KeyedRng {
     ctr: u32,
 }
 
-impl RngCore for KeyedRng {
+impl TryRng for KeyedRng {
+    type Error = Infallible;
+
+    #[inline]
+    fn try_next_u32(&mut self) -> Result<u32, Self::Error> {
+        Ok((self.next_u64() >> 32) as u32)
+    }
+
     #[inline]
     #[expect(clippy::little_endian_bytes, reason = "We want to be deterministic")]
-    fn next_u64(&mut self) -> u64 {
+    fn try_next_u64(&mut self) -> Result<u64, Self::Error> {
         let mut buf = [0_u8; 12];
         buf[..8].copy_from_slice(&self.seed.to_le_bytes());
         buf[8..12].copy_from_slice(&self.ctr.to_le_bytes());
         self.ctr = self.ctr.wrapping_add(1);
-        xxh3_64(&buf)
+        Ok(xxh3_64(&buf))
     }
 
-    #[inline]
-    fn next_u32(&mut self) -> u32 {
-        (self.next_u64() >> 32) as u32
-    }
-
-    fn fill_bytes(&mut self, dst: &mut [u8]) {
-        fill_bytes_via_next(self, dst);
+    fn try_fill_bytes(&mut self, dst: &mut [u8]) -> Result<(), Self::Error> {
+        fill_bytes_via_next_word(dst, || self.try_next_u64())
     }
 }
 
@@ -602,7 +604,7 @@ impl RngCore for KeyedRng {
 mod tests {
     use core::array;
 
-    use rand::Rng as _;
+    use rand::RngExt as _;
 
     use super::*;
 

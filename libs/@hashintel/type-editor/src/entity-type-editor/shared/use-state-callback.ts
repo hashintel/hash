@@ -1,5 +1,6 @@
-import type { SetStateAction } from "react";
 import { useLayoutEffect, useRef, useState } from "react";
+
+import type { SetStateAction } from "react";
 
 /**
  * This allows you to pass a second parameter to the setState function which

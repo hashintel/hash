@@ -59,6 +59,10 @@ pub struct EntityMetadata {
     /// entities are possible at the time of writing.
     pub archived: bool,
 
+    /// Whether this entity is read-only and must not be modified by user actors.
+    #[serde(default)]
+    pub read_only: bool,
+
     /// Provenance information tracking the origin and history of this entity.
     pub provenance: EntityProvenance,
 

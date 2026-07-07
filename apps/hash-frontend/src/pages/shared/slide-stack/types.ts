@@ -1,6 +1,5 @@
-import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
-
 import type { EntitySlideProps } from "./entity-slide";
+import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
 
 export type SlideEntityItem = {
   kind: "entity";

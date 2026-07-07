@@ -1,12 +1,14 @@
 mod delete;
 mod query;
 mod read;
+mod summary;
 use alloc::borrow::Cow;
 use core::{borrow::Borrow as _, mem};
 use std::collections::{HashMap, HashSet};
 
 use error_stack::{FutureExt as _, Report, ResultExt as _, TryReportStreamExt as _, ensure};
 use futures::{StreamExt as _, TryStreamExt as _, stream};
+use hash_codec::numeric::Real;
 use hash_graph_authorization::policies::{
     Authorized, MergePolicies, PolicyComponents, Request, RequestContext, ResourceId,
     action::ActionName,
@@ -16,15 +18,16 @@ use hash_graph_authorization::policies::{
 };
 use hash_graph_store::{
     entity::{
-        CountEntitiesParams, CreateEntityParams, DeleteEntitiesParams, DeletionSummary,
-        EmptyEntityTypes, EntityPermissions, EntityQueryCursor, EntityQueryPath,
-        EntityQuerySorting, EntityStore, EntityTypeRetrieval, EntityTypesError,
-        EntityValidationReport, EntityValidationType, HasPermissionForEntitiesParams,
-        PatchEntityParams, QueryConversion, QueryEntitiesParams, QueryEntitiesResponse,
-        QueryEntitySubgraphParams, QueryEntitySubgraphResponse, UpdateEntityEmbeddingsParams,
+        CreateEntityParams, DeleteEntitiesParams, DeletionSummary, EmptyEntityTypes,
+        EntityPermissions, EntityQueryCursor, EntityQueryPath, EntityQuerySorting, EntityStore,
+        EntityTypeRetrieval, EntityTypesError, EntityValidationReport, EntityValidationType,
+        HasPermissionForEntitiesParams, PatchEntityParams, QueryConversion, QueryEntitiesParams,
+        QueryEntitiesResponse, QueryEntitySubgraphParams, QueryEntitySubgraphResponse,
+        SearchEntitiesFilter, SearchEntitiesParams, SearchEntitiesResponse,
+        SummarizeEntitiesParams, SummarizeEntitiesResponse, UpdateEntityEmbeddingsParams,
         ValidateEntityComponents, ValidateEntityParams,
     },
-    entity_type::{EntityTypeQueryPath, EntityTypeStore as _, IncludeEntityTypeOption},
+    entity_type::{EntityTypeStore as _, IncludeEntityTypeOption},
     error::{CheckPermissionError, DeletionError, InsertionError, QueryError, UpdateError},
     filter::{
         Filter, FilterExpression, FilterExpressionList, Parameter, ParameterList,
@@ -78,10 +81,8 @@ use type_system::{
     ontology::{
         InheritanceDepth,
         data_type::schema::DataTypeReference,
-        entity_type::{
-            ClosedEntityType, ClosedMultiEntityType, EntityTypeUuid, EntityTypeWithMetadata,
-        },
-        id::{BaseUrl, OntologyTypeUuid, OntologyTypeVersion, VersionedUrl},
+        entity_type::{ClosedEntityType, ClosedMultiEntityType, EntityTypeUuid},
+        id::{OntologyTypeUuid, VersionedUrl},
     },
     principal::{actor::ActorEntityUuid, actor_group::WebId},
 };
@@ -91,9 +92,12 @@ use crate::store::{
     AsClient, PostgresStore,
     error::{EntityDoesNotExist, RaceConditionOnUpdate},
     postgres::{
-        ResponseCountMap, TraversalContext,
+        TraversalContext,
         crud::{QueryIndices, TypedRow},
-        knowledge::entity::read::EntityEdgeTraversalData,
+        knowledge::entity::{
+            read::EntityEdgeTraversalData,
+            summary::{Deduplication, EntitySummaryQuery},
+        },
         query::{
             Distinctness, InsertStatementBuilder, PostgresRecord as _, PostgresSorting as _,
             SelectCompiler, Table,
@@ -526,180 +530,6 @@ where
             .add_filter(filter_to_use)
             .change_context(QueryError)?;
 
-        let (count, web_ids, created_by_ids, edition_created_by_ids, type_ids, type_titles) =
-            if params.include_count
-                || params.include_web_ids
-                || params.include_created_by_ids
-                || params.include_edition_created_by_ids
-                || params.include_type_ids
-            {
-                let web_id_idx = compiler.add_selection_path(&EntityQueryPath::WebId);
-                let entity_uuid_idx = compiler.add_selection_path(&EntityQueryPath::Uuid);
-                let draft_id_idx = compiler.add_selection_path(&EntityQueryPath::DraftId);
-                let provenance_idx = params
-                    .include_created_by_ids
-                    .then(|| compiler.add_selection_path(&EntityQueryPath::Provenance(None)));
-                let edition_provenance_idx = params.include_edition_created_by_ids.then(|| {
-                    compiler.add_selection_path(&EntityQueryPath::EditionProvenance(None))
-                });
-                let type_ids_idx =
-                    (params.include_type_ids || params.include_type_titles).then(|| {
-                        (
-                            compiler.add_selection_path(&EntityQueryPath::TypeBaseUrls),
-                            compiler.add_selection_path(&EntityQueryPath::TypeVersions),
-                        )
-                    });
-
-                let (statement, parameters) = compiler.compile();
-
-                let entities = self
-                    .as_client()
-                    .query_raw(&statement, parameters.iter().copied())
-                    .instrument(tracing::info_span!(
-                        "SELECT",
-                        otel.kind = "client",
-                        db.system = "postgresql",
-                        peer.service = "Postgres",
-                        db.query.text = statement,
-                    ))
-                    .await
-                    .change_context(QueryError)?
-                    .map_ok(move |row| {
-                        (
-                            EntityId {
-                                web_id: row.get(web_id_idx),
-                                entity_uuid: row.get(entity_uuid_idx),
-                                draft_id: row.get(draft_id_idx),
-                            },
-                            row,
-                        )
-                    })
-                    .try_collect::<HashMap<_, _>>()
-                    .instrument(tracing::trace_span!("collect_entity_metadata"))
-                    .await
-                    .change_context(QueryError)?;
-
-                let mut web_ids = params.include_web_ids.then(ResponseCountMap::default);
-                let mut created_by_ids = params
-                    .include_created_by_ids
-                    .then(ResponseCountMap::default);
-                let mut edition_created_by_ids = params
-                    .include_edition_created_by_ids
-                    .then(ResponseCountMap::default);
-                let mut type_ids = (params.include_type_ids || params.include_type_titles)
-                    .then(ResponseCountMap::default);
-
-                let count = entities
-                    .into_iter()
-                    .inspect(|(entity_id, row)| {
-                        if let Some(web_ids) = &mut web_ids {
-                            web_ids.extend_one(entity_id.web_id);
-                        }
-
-                        if let Some((created_by_ids, provenance_idx)) =
-                            created_by_ids.as_mut().zip(provenance_idx)
-                        {
-                            let provenance: InferredEntityProvenance = row.get(provenance_idx);
-                            created_by_ids.extend_one(provenance.created_by_id);
-                        }
-
-                        if let Some((edition_created_by_ids, provenance_idx)) =
-                            edition_created_by_ids.as_mut().zip(edition_provenance_idx)
-                        {
-                            let provenance: EntityEditionProvenance = row.get(provenance_idx);
-                            edition_created_by_ids.extend_one(provenance.created_by_id);
-                        }
-
-                        if let Some((type_ids, (base_urls_idx, versions_idx))) =
-                            type_ids.as_mut().zip(type_ids_idx)
-                        {
-                            let base_urls: Vec<BaseUrl> = row.get(base_urls_idx);
-                            let versions: Vec<OntologyTypeVersion> = row.get(versions_idx);
-                            type_ids.extend(
-                                base_urls
-                                    .into_iter()
-                                    .zip(versions)
-                                    .map(|(base_url, version)| VersionedUrl { base_url, version }),
-                            );
-                        }
-                    })
-                    .count();
-                let type_ids = type_ids.map(HashMap::from);
-
-                let type_titles = if params.include_type_titles {
-                    let type_uuids = type_ids
-                        .as_ref()
-                        .expect("type ids should be present")
-                        .keys()
-                        .map(EntityTypeUuid::from_url)
-                        .collect::<Vec<_>>();
-
-                    let mut type_compiler = SelectCompiler::<EntityTypeWithMetadata>::new(
-                        Some(temporal_axes),
-                        params.include_drafts,
-                    );
-                    let base_url_idx =
-                        type_compiler.add_selection_path(&EntityTypeQueryPath::BaseUrl);
-                    let version_idx =
-                        type_compiler.add_selection_path(&EntityTypeQueryPath::Version);
-                    let title_idx = type_compiler.add_selection_path(&EntityTypeQueryPath::Title);
-
-                    let filter = Filter::In(
-                        FilterExpression::Path {
-                            path: EntityTypeQueryPath::OntologyId,
-                        },
-                        FilterExpressionList::ParameterList {
-                            parameters: ParameterList::EntityTypeIds(&type_uuids),
-                        },
-                    );
-                    type_compiler
-                        .add_filter(&filter)
-                        .change_context(QueryError)?;
-
-                    let (statement, parameters) = type_compiler.compile();
-
-                    Some(
-                        self.as_client()
-                            .query_raw(&statement, parameters.iter().copied())
-                            .instrument(tracing::info_span!(
-                                "SELECT",
-                                otel.kind = "client",
-                                db.system = "postgresql",
-                                peer.service = "Postgres",
-                                db.query.text = statement,
-                            ))
-                            .await
-                            .change_context(QueryError)?
-                            .map_ok(|row| {
-                                (
-                                    VersionedUrl {
-                                        base_url: row.get(base_url_idx),
-                                        version: row.get(version_idx),
-                                    },
-                                    row.get::<_, String>(title_idx),
-                                )
-                            })
-                            .try_collect::<HashMap<_, _>>()
-                            .instrument(tracing::trace_span!("collect_entity_types"))
-                            .await
-                            .change_context(QueryError)?,
-                    )
-                } else {
-                    None
-                };
-
-                (
-                    params.include_count.then_some(count),
-                    web_ids.map(HashMap::from),
-                    created_by_ids.map(HashMap::from),
-                    edition_created_by_ids.map(HashMap::from),
-                    type_ids.filter(|_| params.include_type_ids),
-                    type_titles,
-                )
-            } else {
-                (None, None, None, None, None, None)
-            };
-
         compiler.set_limit(params.limit);
 
         let cursor_parameters = params.sorting.encode().change_context(QueryError)?;
@@ -759,10 +589,7 @@ where
                         entities
                             .iter()
                             .map(|entity| entity.metadata.entity_type_ids.clone()),
-                        QueryTemporalAxesUnresolved::DecisionTime {
-                            pinned: PinnedTemporalAxisUnresolved::new(None),
-                            variable: VariableTemporalAxisUnresolved::new(None, None),
-                        },
+                        QueryTemporalAxesUnresolved::live_only(),
                         None,
                     )
                     .await?
@@ -804,12 +631,6 @@ where
             },
             entities,
             cursor,
-            count,
-            web_ids,
-            created_by_ids,
-            edition_created_by_ids,
-            type_ids,
-            type_titles,
             // Populated later
             permissions: None,
         })
@@ -1050,6 +871,7 @@ where
                 web_id: entity_id.web_id,
                 entity_uuid: entity_id.entity_uuid,
                 provenance: entity_provenance.inferred.clone(),
+                read_only: params.read_only,
             });
             if let Some(draft_id) = entity_id.draft_id {
                 entity_draft_rows.push(EntityDraftRow {
@@ -1154,6 +976,7 @@ where
                     temporal_versioning,
                     entity_type_ids: params.entity_type_ids,
                     archived: false,
+                    read_only: params.read_only,
                     provenance: entity_provenance,
                     confidence: params.confidence,
                     properties: property_metadata,
@@ -1222,6 +1045,21 @@ where
                     WHERE entity_edition_id = ANY($1)
                     GROUP BY entity_edition_id, target_entity_type_ontology_id;
                 ",
+                &[&entity_edition_ids],
+            )
+            .instrument(tracing::info_span!(
+                "INSERT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
+            .await
+            .change_context(InsertionError)?;
+
+        transaction
+            .as_client()
+            .query(
+                &insert_entity_edition_cache_statement(true),
                 &[&entity_edition_ids],
             )
             .instrument(tracing::info_span!(
@@ -1449,6 +1287,103 @@ where
     }
 
     #[tracing::instrument(level = "info", skip(self, params))]
+    async fn search_entities(
+        &self,
+        actor_id: ActorEntityUuid,
+        params: SearchEntitiesParams,
+    ) -> Result<SearchEntitiesResponse, Report<QueryError>> {
+        let SearchEntitiesParams {
+            embedding,
+            maximum_semantic_distance,
+            limit,
+            include_entity_types,
+            filter:
+                SearchEntitiesFilter {
+                    entity_type_ids,
+                    web_ids,
+                    include_drafts,
+                },
+        } = params;
+
+        // TODO(BE-618): optimize the query — it scans embeddings without a vector index. A
+        //   halfvec/HNSW index needs an ANN-friendly query shape to be usable (the current
+        //   `MIN(<=>) GROUP BY` defeats it). The returned entities can also be trimmed to the
+        //   fields the search bar and inference actually use, but the query is the bottleneck.
+        let maximum_distance =
+            Real::try_from(maximum_semantic_distance.into_inner()).change_context(QueryError)?;
+
+        // The search always runs against the current time and never returns archived entities.
+        let mut filters = vec![
+            Filter::CosineDistance(
+                FilterExpression::Path {
+                    path: EntityQueryPath::Embedding,
+                },
+                FilterExpression::Parameter {
+                    parameter: Parameter::Vector(embedding),
+                    convert: None,
+                },
+                FilterExpression::Parameter {
+                    parameter: Parameter::Decimal(maximum_distance),
+                    convert: None,
+                },
+            ),
+            Filter::Equal(
+                FilterExpression::Path {
+                    path: EntityQueryPath::Archived,
+                },
+                FilterExpression::Parameter {
+                    parameter: Parameter::Boolean(false),
+                    convert: None,
+                },
+            ),
+        ];
+
+        if !entity_type_ids.is_empty() {
+            filters.push(Filter::Any(
+                entity_type_ids
+                    .iter()
+                    .map(Filter::for_entity_by_type_id)
+                    .collect(),
+            ));
+        }
+        if !web_ids.is_empty() {
+            filters.push(Filter::In(
+                FilterExpression::Path {
+                    path: EntityQueryPath::WebId,
+                },
+                FilterExpressionList::ParameterList {
+                    parameters: ParameterList::WebIds(&web_ids),
+                },
+            ));
+        }
+
+        let response = self
+            .query_entities(
+                actor_id,
+                QueryEntitiesParams {
+                    filter: Filter::All(filters),
+                    temporal_axes: QueryTemporalAxesUnresolved::live_only(),
+                    sorting: EntityQuerySorting {
+                        paths: vec![],
+                        cursor: None,
+                    },
+                    conversions: Vec::new(),
+                    limit,
+                    include_drafts,
+                    include_entity_types: include_entity_types
+                        .then_some(IncludeEntityTypeOption::Closed),
+                    include_permissions: false,
+                },
+            )
+            .await?;
+
+        Ok(SearchEntitiesResponse {
+            entities: response.entities,
+            closed_multi_entity_types: response.closed_multi_entity_types,
+        })
+    }
+
+    #[tracing::instrument(level = "info", skip(self, params))]
     #[expect(clippy::too_many_lines)]
     async fn query_entity_subgraph(
         &self,
@@ -1479,14 +1414,8 @@ where
         let QueryEntitiesResponse {
             entities: root_entities,
             cursor,
-            count,
             closed_multi_entity_types: _,
             definitions: _,
-            web_ids,
-            created_by_ids,
-            edition_created_by_ids,
-            type_ids,
-            type_titles,
             permissions,
         } = self
             .query_entities_impl(&request, &temporal_axes, &policy_components)
@@ -1586,10 +1515,7 @@ where
                                 .entities
                                 .values()
                                 .map(|entity| entity.metadata.entity_type_ids.clone()),
-                            QueryTemporalAxesUnresolved::DecisionTime {
-                                pinned: PinnedTemporalAxisUnresolved::new(None),
-                                variable: VariableTemporalAxisUnresolved::new(None, None),
-                            },
+                            QueryTemporalAxesUnresolved::live_only(),
                             None,
                         )
                         .await?
@@ -1630,12 +1556,6 @@ where
                     None | Some(IncludeEntityTypeOption::Closed) => None,
                 },
                 cursor,
-                count,
-                web_ids,
-                created_by_ids,
-                edition_created_by_ids,
-                type_ids,
-                type_titles,
                 entity_permissions: if request.include_permissions {
                     debug_assert!(permissions.is_none(), "Should not be populated yet");
 
@@ -1677,11 +1597,12 @@ where
         .await
     }
 
-    async fn count_entities(
+    #[tracing::instrument(level = "info", skip_all)]
+    async fn summarize_entities(
         &self,
         actor_id: ActorEntityUuid,
-        mut params: CountEntitiesParams<'_>,
-    ) -> Result<usize, Report<QueryError>> {
+        mut params: SummarizeEntitiesParams<'_>,
+    ) -> Result<SummarizeEntitiesResponse, Report<QueryError>> {
         let policy_components = PolicyComponents::builder(self)
             .with_actor(actor_id)
             .with_action(ActionName::ViewEntity, MergePolicies::Yes)
@@ -1703,14 +1624,14 @@ where
         );
 
         // Apply filter protection when configured - protects sensitive properties (e.g., email)
-        // from enumeration attacks in count queries.
+        // from enumeration attacks in summarize_entities queries.
         let should_apply_protection =
             !self.settings.filter_protection.is_empty() && !policy_components.is_instance_admin();
 
         let protected_filter;
         let filter_to_use = if should_apply_protection {
             // Transform filter to protect against email filtering on Users
-            // Note: count_entities has no sorting, so only filter protection applies
+            // Note: summarize_entities has no sorting, so only filter protection applies
             protected_filter = transform_filter(
                 params.filter.clone(),
                 &self.settings.filter_protection,
@@ -1731,14 +1652,30 @@ where
             .add_filter(filter_to_use)
             .change_context(QueryError)?;
 
-        compiler.add_distinct_selection_with_ordering(
-            &EntityQueryPath::EditionId,
-            Distinctness::Distinct,
-            None,
-        );
-
+        let Some(summary_query) = EntitySummaryQuery::new(&mut compiler, &params) else {
+            return Ok(SummarizeEntitiesResponse::default());
+        };
         let (statement, parameters) = compiler.compile();
-        Ok(self
+
+        // The `hits` CTE only needs to deduplicate editions when the query can emit more than
+        // one row per edition: either a fan-out (to-many) filter join, or a range variable
+        // temporal axis matching the same edition across several decision-time slices. A
+        // collapsed point interval (`[t, t]`) matches at most one slice per entity, so when no
+        // to-many join was added the dedup can be dropped, unlocking a parallel aggregate.
+        let variable_interval = temporal_axes.variable_interval();
+        let temporal_axis_is_point = matches!(
+            (variable_interval.start(), variable_interval.end()),
+            (TemporalBound::Inclusive(start), LimitedTemporalBound::Inclusive(end))
+                if start == end
+        );
+        let dedup = if compiler.has_to_many_join() || !temporal_axis_is_point {
+            Deduplication::Required
+        } else {
+            Deduplication::Skip
+        };
+        let statement = summary_query.statement(&statement, dedup);
+
+        let rows = self
             .as_client()
             .query_raw(&statement, parameters.iter().copied())
             .instrument(tracing::info_span!(
@@ -1750,8 +1687,21 @@ where
             ))
             .await
             .change_context(QueryError)?
-            .count()
-            .await)
+            .try_collect::<Vec<_>>()
+            .instrument(tracing::trace_span!("collect_entity_summaries"))
+            .await
+            .change_context(QueryError)?;
+
+        let summaries = summary_query.decode(rows)?;
+
+        Ok(SummarizeEntitiesResponse {
+            count: summaries.count,
+            web_ids: summaries.web_ids,
+            created_by_ids: summaries.created_by_ids,
+            edition_created_by_ids: summaries.edition_created_by_ids,
+            type_ids: summaries.type_ids.filter(|_| params.include_type_ids),
+            type_titles: summaries.type_titles.filter(|_| params.include_type_titles),
+        })
     }
 
     async fn get_entity_by_id(
@@ -2109,6 +2059,7 @@ where
                     entity_type_ids,
                     provenance: previous_entity.metadata.provenance,
                     archived,
+                    read_only: previous_entity.metadata.read_only,
                     confidence: previous_entity.metadata.confidence,
                     properties: property_metadata,
                 },
@@ -2263,6 +2214,7 @@ where
             confidence: params.confidence,
             properties: property_metadata,
             archived,
+            read_only: previous_entity.metadata.read_only,
         };
         let entities = [Entity {
             properties,
@@ -2486,8 +2438,22 @@ where
                       JOIN entity_type_inherits_from
                         ON entity_type_ontology_id = source_entity_type_ontology_id
                      GROUP BY entity_edition_id, target_entity_type_ontology_id;
+
+                    DELETE FROM entity_edition_cache;
                 ",
             )
+            .instrument(tracing::info_span!(
+                "INSERT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
+            .await
+            .change_context(UpdateError)?;
+
+        transaction
+            .as_client()
+            .query(&insert_entity_edition_cache_statement(false), &[])
             .instrument(tracing::info_span!(
                 "INSERT",
                 otel.kind = "client",
@@ -2594,6 +2560,108 @@ struct LockedEntityEdition {
     transaction_time: LeftClosedTemporalInterval<TransactionTime>,
 }
 
+/// Builds the statement populating `entity_edition_cache` by aggregating the editions'
+/// `entity_is_of_type` rows joined to the referenced types.
+///
+/// The write paths pass `scoped` to restrict it to the just-written editions
+/// (`$1: UUID[]`), `reindex_entity_cache` runs it unscoped over all editions. Must run
+/// after the editions' `entity_is_of_type` rows (including the inherited ones) have been
+/// written.
+fn insert_entity_edition_cache_statement(scoped: bool) -> String {
+    let types_scope = if scoped {
+        "WHERE entity_is_of_type.entity_edition_id = ANY($1)"
+    } else {
+        ""
+    };
+    let labels_scope = if scoped {
+        "AND entity_is_of_type.entity_edition_id = ANY($1)"
+    } else {
+        ""
+    };
+    format!(
+        "
+    INSERT INTO entity_edition_cache (
+        entity_edition_id,
+        direct_types,
+        labels,
+        type_titles,
+        base_urls,
+        versions,
+        versioned_urls
+    )
+    SELECT types.entity_edition_id,
+           types.direct_types,
+           labels.labels,
+           types.type_titles,
+           types.base_urls,
+           types.versions,
+           types.versioned_urls
+      FROM (
+          SELECT entity_is_of_type.entity_edition_id,
+                 count(*) FILTER (
+                     WHERE entity_is_of_type.inheritance_depth = 0
+                 ) AS direct_types,
+                 array_agg(entity_types.schema ->> 'title'
+                     ORDER BY entity_is_of_type.inheritance_depth,
+                              entity_types.schema ->> 'title', ontology_ids.base_url,
+                              ontology_ids.version DESC
+                 ) AS type_titles,
+                 array_agg(ontology_ids.base_url
+                     ORDER BY entity_is_of_type.inheritance_depth,
+                              entity_types.schema ->> 'title', ontology_ids.base_url,
+                              ontology_ids.version DESC
+                 ) AS base_urls,
+                 array_agg(ontology_ids.version
+                     ORDER BY entity_is_of_type.inheritance_depth,
+                              entity_types.schema ->> 'title', ontology_ids.base_url,
+                              ontology_ids.version DESC
+                 ) AS versions,
+                 array_agg(ontology_ids.base_url || 'v/' || ontology_ids.version
+                     ORDER BY entity_is_of_type.inheritance_depth,
+                              entity_types.schema ->> 'title', ontology_ids.base_url,
+                              ontology_ids.version DESC
+                 ) AS versioned_urls
+            FROM entity_is_of_type
+            JOIN ontology_ids
+              ON entity_is_of_type.entity_type_ontology_id = ontology_ids.ontology_id
+            JOIN entity_types
+              ON ontology_ids.ontology_id = entity_types.ontology_id
+           {types_scope}
+           GROUP BY entity_is_of_type.entity_edition_id
+      ) AS types
+      LEFT JOIN (
+          SELECT entity_is_of_type.entity_edition_id,
+                 array_agg(label_value.label
+                     ORDER BY entity_types.schema ->> 'title', ontology_ids.base_url,
+                              ontology_ids.version DESC, label_value.ordinality
+                 ) FILTER (WHERE label_value.label IS NOT NULL) AS labels
+            FROM entity_is_of_type
+            JOIN ontology_ids
+              ON entity_is_of_type.entity_type_ontology_id = ontology_ids.ontology_id
+            JOIN entity_types
+              ON ontology_ids.ontology_id = entity_types.ontology_id
+            JOIN entity_editions
+              ON entity_is_of_type.entity_edition_id = entity_editions.entity_edition_id
+           CROSS JOIN LATERAL (
+               SELECT jsonb_extract_path(
+                          entity_editions.properties, label_path.path
+                      ) #>> '{{}}' AS label,
+                      label_path.ordinality
+                 FROM jsonb_array_elements_text(
+                          jsonb_path_query_array(
+                              entity_types.closed_schema, '$.allOf[*].labelProperty'
+                          )
+                      ) WITH ORDINALITY AS label_path (path, ordinality)
+           ) AS label_value
+           WHERE entity_is_of_type.inheritance_depth = 0
+             {labels_scope}
+           GROUP BY entity_is_of_type.entity_edition_id
+      ) AS labels
+        ON types.entity_edition_id = labels.entity_edition_id;
+"
+    )
+}
+
 impl PostgresStore<tokio_postgres::Transaction<'_>> {
     #[tracing::instrument(level = "info", skip_all)]
     async fn insert_entity_edition(
@@ -2669,6 +2737,21 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                      GROUP BY entity_edition_id, target_entity_type_ontology_id;
                 ",
                 &[&edition_id],
+            )
+            .instrument(tracing::info_span!(
+                "INSERT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
+            .await
+            .change_context(InsertionError)?;
+
+        let edition_ids = [edition_id];
+        self.as_client()
+            .query(
+                &insert_entity_edition_cache_statement(true),
+                &[&edition_ids.as_slice()],
             )
             .instrument(tracing::info_span!(
                 "INSERT",
@@ -3141,5 +3224,21 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             decision_time: row.get(0),
             transaction_time: row.get(1),
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::insert_entity_edition_cache_statement;
+
+    #[test]
+    fn cache_statement_scoping() {
+        let scoped = insert_entity_edition_cache_statement(true);
+        let unscoped = insert_entity_edition_cache_statement(false);
+
+        assert_eq!(scoped.matches("= ANY($1)").count(), 2);
+        assert_eq!(unscoped.matches("= ANY($1)").count(), 0);
+        // the jsonb text-extraction operator must survive the `format!` brace escaping
+        assert!(scoped.contains("#>> '{}'"));
     }
 }

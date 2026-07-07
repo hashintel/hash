@@ -3,12 +3,6 @@
  */
 
 import type {
-  Confidence,
-  ObjectMetadata,
-  PropertyProvenance,
-} from "@blockprotocol/type-system";
-
-import type {
   Account,
   AccountIdPropertyValue,
   AccountIdPropertyValueWithMetadata,
@@ -46,9 +40,16 @@ import type {
   UsesUserSecretOutgoingLinksByLinkEntityTypeId,
   UsesUserSecretProperties,
   UsesUserSecretPropertiesWithMetadata,
+  ValueDataType,
+  ValueDataTypeWithMetadata,
   VaultPathPropertyValue,
   VaultPathPropertyValueWithMetadata,
 } from "./shared.js";
+import type {
+  Confidence,
+  ObjectMetadata,
+  PropertyProvenance,
+} from "@blockprotocol/type-system";
 
 export type {
   Account,
@@ -88,6 +89,8 @@ export type {
   UsesUserSecretOutgoingLinksByLinkEntityTypeId,
   UsesUserSecretProperties,
   UsesUserSecretPropertiesWithMetadata,
+  ValueDataType,
+  ValueDataTypeWithMetadata,
   VaultPathPropertyValue,
   VaultPathPropertyValueWithMetadata,
 };

@@ -1,10 +1,11 @@
+import { createContext, useContext, useMemo } from "react";
+
 import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
 import type {
   EntityPermissionsMap,
   HashEntity,
 } from "@local/hash-graph-sdk/entity";
 import type { PropsWithChildren } from "react";
-import { createContext, useContext, useMemo } from "react";
 
 export type BlockCollectionContextType = {
   blockCollectionSubgraph?: Subgraph<EntityRootType<HashEntity>>;

@@ -1,12 +1,13 @@
 import { useQuery } from "@apollo/client";
-import type { VersionedUrl } from "@blockprotocol/type-system";
 import { useMemo } from "react";
+
+import { checkUserPermissionsOnDataTypeQuery } from "../graphql/queries/ontology/data-type.queries";
 
 import type {
   CheckUserPermissionsOnDataTypeQuery,
   CheckUserPermissionsOnDataTypeQueryVariables,
 } from "../graphql/api-types.gen";
-import { checkUserPermissionsOnDataTypeQuery } from "../graphql/queries/ontology/data-type.queries";
+import type { VersionedUrl } from "@blockprotocol/type-system";
 
 export const useUserPermissionsOnDataType = (dataTypeId?: VersionedUrl) => {
   const { data, ...rest } = useQuery<

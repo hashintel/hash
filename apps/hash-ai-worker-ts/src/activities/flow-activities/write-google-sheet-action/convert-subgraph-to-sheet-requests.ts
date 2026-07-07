@@ -10,13 +10,6 @@ import {
   getEntityTypeById,
   getPropertyTypeForEntity,
 } from "@blockprotocol/graph/stdlib";
-import type {
-  BaseUrl,
-  EntityId,
-  EntityType,
-  OntologyTypeVersion,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
 import {
   typedEntries,
   typedKeys,
@@ -25,14 +18,22 @@ import {
 import { isDraftEntity } from "@local/hash-isomorphic-utils/entity-store";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { sheets_v4 } from "googleapis";
 
-import type { SheetOutputFormat } from "./shared/config.js";
 import {
   createCellFromValue,
   createHyperlinkCell,
 } from "./shared/create-sheet-data.js";
 import { cellHeaderFormat } from "./shared/format.js";
+
+import type { SheetOutputFormat } from "./shared/config.js";
+import type {
+  BaseUrl,
+  EntityId,
+  EntityType,
+  OntologyTypeVersion,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
+import type { sheets_v4 } from "googleapis";
 
 type ColumnsForEntity = {
   columns: Record<

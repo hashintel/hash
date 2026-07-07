@@ -14,13 +14,9 @@ use hash_graph_store::{
     filter::Filter,
     subgraph::{
         edges::{EdgeDirection, SubgraphTraversalParams, TraversalEdge, TraversalPath},
-        temporal_axes::{
-            PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved,
-            VariableTemporalAxisUnresolved,
-        },
+        temporal_axes::QueryTemporalAxesUnresolved,
     },
 };
-use hash_graph_temporal_versioning::TemporalBound;
 use hash_graph_test_data::{data_type, entity, entity_type, property_type};
 use rand::{prelude::IteratorRandom as _, rng};
 use tokio::runtime::Runtime;
@@ -153,6 +149,7 @@ async fn seed_db(
                         origin: OriginProvenance::from_empty_type(OriginType::Api),
                         sources: Vec::new(),
                     },
+                    read_only: false,
                 },
                 total,
             )
@@ -193,6 +190,7 @@ async fn seed_db(
                             origin: OriginProvenance::from_empty_type(OriginType::Api),
                             sources: Vec::new(),
                         },
+                        read_only: false,
                     })
                 })
                 .collect(),
@@ -246,27 +244,15 @@ pub fn bench_get_entity_by_id(
                         QueryEntitySubgraphParams::from_parts(
                             QueryEntitiesParams {
                                 filter: Filter::for_entity_by_entity_id(entity_record_id.entity_id),
-                                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                                    pinned: PinnedTemporalAxisUnresolved::new(None),
-                                    variable: VariableTemporalAxisUnresolved::new(
-                                        Some(TemporalBound::Unbounded),
-                                        None,
-                                    ),
-                                },
+                                temporal_axes: QueryTemporalAxesUnresolved::all(),
                                 sorting: EntityQuerySorting {
                                     paths: Vec::new(),
                                     cursor: None,
                                 },
                                 limit: 1000,
                                 conversions: Vec::new(),
-                                include_count: false,
                                 include_entity_types: None,
                                 include_drafts: false,
-                                include_web_ids: false,
-                                include_created_by_ids: false,
-                                include_edition_created_by_ids: false,
-                                include_type_ids: false,
-                                include_type_titles: false,
                                 include_permissions: false,
                             },
                             traversal_params,

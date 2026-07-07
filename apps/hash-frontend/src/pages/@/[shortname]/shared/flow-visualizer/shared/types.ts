@@ -1,3 +1,4 @@
+import type { SimpleStatus } from "../../../../../shared/flow-runs-context";
 import type {
   ActionDefinition,
   ActionStepDefinition,
@@ -11,8 +12,6 @@ import type {
   StepProgressLog,
 } from "@local/hash-isomorphic-utils/flows/types";
 import type { Edge, Node } from "reactflow";
-
-import type { SimpleStatus } from "../../../../../shared/flow-runs-context";
 
 export type NodeData = {
   kind: StepDefinition["kind"];

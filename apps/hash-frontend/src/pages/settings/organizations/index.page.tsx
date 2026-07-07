@@ -1,12 +1,12 @@
 import { faPlus } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@hashintel/design-system";
 import { Box, TableBody, TableHead, TableRow, Typography } from "@mui/material";
-import { useRouter } from "next/router";
 import { NextSeo } from "next-seo";
+import { useRouter } from "next/router";
 import { useRef } from "react";
 
+import { FontAwesomeIcon } from "@hashintel/design-system";
+
 import { PeopleGroupIcon } from "../../../shared/icons/people-group-icon";
-import type { NextPageWithLayout } from "../../../shared/layout";
 import { Button } from "../../../shared/ui/button";
 import { useAuthenticatedUser } from "../../shared/auth-info-context";
 import { getSettingsLayout } from "../../shared/settings-layout";
@@ -14,6 +14,8 @@ import { SettingsPageContainer } from "../shared/settings-page-container";
 import { SettingsTable } from "../shared/settings-table";
 import { SettingsTableCell } from "../shared/settings-table-cell";
 import { OrgRow } from "./index.page/org-row";
+
+import type { NextPageWithLayout } from "../../../shared/layout";
 
 const OrganizationListPage: NextPageWithLayout = () => {
   const router = useRouter();

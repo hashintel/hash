@@ -1,4 +1,3 @@
-
 # HASH Design System
 
 Components for use in libraries and applications.

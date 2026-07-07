@@ -7,6 +7,7 @@ export const createEntityMutation = gql`
     $properties: PropertyObjectWithMetadata!
     $linkData: LinkData
     $draft: Boolean
+    $makePublic: Boolean = false
   ) {
     # This is a scalar, which has no selection.
     createEntity(
@@ -15,6 +16,7 @@ export const createEntityMutation = gql`
       properties: $properties
       linkData: $linkData
       draft: $draft
+      makePublic: $makePublic
     )
   }
 `;
@@ -31,9 +33,9 @@ export const queryEntitySubgraphQuery = gql`
   }
 `;
 
-export const countEntitiesQuery = gql`
-  query countEntities($request: CountEntitiesParams!) {
-    countEntities(request: $request)
+export const summarizeEntitiesQuery = gql`
+  query summarizeEntities($request: SummarizeEntitiesParams!) {
+    summarizeEntities(request: $request)
   }
 `;
 

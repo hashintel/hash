@@ -2,9 +2,10 @@ import { Box, Typography } from "@mui/material";
 import { useEffect, useReducer, useState } from "react";
 
 import { Modal } from "../ui/modal";
-import type { CommandBarOption } from "./command-bar-options";
 import { menu } from "./command-bar-options";
 import { HotKey } from "./hot-key";
+
+import type { CommandBarOption } from "./command-bar-options";
 
 export const CheatSheet = () => {
   const [open, setOpen] = useState(false);

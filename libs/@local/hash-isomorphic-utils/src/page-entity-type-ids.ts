@@ -1,10 +1,9 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
-
-import { generateVersionedUrlMatchingFilter } from "./graph-queries.js";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
 } from "./ontology-type-ids.js";
+
+import type { VersionedUrl } from "@blockprotocol/type-system";
 
 export const pageEntityTypeIds: VersionedUrl[] = [
   systemEntityTypes.canvas.entityTypeId,
@@ -28,21 +27,6 @@ export const includesPageEntityTypeId = (entityTypeIds: VersionedUrl[]) =>
     pageEntityTypeIds.includes(entityTypeId),
   );
 
-/**
- * A structural query filter to match against any of the system-defined Page types.
- */
-export const pageEntityTypeFilter = {
-  /**
-   * We specify each of these page types individually rather than Page, which they both inherit from,
-   * because checking against types involving inheritance is currently slow.
-   * Once H-392 is implemented we can replace it with a single check against 'page', and remove ignoreParents
-   * @todo update this once H-392 is implemented
-   */
-  any: pageEntityTypeIds.map((entityTypeId) =>
-    generateVersionedUrlMatchingFilter(entityTypeId, { ignoreParents: true }),
-  ),
-};
-
 export const contentLinkEntityTypeIds: VersionedUrl[] = [
   systemLinkEntityTypes.hasIndexedContent.linkEntityTypeId,
   systemLinkEntityTypes.hasSpatiallyPositionedContent.linkEntityTypeId,
@@ -55,7 +39,12 @@ export const isContentLinkEntityTypeId = (entityTypeId: VersionedUrl) =>
  * Generate a structural query filter for the types which link a block in a Block Collection to its content.
  */
 export const contentLinkTypeFilter = {
-  any: contentLinkEntityTypeIds.map((entityTypeId) =>
-    generateVersionedUrlMatchingFilter(entityTypeId, { ignoreParents: true }),
-  ),
+  any: contentLinkEntityTypeIds.map((entityTypeId) => ({
+    equal: [
+      { path: ["type", "versionedUrl"] },
+      {
+        parameter: entityTypeId,
+      },
+    ],
+  })),
 };

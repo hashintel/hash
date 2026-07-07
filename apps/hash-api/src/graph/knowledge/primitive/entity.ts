@@ -4,6 +4,45 @@ import {
   type QueryTemporalAxesUnresolved,
   type Subgraph,
 } from "@blockprotocol/graph";
+import {
+  extractDraftIdFromEntityId,
+  extractEntityUuidFromEntityId,
+  extractWebIdFromEntityId,
+  splitEntityId,
+} from "@blockprotocol/type-system";
+import { typedKeys } from "@local/advanced-types/typed-entries";
+import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
+import {
+  type CreateEntityParameters,
+  type DiffEntityInput,
+  HashEntity,
+  HashLinkEntity,
+  queryEntities,
+  queryEntitySubgraph,
+  summarizeEntities,
+} from "@local/hash-graph-sdk/entity";
+import { getActorGroupRole } from "@local/hash-graph-sdk/principal/actor-group";
+import {
+  enabledFeatureFlagsPropertyBaseUrl,
+  shortnamePropertyBaseUrl,
+} from "@local/hash-graph-sdk/user-entity-restrictions";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
+import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+
+import * as GraphQlError from "../../../graphql/error";
+import { linkedTreeFlatten } from "../../../util";
+import { afterCreateEntityHooks } from "./entity/after-create-entity-hooks";
+import { afterUpdateEntityHooks } from "./entity/after-update-entity-hooks";
+import { beforeCreateEntityHooks } from "./entity/before-create-entity-hooks";
+import { beforeUpdateEntityHooks } from "./entity/before-update-entity-hooks";
+import { createLinkEntity, isEntityLinkEntity } from "./link-entity";
+
+import type {
+  EntityDefinition,
+  LinkedEntityDefinition,
+} from "../../../graphql/api-types.gen";
+import type { ImpureGraphFunction } from "../../context-types";
 import type {
   BaseUrl,
   Entity,
@@ -17,18 +56,9 @@ import type {
   VersionedUrl,
   WebId,
 } from "@blockprotocol/type-system";
-import {
-  extractDraftIdFromEntityId,
-  extractEntityUuidFromEntityId,
-  extractWebIdFromEntityId,
-  splitEntityId,
-} from "@blockprotocol/type-system";
 import type { Subtype } from "@local/advanced-types/subtype";
-import { typedKeys } from "@local/advanced-types/typed-entries";
-import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import type {
   AllFilter,
-  CountEntitiesParams,
   DiffEntityResult,
   Filter,
   HasPermissionForEntitiesParams,
@@ -37,38 +67,9 @@ import type {
   UserPermissions,
   UserPermissionsOnEntities,
 } from "@local/hash-graph-sdk/authorization";
-import {
-  type CreateEntityParameters,
-  type DiffEntityInput,
-  HashEntity,
-  HashLinkEntity,
-  queryEntities,
-  queryEntitySubgraph,
-} from "@local/hash-graph-sdk/entity";
-import { getActorGroupRole } from "@local/hash-graph-sdk/principal/actor-group";
-import {
-  enabledFeatureFlagsPropertyBaseUrl,
-  shortnamePropertyBaseUrl,
-} from "@local/hash-graph-sdk/user-entity-restrictions";
-import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
-import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
 import type { ActionName } from "@rust/hash-graph-authorization/types";
 import type { TraversalPath } from "@rust/hash-graph-store/types";
-
-import type {
-  EntityDefinition,
-  LinkedEntityDefinition,
-} from "../../../graphql/api-types.gen";
-import * as GraphQlError from "../../../graphql/error";
-import { linkedTreeFlatten } from "../../../util";
-import type { ImpureGraphFunction } from "../../context-types";
-import { afterCreateEntityHooks } from "./entity/after-create-entity-hooks";
-import { afterUpdateEntityHooks } from "./entity/after-update-entity-hooks";
-import { beforeCreateEntityHooks } from "./entity/before-create-entity-hooks";
-import { beforeUpdateEntityHooks } from "./entity/before-update-entity-hooks";
-import { createLinkEntity, isEntityLinkEntity } from "./link-entity";
 
 /** @todo: potentially directly export this from the subgraph package */
 export type PropertyValue = PropertyObject[BaseUrl];
@@ -159,15 +160,9 @@ export const createEntity = async <
   return entity;
 };
 
-export const countEntities: ImpureGraphFunction<
-  CountEntitiesParams,
-  Promise<number>
-> = async ({ graphApi }, { actorId }, params) =>
-  graphApi.countEntities(actorId, params).then(({ data }) => data);
-
 type GetLatestEntityByIdFunction<
-  Properties extends
-    TypeIdsAndPropertiesForEntity = TypeIdsAndPropertiesForEntity,
+  Properties extends TypeIdsAndPropertiesForEntity =
+    TypeIdsAndPropertiesForEntity,
 > = ImpureGraphFunction<
   {
     entityId: EntityId;
@@ -195,8 +190,8 @@ type GetLatestEntityByIdFunction<
  *   fault
  */
 export const getLatestEntityById = async <
-  Properties extends
-    TypeIdsAndPropertiesForEntity = TypeIdsAndPropertiesForEntity,
+  Properties extends TypeIdsAndPropertiesForEntity =
+    TypeIdsAndPropertiesForEntity,
 >(
   ...args: Parameters<GetLatestEntityByIdFunction<Properties>>
 ): ReturnType<GetLatestEntityByIdFunction<Properties>> => {
@@ -233,7 +228,7 @@ export const getLatestEntityById = async <
      * ...whether the prioritisation is fixed behavior or varied by parameter.
      */
     allFilter.push({
-      exists: { path: ["draftId"] },
+      not: { exists: { path: ["draftId"] } },
     });
   }
 
@@ -314,15 +309,18 @@ export const canUserReadEntity: ImpureGraphFunction<
     });
   }
 
-  const count = await countEntities(context, authentication, {
+  const { count } = await summarizeEntities(context, authentication, {
     filter: {
       all: allFilter,
     },
     temporalAxes: currentTimeInstantTemporalAxes,
     includeDrafts: !!draftId || includeDrafts,
+    includeCount: true,
   });
 
-  if (count === 0) {
+  // Deny on a missing/zero count rather than failing open: a permission gate must not
+  // grant access when the count is absent (`count` is typed optional on the response).
+  if (!count) {
     throw new Error(
       `Entity with entityId ${entityId} doesn't exist or cannot be accessed by requesting user.`,
     );
@@ -340,7 +338,14 @@ export const createEntityWithLinks = async <
   ...args: Parameters<CreateEntityWithLinksFunction<Properties>>
 ): ReturnType<CreateEntityWithLinksFunction<Properties>> => {
   const [context, authentication, params] = args;
-  const { entityTypeIds, properties, linkedEntities, ...createParams } = params;
+  const {
+    entityTypeIds,
+    properties,
+    linkedEntities,
+    entityUuid,
+    policies,
+    ...createParams
+  } = params;
 
   const entitiesInTree = linkedTreeFlatten<
     EntityDefinition,
@@ -383,12 +388,15 @@ export const createEntityWithLinks = async <
        * draft entities, but would need changing if we change this. H-2430 which would introduce draft/live versions of
        * pages which may affect this.
        */
+      const isRootEntity = definition.parentIndex === -1;
+
       const entity = existingEntityId
         ? await getLatestEntityById<Properties>(context, authentication, {
             entityId: existingEntityId,
           })
         : await createEntity<Properties>(context, authentication, {
             ...createParams,
+            ...(isRootEntity ? { entityUuid, policies } : {}),
             properties: definition.entityProperties!,
             entityTypeIds:
               definition.entityTypeIds as Properties["entityTypeIds"],

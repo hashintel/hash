@@ -1,6 +1,6 @@
 //@ run: pass
 //@ description: complex set of operations
-// biome-ignore format: readability
+// prettier-ignore
 ["let", "foo", { "#literal": 1 },
 ["let", "bar", { "#literal": 1 },
 ["let", "equals",

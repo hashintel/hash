@@ -1,14 +1,16 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
+import { Box, ButtonBase, Tooltip } from "@mui/material";
+import { type FunctionComponent, useCallback, useState } from "react";
+
 import {
   ArrowUpRightFromSquareRegularIcon,
   IconButton,
   OntologyChip,
   parseUrlForOntologyChip,
 } from "@hashintel/design-system";
-import { Box, ButtonBase, Tooltip } from "@mui/material";
-import { type FunctionComponent, useCallback, useState } from "react";
 
 import { Link } from "../../shared/ui/link";
+
+import type { VersionedUrl } from "@blockprotocol/type-system";
 
 export const CopyableOntologyChip: FunctionComponent<{
   versionedUrl: VersionedUrl;

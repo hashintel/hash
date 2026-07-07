@@ -6,14 +6,15 @@ import {
   getPageById,
   getPageFromEntity,
 } from "../../../../graph/knowledge/system-types/page";
+import { graphQLContextToImpureGraphContext } from "../../util";
+import { mapPageToGQL } from "../graphql-mapping";
+
 import type {
   MutationUpdatePageArgs,
   ResolverFn,
 } from "../../../api-types.gen";
 import type { LoggedInGraphQLContext } from "../../../context";
-import { graphQLContextToImpureGraphContext } from "../../util";
 import type { UnresolvedPageGQL } from "../graphql-mapping";
-import { mapPageToGQL } from "../graphql-mapping";
 
 export const updatePageResolver: ResolverFn<
   Promise<UnresolvedPageGQL>,

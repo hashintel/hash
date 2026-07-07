@@ -1,4 +1,3 @@
-import type { SxProps, TextFieldProps, Theme } from "@mui/material";
 import {
   Box,
   Button,
@@ -8,10 +7,12 @@ import {
   outlinedInputClasses,
   TextField,
 } from "@mui/material";
-import type { FormEvent, ReactNode } from "react";
 import { forwardRef, useCallback, useRef, useState } from "react";
 
 import { BlockErrorMessage } from "./block-error-message";
+
+import type { SxProps, TextFieldProps, Theme } from "@mui/material";
+import type { FormEvent, ReactNode } from "react";
 
 type BlockPromptInputProps = {
   error?: boolean;
@@ -106,6 +107,7 @@ export const BlockPromptInput = forwardRef<
           onKeyDown={(event) => {
             const { shiftKey, code } = event;
             if (!shiftKey && code === "Enter") {
+              // @ts-expect-error -- Event is not typed correctly, but we don't use this and event-specific props are not used.
               onSubmit?.(event);
             }
           }}

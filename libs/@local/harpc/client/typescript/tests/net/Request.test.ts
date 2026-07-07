@@ -1,6 +1,5 @@
 import { describe, it } from "@effect/vitest";
 import { Chunk, Effect, pipe, Predicate, Stream } from "effect";
-import type * as vitest from "vitest";
 
 import { Request } from "../../src/net/index.js";
 import {
@@ -18,6 +17,8 @@ import {
   RequestFlags,
 } from "../../src/wire-protocol/models/request/index.js";
 import { expectArrayBuffer } from "../wire-protocol/utils.js";
+
+import type * as vitest from "vitest";
 
 const makeRequest = Effect.fn("makeRequest")(function* <E, R>(
   stream: Stream.Stream<ArrayBuffer, E, R>,

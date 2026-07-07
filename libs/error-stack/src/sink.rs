@@ -1,5 +1,6 @@
 #[cfg(any(all(not(target_arch = "wasm32"), feature = "std"), feature = "tracing"))]
 use core::panic::Location;
+#[cfg(nightly)]
 use core::{
     convert::Infallible,
     ops::{FromResidual, Try},

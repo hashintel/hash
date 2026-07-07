@@ -1,5 +1,57 @@
 # @hashintel/petrinaut
 
+## 0.0.16
+
+### Patch Changes
+
+- [#8789](https://github.com/hashintel/hash/pull/8789) [`1fff5b0`](https://github.com/hashintel/hash/commit/1fff5b0d79a98a5328f0df6fe4770e2f6f6fcad0) Thanks [@alex-e-leon](https://github.com/alex-e-leon)! - Adds an optional product walkthrough that consumers can set
+
+- [#8751](https://github.com/hashintel/hash/pull/8751) [`3b5ff88`](https://github.com/hashintel/hash/commit/3b5ff88eb9d2983d7c63492f3911d70eaa28d331) Thanks [@kube](https://github.com/kube)! - Add experiment metric creation controls, validation, and scalar/distribution visualizations.
+
+- [#8750](https://github.com/hashintel/hash/pull/8750) [`f9d6417`](https://github.com/hashintel/hash/commit/f9d64178b4a20c04efb0ad85fcf8dbfcff20327a) Thanks [@CiaranMn](https://github.com/CiaranMn)! - add AI assistant
+
+- Updated dependencies [[`3b5ff88`](https://github.com/hashintel/hash/commit/3b5ff88eb9d2983d7c63492f3911d70eaa28d331), [`f9d6417`](https://github.com/hashintel/hash/commit/f9d64178b4a20c04efb0ad85fcf8dbfcff20327a), [`c39ede8`](https://github.com/hashintel/hash/commit/c39ede805c753b91eb9551362f0815f77bba5833), [`919cbc5`](https://github.com/hashintel/hash/commit/919cbc57b9e3f60b9ea3bde7e42aabc14a235370), [`f9d6417`](https://github.com/hashintel/hash/commit/f9d64178b4a20c04efb0ad85fcf8dbfcff20327a)]:
+  - @hashintel/petrinaut-core@0.0.2
+  - @hashintel/ds-components@0.2.2
+
+## 0.0.15
+
+### Patch Changes
+
+- [#8730](https://github.com/hashintel/hash/pull/8730) [`ed40011`](https://github.com/hashintel/hash/commit/ed40011ba896b77db0dae30c219e1f2066382c28) Thanks [@kube](https://github.com/kube)! - Extract the headless Petrinaut core into `@hashintel/petrinaut-core`, expose dedicated core worker entry points, and remove the `@hashintel/petrinaut/core` compatibility entry point.
+
+- [#8709](https://github.com/hashintel/hash/pull/8709) [`2c1c977`](https://github.com/hashintel/hash/commit/2c1c977d8d2772706f4edb91dd79a8d28866bff0) Thanks [@kube](https://github.com/kube)! - Add basic MonteCarlo-based experiments
+
+- Updated dependencies [[`c0c9498`](https://github.com/hashintel/hash/commit/c0c9498dc4f648814a80fc6e8df3598ff8a108ac), [`ed40011`](https://github.com/hashintel/hash/commit/ed40011ba896b77db0dae30c219e1f2066382c28), [`d3ac60c`](https://github.com/hashintel/hash/commit/d3ac60c5509bd2d5a478f2e5a56433c59d353f7b), [`834cbee`](https://github.com/hashintel/hash/commit/834cbeeb7d8045f006d7a1fab1e5858b83c437d6)]:
+  - @hashintel/ds-helpers@0.2.1
+  - @hashintel/petrinaut-core@0.0.1
+  - @hashintel/refractive@0.0.4
+  - @hashintel/ds-components@0.2.1
+
+## 0.0.14
+
+### Patch Changes
+
+- [#8633](https://github.com/hashintel/hash/pull/8633) [`fe08932`](https://github.com/hashintel/hash/commit/fe0893270534885d81ea909b871d4185d6aa0c2e) Thanks [@kube](https://github.com/kube)! - Add Metrics: user-authored functions over simulation state that produce a single number per frame, plotted via a new metric picker in the simulation timeline header
+
+- Updated dependencies [[`926f9fa`](https://github.com/hashintel/hash/commit/926f9fa3b844a9dd4ca26cdbe6dd69ceed87dcb5), [`ab0a035`](https://github.com/hashintel/hash/commit/ab0a0353baa0f1611ceba7ca29cd8adb575392f5), [`891f36f`](https://github.com/hashintel/hash/commit/891f36f602ba628d66140dd53130a688addb98fa), [`d9eb831`](https://github.com/hashintel/hash/commit/d9eb8317bd0c981e45f263a007aeac48f309e268), [`79eda1e`](https://github.com/hashintel/hash/commit/79eda1e27e9a6b2959a68e59f9a25791639f5770)]:
+  - @hashintel/ds-components@0.2.0
+  - @hashintel/ds-helpers@0.2.0
+
+## 0.0.13
+
+### Patch Changes
+
+- [#8618](https://github.com/hashintel/hash/pull/8618) [`dae70b5`](https://github.com/hashintel/hash/commit/dae70b532abfc74158e6452f3e739f1baf8140f0) Thanks [@alex-e-leon](https://github.com/alex-e-leon)! - Add support for inhibitor arcs
+
+- [#8611](https://github.com/hashintel/hash/pull/8611) [`21327f5`](https://github.com/hashintel/hash/commit/21327f52ad732b3e348b5e7421f6ed514295d417) Thanks [@alex-e-leon](https://github.com/alex-e-leon)! - Let minZoom be dynamically based on the size of the net
+
+- [#8637](https://github.com/hashintel/hash/pull/8637) [`e02b330`](https://github.com/hashintel/hash/commit/e02b33016bf187ac1838827e477e68cea9d7922c) Thanks [@alex-e-leon](https://github.com/alex-e-leon)! - recenter offscreen selected items when drawer is opened
+
+- [#8623](https://github.com/hashintel/hash/pull/8623) [`ae168f5`](https://github.com/hashintel/hash/commit/ae168f540900a5fa938c557e82b6aa3f80d6fef0) Thanks [@alex-e-leon](https://github.com/alex-e-leon)! - Improve text wrapping for long text in nodes
+
+- [#8609](https://github.com/hashintel/hash/pull/8609) [`b12a1d2`](https://github.com/hashintel/hash/commit/b12a1d2e9cdeff8d20c8472b3cafa83fca5070ea) Thanks [@kube](https://github.com/kube)! - Add Scenarios: reusable simulation configurations with parameter overrides and initial state expressions
+
 ## 0.0.12
 
 ### Patch Changes

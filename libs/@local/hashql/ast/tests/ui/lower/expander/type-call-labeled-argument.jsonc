@@ -1,0 +1,9 @@
+//@ run: fail
+//@ description: labeled arguments are not allowed in type constructor calls
+[
+  "::kernel::special_form::type",
+  "Foo",
+  ["|", "Integer", { ":extra": "String" }],
+  //~^ ERROR labeled arguments are not allowed in type constructor calls
+  { "#literal": 0 }
+]

@@ -7,8 +7,9 @@ import {
   getToolCallsFromLlmAssistantMessage,
   type LlmUserMessage,
 } from "../get-llm-response/llm-message.js";
-import type { LlmToolDefinition } from "../get-llm-response/types.js";
 import { graphApiClient } from "../graph-api-client.js";
+
+import type { LlmToolDefinition } from "../get-llm-response/types.js";
 import type { MetricResultsForSystemPrompt } from "./types.js";
 
 const improveSystemPromptSystemPrompt = dedent(`

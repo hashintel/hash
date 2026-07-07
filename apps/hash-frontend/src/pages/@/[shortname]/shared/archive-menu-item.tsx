@@ -1,15 +1,8 @@
 import { useMutation } from "@apollo/client";
-import type { EntityTypeWithMetadata } from "@blockprotocol/type-system";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { ListItemIcon, ListItemText } from "@mui/material";
-import type { FunctionComponent } from "react";
 import { useCallback } from "react";
 
 import { useArchivePage } from "../../../../components/hooks/use-archive-page";
-import type {
-  ArchiveEntityTypeMutation,
-  ArchiveEntityTypeMutationVariables,
-} from "../../../../graphql/api-types.gen";
 import { archiveEntityTypeMutation } from "../../../../graphql/queries/ontology/entity-type.queries";
 import { useFetchEntityTypes } from "../../../../shared/entity-types-context/hooks";
 import { BoxArchiveIcon } from "../../../../shared/icons/box-archive-icon";
@@ -19,6 +12,14 @@ import {
   isItemEntityType,
   useContextBarActionsContext,
 } from "../../../shared/top-context-bar";
+
+import type {
+  ArchiveEntityTypeMutation,
+  ArchiveEntityTypeMutationVariables,
+} from "../../../../graphql/api-types.gen";
+import type { EntityTypeWithMetadata } from "@blockprotocol/type-system";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import type { FunctionComponent } from "react";
 
 export const ArchiveMenuItem: FunctionComponent<{
   item: HashEntity | EntityTypeWithMetadata;

@@ -1,4 +1,3 @@
-import type { EntityUuid, WebId } from "@blockprotocol/type-system";
 import { entityIdFromComponents } from "@blockprotocol/type-system";
 import {
   systemEntityTypes,
@@ -6,7 +5,6 @@ import {
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { includesPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
 
 import { isProdEnv } from "../../../../lib/env-config";
 import { createOrUpdateMailchimpUser } from "../../../../mailchimp";
@@ -32,11 +30,14 @@ import {
 } from "../../system-types/text";
 import { getUser } from "../../system-types/user";
 import { checkPermissionsOnEntity } from "../entity";
+import { getTextUpdateOccurredIn } from "./shared/mention-notification";
+
 import type {
   AfterCreateEntityHook,
   AfterCreateEntityHookCallback,
 } from "./create-entity-hooks";
-import { getTextUpdateOccurredIn } from "./shared/mention-notification";
+import type { EntityUuid, WebId } from "@blockprotocol/type-system";
+import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
 
 /**
  * This after create `Comment` entity hook is responsible for creating

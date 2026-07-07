@@ -1,4 +1,8 @@
 import { useQuery } from "@apollo/client";
+import { Box, Stack, Typography } from "@mui/material";
+import { useEffect, useMemo, useState } from "react";
+import { useFormContext, useWatch } from "react-hook-form";
+
 import { getRoots } from "@blockprotocol/graph/stdlib";
 import {
   type Conversions,
@@ -12,19 +16,17 @@ import { deserializeQueryDataTypeSubgraphResponse } from "@local/hash-graph-sdk/
 import { buildDataTypeTreesForSelector } from "@local/hash-isomorphic-utils/data-types";
 import { fullTransactionTimeAxis } from "@local/hash-isomorphic-utils/graph-queries";
 import { blockProtocolDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { Box, Stack, Typography } from "@mui/material";
-import { useEffect, useMemo, useState } from "react";
-import { useFormContext, useWatch } from "react-hook-form";
+
+import { queryDataTypeSubgraphQuery } from "../../../../graphql/queries/ontology/data-type.queries";
+import { Button } from "../../../../shared/ui/button";
+import { useDataTypesContext } from "../../data-types-context";
+import { useInheritedConstraints } from "../shared/use-inherited-constraints";
 
 import type {
   QueryDataTypeSubgraphQuery,
   QueryDataTypeSubgraphQueryVariables,
 } from "../../../../graphql/api-types.gen";
-import { queryDataTypeSubgraphQuery } from "../../../../graphql/queries/ontology/data-type.queries";
-import { Button } from "../../../../shared/ui/button";
-import { useDataTypesContext } from "../../data-types-context";
 import type { DataTypeFormData } from "../data-type-form";
-import { useInheritedConstraints } from "../shared/use-inherited-constraints";
 
 export const ConversionTargetEditor = ({
   dataType,

@@ -16,17 +16,18 @@ path = "src/bin/openapi-spec-generator.rs"
 harpc-client              = { workspace = true, public = true }
 harpc-server              = { workspace = true, public = true }
 hash-graph-authorization  = { workspace = true, public = true }
+hash-graph-embeddings     = { workspace = true, public = true }
 hash-graph-postgres-store = { workspace = true, public = true, features = ["utoipa"] }
 hash-graph-type-fetcher   = { workspace = true, public = true }
 hash-graph-types          = { workspace = true, public = true, features = ["utoipa"] }
 hash-status               = { workspace = true, public = true }
 hash-temporal-client      = { workspace = true, public = true }
-hashql-core               = { workspace = true, public = true }
 
 # Public third-party dependencies
 axum            = { workspace = true, public = true }
 axum-core       = { workspace = true, public = true }
 futures-channel = { workspace = true, public = true }
+hashql-core     = { workspace = true, public = true }
 http            = { workspace = true, public = true }
 jsonwebtoken    = { workspace = true, public = true, features = ["aws_lc_rs"] }
 tower-http      = { workspace = true, public = true }
@@ -44,8 +45,9 @@ hash-graph-type-defs           = { workspace = true }
 hash-graph-validation          = { workspace = true }
 hashql-ast                     = { workspace = true }
 hashql-diagnostics             = { workspace = true, features = ["serde", "render"] }
-hashql-eval                    = { workspace = true, features = ["graph"] }
+hashql-eval                    = { workspace = true }
 hashql-hir                     = { workspace = true }
+hashql-mir                     = { workspace = true }
 hashql-syntax-jexpr            = { workspace = true }
 type-system                    = { workspace = true, features = ["utoipa"] }
 
@@ -53,6 +55,7 @@ type-system                    = { workspace = true, features = ["utoipa"] }
 clap = { workspace = true, optional = true, features = ["derive", "env"] }
 
 # Private third-party dependencies
+base16ct                           = { workspace = true }
 bytes                              = { workspace = true }
 derive-where                       = { workspace = true }
 derive_more                        = { workspace = true, features = ["display", "error"] }

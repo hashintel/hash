@@ -1,0 +1,42 @@
+name: Preflight
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/preflight.yml"
+  pull_request_target:
+    types: [opened, synchronize, reopened, edited]
+  merge_group:
+
+jobs:
+  dependencies:
+    name: Dependencies
+    permissions:
+      contents: read
+      pull-requests: write
+    uses: hashintel/.github/.github/workflows/preflight-dependencies.yml@ae4227bc6b6375f06ac30093826318283eefb203
+
+  labeler:
+    name: Labeler
+    if: github.event_name != 'merge_group'
+    permissions:
+      contents: read
+      pull-requests: write
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Apply labels
+        uses: actions/labeler@634933edcd8ababfe52f92936142cc22ac488b1b # v6.0.1
+        with:
+          sync-labels: true
+
+  todo-comments:
+    name: Todo comments
+    permissions:
+      contents: read
+    uses: hashintel/.github/.github/workflows/preflight-todo-comments.yml@ae4227bc6b6375f06ac30093826318283eefb203
+
+  pr-title:
+    name: PR title
+    permissions:
+      contents: read
+    uses: hashintel/.github/.github/workflows/preflight-pr-title.yml@ae4227bc6b6375f06ac30093826318283eefb203

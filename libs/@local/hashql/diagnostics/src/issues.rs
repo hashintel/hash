@@ -145,6 +145,41 @@ impl<C, S, K> DiagnosticIssues<C, S, K> {
         }
     }
 
+    /// Transforms the span type of all diagnostics in the collection.
+    ///
+    /// Applies the function to every span in labels, suggestions, and patches.
+    /// This is useful when converting between span representations, such as
+    /// resolving relative spans to absolute positions for rendering.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hashql_diagnostics::{Diagnostic, DiagnosticIssues, Label, Severity};
+    /// # use hashql_diagnostics::category::TerminalDiagnosticCategory;
+    /// # const CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    /// #     id: "example", name: "Example"
+    /// # };
+    ///
+    /// let mut issues = DiagnosticIssues::new();
+    /// issues.push(
+    ///     Diagnostic::new(CATEGORY, Severity::Warning).primary(Label::new(10..15, "warning here")),
+    /// );
+    ///
+    /// // Convert Range<usize> spans to string descriptions
+    /// let converted = issues.map_spans(|range| format!("{}..{}", range.start, range.end));
+    /// assert_eq!(converted.len(), 1);
+    /// ```
+    pub fn map_spans<S2>(self, mut func: impl FnMut(S) -> S2) -> DiagnosticIssues<C, S2, K> {
+        DiagnosticIssues {
+            diagnostics: self
+                .diagnostics
+                .into_iter()
+                .map(|diagnostic| diagnostic.map_spans(&mut func))
+                .collect(),
+            critical: self.critical,
+        }
+    }
+
     /// Converts to a collection with type-erased categories.
     ///
     /// When combining diagnostics from different compilation phases that use
@@ -231,6 +266,7 @@ impl<C, S, K> DiagnosticIssues<C, S, K> {
     /// );
     /// assert_eq!(issues.critical(), 1); // Warnings are not critical
     /// ```
+    #[inline]
     #[must_use]
     pub const fn critical(&self) -> usize {
         self.critical
@@ -804,9 +840,52 @@ impl<C, S, K> IntoIterator for DiagnosticIssues<C, S, K> {
     }
 }
 
+impl<C, S, K> From<Vec<Diagnostic<C, S, K>>> for DiagnosticIssues<C, S, K>
+where
+    K: SeverityKind,
+{
+    fn from(diagnostics: Vec<Diagnostic<C, S, K>>) -> Self {
+        let critical = diagnostics
+            .iter()
+            .filter(|diagnostic| diagnostic.severity.is_critical())
+            .count();
+
+        Self {
+            diagnostics,
+            critical,
+        }
+    }
+}
+
 impl<C, S, K> Default for DiagnosticIssues<C, S, K> {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+#[cfg(feature = "serde")]
+impl<C, S, K> serde::Serialize for DiagnosticIssues<C, S, K>
+where
+    C: serde::Serialize,
+    S: serde::Serialize,
+    K: serde::Serialize,
+{
+    fn serialize<Ser: serde::Serializer>(&self, serializer: Ser) -> Result<Ser::Ok, Ser::Error> {
+        self.diagnostics.serialize(serializer)
+    }
+}
+
+#[cfg(feature = "serde")]
+impl<'de, C, S, K> serde::Deserialize<'de> for DiagnosticIssues<C, S, K>
+where
+    C: serde::Deserialize<'de>,
+    S: serde::Deserialize<'de>,
+    K: serde::Deserialize<'de> + SeverityKind,
+{
+    fn deserialize<De: serde::Deserializer<'de>>(deserializer: De) -> Result<Self, De::Error> {
+        let inner = Vec::deserialize(deserializer)?;
+
+        Ok(Self::from(inner))
     }
 }
 

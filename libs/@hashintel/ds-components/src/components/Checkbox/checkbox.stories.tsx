@@ -1,198 +1,201 @@
-import type { Meta, StoryObj } from "@storybook/react-vite";
-import { useState } from "react";
+import { Fragment, useState } from "react";
 
-import { Checkbox, type CheckboxProps } from "../checkbox";
+import { css } from "@hashintel/ds-helpers/css";
 
-const meta: Meta<CheckboxProps> = {
+import { formInputSizes } from "../../util/form-shared";
+import { Checkbox } from "./checkbox";
+
+import type { Story, StoryDefault } from "@ladle/react";
+
+type CheckboxProps = React.ComponentProps<typeof Checkbox>;
+
+const tones: NonNullable<CheckboxProps["tone"]>[] = [
+  "neutral",
+  "brand",
+  "success",
+];
+
+const labelPlacements: NonNullable<CheckboxProps["labelPlacement"]>[] = [
+  "left",
+  "right",
+];
+
+const ControlledCheckbox = ({
+  defaultValue = false,
+  ...props
+}: Omit<CheckboxProps, "value" | "onChange"> & { defaultValue?: boolean }) => {
+  const [value, setValue] = useState(defaultValue);
+  return <Checkbox {...props} value={value} onChange={setValue} />;
+};
+
+export default {
   title: "Components/Checkbox",
-  component: Checkbox,
   parameters: {
     layout: "centered",
-    docs: {
-      description: {
-        component: `
-# Checkbox Component
-
-A simple checkbox component built with @ark-ui/react and styled with PandaCSS.
-
-## States
-
-- **Unchecked**: Default empty state
-- **Checked**: Selected state with checkmark
-- **Indeterminate**: Partial selection state with minus icon
-- **Disabled**: Non-interactive state
-
-## Interactions
-
-- **Hover**: Slightly darker border and background
-- **Focus**: Blue outline ring
-- **Disabled**: Reduced opacity and muted colors
-        `,
-      },
-    },
   },
   argTypes: {
-    checked: {
-      control: "radio",
-      options: [false, true, "indeterminate"],
-      description: "The checked state of the checkbox",
+    tone: {
+      control: { type: "select", options: tones },
     },
-    disabled: {
-      control: "boolean",
-      description: "Whether the checkbox is disabled",
+    size: {
+      control: { type: "select", options: formInputSizes },
     },
-    invalid: {
-      control: "boolean",
-      description: "Whether the checkbox is in an invalid state",
-    },
-    readOnly: {
-      control: "boolean",
-      description: "Whether the checkbox is read-only",
-    },
-    required: {
-      control: "boolean",
-      description: "Whether the checkbox is required",
-    },
-    label: {
-      control: "text",
-      description: "Label text for the checkbox",
-    },
-    onCheckedChange: {
-      action: "checked changed",
-      description: "Callback when the checked state changes",
-    },
+    disabled: { control: { type: "boolean" } },
+    invalid: { control: { type: "boolean" } },
+    indeterminate: { control: { type: "boolean" } },
+    labelPlacement: { control: { type: "select", options: labelPlacements } },
+    label: { control: { type: "text" } },
   },
   args: {
+    tone: "neutral",
+    size: "md",
     disabled: false,
     invalid: false,
-    readOnly: false,
-    required: false,
-    label: "Label",
+    indeterminate: false,
+    labelPlacement: "right",
   },
+} satisfies StoryDefault<CheckboxProps>;
+
+type Example = {
+  label: string;
+  props: Omit<CheckboxProps, "value" | "onChange">;
+  /** The checked state to render the example in */
+  defaultValue: boolean;
+  /** When set, a second column renders the same example in the disabled state */
+  withDisabled?: boolean;
 };
 
-export default meta;
+// Constrains the checkbox width so a long label wraps onto multiple lines.
+const wrappingLabelClass = css({ maxWidth: "[260px]" });
 
-type Story = StoryObj<typeof meta>;
-
-/**
- * Default checkbox in unchecked state
- */
-export const Default: Story = {
-  args: {
-    checked: false,
+const examples: Example[] = [
+  // Each tone is shown in its checked state, alongside a disabled variant.
+  ...tones.map<Example>((tone) => ({
+    label: `tone=${tone}`,
+    props: { tone },
+    defaultValue: true,
+    withDisabled: true,
+  })),
+  { label: "unchecked", props: {}, defaultValue: false, withDisabled: true },
+  {
+    label: "indeterminate",
+    props: { indeterminate: true },
+    defaultValue: false,
+    withDisabled: true,
   },
+  {
+    label: "invalid",
+    props: { invalid: true },
+    defaultValue: false,
+    withDisabled: true,
+  },
+  {
+    label: "label",
+    props: { label: "Accept terms" },
+    defaultValue: true,
+    withDisabled: true,
+  },
+  {
+    label: "labelPlacement: left",
+    props: { label: "Accept terms", labelPlacement: "left" },
+    defaultValue: true,
+  },
+  {
+    label: "labelAlign: center",
+    props: {
+      label: "I agree to the terms of service and privacy policy",
+      className: wrappingLabelClass,
+      labelAlign: "center",
+    },
+    defaultValue: true,
+  },
+];
+
+const headingClass = css({
+  fontSize: "[12px]",
+  fontWeight: "medium",
+  color: "neutral.s90",
+});
+
+const labelClass = css({
+  fontSize: "[12px]",
+  color: "neutral.s80",
+});
+
+export const Default: Story<CheckboxProps> = () => (
+  <div
+    className={css({
+      display: "grid",
+      gridTemplateColumns: "[200px max-content max-content]",
+      alignItems: "center",
+      columnGap: "[32px]",
+      rowGap: "[12px]",
+    })}
+  >
+    <span />
+    <span className={headingClass}>Default</span>
+    <span className={headingClass}>Disabled</span>
+    {examples.map(({ label, props, defaultValue, withDisabled }) => (
+      <Fragment key={label}>
+        <span className={labelClass}>{label}</span>
+        <ControlledCheckbox {...props} defaultValue={defaultValue} />
+        {withDisabled ? (
+          <ControlledCheckbox {...props} disabled defaultValue={defaultValue} />
+        ) : (
+          <span />
+        )}
+      </Fragment>
+    ))}
+  </div>
+);
+
+Default.parameters = {
+  actions: { disable: true },
+  interactions: { disable: true },
+  controls: { disable: true },
 };
 
-/**
- * Checkbox in checked state
- */
-export const Checked: Story = {
-  args: {
-    checked: true,
-  },
-};
-
-/**
- * Checkbox in indeterminate state (partial selection)
- */
-export const Indeterminate: Story = {
-  args: {
-    checked: "indeterminate",
-  },
-};
-
-/**
- * Disabled checkbox states
- */
-export const Disabled: Story = {
-  argTypes: {},
-  parameters: {
-    actions: { disable: true },
-    interactions: { disable: true },
-    controls: { disable: true },
-  },
-  render: () => (
-    <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-      {/* Enabled Row */}
-      <div style={{ display: "flex", gap: "16px", alignItems: "center" }}>
-        <Checkbox label="Unchecked" checked={false} />
-        <Checkbox label="Checked" checked />
-        <Checkbox label="Indeterminate" checked="indeterminate" />
-      </div>
-      {/* Disabled Row */}
-      <div style={{ display: "flex", gap: "16px", alignItems: "center" }}>
-        <Checkbox label="Unchecked" disabled checked={false} />
-        <Checkbox label="Checked" disabled checked />
-        <Checkbox label="Indeterminate" disabled checked="indeterminate" />
-      </div>
-    </div>
-  ),
-};
-
-/**
- * Interactive checkbox with controlled state
- */
-export const Interactive: Story = {
-  argTypes: {},
-  parameters: {
-    actions: { disable: true },
-    interactions: { disable: true },
-    controls: { disable: true },
-  },
-  render: () => {
-    const [checked, setChecked] = useState<boolean | "indeterminate">(false);
-
-    return (
-      <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-        <Checkbox
-          label="Interactive Checkbox"
-          checked={checked}
-          onCheckedChange={setChecked}
+export const Sizes: Story<CheckboxProps> = () => (
+  <div
+    className={css({
+      display: "flex",
+      flexDirection: "column",
+      gap: "[16px]",
+    })}
+  >
+    {formInputSizes.map((size) => (
+      <div
+        key={size}
+        className={css({
+          display: "flex",
+          alignItems: "flex-start",
+          gap: "[24px]",
+        })}
+      >
+        <span
+          className={css({
+            width: "[40px]",
+            fontSize: "[12px]",
+            color: "neutral.s80",
+          })}
+        >
+          {size}
+        </span>
+        <ControlledCheckbox size={size} defaultValue />
+        <ControlledCheckbox size={size} label="Label" defaultValue />
+        <ControlledCheckbox
+          size={size}
+          label="I agree to the terms of service and privacy policy"
+          className={wrappingLabelClass}
+          defaultValue
         />
-
-        <div style={{ display: "flex", gap: "8px" }}>
-          <button
-            type="button"
-            onClick={() => setChecked(false)}
-            style={{
-              padding: "4px 12px",
-              borderRadius: "4px",
-              border: "1px solid #ccc",
-              background: "white",
-              cursor: "pointer",
-            }}
-          >
-            Uncheck
-          </button>
-          <button
-            type="button"
-            onClick={() => setChecked(true)}
-            style={{
-              padding: "4px 12px",
-              borderRadius: "4px",
-              border: "1px solid #ccc",
-              background: "white",
-              cursor: "pointer",
-            }}
-          >
-            Check
-          </button>
-          <button
-            type="button"
-            onClick={() => setChecked("indeterminate")}
-            style={{
-              padding: "4px 12px",
-              borderRadius: "4px",
-              border: "1px solid #ccc",
-              background: "white",
-              cursor: "pointer",
-            }}
-          >
-            Set Indeterminate
-          </button>
-        </div>
       </div>
-    );
-  },
+    ))}
+  </div>
+);
+
+Sizes.parameters = {
+  actions: { disable: true },
+  interactions: { disable: true },
+  controls: { disable: true },
 };

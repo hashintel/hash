@@ -1,6 +1,6 @@
-import type { EntityId } from "@blockprotocol/type-system";
-
 import { getBlockDomId } from "../shared/get-block-dom-id";
+
+import type { EntityId } from "@blockprotocol/type-system";
 
 export const constructPageRelativeUrl = (params: {
   workspaceShortname: string;

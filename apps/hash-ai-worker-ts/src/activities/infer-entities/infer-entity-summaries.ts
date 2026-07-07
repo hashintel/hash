@@ -1,14 +1,6 @@
-import type {
-  EntityId,
-  UserId,
-  VersionedUrl,
-  WebId,
-} from "@blockprotocol/type-system";
-import type { GraphApi } from "@local/hash-graph-client";
-import type { Status } from "@local/status";
-import { StatusCode } from "@local/status";
 import dedent from "dedent";
-import type OpenAI from "openai";
+
+import { StatusCode } from "@local/status";
 
 import { logger } from "../shared/activity-logger.js";
 import { getFlowContext } from "../shared/get-flow-context.js";
@@ -21,13 +13,14 @@ import {
 } from "../shared/get-llm-response/llm-message.js";
 import { stringify } from "../shared/stringify.js";
 import { inferEntitiesSystemPrompt } from "./infer-entities-system-prompt.js";
-import type {
-  CouldNotInferEntitiesReturn,
-  ProposedEntitySummariesByType,
-} from "./infer-entity-summaries/generate-summary-tools.js";
 import {
   generateSummaryTools,
   validateEntitySummariesByType,
+} from "./infer-entity-summaries/generate-summary-tools.js";
+
+import type {
+  CouldNotInferEntitiesReturn,
+  ProposedEntitySummariesByType,
 } from "./infer-entity-summaries/generate-summary-tools.js";
 import type {
   CompletionPayload,
@@ -35,6 +28,15 @@ import type {
   InferenceState,
   ProposedEntitySummary,
 } from "./inference-types.js";
+import type {
+  EntityId,
+  UserId,
+  VersionedUrl,
+  WebId,
+} from "@blockprotocol/type-system";
+import type { GraphApi } from "@local/hash-graph-client";
+import type { Status } from "@local/status";
+import type OpenAI from "openai";
 
 export const inferEntitySummaries = async (params: {
   completionPayload: CompletionPayload;

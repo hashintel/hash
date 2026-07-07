@@ -1,3 +1,7 @@
+import OpenAI from "openai";
+
+import { extractBaseUrl } from "@blockprotocol/type-system";
+
 import type {
   BaseUrl,
   DataTypeWithMetadata,
@@ -8,9 +12,7 @@ import type {
   PropertyTypeWithMetadata,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-import { extractBaseUrl } from "@blockprotocol/type-system";
 import type { Embedding } from "@local/hash-graph-client";
-import OpenAI from "openai";
 
 type Usage = OpenAI.CreateEmbeddingResponse.Usage;
 

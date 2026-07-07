@@ -4,11 +4,12 @@ import TableCell from "@mui/material/TableCell";
 // eslint-disable-next-line no-restricted-imports
 import TableRow from "@mui/material/TableRow";
 
+import { FilterButton } from "./header/filter";
+import { SortButton } from "./header/sort";
+
 import type { VirtualizedTableColumn } from "../virtualized-table";
 import type { TableFilterProps } from "./header/filter";
-import { FilterButton } from "./header/filter";
 import type { TableSortProps, VirtualizedTableSort } from "./header/sort";
-import { SortButton } from "./header/sort";
 
 export const virtualizedTableHeaderHeight = 43;
 

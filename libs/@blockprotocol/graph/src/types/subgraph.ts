@@ -1,10 +1,3 @@
-import type {
-  DataTypeWithMetadata,
-  Entity,
-  EntityTypeWithMetadata,
-  PropertyTypeWithMetadata,
-} from "@blockprotocol/type-system";
-
 import type { Edges } from "./subgraph/edges.js";
 import type { SubgraphTemporalAxes } from "./subgraph/temporal-axes.js";
 import type {
@@ -12,6 +5,12 @@ import type {
   OntologyTypeVertexId,
   Vertices,
 } from "./subgraph/vertices.js";
+import type {
+  DataTypeWithMetadata,
+  Entity,
+  EntityTypeWithMetadata,
+  PropertyTypeWithMetadata,
+} from "@blockprotocol/type-system";
 
 export * from "./ontology.js";
 export * from "./subgraph/edges.js";

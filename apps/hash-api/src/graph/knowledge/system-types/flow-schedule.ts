@@ -1,10 +1,4 @@
-import type { EntityId } from "@blockprotocol/type-system";
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
-import type {
-  CreateFlowScheduleInput,
-  UpdateFlowScheduleInput,
-} from "@local/hash-isomorphic-utils/flows/schedule-types";
 import {
   defaultScheduleCatchupWindowMs,
   defaultScheduleOverlapPolicy,
@@ -15,19 +9,26 @@ import {
   systemEntityTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
+
+import {
+  createEntity,
+  getLatestEntityById,
+  updateEntity,
+} from "../primitive/entity";
+
+import type { ImpureGraphFunction } from "../../context-types";
+import type { EntityId } from "@blockprotocol/type-system";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import type {
+  CreateFlowScheduleInput,
+  UpdateFlowScheduleInput,
+} from "@local/hash-isomorphic-utils/flows/schedule-types";
 import type {
   FlowSchedule,
   FlowSchedulePropertiesWithMetadata,
   SchedulePauseStatePropertyValueWithMetadata,
   ScheduleStatusPropertyValueWithMetadata,
 } from "@local/hash-isomorphic-utils/system-types/shared";
-
-import type { ImpureGraphFunction } from "../../context-types";
-import {
-  createEntity,
-  getLatestEntityById,
-  updateEntity,
-} from "../primitive/entity";
 
 const isEntityFlowScheduleEntity = (
   entity: HashEntity,

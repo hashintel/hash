@@ -9,6 +9,7 @@ use axum::{
 };
 use error_stack::{Report, ResultExt as _};
 use hash_graph_authorization::policies::principal::actor::AuthenticatedActor;
+use hash_graph_embeddings::OpenAiEmbeddingClient;
 use hash_graph_postgres_store::{
     ontology::patch_id_and_parse,
     store::error::{BaseUrlAlreadyExists, OntologyVersionDoesNotExist, VersionedUrlAlreadyExists},
@@ -21,14 +22,15 @@ use hash_graph_store::{
         GetClosedMultiEntityTypesParams, GetClosedMultiEntityTypesResponse,
         HasPermissionForEntityTypesParams, IncludeEntityTypeOption,
         IncludeResolvedEntityTypeOption, QueryEntityTypeSubgraphParams, QueryEntityTypesParams,
-        QueryEntityTypesResponse, UnarchiveEntityTypeParams, UpdateEntityTypeEmbeddingParams,
-        UpdateEntityTypesParams,
+        QueryEntityTypesResponse, SearchEntityTypesParams, SearchEntityTypesResponse,
+        UnarchiveEntityTypeParams, UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
     },
+    filter::SemanticDistance,
     pool::StorePool,
     query::ConflictBehavior,
 };
 use hash_graph_type_defs::error::{ErrorInfo, Status, StatusPayloadInfo};
-use hash_graph_types::ontology::EntityTypeEmbedding;
+use hash_graph_types::{Embedding, ontology::EntityTypeEmbedding};
 use hash_map::HashMap;
 use hash_temporal_client::TemporalClient;
 use serde::{Deserialize, Serialize};
@@ -48,8 +50,9 @@ use utoipa::{OpenApi, ToSchema};
 use super::status::BoxedResponse;
 use crate::rest::{
     ApiConfig, AuthenticatedUserHeader, OpenApiQuery, QueryLogger, RestApiStore,
+    SearchRequestError,
     json::Json,
-    resolve_limit,
+    resolve_limit, resolve_search_embedding,
     status::{report_to_response, status_to_response},
     utoipa_typedef::{ListOrValue, MaybeListOfEntityType, subgraph::Subgraph},
 };
@@ -63,6 +66,7 @@ use crate::rest::{
         load_external_entity_type,
         query_entity_types,
         query_entity_type_subgraph,
+        search_entity_types,
         get_closed_multi_entity_types,
         update_entity_type,
         update_entity_types,
@@ -84,6 +88,8 @@ use crate::rest::{
             QueryEntityTypesParams,
             CommonQueryEntityTypesParams,
             QueryEntityTypesResponse,
+            SearchEntityTypesRequest,
+            SearchEntityTypesResponse,
             GetClosedMultiEntityTypesParams,
             IncludeEntityTypeOption,
             GetClosedMultiEntityTypesResponse,
@@ -118,6 +124,7 @@ impl EntityTypeResource {
                 )
                 .route("/bulk", put(update_entity_types::<S>))
                 .route("/permissions", post(has_permission_for_entity_types::<S>))
+                .route("/search", post(search_entity_types::<S>))
                 .nest(
                     "/query",
                     Router::new()
@@ -509,6 +516,7 @@ where
     // and better error reporting.
     let mut params = QueryEntityTypesParams::deserialize(&request)
         .map_err(Report::from)
+        .attach(hash_status::StatusCode::InvalidArgument)
         .map_err(report_to_response)?;
 
     params.request.limit = Some(
@@ -531,6 +539,105 @@ where
         query_logger.send().await.map_err(report_to_response)?;
     }
     response
+}
+
+/// Request body for the entity type embedding search endpoint.
+///
+/// Exactly one of `embedding` or `semanticString` must be provided. `semanticString` is converted
+/// into an embedding by the server, which requires an embedding client to be configured.
+#[derive(Debug, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct SearchEntityTypesRequest {
+    #[serde(default)]
+    #[schema(nullable = false)]
+    pub embedding: Option<Embedding<'static>>,
+    #[serde(default)]
+    #[schema(nullable = false)]
+    pub semantic_string: Option<String>,
+    pub maximum_semantic_distance: f64,
+    pub limit: Option<usize>,
+}
+
+impl SearchEntityTypesRequest {
+    /// Converts this request into the search parameters for the entity type embedding search
+    /// endpoint, resolving the query embedding.
+    ///
+    /// # Errors
+    ///
+    /// Returns a [`SearchRequestError`] if the query embedding cannot be resolved, the maximum
+    /// semantic distance is invalid, or the requested limit exceeds
+    /// [`ApiConfig::query_ontology_limit`].
+    pub async fn into_params(
+        self,
+        config: ApiConfig,
+        embedding_client: Option<&OpenAiEmbeddingClient>,
+    ) -> Result<SearchEntityTypesParams, Report<SearchRequestError>> {
+        // Validate the local fields before resolving the embedding so an invalid request does not
+        // spend an embedding-provider call.
+        let maximum_semantic_distance = SemanticDistance::try_from(self.maximum_semantic_distance)
+            .change_context(SearchRequestError::InvalidSemanticDistance)
+            .attach(hash_status::StatusCode::InvalidArgument)?;
+        let limit = resolve_limit(self.limit, config.query_ontology_limit)
+            .change_context(SearchRequestError::LimitExceeded)
+            .attach(hash_status::StatusCode::InvalidArgument)?;
+        Ok(SearchEntityTypesParams {
+            embedding: resolve_search_embedding(
+                self.embedding,
+                self.semantic_string,
+                embedding_client,
+            )
+            .await?,
+            maximum_semantic_distance,
+            limit,
+        })
+    }
+}
+
+#[utoipa::path(
+    post,
+    path = "/entity-types/search",
+    request_body = SearchEntityTypesRequest,
+    tag = "EntityType",
+    params(
+        ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
+    ),
+    responses(
+        (
+            status = 200,
+            content_type = "application/json",
+            body = SearchEntityTypesResponse,
+            description = "Entity types ordered by ascending cosine distance to the query embedding.",
+        ),
+        (status = 400, content_type = "text/plain", description = "Provided request body is invalid"),
+        (status = 500, description = "Store error occurred"),
+    )
+)]
+async fn search_entity_types<S>(
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    store_pool: Extension<Arc<S>>,
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
+    embedding_client: Extension<Option<Arc<OpenAiEmbeddingClient>>>,
+    Extension(api_config): Extension<ApiConfig>,
+    Json(request): Json<SearchEntityTypesRequest>,
+) -> Result<Json<SearchEntityTypesResponse>, BoxedResponse>
+where
+    S: StorePool + Send + Sync,
+{
+    let params = request
+        .into_params(api_config, embedding_client.0.as_deref())
+        .await
+        .map_err(report_to_response)?;
+
+    let store = store_pool
+        .acquire(temporal_client.0)
+        .await
+        .map_err(report_to_response)?;
+
+    store
+        .search_entity_types(actor_id, params)
+        .await
+        .map(Json)
+        .map_err(report_to_response)
 }
 
 #[utoipa::path(
@@ -576,6 +683,7 @@ where
     // and better error reporting.
     let params = GetClosedMultiEntityTypesParams::deserialize(&request)
         .map_err(Report::from)
+        .attach(hash_status::StatusCode::InvalidArgument)
         .map_err(report_to_response)?;
 
     let response = store
@@ -648,6 +756,7 @@ where
 
     let mut params = QueryEntityTypeSubgraphParams::deserialize(&request)
         .map_err(Report::from)
+        .attach(hash_status::StatusCode::InvalidArgument)
         .map_err(report_to_response)?;
     params
         .validate()

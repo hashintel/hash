@@ -1,10 +1,10 @@
-import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
-
 import { getCommentAuthor } from "../../../../graph/knowledge/system-types/comment";
+import { graphQLContextToImpureGraphContext } from "../../util";
+
 import type { ResolverFn } from "../../../api-types.gen";
 import type { LoggedInGraphQLContext } from "../../../context";
-import { graphQLContextToImpureGraphContext } from "../../util";
 import type { UnresolvedCommentGQL } from "../graphql-mapping";
+import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
 
 export const commentAuthorResolver: ResolverFn<
   Promise<SerializedEntity>,

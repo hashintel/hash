@@ -3,6 +3,7 @@ import { useCallback } from "react";
 
 import { useDocumentEvent } from "../../../../components/hooks/use-document-event";
 import { componentViewTargetSelector } from "../component-view";
+
 import type { CollabPositionReporter } from "./use-collab-position-reporter";
 
 const closestElement = (node: Node | null | undefined): Element | null =>

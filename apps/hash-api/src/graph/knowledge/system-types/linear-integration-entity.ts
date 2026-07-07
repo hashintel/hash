@@ -2,13 +2,6 @@ import {
   getRightEntityForLinkEntity,
   getRoots,
 } from "@blockprotocol/graph/stdlib";
-import type {
-  ActorEntityUuid,
-  BaseUrl,
-  Entity,
-  EntityId,
-  EntityUuid,
-} from "@blockprotocol/type-system";
 import {
   extractEntityUuidFromEntityId,
   extractWebIdFromEntityId,
@@ -20,28 +13,33 @@ import {
   queryEntitySubgraph,
 } from "@local/hash-graph-sdk/entity";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
-import {
-  currentTimeInstantTemporalAxes,
-  generateVersionedUrlMatchingFilter,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import type {
-  LinearIntegration as LinearIntegrationEntity,
-  SyncLinearDataWith,
-  SyncLinearDataWithProperties,
-} from "@local/hash-isomorphic-utils/system-types/linearintegration";
+
+import { getLatestEntityById, updateEntity } from "../primitive/entity";
+import { createLinkEntity } from "../primitive/link-entity";
 
 import type {
   ImpureGraphFunction,
   PureGraphFunction,
 } from "../../context-types";
-import { getLatestEntityById, updateEntity } from "../primitive/entity";
-import { createLinkEntity } from "../primitive/link-entity";
+import type {
+  ActorEntityUuid,
+  BaseUrl,
+  Entity,
+  EntityId,
+  EntityUuid,
+} from "@blockprotocol/type-system";
+import type {
+  LinearIntegration as LinearIntegrationEntity,
+  SyncLinearDataWith,
+  SyncLinearDataWithProperties,
+} from "@local/hash-isomorphic-utils/system-types/linearintegration";
 
 export type LinearIntegration = {
   linearOrgId: string;
@@ -90,10 +88,15 @@ export const getAllLinearIntegrationsWithLinearOrgId: ImpureGraphFunction<
     {
       filter: {
         all: [
-          generateVersionedUrlMatchingFilter(
-            systemEntityTypes.linearIntegration.entityTypeId,
-            { ignoreParents: true },
-          ),
+          {
+            equal: [
+              { path: ["type", "baseUrl"] },
+              {
+                parameter:
+                  systemEntityTypes.linearIntegration.entityTypeBaseUrl,
+              },
+            ],
+          },
           {
             equal: [
               {
@@ -134,10 +137,16 @@ export const getLinearIntegrationByLinearOrgId: ImpureGraphFunction<
         {
           equal: [{ path: ["webId"] }, { parameter: userAccountId }],
         },
-        generateVersionedUrlMatchingFilter(
-          systemEntityTypes.linearIntegration.entityTypeId,
-          { ignoreParents: true },
-        ),
+        {
+          equal: [
+            {
+              path: ["type", "baseUrl"],
+            },
+            {
+              parameter: systemEntityTypes.linearIntegration.entityTypeBaseUrl,
+            },
+          ],
+        },
         {
           equal: [
             {
@@ -202,10 +211,15 @@ export const getSyncedWebsForLinearIntegration: ImpureGraphFunction<
         {
           equal: [{ path: ["archived"] }, { parameter: false }],
         },
-        generateVersionedUrlMatchingFilter(
-          systemLinkEntityTypes.syncLinearDataWith.linkEntityTypeId,
-          { ignoreParents: true },
-        ),
+        {
+          equal: [
+            { path: ["type", "baseUrl"] },
+            {
+              parameter:
+                systemLinkEntityTypes.syncLinearDataWith.linkEntityTypeBaseUrl,
+            },
+          ],
+        },
         {
           equal: [
             { path: ["leftEntity", "uuid"] },
@@ -271,10 +285,16 @@ export const linkIntegrationToWeb: ImpureGraphFunction<
           {
             equal: [{ path: ["archived"] }, { parameter: false }],
           },
-          generateVersionedUrlMatchingFilter(
-            systemLinkEntityTypes.syncLinearDataWith.linkEntityTypeId,
-            { ignoreParents: true },
-          ),
+          {
+            equal: [
+              { path: ["type", "baseUrl"] },
+              {
+                parameter:
+                  systemLinkEntityTypes.syncLinearDataWith
+                    .linkEntityTypeBaseUrl,
+              },
+            ],
+          },
           {
             equal: [
               { path: ["leftEntity", "uuid"] },

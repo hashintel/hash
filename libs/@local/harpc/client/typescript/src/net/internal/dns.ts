@@ -2,6 +2,7 @@ import dns from "node:dns/promises";
 import { isIPv4, isIPv6 } from "node:net";
 
 import { Array, Cause, Data, Duration, Effect, Function } from "effect";
+
 import type { NonEmptyReadonlyArray } from "effect/Array";
 
 /** @internal */
@@ -144,9 +145,7 @@ export const resolve = Effect.fn("resolve")(function* (
 
     return yield* Effect.failCause(
       // reduce without default is save here, because we guarantee non empty satisfying array
-      excluded
-        .map(Cause.fail)
-        .reduce(Cause.parallel),
+      excluded.map(Cause.fail).reduce(Cause.parallel),
     );
   }
 

@@ -63,5 +63,5 @@ fn main() {
     {
         panic!("Failed to run codegen");
     }
-    eprintln!("Generated files in: {}", &out_dir);
+    eprintln!("Generated files in: {out_dir}");
 }

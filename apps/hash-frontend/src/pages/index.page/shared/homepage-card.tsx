@@ -1,7 +1,8 @@
 import { Box, Grid } from "@mui/material";
-import type { PropsWithChildren } from "react";
 
 import { useSidebarContext } from "../../../shared/layout/layout-with-sidebar/sidebar-context";
+
+import type { PropsWithChildren } from "react";
 
 export const HomepageCard = ({
   children,

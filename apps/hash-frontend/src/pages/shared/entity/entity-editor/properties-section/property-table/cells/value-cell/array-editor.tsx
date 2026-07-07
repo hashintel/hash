@@ -1,9 +1,3 @@
-import type {
-  PropertyArrayMetadata,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
-import { isArrayMetadata, isValueMetadata } from "@blockprotocol/type-system";
-import type { DragEndEvent } from "@dnd-kit/core";
 import {
   closestCenter,
   DndContext,
@@ -18,21 +12,30 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { getMergedDataTypeSchema } from "@local/hash-isomorphic-utils/data-types";
 import { Box, styled } from "@mui/material";
 import { produce } from "immer";
 import { isNumber } from "lodash";
 import { useMemo, useRef, useState } from "react";
+
+import { isArrayMetadata, isValueMetadata } from "@blockprotocol/type-system";
+import { getMergedDataTypeSchema } from "@local/hash-isomorphic-utils/data-types";
 
 import { GridEditorWrapper } from "../../../../shared/grid-editor-wrapper";
 import { AddAnotherButton } from "./array-editor/add-another-button";
 import { DraftRow } from "./array-editor/draft-row";
 import { ItemLimitInfo } from "./array-editor/item-limit-info";
 import { SortableRow } from "./array-editor/sortable-row";
-import type { SortableItem } from "./array-editor/types";
 import { getEditorSpecs } from "./editor-specs";
-import type { ValueCellEditorComponent } from "./types";
 import { isBlankStringOrNullish } from "./utils";
+
+import type { PropertyRow } from "../../types";
+import type { SortableItem } from "./array-editor/types";
+import type { ValueCellEditorComponent } from "./types";
+import type {
+  PropertyArrayMetadata,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
+import type { DragEndEvent } from "@dnd-kit/core";
 
 export const DRAFT_ROW_KEY = "draft";
 
@@ -172,7 +175,8 @@ export const ArrayEditor: ValueCellEditorComponent = ({
         value,
       ];
 
-      draftCell.data.propertyRow.valueMetadata = propertyMetadata;
+      (draftCell.data.propertyRow as PropertyRow).valueMetadata =
+        propertyMetadata;
     });
     onChange(newCell);
 
@@ -196,7 +200,8 @@ export const ArrayEditor: ValueCellEditorComponent = ({
         .filter((_, index) => indexToRemove !== index)
         .map(({ value }) => value);
 
-      draftCell.data.propertyRow.valueMetadata = propertyMetadata;
+      (draftCell.data.propertyRow as PropertyRow).valueMetadata =
+        propertyMetadata;
     });
 
     onChange(newCell);
@@ -235,7 +240,7 @@ export const ArrayEditor: ValueCellEditorComponent = ({
 
       const newMetadata = arrayMove(valueMetadata.value, oldIndex, newIndex);
 
-      draftCell.data.propertyRow.valueMetadata = {
+      (draftCell.data.propertyRow as PropertyRow).valueMetadata = {
         ...valueMetadata,
         value: newMetadata,
       };

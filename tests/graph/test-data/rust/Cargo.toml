@@ -13,7 +13,8 @@ workspace = true
 # Public workspace dependencies
 error-stack      = { workspace = true, public = true, features = ["unstable"] }
 hash-graph-store = { workspace = true, public = true }
-rand             = { workspace = true, features = ["std_rng", "std"], public = true }
+rand             = { workspace = true, public = true, features = ["std_rng", "std"] }
+rand_core        = { workspace = true, public = true }
 rand_distr       = { workspace = true, public = true }
 time             = { workspace = true, public = true }
 type-system      = { workspace = true, public = true }

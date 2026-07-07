@@ -1,10 +1,3 @@
-import type {
-  ActorId,
-  EntityId,
-  MachineId,
-  OntologyTypeVersion,
-  WebId,
-} from "@blockprotocol/type-system";
 import {
   extractBaseUrl,
   extractWebIdFromEntityId,
@@ -28,18 +21,8 @@ import {
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { validateOrgName } from "@local/hash-isomorphic-utils/organization";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import type {
-  Organization,
-  OrganizationNamePropertyValueWithMetadata,
-  OrganizationPropertiesWithMetadata,
-} from "@local/hash-isomorphic-utils/system-types/shared";
-import type { PolicyId } from "@rust/hash-graph-authorization/types";
 
 import { logger } from "../../../logger";
-import type {
-  ImpureGraphFunction,
-  PureGraphFunction,
-} from "../../context-types";
 import { systemAccountId } from "../../system-account";
 import {
   createEntity,
@@ -51,6 +34,24 @@ import {
   shortnameIsRestricted,
   shortnameIsTaken,
 } from "./account.fields";
+
+import type {
+  ImpureGraphFunction,
+  PureGraphFunction,
+} from "../../context-types";
+import type {
+  ActorId,
+  EntityId,
+  MachineId,
+  OntologyTypeVersion,
+  WebId,
+} from "@blockprotocol/type-system";
+import type {
+  Organization,
+  OrganizationNamePropertyValueWithMetadata,
+  OrganizationPropertiesWithMetadata,
+} from "@local/hash-isomorphic-utils/system-types/shared";
+import type { PolicyId } from "@rust/hash-graph-authorization/types";
 
 export type Org = {
   webId: WebId;
@@ -190,7 +191,7 @@ export const createOrg: ImpureGraphFunction<
   const properties: OrganizationPropertiesWithMetadata = {
     value: {
       "https://hash.ai/@h/types/property-type/shortname/": {
-        value: shortname,
+        value: shortname.trim().toLowerCase(),
         metadata: {
           dataTypeId:
             "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
@@ -307,7 +308,7 @@ export const getOrgByShortname: ImpureGraphFunction<
       all: [
         {
           equal: [
-            { path: ["type(inheritanceDepth = 0)", "baseUrl"] },
+            { path: ["type", "baseUrl"] },
             { parameter: systemEntityTypes.organization.entityTypeBaseUrl },
           ],
         },
@@ -319,7 +320,7 @@ export const getOrgByShortname: ImpureGraphFunction<
                 systemPropertyTypes.shortname.propertyTypeBaseUrl,
               ],
             },
-            { parameter: params.shortname },
+            { parameter: params.shortname.trim().toLowerCase() },
           ],
         },
       ],

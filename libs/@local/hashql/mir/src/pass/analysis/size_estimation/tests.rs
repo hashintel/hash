@@ -619,6 +619,157 @@ fn mutual_recursion_converges() {
     );
 }
 
+/// List aggregates use per-element units (join) with element count as cardinality.
+#[test]
+fn list_aggregate_per_element_units() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let mut body = body!(interner, env; fn@0/0 -> [List Int] {
+        decl a: Int, b: Int, c: Int, result: [List ?];
+
+        bb0() {
+            a = load 1;
+            b = load 2;
+            c = load 3;
+            result = list a, b, c;
+            return result;
+        }
+    });
+
+    assert_size_estimation(
+        "list_aggregate_per_element_units",
+        slice::from_mut(&mut body),
+        &heap,
+        &interner,
+        &env,
+    );
+}
+
+/// Dict aggregates compute per-pair units (key + value) with pair count as cardinality.
+/// Each pair contributes its combined key+value materialized size.
+#[test]
+fn dict_aggregate_per_pair_units() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+    let types = TypeBuilder::synthetic(&env);
+
+    let int_ty = types.integer();
+    let dict_ty = types.dict(types.unknown(), types.unknown());
+
+    let mut builder = BodyBuilder::new(&interner);
+
+    let k1 = builder.local("k1", int_ty);
+    let v1 = builder.local("v1", int_ty);
+    let k2 = builder.local("k2", int_ty);
+    let v2 = builder.local("v2", int_ty);
+    let result = builder.local("result", dict_ty);
+
+    let const_1 = builder.const_int(1);
+    let const_2 = builder.const_int(2);
+    let const_3 = builder.const_int(3);
+    let const_4 = builder.const_int(4);
+
+    let bb0 = builder.reserve_block([]);
+    builder
+        .build_block(bb0)
+        .assign_place(k1, |rv| rv.load(const_1))
+        .assign_place(v1, |rv| rv.load(const_2))
+        .assign_place(k2, |rv| rv.load(const_3))
+        .assign_place(v2, |rv| rv.load(const_4))
+        .assign_place(result, |rv| rv.dict([(k1, v1), (k2, v2)]))
+        .ret(result);
+
+    let mut body = builder.finish(0, dict_ty);
+    body.id = DefId::new(0);
+
+    assert_size_estimation(
+        "dict_aggregate_per_pair_units",
+        slice::from_mut(&mut body),
+        &heap,
+        &interner,
+        &env,
+    );
+}
+
+/// Tuple with many fields has cardinality 1: a tuple is a single composite value,
+/// not a collection.
+#[test]
+fn tuple_many_fields_cardinality_one() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let mut body = body!(interner, env; fn@0/0 -> (Int, Int, Int, Int, Int) {
+        decl a: Int, b: Int, c: Int, d: Int, e: Int, result: (Int, Int, Int, Int, ?);
+
+        bb0() {
+            a = load 1;
+            b = load 2;
+            c = load 3;
+            d = load 4;
+            e = load 5;
+            result = tuple a, b, c, d, e;
+            return result;
+        }
+    });
+
+    assert_size_estimation(
+        "tuple_many_fields_cardinality_one",
+        slice::from_mut(&mut body),
+        &heap,
+        &interner,
+        &env,
+    );
+}
+
+/// Struct containing a list parameter materializes the list's total information.
+/// A function takes a list parameter and wraps it with a scalar in a struct.
+/// The struct's units should account for the list field's full footprint, not
+/// just its per-element units.
+#[test]
+fn struct_materializes_list_parameter() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let callee_id = DefId::new(0);
+    let caller_id = DefId::new(1);
+
+    // Callee wraps its list parameter in a struct with a scalar
+    let callee = body!(interner, env; fn@callee_id/1 -> (data: ?, tag: Int) {
+        decl xs: [List Int], tag: Int, result: (data: ?, tag: ?);
+
+        bb0() {
+            tag = load 42;
+            result = struct data: xs, tag: tag;
+            return result;
+        }
+    });
+
+    // Caller passes an external list input to the callee
+    let caller = body!(interner, env; fn@caller_id/0 -> (data: ?, tag: Int) {
+        decl input: [List Int], result: ?;
+
+        bb0() {
+            input = input.load! "items";
+            result = apply callee_id, input;
+            return result;
+        }
+    });
+
+    let mut bodies = [callee, caller];
+    assert_size_estimation(
+        "struct_materializes_list_parameter",
+        &mut bodies,
+        &heap,
+        &interner,
+        &env,
+    );
+}
+
 /// Self-recursion converges to a stable footprint.
 /// Has a base case that returns the parameter, ensuring data flows.
 #[test]

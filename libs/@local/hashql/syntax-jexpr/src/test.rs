@@ -3,18 +3,20 @@ use hashql_diagnostics::{
     Diagnostic,
     category::DiagnosticCategory,
     diagnostic::render::{ColorDepth, Format, RenderOptions},
+    severity::SeverityKind,
     source::{Source, Sources},
 };
 
 use crate::span::Span;
 
-pub(crate) fn render_diagnostic<C>(
+pub(crate) fn render_diagnostic<C, K>(
     source: &str,
-    diagnostic: &Diagnostic<C, SpanId>,
+    diagnostic: &Diagnostic<C, SpanId, K>,
     mut spans: &SpanTable<Span>,
 ) -> String
 where
     C: DiagnosticCategory,
+    K: SeverityKind,
 {
     let mut sources = Sources::new();
     sources.push(Source::new(source));

@@ -2,13 +2,14 @@
 
 import { describe, it } from "@effect/vitest";
 import { Chunk, Effect, pipe, Schema, Stream } from "effect";
+
+import { Decoder, JsonDecoder } from "../../src/codec/index.js";
+import { expectArrayBuffer } from "../wire-protocol/utils.js";
+
+import type { DecodingError } from "../../src/codec/Decoder.js";
 import type { ParseError } from "effect/ParseResult";
 import type { ReadonlyRecord } from "effect/Record";
 import type * as vitest from "vitest";
-
-import type { DecodingError } from "../../src/codec/Decoder.js";
-import { Decoder, JsonDecoder } from "../../src/codec/index.js";
-import { expectArrayBuffer } from "../wire-protocol/utils.js";
 
 const decode = Effect.fn("decode")(function* (
   cx: vitest.TestContext,

@@ -6,11 +6,11 @@ J-Expr (JSON Expression Language) is a JSON-based syntax for writing HashQL quer
 
 J-Expr maps JSON types to expression semantics:
 
-| JSON Type | J-Expr Meaning |
-| --------- | -------------- |
-| String | Path/identifier |
-| Array | Function call |
-| Object | Data constructor (with `#` keys) |
+| JSON Type | J-Expr Meaning                   |
+| --------- | -------------------------------- |
+| String    | Path/identifier                  |
+| Array     | Function call                    |
+| Object    | Data constructor (with `#` keys) |
 
 ## Paths (Strings)
 
@@ -57,14 +57,14 @@ Use `:` prefix for named arguments:
 
 Objects with special `#` keys construct typed data:
 
-| Key | Purpose | Example |
-| --- | ------- | ------- |
-| `#literal` | Primitive values | `{"#literal": 42}` |
-| `#struct` | Named fields | `{"#struct": {"x": ...}}` |
-| `#list` | Variable-size ordered | `{"#list": [...]}` |
-| `#tuple` | Fixed-size ordered | `{"#tuple": [...]}` |
-| `#dict` | Key-value map | `{"#dict": {"k": ...}}` |
-| `#type` | Type annotation | Used with other keys |
+| Key        | Purpose               | Example                   |
+| ---------- | --------------------- | ------------------------- |
+| `#literal` | Primitive values      | `{"#literal": 42}`        |
+| `#struct`  | Named fields          | `{"#struct": {"x": ...}}` |
+| `#list`    | Variable-size ordered | `{"#list": [...]}`        |
+| `#tuple`   | Fixed-size ordered    | `{"#tuple": [...]}`       |
+| `#dict`    | Key-value map         | `{"#dict": {"k": ...}}`   |
+| `#type`    | Type annotation       | Used with other keys      |
 
 ### Examples
 
@@ -88,18 +88,18 @@ Objects with special `#` keys construct typed data:
 
 Special forms are syntactic constructs with special evaluation semantics:
 
-| Form | Arity | Purpose |
-| ---- | ----- | ------- |
-| `if` | 2, 3 | Conditional branching |
-| `let` | 3, 4 | Variable binding |
-| `fn` | 4 | Function definition |
-| `as` | 2 | Type assertion |
-| `type` | 3 | Type alias definition |
-| `newtype` | 3 | Nominal type wrapper |
-| `use` | 3 | Module imports |
-| `input` | 2, 3 | Host input declaration |
-| `access` / `.` | 2 | Field access |
-| `index` / `[]` | 2 | Index access |
+| Form           | Arity | Purpose                |
+| -------------- | ----- | ---------------------- |
+| `if`           | 2, 3  | Conditional branching  |
+| `let`          | 3, 4  | Variable binding       |
+| `fn`           | 4     | Function definition    |
+| `as`           | 2     | Type assertion         |
+| `type`         | 3     | Type alias definition  |
+| `newtype`      | 3     | Nominal type wrapper   |
+| `use`          | 3     | Module imports         |
+| `input`        | 2, 3  | Host input declaration |
+| `access` / `.` | 2     | Field access           |
+| `index` / `[]` | 2     | Index access           |
 
 ### Common Patterns
 

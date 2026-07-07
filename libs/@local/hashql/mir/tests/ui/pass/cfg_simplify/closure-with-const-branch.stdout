@@ -6,7 +6,7 @@ fn {closure#6}(%0: (), %1: Integer) -> Boolean {
     let %4: Boolean
 
     bb0(): {
-        switchInt(1) -> [0: bb2(), 1: bb1()]
+        switchInt(true) -> [0: bb2(), 1: bb1()]
     }
 
     bb1(): {

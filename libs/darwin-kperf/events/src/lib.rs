@@ -20,7 +20,8 @@
     clippy::too_many_lines,
     clippy::unnecessary_wraps,
     clippy::decimal_literal_representation,
-    clippy::unseparated_literal_suffix
+    clippy::unseparated_literal_suffix,
+    clippy::doc_markdown
 )]
 mod m1;
 mod m2;
@@ -58,7 +59,7 @@ impl Cpu {
             b"a15" => Some(Self::M2),
             b"a16" | b"as1" | b"as2" | b"as3" => Some(Self::M3),
             b"as4" | b"as4-1" | b"as4-2" => Some(Self::M4),
-            b"as5" | b"as5-2" => Some(Self::M5),
+            b"as5" | b"as5-1" | b"as5-2" => Some(Self::M5),
             _ => None,
         }
     }
@@ -282,7 +283,6 @@ impl EventInfo for ResolvedEvent {
         self.0.aliases()
     }
 }
-
 /// A hardware performance counter event from Apple's kpep database.
 ///
 /// Covers Apple Silicon generations M1 through M5.
@@ -315,6 +315,35 @@ pub enum Event {
     ///
     /// M4, M5 only.
     ArmL1DCacheRefill,
+    /// Counts each Instruction memory access to at least the Level 1 instruction or
+    /// unified cache.
+    ///
+    /// M5 only.
+    ArmL1ICache,
+    /// Data memory access.
+    ///
+    /// M5 only.
+    ArmMemAccess,
+    /// Checked data memory access.
+    ///
+    /// M5 only.
+    ArmMemAccessChecked,
+    /// Checked data memory access, read.
+    ///
+    /// M5 only.
+    ArmMemAccessCheckedRd,
+    /// Checked data memory access, write.
+    ///
+    /// M5 only.
+    ArmMemAccessCheckedWr,
+    /// Data memory access, read.
+    ///
+    /// M5 only.
+    ArmMemAccessRd,
+    /// Data memory access, write.
+    ///
+    /// M5 only.
+    ArmMemAccessWr,
     /// No operation sent for execution.
     ///
     /// M4, M5 only.
@@ -351,6 +380,11 @@ pub enum Event {
     ///
     /// All generations.
     AtomicOrExclusiveSucc,
+    /// Retired indirect branch instructions, excluding call and return
+    /// instructions, that mispredicted.
+    ///
+    /// M5 only.
+    BranchBrIndirMispredNonspec,
     /// Retired indirect call instructions mispredicted.
     ///
     /// All generations.
@@ -376,6 +410,16 @@ pub enum Event {
     ///
     /// All generations.
     CoreActiveCycle,
+    /// Cycles while the core was waiting to push instructions to the SME engine or
+    /// the core was waiting for data from the SME engine, and no uop was issued by
+    /// the scheduler, prioritized.
+    ///
+    /// M5 only.
+    CoreWaitingSmeEngineCycle,
+    /// Decoded uops.
+    ///
+    /// M3, M4, M5 only.
+    DecodeUop,
     /// Fetch Unit internal restarts for any reason. Does not include branch
     /// mispredicts.
     ///
@@ -410,6 +454,10 @@ pub enum Event {
     ///
     /// All generations.
     InstBranchCall,
+    /// Retired indirect subroutine call instructions; subset of INST_BRANCH_CALL.
+    ///
+    /// M5 only.
+    InstBranchCallIndir,
     /// Retired conditional branch instructions (on M3 and prior, incorrectly only
     /// counts only B.cond instructions, where on M4 and following, adds
     /// CBZ/CBNZ/TBZ/TBNZ instructions to form the complete set of conditional
@@ -447,6 +495,10 @@ pub enum Event {
     ///
     /// All generations.
     InstLdst,
+    /// Retired instructions that require internal microcode.
+    ///
+    /// M5 only.
+    InstMicrocoded,
     /// Retired non-load/store Advanced SIMD and FP Unit instructions.
     ///
     /// All generations.
@@ -563,6 +615,50 @@ pub enum Event {
     ///
     /// M4, M5 only.
     LdSmeNtUop,
+    /// Retired load instructions where the data is supplied by another core in the
+    /// same cluster. See Apple Silicon CPU Optimization Guide.
+    ///
+    /// M5 only.
+    LdSrcCoreSameclusterNonspec,
+    /// Retired load instructions where the data is supplied by the core's Shared L2
+    /// Cache. See Apple Silicon CPU Optimization Guide.
+    ///
+    /// M5 only.
+    LdSrcLlCacheNonspec,
+    /// Retired load instructions where the data is supplied by either the Memory
+    /// Cache or the DRAM. See Apple Silicon CPU Optimization Guide.
+    ///
+    /// M5 only.
+    LdSrcMemsysNonspec,
+    /// Retired load instructions where the data is supplied by either the Memory
+    /// Cache or the DRAM on another die. Subset of LD_SRC_MEMSYS_NONSPEC. See Apple
+    /// Silicon CPU Optimization Guide.
+    ///
+    /// M5 only.
+    LdSrcMemsysOtherdieNonspec,
+    /// Retired load instructions where the data is supplied by an agent in another
+    /// cluster. See Apple Silicon CPU Optimization Guide.
+    ///
+    /// M5 only.
+    LdSrcOtherclusterNonspec,
+    /// Retired load instructions where the data is supplied by an agent in another
+    /// cluster on another die. Subset of LD_SRC_OTHERCLUSTER_NONSPEC. See Apple
+    /// Silicon CPU Optimization Guide.
+    ///
+    /// M5 only.
+    LdSrcOtherclusterOtherdieNonspec,
+    /// Retired load instructions where the data is supplied by the core's PL2. The
+    /// PL2 is only available on some cores. See Apple Silicon CPU Optimization
+    /// Guide.
+    ///
+    /// M5 only.
+    LdSrcPl2CacheNonspec,
+    /// Retired load instructions where the data is at least partially supplied by
+    /// older stores that have yet to write into the L1 Cache. See Apple Silicon CPU
+    /// Optimization Guide.
+    ///
+    /// M5 only.
+    LdSrcStoreNonspec,
     /// Uops that flowed through the Load Unit.
     ///
     /// All generations.
@@ -573,6 +669,16 @@ pub enum Event {
     ///
     /// M4, M5 only.
     LdUnitWaitingYoungL1DCacheMiss,
+    /// Read or write allocation tag checked data memory accesses that required tags
+    /// from 2 different 64B cache lines of tags.
+    ///
+    /// M5 only.
+    LdstMemAccessCheckedX2K,
+    /// Cycles while an old load or store uop is waiting for its MTE tag check, and
+    /// no uop was issued by the scheduler, prioritized.
+    ///
+    /// M5 only.
+    LdstOldestMteTagCheckCycle,
     /// SME engine load and store uops where all lanes are inactive due to the
     /// governing predicate; for a page-crossing load or store, the event may
     /// incorrectly count when all of the elements of the low page are predicated
@@ -643,6 +749,11 @@ pub enum Event {
     ///
     /// M4, M5 only.
     MapDispatchBubbleSlot,
+    /// Slots where the Map Unit had no uops to process after a taken branch and was
+    /// not stalled.
+    ///
+    /// M5 only.
+    MapDispatchBubbleTakenbrSlot,
     /// Mapped core Integer Unit uops for SME engine instructions.
     ///
     /// M4, M5 only.
@@ -695,6 +806,42 @@ pub enum Event {
     ///
     /// All generations.
     MmuTableWalkInstruction,
+    /// Any request that accessed the PL2 Cache.
+    ///
+    /// M5 only.
+    Pl2CacheAccess,
+    /// Instruction fetch requests that accessed the PL2 Cache.
+    ///
+    /// M5 only.
+    Pl2CacheAccessInstruction,
+    /// Translation table walk requests that accessed the PL2 Cache.
+    ///
+    /// M5 only.
+    Pl2CacheAccessMmu,
+    /// Store requests that accessed the PL2 Cache.
+    ///
+    /// M5 only.
+    Pl2CacheAccessSt,
+    /// Any request that missed the PL2 Cache.
+    ///
+    /// M5 only.
+    Pl2CacheMiss,
+    /// Instruction fetch requests that missed the PL2 Cache.
+    ///
+    /// M5 only.
+    Pl2CacheMissInstruction,
+    /// Load requests that missed the PL2 Cache.
+    ///
+    /// M5 only.
+    Pl2CacheMissLd,
+    /// Translation table walk requests that missed the PL2 Cache.
+    ///
+    /// M5 only.
+    Pl2CacheMissMmu,
+    /// Store requests that missed the PL2 Cache.
+    ///
+    /// M5 only.
+    Pl2CacheMissSt,
     /// All retired uops.
     ///
     /// All generations.

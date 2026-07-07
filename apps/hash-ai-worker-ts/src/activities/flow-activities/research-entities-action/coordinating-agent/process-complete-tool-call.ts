@@ -1,8 +1,8 @@
 import dedent from "dedent";
 
 import { logger } from "../../../shared/activity-logger.js";
+
 import type { ParsedLlmToolCall } from "../../../shared/get-llm-response/types.js";
-import { stringify } from "../../../shared/stringify.js";
 import type { ParsedCoordinatorToolCallMap } from "../shared/coordinator-tools.js";
 import type {
   CoordinatingAgentInput,
@@ -117,7 +117,7 @@ export const processCompleteToolCall = ({
   }
 
   if (warnings.length > 0) {
-    logger.debug(`Conducting check step with warnings: ${stringify(warnings)}`);
+    logger.debug("Conducting check step with warnings", { warnings });
     return {
       ...toolCall,
       output: dedent(`

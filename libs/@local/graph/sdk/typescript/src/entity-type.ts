@@ -1,3 +1,15 @@
+import {
+  deserializeGraphVertices,
+  mapGraphApiSubgraphToSubgraph,
+  serializeGraphVertices,
+} from "./subgraph.js";
+
+import type { AuthenticationContext } from "./authentication-context.js";
+import type { HashEntity, SerializedSubgraph } from "./entity.js";
+import type {
+  ClosedMultiEntityTypesDefinitions,
+  EntityTypeResolveDefinitions,
+} from "./ontology.js";
 import type { EntityTypeRootType, Subgraph } from "@blockprotocol/graph";
 import type {
   ActorEntityUuid,
@@ -16,6 +28,7 @@ import type { Subtype } from "@local/advanced-types/subtype";
 import type {
   ClosedEntityType as ClosedEntityTypeGraphApi,
   ClosedMultiEntityTypeMap as ClosedMultiEntityTypeMapGraphApi,
+  Embedding,
   EntityTypeResolveDefinitions as EntityTypeResolveDefinitionsGraphApi,
   EntityTypeWithMetadata as EntityTypeWithMetadataGraphApi,
   GetClosedMultiEntityTypesParams as GetClosedMultiEntityTypesParamsGraphApi,
@@ -26,20 +39,10 @@ import type {
   QueryEntityTypesResponse as QueryEntityTypesResponseGraphApi,
   QueryEntityTypeSubgraphParams as QueryEntityTypeSubgraphParamsGraphApi,
   QueryEntityTypeSubgraphResponse as QueryEntityTypeSubgraphResponseGraphApi,
+  SearchEntityTypesRequest as SearchEntityTypesRequestGraphApi,
+  SearchEntityTypesResponse as SearchEntityTypesResponseGraphApi,
 } from "@local/hash-graph-client";
 import type { ActionName } from "@rust/hash-graph-authorization/types";
-
-import type { AuthenticationContext } from "./authentication-context.js";
-import type { HashEntity, SerializedSubgraph } from "./entity.js";
-import type {
-  ClosedMultiEntityTypesDefinitions,
-  EntityTypeResolveDefinitions,
-} from "./ontology.js";
-import {
-  deserializeGraphVertices,
-  mapGraphApiSubgraphToSubgraph,
-  serializeGraphVertices,
-} from "./subgraph.js";
 
 export const hasPermissionForEntityTypes = (
   graphAPI: GraphApi,
@@ -117,6 +120,33 @@ export const queryEntityTypes = (
       editionCreatedByIds: response.editionCreatedByIds as
         | Record<ActorEntityUuid, number>
         | undefined,
+    }));
+
+export type SearchEntityTypesRequest = DistributiveOmit<
+  SearchEntityTypesRequestGraphApi,
+  "embedding"
+> &
+  ExclusiveUnion<{ embedding: Embedding } | { semanticString: string }>;
+
+export type SearchEntityTypesResponse = Omit<
+  SearchEntityTypesResponseGraphApi,
+  "entityTypes"
+> & {
+  entityTypes: EntityTypeWithMetadata[];
+};
+
+export const searchEntityTypes = async (
+  context: {
+    graphApi: GraphApi;
+  },
+  authentication: AuthenticationContext,
+  params: SearchEntityTypesRequest,
+): Promise<SearchEntityTypesResponse> =>
+  context.graphApi
+    .searchEntityTypes(authentication.actorId, params)
+    .then(({ data: response }) => ({
+      ...response,
+      entityTypes: mapGraphApiEntityTypesToEntityTypes(response.entityTypes),
     }));
 
 export type QueryEntityTypeSubgraphParams = ExclusiveUnion<

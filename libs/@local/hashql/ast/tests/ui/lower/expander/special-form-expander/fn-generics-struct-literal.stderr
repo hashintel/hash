@@ -1,0 +1,7 @@
+error[expander::invalid-expression-in-type-position]: Invalid expression in type position
+  ╭▸ 
+7 │       "T": { "#literal": 2 }
+  │            ━━━━━━━━━━━━━━━━━ cannot use a literal value as a type
+  │
+  ├ help: replace this with a type path, tuple type, struct type, `_`, `(| ...)`, or `(& ...)`
+  ╰ note: valid type forms are: type paths like `String`, tuple types like `(Int, String)`, struct types like `(name: String)`, `_` for inference, unions `(| ...)`, and intersections `(& ...)`

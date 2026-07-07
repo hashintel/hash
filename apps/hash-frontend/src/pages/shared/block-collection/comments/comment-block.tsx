@@ -1,6 +1,4 @@
-import type { EntityId } from "@blockprotocol/type-system";
 import { faCheckCircle } from "@fortawesome/free-regular-svg-icons";
-import type { IconDefinition } from "@fortawesome/free-solid-svg-icons";
 import {
   faChevronDown,
   faChevronUp,
@@ -9,6 +7,13 @@ import {
   faPencil,
   faTrash,
 } from "@fortawesome/free-solid-svg-icons";
+import { Box, Collapse, Tooltip, Typography } from "@mui/material";
+import { formatDistanceToNowStrict } from "date-fns";
+import { isEqual } from "lodash";
+import { bindTrigger } from "material-ui-popup-state";
+import { usePopupState } from "material-ui-popup-state/hooks";
+import { useCallback, useEffect, useMemo, useState } from "react";
+
 import {
   Avatar,
   FontAwesomeIcon,
@@ -16,18 +21,8 @@ import {
   LoadingSpinner,
 } from "@hashintel/design-system";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
-import type { TextToken } from "@local/hash-isomorphic-utils/types";
-import { Box, Collapse, Tooltip, Typography } from "@mui/material";
-import { formatDistanceToNowStrict } from "date-fns";
-import { isEqual } from "lodash";
-import { bindTrigger } from "material-ui-popup-state";
-import { usePopupState } from "material-ui-popup-state/hooks";
-import type { FunctionComponent, ReactNode } from "react";
-import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useDeleteComment } from "../../../../components/hooks/use-delete-comment";
-import type { PageComment } from "../../../../components/hooks/use-page-comments";
 import { useResolveComment } from "../../../../components/hooks/use-resolve-comment";
 import { useUpdateCommentText } from "../../../../components/hooks/use-update-comment-text";
 import { PencilSlashIcon } from "../../../../shared/icons/pencil-slash-icon";
@@ -39,6 +34,13 @@ import { CommentBlockMenu } from "./comment-block-menu";
 import { CommentBlockMenuItem } from "./comment-block-menu-item";
 import { CommentTextField } from "./comment-text-field";
 import styles from "./style.module.css";
+
+import type { PageComment } from "../../../../components/hooks/use-page-comments";
+import type { EntityId } from "@blockprotocol/type-system";
+import type { IconDefinition } from "@fortawesome/free-solid-svg-icons";
+import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
+import type { TextToken } from "@local/hash-isomorphic-utils/types";
+import type { FunctionComponent, ReactNode } from "react";
 
 type ToggleTextExpandedButtonProps = {
   label: ReactNode;

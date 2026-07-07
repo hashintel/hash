@@ -1,7 +1,0 @@
-error[special-form-expander::special-form-argument-length]: Incorrect number of arguments for special form
-  ╭▸ 
-3 │ ["::kernel::special_form::use", "::math", { "#tuple": ["pi"] }]
-  │ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Add missing arguments
-  │
-  ├ help: The use/3 form should look like: (use module imports body)
-  ╰ note: The use function has 1 variant: use/3

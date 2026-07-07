@@ -1,7 +1,7 @@
+import { Box } from "@mui/material";
+
 import { GearIcon } from "@hashintel/block-design-system";
 import { Select } from "@hashintel/design-system";
-import { Box } from "@mui/material";
-import type { FunctionComponent } from "react";
 
 import { MenuItem } from "../../../../../shared/ui/menu-item";
 import { GrayToBlueIconButton } from "../../../gray-to-blue-icon-button";
@@ -13,6 +13,8 @@ import {
 import { useGraphContext } from "./graph-context";
 import { IntegerInput } from "./integer-input";
 import { selectSx } from "./styles";
+
+import type { FunctionComponent } from "react";
 
 const directionOptions = ["All", "In", "Out"] as const;
 

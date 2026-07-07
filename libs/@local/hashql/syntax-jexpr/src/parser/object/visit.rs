@@ -1,7 +1,7 @@
 use alloc::borrow::Cow;
 
 use hashql_core::span::SpanId;
-use hashql_diagnostics::Diagnostic;
+use hashql_diagnostics::{Diagnostic, severity::Critical};
 use text_size::TextRange;
 
 use crate::{
@@ -34,8 +34,8 @@ pub(crate) fn visit_object_entry<'arena, 'source, 'spans, C>(
     on_item: &mut impl FnMut(
         &mut ParserState<'arena, 'source, 'spans>,
         Key<'source>,
-    ) -> Result<(), Diagnostic<C, SpanId>>,
-) -> Result<(), Diagnostic<C, SpanId>>
+    ) -> Result<(), Diagnostic<C, SpanId, Critical>>,
+) -> Result<(), Diagnostic<C, SpanId, Critical>>
 where
     C: From<ObjectDiagnosticCategory>,
 {
@@ -88,8 +88,8 @@ pub(crate) fn visit_object<'arena, 'source, 'spans, C>(
     mut on_item: impl FnMut(
         &mut ParserState<'arena, 'source, 'spans>,
         Key<'source>,
-    ) -> Result<(), Diagnostic<C, SpanId>>,
-) -> Result<TextRange, Diagnostic<C, SpanId>>
+    ) -> Result<(), Diagnostic<C, SpanId, Critical>>,
+) -> Result<TextRange, Diagnostic<C, SpanId, Critical>>
 where
     C: From<ObjectDiagnosticCategory>,
 {

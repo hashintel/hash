@@ -9,9 +9,7 @@
  *
  * @see https://prismjs.com
  */
-// disabled simple-import-sort, because `Prism` needs to imported first here, otherwise it throws an error
-// eslint-disable-next-line simple-import-sort/imports
-import Prism from "prismjs";
+import Prism from "prismjs"; // oxfmt-ignore
 
 import "prismjs/components/prism-javascript";
 import "prismjs/components/prism-json";
@@ -20,10 +18,10 @@ import "prismjs/components/prism-markdown";
 import "prismjs/components/prism-python";
 import "prismjs/components/prism-rust";
 import "prismjs/components/prism-typescript";
-
-import type { BoxProps } from "@mui/material";
 import { Box } from "@mui/material";
 import DOMPurify from "dompurify";
+
+import type { BoxProps } from "@mui/material";
 import type { FunctionComponent } from "react";
 
 /**

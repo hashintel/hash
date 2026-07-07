@@ -1,22 +1,7 @@
-import type {
-  EntityId,
-  EntityUuid,
-  MachineId,
-  OriginProvenance,
-  ProvidedEntityEditionProvenance,
-  VersionedUrl,
-  WebId,
-} from "@blockprotocol/type-system";
-import type { Connection, LinearDocument, Team } from "@linear/sdk";
 import { LinearClient } from "@linear/sdk";
+import { v4 as uuidv4 } from "uuid";
+
 import { getLinearMappingByHashEntityTypeId } from "@local/hash-backend-utils/linear-type-mappings";
-import type {
-  CreateHashEntityFromLinearData,
-  PartialEntity,
-  UpdateHashEntityFromLinearData,
-  UpdateLinearDataWorkflow,
-} from "@local/hash-backend-utils/temporal-integration-workflow-types";
-import type { GraphApi } from "@local/hash-graph-client";
 import {
   HashEntity,
   HashLinkEntity,
@@ -24,7 +9,6 @@ import {
   patchesFromPropertyObjects,
 } from "@local/hash-graph-sdk/entity";
 import { linearPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { v4 as uuidv4 } from "uuid";
 
 import { logger } from "../main.js";
 import {
@@ -36,6 +20,24 @@ import {
   mapLinearDataToEntity,
   mapLinearDataToEntityWithOutgoingLinks,
 } from "./linear-activities/mappings.js";
+
+import type {
+  EntityId,
+  EntityUuid,
+  MachineId,
+  OriginProvenance,
+  ProvidedEntityEditionProvenance,
+  VersionedUrl,
+  WebId,
+} from "@blockprotocol/type-system";
+import type { Connection, LinearDocument, Team } from "@linear/sdk";
+import type {
+  CreateHashEntityFromLinearData,
+  PartialEntity,
+  UpdateHashEntityFromLinearData,
+  UpdateLinearDataWorkflow,
+} from "@local/hash-backend-utils/temporal-integration-workflow-types";
+import type { GraphApi } from "@local/hash-graph-client";
 
 const provenance: ProvidedEntityEditionProvenance = {
   actorType: "machine",
@@ -409,7 +411,7 @@ export const createLinearIntegrationActivities = ({
   }>): Promise<void> {
     const issues = await readLinearIssues({ apiKey, filter });
 
-    logger.info(`Found ${issues.length} issues to sync to ${webId}`);
+    logger.info("Found Linear issues to sync", { count: issues.length, webId });
 
     const batchSize = 100;
 
@@ -424,7 +426,7 @@ export const createLinearIntegrationActivities = ({
       });
     }
 
-    logger.info(`Synced ${issues.length} issues to ${webId}`);
+    logger.info("Synced Linear issues", { count: issues.length, webId });
   },
 
   async readLinearTeams({ apiKey }: ParamsWithApiKey): Promise<Team[]> {

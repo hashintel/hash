@@ -1,17 +1,18 @@
-import type { ActorId, VersionedUrl } from "@blockprotocol/type-system";
 import { NotFoundError } from "@local/hash-backend-utils/error";
-import type { HashInstance } from "@local/hash-backend-utils/hash-instance";
 import {
   getHashInstance,
   getHashInstanceFromEntity,
 } from "@local/hash-backend-utils/hash-instance";
 import { createPolicy, deletePolicyById } from "@local/hash-graph-sdk/policy";
 import { getInstanceAdminsTeam } from "@local/hash-graph-sdk/principal/hash-instance-admins";
-import type { HASHInstance as HashInstanceEntity } from "@local/hash-isomorphic-utils/system-types/hashinstance";
 
 import { logger } from "../../../logger";
-import type { ImpureGraphFunction } from "../../context-types";
 import { createEntity } from "../primitive/entity";
+
+import type { ImpureGraphFunction } from "../../context-types";
+import type { ActorId, VersionedUrl } from "@blockprotocol/type-system";
+import type { HashInstance } from "@local/hash-backend-utils/hash-instance";
+import type { HASHInstance as HashInstanceEntity } from "@local/hash-isomorphic-utils/system-types/hashinstance";
 
 /**
  * Create the hash instance entity.

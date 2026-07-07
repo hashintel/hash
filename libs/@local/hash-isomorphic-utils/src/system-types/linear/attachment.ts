@@ -3,20 +3,14 @@
  */
 
 import type {
-  Confidence,
-  ObjectMetadata,
-  PropertyProvenance,
-} from "@blockprotocol/type-system";
-
-import type {
   ActivePropertyValue,
   ActivePropertyValueWithMetadata,
   AdminPropertyValue,
   AdminPropertyValueWithMetadata,
-  AllowedAuthServicePropertyValue,
-  AllowedAuthServicePropertyValueWithMetadata,
   AllowMembersToInvitePropertyValue,
   AllowMembersToInvitePropertyValueWithMetadata,
+  AllowedAuthServicePropertyValue,
+  AllowedAuthServicePropertyValueWithMetadata,
   ArchivedAtPropertyValue,
   ArchivedAtPropertyValueWithMetadata,
   AutoArchivedAtPropertyValue,
@@ -89,10 +83,10 @@ import type {
   HasSubscriberOutgoingLinksByLinkEntityTypeId,
   HasSubscriberProperties,
   HasSubscriberPropertiesWithMetadata,
-  IdentifierPropertyValue,
-  IdentifierPropertyValueWithMetadata,
   IDPropertyValue,
   IDPropertyValueWithMetadata,
+  IdentifierPropertyValue,
+  IdentifierPropertyValueWithMetadata,
   InformationDataType,
   InformationDataTypeWithMetadata,
   IntegrationSourceTypePropertyValue,
@@ -201,12 +195,12 @@ import type {
   TriagedAtPropertyValueWithMetadata,
   TrialEndsAtPropertyValue,
   TrialEndsAtPropertyValueWithMetadata,
-  UpdatedAtPropertyValue,
-  UpdatedAtPropertyValueWithMetadata,
   URIDataType,
   URIDataTypeWithMetadata,
   URLKeyPropertyValue,
   URLKeyPropertyValueWithMetadata,
+  UpdatedAtPropertyValue,
+  UpdatedAtPropertyValueWithMetadata,
   User,
   UserBelongsToOrganizationLink,
   UserCountPropertyValue,
@@ -215,12 +209,19 @@ import type {
   UserOutgoingLinksByLinkEntityTypeId,
   UserProperties,
   UserPropertiesWithMetadata,
+  ValueDataType,
+  ValueDataTypeWithMetadata,
   WorkflowState,
   WorkflowStateOutgoingLinkAndTarget,
   WorkflowStateOutgoingLinksByLinkEntityTypeId,
   WorkflowStateProperties,
   WorkflowStatePropertiesWithMetadata,
 } from "./shared.js";
+import type {
+  Confidence,
+  ObjectMetadata,
+  PropertyProvenance,
+} from "@blockprotocol/type-system";
 
 export type {
   ActivePropertyValue,
@@ -429,6 +430,8 @@ export type {
   UserOutgoingLinksByLinkEntityTypeId,
   UserProperties,
   UserPropertiesWithMetadata,
+  ValueDataType,
+  ValueDataTypeWithMetadata,
   WorkflowState,
   WorkflowStateOutgoingLinkAndTarget,
   WorkflowStateOutgoingLinksByLinkEntityTypeId,

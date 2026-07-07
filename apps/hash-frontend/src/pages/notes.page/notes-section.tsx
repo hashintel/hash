@@ -1,5 +1,3 @@
-import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { Box, Collapse, Divider } from "@mui/material";
 import { forwardRef, Fragment, useState } from "react";
 
@@ -7,6 +5,9 @@ import { EditableQuickNote } from "./editable-quick-note";
 import { NotesSectionWrapper } from "./notes-section-wrapper";
 import { NotesWrapper } from "./notes-wrapper";
 import { TimestampColumn } from "./timestamp-column";
+
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 
 export const NotesSection = forwardRef<
   HTMLDivElement,

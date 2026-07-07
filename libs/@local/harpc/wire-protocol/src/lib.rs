@@ -16,6 +16,9 @@
 #![feature(
     // Language Features
     exhaustive_patterns,
+
+    // Library Features,
+    core_io
 )]
 
 pub mod codec;

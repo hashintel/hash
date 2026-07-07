@@ -1,5 +1,10 @@
 import "react-pdf/dist/Page/TextLayer.css";
 import "react-pdf/dist/esm/Page/AnnotationLayer.css";
+import { Box, Stack, Typography } from "@mui/material";
+import { debounce } from "lodash";
+import { useCallback, useEffect, useState } from "react";
+import { FullScreen, useFullScreenHandle } from "react-full-screen";
+import { Document, Page, pdfjs } from "react-pdf";
 
 import {
   ArrowDownLeftAndArrowUpRightToCenterIcon,
@@ -8,17 +13,6 @@ import {
   MagnifyingGlassMinusLightIcon,
   MagnifyingGlassPlusLightIcon,
 } from "@hashintel/design-system";
-import { Box, Stack, Typography } from "@mui/material";
-import { debounce } from "lodash";
-import dynamic from "next/dynamic";
-import type { PDFDocumentProxy } from "pdfjs-dist";
-import { useCallback, useEffect, useState } from "react";
-import { FullScreen, useFullScreenHandle } from "react-full-screen";
-import { Document, Page, pdfjs } from "react-pdf";
-import type {
-  CustomTextRenderer,
-  OnDocumentLoadSuccess,
-} from "react-pdf/dist/cjs/shared/types";
 
 import { GrayToBlueIconButton } from "./gray-to-blue-icon-button";
 import {
@@ -35,6 +29,12 @@ import {
   type SearchHits,
 } from "./pdf-preview/pdf-search";
 import { useElementBorderBoxSize } from "./use-element-dimensions";
+
+import type {
+  CustomTextRenderer,
+  DocumentCallback,
+  OnDocumentLoadSuccess,
+} from "react-pdf/dist/cjs/shared/types";
 
 /**
  * Highlights search hits within the text representing a row/line on the page.
@@ -92,6 +92,11 @@ const pdfOptions = {
   withCredentials: false,
 };
 
+pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  "pdfjs-dist/build/pdf.worker.min.mjs",
+  import.meta.url,
+).toString();
+
 type PdfViewerProps = {
   showSearch: boolean;
   setShowSearch: (showSearch: boolean) => void;
@@ -105,15 +110,6 @@ export const PdfPreview = ({
   showThumbnails,
   url: initialUrl,
 }: PdfViewerProps) => {
-  useEffect(() => {
-    pdfjs.GlobalWorkerOptions.workerSrc = dynamic(
-      // @ts-expect-error -- no types for this import
-      // eslint-disable-next-line import/no-extraneous-dependencies
-      import("pdfjs-dist/build/pdf.worker.min.mjs"),
-      { ssr: false },
-    ).toString();
-  });
-
   const [url, setUrl] = useState("");
 
   useEffect(() => {
@@ -134,7 +130,7 @@ export const PdfPreview = ({
       });
   }, [initialUrl]);
 
-  const [documentProxy, setDocumentProxy] = useState<PDFDocumentProxy | null>(
+  const [documentProxy, setDocumentProxy] = useState<DocumentCallback | null>(
     null,
   );
   const [scale, setScale] = useState(1);

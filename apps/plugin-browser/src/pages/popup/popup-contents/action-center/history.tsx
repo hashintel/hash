@@ -1,6 +1,6 @@
-import { Skeleton } from "@hashintel/design-system";
 import { Box, Link, Typography } from "@mui/material";
-import type { PropsWithChildren } from "react";
+
+import { Skeleton } from "@hashintel/design-system";
 
 import { AutomaticallyTriggered } from "./history/automatically-triggered";
 import { ManuallyTriggered } from "./history/manually-triggered";
@@ -9,6 +9,8 @@ import {
   type TabPanelProps,
 } from "./shared/tab-props";
 import { useFlowRuns } from "./shared/use-flow-runs";
+
+import type { PropsWithChildren } from "react";
 
 const HistorySection = ({ children }: PropsWithChildren) => (
   <Box

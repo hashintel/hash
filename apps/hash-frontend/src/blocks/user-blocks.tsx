@@ -1,12 +1,3 @@
-import type { EntityType } from "@blockprotocol/type-system";
-import type { ComponentIdHashBlockMap } from "@local/hash-isomorphic-utils/blocks";
-import { fetchBlock } from "@local/hash-isomorphic-utils/blocks";
-import type {
-  Dispatch,
-  FunctionComponent,
-  ReactNode,
-  SetStateAction,
-} from "react";
 import {
   createContext,
   useCallback,
@@ -15,8 +6,19 @@ import {
   useMemo,
 } from "react";
 
+import { fetchBlock } from "@local/hash-isomorphic-utils/blocks";
+
 import { useCachedDefaultState } from "../components/hooks/use-default-state";
 import { useGetBlockProtocolBlocks } from "../components/hooks/use-get-block-protocol-blocks";
+
+import type { EntityType } from "@blockprotocol/type-system";
+import type { ComponentIdHashBlockMap } from "@local/hash-isomorphic-utils/blocks";
+import type {
+  Dispatch,
+  FunctionComponent,
+  ReactNode,
+  SetStateAction,
+} from "react";
 
 interface UserBlocksContextState {
   value: ComponentIdHashBlockMap;

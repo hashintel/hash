@@ -1,10 +1,11 @@
+import { atLeastOne, extractBaseUrl } from "@blockprotocol/type-system";
+import { typedEntries } from "@local/advanced-types/typed-entries";
+
 import type {
   EntityType,
   EntityTypeReference,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-import { atLeastOne, extractBaseUrl } from "@blockprotocol/type-system";
-import { typedEntries } from "@local/advanced-types/typed-entries";
 
 export const replaceEntityTypeReference = ({
   reference,

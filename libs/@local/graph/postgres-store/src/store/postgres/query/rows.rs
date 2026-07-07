@@ -168,6 +168,7 @@ pub struct EntityIdRow {
     pub web_id: WebId,
     pub entity_uuid: EntityUuid,
     pub provenance: InferredEntityProvenance,
+    pub read_only: bool,
 }
 
 #[derive(Debug, ToSql)]

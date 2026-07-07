@@ -1,16 +1,17 @@
 import dedent from "dedent";
-import type { JSONSchemaDefinition } from "openai/lib/jsonschema";
 
 import { getFlowContext } from "../../../shared/get-flow-context.js";
 import { getLlmResponse } from "../../../shared/get-llm-response.js";
 import { getToolCallsFromLlmAssistantMessage } from "../../../shared/get-llm-response/llm-message.js";
-import type { LlmToolDefinition } from "../../../shared/get-llm-response/types.js";
 import { graphApiClient } from "../../../shared/graph-api-client.js";
+import { simplifyEntityTypeForLlmConsumption } from "../shared/simplify-for-llm-consumption.js";
+
+import type { LlmToolDefinition } from "../../../shared/get-llm-response/types.js";
 import type {
   CoordinatingAgentInput,
   CoordinatingAgentState,
 } from "../shared/coordinators.js";
-import { simplifyEntityTypeForLlmConsumption } from "../shared/simplify-for-llm-consumption.js";
+import type { JSONSchemaDefinition } from "openai/lib/jsonschema";
 
 type SubmitVerdictToolCallInput = {
   [delegatedTaskId: string]: {

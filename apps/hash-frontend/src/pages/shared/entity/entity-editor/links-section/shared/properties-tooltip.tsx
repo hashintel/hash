@@ -1,20 +1,20 @@
-import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 import { Box, Stack, Tooltip, Typography } from "@mui/material";
-import type { ReactElement } from "react";
 
-import { useEntityEditor } from "../../entity-editor-context";
+import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
+
+import type { ReactElement, RefObject } from "react";
 
 export const PropertiesTooltip = ({
   children,
   entityType,
   properties,
+  slideContainerRef,
 }: {
   children: ReactElement;
   properties: { [propertyTitle: string]: string };
   entityType: "link entity" | "source entity" | "target entity";
+  slideContainerRef?: RefObject<HTMLDivElement | null>;
 }) => {
-  const { slideContainerRef } = useEntityEditor();
-
   return (
     <Tooltip
       componentsProps={{

@@ -1,6 +1,6 @@
 use core::fmt::{self, Write as _};
 
-use super::TableReference;
+use super::{TableReference, identifier::Identifier};
 use crate::store::postgres::query::{Expression, Transpile};
 
 /// A SELECT clause item.
@@ -14,7 +14,7 @@ pub enum SelectExpression {
     /// Transpiles to: `expression` or `expression AS "alias"`.
     Expression {
         expression: Expression,
-        alias: Option<&'static str>,
+        alias: Option<Identifier<'static>>,
     },
     /// Asterisk wildcard selecting all columns.
     ///
@@ -29,7 +29,8 @@ impl Transpile for SelectExpression {
             Self::Expression { expression, alias } => {
                 expression.transpile(fmt)?;
                 if let Some(alias) = alias {
-                    write!(fmt, r#" AS "{alias}""#)?;
+                    fmt.write_str(" AS ")?;
+                    alias.transpile(fmt)?;
                 }
                 Ok(())
             }
@@ -97,7 +98,7 @@ mod tests {
                             })
                     ))
                 ),
-                alias: Some("latest_version")
+                alias: Some(Identifier::from("latest_version"))
             }
             .transpile_to_string(),
             r#"MAX("ontology_ids_1_2_3"."version") OVER (PARTITION BY "ontology_ids_1_2_3"."base_url") AS "latest_version""#

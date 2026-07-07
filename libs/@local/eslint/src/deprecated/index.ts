@@ -1,6 +1,6 @@
-import type { ESLintRules } from "eslint/rules";
-
 import { defineConfig as defineConfig$ } from "../utils.js";
+
+import type { ESLintRules } from "eslint/rules";
 
 export { create as createBase } from "./base.js";
 export { create as createBlock } from "./block.js";

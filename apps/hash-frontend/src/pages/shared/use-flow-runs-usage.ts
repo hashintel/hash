@@ -1,36 +1,35 @@
 import { useQuery } from "@apollo/client";
+import { useMemo } from "react";
+
 import {
   getOutgoingLinkAndTargetEntities,
   getRoots,
 } from "@blockprotocol/graph/stdlib";
-import type { EntityUuid } from "@blockprotocol/type-system";
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { deserializeQueryEntitySubgraphResponse } from "@local/hash-graph-sdk/entity";
-import {
-  currentTimeInstantTemporalAxes,
-  generateVersionedUrlMatchingFilter,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type {
-  AggregatedUsageByTask,
-  AggregatedUsageRecord,
-} from "@local/hash-isomorphic-utils/service-usage";
 import {
   getAggregateUsageRecordsByServiceFeature,
   getAggregateUsageRecordsByTask,
 } from "@local/hash-isomorphic-utils/service-usage";
-import type { UsageRecord } from "@local/hash-isomorphic-utils/system-types/usagerecord";
-import { useMemo } from "react";
 
 import { useHashInstance } from "../../components/hooks/use-hash-instance";
+import { queryEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
+
 import type {
   QueryEntitySubgraphQuery,
   QueryEntitySubgraphQueryVariables,
 } from "../../graphql/api-types.gen";
-import { queryEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
+import type { EntityUuid } from "@blockprotocol/type-system";
+import type {
+  AggregatedUsageByTask,
+  AggregatedUsageRecord,
+} from "@local/hash-isomorphic-utils/service-usage";
+import type { UsageRecord } from "@local/hash-isomorphic-utils/system-types/usagerecord";
 
 type UsageByFlowRunId = {
   [flowRunId: EntityUuid]: {
@@ -66,12 +65,12 @@ export const useFlowRunsUsage = ({
       request: {
         filter: {
           all: [
-            generateVersionedUrlMatchingFilter(
-              systemEntityTypes.usageRecord.entityTypeId,
-              {
-                ignoreParents: true,
-              },
-            ),
+            {
+              equal: [
+                { path: ["type", "baseUrl"] },
+                { parameter: systemEntityTypes.usageRecord.entityTypeBaseUrl },
+              ],
+            },
             {
               any: flowRunIds.map((flowRunId) => ({
                 equal: [

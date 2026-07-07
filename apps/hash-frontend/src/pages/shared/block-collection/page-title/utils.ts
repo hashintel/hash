@@ -1,9 +1,11 @@
+import { Selection } from "prosemirror-state";
+
 import {
   isHashTextBlock,
   paragraphBlockComponentId,
 } from "@local/hash-isomorphic-utils/blocks-constants";
+
 import type { ProsemirrorManager } from "@local/hash-isomorphic-utils/prosemirror-manager";
-import { Selection } from "prosemirror-state";
 import type { EditorView } from "prosemirror-view";
 
 export const cleanUpTitle = (value: string): string =>

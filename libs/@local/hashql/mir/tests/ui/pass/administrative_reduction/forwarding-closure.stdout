@@ -48,7 +48,7 @@ thunk f2:0() -> (Boolean) -> Boolean {
 
     bb0(): {
         %0 = apply (f2:0 as FnPtr)
-        %1 = apply %0.0 %0.1 1
+        %1 = apply %0.0 %0.1 true
 
         return %1
     }
@@ -124,7 +124,7 @@ thunk f2:0() -> (Boolean) -> Boolean {
         %2 = closure(({closure#8} as FnPtr), %3)
         %0 = %2
         %4 = %0.1
-        %5 = 1
+        %5 = true
         %9 = ()
         %8 = closure(({closure#6} as FnPtr), %9)
         %6 = %8

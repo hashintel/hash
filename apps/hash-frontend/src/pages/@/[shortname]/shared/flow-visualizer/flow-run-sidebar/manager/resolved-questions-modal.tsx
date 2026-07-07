@@ -1,8 +1,9 @@
-import type { ExternalInputRequest } from "@local/hash-isomorphic-utils/flows/types";
 import { Box, Typography } from "@mui/material";
 import { useMemo } from "react";
 
 import { Modal } from "../../../../../../../shared/ui/modal";
+
+import type { ExternalInputRequest } from "@local/hash-isomorphic-utils/flows/types";
 
 const ResolvedQuestion = ({
   answer,

@@ -5,6 +5,7 @@ use core::convert::Infallible;
 use hashql_core::{
     collections::{FastHashMap, HashMapExt as _, SmallVec},
     span::Spanned,
+    symbol::{Symbol, sym},
     r#type::environment::Environment,
 };
 
@@ -35,7 +36,7 @@ pub struct Specialization<'ctx, 'env, 'hir, 'heap, 'diag> {
     env: &'env Environment<'heap>,
     context: &'ctx mut HirContext<'hir, 'heap>,
 
-    intrinsics: HirIdMap<&'static str>,
+    intrinsics: HirIdMap<Symbol<'heap>>,
 
     current: HirPtr,
     visited: HirIdMap<Node<'heap>>,
@@ -47,7 +48,7 @@ impl<'ctx, 'env, 'hir, 'heap, 'diag> Specialization<'ctx, 'env, 'hir, 'heap, 'di
     pub fn new(
         env: &'env Environment<'heap>,
         context: &'ctx mut HirContext<'hir, 'heap>,
-        intrinsics: HirIdMap<&'static str>,
+        intrinsics: HirIdMap<Symbol<'heap>>,
         diagnostics: &'diag mut LoweringDiagnosticIssues,
     ) -> Self {
         Self {
@@ -71,11 +72,11 @@ impl<'ctx, 'env, 'hir, 'heap, 'diag> Specialization<'ctx, 'env, 'hir, 'heap, 'di
     fn fold_call_into_graph_read(
         &mut self,
         call: Call<'heap>,
-        intrinsic: &'static str,
+        intrinsic: Symbol<'heap>,
     ) -> Option<GraphRead<'heap>> {
         // The first argument is always the graph we're referring to.
-        let tail = match intrinsic {
-            "::graph::tail::collect" => GraphReadTail::Collect,
+        let tail = match intrinsic.as_constant() {
+            Some(sym::path::graph_tail_collect::CONST) => GraphReadTail::Collect,
             _ => unreachable!(),
         };
 
@@ -105,8 +106,8 @@ impl<'ctx, 'env, 'hir, 'heap, 'diag> Specialization<'ctx, 'env, 'hir, 'heap, 'di
                 return None;
             };
 
-            match intrinsic {
-                "::graph::body::filter" => {
+            match intrinsic.as_constant() {
+                Some(sym::path::graph_body_filter::CONST) => {
                     let &[follow, closure] = &*call.arguments else {
                         unreachable!()
                     };
@@ -114,7 +115,7 @@ impl<'ctx, 'env, 'hir, 'heap, 'diag> Specialization<'ctx, 'env, 'hir, 'heap, 'di
                     body.push(GraphReadBody::Filter(closure.value));
                     next = follow.value;
                 }
-                "::graph::head::entities" => {
+                Some(sym::path::graph_head_entities::CONST) => {
                     let head = GraphReadHead::Entity {
                         axis: call.arguments[0].value,
                     };
@@ -137,10 +138,11 @@ impl<'ctx, 'env, 'hir, 'heap, 'diag> Specialization<'ctx, 'env, 'hir, 'heap, 'di
         }
     }
 
+    #[expect(clippy::too_many_lines, reason = "just a large match statement")]
     fn fold_intrinsic(
         &mut self,
         call: Call<'heap>,
-        intrinsic: &'static str,
+        intrinsic: Symbol<'heap>,
     ) -> <Self as Fold<'heap>>::Output<Option<Node<'heap>>> {
         #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
         enum OpKind {
@@ -148,11 +150,19 @@ impl<'ctx, 'env, 'hir, 'heap, 'diag> Specialization<'ctx, 'env, 'hir, 'heap, 'di
         }
 
         #[expect(clippy::match_same_arms)]
-        let op = match intrinsic {
-            "::core::math::add" | "::core::math::sub" | "::core::math::mul"
-            | "::core::math::div" | "::core::math::rem" | "::core::math::mod"
-            | "::core::math::pow" | "::core::math::sqrt" | "::core::math::cbrt"
-            | "::core::math::root" => {
+        let op = match intrinsic.as_constant() {
+            Some(
+                sym::path::core::math::add::CONST
+                | sym::path::core::math::sub::CONST
+                | sym::path::core::math::mul::CONST
+                | sym::path::core::math::div::CONST
+                | sym::path::core::math::rem::CONST
+                | sym::path::core::math::r#mod::CONST
+                | sym::path::core::math::pow::CONST
+                | sym::path::core::math::sqrt::CONST
+                | sym::path::core::math::cbrt::CONST
+                | sym::path::core::math::root::CONST,
+            ) => {
                 self.push_diagnostic(unsupported_intrinsic(
                     call.function.span,
                     intrinsic,
@@ -161,8 +171,14 @@ impl<'ctx, 'env, 'hir, 'heap, 'diag> Specialization<'ctx, 'env, 'hir, 'heap, 'di
 
                 return Ok(None);
             }
-            "::core::bits::and" | "::core::bits::or" | "::core::bits::xor"
-            | "::core::bits::not" | "::core::bits::shl" | "::core::bits::shr" => {
+            Some(
+                sym::path::core::bits::and::CONST
+                | sym::path::core::bits::or::CONST
+                | sym::path::core::bits::xor::CONST
+                | sym::path::core::bits::not::CONST
+                | sym::path::core::bits::shl::CONST
+                | sym::path::core::bits::shr::CONST,
+            ) => {
                 self.push_diagnostic(unsupported_intrinsic(
                     call.function.span,
                     intrinsic,
@@ -171,13 +187,13 @@ impl<'ctx, 'env, 'hir, 'heap, 'diag> Specialization<'ctx, 'env, 'hir, 'heap, 'di
 
                 return Ok(None);
             }
-            "::core::cmp::gt" => OpKind::Bin(BinOp::Gt),
-            "::core::cmp::lt" => OpKind::Bin(BinOp::Lt),
-            "::core::cmp::gte" => OpKind::Bin(BinOp::Gte),
-            "::core::cmp::lte" => OpKind::Bin(BinOp::Lte),
-            "::core::cmp::eq" => OpKind::Bin(BinOp::Eq),
-            "::core::cmp::ne" => OpKind::Bin(BinOp::Ne),
-            "::core::bool::not" => {
+            Some(sym::path::core::cmp::gt::CONST) => OpKind::Bin(BinOp::Gt),
+            Some(sym::path::core::cmp::lt::CONST) => OpKind::Bin(BinOp::Lt),
+            Some(sym::path::core::cmp::gte::CONST) => OpKind::Bin(BinOp::Gte),
+            Some(sym::path::core::cmp::lte::CONST) => OpKind::Bin(BinOp::Lte),
+            Some(sym::path::core::cmp::eq::CONST) => OpKind::Bin(BinOp::Eq),
+            Some(sym::path::core::cmp::ne::CONST) => OpKind::Bin(BinOp::Ne),
+            Some(sym::path::core::bool::not::CONST) => {
                 self.push_diagnostic(unsupported_intrinsic(
                     call.function.span,
                     intrinsic,
@@ -186,17 +202,17 @@ impl<'ctx, 'env, 'hir, 'heap, 'diag> Specialization<'ctx, 'env, 'hir, 'heap, 'di
 
                 return Ok(None);
             }
-            "::core::bool::and" => OpKind::Bin(BinOp::And),
-            "::core::bool::or" => OpKind::Bin(BinOp::Or),
-            "::graph::head::entities" | "::graph::body::filter" => {
+            Some(sym::path::core::bool::and::CONST) => OpKind::Bin(BinOp::And),
+            Some(sym::path::core::bool::or::CONST) => OpKind::Bin(BinOp::Or),
+            Some(sym::path::graph_head_entities::CONST | sym::path::graph_body_filter::CONST) => {
                 // We ignore this on purpose, as `graph::tail::collect` will process these
                 return Ok(None);
             }
-            "::graph::tmp::decision_time_now" => {
+            Some(sym::path::graph::tmp::decision_time_now::CONST) => {
                 // currently a stand-in and not specialized in any way
                 return Ok(None);
             }
-            "::graph::tail::collect" => {
+            Some(sym::path::graph_tail_collect::CONST) => {
                 let Some(read) = self.fold_call_into_graph_read(call, intrinsic) else {
                     return Ok(None);
                 };
@@ -290,7 +306,7 @@ impl<'heap> Fold<'heap> for Specialization<'_, '_, '_, 'heap, '_> {
         // We need to check **before** folding the call, if the function is an intrinsic, otherwise
         // the underlying HirId might've been changed
         let intrinsic_node = if let NodeKind::Call(call) = node.kind
-            && let Some(intrinsic) = self.intrinsics.get(&call.function.id)
+            && let Some(&intrinsic) = self.intrinsics.get(&call.function.id)
         {
             self.fold_intrinsic(call, intrinsic)?
         } else {

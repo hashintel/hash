@@ -16,14 +16,17 @@ type-system = { workspace = true, public = true }
 error-stack = { workspace = true }
 
 # Private third-party dependencies
-serde             = { workspace = true }
-serde_json        = { workspace = true }
-simple-mermaid    = { workspace = true }
-temporalio-client = { workspace = true }
-temporalio-common = { workspace = true }
-thiserror         = { workspace = true }
-url               = { workspace = true }
-uuid              = { workspace = true, features = ["v4"] }
+opentelemetry         = { workspace = true }
+serde                 = { workspace = true }
+serde_json            = { workspace = true }
+simple-mermaid        = { workspace = true }
+temporalio-client     = { workspace = true }
+temporalio-common     = { workspace = true }
+thiserror             = { workspace = true }
+tracing               = { workspace = true }
+tracing-opentelemetry = { workspace = true }
+url                   = { workspace = true }
+uuid                  = { workspace = true, features = ["v4"] }
 
 [lints]
 workspace = true

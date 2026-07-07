@@ -1,15 +1,17 @@
+import { vi } from "vitest";
+
 import { createKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
-import type { ImpureGraphContext } from "@apps/hash-api/src/graph/context-types";
 import { createOrg } from "@apps/hash-api/src/graph/knowledge/system-types/org";
 import { createUser } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { systemAccountId } from "@apps/hash-api/src/graph/system-account";
-import type { VersionedUrl } from "@blockprotocol/type-system";
 import { createGraphClient } from "@local/hash-backend-utils/create-graph-client";
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
 import { Logger } from "@local/hash-backend-utils/logger";
+
+import type { ImpureGraphContext } from "@apps/hash-api/src/graph/context-types";
+import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { TemporalClient } from "@local/hash-backend-utils/temporal";
 import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
-import { vi } from "vitest";
 
 export const textDataTypeId =
   "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1" as VersionedUrl;
@@ -77,6 +79,11 @@ export const createTestImpureGraphContext = (): ImpureGraphContext<
       presignDownload: (_params) => {
         throw new Error(
           "File presign download not implemented in tests. Override with mock to test.",
+        );
+      },
+      presignDownloadByKey: (_params) => {
+        throw new Error(
+          "File presign download by key not implemented in tests. Override with mock to test.",
         );
       },
       presignUpload: (_params) => {

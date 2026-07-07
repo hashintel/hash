@@ -21,7 +21,8 @@
     "ol-prefix": {
       "style": "ordered"
     },
-    "single-title": false
+    "single-title": false,
+    "table-column-style": false
   },
   "gitignore": true,
   "globs": ["*.md", "**/*.md", "**/*.mdc"],
@@ -31,6 +32,9 @@
     "node_modules/**",
     "target/**",
     "**/_temp/**",
-    "**/_ai/**"
+    "**/_ai/**",
+    "**/.cursor/plans/**",
+    "libs/@hashintel/ds-components/**",
+    "libs/@hashintel/ds-helpers/**"
   ]
 }

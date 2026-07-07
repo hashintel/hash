@@ -1,9 +1,10 @@
-import type { SxProps, Theme } from "@mui/material";
 import { Box } from "@mui/material";
-import type { PropsWithChildren } from "react";
 import { forwardRef } from "react";
 
 import { flowSectionBorderRadius } from "../../shared/styles";
+
+import type { SxProps, Theme } from "@mui/material";
+import type { PropsWithChildren } from "react";
 
 export const OutputContainer = forwardRef<
   HTMLDivElement,

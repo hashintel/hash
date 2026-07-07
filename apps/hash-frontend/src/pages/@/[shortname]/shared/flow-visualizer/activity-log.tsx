@@ -1,28 +1,4 @@
 import { useMutation, useQuery } from "@apollo/client";
-import type { EntityRootType } from "@blockprotocol/graph";
-import { getRoots } from "@blockprotocol/graph/stdlib";
-import type {
-  EntityEditionId,
-  EntityId,
-  EntityMetadata,
-  EntityRecordId,
-} from "@blockprotocol/type-system";
-import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
-import {
-  CaretDownSolidIcon,
-  IconButton,
-  RotateRegularIcon,
-} from "@hashintel/design-system";
-import type { Filter } from "@local/hash-graph-client";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
-import { deserializeSubgraph } from "@local/hash-graph-sdk/subgraph";
-import type {
-  CheckpointLog,
-  StepProgressLog,
-} from "@local/hash-isomorphic-utils/flows/types";
-import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
-import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
-import type { Theme } from "@mui/material";
 import {
   Box,
   Stack,
@@ -32,8 +8,30 @@ import {
   Typography,
 } from "@mui/material";
 import { format } from "date-fns";
-import type { ReactElement } from "react";
 import { memo, useEffect, useMemo, useState } from "react";
+
+import { getRoots } from "@blockprotocol/graph/stdlib";
+import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
+import {
+  CaretDownSolidIcon,
+  IconButton,
+  RotateRegularIcon,
+} from "@hashintel/design-system";
+import { deserializeSubgraph } from "@local/hash-graph-sdk/subgraph";
+import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
+
+import { queryEntitySubgraphQuery } from "../../../../../graphql/queries/knowledge/entity.queries";
+import { resetFlowMutation } from "../../../../../graphql/queries/knowledge/flow.queries";
+import { CircleInfoIcon } from "../../../../../shared/icons/circle-info-icon";
+import { Link } from "../../../../../shared/ui/link";
+import { useFlowRunsContext } from "../../../../shared/flow-runs-context";
+import {
+  defaultCellSx,
+  VirtualizedTable,
+} from "../../../../shared/virtualized-table";
+import { SectionLabel } from "./section-label";
+import { formatTimeTaken } from "./shared/format-time-taken";
 
 import type {
   QueryEntitySubgraphQuery,
@@ -41,24 +39,28 @@ import type {
   ResetFlowMutation,
   ResetFlowMutationVariables,
 } from "../../../../../graphql/api-types.gen";
-import { queryEntitySubgraphQuery } from "../../../../../graphql/queries/knowledge/entity.queries";
-import { resetFlowMutation } from "../../../../../graphql/queries/knowledge/flow.queries";
-import { CircleInfoIcon } from "../../../../../shared/icons/circle-info-icon";
-import { Link } from "../../../../../shared/ui/link";
-import { useFlowRunsContext } from "../../../../shared/flow-runs-context";
 import type {
   CreateVirtualizedRowContentFn,
   VirtualizedTableColumn,
   VirtualizedTableRow,
 } from "../../../../shared/virtualized-table";
-import {
-  defaultCellSx,
-  VirtualizedTable,
-} from "../../../../shared/virtualized-table";
 import type { VirtualizedTableSort } from "../../../../shared/virtualized-table/header/sort";
-import { SectionLabel } from "./section-label";
-import { formatTimeTaken } from "./shared/format-time-taken";
 import type { LocalProgressLog, LogDisplay } from "./shared/types";
+import type { EntityRootType } from "@blockprotocol/graph";
+import type {
+  EntityEditionId,
+  EntityId,
+  EntityMetadata,
+  EntityRecordId,
+} from "@blockprotocol/type-system";
+import type { Filter } from "@local/hash-graph-client";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import type {
+  CheckpointLog,
+  StepProgressLog,
+} from "@local/hash-isomorphic-utils/flows/types";
+import type { Theme } from "@mui/material";
+import type { ReactElement } from "react";
 
 const getEntityLabelFromLog = (
   log: StepProgressLog,

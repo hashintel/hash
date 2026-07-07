@@ -19,7 +19,7 @@ export const typography: ThemeOptions["typography"] = {
   h1: {
     fontFamily: headingFonts,
     fontSize: "var(--step-5)",
-    lineHeight: 1.1,
+    lineHeight: 1.2,
     fontWeight: 500,
   },
   h2: {

@@ -1,13 +1,15 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
-import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { useRouter } from "next/router";
 import { useContext } from "react";
 
-import type { NextPageWithLayout } from "../../../shared/layout";
+import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+
 import { getLayoutWithSidebar } from "../../../shared/layout";
 import { CreateEntityTypeForm } from "../../shared/create-entity-type-form";
 import { WorkspaceContext } from "../../shared/workspace-context";
 import { NewTypePageContainer } from "./shared/new-type-page-container";
+
+import type { NextPageWithLayout } from "../../../shared/layout";
+import type { VersionedUrl } from "@blockprotocol/type-system";
 
 const Page: NextPageWithLayout = () => {
   const router = useRouter();

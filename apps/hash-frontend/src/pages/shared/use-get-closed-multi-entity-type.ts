@@ -1,23 +1,25 @@
 import { useLazyQuery } from "@apollo/client";
-import type {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  ClosedMultiEntityType,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
+import { useCallback } from "react";
+
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { getClosedMultiEntityTypeFromMap } from "@local/hash-graph-sdk/entity";
-import type {
-  ClosedMultiEntityTypesDefinitions,
-  ClosedMultiEntityTypesRootMap,
-} from "@local/hash-graph-sdk/ontology";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
-import { useCallback } from "react";
+
+import { getClosedMultiEntityTypesQuery } from "../../graphql/queries/ontology/entity-type.queries";
 
 import type {
   GetClosedMultiEntityTypesQuery,
   GetClosedMultiEntityTypesQueryVariables,
 } from "../../graphql/api-types.gen";
-import { getClosedMultiEntityTypesQuery } from "../../graphql/queries/ontology/entity-type.queries";
+import type {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  ClosedMultiEntityType,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
+import type {
+  ClosedMultiEntityTypesDefinitions,
+  ClosedMultiEntityTypesRootMap,
+} from "@local/hash-graph-sdk/ontology";
 
 /**
  * Retrieve the type information for multiple {@link ClosedMultiEntityType}.

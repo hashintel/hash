@@ -1,4 +1,3 @@
-import type { Entity, EntityId } from "@blockprotocol/type-system";
 import {
   extractEntityUuidFromEntityId,
   extractWebIdFromEntityId,
@@ -9,25 +8,14 @@ import {
   type HashEntity,
   queryEntities,
 } from "@local/hash-graph-sdk/entity";
-import {
-  currentTimeInstantTemporalAxes,
-  generateVersionedUrlMatchingFilter,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { contentLinkTypeFilter } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import type {
-  Block as BlockEntity,
-  HasData,
-} from "@local/hash-isomorphic-utils/system-types/shared";
 
-import type {
-  ImpureGraphFunction,
-  PureGraphFunction,
-} from "../../context-types";
 import {
   createEntity,
   getEntityIncomingLinks,
@@ -40,8 +28,18 @@ import {
   getLinkEntityRightEntity,
   isEntityLinkEntity,
 } from "../primitive/link-entity";
-import type { Comment } from "./comment";
 import { getCommentFromEntity } from "./comment";
+
+import type {
+  ImpureGraphFunction,
+  PureGraphFunction,
+} from "../../context-types";
+import type { Comment } from "./comment";
+import type { Entity, EntityId } from "@blockprotocol/type-system";
+import type {
+  Block as BlockEntity,
+  HasData,
+} from "@local/hash-isomorphic-utils/system-types/shared";
 
 export type Block = {
   componentId: string;
@@ -286,10 +284,12 @@ export const getBlockCollectionByBlock: ImpureGraphFunction<
             { parameter: blockEntityUuid },
           ],
         },
-        generateVersionedUrlMatchingFilter(
-          systemEntityTypes.blockCollection.entityTypeId,
-          { ignoreParents: false, pathPrefix: ["leftEntity"] },
-        ),
+        {
+          equal: [
+            { path: ["leftEntity", "type", "baseUrl"] },
+            { parameter: systemEntityTypes.blockCollection.entityTypeBaseUrl },
+          ],
+        },
       ],
     },
     temporalAxes: currentTimeInstantTemporalAxes,

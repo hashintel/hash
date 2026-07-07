@@ -1,5 +1,4 @@
 import { ModuleHandler } from "@blockprotocol/core";
-import type { Entity, PropertyObject } from "@blockprotocol/type-system";
 
 /**
  * There's an issue when importing useGraphEmbedderModule from @blockprotocol/graph/react in hashintel/hash:
@@ -36,6 +35,7 @@ import type {
   UploadFileReturn,
 } from "./main.js";
 import type { GetEntityData, QueryEntitiesData } from "./types/entity.js";
+import type { Entity, PropertyObject } from "@blockprotocol/type-system";
 
 /**
  * Creates a handler for the graph module for the block.
@@ -118,7 +118,9 @@ export class GraphBlockHandler
 
   createEntity<ValidProperties extends PropertyObject = PropertyObject>({
     data,
-  }: { data?: CreateEntityData & { properties: ValidProperties } }) {
+  }: {
+    data?: CreateEntityData & { properties: ValidProperties };
+  }) {
     return this.sendMessage<Entity, CreateResourceError>({
       message: {
         messageName: "createEntity",
@@ -130,7 +132,9 @@ export class GraphBlockHandler
 
   updateEntity<ValidProperties extends PropertyObject = PropertyObject>({
     data,
-  }: { data?: UpdateEntityData & { properties: ValidProperties } }) {
+  }: {
+    data?: UpdateEntityData & { properties: ValidProperties };
+  }) {
     return this.sendMessage<Entity, ReadOrModifyResourceError>({
       message: {
         messageName: "updateEntity",

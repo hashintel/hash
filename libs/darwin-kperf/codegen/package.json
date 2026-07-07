@@ -1,6 +1,6 @@
 {
   "name": "@rust/darwin-kperf-codegen",
-  "version": "0.1.0-private",
+  "version": "0.1.1-private",
   "private": true,
   "license": "MIT OR Apache-2.0"
 }

@@ -1,6 +1,5 @@
 import { getDefinedPropertyFromPatchesGetter } from "@local/hash-graph-sdk/entity";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
 
 import { isProdEnv } from "../../../../../lib/env-config";
 import { createOrUpdateMailchimpUser } from "../../../../../mailchimp";
@@ -8,7 +7,9 @@ import {
   getUserFromEntity,
   updateUserKratosIdentityTraits,
 } from "../../../system-types/user";
+
 import type { AfterUpdateEntityHookCallback } from "../update-entity-hooks";
+import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
 
 export const userAfterUpdateEntityHookCallback: AfterUpdateEntityHookCallback =
   async ({ context, propertyPatches, updatedEntity }) => {

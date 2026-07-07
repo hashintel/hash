@@ -1,19 +1,9 @@
-import type {
-  DataTypeWithMetadata,
-  OntologyTemporalMetadata,
-} from "@blockprotocol/type-system";
-import type { UserPermissionsOnDataType } from "@local/hash-graph-sdk/authorization";
-import type {
-  QueryDataTypesResponse,
-  SerializedQueryDataTypeSubgraphResponse,
-} from "@local/hash-graph-sdk/data-type";
 import {
   findDataTypeConversionTargets,
   queryDataTypes,
   queryDataTypeSubgraph,
   serializeQueryDataTypeSubgraphResponse,
 } from "@local/hash-graph-sdk/data-type";
-import type { DataTypeFullConversionTargetsMap } from "@local/hash-graph-sdk/ontology";
 
 import {
   archiveDataType,
@@ -22,6 +12,8 @@ import {
   unarchiveDataType,
   updateDataType,
 } from "../../../graph/ontology/primitive/data-type";
+import { graphQLContextToImpureGraphContext } from "../util";
+
 import type {
   MutationArchiveDataTypeArgs,
   MutationCreateDataTypeArgs,
@@ -34,7 +26,16 @@ import type {
   ResolverFn,
 } from "../../api-types.gen";
 import type { GraphQLContext, LoggedInGraphQLContext } from "../../context";
-import { graphQLContextToImpureGraphContext } from "../util";
+import type {
+  DataTypeWithMetadata,
+  OntologyTemporalMetadata,
+} from "@blockprotocol/type-system";
+import type { UserPermissionsOnDataType } from "@local/hash-graph-sdk/authorization";
+import type {
+  QueryDataTypesResponse,
+  SerializedQueryDataTypeSubgraphResponse,
+} from "@local/hash-graph-sdk/data-type";
+import type { DataTypeFullConversionTargetsMap } from "@local/hash-graph-sdk/ontology";
 
 export const queryDataTypesResolver: ResolverFn<
   Promise<QueryDataTypesResponse>,

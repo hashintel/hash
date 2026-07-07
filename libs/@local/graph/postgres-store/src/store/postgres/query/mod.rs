@@ -10,7 +10,7 @@ mod expression;
 mod property_type;
 pub(crate) mod rows;
 mod statement;
-pub(crate) mod table;
+pub mod table;
 
 use core::{
     convert::identity,
@@ -31,8 +31,11 @@ use type_system::knowledge::{Entity, PropertyValue};
 pub use self::{
     compile::{SelectCompiler, SelectCompilerError},
     expression::{
-        Constant, EqualityOperator, Expression, Function, SelectExpression, WhereExpression,
-        WithExpression,
+        BinaryExpression, BinaryOperator, ColumnName, ColumnReference, Constant, EqualityOperator,
+        Expression, FromItem, FromItemFunctionBuilder, FromItemJoinBuilder,
+        FromItemSubqueryBuilder, FromItemTableBuilder, Function, Identifier, JoinType,
+        PostgresType, SelectExpression, TableName, TableReference, UnaryExpression, UnaryOperator,
+        VariadicExpression, VariadicOperator, WhereExpression, WithExpression,
     },
     statement::{
         Distinctness, InsertStatementBuilder, SelectStatement, Statement, WindowStatement,
@@ -126,7 +129,16 @@ impl<'s> QueryRecordDecode for EntityQuerySorting<'s> {
 
     fn decode(row: &Row, indices: &Self::Indices) -> Self::Output {
         EntityQueryCursor {
-            values: indices.iter().map(|i| row.get(i)).collect(),
+            values: indices
+                .iter()
+                .map(|i| {
+                    // Sort keys can be NULL (e.g. the label of an unlabeled entity);
+                    // `Json(Null)` is the sentinel `compile` turns into the `IS NULL`
+                    // cursor continuation.
+                    row.get::<_, Option<CursorField>>(i)
+                        .unwrap_or(CursorField::Json(PropertyValue::Null))
+                })
+                .collect(),
         }
     }
 }
@@ -184,7 +196,7 @@ where
 }
 
 #[cfg(test)]
-mod test_helper {
+pub(crate) mod test_helper {
     use hash_graph_store::data_type::DataTypeQueryPath;
 
     use crate::store::postgres::query::{

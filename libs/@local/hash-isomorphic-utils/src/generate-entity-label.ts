@@ -1,8 +1,16 @@
-import type { Subgraph } from "@blockprotocol/graph";
 import {
   getBreadthFirstEntityTypesAndParents,
   getEntityRevision,
 } from "@blockprotocol/graph/stdlib";
+import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
+import {
+  getClosedMultiEntityTypeFromMap,
+  getDisplayFieldsForClosedEntityType,
+} from "@local/hash-graph-sdk/entity";
+
+import { simplifyProperties } from "./simplify-properties.js";
+
+import type { Subgraph } from "@blockprotocol/graph";
 import type {
   BaseUrl,
   ClosedMultiEntityType,
@@ -11,18 +19,11 @@ import type {
   PartialEntityType,
   Property,
 } from "@blockprotocol/type-system";
-import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
-import {
-  getClosedMultiEntityTypeFromMap,
-  getDisplayFieldsForClosedEntityType,
-} from "@local/hash-graph-sdk/entity";
 import type {
   ClosedMultiEntityTypesDefinitions,
   ClosedMultiEntityTypesRootMap,
 } from "@local/hash-graph-sdk/ontology";
-
-import { simplifyProperties } from "./simplify-properties.js";
 
 const getLabelPropertyValue = (
   entity: {

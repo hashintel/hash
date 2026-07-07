@@ -1,4 +1,6 @@
-import type { DataType, OntologyTypeVersion } from "@blockprotocol/type-system";
+import { Box, Stack, Tooltip, Typography } from "@mui/material";
+import { useRef, useState } from "react";
+
 import {
   extractBaseUrl,
   extractVersion,
@@ -9,8 +11,6 @@ import {
   ArrowUpRightFromSquareRegularIcon,
   ArrowUpRightIcon,
 } from "@hashintel/design-system";
-import { Box, Stack, Tooltip, Typography } from "@mui/material";
-import { useRef, useState } from "react";
 
 import { generateLinkParameters } from "../../../shared/generate-link-parameters";
 import { Button, Link, Modal } from "../../../shared/ui";
@@ -19,6 +19,8 @@ import { CreateDataTypeForm } from "../create-data-type-form";
 import { useSlideStack } from "../slide-stack";
 import { useTextSize } from "../use-text-size";
 import { DataTypeDescription } from "./data-type-header/data-type-description";
+
+import type { DataType, OntologyTypeVersion } from "@blockprotocol/type-system";
 
 interface DataTypeHeaderProps {
   currentVersion: OntologyTypeVersion;

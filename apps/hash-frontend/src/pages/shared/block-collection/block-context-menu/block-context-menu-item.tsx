@@ -1,5 +1,4 @@
 import { faChevronRight } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@hashintel/design-system";
 import { ListItemIcon, ListItemText } from "@mui/material";
 import {
   bindFocus,
@@ -9,7 +8,6 @@ import {
   usePopupState,
 } from "material-ui-popup-state/hooks";
 import HoverPopover from "material-ui-popup-state/HoverPopover";
-import type { ReactElement, RefObject } from "react";
 import {
   cloneElement,
   forwardRef,
@@ -18,7 +16,11 @@ import {
   useState,
 } from "react";
 
+import { FontAwesomeIcon } from "@hashintel/design-system";
+
 import { MenuItem } from "../../../../shared/ui";
+
+import type { ReactElement, RefObject } from "react";
 
 type BlockContextMenuItemProps = {
   closeMenu: () => void;

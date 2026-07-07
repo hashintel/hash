@@ -1,11 +1,12 @@
+import { inferMetadataFromDocumentFlowDefinition } from "@local/hash-isomorphic-utils/flows/file-flow-definitions";
+import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
+
 import type { Entity, UserId, WebId } from "@blockprotocol/type-system";
 import type { TemporalClient } from "@local/hash-backend-utils/temporal";
-import { inferMetadataFromDocumentFlowDefinition } from "@local/hash-isomorphic-utils/flows/file-flow-definitions";
 import type {
   RunFlowWorkflowParams,
   RunFlowWorkflowResponse,
 } from "@local/hash-isomorphic-utils/flows/temporal-types";
-import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import type { File } from "@local/hash-isomorphic-utils/system-types/shared";
 
 export const triggerPdfAnalysisWorkflow = async ({

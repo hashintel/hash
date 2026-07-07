@@ -1,6 +1,4 @@
-import type { MutationHookOptions } from "@apollo/client";
 import { useMutation } from "@apollo/client";
-import type { Entity } from "@blockprotocol/type-system";
 import {
   Box,
   buttonClasses,
@@ -18,15 +16,8 @@ import {
   bindTrigger,
   usePopupState,
 } from "material-ui-popup-state/hooks";
-import type { FunctionComponent } from "react";
 import { useCallback, useMemo } from "react";
 
-import type {
-  AddEntityViewerMutation,
-  AddEntityViewerMutationVariables,
-  RemoveEntityViewerMutation,
-  RemoveEntityViewerMutationVariables,
-} from "../../../../graphql/api-types.gen";
 import { AuthorizationSubjectKind } from "../../../../graphql/api-types.gen";
 import {
   addEntityViewerMutation,
@@ -39,6 +30,16 @@ import { LockRegularIcon } from "../../../../shared/icons/lock-regular-icon";
 import { PersonBoothRegularIcon } from "../../../../shared/icons/person-booth-regular-icon";
 import { isEntityPageEntity } from "../../../../shared/is-of-type";
 import { Button, MenuItem } from "../../../../shared/ui";
+
+import type {
+  AddEntityViewerMutation,
+  AddEntityViewerMutationVariables,
+  RemoveEntityViewerMutation,
+  RemoveEntityViewerMutationVariables,
+} from "../../../../graphql/api-types.gen";
+import type { MutationHookOptions } from "@apollo/client";
+import type { Entity } from "@blockprotocol/type-system";
+import type { FunctionComponent } from "react";
 
 const PrivacyStatusMenuItem = styled(MenuItem)(({ theme }) => ({
   [`&.${menuItemClasses.selected}`]: {

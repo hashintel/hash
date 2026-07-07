@@ -1,28 +1,36 @@
-import type { WebId } from "@blockprotocol/type-system";
+import { Box, buttonClasses, styled, Typography } from "@mui/material";
+import { isUiNodeInputAttributes } from "@ory/integrations/ui";
+import { useRouter } from "next/router";
+import { useContext, useEffect, useMemo, useRef, useState } from "react";
+
 import { TextField } from "@hashintel/design-system";
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
-import { Box, buttonClasses, styled, Typography } from "@mui/material";
-import type { LoginFlow } from "@ory/client";
-import { isUiNodeInputAttributes } from "@ory/integrations/ui";
-import type { AxiosError } from "axios";
-import { useRouter } from "next/router";
-import type { FormEventHandler } from "react";
-import { useContext, useEffect, useMemo, useState } from "react";
 
 import { useHashInstance } from "../components/hooks/use-hash-instance";
 import { ArrowRightToBracketRegularIcon } from "../shared/icons/arrow-right-to-bracket-regular-icon";
 import { ArrowTurnDownLeftRegularIcon } from "../shared/icons/arrow-turn-down-left-regular-icon";
-import type { NextPageWithLayout } from "../shared/layout";
 import { getPlainLayout } from "../shared/layout";
-import type { ButtonProps } from "../shared/ui";
 import { Button, Link } from "../shared/ui";
 import { AuthHeading } from "./shared/auth-heading";
 import { useAuthInfo } from "./shared/auth-info-context";
 import { AuthLayout } from "./shared/auth-layout";
 import { AuthPaper } from "./shared/auth-paper";
-import { mustGetCsrfTokenFromFlow, oryKratosClient } from "./shared/ory-kratos";
+import { formatKratosMessage } from "./shared/format-kratos-message";
+import {
+  mustGetCsrfTokenFromFlow,
+  oryKratosClient,
+  uiPathForKratosBrowserRedirect,
+} from "./shared/ory-kratos";
+import { SsoProviderButtons } from "./shared/sso-provider-buttons";
 import { useKratosErrorHandler } from "./shared/use-kratos-flow-error-handler";
 import { WorkspaceContext } from "./shared/workspace-context";
+
+import type { NextPageWithLayout } from "../shared/layout";
+import type { ButtonProps } from "../shared/ui";
+import type { WebId } from "@blockprotocol/type-system";
+import type { LoginFlow } from "@ory/client";
+import type { AxiosError } from "axios";
+import type { FormEventHandler } from "react";
 
 const SignupButton = styled((props: ButtonProps) => (
   <Button variant="secondary" size="small" {...props} />
@@ -40,6 +48,38 @@ const SignupButton = styled((props: ButtonProps) => (
     },
   },
 }));
+
+const getSafeReturnToPath = (returnTo: string | undefined) => {
+  if (!returnTo) {
+    return undefined;
+  }
+
+  const frontendOrigin = new URL(frontendUrl).origin;
+  const redirectUrl = new URL(returnTo, frontendOrigin);
+  const redirectPath = redirectUrl.pathname;
+
+  if (redirectUrl.origin !== frontendOrigin) {
+    /**
+     * This isn't strictly necessary since we're only going to take the path
+     * (including query/hash), but useful to have the error reported
+     */
+    throw new Error(
+      `Someone tried to pass an external URL as a redirect: ${returnTo}`,
+    );
+  }
+
+  if (redirectPath.includes("\\") || redirectPath.includes("//")) {
+    /**
+     * next/router will error if these are included in the URL, but this makes
+     * the error more useful
+     */
+    throw new Error(
+      `Someone tried to pass a malformed URL as a redirect: ${returnTo}`,
+    );
+  }
+
+  return `${redirectPath}${redirectUrl.search}${redirectUrl.hash}`;
+};
 
 const SigninPage: NextPageWithLayout = () => {
   // Get ?flow=... from the URL
@@ -66,42 +106,8 @@ const SigninPage: NextPageWithLayout = () => {
       return undefined;
     }
 
-    const possiblyMaliciousRedirect =
-      typeof router.query.return_to === "string"
-        ? router.query.return_to
-        : undefined;
-
-    const redirectUrl = possiblyMaliciousRedirect
-      ? new URL(possiblyMaliciousRedirect, frontendUrl)
-      : undefined;
-
-    const redirectPath = redirectUrl?.pathname;
-
-    if (redirectUrl && redirectUrl.origin !== frontendUrl) {
-      /**
-       * This isn't strictly necessary since we're only going to take the pathname,
-       * but useful to have the error reported
-       */
-      throw new Error(
-        `Someone tried to pass an external URL as a redirect: ${possiblyMaliciousRedirect}`,
-      );
-    }
-
-    if (
-      redirectPath &&
-      (redirectPath.includes("\\") || redirectPath.includes("//"))
-    ) {
-      /**
-       * next/router will error if these are included in the URL, but this makes
-       * the error more useful
-       */
-      throw new Error(
-        `Someone tried to pass a malformed URL as a redirect: ${possiblyMaliciousRedirect}`,
-      );
-    }
-
-    return redirectPath;
-  }, [router]);
+    return getSafeReturnToPath(router.query.return_to);
+  }, [router.query.return_to]);
 
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
@@ -117,13 +123,25 @@ const SigninPage: NextPageWithLayout = () => {
   });
 
   useEffect(() => {
-    // If the router is not ready yet, or we already have a flow, do nothing.
-    if (!router.isReady || flow) {
+    if (!router.isReady) {
       return;
     }
 
-    // If ?flow=.. was in the URL, we fetch it
-    if (flowId) {
+    // Keep the current flow as long as it matches the AAL requested via the
+    // URL. After Kratos prompts for an AAL upgrade we navigate from `/signin`
+    // to `/signin?aal=aal2` without remounting — the loaded AAL1 flow would
+    // otherwise persist and the AAL2 form would never render.
+    const wantsAal2 = aal === "aal2";
+    const flowIsAal2 = flow?.requested_aal === "aal2";
+    if (flow && wantsAal2 === flowIsAal2) {
+      return;
+    }
+
+    // Fetch by `?flow=…` only on the first attempt (no flow loaded yet).
+    // Once we've loaded a flow and it turned out to be at the wrong AAL,
+    // the stale flow id must not be re-fetched in a loop — we fall through
+    // to creating a fresh flow at the correct AAL.
+    if (flowId && !flow) {
       oryKratosClient
         .getLoginFlow({ id: String(flowId) })
         .then(({ data }) => setFlow(data))
@@ -131,11 +149,11 @@ const SigninPage: NextPageWithLayout = () => {
       return;
     }
 
-    // Otherwise we initialize it
     oryKratosClient
       .createBrowserLoginFlow({
         refresh: Boolean(refresh),
         aal: aal ? String(aal) : undefined,
+        returnTo,
         loginChallenge:
           typeof loginChallenge === "string" ? loginChallenge : undefined,
       })
@@ -146,6 +164,7 @@ const SigninPage: NextPageWithLayout = () => {
     loginChallenge,
     router,
     router.isReady,
+    returnTo,
     aal,
     refresh,
     flow,
@@ -166,6 +185,26 @@ const SigninPage: NextPageWithLayout = () => {
       isUiNodeInputAttributes(attributes) &&
       attributes.name === "traits.emails",
   );
+
+  const identifierNode = flow?.ui.nodes.find(
+    ({ attributes }) =>
+      isUiNodeInputAttributes(attributes) && attributes.name === "identifier",
+  );
+
+  // Pre-fill email from Kratos flow (e.g., during account linking).
+  // Keyed on flow.id so it only runs once per flow, not on every re-render.
+  const passwordRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (identifierNode && isUiNodeInputAttributes(identifierNode.attributes)) {
+      const prefilled = identifierNode.attributes.value;
+      if (typeof prefilled === "string" && prefilled) {
+        setEmail(prefilled);
+        // Focus password field since email is already filled
+        requestAnimationFrame(() => passwordRef.current?.focus());
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally only on flow change
+  }, [flow?.id]);
 
   const passwordInputUiNode = flow?.ui.nodes.find(
     ({ attributes }) =>
@@ -210,7 +249,9 @@ const SigninPage: NextPageWithLayout = () => {
     }
 
     updateActiveWorkspaceWebId(authenticatedUser.accountId as WebId);
-    void router.push(returnTo ?? activeFlow.return_to ?? "/");
+    void router.push(
+      returnTo ?? getSafeReturnToPath(activeFlow.return_to) ?? "/",
+    );
   };
 
   const handleSubmit: FormEventHandler<HTMLFormElement> = (event) => {
@@ -260,7 +301,17 @@ const SigninPage: NextPageWithLayout = () => {
     void router
       // On submission, add the flow ID to the URL but do not navigate. This prevents the user losing
       // their data when they reload the page.
-      .push(`/signin?flow=${flow.id}`, undefined, { shallow: true })
+      .push(
+        {
+          pathname: "/signin",
+          query: {
+            ...(returnTo ? { return_to: returnTo } : {}),
+            flow: flow.id,
+          },
+        },
+        undefined,
+        { shallow: true },
+      )
       .then(() =>
         oryKratosClient
           .updateLoginFlow({
@@ -283,7 +334,16 @@ const SigninPage: NextPageWithLayout = () => {
               );
 
               if (redirectAction?.redirect_browser_to) {
-                void router.push(redirectAction.redirect_browser_to);
+                // Kratos's `redirect_browser_to` is built from
+                // `SERVE_PUBLIC_BASE_URL` and can point at a
+                // `/self-service/*/browser` path that no frontend route
+                // serves. Rewrite to the matching UI route when possible,
+                // otherwise fall through to whatever Kratos asked for.
+                const redirectTo =
+                  uiPathForKratosBrowserRedirect(
+                    redirectAction.redirect_browser_to,
+                  ) ?? redirectAction.redirect_browser_to;
+                void router.push(redirectTo);
                 return;
               }
 
@@ -295,9 +355,12 @@ const SigninPage: NextPageWithLayout = () => {
                 }>;
 
                 if (maybeAal2Error.response?.status === 403) {
-                  const redirectTo =
-                    maybeAal2Error.response.data.redirect_browser_to ??
-                    "/signin?aal=aal2";
+                  const kratosRedirect =
+                    maybeAal2Error.response.data.redirect_browser_to;
+                  const redirectTo = kratosRedirect
+                    ? (uiPathForKratosBrowserRedirect(kratosRedirect) ??
+                      kratosRedirect)
+                    : "/signin?aal=aal2";
 
                   void router.push(redirectTo);
                   return;
@@ -321,7 +384,7 @@ const SigninPage: NextPageWithLayout = () => {
       headerEndAdornment={
         <SignupButton
           endIcon={<ArrowRightToBracketRegularIcon />}
-          href="/signup"
+          href={returnTo?.startsWith("/signup") ? returnTo : "/signup"}
           disabled={!userSelfRegistrationIsEnabled}
         >
           Sign up
@@ -362,6 +425,35 @@ const SigninPage: NextPageWithLayout = () => {
               gap: 1,
             }}
           >
+            {flow?.ui.messages && flow.ui.messages.length > 0 && (
+              <Box
+                sx={{
+                  p: 2,
+                  borderRadius: 1,
+                  backgroundColor: ({ palette }) =>
+                    flow.ui.messages?.some((msg) => msg.type === "error")
+                      ? palette.red[10]
+                      : palette.blue[10],
+                  border: ({ palette }) =>
+                    `1px solid ${flow.ui.messages?.some((msg) => msg.type === "error") ? palette.red[30] : palette.blue[30]}`,
+                }}
+              >
+                {flow.ui.messages.map((message) => (
+                  <Typography
+                    key={message.id}
+                    variant="smallTextParagraphs"
+                    sx={{
+                      color: ({ palette }) =>
+                        message.type === "error"
+                          ? palette.red[80]
+                          : palette.blue[80],
+                    }}
+                  >
+                    {formatKratosMessage(message)}
+                  </Typography>
+                ))}
+              </Box>
+            )}
             {isAal2Flow ? (
               <>
                 <Typography sx={{ color: ({ palette }) => palette.gray[70] }}>
@@ -457,6 +549,7 @@ const SigninPage: NextPageWithLayout = () => {
                   label="Password"
                   type="password"
                   autoComplete="current-password"
+                  inputRef={passwordRef}
                   placeholder="Enter your password"
                   value={password}
                   onChange={({ target }) => setPassword(target.value)}
@@ -466,7 +559,9 @@ const SigninPage: NextPageWithLayout = () => {
                     )
                   }
                   helperText={passwordInputUiNode?.messages.map(
-                    ({ id, text }) => <Typography key={id}>{text}</Typography>,
+                    ({ id, text }) => (
+                      <Typography key={id}>{text}</Typography>
+                    ),
                   )}
                   required
                   inputProps={{ "data-1p-ignore": false }}
@@ -516,18 +611,22 @@ const SigninPage: NextPageWithLayout = () => {
                 {errorMessage}
               </Typography>
             ) : null}
-            {flow?.ui.messages?.map(({ text, id }) => (
-              <Typography key={id}>{text}</Typography>
-            ))}
           </Box>
         </AuthPaper>
-        <Box>
+        <Box sx={{ maxWidth: 350 }}>
           <Typography gutterBottom>
             <strong>No account?</strong> No problem.
           </Typography>
           <Button href="/signup" disabled={!userSelfRegistrationIsEnabled}>
             Create a free account
           </Button>
+          {flow ? (
+            <SsoProviderButtons
+              kind="login"
+              flow={flow}
+              onFlowError={handleFlowError}
+            />
+          ) : null}
         </Box>
       </Box>
     </AuthLayout>

@@ -1,0 +1,21 @@
+Expr#4294967040@32
+  ExprKind (Closure)
+    ClosureExpr#4294967040@32
+      ClosureSignature#4294967040@32
+        Generics#4294967040@4
+        ClosureParam#4294967040@12 (name: x)
+          Type#4294967040@11
+            TypeKind (Path)
+              Path#4294967040@11 (rooted: true)
+                PathSegment#4294967040@10 (name: kernel)
+                PathSegment#4294967040@10 (name: type)
+                PathSegment#4294967040@10 (name: Integer)
+        Type#4294967040@16
+          TypeKind (Infer)
+      Expr#4294967040@31
+        ExprKind (Field)
+          FieldExpr#4294967040@31 (field: 0)
+            Expr#4294967040@28
+              ExprKind (Path)
+                Path#4294967040@28 (rooted: false)
+                  PathSegment#4294967040@27 (name: x)

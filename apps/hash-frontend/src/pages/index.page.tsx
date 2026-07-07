@@ -1,16 +1,17 @@
 import { useQuery } from "@apollo/client";
 import { Stack } from "@mui/material";
 import { useRouter } from "next/router";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 
-import type { HasAccessToHashQuery } from "../graphql/api-types.gen";
 import { hasAccessToHashQuery } from "../graphql/queries/user.queries";
-import type { NextPageWithLayout } from "../shared/layout";
 import { getLayoutWithSidebar } from "../shared/layout";
 import { LoggedIn } from "./index.page/logged-in";
 import { LoggedOut } from "./index.page/logged-out";
 import { Waitlisted } from "./index.page/waitlisted";
 import { useAuthInfo } from "./shared/auth-info-context";
+
+import type { HasAccessToHashQuery } from "../graphql/api-types.gen";
+import type { NextPageWithLayout } from "../shared/layout";
 
 const Page: NextPageWithLayout = () => {
   const { authenticatedUser } = useAuthInfo();
@@ -29,9 +30,20 @@ const Page: NextPageWithLayout = () => {
     }
   }, [authenticatedUser, hasAccessToHashResponse]);
 
+  const shouldCompleteSignup =
+    !authenticatedUser?.accountSignupComplete && !!hasAccessToHash;
+
+  /**
+   * Send users who have access but haven't finished signup to `/signup`.
+   */
+  useEffect(() => {
+    if (shouldCompleteSignup) {
+      void push("/signup");
+    }
+  }, [shouldCompleteSignup, push]);
+
   if (!authenticatedUser?.accountSignupComplete) {
     if (hasAccessToHash) {
-      void push("/signup");
       return null;
     }
 

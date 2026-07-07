@@ -1,23 +1,25 @@
-import type {
-  ActorEntityUuid,
-  EntityTypeWithMetadata,
-  WebId,
-} from "@blockprotocol/type-system";
-import {
-  componentsFromVersionedUrl,
-  currentTimestamp,
-  parseOntologyTypeVersion,
-} from "@blockprotocol/type-system";
 import { GlobalStyles } from "@mui/system";
 import { Buffer } from "buffer/";
 import { useRouter } from "next/router";
 import { useMemo } from "react";
 
-import type { NextPageWithLayout } from "../../../../../shared/layout";
+import {
+  componentsFromVersionedUrl,
+  currentTimestamp,
+  parseOntologyTypeVersion,
+} from "@blockprotocol/type-system";
+
 import { getLayoutWithSidebar } from "../../../../../shared/layout";
 import { EntityType } from "../../../../shared/entity-type";
 import { useRouteNamespace } from "../../shared/use-route-namespace";
 import { getTypeBaseUrl } from "../shared/get-type-base-url";
+
+import type { NextPageWithLayout } from "../../../../../shared/layout";
+import type {
+  ActorEntityUuid,
+  EntityTypeWithMetadata,
+  WebId,
+} from "@blockprotocol/type-system";
 
 const Page: NextPageWithLayout = () => {
   const router = useRouter();

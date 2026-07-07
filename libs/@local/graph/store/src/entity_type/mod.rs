@@ -8,7 +8,8 @@ pub use self::{
         HasPermissionForEntityTypesParams, IncludeEntityTypeOption,
         IncludeResolvedEntityTypeOption, QueryEntityTypeSubgraphParams,
         QueryEntityTypeSubgraphResponse, QueryEntityTypesParams, QueryEntityTypesResponse,
-        UnarchiveEntityTypeParams, UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
+        SearchEntityTypesParams, SearchEntityTypesResponse, UnarchiveEntityTypeParams,
+        UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
     },
 };
 

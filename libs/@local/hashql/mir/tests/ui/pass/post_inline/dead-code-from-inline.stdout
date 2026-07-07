@@ -38,7 +38,7 @@ thunk select_branch:0() -> (Boolean) -> String {
 
     bb0(): {
         %0 = apply (select_branch:0 as FnPtr)
-        %1 = apply %0.0 %0.1 1
+        %1 = apply %0.0 %0.1 true
 
         return %1
     }
@@ -74,7 +74,7 @@ thunk select_branch:0() -> (Boolean) -> String {
     let %0: String
 
     bb0(): {
-        %0 = apply ({closure#4} as FnPtr) () 1
+        %0 = apply ({closure#4} as FnPtr) () true
 
         return %0
     }
@@ -113,7 +113,7 @@ thunk select_branch:0() -> (Boolean) -> String {
 
     bb0(): {
         %1 = ()
-        %2 = 1
+        %2 = true
 
         goto -> bb2()
     }

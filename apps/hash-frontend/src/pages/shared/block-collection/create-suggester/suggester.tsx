@@ -1,10 +1,11 @@
 import { useHotkeys } from "@mantine/hooks";
-import type { SxProps, Theme } from "@mui/material";
 import { Box, Typography } from "@mui/material";
-import type { ReactElement } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { SpinnerIcon } from "../../../../shared/icons";
+
+import type { SxProps, Theme } from "@mui/material";
+import type { ReactElement } from "react";
 
 export interface SuggesterProps<T> {
   options: T[];

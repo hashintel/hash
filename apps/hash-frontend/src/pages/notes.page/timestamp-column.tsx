@@ -1,6 +1,6 @@
-import { IconButton } from "@hashintel/design-system";
 import { Box } from "@mui/material";
-import type { FunctionComponent } from "react";
+
+import { IconButton } from "@hashintel/design-system";
 
 import { ArrowsFromLineRegularIcon } from "../../shared/icons/arrows-from-line-regular-icon";
 import { ArrowsToLineRegularIcon } from "../../shared/icons/arrows-to-line-regular-icon";
@@ -8,6 +8,8 @@ import { ChevronDownRegularIcon } from "../../shared/icons/chevron-down-regular-
 import { ChevronUpRegularIcon } from "../../shared/icons/chevron-up-regular-icon";
 import { TimestampCollectionHeading } from "./timestamp-collection-heading";
 import { TimestampCollectionSubheading } from "./timestamp-collection-subheading";
+
+import type { FunctionComponent } from "react";
 
 const timestampColumnWidth = 150;
 

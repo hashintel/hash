@@ -1,5 +1,3 @@
-import type { Entity } from "@blockprotocol/type-system";
-
 import { getLatestEntityById } from "../../../../graph/knowledge/primitive/entity";
 import {
   addBlockToBlockCollection,
@@ -7,12 +5,6 @@ import {
   removeBlockFromBlockCollection,
 } from "../../../../graph/knowledge/system-types/block-collection";
 import { exactlyOne } from "../../../../util";
-import type {
-  MutationUpdateBlockCollectionContentsArgs,
-  ResolverFn,
-  UpdateBlockCollectionContentsResult,
-} from "../../../api-types.gen";
-import type { LoggedInGraphQLContext } from "../../../context";
 import * as Error from "../../../error";
 import { graphQLContextToImpureGraphContext } from "../../util";
 import {
@@ -24,6 +16,14 @@ import {
   handleUpdateEntity,
   PlaceholderResultsMap,
 } from "./update-block-collection-actions";
+
+import type {
+  MutationUpdateBlockCollectionContentsArgs,
+  ResolverFn,
+  UpdateBlockCollectionContentsResult,
+} from "../../../api-types.gen";
+import type { LoggedInGraphQLContext } from "../../../context";
+import type { Entity } from "@blockprotocol/type-system";
 
 /**
  * @todo This operation should ideally be atomic in nature, either we do all

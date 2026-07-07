@@ -1,5 +1,8 @@
-import type { BoxProps } from "@mui/material";
 import { Box } from "@mui/material";
+ 
+import { useEffect, useRef, useState } from "react";
+
+import type { BoxProps } from "@mui/material";
 import type {
   BarSeriesOption,
   GraphSeriesOption,
@@ -35,12 +38,12 @@ import {
 } from "echarts/components";
 import * as echarts from "echarts/core";
 import { SVGRenderer } from "echarts/renderers";
+ 
 import type {
   GraphEdgeItemOption,
   GraphNodeItemOption,
 } from "echarts/types/src/chart/graph/GraphSeries";
 import type { FunctionComponent } from "react";
-import { useEffect, useRef, useState } from "react";
 
 export type Chart = echarts.ECharts;
 

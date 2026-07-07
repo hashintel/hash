@@ -1,17 +1,19 @@
 import { useMutation } from "@apollo/client";
-import { TextField } from "@hashintel/design-system";
-import type { ExternalInputRequest } from "@local/hash-isomorphic-utils/flows/types";
-import { submitExternalInputResponseMutation } from "@local/hash-isomorphic-utils/graphql/queries/flow.queries";
 import { Box, Typography } from "@mui/material";
 import { useState } from "react";
+
+import { TextField } from "@hashintel/design-system";
+import { submitExternalInputResponseMutation } from "@local/hash-isomorphic-utils/graphql/queries/flow.queries";
+
+import { Button } from "../../../../../../shared/ui/button";
+import { Modal } from "../../../../../../shared/ui/modal";
+import { useFlowRunsContext } from "../../../../../shared/flow-runs-context";
 
 import type {
   SubmitExternalInputResponseMutation,
   SubmitExternalInputResponseMutationVariables,
 } from "../../../../../../graphql/api-types.gen";
-import { Button } from "../../../../../../shared/ui/button";
-import { Modal } from "../../../../../../shared/ui/modal";
-import { useFlowRunsContext } from "../../../../../shared/flow-runs-context";
+import type { ExternalInputRequest } from "@local/hash-isomorphic-utils/flows/types";
 
 type QuestionModalProps = {
   inputRequest: ExternalInputRequest;

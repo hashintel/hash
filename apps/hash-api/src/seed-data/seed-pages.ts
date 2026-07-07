@@ -1,13 +1,13 @@
-import type { WebId } from "@blockprotocol/type-system";
-import type { Logger } from "@local/hash-backend-utils/logger";
-import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
-
-import type { ImpureGraphContext } from "../graph/context-types";
-import type { Page } from "../graph/knowledge/system-types/page";
 import {
   createPage,
   setPageParentPage,
 } from "../graph/knowledge/system-types/page";
+
+import type { ImpureGraphContext } from "../graph/context-types";
+import type { Page } from "../graph/knowledge/system-types/page";
+import type { WebId } from "@blockprotocol/type-system";
+import type { Logger } from "@local/hash-backend-utils/logger";
+import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
 
 export type PageDefinition = {
   title: string;

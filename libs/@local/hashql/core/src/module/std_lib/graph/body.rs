@@ -1,11 +1,10 @@
 use crate::{
-    heap::Heap,
     module::{
         StandardLibrary,
         locals::TypeDef,
         std_lib::{self, ModuleDef, StandardLibraryModule, core::func, decl},
     },
-    symbol::Symbol,
+    symbol::{Symbol, sym},
 };
 
 pub(in crate::module::std_lib) struct Body {
@@ -15,8 +14,8 @@ pub(in crate::module::std_lib) struct Body {
 impl<'heap> StandardLibraryModule<'heap> for Body {
     type Children = ();
 
-    fn name(heap: &'heap Heap) -> Symbol<'heap> {
-        heap.intern_symbol("body")
+    fn name() -> Symbol<'heap> {
+        sym::body
     }
 
     fn define(lib: &mut StandardLibrary<'_, 'heap>) -> ModuleDef<'heap> {
@@ -40,7 +39,7 @@ impl<'heap> StandardLibraryModule<'heap> for Body {
             ) -> lib.ty.apply([(graph_returns.arguments[0].id, T)], graph_returns.id)
         );
 
-        func(lib, &mut def, "::graph::body::filter", &[], decl);
+        func(&mut def, sym::path::graph_body_filter, [sym::filter], decl);
 
         def
     }

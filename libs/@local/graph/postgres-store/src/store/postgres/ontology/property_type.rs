@@ -25,10 +25,7 @@ use hash_graph_store::{
             TraversalEdge,
         },
         identifier::{DataTypeVertexId, GraphElementVertexId, PropertyTypeVertexId},
-        temporal_axes::{
-            PinnedTemporalAxisUnresolved, QueryTemporalAxes, QueryTemporalAxesUnresolved,
-            VariableAxis, VariableTemporalAxisUnresolved,
-        },
+        temporal_axes::{QueryTemporalAxes, QueryTemporalAxesUnresolved, VariableAxis},
     },
 };
 use hash_graph_temporal_versioning::{RightBoundedTemporalInterval, Timestamp, TransactionTime};
@@ -610,7 +607,7 @@ where
                 .attach_with(|| {
                     format!(
                         "could not insert references for property type: {}",
-                        &property_type.schema.id
+                        property_type.schema.id
                     )
                 })
                 .attach_opaque_with(|| property_type.schema.clone())?;
@@ -953,7 +950,7 @@ where
                 .attach_with(|| {
                     format!(
                         "could not insert references for property type: {}",
-                        &property_type.schema.id
+                        property_type.schema.id
                     )
                 })
                 .attach_opaque_with(|| property_type.schema.clone())?;
@@ -1152,11 +1149,7 @@ where
         authenticated_actor: AuthenticatedActor,
         params: HasPermissionForPropertyTypesParams<'_>,
     ) -> Result<HashSet<VersionedUrl>, Report<hash_graph_store::error::CheckPermissionError>> {
-        let temporal_axes = QueryTemporalAxesUnresolved::DecisionTime {
-            pinned: PinnedTemporalAxisUnresolved::new(None),
-            variable: VariableTemporalAxisUnresolved::new(None, None),
-        }
-        .resolve();
+        let temporal_axes = QueryTemporalAxesUnresolved::live_only().resolve();
         let mut compiler = SelectCompiler::new(Some(&temporal_axes), true);
 
         let property_type_uuids = params

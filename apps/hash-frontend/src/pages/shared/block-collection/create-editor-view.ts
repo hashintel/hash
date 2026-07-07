@@ -1,9 +1,9 @@
-import type { ApolloClient } from "@apollo/client";
-import type { EntityId, WebId } from "@blockprotocol/type-system";
-import type { ComponentIdHashBlockMap } from "@local/hash-isomorphic-utils/blocks";
+import debounce from "lodash/debounce";
+// import applyDevTools from "prosemirror-dev-tools";
+import { Plugin, PluginKey } from "prosemirror-state";
+
 import { paragraphBlockComponentId } from "@local/hash-isomorphic-utils/blocks-constants";
 import { createProseMirrorState } from "@local/hash-isomorphic-utils/create-prose-mirror-state";
-import type { BlockEntity } from "@local/hash-isomorphic-utils/entity";
 import {
   addEntityStoreAction,
   entityStorePluginState,
@@ -11,16 +11,8 @@ import {
 // import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 import { ProsemirrorManager } from "@local/hash-isomorphic-utils/prosemirror-manager";
 import { save } from "@local/hash-isomorphic-utils/save";
-import debounce from "lodash/debounce";
-// import applyDevTools from "prosemirror-dev-tools";
-import { Plugin, PluginKey } from "prosemirror-state";
-import type { EditorView } from "prosemirror-view";
-import type { RefObject } from "react";
 
-import type { SnackbarManager } from "../../../components/hooks/use-snackbar";
-import type { RenderPortal } from "./block-portals";
 import { BlockView } from "./block-view";
-import type { EditorConnection } from "./collab/editor-connection";
 import { ComponentView } from "./component-view";
 import { createErrorPlugin } from "./create-error-plugin";
 import { createFormatPlugins } from "./create-format-plugins";
@@ -30,6 +22,16 @@ import { createTextEditorView } from "./create-text-editor-view";
 import { createFocusPageTitlePlugin } from "./focus-page-title-plugin";
 import { LoadingView } from "./loading-view";
 import styles from "./style.module.css";
+
+import type { SnackbarManager } from "../../../components/hooks/use-snackbar";
+import type { RenderPortal } from "./block-portals";
+import type { EditorConnection } from "./collab/editor-connection";
+import type { ApolloClient } from "@apollo/client";
+import type { EntityId, WebId } from "@blockprotocol/type-system";
+import type { ComponentIdHashBlockMap } from "@local/hash-isomorphic-utils/blocks";
+import type { BlockEntity } from "@local/hash-isomorphic-utils/entity";
+import type { EditorView } from "prosemirror-view";
+import type { RefObject } from "react";
 
 const createSavePlugin = (
   pageEntityId: EntityId,

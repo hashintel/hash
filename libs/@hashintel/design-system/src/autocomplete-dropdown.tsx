@@ -1,8 +1,9 @@
-import type { PaperProps } from "@mui/material";
 import { autocompleteClasses, Box, Paper } from "@mui/material";
 
 import { popperPlacementSelectors } from "./popper-placement-modifier";
 import { textFieldBorderRadius } from "./theme";
+
+import type { PaperProps } from "@mui/material";
 
 export const AutocompleteDropdown = ({
   sx,

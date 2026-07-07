@@ -1,8 +1,9 @@
-import type { LinkProps } from "@mui/material";
 import { Link } from "@mui/material";
-import type { FunctionComponent } from "react";
 
 import { CircleQuestionIcon } from "./icons/circle-question";
+
+import type { LinkProps } from "@mui/material";
+import type { FunctionComponent } from "react";
 
 export type GetHelpProps = {
   href: string;

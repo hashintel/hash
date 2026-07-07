@@ -1,7 +1,16 @@
 import { useQuery } from "@apollo/client";
-import { getRoots } from "@blockprotocol/graph/stdlib";
-import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
 import { faAsterisk, faSearch } from "@fortawesome/free-solid-svg-icons";
+import {
+  Box,
+  InputAdornment,
+  ListItemIcon,
+  ListItemText,
+  MenuList,
+  Tooltip,
+} from "@mui/material";
+import { useCallback, useEffect, useMemo, useRef } from "react";
+
+import { getRoots } from "@blockprotocol/graph/stdlib";
 import {
   FontAwesomeIcon,
   LoadingSpinner,
@@ -12,29 +21,22 @@ import {
   type HashEntity,
 } from "@local/hash-graph-sdk/entity";
 import { convertBpFilterToGraphFilter } from "@local/hash-graph-sdk/filter";
-import type { EntityStoreType } from "@local/hash-isomorphic-utils/entity-store";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
-import {
-  Box,
-  InputAdornment,
-  ListItemIcon,
-  ListItemText,
-  MenuList,
-  Tooltip,
-} from "@mui/material";
-import type { PopupState } from "material-ui-popup-state/hooks";
-import type { FunctionComponent } from "react";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+
+import { queryEntitySubgraphQuery } from "../../../../graphql/queries/knowledge/entity.queries";
+import { entityHasEntityTypeByBaseUrlFilter } from "../../../../shared/filters";
+import { MenuItem } from "../../../../shared/ui";
+import { useBlockView } from "../block-view";
 
 import type {
   QueryEntitySubgraphQuery,
   QueryEntitySubgraphQueryVariables,
 } from "../../../../graphql/api-types.gen";
-import { queryEntitySubgraphQuery } from "../../../../graphql/queries/knowledge/entity.queries";
-import { entityHasEntityTypeByBaseUrlFilter } from "../../../../shared/filters";
-import { MenuItem } from "../../../../shared/ui";
-import { useBlockView } from "../block-view";
+import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
+import type { EntityStoreType } from "@local/hash-isomorphic-utils/entity-store";
+import type { PopupState } from "material-ui-popup-state/hooks";
+import type { FunctionComponent } from "react";
 
 type LoadEntityMenuContentProps = {
   blockEntityId: EntityId | null;

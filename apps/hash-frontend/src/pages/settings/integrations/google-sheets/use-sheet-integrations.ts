@@ -1,12 +1,14 @@
 import { useQuery } from "@apollo/client";
-import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { useMemo } from "react";
+
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
+
+import { queryEntitySubgraphQuery } from "../../../../graphql/queries/knowledge/entity.queries";
 
 import type {
   QueryEntitySubgraphQuery,
   QueryEntitySubgraphQueryVariables,
 } from "../../../../graphql/api-types.gen";
-import { queryEntitySubgraphQuery } from "../../../../graphql/queries/knowledge/entity.queries";
 
 export type UseSheetsFlows = {
   flows: [];

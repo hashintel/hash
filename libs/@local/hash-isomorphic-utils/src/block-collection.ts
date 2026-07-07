@@ -1,7 +1,5 @@
-import type { HashLinkEntity } from "@local/hash-graph-sdk/entity";
-import type { EntityTraversalPath } from "@rust/hash-graph-store/types";
-
 import { simplifyProperties } from "./simplify-properties.js";
+
 import type {
   HasSpatiallyPositionedContent,
   HasSpatiallyPositionedContentProperties,
@@ -10,6 +8,8 @@ import type {
   HasIndexedContent,
   HasIndexedContentProperties,
 } from "./system-types/shared.js";
+import type { HashLinkEntity } from "@local/hash-graph-sdk/entity";
+import type { EntityTraversalPath } from "@rust/hash-graph-store/types";
 
 /**
  * Get the `hasLeftEntity` and `hasRightEntity` resolve depths for a block

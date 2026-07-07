@@ -11,15 +11,15 @@ pub use self::kind::{AttachmentKind, FrameKind};
 
 /// A single context or attachment inside of a [`Report`].
 ///
-/// `Frame`s are organized as a singly linked list, which can be iterated by calling
-/// [`Report::frames()`]. The head contains the current context or attachment, and the tail contains
-/// the root context created by [`Report::new()`]. The next `Frame` can be accessed by requesting it
-/// by calling [`Report::request_ref()`].
+/// `Frame`s are organized as a tree, which can be traversed by calling [`Report::frames()`].
+/// The top contains the most recent context or attachment, the leaves contain the root contexts
+/// created by [`Report::new()`]. The `Frame`s below a frame can be accessed by calling
+/// [`sources()`].
 ///
 /// [`Report`]: crate::Report
 /// [`Report::frames()`]: crate::Report::frames
 /// [`Report::new()`]: crate::Report::new
-/// [`Report::request_ref()`]: crate::Report::request_ref
+/// [`sources()`]: Self::sources
 pub struct Frame {
     frame: Box<dyn FrameImpl>,
     sources: Box<[Self]>,

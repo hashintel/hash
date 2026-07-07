@@ -1,6 +1,4 @@
-import type { CodegenParameters } from "@blockprotocol/graph/codegen";
 import { codegen } from "@blockprotocol/graph/codegen";
-import type { VersionedUrl } from "@blockprotocol/type-system";
 
 import {
   blockProtocolEntityTypes,
@@ -9,6 +7,9 @@ import {
   systemEntityTypes,
 } from "./ontology-type-ids.js";
 import { slugify } from "./slugify.js";
+
+import type { CodegenParameters } from "@blockprotocol/graph/codegen";
+import type { VersionedUrl } from "@blockprotocol/type-system";
 
 const generateTypes = async (
   typeMap: Record<string, { entityTypeId: VersionedUrl }>,

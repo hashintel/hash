@@ -1,11 +1,10 @@
 use super::func;
 use crate::{
-    heap::Heap,
     module::{
         locals::TypeDef,
         std_lib::{ModuleDef, StandardLibrary, StandardLibraryModule, decl},
     },
-    symbol::Symbol,
+    symbol::{Symbol, sym},
 };
 
 pub(in crate::module::std_lib) struct Bits {
@@ -15,8 +14,8 @@ pub(in crate::module::std_lib) struct Bits {
 impl<'heap> StandardLibraryModule<'heap> for Bits {
     type Children = ();
 
-    fn name(heap: &'heap Heap) -> Symbol<'heap> {
-        heap.intern_symbol("bits")
+    fn name() -> Symbol<'heap> {
+        sym::bits
     }
 
     #[expect(non_snake_case)]
@@ -27,41 +26,41 @@ impl<'heap> StandardLibraryModule<'heap> for Bits {
 
         let items = [
             (
-                "::core::bits::and",
-                &["&"],
+                sym::path::core::bits::and,
+                &[sym::and, sym::symbol::ampersand],
                 decl!(lib; <>(lhs: Integer, rhs: Integer) -> Integer),
             ),
             (
-                "::core::bits::or",
-                &["|"],
+                sym::path::core::bits::or,
+                &[sym::or, sym::symbol::pipe],
                 decl!(lib; <>(lhs: Integer, rhs: Integer) -> Integer),
             ),
             (
-                "::core::bits::xor",
-                &["^"],
+                sym::path::core::bits::xor,
+                &[sym::xor, sym::symbol::caret],
                 decl!(lib; <>(lhs: Integer, rhs: Integer) -> Integer),
             ),
             (
-                "::core::bits::not",
-                &["~"],
+                sym::path::core::bits::not,
+                &[sym::not, sym::symbol::tilde],
                 decl!(lib; <>(value: Integer) -> Integer),
             ),
             (
-                "::core::bits::shl",
-                &["<<"],
+                sym::path::core::bits::shl,
+                &[sym::shl, sym::symbol::ltlt],
                 // In the future we might want to specialize the `shift` to `Natural`
                 decl!(lib; <>(value: Integer, shift: Integer) -> Integer),
             ),
             (
-                "::core::bits::shr",
-                &[">>"],
+                sym::path::core::bits::shr,
+                &[sym::shr, sym::symbol::gtgt],
                 // In the future we might want to specialize the `shift` to `Natural`
                 decl!(lib; <>(value: Integer, shift: Integer) -> Integer),
             ),
         ];
 
         for (name, alias, r#type) in items {
-            func(lib, &mut def, name, alias, r#type);
+            func(&mut def, name, alias.iter().copied(), r#type);
         }
 
         def

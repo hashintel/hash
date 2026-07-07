@@ -1,8 +1,9 @@
-import type { PropsWithChildren, RefObject } from "react";
 import { createContext, useCallback, useContext, useMemo } from "react";
 import { FullScreen, useFullScreenHandle } from "react-full-screen";
 
 import { useSlideStack } from "../../../slide-stack";
+
+import type { PropsWithChildren, RefObject } from "react";
 
 export type FullScreenContextType = {
   isFullScreen: boolean;

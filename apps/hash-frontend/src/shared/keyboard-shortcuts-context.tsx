@@ -1,4 +1,3 @@
-import type { FunctionComponent, PropsWithChildren } from "react";
 import {
   createContext,
   useCallback,
@@ -7,6 +6,8 @@ import {
   useMemo,
   useState,
 } from "react";
+
+import type { FunctionComponent, PropsWithChildren } from "react";
 
 export type KeyboardShortcut = {
   keys: string[];

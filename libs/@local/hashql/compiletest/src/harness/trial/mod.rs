@@ -1,7 +1,6 @@
-use core::{any::Any, fmt::Display};
+use core::{any::Any, fmt::Display, io::Cursor};
 use std::{
     fs::File,
-    io::Cursor,
     panic,
     path::{Path, PathBuf},
     time::Instant,
@@ -23,6 +22,7 @@ use hashql_diagnostics::{
 use hashql_syntax_jexpr::Parser;
 use line_index::LineIndex;
 use nextest_filtering::{BinaryQuery, EvalContext, Filterset, TestQuery};
+use nextest_metadata::TestCaseName;
 use similar_asserts::SimpleDiff;
 
 use self::stats::TrialSection;
@@ -205,6 +205,7 @@ impl Trial {
         let mut test_name = self.namespace.join("::");
         test_name.push_str("::");
         test_name.push_str(&self.annotations.directive.name);
+        let test_name = TestCaseName::new(&test_name);
 
         let matches = filterset.matches_test(
             &TestQuery {

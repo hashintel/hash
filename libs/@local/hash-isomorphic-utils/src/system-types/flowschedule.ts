@@ -49,10 +49,10 @@ import type {
   OutputDefinitionsPropertyValueWithMetadata,
   OutputsPropertyValue,
   OutputsPropertyValueWithMetadata,
-  PausedAtPropertyValue,
-  PausedAtPropertyValueWithMetadata,
   PauseOnFailurePropertyValue,
   PauseOnFailurePropertyValueWithMetadata,
+  PausedAtPropertyValue,
+  PausedAtPropertyValueWithMetadata,
   ScheduleCatchupWindowPropertyValue,
   ScheduleCatchupWindowPropertyValueWithMetadata,
   ScheduleOverlapPolicyDataType,
@@ -82,6 +82,8 @@ import type {
   UsesOutgoingLinksByLinkEntityTypeId,
   UsesProperties,
   UsesPropertiesWithMetadata,
+  ValueDataType,
+  ValueDataTypeWithMetadata,
 } from "./shared.js";
 
 export type {
@@ -164,4 +166,6 @@ export type {
   UsesOutgoingLinksByLinkEntityTypeId,
   UsesProperties,
   UsesPropertiesWithMetadata,
+  ValueDataType,
+  ValueDataTypeWithMetadata,
 };

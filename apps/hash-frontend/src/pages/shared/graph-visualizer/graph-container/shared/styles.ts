@@ -1,5 +1,6 @@
-import type { SxProps, Theme } from "@mui/material";
 import { outlinedInputClasses } from "@mui/material";
+
+import type { SxProps, Theme } from "@mui/material";
 
 export const selectSx: SxProps<Theme> = {
   [`.${outlinedInputClasses.root} .${outlinedInputClasses.input}`]: {

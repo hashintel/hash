@@ -5,7 +5,6 @@ import {
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
-import type { MigrationFunction } from "../types";
 import {
   createSystemDataTypeIfNotExists,
   createSystemEntityTypeIfNotExists,
@@ -14,6 +13,8 @@ import {
   getCurrentHashLinkEntityTypeId,
   getCurrentHashPropertyTypeId,
 } from "../util";
+
+import type { MigrationFunction } from "../types";
 
 const migrate: MigrationFunction = async ({
   context,
@@ -356,12 +357,11 @@ const migrate: MigrationFunction = async ({
     {
       entityTypeDefinition: {
         title: "Person",
-        /**
-         * @todo when updating this, add plural title and set SVG icon
-         */
-        icon: "👤",
+        titlePlural: "People",
+        icon: "/icons/types/person.svg",
         /** @todo improve this desc */
-        description: "A human being",
+        description:
+          "An individual, typically characterized by self-awareness, reasoning, and the capacity for relationships and culture.",
         labelProperty: blockProtocolPropertyTypes.name.propertyTypeBaseUrl,
         properties: [
           {
@@ -417,7 +417,7 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         title: "Doc",
         description: "A written work, such as a book or article.",
-        icon: "/types/icons/page-lines.svg",
+        icon: "/icons/types/book-open.svg",
         titlePlural: "Docs",
         labelProperty: systemPropertyTypes.title.propertyTypeBaseUrl,
         properties: [

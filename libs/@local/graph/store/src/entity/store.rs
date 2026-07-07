@@ -9,7 +9,7 @@ use hash_graph_authorization::policies::{
     principal::{PrincipalConstraint, actor::AuthenticatedActor},
 };
 use hash_graph_temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
-use hash_graph_types::knowledge::entity::EntityEmbedding;
+use hash_graph_types::{Embedding, knowledge::entity::EntityEmbedding};
 use serde::{Deserialize, Serialize};
 use type_system::{
     knowledge::{
@@ -37,7 +37,7 @@ use crate::{
     entity::{EntityQueryCursor, EntityQuerySorting, EntityValidationReport},
     entity_type::{EntityTypeResolveDefinitions, IncludeEntityTypeOption},
     error::{CheckPermissionError, DeletionError, InsertionError, QueryError, UpdateError},
-    filter::Filter,
+    filter::{Filter, SemanticDistance},
     subgraph::{
         Subgraph,
         edges::{
@@ -162,6 +162,11 @@ pub struct CreateEntityParams {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub policies: Vec<CreateEntityPolicyParams>,
     pub provenance: ProvidedEntityEditionProvenance,
+    /// Marks the entity read-only, blocking later updates and archival by user actors.
+    ///
+    /// Set once at creation, e.g. by a one-way integration sync.
+    #[serde(default)]
+    pub read_only: bool,
 }
 
 #[derive(Debug, Deserialize)]
@@ -189,7 +194,6 @@ pub struct QueryConversion<'a> {
 }
 
 #[derive(Debug)]
-#[expect(clippy::struct_excessive_bools, reason = "Parameter struct")]
 pub struct QueryEntitiesParams<'a> {
     pub filter: Filter<'a, Entity>,
     pub temporal_axes: QueryTemporalAxesUnresolved,
@@ -197,14 +201,46 @@ pub struct QueryEntitiesParams<'a> {
     pub conversions: Vec<QueryConversion<'a>>,
     pub limit: usize,
     pub include_drafts: bool,
-    pub include_count: bool,
     pub include_entity_types: Option<IncludeEntityTypeOption>,
-    pub include_web_ids: bool,
-    pub include_created_by_ids: bool,
-    pub include_edition_created_by_ids: bool,
-    pub include_type_ids: bool,
-    pub include_type_titles: bool,
     pub include_permissions: bool,
+}
+
+/// Parameters for [`EntityStore::search_entities`].
+///
+/// Results are ordered by ascending cosine distance to [`embedding`](Self::embedding). The query
+/// always runs against the current time and excludes archived entities.
+#[derive(Debug)]
+pub struct SearchEntitiesParams {
+    pub embedding: Embedding<'static>,
+    /// Upper bound on the cosine distance for a result to be included.
+    pub maximum_semantic_distance: SemanticDistance,
+    pub limit: usize,
+    /// When `true`, the response includes the closed multi-entity types of the results.
+    pub include_entity_types: bool,
+    pub filter: SearchEntitiesFilter,
+}
+
+/// Scope constraints for [`EntityStore::search_entities`].
+///
+/// Empty lists impose no restriction.
+#[derive(Debug, Default, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase", deny_unknown_fields, default)]
+pub struct SearchEntitiesFilter {
+    pub entity_type_ids: Vec<VersionedUrl>,
+    pub web_ids: Vec<WebId>,
+    pub include_drafts: bool,
+}
+
+/// Response for [`EntityStore::search_entities`].
+#[derive(Debug, Serialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase")]
+pub struct SearchEntitiesResponse {
+    pub entities: Vec<Entity>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
+    pub closed_multi_entity_types: Option<HashMap<VersionedUrl, ClosedMultiEntityTypeMap>>,
 }
 
 /// A recursive map structure representing a hierarchical combination of entity types.
@@ -261,28 +297,10 @@ pub struct QueryEntitiesResponse<'r> {
     pub cursor: Option<EntityQueryCursor<'r>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
-    pub count: Option<usize>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub closed_multi_entity_types: Option<HashMap<VersionedUrl, ClosedMultiEntityTypeMap>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub definitions: Option<EntityTypeResolveDefinitions>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
-    pub web_ids: Option<HashMap<WebId, usize>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
-    pub created_by_ids: Option<HashMap<ActorEntityUuid, usize>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
-    pub edition_created_by_ids: Option<HashMap<ActorEntityUuid, usize>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
-    pub type_ids: Option<HashMap<VersionedUrl, usize>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
-    pub type_titles: Option<HashMap<VersionedUrl, String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub permissions: Option<HashMap<EntityId, EntityPermissions>>,
@@ -413,25 +431,56 @@ impl<'a> QueryEntitySubgraphParams<'a> {
 pub struct QueryEntitySubgraphResponse<'r> {
     pub subgraph: Subgraph,
     pub cursor: Option<EntityQueryCursor<'r>>,
-    pub count: Option<usize>,
     pub closed_multi_entity_types: Option<HashMap<VersionedUrl, ClosedMultiEntityTypeMap>>,
     pub definitions: Option<EntityTypeResolveDefinitions>,
-    pub web_ids: Option<HashMap<WebId, usize>>,
-    pub created_by_ids: Option<HashMap<ActorEntityUuid, usize>>,
-    pub edition_created_by_ids: Option<HashMap<ActorEntityUuid, usize>>,
-    pub type_ids: Option<HashMap<VersionedUrl, usize>>,
-    pub type_titles: Option<HashMap<VersionedUrl, String>>,
     pub entity_permissions: Option<HashMap<EntityId, EntityPermissions>>,
 }
 
 #[derive(Debug, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct CountEntitiesParams<'a> {
+#[expect(clippy::struct_excessive_bools, reason = "Parameter struct")]
+pub struct SummarizeEntitiesParams<'a> {
     #[serde(borrow)]
     pub filter: Filter<'a, Entity>,
     pub temporal_axes: QueryTemporalAxesUnresolved,
     pub include_drafts: bool,
+    #[serde(default)]
+    pub include_count: bool,
+    #[serde(default)]
+    pub include_web_ids: bool,
+    #[serde(default)]
+    pub include_created_by_ids: bool,
+    #[serde(default)]
+    pub include_edition_created_by_ids: bool,
+    #[serde(default)]
+    pub include_type_ids: bool,
+    #[serde(default)]
+    pub include_type_titles: bool,
+}
+
+#[derive(Debug, Default, Serialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase")]
+pub struct SummarizeEntitiesResponse {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
+    pub count: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
+    pub web_ids: Option<HashMap<WebId, usize>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
+    pub created_by_ids: Option<HashMap<ActorEntityUuid, usize>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
+    pub edition_created_by_ids: Option<HashMap<ActorEntityUuid, usize>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
+    pub type_ids: Option<HashMap<VersionedUrl, usize>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
+    pub type_titles: Option<HashMap<VersionedUrl, String>>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -564,19 +613,9 @@ pub enum LinkDeletionBehavior {
 /// # use hash_graph_store::entity::DeleteEntitiesParams;
 /// let json = serde_json::json!({
 ///     "filter": {
-///         "all": [
-///             {
-///                 "equal": [
-///                     { "path": ["type(inheritanceDepth = 0)", "baseUrl"] },
-///                     { "parameter": "https://hash.ai/@hash/types/entity-type/user/" }
-///                 ]
-///             },
-///             {
-///                 "equal": [
-///                     { "path": ["type(inheritanceDepth = 0)", "version"] },
-///                     { "parameter": 1 }
-///                 ]
-///             }
+///         "equal": [
+///             { "path": ["type", "versionedUrl"] },
+///             { "parameter": "https://hash.ai/@hash/types/entity-type/user/v/1" }
 ///         ]
 ///     },
 ///     "temporalAxes": {
@@ -714,6 +753,17 @@ pub trait EntityStore {
         params: QueryEntitiesParams<'_>,
     ) -> impl Future<Output = Result<QueryEntitiesResponse<'static>, Report<QueryError>>> + Send;
 
+    /// Searches for entities by embedding similarity, ordered by ascending cosine distance.
+    ///
+    /// # Errors
+    ///
+    /// - if the requested [`Entities`][Entity] cannot be retrieved
+    fn search_entities(
+        &self,
+        actor_id: ActorEntityUuid,
+        params: SearchEntitiesParams,
+    ) -> impl Future<Output = Result<SearchEntitiesResponse, Report<QueryError>>> + Send;
+
     /// Get the [`Subgraph`]s specified by the [`QueryEntitySubgraphParams`].
     ///
     /// # Errors
@@ -725,18 +775,18 @@ pub trait EntityStore {
         params: QueryEntitySubgraphParams<'_>,
     ) -> impl Future<Output = Result<QueryEntitySubgraphResponse<'static>, Report<QueryError>>> + Send;
 
-    /// Count the number of entities that would be returned in [`query_entities`].
+    /// Summarizes the entities that would be returned in [`query_entities`].
     ///
     /// # Errors
     ///
     /// - if the request to the database fails
     ///
     /// [`query_entities`]: Self::query_entities
-    fn count_entities(
+    fn summarize_entities(
         &self,
         actor_id: ActorEntityUuid,
-        params: CountEntitiesParams<'_>,
-    ) -> impl Future<Output = Result<usize, Report<QueryError>>> + Send;
+        params: SummarizeEntitiesParams<'_>,
+    ) -> impl Future<Output = Result<SummarizeEntitiesResponse, Report<QueryError>>> + Send;
 
     fn get_entity_by_id(
         &self,

@@ -1,14 +1,15 @@
-import type { CustomCell, DrawArgs } from "@glideapps/glide-data-grid";
 import { customColors } from "@hashintel/design-system/theme";
+
+import { getChipColors } from "../../../pages/shared/chip-cell";
+import { getYCenter } from "../utils";
+import { drawChip } from "./draw-chip";
 
 import type {
   ChipCellColor,
   ChipCellVariant,
 } from "../../../pages/shared/chip-cell";
-import { getChipColors } from "../../../pages/shared/chip-cell";
-import { getYCenter } from "../utils";
 import type { CustomIcon } from "./custom-grid-icons";
-import { drawChip } from "./draw-chip";
+import type { CustomCell, DrawArgs } from "@glideapps/glide-data-grid";
 
 const filledIconCanvasCache: {
   [originalUrl: string]: {

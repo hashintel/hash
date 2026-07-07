@@ -1,9 +1,10 @@
 import { Box } from "@mui/material";
-import type { Node } from "prosemirror-model";
-import type { NodeView } from "prosemirror-view";
 
 import { BlockLoadingIndicator } from "../../../components/remote-block/remote-block";
+
 import type { RenderPortal } from "./block-portals";
+import type { Node } from "prosemirror-model";
+import type { NodeView } from "prosemirror-view";
 
 export const ProsemirrorLoadingState = () => {
   return (

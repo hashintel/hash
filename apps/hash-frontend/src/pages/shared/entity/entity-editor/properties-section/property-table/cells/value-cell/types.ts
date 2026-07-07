@@ -1,11 +1,10 @@
+import type { TooltipCellProps } from "../../../../../../../../components/grid/utils/use-grid-tooltip/types";
+import type { PropertyRow } from "../../types";
 import type { ClosedDataType } from "@blockprotocol/type-system";
 import type {
   CustomCell,
   ProvideEditorComponent,
 } from "@glideapps/glide-data-grid";
-
-import type { TooltipCellProps } from "../../../../../../../../components/grid/utils/use-grid-tooltip/types";
-import type { PropertyRow } from "../../types";
 
 export interface ValueCellProps extends TooltipCellProps {
   readonly kind: "value-cell";

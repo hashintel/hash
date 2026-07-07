@@ -1,10 +1,9 @@
 use crate::{
-    heap::Heap,
     module::{
         StandardLibrary,
-        std_lib::{self, ItemDef, ModuleDef, StandardLibraryModule, core::option::option},
+        std_lib::{self, ItemDef, ModuleDef, StandardLibraryModule, core::option::types::option},
     },
-    symbol::Symbol,
+    symbol::{Symbol, sym},
 };
 
 pub(in crate::module::std_lib) struct EntityType {
@@ -17,8 +16,8 @@ pub(in crate::module::std_lib) struct EntityType {
 impl<'heap> StandardLibraryModule<'heap> for EntityType {
     type Children = ();
 
-    fn name(heap: &'heap Heap) -> Symbol<'heap> {
-        heap.intern_symbol("entity_type")
+    fn name() -> Symbol<'heap> {
+        sym::entity_type
     }
 
     fn define(lib: &mut StandardLibrary<'_, 'heap>) -> ModuleDef<'heap> {
@@ -31,7 +30,7 @@ impl<'heap> StandardLibraryModule<'heap> for EntityType {
             .expect_newtype(heap.intern_symbol("WebId"));
         let entity_type_metadata_ty = lib.ty.opaque(
             "::graph::types::ontology::entity_type::EntityTypeMetadata",
-            lib.ty.r#struct([("web_id", option(lib, web_id.id))]),
+            lib.ty.r#struct([("web_id", option(&lib.ty, web_id.id))]),
         );
         def.push(
             heap.intern_symbol("EntityTypeMetadata"),

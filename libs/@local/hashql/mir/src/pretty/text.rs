@@ -80,6 +80,18 @@ pub trait TextFormatAnnotations {
     where
         Self: 'this;
 
+    /// The type of annotation displayed after basic blocks.
+    type BasicBlockAnnotation<'this, 'heap>: Display
+        = !
+    where
+        Self: 'this;
+
+    /// The type of annotation displayed after terminators.
+    type TerminatorAnnotation<'this, 'heap>: Display
+        = !
+    where
+        Self: 'this;
+
     /// Returns an optional annotation for the given statement at `location`.
     #[expect(unused_variables, reason = "trait definition")]
     fn annotate_statement<'heap>(
@@ -87,6 +99,15 @@ pub trait TextFormatAnnotations {
         location: Location,
         statement: &Statement<'heap>,
     ) -> Option<Self::StatementAnnotation<'_, 'heap>> {
+        None
+    }
+
+    #[expect(unused_variables, reason = "trait definition")]
+    fn annotate_terminator<'heap>(
+        &self,
+        location: Location,
+        terminator: &Terminator<'heap>,
+    ) -> Option<Self::TerminatorAnnotation<'_, 'heap>> {
         None
     }
 
@@ -99,9 +120,70 @@ pub trait TextFormatAnnotations {
     ) -> Option<Self::DeclarationAnnotation<'_, 'heap>> {
         None
     }
+
+    /// Returns an optional annotation for the given basic block.
+    #[expect(unused_variables, reason = "trait definition")]
+    fn annotate_basic_block<'heap>(
+        &self,
+        id: BasicBlockId,
+        block: &BasicBlock<'heap>,
+    ) -> Option<Self::BasicBlockAnnotation<'_, 'heap>> {
+        None
+    }
 }
 
 impl TextFormatAnnotations for () {}
+
+impl<T: TextFormatAnnotations> TextFormatAnnotations for &mut T {
+    type BasicBlockAnnotation<'this, 'heap>
+        = T::BasicBlockAnnotation<'this, 'heap>
+    where
+        Self: 'this;
+    type DeclarationAnnotation<'this, 'heap>
+        = T::DeclarationAnnotation<'this, 'heap>
+    where
+        Self: 'this;
+    type StatementAnnotation<'this, 'heap>
+        = T::StatementAnnotation<'this, 'heap>
+    where
+        Self: 'this;
+    type TerminatorAnnotation<'this, 'heap>
+        = T::TerminatorAnnotation<'this, 'heap>
+    where
+        Self: 'this;
+
+    fn annotate_statement<'heap>(
+        &self,
+        location: Location,
+        statement: &Statement<'heap>,
+    ) -> Option<Self::StatementAnnotation<'_, 'heap>> {
+        (**self).annotate_statement(location, statement)
+    }
+
+    fn annotate_terminator<'heap>(
+        &self,
+        location: Location,
+        terminator: &Terminator<'heap>,
+    ) -> Option<Self::TerminatorAnnotation<'_, 'heap>> {
+        (**self).annotate_terminator(location, terminator)
+    }
+
+    fn annotate_local_decl<'heap>(
+        &self,
+        local: Local,
+        declaration: &LocalDecl<'heap>,
+    ) -> Option<Self::DeclarationAnnotation<'_, 'heap>> {
+        (**self).annotate_local_decl(local, declaration)
+    }
+
+    fn annotate_basic_block<'heap>(
+        &self,
+        id: BasicBlockId,
+        block: &BasicBlock<'heap>,
+    ) -> Option<Self::BasicBlockAnnotation<'_, 'heap>> {
+        (**self).annotate_basic_block(id, block)
+    }
+}
 
 /// Configuration for constructing a [`TextFormat`] formatter.
 pub struct TextFormatOptions<W, S, T, A> {
@@ -167,6 +249,14 @@ impl<W, S, T, A> TextFormat<W, S, T, A> {
             annotations,
             line_buffer: Vec::new(),
         }
+    }
+
+    /// Swaps in a new annotation provider and returns the old one.
+    ///
+    /// Useful when formatting multiple bodies in sequence where each body needs
+    /// different annotation context (e.g. per-body execution analysis results).
+    pub const fn replace_annotations(&mut self, annotations: A) -> A {
+        core::mem::replace(&mut self.annotations, annotations)
     }
 }
 
@@ -414,6 +504,14 @@ where
         write!(self.line_buffer, "{id}(")?;
         self.csv(block.params.iter().copied())?;
         write!(self.line_buffer, "): {{")?;
+        if let Some(annotation) = self.annotations.annotate_basic_block(id, block) {
+            // We estimate that we never exceed 80 columns, calculate the remaining width, if we
+            // don't have enough space, we add 4 spaces breathing room.
+            let remaining_width = 80_usize.checked_sub(self.line_buffer.len()).unwrap_or(4);
+            self.line_buffer
+                .resize(self.line_buffer.len() + remaining_width, b' ');
+            write!(self.line_buffer, "// {annotation}")?;
+        }
         self.newline()?;
 
         let mut location = Location {
@@ -432,8 +530,9 @@ where
             self.newline()?;
         }
 
+        location.statement_index += 1;
         self.indent(2)?;
-        self.format_part(&block.terminator)?;
+        self.format_part((location, &block.terminator))?;
         self.newline()?;
 
         self.indent(1)?;
@@ -709,14 +808,31 @@ where
     }
 }
 
-impl<'heap, W, S, T, A> FormatPart<&Terminator<'heap>> for TextFormat<W, S, T, A>
+impl<'heap, W, S, T, A> FormatPart<(Location, &Terminator<'heap>)> for TextFormat<W, S, T, A>
 where
     W: io::Write,
     S: SourceLookup<'heap>,
+    A: TextFormatAnnotations,
 {
-    fn format_part(&mut self, Terminator { span: _, kind }: &Terminator<'heap>) -> io::Result<()> {
+    fn format_part(
+        &mut self,
+        (location, terminator @ Terminator { span: _, kind }): (Location, &Terminator<'heap>),
+    ) -> io::Result<()> {
         self.format_part(TerminatorHead(kind))?;
-        self.format_part(TerminatorTail(kind))
+        self.format_part(TerminatorTail(kind))?;
+
+        let Some(annotation) = self.annotations.annotate_terminator(location, terminator) else {
+            return Ok(());
+        };
+
+        // We estimate that we never exceed 80 columns, calculate the remaining width, if we don't
+        // have enough space, we add 4 spaces breathing room.
+        let remaining_width = 80_usize.checked_sub(self.line_buffer.len()).unwrap_or(4);
+        self.line_buffer
+            .resize(self.line_buffer.len() + remaining_width, b' ');
+        write!(self.line_buffer, "// {annotation}")?;
+
+        Ok(())
     }
 }
 

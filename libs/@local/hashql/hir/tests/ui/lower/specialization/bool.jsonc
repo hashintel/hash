@@ -1,6 +1,6 @@
 //@ run: pass
 //@ description: Test boolean specialization
-// biome-ignore format: readability
+// prettier-ignore
 ["let", "and", ["&&", { "#literal": true }, { "#literal": false }],
 ["let", "or", ["||", { "#literal": true }, { "#literal": false }],
 "and"

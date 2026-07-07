@@ -1,0 +1,9 @@
+//@ run: fail
+//@ description: labeled arguments are not allowed in `as`
+[
+  "::kernel::special_form::as",
+  { "#literal": 1 },
+  "Integer",
+  { ":extra": { "#literal": 0 } }
+  //~^ ERROR labeled arguments are not allowed in `as`
+]

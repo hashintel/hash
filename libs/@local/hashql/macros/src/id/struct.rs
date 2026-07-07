@@ -201,7 +201,7 @@ pub(super) fn expand_struct(
 
         #[automatically_derived]
         #[expect(clippy::cast_possible_truncation, clippy::cast_lossless)]
-        impl #konst #krate::id::Id for #name {
+        #konst impl #krate::id::Id for #name {
             const MIN: Self = Self::new(#min);
             const MAX: Self = Self::new(#max_value);
 

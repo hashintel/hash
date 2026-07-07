@@ -1,0 +1,14 @@
+error[expander::unresolved-variable]: Unresolved variable
+  ╭▸ 
+3 │ ["::kernel::special_form::access", "data", { "#literal": 18446744073709551616 }]
+  │                                     ━━━━ cannot find value `data` in this scope
+  │
+  ├ help: check the spelling, or import the name with a `use` statement
+  ╰ note: this could be a typo, a name used outside its scope, or a missing declaration; if it is a function or type from another module, you may need to import it first
+
+error[expander::field-index-out-of-bounds]: Field index out of bounds
+  ╭▸ 
+3 │ ["::kernel::special_form::access", "data", { "#literal": 18446744073709551616 }]
+  │                                                          ━━━━━━━━━━━━━━━━━━━━ field index is out of bounds
+  │
+  ╰ help: use a non-negative integer that fits within platform bounds

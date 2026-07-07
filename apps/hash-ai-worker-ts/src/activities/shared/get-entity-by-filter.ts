@@ -1,7 +1,8 @@
-import type { ActorEntityUuid } from "@blockprotocol/type-system";
-import type { Filter, GraphApi } from "@local/hash-graph-client";
 import { type HashEntity, queryEntities } from "@local/hash-graph-sdk/entity";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
+
+import type { ActorEntityUuid } from "@blockprotocol/type-system";
+import type { Filter, GraphApi } from "@local/hash-graph-client";
 
 export const getEntityByFilter = async ({
   actorId,

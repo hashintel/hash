@@ -1,13 +1,14 @@
 import { useTheme } from "@mui/material";
-import { useRouter } from "next/router";
-import type { DefaultSeoProps } from "next-seo";
 import { DefaultSeo } from "next-seo";
+import { useRouter } from "next/router";
 import NextNProgress from "nextjs-progressbar";
-import type { FunctionComponent, ReactNode } from "react";
 
 import { isProduction } from "../../lib/config";
 import { useAuthInfo } from "../../pages/shared/auth-info-context";
 import { CommandBar } from "../command-bar";
+
+import type { DefaultSeoProps } from "next-seo";
+import type { FunctionComponent, ReactNode } from "react";
 
 const defaultSeoProps: DefaultSeoProps = {
   defaultTitle: "HASH",

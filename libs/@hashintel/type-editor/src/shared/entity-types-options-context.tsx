@@ -1,12 +1,13 @@
+import { createContext, useContext, useMemo } from "react";
+
+import { linkEntityTypeUrl } from "./urls";
+
 import type {
   EntityTypeReference,
   EntityTypeWithMetadata,
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import type { PropsWithChildren } from "react";
-import { createContext, useContext, useMemo } from "react";
-
-import { linkEntityTypeUrl } from "./urls";
 
 export type EntityTypesByVersionedUrl = Record<
   VersionedUrl,

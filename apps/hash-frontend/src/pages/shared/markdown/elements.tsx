@@ -1,4 +1,3 @@
-import type { SxProps, Theme } from "@mui/material";
 import {
   Box,
   List,
@@ -8,10 +7,12 @@ import {
   Typography,
   typographyClasses,
 } from "@mui/material";
-import type { HTMLAttributes, HTMLProps, ReactNode } from "react";
 import { isValidElement } from "react";
 
 import { Snippet } from "./elements/snippet";
+
+import type { SxProps, Theme } from "@mui/material";
+import type { HTMLAttributes, HTMLProps, ReactNode } from "react";
 
 const ParagraphSxProps: SxProps<Theme> = {
   color: (theme) => theme.palette.gray[40],

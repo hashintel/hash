@@ -1,7 +1,3 @@
-import type { CreateFlowActivities } from "@local/hash-backend-utils/flows";
-import type { VaultClient } from "@local/hash-backend-utils/vault";
-import type { AiFlowActionDefinitionId } from "@local/hash-isomorphic-utils/flows/action-definitions";
-
 import { analyzeEntityDataAction } from "./flow-activities/analyze-entity-data-action.js";
 import { answerQuestionAction } from "./flow-activities/answer-question-action.js";
 import { generateChartConfigAction } from "./flow-activities/generate-chart-config-action.js";
@@ -19,6 +15,10 @@ import { processAutomaticBrowsingSettingsAction } from "./flow-activities/proces
 import { researchEntitiesAction } from "./flow-activities/research-entities-action.js";
 import { webSearchAction } from "./flow-activities/web-search-action.js";
 import { writeGoogleSheetAction } from "./flow-activities/write-google-sheet-action.js";
+
+import type { CreateFlowActivities } from "@local/hash-backend-utils/flows";
+import type { VaultClient } from "@local/hash-backend-utils/vault";
+import type { AiFlowActionDefinitionId } from "@local/hash-isomorphic-utils/flows/action-definitions";
 
 export const createFlowActionActivities: CreateFlowActivities<
   AiFlowActionDefinitionId

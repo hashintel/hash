@@ -1,8 +1,14 @@
-import type {
-  BaseUrl,
-  DataType,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
+import { Autocomplete, Paper, Typography } from "@mui/material";
+import { useMemo, useRef, useState } from "react";
+import {
+  FormProvider,
+  useController,
+  useForm,
+  useFormContext,
+  useWatch,
+} from "react-hook-form";
+import { useOutsideClickRef } from "rooks";
+
 import {
   Button,
   Chip,
@@ -15,28 +21,24 @@ import { fluidFontClassName } from "@hashintel/design-system/theme";
 import { buildDataTypeTreesForSelector } from "@local/hash-isomorphic-utils/data-types";
 // eslint-disable-next-line no-restricted-imports -- TODO needs fixing to use this package outside the repo
 import { blockProtocolDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { Autocomplete, Paper, Typography } from "@mui/material";
-import { useMemo, useRef, useState } from "react";
-import {
-  FormProvider,
-  useController,
-  useForm,
-  useFormContext,
-  useWatch,
-} from "react-hook-form";
-import { useOutsideClickRef } from "rooks";
 
 import { useDataTypesOptions } from "../../../shared/data-types-options-context";
 import { getExpectedValueDescriptor } from "../shared/get-expected-value-descriptor";
-import type { PropertyTypeFormValues } from "../shared/property-type-form-values";
 import { CustomExpectedValueBuilder } from "./expected-value-selector/custom-expected-value-builder";
 import { ExpectedValueChip } from "./expected-value-selector/expected-value-chip";
-import type { ExpectedValueSelectorContextValue } from "./expected-value-selector/shared/expected-value-selector-context";
 import {
   ExpectedValueSelectorContext,
   useExpectedValueSelectorContext,
 } from "./expected-value-selector/shared/expected-value-selector-context";
+
+import type { PropertyTypeFormValues } from "../shared/property-type-form-values";
+import type { ExpectedValueSelectorContextValue } from "./expected-value-selector/shared/expected-value-selector-context";
 import type { ExpectedValueSelectorFormValues } from "./expected-value-selector/shared/expected-value-selector-form-values";
+import type {
+  BaseUrl,
+  DataType,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 
 const ExpectedValueSelectorDropdown = () => {
   const {

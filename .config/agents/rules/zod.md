@@ -32,23 +32,26 @@ Zod v4 stores metadata in registries (primarily `z.globalRegistry`). Use `.meta(
 
 ```typescript
 // ✅ Correct - .meta() at end of chain
-z.string().min(1).max(100).meta({ description: "User's full name", label: "Name" })
+z.string()
+  .min(1)
+  .max(100)
+  .meta({ description: "User's full name", label: "Name" });
 
 // ✅ Correct - .describe() shorthand for description only
-z.string().email().describe("Primary email address")
+z.string().email().describe("Primary email address");
 
 // ❌ Wrong - metadata lost because .optional() creates new instance
-z.string().meta({ description: "Lost!" }).optional()
+z.string().meta({ description: "Lost!" }).optional();
 ```
 
 **Annotating object properties:**
 
 ```typescript
 const userSchema = z.object({
-  email: z.string().email().meta({ 
+  email: z.string().email().meta({
     description: "Used for login",
     label: "Email Address",
-    placeholder: "you@example.com"
+    placeholder: "you@example.com",
   }),
   age: z.number().min(0).describe("User's age in years"),
 });

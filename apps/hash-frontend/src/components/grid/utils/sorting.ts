@@ -1,6 +1,5 @@
-import type { SizedGridColumn } from "@glideapps/glide-data-grid";
-
 import type { GridRow } from "../grid";
+import type { SizedGridColumn } from "@glideapps/glide-data-grid";
 
 export type ColumnSortDirection = "asc" | "desc";
 

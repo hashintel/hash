@@ -8,10 +8,11 @@ use hash_graph_store::{
     },
     error::DeletionError,
     filter::Filter,
+    subgraph::temporal_axes::QueryTemporalAxesUnresolved,
 };
 
 use crate::{
-    DatabaseTestWrapper, alice, bob, count_entity, create_link, create_person, find_all_axes,
+    DatabaseTestWrapper, alice, bob, count_entities, create_link, create_person,
     get_deletion_provenance, has_any_live_temporal_row, has_archived_provenance, is_entity_live,
     provenance, raw_count, raw_count_archived_temporal_rows, raw_count_entity_edge,
     raw_count_entity_edge_any, raw_entity_ids_exists, seed,
@@ -44,7 +45,7 @@ async fn purge_error_rejects_with_incoming_links() {
                 scope: DeletionScope::Purge {
                     link_behavior: LinkDeletionBehavior::Error,
                 },
-                temporal_axes: crate::live_only_axes(),
+                temporal_axes: QueryTemporalAxesUnresolved::live_only(),
                 decision_time: None,
             },
         )
@@ -57,7 +58,7 @@ async fn purge_error_rejects_with_incoming_links() {
     );
 
     // Entity B must be completely intact after the error (transaction rolled back)
-    assert!(count_entity(&api, id_b, false).await >= 1);
+    assert!(count_entities(&api, id_b, false).await >= 1);
     assert!(raw_entity_ids_exists(&api, id_b.web_id, id_b.entity_uuid).await);
     assert!(
         get_deletion_provenance(&api, id_b.web_id, id_b.entity_uuid)
@@ -95,7 +96,7 @@ async fn purge_ignore_succeeds_with_incoming_links() {
                 scope: DeletionScope::Purge {
                     link_behavior: LinkDeletionBehavior::Ignore,
                 },
-                temporal_axes: crate::live_only_axes(),
+                temporal_axes: QueryTemporalAxesUnresolved::live_only(),
                 decision_time: None,
             },
         )
@@ -148,7 +149,7 @@ async fn erase_rejects_with_incoming_links() {
                 filter: Filter::for_entity_by_entity_id(id_b),
                 include_drafts: false,
                 scope: DeletionScope::Erase,
-                temporal_axes: crate::live_only_axes(),
+                temporal_axes: QueryTemporalAxesUnresolved::live_only(),
                 decision_time: None,
             },
         )
@@ -161,7 +162,7 @@ async fn erase_rejects_with_incoming_links() {
     );
 
     // Entity B must be completely intact after the error (transaction rolled back)
-    assert!(count_entity(&api, id_b, false).await >= 1);
+    assert!(count_entities(&api, id_b, false).await >= 1);
     assert!(raw_entity_ids_exists(&api, id_b.web_id, id_b.entity_uuid).await);
     assert!(
         get_deletion_provenance(&api, id_b.web_id, id_b.entity_uuid)
@@ -215,7 +216,7 @@ async fn purge_link_entity_removes_all_edges() {
                 scope: DeletionScope::Purge {
                     link_behavior: LinkDeletionBehavior::Ignore,
                 },
-                temporal_axes: crate::live_only_axes(),
+                temporal_axes: QueryTemporalAxesUnresolved::live_only(),
                 decision_time: None,
             },
         )
@@ -289,7 +290,7 @@ async fn self_referential_batch_not_counted() {
                 scope: DeletionScope::Purge {
                     link_behavior: LinkDeletionBehavior::Error,
                 },
-                temporal_axes: crate::live_only_axes(),
+                temporal_axes: QueryTemporalAxesUnresolved::live_only(),
                 decision_time: None,
             },
         )
@@ -364,7 +365,7 @@ async fn draft_deletion_skips_link_check() {
                 scope: DeletionScope::Purge {
                     link_behavior: LinkDeletionBehavior::Error,
                 },
-                temporal_axes: crate::live_only_axes(),
+                temporal_axes: QueryTemporalAxesUnresolved::live_only(),
                 decision_time: None,
             },
         )
@@ -381,7 +382,7 @@ async fn draft_deletion_skips_link_check() {
     );
 
     // Published B still exists
-    assert!(count_entity(&api, id_b, false).await >= 1);
+    assert!(count_entities(&api, id_b, false).await >= 1);
 
     // Link L→B still valid
     assert!(raw_count_entity_edge_any(&api, id_link.web_id, id_link.entity_uuid).await > 0);
@@ -425,7 +426,7 @@ async fn incoming_link_count_is_accurate() {
                 scope: DeletionScope::Purge {
                     link_behavior: LinkDeletionBehavior::Error,
                 },
-                temporal_axes: crate::live_only_axes(),
+                temporal_axes: QueryTemporalAxesUnresolved::live_only(),
                 decision_time: None,
             },
         )
@@ -466,7 +467,7 @@ async fn self_loop_link() {
                 scope: DeletionScope::Purge {
                     link_behavior: LinkDeletionBehavior::Error,
                 },
-                temporal_axes: crate::live_only_axes(),
+                temporal_axes: QueryTemporalAxesUnresolved::live_only(),
                 decision_time: None,
             },
         )
@@ -492,7 +493,7 @@ async fn self_loop_link() {
                 scope: DeletionScope::Purge {
                     link_behavior: LinkDeletionBehavior::Error,
                 },
-                temporal_axes: crate::live_only_axes(),
+                temporal_axes: QueryTemporalAxesUnresolved::live_only(),
                 decision_time: None,
             },
         )
@@ -542,7 +543,7 @@ async fn chain_deletion() {
                 scope: DeletionScope::Purge {
                     link_behavior: LinkDeletionBehavior::Error,
                 },
-                temporal_axes: crate::live_only_axes(),
+                temporal_axes: QueryTemporalAxesUnresolved::live_only(),
                 decision_time: None,
             },
         )
@@ -565,7 +566,7 @@ async fn chain_deletion() {
                 scope: DeletionScope::Purge {
                     link_behavior: LinkDeletionBehavior::Ignore,
                 },
-                temporal_axes: crate::live_only_axes(),
+                temporal_axes: QueryTemporalAxesUnresolved::live_only(),
                 decision_time: None,
             },
         )
@@ -617,7 +618,7 @@ async fn bidirectional_links() {
                 scope: DeletionScope::Purge {
                     link_behavior: LinkDeletionBehavior::Error,
                 },
-                temporal_axes: crate::live_only_axes(),
+                temporal_axes: QueryTemporalAxesUnresolved::live_only(),
                 decision_time: None,
             },
         )
@@ -645,7 +646,7 @@ async fn bidirectional_links() {
                 scope: DeletionScope::Purge {
                     link_behavior: LinkDeletionBehavior::Error,
                 },
-                temporal_axes: crate::live_only_axes(),
+                temporal_axes: QueryTemporalAxesUnresolved::live_only(),
                 decision_time: None,
             },
         )
@@ -694,7 +695,7 @@ async fn erase_batch_excludes_in_batch_links() {
                 ]),
                 include_drafts: false,
                 scope: DeletionScope::Erase,
-                temporal_axes: crate::live_only_axes(),
+                temporal_axes: QueryTemporalAxesUnresolved::live_only(),
                 decision_time: None,
             },
         )
@@ -756,7 +757,7 @@ async fn erase_link_entity_alone_succeeds() {
                 filter: Filter::for_entity_by_entity_id(id_link),
                 include_drafts: false,
                 scope: DeletionScope::Erase,
-                temporal_axes: crate::live_only_axes(),
+                temporal_axes: QueryTemporalAxesUnresolved::live_only(),
                 decision_time: None,
             },
         )
@@ -823,7 +824,7 @@ async fn purge_archive_archives_incoming_link() {
                 scope: DeletionScope::Purge {
                     link_behavior: LinkDeletionBehavior::Archive,
                 },
-                temporal_axes: crate::live_only_axes(),
+                temporal_axes: QueryTemporalAxesUnresolved::live_only(),
                 decision_time: None,
             },
         )
@@ -898,7 +899,7 @@ async fn purge_archive_multiple_incoming_links() {
                 scope: DeletionScope::Purge {
                     link_behavior: LinkDeletionBehavior::Archive,
                 },
-                temporal_axes: crate::live_only_axes(),
+                temporal_axes: QueryTemporalAxesUnresolved::live_only(),
                 decision_time: None,
             },
         )
@@ -951,7 +952,7 @@ async fn purge_archive_batch_links_not_archived() {
                 scope: DeletionScope::Purge {
                     link_behavior: LinkDeletionBehavior::Archive,
                 },
-                temporal_axes: crate::live_only_axes(),
+                temporal_axes: QueryTemporalAxesUnresolved::live_only(),
                 decision_time: None,
             },
         )
@@ -992,7 +993,7 @@ async fn purge_archive_no_incoming_links() {
                 scope: DeletionScope::Purge {
                     link_behavior: LinkDeletionBehavior::Archive,
                 },
-                temporal_axes: crate::live_only_axes(),
+                temporal_axes: QueryTemporalAxesUnresolved::live_only(),
                 decision_time: None,
             },
         )
@@ -1040,7 +1041,7 @@ async fn purge_archive_chain() {
                 scope: DeletionScope::Purge {
                     link_behavior: LinkDeletionBehavior::Archive,
                 },
-                temporal_axes: crate::live_only_axes(),
+                temporal_axes: QueryTemporalAxesUnresolved::live_only(),
                 decision_time: None,
             },
         )
@@ -1086,7 +1087,7 @@ async fn purge_archive_self_loop() {
                 scope: DeletionScope::Purge {
                     link_behavior: LinkDeletionBehavior::Archive,
                 },
-                temporal_axes: crate::live_only_axes(),
+                temporal_axes: QueryTemporalAxesUnresolved::live_only(),
                 decision_time: None,
             },
         )
@@ -1165,7 +1166,7 @@ async fn purge_archive_includes_draft_link_versions() {
                 scope: DeletionScope::Purge {
                     link_behavior: LinkDeletionBehavior::Archive,
                 },
-                temporal_axes: crate::live_only_axes(),
+                temporal_axes: QueryTemporalAxesUnresolved::live_only(),
                 decision_time: None,
             },
         )
@@ -1225,7 +1226,7 @@ async fn erase_rejects_archived_incoming_links() {
                 scope: DeletionScope::Purge {
                     link_behavior: LinkDeletionBehavior::Archive,
                 },
-                temporal_axes: crate::live_only_axes(),
+                temporal_axes: QueryTemporalAxesUnresolved::live_only(),
                 decision_time: None,
             },
         )
@@ -1245,7 +1246,7 @@ async fn erase_rejects_archived_incoming_links() {
                 filter: Filter::for_entity_by_entity_id(id_b),
                 include_drafts: false,
                 scope: DeletionScope::Erase,
-                temporal_axes: crate::live_only_axes(),
+                temporal_axes: QueryTemporalAxesUnresolved::live_only(),
                 decision_time: None,
             },
         )
@@ -1284,7 +1285,7 @@ async fn purge_error_ignores_archived_links() {
                 scope: DeletionScope::Purge {
                     link_behavior: LinkDeletionBehavior::Archive,
                 },
-                temporal_axes: crate::live_only_axes(),
+                temporal_axes: QueryTemporalAxesUnresolved::live_only(),
                 decision_time: None,
             },
         )
@@ -1304,7 +1305,7 @@ async fn purge_error_ignores_archived_links() {
                 scope: DeletionScope::Purge {
                     link_behavior: LinkDeletionBehavior::Error,
                 },
-                temporal_axes: crate::live_only_axes(),
+                temporal_axes: QueryTemporalAxesUnresolved::live_only(),
                 decision_time: None,
             },
         )
@@ -1367,7 +1368,7 @@ async fn archive_creates_historical_temporal_rows() {
                 scope: DeletionScope::Purge {
                     link_behavior: LinkDeletionBehavior::Archive,
                 },
-                temporal_axes: crate::live_only_axes(),
+                temporal_axes: QueryTemporalAxesUnresolved::live_only(),
                 decision_time: None,
             },
         )
@@ -1401,10 +1402,10 @@ async fn archive_creates_historical_temporal_rows() {
 // temporal_axes controlling entity finding
 // ---------------------------------------------------------------------------
 
-/// Broad temporal axes find archived entities that `live_only_axes` miss.
+/// Broad temporal axes find archived entities that `live_only` miss.
 ///
-/// After archiving link L, `live_only_axes()` won't find it for deletion (returns 0 entities).
-/// `find_all_axes()` (unbounded decision time) finds the archived entity via its temporal
+/// After archiving link L, `live_only()` won't find it for deletion (returns 0 entities).
+/// `all()` (unbounded decision time) finds the archived entity via its temporal
 /// metadata rows (which still exist, just with closed `decision_time`).
 #[tokio::test]
 async fn broad_temporal_axes_find_archived_entities() {
@@ -1428,7 +1429,7 @@ async fn broad_temporal_axes_find_archived_entities() {
                 scope: DeletionScope::Purge {
                     link_behavior: LinkDeletionBehavior::Archive,
                 },
-                temporal_axes: crate::live_only_axes(),
+                temporal_axes: QueryTemporalAxesUnresolved::live_only(),
                 decision_time: None,
             },
         )
@@ -1446,7 +1447,7 @@ async fn broad_temporal_axes_find_archived_entities() {
                 scope: DeletionScope::Purge {
                     link_behavior: LinkDeletionBehavior::Ignore,
                 },
-                temporal_axes: crate::live_only_axes(),
+                temporal_axes: QueryTemporalAxesUnresolved::live_only(),
                 decision_time: None,
             },
         )
@@ -1455,7 +1456,7 @@ async fn broad_temporal_axes_find_archived_entities() {
 
     assert_eq!(summary_live.full_entities, 0);
 
-    // find_all_axes WILL find archived L
+    // `all()` WILL find archived L
     let summary_all = api
         .store
         .delete_entities(
@@ -1466,12 +1467,12 @@ async fn broad_temporal_axes_find_archived_entities() {
                 scope: DeletionScope::Purge {
                     link_behavior: LinkDeletionBehavior::Ignore,
                 },
-                temporal_axes: find_all_axes(),
+                temporal_axes: QueryTemporalAxesUnresolved::all(),
                 decision_time: None,
             },
         )
         .await
-        .expect("purge with find_all_axes should find the archived entity");
+        .expect("purge with `all()` should find the archived entity");
 
     assert_eq!(summary_all.full_entities, 1);
     assert!(
@@ -1486,8 +1487,8 @@ async fn broad_temporal_axes_find_archived_entities() {
 /// The scenario that originally triggered the `entity_is_of_type` FK violation:
 /// 1. Create A, B, and link L (A→B)
 /// 2. "User deletion": Purge A with `Archive` → L archived, A tombstoned
-/// 3. "resetGraph": Erase all with `find_all_axes()` → finds archived L and live B in one batch.
-///    Since L is in the batch, erase doesn't count it as external → succeeds.
+/// 3. "resetGraph": Erase all with `all()` → finds archived L and live B in one batch. Since L is
+///    in the batch, erase doesn't count it as external → succeeds.
 // TODO: Erase cannot find previously-purged tombstones (BE-466)
 //   https://linear.app/hash/issue/BE-466
 #[tokio::test]
@@ -1514,7 +1515,7 @@ async fn user_deletion_then_reset_graph() {
                 scope: DeletionScope::Purge {
                     link_behavior: LinkDeletionBehavior::Archive,
                 },
-                temporal_axes: crate::live_only_axes(),
+                temporal_axes: QueryTemporalAxesUnresolved::live_only(),
                 decision_time: None,
             },
         )
@@ -1536,7 +1537,7 @@ async fn user_deletion_then_reset_graph() {
                 ]),
                 include_drafts: true,
                 scope: DeletionScope::Erase,
-                temporal_axes: find_all_axes(),
+                temporal_axes: QueryTemporalAxesUnresolved::all(),
                 decision_time: None,
             },
         )
@@ -1599,7 +1600,7 @@ async fn archive_already_archived_link_is_noop() {
                 scope: DeletionScope::Purge {
                     link_behavior: LinkDeletionBehavior::Archive,
                 },
-                temporal_axes: crate::live_only_axes(),
+                temporal_axes: QueryTemporalAxesUnresolved::live_only(),
                 decision_time: None,
             },
         )
@@ -1627,7 +1628,7 @@ async fn archive_already_archived_link_is_noop() {
                 scope: DeletionScope::Purge {
                     link_behavior: LinkDeletionBehavior::Archive,
                 },
-                temporal_axes: crate::live_only_axes(),
+                temporal_axes: QueryTemporalAxesUnresolved::live_only(),
                 decision_time: None,
             },
         )

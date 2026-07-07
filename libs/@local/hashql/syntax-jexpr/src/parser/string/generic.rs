@@ -30,7 +30,7 @@ where
     Ok(GenericArgument {
         id: NodeId::PLACEHOLDER,
         span: input.state.span(span),
-        r#type: Box::new_in(r#type, input.state.heap),
+        r#type,
     })
 }
 
@@ -50,7 +50,7 @@ where
         id: NodeId::PLACEHOLDER,
         span: input.state.span(span),
         name,
-        bound: Some(Box::new_in(bound, input.state.heap)),
+        bound: Some(bound),
     })
 }
 
@@ -70,7 +70,7 @@ where
         id: NodeId::PLACEHOLDER,
         span: input.state.span(span),
         name,
-        bound: bound.map(|bound| Box::new_in(bound, input.state.heap)),
+        bound,
     })
 }
 

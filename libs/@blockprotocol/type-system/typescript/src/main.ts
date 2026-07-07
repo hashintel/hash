@@ -4,10 +4,7 @@
 
 import type { EntityMetadata } from "./native/entity.js";
 
-export {
-  atLeastOne,
-  mustHaveAtLeastOne,
-} from "./common.js";
+export { atLeastOne, mustHaveAtLeastOne } from "./common.js";
 export * from "./native.js";
 export type * from "@blockprotocol/type-system-rs";
 export type * from "@blockprotocol/type-system-rs/types";

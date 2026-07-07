@@ -8,23 +8,22 @@ use hashql_core::{
     heap::Heap,
     id::bit_vec::DenseBitSet,
     pretty::Formatter,
-    r#type::{TypeBuilder, TypeFormatter, TypeFormatterOptions, environment::Environment},
+    symbol::sym,
+    r#type::{TypeFormatter, TypeFormatterOptions, environment::Environment},
 };
 use insta::{Settings, assert_snapshot};
 
 use super::{LivenessAnalysis, TraversalLivenessAnalysis};
 use crate::{
-    body::{
-        Body,
-        basic_block::BasicBlockId,
-        local::Local,
-        place::{FieldIndex, Place, ProjectionKind},
-    },
+    body::{Body, basic_block::BasicBlockId, local::Local},
     builder::body,
     intern::Interner,
     pass::{
         analysis::dataflow::framework::{DataflowAnalysis, DataflowResults, Direction},
-        transform::Traversals,
+        execution::{
+            VertexType,
+            traversal::{EntityPath, TraversalPathBitSet},
+        },
     },
     pretty::TextFormatOptions,
 };
@@ -342,164 +341,177 @@ fn diamond_one_branch_uses() {
 // TraversalLivenessAnalysis Tests
 // =============================================================================
 
-#[track_caller]
-fn assert_traversal_liveness<'heap>(
-    name: &'static str,
-    env: &Environment<'heap>,
-    body: &Body<'heap>,
-    traversals: &Traversals<'heap>,
-) {
-    let analysis = TraversalLivenessAnalysis { traversals };
-    let results = analysis.iterate_to_fixpoint(body);
-
-    let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    let mut settings = Settings::clone_current();
-    settings.set_snapshot_path(dir.join("tests/ui/pass/liveness"));
-    settings.set_prepend_module_to_snapshot(false);
-
-    let _drop = settings.bind_to_scope();
-
-    assert_snapshot!(
-        name,
-        format!(
-            "{}\n\n========\n\n{}",
-            format_body(env, body),
-            format_liveness(body, &results)
-        )
-    );
+fn traversal_liveness<'a>(body: &'a Body<'a>) -> DataflowResults<'a, TraversalLivenessAnalysis> {
+    let analysis = TraversalLivenessAnalysis {
+        vertex: VertexType::Entity,
+    };
+    analysis.iterate_to_fixpoint(body)
 }
 
-/// Assigning to a traversal destination does not mark the source as live.
+fn entry_locals<'a>(
+    results: &'a DataflowResults<'a, TraversalLivenessAnalysis>,
+    block: BasicBlockId,
+) -> &'a DenseBitSet<Local> {
+    &results.entry_states[block].0
+}
+
+fn entry_paths<'a>(
+    results: &'a DataflowResults<'a, TraversalLivenessAnalysis>,
+    block: BasicBlockId,
+) -> &'a TraversalPathBitSet {
+    &results.entry_states[block].1
+}
+
+/// Vertex local (`_1`) is never marked live in the local bitset.
 #[test]
-fn traversal_assignment_skips_source() {
+fn vertex_excluded_from_local_bitset() {
     let heap = Heap::new();
     let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    // _0 = env, _1 = source, _2 = traversal destination, _3 = result
-    let body = body!(interner, env; fn@0/2 -> Int {
-        decl env: (), source: (Int, Int), dest: Int;
-        @proj source_0 = source.0: Int;
+    // _0 = env, _1 = vertex, _2 = props
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> ? {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], props: ?;
+        @proj properties = vertex.properties: ?;
 
         bb0() {
-            dest = load source_0;
-            return dest;
+            props = load properties;
+            goto bb1();
+        },
+        bb1() {
+            return props;
         }
     });
 
-    // source = _1, destinations = {_2}
-    let source = Local::new(1);
-    let dest = Local::new(2);
-    let mut traversals = Traversals::with_capacity_in(source, body.local_decls.len(), &heap);
-    // The projection type is Int (the element type of the tuple)
-    traversals.insert(
-        dest,
-        Place::local(source).project(
-            &interner,
-            TypeBuilder::synthetic(&env).integer(),
-            ProjectionKind::Field(FieldIndex::new(0)),
-        ),
-    );
+    let results = traversal_liveness(&body);
 
-    assert_traversal_liveness(
-        "traversal_assignment_skips_source",
-        &env,
-        &body,
-        &traversals,
-    );
+    // At bb1 entry, _2 (props) is live (used in return), vertex is not
+    let bb1_locals = entry_locals(&results, BasicBlockId::new(1));
+    assert!(bb1_locals.contains(Local::new(2)));
+    assert!(!bb1_locals.contains(Local::VERTEX));
+
+    // At bb0 entry, _2 is killed by its definition, vertex is never live
+    let bb0_locals = entry_locals(&results, BasicBlockId::new(0));
+    assert!(!bb0_locals.contains(Local::VERTEX));
+    assert!(!bb0_locals.contains(Local::new(2)));
 }
 
-/// Assigning to a non-traversal local marks the source as live.
+/// Vertex field accesses are recorded as `EntityPaths` in the path bitset.
 #[test]
-fn non_traversal_assignment_gens_source() {
+fn vertex_access_records_entity_path() {
     let heap = Heap::new();
     let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    // _0 = env, _1 = source, _2 = NOT in traversals, _3 = result
-    let body = body!(interner, env; fn@0/2 -> Int {
-        decl env: (), source: (Int, Int), other: Int;
-        @proj source_0 = source.0: Int;
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> ? {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], props: ?;
+        @proj properties = vertex.properties: ?;
 
         bb0() {
-            other = load source_0;
-            return other;
+            props = load properties;
+            return props;
         }
     });
 
-    // source = _1, destinations = {} (empty - _2 is NOT a traversal destination)
-    let source = Local::new(1);
-    let traversals = Traversals::with_capacity_in(source, body.local_decls.len(), &heap);
+    let results = traversal_liveness(&body);
+    let paths = entry_paths(&results, BasicBlockId::new(0));
 
-    assert_traversal_liveness(
-        "non_traversal_assignment_gens_source",
-        &env,
-        &body,
-        &traversals,
-    );
+    let entity_paths = paths.as_entity().expect("should be entity variant");
+    assert!(entity_paths.contains(EntityPath::Properties));
 }
 
-/// Assignment with projections on LHS (partial def) does not trigger traversal skip.
+/// Bare vertex access sets all bits in the path bitset.
 #[test]
-fn lhs_projection_does_not_skip() {
+fn bare_vertex_access_sets_all_paths() {
     let heap = Heap::new();
     let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    // _0 = env, _1 = source, _2 = traversal destination (tuple), _3 = result
-    let body = body!(interner, env; fn@0/2 -> (Int, Int) {
-        decl env: (), source: (Int, Int), dest: (Int, Int);
-        @proj source_0 = source.0: Int, dest_0 = dest.0: Int;
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> ? {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], val: ?;
 
         bb0() {
-            dest_0 = load source_0;
-            return dest;
+            val = load vertex;
+            return val;
         }
     });
 
-    // source = _1, destinations = {_2}
-    // Even though _2 is in traversals, the assignment is to dest.0 (has projection),
-    // so it should NOT skip the source use.
-    let _env = Local::new(0);
-    let source = Local::new(1);
-    let dest = Local::new(2);
+    let results = traversal_liveness(&body);
+    let paths = entry_paths(&results, BasicBlockId::new(0));
 
-    let mut traversals = Traversals::with_capacity_in(source, body.local_decls.len(), &heap);
-    let source_0_place = Place::local(source).project(
-        &interner,
-        TypeBuilder::synthetic(&env).integer(),
-        ProjectionKind::Field(FieldIndex::new(0)),
-    );
-    traversals.insert(dest, source_0_place);
-
-    assert_traversal_liveness("lhs_projection_does_not_skip", &env, &body, &traversals);
+    let entity_paths = paths.as_entity().expect("should be entity variant");
+    // 25 variants - 7 children = 18 top-level paths
+    assert_eq!(entity_paths.len(), 18);
 }
 
-/// Empty traversals set produces identical results to standard liveness.
+/// Non-vertex locals are tracked normally in the local bitset.
 #[test]
-fn empty_traversals_is_standard_liveness() {
+fn non_vertex_locals_tracked_normally() {
     let heap = Heap::new();
     let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let body = body!(interner, env; fn@0/2 -> Int {
-        decl env: (), source: (Int, Int), dest: Int;
-        @proj source_0 = source.0: Int;
+    // _0 = env, _1 = vertex, _2 = val, _3 = result
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (Int), vertex: [Opaque sym::path::Entity; ?], val: Int, result: Int;
+        @proj env_0 = env.0: Int;
 
         bb0() {
-            dest = load source_0;
-            return dest;
+            val = load env_0;
+            goto bb1();
+        },
+        bb1() {
+            result = load val;
+            return result;
         }
     });
 
-    // source = _1, destinations = {} (empty)
-    let source = Local::new(1);
-    let traversals = Traversals::with_capacity_in(source, body.local_decls.len(), &heap);
+    let results = traversal_liveness(&body);
 
-    assert_traversal_liveness(
-        "empty_traversals_is_standard_liveness",
-        &env,
-        &body,
-        &traversals,
-    );
+    // At bb1 entry, val (_2) is live (used by the load)
+    let bb1_locals = entry_locals(&results, BasicBlockId::new(1));
+    assert!(bb1_locals.contains(Local::new(2)));
+    assert!(!bb1_locals.contains(Local::VERTEX));
+
+    // Path bitset is empty (no vertex access)
+    let bb1_paths = entry_paths(&results, BasicBlockId::new(1));
+    assert!(bb1_paths.is_empty());
+}
+
+/// Paths from multiple blocks are joined at merge points.
+#[test]
+fn paths_joined_across_branches() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> ? {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?],
+             props: ?, archived: Bool, cond: Bool;
+        @proj properties = vertex.properties: ?,
+              metadata = vertex.metadata: ?,
+              archived_proj = metadata.archived: Bool;
+
+        bb0() {
+            cond = load true;
+            if cond then bb1() else bb2();
+        },
+        bb1() {
+            props = load properties;
+            return props;
+        },
+        bb2() {
+            archived = load archived_proj;
+            return archived;
+        }
+    });
+
+    let results = traversal_liveness(&body);
+    let paths = entry_paths(&results, BasicBlockId::new(0));
+
+    let entity_paths = paths.as_entity().expect("should be entity variant");
+    // Join of {Properties} and {Archived}
+    assert!(entity_paths.contains(EntityPath::Properties));
+    assert!(entity_paths.contains(EntityPath::Archived));
+    assert_eq!(entity_paths.len(), 2);
 }

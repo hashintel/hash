@@ -1,7 +1,5 @@
 import { mapValues } from "lodash-es";
 import { keymap } from "prosemirror-keymap";
-import type { Node } from "prosemirror-model";
-import type { Command, Transaction } from "prosemirror-state";
 import {
   EditorState,
   NodeSelection,
@@ -10,9 +8,12 @@ import {
 } from "prosemirror-state";
 import { Mapping } from "prosemirror-transform";
 
-import { getBlockChildEntity, isRichTextProperties } from "./entity.js";
 import { entityStorePluginState } from "./entity-store-plugin.js";
+import { getBlockChildEntity, isRichTextProperties } from "./entity.js";
 import { isComponentNode, isEntityNode } from "./prosemirror.js";
+
+import type { Node } from "prosemirror-model";
+import type { Command, Transaction } from "prosemirror-state";
 
 type WrapperNodes = [number, Node[]];
 type WrapperNodesList = WrapperNodes[];

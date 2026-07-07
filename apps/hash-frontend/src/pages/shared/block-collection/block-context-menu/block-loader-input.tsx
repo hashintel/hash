@@ -1,12 +1,14 @@
-import { TextField } from "@hashintel/design-system";
 import { Box, Collapse } from "@mui/material";
-import type { FormEvent, FunctionComponent } from "react";
 import { useRef, useState } from "react";
 import { unstable_batchedUpdates } from "react-dom";
+
+import { TextField } from "@hashintel/design-system";
 
 import { useUserBlocks } from "../../../../blocks/user-blocks";
 import { Button } from "../../../../shared/ui";
 import { useBlockView } from "../block-view";
+
+import type { FormEvent, FunctionComponent } from "react";
 
 /** trim whitespace and remove trailing slash */
 const createNormalizedBlockUrl = (url: string) => url.trim().replace(/\/$/, "");

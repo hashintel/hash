@@ -1,22 +1,24 @@
-import type { ActorEntityUuid, EntityId } from "@blockprotocol/type-system";
-import { extractWebIdFromEntityId } from "@blockprotocol/type-system";
-import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
-import type { TextToken } from "@local/hash-isomorphic-utils/types";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { Box, buttonClasses, Collapse } from "@mui/material";
-import type { FunctionComponent } from "react";
 import { useMemo, useRef, useState } from "react";
 
+import { extractWebIdFromEntityId } from "@blockprotocol/type-system";
+import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+
 import { useCreateComment } from "../../../../components/hooks/use-create-comment";
-import type { PageThread } from "../../../../components/hooks/use-page-comments";
 import { Button } from "../../../../shared/ui";
 import { useAuthenticatedUser } from "../../auth-info-context";
 import { CommentActionButtons } from "./comment-action-buttons";
 import { CommentBlock } from "./comment-block";
 import { CommentTextField } from "./comment-text-field";
 import styles from "./style.module.css";
+
+import type { PageThread } from "../../../../components/hooks/use-page-comments";
+import type { ActorEntityUuid, EntityId } from "@blockprotocol/type-system";
+import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
+import type { TextToken } from "@local/hash-isomorphic-utils/types";
+import type { FunctionComponent } from "react";
 
 const UNCOLLAPSIBLE_REPLIES_NUMBER = 2;
 

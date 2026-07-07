@@ -1,5 +1,15 @@
 import { useMutation } from "@apollo/client";
-import type { EntityUuid } from "@blockprotocol/type-system";
+import {
+  Box,
+  CircularProgress,
+  outlinedInputClasses,
+  Stack,
+  Typography,
+} from "@mui/material";
+import { format } from "date-fns";
+import { useRouter } from "next/router";
+import { useCallback, useMemo, useState } from "react";
+
 import {
   AngleRightRegularIcon,
   PlaySolidIcon,
@@ -10,25 +20,8 @@ import {
   generateFlowDefinitionPath,
   generateWorkerRunPath,
 } from "@local/hash-isomorphic-utils/flows/frontend-paths";
-import type { SvgIconProps, SxProps, Theme } from "@mui/material";
-import {
-  Box,
-  CircularProgress,
-  outlinedInputClasses,
-  Stack,
-  Typography,
-} from "@mui/material";
-import { format } from "date-fns";
-import { useRouter } from "next/router";
-import type { FunctionComponent } from "react";
-import { useCallback, useMemo, useState } from "react";
 
 import { useGetOwnerForEntity } from "../../../../../components/hooks/use-get-owner-for-entity";
-import type {
-  CancelFlowMutation,
-  CancelFlowMutationVariables,
-  FlowRun,
-} from "../../../../../graphql/api-types.gen";
 import { cancelFlowMutation } from "../../../../../graphql/queries/knowledge/flow.queries";
 import { BoltLightIcon } from "../../../../../shared/icons/bolt-light-icon";
 import { Button } from "../../../../../shared/ui/button";
@@ -36,6 +29,15 @@ import { Link } from "../../../../../shared/ui/link";
 import { MenuItem } from "../../../../../shared/ui/menu-item";
 import { useFlowDefinitionsContext } from "../../../../shared/flow-definitions-context";
 import { useFlowRunsContext } from "../../../../shared/flow-runs-context";
+
+import type {
+  CancelFlowMutation,
+  CancelFlowMutationVariables,
+  FlowRun,
+} from "../../../../../graphql/api-types.gen";
+import type { EntityUuid } from "@blockprotocol/type-system";
+import type { SvgIconProps, SxProps, Theme } from "@mui/material";
+import type { FunctionComponent } from "react";
 
 const typographySx: SxProps<Theme> = {
   color: ({ palette }) => palette.gray[70],

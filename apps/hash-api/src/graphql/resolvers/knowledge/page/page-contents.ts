@@ -1,14 +1,15 @@
-import type { Entity } from "@blockprotocol/type-system";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { HasSpatiallyPositionedContent } from "@local/hash-isomorphic-utils/system-types/canvas";
-import type { HasIndexedContent } from "@local/hash-isomorphic-utils/system-types/shared";
 
 import { getPageBlocks } from "../../../../graph/knowledge/system-types/page";
+import { graphQLContextToImpureGraphContext } from "../../util";
+import { mapBlockToGQL } from "../graphql-mapping";
+
 import type { ResolverFn } from "../../../api-types.gen";
 import type { LoggedInGraphQLContext } from "../../../context";
-import { graphQLContextToImpureGraphContext } from "../../util";
 import type { UnresolvedBlockGQL, UnresolvedPageGQL } from "../graphql-mapping";
-import { mapBlockToGQL } from "../graphql-mapping";
+import type { Entity } from "@blockprotocol/type-system";
+import type { HasSpatiallyPositionedContent } from "@local/hash-isomorphic-utils/system-types/canvas";
+import type { HasIndexedContent } from "@local/hash-isomorphic-utils/system-types/shared";
 
 export const pageContents: ResolverFn<
   {

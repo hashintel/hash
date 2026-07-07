@@ -1,11 +1,7 @@
-import type {
-  BaseUrl,
-  EntityTypeWithMetadata,
-  OntologyTypeVersion,
-  PropertyType,
-  VersionedUrl,
-  WebId,
-} from "@blockprotocol/type-system";
+import { Box, Container, Typography } from "@mui/material";
+import { NextSeo } from "next-seo";
+import { useEffect, useMemo, useRef, useState } from "react";
+
 import {
   atLeastOne,
   extractVersion,
@@ -13,19 +9,14 @@ import {
   mustHaveAtLeastOne,
 } from "@blockprotocol/type-system";
 import { EntityOrTypeIcon } from "@hashintel/design-system";
-import type { EntityTypeEditorFormData } from "@hashintel/type-editor";
 import {
   EntityTypeFormProvider,
   getEntityTypeFromFormData,
   getFormDataFromEntityType,
   useEntityTypeForm,
 } from "@hashintel/type-editor";
-import type { OntologyElementMetadata } from "@local/hash-graph-sdk/ontology";
 import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { rewriteSchemasToNextVersion } from "@local/hash-isomorphic-utils/ontology-types";
-import { Box, Container, Typography } from "@mui/material";
-import { NextSeo } from "next-seo";
-import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useIsSpecialEntityType } from "../../shared/entity-types-context/hooks";
 import { isTypeArchived } from "../../shared/is-archived";
@@ -59,6 +50,17 @@ import {
 } from "./shared/type-editor-styling";
 import { useSlideStack } from "./slide-stack";
 import { TopContextBar } from "./top-context-bar";
+
+import type {
+  BaseUrl,
+  EntityTypeWithMetadata,
+  OntologyTypeVersion,
+  PropertyType,
+  VersionedUrl,
+  WebId,
+} from "@blockprotocol/type-system";
+import type { EntityTypeEditorFormData } from "@hashintel/type-editor";
+import type { OntologyElementMetadata } from "@local/hash-graph-sdk/ontology";
 
 type EntityTypeProps = {
   webId?: WebId | null;
@@ -424,29 +426,33 @@ export const EntityType = ({
             })}
           >
             <TopContextBar
-              actionMenuItems={[
-                ...(!isReadonly && remoteEntityType && !isArchived
-                  ? [
-                      <ArchiveMenuItem
-                        key={entityType.schema.$id}
-                        item={remoteEntityType}
-                        onItemChange={() => {
-                          onEntityTypeUpdated?.(entityType);
-                        }}
-                      />,
+              actionMenuItems={
+                isInSlide
+                  ? []
+                  : [
+                      ...(!isReadonly && remoteEntityType && !isArchived
+                        ? [
+                            <ArchiveMenuItem
+                              key={entityType.schema.$id}
+                              item={remoteEntityType}
+                              onItemChange={() => {
+                                onEntityTypeUpdated?.(entityType);
+                              }}
+                            />,
+                          ]
+                        : []),
+                      ...(!isReadonly && !isDraft && !isLink
+                        ? [
+                            <ConvertTypeMenuItem
+                              key={entityType.schema.$id}
+                              convertToLinkType={convertToLinkType}
+                              disabled={isDirty}
+                              typeTitle={entityType.schema.title}
+                            />,
+                          ]
+                        : []),
                     ]
-                  : []),
-                ...(!isReadonly && !isDraft && !isLink
-                  ? [
-                      <ConvertTypeMenuItem
-                        key={entityType.schema.$id}
-                        convertToLinkType={convertToLinkType}
-                        disabled={isDirty}
-                        typeTitle={entityType.schema.title}
-                      />,
-                    ]
-                  : []),
-              ]}
+              }
               defaultCrumbIcon={null}
               item={remoteEntityType ?? undefined}
               crumbs={[
@@ -456,7 +462,7 @@ export const EntityType = ({
                   id: "types",
                 },
                 {
-                  href: "/types/entity-type",
+                  href: `/types/${isLink ? "link" : "entity"}-type`,
                   title: `${isLink ? "Link" : "Entity"} Types`,
                   id: "entity-types",
                 },
@@ -478,7 +484,19 @@ export const EntityType = ({
                 void refetch();
               }}
               scrollToTop={() => {}}
-              sx={{ bgcolor: "white" }}
+              sx={[
+                { bgcolor: "white" },
+                /**
+                 * In a slide, the slide stack renders absolutely-positioned
+                 * back/forward/close buttons over the top-right corner – push
+                 * the bar's content down so the breadcrumbs and actions menu
+                 * sit below those buttons rather than behind them, and align
+                 * the breadcrumbs with the slide's 32px content padding
+                 * instead of the sidebar-state based padding used on regular
+                 * pages.
+                 */
+                isInSlide ? { mt: -0.6 } : {},
+              ]}
             />
 
             {!isReadonly && (

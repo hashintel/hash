@@ -1,14 +1,11 @@
 import {
   type Content,
-  FunctionCallingMode,
+  FunctionCallingConfigMode,
   type FunctionDeclaration,
-  type GenerateContentRequest,
+  type GenerateContentParameters,
   type GenerateContentResponse,
   type Part,
-} from "@google-cloud/vertexai";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
-import { stringifyError } from "@local/hash-isomorphic-utils/stringify-error";
-import type { File } from "@local/hash-isomorphic-utils/system-types/shared";
+} from "@google/genai";
 
 import { logger } from "../activity-logger.js";
 import { isActivityCancelled } from "../get-flow-context.js";
@@ -17,6 +14,7 @@ import { mapLlmContentToGooglePartAndUploadFiles } from "./get-google-ai-respons
 import { rewriteSchemaForGoogle } from "./get-google-ai-response/rewrite-schema-for-google.js";
 import { getVertexAiClient } from "./google-vertex-ai-client.js";
 import { type LlmMessage } from "./llm-message.js";
+
 import type {
   GoogleAiParams,
   LlmRequestMetadata,
@@ -24,6 +22,8 @@ import type {
   LlmToolDefinition,
   LlmUsage,
 } from "./types.js";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import type { File } from "@local/hash-isomorphic-utils/system-types/shared";
 
 const mapLlmToolDefinitionToGoogleAiToolDefinition = (
   tool: LlmToolDefinition,
@@ -52,10 +52,6 @@ export const getGoogleAiResponse = async <ToolName extends string>(
 
   const vertexAi = getVertexAiClient();
 
-  const gemini = vertexAi.getGenerativeModel({
-    model,
-  });
-
   const timeBeforeRequest = Date.now();
 
   const contents: Content[] = [];
@@ -73,7 +69,8 @@ export const getGoogleAiResponse = async <ToolName extends string>(
     }
 
     contents.push({
-      role: message.role,
+      // `@google/genai` uses "model" for assistant turns, not "assistant".
+      role: message.role === "assistant" ? "model" : message.role,
       parts,
     });
   }
@@ -81,36 +78,38 @@ export const getGoogleAiResponse = async <ToolName extends string>(
   let response: GenerateContentResponse;
 
   const transformedRequest = {
+    model,
     contents,
-    systemInstruction: systemPrompt,
-    // @ts-expect-error -- the casing in the library is toolConfig/functionCallingConfig but this doesn't work.
-    tool_config:
-      toolChoice && tools
-        ? {
-            function_calling_config: {
-              mode: FunctionCallingMode.ANY,
-              allowed_function_names:
-                toolChoice !== "required"
-                  ? [toolChoice]
-                  : tools.map((tool) => tool.name),
+    config: {
+      systemInstruction: systemPrompt,
+      toolConfig:
+        toolChoice && tools
+          ? {
+              functionCallingConfig: {
+                mode: FunctionCallingConfigMode.ANY,
+                allowedFunctionNames:
+                  toolChoice !== "required"
+                    ? [toolChoice]
+                    : tools.map((tool) => tool.name),
+              },
+            }
+          : undefined,
+      tools: tools
+        ? [
+            {
+              functionDeclarations: tools.map(
+                mapLlmToolDefinitionToGoogleAiToolDefinition,
+              ),
             },
-          }
+          ]
         : undefined,
-    tools: tools
-      ? [
-          {
-            functionDeclarations: tools.map(
-              mapLlmToolDefinitionToGoogleAiToolDefinition,
-            ),
-          },
-        ]
-      : undefined,
-  } satisfies GenerateContentRequest;
+    },
+  } satisfies GenerateContentParameters;
 
   try {
-    ({ response } = await gemini.generateContent(transformedRequest));
+    response = await vertexAi.models.generateContent(transformedRequest);
   } catch (error) {
-    logger.error(`Google AI API error: ${stringifyError(error)}`);
+    logger.error("Google AI API error", { error });
 
     if (isActivityCancelled()) {
       return {

@@ -1,11 +1,6 @@
 import { useLazyQuery } from "@apollo/client";
-import type {
-  BaseUrl,
-  EntityType,
-  EntityTypeWithMetadata,
-  VersionedUrl,
-  WebId,
-} from "@blockprotocol/type-system";
+import { useCallback, useMemo } from "react";
+
 import {
   componentsFromVersionedUrl,
   extractBaseUrl,
@@ -13,14 +8,21 @@ import {
 } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
-import { useCallback, useMemo } from "react";
+
+import { queryEntityTypesQuery } from "../../../graphql/queries/ontology/entity-type.queries";
+import { useAuthenticatedUser } from "../auth-info-context";
 
 import type {
   QueryEntityTypesQuery,
   QueryEntityTypesQueryVariables,
 } from "../../../graphql/api-types.gen";
-import { queryEntityTypesQuery } from "../../../graphql/queries/ontology/entity-type.queries";
-import { useAuthenticatedUser } from "../auth-info-context";
+import type {
+  BaseUrl,
+  EntityType,
+  EntityTypeWithMetadata,
+  VersionedUrl,
+  WebId,
+} from "@blockprotocol/type-system";
 
 export type EntityTypeDependent = {
   entityType: EntityType;

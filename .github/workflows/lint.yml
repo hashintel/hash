@@ -270,18 +270,6 @@ jobs:
             exit 1
           fi
 
-      - name: Run yarn lint:package-json
-        if: ${{ success() || failure() }}
-        run: |
-          if ! yarn lint:package-json; then
-            echo ''
-            echo ''
-            echo 'ℹ️ ℹ️ ℹ️'
-            echo 'Try running `yarn fix:package-json` locally to apply autofixes.'
-            echo 'ℹ️ ℹ️ ℹ️'
-            exit 1
-          fi
-
       - name: Validate Claude Code skills
         if: ${{ success() || failure() }}
         run: |

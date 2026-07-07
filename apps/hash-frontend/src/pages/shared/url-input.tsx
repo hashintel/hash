@@ -1,6 +1,7 @@
-import { Select, TextField } from "@hashintel/design-system";
 import { outlinedInputClasses, Stack } from "@mui/material";
 import { useState } from "react";
+
+import { Select, TextField } from "@hashintel/design-system";
 
 import { MenuItem } from "../../shared/ui/menu-item";
 

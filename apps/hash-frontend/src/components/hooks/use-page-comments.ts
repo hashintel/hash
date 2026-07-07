@@ -1,17 +1,19 @@
 import { useQuery } from "@apollo/client";
-import type {
-  EntityId,
-  EntityMetadata,
-  EntityTemporalMetadata,
-} from "@blockprotocol/type-system";
+
 import { HashEntity } from "@local/hash-graph-sdk/entity";
-import type { TextToken } from "@local/hash-isomorphic-utils/types";
+
+import { getPageComments } from "../../graphql/queries/page.queries";
 
 import type {
   GetPageCommentsQuery,
   GetPageCommentsQueryVariables,
 } from "../../graphql/api-types.gen";
-import { getPageComments } from "../../graphql/queries/page.queries";
+import type {
+  EntityId,
+  EntityMetadata,
+  EntityTemporalMetadata,
+} from "@blockprotocol/type-system";
+import type { TextToken } from "@local/hash-isomorphic-utils/types";
 
 export type PageThread = PageComment & {
   replies: PageComment[];

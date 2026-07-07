@@ -1,5 +1,5 @@
 ---
-source: libs/@local/hashql/mir/src/pass/analysis/execution/statement_placement/tests.rs
+source: libs/@local/hashql/mir/src/pass/execution/statement_placement/tests.rs
 expression: output
 ---
 fn {graph::read::filter@4294967040}(%0: (), %1: Entity) -> Boolean {
@@ -10,10 +10,6 @@ fn {graph::read::filter@4294967040}(%0: (), %1: Entity) -> Boolean {
         %2 = input LOAD threshold                                               // cost: 4
         %3 = %2 > 100                                                           // cost: 4
 
-        return %3
+        return %3                                                               // cost: 4
     }
 }
-
-=================== Traversals ===================
-
-Traversals:

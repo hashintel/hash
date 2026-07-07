@@ -1,13 +1,15 @@
-import { BullseyeLightIcon } from "@hashintel/design-system";
 import { Box, Container } from "@mui/material";
 
+import { BullseyeLightIcon } from "@hashintel/design-system";
+
 import { PlusRegularIcon } from "../shared/icons/plus-regular";
-import type { NextPageWithLayout } from "../shared/layout";
 import { getLayoutWithSidebar } from "../shared/layout";
 import { Button } from "../shared/ui/button";
 import { WorkersHeader } from "../shared/workers-header";
 import { GoalsList } from "./goals.page/goals-list";
 import { FlowRunsContextProvider } from "./shared/flow-runs-context";
+
+import type { NextPageWithLayout } from "../shared/layout";
 
 const GoalsPageContent = () => {
   return (

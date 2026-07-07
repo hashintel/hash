@@ -41,6 +41,8 @@ import type {
   ProfileBioPropertiesWithMetadata,
   TextDataType,
   TextDataTypeWithMetadata,
+  ValueDataType,
+  ValueDataTypeWithMetadata,
 } from "./shared.js";
 
 export type {
@@ -82,4 +84,6 @@ export type {
   ProfileBioPropertiesWithMetadata,
   TextDataType,
   TextDataTypeWithMetadata,
+  ValueDataType,
+  ValueDataTypeWithMetadata,
 };

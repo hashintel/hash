@@ -1,8 +1,26 @@
 import http from "node:http";
 import { promisify } from "node:util";
 
-import type { ProvidedEntityEditionProvenance } from "@blockprotocol/type-system";
 import KeyvRedis from "@keyv/redis";
+import * as Sentry from "@sentry/node";
+import bodyParser from "body-parser";
+import cors from "cors";
+import { Effect, Exit, Layer, Logger, LogLevel, ManagedRuntime } from "effect";
+import { RuntimeException } from "effect/Cause";
+import express, { raw } from "express";
+import { create as handlebarsCreate } from "express-handlebars";
+import { ipKeyGenerator, rateLimit } from "express-rate-limit";
+import helmet from "helmet";
+import { StatsD } from "hot-shots";
+import {
+  createProxyMiddleware,
+  fixRequestBody,
+  responseInterceptor,
+} from "http-proxy-middleware";
+import httpTerminator from "http-terminator";
+import Keyv from "keyv";
+import { customAlphabet } from "nanoid";
+
 import { JsonDecoder, JsonEncoder } from "@local/harpc-client/codec";
 import { Client as RpcClient, Transport } from "@local/harpc-client/net";
 import { RequestIdProducer } from "@local/harpc-client/wire-protocol";
@@ -23,32 +41,13 @@ import {
   hashClientHeaderKey,
 } from "@local/hash-isomorphic-utils/http-requests";
 import { isSelfHostedInstance } from "@local/hash-isomorphic-utils/instance";
-import * as Sentry from "@sentry/node";
-import bodyParser from "body-parser";
-import cors from "cors";
-import { Effect, Exit, Layer, Logger, LogLevel, ManagedRuntime } from "effect";
-import { RuntimeException } from "effect/Cause";
-import type { ErrorRequestHandler, Request, Response } from "express";
-import express, { raw } from "express";
-import { create as handlebarsCreate } from "express-handlebars";
-import type { Options as RateLimitOptions } from "express-rate-limit";
-import { ipKeyGenerator, rateLimit } from "express-rate-limit";
-import helmet from "helmet";
-import { StatsD } from "hot-shots";
-import {
-  createProxyMiddleware,
-  fixRequestBody,
-  responseInterceptor,
-} from "http-proxy-middleware";
-import httpTerminator from "http-terminator";
-import Keyv from "keyv";
-import { customAlphabet } from "nanoid";
 
 import { gptGetUserWebs } from "./ai/gpt/gpt-get-user-webs";
 import { gptQueryEntities } from "./ai/gpt/gpt-query-entities";
 import { gptQueryTypes } from "./ai/gpt/gpt-query-types";
 import { upsertGptOauthClient } from "./ai/gpt/upsert-gpt-oauth-client";
 import { openInferEntitiesWebSocket } from "./ai/infer-entities-websocket";
+import { setupAnalysisHandler } from "./analysis/setup-analysis-handler";
 import {
   addKratosAfterRegistrationHandler,
   createAuthMiddleware,
@@ -66,6 +65,7 @@ import { createEmailTransporter } from "./email/create-email-transporter";
 import { ensureSystemGraphIsInitialized } from "./graph/ensure-system-graph-is-initialized";
 import { ensureHashSystemAccountExists } from "./graph/system-account";
 import { createApolloServer } from "./graphql/create-apollo-server";
+import { otelSetup } from "./instrument.mjs";
 import { enabledIntegrations } from "./integrations/enabled-integrations";
 import { checkGoogleAccessToken } from "./integrations/google/check-access-token";
 import { getGoogleAccessToken } from "./integrations/google/get-access-token";
@@ -92,13 +92,28 @@ import {
   setupFileDownloadProxyHandler,
   setupStorageProviders,
 } from "./storage";
-import { setupTelemetry } from "./telemetry/snowplow-setup";
+import { telemetry } from "./telemetry/telemetry";
+import { setupTelemetryHandler } from "./telemetry/telemetry-endpoint";
+
+import type { ProvidedEntityEditionProvenance } from "@blockprotocol/type-system";
+import type { ErrorRequestHandler, Request, Response } from "express";
+import type { Options as RateLimitOptions } from "express-rate-limit";
 
 const app = express();
 
 const httpServer = http.createServer(app);
 
 const shutdown = new GracefulShutdown(logger, "SIGINT", "SIGTERM");
+
+// Register OpenTelemetry first so it flushes last — `GracefulShutdown`
+// runs cleanups in reverse registration order. Cleanup hooks added below
+// can still emit shutdown spans / logs before the providers disconnect
+// from the collector. `otelSetup` is `undefined` when no
+// `HASH_OTLP_ENDPOINT` is configured (no collector) or when bootstrap
+// throws.
+if (otelSetup) {
+  shutdown.addCleanup("OpenTelemetry", otelSetup.shutdown);
+}
 
 const baseRateLimitOptions: Partial<RateLimitOptions> = {
   windowMs: process.env.NODE_ENV === "test" ? 10 : 1000 * 10, // 10 seconds
@@ -108,9 +123,60 @@ const baseRateLimitOptions: Partial<RateLimitOptions> = {
 };
 
 /**
+ * Key the rate limiter by remote IP. Mirrors the default `express-rate-limit`
+ * behaviour but falls back to a literal `"ip-unavailable"` bucket when
+ * `req.ip` is undefined (which can happen behind certain proxy configurations)
+ * so the default keyGenerator's IP-undefined validation doesn't reject the
+ * request.
+ */
+const ipKey: RateLimitOptions["keyGenerator"] = (req) =>
+  req.ip ? ipKeyGenerator(req.ip) : "ip-unavailable";
+
+/**
  * A rate limiter for routes which grant authentication or authorization credentials
  */
 const authRouteRateLimiter = rateLimit(baseRateLimitOptions);
+
+/**
+ * Rate limit for state-changing Kratos proxy requests (POST login/registration/
+ * settings/recovery/verification submissions).
+ *
+ * These are the endpoints where credential brute-force or stuffing attacks
+ * are meaningful, but the limit is loose enough to cover legitimate bursty
+ * interactions (fat-finger password retries, signup + verify + MFA-setup
+ * in quick succession). Per-identifier brute-force is additionally bounded
+ * by {@link userIdentifierRateLimiter}. GETs on the same proxy are handled
+ * separately by {@link kratosProxyReadRateLimiter}.
+ */
+const kratosProxyMutationRateLimiter = rateLimit({
+  ...baseRateLimitOptions,
+  limit: 30,
+  keyGenerator: ipKey,
+  // Apply to anything that isn't a GET — POST is the credential-bearing
+  // method on the Kratos self-service endpoints, but PUT/PATCH/DELETE
+  // would also count as state-changing if they ever appear.
+  skip: (req) => req.method === "GET",
+});
+
+/**
+ * Rate limit for Kratos proxy GET reads other than `/sessions/whoami`.
+ *
+ * Flow-creation GETs such as `/self-service/settings/browser` persist a row
+ * in Kratos's DB, so we keep a bound to prevent trivial DB-bloat abuse. The
+ * budget is generous (relative to the credential limit) because a single
+ * user's interaction with an auth flow can legitimately involve several
+ * flow fetches in quick succession.
+ *
+ * `/sessions/whoami` is exempted entirely: it is a cheap session lookup with
+ * no brute-forceable value, and several components in the frontend call it
+ * independently during navigation.
+ */
+const kratosProxyReadRateLimiter = rateLimit({
+  ...baseRateLimitOptions,
+  limit: 60,
+  keyGenerator: ipKey,
+  skip: (req) => req.method !== "GET" || req.path === "/sessions/whoami",
+});
 
 /**
  * A rate limiter for the GraphQL endpoint.
@@ -125,7 +191,7 @@ const authRouteRateLimiter = rateLimit(baseRateLimitOptions);
  */
 const graphqlRateLimiter = rateLimit({
   windowMs: process.env.NODE_ENV === "test" ? 10 : 1000 * 60, // 1 minute
-  limit: (req) => (req.user ? 300 : 60),
+  limit: (req) => (req.user ? 1_000 : 120),
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: (req) => {
@@ -145,20 +211,17 @@ const graphqlRateLimiter = rateLimit({
 });
 
 /**
- * A rate limit which throttles requests based on the user identifier rather than the IP address.
+ * A rate limit which throttles signin attempts per user identifier rather than
+ * per IP address, to mitigate brute-force attempts spread across many IPs.
+ *
+ * Applied only when the request body carries an `identifier` field (i.e. an
+ * actual signin submission). Requests without an identifier are not limited
+ * here — the per-IP {@link kratosProxyMutationRateLimiter} handles those.
  */
 const userIdentifierRateLimiter = rateLimit({
   ...baseRateLimitOptions,
-  keyGenerator: (req) => {
-    if (req.body?.identifier) {
-      /**
-       * 'identifier' is the field which identifies the user on a signin attempt.
-       * We use this as a rate limiting key if present to mitigate brute force signin attempts spread across multiple IPs.
-       */
-      return req.body.identifier as string;
-    }
-    return ipKeyGenerator(req.ip!);
-  },
+  keyGenerator: (req) => req.body?.identifier as string,
+  skip: (req) => typeof req.body?.identifier !== "string",
 });
 
 /**
@@ -178,10 +241,12 @@ const gptRateLimiter = rateLimit({
   },
 });
 
-const hydraProxy = createProxyMiddleware<Request, Response>({
-  target: hydraPublicUrl ?? "",
-  pathRewrite: (_, req) => req.originalUrl,
-});
+const hydraProxy = hydraPublicUrl
+  ? createProxyMiddleware<Request, Response>({
+      target: hydraPublicUrl,
+      pathRewrite: (_, req) => req.originalUrl,
+    })
+  : undefined;
 
 const redactAuthQueryParams = (value: string): string =>
   value
@@ -196,6 +261,30 @@ const sanitizeProxyLogArgs = (args: unknown[]): unknown[] =>
     typeof arg === "string" ? redactAuthQueryParams(arg) : arg,
   );
 
+/**
+ * Forward a `http-proxy-middleware` variadic log call to the
+ * structured logger as `(message, meta?)`. Without this, passing the
+ * raw `args` array as a single argument to `logger.info` results in
+ * the OTLP body being a JSON-encoded array (`["[HPM] …"]`) instead of
+ * the proxy log message itself.
+ */
+const forwardProxyLog = (level: "info" | "warn" | "error", args: unknown[]) => {
+  const sanitized = sanitizeProxyLogArgs(args);
+  if (sanitized.length === 0) {
+    return;
+  }
+  const [first, ...rest] = sanitized;
+  if (typeof first === "string") {
+    if (rest.length === 0) {
+      logger[level](first);
+    } else {
+      logger[level](first, { args: rest });
+    }
+    return;
+  }
+  logger[level]("[HPM]", { args: sanitized });
+};
+
 const kratosProxyLogger = {
   /**
    * `http-proxy-middleware` logs include request URLs.
@@ -203,15 +292,9 @@ const kratosProxyLogger = {
    * `/auth/*` requests can include Ory self-service query parameters, so we
    * sanitize all forwarded log levels consistently.
    */
-  info: (...args: unknown[]) => {
-    logger.info(sanitizeProxyLogArgs(args));
-  },
-  warn: (...args: unknown[]) => {
-    logger.warn(sanitizeProxyLogArgs(args));
-  },
-  error: (...args: unknown[]) => {
-    logger.error(sanitizeProxyLogArgs(args));
-  },
+  info: (...args: unknown[]) => forwardProxyLog("info", args),
+  warn: (...args: unknown[]) => forwardProxyLog("warn", args),
+  error: (...args: unknown[]) => forwardProxyLog("error", args),
 };
 
 const kratosProxy = createProxyMiddleware<Request, Response>({
@@ -263,17 +346,6 @@ const kratosProxy = createProxyMiddleware<Request, Response>({
 const main = async () => {
   logger.info("Type System initialized");
 
-  if (process.env.HASH_TELEMETRY_ENABLED === "true") {
-    logger.info("Starting [Snowplow] telemetry");
-
-    const snowplowTracker = await setupTelemetry();
-
-    shutdown.addCleanup("Snowplow Telemetry", async () => {
-      logger.info("Flushing [Snowplow] telemetry");
-      await snowplowTracker.flush();
-    });
-  }
-
   // Request ID generator
   const nanoid = customAlphabet(
     "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz",
@@ -297,8 +369,8 @@ const main = async () => {
         await promisify((statsd as StatsD).close).bind(statsd)();
       });
     }
-  } catch (err) {
-    logger.error(`Could not start StatsD client: ${err}`);
+  } catch (error) {
+    logger.error("Could not start StatsD client", { error });
   }
 
   app.use(cors(CORS_CONFIG));
@@ -316,23 +388,24 @@ const main = async () => {
     });
   }
 
-  // Add logging of requests
+  // Add logging of requests. /graphql is logged at the operation level
+  // (query/mutation name) by the Apollo plugin in `create-apollo-server.ts`,
+  // so logging it here would be a less informative duplicate.
   app.use((req, res, next) => {
     const requestId = nanoid();
     res.set("x-hash-request-id", requestId);
-    logger.info(
-      JSON.stringify({
+
+    if (req.path !== "/graphql") {
+      logger.info(`${req.method} ${req.path}`, {
         requestId,
-        method: req.method,
         origin: req.headers.origin,
         ip: req.ip,
-        path: req.path,
         userAgent: req.headers["user-agent"],
         graphqlClient:
           req.headers[hashClientHeaderKey] ??
           req.headers["apollographql-client-name"],
-      }),
-    );
+      });
+    }
 
     next();
   });
@@ -369,7 +442,7 @@ const main = async () => {
   // Setup upload storage provider and express routes for local file uploads
   const uploadProvider = setupStorageProviders(app, FILE_UPLOAD_PROVIDER);
 
-  const temporalClient = await createTemporalClient(logger);
+  const temporalClient = await createTemporalClient();
 
   const vaultClient = await createVaultClient({ logger });
 
@@ -508,9 +581,11 @@ const main = async () => {
   /**
    * Proxy to Ory Hydra's OAuth2 authorization and token endpoints, for OAuth2 clients (e.g. HashGPT)
    */
-  app.use("/oauth2/auth", authRouteRateLimiter, hydraProxy);
-  app.use("/oauth2/token", authRouteRateLimiter, hydraProxy);
-  app.use("/oauth2/fallbacks", authRouteRateLimiter, hydraProxy);
+  if (hydraProxy) {
+    app.use("/oauth2/auth", authRouteRateLimiter, hydraProxy);
+    app.use("/oauth2/token", authRouteRateLimiter, hydraProxy);
+    app.use("/oauth2/fallbacks", authRouteRateLimiter, hydraProxy);
+  }
 
   /** END PROXIES */
 
@@ -534,14 +609,19 @@ const main = async () => {
    */
   app.use(
     "/auth",
-    authRouteRateLimiter,
+    kratosProxyMutationRateLimiter,
+    kratosProxyReadRateLimiter,
     userIdentifierRateLimiter,
     cors(CORS_CONFIG),
     kratosProxy,
   );
 
   // Set up authentication related middleware and routes
-  addKratosAfterRegistrationHandler({ app, context: machineActorContext });
+  addKratosAfterRegistrationHandler({
+    app,
+    context: machineActorContext,
+    logger,
+  });
   const authMiddleware = createAuthMiddleware({
     logger,
     context: machineActorContext,
@@ -658,6 +738,11 @@ const main = async () => {
 
   setupFileDownloadProxyHandler(app, keyv);
 
+  setupAnalysisHandler(app, keyv);
+
+  setupTelemetryHandler(app);
+  shutdown.addCleanup("Rudderstack Telemetry", async () => telemetry.flush());
+
   setupBlockProtocolExternalServiceMethodProxy(app);
 
   app.get("/", (_req, res) => {
@@ -693,7 +778,7 @@ const main = async () => {
       const { default: fs } = await import("node:fs/promises");
 
       const servers = dns.getServers();
-      logger.info(`DNS servers: ${servers}`);
+      logger.info("DNS servers", { servers });
 
       try {
         const resolveAny = await dns.resolveAny(rpcHost);

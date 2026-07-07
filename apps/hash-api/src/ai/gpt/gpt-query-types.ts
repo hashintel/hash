@@ -1,19 +1,15 @@
 import { typedValues } from "@local/advanced-types/typed-entries";
-import type { SimpleEntityType } from "@local/hash-backend-utils/simplified-graph";
 import { getSimpleEntityType } from "@local/hash-backend-utils/simplified-graph";
-import type {
-  CreateEmbeddingsParams,
-  CreateEmbeddingsReturn,
-} from "@local/hash-graph-sdk/embeddings";
 import { queryEntityTypeSubgraph } from "@local/hash-graph-sdk/entity-type";
-import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import {
   almostFullOntologyResolveDepths,
   currentTimeInstantTemporalAxes,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import type { RequestHandler } from "express";
 
 import { stringifyResults } from "./shared/stringify-results";
+
+import type { SimpleEntityType } from "@local/hash-backend-utils/simplified-graph";
+import type { RequestHandler } from "express";
 
 export type GptQueryTypesRequestBody = {
   /**
@@ -56,24 +52,11 @@ export const gptQueryTypes: RequestHandler<
     return;
   }
 
-  const { query, webUuids } = req.body;
+  const { webUuids } = req.body;
 
-  const semanticSearchString = query
-    ? await req.context.temporalClient.workflow
-        .execute<
-          (params: CreateEmbeddingsParams) => Promise<CreateEmbeddingsReturn>
-        >("createEmbeddings", {
-          taskQueue: "ai",
-          args: [
-            {
-              input: [query],
-            },
-          ],
-          workflowId: generateUuid(),
-        })
-        .then(({ embeddings }) => embeddings[0])
-    : null;
-
+  // TODO(BE-624): semantic search is disabled here, so the `query` field is currently accepted but
+  // ignored. The `cosineDistance` filter was removed because it is no longer supported on the
+  // generic filter — migrate this endpoint to the dedicated `searchEntityTypes` endpoint to restore it.
   const queryResponse: GptQueryTypesResponseBody =
     await queryEntityTypeSubgraph(
       req.context.graphApi,
@@ -87,17 +70,6 @@ export const gptQueryTypes: RequestHandler<
                     any: webUuids.map((webUuid) => ({
                       equal: [{ path: ["webId"] }, { parameter: webUuid }],
                     })),
-                  },
-                ]
-              : []),
-            ...(semanticSearchString
-              ? [
-                  {
-                    cosineDistance: [
-                      { path: ["embedding"] },
-                      { parameter: semanticSearchString },
-                      { parameter: 0.9 },
-                    ],
                   },
                 ]
               : []),

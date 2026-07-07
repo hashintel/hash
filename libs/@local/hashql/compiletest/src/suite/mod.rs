@@ -1,15 +1,12 @@
 #![coverage(off)]
-mod ast_lowering_import_resolver;
-mod ast_lowering_import_resolver_continue;
-mod ast_lowering_node_mangler;
-mod ast_lowering_node_renumberer;
-mod ast_lowering_pre_expansion_name_resolver;
-mod ast_lowering_sanitizer;
-mod ast_lowering_special_form_expander;
-mod ast_lowering_type_definition_extractor;
-mod ast_lowering_type_extractor;
+mod ast_lower_expander;
+mod ast_lower_node_mangler;
+mod ast_lower_node_renumberer;
+mod ast_lower_sanitizer;
+mod ast_lower_type_definition_extractor;
+mod ast_lower_type_extractor;
 pub(crate) mod common;
-mod eval_graph_read_entity;
+mod eval_postgres;
 mod hir_lower_alias_replacement;
 mod hir_lower_checking;
 mod hir_lower_ctor;
@@ -20,6 +17,7 @@ mod hir_lower_normalization;
 mod hir_lower_specialization;
 mod hir_lower_thunking;
 mod hir_reify;
+mod mir_interpret;
 mod mir_pass_analysis_data_dependency;
 mod mir_pass_transform_administrative_reduction;
 mod mir_pass_transform_cfg_simplify;
@@ -40,16 +38,11 @@ use hashql_core::{collections::FastHashMap, heap::Heap, span::SpanId};
 use hashql_diagnostics::{Diagnostic, category::DiagnosticCategory};
 
 use self::{
-    ast_lowering_import_resolver::AstLoweringImportResolverSuite,
-    ast_lowering_import_resolver_continue::AstLoweringImportResolverContinueSuite,
-    ast_lowering_node_mangler::AstLoweringNameManglerSuite,
-    ast_lowering_node_renumberer::AstLoweringNodeRenumbererSuite,
-    ast_lowering_pre_expansion_name_resolver::AstLoweringNameResolverSuite,
-    ast_lowering_sanitizer::AstLoweringSanitizerSuite,
-    ast_lowering_special_form_expander::AstLoweringSpecialFormExpanderSuite,
-    ast_lowering_type_definition_extractor::AstLoweringTypeDefinitionExtractorSuite,
-    ast_lowering_type_extractor::AstLoweringTypeExtractorSuite,
-    eval_graph_read_entity::EvalGraphReadEntitySuite,
+    ast_lower_expander::AstLowerExpanderSuite, ast_lower_node_mangler::AstLowerNameManglerSuite,
+    ast_lower_node_renumberer::AstLowerNodeRenumbererSuite,
+    ast_lower_sanitizer::AstLowerSanitizerSuite,
+    ast_lower_type_definition_extractor::AstLowerTypeDefinitionExtractorSuite,
+    ast_lower_type_extractor::AstLowerTypeExtractorSuite, eval_postgres::EvalPostgres,
     hir_lower_alias_replacement::HirLowerAliasReplacementSuite,
     hir_lower_checking::HirLowerTypeCheckingSuite, hir_lower_ctor::HirLowerCtorSuite,
     hir_lower_graph_hoisting::HirLowerGraphHoistingSuite,
@@ -58,7 +51,7 @@ use self::{
     hir_lower_normalization::HirLowerNormalizationSuite,
     hir_lower_specialization::HirLowerSpecializationSuite,
     hir_lower_thunking::HirLowerThunkingSuite, hir_reify::HirReifySuite,
-    mir_pass_analysis_data_dependency::MirPassAnalysisDataDependency,
+    mir_interpret::MirInterpret, mir_pass_analysis_data_dependency::MirPassAnalysisDataDependency,
     mir_pass_transform_administrative_reduction::MirPassTransformAdministrativeReduction,
     mir_pass_transform_cfg_simplify::MirPassTransformCfgSimplify,
     mir_pass_transform_dse::MirPassTransformDse,
@@ -141,16 +134,13 @@ pub(crate) trait Suite: RefUnwindSafe + Send + Sync + 'static {
 }
 
 const SUITES: &[&dyn Suite] = &[
-    &AstLoweringImportResolverContinueSuite,
-    &AstLoweringImportResolverSuite,
-    &AstLoweringNameManglerSuite,
-    &AstLoweringNameResolverSuite,
-    &AstLoweringNodeRenumbererSuite,
-    &AstLoweringSanitizerSuite,
-    &AstLoweringSpecialFormExpanderSuite,
-    &AstLoweringTypeDefinitionExtractorSuite,
-    &AstLoweringTypeExtractorSuite,
-    &EvalGraphReadEntitySuite,
+    &AstLowerExpanderSuite,
+    &AstLowerNameManglerSuite,
+    &AstLowerNodeRenumbererSuite,
+    &AstLowerSanitizerSuite,
+    &AstLowerTypeDefinitionExtractorSuite,
+    &AstLowerTypeExtractorSuite,
+    &EvalPostgres,
     &HirLowerAliasReplacementSuite,
     &HirLowerCtorSuite,
     &HirLowerGraphHoistingSuite,
@@ -161,6 +151,7 @@ const SUITES: &[&dyn Suite] = &[
     &HirLowerTypeInferenceIntrinsicsSuite,
     &HirLowerTypeInferenceSuite,
     &HirReifySuite,
+    &MirInterpret,
     &MirPassAnalysisDataDependency,
     &MirPassTransformAdministrativeReduction,
     &MirPassTransformCfgSimplify,

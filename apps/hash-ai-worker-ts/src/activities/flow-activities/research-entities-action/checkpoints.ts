@@ -1,17 +1,19 @@
-import { parseHistoryItemPayload } from "@local/hash-backend-utils/temporal/parse-history-item-payload";
-import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { Context } from "@temporalio/activity";
 import proto from "@temporalio/proto";
 
+import { parseHistoryItemPayload } from "@local/hash-backend-utils/temporal/parse-history-item-payload";
+import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
+
 import { heartbeatTimeoutSeconds } from "../../../shared/heartbeats.js";
-import type {
-  FlowSignal,
-  ResearchActionCheckpointState,
-} from "../../../shared/signals.js";
 import { researchActionCheckpointSignal } from "../../../shared/signals.js";
 import { logger } from "../../shared/activity-logger.js";
 import { getTemporalClient } from "../../shared/get-flow-context.js";
 import { flushLogs, logProgress } from "../../shared/log-progress.js";
+
+import type {
+  FlowSignal,
+  ResearchActionCheckpointState,
+} from "../../../shared/signals.js";
 import type { CoordinatingAgentState } from "./shared/coordinators.js";
 
 /**
@@ -40,10 +42,10 @@ export const heartbeatAndWaitCancellation = async (
     } satisfies ResearchActionCheckpointState);
   }, secondsBetweenHeartbeats * 1000);
 
-  return Context.current().cancelled.catch((err) => {
-    logger.error(`Cancellation received: ${err}`);
+  return Context.current().cancelled.catch((error: unknown) => {
+    logger.error("Cancellation received", { error });
     clearInterval(heartbeatInterval);
-    throw err;
+    throw error;
   });
 };
 
@@ -66,7 +68,11 @@ export const createCheckpoint = async (
 
   const temporalClient = await getTemporalClient();
 
-  const { workflowId, runId } = Context.current().info.workflowExecution;
+  const { workflowId, runId } = Context.current().info.workflowExecution ?? {};
+
+  if (!workflowId) {
+    return;
+  }
 
   const handle = temporalClient.workflow.getHandle(workflowId, runId);
 
@@ -79,7 +85,11 @@ export const createCheckpoint = async (
 };
 
 export const getCheckpoint = async () => {
-  const { workflowId } = Context.current().info.workflowExecution;
+  const { workflowId } = Context.current().info.workflowExecution ?? {};
+
+  if (!workflowId) {
+    return;
+  }
 
   const temporalClient = await getTemporalClient();
   const handle = temporalClient.workflow.getHandle(workflowId);

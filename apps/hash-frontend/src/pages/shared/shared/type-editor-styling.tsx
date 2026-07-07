@@ -13,7 +13,10 @@ export const typeHeaderContainerStyles: SxProps<Theme> = ({ palette }) => ({
 export const TypeDefinitionContainer = ({
   children,
   inSlide,
-}: { children: React.ReactNode; inSlide?: boolean }) => {
+}: {
+  children: React.ReactNode;
+  inSlide?: boolean;
+}) => {
   return (
     <Box
       py={5}

@@ -1,4 +1,5 @@
 import { Box, Grid } from "@mui/material";
+
 import type { PropsWithChildren } from "react";
 
 export const HomepageGrid = ({ children }: PropsWithChildren) => (

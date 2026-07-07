@@ -1,11 +1,13 @@
-import { createTemporalClient } from "@local/hash-backend-utils/temporal";
-import type { StepProgressLog } from "@local/hash-isomorphic-utils/flows/types";
 import { Context } from "@temporalio/activity";
-import type { Client as TemporalClient } from "@temporalio/client";
 import debounce from "lodash/debounce.js";
+
+import { createTemporalClient } from "@local/hash-backend-utils/temporal";
 
 import { logProgressSignal } from "../../shared/signals.js";
 import { logger } from "./activity-logger.js";
+
+import type { StepProgressLog } from "@local/hash-isomorphic-utils/flows/types";
+import type { Client as TemporalClient } from "@temporalio/client";
 
 let temporalClient: TemporalClient | undefined;
 
@@ -58,7 +60,17 @@ export const logProgress = (logs: StepProgressLog[]) => {
     return;
   }
 
-  const { workflowId, runId } = Context.current().info.workflowExecution;
+  const { workflowId, runId } = Context.current().info.workflowExecution ?? {};
+
+  if (!workflowId) {
+    throw new Error(
+      "No workflowId associated with the current workflow execution",
+    );
+  }
+
+  if (!runId) {
+    throw new Error("No runId associated with the current workflow execution");
+  }
 
   const existingLogs = logQueueByRunId.get(runId) ?? [];
 

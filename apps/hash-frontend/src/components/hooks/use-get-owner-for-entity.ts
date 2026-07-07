@@ -1,10 +1,12 @@
-import type { EntityId, WebId } from "@blockprotocol/type-system";
-import { extractWebIdFromEntityId } from "@blockprotocol/type-system";
 import * as Sentry from "@sentry/nextjs";
 import { useCallback } from "react";
 
+import { extractWebIdFromEntityId } from "@blockprotocol/type-system";
+
 import { useOrgs } from "./use-orgs";
 import { useUsers } from "./use-users";
+
+import type { EntityId, WebId } from "@blockprotocol/type-system";
 
 export const useGetOwnerForEntity = () => {
   /*

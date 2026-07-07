@@ -1,11 +1,10 @@
+import type { ImpureGraphContext } from "../../../context-types";
 import type {
   PropertyPatchOperation,
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
-
-import type { ImpureGraphContext } from "../../../context-types";
 
 type UpdateEntityHookCallbackBaseParams = {
   context: ImpureGraphContext<false, true>;

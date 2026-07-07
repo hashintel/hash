@@ -1,14 +1,18 @@
-import type { PendingOrgInvitation } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 import { Typography } from "@mui/material";
 import { Box } from "@mui/system";
 
 import { ChevronRightRegularIcon } from "../../shared/icons/chevron-right-regular-icon";
 import { Button } from "../../shared/ui/button";
 
+import type { PendingOrgInvitation } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
+
 export const AcceptOrgInvitation = ({
   invitation,
   onAccept,
-}: { invitation: PendingOrgInvitation; onAccept: () => void }) => {
+}: {
+  invitation: PendingOrgInvitation;
+  onAccept: () => void;
+}) => {
   const { org, invitedBy } = invitation;
 
   return (

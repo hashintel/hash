@@ -1,18 +1,19 @@
-import type { EntityRevisionId } from "@blockprotocol/graph";
-import type {
-  BaseUrl,
-  EntityId,
-  OntologyTypeVersion,
-} from "@blockprotocol/type-system";
+import isEqual from "lodash.isequal";
+
 import {
   extractBaseUrl,
   extractVersion,
   getReferencedIdsFromEntityType,
   getReferencedIdsFromPropertyType,
 } from "@blockprotocol/type-system";
-import isEqual from "lodash.isequal";
 
 import { unionOfIntervals } from "../../stdlib.js";
+import {
+  isEntityTypeVertex,
+  isPropertyTypeVertex,
+} from "../../types/subgraph.js";
+import { typedEntries } from "../../util/typed-entries.js";
+
 import type {
   EntityIdWithInterval,
   EntityVertexId,
@@ -24,11 +25,12 @@ import type {
   OutwardEdge,
   Subgraph,
 } from "../../types/subgraph.js";
-import {
-  isEntityTypeVertex,
-  isPropertyTypeVertex,
-} from "../../types/subgraph.js";
-import { typedEntries } from "../../util/typed-entries.js";
+import type { EntityRevisionId } from "@blockprotocol/graph";
+import type {
+  BaseUrl,
+  EntityId,
+  OntologyTypeVersion,
+} from "@blockprotocol/type-system";
 
 /**
  * Looking to build a subgraph? You probably want {@link buildSubgraph} from `@blockprotocol/graph/stdlib`

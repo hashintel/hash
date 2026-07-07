@@ -1,9 +1,3 @@
-import type { EntityType, VersionedUrl } from "@blockprotocol/type-system";
-import {
-  GraphIcon,
-  LinkTypeIcon,
-  StyledPlusCircleIcon,
-} from "@hashintel/design-system";
 import {
   Box,
   TableBody,
@@ -22,8 +16,13 @@ import {
 } from "react";
 import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
 
+import {
+  GraphIcon,
+  LinkTypeIcon,
+  StyledPlusCircleIcon,
+} from "@hashintel/design-system";
+
 import { useEntityTypesOptions } from "../shared/entity-types-options-context";
-import type { EntityTypeEditorFormData } from "../shared/form-types";
 import { useOntologyFunctions } from "../shared/ontology-functions-context";
 import { useIsReadonly } from "../shared/read-only-context";
 import { linkEntityTypeUrl } from "../shared/urls";
@@ -41,13 +40,10 @@ import {
   sortRows,
   useFlashRow,
 } from "./shared/entity-type-table";
-import type { TypeSelectorType } from "./shared/insert-property-field/type-selector";
-import type { InsertTypeFieldProps } from "./shared/insert-type-field";
 import { InsertTypeField } from "./shared/insert-type-field";
 import { Link } from "./shared/link";
 import { MultipleValuesCell } from "./shared/multiple-values-cell";
 import { QuestionIcon } from "./shared/question-icon";
-import type { TypeFormDefaults, TypeFormProps } from "./shared/type-form";
 import { TypeForm, TypeFormModal } from "./shared/type-form";
 import { TYPE_MENU_CELL_WIDTH, TypeMenuCell } from "./shared/type-menu-cell";
 import { useFilterTypeOptions } from "./shared/use-filter-type-options";
@@ -55,6 +51,12 @@ import { useInheritedValuesForCurrentDraft } from "./shared/use-inherited-values
 import { useStateCallback } from "./shared/use-state-callback";
 import { useTypeVersions } from "./shared/use-type-versions";
 import { VersionUpgradeIndicator } from "./shared/version-upgrade-indicator";
+
+import type { EntityTypeEditorFormData } from "../shared/form-types";
+import type { TypeSelectorType } from "./shared/insert-property-field/type-selector";
+import type { InsertTypeFieldProps } from "./shared/insert-type-field";
+import type { TypeFormDefaults, TypeFormProps } from "./shared/type-form";
+import type { EntityType, VersionedUrl } from "@blockprotocol/type-system";
 
 const formDataToEntityType = (data: TypeFormDefaults) => ({
   type: "object" as const,

@@ -1,4 +1,3 @@
-import type { EntityId, EntityUuid, UserId } from "@blockprotocol/type-system";
 import {
   atLeastOne,
   extractBaseUrl,
@@ -7,7 +6,6 @@ import {
 } from "@blockprotocol/type-system";
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
 import { createWebMachineActorEntity } from "@local/hash-backend-utils/machine-actors";
-import type { Filter } from "@local/hash-graph-client";
 import {
   type HashEntity,
   queryEntities,
@@ -22,33 +20,21 @@ import {
   type FeatureFlag,
   featureFlags,
 } from "@local/hash-isomorphic-utils/feature-flags";
-import {
-  currentTimeInstantTemporalAxes,
-  generateVersionedUrlMatchingFilter,
-} from "@local/hash-isomorphic-utils/graph-queries";
-import type { PendingOrgInvitation } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
+import { normalizeEmail } from "@local/hash-isomorphic-utils/normalize";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import type {
-  EnabledFeatureFlagsPropertyValue,
-  User as UserEntity,
-} from "@local/hash-isomorphic-utils/system-types/user";
 
-import type {
-  KratosUserIdentity,
-  KratosUserIdentityTraits,
+import {
+  getVerifiedEmailsFromKratosIdentity,
+  kratosIdentityApi,
 } from "../../../auth/ory-kratos";
-import { kratosIdentityApi } from "../../../auth/ory-kratos";
 import { getPendingOrgInvitationsFromSubgraph } from "../../../graphql/resolvers/knowledge/org/shared";
 import { logger } from "../../../logger";
-import type {
-  ImpureGraphFunction,
-  PureGraphFunction,
-} from "../../context-types";
 import { systemAccountId } from "../../system-account";
 import {
   createEntity,
@@ -60,12 +46,25 @@ import {
   shortnameIsRestricted,
   shortnameIsTaken,
 } from "./account.fields";
-import type { OrgMembership } from "./org-membership";
 import {
   createOrgMembership,
   getOrgMembershipFromLinkEntity,
   getOrgMembershipOrg,
 } from "./org-membership";
+
+import type {
+  KratosUserIdentity,
+  KratosUserIdentityTraits,
+} from "../../../auth/ory-kratos";
+import type {
+  ImpureGraphFunction,
+  PureGraphFunction,
+} from "../../context-types";
+import type { OrgMembership } from "./org-membership";
+import type { EntityId, EntityUuid, UserId } from "@blockprotocol/type-system";
+import type { Filter } from "@local/hash-graph-client";
+import type { PendingOrgInvitation } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
+import type { User as UserEntity } from "@local/hash-isomorphic-utils/system-types/user";
 
 export type User = {
   accountId: UserId;
@@ -77,16 +76,6 @@ export type User = {
   kratosIdentityId: string;
   shortname?: string;
 };
-
-function assertFeatureFlags(
-  uncheckedFeatureFlags: EnabledFeatureFlagsPropertyValue,
-): asserts uncheckedFeatureFlags is FeatureFlag[] {
-  for (const maybeFlag of uncheckedFeatureFlags) {
-    if (!featureFlags.includes(maybeFlag as FeatureFlag)) {
-      throw new Error(`Invalid feature flag: ${maybeFlag}`);
-    }
-  }
-}
 
 function isUserEntity(entity: HashEntity): entity is HashEntity<UserEntity> {
   return entity.metadata.entityTypeIds.some(
@@ -127,21 +116,48 @@ const getEmailsFromKratos = async (
   }
 };
 
+export const getUserVerifiedEmails: ImpureGraphFunction<
+  { user: User },
+  Promise<string[]>
+> = async (_, __, { user }) => {
+  const { data: identity } = await kratosIdentityApi.getIdentity({
+    id: user.kratosIdentityId,
+  });
+
+  return getVerifiedEmailsFromKratosIdentity(identity);
+};
+
 /**
- * Lookup a Kratos identity by email address.
- * Returns the kratosIdentityId if found, null otherwise.
+ * For a given email address, check if it is associated with a Kratos identity,
+ * and if so if it is verified.
  */
-const getKratosIdentityIdByEmail = async (
+export const checkEmailVerificationAndUsageStatus = async (
   email: string,
-): Promise<string | null> => {
+): Promise<
+  | { status: "email-not-found" }
+  | { status: "verified"; kratosIdentityId: string }
+  | { status: "not-verified"; kratosIdentityId: string }
+> => {
+  const normalizedEmail = normalizeEmail(email);
+
   try {
     const { data: identities } = await kratosIdentityApi.listIdentities({
-      credentialsIdentifier: email,
+      credentialsIdentifier: normalizedEmail,
     });
-    return identities.length > 0 ? identities[0]!.id : null;
+
+    if (identities.length === 0) {
+      return { status: "email-not-found" };
+    }
+
+    const verifiedEmails = getVerifiedEmailsFromKratosIdentity(identities[0]!);
+    if (verifiedEmails.includes(normalizedEmail)) {
+      return { status: "verified", kratosIdentityId: identities[0]!.id };
+    } else {
+      return { status: "not-verified", kratosIdentityId: identities[0]!.id };
+    }
   } catch (error) {
-    logger.warn(`Failed to lookup Kratos identity by email ${email}: ${error}`);
-    return null;
+    logger.warn("Failed to lookup Kratos identity", { email, error });
+    return { status: "email-not-found" };
   }
 };
 
@@ -153,17 +169,24 @@ export const getUserFromEntity: PureGraphFunction<
 
   const {
     displayName,
-    email: emails,
+    email,
     enabledFeatureFlags: maybeFeatureFlags,
     kratosIdentityId,
     shortname,
   } = simplifyProperties(entity.properties);
 
+  // `email` is typed as a required property, but property-level permission
+  // masking can drop it at runtime for non-owners (see `getUser`'s Kratos
+  // back-fill). Model that nullability, then canonicalise so every `User` built
+  // from an entity compares case-insensitively regardless of signup casing.
+  const emails = (email as typeof email | undefined)?.map(normalizeEmail) ?? [];
+
   const isAccountSignupComplete = !!shortname && !!displayName;
 
-  const enabledFeatureFlags = maybeFeatureFlags ?? [];
-
-  assertFeatureFlags(enabledFeatureFlags);
+  const enabledFeatureFlags =
+    maybeFeatureFlags?.filter((flag): flag is FeatureFlag =>
+      featureFlags.includes(flag as FeatureFlag),
+    ) ?? [];
 
   return {
     accountId: extractWebIdFromEntityId(
@@ -180,41 +203,31 @@ export const getUserFromEntity: PureGraphFunction<
 };
 
 /**
- * Get a user by any available identifier.
+ * Get a user by a stable identifier.
  * Emails are always fetched from Kratos (the source of truth) since DB-level
  * masking hides them from non-owners.
  *
  * @param params.entityId - the entity id of the user
  * @param params.shortname - the shortname of the user
  * @param params.kratosIdentityId - the kratos identity id of the user
- * @param params.emails - the emails of the user
  */
 export const getUser: ImpureGraphFunction<
   | {
       entityId: EntityId;
-      emails?: [string, ...string[]];
     }
   | {
       shortname: string;
-      emails?: [string, ...string[]];
-      includeDrafts?: boolean;
     }
   | {
       kratosIdentityId: string;
       emails?: [string, ...string[]];
-      includeDrafts?: boolean;
-    }
-  | {
-      emails: [string, ...string[]];
-      kratosIdentityId?: string;
-      includeDrafts?: boolean;
     },
   Promise<User | null>
 > = async (context, authentication, params) => {
   const knownShortname = "shortname" in params ? params.shortname : null;
 
-  let emails = params.emails;
-  let kratosIdentityId =
+  let emails = "emails" in params ? params.emails : undefined;
+  const kratosIdentityId =
     "kratosIdentityId" in params ? params.kratosIdentityId : null;
 
   let entity: HashEntity<UserEntity>;
@@ -234,14 +247,6 @@ export const getUser: ImpureGraphFunction<
     }
   } else {
     let queryFilter: Filter;
-
-    if (emails && !kratosIdentityId && !knownShortname) {
-      // If we would have the shortname, we could use it to find the user, but we don't have it so we use the email to find the kratos Identity ID.
-      kratosIdentityId = await getKratosIdentityIdByEmail(emails[0]);
-      if (!kratosIdentityId) {
-        return null;
-      }
-    }
 
     if (kratosIdentityId) {
       queryFilter = {
@@ -264,7 +269,7 @@ export const getUser: ImpureGraphFunction<
               systemPropertyTypes.shortname.propertyTypeBaseUrl,
             ],
           },
-          { parameter: knownShortname },
+          { parameter: knownShortname?.trim().toLowerCase() },
         ],
       };
     }
@@ -274,17 +279,19 @@ export const getUser: ImpureGraphFunction<
     } = await queryEntities<UserEntity>(context, authentication, {
       filter: {
         all: [
-          generateVersionedUrlMatchingFilter(
-            systemEntityTypes.user.entityTypeId,
-            {
-              ignoreParents: true,
-            },
-          ),
+          {
+            equal: [
+              { path: ["type", "baseUrl"] },
+              {
+                parameter: systemEntityTypes.user.entityTypeBaseUrl,
+              },
+            ],
+          },
           queryFilter,
         ],
       },
       temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts: !!params.includeDrafts,
+      includeDrafts: false,
       includePermissions: false,
     });
 
@@ -369,7 +376,6 @@ export const createUser: ImpureGraphFunction<
 
   const existingUserWithKratosIdentityId = await getUser(ctx, authentication, {
     kratosIdentityId,
-    emails,
   });
 
   if (existingUserWithKratosIdentityId) {
@@ -430,7 +436,7 @@ export const createUser: ImpureGraphFunction<
       ...(shortname !== undefined
         ? {
             "https://hash.ai/@h/types/property-type/shortname/": {
-              value: shortname,
+              value: shortname.trim().toLowerCase(),
               metadata: {
                 dataTypeId:
                   "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
@@ -644,9 +650,14 @@ export const getUserPendingInvitations: ImpureGraphFunction<
       temporalAxes: currentTimeInstantTemporalAxes,
       filter: {
         all: [
-          generateVersionedUrlMatchingFilter(
-            systemEntityTypes.invitation.entityTypeId,
-          ),
+          {
+            equal: [
+              { path: ["type", "baseUrl"] },
+              {
+                parameter: systemEntityTypes.invitation.entityTypeBaseUrl,
+              },
+            ],
+          },
           {
             equal: [
               {
@@ -657,20 +668,17 @@ export const getUserPendingInvitations: ImpureGraphFunction<
           },
           {
             any: [
-              {
+              ...user.emails.map((email) => ({
                 equal: [
                   {
-                    /**
-                     * @todo H-4936 update when users can have more than one email
-                     */
                     path: [
                       "properties",
                       systemPropertyTypes.email.propertyTypeBaseUrl,
                     ],
                   },
-                  { parameter: user.emails[0] },
+                  { parameter: email },
                 ],
-              },
+              })),
               ...(user.shortname
                 ? [
                     {

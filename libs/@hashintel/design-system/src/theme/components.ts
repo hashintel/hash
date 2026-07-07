@@ -1,5 +1,3 @@
-import type { Components, Theme } from "@mui/material";
-
 import {
   MuiIconButtonThemeOptions,
   MuiListItemButtonThemeOptions,
@@ -30,6 +28,8 @@ import {
 import { MuiTabThemeOptions } from "./components/navigation/mui-tab-theme-options";
 import { MuiTabsThemeOptions } from "./components/navigation/mui-tabs-theme-options";
 import { MuiCssBaselineThemeOptions } from "./components/utils";
+
+import type { Components, Theme } from "@mui/material";
 
 export const components: Components<Theme> = {
   /** ===== INPUTS ===== */

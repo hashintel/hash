@@ -17,20 +17,28 @@
     // Library Features
     allocator_api,
     binary_heap_into_iter_sorted,
+    bound_copied,
     clone_from_ref,
     const_cmp,
+    const_convert,
+    const_destruct,
+    const_ops,
+    const_range,
     const_trait_impl,
     extend_one,
+    extern_types,
     get_disjoint_mut_helpers,
+    get_mut_unchecked,
     iter_intersperse,
     iter_map_windows,
     iter_next_chunk,
+    nonpoison_mutex,
     slice_partition_dedup,
     slice_swap_unchecked,
     step_trait,
-    str_from_raw_parts,
+    sync_nonpoison,
     try_trait_v2,
-    variant_count,
+    variant_count
 )]
 
 extern crate alloc;

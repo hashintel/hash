@@ -1,12 +1,12 @@
 import { useMutation, useQuery } from "@apollo/client";
-import type { DataTypeRootType } from "@blockprotocol/graph";
+import { Box, Container, Stack } from "@mui/material";
+import { GlobalStyles } from "@mui/system";
+import { NextSeo } from "next-seo";
+import { useRouter } from "next/router";
+import { useEffect, useMemo } from "react";
+import { FormProvider, useForm, useWatch } from "react-hook-form";
+
 import { getRoots } from "@blockprotocol/graph/stdlib";
-import type {
-  BaseUrl,
-  DataTypeWithMetadata,
-  OntologyTypeVersion,
-  WebId,
-} from "@blockprotocol/type-system";
 import {
   compareOntologyTypeVersions,
   extractVersion,
@@ -15,22 +15,7 @@ import {
 } from "@blockprotocol/type-system";
 import { deserializeQueryDataTypeSubgraphResponse } from "@local/hash-graph-sdk/data-type";
 import { fullTransactionTimeAxis } from "@local/hash-isomorphic-utils/graph-queries";
-import type { Theme } from "@mui/material";
-import { Box, Container, Stack } from "@mui/material";
-import { GlobalStyles } from "@mui/system";
-import { useRouter } from "next/router";
-import { NextSeo } from "next-seo";
-import { useEffect, useMemo } from "react";
-import { FormProvider, useForm, useWatch } from "react-hook-form";
 
-import type {
-  CreateDataTypeMutation,
-  CreateDataTypeMutationVariables,
-  QueryDataTypeSubgraphQuery,
-  QueryDataTypeSubgraphQueryVariables,
-  UpdateDataTypeMutation,
-  UpdateDataTypeMutationVariables,
-} from "../../graphql/api-types.gen";
 import {
   createDataTypeMutation,
   queryDataTypeSubgraphQuery,
@@ -61,6 +46,23 @@ import {
 } from "./shared/type-editor-styling";
 import { useSlideStack } from "./slide-stack";
 import { TopContextBar } from "./top-context-bar";
+
+import type {
+  CreateDataTypeMutation,
+  CreateDataTypeMutationVariables,
+  QueryDataTypeSubgraphQuery,
+  QueryDataTypeSubgraphQueryVariables,
+  UpdateDataTypeMutation,
+  UpdateDataTypeMutationVariables,
+} from "../../graphql/api-types.gen";
+import type { DataTypeRootType } from "@blockprotocol/graph";
+import type {
+  BaseUrl,
+  DataTypeWithMetadata,
+  OntologyTypeVersion,
+  WebId,
+} from "@blockprotocol/type-system";
+import type { Theme } from "@mui/material";
 
 type DataTypeProps = {
   isInSlide?: boolean;
