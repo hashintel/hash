@@ -6,6 +6,7 @@
 
 extern crate alloc;
 
+mod clustering;
 mod data_type;
 mod drafts;
 mod email_filter_protection;

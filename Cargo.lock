@@ -3706,6 +3706,7 @@ dependencies = [
  "hash-graph-store",
  "hash-graph-temporal-versioning",
  "hash-graph-test-data",
+ "hash-graph-types",
  "hash-status",
  "hash-telemetry",
  "pretty_assertions",

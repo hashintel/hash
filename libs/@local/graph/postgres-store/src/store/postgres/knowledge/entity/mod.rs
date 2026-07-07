@@ -59,6 +59,7 @@ use hash_graph_temporal_versioning::{
     TransactionTime,
 };
 use hash_graph_types::{
+    Embedding,
     knowledge::property::visitor::EntityVisitor as _,
     ontology::{DataTypeLookup, OntologyTypeProvider},
 };
@@ -89,7 +90,7 @@ use type_system::{
         entity_type::{ClosedEntityType, ClosedMultiEntityType, EntityTypeUuid},
         id::{OntologyTypeUuid, VersionedUrl},
     },
-    principal::actor::ActorEntityUuid,
+    principal::{actor::ActorEntityUuid, actor_group::WebId},
 };
 use uuid::Uuid;
 
