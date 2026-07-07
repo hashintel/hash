@@ -124,6 +124,23 @@ fn convert_created_by_principal<A: Allocator + Clone>(
     )
 }
 
+/// Checks whether the entity is marked as read-only.
+///
+/// ```sql
+/// ids.read_only
+/// ```
+///
+/// The column is NOT NULL, so the bare boolean reference is a two-valued
+/// predicate and safe under negation.
+fn convert_is_read_only<A: Allocator + Clone>(
+    unit: &mut PolicyTranslationUnit<'_, A>,
+) -> Expression {
+    Expression::ColumnReference(ColumnReference {
+        correlation: Some(unit.projections.entity_ids()),
+        name: Column::EntityIds(table::EntityIds::ReadOnly).into(),
+    })
+}
+
 /// Converts an [`EntityResourceFilter`] tree into a SQL [`Expression`].
 fn convert_entity_resource_filter<A: Allocator + Clone>(
     unit: &mut PolicyTranslationUnit<'_, A>,
@@ -150,6 +167,7 @@ fn convert_entity_resource_filter<A: Allocator + Clone>(
             convert_is_of_base_type(unit, entity_type.clone())
         }
         EntityResourceFilter::CreatedByPrincipal => convert_created_by_principal(unit),
+        EntityResourceFilter::IsReadOnly => convert_is_read_only(unit),
     }
 }
 
@@ -159,7 +177,7 @@ fn convert_entity_resource_filter<A: Allocator + Clone>(
 /// produce `FALSE` since they cannot match entity rows.
 ///
 /// All referenced columns (`entity_uuid`, `web_id`, `provenance`,
-/// `base_urls`) are NOT NULL in the schema, so the generated
+/// `base_urls`, `read_only`) are NOT NULL in the schema, so the generated
 /// predicates are two-valued. If nullable columns were ever
 /// referenced, forbid negation (`NOT expr`) would need
 /// `expr IS NOT TRUE` to remain fail-closed under SQL

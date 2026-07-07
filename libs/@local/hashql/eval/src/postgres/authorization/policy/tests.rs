@@ -22,7 +22,7 @@ use type_system::{
 
 use super::{
     convert_created_by_principal, convert_entity_resource_filter, convert_is_of_base_type,
-    convert_is_of_type, convert_resource_constraint, optimize,
+    convert_is_of_type, convert_is_read_only, convert_resource_constraint, optimize,
 };
 use crate::postgres::{
     authorization::tests::{
@@ -107,6 +107,20 @@ fn created_by_principal_anonymous() {
     let _guard = settings.bind_to_scope();
     assert_snapshot!(
         "created_by_principal_anonymous",
+        snapshot_with_params(&expr.transpile_to_string(), &fixture.parameters),
+    );
+}
+
+#[test]
+fn is_read_only_column() {
+    let mut fixture = Fixture::new();
+    let expr = convert_is_read_only(&mut fixture.policy());
+
+    let mut settings = snapshot_settings();
+    settings.set_description("IsReadOnly");
+    let _guard = settings.bind_to_scope();
+    assert_snapshot!(
+        "is_read_only_column",
         snapshot_with_params(&expr.transpile_to_string(), &fixture.parameters),
     );
 }
@@ -252,6 +266,23 @@ fn filter_not_negation() {
     let _guard = settings.bind_to_scope();
     assert_snapshot!(
         "filter_not_negation",
+        snapshot_with_params(&expr.transpile_to_string(), &fixture.parameters),
+    );
+}
+
+#[test]
+fn filter_not_read_only() {
+    let mut fixture = Fixture::new();
+    let filter = EntityResourceFilter::Not {
+        filter: Box::new(EntityResourceFilter::IsReadOnly),
+    };
+    let expr = convert_entity_resource_filter(&mut fixture.policy(), &filter);
+
+    let mut settings = snapshot_settings();
+    settings.set_description(format!("{filter:?}"));
+    let _guard = settings.bind_to_scope();
+    assert_snapshot!(
+        "filter_not_read_only",
         snapshot_with_params(&expr.transpile_to_string(), &fixture.parameters),
     );
 }
@@ -445,6 +476,38 @@ fn algebra_blank_permit_with_forbids() {
     let _guard = settings.bind_to_scope();
     assert_snapshot!(
         "algebra_blank_permit_with_forbids",
+        snapshot_with_params(&result.condition.transpile_to_string(), &fixture.parameters),
+    );
+}
+
+#[test]
+fn algebra_blank_permit_forbid_read_only() {
+    // Mirrors the seeded global read-only forbid policy: everything is
+    // permitted except entities marked as read-only.
+    let mut fixture = Fixture::new();
+    let actor = Some(ActorId::User(UserId::new(ACTOR_UUID)));
+    let policies = vec![
+        permit(|| None),
+        forbid(|| {
+            Some(ResourceConstraint::Entity(EntityResourceConstraint::Any {
+                filter: EntityResourceFilter::IsReadOnly,
+            }))
+        }),
+    ];
+    let description = format!(
+        "{:?}",
+        policies.iter().map(|policy| policy()).collect::<Vec<_>>()
+    );
+    let policy = policy_components(actor, policies);
+    let result = fixture
+        .policy()
+        .transpile(VertexType::Entity, &policy, Global);
+
+    let mut settings = snapshot_settings();
+    settings.set_description(description);
+    let _guard = settings.bind_to_scope();
+    assert_snapshot!(
+        "algebra_blank_permit_forbid_read_only",
         snapshot_with_params(&result.condition.transpile_to_string(), &fixture.parameters),
     );
 }

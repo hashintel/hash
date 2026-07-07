@@ -32,9 +32,6 @@ use hash_graph_store::{
     query::{NullOrdering, Ordering},
     subgraph::{
         edges::{EdgeDirection, EntityTraversalEdge, EntityTraversalPath, GraphResolveDepths},
-            EdgeDirection, EntityTraversalEdge, EntityTraversalPath, GraphResolveDepths,
-            SharedEdgeKind,
-        },
         temporal_axes::QueryTemporalAxesUnresolved,
     },
 };
