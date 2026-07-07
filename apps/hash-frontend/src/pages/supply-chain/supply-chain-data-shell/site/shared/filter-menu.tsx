@@ -208,7 +208,7 @@ export const FilterMenu = ({
           aria-label={`Filter by ${header}`}
           className={cx(triggerButton, isActive && triggerActive)}
         >
-          <Icon name="filterRegular" size="xs" />
+          <Icon name="filter" size="xs" />
         </button>
       </Popover.Trigger>
       <Portal container={portalRef}>
