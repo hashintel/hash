@@ -72,6 +72,7 @@ impl Sink<Entity> for EntitySender {
             .start_send_unpin(EntityIdRow {
                 web_id: entity.metadata.record_id.entity_id.web_id,
                 entity_uuid: entity.metadata.record_id.entity_id.entity_uuid,
+                created_by_id: entity.metadata.provenance.inferred.created_by_id,
                 provenance: entity.metadata.provenance.inferred,
                 read_only: entity.metadata.read_only,
             })
@@ -95,6 +96,7 @@ impl Sink<Entity> for EntitySender {
                 properties: entity.properties,
                 archived: entity.metadata.archived,
                 confidence: entity.metadata.confidence,
+                created_by_id: entity.metadata.provenance.edition.created_by_id,
                 provenance: entity.metadata.provenance.edition,
                 property_metadata: entity.metadata.properties,
             })

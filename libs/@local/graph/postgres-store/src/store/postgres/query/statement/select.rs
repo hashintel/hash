@@ -699,6 +699,45 @@ mod tests {
     }
 
     #[test]
+    fn filter_entity_by_created_by_id() {
+        let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
+        let pinned_timestamp = temporal_axes.pinned_timestamp();
+        let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes), false);
+
+        let actor_uuid = Uuid::nil();
+        let filter = Filter::Equal(
+            FilterExpression::Path {
+                path: EntityQueryPath::CreatedById,
+            },
+            FilterExpression::Parameter {
+                parameter: Parameter::Uuid(actor_uuid),
+                convert: None,
+            },
+        );
+        compiler.add_filter(&filter).expect("Failed to add filter");
+
+        test_compilation(
+            &compiler,
+            r#"
+            SELECT *
+            FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+            INNER JOIN "entity_ids" AS "entity_ids_0_1_0"
+              ON "entity_ids_0_1_0"."web_id" = "entity_temporal_metadata_0_0_0"."web_id"
+             AND "entity_ids_0_1_0"."entity_uuid" = "entity_temporal_metadata_0_0_0"."entity_uuid"
+            WHERE "entity_temporal_metadata_0_0_0"."draft_id" IS NULL
+              AND "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
+              AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
+              AND COALESCE("entity_ids_0_1_0"."created_by_id", (("entity_ids_0_1_0"."provenance"->>'createdById')::uuid)) = $3
+            "#,
+            &[
+                &pinned_timestamp,
+                &temporal_axes.variable_interval(),
+                &actor_uuid,
+            ],
+        );
+    }
+
+    #[test]
     fn entity_with_manual_selection() {
         let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
         let pinned_timestamp = temporal_axes.pinned_timestamp();

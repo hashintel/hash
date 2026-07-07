@@ -3,6 +3,7 @@
 #[path = "../common/mod.rs"]
 mod common;
 
+mod created_by_fallback;
 mod drafts;
 mod erase;
 mod links;

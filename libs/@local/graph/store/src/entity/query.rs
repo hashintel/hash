@@ -157,6 +157,16 @@ pub enum EntityQueryPath<'p> {
     ///
     /// [`Entity`]: type_system::knowledge::Entity
     ReadOnly,
+    /// The [`ActorEntityUuid`] that created this [`Entity`].
+    ///
+    /// [`ActorEntityUuid`]: type_system::principal::actor::ActorEntityUuid
+    /// [`Entity`]: type_system::knowledge::Entity
+    CreatedById,
+    /// The [`ActorEntityUuid`] that created this [`Entity`]'s current edition.
+    ///
+    /// [`ActorEntityUuid`]: type_system::principal::actor::ActorEntityUuid
+    /// [`Entity`]: type_system::knowledge::Entity
+    EditionCreatedById,
     /// An edge from this [`Entity`] to it's [`EntityType`] using a [`SharedEdgeKind`].
     ///
     /// The corresponding reversed edge is [`EntityTypeQueryPath::EntityEdge`].
@@ -481,6 +491,8 @@ impl fmt::Display for EntityQueryPath<'_> {
             Self::DirectTypeCount => fmt.write_str("directTypeCount"),
             Self::Archived => fmt.write_str("archived"),
             Self::ReadOnly => fmt.write_str("readOnly"),
+            Self::CreatedById => fmt.write_str("createdById"),
+            Self::EditionCreatedById => fmt.write_str("editionCreatedById"),
             Self::Properties(Some(property)) => write!(fmt, "properties.{property}"),
             Self::Properties(None) => fmt.write_str("properties"),
             Self::Provenance(Some(path)) => write!(fmt, "provenance.{path}"),
@@ -535,7 +547,12 @@ impl fmt::Display for EntityQueryPath<'_> {
 impl QueryPath for EntityQueryPath<'_> {
     fn expected_type(&self) -> ParameterType {
         match self {
-            Self::EditionId | Self::Uuid | Self::WebId | Self::DraftId => ParameterType::Uuid,
+            Self::EditionId
+            | Self::Uuid
+            | Self::WebId
+            | Self::DraftId
+            | Self::CreatedById
+            | Self::EditionCreatedById => ParameterType::Uuid,
             Self::DecisionTime | Self::TransactionTime => ParameterType::TimeInterval,
             Self::DirectTypeCount => ParameterType::Integer,
             Self::Properties(_)
@@ -895,6 +912,8 @@ impl<'de: 'p, 'p> EntityQueryPath<'p> {
             Self::DirectTypeCount => EntityQueryPath::DirectTypeCount,
             Self::Archived => EntityQueryPath::Archived,
             Self::ReadOnly => EntityQueryPath::ReadOnly,
+            Self::CreatedById => EntityQueryPath::CreatedById,
+            Self::EditionCreatedById => EntityQueryPath::EditionCreatedById,
             Self::EntityTypeEdge {
                 path,
                 edge_kind,
