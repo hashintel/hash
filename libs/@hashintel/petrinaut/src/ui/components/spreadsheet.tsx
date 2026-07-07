@@ -10,10 +10,10 @@ import {
 export interface SpreadsheetColumn {
   id: string;
   name: string;
-  type?: "real" | "integer" | "boolean" | "uuid";
+  type?: "real" | "integer" | "boolean" | "uuid" | "string";
 }
 
-export type SpreadsheetCellValue = number | boolean | bigint;
+export type SpreadsheetCellValue = number | boolean | bigint | string;
 
 export interface SpreadsheetProps {
   columns: SpreadsheetColumn[];
@@ -259,12 +259,22 @@ const getCellDisplayText = (
     ? `${toCanonicalUuidString(value).slice(0, 8)}…`
     : formatCellValue(value);
 
-/** Hover tooltip — the full canonical uuid string for uuid cells. */
+/**
+ * Hover tooltip — the full canonical uuid string for uuid cells, and the full
+ * value for string cells (which may overflow with an ellipsis).
+ */
 const getCellTitle = (
   column: SpreadsheetColumn | undefined,
   value: SpreadsheetCellValue,
-): string | undefined =>
-  column?.type === "uuid" ? toCanonicalUuidString(value) : undefined;
+): string | undefined => {
+  if (column?.type === "uuid") {
+    return toCanonicalUuidString(value);
+  }
+  if (column?.type === "string") {
+    return String(value);
+  }
+  return undefined;
+};
 
 // Pasting "Infinity" or overflowing notation must not leak non-finite
 // numbers into stored state (the runtime codecs reject them later).
@@ -283,6 +293,9 @@ const parseCellValue = (
     }
     case "integer":
       return Math.round(parseFiniteNumber(rawValue));
+    case "string":
+      // Identity — string cells keep the entered text verbatim (no trim).
+      return rawValue;
     case "uuid": {
       // Valid UUID strings parse; anything else converts deterministically
       // via UUIDv5. Clearing the cell resets to the nil uuid.
@@ -747,8 +760,8 @@ export const Spreadsheet: React.FC<SpreadsheetProps> = ({
                   !isReadOnly && rowIndex === tableData.length;
                 return (
                   <tr
-                    // eslint-disable-next-line react/no-array-index-key -- Row position is stable and meaningful
-                    key={`row-${rowIndex}-${row.map(formatCellValue).join("-")}`}
+                    // eslint-disable-next-line react/no-array-index-key -- Row position is stable and meaningful; cell contents must stay out of the key (string cells are arbitrary-length, and value changes should update the row, not remount it)
+                    key={`row-${rowIndex}`}
                     className={rowStyle({
                       isSelected: selectedRow === rowIndex,
                       isSticky: isPhantomRow,
@@ -805,12 +818,14 @@ export const Spreadsheet: React.FC<SpreadsheetProps> = ({
                             <input
                               ref={inputRef}
                               type={
-                                columns[colIndex]?.type === "uuid"
+                                columns[colIndex]?.type === "uuid" ||
+                                columns[colIndex]?.type === "string"
                                   ? "text"
                                   : "number"
                               }
                               step={
-                                columns[colIndex]?.type === "uuid"
+                                columns[colIndex]?.type === "uuid" ||
+                                columns[colIndex]?.type === "string"
                                   ? undefined
                                   : columns[colIndex]?.type === "integer"
                                     ? 1

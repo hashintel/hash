@@ -1,13 +1,21 @@
 export type ID = string;
 
-export type ColorElementType = "real" | "integer" | "boolean" | "uuid";
+export type ColorElementType =
+  | "real"
+  | "integer"
+  | "boolean"
+  | "uuid"
+  | "string";
 
 /**
  * Runtime value of one token attribute. `uuid` elements are represented as a
  * single `bigint` (0 ≤ v < 2^128) at runtime; at rest (documents, scenario
  * JSON) they are stored as canonical lowercase 36-character strings.
+ * `string` elements are plain JS strings everywhere; frame buffers store
+ * them as 64-bit references into a per-run string pool (see
+ * `simulation/engine/string-pool.ts`).
  */
-export type TokenAttributeValue = number | boolean | bigint;
+export type TokenAttributeValue = number | boolean | bigint | string;
 
 export type TokenRecord = Record<string, TokenAttributeValue>;
 

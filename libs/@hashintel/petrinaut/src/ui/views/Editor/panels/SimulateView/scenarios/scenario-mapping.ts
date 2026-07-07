@@ -1,4 +1,9 @@
-import { formatUuid, isUuidString, toUuid } from "@hashintel/petrinaut-core";
+import {
+  defaultTokenAttributeValue,
+  formatUuid,
+  isUuidString,
+  toUuid,
+} from "@hashintel/petrinaut-core";
 
 import type { SpreadsheetCellValue } from "../../../../../components/spreadsheet";
 import type { ScenarioFormState } from "./scenario-form";
@@ -30,38 +35,46 @@ function getPlaceElements(
 
 /**
  * Converts persisted scenario rows into spreadsheet cell values: uuid columns
- * parse (or deterministically convert) to bigints; other columns pass
- * through.
+ * parse (or deterministically convert) to bigints; string columns pass
+ * through literally; other columns pass through.
  */
 export function scenarioRowsToSpreadsheetData(
   rows: ScenarioTokenRow[],
   elements: Color["elements"] | undefined,
 ): SpreadsheetCellValue[][] {
-  // Unknown schema (place/type no longer in the net): UUID strings become
-  // bigints (the serializer restores the canonical string) and numbers /
-  // booleans pass through. Other strings are NOT representable in this
-  // layer's cell model and fall back to a numeric parse (0 if non-numeric)
-  // — the string layer above makes this branch fully verbatim instead.
+  // Unknown schema (place/type no longer in the net): pass cells through
+  // verbatim rather than guessing a coercion — a persisted uuid string
+  // parsed as a number would be corrupted on the next save. UUID strings
+  // still become bigints (the serializer restores the canonical lowercase
+  // form, which may differ from non-canonical persisted input).
   if (!elements) {
     return rows.map((row) =>
-      row.map((cell): SpreadsheetCellValue => {
-        if (isUuidString(cell)) {
-          return toUuid(cell);
-        }
-        return typeof cell === "string" ? Number.parseFloat(cell) || 0 : cell;
-      }),
+      row.map(
+        (cell): SpreadsheetCellValue =>
+          isUuidString(cell) ? toUuid(cell) : cell,
+      ),
     );
   }
+  // One cell per element, not per stored cell: ragged rows (legacy data,
+  // hand-edited files) must still fill every column, defaulting missing
+  // cells to the element type's default.
   return rows.map((row) =>
-    row.map((cell, columnIndex): SpreadsheetCellValue => {
+    Array.from({ length: elements.length }, (_, columnIndex) => {
       const element = elements[columnIndex];
+      const cell =
+        row[columnIndex] ??
+        (element ? defaultTokenAttributeValue(element.type) : 0);
       if (element?.type === "uuid") {
         return toUuid(cell);
       }
-      // Non-uuid columns are numbers/booleans at rest; coerce any stray
-      // strings so the spreadsheet never sees them. Mirror the engine's
-      // coercion (parseCellValue in spreadsheet.tsx): integers round,
-      // booleans accept "true"/"1".
+      // String columns are literal text both at rest and in the spreadsheet.
+      if (element?.type === "string") {
+        return typeof cell === "string" ? cell : String(cell);
+      }
+      // Other non-uuid columns are numbers/booleans at rest; coerce any
+      // stray strings so the spreadsheet never sees them. Mirror the
+      // engine's coercion (parseCellValue in spreadsheet.tsx): integers
+      // round, booleans accept "true"/"1".
       if (typeof cell === "string") {
         if (element?.type === "boolean") {
           const normalized = cell.trim().toLowerCase();

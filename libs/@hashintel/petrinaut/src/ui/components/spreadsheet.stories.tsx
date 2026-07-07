@@ -33,12 +33,13 @@ const TYPED_COLUMNS: SpreadsheetColumn[] = [
   { id: "count", name: "count", type: "integer" },
   { id: "active", name: "active", type: "boolean" },
   { id: "id", name: "id", type: "uuid" },
+  { id: "label", name: "label", type: "string" },
 ];
 
 const TYPED_DATA: SpreadsheetCellValue[][] = [
-  [1.25, 3, true, 0x45f588b605384fc992071ddfd7f65b64n],
-  [0.5, 1, false, 0xc0ffee0012344abc8defdeadbeef0042n],
-  [9.75, 7, true, 0n],
+  [1.25, 3, true, 0x45f588b605384fc992071ddfd7f65b64n, "alpha"],
+  [0.5, 1, false, 0xc0ffee0012344abc8defdeadbeef0042n, "beta"],
+  [9.75, 7, true, 0n, ""],
 ];
 
 const Container = ({ children }: { children: React.ReactNode }) => (
@@ -85,9 +86,9 @@ export const ReadOnly: Story = {
 };
 
 export const TypedColumns: Story = {
-  name: "Typed columns (real / integer / boolean / uuid)",
+  name: "Typed columns (real / integer / boolean / uuid / string)",
   render: () => (
-    <div style={{ width: 520, height: 300 }}>
+    <div style={{ width: 640, height: 300 }}>
       <InteractiveSpreadsheet
         columns={TYPED_COLUMNS}
         initialData={TYPED_DATA}

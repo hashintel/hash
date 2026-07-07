@@ -3,6 +3,7 @@ export type {
   CreateSimulationConfig,
   InitialMarking,
   InitialPlaceMarking,
+  InitialTokenAttributeValue,
   Simulation,
   SimulationCompleteEvent,
   SimulationConfig,

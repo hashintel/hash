@@ -41,6 +41,9 @@ export function createMonteCarloFrameReader(
             tokenLayout,
             currentFrame.tokenViews,
             byteOffset + tokenIndex * tokenLayout.strideBytes,
+            // The run's pool never crosses threads — metric frames carry
+            // plain decoded values.
+            simulation.stringPool,
           ),
         );
       }

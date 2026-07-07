@@ -33,7 +33,8 @@ export type WorkerFactory = WorkerFactoryLike;
 /**
  * One token attribute value in an initial marking. In addition to runtime
  * token values, `uuid` attributes may be supplied as canonical UUID strings
- * (the JSON-serializable at-rest form) — the simulator coerces both.
+ * (the JSON-serializable at-rest form) — the simulator coerces both. Strings
+ * are literal values for `string` attributes.
  */
 export type InitialTokenAttributeValue = number | boolean | bigint | string;
 

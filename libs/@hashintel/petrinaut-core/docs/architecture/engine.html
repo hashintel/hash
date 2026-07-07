@@ -708,6 +708,17 @@
             optional — omitted values auto-generate from the seeded RNG.
           </td>
         </tr>
+        <tr>
+          <td><code>string</code> (FE-769)</td>
+          <td><code>u64</code> pool reference — 8 B</td>
+          <td>
+            The frame stores an ID into an append-only per-run string intern
+            pool (<code>engine/string-pool.ts</code>); the pool lives on
+            <code>SimulationInstance</code>, not on the frame, so frames stay
+            fixed-stride and byte-copyable. Equal strings share one ID; id 0 is
+            the pre-seeded <code>""</code>, so zeroed buffers decode cleanly.
+          </td>
+        </tr>
       </tbody>
     </table>
     <ul>
@@ -726,7 +737,11 @@
         only code that indexes token bytes; all whole-token moves are byte-range
         copies (<code>Uint8Array.set</code>). The raw
         <code>getPlaceTokenValues</code> reader was removed from the public API
-        — raw f64 access is meaningless under mixed widths.
+        — raw f64 access is meaningless under mixed widths. Because the string
+        pool never crosses the worker boundary with the frames, each frame
+        payload ships an append-only <code>newStrings</code> delta that the
+        main-thread frame store accumulates and hands to the frame reader for
+        decoding.
       </li>
     </ul>
 

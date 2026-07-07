@@ -90,6 +90,7 @@ export function computeTransitionEffect(
           tokenLayout,
           frame.tokenViews,
           byteOffset + tokenIndex * strideBytes,
+          run.simulation.stringPool,
         ),
       );
     }
@@ -160,6 +161,7 @@ export function computeTransitionEffect(
           rngState: currentRngState,
           transitionId: transition.id,
           placeName: outputPlace.placeName,
+          stringPool: run.simulation.stringPool,
         });
         currentRngState = nextRngState;
         if (block.byteLength !== strideBytes) {

@@ -14,6 +14,7 @@ import { buildSimulation } from "../engine/build-simulation";
 import { computeNextFrame } from "../engine/compute-next-frame";
 import {
   framePayloadFromEngineFrame,
+  type SimulationFrameNewStrings,
   type SimulationFramePayload,
 } from "./frame-payload";
 
@@ -60,6 +61,29 @@ let simulationStatus: "ready" | "running" | "complete" | "error" | null = null;
  * -1 means no ack received yet (blocks computation until first ack).
  */
 let lastAckedFrame = -1;
+/**
+ * How many string pool entries have already been shipped to the main thread.
+ * Starts at 1 because id 0 (`""`) is pre-seeded on both sides; each payload
+ * carries the entries interned since the previous payload as an append-only
+ * `newStrings` delta.
+ */
+let sentStringCount = 1;
+
+/**
+ * Builds the `newStrings` delta for the next frame payload and advances the
+ * shipped-entry counter.
+ */
+function takeNewStringsDelta(): SimulationFrameNewStrings | undefined {
+  if (!simulation || simulation.stringPool.size <= sentStringCount) {
+    return undefined;
+  }
+  const delta: SimulationFrameNewStrings = {
+    baseId: sentStringCount,
+    values: simulation.stringPool.valuesFrom(sentStringCount),
+  };
+  sentStringCount = simulation.stringPool.size;
+  return delta;
+}
 
 // Backpressure configuration (can be changed at runtime)
 let maxFramesAhead = DEFAULT_MAX_FRAMES_AHEAD;
@@ -100,7 +124,11 @@ async function computeLoop(): Promise<void> {
         simulation = updatedSimulation;
         const newFrame = simulation.frames[simulation.currentFrameNumber]!;
         framesToSend.push(
-          framePayloadFromEngineFrame(newFrame, simulation.currentTime),
+          framePayloadFromEngineFrame(
+            newFrame,
+            simulation.currentTime,
+            takeNewStringsDelta(),
+          ),
         );
 
         // Check if simulation completed
@@ -175,8 +203,11 @@ workerRuntime.onMessage((message) => {
         lastAckedFrame = -1;
         isRunning = false;
         simulationStatus = "ready";
+        // Fresh pool per init: only the pre-seeded "" (id 0) is shared.
+        sentStringCount = 1;
 
-        // Send initial frame
+        // Send initial frame (with any strings interned from the initial
+        // marking as its pool delta)
         const initialFrame = simulation.frames[0];
         if (initialFrame) {
           postTypedMessage({
@@ -184,6 +215,7 @@ workerRuntime.onMessage((message) => {
             frame: framePayloadFromEngineFrame(
               initialFrame,
               simulation.currentTime,
+              takeNewStringsDelta(),
             ),
           });
         }
@@ -253,6 +285,7 @@ workerRuntime.onMessage((message) => {
       simulation = null;
       simulationStatus = null;
       lastAckedFrame = -1;
+      sentStringCount = 1;
       break;
     }
 

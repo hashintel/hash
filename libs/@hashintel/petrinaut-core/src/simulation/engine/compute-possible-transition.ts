@@ -132,6 +132,7 @@ export function computePossibleTransition(
           tokenLayout,
           tokenViews,
           placeByteOffset + tokenIndexInPlace * strideBytes,
+          simulation.stringPool,
         ),
       );
 
@@ -231,6 +232,7 @@ export function computePossibleTransition(
             rngState: currentRngState,
             transitionId: transition.id,
             placeName: outputPlace.placeName,
+            stringPool: simulation.stringPool,
           });
           currentRngState = nextRngState;
           tokenBlocks.push(bytes);

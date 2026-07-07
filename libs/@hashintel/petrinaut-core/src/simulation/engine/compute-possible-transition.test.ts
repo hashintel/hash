@@ -4,6 +4,7 @@ import { getArcEndpointPlaceId } from "../../arc-endpoints";
 import { createEngineFrameLayout } from "../frames/internal-frame";
 import { computePossibleTransition as computePossibleTransitionImpl } from "./compute-possible-transition";
 import { nextRandom } from "./seeded-rng";
+import { StringPool } from "./string-pool";
 import { computeTokenSlotLayout } from "./token-layout";
 import {
   decodeTokenBlock,
@@ -168,6 +169,7 @@ function makeSimulation({
     maxTime: null,
     currentTime: 0,
     rngState: 42,
+    stringPool: new StringPool(),
     frameLayout,
     frames: [],
     currentFrameNumber: 0,
@@ -640,6 +642,138 @@ describe("computePossibleTransition", () => {
       expect(() =>
         computePossibleTransition(makeUuidFrame(), simulation, "t1", 42),
       ).toThrow("produced a distribution for discrete element id");
+    });
+  });
+
+  describe("string kernel outputs", () => {
+    const stringColor: Color = {
+      id: "stringColor",
+      name: "StringColor",
+      iconSlug: "circle",
+      displayColor: "#FF0000",
+      elements: [
+        { elementId: "label", name: "label", type: "string" },
+        { elementId: "x", name: "x", type: "real" },
+      ],
+    };
+
+    const makeStringSetup = (kernelFn: TransitionKernelFn) => {
+      const transition = makeTransition({
+        id: "t1",
+        inputArcs: [{ placeId: "p1", weight: 1, type: "standard" }],
+        outputArcs: [{ placeId: "p2", weight: 1 }],
+      });
+      const stringPool = new StringPool();
+      const simulation = {
+        ...makeSimulation({
+          places: [
+            makePlace("p1", "Source", stringColor.id),
+            makePlace("p2", "Target", stringColor.id),
+          ],
+          transitions: [transition],
+          types: [stringColor],
+          lambdaFns: new Map([["t1", () => 10.0]]),
+          transitionKernelFns: new Map([["t1", kernelFn]]),
+        }),
+        stringPool,
+      };
+      const frame = makeTestFrame({
+        places: {
+          p1: {
+            elements: stringColor.elements,
+            tokens: [{ label: "order-1", x: 1.0 }],
+          },
+          p2: { elements: stringColor.elements, tokens: [] },
+        },
+        transitions: { t1: transitionState() },
+        stringPool,
+      });
+      return { simulation, frame, stringPool };
+    };
+
+    const firstAddedToken = (
+      result: ReturnType<typeof computePossibleTransition>,
+      stringPool: StringPool,
+    ) =>
+      decodeTokenBlock(stringColor.elements, result!.add.p2![0]!, stringPool);
+
+    it("interns equal output strings once — identical buffer bytes for equal values", () => {
+      const { simulation, frame, stringPool } = makeStringSetup(() => ({
+        Target: [{ label: "shipped", x: 2.0 }],
+      }));
+
+      const first = computePossibleTransition(frame, simulation, "t1", 42);
+      expect(firstAddedToken(first, stringPool)).toEqual({
+        label: "shipped",
+        x: 2.0,
+      });
+
+      const second = computePossibleTransition(frame, simulation, "t1", 42);
+      // Same output string → same pool ID → identical token bytes.
+      expect(second!.add.p2![0]).toEqual(first!.add.p2![0]);
+      // "" (pre-seeded) + "order-1" (input) + "shipped" — no duplicates.
+      expect(stringPool.size).toBe(3);
+    });
+
+    it("forwards an input token's string unchanged and reuses its pool id", () => {
+      const { simulation, frame, stringPool } = makeStringSetup((input) => ({
+        Target: [{ label: input.Source![0]!.label, x: 3.0 }],
+      }));
+
+      const result = computePossibleTransition(frame, simulation, "t1", 42);
+
+      expect(firstAddedToken(result, stringPool)).toEqual({
+        label: "order-1",
+        x: 3.0,
+      });
+      // Forwarding did not create a new pool entry.
+      expect(stringPool.size).toBe(2);
+    });
+
+    it('defaults missing string values to "" and stringifies numbers', () => {
+      const missing = makeStringSetup(() => ({ Target: [{ x: 2.0 }] }));
+      expect(
+        firstAddedToken(
+          computePossibleTransition(
+            missing.frame,
+            missing.simulation,
+            "t1",
+            42,
+          ),
+          missing.stringPool,
+        ),
+      ).toEqual({ label: "", x: 2.0 });
+
+      const numeric = makeStringSetup(() => ({
+        Target: [{ label: 42 as never, x: 2.0 }],
+      }));
+      expect(
+        firstAddedToken(
+          computePossibleTransition(
+            numeric.frame,
+            numeric.simulation,
+            "t1",
+            42,
+          ),
+          numeric.stringPool,
+        ),
+      ).toEqual({ label: "42", x: 2.0 });
+    });
+
+    it("throws when a Distribution is produced for a string element", () => {
+      const distribution = {
+        __brand: "distribution",
+        type: "uniform",
+        min: 0,
+        max: 1,
+      } as const;
+      const { simulation, frame } = makeStringSetup(() => ({
+        Target: [{ label: distribution as never, x: 2.0 }],
+      }));
+
+      expect(() =>
+        computePossibleTransition(frame, simulation, "t1", 42),
+      ).toThrow("produced a distribution for discrete element label");
     });
   });
 });

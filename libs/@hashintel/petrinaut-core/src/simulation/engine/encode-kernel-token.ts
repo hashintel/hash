@@ -6,7 +6,7 @@ import { encodeTokenAttributeValue } from "./token-values";
 import { generateUuidFromRng, toUuid } from "./uuid";
 
 import type { Color } from "../../types/sdcpn";
-import type { TokenSlotLayout } from "./token-layout";
+import type { StringPoolWriter, TokenSlotLayout } from "./token-layout";
 import type { TransitionKernelOutput } from "./types";
 
 type ColorElement = Color["elements"][number];
@@ -24,6 +24,8 @@ type KernelOutputToken = TransitionKernelOutput[string][number];
  *   UUID from the seeded RNG; `Uuid.from(value)` and plain values are coerced
  *   via the total `toUuid` conversion. Forwarding an input token's uuid is
  *   plain bigint pass-through.
+ * - `string` elements: the value stringifies (`undefined`/`null` → `""`) and
+ *   is interned into the run's `stringPool`; the buffer stores the pool ID.
  * - Everything else goes through the shared number-slot codec.
  */
 export function encodeKernelOutputToken({
@@ -33,6 +35,7 @@ export function encodeKernelOutputToken({
   rngState,
   transitionId,
   placeName,
+  stringPool,
 }: {
   token: KernelOutputToken;
   elements: readonly ColorElement[];
@@ -40,6 +43,7 @@ export function encodeKernelOutputToken({
   rngState: number;
   transitionId: string;
   placeName: string;
+  stringPool: StringPoolWriter;
 }): { bytes: Uint8Array; nextRngState: number } {
   let currentRngState = rngState;
   const encodedByName: Record<string, number | bigint> = {};
@@ -56,6 +60,20 @@ export function encodeKernelOutputToken({
       const [sampled, nextRng] = sampleDistribution(raw, currentRngState);
       currentRngState = nextRng;
       encodedByName[element.name] = sampled;
+      continue;
+    }
+
+    if (element.type === "string") {
+      // Untyped user code may hand back anything, including null.
+      const rawValue: unknown = raw;
+      const text =
+        rawValue === undefined || rawValue === null
+          ? ""
+          : typeof rawValue === "string"
+            ? rawValue
+            : // eslint-disable-next-line typescript/no-base-to-string -- intentional: total, deterministic stringification
+              String(rawValue);
+      encodedByName[element.name] = BigInt(stringPool.intern(text));
       continue;
     }
 

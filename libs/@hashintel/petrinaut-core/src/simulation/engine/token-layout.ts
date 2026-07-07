@@ -1,4 +1,5 @@
 import {
+  coerceTokenAttributeValue,
   decodeTokenAttributeValue,
   encodeTokenAttributeValue,
 } from "./token-values";
@@ -14,10 +15,21 @@ type ColorElement = Color["elements"][number];
  *
  * - `f64`: 8 bytes, 8-byte aligned (`real` and `integer` elements).
  * - `u8`: 1 byte, 1-byte aligned (`boolean` elements).
+ * - `u64`: 8 bytes, 8-byte aligned (`string` elements — one little-endian
+ *   64-bit ID into the simulation's `StringPool`, not the string itself).
  * - `u64x2`: 16 bytes, 8-byte aligned (`uuid` elements — two little-endian
  *   64-bit lanes: `lo` at the field's byteOffset, `hi` at +8).
  */
-export type PhysicalKind = "f64" | "u8" | "u64x2";
+export type PhysicalKind = "f64" | "u8" | "u64" | "u64x2";
+
+/**
+ * Read side of the per-run string pool, needed to decode `string` (u64 pool
+ * reference) fields. `StringPool` satisfies this shape.
+ */
+export type StringPoolReader = { get(id: number): string };
+
+/** Write side of the per-run string pool (interning on encode). */
+export type StringPoolWriter = { intern(value: string): number };
 
 export type TokenLayoutField = {
   element: ColorElement;
@@ -59,6 +71,7 @@ type PhysicalType = { kind: PhysicalKind; byteSize: number; align: number };
 const PHYSICAL_TYPES: Record<PhysicalKind, PhysicalType> = {
   f64: { kind: "f64", byteSize: 8, align: 8 },
   u8: { kind: "u8", byteSize: 1, align: 1 },
+  u64: { kind: "u64", byteSize: 8, align: 8 },
   // 16 bytes but only 8-byte alignment — deliberate: JS has no 128-bit load,
   // uuid lanes are always read/written as two 64-bit BigUint64Array elements,
   // so 8-byte alignment is all the views require.
@@ -72,6 +85,8 @@ function physicalTypeFor(elementType: ColorElementType): PhysicalType {
     case "integer":
     case "real":
       return PHYSICAL_TYPES.f64;
+    case "string":
+      return PHYSICAL_TYPES.u64;
     case "uuid":
       return PHYSICAL_TYPES.u64x2;
   }
@@ -131,7 +146,7 @@ export function computeTokenSlotLayout(
 export type TokenRegionViews = {
   f64: Float64Array;
   u8: Uint8Array;
-  /** 64-bit lane view for `u64x2` (uuid) fields. */
+  /** 64-bit lane view for `u64x2` (uuid) and `u64` (string ID) fields. */
   u64: BigUint64Array;
 };
 
@@ -185,17 +200,32 @@ function assertTokenAligned(tokenByteOffset: number): void {
  * Decodes one token starting at `tokenByteOffset` (relative to the start of
  * the viewed region) into a logical record. Number-slot kinds (`f64`, `u8`)
  * go through the shared value codec; `u64x2` (uuid) lanes are assembled here
- * directly — `decodeTokenAttributeValue` never sees uuid elements.
+ * directly, and `u64` (string) fields resolve their pool reference through
+ * `stringPool` — `decodeTokenAttributeValue` never sees uuid/string elements.
+ *
+ * Layouts containing string fields REQUIRE a `stringPool`; omitting it is a
+ * programmer error and throws.
  */
 export function readTokenRecord(
   layout: TokenSlotLayout,
   views: TokenRegionViews,
   tokenByteOffset: number,
+  stringPool?: StringPoolReader,
 ): TokenRecord {
   assertTokenAligned(tokenByteOffset);
   const { f64, u8, u64 } = views;
   const token: TokenRecord = {};
   for (const field of layout.fields) {
+    if (field.kind === "u64") {
+      if (!stringPool) {
+        throw new Error(
+          `readTokenRecord: layout contains string field "${field.element.name}" but no string pool was provided`,
+        );
+      }
+      const laneIndex = (tokenByteOffset + field.byteOffset) / 8;
+      token[field.element.name] = stringPool.get(Number(u64[laneIndex] ?? 0n));
+      continue;
+    }
     if (field.kind === "u64x2") {
       const laneIndex = (tokenByteOffset + field.byteOffset) / 8;
       const lo = u64[laneIndex] ?? 0n;
@@ -223,6 +253,8 @@ export function readTokenRecord(
  *
  * `u64x2` (uuid) fields take the value as a pre-coerced bigint (anything
  * else is coerced via `toUuid`) and write both little-endian 64-bit lanes.
+ * `u64` (string) fields take an already-interned pool ID (bigint or number)
+ * — callers intern through the run's `StringPool` first.
  */
 export function writeTokenValue(
   field: TokenLayoutField,
@@ -233,7 +265,9 @@ export function writeTokenValue(
   assertTokenAligned(tokenByteOffset);
   const { f64, u8, u64 } = views;
   /* eslint-disable no-bitwise -- lane splitting is the point of this helper */
-  if (field.kind === "u64x2") {
+  if (field.kind === "u64") {
+    u64[(tokenByteOffset + field.byteOffset) / 8] = BigInt(encodedSlotValue);
+  } else if (field.kind === "u64x2") {
     // toUuid unconditionally: it passes in-range bigints through, and an
     // out-of-range bigint would otherwise wrap silently in the lane writes.
     const uuidValue = toUuid(encodedSlotValue);
@@ -251,8 +285,9 @@ export function writeTokenValue(
 /**
  * Encodes pre-sampled, already-encoded slot values (keyed by element name)
  * into a fresh stride-sized byte block. Used by transition kernels, which
- * resolve distribution/uuid values in element declaration order before
- * packing. uuid values must already be bigints.
+ * resolve distribution/uuid/string values in element declaration order before
+ * packing. uuid values must already be bigints; string values must already be
+ * interned pool IDs (a missing string field defaults to id 0 = `""`).
  */
 export function encodeTokenValuesToBytes(
   layout: TokenSlotLayout,
@@ -277,11 +312,15 @@ export function encodeTokenValuesToBytes(
 
 /**
  * Coerces and encodes one token record into a fresh stride-sized byte block.
+ *
+ * Layouts containing string fields REQUIRE a `stringPool` to intern the
+ * coerced string values; omitting it is a programmer error and throws.
  */
 export function encodeTokenToBytes(
   layout: TokenSlotLayout,
   record: Record<string, unknown>,
   context: string,
+  stringPool?: StringPoolWriter,
 ): Uint8Array {
   const views = createTokenRegionViews(
     new ArrayBuffer(layout.strideBytes),
@@ -289,6 +328,25 @@ export function encodeTokenToBytes(
     layout.strideBytes,
   );
   for (const field of layout.fields) {
+    if (field.element.type === "string") {
+      if (!stringPool) {
+        throw new Error(
+          `encodeTokenToBytes: layout contains string field "${field.element.name}" but no string pool was provided`,
+        );
+      }
+      const coerced = coerceTokenAttributeValue(
+        field.element,
+        record[field.element.name],
+        `${context}.${field.element.name}`,
+      );
+      writeTokenValue(
+        field,
+        views,
+        0,
+        BigInt(stringPool.intern(String(coerced))),
+      );
+      continue;
+    }
     const encodedValue = encodeTokenAttributeValue(
       field.element,
       record[field.element.name],

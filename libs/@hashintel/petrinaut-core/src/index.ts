@@ -174,6 +174,7 @@ export type {
   WorkerFactory,
   InitialMarking,
   InitialPlaceMarking,
+  InitialTokenAttributeValue,
   MonteCarloAdvanceResult,
   MonteCarloActiveRunPlaceCountsVisitor,
   MonteCarloExperiment,
@@ -342,10 +343,13 @@ export {
   encodeTokenToBytes,
   readTokenRecord,
   type PhysicalKind,
+  type StringPoolReader,
+  type StringPoolWriter,
   type TokenLayoutField,
   type TokenRegionViews,
   type TokenSlotLayout,
 } from "./simulation/engine/token-layout";
+export { StringPool } from "./simulation/engine/string-pool";
 export {
   formatUuid,
   isUuidString,

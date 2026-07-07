@@ -376,4 +376,92 @@ describe("MonteCarloSimulator", () => {
       timeSampleCount: 2,
     });
   });
+
+  it("runs string elements end-to-end: kernel interning, metric decode via the run pool", () => {
+    const stringSdcpn: SDCPN = {
+      types: [
+        {
+          id: "type-order",
+          name: "Order",
+          iconSlug: "circle",
+          displayColor: "#00FF00",
+          elements: [
+            { elementId: "status", name: "status", type: "string" },
+            { elementId: "value", name: "value", type: "real" },
+          ],
+        },
+      ],
+      places: [
+        {
+          id: "pending",
+          name: "Pending",
+          colorId: "type-order",
+          dynamicsEnabled: false,
+          differentialEquationId: null,
+          x: 0,
+          y: 0,
+        },
+        {
+          id: "done",
+          name: "Done",
+          colorId: "type-order",
+          dynamicsEnabled: false,
+          differentialEquationId: null,
+          x: 100,
+          y: 0,
+        },
+      ],
+      transitions: [
+        {
+          id: "ship",
+          name: "Ship",
+          inputArcs: [{ placeId: "pending", weight: 1, type: "standard" }],
+          outputArcs: [{ placeId: "done", weight: 1 }],
+          lambdaType: "predicate",
+          lambdaCode:
+            'export default Lambda((input) => input.Pending[0].status === "queued");',
+          transitionKernelCode:
+            'export default TransitionKernel((input) => ({ Done: [{ status: "shipped", value: input.Pending[0].value }] }));',
+          x: 50,
+          y: 0,
+        },
+      ],
+      differentialEquations: [],
+      parameters: [],
+    };
+
+    const shippedCountMetric = createMonteCarloUserDefinedMetric({
+      id: "shipped-count",
+      label: "Shipped orders",
+      sampleRuns: "all",
+      aggregateRuns: "last",
+      aggregateTime: "none",
+      measure: ({ frame }) =>
+        frame
+          .getPlaceTokens(
+            stringSdcpn.places.find((sdcpnPlace) => sdcpnPlace.id === "done")!,
+          )
+          .filter((token) => token.status === "shipped").length,
+    });
+
+    const simulator = createMonteCarloSimulator({
+      sdcpn: stringSdcpn,
+      runCount: 1,
+      initialMarking: {
+        pending: [{ status: "queued", value: 7 }],
+      },
+      seed: 100,
+      dt: 1,
+      maxTime: 10,
+      metrics: [shippedCountMetric],
+    });
+
+    const result = simulator.runUntilComplete({ maxBatches: 20 });
+    const run = simulator.getRunSnapshot(0);
+
+    expect(result.allFinished).toBe(true);
+    expect(run.status).toBe("complete");
+    expect(run.placeTokenCounts).toMatchObject({ pending: 0, done: 1 });
+    expect(shippedCountMetric.getLatestFrame()).toMatchObject({ value: 1 });
+  });
 });

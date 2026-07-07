@@ -19,6 +19,7 @@ import type { InitialMarking } from "../api";
 import type { RuntimeDistribution } from "../authoring/user-code/distribution";
 import type { UuidSentinel } from "../authoring/user-code/uuid-runtime";
 import type { EngineFrame, EngineFrameLayout } from "../frames/internal-frame";
+import type { StringPool } from "./string-pool";
 import type { TokenSlotLayout } from "./token-layout";
 
 /**
@@ -146,6 +147,12 @@ export type SimulationInstance = {
   currentTime: number;
   /** Current state of the seeded random number generator */
   rngState: number;
+  /**
+   * Per-run intern pool for `string` token elements. Owned by the simulation
+   * (fresh per init/run), append-only while the run advances — frames store
+   * u64 pool references, never the strings themselves.
+   */
+  stringPool: StringPool;
   /** SDCPN-specialized binary frame layout for this simulation run. */
   frameLayout: EngineFrameLayout;
   /** History of all computed frames */
