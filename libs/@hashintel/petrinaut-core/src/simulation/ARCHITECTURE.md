@@ -1,5 +1,9 @@
 # Simulation Architecture
 
+> For the illustrated deep-dive (memory maps, sequence diagrams, protocols),
+> open [`../../docs/architecture/index.html`](../../docs/architecture/index.html)
+> in a browser — no build step needed.
+
 The simulation module is split into five boundaries:
 
 - `api.ts` defines the public Core contract. Consumers receive

@@ -1,0 +1,754 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Simulation Architecture — Engine</title>
+    <link rel="stylesheet" href="./architecture.css" />
+  </head>
+  <body>
+    <nav class="docs">
+      <a href="./index.html">Overview</a>
+      <a class="tag-engine current" href="./engine.html">Engine</a>
+      <a class="tag-authoring" href="./authoring.html">Compilation</a>
+      <a class="tag-worker" href="./worker.html">Worker</a>
+      <a class="tag-mc" href="./monte-carlo.html">Monte Carlo</a>
+    </nav>
+
+    <h1 style="color: var(--engine)">Engine</h1>
+    <p class="subtitle">
+      <code>engine/</code> + <code>frames/</code> — builds an SDCPN into a
+      runnable <code>SimulationInstance</code> and advances it one immutable
+      binary frame at a time.
+    </p>
+
+    <dl class="glance">
+      <dt>Entry points</dt>
+      <dd>
+        <code>buildSimulation(input)</code> ·
+        <code>computeNextFrame(simulation)</code>
+      </dd>
+      <dt>Inputs</dt>
+      <dd>
+        SDCPN snapshot, <code>InitialMarking</code>, parameter values, seed, dt,
+        maxTime (<code>number | null</code>; null = no limit), extensions
+      </dd>
+      <dt>Outputs</dt>
+      <dd>
+        New <code>EngineFrame</code> per step +
+        <code>completionReason: "maxTime" | "deadlock" | null</code>
+      </dd>
+      <dt>Events</dt>
+      <dd>
+        None — pure return values; the <a href="./worker.html">worker</a> turns
+        them into protocol messages
+      </dd>
+      <dt>Runs on</dt>
+      <dd>
+        Worker thread (quick sim). The same engine functions are reused by
+        <a href="./monte-carlo.html">Monte Carlo</a> with different frame
+        storage
+      </dd>
+    </dl>
+
+    <h2>Lifecycle</h2>
+
+    <div class="pipeline">
+      <div class="step box b-authoring">
+        <strong>buildSimulation(input)</strong>
+        <small
+          >Flattens component instances, compiles user code (<a
+            href="./authoring.html"
+            >authoring</a
+          >): lambdas only where available, kernels only for coloured outputs,
+          dynamics only for colours with at least one <em>real</em> element.
+          Packs the initial marking into frame 0 (coercing token values by
+          element type).</small
+        >
+      </div>
+      <div class="step box b-engine">
+        <strong>SimulationInstance</strong>
+        <small
+          ><code>frames: EngineFrame[]</code> (history, frame 0 included) ·
+          <code>frameLayout</code> · <code>compiledTransitions</code> ·
+          <code>differentialEquationFns</code> · <code>parameterValues</code> ·
+          <code
+            >dt · maxTime · currentTime · currentFrameNumber · rngState</code
+          ></small
+        >
+      </div>
+      <div class="step box b-engine" data-arrow="repeat until complete">
+        <strong>computeNextFrame(simulation)</strong>
+        <small
+          >Returns a <em>new</em> instance value with one more frame appended —
+          the previous frames are never mutated.</small
+        >
+      </div>
+    </div>
+
+    <h2>One step, in order</h2>
+
+    <div class="hflow">
+      <div class="box b-engine">
+        <strong>1 · maxTime?</strong>
+        <small
+          >If <code>maxTime !== null</code> and
+          <code>currentTime >= maxTime</code>, return
+          <code>"maxTime"</code> without computing.</small
+        >
+      </div>
+      <span class="arr">→</span>
+      <div class="box b-engine">
+        <strong>2 · Dynamics</strong>
+        <small
+          >Per place with a differential equation: slice its token region,
+          decode tokens, call the user <code>Dynamics</code> fn, apply Euler
+          <code>x += dx·dt</code> to <em>real</em> slots (discrete derivatives
+          are forced to 0). Builds an intermediate frame.</small
+        >
+      </div>
+      <span class="arr">→</span>
+      <div class="box b-engine">
+        <strong>3 · Transitions</strong>
+        <small
+          ><code>executeTransitions</code>: for each transition — enablement
+          (arc weights, inhibitor/read arcs), token-combination enumeration,
+          lambda (predicate / stochastic rate vs seeded RNG), kernel for
+          coloured outputs. Removals compact the buffer; additions
+          append.</small
+        >
+      </div>
+      <span class="arr">→</span>
+      <div class="box b-engine">
+        <strong>4 · Timers</strong>
+        <small
+          >If nothing fired, advance every transition’s
+          <code>timeSinceLastFiringMs</code> by dt.</small
+        >
+      </div>
+      <span class="arr">→</span>
+      <div class="box b-engine">
+        <strong>5 · Complete?</strong>
+        <small
+          ><code>maxTime</code> reached, or deadlock (nothing fired and no
+          transition is enabled).</small
+        >
+      </div>
+    </div>
+
+    <div class="note">
+      Every stage that changes state allocates a <strong>new</strong>
+      <code>ArrayBuffer</code> via <code>createEngineFrame()</code> — dynamics,
+      token removal, and token insertion each rebuild the frame. Immutability
+      makes history trivially correct at the cost of allocation churn per step.
+    </div>
+
+    <h2>EngineFrame — the binary format</h2>
+    <p>
+      One <code>ArrayBuffer</code>, read through section-typed views. The frame
+      stores <strong>no IDs and no time</strong> — decoding requires the
+      <code>EngineFrameLayout</code> (place/transition order, per-place
+      <code>strideBytes</code> and <code>TokenSlotLayout</code>) derived from
+      the SDCPN, and time travels as payload metadata.
+    </p>
+    <p>
+      <strong>Source of truth:</strong>
+      <a href="../../src/simulation/frames/internal-frame.ts"
+        ><code
+          >libs/@hashintel/petrinaut-core/src/simulation/frames/internal-frame.ts</code
+        ></a
+      >
+      — <code>createEngineFrame()</code> computes every offset below and is the
+      only frame constructor; <code>readEngineFrame()</code> recreates the same
+      views for reading; the header constants live in the
+      <code>HeaderOffset</code> enum.
+    </p>
+
+    <figure>
+      <svg
+        viewBox="0 0 880 560"
+        font-family="ui-monospace, Menlo, monospace"
+        font-size="10.5"
+      >
+        <defs>
+          <pattern
+            id="pad"
+            width="6"
+            height="6"
+            patternUnits="userSpaceOnUse"
+            patternTransform="rotate(45)"
+          >
+            <rect width="6" height="6" fill="#fafafa" />
+            <line
+              x1="0"
+              y1="0"
+              x2="0"
+              y2="6"
+              stroke="#cccccc"
+              stroke-width="2"
+            />
+          </pattern>
+        </defs>
+
+        <text
+          x="150"
+          y="18"
+          font-family="system-ui"
+          font-size="13"
+          font-weight="bold"
+        >
+          Memory map — example instance
+        </text>
+        <text
+          x="150"
+          y="550"
+          font-family="system-ui"
+          font-size="11"
+          fill="#555"
+        >
+          byte offsets on the left · one typed-array view per section on the
+          right
+        </text>
+
+        <!-- ===== blocks (x=150..400) ===== -->
+        <!-- header -->
+        <rect
+          x="150"
+          y="30"
+          width="250"
+          height="64"
+          fill="#ededed"
+          stroke="#111"
+          stroke-width="1.5"
+        />
+        <text x="160" y="50" font-weight="bold">header — 64 B fixed</text>
+        <text x="160" y="65" fill="#555" font-size="9.5">
+          magic "PFRM" · version · P · T ·
+        </text>
+        <text x="160" y="78" fill="#555" font-size="9.5">
+          section offsets · byteLength
+        </text>
+        <text x="412" y="50" fill="#555">DataView, little-endian</text>
+
+        <!-- place counts -->
+        <rect
+          x="150"
+          y="94"
+          width="250"
+          height="40"
+          fill="#d3e5ff"
+          stroke="#111"
+          stroke-width="1.5"
+        />
+        <text x="160" y="112" font-weight="bold">place token counts</text>
+        <text x="160" y="126" fill="#555" font-size="9.5">u32 × P = 8 B</text>
+        <text x="412" y="112" fill="#2563eb">Uint32Array(buf, 64, P)</text>
+        <text x="412" y="126" fill="#555" font-size="9.5">
+          tokens currently in each place
+        </text>
+
+        <!-- place offsets -->
+        <rect
+          x="150"
+          y="134"
+          width="250"
+          height="40"
+          fill="#d3e5ff"
+          stroke="#111"
+          stroke-width="1.5"
+        />
+        <text x="160" y="152" font-weight="bold">place value offsets</text>
+        <text x="160" y="166" fill="#555" font-size="9.5">u32 × P = 8 B</text>
+        <text x="412" y="152" fill="#2563eb">Uint32Array(buf, 72, P)</text>
+        <text x="412" y="166" fill="#555" font-size="9.5">
+          each place’s token run, relative to the token region start
+        </text>
+
+        <!-- transition elapsed -->
+        <rect
+          x="150"
+          y="174"
+          width="250"
+          height="46"
+          fill="#fecaca"
+          stroke="#111"
+          stroke-width="1.5"
+        />
+        <text x="160" y="193" font-weight="bold">transition elapsed</text>
+        <text x="160" y="208" fill="#555" font-size="9.5">f64 × T = 16 B</text>
+        <text x="412" y="193" fill="#dc2626">Float64Array(buf, 80, T)</text>
+        <text x="412" y="208" fill="#555" font-size="9.5">
+          ms since each transition last fired
+        </text>
+
+        <!-- firing counts -->
+        <rect
+          x="150"
+          y="220"
+          width="250"
+          height="40"
+          fill="#d3e5ff"
+          stroke="#111"
+          stroke-width="1.5"
+        />
+        <text x="160" y="238" font-weight="bold">transition firing counts</text>
+        <text x="160" y="252" fill="#555" font-size="9.5">u32 × T = 8 B</text>
+        <text x="412" y="238" fill="#2563eb">Uint32Array(buf, 96, T)</text>
+        <text x="412" y="252" fill="#555" font-size="9.5">
+          cumulative firings since frame 0
+        </text>
+
+        <!-- fired flags -->
+        <rect
+          x="150"
+          y="260"
+          width="250"
+          height="32"
+          fill="#d1fae5"
+          stroke="#111"
+          stroke-width="1.5"
+        />
+        <text x="160" y="280" font-weight="bold">
+          fired flags
+          <tspan font-weight="normal" fill="#555" font-size="9.5">
+            — u8 × T = 2 B
+          </tspan>
+        </text>
+        <text x="412" y="280" fill="#059669">Uint8Array(buf, 104, T)</text>
+
+        <!-- padding -->
+        <rect
+          x="150"
+          y="292"
+          width="250"
+          height="24"
+          fill="url(#pad)"
+          stroke="#111"
+          stroke-width="1.5"
+        />
+        <text x="160" y="308" fill="#555" font-size="9.5">padding — 6 B</text>
+        <text x="412" y="308" fill="#555" font-size="9.5">
+          alignTo(…, 8) so f64 views stay aligned
+        </text>
+
+        <!-- token region -->
+        <rect
+          x="150"
+          y="316"
+          width="250"
+          height="196"
+          fill="#fee2b8"
+          stroke="#111"
+          stroke-width="1.5"
+        />
+        <text x="412" y="334" fill="#b45309">
+          tokenBytes / tokenF64 views (b112…)
+        </text>
+        <text x="412" y="348" fill="#555" font-size="9.5">
+          packed token structs — place-major, token-major;
+        </text>
+        <text x="412" y="360" fill="#555" font-size="9.5">
+          this all-real example is pure f64 (booleans = u8)
+        </text>
+
+        <!-- token slots -->
+        <g>
+          <rect
+            x="162"
+            y="326"
+            width="226"
+            height="20"
+            fill="#fff7ed"
+            stroke="#b45309"
+          />
+          <text x="168" y="340">slot 0 · b112 · p1 · tok0 · x</text>
+          <rect
+            x="162"
+            y="346"
+            width="226"
+            height="20"
+            fill="#fff7ed"
+            stroke="#b45309"
+          />
+          <text x="168" y="360">slot 1 · b120 · p1 · tok0 · y</text>
+          <rect
+            x="162"
+            y="366"
+            width="226"
+            height="20"
+            fill="#fff7ed"
+            stroke="#b45309"
+          />
+          <text x="168" y="380">slot 2 · b128 · p1 · tok0 · z</text>
+          <rect
+            x="162"
+            y="386"
+            width="226"
+            height="20"
+            fill="#fff7ed"
+            stroke="#b45309"
+          />
+          <text x="168" y="400">slot 3 · b136 · p1 · tok1 · x</text>
+          <rect
+            x="162"
+            y="406"
+            width="226"
+            height="20"
+            fill="#fff7ed"
+            stroke="#b45309"
+          />
+          <text x="168" y="420">slot 4 · b144 · p1 · tok1 · y</text>
+          <rect
+            x="162"
+            y="426"
+            width="226"
+            height="20"
+            fill="#fff7ed"
+            stroke="#b45309"
+          />
+          <text x="168" y="440">slot 5 · b152 · p1 · tok1 · z</text>
+          <rect
+            x="162"
+            y="454"
+            width="226"
+            height="20"
+            fill="#ffedd5"
+            stroke="#b45309"
+          />
+          <text x="168" y="468">slot 6 · b160 · p2 · tok0 · a</text>
+          <rect
+            x="162"
+            y="474"
+            width="226"
+            height="20"
+            fill="#ffedd5"
+            stroke="#b45309"
+          />
+          <text x="168" y="488">slot 7 · b168 · p2 · tok0 · b</text>
+        </g>
+
+        <!-- place group brackets -->
+        <path d="M 396 328 h 6 v 116 h -6" fill="none" stroke="#b45309" />
+        <text x="412" y="384" fill="#b45309">p1 — byteOffset 0</text>
+        <text x="412" y="398" fill="#555" font-size="9.5">
+          2 tokens × stride 24 B (x,y,z — all real)
+        </text>
+        <path d="M 396 456 h 6 v 36 h -6" fill="none" stroke="#b45309" />
+        <text x="412" y="472" fill="#b45309">p2 — byteOffset 48</text>
+        <text x="412" y="486" fill="#555" font-size="9.5">
+          1 token × stride 16 B (a,b) → byte 112 + 48
+        </text>
+
+        <!-- byte offset labels -->
+        <g text-anchor="end" fill="#111">
+          <text x="142" y="36">0</text>
+          <text x="142" y="100">64</text>
+          <text x="142" y="140">72</text>
+          <text x="142" y="180">80</text>
+          <text x="142" y="226">96</text>
+          <text x="142" y="266">104</text>
+          <text x="142" y="298">106</text>
+          <text x="142" y="322">112</text>
+          <text x="142" y="516" font-weight="bold">176</text>
+        </g>
+        <line
+          x1="150"
+          y1="512"
+          x2="400"
+          y2="512"
+          stroke="#111"
+          stroke-width="1.5"
+        />
+        <text x="160" y="527" fill="#555" font-size="9.5">
+          byteLength = 176 (recorded in the header, checked on read)
+        </text>
+      </svg>
+      <figcaption>
+        Exact offsets for a concrete instance: <strong>P = 2 places</strong> (p1
+        = 2 tokens × 24-byte stride, p2 = 1 token × 16-byte stride — all
+        dimensions <code>real</code> here, so every field is one f64; a boolean
+        dimension would appear as a single u8 byte inside its token’s stride),
+        <strong>T = 2 transitions</strong> → 176-byte frame. Sections are laid
+        out by <code>createEngineFrame()</code>; sections and strides are padded
+        to 8-byte boundaries by <code>alignTo()</code>. Block heights are not to
+        scale.
+      </figcaption>
+    </figure>
+
+    <h3>Header (offsets in bytes, little-endian, via <code>DataView</code>)</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Offset</th>
+          <th>Field</th>
+          <th>Type</th>
+          <th>Value / meaning</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>0</td>
+          <td>magic</td>
+          <td>u32</td>
+          <td><code>0x5046524d</code> (“PFRM”) — corrupt-frame guard</td>
+        </tr>
+        <tr>
+          <td>4</td>
+          <td>version</td>
+          <td>u16</td>
+          <td>2 — the current (only) format; readers assert this on decode</td>
+        </tr>
+        <tr>
+          <td>6</td>
+          <td>headerBytes</td>
+          <td>u16</td>
+          <td>64</td>
+        </tr>
+        <tr>
+          <td>8 / 12</td>
+          <td>placeCount / transitionCount</td>
+          <td>u32</td>
+          <td>must match the layout (checked on read)</td>
+        </tr>
+        <tr>
+          <td>16</td>
+          <td>tokenByteLength</td>
+          <td>u32</td>
+          <td>token region length in bytes</td>
+        </tr>
+        <tr>
+          <td>20–40</td>
+          <td>section offsets</td>
+          <td>u32 × 6</td>
+          <td>byte offsets of each section above</td>
+        </tr>
+        <tr>
+          <td>44</td>
+          <td>byteLength</td>
+          <td>u32</td>
+          <td>whole-frame length (checked on read)</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>Token region</h3>
+    <p>
+      Each coloured place owns a contiguous run of
+      <code>count × strideBytes</code> bytes starting at its byte offset
+      (uncoloured places have stride 0 and only a count), giving O(1) access to
+      any place via the layout. Within a token, each element sits at its
+      layout-computed byte offset: <code>real</code>/<code>integer</code> as
+      f64, <code>boolean</code> as one u8 byte. Value coercion (integers
+      rounded, booleans 0/1) lives in <code>engine/token-values.ts</code>; byte
+      placement in <code>engine/token-layout.ts</code>.
+    </p>
+
+    <h2>Who reads and writes the buffer</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Path</th>
+          <th>Direction</th>
+          <th>View used</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>createEngineFrame(layout, snapshot)</code></td>
+          <td>write (allocate)</td>
+          <td>
+            <code>DataView</code> header + section views, bulk
+            <code>Uint8Array.set</code>
+          </td>
+          <td>
+            Only constructor of frames; recomputes byte offsets from counts ×
+            strides.
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <code>readEngineFrame(layout, frame)</code> →
+            <code>EngineFrameView</code>
+          </td>
+          <td>read</td>
+          <td>
+            <code>Uint32Array</code> sections + <code>tokenBytes</code> (u8) /
+            <code>tokenF64</code> views
+          </td>
+          <td>
+            Zero-copy; <code>toSnapshot()</code> copies the token region into a
+            fresh <code>Uint8Array</code>.
+          </td>
+        </tr>
+        <tr>
+          <td>Dynamics (<code>computePlaceNextState</code>)</td>
+          <td>read + write</td>
+          <td>f64 view over a fresh byte copy</td>
+          <td>
+            Euler touches only <code>realFieldF64Offsets</code>; discrete bytes
+            copied through untouched.
+          </td>
+        </tr>
+        <tr>
+          <td>
+            Transition firing (<code>compute-possible-transition</code>,
+            <code>execute-transitions</code>, <code>remove-tokens…</code>)
+          </td>
+          <td>read + write</td>
+          <td>
+            <code>readTokenRecord</code> /
+            <code>encodeTokenValuesToBytes</code> + byte-range copies
+          </td>
+          <td>
+            Input tokens decoded to <code>TokenRecord</code>s for user
+            lambdas/kernels; kernel outputs packed into per-token
+            <code>Uint8Array</code> blocks.
+          </td>
+        </tr>
+        <tr>
+          <td><code>SimulationFrameReader</code> (main thread)</td>
+          <td>read</td>
+          <td>Same section views over the <em>cloned</em> buffer</td>
+          <td>
+            <code>getPlaceTokens()</code> = decoded records via the place’s
+            <code>TokenSlotLayout</code>; <code>getTransitionState()</code> =
+            timers/flags.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>Token attribute typing (discrete types)</h2>
+    <ul>
+      <li>
+        <strong>Storage is schema-driven:</strong> <code>real</code> and
+        <code>integer</code> elements are f64 fields;
+        <code>boolean</code> elements are single u8 bytes, placed by
+        <code>computeTokenSlotLayout</code>.
+      </li>
+      <li>
+        <strong>Coercion at the write boundary</strong>
+        (<code>coerceTokenRecord</code>,
+        <code>encodeTokenAttributeValue</code>): integers round, booleans become
+        0/1; initial markings, scenario rows, and kernel outputs all pass
+        through it before <code>writeTokenValue</code> /
+        <code>encodeTokenToBytes</code> place the bytes.
+      </li>
+      <li>
+        <strong>Decode at the read boundary</strong>
+        (<code>readTokenRecord</code>): user code and the UI always see
+        <code>number | boolean</code> values.
+      </li>
+      <li>
+        <strong>Only transition kernels write discrete values.</strong> Dynamics
+        apply to real elements only — Euler integrates
+        <code>realFieldF64Offsets</code> exclusively, discrete bytes are copied
+        through untouched, and colours without real elements skip dynamics
+        compilation entirely.
+      </li>
+      <li>
+        Distributions (<code>Distribution.Gaussian…</code>) are allowed for
+        real/integer kernel outputs and rejected for boolean.
+      </li>
+    </ul>
+
+    <h2>Token memory layout — packed structs</h2>
+    <p>
+      Since <code>FRAME_VERSION = 2</code>, tokens are stored as schema-driven
+      <strong>packed structs</strong> (array-of-structs; column layout was
+      considered and rejected because the workload — kernels, copies, UI reads —
+      is token-oriented).
+      <code>engine/token-layout.ts</code> (<code>computeTokenSlotLayout</code>)
+      is the single source of truth:
+    </p>
+    <table>
+      <thead>
+        <tr>
+          <th>Logical type</th>
+          <th>Physical type</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>real</code></td>
+          <td><code>f64</code> — 8 B</td>
+          <td>unchanged</td>
+        </tr>
+        <tr>
+          <td><code>integer</code></td>
+          <td><code>f64</code> — 8 B, rounded on read/write</td>
+          <td>
+            <strong>Exact only within ±2^53</strong> (documented in the schema).
+            i32 rejected (silent wraparound at ±2^31); i64 rejected (bigint is
+            contagious into user code: <code>fortune * 1.05</code> would throw).
+            If &gt;2^53 is ever needed, add a separate opt-in
+            <code>int64</code> element type instead of changing
+            <code>integer</code>.
+          </td>
+        </tr>
+        <tr>
+          <td><code>boolean</code></td>
+          <td><code>u8</code> — 1 B</td>
+          <td>
+            Not bit-packed (would break byte-granular copies for marginal
+            savings).
+          </td>
+        </tr>
+        <tr>
+          <td><code>uuid</code> / 128-bit (FE-1121, future)</td>
+          <td><code>u64 × 2</code> — 16 B</td>
+          <td>
+            Not implemented yet. Will read via a shared
+            <code>BigUint64Array</code> (~28 ns combine to one
+            <code>bigint</code>; lane-compare without combining for equality,
+            ~4× faster). Never route the lanes through
+            <code>number</code> (NaN-payload hazard).
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <ul>
+      <li>
+        <strong>Layout rule:</strong> per colour, fields are ordered by
+        decreasing alignment (stable) and the stride is rounded up to 8 B —
+        every f64 field stays 8-aligned so hot paths use plain typed-array views
+        (no <code>DataView</code>). Places are byte-addressed:
+        <code>{ byteOffset, count, strideBytes }</code>.
+      </li>
+      <li>
+        <strong>Access rule:</strong> <code>token-layout.ts</code> (<code
+          >readTokenRecord</code
+        >
+        / <code>writeTokenValue</code> / <code>encodeTokenToBytes</code>) is the
+        only code that indexes token bytes; all whole-token moves are byte-range
+        copies (<code>Uint8Array.set</code>). The raw
+        <code>getPlaceTokenValues</code> reader was removed from the public API
+        — raw f64 access is meaningless under mixed widths.
+      </li>
+    </ul>
+
+    <h2>Determinism</h2>
+    <p>
+      <code>seeded-rng.ts</code> provides a pure
+      <code>nextRandom(state) → [value, nextState]</code>. The RNG state lives
+      on <code>SimulationInstance.rngState</code> and is threaded through
+      stochastic lambda sampling and distribution draws, so a given
+      <code>(SDCPN, marking, parameters, seed, dt)</code> always reproduces the
+      same frame sequence.
+    </p>
+
+    <div class="note refactor">
+      <strong>Refactoring seams.</strong>
+      (1) Per-step allocation: each stage rebuilds the whole buffer — a
+      double-buffer strategy (as Monte Carlo already does) would remove most
+      churn. (2) 128-bit types (UUID, FE-1121) slot into the layout as
+      <code>u64×2</code> fields (align 8, read via <code>BigUint64Array</code>)
+      — the layout machinery is ready; the value plumbing (<code>bigint</code>
+      boundary, v5 coercion, seeded generation) is not. (3) The worker keeps the
+      full <code>frames[]</code> history although only the latest frame is
+      needed to advance — history retention belongs to the main-thread store.
+    </div>
+  </body>
+</html>
