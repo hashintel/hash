@@ -9,7 +9,7 @@
 //!   spread across the rayon pool and per-thread instruction counts would only see the calling
 //!   thread.
 //!
-//! [`cluster`]: hash_graph_store::embedding::clustering::cluster
+//! [`cluster`]: hash_graph_embeddings::clustering::cluster
 #![expect(
     unsafe_code,
     clippy::float_arithmetic,
