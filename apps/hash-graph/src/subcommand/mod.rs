@@ -7,7 +7,7 @@ mod snapshot;
 mod type_fetcher;
 
 use core::time::Duration;
-use std::{thread::available_parallelism, time::Instant};
+use std::{sync::Once, thread::available_parallelism, time::Instant};
 
 use clap::Parser;
 use error_stack::{Report, ensure};
@@ -147,15 +147,18 @@ fn block_on(
     service_name: &'static str,
     tracing_config: TracingConfig,
 ) -> Result<(), Report<GraphError>> {
-    rayon::ThreadPoolBuilder::new()
-        .num_threads(
-            available_parallelism()
-                .map_or(1, |cores| cores.get() / 2)
-                .max(1),
-        )
-        .thread_name(|index| format!("rayon-{index}"))
-        .build_global()
-        .expect("rayon pool should be initialized exactly once");
+    static THREAD_POOL: Once = Once::new();
+    THREAD_POOL.call_once(|| {
+        rayon::ThreadPoolBuilder::new()
+            .num_threads(
+                available_parallelism()
+                    .map_or(1, |cores| cores.get() / 2)
+                    .max(1),
+            )
+            .thread_name(|index| format!("rayon-{index}"))
+            .build_global()
+            .expect("rayon pool should be initialized exactly once");
+    });
 
     tokio::runtime::Builder::new_multi_thread()
         .enable_all()
