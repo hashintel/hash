@@ -15,5 +15,8 @@
   "dependencies": {
     "@rust/error-stack": "workspace:*",
     "@rust/hash-graph-types": "workspace:*"
+  },
+  "devDependencies": {
+    "@rust/darwin-kperf-criterion": "workspace:*"
   }
 }
