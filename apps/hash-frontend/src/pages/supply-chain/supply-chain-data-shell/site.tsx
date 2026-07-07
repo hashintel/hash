@@ -46,6 +46,7 @@ import type {
 } from "./site/shared/row-types";
 
 const errorPad = css({ px: "6", py: "4" });
+
 // Fill the layout's main area (a flex column) and clamp our own height to it so
 // the content pane can scroll internally instead of overflowing the viewport.
 // `minH:0` is required for the inner `overflow:auto` pane to actually scroll.
@@ -97,6 +98,7 @@ const settingsCollapse = css({
 });
 const settingsCollapseOpen = css({ gridTemplateRows: "1fr", opacity: "1" });
 const settingsCollapseInner = css({ minH: "0", overflow: "hidden" });
+
 // The content area is the page scroller inside the viewport-bounded main
 // (`flex:1; minH:0`). Each table caps its own height to ~the viewport (see
 // `card` / `tableContainer`) so it scrolls internally once tall, while the page
@@ -128,7 +130,7 @@ const tabBar = css({
 });
 const tabButtons = css({ display: "flex", alignItems: "flex-end", gap: "3" });
 // Groups the tab bar with its active table so they stack tightly.
-const tableSection = css({ display: "flex", flexDirection: "column" });
+const tableSection = css({ display: "flex", flexDirection: "column", pb: "6" });
 
 interface SiteOverviewProps {
   products: Product[];
@@ -203,6 +205,7 @@ export const SiteOverview = ({
     node: SiteNode;
     title: string;
   } | null>(null);
+
   const openStatus = useCallback(
     (node: SiteNode, title: string) => {
       trackSupplyChainInteraction({
@@ -347,6 +350,7 @@ export const SiteOverview = ({
     },
     [buildBriefHref, siteId],
   );
+
   const handlePanelClose = useCallback(() => {
     trackSupplyChainInteraction({
       interaction: "step_detail_panel_closed",
@@ -356,14 +360,17 @@ export const SiteOverview = ({
     });
     setSelectedStep(null);
   }, [selectedStep?.stepId, siteId]);
+
   const statusTargetIsSelectedStep =
     selectedStep != null &&
     statusTarget != null &&
     statusTarget.node.id === selectedStep.node.id &&
     statusTarget.node.products[0]?.id === selectedStep.productId;
+
   const selectedStepStatusTarget = statusTargetIsSelectedStep
     ? statusTarget
     : null;
+
   if (loading) {
     return <SupplyChainAppSkeleton />;
   }
