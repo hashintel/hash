@@ -1,20 +1,10 @@
+import { TYPE_POLICIES } from "./simulation/engine/type-policies";
+
 import type { Color } from "./types/sdcpn";
 
 const defaultTokenAttributeSource = (
   element: Color["elements"][number],
-): string => {
-  switch (element.type) {
-    case "boolean":
-      return "false";
-    case "integer":
-    case "real":
-      return "0";
-    case "string":
-      return '""';
-    case "uuid":
-      return "Uuid.generate()";
-  }
-};
+): string => TYPE_POLICIES[element.type].defaultValueSource;
 
 export function generateDefaultVisualizerCode(type: Color): string {
   return `// This function defines how to visualize the tokens in the place of type "${

@@ -1,5 +1,5 @@
 import { coerceTokenRecord } from "../../engine/token-values";
-import { formatUuid } from "../../engine/uuid";
+import { TYPE_POLICIES } from "../../engine/type-policies";
 import { runSandboxed, SHADOWED_GLOBALS } from "../sandbox";
 
 import type { Color, Parameter, Place, Scenario } from "../../../types/sdcpn";
@@ -94,10 +94,11 @@ function evaluateExpression(
 type MarkingTokenRecord = Record<string, InitialTokenAttributeValue>;
 
 /**
- * Coerces one raw token source through the runtime codec, then converts uuid
- * attributes back to canonical lowercase strings so the compiled initial
- * state stays JSON-serializable. Arbitrary uuid inputs (free text, numbers)
- * are normalized deterministically via `toUuid` inside `coerceTokenRecord`.
+ * Coerces one raw token source through the runtime codec, then converts each
+ * attribute to its at-rest form (uuid bigints become canonical lowercase
+ * strings) so the compiled initial state stays JSON-serializable. Arbitrary
+ * uuid inputs (free text, numbers) are normalized deterministically via
+ * `toUuid` inside `coerceTokenRecord`.
  */
 function compileTokenRecord(
   source: Record<string, unknown>,
@@ -108,12 +109,11 @@ function compileTokenRecord(
     elements,
     "Scenario initial state token",
   );
-  const token: MarkingTokenRecord = { ...coerced };
+  const token: MarkingTokenRecord = {};
   for (const element of elements) {
-    if (element.type === "uuid") {
-      const value = coerced[element.name];
-      token[element.name] = formatUuid(typeof value === "bigint" ? value : 0n);
-    }
+    token[element.name] = TYPE_POLICIES[element.type].encodeAtRest(
+      coerced[element.name]!,
+    );
   }
   return token;
 }

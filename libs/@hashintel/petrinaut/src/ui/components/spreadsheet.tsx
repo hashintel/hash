@@ -5,6 +5,7 @@ import {
   defaultTokenAttributeValue,
   formatUuid,
   toUuid,
+  TYPE_POLICIES,
 } from "@hashintel/petrinaut-core";
 
 export interface SpreadsheetColumn {
@@ -276,37 +277,12 @@ const getCellTitle = (
   return undefined;
 };
 
-// Pasting "Infinity" or overflowing notation must not leak non-finite
-// numbers into stored state (the runtime codecs reject them later).
-const parseFiniteNumber = (rawValue: string): number => {
-  const parsed = Number.parseFloat(rawValue);
-  return Number.isFinite(parsed) ? parsed : 0;
-};
+/** Untyped columns parse like `real` (the per-type behaviour lives in core). */
 const parseCellValue = (
   column: SpreadsheetColumn | undefined,
   rawValue: string,
-): SpreadsheetCellValue => {
-  switch (column?.type) {
-    case "boolean": {
-      const normalized = rawValue.trim().toLowerCase();
-      return normalized === "true" || normalized === "1";
-    }
-    case "integer":
-      return Math.round(parseFiniteNumber(rawValue));
-    case "string":
-      // Identity — string cells keep the entered text verbatim (no trim).
-      return rawValue;
-    case "uuid": {
-      // Valid UUID strings parse; anything else converts deterministically
-      // via UUIDv5. Clearing the cell resets to the nil uuid.
-      const trimmed = rawValue.trim();
-      return trimmed === "" ? 0n : toUuid(trimmed);
-    }
-    case "real":
-    default:
-      return parseFiniteNumber(rawValue);
-  }
-};
+): SpreadsheetCellValue =>
+  TYPE_POLICIES[column?.type ?? "real"].parseEditorText(rawValue);
 
 export const Spreadsheet: React.FC<SpreadsheetProps> = ({
   columns,

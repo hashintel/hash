@@ -334,9 +334,16 @@ export { buildMetricState } from "./simulation/frames/metric-state";
 export {
   coerceTokenAttributeValue,
   coerceTokenRecord,
+  coerceToStoredTokenAttributeValue,
   defaultTokenAttributeValue,
   encodeTokenAttributeValue,
 } from "./simulation/engine/token-values";
+export {
+  COLOR_ELEMENT_TYPES,
+  TYPE_POLICIES,
+  type StoredTokenAttributeValue,
+  type TypePolicy,
+} from "./simulation/engine/type-policies";
 export {
   computeTokenSlotLayout,
   createTokenRegionViews,

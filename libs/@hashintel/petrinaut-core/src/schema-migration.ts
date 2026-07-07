@@ -1,10 +1,7 @@
-import {
-  coerceTokenAttributeValue,
-  defaultTokenAttributeValue,
-} from "./simulation/engine/token-values";
-import { formatUuid } from "./simulation/engine/uuid";
+import { coerceToStoredTokenAttributeValue } from "./simulation/engine/token-values";
+import { TYPE_POLICIES } from "./simulation/engine/type-policies";
 
-import type { Color, SDCPN, TokenAttributeValue } from "./types/sdcpn";
+import type { ColorElementType, Color, SDCPN } from "./types/sdcpn";
 
 type ColorElement = Color["elements"][number];
 
@@ -30,33 +27,24 @@ export type TypeElementEdit =
 type ScenarioRowCell = number | boolean | string;
 
 /**
- * Converts a runtime token attribute value to its at-rest scenario-row form:
- * `uuid` bigints become canonical lowercase UUID strings; everything else is
- * already JSON-safe.
- */
-const toStoredCell = (value: TokenAttributeValue): ScenarioRowCell =>
-  typeof value === "bigint" ? formatUuid(value) : value;
-
-/**
  * Total coercion of a stored row cell to `element`'s type. Falls back to the
  * element type's default value when coercion throws (e.g. `"abc"` → `integer`
- * yields `0`).
+ * yields `0`). `uuid` results are stored as canonical lowercase UUID strings.
  */
 const coerceStoredCell = (
   element: ColorElement,
   cell: unknown,
-): ScenarioRowCell => {
-  try {
-    return toStoredCell(
-      coerceTokenAttributeValue(
-        element,
-        cell,
-        `Scenario cell for element "${element.name}"`,
-      ),
-    );
-  } catch {
-    return toStoredCell(defaultTokenAttributeValue(element.type));
-  }
+): ScenarioRowCell =>
+  coerceToStoredTokenAttributeValue(
+    element,
+    cell,
+    `Scenario cell for element "${element.name}"`,
+  );
+
+/** The element type's default value in its at-rest scenario-row form. */
+const defaultStoredCell = (type: ColorElementType): ScenarioRowCell => {
+  const policy = TYPE_POLICIES[type];
+  return policy.encodeAtRest(policy.defaultValue);
 };
 
 /**
@@ -185,7 +173,7 @@ export function migrateScenarioRowsForTypeEdit(
           if (columnIndex === coerceIndex) {
             return coerceStoredCell(element, cell);
           }
-          return cell ?? toStoredCell(defaultTokenAttributeValue(element.type));
+          return cell ?? defaultStoredCell(element.type);
         });
       }
     }

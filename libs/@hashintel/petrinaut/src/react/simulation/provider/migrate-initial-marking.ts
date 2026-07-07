@@ -1,7 +1,5 @@
 import {
-  coerceTokenAttributeValue,
-  defaultTokenAttributeValue,
-  formatUuid,
+  coerceToStoredTokenAttributeValue,
   type Color,
   type InitialMarking,
   type InitialTokenAttributeValue,
@@ -74,19 +72,12 @@ const typeElementsNeedMigration = (
 const coerceStoredValue = (
   element: ColorElement,
   value: unknown,
-): InitialTokenAttributeValue => {
-  let coerced;
-  try {
-    coerced = coerceTokenAttributeValue(
-      element,
-      value,
-      `Initial marking value for element "${element.name}"`,
-    );
-  } catch {
-    coerced = defaultTokenAttributeValue(element.type);
-  }
-  return typeof coerced === "bigint" ? formatUuid(coerced) : coerced;
-};
+): InitialTokenAttributeValue =>
+  coerceToStoredTokenAttributeValue(
+    element,
+    value,
+    `Initial marking value for element "${element.name}"`,
+  );
 
 /**
  * Rebuilds one name-keyed token record against the type's new elements:

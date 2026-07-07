@@ -6,6 +6,7 @@ import {
   getTransitionLogicAvailability,
   type PetrinautExtensionSettings,
 } from "../../extensions";
+import { TYPE_POLICIES } from "../../simulation/engine/type-policies";
 import { getItemFilePath } from "./file-paths";
 
 import type {
@@ -28,19 +29,12 @@ function sanitizeColorId(colorId: string): string {
 }
 
 /**
- * Maps SDCPN element types to TypeScript types
+ * Maps SDCPN element types to TypeScript types. `ratio` is a scenario
+ * parameter type (not a `ColorElementType`), so it is handled here rather
+ * than in the type-policy registry.
  */
 function toTsType(type: ColorElementType | "ratio"): string {
-  if (type === "boolean") {
-    return "boolean";
-  }
-  if (type === "uuid") {
-    return "bigint";
-  }
-  if (type === "string") {
-    return "string";
-  }
-  return "number";
+  return type === "ratio" ? "number" : TYPE_POLICIES[type].tsInputType;
 }
 
 /**
@@ -83,13 +77,13 @@ function toKernelOutputTokenType(
 ): string {
   const properties = color.elements
     .map((element) => {
-      if (element.type === "uuid") {
-        return `  ${element.name}?: bigint | string | PetrinautUuid;`;
-      }
       if (element.type === "real" && stochasticityEnabled) {
         return `  ${element.name}: number | Distribution;`;
       }
-      return `  ${element.name}: ${toTsType(element.type)};`;
+      const policy = TYPE_POLICIES[element.type];
+      return `  ${element.name}${policy.kernelOutputOptional ? "?" : ""}: ${
+        policy.tsKernelOutputType
+      };`;
     })
     .join("\n");
 

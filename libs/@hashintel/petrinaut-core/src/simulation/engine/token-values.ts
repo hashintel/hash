@@ -1,4 +1,5 @@
-import { formatUuid, NIL_UUID, toUuid } from "./uuid";
+import { TYPE_POLICIES } from "./type-policies";
+import { formatUuid } from "./uuid";
 
 import type {
   Color,
@@ -6,6 +7,7 @@ import type {
   TokenAttributeValue,
   TokenRecord,
 } from "../../types/sdcpn";
+import type { StoredTokenAttributeValue } from "./type-policies";
 
 type ColorElement = Color["elements"][number];
 
@@ -27,44 +29,7 @@ export function describeTokenValuesForError(values: unknown): string {
 export function defaultTokenAttributeValue(
   type: ColorElementType,
 ): TokenAttributeValue {
-  switch (type) {
-    case "boolean":
-      return false;
-    case "integer":
-    case "real":
-      return 0;
-    case "string":
-      return "";
-    case "uuid":
-      return NIL_UUID;
-  }
-}
-
-function coerceNumber(value: unknown, context: string): number {
-  const numberValue = typeof value === "number" ? value : Number(value);
-  if (!Number.isFinite(numberValue)) {
-    throw new Error(`${context} must be a finite number.`);
-  }
-  return numberValue;
-}
-
-function coerceBoolean(value: unknown, context: string): boolean {
-  if (typeof value === "boolean") {
-    return value;
-  }
-  if (typeof value === "number") {
-    return value !== 0;
-  }
-  if (typeof value === "string") {
-    const normalized = value.trim().toLowerCase();
-    if (normalized === "true" || normalized === "1") {
-      return true;
-    }
-    if (normalized === "false" || normalized === "0" || normalized === "") {
-      return false;
-    }
-  }
-  throw new Error(`${context} must be a boolean.`);
+  return TYPE_POLICIES[type].defaultValue;
 }
 
 export function coerceTokenAttributeValue(
@@ -72,24 +37,32 @@ export function coerceTokenAttributeValue(
   value: unknown,
   context: string,
 ): TokenAttributeValue {
-  const rawValue = value ?? defaultTokenAttributeValue(element.type);
-  switch (element.type) {
-    case "real":
-      return coerceNumber(rawValue, context);
-    case "integer":
-      return Math.round(coerceNumber(rawValue, context));
-    case "boolean":
-      return coerceBoolean(rawValue, context);
-    case "string":
-      // Total conversion: any value stringifies; undefined/null → "" (the
-      // ?? default above resolves them to "" before this arm).
-      // eslint-disable-next-line typescript/no-base-to-string -- intentional: non-primitives map through their default stringification, keeping the conversion total
-      return typeof rawValue === "string" ? rawValue : String(rawValue);
-    case "uuid":
-      // Total conversion: bigints and UUID strings pass through/parse, and
-      // any other value maps deterministically to a UUIDv5 — never throws.
-      return toUuid(rawValue);
+  const policy = TYPE_POLICIES[element.type];
+  // Nullish values resolve to the type's default before coercion (e.g.
+  // undefined/null → "" for string elements).
+  return policy.coerce(value ?? policy.defaultValue, context);
+}
+
+/**
+ * Total coercion of an arbitrary value to `element`'s JSON-serializable
+ * at-rest form (the shape stored in documents and scenario rows — `uuid`
+ * values become canonical lowercase strings). Falls back to the element
+ * type's default value when coercion throws (e.g. `"abc"` → `integer`
+ * yields `0`).
+ */
+export function coerceToStoredTokenAttributeValue(
+  element: ColorElement,
+  value: unknown,
+  context: string,
+): StoredTokenAttributeValue {
+  const policy = TYPE_POLICIES[element.type];
+  let coerced: TokenAttributeValue;
+  try {
+    coerced = coerceTokenAttributeValue(element, value, context);
+  } catch {
+    coerced = policy.defaultValue;
   }
+  return policy.encodeAtRest(coerced);
 }
 
 export function coerceTokenRecord(
@@ -115,29 +88,20 @@ export function coerceTokenRecord(
  * `uuid` and `string` elements never reach this codec: uuid lanes are
  * assembled/split directly in `token-layout.ts` (`readTokenRecord` /
  * `writeTokenValue`), and string pool references resolve through the run's
- * `StringPool` there — the arms here only keep the switch exhaustive over
- * `ColorElementType`.
+ * `StringPool` there — their policies carry no number-slot decoder, so they
+ * throw here.
  */
 export function decodeTokenAttributeValue(
   element: ColorElement,
   encodedValue: number,
 ): TokenAttributeValue {
-  switch (element.type) {
-    case "real":
-      return encodedValue;
-    case "integer":
-      return Math.round(encodedValue);
-    case "boolean":
-      return encodedValue !== 0;
-    case "string":
-      throw new Error(
-        `decodeTokenAttributeValue received string element "${element.name}"; string pool references are decoded in token-layout.ts`,
-      );
-    case "uuid":
-      throw new Error(
-        `decodeTokenAttributeValue received uuid element "${element.name}"; uuid lanes are decoded in token-layout.ts`,
-      );
+  const decodeNumberSlot = TYPE_POLICIES[element.type].decodeNumberSlot;
+  if (!decodeNumberSlot) {
+    throw new Error(
+      `decodeTokenAttributeValue received ${element.type} element "${element.name}"; ${element.type} fields are decoded in token-layout.ts`,
+    );
   }
+  return decodeNumberSlot(encodedValue);
 }
 
 /**

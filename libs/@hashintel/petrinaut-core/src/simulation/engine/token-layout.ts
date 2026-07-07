@@ -3,24 +3,15 @@ import {
   decodeTokenAttributeValue,
   encodeTokenAttributeValue,
 } from "./token-values";
+import { TYPE_POLICIES } from "./type-policies";
 import { NIL_UUID, toUuid } from "./uuid";
 
 import type { Color, ColorElementType, TokenRecord } from "../../types/sdcpn";
+import type { PhysicalKind } from "./type-policies";
+
+export type { PhysicalKind } from "./type-policies";
 
 type ColorElement = Color["elements"][number];
-
-/**
- * Physical (buffer-level) representation of one token attribute in the
- * format-v2 packed struct layout:
- *
- * - `f64`: 8 bytes, 8-byte aligned (`real` and `integer` elements).
- * - `u8`: 1 byte, 1-byte aligned (`boolean` elements).
- * - `u64`: 8 bytes, 8-byte aligned (`string` elements — one little-endian
- *   64-bit ID into the simulation's `StringPool`, not the string itself).
- * - `u64x2`: 16 bytes, 8-byte aligned (`uuid` elements — two little-endian
- *   64-bit lanes: `lo` at the field's byteOffset, `hi` at +8).
- */
-export type PhysicalKind = "f64" | "u8" | "u64" | "u64x2";
 
 /**
  * Read side of the per-run string pool, needed to decode `string` (u64 pool
@@ -79,17 +70,7 @@ const PHYSICAL_TYPES: Record<PhysicalKind, PhysicalType> = {
 };
 
 function physicalTypeFor(elementType: ColorElementType): PhysicalType {
-  switch (elementType) {
-    case "boolean":
-      return PHYSICAL_TYPES.u8;
-    case "integer":
-    case "real":
-      return PHYSICAL_TYPES.f64;
-    case "string":
-      return PHYSICAL_TYPES.u64;
-    case "uuid":
-      return PHYSICAL_TYPES.u64x2;
-  }
+  return PHYSICAL_TYPES[TYPE_POLICIES[elementType].physicalKind];
 }
 
 const alignTo = (value: number, alignment: number): number =>
