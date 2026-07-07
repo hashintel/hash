@@ -332,6 +332,15 @@ export {
 } from "./simulation/authoring/scenario/compile-scenario";
 export { buildMetricState } from "./simulation/frames/metric-state";
 export {
+  coerceTokenAttributeValue,
+  coerceTokenRecord,
+  decodeTokenAttributeValue,
+  decodeTokenRecord,
+  defaultTokenAttributeValue,
+  encodeTokenAttributeValue,
+} from "./simulation/engine/token-values";
+export { compileUserCode } from "./simulation/authoring/user-code/compile-user-code";
+export {
   displayNameSchema,
   validateDisplayName,
 } from "./validation/display-name";

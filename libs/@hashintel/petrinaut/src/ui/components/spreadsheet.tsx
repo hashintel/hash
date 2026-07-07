@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 
 import { css, cva } from "@hashintel/ds-helpers/css";
+import { defaultTokenAttributeValue } from "@hashintel/petrinaut-core";
 
 export interface SpreadsheetColumn {
   id: string;
@@ -192,16 +193,8 @@ const booleanCellStyle = css({
 
 const getDefaultCellValue = (
   column: SpreadsheetColumn | undefined,
-): SpreadsheetCellValue => {
-  switch (column?.type) {
-    case "boolean":
-      return false;
-    case "integer":
-    case "real":
-    default:
-      return 0;
-  }
-};
+): SpreadsheetCellValue =>
+  column?.type ? defaultTokenAttributeValue(column.type) : 0;
 
 const formatCellValue = (value: SpreadsheetCellValue): string => String(value);
 

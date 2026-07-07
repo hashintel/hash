@@ -1,5 +1,7 @@
 import { use, useMemo } from "react";
 
+import { defaultTokenAttributeValue } from "@hashintel/petrinaut-core";
+
 import { PlaybackContext } from "../../../../../../../../react/playback/context";
 import { SimulationContext } from "../../../../../../../../react/simulation/context";
 import { Spreadsheet } from "../../../../../../../components/spreadsheet";
@@ -10,16 +12,8 @@ import type {
 } from "../../../../../../../components/spreadsheet";
 import type { Color, Place, TokenRecord } from "@hashintel/petrinaut-core";
 
-const getDefaultValue = (column: SpreadsheetColumn): SpreadsheetCellValue => {
-  switch (column.type) {
-    case "boolean":
-      return false;
-    case "integer":
-    case "real":
-    default:
-      return 0;
-  }
-};
+const getDefaultValue = (column: SpreadsheetColumn): SpreadsheetCellValue =>
+  column.type ? defaultTokenAttributeValue(column.type) : 0;
 
 /**
  * InitialStateEditor - A component for editing initial tokens in a place
