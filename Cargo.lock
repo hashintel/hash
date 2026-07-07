@@ -3678,9 +3678,14 @@ dependencies = [
 name = "hash-graph-embeddings"
 version = "0.0.0"
 dependencies = [
+ "codspeed-criterion-compat",
+ "darwin-kperf-criterion",
  "derive_more",
  "error-stack",
  "hash-graph-types",
+ "rand 0.10.1",
+ "rand_xoshiro",
+ "rayon",
  "reqwest",
  "reqwest-middleware",
  "reqwest-retry",
@@ -3771,6 +3776,7 @@ dependencies = [
  "futures-sink",
  "hash-codec",
  "hash-graph-authorization",
+ "hash-graph-embeddings",
  "hash-graph-migrations",
  "hash-graph-store",
  "hash-graph-temporal-versioning",
@@ -3804,8 +3810,6 @@ name = "hash-graph-store"
 version = "0.0.0"
 dependencies = [
  "bytes",
- "codspeed-criterion-compat",
- "darwin-kperf-criterion",
  "derive-where",
  "derive_more",
  "error-stack",
@@ -3818,9 +3822,6 @@ dependencies = [
  "hash-temporal-client",
  "insta",
  "postgres-types",
- "rand 0.10.1",
- "rand_xoshiro",
- "rayon",
  "serde",
  "serde_json",
  "simple-mermaid",

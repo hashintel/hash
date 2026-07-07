@@ -29,9 +29,6 @@ bytes          = { workspace = true, optional = true }
 derive-where   = { workspace = true }
 derive_more    = { workspace = true, features = ["display", "error"] }
 futures        = { workspace = true }
-rand           = { workspace = true }
-rand_xoshiro   = { workspace = true }
-rayon          = { workspace = true }
 serde          = { workspace = true, features = ["derive"] }
 serde_json     = { workspace = true }
 simple-mermaid = { workspace = true }
@@ -40,19 +37,13 @@ tracing        = { workspace = true }
 uuid           = { workspace = true, features = ["v4"] }
 
 [dev-dependencies]
-codspeed-criterion-compat = { workspace = true }
-darwin-kperf-criterion    = { workspace = true, features = ["codspeed"] }
-hash-codegen              = { workspace = true }
-insta                     = { workspace = true }
-tokio                     = { workspace = true, features = ["macros"] }
+hash-codegen = { workspace = true }
+insta        = { workspace = true }
+tokio        = { workspace = true, features = ["macros"] }
 
 [[test]]
 name              = "codegen"
 required-features = ["codegen"]
-
-[[bench]]
-name    = "embedding"
-harness = false
 
 [features]
 codegen  = ["dep:specta", "type-system/codegen", "hash-graph-authorization/codegen"]

@@ -1,4 +1,4 @@
-use core::num::NonZero;
+use core::{fmt, fmt::Display, num::NonZero};
 
 /// An embedding vector dimension, guaranteed to be a positive multiple of 8.
 ///
@@ -39,6 +39,12 @@ impl Dimension {
     }
 }
 
+impl Display for Dimension {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        Display::fmt(&self.get(), f)
+    }
+}
+
 pub const D128: Dimension = Dimension(NonZero::new(128).unwrap());
 pub const D256: Dimension = Dimension(NonZero::new(256).unwrap());
 pub const D512: Dimension = Dimension(NonZero::new(512).unwrap());
@@ -51,10 +57,10 @@ mod tests {
 
     #[test]
     fn valid_multiples_of_8() {
-        for v in [8, 16, 24, 128, 256, 3072] {
+        for value in [8, 16, 24, 128, 256, 3072] {
             assert!(
-                Dimension::new(v).is_some(),
-                "{v} should be a valid dimension"
+                Dimension::new(value).is_some(),
+                "{value} should be a valid dimension"
             );
         }
     }
@@ -66,10 +72,10 @@ mod tests {
 
     #[test]
     fn non_multiples_of_8_rejected() {
-        for v in [1, 2, 3, 4, 5, 6, 7, 9, 10, 15, 17, 100, 3071] {
+        for value in [1, 2, 3, 4, 5, 6, 7, 9, 10, 15, 17, 100, 3071] {
             assert!(
-                Dimension::new(v).is_none(),
-                "{v} should not be a valid dimension"
+                Dimension::new(value).is_none(),
+                "{value} should not be a valid dimension"
             );
         }
     }

@@ -1,8 +1,17 @@
 #![expect(
+    unsafe_code,
+    clippy::indexing_slicing,
+    clippy::float_arithmetic,
+    clippy::min_ident_chars,
+    reason = "Single-char idents (k, n, m, d, x) are standard mathematical notation for \
+              clustering."
+)]
+#![expect(
     clippy::inline_always,
     reason = "while usually discouraged, SIMD operations need to be inlined, as otherwise we \
               spill SIMD registers, see the SIMD documentation."
 )]
+
 use core::{
     num::NonZero,
     simd::{Simd, f32x8, num::SimdFloat as _},

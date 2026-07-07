@@ -4,11 +4,7 @@
 #![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
 #![feature(
     // Language Features
-    impl_trait_in_assoc_type,
-
-    // Library Features,
-    portable_simd,
-    integer_widen_truncate,
+    impl_trait_in_assoc_type
 )]
 #![cfg_attr(test, feature(
     // Language Features
@@ -27,7 +23,6 @@ pub mod oauth_provider;
 pub mod property_type;
 pub mod user_deletion;
 
-pub mod embedding;
 pub mod error;
 pub mod filter;
 pub mod migration;

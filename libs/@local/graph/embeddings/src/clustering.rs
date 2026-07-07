@@ -1,3 +1,12 @@
+#![expect(
+    unsafe_code,
+    clippy::indexing_slicing,
+    clippy::float_arithmetic,
+    clippy::min_ident_chars,
+    clippy::many_single_char_names,
+    reason = "Single-char idents (k, n, m, d, x) are standard mathematical notation for \
+              clustering."
+)]
 use alloc::borrow::Cow;
 use core::{cmp, num::NonZero};
 use std::collections::HashSet;

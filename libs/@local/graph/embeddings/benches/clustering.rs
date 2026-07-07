@@ -23,33 +23,39 @@
               drop-tightening warning originates inside `criterion_group!`"
 )]
 
-use core::hint::black_box;
+use core::{hint::black_box, num::NonZero};
 
 use codspeed_criterion_compat::{
     BenchmarkId, Criterion, criterion_group, criterion_main, measurement::Measurement,
 };
-use hash_graph_store::embedding::{
+use hash_graph_embeddings::{
+    D256, D1536, D3072, Dimension,
     clustering::{Config, cluster},
-    dimension::Dimension,
     kernel,
 };
-use rand::{RngExt as _, SeedableRng as _};
+use rand::{RngExt as _, SeedableRng as _, distr::Uniform};
 use rand_xoshiro::Xoshiro256PlusPlus;
 
+macro_rules! nz {
+    ($expr:expr) => {
+        const { ::core::num::NonZero::new($expr).unwrap() }
+    };
+}
+
 /// Uniform random values in `[-1, 1)`.
-fn random_vec(len: usize, seed: u64) -> Vec<f32> {
-    let mut rng = Xoshiro256PlusPlus::seed_from_u64(seed);
-    core::iter::repeat_with(|| rng.random_range(-1.0..1.0))
-        .take(len)
+fn random_vec(n: usize, seed: u64) -> Vec<f32> {
+    let rng = Xoshiro256PlusPlus::seed_from_u64(seed);
+    rng.sample_iter(Uniform::new(-1.0, 1.0).expect("uniform range is non-empty"))
+        .take(n)
         .collect()
 }
 
 /// Uniform random values in `[0.1, 1)`, guaranteed positive so repeated
 /// accumulation saturates at infinity instead of producing NaNs.
-fn random_positive_vec(len: usize, seed: u64) -> Vec<f32> {
-    let mut rng = Xoshiro256PlusPlus::seed_from_u64(seed);
-    core::iter::repeat_with(|| rng.random_range(0.1..1.0))
-        .take(len)
+fn random_positive_vec(n: usize, seed: u64) -> Vec<f32> {
+    let rng = Xoshiro256PlusPlus::seed_from_u64(seed);
+    rng.sample_iter(Uniform::new(0.1, 1.0).expect("uniform range is non-empty"))
+        .take(n)
         .collect()
 }
 
@@ -72,16 +78,16 @@ fn blobs(points_per_cluster: usize, k: usize, d: usize, seed: u64) -> Vec<f32> {
     data
 }
 
-const KERNEL_DIMS: &[usize] = &[256, 1536, 3072];
+const KERNEL_DIMS: [Dimension; 3] = [D256, D1536, D3072];
 
 fn bench_dot<M: Measurement>(criterion: &mut Criterion<M>) {
-    let mut group = criterion.benchmark_group("embedding/kernel/dot");
+    let mut group = criterion.benchmark_group("kernel/dot");
 
-    for &d in KERNEL_DIMS {
-        let lhs = random_vec(d, 1);
-        let rhs = random_vec(d, 2);
+    for dim in KERNEL_DIMS {
+        let lhs = random_vec(dim.get() as usize, 1);
+        let rhs = random_vec(dim.get() as usize, 2);
 
-        group.bench_with_input(BenchmarkId::from_parameter(d), &d, |bencher, _| {
+        group.bench_with_input(BenchmarkId::from_parameter(dim), &dim, |bencher, _| {
             // SAFETY: both slices have length `d`, a multiple of 8.
             bencher.iter(|| unsafe { kernel::dot(black_box(&lhs), black_box(&rhs)) });
         });
@@ -91,13 +97,13 @@ fn bench_dot<M: Measurement>(criterion: &mut Criterion<M>) {
 }
 
 fn bench_add_scaled_into<M: Measurement>(criterion: &mut Criterion<M>) {
-    let mut group = criterion.benchmark_group("embedding/kernel/add_scaled_into");
+    let mut group = criterion.benchmark_group("kernel/add_scaled_into");
 
-    for &d in KERNEL_DIMS {
-        let src = random_positive_vec(d, 3);
-        let mut dst = random_positive_vec(d, 4);
+    for dim in KERNEL_DIMS {
+        let src = random_positive_vec(dim.get() as usize, 3);
+        let mut dst = random_positive_vec(dim.get() as usize, 4);
 
-        group.bench_with_input(BenchmarkId::from_parameter(d), &d, |bencher, _| {
+        group.bench_with_input(BenchmarkId::from_parameter(dim), &dim, |bencher, _| {
             // SAFETY: both slices have length `d`, a multiple of 8.
             bencher.iter(|| unsafe {
                 kernel::add_scaled_into(black_box(&mut dst), black_box(&src), black_box(0.5));
@@ -109,21 +115,22 @@ fn bench_add_scaled_into<M: Measurement>(criterion: &mut Criterion<M>) {
 }
 
 fn bench_micro_4x2<M: Measurement>(criterion: &mut Criterion<M>) {
-    let mut group = criterion.benchmark_group("embedding/kernel/micro_4x2");
+    let mut group = criterion.benchmark_group("kernel/micro_4x2");
 
-    for &d in KERNEL_DIMS {
-        let points: Vec<Vec<f32>> = (0..4).map(|seed| random_vec(d, 10 + seed)).collect();
-        let c0 = random_vec(d, 20);
-        let c1 = random_vec(d, 21);
+    for dim in KERNEL_DIMS {
+        let [p0, p1, p2, p3] =
+            core::array::from_fn(|index| random_vec(dim.get() as usize, 10 + index as u64));
+        let c0 = random_vec(dim.get() as usize, 20);
+        let c1 = random_vec(dim.get() as usize, 21);
 
-        group.bench_with_input(BenchmarkId::from_parameter(d), &d, |bencher, _| {
+        group.bench_with_input(BenchmarkId::from_parameter(dim), &dim, |bencher, _| {
             // SAFETY: all six slices have length `d`, a multiple of 8.
             bencher.iter(|| unsafe {
                 kernel::micro_4x2(
-                    black_box(&points[0]),
-                    black_box(&points[1]),
-                    black_box(&points[2]),
-                    black_box(&points[3]),
+                    black_box(&p0),
+                    black_box(&p1),
+                    black_box(&p2),
+                    black_box(&p3),
                     black_box(&c0),
                     black_box(&c1),
                 )
@@ -134,41 +141,36 @@ fn bench_micro_4x2<M: Measurement>(criterion: &mut Criterion<M>) {
     group.finish();
 }
 
-macro_rules! nz {
-    ($expr:expr) => {
-        const { ::core::num::NonZero::new($expr).unwrap() }
-    };
-}
-
 fn bench_nearest4<M: Measurement>(criterion: &mut Criterion<M>) {
-    let mut group = criterion.benchmark_group("embedding/kernel/nearest4");
+    let mut group = criterion.benchmark_group("kernel/nearest4");
 
     // k = 15 exercises the odd-k remainder path.
-    for &(d, k) in &[
-        (nz!(256), nz!(15)),
-        (nz!(256), nz!(16)),
-        (nz!(256), nz!(64)),
-        (nz!(1536), nz!(16)),
-        (nz!(3072), nz!(16)),
+    for &(dim, k) in &[
+        (D256, nz!(15)),
+        (D256, nz!(16)),
+        (D256, nz!(64)),
+        (D1536, nz!(16)),
+        (D3072, nz!(16)),
     ] {
-        let points: Vec<Vec<f32>> = (0..4).map(|seed| random_vec(d.get(), 30 + seed)).collect();
-        let centroids = random_vec(k.get() * d.get(), 40);
+        let [p0, p1, p2, p3] =
+            core::array::from_fn(|index| random_vec(dim.get() as usize, 30 + index as u64));
+        let centroids = random_vec(k.get() * dim.get() as usize, 40);
 
         group.bench_with_input(
-            BenchmarkId::new(format!("d{d}"), k),
-            &(d, k),
+            BenchmarkId::new(format!("d{dim}"), k),
+            &(dim, k),
             |bencher, _| {
                 // SAFETY: point slices have length `d` (multiple of 8),
                 // centroids has length `k * d`, and `k > 0`.
                 bencher.iter(|| unsafe {
                     kernel::nearest4(
-                        black_box(&points[0]),
-                        black_box(&points[1]),
-                        black_box(&points[2]),
-                        black_box(&points[3]),
+                        black_box(&p0),
+                        black_box(&p1),
+                        black_box(&p2),
+                        black_box(&p3),
                         black_box(&centroids),
                         black_box(k),
-                        black_box(d),
+                        black_box(NonZero::from(dim.value())),
                     )
                 });
             },
@@ -179,15 +181,12 @@ fn bench_nearest4<M: Measurement>(criterion: &mut Criterion<M>) {
 }
 
 fn bench_cluster(criterion: &mut Criterion) {
-    rayon::ThreadPoolBuilder::new()
+    let pool = rayon::ThreadPoolBuilder::new()
         .num_threads(1)
-        .build_global()
+        .build()
         .expect("should be built exactly once");
 
-    let mut group = criterion.benchmark_group("embedding/cluster");
-    group.sample_size(10);
-
-    let dimension = Dimension::new(256).expect("256 is a positive multiple of 8");
+    let mut group = criterion.benchmark_group("cluster");
 
     // (n, k): n = 10k exercises the subsampled fit (m = 8192) plus the
     // full-data refinement; n = 50k shifts the weight onto the full-data
@@ -205,7 +204,9 @@ fn bench_cluster(criterion: &mut Criterion) {
             BenchmarkId::new(format!("n{n}_d256"), k),
             &(n, k),
             |bencher, _| {
-                bencher.iter(|| cluster(black_box(&data), black_box(dimension), &config));
+                pool.install(|| {
+                    bencher.iter(|| cluster(black_box(&data), black_box(D256), &config));
+                });
             },
         );
     }

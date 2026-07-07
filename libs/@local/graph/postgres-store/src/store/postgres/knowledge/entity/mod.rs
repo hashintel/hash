@@ -17,8 +17,8 @@ use hash_graph_authorization::policies::{
     resource::{EntityResourceConstraint, ResourceConstraint},
     store::{PolicyCreationParams, PrincipalStore as _},
 };
+use hash_graph_embeddings::Dimension;
 use hash_graph_store::{
-    embedding::dimension::Dimension,
     entity::{
         ClusterEntitiesParams, ClusterEntitiesResponse, CreateEntityParams, DeleteEntitiesParams,
         DeletionSummary, EmptyEntityTypes, EntityCluster, EntityPermissions, EntityQueryCursor,
@@ -2740,7 +2740,7 @@ where
             });
         }
 
-        let config = hash_graph_store::embedding::clustering::Config::for_k_with_seed(
+        let config = hash_graph_embeddings::clustering::Config::for_k_with_seed(
             params.cluster_count,
             params.seed.unwrap_or_else(|| {
                 std::time::SystemTime::UNIX_EPOCH
@@ -2757,7 +2757,7 @@ where
         );
 
         let result = tokio::task::spawn_blocking(move || {
-            hash_graph_store::embedding::clustering::cluster(&flat, dimension, &config)
+            hash_graph_embeddings::clustering::cluster(&flat, dimension, &config)
         })
         .await
         .change_context(ClusterError::Store)?;
