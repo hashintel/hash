@@ -1,13 +1,9 @@
 import { SDCPNItemError } from "../../errors";
-import { isDistribution } from "../authoring/user-code/distribution";
+import { encodeKernelOutputToken } from "../engine/encode-kernel-token";
 import { enumerateWeightedMarkingIndicesGenerator } from "../engine/enumerate-weighted-markings";
-import { sampleDistribution } from "../engine/sample-distribution";
 import { nextRandom } from "../engine/seeded-rng";
-import {
-  encodeTokenValuesToBytes,
-  readTokenRecord,
-} from "../engine/token-layout";
-import { encodeTokenAttributeValue } from "../engine/token-values";
+import { readTokenRecord } from "../engine/token-layout";
+import { describeTokenValuesForError } from "../engine/token-values";
 import { getPlaceIndex, getTransitionIndex } from "./layout";
 
 import type {
@@ -92,8 +88,7 @@ export function computeTransitionEffect(
       tokenValues[inputPlace.placeName] = tokenIndices.map((tokenIndex) =>
         readTokenRecord(
           tokenLayout,
-          frame.tokenF64,
-          frame.tokenBytes,
+          frame.tokenViews,
           byteOffset + tokenIndex * strideBytes,
         ),
       );
@@ -106,7 +101,7 @@ export function computeTransitionEffect(
       throw new SDCPNItemError(
         `Error while executing lambda function for transition \`${transition.name}\`:\n\n${
           (error as Error).message
-        }\n\nInput:\n${JSON.stringify(tokenValues, null, 2)}`,
+        }\n\nInput:\n${describeTokenValuesForError(tokenValues)}`,
         transition.id,
       );
     }
@@ -129,7 +124,7 @@ export function computeTransitionEffect(
       throw new SDCPNItemError(
         `Error while executing transition kernel for transition \`${transition.name}\`:\n\n${
           (error as Error).message
-        }\n\nInput:\n${JSON.stringify(tokenValues, null, 2)}`,
+        }\n\nInput:\n${describeTokenValuesForError(tokenValues)}`,
         transition.id,
       );
     }
@@ -158,33 +153,15 @@ export function computeTransitionEffect(
 
       const tokenBlocks: Uint8Array[] = [];
       for (const token of outputTokens) {
-        const encodedByName: Record<string, number> = {};
-        for (const element of outputPlace.elements ?? []) {
-          let rawValue = token[element.name];
-          if (isDistribution(rawValue)) {
-            if (element.type !== "real") {
-              throw new Error(
-                `Transition ${transition.id} produced a distribution for discrete element ${element.name}.`,
-              );
-            }
-            const [sampled, nextRngState] = sampleDistribution(
-              rawValue,
-              currentRngState,
-            );
-            currentRngState = nextRngState;
-            rawValue = sampled;
-          }
-          encodedByName[element.name] = encodeTokenAttributeValue(
-            element,
-            rawValue,
-            `Transition ${transition.id} output ${outputPlace.placeName}.${element.name}`,
-          );
-        }
-
-        const block = encodeTokenValuesToBytes(
-          outputPlace.tokenLayout,
-          encodedByName,
-        );
+        const { bytes: block, nextRngState } = encodeKernelOutputToken({
+          token,
+          elements: outputPlace.elements ?? [],
+          tokenLayout: outputPlace.tokenLayout,
+          rngState: currentRngState,
+          transitionId: transition.id,
+          placeName: outputPlace.placeName,
+        });
+        currentRngState = nextRngState;
         if (block.byteLength !== strideBytes) {
           throw new Error(
             `Transition ${transition.id} produced a ${block.byteLength}-byte token for place ${outputPlace.placeId}, expected ${strideBytes}`,

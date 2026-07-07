@@ -1,3 +1,5 @@
+import { formatUuid, NIL_UUID, toUuid } from "./uuid";
+
 import type {
   Color,
   ColorElementType,
@@ -6,6 +8,21 @@ import type {
 } from "../../types/sdcpn";
 
 type ColorElement = Color["elements"][number];
+
+/**
+ * JSON-serializes token values for diagnostic messages. `uuid` attributes
+ * are bigints, which plain `JSON.stringify` rejects with a TypeError — an
+ * error path that throws while formatting would mask the original kernel or
+ * lambda error, so bigints render as canonical UUID strings instead.
+ */
+export function describeTokenValuesForError(values: unknown): string {
+  return JSON.stringify(
+    values,
+    (_key, value: unknown) =>
+      typeof value === "bigint" ? formatUuid(value) : value,
+    2,
+  );
+}
 
 export function defaultTokenAttributeValue(
   type: ColorElementType,
@@ -16,6 +33,8 @@ export function defaultTokenAttributeValue(
     case "integer":
     case "real":
       return 0;
+    case "uuid":
+      return NIL_UUID;
   }
 }
 
@@ -59,6 +78,10 @@ export function coerceTokenAttributeValue(
       return Math.round(coerceNumber(rawValue, context));
     case "boolean":
       return coerceBoolean(rawValue, context);
+    case "uuid":
+      // Total conversion: bigints and UUID strings pass through/parse, and
+      // any other value maps deterministically to a UUIDv5 — never throws.
+      return toUuid(rawValue);
   }
 }
 
@@ -78,6 +101,15 @@ export function coerceTokenRecord(
   return token;
 }
 
+/**
+ * Decodes one number-slot (`f64` / `u8`) buffer value back into a logical
+ * token attribute value.
+ *
+ * `uuid` elements never reach this codec: their two 64-bit lanes are
+ * assembled/split directly in `token-layout.ts` (`readTokenRecord` /
+ * `writeTokenValue`), so the `uuid` arm here only keeps the switch
+ * exhaustive over `ColorElementType`.
+ */
 export function decodeTokenAttributeValue(
   element: ColorElement,
   encodedValue: number,
@@ -89,22 +121,32 @@ export function decodeTokenAttributeValue(
       return Math.round(encodedValue);
     case "boolean":
       return encodedValue !== 0;
+    case "uuid":
+      throw new Error(
+        `decodeTokenAttributeValue received uuid element "${element.name}"; uuid lanes are decoded in token-layout.ts`,
+      );
   }
 }
 
 /**
- * Encodes a token attribute value into the numeric frame buffer
- * representation (booleans are stored as 0/1, integers are rounded).
+ * Encodes a token attribute value into its frame buffer slot representation
+ * (booleans are stored as 0/1, integers are rounded, uuids stay bigints for
+ * the two-lane writer in `token-layout.ts`).
  */
 export function encodeTokenAttributeValue(
   element: ColorElement,
   value: unknown,
   context: string,
-): number {
+): number | bigint {
   const coerced = coerceTokenAttributeValue(element, value, context);
   return typeof coerced === "boolean" ? (coerced ? 1 : 0) : coerced;
 }
 
+/**
+ * Decodes a token from one number per element (legacy numeric layout used by
+ * external callers). Colours with `uuid` elements are not representable in
+ * this form — use `readTokenRecord` from `token-layout.ts` instead.
+ */
 export function decodeTokenRecord(
   elements: readonly ColorElement[],
   encodedValues: ArrayLike<number>,

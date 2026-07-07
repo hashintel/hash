@@ -1,4 +1,9 @@
 /* eslint-disable no-param-reassign -- Monte Carlo frame buffers are mutable by design. */
+import {
+  createTokenRegionViews,
+  type TokenRegionViews,
+} from "../engine/token-layout";
+
 import type {
   EngineFrameLayout,
   EngineFrameView,
@@ -19,8 +24,8 @@ export type MonteCarloFrameBuffer = {
   transitionFiredFlags: Uint8Array;
   /** u8 view over the whole token region capacity. */
   tokenBytes: Uint8Array;
-  /** f64 view over the whole token region capacity. */
-  tokenF64: Float64Array;
+  /** Shared f64/u64/u8 views over the whole token region capacity. */
+  tokenViews: TokenRegionViews;
 };
 
 const alignTo = (value: number, alignment: number): number =>
@@ -90,10 +95,10 @@ function createViews(
       transitionCount,
     ),
     tokenBytes: new Uint8Array(buffer, tokenValuesOffset, tokenByteCapacity),
-    tokenF64: new Float64Array(
+    tokenViews: createTokenRegionViews(
       buffer,
       tokenValuesOffset,
-      tokenByteCapacity / 8,
+      tokenByteCapacity,
     ),
   };
 }

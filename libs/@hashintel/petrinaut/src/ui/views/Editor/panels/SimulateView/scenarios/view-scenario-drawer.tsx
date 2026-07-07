@@ -6,7 +6,6 @@ import {
   scenarioSchema,
   type Color,
   type Scenario,
-  type TokenAttributeValue,
 } from "@hashintel/petrinaut-core";
 
 import { usePetrinautMutations } from "../../../../../../react";
@@ -21,13 +20,20 @@ import {
   useScenarioForm,
 } from "./scenario-form";
 import { summarizeScenarioLspErrors } from "./scenario-lsp";
-import { buildScenarioFromFormState } from "./scenario-mapping";
+import {
+  buildScenarioFromFormState,
+  buildSpreadsheetDataFromScenario,
+  type ScenarioTokenRowContext,
+} from "./scenario-mapping";
 
 // -- Defaults -----------------------------------------------------------------
 
 let nextKey = 0;
 
-function buildDefaultsFromScenario(scenario: Scenario): ScenarioFormState {
+function buildDefaultsFromScenario(
+  scenario: Scenario,
+  context: ScenarioTokenRowContext,
+): ScenarioFormState {
   return {
     name: scenario.name,
     description: scenario.description ?? "",
@@ -45,15 +51,9 @@ function buildDefaultsFromScenario(scenario: Scenario): ScenarioFormState {
             ),
           ) as Record<string, string>)
         : {},
-    initialTokenData:
-      scenario.initialState.type === "per_place"
-        ? (Object.fromEntries(
-            Object.entries(scenario.initialState.content).filter(
-              (entry): entry is [string, TokenAttributeValue[][]] =>
-                Array.isArray(entry[1]),
-            ),
-          ) as Record<string, TokenAttributeValue[][]>)
-        : {},
+    // Coloured token rows, with uuid strings parsed to bigints for the
+    // spreadsheet.
+    initialTokenData: buildSpreadsheetDataFromScenario(scenario, context),
     showAllPlaces: false,
     initialStateAsCode: scenario.initialState.type === "code",
     initialStateCode:
@@ -146,12 +146,21 @@ const ViewScenarioContent = ({
       .map((s) => s.name),
   );
 
+  const tokenRowContext: ScenarioTokenRowContext = {
+    places: petriNetDefinition.places,
+    typesById,
+  };
+
   // Build defaults once from the scenario prop (component remounts via `key`
   // when scenario.id changes, so this is effectively re-evaluated on switch).
   const form = useScenarioForm(
-    buildDefaultsFromScenario(scenario),
+    buildDefaultsFromScenario(scenario, tokenRowContext),
     (value) => {
-      const updated = buildScenarioFromFormState(value, scenario.id);
+      const updated = buildScenarioFromFormState(
+        value,
+        scenario.id,
+        tokenRowContext,
+      );
       const result = scenarioSchema.safeParse(updated);
       if (!result.success) {
         return;

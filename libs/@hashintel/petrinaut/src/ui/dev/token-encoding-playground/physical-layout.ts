@@ -54,8 +54,8 @@ export function decodeToken(
   if (layout.strideBytes === 0) {
     return {};
   }
-  const { f64, u8 } = createTokenRegionViews(buffer, 0, layout.strideBytes);
-  return readTokenRecord(layout, f64, u8, 0);
+  const views = createTokenRegionViews(buffer, 0, layout.strideBytes);
+  return readTokenRecord(layout, views, 0);
 }
 
 /**
@@ -86,7 +86,9 @@ export function encodeToken(
 /**
  * Returns one field's bits most-significant first (the "logical" reading
  * order: for f64 that is sign, exponent, mantissa). Multi-byte values are
- * stored little-endian, so the byte walk is reversed.
+ * stored little-endian, so the byte walk is reversed. For 16-byte `u64x2`
+ * uuid fields (hi lane stored at +8) the reversal starts with the hi lane's
+ * most-significant byte, i.e. the logical 128-bit MSB.
  */
 export function getFieldBits(
   buffer: ArrayBuffer,

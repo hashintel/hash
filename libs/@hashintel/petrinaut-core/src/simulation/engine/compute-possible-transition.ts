@@ -1,15 +1,10 @@
 import { SDCPNItemError } from "../../errors";
-import { isDistribution } from "../authoring/user-code/distribution";
 import { materializeEngineFrame } from "../frames/internal-frame";
+import { encodeKernelOutputToken } from "./encode-kernel-token";
 import { enumerateWeightedMarkingIndicesGenerator } from "./enumerate-weighted-markings";
-import { sampleDistribution } from "./sample-distribution";
 import { nextRandom } from "./seeded-rng";
-import {
-  createTokenRegionViews,
-  encodeTokenValuesToBytes,
-  readTokenRecord,
-} from "./token-layout";
-import { encodeTokenAttributeValue } from "./token-values";
+import { createTokenRegionViews, readTokenRecord } from "./token-layout";
+import { describeTokenValuesForError } from "./token-values";
 
 import type { ID } from "../../types/sdcpn";
 import type {
@@ -135,8 +130,7 @@ export function computePossibleTransition(
       const placeTokens = placeTokenIndices.map((tokenIndexInPlace) =>
         readTokenRecord(
           tokenLayout,
-          tokenViews.f64,
-          tokenViews.u8,
+          tokenViews,
           placeByteOffset + tokenIndexInPlace * strideBytes,
         ),
       );
@@ -155,7 +149,7 @@ export function computePossibleTransition(
       throw new SDCPNItemError(
         `Error while executing lambda function for transition \`${transition.name}\`:\n\n${
           (err as Error).message
-        }\n\nInput:\n${JSON.stringify(tokenCombinationValues, null, 2)}`,
+        }\n\nInput:\n${describeTokenValuesForError(tokenCombinationValues)}`,
         transition.id,
       );
     }
@@ -186,7 +180,7 @@ export function computePossibleTransition(
         throw new SDCPNItemError(
           `Error while executing transition kernel for transition \`${transition.name}\`:\n\n${
             (err as Error).message
-          }\n\nInput:\n${JSON.stringify(tokenCombinationValues, null, 2)}`,
+          }\n\nInput:\n${describeTokenValuesForError(tokenCombinationValues)}`,
           transition.id,
         );
       }
@@ -225,36 +219,21 @@ export function computePossibleTransition(
           );
         }
 
-        // Sample any Distribution values using the RNG (in element
-        // declaration order), encode each value, then pack the token into a
+        // Resolve Distribution samples and uuid values using the RNG (in
+        // element declaration order), then pack each token into a
         // stride-sized byte block.
         const tokenBlocks: Uint8Array[] = [];
         for (const token of outputTokens) {
-          const encodedByName: Record<string, number> = {};
-          for (const element of outputPlace.elements ?? []) {
-            let raw = token[element.name];
-            if (isDistribution(raw)) {
-              if (element.type !== "real") {
-                throw new Error(
-                  `Transition ${transition.id} produced a distribution for discrete element ${element.name}.`,
-                );
-              }
-              const [sampled, nextRng] = sampleDistribution(
-                raw,
-                currentRngState,
-              );
-              currentRngState = nextRng;
-              raw = sampled;
-            }
-            encodedByName[element.name] = encodeTokenAttributeValue(
-              element,
-              raw,
-              `Transition ${transition.id} output ${outputPlace.placeName}.${element.name}`,
-            );
-          }
-          tokenBlocks.push(
-            encodeTokenValuesToBytes(outputPlace.tokenLayout, encodedByName),
-          );
+          const { bytes, nextRngState } = encodeKernelOutputToken({
+            token,
+            elements: outputPlace.elements ?? [],
+            tokenLayout: outputPlace.tokenLayout,
+            rngState: currentRngState,
+            transitionId: transition.id,
+            placeName: outputPlace.placeName,
+          });
+          currentRngState = nextRngState;
+          tokenBlocks.push(bytes);
         }
 
         addMap[outputPlace.placeId] = tokenBlocks;

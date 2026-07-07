@@ -61,12 +61,12 @@ export function decodeTokenBlock(
   block: Uint8Array,
 ): TokenRecord {
   const layout = computeTokenSlotLayout(elements);
-  const { f64, u8 } = createTokenRegionViews(
+  const views = createTokenRegionViews(
     block.buffer,
     block.byteOffset,
     block.byteLength,
   );
-  return readTokenRecord(layout, f64, u8, 0);
+  return readTokenRecord(layout, views, 0);
 }
 
 /** Decodes all of one place's tokens from a frame. */
@@ -89,8 +89,7 @@ export function decodePlaceTokens(
     tokens.push(
       readTokenRecord(
         tokenLayout,
-        view.tokenF64,
-        view.tokenBytes,
+        view.tokenViews,
         placeState.byteOffset + tokenIndex * placeState.strideBytes,
       ),
     );

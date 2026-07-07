@@ -1,15 +1,19 @@
 import { useRef, useState } from "react";
 
 import { css, cva } from "@hashintel/ds-helpers/css";
-import { defaultTokenAttributeValue } from "@hashintel/petrinaut-core";
+import {
+  defaultTokenAttributeValue,
+  formatUuid,
+  toUuid,
+} from "@hashintel/petrinaut-core";
 
 export interface SpreadsheetColumn {
   id: string;
   name: string;
-  type?: "real" | "integer" | "boolean";
+  type?: "real" | "integer" | "boolean" | "uuid";
 }
 
-export type SpreadsheetCellValue = number | boolean;
+export type SpreadsheetCellValue = number | boolean | bigint;
 
 export interface SpreadsheetProps {
   columns: SpreadsheetColumn[];
@@ -122,6 +126,7 @@ const rowNumberCellStyle = cva({
 
 const cellContainerStyle = cva({
   base: {
+    position: "relative",
     borderBottom: "[1px solid {colors.neutral.a05}]",
     padding: "0",
     height: "[28px]",
@@ -191,12 +196,75 @@ const booleanCellStyle = css({
   margin: "0",
 });
 
+/**
+ * Selected uuid cells expand to the full canonical string, spilling over the
+ * neighbouring cells (spreadsheet-style overflow). Pointer events pass
+ * through so double-click still opens the editor underneath. Cells in the
+ * right half of the table spill leftwards so the overlay is not clipped by
+ * the scroll container's edge.
+ */
+const uuidExpandedOverlayStyle = cva({
+  base: {
+    position: "absolute",
+    top: "[0]",
+    height: "[28px]",
+    display: "flex",
+    alignItems: "center",
+    padding: "[4px 8px]",
+    fontFamily: "mono",
+    fontSize: "xs",
+    whiteSpace: "nowrap",
+    width: "[max-content]",
+    minWidth: "[100%]",
+    // Opaque: the overlay covers neighbouring cell content while expanded.
+    backgroundColor: "neutral.s00",
+    outline: "[2px solid {colors.blue.s50}]",
+    outlineOffset: "[-2px]",
+    zIndex: "[2]",
+    pointerEvents: "none",
+  },
+  variants: {
+    anchor: {
+      left: { left: "[0]" },
+      right: { right: "[0]", justifyContent: "flex-end" },
+    },
+  },
+});
+
 const getDefaultCellValue = (
   column: SpreadsheetColumn | undefined,
 ): SpreadsheetCellValue =>
   column?.type ? defaultTokenAttributeValue(column.type) : 0;
 
 const formatCellValue = (value: SpreadsheetCellValue): string => String(value);
+
+const toCanonicalUuidString = (value: SpreadsheetCellValue): string =>
+  formatUuid(typeof value === "bigint" ? value : toUuid(value));
+
+/** Full-fidelity text used to prefill the cell editor. */
+const getCellEditText = (
+  column: SpreadsheetColumn | undefined,
+  value: SpreadsheetCellValue,
+): string =>
+  column?.type === "uuid"
+    ? toCanonicalUuidString(value)
+    : formatCellValue(value);
+
+/** Compact text shown in non-editing cells (uuids are truncated). */
+const getCellDisplayText = (
+  column: SpreadsheetColumn | undefined,
+  value: SpreadsheetCellValue,
+): string =>
+  column?.type === "uuid"
+    ? `${toCanonicalUuidString(value).slice(0, 8)}…`
+    : formatCellValue(value);
+
+/** Hover tooltip — the full canonical uuid string for uuid cells. */
+const getCellTitle = (
+  column: SpreadsheetColumn | undefined,
+  value: SpreadsheetCellValue,
+): string | undefined =>
+  column?.type === "uuid" ? toCanonicalUuidString(value) : undefined;
 
 // Pasting "Infinity" or overflowing notation must not leak non-finite
 // numbers into stored state (the runtime codecs reject them later).
@@ -215,6 +283,12 @@ const parseCellValue = (
     }
     case "integer":
       return Math.round(parseFiniteNumber(rawValue));
+    case "uuid": {
+      // Valid UUID strings parse; anything else converts deterministically
+      // via UUIDv5. Clearing the cell resets to the nil uuid.
+      const trimmed = rawValue.trim();
+      return trimmed === "" ? 0n : toUuid(trimmed);
+    }
     case "real":
     default:
       return parseFiniteNumber(rawValue);
@@ -538,7 +612,8 @@ export const Spreadsheet: React.FC<SpreadsheetProps> = ({
       event.preventDefault();
       setEditingCell({ row, col });
       setEditingValue(
-        formatCellValue(
+        getCellEditText(
+          columns[col],
           tableData[row]?.[col] ?? getDefaultCellValue(columns[col]),
         ),
       );
@@ -709,17 +784,37 @@ export const Spreadsheet: React.FC<SpreadsheetProps> = ({
                           style={{ width: `${columnWidth}%` }}
                         >
                           {isReadOnly ? (
-                            <div className={readOnlyCellStyle}>
-                              {isPhantomRow ? "" : formatCellValue(value)}
+                            <div
+                              className={readOnlyCellStyle}
+                              title={
+                                isPhantomRow
+                                  ? undefined
+                                  : getCellTitle(columns[colIndex], value)
+                              }
+                              aria-label={
+                                isPhantomRow
+                                  ? undefined
+                                  : getCellTitle(columns[colIndex], value)
+                              }
+                            >
+                              {isPhantomRow
+                                ? ""
+                                : getCellDisplayText(columns[colIndex], value)}
                             </div>
                           ) : isEditing ? (
                             <input
                               ref={inputRef}
-                              type="number"
+                              type={
+                                columns[colIndex]?.type === "uuid"
+                                  ? "text"
+                                  : "number"
+                              }
                               step={
-                                columns[colIndex]?.type === "integer"
-                                  ? 1
-                                  : "any"
+                                columns[colIndex]?.type === "uuid"
+                                  ? undefined
+                                  : columns[colIndex]?.type === "integer"
+                                    ? 1
+                                    : "any"
                               }
                               value={editingValue}
                               onChange={(event) =>
@@ -811,10 +906,39 @@ export const Spreadsheet: React.FC<SpreadsheetProps> = ({
                                 handleKeyDown(event, rowIndex, colIndex)
                               }
                               className={cellButtonStyle({ isFocused })}
+                              title={
+                                isPhantomRow
+                                  ? undefined
+                                  : getCellTitle(columns[colIndex], value)
+                              }
+                              // Screen readers announce the truncated text;
+                              // uuid cells need the full canonical string.
+                              aria-label={
+                                isPhantomRow
+                                  ? undefined
+                                  : getCellTitle(columns[colIndex], value)
+                              }
                             >
-                              {isPhantomRow ? "" : formatCellValue(value)}
+                              {isPhantomRow
+                                ? ""
+                                : getCellDisplayText(columns[colIndex], value)}
                             </div>
                           )}
+                          {!isReadOnly &&
+                          !isEditing &&
+                          !isPhantomRow &&
+                          isFocused &&
+                          columns[colIndex]?.type === "uuid" ? (
+                            <span
+                              className={uuidExpandedOverlayStyle({
+                                anchor:
+                                  colIndex >= colCount / 2 ? "right" : "left",
+                              })}
+                              aria-hidden
+                            >
+                              {toCanonicalUuidString(value)}
+                            </span>
+                          ) : null}
                         </td>
                       );
                     })}

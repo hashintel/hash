@@ -1,17 +1,124 @@
+import { formatUuid, isUuidString, toUuid } from "@hashintel/petrinaut-core";
+
+import type { SpreadsheetCellValue } from "../../../../../components/spreadsheet";
 import type { ScenarioFormState } from "./scenario-form";
-import type { Scenario } from "@hashintel/petrinaut-core";
+import type { Color, Place, Scenario } from "@hashintel/petrinaut-core";
+
+/** Row values as persisted in scenario documents (uuids are strings). */
+type ScenarioTokenRow = (number | boolean | string)[];
+
+/**
+ * Context needed to translate coloured token rows between their at-rest form
+ * (uuid columns as canonical strings) and the spreadsheet's runtime form
+ * (uuid columns as bigints).
+ */
+export interface ScenarioTokenRowContext {
+  places: Place[];
+  typesById: Map<string, Color>;
+}
+
+function getPlaceElements(
+  context: ScenarioTokenRowContext,
+  placeId: string,
+): Color["elements"] | undefined {
+  const place = context.places.find((p) => p.id === placeId);
+  const color = place?.colorId
+    ? context.typesById.get(place.colorId)
+    : undefined;
+  return color?.elements;
+}
+
+/**
+ * Converts persisted scenario rows into spreadsheet cell values: uuid columns
+ * parse (or deterministically convert) to bigints; other columns pass
+ * through.
+ */
+export function scenarioRowsToSpreadsheetData(
+  rows: ScenarioTokenRow[],
+  elements: Color["elements"] | undefined,
+): SpreadsheetCellValue[][] {
+  // Unknown schema (place/type no longer in the net): UUID strings become
+  // bigints (the serializer restores the canonical string) and numbers /
+  // booleans pass through. Other strings are NOT representable in this
+  // layer's cell model and fall back to a numeric parse (0 if non-numeric)
+  // — the string layer above makes this branch fully verbatim instead.
+  if (!elements) {
+    return rows.map((row) =>
+      row.map((cell): SpreadsheetCellValue => {
+        if (isUuidString(cell)) {
+          return toUuid(cell);
+        }
+        return typeof cell === "string" ? Number.parseFloat(cell) || 0 : cell;
+      }),
+    );
+  }
+  return rows.map((row) =>
+    row.map((cell, columnIndex): SpreadsheetCellValue => {
+      const element = elements[columnIndex];
+      if (element?.type === "uuid") {
+        return toUuid(cell);
+      }
+      // Non-uuid columns are numbers/booleans at rest; coerce any stray
+      // strings so the spreadsheet never sees them. Mirror the engine's
+      // coercion (parseCellValue in spreadsheet.tsx): integers round,
+      // booleans accept "true"/"1".
+      if (typeof cell === "string") {
+        if (element?.type === "boolean") {
+          const normalized = cell.trim().toLowerCase();
+          return normalized === "true" || normalized === "1";
+        }
+        const parsed = Number.parseFloat(cell) || 0;
+        return element?.type === "integer" ? Math.round(parsed) : parsed;
+      }
+      if (element?.type === "integer" && typeof cell === "number") {
+        return Math.round(cell);
+      }
+      return cell;
+    }),
+  );
+}
+
+/**
+ * Converts spreadsheet cell values back into the persisted (JSON-safe) row
+ * form: bigint uuid values become canonical lowercase strings.
+ */
+export function spreadsheetDataToScenarioRows(
+  data: SpreadsheetCellValue[][],
+  elements: Color["elements"] | undefined,
+): ScenarioTokenRow[] {
+  return data.map((row) =>
+    row.map((cell, columnIndex): number | boolean | string => {
+      const elementType = elements?.[columnIndex]?.type;
+      if (
+        elementType === "uuid" ||
+        (!elementType && typeof cell === "bigint")
+      ) {
+        return formatUuid(typeof cell === "bigint" ? cell : toUuid(cell));
+      }
+      // A stale bigint in a re-typed (non-uuid) column must not persist as a
+      // UUID string — store its numeric value like the run-time codec would.
+      if (typeof cell === "bigint") {
+        return Number(cell);
+      }
+      return cell;
+    }),
+  );
+}
 
 /**
  * Build a `Scenario` from the form state. Drops the draft `_key` field used
- * for stable React keys in the parameter list.
+ * for stable React keys in the parameter list, and serializes uuid spreadsheet
+ * values (bigints) to canonical strings so the scenario stays JSON-safe.
  *
  * @param state - the form state
  * @param id - the scenario id (use a new UUID for new scenarios, the existing
  *   scenario's id when updating)
+ * @param context - places and colour types, used to type token row columns
  */
 export function buildScenarioFromFormState(
   state: ScenarioFormState,
   id: string,
+  context: ScenarioTokenRowContext,
 ): Scenario {
   return {
     id,
@@ -28,9 +135,45 @@ export function buildScenarioFromFormState(
           content: {
             // Uncolored places: expression strings (token count)
             ...state.initialTokenCounts,
-            // Colored places: rows × elements, stored directly
-            ...state.initialTokenData,
+            // Colored places: rows × elements, uuids serialized to strings
+            ...Object.fromEntries(
+              Object.entries(state.initialTokenData).map(([placeId, rows]) => [
+                placeId,
+                spreadsheetDataToScenarioRows(
+                  rows,
+                  getPlaceElements(context, placeId),
+                ),
+              ]),
+            ),
           },
         },
   };
+}
+
+/**
+ * Extracts the coloured token rows from a persisted scenario into spreadsheet
+ * form (uuid strings parsed to bigints).
+ */
+export function buildSpreadsheetDataFromScenario(
+  scenario: Scenario,
+  context: ScenarioTokenRowContext,
+): Record<string, SpreadsheetCellValue[][]> {
+  if (scenario.initialState.type !== "per_place") {
+    return {};
+  }
+  return Object.fromEntries(
+    Object.entries(scenario.initialState.content).flatMap(([placeId, value]) =>
+      Array.isArray(value)
+        ? [
+            [
+              placeId,
+              scenarioRowsToSpreadsheetData(
+                value,
+                getPlaceElements(context, placeId),
+              ),
+            ],
+          ]
+        : [],
+    ),
+  );
 }

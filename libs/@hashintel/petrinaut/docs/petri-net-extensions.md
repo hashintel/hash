@@ -10,13 +10,14 @@ By default, places hold **untyped tokens** -- they only track a count. Tokens ar
 
 To give tokens structure, assign a **type** to a place. Each token then carries named dimensions (e.g. `x`, `y`, `velocity`), enabling dynamics, visualization, and data-dependent transition logic.
 
-Each dimension has one of three value types, chosen with the dropdown next to the dimension's name:
+Each dimension has one of four value types, chosen with the dropdown next to the dimension's name:
 
 - **Real** -- a continuous number. This is the only kind of dimension that differential equations (dynamics) can update.
 - **Integer** -- a whole number. Values are rounded when stored, and are exact up to ±2^53 (about 9 quadrillion); beyond that they lose precision.
 - **Boolean** -- `true` or `false`.
+- **UUID** -- a 128-bit identifier, useful for tracking individual entities across places. In code a UUID dimension is a `bigint`. In transition kernel outputs a UUID dimension is optional: leave it out and the engine generates a fresh UUID automatically (deterministically per simulation seed), or set it explicitly with `Uuid.generate()`, `Uuid.from(value)`, a UUID string, or an input token's UUID (to carry an identity through the transition). Any non-UUID value you supply (a number, or free text like `order-1`) is converted deterministically to a UUID, so the same input always yields the same identifier.
 
-Integer and Boolean dimensions are **discrete**: their values only change when a transition fires (via a transition kernel), never through dynamics.
+Integer, Boolean, and UUID dimensions are **discrete**: their values only change when a transition fires (via a transition kernel), never through dynamics.
 
 **To create a type:**
 
@@ -117,7 +118,7 @@ export default TransitionKernel((tokensByPlace, parameters) => {
 });
 ```
 
-`tokensByPlace` is keyed by **place name**. Each value is a tuple of token objects -- one entry per token consumed from that arc, sized to the arc weight. The return value is keyed by **output place name**, each containing an array of token objects to produce sized to the output arc weight. Output values must match each dimension's type: numbers for Real and Integer dimensions (Integer values are rounded), `true`/`false` for Boolean dimensions. Transition kernels are the only place discrete (Integer/Boolean) dimensions get new values.
+`tokensByPlace` is keyed by **place name**. Each value is a tuple of token objects -- one entry per token consumed from that arc, sized to the arc weight. The return value is keyed by **output place name**, each containing an array of token objects to produce sized to the output arc weight. Output values must match each dimension's type: numbers for Real and Integer dimensions (Integer values are rounded), `true`/`false` for Boolean dimensions, and for UUID dimensions either nothing at all (omit the field to auto-generate a fresh identifier from the simulation seed), `Uuid.generate()`, `Uuid.from(value)`, a UUID string, or a forwarded input token's UUID. Transition kernels are the only place discrete (Integer/Boolean/UUID) dimensions get new values.
 
 Two important asymmetries:
 
@@ -130,7 +131,7 @@ Use the menu in the code editor header to **Load default template** for a starti
 
 ### Distributions
 
-Kernel output values are plain numbers or booleans. When stochasticity is enabled for the document, values for **Real** dimensions can also be `Distribution` objects for stochastic output (discrete dimensions -- Integer and Boolean -- always take plain values):
+Kernel output values are plain numbers or booleans. When stochasticity is enabled for the document, values for **Real** dimensions can also be `Distribution` objects for stochastic output (discrete dimensions -- Integer, Boolean, and UUID -- always take plain values):
 
 - `Distribution.Gaussian(mean, standardDeviation)`
 - `Distribution.Uniform(min, max)`

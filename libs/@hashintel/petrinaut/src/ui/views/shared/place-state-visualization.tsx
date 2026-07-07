@@ -1,6 +1,10 @@
 import { use, useMemo } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
+import {
+  coerceTokenAttributeValue,
+  defaultTokenAttributeValue,
+} from "@hashintel/petrinaut-core";
 
 import { ExecutionFrameSourceContext } from "../../../react/execution-frame/context";
 import {
@@ -74,16 +78,25 @@ export const PlaceStateVisualization: React.FC<
   } else {
     const marking = initialMarking[place.id];
     if (Array.isArray(marking) && marking.length > 0) {
-      // Stored records may predate schema edits (added dimensions), so fill
-      // missing keys with each element's default — visualizer code should
-      // see 0/false, not undefined.
+      // Marking records may hold uuid values as at-rest strings; coerce them
+      // to runtime token values (uuid → bigint) as the engine would. Total
+      // per element: a stored value that no longer converts (e.g. legacy
+      // data predating a schema edit) falls back to the element's default
+      // instead of crashing the panel.
       for (const token of marking) {
-        const filled: TokenRecord = {};
+        const coerced: TokenRecord = {};
         for (const element of placeType.elements) {
-          filled[element.name] =
-            token[element.name] ?? (element.type === "boolean" ? false : 0);
+          try {
+            coerced[element.name] = coerceTokenAttributeValue(
+              element,
+              token[element.name],
+              `Initial marking for place ${place.name}`,
+            );
+          } catch {
+            coerced[element.name] = defaultTokenAttributeValue(element.type);
+          }
         }
-        tokens.push(filled);
+        tokens.push(coerced);
       }
     }
 

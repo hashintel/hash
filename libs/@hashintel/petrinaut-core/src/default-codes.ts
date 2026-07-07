@@ -9,6 +9,8 @@ const defaultTokenAttributeSource = (
     case "integer":
     case "real":
       return "0";
+    case "uuid":
+      return "Uuid.generate()";
   }
 };
 

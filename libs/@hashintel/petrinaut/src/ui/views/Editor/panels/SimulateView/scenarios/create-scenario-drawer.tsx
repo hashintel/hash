@@ -16,7 +16,10 @@ import {
 } from "./scenario-form";
 import { EMPTY_SCENARIO_FORM_STATE } from "./scenario-form-defaults";
 import { summarizeScenarioLspErrors } from "./scenario-lsp";
-import { buildScenarioFromFormState } from "./scenario-mapping";
+import {
+  buildScenarioFromFormState,
+  type ScenarioTokenRowContext,
+} from "./scenario-mapping";
 
 // -- Footer (subscribes to form + LSP state for submit gating) ----------------
 
@@ -117,10 +120,19 @@ export const CreateScenarioDrawer = ({
     (petriNetDefinition.scenarios ?? []).map((s) => s.name),
   );
 
+  const tokenRowContext: ScenarioTokenRowContext = {
+    places: petriNetDefinition.places,
+    typesById: new Map(petriNetDefinition.types.map((type) => [type.id, type])),
+  };
+
   const form = useScenarioForm(
     EMPTY_SCENARIO_FORM_STATE,
     (value, ctx) => {
-      const scenario = buildScenarioFromFormState(value, crypto.randomUUID());
+      const scenario = buildScenarioFromFormState(
+        value,
+        crypto.randomUUID(),
+        tokenRowContext,
+      );
       // Final structural validation against the persistence schema.
       const result = scenarioSchema.safeParse(scenario);
       if (!result.success) {

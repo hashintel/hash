@@ -17,6 +17,7 @@ import type {
 } from "../../types/sdcpn";
 import type { InitialMarking } from "../api";
 import type { RuntimeDistribution } from "../authoring/user-code/distribution";
+import type { UuidSentinel } from "../authoring/user-code/uuid-runtime";
 import type { EngineFrame, EngineFrameLayout } from "../frames/internal-frame";
 import type { TokenSlotLayout } from "./token-layout";
 
@@ -44,9 +45,17 @@ export type DifferentialEquationFn = (
 ) => Float64Array;
 
 export type TransitionTokenValues = Record<string, TokenRecord[]>;
+/**
+ * Kernel output tokens keyed by output place name. `uuid` attributes may be
+ * omitted (`undefined` — the engine auto-generates a UUID from the seeded
+ * RNG) or produced via the `Uuid.generate()` / `Uuid.from(value)` sentinels.
+ */
 export type TransitionKernelOutput = Record<
   string,
-  Record<string, TokenAttributeValue | RuntimeDistribution>[]
+  Record<
+    string,
+    TokenAttributeValue | RuntimeDistribution | UuidSentinel | undefined
+  >[]
 >;
 
 /**

@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import { css, cva } from "@hashintel/ds-helpers/css";
+import { formatUuid } from "@hashintel/petrinaut-core";
 
 import { f64BitPart } from "./physical-layout";
 
@@ -35,6 +36,8 @@ const bitLightness = (
   field: TokenLayoutField,
   msbFirstIndex: number,
 ): number => {
+  // Only f64 fields get IEEE-754 anatomy shading; u8 and u64x2 (uuid) fields
+  // are plain integers, rendered with one uniform lightness.
   if (field.kind !== "f64") {
     return 78;
   }
@@ -100,7 +103,10 @@ function buildSlotGroups(
           const msbFirstIndex = size * 8 - 1 - lsbFirstIndex;
           bits.push({ value, lightness: bitLightness(field, msbFirstIndex) });
         }
-        return { label: `b${byteIndex}`, bits };
+        // uuid fields are two 64-bit lanes: lo at the field offset, hi at +8.
+        const lane =
+          field.kind === "u64x2" ? (byteWithinField < 8 ? " lo" : " hi") : "";
+        return { label: `b${byteIndex}${lane}`, bits };
       }),
     });
   }
@@ -196,7 +202,7 @@ const byteRowStyle = css({
 });
 
 const byteLabelStyle = css({
-  width: "[26px]",
+  width: "[44px]",
   textAlign: "right",
   fontFamily: "mono",
   fontSize: "[9px]",
@@ -267,7 +273,8 @@ const formatValue = (value: unknown): string => {
     return Object.is(value, -0) ? "-0" : String(value);
   }
   if (typeof value === "bigint") {
-    return `${value}n`;
+    // uuid values are bigints at runtime; show the canonical string form.
+    return formatUuid(value);
   }
   if (value === undefined) {
     return "undefined";

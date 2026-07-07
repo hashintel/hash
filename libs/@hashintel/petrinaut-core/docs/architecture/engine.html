@@ -697,14 +697,15 @@
           </td>
         </tr>
         <tr>
-          <td><code>uuid</code> / 128-bit (FE-1121, future)</td>
+          <td><code>uuid</code> (128-bit, FE-1121)</td>
           <td><code>u64 × 2</code> — 16 B</td>
           <td>
-            Not implemented yet. Will read via a shared
-            <code>BigUint64Array</code> (~28 ns combine to one
-            <code>bigint</code>; lane-compare without combining for equality,
-            ~4× faster). Never route the lanes through
-            <code>number</code> (NaN-payload hazard).
+            Two little-endian lanes read via the shared
+            <code>BigUint64Array</code> view, combined to one
+            <code>bigint</code> at the boundary (~28 ns; lane-compare without
+            combining for equality, ~4× faster). Never routed through
+            <code>number</code> (NaN-payload hazard). Kernel outputs are
+            optional — omitted values auto-generate from the seeded RNG.
           </td>
         </tr>
       </tbody>
