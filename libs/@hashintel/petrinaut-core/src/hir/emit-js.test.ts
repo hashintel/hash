@@ -1,8 +1,8 @@
 /**
  * Behavioral tests for the object-convention emitter (`emitUserFunctionJs`).
  * The simulator only runs buffer programs now, but the object emitter remains
- * a library feature (e.g. for the playground) — these tests instantiate its
- * emitted source directly and evaluate it with sample inputs.
+ * a reference backend — these tests instantiate its emitted source directly
+ * and evaluate it with sample inputs.
  */
 import { describe, expect, it } from "vitest";
 

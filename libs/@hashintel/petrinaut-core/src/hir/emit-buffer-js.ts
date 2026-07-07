@@ -2,32 +2,21 @@
  * Buffer-ABI JavaScript emission for lambdas, transition kernels and
  * metrics.
  *
- * Instead of the legacy object convention (decode packed tokens into
- * `{ Place: [{ x, y }] }` records per combination, call, re-encode), the
- * emitted functions read token attributes straight out of the engine's packed
- * `Float64Array` at statically-resolved offsets:
+ * Emitted functions read token attributes straight out of the engine's packed
+ * token bytes at statically-resolved offsets:
  *
- *   lambda: (tokenValues, slotBases) => number | boolean
- *   kernel: (tokenValues, slotBases, out, distSink) => void
+ *   lambda: (f64, u64, u8, placeBases, indices) => number | boolean
+ *   kernel: (f64, u64, u8, placeBases, indices, outF64, outU64, outU8, sink) => void
+ *   metric: (f64, u64, u8, placeCounts, placeOffsets) => number
  *
- * - `tokenValues` — the frame's token-value region (floats).
- * - `slotBases` — one float base offset per input token slot; slots are laid
- *   out per colored non-inhibitor input arc, `weight` slots each, in arc
- *   order (see the slot layout invariant in `surface-context.ts`). The
- *   engine fills this array per enumerated combination — no allocation.
- * - `out` — kernel staging: colored output arcs in arc order, each occupying
- *   `weight * elements.length` floats (integers pre-rounded, booleans 0/1).
- * - `distSink(floatIndex, distribution)` — deferred sampling: the engine
- *   samples after the call, ordered by float index, which reproduces the
- *   legacy (place, token, element) sampling order and therefore the exact
- *   RNG stream.
+ * The full ABI is documented in `BUFFER_ABI.md`.
  *
  * Emission works by symbolic evaluation: structural values (input tuples,
  * tokens, records, arrays) exist only at compile time; everything that
  * reaches the output is a scalar JS expression or a distribution constant.
  * `.map(...)` over token tuples is unrolled (arc weights are static).
- * Shapes the evaluator cannot scalarize return `null` — callers fall back to
- * the object-convention emitter (`emit-js.ts`).
+ * Shapes the evaluator cannot scalarize return `null`; `compileHirArtifacts`
+ * reports those as compile failures.
  *
  * Only emit from functions whose typecheck produced no errors: the emitter
  * relies on attribute/place validity established by `typecheckHir`.
@@ -50,7 +39,7 @@ import type {
 export type BufferProgram = {
   /** JS source of the emitted function (arrow expression). */
   source: string;
-  /** Expected `slotBases.length` — engine-side sanity check. */
+  /** Expected `indices.length` — engine-side sanity check. */
   inputSlotCount: number;
 };
 
@@ -451,8 +440,7 @@ class BufferEmitter {
         }
         const index = foldHir(expr.index);
         if (index.kind !== "numberLit" || !Number.isInteger(index.value)) {
-          // Dynamic token indices would read unchecked memory — leave those
-          // to the object-convention fallback.
+          // Dynamic transition-token indices would read unchecked memory.
           throw new BailError();
         }
         if (target.kind === "tokens") {
@@ -750,9 +738,12 @@ function slotCount(inputSlots: HirArcSlot[]): number {
 }
 
 /**
- * Emits a buffer-ABI lambda: `(tokenValues, slotBases) => number | boolean`.
+ * Emits a buffer-ABI lambda:
+ *
+ *   (f64, u64, u8, placeBases, indices) => number | boolean
+ *
  * Reads `__params` for model parameters (bound at instantiation). Returns
- * `null` when the function shape needs the object-convention fallback.
+ * `null` when the function shape cannot be scalarized.
  */
 export function emitBufferLambdaJs(
   fn: HirFunction,
@@ -996,7 +987,7 @@ export function emitBufferMetricJs(
  * in layout field order (matching `TokenSlotLayout.realFieldF64Offsets`).
  * References `__params` / `__pool`, bound at instantiation. Returns `null`
  * when the body doesn't fit the `tokens.map((token, index?) => ({ ... }))`
- * shape (the object program runs behind the decoding adapter instead).
+ * shape.
  */
 export function emitBufferDynamicsJs(
   fn: HirFunction,

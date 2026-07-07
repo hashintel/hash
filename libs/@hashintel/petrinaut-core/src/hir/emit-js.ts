@@ -1,21 +1,9 @@
 /**
  * Compiles HIR functions to JavaScript source.
  *
- * Two emitters live here:
- *
- * - A generic expression emitter producing functions with the same signature
- *   as the legacy Babel-compiled user code (`(tokensByPlace, parameters) =>
- *   result`), with distributions constructed through an injected `__dist`
- *   runtime instead of source-string injection.
- *
- * - A buffer-native dynamics emitter that compiles `tokens.map((token) =>
- *   ({ ... }))` bodies straight to a `Float64Array` loop with no per-token
- *   object allocation — matching the engine's `DifferentialEquationFn`
- *   signature directly.
- *
- * Emission never throws on well-formed HIR; the buffer-native emitter returns
- * `null` when the function shape doesn't fit the fast path so callers can fall
- * back.
+ * This object-convention emitter is kept as a reference/test backend. Runtime
+ * simulation uses `emit-buffer-js.ts` artifacts only; unsupported buffer shapes
+ * are compile errors rather than fallback calls into this module.
  */
 import { foldHir } from "./analyze";
 

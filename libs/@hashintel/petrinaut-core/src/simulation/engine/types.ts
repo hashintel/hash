@@ -109,10 +109,9 @@ export type SimulationInput = {
   maxTime: number | null;
   /**
    * Optional precompiled HIR artifacts (see `compileHirArtifacts`). When an
-   * item has an artifact it is instantiated directly — skipping the Babel
-   * compile and, for dynamics, running buffer-native without per-token record
-   * decoding. Items without artifacts use the legacy compiler. Artifacts must
-   * be produced from the same SDCPN snapshot.
+   * item has an artifact it is instantiated directly. Items with required user
+   * code and no artifact fail to build. Artifacts must be produced from the
+   * same SDCPN snapshot.
    */
   hirArtifacts?: HirArtifacts;
 };

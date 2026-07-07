@@ -14,9 +14,8 @@ The simulation module is split into five boundaries:
   through the HIR pipeline (`src/hir/README.md`) into
   `SimulationInput.hirArtifacts` — produced off-engine (LSP worker) and
   instantiated dependency-free via `src/hir-runtime.ts`. Buffer-ABI programs
-  read/write the packed frame floats directly (`engine/buffer-transition.ts`);
-  object-convention programs are the per-item fallback for shapes the buffer
-  emitter cannot scalarize.
+  read/write packed token bytes directly (`engine/buffer-transition.ts`);
+  unsupported HIR shapes are compile errors.
 - `engine/` builds SDCPN definitions into runnable state and advances internal
   `EngineFrame` state. `EngineFrame` is an `ArrayBuffer`; the
   SDCPN-specialized `EngineFrameLayout` lives on the `SimulationInstance`.

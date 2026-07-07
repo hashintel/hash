@@ -5,9 +5,8 @@
  * subnets) into serializable artifact sources (`HirArtifacts`) — the only
  * runtime compilation path. Per item it produces:
  *
- * - a buffer-ABI program (`emit-buffer-js.ts`) when the code typechecks
- *   cleanly and its shape scalarizes to direct packed-buffer reads/writes,
- * - an object-convention fallback (`emit-js.ts`) whenever lowering succeeds.
+ * - a buffer-ABI program (`emit-buffer-js.ts`) when the code typechecks cleanly
+ *   and scalarizes to direct packed-buffer reads/writes.
  *
  * Items whose code cannot be lowered get no artifact and are reported in
  * `failures`; `buildSimulation` refuses to run them (the LSP shows the same
