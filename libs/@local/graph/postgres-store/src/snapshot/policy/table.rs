@@ -1,7 +1,13 @@
 use hash_graph_authorization::policies::{Effect, PolicyId, resource::ResourceConstraint};
 use hash_graph_temporal_versioning::{LeftClosedTemporalInterval, TransactionTime};
-use postgres_types::{Json, ToSql};
+use postgres_types::Json;
 use type_system::principal::{PrincipalId, PrincipalType};
+
+use crate::store::postgres::query::{
+    ColumnName, PostgresType, Table, TableName,
+    rows::{ColumnParameters, PostgresRow},
+    table::DatabaseColumn,
+};
 
 #[derive(Debug)]
 pub struct PolicyRow {
@@ -27,19 +33,15 @@ pub struct PolicyActionRow {
     pub transaction_time: LeftClosedTemporalInterval<TransactionTime>,
 }
 
-use crate::store::postgres::query::{
-    PostgresType, Table, TableName, rows::PostgresRow, table::DatabaseColumn,
-};
-
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum Policy {
     Id,
 }
 
-impl DatabaseColumn for Policy {
-    fn as_str(&self) -> &'static str {
+impl DatabaseColumn<'_> for Policy {
+    fn name(&self) -> ColumnName<'static> {
         match self {
-            Self::Id => "id",
+            Self::Id => "id".into(),
         }
     }
 
@@ -57,14 +59,12 @@ impl PostgresRow for PolicyRow {
         Table::Policy.into()
     }
 
-    fn columnar_parameters<'r>(
-        rows: &'r [Self],
-    ) -> Vec<(Policy, Box<dyn ToSql + Send + Sync + 'r>)> {
+    fn columnar_parameters(rows: &[Self]) -> Vec<(Policy, ColumnParameters<'_>)> {
         let mut ids = Vec::with_capacity(rows.len());
         for Self { id } in rows {
             ids.push(id);
         }
-        vec![(Policy::Id, Box::new(ids))]
+        vec![(Policy::Id, ids.into())]
     }
 }
 
@@ -80,17 +80,17 @@ pub enum PolicyEdition {
     ResourceConstraint,
 }
 
-impl DatabaseColumn for PolicyEdition {
-    fn as_str(&self) -> &'static str {
+impl DatabaseColumn<'_> for PolicyEdition {
+    fn name(&self) -> ColumnName<'static> {
         match self {
-            Self::Id => "id",
-            Self::Name => "name",
-            Self::TransactionTime => "transaction_time",
-            Self::Effect => "effect",
-            Self::PrincipalId => "principal_id",
-            Self::PrincipalType => "principal_type",
-            Self::ActorType => "actor_type",
-            Self::ResourceConstraint => "resource_constraint",
+            Self::Id => "id".into(),
+            Self::Name => "name".into(),
+            Self::TransactionTime => "transaction_time".into(),
+            Self::Effect => "effect".into(),
+            Self::PrincipalId => "principal_id".into(),
+            Self::PrincipalType => "principal_type".into(),
+            Self::ActorType => "actor_type".into(),
+            Self::ResourceConstraint => "resource_constraint".into(),
         }
     }
 
@@ -113,9 +113,7 @@ impl PostgresRow for PolicyEditionRow {
         Table::PolicyEdition.into()
     }
 
-    fn columnar_parameters<'r>(
-        rows: &'r [Self],
-    ) -> Vec<(PolicyEdition, Box<dyn ToSql + Send + Sync + 'r>)> {
+    fn columnar_parameters(rows: &[Self]) -> Vec<(PolicyEdition, ColumnParameters<'_>)> {
         let mut ids = Vec::with_capacity(rows.len());
         let mut names = Vec::with_capacity(rows.len());
         let mut transaction_times = Vec::with_capacity(rows.len());
@@ -145,16 +143,16 @@ impl PostgresRow for PolicyEditionRow {
             resource_constraints.push(resource_constraint);
         }
         vec![
-            (PolicyEdition::Id, Box::new(ids)),
-            (PolicyEdition::Name, Box::new(names)),
-            (PolicyEdition::TransactionTime, Box::new(transaction_times)),
-            (PolicyEdition::Effect, Box::new(effects)),
-            (PolicyEdition::PrincipalId, Box::new(principal_ids)),
-            (PolicyEdition::PrincipalType, Box::new(principal_types)),
-            (PolicyEdition::ActorType, Box::new(actor_types)),
+            (PolicyEdition::Id, ids.into()),
+            (PolicyEdition::Name, names.into()),
+            (PolicyEdition::TransactionTime, transaction_times.into()),
+            (PolicyEdition::Effect, effects.into()),
+            (PolicyEdition::PrincipalId, principal_ids.into()),
+            (PolicyEdition::PrincipalType, principal_types.into()),
+            (PolicyEdition::ActorType, actor_types.into()),
             (
                 PolicyEdition::ResourceConstraint,
-                Box::new(resource_constraints),
+                resource_constraints.into(),
             ),
         ]
     }
@@ -167,12 +165,12 @@ pub enum PolicyAction {
     TransactionTime,
 }
 
-impl DatabaseColumn for PolicyAction {
-    fn as_str(&self) -> &'static str {
+impl DatabaseColumn<'_> for PolicyAction {
+    fn name(&self) -> ColumnName<'static> {
         match self {
-            Self::PolicyId => "policy_id",
-            Self::ActionName => "action_name",
-            Self::TransactionTime => "transaction_time",
+            Self::PolicyId => "policy_id".into(),
+            Self::ActionName => "action_name".into(),
+            Self::TransactionTime => "transaction_time".into(),
         }
     }
 
@@ -192,9 +190,7 @@ impl PostgresRow for PolicyActionRow {
         Table::PolicyAction.into()
     }
 
-    fn columnar_parameters<'r>(
-        rows: &'r [Self],
-    ) -> Vec<(PolicyAction, Box<dyn ToSql + Send + Sync + 'r>)> {
+    fn columnar_parameters(rows: &[Self]) -> Vec<(PolicyAction, ColumnParameters<'_>)> {
         let mut policy_ids = Vec::with_capacity(rows.len());
         let mut action_names = Vec::with_capacity(rows.len());
         let mut transaction_times = Vec::with_capacity(rows.len());
@@ -209,9 +205,9 @@ impl PostgresRow for PolicyActionRow {
             transaction_times.push(transaction_time);
         }
         vec![
-            (PolicyAction::PolicyId, Box::new(policy_ids)),
-            (PolicyAction::ActionName, Box::new(action_names)),
-            (PolicyAction::TransactionTime, Box::new(transaction_times)),
+            (PolicyAction::PolicyId, policy_ids.into()),
+            (PolicyAction::ActionName, action_names.into()),
+            (PolicyAction::TransactionTime, transaction_times.into()),
         ]
     }
 }

@@ -58,8 +58,8 @@ use crate::store::{
         crud::{QueryIndices, QueryRecordDecode, TypedRow},
         ontology::{PostgresOntologyOwnership, read::OntologyTypeTraversalData},
         query::{
-            Distinctness, InsertStatement, PostgresRecord, PostgresSorting, ReferenceTable,
-            SelectCompiler, Table, rows::DataTypeConversionsRow,
+            Distinctness, PostgresRecord, PostgresSorting, ReferenceTable, SelectCompiler, Table,
+            bulk_insert, rows::DataTypeConversionsRow,
         },
     },
     validation::StoreProvider,
@@ -688,7 +688,7 @@ where
                 .await?;
         }
 
-        let (statement, parameters) = InsertStatement::compile_rows(&data_type_conversions_rows);
+        let (statement, parameters) = bulk_insert().rows(&data_type_conversions_rows).compile();
         let inserted_rows = transaction
             .as_client()
             .execute_raw(
@@ -1124,7 +1124,7 @@ where
                 .change_context(UpdateError)?;
         }
 
-        let (statement, parameters) = InsertStatement::compile_rows(&data_type_conversions_rows);
+        let (statement, parameters) = bulk_insert().rows(&data_type_conversions_rows).compile();
         let inserted_rows = transaction
             .as_client()
             .execute_raw(

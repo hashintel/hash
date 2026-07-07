@@ -98,11 +98,10 @@ use crate::store::{
             summary::{Deduplication, EntitySummaryQuery},
         },
         query::{
-            Distinctness, InsertStatement, PostgresRecord as _, PostgresSorting as _,
-            SelectCompiler,
+            Distinctness, PostgresRecord as _, PostgresSorting as _, SelectCompiler, bulk_insert,
             rows::{
                 EntityDraftRow, EntityEdgeRow, EntityEditionRow, EntityIdRow, EntityIsOfTypeRow,
-                EntityTemporalMetadataRow,
+                EntityTemporalMetadataRow, PostgresRow as _,
             },
         },
     },
@@ -1004,32 +1003,38 @@ where
 
         let insertions = [
             (
-                InsertStatement::compile_rows(&entity_id_rows),
+                EntityIdRow::table(),
+                bulk_insert().rows(&entity_id_rows).compile(),
                 entity_id_rows.len(),
             ),
             (
-                InsertStatement::compile_rows(&entity_draft_rows),
+                EntityDraftRow::table(),
+                bulk_insert().rows(&entity_draft_rows).compile(),
                 entity_draft_rows.len(),
             ),
             (
-                InsertStatement::compile_rows(&entity_edition_rows),
+                EntityEditionRow::table(),
+                bulk_insert().rows(&entity_edition_rows).compile(),
                 entity_edition_rows.len(),
             ),
             (
-                InsertStatement::compile_rows(&entity_temporal_metadata_rows),
+                EntityTemporalMetadataRow::table(),
+                bulk_insert().rows(&entity_temporal_metadata_rows).compile(),
                 entity_temporal_metadata_rows.len(),
             ),
             (
-                InsertStatement::compile_rows(&entity_is_of_type_rows),
+                EntityIsOfTypeRow::table(),
+                bulk_insert().rows(&entity_is_of_type_rows).compile(),
                 entity_is_of_type_rows.len(),
             ),
             (
-                InsertStatement::compile_rows(&entity_edge_rows),
+                EntityEdgeRow::table(),
+                bulk_insert().rows(&entity_edge_rows).compile(),
                 entity_edge_rows.len(),
             ),
         ];
 
-        for ((statement, parameters), expected_rows) in &insertions {
+        for (table, (statement, parameters), expected_rows) in &insertions {
             let inserted_rows = transaction
                 .as_client()
                 .execute_raw(
@@ -1049,7 +1054,9 @@ where
                 .change_context(InsertionError)?;
             if inserted_rows != *expected_rows as u64 {
                 return Err(Report::new(InsertionError).attach(format!(
-                    "bulk insert affected {inserted_rows} rows but {expected_rows} were provided"
+                    "bulk insert into `{table}` affected {inserted_rows} rows but {expected_rows} \
+                     were provided",
+                    table = table.as_str(),
                 )));
             }
         }

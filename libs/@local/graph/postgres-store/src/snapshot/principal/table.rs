@@ -1,4 +1,3 @@
-use postgres_types::ToSql;
 use type_system::principal::{
     PrincipalType,
     actor::{ActorEntityUuid, AiId, MachineId, UserId},
@@ -6,6 +5,12 @@ use type_system::principal::{
     role::RoleName,
 };
 use uuid::Uuid;
+
+use crate::store::postgres::query::{
+    ColumnName, PostgresType, Table, TableName,
+    rows::{ColumnParameters, PostgresRow},
+    table::DatabaseColumn,
+};
 
 #[derive(Debug)]
 pub struct UserActorRow {
@@ -51,19 +56,15 @@ pub struct ActorRoleRow {
     pub role_id: Uuid,
 }
 
-use crate::store::postgres::query::{
-    PostgresType, Table, TableName, rows::PostgresRow, table::DatabaseColumn,
-};
-
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum UserActor {
     Id,
 }
 
-impl DatabaseColumn for UserActor {
-    fn as_str(&self) -> &'static str {
+impl DatabaseColumn<'_> for UserActor {
+    fn name(&self) -> ColumnName<'static> {
         match self {
-            Self::Id => "id",
+            Self::Id => "id".into(),
         }
     }
 
@@ -81,14 +82,12 @@ impl PostgresRow for UserActorRow {
         Table::UserActor.into()
     }
 
-    fn columnar_parameters<'r>(
-        rows: &'r [Self],
-    ) -> Vec<(UserActor, Box<dyn ToSql + Send + Sync + 'r>)> {
+    fn columnar_parameters(rows: &[Self]) -> Vec<(UserActor, ColumnParameters<'_>)> {
         let mut ids = Vec::with_capacity(rows.len());
         for Self { id } in rows {
             ids.push(id);
         }
-        vec![(UserActor::Id, Box::new(ids))]
+        vec![(UserActor::Id, ids.into())]
     }
 }
 
@@ -98,11 +97,11 @@ pub enum MachineActor {
     Identifier,
 }
 
-impl DatabaseColumn for MachineActor {
-    fn as_str(&self) -> &'static str {
+impl DatabaseColumn<'_> for MachineActor {
+    fn name(&self) -> ColumnName<'static> {
         match self {
-            Self::Id => "id",
-            Self::Identifier => "identifier",
+            Self::Id => "id".into(),
+            Self::Identifier => "identifier".into(),
         }
     }
 
@@ -121,9 +120,7 @@ impl PostgresRow for MachineActorRow {
         Table::MachineActor.into()
     }
 
-    fn columnar_parameters<'r>(
-        rows: &'r [Self],
-    ) -> Vec<(MachineActor, Box<dyn ToSql + Send + Sync + 'r>)> {
+    fn columnar_parameters(rows: &[Self]) -> Vec<(MachineActor, ColumnParameters<'_>)> {
         let mut ids = Vec::with_capacity(rows.len());
         let mut identifiers = Vec::with_capacity(rows.len());
         for Self { id, identifier } in rows {
@@ -131,8 +128,8 @@ impl PostgresRow for MachineActorRow {
             identifiers.push(identifier);
         }
         vec![
-            (MachineActor::Id, Box::new(ids)),
-            (MachineActor::Identifier, Box::new(identifiers)),
+            (MachineActor::Id, ids.into()),
+            (MachineActor::Identifier, identifiers.into()),
         ]
     }
 }
@@ -143,11 +140,11 @@ pub enum AiActor {
     Identifier,
 }
 
-impl DatabaseColumn for AiActor {
-    fn as_str(&self) -> &'static str {
+impl DatabaseColumn<'_> for AiActor {
+    fn name(&self) -> ColumnName<'static> {
         match self {
-            Self::Id => "id",
-            Self::Identifier => "identifier",
+            Self::Id => "id".into(),
+            Self::Identifier => "identifier".into(),
         }
     }
 
@@ -166,9 +163,7 @@ impl PostgresRow for AiActorRow {
         Table::AiActor.into()
     }
 
-    fn columnar_parameters<'r>(
-        rows: &'r [Self],
-    ) -> Vec<(AiActor, Box<dyn ToSql + Send + Sync + 'r>)> {
+    fn columnar_parameters(rows: &[Self]) -> Vec<(AiActor, ColumnParameters<'_>)> {
         let mut ids = Vec::with_capacity(rows.len());
         let mut identifiers = Vec::with_capacity(rows.len());
         for Self { id, identifier } in rows {
@@ -176,8 +171,8 @@ impl PostgresRow for AiActorRow {
             identifiers.push(identifier);
         }
         vec![
-            (AiActor::Id, Box::new(ids)),
-            (AiActor::Identifier, Box::new(identifiers)),
+            (AiActor::Id, ids.into()),
+            (AiActor::Identifier, identifiers.into()),
         ]
     }
 }
@@ -188,11 +183,11 @@ pub enum Web {
     Shortname,
 }
 
-impl DatabaseColumn for Web {
-    fn as_str(&self) -> &'static str {
+impl DatabaseColumn<'_> for Web {
+    fn name(&self) -> ColumnName<'static> {
         match self {
-            Self::Id => "id",
-            Self::Shortname => "shortname",
+            Self::Id => "id".into(),
+            Self::Shortname => "shortname".into(),
         }
     }
 
@@ -211,17 +206,14 @@ impl PostgresRow for WebRow {
         Table::Web.into()
     }
 
-    fn columnar_parameters<'r>(rows: &'r [Self]) -> Vec<(Web, Box<dyn ToSql + Send + Sync + 'r>)> {
+    fn columnar_parameters(rows: &[Self]) -> Vec<(Web, ColumnParameters<'_>)> {
         let mut ids = Vec::with_capacity(rows.len());
         let mut shortnames = Vec::with_capacity(rows.len());
         for Self { id, shortname } in rows {
             ids.push(id);
             shortnames.push(shortname);
         }
-        vec![
-            (Web::Id, Box::new(ids)),
-            (Web::Shortname, Box::new(shortnames)),
-        ]
+        vec![(Web::Id, ids.into()), (Web::Shortname, shortnames.into())]
     }
 }
 
@@ -232,12 +224,12 @@ pub enum Team {
     Name,
 }
 
-impl DatabaseColumn for Team {
-    fn as_str(&self) -> &'static str {
+impl DatabaseColumn<'_> for Team {
+    fn name(&self) -> ColumnName<'static> {
         match self {
-            Self::Id => "id",
-            Self::ParentId => "parent_id",
-            Self::Name => "name",
+            Self::Id => "id".into(),
+            Self::ParentId => "parent_id".into(),
+            Self::Name => "name".into(),
         }
     }
 
@@ -256,7 +248,7 @@ impl PostgresRow for TeamRow {
         Table::Team.into()
     }
 
-    fn columnar_parameters<'r>(rows: &'r [Self]) -> Vec<(Team, Box<dyn ToSql + Send + Sync + 'r>)> {
+    fn columnar_parameters(rows: &[Self]) -> Vec<(Team, ColumnParameters<'_>)> {
         let mut ids = Vec::with_capacity(rows.len());
         let mut parent_ids = Vec::with_capacity(rows.len());
         let mut names = Vec::with_capacity(rows.len());
@@ -271,9 +263,9 @@ impl PostgresRow for TeamRow {
             names.push(name);
         }
         vec![
-            (Team::Id, Box::new(ids)),
-            (Team::ParentId, Box::new(parent_ids)),
-            (Team::Name, Box::new(names)),
+            (Team::Id, ids.into()),
+            (Team::ParentId, parent_ids.into()),
+            (Team::Name, names.into()),
         ]
     }
 }
@@ -286,13 +278,13 @@ pub enum Role {
     Name,
 }
 
-impl DatabaseColumn for Role {
-    fn as_str(&self) -> &'static str {
+impl DatabaseColumn<'_> for Role {
+    fn name(&self) -> ColumnName<'static> {
         match self {
-            Self::Id => "id",
-            Self::PrincipalType => "principal_type",
-            Self::ActorGroupId => "actor_group_id",
-            Self::Name => "name",
+            Self::Id => "id".into(),
+            Self::PrincipalType => "principal_type".into(),
+            Self::ActorGroupId => "actor_group_id".into(),
+            Self::Name => "name".into(),
         }
     }
 
@@ -312,7 +304,7 @@ impl PostgresRow for RoleRow {
         Table::Role.into()
     }
 
-    fn columnar_parameters<'r>(rows: &'r [Self]) -> Vec<(Role, Box<dyn ToSql + Send + Sync + 'r>)> {
+    fn columnar_parameters(rows: &[Self]) -> Vec<(Role, ColumnParameters<'_>)> {
         let mut ids = Vec::with_capacity(rows.len());
         let mut principal_types = Vec::with_capacity(rows.len());
         let mut actor_group_ids = Vec::with_capacity(rows.len());
@@ -330,10 +322,10 @@ impl PostgresRow for RoleRow {
             names.push(name);
         }
         vec![
-            (Role::Id, Box::new(ids)),
-            (Role::PrincipalType, Box::new(principal_types)),
-            (Role::ActorGroupId, Box::new(actor_group_ids)),
-            (Role::Name, Box::new(names)),
+            (Role::Id, ids.into()),
+            (Role::PrincipalType, principal_types.into()),
+            (Role::ActorGroupId, actor_group_ids.into()),
+            (Role::Name, names.into()),
         ]
     }
 }
@@ -344,11 +336,11 @@ pub enum ActorRole {
     RoleId,
 }
 
-impl DatabaseColumn for ActorRole {
-    fn as_str(&self) -> &'static str {
+impl DatabaseColumn<'_> for ActorRole {
+    fn name(&self) -> ColumnName<'static> {
         match self {
-            Self::ActorId => "actor_id",
-            Self::RoleId => "role_id",
+            Self::ActorId => "actor_id".into(),
+            Self::RoleId => "role_id".into(),
         }
     }
 
@@ -366,9 +358,7 @@ impl PostgresRow for ActorRoleRow {
         Table::ActorRole.into()
     }
 
-    fn columnar_parameters<'r>(
-        rows: &'r [Self],
-    ) -> Vec<(ActorRole, Box<dyn ToSql + Send + Sync + 'r>)> {
+    fn columnar_parameters(rows: &[Self]) -> Vec<(ActorRole, ColumnParameters<'_>)> {
         let mut actor_ids = Vec::with_capacity(rows.len());
         let mut role_ids = Vec::with_capacity(rows.len());
         for Self { actor_id, role_id } in rows {
@@ -376,8 +366,8 @@ impl PostgresRow for ActorRoleRow {
             role_ids.push(role_id);
         }
         vec![
-            (ActorRole::ActorId, Box::new(actor_ids)),
-            (ActorRole::RoleId, Box::new(role_ids)),
+            (ActorRole::ActorId, actor_ids.into()),
+            (ActorRole::RoleId, role_ids.into()),
         ]
     }
 }

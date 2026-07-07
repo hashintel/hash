@@ -58,9 +58,7 @@ use crate::{
     snapshot::{entity::EntityEmbeddingRecord, restore::SnapshotRecordBatch},
     store::postgres::{
         AsClient, PolicyParts, PostgresStore, PostgresStorePool,
-        query::{
-            InsertStatement, InsertStatementOptions, OnConflict, TableName, rows::PostgresRow,
-        },
+        query::{OnConflict, TableName, bulk_insert, rows::PostgresRow},
     },
 };
 
@@ -75,20 +73,23 @@ pub(crate) struct SnapshotInsertOptions {
 
 /// Bulk-inserts `rows` into the temporary staging table created by
 /// [`WriteBatch::begin`] and returns the number of inserted rows.
-pub(crate) async fn insert_rows_batch<R: PostgresRow + Sync>(
+///
+/// The target is `<table>_tmp`, staged by `begin` and moved into the real table on `commit`.
+/// The insert names its columns explicitly, so any staging table containing the row type's
+/// columns works — the `LIKE <table> INCLUDING ALL` clone used by `begin` additionally
+/// carries the unique indexes [`OnConflict::DoNothing`] needs to detect duplicates.
+async fn insert_rows_batch<R: PostgresRow + Sync>(
     client: &tokio_postgres::Client,
     rows: &[R],
     options: SnapshotInsertOptions,
 ) -> Result<u64, Report<InsertionError>> {
     let table_name = format!("{}_tmp", R::table().as_str());
-    let (statement, parameters) = InsertStatement::compile_rows_with(
-        rows,
-        InsertStatementOptions {
-            table_name: Some(TableName::from(table_name.clone())),
-            distinct: options.distinct,
-            on_conflict: options.on_conflict,
-        },
-    );
+    let (statement, parameters) = bulk_insert()
+        .rows(rows)
+        .table_name(TableName::from(table_name.clone()))
+        .distinct(options.distinct)
+        .on_conflict(options.on_conflict)
+        .compile();
     client
         .execute_raw(
             &statement,

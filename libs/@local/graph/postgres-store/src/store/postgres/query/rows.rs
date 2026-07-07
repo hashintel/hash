@@ -41,6 +41,48 @@ use crate::store::postgres::query::{
     },
 };
 
+/// The parameter array a [`PostgresRow`] produced for a single column, remembering its
+/// element count.
+///
+/// The count lets the bulk-insert compilation verify that every column received one element
+/// per row — `unnest` would silently NULL-pad a shorter array and extend the insert for a
+/// longer one.
+#[derive(Debug)]
+pub struct ColumnParameters<'rows> {
+    len: usize,
+    values: Box<dyn ToSql + Send + Sync + 'rows>,
+}
+
+impl<'rows, T> From<Vec<T>> for ColumnParameters<'rows>
+where
+    T: ToSql + Send + Sync + 'rows,
+{
+    fn from(values: Vec<T>) -> Self {
+        Self {
+            len: values.len(),
+            values: Box::new(values),
+        }
+    }
+}
+
+impl<'rows> ColumnParameters<'rows> {
+    #[must_use]
+    pub const fn len(&self) -> usize {
+        self.len
+    }
+
+    #[must_use]
+    pub const fn is_empty(&self) -> bool {
+        self.len == 0
+    }
+
+    /// Unwraps the parameter array for statement execution.
+    #[must_use]
+    pub fn into_values(self) -> Box<dyn ToSql + Send + Sync + 'rows> {
+        self.values
+    }
+}
+
 /// A Rust mirror of a database table used for `unnest`-based bulk inserts.
 ///
 /// Inserts built from this trait send one array parameter per column instead of an array of
@@ -51,21 +93,23 @@ use crate::store::postgres::query::{
 /// count.
 pub trait PostgresRow: Sized {
     /// The column type of the table this row is inserted into.
-    type Column: DatabaseColumn + 'static;
+    type Column: DatabaseColumn<'static> + 'static;
 
     /// The table this row is inserted into.
     fn table() -> TableName<'static>;
 
     /// Transposes `rows` into one array parameter per column.
     ///
-    /// Implementations destructure `Self` exhaustively so a new field is a compile error
-    /// until it is handled here. Pairing each array with its column keeps the generated
-    /// statement and the parameters aligned, but nothing checks that a value lands in the
-    /// right column's array. Every array must contain one element per row: `unnest` pads
-    /// shorter arrays with NULLs instead of failing.
-    fn columnar_parameters<'r>(
-        rows: &'r [Self],
-    ) -> Vec<(Self::Column, Box<dyn ToSql + Send + Sync + 'r>)>;
+    /// # Implementation Note
+    ///
+    /// A careless implementation silently corrupts the inserted data. Implementations
+    /// destructure `Self` exhaustively so a new field is a compile error until it is
+    /// handled here. Pairing each array with its column keeps the generated statement and
+    /// the parameters aligned, but nothing checks that a value lands in the right column's
+    /// array. The element counts captured in [`ColumnParameters`] are verified against the
+    /// row count when the statement is compiled (debug builds), catching a missed or
+    /// doubled push.
+    fn columnar_parameters(rows: &[Self]) -> Vec<(Self::Column, ColumnParameters<'_>)>;
 }
 
 #[derive(Debug)]
@@ -82,9 +126,7 @@ impl PostgresRow for DataTypeEmbeddingRow<'_> {
         Table::DataTypeEmbeddings.into()
     }
 
-    fn columnar_parameters<'r>(
-        rows: &'r [Self],
-    ) -> Vec<(DataTypeEmbeddings, Box<dyn ToSql + Send + Sync + 'r>)> {
+    fn columnar_parameters(rows: &[Self]) -> Vec<(DataTypeEmbeddings, ColumnParameters<'_>)> {
         let mut ontology_ids = Vec::with_capacity(rows.len());
         let mut embeddings = Vec::with_capacity(rows.len());
         let mut updated_at_transaction_times = Vec::with_capacity(rows.len());
@@ -99,11 +141,11 @@ impl PostgresRow for DataTypeEmbeddingRow<'_> {
             updated_at_transaction_times.push(updated_at_transaction_time);
         }
         vec![
-            (DataTypeEmbeddings::OntologyId, Box::new(ontology_ids)),
-            (DataTypeEmbeddings::Embedding, Box::new(embeddings)),
+            (DataTypeEmbeddings::OntologyId, ontology_ids.into()),
+            (DataTypeEmbeddings::Embedding, embeddings.into()),
             (
                 DataTypeEmbeddings::UpdatedAtTransactionTime,
-                Box::new(updated_at_transaction_times),
+                updated_at_transaction_times.into(),
             ),
         ]
     }
@@ -124,9 +166,7 @@ impl PostgresRow for DataTypeConversionsRow {
         Table::DataTypeConversions.into()
     }
 
-    fn columnar_parameters<'r>(
-        rows: &'r [Self],
-    ) -> Vec<(DataTypeConversions, Box<dyn ToSql + Send + Sync + 'r>)> {
+    fn columnar_parameters(rows: &[Self]) -> Vec<(DataTypeConversions, ColumnParameters<'_>)> {
         let mut source_data_type_ontology_ids = Vec::with_capacity(rows.len());
         let mut target_data_type_base_urls = Vec::with_capacity(rows.len());
         let mut froms = Vec::with_capacity(rows.len());
@@ -146,14 +186,14 @@ impl PostgresRow for DataTypeConversionsRow {
         vec![
             (
                 DataTypeConversions::SourceDataTypeOntologyId,
-                Box::new(source_data_type_ontology_ids),
+                source_data_type_ontology_ids.into(),
             ),
             (
                 DataTypeConversions::TargetDataTypeBaseUrl,
-                Box::new(target_data_type_base_urls),
+                target_data_type_base_urls.into(),
             ),
-            (DataTypeConversions::From, Box::new(froms)),
-            (DataTypeConversions::Into, Box::new(intos)),
+            (DataTypeConversions::From, froms.into()),
+            (DataTypeConversions::Into, intos.into()),
         ]
     }
 }
@@ -172,9 +212,7 @@ impl PostgresRow for DataTypeRow {
         Table::DataTypes.into()
     }
 
-    fn columnar_parameters<'r>(
-        rows: &'r [Self],
-    ) -> Vec<(DataTypes, Box<dyn ToSql + Send + Sync + 'r>)> {
+    fn columnar_parameters(rows: &[Self]) -> Vec<(DataTypes, ColumnParameters<'_>)> {
         let mut ontology_ids = Vec::with_capacity(rows.len());
         let mut schemas = Vec::with_capacity(rows.len());
         let mut closed_schemas = Vec::with_capacity(rows.len());
@@ -189,9 +227,9 @@ impl PostgresRow for DataTypeRow {
             closed_schemas.push(closed_schema);
         }
         vec![
-            (DataTypes::OntologyId, Box::new(ontology_ids)),
-            (DataTypes::Schema, Box::new(schemas)),
-            (DataTypes::ClosedSchema, Box::new(closed_schemas)),
+            (DataTypes::OntologyId, ontology_ids.into()),
+            (DataTypes::Schema, schemas.into()),
+            (DataTypes::ClosedSchema, closed_schemas.into()),
         ]
     }
 }
@@ -210,9 +248,7 @@ impl PostgresRow for EntityDraftRow {
         Table::EntityDrafts.into()
     }
 
-    fn columnar_parameters<'r>(
-        rows: &'r [Self],
-    ) -> Vec<(EntityDrafts, Box<dyn ToSql + Send + Sync + 'r>)> {
+    fn columnar_parameters(rows: &[Self]) -> Vec<(EntityDrafts, ColumnParameters<'_>)> {
         let mut web_ids = Vec::with_capacity(rows.len());
         let mut entity_uuids = Vec::with_capacity(rows.len());
         let mut draft_ids = Vec::with_capacity(rows.len());
@@ -227,9 +263,9 @@ impl PostgresRow for EntityDraftRow {
             draft_ids.push(draft_id);
         }
         vec![
-            (EntityDrafts::WebId, Box::new(web_ids)),
-            (EntityDrafts::EntityUuid, Box::new(entity_uuids)),
-            (EntityDrafts::DraftId, Box::new(draft_ids)),
+            (EntityDrafts::WebId, web_ids.into()),
+            (EntityDrafts::EntityUuid, entity_uuids.into()),
+            (EntityDrafts::DraftId, draft_ids.into()),
         ]
     }
 }
@@ -251,9 +287,7 @@ impl PostgresRow for EntityEditionRow {
         Table::EntityEditions.into()
     }
 
-    fn columnar_parameters<'r>(
-        rows: &'r [Self],
-    ) -> Vec<(EntityEditions, Box<dyn ToSql + Send + Sync + 'r>)> {
+    fn columnar_parameters(rows: &[Self]) -> Vec<(EntityEditions, ColumnParameters<'_>)> {
         let mut entity_edition_ids = Vec::with_capacity(rows.len());
         let mut properties = Vec::with_capacity(rows.len());
         let mut archiveds = Vec::with_capacity(rows.len());
@@ -277,15 +311,12 @@ impl PostgresRow for EntityEditionRow {
             property_metadatas.push(property_metadata);
         }
         vec![
-            (EntityEditions::EditionId, Box::new(entity_edition_ids)),
-            (EntityEditions::Properties, Box::new(properties)),
-            (EntityEditions::Archived, Box::new(archiveds)),
-            (EntityEditions::Confidence, Box::new(confidences)),
-            (EntityEditions::Provenance, Box::new(provenances)),
-            (
-                EntityEditions::PropertyMetadata,
-                Box::new(property_metadatas),
-            ),
+            (EntityEditions::EditionId, entity_edition_ids.into()),
+            (EntityEditions::Properties, properties.into()),
+            (EntityEditions::Archived, archiveds.into()),
+            (EntityEditions::Confidence, confidences.into()),
+            (EntityEditions::Provenance, provenances.into()),
+            (EntityEditions::PropertyMetadata, property_metadatas.into()),
         ]
     }
 }
@@ -308,13 +339,11 @@ impl PostgresRow for EntityEmbeddingRow {
         Table::EntityEmbeddings.into()
     }
 
-    fn columnar_parameters<'r>(
-        rows: &'r [Self],
-    ) -> Vec<(EntityEmbeddings, Box<dyn ToSql + Send + Sync + 'r>)> {
+    fn columnar_parameters(rows: &[Self]) -> Vec<(EntityEmbeddings, ColumnParameters<'_>)> {
         let mut web_ids = Vec::with_capacity(rows.len());
         let mut entity_uuids = Vec::with_capacity(rows.len());
         let mut draft_ids = Vec::with_capacity(rows.len());
-        let mut propertys = Vec::with_capacity(rows.len());
+        let mut properties = Vec::with_capacity(rows.len());
         let mut embeddings = Vec::with_capacity(rows.len());
         let mut updated_at_transaction_times = Vec::with_capacity(rows.len());
         let mut updated_at_decision_times = Vec::with_capacity(rows.len());
@@ -331,24 +360,24 @@ impl PostgresRow for EntityEmbeddingRow {
             web_ids.push(web_id);
             entity_uuids.push(entity_uuid);
             draft_ids.push(draft_id);
-            propertys.push(property);
+            properties.push(property);
             embeddings.push(embedding);
             updated_at_transaction_times.push(updated_at_transaction_time);
             updated_at_decision_times.push(updated_at_decision_time);
         }
         vec![
-            (EntityEmbeddings::WebId, Box::new(web_ids)),
-            (EntityEmbeddings::EntityUuid, Box::new(entity_uuids)),
-            (EntityEmbeddings::DraftId, Box::new(draft_ids)),
-            (EntityEmbeddings::Property, Box::new(propertys)),
-            (EntityEmbeddings::Embedding, Box::new(embeddings)),
+            (EntityEmbeddings::WebId, web_ids.into()),
+            (EntityEmbeddings::EntityUuid, entity_uuids.into()),
+            (EntityEmbeddings::DraftId, draft_ids.into()),
+            (EntityEmbeddings::Property, properties.into()),
+            (EntityEmbeddings::Embedding, embeddings.into()),
             (
                 EntityEmbeddings::UpdatedAtTransactionTime,
-                Box::new(updated_at_transaction_times),
+                updated_at_transaction_times.into(),
             ),
             (
                 EntityEmbeddings::UpdatedAtDecisionTime,
-                Box::new(updated_at_decision_times),
+                updated_at_decision_times.into(),
             ),
         ]
     }
@@ -373,9 +402,7 @@ impl PostgresRow for EntityEdgeRow {
         Table::EntityEdge.into()
     }
 
-    fn columnar_parameters<'r>(
-        rows: &'r [Self],
-    ) -> Vec<(EntityEdge, Box<dyn ToSql + Send + Sync + 'r>)> {
+    fn columnar_parameters(rows: &[Self]) -> Vec<(EntityEdge, ColumnParameters<'_>)> {
         let mut source_web_ids = Vec::with_capacity(rows.len());
         let mut source_entity_uuids = Vec::with_capacity(rows.len());
         let mut target_web_ids = Vec::with_capacity(rows.len());
@@ -405,14 +432,14 @@ impl PostgresRow for EntityEdgeRow {
             directions.push(direction);
         }
         vec![
-            (EntityEdge::SourceWebId, Box::new(source_web_ids)),
-            (EntityEdge::SourceEntityUuid, Box::new(source_entity_uuids)),
-            (EntityEdge::TargetWebId, Box::new(target_web_ids)),
-            (EntityEdge::TargetEntityUuid, Box::new(target_entity_uuids)),
-            (EntityEdge::Confidence, Box::new(confidences)),
-            (EntityEdge::Provenance, Box::new(provenances)),
-            (EntityEdge::Kind, Box::new(kinds)),
-            (EntityEdge::Direction, Box::new(directions)),
+            (EntityEdge::SourceWebId, source_web_ids.into()),
+            (EntityEdge::SourceEntityUuid, source_entity_uuids.into()),
+            (EntityEdge::TargetWebId, target_web_ids.into()),
+            (EntityEdge::TargetEntityUuid, target_entity_uuids.into()),
+            (EntityEdge::Confidence, confidences.into()),
+            (EntityEdge::Provenance, provenances.into()),
+            (EntityEdge::Kind, kinds.into()),
+            (EntityEdge::Direction, directions.into()),
         ]
     }
 }
@@ -432,9 +459,7 @@ impl PostgresRow for EntityIdRow {
         Table::EntityIds.into()
     }
 
-    fn columnar_parameters<'r>(
-        rows: &'r [Self],
-    ) -> Vec<(EntityIds, Box<dyn ToSql + Send + Sync + 'r>)> {
+    fn columnar_parameters(rows: &[Self]) -> Vec<(EntityIds, ColumnParameters<'_>)> {
         let mut web_ids = Vec::with_capacity(rows.len());
         let mut entity_uuids = Vec::with_capacity(rows.len());
         let mut provenances = Vec::with_capacity(rows.len());
@@ -452,10 +477,10 @@ impl PostgresRow for EntityIdRow {
             read_onlys.push(read_only);
         }
         vec![
-            (EntityIds::WebId, Box::new(web_ids)),
-            (EntityIds::EntityUuid, Box::new(entity_uuids)),
-            (EntityIds::Provenance, Box::new(provenances)),
-            (EntityIds::ReadOnly, Box::new(read_onlys)),
+            (EntityIds::WebId, web_ids.into()),
+            (EntityIds::EntityUuid, entity_uuids.into()),
+            (EntityIds::Provenance, provenances.into()),
+            (EntityIds::ReadOnly, read_onlys.into()),
         ]
     }
 }
@@ -474,9 +499,7 @@ impl PostgresRow for EntityIsOfTypeRow {
         Table::EntityIsOfType.into()
     }
 
-    fn columnar_parameters<'r>(
-        rows: &'r [Self],
-    ) -> Vec<(EntityIsOfType, Box<dyn ToSql + Send + Sync + 'r>)> {
+    fn columnar_parameters(rows: &[Self]) -> Vec<(EntityIsOfType, ColumnParameters<'_>)> {
         let mut entity_edition_ids = Vec::with_capacity(rows.len());
         let mut entity_type_ontology_ids = Vec::with_capacity(rows.len());
         let mut inheritance_depths = Vec::with_capacity(rows.len());
@@ -491,18 +514,12 @@ impl PostgresRow for EntityIsOfTypeRow {
             inheritance_depths.push(inheritance_depth);
         }
         vec![
-            (
-                EntityIsOfType::EntityEditionId,
-                Box::new(entity_edition_ids),
-            ),
+            (EntityIsOfType::EntityEditionId, entity_edition_ids.into()),
             (
                 EntityIsOfType::EntityTypeOntologyId,
-                Box::new(entity_type_ontology_ids),
+                entity_type_ontology_ids.into(),
             ),
-            (
-                EntityIsOfType::InheritanceDepth,
-                Box::new(inheritance_depths),
-            ),
+            (EntityIsOfType::InheritanceDepth, inheritance_depths.into()),
         ]
     }
 }
@@ -524,9 +541,7 @@ impl PostgresRow for EntityTemporalMetadataRow {
         Table::EntityTemporalMetadata.into()
     }
 
-    fn columnar_parameters<'r>(
-        rows: &'r [Self],
-    ) -> Vec<(EntityTemporalMetadata, Box<dyn ToSql + Send + Sync + 'r>)> {
+    fn columnar_parameters(rows: &[Self]) -> Vec<(EntityTemporalMetadata, ColumnParameters<'_>)> {
         let mut web_ids = Vec::with_capacity(rows.len());
         let mut entity_uuids = Vec::with_capacity(rows.len());
         let mut draft_ids = Vec::with_capacity(rows.len());
@@ -550,20 +565,14 @@ impl PostgresRow for EntityTemporalMetadataRow {
             transaction_times.push(transaction_time);
         }
         vec![
-            (EntityTemporalMetadata::WebId, Box::new(web_ids)),
-            (EntityTemporalMetadata::EntityUuid, Box::new(entity_uuids)),
-            (EntityTemporalMetadata::DraftId, Box::new(draft_ids)),
-            (
-                EntityTemporalMetadata::EditionId,
-                Box::new(entity_edition_ids),
-            ),
-            (
-                EntityTemporalMetadata::DecisionTime,
-                Box::new(decision_times),
-            ),
+            (EntityTemporalMetadata::WebId, web_ids.into()),
+            (EntityTemporalMetadata::EntityUuid, entity_uuids.into()),
+            (EntityTemporalMetadata::DraftId, draft_ids.into()),
+            (EntityTemporalMetadata::EditionId, entity_edition_ids.into()),
+            (EntityTemporalMetadata::DecisionTime, decision_times.into()),
             (
                 EntityTemporalMetadata::TransactionTime,
-                Box::new(transaction_times),
+                transaction_times.into(),
             ),
         ]
     }
@@ -583,9 +592,7 @@ impl PostgresRow for EntityTypeEmbeddingRow<'_> {
         Table::EntityTypeEmbeddings.into()
     }
 
-    fn columnar_parameters<'r>(
-        rows: &'r [Self],
-    ) -> Vec<(EntityTypeEmbeddings, Box<dyn ToSql + Send + Sync + 'r>)> {
+    fn columnar_parameters(rows: &[Self]) -> Vec<(EntityTypeEmbeddings, ColumnParameters<'_>)> {
         let mut ontology_ids = Vec::with_capacity(rows.len());
         let mut embeddings = Vec::with_capacity(rows.len());
         let mut updated_at_transaction_times = Vec::with_capacity(rows.len());
@@ -600,11 +607,11 @@ impl PostgresRow for EntityTypeEmbeddingRow<'_> {
             updated_at_transaction_times.push(updated_at_transaction_time);
         }
         vec![
-            (EntityTypeEmbeddings::OntologyId, Box::new(ontology_ids)),
-            (EntityTypeEmbeddings::Embedding, Box::new(embeddings)),
+            (EntityTypeEmbeddings::OntologyId, ontology_ids.into()),
+            (EntityTypeEmbeddings::Embedding, embeddings.into()),
             (
                 EntityTypeEmbeddings::UpdatedAtTransactionTime,
-                Box::new(updated_at_transaction_times),
+                updated_at_transaction_times.into(),
             ),
         ]
     }
@@ -624,9 +631,7 @@ impl PostgresRow for EntityTypeRow {
         Table::EntityTypes.into()
     }
 
-    fn columnar_parameters<'r>(
-        rows: &'r [Self],
-    ) -> Vec<(EntityTypes, Box<dyn ToSql + Send + Sync + 'r>)> {
+    fn columnar_parameters(rows: &[Self]) -> Vec<(EntityTypes, ColumnParameters<'_>)> {
         let mut ontology_ids = Vec::with_capacity(rows.len());
         let mut schemas = Vec::with_capacity(rows.len());
         let mut closed_schemas = Vec::with_capacity(rows.len());
@@ -641,9 +646,9 @@ impl PostgresRow for EntityTypeRow {
             closed_schemas.push(closed_schema);
         }
         vec![
-            (EntityTypes::OntologyId, Box::new(ontology_ids)),
-            (EntityTypes::Schema, Box::new(schemas)),
-            (EntityTypes::ClosedSchema, Box::new(closed_schemas)),
+            (EntityTypes::OntologyId, ontology_ids.into()),
+            (EntityTypes::Schema, schemas.into()),
+            (EntityTypes::ClosedSchema, closed_schemas.into()),
         ]
     }
 }
@@ -662,9 +667,7 @@ impl PostgresRow for OntologyIdRow {
         Table::OntologyIds.into()
     }
 
-    fn columnar_parameters<'r>(
-        rows: &'r [Self],
-    ) -> Vec<(OntologyIds, Box<dyn ToSql + Send + Sync + 'r>)> {
+    fn columnar_parameters(rows: &[Self]) -> Vec<(OntologyIds, ColumnParameters<'_>)> {
         let mut ontology_ids = Vec::with_capacity(rows.len());
         let mut base_urls = Vec::with_capacity(rows.len());
         let mut versions = Vec::with_capacity(rows.len());
@@ -679,9 +682,9 @@ impl PostgresRow for OntologyIdRow {
             versions.push(version);
         }
         vec![
-            (OntologyIds::OntologyId, Box::new(ontology_ids)),
-            (OntologyIds::BaseUrl, Box::new(base_urls)),
-            (OntologyIds::Version, Box::new(versions)),
+            (OntologyIds::OntologyId, ontology_ids.into()),
+            (OntologyIds::BaseUrl, base_urls.into()),
+            (OntologyIds::Version, versions.into()),
         ]
     }
 }
@@ -699,9 +702,7 @@ impl PostgresRow for OntologyOwnedMetadataRow {
         Table::OntologyOwnedMetadata.into()
     }
 
-    fn columnar_parameters<'r>(
-        rows: &'r [Self],
-    ) -> Vec<(OntologyOwnedMetadata, Box<dyn ToSql + Send + Sync + 'r>)> {
+    fn columnar_parameters(rows: &[Self]) -> Vec<(OntologyOwnedMetadata, ColumnParameters<'_>)> {
         let mut ontology_ids = Vec::with_capacity(rows.len());
         let mut web_ids = Vec::with_capacity(rows.len());
         for Self {
@@ -713,8 +714,8 @@ impl PostgresRow for OntologyOwnedMetadataRow {
             web_ids.push(web_id);
         }
         vec![
-            (OntologyOwnedMetadata::OntologyId, Box::new(ontology_ids)),
-            (OntologyOwnedMetadata::WebId, Box::new(web_ids)),
+            (OntologyOwnedMetadata::OntologyId, ontology_ids.into()),
+            (OntologyOwnedMetadata::WebId, web_ids.into()),
         ]
     }
 }
@@ -732,9 +733,7 @@ impl PostgresRow for OntologyExternalMetadataRow {
         Table::OntologyExternalMetadata.into()
     }
 
-    fn columnar_parameters<'r>(
-        rows: &'r [Self],
-    ) -> Vec<(OntologyExternalMetadata, Box<dyn ToSql + Send + Sync + 'r>)> {
+    fn columnar_parameters(rows: &[Self]) -> Vec<(OntologyExternalMetadata, ColumnParameters<'_>)> {
         let mut ontology_ids = Vec::with_capacity(rows.len());
         let mut fetched_ats = Vec::with_capacity(rows.len());
         for Self {
@@ -746,8 +745,8 @@ impl PostgresRow for OntologyExternalMetadataRow {
             fetched_ats.push(fetched_at);
         }
         vec![
-            (OntologyExternalMetadata::OntologyId, Box::new(ontology_ids)),
-            (OntologyExternalMetadata::FetchedAt, Box::new(fetched_ats)),
+            (OntologyExternalMetadata::OntologyId, ontology_ids.into()),
+            (OntologyExternalMetadata::FetchedAt, fetched_ats.into()),
         ]
     }
 }
@@ -766,9 +765,7 @@ impl PostgresRow for OntologyTemporalMetadataRow {
         Table::OntologyTemporalMetadata.into()
     }
 
-    fn columnar_parameters<'r>(
-        rows: &'r [Self],
-    ) -> Vec<(OntologyTemporalMetadata, Box<dyn ToSql + Send + Sync + 'r>)> {
+    fn columnar_parameters(rows: &[Self]) -> Vec<(OntologyTemporalMetadata, ColumnParameters<'_>)> {
         let mut ontology_ids = Vec::with_capacity(rows.len());
         let mut transaction_times = Vec::with_capacity(rows.len());
         let mut provenances = Vec::with_capacity(rows.len());
@@ -783,12 +780,12 @@ impl PostgresRow for OntologyTemporalMetadataRow {
             provenances.push(provenance);
         }
         vec![
-            (OntologyTemporalMetadata::OntologyId, Box::new(ontology_ids)),
+            (OntologyTemporalMetadata::OntologyId, ontology_ids.into()),
             (
                 OntologyTemporalMetadata::TransactionTime,
-                Box::new(transaction_times),
+                transaction_times.into(),
             ),
-            (OntologyTemporalMetadata::Provenance, Box::new(provenances)),
+            (OntologyTemporalMetadata::Provenance, provenances.into()),
         ]
     }
 }
@@ -806,9 +803,7 @@ impl PostgresRow for PropertyTypeRow {
         Table::PropertyTypes.into()
     }
 
-    fn columnar_parameters<'r>(
-        rows: &'r [Self],
-    ) -> Vec<(PropertyTypes, Box<dyn ToSql + Send + Sync + 'r>)> {
+    fn columnar_parameters(rows: &[Self]) -> Vec<(PropertyTypes, ColumnParameters<'_>)> {
         let mut ontology_ids = Vec::with_capacity(rows.len());
         let mut schemas = Vec::with_capacity(rows.len());
         for Self {
@@ -820,8 +815,8 @@ impl PostgresRow for PropertyTypeRow {
             schemas.push(schema);
         }
         vec![
-            (PropertyTypes::OntologyId, Box::new(ontology_ids)),
-            (PropertyTypes::Schema, Box::new(schemas)),
+            (PropertyTypes::OntologyId, ontology_ids.into()),
+            (PropertyTypes::Schema, schemas.into()),
         ]
     }
 }
@@ -839,12 +834,9 @@ impl PostgresRow for PropertyTypeConstrainsValuesOnRow {
         Table::Reference(ReferenceTable::PropertyTypeConstrainsValuesOn).into()
     }
 
-    fn columnar_parameters<'r>(
-        rows: &'r [Self],
-    ) -> Vec<(
-        PropertyTypeConstrainsValuesOn,
-        Box<dyn ToSql + Send + Sync + 'r>,
-    )> {
+    fn columnar_parameters(
+        rows: &[Self],
+    ) -> Vec<(PropertyTypeConstrainsValuesOn, ColumnParameters<'_>)> {
         let mut source_property_type_ontology_ids = Vec::with_capacity(rows.len());
         let mut target_data_type_ontology_ids = Vec::with_capacity(rows.len());
         for Self {
@@ -858,11 +850,11 @@ impl PostgresRow for PropertyTypeConstrainsValuesOnRow {
         vec![
             (
                 PropertyTypeConstrainsValuesOn::SourcePropertyTypeOntologyId,
-                Box::new(source_property_type_ontology_ids),
+                source_property_type_ontology_ids.into(),
             ),
             (
                 PropertyTypeConstrainsValuesOn::TargetDataTypeOntologyId,
-                Box::new(target_data_type_ontology_ids),
+                target_data_type_ontology_ids.into(),
             ),
         ]
     }
@@ -882,9 +874,7 @@ impl PostgresRow for PropertyTypeEmbeddingRow<'_> {
         Table::PropertyTypeEmbeddings.into()
     }
 
-    fn columnar_parameters<'r>(
-        rows: &'r [Self],
-    ) -> Vec<(PropertyTypeEmbeddings, Box<dyn ToSql + Send + Sync + 'r>)> {
+    fn columnar_parameters(rows: &[Self]) -> Vec<(PropertyTypeEmbeddings, ColumnParameters<'_>)> {
         let mut ontology_ids = Vec::with_capacity(rows.len());
         let mut embeddings = Vec::with_capacity(rows.len());
         let mut updated_at_transaction_times = Vec::with_capacity(rows.len());
@@ -899,11 +889,11 @@ impl PostgresRow for PropertyTypeEmbeddingRow<'_> {
             updated_at_transaction_times.push(updated_at_transaction_time);
         }
         vec![
-            (PropertyTypeEmbeddings::OntologyId, Box::new(ontology_ids)),
-            (PropertyTypeEmbeddings::Embedding, Box::new(embeddings)),
+            (PropertyTypeEmbeddings::OntologyId, ontology_ids.into()),
+            (PropertyTypeEmbeddings::Embedding, embeddings.into()),
             (
                 PropertyTypeEmbeddings::UpdatedAtTransactionTime,
-                Box::new(updated_at_transaction_times),
+                updated_at_transaction_times.into(),
             ),
         ]
     }
@@ -922,12 +912,9 @@ impl PostgresRow for PropertyTypeConstrainsPropertiesOnRow {
         Table::Reference(ReferenceTable::PropertyTypeConstrainsPropertiesOn).into()
     }
 
-    fn columnar_parameters<'r>(
-        rows: &'r [Self],
-    ) -> Vec<(
-        PropertyTypeConstrainsPropertiesOn,
-        Box<dyn ToSql + Send + Sync + 'r>,
-    )> {
+    fn columnar_parameters(
+        rows: &[Self],
+    ) -> Vec<(PropertyTypeConstrainsPropertiesOn, ColumnParameters<'_>)> {
         let mut source_property_type_ontology_ids = Vec::with_capacity(rows.len());
         let mut target_property_type_ontology_ids = Vec::with_capacity(rows.len());
         for Self {
@@ -941,11 +928,11 @@ impl PostgresRow for PropertyTypeConstrainsPropertiesOnRow {
         vec![
             (
                 PropertyTypeConstrainsPropertiesOn::SourcePropertyTypeOntologyId,
-                Box::new(source_property_type_ontology_ids),
+                source_property_type_ontology_ids.into(),
             ),
             (
                 PropertyTypeConstrainsPropertiesOn::TargetPropertyTypeOntologyId,
-                Box::new(target_property_type_ontology_ids),
+                target_property_type_ontology_ids.into(),
             ),
         ]
     }

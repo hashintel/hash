@@ -40,8 +40,7 @@ pub use self::{
     },
     postgres_type::PostgresType,
     statement::{
-        Distinctness, InsertStatement, InsertStatementOptions, OnConflict, SelectStatement,
-        Statement, WindowStatement,
+        Distinctness, OnConflict, SelectStatement, Statement, WindowStatement, bulk_insert,
     },
     table::{Alias, Column, ForeignKeyReference, JsonField, ReferenceTable, Relation, Table},
 };
