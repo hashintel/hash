@@ -21,12 +21,6 @@ export const styles = sva({
   base: {
     stackRoot: {
       display: "contents",
-      // Hide the backdrop of any drawer that has a nested drawer above it so
-      // the overlay doesn't darken cumulatively as the stack grows.
-      '&:has([data-scope="drawer"][data-part="content"][data-has-nested]) [data-scope="drawer"][data-part="backdrop"]':
-        {
-          visibility: "hidden",
-        },
     },
     positioner: {
       display: "flex",
@@ -49,7 +43,7 @@ export const styles = sva({
       outline: "none",
       backgroundColor: "neutral.s10",
       padding: "1",
-      transition: "[transform 0.2s ease, translate 0.2s ease]",
+      transition: "[transform 0.2s ease, translate 0.12s ease]",
       _open: {
         animationDuration: "normal",
       },

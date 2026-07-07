@@ -13,12 +13,6 @@ export const styles = sva({
   base: {
     stackRoot: {
       display: "contents",
-      // Hide the backdrop of any dialog that has a nested dialog above it so
-      // the overlay doesn't darken cumulatively as the stack grows.
-      '&:has([data-scope="dialog"][data-part="content"][data-has-nested]) [data-scope="dialog"][data-part="backdrop"]':
-        {
-          visibility: "hidden",
-        },
     },
     positioner: {
       display: "flex",

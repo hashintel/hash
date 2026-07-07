@@ -107,7 +107,7 @@ const DialogRoot = ({
       finalFocusEl={returnFocusRef ? () => returnFocusRef.current : undefined}
     >
       <Portal container={portalContainerRef}>
-        <div className={classes.stackRoot}>
+        <div className={classes.stackRoot} data-overlay-stack-root="">
           <ArkDialog.Backdrop className={backdropClassName} />
           <ArkDialog.Positioner className={classes.positioner}>
             <ArkDialog.Content

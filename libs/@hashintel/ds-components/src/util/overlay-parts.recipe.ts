@@ -44,6 +44,17 @@ export const overlayPartsStyles = sva({
       _closed: {
         animationName: "fadeOut",
       },
+      // Hide this backdrop while a later sibling overlay has an open backdrop of its own.
+      '[data-overlay-stack-root]:has(~ [data-overlay-stack-root] [data-part="backdrop"][data-state="open"]) &':
+        {
+          visibility: "hidden",
+        },
+      // Freeze this backdrop's fade while an earlier sibling is already dimming
+      // behind it
+      '[data-overlay-stack-root]:has([data-part="backdrop"][data-state="open"]) ~ [data-overlay-stack-root] &':
+        {
+          animationName: "[none]",
+        },
     },
     header: {
       flex: "[0 0 auto]",

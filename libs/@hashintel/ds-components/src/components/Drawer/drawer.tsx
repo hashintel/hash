@@ -287,7 +287,7 @@ const DrawerRoot = ({
       finalFocusEl={returnFocusRef ? () => returnFocusRef.current : undefined}
     >
       <Portal container={portalContainerRef}>
-        <div className={classes.stackRoot}>
+        <div className={classes.stackRoot} data-overlay-stack-root="">
           {showBackdrop && <ArkDrawer.Backdrop className={backdropClassName} />}
           <ArkDrawer.Positioner className={classes.positioner}>
             <ArkDrawer.Content
