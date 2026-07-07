@@ -10,7 +10,7 @@ import { sva } from "@hashintel/ds-helpers/css";
  * The drawer can be anchored to any viewport edge via the `position` variant,
  * which sets the anchor, the panel's dimensions, the rounded corners (the edge
  * it's flush against stays square), the shadow direction, and the slide
- * animation. `size` feeds `--drawer-width` and `--drawer-height`; `position`
+ * animation. `size` feeds `--panel-width` and `--panel-height`; `position`
  * maps the width to `maxWidth` (left/right) or the height to `maxHeight`
  * (top/bottom), since a top/bottom sheet reads best much shorter than a
  * left/right drawer is wide.
@@ -62,21 +62,21 @@ export const styles = sva({
     size: {
       sm: {
         content: {
-          "--drawer-width": "520px",
-          "--drawer-height": "280px",
+          "--panel-width": "520px",
+          "--panel-height": "280px",
           "--panel-horizontal-padding": "var(--spacing-4)",
           "--panel-top-padding": "var(--spacing-3\\.5)",
           "--panel-close-button-gap": "var(--spacing-2\\.5)",
         },
       },
       md: {
-        content: { "--drawer-width": "640px", "--drawer-height": "400px" },
+        content: { "--panel-width": "640px", "--panel-height": "400px" },
       },
       lg: {
-        content: { "--drawer-width": "860px", "--drawer-height": "560px" },
+        content: { "--panel-width": "860px", "--panel-height": "560px" },
       },
       xl: {
-        content: { "--drawer-width": "1060px", "--drawer-height": "720px" },
+        content: { "--panel-width": "1060px", "--panel-height": "720px" },
       },
     },
     position: {
@@ -88,7 +88,7 @@ export const styles = sva({
         },
         content: {
           height: "[100dvh]",
-          maxWidth: "[var(--drawer-width)]",
+          maxWidth: "[var(--panel-width)]",
           borderTopLeftRadius: "xl",
           borderBottomLeftRadius: "xl",
           borderTopRightRadius: "[0]",
@@ -107,7 +107,7 @@ export const styles = sva({
         },
         content: {
           height: "[100dvh]",
-          maxWidth: "[var(--drawer-width)]",
+          maxWidth: "[var(--panel-width)]",
           borderTopRightRadius: "xl",
           borderBottomRightRadius: "xl",
           borderTopLeftRadius: "[0]",
@@ -127,7 +127,7 @@ export const styles = sva({
         },
         content: {
           height: "[100%]",
-          maxHeight: "[var(--drawer-height)]",
+          maxHeight: "[var(--panel-height)]",
           borderBottomLeftRadius: "xl",
           borderBottomRightRadius: "xl",
           borderTopLeftRadius: "[0]",
@@ -147,7 +147,7 @@ export const styles = sva({
         },
         content: {
           height: "[100%]",
-          maxHeight: "[var(--drawer-height)]",
+          maxHeight: "[var(--panel-height)]",
           borderTopLeftRadius: "xl",
           borderTopRightRadius: "xl",
           borderBottomLeftRadius: "[0]",
