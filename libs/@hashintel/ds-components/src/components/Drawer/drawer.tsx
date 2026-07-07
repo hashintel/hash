@@ -65,11 +65,15 @@ const translateForPosition = (
  * order so a drawer can offset itself far enough to keep its edge peeking out
  * from behind the drawers stacked on top of it. Measuring from the DOM means
  * drawers with custom widths/heights stack correctly, not just the preset sizes.
+ * Each entry also tracks whether its drawer is still open: a drawer that has
+ * begun closing immediately stops offsetting the drawers beneath it, so they
+ * un-nest in step with its slide-out instead of after it finishes and unmounts.
  */
 type DrawerStackEntry = {
   order: number;
   position: DrawerPosition;
   extent: number;
+  open: boolean;
 };
 const drawerStackEntries = new Map<string, DrawerStackEntry>();
 const drawerStackListeners = new Set<() => void>();
@@ -102,22 +106,25 @@ const computeDrawerStackTranslate = (id: string): string => {
 
   let aboveExtent = 0;
   let aboveTranslation = 0;
-  for (const [index, entry] of stack.entries()) {
+  let hasOpenAbove = false;
+  for (const entry of stack) {
     const extent = entry.extent;
-    const translation =
-      index === 0
-        ? 0
-        : Math.max(
-            extent,
-            aboveExtent + STACK_LAYER_OFFSET_PX + aboveTranslation,
-          ) - extent;
+    const translation = hasOpenAbove
+      ? Math.max(
+          extent,
+          aboveExtent + STACK_LAYER_OFFSET_PX + aboveTranslation,
+        ) - extent
+      : 0;
 
     if (entry.order === self.order) {
       return translateForPosition(self.position, translation);
     }
 
-    aboveExtent = extent;
-    aboveTranslation = translation;
+    if (entry.open) {
+      aboveExtent = extent;
+      aboveTranslation = translation;
+      hasOpenAbove = true;
+    }
   }
 
   return "0 0";
@@ -125,6 +132,7 @@ const computeDrawerStackTranslate = (id: string): string => {
 
 const useDrawerStackTranslate = (
   position: DrawerPosition,
+  open: boolean,
 ): {
   ref: (node: HTMLDivElement | null) => void;
   translate: string;
@@ -161,11 +169,12 @@ const useDrawerStackTranslate = (
         existing &&
         existing.order === order &&
         existing.position === position &&
-        existing.extent === extent
+        existing.extent === extent &&
+        existing.open === open
       ) {
         return;
       }
-      drawerStackEntries.set(id, { order, position, extent });
+      drawerStackEntries.set(id, { order, position, extent, open });
       emitDrawerStackChange();
     };
 
@@ -178,7 +187,7 @@ const useDrawerStackTranslate = (
       drawerStackEntries.delete(id);
       emitDrawerStackChange();
     };
-  }, [id, position, contentNode]);
+  }, [id, position, contentNode, open]);
 
   const translate = useSyncExternalStore(
     subscribeToDrawerStack,
@@ -233,13 +242,6 @@ const DrawerRoot = ({
 
   const classes = useMemo(() => styles({ size, position }), [size, position]);
 
-  const { ref: stackContentRef, translate: stackTranslate } =
-    useDrawerStackTranslate(position);
-
-  const renderCloseButton = shouldCloseOn !== "none";
-  const closeOnEscape = shouldCloseOn !== "none";
-  const closeOnInteractOutside = shouldCloseOn === "closeButtonAndOverlay";
-
   // The parent mounts/unmounts the Drawer to open/close it, but Ark only plays
   // the slide animations when `open` actually transitions. So we drive `open`
   // internally: it starts closed and flips open on the next frame (playing the
@@ -256,6 +258,16 @@ const DrawerRoot = ({
       cancelAnimationFrame(frame);
     };
   }, []);
+
+  // `open` is passed to the stack tracker so a drawer stops offsetting the
+  // drawers beneath it the moment it starts closing, letting them un-nest in
+  // step with its slide-out.
+  const { ref: stackContentRef, translate: stackTranslate } =
+    useDrawerStackTranslate(position, open);
+
+  const renderCloseButton = shouldCloseOn !== "none";
+  const closeOnEscape = shouldCloseOn !== "none";
+  const closeOnInteractOutside = shouldCloseOn === "closeButtonAndOverlay";
 
   const requestClose = () => {
     setOpen(false);

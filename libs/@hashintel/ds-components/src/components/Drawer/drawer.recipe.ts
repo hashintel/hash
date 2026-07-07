@@ -43,7 +43,7 @@ export const styles = sva({
       outline: "none",
       backgroundColor: "neutral.s10",
       padding: "1",
-      transition: "[transform 0.2s ease, translate 0.12s ease]",
+      transition: "[transform 0.2s ease, translate 0.15s ease]",
       _open: {
         animationDuration: "normal",
       },
